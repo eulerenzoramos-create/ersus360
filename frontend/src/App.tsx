@@ -154,6 +154,17 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: {
             <Icon size={13} />{label}
           </NavLink>
         ))}
+        <button
+          onClick={onLogout}
+          style={{
+            marginLeft: "auto", padding: "6px 14px", fontSize: 12, fontWeight: 600,
+            color: "#dc2626", background: "#fff0f0", border: "1px solid #fecaca",
+            borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center",
+            gap: 5, whiteSpace: "nowrap", alignSelf: "center", flexShrink: 0,
+          }}
+        >
+          ⏻ Sair
+        </button>
       </nav>
 
       <main style={{ maxWidth: 980, margin: "0 auto" }}>{children}</main>
