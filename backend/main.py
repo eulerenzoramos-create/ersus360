@@ -23,11 +23,17 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # ── Startup ──────────────────────────────────────────────────
     logger.info("🚀 ERSUS 360 iniciando — %s/%s", settings.MUNICIPIO_NOME, settings.MUNICIPIO_UF)
-    await init_db()
-    await _seed_dados_iniciais()
+    try:
+        await init_db()
+        await _seed_dados_iniciais()
+    except Exception as exc:
+        logger.error("Erro na inicialização do banco: %s", exc, exc_info=True)
 
-    from scheduler import start_scheduler
-    start_scheduler()
+    try:
+        from scheduler import start_scheduler
+        start_scheduler()
+    except Exception as exc:
+        logger.error("Erro ao iniciar scheduler: %s", exc, exc_info=True)
 
     yield
 
