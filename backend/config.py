@@ -20,6 +20,19 @@ class Settings(BaseSettings):
     FNS_SYNC_HORA: str = "06:00"
     FNS_TIMEOUT_SECONDS: int = 30
 
+    # FNS API (apifns.saude.gov.br)
+    FNS_API_BASE: str = "https://apifns.saude.gov.br"
+    FNS_API_CPF: str = ""       # CPF do gestor (sem pontos/traços)
+    FNS_API_SENHA: str = ""     # Senha do gestor FNS
+
+    # e-SUS PEC
+    ESUS_URL: str = "https://esus.apui.am.gov.br"
+    ESUS_USUARIO: str = ""      # Login do e-SUS PEC
+    ESUS_SENHA: str = ""        # Senha do e-SUS PEC
+
+    # CNES (DATASUS — sem credencial)
+    CNES_API: str = "https://cnes.datasus.gov.br/services"
+
     # App
     APP_NAME: str = "ERSUS 360"
     MUNICIPIO_NOME: str = "Apuí"

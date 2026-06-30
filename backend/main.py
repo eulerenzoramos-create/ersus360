@@ -86,6 +86,7 @@ from routers.modulos import (
     transporte_router,
     regulacao_router,
 )
+from routers.integracao import router as integracao_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -110,6 +111,7 @@ app.include_router(vigilancia_router)
 app.include_router(transporte_router)
 app.include_router(regulacao_router)
 app.include_router(emendas_router)
+app.include_router(integracao_router)
 
 
 @app.get("/")
