@@ -9,7 +9,7 @@ import {
   Activity, Pill, ShieldCheck, Truck, Network, MapPin, Users,
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
-  TrendingUp, PieChart, Layers, Star, Shield,
+  TrendingUp, PieChart, Layers, Star, Shield, Monitor,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -34,6 +34,7 @@ import Transporte      from "./pages/Transporte";
 import Regulacao       from "./pages/Regulacao";
 import Emendas         from "./pages/Emendas";
 import PrevineBrasil   from "./pages/PrevineBrasil";
+import Sus360          from "./pages/Sus360";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
 
@@ -282,9 +283,10 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
               <L2 to="/modulos"           label="Módulos"                  Icon={Star}/>
             </Acc1>
 
-            {/* Item especial inferior */}
+            {/* ── SUS 360° ── */}
             <div style={{borderTop:"1px solid #f0f0f0", marginTop:4}}>
-              <L1 to="/ia" label="IA Gestora" Icon={Bot}/>
+              <L1 to="/sus360" label="SUS 360° — MS" Icon={Monitor}/>
+              <L1 to="/ia"     label="IA Gestora"    Icon={Bot}/>
             </div>
 
           </div>
@@ -344,6 +346,7 @@ export default function App() {
             <Route path="/fns"                   element={<FnsConvenios/>}/>
             <Route path="/repasses"              element={<FnsConvenios/>}/>
             <Route path="/ia"                    element={<IAGestora/>}/>
+            <Route path="/sus360"                element={<Sus360/>}/>
             <Route path="/portarias"             element={<Portarias/>}/>
             <Route path="/obras"                 element={<Obras/>}/>
             <Route path="/obras/*"               element={<Obras/>}/>
