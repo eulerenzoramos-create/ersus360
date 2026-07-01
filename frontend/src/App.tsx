@@ -33,6 +33,7 @@ import Login           from "./pages/Login";
 import Transporte      from "./pages/Transporte";
 import Regulacao       from "./pages/Regulacao";
 import Emendas         from "./pages/Emendas";
+import PrevineBrasil   from "./pages/PrevineBrasil";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
 
@@ -335,8 +336,8 @@ export default function App() {
             <Route path="/painel"                element={<PainelGestor/>}/>
             <Route path="/indicadores"           element={<Indicadores/>}/>
             <Route path="/ind/*"                 element={<Indicadores/>}/>
-            <Route path="/previne"               element={<Indicadores/>}/>
-            <Route path="/previne/*"             element={<Indicadores/>}/>
+            <Route path="/previne"               element={<PrevineBrasil/>}/>
+            <Route path="/previne/*"             element={<PrevineBrasil/>}/>
             <Route path="/gestao"                element={<PainelGestor/>}/>
             <Route path="/gestao/*"              element={<PainelGestor/>}/>
             <Route path="/modulos"               element={<Modulos/>}/>
