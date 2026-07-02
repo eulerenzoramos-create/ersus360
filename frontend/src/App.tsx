@@ -166,10 +166,101 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
         <aside style={{width:250,background:"#fff",borderRight:"1px solid #e0e0e0",display:"flex",flexDirection:"column",overflow:"hidden"}}>
           <div style={{flex:1,overflowY:"auto"}}>
 
-            {/* Itens simples no topo */}
-            <L1 to="/"       label="Home"                 Icon={Home}     end />
-            <L1 to="/painel" label="Ranking"              Icon={BarChart2} />
-            <L1 to="/mapa"   label="Mapa de Desempenho"   Icon={Map} />
+            {/* ── Topo ── */}
+            <L1 to="/"        label="Home"               Icon={Home}    end />
+            <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
+            <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
+
+            {/* ── Saúde Brasil 360 ── */}
+            <Acc1 label="Saúde Brasil 360">
+              <Acc2 label="Vínculo e Acompanhamento">
+                <L3 to="/sb360/consolidado-territorial"   label="Consolidado Acompanhamento Territorial" Icon={PieChart}/>
+                <L3 to="/sb360/acompanhamento-territorial" label="Acompanhamento Territorial"           Icon={MapPin}/>
+              </Acc2>
+              <Acc2 label="Qualidade e Desempenho">
+                <Acc2 label="Equipes de Atenção Primária">
+                  <L3 to="/sb360/mais-acesso-aps"              label="Mais Acesso à APS"                    Icon={Heart}/>
+                  <L3 to="/sb360/desenvolvimento-infantil"     label="Cuidado no Desenvolvimento Infantil"  Icon={Baby}/>
+                  <L3 to="/sb360/gestante-puerpera"            label="Cuidado da Gestante e Puérpera"       Icon={Baby}/>
+                  <L3 to="/sb360/pessoa-diabetes"              label="Cuidado da Pessoa com Diabetes"       Icon={FlaskConical}/>
+                  <L3 to="/sb360/pessoa-hipertensao"           label="Cuidado da Pessoa com Hipertensão"    Icon={Activity}/>
+                  <L3 to="/sb360/pessoa-idosa"                 label="Cuidado da Pessoa Idosa"              Icon={UserCheck}/>
+                  <L3 to="/sb360/mulher-cancer"                label="Cuidado da Mulher — Prevenção Câncer" Icon={ShieldCheck}/>
+                </Acc2>
+                <L3 to="/sb360/saude-bucal"                  label="Saúde Bucal"                          Icon={Stethoscope}/>
+                <L3 to="/sb360/equipes-multiprofissionais"   label="Equipes Multiprofissionais"            Icon={Users}/>
+              </Acc2>
+            </Acc1>
+
+            {/* ── Previne Brasil ── */}
+            <Acc1 label="Previne Brasil">
+              <L2 to="/previne"      label="Consolidado"                              Icon={PieChart}/>
+              <L2 to="/previne/ind1" label="Ind. 1 — Pré-natal (≥6 consultas)"       Icon={Baby}/>
+              <L2 to="/previne/ind2" label="Ind. 2 — Citopatológico"                 Icon={Stethoscope}/>
+              <L2 to="/previne/ind3" label="Ind. 3 — Vacinação (DTP/Penta)"          Icon={Syringe}/>
+              <L2 to="/previne/ind4" label="Ind. 4 — Pré-natal 1ª semana"            Icon={Heart}/>
+              <L2 to="/previne/ind5" label="Ind. 5 — Hipertensão"                    Icon={Activity}/>
+              <L2 to="/previne/ind6" label="Ind. 6 — Diabetes"                       Icon={FlaskConical}/>
+              <L2 to="/previne/ind7" label="Ind. 7 — Desenvolvimento Infantil"       Icon={Star}/>
+            </Acc1>
+
+            {/* ── Painel de Gestão ── */}
+            <Acc1 label="Painel de Gestão">
+              <L2 to="/gestao"                  label="Consolidado"               Icon={PieChart}/>
+              <L2 to="/gestao/atend"            label="Atendimentos"              Icon={UserCheck}/>
+              <L2 to="/gestao/atend-odonto"     label="Atendimentos Odontológicos" Icon={Stethoscope}/>
+              <L2 to="/gestao/atividades"       label="Atividades Coletivas"      Icon={Users}/>
+              <L2 to="/gestao/procedimentos"    label="Consolidado Procedimentos" Icon={Clipboard}/>
+              <L2 to="/gestao/encaminhamentos"  label="Encaminhamentos"           Icon={ArrowLeftRight}/>
+              <L2 to="/gestao/procedimentos2"   label="Procedimentos"             Icon={ClipboardList}/>
+              <L2 to="/gestao/vacinas"          label="Vacinas"                   Icon={Syringe}/>
+              <L2 to="/gestao/visitas"          label="Visitas Domiciliares"      Icon={Home}/>
+            </Acc1>
+
+            {/* ── Busca Ativa ── */}
+            <Acc1 label="Busca Ativa">
+              <L2 to="/busca-ativa/gestante"  label="Gestante"  Icon={Baby}/>
+              <L2 to="/busca-ativa/vacinas"   label="Vacinas"   Icon={Syringe}/>
+            </Acc1>
+
+            {/* ── ACS ── */}
+            <Acc1 label="ACS">
+              <L2 to="/acs/painel"             label="Painel do ACS"                    Icon={BarChart3}/>
+              <L2 to="/acs/cadastros-ind"      label="Cadastros Individuais"            Icon={UserCheck}/>
+              <L2 to="/acs/cadastros-dom"      label="Cadastros Domiciliares"           Icon={Home}/>
+              <L2 to="/acs/cadastros-cid"      label="Cadastros do Cidadão"             Icon={Users}/>
+              <L2 to="/acs/calendario"         label="Calendário de Visitas"            Icon={Calendar}/>
+              <L2 to="/acs/visitas-cidadao"    label="Visitas Domiciliares Cidadão"     Icon={MapPin}/>
+              <L2 to="/acs/mapa-visitas"       label="Mapa de Visitas Domiciliares"     Icon={Map}/>
+            </Acc1>
+
+            {/* ── Inconsistências ── */}
+            <Acc1 label="Inconsistências">
+              <L2 to="/inconsistencias/sem-responsavel"  label="Sem Responsável Informado"     Icon={UserCheck}/>
+              <L2 to="/inconsistencias/sem-documentos"   label="Sem Documentos"                Icon={FileText}/>
+              <L2 to="/inconsistencias/duplicados"       label="Cadastros Ind. Duplicados"     Icon={Clipboard}/>
+              <L2 to="/inconsistencias/domicilio-atual"  label="Cadastros Em Domicílio Atual"  Icon={Home}/>
+              <L2 to="/inconsistencias/cbo"              label="Cadastros Com CBO Divergente"  Icon={AlertTriangle}/>
+              <L2 to="/inconsistencias/prontuarios"      label="Prontuários Duplicados"        Icon={BookOpen}/>
+            </Acc1>
+
+            {/* ── POEPS ── */}
+            <Acc1 label="POEPS">
+              <L2 to="/poeps/ind1"  label="Ind. 1 — Atividade Física"                    Icon={Activity}/>
+              <L2 to="/poeps/ind2"  label="Ind. 2 — Educação em Saúde"                   Icon={BookOpen}/>
+              <L2 to="/poeps/ind3"  label="Ind. 3 — Vigilância Alimentar e Nutricional"  Icon={ShieldCheck}/>
+              <L2 to="/poeps/ind5"  label="Ind. 5 — Vigilância Alimentar e Nutricional"  Icon={Shield}/>
+              <L2 to="/poeps/ind6"  label="Ind. 6 — Política de Equidade"                Icon={Star}/>
+              <L2 to="/poeps/ind7"  label="Ind. 7 — Política de Equidade"                Icon={Target}/>
+              <L2 to="/poeps/ind8"  label="Ind. 8 — Práticas Integrativas"               Icon={Heart}/>
+            </Acc1>
+
+            {/* ── Programa Saúde na Escola ── */}
+            <Acc1 label="Programa Saúde na Escola">
+              <L2 to="/pse/consolidado" label="Consolidado"  Icon={PieChart}/>
+              <L2 to="/pse/ind1"        label="Indicador 1"  Icon={BookOpen}/>
+              <L2 to="/pse/ind2"        label="Indicador 2"  Icon={BookOpen}/>
+            </Acc1>
 
             {/* ── FNS / Convênios ── */}
             <Acc1 label="FNS / Convênios">
@@ -184,109 +275,11 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
               </Acc2>
             </Acc1>
 
-            {/* ── Indicadores PAS ── */}
-            <Acc1 label="Indicadores PAS" open>
-              <L2 to="/indicadores"   label="Consolidado"                Icon={PieChart}/>
-              <Acc2 label="Saúde da Mulher">
-                <L3 to="/ind/prenatal"  label="Pré-natal 7+ Consultas"  Icon={Baby}/>
-                <L3 to="/ind/parto"     label="Proporção de Parto Normal" Icon={Heart}/>
-                <L3 to="/ind/cancer"    label="Rastreamento do Câncer"  Icon={Stethoscope}/>
-              </Acc2>
-              <Acc2 label="Atenção Primária">
-                <L3 to="/ind/esf"       label="Cobertura da ESF"        Icon={UserCheck}/>
-                <L3 to="/ind/icsap"     label="Acompanhamento ICSAP"    Icon={Activity}/>
-              </Acc2>
-              <Acc2 label="Imunização">
-                <L3 to="/ind/bcg"       label="Cobertura Vacinal BCG"   Icon={Syringe}/>
-              </Acc2>
-              <Acc2 label="Financeiro">
-                <L3 to="/ind/mac"       label="Execução Financeira MAC" Icon={TrendingUp}/>
-              </Acc2>
-              <Acc2 label="Farmácia">
-                <L3 to="/ind/farmacpop" label="Dispensação Farmácia Popular" Icon={Pill}/>
-              </Acc2>
-            </Acc1>
-
-            {/* ── Previne Brasil ── */}
-            <Acc1 label="Previne Brasil">
-              <L2 to="/previne"         label="Consolidado"             Icon={PieChart}/>
-              <L2 to="/previne/ind1"    label="Indicador 1 — Pré-natal" Icon={Baby}/>
-              <L2 to="/previne/ind2"    label="Indicador 2 — Cobertura Vacinal" Icon={Syringe}/>
-              <L2 to="/previne/ind3"    label="Indicador 3 — Gestantes DM/HAS" Icon={Heart}/>
-              <L2 to="/previne/ind4"    label="Indicador 4 — Saúde Bucal"     Icon={Stethoscope}/>
-              <L2 to="/previne/ind5"    label="Indicador 5 — Tabagismo"       Icon={Shield}/>
-              <L2 to="/previne/ind6"    label="Indicador 6 — Hipertensão"     Icon={Activity}/>
-              <L2 to="/previne/ind7"    label="Indicador 7 — Diabetes"        Icon={FlaskConical}/>
-            </Acc1>
-
-            {/* ── Painel de Gestão ── */}
-            <Acc1 label="Painel de Gestão">
-              <L2 to="/gestao"            label="Consolidado"               Icon={PieChart}/>
-              <L2 to="/gestao/atend"      label="Atendimentos"              Icon={UserCheck}/>
-              <L2 to="/gestao/atend-odonto" label="Atendimentos Odontológicos" Icon={Stethoscope}/>
-              <L2 to="/gestao/atividades" label="Atividades Coletivas"      Icon={Users}/>
-              <L2 to="/gestao/procedimentos" label="Consolidado Procedimentos" Icon={Clipboard}/>
-              <L2 to="/gestao/encaminhamentos" label="Encaminhamentos"      Icon={ArrowLeftRight}/>
-              <L2 to="/gestao/vacinas"    label="Vacinas"                   Icon={Syringe}/>
-              <L2 to="/gestao/visitas"    label="Visitas Domiciliares"      Icon={Home}/>
-            </Acc1>
-
-            {/* ── Obras ── */}
-            <Acc1 label="Obras">
-              <L2 to="/obras"             label="Acompanhamento de Obras"   Icon={Building2}/>
-              <L2 to="/obras/prestacao"   label="Prestação de Contas"       Icon={FileText}/>
-            </Acc1>
-
-            {/* ── Programas de Saúde ── */}
-            <Acc1 label="Programas de Saúde">
-              <Acc2 label="Atenção Primária (APS)">
-                <L3 to="/aps"             label="Painel APS"               Icon={Heart}/>
-                <L3 to="/aps/esf"         label="Estratégia Saúde da Família" Icon={UserCheck}/>
-              </Acc2>
-              <Acc2 label="Assistência Farmacêutica">
-                <L3 to="/farmacia"        label="Dispensação"              Icon={Pill}/>
-                <L3 to="/farmacia/estoque" label="Controle de Estoque"     Icon={Layers}/>
-              </Acc2>
-              <Acc2 label="Vigilância em Saúde">
-                <L3 to="/vigilancia"      label="Epidemiológica"           Icon={ShieldCheck}/>
-                <L3 to="/vigilancia/san"  label="Sanitária"                Icon={Shield}/>
-              </Acc2>
-              <L2 to="/regulacao"         label="Regulação — SISREG"       Icon={Network}/>
-              <L2 to="/transporte"        label="TFD / Passagens"          Icon={Truck}/>
-            </Acc1>
-
-            {/* ── Alertas ── */}
-            <Acc1 label="Alertas e Pendências">
-              <L2 to="/alertas"           label="Alertas Ativos"           Icon={Bell}/>
-              <L2 to="/alertas/criticos"  label="Pendências Críticas"      Icon={AlertTriangle}/>
-              <L2 to="/alertas/prazos"    label="Prazos do FNS"            Icon={Calendar}/>
-            </Acc1>
-
-            {/* ── Inconsistências ── */}
-            <Acc1 label="Inconsistências">
-              <L2 to="/inconsistencias/responsavel" label="Sem Responsável Informado" Icon={UserCheck}/>
-              <L2 to="/inconsistencias/documentos"  label="Sem Documentos"           Icon={FileText}/>
-              <L2 to="/inconsistencias/duplicados"  label="Cadastros Duplicados"     Icon={Clipboard}/>
-            </Acc1>
-
-            {/* ── Relatórios e Planejamento ── */}
-            <Acc1 label="Relatórios e Planejamento">
-              <L2 to="/relatorios"        label="Relatórios"               Icon={BarChart3}/>
-              <L2 to="/planejamento"      label="Planejamento"             Icon={ClipboardList}/>
-              <L2 to="/documentos"        label="Documentos"               Icon={FolderOpen}/>
-            </Acc1>
-
-            {/* ── Gestão Municipal ── */}
-            <Acc1 label="Gestão Municipal">
-              <L2 to="/municipio"         label="Município"                Icon={MapPin}/>
-              <L2 to="/usuarios"          label="Usuários do Sistema"      Icon={Users}/>
-              <L2 to="/modulos"           label="Módulos"                  Icon={Star}/>
-            </Acc1>
-
-            {/* ── SUS 360° ── */}
+            {/* ── Informatiza APS ── */}
             <div style={{borderTop:"1px solid #f0f0f0", marginTop:4}}>
-              <L1 to="/sus360" label="SUS 360° — MS" Icon={Monitor}/>
-              <L1 to="/ia"     label="IA Gestora"    Icon={Bot}/>
+              <L1 to="/informatiza-aps" label="Informatiza APS"  Icon={Network}/>
+              <L1 to="/sus360"          label="SUS 360° — MS"    Icon={Monitor}/>
+              <L1 to="/ia"              label="IA Gestora"        Icon={Bot}/>
             </div>
 
           </div>
@@ -334,41 +327,58 @@ export default function App() {
       <BrowserRouter>
         <Layout nomeUsuario={nomeUsuario} onLogout={handleLogout}>
           <Routes>
-            <Route path="/"                      element={<PainelGestor/>}/>
-            <Route path="/painel"                element={<PainelGestor/>}/>
-            <Route path="/indicadores"           element={<Indicadores/>}/>
-            <Route path="/ind/*"                 element={<Indicadores/>}/>
-            <Route path="/previne"               element={<PrevineBrasil/>}/>
-            <Route path="/previne/*"             element={<PrevineBrasil/>}/>
-            <Route path="/gestao"                element={<PainelGestor/>}/>
-            <Route path="/gestao/*"              element={<PainelGestor/>}/>
-            <Route path="/modulos"               element={<Modulos/>}/>
-            <Route path="/fns"                   element={<FnsConvenios/>}/>
-            <Route path="/repasses"              element={<FnsConvenios/>}/>
-            <Route path="/ia"                    element={<IAGestora/>}/>
-            <Route path="/sus360"                element={<Sus360/>}/>
-            <Route path="/portarias"             element={<Portarias/>}/>
-            <Route path="/obras"                 element={<Obras/>}/>
-            <Route path="/obras/*"               element={<Obras/>}/>
-            <Route path="/execucao"              element={<Execucao/>}/>
-            <Route path="/documentos"            element={<Documentos/>}/>
-            <Route path="/inconsistencias/*"     element={<Documentos/>}/>
-            <Route path="/alertas"               element={<Alertas/>}/>
-            <Route path="/alertas/*"             element={<Alertas/>}/>
-            <Route path="/relatorios"            element={<Relatorios/>}/>
-            <Route path="/aps"                   element={<APS/>}/>
-            <Route path="/aps/*"                 element={<APS/>}/>
-            <Route path="/farmacia"              element={<Farmacia/>}/>
-            <Route path="/farmacia/*"            element={<Farmacia/>}/>
-            <Route path="/planejamento"          element={<Planejamento/>}/>
-            <Route path="/vigilancia"            element={<Vigilancia/>}/>
-            <Route path="/vigilancia/*"          element={<Vigilancia/>}/>
-            <Route path="/transporte"            element={<Transporte/>}/>
-            <Route path="/regulacao"             element={<Regulacao/>}/>
-            <Route path="/usuarios"              element={<Usuarios/>}/>
-            <Route path="/municipio"             element={<Municipio/>}/>
-            <Route path="/emendas"               element={<Emendas/>}/>
-            <Route path="/mapa"                  element={<PainelGestor/>}/>
+            <Route path="/"                          element={<PainelGestor/>}/>
+            <Route path="/ranking"                   element={<Indicadores/>}/>
+            <Route path="/mapa"                      element={<PainelGestor/>}/>
+            {/* Saúde Brasil 360 */}
+            <Route path="/sb360/*"                   element={<APS/>}/>
+            {/* Previne Brasil */}
+            <Route path="/previne"                   element={<PrevineBrasil/>}/>
+            <Route path="/previne/*"                 element={<PrevineBrasil/>}/>
+            {/* Painel de Gestão */}
+            <Route path="/gestao"                    element={<PainelGestor/>}/>
+            <Route path="/gestao/*"                  element={<PainelGestor/>}/>
+            {/* Busca Ativa */}
+            <Route path="/busca-ativa/*"             element={<Alertas/>}/>
+            {/* ACS */}
+            <Route path="/acs/*"                     element={<Municipio/>}/>
+            {/* Inconsistências */}
+            <Route path="/inconsistencias/*"         element={<Documentos/>}/>
+            {/* POEPS */}
+            <Route path="/poeps/*"                   element={<Indicadores/>}/>
+            {/* PSE */}
+            <Route path="/pse/*"                     element={<Indicadores/>}/>
+            {/* FNS */}
+            <Route path="/fns"                       element={<FnsConvenios/>}/>
+            <Route path="/repasses"                  element={<FnsConvenios/>}/>
+            <Route path="/portarias"                 element={<Portarias/>}/>
+            <Route path="/execucao"                  element={<Execucao/>}/>
+            <Route path="/emendas"                   element={<Emendas/>}/>
+            {/* Informatiza APS */}
+            <Route path="/informatiza-aps"           element={<APS/>}/>
+            {/* Demais */}
+            <Route path="/ia"                        element={<IAGestora/>}/>
+            <Route path="/sus360"                    element={<Sus360/>}/>
+            <Route path="/obras"                     element={<Obras/>}/>
+            <Route path="/obras/*"                   element={<Obras/>}/>
+            <Route path="/documentos"                element={<Documentos/>}/>
+            <Route path="/alertas"                   element={<Alertas/>}/>
+            <Route path="/alertas/*"                 element={<Alertas/>}/>
+            <Route path="/relatorios"                element={<Relatorios/>}/>
+            <Route path="/planejamento"              element={<Planejamento/>}/>
+            <Route path="/aps"                       element={<APS/>}/>
+            <Route path="/aps/*"                     element={<APS/>}/>
+            <Route path="/farmacia"                  element={<Farmacia/>}/>
+            <Route path="/farmacia/*"                element={<Farmacia/>}/>
+            <Route path="/vigilancia"                element={<Vigilancia/>}/>
+            <Route path="/vigilancia/*"              element={<Vigilancia/>}/>
+            <Route path="/transporte"                element={<Transporte/>}/>
+            <Route path="/regulacao"                 element={<Regulacao/>}/>
+            <Route path="/usuarios"                  element={<Usuarios/>}/>
+            <Route path="/municipio"                 element={<Municipio/>}/>
+            <Route path="/modulos"                   element={<Modulos/>}/>
+            <Route path="/indicadores"               element={<Indicadores/>}/>
+            <Route path="/ind/*"                     element={<Indicadores/>}/>
           </Routes>
         </Layout>
       </BrowserRouter>
