@@ -43,6 +43,7 @@ import BI              from "./pages/BI";
 import OCIS            from "./pages/OCIS";
 import Patrimonio      from "./pages/Patrimonio";
 import PortalCidadao   from "./pages/PortalCidadao";
+import PortalGestor    from "./pages/PortalGestor";
 import Marketplace     from "./pages/Marketplace";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -309,6 +310,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
               <L1 to="/bi"              label="Business Intelligence" Icon={TrendingUp}/>
               <L1 to="/ocis"            label="OCIS — Operações"      Icon={Radio}/>
               <L1 to="/patrimonio"      label="Patrimônio e Frota"    Icon={Truck}/>
+              <L1 to="/portal-gestor"   label="Painel do Prefeito"     Icon={Star}/>
               <L1 to="/portal-cidadao"  label="Portal do Cidadão"     Icon={Globe}/>
               <L1 to="/marketplace"     label="Marketplace & Academia" Icon={ShoppingBag}/>
             </div>
@@ -425,6 +427,7 @@ export default function App() {
             <Route path="/ocis/*"                    element={<OCIS/>}/>
             <Route path="/patrimonio"                element={<Patrimonio/>}/>
             <Route path="/patrimonio/*"              element={<Patrimonio/>}/>
+            <Route path="/portal-gestor"             element={<PortalGestor/>}/>
             <Route path="/portal-cidadao"            element={<PortalCidadao/>}/>
             <Route path="/marketplace"               element={<Marketplace/>}/>
             <Route path="/municipio"                 element={<Municipio/>}/>
