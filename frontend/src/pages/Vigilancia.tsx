@@ -1,7 +1,7 @@
 // Módulo 5 — Vigilância em Saúde (Epidemiológica + Sanitária + Ambiental)
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { apiVigilancia } from "../lib/api";
 import { ShieldCheck, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 const S = {
@@ -26,16 +26,16 @@ export default function Vigilancia() {
 
   const { data: dashboard } = useQuery<VigDashboard>({
     queryKey: ["vig-dashboard"],
-    queryFn: () => api.get("/api/vigilancia/dashboard").then((r) => r.data),
+    queryFn: apiVigilancia.dashboard,
   });
   const { data: agravos = [] } = useQuery<Agravo[]>({
     queryKey: ["vig-agravos"],
-    queryFn: () => api.get("/api/vigilancia/agravos").then((r) => r.data),
+    queryFn: apiVigilancia.agravos,
     enabled: aba === "epidemio",
   });
   const { data: vacinal = [] } = useQuery<VacinalItem[]>({
     queryKey: ["vig-vacinal"],
-    queryFn: () => api.get("/api/vigilancia/vacinacao").then((r) => r.data),
+    queryFn: apiVigilancia.vacinacao,
     enabled: aba === "vacinal",
   });
 

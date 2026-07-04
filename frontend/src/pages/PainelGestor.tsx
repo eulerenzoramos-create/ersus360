@@ -76,6 +76,19 @@ export default function PainelGestor() {
               Transformamos dados do SUS em decisões estratégicas para gestores municipais de saúde.
               Integramos e-SUS APS, FNS, CNES e SISAB em uma única plataforma.
             </p>
+            {sysInfo && (
+              <div style={{ display:"flex", gap:8, marginTop:14, flexWrap:"wrap" }}>
+                <span style={{ background:"rgba(255,255,255,.15)", borderRadius:20, padding:"4px 12px", fontSize:11, fontWeight:600 }}>
+                  {sysInfo.municipio}/{sysInfo.uf}
+                </span>
+                <span style={{ background:"rgba(255,255,255,.15)", borderRadius:20, padding:"4px 12px", fontSize:11 }}>
+                  IBGE {sysInfo.ibge}
+                </span>
+                <span style={{ background:"rgba(255,255,255,.15)", borderRadius:20, padding:"4px 12px", fontSize:11 }}>
+                  v{sysInfo.versao} · {sysInfo.modulos?.length ?? 0} módulos
+                </span>
+              </div>
+            )}
           </div>
           <div style={{ display:"flex", gap:10 }}>
             <div style={{ background:"rgba(255,255,255,.15)", borderRadius:10, padding:"14px 20px", textAlign:"center", minWidth:90 }}>

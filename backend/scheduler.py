@@ -49,12 +49,41 @@ async def _job_score_ersus() -> None:
 
 
 async def _job_alertas_automaticos() -> None:
-    """Job: gera alertas automáticos (férias vencidas, contratos expirando, metas em risco)."""
+    """Job: gera alertas WebSocket a partir de prazos urgentes da Agenda e outras fontes."""
     logger.info("[Scheduler] Verificando alertas automáticos...")
     try:
-        from database import AsyncSessionLocal
-        # Ponto de extensão: inserir alertas automáticos no banco
-        logger.info("[Scheduler] Verificação de alertas concluída.")
+        from datetime import timedelta
+        from routers.agenda import _OBRIGACOES
+        from routers.ws_alertas import manager
+
+        hoje = date.today()
+        alertas: list[dict] = []
+
+        for ev in _OBRIGACOES:
+            if ev["status"] == "concluido":
+                continue
+            d = date.fromisoformat(ev["data"])
+            delta = (d - hoje).days
+            if delta < 0:
+                alertas.append({
+                    "nivel": "CRITICO",
+                    "titulo": f"Prazo VENCIDO: {ev['titulo']}",
+                    "mensagem": f"Venceu há {abs(delta)} dia(s). Responsável: {ev['responsavel']}.",
+                    "modulo": "Agenda",
+                })
+            elif delta <= 7 and ev["prioridade"] == "alta":
+                alertas.append({
+                    "nivel": "AVISO",
+                    "titulo": f"Prazo urgente: {ev['titulo']}",
+                    "mensagem": f"Vence em {delta} dia(s). Responsável: {ev['responsavel']}.",
+                    "modulo": "Agenda",
+                })
+
+        for alerta in alertas:
+            await manager.broadcast(alerta)
+            logger.info("[Scheduler] Alerta agenda enviado: %s", alerta["titulo"])
+
+        logger.info("[Scheduler] %s alertas de agenda gerados.", len(alertas))
     except Exception as exc:
         logger.error("[Scheduler] Erro nos alertas automáticos: %s", exc, exc_info=True)
 
