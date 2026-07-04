@@ -10,7 +10,7 @@ import {
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
-  Cpu, Radio, Truck,
+  Cpu, Radio, Truck, Globe, ShoppingBag,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -42,6 +42,8 @@ import RH              from "./pages/RH";
 import BI              from "./pages/BI";
 import OCIS            from "./pages/OCIS";
 import Patrimonio      from "./pages/Patrimonio";
+import PortalCidadao   from "./pages/PortalCidadao";
+import Marketplace     from "./pages/Marketplace";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
 
@@ -291,9 +293,11 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
 
             {/* ── Gestão Operacional ── */}
             <div style={{borderTop:"1px solid #f0f0f0", marginTop:4}}>
-              <L1 to="/bi"          label="Business Intelligence" Icon={TrendingUp}/>
-              <L1 to="/ocis"        label="OCIS — Operações"      Icon={Radio}/>
-              <L1 to="/patrimonio"  label="Patrimônio e Frota"    Icon={Truck}/>
+              <L1 to="/bi"              label="Business Intelligence" Icon={TrendingUp}/>
+              <L1 to="/ocis"            label="OCIS — Operações"      Icon={Radio}/>
+              <L1 to="/patrimonio"      label="Patrimônio e Frota"    Icon={Truck}/>
+              <L1 to="/portal-cidadao"  label="Portal do Cidadão"     Icon={Globe}/>
+              <L1 to="/marketplace"     label="Marketplace & Academia" Icon={ShoppingBag}/>
             </div>
 
             {/* ── Administração ── */}
@@ -408,6 +412,8 @@ export default function App() {
             <Route path="/ocis/*"                    element={<OCIS/>}/>
             <Route path="/patrimonio"                element={<Patrimonio/>}/>
             <Route path="/patrimonio/*"              element={<Patrimonio/>}/>
+            <Route path="/portal-cidadao"            element={<PortalCidadao/>}/>
+            <Route path="/marketplace"               element={<Marketplace/>}/>
             <Route path="/municipio"                 element={<Municipio/>}/>
             <Route path="/modulos"                   element={<Modulos/>}/>
             <Route path="/indicadores"               element={<Indicadores/>}/>
