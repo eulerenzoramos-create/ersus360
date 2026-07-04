@@ -45,6 +45,7 @@ import Patrimonio      from "./pages/Patrimonio";
 import PortalCidadao   from "./pages/PortalCidadao";
 import PortalGestor    from "./pages/PortalGestor";
 import Marketplace     from "./pages/Marketplace";
+import MapaDesempenho  from "./pages/MapaDesempenho";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -368,7 +369,7 @@ export default function App() {
           <Routes>
             <Route path="/"                          element={<PainelGestor/>}/>
             <Route path="/ranking"                   element={<Indicadores/>}/>
-            <Route path="/mapa"                      element={<PainelGestor/>}/>
+            <Route path="/mapa"                      element={<MapaDesempenho/>}/>
             {/* Saúde Brasil 360 */}
             <Route path="/sb360/*"                   element={<APS/>}/>
             {/* Previne Brasil */}
