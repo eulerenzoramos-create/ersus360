@@ -53,6 +53,7 @@ import HistoricoAlertas from "./pages/HistoricoAlertas";
 import BuscaAtiva       from "./pages/BuscaAtiva";
 import RDQA             from "./pages/RDQA";
 import ScoreERSUS       from "./pages/ScoreERSUS";
+import Conformidade      from "./pages/Conformidade";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -320,6 +321,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             {/* ── Gestão Operacional ── */}
             <div style={{borderTop:"1px solid #f0f0f0", marginTop:4}}>
               <L1 to="/agenda"          label="Agenda de Gestão"      Icon={Calendar}/>
+              <L1 to="/conformidade"    label="Conformidade Legal"    Icon={Shield}/>
               <L1 to="/alertas/historico" label="Histórico de Alertas" Icon={Bell}/>
             <L1 to="/bi"              label="Business Intelligence" Icon={TrendingUp}/>
               <L1 to="/ocis"            label="OCIS — Operações"      Icon={Radio}/>
@@ -434,6 +436,7 @@ export default function App() {
             <Route path="/epidemiologia/*"           element={<Epidemiologia/>}/>
             <Route path="/siops"                     element={<SIOPS/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
+            <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
             <Route path="/transporte"                element={<Transporte/>}/>
             <Route path="/regulacao"                 element={<Regulacao/>}/>
