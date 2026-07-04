@@ -47,6 +47,7 @@ import PortalGestor    from "./pages/PortalGestor";
 import Marketplace     from "./pages/Marketplace";
 import MapaDesempenho  from "./pages/MapaDesempenho";
 import Epidemiologia   from "./pages/Epidemiologia";
+import SIOPS           from "./pages/SIOPS";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -281,6 +282,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
               </Acc2>
               <Acc2 label="Execução Financeira">
                 <L3 to="/execucao"  label="Execução por Bloco"          Icon={DollarSign}/>
+                <L3 to="/siops"     label="SIOPS / Mínimo Const."       Icon={Target}/>
                 <L3 to="/emendas"   label="Emendas Parlamentares"       Icon={Landmark}/>
               </Acc2>
             </Acc1>
@@ -416,6 +418,7 @@ export default function App() {
             <Route path="/vigilancia/*"              element={<Vigilancia/>}/>
             <Route path="/epidemiologia"             element={<Epidemiologia/>}/>
             <Route path="/epidemiologia/*"           element={<Epidemiologia/>}/>
+            <Route path="/siops"                     element={<SIOPS/>}/>
             <Route path="/transporte"                element={<Transporte/>}/>
             <Route path="/regulacao"                 element={<Regulacao/>}/>
             <Route path="/usuarios"                  element={<Usuarios/>}/>

@@ -97,6 +97,7 @@ from routers.portais import router as portais_router
 from routers.ws_alertas import router as ws_router
 from routers.previne import router as previne_router
 from routers.epidemiologia import router as epidemiologia_router
+from routers.siops import router as siops_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -132,6 +133,7 @@ app.include_router(portais_router)
 app.include_router(ws_router)
 app.include_router(previne_router)
 app.include_router(epidemiologia_router)
+app.include_router(siops_router)
 
 
 @app.get("/")

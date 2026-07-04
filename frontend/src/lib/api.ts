@@ -457,6 +457,14 @@ export const apiEpidemiologia = {
   dengue: () => apiGet("/api/epidemiologia/dengue"),
 };
 
+// ── SIOPS ─────────────────────────────────────────────────────────────────────
+export const apiSiops = {
+  apuracao: (ano = 2026) => apiGet("/api/siops/apuracao", { ano }),
+  trimestral: () => apiGet("/api/siops/trimestral"),
+  blocos: () => apiGet("/api/siops/blocos"),
+  historico: () => apiGet("/api/siops/historico"),
+};
+
 // ── Sistema ───────────────────────────────────────────────────────────────────
 export const apiSistema = {
   info: () => apiGet("/api/sistema/info"),
