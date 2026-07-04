@@ -35,6 +35,7 @@ import Regulacao       from "./pages/Regulacao";
 import Emendas         from "./pages/Emendas";
 import PrevineBrasil   from "./pages/PrevineBrasil";
 import Sus360          from "./pages/Sus360";
+import Auditoria       from "./pages/Auditoria";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
 
@@ -282,6 +283,12 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
               <L1 to="/ia"              label="IA Gestora"        Icon={Bot}/>
             </div>
 
+            {/* ── Administração ── */}
+            <div style={{borderTop:"1px solid #f0f0f0", marginTop:4}}>
+              <L1 to="/usuarios"   label="Gestão de Usuários"  Icon={Users}/>
+              <L1 to="/auditoria"  label="Auditoria do Sistema" Icon={Shield}/>
+            </div>
+
           </div>
 
           {/* Footer */}
@@ -375,6 +382,7 @@ export default function App() {
             <Route path="/transporte"                element={<Transporte/>}/>
             <Route path="/regulacao"                 element={<Regulacao/>}/>
             <Route path="/usuarios"                  element={<Usuarios/>}/>
+            <Route path="/auditoria"                 element={<Auditoria/>}/>
             <Route path="/municipio"                 element={<Municipio/>}/>
             <Route path="/modulos"                   element={<Modulos/>}/>
             <Route path="/indicadores"               element={<Indicadores/>}/>
