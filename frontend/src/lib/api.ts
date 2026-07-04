@@ -405,6 +405,58 @@ export const apiPrevine = {
   buscaAtiva: (indicador: number) => apiGet("/api/previne/busca-ativa", { indicador }),
 };
 
+// ── APS ───────────────────────────────────────────────────────────────────────
+export const apiAPS = {
+  dashboard: () => apiGet("/api/aps/dashboard"),
+  indicadores: () => apiGet("/api/aps/indicadores"),
+  producaoMensal: () => apiGet("/api/aps/producao-mensal"),
+  ubs: () => apiGet("/api/aps/ubs"),
+};
+
+// ── Farmácia ──────────────────────────────────────────────────────────────────
+export const apiFarmacia = {
+  dashboard: () => apiGet("/api/farmacia/dashboard"),
+  estoque: (params?: Record<string, unknown>) => apiGet("/api/farmacia/estoque", params),
+  dispensacoes: () => apiGet("/api/farmacia/dispensacoes"),
+  alertas: () => apiGet("/api/farmacia/alertas"),
+};
+
+// ── Vigilância em Saúde ───────────────────────────────────────────────────────
+export const apiVigilancia = {
+  dashboard: () => apiGet("/api/vigilancia/dashboard"),
+  agravos: () => apiGet("/api/vigilancia/agravos"),
+  vacinacao: () => apiGet("/api/vigilancia/vacinacao"),
+};
+
+// ── Transporte / TFD ─────────────────────────────────────────────────────────
+export const apiTransporte = {
+  dashboard: () => apiGet("/api/transporte/dashboard"),
+  veiculos: () => apiGet("/api/transporte/veiculos"),
+  tfd: () => apiGet("/api/transporte/tfd"),
+};
+
+// ── Regulação ────────────────────────────────────────────────────────────────
+export const apiRegulacao = {
+  dashboard: () => apiGet("/api/regulacao/dashboard"),
+  filaEspera: () => apiGet("/api/regulacao/fila-espera"),
+};
+
+// ── Planejamento ──────────────────────────────────────────────────────────────
+export const apiPlanejamento = {
+  dashboard: () => apiGet("/api/planejamento/dashboard"),
+  planos: () => apiGet("/api/planejamento/planos"),
+  metas: () => apiGet("/api/planejamento/metas"),
+};
+
+// ── Epidemiologia / SINAN ─────────────────────────────────────────────────────
+export const apiEpidemiologia = {
+  dashboard: () => apiGet("/api/epidemiologia/dashboard"),
+  notificacoes: (params?: Record<string, unknown>) => apiGet("/api/epidemiologia/notificacoes", params),
+  agravos: () => apiGet("/api/epidemiologia/agravos"),
+  malaria: () => apiGet("/api/epidemiologia/malaria"),
+  dengue: () => apiGet("/api/epidemiologia/dengue"),
+};
+
 // ── Sistema ───────────────────────────────────────────────────────────────────
 export const apiSistema = {
   info: () => apiGet("/api/sistema/info"),

@@ -46,6 +46,7 @@ import PortalCidadao   from "./pages/PortalCidadao";
 import PortalGestor    from "./pages/PortalGestor";
 import Marketplace     from "./pages/Marketplace";
 import MapaDesempenho  from "./pages/MapaDesempenho";
+import Epidemiologia   from "./pages/Epidemiologia";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -288,7 +289,8 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <Acc1 label="Módulos Operacionais">
               <L2 to="/farmacia"    label="Assistência Farmacêutica" Icon={Pill}/>
               <L2 to="/aps"         label="Atenção Primária (APS)"   Icon={Heart}/>
-              <L2 to="/vigilancia"  label="Vigilância em Saúde"      Icon={ShieldCheck}/>
+              <L2 to="/vigilancia"    label="Vigilância em Saúde"       Icon={ShieldCheck}/>
+              <L2 to="/epidemiologia" label="Epidemiologia / SINAN"    Icon={Activity}/>
               <L2 to="/planejamento" label="Planejamento em Saúde"   Icon={ClipboardList}/>
               <L2 to="/obras"       label="Obras e Infraestrutura"   Icon={Building2}/>
               <L2 to="/transporte"  label="Transporte / TFD"         Icon={Truck}/>
@@ -412,6 +414,8 @@ export default function App() {
             <Route path="/farmacia/*"                element={<Farmacia/>}/>
             <Route path="/vigilancia"                element={<Vigilancia/>}/>
             <Route path="/vigilancia/*"              element={<Vigilancia/>}/>
+            <Route path="/epidemiologia"             element={<Epidemiologia/>}/>
+            <Route path="/epidemiologia/*"           element={<Epidemiologia/>}/>
             <Route path="/transporte"                element={<Transporte/>}/>
             <Route path="/regulacao"                 element={<Regulacao/>}/>
             <Route path="/usuarios"                  element={<Usuarios/>}/>
