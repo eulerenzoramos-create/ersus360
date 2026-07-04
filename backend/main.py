@@ -93,6 +93,7 @@ from routers.rh import router as rh_router
 from routers.bi import router as bi_router
 from routers.ocis import router as ocis_router
 from routers.patrimonio import router as patrimonio_router
+from routers.portais import router as portais_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -124,6 +125,7 @@ app.include_router(rh_router)
 app.include_router(bi_router)
 app.include_router(ocis_router)
 app.include_router(patrimonio_router)
+app.include_router(portais_router)
 
 
 @app.get("/")
