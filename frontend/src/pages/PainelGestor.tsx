@@ -1,10 +1,6 @@
 // src/pages/PainelGestor.tsx — ERSUS 360 · Home BI de APS
 import { useQuery } from "@tanstack/react-query";
-import { apiDashboard, apiAlertas, apiIndicadores } from "../lib/api";
-
-const API = import.meta.env.VITE_API_URL ?? "https://ersus360-production.up.railway.app";
-const _tkn = () => localStorage.getItem("ersus_token") ?? "";
-const _hdr = () => ({ Authorization: `Bearer ${_tkn()}` });
+import { apiDashboard, apiAlertas, apiIndicadores, apiBI, apiSistema } from "../lib/api";
 import {
   TrendingUp, TrendingDown, AlertTriangle, AlertCircle, CheckCircle,
   Activity, DollarSign, Target, Bell, BarChart2, Users, Pill,
@@ -53,7 +49,8 @@ export default function PainelGestor() {
   const { data: stats, isLoading } = useQuery({ queryKey:["dashboard"], queryFn:() => apiDashboard.stats() });
   const { data: alertas = [] }     = useQuery({ queryKey:["alertas"],   queryFn:() => apiAlertas.list() });
   const { data: indicadores = [] } = useQuery({ queryKey:["indicadores"], queryFn:() => apiIndicadores.list() });
-  const { data: scoreData }        = useQuery({ queryKey:["bi-score-home"], queryFn:() => fetch(`${API}/api/bi/score`, { headers: _hdr() }).then(r => r.json()) });
+  const { data: scoreData }        = useQuery({ queryKey:["bi-score-home"], queryFn: apiBI.score });
+  const { data: sysInfo }          = useQuery({ queryKey:["sistema-info"], queryFn: apiSistema.info, staleTime: 60_000 });
 
   const semaforo = indicadores.slice(0, 8);
   const alertasAtivos = alertas.filter((a:any) => !a.resolvido);

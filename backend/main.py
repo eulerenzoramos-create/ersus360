@@ -142,7 +142,45 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return JSONResponse({"status": "ok"})
+    from datetime import datetime
+    from database import AsyncSessionLocal
+    from sqlalchemy import text
+    db_ok = False
+    try:
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("SELECT 1"))
+            db_ok = True
+    except Exception:
+        pass
+    return JSONResponse({
+        "status": "ok" if db_ok else "degraded",
+        "version": "1.0.0",
+        "municipio": f"{settings.MUNICIPIO_NOME}/{settings.MUNICIPIO_UF}",
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "services": {
+            "database": "ok" if db_ok else "error",
+            "scheduler": "ok",
+            "ws": "ok",
+        },
+    })
+
+
+@app.get("/api/sistema/info")
+async def sistema_info():
+    """Informações públicas do sistema para o frontend."""
+    return {
+        "app": "ERSUS 360",
+        "versao": "1.0.0",
+        "municipio": settings.MUNICIPIO_NOME,
+        "uf": settings.MUNICIPIO_UF,
+        "ibge": settings.FNS_MUNICIPIO_IBGE,
+        "modulos": [
+            "FNS/Convênios", "Previne Brasil", "APS", "Farmácia",
+            "Vigilância", "RH", "Obras", "Patrimônio",
+            "BI", "OCIS", "Portais", "Marketplace",
+        ],
+        "fns_sync_hora": settings.FNS_SYNC_HORA,
+    }
 
 
 # ── Seed de dados iniciais ───────────────────────────────────────────────────

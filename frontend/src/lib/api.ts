@@ -397,6 +397,12 @@ export const apiPatrimonio = {
   abastecimento: () => apiGet("/api/patrimonio/abastecimento"),
 };
 
+// ── Sistema ───────────────────────────────────────────────────────────────────
+export const apiSistema = {
+  info: () => apiGet("/api/sistema/info"),
+  health: () => apiGet("/health"),
+};
+
 // ── Portais ───────────────────────────────────────────────────────────────────
 export const apiPortais = {
   gestor: () => apiGet("/api/portal/gestor/resumo"),
