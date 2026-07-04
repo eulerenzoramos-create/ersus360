@@ -1,0 +1,56 @@
+# ── Credenciais e ambiente ─────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.env
+backend/.env
+frontend/.env
+frontend/.env.local
+
+# ── Python / Backend ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite3
+/backend/ersus360.db
+/backend/uploads/
+
+# ── Node / Frontend ───────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+.cache/
+
+# ── IDE e SO ──────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs ─────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Uploads e arquivos temporários ───────────────────────────────
+/backend/tmp/
+/backend/static/uploads/
+
+# ── Railway / Vercel (não precisam ser versionados) ───────────────
+.railway/
+.vercel/
