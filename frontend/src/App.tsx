@@ -56,6 +56,7 @@ import ScoreERSUS       from "./pages/ScoreERSUS";
 import Conformidade      from "./pages/Conformidade";
 import ACSPainel         from "./pages/ACSPainel";
 import PainelFinanceiro  from "./pages/PainelFinanceiro";
+import PainelGestaoAPS  from "./pages/PainelGestaoAPS";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -189,6 +190,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/"        label="Home"               Icon={Home}    end />
             <L1 to="/score"      label="Score ERSUS 360"    Icon={Star}/>
             <L1 to="/financeiro" label="Painel Financeiro"  Icon={DollarSign}/>
+            <L1 to="/gestao"     label="Gestão APS"         Icon={Activity}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -397,8 +399,8 @@ export default function App() {
             <Route path="/previne"                   element={<PrevineBrasil/>}/>
             <Route path="/previne/*"                 element={<PrevineBrasil/>}/>
             {/* Painel de Gestão */}
-            <Route path="/gestao"                    element={<PainelGestor/>}/>
-            <Route path="/gestao/*"                  element={<PainelGestor/>}/>
+            <Route path="/gestao"                    element={<PainelGestaoAPS/>}/>
+            <Route path="/gestao/*"                  element={<PainelGestaoAPS/>}/>
             {/* Busca Ativa */}
             <Route path="/busca-ativa"               element={<BuscaAtiva/>}/>
             <Route path="/busca-ativa/*"             element={<BuscaAtiva/>}/>

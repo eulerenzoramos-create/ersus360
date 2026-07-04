@@ -105,6 +105,7 @@ from routers.conformidade import router as conformidade_router
 from routers.acs import router as acs_router
 from routers.ws_acs import router as ws_acs_router
 from routers.financeiro import router as financeiro_router
+from routers.producao_aps import router as producao_aps_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -148,6 +149,7 @@ app.include_router(conformidade_router)
 app.include_router(acs_router)
 app.include_router(ws_acs_router)
 app.include_router(financeiro_router)
+app.include_router(producao_aps_router)
 
 
 @app.get("/")
