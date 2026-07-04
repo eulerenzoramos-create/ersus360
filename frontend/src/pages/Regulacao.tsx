@@ -1,4 +1,4 @@
-// Módulo — Regulação em Saúde (SISREG / Central de Regulação)
+// Módulo — Regulação em Saúde (SUS Regulação / CROSS-AM)
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRegulacao } from "../lib/api";

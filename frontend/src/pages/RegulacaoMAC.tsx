@@ -337,10 +337,13 @@ export default function RegulacaoMAC() {
       <div style={{ background: "linear-gradient(135deg,#7c3aed 0%,#1d4ed8 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Regulação MAC — SISREG / CROSS-AM</h1>
+            <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Regulação MAC — SUS Regulação / CROSS-AM</h1>
             <p style={{ fontSize: 13, opacity: 0.85, margin: 0 }}>
               Média e Alta Complexidade · TFD · AIH · Apuí/AM
             </p>
+            <div style={{ marginTop: 6, background: "rgba(255,255,255,.15)", borderRadius: 6, padding: "3px 10px", display: "inline-block", fontSize: 11 }}>
+              ⚠ SISREG será descontinuado — sistema migrado para SUS Regulação (gov.br)
+            </div>
           </div>
           {dash && (
             <div style={{ display: "flex", gap: 10 }}>

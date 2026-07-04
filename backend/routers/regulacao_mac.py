@@ -1,5 +1,6 @@
 """
-Regulação MAC — SISREG / CROSS-AM / Central de Regulação
+Regulação MAC — SUS Regulação / CROSS-AM / Central de Regulação
+(SISREG será descontinuado — migração para SUS Regulação em andamento)
 FMS Apuí/AM · MAC execução 41% (crítico)
 """
 from fastapi import APIRouter

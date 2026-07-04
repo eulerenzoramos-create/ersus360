@@ -325,7 +325,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
               <L2 to="/rdqa"         label="RDQA — Relatório Quad."  Icon={Calendar}/>
               <L2 to="/obras"       label="Obras e Infraestrutura"   Icon={Building2}/>
               <L2 to="/transporte"  label="Transporte / TFD"         Icon={Truck}/>
-              <L2 to="/regulacao"   label="Regulação SISREG"         Icon={ArrowLeftRight}/>
+              <L2 to="/regulacao"   label="Regulação SUS"            Icon={ArrowLeftRight}/>
               <L2 to="/alertas"     label="Central de Alertas"       Icon={AlertTriangle}/>
               <L2 to="/relatorios"  label="Relatórios"               Icon={FileText}/>
             </Acc1>
