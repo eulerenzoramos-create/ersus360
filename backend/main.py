@@ -111,6 +111,8 @@ from routers.caf import router as caf_router
 from routers.ouvidoria import router as ouvidoria_router
 from routers.contratos import router as contratos_router
 from routers.regulacao_mac import router as regulacao_mac_router
+from routers.planejamento_orcamentario import router as planejamento_orc_router
+from routers.absenteismo import router as absenteismo_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -160,6 +162,8 @@ app.include_router(caf_router)
 app.include_router(ouvidoria_router)
 app.include_router(contratos_router)
 app.include_router(regulacao_mac_router)
+app.include_router(planejamento_orc_router)
+app.include_router(absenteismo_router)
 
 
 @app.get("/")
