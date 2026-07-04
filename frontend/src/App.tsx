@@ -9,7 +9,7 @@ import {
   Activity, Pill, ShieldCheck, Truck, Network, MapPin, Users,
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
-  TrendingUp, PieChart, Layers, Star, Shield, Monitor,
+  TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -37,6 +37,7 @@ import PrevineBrasil   from "./pages/PrevineBrasil";
 import Sus360          from "./pages/Sus360";
 import Auditoria       from "./pages/Auditoria";
 import CadastrosMestres from "./pages/CadastrosMestres";
+import RH              from "./pages/RH";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
 
@@ -286,6 +287,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
 
             {/* ── Administração ── */}
             <div style={{borderTop:"1px solid #f0f0f0", marginTop:4}}>
+              <L1 to="/rh"         label="Recursos Humanos"     Icon={UserCog}/>
               <L1 to="/cadastros"  label="Cadastros Mestres"    Icon={Layers}/>
               <L1 to="/usuarios"   label="Gestão de Usuários"   Icon={Users}/>
               <L1 to="/auditoria"  label="Auditoria do Sistema" Icon={Shield}/>
@@ -387,6 +389,8 @@ export default function App() {
             <Route path="/auditoria"                 element={<Auditoria/>}/>
             <Route path="/cadastros"                 element={<CadastrosMestres/>}/>
             <Route path="/cadastros/*"               element={<CadastrosMestres/>}/>
+            <Route path="/rh"                        element={<RH/>}/>
+            <Route path="/rh/*"                      element={<RH/>}/>
             <Route path="/municipio"                 element={<Municipio/>}/>
             <Route path="/modulos"                   element={<Modulos/>}/>
             <Route path="/indicadores"               element={<Indicadores/>}/>
