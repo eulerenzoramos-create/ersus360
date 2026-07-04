@@ -48,6 +48,7 @@ import Marketplace     from "./pages/Marketplace";
 import MapaDesempenho  from "./pages/MapaDesempenho";
 import Epidemiologia   from "./pages/Epidemiologia";
 import SIOPS           from "./pages/SIOPS";
+import Agenda          from "./pages/Agenda";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -310,7 +311,8 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
 
             {/* ── Gestão Operacional ── */}
             <div style={{borderTop:"1px solid #f0f0f0", marginTop:4}}>
-              <L1 to="/bi"              label="Business Intelligence" Icon={TrendingUp}/>
+              <L1 to="/agenda"          label="Agenda de Gestão"      Icon={Calendar}/>
+            <L1 to="/bi"              label="Business Intelligence" Icon={TrendingUp}/>
               <L1 to="/ocis"            label="OCIS — Operações"      Icon={Radio}/>
               <L1 to="/patrimonio"      label="Patrimônio e Frota"    Icon={Truck}/>
               <L1 to="/portal-gestor"   label="Painel do Prefeito"     Icon={Star}/>
@@ -419,6 +421,7 @@ export default function App() {
             <Route path="/epidemiologia"             element={<Epidemiologia/>}/>
             <Route path="/epidemiologia/*"           element={<Epidemiologia/>}/>
             <Route path="/siops"                     element={<SIOPS/>}/>
+            <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/transporte"                element={<Transporte/>}/>
             <Route path="/regulacao"                 element={<Regulacao/>}/>
             <Route path="/usuarios"                  element={<Usuarios/>}/>

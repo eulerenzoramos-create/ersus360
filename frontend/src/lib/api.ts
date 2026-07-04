@@ -457,6 +457,13 @@ export const apiEpidemiologia = {
   dengue: () => apiGet("/api/epidemiologia/dengue"),
 };
 
+// ── Agenda / Calendário ───────────────────────────────────────────────────────
+export const apiAgenda = {
+  eventos: (params?: Record<string, unknown>) => apiGet("/api/agenda/eventos", params),
+  resumoMes: (ano = 2026, mes = 7) => apiGet("/api/agenda/resumo-mes", { ano, mes }),
+  proximosPrazos: (dias = 30) => apiGet("/api/agenda/proximos-prazos", { dias }),
+};
+
 // ── SIOPS ─────────────────────────────────────────────────────────────────────
 export const apiSiops = {
   apuracao: (ano = 2026) => apiGet("/api/siops/apuracao", { ano }),
