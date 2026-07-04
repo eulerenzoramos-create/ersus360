@@ -124,10 +124,10 @@ export function SinoAlertas() {
                   Nenhum alerta no momento
                 </div>
               ) : (
-                alertas.map((a: AlertaWS, i) => (
+                alertas.slice(0, 20).map((a: AlertaWS, i) => (
                   <div
-                    key={a.id ?? i}
-                    onClick={() => a.id && marcarLido(a.id)}
+                    key={a._localId ?? i}
+                    onClick={() => a._localId && marcarLido(a._localId)}
                     style={{
                       padding: "12px 16px",
                       borderBottom: "1px solid #f5f5f5",
@@ -174,9 +174,12 @@ export function SinoAlertas() {
               color: "#9e9e9e",
               display: "flex",
               justifyContent: "space-between",
+              alignItems: "center",
             }}>
               <span>{conectado ? "🟢 Conectado em tempo real" : "⚪ Reconectando..."}</span>
-              <span>{alertas.length} alerta{alertas.length !== 1 ? "s" : ""}</span>
+              <a href="/alertas/historico" style={{ color: "#1565c0", textDecoration: "none", fontWeight: 600 }}>
+                Ver histórico completo →
+              </a>
             </div>
           </div>
         </>

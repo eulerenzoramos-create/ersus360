@@ -10,7 +10,7 @@ import {
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
-  Radio, Globe, ShoppingBag,
+  Radio, Globe, ShoppingBag, Bell,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -49,6 +49,7 @@ import MapaDesempenho  from "./pages/MapaDesempenho";
 import Epidemiologia   from "./pages/Epidemiologia";
 import SIOPS           from "./pages/SIOPS";
 import Agenda          from "./pages/Agenda";
+import HistoricoAlertas from "./pages/HistoricoAlertas";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -312,6 +313,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             {/* ── Gestão Operacional ── */}
             <div style={{borderTop:"1px solid #f0f0f0", marginTop:4}}>
               <L1 to="/agenda"          label="Agenda de Gestão"      Icon={Calendar}/>
+              <L1 to="/alertas/historico" label="Histórico de Alertas" Icon={Bell}/>
             <L1 to="/bi"              label="Business Intelligence" Icon={TrendingUp}/>
               <L1 to="/ocis"            label="OCIS — Operações"      Icon={Radio}/>
               <L1 to="/patrimonio"      label="Patrimônio e Frota"    Icon={Truck}/>
@@ -422,6 +424,7 @@ export default function App() {
             <Route path="/epidemiologia/*"           element={<Epidemiologia/>}/>
             <Route path="/siops"                     element={<SIOPS/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
+            <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
             <Route path="/transporte"                element={<Transporte/>}/>
             <Route path="/regulacao"                 element={<Regulacao/>}/>
             <Route path="/usuarios"                  element={<Usuarios/>}/>

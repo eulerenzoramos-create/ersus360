@@ -1,4 +1,4 @@
-// src/hooks/useAlertas.ts — WebSocket de alertas em tempo real
+// src/hooks/useAlertas.ts — WebSocket de alertas em tempo real com persistência
 import { useEffect, useRef, useState, useCallback } from "react";
 
 export interface AlertaWS {
@@ -8,8 +8,10 @@ export interface AlertaWS {
   titulo: string;
   descricao: string;
   modulo?: string;
+  mensagem?: string;
   lido: boolean;
   ts?: string;
+  _localId?: string;
 }
 
 interface Estado {
@@ -23,8 +25,42 @@ const WS_URL = (() => {
   return api.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws/alertas";
 })();
 
+const STORAGE_KEY = "ersus_alertas_historico";
+const MAX_HISTORICO = 200;
+
+function loadFromStorage(): AlertaWS[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveToStorage(alertas: AlertaWS[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(alertas.slice(0, MAX_HISTORICO)));
+  } catch {
+    // quota exceeded — ignora
+  }
+}
+
+function mergeAlertas(existentes: AlertaWS[], novos: AlertaWS[]): AlertaWS[] {
+  const ids = new Set(existentes.map(a => a._localId ?? `${a.nivel}_${a.titulo}_${a.ts}`));
+  const unicos = novos.filter(a => {
+    const k = a._localId ?? `${a.nivel}_${a.titulo}_${a.ts}`;
+    if (ids.has(k)) return false;
+    ids.add(k);
+    return true;
+  });
+  return [...unicos, ...existentes].slice(0, MAX_HISTORICO);
+}
+
 export function useAlertas() {
-  const [estado, setEstado] = useState<Estado>({ alertas: [], naoLidos: 0, conectado: false });
+  const [estado, setEstado] = useState<Estado>(() => {
+    const hist = loadFromStorage();
+    return { alertas: hist, naoLidos: hist.filter(a => !a.lido).length, conectado: false };
+  });
   const wsRef = useRef<WebSocket | null>(null);
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -42,13 +78,29 @@ export function useAlertas() {
       try {
         const msg = JSON.parse(ev.data);
         if (msg.tipo === "snapshot") {
-          setEstado({ alertas: msg.alertas ?? [], naoLidos: msg.total_nao_lidos ?? 0, conectado: true });
-        } else if (msg.tipo === "alerta") {
-          setEstado(e => ({
-            conectado: true,
-            alertas: [{ ...msg, lido: false, ts: msg.ts }, ...e.alertas].slice(0, 50),
-            naoLidos: e.naoLidos + 1,
+          const novos: AlertaWS[] = (msg.alertas ?? []).map((a: AlertaWS) => ({
+            ...a,
+            ts: a.ts ?? new Date().toISOString(),
+            _localId: `${a.nivel}_${a.titulo}_${a.ts ?? Date.now()}`,
           }));
+          setEstado(e => {
+            const merged = mergeAlertas(e.alertas, novos);
+            saveToStorage(merged);
+            return { alertas: merged, naoLidos: merged.filter(a => !a.lido).length, conectado: true };
+          });
+        } else if (msg.tipo === "alerta") {
+          const novo: AlertaWS = {
+            ...msg, lido: false,
+            ts: msg.ts ?? new Date().toISOString(),
+            descricao: msg.descricao ?? msg.mensagem ?? "",
+            categoria: msg.categoria ?? msg.modulo ?? "Sistema",
+            _localId: `${msg.nivel}_${msg.titulo}_${msg.ts ?? Date.now()}`,
+          };
+          setEstado(e => {
+            const merged = mergeAlertas(e.alertas, [novo]);
+            saveToStorage(merged);
+            return { alertas: merged, naoLidos: merged.filter(a => !a.lido).length, conectado: true };
+          });
         }
         // pings ignorados
       } catch {
@@ -58,7 +110,6 @@ export function useAlertas() {
 
     ws.onclose = () => {
       setEstado(e => ({ ...e, conectado: false }));
-      // reconecta após 10s
       retryRef.current = setTimeout(connect, 10_000);
     };
 
@@ -73,20 +124,28 @@ export function useAlertas() {
     };
   }, [connect]);
 
-  const marcarLido = useCallback((id: number) => {
+  const marcarLido = useCallback((localId: string) => {
     setEstado(e => {
-      const alertas = e.alertas.map(a => a.id === id ? { ...a, lido: true } : a);
-      return { ...e, alertas, naoLidos: Math.max(0, alertas.filter(a => !a.lido).length) };
+      const alertas = e.alertas.map(a =>
+        (a._localId === localId) ? { ...a, lido: true } : a
+      );
+      saveToStorage(alertas);
+      return { ...e, alertas, naoLidos: alertas.filter(a => !a.lido).length };
     });
   }, []);
 
   const marcarTodosLidos = useCallback(() => {
-    setEstado(e => ({
-      ...e,
-      alertas: e.alertas.map(a => ({ ...a, lido: true })),
-      naoLidos: 0,
-    }));
+    setEstado(e => {
+      const alertas = e.alertas.map(a => ({ ...a, lido: true }));
+      saveToStorage(alertas);
+      return { ...e, alertas, naoLidos: 0 };
+    });
   }, []);
 
-  return { ...estado, marcarLido, marcarTodosLidos };
+  const limparHistorico = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    setEstado(e => ({ ...e, alertas: [], naoLidos: 0 }));
+  }, []);
+
+  return { ...estado, marcarLido, marcarTodosLidos, limparHistorico };
 }
