@@ -1,7 +1,7 @@
 // Módulo — Regulação em Saúde (SISREG / Central de Regulação)
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { apiRegulacao } from "../lib/api";
 import { Network, CheckCircle2, XCircle, Clock } from "lucide-react";
 
 const S = {
@@ -30,11 +30,11 @@ export default function Regulacao() {
 
   const { data: dashboard } = useQuery<Dashboard>({
     queryKey: ["regulacao-dashboard"],
-    queryFn: () => api.get("/api/regulacao/dashboard").then((r) => r.data),
+    queryFn: apiRegulacao.dashboard,
   });
   const { data: solicitacoes = [] } = useQuery<Solicitacao[]>({
     queryKey: ["regulacao-solicitacoes", filtroStatus],
-    queryFn: () => api.get("/api/regulacao/solicitacoes", { params: filtroStatus ? { status: filtroStatus } : {} }).then((r) => r.data),
+    queryFn: () => apiRegulacao.solicitacoes(filtroStatus ? { status: filtroStatus } : undefined),
   });
 
   const lista = filtroStatus

@@ -439,6 +439,7 @@ export const apiTransporte = {
 export const apiRegulacao = {
   dashboard: () => apiGet("/api/regulacao/dashboard"),
   filaEspera: () => apiGet("/api/regulacao/fila-espera"),
+  solicitacoes: (params?: Record<string, unknown>) => apiGet("/api/regulacao/solicitacoes", params),
 };
 
 // ── Planejamento ──────────────────────────────────────────────────────────────

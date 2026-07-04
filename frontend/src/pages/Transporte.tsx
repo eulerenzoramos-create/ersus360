@@ -1,7 +1,7 @@
 // Módulo — Transporte em Saúde / TFD
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { apiTransporte } from "../lib/api";
 import { Truck, MapPin, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 
 const S = {
@@ -38,16 +38,16 @@ export default function Transporte() {
 
   const { data: dashboard } = useQuery<Dashboard>({
     queryKey: ["transporte-dashboard"],
-    queryFn: () => api.get("/api/transporte/dashboard").then((r) => r.data),
+    queryFn: apiTransporte.dashboard,
   });
   const { data: veiculos = [] } = useQuery<Veiculo[]>({
     queryKey: ["transporte-veiculos"],
-    queryFn: () => api.get("/api/transporte/veiculos").then((r) => r.data),
+    queryFn: apiTransporte.veiculos,
     enabled: aba === "frota",
   });
   const { data: tfd = [] } = useQuery<TFD[]>({
     queryKey: ["transporte-tfd"],
-    queryFn: () => api.get("/api/transporte/tfd").then((r) => r.data),
+    queryFn: apiTransporte.tfd,
     enabled: aba === "tfd",
   });
 
