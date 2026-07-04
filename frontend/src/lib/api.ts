@@ -397,6 +397,14 @@ export const apiPatrimonio = {
   abastecimento: () => apiGet("/api/patrimonio/abastecimento"),
 };
 
+// ── Previne Brasil ────────────────────────────────────────────────────────────
+export const apiPrevine = {
+  indicadores: (competencia = "202507") => apiGet("/api/previne/indicadores", { competencia }),
+  historico: (meses = 6) => apiGet("/api/previne/historico", { meses }),
+  equipes: (competencia = "202507") => apiGet("/api/previne/equipes", { competencia }),
+  buscaAtiva: (indicador: number) => apiGet("/api/previne/busca-ativa", { indicador }),
+};
+
 // ── Sistema ───────────────────────────────────────────────────────────────────
 export const apiSistema = {
   info: () => apiGet("/api/sistema/info"),

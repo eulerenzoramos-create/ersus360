@@ -95,6 +95,7 @@ from routers.ocis import router as ocis_router
 from routers.patrimonio import router as patrimonio_router
 from routers.portais import router as portais_router
 from routers.ws_alertas import router as ws_router
+from routers.previne import router as previne_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -128,6 +129,7 @@ app.include_router(ocis_router)
 app.include_router(patrimonio_router)
 app.include_router(portais_router)
 app.include_router(ws_router)
+app.include_router(previne_router)
 
 
 @app.get("/")
