@@ -332,6 +332,14 @@ export const apiIA = {
   sugestoes: () => api.get<{ perguntas: string[] }>("/api/ia/sugestoes").then((r) => r.data),
 };
 
+// ── Financeiro ───────────────────────────────────────────────────────────────
+export const apiFinanceiro = {
+  painel:   (ano?: number) => api.get("/api/financeiro/painel",   { params: ano ? { ano } : {} }).then(r => r.data),
+  blocos:   ()             => api.get("/api/financeiro/blocos").then(r => r.data),
+  repasses: ()             => api.get("/api/financeiro/repasses").then(r => r.data),
+  empenhos: ()             => api.get("/api/financeiro/empenhos").then(r => r.data),
+};
+
 // ── Helper genérico (para novos módulos) ──────────────────────────────────────
 export const apiGet = <T = unknown>(path: string, params?: Record<string, unknown>) =>
   api.get<T>(path, { params }).then((r) => r.data);

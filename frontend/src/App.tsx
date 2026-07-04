@@ -55,6 +55,7 @@ import RDQA             from "./pages/RDQA";
 import ScoreERSUS       from "./pages/ScoreERSUS";
 import Conformidade      from "./pages/Conformidade";
 import ACSPainel         from "./pages/ACSPainel";
+import PainelFinanceiro  from "./pages/PainelFinanceiro";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -186,7 +187,8 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
 
             {/* ── Topo ── */}
             <L1 to="/"        label="Home"               Icon={Home}    end />
-            <L1 to="/score"   label="Score ERSUS 360"    Icon={Star}/>
+            <L1 to="/score"      label="Score ERSUS 360"    Icon={Star}/>
+            <L1 to="/financeiro" label="Painel Financeiro"  Icon={DollarSign}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -437,6 +439,7 @@ export default function App() {
             <Route path="/epidemiologia"             element={<Epidemiologia/>}/>
             <Route path="/epidemiologia/*"           element={<Epidemiologia/>}/>
             <Route path="/siops"                     element={<SIOPS/>}/>
+            <Route path="/financeiro"                element={<PainelFinanceiro/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
