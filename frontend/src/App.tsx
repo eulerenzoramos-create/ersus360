@@ -61,6 +61,7 @@ import SiapsEgestor      from "./pages/SiapsEgestor";
 import PainelCAF         from "./pages/PainelCAF";
 import Ouvidoria         from "./pages/Ouvidoria";
 import Contratos         from "./pages/Contratos";
+import RegulacaoMAC      from "./pages/RegulacaoMAC";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -199,6 +200,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/caf"        label="CAF — Cofinanciamento" Icon={TrendingUp}/>
             <L1 to="/ouvidoria"  label="Ouvidoria SUS"         Icon={MessageSquare}/>
             <L1 to="/contratos"  label="Contratos & Licitações" Icon={FileText}/>
+            <L1 to="/regulacao-mac" label="Regulação MAC"       Icon={Network}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -454,6 +456,7 @@ export default function App() {
             <Route path="/caf"                       element={<PainelCAF/>}/>
             <Route path="/ouvidoria"                 element={<Ouvidoria/>}/>
             <Route path="/contratos"                 element={<Contratos/>}/>
+            <Route path="/regulacao-mac"             element={<RegulacaoMAC/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
