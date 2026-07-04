@@ -4,13 +4,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from "react-router-dom";
 import {
   Home, BarChart2, Map, ChevronDown, ChevronRight,
-  ArrowLeftRight, Target, Building2, Bell, Bot, LogOut,
+  ArrowLeftRight, Target, Building2, Bot, LogOut,
   FileText, DollarSign, FolderOpen, BarChart3, ClipboardList,
   Activity, Pill, ShieldCheck, Truck, Network, MapPin, Users,
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
-  Radio, Truck, Globe, ShoppingBag,
+  Radio, Globe, ShoppingBag,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -45,6 +45,7 @@ import Patrimonio      from "./pages/Patrimonio";
 import PortalCidadao   from "./pages/PortalCidadao";
 import PortalGestor    from "./pages/PortalGestor";
 import Marketplace     from "./pages/Marketplace";
+import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
 
@@ -157,10 +158,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
           <div style={{display:"flex",alignItems:"center",gap:6,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",padding:"5px 12px",border:"1px solid rgba(255,255,255,.3)",borderRadius:4}}>
             APUÍ / AM <ChevronDown size={12} style={{opacity:.7}}/>
           </div>
-          <div style={{width:34,height:34,background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.2)",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#fff"}}>
-            <Bell size={16}/>
-          </div>
-          <ChevronDown size={12} style={{color:"rgba(255,255,255,.6)"}}/>
+          <SinoAlertas />
           <div style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",color:"#fff",padding:"4px 8px",border:"1px solid rgba(255,255,255,.2)",borderRadius:4}} onClick={onLogout} title="Clique para sair">
             <div style={{width:28,height:28,background:"rgba(255,255,255,.2)",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700}}>{ini}</div>
             <span style={{fontSize:12,fontWeight:600}}>{(nomeUsuario||"GESTOR").toUpperCase()}</span>
