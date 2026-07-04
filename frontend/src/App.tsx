@@ -10,7 +10,7 @@ import {
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
-  Radio, Globe, ShoppingBag, Bell,
+  Radio, Globe, ShoppingBag, Bell, Search,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -50,6 +50,7 @@ import Epidemiologia   from "./pages/Epidemiologia";
 import SIOPS           from "./pages/SIOPS";
 import Agenda          from "./pages/Agenda";
 import HistoricoAlertas from "./pages/HistoricoAlertas";
+import BuscaAtiva       from "./pages/BuscaAtiva";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -232,8 +233,10 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
 
             {/* ── Busca Ativa ── */}
             <Acc1 label="Busca Ativa">
-              <L2 to="/busca-ativa/gestante"  label="Gestante"  Icon={Baby}/>
-              <L2 to="/busca-ativa/vacinas"   label="Vacinas"   Icon={Syringe}/>
+              <L2 to="/busca-ativa"           label="Painel Geral"    Icon={Search}/>
+              <L2 to="/busca-ativa/gestante"  label="Gestante"        Icon={Baby}/>
+              <L2 to="/busca-ativa/vacinas"   label="Vacinas"         Icon={Syringe}/>
+              <L2 to="/busca-ativa/cito"      label="Citopatológico"  Icon={Activity}/>
             </Acc1>
 
             {/* ── ACS ── */}
@@ -387,7 +390,8 @@ export default function App() {
             <Route path="/gestao"                    element={<PainelGestor/>}/>
             <Route path="/gestao/*"                  element={<PainelGestor/>}/>
             {/* Busca Ativa */}
-            <Route path="/busca-ativa/*"             element={<Alertas/>}/>
+            <Route path="/busca-ativa"               element={<BuscaAtiva/>}/>
+            <Route path="/busca-ativa/*"             element={<BuscaAtiva/>}/>
             {/* ACS */}
             <Route path="/acs/*"                     element={<Municipio/>}/>
             {/* Inconsistências */}
