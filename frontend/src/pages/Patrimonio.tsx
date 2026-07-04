@@ -1,11 +1,7 @@
 // src/pages/Patrimonio.tsx — Patrimônio e Frota ERSUS 360
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-
-const API = import.meta.env.VITE_API_URL ?? "https://ersus360-production.up.railway.app";
-const token = () => localStorage.getItem("ersus_token") ?? "";
-const headers = () => ({ Authorization: `Bearer ${token()}` });
-const fetcher = (url: string) => fetch(url, { headers: headers() }).then(r => r.json());
+import { apiPatrimonio } from "../lib/api";
 
 type Veiculo = { placa: string; descricao: string; tipo: string; ano: number; km_atual: number; ultima_manutencao: string; status: string; responsavel: string };
 type Bem = { tombamento: string; descricao: string; tipo: string; estado: string; valor_aquisicao: number; ano: number };
@@ -26,11 +22,11 @@ function EstadoBadge({ estado }: { estado: string }) {
 export default function Patrimonio() {
   const [aba, setAba] = useState<"painel" | "frota" | "bens" | "manutencao" | "combustivel">("painel");
 
-  const { data: painel } = useQuery({ queryKey: ["patrimonio-painel"], queryFn: () => fetcher(`${API}/api/patrimonio/painel`) });
-  const { data: frota } = useQuery({ queryKey: ["patrimonio-frota"], queryFn: () => fetcher(`${API}/api/patrimonio/frota`) });
-  const { data: bens } = useQuery({ queryKey: ["patrimonio-bens"], queryFn: () => fetcher(`${API}/api/patrimonio/bens`) });
-  const { data: manut } = useQuery({ queryKey: ["patrimonio-manut"], queryFn: () => fetcher(`${API}/api/patrimonio/manutencao`) });
-  const { data: comb } = useQuery({ queryKey: ["patrimonio-comb"], queryFn: () => fetcher(`${API}/api/patrimonio/abastecimento`) });
+  const { data: painel } = useQuery({ queryKey: ["patrimonio-painel"], queryFn: apiPatrimonio.painel });
+  const { data: frota } = useQuery({ queryKey: ["patrimonio-frota"], queryFn: apiPatrimonio.frota });
+  const { data: bens } = useQuery({ queryKey: ["patrimonio-bens"], queryFn: apiPatrimonio.bens });
+  const { data: manut } = useQuery({ queryKey: ["patrimonio-manut"], queryFn: apiPatrimonio.manutencao });
+  const { data: comb } = useQuery({ queryKey: ["patrimonio-comb"], queryFn: apiPatrimonio.abastecimento });
 
   return (
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>

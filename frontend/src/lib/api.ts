@@ -331,3 +331,80 @@ export const apiIA = {
   historico: () => api.get<IAMensagem[]>("/api/ia/historico").then((r) => r.data),
   sugestoes: () => api.get<{ perguntas: string[] }>("/api/ia/sugestoes").then((r) => r.data),
 };
+
+// ── Helper genérico (para novos módulos) ──────────────────────────────────────
+export const apiGet = <T = unknown>(path: string, params?: Record<string, unknown>) =>
+  api.get<T>(path, { params }).then((r) => r.data);
+
+export const apiPost = <T = unknown>(path: string, body?: unknown) =>
+  api.post<T>(path, body).then((r) => r.data);
+
+// ── Auditoria ─────────────────────────────────────────────────────────────────
+export const apiAuditoria = {
+  logs: (params?: { nivel?: string; modulo?: string; limite?: number }) =>
+    apiGet("/api/auditoria/logs", params),
+};
+
+// ── Cadastros Mestres ─────────────────────────────────────────────────────────
+export const apiCadastros = {
+  resumo: () => apiGet("/api/cadastros/resumo"),
+  profissionais: () => apiGet("/api/cadastros/profissionais"),
+  unidades: () => apiGet("/api/cadastros/unidades"),
+  equipes: () => apiGet("/api/cadastros/equipes"),
+  acs: () => apiGet("/api/cadastros/acs"),
+  medicamentos: () => apiGet("/api/cadastros/medicamentos"),
+  fornecedores: () => apiGet("/api/cadastros/fornecedores"),
+};
+
+// ── Recursos Humanos ──────────────────────────────────────────────────────────
+export const apiRH = {
+  servidores: () => apiGet("/api/rh/servidores"),
+  ferias: () => apiGet("/api/rh/ferias"),
+  feriasVencidas: () => apiGet("/api/rh/ferias/vencidas"),
+  movimentacoes: () => apiGet("/api/rh/movimentacoes"),
+  contratos: () => apiGet("/api/rh/contratos"),
+  contratosVencendo: () => apiGet("/api/rh/contratos/vencendo"),
+  painel: () => apiGet("/api/rh/painel"),
+  alertas: () => apiGet("/api/rh/alertas"),
+};
+
+// ── Business Intelligence ─────────────────────────────────────────────────────
+export const apiBI = {
+  score: () => apiGet("/api/bi/score"),
+  painelExecutivo: () => apiGet("/api/bi/painel-executivo"),
+  painelAPS: () => apiGet("/api/bi/painel-aps"),
+  painelFinanceiro: () => apiGet("/api/bi/painel-financeiro"),
+  painelEpidemiologico: () => apiGet("/api/bi/painel-epidemiologico"),
+  historico: (modulo: string) => apiGet(`/api/bi/historico/${modulo}`),
+};
+
+// ── OCIS ──────────────────────────────────────────────────────────────────────
+export const apiOCIS = {
+  dashboard: () => apiGet("/api/ocis/dashboard"),
+  centralAlertas: () => apiGet("/api/ocis/central-alertas"),
+  filaEspera: () => apiGet("/api/ocis/regulacao/fila-espera"),
+  tfd: () => apiGet("/api/ocis/tfd"),
+  tfdDashboard: () => apiGet("/api/ocis/tfd/dashboard"),
+  mapaUnidades: () => apiGet("/api/ocis/mapa/unidades"),
+};
+
+// ── Patrimônio e Frota ────────────────────────────────────────────────────────
+export const apiPatrimonio = {
+  painel: () => apiGet("/api/patrimonio/painel"),
+  bens: () => apiGet("/api/patrimonio/bens"),
+  frota: () => apiGet("/api/patrimonio/frota"),
+  manutencao: () => apiGet("/api/patrimonio/manutencao"),
+  abastecimento: () => apiGet("/api/patrimonio/abastecimento"),
+};
+
+// ── Portais ───────────────────────────────────────────────────────────────────
+export const apiPortais = {
+  gestor: () => apiGet("/api/portal/gestor/resumo"),
+  unidades: () => api.get("/api/publico/unidades").then((r) => r.data),
+  indicadores: () => api.get("/api/publico/indicadores").then((r) => r.data),
+  obras: () => api.get("/api/publico/obras").then((r) => r.data),
+  registrarOuvidoria: (body: Record<string, string>) =>
+    api.post("/api/publico/ouvidoria", body).then((r) => r.data),
+  acompanharOuvidoria: (protocolo: string) =>
+    api.get(`/api/publico/ouvidoria/${protocolo}`).then((r) => r.data),
+};

@@ -1,11 +1,7 @@
 // src/pages/OCIS.tsx — Centro de Operações em Saúde ERSUS 360
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-
-const API = import.meta.env.VITE_API_URL ?? "https://ersus360-production.up.railway.app";
-const token = () => localStorage.getItem("ersus_token") ?? "";
-const headers = () => ({ Authorization: `Bearer ${token()}` });
-const fetcher = (url: string) => fetch(url, { headers: headers() }).then(r => r.json());
+import { apiOCIS } from "../lib/api";
 
 type Alerta = { id: number; nivel: string; categoria: string; titulo: string; descricao: string; data: string; resolvido: boolean };
 type TFD = { id: number; paciente: string; cid: string; especialidade: string; hospital_destino: string; tipo_transporte: string; data_viagem: string; status: string; custo_estimado: number };
@@ -19,10 +15,10 @@ function NivelBadge({ nivel }: { nivel: string }) {
 export default function OCIS() {
   const [aba, setAba] = useState<"central" | "regulacao" | "tfd">("central");
 
-  const { data: dash } = useQuery({ queryKey: ["ocis-dash"], queryFn: () => fetcher(`${API}/api/ocis/dashboard`) });
-  const { data: alertas } = useQuery({ queryKey: ["ocis-alertas"], queryFn: () => fetcher(`${API}/api/ocis/central-alertas`) });
-  const { data: fila } = useQuery({ queryKey: ["ocis-fila"], queryFn: () => fetcher(`${API}/api/ocis/regulacao/fila-espera`) });
-  const { data: tfd } = useQuery({ queryKey: ["ocis-tfd"], queryFn: () => fetcher(`${API}/api/ocis/tfd`) });
+  const { data: dash } = useQuery({ queryKey: ["ocis-dash"], queryFn: apiOCIS.dashboard });
+  const { data: alertas } = useQuery({ queryKey: ["ocis-alertas"], queryFn: apiOCIS.centralAlertas });
+  const { data: fila } = useQuery({ queryKey: ["ocis-fila"], queryFn: apiOCIS.filaEspera });
+  const { data: tfd } = useQuery({ queryKey: ["ocis-tfd"], queryFn: apiOCIS.tfd });
 
   return (
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>

@@ -1,9 +1,7 @@
 // src/pages/PortalCidadao.tsx — Portal do Cidadão ERSUS 360
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-
-const API = import.meta.env.VITE_API_URL ?? "https://ersus360-production.up.railway.app";
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+import { apiPortais, apiPost } from "../lib/api";
 
 type Unidade = { nome: string; endereco: string; telefone: string; horario: string; servicos: string[] };
 type Obra = { descricao: string; status: string; percentual_fisico: number; valor_total: number; origem_recurso: string; previsao_conclusao: string };
@@ -27,14 +25,14 @@ export default function PortalCidadao() {
   const [buscaProtocolo, setBuscaProtocolo] = useState("");
   const [acompanhamento, setAcompanhamento] = useState<{ status: string; descricao: string; prazo_resposta: string } | null>(null);
 
-  const { data: unidades } = useQuery({ queryKey: ["publico-unidades"], queryFn: () => fetcher(`${API}/api/publico/unidades`) });
-  const { data: indicadores } = useQuery({ queryKey: ["publico-indicadores"], queryFn: () => fetcher(`${API}/api/publico/indicadores`) });
-  const { data: obras } = useQuery({ queryKey: ["publico-obras"], queryFn: () => fetcher(`${API}/api/publico/obras`) });
+  const { data: unidades } = useQuery({ queryKey: ["publico-unidades"], queryFn: apiPortais.unidades });
+  const { data: indicadores } = useQuery({ queryKey: ["publico-indicadores"], queryFn: apiPortais.indicadores });
+  const { data: obras } = useQuery({ queryKey: ["publico-obras"], queryFn: apiPortais.obras });
 
   const mutation = useMutation({
     mutationFn: (dados: typeof ouvidoriaForm) =>
-      fetch(`${API}/api/publico/ouvidoria`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dados) }).then(r => r.json()),
-    onSuccess: (data) => {
+      apiPost("/api/publico/ouvidoria", dados),
+    onSuccess: (data: { protocolo: string }) => {
       setProtocolo(data.protocolo);
       setOuvidoriaForm({ tipo: "reclamacao", assunto: "", descricao: "", unidade: "", contato: "" });
     },
@@ -42,7 +40,7 @@ export default function PortalCidadao() {
 
   const buscarProtocolo = () => {
     if (!buscaProtocolo.trim()) return;
-    fetch(`${API}/api/publico/ouvidoria/${buscaProtocolo.trim()}`).then(r => r.json()).then(setAcompanhamento);
+    apiPortais.acompanharOuvidoria(buscaProtocolo.trim()).then(setAcompanhamento);
   };
 
   const abas = [

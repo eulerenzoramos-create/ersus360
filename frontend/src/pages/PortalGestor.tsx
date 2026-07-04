@@ -1,10 +1,6 @@
 // src/pages/PortalGestor.tsx — Painel do Prefeito / Secretário
 import { useQuery } from "@tanstack/react-query";
-
-const API = import.meta.env.VITE_API_URL ?? "https://ersus360-production.up.railway.app";
-const token = () => localStorage.getItem("ersus_token") ?? "";
-const headers = () => ({ Authorization: `Bearer ${token()}` });
-const fetcher = (url: string) => fetch(url, { headers: headers() }).then(r => r.json());
+import { apiPortais } from "../lib/api";
 
 function GaugeCircle({ score, size = 120 }: { score: number; size?: number }) {
   const cor = score >= 80 ? "#2e7d32" : score >= 60 ? "#f57f17" : score >= 40 ? "#e65100" : "#c62828";
@@ -60,7 +56,7 @@ function SemaforoBar({ label, valor, meta, unidade = "%" }: { label: string; val
 export default function PortalGestor() {
   const { data: resumo, isLoading } = useQuery({
     queryKey: ["portal-gestor"],
-    queryFn: () => fetcher(`${API}/api/portal/gestor/resumo`),
+    queryFn: apiPortais.gestor,
   });
 
   const d = resumo ?? {

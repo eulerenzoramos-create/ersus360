@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     MUNICIPIO_NOME: str = "Apuí"
     MUNICIPIO_UF: str = "AM"
     DEBUG: bool = False
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://ersus360.vercel.app"
 
     @property
     def cors_list(self) -> list[str]:

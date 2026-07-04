@@ -1,12 +1,7 @@
 // src/pages/BI.tsx — Business Intelligence ERSUS 360
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-
-const API = import.meta.env.VITE_API_URL ?? "https://ersus360-production.up.railway.app";
-const token = () => localStorage.getItem("ersus_token") ?? "";
-const headers = () => ({ Authorization: `Bearer ${token()}` });
-
-const fetcher = (url: string) => fetch(url, { headers: headers() }).then(r => r.json());
+import { apiBI } from "../lib/api";
 
 // ── Gauge Score ──────────────────────────────────────────────────────────────
 function GaugeScore({ score }: { score: number }) {
@@ -53,11 +48,11 @@ function BarProgress({ label, value, meta, max = 100 }: { label: string; value: 
 export default function BI() {
   const [aba, setAba] = useState<"executivo" | "aps" | "financeiro" | "epidemiologico">("executivo");
 
-  const { data: scoreData } = useQuery({ queryKey: ["bi-score"], queryFn: () => fetcher(`${API}/api/bi/score`) });
-  const { data: exec } = useQuery({ queryKey: ["bi-executivo"], queryFn: () => fetcher(`${API}/api/bi/painel-executivo`) });
-  const { data: aps } = useQuery({ queryKey: ["bi-aps"], queryFn: () => fetcher(`${API}/api/bi/painel-aps`) });
-  const { data: fin } = useQuery({ queryKey: ["bi-fin"], queryFn: () => fetcher(`${API}/api/bi/painel-financeiro`) });
-  const { data: epi } = useQuery({ queryKey: ["bi-epi"], queryFn: () => fetcher(`${API}/api/bi/painel-epidemiologico`) });
+  const { data: scoreData } = useQuery({ queryKey: ["bi-score"], queryFn: apiBI.score });
+  const { data: exec } = useQuery({ queryKey: ["bi-executivo"], queryFn: apiBI.painelExecutivo });
+  const { data: aps } = useQuery({ queryKey: ["bi-aps"], queryFn: apiBI.painelAPS });
+  const { data: fin } = useQuery({ queryKey: ["bi-fin"], queryFn: apiBI.painelFinanceiro });
+  const { data: epi } = useQuery({ queryKey: ["bi-epi"], queryFn: apiBI.painelEpidemiologico });
 
   const abas = [
     { key: "executivo" as const, label: "Executivo" },
