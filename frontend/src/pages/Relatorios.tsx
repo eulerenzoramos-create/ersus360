@@ -103,6 +103,22 @@ export default function Relatorios() {
     a.click(); URL.revokeObjectURL(url);
   };
 
+  const exportarCSV = async (tipo: "financeiro" | "indicadores") => {
+    const API = import.meta.env.VITE_API_URL ?? "https://ersus360-production.up.railway.app";
+    const token = localStorage.getItem("ersus_token") ?? "";
+    const url = `${API}/api/relatorios/exportar-csv?tipo=${tipo}&ano=${ano}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const filename = res.headers.get("Content-Disposition")?.match(/filename="(.+?)"/)?.[1]
+      ?? `relatorio_${tipo}_${ano}.csv`;
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
   return (
     <div style={S.page}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -144,7 +160,13 @@ export default function Relatorios() {
             <div style={{ textAlign: "center", padding: 40, color: "#737373" }}>Calculando…</div>
           ) : financeiro && (
             <>
-              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 10 }}>
+                <button
+                  onClick={() => exportarCSV("financeiro")}
+                  style={{ ...S.btn, background: "#e8f5e9", color: "#2e7d32" }}
+                >
+                  <Download size={13} /> Exportar CSV (Excel)
+                </button>
                 <button
                   onClick={() => exportarJSON(financeiro, "relatorio-financeiro")}
                   style={{ ...S.btn, background: "#eff6ff", color: "#1d4ed8" }}

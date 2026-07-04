@@ -2,8 +2,10 @@
 Router: /api/relatorios — Módulo 10: Prestação de Contas e Relatórios
 """
 from __future__ import annotations
+import csv
+import io
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -249,7 +251,7 @@ async def prestacao_de_contas(
             })
 
     return {
-        "titulo": f"Prestação de Contas — Fundo Municipal de Saúde — {ano}",
+        "titulo": f"Prestação de Contas — Fundo Municipal de Saúde de {fin.municipio}/{fin.uf} — {ano}",
         "municipio": fin.municipio,
         "uf": fin.uf,
         "periodo": str(ano),
@@ -265,3 +267,81 @@ async def prestacao_de_contas(
         "convenios": [i.model_dump() for i in fin.itens],
         "indicadores": indicadores,
     }
+
+
+@router.get("/exportar-csv")
+async def exportar_csv(
+    tipo: str = Query("financeiro", description="financeiro | indicadores"),
+    ano: Optional[int] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    _: UserOut = Depends(get_current_user),
+):
+    """Exporta relatório como CSV (UTF-8 com BOM para compatibilidade Excel)."""
+    from datetime import datetime
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    output = io.StringIO()
+    # BOM para Excel reconhecer UTF-8
+    output.write("﻿")
+
+    if tipo == "financeiro":
+        fin = await relatorio_financeiro(ano=ano, db=db, _=_)
+        writer = csv.writer(output, delimiter=";")
+        writer.writerow([
+            "Convênio", "Objeto", "Bloco", "Recebido (R$)",
+            "Empenhado (R$)", "Liquidado (R$)", "Pago (R$)",
+            "Saldo (R$)", "Executado (%)",
+        ])
+        for item in fin.itens:
+            writer.writerow([
+                item.convenio, item.objeto, item.bloco,
+                f"{item.valor_recebido:.2f}".replace(".", ","),
+                f"{item.valor_empenhado:.2f}".replace(".", ","),
+                f"{item.valor_liquidado:.2f}".replace(".", ","),
+                f"{item.valor_pago:.2f}".replace(".", ","),
+                f"{item.saldo:.2f}".replace(".", ","),
+                f"{item.perc_executado:.1f}".replace(".", ","),
+            ])
+        # Totais
+        writer.writerow([])
+        writer.writerow([
+            "TOTAIS", "", "",
+            f"{fin.total_recebido:.2f}".replace(".", ","),
+            f"{fin.total_empenhado:.2f}".replace(".", ","),
+            f"{fin.total_liquidado:.2f}".replace(".", ","),
+            f"{fin.total_pago:.2f}".replace(".", ","),
+            f"{fin.total_saldo:.2f}".replace(".", ","),
+            "",
+        ])
+        filename = f"relatorio_financeiro_{fin.municipio}_{fin.periodo}_{now}.csv"
+
+    else:
+        # Indicadores
+        res_mun = await db.execute(select(Municipio).limit(1))
+        mun = res_mun.scalar_one_or_none()
+        indicadores = []
+        if mun:
+            stmt = select(Indicador).where(Indicador.municipio_id == mun.id)
+            if ano:
+                stmt = stmt.where(Indicador.competencia.like(f"{ano}%"))
+            res = await db.execute(stmt)
+            indicadores = res.scalars().all()
+
+        writer = csv.writer(output, delimiter=";")
+        writer.writerow(["Indicador", "Eixo", "Competência", "Meta", "Alcançado", "Situação"])
+        for ind in indicadores:
+            writer.writerow([
+                ind.indicador, ind.eixo, ind.competencia,
+                f"{ind.meta_prevista:.2f}".replace(".", ","),
+                f"{ind.valor_alcancado:.2f}".replace(".", ","),
+                ind.situacao,
+            ])
+        nome_mun = mun.nome if mun else "municipio"
+        filename = f"relatorio_indicadores_{nome_mun}_{ano or 'todos'}_{now}.csv"
+
+    content = output.getvalue()
+    return StreamingResponse(
+        iter([content.encode("utf-8-sig")]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
