@@ -1,7 +1,7 @@
 // Módulo 5 — Planejamento Municipal de Saúde (PMS/PAS/RAG)
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { apiPlanejamento } from "../lib/api";
 import { ClipboardList, Download, CheckCircle2, Clock, AlertTriangle, XCircle } from "lucide-react";
 
 const S = {
@@ -37,21 +37,21 @@ export default function Planejamento() {
 
   const { data: dashboard } = useQuery<Dashboard>({
     queryKey: ["planejamento-dashboard"],
-    queryFn: () => api.get("/api/planejamento/dashboard").then((r) => r.data),
+    queryFn: apiPlanejamento.dashboard,
   });
   const { data: acoes = [] } = useQuery<AcaoPAS[]>({
     queryKey: ["pas-acoes", eixoFiltro],
-    queryFn: () => api.get("/api/planejamento/pas/acoes", { params: eixoFiltro ? { eixo: eixoFiltro } : {} }).then((r) => r.data),
+    queryFn: () => apiPlanejamento.acoes(eixoFiltro ? { eixo: eixoFiltro } : undefined),
     enabled: aba === "pas",
   });
   const { data: rag } = useQuery({
     queryKey: ["rag"],
-    queryFn: () => api.get("/api/planejamento/rag/gerar").then((r) => r.data),
+    queryFn: apiPlanejamento.rag,
     enabled: aba === "rag",
   });
   const { data: digisus } = useQuery({
     queryKey: ["digisus"],
-    queryFn: () => api.get("/api/planejamento/digisus/exportar").then((r) => r.data),
+    queryFn: apiPlanejamento.digisus,
     enabled: aba === "digisus",
   });
 

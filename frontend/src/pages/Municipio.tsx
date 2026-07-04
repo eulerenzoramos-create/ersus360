@@ -1,7 +1,7 @@
 // Módulo 1 — Cadastro do Município e Contas Bancárias
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { api, apiMunicipio } from "../lib/api";
 import { MapPin, Plus, Trash2, Edit2, Check, X } from "lucide-react";
 
 const S = {
@@ -44,11 +44,11 @@ export default function Municipio() {
 
   const { data: mun } = useQuery<Municipio>({
     queryKey: ["municipio"],
-    queryFn: () => api.get("/api/municipio/1").then((r) => r.data),
+    queryFn: apiMunicipio.dados,
   });
   const { data: contas = [] } = useQuery<ContaBancaria[]>({
     queryKey: ["contas-bancarias"],
-    queryFn: () => api.get("/api/municipio/1/contas").then((r) => r.data),
+    queryFn: apiMunicipio.contas,
   });
 
   const salvarMun = useMutation({
@@ -57,7 +57,7 @@ export default function Municipio() {
   });
 
   const criarConta = useMutation({
-    mutationFn: (body: typeof conta) => api.post("/api/municipio/1/contas", body).then((r) => r.data),
+    mutationFn: (body: typeof conta) => apiMunicipio.addConta(1, body),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["contas-bancarias"] }); setNovaConta(false); setConta({ banco: "", agencia: "", conta: "", digito: "", tipo: "corrente", fonte_recurso: "" }); },
   });
 

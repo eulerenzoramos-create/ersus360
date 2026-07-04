@@ -1,7 +1,7 @@
 // Módulo — Emendas Parlamentares (InvestSUS / DigiSUS Gestor)
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { api, apiEmendas } from "../lib/api";
 import { Landmark, Plus, Check, X, TrendingUp } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -61,16 +61,16 @@ export default function Emendas() {
 
   const { data: dashboard } = useQuery<Dashboard>({
     queryKey: ["emendas-dashboard"],
-    queryFn: () => api.get("/api/emendas/dashboard").then(r => r.data),
+    queryFn: apiEmendas.dashboard,
   });
   const { data: emendas = [] } = useQuery<Emenda[]>({
     queryKey: ["emendas", filtroFase],
-    queryFn: () => api.get("/api/emendas", { params: filtroFase ? { fase: filtroFase } : {} }).then(r => r.data),
+    queryFn: () => apiEmendas.lista(filtroFase ? { fase: filtroFase } : undefined),
     enabled: aba === "lista",
   });
 
   const criar = useMutation({
-    mutationFn: (body: typeof form) => api.post("/api/emendas", { ...body, municipio_id: 1 }).then(r => r.data),
+    mutationFn: (body: typeof form) => apiEmendas.criar({ ...body, municipio_id: 1 }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["emendas"] }); qc.invalidateQueries({ queryKey: ["emendas-dashboard"] }); setCriando(false); setForm(FORM_VAZIO); },
   });
 

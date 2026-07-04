@@ -1,7 +1,7 @@
 // Fase 2 — Auditoria do Sistema (logs de acesso e operações)
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { apiAuditoria } from "../lib/api";
 import { Shield, Download, Search, AlertTriangle, Info, CheckCircle } from "lucide-react";
 
 const S = {
@@ -58,7 +58,7 @@ export default function Auditoria() {
 
   const { data: logsApi = [] } = useQuery<LogEntry[]>({
     queryKey: ["auditoria"],
-    queryFn: () => api.get("/api/auditoria/logs").then((r) => r.data).catch(() => []),
+    queryFn: () => apiAuditoria.logs().catch(() => []),
     staleTime: 30_000,
   });
 

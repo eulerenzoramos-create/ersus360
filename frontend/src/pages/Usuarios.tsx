@@ -1,7 +1,7 @@
 // Módulo 13 — Gestão de Usuários e Perfis RBAC
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { api, apiUsuarios } from "../lib/api";
 import { Users, Plus, Trash2, Check, X, ShieldCheck } from "lucide-react";
 
 const S = {
@@ -55,11 +55,11 @@ export default function Usuarios() {
 
   const { data: usuarios = [] } = useQuery<Usuario[]>({
     queryKey: ["usuarios"],
-    queryFn: () => api.get("/api/usuarios").then((r) => r.data),
+    queryFn: apiUsuarios.lista,
   });
 
   const criar = useMutation({
-    mutationFn: (body: typeof form) => api.post("/api/usuarios", body).then((r) => r.data),
+    mutationFn: (body: typeof form) => apiUsuarios.criar(body),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["usuarios"] }); setCriando(false); setForm(FORM_VAZIO); },
   });
 

@@ -1,7 +1,7 @@
 // Fase 3 — Cadastros Mestres
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { apiCadastros } from "../lib/api";
 import { Users, Building2, UserCheck, Pill, Truck, LayoutGrid, Stethoscope } from "lucide-react";
 
 const API = import.meta.env.VITE_API_URL ?? "";
@@ -36,13 +36,13 @@ type Aba = "resumo" | "profissionais" | "unidades" | "equipes" | "acs" | "medica
 export default function CadastrosMestres() {
   const [aba, setAba] = useState<Aba>("resumo");
 
-  const { data: resumo } = useQuery({ queryKey: ["cadastros-resumo"], queryFn: () => api.get("/api/cadastros/resumo").then(r => r.data) });
-  const { data: profissionais = [] } = useQuery({ queryKey: ["profissionais"], queryFn: () => api.get("/api/cadastros/profissionais").then(r => r.data), enabled: aba === "profissionais" });
-  const { data: unidades = [] } = useQuery({ queryKey: ["unidades"], queryFn: () => api.get("/api/cadastros/unidades").then(r => r.data), enabled: aba === "unidades" });
-  const { data: equipes = [] } = useQuery({ queryKey: ["equipes"], queryFn: () => api.get("/api/cadastros/equipes").then(r => r.data), enabled: aba === "equipes" });
-  const { data: acs = [] } = useQuery({ queryKey: ["acs"], queryFn: () => api.get("/api/cadastros/acs").then(r => r.data), enabled: aba === "acs" });
-  const { data: medicamentos = [] } = useQuery({ queryKey: ["medicamentos"], queryFn: () => api.get("/api/cadastros/medicamentos").then(r => r.data), enabled: aba === "medicamentos" });
-  const { data: fornecedores = [] } = useQuery({ queryKey: ["fornecedores"], queryFn: () => api.get("/api/cadastros/fornecedores").then(r => r.data), enabled: aba === "fornecedores" });
+  const { data: resumo }           = useQuery({ queryKey: ["cadastros-resumo"],   queryFn: apiCadastros.resumo });
+  const { data: profissionais = [] } = useQuery({ queryKey: ["profissionais"],     queryFn: apiCadastros.profissionais, enabled: aba === "profissionais" });
+  const { data: unidades = [] }     = useQuery({ queryKey: ["unidades"],           queryFn: apiCadastros.unidades,      enabled: aba === "unidades" });
+  const { data: equipes = [] }      = useQuery({ queryKey: ["equipes"],            queryFn: apiCadastros.equipes,       enabled: aba === "equipes" });
+  const { data: acs = [] }          = useQuery({ queryKey: ["acs"],                queryFn: apiCadastros.acs,           enabled: aba === "acs" });
+  const { data: medicamentos = [] } = useQuery({ queryKey: ["medicamentos"],       queryFn: apiCadastros.medicamentos,  enabled: aba === "medicamentos" });
+  const { data: fornecedores = [] } = useQuery({ queryKey: ["fornecedores"],       queryFn: apiCadastros.fornecedores,  enabled: aba === "fornecedores" });
 
   const ABAS: { id: Aba; label: string; icon: React.ReactNode }[] = [
     { id: "resumo",         label: "Resumo",        icon: <LayoutGrid size={13}/> },

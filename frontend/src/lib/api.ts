@@ -448,6 +448,29 @@ export const apiPlanejamento = {
   dashboard: () => apiGet("/api/planejamento/dashboard"),
   planos: () => apiGet("/api/planejamento/planos"),
   metas: () => apiGet("/api/planejamento/metas"),
+  acoes: (params?: Record<string, unknown>) => apiGet("/api/planejamento/pas/acoes", params),
+  rag: () => apiGet("/api/planejamento/rag/gerar"),
+  digisus: () => apiGet("/api/planejamento/digisus/exportar"),
+};
+
+// ── Município ─────────────────────────────────────────────────────────────────
+export const apiMunicipio = {
+  dados: (id = 1) => apiGet(`/api/municipio/${id}`),
+  contas: (id = 1) => apiGet(`/api/municipio/${id}/contas`),
+  addConta: (id = 1, body: unknown) => apiPost(`/api/municipio/${id}/contas`, body),
+};
+
+// ── Emendas Parlamentares ─────────────────────────────────────────────────────
+export const apiEmendas = {
+  dashboard: () => apiGet("/api/emendas/dashboard"),
+  lista: (params?: Record<string, unknown>) => apiGet("/api/emendas", params),
+  criar: (body: unknown) => apiPost("/api/emendas", body),
+};
+
+// ── Usuários ──────────────────────────────────────────────────────────────────
+export const apiUsuarios = {
+  lista: () => apiGet("/api/usuarios"),
+  criar: (body: unknown) => apiPost("/api/usuarios", body),
 };
 
 // ── Epidemiologia / SINAN ─────────────────────────────────────────────────────
