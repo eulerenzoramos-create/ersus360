@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Users, MapPin, Home, CheckCircle, TrendingUp, Baby,
   Heart, Activity, Star, AlertTriangle, RefreshCw, ChevronDown,
-  ChevronRight, UserCheck, User,
+  ChevronRight, UserCheck, User, Navigation,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import ACSGeoPage from "./ACSGeoPage";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -246,7 +247,7 @@ function MicroareaCard({ ma }: { ma: Microarea }) {
 // ── Página principal ──────────────────────────────────────────────────────────
 
 export default function ACSPainel() {
-  const [aba, setAba] = useState<"dashboard" | "acs" | "microareas">("dashboard");
+  const [aba, setAba] = useState<"dashboard" | "acs" | "microareas" | "geo">("dashboard");
   const [esfFiltro, setEsfFiltro] = useState("Todas");
   const [statusFiltro, setStatusFiltro] = useState("Todos");
 
@@ -274,9 +275,10 @@ export default function ACSPainel() {
   );
 
   const ABAS = [
-    { id: "dashboard",  label: "Dashboard",         icon: <Activity size={13} /> },
-    { id: "acs",        label: "Lista de ACS",       icon: <Users    size={13} /> },
-    { id: "microareas", label: "Microáreas",         icon: <MapPin   size={13} /> },
+    { id: "dashboard",  label: "Dashboard",              icon: <Activity   size={13} /> },
+    { id: "geo",        label: "🗺 Localização Tempo Real", icon: <Navigation size={13} /> },
+    { id: "acs",        label: "Lista de ACS",            icon: <Users      size={13} /> },
+    { id: "microareas", label: "Microáreas",              icon: <MapPin     size={13} /> },
   ] as const;
 
   return (
@@ -456,6 +458,13 @@ export default function ACSPainel() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {acsListaFiltrada.map(a => <AcsCard key={a.id} a={a} />)}
           </div>
+        </div>
+      )}
+
+      {/* ── Geo-localização em Tempo Real ── */}
+      {aba === "geo" && (
+        <div style={{ margin: "0 -24px -24px", minHeight: 640 }}>
+          <ACSGeoPage />
         </div>
       )}
 
