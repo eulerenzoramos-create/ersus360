@@ -108,6 +108,7 @@ from routers.financeiro import router as financeiro_router
 from routers.producao_aps import router as producao_aps_router
 from routers.siaps import router as siaps_router
 from routers.caf import router as caf_router
+from routers.ouvidoria import router as ouvidoria_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -154,6 +155,7 @@ app.include_router(financeiro_router)
 app.include_router(producao_aps_router)
 app.include_router(siaps_router)
 app.include_router(caf_router)
+app.include_router(ouvidoria_router)
 
 
 @app.get("/")
