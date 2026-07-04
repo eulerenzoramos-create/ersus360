@@ -90,6 +90,9 @@ from routers.integracao import router as integracao_router
 from routers.auditoria import router as auditoria_router
 from routers.cadastros import router as cadastros_router
 from routers.rh import router as rh_router
+from routers.bi import router as bi_router
+from routers.ocis import router as ocis_router
+from routers.patrimonio import router as patrimonio_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -118,6 +121,9 @@ app.include_router(integracao_router)
 app.include_router(auditoria_router)
 app.include_router(cadastros_router)
 app.include_router(rh_router)
+app.include_router(bi_router)
+app.include_router(ocis_router)
+app.include_router(patrimonio_router)
 
 
 @app.get("/")

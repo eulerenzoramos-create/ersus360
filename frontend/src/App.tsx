@@ -10,6 +10,7 @@ import {
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
+  Cpu, Radio, Truck,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -38,6 +39,9 @@ import Sus360          from "./pages/Sus360";
 import Auditoria       from "./pages/Auditoria";
 import CadastrosMestres from "./pages/CadastrosMestres";
 import RH              from "./pages/RH";
+import BI              from "./pages/BI";
+import OCIS            from "./pages/OCIS";
+import Patrimonio      from "./pages/Patrimonio";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
 
@@ -285,6 +289,13 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
               <L1 to="/ia"              label="IA Gestora"        Icon={Bot}/>
             </div>
 
+            {/* ── Gestão Operacional ── */}
+            <div style={{borderTop:"1px solid #f0f0f0", marginTop:4}}>
+              <L1 to="/bi"          label="Business Intelligence" Icon={TrendingUp}/>
+              <L1 to="/ocis"        label="OCIS — Operações"      Icon={Radio}/>
+              <L1 to="/patrimonio"  label="Patrimônio e Frota"    Icon={Truck}/>
+            </div>
+
             {/* ── Administração ── */}
             <div style={{borderTop:"1px solid #f0f0f0", marginTop:4}}>
               <L1 to="/rh"         label="Recursos Humanos"     Icon={UserCog}/>
@@ -391,6 +402,12 @@ export default function App() {
             <Route path="/cadastros/*"               element={<CadastrosMestres/>}/>
             <Route path="/rh"                        element={<RH/>}/>
             <Route path="/rh/*"                      element={<RH/>}/>
+            <Route path="/bi"                        element={<BI/>}/>
+            <Route path="/bi/*"                      element={<BI/>}/>
+            <Route path="/ocis"                      element={<OCIS/>}/>
+            <Route path="/ocis/*"                    element={<OCIS/>}/>
+            <Route path="/patrimonio"                element={<Patrimonio/>}/>
+            <Route path="/patrimonio/*"              element={<Patrimonio/>}/>
             <Route path="/municipio"                 element={<Municipio/>}/>
             <Route path="/modulos"                   element={<Modulos/>}/>
             <Route path="/indicadores"               element={<Indicadores/>}/>
