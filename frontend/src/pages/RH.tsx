@@ -1,7 +1,7 @@
 // Fase 4 — Recursos Humanos
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { apiRH } from "../lib/api";
 import { UserCog, Calendar, AlertTriangle, FileText, TrendingUp, Users, Clock } from "lucide-react";
 
 const S = {
@@ -34,12 +34,12 @@ type Aba = "painel" | "servidores" | "ferias" | "movimentacoes" | "contratos";
 export default function RH() {
   const [aba, setAba] = useState<Aba>("painel");
 
-  const { data: painel } = useQuery({ queryKey: ["rh-painel"], queryFn: () => api.get("/api/rh/painel").then(r => r.data) });
-  const { data: alertas } = useQuery({ queryKey: ["rh-alertas"], queryFn: () => api.get("/api/rh/alertas").then(r => r.data) });
-  const { data: servidores = [] } = useQuery({ queryKey: ["servidores"], queryFn: () => api.get("/api/rh/servidores").then(r => r.data), enabled: aba === "servidores" });
-  const { data: ferias = [] } = useQuery({ queryKey: ["ferias"], queryFn: () => api.get("/api/rh/ferias").then(r => r.data), enabled: aba === "ferias" });
-  const { data: movimentacoes = [] } = useQuery({ queryKey: ["movimentacoes"], queryFn: () => api.get("/api/rh/movimentacoes").then(r => r.data), enabled: aba === "movimentacoes" });
-  const { data: contratos = [] } = useQuery({ queryKey: ["contratos"], queryFn: () => api.get("/api/rh/contratos").then(r => r.data), enabled: aba === "contratos" });
+  const { data: painel }        = useQuery({ queryKey: ["rh-painel"],        queryFn: apiRH.painel });
+  const { data: alertas }       = useQuery({ queryKey: ["rh-alertas"],       queryFn: apiRH.alertas });
+  const { data: servidores = [] } = useQuery({ queryKey: ["servidores"],     queryFn: apiRH.servidores,    enabled: aba === "servidores" });
+  const { data: ferias = [] }   = useQuery({ queryKey: ["ferias"],           queryFn: apiRH.ferias,        enabled: aba === "ferias" });
+  const { data: movimentacoes = [] } = useQuery({ queryKey: ["movimentacoes"], queryFn: apiRH.movimentacoes, enabled: aba === "movimentacoes" });
+  const { data: contratos = [] } = useQuery({ queryKey: ["contratos"],       queryFn: apiRH.contratos,     enabled: aba === "contratos" });
 
   const ABAS = [
     { id: "painel" as Aba,        label: "Painel RH",     icon: <TrendingUp size={13}/> },

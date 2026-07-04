@@ -1,7 +1,7 @@
 // Módulo 5 — Farmácia Municipal
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { apiFarmacia } from "../lib/api";
 import { Pill, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -40,21 +40,21 @@ export default function Farmacia() {
 
   const { data: dashboard } = useQuery<Dashboard>({
     queryKey: ["farmacia-dashboard"],
-    queryFn: () => api.get("/api/farmacia/dashboard").then((r) => r.data),
+    queryFn: apiFarmacia.dashboard,
   });
   const { data: estoque = [] } = useQuery<Medicamento[]>({
     queryKey: ["farmacia-estoque", filtroSit],
-    queryFn: () => api.get("/api/farmacia/estoque", { params: filtroSit ? { situacao: filtroSit } : {} }).then((r) => r.data),
+    queryFn: () => apiFarmacia.estoque(filtroSit ? { situacao: filtroSit } : undefined),
     enabled: aba === "estoque",
   });
   const { data: dispensacoes = [] } = useQuery<Dispensacao[]>({
     queryKey: ["farmacia-dispensacoes"],
-    queryFn: () => api.get("/api/farmacia/dispensacoes").then((r) => r.data),
+    queryFn: apiFarmacia.dispensacoes,
     enabled: aba === "dispensacao",
   });
   const { data: programas = [] } = useQuery<Programa[]>({
     queryKey: ["farmacia-programas"],
-    queryFn: () => api.get("/api/farmacia/programas").then((r) => r.data),
+    queryFn: apiFarmacia.programas,
     enabled: aba === "programas",
   });
 

@@ -417,6 +417,7 @@ export const apiAPS = {
 export const apiFarmacia = {
   dashboard: () => apiGet("/api/farmacia/dashboard"),
   estoque: (params?: Record<string, unknown>) => apiGet("/api/farmacia/estoque", params),
+  programas: () => apiGet("/api/farmacia/programas"),
   dispensacoes: () => apiGet("/api/farmacia/dispensacoes"),
   alertas: () => apiGet("/api/farmacia/alertas"),
 };

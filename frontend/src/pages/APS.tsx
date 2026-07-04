@@ -1,6 +1,6 @@
 // Módulo 5 — Atenção Primária à Saúde
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { apiAPS } from "../lib/api";
 import { Activity, Users, Building2, TrendingUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -43,19 +43,19 @@ function SemaforoBar({ valor, meta, cor }: { valor: number; meta: number; cor: s
 export default function APS() {
   const { data: dashboard } = useQuery<ApsDashboard>({
     queryKey: ["aps-dashboard"],
-    queryFn: () => api.get("/api/aps/dashboard").then((r) => r.data),
+    queryFn: apiAPS.dashboard,
   });
   const { data: indicadores = [] } = useQuery<ApsIndicador[]>({
     queryKey: ["aps-indicadores"],
-    queryFn: () => api.get("/api/aps/indicadores").then((r) => r.data),
+    queryFn: apiAPS.indicadores,
   });
   const { data: ubs = [] } = useQuery<Ubs[]>({
     queryKey: ["aps-ubs"],
-    queryFn: () => api.get("/api/aps/ubs").then((r) => r.data),
+    queryFn: apiAPS.ubs,
   });
   const { data: producao = [] } = useQuery<ProducaoMes[]>({
     queryKey: ["aps-producao"],
-    queryFn: () => api.get("/api/aps/producao-mensal").then((r) => r.data),
+    queryFn: apiAPS.producaoMensal,
   });
 
   const categorias = [...new Set(indicadores.map((i) => i.categoria))];
