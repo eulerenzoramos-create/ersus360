@@ -495,6 +495,14 @@ export const apiRdqa = {
   historico: (ano = 2026) => apiGet("/api/rdqa/historico", { ano }),
 };
 
+// ── ACS ───────────────────────────────────────────────────────────────────────
+export const apiAcs = {
+  dashboard: () => apiGet("/api/acs/dashboard"),
+  lista: (params?: Record<string, unknown>) => apiGet("/api/acs/lista", params),
+  microareas: () => apiGet("/api/acs/microareas"),
+  detalhe: (id: number) => apiGet(`/api/acs/${id}`),
+};
+
 // ── Conformidade Legal ────────────────────────────────────────────────────────
 export const apiConformidade = {
   listar: (params?: Record<string, unknown>) => apiGet("/api/conformidade", params),

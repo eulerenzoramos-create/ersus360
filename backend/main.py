@@ -102,6 +102,7 @@ from routers.agenda import router as agenda_router
 from routers.rdqa import router as rdqa_router
 from routers.score import router as score_router
 from routers.conformidade import router as conformidade_router
+from routers.acs import router as acs_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -142,6 +143,7 @@ app.include_router(agenda_router)
 app.include_router(rdqa_router)
 app.include_router(score_router)
 app.include_router(conformidade_router)
+app.include_router(acs_router)
 
 
 @app.get("/")

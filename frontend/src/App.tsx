@@ -54,6 +54,7 @@ import BuscaAtiva       from "./pages/BuscaAtiva";
 import RDQA             from "./pages/RDQA";
 import ScoreERSUS       from "./pages/ScoreERSUS";
 import Conformidade      from "./pages/Conformidade";
+import ACSPainel         from "./pages/ACSPainel";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -400,7 +401,8 @@ export default function App() {
             <Route path="/busca-ativa"               element={<BuscaAtiva/>}/>
             <Route path="/busca-ativa/*"             element={<BuscaAtiva/>}/>
             {/* ACS */}
-            <Route path="/acs/*"                     element={<Municipio/>}/>
+            <Route path="/acs/painel"                element={<ACSPainel/>}/>
+            <Route path="/acs/*"                     element={<ACSPainel/>}/>
             {/* Inconsistências */}
             <Route path="/inconsistencias/*"         element={<Documentos/>}/>
             {/* POEPS */}
