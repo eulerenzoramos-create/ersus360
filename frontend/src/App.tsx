@@ -10,7 +10,7 @@ import {
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
-  Cpu, Radio, Truck, Globe, ShoppingBag,
+  Radio, Truck, Globe, ShoppingBag,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -282,6 +282,19 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
                 <L3 to="/execucao"  label="Execução por Bloco"          Icon={DollarSign}/>
                 <L3 to="/emendas"   label="Emendas Parlamentares"       Icon={Landmark}/>
               </Acc2>
+            </Acc1>
+
+            {/* ── Módulos Operacionais ── */}
+            <Acc1 label="Módulos Operacionais">
+              <L2 to="/farmacia"    label="Assistência Farmacêutica" Icon={Pill}/>
+              <L2 to="/aps"         label="Atenção Primária (APS)"   Icon={Heart}/>
+              <L2 to="/vigilancia"  label="Vigilância em Saúde"      Icon={ShieldCheck}/>
+              <L2 to="/planejamento" label="Planejamento em Saúde"   Icon={ClipboardList}/>
+              <L2 to="/obras"       label="Obras e Infraestrutura"   Icon={Building2}/>
+              <L2 to="/transporte"  label="Transporte / TFD"         Icon={Truck}/>
+              <L2 to="/regulacao"   label="Regulação SISREG"         Icon={ArrowLeftRight}/>
+              <L2 to="/alertas"     label="Central de Alertas"       Icon={AlertTriangle}/>
+              <L2 to="/relatorios"  label="Relatórios"               Icon={FileText}/>
             </Acc1>
 
             {/* ── Informatiza APS ── */}

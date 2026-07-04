@@ -1,209 +1,139 @@
 # ERSUS 360 — Gestão Inteligente do SUS
-### FMS Apuí / AM — Sistema Completo com Integração FNS
+
+Plataforma SaaS de gestão municipal de saúde pública para municípios brasileiros.  
+Piloto: **Apuí/AM** · IBGE 1300144
 
 ---
 
-## Stack Técnica
+## Stack Tecnológico
 
 | Camada | Tecnologia |
-|--------|-----------|
-| Backend | Python 3.11+ · FastAPI · SQLAlchemy 2.0 |
-| Banco | PostgreSQL 15+ (Supabase ou local) |
-| Frontend | React 18 · Vite · TanStack Query |
-| IA | Anthropic Claude API |
-| Scheduler | APScheduler (sync FNS automático) |
-| Autenticação | JWT (python-jose) |
+|---|---|
+| Backend | FastAPI + SQLAlchemy async + SQLite/aiosqlite |
+| Frontend | React 18 + Vite + TypeScript + TanStack Query |
+| Autenticação | JWT (8h) + RBAC (7 papéis) |
+| Deploy Backend | Railway (auto-deploy via git push) |
+| Deploy Frontend | Vercel (auto-deploy via git push) |
+| IA Gestora | Anthropic Claude (API) |
 
 ---
 
-## Estrutura do Projeto
+## URLs
 
-```
-ersus360/
-├── backend/
-│   ├── main.py                  # Entry point FastAPI
-│   ├── config.py                # Settings (env vars)
-│   ├── database.py              # Engine + SessionLocal
-│   ├── models/                  # SQLAlchemy ORM
-│   │   ├── convenio.py
-│   │   ├── repasse.py
-│   │   ├── cronograma.py
-│   │   ├── indicador.py
-│   │   ├── alerta.py
-│   │   └── municipio.py
-│   ├── schemas/                 # Pydantic v2
-│   │   ├── convenio.py
-│   │   ├── repasse.py
-│   │   ├── fns.py
-│   │   └── dashboard.py
-│   ├── routers/                 # Endpoints REST
-│   │   ├── convenios.py
-│   │   ├── repasses.py
-│   │   ├── cronogramas.py
-│   │   ├── fns.py               # ★ Integração FNS
-│   │   ├── indicadores.py
-│   │   ├── alertas.py
-│   │   └── dashboard.py
-│   ├── services/
-│   │   ├── fns_service.py       # ★ Scraping/API FNS
-│   │   ├── alerta_service.py
-│   │   └── ia_service.py        # Claude API
-│   └── scheduler.py             # Sync automático FNS
-├── frontend/
-│   ├── index.html
-│   ├── vite.config.ts
-│   ├── src/
-│   │   ├── main.tsx
-│   │   ├── App.tsx
-│   │   ├── lib/api.ts           # Axios client
-│   │   ├── pages/
-│   │   │   ├── PainelGestor.tsx
-│   │   │   ├── FnsConvenios.tsx
-│   │   │   ├── Indicadores.tsx
-│   │   │   └── IAGestora.tsx
-│   │   └── components/
-│   │       ├── Semaforo.tsx
-│   │       ├── RepasesChart.tsx
-│   │       └── AlertaCard.tsx
-├── .env.example
-├── docker-compose.yml
-└── requirements.txt
-```
+| Ambiente | URL |
+|---|---|
+| Frontend (Vercel) | https://ersus360.vercel.app |
+| API (Railway) | https://ersus360-production.up.railway.app |
+| Docs API (Swagger) | https://ersus360-production.up.railway.app/docs |
 
 ---
 
-## Setup Rápido
+## Módulos implementados
 
-### 1. Variáveis de ambiente
+### APS e Vigilância
+- Painel Previne Brasil (7 indicadores com metas)
+- Atenção Primária — produção ESF, busca ativa, ACS
+- Vigilância em Saúde — SINAN, vacinação, epidemiologia
+- Saúde Brasil 360 — painéis SISAB
 
-```bash
-cp .env.example .env
-# Edite .env com suas credenciais
-```
+### Financeiro e Planejamento
+- FNS/Convênios — repasses, cronograma, portarias
+- Execução por bloco (PAB, MAC, VS, AFB, GES)
+- Emendas parlamentares
+- Planejamento — PMS, PAS, RDQA, metas pactuadas
 
-### 2. Backend
+### Gestão Operacional
+- Assistência Farmacêutica — estoque 3 níveis, dispensação
+- Obras e Infraestrutura — SISMOB, curva S
+- Patrimônio e Frota — tombamento, manutenção, abastecimento
+- Recursos Humanos — servidores, férias, movimentações, contratos
 
+### Inteligência e Comando
+- Business Intelligence — Score ERSUS 360 (0–100), painéis analíticos
+- OCIS — alertas em tempo real, regulação SISREG, TFD
+- IA Gestora — Claude API com contexto municipal
+- Auditoria — log de todas as operações
+
+### Administração
+- RBAC + Multi-tenant (`municipio_id` em todas as tabelas)
+- Cadastros Mestres — profissionais, UBS, equipes, ACS, medicamentos
+- Gestão de Usuários
+
+### Portais
+- Portal do Cidadão — dados LAI, ouvidoria com protocolo
+- Marketplace — integrações de parceiros certificados
+- Academia ERSUS — trilhas de capacitação, certificados
+
+---
+
+## Desenvolvimento local
+
+### Backend
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+python -m venv .venv
+.venv\Scripts\activate        # Windows
 pip install -r requirements.txt
-
-# Criar tabelas
-python -c "from database import Base, engine; from models import *; Base.metadata.create_all(engine)"
-
-# Rodar
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload
 ```
 
-### 3. Frontend
-
+### Frontend
 ```bash
 cd frontend
 npm install
-npm run dev   # http://localhost:5173
+cp .env.example .env.local    # editar VITE_API_URL
+npm run dev
 ```
 
-### 4. Via Docker (recomendado)
+### Variáveis de ambiente (Railway)
+```
+DATABASE_URL=sqlite+aiosqlite:///./ersus360.db
+SECRET_KEY=<gerar com openssl rand -hex 32>
+MUNICIPIO_NOME=Apuí
+MUNICIPIO_UF=AM
+MUNICIPIO_IBGE=1300144
+ANTHROPIC_API_KEY=<chave Anthropic>
+FNS_API_CPF=<cpf gestor FNS>
+FNS_API_SENHA=<senha FNS>
+ESUS_USUARIO=<usuario e-SUS>
+ESUS_SENHA=<senha e-SUS>
+```
+
+---
+
+## Deploy
 
 ```bash
-docker-compose up -d
+git push origin main
+# Railway e Vercel fazem auto-deploy automaticamente
 ```
 
 ---
 
-## Endpoints principais
+## Documentação técnica
 
-### FNS / Integração
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/api/fns/status` | Status da última sincronização |
-| POST | `/api/fns/sync` | Sincroniza uma competência |
-| POST | `/api/fns/sync-todos` | Sincroniza todas as competências |
-| GET | `/api/fns/historico` | Histórico de syncs |
+Ver pasta `docs/` — 27 documentos cobrindo as 20 fases do roadmap:
 
-### Convênios
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/api/convenios` | Lista convênios |
-| POST | `/api/convenios` | Cria convênio |
-| PUT | `/api/convenios/{id}` | Atualiza |
-| DELETE | `/api/convenios/{id}` | Remove |
-
-### Repasses
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/api/repasses` | Lista repasses |
-| GET | `/api/repasses/mensais` | Agrupado por mês (gráfico) |
-| POST | `/api/repasses` | Lança repasse manual |
-
-### Dashboard
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/api/dashboard/stats` | KPIs consolidados |
-| GET | `/api/alertas` | Alertas ativos |
+| Docs | Conteúdo |
+|---|---|
+| DOC-001 a 007 | Visão, produto, dados, LGPD, usuários, módulos, SLA |
+| DOC-008 a 010 | Arquitetura, framework ERSUS, guia do desenvolvedor |
+| DOC-011 a 013 | RBAC/multi-tenant, cadastros mestres, recursos humanos |
+| DOC-014 a 020 | Farmácia, APS, vigilância, planejamento, financeiro, obras, patrimônio |
+| DOC-021 a 024 | BI, OCIS, IA gestora, app mobile ACS |
+| DOC-025 a 027 | Portais, compliance SUS/LGPD/LAI, marketplace e academia |
 
 ---
 
-## Sync FNS Automático
+## Segurança
 
-O scheduler roda todo dia às **06:00** e sincroniza a competência atual:
-
-```python
-# scheduler.py — configurável via .env
-SYNC_HORA = "06:00"
-SYNC_MUNICIPIO_ID = 1  # FMS Apuí
-```
-
-A sincronização consulta `consultafns.saude.gov.br`, extrai repasses novos
-e cria alertas automáticos para valores abaixo do esperado.
+- JWT stateless, 8h expiry
+- RBAC: superadmin / admin / gestor / coordenador / financeiro / acs / visualizador
+- Multi-tenant: `municipio_id` em todas as tabelas
+- Soft delete — auditoria preservada indefinidamente
+- LGPD: dados de saúde só acessíveis por papéis autorizados
+- Credenciais apenas em variáveis de ambiente Railway
 
 ---
 
-## Módulos implementados — v2 COMPLETO
-
-### Backend (FastAPI) — 100% implementado
-- [x] Autenticação JWT (login / me / logout)
-- [x] FNS / Convênios (integração web scraping + CRUD completo)
-- [x] Repasses (lançamento manual + sync automático às 06:00)
-- [x] Módulo 1: Cadastro do Município + Contas Bancárias
-- [x] Módulo 2: Receitas FNS (blocos PAB, MAC, Vigilância, APS, etc.)
-- [x] Módulo 3: Execução Financeira (Empenho → Liquidação → Pagamento + Restos a Pagar)
-- [x] Módulo 4: Obras e SISMOB (cronograma + fotos + dias de atraso)
-- [x] Módulo 5-APS: Atenção Primária à Saúde (Previne Brasil / UBS)
-- [x] Módulo 5-Farm: Farmácia Municipal (estoque + dispensações + programas)
-- [x] Módulo 5-Plan: Planejamento PMS/PAS/RAG/DIGISUS
-- [x] Módulo 5-Vig: Vigilância em Saúde (SINAN + PNI + sanitária)
-- [x] Módulo 6: Banco de Portarias (busca full-text + upload PDF)
-- [x] Módulo 7: Dashboard KPIs consolidados
-- [x] Módulo 8: Alertas automáticos (CRUD + resolver/remover)
-- [x] Módulo 9: Gestão de Documentos (upload + download + MinIO)
-- [x] Módulo 10: Relatórios e Prestação de Contas (PDF/JSON)
-- [x] Módulo 11: IA Gestora com contexto real do banco (Claude API)
-- [x] Módulo 12: Painel Secretário (indicadores + alertas críticos)
-- [x] Módulo 13: Usuários com RBAC (11 perfis de acesso)
-- [x] Transporte em Saúde / TFD (frota + pacientes)
-- [x] Regulação (SISREG / central de regulação)
-- [x] Aplicações Financeiras / Rendimentos bancários
-- [x] Indicadores PAS (CRUD + semáforo automático)
-
-### Frontend (React + Vite) — 100% implementado (18 páginas)
-- [x] Login (JWT + interceptor automático + logout)
-- [x] Painel do Gestor / Dashboard
-- [x] FNS / Convênios (sync + gráficos)
-- [x] Execução Financeira (saldos + empenhos + restos a pagar)
-- [x] Portarias (busca + cadastro + upload PDF)
-- [x] Obras (cards de status + semáforo de execução)
-- [x] Documentos (upload drag-and-drop + download)
-- [x] Alertas (central com auto-refresh 30s)
-- [x] Relatórios (financeiro + por bloco + por programa + prestação de contas)
-- [x] APS (Previne Brasil + indicadores + produção + UBS)
-- [x] Farmácia (estoque + dispensações + programas)
-- [x] Planejamento (PAS ações + RAG automático + DIGISUS export)
-- [x] Vigilância (SINAN + imunização PNI + sanitária)
-- [x] Transporte / TFD (frota + pacientes)
-- [x] Regulação (solicitações + taxas + prazos)
-- [x] Município (cadastro + contas bancárias)
-- [x] Usuários (RBAC visual + criação + desativação)
-- [x] IA Gestora (chat + sugestões + histórico)
-- [x] Indicadores (semáforo visual)
+**ERSUS Tecnologia em Saúde Pública** · v1.0.0 · Julho/2026
