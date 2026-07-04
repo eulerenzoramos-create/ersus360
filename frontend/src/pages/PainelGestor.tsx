@@ -1,6 +1,6 @@
 // src/pages/PainelGestor.tsx — ERSUS 360 · Home BI de APS
 import { useQuery } from "@tanstack/react-query";
-import { apiDashboard, apiAlertas, apiIndicadores, apiBI, apiSistema } from "../lib/api";
+import { apiDashboard, apiAlertas, apiIndicadores, apiBI, apiSistema, apiGet } from "../lib/api";
 import {
   TrendingUp, TrendingDown, AlertTriangle, AlertCircle, CheckCircle,
   Activity, DollarSign, Target, Bell, BarChart2, Users, Pill,
@@ -49,7 +49,7 @@ export default function PainelGestor() {
   const { data: stats, isLoading } = useQuery({ queryKey:["dashboard"], queryFn:() => apiDashboard.stats() });
   const { data: alertas = [] }     = useQuery({ queryKey:["alertas"],   queryFn:() => apiAlertas.list() });
   const { data: indicadores = [] } = useQuery({ queryKey:["indicadores"], queryFn:() => apiIndicadores.list() });
-  const { data: scoreData }        = useQuery({ queryKey:["bi-score-home"], queryFn: apiBI.score });
+  const { data: scoreData }        = useQuery({ queryKey:["score-resumo-home"], queryFn: () => apiGet("/api/score/resumo") as Promise<any> });
   const { data: sysInfo }          = useQuery({ queryKey:["sistema-info"], queryFn: apiSistema.info, staleTime: 60_000 });
 
   const semaforo = indicadores.slice(0, 8);
@@ -111,7 +111,7 @@ export default function PainelGestor() {
               <div style={{ background:"rgba(255,255,255,.18)", border:"2px solid rgba(255,255,255,.4)", borderRadius:10, padding:"14px 20px", textAlign:"center", minWidth:90 }}>
                 <div style={{ fontSize:26, fontWeight:800 }}>{scoreData.score_total?.toFixed(0) ?? "—"}</div>
                 <div style={{ fontSize:11, opacity:.8, marginTop:2 }}>Score ERSUS 360</div>
-                <div style={{ fontSize:10, opacity:.65, marginTop:1 }}>{scoreData.classificacao ?? ""}</div>
+                <div style={{ fontSize:10, opacity:.65, marginTop:1 }}>{scoreData.nivel ?? scoreData.classificacao ?? ""}</div>
               </div>
             )}
           </div>

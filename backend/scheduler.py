@@ -38,12 +38,32 @@ async def _job_sync_fns() -> None:
 
 
 async def _job_score_ersus() -> None:
-    """Job: recalcula Score ERSUS 360 para todos os municípios."""
+    """Job: recalcula Score ERSUS 360 e envia alerta WebSocket se score crítico."""
     logger.info("[Scheduler] Recalculando Score ERSUS 360...")
     try:
-        # Score é calculado via /api/bi/score — aqui apenas registramos no log
-        # A implementação real consultará todos os módulos e gravará no banco
-        logger.info("[Scheduler] Score ERSUS 360 recalculado com sucesso.")
+        from routers.score import calcular_score_completo
+        from routers.ws_alertas import manager
+
+        data = calcular_score_completo()
+        score = data["score_total"]
+        nivel = data["nivel"]
+        logger.info("[Scheduler] Score ERSUS 360 = %.1f (%s)", score, nivel)
+
+        # Broadcast WebSocket se score crítico ou baixo
+        if score < 50:
+            await manager.broadcast({
+                "nivel": "CRITICO",
+                "titulo": f"Score ERSUS 360 crítico: {score:.1f}/100",
+                "mensagem": f"Situação {nivel}. Verifique os eixos APS, Financeiro e Epidemiologia.",
+                "modulo": "Score ERSUS",
+            })
+        elif score < 65:
+            await manager.broadcast({
+                "nivel": "AVISO",
+                "titulo": f"Score ERSUS 360: {score:.1f}/100 ({nivel})",
+                "mensagem": "Melhore a execução financeira e cobertura Previne Brasil.",
+                "modulo": "Score ERSUS",
+            })
     except Exception as exc:
         logger.error("[Scheduler] Erro ao recalcular Score ERSUS: %s", exc, exc_info=True)
 

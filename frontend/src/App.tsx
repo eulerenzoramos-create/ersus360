@@ -52,6 +52,7 @@ import Agenda          from "./pages/Agenda";
 import HistoricoAlertas from "./pages/HistoricoAlertas";
 import BuscaAtiva       from "./pages/BuscaAtiva";
 import RDQA             from "./pages/RDQA";
+import ScoreERSUS       from "./pages/ScoreERSUS";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -183,6 +184,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
 
             {/* ── Topo ── */}
             <L1 to="/"        label="Home"               Icon={Home}    end />
+            <L1 to="/score"   label="Score ERSUS 360"    Icon={Star}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -381,6 +383,7 @@ export default function App() {
         <Layout nomeUsuario={nomeUsuario} onLogout={handleLogout}>
           <Routes>
             <Route path="/"                          element={<PainelGestor/>}/>
+            <Route path="/score"                     element={<ScoreERSUS/>}/>
             <Route path="/ranking"                   element={<Indicadores/>}/>
             <Route path="/mapa"                      element={<MapaDesempenho/>}/>
             {/* Saúde Brasil 360 */}
