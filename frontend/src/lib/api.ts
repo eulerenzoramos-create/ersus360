@@ -489,6 +489,12 @@ export const apiAgenda = {
   proximosPrazos: (dias = 30) => apiGet("/api/agenda/proximos-prazos", { dias }),
 };
 
+// ── RDQA — Relatório Quadrimestral de Gestão ──────────────────────────────────
+export const apiRdqa = {
+  gerar: (quadrimestre = 2, ano = 2026) => apiGet("/api/rdqa/gerar", { quadrimestre, ano }),
+  historico: (ano = 2026) => apiGet("/api/rdqa/historico", { ano }),
+};
+
 // ── SIOPS ─────────────────────────────────────────────────────────────────────
 export const apiSiops = {
   apuracao: (ano = 2026) => apiGet("/api/siops/apuracao", { ano }),

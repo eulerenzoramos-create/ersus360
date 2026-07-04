@@ -51,6 +51,7 @@ import SIOPS           from "./pages/SIOPS";
 import Agenda          from "./pages/Agenda";
 import HistoricoAlertas from "./pages/HistoricoAlertas";
 import BuscaAtiva       from "./pages/BuscaAtiva";
+import RDQA             from "./pages/RDQA";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -299,6 +300,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
               <L2 to="/vigilancia"    label="Vigilância em Saúde"       Icon={ShieldCheck}/>
               <L2 to="/epidemiologia" label="Epidemiologia / SINAN"    Icon={Activity}/>
               <L2 to="/planejamento" label="Planejamento em Saúde"   Icon={ClipboardList}/>
+              <L2 to="/rdqa"         label="RDQA — Relatório Quad."  Icon={Calendar}/>
               <L2 to="/obras"       label="Obras e Infraestrutura"   Icon={Building2}/>
               <L2 to="/transporte"  label="Transporte / TFD"         Icon={Truck}/>
               <L2 to="/regulacao"   label="Regulação SISREG"         Icon={ArrowLeftRight}/>
@@ -418,6 +420,7 @@ export default function App() {
             <Route path="/alertas/*"                 element={<Alertas/>}/>
             <Route path="/relatorios"                element={<Relatorios/>}/>
             <Route path="/planejamento"              element={<Planejamento/>}/>
+            <Route path="/rdqa"                      element={<RDQA/>}/>
             <Route path="/aps"                       element={<APS/>}/>
             <Route path="/aps/*"                     element={<APS/>}/>
             <Route path="/farmacia"                  element={<Farmacia/>}/>
