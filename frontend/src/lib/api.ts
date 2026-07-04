@@ -340,6 +340,14 @@ export const apiFinanceiro = {
   empenhos: ()             => api.get("/api/financeiro/empenhos").then(r => r.data),
 };
 
+export const apiSiaps = {
+  dashboard:          () => apiGet("/api/siaps/dashboard"),
+  abrangencia:        () => apiGet("/api/siaps/abrangencia"),
+  vinculo:            () => apiGet("/api/siaps/vinculo-acompanhamento"),
+  qualidade:          () => apiGet("/api/siaps/qualidade"),
+  boasPraticas:       () => apiGet("/api/siaps/boas-praticas"),
+};
+
 // ── Helper genérico (para novos módulos) ──────────────────────────────────────
 export const apiGet = <T = unknown>(path: string, params?: Record<string, unknown>) =>
   api.get<T>(path, { params }).then((r) => r.data);
