@@ -10,7 +10,7 @@ import {
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
-  Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound,
+  Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -73,6 +73,9 @@ import TransporteSanitario     from "./pages/TransporteSanitario";
 import ProducaoSISAB           from "./pages/ProducaoSISAB";
 import SaudeMulher             from "./pages/SaudeMulher";
 import ConselhoSaude           from "./pages/ConselhoSaude";
+import SaudeBucal              from "./pages/SaudeBucal";
+import SaudeCrianca            from "./pages/SaudeCrianca";
+import VigilanciaVISA          from "./pages/VigilanciaVISA";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -223,6 +226,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/producao-sisab"        label="Produção APS / SISAB" Icon={Activity}/>
             <L1 to="/saude-mulher"          label="Saúde da Mulher"      Icon={Heart}/>
             <L1 to="/conselho-saude"        label="Conselho Municipal"    Icon={Users}/>
+            <L1 to="/saude-bucal"           label="Saúde Bucal"          Icon={Smile}/>
+            <L1 to="/saude-crianca"         label="Saúde da Criança"     Icon={Baby}/>
+            <L1 to="/visa"                  label="Vig. Sanitária"        Icon={ShieldCheck}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -490,6 +496,9 @@ export default function App() {
             <Route path="/producao-sisab"            element={<ProducaoSISAB/>}/>
             <Route path="/saude-mulher"              element={<SaudeMulher/>}/>
             <Route path="/conselho-saude"            element={<ConselhoSaude/>}/>
+            <Route path="/saude-bucal"               element={<SaudeBucal/>}/>
+            <Route path="/saude-crianca"             element={<SaudeCrianca/>}/>
+            <Route path="/visa"                      element={<VigilanciaVISA/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

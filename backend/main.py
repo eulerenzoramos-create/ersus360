@@ -122,6 +122,9 @@ from routers.transporte_sanitario import router as transp_san_router
 from routers.producao_sisab import router as sisab_router
 from routers.saude_mulher import router as saude_mulher_router
 from routers.cms import router as cms_router
+from routers.saude_bucal import router as saude_bucal_router
+from routers.saude_crianca import router as saude_crianca_router
+from routers.visa import router as visa_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -182,6 +185,9 @@ app.include_router(transp_san_router)
 app.include_router(sisab_router)
 app.include_router(saude_mulher_router)
 app.include_router(cms_router)
+app.include_router(saude_bucal_router)
+app.include_router(saude_crianca_router)
+app.include_router(visa_router)
 
 
 @app.get("/")
