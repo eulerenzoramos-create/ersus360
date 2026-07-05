@@ -170,6 +170,9 @@ from routers.vigiagua import router as vigiagua_router
 from routers.nasf import router as nasf_router
 from routers.zoonoses import router as zoonoses_router
 from routers.saude_servidor import router as saude_servidor_router
+from routers.planejamento_familiar import router as planejamento_familiar_router
+from routers.acolhimento import router as acolhimento_router
+from routers.judicializacao import router as judicializacao_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -278,6 +281,9 @@ app.include_router(vigiagua_router)
 app.include_router(nasf_router)
 app.include_router(zoonoses_router)
 app.include_router(saude_servidor_router)
+app.include_router(planejamento_familiar_router)
+app.include_router(acolhimento_router)
+app.include_router(judicializacao_router)
 
 
 @app.get("/")
