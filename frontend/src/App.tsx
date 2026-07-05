@@ -128,6 +128,7 @@ import Judicializacao         from "./pages/Judicializacao";
 import SPD                   from "./pages/SPD";
 import Contratos              from "./pages/Contratos";
 import SAMU                  from "./pages/SAMU";
+import PNAE                  from "./pages/PNAE";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -332,6 +333,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/spd"                   label="Saúde da Pessoa c/ Defic." Icon={UserCheck}/>
             <L1 to="/contratos"             label="Gestão de Contratos"   Icon={FileText}/>
             <L1 to="/samu"                  label="SAMU 192"              Icon={Radio}/>
+            <L1 to="/pnae"                  label="Alimentação Escolar (PNAE)" Icon={ShoppingBag}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -653,6 +655,7 @@ export default function App() {
             <Route path="/spd"                       element={<SPD/>}/>
             <Route path="/contratos"                 element={<Contratos/>}/>
             <Route path="/samu"                      element={<SAMU/>}/>
+            <Route path="/pnae"                      element={<PNAE/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
