@@ -137,6 +137,9 @@ from routers.sim_sinasc import router as sim_sinasc_router
 from routers.saude_trabalhador import router as saude_trab_router
 from routers.saude_mental import router as saude_mental_router
 from routers.urgencia_emergencia import router as urgencia_router
+from routers.saude_adolescente import router as saude_adol_router
+from routers.hiperdia import router as hiperdia_router
+from routers.cancer_rastreio import router as cancer_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -212,6 +215,9 @@ app.include_router(sim_sinasc_router)
 app.include_router(saude_trab_router)
 app.include_router(saude_mental_router)
 app.include_router(urgencia_router)
+app.include_router(saude_adol_router)
+app.include_router(hiperdia_router)
+app.include_router(cancer_router)
 
 
 @app.get("/")
