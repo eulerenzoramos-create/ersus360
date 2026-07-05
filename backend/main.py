@@ -134,6 +134,9 @@ from routers.ist_hiv import router as ist_hiv_router
 from routers.saude_idoso import router as saude_idoso_router
 from routers.saude_homem import router as saude_homem_router
 from routers.sim_sinasc import router as sim_sinasc_router
+from routers.saude_trabalhador import router as saude_trab_router
+from routers.saude_mental import router as saude_mental_router
+from routers.urgencia_emergencia import router as urgencia_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -206,6 +209,9 @@ app.include_router(ist_hiv_router)
 app.include_router(saude_idoso_router)
 app.include_router(saude_homem_router)
 app.include_router(sim_sinasc_router)
+app.include_router(saude_trab_router)
+app.include_router(saude_mental_router)
+app.include_router(urgencia_router)
 
 
 @app.get("/")
