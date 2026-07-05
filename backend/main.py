@@ -174,14 +174,11 @@ from routers.planejamento_familiar import router as planejamento_familiar_router
 from routers.acolhimento import router as acolhimento_router
 from routers.judicializacao import router as judicializacao_router
 from routers.spd import router as spd_router
-from routers.contratos import router as contratos_router
 from routers.samu import router as samu_router
 from routers.pnae import router as pnae_router
-from routers.visa import router as visa_router
-from routers.saude_mental import router as saude_mental_router
-from routers.hemoterapia import router as hemoterapia_router
-from routers.gestao_leitos import router as gestao_leitos_router
-from routers.tb_hanseniase import router as tb_hanseniase_router
+from routers.siops_detalhado import router as siops_detalhado_router
+from routers.pat_saude import router as pat_saude_router
+from routers.abastecimento import router as abastecimento_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -294,14 +291,11 @@ app.include_router(planejamento_familiar_router)
 app.include_router(acolhimento_router)
 app.include_router(judicializacao_router)
 app.include_router(spd_router)
-app.include_router(contratos_router)
 app.include_router(samu_router)
 app.include_router(pnae_router)
-app.include_router(visa_router)
-app.include_router(saude_mental_router)
-app.include_router(hemoterapia_router)
-app.include_router(gestao_leitos_router)
-app.include_router(tb_hanseniase_router)
+app.include_router(siops_detalhado_router)
+app.include_router(pat_saude_router)
+app.include_router(abastecimento_router)
 
 
 @app.get("/")
