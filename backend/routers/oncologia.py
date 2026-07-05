@@ -1,74 +1,100 @@
-"""Oncologia e Cuidados Paliativos · FMS Apuí/AM"""
 from fastapi import APIRouter
 
 router = APIRouter(prefix="/api/oncologia", tags=["oncologia"])
 
+_TIPOS_CANCER = [
+    {"tipo": "Colo do Útero", "casos_ano": 18, "estadio_avancado_pct": 66.7,
+     "rastreio_realizado_pct": 52.4, "meta_rastreio_pct": 80.0,
+     "obitos_ano": 4, "tratamento_oportuno_pct": 61.1, "status": "critico"},
+    {"tipo": "Mama", "casos_ano": 14, "estadio_avancado_pct": 57.1,
+     "rastreio_realizado_pct": 41.8, "meta_rastreio_pct": 70.0,
+     "obitos_ano": 3, "tratamento_oportuno_pct": 71.4, "status": "critico"},
+    {"tipo": "Próstata", "casos_ano": 12, "estadio_avancado_pct": 41.7,
+     "rastreio_realizado_pct": None, "meta_rastreio_pct": None,
+     "obitos_ano": 2, "tratamento_oportuno_pct": 83.3, "status": "atencao"},
+    {"tipo": "Pulmão", "casos_ano": 8, "estadio_avancado_pct": 87.5,
+     "rastreio_realizado_pct": None, "meta_rastreio_pct": None,
+     "obitos_ano": 6, "tratamento_oportuno_pct": 37.5, "status": "critico"},
+    {"tipo": "Colorretal", "casos_ano": 9, "estadio_avancado_pct": 55.6,
+     "rastreio_realizado_pct": 18.2, "meta_rastreio_pct": 40.0,
+     "obitos_ano": 3, "tratamento_oportuno_pct": 66.7, "status": "critico"},
+    {"tipo": "Pele Melanoma", "casos_ano": 6, "estadio_avancado_pct": 33.3,
+     "rastreio_realizado_pct": None, "meta_rastreio_pct": None,
+     "obitos_ano": 1, "tratamento_oportuno_pct": 83.3, "status": "atencao"},
+]
+
+_RASTREIO = [
+    {"exame": "Papanicolau (colo útero)", "publico_alvo": "Mulheres 25–64 anos",
+     "realizados_ano": 1842, "meta_ano": 3520, "cobertura_pct": 52.3,
+     "alterados_pct": 4.8, "encaminhados_colposcopia": 42, "status": "critico"},
+    {"exame": "Mamografia (mama)", "publico_alvo": "Mulheres 50–69 anos",
+     "realizados_ano": 284, "meta_ano": 680, "cobertura_pct": 41.8,
+     "bi_rads_4_5_pct": 3.2, "encaminhados_biopsia": 9, "status": "critico"},
+    {"exame": "PSA (próstata)", "publico_alvo": "Homens 50–70 anos c/ risco",
+     "realizados_ano": 312, "meta_ano": None, "cobertura_pct": None,
+     "alterados_pct": 8.3, "encaminhados_uro": 26, "status": "atencao"},
+    {"exame": "Sangue Oculto Fezes (colorretal)", "publico_alvo": "50–75 anos",
+     "realizados_ano": 124, "meta_ano": 682, "cobertura_pct": 18.2,
+     "positivos_pct": 6.5, "encaminhados_colonoscopia": 8, "status": "critico"},
+]
+
+_HISTORICO = [
+    {"mes": "Jan", "novos_casos": 6, "papanicolau": 148, "mamografia": 22, "obitos": 2, "encaminhamentos_cap": 18},
+    {"mes": "Fev", "novos_casos": 4, "papanicolau": 136, "mamografia": 18, "obitos": 1, "encaminhamentos_cap": 14},
+    {"mes": "Mar", "novos_casos": 8, "papanicolau": 168, "mamografia": 26, "obitos": 3, "encaminhamentos_cap": 22},
+    {"mes": "Abr", "novos_casos": 7, "papanicolau": 158, "mamografia": 24, "obitos": 2, "encaminhamentos_cap": 20},
+    {"mes": "Mai", "novos_casos": 9, "papanicolau": 172, "mamografia": 28, "obitos": 3, "encaminhamentos_cap": 24},
+    {"mes": "Jun", "novos_casos": 5, "papanicolau": 162, "mamografia": 21, "obitos": 2, "encaminhamentos_cap": 19},
+]
+
+_INDICADORES = [
+    {"indicador": "Cobertura Papanicolau", "valor": 52.3, "meta": 80.0, "unidade": "%",
+     "status": "critico", "observacao": "27,7 pp abaixo da meta — diagnóstico tardio de câncer de colo"},
+    {"indicador": "Cobertura Mamografia (50–69)", "valor": 41.8, "meta": 70.0, "unidade": "%",
+     "status": "critico", "observacao": "28,2 pp abaixo da meta — maioria dos casos diagnosticados em estádio avançado"},
+    {"indicador": "Casos diagnosticados em estádio avançado", "valor": 58.4, "meta": 30.0, "unidade": "%",
+     "status": "critico", "observacao": "58% em III/IV — resultado direto do rastreamento insuficiente"},
+    {"indicador": "Tratamento oportuno (≤60 dias lei 12.732)", "valor": 63.8, "meta": 100.0, "unidade": "%",
+     "status": "critico", "observacao": "36% dos pacientes aguardam >60 dias — risco legal e clínico"},
+    {"indicador": "Cobertura rastreio colorretal", "valor": 18.2, "meta": 40.0, "unidade": "%",
+     "status": "critico", "observacao": "Exame pouco solicitado — baixa adesão e estrutura insuficiente"},
+    {"indicador": "Óbitos por câncer/ano", "valor": 19, "meta": None, "unidade": "óbitos",
+     "status": "critico", "observacao": "19 óbitos — maioria evitáveis com diagnóstico precoce"},
+]
+
+
 @router.get("/dashboard")
-async def dashboard():
+def dashboard():
     return {
-        "pacientes_oncologicos": 34,
-        "em_tratamento_ativo": 18,
-        "cuidados_paliativos": 9,
-        "casos_novos_mes": 3,
-        "aguardando_diagnostico": 7,
-        "tempo_medio_diagnostico_dias": 62,
-        "meta_diagnostico_dias": 30,
-        "tempo_medio_tratamento_dias": 88,
-        "meta_tratamento_dias": 60,
-        "encaminhados_oncologia_referencia": 22,
-        "obitos_mes": 1,
-        "status_geral": "critico",
-        "principais_topografias": ["Mama", "Próstata", "Colo de útero", "Cólon"],
-        "tfd_oncologia_ativos": 16,
+        "novos_casos_ano": 67,
+        "tipos_monitorados": 6,
+        "obitos_ano": 19,
+        "estadio_avancado_pct": 58.4,
+        "tratamento_oportuno_lei_pct": 63.8,
+        "cobertura_papanicolau_pct": 52.3,
+        "cobertura_mamografia_pct": 41.8,
+        "encaminhamentos_cap_mes": 19,
+        "rastreio_colorretal_pct": 18.2,
+        "sem_acesso_quimioterapia_local": True,
+        "referencia_manaus_dias": 14,
     }
 
-@router.get("/pacientes")
-async def pacientes():
-    return [
-        {"id": "ONC-001", "topografia": "Mama",         "estadiamento": "III-A", "situacao": "Em QT",         "ciclo": "4/6",  "tempo_espera_dias": 45,  "tfd": True,  "status": "atencao", "alerta": None},
-        {"id": "ONC-002", "topografia": "Próstata",      "estadiamento": "II",   "situacao": "Em RT",         "ciclo": "18/35","tempo_espera_dias": 62,  "tfd": True,  "status": "ok",      "alerta": None},
-        {"id": "ONC-003", "topografia": "Colo de útero", "estadiamento": "II-B", "situacao": "Em QT+RT",      "ciclo": "3/6",  "tempo_espera_dias": 78,  "tfd": True,  "status": "atencao", "alerta": "Toxicidade G2 — náuseas"},
-        {"id": "ONC-004", "topografia": "Cólon",         "estadiamento": "IV",   "situacao": "Paliativos",    "ciclo": None,   "tempo_espera_dias": None,"tfd": False, "status": "critico", "alerta": "Metástase hepática — morfina SOS"},
-        {"id": "ONC-005", "topografia": "Pulmão",        "estadiamento": "IIIB", "situacao": "Aguard. biópsia","ciclo": None,  "tempo_espera_dias": 94,  "tfd": False, "status": "critico", "alerta": "94 dias sem diagnóstico — acima da meta"},
-        {"id": "ONC-006", "topografia": "Mama",          "estadiamento": "I",    "situacao": "Pós-cirurgia",  "ciclo": None,   "tempo_espera_dias": 28,  "tfd": False, "status": "ok",      "alerta": None},
-        {"id": "ONC-007", "topografia": "Tireoide",      "estadiamento": "II",   "situacao": "Em hormonioterapia","ciclo":"2/12","tempo_espera_dias": 34,"tfd": True,  "status": "ok",      "alerta": None},
-        {"id": "ONC-008", "topografia": "Leucemia LLA",  "estadiamento": "Indução","situacao":"Em QT pediátrica","ciclo":"1/4","tempo_espera_dias": 18,  "tfd": True,  "status": "atencao", "alerta": "Criança 6a — suporte nutricional necessário"},
-        {"id": "ONC-009", "topografia": "Linfoma NH",    "estadiamento": "II-A", "situacao": "Em QT CHOP",    "ciclo": "2/6",  "tempo_espera_dias": 41,  "tfd": True,  "status": "ok",      "alerta": None},
-        {"id": "ONC-010", "topografia": "Próstata",      "estadiamento": "IV",   "situacao": "Paliativos",    "ciclo": None,   "tempo_espera_dias": None,"tfd": False, "status": "critico", "alerta": "Dor óssea refratária — avaliação ANS"},
-    ]
 
-@router.get("/paliativos")
-async def paliativos():
-    return [
-        {"id": "PAL-001", "diagnostico": "Ca cólon IV",    "sintoma_principal": "Dor abdominal EVA 8/10", "morfina_dose": "30 mg/d",    "visita_domiciliar": True,  "familiar_cuidador": True,  "dias_programa": 42,  "status": "critico"},
-        {"id": "PAL-002", "diagnostico": "Ca pulmão IIIB", "sintoma_principal": "Dispneia em repouso",   "morfina_dose": "20 mg/d",    "visita_domiciliar": True,  "familiar_cuidador": True,  "dias_programa": 28,  "status": "critico"},
-        {"id": "PAL-003", "diagnostico": "Ca próstata IV", "sintoma_principal": "Dor óssea EVA 7/10",   "morfina_dose": "40 mg/d",    "visita_domiciliar": False, "familiar_cuidador": False, "dias_programa": 67,  "status": "critico", "alerta": "Sem cuidador familiar — assistência social"},
-        {"id": "PAL-004", "diagnostico": "Ca mama IV",     "sintoma_principal": "Fadiga + anorexia",     "morfina_dose": "15 mg/d",    "visita_domiciliar": True,  "familiar_cuidador": True,  "dias_programa": 18,  "status": "atencao"},
-        {"id": "PAL-005", "diagnostico": "Ca pâncreas IV", "sintoma_principal": "Dor epigástrica EVA 9","morfina_dose": "60 mg/d",    "visita_domiciliar": True,  "familiar_cuidador": True,  "dias_programa": 12,  "status": "critico"},
-        {"id": "PAL-006", "diagnostico": "Ca fígado IV",   "sintoma_principal": "Ascite + icterícia",    "morfina_dose": "10 mg/d",    "visita_domiciliar": True,  "familiar_cuidador": True,  "dias_programa": 8,   "status": "atencao"},
-        {"id": "PAL-007", "diagnostico": "LMA refratária","sintoma_principal": "Infecções recorrentes",  "morfina_dose": None,         "visita_domiciliar": False, "familiar_cuidador": True,  "dias_programa": 5,   "status": "atencao"},
-        {"id": "PAL-008", "diagnostico": "Ca ovário III-C","sintoma_principal": "Dor pélvica + ascite",  "morfina_dose": "20 mg/d",    "visita_domiciliar": True,  "familiar_cuidador": True,  "dias_programa": 34,  "status": "atencao"},
-        {"id": "PAL-009", "diagnostico": "GBM grau IV",   "sintoma_principal": "Déficit neurológico",   "morfina_dose": "15 mg/d",    "visita_domiciliar": True,  "familiar_cuidador": True,  "dias_programa": 22,  "status": "critico"},
-    ]
+@router.get("/tipos-cancer")
+def tipos_cancer():
+    return _TIPOS_CANCER
+
+
+@router.get("/rastreio")
+def rastreio():
+    return _RASTREIO
+
 
 @router.get("/historico")
-async def historico():
-    return [
-        {"mes": "Out/25", "casos_novos": 2, "em_tratamento": 16, "paliativos": 7,  "obitos": 1, "tempo_diag_dias": 68, "tfd_ativos": 14},
-        {"mes": "Nov/25", "casos_novos": 3, "em_tratamento": 17, "paliativos": 8,  "obitos": 2, "tempo_diag_dias": 65, "tfd_ativos": 15},
-        {"mes": "Dez/25", "casos_novos": 2, "em_tratamento": 16, "paliativos": 8,  "obitos": 1, "tempo_diag_dias": 70, "tfd_ativos": 14},
-        {"mes": "Jan/26", "casos_novos": 4, "em_tratamento": 18, "paliativos": 9,  "obitos": 2, "tempo_diag_dias": 64, "tfd_ativos": 15},
-        {"mes": "Fev/26", "casos_novos": 3, "em_tratamento": 18, "paliativos": 9,  "obitos": 1, "tempo_diag_dias": 62, "tfd_ativos": 16},
-        {"mes": "Mar/26", "casos_novos": 3, "em_tratamento": 18, "paliativos": 9,  "obitos": 1, "tempo_diag_dias": 62, "tfd_ativos": 16},
-    ]
+def historico():
+    return _HISTORICO
+
 
 @router.get("/indicadores")
-async def indicadores():
-    return [
-        {"indicador": "Tempo diagnóstico → tratamento",    "valor": 62,  "meta": 30,   "unidade": "dias", "status": "critico", "observacao": "Acima do prazo lei 12.732"},
-        {"indicador": "Pacientes em cuidados paliativos",  "valor": 9,   "meta": None, "unidade": "un",   "status": "atencao", "observacao": "Suporte de dor e conforto"},
-        {"indicador": "TFD oncologia ativos",              "valor": 16,  "meta": None, "unidade": "un",   "status": "atencao", "observacao": "Custo médio R$2.400/paciente/mês"},
-        {"indicador": "Cobertura rastreio mama (40-69a)",  "valor": 32.4,"meta": 70,   "unidade": "%",    "status": "critico", "observacao": "Abaixo da meta — ICSAP câncer"},
-        {"indicador": "Cobertura rastreio colo útero",     "valor": 38.1,"meta": 80,   "unidade": "%",    "status": "critico", "observacao": "Meta ministerial 80%"},
-        {"indicador": "Sem cuidador formal (paliativos)",  "valor": 1,   "meta": 0,    "unidade": "pac",  "status": "critico", "observacao": "PAL-003 sem suporte familiar"},
-    ]
+def indicadores():
+    return _INDICADORES

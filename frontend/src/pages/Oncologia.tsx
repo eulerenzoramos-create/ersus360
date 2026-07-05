@@ -1,226 +1,236 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
-import { Heart, AlertTriangle, Clock, Users } from "lucide-react";
 import { apiGet } from "../lib/api";
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer, Cell,
+} from "recharts";
+import { Search, AlertTriangle, Users, Activity } from "lucide-react";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
-const STATUS_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
-const SIT_COR: Record<string, string> = {
-  "Em QT": "#1d4ed8", "Em RT": "#7c3aed", "Em QT+RT": "#6d28d9",
-  "Paliativos": "#dc2626", "Pós-cirurgia": "#16a34a",
-  "Aguard. biópsia": "#d97706", "Em hormonioterapia": "#0369a1",
-  "Em QT pediátrica": "#ec4899", "Em QT CHOP": "#1d4ed8",
-};
+const BRAND  = "#450a0a";
+const ACCENT = "#dc2626";
+const OK     = "#16a34a";
+const WARN   = "#d97706";
+const CRIT   = "#dc2626";
 
-function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
-  return (
-    <div style={{ background: "#fff", border: `1px solid ${cor}22`, borderTop: `3px solid ${cor}`, borderRadius: 10, padding: "13px 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 5 }}>
-        <span style={{ fontSize: 11, color: "#6b7280" }}>{label}</span>
-        <div style={{ background: `${cor}15`, borderRadius: 6, padding: 5 }}>{icon}</div>
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: cor, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{sub}</div>}
-    </div>
-  );
+function statusColor(s: string) {
+  if (s === "ok") return OK;
+  if (s === "atencao") return WARN;
+  return CRIT;
 }
 
-function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
-  if (!dash) return null;
-  return (
-    <div>
-      {dash.tempo_medio_diagnostico_dias > dash.meta_diagnostico_dias && (
-        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#dc2626" }}>
-          <strong>⚠ Lei 12.732:</strong> Prazo máximo de {dash.meta_diagnostico_dias} dias para início do tratamento. Tempo médio atual: <strong>{dash.tempo_medio_diagnostico_dias} dias</strong> — {dash.tempo_medio_diagnostico_dias - dash.meta_diagnostico_dias} dias acima.
-        </div>
-      )}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
-        <KpiCard label="Pacientes oncológicos" value={dash.pacientes_oncologicos}             sub={`${dash.em_tratamento_ativo} em trat. ativo`}                cor="#374151"  icon={<Users size={14} color="#374151"/>}/>
-        <KpiCard label="Cuidados paliativos"   value={dash.cuidados_paliativos}              sub="conforto + dor"                                              cor="#dc2626"  icon={<Heart size={14} color="#dc2626"/>}/>
-        <KpiCard label="Tempo diagnóstico"     value={dash.tempo_medio_diagnostico_dias+"d"} sub={`meta: ${dash.meta_diagnostico_dias}d (Lei 12.732)`}         cor="#dc2626"  icon={<Clock size={14} color="#dc2626"/>}/>
-        <KpiCard label="TFD oncologia"         value={dash.tfd_oncologia_ativos}             sub="em tratamento fora domicílio"                                cor="#d97706"  icon={<AlertTriangle size={14} color="#d97706"/>}/>
-      </div>
-      {hist && (
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Oncologia — tendência 6 meses</div>
-          <div style={{ height: 210 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={hist}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6"/>
-                <XAxis dataKey="mes" tick={{ fontSize: 9 }}/>
-                <YAxis yAxisId="l" tick={{ fontSize: 10 }}/>
-                <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 9 }} unit="d"/>
-                <Tooltip contentStyle={TT}/>
-                <ReferenceLine yAxisId="r" y={30} stroke="#16a34a" strokeDasharray="4 2" label={{ value: "meta 30d", fontSize: 9, fill: "#16a34a" }}/>
-                <Line yAxisId="l" type="monotone" dataKey="em_tratamento" stroke="#1d4ed8" strokeWidth={2.5} dot={{ r: 3 }} name="Em tratamento"/>
-                <Line yAxisId="l" type="monotone" dataKey="paliativos"    stroke="#dc2626" strokeWidth={2}   dot={{ r: 3 }} name="Paliativos"/>
-                <Line yAxisId="l" type="monotone" dataKey="casos_novos"   stroke="#d97706" strokeWidth={1.5} dot={{ r: 3 }} name="Casos novos"/>
-                <Line yAxisId="r" type="monotone" dataKey="tempo_diag_dias" stroke="#6b7280" strokeWidth={1} dot={false} name="Tempo diagn. (d)" strokeDasharray="3 2"/>
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
+  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+    <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{label}</p>
+    <p className="text-2xl font-bold mt-1" style={{ color: color || BRAND }}>{value}</p>
+    {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+  </div>
+);
 
-function AbaPacientes({ pacientes }: { pacientes: any[] | undefined }) {
-  if (!pacientes) return null;
-  return (
-    <div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-        {pacientes.map(p => {
-          const cor = STATUS_COR[p.status];
-          const sitCor = SIT_COR[p.situacao] ?? "#374151";
-          return (
-            <div key={p.id} style={{ background: "#fff", border: `1px solid ${cor}22`, borderLeft: `4px solid ${cor}`, borderRadius: 8, padding: "11px 16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <div>
-                  <span style={{ fontSize: 11, color: "#6b7280", fontFamily: "monospace" }}>{p.id}</span>
-                  <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 700 }}>{p.topografia}</span>
-                  <span style={{ marginLeft: 6, fontSize: 11, color: "#6b7280" }}>Est. {p.estadiamento}</span>
-                </div>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <span style={{ background: sitCor+"15", color: sitCor, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>{p.situacao}</span>
-                  {p.tfd && <span style={{ background: "#fef9c3", color: "#92400e", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>TFD</span>}
-                </div>
-              </div>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>
-                {p.ciclo && <span>Ciclo: <strong>{p.ciclo}</strong> · </span>}
-                {p.tempo_espera_dias && <span>Espera: <strong style={{ color: p.tempo_espera_dias > 30 ? "#dc2626" : "#374151" }}>{p.tempo_espera_dias} dias</strong></span>}
-              </div>
-              {p.alerta && <div style={{ marginTop: 4, background: "#fef2f2", borderRadius: 4, padding: "4px 10px", fontSize: 11, color: "#dc2626", fontWeight: 600 }}>⚠ {p.alerta}</div>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function AbaPaliativos({ pals }: { pals: any[] | undefined }) {
-  if (!pals) return null;
-  return (
-    <div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {pals.map(p => {
-          const cor = STATUS_COR[p.status];
-          return (
-            <div key={p.id} style={{ background: "#fff", border: `2px solid ${cor}33`, borderLeft: `5px solid ${cor}`, borderRadius: 8, padding: "12px 18px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                <div>
-                  <span style={{ fontSize: 11, color: "#6b7280", fontFamily: "monospace" }}>{p.id}</span>
-                  <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 700 }}>{p.diagnostico}</span>
-                </div>
-                <div style={{ display: "flex", gap: 8, fontSize: 11 }}>
-                  <span style={{ color: p.visita_domiciliar ? "#16a34a" : "#dc2626" }}>{p.visita_domiciliar ? "✓ Visita domiciliar" : "✗ Sem visita"}</span>
-                  <span style={{ color: p.familiar_cuidador ? "#16a34a" : "#dc2626" }}>{p.familiar_cuidador ? "✓ Cuidador" : "✗ Sem cuidador"}</span>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#6b7280" }}>
-                <span>Sintoma: <strong style={{ color: "#dc2626" }}>{p.sintoma_principal}</strong></span>
-                {p.morfina_dose && <span>Morfina: <strong>{p.morfina_dose}</strong></span>}
-                <span>Dias: <strong>{p.dias_programa}</strong></span>
-              </div>
-              {p.alerta && <div style={{ marginTop: 5, background: "#fef2f2", borderRadius: 4, padding: "4px 10px", fontSize: 11, color: "#dc2626", fontWeight: 700 }}>⚠ {p.alerta}</div>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
-  if (!inds) return null;
-  return (
-    <div>
-      {["critico","atencao","ok"].map(nivel => {
-        const grupo = inds.filter(i => i.status === nivel);
-        if (!grupo.length) return null;
-        const cor = STATUS_COR[nivel];
-        return (
-          <div key={nivel} style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: cor, marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: 1 }}>{nivel==="critico"?"Crítico":nivel==="atencao"?"Atenção":"OK"}</div>
-            {grupo.map(ind => (
-              <div key={ind.indicador} style={{ background: "#fff", border: `1px solid ${cor}22`, borderRadius: 8, padding: "12px 16px", marginBottom: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ind.meta && typeof ind.valor==="number"?6:0 }}>
-                  <div>
-                    <span style={{ fontSize: 13, fontWeight: 500 }}>{ind.indicador}</span>
-                    {ind.observacao && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{ind.observacao}</div>}
-                  </div>
-                  <div style={{ flexShrink: 0, marginLeft: 12 }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{ind.valor}{ind.unidade==="%"?"%":ind.unidade==="dias"?" dias":""}</span>
-                    {ind.meta && <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 6 }}>meta: {ind.meta}{ind.unidade==="%"?"%":""}</span>}
-                  </div>
-                </div>
-                {ind.meta && typeof ind.valor==="number" && ind.unidade==="%" && (
-                  <div style={{ background: "#f3f4f6", borderRadius: 6, height: 7 }}>
-                    <div style={{ background: cor, height: "100%", width: `${Math.min(100,Math.round(ind.valor/ind.meta*100))}%`, borderRadius: 6 }}/>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-type Aba = "dashboard"|"pacientes"|"paliativos"|"indicadores";
+const TIPO_COLORS = ["#7c3aed","#db2777","#0891b2","#1d4ed8","#d97706","#16a34a"];
 
 export default function Oncologia() {
-  const [aba, setAba] = useState<Aba>("dashboard");
-  const { data: dash  } = useQuery({ queryKey: ["onc-dash"], queryFn: () => apiGet("/api/oncologia/dashboard")    as Promise<any> });
-  const { data: hist  } = useQuery({ queryKey: ["onc-hist"], queryFn: () => apiGet("/api/oncologia/historico")    as Promise<any[]>, enabled: aba==="dashboard" });
-  const { data: pacs  } = useQuery({ queryKey: ["onc-pacs"], queryFn: () => apiGet("/api/oncologia/pacientes")   as Promise<any[]>, enabled: aba==="pacientes" });
-  const { data: pals  } = useQuery({ queryKey: ["onc-pals"], queryFn: () => apiGet("/api/oncologia/paliativos")  as Promise<any[]>, enabled: aba==="paliativos" });
-  const { data: inds  } = useQuery({ queryKey: ["onc-ind"],  queryFn: () => apiGet("/api/oncologia/indicadores") as Promise<any[]>, enabled: aba==="indicadores" });
+  const [aba, setAba] = useState("dashboard");
+
+  const { data: dash } = useQuery({
+    queryKey: ["onc-dashboard"],
+    queryFn: () => apiGet("/api/oncologia/dashboard"),
+    enabled: aba === "dashboard",
+  });
+  const { data: tipos } = useQuery({
+    queryKey: ["onc-tipos"],
+    queryFn: () => apiGet("/api/oncologia/tipos-cancer"),
+    enabled: aba === "tipos",
+  });
+  const { data: rastreio } = useQuery({
+    queryKey: ["onc-rastreio"],
+    queryFn: () => apiGet("/api/oncologia/rastreio"),
+    enabled: aba === "rastreio",
+  });
+  const { data: historico } = useQuery({
+    queryKey: ["onc-historico"],
+    queryFn: () => apiGet("/api/oncologia/historico"),
+    enabled: aba === "historico",
+  });
+  const { data: indicadores } = useQuery({
+    queryKey: ["onc-indicadores"],
+    queryFn: () => apiGet("/api/oncologia/indicadores"),
+    enabled: aba === "indicadores",
+  });
 
   const dashRaw = dash as any;
 
-  const ABAS: { id: Aba; label: string }[] = [
-    { id: "dashboard",   label: "Dashboard" },
-    { id: "pacientes",   label: `Pacientes (${dashRaw?.pacientes_oncologicos ?? 0})` },
-    { id: "paliativos",  label: `Paliativos (${dashRaw?.cuidados_paliativos ?? 0})` },
-    { id: "indicadores", label: "Indicadores" },
+  const ABAS = [
+    { key: "dashboard",   label: "Dashboard",   icon: <Search size={15}/> },
+    { key: "tipos",       label: "Tipos",       icon: <Users size={15}/> },
+    { key: "rastreio",    label: "Rastreio",    icon: <AlertTriangle size={15}/> },
+    { key: "historico",   label: "Histórico",   icon: <Activity size={15}/> },
+    { key: "indicadores", label: "Indicadores", icon: <AlertTriangle size={15}/> },
   ];
 
   return (
-    <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
-      <div style={{ background: "linear-gradient(135deg,#831843 0%,#be185d 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Oncologia e Cuidados Paliativos</h1>
-            <p style={{ fontSize: 13, opacity: .85, margin: 0 }}>Lei 12.732 · TFD · Rastreamento · Paliativos · FMS Apuí/AM</p>
+    <div className="min-h-screen bg-slate-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg" style={{ background: BRAND }}>
+            <Search size={22} color="white" />
           </div>
-          {dash && (
-            <div style={{ display: "flex", gap: 10 }}>
-              <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.pacientes_oncologicos}</div>
-                <div style={{ fontSize: 10, opacity: .8 }}>pacientes</div>
-              </div>
-              <div style={{ background: dashRaw.tempo_medio_diagnostico_dias > dashRaw.meta_diagnostico_dias ? "rgba(255,100,100,.3)" : "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.tempo_medio_diagnostico_dias}d</div>
-                <div style={{ fontSize: 10, opacity: .8 }}>tempo diagn.</div>
-              </div>
-            </div>
-          )}
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Oncologia</h1>
+            <p className="text-sm text-slate-500">Rastreamento · Diagnóstico Precoce · RCBP · FMS Apuí/AM</p>
+          </div>
         </div>
-      </div>
-      <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #fce7f3" }}>
-          {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #be185d":"2px solid transparent", color: aba===a.id?"#be185d":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
+
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {ABAS.map((a) => (
+            <button key={a.key} onClick={() => setAba(a.key)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              style={aba === a.key ? { background: BRAND, color: "white" } : { background: "white", color: "#475569", border: "1px solid #e2e8f0" }}>
+              {a.icon} {a.label}
+            </button>
           ))}
         </div>
-        {aba==="dashboard"   && <AbaDashboard dash={dashRaw} hist={hist}/>}
-        {aba==="pacientes"   && <AbaPacientes pacientes={pacs}/>}
-        {aba==="paliativos"  && <AbaPaliativos pals={pals}/>}
-        {aba==="indicadores" && <AbaIndicadores inds={inds}/>}
+
+        {aba === "dashboard" && dashRaw && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KPI label="Novos Casos/Ano"       value={dashRaw.novos_casos_ano.toString()} color={CRIT} />
+              <KPI label="Óbitos/Ano"            value={dashRaw.obitos_ano.toString()} color={CRIT} />
+              <KPI label="Estádio Avançado"      value={`${dashRaw.estadio_avancado_pct}%`} sub="diagnosticados em III/IV" color={CRIT} />
+              <KPI label="Tratam. Oportuno"      value={`${dashRaw.tratamento_oportuno_lei_pct}%`} sub="≤60 dias — Lei 12.732" color={CRIT} />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KPI label="Papanicolau Cobertura" value={`${dashRaw.cobertura_papanicolau_pct}%`} sub="meta: 80%" color={CRIT} />
+              <KPI label="Mamografia Cobertura"  value={`${dashRaw.cobertura_mamografia_pct}%`} sub="meta: 70%" color={CRIT} />
+              <KPI label="Rastreio Colorretal"   value={`${dashRaw.rastreio_colorretal_pct}%`} sub="meta: 40%" color={CRIT} />
+              <KPI label="Referência Manaus"     value={`${dashRaw.referencia_manaus_dias}d`} sub="acesso quimio/radio" color={WARN} />
+            </div>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
+              <b>Diagnóstico tardio:</b> {dashRaw.estadio_avancado_pct}% em estádio avançado — resultado direto do rastreamento abaixo da meta. Sem quimioterapia local — referência para Manaus em {dashRaw.referencia_manaus_dias} dias. {dashRaw.obitos_ano} óbitos — maioria evitáveis.
+            </div>
+          </div>
+        )}
+
+        {aba === "tipos" && Array.isArray(tipos) && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-4">Novos Casos por Tipo (2026)</h3>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={tipos} layout="vertical" margin={{ left: 10, right: 30 }}>
+                  <XAxis type="number" tick={{ fontSize: 9 }} />
+                  <YAxis type="category" dataKey="tipo" tick={{ fontSize: 9 }} width={200} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="casos_ano"  name="Casos"   radius={[0,3,3,0]}>
+                    {(tipos as any[]).map((_: any, i: number) => <Cell key={i} fill={TIPO_COLORS[i % TIPO_COLORS.length]} />)}
+                  </Bar>
+                  <Bar dataKey="obitos_ano" name="Óbitos"  fill={CRIT} radius={[0,3,3,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid gap-3">
+              {(tipos as any[]).map((t: any, i: number) => (
+                <div key={t.tipo} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ background: TIPO_COLORS[i % TIPO_COLORS.length] }} />
+                      <span className="font-semibold text-slate-700 text-sm">{t.tipo}</span>
+                    </div>
+                    <span className="font-bold text-sm" style={{ color: statusColor(t.status) }}>
+                      {t.casos_ano} casos · {t.obitos_ano} óbitos
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs text-slate-500">
+                    <span style={{ color: t.estadio_avancado_pct > 50 ? CRIT : WARN }}>Estádio av.: <b>{t.estadio_avancado_pct}%</b></span>
+                    <span style={{ color: t.tratamento_oportuno_pct < 80 ? CRIT : OK }}>Trat. oportuno: <b>{t.tratamento_oportuno_pct}%</b></span>
+                    {t.rastreio_realizado_pct && <span style={{ color: t.rastreio_realizado_pct < 60 ? CRIT : WARN }}>Rastreio: <b>{t.rastreio_realizado_pct}%</b></span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {aba === "rastreio" && Array.isArray(rastreio) && (
+          <div className="space-y-3">
+            {(rastreio as any[]).map((r: any, i: number) => (
+              <div key={r.exame} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full" style={{ background: TIPO_COLORS[i % TIPO_COLORS.length] }} />
+                    <div>
+                      <span className="font-semibold text-slate-700">{r.exame}</span>
+                      <span className="ml-2 text-xs text-slate-400">{r.publico_alvo}</span>
+                    </div>
+                  </div>
+                  {r.cobertura_pct && (
+                    <span className="font-bold text-sm" style={{ color: r.cobertura_pct < 50 ? CRIT : WARN }}>
+                      {r.cobertura_pct}% cobertura
+                    </span>
+                  )}
+                </div>
+                {r.meta_ano && (
+                  <div className="mb-2">
+                    <div className="flex justify-between text-xs text-slate-500 mb-1">
+                      <span>Realizados: {r.realizados_ano.toLocaleString()}</span>
+                      <span>Meta: {r.meta_ano.toLocaleString()}</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-2">
+                      <div className="h-2 rounded-full" style={{
+                        width: `${Math.min((r.realizados_ano / r.meta_ano) * 100, 100)}%`,
+                        background: TIPO_COLORS[i % TIPO_COLORS.length],
+                      }} />
+                    </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-3 gap-2 text-xs text-slate-500">
+                  <span>Realizados: <b>{r.realizados_ano.toLocaleString()}</b></span>
+                  {r.alterados_pct && <span style={{ color: WARN }}>Alterados: <b>{r.alterados_pct}%</b></span>}
+                  {r.positivos_pct && <span style={{ color: WARN }}>Positivos: <b>{r.positivos_pct}%</b></span>}
+                  {r.bi_rads_4_5_pct && <span style={{ color: CRIT }}>BI-RADS 4/5: <b>{r.bi_rads_4_5_pct}%</b></span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {aba === "historico" && Array.isArray(historico) && (
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal (2026)</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend />
+                <Line dataKey="novos_casos"        name="Casos Novos"       stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
+                <Line dataKey="papanicolau"        name="Papanicolau"       stroke="#7c3aed" strokeWidth={2} dot={{ r: 4 }} />
+                <Line dataKey="mamografia"         name="Mamografia"        stroke="#db2777" strokeWidth={2} dot={{ r: 4 }} />
+                <Line dataKey="obitos"             name="Óbitos"            stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {aba === "indicadores" && Array.isArray(indicadores) && (
+          <div className="grid gap-3">
+            {(indicadores as any[]).map((ind: any) => (
+              <div key={ind.indicador} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-start gap-4">
+                <div className="mt-1 w-3 h-3 rounded-full flex-shrink-0" style={{ background: statusColor(ind.status) }} />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-700 text-sm">{ind.indicador}</span>
+                    <span className="font-bold text-sm" style={{ color: statusColor(ind.status) }}>
+                      {`${ind.valor} ${ind.unidade}`}{ind.meta != null ? ` / meta: ${ind.meta} ${ind.unidade}` : ""}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">{ind.observacao}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
