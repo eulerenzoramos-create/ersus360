@@ -11,7 +11,7 @@ import {
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
   Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets,
-  Wind, Eye, TrendingDown, Trash2,
+  Wind, Eye, TrendingDown, Trash2, School,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -113,6 +113,9 @@ import EducacaoPermanente      from "./pages/EducacaoPermanente";
 import Farmacovigilancia       from "./pages/Farmacovigilancia";
 import GestaoQualidade         from "./pages/GestaoQualidade";
 import SaudeDigital            from "./pages/SaudeDigital";
+import CME                    from "./pages/CME";
+import PSE                    from "./pages/PSE";
+import BLH                    from "./pages/BLH";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -302,6 +305,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/farmacovigilancia"     label="Farmacovigilância"     Icon={Pill}/>
             <L1 to="/gestao-qualidade"      label="Gestão da Qualidade"   Icon={Star}/>
             <L1 to="/saude-digital"         label="Saúde Digital"         Icon={Globe}/>
+            <L1 to="/cme"                   label="CME"                   Icon={Thermometer}/>
+            <L1 to="/pse"                   label="Saúde na Escola (PSE)" Icon={School}/>
+            <L1 to="/blh"                   label="Banco de Leite (BLH)"  Icon={Droplets}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -608,6 +614,9 @@ export default function App() {
             <Route path="/farmacovigilancia"         element={<Farmacovigilancia/>}/>
             <Route path="/gestao-qualidade"          element={<GestaoQualidade/>}/>
             <Route path="/saude-digital"             element={<SaudeDigital/>}/>
+            <Route path="/cme"                       element={<CME/>}/>
+            <Route path="/pse"                       element={<PSE/>}/>
+            <Route path="/blh"                       element={<BLH/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
