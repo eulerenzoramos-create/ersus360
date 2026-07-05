@@ -149,6 +149,9 @@ from routers.regulacao_acesso import router as regulacao_acesso_router
 from routers.controle_tabaco import router as controle_tabaco_router
 from routers.saude_ocular import router as saude_ocular_router
 from routers.icsap import router as icsap_router
+from routers.hemoterapia import router as hemoterapia_router
+from routers.ccih import router as ccih_router
+from routers.sadt import router as sadt_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -236,6 +239,9 @@ app.include_router(regulacao_acesso_router)
 app.include_router(controle_tabaco_router)
 app.include_router(saude_ocular_router)
 app.include_router(icsap_router)
+app.include_router(hemoterapia_router)
+app.include_router(ccih_router)
+app.include_router(sadt_router)
 
 
 @app.get("/")
