@@ -182,6 +182,9 @@ from routers.abastecimento import router as abastecimento_router
 from routers.gestao_aps import router as gestao_aps_router
 from routers.seguranca_paciente import router as seguranca_paciente_router
 from routers.visa_alimentos import router as visa_alimentos_router
+from routers.academia_saude import router as academia_saude_router
+from routers.laboratorio import router as laboratorio_router
+from routers.crie import router as crie_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -302,6 +305,9 @@ app.include_router(abastecimento_router)
 app.include_router(gestao_aps_router)
 app.include_router(seguranca_paciente_router)
 app.include_router(visa_alimentos_router)
+app.include_router(academia_saude_router)
+app.include_router(laboratorio_router)
+app.include_router(crie_router)
 
 
 @app.get("/")
