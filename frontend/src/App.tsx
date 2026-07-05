@@ -10,7 +10,7 @@ import {
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
-  Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer,
+  Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -94,6 +94,9 @@ import CancerRastreio          from "./pages/CancerRastreio";
 import RedeFrio                from "./pages/RedeFrio";
 import Reabilitacao            from "./pages/Reabilitacao";
 import FarmaciaEspecializada   from "./pages/FarmaciaEspecializada";
+import SaudeAmbiental          from "./pages/SaudeAmbiental";
+import GestaoLeitos            from "./pages/GestaoLeitos";
+import RegulacaoAcesso         from "./pages/RegulacaoAcesso";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -265,6 +268,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/rede-frio"             label="Rede de Frio"          Icon={Thermometer}/>
             <L1 to="/reabilitacao"          label="Reabilitação / PCD"    Icon={UserCheck}/>
             <L1 to="/farmacia-especializada" label="Farmácia Especializada" Icon={Pill}/>
+            <L1 to="/saude-ambiental"       label="Saúde Ambiental"       Icon={Droplets}/>
+            <L1 to="/gestao-leitos"         label="Gestão de Leitos"      Icon={Layers}/>
+            <L1 to="/regulacao-acesso"      label="Regulação de Acesso"   Icon={Network}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -553,6 +559,9 @@ export default function App() {
             <Route path="/rede-frio"                 element={<RedeFrio/>}/>
             <Route path="/reabilitacao"              element={<Reabilitacao/>}/>
             <Route path="/farmacia-especializada"    element={<FarmaciaEspecializada/>}/>
+            <Route path="/saude-ambiental"           element={<SaudeAmbiental/>}/>
+            <Route path="/gestao-leitos"             element={<GestaoLeitos/>}/>
+            <Route path="/regulacao-acesso"          element={<RegulacaoAcesso/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

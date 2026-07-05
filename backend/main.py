@@ -143,6 +143,9 @@ from routers.cancer_rastreio import router as cancer_router
 from routers.rede_frio import router as rede_frio_router
 from routers.reabilitacao import router as reabilitacao_router
 from routers.farmacia_especializada import router as farm_espec_router
+from routers.saude_ambiental import router as saude_amb_router
+from routers.gestao_leitos import router as gestao_leitos_router
+from routers.regulacao_acesso import router as regulacao_acesso_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -224,6 +227,9 @@ app.include_router(cancer_router)
 app.include_router(rede_frio_router)
 app.include_router(reabilitacao_router)
 app.include_router(farm_espec_router)
+app.include_router(saude_amb_router)
+app.include_router(gestao_leitos_router)
+app.include_router(regulacao_acesso_router)
 
 
 @app.get("/")
