@@ -132,6 +132,8 @@ import PNAE                  from "./pages/PNAE";
 import SIOPSDetalhado         from "./pages/SIOPSDetalhado";
 import PatSaude               from "./pages/PatSaude";
 import Abastecimento          from "./pages/Abastecimento";
+import SegurancaPaciente       from "./pages/SegurancaPaciente";
+import VisaAlimentos           from "./pages/VisaAlimentos";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -340,6 +342,8 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/siops-detalhado"       label="SIOPS Detalhado"       Icon={Landmark}/>
             <L1 to="/pat-saude"             label="Patrimônio de Saúde"   Icon={Wrench}/>
             <L1 to="/abastecimento"         label="Abastecimento/Saneamento" Icon={Droplets}/>
+            <L1 to="/seguranca-paciente"    label="Segurança do Paciente" Icon={ShieldCheck}/>
+            <L1 to="/visa-alimentos"        label="VISA Alimentos"        Icon={ShieldCheck}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -665,6 +669,8 @@ export default function App() {
             <Route path="/siops-detalhado"           element={<SIOPSDetalhado/>}/>
             <Route path="/pat-saude"                 element={<PatSaude/>}/>
             <Route path="/abastecimento"             element={<Abastecimento/>}/>
+            <Route path="/seguranca-paciente"        element={<SegurancaPaciente/>}/>
+            <Route path="/visa-alimentos"            element={<VisaAlimentos/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
