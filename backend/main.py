@@ -146,6 +146,9 @@ from routers.farmacia_especializada import router as farm_espec_router
 from routers.saude_ambiental import router as saude_amb_router
 from routers.gestao_leitos import router as gestao_leitos_router
 from routers.regulacao_acesso import router as regulacao_acesso_router
+from routers.controle_tabaco import router as controle_tabaco_router
+from routers.saude_ocular import router as saude_ocular_router
+from routers.icsap import router as icsap_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -230,6 +233,9 @@ app.include_router(farm_espec_router)
 app.include_router(saude_amb_router)
 app.include_router(gestao_leitos_router)
 app.include_router(regulacao_acesso_router)
+app.include_router(controle_tabaco_router)
+app.include_router(saude_ocular_router)
+app.include_router(icsap_router)
 
 
 @app.get("/")

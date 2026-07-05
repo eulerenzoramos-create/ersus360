@@ -11,6 +11,7 @@ import {
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
   Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets,
+  Wind, Eye, TrendingDown,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -97,6 +98,9 @@ import FarmaciaEspecializada   from "./pages/FarmaciaEspecializada";
 import SaudeAmbiental          from "./pages/SaudeAmbiental";
 import GestaoLeitos            from "./pages/GestaoLeitos";
 import RegulacaoAcesso         from "./pages/RegulacaoAcesso";
+import ControleTabaco          from "./pages/ControleTabaco";
+import SaudeOcular             from "./pages/SaudeOcular";
+import ICSAP                   from "./pages/ICSAP";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -271,6 +275,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/saude-ambiental"       label="Saúde Ambiental"       Icon={Droplets}/>
             <L1 to="/gestao-leitos"         label="Gestão de Leitos"      Icon={Layers}/>
             <L1 to="/regulacao-acesso"      label="Regulação de Acesso"   Icon={Network}/>
+            <L1 to="/controle-tabaco"       label="Controle de Tabaco"    Icon={Wind}/>
+            <L1 to="/saude-ocular"          label="Saúde Ocular"          Icon={Eye}/>
+            <L1 to="/icsap"                 label="ICSAP"                 Icon={TrendingDown}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -562,6 +569,9 @@ export default function App() {
             <Route path="/saude-ambiental"           element={<SaudeAmbiental/>}/>
             <Route path="/gestao-leitos"             element={<GestaoLeitos/>}/>
             <Route path="/regulacao-acesso"          element={<RegulacaoAcesso/>}/>
+            <Route path="/controle-tabaco"           element={<ControleTabaco/>}/>
+            <Route path="/saude-ocular"              element={<SaudeOcular/>}/>
+            <Route path="/icsap"                     element={<ICSAP/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
