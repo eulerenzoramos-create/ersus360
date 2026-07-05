@@ -113,6 +113,9 @@ from routers.contratos import router as contratos_router
 from routers.regulacao_mac import router as regulacao_mac_router
 from routers.planejamento_orcamentario import router as planejamento_orc_router
 from routers.absenteismo import router as absenteismo_router
+from routers.vacinas import router as vacinas_router
+from routers.raps import router as raps_router
+from routers.manutencao import router as manutencao_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -164,6 +167,9 @@ app.include_router(contratos_router)
 app.include_router(regulacao_mac_router)
 app.include_router(planejamento_orc_router)
 app.include_router(absenteismo_router)
+app.include_router(vacinas_router)
+app.include_router(raps_router)
+app.include_router(manutencao_router)
 
 
 @app.get("/")

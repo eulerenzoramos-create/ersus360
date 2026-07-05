@@ -10,7 +10,7 @@ import {
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
-  Radio, Globe, ShoppingBag, Bell, Search, MessageSquare,
+  Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -64,6 +64,9 @@ import Contratos         from "./pages/Contratos";
 import RegulacaoMAC      from "./pages/RegulacaoMAC";
 import PainelPPALOA      from "./pages/PainelPPALOA";
 import Absenteismo        from "./pages/Absenteismo";
+import SalaVacinas        from "./pages/SalaVacinas";
+import RAPS               from "./pages/RAPS";
+import Manutencao         from "./pages/Manutencao";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -205,6 +208,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/regulacao-mac" label="Regulação MAC"       Icon={Network}/>
             <L1 to="/ppa-loa"      label="PPA / LOA"           Icon={ClipboardList}/>
             <L1 to="/absenteismo"  label="Absenteísmo RH"       Icon={UserCog}/>
+            <L1 to="/sala-vacinas" label="Sala de Vacinas"       Icon={Syringe}/>
+            <L1 to="/raps"         label="RAPS / Saúde Mental"   Icon={Brain}/>
+            <L1 to="/manutencao"   label="Manutenção Equipam."   Icon={Wrench}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -463,6 +469,9 @@ export default function App() {
             <Route path="/regulacao-mac"             element={<RegulacaoMAC/>}/>
             <Route path="/ppa-loa"                   element={<PainelPPALOA/>}/>
             <Route path="/absenteismo"               element={<Absenteismo/>}/>
+            <Route path="/sala-vacinas"              element={<SalaVacinas/>}/>
+            <Route path="/raps"                      element={<RAPS/>}/>
+            <Route path="/manutencao"                element={<Manutencao/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
