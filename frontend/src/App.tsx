@@ -119,6 +119,9 @@ import BLH                    from "./pages/BLH";
 import PICS                   from "./pages/PICS";
 import Frota                  from "./pages/Frota";
 import VigiAgua               from "./pages/VigiAgua";
+import NASF                   from "./pages/NASF";
+import Zoonoses               from "./pages/Zoonoses";
+import SaudeServidor          from "./pages/SaudeServidor";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -314,6 +317,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/pics"                  label="PICS"                  Icon={Sparkles}/>
             <L1 to="/frota"                 label="Frota de Saúde"        Icon={Truck}/>
             <L1 to="/vigiagua"              label="VIGIÁGUA"              Icon={Waves}/>
+            <L1 to="/nasf"                  label="NASF-AB"               Icon={Users}/>
+            <L1 to="/zoonoses"              label="Controle de Zoonoses"  Icon={Bug}/>
+            <L1 to="/saude-servidor"        label="Saúde do Servidor"     Icon={UserCog}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -626,6 +632,9 @@ export default function App() {
             <Route path="/pics"                      element={<PICS/>}/>
             <Route path="/frota"                     element={<Frota/>}/>
             <Route path="/vigiagua"                  element={<VigiAgua/>}/>
+            <Route path="/nasf"                      element={<NASF/>}/>
+            <Route path="/zoonoses"                  element={<Zoonoses/>}/>
+            <Route path="/saude-servidor"            element={<SaudeServidor/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
