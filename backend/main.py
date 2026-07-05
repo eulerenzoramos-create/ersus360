@@ -116,6 +116,9 @@ from routers.absenteismo import router as absenteismo_router
 from routers.vacinas import router as vacinas_router
 from routers.raps import router as raps_router
 from routers.manutencao import router as manutencao_router
+from routers.sinan import router as sinan_router
+from routers.assistencia_farmaceutica import router as assist_farm_router
+from routers.transporte_sanitario import router as transp_san_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -170,6 +173,9 @@ app.include_router(absenteismo_router)
 app.include_router(vacinas_router)
 app.include_router(raps_router)
 app.include_router(manutencao_router)
+app.include_router(sinan_router)
+app.include_router(assist_farm_router)
+app.include_router(transp_san_router)
 
 
 @app.get("/")
