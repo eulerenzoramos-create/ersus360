@@ -128,6 +128,9 @@ from routers.visa import router as visa_router
 from routers.vetores import router as vetores_router
 from routers.sisvan import router as sisvan_router
 from routers.atencao_domiciliar import router as atencao_dom_router
+from routers.saude_indigena import router as saude_indigena_router
+from routers.tb_hanseniase import router as tb_hans_router
+from routers.ist_hiv import router as ist_hiv_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -194,6 +197,9 @@ app.include_router(visa_router)
 app.include_router(vetores_router)
 app.include_router(sisvan_router)
 app.include_router(atencao_dom_router)
+app.include_router(saude_indigena_router)
+app.include_router(tb_hans_router)
+app.include_router(ist_hiv_router)
 
 
 @app.get("/")
