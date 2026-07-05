@@ -131,6 +131,9 @@ from routers.atencao_domiciliar import router as atencao_dom_router
 from routers.saude_indigena import router as saude_indigena_router
 from routers.tb_hanseniase import router as tb_hans_router
 from routers.ist_hiv import router as ist_hiv_router
+from routers.saude_idoso import router as saude_idoso_router
+from routers.saude_homem import router as saude_homem_router
+from routers.sim_sinasc import router as sim_sinasc_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -200,6 +203,9 @@ app.include_router(atencao_dom_router)
 app.include_router(saude_indigena_router)
 app.include_router(tb_hans_router)
 app.include_router(ist_hiv_router)
+app.include_router(saude_idoso_router)
+app.include_router(saude_homem_router)
+app.include_router(sim_sinasc_router)
 
 
 @app.get("/")
