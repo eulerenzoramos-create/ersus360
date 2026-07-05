@@ -11,7 +11,7 @@ import {
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
   Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets,
-  Wind, Eye, TrendingDown,
+  Wind, Eye, TrendingDown, Trash2,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -107,6 +107,9 @@ import SADT                    from "./pages/SADT";
 import SaudePrisional          from "./pages/SaudePrisional";
 import NutricaoClinica         from "./pages/NutricaoClinica";
 import Telessaude              from "./pages/Telessaude";
+import Oncologia               from "./pages/Oncologia";
+import PGRSS                   from "./pages/PGRSS";
+import EducacaoPermanente      from "./pages/EducacaoPermanente";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -290,6 +293,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/saude-prisional"       label="Saúde Prisional"       Icon={Shield}/>
             <L1 to="/nutricao-clinica"      label="Nutrição Clínica"      Icon={Activity}/>
             <L1 to="/telessaude"            label="Telessaúde"            Icon={Monitor}/>
+            <L1 to="/oncologia"             label="Oncologia/Paliativos"  Icon={Heart}/>
+            <L1 to="/pgrss"                 label="PGRSS"                 Icon={Trash2}/>
+            <L1 to="/educacao-permanente"   label="Educação Permanente"   Icon={BookOpen}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -590,6 +596,9 @@ export default function App() {
             <Route path="/saude-prisional"           element={<SaudePrisional/>}/>
             <Route path="/nutricao-clinica"          element={<NutricaoClinica/>}/>
             <Route path="/telessaude"                element={<Telessaude/>}/>
+            <Route path="/oncologia"                 element={<Oncologia/>}/>
+            <Route path="/pgrss"                     element={<PGRSS/>}/>
+            <Route path="/educacao-permanente"       element={<EducacaoPermanente/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

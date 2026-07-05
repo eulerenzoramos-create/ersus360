@@ -155,6 +155,9 @@ from routers.sadt import router as sadt_router
 from routers.saude_prisional import router as saude_prisional_router
 from routers.nutricao_clinica import router as nutricao_clinica_router
 from routers.telessaude import router as telessaude_router
+from routers.oncologia import router as oncologia_router
+from routers.pgrss import router as pgrss_router
+from routers.educacao_permanente import router as educacao_perm_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -248,6 +251,9 @@ app.include_router(sadt_router)
 app.include_router(saude_prisional_router)
 app.include_router(nutricao_clinica_router)
 app.include_router(telessaude_router)
+app.include_router(oncologia_router)
+app.include_router(pgrss_router)
+app.include_router(educacao_perm_router)
 
 
 @app.get("/")
