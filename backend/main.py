@@ -194,6 +194,9 @@ from routers.caps_infanto import router as caps_infanto_router
 from routers.vigilancia_obito import router as vigilancia_obito_router
 from routers.caps_ad import router as caps_ad_router
 from routers.saude_estomia import router as saude_estomia_router
+from routers.rede_cegonha import router as rede_cegonha_router
+from routers.triagem_neonatal import router as triagem_neonatal_router
+from routers.violencia_domestica import router as violencia_domestica_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -326,6 +329,9 @@ app.include_router(caps_infanto_router)
 app.include_router(vigilancia_obito_router)
 app.include_router(caps_ad_router)
 app.include_router(saude_estomia_router)
+app.include_router(rede_cegonha_router)
+app.include_router(triagem_neonatal_router)
+app.include_router(violencia_domestica_router)
 
 
 @app.get("/")

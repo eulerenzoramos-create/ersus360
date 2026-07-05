@@ -146,6 +146,9 @@ import CAPSInfanto             from "./pages/CAPSInfanto";
 import VigilanciaObito         from "./pages/VigilanciaObito";
 import CAPSAD                  from "./pages/CAPSAD";
 import SaudeEstomia            from "./pages/SaudeEstomia";
+import RedeCegonha             from "./pages/RedeCegonha";
+import TriagemNeonatal         from "./pages/TriagemNeonatal";
+import ViolenciaDomestica      from "./pages/ViolenciaDomestica";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -368,6 +371,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/vigilancia-obito"     label="Vigilância do Óbito"   Icon={Bell}/>
             <L1 to="/caps-ad"              label="CAPS AD"               Icon={Brain}/>
             <L1 to="/saude-estomia"        label="Saúde — Ostomia"       Icon={UserCheck}/>
+            <L1 to="/rede-cegonha"         label="Rede Cegonha"          Icon={Baby}/>
+            <L1 to="/triagem-neonatal"     label="Triagem Neonatal"      Icon={Star}/>
+            <L1 to="/violencia-domestica"  label="Violência Doméstica"   Icon={Shield}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -707,6 +713,9 @@ export default function App() {
             <Route path="/vigilancia-obito"          element={<VigilanciaObito/>}/>
             <Route path="/caps-ad"                   element={<CAPSAD/>}/>
             <Route path="/saude-estomia"             element={<SaudeEstomia/>}/>
+            <Route path="/rede-cegonha"              element={<RedeCegonha/>}/>
+            <Route path="/triagem-neonatal"          element={<TriagemNeonatal/>}/>
+            <Route path="/violencia-domestica"       element={<ViolenciaDomestica/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
