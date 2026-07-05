@@ -67,9 +67,12 @@ import Absenteismo        from "./pages/Absenteismo";
 import SalaVacinas           from "./pages/SalaVacinas";
 import RAPS                  from "./pages/RAPS";
 import Manutencao             from "./pages/Manutencao";
-import NotificacoesSINAN      from "./pages/NotificacoesSINAN";
-import AssistenciaFarmaceutica from "./pages/AssistenciaFarmaceutica";
-import TransporteSanitario    from "./pages/TransporteSanitario";
+import NotificacoesSINAN       from "./pages/NotificacoesSINAN";
+import AssistenciaFarmaceutica  from "./pages/AssistenciaFarmaceutica";
+import TransporteSanitario     from "./pages/TransporteSanitario";
+import ProducaoSISAB           from "./pages/ProducaoSISAB";
+import SaudeMulher             from "./pages/SaudeMulher";
+import ConselhoSaude           from "./pages/ConselhoSaude";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -216,7 +219,10 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/manutencao"        label="Manutenção Equipam."   Icon={Wrench}/>
             <L1 to="/vigilancia-epid"   label="Vigilância Epidem."    Icon={Bug}/>
             <L1 to="/assist-farmaceutica" label="Assist. Farmacêutica"  Icon={FlaskRound}/>
-            <L1 to="/transporte-sanitario" label="Transporte / TFD"    Icon={Truck}/>
+            <L1 to="/transporte-sanitario"  label="Transporte / TFD"    Icon={Truck}/>
+            <L1 to="/producao-sisab"        label="Produção APS / SISAB" Icon={Activity}/>
+            <L1 to="/saude-mulher"          label="Saúde da Mulher"      Icon={Heart}/>
+            <L1 to="/conselho-saude"        label="Conselho Municipal"    Icon={Users}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -481,6 +487,9 @@ export default function App() {
             <Route path="/vigilancia-epid"           element={<NotificacoesSINAN/>}/>
             <Route path="/assist-farmaceutica"       element={<AssistenciaFarmaceutica/>}/>
             <Route path="/transporte-sanitario"      element={<TransporteSanitario/>}/>
+            <Route path="/producao-sisab"            element={<ProducaoSISAB/>}/>
+            <Route path="/saude-mulher"              element={<SaudeMulher/>}/>
+            <Route path="/conselho-saude"            element={<ConselhoSaude/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

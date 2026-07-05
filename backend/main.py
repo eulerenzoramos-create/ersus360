@@ -119,6 +119,9 @@ from routers.manutencao import router as manutencao_router
 from routers.sinan import router as sinan_router
 from routers.assistencia_farmaceutica import router as assist_farm_router
 from routers.transporte_sanitario import router as transp_san_router
+from routers.producao_sisab import router as sisab_router
+from routers.saude_mulher import router as saude_mulher_router
+from routers.cms import router as cms_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -176,6 +179,9 @@ app.include_router(manutencao_router)
 app.include_router(sinan_router)
 app.include_router(assist_farm_router)
 app.include_router(transp_san_router)
+app.include_router(sisab_router)
+app.include_router(saude_mulher_router)
+app.include_router(cms_router)
 
 
 @app.get("/")
