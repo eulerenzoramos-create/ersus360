@@ -164,6 +164,9 @@ from routers.saude_digital import router as saude_digital_router
 from routers.cme import router as cme_router
 from routers.pse import router as pse_router
 from routers.blh import router as blh_router
+from routers.pics import router as pics_router
+from routers.frota import router as frota_router
+from routers.vigiagua import router as vigiagua_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -266,6 +269,9 @@ app.include_router(saude_digital_router)
 app.include_router(cme_router)
 app.include_router(pse_router)
 app.include_router(blh_router)
+app.include_router(pics_router)
+app.include_router(frota_router)
+app.include_router(vigiagua_router)
 
 
 @app.get("/")
