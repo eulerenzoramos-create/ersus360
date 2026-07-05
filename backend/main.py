@@ -203,6 +203,9 @@ from routers.arboviroses import router as arboviroses_router
 from routers.saude_indigena import router as saude_indigena_router
 from routers.hanseniase import router as hanseniase_router
 from routers.tuberculose import router as tuberculose_router
+from routers.dst_hiv import router as dst_hiv_router
+from routers.imunizacao import router as imunizacao_router
+from routers.saude_mental import router as saude_mental_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -344,6 +347,9 @@ app.include_router(arboviroses_router)
 app.include_router(saude_indigena_router)
 app.include_router(hanseniase_router)
 app.include_router(tuberculose_router)
+app.include_router(dst_hiv_router)
+app.include_router(imunizacao_router)
+app.include_router(saude_mental_router)
 
 
 @app.get("/")
