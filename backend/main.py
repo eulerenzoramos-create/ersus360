@@ -125,6 +125,9 @@ from routers.cms import router as cms_router
 from routers.saude_bucal import router as saude_bucal_router
 from routers.saude_crianca import router as saude_crianca_router
 from routers.visa import router as visa_router
+from routers.vetores import router as vetores_router
+from routers.sisvan import router as sisvan_router
+from routers.atencao_domiciliar import router as atencao_dom_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -188,6 +191,9 @@ app.include_router(cms_router)
 app.include_router(saude_bucal_router)
 app.include_router(saude_crianca_router)
 app.include_router(visa_router)
+app.include_router(vetores_router)
+app.include_router(sisvan_router)
+app.include_router(atencao_dom_router)
 
 
 @app.get("/")
