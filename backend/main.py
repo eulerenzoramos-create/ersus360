@@ -197,6 +197,9 @@ from routers.saude_estomia import router as saude_estomia_router
 from routers.rede_cegonha import router as rede_cegonha_router
 from routers.triagem_neonatal import router as triagem_neonatal_router
 from routers.violencia_domestica import router as violencia_domestica_router
+from routers.malaria import router as malaria_router
+from routers.leishmaniose import router as leishmaniose_router
+from routers.arboviroses import router as arboviroses_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -332,6 +335,9 @@ app.include_router(saude_estomia_router)
 app.include_router(rede_cegonha_router)
 app.include_router(triagem_neonatal_router)
 app.include_router(violencia_domestica_router)
+app.include_router(malaria_router)
+app.include_router(leishmaniose_router)
+app.include_router(arboviroses_router)
 
 
 @app.get("/")
