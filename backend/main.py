@@ -152,6 +152,9 @@ from routers.icsap import router as icsap_router
 from routers.hemoterapia import router as hemoterapia_router
 from routers.ccih import router as ccih_router
 from routers.sadt import router as sadt_router
+from routers.saude_prisional import router as saude_prisional_router
+from routers.nutricao_clinica import router as nutricao_clinica_router
+from routers.telessaude import router as telessaude_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -242,6 +245,9 @@ app.include_router(icsap_router)
 app.include_router(hemoterapia_router)
 app.include_router(ccih_router)
 app.include_router(sadt_router)
+app.include_router(saude_prisional_router)
+app.include_router(nutricao_clinica_router)
+app.include_router(telessaude_router)
 
 
 @app.get("/")
