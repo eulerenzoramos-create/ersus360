@@ -1,75 +1,98 @@
-"""
-Saúde Bucal — ESB / Procedimentos Odontológicos
-FMS Apuí/AM · SISAB / e-SUS
-"""
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/saude-bucal", tags=["Saúde Bucal"])
+router = APIRouter(prefix="/api/saude-bucal", tags=["saude_bucal"])
 
-_EQUIPES_ESB = [
-    {"equipe":"ESB Liberdade",   "cd":"Dr. R.A.S.","tss":"T.B.C.","pop_coberta":1420,"1a_consulta_mes":58,"cons_total_mes":142,"extracao_mes":12,"restauracao_mes":38,"escovacao_mes":80,"urgencia_mes":8, "meta_1a":55,"status":"ok"},
-    {"equipe":"ESB Kennedy",     "cd":"Dra. M.P.L.","tss":"K.D.E.","pop_coberta":1380,"1a_consulta_mes":42,"cons_total_mes":118,"extracao_mes":10,"restauracao_mes":28,"escovacao_mes":62,"urgencia_mes":6, "meta_1a":55,"status":"atencao"},
-    {"equipe":"ESB Cachoeira",   "cd":"Dr. F.O.N.","tss":"L.I.M.","pop_coberta":1250,"1a_consulta_mes":51,"cons_total_mes":128,"extracao_mes":9, "restauracao_mes":32,"escovacao_mes":70,"urgencia_mes":5, "meta_1a":55,"status":"atencao"},
-    {"equipe":"ESB JK",          "cd":"Dra. C.V.T.","tss":"P.U.S.","pop_coberta":1180,"1a_consulta_mes":62,"cons_total_mes":155,"extracao_mes":14,"restauracao_mes":42,"escovacao_mes":88,"urgencia_mes":9, "meta_1a":55,"status":"ok"},
+_EQUIPES = [
+    {"esf": "ESF Novo Aripuanã",    "cirurgiao_dentista": True,  "asb": True,  "tsb": False,
+     "primeira_consulta_mes": 48, "procedimentos_basicos_mes": 312, "meta_proc_basicos": 340,
+     "extracao_mes": 28, "restauracao_mes": 84, "status": "atencao"},
+    {"esf": "ESF São Lazaro",        "cirurgiao_dentista": True,  "asb": True,  "tsb": True,
+     "primeira_consulta_mes": 52, "procedimentos_basicos_mes": 388, "meta_proc_basicos": 340,
+     "extracao_mes": 22, "restauracao_mes": 102, "status": "ok"},
+    {"esf": "ESF Juma (ribeirinha)", "cirurgiao_dentista": False, "asb": False, "tsb": False,
+     "primeira_consulta_mes": 0,  "procedimentos_basicos_mes": 0,   "meta_proc_basicos": 340,
+     "extracao_mes": 0,  "restauracao_mes": 0,   "status": "critico"},
+    {"esf": "ESF Acari",             "cirurgiao_dentista": True,  "asb": True,  "tsb": False,
+     "primeira_consulta_mes": 44, "procedimentos_basicos_mes": 298, "meta_proc_basicos": 340,
+     "extracao_mes": 31, "restauracao_mes": 71,  "status": "atencao"},
+    {"esf": "ESF Centro",            "cirurgiao_dentista": True,  "asb": True,  "tsb": True,
+     "primeira_consulta_mes": 61, "procedimentos_basicos_mes": 421, "meta_proc_basicos": 340,
+     "extracao_mes": 18, "restauracao_mes": 118, "status": "ok"},
+    {"esf": "ESF Mapari",            "cirurgiao_dentista": False, "asb": True,  "tsb": False,
+     "primeira_consulta_mes": 12, "procedimentos_basicos_mes": 68,  "meta_proc_basicos": 340,
+     "extracao_mes": 8,  "restauracao_mes": 14,  "status": "critico"},
 ]
 
-_INDICADORES = [
-    {"indicador":"Média de 1ª consulta odontológica programática/hab",  "valor":0.28,"meta":0.40,"status":"atencao","unidade":"/hab/ano"},
-    {"indicador":"Cobertura de ação coletiva escovação dental supervisionada","valor":18.4,"meta":30.0,"status":"critico","unidade":"% pop"},
-    {"indicador":"Razão de procedimentos odontológicos especializados",  "valor":0.08,"meta":0.15,"status":"critico","unidade":"/hab"},
-    {"indicador":"% extrações em relação ao total de procedimentos",      "valor":12.2,"meta":8.0, "status":"atencao","unidade":"%","invertido":True},
-    {"indicador":"Urgências odontológicas resolvidas na APS",             "valor":88.5,"meta":80.0,"status":"ok",    "unidade":"%"},
-    {"indicador":"% gestantes com consulta odontológica no pré-natal",    "valor":58.3,"meta":70.0,"status":"critico","unidade":"%"},
+_CEO_ESPECIALIDADES = [
+    {"especialidade": "Diagnóstico Bucal / Estomatologia", "procedimentos_mes": 42, "lista_espera": 18,
+     "tempo_espera_dias": 24, "meta_proc_mes": 40, "status": "ok"},
+    {"especialidade": "Periodontia", "procedimentos_mes": 68, "lista_espera": 64,
+     "tempo_espera_dias": 38, "meta_proc_mes": 80, "status": "atencao"},
+    {"especialidade": "Endodontia (Tratamento de Canal)", "procedimentos_mes": 34, "lista_espera": 112,
+     "tempo_espera_dias": 62, "meta_proc_mes": 60, "status": "critico"},
+    {"especialidade": "Cirurgia Oral Menor", "procedimentos_mes": 28, "lista_espera": 84,
+     "tempo_espera_dias": 48, "meta_proc_mes": 40, "status": "atencao"},
+    {"especialidade": "Prótese Dentária (Laboratorial)", "procedimentos_mes": 14, "lista_espera": 204,
+     "tempo_espera_dias": 98, "meta_proc_mes": 30, "status": "critico"},
 ]
 
 _HISTORICO = [
-    {"mes":"Out/25","1a_consulta":196,"procedimentos":482,"urgencias":26},
-    {"mes":"Nov/25","1a_consulta":204,"procedimentos":510,"urgencias":24},
-    {"mes":"Dez/25","1a_consulta":178,"procedimentos":445,"urgencias":28},
-    {"mes":"Jan/26","1a_consulta":218,"procedimentos":538,"urgencias":22},
-    {"mes":"Fev/26","1a_consulta":198,"procedimentos":490,"urgencias":25},
-    {"mes":"Mar/26","1a_consulta":213,"procedimentos":543,"urgencias":28},
+    {"mes": "Jan", "primeiras_consultas": 186, "proc_basicos": 1024, "extracoes": 98, "restauracoes": 312, "ceo_proc": 168},
+    {"mes": "Fev", "primeiras_consultas": 178, "proc_basicos":  968, "extracoes": 88, "restauracoes": 298, "ceo_proc": 156},
+    {"mes": "Mar", "primeiras_consultas": 204, "proc_basicos": 1108, "extracoes": 112,"restauracoes": 348, "ceo_proc": 184},
+    {"mes": "Abr", "primeiras_consultas": 198, "proc_basicos": 1082, "extracoes": 104,"restauracoes": 334, "ceo_proc": 178},
+    {"mes": "Mai", "primeiras_consultas": 216, "proc_basicos": 1142, "extracoes": 118,"restauracoes": 362, "ceo_proc": 192},
+    {"mes": "Jun", "primeiras_consultas": 217, "proc_basicos": 1087, "extracoes": 107,"restauracoes": 389, "ceo_proc": 186},
 ]
 
-_PROCEDIMENTOS_MES = [
-    {"procedimento":"1ª consulta programática",   "qtd":213,"tipo":"preventivo"},
-    {"procedimento":"Restauração simples",          "qtd":140,"tipo":"restaurador"},
-    {"procedimento":"Extração dentária",            "qtd":45, "tipo":"cirurgico"},
-    {"procedimento":"Escovação supervisionada",     "qtd":300,"tipo":"preventivo"},
-    {"procedimento":"Urgência odontológica",        "qtd":28, "tipo":"urgencia"},
-    {"procedimento":"Aplicação de flúor tópico",    "qtd":180,"tipo":"preventivo"},
-    {"procedimento":"Raspagem/alisamento radicular","qtd":38, "tipo":"periodontia"},
-    {"procedimento":"Tratamento canal (PACS)",      "qtd":12, "tipo":"endodontia"},
-    {"procedimento":"Prótese dentária (encam.)",    "qtd":8,  "tipo":"reabilitacao"},
+_INDICADORES = [
+    {"indicador": "ESB sem cirurgião-dentista", "valor": 2, "meta": 0, "unidade": "equipes",
+     "status": "critico", "observacao": "Juma e Mapari sem CD — 2 ESF sem cobertura odontológica"},
+    {"indicador": "Razão extração/restauração", "valor": 0.28, "meta": 0.20, "unidade": "ratio",
+     "status": "critico", "observacao": "Ainda acima da meta — extração mais frequente que restauração"},
+    {"indicador": "Lista espera prótese CEO", "valor": 204, "meta": 0, "unidade": "pacientes",
+     "status": "critico", "observacao": "98 dias de espera para prótese — maior fila do CEO"},
+    {"indicador": "Cobertura 1ª consulta programática", "valor": 44.8, "meta": 50.0, "unidade": "%",
+     "status": "atencao", "observacao": "Abaixo da meta — ESF sem CD prejudica cobertura"},
+    {"indicador": "Procedimentos básicos/equipe/mês", "valor": 278.4, "meta": 340.0, "unidade": "proc",
+     "status": "critico", "observacao": "Média descontando as 2 ESF sem CD — meta 340 proc/equipe/mês"},
+    {"indicador": "CEO endodontia (espera)", "valor": 62, "meta": 30, "unidade": "dias",
+     "status": "critico", "observacao": "112 pacientes aguardando tratamento de canal — 62 dias de espera"},
 ]
+
 
 @router.get("/dashboard")
-async def dashboard():
-    total_1a    = sum(e["1a_consulta_mes"] for e in _EQUIPES_ESB)
-    total_proc  = sum(e["cons_total_mes"]  for e in _EQUIPES_ESB)
-    criticos    = sum(1 for i in _INDICADORES if i["status"]=="critico")
+def dashboard():
     return {
-        "competencia":       "Mar/2026",
-        "equipes_esb":       len(_EQUIPES_ESB),
-        "total_1a_consulta": total_1a,
-        "total_procedimentos":total_proc,
-        "indicadores_criticos":criticos,
-        "historico":         _HISTORICO,
-        "pop_coberta":       sum(e["pop_coberta"] for e in _EQUIPES_ESB),
+        "esb_total": 6,
+        "esb_sem_cd": 2,
+        "primeiras_consultas_mes": 217,
+        "proc_basicos_mes": 1087,
+        "extracoes_mes": 107,
+        "restauracoes_mes": 389,
+        "ratio_extracao_restauracao": 0.28,
+        "ceo_procedimentos_mes": 186,
+        "ceo_lista_espera_total": 482,
+        "ceo_especialidades": 5,
+        "cobertura_primeira_consulta_pct": 44.8,
     }
 
+
 @router.get("/equipes")
-async def equipes():
-    return _EQUIPES_ESB
+def equipes():
+    return _EQUIPES
 
-@router.get("/indicadores")
-async def indicadores():
-    return _INDICADORES
 
-@router.get("/procedimentos")
-async def procedimentos():
-    return _PROCEDIMENTOS_MES
+@router.get("/ceo-especialidades")
+def ceo_especialidades():
+    return _CEO_ESPECIALIDADES
+
 
 @router.get("/historico")
-async def historico():
+def historico():
     return _HISTORICO
+
+
+@router.get("/indicadores")
+def indicadores():
+    return _INDICADORES

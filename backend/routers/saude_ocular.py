@@ -1,74 +1,87 @@
-"""
-Saúde Ocular — Apuí/AM
-Triagem visual · Catarata · Glaucoma · Refrativo · Óculos populares
-Política Nacional de Atenção à Saúde Ocular
-"""
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/saude-ocular", tags=["Saúde Ocular"])
+router = APIRouter(prefix="/api/saude-ocular", tags=["saude_ocular"])
 
-_DASHBOARD = {
-    "competencia": "Mar/2026",
-    "triagens_mes": 124,
-    "alteracoes_detectadas_mes": 38,
-    "alteracoes_pct": 30.6,
-    "encaminhamentos_oftalmologia": 22,
-    "lista_espera_cirurgia_catarata": 36,
-    "lista_espera_status": "critico",
-    "oculos_dispensados_mes": 14,
-    "glaucoma_acompanhados": 18,
-}
-
-_TRIAGENS_HISTORICO = [
-    {"mes":"Out/25","triagens":108,"alteracoes":32,"acuidade_reducao":14,"refrativo":12,"suspeita_glaucoma":4,"suspeita_catarata":8,"encaminhados":20},
-    {"mes":"Nov/25","triagens":112,"alteracoes":34,"acuidade_reducao":15,"refrativo":13,"suspeita_glaucoma":3,"suspeita_catarata":9,"encaminhados":21},
-    {"mes":"Dez/25","triagens":98, "alteracoes":29,"acuidade_reducao":12,"refrativo":10,"suspeita_glaucoma":3,"suspeita_catarata":8,"encaminhados":18},
-    {"mes":"Jan/26","triagens":118,"alteracoes":36,"acuidade_reducao":16,"refrativo":14,"suspeita_glaucoma":4,"suspeita_catarata":9,"encaminhados":22},
-    {"mes":"Fev/26","triagens":122,"alteracoes":37,"acuidade_reducao":17,"refrativo":14,"suspeita_glaucoma":5,"suspeita_catarata":10,"encaminhados":22},
-    {"mes":"Mar/26","triagens":124,"alteracoes":38,"acuidade_reducao":18,"refrativo":14,"suspeita_glaucoma":5,"suspeita_catarata":11,"encaminhados":22},
+_CONDICOES = [
+    {"condicao": "Erro Refrativo (miopía/hipermetropia/astigmatismo)", "casos_ano": 412, "cirurgia": False,
+     "oculos_dispensados": 284, "lista_espera_avaliacao": 128, "status": "atencao"},
+    {"condicao": "Catarata", "casos_ano": 68, "cirurgia": True,
+     "cirurgias_ano": 42, "meta_cirurgias": 60, "lista_espera_cirurgia": 86, "tempo_espera_dias": 124, "status": "critico"},
+    {"condicao": "Glaucoma", "casos_ano": 34, "cirurgia": False,
+     "em_tratamento": 34, "lista_espera_avaliacao": 22, "status": "atencao"},
+    {"condicao": "Retinopatia Diabética", "casos_ano": 28, "cirurgia": False,
+     "rastreados_pct": 44.2, "meta_rastreio_pct": 80.0, "status": "critico"},
+    {"condicao": "Pterígio", "casos_ano": 22, "cirurgia": True,
+     "cirurgias_ano": 14, "lista_espera_cirurgia": 36, "tempo_espera_dias": 68, "status": "atencao"},
+    {"condicao": "Conjuntivite / Outras", "casos_ano": 186, "cirurgia": False,
+     "lista_espera_avaliacao": 0, "status": "ok"},
 ]
 
-_CASOS_CATARATA = [
-    {"id":"OC-001","olho":"Bilateral","grau":"Grau III","acuidade_vd":"0.1","acuidade_ve":"0.1","indicacao":"Cirurgia urgente","aguardando_meses":8, "situacao":"lista espera","alerta":"Aguardando >6 meses — cegueira funcional"},
-    {"id":"OC-002","olho":"OD",      "grau":"Grau II","acuidade_vd":"0.3","acuidade_ve":"0.8","indicacao":"Cirurgia eletiva", "aguardando_meses":5, "situacao":"lista espera","alerta":None},
-    {"id":"OC-003","olho":"OE",      "grau":"Grau II","acuidade_vd":"0.7","acuidade_ve":"0.3","indicacao":"Cirurgia eletiva", "aguardando_meses":4, "situacao":"lista espera","alerta":None},
-    {"id":"OC-004","olho":"Bilateral","grau":"Grau IV","acuidade_vd":"0.05","acuidade_ve":"0.05","indicacao":"Cirurgia urgente","aguardando_meses":10,"situacao":"lista espera","alerta":"Cegueira legal bilateral — prioridade máxima"},
-    {"id":"OC-005","olho":"OD",      "grau":"Grau I","acuidade_vd":"0.5","acuidade_ve":"0.9","indicacao":"Acompanhamento",   "aguardando_meses":0, "situacao":"acompanhamento","alerta":None},
+_OCULOS = [
+    {"programa": "Olhar Brasil (escolares)", "beneficiarios_ano": 148, "triagens_realizadas": 312,
+     "encaminhados_spec": 84, "oculos_dispensados": 142, "status": "ok"},
+    {"programa": "Idosos (60+)", "beneficiarios_ano": 86, "triagens_realizadas": 142,
+     "encaminhados_spec": 68, "oculos_dispensados": 72, "status": "atencao"},
+    {"programa": "Pessoas com Deficiência", "beneficiarios_ano": 24, "triagens_realizadas": 48,
+     "encaminhados_spec": 22, "oculos_dispensados": 18, "status": "atencao"},
 ]
 
-_GLAUCOMA = [
-    {"id":"GL-001","tipo":"Glaucoma ângulo aberto","po_mmhg_od":22,"po_mmhg_oe":21,"medicacao":"Timolol 0.5% + Dorzolamida","controle":"parcial","consulta_dias":45,"alerta":"PO limítrofe — revisar esquema"},
-    {"id":"GL-002","tipo":"Glaucoma ângulo aberto","po_mmhg_od":18,"po_mmhg_oe":17,"medicacao":"Latanoprosta 0.005%","controle":"sim","consulta_dias":30,"alerta":None},
-    {"id":"GL-003","tipo":"Glaucoma ângulo fechado","po_mmhg_od":28,"po_mmhg_oe":14,"medicacao":"Pilocarpina + Timolol","controle":"nao","consulta_dias":14,"alerta":"PO elevada OD — encaminhar urgência oftalmológica"},
-    {"id":"GL-004","tipo":"HTO suspeita","po_mmhg_od":23,"po_mmhg_oe":22,"medicacao":"Em observação","controle":"monitoramento","consulta_dias":60,"alerta":None},
-    {"id":"GL-005","tipo":"Glaucoma ângulo aberto","po_mmhg_od":16,"po_mmhg_oe":16,"medicacao":"Bimatoprosta 0.01%","controle":"sim","consulta_dias":42,"alerta":None},
+_HISTORICO = [
+    {"mes": "Jan", "consultas_oftalmo": 142, "cirurgias": 6, "oculos_dispensados": 48, "lista_espera_catarata": 78},
+    {"mes": "Fev", "consultas_oftalmo": 128, "cirurgias": 4, "oculos_dispensados": 42, "lista_espera_catarata": 80},
+    {"mes": "Mar", "consultas_oftalmo": 156, "cirurgias": 8, "oculos_dispensados": 54, "lista_espera_catarata": 76},
+    {"mes": "Abr", "consultas_oftalmo": 148, "cirurgias": 6, "oculos_dispensados": 50, "lista_espera_catarata": 82},
+    {"mes": "Mai", "consultas_oftalmo": 162, "cirurgias": 9, "oculos_dispensados": 58, "lista_espera_catarata": 84},
+    {"mes": "Jun", "consultas_oftalmo": 158, "cirurgias": 9, "oculos_dispensados": 32, "lista_espera_catarata": 86},
 ]
 
 _INDICADORES = [
-    {"indicador":"Triagem visual APS/mês",             "valor":124,"meta":150,"unidade":"triagens","status":"atencao","observacao":"Meta ESF Apuí"},
-    {"indicador":"Taxa de alterações detectadas",      "valor":30.6,"meta":None,"unidade":"%","status":"ok","observacao":"Mar/26"},
-    {"indicador":"Lista espera cirurgia catarata",     "valor":36,"meta":10,"unidade":"pacientes","status":"critico","observacao":"Espera média 6.2 meses","invertido":True},
-    {"indicador":"Encaminhamentos resolvidos (alta)",  "valor":38.2,"meta":70.0,"unidade":"%","status":"critico","observacao":"Referência oftalmologia Humaitá"},
-    {"indicador":"Óculos dispensados/mês",             "valor":14,"meta":20,"unidade":"pares","status":"atencao","observacao":"Programa Óculos do SUS"},
-    {"indicador":"Glaucoma sob controle (PO<18)",      "valor":66.7,"meta":80.0,"unidade":"%","status":"atencao","observacao":"12 de 18 acompanhados"},
+    {"indicador": "Lista espera catarata", "valor": 86, "meta": 0, "unidade": "pacientes",
+     "status": "critico", "observacao": "124 dias de espera — catarata bilateral causa cegueira evitável"},
+    {"indicador": "Cirurgias catarata/ano", "valor": 42, "meta": 60, "unidade": "cirurgias",
+     "status": "critico", "observacao": "70% da meta — capacidade cirúrgica insuficiente"},
+    {"indicador": "Rastreio retinopatia diabética", "valor": 44.2, "meta": 80.0, "unidade": "%",
+     "status": "critico", "observacao": "Menos da metade dos diabéticos rastreados — risco de cegueira"},
+    {"indicador": "Óculos dispensados/ano", "valor": 232, "meta": None, "unidade": "pares",
+     "status": "ok", "observacao": "Programa Olhar Brasil e idosos — cobertura satisfatória"},
+    {"indicador": "Tempo espera pterígio", "valor": 68, "meta": 30, "unidade": "dias",
+     "status": "critico", "observacao": "Pterígio avançado causa astigmatismo e comprometimento visual"},
+    {"indicador": "Cobertura oftalmologista", "valor": 1, "meta": None, "unidade": "especialista",
+     "status": "atencao", "observacao": "Município com 1 oftalmologista — itinerante, 2x/semana"},
 ]
 
+
 @router.get("/dashboard")
-async def dashboard():
-    return _DASHBOARD
+def dashboard():
+    return {
+        "consultas_oftalmo_mes": 158,
+        "cirurgias_mes": 9,
+        "cirurgias_catarata_ano": 42,
+        "lista_espera_catarata": 86,
+        "tempo_espera_catarata_dias": 124,
+        "oculos_dispensados_ano": 232,
+        "rastreio_retinopatia_pct": 44.2,
+        "oftalmologistas": 1,
+        "atendimento_oftalmo": "itinerante 2x/semana",
+        "condicoes_monitoradas": 6,
+    }
 
-@router.get("/triagens")
-async def triagens():
-    return _TRIAGENS_HISTORICO
 
-@router.get("/catarata")
-async def catarata():
-    return _CASOS_CATARATA
+@router.get("/condicoes")
+def condicoes():
+    return _CONDICOES
 
-@router.get("/glaucoma")
-async def glaucoma():
-    return _GLAUCOMA
+
+@router.get("/oculos-dispensados")
+def oculos_dispensados():
+    return _OCULOS
+
+
+@router.get("/historico")
+def historico():
+    return _HISTORICO
+
 
 @router.get("/indicadores")
-async def indicadores():
+def indicadores():
     return _INDICADORES

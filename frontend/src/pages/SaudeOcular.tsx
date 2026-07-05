@@ -1,213 +1,220 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
-import { Eye, AlertTriangle, Clock, CheckCircle } from "lucide-react";
 import { apiGet } from "../lib/api";
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer, Cell,
+} from "recharts";
+import { Eye, AlertTriangle, Users, Activity } from "lucide-react";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
-const STATUS_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
-const CTRL_COR: Record<string, string> = { sim: "#16a34a", parcial: "#d97706", nao: "#dc2626", monitoramento: "#6b7280" };
-const SIT_COR: Record<string, string> = { "lista espera": "#dc2626", "acompanhamento": "#16a34a" };
+const BRAND  = "#1c1917";
+const ACCENT = "#78716c";
+const OK     = "#16a34a";
+const WARN   = "#d97706";
+const CRIT   = "#dc2626";
 
-function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
-  return (
-    <div style={{ background: "#fff", border: `1px solid ${cor}22`, borderTop: `3px solid ${cor}`, borderRadius: 10, padding: "13px 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 5 }}>
-        <span style={{ fontSize: 11, color: "#6b7280" }}>{label}</span>
-        <div style={{ background: `${cor}15`, borderRadius: 6, padding: 5 }}>{icon}</div>
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: cor, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{sub}</div>}
-    </div>
-  );
+function statusColor(s: string) {
+  if (s === "ok") return OK;
+  if (s === "atencao") return WARN;
+  return CRIT;
 }
 
-function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
-  if (!dash) return null;
-  return (
-    <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
-        <KpiCard label="Triagens/mês"       value={dash.triagens_mes}                    sub={`${dash.alteracoes_pct}% com alteração`}     cor="#374151"                              icon={<Eye size={14} color="#374151"/>}/>
-        <KpiCard label="Encaminhamentos"    value={dash.encaminhamentos_oftalmologia}     sub="Para oftalmologista"                         cor="#1d4ed8"                              icon={<Eye size={14} color="#1d4ed8"/>}/>
-        <KpiCard label="Fila catarata"      value={dash.lista_espera_cirurgia_catarata}   sub="cirurgia pendente"                           cor={STATUS_COR[dash.lista_espera_status]} icon={<Clock size={14} color={STATUS_COR[dash.lista_espera_status]}/>}/>
-        <KpiCard label="Glaucoma acomp."    value={dash.glaucoma_acompanhados}            sub="PO monitorada"                              cor="#7c3aed"                              icon={<CheckCircle size={14} color="#7c3aed"/>}/>
-      </div>
-      {hist && (
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Triagem ocular — 6 meses</div>
-          <div style={{ height: 200 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={hist} barSize={16}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6"/>
-                <XAxis dataKey="mes" tick={{ fontSize: 9 }}/>
-                <YAxis tick={{ fontSize: 10 }}/>
-                <Tooltip contentStyle={TT}/>
-                <Bar dataKey="triagens"           name="Triagens"              fill="#374151" radius={[4,4,0,0]}/>
-                <Bar dataKey="suspeita_catarata"  name="Suspeita catarata"     fill="#d97706" radius={[4,4,0,0]}/>
-                <Bar dataKey="suspeita_glaucoma"  name="Suspeita glaucoma"     fill="#7c3aed" radius={[4,4,0,0]}/>
-                <Bar dataKey="encaminhados"       name="Encaminhados"          fill="#1d4ed8" radius={[4,4,0,0]}/>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
+  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+    <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{label}</p>
+    <p className="text-2xl font-bold mt-1" style={{ color: color || BRAND }}>{value}</p>
+    {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+  </div>
+);
 
-function AbaCatarata({ casos }: { casos: any[] | undefined }) {
-  if (!casos) return null;
-  return (
-    <div>
-      <div style={{ marginBottom: 14, padding: "10px 14px", background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca", fontSize: 12, color: "#dc2626" }}>
-        ⚠ {casos.filter(c=>c.situacao==="lista espera").length} paciente(s) aguardando cirurgia de catarata — espera média 6.2 meses
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {casos.map(c => {
-          const cor = SIT_COR[c.situacao] ?? "#374151";
-          return (
-            <div key={c.id} style={{ background: "#fff", border: `1px solid ${c.alerta?"#dc262222":"#e5e7eb"}`, borderLeft: `4px solid ${cor}`, borderRadius: 8, padding: "12px 16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                <div>
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>{c.id}</span>
-                  <span style={{ marginLeft: 8, fontSize: 12 }}>{c.olho} — {c.grau}</span>
-                </div>
-                <span style={{ background: cor+"15", color: cor, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>{c.situacao}</span>
-              </div>
-              <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#6b7280" }}>
-                <span>AV OD: <strong style={{ color: parseFloat(c.acuidade_vd)<0.2?"#dc2626":"#374151" }}>{c.acuidade_vd}</strong></span>
-                <span>AV OE: <strong style={{ color: parseFloat(c.acuidade_ve)<0.2?"#dc2626":"#374151" }}>{c.acuidade_ve}</strong></span>
-                <span>Indicação: <strong>{c.indicacao}</strong></span>
-                {c.aguardando_meses>0 && <span>Espera: <strong style={{ color: c.aguardando_meses>6?"#dc2626":"#d97706" }}>{c.aguardando_meses} meses</strong></span>}
-              </div>
-              {c.alerta && <div style={{ marginTop: 6, background: "#fef2f2", borderRadius: 4, padding: "4px 10px", fontSize: 11, color: "#dc2626", fontWeight: 600 }}>⚠ {c.alerta}</div>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function AbaGlaucoma({ casos }: { casos: any[] | undefined }) {
-  if (!casos) return null;
-  return (
-    <div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {casos.map(c => {
-          const cor = CTRL_COR[c.controle];
-          return (
-            <div key={c.id} style={{ background: "#fff", border: `1px solid ${c.alerta?"#dc262222":"#e5e7eb"}`, borderLeft: `4px solid ${cor}`, borderRadius: 8, padding: "12px 16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                <div>
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>{c.id}</span>
-                  <span style={{ marginLeft: 8, fontSize: 12, color: "#374151" }}>{c.tipo}</span>
-                </div>
-                <span style={{ background: cor+"15", color: cor, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>{c.controle==="sim"?"Controlado":c.controle==="parcial"?"Parcial":c.controle==="monitoramento"?"Monitoramento":"Não controlado"}</span>
-              </div>
-              <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#6b7280" }}>
-                <span>PO OD: <strong style={{ color: c.po_mmhg_od>21?"#dc2626":"#374151" }}>{c.po_mmhg_od} mmHg</strong></span>
-                <span>PO OE: <strong style={{ color: c.po_mmhg_oe>21?"#dc2626":"#374151" }}>{c.po_mmhg_oe} mmHg</strong></span>
-                <span>Medicação: <strong>{c.medicacao}</strong></span>
-                <span>Consulta: <strong>{c.consulta_dias} dias</strong></span>
-              </div>
-              {c.alerta && <div style={{ marginTop: 6, background: "#fef2f2", borderRadius: 4, padding: "4px 10px", fontSize: 11, color: "#dc2626", fontWeight: 600 }}>⚠ {c.alerta}</div>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
-  if (!inds) return null;
-  return (
-    <div>
-      {["critico","atencao","ok"].map(nivel => {
-        const grupo = inds.filter(i => i.status === nivel);
-        if (!grupo.length) return null;
-        const cor = STATUS_COR[nivel];
-        return (
-          <div key={nivel} style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: cor, marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: 1 }}>{nivel==="critico"?"Crítico":nivel==="atencao"?"Atenção":"OK"}</div>
-            {grupo.map(ind => (
-              <div key={ind.indicador} style={{ background: "#fff", border: `1px solid ${cor}22`, borderRadius: 8, padding: "12px 16px", marginBottom: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ind.meta?6:0 }}>
-                  <div>
-                    <span style={{ fontSize: 13, fontWeight: 500 }}>{ind.indicador}</span>
-                    {ind.observacao && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{ind.observacao}</div>}
-                  </div>
-                  <div style={{ flexShrink: 0, marginLeft: 12 }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{ind.valor}{ind.unidade==="%"?"%":""}</span>
-                    {ind.meta && <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 6 }}>meta: {ind.meta}{ind.unidade==="%"?"%":""}</span>}
-                  </div>
-                </div>
-                {ind.meta && typeof ind.valor==="number" && !ind.invertido && (
-                  <div style={{ background: "#f3f4f6", borderRadius: 6, height: 7 }}>
-                    <div style={{ background: cor, height: "100%", width: `${Math.min(100,Math.round(ind.valor/ind.meta*100))}%`, borderRadius: 6 }}/>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-type Aba = "dashboard"|"catarata"|"glaucoma"|"indicadores";
+const COND_COLORS = ["#2563eb","#d97706","#7c3aed","#dc2626","#0891b2","#16a34a"];
 
 export default function SaudeOcular() {
-  const [aba, setAba] = useState<Aba>("dashboard");
-  const { data: dash } = useQuery({ queryKey: ["oc-dash"], queryFn: () => apiGet("/api/saude-ocular/dashboard")   as Promise<any> });
-  const { data: hist } = useQuery({ queryKey: ["oc-hist"], queryFn: () => apiGet("/api/saude-ocular/triagens")    as Promise<any[]>, enabled: aba==="dashboard" });
-  const { data: cat  } = useQuery({ queryKey: ["oc-cat"],  queryFn: () => apiGet("/api/saude-ocular/catarata")   as Promise<any[]>, enabled: aba==="catarata" });
-  const { data: glc  } = useQuery({ queryKey: ["oc-glc"],  queryFn: () => apiGet("/api/saude-ocular/glaucoma")   as Promise<any[]>, enabled: aba==="glaucoma" });
-  const { data: inds } = useQuery({ queryKey: ["oc-ind"],  queryFn: () => apiGet("/api/saude-ocular/indicadores") as Promise<any[]>, enabled: aba==="indicadores" });
+  const [aba, setAba] = useState("dashboard");
+
+  const { data: dash } = useQuery({
+    queryKey: ["oc-dashboard"],
+    queryFn: () => apiGet("/api/saude-ocular/dashboard"),
+    enabled: aba === "dashboard",
+  });
+  const { data: condicoes } = useQuery({
+    queryKey: ["oc-condicoes"],
+    queryFn: () => apiGet("/api/saude-ocular/condicoes"),
+    enabled: aba === "condicoes",
+  });
+  const { data: oculos } = useQuery({
+    queryKey: ["oc-oculos"],
+    queryFn: () => apiGet("/api/saude-ocular/oculos-dispensados"),
+    enabled: aba === "oculos",
+  });
+  const { data: historico } = useQuery({
+    queryKey: ["oc-historico"],
+    queryFn: () => apiGet("/api/saude-ocular/historico"),
+    enabled: aba === "historico",
+  });
+  const { data: indicadores } = useQuery({
+    queryKey: ["oc-indicadores"],
+    queryFn: () => apiGet("/api/saude-ocular/indicadores"),
+    enabled: aba === "indicadores",
+  });
 
   const dashRaw = dash as any;
 
-  const ABAS: { id: Aba; label: string }[] = [
-    { id: "dashboard",   label: "Dashboard" },
-    { id: "catarata",    label: `Catarata (${dashRaw?.lista_espera_cirurgia_catarata ?? 0} na fila)` },
-    { id: "glaucoma",    label: `Glaucoma (${dashRaw?.glaucoma_acompanhados ?? 0} acomp.)` },
-    { id: "indicadores", label: "Indicadores" },
+  const ABAS = [
+    { key: "dashboard",   label: "Dashboard",   icon: <Eye size={15}/> },
+    { key: "condicoes",   label: "Condições",   icon: <AlertTriangle size={15}/> },
+    { key: "oculos",      label: "Óculos",      icon: <Users size={15}/> },
+    { key: "historico",   label: "Histórico",   icon: <Activity size={15}/> },
+    { key: "indicadores", label: "Indicadores", icon: <AlertTriangle size={15}/> },
   ];
 
   return (
-    <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
-      <div style={{ background: "linear-gradient(135deg,#0c4a6e 0%,#0369a1 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Saúde Ocular</h1>
-            <p style={{ fontSize: 13, opacity: .85, margin: 0 }}>Triagem visual · Catarata · Glaucoma · Óculos SUS · FMS Apuí/AM</p>
+    <div className="min-h-screen bg-slate-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg" style={{ background: BRAND }}>
+            <Eye size={22} color="white" />
           </div>
-          {dash && (
-            <div style={{ display: "flex", gap: 10 }}>
-              <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.triagens_mes}</div>
-                <div style={{ fontSize: 10, opacity: .8 }}>triagens/mês</div>
-              </div>
-              <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900, color: dashRaw.lista_espera_cirurgia_catarata>20?"#fbbf24":"#fff" }}>{dashRaw.lista_espera_cirurgia_catarata}</div>
-                <div style={{ fontSize: 10, opacity: .8 }}>fila catarata</div>
-              </div>
-            </div>
-          )}
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Saúde Ocular</h1>
+            <p className="text-sm text-slate-500">Catarata · Glaucoma · Retinopatia · Óculos · FMS Apuí/AM</p>
+          </div>
         </div>
-      </div>
-      <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #e0f2fe" }}>
-          {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #0369a1":"2px solid transparent", color: aba===a.id?"#0369a1":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
+
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {ABAS.map((a) => (
+            <button key={a.key} onClick={() => setAba(a.key)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              style={aba === a.key ? { background: BRAND, color: "white" } : { background: "white", color: "#475569", border: "1px solid #e2e8f0" }}>
+              {a.icon} {a.label}
+            </button>
           ))}
         </div>
-        {aba==="dashboard"   && <AbaDashboard dash={dashRaw} hist={hist}/>}
-        {aba==="catarata"    && <AbaCatarata casos={cat}/>}
-        {aba==="glaucoma"    && <AbaGlaucoma casos={glc}/>}
-        {aba==="indicadores" && <AbaIndicadores inds={inds}/>}
+
+        {aba === "dashboard" && dashRaw && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KPI label="Consultas Oftalmo/Mês" value={dashRaw.consultas_oftalmo_mes.toString()} color={ACCENT} />
+              <KPI label="Cirurgias/Mês"          value={dashRaw.cirurgias_mes.toString()} color={ACCENT} />
+              <KPI label="Espera Catarata"        value={dashRaw.lista_espera_catarata.toString()} sub={`${dashRaw.tempo_espera_catarata_dias}d de espera`} color={CRIT} />
+              <KPI label="Rastreio Retinopatia"   value={`${dashRaw.rastreio_retinopatia_pct}%`} sub="meta: 80%" color={CRIT} />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KPI label="Catarata/Ano"           value={dashRaw.cirurgias_catarata_ano.toString()} sub="meta: 60 cirurgias" color={WARN} />
+              <KPI label="Óculos Dispensados"     value={dashRaw.oculos_dispensados_ano.toString()} sub="/ano" color={OK} />
+              <KPI label="Oftalmologistas"        value={dashRaw.oftalmologistas.toString()} sub={dashRaw.atendimento_oftalmo} color={WARN} />
+              <KPI label="Condições Monitoradas"  value={dashRaw.condicoes_monitoradas.toString()} />
+            </div>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
+              <b>Cegueira evitável:</b> {dashRaw.lista_espera_catarata} pacientes aguardando cirurgia de catarata ({dashRaw.tempo_espera_catarata_dias} dias). Apenas {dashRaw.rastreio_retinopatia_pct}% dos diabéticos rastreados para retinopatia — meta 80%. {dashRaw.atendimento_oftalmo}.
+            </div>
+          </div>
+        )}
+
+        {aba === "condicoes" && Array.isArray(condicoes) && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-4">Casos por Condição Ocular (2026)</h3>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={condicoes} layout="vertical" margin={{ left: 10, right: 10 }}>
+                  <XAxis type="number" tick={{ fontSize: 9 }} />
+                  <YAxis type="category" dataKey="condicao" tick={{ fontSize: 8 }} width={290} />
+                  <Tooltip />
+                  <Bar dataKey="casos_ano" name="Casos" radius={[0,3,3,0]}>
+                    {(condicoes as any[]).map((_: any, i: number) => (
+                      <Cell key={i} fill={COND_COLORS[i % COND_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid gap-3">
+              {(condicoes as any[]).map((c: any, i: number) => (
+                <div key={c.condicao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ background: COND_COLORS[i % COND_COLORS.length] }} />
+                      <span className="font-semibold text-slate-700 text-sm">{c.condicao}</span>
+                    </div>
+                    <span className="font-bold text-sm" style={{ color: statusColor(c.status) }}>
+                      {c.casos_ano} casos
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 text-xs text-slate-500">
+                    {c.cirurgia && <span style={{ color: c.lista_espera_cirurgia > 50 ? CRIT : WARN }}>Espera cirurg.: <b>{c.lista_espera_cirurgia}</b></span>}
+                    {c.cirurgia && <span style={{ color: c.tempo_espera_dias > 60 ? CRIT : WARN }}>Tempo: <b>{c.tempo_espera_dias}d</b></span>}
+                    {c.rastreados_pct && <span style={{ color: c.rastreados_pct < 60 ? CRIT : WARN }}>Rastreado: <b>{c.rastreados_pct}%</b></span>}
+                    {c.oculos_dispensados && <span style={{ color: OK }}>Óculos disp.: <b>{c.oculos_dispensados}</b></span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {aba === "oculos" && Array.isArray(oculos) && (
+          <div className="space-y-3">
+            {(oculos as any[]).map((o: any) => (
+              <div key={o.programa} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ background: statusColor(o.status) }} />
+                    <span className="font-semibold text-slate-700">{o.programa}</span>
+                  </div>
+                  <span className="font-bold text-sm" style={{ color: OK }}>{o.oculos_dispensados} óculos/ano</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-xs text-slate-500">
+                  <span>Triagens: <b>{o.triagens_realizadas}</b></span>
+                  <span>Beneficiários: <b>{o.beneficiarios_ano}</b></span>
+                  <span>Encaminhados: <b>{o.encaminhados_spec}</b></span>
+                  <span>Dispensados: <b>{o.oculos_dispensados}</b></span>
+                </div>
+                <div className="mt-2 w-full bg-slate-100 rounded-full h-2">
+                  <div className="h-2 rounded-full" style={{ width: `${(o.oculos_dispensados / o.triagens_realizadas) * 100}%`, background: OK }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {aba === "historico" && Array.isArray(historico) && (
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal (2026)</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="n"    tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="esp"  orientation="right" tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend />
+                <Line yAxisId="n"   dataKey="consultas_oftalmo"      name="Consultas"       stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="n"   dataKey="oculos_dispensados"     name="Óculos Disp."    stroke={OK}     strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="n"   dataKey="cirurgias"              name="Cirurgias"        stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="esp" dataKey="lista_espera_catarata"  name="Espera Catarata" stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {aba === "indicadores" && Array.isArray(indicadores) && (
+          <div className="grid gap-3">
+            {(indicadores as any[]).map((ind: any) => (
+              <div key={ind.indicador} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-start gap-4">
+                <div className="mt-1 w-3 h-3 rounded-full flex-shrink-0" style={{ background: statusColor(ind.status) }} />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-700 text-sm">{ind.indicador}</span>
+                    <span className="font-bold text-sm" style={{ color: statusColor(ind.status) }}>
+                      {`${ind.valor} ${ind.unidade}`}{ind.meta != null ? ` / meta: ${ind.meta} ${ind.unidade}` : ""}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">{ind.observacao}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
