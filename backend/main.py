@@ -158,6 +158,9 @@ from routers.telessaude import router as telessaude_router
 from routers.oncologia import router as oncologia_router
 from routers.pgrss import router as pgrss_router
 from routers.educacao_permanente import router as educacao_perm_router
+from routers.farmacovigilancia import router as farmacovigilancia_router
+from routers.gestao_qualidade import router as gestao_qualidade_router
+from routers.saude_digital import router as saude_digital_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -254,6 +257,9 @@ app.include_router(telessaude_router)
 app.include_router(oncologia_router)
 app.include_router(pgrss_router)
 app.include_router(educacao_perm_router)
+app.include_router(farmacovigilancia_router)
+app.include_router(gestao_qualidade_router)
+app.include_router(saude_digital_router)
 
 
 @app.get("/")
