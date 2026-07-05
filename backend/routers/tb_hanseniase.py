@@ -1,62 +1,100 @@
-"""
-Tuberculose e Hanseníase — PNCT / PNCH — Apuí/AM
-SINAN · Tratamento Diretamente Observado (TDO) · Operacional
-"""
+"""TB e Hanseníase — SINAN · DOTS · PQT · Vigilância Epidemiológica · FMS Apuí/AM"""
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/tb-hanseniase", tags=["TB e Hanseníase"])
-
-_CASOS_TB = [
-    {"id":1, "codigo":"TB2026001","forma":"pulmonar","situacao":"em_tratamento","esquema":"RHZE","mes_inicio":"Jan/26","mes_prev_alta":"Jul/26","tdo":True, "contatos_examinados":6,"contatos_total":6,"resultado_bk":"positivo","baciloscopia_2m":"negativo","notificante":"ESF Central","alerta":None},
-    {"id":2, "codigo":"TB2026002","forma":"pulmonar","situacao":"em_tratamento","esquema":"RHZE","mes_inicio":"Jan/26","mes_prev_alta":"Jul/26","tdo":True, "contatos_examinados":4,"contatos_total":5,"resultado_bk":"positivo","baciloscopia_2m":"positivo","notificante":"ESF Alto Apuí","alerta":"baciloscopia 2m positiva"},
-    {"id":3, "codigo":"TB2026003","forma":"extrapulmonar","situacao":"em_tratamento","esquema":"RHZE","mes_inicio":"Fev/26","mes_prev_alta":"Ago/26","tdo":False,"contatos_examinados":3,"contatos_total":4,"resultado_bk":"negativo","baciloscopia_2m":None,"notificante":"Clínica Médica Apuí","alerta":"TDO não aderido"},
-    {"id":4, "codigo":"TB2026004","forma":"pulmonar","situacao":"em_tratamento","esquema":"RHZE","mes_inicio":"Mar/26","mes_prev_alta":"Set/26","tdo":True, "contatos_examinados":8,"contatos_total":8,"resultado_bk":"positivo","baciloscopia_2m":None,"notificante":"ESF Bela Vista","alerta":None},
-    {"id":5, "codigo":"TB2026005","forma":"pulmonar","situacao":"em_tratamento","esquema":"RHZE","mes_inicio":"Mar/26","mes_prev_alta":"Set/26","tdo":True, "contatos_examinados":5,"contatos_total":6,"resultado_bk":"positivo","baciloscopia_2m":None,"notificante":"ESF São Cristóvão","alerta":None},
-    {"id":6, "codigo":"TB2025012","forma":"pulmonar","situacao":"alta_cura",    "esquema":"RHZE","mes_inicio":"Jul/25","mes_prev_alta":"Jan/26","tdo":True, "contatos_examinados":4,"contatos_total":4,"resultado_bk":"positivo","baciloscopia_2m":"negativo","notificante":"ESF Linha 1","alerta":None},
-    {"id":7, "codigo":"TB2025013","forma":"pulmonar","situacao":"abandono",     "esquema":"RHZE","mes_inicio":"Ago/25","mes_prev_alta":"Fev/26","tdo":False,"contatos_examinados":3,"contatos_total":5,"resultado_bk":"positivo","baciloscopia_2m":"positivo","notificante":"ESF Estrada Nova","alerta":"abandono — busca ativa necessária"},
-]
-
-_CASOS_HANS = [
-    {"id":1,"codigo":"HN2026001","forma":"dimorfa","classificacao":"MB","esquema":"PQT-MB","mes_inicio":"Jan/26","duracao_prevista":"12 meses","grau_incapacidade_inicial":1,"grau_incapacidade_atual":1,"exames_contatos":8,"notificante":"ESF Central","status":"em_tratamento"},
-    {"id":2,"codigo":"HN2026002","forma":"virchowiana","classificacao":"MB","esquema":"PQT-MB","mes_inicio":"Fev/26","duracao_prevista":"12 meses","grau_incapacidade_inicial":2,"grau_incapacidade_atual":2,"exames_contatos":12,"notificante":"ESF Alto Apuí","status":"em_tratamento"},
-    {"id":3,"codigo":"HN2026003","forma":"tuberculoide","classificacao":"PB","esquema":"PQT-PB","mes_inicio":"Mar/26","duracao_prevista":"6 meses","grau_incapacidade_inicial":0,"grau_incapacidade_atual":0,"exames_contatos":5,"notificante":"ESF São Cristóvão","status":"em_tratamento"},
-    {"id":4,"codigo":"HN2025010","forma":"dimorfa","classificacao":"MB","esquema":"PQT-MB","mes_inicio":"Set/25","duracao_prevista":"12 meses","grau_incapacidade_inicial":1,"grau_incapacidade_atual":0,"exames_contatos":9,"notificante":"ESF Linha 2","status":"alta_cura"},
-]
-
-_HISTORICO = [
-    {"ano":"2021","tb_casos":8, "tb_cura_pct":75.0,"tb_abandono_pct":12.5,"hans_casos":5,"hans_cura_pct":80.0,"coef_hans":23.7},
-    {"ano":"2022","tb_casos":6, "tb_cura_pct":83.3,"tb_abandono_pct":0.0, "hans_casos":4,"hans_cura_pct":75.0,"coef_hans":19.0},
-    {"ano":"2023","tb_casos":9, "tb_cura_pct":77.8,"tb_abandono_pct":11.1,"hans_casos":6,"hans_cura_pct":100.0,"coef_hans":28.5},
-    {"ano":"2024","tb_casos":7, "tb_cura_pct":85.7,"tb_abandono_pct":0.0, "hans_casos":3,"hans_cura_pct":100.0,"coef_hans":14.2},
-    {"ano":"2025","tb_casos":5, "tb_cura_pct":60.0,"tb_abandono_pct":20.0,"hans_casos":4,"hans_cura_pct":75.0,"coef_hans":19.0},
-    {"ano":"2026*","tb_casos":5,"tb_cura_pct":None,"tb_abandono_pct":None,"hans_casos":3,"hans_cura_pct":None,"coef_hans":None},
-]
+router = APIRouter(prefix="/api/tb-hanseniase", tags=["tb_hanseniase"])
 
 @router.get("/dashboard")
 async def dashboard():
-    tb_ativos  = [c for c in _CASOS_TB   if c["situacao"]=="em_tratamento"]
-    hans_ativ  = [c for c in _CASOS_HANS if c["status"]=="em_tratamento"]
-    alertas_tb = [c for c in tb_ativos if c["alerta"]]
-    tdo_adh    = sum(1 for c in tb_ativos if c["tdo"]) / len(tb_ativos) * 100 if tb_ativos else 0
     return {
-        "competencia":        "Mar/2026",
-        "tb_em_tratamento":   len(tb_ativos),
-        "tb_alertas":         len(alertas_tb),
-        "tb_tdo_adesao_pct":  round(tdo_adh, 1),
-        "hans_em_tratamento": len(hans_ativ),
-        "hans_grau2_pct":     round(sum(1 for c in hans_ativ if c["grau_incapacidade_atual"]==2)/len(hans_ativ)*100 if hans_ativ else 0, 1),
-        "coef_hans_2025":     19.0,
-        "historico":          _HISTORICO,
+        "tb_casos_novos_mes": 4,
+        "tb_em_tratamento": 28,
+        "tb_cura_pct": 82.1,
+        "tb_meta_cura_pct": 85.0,
+        "tb_abandono_pct": 8.4,
+        "tb_dots_cobertura_pct": 78.6,
+        "tb_tb_rr_suspeitos": 1,
+        "hanseniase_casos_novos_mes": 2,
+        "hanseniase_em_tratamento": 18,
+        "hanseniase_cura_pct": 88.9,
+        "hanseniase_grau2_incapacidade_pct": 11.1,
+        "hanseniase_contatos_examinados_pct": 72.4,
+        "meta_contatos_examinados_pct": 100,
+        "coinfeccao_tb_hiv_pct": 14.3,
+        "status_geral": "atencao",
     }
 
 @router.get("/tuberculose")
 async def tuberculose():
-    return _CASOS_TB
+    return {
+        "em_tratamento": 28,
+        "esquemas": [
+            {"esquema": "RHZE (2 meses)",     "pacientes": 12, "fase": "intensiva",    "dots": True},
+            {"esquema": "RH (4 meses)",       "pacientes": 14, "fase": "manutencao",   "dots": True},
+            {"esquema": "RHE — TB resistente","pacientes": 2,  "fase": "especializado","dots": True},
+        ],
+        "desfechos_ultimos_12m": [
+            {"desfecho": "Cura",              "casos": 32, "pct": 82.1},
+            {"desfecho": "Abandono",          "casos": 4,  "pct": 10.3},
+            {"desfecho": "Óbito por TB",      "casos": 1,  "pct": 2.6},
+            {"desfecho": "Mudança de esquema","casos": 2,  "pct": 5.1},
+        ],
+        "formas": [
+            {"forma": "Pulmonar bacilífera",   "casos": 18, "pct": 64.3, "contatos_por_caso": 8},
+            {"forma": "Pulmonar não bacilífera","casos": 6,  "pct": 21.4, "contatos_por_caso": 4},
+            {"forma": "Extrapulmonar",          "casos": 4,  "pct": 14.3, "contatos_por_caso": 2},
+        ],
+        "populacoes_vulneraveis": [
+            {"grupo": "Indígenas",          "casos_12m": 8,  "pct_total": 20.5, "alerta": True},
+            {"grupo": "Privados de liberdade","casos_12m": 4, "pct_total": 10.3, "alerta": True},
+            {"grupo": "Pessoas em situação de rua","casos_12m": 3, "pct_total": 7.7, "alerta": True},
+            {"grupo": "Coinfectados TB/HIV","casos_12m": 6,  "pct_total": 15.4, "alerta": True},
+        ],
+        "tb_drogarresistente": {
+            "suspeitos_mes": 1,
+            "em_investigacao": 1,
+            "confirmados_12m": 0,
+            "encaminhamento": "HUAM/Manaus",
+        },
+    }
 
 @router.get("/hanseniase")
 async def hanseniase():
-    return _CASOS_HANS
+    return {
+        "em_tratamento": 18,
+        "esquemas": [
+            {"esquema": "PQT PB 6 doses",   "pacientes": 8,  "classificacao": "Paucibacilar"},
+            {"esquema": "PQT MB 12 doses",  "pacientes": 10, "classificacao": "Multibacilar"},
+        ],
+        "classificacao_operacional": [
+            {"tipo": "Paucibacilar (PB)",    "casos": 8,  "pct": 44.4},
+            {"tipo": "Multibacilar (MB)",    "casos": 10, "pct": 55.6},
+        ],
+        "grau_incapacidade_diagnostico": [
+            {"grau": "Grau 0 — sem incapacidade",    "casos": 12, "pct": 66.7},
+            {"grau": "Grau 1 — sens. reduzida",      "casos": 4,  "pct": 22.2},
+            {"grau": "Grau 2 — incapacidade visível","casos": 2,  "pct": 11.1},
+        ],
+        "contatos_examinados": {
+            "registrados": 124,
+            "examinados": 90,
+            "pct": 72.4,
+            "meta_pct": 100,
+            "pendentes": 34,
+        },
+        "desfechos_ultimos_12m": [
+            {"desfecho": "Cura",     "casos": 16, "pct": 88.9},
+            {"desfecho": "Abandono", "casos": 1,  "pct": 5.6},
+            {"desfecho": "Óbito",    "casos": 1,  "pct": 5.6},
+        ],
+    }
 
 @router.get("/historico")
 async def historico():
-    return _HISTORICO
+    return [
+        {"mes": "Out/25", "tb_novos": 3, "tb_tratamento": 26, "tb_cura_pct": 80.0, "hans_novos": 2, "hans_tratamento": 17, "hans_cura_pct": 87.5, "contatos_exam_pct": 68.0},
+        {"mes": "Nov/25", "tb_novos": 4, "tb_tratamento": 27, "tb_cura_pct": 81.0, "hans_novos": 1, "hans_tratamento": 17, "hans_cura_pct": 88.0, "contatos_exam_pct": 69.4},
+        {"mes": "Dez/25", "tb_novos": 3, "tb_tratamento": 27, "tb_cura_pct": 81.5, "hans_novos": 2, "hans_tratamento": 18, "hans_cura_pct": 88.0, "contatos_exam_pct": 70.8},
+        {"mes": "Jan/26", "tb_novos": 4, "tb_tratamento": 27, "tb_cura_pct": 81.8, "hans_novos": 1, "hans_tratamento": 18, "hans_cura_pct": 88.2, "contatos_exam_pct": 71.6},
+        {"mes": "Fev/26", "tb_novos": 3, "tb_tratamento": 28, "tb_cura_pct": 82.0, "hans_novos": 2, "hans_tratamento": 18, "hans_cura_pct": 88.5, "contatos_exam_pct": 72.0},
+        {"mes": "Mar/26", "tb_novos": 4, "tb_tratamento": 28, "tb_cura_pct": 82.1, "hans_novos": 2, "hans_tratamento": 18, "hans_cura_pct": 88.9, "contatos_exam_pct": 72.4},
+    ]

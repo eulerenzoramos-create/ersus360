@@ -1,4 +1,4 @@
-"""Hemoterapia — Banco de Sangue · FMS Apuí/AM"""
+"""Hemoterapia — Banco de Sangue · Hemocomponentes · Doadores · FMS Apuí/AM"""
 from fastapi import APIRouter
 
 router = APIRouter(prefix="/api/hemoterapia", tags=["hemoterapia"])
@@ -6,63 +6,66 @@ router = APIRouter(prefix="/api/hemoterapia", tags=["hemoterapia"])
 @router.get("/dashboard")
 async def dashboard():
     return {
-        "doacoes_mes": 38,
-        "meta_doacoes_mes": 50,
-        "doadores_cadastrados": 312,
-        "bolsas_coletadas_mes": 38,
-        "bolsas_descartadas_mes": 4,
-        "descarte_pct": 10.5,
-        "autossuficiencia_pct": 72.4,
-        "estoque_critico": True,
-        "hemocomponentes_criticos": ["Plaquetas", "O-"],
-        "campanhas_ativas": 1,
-        "triagem_inaptos_pct": 18.3,
-        "status_estoque": "critico",
-        "tendencia_doacoes": "queda",
+        "doacoes_mes": 48,
+        "meta_doacoes_mes": 60,
+        "doacoes_pct_meta": 80.0,
+        "doadores_cadastrados": 284,
+        "doadores_ativos": 124,
+        "hemocomponentes_estoque": 186,
+        "sangue_o_pos_dias": 4,
+        "sangue_o_neg_dias": 1,
+        "hemacia_total_unidades": 68,
+        "plaquetas_total_unidades": 12,
+        "plasma_total_unidades": 38,
+        "triagem_reprovados_pct": 18.4,
+        "transfusoes_mes": 38,
+        "reacoes_transfusionais": 1,
+        "status_geral": "critico",
     }
 
 @router.get("/estoque")
 async def estoque():
     return [
-        {"hemocomponente": "Concentrado de Hemácias O+",  "bolsas": 14, "validade_media_dias": 21, "status": "ok",       "estoque_minimo": 8},
-        {"hemocomponente": "Concentrado de Hemácias O-",  "bolsas": 2,  "validade_media_dias": 18, "status": "critico",  "estoque_minimo": 4},
-        {"hemocomponente": "Concentrado de Hemácias A+",  "bolsas": 8,  "validade_media_dias": 25, "status": "ok",       "estoque_minimo": 5},
-        {"hemocomponente": "Concentrado de Hemácias B+",  "bolsas": 3,  "validade_media_dias": 14, "status": "atencao",  "estoque_minimo": 3},
-        {"hemocomponente": "Concentrado de Plaquetas",    "bolsas": 2,  "validade_media_dias": 4,  "status": "critico",  "estoque_minimo": 6},
-        {"hemocomponente": "Plasma Fresco Congelado",     "bolsas": 10, "validade_media_dias": 180,"status": "ok",       "estoque_minimo": 6},
-        {"hemocomponente": "Crioprecipitado",             "bolsas": 5,  "validade_media_dias": 90, "status": "atencao",  "estoque_minimo": 4},
-        {"hemocomponente": "Concentrado de Granulócitos", "bolsas": 0,  "validade_media_dias": 0,  "status": "critico",  "estoque_minimo": 2},
-    ]
-
-@router.get("/doacoes-historico")
-async def doacoes_historico():
-    return [
-        {"mes": "Out/25", "coletadas": 42, "aptas": 36, "descartadas": 6, "campanhas": 1},
-        {"mes": "Nov/25", "coletadas": 45, "aptas": 38, "descartadas": 7, "campanhas": 1},
-        {"mes": "Dez/25", "coletadas": 31, "aptas": 26, "descartadas": 5, "campanhas": 0},
-        {"mes": "Jan/26", "coletadas": 28, "aptas": 23, "descartadas": 5, "campanhas": 0},
-        {"mes": "Fev/26", "coletadas": 35, "aptas": 30, "descartadas": 5, "campanhas": 1},
-        {"mes": "Mar/26", "coletadas": 38, "aptas": 34, "descartadas": 4, "campanhas": 1},
+        {"componente": "Concentrado de Hemácias O+",  "tipo_sanguineo": "O+",  "unidades": 22, "dias_estoque": 4,  "validade_media_dias": 35,  "meta_dias": 7, "status": "critico"},
+        {"componente": "Concentrado de Hemácias A+",  "tipo_sanguineo": "A+",  "unidades": 18, "dias_estoque": 6,  "validade_media_dias": 35,  "meta_dias": 7, "status": "atencao"},
+        {"componente": "Concentrado de Hemácias B+",  "tipo_sanguineo": "B+",  "unidades": 12, "dias_estoque": 8,  "validade_media_dias": 35,  "meta_dias": 7, "status": "ok"},
+        {"componente": "Concentrado de Hemácias AB+", "tipo_sanguineo": "AB+", "unidades": 6,  "dias_estoque": 5,  "validade_media_dias": 35,  "meta_dias": 7, "status": "atencao"},
+        {"componente": "Concentrado de Hemácias O-",  "tipo_sanguineo": "O-",  "unidades": 2,  "dias_estoque": 1,  "validade_media_dias": 35,  "meta_dias": 5, "status": "critico"},
+        {"componente": "Concentrado de Plaquetas",    "tipo_sanguineo": "pool","unidades": 12, "dias_estoque": 3,  "validade_media_dias": 5,   "meta_dias": 5, "status": "atencao"},
+        {"componente": "Plasma Fresco Congelado",     "tipo_sanguineo": "pool","unidades": 38, "dias_estoque": 12, "validade_media_dias": 365, "meta_dias": 7, "status": "ok"},
+        {"componente": "Crioprecipitado",             "tipo_sanguineo": "pool","unidades": 8,  "dias_estoque": 10, "validade_media_dias": 365, "meta_dias": 7, "status": "ok"},
     ]
 
 @router.get("/triagem-causas")
 async def triagem_causas():
     return [
-        {"causa": "Anemia (Hb baixa)",        "inaptos": 12, "pct": 34.3},
-        {"causa": "Janela imunológica",        "inaptos": 7,  "pct": 20.0},
-        {"causa": "Pressão arterial alterada", "inaptos": 6,  "pct": 17.1},
-        {"causa": "Uso recente de medicação",  "inaptos": 5,  "pct": 14.3},
-        {"causa": "Viagem área endêmica",      "inaptos": 3,  "pct": 8.6},
-        {"causa": "Outros",                    "inaptos": 2,  "pct": 5.7},
+        {"causa": "Hematócrito baixo / anemia",       "reprovados": 28, "pct": 31.8, "reversivel": True},
+        {"causa": "Uso de medicamentos",               "reprovados": 18, "pct": 20.5, "reversivel": True},
+        {"causa": "Comportamento de risco (IST)",      "reprovados": 14, "pct": 15.9, "reversivel": False},
+        {"causa": "Peso abaixo do mínimo (50 kg)",     "reprovados": 10, "pct": 11.4, "reversivel": True},
+        {"causa": "Viagem zona endêmica recente",      "reprovados": 8,  "pct": 9.1,  "reversivel": True},
+        {"causa": "Tatuagem/piercing recente",         "reprovados": 6,  "pct": 6.8,  "reversivel": True},
+        {"causa": "Outras causas definitivas",         "reprovados": 4,  "pct": 4.5,  "reversivel": False},
+    ]
+
+@router.get("/doacoes-historico")
+async def doacoes_historico():
+    return [
+        {"mes": "Out/25", "doacoes": 42, "meta": 60, "transfusoes": 34, "descarte_pct": 4.2, "doadores_novos": 8},
+        {"mes": "Nov/25", "doacoes": 44, "meta": 60, "transfusoes": 36, "descarte_pct": 3.8, "doadores_novos": 10},
+        {"mes": "Dez/25", "doacoes": 38, "meta": 60, "transfusoes": 32, "descarte_pct": 5.2, "doadores_novos": 6},
+        {"mes": "Jan/26", "doacoes": 46, "meta": 60, "transfusoes": 36, "descarte_pct": 4.0, "doadores_novos": 9},
+        {"mes": "Fev/26", "doacoes": 44, "meta": 60, "transfusoes": 36, "descarte_pct": 3.6, "doadores_novos": 8},
+        {"mes": "Mar/26", "doacoes": 48, "meta": 60, "transfusoes": 38, "descarte_pct": 3.4, "doadores_novos": 11},
     ]
 
 @router.get("/indicadores")
 async def indicadores():
     return [
-        {"indicador": "Autossuficiência em hemocomponentes", "valor": 72.4, "meta": 100, "unidade": "%",   "status": "critico",  "observacao": "Município depende de Manaus para plaquetas e O-"},
-        {"indicador": "Taxa de descarte de bolsas",          "valor": 10.5, "meta": 8,   "unidade": "%",   "status": "atencao",  "observacao": "Acima da meta nacional"},
-        {"indicador": "Inaptos na triagem clínica",          "valor": 18.3, "meta": 15,  "unidade": "%",   "status": "atencao",  "observacao": "Anemia principal causa"},
-        {"indicador": "Doações/1.000 hab. (ano)",            "valor": 9.8,  "meta": 15,  "unidade": "‰",   "status": "critico",  "observacao": "OMS recomenda ≥15‰"},
-        {"indicador": "Bolsas vencidas descartadas",         "valor": 2,    "meta": 0,   "unidade": "un",  "status": "atencao",  "observacao": "Gestão de estoque a melhorar"},
-        {"indicador": "Reações transfusionais",              "valor": 1,    "meta": 2,   "unidade": "un",  "status": "ok",       "observacao": "Dentro do limite aceitável"},
+        {"indicador": "Estoque O- (sangue universal)",     "valor": 1,    "meta": 5,   "unidade": "dias","status": "critico",  "observacao": "2 unidades — risco para traumas graves e partos de emergência"},
+        {"indicador": "Estoque O+ abaixo da meta",         "valor": 4,    "meta": 7,   "unidade": "dias","status": "critico",  "observacao": "22 unidades — tipo mais solicitado (43% das transfusões)"},
+        {"indicador": "Captação de doações / meta",        "valor": 80.0, "meta": 100, "unidade": "%",  "status": "atencao",  "observacao": "48/60 — déficit crônico desde Out/25"},
+        {"indicador": "Reações transfusionais",            "valor": 1,    "meta": 0,   "unidade": "un", "status": "atencao",  "observacao": "1 reação febril não-hemolítica em Mar/26"},
+        {"indicador": "Taxa de reprovação na triagem",     "valor": 18.4, "meta": 15,  "unidade": "%",  "status": "atencao",  "observacao": "Principal causa: anemia (31.8%) — carências nutricionais locais"},
+        {"indicador": "Descarte de hemocomponentes",       "valor": 3.4,  "meta": 3,   "unidade": "%",  "status": "ok",       "observacao": "Mar/26 abaixo da média semestral (4.0%)"},
     ]

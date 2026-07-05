@@ -1,82 +1,69 @@
-"""
-Gestão de Leitos — Apuí/AM
-Taxa de ocupação · Rotatividade · Internações · UTI · Alta
-Portaria GM/MS nº 1.101/2002 (parâmetros assistenciais)
-"""
+"""Gestão de Leitos — Ocupação · Espera · Causas · SISREG · FMS Apuí/AM"""
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/gestao-leitos", tags=["Gestão de Leitos"])
-
-_DASHBOARD = {
-    "competencia": "Mar/2026",
-    "leitos_total": 28,
-    "leitos_ocupados": 19,
-    "taxa_ocupacao_pct": 67.9,
-    "taxa_ocupacao_status": "ok",
-    "media_permanencia_dias": 4.2,
-    "giro_cama": 6.8,
-    "internacoes_mes": 112,
-    "altas_mes": 108,
-    "transferencias_saida_mes": 17,
-    "obitos_internacao_mes": 2,
-    "lista_espera_cirurgia": 24,
-    "lista_espera_status": "atencao",
-}
-
-_LEITOS_POR_CLINICA = [
-    {"clinica":"Clínica Médica",         "total":12,"ocupados":9, "taxa_pct":75.0,"permanencia_med":4.8,"status":"atencao"},
-    {"clinica":"Cirúrgico",              "total":6, "ocupados":4, "taxa_pct":66.7,"permanencia_med":3.6,"status":"ok"},
-    {"clinica":"Obstetrícia",            "total":4, "ocupados":3, "taxa_pct":75.0,"permanencia_med":2.4,"status":"atencao"},
-    {"clinica":"Pediátrico",             "total":4, "ocupados":2, "taxa_pct":50.0,"permanencia_med":3.1,"status":"ok"},
-    {"clinica":"Isolamento / Infecto",   "total":2, "ocupados":1, "taxa_pct":50.0,"permanencia_med":8.2,"status":"ok"},
-]
-
-_INTERNACOES_HISTORICO = [
-    {"mes":"Out/25","internacoes":98, "altas":94, "transferencias":14,"obitos":2,"permanencia_med":3.9,"taxa_ocupacao":64.3},
-    {"mes":"Nov/25","internacoes":102,"altas":99, "transferencias":15,"obitos":1,"permanencia_med":4.1,"taxa_ocupacao":65.8},
-    {"mes":"Dez/25","internacoes":88, "altas":85, "transferencias":12,"obitos":1,"permanencia_med":4.4,"taxa_ocupacao":62.1},
-    {"mes":"Jan/26","internacoes":108,"altas":104,"transferencias":16,"obitos":2,"permanencia_med":4.0,"taxa_ocupacao":66.2},
-    {"mes":"Fev/26","internacoes":104,"altas":101,"transferencias":15,"obitos":1,"permanencia_med":4.3,"taxa_ocupacao":65.4},
-    {"mes":"Mar/26","internacoes":112,"altas":108,"transferencias":17,"obitos":2,"permanencia_med":4.2,"taxa_ocupacao":67.9},
-]
-
-_CAUSAS_INTERNACAO = [
-    {"capitulo_cid":"J — Respiratório",     "internacoes":24,"pct":21.4,"permanencia_med":4.8},
-    {"capitulo_cid":"K — Digestivo",        "internacoes":18,"pct":16.1,"permanencia_med":3.6},
-    {"capitulo_cid":"S/T — Traumatismos",   "internacoes":16,"pct":14.3,"permanencia_med":5.2},
-    {"capitulo_cid":"O — Gravidez/Parto",   "internacoes":14,"pct":12.5,"permanencia_med":2.4},
-    {"capitulo_cid":"I — Cardiovascular",   "internacoes":12,"pct":10.7,"permanencia_med":6.1},
-    {"capitulo_cid":"A/B — Infecciosas",    "internacoes":11,"pct":9.8, "permanencia_med":7.4},
-    {"capitulo_cid":"N — Geniturinário",    "internacoes":8, "pct":7.1, "permanencia_med":3.8},
-    {"capitulo_cid":"Outras causas",        "internacoes":9, "pct":8.0, "permanencia_med":3.2},
-]
-
-_LISTA_ESPERA_CIRURGIA = [
-    {"procedimento":"Herniorrafia inguinal",  "aguardando":8, "espera_media_dias":48,"prioridade":"eletiva"},
-    {"procedimento":"Colecistectomia",        "aguardando":6, "espera_media_dias":62,"prioridade":"eletiva"},
-    {"procedimento":"Apendicectomia (aguda)", "aguardando":0, "espera_media_dias":0, "prioridade":"urgencia"},
-    {"procedimento":"Cesariana eletiva",      "aguardando":4, "espera_media_dias":28,"prioridade":"eletiva"},
-    {"procedimento":"Postectomia",            "aguardando":3, "espera_media_dias":74,"prioridade":"eletiva"},
-    {"procedimento":"Amputação MMII (DM)",   "aguardando":2, "espera_media_dias":18,"prioridade":"urgencia","alerta":"DM descompensado — avaliar urgência"},
-    {"procedimento":"Tireoidectomia",        "aguardando":1, "espera_media_dias":92,"prioridade":"eletiva"},
-]
+router = APIRouter(prefix="/api/gestao-leitos", tags=["gestao_leitos"])
 
 @router.get("/dashboard")
 async def dashboard():
-    return _DASHBOARD
+    return {
+        "leitos_total": 48,
+        "leitos_ocupados": 42,
+        "taxa_ocupacao_pct": 87.5,
+        "meta_ocupacao_max_pct": 85,
+        "leitos_clinica_medica": 24,
+        "leitos_cirurgicos": 12,
+        "leitos_obstetricia": 8,
+        "leitos_pediatria": 4,
+        "internacoes_mes": 124,
+        "media_permanencia_dias": 4.8,
+        "meta_permanencia_dias": 4.0,
+        "alta_hospitalar_mes": 118,
+        "obitos_hospitalares_mes": 4,
+        "taxa_obito_hospitalar_pct": 3.2,
+        "lista_espera_eletiva": 68,
+        "transferencias_manaus_mes": 12,
+        "status_geral": "atencao",
+    }
 
 @router.get("/leitos-clinica")
 async def leitos_clinica():
-    return _LEITOS_POR_CLINICA
-
-@router.get("/historico")
-async def historico():
-    return _INTERNACOES_HISTORICO
-
-@router.get("/causas")
-async def causas():
-    return _CAUSAS_INTERNACAO
+    return [
+        {"clinica": "Clínica Médica",       "total": 24, "ocupados": 22, "disponíveis": 2,  "taxa_pct": 91.7, "media_perm_dias": 5.2, "meta_perm": 4.0, "internacoes_mes": 56, "status": "critico"},
+        {"clinica": "Cirurgia Geral",        "total": 12, "ocupados": 10, "disponíveis": 2,  "taxa_pct": 83.3, "media_perm_dias": 4.4, "meta_perm": 3.5, "internacoes_mes": 28, "status": "atencao"},
+        {"clinica": "Obstetrícia",           "total": 8,  "ocupados": 7,  "disponíveis": 1,  "taxa_pct": 87.5, "media_perm_dias": 2.8, "meta_perm": 2.5, "internacoes_mes": 28, "status": "atencao"},
+        {"clinica": "Pediatria",             "total": 4,  "ocupados": 3,  "disponíveis": 1,  "taxa_pct": 75.0, "media_perm_dias": 4.2, "meta_perm": 3.0, "internacoes_mes": 12, "status": "ok"},
+    ]
 
 @router.get("/lista-espera")
 async def lista_espera():
-    return _LISTA_ESPERA_CIRURGIA
+    return [
+        {"especialidade": "Ortopedia",             "espera": 18, "tempo_medio_dias": 28, "urgentes": 2, "eletivos": 16, "status": "atencao"},
+        {"especialidade": "Cirurgia Geral",        "espera": 14, "tempo_medio_dias": 22, "urgentes": 3, "eletivos": 11, "status": "atencao"},
+        {"especialidade": "Ginecologia",           "espera": 12, "tempo_medio_dias": 18, "urgentes": 1, "eletivos": 11, "status": "atencao"},
+        {"especialidade": "Urologia",              "espera": 10, "tempo_medio_dias": 35, "urgentes": 0, "eletivos": 10, "status": "atencao"},
+        {"especialidade": "Neurologia (TFD)",      "espera": 8,  "tempo_medio_dias": 45, "urgentes": 2, "eletivos": 6,  "status": "critico"},
+        {"especialidade": "Cardiologia (TFD)",     "espera": 6,  "tempo_medio_dias": 38, "urgentes": 2, "eletivos": 4,  "status": "critico"},
+    ]
+
+@router.get("/causas")
+async def causas():
+    return [
+        {"cid_grupo": "J00-J99", "descricao": "Doenças resp. (pneumonia, bronquite)",  "internacoes": 28, "pct": 22.6, "media_perm": 5.8, "obitos": 1, "transferencias": 2},
+        {"cid_grupo": "K00-K93", "descricao": "Doenças digestivas",                    "internacoes": 22, "pct": 17.7, "media_perm": 4.2, "obitos": 0, "transferencias": 1},
+        {"cid_grupo": "O00-O99", "descricao": "Gravidez, parto e puerpério",           "internacoes": 28, "pct": 22.6, "media_perm": 2.8, "obitos": 0, "transferencias": 0},
+        {"cid_grupo": "S00-T98", "descricao": "Lesões e causas externas (traumas)",    "internacoes": 18, "pct": 14.5, "media_perm": 5.4, "obitos": 1, "transferencias": 4},
+        {"cid_grupo": "A00-B99", "descricao": "Doenças infecciosas (malária, diarr.)", "internacoes": 14, "pct": 11.3, "media_perm": 4.6, "obitos": 1, "transferencias": 2},
+        {"cid_grupo": "I00-I99", "descricao": "Doenças cardiovasculares (IAM/AVC)",   "internacoes": 8,  "pct": 6.5,  "media_perm": 6.8, "obitos": 1, "transferencias": 3},
+        {"cid_grupo": "Outros",  "descricao": "Outros CID",                            "internacoes": 6,  "pct": 4.8,  "media_perm": 3.8, "obitos": 0, "transferencias": 0},
+    ]
+
+@router.get("/historico")
+async def historico():
+    return [
+        {"mes": "Out/25", "internacoes": 112, "alta": 108, "obitos": 3, "taxa_ocup": 82.4, "media_perm": 4.4, "espera": 58, "transferencias": 10},
+        {"mes": "Nov/25", "internacoes": 116, "alta": 112, "obitos": 3, "taxa_ocup": 84.6, "media_perm": 4.6, "espera": 60, "transferencias": 11},
+        {"mes": "Dez/25", "internacoes": 118, "alta": 114, "obitos": 4, "taxa_ocup": 85.4, "media_perm": 4.8, "espera": 62, "transferencias": 11},
+        {"mes": "Jan/26", "internacoes": 120, "alta": 115, "obitos": 3, "taxa_ocup": 86.0, "media_perm": 4.8, "espera": 64, "transferencias": 11},
+        {"mes": "Fev/26", "internacoes": 122, "alta": 116, "obitos": 4, "taxa_ocup": 87.0, "media_perm": 4.8, "espera": 66, "transferencias": 12},
+        {"mes": "Mar/26", "internacoes": 124, "alta": 118, "obitos": 4, "taxa_ocup": 87.5, "media_perm": 4.8, "espera": 68, "transferencias": 12},
+    ]
