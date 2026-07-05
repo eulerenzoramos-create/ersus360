@@ -173,6 +173,9 @@ from routers.saude_servidor import router as saude_servidor_router
 from routers.planejamento_familiar import router as planejamento_familiar_router
 from routers.acolhimento import router as acolhimento_router
 from routers.judicializacao import router as judicializacao_router
+from routers.spd import router as spd_router
+from routers.contratos import router as contratos_router
+from routers.samu import router as samu_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -284,6 +287,9 @@ app.include_router(saude_servidor_router)
 app.include_router(planejamento_familiar_router)
 app.include_router(acolhimento_router)
 app.include_router(judicializacao_router)
+app.include_router(spd_router)
+app.include_router(contratos_router)
+app.include_router(samu_router)
 
 
 @app.get("/")

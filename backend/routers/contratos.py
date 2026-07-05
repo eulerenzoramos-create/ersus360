@@ -1,101 +1,70 @@
-"""
-Contratos & Licitações — FMS Apuí/AM
-Lei 14.133/2021 (Nova Lei de Licitações) · Portal da Transparência
-"""
+"""Contratos — Gestão de Contratos e Convênios da Saúde · FMS Apuí/AM"""
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/contratos", tags=["Contratos"])
-
-# ── Dados reais simulados para Apuí/AM 2026 ──────────────────────────────────
-
-_CONTRATOS = [
-    # Medicamentos e insumos
-    {"id": 1,  "numero": "001/2026", "objeto": "Aquisição de medicamentos essenciais — Componente Básico",          "fornecedor": "Distribuidora Farma Norte Ltda",       "cnpj": "12.345.678/0001-90", "modalidade": "Pregão Eletrônico", "valor_total": 480_000.00,  "valor_empenhado": 480_000.00,  "valor_pago": 320_000.00,  "vigencia_inicio": "2026-01-15", "vigencia_fim": "2026-12-31", "status": "vigente",    "area": "Farmácia",          "processo": "FMS-001/2026"},
-    {"id": 2,  "numero": "002/2026", "objeto": "Aquisição de materiais médico-hospitalares e insumos odontológicos", "fornecedor": "MedSupply Amazônia Eireli",             "cnpj": "23.456.789/0001-01", "modalidade": "Pregão Eletrônico", "valor_total": 210_000.00,  "valor_empenhado": 210_000.00,  "valor_pago": 140_000.00,  "vigencia_inicio": "2026-01-20", "vigencia_fim": "2026-12-31", "status": "vigente",    "area": "APS",               "processo": "FMS-002/2026"},
-    {"id": 3,  "numero": "003/2026", "objeto": "Serviço de manutenção preventiva e corretiva de equipamentos médicos","fornecedor": "TechMed Serviços Ltda",                "cnpj": "34.567.890/0001-12", "modalidade": "Dispensa",          "valor_total": 96_000.00,   "valor_empenhado": 96_000.00,   "valor_pago": 48_000.00,   "vigencia_inicio": "2026-02-01", "vigencia_fim": "2026-01-31", "status": "vencendo",   "area": "Infraestrutura",    "processo": "FMS-003/2026"},
-    {"id": 4,  "numero": "004/2026", "objeto": "Locação de veículos para transporte sanitário (ambulância e carros)", "fornecedor": "Locavel Transportes AM Ltda",         "cnpj": "45.678.901/0001-23", "modalidade": "Pregão Eletrônico", "valor_total": 324_000.00,  "valor_empenhado": 324_000.00,  "valor_pago": 108_000.00,  "vigencia_inicio": "2026-01-10", "vigencia_fim": "2026-12-31", "status": "vigente",    "area": "Transporte",        "processo": "FMS-004/2026"},
-    {"id": 5,  "numero": "005/2026", "objeto": "Serviço de coleta e destinação de resíduos de serviços de saúde",    "fornecedor": "Ecosul Resíduos AM Ltda",              "cnpj": "56.789.012/0001-34", "modalidade": "Dispensa",          "valor_total": 42_000.00,   "valor_empenhado": 42_000.00,   "valor_pago": 28_000.00,   "vigencia_inicio": "2026-01-05", "vigencia_fim": "2026-12-31", "status": "vigente",    "area": "Vigilância Sanitária","processo": "FMS-005/2026"},
-    {"id": 6,  "numero": "006/2026", "objeto": "Aquisição de vacinas e insumos para Sala de Vacinas",                "fornecedor": "BioVida Distribuidora Ltda",           "cnpj": "67.890.123/0001-45", "modalidade": "Inexigibilidade",   "valor_total": 185_000.00,  "valor_empenhado": 185_000.00,  "valor_pago": 185_000.00,  "vigencia_inicio": "2026-01-01", "vigencia_fim": "2026-06-30", "status": "concluido",  "area": "Vigilância em Saúde","processo": "FMS-006/2026"},
-    {"id": 7,  "numero": "007/2026", "objeto": "Obras de reforma e ampliação da UBS Bairro Kennedy",                  "fornecedor": "Construções São Lucas AM Ltda",        "cnpj": "78.901.234/0001-56", "modalidade": "Tomada de Preços",  "valor_total": 680_000.00,  "valor_empenhado": 680_000.00,  "valor_pago": 204_000.00,  "vigencia_inicio": "2026-03-01", "vigencia_fim": "2026-09-30", "status": "vigente",    "area": "Obras",             "processo": "FMS-007/2026"},
-    {"id": 8,  "numero": "008/2026", "objeto": "Contratação de empresa especializada em sistemas de informação em saúde","fornecedor": "InfoSaúde Sistemas Ltda",            "cnpj": "89.012.345/0001-67", "modalidade": "Pregão Eletrônico", "valor_total": 120_000.00,  "valor_empenhado": 120_000.00,  "valor_pago": 40_000.00,   "vigencia_inicio": "2026-02-15", "vigencia_fim": "2026-02-14", "status": "vencendo",   "area": "TI",                "processo": "FMS-008/2026"},
-    {"id": 9,  "numero": "009/2026", "objeto": "Aquisição de gêneros alimentícios para Programa Alimentação Saudável", "fornecedor": "Alimentos do Norte Coop Ltda",         "cnpj": "90.123.456/0001-78", "modalidade": "Pregão Eletrônico", "valor_total": 88_000.00,   "valor_empenhado": 88_000.00,   "valor_pago": 44_000.00,   "vigencia_inicio": "2026-01-20", "vigencia_fim": "2026-12-31", "status": "vigente",    "area": "APS",               "processo": "FMS-009/2026"},
-    {"id": 10, "numero": "010/2026", "objeto": "Serviço de lavanderia hospitalar para Centro de Saúde e UBSs",         "fornecedor": "Lavanderia Higienização AM ME",         "cnpj": "01.234.567/0001-89", "modalidade": "Dispensa",          "valor_total": 36_000.00,   "valor_empenhado": 36_000.00,   "valor_pago": 18_000.00,   "vigencia_inicio": "2026-01-10", "vigencia_fim": "2026-12-31", "status": "vigente",    "area": "Infraestrutura",    "processo": "FMS-010/2026"},
-    {"id": 11, "numero": "011/2026", "objeto": "Aquisição de equipamentos de informática para UBSs e sede FMS",        "fornecedor": "TecnoAmazon Comércio Eireli",          "cnpj": "11.222.333/0001-90", "modalidade": "Pregão Eletrônico", "valor_total": 156_000.00,  "valor_empenhado": 156_000.00,  "valor_pago": 156_000.00,  "vigencia_inicio": "2026-02-01", "vigencia_fim": "2026-05-31", "status": "concluido",  "area": "TI",                "processo": "FMS-011/2026"},
-    {"id": 12, "numero": "012/2026", "objeto": "Serviço de segurança e monitoramento eletrônico das unidades de saúde", "fornecedor": "Vigiseg Segurança AM Ltda",            "cnpj": "22.333.444/0001-01", "modalidade": "Pregão Eletrônico", "valor_total": 72_000.00,   "valor_empenhado": 72_000.00,   "valor_pago": 24_000.00,   "vigencia_inicio": "2026-01-15", "vigencia_fim": "2026-12-31", "status": "vigente",    "area": "Infraestrutura",    "processo": "FMS-012/2026"},
-    # Em licitação / planejados
-    {"id": 13, "numero": "013/2026", "objeto": "Aquisição de veículo de emergência (ambulância UTI Móvel)",            "fornecedor": "—",                                   "cnpj": "—",                  "modalidade": "Pregão Eletrônico", "valor_total": 380_000.00,  "valor_empenhado": 0.00,        "valor_pago": 0.00,        "vigencia_inicio": "—",          "vigencia_fim": "—",          "status": "licitando",  "area": "Transporte",        "processo": "FMS-013/2026"},
-    {"id": 14, "numero": "014/2026", "objeto": "Obras de construção da nova UBS Zona Rural — Vila Progresso",          "fornecedor": "—",                                   "cnpj": "—",                  "modalidade": "Tomada de Preços",  "valor_total": 920_000.00,  "valor_empenhado": 0.00,        "valor_pago": 0.00,        "vigencia_inicio": "—",          "vigencia_fim": "—",          "status": "licitando",  "area": "Obras",             "processo": "FMS-014/2026"},
-    {"id": 15, "numero": "015/2026", "objeto": "Contratação de serviço de telemedicina para APS rural",                "fornecedor": "—",                                   "cnpj": "—",                  "modalidade": "Pregão Eletrônico", "valor_total": 144_000.00,  "valor_empenhado": 0.00,        "valor_pago": 0.00,        "vigencia_inicio": "—",          "vigencia_fim": "—",          "status": "planejado",  "area": "TI",                "processo": "FMS-015/2026"},
-]
-
-_LICITACOES_HIST = [
-    {"mes": "Jan/26", "pregao": 3, "dispensa": 2, "tomada": 0, "inexig": 1},
-    {"mes": "Fev/26", "pregao": 2, "dispensa": 1, "tomada": 1, "inexig": 0},
-    {"mes": "Mar/26", "pregao": 1, "dispensa": 0, "tomada": 1, "inexig": 0},
-    {"mes": "Abr/26", "pregao": 1, "dispensa": 0, "tomada": 0, "inexig": 0},
-]
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-def _pct_pago(c: dict) -> float:
-    if c["valor_total"] <= 0: return 0.0
-    return round((c["valor_pago"] / c["valor_total"]) * 100, 1)
-
-def _pct_empenhado(c: dict) -> float:
-    if c["valor_total"] <= 0: return 0.0
-    return round((c["valor_empenhado"] / c["valor_total"]) * 100, 1)
-
-def _enriquecer(c: dict) -> dict:
-    return {**c, "pct_pago": _pct_pago(c), "pct_empenhado": _pct_empenhado(c)}
-
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+router = APIRouter(prefix="/api/contratos", tags=["contratos"])
 
 @router.get("/dashboard")
 async def dashboard():
-    vigentes   = [c for c in _CONTRATOS if c["status"] == "vigente"]
-    vencendo   = [c for c in _CONTRATOS if c["status"] == "vencendo"]
-    concluidos = [c for c in _CONTRATOS if c["status"] == "concluido"]
-    licitando  = [c for c in _CONTRATOS if c["status"] in ("licitando", "planejado")]
-
-    total_empenhado = sum(c["valor_empenhado"] for c in _CONTRATOS)
-    total_pago      = sum(c["valor_pago"] for c in _CONTRATOS)
-    total_valor     = sum(c["valor_total"] for c in _CONTRATOS)
-
-    por_area: dict = {}
-    for c in _CONTRATOS:
-        por_area[c["area"]] = por_area.get(c["area"], 0) + c["valor_total"]
-
-    por_modalidade: dict = {}
-    for c in _CONTRATOS:
-        por_modalidade[c["modalidade"]] = por_modalidade.get(c["modalidade"], 0) + 1
-
     return {
-        "total_contratos":  len(_CONTRATOS),
-        "vigentes":         len(vigentes),
-        "vencendo_30d":     len(vencendo),
-        "concluidos":       len(concluidos),
-        "em_licitacao":     len(licitando),
-        "total_valor":      round(total_valor, 2),
-        "total_empenhado":  round(total_empenhado, 2),
-        "total_pago":       round(total_pago, 2),
-        "pct_pago":         round((total_pago / total_empenhado) * 100, 1) if total_empenhado else 0,
-        "por_area":         [{"area": k, "valor": round(v, 2)} for k, v in sorted(por_area.items(), key=lambda x: -x[1])],
-        "por_modalidade":   [{"modalidade": k, "n": v} for k, v in sorted(por_modalidade.items(), key=lambda x: -x[1])],
-        "historico":        _LICITACOES_HIST,
-        "competencia":      "Abr/2026",
+        "contratos_ativos": 38,
+        "valor_total_mensal": 284600.00,
+        "contratos_vencendo_30d": 5,
+        "contratos_vencidos": 2,
+        "fornecedores_ativos": 28,
+        "empenhos_mes": 68,
+        "medicamentos_pct": 41.2,
+        "servicos_terceiros_pct": 28.4,
+        "equipamentos_pct": 18.6,
+        "obras_pct": 11.8,
+        "execucao_orcamentaria_pct": 84.6,
+        "status_geral": "atencao",
     }
 
+@router.get("/contratos")
+async def contratos():
+    return [
+        {"contrato": "FMS-001/2025", "objeto": "Fornecimento de medicamentos — COMBASE",    "fornecedor": "Farmed Distribuidora Ltda",    "valor_mensal": 68400.00,  "inicio": "01/01/2025", "termino": "31/12/2025", "saldo_pct": 92.4, "status": "ativo",    "categoria": "medicamentos"},
+        {"contrato": "FMS-002/2025", "objeto": "Serviços laboratoriais — exames básicos",    "fornecedor": "Labormed Diagnósticos",        "valor_mensal": 24800.00,  "inicio": "01/03/2025", "termino": "28/02/2026", "saldo_pct": 78.6, "status": "ativo",    "categoria": "servicos"},
+        {"contrato": "FMS-003/2025", "objeto": "Locação de veículos para saúde",            "fornecedor": "AM Fleet Amazonas Ltda",       "valor_mensal": 18600.00,  "inicio": "01/02/2025", "termino": "31/01/2026", "saldo_pct": 65.2, "status": "ativo",    "categoria": "servicos"},
+        {"contrato": "FMS-004/2024", "objeto": "Manutenção de equipamentos médicos",        "fornecedor": "TechMed Soluções AM",          "valor_mensal": 12400.00,  "inicio": "01/07/2024", "termino": "30/06/2025", "saldo_pct": 4.2,  "status": "vencendo", "categoria": "equipamentos"},
+        {"contrato": "FMS-005/2025", "objeto": "Fornecimento de material hospitalar",       "fornecedor": "Cirúrgica São Marcos",         "valor_mensal": 16800.00,  "inicio": "01/04/2025", "termino": "31/03/2026", "saldo_pct": 74.8, "status": "ativo",    "categoria": "material"},
+        {"contrato": "FMS-006/2024", "objeto": "Serviços de vigilância 24h UPA",           "fornecedor": "Segurança AM Proteção Ltda",   "valor_mensal": 8400.00,   "inicio": "01/08/2024", "termino": "31/07/2025", "saldo_pct": 12.6, "status": "vencendo", "categoria": "servicos"},
+        {"contrato": "FMS-007/2025", "objeto": "Contrato de radiologia digital",            "fornecedor": "Imagem Diagnóstica AM",        "valor_mensal": 14200.00,  "inicio": "01/05/2025", "termino": "30/04/2026", "saldo_pct": 82.4, "status": "ativo",    "categoria": "servicos"},
+        {"contrato": "FMS-008/2024", "objeto": "Reforma estrutural UBS Zona Rural",        "fornecedor": "Construtora Norte AM Ltda",    "valor_mensal": 0,          "inicio": "01/09/2024", "termino": "28/02/2025", "saldo_pct": 0,    "status": "vencido",  "categoria": "obras"},
+        {"contrato": "FMS-009/2024", "objeto": "Aquisição de microscópios e autoclaves",    "fornecedor": "Equipar Med Distribuidora",    "valor_mensal": 0,          "inicio": "01/10/2024", "termino": "31/03/2025", "saldo_pct": 0,    "status": "vencido",  "categoria": "equipamentos"},
+        {"contrato": "FMS-010/2025", "objeto": "Software gestão e-SUS PEC",                "fornecedor": "DATASUS / Governo Federal",    "valor_mensal": 0,          "inicio": "01/01/2025", "termino": "31/12/2025", "saldo_pct": 100,  "status": "ativo",    "categoria": "ti"},
+    ]
 
-@router.get("/lista")
-async def lista(status: str = "", area: str = ""):
-    items = _CONTRATOS
-    if status: items = [c for c in items if c["status"] == status]
-    if area:   items = [c for c in items if c["area"] == area]
-    return [_enriquecer(c) for c in items]
+@router.get("/fornecedores")
+async def fornecedores():
+    return [
+        {"fornecedor": "Farmed Distribuidora Ltda",    "contratos_ativos": 3, "valor_total_mes": 68400.00, "avaliacao": 8.6, "ocorrencias": 0, "categoria": "medicamentos", "registro_anvisa": True},
+        {"fornecedor": "Labormed Diagnósticos",        "contratos_ativos": 1, "valor_total_mes": 24800.00, "avaliacao": 7.8, "ocorrencias": 1, "categoria": "laboratorio",  "registro_anvisa": True},
+        {"fornecedor": "AM Fleet Amazonas Ltda",       "contratos_ativos": 1, "valor_total_mes": 18600.00, "avaliacao": 7.2, "ocorrencias": 2, "categoria": "transporte",   "registro_anvisa": False},
+        {"fornecedor": "TechMed Soluções AM",          "contratos_ativos": 2, "valor_total_mes": 12400.00, "avaliacao": 8.1, "ocorrencias": 0, "categoria": "equipamentos", "registro_anvisa": True},
+        {"fornecedor": "Cirúrgica São Marcos",         "contratos_ativos": 2, "valor_total_mes": 16800.00, "avaliacao": 8.4, "ocorrencias": 0, "categoria": "material",     "registro_anvisa": True},
+        {"fornecedor": "Segurança AM Proteção Ltda",   "contratos_ativos": 1, "valor_total_mes": 8400.00,  "avaliacao": 6.4, "ocorrencias": 3, "categoria": "vigilancia",   "registro_anvisa": False},
+        {"fornecedor": "Imagem Diagnóstica AM",        "contratos_ativos": 1, "valor_total_mes": 14200.00, "avaliacao": 9.0, "ocorrencias": 0, "categoria": "radiologia",   "registro_anvisa": True},
+    ]
 
+@router.get("/historico")
+async def historico():
+    return [
+        {"mes": "Out/25", "valor_empenhado": 248600, "valor_pago": 234200, "contratos_ativos": 34, "novos": 2, "encerrados": 1},
+        {"mes": "Nov/25", "valor_empenhado": 256400, "valor_pago": 241800, "contratos_ativos": 35, "novos": 3, "encerrados": 2},
+        {"mes": "Dez/25", "valor_empenhado": 268200, "valor_pago": 258600, "contratos_ativos": 36, "novos": 2, "encerrados": 1},
+        {"mes": "Jan/26", "valor_empenhado": 274800, "valor_pago": 268400, "contratos_ativos": 37, "novos": 2, "encerrados": 1},
+        {"mes": "Fev/26", "valor_empenhado": 278400, "valor_pago": 272600, "contratos_ativos": 38, "novos": 3, "encerrados": 2},
+        {"mes": "Mar/26", "valor_empenhado": 284600, "valor_pago": 278200, "contratos_ativos": 38, "novos": 1, "encerrados": 1},
+    ]
 
-@router.get("/alertas")
-async def alertas():
-    vencendo  = [_enriquecer(c) for c in _CONTRATOS if c["status"] == "vencendo"]
-    licitando = [_enriquecer(c) for c in _CONTRATOS if c["status"] == "licitando"]
-    return {"vencendo": vencendo, "licitando": licitando}
+@router.get("/indicadores")
+async def indicadores():
+    return [
+        {"indicador": "Contratos vencidos sem renovação",     "valor": 2,    "meta": 0,   "unidade": "un","status": "critico",  "observacao": "FMS-008 (obra UBS rural) e FMS-009 (equipamentos) — sem processo de renovação"},
+        {"indicador": "Contratos vencendo em 30 dias",        "valor": 5,    "meta": 0,   "unidade": "un","status": "atencao",  "observacao": "Processo licitatório em andamento para 3 deles"},
+        {"indicador": "Execução orçamentária mensal",         "valor": 84.6, "meta": 90,  "unidade": "%", "status": "atencao",  "observacao": "R$278.200 pagos de R$284.600 empenhados"},
+        {"indicador": "Ocorrências graves — fornecedores",    "valor": 3,    "meta": 0,   "unidade": "un","status": "atencao",  "observacao": "Segurança AM: 3 ocorrências no contrato de vigilância"},
+        {"indicador": "Regularidade fiscal de fornecedores",  "valor": 92.8, "meta": 100, "unidade": "%", "status": "atencao",  "observacao": "2 fornecedores com certidões vencidas"},
+        {"indicador": "Processos com licitação regular",      "valor": 100,  "meta": 100, "unidade": "%", "status": "ok",       "observacao": "Todos os contratos com processo licitatório documentado"},
+    ]
