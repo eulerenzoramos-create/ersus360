@@ -140,6 +140,9 @@ from routers.urgencia_emergencia import router as urgencia_router
 from routers.saude_adolescente import router as saude_adol_router
 from routers.hiperdia import router as hiperdia_router
 from routers.cancer_rastreio import router as cancer_router
+from routers.rede_frio import router as rede_frio_router
+from routers.reabilitacao import router as reabilitacao_router
+from routers.farmacia_especializada import router as farm_espec_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -218,6 +221,9 @@ app.include_router(urgencia_router)
 app.include_router(saude_adol_router)
 app.include_router(hiperdia_router)
 app.include_router(cancer_router)
+app.include_router(rede_frio_router)
+app.include_router(reabilitacao_router)
+app.include_router(farm_espec_router)
 
 
 @app.get("/")
