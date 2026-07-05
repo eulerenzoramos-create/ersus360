@@ -191,6 +191,9 @@ from routers.consultorio_rua import router as consultorio_rua_router
 from routers.saude_ribeirinha import router as saude_ribeirinha_router
 from routers.cerest import router as cerest_router
 from routers.caps_infanto import router as caps_infanto_router
+from routers.vigilancia_obito import router as vigilancia_obito_router
+from routers.caps_ad import router as caps_ad_router
+from routers.saude_estomia import router as saude_estomia_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -320,6 +323,9 @@ app.include_router(consultorio_rua_router)
 app.include_router(saude_ribeirinha_router)
 app.include_router(cerest_router)
 app.include_router(caps_infanto_router)
+app.include_router(vigilancia_obito_router)
+app.include_router(caps_ad_router)
+app.include_router(saude_estomia_router)
 
 
 @app.get("/")
