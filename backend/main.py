@@ -188,6 +188,9 @@ from routers.crie import router as crie_router
 from routers.protocolo_clinico import router as protocolo_clinico_router
 from routers.cuidados_paliativos import router as cuidados_paliativos_router
 from routers.consultorio_rua import router as consultorio_rua_router
+from routers.saude_ribeirinha import router as saude_ribeirinha_router
+from routers.cerest import router as cerest_router
+from routers.caps_infanto import router as caps_infanto_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -314,6 +317,9 @@ app.include_router(crie_router)
 app.include_router(protocolo_clinico_router)
 app.include_router(cuidados_paliativos_router)
 app.include_router(consultorio_rua_router)
+app.include_router(saude_ribeirinha_router)
+app.include_router(cerest_router)
+app.include_router(caps_infanto_router)
 
 
 @app.get("/")
