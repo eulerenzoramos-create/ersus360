@@ -269,6 +269,9 @@ from routers.regulacao_especializada_apui import router as regulacao_especializa
 from routers.saude_trabalhador_apui_sst import router as saude_trabalhador_apui_sst_router
 from routers.farmacia_basica_apui import router as farmacia_basica_apui_router
 from routers.saude_escolar_apui import router as saude_escolar_apui_router
+from routers.vigilancia_sanitaria_apui import router as vigilancia_sanitaria_apui_router
+from routers.saude_indigena_apui import router as saude_indigena_apui_router
+from routers.doencas_cronicas_apui import router as doencas_cronicas_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -476,6 +479,9 @@ app.include_router(regulacao_especializada_apui_router)
 app.include_router(saude_trabalhador_apui_sst_router)
 app.include_router(farmacia_basica_apui_router)
 app.include_router(saude_escolar_apui_router)
+app.include_router(vigilancia_sanitaria_apui_router)
+app.include_router(saude_indigena_apui_router)
+app.include_router(doencas_cronicas_apui_router)
 
 
 @app.get("/")
