@@ -1,68 +1,96 @@
-"""
-Reabilitação / Pessoa com Deficiência — Apuí/AM
-RCPD · BPC/LOAS · CER · NASF-AB reabilitação · Órteses/Próteses
-Decreto 7.612/2011 (Plano Viver sem Limite) · Lei 13.146/2015 (LGPD)
-"""
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/reabilitacao", tags=["Reabilitação / Deficiência"])
+router = APIRouter(prefix="/api/reabilitacao", tags=["reabilitacao"])
 
-_DASHBOARD = {
-    "competencia": "Mar/2026",
-    "pcd_cadastrados": 184,
-    "bpc_beneficiarios": 62,
-    "em_reabilitacao": 47,
-    "lista_espera_cer": 28,
-    "lista_espera_status": "atencao",
-    "atendimentos_mes": 186,
-    "opme_solicitacoes_pendentes": 9,
-    "opme_status": "atencao",
-}
-
-_PACIENTES = [
-    {"id":"PCD-001","deficiencia":"Física — hemiplegia","causa":"AVC","modalidade":"Fisioterapia","sessoes_mes":8, "opme":None,        "bpc":True, "alerta":None},
-    {"id":"PCD-002","deficiencia":"Intelectual — síndrome de Down","causa":"Congênita","modalidade":"Fonoaudiologia","sessoes_mes":4,"opme":None,"bpc":True,"alerta":None},
-    {"id":"PCD-003","deficiencia":"Física — amputação MMII","causa":"DM pé diabético","modalidade":"Fisioterapia + Prótese","sessoes_mes":6,"opme":"Prótese MMII pendente","bpc":False,"alerta":"OPME há 4 meses aguardando aprovação"},
-    {"id":"PCD-004","deficiencia":"Auditiva — SNHL bilateral","causa":"Congênita","modalidade":"Fonoaudiologia + AASI","sessoes_mes":4,"opme":"AASI aguardando","bpc":True,"alerta":"AASI solicitado — encaminhar CER"},
-    {"id":"PCD-005","deficiencia":"Visual — cegueira bilateral","causa":"Glaucoma avançado","modalidade":"Reabilitação visual","sessoes_mes":2,"opme":None,"bpc":True,"alerta":None},
-    {"id":"PCD-006","deficiencia":"Física — paraplegia","causa":"TCE acidente","modalidade":"Fisioterapia + Cadeira rodas","sessoes_mes":8,"opme":"Cadeira rodas motorizada pendente","bpc":False,"alerta":"Cadeira rodas 6 meses aguardando"},
-    {"id":"PCD-007","deficiencia":"TEA","causa":"Congênita","modalidade":"Psicologia + Fonoaud.","sessoes_mes":6,"opme":None,"bpc":True,"alerta":None},
-    {"id":"PCD-008","deficiencia":"Física — sequela poliomielite","causa":"Poliomielite","modalidade":"Fisioterapia","sessoes_mes":4,"opme":None,"bpc":True,"alerta":None},
-    {"id":"PCD-009","deficiencia":"Mental — esquizofrenia","causa":"—","modalidade":"CAPS + Reabilitação","sessoes_mes":4,"opme":None,"bpc":True,"alerta":None},
-    {"id":"PCD-010","deficiencia":"Física — hemiplegia","causa":"AVC","modalidade":"Fisioterapia","sessoes_mes":8,"opme":None,"bpc":False,"alerta":"Sem BPC — avaliar elegibilidade"},
+_MODALIDADES = [
+    {"modalidade": "Fisioterapia", "pacientes_ativos": 284, "lista_espera": 148,
+     "tempo_espera_dias": 42, "sessoes_mes": 1242, "profissionais": 2,
+     "alta_mes": 18, "status": "critico"},
+    {"modalidade": "Terapia Ocupacional", "pacientes_ativos": 142, "lista_espera": 96,
+     "tempo_espera_dias": 58, "sessoes_mes": 486, "profissionais": 1,
+     "alta_mes": 8, "status": "critico"},
+    {"modalidade": "Fonoaudiologia", "pacientes_ativos": 98, "lista_espera": 64,
+     "tempo_espera_dias": 48, "sessoes_mes": 312, "profissionais": 1,
+     "alta_mes": 6, "status": "critico"},
+    {"modalidade": "Psicologia (Reabilitação)", "pacientes_ativos": 112, "lista_espera": 82,
+     "tempo_espera_dias": 54, "sessoes_mes": 364, "profissionais": 1,
+     "alta_mes": 7, "status": "critico"},
+    {"modalidade": "Assistência Social", "pacientes_ativos": 248, "lista_espera": 22,
+     "tempo_espera_dias": 14, "sessoes_mes": 512, "profissionais": 2,
+     "alta_mes": 24, "status": "atencao"},
 ]
 
-_PRODUCAO_MENSAL = [
-    {"mes":"Out/25","fisioterapia":68,"fonoaudiologia":32,"terapia_ocupacional":18,"psicologia":28,"total":146},
-    {"mes":"Nov/25","fisioterapia":72,"fonoaudiologia":34,"terapia_ocupacional":20,"psicologia":30,"total":156},
-    {"mes":"Dez/25","fisioterapia":58,"fonoaudiologia":28,"terapia_ocupacional":14,"psicologia":24,"total":124},
-    {"mes":"Jan/26","fisioterapia":76,"fonoaudiologia":36,"terapia_ocupacional":22,"psicologia":32,"total":166},
-    {"mes":"Fev/26","fisioterapia":78,"fonoaudiologia":38,"terapia_ocupacional":24,"psicologia":34,"total":174},
-    {"mes":"Mar/26","fisioterapia":84,"fonoaudiologia":40,"terapia_ocupacional":26,"psicologia":36,"total":186},
+_PCD_CADASTROS = [
+    {"tipo_deficiencia": "Física / Motora", "cadastrados": 412, "beneficio_bpc": 124,
+     "ortese_protese_indicada": 98, "ortese_protese_entregue": 62, "status": "critico"},
+    {"tipo_deficiencia": "Intelectual / Cognitiva", "cadastrados": 218, "beneficio_bpc": 142,
+     "ortese_protese_indicada": 12, "ortese_protese_entregue": 12, "status": "ok"},
+    {"tipo_deficiencia": "Visual", "cadastrados": 164, "beneficio_bpc": 84,
+     "ortese_protese_indicada": 148, "ortese_protese_entregue": 102, "status": "atencao"},
+    {"tipo_deficiencia": "Auditiva", "cadastrados": 152, "beneficio_bpc": 64,
+     "ortese_protese_indicada": 104, "ortese_protese_entregue": 68, "status": "atencao"},
+    {"tipo_deficiencia": "Múltipla", "cadastrados": 86, "beneficio_bpc": 54,
+     "ortese_protese_indicada": 42, "ortese_protese_entregue": 24, "status": "critico"},
+    {"tipo_deficiencia": "TEA / Autismo", "cadastrados": 68, "beneficio_bpc": 34,
+     "ortese_protese_indicada": 8, "ortese_protese_entregue": 8, "status": "ok"},
+]
+
+_HISTORICO = [
+    {"mes": "Jan", "sessoes_total": 2684, "novos_pacientes": 42, "altas": 58, "lista_espera_total": 384},
+    {"mes": "Fev", "sessoes_total": 2548, "novos_pacientes": 38, "altas": 52, "lista_espera_total": 396},
+    {"mes": "Mar", "sessoes_total": 2812, "novos_pacientes": 48, "altas": 64, "lista_espera_total": 388},
+    {"mes": "Abr", "sessoes_total": 2764, "novos_pacientes": 44, "altas": 60, "lista_espera_total": 402},
+    {"mes": "Mai", "sessoes_total": 2916, "novos_pacientes": 52, "altas": 68, "lista_espera_total": 408},
+    {"mes": "Jun", "sessoes_total": 2916, "novos_pacientes": 46, "altas": 63, "lista_espera_total": 412},
 ]
 
 _INDICADORES = [
-    {"indicador":"PCD cadastrados no sistema",          "valor":184,"meta":None,"unidade":"pessoas","status":"ok",     "observacao":"SIGTAP/RCPD"},
-    {"indicador":"BPC/LOAS beneficiários ativos",       "valor":62, "meta":None,"unidade":"pessoas","status":"ok",     "observacao":"INSS — revisão bienal"},
-    {"indicador":"Em reabilitação ativa",               "valor":47, "meta":None,"unidade":"pessoas","status":"ok",     "observacao":"25.5% dos cadastrados"},
-    {"indicador":"Lista espera CER regional",           "valor":28, "meta":10,  "unidade":"pessoas","status":"atencao","observacao":"CER Humaitá","invertido":True},
-    {"indicador":"OPME aguardando aprovação",           "valor":9,  "meta":3,   "unidade":"solicit.","status":"atencao","observacao":"Média espera 4.2 meses","invertido":True},
-    {"indicador":"Atendimentos reabilitação/mês",       "valor":186,"meta":150, "unidade":"atend.", "status":"ok",     "observacao":"Mar/26 — acima da meta"},
-    {"indicador":"PCD com benefício assistencial",      "valor":33.7,"meta":None,"unidade":"%","status":"ok",          "observacao":"62 de 184 cadastrados"},
+    {"indicador": "Lista de espera total (reabilitação)", "valor": 412, "meta": 0, "unidade": "pacientes",
+     "status": "critico", "observacao": "412 aguardando — fisioterapia concentra 36% da espera"},
+    {"indicador": "Tempo espera fisioterapia", "valor": 42, "meta": 15, "unidade": "dias",
+     "status": "critico", "observacao": "2,8× acima da meta — 1 profissional para cada 142 pacientes"},
+    {"indicador": "Órteses/próteses entregues/indicadas", "valor": 74.1, "meta": 95.0, "unidade": "%",
+     "status": "critico", "observacao": "256 dispositivos indicados, 192 entregues — 64 PCD sem dispositivo"},
+    {"indicador": "PCD cadastrados no município", "valor": 1100, "meta": None, "unidade": "pessoas",
+     "status": "atencao", "observacao": "1.100 PCD — 5,8% da população estimada (vs 24% nacional)"},
+    {"indicador": "CER na cidade", "valor": 0, "meta": 1, "unidade": "unidades",
+     "status": "critico", "observacao": "Sem CER — reabilitação especializada apenas via referência"},
+    {"indicador": "BPC recebido por PCD", "valor": 502, "meta": None, "unidade": "beneficiários",
+     "status": "ok", "observacao": "502 PCD com BPC — cobertura previdenciária parcial"},
 ]
 
+
 @router.get("/dashboard")
-async def dashboard():
-    return _DASHBOARD
+def dashboard():
+    return {
+        "pcd_cadastrados": 1100,
+        "pacientes_reab_ativos": 884,
+        "lista_espera_total": 412,
+        "sessoes_mes": 2916,
+        "modalidades": 5,
+        "fisioterapeutas": 2,
+        "cer_municipal": False,
+        "ortese_protese_pendente": 64,
+        "bpc_beneficiarios": 502,
+        "alta_mes": 63,
+    }
 
-@router.get("/pacientes")
-async def pacientes():
-    return _PACIENTES
 
-@router.get("/producao")
-async def producao():
-    return _PRODUCAO_MENSAL
+@router.get("/modalidades")
+def modalidades():
+    return _MODALIDADES
+
+
+@router.get("/pcd-cadastros")
+def pcd_cadastros():
+    return _PCD_CADASTROS
+
+
+@router.get("/historico")
+def historico():
+    return _HISTORICO
+
 
 @router.get("/indicadores")
-async def indicadores():
+def indicadores():
     return _INDICADORES

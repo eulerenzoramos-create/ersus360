@@ -212,6 +212,9 @@ from routers.saude_auditiva import router as saude_auditiva_router
 from routers.oncologia import router as oncologia_router
 from routers.dcnt import router as dcnt_router
 from routers.nutricao import router as nutricao_router
+from routers.reabilitacao import router as reabilitacao_router
+from routers.assist_farmaceutica import router as assist_farm_router
+from routers.saude_ambiental import router as saude_ambiental_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -362,6 +365,9 @@ app.include_router(saude_auditiva_router)
 app.include_router(oncologia_router)
 app.include_router(dcnt_router)
 app.include_router(nutricao_router)
+app.include_router(reabilitacao_router)
+app.include_router(assist_farm_router)
+app.include_router(saude_ambiental_router)
 
 
 @app.get("/")
