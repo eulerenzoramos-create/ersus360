@@ -173,6 +173,9 @@ import GestaoPessoas            from "./pages/GestaoPessoas";
 import FundoMunicipal           from "./pages/FundoMunicipal";
 import JudicializacaoSaude      from "./pages/JudicializacaoSaude";
 import AtencaoEspecializada     from "./pages/AtencaoEspecializada";
+import PlanoMunicipalSaude      from "./pages/PlanoMunicipalSaude";
+import ScoreMunicipal           from "./pages/ScoreMunicipal";
+import GestaoContratosFms       from "./pages/GestaoContratosFms";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -422,6 +425,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/fundo-municipal"      label="Fundo Municipal Saúde"  Icon={Landmark}/>
             <L1 to="/judicializacao-saude" label="Judicialização Saúde"   Icon={AlertTriangle}/>
             <L1 to="/atencao-especializada" label="Atenção Especializada" Icon={Stethoscope}/>
+            <L1 to="/plano-municipal-saude"  label="Plano Municipal Saúde"  Icon={BookOpen}/>
+            <L1 to="/score-municipal"        label="Score / Diagnóstico"    Icon={Star}/>
+            <L1 to="/gestao-contratos-fms"   label="Contratos / Licitações" Icon={FolderOpen}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -788,6 +794,9 @@ export default function App() {
             <Route path="/fundo-municipal"           element={<FundoMunicipal/>}/>
             <Route path="/judicializacao-saude"      element={<JudicializacaoSaude/>}/>
             <Route path="/atencao-especializada"     element={<AtencaoEspecializada/>}/>
+            <Route path="/plano-municipal-saude"   element={<PlanoMunicipalSaude/>}/>
+            <Route path="/score-municipal"         element={<ScoreMunicipal/>}/>
+            <Route path="/gestao-contratos-fms"    element={<GestaoContratosFms/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

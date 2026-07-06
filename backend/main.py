@@ -221,6 +221,9 @@ from routers.gestao_pessoas import router as gestao_pessoas_router
 from routers.fundo_municipal import router as fundo_municipal_router
 from routers.judicializacao_saude import router as judicializacao_saude_router
 from routers.atencao_especializada import router as atencao_espec_router
+from routers.plano_municipal_saude import router as pms_router
+from routers.score_municipal import router as score_municipal_router
+from routers.gestao_contratos_fms import router as contratos_fms_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -380,6 +383,9 @@ app.include_router(gestao_pessoas_router)
 app.include_router(fundo_municipal_router)
 app.include_router(judicializacao_saude_router)
 app.include_router(atencao_espec_router)
+app.include_router(pms_router)
+app.include_router(score_municipal_router)
+app.include_router(contratos_fms_router)
 
 
 @app.get("/")
