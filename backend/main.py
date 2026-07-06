@@ -233,6 +233,9 @@ from routers.saude_bucal_municipal import router as saude_bucal_mun_router
 from routers.malaria_endemias import router as malaria_endemias_router
 from routers.vigilancia_nutricional import router as vig_nutricional_router
 from routers.saude_indigena_apui import router as saude_indigena_router
+from routers.urgencia_emergencia_apui import router as urgencia_emergencia_router
+from routers.regulacao_acesso_apui import router as regulacao_acesso_apui_router
+from routers.gestao_leitos_apui import router as gestao_leitos_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -404,6 +407,9 @@ app.include_router(saude_bucal_mun_router)
 app.include_router(malaria_endemias_router)
 app.include_router(vig_nutricional_router)
 app.include_router(saude_indigena_router)
+app.include_router(urgencia_emergencia_router)
+app.include_router(regulacao_acesso_apui_router)
+app.include_router(gestao_leitos_apui_router)
 
 
 @app.get("/")

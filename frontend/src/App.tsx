@@ -446,6 +446,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/plano-municipal-saude"  label="Plano Municipal Saúde"  Icon={BookOpen}/>
             <L1 to="/score-municipal"        label="Score / Diagnóstico"    Icon={Star}/>
             <L1 to="/gestao-contratos-fms"   label="Contratos / Licitações" Icon={FolderOpen}/>
+            <L1 to="/urgencia-emergencia"    label="Urgência e Emergência"  Icon={Clock}/>
+            <L1 to="/regulacao-acesso"       label="Regulação e Acesso"     Icon={Network}/>
+            <L1 to="/gestao-leitos"          label="Gestão de Leitos"       Icon={Building2}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -824,6 +827,9 @@ export default function App() {
             <Route path="/plano-municipal-saude"   element={<PlanoMunicipalSaude/>}/>
             <Route path="/score-municipal"         element={<ScoreMunicipal/>}/>
             <Route path="/gestao-contratos-fms"    element={<GestaoContratosFms/>}/>
+            <Route path="/urgencia-emergencia"    element={<UrgenciaEmergencia/>}/>
+            <Route path="/regulacao-acesso"       element={<RegulacaoAcesso/>}/>
+            <Route path="/gestao-leitos"          element={<GestaoLeitos/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

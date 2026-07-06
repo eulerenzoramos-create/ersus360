@@ -1,206 +1,238 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, Cell } from "recharts";
-import { Layers, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { apiGet } from "../lib/api";
+import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from "recharts";
+import { Building2, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
-const STATUS_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
-const PRIOR_COR: Record<string, string> = { urgencia: "#dc2626", eletiva: "#1d4ed8" };
+const BRAND  = "#1e3a5f";
+const ACCENT = "#1d4ed8";
+const OK     = "#16a34a";
+const WARN   = "#d97706";
+const CRIT   = "#dc2626";
 
-function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
-  return (
-    <div style={{ background: "#fff", border: `1px solid ${cor}22`, borderTop: `3px solid ${cor}`, borderRadius: 10, padding: "13px 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 5 }}>
-        <span style={{ fontSize: 11, color: "#6b7280" }}>{label}</span>
-        <div style={{ background: `${cor}15`, borderRadius: 6, padding: 5 }}>{icon}</div>
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: cor, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{sub}</div>}
-    </div>
-  );
+function statusColor(s: string) {
+  if (s === "ok") return OK;
+  if (s === "atencao") return WARN;
+  return CRIT;
 }
 
-function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
-  if (!dash) return null;
-  return (
-    <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
-        <KpiCard label="Taxa de ocupação"     value={dash.taxa_ocupacao_pct+"%"}          sub={`${dash.leitos_ocupados}/${dash.leitos_total} leitos`}  cor={STATUS_COR[dash.taxa_ocupacao_status]} icon={<Layers size={14} color={STATUS_COR[dash.taxa_ocupacao_status]}/>}/>
-        <KpiCard label="Média permanência"    value={dash.media_permanencia_dias+"d"}      sub="giro: "+dash.giro_cama+" camas/mês"                     cor="#1d4ed8"                               icon={<Clock size={14} color="#1d4ed8"/>}/>
-        <KpiCard label="Internações/mês"      value={dash.internacoes_mes}                 sub={`${dash.altas_mes} altas · ${dash.obitos_internacao_mes} óbitos`} cor="#374151"               icon={<TrendingUp size={14} color="#374151"/>}/>
-        <KpiCard label="Lista espera cirurgia" value={dash.lista_espera_cirurgia}          sub="procedimentos eletivos"                                  cor={STATUS_COR[dash.lista_espera_status]} icon={<AlertTriangle size={14} color={STATUS_COR[dash.lista_espera_status]}/>}/>
-      </div>
-      {hist && (
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Internações e taxa de ocupação — 6 meses</div>
-          <div style={{ height: 190 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={hist} barSize={18}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6"/>
-                <XAxis dataKey="mes" tick={{ fontSize: 9 }}/>
-                <YAxis yAxisId="l" tick={{ fontSize: 10 }}/>
-                <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 9 }} unit="%"/>
-                <Tooltip contentStyle={TT}/>
-                <Bar yAxisId="l" dataKey="internacoes"  name="Internações" fill="#1d4ed8" radius={[4,4,0,0]}/>
-                <Bar yAxisId="l" dataKey="transferencias" name="Transferências" fill="#d97706" radius={[4,4,0,0]}/>
-                <Line yAxisId="r" type="monotone" dataKey="taxa_ocupacao" stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }} name="Ocupação %"/>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
+  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+    <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{label}</p>
+    <p className="text-2xl font-bold mt-1" style={{ color: color || BRAND }}>{value}</p>
+    {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+  </div>
+);
 
-function AbaLeitos({ clinicas }: { clinicas: any[] | undefined }) {
-  if (!clinicas) return null;
-  return (
-    <div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {clinicas.map(c => {
-          const cor = STATUS_COR[c.status];
-          const barW = Math.round(c.taxa_pct);
-          return (
-            <div key={c.clinica} style={{ background: "#fff", border: `1px solid ${cor}22`, borderRadius: 8, padding: "14px 18px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <div>
-                  <span style={{ fontSize: 13, fontWeight: 700 }}>{c.clinica}</span>
-                  <span style={{ marginLeft: 10, fontSize: 12, color: "#6b7280" }}>{c.ocupados}/{c.total} leitos</span>
-                </div>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{c.taxa_pct}%</span>
-                  <span style={{ background: cor+"15", color: cor, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>{c.status}</span>
-                </div>
-              </div>
-              <div style={{ background: "#f3f4f6", borderRadius: 6, height: 8 }}>
-                <div style={{ background: cor, height: "100%", width: `${barW}%`, borderRadius: 6, transition: "width .3s" }}/>
-              </div>
-              <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>Permanência média: {c.permanencia_med} dias</div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+const ProgressBar = ({ value, max, color }: { value: number; max: number; color: string }) => (
+  <div className="w-full bg-slate-100 rounded-full h-2.5">
+    <div className="h-2.5 rounded-full" style={{ width: `${Math.min(value / max * 100, 100)}%`, background: color }} />
+  </div>
+);
 
-function AbaCausas({ causas }: { causas: any[] | undefined }) {
-  if (!causas) return null;
-  return (
-    <div>
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Internações por capítulo CID — Mar/26</div>
-        <div style={{ height: 220 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={causas} layout="vertical" barSize={14}>
-              <XAxis type="number" tick={{ fontSize: 9 }}/>
-              <YAxis type="category" dataKey="capitulo_cid" tick={{ fontSize: 9 }} width={180}/>
-              <Tooltip contentStyle={TT}/>
-              <Bar dataKey="internacoes" name="Internações" fill="#1d4ed8" radius={[0,4,4,0]}/>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AbaListaEspera({ lista }: { lista: any[] | undefined }) {
-  if (!lista) return null;
-  const urgentes = lista.filter(i => i.prioridade === "urgencia" && i.aguardando > 0);
-  return (
-    <div>
-      {urgentes.length > 0 && (
-        <div style={{ marginBottom: 14, padding: "10px 14px", background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca", fontSize: 12, color: "#dc2626" }}>
-          ⚠ {urgentes.length} procedimento(s) de urgência na fila — avaliar priorização
-        </div>
-      )}
-      <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-          <thead>
-            <tr style={{ background: "#1d4ed8", color: "#fff" }}>
-              {["Procedimento","Aguardando","Espera média","Prioridade"].map(h => (
-                <th key={h} style={{ padding: "8px 10px", textAlign: h==="Procedimento"?"left":"center" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {lista.map((item, i) => {
-              const cor = PRIOR_COR[item.prioridade];
-              return (
-                <tr key={item.procedimento} style={{ borderTop: "1px solid #f3f4f6", background: i%2===0?"#fff":"#f9fafb" }}>
-                  <td style={{ padding: "8px 10px", fontWeight: 600 }}>
-                    {item.procedimento}
-                    {item.alerta && <div style={{ fontSize: 10, color: "#dc2626", marginTop: 2 }}>⚠ {item.alerta}</div>}
-                  </td>
-                  <td style={{ padding: "8px 10px", textAlign: "center", fontWeight: 700, color: item.aguardando>5?"#dc2626":"#374151" }}>{item.aguardando}</td>
-                  <td style={{ padding: "8px 10px", textAlign: "center", color: item.espera_media_dias>60?"#dc2626":item.espera_media_dias>30?"#d97706":"#374151" }}>{item.espera_media_dias} dias</td>
-                  <td style={{ padding: "8px 10px", textAlign: "center" }}>
-                    <span style={{ background: cor+"15", color: cor, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>{item.prioridade}</span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-type Aba = "dashboard"|"leitos"|"causas"|"lista-espera";
+const OCUP_COLORS: Record<string, string> = {
+  "Clínica Médica":           WARN,
+  "Cirúrgico/Obs. Cirúrgica": OK,
+  "Pediatria":                OK,
+  "Isolamento/Infecciosas":   CRIT,
+  "Ginecologia/Obstetrícia":  OK,
+};
 
 export default function GestaoLeitos() {
-  const [aba, setAba] = useState<Aba>("dashboard");
-  const { data: dash   } = useQuery({ queryKey: ["gl-dash"],  queryFn: () => apiGet("/api/gestao-leitos/dashboard")   as Promise<any> });
-  const { data: clin   } = useQuery({ queryKey: ["gl-clin"],  queryFn: () => apiGet("/api/gestao-leitos/leitos-clinica") as Promise<any[]>, enabled: aba==="leitos" });
-  const { data: hist   } = useQuery({ queryKey: ["gl-hist"],  queryFn: () => apiGet("/api/gestao-leitos/historico")    as Promise<any[]>, enabled: aba==="dashboard" });
-  const { data: causas } = useQuery({ queryKey: ["gl-caus"],  queryFn: () => apiGet("/api/gestao-leitos/causas")       as Promise<any[]>, enabled: aba==="causas" });
-  const { data: lista  } = useQuery({ queryKey: ["gl-lista"], queryFn: () => apiGet("/api/gestao-leitos/lista-espera") as Promise<any[]>, enabled: aba==="lista-espera" });
+  const [aba, setAba] = useState("dashboard");
+
+  const { data: dash }        = useQuery({ queryKey: ["gl-dashboard"],  queryFn: () => apiGet("/api/gestao-leitos/dashboard"),       enabled: aba === "dashboard" });
+  const { data: leitos }      = useQuery({ queryKey: ["gl-leitos"],     queryFn: () => apiGet("/api/gestao-leitos/leitos-tipo"),     enabled: aba === "leitos" });
+  const { data: causas }      = useQuery({ queryKey: ["gl-causas"],     queryFn: () => apiGet("/api/gestao-leitos/causas-internacao"),enabled: aba === "causas" });
+  const { data: historico }   = useQuery({ queryKey: ["gl-historico"],  queryFn: () => apiGet("/api/gestao-leitos/historico"),       enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["gl-ind"],        queryFn: () => apiGet("/api/gestao-leitos/indicadores"),     enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
-  const ABAS: { id: Aba; label: string }[] = [
-    { id: "dashboard",   label: "Dashboard" },
-    { id: "leitos",      label: `Leitos por Clínica (${dashRaw?.leitos_total ?? 0} total)` },
-    { id: "causas",      label: "Causas CID" },
-    { id: "lista-espera", label: `Lista de Espera (${dashRaw?.lista_espera_cirurgia ?? 0})` },
+  const ABAS = [
+    { key: "dashboard",   label: "Dashboard",      icon: <Building2 size={15}/> },
+    { key: "leitos",      label: "Leitos por Tipo",icon: <Activity size={15}/> },
+    { key: "causas",      label: "Causas",         icon: <Activity size={15}/> },
+    { key: "historico",   label: "Histórico",      icon: <TrendingUp size={15}/> },
+    { key: "indicadores", label: "Indicadores",    icon: <AlertTriangle size={15}/> },
   ];
 
   return (
-    <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
-      <div style={{ background: "linear-gradient(135deg,#1e3a5f 0%,#1d4ed8 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Gestão de Leitos</h1>
-            <p style={{ fontSize: 13, opacity: .85, margin: 0 }}>Taxa de ocupação · Internações · Rotatividade · Lista de espera · FMS Apuí/AM</p>
+    <div className="min-h-screen bg-slate-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg" style={{ background: BRAND }}>
+            <Building2 size={22} color="white" />
           </div>
-          {dash && (
-            <div style={{ display: "flex", gap: 10 }}>
-              <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.taxa_ocupacao_pct}%</div>
-                <div style={{ fontSize: 10, opacity: .8 }}>ocupação</div>
-              </div>
-              <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.internacoes_mes}</div>
-                <div style={{ fontSize: 10, opacity: .8 }}>intern./mês</div>
-              </div>
-            </div>
-          )}
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Gestão de Leitos — Apuí/AM</h1>
+            <p className="text-sm text-slate-500">Hospital Municipal · 38 Leitos SUS · AIH · FMS Apuí/AM</p>
+          </div>
         </div>
-      </div>
-      <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #dbeafe" }}>
-          {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #1d4ed8":"2px solid transparent", color: aba===a.id?"#1d4ed8":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
+
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {ABAS.map((a) => (
+            <button key={a.key} onClick={() => setAba(a.key)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              style={aba === a.key ? { background: BRAND, color: "white" } : { background: "white", color: "#475569", border: "1px solid #e2e8f0" }}>
+              {a.icon} {a.label}
+            </button>
           ))}
         </div>
-        {aba==="dashboard"    && <AbaDashboard dash={dashRaw} hist={hist}/>}
-        {aba==="leitos"       && <AbaLeitos clinicas={clin}/>}
-        {aba==="causas"       && <AbaCausas causas={causas}/>}
-        {aba==="lista-espera" && <AbaListaEspera lista={lista}/>}
+
+        {aba === "dashboard" && dashRaw && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KPI label="Leitos SUS Total"       value={dashRaw.leitos_sus.toString()}            color={ACCENT} sub="100% SUS — sem leitos privados" />
+              <KPI label="Taxa de Ocupação"       value={`${dashRaw.taxa_ocupacao_pct}%`}          color={WARN}   sub={`meta máx: ${dashRaw.meta_ocupacao_pct_max}%`} />
+              <KPI label="Internações/mês"        value={dashRaw.internacoes_mes.toString()}       color={BRAND} />
+              <KPI label="Média de Permanência"   value={`${dashRaw.media_permanencia_dias} dias`} color={WARN}   sub={`meta: ${dashRaw.meta_permanencia_dias} dias`} />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KPI label="Leitos UTI"             value={dashRaw.leitos_uti.toString()}            color={CRIT} sub="ZERO — sem UTI em Apuí" />
+              <KPI label="Transferências Manaus"  value={dashRaw.transferencias_saida_mes.toString()} color={WARN} sub="/mês" />
+              <KPI label="AIH Aprovadas/mês"      value={dashRaw.aih_aprovadas_mes.toString()} />
+              <KPI label="Óbito Hospitalar/mês"   value={dashRaw.obito_hospitalar_mes.toString()}  color={CRIT} />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <h3 className="font-semibold text-slate-700 mb-3">Ocupação Atual por Clínica</h3>
+                <div className="space-y-3">
+                  {[
+                    { tipo: "Clínica Médica",           ocup: 81.3 },
+                    { tipo: "Cirúrgico",                 ocup: 62.5 },
+                    { tipo: "Pediatria",                 ocup: 66.7 },
+                    { tipo: "Isolamento",                ocup: 100.0 },
+                    { tipo: "Ginecologia/Obst.",         ocup: 50.0 },
+                  ].map((c) => (
+                    <div key={c.tipo}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>{c.tipo}</span>
+                        <span className="font-medium" style={{ color: c.ocup >= 90 ? CRIT : c.ocup >= 75 ? WARN : OK }}>{c.ocup}%</span>
+                      </div>
+                      <ProgressBar value={c.ocup} max={100} color={c.ocup >= 90 ? CRIT : c.ocup >= 75 ? WARN : OK} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
+                <p><b>Sem UTI:</b> pacientes graves precisam percorrer 600 km até Manaus. Alto risco de óbito no trajeto.</p>
+                <p><b>Isolamento lotado:</b> 4/4 leitos ocupados — qualquer surto (dengue, hepatite, malária grave) colapsa a capacidade.</p>
+                <p><b>Média de permanência:</b> 5,8 dias vs meta 4,5 — internações por saúde mental (8,8 dias) e infecciosas (7,2 dias) elevam a média.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {aba === "leitos" && Array.isArray(leitos) && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-4">Ocupação × Total por Tipo de Leito</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={(leitos as any[])} margin={{ left: 0, right: 20 }}>
+                  <XAxis dataKey="tipo" tick={{ fontSize: 9 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="total"    name="Total"    fill={ACCENT + "66"} radius={[3,3,0,0]} />
+                  <Bar dataKey="ocupados" name="Ocupados" radius={[3,3,0,0]}>
+                    {(leitos as any[]).map((l: any) => <Cell key={l.tipo} fill={OCUP_COLORS[l.tipo] || WARN} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid gap-3">
+              {(leitos as any[]).map((l: any) => (
+                <div key={l.tipo} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-slate-700">{l.tipo}</span>
+                    <span className="text-sm font-bold" style={{ color: statusColor(l.status) }}>{l.taxa_ocup}% ocupado</span>
+                  </div>
+                  <div className="flex gap-4 text-xs text-slate-500 mb-2">
+                    <span>Total: <b>{l.total}</b></span>
+                    <span>Ocupados: <b>{l.ocupados}</b></span>
+                    <span>Perm. média: <b>{l.media_perm_dias} dias</b></span>
+                  </div>
+                  <ProgressBar value={l.taxa_ocup} max={100} color={statusColor(l.status)} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {aba === "causas" && Array.isArray(causas) && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-4">Internações por Grupo CID — Jun/2025</h3>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={(causas as any[])} layout="vertical" margin={{ left: 10, right: 60 }}>
+                  <XAxis type="number" tick={{ fontSize: 10 }} />
+                  <YAxis type="category" dataKey="cid_grupo" tick={{ fontSize: 9 }} width={220} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <Tooltip formatter={(v: any, n: any) => [v, n === "internacoes" ? "Internações" : "Permanência (dias)"]} />
+                  <Bar dataKey="internacoes" name="Internações" fill={ACCENT} radius={[0,3,3,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-4">Distribuição % das Internações</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={(causas as any[])} dataKey="pct" nameKey="cid_grupo" cx="50%" cy="50%" outerRadius={80} label={({ pct }: any) => `${pct}%`}>
+                    {(causas as any[]).map((_: any, i: number) => {
+                      const colors = [BRAND, ACCENT, WARN, CRIT, OK, "#7c3aed", "#0891b2", "#059669", "#64748b"];
+                      return <Cell key={i} fill={colors[i % colors.length]} />;
+                    })}
+                  </Pie>
+                  <Tooltip formatter={(v: any) => `${v}%`} />
+                  <Legend formatter={(v: string) => v.substring(0, 30)} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {aba === "historico" && Array.isArray(historico) && (
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <h3 className="font-semibold text-slate-700 mb-4">Evolução Hospitalar (Jan–Jun/2025)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />
+                <Tooltip />
+                <Legend />
+                <Line yAxisId="n"   dataKey="internacoes"    name="Internações"     stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="n"   dataKey="transferencias" name="Transferências"  stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="pct" dataKey="taxa_ocup"      name="Taxa Ocup. %"   stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {aba === "indicadores" && Array.isArray(indicadores) && (
+          <div className="grid gap-3">
+            {(indicadores as any[]).map((ind: any) => (
+              <div key={ind.indicador} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-start gap-4">
+                <div className="mt-1 w-3 h-3 rounded-full flex-shrink-0" style={{ background: statusColor(ind.status) }} />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-700 text-sm">{ind.indicador}</span>
+                    <span className="font-bold text-sm" style={{ color: statusColor(ind.status) }}>
+                      {`${ind.valor} ${ind.unidade}`}{ind.meta != null ? ` / meta: ${ind.meta}` : ""}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">{ind.observacao}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

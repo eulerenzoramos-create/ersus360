@@ -1,272 +1,241 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Cell } from "recharts";
-import { Activity, AlertTriangle, Truck, Clock } from "lucide-react";
 import { apiGet } from "../lib/api";
+import {
+  BarChart, Bar, PieChart, Pie, LineChart, Line, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from "recharts";
+import { Clock, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
-const MANCHESTER_CORES: Record<string, string> = { vermelho: "#dc2626", laranja: "#d97706", amarelo: "#ca8a04", verde: "#16a34a", azul: "#1d4ed8" };
-const MANCHESTER_LABEL: Record<string, string> = { vermelho: "Emergência", laranja: "Muito urgente", amarelo: "Urgente", verde: "Pouco urgente", azul: "Não urgente" };
-const FROTA_COR: Record<string, string> = { operacional: "#16a34a", manutencao: "#dc2626" };
-const TEND_COR: Record<string, string> = { alta: "#dc2626", estavel: "#16a34a" };
+const BRAND  = "#1e3a5f";
+const ACCENT = "#1d4ed8";
+const OK     = "#16a34a";
+const WARN   = "#d97706";
+const CRIT   = "#dc2626";
 
-function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
-  return (
-    <div style={{ background: "#fff", border: `1px solid ${cor}22`, borderTop: `3px solid ${cor}`, borderRadius: 10, padding: "13px 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 5 }}>
-        <span style={{ fontSize: 11, color: "#6b7280" }}>{label}</span>
-        <div style={{ background: `${cor}15`, borderRadius: 6, padding: 5 }}>{icon}</div>
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: cor, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{sub}</div>}
-    </div>
-  );
+function statusColor(s: string) {
+  if (s === "ok") return OK;
+  if (s === "atencao") return WARN;
+  return CRIT;
 }
 
-function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
-  const manchChart = [
-    { name: "Vermelho",  n: dash.ult_vermelho||0,  cor: "#dc2626" },
-    { name: "Laranja",   n: dash.ult_laranja||0,   cor: "#d97706" },
-    { name: "Amarelo",   n: dash.ult_amarelo||0,   cor: "#ca8a04" },
-    { name: "Verde",     n: dash.ult_verde||0,     cor: "#16a34a" },
-    { name: "Azul",      n: dash.ult_azul||0,      cor: "#1d4ed8" },
+const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
+  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+    <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{label}</p>
+    <p className="text-2xl font-bold mt-1" style={{ color: color || BRAND }}>{value}</p>
+    {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+  </div>
+);
+
+const ProgressBar = ({ value, max, color }: { value: number; max: number; color: string }) => (
+  <div className="w-full bg-slate-100 rounded-full h-2.5">
+    <div className="h-2.5 rounded-full" style={{ width: `${Math.min(value / max * 100, 100)}%`, background: color }} />
+  </div>
+);
+
+export default function UrgenciaEmergencia() {
+  const [aba, setAba] = useState("dashboard");
+
+  const { data: dash }        = useQuery({ queryKey: ["ue-dashboard"],  queryFn: () => apiGet("/api/urgencia-emergencia/dashboard"),          enabled: aba === "dashboard" });
+  const { data: classif }     = useQuery({ queryKey: ["ue-classif"],    queryFn: () => apiGet("/api/urgencia-emergencia/classificacao-risco"), enabled: aba === "classificacao" });
+  const { data: causas }      = useQuery({ queryKey: ["ue-causas"],     queryFn: () => apiGet("/api/urgencia-emergencia/causas"),             enabled: aba === "causas" });
+  const { data: historico }   = useQuery({ queryKey: ["ue-historico"],  queryFn: () => apiGet("/api/urgencia-emergencia/atendimentos"),       enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["ue-ind"],        queryFn: () => apiGet("/api/urgencia-emergencia/indicadores"),        enabled: aba === "indicadores" });
+
+  const dashRaw = dash as any;
+
+  const ABAS = [
+    { key: "dashboard",    label: "Dashboard",        icon: <Clock size={15}/> },
+    { key: "classificacao",label: "Classif. Risco",   icon: <AlertTriangle size={15}/> },
+    { key: "causas",       label: "Causas",           icon: <Activity size={15}/> },
+    { key: "historico",    label: "Histórico",        icon: <TrendingUp size={15}/> },
+    { key: "indicadores",  label: "Indicadores",      icon: <AlertTriangle size={15}/> },
   ];
+
   return (
-    <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 22 }}>
-        <KpiCard label="Atendimentos/mês"   value={dash.atendimentos_mes}     sub="UPA Mar/26"            cor="#1d4ed8" icon={<Activity size={14} color="#1d4ed8"/>}/>
-        <KpiCard label="Críticos (R+O)"     value={dash.criticos_mes}         sub="vermelho + laranja"     cor="#dc2626" icon={<AlertTriangle size={14} color="#dc2626"/>}/>
-        <KpiCard label="Transferências"     value={dash.transferencias_mes}   sub="para Manaus/Humaitá"    cor="#d97706" icon={<Truck size={14} color="#d97706"/>}/>
-        <KpiCard label="SAMU ocorrências"   value={dash.samu_ocorrencias_mes} sub="Mar/26"                 cor="#7c3aed" icon={<Truck size={14} color="#7c3aed"/>}/>
-        <KpiCard label="Tempo resposta"     value={dash.tempo_resposta_samu+"min"} sub={`frota ${dash.frota_disponivel}/${dash.frota_total}`} cor={dash.tempo_resposta_samu>15?"#d97706":"#16a34a"} icon={<Clock size={14} color={dash.tempo_resposta_samu>15?"#d97706":"#16a34a"}/>}/>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Classificação Manchester — Mar/26</div>
-          <div style={{ height: 190 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={manchChart} barSize={44}>
-                <XAxis dataKey="name" tick={{ fontSize: 9 }}/>
-                <YAxis tick={{ fontSize: 10 }}/>
-                <Tooltip contentStyle={TT}/>
-                <Bar dataKey="n" name="Atendimentos" radius={[4,4,0,0]}>
-                  {manchChart.map((m, i) => <Cell key={i} fill={m.cor}/>)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+    <div className="min-h-screen bg-slate-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg" style={{ background: BRAND }}>
+            <Clock size={22} color="white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Urgência e Emergência — Apuí/AM</h1>
+            <p className="text-sm text-slate-500">UPA 24h · SAMU · Protocolo Manchester · FMS Apuí/AM</p>
           </div>
         </div>
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Atendimentos UPA — 6 meses</div>
-          <div style={{ height: 190 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={dash.historico_ue}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6"/>
-                <XAxis dataKey="mes" tick={{ fontSize: 9 }}/>
-                <YAxis tick={{ fontSize: 10 }}/>
-                <Tooltip contentStyle={TT}/>
-                <Line type="monotone" dataKey="atendimentos"            stroke="#1d4ed8" strokeWidth={2.5} dot={{ r: 3 }} name="Atend. total"/>
-                <Line type="monotone" dataKey="transferencias"          stroke="#d97706" strokeWidth={1.5} dot={false}   name="Transferências"/>
-                <Line type="monotone" dataKey="procedimentos_cirurgicos" stroke="#7c3aed" strokeWidth={1.5} dot={false}  name="Cirurgias"/>
+
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {ABAS.map((a) => (
+            <button key={a.key} onClick={() => setAba(a.key)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              style={aba === a.key ? { background: BRAND, color: "white" } : { background: "white", color: "#475569", border: "1px solid #e2e8f0" }}>
+              {a.icon} {a.label}
+            </button>
+          ))}
+        </div>
+
+        {aba === "dashboard" && dashRaw && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KPI label="Atendimentos UPA/mês" value={dashRaw.atendimentos_upa_mes.toLocaleString()} color={ACCENT} sub="UPA 24h ativa" />
+              <KPI label="SAMU — Ocorrências/mês" value={dashRaw.atendimentos_samu_mes.toString()} color={BRAND} />
+              <KPI label="Tempo Médio Espera" value={`${dashRaw.tempo_medio_espera_upa_min} min`} color={WARN} sub={`meta: ${dashRaw.meta_tempo_espera_min} min`} />
+              <KPI label="Transferências Manaus/mês" value={dashRaw.transferencias_manaus_mes.toString()} color={CRIT} sub="UTI / especialidades" />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KPI label="Internações via UPA/mês" value={dashRaw.internacoes_upa_mes.toString()} />
+              <KPI label="SAMU — T. Resposta" value={`${dashRaw.samu_tempo_resposta_min} min`} color={WARN} sub={`meta: ${dashRaw.meta_samu_min} min`} />
+              <KPI label="Óbitos UPA/mês" value={dashRaw.obitos_upa_mes.toString()} color={CRIT} />
+              <KPI label="Classificação Vermelha" value={`${dashRaw.classificacao_vermelha_pct}%`} color={CRIT} sub="emergências imediatas" />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <h3 className="font-semibold text-slate-700 mb-3">Distribuição Manchester</h3>
+                <div className="space-y-3">
+                  {[
+                    { nivel: "Vermelho", pct: dashRaw.classificacao_vermelha_pct, cor: "#dc2626" },
+                    { nivel: "Laranja",  pct: dashRaw.classificacao_laranja_pct,  cor: "#f97316" },
+                    { nivel: "Amarelo",  pct: dashRaw.classificacao_amarela_pct,  cor: "#d97706" },
+                    { nivel: "Verde",    pct: dashRaw.classificacao_verde_pct,    cor: "#16a34a" },
+                  ].map((c) => (
+                    <div key={c.nivel}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium" style={{ color: c.cor }}>{c.nivel}</span>
+                        <span>{c.pct}%</span>
+                      </div>
+                      <ProgressBar value={c.pct} max={100} color={c.cor} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 flex flex-col gap-2 justify-center">
+                <p><b>UPA 24h:</b> única unidade de urgência no município. Cobre população de 24.892 hab. + zona rural.</p>
+                <p><b>SAMU:</b> resposta 18 min em média — zona rural pode ultrapassar 40 min.</p>
+                <p><b>Sem UTI:</b> 42 transferências/mês para Manaus (600 km). Casos graves com alta mortalidade em trânsito.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {aba === "classificacao" && Array.isArray(classif) && (
+          <div className="space-y-4">
+            <div className="grid gap-3">
+              {(classif as any[]).map((c: any) => (
+                <div key={c.nivel} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full" style={{ background: c.cor }} />
+                      <span className="font-semibold text-slate-700">{c.nivel}</span>
+                    </div>
+                    <span className="text-lg font-bold" style={{ color: c.cor }}>{c.atend_mes.toLocaleString()} atend.</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-slate-500 text-xs">% do total</p>
+                      <p className="font-semibold">{c.pct}%</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 text-xs">Tempo meta</p>
+                      <p className="font-semibold">{c.tempo_meta_min === 0 ? "Imediato" : `${c.tempo_meta_min} min`}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 text-xs">Tempo real</p>
+                      <p className="font-semibold" style={{ color: c.tempo_real_min > c.tempo_meta_min ? CRIT : OK }}>
+                        {c.tempo_real_min === 0 ? "Imediato" : `${c.tempo_real_min} min`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <ProgressBar value={c.pct} max={100} color={c.cor} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-3">Atendimentos por Nível Manchester</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={(classif as any[])} dataKey="atend_mes" nameKey="nivel" cx="50%" cy="50%" outerRadius={80} label={({ nivel, pct }: any) => `${pct}%`}>
+                    {(classif as any[]).map((c: any) => <Cell key={c.nivel} fill={c.cor} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: any) => `${v} atend.`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {aba === "causas" && Array.isArray(causas) && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-4">Principais Causas — Atendimentos UPA</h3>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={(causas as any[])} layout="vertical" margin={{ left: 10, right: 60 }}>
+                  <XAxis type="number" tick={{ fontSize: 10 }} />
+                  <YAxis type="category" dataKey="causa" tick={{ fontSize: 10 }} width={200} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <Tooltip formatter={(v: any, n: any) => [v, n === "atend" ? "Atendimentos" : "Taxa internação %"]} />
+                  <Bar dataKey="atend" name="Atendimentos" fill={ACCENT} radius={[0,3,3,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-4">Taxa de Internação por Causa (%)</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={(causas as any[])} layout="vertical" margin={{ left: 10, right: 60 }}>
+                  <XAxis type="number" tick={{ fontSize: 10 }} unit="%" />
+                  <YAxis type="category" dataKey="causa" tick={{ fontSize: 10 }} width={200} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <Tooltip formatter={(v: any) => `${v}%`} />
+                  <Bar dataKey="internacao_pct" name="Internação %" radius={[0,3,3,0]}>
+                    {(causas as any[]).map((c: any) => <Cell key={c.causa} fill={c.internacao_pct > 15 ? CRIT : c.internacao_pct > 8 ? WARN : OK} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {aba === "historico" && Array.isArray(historico) && (
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <h3 className="font-semibold text-slate-700 mb-4">Evolução — Atendimentos UPA e SAMU (Jan–Jun/2025)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="upa" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="samu" orientation="right" tick={{ fontSize: 10 }} />
+                <Tooltip />
+                <Legend />
+                <Line yAxisId="upa"  dataKey="upa"           name="Atend. UPA"      stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="samu" dataKey="samu"          name="Ocor. SAMU"      stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="samu" dataKey="internacoes"   name="Internações"     stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="samu" dataKey="transferencias"name="Transferências"  stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+        )}
 
-function AbaManchester({ atend }: { atend: any[] | undefined }) {
-  if (!atend) return null;
-  const ult = atend[atend.length - 1];
-  const total = ult.atendimentos;
-  const cores = ["vermelho","laranja","amarelo","verde","azul"];
-  return (
-    <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 20 }}>
-        {cores.map(c => {
-          const n = ult[`manchester_${c}`];
-          const cor = MANCHESTER_CORES[c];
-          return (
-            <div key={c} style={{ background: "#fff", border: `2px solid ${cor}`, borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: cor }}>{n}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: cor }}>{c.charAt(0).toUpperCase()+c.slice(1)}</div>
-              <div style={{ fontSize: 11, color: "#9ca3af" }}>{MANCHESTER_LABEL[c]}</div>
-              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 3 }}>{Math.round(n/total*100)}%</div>
-            </div>
-          );
-        })}
-      </div>
-      <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-          <thead>
-            <tr style={{ background: "#1d4ed8", color: "#fff" }}>
-              {["Mês","Total","Vermelho","Laranja","Amarelo","Verde","Azul","Cirurgias","Transfer.","Óbitos"].map(h=>(
-                <th key={h} style={{ padding: "8px 10px", textAlign: h==="Mês"?"left":"center" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {atend.map((m, i) => (
-              <tr key={m.mes} style={{ borderTop: "1px solid #f3f4f6", background: i%2===0?"#fff":"#f9fafb" }}>
-                <td style={{ padding: "8px 10px", fontWeight: 600 }}>{m.mes}</td>
-                <td style={{ padding: "8px 10px", textAlign: "center", fontWeight: 700, color: "#1d4ed8" }}>{m.atendimentos}</td>
-                <td style={{ padding: "8px 10px", textAlign: "center", color: "#dc2626", fontWeight: 700 }}>{m.manchester_vermelho}</td>
-                <td style={{ padding: "8px 10px", textAlign: "center", color: "#d97706" }}>{m.manchester_laranja}</td>
-                <td style={{ padding: "8px 10px", textAlign: "center", color: "#ca8a04" }}>{m.manchester_amarelo}</td>
-                <td style={{ padding: "8px 10px", textAlign: "center", color: "#16a34a" }}>{m.manchester_verde}</td>
-                <td style={{ padding: "8px 10px", textAlign: "center", color: "#1d4ed8" }}>{m.manchester_azul}</td>
-                <td style={{ padding: "8px 10px", textAlign: "center", color: "#7c3aed" }}>{m.procedimentos_cirurgicos}</td>
-                <td style={{ padding: "8px 10px", textAlign: "center", color: "#d97706" }}>{m.transferencias}</td>
-                <td style={{ padding: "8px 10px", textAlign: "center", color: m.obitos_ue>0?"#dc2626":"#9ca3af" }}>{m.obitos_ue}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function AbaSamu({ dados }: { dados: any }) {
-  if (!dados) return null;
-  const { ocorrencias, frota } = dados;
-  return (
-    <div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 18 }}>
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>SAMU — ocorrências e tempo resposta</div>
-          <div style={{ height: 190 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={ocorrencias} barSize={18}>
-                <XAxis dataKey="mes" tick={{ fontSize: 9 }}/>
-                <YAxis yAxisId="left" tick={{ fontSize: 10 }}/>
-                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} unit="min"/>
-                <Tooltip contentStyle={TT}/>
-                <Bar yAxisId="left"  dataKey="ocorrencias"          name="Ocorrências" fill="#7c3aed" radius={[4,4,0,0]}/>
-                <Bar yAxisId="left"  dataKey="suporte_avancado"      name="USA (SAV)"   fill="#dc2626" radius={[4,4,0,0]}/>
-                <Line yAxisId="right" type="monotone" dataKey="tempo_resposta_med_min" stroke="#d97706" strokeWidth={2} dot={{ r: 3 }} name="T. resposta (min)"/>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Frota SAMU</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {frota.map((v: any) => {
-              const cor = FROTA_COR[v.status];
-              return (
-                <div key={v.veiculo} style={{ border: `1px solid ${cor}22`, borderLeft: `3px solid ${cor}`, borderRadius: 6, padding: "10px 14px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700 }}>{v.veiculo}</div>
-                    <span style={{ background: cor+"15", color: cor, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>{v.status}</span>
+        {aba === "indicadores" && Array.isArray(indicadores) && (
+          <div className="grid gap-3">
+            {(indicadores as any[]).map((ind: any) => (
+              <div key={ind.indicador} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-start gap-4">
+                <div className="mt-1 w-3 h-3 rounded-full flex-shrink-0" style={{ background: statusColor(ind.status) }} />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-700 text-sm">{ind.indicador}</span>
+                    <span className="font-bold text-sm" style={{ color: statusColor(ind.status) }}>
+                      {`${ind.valor} ${ind.unidade}`}{ind.meta != null ? ` / meta: ${ind.meta}` : ""}
+                    </span>
                   </div>
-                  <div style={{ fontSize: 11, color: "#6b7280" }}>Placa: {v.placa} · KM/mês: {v.km_rodados_mes.toLocaleString("pt-BR")} · Últ. manut.: {v.ultima_manutencao}</div>
+                  <p className="text-xs text-slate-500 mt-1">{ind.observacao}</p>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AbaCausas({ causas }: { causas: any[] | undefined }) {
-  if (!causas) return null;
-  return (
-    <div>
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 18 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Causas de atendimento UPA — Mar/26</div>
-        <div style={{ height: 220 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={causas} layout="vertical" barSize={16}>
-              <XAxis type="number" tick={{ fontSize: 9 }} unit="%"/>
-              <YAxis type="category" dataKey="causa" tick={{ fontSize: 9 }} width={160}/>
-              <Tooltip contentStyle={TT}/>
-              <Bar dataKey="pct" name="% atendimentos" fill="#1d4ed8" radius={[0,4,4,0]}>
-                {causas.map((c, i) => <Cell key={i} fill={c.tendencia==="alta"?"#dc2626":"#1d4ed8"}/>)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
-        {causas.filter(c=>c.causa!=="Outras causas").map((c, i) => (
-          <div key={i} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: TEND_COR[c.tendencia] }}>{c.pct}%</div>
-            <div style={{ fontSize: 12, color: "#374151", marginBottom: 3 }}>{c.causa}</div>
-            <span style={{ background: TEND_COR[c.tendencia]+"15", color: TEND_COR[c.tendencia], fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 3 }}>
-              {c.tendencia === "alta" ? "↑ Alta" : "→ Estável"}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-type Aba = "dashboard"|"manchester"|"samu"|"causas";
-
-export default function UrgenciaEmergencia() {
-  const [aba, setAba] = useState<Aba>("dashboard");
-  const { data: dashRaw } = useQuery({ queryKey: ["ue-dash"],  queryFn: () => apiGet("/api/urgencia-emergencia/dashboard")   as Promise<any> });
-  const { data: atend }   = useQuery({ queryKey: ["ue-atend"], queryFn: () => apiGet("/api/urgencia-emergencia/atendimentos") as Promise<any[]>, enabled: aba==="manchester"||aba==="dashboard" });
-  const { data: samu }    = useQuery({ queryKey: ["ue-samu"],  queryFn: () => apiGet("/api/urgencia-emergencia/samu")         as Promise<any>,   enabled: aba==="samu" });
-  const { data: causas }  = useQuery({ queryKey: ["ue-caus"],  queryFn: () => apiGet("/api/urgencia-emergencia/causas")       as Promise<any[]>, enabled: aba==="causas" });
-
-  const ult = atend?.[atend.length - 1];
-  const dash = dashRaw && ult ? {
-    ...dashRaw,
-    ult_vermelho: ult.manchester_vermelho,
-    ult_laranja:  ult.manchester_laranja,
-    ult_amarelo:  ult.manchester_amarelo,
-    ult_verde:    ult.manchester_verde,
-    ult_azul:     ult.manchester_azul,
-    historico_ue: atend,
-  } : null;
-
-  const ABAS: { id: Aba; label: string }[] = [
-    { id: "dashboard",  label: "Dashboard" },
-    { id: "manchester", label: `Manchester (${(dashRaw as any)?.atendimentos_mes ?? 0}/mês)` },
-    { id: "samu",       label: `SAMU (${(dashRaw as any)?.samu_ocorrencias_mes ?? 0} ocorr.)` },
-    { id: "causas",     label: "Causas" },
-  ];
-
-  return (
-    <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
-      <div style={{ background: "linear-gradient(135deg,#dc2626 0%,#1d4ed8 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Urgência e Emergência</h1>
-            <p style={{ fontSize: 13, opacity: .85, margin: 0 }}>UPA · SAMU · Manchester · Rede de Urgências · FMS Apuí/AM</p>
-          </div>
-          {dashRaw && (
-            <div style={{ display: "flex", gap: 10 }}>
-              <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{(dashRaw as any).atendimentos_mes}</div>
-                <div style={{ fontSize: 10, opacity: .8 }}>atend./mês</div>
               </div>
-              <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{(dashRaw as any).tempo_resposta_samu}min</div>
-                <div style={{ fontSize: 10, opacity: .8 }}>SAMU resposta</div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-      <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #fee2e2" }}>
-          {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #dc2626":"2px solid transparent", color: aba===a.id?"#dc2626":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
-          ))}
-        </div>
-        {aba==="dashboard"  && <AbaDashboard dash={dash}/>}
-        {aba==="manchester" && <AbaManchester atend={atend}/>}
-        {aba==="samu"       && <AbaSamu dados={samu}/>}
-        {aba==="causas"     && <AbaCausas causas={causas}/>}
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
