@@ -1,225 +1,219 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Cell } from "recharts";
-import { Wrench, AlertTriangle, Activity, CheckCircle } from "lucide-react";
 import { apiGet } from "../lib/api";
+import {
+  BarChart, Bar, LineChart, Line, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from "recharts";
+import { Wrench, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
-const RISCO_COR: Record<string, string> = { alto: "#dc2626", medio: "#d97706", baixo: "#16a34a" };
-const STATUS_ACO: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
+const BRAND  = "#1e3a5f";
+const ACCENT = "#1d4ed8";
+const OK     = "#16a34a";
+const WARN   = "#d97706";
+const CRIT   = "#dc2626";
 
-function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
-  return (
-    <div style={{ background: "#fff", border: `1px solid ${cor}22`, borderTop: `3px solid ${cor}`, borderRadius: 10, padding: "13px 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 5 }}>
-        <span style={{ fontSize: 11, color: "#6b7280" }}>{label}</span>
-        <div style={{ background: `${cor}15`, borderRadius: 6, padding: 5 }}>{icon}</div>
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: cor, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{sub}</div>}
-    </div>
-  );
+function statusColor(s: string) {
+  if (s === "ok") return OK;
+  if (s === "atencao") return WARN;
+  return CRIT;
 }
 
-function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
-  const histBar = (dash.historico || []).filter((h: any) => h.ano !== "2026*");
-  return (
-    <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 22 }}>
-        <KpiCard label="Agravos 2026"      value={dash.agravos_2026}       sub="Jan–Mar/26"              cor="#1d4ed8" icon={<Wrench size={14} color="#1d4ed8"/>}/>
-        <KpiCard label="Acid. típicos"     value={dash.acidentes_tipicos}  sub="notificados"             cor="#dc2626" icon={<AlertTriangle size={14} color="#dc2626"/>}/>
-        <KpiCard label="Intox. agrotóxico" value={dash.intox_agrotox}      sub="SINAN obrigatório"       cor="#d97706" icon={<AlertTriangle size={14} color="#d97706"/>}/>
-        <KpiCard label="Com alerta"        value={dash.alertas}            sub="CAT pendente / nexo"     cor={dash.alertas>0?"#dc2626":"#16a34a"} icon={<AlertTriangle size={14} color={dash.alertas>0?"#dc2626":"#16a34a"}/>}/>
-        <KpiCard label="Dias afastamento"  value={dash.dias_afastamento}   sub="total acumulado"         cor="#7c3aed" icon={<Activity size={14} color="#7c3aed"/>}/>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Acidentes e doenças — histórico anual</div>
-          <div style={{ height: 190 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={histBar} barSize={18}>
-                <XAxis dataKey="ano" tick={{ fontSize: 10 }}/>
-                <YAxis tick={{ fontSize: 10 }}/>
-                <Tooltip contentStyle={TT}/>
-                <Bar dataKey="acidentes_tipicos" name="Acid. típicos" fill="#dc2626" radius={[4,4,0,0]}/>
-                <Bar dataKey="intox_agrotox"     name="Intox. agrotóx." fill="#d97706" radius={[4,4,0,0]}/>
-                <Bar dataKey="doencas_trab"      name="Doenças trabalho" fill="#7c3aed" radius={[4,4,0,0]}/>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Taxa de acidente por setor (/1.000 trab.)</div>
-          <div style={{ height: 190 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dash.setores_chart || []} layout="vertical" barSize={13}>
-                <XAxis type="number" tick={{ fontSize: 9 }}/>
-                <YAxis type="category" dataKey="setor" tick={{ fontSize: 9 }} width={90}/>
-                <Tooltip contentStyle={TT}/>
-                <Bar dataKey="taxa" name="Taxa" radius={[0,4,4,0]}>
-                  {(dash.setores_chart||[]).map((s: any, i: number) => <Cell key={i} fill={RISCO_COR[s.risco]||"#94a3b8"}/>)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
+  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+    <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{label}</p>
+    <p className="text-2xl font-bold mt-1" style={{ color: color || BRAND }}>{value}</p>
+    {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+  </div>
+);
 
-function AbaAgravos({ agravos }: { agravos: any[] | undefined }) {
-  const [filtro, setFiltro] = useState("todos");
-  if (!agravos) return null;
-  const lista = filtro === "todos" ? agravos : filtro === "alerta" ? agravos.filter(a => a.alerta) : agravos.filter(a => a.agravo.toLowerCase().includes(filtro));
-  return (
-    <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-        {[["todos","Todos",agravos.length],["alerta","⚠ Alertas",agravos.filter(a=>a.alerta).length],["acidente","Acidentes",agravos.filter(a=>a.agravo.toLowerCase().includes("acidente")).length],["intoxicação","Intoxicações",agravos.filter(a=>a.agravo.toLowerCase().includes("intoxicação")).length]].map(([k,l,n])=>(
-          <button key={String(k)} onClick={()=>setFiltro(String(k))} style={{ padding:"6px 14px",border:`1px solid ${filtro===k?"#1d4ed8":"#e5e7eb"}`,borderRadius:20,background:filtro===k?"#eff6ff":"#fff",color:filtro===k?"#1d4ed8":"#374151",fontSize:12,cursor:"pointer",fontWeight:filtro===k?700:400 }}>{l} ({n})</button>
-        ))}
-        <div style={{ fontSize: 12, color: "#9ca3af", alignSelf: "center", marginLeft: "auto" }}>{lista.length} registros</div>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {lista.map(a => (
-          <div key={a.id} style={{ background: "#fff", border: `1px solid ${a.alerta?"#dc262222":"#e5e7eb"}`, borderLeft: `4px solid ${a.cat_emitida?"#16a34a":"#dc2626"}`, borderRadius: 8, padding: "12px 16px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 5 }}>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>{a.agravo}</div>
-              <div style={{ display: "flex", gap: 6 }}>
-                {a.cat_emitida
-                  ? <span style={{ background: "#dcfce7", color: "#16a34a", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>CAT emitida</span>
-                  : <span style={{ background: "#fef2f2", color: "#dc2626", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>CAT pendente</span>}
-                <span style={{ background: "#f3f4f6", color: "#374151", fontSize: 10, padding: "2px 7px", borderRadius: 4 }}>{a.mes}/26</span>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 20, fontSize: 12, color: "#6b7280" }}>
-              <span>Setor: <strong style={{ color: "#374151" }}>{a.setor}</strong></span>
-              <span>Afastamento: <strong style={{ color: a.afastamento_dias>=30?"#dc2626":"#374151" }}>{a.afastamento_dias} dias</strong></span>
-              <span>Nexo causal: <strong style={{ color: a.nexo_causal?"#16a34a":"#d97706" }}>{a.nexo_causal?"Confirmado":"A investigar"}</strong></span>
-              <span>Investigado: <strong style={{ color: a.investigado?"#16a34a":"#d97706" }}>{a.investigado?"Sim":"Não"}</strong></span>
-            </div>
-            {a.alerta && <div style={{ marginTop: 6, background: "#fef2f2", borderRadius: 4, padding: "4px 10px", fontSize: 11, color: "#dc2626", fontWeight: 600 }}>⚠ {a.alerta}</div>}
-          </div>
-        ))}
-      </div>
-      <div style={{ marginTop: 14, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px", fontSize: 12 }}>
-        CAT (Comunicação de Acidente de Trabalho) — obrigatória em até 24h do acidente. Intoxicações por agrotóxicos são de notificação compulsória imediata no SINAN. Nexo causal: Lei 8.213/1991.
-      </div>
-    </div>
-  );
-}
-
-function AbaSetores({ setores }: { setores: any[] | undefined }) {
-  if (!setores) return null;
-  return (
-    <div>
-      <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-          <thead>
-            <tr style={{ background: "#1d4ed8", color: "#fff" }}>
-              {["Setor","Trab. estimados","Acid. 2026","Doenças 2026","Taxa (/1.000)","Risco"].map(h=>(
-                <th key={h} style={{ padding: "9px 12px", textAlign: h==="Setor"?"left":"center" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {setores.map((s, i) => {
-              const rCor = RISCO_COR[s.risco];
-              return (
-                <tr key={s.setor} style={{ borderTop: "1px solid #f3f4f6", background: s.risco==="alto"?"#fff7f7":i%2===0?"#fff":"#f9fafb" }}>
-                  <td style={{ padding: "9px 12px", fontWeight: 600 }}>{s.setor}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "center" }}>{s.trabalhadores_est.toLocaleString("pt-BR")}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "center", color: s.acidentes_2026>0?"#dc2626":"#9ca3af", fontWeight: s.acidentes_2026>0?700:400 }}>{s.acidentes_2026}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "center", color: s.doencas_2026>0?"#d97706":"#9ca3af" }}>{s.doencas_2026}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "center", fontWeight: 700, color: rCor }}>{s.taxa_acidente.toFixed(2)}</td>
-                  <td style={{ padding: "9px 12px", textAlign: "center" }}>
-                    <span style={{ background: rCor+"15", color: rCor, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>{s.risco}</span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function AbaAcoes({ acoes }: { acoes: any[] | undefined }) {
-  if (!acoes) return null;
-  return (
-    <div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {acoes.map((a, i) => {
-          const cor = STATUS_ACO[a.status];
-          const pct = Math.round(a.realizadas_2026 / a.meta_ano * 100);
-          return (
-            <div key={i} style={{ background: "#fff", border: `1px solid ${cor}22`, borderLeft: `4px solid ${cor}`, borderRadius: 8, padding: "12px 16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 500 }}>{a.acao}</span>
-                <span style={{ fontSize: 13, fontWeight: 800, color: cor, flexShrink: 0, marginLeft: 10 }}>{a.realizadas_2026}/{a.meta_ano}</span>
-              </div>
-              <div style={{ background: "#f3f4f6", borderRadius: 6, height: 7 }}>
-                <div style={{ background: cor, height: "100%", width: `${Math.min(100,pct)}%`, borderRadius: 6 }}/>
-              </div>
-              <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{pct}% da meta anual</div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-type Aba = "dashboard"|"agravos"|"setores"|"acoes";
+const ProgressBar = ({ value, max, color }: { value: number; max: number; color: string }) => (
+  <div className="w-full bg-slate-100 rounded-full h-2.5">
+    <div className="h-2.5 rounded-full" style={{ width: `${Math.min(value / max * 100, 100)}%`, background: color }} />
+  </div>
+);
 
 export default function SaudeTrabalhador() {
-  const [aba, setAba] = useState<Aba>("dashboard");
-  const { data: dashRaw } = useQuery({ queryKey: ["trab-dash"],  queryFn: () => apiGet("/api/saude-trabalhador/dashboard") as Promise<any> });
-  const { data: hist }    = useQuery({ queryKey: ["trab-hist"],  queryFn: () => apiGet("/api/saude-trabalhador/agravos"),   enabled: false });
-  const { data: agravos } = useQuery({ queryKey: ["trab-agr"],   queryFn: () => apiGet("/api/saude-trabalhador/agravos")   as Promise<any[]>, enabled: aba==="agravos" });
-  const { data: setores } = useQuery({ queryKey: ["trab-set"],   queryFn: () => apiGet("/api/saude-trabalhador/setores")   as Promise<any[]>, enabled: aba==="setores"||aba==="dashboard" });
-  const { data: acoes }   = useQuery({ queryKey: ["trab-aco"],   queryFn: () => apiGet("/api/saude-trabalhador/acoes")     as Promise<any[]>, enabled: aba==="acoes" });
+  const [aba, setAba] = useState("dashboard");
 
-  const dash = dashRaw && setores ? {
-    ...dashRaw,
-    setores_chart: setores.map(s => ({ setor: s.setor, taxa: s.taxa_acidente, risco: s.risco })),
-  } : null;
+  const { data: dash }        = useQuery({ queryKey: ["st-dashboard"],  queryFn: () => apiGet("/api/saude-trabalhador/dashboard"),    enabled: aba === "dashboard" });
+  const { data: setores }     = useQuery({ queryKey: ["st-setores"],    queryFn: () => apiGet("/api/saude-trabalhador/setores-risco"), enabled: aba === "setores" });
+  const { data: intox }       = useQuery({ queryKey: ["st-intox"],      queryFn: () => apiGet("/api/saude-trabalhador/intoxicacoes"),  enabled: aba === "intoxicacoes" });
+  const { data: historico }   = useQuery({ queryKey: ["st-historico"],  queryFn: () => apiGet("/api/saude-trabalhador/historico"),     enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["st-ind"],        queryFn: () => apiGet("/api/saude-trabalhador/indicadores"),   enabled: aba === "indicadores" });
 
-  const ABAS: { id: Aba; label: string }[] = [
-    { id: "dashboard", label: "Dashboard" },
-    { id: "agravos",   label: `Agravos (${dashRaw?.agravos_2026 ?? 0})` },
-    { id: "setores",   label: "Setores" },
-    { id: "acoes",     label: "Ações CEREST" },
+  const dashRaw = dash as any;
+
+  const ABAS = [
+    { key: "dashboard",    label: "Dashboard",          icon: <Wrench size={15}/> },
+    { key: "setores",      label: "Setores de Risco",   icon: <Activity size={15}/> },
+    { key: "intoxicacoes", label: "Agrotóxicos",        icon: <AlertTriangle size={15}/> },
+    { key: "historico",    label: "Histórico",          icon: <TrendingUp size={15}/> },
+    { key: "indicadores",  label: "Indicadores",        icon: <AlertTriangle size={15}/> },
   ];
 
   return (
-    <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
-      <div style={{ background: "linear-gradient(135deg,#92400e 0%,#1d4ed8 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Saúde do Trabalhador</h1>
-            <p style={{ fontSize: 13, opacity: .85, margin: 0 }}>CEREST · RENAST · CAT · Agrotóxicos · FMS Apuí/AM</p>
+    <div className="min-h-screen bg-slate-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg" style={{ background: BRAND }}>
+            <Wrench size={22} color="white" />
           </div>
-          {dashRaw && (
-            <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.agravos_2026}</div>
-              <div style={{ fontSize: 10, opacity: .8 }}>agravos 2026</div>
-            </div>
-          )}
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Saúde do Trabalhador — Apuí/AM</h1>
+            <p className="text-sm text-slate-500">CAT · CEREST Humaitá · Agrotóxicos · Doenças Ocupacionais · FMS Apuí/AM</p>
+          </div>
         </div>
-      </div>
-      <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #fef3c7" }}>
-          {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #92400e":"2px solid transparent", color: aba===a.id?"#92400e":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
+
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {ABAS.map((a) => (
+            <button key={a.key} onClick={() => setAba(a.key)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              style={aba === a.key ? { background: BRAND, color: "white" } : { background: "white", color: "#475569", border: "1px solid #e2e8f0" }}>
+              {a.icon} {a.label}
+            </button>
           ))}
         </div>
-        {aba==="dashboard" && <AbaDashboard dash={dash}/>}
-        {aba==="agravos"   && <AbaAgravos agravos={agravos}/>}
-        {aba==="setores"   && <AbaSetores setores={setores}/>}
-        {aba==="acoes"     && <AbaAcoes acoes={acoes}/>}
+
+        {aba === "dashboard" && dashRaw && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KPI label="Trabalhadores Estimados" value={dashRaw.populacao_trabalhadora_estimada.toLocaleString()} color={ACCENT} />
+              <KPI label="CATs Registradas/Ano"    value={dashRaw.cat_registradas_ano.toString()} color={WARN} sub={`subnotif. est. ${dashRaw.cat_subnotificadas_estimativa_pct}%`} />
+              <KPI label="Acidentes Fatais/Ano"    value={dashRaw.acidentes_fatais_ano.toString()} color={CRIT} />
+              <KPI label="Intox. Agrotóxicos/Ano"  value={dashRaw.intoxicacoes_agrotoxicos_ano.toString()} color={CRIT} sub="notificações confirmadas" />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KPI label="Afastamentos INSS/Ano"   value={dashRaw.afastamentos_inss_ano.toString()} />
+              <KPI label="Acidentes Agrícolas"     value={`${dashRaw.acidentes_agricolas_pct}%`} color={WARN} sub="do total de CATs" />
+              <KPI label="Trabalhadores Informais" value={`${dashRaw.trabalhadores_informais_pct}%`} color={CRIT} sub="sem proteção trabalhista" />
+              <KPI label="Cobertura PCMSO"         value={`${dashRaw.cobertura_pcmso_empresas_pct}%`} color={CRIT} sub="empresas com PCMSO" />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <h3 className="font-semibold text-slate-700 mb-2">CEREST de Referência</h3>
+                <p className="text-sm text-slate-600">{dashRaw.cerest_referencia}</p>
+                <p className="text-2xl font-bold mt-2" style={{ color: CRIT }}>{dashRaw.distancia_cerest_km} km</p>
+                <p className="text-xs text-slate-400">Trabalhador intoxicado precisa percorrer esta distância para atendimento especializado</p>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900">
+                <p><b>Corredor da soja:</b> Apuí está na fronteira agrícola do AM — uso intensivo de agrotóxicos classe I e II.</p>
+                <p className="mt-2"><b>Subnotificação grave:</b> 62% das CATs estimadas não são registradas — trabalhadores informais sem acesso ao sistema.</p>
+                <p className="mt-2"><b>Expostos:</b> ~1.840 trabalhadores rurais estimados com exposição a agrotóxicos em 2025.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {aba === "setores" && Array.isArray(setores) && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-4">CATs e Doenças por Setor</h3>
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={(setores as any[])} layout="vertical" margin={{ left: 10, right: 60 }}>
+                  <XAxis type="number" tick={{ fontSize: 10 }} />
+                  <YAxis type="category" dataKey="setor" tick={{ fontSize: 9 }} width={210} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="cat_ano"       name="CATs/ano"    fill={WARN}   radius={[0,3,3,0]} />
+                  <Bar dataKey="doencas_notif" name="Doenças notif." fill={CRIT} radius={[0,3,3,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid gap-2">
+              {(setores as any[]).map((s: any) => (
+                <div key={s.setor} className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm">
+                  <div className="flex items-start justify-between mb-1">
+                    <div>
+                      <span className="font-semibold text-sm text-slate-700">{s.setor}</span>
+                      <div className="text-xs text-slate-400 mt-0.5">{s.trabalhadores.toLocaleString()} trabalhadores · Risco <b>{s.risco}</b></div>
+                    </div>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded flex-shrink-0"
+                      style={{ background: statusColor(s.status) + "22", color: statusColor(s.status) }}>
+                      {s.cat_ano} CATs
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">Riscos: {s.principais_riscos}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {aba === "intoxicacoes" && Array.isArray(intox) && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-4">Intoxicações por Agrotóxico — 2025 (mensal)</h3>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={(intox as any[])} margin={{ left: 0, right: 20 }}>
+                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="casos"          name="Casos"           fill={WARN}   radius={[3,3,0,0]} />
+                  <Bar dataKey="hospitalizacoes"name="Hospitalizações" fill={CRIT}   radius={[3,3,0,0]} />
+                  <Bar dataKey="fatais"         name="Fatais"          fill="#7c2d12" radius={[3,3,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid gap-2">
+              {(intox as any[]).map((m: any) => (
+                <div key={m.mes} className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm flex items-center justify-between">
+                  <div>
+                    <span className="font-semibold text-sm text-slate-700">{m.mes}</span>
+                    <p className="text-xs text-slate-500 mt-0.5">Principal: {m.produto_principal}</p>
+                  </div>
+                  <div className="flex gap-4 text-right">
+                    <div><p className="text-xs text-slate-400">Casos</p><p className="font-bold text-amber-700">{m.casos}</p></div>
+                    <div><p className="text-xs text-slate-400">Hosp.</p><p className="font-bold text-red-600">{m.hospitalizacoes}</p></div>
+                    <div><p className="text-xs text-slate-400">Fatais</p><p className="font-bold" style={{ color: m.fatais > 0 ? CRIT : "#94a3b8" }}>{m.fatais}</p></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {aba === "historico" && Array.isArray(historico) && (
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — Saúde do Trabalhador (2022–2025)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="s"   orientation="right" tick={{ fontSize: 10 }} />
+                <Tooltip />
+                <Legend />
+                <Line yAxisId="n" dataKey="cat"           name="CATs"             stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="n" dataKey="afastamentos"  name="Afastamentos"     stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="s" dataKey="intox_agrotox" name="Intox. Agrotóx."  stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="s" dataKey="fatais"        name="Fatais"           stroke="#7c2d12" strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {aba === "indicadores" && Array.isArray(indicadores) && (
+          <div className="grid gap-3">
+            {(indicadores as any[]).map((ind: any) => (
+              <div key={ind.indicador} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-start gap-4">
+                <div className="mt-1 w-3 h-3 rounded-full flex-shrink-0" style={{ background: statusColor(ind.status) }} />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-700 text-sm">{ind.indicador}</span>
+                    <span className="font-bold text-sm" style={{ color: statusColor(ind.status) }}>
+                      {`${ind.valor} ${ind.unidade}`}{ind.meta != null ? ` / meta: ${ind.meta}` : ""}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">{ind.observacao}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
