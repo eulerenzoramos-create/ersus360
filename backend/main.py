@@ -245,6 +245,9 @@ from routers.seguranca_paciente_apui import router as seguranca_paciente_apui_ro
 from routers.telessaude_apui import router as telessaude_apui_router
 from routers.laboratorio_apui import router as laboratorio_apui_router
 from routers.farmacia_especializada_apui import router as farmacia_espec_apui_router
+from routers.cuidados_paliativos_apui import router as cuidados_paliativos_apui_router
+from routers.saude_ribeirinha_apui import router as saude_ribeirinha_apui_router
+from routers.reabilitacao_apui import router as reabilitacao_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -428,6 +431,9 @@ app.include_router(seguranca_paciente_apui_router)
 app.include_router(telessaude_apui_router)
 app.include_router(laboratorio_apui_router)
 app.include_router(farmacia_espec_apui_router)
+app.include_router(cuidados_paliativos_apui_router)
+app.include_router(saude_ribeirinha_apui_router)
+app.include_router(reabilitacao_apui_router)
 
 
 @app.get("/")

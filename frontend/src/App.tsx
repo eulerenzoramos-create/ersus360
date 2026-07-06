@@ -191,6 +191,9 @@ import OuvidoriaApui            from "./pages/OuvidoriaApui";
 import TelessaudeApui           from "./pages/TelessaudeApui";
 import LaboratorioApui          from "./pages/LaboratorioApui";
 import FarmaciaEspecializadaApui from "./pages/FarmaciaEspecializadaApui";
+import CuidadosPaliativos        from "./pages/CuidadosPaliativos";
+import SaudeRibeirinha           from "./pages/SaudeRibeirinha";
+import ReabilitacaoApui          from "./pages/ReabilitacaoApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -464,6 +467,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/telessaude-apui"        label="TeleSaúde"             Icon={Monitor}/>
             <L1 to="/laboratorio-apui"       label="Laboratório Municipal" Icon={FlaskConical}/>
             <L1 to="/farmacia-especializada-apui" label="Farmácia Especializ." Icon={Pill}/>
+            <L1 to="/cuidados-paliativos"         label="Cuidados Paliativos"  Icon={Heart}/>
+            <L1 to="/saude-ribeirinha"            label="Saúde Ribeirinha"     Icon={Waves}/>
+            <L1 to="/reabilitacao-apui"           label="Reabilitação"         Icon={Activity}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -854,6 +860,9 @@ export default function App() {
             <Route path="/telessaude-apui"              element={<TelessaudeApui/>}/>
             <Route path="/laboratorio-apui"             element={<LaboratorioApui/>}/>
             <Route path="/farmacia-especializada-apui"  element={<FarmaciaEspecializadaApui/>}/>
+            <Route path="/cuidados-paliativos"           element={<CuidadosPaliativos/>}/>
+            <Route path="/saude-ribeirinha"              element={<SaudeRibeirinha/>}/>
+            <Route path="/reabilitacao-apui"             element={<ReabilitacaoApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
