@@ -170,6 +170,9 @@ import SaudeAmbiental           from "./pages/SaudeAmbiental";
 import VigEpidemAvancada        from "./pages/VigEpidemAvancada";
 import SaudeDigitalEsus         from "./pages/SaudeDigitalEsus";
 import GestaoPessoas            from "./pages/GestaoPessoas";
+import FundoMunicipal           from "./pages/FundoMunicipal";
+import JudicializacaoSaude      from "./pages/JudicializacaoSaude";
+import AtencaoEspecializada     from "./pages/AtencaoEspecializada";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -413,9 +416,12 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/reabilitacao"        label="Reabilitação / PCD"    Icon={UserCheck}/>
             <L1 to="/assist-farmaceutica" label="Assist. Farmacêutica"  Icon={Pill}/>
             <L1 to="/saude-ambiental"     label="Saúde Ambiental"       Icon={Droplets}/>
-            <L1 to="/vig-epidem-avancada" label="Vig. Epidem. Avançada" Icon={AlertTriangle}/>
-            <L1 to="/saude-digital-esus"  label="Saúde Digital / e-SUS" Icon={Monitor}/>
-            <L1 to="/gestao-pessoas"      label="Gestão de Pessoas"     Icon={UserCog}/>
+            <L1 to="/vig-epidem-avancada"   label="Vig. Epidem. Avançada"  Icon={AlertTriangle}/>
+            <L1 to="/saude-digital-esus"   label="Saúde Digital / e-SUS"  Icon={Monitor}/>
+            <L1 to="/gestao-pessoas"       label="Gestão de Pessoas"      Icon={UserCog}/>
+            <L1 to="/fundo-municipal"      label="Fundo Municipal Saúde"  Icon={Landmark}/>
+            <L1 to="/judicializacao-saude" label="Judicialização Saúde"   Icon={AlertTriangle}/>
+            <L1 to="/atencao-especializada" label="Atenção Especializada" Icon={Stethoscope}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -779,6 +785,9 @@ export default function App() {
             <Route path="/vig-epidem-avancada"       element={<VigEpidemAvancada/>}/>
             <Route path="/saude-digital-esus"        element={<SaudeDigitalEsus/>}/>
             <Route path="/gestao-pessoas"            element={<GestaoPessoas/>}/>
+            <Route path="/fundo-municipal"           element={<FundoMunicipal/>}/>
+            <Route path="/judicializacao-saude"      element={<JudicializacaoSaude/>}/>
+            <Route path="/atencao-especializada"     element={<AtencaoEspecializada/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

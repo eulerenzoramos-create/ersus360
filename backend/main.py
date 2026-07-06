@@ -218,6 +218,9 @@ from routers.saude_ambiental import router as saude_ambiental_router
 from routers.vig_epidem_avancada import router as vig_epidem_av_router
 from routers.saude_digital_esus import router as saude_digital_esus_router
 from routers.gestao_pessoas import router as gestao_pessoas_router
+from routers.fundo_municipal import router as fundo_municipal_router
+from routers.judicializacao_saude import router as judicializacao_saude_router
+from routers.atencao_especializada import router as atencao_espec_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -374,6 +377,9 @@ app.include_router(saude_ambiental_router)
 app.include_router(vig_epidem_av_router)
 app.include_router(saude_digital_esus_router)
 app.include_router(gestao_pessoas_router)
+app.include_router(fundo_municipal_router)
+app.include_router(judicializacao_saude_router)
+app.include_router(atencao_espec_router)
 
 
 @app.get("/")
