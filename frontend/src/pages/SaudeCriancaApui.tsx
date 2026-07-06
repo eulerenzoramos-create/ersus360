@@ -5,7 +5,7 @@ import {
   BarChart, Bar, LineChart, Line, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
-import { Smile, AlertTriangle, Activity, TrendingUp } from "lucide-react";
+import { Smile, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
 const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
@@ -33,31 +33,23 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
   </div>
 );
 
-const CAUSA_COLORS: Record<string, string> = {
-  "Infecções respiratórias agudas": CRIT,
-  "Doenças diarreicas agudas":       "#7c3aed",
-  "Prematuridade / BPN":            ACCENT,
-  "Malformação congênita":          "#64748b",
-  "Causas externas (afogamento)":   WARN,
-};
-
 export default function SaudeCriancaApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["sc-dashboard"],   queryFn: () => apiGet("/api/saude-crianca-apui/dashboard"),   enabled: aba === "dashboard" });
-  const { data: mortalidade } = useQuery({ queryKey: ["sc-mortalidade"], queryFn: () => apiGet("/api/saude-crianca-apui/mortalidade"), enabled: aba === "mortalidade" });
-  const { data: nutricao }    = useQuery({ queryKey: ["sc-nutricao"],    queryFn: () => apiGet("/api/saude-crianca-apui/nutricao"),    enabled: aba === "nutricao" });
-  const { data: historico }   = useQuery({ queryKey: ["sc-historico"],   queryFn: () => apiGet("/api/saude-crianca-apui/historico"),   enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["sc-ind"],         queryFn: () => apiGet("/api/saude-crianca-apui/indicadores"), enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["cri-dashboard"], queryFn: () => apiGet("/api/saude-crianca-apui/dashboard"),  enabled: aba === "dashboard" });
+  const { data: triagens }    = useQuery({ queryKey: ["cri-triagens"],  queryFn: () => apiGet("/api/saude-crianca-apui/triagens"),    enabled: aba === "triagens" });
+  const { data: nutricao }    = useQuery({ queryKey: ["cri-nutricao"],  queryFn: () => apiGet("/api/saude-crianca-apui/nutricao"),    enabled: aba === "nutricao" });
+  const { data: historico }   = useQuery({ queryKey: ["cri-hist"],      queryFn: () => apiGet("/api/saude-crianca-apui/historico"),   enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["cri-ind"],       queryFn: () => apiGet("/api/saude-crianca-apui/indicadores"), enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
   const ABAS = [
-    { key: "dashboard",    label: "Dashboard",    icon: <Smile size={15}/> },
-    { key: "mortalidade",  label: "Mortalidade",  icon: <AlertTriangle size={15}/> },
-    { key: "nutricao",     label: "Nutrição",     icon: <Activity size={15}/> },
-    { key: "historico",    label: "Histórico",    icon: <TrendingUp size={15}/> },
-    { key: "indicadores",  label: "Indicadores",  icon: <AlertTriangle size={15}/> },
+    { key: "dashboard",  label: "Dashboard",    icon: <Smile size={15}/> },
+    { key: "triagens",   label: "Triagens RN",  icon: <Activity size={15}/> },
+    { key: "nutricao",   label: "Nutrição",     icon: <AlertTriangle size={15}/> },
+    { key: "historico",  label: "Histórico",    icon: <TrendingUp size={15}/> },
+    { key: "indicadores",label: "Indicadores",  icon: <AlertTriangle size={15}/> },
   ];
 
   return (
@@ -69,7 +61,7 @@ export default function SaudeCriancaApui() {
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Saúde da Criança — Apuí/AM</h1>
-            <p className="text-sm text-slate-500">Mortalidade Infantil · Nutrição · D/C · Aleitamento · AIDPI · FMS Apuí/AM</p>
+            <p className="text-sm text-slate-500">Puericultura · Triagens · Nutrição · Desenvolvimento · FMS Apuí/AM</p>
           </div>
         </div>
 
@@ -86,109 +78,88 @@ export default function SaudeCriancaApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Mortalidade Infantil"  value={`${dashRaw.mortalidade_infantil_1k_NV}/1k NV`} color={statusColor(dashRaw.status_mortalidade)} sub="meta: 10" />
-              <KPI label="Óbitos Infantis/Ano"   value={dashRaw.obitos_infantis_ano.toString()} color={CRIT} sub="80% evitáveis" />
-              <KPI label="Baixo Peso ao Nascer"  value={`${dashRaw.baixo_peso_nascer_pct}%`} color={WARN} sub={`meta: ${dashRaw.meta_baixo_peso_pct}%`} />
-              <KPI label="Prematuridade"         value={`${dashRaw.prematuridade_pct}%`} color={WARN} sub="< 37 semanas" />
+              <KPI label="Acomp. < 2 anos"          value={`${dashRaw.acompanhamento_siab_menor_2_pct}%`} color={CRIT} sub={`meta: ${dashRaw.meta_acompanhamento_pct}%`} />
+              <KPI label="Desnutrição Crônica < 5a"  value={`${dashRaw.desnutricao_cronica_dea_pct}%`}    color={CRIT} sub={`meta: ${dashRaw.meta_desnutricao_pct}%`} />
+              <KPI label="Anemia < 2 anos"           value={`${dashRaw.anemia_ferropriva_menor_2_pct}%`}  color={CRIT} sub={`meta: ${dashRaw.meta_anemia_pct}%`} />
+              <KPI label="Parasitoses < 5a"          value={`${dashRaw.parasitoses_intestinais_pct}%`}    color={CRIT} sub="intestinais" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Aleitamento Exc. 6m"   value={`${dashRaw.aleitamento_materno_exclusivo_6m_pct}%`} color={statusColor(dashRaw.status_aleitamento)} sub={`meta: ${dashRaw.meta_aleitamento_pct}%`} />
-              <KPI label="Desnutrição < 2a"       value={`${dashRaw.desnutricao_grave_menores2_pct}%`} color={statusColor(dashRaw.status_nutricao)} sub={`meta: ${dashRaw.meta_desnutricao_pct}%`} />
-              <KPI label="Peso Monitorado < 2a"   value={`${dashRaw.cobertura_peso_monitorado_pct}%`} color={OK} sub={`meta: ${dashRaw.meta_peso_monitorado_pct}%`} />
-              <KPI label="Caderneta Atualizada"   value={`${dashRaw.criancas_com_caderneta_atualizada_pct}%`} color={WARN} sub="das crianças 0-9a" />
+              <KPI label="Teste do Pezinho"          value={`${dashRaw.teste_pezinho_pct}%`}              color={WARN} sub={`meta: ${dashRaw.meta_teste_pezinho_pct}%`} />
+              <KPI label="Teste da Orelhinha"        value={`${dashRaw.teste_orelhinha_pct}%`}            color={CRIT} sub={`meta: ${dashRaw.meta_teste_orelhinha_pct}%`} />
+              <KPI label="Trabalho Infantil (est.)"  value={`${dashRaw.trabalho_infantil_estimado}`}      color={CRIT} sub="crianças" />
+              <KPI label="Pediatra no Município"     value={`${dashRaw.pediatra_municipio}`}              color={CRIT} sub="zero especialista" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <h3 className="font-semibold text-slate-700 mb-3">Mortalidade Neonatal por Período</h3>
-                <div className="space-y-3">
+                <h3 className="font-semibold text-slate-700 mb-3">Triagens Neonatais e APS</h3>
+                <div className="space-y-2 text-sm">
                   {[
-                    { label: "Neonatal precoce (0-6d)",  value: dashRaw.mortalidade_neonatal_precoce, color: CRIT },
-                    { label: "Neonatal tardia (7-27d)",  value: dashRaw.mortalidade_neonatal_tardia,  color: WARN },
-                    { label: "Pós-neonatal (28d-<1a)",   value: dashRaw.mortalidade_pos_neonatal,     color: ACCENT },
-                  ].map((b) => (
-                    <div key={b.label} className="flex items-center justify-between">
-                      <span className="text-sm text-slate-600">{b.label}</span>
-                      <span className="font-bold text-sm" style={{ color: b.color }}>{b.value}/1k NV</span>
+                    { label: "Puericultura ≥6 cons./ano",      value: (dashRaw.puericultura_consultas_ano_crianca / dashRaw.meta_puericultura_consultas * 100), color: CRIT, display: `${dashRaw.puericultura_consultas_ano_crianca}/${dashRaw.meta_puericultura_consultas}` },
+                    { label: "Teste do pezinho (meta 100%)",   value: dashRaw.teste_pezinho_pct,  color: WARN, display: `${dashRaw.teste_pezinho_pct}%` },
+                    { label: "Teste da orelhinha (meta 100%)", value: dashRaw.teste_orelhinha_pct, color: CRIT, display: `${dashRaw.teste_orelhinha_pct}%` },
+                    { label: "Teste do olhinho (meta 100%)",   value: dashRaw.teste_olhinho_pct,  color: CRIT, display: `${dashRaw.teste_olhinho_pct}%` },
+                    { label: "Vitamina A supl. (meta 80%)",    value: dashRaw.suplementacao_vit_a_pct, color: WARN, display: `${dashRaw.suplementacao_vit_a_pct}%` },
+                    { label: "Sulfato ferroso (meta 80%)",     value: dashRaw.sulfato_ferroso_pct, color: CRIT, display: `${dashRaw.sulfato_ferroso_pct}%` },
+                  ].map((b: any) => (
+                    <div key={b.label}>
+                      <div className="flex justify-between text-xs mb-0.5">
+                        <span className="text-slate-600">{b.label}</span>
+                        <span className="font-bold" style={{ color: b.color }}>{b.display}</span>
+                      </div>
+                      <ProgressBar value={b.value} max={100} color={b.color} />
                     </div>
                   ))}
                 </div>
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
-                <p><b>80% dos óbitos infantis eram evitáveis</b> — diarreia, IRA, afogamento e prematuridade evitável com pré-natal e saneamento.</p>
-                <p><b>Desnutrição grave 4,8%</b> — 2× acima da meta 2%. Ribeirinhos com taxa estimada 12,4% — sem água tratada, sem alimentação complementar adequada.</p>
-                <p><b>Aleitamento exclusivo 6m: 42,4%</b> — 17,6 pp abaixo da meta. Retorno precoce ao trabalho e falta de suporte de lactação são as principais causas.</p>
+                <p><b>Puericultura 2,4 consultas/ano vs 6 preconizadas</b> — criança ribeirinha vai ao posto quando está doente, não para prevenção. Desnutrição, anemia e atraso de desenvolvimento passam despercebidos até estarem avançados.</p>
+                <p><b>Teste da orelhinha 48,4%</b> — perda auditiva congênita bilateral não diagnosticada até 6 meses = criança muda funcional. 51,6% sem triagem é inaceitável: aparelho OEA existe no HMM mas sem protocolo de aplicação universal.</p>
+                <p><b>84 crianças em trabalho infantil estimado</b> — garimpo ilegal e agricultura familiar. Exposição a mercúrio no garimpo desde criança = dano neurológico. CREAS sem capacidade de fiscalização. Trabalho infantil é o maior preditor de evasão escolar.</p>
               </div>
             </div>
           </div>
         )}
 
-        {aba === "mortalidade" && Array.isArray(mortalidade) && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-4">Óbitos Infantis por Causa — Apuí/AM (2025)</h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={mortalidade as any[]} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="causa" tick={{ fontSize: 8 }} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip formatter={(v: any) => `${v} óbito(s)`} />
-                  <Bar dataKey="obitos" name="Óbitos" radius={[3,3,0,0]}>
-                    {(mortalidade as any[]).map((m: any) => <Cell key={m.causa} fill={CAUSA_COLORS[m.causa] || BRAND} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="grid gap-2">
-              {(mortalidade as any[]).map((m: any) => (
-                <div key={m.causa} className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full" style={{ background: CAUSA_COLORS[m.causa] || BRAND }} />
-                    <span className="font-semibold text-sm text-slate-700">{m.causa}</span>
-                  </div>
+        {aba === "triagens" && Array.isArray(triagens) && (
+          <div className="space-y-3">
+            {(triagens as any[]).map((t: any) => (
+              <div key={t.triagem} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    {m.evitavel && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold">EVITÁVEL</span>}
-                    <span className="text-lg font-bold" style={{ color: statusColor(m.status) }}>{m.obitos}</span>
-                    <span className="text-xs text-slate-400">({m.pct}%)</span>
+                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(t.status) }} />
+                    <div>
+                      <p className="font-semibold text-sm text-slate-700">{t.triagem}</p>
+                      <p className="text-xs text-slate-400">Prazo ideal: {t.prazo_ideal_dias}</p>
+                    </div>
                   </div>
+                  <span className="font-bold text-sm ml-4 text-right" style={{ color: statusColor(t.status) }}>{t.cobertura_pct}% / meta {t.meta_pct}%</span>
                 </div>
-              ))}
-            </div>
+                <p className="text-xs text-slate-500 ml-5">{t.observacao}</p>
+              </div>
+            ))}
           </div>
         )}
 
         {aba === "nutricao" && Array.isArray(nutricao) && (
           <div className="space-y-4">
             <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-4">Indicadores Nutricionais por Faixa Etária</h3>
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={nutricao as any[]} margin={{ top: 5, right: 60, bottom: 5, left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="faixa" tick={{ fontSize: 9 }} />
+              <h3 className="font-semibold text-slate-700 mb-4">Estado Nutricional por Faixa Etária (%)</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={nutricao as any[]} margin={{ left: 0, right: 10 }}>
+                  <XAxis dataKey="faixa" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} unit="%" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip formatter={(v: any) => `${v}%`} />
                   <Legend />
-                  <Bar dataKey="resultado_pct" name="Resultado (%)" radius={[3,3,0,0]}>
-                    {(nutricao as any[]).map((n: any) => <Cell key={n.faixa} fill={statusColor(n.status)} />)}
-                  </Bar>
+                  <Bar dataKey="desnutricao_cr_pct"  name="Desnutrição crônica" fill={CRIT}   radius={[3,3,0,0]} />
+                  <Bar dataKey="desnutricao_ag_pct"  name="Desnutrição aguda"   fill={WARN}   radius={[3,3,0,0]} />
+                  <Bar dataKey="sobrepeso_pct"       name="Sobrepeso/obesidade" fill={ACCENT} radius={[3,3,0,0]} />
+                  <Bar dataKey="anemia_pct"          name="Anemia"              fill="#64748b" radius={[3,3,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="grid gap-2">
-              {(nutricao as any[]).map((n: any) => (
-                <div key={n.faixa} className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm">
-                  <div className="flex items-center justify-between mb-1">
-                    <div>
-                      <span className="font-semibold text-sm text-slate-700">{n.indicador}</span>
-                      <p className="text-xs text-slate-400">{n.faixa} · {n.total.toLocaleString()} crianças</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-bold" style={{ color: statusColor(n.status) }}>{n.resultado_pct}%</span>
-                      <p className="text-xs text-slate-400">meta: {n.meta_pct}%</p>
-                    </div>
-                  </div>
-                  <ProgressBar value={n.resultado_pct} max={Math.max(n.meta_pct, n.resultado_pct)} color={statusColor(n.status)} />
-                </div>
-              ))}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+              <b>Dupla carga nutricional</b> — desnutrição crônica e sobrepeso coexistindo nas mesmas comunidades. Zona ribeirinha com desnutrição crônica > 20% em < 5 anos. Sede urbana com obesidade crescente. SISVAN com cobertura 58,4% em < 5 anos: dados subestimam realidade.
             </div>
           </div>
         )}
@@ -200,13 +171,14 @@ export default function SaudeCriancaApui() {
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
-                <YAxis yAxisId="n" tick={{ fontSize: 11 }} />
-                <YAxis yAxisId="s" orientation="right" tick={{ fontSize: 10 }} unit="%" />
-                <Tooltip />
+                <YAxis tick={{ fontSize: 11 }} unit="%" />
+                <Tooltip formatter={(v: any) => `${v}%`} />
                 <Legend />
-                <Line yAxisId="n" dataKey="mi_1k_nv"         name="MI (/1k NV)"          stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
-                <Line yAxisId="s" dataKey="desnutricao_pct"   name="Desnutrição grave (%)" stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line yAxisId="s" dataKey="ame_pct"           name="Aleitamento exc. (%)"  stroke={OK}     strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line dataKey="acomp_siab_pct"     name="Acomp. SISAB < 2a (%)" stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
+                <Line dataKey="desnutricao_cr_pct"  name="Desnutrição cr. (%)"   stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line dataKey="anemia_pct"          name="Anemia < 2a (%)"       stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line dataKey="teste_pezinho_pct"   name="Teste do pezinho (%)"  stroke={OK}     strokeWidth={2} dot={{ r: 4 }} />
+                <Line dataKey="vit_a_pct"           name="Vit. A supl. (%)"      stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>

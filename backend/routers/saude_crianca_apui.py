@@ -3,59 +3,68 @@ from fastapi import APIRouter
 router = APIRouter(prefix="/api/saude-crianca-apui", tags=["saude_crianca_apui"])
 
 _DASHBOARD = {
-    "nascidos_vivos_ano": 284,
-    "mortalidade_infantil_1k_NV": 18.4,
-    "meta_mortalidade_infantil": 10.0,
-    "obitos_infantis_ano": 5,
-    "mortalidade_neonatal_precoce": 10.6,
-    "mortalidade_neonatal_tardia": 3.5,
-    "mortalidade_pos_neonatal": 4.2,
-    "prematuridade_pct": 8.4,
-    "baixo_peso_nascer_pct": 9.2,
-    "meta_baixo_peso_pct": 8.0,
-    "aleitamento_materno_exclusivo_6m_pct": 42.4,
-    "meta_aleitamento_pct": 60.0,
-    "desnutricao_grave_menores2_pct": 4.8,
-    "meta_desnutricao_pct": 2.0,
-    "cobertura_peso_monitorado_pct": 72.4,
-    "meta_peso_monitorado_pct": 55.0,
-    "criancas_0_9_estimativa": 5840,
-    "criancas_com_caderneta_atualizada_pct": 64.2,
-    "status_mortalidade": "critico",
+    "populacao_menor_5_anos": 1482,
+    "populacao_menor_10_anos": 2964,
+    "nascidos_vivos_ano": 248,
+    "acompanhamento_siab_menor_2_pct": 64.2,
+    "meta_acompanhamento_pct": 100.0,
+    "puericultura_consultas_ano_crianca": 2.4,
+    "meta_puericultura_consultas": 6.0,
+    "desnutricao_cronica_dea_pct": 13.2,
+    "meta_desnutricao_pct": 3.0,
+    "sobrepeso_obesidade_menor_10_pct": 18.4,
+    "anemia_ferropriva_menor_2_pct": 38.4,
+    "meta_anemia_pct": 10.0,
+    "teste_pezinho_pct": 72.4,
+    "meta_teste_pezinho_pct": 100.0,
+    "teste_orelhinha_pct": 48.4,
+    "meta_teste_orelhinha_pct": 100.0,
+    "teste_olhinho_pct": 38.4,
+    "meta_teste_olhinho_pct": 100.0,
+    "diarreia_recorrente_menor_5_pct": 28.4,
+    "internacao_diarreia_menores_5_ano": 48,
+    "parasitoses_intestinais_pct": 64.2,
+    "violencia_contra_crianca_notif_ano": 28,
+    "trabalho_infantil_estimado": 84,
+    "criancas_fora_escola_pct": 12.4,
+    "suplementacao_vit_a_pct": 64.2,
+    "meta_vit_a_pct": 80.0,
+    "sulfato_ferroso_pct": 48.4,
+    "meta_ferro_pct": 80.0,
+    "pediatra_municipio": 0,
     "status_nutricao": "critico",
-    "status_aleitamento": "atencao",
+    "status_desenvolvimento": "critico",
+    "status_triagens": "critico",
 }
 
-_MORTALIDADE = [
-    {"causa": "Infecções respiratórias agudas",     "obitos": 1, "pct": 20.0, "evitavel": True,  "status": "critico"},
-    {"causa": "Doenças diarreicas agudas",           "obitos": 1, "pct": 20.0, "evitavel": True,  "status": "critico"},
-    {"causa": "Prematuridade / BPN",                "obitos": 1, "pct": 20.0, "evitavel": True,  "status": "critico"},
-    {"causa": "Malformação congênita",              "obitos": 1, "pct": 20.0, "evitavel": False, "status": "atencao"},
-    {"causa": "Causas externas (afogamento)",        "obitos": 1, "pct": 20.0, "evitavel": True,  "status": "critico"},
+_TRIAGENS_NEONATAIS = [
+    {"triagem": "Teste do pezinho (fenilcetonúria, hipotireoidismo, etc.)", "cobertura_pct": 72.4, "meta_pct": 100.0, "status": "atencao", "prazo_ideal_dias": "3-5 dias", "observacao": "27,6% sem triagem — parto domiciliar (15,8%) não acessa. Resultado em 15-30 dias via LACEN-AM: hipotireoidismo congênito não tratado até 30 dias = deficiência intelectual irreversível"},
+    {"triagem": "Teste da orelhinha (triagem auditiva neonatal)",           "cobertura_pct": 48.4, "meta_pct": 100.0, "status": "critico", "prazo_ideal_dias": "até 30 dias", "observacao": "51,6% sem triagem auditiva — aparelho OEA disponível no HMM mas fluxo não sistematizado. Perda auditiva não diagnosticada atrasa desenvolvimento de linguagem, causa fracasso escolar e distorção idade-série"},
+    {"triagem": "Teste do olhinho (reflexo vermelho)",                      "cobertura_pct": 38.4, "meta_pct": 100.0, "status": "critico", "prazo_ideal_dias": "antes da alta", "observacao": "61,6% sem triagem — retinopatia da prematuridade e catarata congênita tratáveis até 3 meses tornam-se irreversíveis sem diagnóstico precoce. Sem oftalmologista: encaminhamento para Manaus (784 km)"},
+    {"triagem": "Teste do coraçãozinho (cardiopatia congênita)",            "cobertura_pct": 28.4, "meta_pct": 100.0, "status": "critico", "prazo_ideal_dias": "24-48h pós-parto", "observacao": "Oximetria de pulso pré e pós-ductal: simples, barata, salva vida. 71,6% sem triagem — cardiopatia crítica vai para casa e retorna em choque. HMM tem oxímetro mas protocolo não implementado"},
+    {"triagem": "Triagem de displasia do quadril",                          "cobertura_pct": 22.4, "meta_pct": 100.0, "status": "critico", "prazo_ideal_dias": "1ª puericultura", "observacao": "Displasia não tratada até 6 meses = cirurgia maior. Manobra de Barlow/Ortolani na puericultura: médico ou enfermeiro capacitado. Cirurgia ortopédica pediátrica: Manaus (784 km)"},
 ]
 
-_NUTRICAO = [
-    {"faixa": "< 6 meses (AME)",        "total": 142, "indicador": "Aleitamento exclusivo", "resultado_pct": 42.4, "meta_pct": 60.0, "status": "atencao"},
-    {"faixa": "< 2 anos (peso)",         "total": 568, "indicador": "Peso monitorado",       "resultado_pct": 72.4, "meta_pct": 55.0, "status": "ok"},
-    {"faixa": "< 2 anos (desnutrição)", "total": 568, "indicador": "Desnutrição grave",      "resultado_pct": 4.8,  "meta_pct": 2.0,  "status": "critico"},
-    {"faixa": "< 5 anos (baixo peso)",  "total": 1460,"indicador": "Baixo peso/idade",       "resultado_pct": 8.4,  "meta_pct": 5.0,  "status": "atencao"},
-    {"faixa": "5-9 anos (excesso peso)","total": 2920,"indicador": "Sobrepeso/obesidade",    "resultado_pct": 22.4, "meta_pct": 15.0, "status": "atencao"},
+_NUTRICAO_CRIANCA = [
+    {"faixa": "< 6 meses",  "desnutricao_ag_pct": 4.8,  "desnutricao_cr_pct": 8.4,  "sobrepeso_pct": 8.4,  "anemia_pct": 28.4, "status": "critico"},
+    {"faixa": "6–23 meses", "desnutricao_ag_pct": 8.4,  "desnutricao_cr_pct": 13.2, "sobrepeso_pct": 12.4, "anemia_pct": 38.4, "status": "critico"},
+    {"faixa": "2–4 anos",   "desnutricao_ag_pct": 6.4,  "desnutricao_cr_pct": 14.8, "sobrepeso_pct": 16.4, "anemia_pct": 32.4, "status": "critico"},
+    {"faixa": "5–9 anos",   "desnutricao_ag_pct": 4.2,  "desnutricao_cr_pct": 12.4, "sobrepeso_pct": 22.4, "anemia_pct": 18.4, "status": "critico"},
 ]
 
 _HISTORICO = [
-    {"ano": "2022", "nascidos_vivos": 296, "obitos_inf": 7, "mi_1k_nv": 23.6, "desnutricao_pct": 5.8, "ame_pct": 38.4},
-    {"ano": "2023", "nascidos_vivos": 288, "obitos_inf": 6, "mi_1k_nv": 20.8, "desnutricao_pct": 5.4, "ame_pct": 39.8},
-    {"ano": "2024", "nascidos_vivos": 290, "obitos_inf": 6, "mi_1k_nv": 20.7, "desnutricao_pct": 5.2, "ame_pct": 41.2},
-    {"ano": "2025", "nascidos_vivos": 284, "obitos_inf": 5, "mi_1k_nv": 18.4, "desnutricao_pct": 4.8, "ame_pct": 42.4},
+    {"ano": "2022", "acomp_siab_pct": 52.4, "desnutricao_cr_pct": 16.4, "anemia_pct": 42.4, "teste_pezinho_pct": 62.4, "vit_a_pct": 56.4},
+    {"ano": "2023", "acomp_siab_pct": 56.4, "desnutricao_cr_pct": 15.2, "anemia_pct": 40.8, "teste_pezinho_pct": 66.8, "vit_a_pct": 58.8},
+    {"ano": "2024", "acomp_siab_pct": 60.8, "desnutricao_cr_pct": 14.2, "anemia_pct": 39.4, "teste_pezinho_pct": 69.4, "vit_a_pct": 61.4},
+    {"ano": "2025", "acomp_siab_pct": 64.2, "desnutricao_cr_pct": 13.2, "anemia_pct": 38.4, "teste_pezinho_pct": 72.4, "vit_a_pct": 64.2},
 ]
 
 _INDICADORES = [
-    {"indicador": "Mortalidade infantil",              "valor": 18.4, "meta": 10.0, "unidade": "/1k NV", "status": "critico", "observacao": "18,4/1k NV vs meta 10 — 5 óbitos em 2025, todos com causa evitável ou possivelmente evitável. Redução de 23,6 (2022) é positiva mas insuficiente"},
-    {"indicador": "Baixo peso ao nascer",              "valor": 9.2,  "meta": 8.0,  "unidade": "%",      "status": "atencao", "observacao": "9,2% vs meta 8% — pré-natal tardio e sífilis congênita são fatores diretos. Ribeirinhos têm taxa estimada 2× maior"},
-    {"indicador": "Desnutrição grave < 2 anos",        "valor": 4.8,  "meta": 2.0,  "unidade": "%",      "status": "critico", "observacao": "4,8% vs meta 2% — área ribeirinha tem prevalência estimada de 12,4%. Falta de acesso à alimentação complementar de qualidade"},
-    {"indicador": "Aleitamento materno exclusivo 6m",  "valor": 42.4, "meta": 60.0, "unidade": "%",      "status": "atencao", "observacao": "42,4% vs meta 60% — retorno precoce ao trabalho, falta de suporte de lactação e introdução precoce de fórmula são as causas"},
-    {"indicador": "Caderneta de saúde atualizada",     "valor": 64.2, "meta": 100.0,"unidade": "%",      "status": "atencao", "observacao": "35,8% das crianças sem caderneta em dia — dificulta vigilância do D/C e identificação de atrasos no desenvolvimento"},
-    {"indicador": "Mortalidade evitável (% dos óbitos)","valor": 80.0,"meta": 0.0,  "unidade": "%",      "status": "critico", "observacao": "4 de 5 óbitos infantis eram evitáveis — diarreia, IRA e afogamento são preveníveis com acesso, saneamento e educação"},
+    {"indicador": "Acompanhamento SISAB < 2 anos",  "valor": 64.2, "meta": 100.0, "unidade": "%",       "status": "critico", "observacao": "35,8% das crianças < 2 anos sem acompanhamento regular na APS. Puericultura 2,4 consultas/ano vs 6 preconizadas. Criança ribeirinha tem acesso mensal irregular à UBS: vacinas atrasadas, desnutrição não detectada, desenvolvimento não monitorado"},
+    {"indicador": "Desnutrição crônica < 5 anos",   "valor": 13.2, "meta": 3.0,   "unidade": "%",       "status": "critico", "observacao": "4,4x acima da meta — zona ribeirinha e rural com prevalência estimada > 20%. SISVAN com cobertura 58,4% em < 5 anos: subnotificação subestima o problema. Desnutrição crônica na primeira infância = déficit cognitivo irreversível, ciclo de pobreza"},
+    {"indicador": "Anemia ferropriva < 2 anos",     "valor": 38.4, "meta": 10.0,  "unidade": "%",       "status": "critico", "observacao": "3,8x acima da meta — sulfato ferroso profilático em 48,4% (meta 80%). Aleitamento exclusivo apenas 28,4% até 6 meses: introdução precoce de alimentos sem ferro biodisponível. Anemia na primeira infância = deficit cognitivo, baixo rendimento escolar"},
+    {"indicador": "Teste da orelhinha",              "valor": 48.4, "meta": 100.0, "unidade": "%",       "status": "critico", "observacao": "51,6% sem triagem auditiva. Perda auditiva bilateral congênita não diagnosticada até 6 meses = criança muda funcional. Aparelho OEA existe no HMM mas sem protocolo de aplicação universal. Fluxo pós-resultado positivo: fonoaudiólogo em Manaus"},
+    {"indicador": "Trabalho infantil (estimado)",    "valor": 84,   "meta": 0,     "unidade": "crianças","status": "critico", "observacao": "84 crianças em trabalho infantil estimado — garimpo ilegal e agricultura familiar utilizam mão de obra infantil. CREAS com capacidade limitada para fiscalização. Trabalho infantil no garimpo = exposição a mercúrio, acidente, abandono escolar"},
 ]
 
 
@@ -64,14 +73,14 @@ def dashboard():
     return _DASHBOARD
 
 
-@router.get("/mortalidade")
-def mortalidade():
-    return _MORTALIDADE
+@router.get("/triagens")
+def triagens():
+    return _TRIAGENS_NEONATAIS
 
 
 @router.get("/nutricao")
 def nutricao():
-    return _NUTRICAO
+    return _NUTRICAO_CRIANCA
 
 
 @router.get("/historico")

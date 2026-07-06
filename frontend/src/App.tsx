@@ -221,6 +221,9 @@ import DoencasCronicasApui        from "./pages/DoencasCronicasApui";
 import SaudeMentalApui2           from "./pages/SaudeMentalApui2";
 import ImunizacaoApui             from "./pages/ImunizacaoApui";
 import MaternoInfantilApui        from "./pages/MaternoInfantilApui";
+import AtencaoPrimariaApui        from "./pages/AtencaoPrimariaApui";
+import SaudeIdosoApui             from "./pages/SaudeIdosoApui";
+import SaudeCriancaApui           from "./pages/SaudeCriancaApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -524,6 +527,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/saude-mental-apui"           label="Saúde Mental"         Icon={Brain}/>
             <L1 to="/imunizacao-apui"             label="Imunização / PNI"     Icon={Syringe}/>
             <L1 to="/materno-infantil-apui"       label="Materno-Infantil"     Icon={Baby}/>
+            <L1 to="/atencao-primaria-apui"       label="Atenção Primária"     Icon={Stethoscope}/>
+            <L1 to="/saude-idoso-apui"            label="Saúde do Idoso"       Icon={UserCheck}/>
+            <L1 to="/saude-crianca-apui"          label="Saúde da Criança"     Icon={Smile}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -944,6 +950,9 @@ export default function App() {
             <Route path="/saude-mental-apui"         element={<SaudeMentalApui2/>}/>
             <Route path="/imunizacao-apui"           element={<ImunizacaoApui/>}/>
             <Route path="/materno-infantil-apui"     element={<MaternoInfantilApui/>}/>
+            <Route path="/atencao-primaria-apui"     element={<AtencaoPrimariaApui/>}/>
+            <Route path="/saude-idoso-apui"          element={<SaudeIdosoApui/>}/>
+            <Route path="/saude-crianca-apui"        element={<SaudeCriancaApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
