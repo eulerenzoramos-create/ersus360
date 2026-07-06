@@ -186,6 +186,8 @@ import PlanoMunicipalSaude      from "./pages/PlanoMunicipalSaude";
 import ScoreMunicipal           from "./pages/ScoreMunicipal";
 import GestaoContratosFms       from "./pages/GestaoContratosFms";
 import VisaMunicipal            from "./pages/VisaMunicipal";
+import ConselhoSaudeApui        from "./pages/ConselhoSaudeApui";
+import OuvidoriaApui            from "./pages/OuvidoriaApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -453,6 +455,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/visa-municipal"         label="Vigilância Sanitária"   Icon={ShieldCheck}/>
             <L1 to="/saude-trabalhador-apui" label="Saúde do Trabalhador"   Icon={Wrench}/>
             <L1 to="/educacao-permanente-apui" label="Educação Permanente"  Icon={BookOpen}/>
+            <L1 to="/conselho-saude-apui"    label="Conselho de Saúde"     Icon={Users}/>
+            <L1 to="/ouvidoria-apui"         label="Ouvidoria Municipal"   Icon={MessageSquare}/>
+            <L1 to="/seguranca-paciente-apui"label="Segurança do Paciente" Icon={Shield}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -834,9 +839,12 @@ export default function App() {
             <Route path="/urgencia-emergencia"    element={<UrgenciaEmergencia/>}/>
             <Route path="/regulacao-acesso"       element={<RegulacaoAcesso/>}/>
             <Route path="/gestao-leitos"          element={<GestaoLeitos/>}/>
-            <Route path="/visa-municipal"         element={<VisaMunicipal/>}/>
-            <Route path="/saude-trabalhador-apui" element={<SaudeTrabalhador/>}/>
-            <Route path="/educacao-permanente-apui" element={<EducacaoPermanente/>}/>
+            <Route path="/visa-municipal"           element={<VisaMunicipal/>}/>
+            <Route path="/saude-trabalhador-apui"  element={<SaudeTrabalhador/>}/>
+            <Route path="/educacao-permanente-apui"element={<EducacaoPermanente/>}/>
+            <Route path="/conselho-saude-apui"     element={<ConselhoSaudeApui/>}/>
+            <Route path="/ouvidoria-apui"          element={<OuvidoriaApui/>}/>
+            <Route path="/seguranca-paciente-apui" element={<SegurancaPaciente/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

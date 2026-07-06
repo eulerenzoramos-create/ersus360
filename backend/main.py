@@ -239,6 +239,9 @@ from routers.gestao_leitos_apui import router as gestao_leitos_apui_router
 from routers.visa_municipal_apui import router as visa_municipal_apui_router
 from routers.saude_trabalhador_apui import router as saude_trabalhador_apui_router
 from routers.educacao_permanente_apui import router as educacao_permanente_apui_router
+from routers.conselho_saude_apui import router as conselho_saude_apui_router
+from routers.ouvidoria_apui import router as ouvidoria_apui_router
+from routers.seguranca_paciente_apui import router as seguranca_paciente_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -416,6 +419,9 @@ app.include_router(gestao_leitos_apui_router)
 app.include_router(visa_municipal_apui_router)
 app.include_router(saude_trabalhador_apui_router)
 app.include_router(educacao_permanente_apui_router)
+app.include_router(conselho_saude_apui_router)
+app.include_router(ouvidoria_apui_router)
+app.include_router(seguranca_paciente_apui_router)
 
 
 @app.get("/")
