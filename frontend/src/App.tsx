@@ -200,6 +200,9 @@ import ImunizacaoApui            from "./pages/ImunizacaoApui";
 import VigilanciaEpidemApui      from "./pages/VigilanciaEpidemApui";
 import SaudeMulherApui           from "./pages/SaudeMulherApui";
 import SaudeCriancaApui          from "./pages/SaudeCriancaApui";
+import HiperdiaApui              from "./pages/HiperdiaApui";
+import SaudeIdosoApui            from "./pages/SaudeIdosoApui";
+import OncologiaApui             from "./pages/OncologiaApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -482,6 +485,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/vigilancia-epidem-apui"      label="Vigilância Epidem."   Icon={Bug}/>
             <L1 to="/saude-mulher-apui"           label="Saúde da Mulher"      Icon={Baby}/>
             <L1 to="/saude-crianca-apui"          label="Saúde da Criança"     Icon={Smile}/>
+            <L1 to="/hiperdia-apui"               label="Hiperdia / HAS + DM"  Icon={Thermometer}/>
+            <L1 to="/saude-idoso-apui"            label="Saúde do Idoso"       Icon={UserCheck}/>
+            <L1 to="/oncologia-apui"              label="Oncologia"            Icon={Stethoscope}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -881,6 +887,9 @@ export default function App() {
             <Route path="/vigilancia-epidem-apui"        element={<VigilanciaEpidemApui/>}/>
             <Route path="/saude-mulher-apui"             element={<SaudeMulherApui/>}/>
             <Route path="/saude-crianca-apui"            element={<SaudeCriancaApui/>}/>
+            <Route path="/hiperdia-apui"                 element={<HiperdiaApui/>}/>
+            <Route path="/saude-idoso-apui"              element={<SaudeIdosoApui/>}/>
+            <Route path="/oncologia-apui"                element={<OncologiaApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
