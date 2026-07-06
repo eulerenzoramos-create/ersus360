@@ -215,6 +215,9 @@ from routers.nutricao import router as nutricao_router
 from routers.reabilitacao import router as reabilitacao_router
 from routers.assist_farmaceutica import router as assist_farm_router
 from routers.saude_ambiental import router as saude_ambiental_router
+from routers.vig_epidem_avancada import router as vig_epidem_av_router
+from routers.saude_digital_esus import router as saude_digital_esus_router
+from routers.gestao_pessoas import router as gestao_pessoas_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -368,6 +371,9 @@ app.include_router(nutricao_router)
 app.include_router(reabilitacao_router)
 app.include_router(assist_farm_router)
 app.include_router(saude_ambiental_router)
+app.include_router(vig_epidem_av_router)
+app.include_router(saude_digital_esus_router)
+app.include_router(gestao_pessoas_router)
 
 
 @app.get("/")
