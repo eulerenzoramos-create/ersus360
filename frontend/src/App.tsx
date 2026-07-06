@@ -209,6 +209,9 @@ import SaudeBucalApui            from "./pages/SaudeBucalApui";
 import IstHivHepatitesApui       from "./pages/IstHivHepatitesApui";
 import HanseniaseApui             from "./pages/HanseniaseApui";
 import SaudeAmbientalApui         from "./pages/SaudeAmbientalApui";
+import UrgenciaEmergenciaApui     from "./pages/UrgenciaEmergenciaApui";
+import NutricaoSisvanApui         from "./pages/NutricaoSisvanApui";
+import RegulacaoEspecializadaApui from "./pages/RegulacaoEspecializadaApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -500,6 +503,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/ist-hiv-hepatites-apui"      label="IST / HIV / Hepatites" Icon={FlaskConical}/>
             <L1 to="/hanseniase-apui"             label="Hanseníase"           Icon={Eye}/>
             <L1 to="/saude-ambiental-apui"        label="Saúde Ambiental"      Icon={Layers}/>
+            <L1 to="/urgencia-emergencia-apui"    label="Urgência e Emergência" Icon={Clock}/>
+            <L1 to="/nutricao-sisvan-apui"        label="Nutrição / SISVAN"    Icon={ShoppingBag}/>
+            <L1 to="/regulacao-especializada-apui" label="Regulação Especializ." Icon={Globe}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -908,6 +914,9 @@ export default function App() {
             <Route path="/ist-hiv-hepatites-apui"        element={<IstHivHepatitesApui/>}/>
             <Route path="/hanseniase-apui"               element={<HanseniaseApui/>}/>
             <Route path="/saude-ambiental-apui"          element={<SaudeAmbientalApui/>}/>
+            <Route path="/urgencia-emergencia-apui"      element={<UrgenciaEmergenciaApui/>}/>
+            <Route path="/nutricao-sisvan-apui"          element={<NutricaoSisvanApui/>}/>
+            <Route path="/regulacao-especializada-apui"  element={<RegulacaoEspecializadaApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
