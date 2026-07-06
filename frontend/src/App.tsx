@@ -173,6 +173,9 @@ import GestaoPessoas            from "./pages/GestaoPessoas";
 import FundoMunicipal           from "./pages/FundoMunicipal";
 import JudicializacaoSaude      from "./pages/JudicializacaoSaude";
 import AtencaoEspecializada     from "./pages/AtencaoEspecializada";
+import DcntCronicas             from "./pages/DcntCronicas";
+import CancerRastreio           from "./pages/CancerRastreio";
+import SaudeBucalMunicipal      from "./pages/SaudeBucalMunicipal";
 import SaudeMentalCaps          from "./pages/SaudeMentalCaps";
 import RedeCegonha               from "./pages/RedeCegonha";
 import ProgramaSaudeEscola       from "./pages/ProgramaSaudeEscola";
@@ -428,6 +431,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/fundo-municipal"      label="Fundo Municipal Saúde"  Icon={Landmark}/>
             <L1 to="/judicializacao-saude" label="Judicialização Saúde"   Icon={AlertTriangle}/>
             <L1 to="/atencao-especializada" label="Atenção Especializada" Icon={Stethoscope}/>
+            <L1 to="/dcnt-cronicas"            label="DCNT / Crônicas"        Icon={Activity}/>
+            <L1 to="/cancer-rastreio"         label="Câncer e Rastreio"       Icon={ShieldCheck}/>
+            <L1 to="/saude-bucal-municipal"   label="Saúde Bucal Municipal"   Icon={Smile}/>
             <L1 to="/saude-mental-caps"       label="Saúde Mental / CAPS"    Icon={Brain}/>
             <L1 to="/rede-cegonha"           label="Rede Cegonha"           Icon={Baby}/>
             <L1 to="/programa-saude-escola"  label="Saúde na Escola (PSE)"  Icon={School}/>
@@ -800,6 +806,9 @@ export default function App() {
             <Route path="/fundo-municipal"           element={<FundoMunicipal/>}/>
             <Route path="/judicializacao-saude"      element={<JudicializacaoSaude/>}/>
             <Route path="/atencao-especializada"     element={<AtencaoEspecializada/>}/>
+            <Route path="/dcnt-cronicas"           element={<DcntCronicas/>}/>
+            <Route path="/cancer-rastreio"        element={<CancerRastreio/>}/>
+            <Route path="/saude-bucal-municipal"  element={<SaudeBucalMunicipal/>}/>
             <Route path="/saude-mental-caps"       element={<SaudeMentalCaps/>}/>
             <Route path="/rede-cegonha"           element={<RedeCegonha/>}/>
             <Route path="/programa-saude-escola"  element={<ProgramaSaudeEscola/>}/>

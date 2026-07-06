@@ -227,6 +227,9 @@ from routers.gestao_contratos_fms import router as contratos_fms_router
 from routers.saude_mental_caps import router as saude_mental_caps_router
 from routers.rede_cegonha import router as rede_cegonha_router
 from routers.programa_saude_escola import router as pse_router
+from routers.dcnt_cronicas import router as dcnt_cronicas_router
+from routers.cancer_rastreio import router as cancer_rastreio_router
+from routers.saude_bucal_municipal import router as saude_bucal_mun_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -392,6 +395,9 @@ app.include_router(contratos_fms_router)
 app.include_router(saude_mental_caps_router)
 app.include_router(rede_cegonha_router)
 app.include_router(pse_router)
+app.include_router(dcnt_cronicas_router)
+app.include_router(cancer_rastreio_router)
+app.include_router(saude_bucal_mun_router)
 
 
 @app.get("/")
