@@ -230,6 +230,9 @@ from routers.programa_saude_escola import router as pse_router
 from routers.dcnt_cronicas import router as dcnt_cronicas_router
 from routers.cancer_rastreio import router as cancer_rastreio_router
 from routers.saude_bucal_municipal import router as saude_bucal_mun_router
+from routers.malaria_endemias import router as malaria_endemias_router
+from routers.vigilancia_nutricional import router as vig_nutricional_router
+from routers.saude_indigena_apui import router as saude_indigena_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -398,6 +401,9 @@ app.include_router(pse_router)
 app.include_router(dcnt_cronicas_router)
 app.include_router(cancer_rastreio_router)
 app.include_router(saude_bucal_mun_router)
+app.include_router(malaria_endemias_router)
+app.include_router(vig_nutricional_router)
+app.include_router(saude_indigena_router)
 
 
 @app.get("/")

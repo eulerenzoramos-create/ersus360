@@ -173,6 +173,9 @@ import GestaoPessoas            from "./pages/GestaoPessoas";
 import FundoMunicipal           from "./pages/FundoMunicipal";
 import JudicializacaoSaude      from "./pages/JudicializacaoSaude";
 import AtencaoEspecializada     from "./pages/AtencaoEspecializada";
+import MalariaEndemias          from "./pages/MalariaEndemias";
+import VigilanciaNutricional    from "./pages/VigilanciaNutricional";
+import SaudeIndigenaApui        from "./pages/SaudeIndigenaApui";
 import DcntCronicas             from "./pages/DcntCronicas";
 import CancerRastreio           from "./pages/CancerRastreio";
 import SaudeBucalMunicipal      from "./pages/SaudeBucalMunicipal";
@@ -431,6 +434,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/fundo-municipal"      label="Fundo Municipal Saúde"  Icon={Landmark}/>
             <L1 to="/judicializacao-saude" label="Judicialização Saúde"   Icon={AlertTriangle}/>
             <L1 to="/atencao-especializada" label="Atenção Especializada" Icon={Stethoscope}/>
+            <L1 to="/malaria-endemias"         label="Malária e Endemias"     Icon={Bug}/>
+            <L1 to="/vigilancia-nutricional"  label="Vigilância Nutricional" Icon={FlaskConical}/>
+            <L1 to="/saude-indigena"          label="Saúde Indígena"         Icon={MapPin}/>
             <L1 to="/dcnt-cronicas"            label="DCNT / Crônicas"        Icon={Activity}/>
             <L1 to="/cancer-rastreio"         label="Câncer e Rastreio"       Icon={ShieldCheck}/>
             <L1 to="/saude-bucal-municipal"   label="Saúde Bucal Municipal"   Icon={Smile}/>
@@ -806,6 +812,9 @@ export default function App() {
             <Route path="/fundo-municipal"           element={<FundoMunicipal/>}/>
             <Route path="/judicializacao-saude"      element={<JudicializacaoSaude/>}/>
             <Route path="/atencao-especializada"     element={<AtencaoEspecializada/>}/>
+            <Route path="/malaria-endemias"        element={<MalariaEndemias/>}/>
+            <Route path="/vigilancia-nutricional" element={<VigilanciaNutricional/>}/>
+            <Route path="/saude-indigena"         element={<SaudeIndigenaApui/>}/>
             <Route path="/dcnt-cronicas"           element={<DcntCronicas/>}/>
             <Route path="/cancer-rastreio"        element={<CancerRastreio/>}/>
             <Route path="/saude-bucal-municipal"  element={<SaudeBucalMunicipal/>}/>
