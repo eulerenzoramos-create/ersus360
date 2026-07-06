@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
 import {
-  BarChart, Bar, LineChart, Line, Cell,
+  LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
-import { Baby, AlertTriangle, Activity, TrendingUp } from "lucide-react";
+import { Thermometer, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
 const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
@@ -36,20 +36,20 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
 export default function SaudeMulherApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["sm2-dashboard"], queryFn: () => apiGet("/api/saude-mulher-apui/dashboard"),  enabled: aba === "dashboard" });
-  const { data: prenatal }    = useQuery({ queryKey: ["sm2-pre"],       queryFn: () => apiGet("/api/saude-mulher-apui/prenatal"),   enabled: aba === "prenatal" });
-  const { data: cancer }      = useQuery({ queryKey: ["sm2-cancer"],    queryFn: () => apiGet("/api/saude-mulher-apui/cancer"),     enabled: aba === "cancer" });
-  const { data: historico }   = useQuery({ queryKey: ["sm2-hist"],      queryFn: () => apiGet("/api/saude-mulher-apui/historico"),  enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["sm2-ind"],       queryFn: () => apiGet("/api/saude-mulher-apui/indicadores"),enabled: aba === "indicadores" });
+  const { data: dash }         = useQuery({ queryKey: ["mulher-dashboard"], queryFn: () => apiGet("/api/saude-mulher-apui/dashboard"),         enabled: aba === "dashboard" });
+  const { data: rastreamento } = useQuery({ queryKey: ["mulher-rastr"],     queryFn: () => apiGet("/api/saude-mulher-apui/rastreamento"),       enabled: aba === "rastreamento" });
+  const { data: violencia }    = useQuery({ queryKey: ["mulher-viol"],      queryFn: () => apiGet("/api/saude-mulher-apui/violencia"),          enabled: aba === "violencia" });
+  const { data: historico }    = useQuery({ queryKey: ["mulher-hist"],      queryFn: () => apiGet("/api/saude-mulher-apui/historico"),          enabled: aba === "historico" });
+  const { data: indicadores }  = useQuery({ queryKey: ["mulher-ind"],       queryFn: () => apiGet("/api/saude-mulher-apui/indicadores"),        enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
   const ABAS = [
-    { key: "dashboard",    label: "Dashboard",     icon: <Baby size={15}/> },
-    { key: "prenatal",     label: "Pré-natal",     icon: <Activity size={15}/> },
-    { key: "cancer",       label: "Ca. Colo / Mama",icon: <AlertTriangle size={15}/> },
-    { key: "historico",    label: "Histórico",     icon: <TrendingUp size={15}/> },
-    { key: "indicadores",  label: "Indicadores",   icon: <AlertTriangle size={15}/> },
+    { key: "dashboard",    label: "Dashboard",    icon: <Thermometer size={15}/> },
+    { key: "rastreamento", label: "Rastreamento", icon: <Activity size={15}/> },
+    { key: "violencia",    label: "Violência",    icon: <AlertTriangle size={15}/> },
+    { key: "historico",    label: "Histórico",    icon: <TrendingUp size={15}/> },
+    { key: "indicadores",  label: "Indicadores",  icon: <AlertTriangle size={15}/> },
   ];
 
   return (
@@ -57,11 +57,11 @@ export default function SaudeMulherApui() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-lg" style={{ background: BRAND }}>
-            <Baby size={22} color="white" />
+            <Thermometer size={22} color="white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Saúde da Mulher — Apuí/AM</h1>
-            <p className="text-sm text-slate-500">Pré-natal · Parto · Sífilis Congênita · Ca. Colo e Mama · FMS Apuí/AM</p>
+            <p className="text-sm text-slate-500">Rastreamento · Planejamento Familiar · Violência · FMS Apuí/AM</p>
           </div>
         </div>
 
@@ -78,98 +78,89 @@ export default function SaudeMulherApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Gestantes Ativas"       value={dashRaw.gestantes_ativas.toString()} color={BRAND} sub="em acompanhamento" />
-              <KPI label="Pré-natal 1º Trimestre" value={`${dashRaw.prenatal_inicio_1tri_pct}%`} color={statusColor(dashRaw.status_prenatal)} sub="meta: 100%" />
-              <KPI label="Sífilis Congênita"      value={`${dashRaw.sifilis_congenita_casos_ano} casos`} color={CRIT} sub="meta: ZERO" />
-              <KPI label="Mort. Materna"          value={`${dashRaw.mortalidade_materna_100k_NV}/100k NV`} color={statusColor(dashRaw.status_mortalidade)} sub="meta: 30" />
+              <KPI label="Papanicolau (%)"          value={`${dashRaw.papanicolau_cobertura_pct}%`}        color={CRIT} sub={`meta: ${dashRaw.meta_papanicolau_pct}%`} />
+              <KPI label="Mamografia (%)"           value={`${dashRaw.mamografia_cobertura_pct}%`}         color={CRIT} sub={`fila: ${dashRaw.mamografia_fila_dias} dias`} />
+              <KPI label="Gravidez não planejada"   value={`${dashRaw.gravidez_nao_planejada_pct}%`}       color={CRIT} sub="das gestações" />
+              <KPI label="Violência notificada"     value={`${dashRaw.violencia_contra_mulher_notif_ano}`} color={CRIT} sub="notificações/ano" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Parto Normal"           value={`${dashRaw.partos_normais_pct}%`} color={OK} sub="partos normais" />
-              <KPI label="Cesariana"              value={`${dashRaw.partos_cesareos_pct}%`} color={CRIT} sub="meta: ≤ 15%" />
-              <KPI label="Citologia Oncótica"     value={`${dashRaw.cobertura_citopato_pct}%`} color={CRIT} sub="meta: 80%" />
-              <KPI label="Mamografia (50-69a)"    value={`${dashRaw.mamografia_pct}%`} color={CRIT} sub="meta: 70%" />
+              <KPI label="CA Colo — diagnóstico tardio" value={`${dashRaw.ca_colo_diagnostico_avancado_pct}%`} color={CRIT} sub="estágio avançado" />
+              <KPI label="Ginecologista no município"   value={`${dashRaw.ginecologista_municipio}`}            color={CRIT} sub="zero especialista" />
+              <KPI label="Esterilização (fila)"         value={`${dashRaw.esterilizacao_fila_meses} meses`}     color={CRIT} sub="espera laqueadura" />
+              <KPI label="Feminicídio tentado/ano"      value={`${dashRaw.feminicidios_tentados_ano}`}           color={CRIT} sub="zero casa de acolhimento" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <h3 className="font-semibold text-slate-700 mb-3">Cobertura — Principais Indicadores</h3>
-                <div className="space-y-3">
+                <h3 className="font-semibold text-slate-700 mb-3">Rastreamento Oncológico</h3>
+                <div className="space-y-2 text-sm">
                   {[
-                    { label: "Pré-natal 1º trimestre",   value: dashRaw.prenatal_inicio_1tri_pct,  max: 100, color: WARN },
-                    { label: "Sífilis/HIV no pré-natal", value: 64.8,                              max: 95,  color: CRIT },
-                    { label: "Citologia oncótica",        value: dashRaw.cobertura_citopato_pct,    max: 80,  color: CRIT },
-                    { label: "Mamografia",               value: dashRaw.mamografia_pct,             max: 70,  color: CRIT },
-                    { label: "Puerpério (consulta 42d)", value: 56.4,                              max: 100, color: WARN },
-                  ].map((b) => (
+                    { label: "Papanicolau (meta 80%)",         value: dashRaw.papanicolau_cobertura_pct,  color: CRIT, display: `${dashRaw.papanicolau_cobertura_pct}%` },
+                    { label: "Mamografia (meta 70%)",          value: dashRaw.mamografia_cobertura_pct,   color: CRIT, display: `${dashRaw.mamografia_cobertura_pct}%` },
+                    { label: "HPV D2 feminino (meta 80%)",     value: dashRaw.hpv_cobertura_d2_pct,       color: CRIT, display: `${dashRaw.hpv_cobertura_d2_pct}%` },
+                    { label: "Contraceptivo (meta 80%)",       value: dashRaw.metodo_contraceptivo_pct,   color: WARN, display: `${dashRaw.metodo_contraceptivo_pct}%` },
+                    { label: "Climatério acomp. (meta 50%)",   value: dashRaw.climatério_acompanhamento_pct, color: CRIT, display: `${dashRaw.climatério_acompanhamento_pct}%` },
+                  ].map((b: any) => (
                     <div key={b.label}>
-                      <div className="flex justify-between text-xs mb-1">
+                      <div className="flex justify-between text-xs mb-0.5">
                         <span className="text-slate-600">{b.label}</span>
-                        <span className="font-medium" style={{ color: b.color }}>{b.value}%</span>
+                        <span className="font-bold" style={{ color: b.color }}>{b.display}</span>
                       </div>
-                      <ProgressBar value={b.value} max={b.max} color={b.color} />
+                      <ProgressBar value={b.value} max={100} color={b.color} />
                     </div>
                   ))}
                 </div>
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
-                <p><b>18 casos de sífilis congênita</b> em 2025 — completamente evitável. Sorologia no 1º tri: 64,8% vs meta 95%. Criança nasce com a infecção da mãe não tratada.</p>
-                <p><b>2 óbitos maternos</b> (84,2/100k NV vs meta 30) — hemorragia e hipertensão: ambos com protocolo de prevenção disponível no MS.</p>
-                <p><b>Mamografia a 284 km</b> (Humaitá) — fila de 8-12 meses para exame. Diagnóstico tardio de câncer de mama resulta em doença avançada.</p>
+                <p><b>Mamógrafo inexistente</b> — TFD com fila de 128 dias. AM tem incidência de CA mama e colo entre as mais altas do Brasil. 84,2% dos casos de CA mama diagnosticados em estágio III/IV: doença curável se detectada cedo, letal quando tardia.</p>
+                <p><b>Zero ginecologista</b> — CA colo suspeito = transfer imediato sem colposcópio. Mulher ribeirinha percorre 60-180km para consulta ginecológica via TFD em Humaitá ou Manaus com fila de semanas a meses.</p>
+                <p><b>4 feminicídios tentados em 2025</b> — zero casa de acolhimento. Delegacia da mulher em Humaitá (284 km). Mulher em situação de violência não tem para onde ir sem abandonar filhos, emprego e comunidade.</p>
               </div>
             </div>
           </div>
         )}
 
-        {aba === "prenatal" && Array.isArray(prenatal) && (
+        {aba === "rastreamento" && Array.isArray(rastreamento) && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-4">Indicadores de Pré-natal e Puerpério</h3>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={prenatal as any[]} layout="vertical" margin={{ left: 10, right: 80 }}>
-                  <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
-                  <YAxis type="category" dataKey="indicador" tick={{ fontSize: 8 }} width={240} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <Tooltip formatter={(v: any) => `${v}%`} />
-                  <Bar dataKey="resultado_pct" name="Resultado (%)" radius={[0,3,3,0]}>
-                    {(prenatal as any[]).map((p: any) => <Cell key={p.indicador} fill={statusColor(p.status)} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="grid gap-2">
-              {(prenatal as any[]).map((p: any) => (
-                <div key={p.indicador} className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-sm text-slate-700">{p.indicador}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400">meta: {p.meta_pct}%</span>
-                      <span className="font-bold" style={{ color: statusColor(p.status) }}>{p.resultado_pct}%</span>
-                    </div>
+            {(rastreamento as any[]).map((r: any) => (
+              <div key={r.programa} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(r.status) }} />
+                    <p className="font-semibold text-sm text-slate-700">{r.programa}</p>
                   </div>
-                  <ProgressBar value={p.resultado_pct} max={p.meta_pct} color={statusColor(p.status)} />
+                  <span className="font-bold text-sm" style={{ color: statusColor(r.status) }}>{r.cobertura_pct}% / meta {r.meta_pct}%</span>
                 </div>
-              ))}
-            </div>
+                <div className="ml-5 space-y-1">
+                  {r.lesoes_detectadas_ano != null && (
+                    <p className="text-xs text-slate-500">
+                      Lesões detectadas/ano: <b>{r.lesoes_detectadas_ano}</b> · CA confirmado: <b>{r.casos_cancer_confirmados_ano}</b>
+                      {r.estagio_avancado_pct != null && <> · Diagnóstico avançado: <b style={{ color: CRIT }}>{r.estagio_avancado_pct}%</b></>}
+                    </p>
+                  )}
+                  <p className="text-xs text-slate-500">{r.observacao}</p>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {aba === "cancer" && Array.isArray(cancer) && (
-          <div className="space-y-4">
-            {(cancer as any[]).map((c: any) => (
-              <div key={c.exame} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <span className="font-semibold text-slate-700">{c.exame}</span>
-                    <div className="flex gap-3 text-xs text-slate-400 mt-0.5">
-                      <span>{c.realizados_ano.toLocaleString()} realizados / {c.populacao_alvo.toLocaleString()} alvo</span>
-                      <span className="text-amber-600 font-bold">{c.alterados_pct}% alterados</span>
-                    </div>
+        {aba === "violencia" && Array.isArray(violencia) && (
+          <div className="grid gap-3">
+            {(violencia as any[]).map((v: any) => (
+              <div key={v.tipo} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(v.status) }} />
+                    <p className="font-semibold text-sm text-slate-700">{v.tipo}</p>
                   </div>
-                  <div className="text-right">
-                    <span className="text-xl font-bold" style={{ color: statusColor(c.status) }}>{c.cobertura_pct}%</span>
-                    <p className="text-xs text-slate-400">meta: {c.meta_pct}%</p>
+                  <div className="text-right text-sm">
+                    <span className="font-bold" style={{ color: statusColor(v.status) }}>{v.notificacoes_ano} notif.</span>
+                    {v.subnotificacao_estimada_pct > 0 && (
+                      <p className="text-xs text-slate-400">subnotificação est.: {v.subnotificacao_estimada_pct}%</p>
+                    )}
                   </div>
                 </div>
-                <ProgressBar value={c.cobertura_pct} max={c.meta_pct} color={statusColor(c.status)} />
+                <p className="text-xs text-slate-500 ml-5">{v.observacao}</p>
               </div>
             ))}
           </div>
@@ -177,19 +168,18 @@ export default function SaudeMulherApui() {
 
         {aba === "historico" && Array.isArray(historico) && (
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal — Saúde da Mulher (Jan–Jun/2025)</h3>
+            <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — Saúde da Mulher (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                <YAxis yAxisId="n" tick={{ fontSize: 11 }} />
-                <YAxis yAxisId="s" orientation="right" tick={{ fontSize: 10 }} unit="%" />
+                <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} unit="%" />
                 <Tooltip />
                 <Legend />
-                <Line yAxisId="n" dataKey="gestantes"        name="Gestantes ativas"     stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
-                <Line yAxisId="n" dataKey="partos"           name="Partos"               stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
-                <Line yAxisId="n" dataKey="sifilis_gest"     name="Sífilis gestacional"  stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line yAxisId="s" dataKey="prenatal_1tri_pct"name="Pré-natal 1ºtri (%)"  stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line dataKey="papanicolau_pct"   name="Papanicolau (%)"    stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
+                <Line dataKey="mamografia_pct"    name="Mamografia (%)"     stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line dataKey="contraceptivo_pct" name="Contraceptivo (%)"  stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line dataKey="hpv_d2_pct"        name="HPV D2 (%)"         stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
