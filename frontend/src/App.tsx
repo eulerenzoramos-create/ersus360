@@ -173,6 +173,9 @@ import GestaoPessoas            from "./pages/GestaoPessoas";
 import FundoMunicipal           from "./pages/FundoMunicipal";
 import JudicializacaoSaude      from "./pages/JudicializacaoSaude";
 import AtencaoEspecializada     from "./pages/AtencaoEspecializada";
+import SaudeMentalCaps          from "./pages/SaudeMentalCaps";
+import RedeCegonha               from "./pages/RedeCegonha";
+import ProgramaSaudeEscola       from "./pages/ProgramaSaudeEscola";
 import PlanoMunicipalSaude      from "./pages/PlanoMunicipalSaude";
 import ScoreMunicipal           from "./pages/ScoreMunicipal";
 import GestaoContratosFms       from "./pages/GestaoContratosFms";
@@ -425,6 +428,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/fundo-municipal"      label="Fundo Municipal Saúde"  Icon={Landmark}/>
             <L1 to="/judicializacao-saude" label="Judicialização Saúde"   Icon={AlertTriangle}/>
             <L1 to="/atencao-especializada" label="Atenção Especializada" Icon={Stethoscope}/>
+            <L1 to="/saude-mental-caps"       label="Saúde Mental / CAPS"    Icon={Brain}/>
+            <L1 to="/rede-cegonha"           label="Rede Cegonha"           Icon={Baby}/>
+            <L1 to="/programa-saude-escola"  label="Saúde na Escola (PSE)"  Icon={School}/>
             <L1 to="/plano-municipal-saude"  label="Plano Municipal Saúde"  Icon={BookOpen}/>
             <L1 to="/score-municipal"        label="Score / Diagnóstico"    Icon={Star}/>
             <L1 to="/gestao-contratos-fms"   label="Contratos / Licitações" Icon={FolderOpen}/>
@@ -794,6 +800,9 @@ export default function App() {
             <Route path="/fundo-municipal"           element={<FundoMunicipal/>}/>
             <Route path="/judicializacao-saude"      element={<JudicializacaoSaude/>}/>
             <Route path="/atencao-especializada"     element={<AtencaoEspecializada/>}/>
+            <Route path="/saude-mental-caps"       element={<SaudeMentalCaps/>}/>
+            <Route path="/rede-cegonha"           element={<RedeCegonha/>}/>
+            <Route path="/programa-saude-escola"  element={<ProgramaSaudeEscola/>}/>
             <Route path="/plano-municipal-saude"   element={<PlanoMunicipalSaude/>}/>
             <Route path="/score-municipal"         element={<ScoreMunicipal/>}/>
             <Route path="/gestao-contratos-fms"    element={<GestaoContratosFms/>}/>

@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, Cell,
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import { Baby, AlertTriangle, Heart, Activity } from "lucide-react";
 
-const BRAND  = "#831843";
+const BRAND  = "#9d174d";
 const ACCENT = "#db2777";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -27,50 +27,34 @@ const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?:
   </div>
 );
 
-const EQUIPE_COLORS = ["#16a34a","#d97706","#d97706","#dc2626","#dc2626","#dc2626"];
+const ProgressBar = ({ value, max, color }: { value: number; max: number; color: string }) => (
+  <div className="w-full bg-slate-100 rounded-full h-2.5">
+    <div className="h-2.5 rounded-full" style={{ width: `${Math.min(value / max * 100, 100)}%`, background: color }} />
+  </div>
+);
+
+const PIE_COLORS = [CRIT, OK];
 
 export default function RedeCegonha() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash } = useQuery({
-    queryKey: ["rc-dashboard"],
-    queryFn: () => apiGet("/api/rede-cegonha/dashboard"),
-    enabled: aba === "dashboard",
-  });
+  const { data: dash }      = useQuery({ queryKey: ["rc-dashboard"], queryFn: () => apiGet("/api/rede-cegonha/dashboard"),    enabled: aba === "dashboard" });
+  const { data: prenatal }  = useQuery({ queryKey: ["rc-prenatal"],  queryFn: () => apiGet("/api/rede-cegonha/prenatal"),     enabled: aba === "prenatal" });
+  const { data: parto }     = useQuery({ queryKey: ["rc-parto"],     queryFn: () => apiGet("/api/rede-cegonha/parto"),        enabled: aba === "parto" });
+  const { data: mortalidade }= useQuery({ queryKey: ["rc-mort"],    queryFn: () => apiGet("/api/rede-cegonha/mortalidade"),  enabled: aba === "mortalidade" });
+  const { data: historico } = useQuery({ queryKey: ["rc-historico"], queryFn: () => apiGet("/api/rede-cegonha/historico"),   enabled: aba === "historico" });
+  const { data: indicadores }= useQuery({ queryKey: ["rc-ind"],     queryFn: () => apiGet("/api/rede-cegonha/indicadores"),  enabled: aba === "indicadores" });
 
-  const { data: equipes } = useQuery({
-    queryKey: ["rc-equipes"],
-    queryFn: () => apiGet("/api/rede-cegonha/equipes"),
-    enabled: aba === "equipes",
-  });
-
-  const { data: sifilis } = useQuery({
-    queryKey: ["rc-sifilis"],
-    queryFn: () => apiGet("/api/rede-cegonha/sifilis"),
-    enabled: aba === "sifilis",
-  });
-
-  const { data: historico } = useQuery({
-    queryKey: ["rc-historico"],
-    queryFn: () => apiGet("/api/rede-cegonha/historico"),
-    enabled: aba === "historico",
-  });
-
-  const { data: indicadores } = useQuery({
-    queryKey: ["rc-indicadores"],
-    queryFn: () => apiGet("/api/rede-cegonha/indicadores"),
-    enabled: aba === "indicadores",
-  });
-
-  const dashRaw = dash as any;
-  const sifilisRaw = sifilis as any;
+  const dashRaw  = dash as any;
+  const partoRaw = parto as any;
 
   const ABAS = [
-    { key: "dashboard",   label: "Dashboard",  icon: <Baby size={15}/> },
-    { key: "equipes",     label: "Por ESF",    icon: <Heart size={15}/> },
-    { key: "sifilis",     label: "Sífilis",    icon: <AlertTriangle size={15}/> },
-    { key: "historico",   label: "Histórico",  icon: <Activity size={15}/> },
-    { key: "indicadores", label: "Indicadores",icon: <AlertTriangle size={15}/> },
+    { key: "dashboard",   label: "Dashboard",    icon: <Baby size={15}/> },
+    { key: "prenatal",    label: "Pré-Natal",    icon: <Heart size={15}/> },
+    { key: "parto",       label: "Parto/Puerpério",icon: <Heart size={15}/> },
+    { key: "mortalidade", label: "Mortalidade",  icon: <AlertTriangle size={15}/> },
+    { key: "historico",   label: "Histórico",    icon: <Activity size={15}/> },
+    { key: "indicadores", label: "Indicadores",  icon: <AlertTriangle size={15}/> },
   ];
 
   return (
@@ -82,7 +66,7 @@ export default function RedeCegonha() {
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Rede Cegonha</h1>
-            <p className="text-sm text-slate-500">Pré-natal · Parto · Puerpério · Sífilis · FMS Apuí/AM</p>
+            <p className="text-sm text-slate-500">Pré-natal · Parto · Puerpério · Mortalidade Materna/Infantil · FMS Apuí/AM</p>
           </div>
         </div>
 
@@ -99,103 +83,125 @@ export default function RedeCegonha() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Gestantes Ativas"      value={dashRaw.gestantes_ativas.toString()} />
-              <KPI label="Pré-natal Adequado"    value={`${dashRaw.pn_adequado_pct}%`} sub="meta: 85%" color={CRIT} />
-              <KPI label="Puerpério Realizado"   value={`${dashRaw.puerperio_realizado_pct}%`} sub="meta: 85%" color={CRIT} />
-              <KPI label="Partos/Mês"            value={dashRaw.partos_mes.toString()} />
+              <KPI label="Gestantes Acompanhadas" value={dashRaw.gestantes_acompanhadas.toString()} color={ACCENT} />
+              <KPI label="Cobertura Pré-Natal"    value={`${dashRaw.cobertura_prenatal_pct}%`}      color={statusColor(dashRaw.status_prenatal)} />
+              <KPI label="6+ Consultas"            value={`${dashRaw.consultas_minimas_6_pct}%`}     color={WARN} sub="das gestantes" />
+              <KPI label="1ª Consulta ≤ 12 sem"   value={`${dashRaw.primeira_consulta_ate_12sem_pct}%`} color={WARN} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Cesáreas"              value={`${dashRaw.partos_cesareas_pct}%`} sub="meta: ≤45%" color={WARN} />
-              <KPI label="Sífilis Congênita/Ano" value={dashRaw.sifilis_congenita_casos_ano.toString()} sub="meta: 0" color={CRIT} />
-              <KPI label="VDRL 1º Trim."         value={`${dashRaw.vdrl_1trim_pct}%`} sub="meta: 100%" color={WARN} />
-              <KPI label="Amam. Exclusivo"       value={`${dashRaw.aleitamento_exclusivo_pct}%`} sub="meta: 60%" color={WARN} />
+              <KPI label="Partos/Ano"              value={dashRaw.partos_ano.toString()} />
+              <KPI label="Taxa de Cesarianas"      value={`${dashRaw.cesareas_pct}%`}    color={CRIT} sub="meta OMS: <15%" />
+              <KPI label="Óbitos Maternos (2025)"  value={dashRaw.obitos_maternos_ano.toString()} color={CRIT} />
+              <KPI label="Sífilis Congênita"       value={dashRaw.sifilis_congenita_casos.toString()} color={CRIT} sub="casos em 2025" />
+            </div>
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-sm text-rose-900">
+              <b>ALERTA — Sífilis Congênita:</b> 8 casos em 2025 (taxa 27,6/1k NV vs. meta de eliminação 0,5). Cesariana 52,4% — mais de 3× a meta OMS. Apuí não possui maternidade: 100% dos partos referenciados a Manaus (600 km).
             </div>
           </div>
         )}
 
-        {aba === "equipes" && Array.isArray(equipes) && (
+        {aba === "prenatal" && Array.isArray(prenatal) && (
           <div className="space-y-4">
             <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-4">Pré-natal Adequado por ESF</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={equipes} margin={{ left: 5, right: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="equipe" tick={{ fontSize: 9 }} />
-                  <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 9 }} />
-                  <Tooltip formatter={(v: any) => `${v}%`} />
-                  <Bar dataKey="pn_adequado_pct" name="Pré-natal Adequado %" radius={[3,3,0,0]}>
-                    {(equipes as any[]).map((_: any, i: number) => (
-                      <Cell key={i} fill={EQUIPE_COLORS[i] || CRIT} />
-                    ))}
+              <h3 className="font-semibold text-slate-700 mb-4">Cobertura dos Exames e Procedimentos do Pré-Natal</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={prenatal} layout="vertical" margin={{ left: 10, right: 60 }}>
+                  <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 9 }} unit="%" />
+                  <YAxis type="category" dataKey="indicador" tick={{ fontSize: 8 }} width={260} />
+                  <Tooltip />
+                  <Bar dataKey="valor" name="Realizado %" radius={[0,3,3,0]}>
+                    {(prenatal as any[]).map((p: any) => <Cell key={p.indicador} fill={statusColor(p.status)} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="grid gap-3">
-              {(equipes as any[]).map((e: any, i: number) => (
-                <div key={e.equipe} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ background: EQUIPE_COLORS[i] || CRIT }} />
-                      <span className="font-semibold text-slate-700 text-sm">{e.equipe}</span>
-                      <span className="text-xs text-slate-400">({e.gestantes_ativas} gestantes)</span>
-                    </div>
-                    <span className="font-bold text-sm" style={{ color: statusColor(e.status) }}>PN: {e.pn_adequado_pct}%</span>
+            <div className="grid gap-2">
+              {(prenatal as any[]).map((p: any) => (
+                <div key={p.indicador} className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-slate-700">{p.indicador}</span>
+                    <span className="font-bold text-sm" style={{ color: statusColor(p.status) }}>{p.valor}% / meta: {p.meta}%</span>
                   </div>
-                  <div className="grid grid-cols-4 gap-2 text-xs text-slate-500">
-                    <span>VDRL: <b style={{ color: e.vdrl_1trim_pct < 85 ? CRIT : OK }}>{e.vdrl_1trim_pct}%</b></span>
-                    <span>HIV: <b style={{ color: e.hiv_1trim_pct < 85 ? CRIT : OK }}>{e.hiv_1trim_pct}%</b></span>
-                    <span>Hep.B: <b>{e.hep_b_pct}%</b></span>
-                    <span>Puerpério: <b style={{ color: e.puerperio_pct < 65 ? CRIT : WARN }}>{e.puerperio_pct}%</b></span>
-                  </div>
+                  <ProgressBar value={p.valor} max={p.meta} color={statusColor(p.status)} />
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {aba === "sifilis" && sifilisRaw && (
+        {aba === "parto" && partoRaw && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Sífilis Gestante/Ano"    value={sifilisRaw.casos_sifilis_gestante_ano.toString()} color={CRIT} />
-              <KPI label="Taxa (por mil NV)"        value={sifilisRaw.taxa_sifilis_gestante.toString()} color={CRIT} />
-              <KPI label="Sífilis Congênita/Ano"   value={sifilisRaw.casos_sifilis_congenita_ano.toString()} sub={`meta: 0.5/mil NV`} color={CRIT} />
-              <KPI label="Tratamento Adequado"     value={`${sifilisRaw.tratamento_adequado_gestante_pct}%`} sub="parceiro tratado: 41.7%" color={WARN} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                <h3 className="font-semibold text-slate-700 mb-4">Local do Parto</h3>
+                <div className="space-y-3">
+                  {partoRaw.local_parto.map((l: any) => (
+                    <div key={l.local}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-slate-600">{l.local}</span>
+                        <span className="font-bold">{l.partos} ({l.pct}%)</span>
+                      </div>
+                      <ProgressBar value={l.pct} max={100} color={ACCENT} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                <h3 className="font-semibold text-slate-700 mb-4">Tipo de Parto</h3>
+                <ResponsiveContainer width="100%" height={160}>
+                  <PieChart>
+                    <Pie data={partoRaw.tipo_parto} dataKey="n" nameKey="tipo" cx="50%" cy="50%" outerRadius={65} label={({ tipo, pct }) => `${tipo}: ${pct}%`} labelLine={false}>
+                      {partoRaw.tipo_parto.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-4">Série Mensal — Sífilis 2026</h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={sifilisRaw.serie_mensal} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                  <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
-                  <YAxis yAxisId="pct" orientation="right" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Legend />
-                  <Line yAxisId="n"   dataKey="sifilis_gestante"        name="Síf. Gestante"        stroke={ACCENT} strokeWidth={2} dot={{ r: 3 }} />
-                  <Line yAxisId="n"   dataKey="sifilis_congenita"        name="Síf. Congênita"       stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
-                  <Line yAxisId="pct" dataKey="tratamento_adequado_pct" name="Trat. Adequado (%)"    stroke={OK}     strokeWidth={2} dot={{ r: 3 }} strokeDasharray="4 4" />
-                </LineChart>
-              </ResponsiveContainer>
+            <div className="grid grid-cols-2 gap-4">
+              <KPI label="Consulta Puerperal ≤ 42 dias" value={`${partoRaw.consulta_puerperio_ate_42dias_pct}%`} color={WARN} sub={`meta: ${partoRaw.meta_puerperio_pct}%`} />
             </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">{partoRaw.obs}</div>
+          </div>
+        )}
+
+        {aba === "mortalidade" && Array.isArray(mortalidade) && (
+          <div className="grid gap-3">
+            {(mortalidade as any[]).map((m: any) => (
+              <div key={m.evento} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-start gap-4">
+                <div className="mt-1 w-3 h-3 rounded-full flex-shrink-0" style={{ background: statusColor(m.status) }} />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-700">{m.evento}</span>
+                    <span className="font-bold text-sm" style={{ color: statusColor(m.status) }}>
+                      {m.casos_2025} caso(s) · {m.taxa} {m.unidade}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5">Meta: {m.meta} {m.unidade}</div>
+                  <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
+                    <div className="h-1.5 rounded-full" style={{ width: `${Math.min((m.taxa / (m.meta + m.taxa)) * 100, 100)}%`, background: statusColor(m.status) }} />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
         {aba === "historico" && Array.isArray(historico) && (
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal (2026)</h3>
+            <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — Pré-Natal, Parto e Mortalidade</h3>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
-                <YAxis yAxisId="pct" orientation="right" domain={[40, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
+                <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="pct" tick={{ fontSize: 11 }} unit="%" />
+                <YAxis yAxisId="n"   orientation="right" tick={{ fontSize: 10 }} />
                 <Tooltip />
                 <Legend />
-                <Line yAxisId="n"   dataKey="gestantes"        name="Gestantes"        stroke={ACCENT} strokeWidth={2} dot={{ r: 3 }} />
-                <Line yAxisId="n"   dataKey="partos"           name="Partos/Mês"       stroke="#0891b2" strokeWidth={2} dot={{ r: 3 }} />
-                <Line yAxisId="pct" dataKey="pn_adequado_pct"  name="PN Adequado (%)"  stroke={OK}     strokeWidth={2} dot={{ r: 3 }} />
-                <Line yAxisId="pct" dataKey="puerperio_pct"    name="Puerpério (%)"    stroke={WARN}   strokeWidth={2} dot={{ r: 3 }} strokeDasharray="4 4" />
+                <Line yAxisId="pct" dataKey="cobertura_prenatal" name="Cobertura PN %"    stroke={OK}     strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="pct" dataKey="consultas_6mais"    name="6+ Consultas %"    stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="pct" dataKey="cesareas_pct"       name="Cesarianas %"      stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="n"   dataKey="sifilis_cong"       name="Sífilis Congênita" stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -210,7 +216,7 @@ export default function RedeCegonha() {
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-slate-700 text-sm">{ind.indicador}</span>
                     <span className="font-bold text-sm" style={{ color: statusColor(ind.status) }}>
-                      {`${ind.valor} ${ind.unidade}`}{ind.meta ? ` / meta: ${ind.meta} ${ind.unidade}` : ""}
+                      {`${ind.valor} ${ind.unidade}`}{ind.meta != null ? ` / meta: ${ind.meta}` : ""}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-1">{ind.observacao}</p>

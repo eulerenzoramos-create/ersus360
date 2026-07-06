@@ -1,83 +1,100 @@
-"""Rede Cegonha — Pré-natal, Parto Humanizado, Puerpério · FMS Apuí/AM"""
 from fastapi import APIRouter
 
 router = APIRouter(prefix="/api/rede-cegonha", tags=["rede_cegonha"])
 
-_GESTANTES = [
-    {"equipe": "ESF Sede A",        "gestantes_ativas": 28, "pn_adequado_pct": 78.6, "vdrl_1trim_pct": 96.4, "hiv_1trim_pct": 96.4, "hep_b_pct": 92.8, "puerperio_pct": 82.1, "status": "ok"},
-    {"equipe": "ESF Sede B",        "gestantes_ativas": 24, "pn_adequado_pct": 75.0, "vdrl_1trim_pct": 91.7, "hiv_1trim_pct": 87.5, "hep_b_pct": 87.5, "puerperio_pct": 79.2, "status": "atencao"},
-    {"equipe": "ESF Matupi",        "gestantes_ativas": 18, "pn_adequado_pct": 61.1, "vdrl_1trim_pct": 83.3, "hiv_1trim_pct": 77.8, "hep_b_pct": 77.8, "puerperio_pct": 66.7, "status": "atencao"},
-    {"equipe": "ESF Nova Esperança","gestantes_ativas": 14, "pn_adequado_pct": 57.1, "vdrl_1trim_pct": 71.4, "hiv_1trim_pct": 64.3, "hep_b_pct": 64.3, "puerperio_pct": 57.1, "status": "critico"},
-    {"equipe": "ESF Linha 7",       "gestantes_ativas": 16, "pn_adequado_pct": 56.3, "vdrl_1trim_pct": 75.0, "hiv_1trim_pct": 68.8, "hep_b_pct": 68.8, "puerperio_pct": 62.5, "status": "critico"},
-    {"equipe": "ESF Ribeirinhas",   "gestantes_ativas": 22, "pn_adequado_pct": 45.5, "vdrl_1trim_pct": 63.6, "hiv_1trim_pct": 54.5, "hep_b_pct": 54.5, "puerperio_pct": 45.5, "status": "critico"},
+_DASHBOARD = {
+    "gestantes_acompanhadas": 312,
+    "cobertura_prenatal_pct": 84.6,
+    "consultas_minimas_6_pct": 62.4,
+    "primeira_consulta_ate_12sem_pct": 48.2,
+    "partos_ano": 284,
+    "cesareas_pct": 52.4,
+    "obitos_maternos_ano": 1,
+    "obitos_fetais_ano": 4,
+    "obitos_neonatais_precoces_ano": 2,
+    "sifilis_congenita_casos": 8,
+    "status_prenatal": "atencao",
+    "status_parto": "critico",
+}
+
+_PRENATAL = [
+    {"indicador": "1ª consulta até 12ª semana",          "valor": 48.2, "meta": 60.0,  "unidade": "%", "status": "atencao"},
+    {"indicador": "6+ consultas de pré-natal",            "valor": 62.4, "meta": 75.0,  "unidade": "%", "status": "atencao"},
+    {"indicador": "USG obstétrico realizado",             "valor": 71.8, "meta": 90.0,  "unidade": "%", "status": "atencao"},
+    {"indicador": "Teste HIV pré-natal",                  "valor": 94.2, "meta": 100.0, "unidade": "%", "status": "ok"},
+    {"indicador": "Teste Sífilis pré-natal",              "valor": 96.4, "meta": 100.0, "unidade": "%", "status": "ok"},
+    {"indicador": "Glicemia / TTOG",                     "valor": 78.4, "meta": 90.0,  "unidade": "%", "status": "atencao"},
+    {"indicador": "Vacinação dTpa atualizada",            "valor": 88.6, "meta": 95.0,  "unidade": "%", "status": "atencao"},
+    {"indicador": "Sulfato ferroso prescrito",            "valor": 91.2, "meta": 100.0, "unidade": "%", "status": "ok"},
+    {"indicador": "Consulta odontológica pré-natal",      "valor": 42.8, "meta": 75.0,  "unidade": "%", "status": "critico"},
+    {"indicador": "Teste toxoplasmose",                   "valor": 82.1, "meta": 90.0,  "unidade": "%", "status": "atencao"},
 ]
 
+_PARTO = {
+    "local_parto": [
+        {"local": "HPS Manaus (referência)",         "partos": 231, "pct": 81.3},
+        {"local": "HEMOAM / outras unidades Manaus",  "partos": 53,  "pct": 18.7},
+        {"local": "Apuí (domiciliar/sem estrutura)",  "partos": 0,   "pct": 0.0},
+    ],
+    "tipo_parto": [
+        {"tipo": "Cesariana",     "n": 149, "pct": 52.4},
+        {"tipo": "Normal/vaginal","n": 135, "pct": 47.5},
+    ],
+    "consulta_puerperio_ate_42dias_pct": 54.8,
+    "meta_puerperio_pct": 75.0,
+    "obs": "Apuí não possui maternidade — 100% das gestantes referenciadas a Manaus (600 km). Alta taxa de cesariana (52,4%) — acima do recomendado pela OMS (<15%).",
+}
+
+_MORTALIDADE = [
+    {"evento": "Óbito materno",           "casos_2025": 1, "taxa": 344.8, "unidade": "por 100k NV", "meta": 20.0,  "status": "critico"},
+    {"evento": "Óbito fetal (natimorto)", "casos_2025": 4, "taxa": 13.8,  "unidade": "por 1k NV",   "meta": 8.0,   "status": "critico"},
+    {"evento": "Óbito neonatal precoce",  "casos_2025": 2, "taxa": 6.9,   "unidade": "por 1k NV",   "meta": 5.0,   "status": "atencao"},
+    {"evento": "Sífilis congênita",       "casos_2025": 8, "taxa": 27.6,  "unidade": "por 1k NV",   "meta": 0.5,   "status": "critico"},
+    {"evento": "HIV perinatal",           "casos_2025": 0, "taxa": 0.0,   "unidade": "por 1k NV",   "meta": 0.1,   "status": "ok"},
+]
+
+_HISTORICO = [
+    {"ano": "2022", "cobertura_prenatal": 76.4, "consultas_6mais": 52.1, "cesareas_pct": 48.2, "obitos_mat": 0, "sifilis_cong": 5},
+    {"ano": "2023", "cobertura_prenatal": 80.2, "consultas_6mais": 57.4, "cesareas_pct": 50.1, "obitos_mat": 2, "sifilis_cong": 6},
+    {"ano": "2024", "cobertura_prenatal": 83.1, "consultas_6mais": 59.8, "cesareas_pct": 51.8, "obitos_mat": 1, "sifilis_cong": 7},
+    {"ano": "2025", "cobertura_prenatal": 84.6, "consultas_6mais": 62.4, "cesareas_pct": 52.4, "obitos_mat": 1, "sifilis_cong": 8},
+]
+
+_INDICADORES = [
+    {"indicador": "Cobertura pré-natal",              "valor": 84.6, "meta": 90.0, "unidade": "%",        "status": "atencao", "observacao": "15,4% das gestantes sem acompanhamento regular"},
+    {"indicador": "Sífilis congênita (taxa/1k NV)",   "valor": 27.6, "meta": 0.5,  "unidade": "por 1k",  "status": "critico", "observacao": "8 casos em 2025 — ALERTA EPIDEMIOLÓGICO; meta de eliminação muito distante"},
+    {"indicador": "Taxa de cesariana",                "valor": 52.4, "meta": 30.0, "unidade": "%",        "status": "critico", "observacao": "52,4% — mais que o dobro recomendado pela OMS; ausência de maternidade local"},
+    {"indicador": "Razão mortalidade materna",        "valor": 344.8,"meta": 20.0, "unidade": "por 100k", "status": "critico", "observacao": "1 óbito materno em 2025 (pré-eclâmpsia grave em trânsito para Manaus)"},
+    {"indicador": "Consulta puerperial até 42 dias",  "valor": 54.8, "meta": 75.0, "unidade": "%",        "status": "atencao", "observacao": "45,2% das puérperas sem retorno para consulta no prazo"},
+    {"indicador": "Consulta odontológica pré-natal",  "valor": 42.8, "meta": 75.0, "unidade": "%",        "status": "critico", "observacao": "Apenas 42,8% das gestantes com atendimento odontológico durante gestação"},
+]
+
+
 @router.get("/dashboard")
-async def dashboard():
-    total_gest = sum(e["gestantes_ativas"] for e in _GESTANTES)
-    return {
-        "gestantes_ativas": total_gest,
-        "novos_prenatal_mes": 12,
-        "partos_mes": 14,
-        "partos_normais_pct": 42.9,
-        "partos_cesareas_pct": 57.1,
-        "prematuridade_pct": 12.8,
-        "baixo_peso_nasc_pct": 9.6,
-        "pn_adequado_pct": 62.4,
-        "vdrl_1trim_pct": 80.6,
-        "hiv_1trim_pct": 74.8,
-        "sifilis_congenita_casos_ano": 4,
-        "puerperio_realizado_pct": 65.8,
-        "aleitamento_exclusivo_pct": 48.4,
-        "gestantes_alto_risco": 18,
-        "gestantes_alto_risco_referidas_pct": 83.3,
-        "obitos_maternos_ano": 3,
-        "status_geral": "atencao",
-        "competencia": "Jun/2026",
-    }
+def dashboard():
+    return _DASHBOARD
 
-@router.get("/equipes")
-async def equipes():
-    return _GESTANTES
 
-@router.get("/sifilis")
-async def sifilis():
-    return {
-        "casos_sifilis_gestante_ano": 12,
-        "taxa_sifilis_gestante": 8.4,
-        "casos_sifilis_congenita_ano": 4,
-        "taxa_sifilis_congenita": 2.8,
-        "meta_sifilis_congenita": 0.5,
-        "tratamento_adequado_gestante_pct": 66.7,
-        "parceiro_tratado_pct": 41.7,
-        "serie_mensal": [
-            {"mes": "Jan/26", "sifilis_gestante": 2, "sifilis_congenita": 0, "tratamento_adequado_pct": 100.0},
-            {"mes": "Fev/26", "sifilis_gestante": 1, "sifilis_congenita": 1, "tratamento_adequado_pct": 100.0},
-            {"mes": "Mar/26", "sifilis_gestante": 2, "sifilis_congenita": 1, "tratamento_adequado_pct": 50.0},
-            {"mes": "Abr/26", "sifilis_gestante": 3, "sifilis_congenita": 1, "tratamento_adequado_pct": 66.7},
-            {"mes": "Mai/26", "sifilis_gestante": 2, "sifilis_congenita": 0, "tratamento_adequado_pct": 50.0},
-            {"mes": "Jun/26", "sifilis_gestante": 2, "sifilis_congenita": 1, "tratamento_adequado_pct": 50.0},
-        ],
-    }
+@router.get("/prenatal")
+def prenatal():
+    return _PRENATAL
+
+
+@router.get("/parto")
+def parto():
+    return _PARTO
+
+
+@router.get("/mortalidade")
+def mortalidade():
+    return _MORTALIDADE
+
 
 @router.get("/historico")
-async def historico():
-    return [
-        {"mes": "Jan/26", "gestantes": 118, "partos": 11, "cesareas_pct": 54.5, "pn_adequado_pct": 60.2, "puerperio_pct": 62.4},
-        {"mes": "Fev/26", "gestantes": 120, "partos": 12, "cesareas_pct": 58.3, "pn_adequado_pct": 60.8, "puerperio_pct": 63.1},
-        {"mes": "Mar/26", "gestantes": 119, "partos": 13, "cesareas_pct": 53.8, "pn_adequado_pct": 61.4, "puerperio_pct": 64.2},
-        {"mes": "Abr/26", "gestantes": 121, "partos": 12, "cesareas_pct": 58.3, "pn_adequado_pct": 61.8, "puerperio_pct": 64.8},
-        {"mes": "Mai/26", "gestantes": 120, "partos": 13, "cesareas_pct": 61.5, "pn_adequado_pct": 62.1, "puerperio_pct": 65.2},
-        {"mes": "Jun/26", "gestantes": 122, "partos": 14, "cesareas_pct": 57.1, "pn_adequado_pct": 62.4, "puerperio_pct": 65.8},
-    ]
+def historico():
+    return _HISTORICO
+
 
 @router.get("/indicadores")
-async def indicadores():
-    return [
-        {"indicador": "Pré-natal adequado (≥6 consultas + exames)",      "valor": 62.4, "meta": 85.0,  "unidade": "%",     "status": "critico", "observacao": "ESF Ribeirinhas (45.5%) e ESF Linha 7 (56.3%) com piores coberturas — acesso fluvial crítico"},
-        {"indicador": "VDRL no 1º trimestre",                            "valor": 80.6, "meta": 100.0, "unidade": "%",     "status": "atencao", "observacao": "Gestantes ribeirinhas sem acesso a laboratório local respondem por 80% dos não testados"},
-        {"indicador": "Sífilis congênita — taxa",                        "valor": 2.8,  "meta": 0.5,   "unidade": "/mil NV","status": "critico", "observacao": "4 casos em 2026 — 58% das mães sem tratamento adequado ou parceiro não tratado"},
-        {"indicador": "Puerpério realizado (até 42 dias)",                "valor": 65.8, "meta": 85.0,  "unidade": "%",     "status": "critico", "observacao": "34% das puérperas sem consulta — principal gap nas ESFs Ribeirinhas e Nova Esperança"},
-        {"indicador": "Aleitamento materno exclusivo até 6 meses",       "valor": 48.4, "meta": 60.0,  "unidade": "%",     "status": "atencao", "observacao": "Grupo de apoio ao aleitamento ativo na sede — comunidades rurais sem cobertura"},
-        {"indicador": "Cesáreas — proporção de partos hospitalares",     "valor": 57.1, "meta": 45.0,  "unidade": "%",     "status": "atencao", "observacao": "Meta MS: ≤45%. Aumento relacionado a preferência e falta de acompanhante de parto noturno"},
-    ]
+def indicadores():
+    return _INDICADORES
