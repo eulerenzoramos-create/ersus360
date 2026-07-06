@@ -3,58 +3,69 @@ from fastapi import APIRouter
 router = APIRouter(prefix="/api/imunizacao-apui", tags=["imunizacao_apui"])
 
 _DASHBOARD = {
-    "cobertura_geral_pct": 84.2,
+    "nascidos_vivos_ano": 248,
     "meta_cobertura_pct": 95.0,
-    "vacinas_aplicadas_mes": 2840,
-    "vacinas_aplicadas_ano": 28420,
-    "criancas_menores_1_vacinadas_pct": 88.4,
-    "multivacinacao_ultima_campanha_pct": 78.4,
-    "doses_perdidas_pct": 4.8,
-    "meta_perdas_pct": 3.0,
-    "sala_vacina_funcionando": 6,
-    "sala_vacina_total": 8,
-    "cadeia_frio_status": "atencao",
-    "freezer_ativo": 4,
-    "freezer_necessario": 6,
-    "vacinas_abaixo_meta": 4,
-    "status_cobertura": "atencao",
+    "bcg_pct": 84.2,
+    "hepatite_b_ao_nascer_pct": 78.4,
+    "pentavalente_d3_pct": 72.4,
+    "polio_vpod3_pct": 68.4,
+    "pneumo10_d3_pct": 70.4,
+    "meningo_c_d2_pct": 64.2,
+    "rotavirus_d2_pct": 62.4,
+    "triplice_viral_d1_pct": 64.2,
+    "triplice_viral_d2_pct": 58.4,
+    "varicela_pct": 62.4,
+    "hpv_feminino_d2_pct": 52.4,
+    "hpv_masculino_d2_pct": 42.4,
+    "influenza_idosos_pct": 72.4,
+    "influenza_gestante_pct": 58.4,
+    "abandono_pentavalente_d1_d3_pct": 18.4,
+    "meta_abandono_pct": 5.0,
+    "salas_vacinacao": 4,
+    "sala_rural_funcionando": 2,
+    "geladeiras_vacina": 2,
+    "pane_cadeia_frio_2024": True,
+    "doses_perdidas_pane_2024": 3840,
+    "cobertura_zona_rural_estimada_pct": 42.4,
+    "cobertura_ribeirinha_estimada_pct": 38.4,
+    "status_criancas": "critico",
+    "status_adolescentes": "critico",
     "status_cadeia_frio": "atencao",
-    "campanhas_realizadas_ano": 3,
 }
 
-_COBERTURAS = [
-    {"vacina": "BCG",                       "publico": "RN",        "aplicadas": 284, "populacao_alvo": 320, "cobertura_pct": 88.8, "meta_pct": 90.0,  "status": "atencao"},
-    {"vacina": "Pentavalente (DTP/Hib/HB)", "publico": "<1 ano",    "aplicadas": 768, "populacao_alvo": 960, "cobertura_pct": 80.0, "meta_pct": 95.0,  "status": "critico"},
-    {"vacina": "VIP (Poliomielite injet.)", "publico": "<1 ano",    "aplicadas": 816, "populacao_alvo": 960, "cobertura_pct": 85.0, "meta_pct": 95.0,  "status": "atencao"},
-    {"vacina": "VOP (oral)",                "publico": "<5 anos",   "aplicadas": 284, "populacao_alvo": 320, "cobertura_pct": 88.8, "meta_pct": 95.0,  "status": "atencao"},
-    {"vacina": "Rotavírus humano",          "publico": "2-7 meses", "aplicadas": 564, "populacao_alvo": 640, "cobertura_pct": 88.1, "meta_pct": 95.0,  "status": "atencao"},
-    {"vacina": "Pneumocócica 10v",          "publico": "<2 anos",   "aplicadas": 848, "populacao_alvo": 960, "cobertura_pct": 88.3, "meta_pct": 95.0,  "status": "atencao"},
-    {"vacina": "Meningocócica C",           "publico": "3-12 meses","aplicadas": 752, "populacao_alvo": 960, "cobertura_pct": 78.3, "meta_pct": 95.0,  "status": "critico"},
-    {"vacina": "Febre Amarela",             "publico": "≥9 meses",  "aplicadas": 984, "populacao_alvo": 1200,"cobertura_pct": 82.0, "meta_pct": 95.0,  "status": "critico"},
-    {"vacina": "Tríplice Viral (SCR)",      "publico": "12 meses",  "aplicadas": 292, "populacao_alvo": 320, "cobertura_pct": 91.3, "meta_pct": 95.0,  "status": "atencao"},
-    {"vacina": "Varicela",                  "publico": "15 meses",  "aplicadas": 284, "populacao_alvo": 320, "cobertura_pct": 88.8, "meta_pct": 95.0,  "status": "atencao"},
-    {"vacina": "HPV quadrivalente",         "publico": "9-14a (F)", "aplicadas": 684, "populacao_alvo": 1284,"cobertura_pct": 53.3, "meta_pct": 80.0,  "status": "critico"},
-    {"vacina": "dT adulto",                 "publico": "Gestantes", "aplicadas": 212, "populacao_alvo": 320, "cobertura_pct": 66.3, "meta_pct": 95.0,  "status": "critico"},
-    {"vacina": "Influenza",                 "publico": "Grupos alvo","aplicadas": 1284,"populacao_alvo": 1800,"cobertura_pct": 71.3, "meta_pct": 90.0,  "status": "critico"},
-    {"vacina": "Covid-19 (reforço)",        "publico": ">60a",      "aplicadas": 648, "populacao_alvo": 1200,"cobertura_pct": 54.0, "meta_pct": 90.0,  "status": "critico"},
+_VACINAS = [
+    {"vacina": "BCG (RN)",                  "cobertura_pct": 84.2,  "meta_pct": 95.0, "status": "atencao", "publico": "RN",              "observacao": "15,8% sem BCG — parto domiciliar e demora em registro civil atrasa vacinação. BCG em falta 2 meses/ano por falha no abastecimento CENADI"},
+    {"vacina": "Hepatite B (ao nascer)",     "cobertura_pct": 78.4,  "meta_pct": 95.0, "status": "critico", "publico": "RN (< 24h)",      "observacao": "21,6% sem Hep B ao nascer — parto domiciliar impossibilita dose nas primeiras 24h. 3 dias para o cartório = perda da janela ideal. Hepatite B crônica evitável em gestantes HBsAg+ sem triagem"},
+    {"vacina": "Pentavalente D3",            "cobertura_pct": 72.4,  "meta_pct": 95.0, "status": "critico", "publico": "< 1 ano",         "observacao": "Abandono D1→D3 de 18,4% — dificuldade de acesso em zona rural e ribeirinha. Calendário mensal incompatível com rotina de populações itinerantes (garimpo). Coriforme subindo por queda de Hib"},
+    {"vacina": "VIP/VOP (Poliomielite D3)", "cobertura_pct": 68.4,  "meta_pct": 95.0, "status": "critico", "publico": "< 1 ano",         "observacao": "Cobertura abaixo do limiar de imunidade de rebanho (90%). Municípios com risco de reintrodução de polio em fronteiras amazônicas. Campanha nacional de vacinação não atinge área ribeirinha uniformemente"},
+    {"vacina": "Tríplice Viral D1 (SCR)",   "cobertura_pct": 64.2,  "meta_pct": 95.0, "status": "critico", "publico": "12 meses",        "observacao": "Cobertura sarampo abaixo do limiar crítico (95%). AM teve surtos de sarampo em 2018-2019 que começaram em municípios com cobertura < 70%. Risco real de surto em Apuí no próximo ciclo epidêmico"},
+    {"vacina": "Tríplice Viral D2",         "cobertura_pct": 58.4,  "meta_pct": 95.0, "status": "critico", "publico": "15 meses",        "observacao": "Drop-out D1→D2 de 9,1% adicional. 36,6% sem 2 doses de SCR — imunidade insuficiente para bloquear transmissão em surto. Sarampo, caxumba e rubéola são eliminações frágeis em contexto amazônico"},
+    {"vacina": "HPV feminino D2",            "cobertura_pct": 52.4,  "meta_pct": 80.0, "status": "critico", "publico": "9-14 anos",       "observacao": "HPV é a principal causa evitável de câncer de colo uterino — câncer com alta mortalidade em AM por diagnóstico tardio. Vacinação escolar é a estratégia mais efetiva: escola sem PSE = HPV não vacinado"},
+    {"vacina": "HPV masculino D2",           "cobertura_pct": 42.4,  "meta_pct": 80.0, "status": "critico", "publico": "11-14 anos",      "observacao": "Pior cobertura do calendário — menino não é levado ao posto de saúde com mesma frequência. Vacinação escolar masculina depende de PSE com 64,3% de cobertura de escolas"},
+    {"vacina": "Influenza (≥ 60 anos)",      "cobertura_pct": 72.4,  "meta_pct": 90.0, "status": "atencao", "publico": "Idosos",          "observacao": "27,6% dos idosos sem influenza anual. Campanhas anuais com adesão variável. Idoso ribeirinho com dificuldade de acesso à UBS. Internação por influenza = transfer para Manaus em população vulnerável"},
+    {"vacina": "Influenza (gestante)",       "cobertura_pct": 58.4,  "meta_pct": 90.0, "status": "critico", "publico": "Gestantes",       "observacao": "41,6% das gestantes sem influenza — risco de óbito materno por pneumonia influenza. Gestante só vai à UBS no pré-natal: oportunidade perdida se vacina em falta ou sala fechada"},
+]
+
+_CADEIA_FRIO = [
+    {"sala": "UBS Central (sede)",       "geladeiras": 1, "funcionando": True,  "temperatura_ok_pct": 94.2, "doses_armazenadas": 1840, "status": "ok"},
+    {"sala": "UBS Ramal do Acará",       "geladeiras": 1, "funcionando": True,  "temperatura_ok_pct": 88.4, "doses_armazenadas": 640,  "status": "atencao"},
+    {"sala": "UBS Vila do Juma",         "geladeiras": 0, "funcionando": False, "temperatura_ok_pct": 0,    "doses_armazenadas": 0,    "status": "critico"},
+    {"sala": "Posto Ribeirinho Igarapé", "geladeiras": 0, "funcionando": False, "temperatura_ok_pct": 0,    "doses_armazenadas": 0,    "status": "critico"},
 ]
 
 _HISTORICO = [
-    {"mes": "Jan/25", "aplicadas": 2284, "perdas_pct": 5.2, "cobertura_inf_pct": 84.2, "febre_amarela_pct": 80.4},
-    {"mes": "Fev/25", "aplicadas": 2484, "perdas_pct": 4.8, "cobertura_inf_pct": 84.8, "febre_amarela_pct": 81.2},
-    {"mes": "Mar/25", "aplicadas": 2684, "perdas_pct": 4.4, "cobertura_inf_pct": 86.2, "febre_amarela_pct": 81.8},
-    {"mes": "Abr/25", "aplicadas": 2984, "perdas_pct": 4.2, "cobertura_inf_pct": 86.8, "febre_amarela_pct": 81.6},
-    {"mes": "Mai/25", "aplicadas": 2684, "perdas_pct": 5.0, "cobertura_inf_pct": 87.2, "febre_amarela_pct": 81.4},
-    {"mes": "Jun/25", "aplicadas": 2840, "perdas_pct": 4.8, "cobertura_inf_pct": 84.2, "febre_amarela_pct": 82.0},
+    {"ano": "2022", "pentavalente_pct": 64.2, "scr_d1_pct": 58.4, "hpv_pct": 42.4, "influenza_idosos_pct": 64.2, "abandono_pct": 24.4},
+    {"ano": "2023", "pentavalente_pct": 66.8, "scr_d1_pct": 60.8, "hpv_pct": 44.8, "influenza_idosos_pct": 66.8, "abandono_pct": 22.4},
+    {"ano": "2024", "pentavalente_pct": 69.4, "scr_d1_pct": 62.4, "hpv_pct": 48.4, "influenza_idosos_pct": 69.4, "abandono_pct": 20.4},
+    {"ano": "2025", "pentavalente_pct": 72.4, "scr_d1_pct": 64.2, "hpv_pct": 52.4, "influenza_idosos_pct": 72.4, "abandono_pct": 18.4},
 ]
 
 _INDICADORES = [
-    {"indicador": "Cobertura vacinal geral",         "valor": 84.2, "meta": 95.0,  "unidade": "%",   "status": "atencao", "observacao": "10,8 pp abaixo da meta — Pentavalente e Meningocócica C são os pontos críticos. 2 salas de vacina fechadas por falta de pessoal"},
-    {"indicador": "Cobertura Febre Amarela",         "valor": 82.0, "meta": 95.0,  "unidade": "%",   "status": "critico", "observacao": "Endêmica na região Amazônica — cobertura < 95% mantém risco de surto. Apuí está em zona de transmissão silvestre ativa"},
-    {"indicador": "Cobertura HPV (meninas 9-14a)",   "valor": 53.3, "meta": 80.0,  "unidade": "%",   "status": "critico", "observacao": "53,3% vs meta 80% — esquema de 2 doses com intervalo de 6 meses. Perda de seguimento é a principal causa de não conclusão"},
-    {"indicador": "Cobertura influenza (grupos alvo)","valor": 71.3, "meta": 90.0, "unidade": "%",   "status": "critico", "observacao": "71,3% — 18,7 pp abaixo da meta. Gestantes (66,3%) e idosos (54% Covid) são os mais vulneráveis"},
-    {"indicador": "Perdas de doses",                 "valor": 4.8,  "meta": 3.0,   "unidade": "%",   "status": "atencao", "observacao": "Acima da meta de 3% — falha na cadeia de frio (2 freezers insuficientes) e abertura de frascos sem completar doses"},
-    {"indicador": "Salas de vacina em funcionamento","valor": 6,    "meta": 8,     "unidade": "salas","status": "atencao", "observacao": "2 salas fechadas por falta de vacinador — UBS Ramal Acará e UBS Rural prejudicam cobertura ribeirinha e rural"},
+    {"indicador": "Cobertura pentavalente D3",     "valor": 72.4, "meta": 95.0, "unidade": "%", "status": "critico", "observacao": "Abandono D1→D3 de 18,4% — maior causa: distância UBS em zona rural/ribeirinha. Criança de assentamento percorre 40-80 km para completar esquema. Vacinação domiciliar por ACS não está sistematizada"},
+    {"indicador": "Cobertura SCR D1 (sarampo)",    "valor": 64.2, "meta": 95.0, "unidade": "%", "status": "critico", "observacao": "35,8% sem sarampo — abaixo do limiar de proteção de rebanho (95%). AM teve surto 2018-2019 com transmissão iniciada em municípios de baixa cobertura. Reintrodução via garimpo (trabalhadores de outras UFs/países) é risco real"},
+    {"indicador": "Perda na cadeia de frio",       "valor": 3840, "meta": 0,    "unidade": "doses", "status": "critico", "observacao": "Pane em geladeira em 2024 destruiu 3.840 doses — R$ 28k em imunobiológicos. 2 salas sem geladeira (Vila do Juma, ribeirinha). Caixa de isopor com gelo = cadeia de frio precária para vacinação rural"},
+    {"indicador": "HPV feminino D2",               "valor": 52.4, "meta": 80.0, "unidade": "%", "status": "critico", "observacao": "Câncer de colo é evitável — HPV é responsável por 99% dos casos. AM tem incidência entre as mais altas do Brasil. Cobertura 52,4% = 47,6% das meninas expostas a risco evitável de câncer na vida adulta"},
+    {"indicador": "Cobertura zona ribeirinha (est.)","valor": 38.4,"meta": 95.0,"unidade": "%", "status": "critico", "observacao": "Estimativa baseada em SIAB/ACS: cobertura real pode ser ainda menor. Barco de vacinação SESAI cobre TI mas não comunidades ribeirinhas não-indígenas. Estratégia de vacinação fluvial municipal inexistente"},
 ]
 
 
@@ -63,9 +74,14 @@ def dashboard():
     return _DASHBOARD
 
 
-@router.get("/coberturas")
-def coberturas():
-    return _COBERTURAS
+@router.get("/vacinas")
+def vacinas():
+    return _VACINAS
+
+
+@router.get("/cadeia-frio")
+def cadeia_frio():
+    return _CADEIA_FRIO
 
 
 @router.get("/historico")
