@@ -226,6 +226,9 @@ import SaudeIdosoApui                  from "./pages/SaudeIdosoApui";
 import SaudeCriancaApui                from "./pages/SaudeCriancaApui";
 import VigilanciaEpidemiologicaApui    from "./pages/VigilanciaEpidemiologicaApui";
 import GestaoHospitalarApui            from "./pages/GestaoHospitalarApui";
+import AguaSaneamentoApui              from "./pages/AguaSaneamentoApui";
+import SaudeDigitalApui                from "./pages/SaudeDigitalApui";
+import FundoMunicipalSaudeApui         from "./pages/FundoMunicipalSaudeApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -534,6 +537,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/saude-crianca-apui"          label="Saúde da Criança"     Icon={Smile}/>
             <L1 to="/vigilancia-epidemiologica-apui" label="Vigil. Epidemiológica" Icon={Monitor}/>
             <L1 to="/gestao-hospitalar-apui"      label="Gestão Hospitalar"    Icon={Landmark}/>
+            <L1 to="/agua-saneamento-apui"        label="Água e Saneamento"    Icon={Droplets}/>
+            <L1 to="/saude-digital-apui"          label="Saúde Digital"        Icon={Globe}/>
+            <L1 to="/fundo-municipal-saude-apui"  label="Fundo Municipal Saúde" Icon={FolderOpen}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -959,6 +965,9 @@ export default function App() {
             <Route path="/saude-crianca-apui"            element={<SaudeCriancaApui/>}/>
             <Route path="/vigilancia-epidemiologica-apui" element={<VigilanciaEpidemiologicaApui/>}/>
             <Route path="/gestao-hospitalar-apui"         element={<GestaoHospitalarApui/>}/>
+            <Route path="/agua-saneamento-apui"           element={<AguaSaneamentoApui/>}/>
+            <Route path="/saude-digital-apui"             element={<SaudeDigitalApui/>}/>
+            <Route path="/fundo-municipal-saude-apui"     element={<FundoMunicipalSaudeApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
