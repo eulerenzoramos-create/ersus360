@@ -256,6 +256,9 @@ import EconomiaSaudeApui              from "./pages/EconomiaSaudeApui";
 import MortalidadeMaternaApui         from "./pages/MortalidadeMaternaApui";
 import TabagismoDpocApui              from "./pages/TabagismoDpocApui";
 import SaudeLgbtqiaApui              from "./pages/SaudeLgbtqiaApui";
+import DengueArbovirosesApui         from "./pages/DengueArbovirosesApui";
+import IlpiIdosoApui                 from "./pages/IlpiIdosoApui";
+import FarmaciaPopularApui           from "./pages/FarmaciaPopularApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -594,6 +597,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/mortalidade-materna-apui"    label="Mortalidade Materna"     Icon={Heart}/>
             <L1 to="/tabagismo-dpoc-apui"         label="Tabagismo e DPOC"        Icon={Wind}/>
             <L1 to="/saude-lgbtqia-apui"          label="Saúde LGBTQIA+"          Icon={Smile}/>
+            <L1 to="/dengue-arboviroses-apui"     label="Dengue e Arboviroses"    Icon={Bug}/>
+            <L1 to="/ilpi-idoso-apui"             label="ILPI e Idoso Dependente" Icon={Building2}/>
+            <L1 to="/farmacia-popular-apui"        label="Farmácia Popular"        Icon={ShoppingBag}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -1049,6 +1055,9 @@ export default function App() {
             <Route path="/mortalidade-materna-apui"     element={<MortalidadeMaternaApui/>}/>
             <Route path="/tabagismo-dpoc-apui"          element={<TabagismoDpocApui/>}/>
             <Route path="/saude-lgbtqia-apui"           element={<SaudeLgbtqiaApui/>}/>
+            <Route path="/dengue-arboviroses-apui"      element={<DengueArbovirosesApui/>}/>
+            <Route path="/ilpi-idoso-apui"              element={<IlpiIdosoApui/>}/>
+            <Route path="/farmacia-popular-apui"        element={<FarmaciaPopularApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

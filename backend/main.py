@@ -310,6 +310,9 @@ from routers.economia_saude_apui import router as economia_saude_apui_router
 from routers.mortalidade_materna_apui import router as mortalidade_materna_apui_router
 from routers.tabagismo_dpoc_apui import router as tabagismo_dpoc_apui_router
 from routers.saude_lgbtqia_apui import router as saude_lgbtqia_apui_router
+from routers.dengue_arboviroses_apui import router as dengue_arboviroses_apui_router
+from routers.ilpi_idoso_apui import router as ilpi_idoso_apui_router
+from routers.farmacia_popular_apui import router as farmacia_popular_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -558,6 +561,9 @@ app.include_router(economia_saude_apui_router)
 app.include_router(mortalidade_materna_apui_router)
 app.include_router(tabagismo_dpoc_apui_router)
 app.include_router(saude_lgbtqia_apui_router)
+app.include_router(dengue_arboviroses_apui_router)
+app.include_router(ilpi_idoso_apui_router)
+app.include_router(farmacia_popular_apui_router)
 
 
 @app.get("/")
