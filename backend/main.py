@@ -304,6 +304,9 @@ from routers.saude_auditiva_apui import router as saude_auditiva_apui_router
 from routers.saude_adolescente_apui import router as saude_adolescente_apui_router
 from routers.doencas_raras_apui import router as doencas_raras_apui_router
 from routers.clima_saude_apui import router as clima_saude_apui_router
+from routers.tfd_especialidades_apui import router as tfd_especialidades_apui_router
+from routers.residuos_saude_apui import router as residuos_saude_apui_router
+from routers.economia_saude_apui import router as economia_saude_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -546,6 +549,9 @@ app.include_router(saude_auditiva_apui_router)
 app.include_router(saude_adolescente_apui_router)
 app.include_router(doencas_raras_apui_router)
 app.include_router(clima_saude_apui_router)
+app.include_router(tfd_especialidades_apui_router)
+app.include_router(residuos_saude_apui_router)
+app.include_router(economia_saude_apui_router)
 
 
 @app.get("/")
