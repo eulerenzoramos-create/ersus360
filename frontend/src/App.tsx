@@ -271,6 +271,9 @@ import MedicamentosAltoCustoApui     from "./pages/MedicamentosAltoCustoApui";
 import ViolenciaDomesticaSexualApui  from "./pages/ViolenciaDomesticaSexualApui";
 import MercurioGarimpoApui           from "./pages/MercurioGarimpoApui";
 import ResiduosSolidosUrbanosApui    from "./pages/ResiduosSolidosUrbanosApui";
+import FilaCirurgicaApui             from "./pages/FilaCirurgicaApui";
+import PrevencaoSuicidioApui         from "./pages/PrevencaoSuicidioApui";
+import PcdCriancaApui                from "./pages/PcdCriancaApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -624,6 +627,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/violencia-domestica-sexual-apui" label="Violência Doméstica/Sexual" Icon={MessageSquare}/>
             <L1 to="/mercurio-garimpo-apui"        label="Mercúrio e Garimpo"      Icon={FlaskConical}/>
             <L1 to="/residuos-solidos-urbanos-apui" label="Resíduos Sólidos"       Icon={Trash2}/>
+            <L1 to="/fila-cirurgica-apui"          label="Fila Cirúrgica"          Icon={Clock}/>
+            <L1 to="/prevencao-suicidio-apui"      label="Prevenção do Suicídio"   Icon={Heart}/>
+            <L1 to="/pcd-crianca-apui"             label="PcD Criança/Habilitação" Icon={Baby}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -1094,6 +1100,9 @@ export default function App() {
             <Route path="/violencia-domestica-sexual-apui" element={<ViolenciaDomesticaSexualApui/>}/>
             <Route path="/mercurio-garimpo-apui"       element={<MercurioGarimpoApui/>}/>
             <Route path="/residuos-solidos-urbanos-apui" element={<ResiduosSolidosUrbanosApui/>}/>
+            <Route path="/fila-cirurgica-apui"          element={<FilaCirurgicaApui/>}/>
+            <Route path="/prevencao-suicidio-apui"      element={<PrevencaoSuicidioApui/>}/>
+            <Route path="/pcd-crianca-apui"             element={<PcdCriancaApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
