@@ -316,6 +316,9 @@ from routers.farmacia_popular_apui import router as farmacia_popular_apui_router
 from routers.acidentes_transito_apui import router as acidentes_transito_apui_router
 from routers.saude_mental_infantil_apui import router as saude_mental_infantil_apui_router
 from routers.saneamento_basico_apui import router as saneamento_basico_apui_router
+from routers.planejamento_familiar_apui import router as planejamento_familiar_apui_router
+from routers.saude_prisional_apui import router as saude_prisional_apui_router
+from routers.zoonoses_apui import router as zoonoses_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -570,6 +573,9 @@ app.include_router(farmacia_popular_apui_router)
 app.include_router(acidentes_transito_apui_router)
 app.include_router(saude_mental_infantil_apui_router)
 app.include_router(saneamento_basico_apui_router)
+app.include_router(planejamento_familiar_apui_router)
+app.include_router(saude_prisional_apui_router)
+app.include_router(zoonoses_apui_router)
 
 
 @app.get("/")
