@@ -265,6 +265,9 @@ import SaneamentoBasicoApui          from "./pages/SaneamentoBasicoApui";
 import PlanejamentoFamiliarApui      from "./pages/PlanejamentoFamiliarApui";
 import SaudePrisionalApui            from "./pages/SaudePrisionalApui";
 import ZoonosesApui                  from "./pages/ZoonosesApui";
+import AtividadeFisicaApui           from "./pages/AtividadeFisicaApui";
+import InfraestruturaUbsApui         from "./pages/InfraestruturaUbsApui";
+import MedicamentosAltoCustoApui     from "./pages/MedicamentosAltoCustoApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -612,6 +615,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/planejamento-familiar-apui"  label="Planejamento Familiar"   Icon={Calendar}/>
             <L1 to="/saude-prisional-apui"         label="Saúde Prisional"         Icon={Shield}/>
             <L1 to="/zoonoses-apui"                label="Controle de Zoonoses"    Icon={FlaskRound}/>
+            <L1 to="/atividade-fisica-apui"        label="Atividade Física"         Icon={Thermometer}/>
+            <L1 to="/infraestrutura-ubs-apui"      label="Infraestrutura das UBSs"  Icon={Wrench}/>
+            <L1 to="/medicamentos-alto-custo-apui" label="Medicamentos Alto Custo"  Icon={Star}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -1076,6 +1082,9 @@ export default function App() {
             <Route path="/planejamento-familiar-apui" element={<PlanejamentoFamiliarApui/>}/>
             <Route path="/saude-prisional-apui"       element={<SaudePrisionalApui/>}/>
             <Route path="/zoonoses-apui"              element={<ZoonosesApui/>}/>
+            <Route path="/atividade-fisica-apui"      element={<AtividadeFisicaApui/>}/>
+            <Route path="/infraestrutura-ubs-apui"    element={<InfraestruturaUbsApui/>}/>
+            <Route path="/medicamentos-alto-custo-apui" element={<MedicamentosAltoCustoApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
