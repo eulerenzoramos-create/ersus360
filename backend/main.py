@@ -289,6 +289,9 @@ from routers.rede_logistica_apui import router as rede_logistica_apui_router
 from routers.saude_pcd_apui import router as saude_pcd_apui_router
 from routers.planejamento_saude_apui import router as planejamento_saude_apui_router
 from routers.saude_respiratoria_apui import router as saude_respiratoria_apui_router
+from routers.saude_cardiovascular_apui import router as saude_cardiovascular_apui_router
+from routers.saude_renal_apui import router as saude_renal_apui_router
+from routers.violencia_acidentes_apui import router as violencia_acidentes_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -516,6 +519,9 @@ app.include_router(rede_logistica_apui_router)
 app.include_router(saude_pcd_apui_router)
 app.include_router(planejamento_saude_apui_router)
 app.include_router(saude_respiratoria_apui_router)
+app.include_router(saude_cardiovascular_apui_router)
+app.include_router(saude_renal_apui_router)
+app.include_router(violencia_acidentes_apui_router)
 
 
 @app.get("/")

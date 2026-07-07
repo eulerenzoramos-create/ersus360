@@ -235,6 +235,9 @@ import RedeLogisticaApui               from "./pages/RedeLogisticaApui";
 import SaudePcdApui                    from "./pages/SaudePcdApui";
 import PlanejamentoSaudeApui           from "./pages/PlanejamentoSaudeApui";
 import SaudeRespiratoriaApui           from "./pages/SaudeRespiratoriaApui";
+import SaudeCardiovascularApui         from "./pages/SaudeCardiovascularApui";
+import SaudeRenalApui                  from "./pages/SaudeRenalApui";
+import ViolenciaAcidentesApui          from "./pages/ViolenciaAcidentesApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -552,6 +555,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/saude-pcd-apui"              label="Saúde da PcD"          Icon={Waves}/>
             <L1 to="/planejamento-saude-apui"     label="Planejamento Saúde"    Icon={BarChart2}/>
             <L1 to="/saude-respiratoria-apui"     label="Saúde Respiratória"    Icon={Wind}/>
+            <L1 to="/saude-cardiovascular-apui"   label="Saúde Cardiovascular"  Icon={Heart}/>
+            <L1 to="/saude-renal-apui"            label="Saúde Renal"           Icon={Droplets}/>
+            <L1 to="/violencia-acidentes-apui"    label="Violência e Acidentes" Icon={Shield}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -986,6 +992,9 @@ export default function App() {
             <Route path="/saude-pcd-apui"                element={<SaudePcdApui/>}/>
             <Route path="/planejamento-saude-apui"       element={<PlanejamentoSaudeApui/>}/>
             <Route path="/saude-respiratoria-apui"       element={<SaudeRespiratoriaApui/>}/>
+            <Route path="/saude-cardiovascular-apui"     element={<SaudeCardiovascularApui/>}/>
+            <Route path="/saude-renal-apui"              element={<SaudeRenalApui/>}/>
+            <Route path="/violencia-acidentes-apui"      element={<ViolenciaAcidentesApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
