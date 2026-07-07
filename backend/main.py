@@ -286,6 +286,9 @@ from routers.fundo_municipal_saude_apui import router as fundo_municipal_saude_a
 from routers.saude_garimpo_apui import router as saude_garimpo_apui_router
 from routers.recursos_humanos_saude_apui import router as recursos_humanos_saude_apui_router
 from routers.rede_logistica_apui import router as rede_logistica_apui_router
+from routers.saude_pcd_apui import router as saude_pcd_apui_router
+from routers.planejamento_saude_apui import router as planejamento_saude_apui_router
+from routers.saude_respiratoria_apui import router as saude_respiratoria_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -510,6 +513,9 @@ app.include_router(fundo_municipal_saude_apui_router)
 app.include_router(saude_garimpo_apui_router)
 app.include_router(recursos_humanos_saude_apui_router)
 app.include_router(rede_logistica_apui_router)
+app.include_router(saude_pcd_apui_router)
+app.include_router(planejamento_saude_apui_router)
+app.include_router(saude_respiratoria_apui_router)
 
 
 @app.get("/")
