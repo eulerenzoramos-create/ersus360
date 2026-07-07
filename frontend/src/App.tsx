@@ -268,6 +268,9 @@ import ZoonosesApui                  from "./pages/ZoonosesApui";
 import AtividadeFisicaApui           from "./pages/AtividadeFisicaApui";
 import InfraestruturaUbsApui         from "./pages/InfraestruturaUbsApui";
 import MedicamentosAltoCustoApui     from "./pages/MedicamentosAltoCustoApui";
+import ViolenciaDomesticaSexualApui  from "./pages/ViolenciaDomesticaSexualApui";
+import MercurioGarimpoApui           from "./pages/MercurioGarimpoApui";
+import ResiduosSolidosUrbanosApui    from "./pages/ResiduosSolidosUrbanosApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -618,6 +621,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/atividade-fisica-apui"        label="Atividade Física"         Icon={Thermometer}/>
             <L1 to="/infraestrutura-ubs-apui"      label="Infraestrutura das UBSs"  Icon={Wrench}/>
             <L1 to="/medicamentos-alto-custo-apui" label="Medicamentos Alto Custo"  Icon={Star}/>
+            <L1 to="/violencia-domestica-sexual-apui" label="Violência Doméstica/Sexual" Icon={MessageSquare}/>
+            <L1 to="/mercurio-garimpo-apui"        label="Mercúrio e Garimpo"      Icon={FlaskConical}/>
+            <L1 to="/residuos-solidos-urbanos-apui" label="Resíduos Sólidos"       Icon={Trash2}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -1085,6 +1091,9 @@ export default function App() {
             <Route path="/atividade-fisica-apui"      element={<AtividadeFisicaApui/>}/>
             <Route path="/infraestrutura-ubs-apui"    element={<InfraestruturaUbsApui/>}/>
             <Route path="/medicamentos-alto-custo-apui" element={<MedicamentosAltoCustoApui/>}/>
+            <Route path="/violencia-domestica-sexual-apui" element={<ViolenciaDomesticaSexualApui/>}/>
+            <Route path="/mercurio-garimpo-apui"       element={<MercurioGarimpoApui/>}/>
+            <Route path="/residuos-solidos-urbanos-apui" element={<ResiduosSolidosUrbanosApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

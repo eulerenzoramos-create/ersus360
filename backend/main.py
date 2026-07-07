@@ -322,6 +322,9 @@ from routers.zoonoses_apui import router as zoonoses_apui_router
 from routers.atividade_fisica_apui import router as atividade_fisica_apui_router
 from routers.infraestrutura_ubs_apui import router as infraestrutura_ubs_apui_router
 from routers.medicamentos_alto_custo_apui import router as medicamentos_alto_custo_apui_router
+from routers.violencia_domestica_sexual_apui import router as violencia_domestica_sexual_apui_router
+from routers.mercurio_garimpo_apui import router as mercurio_garimpo_apui_router
+from routers.residuos_solidos_urbanos_apui import router as residuos_solidos_urbanos_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -582,6 +585,9 @@ app.include_router(zoonoses_apui_router)
 app.include_router(atividade_fisica_apui_router)
 app.include_router(infraestrutura_ubs_apui_router)
 app.include_router(medicamentos_alto_custo_apui_router)
+app.include_router(violencia_domestica_sexual_apui_router)
+app.include_router(mercurio_garimpo_apui_router)
+app.include_router(residuos_solidos_urbanos_apui_router)
 
 
 @app.get("/")
