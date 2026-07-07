@@ -274,6 +274,9 @@ import ResiduosSolidosUrbanosApui    from "./pages/ResiduosSolidosUrbanosApui";
 import FilaCirurgicaApui             from "./pages/FilaCirurgicaApui";
 import PrevencaoSuicidioApui         from "./pages/PrevencaoSuicidioApui";
 import PcdCriancaApui                from "./pages/PcdCriancaApui";
+import DemenciaAlzheimerApui         from "./pages/DemenciaAlzheimerApui";
+import IcsapApui                     from "./pages/IcsapApui";
+import LeishmanioseVisceralApui      from "./pages/LeishmanioseVisceralApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -630,6 +633,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/fila-cirurgica-apui"          label="Fila Cirúrgica"          Icon={Clock}/>
             <L1 to="/prevencao-suicidio-apui"      label="Prevenção do Suicídio"   Icon={Heart}/>
             <L1 to="/pcd-crianca-apui"             label="PcD Criança/Habilitação" Icon={Baby}/>
+            <L1 to="/demencia-alzheimer-apui"      label="Demência e Alzheimer"    Icon={UserCog}/>
+            <L1 to="/icsap-apui"                   label="ICSAP — Internações Evit." Icon={Stethoscope}/>
+            <L1 to="/leishmaniose-visceral-apui"   label="Leishmaniose Visceral"   Icon={Droplets}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -1103,6 +1109,9 @@ export default function App() {
             <Route path="/fila-cirurgica-apui"          element={<FilaCirurgicaApui/>}/>
             <Route path="/prevencao-suicidio-apui"      element={<PrevencaoSuicidioApui/>}/>
             <Route path="/pcd-crianca-apui"             element={<PcdCriancaApui/>}/>
+            <Route path="/demencia-alzheimer-apui"   element={<DemenciaAlzheimerApui/>}/>
+            <Route path="/icsap-apui"                element={<IcsapApui/>}/>
+            <Route path="/leishmaniose-visceral-apui" element={<LeishmanioseVisceralApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

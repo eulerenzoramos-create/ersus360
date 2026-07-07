@@ -328,6 +328,9 @@ from routers.residuos_solidos_urbanos_apui import router as residuos_solidos_urb
 from routers.fila_cirurgica_apui import router as fila_cirurgica_apui_router
 from routers.prevencao_suicidio_apui import router as prevencao_suicidio_apui_router
 from routers.pcd_crianca_apui import router as pcd_crianca_apui_router
+from routers.demencia_alzheimer_apui import router as demencia_alzheimer_apui_router
+from routers.icsap_apui import router as icsap_apui_router
+from routers.leishmaniose_visceral_apui import router as leishmaniose_visceral_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -594,6 +597,9 @@ app.include_router(residuos_solidos_urbanos_apui_router)
 app.include_router(fila_cirurgica_apui_router)
 app.include_router(prevencao_suicidio_apui_router)
 app.include_router(pcd_crianca_apui_router)
+app.include_router(demencia_alzheimer_apui_router)
+app.include_router(icsap_apui_router)
+app.include_router(leishmaniose_visceral_apui_router)
 
 
 @app.get("/")
