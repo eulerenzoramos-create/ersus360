@@ -277,6 +277,9 @@ import PcdCriancaApui                from "./pages/PcdCriancaApui";
 import DemenciaAlzheimerApui         from "./pages/DemenciaAlzheimerApui";
 import IcsapApui                     from "./pages/IcsapApui";
 import LeishmanioseVisceralApui      from "./pages/LeishmanioseVisceralApui";
+import DesnutricaoInfantilApui       from "./pages/DesnutricaoInfantilApui";
+import PrenatalRiscoGestacionalApui  from "./pages/PrenatalRiscoGestacionalApui";
+import QueimAdasRespiratoriaApui     from "./pages/QueimAdasRespiratoriaApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -636,6 +639,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/demencia-alzheimer-apui"      label="Demência e Alzheimer"    Icon={UserCog}/>
             <L1 to="/icsap-apui"                   label="ICSAP — Internações Evit." Icon={Stethoscope}/>
             <L1 to="/leishmaniose-visceral-apui"   label="Leishmaniose Visceral"   Icon={Droplets}/>
+            <L1 to="/desnutricao-infantil-apui"    label="Desnutrição Infantil"    Icon={Brain}/>
+            <L1 to="/prenatal-risco-gestacional-apui" label="Pré-Natal Risco Gestac." Icon={Syringe}/>
+            <L1 to="/queimadas-respiratoria-apui"  label="Queimadas Respiratória"  Icon={Wind}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -1112,6 +1118,9 @@ export default function App() {
             <Route path="/demencia-alzheimer-apui"   element={<DemenciaAlzheimerApui/>}/>
             <Route path="/icsap-apui"                element={<IcsapApui/>}/>
             <Route path="/leishmaniose-visceral-apui" element={<LeishmanioseVisceralApui/>}/>
+            <Route path="/desnutricao-infantil-apui" element={<DesnutricaoInfantilApui/>}/>
+            <Route path="/prenatal-risco-gestacional-apui" element={<PrenatalRiscoGestacionalApui/>}/>
+            <Route path="/queimadas-respiratoria-apui" element={<QueimAdasRespiratoriaApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

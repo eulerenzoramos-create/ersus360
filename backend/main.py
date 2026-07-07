@@ -331,6 +331,9 @@ from routers.pcd_crianca_apui import router as pcd_crianca_apui_router
 from routers.demencia_alzheimer_apui import router as demencia_alzheimer_apui_router
 from routers.icsap_apui import router as icsap_apui_router
 from routers.leishmaniose_visceral_apui import router as leishmaniose_visceral_apui_router
+from routers.desnutricao_infantil_apui import router as desnutricao_infantil_apui_router
+from routers.prenatal_risco_gestacional_apui import router as prenatal_risco_gestacional_apui_router
+from routers.queimadas_respiratoria_apui import router as queimadas_respiratoria_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -600,6 +603,9 @@ app.include_router(pcd_crianca_apui_router)
 app.include_router(demencia_alzheimer_apui_router)
 app.include_router(icsap_apui_router)
 app.include_router(leishmaniose_visceral_apui_router)
+app.include_router(desnutricao_infantil_apui_router)
+app.include_router(prenatal_risco_gestacional_apui_router)
+app.include_router(queimadas_respiratoria_apui_router)
 
 
 @app.get("/")
