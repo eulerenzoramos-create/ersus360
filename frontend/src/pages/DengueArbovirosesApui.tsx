@@ -5,7 +5,7 @@ import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
-import { Bug, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { Radio, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
 const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
@@ -36,20 +36,20 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
 export default function DengueArbovirosesApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["arbo-dashboard"],  queryFn: () => apiGet("/api/dengue-arboviroses-apui/dashboard"),   enabled: aba === "dashboard" });
-  const { data: arboviroses } = useQuery({ queryKey: ["arbo-doencas"],    queryFn: () => apiGet("/api/dengue-arboviroses-apui/arboviroses"),  enabled: aba === "arboviroses" });
-  const { data: controle }    = useQuery({ queryKey: ["arbo-controle"],   queryFn: () => apiGet("/api/dengue-arboviroses-apui/controle"),     enabled: aba === "controle" });
-  const { data: historico }   = useQuery({ queryKey: ["arbo-hist"],       queryFn: () => apiGet("/api/dengue-arboviroses-apui/historico"),    enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["arbo-ind"],        queryFn: () => apiGet("/api/dengue-arboviroses-apui/indicadores"),  enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["den-dash"],  queryFn: () => apiGet("/api/dengue-arboviroses-apui/dashboard"),  enabled: aba === "dashboard" });
+  const { data: vetores }     = useQuery({ queryKey: ["den-vet"],   queryFn: () => apiGet("/api/dengue-arboviroses-apui/vetores"),    enabled: aba === "vetores" });
+  const { data: acoes }       = useQuery({ queryKey: ["den-acao"],  queryFn: () => apiGet("/api/dengue-arboviroses-apui/acoes"),      enabled: aba === "acoes" });
+  const { data: historico }   = useQuery({ queryKey: ["den-hist"],  queryFn: () => apiGet("/api/dengue-arboviroses-apui/historico"),  enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["den-ind"],   queryFn: () => apiGet("/api/dengue-arboviroses-apui/indicadores"),enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
   const ABAS = [
-    { key: "dashboard",   label: "Dashboard",    icon: <Bug size={15}/> },
-    { key: "arboviroses", label: "Arboviroses",  icon: <Activity size={15}/> },
-    { key: "controle",    label: "Controle",     icon: <AlertTriangle size={15}/> },
-    { key: "historico",   label: "Histórico",    icon: <TrendingUp size={15}/> },
-    { key: "indicadores", label: "Indicadores",  icon: <AlertTriangle size={15}/> },
+    { key: "dashboard",   label: "Dashboard",  icon: <Radio size={15}/> },
+    { key: "vetores",     label: "Arboviroses",icon: <Activity size={15}/> },
+    { key: "acoes",       label: "Ações",      icon: <AlertTriangle size={15}/> },
+    { key: "historico",   label: "Histórico",  icon: <TrendingUp size={15}/> },
+    { key: "indicadores", label: "Indicadores",icon: <AlertTriangle size={15}/> },
   ];
 
   return (
@@ -57,11 +57,11 @@ export default function DengueArbovirosesApui() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-lg" style={{ background: BRAND }}>
-            <Bug size={22} color="white" />
+            <Radio size={22} color="white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Dengue e Arboviroses — Apuí/AM</h1>
-            <p className="text-sm text-slate-500">Dengue · Zika · Chikungunya · Febre Amarela · Controle Vetorial · FMS Apuí/AM</p>
+            <p className="text-sm text-slate-500">IIP Aedes · Dengue · Zika · Chikungunya · Controle Vetorial · ACEs · Wolbachia · FMS Apuí/AM</p>
           </div>
         </div>
 
@@ -78,27 +78,26 @@ export default function DengueArbovirosesApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Dengue 2025"            value={dashRaw.dengue_casos_2025?.toLocaleString()}    color={CRIT} sub={`${dashRaw.dengue_incidencia_por_100k}/100k (meta ${dashRaw.meta_incidencia_por_100k})`} />
-              <KPI label="Dengue grave"           value={dashRaw.dengue_graves_2025}                     color={CRIT} sub={`${dashRaw.dengue_obitos_2025} óbitos`} />
-              <KPI label="Índice de Breteau"      value={`${dashRaw.indice_breteau_pct}%`}               color={CRIT} sub={`meta < ${dashRaw.meta_indice_breteau_pct}% (epidemia)`} />
-              <KPI label="Zika + Chikungunya"     value={(dashRaw.zika_casos_2025 + dashRaw.chikungunya_casos_2025)?.toLocaleString()} color={CRIT} sub={`${dashRaw.zika_microcefalia_2025} microcefalia(s)`} />
+              <KPI label="IIP Aedes aegypti (crítico: > 1%)"    value={`${dashRaw.iip_aedes_atual_pct}%`}          color={CRIT} sub={`Breteau: ${dashRaw.ib_breteau_atual} — LIRAA ${dashRaw.cobertura_liraa_pct}% cobertura`} />
+              <KPI label="Dengue — incidência 2025"              value={`${dashRaw.dengue_incidencia_100k.toFixed(0)}/100k`} color={CRIT} sub={`${dashRaw.dengue_casos_2025} casos · ${dashRaw.dengue_obitos_2025} óbitos · ${dashRaw.dengue_graves_2025} graves`} />
+              <KPI label="Agentes de Endemias (ACEs)"            value={`${dashRaw.agentes_endemias_apui} / ${dashRaw.meta_agentes_endemias}`} color={CRIT} sub="déficit 27 ACEs (1 ACE/750 hab = 33 necessários)" />
+              <KPI label="Plano de Contingência"                 value={dashRaw.plano_contingencia_dengue_apui ? "Ativo" : "Inexistente"} color={CRIT} sub="obrigatório PNCD — bloqueia recursos federais" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="ACEs ativos"            value={`${dashRaw.agentes_endemias_ativas}/${dashRaw.meta_agentes_endemias}`} color={CRIT} sub="44,4% dos necessários" />
-              <KPI label="Cobertura visita ACE"   value={`${dashRaw.cobertura_visita_domiciliar_pct}%`}  color={CRIT} sub={`meta ${dashRaw.meta_cobertura_visita_pct}%`} />
-              <KPI label="Semanas epidêmicas"     value={`${dashRaw.semanas_epidemicas_2025} sem.`}      color={CRIT} sub="situação de epidemia em 2025" />
-              <KPI label="Resistência temefós"    value={dashRaw.aedes_resistencia_temefos_confirmada ? "Confirmada" : "Não"} color={CRIT} sub="mudar para Bti (biológico)" />
+              <KPI label="Zika em gestantes 2025"               value={`${dashRaw.zika_gestante_2025} casos`}      color={CRIT} sub={`${dashRaw.microcefalia_zika_2025} microcefalia/neuro — ${dashRaw.zika_casos_2025} casos totais`} />
+              <KPI label="Chikungunya 2025"                     value={`${dashRaw.chikungunya_casos_2025} casos`}  color={CRIT} sub={`${dashRaw.chikungunya_cronica_estimados} crônicos (artralgia > 3m)`} />
+              <KPI label="Sala de hidratação nas UBSs"          value={`${dashRaw.sala_hidratacao_dengue_ubs} / 8`} color={CRIT} sub="4 óbitos por dengue grave — hemoconcentração não detectada" />
+              <KPI label="Sorotipo dominante"                   value={dashRaw.dengue_sorotipo_dominante}          color={CRIT} sub="hiperendemia: 4 sorotipos circulando = epidemia periódica garantida" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <h3 className="font-semibold text-slate-700 mb-3">Controle Vetorial — Situação Atual</h3>
+                <h3 className="font-semibold text-slate-700 mb-3">Controle Vetorial — Indicadores Críticos</h3>
                 <div className="space-y-3 text-sm">
                   {[
-                    { label: `ACEs (${dashRaw.agentes_endemias_ativas}/${dashRaw.meta_agentes_endemias} = 44,4%)`,         value: dashRaw.agentes_endemias_ativas, max: dashRaw.meta_agentes_endemias, color: CRIT },
-                    { label: `Cobertura visita domiciliar (${dashRaw.cobertura_visita_domiciliar_pct}% / meta 80%)`,       value: dashRaw.cobertura_visita_domiciliar_pct, max: 100, color: CRIT },
-                    { label: `Abastecimento larvicida (${dashRaw.larvicida_abastecimento_regular_pct}%)`,                   value: dashRaw.larvicida_abastecimento_regular_pct, max: 100, color: WARN },
-                    { label: `Vacinação febre amarela (72,4% / meta 95%)`,                                                  value: 72.4, max: 100, color: CRIT },
-                    { label: `Índice de Breteau (${dashRaw.indice_breteau_pct}% — meta < 1%)`,                              value: 100 - dashRaw.indice_breteau_pct, max: 100, color: CRIT },
+                    { label: `IIP: ${dashRaw.iip_aedes_atual_pct}% (crítico > 1%)`,   value: 100 - dashRaw.iip_aedes_atual_pct * 10, max: 100, color: CRIT },
+                    { label: `ACEs: ${dashRaw.agentes_endemias_apui}/${dashRaw.meta_agentes_endemias} necessários`, value: dashRaw.agentes_endemias_apui, max: dashRaw.meta_agentes_endemias, color: CRIT },
+                    { label: `LIRAA: ${dashRaw.cobertura_liraa_pct}% dos quarteirões`, value: dashRaw.cobertura_liraa_pct, max: 100, color: CRIT },
+                    { label: `Salas hidratação: ${dashRaw.sala_hidratacao_dengue_ubs}/8 UBSs`, value: dashRaw.sala_hidratacao_dengue_ubs, max: 8, color: CRIT },
                   ].map((b: any) => (
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
@@ -110,75 +109,66 @@ export default function DengueArbovirosesApui() {
                 </div>
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
-                <p><b>Incidência 7.456/100k = 24,9× acima da meta</b> — epidemia declarada em 22 semanas de 2025. DENV-3 reintroduzido em 2024 em população sem imunidade = maior risco de dengue grave.</p>
-                <p><b>Índice de Breteau 18,4% vs meta &lt; 1%</b> — hiperendemia permanente. 8 ACEs para necessidade de 18 = cobertura insuficiente. 10 ACEs adicionais = R$ 120k/ano vs R$ 840k em atendimento de dengue.</p>
-                <p><b>Resistência ao temefós confirmada</b> — continuar usando temefós é ineficaz. Bti (Bacillus thuringiensis israelensis): 100% biológico, sem resistência, R$ 18.000/ano para cobertura completa.</p>
+                <p><b>IIP 4,8% = epidemia iminente</b> (nível crítico: 1%). 6 ACEs para 24.700 hab (meta 33). Principais criadouros: tonéis de garimpo (34,8%). Contratação emergencial 12 ACEs: R$ 504k/ano. ROI: 1.842 casos × R$ 840/caso = R$ 1,55M evitados vs R$ 504k de ACEs = ROI 3:1.</p>
+                <p><b>4 óbitos por dengue grave em 2025</b> — todos por hemoconcentração não detectada. 2 das 8 UBSs com sala de hidratação. Equipar 6 UBSs restantes: R$ 48.000. Hematócrito > 20% do basal = sinal de alarme = internação imediata. 1 óbito evitado = R$ 280k de UTI.</p>
+                <p><b>Wolbachia Fiocruz</b>: parceria disponível para municípios endêmicos do AM. Eficácia: -77% de casos de dengue (NEJM 2021). Custo para o município: R$ 28.000 (logística). Fiocruz produz os mosquitos. Apuí: município pequeno = piloto ideal para zona amazônica.</p>
               </div>
             </div>
           </div>
         )}
 
-        {aba === "arboviroses" && Array.isArray(arboviroses) && (
+        {aba === "vetores" && Array.isArray(vetores) && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-4">Casos por Arbovirose — 2025</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={(arboviroses as any[]).filter((a: any) => a.casos_2025 > 0)} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="doenca" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey="casos_2025" name="Casos 2025" radius={[4,4,0,0]}>
-                    {(arboviroses as any[]).filter((a: any) => a.casos_2025 > 0).map((a: any, i: number) => (
-                      <Cell key={i} fill={statusColor(a.status)} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={(vetores as any[]).filter((v: any) => v.casos_2025 > 0)} margin={{ top: 5, right: 20, bottom: 60, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="arbovirose" tick={{ fontSize: 8 }} angle={-10} textAnchor="end" />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="casos_2025" name="Casos 2025" radius={[4,4,0,0]}>
+                  {(vetores as any[]).filter((v: any) => v.casos_2025 > 0).map((_: any, i: number) => <Cell key={i} fill={[CRIT, WARN, ACCENT][i % 3]} />)}
+                </Bar>
+                <Bar dataKey="obitos_2025" name="Óbitos 2025" radius={[4,4,0,0]} fill={BRAND} />
+              </BarChart>
+            </ResponsiveContainer>
             <div className="grid gap-3">
-              {(arboviroses as any[]).map((a: any) => (
-                <div key={a.doenca} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              {(vetores as any[]).map((v: any) => (
+                <div key={v.arbovirose} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(a.status) }} />
-                      <p className="font-semibold text-sm text-slate-700">{a.doenca}</p>
+                      <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(v.status) }} />
+                      <p className="font-semibold text-sm text-slate-700">{v.arbovirose}</p>
                     </div>
-                    <div className="text-right text-xs text-slate-500">
-                      <span className="font-bold" style={{ color: statusColor(a.status) }}>{a.casos_2025} casos</span>
-                      {a.graves > 0 && <span className="ml-1 text-red-700">· {a.graves} graves</span>}
-                      {a.obitos > 0 && <span className="ml-1 text-red-900 font-bold">· {a.obitos} óbito(s)</span>}
+                    <div className="text-right text-xs">
+                      {v.casos_2025 > 0 && <span className="font-bold" style={{ color: statusColor(v.status) }}>{v.casos_2025} casos</span>}
+                      {v.obitos_2025 > 0 && <span className="text-red-600 font-bold ml-2">{v.obitos_2025} óbitos</span>}
                     </div>
                   </div>
-                  {a.sorotipos_circulantes?.length > 0 && (
-                    <p className="text-xs text-blue-600 ml-5 mb-1">{a.sorotipos_circulantes.join(" · ")}</p>
-                  )}
-                  <p className="text-xs text-slate-500 ml-5">{a.observacao}</p>
+                  <p className="text-xs text-slate-500 ml-5">{v.observacao}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {aba === "controle" && Array.isArray(controle) && (
+        {aba === "acoes" && Array.isArray(acoes) && (
           <div className="grid gap-3">
-            {(controle as any[]).map((c: any) => (
-              <div key={c.acao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            {(acoes as any[]).map((a: any) => (
+              <div key={a.acao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: c.implementada ? OK : CRIT }} />
-                    <p className="font-semibold text-sm text-slate-700">{c.acao}</p>
+                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: a.implementada ? OK : CRIT }} />
+                    <p className="font-semibold text-sm text-slate-700">{a.acao}</p>
                   </div>
-                  <div className="text-right text-xs text-slate-500">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${c.implementada ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                      {c.implementada ? "Implementada" : "Não implementada"}
+                  <div className="text-right text-xs">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${a.implementada ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                      {a.implementada ? "Implementada" : "Não implementada"}
                     </span>
-                    {c.atual_pct != null && <p className="text-xs mt-0.5">{c.atual_pct}% / meta {c.meta_pct}%</p>}
-                    {c.custo > 0 && <p className="text-xs text-slate-400">R$ {c.custo.toLocaleString()} · {c.prazo_meses}m</p>}
-                    {c.custo === 0 && <p className="text-xs text-green-600">custo R$ 0 · {c.prazo_meses}m</p>}
+                    <p className="text-xs text-slate-400 mt-0.5">R$ {(a.custo||0).toLocaleString()} · {a.prazo_meses}m</p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 ml-5">{c.observacao}</p>
+                <p className="text-xs text-slate-500 ml-5">{a.observacao}</p>
               </div>
             ))}
           </div>
@@ -186,18 +176,20 @@ export default function DengueArbovirosesApui() {
 
         {aba === "historico" && Array.isArray(historico) && (
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <h3 className="font-semibold text-slate-700 mb-4">Evolução Dengue e Arboviroses — Apuí/AM (2022–2025)</h3>
+            <h3 className="font-semibold text-slate-700 mb-4">Evolução Arboviroses — Apuí/AM (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
-                <Line dataKey="dengue_casos"       name="Dengue (casos)"      stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="zika_casos"         name="Zika (casos)"        stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line dataKey="chik_casos"         name="Chikungunya"         stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="cobertura_ace_pct"  name="Cobertura ACE (%)"   stroke={OK}     strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="left"  dataKey="dengue"  name="Dengue casos"      stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="chik"    name="Chikungunya casos" stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="left"  dataKey="zika"    name="Zika casos"        stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="right" dataKey="iip"     name="IIP (%)"           stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="right" dataKey="obitos"  name="Óbitos dengue"     stroke={OK}     strokeWidth={2} dot={{ r: 4 }} strokeDasharray="6 2" />
               </LineChart>
             </ResponsiveContainer>
           </div>

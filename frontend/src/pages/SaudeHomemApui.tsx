@@ -5,7 +5,7 @@ import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
-import { UserCheck, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { UserCog, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
 const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
@@ -14,9 +14,9 @@ const WARN   = "#d97706";
 const CRIT   = "#dc2626";
 
 function statusColor(s: string) {
-  if (s === "ok") return OK;
+  if (s === "critico") return CRIT;
   if (s === "atencao") return WARN;
-  return CRIT;
+  return OK;
 }
 
 const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
@@ -36,20 +36,20 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
 export default function SaudeHomemApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["hom-dashboard"],  queryFn: () => apiGet("/api/saude-homem-apui/dashboard"),   enabled: aba === "dashboard" });
-  const { data: condicoes }   = useQuery({ queryKey: ["hom-condicoes"],  queryFn: () => apiGet("/api/saude-homem-apui/condicoes"),   enabled: aba === "condicoes" });
-  const { data: barreiras }   = useQuery({ queryKey: ["hom-barreiras"],  queryFn: () => apiGet("/api/saude-homem-apui/barreiras"),   enabled: aba === "barreiras" });
-  const { data: historico }   = useQuery({ queryKey: ["hom-hist"],       queryFn: () => apiGet("/api/saude-homem-apui/historico"),   enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["hom-ind"],        queryFn: () => apiGet("/api/saude-homem-apui/indicadores"), enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["hom-dash"],  queryFn: () => apiGet("/api/saude-homem-apui/dashboard"),   enabled: aba === "dashboard" });
+  const { data: condicoes }   = useQuery({ queryKey: ["hom-cond"],  queryFn: () => apiGet("/api/saude-homem-apui/condicoes"),   enabled: aba === "condicoes" });
+  const { data: acoes }       = useQuery({ queryKey: ["hom-acao"],  queryFn: () => apiGet("/api/saude-homem-apui/acoes"),       enabled: aba === "acoes" });
+  const { data: historico }   = useQuery({ queryKey: ["hom-hist"],  queryFn: () => apiGet("/api/saude-homem-apui/historico"),   enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["hom-ind"],   queryFn: () => apiGet("/api/saude-homem-apui/indicadores"), enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
   const ABAS = [
-    { key: "dashboard",   label: "Dashboard",    icon: <UserCheck size={15}/> },
-    { key: "condicoes",   label: "Condições",    icon: <Activity size={15}/> },
-    { key: "barreiras",   label: "Barreiras",    icon: <AlertTriangle size={15}/> },
-    { key: "historico",   label: "Histórico",    icon: <TrendingUp size={15}/> },
-    { key: "indicadores", label: "Indicadores",  icon: <AlertTriangle size={15}/> },
+    { key: "dashboard",   label: "Dashboard",  icon: <UserCog size={15}/> },
+    { key: "condicoes",   label: "Condições",  icon: <Activity size={15}/> },
+    { key: "acoes",       label: "Ações",      icon: <AlertTriangle size={15}/> },
+    { key: "historico",   label: "Histórico",  icon: <TrendingUp size={15}/> },
+    { key: "indicadores", label: "Indicadores",icon: <AlertTriangle size={15}/> },
   ];
 
   return (
@@ -57,11 +57,11 @@ export default function SaudeHomemApui() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-lg" style={{ background: BRAND }}>
-            <UserCheck size={22} color="white" />
+            <UserCog size={22} color="white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Saúde do Homem — Apuí/AM</h1>
-            <p className="text-sm text-slate-500">PNAISH · Câncer próstata · HAS · Saúde mental · Alcoolismo · Mortalidade prematura · FMS Apuí/AM</p>
+            <p className="text-sm text-slate-500">PNAISH · Ca Próstata · IST/HIV · Acesso à UBS · Saúde Mental · Vasectomia · FMS Apuí/AM</p>
           </div>
         </div>
 
@@ -78,26 +78,26 @@ export default function SaudeHomemApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Consulta médica/12m"       value={`${dashRaw.consulta_medica_12m_pct}%`}             color={CRIT} sub="meta: 60%" />
-              <KPI label="Óbito masculino prematuro" value={`${dashRaw.obito_masculino_prematuro_pct}%`}       color={CRIT} sub="dos óbitos < 60a" />
-              <KPI label="Câncer próstata avançado"  value={`${dashRaw.cancer_prostata_estadio_avancado_pct}%`}color={CRIT} sub="ao diagnóstico" />
-              <KPI label="Suicídio — proporção masc."value={`${dashRaw.suicidio_masculino_pct_total}%`}        color={CRIT} sub="dos óbitos por suicídio" />
+              <KPI label="Ca próstata — diagnóstico tardio"     value={`${dashRaw.cancer_prostata_diagnostico_tardio_pct}%`} color={CRIT} sub={`${dashRaw.cancer_prostata_novos_2025} casos novos — urologista: ${dashRaw.urologista_apui === 0 ? "zero" : dashRaw.urologista_apui}`} />
+              <KPI label="Consulta médica masculina na UBS"     value={`${dashRaw.consulta_medica_homem_ubs_pct}%`}          color={CRIT} sub={`meta 80% — UBS horário noturno: ${dashRaw.ubs_horario_estendido_noturno}`} />
+              <KPI label="Suicídio masculino 2025"              value={`${dashRaw.suicidio_homem_2025} óbitos`}             color={CRIT} sub={`${dashRaw.suicidio_homem_pct_total}% dos suicídios são homens — CAPS: ${dashRaw.caps_apui ? "Disponível" : "Inexistente"}`} />
+              <KPI label="Testagem IST em homens (meta: 80%)"   value={`${dashRaw.testagem_ist_homem_pct}%`}                color={CRIT} sub={`sífilis: ${dashRaw.ist_sifilis_homem_2025} · gonorreia: ${dashRaw.ist_gonorreia_homem_2025} · HIV: ${dashRaw.hiv_homem_2025}`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="HAS masculina controlada"  value={`${dashRaw.hipertensao_controlada_masculina_pct}%`}color={CRIT} sub="meta: 60%" />
-              <KPI label="Álcool uso nocivo"         value={`${dashRaw.alcool_uso_nocivo_masculino_pct}%`}     color={CRIT} sub="nos homens" />
-              <KPI label="PSA rastreio > 50a"        value={`${dashRaw.cancer_prostata_rastreio_pct}%`}        color={CRIT} sub="meta: 70%" />
-              <KPI label="Saúde mental em tratam."   value={`${dashRaw.saude_mental_busca_tratamento_masculino_pct}%`} color={CRIT} sub="homens que buscam help" />
+              <KPI label="PSA rastreamento (meta: 60%)"          value={`${dashRaw.psa_rastreamento_pct}%`}                 color={CRIT} sub={`fila urologista: ${dashRaw.espera_urologista_sisreg_dias} dias SISREG`} />
+              <KPI label="Hipertenso homem em tratamento"        value={`${dashRaw.hipertenso_tratado_homem_pct}%`}         color={CRIT} sub={`vs 62,4% das mulheres — IAM < 60a: 8 óbitos 2025`} />
+              <KPI label="Alcoolismo masculino estimado"          value={`${dashRaw.masculino_alcool_abuso_pct}%`}           color={CRIT} sub="garimpo + isolamento + zero lazer — CAPS AD: inexistente" />
+              <KPI label="Vasectomia disponível"                 value={dashRaw.vasectomia_disponivel ? "Disponível" : "Indisponível"} color={CRIT} sub="gratuita via SUS — Lei 9.263/96" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <h3 className="font-semibold text-slate-700 mb-3">Acesso e Controle — Homem vs Meta</h3>
+                <h3 className="font-semibold text-slate-700 mb-3">Acesso e Rastreamento Masculino — Apuí/AM</h3>
                 <div className="space-y-3 text-sm">
                   {[
-                    { label: `Cadastro ESF (${dashRaw.cadastro_homem_esf_pct}% / meta ${dashRaw.meta_cadastro_pct}%)`, value: dashRaw.cadastro_homem_esf_pct, max: dashRaw.meta_cadastro_pct, color: CRIT },
-                    { label: `Consulta 12m (${dashRaw.consulta_medica_12m_pct}% / meta ${dashRaw.meta_consulta_pct}%)`, value: dashRaw.consulta_medica_12m_pct, max: dashRaw.meta_consulta_pct, color: CRIT },
-                    { label: `HAS controlada (${dashRaw.hipertensao_controlada_masculina_pct}%)`, value: dashRaw.hipertensao_controlada_masculina_pct, max: 60, color: CRIT },
-                    { label: `PSA rastreio (${dashRaw.cancer_prostata_rastreio_pct}%)`,           value: dashRaw.cancer_prostata_rastreio_pct, max: 70, color: CRIT },
+                    { label: `PSA rastreamento: ${dashRaw.psa_rastreamento_pct}% (meta 60%)`,       value: dashRaw.psa_rastreamento_pct,              max: 60,  color: CRIT },
+                    { label: `Consulta médica anual: ${dashRaw.consulta_medica_homem_ubs_pct}%`,    value: dashRaw.consulta_medica_homem_ubs_pct,      max: 80,  color: CRIT },
+                    { label: `Testagem IST: ${dashRaw.testagem_ist_homem_pct}% (meta 80%)`,         value: dashRaw.testagem_ist_homem_pct,             max: 80,  color: CRIT },
+                    { label: `Hipertenso tratado (homens): ${dashRaw.hipertenso_tratado_homem_pct}%`, value: dashRaw.hipertenso_tratado_homem_pct,    max: 80,  color: CRIT },
                   ].map((b: any) => (
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
@@ -108,10 +108,10 @@ export default function SaudeHomemApui() {
                   ))}
                 </div>
               </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 flex flex-col gap-2 justify-center">
-                <p><b>68,4% dos óbitos prematuros são masculinos</b> — mortalidade cardiovascular 47% maior que nas mulheres (218 vs 148/100k). Homem hipertenso: 71,6% fora de controle. Chega ao serviço de saúde em urgência/emergência — não na UBS preventiva.</p>
-                <p><b>Câncer de próstata: 72,4% em estágio avançado</b> — PSA disponível (espera 14 dias) mas rastreio em apenas 18,4% dos homens > 50a. Zero urologista. TFD para Humaitá: espera de 3-6 meses.</p>
-                <p><b>76,4% dos suicídios são masculinos</b> — taxa estimada 26,4/100k nos homens (4x a feminina). Alcoolismo como automedicação + isolamento rural + garimpo + CAPS sem estratégia masculina específica.</p>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
+                <p><b>72,4% dos cânceres de próstata diagnosticados em estádio tardio</b> — sem PSA de rastreamento (18,4%). Urologista: zero em Apuí (fila 320 dias SISREG). Tele-urologia: PSA alterado → laudo em 5 dias. Ca próstata estádio I: cura 99% vs estádio IV: 30%/5a.</p>
+                <p><b>28,4% dos homens consultam na UBS</b> (vs 68,4% das mulheres). Zero UBSs com horário noturno. Trabalhador não pode faltar. Outubro Azul ampliado no garimpo: testagem PSA + glicemia + PA + IST no local de trabalho. Custo: R$ 18.000 → 400 homens.</p>
+                <p><b>8 dos 11 suicídios são homens (72,7%)</b>. CAPS: zero. Alcoolismo: 28,4% dos homens adultos. Grupo de homens na UBS: R$ 8.400/ano. CVV 188 7 sinalizado no garimpo + escola. CAPS AD: solicitação formal ao Estado (> 20k hab = critério atendido).</p>
               </div>
             </div>
           </div>
@@ -119,53 +119,57 @@ export default function SaudeHomemApui() {
 
         {aba === "condicoes" && Array.isArray(condicoes) && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm mb-2">
-              <h3 className="font-semibold text-slate-700 mb-3">Condições — Prevalência e Controle Masculino (%)</h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={condicoes as any[]} margin={{ top: 5, right: 20, bottom: 50, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="condicao" tick={{ fontSize: 8 }} angle={-20} textAnchor="end" />
-                  <YAxis tick={{ fontSize: 11 }} unit="%" />
-                  <Tooltip formatter={(v: any) => `${v}%`} />
-                  <Legend />
-                  <Bar dataKey="prevalencia_pct"  name="Prevalência (%)"         fill={CRIT} />
-                  <Bar dataKey="controlada_pct"   name="Controlada/cessação (%)" fill={OK}   />
-                  <Bar dataKey="acompanhamento_pct" name="Acompanhamento (%)"    fill={WARN} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            {(condicoes as any[]).map((c: any) => (
-              <div key={c.condicao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(c.status) }} />
-                    <p className="font-semibold text-sm text-slate-700">{c.condicao}</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={condicoes as any[]} margin={{ top: 5, right: 20, bottom: 60, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="condicao" tick={{ fontSize: 7 }} angle={-10} textAnchor="end" />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="estimados"     name="Estimados"     radius={[4,4,0,0]} fill={CRIT} opacity={0.4} />
+                <Bar dataKey="diagnosticados" name="Diagnosticados" radius={[4,4,0,0]}>
+                  {(condicoes as any[]).map((c: any, i: number) => <Cell key={i} fill={statusColor(c.status)} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="grid gap-3">
+              {(condicoes as any[]).map((c: any) => (
+                <div key={c.condicao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(c.status) }} />
+                      <p className="font-semibold text-sm text-slate-700">{c.condicao}</p>
+                    </div>
+                    <div className="text-right text-xs">
+                      <span className="font-bold" style={{ color: statusColor(c.status) }}>{c.diagnosticados} diag.</span>
+                      <span className="text-slate-400"> / {c.estimados} est.</span>
+                      <p className="text-slate-400 mt-0.5">diagnóstico tardio: {c.tardio_pct}%</p>
+                    </div>
                   </div>
-                  <div className="text-right text-sm">
-                    <span className="font-bold" style={{ color: statusColor(c.status) }}>{c.controlada_pct}% controlada</span>
-                    <p className="text-xs text-slate-400">prevalência {c.prevalencia_pct}% · acomp. {c.acompanhamento_pct}%</p>
-                  </div>
+                  <p className="text-xs text-slate-500 ml-5">{c.observacao}</p>
                 </div>
-                <p className="text-xs text-slate-500 ml-5">{c.observacao}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
-        {aba === "barreiras" && Array.isArray(barreiras) && (
+        {aba === "acoes" && Array.isArray(acoes) && (
           <div className="grid gap-3">
-            {(barreiras as any[]).map((b: any) => (
-              <div key={b.barreira} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            {(acoes as any[]).map((a: any) => (
+              <div key={a.acao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: b.impacto === "alto" ? CRIT : WARN }} />
-                    <p className="font-semibold text-sm text-slate-700">{b.barreira}</p>
+                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: a.implementada ? OK : CRIT }} />
+                    <p className="font-semibold text-sm text-slate-700">{a.acao}</p>
                   </div>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: b.impacto === "alto" ? "#fee2e2" : "#fef3c7", color: b.impacto === "alto" ? CRIT : WARN }}>
-                    impacto {b.impacto}
-                  </span>
+                  <div className="text-right text-xs">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${a.implementada ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                      {a.implementada ? "Implementada" : "Não implementada"}
+                    </span>
+                    <p className="text-xs text-slate-400 mt-0.5">R$ {(a.custo||0).toLocaleString()} · {a.prazo_meses}m</p>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-500 ml-5">{b.observacao}</p>
+                <p className="text-xs text-slate-500 ml-5">{a.observacao}</p>
               </div>
             ))}
           </div>
@@ -178,13 +182,15 @@ export default function SaudeHomemApui() {
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
-                <Line dataKey="cadastro_pct"         name="Cadastro ESF (%)"        stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="consulta_12m_pct"     name="Consulta 12m (%)"        stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line dataKey="psa_rastreio_pct"     name="PSA rastreio (%)"        stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="obito_prematuro_pct"  name="Óbito prematuro masc.(%)"%stroke={CRIT}  strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="left"  dataKey="psa_pct"              name="PSA rastreamento (%)"    stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="consulta_homem_pct"   name="Consulta masculina (%)"  stroke={OK}     strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="right" dataKey="suicidio_homem"       name="Suicídio masculino"      stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="right" dataKey="ist_homem"            name="IST em homens"           stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="right" dataKey="obito_prematura_homem" name="Óbito prematuro homem"  stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} strokeDasharray="6 2" />
               </LineChart>
             </ResponsiveContainer>
           </div>

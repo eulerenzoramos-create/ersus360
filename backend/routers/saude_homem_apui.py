@@ -3,76 +3,99 @@ from fastapi import APIRouter
 router = APIRouter(prefix="/api/saude-homem-apui", tags=["saude_homem_apui"])
 
 _DASHBOARD = {
+    "municipio": "Apuí/AM",
     "populacao_total": 24700,
-    "populacao_masculina": 13200,
-    "populacao_masculina_pct": 53.4,
-    "cadastro_homem_esf_pct": 42.4,
-    "meta_cadastro_pct": 75.0,
-    "consulta_medica_12m_pct": 28.4,
-    "meta_consulta_pct": 60.0,
-    "hipertensao_masculina_pct": 42.4,
-    "hipertensao_controlada_masculina_pct": 28.4,
-    "diabetes_masculino_pct": 14.4,
-    "cancer_prostata_rastreio_pct": 18.4,
-    "cancer_prostata_casos_ano": 8,
-    "cancer_prostata_estadio_avancado_pct": 72.4,
-    "urologo_municipio": 0,
-    "urologo_referencia": "Humaitá (284 km) ou Manaus (784 km)",
-    "psa_disponivel_municipio": True,
-    "psa_espera_dias": 14,
-    "obito_masculino_prematuro_pct": 68.4,
-    "mortalidade_cv_masculina_100k": 218,
-    "mortalidade_cv_feminina_100k": 148,
-    "homicidio_masculino_pct_total": 87.4,
-    "suicidio_masculino_pct_total": 76.4,
-    "alcool_uso_nocivo_masculino_pct": 38.4,
-    "tabagismo_masculino_pct": 22.4,
-    "saude_mental_busca_tratamento_masculino_pct": 18.4,
+    "homens_total": 12900,
+    "homens_20_59": 5842,
+    # Câncer de próstata
+    "psa_rastreamento_pct": 18.4,
+    "meta_psa_pct": 60.0,
+    "cancer_prostata_novos_2025": 12,
+    "cancer_prostata_diagnostico_tardio_pct": 72.4,
+    "urologista_apui": 0,
+    "espera_urologista_sisreg_dias": 320,
+    # Saúde sexual masculina
+    "ist_sifilis_homem_2025": 112,
+    "ist_gonorreia_homem_2025": 48,
+    "hiv_homem_2025": 28,
+    "testagem_ist_homem_pct": 22.4,
+    "condom_masculino_ubs_pct": 68.4,
     "vasectomia_disponivel": False,
-    "status_prevencao": "critico",
-    "status_oncologia": "critico",
-    "status_saude_mental": "critico",
+    # Resistência aos serviços
+    "consulta_medica_homem_ubs_pct": 28.4,
+    "meta_consulta_homem_pct": 80.0,
+    "hipertenso_tratado_homem_pct": 38.4,
+    "diabetico_tratado_homem_pct": 32.4,
+    "obito_prematura_homem_30_69_pct": 42.4,
+    "masculino_alcool_abuso_pct": 28.4,
+    # Saúde mental masculina
+    "suicidio_homem_2025": 8,
+    "suicidio_total_2025": 11,
+    "suicidio_homem_pct_total": 72.7,
+    "caps_apui": False,
+    # Programa Saúde do Homem
+    "programa_saude_homem_pmsf_ativo": False,
+    "ubs_horario_estendido_noturno": 0,
+    "ubs_sabado_homem": 0,
+    "status_cancer": "critico",
+    "status_ist": "critico",
+    "status_acesso": "critico",
 }
 
 _CONDICOES = [
-    {"condicao": "Hipertensão arterial (HAS)",     "prevalencia_pct": 42.4, "controlada_pct": 28.4, "acompanhamento_pct": 52.4, "status": "critico",
-     "observacao": "Homem hipertenso: 71,6% sem controle adequado vs 58,4% nas mulheres. Principal barreira: negação do diagnóstico + recusa de medicação por medo de 'fraqueza'. Anti-hipertensivos e disfunção erétil: mito amplificado, causa abandono em 28,4% dos casos masculinos. ACS femininas relatam dificuldade de agendar visita domiciliar para homem em idade ativa. Mortalidade por AVC hipertensivo: 68,4% masculina em Apuí"},
-    {"condicao": "Diabetes mellitus (DM)",          "prevalencia_pct": 14.4, "controlada_pct": 34.2, "acompanhamento_pct": 48.4, "status": "critico",
-     "observacao": "Homem diabético: HbA1c controlada em 34,2% vs 48,4% nas mulheres. Diagnóstico tardio: homem busca serviço de saúde 7,2 anos mais tarde em média. DM + HAS + tabagismo: síndrome cardiometabólica masculina em 28,4% dos homens > 40a. Amputação diabética: 9/12 casos anuais são masculinos. Neuropatia periférica + disfunção erétil: barreira adicional ao diagnóstico por vergonha"},
-    {"condicao": "Câncer de próstata",              "prevalencia_pct": 0,    "controlada_pct": 0,    "acompanhamento_pct": 18.4, "status": "critico",
-     "observacao": "8 casos/ano: 72,4% diagnosticados em estágio avançado (T3-T4 ou metastático). Rastreio com PSA: realizado em apenas 18,4% dos homens > 50a. Urologista: zero em Apuí — consulta apenas via TFD em Humaitá (284 km) com espera de 3-6 meses. Biópsia de próstata: Manaus (784 km). Tratamento cirúrgico: Hospital Adriano Jorge ou HUGV Manaus. PSA disponível: espera 14 dias — atraso no diagnóstico"},
-    {"condicao": "Saúde mental masculina",          "prevalencia_pct": 28.4, "controlada_pct": 18.4, "acompanhamento_pct": 12.4, "status": "critico",
-     "observacao": "Depressão masculina: subdiagnosticada — homem externaliza (agressividade, alcoolismo) vs internaliza (mulheres). Busca por CAPS: 81,6% menor que feminina. Suicídio: 76,4% dos óbitos são masculinos (16,2/100k geral, estimado 26,4/100k masculino). Álcool como automedicação: 38,4% de uso nocivo masculino. CAPS em Apuí: sem sala separada/horário estendido para homem trabalhador rural"},
-    {"condicao": "Tabagismo",                       "prevalencia_pct": 22.4, "controlada_pct": 0,    "acompanhamento_pct": 28.4, "status": "atencao",
-     "observacao": "22,4% dos homens fumantes vs 11,4% das mulheres. Programa de cessação tabágica: disponível na UBS com bupropiona + reposição nicotínica — adesão masculina 28,4% vs 48,4% feminina. Garimpo: tabagismo 38,4% (pressão social + estresse físico). DPOC: 71,6% sem diagnóstico = homem fumante de 50a com dispneia atribuída ao 'esforço' e não à doença"},
-    {"condicao": "Uso nocivo de álcool",            "prevalencia_pct": 38.4, "controlada_pct": 0,    "acompanhamento_pct": 8.4,  "status": "critico",
-     "observacao": "38,4% de uso nocivo masculino vs 12,4% feminino. AUDIT: aplicado em 18,4% das consultas masculinas. CAPS-AD: sem leito para desintoxicação em Apuí (referência: CAPS-AD Humaitá ou Manaus). Alcoolismo + violência doméstica: 68,4% dos casos de violência conjugal têm uso de álcool pelo agressor. Cirrose alcoólica: 8/28 casos de cirrose em Apuí são alcoólicos"},
+    {"condicao": "Câncer de próstata",
+     "estimados": 28, "diagnosticados": 12, "tardio_pct": 72.4,
+     "status": "critico",
+     "observacao": "12 casos novos 2025. 72,4% diagnosticados em estádio tardio (III-IV) — sem PSA de rastreamento (18,4% realizaram PSA, meta 60%). Urologista em Apuí: zero. Fila SISREG: 320 dias. Ca próstata estádio I-II: cura 99% (prostatectomia robótica ou radioterapia). Estádio IV: sobrevida 30%/5a. PSA: R$ 28/exame (SISREG gratuito). Teleurologista (TELESSAÚDE-AM): avalia PSA alterado em 5 dias úteis. PNAISH (Política Nacional de Atenção Integral à Saúde do Homem): prevê rastreamento a partir de 50 anos (40a em negros). Homem não vai à UBS: operação saúde do homem (outubro azul) + PSA no posto de trabalho = aumenta adesão 28%."},
+    {"condicao": "IST/HIV — Sífilis, Gonorreia, HIV em homens",
+     "estimados": 280, "diagnosticados": 188, "tardio_pct": 48.4,
+     "status": "critico",
+     "observacao": "112 casos de sífilis + 48 de gonorreia + 28 de HIV em homens (2025). Testagem IST em homens: 22,4% (meta 80%). Homem: parceiro sexual não tratado = reinfecção da mulher + sífilis congênita + HIV perinatal. Testagem rápida HIV+sífilis+Hep B+C: disponível na UBS. Resistência: homem não vai à UBS. Estratégia: testagem em local de trabalho (garimpo, seringueiras, fazendas). Camisinha masculina: disponível 68,4% das UBSs (meta 100%). Sífilis no homem: 1 dose de penicilina benzatina R$ 8,40 = cura. Gonorreia: ceftriaxone 500mg IM + azitromicina 1g VO — custo R$ 28. Gonorreia resistente: cultura + antibiograma (laboratório regional em Humaitá)."},
+    {"condicao": "Hipertensão e Diabetes em homens não tratados",
+     "estimados": 2840, "diagnosticados": 1620, "tardio_pct": 61.6,
+     "status": "critico",
+     "observacao": "38,4% dos hipertensos homens em tratamento (vs 62,4% das mulheres). 32,4% dos diabéticos homens em tratamento. Óbito prematuro (30-69a) por DCNT em homens: 42,4% (meta OMS < 25%). Infarto agudo do miocárdio em homens < 60a: 8 óbitos 2025. AVC em homens com HAS não controlada: incapacidade + aposentadoria por invalidez (custo INSS + família). Estratégia PNAISH: UBS com horário estendido (17h-21h) e sábado = acesso do trabalhador rural. Zero UBSs com horário noturno em Apuí. Masculinidade hegemônica: homem não reconhece vulnerabilidade = não procura serviço. Abordagem: medição de PA na farmácia + testagem de glicemia no posto de combustível."},
+    {"condicao": "Saúde mental masculina — Suicídio e alcoolismo",
+     "estimados": 280, "diagnosticados": 84, "tardio_pct": 70.0,
+     "status": "critico",
+     "observacao": "8 dos 11 suicídios em 2025 são homens (72,7% — padrão nacional 78%). CAPS em Apuí: zero. Alcoolismo em 28,4% dos homens adultos (garimpo + isolamento + ausência de lazer). Depressão masculina: subdiagnosticada — homem expressa como raiva/agressividade, não como tristeza. Consulta de saúde mental: 8% dos homens procuram espontaneamente (vs 22% das mulheres). Violência doméstica: 72,4% dos agressores com histórico de alcoolismo. CAPS AD (álcool e drogas): indicado para Apuí (> 20k habitantes). Grupo de homens na UBS: abordagem preventiva — custo R$ 8.400/ano (2h/semana × enfermeiro de saúde mental). CVV (Centro de Valorização da Vida): 188 7 — gratuito — sinalização em local de garimpo."},
+    {"condicao": "Acesso masculino aos serviços de saúde — UBS e APS",
+     "estimados": 5842, "diagnosticados": 1658, "tardio_pct": 71.6,
+     "status": "critico",
+     "observacao": "28,4% dos homens com consulta médica na UBS no último ano (vs 68,4% das mulheres). Homem vai ao serviço de saúde quando a doença já está avançada — 3× mais mortalidade prematura que mulheres na mesma faixa etária. Vasectomia: zero disponível em Apuí (MS fornece gratuitamente — Lei 9.263/96). Cirurgia em Manaus: 6 meses de espera. PNAISH: município deve ter pelo menos 1 dia/semana de atendimento exclusivo masculino com ações de rastreamento (PSA, glicemia, PA). Outubro Azul: ação pontual — precisa de programa continuado. ACS masculino: abordagem no domicílio e no local de trabalho = única estratégia eficaz para acessar homens da zona rural."},
 ]
 
-_BARREIRAS = [
-    {"barreira": "Negação do adoecimento (cultura de invulnerabilidade)", "impacto": "alto",
-     "observacao": "Homem não vai ao médico porque 'médico é coisa de fraco'. Na Amazônia rural: agravar a condição + rezadeira/chá antes da UBS é padrão. Chegada ao serviço de saúde: urgência/emergência (72,4% das consultas masculinas são no HMM, não na UBS). Diagnóstico tardio como consequência direta: câncer de próstata estágio avançado, DM com complicações, HAS com AVC"},
-    {"barreira": "Horário de funcionamento incompatível com trabalho rural", "impacto": "alto",
-     "observacao": "UBS em Apuí: 7h-17h, de segunda a sexta. Trabalhador rural/garimpo: sai às 5h, retorna às 18h. Consulta = dia perdido de trabalho = perda de renda. Solução de baixo custo: 1 dia/semana de atendimento noturno (18h-21h) ou sábado matutino. Custo adicional: 4h de hora extra de 1 médico/semana = R$ 280/semana vs 68,4% dos homens sem acesso efetivo"},
-    {"barreira": "Ausência de espaço acolhedor masculino na UBS",         "impacto": "medio",
-     "observacao": "UBS decorada com cartazes de pré-natal e materno-infantil. Sala de espera com predominância feminina. Homem sente-se deslocado e não retorna. Saúde do Homem (PNAISH): política nacional desde 2008 mas sem implementação prática em Apuí. ACS masculinos: apenas 28,4% do total — dificuldade de abordagem de homens por agentes do sexo oposto"},
-    {"barreira": "Estigma de saúde mental + alcoolismo",                  "impacto": "alto",
-     "observacao": "Pedir ajuda psicológica = 'fraqueza' cultural amazônica rural. Depressão masculina: apresenta-se como irritabilidade, agressividade, alcoolismo — não como tristeza. Médico clínico não treinado para rastreio de depressão masculina (PHQ-9: aplicado em 8,4% das consultas). CAPS sem estratégia específica de captação masculina"},
+_ACOES = [
+    {"acao": "Outubro Azul ampliado — PSA + glicemia + PA + testagem IST no local de trabalho",
+     "implementada": False, "custo": 18000, "prazo_meses": 1,
+     "observacao": "18,4% dos homens com PSA realizado. Testagem no garimpo + fazendas + madeireiras: 1 van + ACS 2 dias = 400 homens testados. Custo: R$ 18.000. PSA + glicemia + PA + VDRL + HIV + hepatite B: 1 kit multiteste por homem = R$ 45/homem. 400 homens × R$ 45 = R$ 18.000. Ca próstata detectado cedo: cura 99%. Hipertensão detectada e tratada: -60% de AVC."},
+    {"acao": "UBS com horário estendido (17h-21h) e sábado para trabalhadores",
+     "implementada": False, "custo": 28000, "prazo_meses": 2,
+     "observacao": "Zero UBSs com atendimento fora do horário comercial. Trabalhador rural/urbano: não pode faltar ao trabalho para consulta. 2 UBSs estratégicas com horário estendido: custo R$ 28.000/mês (escala de funcionários existentes). Meta: dobrar consultas masculinas em 6 meses. PNAISH: ação obrigatória nos municípios."},
+    {"acao": "Vasectomia — solicitação via RENAME e pactuação com HGH-Humaitá",
+     "implementada": False, "custo": 0, "prazo_meses": 2,
+     "observacao": "Vasectomia: MS custeado pela AIH (SUS). R$ 0 para o município. Procedimento em Humaitá (160km). Lei 9.263/96: município obrigado a ofertar. Consulta prévia + consentimento informado: ACS pré-seleciona candidatos. Alternativa: equipe cirúrgica da SES-AM em mutirão trimestral em Apuí. 1 vasectomia = contraceptivo permanente = 200 preservativos/ano substituídos."},
+    {"acao": "Grupo de homens na UBS — saúde mental + alcoolismo + masculinidade",
+     "implementada": False, "custo": 8400, "prazo_meses": 2,
+     "observacao": "8 suicídios em homens 2025. Grupo semanal: 2h + psicólogo/assistente social/enfermeiro. Custo: R$ 8.400/ano (horas complementares). CVV: 188 7 — sinalização no garimpo + ônibus + escola. CAPS AD: solicitação formal ao Estado (municípios > 20k = critério). AA (Alcoólicos Anônimos): parceria — sem custo. Grupo de homens: -42% de reinternação por alcoolismo em 12 meses."},
+    {"acao": "Tele-urologia para avaliação de PSA alterado e câncer de próstata",
+     "implementada": False, "custo": 4200, "prazo_meses": 1,
+     "observacao": "320 dias de espera para urologista no SISREG. PSA alterado → ansiedade + 10 meses sem diagnóstico → estádio avança. Tele-urologia (TELESSAÚDE-AM): clínico envia PSA + exame físico + idade → urologista decide conduta em 5 dias. Custo: R$ 4.200 (treinamento + formulário + tablet). TRUS (ultrassom de próstata): disponível em Humaitá. Biópsia de próstata: Manaus FCECON (referência oncológica do AM)."},
 ]
 
 _HISTORICO = [
-    {"ano": "2022", "cadastro_pct": 34.2, "consulta_12m_pct": 22.4, "psa_rastreio_pct": 12.4, "obito_prematuro_pct": 72.4},
-    {"ano": "2023", "cadastro_pct": 36.8, "consulta_12m_pct": 24.8, "psa_rastreio_pct": 14.8, "obito_prematuro_pct": 70.8},
-    {"ano": "2024", "cadastro_pct": 39.4, "consulta_12m_pct": 26.4, "psa_rastreio_pct": 16.4, "obito_prematuro_pct": 69.2},
-    {"ano": "2025", "cadastro_pct": 42.4, "consulta_12m_pct": 28.4, "psa_rastreio_pct": 18.4, "obito_prematuro_pct": 68.4},
+    {"ano": "2022", "psa_pct": 12.4, "consulta_homem_pct": 22.4, "suicidio_homem": 10, "ist_homem": 220, "obito_prematura_homem": 14},
+    {"ano": "2023", "psa_pct": 14.8, "consulta_homem_pct": 24.4, "suicidio_homem": 9,  "ist_homem": 210, "obito_prematura_homem": 12},
+    {"ano": "2024", "psa_pct": 16.4, "consulta_homem_pct": 26.4, "suicidio_homem": 9,  "ist_homem": 196, "obito_prematura_homem": 11},
+    {"ano": "2025", "psa_pct": 18.4, "consulta_homem_pct": 28.4, "suicidio_homem": 8,  "ist_homem": 188, "obito_prematura_homem": 10},
 ]
 
 _INDICADORES = [
-    {"indicador": "Homem com consulta médica nos últimos 12m", "valor": 28.4, "meta": 60.0,  "unidade": "%",       "status": "critico", "observacao": "71,6% dos homens sem consulta no último ano. Óbito masculino prematuro (< 60a): 68,4% do total vs 48,4% nas mulheres. A maior parte é evitável: HAS não tratada, DM descompensado, câncer em estágio avançado. Estratégia Saúde do Homem com busca ativa no domicílio: aumenta consulta em 28 pontos em 12 meses"},
-    {"indicador": "Câncer de próstata — diagnóstico precoce",  "valor": 18.4, "meta": 70.0,  "unidade": "%",       "status": "critico", "observacao": "81,6% dos casos diagnosticados em estágio avançado (irressecável ou metastático). PSA: disponível no laboratório municipal (espera 14 dias). Protocolo: PSA + toque retal > 50a ou > 45a com histórico familiar. Rastreio sistemático: reduziria mortalidade por câncer de próstata em 42% em 5 anos"},
-    {"indicador": "Hipertensão masculina controlada",          "valor": 28.4, "meta": 60.0,  "unidade": "%",       "status": "critico", "observacao": "71,6% fora de controle. Diferença de controle homem/mulher: 28,4% vs 42,4% (14 pontos). AVC é a primeira causa de óbito masculino em Apuí: 84,2% atribuíveis à HAS não controlada. Anti-hipertensivos disponíveis na REMUME: captopril, losartana, hidroclorotiazida, anlodipino — problema não é insumo, é adesão masculina"},
-    {"indicador": "Suicídio — proporção masculina",            "valor": 76.4, "meta": 50.0,  "unidade": "%",       "status": "critico", "observacao": "76,4% dos suicídios são masculinos. Taxa masculina estimada: 26,4/100k vs 6,2/100k feminina. Métodos: enforcamento (48,4%), arma de fogo (28,4%), intoxicação (18,4%). CAPS sem grupo terapêutico exclusivo para homens. Risco aumentado: isolamento rural + alcoolismo + garimpo irregular + perda econômica"},
-    {"indicador": "Uso nocivo de álcool — rastreio (AUDIT)",  "valor": 18.4, "meta": 80.0,  "unidade": "%",       "status": "critico", "observacao": "81,6% das consultas masculinas sem rastreio de álcool. AUDIT-C: 3 perguntas, 1 minuto. Custo: R$ 0. Intervenção breve no consultório: reduz uso nocivo em 28% em 6 meses. CAPS-AD: sem leito para desintoxicação — internação compulsória = TFD para Manaus (784 km)"},
+    {"indicador": "Ca próstata — diagnóstico tardio (meta: < 30%)",     "valor": 72.4, "meta": 30.0,  "unidade": "%",     "status": "critico", "observacao": "72,4% em estádio III-IV. PSA rastreamento 18,4% (meta 60%). Outubro Azul ampliado: R$ 18.000 → 400 homens testados. Tele-urologia: avaliação em 5 dias."},
+    {"indicador": "Consulta médica masculina na UBS (meta: ≥ 80%/ano)", "valor": 28.4, "meta": 80.0,  "unidade": "%",     "status": "critico", "observacao": "28,4% dos homens consultam anualmente (vs 68,4% mulheres). Horário estendido + sábado: R$ 28.000/mês → acesso do trabalhador."},
+    {"indicador": "Suicídio masculino — óbitos 2025",                   "valor": 8,    "meta": 0,     "unidade": "óbitos","status": "critico", "observacao": "72,7% dos suicídios são homens. CAPS AD: solicitação ao Estado. Grupo na UBS: R$ 8.400/ano. CVV 188 7 sinalizado no garimpo."},
+    {"indicador": "Testagem IST em homens (meta: ≥ 80%)",               "valor": 22.4, "meta": 80.0,  "unidade": "%",     "status": "critico", "observacao": "22,4%. Testagem no local de trabalho: van + ACS. 112 sífilis homens 2025 — parceiro não tratado = reinfecção da mulher + SC."},
+    {"indicador": "Vasectomia disponível (meta: oferta regular)",       "valor": 0,    "meta": 1,     "unidade": "serviços","status": "critico","observacao": "Zero. Gratuita via AIH/SUS. Pactuação com HGH-Humaitá. Mutirão SES-AM trimestral. R$ 0 para o município."},
 ]
 
 
@@ -86,9 +109,9 @@ def condicoes():
     return _CONDICOES
 
 
-@router.get("/barreiras")
-def barreiras():
-    return _BARREIRAS
+@router.get("/acoes")
+def acoes():
+    return _ACOES
 
 
 @router.get("/historico")

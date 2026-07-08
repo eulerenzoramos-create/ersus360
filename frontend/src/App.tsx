@@ -566,7 +566,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/saude-mental-caps-apui"      label="Saúde Mental / CAPS"  Icon={Brain}/>
             <L1 to="/imunizacao-apui"             label="Imunização"           Icon={Syringe}/>
             <L1 to="/vigilancia-epidem-apui"      label="Vigilância Epidem."   Icon={Bug}/>
-            <L1 to="/saude-mulher-apui"           label="Saúde da Mulher"      Icon={Baby}/>
+            <L1 to="/saude-mulher-apui"           label="Saúde da Mulher"      Icon={Sparkles}/>
             <L1 to="/saude-crianca-apui"          label="Saúde da Criança"     Icon={Smile}/>
             <L1 to="/hiperdia-apui"               label="Hiperdia / HAS + DM"  Icon={Thermometer}/>
             <L1 to="/saude-idoso-apui"            label="Saúde do Idoso"       Icon={UserCheck}/>
@@ -612,7 +612,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/hepatites-virais-apui"       label="Hepatites Virais"        Icon={FlaskConical}/>
             <L1 to="/saude-neonatal-apui"         label="Saúde Neonatal"          Icon={Baby}/>
             <L1 to="/infeccoes-hospitalares-apui" label="Infecções Hospitalares"  Icon={ShieldCheck}/>
-            <L1 to="/saude-homem-apui"            label="Saúde do Homem"          Icon={UserCheck}/>
+            <L1 to="/saude-homem-apui"            label="Saúde do Homem"          Icon={UserCog}/>
             <L1 to="/saude-ocular-apui"           label="Saúde Ocular"            Icon={Eye}/>
             <L1 to="/saude-auditiva-apui"         label="Saúde Auditiva"          Icon={Radio}/>
             <L1 to="/saude-adolescente-apui"      label="Saúde do Adolescente"    Icon={Sparkles}/>
@@ -624,7 +624,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/mortalidade-materna-apui"    label="Mortalidade Materna"     Icon={Heart}/>
             <L1 to="/tabagismo-dpoc-apui"         label="Tabagismo e DPOC"        Icon={Wind}/>
             <L1 to="/saude-lgbtqia-apui"          label="Saúde LGBTQIA+"          Icon={Smile}/>
-            <L1 to="/dengue-arboviroses-apui"     label="Dengue e Arboviroses"    Icon={Bug}/>
+            <L1 to="/dengue-arboviroses-apui"     label="Dengue e Arboviroses"    Icon={Radio}/>
             <L1 to="/ilpi-idoso-apui"             label="ILPI e Idoso Dependente" Icon={Building2}/>
             <L1 to="/farmacia-popular-apui"        label="Farmácia Popular"        Icon={ShoppingBag}/>
             <L1 to="/acidentes-transito-apui"     label="Acidentes de Trânsito"   Icon={AlertTriangle}/>

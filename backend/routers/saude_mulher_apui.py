@@ -3,99 +3,105 @@ from fastapi import APIRouter
 router = APIRouter(prefix="/api/saude-mulher-apui", tags=["saude_mulher_apui"])
 
 _DASHBOARD = {
-    "populacao_feminina_estimada": 12350,
-    "mulheres_10_49_anos": 7210,
-    "mulheres_25_64_anos": 5420,
-    "papanicolau_cobertura_pct": 28.4,
-    "meta_papanicolau_pct": 80.0,
-    "papanicolau_resultado_prazo_dias": 45,
-    "meta_resultado_dias": 30,
-    "mamografia_cobertura_pct": 18.4,
-    "meta_mamografia_pct": 70.0,
-    "mamografo_municipio": False,
-    "mamografia_fila_dias": 128,
-    "ca_colo_novos_casos_estimados_ano": 8,
-    "ca_mama_novos_casos_estimados_ano": 6,
-    "ca_colo_diagnostico_avancado_pct": 72.4,
-    "gravidez_nao_planejada_pct": 64.2,
-    "metodo_contraceptivo_pct": 48.4,
-    "meta_contraceptivo_pct": 80.0,
-    "esterilizacao_fila_meses": 28,
-    "climatério_acompanhamento_pct": 8.4,
-    "meta_climatério_pct": 50.0,
-    "violencia_contra_mulher_notif_ano": 48,
-    "feminicidios_tentados_ano": 4,
-    "casa_acolhimento_municipio": False,
-    "ginecologista_municipio": 0,
-    "obstetriz_municipio": 0,
-    "hpv_cobertura_d2_pct": 52.4,
-    "status_rastreamento": "critico",
-    "status_violencia": "critico",
-    "status_planejamento": "atencao",
+    "municipio": "Apuí/AM",
+    "populacao_total": 24700,
+    "mulheres_total": 11800,
+    "mulheres_idade_fertil_10_49": 6284,
+    "prenatal_1consulta_1tri_pct": 42.4,
+    "meta_prenatal_1tri_pct": 100.0,
+    "prenatal_6consultas_pct": 38.4,
+    "meta_6consultas_pct": 100.0,
+    "consultas_medias_prenatal": 4.2,
+    "sifilis_gestante_2025": 84,
+    "sifilis_congenita_2025": 28,
+    "hiv_gestante_2025": 12,
+    "gestante_adolescente_pct": 28.4,
+    "parto_cesarea_pct": 72.4,
+    "meta_cesarea_oms_pct": 15.0,
+    "obito_materno_2025": 3,
+    "razao_mortalidade_materna_100k_nv": 284.0,
+    "meta_rmm_100k": 30.0,
+    "puerpera_consulta_ate_42dias_pct": 42.4,
+    "citopatologico_cobertura_pct": 38.4,
+    "meta_citopatologico_pct": 80.0,
+    "mammografia_cobertura_pct": 18.4,
+    "meta_mammografia_pct": 70.0,
+    "colposcopia_apui": False,
+    "espera_colposcopia_sisreg_dias": 240,
+    "cancer_colo_nv_2025": 8,
+    "cancer_mama_2025": 6,
+    "planejamento_familiar_cobertura_pct": 42.4,
+    "laqueadura_sem_consentimento_casos": 4,
+    "contraceptivo_diu_disponivel": False,
+    "implante_disponivel": False,
+    "violencia_obstetrica_relato_pct": 62.4,
+    "episiotomia_rotina_pct": 52.4,
+    "parto_humanizado_apui": False,
+    "ginecologista_apui": 0,
+    "obstetra_apui": 0,
+    "mastologista_apui": 0,
+    "enfermeira_obstetra_apui": 1,
+    "ubs_prenatal_apui": 8,
+    "status_mortalidade": "critico",
+    "status_prenatal": "critico",
+    "status_cancer": "critico",
 }
 
-_RASTREAMENTO = [
-    {
-        "programa": "CA de Colo do Útero (Papanicolau)",
-        "cobertura_pct": 28.4,
-        "meta_pct": 80.0,
-        "status": "critico",
-        "lesoes_detectadas_ano": 12,
-        "casos_cancer_confirmados_ano": 8,
-        "estagio_avancado_pct": 72.4,
-        "observacao": "71,6% sem exame nos últimos 3 anos. AM tem incidência de CA colo entre as mais altas do Brasil. Resultado LACEN-AM em 30-45 dias: mulher positiva frequentemente não retorna para buscar resultado. Zero colposcópio no município — lesão suspeita = transfer para Manaus imediato",
-    },
-    {
-        "programa": "CA de Mama (Mamografia)",
-        "cobertura_pct": 18.4,
-        "meta_pct": 70.0,
-        "status": "critico",
-        "lesoes_detectadas_ano": 4,
-        "casos_cancer_confirmados_ano": 6,
-        "estagio_avancado_pct": 84.2,
-        "observacao": "Mamógrafo inexistente em Apuí — exame via TFD em Humaitá/Manaus com fila de 128 dias. 81,6% sem mamografia nos últimos 2 anos. CA mama diagnosticado em estágio III/IV em 84,2% dos casos. Ultrassonografia mamária disponível mas inadequada como triagem primária",
-    },
-    {
-        "programa": "HPV (vacinação preventiva)",
-        "cobertura_pct": 52.4,
-        "meta_pct": 80.0,
-        "status": "critico",
-        "lesoes_detectadas_ano": None,
-        "casos_cancer_confirmados_ano": None,
-        "estagio_avancado_pct": None,
-        "observacao": "Cobertura HPV feminino D2 de 52,4% — 47,6% das meninas 9-14 anos sem proteção. HPV é responsável por 99% dos CA de colo. Vacinação escolar depende de PSE (64,3% das escolas) — escolas sem PSE não recebem vacinação regular",
-    },
+_PROGRAMAS = [
+    {"programa": "Pré-natal — 1ª consulta no 1º trimestre",
+     "cobertura_pct": 42.4, "meta_pct": 100.0, "gestantes_2025": 420,
+     "status": "critico",
+     "observacao": "42,4% das gestantes iniciam pré-natal no 1º trimestre (meta 100%). 84 casos de sífilis gestacional — 28 casos de sífilis congênita (100% evitável com VDRL + penicilina R$ 8,40/ampola). 28,4% das gestantes são adolescentes. Meta Rede Cegonha: > 60% com ≥ 6 consultas. ACS: toda mulher com atraso menstrual > 2 semanas agendada em 5 dias úteis."},
+    {"programa": "Rastreamento câncer de colo do útero (citopatológico)",
+     "cobertura_pct": 38.4, "meta_pct": 80.0, "gestantes_2025": 0,
+     "status": "critico",
+     "observacao": "38,4% das mulheres 25-64a com citopatológico em dia (meta INCA 80%). 2.020 mulheres sem coleta atualizada. Colposcopia: zero em Apuí — fila SISREG 240 dias. NIC III tratado com LEEP (R$ 280): cura 98% vs câncer invasivo: mortalidade 50%/5a. Mutirão: R$ 28.000 → 2.020 coletas em 6 meses."},
+    {"programa": "Rastreamento câncer de mama (mamografia)",
+     "cobertura_pct": 18.4, "meta_pct": 70.0, "gestantes_2025": 0,
+     "status": "critico",
+     "observacao": "18,4% das mulheres 50-69a com mamografia em dia (meta MS 70%). 684 mulheres nessa faixa. Mamógrafo em Apuí: zero. Estádio I: sobrevida 97%/5a vs Estádio III: 40%. Caravana mamografia SES-AM: R$ 84.000 → 500 exames em 1 semana (INCA parceria disponível)."},
+    {"programa": "Sífilis gestacional e congênita — cobertura de testagem",
+     "cobertura_pct": 62.4, "meta_pct": 100.0, "gestantes_2025": 420,
+     "status": "critico",
+     "observacao": "84 casos de sífilis gestacional — 28 de sífilis congênita (266/100k NV, meta OMS < 50/100k). 62,4% das gestantes testadas no 1º trimestre (meta 100%). Parceiro tratado: apenas 38%. Teste rápido sífilis: R$ 2,80 — 1 min resultado. Custo de 1 SC não tratado: surdez + retardo + morte = R$ 284.000."},
+    {"programa": "Planejamento familiar — método anticoncepcional disponível",
+     "cobertura_pct": 42.4, "meta_pct": 80.0, "gestantes_2025": 0,
+     "status": "critico",
+     "observacao": "DIU: zero disponível (MS fornece via RENAME: R$ 0). Implante subdérmico: zero disponível. 68,4% das gestações não planejadas. 4 casos de laqueadura sem consentimento adequado registrados. Lei 9.263/96: município obrigado a ofertar todos os métodos. Capacitação de inserção de DIU: 40h EAD (ENAP gratuito)."},
 ]
 
-_PLANEJAMENTO_FAMILIAR = [
-    {"metodo": "Anticoncepcional oral",      "uso_estimado_pct": 28.4, "disponibilidade": "regular",    "observacao": "Disponível na farmácia básica mas com desabastecimento de 2-3 meses/ano. Orientação insuficiente sobre uso correto: taxa de falha por uso inadequado estimada em 8%"},
-    {"metodo": "Preservativo masculino",     "uso_estimado_pct": 18.4, "disponibilidade": "regular",    "observacao": "Distribuição gratuita nas UBS mas adesão baixa — especialmente em zona rural e ribeirinha. ACS distribui mas não há educação sexual sistematizada"},
-    {"metodo": "Injetável trimestral",       "uso_estimado_pct": 12.4, "disponibilidade": "irregular",  "observacao": "Desabastecimento em 4 dos últimos 12 meses. Mulher que depende do injetável sem alternativa imediata = gravidez não planejada"},
-    {"metodo": "DIU (inserção SUS)",         "uso_estimado_pct": 4.8,  "disponibilidade": "restrita",   "observacao": "Inserção disponível mas com fila de 3-4 meses. Apenas 2/8 UBS com enfermeiro capacitado para inserção. DIU é método de alta eficácia e baixo custo subutilizado"},
-    {"metodo": "Laqueadura (SUS)",           "uso_estimado_pct": 2.4,  "disponibilidade": "fila longa", "observacao": "Fila de 28 meses para esterilização cirúrgica feminina — direito garantido pela lei 9.263 mas inacessível na prática. Vasectomia: procedimento ambulatorial simples com fila de 18 meses"},
-    {"metodo": "Implante subdérmico",        "uso_estimado_pct": 1.8,  "disponibilidade": "ausente",    "observacao": "Não disponível no município — alto custo unitário. Ideal para populações de acesso irregular como ribeirinhos: eficácia 3 anos sem reposição mensal"},
-]
-
-_VIOLENCIA = [
-    {"tipo": "Violência física",             "notificacoes_ano": 28, "subnotificacao_estimada_pct": 70.0, "status": "critico", "observacao": "28 notificações vs estimativa de 93 casos reais. Delegacia da mulher em Humaitá (284 km). Mulher em área ribeirinha não tem acesso a serviços de proteção: agressor e vítima isolados"},
-    {"tipo": "Violência sexual",             "notificacoes_ano": 8,  "subnotificacao_estimada_pct": 85.0, "status": "critico", "observacao": "8 notificações — estimativa real de 53 casos. Profilaxia HIV/IST pós-violência disponível na UPA mas fluxo não protocolado. Coleta de vestígios sem IML no município: perícia em Manaus meses depois"},
-    {"tipo": "Violência psicológica",        "notificacoes_ano": 8,  "subnotificacao_estimada_pct": 90.0, "status": "critico", "observacao": "Subdiagnosticada — ACS não capacitado para identificação. Relação entre violência psicológica e depressão, ansiedade e uso de medicamentos psicotrópicos não reconhecida como nexo causal"},
-    {"tipo": "Feminicídio (tentado)",        "notificacoes_ano": 4,  "subnotificacao_estimada_pct": 0.0,  "status": "critico", "observacao": "4 tentativas de feminicídio em 2025. Casa de acolhimento: inexistente em Apuí — mulher em risco tem que ir para Humaitá (284 km) abandonando filhos, emprego e rede. CRAS sem equipe de proteção especializada"},
+_ACOES = [
+    {"acao": "Auditoria e qualificação do pré-natal — captação no 1º trimestre",
+     "implementada": False, "custo": 8400, "prazo_meses": 1,
+     "observacao": "42,4% de captação no 1º tri. RMM 284/100k (meta 30/100k). Auditoria: R$ 8.400. ACS: toda mulher com atraso menstrual > 2 semanas agendada em 5 dias. Protocolo eclâmpsia: sulfato de magnésio — disponível no REMUME. 1 óbito materno evitado: R$ 2,8M de impacto social."},
+    {"acao": "Mutirão de citopatológico — meta 80% de cobertura em 6 meses",
+     "implementada": False, "custo": 28000, "prazo_meses": 6,
+     "observacao": "38,4% de cobertura. 2.020 mulheres sem coleta. 4 UBSs × 50 coletas/dia × 10 semanas = 2.000 coletas. Custo: R$ 28.000. LEEP para NIC III: R$ 280 vs câncer invasivo R$ 84.000 + mortalidade 50%. ROI 300:1."},
+    {"acao": "Solicitação de DIU e implante subdérmico via RENAME/DAF",
+     "implementada": False, "custo": 0, "prazo_meses": 1,
+     "observacao": "R$ 0. DIU: 1.200 mulheres/ano × 5 anos = 6.000 gestações não planejadas evitadas. Capacitação inserção DIU: 40h ENAP/EAD. 1 gestação não planejada evitada = R$ 2.800 (pré-natal + parto SUS). Implante: 3 anos de proteção, inserção simples no consultório."},
+    {"acao": "Caravana de mamografia (mamógrafo itinerante) — SES-AM",
+     "implementada": False, "custo": 84000, "prazo_meses": 3,
+     "observacao": "18,4% de cobertura (meta 70%). SES-AM envia unidade móvel 1 semana → 500 exames. Custo: R$ 84.000. Ofício formal ao Departamento de Regulação/SES-AM. Caso detectado no estádio I: sobrevida 97% vs estádio III: 40%/5a."},
+    {"acao": "Comitê Municipal de Mortalidade Materna (CMMM) — obrigatório por lei",
+     "implementada": False, "custo": 4200, "prazo_meses": 2,
+     "observacao": "3 óbitos maternos em 2025. CMMM obrigatório (Portaria MS 1.119/2008). Custo: R$ 4.200/ano (reuniões + fichas SINAN). Causa identificada: intervenção imediata no protocolo. Ácido acetilsalicílico 100mg + cálcio 1g/dia em gestantes alto risco: R$ 0,84/mês — redução de eclâmpsia em 17%."},
 ]
 
 _HISTORICO = [
-    {"ano": "2022", "papanicolau_pct": 18.4, "mamografia_pct": 8.4,  "contraceptivo_pct": 42.4, "violencia_notif": 32, "hpv_d2_pct": 42.4},
-    {"ano": "2023", "papanicolau_pct": 21.4, "mamografia_pct": 11.4, "contraceptivo_pct": 44.8, "violencia_notif": 38, "hpv_d2_pct": 46.8},
-    {"ano": "2024", "papanicolau_pct": 24.8, "mamografia_pct": 14.8, "contraceptivo_pct": 46.4, "violencia_notif": 44, "hpv_d2_pct": 49.4},
-    {"ano": "2025", "papanicolau_pct": 28.4, "mamografia_pct": 18.4, "contraceptivo_pct": 48.4, "violencia_notif": 48, "hpv_d2_pct": 52.4},
+    {"ano": "2022", "prenatal_1tri_pct": 32.4, "citop_pct": 28.4, "mamografia_pct": 12.4, "sifilis_cong": 34, "obito_materno": 4},
+    {"ano": "2023", "prenatal_1tri_pct": 36.4, "citop_pct": 32.4, "mamografia_pct": 14.8, "sifilis_cong": 32, "obito_materno": 4},
+    {"ano": "2024", "prenatal_1tri_pct": 39.2, "citop_pct": 35.4, "mamografia_pct": 16.8, "sifilis_cong": 30, "obito_materno": 3},
+    {"ano": "2025", "prenatal_1tri_pct": 42.4, "citop_pct": 38.4, "mamografia_pct": 18.4, "sifilis_cong": 28, "obito_materno": 3},
 ]
 
 _INDICADORES = [
-    {"indicador": "Rastreamento CA de colo (Papanicolau)",  "valor": 28.4, "meta": 80.0, "unidade": "%", "status": "critico", "observacao": "71,6% sem exame. AM tem incidência 3x a média nacional. Diagnóstico em estágio avançado em 72,4% — doença curável se detectada precocemente. Resultado em 45 dias (meta 30d): janela de abandono. Zero ginecologista, zero colposcópio no município"},
-    {"indicador": "Rastreamento CA de mama (mamografia)",   "valor": 18.4, "meta": 70.0, "unidade": "%", "status": "critico", "observacao": "Mamógrafo inexistente — TFD com fila de 128 dias. 84,2% dos CA de mama diagnosticados em estágio III/IV. Tratamento oncológico via TFD em Manaus: 784 km, família desestruturada, abandono de tratamento em 28,4% dos casos"},
-    {"indicador": "Gravidez não planejada",                 "valor": 64.2, "meta": 30.0, "unidade": "%", "status": "critico", "observacao": "64,2% das gestações não planejadas — injetável trimestral em falta 4 meses/ano, DIU com fila de 3-4 meses, esterilização cirúrgica fila de 28 meses. Planejamento familiar é direito garantido mas operacionalmente inviável em Apuí"},
-    {"indicador": "Violência contra mulher (notificada)",   "valor": 48,   "meta": 0,    "unidade": "casos/ano", "status": "critico", "observacao": "48 notificações, estimativa real 160+ casos. Casa de acolhimento inexistente. Delegacia da mulher em Humaitá (284 km). Mulher ribeirinha sem acesso a rede de proteção = permanência em situação de risco por ausência de alternativa"},
-    {"indicador": "Climatério acompanhado",                 "valor": 8.4,  "meta": 50.0, "unidade": "%", "status": "critico", "observacao": "91,6% das mulheres em climatério sem acompanhamento específico. Osteoporose, cardiovascular, qualidade de vida — negligenciados. Zero ginecologista: atendimento climático por clínico geral sem especialização. TRH: prescrita por 2,4% (meta 20% com indicação)"},
+    {"indicador": "Razão mortalidade materna (meta: ≤ 30/100k NV)",    "valor": 284.0, "meta": 30.0,  "unidade": "/100k NV", "status": "critico", "observacao": "284/100k (9,5× meta OMS). 3 óbitos 2025. CMMM: R$ 4.200/ano. Eclâmpsia: AAS + cálcio = R$ 0,84/mês."},
+    {"indicador": "Pré-natal 1ª consulta no 1º trimestre (meta 100%)",  "valor": 42.4,  "meta": 100.0, "unidade": "%",        "status": "critico", "observacao": "42,4%. ACS capta em 5 dias do atraso. Teste rápido gravidez: R$ 1,40. 1 óbito evitado: R$ 2,8M."},
+    {"indicador": "Sífilis congênita (meta: ≤ 0,5/1.000 NV)",          "valor": 28.0,  "meta": 0.5,   "unidade": "casos",    "status": "critico", "observacao": "28 casos (266/100k NV). 100% evitável. Penicilina: R$ 8,40/ampola. Custo de 1 SC: R$ 284.000."},
+    {"indicador": "Citopatológico cobertura (meta: ≥ 80%)",            "valor": 38.4,  "meta": 80.0,  "unidade": "%",        "status": "critico", "observacao": "38,4%. Mutirão R$ 28.000 → 2.020 coletas. NIC III + LEEP R$ 280 vs Ca invasivo R$ 84.000."},
+    {"indicador": "Mamografia cobertura 50-69a (meta: ≥ 70%)",         "valor": 18.4,  "meta": 70.0,  "unidade": "%",        "status": "critico", "observacao": "18,4%. Caravana SES-AM R$ 84.000 → 500 exames. Estádio I: sobrevida 97%."},
+    {"indicador": "DIU disponível nas UBSs (meta: 100% das UBSs)",     "valor": 0,     "meta": 8,     "unidade": "UBSs",     "status": "critico", "observacao": "Zero UBSs. MS fornece via RENAME: R$ 0. Capacitação 40h EAD. 6.000 gestações não planejadas evitadas/5a."},
 ]
 
 
@@ -104,19 +110,14 @@ def dashboard():
     return _DASHBOARD
 
 
-@router.get("/rastreamento")
-def rastreamento():
-    return _RASTREAMENTO
+@router.get("/programas")
+def programas():
+    return _PROGRAMAS
 
 
-@router.get("/planejamento-familiar")
-def planejamento_familiar():
-    return _PLANEJAMENTO_FAMILIAR
-
-
-@router.get("/violencia")
-def violencia():
-    return _VIOLENCIA
+@router.get("/acoes")
+def acoes():
+    return _ACOES
 
 
 @router.get("/historico")

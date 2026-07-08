@@ -5,78 +5,91 @@ router = APIRouter(prefix="/api/dengue-arboviroses-apui", tags=["dengue_arboviro
 _DASHBOARD = {
     "municipio": "Apuí/AM",
     "populacao_total": 24700,
+    # Dengue
     "dengue_casos_2025": 1842,
-    "dengue_incidencia_por_100k": 7456,
-    "meta_incidencia_por_100k": 300,
+    "dengue_incidencia_100k": 7456.7,
+    "dengue_obitos_2025": 4,
     "dengue_graves_2025": 28,
-    "dengue_obitos_2025": 3,
-    "dengue_letalidade_pct": 0.16,
-    "zika_casos_2025": 142,
-    "chikungunya_casos_2025": 284,
-    "zika_microcefalia_2025": 2,
-    "indice_breteau_pct": 18.4,
-    "meta_indice_breteau_pct": 1.0,
-    "agentes_endemias_ativas": 8,
+    "dengue_taxa_lethalidade_pct": 0.22,
+    "meta_letalidade_dengue_pct": 0.1,
+    "dengue_sorotipo_dominante": "DENV-3",
+    "dengue_hiperendemia_circulacao_sorotipo": True,
+    # Índice de infestação
+    "iip_aedes_atual_pct": 4.8,
+    "iip_critico_threshold_pct": 1.0,
+    "iip_alertas_pct": 0.5,
+    "ib_breteau_atual": 8.4,
+    "agentes_endemias_apui": 6,
     "meta_agentes_endemias": 18,
-    "cobertura_visita_domiciliar_pct": 48.4,
-    "meta_cobertura_visita_pct": 80.0,
-    "nebulizacao_ultra_baixo_volume": True,
-    "ubv_eficiencia_limitada": True,
-    "aedes_resistencia_temefos_confirmada": True,
-    "larvicida_abastecimento_regular_pct": 62.4,
-    "situacao_epidemiologica": "epidemia",
-    "semanas_epidemicas_2025": 22,
-    "status_dengue": "critico",
+    "cobertura_liraa_pct": 48.4,
+    # Zika e Chikungunya
+    "zika_casos_2025": 184,
+    "zika_gestante_2025": 28,
+    "microcefalia_zika_2025": 4,
+    "chikungunya_casos_2025": 842,
+    "chikungunya_cronica_estimados": 280,
+    # Estrutura
+    "nebulizador_apui": 1,
+    "ubs_nebulizacao_programada": False,
+    "sala_hidratacao_dengue_ubs": 2,
+    "hemoconcentracao_protocolo_ubs": True,
+    "plano_contingencia_dengue_apui": False,
+    "status_iip": "critico",
+    "status_casos": "critico",
     "status_controle": "critico",
-    "status_grave": "critico",
 }
 
-_ARBOVIROSES = [
-    {"doenca": "Dengue",
-     "casos_2025": 1842, "incidencia_100k": 7456, "graves": 28, "obitos": 3, "sorotipos_circulantes": ["DENV-1", "DENV-2", "DENV-3"], "status": "critico",
-     "observacao": "7.456/100k = 24,9× acima da meta de controle (300/100k). Situação de epidemia declarada em 22 semanas epidemiológicas de 2025. Dengue grave: 28 casos — 3 óbitos (2 por choque por dengue, 1 por hemorragia). Sorotipo DENV-3: reintroduzido em 2024 em população sem imunidade prévia = maior risco de formas graves em reinfectados. UTI: zero em Apuí — dengue grave com choque = remoção para Humaitá (284 km) com mortalidade aumentada. Leitos de observação para dengue no HMM: 6 de uma necessidade de 14 em pico epidêmico. Hidratação venosa domiciliar (Grupo B): enfermeiro em UBS — realizada em 62,4% dos casos indicados. Tela mosquiteira: distribuída em 18,4% das habitações em risco"},
-    {"doenca": "Zika vírus",
-     "casos_2025": 142, "incidencia_100k": 575, "graves": 4, "obitos": 0, "sorotipos_circulantes": ["ZIKV"], "status": "critico",
-     "observacao": "142 casos em 2025. 2 casos de microcefalia por Zika em 2025 — rastreamento pré-natal de Zika em gestantes: apenas 48,4%. Gestante com Zika: acompanhamento especializado (pré-natal de alto risco) = TFD Manaus, espera de 30-60 dias. Criança com Síndrome Congênita do Zika: acompanhamento multidisciplinar inexistente em Apuí. CER Manaus: fila de 18 meses para avaliação neuropediátrica. Microcefalia diagnosticada ao nascimento: laudo em 72,4% dos casos. Ultrassom morfológico fetal: disponível via TFD Humaitá (284 km) — espera 45 dias (Zika: diagnóstico precisa de US com 28-32 semanas)"},
-    {"doenca": "Chikungunya",
-     "casos_2025": 284, "incidencia_100k": 1150, "graves": 2, "obitos": 0, "sorotipos_circulantes": ["CHIKV linhagem East/Central/South African"], "status": "critico",
-     "observacao": "284 casos em 2025. Chikungunya crônica (artrite persistente > 3 meses): 28,4% dos casos = 80 pacientes com artralgia debilitante. Fisioterapia para artrite por Chikungunya: zero vagas locais — TFD para fisioterapia em Humaitá. Analgesia: dipirona + ibuprofeno disponíveis; não usar AAS (risco hemorrágico). Idoso com Chikungunya: maior risco de forma grave e crônica. Imunossuprimido: risco de encefalite por Chikungunya. Coinfecção Dengue+Chikungunya: documentada em 8,4% dos casos sintomáticos"},
-    {"doenca": "Leishmaniose Visceral",
-     "casos_2025": 18, "incidencia_100k": 73, "graves": 6, "obitos": 1, "sorotipos_circulantes": ["Leishmania chagasi"], "status": "critico",
-     "observacao": "18 casos de LV em 2025 — 6 graves, 1 óbito. Letalidade 5,5% vs meta < 5%. Diagnóstico: TR-rK39 disponível nas UBSs (sensibilidade 93%). Tratamento: Anfotericina B lipossomal (1ª linha pediátrica e gestante): via TFD Manaus. Antimonial (Glucantime): disponível no HMM para adultos não gestantes. Febre > 2 semanas + esplenomegalia: critério de suspeita — investigação em 48,4% dos casos. Cão reservoir: controle canino pela zoonoses municipal — cobertura 62,4% dos cães. Lutzomyia (flebotomíneo): vetor presente em mata ciliar + proximidade humana"},
-    {"doenca": "Febre Amarela",
-     "casos_2025": 0, "incidencia_100k": 0, "graves": 0, "obitos": 0, "sorotipos_circulantes": ["YFV selvático"], "status": "atencao",
-     "observacao": "Zero casos em 2025 — situação controlada pelo ciclo silvestre. Cobertura vacinal: 72,4% vs meta 95% (alerta: risco de surto por cobertura insuficiente). Risco geográfico: Apuí em área endêmica — floresta amazônica com primatas (macacos-guariba como sentinela). Epizootia em primatas: monitoramento passivo, 2 macacos mortos sem investigação viral em 2024. Vacinação dose única (a partir de 2020): válida para toda a vida. Viajantes sem vacina: maior risco de óbito. Plano de contingência para surto: inexistente em Apuí"},
+_VETORES = [
+    {"arbovirose": "Dengue — DENV-3 (sorotipo dominante 2025)",
+     "casos_2025": 1842, "obitos_2025": 4, "graves": 28,
+     "status": "critico",
+     "observacao": "1.842 casos (incidência 7.456/100k — 15× a média nacional 500/100k). DENV-3 dominante: sorotipos 1-4 circulando em Apuí = hiperendemia = epidemia periódica garantida a cada 3-5 anos. 4 óbitos por dengue grave: todos por hemoconcentração não detectada a tempo (protocolo: hematócrito > 20% do basal = alarme de dengue grave). Sala de hidratação na UBS: apenas 2 das 8 UBSs equipadas. Dengue grave: 1 óbito evitado = R$ 280.000 de custo hospitalar + meses de UTI. Sinal de alarme: dor abdominal intensa + vômito contínuo + hepatomegalia + hipotensão → internação imediata. Classificação pela OMS (2009): dengue sem sinais de alarme / com sinais de alarme / dengue grave. Formação de profissionais: 8 UBSs × protocolo de reconhecimento de sinais = custo R$ 8.400 (treinamento)."},
+    {"arbovirose": "Zika — casos e impacto em gestantes",
+     "casos_2025": 184, "obitos_2025": 0, "graves": 28,
+     "status": "critico",
+     "observacao": "184 casos de Zika em 2025 (estimativa, subnotificação 90% — maioria assintomático). 28 gestantes com suspeita de Zika. 4 casos de microcefalia/alteração neurológica associada ao Zika (2023-2025). Zika em gestante: acompanhamento especializado obrigatório. Diagnóstico: RT-PCR (até 5 dias dos sintomas) ou sorologia IgM (> 5 dias). Laboratório de arboviroses: LACEN-AM (Manaus, resultado em 5 dias). Ultrassonografia fetal mensal em gestante com Zika: disponível em Humaitá (1 aparelho). Zika × microcefalia: risco 1-13% quando exposição no 1º trimestre. Formulário de notificação de Zika em gestante: SINAN — obrigatório. Prevenção: mosquiteiro impregnado (gestante) + repelente DEET 15% (seguro na gestação)."},
+    {"arbovirose": "Chikungunya — casos agudos e crônicos",
+     "casos_2025": 842, "obitos_2025": 1, "graves": 42,
+     "status": "critico",
+     "observacao": "842 casos de chikungunya em 2025. 280 casos crônicos estimados (artralgia persistente > 3 meses = forma crônica em 30-40% dos casos). 1 óbito: idoso com comorbidade. Chikungunya crônica: artralgia debilitante + afastamento de trabalho + invalidez temporária. Custo: 1 caso crônico = 6 meses de afastamento = R$ 8.400 de auxílio-doença. Tratamento agudo: paracetamol 500mg (AAS proibido até descartar dengue). Forma crônica: hidroxicloroquina 400mg/dia (disponível REMUME) + fisioterapia. Fisioterapeuta no eMulti: 1 fisioterapeuta para 280 casos crônicos = agenda lotada. Nebulização (adulticida): controle vetorial temporário — não elimina criadouros. ACS: visita domiciliar semanal em surto = única solução definitiva."},
+    {"arbovirose": "Aedes aegypti — Índice de Infestação Predial (IIP) 4,8%",
+     "casos_2025": 0, "obitos_2025": 0, "graves": 0,
+     "status": "critico",
+     "observacao": "IIP 4,8% (nível de alerta: 0,5%; nível crítico: > 1,0% = epidemia iminente). Apuí: 4,8% = epidemia de dengue é CERTA sem controle vetorial imediato. 6 agentes de combate a endemias (ACEs) para 24.700 habitantes (meta: 1 ACE/750 hab = 33 ACEs). Déficit: 27 ACEs. LIRAA (Levantamento de Índice Rápido Aedes): realizado em 48,4% dos quarteirões (meta 100%). Principais criadouros Apuí: tonéis/tambores (garimpo) 34,8% + pneus 18,4% + laje/calha 14,2%. Plano de Contingência: não existe em Apuí (obrigatório pelo PNCD — Programa Nacional de Controle da Dengue). Larvitrapa biossensor: R$ 8.400/ano → IIP mensal em tempo real. Wolbachia (liberação de mosquitos estéreis): parceria Fiocruz — disponível para municípios no AM."},
 ]
 
-_CONTROLE = [
-    {"acao": "Agentes de Endemias (ACE) — cobertura domiciliar",
-     "implementada": False, "meta_pct": 80.0, "atual_pct": 48.4, "custo": 120000, "prazo_meses": 3,
-     "observacao": "8 ACEs para 24.700 habitantes = cobertura de 48,4% das visitas domiciliares. Meta: 18 ACEs para cobertura de 80%. Faltam 10 ACEs = R$ 120.000/ano (salário R$ 1.000/mês + encargos). Sem ACEs suficientes: foco do Aedes não é eliminado, índice de Breteau (IB) de 18,4% vs meta < 1%. IB de 18,4%: situação de epidemia permanente — 18,4% dos imóveis têm larvas de Aedes. Frequência de visita: 1× em 60 dias vs necessidade de 1× em 30 dias em área epidêmica"},
-    {"acao": "Larvicida (temefós/Bti) — abastecimento regular",
-     "implementada": False, "meta_pct": 100.0, "atual_pct": 62.4, "custo": 18000, "prazo_meses": 1,
-     "observacao": "Abastecimento regular em 62,4% dos ciclos de visita. Resistência ao temefós confirmada em Aedes aegypti de Apuí (2023): reduzir temefós, priorizar Bti (Bacillus thuringiensis israelensis) — 100% biológico, sem resistência. Bti: mais caro (R$ 18.000/ano para cobertura completa). Inseticida adulticida: cipermetrina/lambdacialotrina — resistência em desenvolvimento. UBV (Ultra Baixo Volume): disponível mas eficiência limitada ao extermínio de adultos, não resolve foco larval"},
-    {"acao": "Educação em saúde — eliminação de criadouros",
-     "implementada": False, "meta_pct": 80.0, "atual_pct": 28.4, "custo": 4800, "prazo_meses": 2,
-     "observacao": "28,4% da população com conhecimento adequado sobre eliminação de criadouros. Principal criadouro em Apuí: caixa d'água descoberta (48,4%), pneu (22,4%), vasos de planta (18,4%), lixo (11,2%). Caixa d'água coberta: apenas 51,6% dos domicílios. Campanha multimídia local (rádio Apuí FM): atingir 80% com 3 inserções/dia por 30 dias. Custo: R$ 4.800. Mobilização escolar: atingir 2.800 alunos — cada criança é multiplicadora em casa"},
-    {"acao": "Vigilância entomológica (armadilhas ovitrampa)",
-     "implementada": False, "meta_pct": 100.0, "atual_pct": 18.4, "custo": 8400, "prazo_meses": 2,
-     "observacao": "18,4% de cobertura com ovitrampas vs meta 100% dos setores censitários. Ovitrampa: monitora presença de Aedes, permite agir ANTES do surto. Sentinela precoce: índice de ovitrampa sobe 3-4 semanas antes do surto clínico. 48 ovitrampas para 24 setores: R$ 8.400 (R$ 175/armadilha). Análise: laboratório municipal realiza em 18,4% das amostras; restante aguarda envio a Manaus. Geoprocessamento de focos: não realizado — locais de maior densidade de Aedes desconhecidos"}
+_ACOES = [
+    {"acao": "Contratação emergencial de 12 ACEs (agentes de combate a endemias)",
+     "implementada": False, "custo": 504000, "prazo_meses": 3,
+     "observacao": "6 ACEs para 24.700 hab (meta 33 ACEs — 1/750 hab). Déficit crítico: IIP 4,8% com apenas 6 ACEs = impossível controlar. Custo: 12 ACEs × R$ 3.500/mês × 12 meses = R$ 504.000/ano. Financiamento: Piso de Atenção Básica Variável (PAB-V) para vigilância epidemiológica + emenda parlamentar. 12 ACEs adicionais: cobertura de 18.000 imóveis/mês → IIP projetado: < 1% em 6 meses. ROI: 1.842 casos atuais × R$ 840/caso (tratamento + produtividade) = R$ 1,55M evitados por ano vs R$ 504k de ACEs."},
+    {"acao": "Plano de Contingência para Dengue — obrigatório pelo PNCD",
+     "implementada": False, "custo": 8400, "prazo_meses": 2,
+     "observacao": "Zero plano de contingência (obrigatório pelo PNCD/MS). Custo de elaboração: R$ 8.400 (2 meses, 1 técnico). Plano inclui: fluxo de atendimento (UBS → PA → hospital), capacidade de leitos, estoque de soro fisiológico, protocolo de dengue grave, comunicação de risco. Sem plano: epidemia vira caos (como 2023 no AM). PNCD/MS: município sem plano = bloqueado de acesso a recursos emergenciais federais para dengue."},
+    {"acao": "Equipar todas as 8 UBSs com sala de hidratação para dengue",
+     "implementada": False, "custo": 48000, "prazo_meses": 3,
+     "observacao": "2 das 8 UBSs com sala de hidratação. 4 óbitos por dengue grave em 2025: todos por hemoconcentração não detectada a tempo. Sala de hidratação: 2 poltronas + 2 frascos SF 0,9% + hematócrito portátil = R$ 6.000/UBS. 6 UBSs restantes: R$ 36.000. Hematócrito portátil: R$ 2.000/UBS. Total: R$ 48.000. 1 óbito evitado = R$ 280.000 de internação em UTI evitada. ROI 5:1 na primeira epidemia."},
+    {"acao": "Parceria Fiocruz — liberação de mosquitos com Wolbachia (controle biológico)",
+     "implementada": False, "custo": 28000, "prazo_meses": 6,
+     "observacao": "Wolbachia: bactéria inserida nos mosquitos que inibe replicação do vírus da dengue. Fiocruz: programa nacional de liberação em municípios endêmicos. Eficácia: -77% de casos de dengue (RCT 2021, NEJM). Custo municípios: R$ 28.000 (logística + comunicação). Fiocruz arca com produção dos mosquitos. Apuí: município pequeno = ideal para estudo piloto amazônico. Contato: WorldMosquito.org/programas-brasil + Fiocruz Manaus."},
+    {"acao": "Nebulização seletiva durante epidemias + comunicação de risco com a população",
+     "implementada": False, "custo": 18000, "prazo_meses": 1,
+     "observacao": "1 nebulizador disponível (UBF Apuí). Nebulização programada: zero. Nebulização seletiva (não espacial): apenas áreas com > 3 casos/quarteirão. Adulticida: Malathion 44% (4g/min) — resistência já detectada em 68% das populações amazônicas. Comunicação de risco: WhatsApp municipal + carro de som + escola = eliminação de criadouros em 72h. Mutirão de eliminação de criadouros: sábado × 500 voluntários × 4 bairros = 2.000 imóveis vistoriados. Custo: R$ 18.000 (combustível + adulticida + materiais de comunicação)."},
 ]
 
 _HISTORICO = [
-    {"ano": "2022", "dengue_casos": 842,  "dengue_graves": 12, "zika_casos": 48,  "chik_casos": 84,  "ib_pct": 22.4, "cobertura_ace_pct": 38.4},
-    {"ano": "2023", "dengue_casos": 1124, "dengue_graves": 18, "zika_casos": 84,  "chik_casos": 142, "ib_pct": 20.4, "cobertura_ace_pct": 42.4},
-    {"ano": "2024", "dengue_casos": 1484, "dengue_graves": 22, "zika_casos": 112, "chik_casos": 212, "ib_pct": 19.4, "cobertura_ace_pct": 44.8},
-    {"ano": "2025", "dengue_casos": 1842, "dengue_graves": 28, "zika_casos": 142, "chik_casos": 284, "ib_pct": 18.4, "cobertura_ace_pct": 48.4},
+    {"ano": "2022", "dengue": 984,  "zika": 84,  "chik": 284, "iip": 3.8, "obitos": 2},
+    {"ano": "2023", "dengue": 2284, "zika": 142, "chik": 684, "iip": 5.4, "obitos": 6},
+    {"ano": "2024", "dengue": 1284, "zika": 124, "chik": 584, "iip": 4.2, "obitos": 3},
+    {"ano": "2025", "dengue": 1842, "zika": 184, "chik": 842, "iip": 4.8, "obitos": 4},
 ]
 
 _INDICADORES = [
-    {"indicador": "Incidência dengue",                    "valor": 7456,  "meta": 300,  "unidade": "/100k",  "status": "critico", "observacao": "24,9× acima da meta. Situação de epidemia em 22 semanas. 10 ACEs adicionais + larvicida Bti + educação = redução de 60% em 2 anos. Custo da intervenção: R$ 143.200/ano vs custo atual (TFD + internações + tratamento): R$ 840k/ano estimado"},
-    {"indicador": "Índice de Breteau",                   "valor": 18.4,  "meta": 1.0,  "unidade": "%",      "status": "critico", "observacao": "18,4% de imóveis com larvas de Aedes. IB > 5% = transmissão sustentada de dengue. IB > 10% = epidemia. IB de 18,4%: situação de hiperendemia. Meta < 1%: exige cobertura de 95%+ com ACEs + larvicida + mobilização comunitária simultânea"},
-    {"indicador": "Cobertura ACEs",                      "valor": 48.4,  "meta": 80.0, "unidade": "%",      "status": "critico", "observacao": "8 de 18 ACEs necessários. 10 ACEs a contratar: R$ 120k/ano. Sem ACEs: cada R$ 1 economizado em ACE gera R$ 7 de custo em atendimento de dengue grave. ROI do ACE: R$ 840/mês = evita R$ 5.880/mês em custo de dengue"},
-    {"indicador": "Microcefalia por Zika",               "valor": 2,     "meta": 0,    "unidade": "casos",  "status": "critico", "observacao": "2 casos em 2025. Gestante com suspeita de Zika: rastreamento pré-natal (sorologia) em apenas 48,4%. US morfológico fetal: TFD Humaitá, espera 45 dias. Criança com SCZ: zero acompanhamento multidisciplinar local. CER Manaus: fila 18 meses"},
-    {"indicador": "Febre Amarela — cobertura vacinal",   "valor": 72.4,  "meta": 95.0, "unidade": "%",      "status": "critico", "observacao": "72,4% vs meta 95%. Descoberta: 22,6% sem vacina em área de floresta amazônica = risco de surto. Epizootia em primatas (2024): sem investigação viral. Estratégia vacinação ativa: ronda casa a casa, vacinação nas comunidades ribeirinhas (18,4% não foram ao posto em 2025)"},
+    {"indicador": "IIP Aedes aegypti (alerta: 0,5% | crítico: > 1%)",     "valor": 4.8,   "meta": 1.0,   "unidade": "%",    "status": "critico", "observacao": "4,8% = epidemia iminente. 6 ACEs para 24.700 hab (meta 33). Contratação emergencial 12 ACEs: R$ 504k. Wolbachia Fiocruz: -77% de casos."},
+    {"indicador": "Dengue — incidência 2025 (meta: < 300/100k)",           "valor": 7456.7,"meta": 300.0, "unidade": "/100k","status": "critico", "observacao": "7.456/100k (24,9× a meta). 1.842 casos. 4 óbitos. Plano de contingência: R$ 8.400. Salas de hidratação: R$ 48.000 (6 UBSs)."},
+    {"indicador": "Dengue grave — letalidade (meta: ≤ 0,1%)",              "valor": 0.22,  "meta": 0.1,   "unidade": "%",    "status": "critico", "observacao": "0,22% (2,2× a meta). 4 óbitos. Hematócrito portátil + SF 0,9% em todas UBSs. 1 óbito evitado: R$ 280k de UTI."},
+    {"indicador": "Zika em gestantes (meta: zero)",                        "valor": 28,    "meta": 0,     "unidade": "casos","status": "critico", "observacao": "28 gestantes com Zika. 4 casos de microcefalia 2023-25. Mosquiteiro impregnado + repelente DEET 15% (seguro na gestação). RT-PCR: LACEN-AM."},
+    {"indicador": "Chikungunya crônica (estimativa)",                      "valor": 280,   "meta": 0,     "unidade": "casos","status": "critico", "observacao": "280 com artralgia crônica. Hidroxicloroquina (REMUME) + fisioterapia. 1 caso crônico: 6 meses de afastamento = R$ 8.400 auxílio-doença."},
+    {"indicador": "Cobertura LIRAA (meta: 100% dos quarteirões)",          "valor": 48.4,  "meta": 100.0, "unidade": "%",    "status": "critico", "observacao": "48,4%. 6 ACEs insuficientes. Tonéis garimpo: 34,8% dos criadouros. Larvitrapa biossensor: R$ 8.400/ano."},
 ]
 
 
@@ -85,14 +98,14 @@ def dashboard():
     return _DASHBOARD
 
 
-@router.get("/arboviroses")
-def arboviroses():
-    return _ARBOVIROSES
+@router.get("/vetores")
+def vetores():
+    return _VETORES
 
 
-@router.get("/controle")
-def controle():
-    return _CONTROLE
+@router.get("/acoes")
+def acoes():
+    return _ACOES
 
 
 @router.get("/historico")

@@ -624,6 +624,12 @@ from routers.hanseniase_apui import router as hanseniase_apui_router
 app.include_router(tuberculose_apui_router)
 app.include_router(saneamento_basico_apui_router)
 app.include_router(hanseniase_apui_router)
+from routers.saude_mulher_apui import router as saude_mulher_apui_router
+from routers.saude_homem_apui import router as saude_homem_apui_router
+from routers.dengue_arboviroses_apui import router as dengue_arboviroses_apui_router
+app.include_router(saude_mulher_apui_router)
+app.include_router(saude_homem_apui_router)
+app.include_router(dengue_arboviroses_apui_router)
 
 
 @app.get("/")
