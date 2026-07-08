@@ -14,9 +14,9 @@ const WARN   = "#d97706";
 const CRIT   = "#dc2626";
 
 function statusColor(s: string) {
-  if (s === "ok") return OK;
+  if (s === "critico") return CRIT;
   if (s === "atencao") return WARN;
-  return CRIT;
+  return OK;
 }
 
 const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
@@ -36,20 +36,20 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
 export default function SaudeOcularApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["ocul-dashboard"],    queryFn: () => apiGet("/api/saude-ocular-apui/dashboard"),    enabled: aba === "dashboard" });
-  const { data: condicoes }   = useQuery({ queryKey: ["ocul-condicoes"],    queryFn: () => apiGet("/api/saude-ocular-apui/condicoes"),    enabled: aba === "condicoes" });
-  const { data: intervencoes }= useQuery({ queryKey: ["ocul-interv"],       queryFn: () => apiGet("/api/saude-ocular-apui/intervencoes"), enabled: aba === "intervencoes" });
-  const { data: historico }   = useQuery({ queryKey: ["ocul-hist"],         queryFn: () => apiGet("/api/saude-ocular-apui/historico"),    enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["ocul-ind"],          queryFn: () => apiGet("/api/saude-ocular-apui/indicadores"),  enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["ocu-dash"],  queryFn: () => apiGet("/api/saude-ocular-apui/dashboard"),  enabled: aba === "dashboard" });
+  const { data: condicoes }   = useQuery({ queryKey: ["ocu-cond"],  queryFn: () => apiGet("/api/saude-ocular-apui/condicoes"),  enabled: aba === "condicoes" });
+  const { data: acoes }       = useQuery({ queryKey: ["ocu-acao"],  queryFn: () => apiGet("/api/saude-ocular-apui/acoes"),      enabled: aba === "acoes" });
+  const { data: historico }   = useQuery({ queryKey: ["ocu-hist"],  queryFn: () => apiGet("/api/saude-ocular-apui/historico"),  enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["ocu-ind"],   queryFn: () => apiGet("/api/saude-ocular-apui/indicadores"),enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
   const ABAS = [
-    { key: "dashboard",    label: "Dashboard",     icon: <Eye size={15}/> },
-    { key: "condicoes",    label: "Condições",     icon: <Activity size={15}/> },
-    { key: "intervencoes", label: "Intervenções",  icon: <Activity size={15}/> },
-    { key: "historico",    label: "Histórico",     icon: <TrendingUp size={15}/> },
-    { key: "indicadores",  label: "Indicadores",   icon: <AlertTriangle size={15}/> },
+    { key: "dashboard",   label: "Dashboard",  icon: <Eye size={15}/> },
+    { key: "condicoes",   label: "Condições",  icon: <Activity size={15}/> },
+    { key: "acoes",       label: "Ações",      icon: <AlertTriangle size={15}/> },
+    { key: "historico",   label: "Histórico",  icon: <TrendingUp size={15}/> },
+    { key: "indicadores", label: "Indicadores",icon: <AlertTriangle size={15}/> },
   ];
 
   return (
@@ -61,7 +61,7 @@ export default function SaudeOcularApui() {
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Saúde Ocular — Apuí/AM</h1>
-            <p className="text-sm text-slate-500">Catarata · Glaucoma · Retinopatia diabética · DMRI · Tracoma · Baixa visão · FMS Apuí/AM</p>
+            <p className="text-sm text-slate-500">Glaucoma · Catarata · Retinopatia Diabética · Tracoma · Olhar Brasil · FMS Apuí/AM</p>
           </div>
         </div>
 
@@ -78,26 +78,26 @@ export default function SaudeOcularApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Catarata estimados"     value={dashRaw.catarata_estimados?.toLocaleString()}        color={CRIT} sub={`fila: ${dashRaw.catarata_cirurgia_fila_pacientes} pac.`} />
-              <KPI label="Glaucoma estimados"     value={dashRaw.glaucoma_estimados?.toLocaleString()}        color={CRIT} sub={`diagnosticados: ${dashRaw.glaucoma_diagnosticados_pct}%`} />
-              <KPI label="Retinopatia — rastreio" value={`${dashRaw.retinopatia_diabetica_rastreio_pct}%`}    color={CRIT} sub="dos diabéticos" />
-              <KPI label="Espera oftalmologia"    value={`${dashRaw.fila_consulta_oftalmologia_dias} dias`}   color={CRIT} sub="zero oftalmologista" />
+              <KPI label="Oftalmologista em Apuí"          value={dashRaw.oftalmologista_apui === 0 ? "Nenhum" : dashRaw.oftalmologista_apui} color={CRIT} sub={`ref.: ${dashRaw.referencia_oftalmologia}`} />
+              <KPI label="Espera SISREG oftalmologia"      value={`${dashRaw.espera_sisreg_dias} dias`}                 color={CRIT} sub="Humaitá/AM (180 km)" />
+              <KPI label="Glaucoma estimados"              value={(dashRaw.glaucoma_estimados||0).toLocaleString()}     color={CRIT} sub={`${dashRaw.glaucoma_diagnosticados} diag. — ${dashRaw.glaucoma_cegueira_irreversivel_estimada} com cegueira irreversível`} />
+              <KPI label="Catarata — fila de cirurgia"     value={dashRaw.catarata_cirurgia_fila_espera}                color={CRIT} sub={`${dashRaw.catarata_cirurgia_realizada_2025} cirurgias realizadas em 2025`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Catarata — cirurgia fila" value={`${dashRaw.catarata_cirurgia_espera_meses}m`}     color={CRIT} sub="espera para cirurgia" />
-              <KPI label="Cegueira legal estimada" value={dashRaw.cegueira_legal_casos_estimados?.toLocaleString()} color={CRIT} sub="casos no município" />
-              <KPI label="Triagem visual escolar" value={`${dashRaw.acuidade_visual_triagem_escolar_pct}%`}  color={CRIT} sub="das escolas" />
-              <KPI label="Óculos via SUS — fila"  value={`${dashRaw.oculos_via_sus_fila_meses}m`}           color={CRIT} sub="espera para óculos" />
+              <KPI label="Retinopatia diabética rastreada" value={`${dashRaw.retinopatia_diabetica_rastreados_pct}%`}   color={CRIT} sub={`${dashRaw.retinopatia_diabetica_estimados} pacientes com RD estimados`} />
+              <KPI label="Criancas s/ óculos (precisam)"   value={`${dashRaw.criancas_oculos_necessitam - dashRaw.criancas_oculos_receberam}`} color={CRIT} sub={`${dashRaw.criancas_oculos_receberam} receberam de ${dashRaw.criancas_oculos_necessitam}`} />
+              <KPI label="Tracoma (escolares)"             value={`${dashRaw.tracoma_prevalencia_escolar_pct}%`}        color={WARN} sub={`${dashRaw.tracoma_criancas_estimadas} crianças estimadas`} />
+              <KPI label="Programa Olhar Brasil"           value={dashRaw.programa_olhar_brasil_ativo ? "Ativo" : "Inativo"} color={CRIT} sub="R$ 0 para o município — não ativado" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <h3 className="font-semibold text-slate-700 mb-3">Diagnóstico por Condição Ocular</h3>
+                <h3 className="font-semibold text-slate-700 mb-3">Passivo de Cegueira Evitável — Apuí/AM</h3>
                 <div className="space-y-3 text-sm">
                   {[
-                    { label: `Catarata diagnosticados (${Math.round(dashRaw.catarata_cirurgia_fila_pacientes / dashRaw.catarata_estimados * 100)}%)`, value: dashRaw.catarata_cirurgia_fila_pacientes, max: dashRaw.catarata_estimados, color: CRIT },
-                    { label: `Glaucoma diagnosticados (${dashRaw.glaucoma_diagnosticados_pct}%)`,  value: dashRaw.glaucoma_diagnosticados_pct,  max: 100, color: CRIT },
-                    { label: `Retinopatia rastreada (${dashRaw.retinopatia_diabetica_rastreio_pct}%)`, value: dashRaw.retinopatia_diabetica_rastreio_pct, max: 100, color: CRIT },
-                    { label: `Triagem visual escolar (${dashRaw.acuidade_visual_triagem_escolar_pct}%)`, value: dashRaw.acuidade_visual_triagem_escolar_pct, max: 100, color: WARN },
+                    { label: `Glaucoma diagnosticados: ${dashRaw.glaucoma_diagnosticados}/${dashRaw.glaucoma_estimados} estimados (cegueira irreversível)`,  value: dashRaw.glaucoma_diagnosticados, max: dashRaw.glaucoma_estimados, color: CRIT },
+                    { label: `Catarata cirurgias realizadas: ${dashRaw.catarata_cirurgia_realizada_2025} de ${dashRaw.catarata_cirurgia_fila_espera} na fila`, value: dashRaw.catarata_cirurgia_realizada_2025, max: dashRaw.catarata_cirurgia_fila_espera, color: CRIT },
+                    { label: `RD rastreada: ${dashRaw.retinopatia_diabetica_rastreados_pct}% (meta 100%)`,  value: dashRaw.retinopatia_diabetica_rastreados_pct, max: 100, color: CRIT },
+                    { label: `Crianças com óculos: ${dashRaw.criancas_oculos_receberam}/${dashRaw.criancas_oculos_necessitam}`, value: dashRaw.criancas_oculos_receberam, max: dashRaw.criancas_oculos_necessitam, color: CRIT },
                   ].map((b: any) => (
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
@@ -108,10 +108,10 @@ export default function SaudeOcularApui() {
                   ))}
                 </div>
               </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 flex flex-col gap-2 justify-center">
-                <p><b>Cegueira evitável em massa</b> — 742 com catarata (cirurgia: 18 meses de espera), 494 com glaucoma sem diagnóstico, 148 com cegueira legal estimada. Todas essas condições têm tratamento efetivo disponível via SUS.</p>
-                <p><b>Retinopatia diabética sem rastreio</b> — 81,6% dos 1.684 diabéticos nunca tiveram o fundo de olho avaliado. Fotocoagulação a laser: indisponível em Apuí e Humaitá. Cada mês de atraso = perda permanente de visão.</p>
-                <p><b>Mutirão de catarata: R$ 164.720</b> — cirurgia de catarata custa R$ 580 pelo SUS. 284 pacientes na fila = 2 dias de mutirão com oftalmologista de Manaus eliminaria a fila completa e preveniria 148 casos de cegueira legal.</p>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
+                <p><b>Zero oftalmologista em Apuí</b> — espera SISREG: 280 dias. 142 pessoas com cegueira irreversível por glaucoma. Tonômetro: R$ 18k + colírio timolol R$ 8,40/mês = controla por toda a vida.</p>
+                <p><b>284 pacientes cegos por catarata — todos recuperáveis</b>. Mutirão SES-AM: custo R$ 0 para o município, 120 cirurgias em 1 semana. 28 realizadas em 2025 (9,9% da fila).</p>
+                <p><b>Programa Olhar Brasil: R$ 0 e não foi ativado</b>. 142 crianças sem óculos = -40% no rendimento escolar. Fundoscopia + tonometria nas UBSs: R$ 18k. Tele-oftalmologia para RD: R$ 84k → R$ 35,3M de cegueira evitável.</p>
               </div>
             </div>
           </div>
@@ -119,56 +119,58 @@ export default function SaudeOcularApui() {
 
         {aba === "condicoes" && Array.isArray(condicoes) && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm mb-2">
-              <h3 className="font-semibold text-slate-700 mb-3">Estimados vs Diagnosticados por Condição Ocular</h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={(condicoes as any[]).filter((c: any) => c.estimados > 0)} margin={{ top: 5, right: 20, bottom: 50, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="condicao" tick={{ fontSize: 8 }} angle={-20} textAnchor="end" />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="estimados"      name="Estimados"      fill={CRIT} />
-                  <Bar dataKey="diagnosticados" name="Diagnosticados" fill={WARN} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            {(condicoes as any[]).map((c: any) => (
-              <div key={c.condicao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(c.status) }} />
-                    <p className="font-semibold text-sm text-slate-700">{c.condicao}</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={condicoes as any[]} margin={{ top: 5, right: 20, bottom: 40, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="condicao" tick={{ fontSize: 9 }} angle={-15} textAnchor="end" />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="estimados"     name="Estimados"      radius={[4,4,0,0]} fill={ACCENT} />
+                <Bar dataKey="diagnosticados" name="Diagnosticados" radius={[4,4,0,0]}>
+                  {(condicoes as any[]).map((c: any, i: number) => <Cell key={i} fill={statusColor(c.status)} />)}
+                </Bar>
+                <Bar dataKey="cegueira_estimada" name="Cegueira estimada" radius={[4,4,0,0]} fill={CRIT} />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="grid gap-3">
+              {(condicoes as any[]).map((c: any) => (
+                <div key={c.condicao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(c.status) }} />
+                      <p className="font-semibold text-sm text-slate-700">{c.condicao}</p>
+                    </div>
+                    <div className="text-right text-xs">
+                      <span className="font-bold" style={{ color: statusColor(c.status) }}>{(c.estimados||0).toLocaleString()} estim.</span>
+                      <span className="text-slate-500"> · {c.diagnosticados} diag. · {c.cegueira_estimada} cegueira</span>
+                      <p className="text-xs mt-0.5" style={{ color: c.reversibilidade.includes("irreversível") ? CRIT : OK }}>{c.reversibilidade}</p>
+                    </div>
                   </div>
-                  <div className="text-right text-sm">
-                    <span className="font-bold" style={{ color: statusColor(c.status) }}>{c.diagnosticados} diagnosticados</span>
-                    <p className="text-xs text-slate-400">estimados: {c.estimados} · tratados: {c.tratados_pct}%</p>
-                  </div>
+                  <p className="text-xs text-slate-500 ml-5">{c.observacao}</p>
                 </div>
-                <p className="text-xs text-slate-500 ml-5">{c.observacao}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
-        {aba === "intervencoes" && Array.isArray(intervencoes) && (
+        {aba === "acoes" && Array.isArray(acoes) && (
           <div className="grid gap-3">
-            {(intervencoes as any[]).map((i: any) => (
-              <div key={i.intervencao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            {(acoes as any[]).map((a: any) => (
+              <div key={a.acao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(i.status) }} />
-                    <p className="font-semibold text-sm text-slate-700">{i.intervencao}</p>
+                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: a.implementada ? OK : CRIT }} />
+                    <p className="font-semibold text-sm text-slate-700">{a.acao}</p>
                   </div>
-                  <div className="text-right text-sm">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${i.disponivel ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                      {i.disponivel ? "Disponível" : "Indisponível"}
+                  <div className="text-right text-xs">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${a.implementada ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                      {a.implementada ? "Implementada" : "Não implementada"}
                     </span>
-                    {i.fila_dias > 0 && <p className="text-xs text-slate-400 mt-0.5">fila: {i.fila_dias} dias</p>}
+                    <p className="text-xs text-slate-400 mt-0.5">R$ {(a.custo||0).toLocaleString()} · {a.prazo_meses}m</p>
                   </div>
                 </div>
-                {!i.disponivel && <p className="text-xs text-slate-400 ml-5 mb-1">Referência: {i.referencia}</p>}
-                <p className="text-xs text-slate-500 ml-5">{i.observacao}</p>
+                <p className="text-xs text-slate-500 ml-5">{a.observacao}</p>
               </div>
             ))}
           </div>
@@ -181,13 +183,15 @@ export default function SaudeOcularApui() {
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
-                <Line dataKey="catarata_fila"              name="Catarata fila (pac.)"        stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="glaucoma_diag_pct"          name="Glaucoma diagnosticado (%)"  stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line dataKey="retinopatia_rastreio_pct"   name="Retinopatia rastreada (%)"   stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="triagem_escolar_pct"        name="Triagem escolar (%)"         stroke={OK}     strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="left"  dataKey="glaucoma_diag"              name="Glaucoma diagnosticados"  stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="catarata_cirurgias"         name="Catarata cirurgias"       stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="right" dataKey="retinopatia_rastreados_pct" name="RD rastreados (%)"        stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="right" dataKey="tracoma_escolar_pct"        name="Tracoma escolar (%)"      stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="oculos_criancas"            name="Óculos — crianças"        stroke={OK}     strokeWidth={2} dot={{ r: 4 }} strokeDasharray="6 2" />
               </LineChart>
             </ResponsiveContainer>
           </div>

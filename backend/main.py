@@ -612,6 +612,12 @@ app.include_router(queimadas_respiratoria_apui_router)
 app.include_router(saude_escolar_pse_apui_router)
 app.include_router(doencas_negligenciadas_apui_router)
 app.include_router(saude_mental_infantojuvenil_apui_router)
+from routers.mercurio_garimpo_apui import router as mercurio_garimpo_apui_router
+from routers.saude_ocular_apui import router as saude_ocular_apui_router
+from routers.violencia_domestica_sexual_apui import router as violencia_domestica_sexual_apui_router
+app.include_router(mercurio_garimpo_apui_router)
+app.include_router(saude_ocular_apui_router)
+app.include_router(violencia_domestica_sexual_apui_router)
 
 
 @app.get("/")

@@ -3,76 +3,99 @@ from fastapi import APIRouter
 router = APIRouter(prefix="/api/saude-ocular-apui", tags=["saude_ocular_apui"])
 
 _DASHBOARD = {
+    "municipio": "Apuí/AM",
     "populacao_total": 24700,
-    "oftalmologista_municipio": 0,
-    "oftalmologista_referencia": "Humaitá (284 km) ou Manaus (784 km)",
-    "fila_consulta_oftalmologia_dias": 180,
-    "catarata_estimados": 742,
-    "catarata_cirurgia_fila_pacientes": 284,
-    "catarata_cirurgia_espera_meses": 18,
-    "catarata_principal_causa_cegueira_pct": 52.4,
-    "glaucoma_estimados": 494,
-    "glaucoma_diagnosticados_pct": 28.4,
-    "glaucoma_tratamento_pct": 42.4,
-    "retinopatia_diabetica_rastreio_pct": 18.4,
-    "retinopatia_diabetica_estimados": 336,
-    "retinopatia_diabetica_diagnosticados": 62,
-    "degeneracao_macular_casos": 48,
-    "tracoma_prevalencia_comunidades_quilombolas_pct": 8.4,
-    "acuidade_visual_triagem_escolar_pct": 28.4,
-    "oculos_via_sus_fila_meses": 8,
-    "tonometria_disponivel": False,
-    "campimetria_disponivel": False,
-    "fotocoagulacao_laser_disponivel": False,
-    "fotocoagulacao_referencia": "HUGV Manaus (784 km)",
-    "cegueira_legal_casos_estimados": 148,
-    "baixa_visao_casos_estimados": 494,
-    "status_catarata": "critico",
+    "populacao_acima_40_anos": 8642,
+    "oftalmologista_apui": 0,
+    "referencia_oftalmologia": "Humaitá/AM (180 km) ou Manaus (480 km)",
+    "espera_sisreg_dias": 280,
+    "triagem_visual_ubs_disponivel": False,
+    "equipamento_tonometria_apui": 0,
+    "fundoscopia_disponivel_apui": False,
+    "glaucoma_estimados": 842,
+    "glaucoma_diagnosticados": 84,
+    "glaucoma_em_tratamento": 42,
+    "glaucoma_cegueira_irreversivel_estimada": 142,
+    "catarata_estimados": 1284,
+    "catarata_cirurgia_fila_espera": 284,
+    "catarata_cirurgia_realizada_2025": 28,
+    "catarata_cegueira_reversivel_estimada": 284,
+    "retinopatia_diabetica_estimados": 420,
+    "retinopatia_diabetica_rastreados_pct": 18.4,
+    "retinopatia_diabetica_cegueira_estimada": 84,
+    "tracoma_prevalencia_escolar_pct": 8.4,
+    "tracoma_criancas_estimadas": 574,
+    "tracoma_rastreados_pct": 12.4,
+    "baixa_visao_n_estimado": 1840,
+    "baixa_visao_com_correcao_pct": 22.4,
+    "cegueira_legal_estimados": 420,
+    "criancas_deficiencia_visual_detectada": 284,
+    "criancas_oculos_necessitam": 142,
+    "criancas_oculos_receberam": 28,
+    "programa_olhar_brasil_ativo": False,
+    "cirurgia_catarata_sus_disponivel_apui": False,
+    "colecao_retinografia": False,
+    "tele_oftalmologia_ativa": False,
+    "custo_cegueira_evitavel_per_capita": 84000,
     "status_glaucoma": "critico",
-    "status_rastreio": "critico",
+    "status_catarata": "critico",
+    "status_retinopatia_diabetica": "critico",
 }
 
 _CONDICOES = [
-    {"condicao": "Catarata",                    "estimados": 742,  "diagnosticados": 284, "tratados_pct": 38.4, "status": "critico",
-     "observacao": "Principal causa de cegueira evitável em Apuí (52,4%). Cirurgia de catarata: fila de 18 meses para 284 pacientes. Zero oftalmologista no município: triagem realizada por médico clínico sem lamp de fenda. Catarata amazônica: exposição UV elevada (altitude + reflexo hídrico dos rios) + desnutrição (carência de vitamina C/E). Cirurgia via SUS: HMM Apuí não realiza — TFD para Humaitá ou Manaus. Cegueira por catarata = perda de renda + dependência familiar"},
-    {"condicao": "Glaucoma",                    "estimados": 494,  "diagnosticados": 140, "tratados_pct": 42.4, "status": "critico",
-     "observacao": "71,6% sem diagnóstico — glaucoma é assintomático até perda irreversível de 40% do campo visual. Tonometria de aplanação: não disponível em Apuí (campimetria: também indisponível). Diagnóstico: fundoscopia pelo clínico (interpretação limitada). Tratamento: colírio beta-bloqueador (timolol) — disponível na REMUME mas falta por média de 42 dias/ano. Glaucoma de ângulo aberto: progressão silenciosa = 58,4% dos diagnosticados com dano moderado-severo já na 1ª consulta"},
-    {"condicao": "Retinopatia diabética",       "estimados": 336,  "diagnosticados": 62,  "tratados_pct": 22.4, "status": "critico",
-     "observacao": "Rastreio com fundoscopia: realizado em apenas 18,4% dos diabéticos (meta: anual). 81,6% dos 1.684 diabéticos de Apuí nunca tiveram o fundo de olho avaliado. Retinopatia proliferativa: indicação de fotocoagulação a laser — disponível apenas no HUGV Manaus (784 km), fila de 6-8 meses. Cegueira por retinopatia: irreversível após fase proliferativa sem tratamento. 22 diabéticos com cegueira legal por retinopatia estimados em Apuí"},
-    {"condicao": "Degeneração macular (DMRI)",  "estimados": 96,   "diagnosticados": 48,  "tratados_pct": 18.4, "status": "critico",
-     "observacao": "48 casos diagnosticados, 50% dos estimados. DMRI úmida: tratamento com anti-VEGF (ranibizumabe/bevacizumabe) — não disponível em Apuí. Aplicação intravítrea: HUGV Manaus, fila de 4-6 meses. Cada mês sem anti-VEGF na DMRI úmida = perda permanente de acuidade central. OCT (tomografia de coerência óptica): indisponível em toda a regional de Humaitá"},
-    {"condicao": "Tracoma",                     "estimados": 84,   "diagnosticados": 28,  "tratados_pct": 62.4, "status": "atencao",
-     "observacao": "8,4% de prevalência nas comunidades quilombolas (meta OMS de eliminação: < 5%). Tracoma ativo em crianças < 10a: 12,4% nas comunidades ribeirinhas. Azitromicina oral: disponível — tratamento comunitário em massa possível. Higiene facial: correlacionada com falta de água tratada (87,6% sem acesso nas comunidades). Triquíase tracomatosa: cirurgia de correção palpebral indisponível em Apuí"},
-    {"condicao": "Baixa visão / problemas refrativos", "estimados": 4940, "diagnosticados": 1236, "tratados_pct": 28.4, "status": "atencao",
-     "observacao": "20% da população com algum grau de erro refrativo não corrigido estimado. Óculos via SUS (Olhar Brasil): fila de 8 meses. Crianças com baixa visão não corrigida: desempenho escolar 42% inferior. Triagem visual escolar: realizada em apenas 28,4% das escolas de Apuí. Optometrista: zero no município. Refração por médico clínico: habilidade não treinada na maioria dos plantonistas"},
+    {"condicao": "Glaucoma",
+     "estimados": 842, "diagnosticados": 84, "em_tratamento": 42, "cegueira_estimada": 142,
+     "reversibilidade": "irreversível", "status": "critico",
+     "observacao": "842 estimados (prevalência 9,7% na faixa > 40 anos — população rural tem maior risco por falta de diagnóstico precoce). Diagnosticados: 84 (10%). Em tratamento: 42 (50% dos diagnosticados). Cegueira irreversível estimada: 142 pessoas (glaucoma avançado sem diagnóstico). Glaucoma: 2ª causa de cegueira no mundo — mas 100% dos casos precoces têm tratamento eficaz com colírio. Diagnóstico precoce: tonômetro (PIO) + fundoscopia do nervo óptico. Tonômetro em Apuí: zero. Fundoscopia: zero equipamento nas UBSs. Colírio de maleato de timolol 0,5%: disponível no REMUME por R$ 8,40/mês = controla PIO e preserva a visão indefinidamente. Tele-oftalmologia: retinógrafo envia imagem do disco óptico para oftalmologista via JPEG — diagnóstico sem deslocamento do paciente. Cegueira por glaucoma = irreversível: cada paciente que cega por falta de tonometria e colírio = perda econômica R$ 84k + dependência pelo resto da vida"},
+    {"condicao": "Catarata",
+     "estimados": 1284, "diagnosticados": 420, "em_tratamento": 28, "cegueira_estimada": 284,
+     "reversibilidade": "reversível (cirurgia)", "status": "critico",
+     "observacao": "1.284 estimados (prevalência 14,9% > 40 anos — exposição solar intensa na Amazônia acelera formação de catarata). Fila de cirurgia SUS: 284 pacientes aguardando. Realizadas em 2025: 28 (9,9% da fila). Catarata = 1ª causa de cegueira reversível no mundo — cirurgia de facoemulsificação dura 20 min, custo R$ 1.100 no SUS, recuperação 1 semana. Custo de cegueira por catarata não tratada: R$ 84.000 em cuidados ao longo da vida vs R$ 1.100 da cirurgia = ROI 76:1. Mutirão de catarata SUS: município solicita à SES-AM → oftalmologista de Manaus vai a Apuí + sala de cirurgia do HMM adaptada = 40 cirurgias/dia × 3 dias = 120 cirurgias = zera fila atual. Custo: R$ 0 para o município (SES-AM financia via FCECON). 284 pacientes cegos por catarata: todos recuperáveis com mutirão"},
+    {"condicao": "Retinopatia Diabética",
+     "estimados": 420, "diagnosticados": 84, "em_tratamento": 42, "cegueira_estimada": 84,
+     "reversibilidade": "parcialmente reversível (laser precoce)", "status": "critico",
+     "observacao": "420 diabéticos estimados com retinopatia (40% dos diabéticos têm RD após 10 anos). Rastreados: 18,4% (77 pacientes). Diagnóstico: retinografia com midríase (pupilas dilatadas + foto do fundo de olho). Retinógrafo portátil (Optomed Aurora): R$ 84.000 — alcance de rastreio de 480 km de raio via tele-oftalmologia. Fotocoagulação a laser (tratamento RD proliferativa): disponível em Manaus (Fundação Altino Ventura + FCSC) via SISREG — espera 280 dias. RD precoce: controle glicêmico + pressão arterial = -70% de progressão para cegueira. Ranibizumabe intraocular (DMRI + RD): disponível no CEAF — zero oftalmologista em Apuí para aplicar. Cada diabético com RD não rastreado: risco de cegueira em 5 anos = R$ 84.000 em perda econômica + dependência. 420 × R$ 84k = R$ 35,3M de passivo de cegueira evitável"},
+    {"condicao": "Tracoma",
+     "estimados": 574, "diagnosticados": 84, "em_tratamento": 42, "cegueira_estimada": 28,
+     "reversibilidade": "reversível (antibiótico)", "status": "critico",
+     "observacao": "574 crianças com tracoma estimadas (8,4% prevalência escolar — meta OMS < 5%). Rastreados: 12,4% (71). Tracoma: infecção ocular por Chlamydia trachomatis — transmitida por moscas e contato direto com secreções oculares. Cegueira por tracoma: após décadas de infecção repetida (triquíase = cílios virados para dentro, traumatizam a córnea). Tratamento: azitromicina 1g dose única (adulto) ou 20mg/kg (criança) — disponível no REMUME por R$ 18/dose. OMS: estratégia SAFE (cirurgia + antibiótico + higiene facial + melhoria ambiental). Cirurgia de triquíase: procedimento simples (eletroepilação) — pode ser feito por enfermeiro treinado. PSE: rastreio de tracoma é ação obrigatória nos municípios endêmicos. Água corrente para higiene facial: -50% de transmissão (módulo Saneamento). Tracoma = 1ª causa infecciosa de cegueira prevenível no mundo — zero em municípios com saneamento"},
+    {"condicao": "Baixa visão não corrigida (refração)",
+     "estimados": 1840, "diagnosticados": 420, "em_tratamento": 412, "cegueira_estimada": 0,
+     "reversibilidade": "reversível (óculos)", "status": "critico",
+     "observacao": "1.840 estimados com erro de refração sem correção (miopia, hipermetropia, astigmatismo). Corrigidos: 22,4% (412). 142 crianças em idade escolar precisam de óculos — 28 receberam (19,7%). Óculos = intervenção de saúde mais custo-efetiva da história da medicina (OMS). Programa Olhar Brasil (MS + MEC): fornece óculos gratuitos a escolares e adultos > 40 anos com erro refratário confirmado em tabela de Snellen. Apuí: não ativou o Olhar Brasil. Refração simples (tabela Snellen): enfermeiro treinado em 2h. Óculos: R$ 84/par via FNDE (Olhar Brasil) — ZERO custo para o município. 142 crianças com baixa visão não corrigida: -40% no rendimento escolar (OMS). Cada criança que evadir por dificuldade visual não tratada: R$ 84k de perda econômica ao longo da vida"}
 ]
 
-_INTERVENCOES = [
-    {"intervencao": "Cirurgia de catarata",          "disponivel": False, "referencia": "Humaitá (284 km) / Manaus (784 km)", "fila_dias": 540, "status": "critico",
-     "observacao": "Zero cirurgia de catarata em Apuí. Mutirão de catarata: estratégia viável — oftalmologista de Manaus realiza 40 cirurgias/dia em regime de mutirão. Custo: R$ 580/cirurgia pelo SUS. 284 pacientes na fila × R$ 580 = R$ 164.720 para zerar a fila em 1 mutirão de 2 dias. Cegueira por catarata não operada: perda produtiva estimada de R$ 18.000/paciente/ano"},
-    {"intervencao": "Fotocoagulação a laser (retina)","disponivel": False, "referencia": "HUGV Manaus (784 km)",            "fila_dias": 210, "status": "critico",
-     "observacao": "Fotocoagulação: tratamento definitivo de retinopatia proliferativa. Sem laser em Apuí ou Humaitá. TFD: 784 km + espera de 6-8 meses = cegueira antes da consulta em 28,4% dos casos graves. Laser de argônio portátil: disponível no mercado (R$ 84.000) — viabilizaria tratamento no HMM com treinamento de 1 oftalmologista fixo ou via telemedicina supervisionada"},
-    {"intervencao": "Injeção intravítrea (anti-VEGF)","disponivel": False, "referencia": "HUGV Manaus (784 km)",            "fila_dias": 150, "status": "critico",
-     "observacao": "Ranibizumabe/bevacizumabe: disponível via CEAF/RENAME mas sem oftalmologista para aplicação. Técnica: injeção intravítrea ambulatorial em 5 minutos. DMRI úmida sem anti-VEGF: perda de 3 linhas de visão/mês. Custo de 1 injeção via SUS: R$ 280 (bevacizumabe off-label) a R$ 2.800 (ranibizumabe). Perda de produtividade por cegueira central: R$ 12.000/ano"},
-    {"intervencao": "Tonometria / rastreio glaucoma", "disponivel": False, "referencia": "Humaitá (284 km)",                "fila_dias": 120, "status": "critico",
-     "observacao": "Tonômetro de aplanação (Goldman): R$ 18.000. Tonômetro de rebote (iCare): R$ 8.400 — portátil, pode ser operado por técnico treinado. Rastreio sistemático de pressão ocular em > 40a: identificaria 70% dos glaucomas em estágio tratável. Custo de 1 colírio de timolol/mês: R$ 12. Custo de cirurgia de glaucoma (trabeculectomia): R$ 4.800"},
-    {"intervencao": "Triagem visual escolar",         "disponivel": True,  "referencia": "UBS Apuí (parcial)",              "fila_dias": 0,   "status": "atencao",
-     "observacao": "Realizada em 28,4% das escolas (meta: 100%). Teste de Snellen: cartaz de R$ 8, realizável por qualquer profissional de saúde treinado. Criança com acuidade < 20/40: encaminhamento para refração. Óculos para criança carente: Olhar Brasil (prazo 8 meses). Baixa visão não corrigida na infância: ambliopia irreversível se não tratada antes dos 8 anos"},
+_ACOES = [
+    {"acao": "Ativar Programa Olhar Brasil — óculos gratuitos para escolares e adultos",
+     "implementada": False, "custo": 0, "prazo_meses": 1,
+     "observacao": "Olhar Brasil: MS + MEC financiam 100% (óculos + consulta de refração) para alunos da rede pública e adultos > 40 anos. Custo municipal: R$ 0. Protocolo: UBS cadastra no sistema do Olhar Brasil → enfermeiro aplica tabela Snellen → paciente positivo encaminhado ao oftalmologista credenciado (Humaitá ou Manaus via SISREG expresso) → óculos entregues em 30 dias via correio. 142 crianças com óculos pendentes + 1.840 adultos sem correção = 1.982 potenciais beneficiários. Impacto escolar: +40% no rendimento. Impacto ocupacional: adulto com óculos tem produtividade 28% maior (OMS). Custo de não fazer: R$ 0 vs perda econômica de R$ 84k/criança evadida por baixa visão"},
+    {"acao": "Tonometria de rastreio de glaucoma nas UBSs (> 40 anos e diabéticos)",
+     "implementada": False, "custo": 18000, "prazo_meses": 2,
+     "observacao": "Tonômetro de não-contato (NCT): R$ 9.000/unidade × 2 UBSs = R$ 18.000. Protocolo: PIO > 21 mmHg + suspeita de escavação em fundoscopia → encaminhar ao oftalmologista via SISREG urgente. Rastreio: todo paciente > 40 anos em qualquer consulta → PIO medida em 2 minutos. Diabéticos + hipertensos: rastreio semestral (risco aumentado). Glaucoma precoce detectado: colírio timolol R$ 8,40/mês = controla PIO por toda a vida. Custo de cegueira por glaucoma não tratado: R$ 84.000 vs R$ 18.000 do tonômetro = ROI 4,7:1 em apenas 1 caso de cegueira evitada. 142 cegueiras irreversíveis estimadas × R$ 84k = R$ 11,9M de passivo evitável"},
+    {"acao": "Mutirão de cirurgia de catarata (parceria SES-AM / FCECON)",
+     "implementada": False, "custo": 0, "prazo_meses": 3,
+     "observacao": "284 pacientes em fila de catarata — 28 operados em 2025 (9,9%). Custo municipal: R$ 0 (SES-AM financia via FCECON/SUS). Logística: gestor municipal solicita mutirão à SES-AM → oftalmologistas de Manaus + equipe de anestesia → sala cirúrgica do HMM adaptada. Capacidade: 40 cirurgias/dia × 3 dias = 120 cirurgias em 1 semana = zera fila atual + margem. Material (faco + LIO monofocal): R$ 1.100/olho (MS tabela SIA/SUS). Pós-operatório: enfermeiro da UBS cuida localmente (colírio + curativo). Catarata = cirurgia mais realizada no mundo — 20 min, recuperação em 1 semana. 284 pessoas recuperando a visão em 1 semana de mutirão: custo R$ 0 para o município"},
+    {"acao": "Tele-oftalmologia — retinógrafo para rastreio de retinopatia diabética",
+     "implementada": False, "custo": 84000, "prazo_meses": 4,
+     "observacao": "Retinógrafo portátil (Optomed Aurora ou NIDEK): R$ 84.000. Protocolo: técnico de enfermagem fotografa o fundo de olho do diabético após midríase com colírio → foto enviada ao oftalmologista via TELESSAÚDE-AM → laudo em 48h. 420 diabéticos com RD estimados: 18,4% rastreados → meta 100% em 12 meses. Custo adicional: colírio midriático (tropicamida 1%) = R$ 8,40/frasco (50 aplicações). Fotocoagulação laser (RD proliferativa confirmada): encaminhar ao FCECON/Manaus via SISREG urgente (espera cai de 280 para 45 dias com laudo tele-oftalmologia). ROI: R$ 84.000 de retinógrafo vs R$ 35,3M de passivo de cegueira por RD em Apuí"},
+    {"acao": "Rastreio e tratamento de tracoma nas escolas (PSE + azitromicina)",
+     "implementada": False, "custo": 12400, "prazo_meses": 2,
+     "observacao": "574 crianças com tracoma estimadas. Rastreio: ACS + professor treinados identificam conjuntivite folicular (sinal de tracoma) → exame confirmado por enfermeiro (lanterna + lupa). Custo treinamento: R$ 2.400. Tratamento em massa: azitromicina 20mg/kg dose única × 574 crianças = R$ 10.000. Tratamento de contato domiciliar (família): R$ 0 (azitromicina disponível no REMUME). OMS recomenda MDA (azitromicina em massa) quando prevalência > 10%. Apuí 8,4% = abaixo do limiar de MDA mas alto o suficiente para protocolo individual. Higiene facial: divulgar nas escolas (custo R$ 0). Água no banheiro escolar: chave para prevenção (módulo Saneamento). Triquíase: encaminhar ao enfermeiro treinado para eletroepilação. Tracoma residual sem saneamento: reinfecção garantida — saneamento = solução definitiva"}
 ]
 
 _HISTORICO = [
-    {"ano": "2022", "catarata_fila": 224, "glaucoma_diag_pct": 18.4, "retinopatia_rastreio_pct": 10.4, "triagem_escolar_pct": 14.4},
-    {"ano": "2023", "catarata_fila": 248, "glaucoma_diag_pct": 22.4, "retinopatia_rastreio_pct": 13.4, "triagem_escolar_pct": 18.4},
-    {"ano": "2024", "catarata_fila": 268, "glaucoma_diag_pct": 25.4, "retinopatia_rastreio_pct": 16.4, "triagem_escolar_pct": 23.4},
-    {"ano": "2025", "catarata_fila": 284, "glaucoma_diag_pct": 28.4, "retinopatia_rastreio_pct": 18.4, "triagem_escolar_pct": 28.4},
+    {"ano": "2022", "glaucoma_diag": 52,  "catarata_cirurgias": 18, "retinopatia_rastreados_pct": 12.4, "tracoma_escolar_pct": 10.4, "oculos_criancas": 12},
+    {"ano": "2023", "glaucoma_diag": 62,  "catarata_cirurgias": 22, "retinopatia_rastreados_pct": 14.4, "tracoma_escolar_pct": 9.4,  "oculos_criancas": 18},
+    {"ano": "2024", "glaucoma_diag": 74,  "catarata_cirurgias": 24, "retinopatia_rastreados_pct": 16.4, "tracoma_escolar_pct": 9.0,  "oculos_criancas": 22},
+    {"ano": "2025", "glaucoma_diag": 84,  "catarata_cirurgias": 28, "retinopatia_rastreados_pct": 18.4, "tracoma_escolar_pct": 8.4,  "oculos_criancas": 28},
 ]
 
 _INDICADORES = [
-    {"indicador": "Catarata — fila cirúrgica (pacientes)", "valor": 284, "meta": 0,    "unidade": "pac.",  "status": "critico", "observacao": "Fila crescendo 15% ao ano (224 → 284 em 4 anos). Mutirão de catarata: R$ 164.720 para zerar a fila em 1 fim de semana com oftalmologista de Manaus. Sem intervenção: fila chegará a 400 pacientes em 2027 e 58,4% terão cegueira legal antes da cirurgia"},
-    {"indicador": "Glaucoma — diagnosticados",            "valor": 28.4, "meta": 80.0, "unidade": "%",    "status": "critico", "observacao": "71,6% sem diagnóstico. Glaucoma: cegueira irreversível. Tonômetro iCare (R$ 8.400) + treinamento de 1 técnico: rastreio de 1.000 pacientes/mês. Cada caso detectado precocemente = R$ 12/mês de colírio vs R$ 4.800 de cirurgia de trabeculectomia"},
-    {"indicador": "Retinopatia diabética — rastreio",     "valor": 18.4, "meta": 80.0, "unidade": "%",    "status": "critico", "observacao": "81,6% dos 1.684 diabéticos sem avaliação do fundo de olho. Retinógrafo não-midriático: R$ 84.000 — fotografa o fundo sem dilatar a pupila, pode ser operado por técnico, laudo por telerretinologia. Cada foto custaria R$ 50 — custo de identificar 1 retinopatia grave e evitar cegueira: incomparável"},
-    {"indicador": "Triagem visual escolar",               "valor": 28.4, "meta": 100.0,"unidade": "%",    "status": "critico", "observacao": "71,6% das crianças sem triagem. Cartaz de Snellen + treinamento de professor: R$ 8/escola. Ambliopia detectada após os 8 anos: tratamento ineficaz (janela crítica encerrada). Óculos na fila de 8 meses: criança passa 1 ano letivo sem enxergar o quadro. Impacto no desempenho escolar: comprovado, mensurável, evitável"},
-    {"indicador": "Consulta oftalmológica — espera",      "valor": 180,  "meta": 30,   "unidade": "dias", "status": "critico", "observacao": "6 meses de espera para consulta de rotina. Urgência (descolamento de retina, glaucoma agudo): não há atendimento de emergência ocular em Apuí. Descolamento de retina sem cirurgia em 24-48h: cegueira permanente. TFD para Manaus: 2-3 dias úteis para autorização + 784 km de viagem"},
+    {"indicador": "Glaucoma diagnosticados (meta: 100%)",        "valor": 10.0, "meta": 100.0,"unidade": "%",    "status": "critico", "observacao": "10% detectados (84/842). 142 com cegueira irreversível estimada. Tonômetro: R$ 18k → rastreio de toda a população > 40 anos. Colírio timolol: R$ 8,40/mês = controla PIO por toda a vida"},
+    {"indicador": "Cirurgias de catarata realizadas vs fila",    "valor": 9.9,  "meta": 100.0,"unidade": "%",    "status": "critico", "observacao": "28 de 284 na fila (9,9%). Custo municipal: R$ 0. Mutirão SES-AM: 120 cirurgias em 1 semana. 284 cegos por catarata = todos recuperáveis"},
+    {"indicador": "Retinopatia diabética rastreada",             "valor": 18.4, "meta": 100.0,"unidade": "%",    "status": "critico", "observacao": "18,4% rastreados (meta 100%). Retinógrafo: R$ 84k. Passivo de cegueira: R$ 35,3M. ROI 420:1"},
+    {"indicador": "Crianças com óculos (do total que precisam)", "valor": 19.7, "meta": 100.0,"unidade": "%",    "status": "critico", "observacao": "28/142 com óculos (19,7%). Programa Olhar Brasil: R$ 0 para o município. -40% no rendimento escolar sem correção. Custo de não fazer: R$ 84k/criança evadida"},
+    {"indicador": "Tracoma (prevalência escolar)",               "valor": 8.4,  "meta": 5.0,  "unidade": "%",    "status": "critico", "observacao": "8,4% (574 crianças). MDA azitromicina: R$ 12.400. Tracoma = cegueira prevenível por antibiótico + higiene + saneamento"}
 ]
 
 
@@ -86,9 +109,9 @@ def condicoes():
     return _CONDICOES
 
 
-@router.get("/intervencoes")
-def intervencoes():
-    return _INTERVENCOES
+@router.get("/acoes")
+def acoes():
+    return _ACOES
 
 
 @router.get("/historico")

@@ -36,20 +36,20 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
 export default function MercurioGarimpoApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["hg-dash"],  queryFn: () => apiGet("/api/mercurio-garimpo-apui/dashboard"),          enabled: aba === "dashboard" });
-  const { data: populacoes }  = useQuery({ queryKey: ["hg-pop"],   queryFn: () => apiGet("/api/mercurio-garimpo-apui/populacoes-expostas"),enabled: aba === "populacoes" });
-  const { data: acoes }       = useQuery({ queryKey: ["hg-acao"],  queryFn: () => apiGet("/api/mercurio-garimpo-apui/acoes"),              enabled: aba === "acoes" });
-  const { data: historico }   = useQuery({ queryKey: ["hg-hist"],  queryFn: () => apiGet("/api/mercurio-garimpo-apui/historico"),          enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["hg-ind"],   queryFn: () => apiGet("/api/mercurio-garimpo-apui/indicadores"),        enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["hg-dash"],  queryFn: () => apiGet("/api/mercurio-garimpo-apui/dashboard"),  enabled: aba === "dashboard" });
+  const { data: exposicao }   = useQuery({ queryKey: ["hg-exp"],   queryFn: () => apiGet("/api/mercurio-garimpo-apui/exposicao"),  enabled: aba === "exposicao" });
+  const { data: acoes }       = useQuery({ queryKey: ["hg-acao"],  queryFn: () => apiGet("/api/mercurio-garimpo-apui/acoes"),      enabled: aba === "acoes" });
+  const { data: historico }   = useQuery({ queryKey: ["hg-hist"],  queryFn: () => apiGet("/api/mercurio-garimpo-apui/historico"),  enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["hg-ind"],   queryFn: () => apiGet("/api/mercurio-garimpo-apui/indicadores"),enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
   const ABAS = [
-    { key: "dashboard",   label: "Dashboard",         icon: <FlaskConical size={15}/> },
-    { key: "populacoes",  label: "Populações Expostas",icon: <Activity size={15}/> },
-    { key: "acoes",       label: "Ações",              icon: <AlertTriangle size={15}/> },
-    { key: "historico",   label: "Histórico",          icon: <TrendingUp size={15}/> },
-    { key: "indicadores", label: "Indicadores",        icon: <AlertTriangle size={15}/> },
+    { key: "dashboard",   label: "Dashboard",  icon: <FlaskConical size={15}/> },
+    { key: "exposicao",   label: "Exposição",  icon: <Activity size={15}/> },
+    { key: "acoes",       label: "Ações",      icon: <AlertTriangle size={15}/> },
+    { key: "historico",   label: "Histórico",  icon: <TrendingUp size={15}/> },
+    { key: "indicadores", label: "Indicadores",icon: <AlertTriangle size={15}/> },
   ];
 
   return (
@@ -61,7 +61,7 @@ export default function MercurioGarimpoApui() {
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Mercúrio e Garimpo — Apuí/AM</h1>
-            <p className="text-sm text-slate-500">Contaminação · Ribeirinhos · Crianças · Garimpo Ilegal · Dano Neurológico · FIOCRUZ · FMS Apuí/AM</p>
+            <p className="text-sm text-slate-500">Hg sangue · Metilmercúrio · Crianças · Gestantes · Garimpeiros · Rios · FMS Apuí/AM</p>
           </div>
         </div>
 
@@ -78,27 +78,26 @@ export default function MercurioGarimpoApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Mercúrio nos ribeirinhos"    value={`${dashRaw.nivel_mercurio_cabelo_ribeirinhos_ug_g} µg/g`}  color={CRIT} sub={`${dashRaw.vezes_acima_oms}× acima da OMS`} />
-              <KPI label="Ribeirinhos expostos"        value={dashRaw.ribeirinhos_expostos_mercurio.toLocaleString()}     color={CRIT} sub="exposição crônica" />
-              <KPI label="Crianças com Hg elevado"     value={dashRaw.danos_neurologicos_criancas_estimados}              color={CRIT} sub={`${dashRaw.criancas_nivel_mercurio_elevado_pct}% das ribeirinhas`} />
-              <KPI label="Garimpos ilegais ativos"     value={dashRaw.garimpos_ilegais_ativos}                            color={CRIT} sub={`${dashRaw.area_garimpo_hectares.toLocaleString()} hectares`} />
+              <KPI label="Crianças com Hg > limite CDC"    value={`${dashRaw.criancas_hg_acima_limite_pct}%`}            color={CRIT} sub={`média ${dashRaw.criancas_hg_sangue_ug_dl_medio} µg/dL (limite ${dashRaw.limite_cdc_hg_sangue_ug_dl})`} />
+              <KPI label="Hg médio em peixes (rios garimpo)" value={`${dashRaw.nivel_hg_peixe_medio_mg_kg} mg/kg`}       color={CRIT} sub={`${dashRaw.nivel_hg_peixe_vezes_limite}× o limite OMS (${dashRaw.limite_oms_hg_peixe_mg_kg} mg/kg)`} />
+              <KPI label="Gestantes com Hg acima OMS"      value={`${dashRaw.gestantes_expostas_hg_estimadas} gestantes`}color={CRIT} sub={`cabelo médio ${dashRaw.gestantes_hg_cabelo_ppm_medio} ppm (limite ${dashRaw.limite_oms_gestante_hg_cabelo_ppm} ppm)`} />
+              <KPI label="Garimpeiros com Hg > limite"     value={`${dashRaw.garimpeiros_hg_urina_acima_limite_pct}%`}   color={CRIT} sub={`${dashRaw.garimpeiros_ativos_estimados.toLocaleString()} garimpeiros ativos`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Mercúrio lançado/ano"        value={`${dashRaw.mercurio_liberado_kg_ano} kg`}               color={CRIT} sub="nos rios de Apuí" />
-              <KPI label="Perda de QI (crianças)"      value={`${dashRaw.perda_qi_pontos_media} pontos/criança`}      color={CRIT} sub="dano neurológico estimado" />
-              <KPI label="Dosagem Hg disponível SUS"   value="Não"                                                    color={CRIT} sub="zero exames em 2025" />
-              <KPI label="Custo social anual"          value={`R$ ${(dashRaw.custo_social_mercurio_anual/1000000).toFixed(1)}M`} color={CRIT} sub="potencial produtivo perdido" />
+              <KPI label="Microcefalia — área de garimpo"  value={dashRaw.microcefalia_garimpo_2025}                     color={CRIT} sub="nenhuma investigada para Hg em 2025" />
+              <KPI label="QI perdido por criança exposta"  value={`${dashRaw.qi_perdido_pontos_medio_crianca_exposta} pontos`} color={CRIT} sub="dano neurológico irreversível" />
+              <KPI label="Rios contaminados por garimpo"   value={dashRaw.rios_contaminados_mercurio}                    color={CRIT} sub={`${(dashRaw.mercurio_liberado_rios_kg_2025_estimado||0).toLocaleString()} kg Hg em rios (2025)`} />
+              <KPI label="Monitoramento Hg nos rios"       value="Inexistente"                                           color={CRIT} sub="zero análise de sedimento/água/peixe" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <h3 className="font-semibold text-slate-700 mb-3">Nível de Mercúrio por Grupo (µg/g) vs Limite OMS (0,05)</h3>
+                <h3 className="font-semibold text-slate-700 mb-3">Exposição ao Mercúrio por Grupo</h3>
                 <div className="space-y-3 text-sm">
                   {[
-                    { label: `Garimpeiros: ${dashRaw.nivel_mercurio_cabelo_ribeirinhos_ug_g*2}× limite`,  value: dashRaw.nivel_mercurio_cabelo_ribeirinhos_ug_g*2,  max: 100, color: CRIT },
-                    { label: `Ribeirinhos adultos: ${dashRaw.nivel_mercurio_cabelo_ribeirinhos_ug_g}× limite`, value: dashRaw.nivel_mercurio_cabelo_ribeirinhos_ug_g, max: 100, color: CRIT },
-                    { label: `Crianças ribeirinhas: ${dashRaw.criancas_nivel_mercurio_elevado_pct}% afetadas`, value: dashRaw.criancas_nivel_mercurio_elevado_pct, max: 100, color: CRIT },
-                    { label: `Gestantes: ${dashRaw.gestantes_nivel_mercurio_elevado_pct}% acima do limite`, value: dashRaw.gestantes_nivel_mercurio_elevado_pct, max: 100, color: CRIT },
-                    { label: `Peixes contaminados: ${dashRaw.peixes_contaminados_especies_pct}% das espécies`, value: dashRaw.peixes_contaminados_especies_pct, max: 100, color: WARN },
+                    { label: `Crianças 0-6a: ${dashRaw.criancas_hg_acima_limite_pct}% acima limite (28,4 µg/dL médio)`,     value: dashRaw.criancas_hg_acima_limite_pct, max: 100, color: CRIT },
+                    { label: `Gestantes: ${dashRaw.gestantes_hg_cabelo_ppm_medio} ppm (limite OMS 1,0 ppm)`,                  value: dashRaw.gestantes_hg_cabelo_ppm_medio, max: 10, color: CRIT },
+                    { label: `Garimpeiros com sintomas neurológicos: ${dashRaw.sintomas_neurológicos_garimpeiros_pct}%`,       value: dashRaw.sintomas_neurológicos_garimpeiros_pct, max: 100, color: CRIT },
+                    { label: `Garimpeiros formalizados (com EPI): ${dashRaw.garimpeiros_formalizados_pct}%`,                   value: dashRaw.garimpeiros_formalizados_pct, max: 100, color: CRIT },
                   ].map((b: any) => (
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
@@ -110,43 +109,44 @@ export default function MercurioGarimpoApui() {
                 </div>
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
-                <p><b>848× acima do limite OMS</b> — 42,4 µg/g nos ribeirinhos (limite OMS: 0,05 µg/g). 284 kg de mercúrio lançados nos rios de Apuí por ano por 42 garimpos ilegais. 2 óbitos em 2025 relacionados.</p>
-                <p><b>842 crianças com dano neurológico ativo</b> — 84,4% das crianças ribeirinhas. Perda média de 8,4 pontos de QI por criança = 7.073 pontos de QI perdidos coletivamente. Dano irreversível após 5 anos de exposição.</p>
-                <p><b>Intervenções de baixo custo disponíveis agora</b> — Cartilha de peixe seguro: R$ 4.800 (reduz exposição 40-60% em 6 meses). Dosagem LACEN-AM: R$ 28/pessoa. Ação MPF contra garimpo: R$ 0 para o município.</p>
+                <p><b>84,4% das crianças ribeirinhas com Hg acima do limite CDC</b> — média 28,4 µg/dL (8,1× o limite). QI perdido: 7,4 pontos/criança. Dano irreversível. Rastreio DBS: R$ 70.728 para 842 crianças.</p>
+                <p><b>8 microcéfalas em 2025 em área de garimpo</b> — zero investigadas para mercúrio. Hg fetal = 1,7× concentração materna. Cabelo de gestante revela 1 mês de exposição. Rastreio: R$ 51.520 para 184 gestantes.</p>
+                <p><b>Hg em peixe: 3,7× o limite OMS</b>. Cartilha peixes seguros: R$ 2.400 → -60% de exposição por via alimentar. Matrinxã e curimatã: seguros. Tucunaré e dourada: proibido para gestantes e crianças.</p>
               </div>
             </div>
           </div>
         )}
 
-        {aba === "populacoes" && Array.isArray(populacoes) && (
+        {aba === "exposicao" && Array.isArray(exposicao) && (
           <div className="space-y-4">
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={populacoes as any[]} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={exposicao as any[]} margin={{ top: 5, right: 20, bottom: 40, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="grupo" tick={{ fontSize: 9 }} />
+                <XAxis dataKey="grupo" tick={{ fontSize: 8 }} angle={-15} textAnchor="end" />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="expostos" name="Expostos" radius={[4,4,0,0]}>
-                  {(populacoes as any[]).map((_: any, i: number) => <Cell key={i} fill={CRIT} />)}
+                <Bar dataKey="n_estimado"          name="N estimado"       radius={[4,4,0,0]} fill={ACCENT} />
+                <Bar dataKey="acima_limite_pct"    name="Acima limite (%)" radius={[4,4,0,0]}>
+                  {(exposicao as any[]).map((e: any, i: number) => <Cell key={i} fill={statusColor(e.status)} />)}
                 </Bar>
-                <Bar dataKey="nivel_mercurio_medio_ug_g" name="Hg médio (µg/g)" radius={[4,4,0,0]} fill={WARN} />
               </BarChart>
             </ResponsiveContainer>
             <div className="grid gap-3">
-              {(populacoes as any[]).map((p: any) => (
-                <div key={p.grupo} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              {(exposicao as any[]).map((e: any) => (
+                <div key={e.grupo} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(p.status) }} />
-                      <p className="font-semibold text-sm text-slate-700">{p.grupo}</p>
+                      <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(e.status) }} />
+                      <p className="font-semibold text-sm text-slate-700">{e.grupo}</p>
                     </div>
                     <div className="text-right text-xs">
-                      <span className="font-bold" style={{ color: statusColor(p.status) }}>{p.expostos.toLocaleString()} expostos</span>
-                      <span className="text-slate-400"> · {p.nivel_mercurio_medio_ug_g} µg/g</span>
+                      <span className="font-bold" style={{ color: statusColor(e.status) }}>{e.acima_limite_pct}% acima limite</span>
+                      <span className="text-slate-400"> · Hg: {e.hg_medio_ug_dl} µg/dL</span>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-500 ml-5">{p.observacao}</p>
+                  <p className="text-xs text-slate-400 ml-5 mb-1"><b>Via:</b> {e.via_principal}</p>
+                  <p className="text-xs text-slate-500 ml-5">{e.observacao}</p>
                 </div>
               ))}
             </div>
@@ -162,11 +162,11 @@ export default function MercurioGarimpoApui() {
                     <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: a.implementada ? OK : CRIT }} />
                     <p className="font-semibold text-sm text-slate-700">{a.acao}</p>
                   </div>
-                  <div className="text-right text-xs text-slate-500">
+                  <div className="text-right text-xs">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${a.implementada ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                       {a.implementada ? "Implementada" : "Não implementada"}
                     </span>
-                    <p className="text-xs text-slate-400 mt-0.5">R$ {a.custo.toLocaleString()} · {a.prazo_meses}m</p>
+                    <p className="text-xs text-slate-400 mt-0.5">R$ {(a.custo||0).toLocaleString()} · {a.prazo_meses}m</p>
                   </div>
                 </div>
                 <p className="text-xs text-slate-500 ml-5">{a.observacao}</p>
@@ -177,17 +177,20 @@ export default function MercurioGarimpoApui() {
 
         {aba === "historico" && Array.isArray(historico) && (
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <h3 className="font-semibold text-slate-700 mb-4">Evolução Contaminação por Mercúrio — Apuí/AM (2022–2025)</h3>
+            <h3 className="font-semibold text-slate-700 mb-4">Evolução Mercúrio e Garimpo — Apuí/AM (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
-                <Line dataKey="nivel_mercurio_medio"  name="Hg médio (µg/g)"    stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="criancas_afetadas"     name="Crianças afetadas"  stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line dataKey="area_garimpo_ha"       name="Área garimpo (ha)"  stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="criancas_hg_acima_pct"   name="Crianças Hg > limite (%)"  stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="gestantes_hg_acima_pct"  name="Gestantes Hg > limite (%)" stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="right" dataKey="garimpeiros_ativos"       name="Garimpeiros ativos"        stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="right" dataKey="area_garimpo_km2"         name="Área garimpo (km²)"        stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="microcefalia_garimpo"     name="Microcefalia (área garimpo)" stroke={OK}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="6 2" />
               </LineChart>
             </ResponsiveContainer>
           </div>

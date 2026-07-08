@@ -5,7 +5,7 @@ import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
-import { MessageSquare, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { Shield, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
 const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
@@ -36,20 +36,20 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
 export default function ViolenciaDomesticaSexualApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["vd-dash"],  queryFn: () => apiGet("/api/violencia-domestica-sexual-apui/dashboard"),      enabled: aba === "dashboard" });
-  const { data: tipos }       = useQuery({ queryKey: ["vd-tip"],   queryFn: () => apiGet("/api/violencia-domestica-sexual-apui/tipos-violencia"), enabled: aba === "tipos" });
-  const { data: servicos }    = useQuery({ queryKey: ["vd-serv"],  queryFn: () => apiGet("/api/violencia-domestica-sexual-apui/servicos"),        enabled: aba === "servicos" });
-  const { data: historico }   = useQuery({ queryKey: ["vd-hist"],  queryFn: () => apiGet("/api/violencia-domestica-sexual-apui/historico"),       enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["vd-ind"],   queryFn: () => apiGet("/api/violencia-domestica-sexual-apui/indicadores"),     enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["vds-dash"],  queryFn: () => apiGet("/api/violencia-domestica-sexual-apui/dashboard"),  enabled: aba === "dashboard" });
+  const { data: casos }       = useQuery({ queryKey: ["vds-caso"],  queryFn: () => apiGet("/api/violencia-domestica-sexual-apui/casos"),      enabled: aba === "casos" });
+  const { data: protecao }    = useQuery({ queryKey: ["vds-prot"],  queryFn: () => apiGet("/api/violencia-domestica-sexual-apui/protecao"),   enabled: aba === "protecao" });
+  const { data: historico }   = useQuery({ queryKey: ["vds-hist"],  queryFn: () => apiGet("/api/violencia-domestica-sexual-apui/historico"),  enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["vds-ind"],   queryFn: () => apiGet("/api/violencia-domestica-sexual-apui/indicadores"),enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
   const ABAS = [
-    { key: "dashboard",   label: "Dashboard",        icon: <MessageSquare size={15}/> },
-    { key: "tipos",       label: "Tipos de Violência",icon: <Activity size={15}/> },
-    { key: "servicos",    label: "Serviços",          icon: <AlertTriangle size={15}/> },
-    { key: "historico",   label: "Histórico",         icon: <TrendingUp size={15}/> },
-    { key: "indicadores", label: "Indicadores",       icon: <AlertTriangle size={15}/> },
+    { key: "dashboard",   label: "Dashboard",  icon: <Shield size={15}/> },
+    { key: "casos",       label: "Casos",      icon: <Activity size={15}/> },
+    { key: "protecao",    label: "Proteção",   icon: <AlertTriangle size={15}/> },
+    { key: "historico",   label: "Histórico",  icon: <TrendingUp size={15}/> },
+    { key: "indicadores", label: "Indicadores",icon: <AlertTriangle size={15}/> },
   ];
 
   return (
@@ -57,11 +57,11 @@ export default function ViolenciaDomesticaSexualApui() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-lg" style={{ background: BRAND }}>
-            <MessageSquare size={22} color="white" />
+            <Shield size={22} color="white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Violência Doméstica e Sexual — Apuí/AM</h1>
-            <p className="text-sm text-slate-500">Lei Maria da Penha · Feminicídio · PEP/IST · CREAS · Casa-Abrigo · DEAM · FMS Apuí/AM</p>
+            <p className="text-sm text-slate-500">Femicídio · Lei Maria da Penha · CREAS · Linha 180 · PEP · FMS Apuí/AM</p>
           </div>
         </div>
 
@@ -78,26 +78,26 @@ export default function ViolenciaDomesticaSexualApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Feminicídios 2025"           value={dashRaw.feminicidios_2025}                         color={CRIT} sub={`${dashRaw.taxa_feminicidio_100k_mulheres}/100k mulheres`} />
-              <KPI label="VD notificados 2025"          value={dashRaw.casos_violencia_domestica_notificados_2025} color={CRIT} sub={`estimado: ${dashRaw.casos_estimados_subnotificacao} casos`} />
-              <KPI label="Subnotificação estimada"      value={`${dashRaw.taxa_subnotificacao_pct}%`}              color={CRIT} sub="apenas 20% notificados" />
-              <KPI label="Medidas protetivas ativas"    value={dashRaw.boticario_ativas_2025}                      color={CRIT} sub={`${dashRaw.boticario_descumpridas_pct}% descumpridas`} />
+              <KPI label="Femicídio 2025 (taxa/100k mulheres)" value={`${dashRaw.femicidio_2025} óbitos`}             color={CRIT} sub={`taxa 35/100k (22× a média nacional 1,6)`} />
+              <KPI label="VD notificada 2025 (estimada: 1.420)" value={dashRaw.violencia_domestica_notificada_2025}  color={CRIT} sub={`subnotificação estimada: ${dashRaw.subnotificacao_estimada_pct}%`} />
+              <KPI label="B.O. registrado (das vítimas)"       value={`${dashRaw.bo_registrado_pct}%`}               color={CRIT} sub="72% não vão à delegacia" />
+              <KPI label="Medidas protetivas cumpridas"        value={`${dashRaw.medida_protetiva_cumprida_pct}%`}   color={CRIT} sub={`${dashRaw.medida_protetiva_concedida_2025} concedidas — 57,6% descumpridas`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Violência sexual 2025"        value={dashRaw.violencia_sexual_notificada_2025}            color={CRIT} sub={`${dashRaw.violencia_sexual_crianca_adolescente_pct}% são crianças`} />
-              <KPI label="Casa-Abrigo"                  value="Inexistente"                                         color={CRIT} sub={`${dashRaw.mulheres_risco_morte_sem_abrigo} em risco imediato`} />
-              <KPI label="DEAM — Delegacia da Mulher"   value="Inexistente"                                         color={CRIT} sub="delegacia geral sem suporte" />
-              <KPI label="Mulheres em risco de morte"   value={dashRaw.mulheres_risco_morte_sem_abrigo}             color={CRIT} sub="sem local seguro para ir" />
+              <KPI label="Delegacia da Mulher (DEAM)"         value={dashRaw.delegacia_mulher_apui === 0 ? "Inexistente" : "Presente"} color={CRIT} sub="referência: DEAM Humaitá (180 km)" />
+              <KPI label="Casa-Abrigo em Apuí"                value={dashRaw.casa_abrigo_apui === 0 ? "Inexistente" : "Presente"}      color={CRIT} sub="mulher ameaçada sem local seguro" />
+              <KPI label="Kit pós-violência sexual (UBSs)"    value={dashRaw.kit_violencia_sexual_ubs ? "Disponível" : "Indisponível"}  color={CRIT} sub="PEP + anticoncepção emergência" />
+              <KPI label="Crianças expostas à VD (estimadas)" value={(dashRaw.criancas_expostas_violencia_domestica_estimadas||0).toLocaleString()} color={CRIT} sub="TEPT em 42% das expostas" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <h3 className="font-semibold text-slate-700 mb-3">Violência Doméstica — Lacunas da Rede de Proteção</h3>
+                <h3 className="font-semibold text-slate-700 mb-3">Estrutura de Proteção à Mulher em Apuí</h3>
                 <div className="space-y-3 text-sm">
                   {[
-                    { label: `Medidas protetivas cumpridas: ${100-dashRaw.boticario_descumpridas_pct}% (meta 100%)`, value: 100-dashRaw.boticario_descumpridas_pct, max: 100, color: CRIT },
-                    { label: `Profissionais treinados VD: ${dashRaw.profissionais_treinados_vd_pct}% (meta 100%)`,   value: dashRaw.profissionais_treinados_vd_pct, max: 100, color: CRIT },
-                    { label: `Kit PEP/IST completo disponível: 0% (3 rupturas 2025)`,                                value: 0, max: 100, color: CRIT },
-                    { label: `Vacinação HepB catadores: ${dashRaw.catadores_vacinados_hep_b_pct ?? 28.4}%`,          value: dashRaw.catadores_vacinados_hep_b_pct ?? 28.4, max: 100, color: CRIT },
+                    { label: `B.O. registrado: ${dashRaw.bo_registrado_pct}% das vítimas (meta 100%)`,              value: dashRaw.bo_registrado_pct,                 max: 100, color: CRIT },
+                    { label: `Notificação compulsória SINAN: ${dashRaw.notificacao_compulsoria_implantada_pct}% das UBSs`, value: dashRaw.notificacao_compulsoria_implantada_pct, max: 100, color: CRIT },
+                    { label: `Medidas protetivas cumpridas: ${dashRaw.medida_protetiva_cumprida_pct}%`,              value: dashRaw.medida_protetiva_cumprida_pct,     max: 100, color: CRIT },
+                    { label: `Femicídio 2025: ${dashRaw.femicidio_2025} óbitos + ${dashRaw.femicidio_tentativa_2025} tentativas`, value: dashRaw.femicidio_2025, max: 20, color: CRIT },
                   ].map((b: any) => (
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
@@ -109,65 +109,68 @@ export default function ViolenciaDomesticaSexualApui() {
                 </div>
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
-                <p><b>33,9 feminicídios/100k mulheres — 8× a média nacional</b> — 4 feminicídios em 2025, 1 com medida protetiva ativa e descumprida. 18 mulheres em risco de morte sem abrigo. Cada feminicídio: R$ 1,2M de custo social (IPEA).</p>
-                <p><b>71,6% das medidas protetivas descumpridas</b> — bracelete eletrônico disponível pelo SEJUSP/AM (custo R$ 0 para Apuí). DEAM: 1 policial feminina pode ser lotada via Portaria 18/2023 SEJUSP — custo R$ 0.</p>
-                <p><b>80% de subnotificação</b> — 1.420 casos reais vs 284 notificados. 1 pergunta de rastreio na APS = +340% de detecção. Capacitação da rede: R$ 8.400. Kit PEP/IST sem ruptura: R$ 6.720 de estoque mínimo.</p>
+                <p><b>4 femicídios em 2025 — taxa 35/100k mulheres (22× a média nacional)</b>. 3 de 4 tinham medida protetiva anterior descumprida. Zero casa-abrigo em Apuí. Odara + botão do pânico: R$ 2.400.</p>
+                <p><b>80% de subnotificação</b> — 1.420 casos estimados vs 284 notificados. Protocolo de triagem nas UBSs: R$ 8.400 → 1 pergunta salva vidas. UBS = único ponto de contato em 68% dos casos.</p>
+                <p><b>Zero kit pós-violência sexual</b>. 280 casos estimados vs 42 notificados (subnotificação 85%). PEP em ≤ 72h: custo R$ 14k → evita HIV em 100% dos casos tratados a tempo. Protocolo MS 2022: gratuito.</p>
               </div>
             </div>
           </div>
         )}
 
-        {aba === "tipos" && Array.isArray(tipos) && (
+        {aba === "casos" && Array.isArray(casos) && (
           <div className="space-y-4">
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={tipos as any[]} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={casos as any[]} margin={{ top: 5, right: 20, bottom: 40, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="tipo" tick={{ fontSize: 9 }} />
+                <XAxis dataKey="tipo" tick={{ fontSize: 9 }} angle={-15} textAnchor="end" />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="casos_2025" name="Casos 2025" radius={[4,4,0,0]}>
-                  {(tipos as any[]).map((t: any, i: number) => <Cell key={i} fill={statusColor(t.status)} />)}
+                <Bar dataKey="estimados_2025"   name="Estimados 2025"   radius={[4,4,0,0]} fill={ACCENT} />
+                <Bar dataKey="notificados_2025" name="Notificados 2025" radius={[4,4,0,0]}>
+                  {(casos as any[]).map((_c: any, i: number) => <Cell key={i} fill={CRIT} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
             <div className="grid gap-3">
-              {(tipos as any[]).map((t: any) => (
-                <div key={t.tipo} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              {(casos as any[]).map((c: any) => (
+                <div key={c.tipo} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(t.status) }} />
-                      <p className="font-semibold text-sm text-slate-700">{t.tipo}</p>
+                      <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(c.status) }} />
+                      <p className="font-semibold text-sm text-slate-700">{c.tipo}</p>
                     </div>
                     <div className="text-right text-xs">
-                      <span className="font-bold" style={{ color: statusColor(t.status) }}>{t.casos_2025} casos</span>
-                      <span className="text-slate-400"> · {t.pct_total}% do total</span>
+                      <span className="font-bold" style={{ color: CRIT }}>{(c.estimados_2025||0).toLocaleString()} estim.</span>
+                      <span className="text-slate-500"> · {c.notificados_2025} notif.</span>
+                      <p className="text-slate-400 mt-0.5">subnotif.: {c.subnotificacao_pct}%</p>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-500 ml-5">{t.observacao}</p>
+                  <p className="text-xs text-slate-400 ml-5 mb-1"><b>Perfil:</b> {c.perfil_vitima}</p>
+                  <p className="text-xs text-slate-500 ml-5">{c.observacao}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {aba === "servicos" && Array.isArray(servicos) && (
+        {aba === "protecao" && Array.isArray(protecao) && (
           <div className="grid gap-3">
-            {(servicos as any[]).map((s: any) => (
-              <div key={s.servico} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            {(protecao as any[]).map((p: any) => (
+              <div key={p.acao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: s.implementado ? OK : CRIT }} />
-                    <p className="font-semibold text-sm text-slate-700">{s.servico}</p>
+                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: p.implementada ? OK : CRIT }} />
+                    <p className="font-semibold text-sm text-slate-700">{p.acao}</p>
                   </div>
-                  <div className="text-right text-xs text-slate-500">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${s.implementado ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                      {s.implementado ? "Implementado" : "Não implementado"}
+                  <div className="text-right text-xs">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${p.implementada ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                      {p.implementada ? "Implementada" : "Não implementada"}
                     </span>
-                    <p className="text-xs text-slate-400 mt-0.5">R$ {s.custo.toLocaleString()} · {s.prazo_meses}m</p>
+                    <p className="text-xs text-slate-400 mt-0.5">R$ {(p.custo||0).toLocaleString()} · {p.prazo_meses}m</p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 ml-5">{s.observacao}</p>
+                <p className="text-xs text-slate-500 ml-5">{p.observacao}</p>
               </div>
             ))}
           </div>
@@ -180,13 +183,15 @@ export default function ViolenciaDomesticaSexualApui() {
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
-                <Line dataKey="notificacoes"      name="Notificações VD"         stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="feminicidios"       name="Feminicídios"            stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line dataKey="medidas_protetivas" name="Medidas protetivas"      stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="cumpridas_pct"      name="Cumpridas (%)"          stroke={OK}     strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="left"  dataKey="vd_notificada"          name="VD notificada"             stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="medidas_protetivas"     name="Medidas protetivas"        stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="right" dataKey="bo_registrado_pct"      name="B.O. registrado (%)"       stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="left"  dataKey="creas_atendimentos"     name="CREAS atendimentos"        stroke={OK}     strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="femicidio"              name="Femicídio"                 stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} strokeDasharray="6 2" />
               </LineChart>
             </ResponsiveContainer>
           </div>

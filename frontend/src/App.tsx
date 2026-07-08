@@ -283,6 +283,9 @@ import QueimAdasRespiratoriaApui     from "./pages/QueimAdasRespiratoriaApui";
 import SaudeEscolarPseApui           from "./pages/SaudeEscolarPseApui";
 import DoencasNegligenciadasApui     from "./pages/DoencasNegligenciadasApui";
 import SaudeMentalInfantoJuvenilApui from "./pages/SaudeMentalInfantoJuvenilApui";
+import MercurioGarimpoApui           from "./pages/MercurioGarimpoApui";
+import SaudeOcularApui               from "./pages/SaudeOcularApui";
+import ViolenciaDomesticaSexualApui  from "./pages/ViolenciaDomesticaSexualApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -633,8 +636,6 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/atividade-fisica-apui"        label="Atividade Física"         Icon={Thermometer}/>
             <L1 to="/infraestrutura-ubs-apui"      label="Infraestrutura das UBSs"  Icon={Wrench}/>
             <L1 to="/medicamentos-alto-custo-apui" label="Medicamentos Alto Custo"  Icon={Star}/>
-            <L1 to="/violencia-domestica-sexual-apui" label="Violência Doméstica/Sexual" Icon={MessageSquare}/>
-            <L1 to="/mercurio-garimpo-apui"        label="Mercúrio e Garimpo"      Icon={FlaskConical}/>
             <L1 to="/residuos-solidos-urbanos-apui" label="Resíduos Sólidos"       Icon={Trash2}/>
             <L1 to="/fila-cirurgica-apui"          label="Fila Cirúrgica"          Icon={Clock}/>
             <L1 to="/prevencao-suicidio-apui"      label="Prevenção do Suicídio"   Icon={Heart}/>
@@ -648,6 +649,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/saude-escolar-pse-apui"       label="Saúde Escolar / PSE"      Icon={School}/>
             <L1 to="/doencas-negligenciadas-apui"  label="Doenças Negligenciadas"   Icon={Bug}/>
             <L1 to="/saude-mental-infantojuvenil-apui" label="Saúde Mental Infanto-Juv." Icon={Smile}/>
+            <L1 to="/mercurio-garimpo-apui"           label="Mercúrio e Garimpo"       Icon={FlaskConical}/>
+            <L1 to="/saude-ocular-apui"               label="Saúde Ocular"             Icon={Eye}/>
+            <L1 to="/violencia-domestica-sexual-apui" label="Violência Doméstica/Sex." Icon={Shield}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -1130,6 +1134,7 @@ export default function App() {
             <Route path="/saude-escolar-pse-apui"        element={<SaudeEscolarPseApui/>}/>
             <Route path="/doencas-negligenciadas-apui"   element={<DoencasNegligenciadasApui/>}/>
             <Route path="/saude-mental-infantojuvenil-apui" element={<SaudeMentalInfantoJuvenilApui/>}/>
+            <Route path="/saude-ocular-apui"               element={<SaudeOcularApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
