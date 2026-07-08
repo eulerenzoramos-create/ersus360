@@ -280,6 +280,9 @@ import LeishmanioseVisceralApui      from "./pages/LeishmanioseVisceralApui";
 import DesnutricaoInfantilApui       from "./pages/DesnutricaoInfantilApui";
 import PrenatalRiscoGestacionalApui  from "./pages/PrenatalRiscoGestacionalApui";
 import QueimAdasRespiratoriaApui     from "./pages/QueimAdasRespiratoriaApui";
+import SaudeEscolarPseApui           from "./pages/SaudeEscolarPseApui";
+import DoencasNegligenciadasApui     from "./pages/DoencasNegligenciadasApui";
+import SaudeMentalInfantoJuvenilApui from "./pages/SaudeMentalInfantoJuvenilApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -642,6 +645,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/desnutricao-infantil-apui"    label="Desnutrição Infantil"    Icon={Brain}/>
             <L1 to="/prenatal-risco-gestacional-apui" label="Pré-Natal Risco Gestac." Icon={Syringe}/>
             <L1 to="/queimadas-respiratoria-apui"  label="Queimadas Respiratória"  Icon={Wind}/>
+            <L1 to="/saude-escolar-pse-apui"       label="Saúde Escolar / PSE"      Icon={School}/>
+            <L1 to="/doencas-negligenciadas-apui"  label="Doenças Negligenciadas"   Icon={Bug}/>
+            <L1 to="/saude-mental-infantojuvenil-apui" label="Saúde Mental Infanto-Juv." Icon={Smile}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -1121,6 +1127,9 @@ export default function App() {
             <Route path="/desnutricao-infantil-apui" element={<DesnutricaoInfantilApui/>}/>
             <Route path="/prenatal-risco-gestacional-apui" element={<PrenatalRiscoGestacionalApui/>}/>
             <Route path="/queimadas-respiratoria-apui" element={<QueimAdasRespiratoriaApui/>}/>
+            <Route path="/saude-escolar-pse-apui"        element={<SaudeEscolarPseApui/>}/>
+            <Route path="/doencas-negligenciadas-apui"   element={<DoencasNegligenciadasApui/>}/>
+            <Route path="/saude-mental-infantojuvenil-apui" element={<SaudeMentalInfantoJuvenilApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

@@ -334,6 +334,9 @@ from routers.leishmaniose_visceral_apui import router as leishmaniose_visceral_a
 from routers.desnutricao_infantil_apui import router as desnutricao_infantil_apui_router
 from routers.prenatal_risco_gestacional_apui import router as prenatal_risco_gestacional_apui_router
 from routers.queimadas_respiratoria_apui import router as queimadas_respiratoria_apui_router
+from routers.saude_escolar_pse_apui import router as saude_escolar_pse_apui_router
+from routers.doencas_negligenciadas_apui import router as doencas_negligenciadas_apui_router
+from routers.saude_mental_infantojuvenil_apui import router as saude_mental_infantojuvenil_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -606,6 +609,9 @@ app.include_router(leishmaniose_visceral_apui_router)
 app.include_router(desnutricao_infantil_apui_router)
 app.include_router(prenatal_risco_gestacional_apui_router)
 app.include_router(queimadas_respiratoria_apui_router)
+app.include_router(saude_escolar_pse_apui_router)
+app.include_router(doencas_negligenciadas_apui_router)
+app.include_router(saude_mental_infantojuvenil_apui_router)
 
 
 @app.get("/")
