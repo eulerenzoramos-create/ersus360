@@ -36,20 +36,20 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
 export default function SaneamentoBasicoApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["san-dash"],  queryFn: () => apiGet("/api/saneamento-basico-apui/dashboard"),   enabled: aba === "dashboard" });
-  const { data: componentes } = useQuery({ queryKey: ["san-comp"],  queryFn: () => apiGet("/api/saneamento-basico-apui/componentes"), enabled: aba === "componentes" });
-  const { data: acoes }       = useQuery({ queryKey: ["san-acoes"], queryFn: () => apiGet("/api/saneamento-basico-apui/acoes"),       enabled: aba === "acoes" });
-  const { data: historico }   = useQuery({ queryKey: ["san-hist"],  queryFn: () => apiGet("/api/saneamento-basico-apui/historico"),   enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["san-ind"],   queryFn: () => apiGet("/api/saneamento-basico-apui/indicadores"), enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["san-dash"],  queryFn: () => apiGet("/api/saneamento-basico-apui/dashboard"),    enabled: aba === "dashboard" });
+  const { data: componentes } = useQuery({ queryKey: ["san-comp"],  queryFn: () => apiGet("/api/saneamento-basico-apui/componentes"),  enabled: aba === "componentes" });
+  const { data: acoes }       = useQuery({ queryKey: ["san-acao"],  queryFn: () => apiGet("/api/saneamento-basico-apui/acoes"),        enabled: aba === "acoes" });
+  const { data: historico }   = useQuery({ queryKey: ["san-hist"],  queryFn: () => apiGet("/api/saneamento-basico-apui/historico"),    enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["san-ind"],   queryFn: () => apiGet("/api/saneamento-basico-apui/indicadores"),  enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
   const ABAS = [
-    { key: "dashboard",   label: "Dashboard",   icon: <Waves size={15}/> },
-    { key: "componentes", label: "Componentes", icon: <Activity size={15}/> },
-    { key: "acoes",       label: "Ações",       icon: <AlertTriangle size={15}/> },
-    { key: "historico",   label: "Histórico",   icon: <TrendingUp size={15}/> },
-    { key: "indicadores", label: "Indicadores", icon: <AlertTriangle size={15}/> },
+    { key: "dashboard",    label: "Dashboard",   icon: <Waves size={15}/> },
+    { key: "componentes",  label: "Componentes", icon: <Activity size={15}/> },
+    { key: "acoes",        label: "Ações",       icon: <AlertTriangle size={15}/> },
+    { key: "historico",    label: "Histórico",   icon: <TrendingUp size={15}/> },
+    { key: "indicadores",  label: "Indicadores", icon: <AlertTriangle size={15}/> },
   ];
 
   return (
@@ -61,7 +61,7 @@ export default function SaneamentoBasicoApui() {
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Saneamento Básico — Apuí/AM</h1>
-            <p className="text-sm text-slate-500">Água · Esgoto · Lixo · Ribeirinhos · Mercúrio · VIGIÁGUA · FMS Apuí/AM</p>
+            <p className="text-sm text-slate-500">Água Tratada · Esgoto · Resíduos · Drenagem · PMSB · PAC Saneamento · FMS Apuí/AM</p>
           </div>
         </div>
 
@@ -78,27 +78,26 @@ export default function SaneamentoBasicoApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Água tratada (urbana)"         value={`${dashRaw.agua_tratada_cobertura_pct}%`}             color={CRIT} sub={`meta ${dashRaw.meta_agua_tratada_pct}% — ETA avariada`} />
-              <KPI label="Esgotamento sanitário"         value={`${dashRaw.esgotamento_sanitario_rede_pct}%`}         color={CRIT} sub={`meta ${dashRaw.meta_esgotamento_pct}%`} />
-              <KPI label="Coleta de lixo (urbana)"       value={`${dashRaw.coleta_lixo_urbana_pct}%`}                color={CRIT} sub="lixão a céu aberto ativo" />
-              <KPI label="Ribeirinhos sem água segura"   value={dashRaw.populacoes_ribeirinhas_sem_agua_segura?.toLocaleString()} color={CRIT} sub="mercúrio 800× limite OMS" />
+              <KPI label="Água tratada — cobertura urbana"  value={`${dashRaw.abastecimento_agua_tratada_urbana_pct}%`}  color={CRIT} sub={`rural: ${dashRaw.abastecimento_agua_tratada_rural_pct}% — ${(dashRaw.agua_sem_tratamento_estimados||0).toLocaleString()} sem água tratada`} />
+              <KPI label="Coleta de esgoto — urbana"        value={`${dashRaw.coleta_esgoto_urbana_pct}%`}              color={CRIT} sub={`rural: ${dashRaw.coleta_esgoto_rural_pct}% — ${(dashRaw.populacao_sem_esgoto_estimada||0).toLocaleString()} sem coleta`} />
+              <KPI label="Coleta de lixo — urbana"          value={`${dashRaw.coleta_lixo_urbana_pct}%`}               color={WARN} sub={`lixão ativo — aterro sanitário: ${dashRaw.aterro_sanitario_apui ? "Sim" : "Não"}`} />
+              <KPI label="PMSB (habilitação ao PAC)"        value={dashRaw.plano_saneamento_municipal_pmisb ? "Elaborado" : "Inexistente"} color={CRIT} sub="R$ 28M em PAC bloqueados sem PMSB" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Diarreia (0-5 anos) 2025"     value={dashRaw.diarreia_criancas_0_5_2025}                   color={CRIT} sub={`${dashRaw.diarreia_obito_0_5_2025} óbitos`} />
-              <KPI label="Leptospirose 2025"             value={dashRaw.leptospirose_casos_2025}                      color={CRIT} sub={`${dashRaw.leptospirose_obitos_2025} óbitos (7,1% letald.)`} />
-              <KPI label="Água contaminada (nitrato)"    value={`${dashRaw.agua_contaminada_nitrato_pct}%`}           color={CRIT} sub="fossas negras próximas a poços" />
-              <KPI label="Peixes acima limite mercúrio"  value={`${dashRaw.mercurio_peixe_acima_limite_pct}%`}        color={CRIT} sub="neurotoxicidade em crianças" />
+              <KPI label="Defecação a céu aberto (estimado)" value={(dashRaw.defecacao_ceu_aberto_estimados||0).toLocaleString()} color={CRIT} sub={`fossas negras: ${dashRaw.fossas_negras_pct}% dos domicílios`} />
+              <KPI label="Diarreia — internações 2025"       value={dashRaw.diarreia_internacoes_2025}                  color={CRIT} sub={`${dashRaw.diarreia_internacoes_criancas_pct}% em crianças < 5a`} />
+              <KPI label="Hepatite A 2025 (veiculada p/ água)" value={dashRaw.hepatite_a_casos_2025}                   color={CRIT} sub="R$ 18.000/caso de tratamento" />
+              <KPI label="ETA (capacidade vs demanda)"       value={`${dashRaw.eta_cobertura_pct}%`}                   color={WARN} sub={`${dashRaw.eta_capacidade_m3_dia} m³/dia vs ${dashRaw.demanda_m3_dia} m³ de demanda`} />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <h3 className="font-semibold text-slate-700 mb-3">Saneamento — Cobertura vs Meta</h3>
+                <h3 className="font-semibold text-slate-700 mb-3">Cobertura de Saneamento Básico — Apuí/AM</h3>
                 <div className="space-y-3 text-sm">
                   {[
-                    { label: `Água tratada (${dashRaw.agua_tratada_cobertura_pct}% / meta 99%)`,           value: dashRaw.agua_tratada_cobertura_pct,          max: 100, color: CRIT },
-                    { label: `Esgotamento sanitário (${dashRaw.esgotamento_sanitario_rede_pct}% / meta 90%)`, value: dashRaw.esgotamento_sanitario_rede_pct,    max: 100, color: CRIT },
-                    { label: `Coleta de lixo (${dashRaw.coleta_lixo_urbana_pct}% / meta 90%)`,            value: dashRaw.coleta_lixo_urbana_pct,              max: 100, color: CRIT },
-                    { label: `Água rural (15,6% / meta 80%)`,                                              value: 15.6,                                        max: 100, color: CRIT },
-                    { label: `VIGIÁGUA amostras (42,4% / meta 100%)`,                                     value: 42.4,                                        max: 100, color: CRIT },
+                    { label: `Água tratada (urbana): ${dashRaw.abastecimento_agua_tratada_urbana_pct}%`,   value: dashRaw.abastecimento_agua_tratada_urbana_pct, max: 100, color: CRIT },
+                    { label: `Esgoto coletado (urbano): ${dashRaw.coleta_esgoto_urbana_pct}%`,             value: dashRaw.coleta_esgoto_urbana_pct, max: 100, color: CRIT },
+                    { label: `Lixo coletado (urbano): ${dashRaw.coleta_lixo_urbana_pct}%`,                 value: dashRaw.coleta_lixo_urbana_pct, max: 100, color: WARN },
+                    { label: `Drenagem urbana adequada: ${dashRaw.drenagem_urbana_pct || 28.4}%`,          value: dashRaw.drenagem_urbana_pct || 28.4, max: 100, color: CRIT },
                   ].map((b: any) => (
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
@@ -109,10 +108,10 @@ export default function SaneamentoBasicoApui() {
                   ))}
                 </div>
               </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 flex flex-col gap-2 justify-center">
-                <p><b>ETA com bomba dosadora de cloro avariada desde março/2025</b> — 14.200 pessoas sem cloro residual. Peça: R$ 12.000. Em licitação há 8 meses. Dispensa de licitação (Art. 75, Lei 14.133): emergência de saúde pública = 7 dias de prazo.</p>
-                <p><b>4.284 ribeirinhos em 42 comunidades consumindo Rio Madeira</b> — mercúrio 0,8 μg/L (800× limite OMS 0,001 μg/L). 6 de 8 sistemas de dessedentação solar inoperantes. Recuperação: R$ 84.000 (FUNASA cobre 100%). 62,4% dos peixes acima do limite.</p>
-                <p><b>Apuí sem PMSB válido</b> — bloqueados R$ 84M em financiamentos federais (FUNASA/BNDES/FGTS). Contratação de plano: R$ 120.000 = ROI de 700×. Lixão com multa IBAMA de R$ 84k/mês desde 2021 (R$ 3,5M acumulados).</p>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
+                <p><b>14.284 pessoas sem água tratada</b> — 48 poços sem cloração. Cloração: R$ 403k/ano vs 284 internações por diarreia (R$ 2,84M). ROI 7:1. Fluoretação: zero — -60% de cárie se implementada.</p>
+                <p><b>20.163 sem coleta de esgoto</b> — 4.284 defecam a céu aberto. Fossa biodigestora Embrapa: R$ 1.200/domicílio × 4.000 = R$ 4,8M (FUNASA financia). Helmintoses em 62,4% das crianças: saneamento = única solução definitiva.</p>
+                <p><b>Zero PMSB</b> — município bloqueado de R$ 28M em PAC Saneamento. Elaboração: R$ 84k + 6 meses. FUNASA: apoio técnico gratuito. Lixão ativo (ilegal desde 2014): IBAMA pode autuar com multa de R$ 84k a R$ 840k.</p>
               </div>
             </div>
           </div>
@@ -120,21 +119,18 @@ export default function SaneamentoBasicoApui() {
 
         {aba === "componentes" && Array.isArray(componentes) && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-4">Cobertura por Componente de Saneamento (%)</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={(componentes as any[])} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="componente" tick={{ fontSize: 8 }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey="cobertura_pct" name="Cobertura (%)" radius={[4,4,0,0]}>
-                    {(componentes as any[]).map((c: any, i: number) => <Cell key={i} fill={statusColor(c.status)} />)}
-                  </Bar>
-                  <Bar dataKey="meta_pct" name="Meta (%)" fill="#cbd5e1" radius={[4,4,0,0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={componentes as any[]} margin={{ top: 5, right: 20, bottom: 40, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="componente" tick={{ fontSize: 9 }} angle={-15} textAnchor="end" />
+                <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="cobertura_pct" name="Cobertura atual (%)" radius={[4,4,0,0]}>
+                  {(componentes as any[]).map((c: any, i: number) => <Cell key={i} fill={statusColor(c.status)} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
             <div className="grid gap-3">
               {(componentes as any[]).map((c: any) => (
                 <div key={c.componente} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
@@ -144,8 +140,8 @@ export default function SaneamentoBasicoApui() {
                       <p className="font-semibold text-sm text-slate-700">{c.componente}</p>
                     </div>
                     <div className="text-right text-xs">
-                      <span className="font-bold" style={{ color: statusColor(c.status) }}>{c.cobertura_pct}%</span>
-                      <span className="text-slate-400"> / meta {c.meta_pct}%</span>
+                      <span className="font-bold" style={{ color: statusColor(c.status) }}>{c.cobertura_pct}% / meta {c.meta_pct}%</span>
+                      <p className="text-slate-400 mt-0.5">{(c.populacao_sem_acesso||0).toLocaleString()} sem acesso</p>
                     </div>
                   </div>
                   <p className="text-xs text-slate-500 ml-5">{c.observacao}</p>
@@ -164,12 +160,11 @@ export default function SaneamentoBasicoApui() {
                     <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: a.implementada ? OK : CRIT }} />
                     <p className="font-semibold text-sm text-slate-700">{a.acao}</p>
                   </div>
-                  <div className="text-right text-xs text-slate-500">
+                  <div className="text-right text-xs">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${a.implementada ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                       {a.implementada ? "Implementada" : "Não implementada"}
                     </span>
-                    {a.custo > 0 && <p className="text-xs text-slate-400 mt-0.5">R$ {a.custo.toLocaleString()} · {a.prazo_meses}m</p>}
-                    {a.custo === 0 && <p className="text-xs text-green-600 mt-0.5">custo R$ 0 · {a.prazo_meses}m</p>}
+                    <p className="text-xs text-slate-400 mt-0.5">R$ {(a.custo||0).toLocaleString()} · {a.prazo_meses}m</p>
                   </div>
                 </div>
                 <p className="text-xs text-slate-500 ml-5">{a.observacao}</p>
@@ -180,18 +175,20 @@ export default function SaneamentoBasicoApui() {
 
         {aba === "historico" && Array.isArray(historico) && (
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <h3 className="font-semibold text-slate-700 mb-4">Evolução Saneamento — Apuí/AM (2022–2025)</h3>
+            <h3 className="font-semibold text-slate-700 mb-4">Evolução Saneamento Básico — Apuí/AM (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
-                <Line dataKey="agua_tratada_pct" name="Água tratada (%)"    stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="esgoto_pct"        name="Esgoto (%)"         stroke={OK}     strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line dataKey="lixo_pct"          name="Coleta lixo (%)"   stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="diarreia_0_5"      name="Diarreia 0-5 anos" stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="left"  dataKey="agua_tratada_pct"  name="Água tratada (%)"     stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="esgoto_pct"        name="Esgoto coletado (%)"  stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="left"  dataKey="lixo_coleta_pct"   name="Lixo coletado (%)"    stroke={OK}     strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="right" dataKey="diarreia_intern"   name="Diarreia internações" stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="right" dataKey="hepatite_a"        name="Hepatite A casos"     stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} strokeDasharray="6 2" />
               </LineChart>
             </ResponsiveContainer>
           </div>

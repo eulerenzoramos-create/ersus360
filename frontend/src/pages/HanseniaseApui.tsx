@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
 import {
-  BarChart, Bar, LineChart, Line, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
-import { Eye, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { FlaskRound, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
 const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
@@ -14,9 +14,9 @@ const WARN   = "#d97706";
 const CRIT   = "#dc2626";
 
 function statusColor(s: string) {
-  if (s === "ok") return OK;
+  if (s === "critico") return CRIT;
   if (s === "atencao") return WARN;
-  return CRIT;
+  return OK;
 }
 
 const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
@@ -33,36 +33,23 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
   </div>
 );
 
-const FORMA_COLORS: Record<string, string> = {
-  "Multibacilar — Virchowiana (VV)":   CRIT,
-  "Multibacilar — Dimorfa (DD/DV/DT)": WARN,
-  "Paucibacilar — Tuberculoide (TT)":  ACCENT,
-  "Paucibacilar — Indeterminada (I)":  OK,
-};
-
-const GRAU_COLORS: Record<string, string> = {
-  "Grau 0 — sem incapacidade":       OK,
-  "Grau 1 — perda sensibilidade":    WARN,
-  "Grau 2 — incapacidade visível":   CRIT,
-};
-
 export default function HanseniaseApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["hans-dashboard"],  queryFn: () => apiGet("/api/hanseniase-apui/dashboard"),     enabled: aba === "dashboard" });
-  const { data: classif }     = useQuery({ queryKey: ["hans-classif"],    queryFn: () => apiGet("/api/hanseniase-apui/classificacao"), enabled: aba === "classificacao" });
-  const { data: incapac }     = useQuery({ queryKey: ["hans-incapac"],    queryFn: () => apiGet("/api/hanseniase-apui/incapacidades"), enabled: aba === "incapacidades" });
-  const { data: historico }   = useQuery({ queryKey: ["hans-hist"],       queryFn: () => apiGet("/api/hanseniase-apui/historico"),     enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["hans-ind"],        queryFn: () => apiGet("/api/hanseniase-apui/indicadores"),   enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["han-dash"],  queryFn: () => apiGet("/api/hanseniase-apui/dashboard"),  enabled: aba === "dashboard" });
+  const { data: formas }      = useQuery({ queryKey: ["han-for"],   queryFn: () => apiGet("/api/hanseniase-apui/formas"),     enabled: aba === "formas" });
+  const { data: acoes }       = useQuery({ queryKey: ["han-acao"],  queryFn: () => apiGet("/api/hanseniase-apui/acoes"),      enabled: aba === "acoes" });
+  const { data: historico }   = useQuery({ queryKey: ["han-hist"],  queryFn: () => apiGet("/api/hanseniase-apui/historico"),  enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["han-ind"],   queryFn: () => apiGet("/api/hanseniase-apui/indicadores"),enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
   const ABAS = [
-    { key: "dashboard",      label: "Dashboard",     icon: <Eye size={15}/> },
-    { key: "classificacao",  label: "Classificação", icon: <Activity size={15}/> },
-    { key: "incapacidades",  label: "Incapacidades", icon: <AlertTriangle size={15}/> },
-    { key: "historico",      label: "Histórico",     icon: <TrendingUp size={15}/> },
-    { key: "indicadores",    label: "Indicadores",   icon: <AlertTriangle size={15}/> },
+    { key: "dashboard",   label: "Dashboard",  icon: <FlaskRound size={15}/> },
+    { key: "formas",      label: "Formas",     icon: <Activity size={15}/> },
+    { key: "acoes",       label: "Ações",      icon: <AlertTriangle size={15}/> },
+    { key: "historico",   label: "Histórico",  icon: <TrendingUp size={15}/> },
+    { key: "indicadores", label: "Indicadores",icon: <AlertTriangle size={15}/> },
   ];
 
   return (
@@ -70,11 +57,11 @@ export default function HanseniaseApui() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-lg" style={{ background: BRAND }}>
-            <Eye size={22} color="white" />
+            <FlaskRound size={22} color="white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Hanseníase — Apuí/AM</h1>
-            <p className="text-sm text-slate-500">Hiperendemia · Grau 2 · PQT · Contatos · FMS Apuí/AM</p>
+            <p className="text-sm text-slate-500">PQT · Grau de Incapacidade · Casos em Crianças · Neurite · Tele-dermatologia · FMS Apuí/AM</p>
           </div>
         </div>
 
@@ -91,31 +78,30 @@ export default function HanseniaseApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Coef. Detecção"     value={`${dashRaw.coeficiente_deteccao_100k}/100k`} color={CRIT} sub={`meta: ${dashRaw.meta_coef_deteccao_100k}/100k`} />
-              <KPI label="Casos Novos/Ano"    value={dashRaw.casos_novos_ano.toString()}           color={CRIT} sub={dashRaw.classificacao_endemicidade} />
-              <KPI label="Grau 2 Diagnóstico" value={`${dashRaw.grau2_incapacidade_diagnostico_pct}%`} color={CRIT} sub={`meta: < ${dashRaw.meta_grau2_pct}%`} />
-              <KPI label="< 15 Anos"          value={`${dashRaw.casos_menores_15a_ano} casos`}    color={CRIT} sub={`${dashRaw.pct_menores_15a}% do total`} />
+              <KPI label="Detecção hanseníase (meta: 10/100k)" value={`${dashRaw.coeficiente_deteccao_100k_2025}/100k`}  color={CRIT} sub={`${dashRaw.casos_novos_2025} casos novos — ${dashRaw.casos_novos_mb} MB (${dashRaw.casos_novos_mb_pct}%)`} />
+              <KPI label="Grau de incapacidade 2 (meta: < 5%)" value={`${dashRaw.grau_incapacidade_2_pct}%`}             color={CRIT} sub={`${Math.round(dashRaw.casos_novos_2025 * dashRaw.grau_incapacidade_2_pct / 100)} casos com deformidade visível`} />
+              <KPI label="Casos em crianças < 15a (meta: 0)"   value={`${dashRaw.criancas_casos_novos_2025} casos`}       color={CRIT} sub={`taxa ${dashRaw.taxa_deteccao_criancas_100k}/100k — transmissão ativa domiciliar`} />
+              <KPI label="Taxa de cura (meta: ≥ 90%)"          value={`${dashRaw.taxa_cura_pct}%`}                        color={CRIT} sub={`abandono: ${dashRaw.abandono_pct}% (meta < 5%)`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Taxa de Cura"        value={`${dashRaw.cura_pct}%`}               color={WARN} sub={`meta: ${dashRaw.meta_cura_pct}%`} />
-              <KPI label="Abandono"            value={`${dashRaw.abandono_pct}%`}           color={CRIT} sub={`meta: < ${dashRaw.meta_abandono_pct}%`} />
-              <KPI label="Contatos Examinados" value={`${dashRaw.contatos_examinados_pct}%`} color={CRIT} sub={`meta: ${dashRaw.meta_contatos_pct}%`} />
-              <KPI label="Recidivas/Ano"       value={dashRaw.casos_recidiva.toString()}    color={CRIT} sub="risco de resistência PQT" />
+              <KPI label="Contatos examinados (meta: 100%)"    value={`${dashRaw.contatos_examinados_pct}%`}              color={CRIT} sub="51,6% dos contatos de MB não examinados" />
+              <KPI label="Dermatologista em Apuí"              value={dashRaw.dermatologista_apui === 0 ? "Nenhum" : dashRaw.dermatologista_apui} color={CRIT} sub="tele-dermatologia: diagnóstico em 48h" />
+              <KPI label="Casos com neurite"                   value={`${dashRaw.cases_com_neurite_pct}%`}                color={CRIT} sub="emergência: corticoide < 24h ou sequela permanente" />
+              <KPI label="PQT disponível (gratuita)"           value={dashRaw.pqt_disponivel ? "Disponível" : "Indisponível"} color={OK} sub="MS fornece gratuitamente" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <h3 className="font-semibold text-slate-700 mb-3">Indicadores Operacionais</h3>
+                <h3 className="font-semibold text-slate-700 mb-3">Desempenho do Programa de Hanseníase — Apuí/AM</h3>
                 <div className="space-y-3 text-sm">
                   {[
-                    { label: "Taxa de cura (meta 75%)",         value: dashRaw.cura_pct,                        meta: dashRaw.meta_cura_pct,      color: WARN, max: 100 },
-                    { label: "Grau 2 no diagnóstico (meta <10%)", value: dashRaw.grau2_incapacidade_diagnostico_pct, meta: dashRaw.meta_grau2_pct, color: CRIT, max: 40 },
-                    { label: "Contatos examinados (meta 80%)",   value: dashRaw.contatos_examinados_pct,         meta: dashRaw.meta_contatos_pct,  color: CRIT, max: 100 },
-                    { label: "Abandono (meta <10%)",             value: dashRaw.abandono_pct,                    meta: dashRaw.meta_abandono_pct,  color: CRIT, max: 30 },
-                  ].map((b) => (
+                    { label: `Taxa de cura: ${dashRaw.taxa_cura_pct}% (meta 90%)`,           value: dashRaw.taxa_cura_pct,              max: 90,  color: CRIT },
+                    { label: `Contatos examinados: ${dashRaw.contatos_examinados_pct}%`,      value: dashRaw.contatos_examinados_pct,    max: 100, color: CRIT },
+                    { label: `Grau 2: ${dashRaw.grau_incapacidade_2_pct}% (meta < 5%)`,      value: 100 - dashRaw.grau_incapacidade_2_pct, max: 100, color: CRIT },
+                    { label: `Casos MB: ${dashRaw.casos_novos_mb_pct}% (ideal < 60%)`,       value: 100 - dashRaw.casos_novos_mb_pct,   max: 100, color: CRIT },
+                  ].map((b: any) => (
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
                         <span className="text-slate-600">{b.label}</span>
-                        <span className="font-bold" style={{ color: b.color }}>{b.value}% / meta {b.meta}%</span>
                       </div>
                       <ProgressBar value={b.value} max={b.max} color={b.color} />
                     </div>
@@ -123,113 +109,88 @@ export default function HanseniaseApui() {
                 </div>
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
-                <p><b>Hiperendêmico — 113,3/100k (meta 10/100k)</b>. Apuí está entre os municípios amazônicos de máxima endemicidade. O MS classifica como área de eliminação prioritária desde 2020.</p>
-                <p><b>22,4% com Grau 2 no diagnóstico</b> — incapacidade física instalada (paralisia, úlcera, cegueira). Diagnóstico tardio revela que os casos circulam na comunidade por 3-5 anos antes do reconhecimento.</p>
-                <p><b>4 casos em &lt; 15a (14,3%)</b> — crianças adoecem por convivência com casos não detectados. É o indicador mais fidedigno de transmissão ativa recente e falha programática.</p>
+                <p><b>84,4/100k de detecção</b> — 8,4× a meta OMS (10/100k). 208 casos novos. 80,8% são multibacilar (alta carga endêmica). Busca ativa ACS: R$ 14k + tele-derm R$ 8,4k → detecção precoce = grau 0 = sem incapacidade.</p>
+                <p><b>28,4% com grau de incapacidade 2</b> — deformidade visível (garra, pé-caído, lagoftalmo). Reabilitação: R$ 28.400/caso. PQT supervisionada + corticoide na neurite em < 24h: evita toda incapacidade grau 2.</p>
+                <p><b>28 crianças com hanseníase</b> (meta OMS: 0). Transmissão ativa intrafamiliar. BCG em contatos < 15a: -50%. Investigação de 100% dos contatos: R$ 14k. Criança com hanseníase = família toda em risco.</p>
               </div>
             </div>
           </div>
         )}
 
-        {aba === "classificacao" && Array.isArray(classif) && (
+        {aba === "formas" && Array.isArray(formas) && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-4">Casos por Forma Clínica</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={classif as any[]} margin={{ left: 10, right: 30 }}>
-                  <XAxis dataKey="forma" tick={{ fontSize: 8 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <Tooltip />
-                  <Bar dataKey="casos" name="Casos" radius={[4,4,0,0]}>
-                    {(classif as any[]).map((c: any) => <Cell key={c.forma} fill={FORMA_COLORS[c.forma] || BRAND} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="grid gap-2">
-              {(classif as any[]).map((c: any) => (
-                <div key={c.forma} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={formas as any[]} margin={{ top: 5, right: 20, bottom: 50, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="forma" tick={{ fontSize: 8 }} angle={-15} textAnchor="end" />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="casos_2025"       name="Casos 2025"        radius={[4,4,0,0]}>
+                  {(formas as any[]).map((f: any, i: number) => <Cell key={i} fill={statusColor(f.status)} />)}
+                </Bar>
+                <Bar dataKey="grau_incap_2_pct" name="Grau 2 incap. (%)" radius={[4,4,0,0]} fill={ACCENT} />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="grid gap-3">
+              {(formas as any[]).map((f: any) => (
+                <div key={f.forma} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ background: FORMA_COLORS[c.forma] || BRAND }} />
-                      <span className="font-semibold text-sm text-slate-700">{c.forma}</span>
+                      <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(f.status) }} />
+                      <p className="font-semibold text-sm text-slate-700">{f.forma}</p>
                     </div>
-                    <span className="font-bold text-slate-700">{c.casos} casos ({c.pct}%)</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-xs">
-                    <div>
-                      <div className="flex justify-between mb-0.5">
-                        <span className="text-slate-500">Grau 2 ao diagn.</span>
-                        <span className="font-bold" style={{ color: c.grau2_pct > 20 ? CRIT : c.grau2_pct > 10 ? WARN : OK }}>{c.grau2_pct}%</span>
-                      </div>
-                      <ProgressBar value={c.grau2_pct} max={50} color={c.grau2_pct > 20 ? CRIT : c.grau2_pct > 10 ? WARN : OK} />
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-0.5">
-                        <span className="text-slate-500">Taxa de cura</span>
-                        <span className="font-bold" style={{ color: c.cura_pct >= 75 ? OK : WARN }}>{c.cura_pct}%</span>
-                      </div>
-                      <ProgressBar value={c.cura_pct} max={100} color={c.cura_pct >= 75 ? OK : WARN} />
+                    <div className="text-right text-xs">
+                      <span className="font-bold" style={{ color: statusColor(f.status) }}>{f.casos_2025} casos</span>
+                      <span className="text-slate-400"> · grau 2: {f.grau_incap_2_pct}%</span>
+                      <p className="text-slate-400 mt-0.5">PQT: {f.tratamento_meses} meses</p>
                     </div>
                   </div>
+                  <p className="text-xs text-slate-500 ml-5">{f.observacao}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {aba === "incapacidades" && Array.isArray(incapac) && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-4">Grau de Incapacidade: Diagnóstico vs Alta</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={incapac as any[]} margin={{ left: 10, right: 30 }}>
-                  <XAxis dataKey="grau" tick={{ fontSize: 8 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="casos_diagnostico" name="No diagnóstico" radius={[4,4,0,0]}>
-                    {(incapac as any[]).map((i: any) => <Cell key={i.grau} fill={GRAU_COLORS[i.grau] || BRAND} />)}
-                  </Bar>
-                  <Bar dataKey="casos_alta" name="Na alta" fill="#94a3b8" radius={[4,4,0,0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="grid gap-2">
-              {(incapac as any[]).map((i: any) => (
-                <div key={i.grau} className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm flex items-center justify-between">
+        {aba === "acoes" && Array.isArray(acoes) && (
+          <div className="grid gap-3">
+            {(acoes as any[]).map((a: any) => (
+              <div key={a.acao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ background: GRAU_COLORS[i.grau] || BRAND }} />
-                    <span className="font-semibold text-sm text-slate-700">{i.grau}</span>
+                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: a.implementada ? OK : CRIT }} />
+                    <p className="font-semibold text-sm text-slate-700">{a.acao}</p>
                   </div>
-                  <div className="text-xs text-right space-y-0.5">
-                    <div>Diagn.: <span className="font-bold">{i.casos_diagnostico}</span> → Alta: <span className="font-bold">{i.casos_alta}</span></div>
-                    <div>Melhora: <span className="font-bold" style={{ color: i.melhora_pct >= 80 ? OK : i.melhora_pct >= 60 ? WARN : CRIT }}>{i.melhora_pct}%</span></div>
+                  <div className="text-right text-xs">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${a.implementada ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                      {a.implementada ? "Implementada" : "Não implementada"}
+                    </span>
+                    <p className="text-xs text-slate-400 mt-0.5">R$ {(a.custo||0).toLocaleString()} · {a.prazo_meses}m</p>
                   </div>
                 </div>
-              ))}
-            </div>
+                <p className="text-xs text-slate-500 ml-5">{a.observacao}</p>
+              </div>
+            ))}
           </div>
         )}
 
         {aba === "historico" && Array.isArray(historico) && (
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — Hanseníase (2022–2025)</h3>
+            <h3 className="font-semibold text-slate-700 mb-4">Evolução Hanseníase — Apuí/AM (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
-                <YAxis yAxisId="n" tick={{ fontSize: 11 }} />
-                <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
-                <Line yAxisId="n"   dataKey="casos_novos"  name="Casos novos"       stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
-                <Line yAxisId="n"   dataKey="menores_15a"  name="< 15 anos"         stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
-                <Line yAxisId="pct" dataKey="grau2_pct"    name="Grau 2 (%)"        stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line yAxisId="pct" dataKey="cura_pct"     name="Cura (%)"          stroke={OK}     strokeWidth={2} dot={{ r: 4 }} />
-                <Line yAxisId="pct" dataKey="abandono_pct" name="Abandono (%)"      stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="right" dataKey="casos_novos"        name="Casos novos"            stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="right" dataKey="casos_criancas"     name="Casos em crianças"      stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="left"  dataKey="grau2_pct"          name="Grau 2 (%)"             stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="left"  dataKey="cura_pct"           name="Cura (%)"               stroke={OK}     strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="contatos_exam_pct"  name="Contatos examinados (%)"stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} strokeDasharray="6 2" />
               </LineChart>
             </ResponsiveContainer>
           </div>

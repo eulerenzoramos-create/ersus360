@@ -571,11 +571,11 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/hiperdia-apui"               label="Hiperdia / HAS + DM"  Icon={Thermometer}/>
             <L1 to="/saude-idoso-apui"            label="Saúde do Idoso"       Icon={UserCheck}/>
             <L1 to="/oncologia-apui"              label="Oncologia"            Icon={Stethoscope}/>
-            <L1 to="/tuberculose-apui"            label="Tuberculose"          Icon={Wind}/>
+            <L1 to="/tuberculose-apui"            label="Tuberculose"          Icon={Thermometer}/>
             <L1 to="/malaria-apui"                label="Malária"              Icon={Droplets}/>
             <L1 to="/saude-bucal-apui"            label="Saúde Bucal"          Icon={Star}/>
             <L1 to="/ist-hiv-hepatites-apui"      label="IST / HIV / Hepatites" Icon={FlaskConical}/>
-            <L1 to="/hanseniase-apui"             label="Hanseníase"           Icon={Eye}/>
+            <L1 to="/hanseniase-apui"             label="Hanseníase"           Icon={FlaskRound}/>
             <L1 to="/saude-ambiental-apui"        label="Saúde Ambiental"      Icon={Layers}/>
             <L1 to="/urgencia-emergencia-apui"    label="Urgência e Emergência" Icon={Clock}/>
             <L1 to="/nutricao-sisvan-apui"        label="Nutrição / SISVAN"    Icon={ShoppingBag}/>

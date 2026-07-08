@@ -618,6 +618,12 @@ from routers.violencia_domestica_sexual_apui import router as violencia_domestic
 app.include_router(mercurio_garimpo_apui_router)
 app.include_router(saude_ocular_apui_router)
 app.include_router(violencia_domestica_sexual_apui_router)
+from routers.tuberculose_apui import router as tuberculose_apui_router
+from routers.saneamento_basico_apui import router as saneamento_basico_apui_router
+from routers.hanseniase_apui import router as hanseniase_apui_router
+app.include_router(tuberculose_apui_router)
+app.include_router(saneamento_basico_apui_router)
+app.include_router(hanseniase_apui_router)
 
 
 @app.get("/")
