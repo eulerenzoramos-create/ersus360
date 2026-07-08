@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
 import {
-  BarChart, Bar, LineChart, Line, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { ShoppingBag, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
@@ -14,9 +14,9 @@ const WARN   = "#d97706";
 const CRIT   = "#dc2626";
 
 function statusColor(s: string) {
-  if (s === "ok") return OK;
+  if (s === "critico") return CRIT;
   if (s === "atencao") return WARN;
-  return CRIT;
+  return OK;
 }
 
 const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
@@ -27,31 +27,23 @@ const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?:
   </div>
 );
 
-const ProgressBar = ({ value, max, color }: { value: number; max: number; color: string }) => (
-  <div className="w-full bg-slate-100 rounded-full h-2.5">
-    <div className="h-2.5 rounded-full" style={{ width: `${Math.min(value / max * 100, 100)}%`, background: color }} />
-  </div>
-);
-
-const FAIXA_COLORS = [CRIT, CRIT, WARN, WARN, WARN, CRIT, CRIT];
-
 export default function NutricaoSisvanApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["nut-dashboard"],  queryFn: () => apiGet("/api/nutricao-sisvan-apui/dashboard"),         enabled: aba === "dashboard" });
-  const { data: estNutri }    = useQuery({ queryKey: ["nut-estado"],     queryFn: () => apiGet("/api/nutricao-sisvan-apui/estado-nutricional"), enabled: aba === "estado" });
-  const { data: micros }      = useQuery({ queryKey: ["nut-micros"],     queryFn: () => apiGet("/api/nutricao-sisvan-apui/micronutrientes"),    enabled: aba === "micronutrientes" });
-  const { data: historico }   = useQuery({ queryKey: ["nut-hist"],       queryFn: () => apiGet("/api/nutricao-sisvan-apui/historico"),          enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["nut-ind"],        queryFn: () => apiGet("/api/nutricao-sisvan-apui/indicadores"),        enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["nut-dash"],  queryFn: () => apiGet("/api/nutricao-sisvan-apui/dashboard"),         enabled: aba === "dashboard" });
+  const { data: grupos }      = useQuery({ queryKey: ["nut-grp"],   queryFn: () => apiGet("/api/nutricao-sisvan-apui/grupos"),            enabled: aba === "grupos" });
+  const { data: acoes }       = useQuery({ queryKey: ["nut-acao"],  queryFn: () => apiGet("/api/nutricao-sisvan-apui/acoes"),             enabled: aba === "acoes" });
+  const { data: historico }   = useQuery({ queryKey: ["nut-hist"],  queryFn: () => apiGet("/api/nutricao-sisvan-apui/historico"),         enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["nut-ind"],   queryFn: () => apiGet("/api/nutricao-sisvan-apui/indicadores"),       enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
   const ABAS = [
-    { key: "dashboard",      label: "Dashboard",       icon: <ShoppingBag size={15}/> },
-    { key: "estado",         label: "Estado Nutric.",  icon: <Activity size={15}/> },
-    { key: "micronutrientes",label: "Micronutrientes", icon: <AlertTriangle size={15}/> },
-    { key: "historico",      label: "Histórico",       icon: <TrendingUp size={15}/> },
-    { key: "indicadores",    label: "Indicadores",     icon: <AlertTriangle size={15}/> },
+    { key: "dashboard",   label: "Dashboard",         icon: <ShoppingBag size={15}/> },
+    { key: "grupos",      label: "Estado Nutricional", icon: <Activity size={15}/> },
+    { key: "acoes",       label: "Ações",             icon: <AlertTriangle size={15}/> },
+    { key: "historico",   label: "Histórico",         icon: <TrendingUp size={15}/> },
+    { key: "indicadores", label: "Indicadores",       icon: <AlertTriangle size={15}/> },
   ];
 
   return (
@@ -63,7 +55,7 @@ export default function NutricaoSisvanApui() {
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Nutrição / SISVAN — Apuí/AM</h1>
-            <p className="text-sm text-slate-500">Desnutrição · Anemia · Micronutrientes · SISVAN · FMS Apuí/AM</p>
+            <p className="text-sm text-slate-500">Desnutrição · Obesidade · SISVAN · Vitamina A · Ferro · Insegurança Alimentar · Bolsa Família · FMS Apuí/AM</p>
           </div>
         </div>
 
@@ -80,95 +72,101 @@ export default function NutricaoSisvanApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Desnutrição Grave < 5a"  value={`${dashRaw.desnutricao_grave_menor5a_pct}%`}  color={CRIT} sub={`meta: ${dashRaw.meta_desnutricao_pct}%`} />
-              <KPI label="Anemia Gestantes"         value={`${dashRaw.anemia_gestantes_pct}%`}           color={CRIT} sub={`meta: ${dashRaw.meta_anemia_gestantes_pct}%`} />
-              <KPI label="Anemia < 5 anos"          value={`${dashRaw.anemia_criancas_menor5a_pct}%`}    color={CRIT} sub="déficit cognitivo reversível" />
-              <KPI label="Baixo Peso ao Nascer"     value={`${dashRaw.baixo_peso_nascer_pct}%`}          color={CRIT} sub={`meta: ${dashRaw.meta_baixo_peso_pct}%`} />
+              <KPI label="Desnutrição < 5a (meta: < 2,5%)"  value={`${dashRaw.desnutricao_crianca_pct}%`}          color={CRIT} sub={`aguda grave: ${dashRaw.desnutricao_aguda_crianca_pct}% · Ref: HGH-Humaitá`} />
+              <KPI label="Anemia em gestantes (meta: < 20%)" value={`${dashRaw.anemia_gestante_pct}%`}              color={CRIT} sub="sulfato ferroso + ácido fólico: REMUME gratuito" />
+              <KPI label="Obesidade adultos (meta: < 20%)"   value={`${dashRaw.obesidade_adulto_pct}%`}             color={WARN} sub={`sobrepeso: ${dashRaw.sobrepeso_adulto_pct}% · síndrome metabólica: ${dashRaw.sindrome_metabolica_estimada_pct}%`} />
+              <KPI label="SISVAN cobertura (meta: 100%)"     value={`${dashRaw.sisvan_cobertura_pct}%`}             color={CRIT} sub={`${dashRaw.criancas_acompanhadas_sisvan.toLocaleString()} crianças + ${dashRaw.gestantes_acompanhadas_sisvan} gestantes`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Cobertura SISVAN"         value={`${dashRaw.sisvan_cobertura_pct}%`}           color={WARN} sub={`meta: ${dashRaw.meta_sisvan_pct}%`} />
-              <KPI label="Vitamina A < 5a"          value={`${dashRaw.vitamina_a_menor5a_pct}%`}         color={CRIT} sub={`meta: ${dashRaw.meta_vitamina_a_pct}%`} />
-              <KPI label="Excesso Peso Adultos"     value={`${dashRaw.excesso_peso_adultos_pct}%`}       color={WARN} sub="transição nutricional" />
-              <KPI label="NutriSUS / NASF Nutric."  value="NÃO"                                          color={CRIT} sub="nenhum implantado" />
+              <KPI label="Vitamina A 6m-5a (meta: 100%)"    value={`${dashRaw.vitamina_a_cobertura_pct}%`}         color={CRIT} sub="MS fornece gratuitamente — dose semestral" />
+              <KPI label="Ferro profilático (meta: 100%)"    value={`${dashRaw.ferro_profilatico_pct}%`}            color={CRIT} sub="6m-5a + gestantes — REMUME gratuito" />
+              <KPI label="Insegurança alimentar grave"       value={`${dashRaw.inseguranca_alimentar_grave_pct}%`}  color={CRIT} sub={`${dashRaw.bolsa_familia_familias.toLocaleString()} famílias no Bolsa Família`} />
+              <KPI label="Nutricionista em Apuí"             value={`${dashRaw.nutricionista_apui} profissional`}   color={CRIT} sub="eMulti: R$ 84.000/ano (50% PREVINE) → 120 consultas/mês" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <h3 className="font-semibold text-slate-700 mb-3">Coberturas vs Metas</h3>
-                <div className="space-y-3 text-sm">
+                <h3 className="font-semibold text-slate-700 mb-3">Panorama Nutricional — Apuí/AM 2025</h3>
+                <div className="space-y-2 text-sm">
                   {[
-                    { label: "Vitamina A < 5a",          value: dashRaw.vitamina_a_menor5a_pct,    meta: dashRaw.meta_vitamina_a_pct,      color: CRIT },
-                    { label: "Sulfato ferroso gestantes", value: dashRaw.sulfato_ferroso_gestantes_pct, meta: dashRaw.meta_sulfato_ferroso_pct, color: CRIT },
-                    { label: "SISVAN cobertura",          value: dashRaw.sisvan_cobertura_pct,      meta: dashRaw.meta_sisvan_pct,          color: WARN },
-                  ].map((b) => (
-                    <div key={b.label}>
-                      <div className="flex justify-between text-xs mb-0.5">
-                        <span className="text-slate-600">{b.label}</span>
-                        <span className="font-bold" style={{ color: b.color }}>{b.value}% / meta {b.meta}%</span>
+                    { label: "Desnutrição < 5a",      val: dashRaw.desnutricao_crianca_pct, meta: 2.5, inv: true },
+                    { label: "Anemia gestante",        val: dashRaw.anemia_gestante_pct,     meta: 20,  inv: true },
+                    { label: "Obesidade adulto",       val: dashRaw.obesidade_adulto_pct,    meta: 20,  inv: true },
+                    { label: "SISVAN cobertura",       val: dashRaw.sisvan_cobertura_pct,    meta: 100, inv: false },
+                    { label: "Vitamina A (0-5a)",      val: dashRaw.vitamina_a_cobertura_pct, meta: 100, inv: false },
+                    { label: "Cantina escolar saudável", val: dashRaw.cantina_escolar_saudavel_pct, meta: 100, inv: false },
+                  ].map((f: any) => (
+                    <div key={f.label} className="flex items-center gap-2">
+                      <span className="text-slate-600 w-40 text-xs">{f.label}</span>
+                      <div className="flex-1 bg-slate-100 rounded-full h-2">
+                        <div className="h-2 rounded-full" style={{ width: `${Math.min(f.val, 100)}%`, background: f.inv ? (f.val <= f.meta ? OK : CRIT) : (f.val >= f.meta * 0.8 ? OK : CRIT) }} />
                       </div>
-                      <ProgressBar value={b.value} max={100} color={b.color} />
+                      <span className="font-bold text-xs" style={{ color: f.inv ? (f.val <= f.meta ? OK : CRIT) : (f.val >= f.meta * 0.8 ? OK : CRIT) }}>{f.val}%</span>
                     </div>
                   ))}
                 </div>
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
-                <p><b>Desnutrição + obesidade no mesmo domicílio</b> — transição nutricional. Criança desnutrida (4,8%) e mãe com excesso de peso (38,4%) é padrão frequente em assentamentos e comunidades ribeirinhas.</p>
-                <p><b>38,4% de anemia em crianças &lt; 5a</b> — causa mais prevalente de déficit cognitivo reversível. Ferro profilático não sistematizado. Impacto no aprendizado escolar é geracional.</p>
-                <p><b>NutriSUS e NASF nutricionista não implantados</b> — sem suplementação em domicílio e sem orientação dietética individual. A SMS não tem nenhum nutricionista no quadro efetivo.</p>
+                <p><b>12,4% de desnutrição em crianças &lt; 5a</b> (meta &lt; 2,5% — 5×). 4,8% em desnutrição aguda grave (risco de óbito). Vitamina A: 52,4% (meta 100%). Sulfato ferroso profilático: 42,4% (meta 100%). MS fornece ambos gratuitamente. Busca ativa ACS: R$ 8.400.</p>
+                <p><b>52,4% das gestantes com anemia</b> (meta &lt; 20%). Sulfato ferroso + ácido fólico: REMUME gratuito — aderência 42,4%. Anemia gestacional: baixo peso ao nascer + prematuridade + mortalidade perinatal. 8,4% com insegurança alimentar grave = 2.075 pessoas com fome real.</p>
+                <p><b>Zero nutricionista em Apuí</b>. eMulti: R$ 84.000/ano (50% PREVINE Brasil). 120 consultas/mês = 1.440/ano. SISVAN: 42,4% (meta 100%). Cantina escolar saudável: 18,4% (Lei Estadual AM). Obesidade infantil: 18,4% — ultra-processados na escola.</p>
               </div>
             </div>
           </div>
         )}
 
-        {aba === "estado" && Array.isArray(estNutri) && (
+        {aba === "grupos" && Array.isArray(grupos) && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-4">Estado Nutricional por Faixa Etária (%)</h3>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={estNutri as any[]} margin={{ left: 10, right: 10 }}>
-                  <XAxis dataKey="faixa" tick={{ fontSize: 8 }} />
-                  <YAxis tick={{ fontSize: 11 }} unit="%" />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <Tooltip formatter={(v: any) => `${v}%`} />
-                  <Legend />
-                  <Bar dataKey="desnut_grave_pct"  name="Desnut. grave" fill={CRIT}   radius={[2,2,0,0]} stackId="a" />
-                  <Bar dataKey="desnut_mod_pct"    name="Desnut. mod."  fill={WARN}   radius={[2,2,0,0]} stackId="a" />
-                  <Bar dataKey="adequado_pct"      name="Adequado"      fill={OK}     radius={[2,2,0,0]} stackId="a" />
-                  <Bar dataKey="excesso_pct"       name="Excesso peso"  fill={ACCENT} radius={[2,2,0,0]} stackId="a" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="grid gap-2">
-              {(estNutri as any[]).map((e: any, i: number) => (
-                <div key={e.faixa} className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ background: FAIXA_COLORS[i] }} />
-                    <span className="font-semibold text-sm text-slate-700">{e.faixa}</span>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={grupos as any[]} margin={{ top: 5, right: 20, bottom: 80, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="grupo" tick={{ fontSize: 8 }} angle={-20} textAnchor="end" />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="desnutricao_pct" name="Desnutrição (%)"  radius={[4,4,0,0]}>
+                  {(grupos as any[]).map((g: any, i: number) => <Cell key={i} fill={statusColor(g.status)} />)}
+                </Bar>
+                <Bar dataKey="sobrepeso_pct"   name="Sobrepeso (%)"   radius={[4,4,0,0]} fill={WARN} opacity={0.7} />
+                <Bar dataKey="anemia_pct"      name="Anemia (%)"      radius={[4,4,0,0]} fill={ACCENT} opacity={0.5} />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="grid gap-3">
+              {(grupos as any[]).map((g: any) => (
+                <div key={g.grupo} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(g.status) }} />
+                      <p className="font-semibold text-sm text-slate-700">{g.grupo}</p>
+                    </div>
+                    <div className="text-right text-xs">
+                      <span className="font-bold" style={{ color: statusColor(g.status) }}>Desnut.: {g.desnutricao_pct}%</span>
+                      <p className="text-slate-400 mt-0.5">Sobrepeso: {g.sobrepeso_pct}% · Anemia: {g.anemia_pct}%</p>
+                    </div>
                   </div>
-                  <div className="text-xs text-right space-y-0.5">
-                    <div>Desnut. grave: <span className="font-bold" style={{ color: CRIT }}>{e.desnut_grave_pct}%</span> | Anemia estimada: —</div>
-                    <div>Adequado: <span className="font-bold" style={{ color: OK }}>{e.adequado_pct}%</span> | Excesso: <span className="font-bold" style={{ color: ACCENT }}>{e.excesso_pct}%</span></div>
-                  </div>
+                  <p className="text-xs text-slate-500 ml-5">{g.observacao}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {aba === "micronutrientes" && Array.isArray(micros) && (
-          <div className="space-y-3">
-            {(micros as any[]).map((m: any) => (
-              <div key={m.micronutriente} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
+        {aba === "acoes" && Array.isArray(acoes) && (
+          <div className="grid gap-3">
+            {(acoes as any[]).map((a: any) => (
+              <div key={a.acao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ background: statusColor(m.status) }} />
-                    <span className="font-semibold text-sm text-slate-700">{m.micronutriente}</span>
+                    <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: a.implementada ? OK : CRIT }} />
+                    <p className="font-semibold text-sm text-slate-700">{a.acao}</p>
                   </div>
-                  <div className="text-xs font-bold" style={{ color: statusColor(m.status) }}>
-                    {m.cobertura_pct}% / meta {m.meta_pct}%
+                  <div className="text-right text-xs">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${a.implementada ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                      {a.implementada ? "Implementada" : "Não implementada"}
+                    </span>
+                    <p className="text-xs text-slate-400 mt-0.5">R$ {(a.custo||0).toLocaleString()} · {a.prazo_meses}m</p>
                   </div>
                 </div>
-                <ProgressBar value={m.cobertura_pct} max={100} color={statusColor(m.status)} />
-                <p className="text-xs text-slate-500 mt-2">{m.impacto}</p>
+                <p className="text-xs text-slate-500 ml-5">{a.observacao}</p>
               </div>
             ))}
           </div>
@@ -176,19 +174,20 @@ export default function NutricaoSisvanApui() {
 
         {aba === "historico" && Array.isArray(historico) && (
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — Nutrição / SISVAN (2022–2025)</h3>
+            <h3 className="font-semibold text-slate-700 mb-4">Evolução Nutricional — Apuí/AM (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} unit="%" />
-                <Tooltip formatter={(v: any) => `${v}%`} />
+                <YAxis yAxisId="left"  tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
+                <Tooltip />
                 <Legend />
-                <Line dataKey="desnut_grave_5a_pct"     name="Desnut. grave < 5a" stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="anemia_gest_pct"          name="Anemia gestantes"   stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="sisvan_cob_pct"           name="Cobertura SISVAN"   stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
-                <Line dataKey="vit_a_pct"                name="Vitamina A < 5a"    stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line dataKey="excesso_peso_adult_pct"   name="Excesso peso adult."stroke="#64748b"strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="left"  dataKey="desnutricao_crianca_pct" name="Desnut. < 5a (%)"       stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="obesidade_adulto_pct"    name="Obesidade adulto (%)"   stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="left"  dataKey="anemia_gestante_pct"     name="Anemia gestante (%)"    stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="right" dataKey="sisvan_pct"              name="SISVAN cobertura (%)"   stroke={OK}     strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="inseg_alimentar_pct"     name="Inseg. alimentar (%)"   stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} strokeDasharray="6 2" />
               </LineChart>
             </ResponsiveContainer>
           </div>
