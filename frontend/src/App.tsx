@@ -243,7 +243,8 @@ import SaudeQuilombolaApui            from "./pages/SaudeQuilombolaApui";
 import SegurancaAlimentarApui         from "./pages/SegurancaAlimentarApui";
 import HepatitesViraisApui            from "./pages/HepatitesViraisApui";
 import SaudeNeonatalApui              from "./pages/SaudeNeonatalApui";
-import InfecoesHospitalaresApui       from "./pages/InfecoesHospitalaresApui";
+import InfeccoesHospitalaresApui      from "./pages/InfeccoesHospitalaresApui";
+import RegulacaoReferenciaApui        from "./pages/RegulacaoReferenciaApui";
 import SaudeHomemApui                 from "./pages/SaudeHomemApui";
 import SaudeOcularApui                from "./pages/SaudeOcularApui";
 import SaudeAuditivaApui              from "./pages/SaudeAuditivaApui";
@@ -580,6 +581,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/urgencia-emergencia-apui"    label="Urgência e Emergência" Icon={Clock}/>
             <L1 to="/nutricao-sisvan-apui"        label="Nutrição / SISVAN"    Icon={ShoppingBag}/>
             <L1 to="/regulacao-especializada-apui" label="Regulação Especializ." Icon={Globe}/>
+            <L1 to="/regulacao-referencia-apui"   label="Regulação e Referência" Icon={Network}/>
             <L1 to="/saude-trabalhador-apui"      label="Saúde do Trabalhador" Icon={Wrench}/>
             <L1 to="/farmacia-basica-apui"        label="Farmácia Básica"      Icon={Pill}/>
             <L1 to="/saude-escolar-apui"          label="Saúde Escolar (PSE)"  Icon={School}/>
@@ -1063,6 +1065,7 @@ export default function App() {
             <Route path="/urgencia-emergencia-apui"      element={<UrgenciaEmergenciaApui/>}/>
             <Route path="/nutricao-sisvan-apui"          element={<NutricaoSisvanApui/>}/>
             <Route path="/regulacao-especializada-apui"  element={<RegulacaoEspecializadaApui/>}/>
+            <Route path="/regulacao-referencia-apui"    element={<RegulacaoReferenciaApui/>}/>
             <Route path="/saude-trabalhador-apui"   element={<SaudeTrabalhadorApui/>}/>
             <Route path="/farmacia-basica-apui"     element={<FarmaciaBasicaApui/>}/>
             <Route path="/saude-escolar-apui"       element={<SaudeEscolarApui/>}/>
@@ -1094,7 +1097,7 @@ export default function App() {
             <Route path="/seguranca-alimentar-apui"      element={<SegurancaAlimentarApui/>}/>
             <Route path="/hepatites-virais-apui"        element={<HepatitesViraisApui/>}/>
             <Route path="/saude-neonatal-apui"          element={<SaudeNeonatalApui/>}/>
-            <Route path="/infeccoes-hospitalares-apui"  element={<InfecoesHospitalaresApui/>}/>
+            <Route path="/infeccoes-hospitalares-apui"  element={<InfeccoesHospitalaresApui/>}/>
             <Route path="/saude-homem-apui"             element={<SaudeHomemApui/>}/>
             <Route path="/saude-ocular-apui"            element={<SaudeOcularApui/>}/>
             <Route path="/saude-auditiva-apui"          element={<SaudeAuditivaApui/>}/>

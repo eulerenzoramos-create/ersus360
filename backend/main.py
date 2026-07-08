@@ -630,6 +630,12 @@ from routers.dengue_arboviroses_apui import router as dengue_arboviroses_apui_ro
 app.include_router(saude_mulher_apui_router)
 app.include_router(saude_homem_apui_router)
 app.include_router(dengue_arboviroses_apui_router)
+from routers.saude_neonatal_apui import router as saude_neonatal_apui_router
+from routers.infeccoes_hospitalares_apui import router as infeccoes_hospitalares_apui_router
+from routers.regulacao_referencia_apui import router as regulacao_referencia_apui_router
+app.include_router(saude_neonatal_apui_router)
+app.include_router(infeccoes_hospitalares_apui_router)
+app.include_router(regulacao_referencia_apui_router)
 
 
 @app.get("/")

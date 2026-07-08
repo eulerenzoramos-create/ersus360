@@ -5,7 +5,7 @@ import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
-import { Baby, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { ShieldCheck, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
 const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
@@ -33,20 +33,20 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
   </div>
 );
 
-export default function SaudeNeonatalApui() {
+export default function InfeccoesHospitalaresApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["neo-dash"],  queryFn: () => apiGet("/api/saude-neonatal-apui/dashboard"),  enabled: aba === "dashboard" });
-  const { data: condicoes }   = useQuery({ queryKey: ["neo-cond"],  queryFn: () => apiGet("/api/saude-neonatal-apui/condicoes"),  enabled: aba === "condicoes" });
-  const { data: acoes }       = useQuery({ queryKey: ["neo-acao"],  queryFn: () => apiGet("/api/saude-neonatal-apui/acoes"),      enabled: aba === "acoes" });
-  const { data: historico }   = useQuery({ queryKey: ["neo-hist"],  queryFn: () => apiGet("/api/saude-neonatal-apui/historico"),  enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["neo-ind"],   queryFn: () => apiGet("/api/saude-neonatal-apui/indicadores"),enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["ira-dash"],  queryFn: () => apiGet("/api/infeccoes-hospitalares-apui/dashboard"), enabled: aba === "dashboard" });
+  const { data: tipos }       = useQuery({ queryKey: ["ira-tipo"],  queryFn: () => apiGet("/api/infeccoes-hospitalares-apui/tipos"),     enabled: aba === "tipos" });
+  const { data: acoes }       = useQuery({ queryKey: ["ira-acao"],  queryFn: () => apiGet("/api/infeccoes-hospitalares-apui/acoes"),     enabled: aba === "acoes" });
+  const { data: historico }   = useQuery({ queryKey: ["ira-hist"],  queryFn: () => apiGet("/api/infeccoes-hospitalares-apui/historico"), enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["ira-ind"],   queryFn: () => apiGet("/api/infeccoes-hospitalares-apui/indicadores"),enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
   const ABAS = [
-    { key: "dashboard",   label: "Dashboard",  icon: <Baby size={15}/> },
-    { key: "condicoes",   label: "Condições",  icon: <Activity size={15}/> },
+    { key: "dashboard",   label: "Dashboard",  icon: <ShieldCheck size={15}/> },
+    { key: "tipos",       label: "Tipos IRAS", icon: <Activity size={15}/> },
     { key: "acoes",       label: "Ações",      icon: <AlertTriangle size={15}/> },
     { key: "historico",   label: "Histórico",  icon: <TrendingUp size={15}/> },
     { key: "indicadores", label: "Indicadores",icon: <AlertTriangle size={15}/> },
@@ -57,11 +57,11 @@ export default function SaudeNeonatalApui() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-lg" style={{ background: BRAND }}>
-            <Baby size={22} color="white" />
+            <ShieldCheck size={22} color="white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Saúde Neonatal — Apuí/AM</h1>
-            <p className="text-sm text-slate-500">TMN · Prematuridade · Surfactante · Método Canguru · Triagem Neonatal · Reanimação · FMS Apuí/AM</p>
+            <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Infecções Hospitalares / IRAS — Apuí/AM</h1>
+            <p className="text-sm text-slate-500">CCIH · ISC · PAV · IUAC · Higiene de Mãos · Resistência Antimicrobiana · FMS Apuí/AM</p>
           </div>
         </div>
 
@@ -78,26 +78,26 @@ export default function SaudeNeonatalApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Taxa mortalidade neonatal (meta: ≤ 5/1k NV)" value={`${dashRaw.taxa_mortalidade_neonatal_1000nv}/1k NV`} color={CRIT} sub={`${dashRaw.obitos_neonatais_2025} óbitos — precoce ${dashRaw.obitos_neonatais_precoces_0_6d}, tardio ${dashRaw.obitos_neonatais_tardios_7_27d}`} />
-              <KPI label="Taxa mortalidade infantil (meta: ≤ 10/1k NV)" value={`${dashRaw.taxa_mortalidade_infantil_1000nv}/1k NV`} color={CRIT} sub={`${dashRaw.obitos_infantis_total_2025} óbitos infantis 2025`} />
-              <KPI label="Prematuridade (meta: < 8%)"                   value={`${dashRaw.prematuridade_pct}%`}                     color={CRIT} sub={`muito baixo peso: ${dashRaw.muito_baixo_peso_pct}% — UTI neonatal: ${dashRaw.uti_neonatal_apui ? "disponível" : "indisponível"}`} />
-              <KPI label="Teste do Pezinho (meta: 100%)"                value={`${dashRaw.teste_pezinho_cobertura_pct}%`}            color={WARN} sub={`orelhinha: ${dashRaw.teste_orelhinha_cobertura_pct}% — olhinho: ${dashRaw.teste_olhinho_cobertura_pct}%`} />
+              <KPI label="Taxa IRAS estimada (meta: ≤ 3%)"        value={`${dashRaw.taxa_iras_estimada_pct}%`}          color={CRIT} sub={`${dashRaw.iras_estimadas_2025} IRAS/ano · ${dashRaw.obitos_iras_estimados_2025} óbitos`} />
+              <KPI label="CCIH ativa (obrigatória RDC 42/2010)"   value={dashRaw.ccih_apui ? "Ativa" : "Inexistente"}   color={CRIT} sub="ANVISA pode interditar estabelecimento sem CCIH" />
+              <KPI label="Adesão higiene de mãos (meta: 80%)"     value={`${dashRaw.higiene_maos_adesao_pct}%`}         color={CRIT} sub={`paramentação correta: ${dashRaw.paramentacao_correta_pct}%`} />
+              <KPI label="KPC + MRSA 2025"                        value={`${dashRaw.kpc_casos_2025 + dashRaw.mrsa_casos_2025} casos`} color={CRIT} sub={`KPC: ${dashRaw.kpc_casos_2025} · MRSA: ${dashRaw.mrsa_casos_2025} · mortalidade KPC: 50-70%`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Surfactante disponível em Apuí"               value={dashRaw.surfactante_disponivel_apui ? "Disponível" : "Indisponível"} color={CRIT} sub="MS financia via RENAME: R$ 0 — SDR -60% de mortalidade" />
-              <KPI label="Método Canguru implementado"                  value={dashRaw.metodo_canguru_apui ? "Ativo" : "Inexistente"} color={CRIT} sub="sobrevida +40% em muito baixo peso — custo R$ 8.400" />
-              <KPI label="Aleitamento exclusivo até 6 meses (meta: 50%)" value={`${dashRaw.aleitamento_exclusivo_6m_pct}%`}          color={CRIT} sub={`banco de leite: ${dashRaw.banco_leite_apui ? "disponível" : "inexistente"}`} />
-              <KPI label="GBS intraparto rastreado (meta: 100%)"        value={`${dashRaw.triagem_cardiaca_oximetria_pct}%`}         color={CRIT} sub={`neonatologista: ${dashRaw.neonatologista_apui === 0 ? "zero" : dashRaw.neonatologista_apui} em Apuí`} />
+              <KPI label="Custo estimado das IRAS 2025"            value={`R$ ${(dashRaw.custo_iras_2025_estimado/1000000).toFixed(2)}M`} color={CRIT} sub="352 IRAS × R$ 8.000/caso médio" />
+              <KPI label="ISC — Infecção do Sítio Cirúrgico"       value={`${dashRaw.taxa_iras_estimada_pct}% est.`}     color={CRIT} sub="cefazolina 2g pré-operatório: R$ 2,80 → ROI 2.857:1" />
+              <KPI label="Farmacêutico clínico (stewardship)"      value={dashRaw.farmaceutico_clinico_apui === 0 ? "Nenhum" : dashRaw.farmaceutico_clinico_apui} color={CRIT} sub="carbapenemo empírico: 28,4% sem antibiograma" />
+              <KPI label="Autoclave com validação mensal"          value={dashRaw.validacao_autoclave_mensal ? "Validada" : "Sem validação"} color={CRIT} sub={`${dashRaw.autoclave_apui} autoclaves · RDC 15/2012 obrigatória`} />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <h3 className="font-semibold text-slate-700 mb-3">Cobertura da Triagem Neonatal — Apuí/AM</h3>
+                <h3 className="font-semibold text-slate-700 mb-3">Indicadores de Controle de Infecção — Apuí/AM</h3>
                 <div className="space-y-3 text-sm">
                   {[
-                    { label: `Teste do Pezinho: ${dashRaw.teste_pezinho_cobertura_pct}% (meta 100%)`,   value: dashRaw.teste_pezinho_cobertura_pct,      max: 100, color: WARN },
-                    { label: `Teste da Orelhinha: ${dashRaw.teste_orelhinha_cobertura_pct}% (meta 100%)`,value: dashRaw.teste_orelhinha_cobertura_pct,     max: 100, color: CRIT },
-                    { label: `Teste do Olhinho: ${dashRaw.teste_olhinho_cobertura_pct}% (meta 100%)`,   value: dashRaw.teste_olhinho_cobertura_pct,       max: 100, color: CRIT },
-                    { label: `Oximetria neonatal: ${dashRaw.triagem_cardiaca_oximetria_pct}%`,           value: dashRaw.triagem_cardiaca_oximetria_pct,    max: 100, color: WARN },
+                    { label: `Higiene de mãos: ${dashRaw.higiene_maos_adesao_pct}% (meta 80%)`,       value: dashRaw.higiene_maos_adesao_pct, max: 80,  color: CRIT },
+                    { label: `Paramentação correta: ${dashRaw.paramentacao_correta_pct}%`,             value: dashRaw.paramentacao_correta_pct, max: 100, color: CRIT },
+                    { label: `Álcool gel cobertura: ${dashRaw.alcool_gel_cobertura_pct}%`,            value: dashRaw.alcool_gel_cobertura_pct, max: 100, color: WARN },
+                    { label: `Resistência gram-negativa: ${dashRaw.resistencia_gram_negativa_pct}%`,  value: 100 - dashRaw.resistencia_gram_negativa_pct, max: 100, color: CRIT },
                   ].map((b: any) => (
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
@@ -109,44 +109,44 @@ export default function SaudeNeonatalApui() {
                 </div>
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
-                <p><b>TMN 17/1.000 NV</b> — 3,4× a meta (5/1.000). 18 óbitos neonatais 2025. Surfactante via RENAME: R$ 0 — SDR mortalidade -60%. Método Canguru: R$ 8.400 — sobrevida +40% em muito baixo peso. UTI neonatal em Apuí: zero (referência HGH-Humaitá 160km).</p>
-                <p><b>18,4% de prematuridade</b> (meta 8%). Corticoide antenatal em TPP: 68,4% (meta 100%). Betametasona: R$ 8,40/dose = SDR -50%. Reanimação Neonatal SBP: R$ 4.200 → 42 casos de asfixia/ano — treinamento = -80% de mortalidade por asfixia.</p>
-                <p><b>Triagem neonatal incompleta</b>: 27,6% sem Pezinho + 57,6% sem Orelhinha + 61,6% sem Olhinho. PKU não diagnosticada: retardo mental grave (evitável com R$ 0). Kit triagem completa: R$ 14.000/ano. LACEN-AM processa: resultado em 10 dias.</p>
+                <p><b>12,4% de taxa de IRAS</b> (meta 3% — 4,1× acima). 352 IRAS/ano = R$ 2,82M em custo hospitalar extra. CCIH: obrigatória RDC 42/2010. Criação: R$ 4.200. Sem CCIH: ANVISA pode interditar. Higiene de mãos correta: evita 62% das IRAS = R$ 1,74M/ano.</p>
+                <p><b>4 KPC + 8 MRSA em 2025</b>. KPC: mortalidade 50-70% + tratamento R$ 28.000. Causa: carbapenemo empírico sem antibiograma em 28,4% dos casos. Farmacêutico clínico: R$ 84.000/ano → economia R$ 280.000/ano em carbapenemos + zeramento dos novos KPC.</p>
+                <p><b>ISC 8,4% das cirurgias</b> (meta 2%). Cefazolina 2g IV 30-60 min pré-operatório: R$ 2,80/dose vs R$ 8.000 de ISC. Checklist WHO cirúrgico: R$ 0 (impressão). Autoclave sem validação: ISC garantida. RDC 15/2012: indicador biológico mensal = R$ 4.200/ano.</p>
               </div>
             </div>
           </div>
         )}
 
-        {aba === "condicoes" && Array.isArray(condicoes) && (
+        {aba === "tipos" && Array.isArray(tipos) && (
           <div className="space-y-4">
             <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={condicoes as any[]} margin={{ top: 5, right: 20, bottom: 60, left: 0 }}>
+              <BarChart data={tipos as any[]} margin={{ top: 5, right: 20, bottom: 60, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="condicao" tick={{ fontSize: 7 }} angle={-10} textAnchor="end" />
+                <XAxis dataKey="tipo" tick={{ fontSize: 7 }} angle={-10} textAnchor="end" />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="casos_2025" name="Casos 2025" radius={[4,4,0,0]}>
-                  {(condicoes as any[]).map((c: any, i: number) => <Cell key={i} fill={statusColor(c.status)} />)}
+                <Bar dataKey="taxa_estimada_pct" name="Taxa estimada (%)" radius={[4,4,0,0]}>
+                  {(tipos as any[]).map((t: any, i: number) => <Cell key={i} fill={statusColor(t.status)} />)}
                 </Bar>
-                <Bar dataKey="obitos_2025" name="Óbitos 2025" radius={[4,4,0,0]} fill={BRAND} />
+                <Bar dataKey="meta_pct" name="Meta (%)" radius={[4,4,0,0]} fill={OK} opacity={0.3} />
               </BarChart>
             </ResponsiveContainer>
             <div className="grid gap-3">
-              {(condicoes as any[]).map((c: any) => (
-                <div key={c.condicao} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              {(tipos as any[]).map((t: any) => (
+                <div key={t.tipo} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(c.status) }} />
-                      <p className="font-semibold text-sm text-slate-700">{c.condicao}</p>
+                      <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(t.status) }} />
+                      <p className="font-semibold text-sm text-slate-700">{t.tipo}</p>
                     </div>
                     <div className="text-right text-xs">
-                      <span className="font-bold" style={{ color: statusColor(c.status) }}>{c.casos_2025} casos</span>
-                      <span className="text-red-600 font-bold ml-2">{c.obitos_2025} óbitos</span>
-                      <p className="text-slate-400 mt-0.5">sobrevida: {c.sobrevida_pct}%</p>
+                      <span className="font-bold" style={{ color: statusColor(t.status) }}>{t.taxa_estimada_pct}%</span>
+                      <span className="text-slate-400"> / meta {t.meta_pct}%</span>
+                      <p className="text-slate-400 mt-0.5">{t.casos_estimados} casos/ano</p>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-500 ml-5">{c.observacao}</p>
+                  <p className="text-xs text-slate-500 ml-5">{t.observacao}</p>
                 </div>
               ))}
             </div>
@@ -177,7 +177,7 @@ export default function SaudeNeonatalApui() {
 
         {aba === "historico" && Array.isArray(historico) && (
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <h3 className="font-semibold text-slate-700 mb-4">Evolução Saúde Neonatal — Apuí/AM (2022–2025)</h3>
+            <h3 className="font-semibold text-slate-700 mb-4">Evolução IRAS — Apuí/AM (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -186,11 +186,11 @@ export default function SaudeNeonatalApui() {
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
-                <Line yAxisId="left"  dataKey="tmn"               name="TMN (/1k NV)"          stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
-                <Line yAxisId="left"  dataKey="tmi"               name="TMI (/1k NV)"          stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line yAxisId="left"  dataKey="prematuridade_pct" name="Prematuridade (%)"     stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
-                <Line yAxisId="right" dataKey="pezinho_pct"       name="Pezinho (%)"           stroke={OK}     strokeWidth={2} dot={{ r: 4 }} />
-                <Line yAxisId="right" dataKey="aleitamento_pct"   name="Aleitamento exc. (%)"  stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} strokeDasharray="6 2" />
+                <Line yAxisId="left"  dataKey="taxa_iras_pct"      name="Taxa IRAS (%)"           stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left"  dataKey="isc_pct"            name="ISC (%)"                 stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="left"  dataKey="higiene_maos_pct"   name="Higiene mãos (%)"        stroke={OK}     strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line yAxisId="left"  dataKey="resistencia_pct"    name="Resistência AMR (%)"     stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="right" dataKey="obitos_iras"        name="Óbitos por IRAS"         stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} strokeDasharray="6 2" />
               </LineChart>
             </ResponsiveContainer>
           </div>
