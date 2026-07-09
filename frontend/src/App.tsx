@@ -291,6 +291,9 @@ import EducacaoPermanenteApui        from "./pages/EducacaoPermanenteApui";
 import SegurancaPacienteApui         from "./pages/SegurancaPacienteApui";
 import CuidadosPaliativosApui        from "./pages/CuidadosPaliativosApui";
 import GestaoLeitosApui              from "./pages/GestaoLeitosApui";
+import AleitamentoMaternoApui        from "./pages/AleitamentoMaternoApui";
+import PoliticaPrevencaoApui         from "./pages/PoliticaPrevencaoApui";
+import GestaoContratosApui           from "./pages/GestaoContratosApui";
 import RegulacaoAcessoApui           from "./pages/RegulacaoAcessoApui";
 import SaudeRibeirinhaApui           from "./pages/SaudeRibeirinhaApui";
 import VisaMunicipalApui             from "./pages/VisaMunicipalApui";
@@ -561,6 +564,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/visa-municipal-apui"         label="Vigilância Sanitária"   Icon={ShieldCheck}/>
             <L1 to="/saude-trabalhador-apui" label="Saúde do Trabalhador"   Icon={Wrench}/>
             <L1 to="/educacao-permanente-apui" label="Educação Permanente"  Icon={BookOpen}/>
+            <L1 to="/aleitamento-materno-apui"    label="Aleitamento Materno"    Icon={Heart}/>
+            <L1 to="/politica-prevencao-apui"     label="Política de Prevenção"  Icon={ShieldCheck}/>
+            <L1 to="/gestao-contratos-apui"       label="Gestão de Contratos"    Icon={Clipboard}/>
             <L1 to="/conselho-saude-apui"    label="Conselho de Saúde"     Icon={Users}/>
             <L1 to="/ouvidoria-apui"         label="Ouvidoria Municipal"   Icon={MessageSquare}/>
             <L1 to="/seguranca-paciente-apui"label="Segurança do Paciente" Icon={Shield}/>
@@ -1054,6 +1060,9 @@ export default function App() {
             <Route path="/cuidados-paliativos"           element={<CuidadosPaliativos/>}/>
             <Route path="/cuidados-paliativos-apui"      element={<CuidadosPaliativosApui/>}/>
             <Route path="/gestao-leitos-apui"           element={<GestaoLeitosApui/>}/>
+            <Route path="/aleitamento-materno-apui"     element={<AleitamentoMaternoApui/>}/>
+            <Route path="/politica-prevencao-apui"      element={<PoliticaPrevencaoApui/>}/>
+            <Route path="/gestao-contratos-apui"        element={<GestaoContratosApui/>}/>
             <Route path="/regulacao-acesso-apui"        element={<RegulacaoAcessoApui/>}/>
             <Route path="/saude-ribeirinha-apui"        element={<SaudeRibeirinhaApui/>}/>
             <Route path="/saude-ribeirinha"              element={<SaudeRibeirinha/>}/>

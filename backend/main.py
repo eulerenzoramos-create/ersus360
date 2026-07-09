@@ -319,6 +319,9 @@ from routers.saneamento_basico_apui import router as saneamento_basico_apui_rout
 from routers.planejamento_familiar_apui import router as planejamento_familiar_apui_router
 from routers.saude_prisional_apui import router as saude_prisional_apui_router
 from routers.zoonoses_apui import router as zoonoses_apui_router
+from routers.aleitamento_materno_apui import router as aleitamento_materno_apui_router
+from routers.politica_prevencao_apui import router as politica_prevencao_apui_router
+from routers.gestao_contratos_apui import router as gestao_contratos_apui_router
 from routers.atividade_fisica_apui import router as atividade_fisica_apui_router
 from routers.infraestrutura_ubs_apui import router as infraestrutura_ubs_apui_router
 from routers.medicamentos_alto_custo_apui import router as medicamentos_alto_custo_apui_router
@@ -594,6 +597,9 @@ app.include_router(saneamento_basico_apui_router)
 app.include_router(planejamento_familiar_apui_router)
 app.include_router(saude_prisional_apui_router)
 app.include_router(zoonoses_apui_router)
+app.include_router(aleitamento_materno_apui_router)
+app.include_router(politica_prevencao_apui_router)
+app.include_router(gestao_contratos_apui_router)
 app.include_router(atividade_fisica_apui_router)
 app.include_router(infraestrutura_ubs_apui_router)
 app.include_router(medicamentos_alto_custo_apui_router)
