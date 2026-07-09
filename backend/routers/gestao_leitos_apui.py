@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/gestao-leitos", tags=["gestao_leitos"])
+router = APIRouter(prefix="/api/gestao-leitos-apui", tags=["gestao_leitos_apui"])
 
 _DASHBOARD = {
     "leitos_total": 38,

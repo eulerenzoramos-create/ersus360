@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/regulacao-acesso", tags=["regulacao_acesso"])
+router = APIRouter(prefix="/api/regulacao-acesso-apui", tags=["regulacao_acesso_apui"])
 
 _DASHBOARD = {
     "fila_total_ativa": 1284,

@@ -290,6 +290,9 @@ import ViolenciaDomesticaSexualApui  from "./pages/ViolenciaDomesticaSexualApui"
 import EducacaoPermanenteApui        from "./pages/EducacaoPermanenteApui";
 import SegurancaPacienteApui         from "./pages/SegurancaPacienteApui";
 import CuidadosPaliativosApui        from "./pages/CuidadosPaliativosApui";
+import GestaoLeitosApui              from "./pages/GestaoLeitosApui";
+import RegulacaoAcessoApui           from "./pages/RegulacaoAcessoApui";
+import SaudeRibeirinhaApui           from "./pages/SaudeRibeirinhaApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -552,8 +555,8 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/score-municipal"        label="Score / Diagnóstico"    Icon={Star}/>
             <L1 to="/gestao-contratos-fms"   label="Contratos / Licitações" Icon={FolderOpen}/>
             <L1 to="/urgencia-emergencia"    label="Urgência e Emergência"  Icon={Clock}/>
-            <L1 to="/regulacao-acesso"       label="Regulação e Acesso"     Icon={Network}/>
-            <L1 to="/gestao-leitos"          label="Gestão de Leitos"       Icon={Building2}/>
+            <L1 to="/regulacao-acesso-apui"       label="Regulação e Acesso"     Icon={Network}/>
+            <L1 to="/gestao-leitos-apui"          label="Gestão de Leitos"       Icon={Building2}/>
             <L1 to="/visa-municipal"         label="Vigilância Sanitária"   Icon={ShieldCheck}/>
             <L1 to="/saude-trabalhador-apui" label="Saúde do Trabalhador"   Icon={Wrench}/>
             <L1 to="/educacao-permanente-apui" label="Educação Permanente"  Icon={BookOpen}/>
@@ -564,7 +567,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/laboratorio-apui"       label="Laboratório Municipal" Icon={FlaskConical}/>
             <L1 to="/farmacia-especializada-apui" label="Farmácia Especializ." Icon={Pill}/>
             <L1 to="/cuidados-paliativos"         label="Cuidados Paliativos"  Icon={Heart}/>
-            <L1 to="/saude-ribeirinha"            label="Saúde Ribeirinha"     Icon={Waves}/>
+            <L1 to="/saude-ribeirinha-apui"            label="Saúde Ribeirinha"     Icon={Waves}/>
             <L1 to="/reabilitacao-apui"           label="Reabilitação"         Icon={Activity}/>
             <L1 to="/saude-familia-apui"          label="Saúde da Família"     Icon={Users}/>
             <L1 to="/saude-mental-caps-apui"      label="Saúde Mental / CAPS"  Icon={Brain}/>
@@ -1050,6 +1053,9 @@ export default function App() {
             <Route path="/farmacia-especializada-apui"  element={<FarmaciaEspecializadaApui/>}/>
             <Route path="/cuidados-paliativos"           element={<CuidadosPaliativos/>}/>
             <Route path="/cuidados-paliativos-apui"      element={<CuidadosPaliativosApui/>}/>
+            <Route path="/gestao-leitos-apui"           element={<GestaoLeitosApui/>}/>
+            <Route path="/regulacao-acesso-apui"        element={<RegulacaoAcessoApui/>}/>
+            <Route path="/saude-ribeirinha-apui"        element={<SaudeRibeirinhaApui/>}/>
             <Route path="/saude-ribeirinha"              element={<SaudeRibeirinha/>}/>
             <Route path="/reabilitacao-apui"             element={<ReabilitacaoApui/>}/>
             <Route path="/saude-familia-apui"            element={<SaudeFamiliaApui/>}/>
