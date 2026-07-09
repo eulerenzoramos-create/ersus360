@@ -1030,7 +1030,6 @@ export default function App() {
             <Route path="/atencao-especializada"     element={<AtencaoEspecializada/>}/>
             <Route path="/malaria-endemias"        element={<MalariaEndemias/>}/>
             <Route path="/vigilancia-nutricional" element={<VigilanciaNutricional/>}/>
-            <Route path="/saude-indigena"         element={<SaudeIndigenaApui/>}/>
             <Route path="/dcnt-cronicas"           element={<DcntCronicas/>}/>
             <Route path="/cancer-rastreio"        element={<CancerRastreio/>}/>
             <Route path="/saude-bucal-municipal"  element={<SaudeBucalMunicipal/>}/>
@@ -1045,7 +1044,6 @@ export default function App() {
             <Route path="/gestao-leitos"          element={<GestaoLeitos/>}/>
             <Route path="/visa-municipal"           element={<VisaMunicipal/>}/>
             <Route path="/visa-municipal-apui"      element={<VisaMunicipalApui/>}/>
-            <Route path="/saude-trabalhador-apui"  element={<SaudeTrabalhador/>}/>
             <Route path="/educacao-permanente-apui"element={<EducacaoPermanenteApui/>}/>
             <Route path="/conselho-saude-apui"          element={<ConselhoSaudeApui/>}/>
             <Route path="/ouvidoria-apui"               element={<OuvidoriaApui/>}/>
@@ -1086,11 +1084,8 @@ export default function App() {
             <Route path="/saude-indigena-apui"       element={<SaudeIndígenaApui/>}/>
             <Route path="/doencas-cronicas-apui"     element={<DoencasCronicasApui/>}/>
             <Route path="/saude-mental-apui"         element={<SaudeMentalApui2/>}/>
-            <Route path="/imunizacao-apui"           element={<ImunizacaoApui/>}/>
             <Route path="/materno-infantil-apui"     element={<MaternoInfantilApui/>}/>
             <Route path="/atencao-primaria-apui"     element={<AtencaoPrimariaApui/>}/>
-            <Route path="/saude-idoso-apui"          element={<SaudeIdosoApui/>}/>
-            <Route path="/saude-crianca-apui"            element={<SaudeCriancaApui/>}/>
             <Route path="/vigilancia-epidemiologica-apui" element={<VigilanciaEpidemiologicaApui/>}/>
             <Route path="/gestao-hospitalar-apui"         element={<GestaoHospitalarApui/>}/>
             <Route path="/agua-saneamento-apui"           element={<AguaSaneamentoApui/>}/>
@@ -1150,7 +1145,6 @@ export default function App() {
             <Route path="/saude-escolar-pse-apui"        element={<SaudeEscolarPseApui/>}/>
             <Route path="/doencas-negligenciadas-apui"   element={<DoencasNegligenciadasApui/>}/>
             <Route path="/saude-mental-infantojuvenil-apui" element={<SaudeMentalInfantoJuvenilApui/>}/>
-            <Route path="/saude-ocular-apui"               element={<SaudeOcularApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

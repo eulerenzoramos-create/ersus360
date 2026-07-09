@@ -36,11 +36,11 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
 export default function SaudeIndigenaApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["si-dashboard"], queryFn: () => apiGet("/api/saude-indigena/dashboard"),         enabled: aba === "dashboard" });
-  const { data: aldeias }     = useQuery({ queryKey: ["si-aldeias"],   queryFn: () => apiGet("/api/saude-indigena/aldeias"),           enabled: aba === "aldeias" });
-  const { data: indSaude }    = useQuery({ queryKey: ["si-indics"],    queryFn: () => apiGet("/api/saude-indigena/indicadores-saude"), enabled: aba === "saude" });
-  const { data: historico }   = useQuery({ queryKey: ["si-historico"], queryFn: () => apiGet("/api/saude-indigena/historico"),         enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["si-ind"],       queryFn: () => apiGet("/api/saude-indigena/indicadores"),       enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["si-dashboard"], queryFn: () => apiGet("/api/saude-indigena-apui/dashboard"),         enabled: aba === "dashboard" });
+  const { data: aldeias }     = useQuery({ queryKey: ["si-aldeias"],   queryFn: () => apiGet("/api/saude-indigena-apui/aldeias"),           enabled: aba === "aldeias" });
+  const { data: indSaude }    = useQuery({ queryKey: ["si-indics"],    queryFn: () => apiGet("/api/saude-indigena-apui/indicadores-saude"), enabled: aba === "saude" });
+  const { data: historico }   = useQuery({ queryKey: ["si-historico"], queryFn: () => apiGet("/api/saude-indigena-apui/historico"),         enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["si-ind"],       queryFn: () => apiGet("/api/saude-indigena-apui/indicadores"),       enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
