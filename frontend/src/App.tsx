@@ -292,6 +292,9 @@ import SegurancaPacienteApui         from "./pages/SegurancaPacienteApui";
 import CuidadosPaliativosApui        from "./pages/CuidadosPaliativosApui";
 import GestaoLeitosApui              from "./pages/GestaoLeitosApui";
 import AleitamentoMaternoApui        from "./pages/AleitamentoMaternoApui";
+import BancoSangueHemoterapiaApui   from "./pages/BancoSangueHemoterapiaApui";
+import MortalidadePrematuraApui     from "./pages/MortalidadePrematurasApui";
+import SaudeFinanceiraApui          from "./pages/SaudeFinanceiraApui";
 import PoliticaPrevencaoApui         from "./pages/PoliticaPrevencaoApui";
 import GestaoContratosApui           from "./pages/GestaoContratosApui";
 import RegulacaoAcessoApui           from "./pages/RegulacaoAcessoApui";
@@ -567,6 +570,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/aleitamento-materno-apui"    label="Aleitamento Materno"    Icon={Heart}/>
             <L1 to="/politica-prevencao-apui"     label="Política de Prevenção"  Icon={ShieldCheck}/>
             <L1 to="/gestao-contratos-apui"       label="Gestão de Contratos"    Icon={Clipboard}/>
+            <L1 to="/banco-sangue-hemoterapia-apui" label="Banco de Sangue"       Icon={Droplets}/>
+            <L1 to="/mortalidade-prematura-apui"  label="Mortalidade Prematura"  Icon={TrendingUp}/>
+            <L1 to="/saude-financeira-apui"       label="Financeiro FMS"         Icon={DollarSign}/>
             <L1 to="/conselho-saude-apui"    label="Conselho de Saúde"     Icon={Users}/>
             <L1 to="/ouvidoria-apui"         label="Ouvidoria Municipal"   Icon={MessageSquare}/>
             <L1 to="/seguranca-paciente-apui"label="Segurança do Paciente" Icon={Shield}/>
@@ -1060,7 +1066,10 @@ export default function App() {
             <Route path="/cuidados-paliativos"           element={<CuidadosPaliativos/>}/>
             <Route path="/cuidados-paliativos-apui"      element={<CuidadosPaliativosApui/>}/>
             <Route path="/gestao-leitos-apui"           element={<GestaoLeitosApui/>}/>
-            <Route path="/aleitamento-materno-apui"     element={<AleitamentoMaternoApui/>}/>
+            <Route path="/aleitamento-materno-apui"         element={<AleitamentoMaternoApui/>}/>
+            <Route path="/banco-sangue-hemoterapia-apui" element={<BancoSangueHemoterapiaApui/>}/>
+            <Route path="/mortalidade-prematura-apui"    element={<MortalidadePrematuraApui/>}/>
+            <Route path="/saude-financeira-apui"         element={<SaudeFinanceiraApui/>}/>
             <Route path="/politica-prevencao-apui"      element={<PoliticaPrevencaoApui/>}/>
             <Route path="/gestao-contratos-apui"        element={<GestaoContratosApui/>}/>
             <Route path="/regulacao-acesso-apui"        element={<RegulacaoAcessoApui/>}/>
