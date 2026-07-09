@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/visa-municipal", tags=["visa_municipal"])
+router = APIRouter(prefix="/api/visa-municipal-apui", tags=["visa_municipal_apui"])
 
 _DASHBOARD = {
     "estabelecimentos_cadastrados": 284,

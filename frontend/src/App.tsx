@@ -293,6 +293,7 @@ import CuidadosPaliativosApui        from "./pages/CuidadosPaliativosApui";
 import GestaoLeitosApui              from "./pages/GestaoLeitosApui";
 import RegulacaoAcessoApui           from "./pages/RegulacaoAcessoApui";
 import SaudeRibeirinhaApui           from "./pages/SaudeRibeirinhaApui";
+import VisaMunicipalApui             from "./pages/VisaMunicipalApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -557,7 +558,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/urgencia-emergencia"    label="Urgência e Emergência"  Icon={Clock}/>
             <L1 to="/regulacao-acesso-apui"       label="Regulação e Acesso"     Icon={Network}/>
             <L1 to="/gestao-leitos-apui"          label="Gestão de Leitos"       Icon={Building2}/>
-            <L1 to="/visa-municipal"         label="Vigilância Sanitária"   Icon={ShieldCheck}/>
+            <L1 to="/visa-municipal-apui"         label="Vigilância Sanitária"   Icon={ShieldCheck}/>
             <L1 to="/saude-trabalhador-apui" label="Saúde do Trabalhador"   Icon={Wrench}/>
             <L1 to="/educacao-permanente-apui" label="Educação Permanente"  Icon={BookOpen}/>
             <L1 to="/conselho-saude-apui"    label="Conselho de Saúde"     Icon={Users}/>
@@ -1043,6 +1044,7 @@ export default function App() {
             <Route path="/regulacao-acesso"       element={<RegulacaoAcesso/>}/>
             <Route path="/gestao-leitos"          element={<GestaoLeitos/>}/>
             <Route path="/visa-municipal"           element={<VisaMunicipal/>}/>
+            <Route path="/visa-municipal-apui"      element={<VisaMunicipalApui/>}/>
             <Route path="/saude-trabalhador-apui"  element={<SaudeTrabalhador/>}/>
             <Route path="/educacao-permanente-apui"element={<EducacaoPermanenteApui/>}/>
             <Route path="/conselho-saude-apui"          element={<ConselhoSaudeApui/>}/>

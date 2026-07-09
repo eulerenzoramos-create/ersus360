@@ -44,11 +44,11 @@ const TIPO_COLORS: Record<string, string> = {
 export default function OuvidoriaApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["ouv-dashboard"],  queryFn: () => apiGet("/api/ouvidoria/dashboard"),  enabled: aba === "dashboard" });
-  const { data: temas }       = useQuery({ queryKey: ["ouv-temas"],      queryFn: () => apiGet("/api/ouvidoria/temas"),      enabled: aba === "temas" });
-  const { data: canais }      = useQuery({ queryKey: ["ouv-canais"],     queryFn: () => apiGet("/api/ouvidoria/canais"),     enabled: aba === "canais" });
-  const { data: historico }   = useQuery({ queryKey: ["ouv-historico"],  queryFn: () => apiGet("/api/ouvidoria/historico"),  enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["ouv-ind"],        queryFn: () => apiGet("/api/ouvidoria/indicadores"),enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["ouv-dashboard"],  queryFn: () => apiGet("/api/ouvidoria-apui/dashboard"),  enabled: aba === "dashboard" });
+  const { data: temas }       = useQuery({ queryKey: ["ouv-temas"],      queryFn: () => apiGet("/api/ouvidoria-apui/temas"),      enabled: aba === "temas" });
+  const { data: canais }      = useQuery({ queryKey: ["ouv-canais"],     queryFn: () => apiGet("/api/ouvidoria-apui/canais"),     enabled: aba === "canais" });
+  const { data: historico }   = useQuery({ queryKey: ["ouv-historico"],  queryFn: () => apiGet("/api/ouvidoria-apui/historico"),  enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["ouv-ind"],        queryFn: () => apiGet("/api/ouvidoria-apui/indicadores"),enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 

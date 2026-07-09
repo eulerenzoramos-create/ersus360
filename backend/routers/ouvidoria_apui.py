@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/ouvidoria", tags=["ouvidoria"])
+router = APIRouter(prefix="/api/ouvidoria-apui", tags=["ouvidoria_apui"])
 
 _DASHBOARD = {
     "manifestacoes_total_ano": 284,

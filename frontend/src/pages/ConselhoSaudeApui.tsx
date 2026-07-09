@@ -43,11 +43,11 @@ const SEG_COLORS: Record<string, string> = {
 export default function ConselhoSaudeApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["cms-dashboard"],   queryFn: () => apiGet("/api/conselho-saude/dashboard"),   enabled: aba === "dashboard" });
-  const { data: composicao }  = useQuery({ queryKey: ["cms-composicao"],  queryFn: () => apiGet("/api/conselho-saude/composicao"),  enabled: aba === "composicao" });
-  const { data: delibs }      = useQuery({ queryKey: ["cms-delibs"],      queryFn: () => apiGet("/api/conselho-saude/deliberacoes"), enabled: aba === "deliberacoes" });
-  const { data: historico }   = useQuery({ queryKey: ["cms-historico"],   queryFn: () => apiGet("/api/conselho-saude/historico"),   enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["cms-ind"],         queryFn: () => apiGet("/api/conselho-saude/indicadores"), enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["cms-dashboard"],   queryFn: () => apiGet("/api/conselho-saude-apui/dashboard"),   enabled: aba === "dashboard" });
+  const { data: composicao }  = useQuery({ queryKey: ["cms-composicao"],  queryFn: () => apiGet("/api/conselho-saude-apui/composicao"),  enabled: aba === "composicao" });
+  const { data: delibs }      = useQuery({ queryKey: ["cms-delibs"],      queryFn: () => apiGet("/api/conselho-saude-apui/deliberacoes"), enabled: aba === "deliberacoes" });
+  const { data: historico }   = useQuery({ queryKey: ["cms-historico"],   queryFn: () => apiGet("/api/conselho-saude-apui/historico"),   enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["cms-ind"],         queryFn: () => apiGet("/api/conselho-saude-apui/indicadores"), enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 

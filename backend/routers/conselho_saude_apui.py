@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/conselho-saude", tags=["conselho_saude"])
+router = APIRouter(prefix="/api/conselho-saude-apui", tags=["conselho_saude_apui"])
 
 _DASHBOARD = {
     "composicao_total_membros": 16,
