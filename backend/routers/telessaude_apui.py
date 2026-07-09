@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/telessaude", tags=["telessaude"])
+router = APIRouter(prefix="/api/telessaude-apui", tags=["telessaude_apui"])
 
 _DASHBOARD = {
     "teleconsultas_realizadas_ano": 842,

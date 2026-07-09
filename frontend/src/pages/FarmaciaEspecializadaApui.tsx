@@ -48,11 +48,11 @@ const JUDIC_STATUS: Record<string, { bg: string; text: string }> = {
 export default function FarmaciaEspecializadaApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["fe-dashboard"],  queryFn: () => apiGet("/api/farmacia-especializada/dashboard"),      enabled: aba === "dashboard" });
-  const { data: meds }        = useQuery({ queryKey: ["fe-meds"],       queryFn: () => apiGet("/api/farmacia-especializada/medicamentos"),    enabled: aba === "medicamentos" });
-  const { data: judic }       = useQuery({ queryKey: ["fe-judic"],      queryFn: () => apiGet("/api/farmacia-especializada/judicializacoes"), enabled: aba === "judicializacoes" });
-  const { data: historico }   = useQuery({ queryKey: ["fe-historico"],  queryFn: () => apiGet("/api/farmacia-especializada/historico"),      enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["fe-ind"],        queryFn: () => apiGet("/api/farmacia-especializada/indicadores"),    enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["fe-dashboard"],  queryFn: () => apiGet("/api/farmacia-especializada-apui/dashboard"),      enabled: aba === "dashboard" });
+  const { data: meds }        = useQuery({ queryKey: ["fe-meds"],       queryFn: () => apiGet("/api/farmacia-especializada-apui/medicamentos"),    enabled: aba === "medicamentos" });
+  const { data: judic }       = useQuery({ queryKey: ["fe-judic"],      queryFn: () => apiGet("/api/farmacia-especializada-apui/judicializacoes"), enabled: aba === "judicializacoes" });
+  const { data: historico }   = useQuery({ queryKey: ["fe-historico"],  queryFn: () => apiGet("/api/farmacia-especializada-apui/historico"),      enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["fe-ind"],        queryFn: () => apiGet("/api/farmacia-especializada-apui/indicadores"),    enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 

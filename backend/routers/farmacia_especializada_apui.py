@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/farmacia-especializada", tags=["farmacia_especializada"])
+router = APIRouter(prefix="/api/farmacia-especializada-apui", tags=["farmacia_especializada_apui"])
 
 _DASHBOARD = {
     "pacientes_ceaf_ativos": 284,

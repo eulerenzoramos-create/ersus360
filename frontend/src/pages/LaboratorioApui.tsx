@@ -36,11 +36,11 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
 export default function LaboratorioApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["lab-dashboard"], queryFn: () => apiGet("/api/laboratorio/dashboard"),    enabled: aba === "dashboard" });
-  const { data: exames }      = useQuery({ queryKey: ["lab-exames"],    queryFn: () => apiGet("/api/laboratorio/exames-grupo"), enabled: aba === "exames" });
-  const { data: equips }      = useQuery({ queryKey: ["lab-equips"],    queryFn: () => apiGet("/api/laboratorio/equipamentos"), enabled: aba === "equipamentos" });
-  const { data: historico }   = useQuery({ queryKey: ["lab-historico"], queryFn: () => apiGet("/api/laboratorio/historico"),    enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["lab-ind"],       queryFn: () => apiGet("/api/laboratorio/indicadores"),  enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["lab-dashboard"], queryFn: () => apiGet("/api/laboratorio-apui/dashboard"),    enabled: aba === "dashboard" });
+  const { data: exames }      = useQuery({ queryKey: ["lab-exames"],    queryFn: () => apiGet("/api/laboratorio-apui/exames-grupo"), enabled: aba === "exames" });
+  const { data: equips }      = useQuery({ queryKey: ["lab-equips"],    queryFn: () => apiGet("/api/laboratorio-apui/equipamentos"), enabled: aba === "equipamentos" });
+  const { data: historico }   = useQuery({ queryKey: ["lab-historico"], queryFn: () => apiGet("/api/laboratorio-apui/historico"),    enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["lab-ind"],       queryFn: () => apiGet("/api/laboratorio-apui/indicadores"),  enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 

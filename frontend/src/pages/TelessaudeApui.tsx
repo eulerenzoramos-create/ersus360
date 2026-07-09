@@ -36,11 +36,11 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
 export default function TelessaudeApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["ts-dashboard"],  queryFn: () => apiGet("/api/telessaude/dashboard"),    enabled: aba === "dashboard" });
-  const { data: espec }       = useQuery({ queryKey: ["ts-espec"],      queryFn: () => apiGet("/api/telessaude/especialidades"),enabled: aba === "especialidades" });
-  const { data: conect }      = useQuery({ queryKey: ["ts-conect"],     queryFn: () => apiGet("/api/telessaude/conectividade"), enabled: aba === "conectividade" });
-  const { data: historico }   = useQuery({ queryKey: ["ts-historico"],  queryFn: () => apiGet("/api/telessaude/historico"),     enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["ts-ind"],        queryFn: () => apiGet("/api/telessaude/indicadores"),   enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["ts-dashboard"],  queryFn: () => apiGet("/api/telessaude-apui/dashboard"),    enabled: aba === "dashboard" });
+  const { data: espec }       = useQuery({ queryKey: ["ts-espec"],      queryFn: () => apiGet("/api/telessaude-apui/especialidades"),enabled: aba === "especialidades" });
+  const { data: conect }      = useQuery({ queryKey: ["ts-conect"],     queryFn: () => apiGet("/api/telessaude-apui/conectividade"), enabled: aba === "conectividade" });
+  const { data: historico }   = useQuery({ queryKey: ["ts-historico"],  queryFn: () => apiGet("/api/telessaude-apui/historico"),     enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["ts-ind"],        queryFn: () => apiGet("/api/telessaude-apui/indicadores"),   enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
