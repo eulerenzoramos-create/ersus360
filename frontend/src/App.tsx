@@ -287,6 +287,9 @@ import SaudeMentalInfantoJuvenilApui from "./pages/SaudeMentalInfantoJuvenilApui
 import MercurioGarimpoApui           from "./pages/MercurioGarimpoApui";
 import SaudeOcularApui               from "./pages/SaudeOcularApui";
 import ViolenciaDomesticaSexualApui  from "./pages/ViolenciaDomesticaSexualApui";
+import EducacaoPermanenteApui        from "./pages/EducacaoPermanenteApui";
+import SegurancaPacienteApui         from "./pages/SegurancaPacienteApui";
+import CuidadosPaliativosApui        from "./pages/CuidadosPaliativosApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -654,6 +657,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/mercurio-garimpo-apui"           label="Mercúrio e Garimpo"       Icon={FlaskConical}/>
             <L1 to="/saude-ocular-apui"               label="Saúde Ocular"             Icon={Eye}/>
             <L1 to="/violencia-domestica-sexual-apui" label="Violência Doméstica/Sex." Icon={Shield}/>
+            <L1 to="/cuidados-paliativos-apui"        label="Cuidados Paliativos"      Icon={Heart}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -1037,14 +1041,15 @@ export default function App() {
             <Route path="/gestao-leitos"          element={<GestaoLeitos/>}/>
             <Route path="/visa-municipal"           element={<VisaMunicipal/>}/>
             <Route path="/saude-trabalhador-apui"  element={<SaudeTrabalhador/>}/>
-            <Route path="/educacao-permanente-apui"element={<EducacaoPermanente/>}/>
+            <Route path="/educacao-permanente-apui"element={<EducacaoPermanenteApui/>}/>
             <Route path="/conselho-saude-apui"          element={<ConselhoSaudeApui/>}/>
             <Route path="/ouvidoria-apui"               element={<OuvidoriaApui/>}/>
-            <Route path="/seguranca-paciente-apui"      element={<SegurancaPaciente/>}/>
+            <Route path="/seguranca-paciente-apui"      element={<SegurancaPacienteApui/>}/>
             <Route path="/telessaude-apui"              element={<TelessaudeApui/>}/>
             <Route path="/laboratorio-apui"             element={<LaboratorioApui/>}/>
             <Route path="/farmacia-especializada-apui"  element={<FarmaciaEspecializadaApui/>}/>
             <Route path="/cuidados-paliativos"           element={<CuidadosPaliativos/>}/>
+            <Route path="/cuidados-paliativos-apui"      element={<CuidadosPaliativosApui/>}/>
             <Route path="/saude-ribeirinha"              element={<SaudeRibeirinha/>}/>
             <Route path="/reabilitacao-apui"             element={<ReabilitacaoApui/>}/>
             <Route path="/saude-familia-apui"            element={<SaudeFamiliaApui/>}/>
