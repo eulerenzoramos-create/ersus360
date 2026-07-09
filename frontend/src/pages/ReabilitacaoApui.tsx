@@ -45,11 +45,11 @@ const DEF_COLORS: Record<string, string> = {
 export default function ReabilitacaoApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["reab-dashboard"],    queryFn: () => apiGet("/api/reabilitacao/dashboard"),    enabled: aba === "dashboard" });
-  const { data: deficiencias }= useQuery({ queryKey: ["reab-defic"],        queryFn: () => apiGet("/api/reabilitacao/deficiencias"), enabled: aba === "deficiencias" });
-  const { data: servicos }    = useQuery({ queryKey: ["reab-serv"],         queryFn: () => apiGet("/api/reabilitacao/servicos"),     enabled: aba === "servicos" });
-  const { data: historico }   = useQuery({ queryKey: ["reab-hist"],         queryFn: () => apiGet("/api/reabilitacao/historico"),    enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["reab-ind"],          queryFn: () => apiGet("/api/reabilitacao/indicadores"),  enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["reab-dashboard"],    queryFn: () => apiGet("/api/reabilitacao-apui/dashboard"),    enabled: aba === "dashboard" });
+  const { data: deficiencias }= useQuery({ queryKey: ["reab-defic"],        queryFn: () => apiGet("/api/reabilitacao-apui/deficiencias"), enabled: aba === "deficiencias" });
+  const { data: servicos }    = useQuery({ queryKey: ["reab-serv"],         queryFn: () => apiGet("/api/reabilitacao-apui/servicos"),     enabled: aba === "servicos" });
+  const { data: historico }   = useQuery({ queryKey: ["reab-hist"],         queryFn: () => apiGet("/api/reabilitacao-apui/historico"),    enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["reab-ind"],          queryFn: () => apiGet("/api/reabilitacao-apui/indicadores"),  enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 

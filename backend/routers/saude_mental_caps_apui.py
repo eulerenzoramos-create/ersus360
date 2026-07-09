@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/saude-mental-caps", tags=["saude_mental_caps"])
+router = APIRouter(prefix="/api/saude-mental-caps-apui", tags=["saude_mental_caps_apui"])
 
 _DASHBOARD = {
     "caps_implantado": True,

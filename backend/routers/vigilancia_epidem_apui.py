@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/vigilancia-epidem", tags=["vigilancia_epidem"])
+router = APIRouter(prefix="/api/vigilancia-epidem-apui", tags=["vigilancia_epidem_apui"])
 
 _DASHBOARD = {
     "notificacoes_ano": 1284,

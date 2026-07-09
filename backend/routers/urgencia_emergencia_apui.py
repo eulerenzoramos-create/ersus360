@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/urgencia-emergencia", tags=["urgencia_emergencia"])
+router = APIRouter(prefix="/api/urgencia-emergencia-apui", tags=["urgencia_emergencia_apui"])
 
 _DASHBOARD = {
     "upa_24h_ativa": True,

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/reabilitacao", tags=["reabilitacao"])
+router = APIRouter(prefix="/api/reabilitacao-apui", tags=["reabilitacao_apui"])
 
 _DASHBOARD = {
     "crie_implantado": False,

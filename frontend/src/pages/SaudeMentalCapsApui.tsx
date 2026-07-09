@@ -44,11 +44,11 @@ const DIAG_COLORS: Record<string, string> = {
 export default function SaudeMentalCapsApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["sm-dashboard"],    queryFn: () => apiGet("/api/saude-mental-caps/dashboard"),   enabled: aba === "dashboard" });
-  const { data: diagnosticos }= useQuery({ queryKey: ["sm-diag"],         queryFn: () => apiGet("/api/saude-mental-caps/diagnosticos"), enabled: aba === "diagnosticos" });
-  const { data: servicos }    = useQuery({ queryKey: ["sm-serv"],         queryFn: () => apiGet("/api/saude-mental-caps/servicos"),     enabled: aba === "servicos" });
-  const { data: historico }   = useQuery({ queryKey: ["sm-historico"],    queryFn: () => apiGet("/api/saude-mental-caps/historico"),    enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["sm-ind"],          queryFn: () => apiGet("/api/saude-mental-caps/indicadores"),  enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["sm-dashboard"],    queryFn: () => apiGet("/api/saude-mental-caps-apui/dashboard"),   enabled: aba === "dashboard" });
+  const { data: diagnosticos }= useQuery({ queryKey: ["sm-diag"],         queryFn: () => apiGet("/api/saude-mental-caps-apui/diagnosticos"), enabled: aba === "diagnosticos" });
+  const { data: servicos }    = useQuery({ queryKey: ["sm-serv"],         queryFn: () => apiGet("/api/saude-mental-caps-apui/servicos"),     enabled: aba === "servicos" });
+  const { data: historico }   = useQuery({ queryKey: ["sm-historico"],    queryFn: () => apiGet("/api/saude-mental-caps-apui/historico"),    enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["sm-ind"],          queryFn: () => apiGet("/api/saude-mental-caps-apui/indicadores"),  enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 

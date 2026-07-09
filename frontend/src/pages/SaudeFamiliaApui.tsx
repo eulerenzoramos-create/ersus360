@@ -36,11 +36,11 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
 export default function SaudeFamiliaApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["sf-dashboard"],  queryFn: () => apiGet("/api/saude-familia/dashboard"),  enabled: aba === "dashboard" });
-  const { data: equipes }     = useQuery({ queryKey: ["sf-equipes"],    queryFn: () => apiGet("/api/saude-familia/equipes"),    enabled: aba === "equipes" });
-  const { data: previne }     = useQuery({ queryKey: ["sf-previne"],    queryFn: () => apiGet("/api/saude-familia/previne"),    enabled: aba === "previne" });
-  const { data: historico }   = useQuery({ queryKey: ["sf-historico"],  queryFn: () => apiGet("/api/saude-familia/historico"),  enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["sf-ind"],        queryFn: () => apiGet("/api/saude-familia/indicadores"),enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["sf-dashboard"],  queryFn: () => apiGet("/api/saude-familia-apui/dashboard"),  enabled: aba === "dashboard" });
+  const { data: equipes }     = useQuery({ queryKey: ["sf-equipes"],    queryFn: () => apiGet("/api/saude-familia-apui/equipes"),    enabled: aba === "equipes" });
+  const { data: previne }     = useQuery({ queryKey: ["sf-previne"],    queryFn: () => apiGet("/api/saude-familia-apui/previne"),    enabled: aba === "previne" });
+  const { data: historico }   = useQuery({ queryKey: ["sf-historico"],  queryFn: () => apiGet("/api/saude-familia-apui/historico"),  enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["sf-ind"],        queryFn: () => apiGet("/api/saude-familia-apui/indicadores"),enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 

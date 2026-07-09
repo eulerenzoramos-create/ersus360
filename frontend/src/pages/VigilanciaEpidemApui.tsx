@@ -42,11 +42,11 @@ const TEND_BADGE: Record<string, { bg: string; text: string; label: string }> = 
 export default function VigilanciaEpidemApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }        = useQuery({ queryKey: ["ve-dashboard"],  queryFn: () => apiGet("/api/vigilancia-epidem/dashboard"),  enabled: aba === "dashboard" });
-  const { data: agravos }     = useQuery({ queryKey: ["ve-agravos"],    queryFn: () => apiGet("/api/vigilancia-epidem/agravos"),    enabled: aba === "agravos" });
-  const { data: surtos }      = useQuery({ queryKey: ["ve-surtos"],     queryFn: () => apiGet("/api/vigilancia-epidem/surtos"),     enabled: aba === "surtos" });
-  const { data: historico }   = useQuery({ queryKey: ["ve-historico"],  queryFn: () => apiGet("/api/vigilancia-epidem/historico"),  enabled: aba === "historico" });
-  const { data: indicadores } = useQuery({ queryKey: ["ve-ind"],        queryFn: () => apiGet("/api/vigilancia-epidem/indicadores"),enabled: aba === "indicadores" });
+  const { data: dash }        = useQuery({ queryKey: ["ve-dashboard"],  queryFn: () => apiGet("/api/vigilancia-epidem-apui/dashboard"),  enabled: aba === "dashboard" });
+  const { data: agravos }     = useQuery({ queryKey: ["ve-agravos"],    queryFn: () => apiGet("/api/vigilancia-epidem-apui/agravos"),    enabled: aba === "agravos" });
+  const { data: surtos }      = useQuery({ queryKey: ["ve-surtos"],     queryFn: () => apiGet("/api/vigilancia-epidem-apui/surtos"),     enabled: aba === "surtos" });
+  const { data: historico }   = useQuery({ queryKey: ["ve-historico"],  queryFn: () => apiGet("/api/vigilancia-epidem-apui/historico"),  enabled: aba === "historico" });
+  const { data: indicadores } = useQuery({ queryKey: ["ve-ind"],        queryFn: () => apiGet("/api/vigilancia-epidem-apui/indicadores"),enabled: aba === "indicadores" });
 
   const dashRaw = dash as any;
 
