@@ -321,6 +321,9 @@ from routers.saude_prisional_apui import router as saude_prisional_apui_router
 from routers.zoonoses_apui import router as zoonoses_apui_router
 from routers.aleitamento_materno_apui import router as aleitamento_materno_apui_router
 from routers.banco_sangue_hemoterapia_apui import router as banco_sangue_hemoterapia_apui_router
+from routers.doacao_orgaos_apui import router as doacao_orgaos_apui_router
+from routers.nutricao_clinica_apui import router as nutricao_clinica_apui_router
+from routers.psicologia_aps_apui import router as psicologia_aps_apui_router
 from routers.mortalidade_prematura_apui import router as mortalidade_prematura_apui_router
 from routers.saude_financeira_apui import router as saude_financeira_apui_router
 from routers.politica_prevencao_apui import router as politica_prevencao_apui_router
@@ -602,6 +605,9 @@ app.include_router(saude_prisional_apui_router)
 app.include_router(zoonoses_apui_router)
 app.include_router(aleitamento_materno_apui_router)
 app.include_router(banco_sangue_hemoterapia_apui_router)
+app.include_router(doacao_orgaos_apui_router)
+app.include_router(nutricao_clinica_apui_router)
+app.include_router(psicologia_aps_apui_router)
 app.include_router(mortalidade_prematura_apui_router)
 app.include_router(saude_financeira_apui_router)
 app.include_router(politica_prevencao_apui_router)

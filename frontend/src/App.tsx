@@ -10,7 +10,7 @@ import {
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
   AlertTriangle, BookOpen, Calendar, Clipboard, UserCheck,
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
-  Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets,
+  Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets, Utensils,
   Wind, Eye, TrendingDown, Trash2, School, Sparkles, Waves, Clock,
 } from "lucide-react";
 
@@ -293,6 +293,9 @@ import CuidadosPaliativosApui        from "./pages/CuidadosPaliativosApui";
 import GestaoLeitosApui              from "./pages/GestaoLeitosApui";
 import AleitamentoMaternoApui        from "./pages/AleitamentoMaternoApui";
 import BancoSangueHemoterapiaApui   from "./pages/BancoSangueHemoterapiaApui";
+import DoacaoOrgaosApui             from "./pages/DoacaoOrgaosApui";
+import NutricaoClinicaApui          from "./pages/NutricaoClinicaApui";
+import PsicologiaApsApui            from "./pages/PsicologiaApsApui";
 import MortalidadePrematuraApui     from "./pages/MortalidadePrematurasApui";
 import SaudeFinanceiraApui          from "./pages/SaudeFinanceiraApui";
 import PoliticaPrevencaoApui         from "./pages/PoliticaPrevencaoApui";
@@ -573,6 +576,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/banco-sangue-hemoterapia-apui" label="Banco de Sangue"       Icon={Droplets}/>
             <L1 to="/mortalidade-prematura-apui"  label="Mortalidade Prematura"  Icon={TrendingUp}/>
             <L1 to="/saude-financeira-apui"       label="Financeiro FMS"         Icon={DollarSign}/>
+            <L1 to="/doacao-orgaos-apui"          label="Doação de Órgãos"       Icon={Heart}/>
+            <L1 to="/nutricao-clinica-apui"       label="Nutrição Clínica"       Icon={Utensils}/>
+            <L1 to="/psicologia-aps-apui"         label="Psicologia APS"         Icon={Brain}/>
             <L1 to="/conselho-saude-apui"    label="Conselho de Saúde"     Icon={Users}/>
             <L1 to="/ouvidoria-apui"         label="Ouvidoria Municipal"   Icon={MessageSquare}/>
             <L1 to="/seguranca-paciente-apui"label="Segurança do Paciente" Icon={Shield}/>
@@ -1068,6 +1074,9 @@ export default function App() {
             <Route path="/gestao-leitos-apui"           element={<GestaoLeitosApui/>}/>
             <Route path="/aleitamento-materno-apui"         element={<AleitamentoMaternoApui/>}/>
             <Route path="/banco-sangue-hemoterapia-apui" element={<BancoSangueHemoterapiaApui/>}/>
+            <Route path="/doacao-orgaos-apui"            element={<DoacaoOrgaosApui/>}/>
+            <Route path="/nutricao-clinica-apui"         element={<NutricaoClinicaApui/>}/>
+            <Route path="/psicologia-aps-apui"           element={<PsicologiaApsApui/>}/>
             <Route path="/mortalidade-prematura-apui"    element={<MortalidadePrematuraApui/>}/>
             <Route path="/saude-financeira-apui"         element={<SaudeFinanceiraApui/>}/>
             <Route path="/politica-prevencao-apui"      element={<PoliticaPrevencaoApui/>}/>
