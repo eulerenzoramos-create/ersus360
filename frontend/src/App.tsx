@@ -305,6 +305,9 @@ import SaudeRibeirinhaApui           from "./pages/SaudeRibeirinhaApui";
 import VisaMunicipalApui             from "./pages/VisaMunicipalApui";
 import IntegracaoTempoRealApui       from "./pages/IntegracaoTempoRealApui";
 import SaudePopulacaoRuaApui        from "./pages/SaudePopulacaoRuaApui";
+import SaudeSexualReprodutoraApui   from "./pages/SaudeSexualReprodutoraApui";
+import AuditoriaInternaApui         from "./pages/AuditoriaInternaApui";
+import MonitoramentoMetasApui       from "./pages/MonitoramentoMetasApui";
 import GestaoRiscosSaudeApui        from "./pages/GestaoRiscosSaudeApui";
 import AcessoEspecialidadesApui     from "./pages/AcessoEspecialidadesApui";
 import { SinoAlertas } from "./components/SinoAlertas";
@@ -684,6 +687,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/saude-populacao-rua-apui"         label="Saúde Pop. Situação de Rua"  Icon={Home}/>
             <L1 to="/gestao-riscos-saude-apui"         label="Gestão de Riscos"            Icon={ShieldCheck}/>
             <L1 to="/acesso-especialidades-apui"       label="Acesso a Especialidades"     Icon={Stethoscope}/>
+            <L1 to="/saude-sexual-reprodutiva-apui"    label="Saúde Sexual e Reprodutiva"  Icon={Heart}/>
+            <L1 to="/auditoria-interna-apui"           label="Auditoria Interna"           Icon={Shield}/>
+            <L1 to="/monitoramento-metas-apui"         label="Monitoramento de Metas"      Icon={Target}/>
             <L1 to="/mercurio-garimpo-apui"           label="Mercúrio e Garimpo"       Icon={FlaskConical}/>
             <L1 to="/saude-ocular-apui"               label="Saúde Ocular"             Icon={Eye}/>
             <L1 to="/violencia-domestica-sexual-apui" label="Violência Doméstica/Sex." Icon={Shield}/>
@@ -1184,6 +1190,9 @@ export default function App() {
             <Route path="/saude-populacao-rua-apui"       element={<SaudePopulacaoRuaApui/>}/>
             <Route path="/gestao-riscos-saude-apui"       element={<GestaoRiscosSaudeApui/>}/>
             <Route path="/acesso-especialidades-apui"     element={<AcessoEspecialidadesApui/>}/>
+            <Route path="/saude-sexual-reprodutiva-apui"  element={<SaudeSexualReprodutoraApui/>}/>
+            <Route path="/auditoria-interna-apui"         element={<AuditoriaInternaApui/>}/>
+            <Route path="/monitoramento-metas-apui"       element={<MonitoramentoMetasApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
