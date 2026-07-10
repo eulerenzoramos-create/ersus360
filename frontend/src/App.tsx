@@ -304,6 +304,9 @@ import RegulacaoAcessoApui           from "./pages/RegulacaoAcessoApui";
 import SaudeRibeirinhaApui           from "./pages/SaudeRibeirinhaApui";
 import VisaMunicipalApui             from "./pages/VisaMunicipalApui";
 import IntegracaoTempoRealApui       from "./pages/IntegracaoTempoRealApui";
+import SaudePopulacaoRuaApui        from "./pages/SaudePopulacaoRuaApui";
+import GestaoRiscosSaudeApui        from "./pages/GestaoRiscosSaudeApui";
+import AcessoEspecialidadesApui     from "./pages/AcessoEspecialidadesApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -678,6 +681,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/doencas-negligenciadas-apui"  label="Doenças Negligenciadas"   Icon={Bug}/>
             <L1 to="/saude-mental-infantojuvenil-apui" label="Saúde Mental Infanto-Juv." Icon={Smile}/>
             <L1 to="/integracao-tempo-real-apui"       label="Integração Tempo Real"      Icon={Radio}/>
+            <L1 to="/saude-populacao-rua-apui"         label="Saúde Pop. Situação de Rua"  Icon={Home}/>
+            <L1 to="/gestao-riscos-saude-apui"         label="Gestão de Riscos"            Icon={ShieldCheck}/>
+            <L1 to="/acesso-especialidades-apui"       label="Acesso a Especialidades"     Icon={Stethoscope}/>
             <L1 to="/mercurio-garimpo-apui"           label="Mercúrio e Garimpo"       Icon={FlaskConical}/>
             <L1 to="/saude-ocular-apui"               label="Saúde Ocular"             Icon={Eye}/>
             <L1 to="/violencia-domestica-sexual-apui" label="Violência Doméstica/Sex." Icon={Shield}/>
@@ -1175,6 +1181,9 @@ export default function App() {
             <Route path="/doencas-negligenciadas-apui"   element={<DoencasNegligenciadasApui/>}/>
             <Route path="/saude-mental-infantojuvenil-apui" element={<SaudeMentalInfantoJuvenilApui/>}/>
             <Route path="/integracao-tempo-real-apui"      element={<IntegracaoTempoRealApui/>}/>
+            <Route path="/saude-populacao-rua-apui"       element={<SaudePopulacaoRuaApui/>}/>
+            <Route path="/gestao-riscos-saude-apui"       element={<GestaoRiscosSaudeApui/>}/>
+            <Route path="/acesso-especialidades-apui"     element={<AcessoEspecialidadesApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

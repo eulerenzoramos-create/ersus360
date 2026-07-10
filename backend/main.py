@@ -662,6 +662,12 @@ app.include_router(integracao_fns_apui_router)
 app.include_router(integracao_egestor_apui_router)
 app.include_router(integracao_esuspec_apui_router)
 app.include_router(integracao_siaps_apui_router)
+from routers.saude_populacao_rua_apui import router as saude_populacao_rua_apui_router
+from routers.gestao_riscos_saude_apui import router as gestao_riscos_saude_apui_router
+from routers.acesso_especialidades_apui import router as acesso_especialidades_apui_router
+app.include_router(saude_populacao_rua_apui_router)
+app.include_router(gestao_riscos_saude_apui_router)
+app.include_router(acesso_especialidades_apui_router)
 
 
 @app.get("/")
