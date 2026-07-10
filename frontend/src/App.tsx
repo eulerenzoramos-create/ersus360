@@ -12,7 +12,7 @@ import {
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
   Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets, Utensils,
   Wind, Eye, TrendingDown, Trash2, School, Sparkles, Waves, Clock,
-  HeartPulse, HandHeart,
+  HeartPulse, HandHeart, Scale,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -299,6 +299,9 @@ import SuaSusApui                   from "./pages/SuaSusApui";
 import CadeiaFrioApui               from "./pages/CadeiaFrioApui";
 import MatriciamentoNasfApui        from "./pages/MatriciamentoNasfApui";
 import CeacAmbulatorialApui         from "./pages/CeacAmbulatorialApui";
+import FarmacovigilanciaApui        from "./pages/FarmacovigilanciaApui";
+import BancoLeiteApui               from "./pages/BancoLeiteApui";
+import JudicializacaoSaudeApui      from "./pages/JudicializacaoSaudeApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -685,6 +688,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/cadeia-frio-apui"                 label="Cadeia de Frio / PNI"         Icon={Thermometer}/>
             <L1 to="/matriciamento-nasf-apui"          label="Matriciamento NASF/eMulti"    Icon={Users}/>
             <L1 to="/ceac-ambulatorial-apui"           label="CEAC Ambulatorial"            Icon={Stethoscope}/>
+            <L1 to="/farmacovigilancia-apui"           label="Farmacovigilância"             Icon={FlaskConical}/>
+            <L1 to="/banco-leite-apui"                 label="Banco de Leite Humano"         Icon={Baby}/>
+            <L1 to="/judicializacao-saude-apui"        label="Judicialização em Saúde"       Icon={Scale}/>
             <L1 to="/mercurio-garimpo-apui"           label="Mercúrio e Garimpo"       Icon={FlaskConical}/>
             <L1 to="/saude-ocular-apui"               label="Saúde Ocular"             Icon={Eye}/>
             <L1 to="/violencia-domestica-sexual-apui" label="Violência Doméstica/Sex." Icon={Shield}/>
@@ -1178,6 +1184,9 @@ export default function App() {
             <Route path="/cadeia-frio-apui"               element={<CadeiaFrioApui/>}/>
             <Route path="/matriciamento-nasf-apui"        element={<MatriciamentoNasfApui/>}/>
             <Route path="/ceac-ambulatorial-apui"         element={<CeacAmbulatorialApui/>}/>
+            <Route path="/farmacovigilancia-apui"          element={<FarmacovigilanciaApui/>}/>
+            <Route path="/banco-leite-apui"                element={<BancoLeiteApui/>}/>
+            <Route path="/judicializacao-saude-apui"       element={<JudicializacaoSaudeApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

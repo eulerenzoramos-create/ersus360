@@ -610,6 +610,12 @@ from routers.ceac_ambulatorial_apui import router as ceac_ambulatorial_apui_rout
 app.include_router(cadeia_frio_apui_router)
 app.include_router(matriciamento_nasf_apui_router)
 app.include_router(ceac_ambulatorial_apui_router)
+from routers.farmacovigilancia_apui import router as farmacovigilancia_apui_router
+from routers.banco_leite_apui import router as banco_leite_apui_router
+from routers.judicializacao_saude_apui import router as judicializacao_saude_apui_router
+app.include_router(farmacovigilancia_apui_router)
+app.include_router(banco_leite_apui_router)
+app.include_router(judicializacao_saude_apui_router)
 
 
 @app.get("/")
