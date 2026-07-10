@@ -296,6 +296,9 @@ import AcessoEspecialidadesApui     from "./pages/AcessoEspecialidadesApui";
 import ControleVetorialApui         from "./pages/ControleVetorialApui";
 import ComiteMortalidadeApui        from "./pages/ComiteMortalidadeApui";
 import SuaSusApui                   from "./pages/SuaSusApui";
+import CadeiaFrioApui               from "./pages/CadeiaFrioApui";
+import MatriciamentoNasfApui        from "./pages/MatriciamentoNasfApui";
+import CeacAmbulatorialApui         from "./pages/CeacAmbulatorialApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -679,6 +682,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/controle-vetorial-apui"           label="Controle Vetorial"            Icon={Bug}/>
             <L1 to="/comite-mortalidade-apui"          label="Comitê de Mortalidade"        Icon={HeartPulse}/>
             <L1 to="/suas-sus-apui"                    label="Interface SUAS/SUS"           Icon={HandHeart}/>
+            <L1 to="/cadeia-frio-apui"                 label="Cadeia de Frio / PNI"         Icon={Thermometer}/>
+            <L1 to="/matriciamento-nasf-apui"          label="Matriciamento NASF/eMulti"    Icon={Users}/>
+            <L1 to="/ceac-ambulatorial-apui"           label="CEAC Ambulatorial"            Icon={Stethoscope}/>
             <L1 to="/mercurio-garimpo-apui"           label="Mercúrio e Garimpo"       Icon={FlaskConical}/>
             <L1 to="/saude-ocular-apui"               label="Saúde Ocular"             Icon={Eye}/>
             <L1 to="/violencia-domestica-sexual-apui" label="Violência Doméstica/Sex." Icon={Shield}/>
@@ -1169,6 +1175,9 @@ export default function App() {
             <Route path="/controle-vetorial-apui"         element={<ControleVetorialApui/>}/>
             <Route path="/comite-mortalidade-apui"        element={<ComiteMortalidadeApui/>}/>
             <Route path="/suas-sus-apui"                  element={<SuaSusApui/>}/>
+            <Route path="/cadeia-frio-apui"               element={<CadeiaFrioApui/>}/>
+            <Route path="/matriciamento-nasf-apui"        element={<MatriciamentoNasfApui/>}/>
+            <Route path="/ceac-ambulatorial-apui"         element={<CeacAmbulatorialApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

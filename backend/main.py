@@ -604,6 +604,12 @@ from routers.suas_sus_apui import router as suas_sus_apui_router
 app.include_router(controle_vetorial_apui_router)
 app.include_router(comite_mortalidade_apui_router)
 app.include_router(suas_sus_apui_router)
+from routers.cadeia_frio_apui import router as cadeia_frio_apui_router
+from routers.matriciamento_nasf_apui import router as matriciamento_nasf_apui_router
+from routers.ceac_ambulatorial_apui import router as ceac_ambulatorial_apui_router
+app.include_router(cadeia_frio_apui_router)
+app.include_router(matriciamento_nasf_apui_router)
+app.include_router(ceac_ambulatorial_apui_router)
 
 
 @app.get("/")
