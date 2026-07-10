@@ -12,6 +12,7 @@ import {
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
   Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets, Utensils,
   Wind, Eye, TrendingDown, Trash2, School, Sparkles, Waves, Clock,
+  HeartPulse, HandHeart,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -292,6 +293,9 @@ import AuditoriaInternaApui         from "./pages/AuditoriaInternaApui";
 import MonitoramentoMetasApui       from "./pages/MonitoramentoMetasApui";
 import GestaoRiscosSaudeApui        from "./pages/GestaoRiscosSaudeApui";
 import AcessoEspecialidadesApui     from "./pages/AcessoEspecialidadesApui";
+import ControleVetorialApui         from "./pages/ControleVetorialApui";
+import ComiteMortalidadeApui        from "./pages/ComiteMortalidadeApui";
+import SuaSusApui                   from "./pages/SuaSusApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -672,6 +676,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/saude-sexual-reprodutiva-apui"    label="Saúde Sexual e Reprodutiva"  Icon={Heart}/>
             <L1 to="/auditoria-interna-apui"           label="Auditoria Interna"           Icon={Shield}/>
             <L1 to="/monitoramento-metas-apui"         label="Monitoramento de Metas"      Icon={Target}/>
+            <L1 to="/controle-vetorial-apui"           label="Controle Vetorial"            Icon={Bug}/>
+            <L1 to="/comite-mortalidade-apui"          label="Comitê de Mortalidade"        Icon={HeartPulse}/>
+            <L1 to="/suas-sus-apui"                    label="Interface SUAS/SUS"           Icon={HandHeart}/>
             <L1 to="/mercurio-garimpo-apui"           label="Mercúrio e Garimpo"       Icon={FlaskConical}/>
             <L1 to="/saude-ocular-apui"               label="Saúde Ocular"             Icon={Eye}/>
             <L1 to="/violencia-domestica-sexual-apui" label="Violência Doméstica/Sex." Icon={Shield}/>
@@ -1159,6 +1166,9 @@ export default function App() {
             <Route path="/saude-sexual-reprodutiva-apui"  element={<SaudeSexualReprodutoraApui/>}/>
             <Route path="/auditoria-interna-apui"         element={<AuditoriaInternaApui/>}/>
             <Route path="/monitoramento-metas-apui"       element={<MonitoramentoMetasApui/>}/>
+            <Route path="/controle-vetorial-apui"         element={<ControleVetorialApui/>}/>
+            <Route path="/comite-mortalidade-apui"        element={<ComiteMortalidadeApui/>}/>
+            <Route path="/suas-sus-apui"                  element={<SuaSusApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>

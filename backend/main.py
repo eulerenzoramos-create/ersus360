@@ -598,6 +598,12 @@ from routers.monitoramento_metas_apui import router as monitoramento_metas_apui_
 app.include_router(saude_sexual_reprodutiva_apui_router)
 app.include_router(auditoria_interna_apui_router)
 app.include_router(monitoramento_metas_apui_router)
+from routers.controle_vetorial_apui import router as controle_vetorial_apui_router
+from routers.comite_mortalidade_apui import router as comite_mortalidade_apui_router
+from routers.suas_sus_apui import router as suas_sus_apui_router
+app.include_router(controle_vetorial_apui_router)
+app.include_router(comite_mortalidade_apui_router)
+app.include_router(suas_sus_apui_router)
 
 
 @app.get("/")
