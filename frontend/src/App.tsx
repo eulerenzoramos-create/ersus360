@@ -61,7 +61,6 @@ import PainelGestaoAPS  from "./pages/PainelGestaoAPS";
 import SiapsEgestor      from "./pages/SiapsEgestor";
 import PainelCAF         from "./pages/PainelCAF";
 import Ouvidoria         from "./pages/Ouvidoria";
-import Contratos         from "./pages/Contratos";
 import RegulacaoMAC      from "./pages/RegulacaoMAC";
 import PainelPPALOA      from "./pages/PainelPPALOA";
 import Absenteismo        from "./pages/Absenteismo";
@@ -74,32 +73,25 @@ import TransporteSanitario     from "./pages/TransporteSanitario";
 import ProducaoSISAB           from "./pages/ProducaoSISAB";
 import SaudeMulher             from "./pages/SaudeMulher";
 import ConselhoSaude           from "./pages/ConselhoSaude";
-import SaudeBucal              from "./pages/SaudeBucal";
 import SaudeCrianca            from "./pages/SaudeCrianca";
 import VigilanciaVISA          from "./pages/VigilanciaVISA";
 import ControleVetores         from "./pages/ControleVetores";
 import SISVAN                  from "./pages/SISVAN";
 import AtencaoDomiciliar       from "./pages/AtencaoDomiciliar";
-import SaudeIndigena           from "./pages/SaudeIndigena";
 import TbHanseniase            from "./pages/TbHanseniase";
 import IstHiv                  from "./pages/IstHiv";
 import SaudeIdoso              from "./pages/SaudeIdoso";
 import SaudeHomem              from "./pages/SaudeHomem";
 import SimSinasc               from "./pages/SimSinasc";
 import SaudeTrabalhador        from "./pages/SaudeTrabalhador";
-import SaudeMental             from "./pages/SaudeMental";
 import UrgenciaEmergencia      from "./pages/UrgenciaEmergencia";
 import SaudeAdolescente        from "./pages/SaudeAdolescente";
 import HiperDia                from "./pages/HiperDia";
-import CancerRastreio          from "./pages/CancerRastreio";
 import RedeFrio                from "./pages/RedeFrio";
-import Reabilitacao            from "./pages/Reabilitacao";
 import FarmaciaEspecializada   from "./pages/FarmaciaEspecializada";
-import SaudeAmbiental          from "./pages/SaudeAmbiental";
 import GestaoLeitos            from "./pages/GestaoLeitos";
 import RegulacaoAcesso         from "./pages/RegulacaoAcesso";
 import ControleTabaco          from "./pages/ControleTabaco";
-import SaudeOcular             from "./pages/SaudeOcular";
 import ICSAP                   from "./pages/ICSAP";
 import Hemoterapia             from "./pages/Hemoterapia";
 import CCIH                    from "./pages/CCIH";
@@ -107,7 +99,6 @@ import SADT                    from "./pages/SADT";
 import SaudePrisional          from "./pages/SaudePrisional";
 import NutricaoClinica         from "./pages/NutricaoClinica";
 import Telessaude              from "./pages/Telessaude";
-import Oncologia               from "./pages/Oncologia";
 import PGRSS                   from "./pages/PGRSS";
 import EducacaoPermanente      from "./pages/EducacaoPermanente";
 import Farmacovigilancia       from "./pages/Farmacovigilancia";
@@ -138,15 +129,12 @@ import AcademiaSaude           from "./pages/AcademiaSaude";
 import Laboratorio             from "./pages/Laboratorio";
 import CRIE                   from "./pages/CRIE";
 import ProtocoloClinico        from "./pages/ProtocoloClinico";
-import CuidadosPaliativos      from "./pages/CuidadosPaliativos";
 import ConsultorioRua          from "./pages/ConsultorioRua";
-import SaudeRibeirinha         from "./pages/SaudeRibeirinha";
 import CEREST                  from "./pages/CEREST";
 import CAPSInfanto             from "./pages/CAPSInfanto";
 import VigilanciaObito         from "./pages/VigilanciaObito";
 import CAPSAD                  from "./pages/CAPSAD";
 import SaudeEstomia            from "./pages/SaudeEstomia";
-import RedeCegonha             from "./pages/RedeCegonha";
 import TriagemNeonatal         from "./pages/TriagemNeonatal";
 import ViolenciaDomestica      from "./pages/ViolenciaDomestica";
 import Malaria                 from "./pages/Malaria";
@@ -196,12 +184,9 @@ import SaudeRibeirinha           from "./pages/SaudeRibeirinha";
 import ReabilitacaoApui          from "./pages/ReabilitacaoApui";
 import SaudeFamiliaApui          from "./pages/SaudeFamiliaApui";
 import SaudeMentalCapsApui       from "./pages/SaudeMentalCapsApui";
-import ImunizacaoApui            from "./pages/ImunizacaoApui";
 import VigilanciaEpidemApui      from "./pages/VigilanciaEpidemApui";
 import SaudeMulherApui           from "./pages/SaudeMulherApui";
-import SaudeCriancaApui          from "./pages/SaudeCriancaApui";
 import HiperdiaApui              from "./pages/HiperdiaApui";
-import SaudeIdosoApui            from "./pages/SaudeIdosoApui";
 import OncologiaApui             from "./pages/OncologiaApui";
 import TuberculoseApui           from "./pages/TuberculoseApui";
 import MalariaApui               from "./pages/MalariaApui";
@@ -246,7 +231,6 @@ import SaudeNeonatalApui              from "./pages/SaudeNeonatalApui";
 import InfeccoesHospitalaresApui      from "./pages/InfeccoesHospitalaresApui";
 import RegulacaoReferenciaApui        from "./pages/RegulacaoReferenciaApui";
 import SaudeHomemApui                 from "./pages/SaudeHomemApui";
-import SaudeOcularApui                from "./pages/SaudeOcularApui";
 import SaudeAuditivaApui              from "./pages/SaudeAuditivaApui";
 import SaudeAdolescenteApui           from "./pages/SaudeAdolescenteApui";
 import DoencasRarasApui               from "./pages/DoencasRarasApui";
@@ -269,8 +253,6 @@ import ZoonosesApui                  from "./pages/ZoonosesApui";
 import AtividadeFisicaApui           from "./pages/AtividadeFisicaApui";
 import InfraestruturaUbsApui         from "./pages/InfraestruturaUbsApui";
 import MedicamentosAltoCustoApui     from "./pages/MedicamentosAltoCustoApui";
-import ViolenciaDomesticaSexualApui  from "./pages/ViolenciaDomesticaSexualApui";
-import MercurioGarimpoApui           from "./pages/MercurioGarimpoApui";
 import ResiduosSolidosUrbanosApui    from "./pages/ResiduosSolidosUrbanosApui";
 import FilaCirurgicaApui             from "./pages/FilaCirurgicaApui";
 import PrevencaoSuicidioApui         from "./pages/PrevencaoSuicidioApui";
@@ -948,7 +930,6 @@ export default function App() {
             <Route path="/siaps"                     element={<SiapsEgestor/>}/>
             <Route path="/caf"                       element={<PainelCAF/>}/>
             <Route path="/ouvidoria"                 element={<Ouvidoria/>}/>
-            <Route path="/contratos"                 element={<Contratos/>}/>
             <Route path="/regulacao-mac"             element={<RegulacaoMAC/>}/>
             <Route path="/ppa-loa"                   element={<PainelPPALOA/>}/>
             <Route path="/absenteismo"               element={<Absenteismo/>}/>
@@ -956,37 +937,26 @@ export default function App() {
             <Route path="/raps"                      element={<RAPS/>}/>
             <Route path="/manutencao"                element={<Manutencao/>}/>
             <Route path="/vigilancia-epid"           element={<NotificacoesSINAN/>}/>
-            <Route path="/assist-farmaceutica"       element={<AssistenciaFarmaceutica/>}/>
             <Route path="/transporte-sanitario"      element={<TransporteSanitario/>}/>
             <Route path="/producao-sisab"            element={<ProducaoSISAB/>}/>
             <Route path="/saude-mulher"              element={<SaudeMulher/>}/>
             <Route path="/conselho-saude"            element={<ConselhoSaude/>}/>
-            <Route path="/saude-bucal"               element={<SaudeBucal/>}/>
             <Route path="/saude-crianca"             element={<SaudeCrianca/>}/>
             <Route path="/visa"                      element={<VigilanciaVISA/>}/>
             <Route path="/vetores"                   element={<ControleVetores/>}/>
             <Route path="/sisvan"                    element={<SISVAN/>}/>
             <Route path="/atencao-domiciliar"        element={<AtencaoDomiciliar/>}/>
-            <Route path="/saude-indigena"            element={<SaudeIndigena/>}/>
             <Route path="/tb-hanseniase"             element={<TbHanseniase/>}/>
             <Route path="/ist-hiv"                   element={<IstHiv/>}/>
             <Route path="/saude-idoso"               element={<SaudeIdoso/>}/>
             <Route path="/saude-homem"               element={<SaudeHomem/>}/>
             <Route path="/sim-sinasc"                element={<SimSinasc/>}/>
             <Route path="/saude-trabalhador"         element={<SaudeTrabalhador/>}/>
-            <Route path="/saude-mental"              element={<SaudeMental/>}/>
-            <Route path="/urgencia-emergencia"       element={<UrgenciaEmergencia/>}/>
             <Route path="/saude-adolescente"         element={<SaudeAdolescente/>}/>
             <Route path="/hiperdia"                  element={<HiperDia/>}/>
-            <Route path="/cancer-rastreio"           element={<CancerRastreio/>}/>
             <Route path="/rede-frio"                 element={<RedeFrio/>}/>
-            <Route path="/reabilitacao"              element={<Reabilitacao/>}/>
             <Route path="/farmacia-especializada"    element={<FarmaciaEspecializada/>}/>
-            <Route path="/saude-ambiental"           element={<SaudeAmbiental/>}/>
-            <Route path="/gestao-leitos"             element={<GestaoLeitos/>}/>
-            <Route path="/regulacao-acesso"          element={<RegulacaoAcesso/>}/>
             <Route path="/controle-tabaco"           element={<ControleTabaco/>}/>
-            <Route path="/saude-ocular"              element={<SaudeOcular/>}/>
             <Route path="/icsap"                     element={<ICSAP/>}/>
             <Route path="/hemoterapia"               element={<Hemoterapia/>}/>
             <Route path="/ccih"                      element={<CCIH/>}/>
@@ -994,7 +964,6 @@ export default function App() {
             <Route path="/saude-prisional"           element={<SaudePrisional/>}/>
             <Route path="/nutricao-clinica"          element={<NutricaoClinica/>}/>
             <Route path="/telessaude"                element={<Telessaude/>}/>
-            <Route path="/oncologia"                 element={<Oncologia/>}/>
             <Route path="/pgrss"                     element={<PGRSS/>}/>
             <Route path="/educacao-permanente"       element={<EducacaoPermanente/>}/>
             <Route path="/farmacovigilancia"         element={<Farmacovigilancia/>}/>
@@ -1025,15 +994,12 @@ export default function App() {
             <Route path="/laboratorio"               element={<Laboratorio/>}/>
             <Route path="/crie"                      element={<CRIE/>}/>
             <Route path="/protocolo-clinico"         element={<ProtocoloClinico/>}/>
-            <Route path="/cuidados-paliativos"        element={<CuidadosPaliativos/>}/>
             <Route path="/consultorio-rua"           element={<ConsultorioRua/>}/>
-            <Route path="/saude-ribeirinha"          element={<SaudeRibeirinha/>}/>
             <Route path="/cerest"                    element={<CEREST/>}/>
             <Route path="/caps-infanto"              element={<CAPSInfanto/>}/>
             <Route path="/vigilancia-obito"          element={<VigilanciaObito/>}/>
             <Route path="/caps-ad"                   element={<CAPSAD/>}/>
             <Route path="/saude-estomia"             element={<SaudeEstomia/>}/>
-            <Route path="/rede-cegonha"              element={<RedeCegonha/>}/>
             <Route path="/triagem-neonatal"          element={<TriagemNeonatal/>}/>
             <Route path="/violencia-domestica"       element={<ViolenciaDomestica/>}/>
             <Route path="/malaria"                   element={<Malaria/>}/>
