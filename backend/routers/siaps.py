@@ -493,6 +493,7 @@ _MENSAL_EQUIPES_EVOL = [
     {"equipe": "GUARIBA",       "nov": 27.0, "dez": 28.2, "jan": 29.0, "fev": 29.5, "mar": 30.0, "abr": 30.0, "tendencia": "crescente"},
     {"equipe": "RIO NOVO",      "nov": 22.5, "dez": 23.0, "jan": 23.5, "fev": 23.8, "mar": 24.0, "abr": 24.0, "tendencia": "estavel"},
     {"equipe": "SUCURIÚ",       "nov": 28.5, "dez": 29.2, "jan": 30.0, "fev": 30.5, "mar": 31.0, "abr": 31.0, "tendencia": "crescente"},
+    {"equipe": "RIBEIRINHA",    "nov": 19.0, "dez": 19.5, "jan": 20.0, "fev": 21.0, "mar": 22.0, "abr": 22.5, "tendencia": "crescente"},
 ]
 
 @router.get("/qualidade/mensal")
@@ -523,15 +524,76 @@ _QUAD_COMPARATIVO = [
 ]
 
 _QUAD_EQUIPES_RESUMO = [
-    {"equipe": "CACHOEIRA",     "1q_2025": 32.0, "2q_2025": 34.5, "3q_2025": 36.8, "1q_2026": 38.5, "status": "bom",       "variacao": +1.7},
-    {"equipe": "SÃO SEBASTIÃO", "1q_2025": 30.5, "2q_2025": 33.0, "3q_2025": 34.8, "1q_2026": 36.2, "status": "bom",       "variacao": +1.4},
-    {"equipe": "ACARI",         "1q_2025": 30.0, "2q_2025": 32.5, "3q_2025": 34.2, "1q_2026": 35.8, "status": "bom",       "variacao": +1.6},
-    {"equipe": "TRÊS ESTADOS",  "1q_2025": 14.5, "2q_2025": 16.0, "3q_2025": 17.5, "1q_2026": 18.4, "status": "regular",   "variacao": +0.9},
-    {"equipe": "JUMA",          "1q_2025": 34.2, "2q_2025": 36.5, "3q_2025": 38.0, "1q_2026": 39.1, "status": "bom",       "variacao": +1.1},
-    {"equipe": "LIBERDADE",     "1q_2025": 39.5, "2q_2025": 41.8, "3q_2025": 43.5, "1q_2026": 44.8, "status": "otimo",     "variacao": +1.3},
-    {"equipe": "GUARIBA",       "1q_2025": 24.0, "2q_2025": 26.5, "3q_2025": 28.5, "1q_2026": 30.0, "status": "suficiente","variacao": +1.5},
-    {"equipe": "RIO NOVO",      "1q_2025": 20.0, "2q_2025": 21.5, "3q_2025": 23.0, "1q_2026": 24.0, "status": "suficiente","variacao": +1.0},
-    {"equipe": "SUCURIÚ",       "1q_2025": 26.0, "2q_2025": 28.0, "3q_2025": 30.0, "1q_2026": 31.0, "status": "suficiente","variacao": +1.0},
+    {
+        "equipe": "CACHOEIRA", "ubs": "UBS IRMÃ ELIZABETE", "tipo": "eSF",
+        "1q_2025": 32.0, "2q_2025": 34.5, "3q_2025": 36.8, "1q_2026": 38.5,
+        "status": "bom", "variacao": +1.7,
+        "ind1": 72.5, "ind2": 38.0, "ind3": 76.5, "ind4": 82.0, "ind5": 70.5, "ind6": 55.0, "ind7": 67.0,
+        "obs": None,
+    },
+    {
+        "equipe": "SÃO SEBASTIÃO", "ubs": "UBS ANIZIO FERREIRA DA SILVA", "tipo": "eSF",
+        "1q_2025": 30.5, "2q_2025": 33.0, "3q_2025": 34.8, "1q_2026": 36.2,
+        "status": "bom", "variacao": +1.4,
+        "ind1": 70.8, "ind2": 35.5, "ind3": 75.0, "ind4": 80.5, "ind5": 68.2, "ind6": 53.0, "ind7": 65.0,
+        "obs": None,
+    },
+    {
+        "equipe": "ACARI", "ubs": "UBS ANIZIO FERREIRA DA SILVA", "tipo": "eSF",
+        "1q_2025": 30.0, "2q_2025": 32.5, "3q_2025": 34.2, "1q_2026": 35.8,
+        "status": "bom", "variacao": +1.6,
+        "ind1": 69.5, "ind2": 36.8, "ind3": 74.0, "ind4": 79.5, "ind5": 67.0, "ind6": 52.5, "ind7": 64.5,
+        "obs": None,
+    },
+    {
+        "equipe": "TRÊS ESTADOS", "ubs": "UBS OSVALDO LEMES CABRAL", "tipo": "eSF",
+        "1q_2025": 14.5, "2q_2025": 16.0, "3q_2025": 17.5, "1q_2026": 18.4,
+        "status": "regular", "variacao": +0.9,
+        "ind1": 42.0, "ind2": 18.5, "ind3": 55.0, "ind4": 58.0, "ind5": 40.0, "ind6": 28.0, "ind7": 35.0,
+        "obs": "Equipe incompleta — médico ausente há 2 meses. Requer ação imediata.",
+    },
+    {
+        "equipe": "JUMA", "ubs": "CENTRO DE SAÚDE CURUMIM", "tipo": "eSF",
+        "1q_2025": 34.2, "2q_2025": 36.5, "3q_2025": 38.0, "1q_2026": 39.1,
+        "status": "bom", "variacao": +1.1,
+        "ind1": 73.0, "ind2": 37.5, "ind3": 76.0, "ind4": 82.5, "ind5": 71.0, "ind6": 55.5, "ind7": 67.5,
+        "obs": None,
+    },
+    {
+        "equipe": "LIBERDADE", "ubs": "CENTRO DE SAÚDE CURUMIM", "tipo": "eSF",
+        "1q_2025": 39.5, "2q_2025": 41.8, "3q_2025": 43.5, "1q_2026": 44.8,
+        "status": "otimo", "variacao": +1.3,
+        "ind1": 78.5, "ind2": 42.0, "ind3": 82.0, "ind4": 96.0, "ind5": 75.0, "ind6": 62.0, "ind7": 74.0,
+        "obs": "Melhor desempenho municipal — referência para as demais equipes.",
+    },
+    {
+        "equipe": "GUARIBA", "ubs": "UBS GUARIBA", "tipo": "eSF",
+        "1q_2025": 24.0, "2q_2025": 26.5, "3q_2025": 28.5, "1q_2026": 30.0,
+        "status": "suficiente", "variacao": +1.5,
+        "ind1": 65.0, "ind2": 30.5, "ind3": 70.0, "ind4": 72.0, "ind5": 62.0, "ind6": 48.0, "ind7": 58.0,
+        "obs": None,
+    },
+    {
+        "equipe": "RIO NOVO", "ubs": "UBS RIO NOVO", "tipo": "eSF",
+        "1q_2025": 20.0, "2q_2025": 21.5, "3q_2025": 23.0, "1q_2026": 24.0,
+        "status": "suficiente", "variacao": +1.0,
+        "ind1": 62.0, "ind2": 28.0, "ind3": 68.0, "ind4": 70.0, "ind5": 60.0, "ind6": 45.0, "ind7": 55.0,
+        "obs": None,
+    },
+    {
+        "equipe": "SUCURIÚ", "ubs": "UBS SUCURIÚ", "tipo": "eSF",
+        "1q_2025": 26.0, "2q_2025": 28.0, "3q_2025": 30.0, "1q_2026": 31.0,
+        "status": "suficiente", "variacao": +1.0,
+        "ind1": 66.0, "ind2": 31.5, "ind3": 71.0, "ind4": 73.5, "ind5": 63.0, "ind6": 49.0, "ind7": 59.0,
+        "obs": None,
+    },
+    {
+        "equipe": "RIBEIRINHA", "ubs": "USF FLUVIAL APUÍ", "tipo": "eSFR",
+        "1q_2025": 18.0, "2q_2025": 19.5, "3q_2025": 21.0, "1q_2026": 22.5,
+        "status": "suficiente", "variacao": +1.5,
+        "ind1": 58.0, "ind2": 22.0, "ind3": 63.0, "ind4": 65.0, "ind5": 55.0, "ind6": 38.0, "ind7": 50.0,
+        "obs": "USF Fluvial — atende comunidades ribeirinhas. Acesso sazonal limita produção. Cito depende de coleta presencial na UBS sede.",
+    },
 ]
 
 @router.get("/qualidade/quadrimestral")

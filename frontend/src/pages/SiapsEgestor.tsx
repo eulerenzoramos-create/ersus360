@@ -802,103 +802,255 @@ function AbaBoasPraticas({ data }: { data: any }) {
 
 // ── Aba: Avaliação Quadrimestral ──────────────────────────────────────────────
 
+const IND_LABELS = ["Pré-natal","Cito","DTP/Penta","Consulta RN","HAS","DM","Des. Infantil"];
+const IND_KEYS   = ["ind1","ind2","ind3","ind4","ind5","ind6","ind7"];
+const IND_METAS  = [60, 60, 95, 60, 50, 50, 60];
+
+function CardEquipe({ e, periodo }: { e: any; periodo: "mensal" | "quadrimestral" }) {
+  const [open, setOpen] = useState(false);
+  const cols = periodo === "quadrimestral"
+    ? [["1Q/25","1q_2025"],["2Q/25","2q_2025"],["3Q/25","3q_2025"],["1Q/26","1q_2026"]]
+    : [["Nov","nov"],["Dez","dez"],["Jan","jan"],["Fev","fev"],["Mar","mar"],["Abr","abr"]];
+  const ultimo = cols[cols.length - 1][1];
+  return (
+    <div style={{ border: `1px solid ${COR_STATUS(e.status)}33`, borderLeft: `4px solid ${COR_STATUS(e.status)}`, borderRadius: 10, background: "#fff", overflow: "hidden" }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer" }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, color: "#9ca3af" }}>{e.ubs} · {e.tipo}</div>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>Equipe: {e.equipe}</div>
+          {e.obs && <div style={{ fontSize: 11, color: "#d97706", marginTop: 2 }}>⚠ {e.obs}</div>}
+        </div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {cols.map(([label, key]) => (
+            <div key={key} style={{ textAlign: "center", minWidth: 44 }}>
+              <div style={{ fontSize: 13, fontWeight: key === ultimo ? 800 : 400, color: key === ultimo ? COR_STATUS(e.status) : "#9ca3af" }}>
+                {e[key] ?? "—"}
+              </div>
+              <div style={{ fontSize: 9, color: "#c4c4c4" }}>{label}</div>
+            </div>
+          ))}
+          <div style={{ marginLeft: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, background: COR_STATUS(e.status) + "18", color: COR_STATUS(e.status), padding: "3px 10px", borderRadius: 10 }}>
+              {LABEL_STATUS(e.status)}
+            </span>
+            <div style={{ fontSize: 11, color: "#16a34a", textAlign: "center", marginTop: 2 }}>+{e.variacao}</div>
+          </div>
+          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </div>
+      </div>
+      {open && (
+        <div style={{ padding: "14px 16px", borderTop: "1px solid #f3f4f6", background: "#fafafa" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8", marginBottom: 10 }}>Indicadores Previne Brasil — {e.equipe}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8 }}>
+            {IND_KEYS.map((k, i) => {
+              const val = e[k] ?? 0;
+              const meta = IND_METAS[i];
+              const atingiu = val >= meta;
+              return (
+                <div key={k} style={{ textAlign: "center", background: "#fff", border: `1px solid ${atingiu ? "#bbf7d0" : "#fca5a5"}`, borderRadius: 8, padding: "10px 6px" }}>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: atingiu ? "#16a34a" : "#dc2626" }}>{val}%</div>
+                  <div style={{ fontSize: 9, color: "#9ca3af", marginTop: 2 }}>meta {meta}%</div>
+                  <div style={{ fontSize: 9, marginTop: 3, color: "#6b7280" }}>{IND_LABELS[i]}</div>
+                  <div style={{ fontSize: 10, marginTop: 3 }}>{atingiu ? "✓" : "✗"}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AbaQuadrimestre({ dashData }: { dashData: any }) {
-  if (!dashData) return null;
+  const [periodo, setPeriodo]     = useState<"mensal" | "quadrimestral">("quadrimestral");
+  const [equipeFiltro, setEquipeFiltro] = useState("TODAS");
+
+  const { data: quadData } = useQuery({ queryKey: ["siaps-quad2"], queryFn: () => apiGet("/api/siaps/qualidade/quadrimestral") as Promise<any> });
+  const { data: mensalData } = useQuery({ queryKey: ["siaps-mensal2"], queryFn: () => apiGet("/api/siaps/qualidade/mensal") as Promise<any> });
+
+  if (!dashData || !quadData || !mensalData) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+
+  const equipes: any[] = quadData.equipes ?? [];
+  const nomes = ["TODAS", ...equipes.map((e: any) => e.equipe)];
+
+  const equipesFiltradas = equipeFiltro === "TODAS" ? equipes : equipes.filter((e: any) => e.equipe === equipeFiltro);
+
+  const mensal_equipes: any[] = mensalData.equipes_evolucao ?? [];
+  const mensal_filtradas = equipeFiltro === "TODAS" ? mensal_equipes : mensal_equipes.filter((e: any) => e.equipe === equipeFiltro);
+
   const v = dashData.vinculo;
   const q = dashData.qualidade;
-
   const radarData = [
-    { indicador: "Vínculo", valor: v.pontuacao_media * 10 },
-    { indicador: "Qualidade", valor: Math.min(q.pontuacao_media, 50) * 2 },
+    { indicador: "Vínculo",       valor: v.pontuacao_media * 10 },
+    { indicador: "Qualidade",     valor: Math.min(q.pontuacao_media, 50) * 2 },
     { indicador: "Cobertura ESF", valor: 82 },
-    { indicador: "Previne (Cito)", valor: q.cito_meta_pct_media },
-    { indicador: "SISAB", valor: 97 },
+    { indicador: "Previne (Cito)",valor: q.cito_meta_pct_media },
+    { indicador: "SISAB",         valor: 97 },
   ];
 
   return (
     <div>
-      <div style={{ marginBottom: 18 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>Avaliação do Quadrimestre</h2>
-        <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>
-          Cálculo dos Componentes de Cofinanciamento Federal da APS — Competência Abr/2026
-        </p>
+      {/* Cabeçalho + filtros */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>Avaliação do Quadrimestre</h2>
+          <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Cálculo dos Componentes de Cofinanciamento Federal da APS — Competência Abr/2026</p>
+        </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          {/* Filtro período */}
+          <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 8, padding: 3, gap: 2 }}>
+            {(["quadrimestral","mensal"] as const).map(p => (
+              <button key={p} onClick={() => setPeriodo(p)} style={{
+                padding: "6px 14px", border: "none", cursor: "pointer", borderRadius: 6,
+                fontSize: 12, fontWeight: periodo === p ? 700 : 400,
+                background: periodo === p ? "#1d4ed8" : "transparent",
+                color: periodo === p ? "#fff" : "#6b7280",
+              }}>
+                {p === "quadrimestral" ? "📊 Quadrimestral" : "📆 Mensal"}
+              </button>
+            ))}
+          </div>
+          {/* Filtro equipe */}
+          <select
+            value={equipeFiltro}
+            onChange={e => setEquipeFiltro(e.target.value)}
+            style={{ border: "1px solid #d1d5db", borderRadius: 8, padding: "6px 12px", fontSize: 12, color: "#374151", background: "#fff", cursor: "pointer" }}
+          >
+            {nomes.map(n => <option key={n} value={n}>{n === "TODAS" ? "Todas as equipes" : `Equipe: ${n}`}</option>)}
+          </select>
+        </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
-        {/* Componente Vínculo */}
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#1d4ed8" }}>Componente Vínculo</div>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>e Acompanhamento Territorial</div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 32, fontWeight: 900, color: COR_PONT(v.pontuacao_media) }}>{v.pontuacao_media.toFixed(2)}</div>
-              <div style={{ fontSize: 11, color: "#9ca3af" }}>média municipal</div>
-            </div>
-          </div>
-          {[
-            { label: "Ótimo",       n: v.otimo,      cor: "#1d4ed8", w: `${v.otimo * 11}%` },
-            { label: "Bom",         n: v.bom,        cor: "#16a34a", w: `${v.bom * 11}%`   },
-            { label: "Suficiente",  n: v.suficiente, cor: "#d97706", w: `${v.suficiente * 11}%` },
-            { label: "Regular",     n: v.regular,    cor: "#dc2626", w: `${v.regular * 11}%` },
-          ].map(s => (
-            <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <span style={{ fontSize: 12, width: 80, color: s.cor, fontWeight: 600 }}>{s.label}</span>
-              <div style={{ flex: 1, height: 18, background: "#f3f4f6", borderRadius: 4, overflow: "hidden" }}>
-                <div style={{ width: s.w, height: "100%", background: s.cor, borderRadius: 4 }} />
+      {/* Resumo geral — só aparece quando "Todas as equipes" */}
+      {equipeFiltro === "TODAS" && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#1d4ed8" }}>Componente Vínculo</div>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>e Acompanhamento Territorial</div>
               </div>
-              <span style={{ fontWeight: 700, color: s.cor, minWidth: 20, textAlign: "right" }}>{s.n}</span>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 28, fontWeight: 900, color: COR_PONT(v.pontuacao_media) }}>{v.pontuacao_media.toFixed(2)}</div>
+                <div style={{ fontSize: 11, color: "#9ca3af" }}>média municipal</div>
+              </div>
             </div>
-          ))}
-          <div style={{ marginTop: 12, fontSize: 12, color: "#6b7280" }}>
-            Total pessoas vinculadas: <strong>{v.total_vinculadas.toLocaleString("pt-BR")}</strong><br />
-            Total acompanhadas: <strong>{v.total_acompanhadas.toLocaleString("pt-BR")}</strong>
+            {[
+              { label: "Ótimo",      n: v.otimo,      cor: "#1d4ed8" },
+              { label: "Bom",        n: v.bom,        cor: "#16a34a" },
+              { label: "Suficiente", n: v.suficiente, cor: "#d97706" },
+              { label: "Regular",    n: v.regular,    cor: "#dc2626" },
+            ].map(s => (
+              <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 12, width: 76, color: s.cor, fontWeight: 600 }}>{s.label}</span>
+                <div style={{ flex: 1, height: 14, background: "#f3f4f6", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ width: `${s.n * 10}%`, height: "100%", background: s.cor, borderRadius: 4 }} />
+                </div>
+                <span style={{ fontWeight: 700, color: s.cor, minWidth: 16 }}>{s.n}</span>
+              </div>
+            ))}
+            <div style={{ marginTop: 10, fontSize: 12, color: "#6b7280" }}>
+              Vinculadas: <strong>{v.total_vinculadas.toLocaleString("pt-BR")}</strong> · Acompanhadas: <strong>{v.total_acompanhadas.toLocaleString("pt-BR")}</strong>
+            </div>
+          </div>
+
+          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#1d4ed8" }}>Componente Qualidade</div>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>Previne Brasil — 7 indicadores · 10 equipes</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 28, fontWeight: 900, color: "#16a34a" }}>{q.pontuacao_media.toFixed(1)}</div>
+                <div style={{ fontSize: 11, color: "#9ca3af" }}>pts médios/equipe</div>
+              </div>
+            </div>
+            <div style={{ background: "#fff7f7", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#dc2626" }}>
+              <strong>⚠ Citopatológico:</strong> {q.cito_meta_pct_media}% (meta 60%) — todas as equipes abaixo da meta.
+            </div>
+            <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#16a34a" }}>
+              <strong>✓ Pré-natal e Consulta RN</strong> — acima da meta na maioria das equipes. LIBERDADE: 96% no Ind.4.
+            </div>
+
+            {periodo === "quadrimestral" && (
+              <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+                {[
+                  { label: "Quad. atual",    val: `${quadData.media_geral_atual}%`,     cor: "#1d4ed8" },
+                  { label: "Quad. anterior", val: `${quadData.media_geral_anterior}%`,  cor: "#9ca3af" },
+                  { label: "Variação",       val: `+${quadData.variacao_geral}p.p.`,    cor: "#16a34a" },
+                  { label: "Projeção 2Q",    val: `${quadData.projecao_2q_2026}%`,      cor: "#7c3aed" },
+                ].map(k => (
+                  <div key={k.label} style={{ flex: 1, textAlign: "center", background: "#f9fafb", borderRadius: 8, padding: "8px 4px" }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: k.cor }}>{k.val}</div>
+                    <div style={{ fontSize: 10, color: "#9ca3af" }}>{k.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
+      )}
 
-        {/* Componente Qualidade */}
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#1d4ed8" }}>Componente Qualidade</div>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>Previne Brasil — 7 indicadores</div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 32, fontWeight: 900, color: "#16a34a" }}>{q.pontuacao_media.toFixed(1)}</div>
-              <div style={{ fontSize: 11, color: "#9ca3af" }}>pts médios/equipe</div>
-            </div>
-          </div>
-          <div style={{ background: "#fff7f7", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", marginBottom: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#dc2626", marginBottom: 2 }}>⚠ Ponto crítico: Citopatológico</div>
-            <div style={{ fontSize: 12, color: "#6b7280" }}>
-              Média municipal: <strong>{q.cito_meta_pct_media}%</strong> (meta: 60%).
-              Todas as 9 equipes estão abaixo da meta. Necessário plano de ação urgente.
-            </div>
-          </div>
-          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px 14px" }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#16a34a", marginBottom: 2 }}>✓ Destaque: Pré-natal e Consulta RN</div>
-            <div style={{ fontSize: 12, color: "#6b7280" }}>
-              7 de 9 equipes atingiram a meta do Ind.1 (Pré-natal). Equipe LIBERDADE com 100% no Ind.4.
-            </div>
+      {/* Radar — só geral */}
+      {equipeFiltro === "TODAS" && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18, marginBottom: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Radar de Desempenho Municipal — Apuí/AM</div>
+          <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 12 }}>Score normalizado 0–100 por dimensão</div>
+          <div style={{ height: 200 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+                <PolarGrid stroke="#e5e7eb" />
+                <PolarAngleAxis dataKey="indicador" tick={{ fontSize: 11 }} />
+                <Radar name="Apuí/AM" dataKey="valor" stroke="#1d4ed8" fill="#1d4ed8" fillOpacity={0.2} strokeWidth={2} />
+              </RadarChart>
+            </ResponsiveContainer>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Radar */}
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Radar de Desempenho — Apuí/AM</div>
-        <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 12 }}>Score normalizado 0–100 por dimensão</div>
-        <div style={{ height: 220 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
-              <PolarGrid stroke="#e5e7eb" />
-              <PolarAngleAxis dataKey="indicador" tick={{ fontSize: 11 }} />
-              <Radar name="Apuí/AM" dataKey="valor" stroke="#1d4ed8" fill="#1d4ed8" fillOpacity={0.2} strokeWidth={2} />
-            </RadarChart>
+      {/* Evolução mensal geral (gráfico) — período mensal + todas equipes */}
+      {periodo === "mensal" && equipeFiltro === "TODAS" && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18, marginBottom: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Evolução mensal dos 7 indicadores — municipal</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={mensalData.evolucao} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+              <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+              <YAxis domain={[25, 90]} tick={{ fontSize: 10 }} unit="%" />
+              <Tooltip contentStyle={TT} />
+              <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+              {IND_KEYS.map((k, i) => (
+                <Line key={k} dataKey={k} name={IND_LABELS[i]} stroke={IND_CORES[k]} strokeWidth={2} dot={false} strokeDasharray={k === "ind2" ? "4 2" : undefined} />
+              ))}
+            </LineChart>
           </ResponsiveContainer>
         </div>
+      )}
+
+      {/* Lista de equipes */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 10 }}>
+          {equipeFiltro === "TODAS"
+            ? `Todas as equipes (${equipes.length}) — clique para expandir indicadores`
+            : `Detalhe: Equipe ${equipeFiltro}`}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {periodo === "quadrimestral"
+            ? equipesFiltradas.map((e: any) => <CardEquipe key={e.equipe} e={e} periodo="quadrimestral" />)
+            : mensal_filtradas.map((e: any) => {
+                const quad = equipes.find((eq: any) => eq.equipe === e.equipe) ?? {};
+                return <CardEquipe key={e.equipe} e={{ ...quad, ...e }} periodo="mensal" />;
+              })
+          }
+        </div>
       </div>
+
+      {/* Parecer do gestor */}
+      {equipeFiltro === "TODAS" && periodo === "quadrimestral" && (
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "14px 18px", fontSize: 12, color: "#1e40af" }}>
+          <strong>Parecer do Gestor — {quadData.quadrimestre_atual}:</strong> {quadData.parecer_gestor}
+        </div>
+      )}
     </div>
   );
 }
