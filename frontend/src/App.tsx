@@ -302,6 +302,7 @@ import CeacAmbulatorialApui         from "./pages/CeacAmbulatorialApui";
 import FarmacovigilanciaApui        from "./pages/FarmacovigilanciaApui";
 import BancoLeiteApui               from "./pages/BancoLeiteApui";
 import JudicializacaoSaudeApui      from "./pages/JudicializacaoSaudeApui";
+import EssenciaisApui               from "./pages/EssenciaisApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -432,6 +433,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
           <div style={{flex:1,overflowY:"auto"}}>
 
             {/* ── Topo ── */}
+            <NavLink to="/essenciais-apui" style={({isActive})=>({display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,marginBottom:4,fontWeight:700,fontSize:13,background:isActive?"#1d4ed8":"#dbeafe",color:isActive?"#fff":"#1d4ed8",textDecoration:"none",border:"1px solid #93c5fd"})}><Star size={15}/> Módulos Essenciais</NavLink>
             <L1 to="/"        label="Home"               Icon={Home}    end />
             <L1 to="/score"      label="Score ERSUS 360"    Icon={Star}/>
             <L1 to="/financeiro" label="Painel Financeiro"  Icon={DollarSign}/>
@@ -1187,6 +1189,7 @@ export default function App() {
             <Route path="/farmacovigilancia-apui"          element={<FarmacovigilanciaApui/>}/>
             <Route path="/banco-leite-apui"                element={<BancoLeiteApui/>}/>
             <Route path="/judicializacao-saude-apui"       element={<JudicializacaoSaudeApui/>}/>
+            <Route path="/essenciais-apui"                 element={<EssenciaisApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
