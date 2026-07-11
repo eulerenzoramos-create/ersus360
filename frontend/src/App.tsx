@@ -482,28 +482,6 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/nutricao-sisvan-apui"        label="Nutrição / SISVAN"    Icon={ShoppingBag}/>
             <L1 to="/regulacao-especializada-apui" label="Regulação Especializ." Icon={Globe}/>
             <L1 to="/saude-lgbtqia-apui"          label="Saúde LGBTQIA+"          Icon={Smile}/>
-            <L1 to="/dengue-arboviroses-apui"     label="Dengue e Arboviroses"    Icon={Radio}/>
-            <L1 to="/ilpi-idoso-apui"             label="ILPI e Idoso Dependente" Icon={Building2}/>
-            <L1 to="/farmacia-popular-apui"        label="Farmácia Popular"        Icon={ShoppingBag}/>
-            <L1 to="/acidentes-transito-apui"     label="Acidentes de Trânsito"   Icon={AlertTriangle}/>
-            <L1 to="/saude-mental-infantil-apui"  label="Saúde Mental Infantil"   Icon={Brain}/>
-            <L1 to="/saneamento-basico-apui"       label="Saneamento Básico"       Icon={Waves}/>
-            <L1 to="/planejamento-familiar-apui"  label="Planejamento Familiar"   Icon={Calendar}/>
-            <L1 to="/saude-prisional-apui"         label="Saúde Prisional"         Icon={Shield}/>
-            <L1 to="/zoonoses-apui"                label="Controle de Zoonoses"    Icon={FlaskRound}/>
-            <L1 to="/atividade-fisica-apui"        label="Atividade Física"         Icon={Thermometer}/>
-            <L1 to="/infraestrutura-ubs-apui"      label="Infraestrutura das UBSs"  Icon={Wrench}/>
-            <L1 to="/medicamentos-alto-custo-apui" label="Medicamentos Alto Custo"  Icon={Star}/>
-            <L1 to="/residuos-solidos-urbanos-apui" label="Resíduos Sólidos"       Icon={Trash2}/>
-            <L1 to="/fila-cirurgica-apui"          label="Fila Cirúrgica"          Icon={Clock}/>
-            <L1 to="/prevencao-suicidio-apui"      label="Prevenção do Suicídio"   Icon={Heart}/>
-            <L1 to="/pcd-crianca-apui"             label="PcD Criança/Habilitação" Icon={Baby}/>
-            <L1 to="/demencia-alzheimer-apui"      label="Demência e Alzheimer"    Icon={UserCog}/>
-            <L1 to="/icsap-apui"                   label="ICSAP — Internações Evit." Icon={Stethoscope}/>
-            <L1 to="/leishmaniose-visceral-apui"   label="Leishmaniose Visceral"   Icon={Droplets}/>
-            <L1 to="/desnutricao-infantil-apui"    label="Desnutrição Infantil"    Icon={Brain}/>
-            <L1 to="/prenatal-risco-gestacional-apui" label="Pré-Natal Risco Gestac." Icon={Syringe}/>
-            <L1 to="/queimadas-respiratoria-apui"  label="Queimadas Respiratória"  Icon={Wind}/>
             <L1 to="/saude-escolar-pse-apui"       label="Saúde Escolar / PSE"      Icon={School}/>
             <L1 to="/doencas-negligenciadas-apui"  label="Doenças Negligenciadas"   Icon={Bug}/>
             <L1 to="/saude-mental-infantojuvenil-apui" label="Saúde Mental Infanto-Juv." Icon={Smile}/>
