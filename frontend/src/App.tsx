@@ -470,15 +470,6 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/pat-saude"             label="Patrimônio de Saúde"   Icon={Wrench}/>
             <L1 to="/visa-alimentos"        label="VISA Alimentos"        Icon={ShieldCheck}/>
             <L1 to="/academia-saude"        label="Academia da Saúde"     Icon={Activity}/>
-            <L1 to="/crie"                  label="CRIE"                  Icon={Syringe}/>
-            <L1 to="/protocolo-clinico"     label="Protocolos Clínicos"   Icon={ClipboardList}/>
-            <L1 to="/consultorio-rua"       label="Consultório na Rua"    Icon={Users}/>
-            <L1 to="/cerest"               label="CEREST"                Icon={Wrench}/>
-            <L1 to="/caps-infanto"         label="CAPS Infanto-Juvenil"  Icon={Smile}/>
-            <L1 to="/vigilancia-obito"     label="Vigilância do Óbito"   Icon={Bell}/>
-            <L1 to="/caps-ad"              label="CAPS AD"               Icon={Brain}/>
-            <L1 to="/saude-estomia"        label="Saúde — Ostomia"       Icon={UserCheck}/>
-            <L1 to="/rede-cegonha"         label="Rede Cegonha"          Icon={Baby}/>
             <L1 to="/atencao-especializada" label="Atenção Especializada" Icon={Stethoscope}/>
             <L1 to="/plano-municipal-saude"  label="Plano Municipal Saúde"  Icon={BookOpen}/>
             <L1 to="/score-municipal"        label="Score / Diagnóstico"    Icon={Star}/>
