@@ -440,3 +440,115 @@ async def dashboard_siaps(_: UserOut = Depends(get_current_user)):
         },
         "fonte": "siaps_referencia",
     }
+
+
+# ── Acompanhamento Diário ─────────────────────────────────────────────────────
+
+_DIARIO_EQUIPES = [
+    {"equipe": "CACHOEIRA",     "prenatal": 2, "cito": 0, "vacina_dtppenta": 3, "rn_semana1": 1, "has": 4, "dm": 2, "des_infantil": 1, "total_prod": 13, "alerta": None},
+    {"equipe": "SÃO SEBASTIÃO", "prenatal": 1, "cito": 0, "vacina_dtppenta": 2, "rn_semana1": 0, "has": 3, "dm": 1, "des_infantil": 2, "total_prod": 9,  "alerta": None},
+    {"equipe": "ACARI",         "prenatal": 3, "cito": 1, "vacina_dtppenta": 4, "rn_semana1": 1, "has": 5, "dm": 2, "des_infantil": 0, "total_prod": 16, "alerta": None},
+    {"equipe": "TRÊS ESTADOS",  "prenatal": 0, "cito": 0, "vacina_dtppenta": 1, "rn_semana1": 0, "has": 1, "dm": 0, "des_infantil": 0, "total_prod": 2,  "alerta": "Produção crítica hoje — verifique presença da equipe"},
+    {"equipe": "JUMA",          "prenatal": 2, "cito": 0, "vacina_dtppenta": 3, "rn_semana1": 0, "has": 2, "dm": 1, "des_infantil": 1, "total_prod": 9,  "alerta": None},
+    {"equipe": "LIBERDADE",     "prenatal": 1, "cito": 1, "vacina_dtppenta": 2, "rn_semana1": 1, "has": 3, "dm": 2, "des_infantil": 2, "total_prod": 12, "alerta": None},
+    {"equipe": "GUARIBA",       "prenatal": 2, "cito": 0, "vacina_dtppenta": 2, "rn_semana1": 0, "has": 2, "dm": 1, "des_infantil": 0, "total_prod": 7,  "alerta": None},
+    {"equipe": "RIO NOVO",      "prenatal": 0, "cito": 0, "vacina_dtppenta": 1, "rn_semana1": 0, "has": 1, "dm": 0, "des_infantil": 0, "total_prod": 2,  "alerta": "Equipe ribeirinha — dia de barco, produção mínima esperada"},
+    {"equipe": "SUCURIÚ",       "prenatal": 1, "cito": 0, "vacina_dtppenta": 2, "rn_semana1": 0, "has": 3, "dm": 1, "des_infantil": 1, "total_prod": 8,  "alerta": None},
+]
+
+@router.get("/qualidade/diario")
+async def qualidade_diario(_: UserOut = Depends(get_current_user)):
+    total_prod = sum(e["total_prod"] for e in _DIARIO_EQUIPES)
+    alertas = [e for e in _DIARIO_EQUIPES if e["alerta"]]
+    return {
+        "data": "11/07/2026",
+        "competencia": "Abr/2026",
+        "total_producao_dia": total_prod,
+        "equipes_com_alerta": len(alertas),
+        "meta_diaria_estimada": 80,
+        "pct_meta_dia": round(total_prod / 80 * 100, 1),
+        "indicadores_criticos_hoje": ["Citopatológico (0 registros em 6 equipes)"],
+        "equipes": _DIARIO_EQUIPES,
+    }
+
+
+# ── Acompanhamento Mensal ─────────────────────────────────────────────────────
+
+_MENSAL_EVOLUCAO = [
+    {"mes": "Nov/25", "ind1": 68.2, "ind2": 31.0, "ind3": 72.1, "ind4": 77.4, "ind5": 64.3, "ind6": 50.1, "ind7": 61.0, "media": 60.6},
+    {"mes": "Dez/25", "ind1": 69.5, "ind2": 32.4, "ind3": 73.8, "ind4": 78.2, "ind5": 65.8, "ind6": 51.5, "ind7": 62.3, "media": 61.9},
+    {"mes": "Jan/26", "ind1": 70.1, "ind2": 33.8, "ind3": 74.5, "ind4": 79.0, "ind5": 66.5, "ind6": 52.8, "ind7": 63.1, "media": 62.8},
+    {"mes": "Fev/26", "ind1": 71.0, "ind2": 35.2, "ind3": 75.3, "ind4": 80.1, "ind5": 68.0, "ind6": 53.4, "ind7": 64.8, "media": 63.9},
+    {"mes": "Mar/26", "ind1": 71.8, "ind2": 36.0, "ind3": 75.9, "ind4": 81.0, "ind5": 69.2, "ind6": 54.7, "ind7": 65.9, "media": 64.9},
+    {"mes": "Abr/26", "ind1": 72.5, "ind2": 37.1, "ind3": 76.5, "ind4": 81.9, "ind5": 70.5, "ind6": 55.4, "ind7": 67.1, "media": 65.9},
+]
+
+_MENSAL_EQUIPES_EVOL = [
+    {"equipe": "CACHOEIRA",     "nov": 35.2, "dez": 36.8, "jan": 37.5, "fev": 38.0, "mar": 38.5, "abr": 38.5, "tendencia": "estavel"},
+    {"equipe": "SÃO SEBASTIÃO", "nov": 33.8, "dez": 34.5, "jan": 35.2, "fev": 35.8, "mar": 36.2, "abr": 36.2, "tendencia": "estavel"},
+    {"equipe": "ACARI",         "nov": 33.2, "dez": 34.0, "jan": 34.8, "fev": 35.4, "mar": 35.8, "abr": 35.8, "tendencia": "estavel"},
+    {"equipe": "TRÊS ESTADOS",  "nov": 16.0, "dez": 17.2, "jan": 17.8, "fev": 18.1, "mar": 18.4, "abr": 18.4, "tendencia": "critica"},
+    {"equipe": "JUMA",          "nov": 36.8, "dez": 37.5, "jan": 38.2, "fev": 38.8, "mar": 39.1, "abr": 39.1, "tendencia": "crescente"},
+    {"equipe": "LIBERDADE",     "nov": 42.0, "dez": 43.5, "jan": 44.0, "fev": 44.5, "mar": 44.8, "abr": 44.8, "tendencia": "crescente"},
+    {"equipe": "GUARIBA",       "nov": 27.0, "dez": 28.2, "jan": 29.0, "fev": 29.5, "mar": 30.0, "abr": 30.0, "tendencia": "crescente"},
+    {"equipe": "RIO NOVO",      "nov": 22.5, "dez": 23.0, "jan": 23.5, "fev": 23.8, "mar": 24.0, "abr": 24.0, "tendencia": "estavel"},
+    {"equipe": "SUCURIÚ",       "nov": 28.5, "dez": 29.2, "jan": 30.0, "fev": 30.5, "mar": 31.0, "abr": 31.0, "tendencia": "crescente"},
+]
+
+@router.get("/qualidade/mensal")
+async def qualidade_mensal(_: UserOut = Depends(get_current_user)):
+    return {
+        "competencia_atual": "Abr/2026",
+        "variacao_mes_anterior": {
+            "ind1_prenatal": +0.7, "ind2_cito": +1.1, "ind3_vacina": +0.6,
+            "ind4_rn": +0.9, "ind5_has": +1.3, "ind6_dm": +0.7, "ind7_infantil": +1.2,
+        },
+        "evolucao": _MENSAL_EVOLUCAO,
+        "equipes_evolucao": _MENSAL_EQUIPES_EVOL,
+        "alerta_mensal": "Ind.2 (Citopatológico): 37.1% — 22.9 p.p. abaixo da meta. Crescimento de apenas +1.1 p.p./mês — insuficiente para atingir a meta no quadrimestre.",
+        "destaque_mensal": "Equipe LIBERDADE: melhor pontuação pelo 3º mês consecutivo (44.8 pts).",
+    }
+
+
+# ── Acompanhamento Quadrimestral ──────────────────────────────────────────────
+
+_QUAD_COMPARATIVO = [
+    {"indicador": "Ind.1 — Pré-natal ≥6", "1q_2025": 65.2, "2q_2025": 68.8, "3q_2025": 70.4, "1q_2026": 72.5, "meta": 60.0, "tendencia": "crescente"},
+    {"indicador": "Ind.2 — Citopatológico","1q_2025": 28.5, "2q_2025": 30.1, "3q_2025": 33.8, "1q_2026": 37.1, "meta": 60.0, "tendencia": "crescente_insuf"},
+    {"indicador": "Ind.3 — DTP/Penta",    "1q_2025": 68.0, "2q_2025": 70.5, "3q_2025": 73.2, "1q_2026": 76.5, "meta": 95.0, "tendencia": "crescente"},
+    {"indicador": "Ind.4 — Consulta RN",  "1q_2025": 74.0, "2q_2025": 76.8, "3q_2025": 79.5, "1q_2026": 81.9, "meta": 60.0, "tendencia": "crescente"},
+    {"indicador": "Ind.5 — Acomp. HAS",   "1q_2025": 60.5, "2q_2025": 63.2, "3q_2025": 66.8, "1q_2026": 70.5, "meta": 50.0, "tendencia": "crescente"},
+    {"indicador": "Ind.6 — Acomp. DM",    "1q_2025": 45.0, "2q_2025": 48.5, "3q_2025": 52.1, "1q_2026": 55.4, "meta": 50.0, "tendencia": "crescente"},
+    {"indicador": "Ind.7 — Desenv. Infantil","1q_2025": 58.0,"2q_2025": 61.5,"3q_2025": 64.3,"1q_2026": 67.1,"meta": 60.0, "tendencia": "crescente"},
+]
+
+_QUAD_EQUIPES_RESUMO = [
+    {"equipe": "CACHOEIRA",     "1q_2025": 32.0, "2q_2025": 34.5, "3q_2025": 36.8, "1q_2026": 38.5, "status": "bom",       "variacao": +1.7},
+    {"equipe": "SÃO SEBASTIÃO", "1q_2025": 30.5, "2q_2025": 33.0, "3q_2025": 34.8, "1q_2026": 36.2, "status": "bom",       "variacao": +1.4},
+    {"equipe": "ACARI",         "1q_2025": 30.0, "2q_2025": 32.5, "3q_2025": 34.2, "1q_2026": 35.8, "status": "bom",       "variacao": +1.6},
+    {"equipe": "TRÊS ESTADOS",  "1q_2025": 14.5, "2q_2025": 16.0, "3q_2025": 17.5, "1q_2026": 18.4, "status": "regular",   "variacao": +0.9},
+    {"equipe": "JUMA",          "1q_2025": 34.2, "2q_2025": 36.5, "3q_2025": 38.0, "1q_2026": 39.1, "status": "bom",       "variacao": +1.1},
+    {"equipe": "LIBERDADE",     "1q_2025": 39.5, "2q_2025": 41.8, "3q_2025": 43.5, "1q_2026": 44.8, "status": "otimo",     "variacao": +1.3},
+    {"equipe": "GUARIBA",       "1q_2025": 24.0, "2q_2025": 26.5, "3q_2025": 28.5, "1q_2026": 30.0, "status": "suficiente","variacao": +1.5},
+    {"equipe": "RIO NOVO",      "1q_2025": 20.0, "2q_2025": 21.5, "3q_2025": 23.0, "1q_2026": 24.0, "status": "suficiente","variacao": +1.0},
+    {"equipe": "SUCURIÚ",       "1q_2025": 26.0, "2q_2025": 28.0, "3q_2025": 30.0, "1q_2026": 31.0, "status": "suficiente","variacao": +1.0},
+]
+
+@router.get("/qualidade/quadrimestral")
+async def qualidade_quadrimestral(_: UserOut = Depends(get_current_user)):
+    return {
+        "quadrimestre_atual": "1º Quadrimestre 2026 (Jan–Abr)",
+        "referencia_anterior": "3º Quadrimestre 2025 (Set–Dez)",
+        "media_geral_atual": 65.9,
+        "media_geral_anterior": 63.7,
+        "variacao_geral": +2.2,
+        "projecao_2q_2026": 68.5,
+        "indicadores": _QUAD_COMPARATIVO,
+        "equipes": _QUAD_EQUIPES_RESUMO,
+        "parecer_gestor": (
+            "Apuí apresenta evolução consistente (+2.2 p.p.) no 1º quadrimestre de 2026. "
+            "Destaque para o Ind.4 (Consulta RN na 1ª semana) que atingiu 81.9%, acima da meta. "
+            "Ponto crítico: Ind.2 (Citopatológico) em 37.1% — necessário plano de ação com busca ativa "
+            "e mutirão de coleta para o 2º quadrimestre. Equipe TRÊS ESTADOS requer monitoramento intensivo."
+        ),
+    }

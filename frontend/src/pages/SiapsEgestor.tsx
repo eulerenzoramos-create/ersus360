@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, Cell,
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, Legend,
+  ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, Cell,
 } from "recharts";
 import {
   Users, Star, TrendingUp, AlertTriangle, CheckCircle,
@@ -321,6 +321,282 @@ function AbaVinculo({ data }: { data: any }) {
   );
 }
 
+// ── Cores helpers ────────────────────────────────────────────────────────────
+
+const COR_STATUS = (s: string) =>
+  s === "otimo" ? "#1d4ed8" : s === "bom" ? "#16a34a" : s === "suficiente" ? "#d97706" : "#dc2626";
+
+const LABEL_STATUS = (s: string) =>
+  s === "otimo" ? "ÓTIMO" : s === "bom" ? "BOM" : s === "suficiente" ? "SUFICIENTE" : "REGULAR";
+
+const COR_TEND = (t: string) =>
+  t === "crescente" ? "#16a34a" : t === "critica" ? "#dc2626" : t === "crescente_insuf" ? "#d97706" : "#6b7280";
+
+// ── View Diária ───────────────────────────────────────────────────────────────
+
+function ViewDiaria({ data }: { data: any }) {
+  if (!data) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+  const IND_COLS = [
+    { key: "prenatal",       label: "Pré-natal" },
+    { key: "cito",           label: "Cito" },
+    { key: "vacina_dtppenta",label: "DTP/Penta" },
+    { key: "rn_semana1",     label: "RN 1ª sem." },
+    { key: "has",            label: "HAS" },
+    { key: "dm",             label: "DM" },
+    { key: "des_infantil",   label: "Des. Infantil" },
+  ];
+  const pct = data.pct_meta_dia;
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+        {[
+          { label: "Data", val: data.data, cor: "#1d4ed8" },
+          { label: "Produção do dia", val: data.total_producao_dia, cor: pct >= 100 ? "#16a34a" : pct >= 70 ? "#d97706" : "#dc2626" },
+          { label: "Meta estimada/dia", val: data.meta_diaria_estimada, cor: "#6b7280" },
+          { label: "% da meta", val: `${pct}%`, cor: pct >= 100 ? "#16a34a" : pct >= 70 ? "#d97706" : "#dc2626" },
+          { label: "Equipes com alerta", val: data.equipes_com_alerta, cor: data.equipes_com_alerta > 0 ? "#dc2626" : "#16a34a" },
+        ].map(k => (
+          <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "12px 16px", minWidth: 130 }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: k.cor }}>{k.val}</div>
+            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {data.indicadores_criticos_hoje.length > 0 && (
+        <div style={{ background: "#fff7f7", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#dc2626" }}>
+          <strong>⚠ Atenção hoje:</strong> {data.indicadores_criticos_hoje.join(" · ")}
+        </div>
+      )}
+
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 700 }}>
+          <thead>
+            <tr style={{ background: "#1d4ed8", color: "#fff" }}>
+              <th style={{ padding: "10px 14px", textAlign: "left" }}>EQUIPE</th>
+              {IND_COLS.map(c => <th key={c.key} style={{ padding: "10px 8px", textAlign: "right" }}>{c.label}</th>)}
+              <th style={{ padding: "10px 14px", textAlign: "right" }}>TOTAL</th>
+              <th style={{ padding: "10px 14px", textAlign: "left" }}>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.equipes.map((e: any, i: number) => (
+              <tr key={i} style={{ borderTop: "1px solid #f3f4f6", background: e.alerta ? "#fff7f7" : i % 2 === 0 ? "#fff" : "#f9fafb" }}>
+                <td style={{ padding: "10px 14px", fontWeight: 700 }}>
+                  {e.equipe}
+                  {e.alerta && <div style={{ fontSize: 10, color: "#dc2626", marginTop: 2, fontWeight: 400 }}>⚠ {e.alerta}</div>}
+                </td>
+                {IND_COLS.map(c => (
+                  <td key={c.key} style={{ padding: "10px 8px", textAlign: "right", color: (e as any)[c.key] === 0 ? "#dc2626" : "#374151", fontWeight: (e as any)[c.key] === 0 ? 700 : 400 }}>
+                    {(e as any)[c.key]}
+                  </td>
+                ))}
+                <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 800, color: e.total_prod < 5 ? "#dc2626" : e.total_prod < 10 ? "#d97706" : "#16a34a" }}>
+                  {e.total_prod}
+                </td>
+                <td style={{ padding: "10px 14px" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: e.total_prod < 5 ? "#dc2626" : e.total_prod < 10 ? "#d97706" : "#16a34a" }}>
+                    {e.total_prod < 5 ? "CRÍTICO" : e.total_prod < 10 ? "BAIXO" : "NORMAL"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ marginTop: 10, fontSize: 11, color: "#9ca3af" }}>
+        Números em <span style={{ color: "#dc2626", fontWeight: 700 }}>vermelho</span> = sem produção registrada no indicador hoje.
+        Dados atualizados via SISAB/e-SUS a cada 2h.
+      </div>
+    </div>
+  );
+}
+
+// ── View Mensal ───────────────────────────────────────────────────────────────
+
+const IND_CORES: Record<string, string> = {
+  ind1: "#1d4ed8", ind2: "#dc2626", ind3: "#7c3aed",
+  ind4: "#0891b2", ind5: "#d97706", ind6: "#ea580c", ind7: "#16a34a",
+};
+
+function ViewMensal({ data }: { data: any }) {
+  if (!data) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+  const variacoes = data.variacao_mes_anterior;
+  const TEND_ICON = (t: string) => t === "crescente" ? "↑" : t === "critica" ? "↓" : t === "estavel" ? "→" : "↑";
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        {Object.entries(variacoes).map(([k, v]: [string, any]) => {
+          const nomes: Record<string, string> = {
+            ind1_prenatal: "Pré-natal", ind2_cito: "Cito", ind3_vacina: "DTP/Penta",
+            ind4_rn: "RN 1ª sem.", ind5_has: "HAS", ind6_dm: "DM", ind7_infantil: "Des. Infantil",
+          };
+          return (
+            <div key={k} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", textAlign: "center", minWidth: 90 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: v > 0 ? "#16a34a" : "#dc2626" }}>
+                {v > 0 ? "+" : ""}{v}p.p.
+              </div>
+              <div style={{ fontSize: 10, color: "#6b7280" }}>{nomes[k]}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {data.alerta_mensal && (
+        <div style={{ background: "#fff7f7", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#dc2626" }}>
+          ⚠ {data.alerta_mensal}
+        </div>
+      )}
+      {data.destaque_mensal && (
+        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#16a34a" }}>
+          ✓ {data.destaque_mensal}
+        </div>
+      )}
+
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Evolução dos 7 Indicadores — últimos 6 meses</div>
+        <ResponsiveContainer width="100%" height={240}>
+          <LineChart data={data.evolucao} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+            <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+            <YAxis domain={[25, 90]} tick={{ fontSize: 10 }} unit="%" />
+            <Tooltip formatter={(v: number) => [`${v}%`]} contentStyle={TT} />
+            <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+            {["ind1","ind2","ind3","ind4","ind5","ind6","ind7"].map((k, i) => {
+              const nomes = ["Pré-natal","Cito","DTP/Penta","Consulta RN","HAS","DM","Des. Infantil"];
+              return <Line key={k} dataKey={k} name={nomes[i]} stroke={IND_CORES[k]} strokeWidth={2} dot={false} strokeDasharray={k === "ind2" ? "4 2" : undefined} />;
+            })}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 650 }}>
+          <thead>
+            <tr style={{ background: "#1d4ed8", color: "#fff" }}>
+              <th style={{ padding: "10px 14px", textAlign: "left" }}>EQUIPE</th>
+              {["Nov","Dez","Jan","Fev","Mar","Abr"].map(m => <th key={m} style={{ padding: "10px 8px", textAlign: "right" }}>{m}</th>)}
+              <th style={{ padding: "10px 14px", textAlign: "center" }}>TENDÊNCIA</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.equipes_evolucao.map((e: any, i: number) => (
+              <tr key={i} style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#f9fafb" }}>
+                <td style={{ padding: "10px 14px", fontWeight: 700 }}>{e.equipe}</td>
+                {["nov","dez","jan","fev","mar","abr"].map(m => (
+                  <td key={m} style={{ padding: "10px 8px", textAlign: "right", fontWeight: m === "abr" ? 800 : 400, color: m === "abr" ? COR_PONT(e[m] / 5) : "#374151" }}>
+                    {e[m]}
+                  </td>
+                ))}
+                <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: COR_TEND(e.tendencia) }}>
+                    {TEND_ICON(e.tendencia)} {e.tendencia === "critica" ? "CRÍTICA" : e.tendencia === "crescente" ? "SUBINDO" : "ESTÁVEL"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── View Quadrimestral ────────────────────────────────────────────────────────
+
+function ViewQuadrimestral({ data }: { data: any }) {
+  if (!data) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
+        {[
+          { label: "Quadrimestre atual",    val: "65.9%", sub: data.quadrimestre_atual,      cor: "#1d4ed8" },
+          { label: "Quadrimestre anterior", val: "63.7%", sub: data.referencia_anterior,     cor: "#6b7280" },
+          { label: "Variação",              val: `+${data.variacao_geral}p.p.`, sub: "evolução consistente", cor: "#16a34a" },
+          { label: "Projeção 2º Quad.",     val: `${data.projecao_2q_2026}%`, sub: "jan–abr 2026",           cor: "#7c3aed" },
+        ].map(k => (
+          <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "14px 16px" }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: k.cor }}>{k.val}</div>
+            <div style={{ fontSize: 11, color: "#374151", fontWeight: 600, marginTop: 2 }}>{k.label}</div>
+            <div style={{ fontSize: 10, color: "#9ca3af" }}>{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Comparativo por Indicador — 4 quadrimestres</div>
+        <div style={{ overflow: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 700 }}>
+            <thead>
+              <tr style={{ background: "#f3f4f6" }}>
+                <th style={{ padding: "8px 12px", textAlign: "left", color: "#1d4ed8" }}>Indicador</th>
+                <th style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af" }}>1Q/2025</th>
+                <th style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af" }}>2Q/2025</th>
+                <th style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af" }}>3Q/2025</th>
+                <th style={{ padding: "8px 10px", textAlign: "right", color: "#1d4ed8", fontWeight: 700 }}>1Q/2026</th>
+                <th style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280" }}>Meta</th>
+                <th style={{ padding: "8px 10px", textAlign: "center", color: "#6b7280" }}>Tendência</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.indicadores.map((r: any, i: number) => {
+                const atingiu = r["1q_2026"] >= r.meta;
+                return (
+                  <tr key={i} style={{ borderTop: "1px solid #f3f4f6", background: atingiu ? "#f0fdf4" : "#fff" }}>
+                    <td style={{ padding: "8px 12px", fontWeight: 600 }}>{r.indicador}</td>
+                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af" }}>{r["1q_2025"]}%</td>
+                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af" }}>{r["2q_2025"]}%</td>
+                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280" }}>{r["3q_2025"]}%</td>
+                    <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 800, color: atingiu ? "#16a34a" : "#dc2626" }}>{r["1q_2026"]}%</td>
+                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280" }}>{r.meta}%</td>
+                    <td style={{ padding: "8px 10px", textAlign: "center", fontSize: 11, fontWeight: 700, color: COR_TEND(r.tendencia) }}>
+                      {r.tendencia === "crescente_insuf" ? "↑ INSUF." : r.tendencia === "crescente" ? "↑" : "→"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "auto", marginBottom: 16 }}>
+        <div style={{ padding: "14px 18px 0", fontSize: 13, fontWeight: 700 }}>Evolução por Equipe — pontuação de qualidade</div>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 600 }}>
+          <thead>
+            <tr style={{ background: "#f3f4f6" }}>
+              <th style={{ padding: "8px 14px", textAlign: "left", color: "#1d4ed8" }}>Equipe</th>
+              {["1Q/25","2Q/25","3Q/25","1Q/26"].map(q => <th key={q} style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280" }}>{q}</th>)}
+              <th style={{ padding: "8px 10px", textAlign: "right", color: "#16a34a" }}>Δ</th>
+              <th style={{ padding: "8px 14px", textAlign: "center", color: "#6b7280" }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.equipes.map((e: any, i: number) => (
+              <tr key={i} style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#f9fafb" }}>
+                <td style={{ padding: "10px 14px", fontWeight: 700 }}>{e.equipe}</td>
+                <td style={{ padding: "10px 10px", textAlign: "right", color: "#9ca3af" }}>{e["1q_2025"]}</td>
+                <td style={{ padding: "10px 10px", textAlign: "right", color: "#9ca3af" }}>{e["2q_2025"]}</td>
+                <td style={{ padding: "10px 10px", textAlign: "right", color: "#6b7280" }}>{e["3q_2025"]}</td>
+                <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 800, color: COR_STATUS(e.status) }}>{e["1q_2026"]}</td>
+                <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 700, color: "#16a34a" }}>+{e.variacao}</td>
+                <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, background: COR_STATUS(e.status) + "18", color: COR_STATUS(e.status), padding: "2px 8px", borderRadius: 10 }}>
+                    {LABEL_STATUS(e.status)}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "14px 18px", fontSize: 12, color: "#1e40af" }}>
+        <strong>Parecer do Gestor:</strong> {data.parecer_gestor}
+      </div>
+    </div>
+  );
+}
+
 // ── Componente Qualidade ──────────────────────────────────────────────────────
 
 const IND_NOMES: Record<string, string> = {
@@ -335,15 +611,46 @@ const IND_NOMES: Record<string, string> = {
 
 function AbaQualidade({ data }: { data: any }) {
   const [equipeAberta, setEquipeAberta] = useState<string | null>(null);
+  const [periodo, setPeriodo] = useState<"competencia" | "diario" | "mensal" | "quadrimestral">("competencia");
+
+  const { data: diario }        = useQuery({ queryKey: ["siaps-diario"],   queryFn: () => apiGet("/api/siaps/qualidade/diario"),         enabled: periodo === "diario" });
+  const { data: mensal }        = useQuery({ queryKey: ["siaps-mensal"],   queryFn: () => apiGet("/api/siaps/qualidade/mensal"),         enabled: periodo === "mensal" });
+  const { data: quadrimestral } = useQuery({ queryKey: ["siaps-quad"],    queryFn: () => apiGet("/api/siaps/qualidade/quadrimestral"),  enabled: periodo === "quadrimestral" });
+
   if (!data) return null;
 
   return (
     <div>
       <div style={{ marginBottom: 18 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>Componente Qualidade</h2>
-        <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Previne Brasil — 7 indicadores oficiais · Competência Abr/2026</p>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 6 }}>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>Componente Qualidade</h2>
+            <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Previne Brasil — 7 indicadores oficiais · Competência Abr/2026</p>
+          </div>
+          <div style={{ display: "flex", gap: 4, background: "#f3f4f6", borderRadius: 10, padding: 4 }}>
+            {([
+              { id: "competencia",    label: "Competência atual" },
+              { id: "diario",         label: "📅 Diário" },
+              { id: "mensal",         label: "📆 Mensal" },
+              { id: "quadrimestral",  label: "📊 Quadrimestral" },
+            ] as const).map(p => (
+              <button key={p.id} onClick={() => setPeriodo(p.id)} style={{
+                padding: "6px 14px", border: "none", cursor: "pointer", borderRadius: 8,
+                fontSize: 12, fontWeight: periodo === p.id ? 700 : 400,
+                background: periodo === p.id ? "#1d4ed8" : "transparent",
+                color: periodo === p.id ? "#fff" : "#6b7280",
+                transition: "all .15s",
+              }}>{p.label}</button>
+            ))}
+          </div>
+        </div>
       </div>
 
+      {periodo === "diario"        && <ViewDiaria data={diario as any} />}
+      {periodo === "mensal"        && <ViewMensal data={mensal as any} />}
+      {periodo === "quadrimestral" && <ViewQuadrimestral data={quadrimestral as any} />}
+
+      {periodo === "competencia" && (<>
       {/* Consolidado por indicador */}
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Consolidado municipal — status por indicador</div>
@@ -377,7 +684,6 @@ function AbaQualidade({ data }: { data: any }) {
                   <div style={{ fontSize: 10, color: "#9ca3af" }}>UBS: {e.ubs}</div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>Equipe: {e.equipe}</div>
                 </div>
-                {/* Mini semáforo dos 7 indicadores */}
                 <div style={{ display: "flex", gap: 3 }}>
                   {Object.values(e.indicadores).map((ind, i) => (
                     <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: COR_IND(ind.status) }} title={Object.keys(e.indicadores)[i]} />
@@ -421,6 +727,7 @@ function AbaQualidade({ data }: { data: any }) {
           );
         })}
       </div>
+      </>)}
     </div>
   );
 }
