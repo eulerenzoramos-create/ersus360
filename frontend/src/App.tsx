@@ -1,4 +1,4 @@
-// src/App.tsx — ERSUS 360 · Sidebar estilo VersaSaúde (3 níveis)
+﻿// src/App.tsx — ERSUS 360 · Sidebar estilo VersaSaúde (3 níveis)
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from "react-router-dom";
@@ -509,7 +509,6 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/acolhimento"           label="Acolhimento / Classif. Risco" Icon={Clock}/>
             <L1 to="/judicializacao"        label="Judicialização da Saúde" Icon={Landmark}/>
             <L1 to="/spd"                   label="Saúde da Pessoa c/ Defic." Icon={UserCheck}/>
-            <L1 to="/contratos"             label="Gestão de Contratos"   Icon={FileText}/>
             <L1 to="/samu"                  label="SAMU 192"              Icon={Radio}/>
             <L1 to="/pnae"                  label="Alimentação Escolar (PNAE)" Icon={ShoppingBag}/>
             <L1 to="/siops-detalhado"       label="SIOPS Detalhado"       Icon={Landmark}/>
@@ -535,21 +534,13 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/malaria"             label="Malária"               Icon={Bug}/>
             <L1 to="/leishmaniose"        label="Leishmaniose"          Icon={FlaskRound}/>
             <L1 to="/arboviroses"         label="Arboviroses"           Icon={Thermometer}/>
-            <L1 to="/saude-indigena"      label="Saúde Indígena"        Icon={Globe}/>
             <L1 to="/hanseniase"          label="Hanseníase"            Icon={Eye}/>
             <L1 to="/tuberculose"         label="Tuberculose"           Icon={Wind}/>
             <L1 to="/dst-hiv"             label="DST / HIV / AIDS"      Icon={ShieldCheck}/>
             <L1 to="/imunizacao"          label="Imunização / PNI"      Icon={Syringe}/>
-            <L1 to="/saude-mental"        label="Saúde Mental"          Icon={Brain}/>
-            <L1 to="/saude-bucal"         label="Saúde Bucal"           Icon={Smile}/>
-            <L1 to="/saude-ocular"        label="Saúde Ocular"          Icon={Eye}/>
             <L1 to="/saude-auditiva"      label="Saúde Auditiva"        Icon={Radio}/>
-            <L1 to="/oncologia"           label="Oncologia"             Icon={Search}/>
             <L1 to="/dcnt"                label="DCNT / Crônicas"       Icon={Heart}/>
             <L1 to="/nutricao"            label="Nutrição / SISVAN"     Icon={ShoppingBag}/>
-            <L1 to="/reabilitacao"        label="Reabilitação / PCD"    Icon={UserCheck}/>
-            <L1 to="/assist-farmaceutica" label="Assist. Farmacêutica"  Icon={Pill}/>
-            <L1 to="/saude-ambiental"     label="Saúde Ambiental"       Icon={Droplets}/>
             <L1 to="/vig-epidem-avancada"   label="Vig. Epidem. Avançada"  Icon={AlertTriangle}/>
             <L1 to="/saude-digital-esus"   label="Saúde Digital / e-SUS"  Icon={Monitor}/>
             <L1 to="/gestao-pessoas"       label="Gestão de Pessoas"      Icon={UserCog}/>
@@ -558,17 +549,13 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/atencao-especializada" label="Atenção Especializada" Icon={Stethoscope}/>
             <L1 to="/malaria-endemias"         label="Malária e Endemias"     Icon={Bug}/>
             <L1 to="/vigilancia-nutricional"  label="Vigilância Nutricional" Icon={FlaskConical}/>
-            <L1 to="/saude-indigena"          label="Saúde Indígena"         Icon={MapPin}/>
             <L1 to="/dcnt-cronicas"            label="DCNT / Crônicas"        Icon={Activity}/>
-            <L1 to="/cancer-rastreio"         label="Câncer e Rastreio"       Icon={ShieldCheck}/>
             <L1 to="/saude-bucal-municipal"   label="Saúde Bucal Municipal"   Icon={Smile}/>
             <L1 to="/saude-mental-caps"       label="Saúde Mental / CAPS"    Icon={Brain}/>
-            <L1 to="/rede-cegonha"           label="Rede Cegonha"           Icon={Baby}/>
             <L1 to="/programa-saude-escola"  label="Saúde na Escola (PSE)"  Icon={School}/>
             <L1 to="/plano-municipal-saude"  label="Plano Municipal Saúde"  Icon={BookOpen}/>
             <L1 to="/score-municipal"        label="Score / Diagnóstico"    Icon={Star}/>
             <L1 to="/gestao-contratos-fms"   label="Contratos / Licitações" Icon={FolderOpen}/>
-            <L1 to="/urgencia-emergencia"    label="Urgência e Emergência"  Icon={Clock}/>
             <L1 to="/regulacao-acesso-apui"       label="Regulação e Acesso"     Icon={Network}/>
             <L1 to="/gestao-leitos-apui"          label="Gestão de Leitos"       Icon={Building2}/>
             <L1 to="/visa-municipal-apui"         label="Vigilância Sanitária"   Icon={ShieldCheck}/>
@@ -589,7 +576,6 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/telessaude-apui"        label="TeleSaúde"             Icon={Monitor}/>
             <L1 to="/laboratorio-apui"       label="Laboratório Municipal" Icon={FlaskConical}/>
             <L1 to="/farmacia-especializada-apui" label="Farmácia Especializ." Icon={Pill}/>
-            <L1 to="/cuidados-paliativos"         label="Cuidados Paliativos"  Icon={Heart}/>
             <L1 to="/saude-ribeirinha-apui"            label="Saúde Ribeirinha"     Icon={Waves}/>
             <L1 to="/reabilitacao-apui"           label="Reabilitação"         Icon={Activity}/>
             <L1 to="/saude-familia-apui"          label="Saúde da Família"     Icon={Users}/>
@@ -611,18 +597,14 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/nutricao-sisvan-apui"        label="Nutrição / SISVAN"    Icon={ShoppingBag}/>
             <L1 to="/regulacao-especializada-apui" label="Regulação Especializ." Icon={Globe}/>
             <L1 to="/regulacao-referencia-apui"   label="Regulação e Referência" Icon={Network}/>
-            <L1 to="/saude-trabalhador-apui"      label="Saúde do Trabalhador" Icon={Wrench}/>
             <L1 to="/farmacia-basica-apui"        label="Farmácia Básica"      Icon={Pill}/>
             <L1 to="/saude-escolar-apui"          label="Saúde Escolar (PSE)"  Icon={School}/>
             <L1 to="/vigilancia-sanitaria-apui"   label="Vigilância Sanitária" Icon={ShieldCheck}/>
             <L1 to="/saude-indigena-apui"         label="Saúde Indígena"       Icon={Users}/>
             <L1 to="/doencas-cronicas-apui"       label="Doenças Crônicas"     Icon={Heart}/>
             <L1 to="/saude-mental-apui"           label="Saúde Mental"         Icon={Brain}/>
-            <L1 to="/imunizacao-apui"             label="Imunização / PNI"     Icon={Syringe}/>
             <L1 to="/materno-infantil-apui"       label="Materno-Infantil"     Icon={Baby}/>
             <L1 to="/atencao-primaria-apui"       label="Atenção Primária"     Icon={Stethoscope}/>
-            <L1 to="/saude-idoso-apui"            label="Saúde do Idoso"       Icon={UserCheck}/>
-            <L1 to="/saude-crianca-apui"          label="Saúde da Criança"     Icon={Smile}/>
             <L1 to="/vigilancia-epidemiologica-apui" label="Vigil. Epidemiológica" Icon={Monitor}/>
             <L1 to="/gestao-hospitalar-apui"      label="Gestão Hospitalar"    Icon={Landmark}/>
             <L1 to="/agua-saneamento-apui"        label="Água e Saneamento"    Icon={Droplets}/>
@@ -697,7 +679,6 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/banco-leite-apui"                 label="Banco de Leite Humano"         Icon={Baby}/>
             <L1 to="/judicializacao-saude-apui"        label="Judicialização em Saúde"       Icon={Scale}/>
             <L1 to="/mercurio-garimpo-apui"           label="Mercúrio e Garimpo"       Icon={FlaskConical}/>
-            <L1 to="/saude-ocular-apui"               label="Saúde Ocular"             Icon={Eye}/>
             <L1 to="/violencia-domestica-sexual-apui" label="Violência Doméstica/Sex." Icon={Shield}/>
             <L1 to="/cuidados-paliativos-apui"        label="Cuidados Paliativos"      Icon={Heart}/>
             <L1 to="/triagem-neonatal-apui"           label="Triagem Neonatal"         Icon={Baby}/>
