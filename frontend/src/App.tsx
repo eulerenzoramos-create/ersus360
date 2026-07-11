@@ -444,6 +444,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/gestao"     label="Gestão APS"         Icon={Activity}/>
             <L1 to="/siaps"      label="eGestor / SIAPS"    Icon={Globe}/>
             <L1 to="/caf"        label="CAF — Cofinanciamento" Icon={TrendingUp}/>
+            <L1 to="/contratos"  label="Contratos & Licitações" Icon={FileText}/>
             <L1 to="/regulacao-mac" label="Regulação MAC"       Icon={Network}/>
             <L1 to="/ppa-loa"      label="PPA / LOA"           Icon={ClipboardList}/>
             <L1 to="/sala-vacinas"      label="Sala de Vacinas"       Icon={Syringe}/>
