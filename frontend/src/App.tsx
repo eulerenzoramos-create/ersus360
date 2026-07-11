@@ -481,26 +481,6 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/telessaude-apui"        label="TeleSaúde"             Icon={Monitor}/>
             <L1 to="/nutricao-sisvan-apui"        label="Nutrição / SISVAN"    Icon={ShoppingBag}/>
             <L1 to="/regulacao-especializada-apui" label="Regulação Especializ." Icon={Globe}/>
-            <L1 to="/regulacao-referencia-apui"   label="Regulação e Referência" Icon={Network}/>
-            <L1 to="/farmacia-basica-apui"        label="Farmácia Básica"      Icon={Pill}/>
-            <L1 to="/saude-escolar-apui"          label="Saúde Escolar (PSE)"  Icon={School}/>
-            <L1 to="/vigilancia-sanitaria-apui"   label="Vigilância Sanitária" Icon={ShieldCheck}/>
-            <L1 to="/saude-indigena-apui"         label="Saúde Indígena"       Icon={Users}/>
-            <L1 to="/doencas-cronicas-apui"       label="Doenças Crônicas"     Icon={Heart}/>
-            <L1 to="/saude-mental-apui"           label="Saúde Mental"         Icon={Brain}/>
-            <L1 to="/materno-infantil-apui"       label="Materno-Infantil"     Icon={Baby}/>
-            <L1 to="/atencao-primaria-apui"       label="Atenção Primária"     Icon={Stethoscope}/>
-            <L1 to="/vigilancia-epidemiologica-apui" label="Vigil. Epidemiológica" Icon={Monitor}/>
-            <L1 to="/gestao-hospitalar-apui"      label="Gestão Hospitalar"    Icon={Landmark}/>
-            <L1 to="/agua-saneamento-apui"        label="Água e Saneamento"    Icon={Droplets}/>
-            <L1 to="/saude-digital-apui"          label="Saúde Digital"        Icon={Globe}/>
-            <L1 to="/fundo-municipal-saude-apui"  label="Fundo Municipal Saúde" Icon={FolderOpen}/>
-            <L1 to="/saude-garimpo-apui"          label="Saúde do Garimpo"     Icon={Bug}/>
-            <L1 to="/recursos-humanos-saude-apui" label="Recursos Humanos RHS" Icon={UserCog}/>
-            <L1 to="/rede-logistica-apui"         label="Rede Logística"       Icon={Truck}/>
-            <L1 to="/saude-pcd-apui"              label="Saúde da PcD"          Icon={Waves}/>
-            <L1 to="/planejamento-saude-apui"     label="Planejamento Saúde"    Icon={BarChart2}/>
-            <L1 to="/saude-respiratoria-apui"     label="Saúde Respiratória"    Icon={Wind}/>
             <L1 to="/saude-cardiovascular-apui"   label="Saúde Cardiovascular"  Icon={Heart}/>
             <L1 to="/saude-renal-apui"            label="Saúde Renal"           Icon={Droplets}/>
             <L1 to="/violencia-acidentes-apui"    label="Violência e Acidentes" Icon={Shield}/>
