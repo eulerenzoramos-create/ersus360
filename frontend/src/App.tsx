@@ -479,26 +479,6 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/ouvidoria-apui"         label="Ouvidoria Municipal"   Icon={MessageSquare}/>
             <L1 to="/seguranca-paciente-apui"label="Segurança do Paciente" Icon={Shield}/>
             <L1 to="/telessaude-apui"        label="TeleSaúde"             Icon={Monitor}/>
-            <L1 to="/laboratorio-apui"       label="Laboratório Municipal" Icon={FlaskConical}/>
-            <L1 to="/farmacia-especializada-apui" label="Farmácia Especializ." Icon={Pill}/>
-            <L1 to="/saude-ribeirinha-apui"            label="Saúde Ribeirinha"     Icon={Waves}/>
-            <L1 to="/reabilitacao-apui"           label="Reabilitação"         Icon={Activity}/>
-            <L1 to="/saude-familia-apui"          label="Saúde da Família"     Icon={Users}/>
-            <L1 to="/saude-mental-caps-apui"      label="Saúde Mental / CAPS"  Icon={Brain}/>
-            <L1 to="/imunizacao-apui"             label="Imunização"           Icon={Syringe}/>
-            <L1 to="/vigilancia-epidem-apui"      label="Vigilância Epidem."   Icon={Bug}/>
-            <L1 to="/saude-mulher-apui"           label="Saúde da Mulher"      Icon={Sparkles}/>
-            <L1 to="/saude-crianca-apui"          label="Saúde da Criança"     Icon={Smile}/>
-            <L1 to="/hiperdia-apui"               label="Hiperdia / HAS + DM"  Icon={Thermometer}/>
-            <L1 to="/saude-idoso-apui"            label="Saúde do Idoso"       Icon={UserCheck}/>
-            <L1 to="/oncologia-apui"              label="Oncologia"            Icon={Stethoscope}/>
-            <L1 to="/tuberculose-apui"            label="Tuberculose"          Icon={Thermometer}/>
-            <L1 to="/malaria-apui"                label="Malária"              Icon={Droplets}/>
-            <L1 to="/saude-bucal-apui"            label="Saúde Bucal"          Icon={Star}/>
-            <L1 to="/ist-hiv-hepatites-apui"      label="IST / HIV / Hepatites" Icon={FlaskConical}/>
-            <L1 to="/hanseniase-apui"             label="Hanseníase"           Icon={FlaskRound}/>
-            <L1 to="/saude-ambiental-apui"        label="Saúde Ambiental"      Icon={Layers}/>
-            <L1 to="/urgencia-emergencia-apui"    label="Urgência e Emergência" Icon={Clock}/>
             <L1 to="/nutricao-sisvan-apui"        label="Nutrição / SISVAN"    Icon={ShoppingBag}/>
             <L1 to="/regulacao-especializada-apui" label="Regulação Especializ." Icon={Globe}/>
             <L1 to="/regulacao-referencia-apui"   label="Regulação e Referência" Icon={Network}/>
