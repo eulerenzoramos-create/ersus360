@@ -1,5 +1,6 @@
 // Tela de Login — ERSUS 360
 import { useState, FormEvent } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { api } from "../lib/api";
 
 interface Props { onLogin: (token: string, perfil: string, nome: string) => void }
@@ -9,6 +10,7 @@ export default function Login({ onLogin }: Props) {
   const [senha, setSenha]       = useState("");
   const [erro, setErro]         = useState("");
   const [loading, setLoading]   = useState(false);
+  const [verSenha, setVerSenha] = useState(false);
 
   const entrar = async (e: FormEvent) => {
     e.preventDefault();
@@ -80,20 +82,34 @@ export default function Login({ onLogin }: Props) {
             <label style={{ fontSize: 12, color: "#404040", display: "block", marginBottom: 5, fontWeight: 500 }}>
               Senha
             </label>
-            <input
-              type="password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              placeholder="••••••••"
-              required
-              style={{
-                width: "100%", boxSizing: "border-box", padding: "10px 12px",
-                border: "1.5px solid #e5e5e3", borderRadius: 8, fontSize: 14,
-                outline: "none", transition: "border .15s",
-              }}
-              onFocus={(e) => (e.target.style.borderColor = "#1D9E75")}
-              onBlur={(e)  => (e.target.style.borderColor = "#e5e5e3")}
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                type={verSenha ? "text" : "password"}
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                placeholder="••••••••"
+                required
+                style={{
+                  width: "100%", boxSizing: "border-box", padding: "10px 40px 10px 12px",
+                  border: "1.5px solid #e5e5e3", borderRadius: 8, fontSize: 14,
+                  outline: "none", transition: "border .15s",
+                }}
+                onFocus={(e) => (e.target.style.borderColor = "#1D9E75")}
+                onBlur={(e)  => (e.target.style.borderColor = "#e5e5e3")}
+              />
+              <button
+                type="button"
+                onClick={() => setVerSenha(!verSenha)}
+                style={{
+                  position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                  background: "none", border: "none", cursor: "pointer", padding: 2,
+                  color: "#9ca3af", display: "flex", alignItems: "center",
+                }}
+                tabIndex={-1}
+              >
+                {verSenha ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           {erro && (
