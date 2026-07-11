@@ -481,26 +481,6 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/telessaude-apui"        label="TeleSaúde"             Icon={Monitor}/>
             <L1 to="/nutricao-sisvan-apui"        label="Nutrição / SISVAN"    Icon={ShoppingBag}/>
             <L1 to="/regulacao-especializada-apui" label="Regulação Especializ." Icon={Globe}/>
-            <L1 to="/saude-cardiovascular-apui"   label="Saúde Cardiovascular"  Icon={Heart}/>
-            <L1 to="/saude-renal-apui"            label="Saúde Renal"           Icon={Droplets}/>
-            <L1 to="/violencia-acidentes-apui"    label="Violência e Acidentes" Icon={Shield}/>
-            <L1 to="/saude-diabetes-apui"         label="Diabetes Mellitus"      Icon={Stethoscope}/>
-            <L1 to="/saude-quilombola-apui"       label="Saúde Quilombola"       Icon={Users}/>
-            <L1 to="/seguranca-alimentar-apui"    label="Segurança Alimentar"    Icon={ShoppingBag}/>
-            <L1 to="/hepatites-virais-apui"       label="Hepatites Virais"        Icon={FlaskConical}/>
-            <L1 to="/saude-neonatal-apui"         label="Saúde Neonatal"          Icon={Baby}/>
-            <L1 to="/infeccoes-hospitalares-apui" label="Infecções Hospitalares"  Icon={ShieldCheck}/>
-            <L1 to="/saude-homem-apui"            label="Saúde do Homem"          Icon={UserCog}/>
-            <L1 to="/saude-ocular-apui"           label="Saúde Ocular"            Icon={Eye}/>
-            <L1 to="/saude-auditiva-apui"         label="Saúde Auditiva"          Icon={Radio}/>
-            <L1 to="/saude-adolescente-apui"      label="Saúde do Adolescente"    Icon={Sparkles}/>
-            <L1 to="/doencas-raras-apui"          label="Doenças Raras"           Icon={FlaskRound}/>
-            <L1 to="/clima-saude-apui"            label="Clima e Saúde"           Icon={Thermometer}/>
-            <L1 to="/tfd-especialidades-apui"     label="TFD e Especialidades"    Icon={Globe}/>
-            <L1 to="/residuos-saude-apui"         label="Resíduos de Saúde"       Icon={Trash2}/>
-            <L1 to="/economia-saude-apui"         label="Economia da Saúde"       Icon={TrendingDown}/>
-            <L1 to="/mortalidade-materna-apui"    label="Mortalidade Materna"     Icon={Heart}/>
-            <L1 to="/tabagismo-dpoc-apui"         label="Tabagismo e DPOC"        Icon={Wind}/>
             <L1 to="/saude-lgbtqia-apui"          label="Saúde LGBTQIA+"          Icon={Smile}/>
             <L1 to="/dengue-arboviroses-apui"     label="Dengue e Arboviroses"    Icon={Radio}/>
             <L1 to="/ilpi-idoso-apui"             label="ILPI e Idoso Dependente" Icon={Building2}/>
