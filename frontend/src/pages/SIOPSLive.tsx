@@ -26,10 +26,10 @@ const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 const PCT = (a: number, b: number) => b ? `${((a / b) * 100).toFixed(1)}%` : "—";
 
 const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
-  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-    <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{label}</p>
-    <p className="text-2xl font-bold mt-1" style={{ color: color || BRAND }}>{value}</p>
-    {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+  <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 16, boxShadow: "0 1px 3px rgba(0,0,0,.07)" }}>
+    <p style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>{label}</p>
+    <p style={{ fontSize: 22, fontWeight: 700, color: color || BRAND, margin: "4px 0 0" }}>{value}</p>
+    {sub && <p style={{ fontSize: 11, color: "#94a3b8", margin: "2px 0 0" }}>{sub}</p>}
   </div>
 );
 
@@ -39,8 +39,7 @@ function FonteBadge({ fonte }: { fonte?: string }) {
   const color = isApi ? OK : isErr ? CRIT : ACCENT;
   const Icon  = isApi ? CheckCircle : isErr ? WifiOff : Database;
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium"
-      style={{ background: `${color}18`, color }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 9999, fontSize: 12, fontWeight: 500, background: `${color}18`, color }}>
       <Icon size={12}/> {fonte || "Não sincronizado"}
     </span>
   );
@@ -406,14 +405,14 @@ export default function SIOPSLive() {
             )}
             {d && !dashLoading && (
               <div className="space-y-5">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 16 }}>
                   <KPI label="Dotação"    value={BRLK(d.totais?.dotacao   || 0)} color={BRAND}/>
                   <KPI label="Empenhado"  value={BRLK(d.totais?.empenhado || 0)} sub={PCT(d.totais?.empenhado||0, d.totais?.dotacao||1)} color={ACCENT}/>
                   <KPI label="Liquidado"  value={BRLK(d.totais?.liquidado || 0)} sub={PCT(d.totais?.liquidado||0, d.totais?.dotacao||1)} color={"#0891b2"}/>
                   <KPI label="Pago"       value={BRLK(d.totais?.pago      || 0)} sub={`${d.pct_execucao || 0}% da dotação`} color={OK}/>
                 </div>
 
-                <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,.07)" }}>
                   <h3 className="font-semibold text-slate-700 mb-4">Pipeline Orçamentário</h3>
                   {[
                     { label: "Dotação",   val: d.totais?.dotacao,   color: "#94a3b8" },
@@ -435,8 +434,8 @@ export default function SIOPSLive() {
                   })}
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16 }}>
+                  <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 16, boxShadow: "0 1px 3px rgba(0,0,0,.07)" }}>
                     <h3 className="font-semibold text-slate-700 mb-3 text-sm">Top Fontes (pago)</h3>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={(d.top_fontes||[]).slice(0,6)} layout="vertical" margin={{ left: 0, right: 50 }}>
@@ -449,7 +448,7 @@ export default function SIOPSLive() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                  <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 16, boxShadow: "0 1px 3px rgba(0,0,0,.07)" }}>
                     <h3 className="font-semibold text-slate-700 mb-3 text-sm">Natureza da Despesa</h3>
                     <ResponsiveContainer width="100%" height={200}>
                       <PieChart>
