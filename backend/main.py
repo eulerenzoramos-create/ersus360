@@ -613,9 +613,15 @@ app.include_router(ceac_ambulatorial_apui_router)
 from routers.farmacovigilancia_apui import router as farmacovigilancia_apui_router
 from routers.banco_leite_apui import router as banco_leite_apui_router
 from routers.judicializacao_saude_apui import router as judicializacao_saude_apui_router
+from routers.triagem_neonatal_apui import router as triagem_neonatal_apui_router
+from routers.absenteismo_apui import router as absenteismo_apui_router
+from routers.pics_apui import router as pics_apui_router
 app.include_router(farmacovigilancia_apui_router)
 app.include_router(banco_leite_apui_router)
 app.include_router(judicializacao_saude_apui_router)
+app.include_router(triagem_neonatal_apui_router)
+app.include_router(absenteismo_apui_router)
+app.include_router(pics_apui_router)
 
 
 @app.get("/")

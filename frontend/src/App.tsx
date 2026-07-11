@@ -303,6 +303,9 @@ import FarmacovigilanciaApui        from "./pages/FarmacovigilanciaApui";
 import BancoLeiteApui               from "./pages/BancoLeiteApui";
 import JudicializacaoSaudeApui      from "./pages/JudicializacaoSaudeApui";
 import EssenciaisApui               from "./pages/EssenciaisApui";
+import TriagemNeonatalApui          from "./pages/TriagemNeonatalApui";
+import AbsenteismoApui              from "./pages/AbsenteismoApui";
+import PICSApui                     from "./pages/PICSApui";
 import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
@@ -697,6 +700,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/saude-ocular-apui"               label="Saúde Ocular"             Icon={Eye}/>
             <L1 to="/violencia-domestica-sexual-apui" label="Violência Doméstica/Sex." Icon={Shield}/>
             <L1 to="/cuidados-paliativos-apui"        label="Cuidados Paliativos"      Icon={Heart}/>
+            <L1 to="/triagem-neonatal-apui"           label="Triagem Neonatal"         Icon={Baby}/>
+            <L1 to="/absenteismo-apui"                label="Absenteísmo / RHS"        Icon={UserCog}/>
+            <L1 to="/pics-apui"                       label="PICS — Práticas Integrat." Icon={Sparkles}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
             <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
 
@@ -1190,6 +1196,9 @@ export default function App() {
             <Route path="/banco-leite-apui"                element={<BancoLeiteApui/>}/>
             <Route path="/judicializacao-saude-apui"       element={<JudicializacaoSaudeApui/>}/>
             <Route path="/essenciais-apui"                 element={<EssenciaisApui/>}/>
+            <Route path="/triagem-neonatal-apui"           element={<TriagemNeonatalApui/>}/>
+            <Route path="/absenteismo-apui"                element={<AbsenteismoApui/>}/>
+            <Route path="/pics-apui"                       element={<PICSApui/>}/>
             <Route path="/agenda"                    element={<Agenda/>}/>
             <Route path="/conformidade"              element={<Conformidade/>}/>
             <Route path="/alertas/historico"         element={<HistoricoAlertas/>}/>
