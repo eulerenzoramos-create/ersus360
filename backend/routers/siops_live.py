@@ -308,3 +308,202 @@ async def despesas_por_natureza():
         await _sincronizar()
     dados = _cache.get("dados") or {}
     return dados.get("por_natureza", [])
+
+
+# ── Overrides manuais ────────────────────────────────────────────────────────
+_overrides: Dict[str, Any] = {}
+
+from pydantic import BaseModel
+
+class OverrideItem(BaseModel):
+    categoria: str   # "fonte" | "subfuncao" | "natureza"
+    chave: str       # valor da linha
+    campo: str       # "pago" | "empenhado" | "liquidado" | "dotacao"
+    valor: float
+    observacao: Optional[str] = None
+
+@router.post("/override")
+async def salvar_override(item: OverrideItem):
+    """Salva override manual sobre dado do SIOPS."""
+    key = f"{item.categoria}::{item.chave}::{item.campo}"
+    _overrides[key] = {
+        "categoria": item.categoria,
+        "chave": item.chave,
+        "campo": item.campo,
+        "valor": item.valor,
+        "observacao": item.observacao,
+        "editado_em": datetime.utcnow().isoformat() + "Z",
+    }
+    return {"ok": True, "key": key}
+
+@router.get("/overrides")
+async def listar_overrides():
+    return list(_overrides.values())
+
+@router.delete("/override/{categoria}/{chave}/{campo}")
+async def deletar_override(categoria: str, chave: str, campo: str):
+    key = f"{categoria}::{chave}::{campo}"
+    _overrides.pop(key, None)
+    return {"ok": True}
+
+
+# ── Exportação PDF ────────────────────────────────────────────────────────────
+from fastapi.responses import StreamingResponse
+
+@router.get("/exportar-pdf")
+async def exportar_pdf():
+    """Gera PDF do relatório SIOPS com dados atuais do cache."""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.lib import colors
+        from reportlab.platypus import (
+            SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable,
+        )
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    except ImportError:
+        raise HTTPException(500, "reportlab não disponível")
+
+    if not _cache.get("dados"):
+        raise HTTPException(502, "Sincronize os dados antes de exportar.")
+
+    dados  = _cache["dados"]
+    totais = dados.get("totais", {})
+    fonte  = _cache.get("fonte", "—")
+    sync   = _cache.get("sincronizado_em", "—")
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+                            leftMargin=2*cm, rightMargin=2*cm,
+                            topMargin=2*cm, bottomMargin=2*cm)
+
+    styles = getSampleStyleSheet()
+    AZUL   = colors.HexColor("#1e3a5f")
+    AZUL2  = colors.HexColor("#1d4ed8")
+    VERDE  = colors.HexColor("#16a34a")
+    CINZA  = colors.HexColor("#f8fafc")
+    CINZA2 = colors.HexColor("#e2e8f0")
+
+    title_style = ParagraphStyle("titulo", parent=styles["Title"],
+                                 textColor=AZUL, fontSize=18, spaceAfter=4)
+    sub_style   = ParagraphStyle("sub", parent=styles["Normal"],
+                                 textColor=colors.HexColor("#64748b"), fontSize=9)
+    h2_style    = ParagraphStyle("h2", parent=styles["Heading2"],
+                                 textColor=AZUL, fontSize=12, spaceBefore=14, spaceAfter=4)
+    cell_style  = ParagraphStyle("cell", parent=styles["Normal"], fontSize=8)
+
+    def brlk(v):
+        if v >= 1_000_000: return f"R${v/1_000_000:.2f}M"
+        if v >= 1_000:     return f"R${v/1_000:.0f}K"
+        return f"R${v:.2f}"
+
+    story = []
+
+    # Cabeçalho
+    story.append(Paragraph("SIOPS — Relatório de Despesas em Saúde", title_style))
+    story.append(Paragraph(f"Município: Apuí/AM · IBGE 1300144 · Fonte: {fonte}", sub_style))
+    story.append(Paragraph(f"Gerado em: {datetime.utcnow().strftime('%d/%m/%Y %H:%M')} UTC · Sincronizado: {sync[:19].replace('T',' ') if sync != '—' else '—'}", sub_style))
+    story.append(HRFlowable(width="100%", thickness=1, color=AZUL, spaceAfter=12))
+
+    # Totais
+    story.append(Paragraph("Resumo Financeiro", h2_style))
+    tot_data = [
+        ["Indicador", "Valor", "% da Dotação"],
+        ["Dotação Atualizada",  brlk(totais.get("dotacao", 0)),   "100,0%"],
+        ["Empenhado",           brlk(totais.get("empenhado", 0)),
+         f"{(totais.get('empenhado',0)/max(totais.get('dotacao',1),1)*100):.1f}%"],
+        ["Liquidado",           brlk(totais.get("liquidado", 0)),
+         f"{(totais.get('liquidado',0)/max(totais.get('dotacao',1),1)*100):.1f}%"],
+        ["Pago",                brlk(totais.get("pago", 0)),
+         f"{(totais.get('pago',0)/max(totais.get('dotacao',1),1)*100):.1f}%"],
+    ]
+    ts = TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), AZUL),
+        ("TEXTCOLOR",  (0,0), (-1,0), colors.white),
+        ("FONTNAME",   (0,0), (-1,0), "Helvetica-Bold"),
+        ("FONTSIZE",   (0,0), (-1,-1), 9),
+        ("ROWBACKGROUNDS", (0,1), (-1,-1), [CINZA, colors.white]),
+        ("GRID",       (0,0), (-1,-1), 0.4, CINZA2),
+        ("ALIGN",      (1,0), (-1,-1), "RIGHT"),
+        ("LEFTPADDING",(0,0), (-1,-1), 8),
+        ("RIGHTPADDING",(0,0),(-1,-1), 8),
+        ("TOPPADDING", (0,0), (-1,-1), 5),
+        ("BOTTOMPADDING",(0,0),(-1,-1), 5),
+    ])
+    t = Table(tot_data, colWidths=[9*cm, 5*cm, 4*cm])
+    t.setStyle(ts)
+    story.append(t)
+    story.append(Spacer(1, 0.4*cm))
+
+    def tabela_section(titulo, itens, col_key, col_label):
+        story.append(Paragraph(titulo, h2_style))
+        rows = [[col_label, "Valor Pago (R$)", "% do Total"]]
+        total_v = sum(i.get("pago", 0) for i in itens)
+        for item in itens:
+            v = item.get("pago", 0)
+            pct = f"{v/total_v*100:.1f}%" if total_v else "—"
+            rows.append([
+                Paragraph(str(item.get(col_key, "—")), cell_style),
+                brlk(v),
+                pct,
+            ])
+        # Overrides
+        ovrs = [o for o in _overrides.values() if o["categoria"] == col_key and o["campo"] == "pago"]
+        for o in ovrs:
+            rows.append([
+                Paragraph(f"✎ {o['chave']} (editado)", cell_style),
+                brlk(o["valor"]),
+                f"{'—'} *override",
+            ])
+        t2 = Table(rows, colWidths=[10*cm, 4.5*cm, 3.5*cm])
+        t2.setStyle(TableStyle([
+            ("BACKGROUND",  (0,0), (-1,0), AZUL2),
+            ("TEXTCOLOR",   (0,0), (-1,0), colors.white),
+            ("FONTNAME",    (0,0), (-1,0), "Helvetica-Bold"),
+            ("FONTSIZE",    (0,0), (-1,-1), 8),
+            ("ROWBACKGROUNDS",(0,1),(-1,-1),[CINZA, colors.white]),
+            ("GRID",        (0,0), (-1,-1), 0.3, CINZA2),
+            ("ALIGN",       (1,0), (-1,-1), "RIGHT"),
+            ("LEFTPADDING", (0,0), (-1,-1), 6),
+            ("RIGHTPADDING",(0,0), (-1,-1), 6),
+            ("TOPPADDING",  (0,0), (-1,-1), 4),
+            ("BOTTOMPADDING",(0,0),(-1,-1), 4),
+        ]))
+        story.append(t2)
+        story.append(Spacer(1, 0.3*cm))
+
+    tabela_section("Despesa por Fonte de Recurso",   dados.get("por_fonte", []),     "fonte",     "Fonte")
+    tabela_section("Despesa por Subfunção",           dados.get("por_subfuncao", []), "subfuncao", "Subfunção")
+    tabela_section("Despesa por Natureza de Despesa", dados.get("por_natureza", []),  "natureza",  "Natureza")
+
+    # Rodapé de overrides
+    if _overrides:
+        story.append(Paragraph("Ajustes Manuais Aplicados", h2_style))
+        ovr_data = [["Categoria", "Chave", "Campo", "Valor", "Observação", "Editado em"]]
+        for o in _overrides.values():
+            ovr_data.append([
+                o["categoria"], o["chave"][:40], o["campo"],
+                brlk(o["valor"]), o.get("observacao") or "—",
+                o["editado_em"][:16].replace("T"," "),
+            ])
+        t3 = Table(ovr_data, colWidths=[2.5*cm, 4.5*cm, 2*cm, 2.5*cm, 3.5*cm, 3*cm])
+        t3.setStyle(TableStyle([
+            ("BACKGROUND",(0,0),(-1,0), colors.HexColor("#d97706")),
+            ("TEXTCOLOR", (0,0),(-1,0), colors.white),
+            ("FONTNAME",  (0,0),(-1,0), "Helvetica-Bold"),
+            ("FONTSIZE",  (0,0),(-1,-1), 7),
+            ("GRID",      (0,0),(-1,-1), 0.3, CINZA2),
+            ("TOPPADDING",(0,0),(-1,-1), 4),
+            ("BOTTOMPADDING",(0,0),(-1,-1), 4),
+        ]))
+        story.append(t3)
+
+    doc.build(story)
+    buf.seek(0)
+    filename = f"SIOPS_Apui_AM_{datetime.utcnow().strftime('%Y%m%d_%H%M')}.pdf"
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
