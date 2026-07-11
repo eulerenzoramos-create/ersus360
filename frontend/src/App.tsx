@@ -483,28 +483,6 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/regulacao-especializada-apui" label="Regulação Especializ." Icon={Globe}/>
             <L1 to="/saude-lgbtqia-apui"          label="Saúde LGBTQIA+"          Icon={Smile}/>
             <L1 to="/saude-escolar-pse-apui"       label="Saúde Escolar / PSE"      Icon={School}/>
-            <L1 to="/doencas-negligenciadas-apui"  label="Doenças Negligenciadas"   Icon={Bug}/>
-            <L1 to="/saude-mental-infantojuvenil-apui" label="Saúde Mental Infanto-Juv." Icon={Smile}/>
-            <L1 to="/integracao-tempo-real-apui"       label="Integração Tempo Real"      Icon={Radio}/>
-            <L1 to="/saude-populacao-rua-apui"         label="Saúde Pop. Situação de Rua"  Icon={Home}/>
-            <L1 to="/gestao-riscos-saude-apui"         label="Gestão de Riscos"            Icon={ShieldCheck}/>
-            <L1 to="/acesso-especialidades-apui"       label="Acesso a Especialidades"     Icon={Stethoscope}/>
-            <L1 to="/saude-sexual-reprodutiva-apui"    label="Saúde Sexual e Reprodutiva"  Icon={Heart}/>
-            <L1 to="/auditoria-interna-apui"           label="Auditoria Interna"           Icon={Shield}/>
-            <L1 to="/monitoramento-metas-apui"         label="Monitoramento de Metas"      Icon={Target}/>
-            <L1 to="/controle-vetorial-apui"           label="Controle Vetorial"            Icon={Bug}/>
-            <L1 to="/comite-mortalidade-apui"          label="Comitê de Mortalidade"        Icon={HeartPulse}/>
-            <L1 to="/suas-sus-apui"                    label="Interface SUAS/SUS"           Icon={HandHeart}/>
-            <L1 to="/cadeia-frio-apui"                 label="Cadeia de Frio / PNI"         Icon={Thermometer}/>
-            <L1 to="/matriciamento-nasf-apui"          label="Matriciamento NASF/eMulti"    Icon={Users}/>
-            <L1 to="/ceac-ambulatorial-apui"           label="CEAC Ambulatorial"            Icon={Stethoscope}/>
-            <L1 to="/farmacovigilancia-apui"           label="Farmacovigilância"             Icon={FlaskConical}/>
-            <L1 to="/banco-leite-apui"                 label="Banco de Leite Humano"         Icon={Baby}/>
-            <L1 to="/judicializacao-saude-apui"        label="Judicialização em Saúde"       Icon={Scale}/>
-            <L1 to="/mercurio-garimpo-apui"           label="Mercúrio e Garimpo"       Icon={FlaskConical}/>
-            <L1 to="/violencia-domestica-sexual-apui" label="Violência Doméstica/Sex." Icon={Shield}/>
-            <L1 to="/cuidados-paliativos-apui"        label="Cuidados Paliativos"      Icon={Heart}/>
-            <L1 to="/triagem-neonatal-apui"           label="Triagem Neonatal"         Icon={Baby}/>
             <L1 to="/absenteismo-apui"                label="Absenteísmo / RHS"        Icon={UserCog}/>
             <L1 to="/pics-apui"                       label="PICS — Práticas Integrat." Icon={Sparkles}/>
             <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
