@@ -475,17 +475,6 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/score-municipal"        label="Score / Diagnóstico"    Icon={Star}/>
             <L1 to="/regulacao-acesso-apui"       label="Regulação e Acesso"     Icon={Network}/>
             <L1 to="/gestao-leitos-apui"          label="Gestão de Leitos"       Icon={Building2}/>
-            <L1 to="/saude-trabalhador-apui" label="Saúde do Trabalhador"   Icon={Wrench}/>
-            <L1 to="/educacao-permanente-apui" label="Educação Permanente"  Icon={BookOpen}/>
-            <L1 to="/aleitamento-materno-apui"    label="Aleitamento Materno"    Icon={Heart}/>
-            <L1 to="/politica-prevencao-apui"     label="Política de Prevenção"  Icon={ShieldCheck}/>
-            <L1 to="/gestao-contratos-apui"       label="Gestão de Contratos"    Icon={Clipboard}/>
-            <L1 to="/banco-sangue-hemoterapia-apui" label="Banco de Sangue"       Icon={Droplets}/>
-            <L1 to="/mortalidade-prematura-apui"  label="Mortalidade Prematura"  Icon={TrendingUp}/>
-            <L1 to="/saude-financeira-apui"       label="Financeiro FMS"         Icon={DollarSign}/>
-            <L1 to="/doacao-orgaos-apui"          label="Doação de Órgãos"       Icon={Heart}/>
-            <L1 to="/nutricao-clinica-apui"       label="Nutrição Clínica"       Icon={Utensils}/>
-            <L1 to="/psicologia-aps-apui"         label="Psicologia APS"         Icon={Brain}/>
             <L1 to="/conselho-saude-apui"    label="Conselho de Saúde"     Icon={Users}/>
             <L1 to="/ouvidoria-apui"         label="Ouvidoria Municipal"   Icon={MessageSquare}/>
             <L1 to="/seguranca-paciente-apui"label="Segurança do Paciente" Icon={Shield}/>
