@@ -122,6 +122,7 @@ import Contratos              from "./pages/Contratos";
 import SAMU                  from "./pages/SAMU";
 import PNAE                  from "./pages/PNAE";
 import SIOPSDetalhado         from "./pages/SIOPSDetalhado";
+import SIOPSLive              from "./pages/SIOPSLive";
 import PatSaude               from "./pages/PatSaude";
 import Abastecimento          from "./pages/Abastecimento";
 import SegurancaPaciente       from "./pages/SegurancaPaciente";
@@ -491,6 +492,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/samu"                  label="SAMU 192"              Icon={Radio}/>
             <L1 to="/pnae"                  label="Alimentação Escolar (PNAE)" Icon={ShoppingBag}/>
             <L1 to="/siops-detalhado"       label="SIOPS Detalhado"       Icon={Landmark}/>
+            <L1 to="/siops-live"            label="SIOPS — Dados Oficiais" Icon={Landmark}/>
             <L1 to="/pat-saude"             label="Patrimônio de Saúde"   Icon={Wrench}/>
             <L1 to="/abastecimento"         label="Abastecimento/Saneamento" Icon={Droplets}/>
             <L1 to="/seguranca-paciente"    label="Segurança do Paciente" Icon={ShieldCheck}/>
@@ -957,6 +959,7 @@ export default function App() {
             <Route path="/samu"                      element={<SAMU/>}/>
             <Route path="/pnae"                      element={<PNAE/>}/>
             <Route path="/siops-detalhado"           element={<SIOPSDetalhado/>}/>
+            <Route path="/siops-live"               element={<SIOPSLive/>}/>
             <Route path="/pat-saude"                 element={<PatSaude/>}/>
             <Route path="/abastecimento"             element={<Abastecimento/>}/>
             <Route path="/seguranca-paciente"        element={<SegurancaPaciente/>}/>
