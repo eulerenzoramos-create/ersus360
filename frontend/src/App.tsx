@@ -444,58 +444,29 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/gestao"     label="Gestão APS"         Icon={Activity}/>
             <L1 to="/siaps"      label="eGestor / SIAPS"    Icon={Globe}/>
             <L1 to="/caf"        label="CAF — Cofinanciamento" Icon={TrendingUp}/>
-            <L1 to="/ouvidoria"  label="Ouvidoria SUS"         Icon={MessageSquare}/>
-            <L1 to="/contratos"  label="Contratos & Licitações" Icon={FileText}/>
             <L1 to="/regulacao-mac" label="Regulação MAC"       Icon={Network}/>
             <L1 to="/ppa-loa"      label="PPA / LOA"           Icon={ClipboardList}/>
-            <L1 to="/absenteismo"  label="Absenteísmo RH"       Icon={UserCog}/>
             <L1 to="/sala-vacinas"      label="Sala de Vacinas"       Icon={Syringe}/>
-            <L1 to="/raps"              label="RAPS / Saúde Mental"   Icon={Brain}/>
             <L1 to="/manutencao"        label="Manutenção Equipam."   Icon={Wrench}/>
             <L1 to="/assist-farmaceutica" label="Assist. Farmacêutica"  Icon={FlaskRound}/>
             <L1 to="/transporte-sanitario"  label="Transporte / TFD"    Icon={Truck}/>
             <L1 to="/producao-sisab"        label="Produção APS / SISAB" Icon={Activity}/>
-            <L1 to="/conselho-saude"        label="Conselho Municipal"    Icon={Users}/>
-            <L1 to="/visa"                  label="Vig. Sanitária"        Icon={ShieldCheck}/>
-            <L1 to="/vetores"               label="Controle de Vetores"   Icon={Bug}/>
-            <L1 to="/sisvan"                label="SISVAN Nutricional"    Icon={TrendingUp}/>
             <L1 to="/atencao-domiciliar"    label="Atenção Domiciliar"    Icon={Home}/>
-            <L1 to="/tb-hanseniase"         label="TB e Hanseníase"       Icon={Activity}/>
-            <L1 to="/ist-hiv"               label="IST / HIV / AIDS"      Icon={Shield}/>
             <L1 to="/sim-sinasc"            label="SIM / SINASC"          Icon={BarChart2}/>
-            <L1 to="/hiperdia"              label="HiperDia / DCNT"       Icon={Heart}/>
             <L1 to="/cancer-rastreio"       label="Rastreio de Câncer"    Icon={Search}/>
-            <L1 to="/rede-frio"             label="Rede de Frio"          Icon={Thermometer}/>
-            <L1 to="/reabilitacao"          label="Reabilitação / PCD"    Icon={UserCheck}/>
-            <L1 to="/farmacia-especializada" label="Farmácia Especializada" Icon={Pill}/>
-            <L1 to="/regulacao-acesso"      label="Regulação de Acesso"   Icon={Network}/>
-            <L1 to="/controle-tabaco"       label="Controle de Tabaco"    Icon={Wind}/>
-            <L1 to="/icsap"                 label="ICSAP"                 Icon={TrendingDown}/>
-            <L1 to="/hemoterapia"           label="Hemoterapia"           Icon={Droplets}/>
             <L1 to="/ccih"                  label="CCIH"                  Icon={ShieldCheck}/>
             <L1 to="/sadt"                  label="SADT"                  Icon={FlaskConical}/>
-            <L1 to="/telessaude"            label="Telessaúde"            Icon={Monitor}/>
-            <L1 to="/oncologia"             label="Oncologia/Paliativos"  Icon={Heart}/>
             <L1 to="/pgrss"                 label="PGRSS"                 Icon={Trash2}/>
             <L1 to="/gestao-qualidade"      label="Gestão da Qualidade"   Icon={Star}/>
             <L1 to="/cme"                   label="CME"                   Icon={Thermometer}/>
-            <L1 to="/pse"                   label="Saúde na Escola (PSE)" Icon={School}/>
-            <L1 to="/blh"                   label="Banco de Leite (BLH)"  Icon={Droplets}/>
-            <L1 to="/pics"                  label="PICS"                  Icon={Sparkles}/>
             <L1 to="/frota"                 label="Frota de Saúde"        Icon={Truck}/>
-            <L1 to="/vigiagua"              label="VIGIÁGUA"              Icon={Waves}/>
-            <L1 to="/nasf"                  label="NASF-AB"               Icon={Users}/>
             <L1 to="/saude-servidor"        label="Saúde do Servidor"     Icon={UserCog}/>
             <L1 to="/acolhimento"           label="Acolhimento / Classif. Risco" Icon={Clock}/>
-            <L1 to="/judicializacao"        label="Judicialização da Saúde" Icon={Landmark}/>
-            <L1 to="/spd"                   label="Saúde da Pessoa c/ Defic." Icon={UserCheck}/>
             <L1 to="/samu"                  label="SAMU 192"              Icon={Radio}/>
             <L1 to="/pnae"                  label="Alimentação Escolar (PNAE)" Icon={ShoppingBag}/>
             <L1 to="/siops-detalhado"       label="SIOPS Detalhado"       Icon={Landmark}/>
             <L1 to="/siops-live"            label="SIOPS — Dados Oficiais" Icon={Landmark}/>
             <L1 to="/pat-saude"             label="Patrimônio de Saúde"   Icon={Wrench}/>
-            <L1 to="/abastecimento"         label="Abastecimento/Saneamento" Icon={Droplets}/>
-            <L1 to="/seguranca-paciente"    label="Segurança do Paciente" Icon={ShieldCheck}/>
             <L1 to="/visa-alimentos"        label="VISA Alimentos"        Icon={ShieldCheck}/>
             <L1 to="/academia-saude"        label="Academia da Saúde"     Icon={Activity}/>
             <L1 to="/crie"                  label="CRIE"                  Icon={Syringe}/>
@@ -507,23 +478,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/caps-ad"              label="CAPS AD"               Icon={Brain}/>
             <L1 to="/saude-estomia"        label="Saúde — Ostomia"       Icon={UserCheck}/>
             <L1 to="/rede-cegonha"         label="Rede Cegonha"          Icon={Baby}/>
-            <L1 to="/violencia-domestica"  label="Violência Doméstica"   Icon={Shield}/>
-            <L1 to="/leishmaniose"        label="Leishmaniose"          Icon={FlaskRound}/>
-            <L1 to="/arboviroses"         label="Arboviroses"           Icon={Thermometer}/>
-            <L1 to="/dst-hiv"             label="DST / HIV / AIDS"      Icon={ShieldCheck}/>
-            <L1 to="/imunizacao"          label="Imunização / PNI"      Icon={Syringe}/>
-            <L1 to="/dcnt"                label="DCNT / Crônicas"       Icon={Heart}/>
-            <L1 to="/vig-epidem-avancada"   label="Vig. Epidem. Avançada"  Icon={AlertTriangle}/>
-            <L1 to="/saude-digital-esus"   label="Saúde Digital / e-SUS"  Icon={Monitor}/>
-            <L1 to="/gestao-pessoas"       label="Gestão de Pessoas"      Icon={UserCog}/>
-            <L1 to="/judicializacao-saude" label="Judicialização Saúde"   Icon={AlertTriangle}/>
             <L1 to="/atencao-especializada" label="Atenção Especializada" Icon={Stethoscope}/>
-            <L1 to="/malaria-endemias"         label="Malária e Endemias"     Icon={Bug}/>
-            <L1 to="/vigilancia-nutricional"  label="Vigilância Nutricional" Icon={FlaskConical}/>
-            <L1 to="/saude-bucal-municipal"   label="Saúde Bucal Municipal"   Icon={Smile}/>
             <L1 to="/plano-municipal-saude"  label="Plano Municipal Saúde"  Icon={BookOpen}/>
             <L1 to="/score-municipal"        label="Score / Diagnóstico"    Icon={Star}/>
-            <L1 to="/gestao-contratos-fms"   label="Contratos / Licitações" Icon={FolderOpen}/>
             <L1 to="/regulacao-acesso-apui"       label="Regulação e Acesso"     Icon={Network}/>
             <L1 to="/gestao-leitos-apui"          label="Gestão de Leitos"       Icon={Building2}/>
             <L1 to="/saude-trabalhador-apui" label="Saúde do Trabalhador"   Icon={Wrench}/>
