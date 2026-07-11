@@ -9,7 +9,7 @@ import io
 import logging
 import zipfile
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 import httpx
 
@@ -36,8 +36,8 @@ FNS_CSV_URL = (
 API_TIMEOUT = 8.0
 
 # Cache em memória — dura 24h
-_cache: dict[str, Any] = {}
-_cache_ts: datetime | None = None
+_cache: Dict[str, Any] = {}
+_cache_ts: Optional[datetime] = None
 _sync_lock = asyncio.Lock()
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ def _cache_valido() -> bool:
     return datetime.utcnow() - _cache_ts < timedelta(hours=24)
 
 
-async def _tentar_api_oficial() -> dict | None:
+async def _tentar_api_oficial() -> Optional[Dict]:
     """Tenta os endpoints conhecidos da API pública SIOPS."""
     paths = [
         f"/api/municipio/{IBGE_APUI}/ec29",
@@ -68,7 +68,7 @@ async def _tentar_api_oficial() -> dict | None:
     return None
 
 
-async def _baixar_csv_fns() -> list[dict]:
+async def _baixar_csv_fns() -> List[Dict]:
     """Baixa o ZIP do portal FNS e parseia o CSV filtrando Apuí."""
     logger.info("Baixando CSV SIOPS do portal FNS…")
     async with httpx.AsyncClient(
@@ -123,7 +123,7 @@ def _parse_valor(s: str) -> float:
         return 0.0
 
 
-def _agrupar_despesas(rows: list[dict]) -> dict:
+def _agrupar_despesas(rows: List[Dict]) -> Dict:
     """Agrupa linhas do CSV em estruturas úteis."""
     fontes: dict[str, float] = {}
     subfuncoes: dict[str, float] = {}
