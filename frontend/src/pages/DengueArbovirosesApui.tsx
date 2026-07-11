@@ -110,7 +110,7 @@ export default function DengueArbovirosesApui() {
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
                 <p><b>IIP 4,8% = epidemia iminente</b> (nível crítico: 1%). 6 ACEs para 24.700 hab (meta 33). Principais criadouros: tonéis de garimpo (34,8%). Contratação emergencial 12 ACEs: R$ 504k/ano. ROI: 1.842 casos × R$ 840/caso = R$ 1,55M evitados vs R$ 504k de ACEs = ROI 3:1.</p>
-                <p><b>4 óbitos por dengue grave em 2025</b> — todos por hemoconcentração não detectada. 2 das 8 UBSs com sala de hidratação. Equipar 6 UBSs restantes: R$ 48.000. Hematócrito > 20% do basal = sinal de alarme = internação imediata. 1 óbito evitado = R$ 280k de UTI.</p>
+                <p><b>4 óbitos por dengue grave em 2025</b> — todos por hemoconcentração não detectada. 2 das 8 UBSs com sala de hidratação. Equipar 6 UBSs restantes: R$ 48.000. Hematócrito &gt; 20% do basal = sinal de alarme = internação imediata. 1 óbito evitado = R$ 280k de UTI.</p>
                 <p><b>Wolbachia Fiocruz</b>: parceria disponível para municípios endêmicos do AM. Eficácia: -77% de casos de dengue (NEJM 2021). Custo para o município: R$ 28.000 (logística). Fiocruz produz os mosquitos. Apuí: município pequeno = piloto ideal para zona amazônica.</p>
               </div>
             </div>

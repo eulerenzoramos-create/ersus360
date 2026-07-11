@@ -114,7 +114,7 @@ export default function HiperdiaApui() {
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
                 <p><b>184 internações ICSAP/ano</b> por HAS e DM — R$ 515.200/ano em internações evitáveis com bom controle ambulatorial.</p>
                 <p><b>8 amputações por pé diabético</b> em 2025 — programa de pé diabético não estruturado. Custo médio amputação: R$ 12.000 + reabilitação.</p>
-                <p><b>28 AVCs associados à HAS</b> — 72% com PA > 140/90 antes do evento. Controle adequado reduz risco de AVC em até 40%.</p>
+                <p><b>28 AVCs associados à HAS</b> — 72% com PA &gt; 140/90 antes do evento. Controle adequado reduz risco de AVC em até 40%.</p>
               </div>
             </div>
           </div>

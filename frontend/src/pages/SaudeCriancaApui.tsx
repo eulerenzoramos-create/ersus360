@@ -159,7 +159,7 @@ export default function SaudeCriancaApui() {
               </ResponsiveContainer>
             </div>
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
-              <b>Dupla carga nutricional</b> — desnutrição crônica e sobrepeso coexistindo nas mesmas comunidades. Zona ribeirinha com desnutrição crônica > 20% em < 5 anos. Sede urbana com obesidade crescente. SISVAN com cobertura 58,4% em < 5 anos: dados subestimam realidade.
+              <b>Dupla carga nutricional</b> — desnutrição crônica e sobrepeso coexistindo nas mesmas comunidades. Zona ribeirinha com desnutrição crônica &gt; 20% em &lt; 5 anos. Sede urbana com obesidade crescente. SISVAN com cobertura 58,4% em &lt; 5 anos: dados subestimam realidade.
             </div>
           </div>
         )}

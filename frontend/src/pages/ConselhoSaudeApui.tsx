@@ -117,7 +117,7 @@ export default function ConselhoSaudeApui() {
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 flex flex-col gap-2 justify-center">
                 <p><b>Controle social ativo:</b> CMS funcionando regularmente com quórum médio de 81,3% — acima da média nacional.</p>
                 <p><b>Deliberações não cumpridas:</b> 31,6% pendentes — falta de psiquiatra e demora na regulação são as principais queixas persistentes.</p>
-                <p><b>Transparência digital:</b> CMS sem site — deliberações e atas não acessíveis on-line. Municípios com <20k hab. raramente têm infraestrutura digital para o conselho.</p>
+                <p><b>Transparência digital:</b> CMS sem site — deliberações e atas não acessíveis on-line. Municípios com &lt;20k hab. raramente têm infraestrutura digital para o conselho.</p>
               </div>
             </div>
           </div>

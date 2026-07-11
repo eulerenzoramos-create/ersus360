@@ -148,7 +148,7 @@ export default function FnsConvenios() {
           <button
             onClick={() => mutSyncTodos.mutate()}
             disabled={isLoading}
-            style={{ padding: "7px 14px", fontSize: "12px", borderRadius: "8px", border: "0.5px solid var(--color-border-secondary)", background: "transparent", cursor: "pointer", fontSize: "11px" }}
+            style={{ padding: "7px 14px", fontSize: "11px", borderRadius: "8px", border: "0.5px solid var(--color-border-secondary)", background: "transparent", cursor: "pointer" }}
           >
             Sync últimos 3 meses
           </button>

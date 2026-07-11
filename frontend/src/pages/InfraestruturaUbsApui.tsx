@@ -111,7 +111,7 @@ export default function InfraestruturaUbsApui() {
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
                 <p><b>1 de 6 UBSs em boas condições</b> — UBS Ribeirinha: sem energia elétrica há 8 meses (inversor solar defeituoso, R$ 4.800 resolve). 1.240 ribeirinhos sem cadeia de frio para vacinas.</p>
-                <p><b>HMM: zero UTI, zero ventilador mecânico, zero banco de sangue</b> — sala cirúrgica sem ar condicionado adequado. IRAS: 8,4% (meta < 2%). R$ 42.000 em climatização = payback em 1 ano.</p>
+                <p><b>HMM: zero UTI, zero ventilador mecânico, zero banco de sangue</b> — sala cirúrgica sem ar condicionado adequado. IRAS: 8,4% (meta &lt; 2%). R$ 42.000 em climatização = payback em 1 ano.</p>
                 <p><b>Starlink para todas as UBSs: R$ 36k/ano</b> — 28,4% com internet, 42,4% com prontuário eletrônico. Sem internet: zero Telessaúde, dados invisíveis ao MS (RNDS), prontuário em papel.</p>
               </div>
             </div>

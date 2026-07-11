@@ -110,8 +110,8 @@ export default function DoencasNegligenciadasApui() {
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
                 <p><b>62,4% das crianças com helmintoses</b> — MDA com albendazol: R$ 10.374 via PSE = -72% em 1 dose. Saneamento: único controle definitivo.</p>
-                <p><b>4 óbitos por leptospirose</b> (9,5% de letalidade, meta < 5%). Leptocheck (R$ 8.400): diagnóstico em 15 minutos. Amoxicilina (R$ 4,20) em < 5 dias = letalidade zero. Todos evitáveis.</p>
-                <p><b>IIP Aedes = 4,8%</b> (meta < 1%). Epidemia de dengue iminente. 4 agentes de endemias vs 12 necessários. 8 agentes adicionais: R$ 504k evitam R$ 1,68M em epidemia.</p>
+                <p><b>4 óbitos por leptospirose</b> (9,5% de letalidade, meta &lt; 5%). Leptocheck (R$ 8.400): diagnóstico em 15 minutos. Amoxicilina (R$ 4,20) em &lt; 5 dias = letalidade zero. Todos evitáveis.</p>
+                <p><b>IIP Aedes = 4,8%</b> (meta &lt; 1%). Epidemia de dengue iminente. 4 agentes de endemias vs 12 necessários. 8 agentes adicionais: R$ 504k evitam R$ 1,68M em epidemia.</p>
               </div>
             </div>
           </div>

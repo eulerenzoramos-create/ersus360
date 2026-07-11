@@ -107,7 +107,7 @@ export default function RegulacaoAcessoApui() {
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
                 <p><b>1.284 pacientes na fila</b> — crescimento +136 em 6 meses (+11,8%). Neurologia: 312 dias (meta 60d). Psiquiatria: 124 dias, 2 visitas/mês de psiquiatra de Manaus. TELESSAÚDE-AM: telepsiquiatria gratuita, reduz demanda presencial -40%. Dermatologia: 248 dias — tele-dermatologia via foto (WhatsApp seguro + TELESSAÚDE): R$ 0, resolve 60% dos casos sem deslocamento.</p>
-                <p><b>184 pacientes >180 dias em fila</b>. Judicialização SUS: cada ação judicial custa R$ 4.200 + resolve o caso de 1 sem resolver os 1.283. Oferta articulada com consórcio regional (Humaitá, Manicoré, Novo Aripuanã): mutirão trimestral. Ortopedia: 148 em fila × R$ 1.200 deslocamento = R$ 177.600/ano apenas em TFD.</p>
+                <p><b>184 pacientes &gt;180 dias em fila</b>. Judicialização SUS: cada ação judicial custa R$ 4.200 + resolve o caso de 1 sem resolver os 1.283. Oferta articulada com consórcio regional (Humaitá, Manicoré, Novo Aripuanã): mutirão trimestral. Ortopedia: 148 em fila × R$ 1.200 deslocamento = R$ 177.600/ano apenas em TFD.</p>
                 <p><b>Contrarreferência: 38,4% retornam para APS</b> (meta 80%). 61,6% sem contrarreferência = médico da UBS sem informação sobre especialista = duplicação de pedidos + perda de continuidade. Formulário de contrarreferência: R$ 0. Ligação ativa do regulador para especialista: protocolo municipal em 30 dias.</p>
               </div>
             </div>

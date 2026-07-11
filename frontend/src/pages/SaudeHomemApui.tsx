@@ -111,7 +111,7 @@ export default function SaudeHomemApui() {
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
                 <p><b>72,4% dos cânceres de próstata diagnosticados em estádio tardio</b> — sem PSA de rastreamento (18,4%). Urologista: zero em Apuí (fila 320 dias SISREG). Tele-urologia: PSA alterado → laudo em 5 dias. Ca próstata estádio I: cura 99% vs estádio IV: 30%/5a.</p>
                 <p><b>28,4% dos homens consultam na UBS</b> (vs 68,4% das mulheres). Zero UBSs com horário noturno. Trabalhador não pode faltar. Outubro Azul ampliado no garimpo: testagem PSA + glicemia + PA + IST no local de trabalho. Custo: R$ 18.000 → 400 homens.</p>
-                <p><b>8 dos 11 suicídios são homens (72,7%)</b>. CAPS: zero. Alcoolismo: 28,4% dos homens adultos. Grupo de homens na UBS: R$ 8.400/ano. CVV 188 7 sinalizado no garimpo + escola. CAPS AD: solicitação formal ao Estado (> 20k hab = critério atendido).</p>
+                <p><b>8 dos 11 suicídios são homens (72,7%)</b>. CAPS: zero. Alcoolismo: 28,4% dos homens adultos. Grupo de homens na UBS: R$ 8.400/ano. CVV 188 7 sinalizado no garimpo + escola. CAPS AD: solicitação formal ao Estado (&gt; 20k hab = critério atendido).</p>
               </div>
             </div>
           </div>

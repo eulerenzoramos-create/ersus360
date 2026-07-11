@@ -109,7 +109,7 @@ export default function SaudeAuditivaApui() {
                 </div>
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 flex flex-col gap-2 justify-center">
-                <p><b>PAIR no garimpo: 38,4% com surdez ocupacional</b> — perda sensorineural irreversível. Protetor auricular custa R$ 2,80. Diagnóstico: audiômetro portátil R$ 12.000. Garimpeiro com > 5 anos: 84,2% com perda moderada-severa.</p>
+                <p><b>PAIR no garimpo: 38,4% com surdez ocupacional</b> — perda sensorineural irreversível. Protetor auricular custa R$ 2,80. Diagnóstico: audiômetro portátil R$ 12.000. Garimpeiro com &gt; 5 anos: 84,2% com perda moderada-severa.</p>
                 <p><b>OMC 22,4% nas aldeias indígenas</b> (11x a meta OMS). Otite média crônica em criança = perda condutiva + dificuldade de aprendizado. Timpanotomia: indisponível. Antibiótico tópico: desabastecido 38 dias/ano.</p>
                 <p><b>AASI: 84 usuários de 742 necessitados (11,3%)</b> — fila de 14 meses. Fonoaudiólogo: zero. Criança com AASI sem reabilitação fonoaudiológica = aparelho que amplifica sem desenvolver linguagem. Custo de 1 fonoaudiólogo: R$ 4.800/mês.</p>
               </div>

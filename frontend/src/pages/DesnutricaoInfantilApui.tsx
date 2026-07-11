@@ -111,7 +111,7 @@ export default function DesnutricaoInfantilApui() {
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
                 <p><b>8,4% de desnutrição aguda grave</b> — 270 crianças em risco de morte, SISVAN detecta apenas 48 (17,8%). Fita MUAC: R$ 0,80 detecta no domicílio. RUTF (Plumpy'Nut): R$ 1.134/criança vs R$ 12.400 de internação. ROI 11:1.</p>
                 <p><b>28,4% de stunting — 912 crianças com crescimento permanentemente comprometido</b> — irreversível após os 2 anos. QI -8 pontos, renda adulta -22%. Custo econômico: R$ 842k/geração. Janela dos 1.000 dias: única chance de intervir.</p>
-                <p><b>62,4% de anemia (842 crianças < 2 anos)</b> — PNSF (sulfato ferroso MS): R$ 43,20/criança/ano. Cobertura 42,4%. -60% de anemia em 6 meses com 100% de cobertura = 505 crianças curadas. Nutricionista na eMulti: R$ 36k/ano = ROI 29:1.</p>
+                <p><b>62,4% de anemia (842 crianças &lt; 2 anos)</b> — PNSF (sulfato ferroso MS): R$ 43,20/criança/ano. Cobertura 42,4%. -60% de anemia em 6 meses com 100% de cobertura = 505 crianças curadas. Nutricionista na eMulti: R$ 36k/ano = ROI 29:1.</p>
               </div>
             </div>
           </div>

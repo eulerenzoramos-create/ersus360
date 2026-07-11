@@ -78,7 +78,7 @@ export default function TriagemNeonatal() {
             <Star size={22} color="white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Triagem Neonatal</html>
+            <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Triagem Neonatal</h1>
             <p className="text-sm text-slate-500">Pezinho · Olhinho · Orelhinha · Coraçãozinho · Quadrilzinho · FMS Apuí/AM</p>
           </div>
         </div>

@@ -109,7 +109,7 @@ export default function SaudeAdolescenteApui() {
                 </div>
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 flex flex-col gap-2 justify-center">
-                <p><b>Taxa de gravidez 2,3x acima da meta</b> — 68,4/1k vs meta 30/1k. 12,4% em meninas < 15a (violência sexual em 8,4%). Evasão pós-gravidez: 72,4%. Anticoncepção: acessível a apenas 38,4% das adolescentes.</p>
+                <p><b>Taxa de gravidez 2,3x acima da meta</b> — 68,4/1k vs meta 30/1k. 12,4% em meninas &lt; 15a (violência sexual em 8,4%). Evasão pós-gravidez: 72,4%. Anticoncepção: acessível a apenas 38,4% das adolescentes.</p>
                 <p><b>Saúde mental invisível</b> — 28 automutilações + 18 tentativas de suicídio em 2025. PHQ-A: aplicado em 4,8% das consultas. Zero psicólogo, zero CAPS-IJ. Linha CVV 188: não divulgada nas escolas de Apuí.</p>
                 <p><b>42,4% usam álcool regularmente</b> — início médio aos 12,4 anos. Drogas ilícitas: 22,4%. CAPS-AD sem leito infantojuvenil. PSE ativo em menos da metade das escolas — sem psicólogo nos ciclos.</p>
               </div>

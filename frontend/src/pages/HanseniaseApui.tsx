@@ -110,8 +110,8 @@ export default function HanseniaseApui() {
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
                 <p><b>84,4/100k de detecção</b> — 8,4× a meta OMS (10/100k). 208 casos novos. 80,8% são multibacilar (alta carga endêmica). Busca ativa ACS: R$ 14k + tele-derm R$ 8,4k → detecção precoce = grau 0 = sem incapacidade.</p>
-                <p><b>28,4% com grau de incapacidade 2</b> — deformidade visível (garra, pé-caído, lagoftalmo). Reabilitação: R$ 28.400/caso. PQT supervisionada + corticoide na neurite em < 24h: evita toda incapacidade grau 2.</p>
-                <p><b>28 crianças com hanseníase</b> (meta OMS: 0). Transmissão ativa intrafamiliar. BCG em contatos < 15a: -50%. Investigação de 100% dos contatos: R$ 14k. Criança com hanseníase = família toda em risco.</p>
+                <p><b>28,4% com grau de incapacidade 2</b> — deformidade visível (garra, pé-caído, lagoftalmo). Reabilitação: R$ 28.400/caso. PQT supervisionada + corticoide na neurite em &lt; 24h: evita toda incapacidade grau 2.</p>
+                <p><b>28 crianças com hanseníase</b> (meta OMS: 0). Transmissão ativa intrafamiliar. BCG em contatos &lt; 15a: -50%. Investigação de 100% dos contatos: R$ 14k. Criança com hanseníase = família toda em risco.</p>
               </div>
             </div>
           </div>

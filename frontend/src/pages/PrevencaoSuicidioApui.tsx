@@ -111,7 +111,7 @@ export default function PrevencaoSuicidioApui() {
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
                 <p><b>56,7 suicídios/100k — 8,9× a média nacional</b> — 14 óbitos em 2025, crescimento de +40% em 3 anos. 42,9% em jovens 15-29, 35,7% em garimpeiros (mercúrio + isolamento).</p>
                 <p><b>Subnotificação de 80%</b> — 84 tentativas notificadas vs 420 estimadas. Zero busca ativa pós-tentativa: protocolo (R$ 4.800) + OMS comprova -26% de nova tentativa em 72h.</p>
-                <p><b>CAPS II: elegível (> 20k hab.), não implantado</b> — MS financia R$ 60k/mês. R$ 168k municipal = psiquiatra permanente + 2 psicólogos + leito de acolhimento noturno. CVV 188: divulgar nas escolas = R$ 0.</p>
+                <p><b>CAPS II: elegível (&gt; 20k hab.), não implantado</b> — MS financia R$ 60k/mês. R$ 168k municipal = psiquiatra permanente + 2 psicólogos + leito de acolhimento noturno. CVV 188: divulgar nas escolas = R$ 0.</p>
               </div>
             </div>
           </div>

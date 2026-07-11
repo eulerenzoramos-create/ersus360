@@ -111,7 +111,7 @@ export default function TuberculoseApui() {
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
                 <p><b>Incidência 142,4/100k</b> — 14,2× a meta OMS Fim da TB (10/100k). 352 casos em 2025. GeneXpert: R$ 84k → diagnóstico em 2h + detecção de resistência. Abandono 22,4% → DR-TB: custo R$ 280k/caso.</p>
                 <p><b>DOTS 28,4% supervisionado</b> (meta 100%). 1 ACS TB-dedicado: R$ 28k/ano → abandono de 22% para 4%. Bolsa Tuberculose R$ 250/mês: -68% de abandono em alcoolistas e vulneráveis.</p>
-                <p><b>57,6% dos contatos não investigados</b>. 284 elegíveis para TPT — apenas 84 iniciaram (29,6%). 1 caso de TB ativa evitado por TPT: ROI 170:1. Crianças < 5a em contato: TPT independente do TST.</p>
+                <p><b>57,6% dos contatos não investigados</b>. 284 elegíveis para TPT — apenas 84 iniciaram (29,6%). 1 caso de TB ativa evitado por TPT: ROI 170:1. Crianças &lt; 5a em contato: TPT independente do TST.</p>
               </div>
             </div>
           </div>

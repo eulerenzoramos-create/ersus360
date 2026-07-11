@@ -111,7 +111,7 @@ export default function ClimaSaudeApui() {
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 flex flex-col gap-2 justify-center">
                 <p><b>PM2,5 das queimadas: 19x acima da meta OMS</b> — 284 μg/m³ vs meta 15 μg/m³. 68 dias/ano com ar irrespirável. Asma: exacerbação em 284 pacientes. Zero protocolo de alerta de qualidade do ar em Apuí.</p>
                 <p><b>Mercúrio no peixe: principal proteína ribeirinha</b> — 72,4% da população ribeirinha depende do peixe. Peixe carnívoro (tucunaré): 8,4x acima do limite OMS. 142 expostos, 8 com sintomas neurológicos. Dosagem de Hg-U: não disponível em Apuí.</p>
-                <p><b>+2,6°C em 45 anos</b> — Amazônia aquece 2x mais que a média global pelo efeito do desmatamento. 84 dias/ano > 35°C. 62,4% sem água tratada na seca. Diarreia +48,4% em crianças < 5a durante seca.</p>
+                <p><b>+2,6°C em 45 anos</b> — Amazônia aquece 2x mais que a média global pelo efeito do desmatamento. 84 dias/ano &gt; 35°C. 62,4% sem água tratada na seca. Diarreia +48,4% em crianças &lt; 5a durante seca.</p>
               </div>
             </div>
           </div>

@@ -110,7 +110,7 @@ export default function SaudeMulherApui() {
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
                 <p><b>RMM 284/100k NV</b> — 9,5× a meta OMS (30/100k). 3 óbitos maternos 2025. Causa principal: eclâmpsia (magnésio sulfato disponível, mas pré-natal tardio). CMMM: obrigatório por lei — R$ 4.200/ano. AAS 100mg + cálcio 1g/dia em gestantes alto risco: custo R$ 0,84/mês.</p>
-                <p><b>28 casos de sífilis congênita</b> (meta OMS < 50/100k NV). 100% evitável com VDRL + penicilina G benzatina R$ 8,40/ampola. Custo de 1 SC não tratado: R$ 284.000 (surdez + retardo + UTI neonatal). Parceiro sexual não tratado: 62% dos casos.</p>
+                <p><b>28 casos de sífilis congênita</b> (meta OMS &lt; 50/100k NV). 100% evitável com VDRL + penicilina G benzatina R$ 8,40/ampola. Custo de 1 SC não tratado: R$ 284.000 (surdez + retardo + UTI neonatal). Parceiro sexual não tratado: 62% dos casos.</p>
                 <p><b>DIU e implante subdérmico: zero disponível</b>. MS fornece via RENAME: R$ 0. Capacitação: 40h EAD (ENAP gratuito). 68,4% das gestações são não planejadas. 4 casos de laqueadura sem consentimento informado adequado registrados no CRAS.</p>
               </div>
             </div>
