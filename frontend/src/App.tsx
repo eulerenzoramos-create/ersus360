@@ -668,7 +668,6 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
                   <L3 to="/sb360/pessoa-idosa"                 label="Cuidado da Pessoa Idosa"              Icon={UserCheck}/>
                   <L3 to="/sb360/mulher-cancer"                label="Cuidado da Mulher — Prevenção Câncer" Icon={ShieldCheck}/>
                 </Acc2>
-                <L3 to="/sb360/saude-bucal"                  label="Saúde Bucal"                          Icon={Stethoscope}/>
                 <L3 to="/sb360/equipes-multiprofissionais"   label="Equipes Multiprofissionais"            Icon={Users}/>
               </Acc2>
             </Acc1>
