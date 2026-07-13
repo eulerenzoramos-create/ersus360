@@ -186,7 +186,7 @@ function AbaConsultaFNS() {
   const [portaria, setPortaria] = useState("");
 
   const consultar = () => {
-    window.open("https://consultafns.saude.gov.br/#/consulta/detalhada", "_blank");
+    window.open("https://consultafns.saude.gov.br/#/detalhada", "_blank");
   };
   const limpar = () => {
     setAno(String(anoAtual)); setMes(mesAtual); setTipo("Fundo a Fundo");
