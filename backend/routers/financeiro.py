@@ -172,6 +172,24 @@ _SIOPS = {
 }
 
 
+# ── Tabela FNS Detalhada por Ação (dados reais 2026) ─────────────────────────
+# Fonte: consultafns.saude.gov.br/#/detalhada/acao — APUÍ/AM
+
+_FNS_ACOES = [
+    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ASSISTÊNCIA FARMACÊUTICA",                          "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ATENÇÃO ESPECIALIZADA",                             "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",                                  "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "CORONAVÍRUS (COVID-19)",                            "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "APOIO FINANCEIRO EXTRAORDINÁRIO",                   "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "ASSISTÊNCIA FARMACÊUTICA",                          "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "ATENÇÃO DE MÉDIA E ALTA COMPLEXIDADE AMBULATORIAL E HOSPITALAR", "acao": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC", "acao_detalhada": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC", "valor_total": 312343.90, "valor_desconto": 0.0, "valor_liquido": 312343.90},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "ATENÇÃO ESPECIALIZADA",                             "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "ATENÇÃO PRIMÁRIA",                                  "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "CORONAVÍRUS (COVID-19)",                            "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "GESTÃO DO SUS",                                     "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "VIGILÂNCIA EM SAÚDE",                               "acao": "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS", "acao_detalhada": "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS", "valor_total": 25936.00, "valor_desconto": 0.0, "valor_liquido": 25936.00},
+]
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("/painel")
@@ -233,6 +251,21 @@ async def painel_financeiro(
         "fonte": "referencia",
     }
 
+
+@router.get("/fns-acoes")
+async def fns_acoes(_: UserOut = Depends(get_current_user)):
+    """Tabela detalhada FNS por ação — real 2026 — APUÍ/AM."""
+    total = sum(r["valor_liquido"] for r in _FNS_ACOES if r["valor_liquido"] is not None)
+    desc  = sum(r["valor_desconto"] for r in _FNS_ACOES if r["valor_desconto"] is not None)
+    return {
+        "entidade": _ENTIDADE,
+        "acoes": _FNS_ACOES,
+        "total_geral":     round(total, 2),
+        "total_desconto":  round(desc, 2),
+        "total_liquido":   round(total - desc, 2),
+        "fonte": "consultafns.saude.gov.br/#/detalhada/acao",
+        "ano": 2026,
+    }
 
 @router.get("/blocos")
 async def blocos_financiamento(_: UserOut = Depends(get_current_user)):

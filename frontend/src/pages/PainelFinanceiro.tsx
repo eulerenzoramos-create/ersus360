@@ -166,194 +166,256 @@ function TooltipRepasse({ active, payload, label }: any) {
 
 const MESES_FNS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const TIPOS_CONSULTA = ["Fundo a Fundo","Convênios/Instrumentos","Emendas Parlamentares","Ações e Programas"];
-const BLOCOS_FNS = ["Atenção Primária","Atenção Especializada","Vigilância em Saúde","Assistência Farmacêutica","Gestão do SUS","Estruturação"];
+const BLOCOS_FNS_OPT = ["Atenção Primária","Atenção Especializada","Vigilância em Saúde","Assistência Farmacêutica","Gestão do SUS","Estruturação"];
 const REPASSES_FNS = ["PAB Fixo","PAB Variável","Média e Alta Complexidade","FAEC","Medicamentos","Ações Estratégicas"];
+const ESTADOS_BR = ["","AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+
+const BRL = (n: number) =>
+  new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
 function AbaConsultaFNS() {
   const anoAtual = new Date().getFullYear();
   const mesAtual = MESES_FNS[new Date().getMonth()];
 
-  const [ano, setAno]           = useState(String(anoAtual));
-  const [mes, setMes]           = useState(mesAtual);
-  const [tipoConsulta, setTipo] = useState("Fundo a Fundo");
-  const [bloco, setBloco]       = useState("");
-  const [cpf, setCpf]           = useState("");
-  const [estado, setEstado]     = useState("AMAZONAS");
+  const [ano, setAno]             = useState(String(anoAtual));
+  const [mes, setMes]             = useState(mesAtual);
+  const [tipoConsulta, setTipo]   = useState("Fundo a Fundo");
+  const [bloco, setBloco]         = useState("");
+  const [cpf, setCpf]             = useState("");
+  const [estado, setEstado]       = useState("AM");
   const [municipio, setMunicipio] = useState("APUÍ");
-  const [processo, setProcesso] = useState("");
-  const [proposta, setProposta] = useState("");
-  const [repasse, setRepasse]   = useState("");
-  const [dtIni, setDtIni]       = useState("");
-  const [dtFim, setDtFim]       = useState("");
-  const [portaria, setPortaria] = useState("");
+  const [processo, setProcesso]   = useState("");
+  const [proposta, setProposta]   = useState("");
+  const [repasse, setRepasse]     = useState("");
+  const [dtIni, setDtIni]         = useState("");
+  const [dtFim, setDtFim]         = useState("");
+  const [portaria, setPortaria]   = useState("");
+  const [consultado, setConsultado] = useState(true); // começa com resultado para Apuí
+  const [pgSize, setPgSize]       = useState(25);
+  const [pgCur, setPgCur]         = useState(1);
 
-  const ESTADOS_BR = [
-    "","AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
-    "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
-  ];
+  const { data: fnsData } = useQuery({
+    queryKey: ["fns-acoes"],
+    queryFn: () => apiGet("/api/financeiro/fns-acoes") as Promise<any>,
+  });
 
-  const consultar = () => {
-    window.open("https://consultafns.saude.gov.br/#/detalhada", "_blank");
-  };
+  const acoes: any[] = fnsData?.acoes ?? [];
+  const entidade = fnsData?.entidade;
+
+  const totalPages = Math.ceil(acoes.length / pgSize);
+  const paginadas = acoes.slice((pgCur - 1) * pgSize, pgCur * pgSize);
+
   const limpar = () => {
     setAno(String(anoAtual)); setMes(mesAtual); setTipo("Fundo a Fundo");
     setBloco(""); setCpf(""); setEstado(""); setMunicipio("");
-    setProcesso(""); setProposta("");
-    setRepasse(""); setDtIni(""); setDtFim(""); setPortaria("");
+    setProcesso(""); setProposta(""); setRepasse("");
+    setDtIni(""); setDtFim(""); setPortaria("");
+    setConsultado(false);
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%", border: "1px solid #d1d5db", borderRadius: 4, padding: "7px 10px",
-    fontSize: 13, background: "#fff", outline: "none", boxSizing: "border-box",
-  };
-  const selectStyle: React.CSSProperties = { ...inputStyle, cursor: "pointer" };
-  const labelStyle: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 };
-  const reqStyle: React.CSSProperties = { color: "#dc2626", marginRight: 3 };
+  const inputSt: React.CSSProperties = { width: "100%", border: "1px solid #d1d5db", borderRadius: 4, padding: "7px 10px", fontSize: 13, background: "#fff", outline: "none", boxSizing: "border-box" };
+  const selSt: React.CSSProperties   = { ...inputSt, cursor: "pointer" };
+  const lblSt: React.CSSProperties   = { fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 };
 
   return (
-    <div>
-      {/* Header FNS */}
+    <div style={{ fontFamily: "system-ui, sans-serif" }}>
+
+      {/* ── Header FNS ── */}
       <div style={{ background: "#1a3a6b", color: "#fff", borderRadius: "10px 10px 0 0", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ fontSize: 18, fontWeight: 300, letterSpacing: 1 }}>Consulta</div>
-          <div style={{ width: 1, height: 20, background: "rgba(255,255,255,.4)" }} />
-          <div style={{ fontSize: 14, fontWeight: 700 }}>Fundo Nacional de Saúde</div>
+          <span style={{ fontSize: 18, fontWeight: 300, letterSpacing: 1 }}>Consulta</span>
+          <span style={{ width: 1, height: 20, background: "rgba(255,255,255,.4)", display: "inline-block" }} />
+          <span style={{ fontSize: 14, fontWeight: 700 }}>Fundo Nacional de Saúde</span>
         </div>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", fontSize: 12 }}>
-          <span style={{ background: "rgba(255,255,255,.15)", padding: "3px 10px", borderRadius: 4 }}>A⁻</span>
-          <span style={{ background: "rgba(255,255,255,.15)", padding: "3px 10px", borderRadius: 4 }}>A</span>
-          <span style={{ background: "rgba(255,255,255,.25)", padding: "3px 10px", borderRadius: 4, fontWeight: 700 }}>A⁺</span>
-          <span style={{ opacity: .6 }}>PT ▾</span>
-          <span style={{ opacity: .6 }}>V.1.50.1</span>
-          <button onClick={consultar} style={{ background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.4)", color: "#fff", borderRadius: 4, padding: "3px 10px", cursor: "pointer", fontSize: 12 }}>
-            ? Ajuda
-          </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 11 }}>
+          {["A⁻","A","A⁺"].map(a => <span key={a} style={{ background: "rgba(255,255,255,.2)", padding: "2px 8px", borderRadius: 3, cursor: "pointer" }}>{a}</span>)}
+          <span style={{ opacity: .7 }}>PT ▾</span>
+          <span style={{ opacity: .7 }}>V.1.50.1</span>
+          <button onClick={() => window.open("https://consultafns.saude.gov.br/#/detalhada","_blank")} style={{ background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.4)", color: "#fff", borderRadius: 4, padding: "3px 10px", cursor: "pointer", fontSize: 11 }}>? Ajuda ↗</button>
         </div>
       </div>
 
       {/* Sub-menu */}
-      <div style={{ background: "#2a5298", padding: "8px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <button onClick={consultar} style={{ background: "none", border: "none", color: "#fff", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-          Tipos de consulta ▾
-        </button>
-        <button onClick={consultar} style={{ background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.4)", color: "#fff", borderRadius: 4, padding: "4px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-          ↗ Abrir no FNS
-        </button>
+      <div style={{ background: "#2a5298", padding: "7px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <button style={{ background: "none", border: "none", color: "#fff", fontSize: 13, cursor: "pointer" }}>Tipos de consulta ▾</button>
+        <button onClick={() => window.open("https://consultafns.saude.gov.br/#/detalhada","_blank")} style={{ background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.4)", color: "#fff", borderRadius: 4, padding: "4px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>↗ Abrir no FNS</button>
       </div>
 
       {/* Breadcrumb */}
-      <div style={{ background: "#f3f4f6", padding: "6px 20px", fontSize: 12, color: "#6b7280", borderBottom: "1px solid #e5e7eb" }}>
-        Detalhada
-      </div>
+      <div style={{ background: "#f3f4f6", padding: "5px 20px", fontSize: 12, color: "#6b7280", borderBottom: "1px solid #e5e7eb" }}>Detalhada</div>
 
-      {/* Formulário */}
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "0 0 10px 10px", padding: "20px 24px" }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#1e293b", margin: "0 0 14px", borderBottom: "2px solid #1a3a6b", paddingBottom: 10 }}>Detalhada</h2>
+      {/* ── Formulário ── */}
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>Detalhada</h2>
 
-        {/* Aviso */}
-        <div style={{ background: "#dbeafe", borderRadius: 4, padding: "10px 14px", fontSize: 12, color: "#1e40af", marginBottom: 20 }}>
-          <span style={{ color: "#dc2626" }}>*</span> Os campos com <span style={{ color: "#dc2626" }}>*</span> são obrigatórios.
+        <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 8 }}>
+          Os campos com <span style={{ color: "#dc2626" }}>*</span> são obrigatórios.
         </div>
-        <div style={{ background: "#dbeafe", borderRadius: 4, padding: "10px 14px", fontSize: 12, color: "#1e40af", marginBottom: 24, lineHeight: 1.6 }}>
-          De acordo com o Manual de Ordem Bancária da Secretaria do Tesouro Nacional (STN), os valores repassados serão creditados em no máximo dois dias úteis após a data de emissão da Ordem Bancária para correntistas do Banco do Brasil. Para os demais bancos o prazo é de no máximo três dias úteis.
+        <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
+          De acordo com o Manual de Ordem Bancária da STN, os valores repassados serão creditados em no máximo dois dias úteis após a data de emissão da OB para correntistas do Banco do Brasil. Para os demais bancos o prazo é de no máximo três dias úteis.
         </div>
 
         {/* Linha 1 */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr 1fr", gap: 16, marginBottom: 18 }}>
-          <div>
-            <label style={labelStyle}><span style={reqStyle}>*</span>Ano</label>
-            <select value={ano} onChange={e => setAno(e.target.value)} style={selectStyle}>
+        <div style={{ display: "grid", gridTemplateColumns: "120px 160px 1fr 200px", gap: 14, marginBottom: 14 }}>
+          <div><label style={lblSt}><span style={{ color: "#dc2626" }}>* </span>Ano</label>
+            <select value={ano} onChange={e => setAno(e.target.value)} style={selSt}>
               {[2026,2025,2024,2023,2022].map(a => <option key={a}>{a}</option>)}
             </select>
           </div>
-          <div>
-            <label style={labelStyle}>Mês</label>
-            <select value={mes} onChange={e => setMes(e.target.value)} style={selectStyle}>
+          <div><label style={lblSt}>Mês</label>
+            <select value={mes} onChange={e => setMes(e.target.value)} style={selSt}>
               {MESES_FNS.map(m => <option key={m}>{m}</option>)}
             </select>
           </div>
-          <div>
-            <label style={labelStyle}><span style={reqStyle}>*</span>Tipo de consulta</label>
-            <select value={tipoConsulta} onChange={e => setTipo(e.target.value)} style={selectStyle}>
+          <div><label style={lblSt}><span style={{ color: "#dc2626" }}>* </span>Tipo de consulta</label>
+            <select value={tipoConsulta} onChange={e => setTipo(e.target.value)} style={selSt}>
               {TIPOS_CONSULTA.map(t => <option key={t}>{t}</option>)}
             </select>
           </div>
-          <div>
-            <label style={labelStyle}>Bloco</label>
-            <select value={bloco} onChange={e => setBloco(e.target.value)} style={selectStyle}>
+          <div><label style={lblSt}>Bloco</label>
+            <select value={bloco} onChange={e => setBloco(e.target.value)} style={selSt}>
               <option value="">Selecione</option>
-              {BLOCOS_FNS.map(b => <option key={b}>{b}</option>)}
+              {BLOCOS_FNS_OPT.map(b => <option key={b}>{b}</option>)}
             </select>
           </div>
         </div>
 
         {/* Linha 2 */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 130px 1fr 1fr", gap: 14, marginBottom: 14 }}>
           <div>
-            <label style={labelStyle}>CPF/CNPJ/UG</label>
-            <input value={cpf} onChange={e => setCpf(e.target.value)} placeholder="Ex.: CPF(12345678901)..." style={inputStyle} />
-            <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 3 }}>Ex.: CPF(12345678901), CNPJ(12345678901234) e UG(123456)</div>
+            <label style={lblSt}>CPF/CNPJ/UG</label>
+            <input value={cpf} onChange={e => setCpf(e.target.value)} placeholder="Ex.: CPF(12345678901)..." style={inputSt} />
+            <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>Ex.: CPF(12345678901), CNPJ(12345678901234) e UG(123456)</div>
           </div>
-          <div>
-            <label style={labelStyle}>Estado</label>
-            <select value={estado} onChange={e => setEstado(e.target.value)} style={selectStyle}>
+          <div><label style={lblSt}>Estado</label>
+            <select value={estado} onChange={e => setEstado(e.target.value)} style={selSt}>
               <option value="">Selecione</option>
               {ESTADOS_BR.filter(e => e).map(e => <option key={e}>{e}</option>)}
             </select>
           </div>
-          <div>
-            <label style={labelStyle}>Município</label>
-            <input value={municipio} onChange={e => setMunicipio(e.target.value)} placeholder="Digite o município" style={inputStyle} />
+          <div><label style={lblSt}>Município</label>
+            <input value={municipio} onChange={e => setMunicipio(e.target.value)} placeholder="Digite o município" style={inputSt} />
           </div>
-          <div>
-            <label style={labelStyle}>Processo</label>
-            <input value={processo} onChange={e => setProcesso(e.target.value)} placeholder="Ex.: (12345678901234567)" style={inputStyle} />
+          <div><label style={lblSt}>Processo</label>
+            <input value={processo} onChange={e => setProcesso(e.target.value)} placeholder="Ex.: (12345678901234567)" style={inputSt} />
           </div>
         </div>
 
         {/* Linha 3 */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: 16, marginBottom: 28 }}>
-          <div>
-            <label style={labelStyle}>Proposta</label>
-            <input value={proposta} onChange={e => setProposta(e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Repasse</label>
-            <select value={repasse} onChange={e => setRepasse(e.target.value)} style={selectStyle}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: 14, marginBottom: 16 }}>
+          <div><label style={lblSt}>Proposta</label><input value={proposta} onChange={e => setProposta(e.target.value)} style={inputSt} /></div>
+          <div><label style={lblSt}>Repasse</label>
+            <select value={repasse} onChange={e => setRepasse(e.target.value)} style={selSt}>
               <option value="">Selecione</option>
               {REPASSES_FNS.map(r => <option key={r}>{r}</option>)}
             </select>
           </div>
-          <div>
-            <label style={labelStyle}>Data inicial da OB</label>
+          <div><label style={lblSt}>Data inicial da OB</label>
             <div style={{ position: "relative" }}>
-              <input value={dtIni} onChange={e => setDtIni(e.target.value)} placeholder="__/__/____" style={{ ...inputStyle, paddingRight: 32 }} />
-              <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", fontSize: 14 }}>📅</span>
+              <input value={dtIni} onChange={e => setDtIni(e.target.value)} placeholder="__/__/____" style={{ ...inputSt, paddingRight: 28 }} />
+              <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13 }}>📅</span>
             </div>
           </div>
-          <div>
-            <label style={labelStyle}>Data final da OB</label>
+          <div><label style={lblSt}>Data final da OB</label>
             <div style={{ position: "relative" }}>
-              <input value={dtFim} onChange={e => setDtFim(e.target.value)} placeholder="__/__/____" style={{ ...inputStyle, paddingRight: 32 }} />
-              <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", fontSize: 14 }}>📅</span>
+              <input value={dtFim} onChange={e => setDtFim(e.target.value)} placeholder="__/__/____" style={{ ...inputSt, paddingRight: 28 }} />
+              <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13 }}>📅</span>
             </div>
           </div>
-          <div>
-            <label style={labelStyle}>Portaria</label>
-            <input value={portaria} onChange={e => setPortaria(e.target.value)} style={inputStyle} />
-          </div>
+          <div><label style={lblSt}>Portaria</label><input value={portaria} onChange={e => setPortaria(e.target.value)} style={inputSt} /></div>
         </div>
 
-        {/* Botões */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid #e5e7eb", paddingTop: 18 }}>
-          <button onClick={limpar} style={{ display: "flex", alignItems: "center", gap: 6, border: "1px solid #d1d5db", borderRadius: 4, padding: "8px 20px", background: "#fff", cursor: "pointer", fontSize: 13, color: "#374151" }}>
-            ✏ Limpar
-          </button>
-          <button onClick={consultar} style={{ display: "flex", alignItems: "center", gap: 6, background: "#2a5298", color: "#fff", border: "none", borderRadius: 4, padding: "8px 22px", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
-            🔍 Consultar ↗
-          </button>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
+          <button onClick={limpar} style={{ border: "1px solid #d1d5db", borderRadius: 4, padding: "8px 20px", background: "#fff", cursor: "pointer", fontSize: 13 }}>✏ Limpar</button>
+          <button onClick={() => { setConsultado(true); setPgCur(1); }} style={{ background: "#2a5298", color: "#fff", border: "none", borderRadius: 4, padding: "8px 22px", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>🔍 Consultar</button>
         </div>
       </div>
+
+      {/* ── Resultado: dados entidade ── */}
+      {consultado && entidade && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderTop: "none", padding: "16px 20px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, marginBottom: 16, fontSize: 13 }}>
+            {[
+              ["Entidade", entidade.nome],
+              ["CPF/CNPJ", entidade.cnpj],
+              ["UF", "AM"],
+              ["Município", "APUÍ"],
+              ["Código IBGE", entidade.ibge],
+              ["População", `${Number(entidade.populacao).toLocaleString("pt-BR")} habitantes`],
+              ["Ano Censo", entidade.ano_censo],
+              ["Prefeito(a)", entidade.prefeito],
+              ["Data Inicial Gestão", entidade.data_gestao],
+              ["Secretário(a)", entidade.secretario],
+              ["Presidente Conselho", entidade.presidente_conselho],
+            ].map(([label, val]) => (
+              <div key={label} style={{ padding: "6px 0", borderBottom: "1px solid #f3f4f6" }}>
+                <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 1 }}>{label}</div>
+                <div style={{ fontWeight: 600, color: "#1e293b" }}>{val}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Tabela resultado estilo FNS ── */}
+          <div style={{ overflowX: "auto", border: "1px solid #d1dce8", borderRadius: 4 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 900 }}>
+              <thead>
+                <tr style={{ background: "#b8cce4", color: "#1a3a6b" }}>
+                  {["Bloco ⇅","Grupo ⇅","Ação ⇅","Ação Detalhada ⇅","Valor Total ⇅","Valor Desconto ⇅","Valor Líquido ⇅","Ações"].map(h => (
+                    <th key={h} style={{ padding: "10px 10px", textAlign: h === "Valor Total ⇅" || h === "Valor Desconto ⇅" || h === "Valor Líquido ⇅" ? "right" : "left", fontWeight: 700, borderRight: "1px solid #a8bcd4", whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {paginadas.map((row: any, i: number) => (
+                  <tr key={i} style={{ borderBottom: "1px solid #e2eaf4", background: i % 2 === 0 ? "#fff" : "#f4f8fc" }}>
+                    <td style={{ padding: "9px 10px", color: "#2a5298", fontSize: 12, maxWidth: 160, lineHeight: 1.4 }}>{row.bloco}</td>
+                    <td style={{ padding: "9px 10px", fontWeight: 600, color: "#1a3a6b", maxWidth: 180, lineHeight: 1.4 }}>{row.grupo}</td>
+                    <td style={{ padding: "9px 10px", color: "#374151", maxWidth: 200, lineHeight: 1.4 }}>{row.acao || ""}</td>
+                    <td style={{ padding: "9px 10px", color: row.valor_total ? "#374151" : "#6b7280", fontStyle: row.valor_total ? "normal" : "italic", maxWidth: 220, lineHeight: 1.4 }}>{row.acao_detalhada}</td>
+                    <td style={{ padding: "9px 10px", textAlign: "right", fontWeight: row.valor_total ? 700 : 400, color: row.valor_total ? "#1a3a6b" : "#9ca3af" }}>{row.valor_total != null ? BRL(row.valor_total) : ""}</td>
+                    <td style={{ padding: "9px 10px", textAlign: "right", color: "#374151" }}>{row.valor_desconto != null ? BRL(row.valor_desconto) : ""}</td>
+                    <td style={{ padding: "9px 10px", textAlign: "right", fontWeight: row.valor_liquido ? 700 : 400, color: row.valor_liquido ? "#16a34a" : "#9ca3af" }}>{row.valor_liquido != null ? BRL(row.valor_liquido) : ""}</td>
+                    <td style={{ padding: "9px 10px", textAlign: "center" }}>
+                      <button onClick={() => window.open("https://consultafns.saude.gov.br/#/detalhada","_blank")} style={{ background: "#2a5298", border: "none", borderRadius: 4, width: 28, height: 28, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ color: "#fff", fontSize: 13 }}>👁</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: "#e8f0f8", fontWeight: 700 }}>
+                  <td colSpan={4} style={{ padding: "10px 10px", textAlign: "right", color: "#1a3a6b", fontSize: 13 }}>Total Geral</td>
+                  <td style={{ padding: "10px 10px", textAlign: "right", color: "#1a3a6b", fontSize: 13 }}>{fnsData ? BRL(fnsData.total_geral) : "—"}</td>
+                  <td style={{ padding: "10px 10px", textAlign: "right", color: "#1a3a6b", fontSize: 13 }}>{fnsData ? BRL(fnsData.total_desconto) : "—"}</td>
+                  <td style={{ padding: "10px 10px", textAlign: "right", color: "#16a34a", fontSize: 13 }}>{fnsData ? BRL(fnsData.total_liquido) : "—"}</td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Paginação */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+            <div style={{ display: "flex", gap: 4 }}>
+              <button onClick={() => setPgCur(p => Math.max(1, p - 1))} disabled={pgCur === 1} style={{ border: "1px solid #d1dce8", borderRadius: 3, padding: "4px 10px", cursor: "pointer", background: pgCur === 1 ? "#f3f4f6" : "#fff", fontSize: 13 }}>«</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <button key={p} onClick={() => setPgCur(p)} style={{ border: "1px solid #d1dce8", borderRadius: 3, padding: "4px 10px", cursor: "pointer", fontSize: 13, background: pgCur === p ? "#2a5298" : "#fff", color: pgCur === p ? "#fff" : "#374151", fontWeight: pgCur === p ? 700 : 400 }}>{p}</button>
+              ))}
+              <button onClick={() => setPgCur(p => Math.min(totalPages, p + 1))} disabled={pgCur === totalPages} style={{ border: "1px solid #d1dce8", borderRadius: 3, padding: "4px 10px", cursor: "pointer", background: pgCur === totalPages ? "#f3f4f6" : "#fff", fontSize: 13 }}>»</button>
+            </div>
+            <div style={{ display: "flex", gap: 4 }}>
+              {[10, 25, 50, 100].map(n => (
+                <button key={n} onClick={() => { setPgSize(n); setPgCur(1); }} style={{ border: "1px solid #d1dce8", borderRadius: 3, padding: "4px 10px", cursor: "pointer", fontSize: 13, background: pgSize === n ? "#2a5298" : "#fff", color: pgSize === n ? "#fff" : "#374151", fontWeight: pgSize === n ? 700 : 400 }}>{n}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 8, fontSize: 11, color: "#9ca3af" }}>
+            Fonte: <a href="https://consultafns.saude.gov.br/#/detalhada/acao" target="_blank" rel="noreferrer" style={{ color: "#2a5298" }}>consultafns.saude.gov.br</a> — dados reais {ano}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
