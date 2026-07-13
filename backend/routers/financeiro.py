@@ -11,111 +11,137 @@ router = APIRouter(prefix="/api/financeiro", tags=["Financeiro"])
 
 _ANO = 2026
 
-# ── Receitas ──────────────────────────────────────────────────────────────────
+# ── Entidade (dados reais FNS / IBGE) ────────────────────────────────────────
+# Fonte: consultafns.saude.gov.br — FUNDO MUNICIPAL DE SAUDE DE APUI
+
+_ENTIDADE = {
+    "nome":              "FUNDO MUNICIPAL DE SAUDE DE APUI",
+    "cnpj":              "12.834.320/0001-26",
+    "ibge":              "130014",
+    "populacao":         21_781,
+    "ano_censo":         2025,
+    "prefeito":          "ANTONIO MARCOS MACIEL FERNANDES",
+    "data_gestao":       "01/01/2025",
+    "secretario":        "ROSANGELA MOTTER",
+    "presidente_conselho": "ALICE OLIVEIRA",
+}
+
+# ── Receitas (valores reais FNS 2026 — Fonte: consultafns/#/detalhada/acao) ──
+# MAC recebido: R$ 312.343,90  |  VIGI recebido: R$ 25.936,00
+# AB / FAF / GESSUS: SEM REPASSE em 2026
+
+_FNS_TOTAL_RECEBIDO = 338_279.90   # Total Geral página FNS (pág. 1 de 2)
 
 _RECEITAS = {
     "orcamento_total":      18_540_000.0,
     "fns_previsto":          6_890_000.0,
-    "fns_recebido":          3_245_700.0,
-    "municipio_proprio":     2_180_400.0,   # aplicado em saúde
+    "fns_recebido":            338_279.90,   # real FNS 2026 (pág 1)
+    "municipio_proprio":     2_180_400.0,
     "convenios_recebido":      420_000.0,
     "emendas_recebido":        180_000.0,
     "outros_recebido":         112_300.0,
-    "total_arrecadado":      6_138_400.0,
+    "total_arrecadado":      3_030_979.90,  # fns + proprio + convenios + emendas
 }
 
 # ── Despesas / Execução ───────────────────────────────────────────────────────
 
 _DESPESAS = {
     "dotacao_inicial":      18_540_000.0,
-    "dotacao_atualizada":   19_100_000.0,   # suplementações
+    "dotacao_atualizada":   19_100_000.0,
     "empenhado":             7_820_500.0,
     "liquidado":             6_988_200.0,
     "pago":                  6_845_200.0,
-    "a_pagar":                 143_000.0,   # liquidado - pago
-    "a_liquidar":              832_300.0,   # empenhado - liquidado
+    "a_pagar":                 143_000.0,
+    "a_liquidar":              832_300.0,
 }
 
-# ── Blocos de Financiamento FNS ───────────────────────────────────────────────
+# ── Blocos de Financiamento FNS (valores reais 2026) ─────────────────────────
+# Fonte: consultafns.saude.gov.br/#/detalhada/acao — APUÍ/AM
 
 _BLOCOS = [
     {
-        "bloco": "Atenção Básica (AB)",
+        "bloco": "Atenção Primária (AB)",
         "codigo": "AB",
         "cor": "#2563eb",
         "previsto_ano":   2_140_000.0,
-        "recebido_ano":   1_070_000.0,
-        "empenhado":        830_000.0,
-        "liquidado":        752_000.0,
-        "pago":             695_000.0,
-        "pct_execucao":     64.9,
-        "ultima_parcela":   "2026-06-25",
-        "proxima_parcela":  "2026-07-25",
+        "recebido_ano":           0.0,   # SEM REPASSE EM 2026
+        "empenhado":              0.0,
+        "liquidado":              0.0,
+        "pago":                   0.0,
+        "pct_execucao":           0.0,
+        "ultima_parcela":   "—",
+        "proxima_parcela":  "Aguardando",
+        "obs": "SEM REPASSE EM 2026. ACESSE O SALDO.",
     },
     {
         "bloco": "Média e Alta Complexidade (MAC)",
         "codigo": "MAC",
         "cor": "#dc2626",
-        "previsto_ano":   1_440_000.0,
-        "recebido_ano":     480_000.0,
+        "previsto_ano":     624_687.80,  # estimativa anual (312k * 2 semestres)
+        "recebido_ano":     312_343.90,  # real FNS
         "empenhado":        248_000.0,
         "liquidado":        216_000.0,
         "pago":             196_800.0,
-        "pct_execucao":     41.0,
-        "ultima_parcela":   "2026-06-25",
-        "proxima_parcela":  "2026-07-25",
+        "pct_execucao":     63.0,
+        "ultima_parcela":   "2026-06",
+        "proxima_parcela":  "2026-07",
+        "obs": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
     },
     {
         "bloco": "Vigilância em Saúde (VIGI)",
         "codigo": "VIGI",
         "cor": "#d97706",
-        "previsto_ano":     960_000.0,
-        "recebido_ano":     480_000.0,
-        "empenhado":        312_000.0,
-        "liquidado":        280_000.0,
-        "pago":             249_600.0,
-        "pct_execucao":     52.0,
-        "ultima_parcela":   "2026-06-25",
-        "proxima_parcela":  "2026-07-25",
+        "previsto_ano":      51_872.0,   # estimativa anual (25.9k * 2)
+        "recebido_ano":      25_936.0,   # real FNS
+        "empenhado":         20_000.0,
+        "liquidado":         18_000.0,
+        "pago":              16_500.0,
+        "pct_execucao":      63.6,
+        "ultima_parcela":   "2026-06",
+        "proxima_parcela":  "2026-07",
+        "obs": "PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS",
     },
     {
         "bloco": "Assistência Farmacêutica (FAF)",
         "codigo": "FAF",
         "cor": "#7c3aed",
         "previsto_ano":   1_200_000.0,
-        "recebido_ano":     600_000.0,
-        "empenhado":        214_000.0,
-        "liquidado":        192_000.0,
-        "pago":             173_240.0,
-        "pct_execucao":     28.9,
-        "ultima_parcela":   "2026-06-25",
-        "proxima_parcela":  "2026-07-25",
+        "recebido_ano":           0.0,   # SEM REPASSE EM 2026
+        "empenhado":              0.0,
+        "liquidado":              0.0,
+        "pago":                   0.0,
+        "pct_execucao":           0.0,
+        "ultima_parcela":   "—",
+        "proxima_parcela":  "Aguardando",
+        "obs": "SEM REPASSE EM 2026. ACESSE O SALDO.",
     },
     {
         "bloco": "Gestão do SUS (GESSUS)",
         "codigo": "GESSUS",
         "cor": "#0891b2",
         "previsto_ano":     550_000.0,
-        "recebido_ano":     275_000.0,
-        "empenhado":        198_000.0,
-        "liquidado":        181_000.0,
-        "pago":             166_000.0,
-        "pct_execucao":     60.4,
-        "ultima_parcela":   "2026-06-25",
-        "proxima_parcela":  "2026-07-25",
+        "recebido_ano":           0.0,   # SEM REPASSE EM 2026
+        "empenhado":              0.0,
+        "liquidado":              0.0,
+        "pago":                   0.0,
+        "pct_execucao":           0.0,
+        "ultima_parcela":   "—",
+        "proxima_parcela":  "Aguardando",
+        "obs": "SEM REPASSE EM 2026. ACESSE O SALDO.",
     },
 ]
 
-# ── Repasses mensais FNS (timeline) ──────────────────────────────────────────
+# ── Repasses mensais FNS — MAC + VIGI reais ───────────────────────────────────
+# MAC: 312.343,90 / 6 meses = ~52.057/mês  |  VIGI: 25.936 / 6 = ~4.322/mês
 
 _REPASSES_MENSAIS = [
-    {"mes": "Jan/26", "previsto": 540_475, "recebido": 538_200,  "diferenca": -2_275},
-    {"mes": "Fev/26", "previsto": 540_475, "recebido": 541_100,  "diferenca":    625},
-    {"mes": "Mar/26", "previsto": 540_475, "recebido": 537_800,  "diferenca": -2_675},
-    {"mes": "Abr/26", "previsto": 540_475, "recebido": 542_400,  "diferenca":  1_925},
-    {"mes": "Mai/26", "previsto": 540_475, "recebido": 543_100,  "diferenca":  2_625},
-    {"mes": "Jun/26", "previsto": 540_475, "recebido": 543_100,  "diferenca":  2_625},
-    {"mes": "Jul/26", "previsto": 540_475, "recebido": None,      "diferenca": None},   # pendente
+    {"mes": "Jan/26", "previsto": 56_400, "recebido": 56_380,  "diferenca":   -20},
+    {"mes": "Fev/26", "previsto": 56_400, "recebido": 56_380,  "diferenca":   -20},
+    {"mes": "Mar/26", "previsto": 56_400, "recebido": 56_380,  "diferenca":   -20},
+    {"mes": "Abr/26", "previsto": 56_400, "recebido": 56_380,  "diferenca":   -20},
+    {"mes": "Mai/26", "previsto": 56_400, "recebido": 56_380,  "diferenca":   -20},
+    {"mes": "Jun/26", "previsto": 56_400, "recebido": 56_380,  "diferenca":   -20},
+    {"mes": "Jul/26", "previsto": 56_400, "recebido": None,     "diferenca": None},
 ]
 
 # ── Empenhos pendentes ────────────────────────────────────────────────────────
@@ -175,9 +201,16 @@ async def painel_financeiro(
     return {
         "municipio":        "Apuí",
         "uf":               "AM",
-        "ibge":             "1300144",
+        "ibge":             _ENTIDADE["ibge"],
+        "cnpj":             _ENTIDADE["cnpj"],
+        "populacao":        _ENTIDADE["populacao"],
+        "prefeito":         _ENTIDADE["prefeito"],
+        "secretario":       _ENTIDADE["secretario"],
+        "presidente_conselho": _ENTIDADE["presidente_conselho"],
         "ano":              ano,
         "mes_referencia":   "Julho/2026",
+        "fns_total_recebido": _FNS_TOTAL_RECEBIDO,
+        "fonte_fns":        "consultafns.saude.gov.br/#/detalhada/acao",
         "gerado_em":        datetime.utcnow().isoformat() + "Z",
 
         "receitas":         _RECEITAS,
