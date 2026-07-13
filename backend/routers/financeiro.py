@@ -302,18 +302,106 @@ async def painel_financeiro(
 
 
 @router.get("/fns-acoes")
-async def fns_acoes(_: UserOut = Depends(get_current_user)):
-    """Tabela detalhada FNS por ação — real 2026 — APUÍ/AM."""
-    total = sum(r["valor_liquido"] for r in _FNS_ACOES if r["valor_liquido"] is not None)
-    desc  = sum(r["valor_desconto"] for r in _FNS_ACOES if r["valor_desconto"] is not None)
+async def fns_acoes(
+    estado:    str = Query("AM"),
+    municipio: str = Query("APUÍ"),
+    ano:       str = Query("2026"),
+    mes:       str = Query(""),
+    bloco:     str = Query(""),
+    _: UserOut = Depends(get_current_user),
+):
+    """Tabela detalhada FNS por ação. Para Apuí/AM retorna dados reais; outros municípios tentam scraping."""
+    import httpx, unicodedata
+
+    def normaliza(s: str) -> str:
+        return unicodedata.normalize("NFD", s.upper()).encode("ascii", "ignore").decode()
+
+    eh_apui = (
+        normaliza(municipio) in ("APUI", "APUÍ") and estado.upper() == "AM"
+    )
+
+    if eh_apui:
+        acoes = _FNS_ACOES
+        entidade = _ENTIDADE
+    else:
+        # Busca IBGE code via API pública
+        ibge_code = None
+        try:
+            async with httpx.AsyncClient(timeout=8) as client:
+                r = await client.get(
+                    f"https://servicodados.ibge.gov.br/api/v1/localidades/estados/{estado.upper()}/municipios"
+                )
+                if r.status_code == 200:
+                    for m in r.json():
+                        if normaliza(m["nome"]) == normaliza(municipio):
+                            ibge_code = str(m["id"])
+                            break
+        except Exception:
+            pass
+
+        # Tenta scraping FNS real
+        acoes = []
+        entidade = None
+        if ibge_code:
+            try:
+                from services.fns_service import fns_preview
+                from config import settings as _s
+                original = _s.FNS_MUNICIPIO_IBGE
+                _s.FNS_MUNICIPIO_IBGE = ibge_code
+                mes_num = _NOMES_MESES.index(mes.capitalize()) if mes and mes.capitalize() in _NOMES_MESES else date.today().month
+                ano_num = int(ano) if ano.isdigit() else date.today().year
+                itens = await fns_preview(mes_num, ano_num)
+                _s.FNS_MUNICIPIO_IBGE = original
+                if itens:
+                    acoes = [
+                        {
+                            "bloco": i.bloco,
+                            "grupo": i.objeto[:60],
+                            "acao": i.numero_convenio,
+                            "acao_detalhada": i.objeto,
+                            "valor_total": i.valor_realizado or None,
+                            "valor_desconto": 0.0 if i.valor_realizado else None,
+                            "valor_liquido": i.valor_realizado or None,
+                        }
+                        for i in itens
+                    ]
+                    entidade = {
+                        "nome": municipio.upper(),
+                        "cnpj": "—",
+                        "ibge": ibge_code,
+                        "populacao": 0,
+                        "ano_censo": int(ano) if ano.isdigit() else date.today().year,
+                        "prefeito": "—",
+                        "data_gestao": "—",
+                        "secretario": "—",
+                        "presidente_conselho": "—",
+                    }
+            except Exception:
+                pass
+
+        # fallback: sem dados
+        if not entidade:
+            return {
+                "entidade": None,
+                "acoes": [],
+                "total_geral": 0,
+                "total_desconto": 0,
+                "total_liquido": 0,
+                "fonte": "consultafns.saude.gov.br/#/detalhada/acao",
+                "ano": ano,
+                "aviso": f"Sem dados disponíveis para {municipio}/{estado}. Acesse diretamente o portal FNS.",
+            }
+
+    total = sum(r["valor_liquido"] for r in acoes if r.get("valor_liquido") is not None)
+    desc  = sum(r["valor_desconto"] for r in acoes if r.get("valor_desconto") is not None)
     return {
-        "entidade": _ENTIDADE,
-        "acoes": _FNS_ACOES,
+        "entidade": entidade,
+        "acoes": acoes,
         "total_geral":     round(total, 2),
         "total_desconto":  round(desc, 2),
         "total_liquido":   round(total - desc, 2),
         "fonte": "consultafns.saude.gov.br/#/detalhada/acao",
-        "ano": 2026,
+        "ano": ano,
     }
 
 @router.get("/blocos")

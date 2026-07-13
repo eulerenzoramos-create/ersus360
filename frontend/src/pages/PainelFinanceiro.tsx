@@ -208,13 +208,28 @@ function AbaConsultaFNS() {
   const [dtIni, setDtIni]         = useState("");
   const [dtFim, setDtFim]         = useState("");
   const [portaria, setPortaria]   = useState("");
-  const [consultado, setConsultado] = useState(true); // começa com resultado para Apuí
   const [pgSize, setPgSize]       = useState(25);
   const [pgCur, setPgCur]         = useState(1);
 
-  const { data: fnsData } = useQuery({
-    queryKey: ["fns-acoes"],
-    queryFn: () => apiGet("/api/financeiro/fns-acoes") as Promise<any>,
+  // params da última consulta disparada — null = ainda não consultou
+  const [consultaParams, setConsultaParams] = useState<{
+    estado: string; municipio: string; ano: string; mes: string; bloco: string;
+  } | null>({ estado: "AM", municipio: "APUÍ", ano: String(new Date().getFullYear()), mes: MESES_FNS[new Date().getMonth()], bloco: "" });
+
+  const { data: fnsData, isFetching: fnsLoading } = useQuery({
+    queryKey: ["fns-acoes", consultaParams],
+    queryFn: () => {
+      if (!consultaParams) return Promise.resolve(null);
+      const p = new URLSearchParams({
+        estado: consultaParams.estado,
+        municipio: consultaParams.municipio,
+        ano: consultaParams.ano,
+        mes: consultaParams.mes,
+        ...(consultaParams.bloco ? { bloco: consultaParams.bloco } : {}),
+      });
+      return apiGet(`/api/financeiro/fns-acoes?${p}`) as Promise<any>;
+    },
+    enabled: !!consultaParams,
   });
 
   const acoes: any[] = fnsData?.acoes ?? [];
@@ -228,7 +243,7 @@ function AbaConsultaFNS() {
     setBloco(""); setCpf(""); setEstado(""); setMunicipio(""); setMunicipiosLista([]);
     setProcesso(""); setProposta(""); setRepasse("");
     setDtIni(""); setDtFim(""); setPortaria("");
-    setConsultado(false);
+    setConsultaParams(null);
   };
 
   const inputSt: React.CSSProperties = { width: "100%", border: "1px solid #d1d5db", borderRadius: 4, padding: "7px 10px", fontSize: 13, background: "#fff", outline: "none", boxSizing: "border-box" };
@@ -351,12 +366,28 @@ function AbaConsultaFNS() {
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
           <button onClick={limpar} style={{ border: "1px solid #d1d5db", borderRadius: 4, padding: "8px 20px", background: "#fff", cursor: "pointer", fontSize: 13 }}>✏ Limpar</button>
-          <button onClick={() => { setConsultado(true); setPgCur(1); }} style={{ background: "#2a5298", color: "#fff", border: "none", borderRadius: 4, padding: "8px 22px", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>🔍 Consultar</button>
+          <button
+            onClick={() => { setConsultaParams({ estado, municipio, ano, mes, bloco }); setPgCur(1); }}
+            disabled={fnsLoading}
+            style={{ background: fnsLoading ? "#6b7280" : "#2a5298", color: "#fff", border: "none", borderRadius: 4, padding: "8px 22px", cursor: fnsLoading ? "wait" : "pointer", fontSize: 13, fontWeight: 700 }}
+          >
+            {fnsLoading ? "⏳ Consultando..." : "🔍 Consultar"}
+          </button>
         </div>
       </div>
 
       {/* ── Resultado: dados entidade ── */}
-      {consultado && entidade && (
+      {consultaParams && fnsLoading && (
+        <div style={{ background: "#f0f4ff", border: "1px solid #c7d2fe", borderTop: "none", padding: "20px", textAlign: "center", color: "#3730a3", fontSize: 14 }}>
+          ⏳ Consultando dados do FNS para <strong>{consultaParams.municipio}/{consultaParams.estado}</strong>...
+        </div>
+      )}
+      {consultaParams && !fnsLoading && !entidade && fnsData !== undefined && (
+        <div style={{ background: "#fff7f7", border: "1px solid #fecaca", borderTop: "none", padding: "20px", textAlign: "center", color: "#dc2626", fontSize: 14 }}>
+          Nenhum dado encontrado para <strong>{consultaParams.municipio}/{consultaParams.estado}</strong> nos filtros selecionados.
+        </div>
+      )}
+      {consultaParams && !fnsLoading && entidade && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderTop: "none", padding: "16px 20px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, marginBottom: 16, fontSize: 13 }}>
             {[
