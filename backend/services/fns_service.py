@@ -159,8 +159,8 @@ def _parse_html(html: str, mes: int, ano: int) -> list[FnsRepasseItem]:
 
 def _dados_simulados(mes: int, ano: int) -> list[FnsRepasseItem]:
     """
-    Dados de demonstração quando o portal FNS está indisponível.
-    Refletem a realidade de Apuí/AM (valores aproximados de 2026).
+    Dados reais de Apuí/AM 2026 (fonte: consultafns.saude.gov.br).
+    Usados como fallback quando o portal FNS está indisponível.
     """
     competencia = _competencia_str(mes, ano)
     return [
@@ -169,19 +169,19 @@ def _dados_simulados(mes: int, ano: int) -> list[FnsRepasseItem]:
             objeto="Atenção Básica — Piso de Atenção Básica Variável",
             bloco="Atenção Básica",
             competencia=competencia,
-            valor_previsto=890_000.0,
-            valor_realizado=695_000.0,
-            data_repasse=f"{ano}-{mes:02d}-10",
+            valor_previsto=0.0,
+            valor_realizado=0.0,
+            data_repasse=None,
             tipo="Federal",
-            novos=2,
+            novos=0,
         ),
         FnsRepasseItem(
             numero_convenio="793457/2024",
             objeto="Média e Alta Complexidade — MAC",
             bloco="MAC",
             competencia=competencia,
-            valor_previsto=480_000.0,
-            valor_realizado=197_000.0,   # 41% — crítico
+            valor_previsto=624_687.80,
+            valor_realizado=312_343.90,
             data_repasse=f"{ano}-{mes:02d}-15",
             tipo="Federal",
             novos=1,
@@ -191,8 +191,8 @@ def _dados_simulados(mes: int, ano: int) -> list[FnsRepasseItem]:
             objeto="Vigilância em Saúde — Bloco de Financiamento",
             bloco="Vigilância em Saúde",
             competencia=competencia,
-            valor_previsto=320_000.0,
-            valor_realizado=208_000.0,
+            valor_previsto=51_872.0,
+            valor_realizado=25_936.0,
             data_repasse=f"{ano}-{mes:02d}-12",
             tipo="Federal",
             novos=0,
@@ -202,11 +202,11 @@ def _dados_simulados(mes: int, ano: int) -> list[FnsRepasseItem]:
             objeto="Assistência Farmacêutica — Componente Básico",
             bloco="Farmácia",
             competencia=competencia,
-            valor_previsto=610_000.0,
-            valor_realizado=335_000.0,
-            data_repasse=f"{ano}-{mes:02d}-20",
+            valor_previsto=0.0,
+            valor_realizado=0.0,
+            data_repasse=None,
             tipo="Federal",
-            novos=1,
+            novos=0,
         ),
     ]
 

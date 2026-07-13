@@ -755,3 +755,18 @@ async def _seed_dados_iniciais():
 
         await db.commit()
         logger.info("Seed de dados concluído.")
+
+    # Auto-seed repasses se a tabela estiver vazia
+    from models import Repasse
+    async with AsyncSessionLocal() as db2:
+        res_rep = await db2.execute(select(Repasse))
+        if not res_rep.scalars().first():
+            from services.fns_service import fns_sync
+            res_mun = await db2.execute(select(Municipio).where(Municipio.codigo_ibge == "1300144"))
+            mun2 = res_mun.scalar_one_or_none()
+            if mun2:
+                try:
+                    await fns_sync(mes=6, ano=2026, municipio_id=mun2.id, db=db2)
+                    logger.info("Repasses FNS 2026/06 inseridos via seed automático.")
+                except Exception as exc:
+                    logger.error("Erro ao seed repasses FNS: %s", exc, exc_info=True)
