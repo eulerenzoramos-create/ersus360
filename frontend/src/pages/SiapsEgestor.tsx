@@ -1055,9 +1055,304 @@ function AbaQuadrimestre({ dashData }: { dashData: any }) {
   );
 }
 
+// ── Aba: Análise do Indicador (CVAT externo) ─────────────────────────────────
+
+const COMPETENCIAS_2026 = ["Jan/26","Fev/26","Mar/26","Abr/26"];
+const COMPETENCIAS_2025 = ["Jan/25","Fev/25","Mar/25","Abr/25","Mai/25","Jun/25","Jul/25","Ago/25","Set/25","Out/25","Nov/25","Dez/25"];
+
+function AbaAnaliseIndicador() {
+  const [ano, setAno] = useState<"2025"|"2026">("2026");
+  const [competencia, setCompetencia] = useState("Abr/26");
+  const [condicao, setCondicao] = useState("homologadas");
+  const [tipos, setTipos] = useState<string[]>(["eAP","eSF"]);
+  const [visao, setVisao] = useState<"competencia"|"equipe"|"variavel">("competencia");
+  const [showCal, setShowCal] = useState(false);
+
+  const toggleTipo = (t: string) =>
+    setTipos(ts => ts.includes(t) ? ts.filter(x => x !== t) : [...ts, t]);
+
+  const TIPOS_EQUIPE = ["eAP","eAPP","eCR","eMulti","eSB","eSF","eSFR"];
+
+  const abrirSIAPS = () => {
+    window.open("https://siaps.saude.gov.br/componentes/cvat", "_blank");
+  };
+
+  return (
+    <div>
+      {/* Header SIAPS style */}
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
+        <div style={{ background: "#1a56db", color: "#fff", padding: "10px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Análise do Indicador — CVAT</div>
+          <button onClick={abrirSIAPS} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.18)", color: "#fff", border: "1px solid rgba(255,255,255,.4)", borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+            <span>↗</span> Abrir no SIAPS
+          </button>
+        </div>
+
+        {/* Tabs visão */}
+        <div style={{ display: "flex", borderBottom: "1px solid #e5e7eb" }}>
+          {([
+            { id: "competencia", label: "📊 Visão por Competência" },
+            { id: "equipe",      label: "📊 Visão por Equipe" },
+            { id: "variavel",    label: "📊 Visão por Variável" },
+          ] as const).map(v => (
+            <button key={v.id} onClick={() => setVisao(v.id)} style={{
+              flex: 1, padding: "14px 8px", border: "none", cursor: "pointer",
+              background: visao === v.id ? "#1a56db" : "#f8fafc",
+              color: visao === v.id ? "#fff" : "#6b7280",
+              fontWeight: visao === v.id ? 700 : 400, fontSize: 13,
+              borderRight: "1px solid #e5e7eb",
+            }}>{v.label}</button>
+          ))}
+        </div>
+
+        {/* Filtros */}
+        <div style={{ padding: "16px 18px", display: "flex", gap: 20, alignItems: "flex-end", flexWrap: "wrap", background: "#f8fafc" }}>
+          {/* Competência */}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
+              <span>📅</span> Competência
+            </div>
+            <div style={{ position: "relative" }}>
+              <input
+                readOnly
+                value={competencia}
+                onClick={() => setShowCal(c => !c)}
+                style={{ border: "2px solid #d1d5db", borderRadius: 6, padding: "8px 12px", fontSize: 13, width: 110, cursor: "pointer", background: "#fff", outline: "none" }}
+              />
+              {showCal && (
+                <div style={{ position: "absolute", top: "110%", left: 0, background: "#fff", border: "1px solid #d1d5db", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,.12)", padding: 16, zIndex: 99, width: 260 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 10 }}>Selecione o Competência</div>
+                  <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                    {(["2025","2026"] as const).map(a => (
+                      <button key={a} onClick={() => setAno(a)} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 13, background: ano === a ? "#1a56db" : "#e5e7eb", color: ano === a ? "#fff" : "#374151" }}>{a}</button>
+                    ))}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4 }}>
+                    {(ano === "2026" ? COMPETENCIAS_2026 : COMPETENCIAS_2025).map(c => (
+                      <label key={c} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer" }}>
+                        <input type="checkbox" checked={competencia === c} onChange={() => { setCompetencia(c); }} />
+                        {c}
+                      </label>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                    <button onClick={() => setShowCal(false)} style={{ flex: 1, padding: "7px 0", border: "1px solid #d1d5db", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>Cancelar</button>
+                    <button onClick={() => setShowCal(false)} style={{ flex: 1, padding: "7px 0", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#1a56db", color: "#fff", fontWeight: 700 }}>OK</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Condições de Equipe */}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Condições de Equipe</div>
+            <select value={condicao} onChange={e => setCondicao(e.target.value)} style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "8px 12px", fontSize: 13, background: "#fff", cursor: "pointer", minWidth: 240 }}>
+              <option value="homologadas">Considera apenas equipes homologadas</option>
+              <option value="todas">Considera todas as equipes</option>
+            </select>
+          </div>
+
+          {/* Tipo de Equipe */}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Tipo de Equipe</div>
+            <div style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "6px 10px", background: "#fff", display: "flex", gap: 6, flexWrap: "wrap", minWidth: 200 }}>
+              {TIPOS_EQUIPE.map(t => (
+                <label key={t} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 12, cursor: "pointer" }}>
+                  <input type="checkbox" checked={tipos.includes(t)} onChange={() => toggleTipo(t)} />
+                  {t}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={abrirSIAPS} style={{ background: "#1a56db", color: "#fff", border: "none", borderRadius: 8, padding: "9px 20px", cursor: "pointer", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
+            Aplicar filtro ↗
+          </button>
+        </div>
+      </div>
+
+      {/* Info box */}
+      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "16px 20px", display: "flex", gap: 16, alignItems: "flex-start" }}>
+        <div style={{ fontSize: 24 }}>ℹ️</div>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#1e40af", marginBottom: 6 }}>Componente Vínculo e Acompanhamento Territorial (CVAT)</div>
+          <div style={{ fontSize: 13, color: "#1e40af", lineHeight: 1.6 }}>
+            Os dados de análise por competência, equipe e variável estão disponíveis diretamente no portal SIAPS.
+            Clique em <strong>"Abrir no SIAPS"</strong> para acessar o relatório completo com os filtros pré-selecionados para <strong>Apuí/AM</strong>.
+          </div>
+          <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ background: "#1a56db", color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>UF: AM</span>
+            <span style={{ background: "#1a56db", color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>Município: APUÍ</span>
+            <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>IED: 2</span>
+            <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>Competência: {competencia}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Resultado placeholder */}
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "20px 20px 16px", marginTop: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>Resultado</div>
+          <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, border: "1px solid #fde68a" }}>Dado preliminar</span>
+        </div>
+        <div style={{ display: "flex", gap: 16, marginBottom: 14, fontSize: 13, color: "#6b7280", borderBottom: "1px solid #f3f4f6", paddingBottom: 12 }}>
+          <span>Competência selecionada: <strong style={{ color: "#1e293b" }}>{competencia}</strong></span>
+          <span>Tipo de Equipe: <strong style={{ color: "#1e293b" }}>{tipos.join(" e ")}</strong></span>
+        </div>
+        <div style={{ textAlign: "center", padding: "30px 0", color: "#9ca3af" }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>📊</div>
+          <div style={{ fontSize: 13 }}>Os dados detalhados estão disponíveis diretamente no SIAPS.</div>
+          <button onClick={abrirSIAPS} style={{ marginTop: 14, background: "#1a56db", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+            Abrir relatório no SIAPS ↗
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Aba: Relatório de Pagamento (e-Gestor APS) ────────────────────────────────
+
+function AbaRelatorioPagamento() {
+  const [tipoUnidade, setTipoUnidade] = useState("Município");
+  const [estado]     = useState("AMAZONAS");
+  const [municipio]  = useState("APUÍ");
+  const [ano, setAno] = useState("2026");
+  const [inicio, setInicio] = useState("1/12");
+  const [fim, setFim]       = useState("6/12");
+
+  const ANOS    = ["2026","2025","2024","2023","2022"];
+  const PARCELAS = Array.from({length:12},(_,i)=>`${i+1}/12`);
+
+  const abrirEgestor = (modo: "tela"|"download") => {
+    const url = "https://egestorab.saude.gov.br/gestaoaps/relPagamentoEquipe.xhtml";
+    window.open(url, "_blank");
+  };
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
+        <div style={{ background: "#1a56db", color: "#fff", padding: "10px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>e-Gestor Atenção Primária à Saúde</div>
+            <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>Relatórios Públicos › Pagamento</div>
+          </div>
+          <button onClick={() => abrirEgestor("tela")} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.18)", color: "#fff", border: "1px solid rgba(255,255,255,.4)", borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+            <span>↗</span> Abrir no e-Gestor
+          </button>
+        </div>
+
+        <div style={{ padding: "20px 24px" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 10px" }}>Relatório de Pagamento</h2>
+          <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, margin: "0 0 14px" }}>
+            Informamos que os valores apresentados neste relatório são referentes ao que o município faz jus a cada competência financeira. A partir de agora os valores serão disponibilizados nos relatórios do e-Gestor antes de serem apresentados no site do Fundo Nacional de Saúde – FNS.
+          </p>
+
+          {/* Links períodos anteriores */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 13, color: "#64748b" }}>Relatórios de períodos anteriores:</span>
+            {["01/2022 - 04/2024","2020 - 2021","2017 - 2019"].map(p => (
+              <span key={p} style={{ border: "1px solid #cbd5e1", borderRadius: 20, padding: "3px 12px", fontSize: 12, color: "#1a56db", cursor: "pointer" }} onClick={() => abrirEgestor("tela")}>
+                ({p}) ↗
+              </span>
+            ))}
+          </div>
+
+          <div style={{ fontSize: 13, color: "#64748b", marginBottom: 18 }}>Selecione as opções para gerar o relatório</div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40 }}>
+            {/* Unidade Geográfica */}
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", marginBottom: 16 }}>Unidade Geográfica</h3>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Tipo de unidade:</label>
+                <select value={tipoUnidade} onChange={e => setTipoUnidade(e.target.value)} style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 6, padding: "9px 12px", fontSize: 13, background: "#fff", cursor: "pointer" }}>
+                  {["Estado","Município","Região de Saúde"].map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: tipoUnidade === "Município" ? "1fr 1fr" : "1fr", gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Estados:</label>
+                  <div style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "8px 12px", fontSize: 13, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span>{estado}</span>
+                    <span style={{ color: "#94a3b8" }}>✕ ∨</span>
+                  </div>
+                </div>
+                {tipoUnidade === "Município" && (
+                  <div>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Municípios</label>
+                    <div style={{ border: "2px solid #f59e0b", borderRadius: 6, padding: "8px 12px", fontSize: 13, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span>{municipio}</span>
+                      <span style={{ color: "#94a3b8" }}>✕ ∨</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {tipoUnidade === "Município" && (
+                <div style={{ marginTop: 10, fontSize: 11, color: "#94a3b8", fontStyle: "italic" }}>
+                  A opção "TODOS" não permite a visualização em tela, apenas o download do arquivo.
+                </div>
+              )}
+            </div>
+
+            {/* Período */}
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", marginBottom: 16 }}>Período</h3>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Selecione o ano:</label>
+                <select value={ano} onChange={e => setAno(e.target.value)} style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 6, padding: "9px 12px", fontSize: 13, background: "#fff", cursor: "pointer" }}>
+                  {ANOS.map(a => <option key={a}>{a}</option>)}
+                </select>
+              </div>
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "14px" }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 10 }}>Selecione a(s) parcela(s):</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, color: "#6b7280", display: "block", marginBottom: 5 }}>Início</label>
+                    <select value={inicio} onChange={e => setInicio(e.target.value)} style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 6, padding: "8px 10px", fontSize: 13, background: "#fff", cursor: "pointer" }}>
+                      {PARCELAS.map(p => <option key={p}>{p}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: "#6b7280", display: "block", marginBottom: 5 }}>Fim</label>
+                    <select value={fim} onChange={e => setFim(e.target.value)} style={{ border: "2px solid #f59e0b", borderRadius: 6, padding: "8px 10px", fontSize: 13, background: "#fff", cursor: "pointer", width: "100%" }}>
+                      {PARCELAS.map(p => <option key={p}>{p}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Botões */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 28 }}>
+            <button onClick={() => abrirEgestor("download")} style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid #d1d5db", borderRadius: 8, padding: "10px 22px", cursor: "pointer", fontSize: 13, background: "#fff", color: "#374151", fontWeight: 600 }}>
+              ⬇ Download
+            </button>
+            <button onClick={() => abrirEgestor("tela")} style={{ display: "flex", alignItems: "center", gap: 8, border: "none", borderRadius: 8, padding: "10px 22px", cursor: "pointer", fontSize: 13, background: "#1a56db", color: "#fff", fontWeight: 700 }}>
+              🖥 Ver em tela ↗
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Info */}
+      <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "14px 18px", fontSize: 13, color: "#15803d", display: "flex", gap: 12, alignItems: "flex-start" }}>
+        <span style={{ fontSize: 20 }}>ℹ️</span>
+        <div>
+          <strong>Configuração pré-selecionada para Apuí/AM:</strong> Estado AMAZONAS · Município APUÍ · Ano {ano} · Parcelas {inicio} a {fim}.
+          Clique em "Ver em tela" para abrir o relatório completo no portal e-Gestor APS.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Página principal ───────────────────────────────────────────────────────────
 
-type Aba = "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre";
+type Aba = "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento";
 
 export default function SiapsEgestor() {
   const [aba, setAba] = useState<Aba>("vinculo");
@@ -1069,11 +1364,13 @@ export default function SiapsEgestor() {
   const { data: boas }       = useQuery({ queryKey: ["siaps-boas"],      queryFn: () => apiGet("/api/siaps/boas-praticas") as Promise<any>, enabled: aba === "boas_praticas" });
 
   const ABAS: { id: Aba; label: string }[] = [
-    { id: "abrangencia",    label: "Abrangência Municipal" },
-    { id: "vinculo",        label: "Vínculo e Acompanhamento" },
-    { id: "qualidade",      label: "Componente Qualidade" },
-    { id: "boas_praticas",  label: "Boas Práticas" },
-    { id: "quadrimestre",   label: "Avaliação Quadrimestre" },
+    { id: "abrangencia",        label: "Abrangência Municipal" },
+    { id: "vinculo",            label: "Vínculo e Acompanhamento" },
+    { id: "qualidade",          label: "Componente Qualidade" },
+    { id: "boas_praticas",      label: "Boas Práticas" },
+    { id: "quadrimestre",       label: "Avaliação Quadrimestre" },
+    { id: "analise_indicador",  label: "📊 Análise do Indicador" },
+    { id: "rel_pagamento",      label: "💳 Relatório de Pagamento" },
   ];
 
   return (
@@ -1112,11 +1409,13 @@ export default function SiapsEgestor() {
           ))}
         </div>
 
-        {aba === "abrangencia"   && <AbaAbrangencia data={abrangData} />}
-        {aba === "vinculo"       && <AbaVinculo data={vinculo} />}
-        {aba === "qualidade"     && <AbaQualidade data={qualidade} />}
-        {aba === "boas_praticas" && <AbaBoasPraticas data={boas} />}
-        {aba === "quadrimestre"  && <AbaQuadrimestre dashData={dashData} />}
+        {aba === "abrangencia"       && <AbaAbrangencia data={abrangData} />}
+        {aba === "vinculo"           && <AbaVinculo data={vinculo} />}
+        {aba === "qualidade"         && <AbaQualidade data={qualidade} />}
+        {aba === "boas_praticas"     && <AbaBoasPraticas data={boas} />}
+        {aba === "quadrimestre"      && <AbaQuadrimestre dashData={dashData} />}
+        {aba === "analise_indicador" && <AbaAnaliseIndicador />}
+        {aba === "rel_pagamento"     && <AbaRelatorioPagamento />}
       </div>
 
       {/* Footer */}
