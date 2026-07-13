@@ -384,7 +384,7 @@ function AbaConsultaFNS() {
       )}
       {consultaParams && !fnsLoading && !entidade && fnsData !== undefined && (
         <div style={{ background: "#fff7f7", border: "1px solid #fecaca", borderTop: "none", padding: "20px", textAlign: "center", color: "#dc2626", fontSize: 14 }}>
-          Nenhum dado encontrado para <strong>{consultaParams.municipio}/{consultaParams.estado}</strong> nos filtros selecionados.
+          {fnsData?.aviso ?? `Município '${consultaParams.municipio}' não encontrado no estado ${consultaParams.estado}.`}
         </div>
       )}
       {consultaParams && !fnsLoading && entidade && (
@@ -393,10 +393,10 @@ function AbaConsultaFNS() {
             {[
               ["Entidade", entidade.nome],
               ["CPF/CNPJ", entidade.cnpj],
-              ["UF", "AM"],
-              ["Município", "APUÍ"],
+              ["UF", entidade.uf ?? consultaParams.estado],
+              ["Município", entidade.municipio ?? entidade.nome],
               ["Código IBGE", entidade.ibge],
-              ["População", `${Number(entidade.populacao).toLocaleString("pt-BR")} habitantes`],
+              ["População", entidade.populacao ? `${Number(entidade.populacao).toLocaleString("pt-BR")} habitantes` : "—"],
               ["Ano Censo", entidade.ano_censo],
               ["Prefeito(a)", entidade.prefeito],
               ["Data Inicial Gestão", entidade.data_gestao],
@@ -409,6 +409,28 @@ function AbaConsultaFNS() {
               </div>
             ))}
           </div>
+
+          {/* Para municípios não-Apuí: redireciona ao FNS real */}
+          {fnsData?.fns_url && (
+            <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "20px 24px", textAlign: "center", margin: "8px 0 16px" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#1e40af", marginBottom: 8 }}>
+                Município encontrado: <strong>{entidade.nome}</strong> — IBGE {entidade.ibge}
+              </div>
+              <div style={{ fontSize: 13, color: "#374151", marginBottom: 16 }}>
+                Os dados detalhados de repasses para <strong>{entidade.nome}/{consultaParams.estado}</strong> estão disponíveis diretamente no portal FNS.
+                O sistema abriu os filtros pré-preenchidos com o código IBGE deste município.
+              </div>
+              <button
+                onClick={() => window.open(fnsData.fns_url, "_blank")}
+                style={{ background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, padding: "12px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}
+              >
+                🔍 Abrir consulta no portal FNS ↗
+              </button>
+              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 10 }}>
+                consultafns.saude.gov.br — selecione o período e clique em Consultar
+              </div>
+            </div>
+          )}
 
           {/* ── Tabela resultado estilo FNS ── */}
           <div style={{ overflowX: "auto", border: "1px solid #d1dce8", borderRadius: 4 }}>

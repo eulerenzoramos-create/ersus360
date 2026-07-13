@@ -310,98 +310,91 @@ async def fns_acoes(
     bloco:     str = Query(""),
     _: UserOut = Depends(get_current_user),
 ):
-    """Tabela detalhada FNS por ação. Para Apuí/AM retorna dados reais; outros municípios tentam scraping."""
+    """
+    Tabela FNS por ação.
+    - Apuí/AM → dados reais locais.
+    - Outros  → busca dados do município via IBGE e retorna ibge_code + fns_url
+                para o frontend redirecionar ao portal FNS real.
+    """
     import httpx, unicodedata
 
-    def normaliza(s: str) -> str:
+    def _norm(s: str) -> str:
         return unicodedata.normalize("NFD", s.upper()).encode("ascii", "ignore").decode()
 
-    eh_apui = (
-        normaliza(municipio) in ("APUI", "APUÍ") and estado.upper() == "AM"
-    )
+    eh_apui = _norm(municipio) in ("APUI", "APUÍ") and estado.upper() == "AM"
 
     if eh_apui:
-        acoes = _FNS_ACOES
-        entidade = _ENTIDADE
-    else:
-        # Busca IBGE code via API pública
-        ibge_code = None
-        try:
-            async with httpx.AsyncClient(timeout=8) as client:
-                r = await client.get(
-                    f"https://servicodados.ibge.gov.br/api/v1/localidades/estados/{estado.upper()}/municipios"
-                )
-                if r.status_code == 200:
-                    for m in r.json():
-                        if normaliza(m["nome"]) == normaliza(municipio):
-                            ibge_code = str(m["id"])
-                            break
-        except Exception:
-            pass
+        total = sum(r["valor_liquido"] for r in _FNS_ACOES if r.get("valor_liquido") is not None)
+        desc  = sum(r["valor_desconto"] for r in _FNS_ACOES if r.get("valor_desconto") is not None)
+        return {
+            "entidade": _ENTIDADE,
+            "acoes": _FNS_ACOES,
+            "total_geral":    round(total, 2),
+            "total_desconto": round(desc, 2),
+            "total_liquido":  round(total - desc, 2),
+            "fonte": "consultafns.saude.gov.br/#/detalhada/acao",
+            "ano": ano,
+            "fns_url": None,   # dados locais completos
+        }
 
-        # Tenta scraping FNS real
-        acoes = []
-        entidade = None
-        if ibge_code:
-            try:
-                from services.fns_service import fns_preview
-                from config import settings as _s
-                original = _s.FNS_MUNICIPIO_IBGE
-                _s.FNS_MUNICIPIO_IBGE = ibge_code
-                mes_num = _NOMES_MESES.index(mes.capitalize()) if mes and mes.capitalize() in _NOMES_MESES else date.today().month
-                ano_num = int(ano) if ano.isdigit() else date.today().year
-                itens = await fns_preview(mes_num, ano_num)
-                _s.FNS_MUNICIPIO_IBGE = original
-                if itens:
-                    acoes = [
-                        {
-                            "bloco": i.bloco,
-                            "grupo": i.objeto[:60],
-                            "acao": i.numero_convenio,
-                            "acao_detalhada": i.objeto,
-                            "valor_total": i.valor_realizado or None,
-                            "valor_desconto": 0.0 if i.valor_realizado else None,
-                            "valor_liquido": i.valor_realizado or None,
-                        }
-                        for i in itens
-                    ]
-                    entidade = {
-                        "nome": municipio.upper(),
-                        "cnpj": "—",
-                        "ibge": ibge_code,
-                        "populacao": 0,
-                        "ano_censo": int(ano) if ano.isdigit() else date.today().year,
-                        "prefeito": "—",
-                        "data_gestao": "—",
-                        "secretario": "—",
-                        "presidente_conselho": "—",
-                    }
-            except Exception:
-                pass
+    # Para qualquer outro município: resolve o código IBGE via API pública
+    ibge_code = None
+    pop = 0
+    nome_oficial = municipio.upper()
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get(
+                f"https://servicodados.ibge.gov.br/api/v1/localidades/estados/{estado.upper()}/municipios"
+            )
+            if r.status_code == 200:
+                for m in r.json():
+                    if _norm(m["nome"]) == _norm(municipio):
+                        ibge_code = str(m["id"])
+                        nome_oficial = m["nome"].upper()
+                        break
+    except Exception:
+        pass
 
-        # fallback: sem dados
-        if not entidade:
-            return {
-                "entidade": None,
-                "acoes": [],
-                "total_geral": 0,
-                "total_desconto": 0,
-                "total_liquido": 0,
-                "fonte": "consultafns.saude.gov.br/#/detalhada/acao",
-                "ano": ano,
-                "aviso": f"Sem dados disponíveis para {municipio}/{estado}. Acesse diretamente o portal FNS.",
-            }
+    if not ibge_code:
+        return {
+            "entidade": None, "acoes": [], "total_geral": 0,
+            "total_desconto": 0, "total_liquido": 0,
+            "fonte": "consultafns.saude.gov.br",
+            "ano": ano,
+            "fns_url": None,
+            "aviso": f"Município '{municipio}' não encontrado no estado {estado}.",
+        }
 
-    total = sum(r["valor_liquido"] for r in acoes if r.get("valor_liquido") is not None)
-    desc  = sum(r["valor_desconto"] for r in acoes if r.get("valor_desconto") is not None)
+    # Monta URL direta no portal FNS com o código IBGE
+    # O portal FNS aceita coIbge como query param na rota detalhada
+    mes_num = _NOMES_MESES.index(mes.capitalize()) if mes and mes.capitalize() in _NOMES_MESES else date.today().month
+    fns_url = (
+        f"https://consultafns.saude.gov.br/#/detalhada"
+        f"?coIbge={ibge_code}&ano={ano}&mes={mes_num:02d}"
+    )
+
+    # Dados do município via IBGE (nome, UF)
+    entidade_ext = {
+        "nome": nome_oficial,
+        "cnpj": "—",
+        "ibge": ibge_code,
+        "uf": estado.upper(),
+        "municipio": nome_oficial,
+        "populacao": pop,
+        "ano_censo": 2022,
+        "prefeito": "—",
+        "data_gestao": "—",
+        "secretario": "—",
+        "presidente_conselho": "—",
+    }
+
     return {
-        "entidade": entidade,
-        "acoes": acoes,
-        "total_geral":     round(total, 2),
-        "total_desconto":  round(desc, 2),
-        "total_liquido":   round(total - desc, 2),
-        "fonte": "consultafns.saude.gov.br/#/detalhada/acao",
+        "entidade": entidade_ext,
+        "acoes": [],
+        "total_geral": 0, "total_desconto": 0, "total_liquido": 0,
+        "fonte": "consultafns.saude.gov.br",
         "ano": ano,
+        "fns_url": fns_url,   # frontend abre este link
     }
 
 @router.get("/blocos")
