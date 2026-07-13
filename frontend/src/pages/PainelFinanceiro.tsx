@@ -162,8 +162,197 @@ function TooltipRepasse({ active, payload, label }: any) {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 
+// ── Consulta FNS Detalhada ────────────────────────────────────────────────────
+
+const MESES_FNS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const TIPOS_CONSULTA = ["Fundo a Fundo","Convênios/Instrumentos","Emendas Parlamentares","Ações e Programas"];
+const BLOCOS_FNS = ["Atenção Primária","Atenção Especializada","Vigilância em Saúde","Assistência Farmacêutica","Gestão do SUS","Estruturação"];
+const REPASSES_FNS = ["PAB Fixo","PAB Variável","Média e Alta Complexidade","FAEC","Medicamentos","Ações Estratégicas"];
+
+function AbaConsultaFNS() {
+  const anoAtual = new Date().getFullYear();
+  const mesAtual = MESES_FNS[new Date().getMonth()];
+
+  const [ano, setAno]           = useState(String(anoAtual));
+  const [mes, setMes]           = useState(mesAtual);
+  const [tipoConsulta, setTipo] = useState("Fundo a Fundo");
+  const [bloco, setBloco]       = useState("");
+  const [cpf, setCpf]           = useState("");
+  const [processo, setProcesso] = useState("");
+  const [proposta, setProposta] = useState("");
+  const [repasse, setRepasse]   = useState("");
+  const [dtIni, setDtIni]       = useState("");
+  const [dtFim, setDtFim]       = useState("");
+  const [portaria, setPortaria] = useState("");
+
+  const consultar = () => {
+    window.open("https://consultafns.saude.gov.br/#/consulta/detalhada", "_blank");
+  };
+  const limpar = () => {
+    setAno(String(anoAtual)); setMes(mesAtual); setTipo("Fundo a Fundo");
+    setBloco(""); setCpf(""); setProcesso(""); setProposta("");
+    setRepasse(""); setDtIni(""); setDtFim(""); setPortaria("");
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", border: "1px solid #d1d5db", borderRadius: 4, padding: "7px 10px",
+    fontSize: 13, background: "#fff", outline: "none", boxSizing: "border-box",
+  };
+  const selectStyle: React.CSSProperties = { ...inputStyle, cursor: "pointer" };
+  const labelStyle: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 };
+  const reqStyle: React.CSSProperties = { color: "#dc2626", marginRight: 3 };
+
+  return (
+    <div>
+      {/* Header FNS */}
+      <div style={{ background: "#1a3a6b", color: "#fff", borderRadius: "10px 10px 0 0", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 18, fontWeight: 300, letterSpacing: 1 }}>Consulta</div>
+          <div style={{ width: 1, height: 20, background: "rgba(255,255,255,.4)" }} />
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Fundo Nacional de Saúde</div>
+        </div>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", fontSize: 12 }}>
+          <span style={{ background: "rgba(255,255,255,.15)", padding: "3px 10px", borderRadius: 4 }}>A⁻</span>
+          <span style={{ background: "rgba(255,255,255,.15)", padding: "3px 10px", borderRadius: 4 }}>A</span>
+          <span style={{ background: "rgba(255,255,255,.25)", padding: "3px 10px", borderRadius: 4, fontWeight: 700 }}>A⁺</span>
+          <span style={{ opacity: .6 }}>PT ▾</span>
+          <span style={{ opacity: .6 }}>V.1.50.1</span>
+          <button onClick={consultar} style={{ background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.4)", color: "#fff", borderRadius: 4, padding: "3px 10px", cursor: "pointer", fontSize: 12 }}>
+            ? Ajuda
+          </button>
+        </div>
+      </div>
+
+      {/* Sub-menu */}
+      <div style={{ background: "#2a5298", padding: "8px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <button onClick={consultar} style={{ background: "none", border: "none", color: "#fff", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          Tipos de consulta ▾
+        </button>
+        <button onClick={consultar} style={{ background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.4)", color: "#fff", borderRadius: 4, padding: "4px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+          ↗ Abrir no FNS
+        </button>
+      </div>
+
+      {/* Breadcrumb */}
+      <div style={{ background: "#f3f4f6", padding: "6px 20px", fontSize: 12, color: "#6b7280", borderBottom: "1px solid #e5e7eb" }}>
+        Detalhada
+      </div>
+
+      {/* Formulário */}
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "0 0 10px 10px", padding: "20px 24px" }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#1e293b", margin: "0 0 14px", borderBottom: "2px solid #1a3a6b", paddingBottom: 10 }}>Detalhada</h2>
+
+        {/* Aviso */}
+        <div style={{ background: "#dbeafe", borderRadius: 4, padding: "10px 14px", fontSize: 12, color: "#1e40af", marginBottom: 20 }}>
+          <span style={{ color: "#dc2626" }}>*</span> Os campos com <span style={{ color: "#dc2626" }}>*</span> são obrigatórios.
+        </div>
+        <div style={{ background: "#dbeafe", borderRadius: 4, padding: "10px 14px", fontSize: 12, color: "#1e40af", marginBottom: 24, lineHeight: 1.6 }}>
+          De acordo com o Manual de Ordem Bancária da Secretaria do Tesouro Nacional (STN), os valores repassados serão creditados em no máximo dois dias úteis após a data de emissão da Ordem Bancária para correntistas do Banco do Brasil. Para os demais bancos o prazo é de no máximo três dias úteis.
+        </div>
+
+        {/* Linha 1 */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr 1fr", gap: 16, marginBottom: 18 }}>
+          <div>
+            <label style={labelStyle}><span style={reqStyle}>*</span>Ano</label>
+            <select value={ano} onChange={e => setAno(e.target.value)} style={selectStyle}>
+              {[2026,2025,2024,2023,2022].map(a => <option key={a}>{a}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Mês</label>
+            <select value={mes} onChange={e => setMes(e.target.value)} style={selectStyle}>
+              {MESES_FNS.map(m => <option key={m}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}><span style={reqStyle}>*</span>Tipo de consulta</label>
+            <select value={tipoConsulta} onChange={e => setTipo(e.target.value)} style={selectStyle}>
+              {TIPOS_CONSULTA.map(t => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Bloco</label>
+            <select value={bloco} onChange={e => setBloco(e.target.value)} style={selectStyle}>
+              <option value="">Selecione</option>
+              {BLOCOS_FNS.map(b => <option key={b}>{b}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Linha 2 */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 18 }}>
+          <div>
+            <label style={labelStyle}>CPF/CNPJ/UG</label>
+            <input value={cpf} onChange={e => setCpf(e.target.value)} placeholder="Ex.: CPF(12345678901)..." style={inputStyle} />
+            <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 3 }}>Ex.: CPF(12345678901), CNPJ(12345678901234) e UG(123456)</div>
+          </div>
+          <div>
+            <label style={labelStyle}>Estado</label>
+            <select style={{ ...selectStyle, background: "#f9fafb", color: "#374151" }} disabled>
+              <option>AMAZONAS</option>
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Município</label>
+            <select style={{ ...selectStyle, borderColor: "#2563eb", background: "#f0f9ff" }} disabled>
+              <option>APUÍ</option>
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Processo</label>
+            <input value={processo} onChange={e => setProcesso(e.target.value)} placeholder="Ex.: (12345678901234567)" style={inputStyle} />
+          </div>
+        </div>
+
+        {/* Linha 3 */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: 16, marginBottom: 28 }}>
+          <div>
+            <label style={labelStyle}>Proposta</label>
+            <input value={proposta} onChange={e => setProposta(e.target.value)} style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Repasse</label>
+            <select value={repasse} onChange={e => setRepasse(e.target.value)} style={selectStyle}>
+              <option value="">Selecione</option>
+              {REPASSES_FNS.map(r => <option key={r}>{r}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Data inicial da OB</label>
+            <div style={{ position: "relative" }}>
+              <input value={dtIni} onChange={e => setDtIni(e.target.value)} placeholder="__/__/____" style={{ ...inputStyle, paddingRight: 32 }} />
+              <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", fontSize: 14 }}>📅</span>
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Data final da OB</label>
+            <div style={{ position: "relative" }}>
+              <input value={dtFim} onChange={e => setDtFim(e.target.value)} placeholder="__/__/____" style={{ ...inputStyle, paddingRight: 32 }} />
+              <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", fontSize: 14 }}>📅</span>
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Portaria</label>
+            <input value={portaria} onChange={e => setPortaria(e.target.value)} style={inputStyle} />
+          </div>
+        </div>
+
+        {/* Botões */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid #e5e7eb", paddingTop: 18 }}>
+          <button onClick={limpar} style={{ display: "flex", alignItems: "center", gap: 6, border: "1px solid #d1d5db", borderRadius: 4, padding: "8px 20px", background: "#fff", cursor: "pointer", fontSize: 13, color: "#374151" }}>
+            ✏ Limpar
+          </button>
+          <button onClick={consultar} style={{ display: "flex", alignItems: "center", gap: 6, background: "#2a5298", color: "#fff", border: "none", borderRadius: 4, padding: "8px 22px", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+            🔍 Consultar ↗
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PainelFinanceiro() {
-  const [aba, setAba] = useState<"visao-geral" | "blocos" | "repasses" | "empenhos" | "siops">("visao-geral");
+  const [aba, setAba] = useState<"visao-geral" | "blocos" | "repasses" | "empenhos" | "siops" | "consulta-fns">("visao-geral");
 
   const { data, isLoading, refetch } = useQuery<Painel>({
     queryKey: ["financeiro-painel"],
@@ -187,11 +376,12 @@ export default function PainelFinanceiro() {
 
   const k = data?.kpis;
   const ABAS = [
-    { id: "visao-geral", label: "Visão Geral" },
-    { id: "blocos",      label: "Blocos FNS"  },
-    { id: "repasses",    label: "Repasses"    },
-    { id: "empenhos",    label: `Empenhos (${data?.empenhos_pendentes?.length ?? "…"})` },
-    { id: "siops",       label: "SIOPS"       },
+    { id: "visao-geral",   label: "Visão Geral" },
+    { id: "blocos",        label: "Blocos FNS"  },
+    { id: "repasses",      label: "Repasses"    },
+    { id: "empenhos",      label: `Empenhos (${data?.empenhos_pendentes?.length ?? "…"})` },
+    { id: "siops",         label: "SIOPS"       },
+    { id: "consulta-fns",  label: "🔍 Consulta FNS" },
   ] as const;
 
   return (
@@ -489,6 +679,9 @@ export default function PainelFinanceiro() {
               </div>
             </div>
           )}
+
+          {/* ── Consulta FNS ── */}
+          {aba === "consulta-fns" && <AbaConsultaFNS />}
 
           {/* ── SIOPS ── */}
           {aba === "siops" && (
