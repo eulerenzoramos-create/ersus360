@@ -131,6 +131,52 @@ _BLOCOS = [
     },
 ]
 
+# ── Repasses mensais por bloco (dados reais 2026) ────────────────────────────
+# MAC: 312.343,90 em 6 parcelas (Jan-Jun)  |  VIGI: 25.936 em 6 parcelas
+# AB / FAF / GESSUS: sem repasse em 2026
+
+_MAC_MES  = round(312_343.90 / 6, 2)   # ~52.057,32/mês
+_VIGI_MES = round(25_936.00  / 6, 2)   # ~4.322,67/mês
+
+# mes_num → dict[codigo_bloco, valor_recebido]  (None = ainda não recebido)
+_REPASSE_POR_BLOCO_MES: dict[int, dict[str, float | None]] = {
+    1:  {"AB": 0.0, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
+    2:  {"AB": 0.0, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
+    3:  {"AB": 0.0, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
+    4:  {"AB": 0.0, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
+    5:  {"AB": 0.0, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
+    6:  {"AB": 0.0, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
+    7:  {"AB": None, "MAC": None, "VIGI": None, "FAF": None, "GESSUS": None},
+    8:  {"AB": None, "MAC": None, "VIGI": None, "FAF": None, "GESSUS": None},
+    9:  {"AB": None, "MAC": None, "VIGI": None, "FAF": None, "GESSUS": None},
+    10: {"AB": None, "MAC": None, "VIGI": None, "FAF": None, "GESSUS": None},
+    11: {"AB": None, "MAC": None, "VIGI": None, "FAF": None, "GESSUS": None},
+    12: {"AB": None, "MAC": None, "VIGI": None, "FAF": None, "GESSUS": None},
+}
+
+_NOMES_MESES = ["","Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                 "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+
+def _blocos_para_mes(mes: int) -> list[dict]:
+    """Retorna _BLOCOS com recebido_ano e pct_execucao ajustados para o mês."""
+    vals = _REPASSE_POR_BLOCO_MES.get(mes, {})
+    result = []
+    for b in _BLOCOS:
+        cod = b["codigo"]
+        rec_mes = vals.get(cod)
+        entrada = dict(b)
+        if rec_mes is not None:
+            entrada["recebido_mes"] = rec_mes
+            pct = round(rec_mes / b["previsto_ano"] * 100, 1) if b["previsto_ano"] > 0 else 0.0
+            entrada["pct_execucao_mes"] = pct
+            entrada["status_mes"] = "recebido" if rec_mes > 0 else "sem_repasse"
+        else:
+            entrada["recebido_mes"] = None
+            entrada["pct_execucao_mes"] = None
+            entrada["status_mes"] = "pendente"
+        result.append(entrada)
+    return result
+
 # ── Repasses mensais FNS — MAC + VIGI reais ───────────────────────────────────
 # MAC: 312.343,90 / 6 meses = ~52.057/mês  |  VIGI: 25.936 / 6 = ~4.322/mês
 
@@ -195,6 +241,7 @@ _FNS_ACOES = [
 @router.get("/painel")
 async def painel_financeiro(
     ano: int = Query(_ANO),
+    mes: int = Query(0),   # 0 = acumulado anual; 1-12 = mês específico
     _: UserOut = Depends(get_current_user),
 ):
     """Painel financeiro executivo consolidado."""
@@ -226,7 +273,9 @@ async def painel_financeiro(
         "secretario":       _ENTIDADE["secretario"],
         "presidente_conselho": _ENTIDADE["presidente_conselho"],
         "ano":              ano,
-        "mes_referencia":   "Julho/2026",
+        "mes":              mes,
+        "mes_referencia":   f"{_NOMES_MESES[mes]}/{ano}" if mes else "Julho/2026",
+        "blocos_mes":       _blocos_para_mes(mes) if mes else [],
         "fns_total_recebido": _FNS_TOTAL_RECEBIDO,
         "fonte_fns":        "consultafns.saude.gov.br/#/detalhada/acao",
         "gerado_em":        datetime.utcnow().isoformat() + "Z",

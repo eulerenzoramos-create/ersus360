@@ -39,6 +39,7 @@ interface Painel {
   receitas: Record<string, number>;
   despesas: Record<string, number>;
   blocos: Bloco[];
+  blocos_mes?: any[];
   repasses_mensais: Repasse[];
   empenhos_pendentes: Empenho[];
   siops: Siops;
@@ -443,12 +444,16 @@ function AbaConsultaFNS() {
   );
 }
 
+const MESES_LABEL = ["","Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const MESES_FULL  = ["","Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
 export default function PainelFinanceiro() {
   const [aba, setAba] = useState<"visao-geral" | "blocos" | "repasses" | "empenhos" | "siops" | "consulta-fns">("visao-geral");
+  const [mesBlocos, setMesBlocos] = useState(0); // 0 = acumulado anual
 
   const { data, isLoading, refetch } = useQuery<Painel>({
-    queryKey: ["financeiro-painel"],
-    queryFn: () => apiGet("/api/financeiro/painel") as Promise<Painel>,
+    queryKey: ["financeiro-painel", mesBlocos],
+    queryFn: () => apiGet(`/api/financeiro/painel${mesBlocos ? `?mes=${mesBlocos}` : ""}`) as Promise<Painel>,
     staleTime: 60_000,
   });
 
@@ -618,40 +623,98 @@ export default function PainelFinanceiro() {
           {/* ── Blocos FNS ── */}
           {aba === "blocos" && (
             <div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 16 }}>
-                {data.blocos.map(b => {
-                  const cor = b.pct_execucao >= 65 ? "#16a34a" : b.pct_execucao >= 40 ? "#d97706" : "#dc2626";
+              {/* Filtro de mês */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", marginRight: 4 }}>Competência:</span>
+                <button
+                  onClick={() => setMesBlocos(0)}
+                  style={{ padding: "4px 12px", borderRadius: 20, border: "1px solid", fontSize: 12, fontWeight: 600, cursor: "pointer", background: mesBlocos === 0 ? "#1e40af" : "#f3f4f6", color: mesBlocos === 0 ? "#fff" : "#374151", borderColor: mesBlocos === 0 ? "#1e40af" : "#d1d5db" }}
+                >
+                  Acumulado
+                </button>
+                {MESES_LABEL.filter((_,i) => i > 0).map((lbl, idx) => {
+                  const m = idx + 1;
+                  const recebido = m <= 6; // Jan-Jun recebidos
                   return (
-                    <div key={b.codigo} style={{ textAlign: "center", padding: "10px 6px", background: b.cor + "0d", borderRadius: 8, border: `1px solid ${b.cor}20` }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: cor }}>{b.pct_execucao}%</div>
-                      <div style={{ fontSize: 10, color: "#6b7280" }}>{b.codigo}</div>
-                    </div>
+                    <button
+                      key={m}
+                      onClick={() => setMesBlocos(m)}
+                      style={{ padding: "4px 10px", borderRadius: 20, border: "1px solid", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                        background: mesBlocos === m ? "#1e40af" : recebido ? "#f0fdf4" : "#f9fafb",
+                        color: mesBlocos === m ? "#fff" : recebido ? "#15803d" : "#9ca3af",
+                        borderColor: mesBlocos === m ? "#1e40af" : recebido ? "#bbf7d0" : "#e5e7eb" }}
+                    >
+                      {lbl}
+                    </button>
                   );
                 })}
               </div>
 
-              <div style={{ height: 220, marginBottom: 20 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.blocos} barGap={4}>
-                    <XAxis dataKey="codigo" tick={{ fontSize: 11 }} />
-                    <YAxis tickFormatter={v => `${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
-                    <Tooltip
-                      formatter={(v: number, name: string) => [R(v), name === "recebido_ano" ? "Recebido" : name === "pago" ? "Pago" : name]}
-                      contentStyle={TOOLTIPSTYLE}
-                    />
-                    <Bar dataKey="recebido_ano" name="Recebido" radius={[4,4,0,0]}>
-                      {data.blocos.map(b => <Cell key={b.codigo} fill={b.cor + "88"} />)}
-                    </Bar>
-                    <Bar dataKey="pago" name="Pago" radius={[4,4,0,0]}>
-                      {data.blocos.map(b => <Cell key={b.codigo} fill={b.cor} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+              {/* Título do período */}
+              <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>
+                {mesBlocos === 0
+                  ? "Exibindo: acumulado anual 2026"
+                  : `Exibindo: ${MESES_FULL[mesBlocos]}/2026${mesBlocos <= 6 ? " — parcela recebida" : " — aguardando repasse"}`}
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {data.blocos.map(b => <BlocoCard key={b.codigo} b={b} />)}
-              </div>
+              {/* KPIs por bloco */}
+              {(() => {
+                const blocosMes = mesBlocos && data.blocos_mes?.length ? data.blocos_mes : null;
+                const fonte = blocosMes ?? data.blocos;
+                return (
+                  <>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 16 }}>
+                      {fonte.map((b: any) => {
+                        const pct = blocosMes ? (b.pct_execucao_mes ?? 0) : b.pct_execucao;
+                        const statusMes = blocosMes ? b.status_mes : null;
+                        const cor = statusMes === "pendente" ? "#9ca3af" : pct >= 65 ? "#16a34a" : pct >= 40 ? "#d97706" : "#dc2626";
+                        return (
+                          <div key={b.codigo} style={{ textAlign: "center", padding: "10px 6px", background: b.cor + "0d", borderRadius: 8, border: `1px solid ${b.cor}20` }}>
+                            {statusMes === "pendente"
+                              ? <div style={{ fontSize: 13, fontWeight: 700, color: "#9ca3af" }}>—</div>
+                              : <div style={{ fontSize: 20, fontWeight: 800, color: cor }}>{pct}%</div>}
+                            <div style={{ fontSize: 10, color: "#6b7280" }}>{b.codigo}</div>
+                            {blocosMes && b.recebido_mes != null && b.recebido_mes > 0 && (
+                              <div style={{ fontSize: 9, color: "#15803d", marginTop: 2 }}>R$ {(b.recebido_mes/1000).toFixed(1)}k</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ height: 220, marginBottom: 20 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={fonte} barGap={4}>
+                          <XAxis dataKey="codigo" tick={{ fontSize: 11 }} />
+                          <YAxis tickFormatter={v => `${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                          <Tooltip
+                            formatter={(v: number, name: string) => [R(v), name === "recebido_ano" ? "Recebido (ano)" : name === "recebido_mes" ? "Recebido (mês)" : name === "pago" ? "Pago" : name]}
+                            contentStyle={TOOLTIPSTYLE}
+                          />
+                          {blocosMes ? (
+                            <Bar dataKey="recebido_mes" name="Recebido (mês)" radius={[4,4,0,0]}>
+                              {fonte.map((b: any) => <Cell key={b.codigo} fill={b.recebido_mes > 0 ? b.cor : "#e5e7eb"} />)}
+                            </Bar>
+                          ) : (
+                            <>
+                              <Bar dataKey="recebido_ano" name="Recebido" radius={[4,4,0,0]}>
+                                {data.blocos.map(b => <Cell key={b.codigo} fill={b.cor + "88"} />)}
+                              </Bar>
+                              <Bar dataKey="pago" name="Pago" radius={[4,4,0,0]}>
+                                {data.blocos.map(b => <Cell key={b.codigo} fill={b.cor} />)}
+                              </Bar>
+                            </>
+                          )}
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {data.blocos.map(b => <BlocoCard key={b.codigo} b={b} />)}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
 
