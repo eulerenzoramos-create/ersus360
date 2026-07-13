@@ -3,6 +3,7 @@ Router: /api/financeiro — Painel Financeiro Executivo
 Agrega: FNS repasses, execução orçamentária, blocos, SIOPS, empenhos
 """
 from __future__ import annotations
+import asyncio
 from datetime import date, datetime
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
@@ -301,6 +302,13 @@ async def painel_financeiro(
     }
 
 
+_FNS_BASE = "https://consultafns.saude.gov.br/recursos"
+
+def _norm(s: str) -> str:
+    import unicodedata
+    return unicodedata.normalize("NFD", s.upper()).encode("ascii", "ignore").decode()
+
+
 @router.get("/fns-acoes")
 async def fns_acoes(
     estado:    str = Query("AM"),
@@ -311,90 +319,123 @@ async def fns_acoes(
     _: UserOut = Depends(get_current_user),
 ):
     """
-    Tabela FNS por ação.
-    - Apuí/AM → dados reais locais.
-    - Outros  → busca dados do município via IBGE e retorna ibge_code + fns_url
-                para o frontend redirecionar ao portal FNS real.
+    Tabela FNS por ação — API pública consultafns.saude.gov.br/recursos/.
+    Funciona para qualquer município do Brasil.
     """
-    import httpx, unicodedata
+    import httpx
 
-    def _norm(s: str) -> str:
-        return unicodedata.normalize("NFD", s.upper()).encode("ascii", "ignore").decode()
+    UF = estado.upper()
 
-    eh_apui = _norm(municipio) in ("APUI", "APUÍ") and estado.upper() == "AM"
-
-    if eh_apui:
-        total = sum(r["valor_liquido"] for r in _FNS_ACOES if r.get("valor_liquido") is not None)
-        desc  = sum(r["valor_desconto"] for r in _FNS_ACOES if r.get("valor_desconto") is not None)
-        return {
-            "entidade": _ENTIDADE,
-            "acoes": _FNS_ACOES,
-            "total_geral":    round(total, 2),
-            "total_desconto": round(desc, 2),
-            "total_liquido":  round(total - desc, 2),
-            "fonte": "consultafns.saude.gov.br/#/detalhada/acao",
-            "ano": ano,
-            "fns_url": None,   # dados locais completos
-        }
-
-    # Para qualquer outro município: resolve o código IBGE via API pública
+    # ── 1. Resolve código IBGE do município via API do próprio FNS ────────────
     ibge_code = None
-    pop = 0
     nome_oficial = municipio.upper()
     try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            r = await client.get(
-                f"https://servicodados.ibge.gov.br/api/v1/localidades/estados/{estado.upper()}/municipios"
-            )
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as cli:
+            r = await cli.get(f"{_FNS_BASE}/municipios/uf/{UF}")
             if r.status_code == 200:
-                for m in r.json():
-                    if _norm(m["nome"]) == _norm(municipio):
-                        ibge_code = str(m["id"])
-                        nome_oficial = m["nome"].upper()
+                for m in r.json().get("resultado", []):
+                    if _norm(m.get("noMunicipio","")) == _norm(municipio):
+                        ibge_code = m.get("coMunicipioIbge") or m.get("id")
+                        nome_oficial = m.get("noMunicipio", municipio).upper()
                         break
     except Exception:
         pass
 
     if not ibge_code:
-        return {
-            "entidade": None, "acoes": [], "total_geral": 0,
-            "total_desconto": 0, "total_liquido": 0,
-            "fonte": "consultafns.saude.gov.br",
-            "ano": ano,
-            "fns_url": None,
-            "aviso": f"Município '{municipio}' não encontrado no estado {estado}.",
-        }
+        return {"entidade": None, "acoes": [], "total_geral": 0,
+                "total_desconto": 0, "total_liquido": 0,
+                "aviso": f"Município '{municipio}' não encontrado no estado {UF}."}
 
-    # Monta URL direta no portal FNS com o código IBGE
-    # O portal FNS aceita coIbge como query param na rota detalhada
-    mes_num = _NOMES_MESES.index(mes.capitalize()) if mes and mes.capitalize() in _NOMES_MESES else date.today().month
-    fns_url = (
-        f"https://consultafns.saude.gov.br/#/detalhada"
-        f"?coIbge={ibge_code}&ano={ano}&mes={mes_num:02d}"
-    )
+    # ── 2. Busca entidade (CNPJ) e dirigente em paralelo ─────────────────────
+    cnpj = None
+    entidade_dados: dict = {}
+    dirigente: dict = {}
 
-    # Dados do município via IBGE (nome, UF)
-    entidade_ext = {
-        "nome": nome_oficial,
-        "cnpj": "—",
-        "ibge": ibge_code,
-        "uf": estado.upper(),
-        "municipio": nome_oficial,
-        "populacao": pop,
-        "ano_censo": 2022,
-        "prefeito": "—",
-        "data_gestao": "—",
-        "secretario": "—",
-        "presidente_conselho": "—",
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as cli:
+            re, rd = await asyncio.gather(
+                cli.get(f"{_FNS_BASE}/consulta-detalhada/entidades",
+                        params={"ano": ano, "count": 1, "estado": UF,
+                                "municipio": ibge_code, "page": 1, "tipoConsulta": 2}),
+                cli.get(f"{_FNS_BASE}/dirigente/MUNICIPAL/{ibge_code}"),
+            )
+            if re.status_code == 200:
+                dados = re.json().get("resultado", {}).get("dados", [])
+                if dados:
+                    d0 = dados[0]
+                    cnpj = d0.get("cpfCnpj") or d0.get("cpfCnpjFormatado","")
+                    entidade_dados = d0
+            if rd.status_code == 200:
+                dirigente = rd.json().get("resultado", {})
+    except Exception:
+        pass
+
+    # ── 3. Busca ações detalhadas ─────────────────────────────────────────────
+    acoes_raw: list = []
+    total_geral = 0.0
+    total_desc  = 0.0
+    total_liq   = 0.0
+
+    if cnpj:
+        try:
+            async with httpx.AsyncClient(timeout=15, follow_redirects=True) as cli:
+                r = await cli.get(f"{_FNS_BASE}/consulta-detalhada/detalhe-acao",
+                                  params={"ano": ano, "count": 100,
+                                          "cpfCnpjUg": cnpj.replace(".","").replace("/","").replace("-",""),
+                                          "estado": UF, "municipio": ibge_code,
+                                          "page": 1, "tipoConsulta": 2})
+                if r.status_code == 200:
+                    res = r.json().get("resultado", {})
+                    acoes_raw = res.get("dados", [])
+                    if acoes_raw:
+                        primeiro = acoes_raw[0]
+                        total_geral = float(primeiro.get("valorTotalGeral", 0) or 0)
+                        total_desc  = float(primeiro.get("valorDescontoTotalGeral", 0) or 0)
+                        total_liq   = float(primeiro.get("valorLiquidoGeral", 0) or 0)
+        except Exception:
+            pass
+
+    # ── 4. Normaliza ações para o formato do frontend ─────────────────────────
+    acoes = []
+    for a in acoes_raw:
+        vt = float(a.get("valorTotal", 0) or 0)
+        vd = float(a.get("valorDescontoTotal", 0) or 0)
+        vl = float(a.get("valorLiquido", 0) or 0)
+        acoes.append({
+            "bloco":          a.get("blocoPacto", {}).get("nome", ""),
+            "grupo":          a.get("grupoAcao", {}).get("nome", ""),
+            "acao":           a.get("nomeResumido") or a.get("sigla") or "",
+            "acao_detalhada": a.get("descricao") or a.get("nomeResumido") or "—",
+            "valor_total":    vt if vt > 0 else None,
+            "valor_desconto": vd if (vt > 0) else None,
+            "valor_liquido":  vl if vt > 0 else None,
+        })
+
+    # ── 5. Monta entidade ─────────────────────────────────────────────────────
+    inicio = dirigente.get("inicioMandatoFormatado") or "—"
+    entidade = {
+        "nome":                 entidade_dados.get("razaoSocial", nome_oficial),
+        "cnpj":                 entidade_dados.get("cpfCnpjFormatado", cnpj or "—"),
+        "ibge":                 ibge_code,
+        "uf":                   UF,
+        "municipio":            nome_oficial,
+        "populacao":            0,
+        "ano_censo":            int(ano) if ano.isdigit() else date.today().year,
+        "prefeito":             dirigente.get("nome", "—"),
+        "data_gestao":          inicio,
+        "secretario":           dirigente.get("noSecretario", "—"),
+        "presidente_conselho":  dirigente.get("noPresidenteConselho", "—"),
     }
 
     return {
-        "entidade": entidade_ext,
-        "acoes": [],
-        "total_geral": 0, "total_desconto": 0, "total_liquido": 0,
-        "fonte": "consultafns.saude.gov.br",
-        "ano": ano,
-        "fns_url": fns_url,   # frontend abre este link
+        "entidade":       entidade,
+        "acoes":          acoes,
+        "total_geral":    round(total_geral, 2),
+        "total_desconto": round(total_desc,  2),
+        "total_liquido":  round(total_liq,   2),
+        "fonte":          "consultafns.saude.gov.br/recursos",
+        "ano":            ano,
+        "fns_url":        None,
     }
 
 @router.get("/blocos")
