@@ -438,6 +438,54 @@ async def fns_acoes(
         "fns_url":        None,
     }
 
+@router.get("/fns-repasse-dia")
+async def fns_repasse_dia(
+    ano: str = Query("2026"),
+    mes: str = Query(""),
+    dia: str = Query(""),
+    _: UserOut = Depends(get_current_user),
+):
+    """Repasses do Dia — proxy para API pública consultafns.saude.gov.br/recursos/repasse-dia/consultar."""
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as cli:
+            r = await cli.get(
+                f"{_FNS_BASE}/repasse-dia/consultar",
+                params={k: v for k, v in {"ano": ano, "mes": mes, "dia": dia}.items() if v},
+            )
+            if r.status_code == 200:
+                data = r.json()
+                resultado = data.get("resultado", [])
+                # normaliza campos
+                repasses = []
+                for item in resultado:
+                    repasses.append({
+                        "entidade":     item.get("noEntidade") or item.get("nmEntidade", "—"),
+                        "municipio":    item.get("noMunicipio") or item.get("nmMunicipio", "—"),
+                        "uf":           item.get("sgUf") or item.get("uf", "—"),
+                        "cnpj":         item.get("nuCnpj") or item.get("cnpj", "—"),
+                        "bloco":        item.get("noBloco") or item.get("bloco", "—"),
+                        "acao":         item.get("noAcao") or item.get("descricao", "—"),
+                        "valor":        float(item.get("vlRepasse") or item.get("valor") or 0),
+                        "data":         item.get("dtPagamento") or item.get("data", "—"),
+                    })
+                # data do último pagamento
+                try:
+                    r2 = await cli.get(f"{_FNS_BASE}/repasse-dia/recuperar-data-ultimo-pagamento")
+                    ultimo_dia = r2.json().get("resultado", "") if r2.status_code == 200 else ""
+                except Exception:
+                    ultimo_dia = ""
+                return {
+                    "repasses": repasses,
+                    "total": sum(x["valor"] for x in repasses),
+                    "ultimo_pagamento": ultimo_dia,
+                    "fonte": "consultafns.saude.gov.br",
+                }
+    except Exception as e:
+        pass
+    return {"repasses": [], "total": 0.0, "ultimo_pagamento": "", "fonte": "consultafns.saude.gov.br", "erro": "Serviço FNS indisponível"}
+
+
 @router.get("/blocos")
 async def blocos_financiamento(_: UserOut = Depends(get_current_user)):
     return {"blocos": _BLOCOS, "fonte": "referencia"}

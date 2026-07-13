@@ -174,10 +174,30 @@ const ESTADOS_BR = ["","AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","M
 const BRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
+const TIPOS_ABA_FNS = [
+  { id: "detalhada",         label: "Detalhada",                                    publico: true,  hash: "detalhada"          },
+  { id: "consolidada",       label: "Consolidada Fundo a Fundo",                    publico: true,  hash: "consolidada"        },
+  { id: "repasse-dia",       label: "Repasses do Dia",                              publico: true,  hash: "contas-bancarias"   },
+  { id: "contas-bancarias",  label: "Contas Bancárias",                             publico: true,  hash: "contas-bancarias"   },
+  { id: "desconto-mac",      label: "Desconto Mac",                                 publico: true,  hash: "desconto-mac"       },
+  { id: "convenios",         label: "Convênios/TED/Termo de Cooperação",            publico: false, hash: "convenios"          },
+  { id: "equipamentos",      label: "Equipamentos e Materiais Permanentes",         publico: false, hash: "equipamentos"       },
+  { id: "pendencias",        label: "Fundos de Saúde - Pendências NJ/CNPJ",        publico: false, hash: "pendencias"         },
+  { id: "grafico",           label: "Gráfico Comparativo por Ano",                  publico: false, hash: "grafico-comparativo"},
+  { id: "proposta",          label: "Proposta",                                     publico: false, hash: "proposta"           },
+];
+
 function AbaConsultaFNS() {
   const anoAtual = new Date().getFullYear();
   const mesAtual = MESES_FNS[new Date().getMonth()];
+  const hoje = new Date();
 
+  // ── Tipo de aba ───────────────────────────────────────────────────────────
+  const [tipoAba, setTipoAba]       = useState("detalhada");
+  const [showMenuTipos, setShowMenuTipos] = useState(false);
+  const tipoAtual = TIPOS_ABA_FNS.find(t => t.id === tipoAba) ?? TIPOS_ABA_FNS[0];
+
+  // ── Detalhada states ──────────────────────────────────────────────────────
   const [ano, setAno]             = useState(String(anoAtual));
   const [mes, setMes]             = useState(mesAtual);
   const [tipoConsulta, setTipo]   = useState("Fundo a Fundo");
@@ -203,7 +223,7 @@ function AbaConsultaFNS() {
   }, [estado]);
 
   const [processo, setProcesso]   = useState("");
-  const [proposta, setProposta]   = useState("");
+  const [propostaNum, setPropostaNum] = useState("");
   const [repasse, setRepasse]     = useState("");
   const [dtIni, setDtIni]         = useState("");
   const [dtFim, setDtFim]         = useState("");
@@ -211,10 +231,9 @@ function AbaConsultaFNS() {
   const [pgSize, setPgSize]       = useState(25);
   const [pgCur, setPgCur]         = useState(1);
 
-  // params da última consulta disparada — null = ainda não consultou
   const [consultaParams, setConsultaParams] = useState<{
     estado: string; municipio: string; ano: string; mes: string; bloco: string;
-  } | null>({ estado: "AM", municipio: "APUÍ", ano: String(new Date().getFullYear()), mes: MESES_FNS[new Date().getMonth()], bloco: "" });
+  } | null>({ estado: "AM", municipio: "APUÍ", ano: String(anoAtual), mes: MESES_FNS[hoje.getMonth()], bloco: "" });
 
   const { data: fnsData, isFetching: fnsLoading } = useQuery({
     queryKey: ["fns-acoes", consultaParams],
@@ -234,24 +253,44 @@ function AbaConsultaFNS() {
 
   const acoes: any[] = fnsData?.acoes ?? [];
   const entidade = fnsData?.entidade;
-
   const totalPages = Math.ceil(acoes.length / pgSize);
   const paginadas = acoes.slice((pgCur - 1) * pgSize, pgCur * pgSize);
 
   const limpar = () => {
     setAno(String(anoAtual)); setMes(mesAtual); setTipo("Fundo a Fundo");
     setBloco(""); setCpf(""); setEstado(""); setMunicipio(""); setMunicipiosLista([]);
-    setProcesso(""); setProposta(""); setRepasse("");
+    setProcesso(""); setPropostaNum(""); setRepasse("");
     setDtIni(""); setDtFim(""); setPortaria("");
     setConsultaParams(null);
   };
 
+  // ── Repasses do Dia states ────────────────────────────────────────────────
+  const [rdAno, setRdAno] = useState(String(anoAtual));
+  const [rdMes, setRdMes] = useState(String(hoje.getMonth() + 1).padStart(2, "0"));
+  const [rdDia, setRdDia] = useState(String(hoje.getDate()).padStart(2, "0"));
+  const [rdParams, setRdParams] = useState<{ ano: string; mes: string; dia: string } | null>(null);
+
+  const { data: rdData, isFetching: rdLoading } = useQuery({
+    queryKey: ["fns-repasse-dia", rdParams],
+    queryFn: () => {
+      if (!rdParams) return Promise.resolve(null);
+      return apiGet(`/api/financeiro/fns-repasse-dia?ano=${rdParams.ano}&mes=${rdParams.mes}&dia=${rdParams.dia}`) as Promise<any>;
+    },
+    enabled: !!rdParams,
+  });
+
   const inputSt: React.CSSProperties = { width: "100%", border: "1px solid #d1d5db", borderRadius: 4, padding: "7px 10px", fontSize: 13, background: "#fff", outline: "none", boxSizing: "border-box" };
   const selSt: React.CSSProperties   = { ...inputSt, cursor: "pointer" };
   const lblSt: React.CSSProperties   = { fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 };
+  const btnConsultar = (loading: boolean, onClick: () => void) => (
+    <button onClick={onClick} disabled={loading}
+      style={{ background: loading ? "#6b7280" : "#2a5298", color: "#fff", border: "none", borderRadius: 4, padding: "8px 22px", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 700 }}>
+      {loading ? "⏳ Consultando..." : "🔍 Consultar"}
+    </button>
+  );
 
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif" }}>
+    <div style={{ fontFamily: "system-ui, sans-serif" }} onClick={() => showMenuTipos && setShowMenuTipos(false)}>
 
       {/* ── Header FNS ── */}
       <div style={{ background: "#1a3a6b", color: "#fff", borderRadius: "10px 10px 0 0", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -264,216 +303,492 @@ function AbaConsultaFNS() {
           {["A⁻","A","A⁺"].map(a => <span key={a} style={{ background: "rgba(255,255,255,.2)", padding: "2px 8px", borderRadius: 3, cursor: "pointer" }}>{a}</span>)}
           <span style={{ opacity: .7 }}>PT ▾</span>
           <span style={{ opacity: .7 }}>V.1.50.1</span>
-          <button onClick={() => window.open("https://consultafns.saude.gov.br/#/detalhada","_blank")} style={{ background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.4)", color: "#fff", borderRadius: 4, padding: "3px 10px", cursor: "pointer", fontSize: 11 }}>? Ajuda ↗</button>
-        </div>
-      </div>
-
-      {/* Sub-menu */}
-      <div style={{ background: "#2a5298", padding: "7px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <button style={{ background: "none", border: "none", color: "#fff", fontSize: 13, cursor: "pointer" }}>Tipos de consulta ▾</button>
-        <button onClick={() => window.open("https://consultafns.saude.gov.br/#/detalhada","_blank")} style={{ background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.4)", color: "#fff", borderRadius: 4, padding: "4px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>↗ Abrir no FNS</button>
-      </div>
-
-      {/* Breadcrumb */}
-      <div style={{ background: "#f3f4f6", padding: "5px 20px", fontSize: 12, color: "#6b7280", borderBottom: "1px solid #e5e7eb" }}>Detalhada</div>
-
-      {/* ── Formulário ── */}
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>Detalhada</h2>
-
-        <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 8 }}>
-          Os campos com <span style={{ color: "#dc2626" }}>*</span> são obrigatórios.
-        </div>
-        <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
-          De acordo com o Manual de Ordem Bancária da STN, os valores repassados serão creditados em no máximo dois dias úteis após a data de emissão da OB para correntistas do Banco do Brasil. Para os demais bancos o prazo é de no máximo três dias úteis.
-        </div>
-
-        {/* Linha 1 */}
-        <div style={{ display: "grid", gridTemplateColumns: "120px 160px 1fr 200px", gap: 14, marginBottom: 14 }}>
-          <div><label style={lblSt}><span style={{ color: "#dc2626" }}>* </span>Ano</label>
-            <select value={ano} onChange={e => setAno(e.target.value)} style={selSt}>
-              {[2026,2025,2024,2023,2022].map(a => <option key={a}>{a}</option>)}
-            </select>
-          </div>
-          <div><label style={lblSt}>Mês</label>
-            <select value={mes} onChange={e => setMes(e.target.value)} style={selSt}>
-              {MESES_FNS.map(m => <option key={m}>{m}</option>)}
-            </select>
-          </div>
-          <div><label style={lblSt}><span style={{ color: "#dc2626" }}>* </span>Tipo de consulta</label>
-            <select value={tipoConsulta} onChange={e => setTipo(e.target.value)} style={selSt}>
-              {TIPOS_CONSULTA.map(t => <option key={t}>{t}</option>)}
-            </select>
-          </div>
-          <div><label style={lblSt}>Bloco</label>
-            <select value={bloco} onChange={e => setBloco(e.target.value)} style={selSt}>
-              <option value="">Selecione</option>
-              {BLOCOS_FNS_OPT.map(b => <option key={b}>{b}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Linha 2 */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 130px 1fr 1fr", gap: 14, marginBottom: 14 }}>
-          <div>
-            <label style={lblSt}>CPF/CNPJ/UG</label>
-            <input value={cpf} onChange={e => setCpf(e.target.value)} placeholder="Ex.: CPF(12345678901)..." style={inputSt} />
-            <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>Ex.: CPF(12345678901), CNPJ(12345678901234) e UG(123456)</div>
-          </div>
-          <div><label style={lblSt}>Estado</label>
-            <select value={estado} onChange={e => setEstado(e.target.value)} style={selSt}>
-              <option value="">Selecione</option>
-              {ESTADOS_BR.filter(e => e).map(e => <option key={e}>{e}</option>)}
-            </select>
-          </div>
-          <div><label style={lblSt}>Município</label>
-            {municipiosLista.length > 0 ? (
-              <select value={municipio} onChange={e => setMunicipio(e.target.value)} style={selSt} disabled={loadingMunicipios}>
-                {municipiosLista.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
-            ) : (
-              <input value={loadingMunicipios ? "Carregando..." : municipio} onChange={e => setMunicipio(e.target.value)} placeholder={estado ? "Carregando municípios..." : "Selecione o estado primeiro"} style={{ ...inputSt, color: loadingMunicipios ? "#9ca3af" : undefined }} disabled={loadingMunicipios} />
-            )}
-          </div>
-          <div><label style={lblSt}>Processo</label>
-            <input value={processo} onChange={e => setProcesso(e.target.value)} placeholder="Ex.: (12345678901234567)" style={inputSt} />
-          </div>
-        </div>
-
-        {/* Linha 3 */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: 14, marginBottom: 16 }}>
-          <div><label style={lblSt}>Proposta</label><input value={proposta} onChange={e => setProposta(e.target.value)} style={inputSt} /></div>
-          <div><label style={lblSt}>Repasse</label>
-            <select value={repasse} onChange={e => setRepasse(e.target.value)} style={selSt}>
-              <option value="">Selecione</option>
-              {REPASSES_FNS.map(r => <option key={r}>{r}</option>)}
-            </select>
-          </div>
-          <div><label style={lblSt}>Data inicial da OB</label>
-            <div style={{ position: "relative" }}>
-              <input value={dtIni} onChange={e => setDtIni(e.target.value)} placeholder="__/__/____" style={{ ...inputSt, paddingRight: 28 }} />
-              <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13 }}>📅</span>
-            </div>
-          </div>
-          <div><label style={lblSt}>Data final da OB</label>
-            <div style={{ position: "relative" }}>
-              <input value={dtFim} onChange={e => setDtFim(e.target.value)} placeholder="__/__/____" style={{ ...inputSt, paddingRight: 28 }} />
-              <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13 }}>📅</span>
-            </div>
-          </div>
-          <div><label style={lblSt}>Portaria</label><input value={portaria} onChange={e => setPortaria(e.target.value)} style={inputSt} /></div>
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
-          <button onClick={limpar} style={{ border: "1px solid #d1d5db", borderRadius: 4, padding: "8px 20px", background: "#fff", cursor: "pointer", fontSize: 13 }}>✏ Limpar</button>
-          <button
-            onClick={() => { setConsultaParams({ estado, municipio, ano, mes, bloco }); setPgCur(1); }}
-            disabled={fnsLoading}
-            style={{ background: fnsLoading ? "#6b7280" : "#2a5298", color: "#fff", border: "none", borderRadius: 4, padding: "8px 22px", cursor: fnsLoading ? "wait" : "pointer", fontSize: 13, fontWeight: 700 }}
-          >
-            {fnsLoading ? "⏳ Consultando..." : "🔍 Consultar"}
+          <button onClick={() => window.open(`https://consultafns.saude.gov.br/#/${tipoAtual.hash}`,"_blank")}
+            style={{ background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.4)", color: "#fff", borderRadius: 4, padding: "3px 10px", cursor: "pointer", fontSize: 11 }}>
+            ? Ajuda ↗
           </button>
         </div>
       </div>
 
-      {/* ── Resultado: dados entidade ── */}
-      {consultaParams && fnsLoading && (
-        <div style={{ background: "#f0f4ff", border: "1px solid #c7d2fe", borderTop: "none", padding: "20px", textAlign: "center", color: "#3730a3", fontSize: 14 }}>
-          ⏳ Consultando dados do FNS para <strong>{consultaParams.municipio}/{consultaParams.estado}</strong>...
-        </div>
-      )}
-      {consultaParams && !fnsLoading && !entidade && fnsData !== undefined && (
-        <div style={{ background: "#fff7f7", border: "1px solid #fecaca", borderTop: "none", padding: "20px", textAlign: "center", color: "#dc2626", fontSize: 14 }}>
-          {fnsData?.aviso ?? `Município '${consultaParams.municipio}' não encontrado no estado ${consultaParams.estado}.`}
-        </div>
-      )}
-      {consultaParams && !fnsLoading && entidade && (
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderTop: "none", padding: "16px 20px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, marginBottom: 16, fontSize: 13 }}>
-            {[
-              ["Entidade", entidade.nome],
-              ["CPF/CNPJ", entidade.cnpj],
-              ["UF", entidade.uf ?? consultaParams.estado],
-              ["Município", entidade.municipio ?? entidade.nome],
-              ["Código IBGE", entidade.ibge],
-              ["População", entidade.populacao ? `${Number(entidade.populacao).toLocaleString("pt-BR")} habitantes` : "—"],
-              ["Ano Censo", entidade.ano_censo],
-              ["Prefeito(a)", entidade.prefeito],
-              ["Data Inicial Gestão", entidade.data_gestao],
-              ["Secretário(a)", entidade.secretario],
-              ["Presidente Conselho", entidade.presidente_conselho],
-            ].map(([label, val]) => (
-              <div key={label} style={{ padding: "6px 0", borderBottom: "1px solid #f3f4f6" }}>
-                <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 1 }}>{label}</div>
-                <div style={{ fontWeight: 600, color: "#1e293b" }}>{val}</div>
-              </div>
-            ))}
-          </div>
-
-          {acoes.length === 0 && !fnsData?.fns_url && (
-            <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "16px", textAlign: "center", color: "#6b7280", fontSize: 13, margin: "8px 0" }}>
-              Nenhuma ação de repasse encontrada para os filtros selecionados.
+      {/* Sub-menu com dropdown */}
+      <div style={{ background: "#2a5298", padding: "7px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative", zIndex: 10 }}>
+        <div style={{ position: "relative" }} onClick={e => e.stopPropagation()}>
+          <button
+            onClick={() => setShowMenuTipos(v => !v)}
+            style={{ background: showMenuTipos ? "rgba(255,255,255,.25)" : "none", border: showMenuTipos ? "1px solid rgba(255,255,255,.5)" : "1px solid transparent", color: "#fff", fontSize: 13, cursor: "pointer", borderRadius: 4, padding: "5px 12px", display: "flex", alignItems: "center", gap: 6 }}
+          >
+            Tipos de consulta ▾
+          </button>
+          {showMenuTipos && (
+            <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, background: "#fff", border: "1px solid #d1d5db", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,.18)", zIndex: 200, minWidth: 340, overflow: "hidden" }}>
+              {TIPOS_ABA_FNS.map((t, i) => (
+                <button key={t.id} onClick={() => { setTipoAba(t.id); setShowMenuTipos(false); }}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    width: "100%", padding: "10px 16px", border: "none",
+                    background: t.id === tipoAba ? "#eff6ff" : i % 2 === 0 ? "#fff" : "#fafafa",
+                    cursor: "pointer", textAlign: "left", fontSize: 13,
+                    color: t.id === tipoAba ? "#1d4ed8" : "#374151",
+                    fontWeight: t.id === tipoAba ? 700 : 400,
+                    borderBottom: "1px solid #f3f4f6",
+                  }}>
+                  <span>{t.label}</span>
+                  {!t.publico
+                    ? <span style={{ fontSize: 10, background: "#fef3c7", color: "#92400e", padding: "2px 7px", borderRadius: 10, border: "1px solid #fde68a", flexShrink: 0 }}>🔒 Login</span>
+                    : t.id === tipoAba
+                    ? <span style={{ fontSize: 10, background: "#dbeafe", color: "#1d4ed8", padding: "2px 7px", borderRadius: 10, flexShrink: 0 }}>✓ Ativo</span>
+                    : null}
+                </button>
+              ))}
             </div>
           )}
+        </div>
+        <button onClick={() => window.open(`https://consultafns.saude.gov.br/#/${tipoAtual.hash}`,"_blank")}
+          style={{ background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.4)", color: "#fff", borderRadius: 4, padding: "4px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+          ↗ Abrir no FNS
+        </button>
+      </div>
 
-          {/* ── Tabela resultado estilo FNS ── */}
-          <div style={{ overflowX: "auto", border: "1px solid #d1dce8", borderRadius: 4 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 900 }}>
+      {/* Breadcrumb */}
+      <div style={{ background: "#f3f4f6", padding: "5px 20px", fontSize: 12, color: "#6b7280", borderBottom: "1px solid #e5e7eb", display: "flex", alignItems: "center", gap: 8 }}>
+        <span>Consulta FNS</span>
+        <span style={{ color: "#d1d5db" }}>›</span>
+        <span style={{ color: "#374151", fontWeight: 600 }}>{tipoAtual.label}</span>
+        {!tipoAtual.publico && <span style={{ marginLeft: 4, color: "#92400e", fontWeight: 600 }}>🔒 Requer autenticação</span>}
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
+      {/* ── DETALHADA ── */}
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
+      {tipoAba === "detalhada" && (
+        <>
+          <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>Detalhada</h2>
+            <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 8 }}>
+              Os campos com <span style={{ color: "#dc2626" }}>*</span> são obrigatórios.
+            </div>
+            <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
+              De acordo com o Manual de Ordem Bancária da STN, os valores repassados serão creditados em no máximo dois dias úteis após a data de emissão da OB para correntistas do Banco do Brasil. Para os demais bancos o prazo é de no máximo três dias úteis.
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "120px 160px 1fr 200px", gap: 14, marginBottom: 14 }}>
+              <div><label style={lblSt}><span style={{ color: "#dc2626" }}>* </span>Ano</label>
+                <select value={ano} onChange={e => setAno(e.target.value)} style={selSt}>
+                  {[2026,2025,2024,2023,2022].map(a => <option key={a}>{a}</option>)}
+                </select>
+              </div>
+              <div><label style={lblSt}>Mês</label>
+                <select value={mes} onChange={e => setMes(e.target.value)} style={selSt}>
+                  {MESES_FNS.map(m => <option key={m}>{m}</option>)}
+                </select>
+              </div>
+              <div><label style={lblSt}><span style={{ color: "#dc2626" }}>* </span>Tipo de consulta</label>
+                <select value={tipoConsulta} onChange={e => setTipo(e.target.value)} style={selSt}>
+                  {TIPOS_CONSULTA.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div><label style={lblSt}>Bloco</label>
+                <select value={bloco} onChange={e => setBloco(e.target.value)} style={selSt}>
+                  <option value="">Selecione</option>
+                  {BLOCOS_FNS_OPT.map(b => <option key={b}>{b}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 130px 1fr 1fr", gap: 14, marginBottom: 14 }}>
+              <div>
+                <label style={lblSt}>CPF/CNPJ/UG</label>
+                <input value={cpf} onChange={e => setCpf(e.target.value)} placeholder="Ex.: CPF(12345678901)..." style={inputSt} />
+                <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>Ex.: CPF(12345678901), CNPJ(12345678901234) e UG(123456)</div>
+              </div>
+              <div><label style={lblSt}>Estado</label>
+                <select value={estado} onChange={e => setEstado(e.target.value)} style={selSt}>
+                  <option value="">Selecione</option>
+                  {ESTADOS_BR.filter(e => e).map(e => <option key={e}>{e}</option>)}
+                </select>
+              </div>
+              <div><label style={lblSt}>Município</label>
+                {municipiosLista.length > 0 ? (
+                  <select value={municipio} onChange={e => setMunicipio(e.target.value)} style={selSt} disabled={loadingMunicipios}>
+                    {municipiosLista.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                ) : (
+                  <input value={loadingMunicipios ? "Carregando..." : municipio} onChange={e => setMunicipio(e.target.value)}
+                    placeholder={estado ? "Carregando municípios..." : "Selecione o estado primeiro"}
+                    style={{ ...inputSt, color: loadingMunicipios ? "#9ca3af" : undefined }} disabled={loadingMunicipios} />
+                )}
+              </div>
+              <div><label style={lblSt}>Processo</label>
+                <input value={processo} onChange={e => setProcesso(e.target.value)} placeholder="Ex.: (12345678901234567)" style={inputSt} />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: 14, marginBottom: 16 }}>
+              <div><label style={lblSt}>Proposta</label><input value={propostaNum} onChange={e => setPropostaNum(e.target.value)} style={inputSt} /></div>
+              <div><label style={lblSt}>Repasse</label>
+                <select value={repasse} onChange={e => setRepasse(e.target.value)} style={selSt}>
+                  <option value="">Selecione</option>
+                  {REPASSES_FNS.map(r => <option key={r}>{r}</option>)}
+                </select>
+              </div>
+              <div><label style={lblSt}>Data inicial da OB</label>
+                <div style={{ position: "relative" }}>
+                  <input value={dtIni} onChange={e => setDtIni(e.target.value)} placeholder="__/__/____" style={{ ...inputSt, paddingRight: 28 }} />
+                  <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13 }}>📅</span>
+                </div>
+              </div>
+              <div><label style={lblSt}>Data final da OB</label>
+                <div style={{ position: "relative" }}>
+                  <input value={dtFim} onChange={e => setDtFim(e.target.value)} placeholder="__/__/____" style={{ ...inputSt, paddingRight: 28 }} />
+                  <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13 }}>📅</span>
+                </div>
+              </div>
+              <div><label style={lblSt}>Portaria</label><input value={portaria} onChange={e => setPortaria(e.target.value)} style={inputSt} /></div>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
+              <button onClick={limpar} style={{ border: "1px solid #d1d5db", borderRadius: 4, padding: "8px 20px", background: "#fff", cursor: "pointer", fontSize: 13 }}>✏ Limpar</button>
+              {btnConsultar(fnsLoading, () => { setConsultaParams({ estado, municipio, ano, mes, bloco }); setPgCur(1); })}
+            </div>
+          </div>
+
+          {consultaParams && fnsLoading && (
+            <div style={{ background: "#f0f4ff", border: "1px solid #c7d2fe", borderTop: "none", padding: "20px", textAlign: "center", color: "#3730a3", fontSize: 14 }}>
+              ⏳ Consultando dados do FNS para <strong>{consultaParams.municipio}/{consultaParams.estado}</strong>...
+            </div>
+          )}
+          {consultaParams && !fnsLoading && !entidade && fnsData !== undefined && (
+            <div style={{ background: "#fff7f7", border: "1px solid #fecaca", borderTop: "none", padding: "20px", textAlign: "center", color: "#dc2626", fontSize: 14 }}>
+              {fnsData?.aviso ?? `Município '${consultaParams.municipio}' não encontrado no estado ${consultaParams.estado}.`}
+            </div>
+          )}
+          {consultaParams && !fnsLoading && entidade && (
+            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderTop: "none", padding: "16px 20px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, marginBottom: 16, fontSize: 13 }}>
+                {([
+                  ["Entidade", entidade.nome],
+                  ["CPF/CNPJ", entidade.cnpj],
+                  ["UF", entidade.uf ?? consultaParams.estado],
+                  ["Município", entidade.municipio ?? entidade.nome],
+                  ["Código IBGE", entidade.ibge],
+                  ["População", entidade.populacao ? `${Number(entidade.populacao).toLocaleString("pt-BR")} habitantes` : "—"],
+                  ["Ano Censo", entidade.ano_censo],
+                  ["Prefeito(a)", entidade.prefeito],
+                  ["Data Inicial Gestão", entidade.data_gestao],
+                  ["Secretário(a)", entidade.secretario],
+                  ["Presidente Conselho", entidade.presidente_conselho],
+                ] as [string, any][]).map(([label, val]) => (
+                  <div key={label} style={{ padding: "6px 0", borderBottom: "1px solid #f3f4f6" }}>
+                    <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 1 }}>{label}</div>
+                    <div style={{ fontWeight: 600, color: "#1e293b" }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+
+              {acoes.length === 0 && (
+                <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "16px", textAlign: "center", color: "#6b7280", fontSize: 13, margin: "8px 0" }}>
+                  Nenhuma ação de repasse encontrada para os filtros selecionados.
+                </div>
+              )}
+
+              <div style={{ overflowX: "auto", border: "1px solid #d1dce8", borderRadius: 4 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 900 }}>
+                  <thead>
+                    <tr style={{ background: "#b8cce4", color: "#1a3a6b" }}>
+                      {["Bloco ⇅","Grupo ⇅","Ação ⇅","Ação Detalhada ⇅","Valor Total ⇅","Valor Desconto ⇅","Valor Líquido ⇅","Ações"].map(h => (
+                        <th key={h} style={{ padding: "10px 10px", textAlign: h.startsWith("Valor") ? "right" : "left", fontWeight: 700, borderRight: "1px solid #a8bcd4", whiteSpace: "nowrap" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginadas.map((row: any, i: number) => (
+                      <tr key={i} style={{ borderBottom: "1px solid #e2eaf4", background: i % 2 === 0 ? "#fff" : "#f4f8fc" }}>
+                        <td style={{ padding: "9px 10px", color: "#2a5298", fontSize: 12, maxWidth: 160, lineHeight: 1.4 }}>{row.bloco}</td>
+                        <td style={{ padding: "9px 10px", fontWeight: 600, color: "#1a3a6b", maxWidth: 180, lineHeight: 1.4 }}>{row.grupo}</td>
+                        <td style={{ padding: "9px 10px", color: "#374151", maxWidth: 200, lineHeight: 1.4 }}>{row.acao || ""}</td>
+                        <td style={{ padding: "9px 10px", color: row.valor_total ? "#374151" : "#6b7280", fontStyle: row.valor_total ? "normal" : "italic", maxWidth: 220, lineHeight: 1.4 }}>{row.acao_detalhada}</td>
+                        <td style={{ padding: "9px 10px", textAlign: "right", fontWeight: row.valor_total ? 700 : 400, color: row.valor_total ? "#1a3a6b" : "#9ca3af" }}>{row.valor_total != null ? BRL(row.valor_total) : ""}</td>
+                        <td style={{ padding: "9px 10px", textAlign: "right", color: "#374151" }}>{row.valor_desconto != null ? BRL(row.valor_desconto) : ""}</td>
+                        <td style={{ padding: "9px 10px", textAlign: "right", fontWeight: row.valor_liquido ? 700 : 400, color: row.valor_liquido ? "#16a34a" : "#9ca3af" }}>{row.valor_liquido != null ? BRL(row.valor_liquido) : ""}</td>
+                        <td style={{ padding: "9px 10px", textAlign: "center" }}>
+                          <button onClick={() => window.open("https://consultafns.saude.gov.br/#/detalhada","_blank")}
+                            style={{ background: "#2a5298", border: "none", borderRadius: 4, width: 28, height: 28, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ color: "#fff", fontSize: 13 }}>👁</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ background: "#e8f0f8", fontWeight: 700 }}>
+                      <td colSpan={4} style={{ padding: "10px 10px", textAlign: "right", color: "#1a3a6b", fontSize: 13 }}>Total Geral</td>
+                      <td style={{ padding: "10px 10px", textAlign: "right", color: "#1a3a6b", fontSize: 13 }}>{fnsData ? BRL(fnsData.total_geral) : "—"}</td>
+                      <td style={{ padding: "10px 10px", textAlign: "right", color: "#1a3a6b", fontSize: 13 }}>{fnsData ? BRL(fnsData.total_desconto) : "—"}</td>
+                      <td style={{ padding: "10px 10px", textAlign: "right", color: "#16a34a", fontSize: 13 }}>{fnsData ? BRL(fnsData.total_liquido) : "—"}</td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+                <div style={{ display: "flex", gap: 4 }}>
+                  <button onClick={() => setPgCur(p => Math.max(1, p - 1))} disabled={pgCur === 1}
+                    style={{ border: "1px solid #d1dce8", borderRadius: 3, padding: "4px 10px", cursor: "pointer", background: pgCur === 1 ? "#f3f4f6" : "#fff", fontSize: 13 }}>«</button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                    <button key={p} onClick={() => setPgCur(p)}
+                      style={{ border: "1px solid #d1dce8", borderRadius: 3, padding: "4px 10px", cursor: "pointer", fontSize: 13, background: pgCur === p ? "#2a5298" : "#fff", color: pgCur === p ? "#fff" : "#374151", fontWeight: pgCur === p ? 700 : 400 }}>{p}</button>
+                  ))}
+                  <button onClick={() => setPgCur(p => Math.min(totalPages, p + 1))} disabled={pgCur === totalPages}
+                    style={{ border: "1px solid #d1dce8", borderRadius: 3, padding: "4px 10px", cursor: "pointer", background: pgCur === totalPages ? "#f3f4f6" : "#fff", fontSize: 13 }}>»</button>
+                </div>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {[10, 25, 50, 100].map(n => (
+                    <button key={n} onClick={() => { setPgSize(n); setPgCur(1); }}
+                      style={{ border: "1px solid #d1dce8", borderRadius: 3, padding: "4px 10px", cursor: "pointer", fontSize: 13, background: pgSize === n ? "#2a5298" : "#fff", color: pgSize === n ? "#fff" : "#374151", fontWeight: pgSize === n ? 700 : 400 }}>{n}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 8, fontSize: 11, color: "#9ca3af" }}>
+                Fonte: <a href="https://consultafns.saude.gov.br/#/detalhada/acao" target="_blank" rel="noreferrer" style={{ color: "#2a5298" }}>consultafns.saude.gov.br</a> — dados reais {ano}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
+      {/* ── REPASSES DO DIA / CONTAS BANCÁRIAS ── */}
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
+      {(tipoAba === "repasse-dia" || tipoAba === "contas-bancarias") && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>
+            {tipoAtual.label}
+          </h2>
+          <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
+            Exibe os repasses do FNS realizados em um dia específico para qualquer município do Brasil.
+            {rdData?.ultimo_pagamento && <span> Último pagamento registrado: <strong>{rdData.ultimo_pagamento}</strong>.</span>}
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "120px 140px 140px 1fr", gap: 14, marginBottom: 16, alignItems: "end" }}>
+            <div><label style={lblSt}>Ano</label>
+              <select value={rdAno} onChange={e => setRdAno(e.target.value)} style={selSt}>
+                {[2026,2025,2024,2023,2022].map(a => <option key={a}>{a}</option>)}
+              </select>
+            </div>
+            <div><label style={lblSt}>Mês (número)</label>
+              <select value={rdMes} onChange={e => setRdMes(e.target.value)} style={selSt}>
+                {MESES_FNS.map((m, i) => <option key={i+1} value={String(i+1).padStart(2,"0")}>{String(i+1).padStart(2,"0")} – {m}</option>)}
+              </select>
+            </div>
+            <div><label style={lblSt}>Dia</label>
+              <select value={rdDia} onChange={e => setRdDia(e.target.value)} style={selSt}>
+                {Array.from({ length: 31 }, (_, i) => String(i+1).padStart(2,"0")).map(d => <option key={d}>{d}</option>)}
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {btnConsultar(rdLoading, () => setRdParams({ ano: rdAno, mes: rdMes, dia: rdDia }))}
+              <button onClick={() => setRdParams(null)} style={{ border: "1px solid #d1d5db", borderRadius: 4, padding: "8px 16px", background: "#fff", cursor: "pointer", fontSize: 13 }}>✏ Limpar</button>
+            </div>
+          </div>
+
+          {rdLoading && (
+            <div style={{ textAlign: "center", padding: 30, color: "#3730a3", fontSize: 14 }}>⏳ Consultando repasses do dia...</div>
+          )}
+
+          {!rdLoading && rdData && (
+            <>
+              {rdData.repasses?.length === 0 ? (
+                <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "24px", textAlign: "center", color: "#6b7280", fontSize: 13 }}>
+                  Nenhum repasse encontrado para {rdDia}/{rdMes}/{rdAno}.
+                  {rdData.ultimo_pagamento && <div style={{ marginTop: 6 }}>Último pagamento: <strong>{rdData.ultimo_pagamento}</strong></div>}
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <span style={{ fontWeight: 600, color: "#374151" }}>{rdData.repasses.length} repasse(s) encontrado(s)</span>
+                    <span style={{ fontWeight: 800, fontSize: 16, color: "#16a34a" }}>Total: R$ {BRL(rdData.total)}</span>
+                  </div>
+                  <div style={{ overflowX: "auto", border: "1px solid #d1dce8", borderRadius: 4 }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 700 }}>
+                      <thead>
+                        <tr style={{ background: "#b8cce4", color: "#1a3a6b" }}>
+                          {["UF","Município","Entidade","Bloco","Ação","Valor","Data"].map(h => (
+                            <th key={h} style={{ padding: "10px 10px", textAlign: h === "Valor" ? "right" : "left", fontWeight: 700, borderRight: "1px solid #a8bcd4", whiteSpace: "nowrap" }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rdData.repasses.map((r: any, i: number) => (
+                          <tr key={i} style={{ borderBottom: "1px solid #e2eaf4", background: i % 2 === 0 ? "#fff" : "#f4f8fc" }}>
+                            <td style={{ padding: "8px 10px", fontWeight: 700, color: "#1a3a6b" }}>{r.uf}</td>
+                            <td style={{ padding: "8px 10px" }}>{r.municipio}</td>
+                            <td style={{ padding: "8px 10px", fontSize: 11, color: "#6b7280", maxWidth: 180 }}>{r.entidade}</td>
+                            <td style={{ padding: "8px 10px", fontSize: 11 }}>{r.bloco}</td>
+                            <td style={{ padding: "8px 10px", fontSize: 11, maxWidth: 220 }}>{r.acao}</td>
+                            <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 700, color: "#16a34a" }}>R$ {BRL(r.valor)}</td>
+                            <td style={{ padding: "8px 10px", fontSize: 11, color: "#6b7280" }}>{r.data}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr style={{ background: "#e8f0f8", fontWeight: 700 }}>
+                          <td colSpan={5} style={{ padding: "10px", textAlign: "right", color: "#1a3a6b" }}>Total</td>
+                          <td style={{ padding: "10px", textAlign: "right", color: "#16a34a" }}>R$ {BRL(rdData.total)}</td>
+                          <td />
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </>
+              )}
+              <div style={{ marginTop: 8, fontSize: 11, color: "#9ca3af" }}>
+                Fonte: <a href="https://consultafns.saude.gov.br" target="_blank" rel="noreferrer" style={{ color: "#2a5298" }}>consultafns.saude.gov.br</a>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
+      {/* ── CONSOLIDADA FUNDO A FUNDO ── */}
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
+      {tipoAba === "consolidada" && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>Consolidada Fundo a Fundo</h2>
+          <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
+            Exibe o consolidado das transferências Fundo a Fundo para um município/estado em determinado exercício.
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "120px 130px 1fr 160px", gap: 14, marginBottom: 16, alignItems: "end" }}>
+            <div><label style={lblSt}>Ano</label>
+              <select style={selSt} defaultValue="2026">
+                {[2026,2025,2024,2023,2022].map(a => <option key={a}>{a}</option>)}
+              </select>
+            </div>
+            <div><label style={lblSt}>Estado</label>
+              <select style={selSt} defaultValue="AM">
+                {ESTADOS_BR.filter(e => e).map(e => <option key={e}>{e}</option>)}
+              </select>
+            </div>
+            <div><label style={lblSt}>Município (opcional)</label>
+              <input style={inputSt} placeholder="Ex.: APUÍ" />
+            </div>
+            <div><label style={lblSt}>Tipo Repasse</label>
+              <select style={selSt}>
+                <option value="M">Municipal</option>
+                <option value="E">Estadual</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid #e5e7eb", paddingTop: 14, marginBottom: 20 }}>
+            <button
+              onClick={() => window.open("https://consultafns.saude.gov.br/#/consolidada","_blank")}
+              style={{ background: "#2a5298", color: "#fff", border: "none", borderRadius: 4, padding: "8px 20px", cursor: "pointer", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}
+            >
+              ↗ Consultar no FNS
+            </button>
+          </div>
+
+          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 20 }}>ℹ️</span>
+            <div>
+              <div style={{ fontWeight: 700, color: "#92400e", marginBottom: 4 }}>Consulta disponível no portal FNS</div>
+              <div style={{ fontSize: 13, color: "#78350f", lineHeight: 1.6 }}>
+                A consulta <strong>Consolidada Fundo a Fundo</strong> retorna o total consolidado de transferências por bloco de financiamento para o exercício selecionado. Por limitações de acesso à API interna, esta consulta abre diretamente no portal FNS onde você pode realizar a pesquisa completa.
+              </div>
+              <button onClick={() => window.open("https://consultafns.saude.gov.br/#/consolidada","_blank")}
+                style={{ marginTop: 10, background: "#1a3a6b", color: "#fff", border: "none", borderRadius: 6, padding: "8px 18px", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+                Abrir Consolidada no FNS ↗
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
+      {/* ── DESCONTO MAC ── */}
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
+      {tipoAba === "desconto-mac" && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>Desconto Mac</h2>
+          <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
+            Tipos de dedução (desconto) aplicados sobre o teto de Média e Alta Complexidade (MAC).
+          </div>
+
+          <div style={{ border: "1px solid #d1dce8", borderRadius: 6, overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ background: "#b8cce4", color: "#1a3a6b" }}>
-                  {["Bloco ⇅","Grupo ⇅","Ação ⇅","Ação Detalhada ⇅","Valor Total ⇅","Valor Desconto ⇅","Valor Líquido ⇅","Ações"].map(h => (
-                    <th key={h} style={{ padding: "10px 10px", textAlign: h === "Valor Total ⇅" || h === "Valor Desconto ⇅" || h === "Valor Líquido ⇅" ? "right" : "left", fontWeight: 700, borderRight: "1px solid #a8bcd4", whiteSpace: "nowrap" }}>{h}</th>
-                  ))}
+                  <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700 }}>Código</th>
+                  <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700 }}>Descrição</th>
                 </tr>
               </thead>
               <tbody>
-                {paginadas.map((row: any, i: number) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #e2eaf4", background: i % 2 === 0 ? "#fff" : "#f4f8fc" }}>
-                    <td style={{ padding: "9px 10px", color: "#2a5298", fontSize: 12, maxWidth: 160, lineHeight: 1.4 }}>{row.bloco}</td>
-                    <td style={{ padding: "9px 10px", fontWeight: 600, color: "#1a3a6b", maxWidth: 180, lineHeight: 1.4 }}>{row.grupo}</td>
-                    <td style={{ padding: "9px 10px", color: "#374151", maxWidth: 200, lineHeight: 1.4 }}>{row.acao || ""}</td>
-                    <td style={{ padding: "9px 10px", color: row.valor_total ? "#374151" : "#6b7280", fontStyle: row.valor_total ? "normal" : "italic", maxWidth: 220, lineHeight: 1.4 }}>{row.acao_detalhada}</td>
-                    <td style={{ padding: "9px 10px", textAlign: "right", fontWeight: row.valor_total ? 700 : 400, color: row.valor_total ? "#1a3a6b" : "#9ca3af" }}>{row.valor_total != null ? BRL(row.valor_total) : ""}</td>
-                    <td style={{ padding: "9px 10px", textAlign: "right", color: "#374151" }}>{row.valor_desconto != null ? BRL(row.valor_desconto) : ""}</td>
-                    <td style={{ padding: "9px 10px", textAlign: "right", fontWeight: row.valor_liquido ? 700 : 400, color: row.valor_liquido ? "#16a34a" : "#9ca3af" }}>{row.valor_liquido != null ? BRL(row.valor_liquido) : ""}</td>
-                    <td style={{ padding: "9px 10px", textAlign: "center" }}>
-                      <button onClick={() => window.open("https://consultafns.saude.gov.br/#/detalhada","_blank")} style={{ background: "#2a5298", border: "none", borderRadius: 4, width: 28, height: 28, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                        <span style={{ color: "#fff", fontSize: 13 }}>👁</span>
-                      </button>
-                    </td>
+                {[
+                  { cod: "TCU",  desc: "Acórdãos do Tribunal de Contas da União" },
+                  { cod: "JUD",  desc: "Decisão Judicial" },
+                  { cod: "DVLC", desc: "Devoluções do Teto MAC" },
+                  { cod: "EMPR", desc: "Empréstimos Consignados" },
+                  { cod: "INSS", desc: "Contribuições INSS" },
+                  { cod: "IRPJ", desc: "Imposto de Renda Pessoa Jurídica" },
+                  { cod: "OUTR", desc: "Outros Descontos" },
+                ].map((item, i) => (
+                  <tr key={item.cod} style={{ borderBottom: "1px solid #e2eaf4", background: i % 2 === 0 ? "#fff" : "#f4f8fc" }}>
+                    <td style={{ padding: "9px 14px", fontWeight: 700, color: "#2a5298", fontFamily: "monospace" }}>{item.cod}</td>
+                    <td style={{ padding: "9px 14px", color: "#374151" }}>{item.desc}</td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr style={{ background: "#e8f0f8", fontWeight: 700 }}>
-                  <td colSpan={4} style={{ padding: "10px 10px", textAlign: "right", color: "#1a3a6b", fontSize: 13 }}>Total Geral</td>
-                  <td style={{ padding: "10px 10px", textAlign: "right", color: "#1a3a6b", fontSize: 13 }}>{fnsData ? BRL(fnsData.total_geral) : "—"}</td>
-                  <td style={{ padding: "10px 10px", textAlign: "right", color: "#1a3a6b", fontSize: 13 }}>{fnsData ? BRL(fnsData.total_desconto) : "—"}</td>
-                  <td style={{ padding: "10px 10px", textAlign: "right", color: "#16a34a", fontSize: 13 }}>{fnsData ? BRL(fnsData.total_liquido) : "—"}</td>
-                  <td />
-                </tr>
-              </tfoot>
             </table>
           </div>
 
-          {/* Paginação */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
-            <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={() => setPgCur(p => Math.max(1, p - 1))} disabled={pgCur === 1} style={{ border: "1px solid #d1dce8", borderRadius: 3, padding: "4px 10px", cursor: "pointer", background: pgCur === 1 ? "#f3f4f6" : "#fff", fontSize: 13 }}>«</button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                <button key={p} onClick={() => setPgCur(p)} style={{ border: "1px solid #d1dce8", borderRadius: 3, padding: "4px 10px", cursor: "pointer", fontSize: 13, background: pgCur === p ? "#2a5298" : "#fff", color: pgCur === p ? "#fff" : "#374151", fontWeight: pgCur === p ? 700 : 400 }}>{p}</button>
-              ))}
-              <button onClick={() => setPgCur(p => Math.min(totalPages, p + 1))} disabled={pgCur === totalPages} style={{ border: "1px solid #d1dce8", borderRadius: 3, padding: "4px 10px", cursor: "pointer", background: pgCur === totalPages ? "#f3f4f6" : "#fff", fontSize: 13 }}>»</button>
+          <div style={{ marginTop: 16 }}>
+            <button onClick={() => window.open("https://consultafns.saude.gov.br/#/desconto-mac","_blank")}
+              style={{ background: "#2a5298", color: "#fff", border: "none", borderRadius: 6, padding: "8px 18px", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+              Consultar Descontos MAC no FNS ↗
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
+      {/* ── ACESSO RESTRITO (Convênios, Equipamentos, Pendências, Gráfico, Proposta) ── */}
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
+      {!tipoAtual.publico && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "24px 20px" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>
+            {tipoAtual.label}
+          </h2>
+
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "32px 20px", background: "#f8fafc", borderRadius: 10, border: "1px dashed #cbd5e1", textAlign: "center" }}>
+            <div style={{ fontSize: 48 }}>🔒</div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", marginBottom: 6 }}>Autenticação necessária</div>
+              <div style={{ fontSize: 13, color: "#6b7280", maxWidth: 420, lineHeight: 1.6 }}>
+                A consulta <strong>{tipoAtual.label}</strong> requer login com CPF e senha no portal do FNS. Acesse diretamente o portal para realizar esta consulta.
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 4 }}>
-              {[10, 25, 50, 100].map(n => (
-                <button key={n} onClick={() => { setPgSize(n); setPgCur(1); }} style={{ border: "1px solid #d1dce8", borderRadius: 3, padding: "4px 10px", cursor: "pointer", fontSize: 13, background: pgSize === n ? "#2a5298" : "#fff", color: pgSize === n ? "#fff" : "#374151", fontWeight: pgSize === n ? 700 : 400 }}>{n}</button>
-              ))}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => window.open(`https://consultafns.saude.gov.br/#/${tipoAtual.hash}`,"_blank")}
+                style={{ background: "#1a3a6b", color: "#fff", border: "none", borderRadius: 6, padding: "10px 24px", cursor: "pointer", fontSize: 14, fontWeight: 700 }}
+              >
+                Abrir {tipoAtual.label} no FNS ↗
+              </button>
+              <button
+                onClick={() => { setTipoAba("detalhada"); }}
+                style={{ background: "#fff", color: "#374151", border: "1px solid #d1d5db", borderRadius: 6, padding: "10px 20px", cursor: "pointer", fontSize: 13 }}
+              >
+                ← Ir para Detalhada
+              </button>
             </div>
           </div>
 
-          <div style={{ marginTop: 8, fontSize: 11, color: "#9ca3af" }}>
-            Fonte: <a href="https://consultafns.saude.gov.br/#/detalhada/acao" target="_blank" rel="noreferrer" style={{ color: "#2a5298" }}>consultafns.saude.gov.br</a> — dados reais {ano}
+          <div style={{ marginTop: 16, background: "#eff6ff", borderRadius: 6, padding: "12px 16px", fontSize: 12, color: "#1e40af" }}>
+            <strong>Dica:</strong> As consultas públicas disponíveis neste sistema são: <em>Detalhada, Repasses do Dia, Contas Bancárias, Consolidada Fundo a Fundo</em> e <em>Desconto Mac</em>.
           </div>
         </div>
       )}
