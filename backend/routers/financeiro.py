@@ -304,9 +304,22 @@ async def painel_financeiro(
 
 _FNS_BASE = "https://consultafns.saude.gov.br/recursos"
 
+_MESES_NOME_NUM = {
+    "janeiro":1,"fevereiro":2,"março":3,"marco":3,"abril":4,"maio":5,"junho":6,
+    "julho":7,"agosto":8,"setembro":9,"outubro":10,"novembro":11,"dezembro":12,
+}
+
 def _norm(s: str) -> str:
     import unicodedata
     return unicodedata.normalize("NFD", s.upper()).encode("ascii", "ignore").decode()
+
+def _mes_num(mes_str: str) -> str:
+    """Converte nome do mês ('Julho') ou número ('7') para string numérica ('7')."""
+    if not mes_str:
+        return ""
+    if mes_str.isdigit():
+        return mes_str
+    return str(_MESES_NOME_NUM.get(_norm(mes_str).lower(), ""))
 
 
 @router.get("/fns-acoes")
@@ -319,12 +332,13 @@ async def fns_acoes(
     _: UserOut = Depends(get_current_user),
 ):
     """
-    Tabela FNS por ação — API pública consultafns.saude.gov.br/recursos/.
+    Tabela FNS por ação por competência — API pública consultafns.saude.gov.br/recursos/.
     Funciona para qualquer município do Brasil.
     """
     import httpx
 
     UF = estado.upper()
+    mes_num = _mes_num(mes)   # "Julho" → "7", "" → "" (acumulado anual)
 
     # ── 1. Resolve código IBGE do município via API do próprio FNS ────────────
     ibge_code = None
@@ -351,12 +365,15 @@ async def fns_acoes(
     entidade_dados: dict = {}
     dirigente: dict = {}
 
+    entidades_params: dict = {"ano": ano, "count": 1, "estado": UF,
+                              "municipio": ibge_code, "page": 1, "tipoConsulta": 2}
+    if mes_num:
+        entidades_params["mes"] = mes_num
+
     try:
         async with httpx.AsyncClient(timeout=10, follow_redirects=True) as cli:
             re, rd = await asyncio.gather(
-                cli.get(f"{_FNS_BASE}/consulta-detalhada/entidades",
-                        params={"ano": ano, "count": 1, "estado": UF,
-                                "municipio": ibge_code, "page": 1, "tipoConsulta": 2}),
+                cli.get(f"{_FNS_BASE}/consulta-detalhada/entidades", params=entidades_params),
                 cli.get(f"{_FNS_BASE}/dirigente/MUNICIPAL/{ibge_code}"),
             )
             if re.status_code == 200:
@@ -370,20 +387,26 @@ async def fns_acoes(
     except Exception:
         pass
 
-    # ── 3. Busca ações detalhadas ─────────────────────────────────────────────
+    # ── 3. Busca ações detalhadas filtrando por competência ───────────────────
     acoes_raw: list = []
     total_geral = 0.0
     total_desc  = 0.0
     total_liq   = 0.0
 
     if cnpj:
+        acao_params: dict = {
+            "ano": ano, "count": 100,
+            "cpfCnpjUg": cnpj.replace(".","").replace("/","").replace("-",""),
+            "estado": UF, "municipio": ibge_code,
+            "page": 1, "tipoConsulta": 2,
+        }
+        if mes_num:
+            acao_params["mes"] = mes_num   # filtra pela competência (mês)
+
         try:
             async with httpx.AsyncClient(timeout=15, follow_redirects=True) as cli:
                 r = await cli.get(f"{_FNS_BASE}/consulta-detalhada/detalhe-acao",
-                                  params={"ano": ano, "count": 100,
-                                          "cpfCnpjUg": cnpj.replace(".","").replace("/","").replace("-",""),
-                                          "estado": UF, "municipio": ibge_code,
-                                          "page": 1, "tipoConsulta": 2})
+                                  params=acao_params)
                 if r.status_code == 200:
                     res = r.json().get("resultado", {})
                     acoes_raw = res.get("dados", [])
@@ -427,6 +450,8 @@ async def fns_acoes(
         "presidente_conselho":  dirigente.get("noPresidenteConselho", "—"),
     }
 
+    competencia = f"{mes}/{ano}" if mes else f"Acumulado {ano}"
+
     return {
         "entidade":       entidade,
         "acoes":          acoes,
@@ -435,6 +460,8 @@ async def fns_acoes(
         "total_liquido":  round(total_liq,   2),
         "fonte":          "consultafns.saude.gov.br/recursos",
         "ano":            ano,
+        "mes":            mes,
+        "competencia":    competencia,
         "fns_url":        None,
     }
 

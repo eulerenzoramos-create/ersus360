@@ -464,7 +464,13 @@ function AbaConsultaFNS() {
           )}
           {consultaParams && !fnsLoading && entidade && (
             <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderTop: "none", padding: "16px 20px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, marginBottom: 16, fontSize: 13 }}>
+              {fnsData?.competencia && (
+            <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, padding: "7px 14px", marginBottom: 12, fontSize: 12, color: "#1e40af", display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontWeight: 700 }}>Competência:</span>
+              <span style={{ fontWeight: 800, fontSize: 14 }}>{fnsData.competencia}</span>
+            </div>
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, marginBottom: 16, fontSize: 13 }}>
                 {([
                   ["Entidade", entidade.nome],
                   ["CPF/CNPJ", entidade.cnpj],
