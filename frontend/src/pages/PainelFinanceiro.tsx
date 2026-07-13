@@ -178,6 +178,8 @@ function AbaConsultaFNS() {
   const [tipoConsulta, setTipo] = useState("Fundo a Fundo");
   const [bloco, setBloco]       = useState("");
   const [cpf, setCpf]           = useState("");
+  const [estado, setEstado]     = useState("AMAZONAS");
+  const [municipio, setMunicipio] = useState("APUÍ");
   const [processo, setProcesso] = useState("");
   const [proposta, setProposta] = useState("");
   const [repasse, setRepasse]   = useState("");
@@ -185,12 +187,18 @@ function AbaConsultaFNS() {
   const [dtFim, setDtFim]       = useState("");
   const [portaria, setPortaria] = useState("");
 
+  const ESTADOS_BR = [
+    "","AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
+    "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
+  ];
+
   const consultar = () => {
     window.open("https://consultafns.saude.gov.br/#/detalhada", "_blank");
   };
   const limpar = () => {
     setAno(String(anoAtual)); setMes(mesAtual); setTipo("Fundo a Fundo");
-    setBloco(""); setCpf(""); setProcesso(""); setProposta("");
+    setBloco(""); setCpf(""); setEstado(""); setMunicipio("");
+    setProcesso(""); setProposta("");
     setRepasse(""); setDtIni(""); setDtFim(""); setPortaria("");
   };
 
@@ -288,15 +296,14 @@ function AbaConsultaFNS() {
           </div>
           <div>
             <label style={labelStyle}>Estado</label>
-            <select style={{ ...selectStyle, background: "#f9fafb", color: "#374151" }} disabled>
-              <option>AMAZONAS</option>
+            <select value={estado} onChange={e => setEstado(e.target.value)} style={selectStyle}>
+              <option value="">Selecione</option>
+              {ESTADOS_BR.filter(e => e).map(e => <option key={e}>{e}</option>)}
             </select>
           </div>
           <div>
             <label style={labelStyle}>Município</label>
-            <select style={{ ...selectStyle, borderColor: "#2563eb", background: "#f0f9ff" }} disabled>
-              <option>APUÍ</option>
-            </select>
+            <input value={municipio} onChange={e => setMunicipio(e.target.value)} placeholder="Digite o município" style={inputStyle} />
           </div>
           <div>
             <label style={labelStyle}>Processo</label>
