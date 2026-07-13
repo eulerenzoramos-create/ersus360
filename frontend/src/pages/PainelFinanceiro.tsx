@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -184,6 +184,23 @@ function AbaConsultaFNS() {
   const [cpf, setCpf]             = useState("");
   const [estado, setEstado]       = useState("AM");
   const [municipio, setMunicipio] = useState("APUÍ");
+  const [municipiosLista, setMunicipiosLista] = useState<string[]>([]);
+  const [loadingMunicipios, setLoadingMunicipios] = useState(false);
+
+  useEffect(() => {
+    if (!estado) { setMunicipiosLista([]); return; }
+    setLoadingMunicipios(true);
+    fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${estado}/municipios?orderBy=nome`)
+      .then(r => r.json())
+      .then((data: { nome: string }[]) => {
+        const lista = data.map(m => m.nome.toUpperCase());
+        setMunicipiosLista(lista);
+        setMunicipio(prev => lista.includes(prev.toUpperCase()) ? prev.toUpperCase() : (lista[0] ?? ""));
+      })
+      .catch(() => setMunicipiosLista([]))
+      .finally(() => setLoadingMunicipios(false));
+  }, [estado]);
+
   const [processo, setProcesso]   = useState("");
   const [proposta, setProposta]   = useState("");
   const [repasse, setRepasse]     = useState("");
@@ -207,7 +224,7 @@ function AbaConsultaFNS() {
 
   const limpar = () => {
     setAno(String(anoAtual)); setMes(mesAtual); setTipo("Fundo a Fundo");
-    setBloco(""); setCpf(""); setEstado(""); setMunicipio("");
+    setBloco(""); setCpf(""); setEstado(""); setMunicipio(""); setMunicipiosLista([]);
     setProcesso(""); setProposta(""); setRepasse("");
     setDtIni(""); setDtFim(""); setPortaria("");
     setConsultado(false);
@@ -294,7 +311,13 @@ function AbaConsultaFNS() {
             </select>
           </div>
           <div><label style={lblSt}>Município</label>
-            <input value={municipio} onChange={e => setMunicipio(e.target.value)} placeholder="Digite o município" style={inputSt} />
+            {municipiosLista.length > 0 ? (
+              <select value={municipio} onChange={e => setMunicipio(e.target.value)} style={selSt} disabled={loadingMunicipios}>
+                {municipiosLista.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            ) : (
+              <input value={loadingMunicipios ? "Carregando..." : municipio} onChange={e => setMunicipio(e.target.value)} placeholder={estado ? "Carregando municípios..." : "Selecione o estado primeiro"} style={{ ...inputSt, color: loadingMunicipios ? "#9ca3af" : undefined }} disabled={loadingMunicipios} />
+            )}
           </div>
           <div><label style={lblSt}>Processo</label>
             <input value={processo} onChange={e => setProcesso(e.target.value)} placeholder="Ex.: (12345678901234567)" style={inputSt} />
