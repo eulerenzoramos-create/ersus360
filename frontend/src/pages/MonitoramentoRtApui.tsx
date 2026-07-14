@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Users, Stethoscope, BarChart2, Clock, Smile, UserCheck, RefreshCw } from "lucide-react";
+import { Activity, Users, Stethoscope, BarChart2, Clock, Smile, UserCheck, RefreshCw, CalendarDays } from "lucide-react";
 import { apiGet } from "../lib/api";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -63,6 +63,7 @@ function KPI({ label, value, sub, cor }: { label: string; value: string | number
 
 const ABAS = [
   { key: "geral",        label: "Geral",             Icon: Activity },
+  { key: "mensal",       label: "Mês/Dia",           Icon: CalendarDays },
   { key: "esf",          label: "ESF · Equipes",     Icon: Users },
   { key: "esb",          label: "ESB · Odontologia", Icon: Smile },
   { key: "emulti",       label: "eMulti",            Icon: UserCheck },
@@ -79,7 +80,8 @@ export default function MonitoramentoRtApui() {
   const [agora, setAgora]         = useState(new Date());
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
 
-  const qDash   = useQuery({ queryKey: ["mrt-dash"],   queryFn: () => apiGet("/api/monitoramento-rt/dashboard"),       refetchInterval: REFETCH });
+  const qDash   = useQuery({ queryKey: ["mrt-dash"],   queryFn: () => apiGet("/api/monitoramento-rt/dashboard"),        refetchInterval: REFETCH });
+  const qMensal = useQuery({ queryKey: ["mrt-mensal"], queryFn: () => apiGet("/api/monitoramento-rt/producao-mensal"),  refetchInterval: REFETCH, enabled: aba === "mensal" });
   const qEsf    = useQuery({ queryKey: ["mrt-esf"],    queryFn: () => apiGet("/api/monitoramento-rt/equipes-esf"),     refetchInterval: REFETCH, enabled: aba === "esf" });
   const qEsb    = useQuery({ queryKey: ["mrt-esb"],    queryFn: () => apiGet("/api/monitoramento-rt/equipes-esb"),     refetchInterval: REFETCH, enabled: aba === "esb" });
   const qEmulti = useQuery({ queryKey: ["mrt-emulti"], queryFn: () => apiGet("/api/monitoramento-rt/equipe-emulti"),   refetchInterval: REFETCH, enabled: aba === "emulti" });
@@ -578,8 +580,332 @@ export default function MonitoramentoRtApui() {
     );
   })();
 
+  // ── ABA MÊS/DIA ──────────────────────────────────────────────────────────────
+  const [diaExpandido, setDiaExpandido] = useState<number | null>(null);
+  const [visaoMes, setVisaoMes]         = useState<"tabela" | "indicadores" | "odonto">("tabela");
+
+  const abaMensal = !qMensal.data ? (
+    <div style={{ color: "var(--muted)", padding: 24 }}>Carregando dados mensais...</div>
+  ) : (() => {
+    const m = qMensal.data;
+    const hoje = new Date().getDate();
+    const maxTotal = Math.max(...m.dias.filter((d: any) => d.total != null).map((d: any) => d.total), 1);
+
+    return (
+      <div>
+        {/* KPIs do mês */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(148px,1fr))", gap: 10, marginBottom: 18 }}>
+          <KPI label="Total Mês"      value={m.total_mes.toLocaleString("pt-BR")} sub={m.mes_ano}                      cor="#3b82f6" />
+          <KPI label="Média/Dia"      value={m.media_dia}                          sub="atend. por dia útil"            cor="#8b5cf6" />
+          <KPI label="ESF acumulado"  value={m.acumulado_esf.toLocaleString("pt-BR")} sub="Saúde da Família"           cor="#10b981" />
+          <KPI label="ESB acumulado"  value={m.acumulado_esb.toLocaleString("pt-BR")} sub="Odontologia"                cor="#8b5cf6" />
+          <KPI label="eMulti acum."   value={m.acumulado_emulti.toLocaleString("pt-BR")} sub="Multiprofissional"       cor="#06b6d4" />
+          <KPI label="Dias úteis"     value={m.dias_uteis_passados}                sub={`de ${m.dias_no_mes} dias`}    cor="#f59e0b" />
+        </div>
+
+        {/* Seletor de visão */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+          {(["tabela","indicadores","odonto"] as const).map(v => (
+            <button key={v} onClick={() => setVisaoMes(v)} style={{
+              padding: "5px 14px", borderRadius: 6, border: "1px solid var(--border)", cursor: "pointer", fontSize: 12,
+              background: visaoMes === v ? "var(--accent)" : "var(--card-bg)",
+              color: visaoMes === v ? "#fff" : "var(--muted)", fontWeight: visaoMes === v ? 700 : 400,
+            }}>
+              {v === "tabela" ? "📊 Produção Diária" : v === "indicadores" ? "🎯 Previne Brasil" : "🦷 Saúde Bucal"}
+            </button>
+          ))}
+        </div>
+
+        {/* ── VISÃO TABELA ── */}
+        {visaoMes === "tabela" && (
+          <div>
+            {/* Gráfico de barras horizontal compacto */}
+            <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Atendimentos por Dia — {m.mes_ano}</div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 80, overflowX: "auto" }}>
+                {m.dias.map((d: any) => {
+                  if (!d.is_util) return (
+                    <div key={d.dia} style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 22, flex: "0 0 22px" }}>
+                      <div style={{ height: 4, width: "100%", background: "var(--border)", borderRadius: 2 }} />
+                      <span style={{ fontSize: 8, color: "var(--border)", marginTop: 2 }}>{d.dia}</span>
+                    </div>
+                  );
+                  if (d.is_futuro || d.total == null) return (
+                    <div key={d.dia} style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 22, flex: "0 0 22px" }}>
+                      <div style={{ height: 4, width: "100%", background: "#e5e7eb", borderRadius: 2, opacity: 0.3 }} />
+                      <span style={{ fontSize: 8, color: "var(--muted)", marginTop: 2, opacity: 0.5 }}>{d.dia}</span>
+                    </div>
+                  );
+                  const hp = Math.round((d.total / maxTotal) * 72);
+                  const isH = d.dia === hoje;
+                  return (
+                    <div key={d.dia} style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 22, flex: "0 0 22px", cursor: "pointer" }}
+                      onClick={() => setDiaExpandido(diaExpandido === d.dia ? null : d.dia)}>
+                      <div style={{
+                        width: "100%", height: hp, minHeight: 4,
+                        background: isH ? "#f59e0b" : "linear-gradient(to top,#3b82f6,#60a5fa)",
+                        borderRadius: "3px 3px 0 0",
+                        boxShadow: isH ? "0 0 6px #f59e0b88" : undefined,
+                      }} />
+                      <span style={{ fontSize: 8, color: isH ? "#f59e0b" : "var(--muted)", marginTop: 2, fontWeight: isH ? 800 : 400 }}>{d.dia}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4 }}>🟡 = hoje · clique em um dia para expandir detalhes</div>
+            </div>
+
+            {/* Tabela diária */}
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: "var(--hover)" }}>
+                    {["Dia","Data","","ESF","ESB","eMulti","Total","Acum. ESF","Acum. ESB","Acum. eMulti",""].map((h, i) => (
+                      <th key={i} style={{ padding: "7px 8px", textAlign: "left", fontWeight: 700, color: "var(--muted)", fontSize: 11, whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {m.dias.map((d: any) => {
+                    const isH = d.dia === hoje;
+                    const rowBg = isH ? "#fffbeb" : !d.is_util ? "var(--hover)" : "transparent";
+                    const expanded = diaExpandido === d.dia;
+                    return [
+                      <tr key={`r-${d.dia}`}
+                        style={{ borderBottom: "1px solid var(--border)", background: rowBg, cursor: d.is_util && !d.is_futuro ? "pointer" : "default" }}
+                        onClick={() => d.is_util && !d.is_futuro && d.total != null && setDiaExpandido(expanded ? null : d.dia)}>
+                        <td style={{ padding: "6px 8px", fontWeight: isH ? 800 : 600, color: isH ? "#f59e0b" : "var(--fg)", fontVariantNumeric: "tabular-nums" }}>{d.dia}</td>
+                        <td style={{ padding: "6px 8px", color: "var(--muted)", fontSize: 11 }}>{d.data}</td>
+                        <td style={{ padding: "6px 8px", fontSize: 10 }}>
+                          {isH ? <span style={{ color: "#f59e0b", fontWeight: 700 }}>HOJE</span>
+                            : !d.is_util ? <span style={{ color: "var(--border)" }}>FDS</span>
+                            : d.is_futuro ? <span style={{ color: "var(--border)" }}>—</span>
+                            : null}
+                        </td>
+                        <td style={{ padding: "6px 8px", fontVariantNumeric: "tabular-nums", color: "#3b82f6", fontWeight: 600 }}>
+                          {d.esf != null ? d.esf.total : "—"}
+                        </td>
+                        <td style={{ padding: "6px 8px", fontVariantNumeric: "tabular-nums", color: "#8b5cf6", fontWeight: 600 }}>
+                          {d.esb != null ? d.esb.total : "—"}
+                        </td>
+                        <td style={{ padding: "6px 8px", fontVariantNumeric: "tabular-nums", color: "#06b6d4", fontWeight: 600 }}>
+                          {d.emulti != null ? d.emulti.total : "—"}
+                        </td>
+                        <td style={{ padding: "6px 8px", fontWeight: 800, fontSize: 14, fontVariantNumeric: "tabular-nums" }}>
+                          {d.total != null ? d.total : "—"}
+                        </td>
+                        <td style={{ padding: "6px 8px", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
+                          {d.acumulado_mes_esf != null ? d.acumulado_mes_esf.toLocaleString("pt-BR") : "—"}
+                        </td>
+                        <td style={{ padding: "6px 8px", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
+                          {d.acumulado_mes_esb != null ? d.acumulado_mes_esb.toLocaleString("pt-BR") : "—"}
+                        </td>
+                        <td style={{ padding: "6px 8px", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
+                          {d.acumulado_mes_emulti != null ? d.acumulado_mes_emulti.toLocaleString("pt-BR") : "—"}
+                        </td>
+                        <td style={{ padding: "6px 8px" }}>
+                          {d.is_util && !d.is_futuro && d.total != null && (
+                            <span style={{ fontSize: 11, color: "var(--accent)" }}>{expanded ? "▲" : "▼"}</span>
+                          )}
+                        </td>
+                      </tr>,
+                      expanded && d.indicadores_previne ? (
+                        <tr key={`exp-${d.dia}`}>
+                          <td colSpan={11} style={{ padding: "12px 16px", background: "var(--hover)" }}>
+                            <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8 }}>
+                              📅 {d.data} ({d.dia_semana}) — Indicadores Previne Brasil
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(195px,1fr))", gap: 8, marginBottom: 10 }}>
+                              {d.indicadores_previne.map((ind: any) => (
+                                <div key={ind.ind} style={{ background: "var(--card-bg)", borderRadius: 6, padding: 8, border: "1px solid var(--border)" }}>
+                                  <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 3 }}>{ind.label}</div>
+                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                    <span style={{ fontWeight: 800, fontSize: 14, fontVariantNumeric: "tabular-nums" }}>{ind.resultado_pct}%</span>
+                                    <span style={{ fontSize: 10, color: "var(--muted)" }}>Acum: {ind.acumulado_pct}%</span>
+                                  </div>
+                                  <Barra pct={ind.resultado_pct} s={ind.status === "verde" ? "normal" : ind.status === "amarelo" ? "atencao" : "critico"} />
+                                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
+                                    {badgeStatus(ind.status)}
+                                    <span style={{ fontSize: 10, color: "var(--muted)" }}>Meta {ind.meta_pct}%</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8 }}>🦷 Indicadores Odontologia</div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(195px,1fr))", gap: 8 }}>
+                              {d.indicadores_odonto.map((ind: any) => (
+                                <div key={ind.ind} style={{ background: "var(--card-bg)", borderRadius: 6, padding: 8, border: "1px solid #ddd6fe" }}>
+                                  <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 3 }}>{ind.label}</div>
+                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                    <span style={{ fontWeight: 800, fontSize: 14, color: "#8b5cf6", fontVariantNumeric: "tabular-nums" }}>{ind.resultado_pct}%</span>
+                                    <span style={{ fontSize: 10, color: "var(--muted)" }}>Meta {ind.meta_pct}%</span>
+                                  </div>
+                                  <Barra pct={ind.resultado_pct} s={ind.status === "verde" ? "normal" : ind.status === "amarelo" ? "atencao" : "critico"} />
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      ) : null,
+                    ];
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ── VISÃO INDICADORES PREVINE ── */}
+        {visaoMes === "indicadores" && (
+          <div>
+            <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: 10, marginBottom: 14 }}>
+              <span style={{ fontWeight: 700, color: "#1d4ed8", fontSize: 13 }}>🎯 Previne Brasil — Consolidado {m.mes_ano}</span>
+              <span style={{ color: "#3b82f6", fontSize: 12, marginLeft: 8 }}>média das 9 equipes ESF · {m.dias_uteis_passados} dias úteis registrados</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 12, marginBottom: 18 }}>
+              {m.indicadores_previne_mes?.map((ind: any) => (
+                <div key={ind.ind} style={{
+                  background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 10, padding: 14,
+                  borderLeft: `4px solid ${ind.status === "verde" ? "#22c55e" : ind.status === "amarelo" ? "#f59e0b" : "#ef4444"}`,
+                }}>
+                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>{ind.label}</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: corStatus(ind.status === "verde" ? "normal" : ind.status === "amarelo" ? "atencao" : "critico") }}>
+                    {ind.resultado_pct}%
+                  </div>
+                  <div style={{ marginBottom: 6, marginTop: 4 }}>
+                    <Barra pct={ind.resultado_pct} s={ind.status === "verde" ? "normal" : ind.status === "amarelo" ? "atencao" : "critico"} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    {badgeStatus(ind.status)}
+                    <span style={{ fontSize: 11, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>Meta: {ind.meta_pct}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Evolução diária dos indicadores */}
+            <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Evolução Diária — Indicadores Previne Brasil</div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                  <thead>
+                    <tr style={{ background: "var(--hover)" }}>
+                      <th style={{ padding: "6px 8px", textAlign: "left", color: "var(--muted)", fontWeight: 700, whiteSpace: "nowrap" }}>Indicador / Meta</th>
+                      {m.dias.filter((d: any) => d.is_util && !d.is_futuro && d.total != null).map((d: any) => (
+                        <th key={d.dia} style={{
+                          padding: "6px 6px", textAlign: "center", color: d.dia === hoje ? "#f59e0b" : "var(--muted)",
+                          fontWeight: d.dia === hoje ? 800 : 600, whiteSpace: "nowrap",
+                        }}>{d.data}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {m.indicadores_previne_mes?.map((ind: any) => (
+                      <tr key={ind.ind} style={{ borderBottom: "1px solid var(--border)" }}>
+                        <td style={{ padding: "6px 8px", fontWeight: 600, whiteSpace: "nowrap" }}>
+                          {ind.label}
+                          <span style={{ fontSize: 10, color: "var(--muted)", marginLeft: 4 }}>({ind.meta_pct}%)</span>
+                        </td>
+                        {m.dias.filter((d: any) => d.is_util && !d.is_futuro && d.total != null).map((d: any) => {
+                          const v = d.indicadores_previne?.find((i: any) => i.ind === ind.ind);
+                          if (!v) return <td key={d.dia} style={{ padding: "6px 6px", textAlign: "center", color: "var(--muted)" }}>—</td>;
+                          const cor2 = v.status === "verde" ? "#166534" : v.status === "amarelo" ? "#92400e" : "#b91c1c";
+                          const bg2  = v.status === "verde" ? "#f0fdf4" : v.status === "amarelo" ? "#fffbeb" : "#fef2f2";
+                          return (
+                            <td key={d.dia} style={{ padding: "4px 6px", textAlign: "center" }}>
+                              <span style={{ background: bg2, color: cor2, borderRadius: 4, padding: "2px 5px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                                {v.resultado_pct}%
+                              </span>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── VISÃO ODONTO ── */}
+        {visaoMes === "odonto" && (
+          <div>
+            <div style={{ background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: 8, padding: 10, marginBottom: 14 }}>
+              <span style={{ fontWeight: 700, color: "#5b21b6", fontSize: 13 }}>🦷 Saúde Bucal — Indicadores {m.mes_ano}</span>
+              <span style={{ color: "#7c3aed", fontSize: 12, marginLeft: 8 }}>média das 3 equipes ESB · {m.dias_uteis_passados} dias registrados</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 12, marginBottom: 18 }}>
+              {m.indicadores_odonto_mes?.map((ind: any) => (
+                <div key={ind.ind} style={{
+                  background: "var(--card-bg)", border: "1px solid #ddd6fe", borderRadius: 10, padding: 14,
+                  borderLeft: `4px solid ${ind.status === "verde" ? "#22c55e" : ind.status === "amarelo" ? "#f59e0b" : "#ef4444"}`,
+                }}>
+                  <div style={{ fontSize: 12, color: "#7c3aed", marginBottom: 6 }}>{ind.label}</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: "#8b5cf6" }}>
+                    {ind.resultado_pct}%
+                  </div>
+                  <div style={{ marginBottom: 6, marginTop: 4 }}>
+                    <Barra pct={ind.resultado_pct} s={ind.status === "verde" ? "normal" : ind.status === "amarelo" ? "atencao" : "critico"} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    {badgeStatus(ind.status)}
+                    <span style={{ fontSize: 11, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>Meta: {ind.meta_pct}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Evolução Diária — Indicadores Odontologia</div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                  <thead>
+                    <tr style={{ background: "var(--hover)" }}>
+                      <th style={{ padding: "6px 8px", textAlign: "left", color: "var(--muted)", fontWeight: 700, whiteSpace: "nowrap" }}>Indicador / Meta</th>
+                      {m.dias.filter((d: any) => d.is_util && !d.is_futuro && d.total != null).map((d: any) => (
+                        <th key={d.dia} style={{
+                          padding: "6px 6px", textAlign: "center",
+                          color: d.dia === hoje ? "#f59e0b" : "var(--muted)",
+                          fontWeight: d.dia === hoje ? 800 : 600, whiteSpace: "nowrap",
+                        }}>{d.data}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {m.indicadores_odonto_mes?.map((ind: any) => (
+                      <tr key={ind.ind} style={{ borderBottom: "1px solid var(--border)" }}>
+                        <td style={{ padding: "6px 8px", fontWeight: 600, whiteSpace: "nowrap", color: "#5b21b6" }}>
+                          {ind.label}
+                          <span style={{ fontSize: 10, color: "var(--muted)", marginLeft: 4 }}>({ind.meta_pct}%)</span>
+                        </td>
+                        {m.dias.filter((d: any) => d.is_util && !d.is_futuro && d.total != null).map((d: any) => {
+                          const v = d.indicadores_odonto?.find((i: any) => i.ind === ind.ind);
+                          if (!v) return <td key={d.dia} style={{ padding: "6px 6px", textAlign: "center" }}>—</td>;
+                          const cor2 = v.status === "verde" ? "#166534" : v.status === "amarelo" ? "#92400e" : "#b91c1c";
+                          const bg2  = v.status === "verde" ? "#f0fdf4" : v.status === "amarelo" ? "#fffbeb" : "#fef2f2";
+                          return (
+                            <td key={d.dia} style={{ padding: "4px 6px", textAlign: "center" }}>
+                              <span style={{ background: bg2, color: cor2, borderRadius: 4, padding: "2px 5px", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                                {v.resultado_pct}%
+                              </span>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  })();
+
   const abaContent: Record<string, JSX.Element> = {
-    geral: abaGeral, esf: abaEsf, esb: abaEsb,
+    geral: abaGeral, mensal: abaMensal, esf: abaEsf, esb: abaEsb,
     emulti: abaEmulti, profissionais: abaProfs,
     atendimentos: abaAtend, producao: abaProducao,
   };

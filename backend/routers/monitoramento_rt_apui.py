@@ -3,6 +3,7 @@ Monitoramento em Tempo Real — Atendimentos, Equipes e Produção Completa
 Apuí/AM · ESF + ESB (Odontologia) + eMulti + ACS
 """
 from __future__ import annotations
+import calendar
 from datetime import date, datetime
 from random import Random
 from fastapi import APIRouter
@@ -512,3 +513,243 @@ async def producao_por_hora():
         horas.append({"hora": f"{h:02d}:00", "atendimentos": incremento, "acumulado": total_h})
         prev_total = total_h
     return {"data": agora.strftime("%d/%m/%Y"), "horas": horas}
+
+
+# ── seed diário (usa data completa para ser consistente por dia) ───────────────
+def _seed_dia(uid: str, ano: int, mes: int, dia: int) -> int:
+    return hash(f"{uid}{ano:04d}{mes:02d}{dia:02d}") % 10000
+
+
+def _prod_dia(profs: list[dict], ano: int, mes: int, dia: int, is_hoje: bool, hora_atual: int) -> dict:
+    """Total de atendimentos de uma lista de profissionais num determinado dia."""
+    total = 0
+    meta_total = 0
+    por_tipo: dict[str, int] = {}
+    for prof in profs:
+        rng = Random(_seed_dia(prof["id"], ano, mes, dia))
+        base = _PROD.get(prof["cbo"], {})
+        fator = min((hora_atual - 7) / 10, 1.0) if is_hoje and hora_atual > 7 else (1.0 if not is_hoje else 0.0)
+        for tipo, cfg in base.items():
+            meta_hora = cfg["meta"] * fator
+            realizado = int(meta_hora * rng.uniform(0.70, 1.15)) if fator > 0 else 0
+            total += realizado
+            meta_total += cfg["meta"]
+            lbl = cfg["label"]
+            por_tipo[lbl] = por_tipo.get(lbl, 0) + realizado
+    pct = round(total / max(meta_total * (fator if fator > 0 else 1), 1) * 100, 1) if meta_total > 0 else 0
+    return {"total": total, "meta": meta_total, "pct_meta": pct, "por_tipo": por_tipo}
+
+
+def _indicadores_dia(equipe_nome: str, ano: int, mes: int, dia: int, is_hoje: bool, hora_atual: int) -> list[dict]:
+    rng = Random(_seed_dia(f"ind_{equipe_nome}", ano, mes, dia))
+    fator_dia = min((hora_atual - 7) / 10, 1.0) if is_hoje else 1.0
+    resultado = []
+    for ind in _INDICADORES_PREVINE:
+        base_val = rng.uniform(ind["meta_pct"] * 0.55, ind["meta_pct"] * 1.25)
+        resultado_pct = round(min(base_val * fator_dia, 100), 1) if fator_dia > 0 else 0.0
+        resultado.append({
+            "ind": ind["ind"],
+            "label": ind["label"],
+            "meta_pct": ind["meta_pct"],
+            "resultado_pct": resultado_pct,
+            "status": "verde" if resultado_pct >= ind["meta_pct"] else "amarelo" if resultado_pct >= ind["meta_pct"] * 0.7 else "vermelho",
+        })
+    return resultado
+
+
+def _indicadores_odo_dia(equipe_nome: str, ano: int, mes: int, dia: int, is_hoje: bool, hora_atual: int) -> list[dict]:
+    rng = Random(_seed_dia(f"odo_{equipe_nome}", ano, mes, dia))
+    fator_dia = min((hora_atual - 7) / 10, 1.0) if is_hoje else 1.0
+    resultado = []
+    for ind in _INDICADORES_ODO:
+        base_val = rng.uniform(ind["meta_pct"] * 0.60, ind["meta_pct"] * 1.20)
+        resultado_pct = round(min(base_val * fator_dia, 100), 1) if fator_dia > 0 else 0.0
+        resultado.append({
+            "ind": ind["ind"],
+            "label": ind["label"],
+            "meta_pct": ind["meta_pct"],
+            "resultado_pct": resultado_pct,
+            "status": "verde" if resultado_pct >= ind["meta_pct"] else "amarelo" if resultado_pct >= ind["meta_pct"] * 0.7 else "vermelho",
+        })
+    return resultado
+
+
+@router.get("/producao-mensal")
+async def producao_mensal():
+    """Atendimentos + indicadores por dia do mês atual para acompanhamento em tempo real."""
+    agora = datetime.now()
+    hoje = date.today()
+    ano, mes = hoje.year, hoje.month
+    hora_atual = _hora_atual()
+    _, dias_no_mes = calendar.monthrange(ano, mes)
+
+    dias_uteis_set = {
+        date(ano, mes, d)
+        for d in range(1, dias_no_mes + 1)
+        if date(ano, mes, d).weekday() < 5  # seg-sex
+    }
+
+    dias: list[dict] = []
+    acumulado_esf = 0
+    acumulado_esb = 0
+    acumulado_emulti = 0
+
+    # Previne: acumula valores ao longo do mês (média ponderada progressiva)
+    ind_acum: dict[str, list[float]] = {ind["ind"]: [] for ind in _INDICADORES_PREVINE}
+    odo_acum: dict[str, list[float]] = {ind["ind"]: [] for ind in _INDICADORES_ODO}
+
+    for d in range(1, dias_no_mes + 1):
+        data_d = date(ano, mes, d)
+        is_hoje = data_d == hoje
+        is_futuro = data_d > hoje
+        is_util = data_d in dias_uteis_set
+
+        if is_futuro:
+            dias.append({
+                "dia": d,
+                "data": data_d.strftime("%d/%m"),
+                "dia_semana": data_d.strftime("%a").upper(),
+                "is_hoje": False,
+                "is_util": is_util,
+                "is_futuro": True,
+                "esf": None, "esb": None, "emulti": None,
+                "total": None,
+                "indicadores_previne": None,
+                "indicadores_odonto": None,
+                "acumulado_mes_esf": None,
+                "acumulado_mes_esb": None,
+                "acumulado_mes_emulti": None,
+            })
+            continue
+
+        if not is_util:
+            dias.append({
+                "dia": d,
+                "data": data_d.strftime("%d/%m"),
+                "dia_semana": data_d.strftime("%a").upper(),
+                "is_hoje": False,
+                "is_util": False,
+                "is_futuro": False,
+                "esf": None, "esb": None, "emulti": None,
+                "total": None,
+                "indicadores_previne": None,
+                "indicadores_odonto": None,
+                "acumulado_mes_esf": None,
+                "acumulado_mes_esb": None,
+                "acumulado_mes_emulti": None,
+            })
+            continue
+
+        prod_esf    = _prod_dia(_PROFS_ESF,    ano, mes, d, is_hoje, hora_atual)
+        prod_esb    = _prod_dia(_PROFS_ESB,    ano, mes, d, is_hoje, hora_atual)
+        prod_emulti = _prod_dia(_PROFS_EMULTI, ano, mes, d, is_hoje, hora_atual)
+
+        acumulado_esf    += prod_esf["total"]
+        acumulado_esb    += prod_esb["total"]
+        acumulado_emulti += prod_emulti["total"]
+
+        # indicadores das 9 equipes ESF — média do dia
+        inds_dia_esf: dict[str, list[float]] = {ind["ind"]: [] for ind in _INDICADORES_PREVINE}
+        for eq in _EQUIPES_ESF:
+            for ind in _indicadores_dia(eq["nome"], ano, mes, d, is_hoje, hora_atual):
+                inds_dia_esf[ind["ind"]].append(ind["resultado_pct"])
+
+        inds_previne_dia = []
+        for ind in _INDICADORES_PREVINE:
+            vals = inds_dia_esf[ind["ind"]]
+            media = round(sum(vals) / len(vals), 1) if vals else 0.0
+            ind_acum[ind["ind"]].append(media)
+            media_acum = round(sum(ind_acum[ind["ind"]]) / len(ind_acum[ind["ind"]]), 1)
+            inds_previne_dia.append({
+                "ind": ind["ind"],
+                "label": ind["label"],
+                "meta_pct": ind["meta_pct"],
+                "resultado_pct": media,
+                "acumulado_pct": media_acum,
+                "status": "verde" if media >= ind["meta_pct"] else "amarelo" if media >= ind["meta_pct"] * 0.7 else "vermelho",
+            })
+
+        # indicadores odonto — média das 3 ESB
+        inds_dia_esb: dict[str, list[float]] = {ind["ind"]: [] for ind in _INDICADORES_ODO}
+        for eq in _EQUIPES_ESB:
+            for ind in _indicadores_odo_dia(eq["nome"], ano, mes, d, is_hoje, hora_atual):
+                inds_dia_esb[ind["ind"]].append(ind["resultado_pct"])
+
+        inds_odo_dia = []
+        for ind in _INDICADORES_ODO:
+            vals = inds_dia_esb[ind["ind"]]
+            media = round(sum(vals) / len(vals), 1) if vals else 0.0
+            odo_acum[ind["ind"]].append(media)
+            media_acum = round(sum(odo_acum[ind["ind"]]) / len(odo_acum[ind["ind"]]), 1)
+            inds_odo_dia.append({
+                "ind": ind["ind"],
+                "label": ind["label"],
+                "meta_pct": ind["meta_pct"],
+                "resultado_pct": media,
+                "acumulado_pct": media_acum,
+                "status": "verde" if media >= ind["meta_pct"] else "amarelo" if media >= ind["meta_pct"] * 0.7 else "vermelho",
+            })
+
+        dias.append({
+            "dia": d,
+            "data": data_d.strftime("%d/%m"),
+            "dia_semana": data_d.strftime("%a").upper(),
+            "is_hoje": is_hoje,
+            "is_util": True,
+            "is_futuro": False,
+            "esf":    prod_esf,
+            "esb":    prod_esb,
+            "emulti": prod_emulti,
+            "total":  prod_esf["total"] + prod_esb["total"] + prod_emulti["total"],
+            "indicadores_previne": inds_previne_dia,
+            "indicadores_odonto":  inds_odo_dia,
+            "acumulado_mes_esf":    acumulado_esf,
+            "acumulado_mes_esb":    acumulado_esb,
+            "acumulado_mes_emulti": acumulado_emulti,
+        })
+
+    dias_com_dados = [d for d in dias if d["total"] is not None]
+    total_mes = sum(d["total"] for d in dias_com_dados)
+    media_dia  = round(total_mes / max(len(dias_com_dados), 1))
+
+    # Consolidado mensal dos indicadores Previne Brasil
+    inds_mes: list[dict] = []
+    for ind in _INDICADORES_PREVINE:
+        vals = ind_acum.get(ind["ind"], [])
+        media_mes = round(sum(vals) / len(vals), 1) if vals else 0.0
+        inds_mes.append({
+            "ind": ind["ind"],
+            "label": ind["label"],
+            "meta_pct": ind["meta_pct"],
+            "resultado_pct": media_mes,
+            "status": "verde" if media_mes >= ind["meta_pct"] else "amarelo" if media_mes >= ind["meta_pct"] * 0.7 else "vermelho",
+        })
+
+    inds_odo_mes: list[dict] = []
+    for ind in _INDICADORES_ODO:
+        vals = odo_acum.get(ind["ind"], [])
+        media_mes = round(sum(vals) / len(vals), 1) if vals else 0.0
+        inds_odo_mes.append({
+            "ind": ind["ind"],
+            "label": ind["label"],
+            "meta_pct": ind["meta_pct"],
+            "resultado_pct": media_mes,
+            "status": "verde" if media_mes >= ind["meta_pct"] else "amarelo" if media_mes >= ind["meta_pct"] * 0.7 else "vermelho",
+        })
+
+    return {
+        "timestamp": agora.isoformat(),
+        "mes_ano": agora.strftime("%B/%Y"),
+        "mes": mes,
+        "ano": ano,
+        "dias_no_mes": dias_no_mes,
+        "dias_uteis_passados": len([d for d in dias if d["is_util"] and not d["is_futuro"] and d["total"] is not None]),
+        "total_mes": total_mes,
+        "media_dia": media_dia,
+        "acumulado_esf": acumulado_esf,
+        "acumulado_esb": acumulado_esb,
+        "acumulado_emulti": acumulado_emulti,
+        "indicadores_previne_mes": inds_mes,
+        "indicadores_odonto_mes":  inds_odo_mes,
+        "dias": dias,
+    }
