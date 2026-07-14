@@ -3,8 +3,10 @@ Router: /api/gestao — Produção APS / Painel de Gestão
 Atendimentos, procedimentos, vacinas, visitas, status SISAB — Apuí/AM
 """
 from __future__ import annotations
+from datetime import date as _date
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
+from services import sia_service
 
 router = APIRouter(prefix="/api/gestao", tags=["Produção APS"])
 
@@ -162,17 +164,19 @@ _ATIVIDADES_COLETIVAS = [
 @router.get("/painel")
 async def painel_gestao(_: UserOut = Depends(get_current_user)):
     """Painel consolidado de produção APS."""
-    total_atend = sum(m["total"] for m in _ATENDIMENTOS_MENSAIS[:6])
+    ano = _date.today().year - 1
+    sia_data = await sia_service.buscar_producao_aps(ano)
+    total_atend = sia_data.get("total_aps") or sum(m["total"] for m in _ATENDIMENTOS_MENSAIS[:6])
     total_visitas = sum(m["realizadas"] for m in _VISITAS_MENSAIS[:6])
-    media_mensal = round(total_atend / 6, 0)
     equipes_completas = sum(1 for e in _EQUIPES_ESF if e["completa"])
 
     return {
         "municipio": "Apuí",
         "uf": "AM",
-        "periodo": "Jan–Jul/2026",
+        "periodo": f"Ano {ano}",
         "total_atendimentos_ano": total_atend,
-        "media_mensal_atendimentos": int(media_mensal),
+        "per_capita_aps": sia_data.get("per_capita", 3.2),
+        "meta_per_capita_aps": 5.0,
         "total_visitas_domiciliares_ano": total_visitas,
         "equipes_esf_total": len(_EQUIPES_ESF),
         "equipes_completas": equipes_completas,
@@ -180,7 +184,7 @@ async def painel_gestao(_: UserOut = Depends(get_current_user)):
         "sisab_inconsistencias": _SISAB["inconsistencias"],
         "populacao_coberta_esf": sum(e["populacao_cadastrada"] for e in _EQUIPES_ESF),
         "pct_cobertura_media": round(sum(e["pct_cobertura"] for e in _EQUIPES_ESF) / len(_EQUIPES_ESF), 1),
-        "fonte": "referencia",
+        "fonte_sia": sia_data["fonte"],
     }
 
 
