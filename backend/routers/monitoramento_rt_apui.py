@@ -1,207 +1,375 @@
 """
-Monitoramento em Tempo Real — Atendimentos, Equipes e Produção
-Apuí/AM · Atualização via e-SUS PEC com fallback dinâmico
+Monitoramento em Tempo Real — Atendimentos, Equipes e Produção Completa
+Apuí/AM · ESF + ESB (Odontologia) + eMulti + ACS
 """
 from __future__ import annotations
-import asyncio
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from random import Random
 from fastapi import APIRouter
 
 router = APIRouter(prefix="/api/monitoramento-rt", tags=["monitoramento_rt"])
 
-# ── Dados base das equipes reais de Apuí (9 equipes) ──────────────────────────
-
-_EQUIPES = [
-    {"id": "ESF-01", "nome": "CACHOEIRA",     "ubs": "UBS Irmã Elizabete",      "tipo": "eSF", "ine": "0001483724"},
-    {"id": "ESF-02", "nome": "SÃO SEBASTIÃO", "ubs": "UBS São Sebastião",       "tipo": "eSF", "ine": "0001483732"},
-    {"id": "ESF-03", "nome": "ACARI",         "ubs": "UBS Acari",               "tipo": "eSF", "ine": "0001483740"},
-    {"id": "ESF-04", "nome": "TRÊS ESTADOS",  "ubs": "UBS Três Estados",        "tipo": "eSF", "ine": "0001483759"},
-    {"id": "ESF-05", "nome": "JUMA",          "ubs": "UBS Juma",                "tipo": "eSF", "ine": "0001483767"},
-    {"id": "ESF-06", "nome": "LIBERDADE",     "ubs": "UBS Liberdade",           "tipo": "eSF", "ine": "0001483775"},
-    {"id": "ESF-07", "nome": "KENNEDY",       "ubs": "UBS Kennedy",             "tipo": "eSF", "ine": "0001483783"},
-    {"id": "ESF-08", "nome": "JK",            "ubs": "UBS JK",                  "tipo": "eSF", "ine": "0001483791"},
-    {"id": "ESF-09", "nome": "ESTRADA NOVA",  "ubs": "UBS Estrada Nova",        "tipo": "eSF", "ine": "0001483805"},
+# ── Equipes ───────────────────────────────────────────────────────────────────
+_EQUIPES_ESF = [
+    {"id": "ESF-01", "nome": "CACHOEIRA",      "ubs": "UBS Irmã Elizabete",   "tipo": "eSF",  "ine": "0001483724"},
+    {"id": "ESF-02", "nome": "SÃO SEBASTIÃO",  "ubs": "UBS São Sebastião",    "tipo": "eSF",  "ine": "0001483732"},
+    {"id": "ESF-03", "nome": "ACARI",           "ubs": "UBS Acari",            "tipo": "eSF",  "ine": "0001483740"},
+    {"id": "ESF-04", "nome": "TRÊS ESTADOS",    "ubs": "UBS Três Estados",     "tipo": "eSF",  "ine": "0001483759"},
+    {"id": "ESF-05", "nome": "JUMA",            "ubs": "UBS Juma",             "tipo": "eSF",  "ine": "0001483767"},
+    {"id": "ESF-06", "nome": "LIBERDADE",       "ubs": "UBS Liberdade",        "tipo": "eSF",  "ine": "0001483775"},
+    {"id": "ESF-07", "nome": "KENNEDY",         "ubs": "UBS Kennedy",          "tipo": "eSF",  "ine": "0001483783"},
+    {"id": "ESF-08", "nome": "JK",              "ubs": "UBS JK",               "tipo": "eSF",  "ine": "0001483791"},
+    {"id": "ESF-09", "nome": "ESTRADA NOVA",    "ubs": "UBS Estrada Nova",     "tipo": "eSF",  "ine": "0001483805"},
 ]
 
-_PROFISSIONAIS = [
-    # ESF-01 CACHOEIRA
-    {"id": "P001", "equipe": "CACHOEIRA", "nome": "Dra. Ana Paula Costa",       "cbo": "Médico de Família",           "cns": "700 8012 4318 2456"},
-    {"id": "P002", "equipe": "CACHOEIRA", "nome": "Enf. Maria da Silva",        "cbo": "Enfermeiro",                  "cns": "700 8012 4319 3344"},
-    {"id": "P003", "equipe": "CACHOEIRA", "nome": "Téc. José Almeida",          "cbo": "Técnico de Enfermagem",       "cns": "700 8012 4320 5566"},
-    {"id": "P004", "equipe": "CACHOEIRA", "nome": "Dr. Carlos Bezerra",         "cbo": "Cirurgião-Dentista",          "cns": "700 8012 4321 7788"},
-    {"id": "P005", "equipe": "CACHOEIRA", "nome": "ACS Marcos Lima",            "cbo": "Agente Comunitário de Saúde", "cns": "700 8012 4322 9900"},
-    {"id": "P006", "equipe": "CACHOEIRA", "nome": "ACS Lúcia Souza",            "cbo": "Agente Comunitário de Saúde", "cns": "700 8012 4323 1122"},
-    # ESF-02 SÃO SEBASTIÃO
-    {"id": "P007", "equipe": "SÃO SEBASTIÃO", "nome": "Dr. Raimundo Ferreira",  "cbo": "Médico de Família",           "cns": "700 8012 4324 3344"},
-    {"id": "P008", "equipe": "SÃO SEBASTIÃO", "nome": "Enf. Francisca Nunes",  "cbo": "Enfermeiro",                  "cns": "700 8012 4325 5566"},
-    {"id": "P009", "equipe": "SÃO SEBASTIÃO", "nome": "Téc. Antônia Rocha",    "cbo": "Técnico de Enfermagem",       "cns": "700 8012 4326 7788"},
-    {"id": "P010", "equipe": "SÃO SEBASTIÃO", "nome": "ACS Paulo Mendes",       "cbo": "Agente Comunitário de Saúde", "cns": "700 8012 4327 9900"},
-    # ESF-03 ACARI
-    {"id": "P011", "equipe": "ACARI", "nome": "Dra. Suely Moraes",             "cbo": "Médico de Família",           "cns": "700 8012 4328 1122"},
-    {"id": "P012", "equipe": "ACARI", "nome": "Enf. Roberto Costa",            "cbo": "Enfermeiro",                  "cns": "700 8012 4329 3344"},
-    {"id": "P013", "equipe": "ACARI", "nome": "Téc. Joana Pereira",            "cbo": "Técnico de Enfermagem",       "cns": "700 8012 4330 5566"},
-    {"id": "P014", "equipe": "ACARI", "nome": "ACS Benedita Santos",           "cbo": "Agente Comunitário de Saúde", "cns": "700 8012 4331 7788"},
-    # ESF-04 TRÊS ESTADOS
-    {"id": "P015", "equipe": "TRÊS ESTADOS", "nome": "Dr. Manoel Oliveira",    "cbo": "Médico de Família",           "cns": "700 8012 4332 9900"},
-    {"id": "P016", "equipe": "TRÊS ESTADOS", "nome": "Enf. Cláudia Lima",      "cbo": "Enfermeiro",                  "cns": "700 8012 4333 1122"},
-    {"id": "P017", "equipe": "TRÊS ESTADOS", "nome": "Téc. Sandro Freitas",    "cbo": "Técnico de Enfermagem",       "cns": "700 8012 4334 3344"},
-    {"id": "P018", "equipe": "TRÊS ESTADOS", "nome": "ACS Terezinha Barbosa",  "cbo": "Agente Comunitário de Saúde", "cns": "700 8012 4335 5566"},
-    # ESF-05 JUMA
-    {"id": "P019", "equipe": "JUMA", "nome": "Dra. Patrícia Carvalho",         "cbo": "Médico de Família",           "cns": "700 8012 4336 7788"},
-    {"id": "P020", "equipe": "JUMA", "nome": "Enf. Wagner Pinheiro",           "cbo": "Enfermeiro",                  "cns": "700 8012 4337 9900"},
-    {"id": "P021", "equipe": "JUMA", "nome": "Téc. Rosimeire Tavares",         "cbo": "Técnico de Enfermagem",       "cns": "700 8012 4338 1122"},
-    {"id": "P022", "equipe": "JUMA", "nome": "ACS Gilberto Nascimento",        "cbo": "Agente Comunitário de Saúde", "cns": "700 8012 4339 3344"},
-    # ESF-06 LIBERDADE
-    {"id": "P023", "equipe": "LIBERDADE", "nome": "Dr. André Monteiro",        "cbo": "Médico de Família",           "cns": "700 8012 4340 5566"},
-    {"id": "P024", "equipe": "LIBERDADE", "nome": "Enf. Simone Araújo",        "cbo": "Enfermeiro",                  "cns": "700 8012 4341 7788"},
-    {"id": "P025", "equipe": "LIBERDADE", "nome": "Téc. Valdinei Cruz",        "cbo": "Técnico de Enfermagem",       "cns": "700 8012 4342 9900"},
-    {"id": "P026", "equipe": "LIBERDADE", "nome": "ACS Neuza Correia",         "cbo": "Agente Comunitário de Saúde", "cns": "700 8012 4343 1122"},
-    # ESF-07 KENNEDY
-    {"id": "P027", "equipe": "KENNEDY", "nome": "Dra. Fernanda Ramos",         "cbo": "Médico de Família",           "cns": "700 8012 4344 3344"},
-    {"id": "P028", "equipe": "KENNEDY", "nome": "Enf. Cícero Viana",           "cbo": "Enfermeiro",                  "cns": "700 8012 4345 5566"},
-    {"id": "P029", "equipe": "KENNEDY", "nome": "Téc. Marinete Alves",         "cbo": "Técnico de Enfermagem",       "cns": "700 8012 4346 7788"},
-    {"id": "P030", "equipe": "KENNEDY", "nome": "ACS Iramar Sousa",            "cbo": "Agente Comunitário de Saúde", "cns": "700 8012 4347 9900"},
-    # ESF-08 JK
-    {"id": "P031", "equipe": "JK", "nome": "Dr. Itamar Figueiredo",            "cbo": "Médico de Família",           "cns": "700 8012 4348 1122"},
-    {"id": "P032", "equipe": "JK", "nome": "Enf. Eliane Brito",               "cbo": "Enfermeiro",                  "cns": "700 8012 4349 3344"},
-    {"id": "P033", "equipe": "JK", "nome": "Téc. Osmar Teixeira",             "cbo": "Técnico de Enfermagem",       "cns": "700 8012 4350 5566"},
-    {"id": "P034", "equipe": "JK", "nome": "ACS Verônica Dias",               "cbo": "Agente Comunitário de Saúde", "cns": "700 8012 4351 7788"},
-    # ESF-09 ESTRADA NOVA
-    {"id": "P035", "equipe": "ESTRADA NOVA", "nome": "Dra. Aldira Mendes",     "cbo": "Médico de Família",           "cns": "700 8012 4352 9900"},
-    {"id": "P036", "equipe": "ESTRADA NOVA", "nome": "Enf. Nilton Barros",     "cbo": "Enfermeiro",                  "cns": "700 8012 4353 1122"},
-    {"id": "P037", "equipe": "ESTRADA NOVA", "nome": "Téc. Eronildes Castro",  "cbo": "Técnico de Enfermagem",       "cns": "700 8012 4354 3344"},
-    {"id": "P038", "equipe": "ESTRADA NOVA", "nome": "ACS Zuleide Farias",     "cbo": "Agente Comunitário de Saúde", "cns": "700 8012 4355 5566"},
+_EQUIPES_ESB = [
+    {"id": "ESB-01", "nome": "ESB I",   "ubs": "UBS Irmã Elizabete",  "tipo": "eSB",  "ine": "0001483820"},
+    {"id": "ESB-02", "nome": "ESB II",  "ubs": "UBS São Sebastião",   "tipo": "eSB",  "ine": "0001483839"},
+    {"id": "ESB-03", "nome": "ESB III", "ubs": "CEO Apuí",            "tipo": "eSB",  "ine": "0001483847"},
 ]
 
-# Produção base por CBO (atendimentos/dia)
-_PROD_BASE = {
-    "Médico de Família":           {"consulta_medica": 18, "procedimento": 4,  "encaminhamento": 3, "receita": 12},
-    "Enfermeiro":                  {"consulta_enf": 14,    "visita_dom": 6,    "procedimento": 8,   "atividade_col": 2},
-    "Técnico de Enfermagem":       {"procedimento": 22,    "vacina": 8,        "aferição_pa": 15,   "curativo": 5},
-    "Cirurgião-Dentista":          {"consulta_odonto": 12, "procedimento_odo": 6, "urgencia_odo": 2},
-    "Agente Comunitário de Saúde": {"visita_dom": 12,      "cadastro": 4,      "busca_ativa": 6,    "acomp_familia": 8},
+_EQUIPES_EMULTI = [
+    {"id": "eM-01",  "nome": "eMulti Apuí",     "ubs": "Núcleo eMulti SMS",   "tipo": "eMulti", "ine": "0001483901"},
+]
+
+# ── Profissionais — ESF ───────────────────────────────────────────────────────
+_PROFS_ESF = [
+    # CACHOEIRA
+    {"id":"P001","equipe":"CACHOEIRA",     "nome":"Dr. João Carlos Fonseca",       "cbo":"Médico de Família e Comunidade",   "cns":"700 8012 4318 2456","tipo_equipe":"ESF"},
+    {"id":"P002","equipe":"CACHOEIRA",     "nome":"Enf. Maria da Conceição Silva",  "cbo":"Enfermeiro",                       "cns":"700 8012 4319 3344","tipo_equipe":"ESF"},
+    {"id":"P003","equipe":"CACHOEIRA",     "nome":"Téc. José Raimundo Almeida",     "cbo":"Técnico de Enfermagem",            "cns":"700 8012 4320 5566","tipo_equipe":"ESF"},
+    {"id":"P004","equipe":"CACHOEIRA",     "nome":"ACS Marcos Antônio Lima",        "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4322 9900","tipo_equipe":"ESF"},
+    {"id":"P005","equipe":"CACHOEIRA",     "nome":"ACS Lúcia Aparecida Souza",      "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4323 1122","tipo_equipe":"ESF"},
+    {"id":"P006","equipe":"CACHOEIRA",     "nome":"ACS Francisco das Chagas",       "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4324 2233","tipo_equipe":"ESF"},
+    # SÃO SEBASTIÃO
+    {"id":"P007","equipe":"SÃO SEBASTIÃO","nome":"Dr. Raimundo Nonato Ferreira",   "cbo":"Médico de Família e Comunidade",   "cns":"700 8012 4325 3344","tipo_equipe":"ESF"},
+    {"id":"P008","equipe":"SÃO SEBASTIÃO","nome":"Enf. Francisca Nunes Pereira",   "cbo":"Enfermeiro",                       "cns":"700 8012 4326 5566","tipo_equipe":"ESF"},
+    {"id":"P009","equipe":"SÃO SEBASTIÃO","nome":"Téc. Antônia Rocha Barbosa",     "cbo":"Técnico de Enfermagem",            "cns":"700 8012 4327 7788","tipo_equipe":"ESF"},
+    {"id":"P010","equipe":"SÃO SEBASTIÃO","nome":"ACS Paulo César Mendes",         "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4328 9900","tipo_equipe":"ESF"},
+    {"id":"P011","equipe":"SÃO SEBASTIÃO","nome":"ACS Rosária Bezerra Santos",     "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4329 1122","tipo_equipe":"ESF"},
+    # ACARI
+    {"id":"P012","equipe":"ACARI",         "nome":"Dra. Suely de Moraes Costa",    "cbo":"Médico de Família e Comunidade",   "cns":"700 8012 4330 3344","tipo_equipe":"ESF"},
+    {"id":"P013","equipe":"ACARI",         "nome":"Enf. Roberto Carlos da Costa",  "cbo":"Enfermeiro",                       "cns":"700 8012 4331 5566","tipo_equipe":"ESF"},
+    {"id":"P014","equipe":"ACARI",         "nome":"Téc. Joana Pereira Teixeira",   "cbo":"Técnico de Enfermagem",            "cns":"700 8012 4332 7788","tipo_equipe":"ESF"},
+    {"id":"P015","equipe":"ACARI",         "nome":"ACS Benedita dos Santos Lima",  "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4333 9900","tipo_equipe":"ESF"},
+    {"id":"P016","equipe":"ACARI",         "nome":"ACS Edilson Freire Cardoso",    "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4334 1122","tipo_equipe":"ESF"},
+    # TRÊS ESTADOS
+    {"id":"P017","equipe":"TRÊS ESTADOS",  "nome":"Dr. Manoel Oliveira Júnior",    "cbo":"Médico de Família e Comunidade",   "cns":"700 8012 4335 3344","tipo_equipe":"ESF"},
+    {"id":"P018","equipe":"TRÊS ESTADOS",  "nome":"Enf. Cláudia Lima Figueiredo", "cbo":"Enfermeiro",                       "cns":"700 8012 4336 5566","tipo_equipe":"ESF"},
+    {"id":"P019","equipe":"TRÊS ESTADOS",  "nome":"Téc. Sandro Freitas Moura",    "cbo":"Técnico de Enfermagem",            "cns":"700 8012 4337 7788","tipo_equipe":"ESF"},
+    {"id":"P020","equipe":"TRÊS ESTADOS",  "nome":"ACS Terezinha Barbosa Nunes",  "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4338 9900","tipo_equipe":"ESF"},
+    {"id":"P021","equipe":"TRÊS ESTADOS",  "nome":"ACS Gilmar Pinheiro Ramos",    "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4339 1122","tipo_equipe":"ESF"},
+    # JUMA
+    {"id":"P022","equipe":"JUMA",          "nome":"Dra. Patrícia Carvalho Matos", "cbo":"Médico de Família e Comunidade",   "cns":"700 8012 4340 3344","tipo_equipe":"ESF"},
+    {"id":"P023","equipe":"JUMA",          "nome":"Enf. Wagner Pinheiro Sousa",   "cbo":"Enfermeiro",                       "cns":"700 8012 4341 5566","tipo_equipe":"ESF"},
+    {"id":"P024","equipe":"JUMA",          "nome":"Téc. Rosimeire Tavares Cruz",  "cbo":"Técnico de Enfermagem",            "cns":"700 8012 4342 7788","tipo_equipe":"ESF"},
+    {"id":"P025","equipe":"JUMA",          "nome":"ACS Gilberto Nascimento Dias", "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4343 9900","tipo_equipe":"ESF"},
+    {"id":"P026","equipe":"JUMA",          "nome":"ACS Marinalva Gomes Viana",    "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4344 1122","tipo_equipe":"ESF"},
+    # LIBERDADE
+    {"id":"P027","equipe":"LIBERDADE",     "nome":"Dr. André Luís Monteiro",      "cbo":"Médico de Família e Comunidade",   "cns":"700 8012 4345 3344","tipo_equipe":"ESF"},
+    {"id":"P028","equipe":"LIBERDADE",     "nome":"Enf. Simone Araújo Corrêa",   "cbo":"Enfermeiro",                       "cns":"700 8012 4346 5566","tipo_equipe":"ESF"},
+    {"id":"P029","equipe":"LIBERDADE",     "nome":"Téc. Valdinei Cruz Farias",   "cbo":"Técnico de Enfermagem",            "cns":"700 8012 4347 7788","tipo_equipe":"ESF"},
+    {"id":"P030","equipe":"LIBERDADE",     "nome":"ACS Neuza Correia Batista",   "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4348 9900","tipo_equipe":"ESF"},
+    {"id":"P031","equipe":"LIBERDADE",     "nome":"ACS Irene Soares Mendonça",   "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4349 1122","tipo_equipe":"ESF"},
+    {"id":"P032","equipe":"LIBERDADE",     "nome":"ACS Davi Almeida Ferraz",     "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4350 2233","tipo_equipe":"ESF"},
+    # KENNEDY
+    {"id":"P033","equipe":"KENNEDY",       "nome":"Dra. Fernanda Ramos Leite",   "cbo":"Médico de Família e Comunidade",   "cns":"700 8012 4351 3344","tipo_equipe":"ESF"},
+    {"id":"P034","equipe":"KENNEDY",       "nome":"Enf. Cícero Viana Lopes",     "cbo":"Enfermeiro",                       "cns":"700 8012 4352 5566","tipo_equipe":"ESF"},
+    {"id":"P035","equipe":"KENNEDY",       "nome":"Téc. Marinete Alves Borges",  "cbo":"Técnico de Enfermagem",            "cns":"700 8012 4353 7788","tipo_equipe":"ESF"},
+    {"id":"P036","equipe":"KENNEDY",       "nome":"ACS Iramar Sousa Campos",     "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4354 9900","tipo_equipe":"ESF"},
+    {"id":"P037","equipe":"KENNEDY",       "nome":"ACS Zelinda Pires Duarte",    "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4355 1122","tipo_equipe":"ESF"},
+    # JK
+    {"id":"P038","equipe":"JK",            "nome":"Dr. Itamar Figueiredo Luz",   "cbo":"Médico de Família e Comunidade",   "cns":"700 8012 4356 3344","tipo_equipe":"ESF"},
+    {"id":"P039","equipe":"JK",            "nome":"Enf. Eliane Brito Cardoso",   "cbo":"Enfermeiro",                       "cns":"700 8012 4357 5566","tipo_equipe":"ESF"},
+    {"id":"P040","equipe":"JK",            "nome":"Téc. Osmar Teixeira Vieira",  "cbo":"Técnico de Enfermagem",            "cns":"700 8012 4358 7788","tipo_equipe":"ESF"},
+    {"id":"P041","equipe":"JK",            "nome":"ACS Verônica Dias Queiroz",   "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4359 9900","tipo_equipe":"ESF"},
+    {"id":"P042","equipe":"JK",            "nome":"ACS Cleison Matos Andrade",   "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4360 1122","tipo_equipe":"ESF"},
+    # ESTRADA NOVA
+    {"id":"P043","equipe":"ESTRADA NOVA",  "nome":"Dra. Aldira Mendes Castilho", "cbo":"Médico de Família e Comunidade",   "cns":"700 8012 4361 3344","tipo_equipe":"ESF"},
+    {"id":"P044","equipe":"ESTRADA NOVA",  "nome":"Enf. Nilton Barros Siqueira", "cbo":"Enfermeiro",                       "cns":"700 8012 4362 5566","tipo_equipe":"ESF"},
+    {"id":"P045","equipe":"ESTRADA NOVA",  "nome":"Téc. Eronildes Castro Lima",  "cbo":"Técnico de Enfermagem",            "cns":"700 8012 4363 7788","tipo_equipe":"ESF"},
+    {"id":"P046","equipe":"ESTRADA NOVA",  "nome":"ACS Zuleide Farias Maciel",   "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4364 9900","tipo_equipe":"ESF"},
+    {"id":"P047","equipe":"ESTRADA NOVA",  "nome":"ACS Adeílson Luz Pinheiro",   "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4365 1122","tipo_equipe":"ESF"},
+]
+
+# ── Profissionais — ESB (Odontologia) ─────────────────────────────────────────
+_PROFS_ESB = [
+    {"id":"D001","equipe":"ESB I",   "nome":"Dr. Carlos Henrique Bezerra",     "cbo":"Cirurgião-Dentista",              "cns":"700 8012 4370 2233","tipo_equipe":"ESB"},
+    {"id":"D002","equipe":"ESB I",   "nome":"ASB Marta Cristina Sousa",        "cbo":"Auxiliar em Saúde Bucal",         "cns":"700 8012 4371 4455","tipo_equipe":"ESB"},
+    {"id":"D003","equipe":"ESB I",   "nome":"TSB Renato Alves Martins",        "cbo":"Técnico em Saúde Bucal",          "cns":"700 8012 4372 6677","tipo_equipe":"ESB"},
+    {"id":"D004","equipe":"ESB II",  "nome":"Dra. Ana Cristina Monteiro",      "cbo":"Cirurgião-Dentista",              "cns":"700 8012 4373 8899","tipo_equipe":"ESB"},
+    {"id":"D005","equipe":"ESB II",  "nome":"ASB Fátima Regina Oliveira",      "cbo":"Auxiliar em Saúde Bucal",         "cns":"700 8012 4374 0011","tipo_equipe":"ESB"},
+    {"id":"D006","equipe":"ESB III", "nome":"Dr. Eduardo Pinto Lacerda",       "cbo":"Cirurgião-Dentista",              "cns":"700 8012 4375 2233","tipo_equipe":"ESB"},
+    {"id":"D007","equipe":"ESB III", "nome":"Esp. Sandra Lima Cavalcante",     "cbo":"Cirurgião-Dentista Especialista", "cns":"700 8012 4376 4455","tipo_equipe":"ESB"},
+    {"id":"D008","equipe":"ESB III", "nome":"ASB Josefa Alencar Prado",        "cbo":"Auxiliar em Saúde Bucal",         "cns":"700 8012 4377 6677","tipo_equipe":"ESB"},
+]
+
+# ── Profissionais — eMulti ────────────────────────────────────────────────────
+_PROFS_EMULTI = [
+    {"id":"M001","equipe":"eMulti Apuí","nome":"Fisiot. Luciana Borges Maia",      "cbo":"Fisioterapeuta",             "cns":"700 8012 4380 1122","tipo_equipe":"eMulti"},
+    {"id":"M002","equipe":"eMulti Apuí","nome":"Nutr. Camila Ferreira Lopes",      "cbo":"Nutricionista",              "cns":"700 8012 4381 3344","tipo_equipe":"eMulti"},
+    {"id":"M003","equipe":"eMulti Apuí","nome":"Psic. Débora Santana Furtado",     "cbo":"Psicólogo",                  "cns":"700 8012 4382 5566","tipo_equipe":"eMulti"},
+    {"id":"M004","equipe":"eMulti Apuí","nome":"A.S. Vanessa Coelho Rodrigues",    "cbo":"Assistente Social",          "cns":"700 8012 4383 7788","tipo_equipe":"eMulti"},
+    {"id":"M005","equipe":"eMulti Apuí","nome":"Farm. Tiago Nunes Cavalcante",     "cbo":"Farmacêutico",               "cns":"700 8012 4384 9900","tipo_equipe":"eMulti"},
+    {"id":"M006","equipe":"eMulti Apuí","nome":"Ed.Fis. Marcos Pinheiro Freitas", "cbo":"Educador Físico",            "cns":"700 8012 4385 1122","tipo_equipe":"eMulti"},
+    {"id":"M007","equipe":"eMulti Apuí","nome":"Fonoaud. Priscila Arruda Costa",   "cbo":"Fonoaudiólogo",              "cns":"700 8012 4386 3344","tipo_equipe":"eMulti"},
+]
+
+# Todos juntos
+_TODOS_PROFS = _PROFS_ESF + _PROFS_ESB + _PROFS_EMULTI
+
+# ── Parâmetros de produção por CBO ────────────────────────────────────────────
+_PROD = {
+    "Médico de Família e Comunidade": {
+        "consulta_medica":         {"meta": 20, "label": "Consultas Médicas"},
+        "consulta_prenatal":       {"meta":  3, "label": "Pré-natal"},
+        "consulta_puericultura":   {"meta":  2, "label": "Puericultura"},
+        "atend_has_dm":            {"meta":  4, "label": "Atend. HAS/DM"},
+        "procedimento":            {"meta":  5, "label": "Procedimentos"},
+        "encaminhamento":          {"meta":  3, "label": "Encaminhamentos"},
+        "receita_medicamento":     {"meta": 12, "label": "Receitas"},
+        "atestado_medico":         {"meta":  4, "label": "Atestados"},
+    },
+    "Enfermeiro": {
+        "consulta_enfermagem":     {"meta": 16, "label": "Consultas Enf."},
+        "consulta_prenatal_enf":   {"meta":  3, "label": "Pré-natal Enf."},
+        "consulta_puerperal":      {"meta":  2, "label": "Consulta Puerperal"},
+        "visita_domiciliar":       {"meta":  8, "label": "Visitas Domiciliares"},
+        "procedimento_enf":        {"meta": 10, "label": "Procedimentos"},
+        "coleta_citopatologico":   {"meta":  4, "label": "Citopatológico"},
+        "atividade_coletiva":      {"meta":  2, "label": "Atividades Coletivas"},
+        "supervisao_acs":          {"meta":  1, "label": "Supervisão ACS"},
+    },
+    "Técnico de Enfermagem": {
+        "procedimento_tec":        {"meta": 25, "label": "Procedimentos"},
+        "vacina_administrada":     {"meta": 12, "label": "Vacinas"},
+        "aferição_pa":             {"meta": 20, "label": "Aferições PA"},
+        "glicemia_capilar":        {"meta": 10, "label": "Glicemia Capilar"},
+        "curativo":                {"meta":  6, "label": "Curativos"},
+        "inalacao_nebulizacao":    {"meta":  5, "label": "Inalações"},
+        "coleta_material":         {"meta":  4, "label": "Coleta de Material"},
+        "administracao_medicamento":{"meta": 8, "label": "Medicamentos Admin."},
+    },
+    "Agente Comunitário de Saúde": {
+        "visita_domiciliar_acs":   {"meta": 14, "label": "Visitas Domiciliares"},
+        "cadastro_individual":     {"meta":  4, "label": "Cadastros Indiv."},
+        "cadastro_domiciliar":     {"meta":  2, "label": "Cadastros Domic."},
+        "busca_ativa":             {"meta":  6, "label": "Busca Ativa"},
+        "acomp_gestante":          {"meta":  3, "label": "Acomp. Gestantes"},
+        "acomp_crianca":           {"meta":  4, "label": "Acomp. Crianças <2a"},
+        "acomp_has_dm":            {"meta":  5, "label": "Acomp. HAS/DM"},
+        "orientacao_saude":        {"meta":  4, "label": "Orientações em Saúde"},
+    },
+    "Cirurgião-Dentista": {
+        "consulta_odontologica":   {"meta": 14, "label": "Consultas Odonto."},
+        "primeira_consulta":       {"meta":  6, "label": "1ª Consulta Prog."},
+        "escovacao_supervisionada":{"meta":  8, "label": "Escovação Superv."},
+        "aplicacao_fluor":         {"meta":  6, "label": "Aplicação de Flúor"},
+        "restauracao_dente":       {"meta":  5, "label": "Restaurações"},
+        "extracao_dentaria":       {"meta":  3, "label": "Extrações"},
+        "tratamento_canal":        {"meta":  1, "label": "Tratamento de Canal"},
+        "urgencia_odontologica":   {"meta":  2, "label": "Urgências"},
+        "atividade_educativa_odo": {"meta":  2, "label": "Ativ. Educativas"},
+    },
+    "Cirurgião-Dentista Especialista": {
+        "consulta_odonto_esp":     {"meta": 12, "label": "Consultas Especialidade"},
+        "periodontia":             {"meta":  4, "label": "Periodontia"},
+        "endodontia":              {"meta":  3, "label": "Endodontia"},
+        "cirurgia_oral_menor":     {"meta":  2, "label": "Cirurgia Oral Menor"},
+        "protese_dentaria":        {"meta":  2, "label": "Prótese Dentária"},
+        "diagnostico_bucal":       {"meta":  3, "label": "Diagnóstico Bucal"},
+    },
+    "Auxiliar em Saúde Bucal": {
+        "assist_consulta_odonto":  {"meta": 20, "label": "Assist. em Consultas"},
+        "esterilizacao_material":  {"meta": 15, "label": "Esterilização"},
+        "educacao_saude_bucal":    {"meta":  4, "label": "Educação Bucal"},
+        "triagem_odontologica":    {"meta":  8, "label": "Triagem Odontológica"},
+    },
+    "Técnico em Saúde Bucal": {
+        "procedimento_tsb":        {"meta": 16, "label": "Procedimentos TSB"},
+        "moldagem_protese":        {"meta":  3, "label": "Moldagem p/ Prótese"},
+        "radiografia_odonto":      {"meta":  6, "label": "Radiografias"},
+        "esterilizacao_tsb":       {"meta": 12, "label": "Esterilização"},
+    },
+    "Fisioterapeuta": {
+        "atend_fisioterapia":      {"meta": 18, "label": "Atend. Fisioterapia"},
+        "atend_compartilhado":     {"meta":  4, "label": "Atend. Compartilhado"},
+        "atividade_coletiva_fis":  {"meta":  2, "label": "Atividades Coletivas"},
+        "visita_dom_fis":          {"meta":  3, "label": "Visitas Domiciliares"},
+    },
+    "Nutricionista": {
+        "consulta_nutricional":    {"meta": 16, "label": "Consultas Nutricionais"},
+        "avaliacao_anthropometrica":{"meta": 10, "label": "Avaliação Antrop."},
+        "atividade_educativa_nut": {"meta":  3, "label": "Ativ. Educativas"},
+        "atend_sisvan":            {"meta":  6, "label": "Atend. SISVAN"},
+        "atend_compartilhado_nut": {"meta":  4, "label": "Atend. Compartilhado"},
+    },
+    "Psicólogo": {
+        "consulta_psicologia":     {"meta": 18, "label": "Consultas Psicologia"},
+        "grupo_terapeutico":       {"meta":  2, "label": "Grupos Terapêuticos"},
+        "atend_saude_mental":      {"meta":  4, "label": "Atend. Saúde Mental"},
+        "atend_compartilhado_psi": {"meta":  3, "label": "Atend. Compartilhado"},
+        "orientacao_familiar":     {"meta":  2, "label": "Orientação Familiar"},
+    },
+    "Assistente Social": {
+        "atend_servico_social":    {"meta": 15, "label": "Atend. Serv. Social"},
+        "orientacao_social":       {"meta":  8, "label": "Orientações Sociais"},
+        "visita_dom_as":           {"meta":  4, "label": "Visitas Domiciliares"},
+        "encaminhamento_social":   {"meta":  6, "label": "Encaminhamentos"},
+        "grupo_apoio":             {"meta":  2, "label": "Grupos de Apoio"},
+    },
+    "Farmacêutico": {
+        "dispensacao_medicamento":  {"meta": 40, "label": "Dispensações"},
+        "consulta_farmaceutica":    {"meta":  8, "label": "Consultas Farm."},
+        "reconciliacao_medicamentos":{"meta": 5, "label": "Reconciliação Medicam."},
+        "educacao_farmaceutica":    {"meta":  3, "label": "Educação Farm."},
+    },
+    "Educador Físico": {
+        "grupo_atividade_fisica":  {"meta":  4, "label": "Grupos Ativ. Física"},
+        "avaliacao_fisica":        {"meta":  8, "label": "Avaliações Físicas"},
+        "atend_individual_ef":     {"meta": 10, "label": "Atend. Individuais"},
+        "orientacao_pratica":      {"meta":  6, "label": "Orientações Práticas"},
+    },
+    "Fonoaudiólogo": {
+        "consulta_fonoaudiologia": {"meta": 16, "label": "Consultas Fono"},
+        "triagem_auditiva":        {"meta":  6, "label": "Triagem Auditiva"},
+        "atend_deglutição":        {"meta":  4, "label": "Atend. Deglutição"},
+        "grupo_linguagem":         {"meta":  2, "label": "Grupos de Linguagem"},
+    },
 }
 
-_TIPOS_ATEND = [
-    "Consulta Médica", "Consulta de Enfermagem", "Visita Domiciliar",
-    "Procedimento", "Atendimento Odontológico", "Atividade Coletiva",
-    "Aferição de PA/Glicemia", "Curativo / Injeção", "Busca Ativa",
-    "Pré-natal", "Puericultura", "Acompanhamento HAS/DM", "Vacina",
+# ── Indicadores Previne Brasil (por equipe ESF) ────────────────────────────────
+_INDICADORES_PREVINE = [
+    {"ind": "ind1", "label": "Pré-natal ≥7 consultas",              "meta_pct": 60.0, "peso": 1},
+    {"ind": "ind2", "label": "Gestante c/ exames 1º trimestre",     "meta_pct": 60.0, "peso": 1},
+    {"ind": "ind3", "label": "Vacinação BCG + HB + Penta (crianças)","meta_pct": 95.0, "peso": 1},
+    {"ind": "ind4", "label": "Consulta puerperal 1ª semana",        "meta_pct": 60.0, "peso": 1},
+    {"ind": "ind5", "label": "Rastreamento câncer colo útero",      "meta_pct": 60.0, "peso": 1},
+    {"ind": "ind6", "label": "HAS — PA aferida últimos 12m",        "meta_pct": 50.0, "peso": 1},
+    {"ind": "ind7", "label": "DM — HbA1c/glicemia últimos 12m",     "meta_pct": 50.0, "peso": 1},
+]
+
+# Indicadores Odontologia (PMAQ/Previne)
+_INDICADORES_ODO = [
+    {"ind": "odo1", "label": "1ª Consulta Odontológica Programática","meta_pct": 70.0},
+    {"ind": "odo2", "label": "Cobertura de Escovação Supervisionada","meta_pct": 60.0},
+    {"ind": "odo3", "label": "Procedimentos Coletivos em Saúde Bucal","meta_pct": 65.0},
+    {"ind": "odo4", "label": "Conclusão de Tratamento Odontológico", "meta_pct": 55.0},
+    {"ind": "odo5", "label": "Urgências Odontológicas Atendidas",    "meta_pct": 80.0},
 ]
 
 
-def _seed(equipe: str, hora: int) -> int:
-    """Semente determinística por equipe+hora do dia para dados consistentes."""
-    return hash(f"{equipe}{date.today().isoformat()}{hora}") % 10000
+def _seed(uid: str, hora: int) -> int:
+    return hash(f"{uid}{date.today().isoformat()}{hora}") % 10000
 
 
-def _prod_profissional(prof: dict, hora_atual: int) -> dict:
-    """Gera produção acumulada do profissional até a hora atual."""
-    rng = Random(_seed(prof["id"], hora_atual))
-    base = _PROD_BASE.get(prof["cbo"], {"atendimento": 10})
-    fator = min(hora_atual / 17, 1.0)  # dia começa às 7h, termina 17h
+def _prod_prof(prof: dict, hora: int) -> dict:
+    """Produção acumulada do profissional até a hora atual."""
+    rng   = Random(_seed(prof["id"], hora))
+    base  = _PROD.get(prof["cbo"], {"atendimento": {"meta": 10, "label": "Atendimentos"}})
+    fator = min((hora - 7) / 10, 1.0) if hora > 7 else 0.0
 
-    prod: dict = {}
+    producao: list[dict] = []
     total = 0
-    for tipo, meta in base.items():
-        realizado = int(meta * fator * rng.uniform(0.7, 1.15))
-        prod[tipo] = realizado
-        total += realizado
+    meta_total = 0
+    for tipo, cfg in base.items():
+        meta_hora = cfg["meta"] * fator
+        realizado = int(meta_hora * rng.uniform(0.65, 1.2)) if fator > 0 else 0
+        producao.append({
+            "tipo": tipo,
+            "label": cfg["label"],
+            "realizado": realizado,
+            "meta_dia": cfg["meta"],
+            "pct": round(realizado / cfg["meta"] * 100, 1) if cfg["meta"] > 0 else 0,
+        })
+        total      += realizado
+        meta_total += cfg["meta"]
 
-    status = "normal"
-    meta_total = sum(base.values())
-    pct = (total / max(meta_total * fator, 1)) * 100 if fator > 0 else 100
-    if pct < 50:
-        status = "critico"
-    elif pct < 75:
-        status = "atencao"
+    pct_meta = round(total / max(meta_total * fator, 1) * 100, 1) if fator > 0 else 0
+    status = "normal" if pct_meta >= 75 else "atencao" if pct_meta >= 50 else "critico"
 
     return {
         **prof,
-        "producao": prod,
-        "total_atendimentos": total,
-        "meta_dia": sum(base.values()),
-        "pct_meta": round(pct, 1),
-        "status": status,
-        "ultimo_registro": f"{hora_atual - rng.randint(0,2):02d}:{rng.randint(0,59):02d}" if hora_atual > 7 else "—",
+        "producao_detalhada": sorted(producao, key=lambda x: -x["realizado"]),
+        "total_atendimentos":  total,
+        "meta_dia":           meta_total,
+        "pct_meta":           pct_meta,
+        "status":             status,
+        "ultimo_registro":    f"{hora - rng.randint(0,1):02d}:{rng.randint(0,59):02d}" if hora > 7 else "—",
     }
 
 
-def _status_equipe(profs: list[dict]) -> str:
-    criticos = sum(1 for p in profs if p["status"] == "critico")
-    if criticos >= 2:
-        return "critico"
-    if criticos == 1 or any(p["status"] == "atencao" for p in profs):
-        return "atencao"
-    return "normal"
-
-
-def _gerar_atendimentos_recentes(hora: int) -> list[dict]:
-    """Gera lista de atendimentos recentes (últimos 30 min) simulados."""
-    rng = Random(_seed("atendimentos", hora))
-    atendimentos = []
-    minutos_ago = [2, 4, 6, 8, 11, 13, 16, 18, 22, 25, 27, 29]
-    for i, m in enumerate(minutos_ago):
-        eq = _EQUIPES[rng.randint(0, 8)]
-        prof = [p for p in _PROFISSIONAIS if p["equipe"] == eq["nome"]]
-        if not prof:
-            continue
-        p = prof[rng.randint(0, len(prof) - 1)]
-        tipo = _TIPOS_ATEND[rng.randint(0, len(_TIPOS_ATEND) - 1)]
-        atendimentos.append({
-            "id": f"AT{hora:02d}{i:03d}",
-            "horario": f"{hora:02d}:{(rng.randint(0, 59)):02d}",
-            "minutos_atras": m,
-            "profissional": p["nome"].split(".")[1].strip() if "." in p["nome"] else p["nome"],
-            "cbo": p["cbo"],
-            "equipe": eq["nome"],
-            "ubs": eq["ubs"],
-            "tipo_atendimento": tipo,
-            "duracao_min": rng.randint(8, 25) if "Consulta" in tipo else rng.randint(3, 12),
+def _indicadores_equipe(equipe_nome: str, hora: int) -> list[dict]:
+    rng = Random(_seed(f"ind_{equipe_nome}", hora))
+    resultado = []
+    for ind in _INDICADORES_PREVINE:
+        base_val = rng.uniform(ind["meta_pct"] * 0.55, ind["meta_pct"] * 1.25)
+        resultado_pct = round(min(base_val, 100), 1)
+        resultado.append({
+            **ind,
+            "resultado_pct": resultado_pct,
+            "status": "verde" if resultado_pct >= ind["meta_pct"] else "amarelo" if resultado_pct >= ind["meta_pct"] * 0.7 else "vermelho",
         })
-    return sorted(atendimentos, key=lambda x: x["minutos_atras"])
+    return resultado
+
+
+def _indicadores_odo(equipe_nome: str, hora: int) -> list[dict]:
+    rng = Random(_seed(f"odo_{equipe_nome}", hora))
+    resultado = []
+    for ind in _INDICADORES_ODO:
+        base_val = rng.uniform(ind["meta_pct"] * 0.6, ind["meta_pct"] * 1.2)
+        resultado_pct = round(min(base_val, 100), 1)
+        resultado.append({
+            **ind,
+            "resultado_pct": resultado_pct,
+            "status": "verde" if resultado_pct >= ind["meta_pct"] else "amarelo" if resultado_pct >= ind["meta_pct"] * 0.7 else "vermelho",
+        })
+    return resultado
+
+
+def _hora_atual() -> int:
+    h = datetime.now().hour
+    return max(7, min(h, 17))
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("/dashboard")
 async def dashboard():
-    """Dashboard geral em tempo real — resumo municipal."""
     agora = datetime.now()
-    hora = agora.hour if 7 <= agora.hour <= 17 else 17
-
-    # Gera produção de todos os profissionais
-    todos = [_prod_profissional(p, hora) for p in _PROFISSIONAIS]
+    hora  = _hora_atual()
+    todos = [_prod_prof(p, hora) for p in _TODOS_PROFS]
 
     total_atend = sum(p["total_atendimentos"] for p in todos)
-    total_meta  = sum(p["meta_dia"] for p in todos)
-    pct_geral   = round(total_atend / max(total_meta * min(hora / 17, 1), 1) * 100, 1) if hora > 7 else 0
+    total_meta  = sum(p["meta_dia"]           for p in todos)
+    fator       = min((hora - 7) / 10, 1.0)
+    pct_geral   = round(total_atend / max(total_meta * fator, 1) * 100, 1) if fator > 0 else 0
 
-    # Por tipo de atendimento
     tipo_counts: dict = {}
     for p in todos:
-        for tipo, qtd in p["producao"].items():
-            tipo_counts[tipo] = tipo_counts.get(tipo, 0) + qtd
+        for prod in p["producao_detalhada"]:
+            lbl = prod["label"]
+            tipo_counts[lbl] = tipo_counts.get(lbl, 0) + prod["realizado"]
 
-    # Equipes
     equipes_status = []
-    for eq in _EQUIPES:
+    for eq in _EQUIPES_ESF:
         profs_eq = [p for p in todos if p["equipe"] == eq["nome"]]
         total_eq = sum(p["total_atendimentos"] for p in profs_eq)
-        st = _status_equipe(profs_eq)
-        equipes_status.append({
-            "equipe": eq["nome"],
-            "ubs": eq["ubs"],
-            "status": st,
-            "total_atendimentos": total_eq,
-            "profissionais_ativos": len(profs_eq),
-        })
+        crit = sum(1 for p in profs_eq if p["status"] == "critico")
+        st = "critico" if crit >= 2 else "atencao" if crit == 1 or any(p["status"] == "atencao" for p in profs_eq) else "normal"
+        equipes_status.append({"tipo": "ESF", "equipe": eq["nome"], "ubs": eq["ubs"], "status": st, "total": total_eq, "prof": len(profs_eq)})
+    for eq in _EQUIPES_ESB:
+        profs_eq = [p for p in todos if p["equipe"] == eq["nome"]]
+        total_eq = sum(p["total_atendimentos"] for p in profs_eq)
+        st = "atencao" if any(p["status"] != "normal" for p in profs_eq) else "normal"
+        equipes_status.append({"tipo": "ESB", "equipe": eq["nome"], "ubs": eq["ubs"], "status": st, "total": total_eq, "prof": len(profs_eq)})
+    for eq in _EQUIPES_EMULTI:
+        profs_eq = [p for p in todos if p["equipe"] == eq["nome"]]
+        total_eq = sum(p["total_atendimentos"] for p in profs_eq)
+        st = "atencao" if any(p["status"] != "normal" for p in profs_eq) else "normal"
+        equipes_status.append({"tipo": "eMulti", "equipe": eq["nome"], "ubs": eq["ubs"], "status": st, "total": total_eq, "prof": len(profs_eq)})
 
-    alertas = [
-        f"{eq['equipe']}: produção abaixo de 50% — verificar presença"
-        for eq in equipes_status if eq["status"] == "critico"
-    ]
+    alertas = [f"{e['equipe']} ({e['tipo']}): produção crítica — verificar presença" for e in equipes_status if e["status"] == "critico"]
 
     return {
         "timestamp": agora.isoformat(),
@@ -210,96 +378,137 @@ async def dashboard():
         "total_atendimentos_hoje": total_atend,
         "meta_dia": total_meta,
         "pct_meta": pct_geral,
-        "total_equipes_ativas": len(_EQUIPES),
-        "total_profissionais": len(_PROFISSIONAIS),
+        "total_equipes": len(equipes_status),
+        "total_esf": len(_EQUIPES_ESF),
+        "total_esb": len(_EQUIPES_ESB),
+        "total_emulti": len(_EQUIPES_EMULTI),
+        "total_profissionais": len(_TODOS_PROFS),
         "profissionais_com_producao": sum(1 for p in todos if p["total_atendimentos"] > 0),
         "equipes": equipes_status,
-        "producao_por_tipo": [{"tipo": k.replace("_", " ").title(), "total": v} for k, v in sorted(tipo_counts.items(), key=lambda x: -x[1])[:10]],
+        "producao_por_tipo": sorted([{"tipo": k, "total": v} for k, v in tipo_counts.items() if v > 0], key=lambda x: -x["total"])[:15],
         "alertas": alertas,
         "status_geral": "critico" if pct_geral < 50 else "atencao" if pct_geral < 75 else "normal",
-        "fonte": "monitoramento_rt",
     }
 
 
-@router.get("/equipes")
-async def equipes():
-    """Produção detalhada por equipe em tempo real."""
-    agora = datetime.now()
-    hora = agora.hour if 7 <= agora.hour <= 17 else 17
-    todos = [_prod_profissional(p, hora) for p in _PROFISSIONAIS]
-
+@router.get("/equipes-esf")
+async def equipes_esf():
+    hora  = _hora_atual()
+    todos = [_prod_prof(p, hora) for p in _PROFS_ESF]
     resultado = []
-    for eq in _EQUIPES:
+    for eq in _EQUIPES_ESF:
         profs_eq = [p for p in todos if p["equipe"] == eq["nome"]]
         total_eq = sum(p["total_atendimentos"] for p in profs_eq)
-        meta_eq  = sum(p["meta_dia"] for p in profs_eq)
-        fator    = min(hora / 17, 1.0) if hora > 7 else 0
+        meta_eq  = sum(p["meta_dia"]           for p in profs_eq)
+        fator    = min((hora - 7) / 10, 1.0)
         pct_eq   = round(total_eq / max(meta_eq * fator, 1) * 100, 1) if fator > 0 else 0
-
+        crit = sum(1 for p in profs_eq if p["status"] == "critico")
+        st = "critico" if crit >= 2 else "atencao" if crit == 1 or any(p["status"] == "atencao" for p in profs_eq) else "normal"
         resultado.append({
             **eq,
-            "status": _status_equipe(profs_eq),
+            "status": st,
             "total_atendimentos": total_eq,
             "meta_dia": meta_eq,
             "pct_meta": pct_eq,
             "profissionais": profs_eq,
-            "tipos_atendimento": {
-                "consulta_medica": sum(p["producao"].get("consulta_medica", 0) for p in profs_eq),
-                "consulta_enf":    sum(p["producao"].get("consulta_enf", 0) for p in profs_eq),
-                "visita_dom":      sum(p["producao"].get("visita_dom", 0) for p in profs_eq),
-                "procedimento":    sum(p["producao"].get("procedimento", 0) for p in profs_eq),
-                "vacina":          sum(p["producao"].get("vacina", 0) for p in profs_eq),
-            },
+            "indicadores_previne": _indicadores_equipe(eq["nome"], hora),
         })
+    return {"timestamp": datetime.now().isoformat(), "equipes": resultado}
 
+
+@router.get("/equipes-esb")
+async def equipes_esb():
+    hora  = _hora_atual()
+    todos = [_prod_prof(p, hora) for p in _PROFS_ESB]
+    resultado = []
+    for eq in _EQUIPES_ESB:
+        profs_eq = [p for p in todos if p["equipe"] == eq["nome"]]
+        total_eq = sum(p["total_atendimentos"] for p in profs_eq)
+        meta_eq  = sum(p["meta_dia"]           for p in profs_eq)
+        fator    = min((hora - 7) / 10, 1.0)
+        pct_eq   = round(total_eq / max(meta_eq * fator, 1) * 100, 1) if fator > 0 else 0
+        resultado.append({
+            **eq,
+            "status": "atencao" if any(p["status"] != "normal" for p in profs_eq) else "normal",
+            "total_atendimentos": total_eq,
+            "meta_dia": meta_eq,
+            "pct_meta": pct_eq,
+            "profissionais": profs_eq,
+            "indicadores_odontologia": _indicadores_odo(eq["nome"], hora),
+        })
+    return {"timestamp": datetime.now().isoformat(), "equipes": resultado}
+
+
+@router.get("/equipe-emulti")
+async def equipe_emulti():
+    hora  = _hora_atual()
+    todos = [_prod_prof(p, hora) for p in _PROFS_EMULTI]
+    total = sum(p["total_atendimentos"] for p in todos)
+    meta  = sum(p["meta_dia"]           for p in todos)
+    fator = min((hora - 7) / 10, 1.0)
+    pct   = round(total / max(meta * fator, 1) * 100, 1) if fator > 0 else 0
     return {
-        "timestamp": agora.isoformat(),
-        "equipes": sorted(resultado, key=lambda x: x["pct_meta"]),
+        "timestamp": datetime.now().isoformat(),
+        "equipe": _EQUIPES_EMULTI[0],
+        "total_atendimentos": total,
+        "meta_dia": meta,
+        "pct_meta": pct,
+        "status": "atencao" if any(p["status"] != "normal" for p in todos) else "normal",
+        "profissionais": todos,
     }
 
 
 @router.get("/profissionais")
-async def profissionais():
-    """Produção individual de todos os profissionais."""
-    agora = datetime.now()
-    hora = agora.hour if 7 <= agora.hour <= 17 else 17
-    todos = [_prod_profissional(p, hora) for p in _PROFISSIONAIS]
-
+async def todos_profissionais():
+    hora  = _hora_atual()
+    todos = [_prod_prof(p, hora) for p in _TODOS_PROFS]
     return {
-        "timestamp": agora.isoformat(),
+        "timestamp": datetime.now().isoformat(),
         "total": len(todos),
+        "esf": len(_PROFS_ESF),
+        "esb": len(_PROFS_ESB),
+        "emulti": len(_PROFS_EMULTI),
         "profissionais": sorted(todos, key=lambda x: x["pct_meta"]),
     }
 
 
 @router.get("/atendimentos")
 async def atendimentos_recentes():
-    """Últimos atendimentos registrados (últimos 30 min)."""
     agora = datetime.now()
-    hora = agora.hour if 7 <= agora.hour <= 17 else 17
-    lista = _gerar_atendimentos_recentes(hora)
-    return {
-        "timestamp": agora.isoformat(),
-        "total_30min": len(lista),
-        "atendimentos": lista,
-    }
+    hora  = _hora_atual()
+    rng   = Random(_seed("atendimentos", hora))
+    tipos = [p for plist in _PROD.values() for p in plist.values() if isinstance(p, dict)]
+    lista = []
+    for i in range(18):
+        prof = _TODOS_PROFS[rng.randint(0, len(_TODOS_PROFS) - 1)]
+        prod_base = _PROD.get(prof["cbo"], {})
+        tipos_cbo = list(prod_base.values()) if prod_base else [{"label": "Atendimento"}]
+        tipo_cfg  = tipos_cbo[rng.randint(0, len(tipos_cbo) - 1)]
+        lista.append({
+            "id": f"AT{hora:02d}{i:03d}",
+            "horario": f"{hora - rng.randint(0,1):02d}:{rng.randint(0,59):02d}",
+            "minutos_atras": rng.randint(1, 29),
+            "profissional": prof["nome"],
+            "cbo": prof["cbo"],
+            "equipe": prof["equipe"],
+            "tipo_equipe": prof["tipo_equipe"],
+            "tipo_atendimento": tipo_cfg.get("label", "Atendimento"),
+            "duracao_min": rng.randint(5, 30),
+        })
+    lista.sort(key=lambda x: x["minutos_atras"])
+    return {"timestamp": agora.isoformat(), "total_30min": len(lista), "atendimentos": lista}
 
 
 @router.get("/producao-hora")
 async def producao_por_hora():
-    """Produção acumulada hora a hora do dia atual."""
     agora = datetime.now()
     hora_atual = min(agora.hour, 17)
-
     horas = []
-    for h in range(7, hora_atual + 1):
-        prods = [_prod_profissional(p, h) for p in _PROFISSIONAIS]
-        # produção incremental da hora (diferença entre h e h-1)
-        if h > 7:
-            prods_ant = [_prod_profissional(p, h - 1) for p in _PROFISSIONAIS]
-            total_h = sum(p["total_atendimentos"] for p in prods) - sum(p["total_atendimentos"] for p in prods_ant)
-        else:
-            total_h = sum(p["total_atendimentos"] for p in prods)
-        horas.append({"hora": f"{h:02d}:00", "atendimentos": max(total_h, 0)})
-
+    prev_total = 0
+    for h in range(7, max(hora_atual + 1, 8)):
+        todos = [_prod_prof(p, h) for p in _TODOS_PROFS]
+        total_h = sum(p["total_atendimentos"] for p in todos)
+        incremento = max(total_h - prev_total, 0)
+        horas.append({"hora": f"{h:02d}:00", "atendimentos": incremento, "acumulado": total_h})
+        prev_total = total_h
     return {"data": agora.strftime("%d/%m/%Y"), "horas": horas}
