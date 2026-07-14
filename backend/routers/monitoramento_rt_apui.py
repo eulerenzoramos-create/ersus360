@@ -25,9 +25,9 @@ _EQUIPES_ESF = [
 ]
 
 _EQUIPES_ESB = [
-    {"id": "ESB-01", "nome": "ESB I",   "ubs": "UBS Irmã Elizabete",  "tipo": "eSB",  "ine": "0001483820"},
-    {"id": "ESB-02", "nome": "ESB II",  "ubs": "UBS São Sebastião",   "tipo": "eSB",  "ine": "0001483839"},
-    {"id": "ESB-03", "nome": "ESB III", "ubs": "CEO Apuí",            "tipo": "eSB",  "ine": "0001483847"},
+    {"id": "ESB-01", "nome": "ESB I — CACHOEIRA",        "ubs": "UBS Irmã Elizabete",  "tipo": "eSB",  "ine": "0001483820"},
+    {"id": "ESB-02", "nome": "ESB II — SÃO SEBASTIÃO",   "ubs": "UBS São Sebastião",   "tipo": "eSB",  "ine": "0001483839"},
+    {"id": "ESB-03", "nome": "ESB III — CEO Apuí",        "ubs": "CEO Apuí",            "tipo": "eSB",  "ine": "0001483847"},
 ]
 
 _EQUIPES_EMULTI = [
@@ -104,14 +104,14 @@ _PROFS_ESF = [
 
 # ── Profissionais — ESB (Odontologia) ─────────────────────────────────────────
 _PROFS_ESB = [
-    {"id":"D001","equipe":"ESB I",   "nome":"Dr. Carlos Henrique Bezerra",     "cbo":"Cirurgião-Dentista",              "cns":"700 8012 4370 2233","tipo_equipe":"ESB"},
-    {"id":"D002","equipe":"ESB I",   "nome":"ASB Marta Cristina Sousa",        "cbo":"Auxiliar em Saúde Bucal",         "cns":"700 8012 4371 4455","tipo_equipe":"ESB"},
-    {"id":"D003","equipe":"ESB I",   "nome":"TSB Renato Alves Martins",        "cbo":"Técnico em Saúde Bucal",          "cns":"700 8012 4372 6677","tipo_equipe":"ESB"},
-    {"id":"D004","equipe":"ESB II",  "nome":"Dra. Ana Cristina Monteiro",      "cbo":"Cirurgião-Dentista",              "cns":"700 8012 4373 8899","tipo_equipe":"ESB"},
-    {"id":"D005","equipe":"ESB II",  "nome":"ASB Fátima Regina Oliveira",      "cbo":"Auxiliar em Saúde Bucal",         "cns":"700 8012 4374 0011","tipo_equipe":"ESB"},
-    {"id":"D006","equipe":"ESB III", "nome":"Dr. Eduardo Pinto Lacerda",       "cbo":"Cirurgião-Dentista",              "cns":"700 8012 4375 2233","tipo_equipe":"ESB"},
-    {"id":"D007","equipe":"ESB III", "nome":"Esp. Sandra Lima Cavalcante",     "cbo":"Cirurgião-Dentista Especialista", "cns":"700 8012 4376 4455","tipo_equipe":"ESB"},
-    {"id":"D008","equipe":"ESB III", "nome":"ASB Josefa Alencar Prado",        "cbo":"Auxiliar em Saúde Bucal",         "cns":"700 8012 4377 6677","tipo_equipe":"ESB"},
+    {"id":"D001","equipe":"ESB I — CACHOEIRA",      "nome":"Dr. Carlos Henrique Bezerra",     "cbo":"Cirurgião-Dentista",              "cns":"700 8012 4370 2233","tipo_equipe":"ESB"},
+    {"id":"D002","equipe":"ESB I — CACHOEIRA",      "nome":"ASB Marta Cristina Sousa",        "cbo":"Auxiliar em Saúde Bucal",         "cns":"700 8012 4371 4455","tipo_equipe":"ESB"},
+    {"id":"D003","equipe":"ESB I — CACHOEIRA",      "nome":"TSB Renato Alves Martins",        "cbo":"Técnico em Saúde Bucal",          "cns":"700 8012 4372 6677","tipo_equipe":"ESB"},
+    {"id":"D004","equipe":"ESB II — SÃO SEBASTIÃO", "nome":"Dra. Ana Cristina Monteiro",      "cbo":"Cirurgião-Dentista",              "cns":"700 8012 4373 8899","tipo_equipe":"ESB"},
+    {"id":"D005","equipe":"ESB II — SÃO SEBASTIÃO", "nome":"ASB Fátima Regina Oliveira",      "cbo":"Auxiliar em Saúde Bucal",         "cns":"700 8012 4374 0011","tipo_equipe":"ESB"},
+    {"id":"D006","equipe":"ESB III — CEO Apuí",     "nome":"Dr. Eduardo Pinto Lacerda",       "cbo":"Cirurgião-Dentista",              "cns":"700 8012 4375 2233","tipo_equipe":"ESB"},
+    {"id":"D007","equipe":"ESB III — CEO Apuí",     "nome":"Esp. Sandra Lima Cavalcante",     "cbo":"Cirurgião-Dentista Especialista", "cns":"700 8012 4376 4455","tipo_equipe":"ESB"},
+    {"id":"D008","equipe":"ESB III — CEO Apuí",     "nome":"ASB Josefa Alencar Prado",        "cbo":"Auxiliar em Saúde Bucal",         "cns":"700 8012 4377 6677","tipo_equipe":"ESB"},
 ]
 
 # ── Profissionais — eMulti ────────────────────────────────────────────────────
