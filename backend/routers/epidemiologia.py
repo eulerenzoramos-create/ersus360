@@ -1,10 +1,13 @@
 """
 Router: /api/epidemiologia — Vigilância Epidemiológica / SINAN
 Notificações compulsórias, malária, dengue, mortalidade — Apuí/AM
+APIs: apidadosabertos.saude.gov.br/sinan/
 """
 from __future__ import annotations
+from datetime import date as _date
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
+from services import sinan_service
 
 router = APIRouter(prefix="/api/epidemiologia", tags=["Epidemiologia"])
 
@@ -60,23 +63,27 @@ _MORTALIDADE = {
 @router.get("/dashboard")
 async def dashboard(_: UserOut = Depends(get_current_user)):
     """Dashboard epidemiológico consolidado Apuí/AM."""
+    ano = _date.today().year - 1  # SINAN tem defasagem de ~1 ano
+    malaria_data = await sinan_service.buscar_malaria(ano)
+    dengue_data  = await sinan_service.buscar_dengue(ano)
     return {
         "municipio": "Apuí/AM",
         "ibge": "1300144",
-        "periodo": "Jan–Jul/2026",
+        "periodo": f"Ano {ano}",
         "alertas_ativos": 2,
         "agravo_prioritario": "Malária",
-        "malaria_ipa_atual": 3.47,
-        "malaria_ipa_meta": 10.0,
-        "malaria_ipa_status": "verde",
-        "dengue_casos_acum": 36,
-        "dengue_incidencia": 143.8,
+        "malaria_ipa_atual":  malaria_data["ipa"],
+        "malaria_ipa_meta":   10.0,
+        "malaria_ipa_status": malaria_data["classificacao_ipa"],
+        "dengue_casos_acum":  dengue_data["total_casos"],
+        "dengue_incidencia":  dengue_data.get("incidencia_100k", 0),
         "mortalidade_infantil": 8.1,
         "mortalidade_infantil_meta": 10.0,
         "cobertura_vacinal_media_pct": 84.2,
-        "total_notificacoes_ano": 145,
+        "total_notificacoes_ano": malaria_data["total_casos"] + dengue_data["total_casos"],
         "total_investigadas_pct": 91.7,
-        "fonte": "referencia",
+        "fonte_malaria": malaria_data["fonte"],
+        "fonte_dengue":  dengue_data["fonte"],
     }
 
 
@@ -119,45 +126,47 @@ async def agravos_prioritarios(_: UserOut = Depends(get_current_user)):
 
 @router.get("/malaria")
 async def malaria(
-    meses: int = Query(7, ge=1, le=24),
+    ano: int = Query(0),
     _: UserOut = Depends(get_current_user),
 ):
-    """Dados malária — série mensal, IPA, distribuição Pf/Pv."""
-    mensal = _MALARIA_MENSAL[-meses:]
-    total_pf = sum(m["vf"] for m in mensal)
-    total_pv = sum(m["vv"] for m in mensal)
+    """Dados malária — IPA, distribuição Pf/Pv."""
+    if not ano:
+        ano = _date.today().year - 1
+    data = await sinan_service.buscar_malaria(ano)
+    # Mantém série mensal de referência para o gráfico
+    mensal = _MALARIA_MENSAL
     return {
         "municipio": "Apuí/AM",
-        "total_casos_periodo": total_pf + total_pv,
-        "total_pf": total_pf,
-        "total_pv": total_pv,
-        "ipa_acumulado": round((total_pf + total_pv) / 25.043 * 1000, 2),
+        "total_casos_ano": data["total_casos"],
+        "total_pf": data["falciparum"],
+        "total_pv": data["vivax"],
+        "ipa_acumulado": data["ipa"],
         "ipa_meta": 10.0,
-        "ipa_status": "verde",
+        "ipa_status": data["classificacao_ipa"],
         "serie_mensal": mensal,
-        "observacao": "Apuí é município de alto risco histórico para malária (IPA > 10 até 2022). Tendência de queda em 2026.",
-        "fonte": "referencia",
+        "observacao": "Apuí é município de alto risco histórico para malária (IPA > 10 até 2022). Tendência de queda.",
+        "fonte": data["fonte"],
     }
 
 
 @router.get("/dengue")
 async def dengue(
-    meses: int = Query(7, ge=1, le=24),
+    ano: int = Query(0),
     _: UserOut = Depends(get_current_user),
 ):
-    """Dados dengue — série mensal, incidência, casos graves."""
-    mensal = _DENGUE_MENSAL[-meses:]
-    total = sum(m["casos"] for m in mensal)
-    graves = sum(m["graves"] for m in mensal)
+    """Dados dengue — incidência, casos graves."""
+    if not ano:
+        ano = _date.today().year - 1
+    data = await sinan_service.buscar_dengue(ano)
     return {
         "municipio": "Apuí/AM",
-        "total_casos_periodo": total,
-        "casos_graves": graves,
-        "obitos": 0,
-        "incidencia_por_100k": round(total / 25.043 * 100_000, 1),
-        "nivel_alerta": "verde" if total < 50 else "amarelo",
-        "serie_mensal": mensal,
-        "fonte": "referencia",
+        "total_casos_ano": data["total_casos"],
+        "casos_graves": data.get("casos_graves", 0),
+        "obitos": data.get("obitos", 0),
+        "incidencia_por_100k": data.get("incidencia_100k", 0),
+        "nivel_alerta": "verde" if data["total_casos"] < 50 else "amarelo",
+        "serie_mensal": _DENGUE_MENSAL,
+        "fonte": data["fonte"],
     }
 
 
