@@ -1,4 +1,7 @@
-from fastapi import APIRouter
+from __future__ import annotations
+from datetime import date as _date
+from fastapi import APIRouter, Query
+from services import sih_service
 
 router = APIRouter(prefix="/api/gestao-hospitalar-apui", tags=["gestao_hospitalar_apui"])
 
@@ -80,8 +83,19 @@ _INDICADORES = [
 
 
 @router.get("/dashboard")
-def dashboard():
-    return _DASHBOARD
+async def dashboard(ano: int = Query(default=0)):
+    if not ano:
+        ano = _date.today().year - 1
+    sih = await sih_service.buscar_internacoes(ano)
+    return {
+        **_DASHBOARD,
+        "internacoes_ano": sih["total_internacoes"],
+        "taxa_internacao_100k": sih["taxa_internacao_100k"],
+        "obitos_hospitalares": sih["obitos_hospitalares"],
+        "icsap_pct": sih["icsap_pct"],
+        "ano_referencia": ano,
+        "fonte_sih": sih["fonte"],
+    }
 
 
 @router.get("/producao")
@@ -95,8 +109,9 @@ def fragilidades():
 
 
 @router.get("/historico")
-def historico():
-    return _HISTORICO
+async def historico():
+    hist = await sih_service.buscar_historico(5)
+    return hist or _HISTORICO
 
 
 @router.get("/indicadores")
