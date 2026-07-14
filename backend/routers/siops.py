@@ -1,10 +1,12 @@
 """
 Router: /api/siops — SIOPS / Mínimo Constitucional em Saúde
 Apuramento do gasto em saúde conforme EC 29/2000 e LC 141/2012
+API pública: https://apidadosabertos.saude.gov.br/siops/
 """
 from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
+from services import siops_service
 
 router = APIRouter(prefix="/api/siops", tags=["SIOPS"])
 
@@ -57,7 +59,7 @@ async def apuracao_minimo(
     _: UserOut = Depends(get_current_user),
 ):
     """Apuração do mínimo constitucional em saúde (EC 29 / LC 141)."""
-    return _SIOPS_ANUAL
+    return await siops_service.buscar_apuracao(ano)
 
 
 @router.get("/trimestral")
@@ -89,14 +91,5 @@ async def execucao_blocos(_: UserOut = Depends(get_current_user)):
 @router.get("/historico")
 async def historico_minimo(_: UserOut = Depends(get_current_user)):
     """Histórico do mínimo constitucional — últimos 5 anos."""
-    return {
-        "municipio": "Apuí/AM",
-        "historico": [
-            { "ano": 2022, "minimo_pct": 15.82, "status": "atingido" },
-            { "ano": 2023, "minimo_pct": 16.14, "status": "atingido" },
-            { "ano": 2024, "minimo_pct": 15.49, "status": "atingido" },
-            { "ano": 2025, "minimo_pct": 16.97, "status": "atingido" },
-            { "ano": 2026, "minimo_pct": 17.16, "status": "atingido" },
-        ],
-        "fonte": "referencia",
-    }
+    historico = await siops_service.buscar_historico()
+    return {"municipio": "Apuí/AM", "historico": historico}

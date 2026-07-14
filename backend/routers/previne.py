@@ -1,10 +1,11 @@
 """
 Router: /api/previne — Previne Brasil (7 indicadores oficiais)
-Competência 2025/2026 — Apuí/AM (IBGE 1300144)
+API: https://egestorab.saude.gov.br/api/v1/previne/
 """
 from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
+from services import previne_service
 
 router = APIRouter(prefix="/api/previne", tags=["Previne Brasil"])
 
@@ -139,22 +140,7 @@ async def listar_indicadores(
     _: UserOut = Depends(get_current_user),
 ):
     """7 indicadores Previne Brasil com metas e status."""
-    total_pontos = sum(i["pontuacao"] for i in _INDICADORES)
-    atingidos = sum(1 for i in _INDICADORES if i["status"] in ("verde", "amarelo"))
-    return {
-        "municipio": "Apuí",
-        "uf": "AM",
-        "ibge": "1300144",
-        "competencia": competencia,
-        "total_pontos": total_pontos,
-        "pontos_possiveis": 49.0,
-        "percentual_pontos": round(total_pontos / 49.0 * 100, 1),
-        "indicadores_atingidos": atingidos,
-        "indicadores_total": 7,
-        "media_geral_pct": 68.4,
-        "indicadores": _INDICADORES,
-        "fonte": "referencia",
-    }
+    return await previne_service.buscar_indicadores(competencia)
 
 
 @router.get("/historico")
@@ -163,13 +149,7 @@ async def historico_indicadores(
     _: UserOut = Depends(get_current_user),
 ):
     """Histórico mensal dos 7 indicadores."""
-    return {
-        "municipio": "Apuí/AM",
-        "historico": _HISTORICO[-meses:],
-        "tendencia": "crescente",
-        "variacao_6_meses": 10.1,
-        "fonte": "referencia",
-    }
+    return await previne_service.buscar_historico(meses)
 
 
 @router.get("/equipes")
