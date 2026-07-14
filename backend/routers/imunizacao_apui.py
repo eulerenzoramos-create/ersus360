@@ -1,4 +1,7 @@
-from fastapi import APIRouter
+from __future__ import annotations
+from datetime import date as _date
+from fastapi import APIRouter, Query
+from services import pni_service
 
 router = APIRouter(prefix="/api/imunizacao-apui", tags=["imunizacao_apui"])
 
@@ -70,12 +73,26 @@ _INDICADORES = [
 
 
 @router.get("/dashboard")
-def dashboard():
-    return _DASHBOARD
+async def dashboard(ano: int = Query(default=0)):
+    if not ano:
+        ano = _date.today().year - 1
+    cobertura = await pni_service.buscar_cobertura(ano)
+    return {
+        **_DASHBOARD,
+        "cobertura_vacinal_media_pct": cobertura["media_cobertura_pct"],
+        "vacinas_abaixo_meta": cobertura["abaixo_meta"],
+        "ano_referencia": ano,
+        "fonte_pni": cobertura["fonte"],
+    }
 
 
 @router.get("/vacinas")
-def vacinas():
+async def vacinas(ano: int = Query(default=0)):
+    if not ano:
+        ano = _date.today().year - 1
+    cobertura = await pni_service.buscar_cobertura(ano)
+    if cobertura.get("vacinas"):
+        return {"ano": ano, "vacinas": cobertura["vacinas"], "fonte": cobertura["fonte"]}
     return _VACINAS
 
 
@@ -85,8 +102,9 @@ def cadeia_frio():
 
 
 @router.get("/historico")
-def historico():
-    return _HISTORICO
+async def historico():
+    hist = await pni_service.buscar_historico(5)
+    return hist or _HISTORICO
 
 
 @router.get("/indicadores")
