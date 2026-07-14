@@ -10,7 +10,7 @@ from database import get_db
 from routers.auth import get_current_user
 from services.cnes_service import buscar_estabelecimentos, buscar_equipes_saude
 from services.fns_api_service import buscar_repasses, buscar_convenios, buscar_indicadores_previne
-from services.esus_service import buscar_producao, buscar_indicadores_aps, buscar_cadastros, buscar_equipes
+from services.esus_service import buscar_producao, buscar_indicadores_aps, buscar_cadastros, buscar_equipes, testar_conexao as esus_testar
 
 router = APIRouter(prefix="/api/integracao", tags=["Integração"])
 
@@ -93,6 +93,15 @@ async def indicadores_previne(_=Depends(get_current_user)):
 
 
 # ── e-SUS PEC ─────────────────────────────────────────────────────────────────
+
+@router.get("/esus/testar")
+async def testar_esus(_=Depends(get_current_user)):
+    """Testa conectividade e autenticação com o e-SUS PEC de Apuí/AM."""
+    from config import settings
+    resultado = await esus_testar(settings.ESUS_URL)
+    resultado["credencial_configurada"] = bool(settings.ESUS_USUARIO and settings.ESUS_SENHA)
+    return resultado
+
 
 @router.get("/esus/producao")
 async def producao_esus(
