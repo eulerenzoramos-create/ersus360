@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, BarChart2, Users, Layers, Calendar, Download, Filter } from "lucide-react";
+import { FileText, BarChart2, Users, Layers, Calendar, Download, Filter, Printer } from "lucide-react";
 import { apiGet } from "../lib/api";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -68,6 +68,7 @@ const ABAS = [
   { key: "profissional",  label: "Por Profissional", Icon: Users    },
   { key: "equipe",        label: "Por Equipe",       Icon: BarChart2},
   { key: "diario",        label: "Diário",           Icon: Calendar },
+  { key: "gerar",         label: "Gerar Relatório",  Icon: Printer  },
 ];
 
 const TIPOS_EQUIPE = ["ESF","ESB","eMulti"];
@@ -82,6 +83,11 @@ export default function RelatorioProducao() {
   const [profId, setProfId] = useState("");
   const [diaExpandido, setDiaExpandido] = useState<number | null>(null);
   const [grupoFiltro, setGrupoFiltro]   = useState("");
+
+  // ── Gerar Relatório ──
+  const [tipoRel, setTipoRel]   = useState<"diario"|"mensal"|"anual">("mensal");
+  const [diaRel,  setDiaRel]    = useState(hoje.getDate());
+  const printRef = useRef<HTMLDivElement>(null);
 
   // lista de equipes e profissionais para filtros
   const qEquipes = useQuery({ queryKey: ["rel-equipes"], queryFn: () => apiGet("/api/relatorios/equipes") });
@@ -100,6 +106,12 @@ export default function RelatorioProducao() {
   const qProf  = useQuery({ queryKey: ["rel-prof",  mes, ano, equipe, tipoEq],                            queryFn: () => apiGet(`/api/relatorios/por-profissional?${params}`), enabled: aba === "profissional" });
   const qEq    = useQuery({ queryKey: ["rel-eq",    mes, ano, tipoEq],                                    queryFn: () => apiGet(`/api/relatorios/por-equipe?${params}`),      enabled: aba === "equipe" });
   const qDiario= useQuery({ queryKey: ["rel-diario",mes, ano, equipe, tipoEq, profId, grupoFiltro],       queryFn: () => apiGet(`/api/relatorios/diario?${params}`),          enabled: aba === "diario" });
+
+  const gerarParams = new URLSearchParams({ tipo: tipoRel, mes: String(mes), ano: String(ano), dia: String(diaRel) });
+  if (equipe) gerarParams.set("equipe", equipe);
+  if (tipoEq) gerarParams.set("tipo_equipe", tipoEq);
+  if (profId) gerarParams.set("profissional_id", profId);
+  const qGerar = useQuery({ queryKey: ["rel-gerar", tipoRel, diaRel, mes, ano, equipe, tipoEq, profId], queryFn: () => apiGet(`/api/relatorios/gerar?${gerarParams}`), enabled: aba === "gerar" });
 
   const anos = [hoje.getFullYear(), hoje.getFullYear() - 1];
 
@@ -524,8 +536,265 @@ export default function RelatorioProducao() {
     </div>
   );
 
+  // ── ABA GERAR RELATÓRIO ───────────────────────────────────────────────────
+  function imprimir() {
+    const el = printRef.current;
+    if (!el) return;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+      <title>Relatório ERSUS360</title>
+      <style>
+        body{font-family:system-ui,sans-serif;margin:0;padding:24px;color:#111;}
+        .page-break{page-break-before:always;}
+        table{width:100%;border-collapse:collapse;font-size:12px;}
+        th{background:#1e40af;color:#fff;padding:6px 10px;text-align:left;}
+        td{padding:5px 10px;border-bottom:1px solid #e5e7eb;}
+        tr:nth-child(even) td{background:#f9fafb;}
+        .header{border-bottom:3px solid #1e40af;padding-bottom:12px;margin-bottom:20px;}
+        .kpis{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+        .kpi{border:1px solid #e5e7eb;border-top:3px solid #1e40af;border-radius:8px;padding:10px 14px;min-width:130px;}
+        .kpi-v{font-size:22px;font-weight:800;} .kpi-l{font-size:11px;color:#6b7280;text-transform:uppercase;}
+        h3{color:#1e40af;margin:18px 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;}
+        .badge-ok{color:#166534;background:#f0fdf4;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;}
+        .badge-at{color:#92400e;background:#fffbeb;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;}
+        .badge-cr{color:#b91c1c;background:#fef2f2;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;}
+        @media print{body{margin:0;padding:16px;}}
+      </style></head><body>${el.innerHTML}</body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { w.print(); }, 400);
+  }
+
+  const d = qGerar.data;
+  const cab = d?.cabecalho;
+
+  const abaGerar = (
+    <div>
+      {/* Controles tipo relatório */}
+      <div style={{ background:"var(--card-bg)", border:"1px solid var(--border)", borderRadius:10, padding:"14px 18px", marginBottom:18, display:"flex", gap:10, flexWrap:"wrap", alignItems:"flex-end" }}>
+        <div>
+          <div style={{ fontSize:11, color:"var(--muted)", fontWeight:600, marginBottom:6 }}>TIPO DE RELATÓRIO</div>
+          <div style={{ display:"flex", gap:6 }}>
+            {(["diario","mensal","anual"] as const).map(t => (
+              <button key={t} onClick={() => setTipoRel(t)} style={{
+                padding:"7px 16px", borderRadius:6, border:"1px solid var(--border)", cursor:"pointer", fontSize:13, fontWeight:700,
+                background: tipoRel===t ? "var(--accent)" : "transparent",
+                color: tipoRel===t ? "#fff" : "var(--fg)",
+              }}>
+                {t === "diario" ? "📅 Diário" : t === "mensal" ? "📆 Mensal" : "📊 Anual"}
+              </button>
+            ))}
+          </div>
+        </div>
+        {tipoRel === "diario" && (
+          <div>
+            <div style={{ fontSize:11, color:"var(--muted)", fontWeight:600, marginBottom:6 }}>DIA</div>
+            <input type="number" min={1} max={31} value={diaRel} onChange={e => setDiaRel(Number(e.target.value))} style={{ width:70, padding:"6px 10px", borderRadius:6, border:"1px solid var(--border)", background:"var(--card-bg)", color:"var(--fg)", fontSize:13 }} />
+          </div>
+        )}
+        <button onClick={imprimir} disabled={!d} style={{
+          display:"flex", alignItems:"center", gap:6, padding:"8px 18px",
+          borderRadius:6, border:"none", background: d ? "#1e40af" : "var(--border)",
+          color:"#fff", cursor: d ? "pointer" : "default", fontSize:13, fontWeight:700, marginLeft:"auto",
+        }}>
+          <Printer size={15} /> Imprimir / Salvar PDF
+        </button>
+      </div>
+
+      {qGerar.isLoading && <div style={{ color:"var(--muted)", padding:24 }}>Gerando relatório...</div>}
+      {qGerar.isError  && <div style={{ color:"#ef4444", padding:24 }}>Erro ao gerar relatório. Tente novamente.</div>}
+
+      {d && (
+        <div ref={printRef}>
+          {/* CABEÇALHO */}
+          <div className="header" style={{ borderBottom:"3px solid #1e40af", paddingBottom:12, marginBottom:20 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
+              <div>
+                <div style={{ fontSize:11, color:"#6b7280", fontWeight:700, textTransform:"uppercase", letterSpacing:0.5 }}>
+                  {cab.secretaria} — {cab.municipio}
+                </div>
+                <div style={{ fontSize:11, color:"#6b7280" }}>IBGE {cab.ibge} · {cab.sistema}</div>
+                <div style={{ fontSize:18, fontWeight:900, color:"#1e40af", marginTop:4 }}>{cab.titulo}</div>
+                <div style={{ fontSize:12, color:"#6b7280", marginTop:2 }}>
+                  Período: <strong>{cab.periodo}</strong>
+                  {cab.equipe_filtro && cab.equipe_filtro !== "Todas as equipes" && <> · Equipe: <strong>{cab.equipe_filtro}</strong></>}
+                  {cab.profissional_filtro && cab.profissional_filtro !== "Todos" && <> · Profissional: <strong>{cab.profissional_filtro}</strong></>}
+                </div>
+              </div>
+              <div style={{ textAlign:"right" }}>
+                <div style={{ fontSize:11, color:"#6b7280" }}>Gerado em</div>
+                <div style={{ fontWeight:700, fontSize:12 }}>{cab.gerado_em}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* RESUMO */}
+          {d.resumo && (
+            <div className="kpis" style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:20 }}>
+              {[
+                { l:"Total Atendimentos", v: d.resumo.total?.toLocaleString("pt-BR") ?? "—" },
+                { l:"Meta do Período",    v: d.resumo.meta?.toLocaleString("pt-BR") ?? "—" },
+                { l:"Dias Úteis",         v: d.resumo.dias_uteis ?? "—" },
+                { l:"Profissionais",      v: d.resumo.n_profissionais ?? "—" },
+                { l:"Média/Dia",          v: d.resumo.media_dia?.toLocaleString("pt-BR") ?? "—" },
+              ].filter(k => k.v !== "—").map(k => (
+                <div key={k.l} className="kpi" style={{ border:"1px solid #e5e7eb", borderTop:"3px solid #1e40af", borderRadius:8, padding:"10px 14px", minWidth:130 }}>
+                  <div className="kpi-l" style={{ fontSize:11, color:"#6b7280", textTransform:"uppercase", letterSpacing:0.5 }}>{k.l}</div>
+                  <div className="kpi-v" style={{ fontSize:22, fontWeight:800 }}>{k.v}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* POR TIPO */}
+          {(d.por_tipo?.length > 0 || d.por_tipo_ano?.length > 0) && (() => {
+            const tipos = d.por_tipo ?? d.por_tipo_ano ?? [];
+            const grupos: Record<string,any[]> = {};
+            tipos.forEach((t: any) => { (grupos[t.grupo] = grupos[t.grupo] ?? []).push(t); });
+            return (
+              <div style={{ marginBottom:20 }}>
+                {Object.entries(grupos).map(([grp, ts]) => (
+                  <div key={grp} style={{ marginBottom:14 }}>
+                    <h3 style={{ color:"#1e40af", margin:"0 0 6px", fontSize:13, textTransform:"uppercase", letterSpacing:.5 }}>{grp}</h3>
+                    <div style={{ overflowX:"auto" }}>
+                      <table>
+                        <thead><tr>
+                          <th>Tipo de Atendimento</th>
+                          <th style={{ textAlign:"right" }}>Realizado</th>
+                          <th style={{ textAlign:"right" }}>Meta</th>
+                          <th style={{ textAlign:"right" }}>% Meta</th>
+                          <th>Situação</th>
+                        </tr></thead>
+                        <tbody>
+                          {(ts as any[]).map((t: any) => {
+                            const pct = t.pct ?? t.pct_meta ?? 0;
+                            const sit = pct >= 75 ? "NORMAL" : pct >= 50 ? "ATENÇÃO" : "CRÍTICO";
+                            const sitCls = pct >= 75 ? "badge-ok" : pct >= 50 ? "badge-at" : "badge-cr";
+                            const sitStyle = pct >= 75
+                              ? { color:"#166534", background:"#f0fdf4", padding:"2px 8px", borderRadius:4, fontSize:10, fontWeight:700 }
+                              : pct >= 50
+                              ? { color:"#92400e", background:"#fffbeb", padding:"2px 8px", borderRadius:4, fontSize:10, fontWeight:700 }
+                              : { color:"#b91c1c", background:"#fef2f2", padding:"2px 8px", borderRadius:4, fontSize:10, fontWeight:700 };
+                            return (
+                              <tr key={t.tipo}>
+                                <td>{t.label}</td>
+                                <td style={{ textAlign:"right", fontWeight:700, fontVariantNumeric:"tabular-nums" }}>{(t.realizado ?? 0).toLocaleString("pt-BR")}</td>
+                                <td style={{ textAlign:"right", color:"#6b7280", fontVariantNumeric:"tabular-nums" }}>{(t.meta ?? 0).toLocaleString("pt-BR")}</td>
+                                <td style={{ textAlign:"right", fontVariantNumeric:"tabular-nums" }}>{pct.toFixed(1)}%</td>
+                                <td><span style={sitStyle}>{sit}</span></td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* MESES (relatório anual) */}
+          {d.meses && (
+            <div style={{ marginBottom:20 }}>
+              <h3 style={{ color:"#1e40af", margin:"0 0 6px", fontSize:13, textTransform:"uppercase", letterSpacing:.5 }}>Produção Mensal — {d.ano}</h3>
+              <div style={{ overflowX:"auto" }}>
+                <table>
+                  <thead><tr>
+                    <th>Mês</th>
+                    <th style={{ textAlign:"right" }}>Total</th>
+                    <th style={{ textAlign:"right" }}>Dias Úteis</th>
+                    <th style={{ textAlign:"right" }}>Média/Dia</th>
+                  </tr></thead>
+                  <tbody>
+                    {(d.meses as any[]).map((m: any) => (
+                      <tr key={m.mes}>
+                        <td style={{ fontWeight:600 }}>{m.label}</td>
+                        <td style={{ textAlign:"right", fontVariantNumeric:"tabular-nums" }}>{m.is_futuro ? "—" : (m.total ?? 0).toLocaleString("pt-BR")}</td>
+                        <td style={{ textAlign:"right" }}>{m.is_futuro ? "—" : m.dias_uteis}</td>
+                        <td style={{ textAlign:"right", fontVariantNumeric:"tabular-nums" }}>{m.is_futuro ? "—" : (m.media_dia ?? "—")}</td>
+                      </tr>
+                    ))}
+                    <tr style={{ fontWeight:900, background:"#eff6ff" }}>
+                      <td>TOTAL {d.ano}</td>
+                      <td style={{ textAlign:"right", fontVariantNumeric:"tabular-nums" }}>{(d.total_ano ?? 0).toLocaleString("pt-BR")}</td>
+                      <td></td><td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* DIAS (relatório mensal) */}
+          {d.dias && (
+            <div style={{ marginBottom:20 }}>
+              <h3 style={{ color:"#1e40af", margin:"0 0 6px", fontSize:13, textTransform:"uppercase", letterSpacing:.5 }}>Produção Diária</h3>
+              <div style={{ overflowX:"auto" }}>
+                <table>
+                  <thead><tr>
+                    <th>Dia</th><th>Data</th><th>Dia Semana</th>
+                    <th style={{ textAlign:"right" }}>Total</th>
+                  </tr></thead>
+                  <tbody>
+                    {(d.dias as any[]).filter((dd: any) => !dd.is_futuro).map((dd: any) => (
+                      <tr key={dd.dia}>
+                        <td>{dd.dia}</td>
+                        <td>{dd.data}</td>
+                        <td style={{ color:"#6b7280" }}>{dd.dia_semana ?? (dd.is_util ? "Útil" : "FDS")}</td>
+                        <td style={{ textAlign:"right", fontWeight:700, fontVariantNumeric:"tabular-nums" }}>{dd.total != null ? (dd.total as number).toLocaleString("pt-BR") : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* POR PROFISSIONAL */}
+          {d.por_profissional?.length > 0 && (
+            <div style={{ marginBottom:20 }}>
+              <h3 style={{ color:"#1e40af", margin:"0 0 6px", fontSize:13, textTransform:"uppercase", letterSpacing:.5 }}>Produção por Profissional</h3>
+              <div style={{ overflowX:"auto" }}>
+                <table>
+                  <thead><tr>
+                    <th>#</th><th>Profissional</th><th>CBO</th><th>Equipe</th>
+                    <th style={{ textAlign:"right" }}>Realizado</th>
+                    <th style={{ textAlign:"right" }}>Meta</th>
+                    <th style={{ textAlign:"right" }}>% Meta</th>
+                  </tr></thead>
+                  <tbody>
+                    {(d.por_profissional as any[]).map((p: any, i: number) => (
+                      <tr key={p.id}>
+                        <td style={{ color:"#6b7280" }}>{i+1}</td>
+                        <td style={{ fontWeight:600 }}>{p.nome}</td>
+                        <td style={{ color:"#6b7280" }}>{p.cbo}</td>
+                        <td>{p.equipe}</td>
+                        <td style={{ textAlign:"right", fontWeight:700, fontVariantNumeric:"tabular-nums" }}>{(p.total ?? 0).toLocaleString("pt-BR")}</td>
+                        <td style={{ textAlign:"right", color:"#6b7280", fontVariantNumeric:"tabular-nums" }}>{(p.meta ?? 0).toLocaleString("pt-BR")}</td>
+                        <td style={{ textAlign:"right" }}>{(p.pct ?? 0).toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* RODAPÉ */}
+          <div style={{ borderTop:"1px solid #e5e7eb", marginTop:24, paddingTop:10, fontSize:11, color:"#9ca3af", display:"flex", justifyContent:"space-between", flexWrap:"wrap" }}>
+            <span>Sistema ERSUS 360 — Secretaria Municipal de Saúde de Apuí/AM — IBGE 1300144</span>
+            <span>Gerado em {cab.gerado_em}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const abaContent: Record<string, JSX.Element> = {
-    tipo: abaTipo, profissional: abaProf, equipe: abaEquipe, diario: abaDiario,
+    tipo: abaTipo, profissional: abaProf, equipe: abaEquipe, diario: abaDiario, gerar: abaGerar,
   };
 
   return (

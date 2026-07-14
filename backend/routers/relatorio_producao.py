@@ -593,3 +593,237 @@ async def relatorio_diario(
         "media_dia": round(acumulado / max(len(dias_com), 1)),
         "dias": dias,
     }
+
+
+@router.get("/anual")
+async def relatorio_anual(
+    ano: int = Query(default=None),
+    equipe: Optional[str] = Query(default=None),
+    tipo_equipe: Optional[str] = Query(default=None),
+    profissional_id: Optional[str] = Query(default=None),
+):
+    """Produção mês a mês do ano, com totais por tipo de atendimento."""
+    hoje = date.today()
+    if not ano:
+        ano = hoje.year
+    hora_atual = min(datetime.now().hour, 17)
+
+    profs = _PROFISSIONAIS
+    if equipe:
+        profs = [p for p in profs if p["equipe"] == equipe]
+    if tipo_equipe:
+        profs = [p for p in profs if p["tipo"] == tipo_equipe]
+    if profissional_id:
+        profs = [p for p in profs if p["id"] == profissional_id]
+
+    MESES_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+
+    meses_resultado = []
+    total_ano = 0
+    acum_tipos_ano: dict[str, dict] = {}
+
+    for mes in range(1, 13):
+        _, dias_no_mes = calendar.monthrange(ano, mes)
+        total_mes = 0
+        acum_tipos: dict[str, dict] = {}
+        dias_uteis = 0
+        mes_passado = (date(ano, mes, 1) <= hoje)
+
+        if not mes_passado:
+            meses_resultado.append({
+                "mes": mes, "label": MESES_PT[mes - 1],
+                "total": None, "dias_uteis": 0,
+                "tipos": [], "is_futuro": True,
+            })
+            continue
+
+        for d in range(1, dias_no_mes + 1):
+            fator = _fator_dia(ano, mes, d, hoje, hora_atual)
+            if fator < 0:
+                continue
+            dias_uteis += 1
+            for prof in profs:
+                for prod in _prod_prof_dia(prof, ano, mes, d, fator):
+                    k = prod["tipo"]
+                    if k not in acum_tipos:
+                        acum_tipos[k] = {"tipo": k, "label": prod["label"], "grupo": prod["grupo"], "realizado": 0, "meta": 0}
+                    acum_tipos[k]["realizado"] += prod["realizado"]
+                    acum_tipos[k]["meta"]      += prod["meta"]
+                    total_mes += prod["realizado"]
+                    # acumulado anual por tipo
+                    if k not in acum_tipos_ano:
+                        acum_tipos_ano[k] = {"tipo": k, "label": prod["label"], "grupo": prod["grupo"], "realizado": 0, "meta": 0}
+                    acum_tipos_ano[k]["realizado"] += prod["realizado"]
+                    acum_tipos_ano[k]["meta"]      += prod["meta"]
+
+        total_ano += total_mes
+        tipos_lista = sorted(acum_tipos.values(), key=lambda x: -x["realizado"])
+        for item in tipos_lista:
+            item["pct"] = round(item["realizado"] / max(item["meta"], 1) * 100, 1)
+
+        meses_resultado.append({
+            "mes": mes, "label": MESES_PT[mes - 1],
+            "total": total_mes, "dias_uteis": dias_uteis,
+            "tipos": tipos_lista, "is_futuro": False,
+            "media_dia": round(total_mes / max(dias_uteis, 1), 1),
+        })
+
+    tipos_ano = sorted(acum_tipos_ano.values(), key=lambda x: -x["realizado"])
+    for item in tipos_ano:
+        item["pct"] = round(item["realizado"] / max(item["meta"], 1) * 100, 1)
+
+    return {
+        "ano": ano,
+        "municipio": "Apuí/AM",
+        "ibge": "1300144",
+        "total_ano": total_ano,
+        "total_tipos": len(tipos_ano),
+        "profissionais_filtro": len(profs),
+        "meses": meses_resultado,
+        "por_tipo_ano": tipos_ano,
+    }
+
+
+@router.get("/gerar")
+async def gerar_relatorio(
+    tipo: str = Query(default="mensal"),   # diario | mensal | anual
+    dia: int = Query(default=None),
+    mes: int = Query(default=None),
+    ano: int = Query(default=None),
+    equipe: Optional[str] = Query(default=None),
+    tipo_equipe: Optional[str] = Query(default=None),
+    profissional_id: Optional[str] = Query(default=None),
+):
+    """Dados estruturados para geração de relatório imprimível."""
+    hoje = date.today()
+    if not mes:
+        mes = hoje.month
+    if not ano:
+        ano = hoje.year
+    if not dia:
+        dia = hoje.day
+    hora_atual = min(datetime.now().hour, 17)
+
+    profs = _PROFISSIONAIS
+    if equipe:
+        profs = [p for p in profs if p["equipe"] == equipe]
+    if tipo_equipe:
+        profs = [p for p in profs if p["tipo"] == tipo_equipe]
+    if profissional_id:
+        profs = [p for p in profs if p["id"] == profissional_id]
+
+    MESES_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+
+    cabecalho = {
+        "municipio": "Apuí / AM",
+        "ibge": "1300144",
+        "secretaria": "Secretaria Municipal de Saúde",
+        "sistema": "ERSUS 360",
+        "gerado_em": datetime.now().strftime("%d/%m/%Y %H:%M"),
+        "gerado_por": "Gestor Municipal de Saúde",
+        "tipo": tipo,
+        "equipe_filtro": equipe or tipo_equipe or "Todas as equipes",
+        "profissional_filtro": next((p["nome"] for p in _PROFISSIONAIS if p["id"] == profissional_id), "Todos") if profissional_id else "Todos",
+    }
+
+    if tipo == "diario":
+        data_ref = date(ano, mes, dia)
+        fator = _fator_dia(ano, mes, dia, hoje, hora_atual)
+        fator = max(fator, 0)
+        acum: dict[str, dict] = {}
+        profs_prod = []
+        for prof in profs:
+            tipos_p = _prod_prof_dia(prof, ano, mes, dia, fator)
+            total_p = sum(t["realizado"] for t in tipos_p)
+            meta_p  = sum(t["meta"]      for t in tipos_p)
+            pct_p   = round(total_p / max(meta_p, 1) * 100, 1)
+            profs_prod.append({**prof, "total": total_p, "meta": meta_p, "pct": pct_p,
+                               "tipos": sorted(tipos_p, key=lambda x: -x["realizado"])})
+            for t in tipos_p:
+                k = t["tipo"]
+                if k not in acum:
+                    acum[k] = {"tipo": k, "label": t["label"], "grupo": t["grupo"], "realizado": 0, "meta": 0}
+                acum[k]["realizado"] += t["realizado"]
+                acum[k]["meta"]      += t["meta"]
+
+        tipos_list = sorted(acum.values(), key=lambda x: -x["realizado"])
+        for item in tipos_list:
+            item["pct"] = round(item["realizado"] / max(item["meta"], 1) * 100, 1)
+
+        return {
+            "cabecalho": {**cabecalho, "periodo": f"{dia:02d}/{mes:02d}/{ano}", "titulo": f"Relatório Diário de Produção — {data_ref.strftime('%d/%m/%Y')}"},
+            "resumo": {"total": sum(t["realizado"] for t in tipos_list), "meta": sum(t["meta"] for t in tipos_list), "n_profissionais": len(profs_prod)},
+            "por_tipo": tipos_list,
+            "por_profissional": sorted(profs_prod, key=lambda x: -x["total"]),
+        }
+
+    elif tipo == "anual":
+        resp = await relatorio_anual(ano=ano, equipe=equipe, tipo_equipe=tipo_equipe, profissional_id=profissional_id)
+        return {
+            "cabecalho": {**cabecalho, "periodo": str(ano), "titulo": f"Relatório Anual de Produção — {ano}"},
+            **resp,
+        }
+
+    else:  # mensal (default)
+        _, dias_no_mes = calendar.monthrange(ano, mes)
+        acum: dict[str, dict] = {}
+        profs_acum: dict[str, dict] = {}
+        dias_result = []
+        total_mes = 0
+        dias_uteis = 0
+
+        for d in range(1, dias_no_mes + 1):
+            fator = _fator_dia(ano, mes, d, hoje, hora_atual)
+            is_futuro = fator == -1.0
+            is_fds    = fator == -2.0
+            if is_futuro or is_fds:
+                dias_result.append({"dia": d, "data": date(ano,mes,d).strftime("%d/%m"), "is_util": not is_fds, "is_futuro": is_futuro, "total": None})
+                continue
+            dias_uteis += 1
+            total_dia = 0
+            for prof in profs:
+                pid = prof["id"]
+                if pid not in profs_acum:
+                    profs_acum[pid] = {**prof, "total": 0, "meta": 0, "tipos": {}}
+                for t in _prod_prof_dia(prof, ano, mes, d, fator):
+                    k = t["tipo"]
+                    profs_acum[pid]["total"] += t["realizado"]
+                    profs_acum[pid]["meta"]  += t["meta"]
+                    if k not in profs_acum[pid]["tipos"]:
+                        profs_acum[pid]["tipos"][k] = {"label": t["label"], "grupo": t["grupo"], "realizado": 0, "meta": 0}
+                    profs_acum[pid]["tipos"][k]["realizado"] += t["realizado"]
+                    profs_acum[pid]["tipos"][k]["meta"]      += t["meta"]
+                    if k not in acum:
+                        acum[k] = {"tipo": k, "label": t["label"], "grupo": t["grupo"], "realizado": 0, "meta": 0}
+                    acum[k]["realizado"] += t["realizado"]
+                    acum[k]["meta"]      += t["meta"]
+                    total_dia += t["realizado"]
+            total_mes += total_dia
+            dias_result.append({"dia": d, "data": date(ano,mes,d).strftime("%d/%m"), "dia_semana": date(ano,mes,d).strftime("%a").upper(), "is_util": True, "is_futuro": False, "total": total_dia})
+
+        tipos_list = sorted(acum.values(), key=lambda x: -x["realizado"])
+        for item in tipos_list:
+            item["pct"] = round(item["realizado"] / max(item["meta"], 1) * 100, 1)
+
+        profs_list = sorted(profs_acum.values(), key=lambda x: -x["total"])
+        for p in profs_list:
+            p["pct"] = round(p["total"] / max(p["meta"], 1) * 100, 1)
+            p["tipos"] = sorted(p["tipos"].values(), key=lambda x: -x["realizado"])
+            for t in p["tipos"]:
+                t["pct"] = round(t["realizado"] / max(t["meta"], 1) * 100, 1)
+
+        # por grupo
+        por_grupo: dict[str, list] = {}
+        for t in tipos_list:
+            por_grupo.setdefault(t["grupo"], []).append(t)
+
+        return {
+            "cabecalho": {**cabecalho, "periodo": f"{MESES_PT[mes-1]}/{ano}", "titulo": f"Relatório Mensal de Produção — {MESES_PT[mes-1]}/{ano}"},
+            "resumo": {"total": total_mes, "meta": sum(t["meta"] for t in tipos_list), "dias_uteis": dias_uteis, "n_profissionais": len(profs_list), "media_dia": round(total_mes / max(dias_uteis, 1))},
+            "por_tipo": tipos_list,
+            "por_grupo": [{"grupo": g, "tipos": ts, "total": sum(t["realizado"] for t in ts)} for g, ts in sorted(por_grupo.items())],
+            "por_profissional": profs_list,
+            "dias": dias_result,
+        }
