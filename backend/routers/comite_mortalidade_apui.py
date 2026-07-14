@@ -1,4 +1,8 @@
+from __future__ import annotations
+from datetime import date as _date
 from fastapi import APIRouter
+from services import sim_sinasc_service
+
 router = APIRouter(prefix="/api/comite-mortalidade-apui", tags=["Comitê de Mortalidade Apuí"])
 
 _DASHBOARD = {
@@ -79,7 +83,20 @@ _INDICADORES = [
 ]
 
 @router.get("/dashboard")
-def dashboard(): return _DASHBOARD
+async def dashboard():
+    ano = _date.today().year - 1
+    obitos = await sim_sinasc_service.buscar_obitos(ano)
+    nascidos = await sim_sinasc_service.buscar_nascidos_vivos(ano)
+    nv = nascidos.get("total_nascimentos", 246)
+    return {
+        **_DASHBOARD,
+        "obitos_gerais_ano": obitos.get("total_obitos", _DASHBOARD.get("obitos_gerais_2025")),
+        "nascidos_vivos_ano": nv,
+        "causas_externas_pct": obitos.get("causas_externas_pct"),
+        "cardiovasculares_pct": obitos.get("cardiovasculares_pct"),
+        "fonte_sim": obitos.get("fonte", "referencia"),
+        "fonte_sinasc": nascidos.get("fonte", "referencia"),
+    }
 
 @router.get("/obitos-maternos")
 def obitos_maternos(): return _OBITOS_MATERNOS
@@ -88,7 +105,9 @@ def obitos_maternos(): return _OBITOS_MATERNOS
 def obitos_infantis(): return _OBITOS_INFANTIS
 
 @router.get("/historico")
-def historico(): return _HISTORICO
+async def historico():
+    hist = await sim_sinasc_service.buscar_historico_mortalidade()
+    return hist or _HISTORICO
 
 @router.get("/indicadores")
 def indicadores(): return _INDICADORES
