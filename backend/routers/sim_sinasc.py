@@ -1,8 +1,10 @@
 """
 SIM / SINASC — Mortalidade e Nascidos Vivos — Apuí/AM
-Sistema de Informação sobre Mortalidade / Sistema de Informações sobre Nascidos Vivos
+API pública DATASUS: https://apidadosabertos.saude.gov.br/sim/
 """
-from fastapi import APIRouter
+from datetime import date as _date
+from fastapi import APIRouter, Query
+from services import sim_sinasc_service
 
 router = APIRouter(prefix="/api/sim-sinasc", tags=["SIM / SINASC"])
 
@@ -38,34 +40,48 @@ _HISTORICO_MORTALIDADE = [
 ]
 
 @router.get("/dashboard")
-async def dashboard():
-    nv_total = sum(n["nascimentos"] for n in _NASCIDOS_VIVOS_2026)
-    oi_total = len(_OBITOS_INFANTIS_2026)
-    tmi_2026 = round(oi_total / nv_total * 1000, 1)
-    evitaveis = sum(1 for o in _OBITOS_2026 if o["evitavel"])
+async def dashboard(ano: int = Query(default=0)):
+    if not ano:
+        ano = _date.today().year - 1  # dados do SIM têm ~1 ano de defasagem
+    obitos  = await sim_sinasc_service.buscar_obitos(ano)
+    nascidos = await sim_sinasc_service.buscar_nascidos_vivos(ano)
+    historico = await sim_sinasc_service.buscar_historico_mortalidade()
+    nv = nascidos.get("total_nascimentos", 1)
+    oi = len(_OBITOS_INFANTIS_2026)
     return {
-        "competencia":      "Mar/2026",
-        "obitos_gerais_2026": len(_OBITOS_2026),
-        "obitos_infantis_2026": oi_total,
-        "nascidos_vivos_2026": nv_total,
-        "tmi_2026":         tmi_2026,
-        "obitos_evitaveis": evitaveis,
-        "cesarea_pct_media": round(sum(n["cesarea_pct"] for n in _NASCIDOS_VIVOS_2026)/len(_NASCIDOS_VIVOS_2026), 1),
-        "historico":        _HISTORICO_MORTALIDADE,
+        "ano":               ano,
+        "obitos_gerais":     obitos.get("total_obitos"),
+        "obitos_infantis":   oi,
+        "nascidos_vivos":    nv,
+        "tmi":               round(oi / nv * 1000, 1) if nv else 0,
+        "obitos_evitaveis":  sum(1 for o in _OBITOS_2026 if o["evitavel"]),
+        "cesarea_pct":       nascidos.get("cesarea_pct"),
+        "causas_externas_pct": obitos.get("causas_externas_pct"),
+        "historico":         historico,
+        "fonte_obitos":      obitos.get("fonte"),
+        "fonte_nascidos":    nascidos.get("fonte"),
     }
 
+
 @router.get("/obitos")
-async def obitos():
-    return _OBITOS_2026
+async def obitos(ano: int = Query(default=0)):
+    if not ano:
+        ano = _date.today().year - 1
+    return await sim_sinasc_service.buscar_obitos(ano)
+
+
+@router.get("/nascidos-vivos")
+async def nascidos_vivos(ano: int = Query(default=0)):
+    if not ano:
+        ano = _date.today().year - 1
+    return await sim_sinasc_service.buscar_nascidos_vivos(ano)
+
+
+@router.get("/historico")
+async def historico():
+    return await sim_sinasc_service.buscar_historico_mortalidade()
+
 
 @router.get("/obitos-infantis")
 async def obitos_infantis():
     return _OBITOS_INFANTIS_2026
-
-@router.get("/nascidos-vivos")
-async def nascidos_vivos():
-    return _NASCIDOS_VIVOS_2026
-
-@router.get("/historico")
-async def historico():
-    return _HISTORICO_MORTALIDADE
