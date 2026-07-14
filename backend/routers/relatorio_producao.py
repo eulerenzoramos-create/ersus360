@@ -22,6 +22,7 @@ _EQUIPES = [
     {"id": "ESF-07", "nome": "KENNEDY",         "tipo": "ESF", "ubs": "UBS Kennedy"},
     {"id": "ESF-08", "nome": "JK",              "tipo": "ESF", "ubs": "UBS JK"},
     {"id": "ESF-09", "nome": "ESTRADA NOVA",    "tipo": "ESF", "ubs": "UBS Estrada Nova"},
+    {"id": "ESF-10", "nome": "RIBEIRINHA",      "tipo": "ESF", "ubs": "UBS Fluvial Ribeirinha"},
     {"id": "ESB-01", "nome": "ESB I",           "tipo": "ESB", "ubs": "UBS Irmã Elizabete"},
     {"id": "ESB-02", "nome": "ESB II",          "tipo": "ESB", "ubs": "UBS São Sebastião"},
     {"id": "ESB-03", "nome": "ESB III",         "tipo": "ESB", "ubs": "CEO Apuí"},
@@ -86,6 +87,14 @@ _PROFISSIONAIS = [
     {"id":"P045","nome":"Téc. Eronildes Castro Lima",      "cbo":"Técnico de Enfermagem",         "equipe":"ESTRADA NOVA","tipo":"ESF"},
     {"id":"P046","nome":"ACS Zuleide Farias Maciel",       "cbo":"Agente Comunitário de Saúde",   "equipe":"ESTRADA NOVA","tipo":"ESF"},
     {"id":"P047","nome":"ACS Adeílson Luz Pinheiro",       "cbo":"Agente Comunitário de Saúde",   "equipe":"ESTRADA NOVA","tipo":"ESF"},
+    # ESF RIBEIRINHA
+    {"id":"P048","nome":"Dr. Sebastião Pereira da Cruz",  "cbo":"Médico de Família e Comunidade","equipe":"RIBEIRINHA","tipo":"ESF"},
+    {"id":"P049","nome":"Enf. Dalva Santos Ribeiro",      "cbo":"Enfermeiro",                    "equipe":"RIBEIRINHA","tipo":"ESF"},
+    {"id":"P050","nome":"Téc. Ediomar Lopes Tavares",     "cbo":"Técnico de Enfermagem",         "equipe":"RIBEIRINHA","tipo":"ESF"},
+    {"id":"P051","nome":"ACS Antônio Nascimento Flexa",   "cbo":"Agente Comunitário de Saúde",   "equipe":"RIBEIRINHA","tipo":"ESF"},
+    {"id":"P052","nome":"ACS Raimunda Lima Pantoja",      "cbo":"Agente Comunitário de Saúde",   "equipe":"RIBEIRINHA","tipo":"ESF"},
+    {"id":"P053","nome":"ACS Djanilson Costa Ferreira",   "cbo":"Agente Comunitário de Saúde",   "equipe":"RIBEIRINHA","tipo":"ESF"},
+    {"id":"P054","nome":"ACS Gleiciane Nunes Barbosa",    "cbo":"Agente Comunitário de Saúde",   "equipe":"RIBEIRINHA","tipo":"ESF"},
     # ESB
     {"id":"D001","nome":"Dr. Carlos Henrique Bezerra",     "cbo":"Cirurgião-Dentista",            "equipe":"ESB I",  "tipo":"ESB"},
     {"id":"D002","nome":"ASB Marta Cristina Sousa",        "cbo":"Auxiliar em Saúde Bucal",       "equipe":"ESB I",  "tipo":"ESB"},

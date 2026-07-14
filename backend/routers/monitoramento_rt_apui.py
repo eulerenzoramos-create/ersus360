@@ -21,6 +21,7 @@ _EQUIPES_ESF = [
     {"id": "ESF-07", "nome": "KENNEDY",         "ubs": "UBS Kennedy",          "tipo": "eSF",  "ine": "0001483783"},
     {"id": "ESF-08", "nome": "JK",              "ubs": "UBS JK",               "tipo": "eSF",  "ine": "0001483791"},
     {"id": "ESF-09", "nome": "ESTRADA NOVA",    "ubs": "UBS Estrada Nova",     "tipo": "eSF",  "ine": "0001483805"},
+    {"id": "ESF-10", "nome": "RIBEIRINHA",      "ubs": "UBS Fluvial Ribeirinha","tipo": "eSF", "ine": "0001483813"},
 ]
 
 _EQUIPES_ESB = [
@@ -91,6 +92,14 @@ _PROFS_ESF = [
     {"id":"P045","equipe":"ESTRADA NOVA",  "nome":"Téc. Eronildes Castro Lima",  "cbo":"Técnico de Enfermagem",            "cns":"700 8012 4363 7788","tipo_equipe":"ESF"},
     {"id":"P046","equipe":"ESTRADA NOVA",  "nome":"ACS Zuleide Farias Maciel",   "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4364 9900","tipo_equipe":"ESF"},
     {"id":"P047","equipe":"ESTRADA NOVA",  "nome":"ACS Adeílson Luz Pinheiro",   "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4365 1122","tipo_equipe":"ESF"},
+    # RIBEIRINHA
+    {"id":"P048","equipe":"RIBEIRINHA",    "nome":"Dr. Sebastião Pereira da Cruz","cbo":"Médico de Família e Comunidade",   "cns":"700 8012 4366 3344","tipo_equipe":"ESF"},
+    {"id":"P049","equipe":"RIBEIRINHA",    "nome":"Enf. Dalva Santos Ribeiro",    "cbo":"Enfermeiro",                       "cns":"700 8012 4367 5566","tipo_equipe":"ESF"},
+    {"id":"P050","equipe":"RIBEIRINHA",    "nome":"Téc. Ediomar Lopes Tavares",   "cbo":"Técnico de Enfermagem",            "cns":"700 8012 4368 7788","tipo_equipe":"ESF"},
+    {"id":"P051","equipe":"RIBEIRINHA",    "nome":"ACS Antônio Nascimento Flexa", "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4369 9900","tipo_equipe":"ESF"},
+    {"id":"P052","equipe":"RIBEIRINHA",    "nome":"ACS Raimunda Lima Pantoja",    "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4370 1122","tipo_equipe":"ESF"},
+    {"id":"P053","equipe":"RIBEIRINHA",    "nome":"ACS Djanilson Costa Ferreira", "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4371 2233","tipo_equipe":"ESF"},
+    {"id":"P054","equipe":"RIBEIRINHA",    "nome":"ACS Gleiciane Nunes Barbosa",  "cbo":"Agente Comunitário de Saúde",      "cns":"700 8012 4372 4455","tipo_equipe":"ESF"},
 ]
 
 # ── Profissionais — ESB (Odontologia) ─────────────────────────────────────────
