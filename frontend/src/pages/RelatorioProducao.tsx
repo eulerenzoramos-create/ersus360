@@ -96,10 +96,10 @@ export default function RelatorioProducao() {
   if (profId) params.set("profissional_id", profId);
   if (grupoFiltro) params.set("grupo", grupoFiltro);
 
-  const qTipo  = useQuery({ queryKey: ["rel-tipo",  mes, ano, equipe, tipoEq, profId],          queryFn: () => apiGet(`/api/relatorios/por-tipo?${params}`),          enabled: aba === "tipo" });
-  const qProf  = useQuery({ queryKey: ["rel-prof",  mes, ano, equipe, tipoEq],                  queryFn: () => apiGet(`/api/relatorios/por-profissional?${params}`),   enabled: aba === "profissional" });
-  const qEq    = useQuery({ queryKey: ["rel-eq",    mes, ano, tipoEq],                          queryFn: () => apiGet(`/api/relatorios/por-equipe?${params}`),         enabled: aba === "equipe" });
-  const qDiario= useQuery({ queryKey: ["rel-diario",mes, ano, equipe, tipoEq, grupoFiltro],     queryFn: () => apiGet(`/api/relatorios/diario?${params}`),             enabled: aba === "diario" });
+  const qTipo  = useQuery({ queryKey: ["rel-tipo",  mes, ano, equipe, tipoEq, profId],                    queryFn: () => apiGet(`/api/relatorios/por-tipo?${params}`),        enabled: aba === "tipo" });
+  const qProf  = useQuery({ queryKey: ["rel-prof",  mes, ano, equipe, tipoEq],                            queryFn: () => apiGet(`/api/relatorios/por-profissional?${params}`), enabled: aba === "profissional" });
+  const qEq    = useQuery({ queryKey: ["rel-eq",    mes, ano, tipoEq],                                    queryFn: () => apiGet(`/api/relatorios/por-equipe?${params}`),      enabled: aba === "equipe" });
+  const qDiario= useQuery({ queryKey: ["rel-diario",mes, ano, equipe, tipoEq, profId, grupoFiltro],       queryFn: () => apiGet(`/api/relatorios/diario?${params}`),          enabled: aba === "diario" });
 
   const anos = [hoje.getFullYear(), hoje.getFullYear() - 1];
 
@@ -143,17 +143,15 @@ export default function RelatorioProducao() {
         </select>
       </div>
       {/* Profissional */}
-      {(aba === "tipo" || aba === "diario") && (
-        <div>
-          <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4, fontWeight: 600 }}>PROFISSIONAL</div>
-          <select value={profId} onChange={e => setProfId(e.target.value)} style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--fg)", fontSize: 13, minWidth: 220 }}>
-            <option value="">Todos</option>
-            {(qProfs.data?.profissionais ?? []).map((p: any) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-          </select>
-        </div>
-      )}
+      <div>
+        <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4, fontWeight: 600 }}>PROFISSIONAL</div>
+        <select value={profId} onChange={e => { setProfId(e.target.value); setGrupoFiltro(""); }} style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--card-bg)", color: "var(--fg)", fontSize: 13, minWidth: 220 }}>
+          <option value="">Todos</option>
+          {(qProfs.data?.profissionais ?? []).map((p: any) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+        </select>
+      </div>
       {/* Botão limpar */}
-      <button onClick={() => { setEquipe(""); setTipoEq(""); setProfId(""); setGrupoFiltro(""); }}
+      <button onClick={() => { setEquipe(""); setTipoEq(""); setProfId(""); setGrupoFiltro(""); setDiaExpandido(null); }}
         style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontSize: 12 }}>
         Limpar filtros
       </button>
@@ -430,23 +428,33 @@ export default function RelatorioProducao() {
         <KPI label="Dias Úteis"  value={qDiario.data.dias_uteis}     sub="com produção registrada"  cor="#8b5cf6" />
         <KPI label="Média/Dia"   value={qDiario.data.media_dia}      sub="atendimentos por dia"     cor="#f59e0b" />
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        <span style={{ fontSize: 12, color: "var(--muted)" }}>Filtrar grupo:</span>
-        {["","Consultas","Procedimentos","Visitas","Imunização","Rastreamento","Saúde da Mulher","Doenças Crônicas","Ações Coletivas","Triagem","Farmácia"].map(g => (
-          <button key={g} onClick={() => setGrupoFiltro(g)} style={{
-            padding: "4px 10px", borderRadius: 5, border: "1px solid var(--border)", cursor: "pointer", fontSize: 11,
-            background: grupoFiltro === g ? "var(--accent)" : "transparent",
-            color: grupoFiltro === g ? "#fff" : "var(--muted)",
-          }}>{g || "Todos"}</button>
-        ))}
-        <button onClick={() => {
-          const rows = [["Dia","Data","Dia Semana","Total","Acumulado"]];
-          qDiario.data.dias.filter((d: any) => d.total != null).forEach((d: any) => rows.push([d.dia, d.data, d.dia_semana, d.total, d.acumulado]));
-          exportarCSV(rows, `producao_diaria_${mes.toString().padStart(2,"0")}_${ano}.csv`);
-        }} style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 10px", borderRadius:5, border:"1px solid var(--accent)", background:"transparent", color:"var(--accent)", cursor:"pointer", fontSize:11 }}>
-          <Download size={11} /> CSV
-        </button>
-      </div>
+      {/* grupos disponíveis extraídos dos próprios dados */}
+      {(() => {
+        const gruposDisp = Array.from(new Set(
+          (qDiario.data.dias ?? [])
+            .flatMap((d: any) => d.tipos ?? [])
+            .map((t: any) => t.grupo)
+        )).sort() as string[];
+        return (
+          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>Filtrar grupo:</span>
+            {["", ...gruposDisp].map(g => (
+              <button key={g} onClick={() => setGrupoFiltro(g)} style={{
+                padding: "4px 10px", borderRadius: 5, border: "1px solid var(--border)", cursor: "pointer", fontSize: 11,
+                background: grupoFiltro === g ? "var(--accent)" : "transparent",
+                color: grupoFiltro === g ? "#fff" : "var(--muted)",
+              }}>{g || "Todos"}</button>
+            ))}
+            <button onClick={() => {
+              const rows = [["Dia","Data","Dia Semana","Total","Acumulado"]];
+              qDiario.data.dias.filter((d: any) => d.total != null).forEach((d: any) => rows.push([d.dia, d.data, d.dia_semana, d.total, d.acumulado]));
+              exportarCSV(rows, `producao_diaria_${mes.toString().padStart(2,"0")}_${ano}.csv`);
+            }} style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 10px", borderRadius:5, border:"1px solid var(--accent)", background:"transparent", color:"var(--accent)", cursor:"pointer", fontSize:11 }}>
+              <Download size={11} /> CSV
+            </button>
+          </div>
+        );
+      })()}
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>

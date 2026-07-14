@@ -521,6 +521,7 @@ async def relatorio_diario(
     ano: int = Query(default=None),
     equipe: Optional[str] = Query(default=None),
     tipo_equipe: Optional[str] = Query(default=None),
+    profissional_id: Optional[str] = Query(default=None),
     grupo: Optional[str] = Query(default=None),
 ):
     """Produção dia a dia com detalhamento por tipo de atendimento."""
@@ -537,6 +538,8 @@ async def relatorio_diario(
         profs = [p for p in profs if p["equipe"] == equipe]
     if tipo_equipe:
         profs = [p for p in profs if p["tipo"] == tipo_equipe]
+    if profissional_id:
+        profs = [p for p in profs if p["id"] == profissional_id]
 
     dias = []
     acumulado = 0
