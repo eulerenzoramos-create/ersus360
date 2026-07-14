@@ -597,9 +597,11 @@ app.include_router(acesso_especialidades_apui_router)
 from routers.saude_sexual_reprodutiva_apui import router as saude_sexual_reprodutiva_apui_router
 from routers.auditoria_interna_apui import router as auditoria_interna_apui_router
 from routers.monitoramento_metas_apui import router as monitoramento_metas_apui_router
+from routers.monitoramento_rt_apui import router as monitoramento_rt_apui_router
 app.include_router(saude_sexual_reprodutiva_apui_router)
 app.include_router(auditoria_interna_apui_router)
 app.include_router(monitoramento_metas_apui_router)
+app.include_router(monitoramento_rt_apui_router)
 from routers.controle_vetorial_apui import router as controle_vetorial_apui_router
 from routers.comite_mortalidade_apui import router as comite_mortalidade_apui_router
 from routers.suas_sus_apui import router as suas_sus_apui_router
