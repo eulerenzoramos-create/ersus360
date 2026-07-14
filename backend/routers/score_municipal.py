@@ -2,7 +2,7 @@ from __future__ import annotations
 import asyncio
 from datetime import date
 from fastapi import APIRouter
-from services import siops_service, previne_service
+from services import siops_service, previne_service, sih_service, pni_service, sia_service
 
 router = APIRouter(prefix="/api/score-municipal", tags=["score_municipal"])
 
@@ -99,48 +99,68 @@ _INDICADORES = [
 
 
 async def _dimensoes_dinamicas() -> list[dict]:
-    """Substitui as subdimensões de APS e Financeiro com dados reais."""
+    """Substitui dimensões com dados reais de APIs públicas."""
     hoje = date.today()
     comp = f"{hoje.year}{hoje.month:02d}"
+    ano  = hoje.year - 1
 
-    previne_data, siops_data = await asyncio.gather(
+    previne_data, siops_data, sih_data, pni_data, sia_data = await asyncio.gather(
         previne_service.buscar_indicadores(comp),
         siops_service.buscar_apuracao(hoje.year),
+        sih_service.buscar_internacoes(ano),
+        pni_service.buscar_cobertura(ano),
+        sia_service.buscar_producao_aps(ano),
     )
 
     dims = list(_DIMENSOES)  # cópia rasa
 
-    # Atualiza APS com dados Previne
+    # Dimensão 0: APS — Previne Brasil + SIH/ICSAP + SIA produção
     ind_previne = previne_data.get("indicadores", [])
-    if ind_previne:
-        media_pct = previne_data.get("media_geral_pct") or 68.0
-        ifp = round(sum(
-            min(i.get("resultado_pct", 0) / i.get("meta_pct", 60.0), 1.0)
-            for i in ind_previne
-        ) / len(ind_previne), 2) if ind_previne else 0.52
+    media_pct = previne_data.get("media_geral_pct") or 68.0
+    ifp = round(sum(
+        min(i.get("resultado_pct", 0) / i.get("meta_pct", 60.0), 1.0)
+        for i in ind_previne
+    ) / len(ind_previne), 2) if ind_previne else 0.52
 
-        dims[0] = {
-            **dims[0],
-            "score": round(media_pct * 0.7 + 68.4 * 0.2 + 90.0 * 0.1, 1),
-            "subdimensoes": [
-                {"item": "Cobertura ESF",            "valor": 68.4,  "meta": 95.0,  "score": round(68.4 / 95.0 * 100, 1)},
-                {"item": "Previne Brasil (IFP)",      "valor": ifp,   "meta": 1.0,   "score": round(ifp * 100, 1)},
-                {"item": "ICSAP (inverso)",           "valor": 18.4,  "meta": 8.0,   "score": 43.5},
-                {"item": "Produção APS/hab",          "valor": 3.2,   "meta": 5.0,   "score": round(3.2 / 5.0 * 100, 1)},
-            ],
-            "fonte": previne_data.get("fonte", "referencia"),
-        }
+    icsap_pct = float(sih_data.get("icsap_pct") or 18.4)
+    icsap_score = round(max(0, 100 - (icsap_pct - 8.0) / (40.0 - 8.0) * 100), 1)  # escala 8%=100pts
+    per_capita = float(sia_data.get("per_capita") or 3.2)
+    dims[0] = {
+        **dims[0],
+        "score": round(media_pct * 0.55 + icsap_score * 0.25 + min(per_capita / 5.0 * 100, 100) * 0.1 + 68.4 / 95.0 * 100 * 0.1, 1),
+        "subdimensoes": [
+            {"item": "Cobertura ESF",       "valor": 68.4,     "meta": 95.0, "score": round(68.4 / 95.0 * 100, 1)},
+            {"item": "Previne Brasil (IFP)", "valor": ifp,      "meta": 1.0,  "score": round(ifp * 100, 1)},
+            {"item": "ICSAP (inverso)",      "valor": icsap_pct,"meta": 8.0,  "score": icsap_score},
+            {"item": "Produção APS/hab",     "valor": per_capita,"meta": 5.0, "score": round(min(per_capita / 5.0 * 100, 100), 1)},
+        ],
+        "fonte": previne_data.get("fonte", "referencia"),
+    }
 
-    # Atualiza Financeiro com dados SIOPS (dimensão índice 5)
+    # Dimensão 1: Vigilância — cobertura vacinal (PNI)
+    media_vacinal = float(pni_data.get("media_cobertura_pct") or 83.4)
+    dims[1] = {
+        **dims[1],
+        "subdimensoes": [
+            {"item": "Cobertura vacinal (média)", "valor": media_vacinal, "meta": 95.0, "score": round(media_vacinal / 95.0 * 100, 1)},
+            {"item": "Encerramento SINAN ≤60d",  "valor": 79.4, "meta": 95.0, "score": 63.5},
+            {"item": "Controle malária (IPA)",    "valor": 49.7, "meta": 10.0, "score": 20.1},
+            {"item": "Saneamento / água tratada", "valor": 75.3, "meta": 99.0, "score": 76.1},
+        ],
+        "score": round((media_vacinal / 95.0 * 100 + 63.5 + 20.1 + 76.1) / 4, 1),
+        "fonte": pni_data.get("fonte", "referencia"),
+    }
+
+    # Dimensão 5: Financeiro — SIOPS
     proprio = float(siops_data.get("minimo_constitucional_pct_aplicado") or 17.16)
     aplicacao_score = min(proprio / 15.0 * 100, 100)
     dims[5] = {
         **dims[5],
         "subdimensoes": [
-            {"item": "Aplicação mínima (≥15%)", "valor": proprio,     "meta": 15.0, "score": round(aplicacao_score, 1)},
-            {"item": "Pessoal/despesa (≤60%)",  "valor": 62.4,        "meta": 60.0, "score": 48.4},
-            {"item": "Execução blocos SUS",     "valor": 85.8,        "meta": 95.0, "score": 84.2},
-            {"item": "Exec. emendas parlam.",   "valor": 57.0,        "meta": 90.0, "score": 35.0},
+            {"item": "Aplicação mínima (≥15%)", "valor": proprio, "meta": 15.0, "score": round(aplicacao_score, 1)},
+            {"item": "Pessoal/despesa (≤60%)",  "valor": 62.4,    "meta": 60.0, "score": 48.4},
+            {"item": "Execução blocos SUS",     "valor": 85.8,    "meta": 95.0, "score": 84.2},
+            {"item": "Exec. emendas parlam.",   "valor": 57.0,    "meta": 90.0, "score": 35.0},
         ],
         "score": round((aplicacao_score * 0.25 + 48.4 * 0.25 + 84.2 * 0.25 + 35.0 * 0.25), 1),
         "fonte": siops_data.get("fonte", "referencia"),
