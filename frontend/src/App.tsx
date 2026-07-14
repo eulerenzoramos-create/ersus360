@@ -293,6 +293,7 @@ import SaudeSexualReprodutoraApui   from "./pages/SaudeSexualReprodutoraApui";
 import AuditoriaInternaApui         from "./pages/AuditoriaInternaApui";
 import MonitoramentoMetasApui       from "./pages/MonitoramentoMetasApui";
 import MonitoramentoRtApui          from "./pages/MonitoramentoRtApui";
+import RelatorioProducao            from "./pages/RelatorioProducao";
 import GestaoRiscosSaudeApui        from "./pages/GestaoRiscosSaudeApui";
 import AcessoEspecialidadesApui     from "./pages/AcessoEspecialidadesApui";
 import ControleVetorialApui         from "./pages/ControleVetorialApui";
@@ -454,6 +455,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/transporte-sanitario"  label="Transporte / TFD"    Icon={Truck}/>
             <L1 to="/producao-sisab"        label="Produção APS / SISAB" Icon={Activity}/>
             <L1 to="/monitoramento-rt-apui" label="⚡ Monitor Tempo Real"  Icon={Activity}/>
+            <L1 to="/relatorio-producao"    label="📋 Relatório Produção"  Icon={FileText}/>
             <L1 to="/atencao-domiciliar"    label="Atenção Domiciliar"    Icon={Home}/>
             <L1 to="/sim-sinasc"            label="SIM / SINASC"          Icon={BarChart2}/>
             <L1 to="/cancer-rastreio"       label="Rastreio de Câncer"    Icon={Search}/>
@@ -970,6 +972,7 @@ export default function App() {
             <Route path="/auditoria-interna-apui"         element={<AuditoriaInternaApui/>}/>
             <Route path="/monitoramento-metas-apui"       element={<MonitoramentoMetasApui/>}/>
             <Route path="/monitoramento-rt-apui"          element={<MonitoramentoRtApui/>}/>
+            <Route path="/relatorio-producao"             element={<RelatorioProducao/>}/>
             <Route path="/controle-vetorial-apui"         element={<ControleVetorialApui/>}/>
             <Route path="/comite-mortalidade-apui"        element={<ComiteMortalidadeApui/>}/>
             <Route path="/suas-sus-apui"                  element={<SuaSusApui/>}/>
