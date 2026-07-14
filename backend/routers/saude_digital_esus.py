@@ -1,6 +1,9 @@
 from fastapi import APIRouter
+from services import esus_service
 
 router = APIRouter(prefix="/api/saude-digital-esus", tags=["saude_digital_esus"])
+
+# ── Dados estáticos de infraestrutura / monitoramento ─────────────────────────
 
 _SISTEMAS = [
     {"sistema": "e-SUS APS (PEC)", "versao": "5.2.34", "unidades_ativas": 8, "unidades_total": 8,
@@ -36,22 +39,14 @@ _PRONTUARIO_DIGITAL = {
 }
 
 _CONECTIVIDADE = [
-    {"unidade": "UBS Central", "tipo_conexao": "Fibra óptica", "velocidade_mbps": 100,
-     "uptime_pct": 99.2, "backup_4g": True, "status": "ok"},
-    {"unidade": "UBSF Juma", "tipo_conexao": "4G rural", "velocidade_mbps": 8,
-     "uptime_pct": 71.4, "backup_4g": False, "status": "critico"},
-    {"unidade": "UBSF Mapari", "tipo_conexao": "4G rural", "velocidade_mbps": 6,
-     "uptime_pct": 68.2, "backup_4g": False, "status": "critico"},
-    {"unidade": "UBSF Igapó-Açu", "tipo_conexao": "Satélite VSAT", "velocidade_mbps": 4,
-     "uptime_pct": 82.6, "backup_4g": False, "status": "atencao"},
-    {"unidade": "PSF Bairro Novo", "tipo_conexao": "Rádio ponto-a-ponto", "velocidade_mbps": 20,
-     "uptime_pct": 94.8, "backup_4g": True, "status": "ok"},
-    {"unidade": "UPA 24h", "tipo_conexao": "Fibra óptica", "velocidade_mbps": 100,
-     "uptime_pct": 99.8, "backup_4g": True, "status": "ok"},
-    {"unidade": "Hospital Municipal", "tipo_conexao": "Fibra óptica", "velocidade_mbps": 200,
-     "uptime_pct": 99.9, "backup_4g": True, "status": "ok"},
-    {"unidade": "CAPS AD", "tipo_conexao": "Cable/ADSL", "velocidade_mbps": 25,
-     "uptime_pct": 88.4, "backup_4g": False, "status": "atencao"},
+    {"unidade": "UBS Central",      "tipo_conexao": "Fibra óptica",        "velocidade_mbps": 100, "uptime_pct": 99.2, "backup_4g": True,  "status": "ok"},
+    {"unidade": "UBSF Juma",        "tipo_conexao": "4G rural",            "velocidade_mbps": 8,   "uptime_pct": 71.4, "backup_4g": False, "status": "critico"},
+    {"unidade": "UBSF Mapari",      "tipo_conexao": "4G rural",            "velocidade_mbps": 6,   "uptime_pct": 68.2, "backup_4g": False, "status": "critico"},
+    {"unidade": "UBSF Igapó-Açu",  "tipo_conexao": "Satélite VSAT",       "velocidade_mbps": 4,   "uptime_pct": 82.6, "backup_4g": False, "status": "atencao"},
+    {"unidade": "PSF Bairro Novo",  "tipo_conexao": "Rádio ponto-a-ponto", "velocidade_mbps": 20,  "uptime_pct": 94.8, "backup_4g": True,  "status": "ok"},
+    {"unidade": "UPA 24h",          "tipo_conexao": "Fibra óptica",        "velocidade_mbps": 100, "uptime_pct": 99.8, "backup_4g": True,  "status": "ok"},
+    {"unidade": "Hospital Municipal","tipo_conexao": "Fibra óptica",       "velocidade_mbps": 200, "uptime_pct": 99.9, "backup_4g": True,  "status": "ok"},
+    {"unidade": "CAPS AD",          "tipo_conexao": "Cable/ADSL",          "velocidade_mbps": 25,  "uptime_pct": 88.4, "backup_4g": False, "status": "atencao"},
 ]
 
 _HISTORICO = [
@@ -78,6 +73,8 @@ _INDICADORES = [
      "status": "atencao", "observacao": "13,6% das prescrições ainda em papel — riscos de segurança do paciente"},
 ]
 
+
+# ── Endpoints estáticos existentes ────────────────────────────────────────────
 
 @router.get("/dashboard")
 def dashboard():
@@ -118,3 +115,52 @@ def historico():
 @router.get("/indicadores")
 def indicadores():
     return _INDICADORES
+
+
+# ── e-SUS PEC — endpoints com dados reais ─────────────────────────────────────
+
+@router.get("/pec/status")
+async def pec_status():
+    """Verifica conectividade com o e-SUS PEC configurado."""
+    return await esus_service.testar_conexao()
+
+
+@router.post("/pec/testar-conexao")
+async def pec_testar_conexao(body: dict):
+    """Testa uma URL customizada do e-SUS PEC."""
+    url = (body.get("url") or "").strip()
+    if not url:
+        return {"erro": "URL não informada"}
+    return await esus_service.testar_conexao(url_override=url)
+
+
+@router.get("/pec/producao")
+async def pec_producao(competencia: str = ""):
+    """Produção mensal. competencia = 'AAAA-MM', padrão = mês atual."""
+    from datetime import date
+    comp = competencia or date.today().strftime("%Y-%m")
+    return await esus_service.buscar_producao(comp)
+
+
+@router.get("/pec/cadastros")
+async def pec_cadastros():
+    """Total de cidadãos cadastrados."""
+    return await esus_service.buscar_cadastros()
+
+
+@router.get("/pec/unidades")
+async def pec_unidades():
+    """Unidades de saúde cadastradas no PEC."""
+    return await esus_service.buscar_unidades()
+
+
+@router.get("/pec/profissionais")
+async def pec_profissionais():
+    """Profissionais de saúde cadastrados no PEC."""
+    return await esus_service.buscar_profissionais()
+
+
+@router.get("/pec/indicadores-aps")
+async def pec_indicadores_aps():
+    """Indicadores APS do e-SUS PEC."""
+    return await esus_service.buscar_indicadores_aps()

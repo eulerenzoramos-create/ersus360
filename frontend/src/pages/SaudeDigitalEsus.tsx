@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "../lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiPost } from "../lib/api";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
-import { Monitor, AlertTriangle, Wifi, Activity } from "lucide-react";
+import { Monitor, AlertTriangle, Wifi, Activity, Settings, CheckCircle, XCircle, RefreshCw } from "lucide-react";
 
 const BRAND  = "#1e3a5f";
 const ACCENT = "#2563eb";
@@ -14,8 +14,8 @@ const WARN   = "#d97706";
 const CRIT   = "#dc2626";
 
 function statusColor(s: string) {
-  if (s === "ok") return OK;
-  if (s === "atencao") return WARN;
+  if (s === "ok" || s === "ATINGIDO") return OK;
+  if (s === "atencao" || s === "EM_ANDAMENTO") return WARN;
   return CRIT;
 }
 
@@ -33,8 +33,304 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
   </div>
 );
 
+// ── Banner de status do e-SUS PEC ─────────────────────────────────────────────
+function PecStatusBanner({ onConfig }: { onConfig: () => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["pec-status"],
+    queryFn: () => apiGet("/api/saude-digital-esus/pec/status"),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  const pec = data as any;
+
+  if (isLoading) return null;
+
+  const conectado = pec?.conectado;
+  const autenticado = conectado && (pec?.instancia || pec?.versao);
+  const bgColor = autenticado ? "#f0fdf4" : conectado ? "#fffbeb" : "#fef2f2";
+  const borderColor = autenticado ? "#bbf7d0" : conectado ? "#fde68a" : "#fecaca";
+  const textColor = autenticado ? OK : conectado ? WARN : CRIT;
+
+  return (
+    <div style={{ background: bgColor, border: `1px solid ${borderColor}`, borderRadius: 10,
+      padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center",
+      justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {autenticado
+          ? <CheckCircle size={16} color={OK} />
+          : conectado
+            ? <AlertTriangle size={16} color={WARN} />
+            : <XCircle size={16} color={CRIT} />}
+        <span style={{ fontSize: 13, color: textColor, fontWeight: 600 }}>
+          {autenticado
+            ? `e-SUS PEC conectado${pec.instancia ? ` — ${pec.instancia}` : ""}${pec.versao ? ` v${pec.versao}` : ""}`
+            : conectado
+              ? `e-SUS PEC acessível mas não autenticado — verifique usuário/senha (Railway)`
+              : `e-SUS PEC não acessível${pec?.url ? ` (${pec.url})` : ""} — configure a URL correta`}
+        </span>
+        {pec?.fonte === "fallback" && (
+          <span style={{ fontSize: 11, color: "#64748b", background: "#f1f5f9",
+            borderRadius: 6, padding: "1px 8px", border: "1px solid #e2e8f0" }}>
+            dados de demonstração
+          </span>
+        )}
+      </div>
+      <button onClick={onConfig}
+        style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12,
+          color: ACCENT, background: "white", border: "1px solid #bfdbfe",
+          borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontWeight: 500 }}>
+        <Settings size={12} /> Configurar
+      </button>
+    </div>
+  );
+}
+
+// ── Painel de configuração ─────────────────────────────────────────────────────
+function PecConfigPanel({ onClose }: { onClose: () => void }) {
+  const qc = useQueryClient();
+  const [url, setUrl] = useState("");
+  const [result, setResult] = useState<any>(null);
+
+  const testar = useMutation({
+    mutationFn: (u: string) => apiPost("/api/saude-digital-esus/pec/testar-conexao", { url: u }),
+    onSuccess: (data) => { setResult(data); qc.invalidateQueries({ queryKey: ["pec-status"] }); },
+  });
+
+  return (
+    <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 12,
+      padding: 20, marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <span style={{ fontWeight: 700, color: BRAND, fontSize: 14 }}>Configuração do e-SUS PEC</span>
+        <button onClick={onClose} style={{ fontSize: 18, color: "#94a3b8", background: "none",
+          border: "none", cursor: "pointer", lineHeight: 1 }}>×</button>
+      </div>
+
+      <div style={{ fontSize: 13, color: "#475569", marginBottom: 12, lineHeight: 1.6 }}>
+        <p>O e-SUS PEC precisa estar <strong>acessível pela internet</strong> para que o ERSUS360 se conecte.</p>
+        <p style={{ marginTop: 4 }}>
+          Configure as variáveis no <strong>Railway</strong>:<br />
+          <code style={{ background: "#f8fafc", padding: "1px 6px", borderRadius: 4, fontSize: 12 }}>
+            ESUS_URL</code> · <code style={{ background: "#f8fafc", padding: "1px 6px", borderRadius: 4, fontSize: 12 }}>
+            ESUS_USUARIO</code> · <code style={{ background: "#f8fafc", padding: "1px 6px", borderRadius: 4, fontSize: 12 }}>
+            ESUS_SENHA</code>
+        </p>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <input
+          type="url"
+          placeholder="https://esus.seumunicípio.gov.br"
+          value={url}
+          onChange={e => setUrl(e.target.value)}
+          style={{ flex: 1, padding: "8px 12px", fontSize: 13, border: "1px solid #e2e8f0",
+            borderRadius: 8, outline: "none" }}
+        />
+        <button
+          onClick={() => url.trim() && testar.mutate(url.trim())}
+          disabled={testar.isPending || !url.trim()}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px",
+            background: ACCENT, color: "white", border: "none", borderRadius: 8,
+            fontSize: 13, cursor: "pointer", opacity: testar.isPending ? 0.7 : 1 }}>
+          {testar.isPending && <RefreshCw size={13} style={{ animation: "spin 1s linear infinite" }} />}
+          Testar
+        </button>
+      </div>
+
+      {result && (
+        <div style={{ fontSize: 12, padding: "8px 12px", borderRadius: 8, marginTop: 4,
+          background: result.conectado ? "#f0fdf4" : "#fef2f2",
+          border: `1px solid ${result.conectado ? "#bbf7d0" : "#fecaca"}`,
+          color: result.conectado ? OK : CRIT }}>
+          {result.conectado
+            ? `✓ Acessível${result.instancia ? ` — ${result.instancia}` : ""}${result.versao ? ` v${result.versao}` : ""}. Salve a URL no Railway como ESUS_URL.`
+            : `✗ Não foi possível conectar: ${result.erro || "sem resposta"}`}
+        </div>
+      )}
+
+      <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 10 }}>
+        Após salvar as variáveis no Railway, aguarde o redeploy (~1 min) e clique em "Configurar" novamente para verificar.
+      </p>
+    </div>
+  );
+}
+
+// ── Aba e-SUS PEC — dados reais ───────────────────────────────────────────────
+function TabPEC() {
+  const hoje = new Date();
+  const defaultComp = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+  const [comp, setComp] = useState(defaultComp);
+
+  const { data: prod, isLoading: loadProd } = useQuery({
+    queryKey: ["pec-producao", comp],
+    queryFn: () => apiGet(`/api/saude-digital-esus/pec/producao?competencia=${comp}`),
+  });
+  const { data: cad } = useQuery({
+    queryKey: ["pec-cadastros"],
+    queryFn: () => apiGet("/api/saude-digital-esus/pec/cadastros"),
+  });
+  const { data: unidades } = useQuery({
+    queryKey: ["pec-unidades"],
+    queryFn: () => apiGet("/api/saude-digital-esus/pec/unidades"),
+  });
+  const { data: profissionais } = useQuery({
+    queryKey: ["pec-profissionais"],
+    queryFn: () => apiGet("/api/saude-digital-esus/pec/profissionais"),
+  });
+  const { data: indAps } = useQuery({
+    queryKey: ["pec-indicadores-aps"],
+    queryFn: () => apiGet("/api/saude-digital-esus/pec/indicadores-aps"),
+  });
+
+  const p = prod as any;
+  const c = cad as any;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Competência */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <label style={{ fontSize: 13, color: "#475569", fontWeight: 600 }}>Competência:</label>
+        <input type="month" value={comp} onChange={e => setComp(e.target.value)}
+          style={{ padding: "5px 10px", border: "1px solid #e2e8f0", borderRadius: 8,
+            fontSize: 13, outline: "none", color: BRAND }} />
+        {p?.fonte === "fallback" && (
+          <span style={{ fontSize: 11, color: "#64748b", background: "#f1f5f9",
+            borderRadius: 6, padding: "2px 8px", border: "1px solid #e2e8f0" }}>
+            demonstração
+          </span>
+        )}
+      </div>
+
+      {/* Produção */}
+      {!loadProd && p && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 style={{ fontWeight: 700, color: BRAND, fontSize: 14, marginBottom: 12 }}>
+            Produção — {p.competencia}
+          </h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+            {[
+              ["Atend. Individuais",    p.atendimentos_individuais,   ACCENT],
+              ["Atend. Odontológicos",  p.atendimentos_odontologicos, "#7c3aed"],
+              ["Visitas Domiciliares",  p.visitas_domiciliares,       "#0891b2"],
+              ["Procedimentos",         p.procedimentos,              "#d97706"],
+              ["Atividades Coletivas",  p.atividades_coletivas,       OK],
+              ["Encaminhamentos",       p.encaminhamentos,            "#64748b"],
+            ].map(([l, v, c]) => (
+              <div key={l as string} style={{ textAlign: "center", padding: "10px 0" }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: c as string }}>
+                  {(v as number).toLocaleString("pt-BR")}
+                </div>
+                <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{l as string}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cadastros */}
+      {c && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+          <KPI label="Cidadãos cadastrados"  value={(c.individuais || 0).toLocaleString("pt-BR")} color={ACCENT} />
+          <KPI label="Domicílios cadastrados" value={(c.domiciliares || 0).toLocaleString("pt-BR")} color={BRAND} />
+          <KPI label="Atualiz. (12 meses)"   value={(c.atualizados_12m || 0).toLocaleString("pt-BR")} color={OK} />
+        </div>
+      )}
+
+      {/* Unidades */}
+      {Array.isArray(unidades) && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 style={{ fontWeight: 700, color: BRAND, fontSize: 14, marginBottom: 10 }}>
+            Unidades de Saúde ({(unidades as any[]).length})
+          </h3>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "#f8fafc" }}>
+                  {["Nome", "CNES", "Tipo"].map(h => (
+                    <th key={h} style={{ padding: "6px 10px", textAlign: "left",
+                      color: "#475569", fontWeight: 600, fontSize: 11,
+                      borderBottom: "1px solid #e2e8f0" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(unidades as any[]).map((u: any, i: number) => (
+                  <tr key={u.id || i} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: "7px 10px", color: BRAND, fontWeight: 500 }}>{u.nome}</td>
+                    <td style={{ padding: "7px 10px", color: "#64748b", fontFamily: "monospace" }}>{u.cnes}</td>
+                    <td style={{ padding: "7px 10px", color: "#475569" }}>{u.tipo}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Profissionais */}
+      {Array.isArray(profissionais) && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 style={{ fontWeight: 700, color: BRAND, fontSize: 14, marginBottom: 10 }}>
+            Profissionais de Saúde ({(profissionais as any[]).length})
+          </h3>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "#f8fafc" }}>
+                  {["Nome", "CBO", "Unidade", "Equipe"].map(h => (
+                    <th key={h} style={{ padding: "6px 10px", textAlign: "left",
+                      color: "#475569", fontWeight: 600, fontSize: 11,
+                      borderBottom: "1px solid #e2e8f0" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(profissionais as any[]).map((pr: any, i: number) => (
+                  <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: "7px 10px", color: BRAND, fontWeight: 500 }}>{pr.nome}</td>
+                    <td style={{ padding: "7px 10px", color: "#64748b" }}>{pr.cbo}</td>
+                    <td style={{ padding: "7px 10px", color: "#475569" }}>{pr.unidade}</td>
+                    <td style={{ padding: "7px 10px", color: "#475569" }}>{pr.equipe}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Indicadores APS */}
+      {Array.isArray(indAps) && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <h3 style={{ fontWeight: 700, color: BRAND, fontSize: 14 }}>Indicadores APS</h3>
+          {(indAps as any[]).map((ind: any) => (
+            <div key={ind.indicador} style={{ background: "white", borderRadius: 10,
+              border: "1px solid #e2e8f0", padding: "12px 16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between",
+                alignItems: "center", marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>
+                  {ind.indicador}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700,
+                  color: statusColor(ind.situacao || ""), background: "#f8fafc",
+                  padding: "2px 8px", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+                  {ind.alcancado}% / {ind.meta}%
+                </span>
+              </div>
+              <ProgressBar value={ind.alcancado} max={ind.meta}
+                color={statusColor(ind.situacao || "")} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ── Página principal ──────────────────────────────────────────────────────────
 export default function SaudeDigitalEsus() {
-  const [aba, setAba] = useState("dashboard");
+  const [aba, setAba] = useState("pec");
+  const [showConfig, setShowConfig] = useState(false);
 
   const { data: dash } = useQuery({
     queryKey: ["sde-dashboard"],
@@ -71,16 +367,18 @@ export default function SaudeDigitalEsus() {
   const pronRaw = prontuario as any;
 
   const ABAS = [
-    { key: "dashboard",    label: "Dashboard",    icon: <Monitor size={15}/> },
-    { key: "sistemas",     label: "Sistemas",     icon: <Monitor size={15}/> },
-    { key: "prontuario",   label: "Prontuário",   icon: <Activity size={15}/> },
-    { key: "conectividade",label: "Conectividade",icon: <Wifi size={15}/> },
-    { key: "historico",    label: "Histórico",    icon: <Activity size={15}/> },
-    { key: "indicadores",  label: "Indicadores",  icon: <AlertTriangle size={15}/> },
+    { key: "pec",          label: "e-SUS PEC",     icon: <Activity size={15}/> },
+    { key: "dashboard",    label: "Dashboard",      icon: <Monitor size={15}/> },
+    { key: "sistemas",     label: "Sistemas",       icon: <Monitor size={15}/> },
+    { key: "prontuario",   label: "Prontuário",     icon: <Activity size={15}/> },
+    { key: "conectividade",label: "Conectividade",  icon: <Wifi size={15}/> },
+    { key: "historico",    label: "Histórico",      icon: <Activity size={15}/> },
+    { key: "indicadores",  label: "Indicadores",    icon: <AlertTriangle size={15}/> },
   ];
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-lg" style={{ background: BRAND }}>
@@ -92,6 +390,9 @@ export default function SaudeDigitalEsus() {
           </div>
         </div>
 
+        <PecStatusBanner onConfig={() => setShowConfig(!showConfig)} />
+        {showConfig && <PecConfigPanel onClose={() => setShowConfig(false)} />}
+
         <div className="flex gap-2 mb-6 flex-wrap">
           {ABAS.map((a) => (
             <button key={a.key} onClick={() => setAba(a.key)}
@@ -101,6 +402,8 @@ export default function SaudeDigitalEsus() {
             </button>
           ))}
         </div>
+
+        {aba === "pec" && <TabPEC />}
 
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
@@ -215,9 +518,9 @@ export default function SaudeDigitalEsus() {
                 <YAxis yAxisId="pct" orientation="right" domain={[84, 95]} tick={{ fontSize: 11 }} unit="%" />
                 <Tooltip />
                 <Legend />
-                <Line yAxisId="n"   dataKey="atendimentos_digitais"          name="Atend. Digitais"      stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
-                <Line yAxisId="pct" dataKey="fichas_sinan_transmitidas_pct"  name="SISAB Transm. %"       stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line yAxisId="pct" dataKey="uptime_medio_pct"               name="Uptime Médio %"        stroke={OK}     strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="n"   dataKey="atendimentos_digitais"         name="Atend. Digitais"  stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="pct" dataKey="fichas_sinan_transmitidas_pct" name="SISAB Transm. %"  stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="pct" dataKey="uptime_medio_pct"              name="Uptime Médio %"   stroke={OK}     strokeWidth={2} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
