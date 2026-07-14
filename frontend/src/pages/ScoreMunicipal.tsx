@@ -6,7 +6,7 @@ import {
   PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
-import { Star, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { Star, AlertTriangle, TrendingUp, Activity, Bot, Clock, User, Zap } from "lucide-react";
 
 const BRAND  = "#1e3a5f";
 const ACCENT = "#2563eb";
@@ -36,16 +36,23 @@ export default function ScoreMunicipal() {
   const { data: historico } = useQuery({ queryKey: ["sm-historico"], queryFn: () => apiGet("/api/score-municipal/historico"),  enabled: aba === "historico" });
   const { data: comparativo }= useQuery({ queryKey: ["sm-comp"],    queryFn: () => apiGet("/api/score-municipal/comparativo"), enabled: aba === "comparativo" });
   const { data: indicadores }= useQuery({ queryKey: ["sm-ind"],     queryFn: () => apiGet("/api/score-municipal/indicadores"), enabled: aba === "indicadores" });
+  const { data: recomendacoes, isLoading: loadingRec } = useQuery({ queryKey: ["sm-rec-ia"], queryFn: () => apiGet("/api/score-municipal/recomendacoes-ia"), enabled: aba === "recomendacoes", staleTime: 5 * 60 * 1000 });
 
   const dashRaw = dash as any;
   const compRaw = comparativo as any;
 
+  const recRaw = recomendacoes as any;
+
+  const urgColor = (u: string) => u === "critico" ? CRIT : u === "alto" ? WARN : "#0891b2";
+  const prazoIcon = (p: string) => p?.includes("30") ? "🔴" : p?.includes("60") ? "🟠" : p?.includes("90") ? "🟡" : "🔵";
+
   const ABAS = [
-    { key: "dashboard",   label: "Dashboard",    icon: <Star size={15}/> },
-    { key: "dimensoes",   label: "Dimensões",    icon: <Activity size={15}/> },
-    { key: "historico",   label: "Evolução",     icon: <TrendingUp size={15}/> },
-    { key: "comparativo", label: "Comparativo",  icon: <TrendingUp size={15}/> },
-    { key: "indicadores", label: "Indicadores",  icon: <AlertTriangle size={15}/> },
+    { key: "dashboard",      label: "Dashboard",        icon: <Star size={15}/> },
+    { key: "dimensoes",      label: "Dimensões",        icon: <Activity size={15}/> },
+    { key: "historico",      label: "Evolução",         icon: <TrendingUp size={15}/> },
+    { key: "comparativo",    label: "Comparativo",      icon: <TrendingUp size={15}/> },
+    { key: "indicadores",    label: "Indicadores",      icon: <AlertTriangle size={15}/> },
+    { key: "recomendacoes",  label: "Recomendações IA", icon: <Bot size={15}/> },
   ];
 
   return (
@@ -222,6 +229,69 @@ export default function ScoreMunicipal() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {aba === "recomendacoes" && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-4 rounded-xl border" style={{ background: "#eff6ff", borderColor: "#bfdbfe" }}>
+              <Bot size={20} color={ACCENT} />
+              <div>
+                <p className="text-sm font-semibold text-blue-800">Recomendações geradas por IA (Claude)</p>
+                <p className="text-xs text-blue-600">Análise automática das 8 dimensões do score com priorização por impacto e urgência</p>
+              </div>
+              {recRaw?.fonte === "ia" && (
+                <span className="ml-auto text-xs bg-blue-600 text-white px-2 py-1 rounded-full">IA Ativa</span>
+              )}
+              {recRaw?.fonte === "referencia" && (
+                <span className="ml-auto text-xs bg-slate-400 text-white px-2 py-1 rounded-full">Dados de Referência</span>
+              )}
+            </div>
+
+            {loadingRec && (
+              <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+                <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-3" />
+                <p className="text-sm text-slate-500">IA analisando dimensões do score...</p>
+              </div>
+            )}
+
+            {recRaw?.recomendacoes && (
+              <div className="grid gap-4">
+                {(recRaw.recomendacoes as any[]).map((rec: any) => (
+                  <div key={rec.prioridade} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-black text-white text-lg"
+                        style={{ background: urgColor(rec.urgencia) }}>
+                        {rec.prioridade}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: urgColor(rec.urgencia) }}>
+                            {rec.urgencia?.toUpperCase()}
+                          </span>
+                          <span className="text-xs text-slate-500 font-medium">{rec.dimensao}</span>
+                        </div>
+                        <p className="text-sm font-semibold text-slate-800 mb-3">{rec.acao}</p>
+                        <div className="grid grid-cols-3 gap-3 text-xs">
+                          <div className="flex items-center gap-1.5 text-slate-600">
+                            <Zap size={12} color={OK} />
+                            <span>Impacto: <b style={{ color: OK }}>{rec.impacto}</b></span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-slate-600">
+                            <Clock size={12} color={WARN} />
+                            <span>{prazoIcon(rec.prazo)} {rec.prazo}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-slate-600">
+                            <User size={12} />
+                            <span className="truncate">{rec.responsavel}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

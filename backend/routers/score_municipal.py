@@ -3,6 +3,7 @@ import asyncio
 from datetime import date
 from fastapi import APIRouter
 from services import siops_service, previne_service, sih_service, pni_service, sia_service
+from config import settings
 
 router = APIRouter(prefix="/api/score-municipal", tags=["score_municipal"])
 
@@ -209,3 +210,81 @@ def comparativo():
 @router.get("/indicadores")
 def indicadores():
     return _INDICADORES
+
+
+@router.get("/recomendacoes-ia")
+async def recomendacoes_ia():
+    """Gera recomendações priorizadas usando IA com base no score atual."""
+    if not settings.ANTHROPIC_API_KEY:
+        # Retorna recomendações estáticas quando IA não disponível
+        return _RECOMENDACOES_ESTATICAS
+
+    dims = await _dimensoes_dinamicas()
+    dims_sorted = sorted(dims, key=lambda d: d["score"])
+
+    resumo = "\n".join(
+        f"- {d['dimensao']}: score {d['score']}/100 (peso {d['peso']}%)"
+        for d in dims_sorted
+    )
+    piores_subdims = []
+    for d in dims_sorted[:3]:
+        for s in sorted(d.get("subdimensoes", []), key=lambda x: x["score"])[:2]:
+            piores_subdims.append(f"  • {d['dimensao']} → {s['item']}: {s['valor']} (meta {s['meta']})")
+
+    prompt = f"""Analise o Score Municipal ERSUS 360 do município de Apuí/AM (Amazonas) e gere um plano de ação priorizado.
+
+SCORE ATUAL POR DIMENSÃO (ordem crescente = pior primeiro):
+{resumo}
+
+SUBDIMENSÕES CRÍTICAS (pior desempenho):
+{chr(10).join(piores_subdims)}
+
+Gere exatamente 6 recomendações no formato JSON:
+[
+  {{
+    "prioridade": 1,
+    "dimensao": "nome da dimensão",
+    "acao": "ação específica em 1 frase",
+    "impacto": "impacto esperado no score em pontos (ex: +3,2 pts)",
+    "prazo": "30 dias | 60 dias | 90 dias | 6 meses",
+    "responsavel": "quem deve executar",
+    "urgencia": "critico | alto | medio"
+  }}
+]
+
+Seja específico para a realidade de Apuí/AM. Responda APENAS com o JSON, sem texto adicional."""
+
+    try:
+        import anthropic
+        client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+        response = await client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        import json
+        texto = response.content[0].text.strip()
+        # Remove markdown code blocks se presentes
+        if texto.startswith("```"):
+            texto = texto.split("```")[1]
+            if texto.startswith("json"):
+                texto = texto[4:]
+        recomendacoes = json.loads(texto)
+        return {"fonte": "ia", "recomendacoes": recomendacoes, "modelo": "claude-haiku"}
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("IA recomendacoes erro: %s", exc)
+        return _RECOMENDACOES_ESTATICAS
+
+
+_RECOMENDACOES_ESTATICAS = {
+    "fonte": "referencia",
+    "recomendacoes": [
+        {"prioridade": 1, "dimensao": "Saúde Mental", "acao": "Ativar protocolo de crise e ampliar atendimento CAPS — reduzir superlotação de 108% para <80%", "impacto": "+8,4 pts", "prazo": "60 dias", "responsavel": "Coordenador CAPS / Secretário de Saúde", "urgencia": "critico"},
+        {"prioridade": 2, "dimensao": "Recursos Humanos", "acao": "Contratar 1 médico via PMM e 2 enfermeiros para elevar razão enfermeiro/leito de 0,18 para 0,25", "impacto": "+5,1 pts", "prazo": "90 dias", "responsavel": "RH / Gestão de Contratos", "urgencia": "critico"},
+        {"prioridade": 3, "dimensao": "Atenção Primária à Saúde", "acao": "Intensificar busca ativa para elevar cobertura ESF de 68,4% para ≥75% (Meta Previne Brasil Q4)", "impacto": "+4,2 pts", "prazo": "30 dias", "responsavel": "Coordenador APS / ACS", "urgencia": "alto"},
+        {"prioridade": 4, "dimensao": "Vigilância em Saúde", "acao": "Campanha vacinação casa a casa para elevar cobertura média de 83,4% para ≥90% (BCG, pentavalente, HPV)", "impacto": "+3,8 pts", "prazo": "60 dias", "responsavel": "Coordenador Imunização / Sala de Vacinas", "urgencia": "alto"},
+        {"prioridade": 5, "dimensao": "Saúde da Mulher e Criança", "acao": "Criar grupo de pré-natal de risco e agenda prioritária para elevar 7+ consultas de 58,4% para ≥70%", "impacto": "+3,2 pts", "prazo": "90 dias", "responsavel": "Enfermeira obstetra / Coordenador Materno-Infantil", "urgencia": "alto"},
+        {"prioridade": 6, "dimensao": "Financeiro / Gestão FMS", "acao": "Executar emendas parlamentares paradas — elevar de 57% para ≥80% de execução até dezembro", "impacto": "+2,9 pts", "prazo": "6 meses", "responsavel": "Diretor FMS / Contador", "urgencia": "medio"},
+    ],
+}
