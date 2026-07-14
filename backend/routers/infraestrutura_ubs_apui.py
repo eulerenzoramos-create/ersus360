@@ -1,4 +1,6 @@
+from __future__ import annotations
 from fastapi import APIRouter
+from services import cnes_service
 
 router = APIRouter(prefix="/api/infraestrutura-ubs-apui", tags=["infraestrutura_ubs_apui"])
 
@@ -93,12 +95,21 @@ _INDICADORES = [
 
 
 @router.get("/dashboard")
-def dashboard():
-    return _DASHBOARD
+async def dashboard():
+    estabelecimentos = await cnes_service.buscar_estabelecimentos()
+    ubs_cnes = [e for e in estabelecimentos if "SAUDE" in e.get("tipo", "").upper() or "HOSPITAL" in e.get("tipo", "").upper()]
+    return {
+        **_DASHBOARD,
+        "ubs_cnes_total": len(ubs_cnes) or _DASHBOARD["ubs_total"],
+        "fonte_cnes": "cnes_datasus" if ubs_cnes else "referencia",
+    }
 
 
 @router.get("/unidades")
-def unidades():
+async def unidades():
+    estabelecimentos = await cnes_service.buscar_estabelecimentos()
+    if estabelecimentos:
+        return {"total": len(estabelecimentos), "unidades": estabelecimentos, "fonte": "cnes_datasus"}
     return _UNIDADES
 
 

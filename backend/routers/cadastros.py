@@ -9,6 +9,7 @@ from datetime import date, datetime
 
 from routers.auth import get_current_user, UserOut
 from config import settings
+from services import cnes_service
 
 router = APIRouter(prefix="/api/cadastros", tags=["Cadastros Mestres"])
 
@@ -169,6 +170,21 @@ async def get_profissional(prof_id: int, usuario: UserOut = Depends(get_current_
 
 @router.get("/unidades", response_model=list[UnidadeOut])
 async def listar_unidades(usuario: UserOut = Depends(get_current_user)):
+    cnes_data = await cnes_service.buscar_estabelecimentos()
+    if cnes_data:
+        result = []
+        for idx, e in enumerate(cnes_data, start=1):
+            result.append(UnidadeOut(
+                id=idx,
+                cnes=str(e.get("cnes", "")),
+                nome=e.get("nome", ""),
+                tipo=e.get("tipo", ""),
+                endereco=f'{e.get("logradouro", "")} — {e.get("bairro", "")}'.strip(" — "),
+                telefone=e.get("telefone"),
+                ativa=e.get("ativo", True),
+                fonte="cnes_datasus",
+            ))
+        return result
     return [UnidadeOut(**u, fonte="referencia") for u in UNIDADES_REF]
 
 
