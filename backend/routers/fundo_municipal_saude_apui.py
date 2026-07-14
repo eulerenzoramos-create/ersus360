@@ -1,4 +1,7 @@
+from __future__ import annotations
+from datetime import date as _date
 from fastapi import APIRouter
+from services import siops_service
 
 router = APIRouter(prefix="/api/fundo-municipal-saude-apui", tags=["fundo_municipal_saude_apui"])
 
@@ -72,8 +75,20 @@ _INDICADORES = [
 
 
 @router.get("/dashboard")
-def dashboard():
-    return _DASHBOARD
+async def dashboard():
+    ano = _date.today().year
+    siops = await siops_service.buscar_apuracao(ano)
+    proprio_pct = float(siops.get("minimo_constitucional_pct_aplicado") or 22.4)
+    gasto_proprio = float(siops.get("gastoProprioSaude") or 0) or _DASHBOARD["recursos_proprios_municipio_R"]
+    receita = float(siops.get("receitaImpostos") or 0) or _DASHBOARD["receita_total_prevista_R"]
+    return {
+        **_DASHBOARD,
+        "asps_percentual_pct": proprio_pct,
+        "asps_status": "ok" if proprio_pct >= 15.0 else "critico",
+        "recursos_proprios_municipio_R": int(gasto_proprio) if gasto_proprio > 0 else _DASHBOARD["recursos_proprios_municipio_R"],
+        "receita_total_prevista_R": int(receita) if receita > 0 else _DASHBOARD["receita_total_prevista_R"],
+        "fonte_siops": siops.get("fonte", "referencia"),
+    }
 
 
 @router.get("/receitas")

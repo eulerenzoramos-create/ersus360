@@ -1,18 +1,28 @@
+from __future__ import annotations
+from datetime import date as _date
 from fastapi import APIRouter
+from services import siops_service
 
 router = APIRouter(prefix="/api/saude-financeira-apui", tags=["Saúde Financeira Apuí"])
 
 @router.get("/dashboard")
-def dashboard():
+async def dashboard():
+    ano = _date.today().year
+    siops = await siops_service.buscar_apuracao(ano)
+    proprio_pct = float(siops.get("minimo_constitucional_pct_aplicado") or 16.8)
+    gasto = float(siops.get("gastoProprio") or siops.get("gastoProprioSaude") or 10341856.0)
+    receita = float(siops.get("receitaImpostos") or 14284000.0)
+    pop = 24700
     return {
-        "orcamento_fms_2025": 14284000.0,
-        "executado_valor": 10341856.0,
-        "executado_pct": 72.4,
+        "orcamento_fms_2025": int(receita),
+        "executado_valor": int(gasto),
+        "executado_pct": round(gasto / receita * 100, 1) if receita else 72.4,
         "vinculacao_constitucional_pct": 15.0,
-        "aplicado_saude_receitas_pct": 16.8,
-        "custo_per_capita": 1428.40,
+        "aplicado_saude_receitas_pct": proprio_pct,
+        "custo_per_capita": round(gasto / pop, 2) if gasto > 0 else 1428.40,
         "restos_a_pagar": 1284000.0,
         "inadimplencia_fornecedores": 284000.0,
+        "fonte": siops.get("fonte", "referencia"),
         "transferencias_sus_pct_orcamento": 68.4,
         "recursos_proprios_pct": 18.4,
         "emendas_parlamentares_pct": 13.2,
