@@ -1,4 +1,8 @@
+from __future__ import annotations
+from datetime import date as _date
+import asyncio
 from fastapi import APIRouter
+from services import sinan_service
 
 router = APIRouter(prefix="/api/vigilancia-epidem-apui", tags=["vigilancia_epidem_apui"])
 
@@ -69,8 +73,21 @@ _INDICADORES = [
 
 
 @router.get("/dashboard")
-def dashboard():
-    return _DASHBOARD
+async def dashboard():
+    ano = _date.today().year - 1
+    malaria_data, dengue_data = await asyncio.gather(
+        sinan_service.buscar_malaria(ano),
+        sinan_service.buscar_dengue(ano),
+    )
+    return {
+        **_DASHBOARD,
+        "malaria_casos_ano":  malaria_data["total_casos"],
+        "dengue_casos_ano":   dengue_data["total_casos"],
+        "malaria_ipa":        malaria_data["ipa"],
+        "dengue_incidencia":  dengue_data.get("incidencia_100k", 0),
+        "fonte_malaria":      malaria_data["fonte"],
+        "fonte_dengue":       dengue_data["fonte"],
+    }
 
 
 @router.get("/agravos")

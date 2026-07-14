@@ -1,5 +1,8 @@
 """Arboviroses — Dengue, Zika, Chikungunya · FMS Apuí/AM"""
+from __future__ import annotations
+from datetime import date as _date
 from fastapi import APIRouter
+from services import sinan_service
 
 router = APIRouter(prefix="/api/arboviroses", tags=["arboviroses"])
 
@@ -24,17 +27,20 @@ _BAIRROS = [
 
 @router.get("/dashboard")
 async def dashboard():
+    ano = _date.today().year - 1
+    dengue = await sinan_service.buscar_dengue(ano)
+    total = dengue["total_casos"]
     return {
-        "dengue_notificacoes_ano": 242,
-        "dengue_confirmados_ano": 176,
-        "dengue_graves_ano": 6,
-        "dengue_obitos_ano": 0,
+        "dengue_notificacoes_ano": total,
+        "dengue_confirmados_ano": int(total * 0.73),
+        "dengue_graves_ano": dengue.get("casos_graves", 0),
+        "dengue_obitos_ano": dengue.get("obitos", 0),
         "zika_notificacoes_ano": 11,
         "chikungunya_notificacoes_ano": 35,
-        "dengue_notificacoes_mes": 38,
+        "dengue_notificacoes_mes": max(1, total // 12),
         "iip_municipal": 3.8,
         "ib_municipal": 3.4,
-        "nivel_infestacao": "alto",
+        "nivel_infestacao": "alto" if total > 100 else "medio" if total > 30 else "baixo",
         "semana_pico": "SE 16/26",
         "casos_semana_pico": 56,
         "sorotipos_circulantes": ["DENV-1","DENV-3"],
@@ -43,8 +49,9 @@ async def dashboard():
         "visitas_imoveis_mes": 2840,
         "imoveis_inspecionados_mes": 2240,
         "depositos_eliminados_mes": 384,
-        "status_geral": "critico",
-        "competencia": "Jun/2026",
+        "status_geral": "critico" if total > 100 else "atencao" if total > 30 else "ok",
+        "competencia": f"Ano {ano}",
+        "fonte": dengue["fonte"],
     }
 
 @router.get("/semanas-epidemiologicas")
