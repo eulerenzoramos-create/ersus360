@@ -1,5 +1,10 @@
 """Monitoramento de Metas — PMS / Previne Brasil / Quadrimestral · Apuí/AM"""
+from __future__ import annotations
+import asyncio
+from datetime import date as _date
 from fastapi import APIRouter
+from services import previne_service, siops_service
+
 router = APIRouter(prefix="/api/monitoramento-metas-apui", tags=["Monitoramento de Metas Apuí"])
 
 DASHBOARD = {
@@ -59,11 +64,36 @@ INDICADORES = [
 ]
 
 @router.get("/dashboard")
-def dashboard():       return DASHBOARD
+async def dashboard():
+    hoje = _date.today()
+    comp = f"{hoje.year}{hoje.month:02d}"
+    previne_data, siops_data = await asyncio.gather(
+        previne_service.buscar_indicadores(comp),
+        siops_service.buscar_apuracao(hoje.year),
+    )
+    media_previne = previne_data.get("media_geral_pct") or DASHBOARD.get("previne_media_pct", 68.0)
+    asps_pct = float(siops_data.get("minimo_constitucional_pct_aplicado") or DASHBOARD.get("asps_pct", 17.16))
+    return {
+        **DASHBOARD,
+        "previne_media_pct": media_previne,
+        "previne_indicadores_total": len(previne_data.get("indicadores", [])),
+        "asps_pct": asps_pct,
+        "asps_status": "ok" if asps_pct >= 15.0 else "critico",
+        "fonte_previne": previne_data.get("fonte", "referencia"),
+        "fonte_siops": siops_data.get("fonte", "referencia"),
+    }
+
 @router.get("/metas-pms")
 def metas_pms():       return METAS_PMS
+
 @router.get("/previne-brasil")
-def previne_brasil():  return PREVINE_BRASIL
+async def previne_brasil():
+    hoje = _date.today()
+    comp = f"{hoje.year}{hoje.month:02d}"
+    data = await previne_service.buscar_indicadores(comp)
+    if data.get("indicadores"):
+        return data
+    return PREVINE_BRASIL
 @router.get("/historico")
 def historico():       return HISTORICO
 @router.get("/indicadores")
