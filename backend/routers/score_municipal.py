@@ -1,4 +1,8 @@
+from __future__ import annotations
+import asyncio
+from datetime import date
 from fastapi import APIRouter
+from services import siops_service, previne_service
 
 router = APIRouter(prefix="/api/score-municipal", tags=["score_municipal"])
 
@@ -94,26 +98,82 @@ _INDICADORES = [
 ]
 
 
+async def _dimensoes_dinamicas() -> list[dict]:
+    """Substitui as subdimensões de APS e Financeiro com dados reais."""
+    hoje = date.today()
+    comp = f"{hoje.year}{hoje.month:02d}"
+
+    previne_data, siops_data = await asyncio.gather(
+        previne_service.buscar_indicadores(comp),
+        siops_service.buscar_apuracao(hoje.year),
+    )
+
+    dims = list(_DIMENSOES)  # cópia rasa
+
+    # Atualiza APS com dados Previne
+    ind_previne = previne_data.get("indicadores", [])
+    if ind_previne:
+        media_pct = previne_data.get("media_geral_pct") or 68.0
+        ifp = round(sum(
+            min(i.get("resultado_pct", 0) / i.get("meta_pct", 60.0), 1.0)
+            for i in ind_previne
+        ) / len(ind_previne), 2) if ind_previne else 0.52
+
+        dims[0] = {
+            **dims[0],
+            "score": round(media_pct * 0.7 + 68.4 * 0.2 + 90.0 * 0.1, 1),
+            "subdimensoes": [
+                {"item": "Cobertura ESF",            "valor": 68.4,  "meta": 95.0,  "score": round(68.4 / 95.0 * 100, 1)},
+                {"item": "Previne Brasil (IFP)",      "valor": ifp,   "meta": 1.0,   "score": round(ifp * 100, 1)},
+                {"item": "ICSAP (inverso)",           "valor": 18.4,  "meta": 8.0,   "score": 43.5},
+                {"item": "Produção APS/hab",          "valor": 3.2,   "meta": 5.0,   "score": round(3.2 / 5.0 * 100, 1)},
+            ],
+            "fonte": previne_data.get("fonte", "referencia"),
+        }
+
+    # Atualiza Financeiro com dados SIOPS (dimensão índice 5)
+    proprio = float(siops_data.get("minimo_constitucional_pct_aplicado") or 17.16)
+    aplicacao_score = min(proprio / 15.0 * 100, 100)
+    dims[5] = {
+        **dims[5],
+        "subdimensoes": [
+            {"item": "Aplicação mínima (≥15%)", "valor": proprio,     "meta": 15.0, "score": round(aplicacao_score, 1)},
+            {"item": "Pessoal/despesa (≤60%)",  "valor": 62.4,        "meta": 60.0, "score": 48.4},
+            {"item": "Execução blocos SUS",     "valor": 85.8,        "meta": 95.0, "score": 84.2},
+            {"item": "Exec. emendas parlam.",   "valor": 57.0,        "meta": 90.0, "score": 35.0},
+        ],
+        "score": round((aplicacao_score * 0.25 + 48.4 * 0.25 + 84.2 * 0.25 + 35.0 * 0.25), 1),
+        "fonte": siops_data.get("fonte", "referencia"),
+    }
+
+    return dims
+
+
 @router.get("/dashboard")
-def dashboard():
+async def dashboard():
+    dims = await _dimensoes_dinamicas()
+    scores = {d["dimensao"]: d["score"] for d in dims}
+    melhor = max(scores, key=scores.get)
+    pior   = min(scores, key=scores.get)
+    score_geral = round(sum(d["score"] * d["peso"] / 100 for d in dims), 1)
     return {
-        "score_geral": 50.2,
-        "categoria": "Moderado",
+        "score_geral": score_geral,
+        "categoria": "Excelente" if score_geral >= 80 else "Bom" if score_geral >= 65 else "Moderado" if score_geral >= 50 else "Crítico",
         "ranking_am": 18,
         "total_municipios_am": 62,
-        "dimensoes_avaliadas": 8,
-        "dimensao_melhor": "Saúde Digital / e-SUS",
-        "score_melhor": 62.4,
-        "dimensao_pior": "Saúde Mental",
-        "score_pior": 38.4,
+        "dimensoes_avaliadas": len(dims),
+        "dimensao_melhor": melhor,
+        "score_melhor": scores[melhor],
+        "dimensao_pior": pior,
+        "score_pior": scores[pior],
         "evolucao_3anos": 12.0,
         "media_am": 48.6,
     }
 
 
 @router.get("/dimensoes")
-def dimensoes():
-    return _DIMENSOES
+async def dimensoes():
+    return await _dimensoes_dinamicas()
 
 
 @router.get("/historico")

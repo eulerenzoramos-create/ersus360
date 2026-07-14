@@ -6,11 +6,15 @@ Router: /api/score — Score ERSUS 360
   20% Epidemiologia (vigilância, cobertura vacinal, agravos)
   10% Gestão (oblrigações cumpridas, documentos, RH)
   10% Infraestrutura (frotas, obras, patrimônio)
+
+Os eixos APS e Financeiro usam dados reais das APIs públicas quando disponíveis.
 """
 from __future__ import annotations
-from datetime import datetime
+import asyncio
+from datetime import date, datetime
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
+from services import previne_service, siops_service
 
 router = APIRouter(prefix="/api/score", tags=["Score ERSUS 360"])
 
@@ -26,69 +30,77 @@ _PESOS = {
 
 # ── Componentes de cada eixo ─────────────────────────────────────────────────
 
-def _score_aps() -> dict:
+async def _score_aps() -> dict:
     """
     Score APS = média ponderada dos 7 indicadores Previne Brasil
     + cobertura ESF + coleta de dados SISAB.
+    Usa dados reais da API Previne Brasil quando disponíveis.
     """
-    indicadores = [
-        {"nome": "Pré-natal ≥ 6 consultas",         "resultado": 84.4, "meta": 60.0},
-        {"nome": "Citopatológico do colo do útero",  "resultado": 43.0, "meta": 60.0},
-        {"nome": "Vacinação DTP/Penta",              "resultado": 82.9, "meta": 95.0},
-        {"nome": "Consulta RN 1ª semana",            "resultado": 91.1, "meta": 60.0},
-        {"nome": "HAS acompanhada",                  "resultado": 79.0, "meta": 70.0},
-        {"nome": "DM com HbA1c solicitada",          "resultado": 62.7, "meta": 55.0},
-        {"nome": "Obesidade infantil IMC",           "resultado": 55.7, "meta": 55.0},
-    ]
+    hoje = date.today()
+    comp = f"{hoje.year}{hoje.month:02d}"
+    previne = await previne_service.buscar_indicadores(comp)
+
+    indicadores_raw = previne.get("indicadores", [])
     pontos = []
-    for ind in indicadores:
-        pct = min(ind["resultado"] / ind["meta"], 1.0) * 100
-        pontos.append({"nome": ind["nome"], "resultado": ind["resultado"], "meta": ind["meta"], "pct_meta": round(pct, 1)})
+    for ind in indicadores_raw:
+        resultado = ind.get("resultado_pct", 0)
+        meta      = ind.get("meta_pct", 60.0)
+        pct       = min(resultado / meta, 1.0) * 100 if meta else 0
+        pontos.append({
+            "nome":      ind.get("nome", ""),
+            "resultado": resultado,
+            "meta":      meta,
+            "pct_meta":  round(pct, 1),
+        })
 
-    score_previne = sum(p["pct_meta"] for p in pontos) / len(pontos)
-    cobertura_esf = 68.4          # % cobertura ESF Apuí
-    sisab_regularidade = 90.0     # % meses com envio regular
+    score_previne  = sum(p["pct_meta"] for p in pontos) / len(pontos) if pontos else 68.0
+    cobertura_esf  = 68.4
+    sisab_reg      = 90.0
 
-    score_final = (score_previne * 0.70) + (cobertura_esf * 0.20) + (sisab_regularidade * 0.10)
+    score_final = (score_previne * 0.70) + (cobertura_esf * 0.20) + (sisab_reg * 0.10)
     return {
         "score": round(min(score_final, 100), 1),
         "subcomponentes": {
-            "previne_brasil":      round(score_previne, 1),
-            "cobertura_esf":       cobertura_esf,
-            "sisab_regularidade":  sisab_regularidade,
+            "previne_brasil":     round(score_previne, 1),
+            "cobertura_esf":      cobertura_esf,
+            "sisab_regularidade": sisab_reg,
         },
-        "indicadores": pontos,
-        "peso": _PESOS["aps"],
+        "indicadores":  pontos,
+        "peso":         _PESOS["aps"],
+        "fonte_previne": previne.get("fonte", "referencia"),
     }
 
 
-def _score_financeiro() -> dict:
+async def _score_financeiro() -> dict:
     """
     Score Financeiro = execução FNS + conformidade SIOPS + proporção recursos próprios.
+    Usa dados reais do SIOPS quando disponíveis.
     """
-    execucao_fns_pct   = 73.8   # % despesa realizada / prevista
-    proprio_saude_pct  = 17.16  # % recursos próprios aplicados em saúde (meta >= 15%)
-    siops_conformidade = 100.0  # enviou SIOPS no prazo?
-    pendencias_fns     = 0      # número de pendências FNS em aberto
+    hoje = date.today()
+    siops = await siops_service.buscar_apuracao(hoje.year)
 
-    # Penalidade por cada pendência FNS
+    proprio_pct    = float(siops.get("minimo_constitucional_pct_aplicado") or 17.16)
+    execucao_pct   = 73.8   # % despesa realizada / prevista (sem API pública)
+    conformidade   = 100.0
+    pendencias_fns = 0
+
     penalidade = min(pendencias_fns * 5, 30)
-
     score_final = (
-        execucao_fns_pct       * 0.50 +
-        min(proprio_saude_pct / 15.0 * 100, 100) * 0.25 +
-        siops_conformidade     * 0.25
+        execucao_pct                          * 0.50 +
+        min(proprio_pct / 15.0 * 100, 100)   * 0.25 +
+        conformidade                          * 0.25
     ) - penalidade
 
     return {
         "score": round(max(min(score_final, 100), 0), 1),
         "subcomponentes": {
-            "execucao_fns_pct":      execucao_fns_pct,
-            "proprio_saude_pct":     proprio_saude_pct,
-            "siops_conformidade":    siops_conformidade,
-            "pendencias_fns":        pendencias_fns,
+            "execucao_fns_pct":   execucao_pct,
+            "proprio_saude_pct":  proprio_pct,
+            "siops_conformidade": conformidade,
+            "pendencias_fns":     pendencias_fns,
         },
-        "peso": _PESOS["financeiro"],
+        "peso":        _PESOS["financeiro"],
+        "fonte_siops": siops.get("fonte", "referencia"),
     }
 
 
@@ -185,10 +197,9 @@ def _classificar(score: float) -> dict:
     return     {"nivel": "Crítico",    "cor": "#dc2626", "emoji": "🚨"}
 
 
-def calcular_score_completo() -> dict:
+async def calcular_score_completo() -> dict:
     """Calcula e retorna o Score ERSUS 360 completo."""
-    aps   = _score_aps()
-    fin   = _score_financeiro()
+    aps, fin = await asyncio.gather(_score_aps(), _score_financeiro())
     epi   = _score_epidemiologia()
     gest  = _score_gestao()
     infra = _score_infraestrutura()
@@ -244,13 +255,13 @@ def calcular_score_completo() -> dict:
 @router.get("")
 async def get_score(_: UserOut = Depends(get_current_user)):
     """Score ERSUS 360 atual com detalhamento por eixo."""
-    return calcular_score_completo()
+    return await calcular_score_completo()
 
 
 @router.get("/resumo")
 async def get_score_resumo(_: UserOut = Depends(get_current_user)):
     """Versão resumida para widgets de dashboard."""
-    data = calcular_score_completo()
+    data = await calcular_score_completo()
     return {
         "score_total":  data["score_total"],
         "nivel":        data["nivel"],
