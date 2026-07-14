@@ -1,4 +1,7 @@
+from __future__ import annotations
+from datetime import date as _date
 from fastapi import APIRouter
+from services import sim_sinasc_service
 
 router = APIRouter(prefix="/api/materno-infantil-apui", tags=["materno_infantil_apui"])
 
@@ -72,8 +75,17 @@ _INDICADORES = [
 
 
 @router.get("/dashboard")
-def dashboard():
-    return _DASHBOARD
+async def dashboard():
+    ano = _date.today().year - 1
+    nascidos = await sim_sinasc_service.buscar_nascidos_vivos(ano)
+    return {
+        **_DASHBOARD,
+        "nascidos_vivos_ano": nascidos.get("total_nascimentos", _DASHBOARD["nascidos_vivos_ano"]),
+        "cesarea_pct": nascidos.get("cesarea_pct", _DASHBOARD.get("cesarea_pct")),
+        "prematuros": nascidos.get("prematuros"),
+        "baixo_peso": nascidos.get("baixo_peso"),
+        "fonte_sinasc": nascidos.get("fonte", "referencia"),
+    }
 
 
 @router.get("/prenatal")
@@ -82,8 +94,17 @@ def prenatal():
 
 
 @router.get("/mortalidade")
-def mortalidade():
-    return _MORTALIDADE
+async def mortalidade():
+    ano = _date.today().year - 1
+    obitos = await sim_sinasc_service.buscar_obitos(ano)
+    historico = await sim_sinasc_service.buscar_historico_mortalidade()
+    return {
+        **_MORTALIDADE,
+        "obitos_gerais_ano": obitos.get("total_obitos", _MORTALIDADE.get("obitos_gerais_ano")),
+        "causas_externas_pct": obitos.get("causas_externas_pct", _MORTALIDADE.get("causas_externas_pct")),
+        "historico": historico,
+        "fonte_sim": obitos.get("fonte", "referencia"),
+    }
 
 
 @router.get("/historico")
