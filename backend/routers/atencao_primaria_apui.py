@@ -1,4 +1,7 @@
+from __future__ import annotations
+from datetime import date as _date
 from fastapi import APIRouter
+from services import previne_service
 
 router = APIRouter(prefix="/api/atencao-primaria-apui", tags=["atencao_primaria_apui"])
 
@@ -74,8 +77,17 @@ _INDICADORES = [
 
 
 @router.get("/dashboard")
-def dashboard():
-    return _DASHBOARD
+async def dashboard():
+    hoje = _date.today()
+    comp = f"{hoje.year}{hoje.month:02d}"
+    previne = await previne_service.buscar_indicadores(comp)
+    media_pct = previne.get("media_geral_pct") or 68.0
+    return {
+        **_DASHBOARD,
+        "previne_media_pct": media_pct,
+        "previne_indicadores": len(previne.get("indicadores", [])),
+        "fonte_previne": previne.get("fonte", "referencia"),
+    }
 
 
 @router.get("/equipes")
@@ -84,7 +96,13 @@ def equipes():
 
 
 @router.get("/indicadores-aps")
-def indicadores_aps():
+async def indicadores_aps():
+    hoje = _date.today()
+    comp = f"{hoje.year}{hoje.month:02d}"
+    previne = await previne_service.buscar_indicadores(comp)
+    inds = previne.get("indicadores", [])
+    if inds:
+        return {"fonte": previne.get("fonte"), "indicadores": inds}
     return _INDICADORES_APS
 
 
