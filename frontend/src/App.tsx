@@ -315,47 +315,78 @@ import { SinoAlertas } from "./components/SinoAlertas";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
 
-const BLUE = "#1565c0";
-const GRAY = "#616161";
+// ── Design System ─────────────────────────────────────────────────────────────
+const BLUE     = "#1565c0";
+const GRAY     = "#616161";
 const LIGHT_BG = "#f5f5f3";
+const SB_BG    = "#0f1b2d";   // sidebar dark navy
+const SB_HOVER = "#1a2d47";
+const SB_ACT   = "#1e40af";
+const SB_TEXT  = "#cbd5e1";
+const SB_MUTED = "#64748b";
+const SB_ACCENT= "#38bdf8";
 
 // ── Helpers de estilo ────────────────────────────────────────────────────────
 const navSimpleStyle = (active: boolean) => ({
-  display:"flex", alignItems:"center", gap:10, padding:"9px 16px",
-  color: active ? BLUE : "#424242", cursor:"pointer",
-  background: active ? "#e3f2fd" : "transparent",
-  fontSize:13, fontWeight: active ? 600 : 400, textDecoration:"none" as const,
-  borderLeft: `3px solid ${active ? BLUE : "transparent"}`,
+  display:"flex", alignItems:"center", gap:9, padding:"8px 14px",
+  color: active ? SB_ACCENT : SB_TEXT, cursor:"pointer",
+  background: active ? SB_ACT : "transparent",
+  fontSize:12.5, fontWeight: active ? 700 : 400, textDecoration:"none" as const,
+  borderLeft: `3px solid ${active ? SB_ACCENT : "transparent"}`,
+  transition:"background .12s, color .12s",
 });
 
-const grp1Style = { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"9px 16px", cursor:"pointer", fontSize:13, fontWeight:500, color:"#212121", borderTop:"1px solid #f0f0f0" };
-const grp2Style = { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"8px 16px 8px 28px", cursor:"pointer", fontSize:13, fontWeight:500, color:"#424242" };
-const grp3Style = { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 16px 7px 40px", cursor:"pointer", fontSize:13, fontWeight:400, color:"#424242" };
+const grp1Style = {
+  display:"flex", alignItems:"center", justifyContent:"space-between",
+  padding:"7px 14px", cursor:"pointer", fontSize:11, fontWeight:700,
+  color:SB_MUTED, textTransform:"uppercase" as const, letterSpacing:"0.06em",
+  borderTop:"1px solid #1e2d3d", marginTop:4,
+};
+const grp2Style = {
+  display:"flex", alignItems:"center", justifyContent:"space-between",
+  padding:"7px 14px 7px 26px", cursor:"pointer", fontSize:12.5, fontWeight:500, color:SB_TEXT,
+};
+const grp3Style = {
+  display:"flex", alignItems:"center", justifyContent:"space-between",
+  padding:"6px 14px 6px 36px", cursor:"pointer", fontSize:12, fontWeight:400, color:SB_MUTED,
+};
 
 const leaf2Style = (active: boolean) => ({
-  display:"flex", alignItems:"center", gap:9, padding:"8px 16px 8px 28px",
-  fontSize:13, color: active ? BLUE : GRAY, textDecoration:"none" as const,
-  background: active ? "#e3f2fd" : "transparent", fontWeight: active ? 600 : 400,
+  display:"flex", alignItems:"center", gap:8, padding:"7px 14px 7px 26px",
+  fontSize:12.5, color: active ? SB_ACCENT : SB_TEXT, textDecoration:"none" as const,
+  background: active ? SB_ACT : "transparent", fontWeight: active ? 700 : 400,
+  borderLeft: `3px solid ${active ? SB_ACCENT : "transparent"}`,
 });
 const leaf3Style = (active: boolean) => ({
-  display:"flex", alignItems:"center", gap:9, padding:"7px 16px 7px 40px",
-  fontSize:13, color: active ? BLUE : GRAY, textDecoration:"none" as const,
-  background: active ? "#e3f2fd" : "transparent", fontWeight: active ? 600 : 400,
+  display:"flex", alignItems:"center", gap:8, padding:"6px 14px 6px 36px",
+  fontSize:12, color: active ? SB_ACCENT : SB_MUTED, textDecoration:"none" as const,
+  background: active ? "#162032" : "transparent", fontWeight: active ? 600 : 400,
+  borderLeft: `3px solid ${active ? SB_ACCENT : "transparent"}`,
 });
 const leaf4Style = (active: boolean) => ({
-  display:"flex", alignItems:"center", gap:9, padding:"7px 16px 7px 52px",
-  fontSize:13, color: active ? BLUE : GRAY, textDecoration:"none" as const,
-  background: active ? "#e3f2fd" : "transparent", fontWeight: active ? 600 : 400,
+  display:"flex", alignItems:"center", gap:8, padding:"6px 14px 6px 48px",
+  fontSize:11.5, color: active ? SB_ACCENT : SB_MUTED, textDecoration:"none" as const,
+  background: active ? "#162032" : "transparent", fontWeight: active ? 600 : 400,
 });
 
+// ── Divisor de seção ─────────────────────────────────────────────────────────
+function SbSection({ label }: { label: string }) {
+  return (
+    <div style={{ padding:"12px 14px 4px", fontSize:10, fontWeight:800, letterSpacing:"0.1em",
+      textTransform:"uppercase" as const, color:SB_MUTED, borderTop:"1px solid #1a2d40", marginTop:6 }}>
+      {label}
+    </div>
+  );
+}
+
 // ── Componentes de acordeão ──────────────────────────────────────────────────
-function Acc1({ label, children, open: init=false }: { label:string; children:React.ReactNode; open?:boolean }) {
+function Acc1({ label, children, open: init=false, icon }: { label:string; children:React.ReactNode; open?:boolean; icon?: React.ReactNode }) {
   const [open,setOpen]=useState(init);
   return (
     <div>
       <div style={grp1Style} onClick={()=>setOpen(o=>!o)}>
-        <span>{label}</span>
-        {open ? <ChevronDown size={14} color="#9e9e9e"/> : <ChevronRight size={14} color="#9e9e9e"/>}
+        <span style={{display:"flex",alignItems:"center",gap:6}}>{icon}{label}</span>
+        {open ? <ChevronDown size={12} color={SB_MUTED}/> : <ChevronRight size={12} color={SB_MUTED}/>}
       </div>
       {open && <div>{children}</div>}
     </div>
@@ -368,9 +399,9 @@ function Acc2({ label, children, open: init=false }: { label:string; children:Re
     <div>
       <div style={grp2Style} onClick={()=>setOpen(o=>!o)}>
         <span>{label}</span>
-        {open ? <ChevronDown size={13} color="#9e9e9e"/> : <ChevronRight size={13} color="#9e9e9e"/>}
+        {open ? <ChevronDown size={12} color={SB_MUTED}/> : <ChevronRight size={12} color={SB_MUTED}/>}
       </div>
-      {open && <div style={{background:"#fafafa"}}>{children}</div>}
+      {open && <div style={{background:"#0c1624"}}>{children}</div>}
     </div>
   );
 }
@@ -381,28 +412,54 @@ function Acc3({ label, children, open: init=false }: { label:string; children:Re
     <div>
       <div style={grp3Style} onClick={()=>setOpen(o=>!o)}>
         <span>{label}</span>
-        {open ? <ChevronDown size={12} color="#9e9e9e"/> : <ChevronRight size={12} color="#9e9e9e"/>}
+        {open ? <ChevronDown size={11} color={SB_MUTED}/> : <ChevronRight size={11} color={SB_MUTED}/>}
       </div>
       {open && <div>{children}</div>}
     </div>
   );
 }
 
-function L1({ to, label, Icon, end=false }: { to:string; label:string; Icon:React.ElementType; end?:boolean }) {
+function L1({ to, label, Icon, end=false, badge }: { to:string; label:string; Icon:React.ElementType; end?:boolean; badge?: string }) {
   const loc=useLocation(); const active = end ? loc.pathname===to : loc.pathname.startsWith(to);
-  return <NavLink to={to} end={end} style={navSimpleStyle(active)}><Icon size={15} color={active?BLUE:"#9e9e9e"}/>{label}</NavLink>;
+  return (
+    <NavLink to={to} end={end} style={navSimpleStyle(active)}>
+      <Icon size={15} color={active ? SB_ACCENT : SB_MUTED}/>
+      <span style={{flex:1}}>{label}</span>
+      {badge && <span style={{fontSize:9,fontWeight:800,background:"#ef4444",color:"#fff",padding:"1px 5px",borderRadius:8}}>{badge}</span>}
+    </NavLink>
+  );
 }
 function L2({ to, label, Icon }: { to:string; label:string; Icon:React.ElementType }) {
   const loc=useLocation(); const active=loc.pathname===to;
-  return <NavLink to={to} style={leaf2Style(active)}><Icon size={14} color={active?BLUE:"#bdbdbd"}/>{label}</NavLink>;
+  return <NavLink to={to} style={leaf2Style(active)}><Icon size={13} color={active?SB_ACCENT:SB_MUTED}/>{label}</NavLink>;
 }
 function L3({ to, label, Icon }: { to:string; label:string; Icon:React.ElementType }) {
   const loc=useLocation(); const active=loc.pathname===to;
-  return <NavLink to={to} style={leaf3Style(active)}><Icon size={14} color={active?BLUE:"#bdbdbd"}/>{label}</NavLink>;
+  return <NavLink to={to} style={leaf3Style(active)}><Icon size={13} color={active?SB_ACCENT:SB_MUTED}/>{label}</NavLink>;
 }
 function L4({ to, label, Icon }: { to:string; label:string; Icon:React.ElementType }) {
   const loc=useLocation(); const active=loc.pathname===to;
-  return <NavLink to={to} style={leaf4Style(active)}><Icon size={13} color={active?BLUE:"#bdbdbd"}/>{label}</NavLink>;
+  return <NavLink to={to} style={leaf4Style(active)}><Icon size={12} color={active?SB_ACCENT:SB_MUTED}/>{label}</NavLink>;
+}
+
+// ── Quick Access Cards ────────────────────────────────────────────────────────
+function QuickCard({ to, label, Icon, cor }: { to:string; label:string; Icon:React.ElementType; cor:string }) {
+  const loc = useLocation();
+  const active = loc.pathname.startsWith(to);
+  return (
+    <NavLink to={to} style={{
+      display:"flex", flexDirection:"column" as const, alignItems:"center", justifyContent:"center",
+      gap:5, padding:"10px 4px", borderRadius:8, textDecoration:"none",
+      background: active ? cor+"33" : "#1a2d47",
+      border: `1px solid ${active ? cor : "#1e3a5f"}`,
+      transition:"all .15s", flex:1, minWidth:0,
+    }}>
+      <div style={{width:28,height:28,borderRadius:6,background:cor+"22",display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <Icon size={14} color={cor}/>
+      </div>
+      <span style={{fontSize:9.5,fontWeight:600,color:active?cor:SB_TEXT,textAlign:"center" as const,lineHeight:1.2,wordBreak:"break-word" as const}}>{label}</span>
+    </NavLink>
+  );
 }
 
 // ── Layout ───────────────────────────────────────────────────────────────────
@@ -411,24 +468,64 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",fontFamily:"system-ui,-apple-system,sans-serif"}}>
 
-      {/* Header */}
-      <header style={{height:52,background:BLUE,display:"flex",alignItems:"center",padding:"0 16px",gap:12,flexShrink:0,boxShadow:"0 1px 4px rgba(0,0,0,.3)",zIndex:200}}>
-        <div style={{width:34,height:34,background:"rgba(255,255,255,.2)",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid rgba(255,255,255,.4)"}}>
-          <span style={{color:"#fff",fontSize:17}}>⚕</span>
-        </div>
-        <div>
-          <div style={{color:"#fff",fontSize:15,fontWeight:700,lineHeight:1.1}}>ERSUS 360</div>
-          <div style={{color:"rgba(255,255,255,.7)",fontSize:10}}>Painel de Gestão da Saúde</div>
-        </div>
-        <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
-          <div style={{display:"flex",alignItems:"center",gap:6,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",padding:"5px 12px",border:"1px solid rgba(255,255,255,.3)",borderRadius:4}}>
-            APUÍ / AM <ChevronDown size={12} style={{opacity:.7}}/>
+      {/* ── Header ── */}
+      <header style={{
+        height:56, background:"linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%)",
+        display:"flex", alignItems:"center", padding:"0 20px", gap:14, flexShrink:0,
+        boxShadow:"0 2px 8px rgba(0,0,0,.4)", zIndex:200, borderBottom:"1px solid #1e3a5f",
+      }}>
+        {/* Logo */}
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{
+            width:38, height:38, borderRadius:10,
+            background:"linear-gradient(135deg,#1d4ed8,#0ea5e9)",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            boxShadow:"0 2px 8px rgba(14,165,233,.4)",
+          }}>
+            <span style={{color:"#fff",fontSize:20}}>⚕</span>
           </div>
+          <div>
+            <div style={{color:"#fff",fontSize:16,fontWeight:800,lineHeight:1,letterSpacing:"-0.02em"}}>ERSUS 360</div>
+            <div style={{color:"#94a3b8",fontSize:9.5,letterSpacing:"0.04em",textTransform:"uppercase" as const}}>Sistema de Gestão em Saúde</div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{width:1,height:30,background:"#1e3a5f",margin:"0 4px"}}/>
+
+        {/* Breadcrumb / Município */}
+        <div style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.06)",borderRadius:8,padding:"6px 12px",border:"1px solid rgba(255,255,255,.1)"}}>
+          <MapPin size={13} color="#38bdf8"/>
+          <span style={{color:"#e2e8f0",fontSize:13,fontWeight:700}}>Apuí / AM</span>
+          <span style={{color:"#475569",fontSize:11}}>· IBGE 1300144</span>
+        </div>
+
+        <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
+          {/* Status Online */}
+          <div style={{display:"flex",alignItems:"center",gap:5,background:"rgba(34,197,94,.1)",border:"1px solid rgba(34,197,94,.3)",borderRadius:6,padding:"4px 10px"}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
+            <span style={{color:"#86efac",fontSize:11,fontWeight:600}}>Online</span>
+          </div>
+
           <SinoAlertas />
-          <div style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",color:"#fff",padding:"4px 8px",border:"1px solid rgba(255,255,255,.2)",borderRadius:4}} onClick={onLogout} title="Clique para sair">
-            <div style={{width:28,height:28,background:"rgba(255,255,255,.2)",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700}}>{ini}</div>
-            <span style={{fontSize:12,fontWeight:600}}>{(nomeUsuario||"GESTOR").toUpperCase()}</span>
-            <ChevronDown size={11} style={{opacity:.6}}/>
+
+          {/* User */}
+          <div style={{
+            display:"flex", alignItems:"center", gap:8, cursor:"pointer",
+            background:"rgba(255,255,255,.08)", border:"1px solid rgba(255,255,255,.15)",
+            borderRadius:8, padding:"5px 10px", transition:"background .15s",
+          }} onClick={onLogout} title="Clique para sair">
+            <div style={{
+              width:30, height:30, borderRadius:8,
+              background:"linear-gradient(135deg,#1d4ed8,#7c3aed)",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              color:"#fff", fontSize:12, fontWeight:800,
+            }}>{ini}</div>
+            <div>
+              <div style={{color:"#f1f5f9",fontSize:12,fontWeight:700,lineHeight:1}}>{(nomeUsuario||"GESTOR").toUpperCase()}</div>
+              <div style={{color:"#64748b",fontSize:10}}>Gestor Municipal de Saúde</div>
+            </div>
+            <ChevronDown size={12} color="#64748b"/>
           </div>
         </div>
       </header>
@@ -436,65 +533,118 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
       {/* Body */}
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
 
-        {/* Sidebar */}
-        <aside style={{width:250,background:"#fff",borderRight:"1px solid #e0e0e0",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-          <div style={{flex:1,overflowY:"auto"}}>
+        {/* ── Sidebar ── */}
+        <aside style={{
+          width:252, background:SB_BG,
+          display:"flex", flexDirection:"column" as const, overflow:"hidden",
+          boxShadow:"2px 0 12px rgba(0,0,0,.3)",
+        }}>
+          <div style={{flex:1,overflowY:"auto",scrollbarWidth:"thin" as const,scrollbarColor:"#1e3a5f transparent"}}>
 
-            {/* ── Topo ── */}
-            <NavLink to="/essenciais-apui" style={({isActive})=>({display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,marginBottom:4,fontWeight:700,fontSize:13,background:isActive?"#1d4ed8":"#dbeafe",color:isActive?"#fff":"#1d4ed8",textDecoration:"none",border:"1px solid #93c5fd"})}><Star size={15}/> Módulos Essenciais</NavLink>
-            <L1 to="/"        label="Home"               Icon={Home}    end />
-            <L1 to="/score"      label="Score ERSUS 360"    Icon={Star}/>
-            <L1 to="/financeiro" label="Painel Financeiro"  Icon={DollarSign}/>
-            <L1 to="/gestao"     label="Gestão APS"         Icon={Activity}/>
-            <L1 to="/siaps"      label="eGestor / SIAPS"    Icon={Globe}/>
-            <L1 to="/caf"        label="CAF — Cofinanciamento" Icon={TrendingUp}/>
-            <L1 to="/contratos"  label="Contratos & Licitações" Icon={FileText}/>
-            <L1 to="/regulacao-mac" label="Regulação MAC"       Icon={Network}/>
-            <L1 to="/ppa-loa"      label="PPA / LOA"           Icon={ClipboardList}/>
+            {/* ── Acesso Rápido ── */}
+            <div style={{padding:"12px 10px 8px"}}>
+              <div style={{fontSize:10,fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase" as const,color:SB_MUTED,marginBottom:8}}>
+                Acesso Rápido
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
+                <QuickCard to="/"           label="Home"        Icon={Home}        cor="#38bdf8"/>
+                <QuickCard to="/financeiro" label="Financeiro"  Icon={DollarSign}  cor="#22c55e"/>
+                <QuickCard to="/siaps"      label="e-Gestor"    Icon={Globe}       cor="#a78bfa"/>
+                <QuickCard to="/caf"        label="CAF"         Icon={TrendingUp}  cor="#fb923c"/>
+                <QuickCard to="/previne"    label="Qualidade"   Icon={Target}      cor="#38bdf8"/>
+                <QuickCard to="/parametros-ms" label="Parâm. MS" Icon={BookOpen}  cor="#f472b6"/>
+              </div>
+            </div>
+
+            {/* ── Módulos Essenciais ── */}
+            <div style={{padding:"4px 10px 6px"}}>
+              <NavLink to="/essenciais-apui" style={({isActive})=>({
+                display:"flex", alignItems:"center", gap:8, padding:"9px 12px", borderRadius:8,
+                fontWeight:700, fontSize:12.5,
+                background: isActive ? "linear-gradient(135deg,#1d4ed8,#0ea5e9)" : "linear-gradient(135deg,#1a3a6e,#1e4080)",
+                color:"#fff", textDecoration:"none",
+                border:`1px solid ${isActive?"#3b82f6":"#1e3a5f"}`,
+                boxShadow: isActive ? "0 2px 8px rgba(29,78,216,.4)" : "none",
+              })}>
+                <Star size={14} color="#fbbf24"/> Módulos Essenciais Apuí
+              </NavLink>
+            </div>
+
+            {/* ── Principais ── */}
+            <SbSection label="Principal"/>
+            <L1 to="/"           label="Home"                   Icon={Home}         end/>
+            <L1 to="/score"      label="Score ERSUS 360"        Icon={Star}/>
+            <L1 to="/financeiro" label="Painel Financeiro"      Icon={DollarSign}/>
+            <L1 to="/gestao"     label="Gestão APS"             Icon={Activity}/>
+            <L1 to="/siaps"      label="eGestor / SIAPS"        Icon={Globe}/>
+            <L1 to="/caf"        label="CAF — Cofinanciamento"  Icon={TrendingUp}/>
+
+            {/* ── APS ── */}
+            <SbSection label="Atenção Primária"/>
+            <L1 to="/previne"           label="Componente Qualidade"  Icon={Target}/>
+            <L1 to="/parametros-ms"     label="Parâmetros MS/Apuí"    Icon={BookOpen}/>
+            <L1 to="/fichas-tecnicas"   label="Fichas Técnicas APS"   Icon={FileText}/>
+            <L1 to="/producao-sisab"    label="Produção APS / SISAB"  Icon={BarChart2}/>
+            <L1 to="/relatorio-producao"label="Relatório Produção"     Icon={ClipboardList}/>
+            <L1 to="/monitoramento-rt-apui" label="Monitor Tempo Real" Icon={Activity} badge="AO VIVO"/>
+            <L1 to="/busca-ativa/gestante" label="Busca Ativa"         Icon={Search}/>
+
+            {/* ── Financeiro/Gestão ── */}
+            <SbSection label="Financeiro e Gestão"/>
+            <L1 to="/contratos"     label="Contratos & Licitações" Icon={FileText}/>
+            <L1 to="/ppa-loa"       label="PPA / LOA"              Icon={ClipboardList}/>
+            <L1 to="/regulacao-mac" label="Regulação MAC"          Icon={Network}/>
+            <L1 to="/siops-detalhado" label="SIOPS Detalhado"      Icon={Landmark}/>
+            <L1 to="/siops-live"    label="SIOPS — Dados Oficiais" Icon={Landmark}/>
+
+            {/* ── Vigilância ── */}
+            <SbSection label="Vigilância e Epidemiologia"/>
             <L1 to="/sala-vacinas"      label="Sala de Vacinas"       Icon={Syringe}/>
-            <L1 to="/manutencao"        label="Manutenção Equipam."   Icon={Wrench}/>
-            <L1 to="/assist-farmaceutica" label="Assist. Farmacêutica"  Icon={FlaskRound}/>
-            <L1 to="/transporte-sanitario"  label="Transporte / TFD"    Icon={Truck}/>
-            <L1 to="/producao-sisab"        label="Produção APS / SISAB" Icon={Activity}/>
-            <L1 to="/monitoramento-rt-apui" label="⚡ Monitor Tempo Real"  Icon={Activity}/>
-            <L1 to="/relatorio-producao"    label="📋 Relatório Produção"  Icon={FileText}/>
-            <L1 to="/parametros-ms"         label="🎯 Parâmetros MS/Apuí"  Icon={Target}/>
-            <L1 to="/fichas-tecnicas"       label="📋 Fichas Técnicas APS"  Icon={FileText}/>
-            <L1 to="/atencao-domiciliar"    label="Atenção Domiciliar"    Icon={Home}/>
-            <L1 to="/sim-sinasc"            label="SIM / SINASC"          Icon={BarChart2}/>
-            <L1 to="/cancer-rastreio"       label="Rastreio de Câncer"    Icon={Search}/>
-            <L1 to="/ccih"                  label="CCIH"                  Icon={ShieldCheck}/>
-            <L1 to="/sadt"                  label="SADT"                  Icon={FlaskConical}/>
-            <L1 to="/pgrss"                 label="PGRSS"                 Icon={Trash2}/>
-            <L1 to="/gestao-qualidade"      label="Gestão da Qualidade"   Icon={Star}/>
-            <L1 to="/cme"                   label="CME"                   Icon={Thermometer}/>
-            <L1 to="/frota"                 label="Frota de Saúde"        Icon={Truck}/>
-            <L1 to="/saude-servidor"        label="Saúde do Servidor"     Icon={UserCog}/>
-            <L1 to="/acolhimento"           label="Acolhimento / Classif. Risco" Icon={Clock}/>
-            <L1 to="/samu"                  label="SAMU 192"              Icon={Radio}/>
-            <L1 to="/pnae"                  label="Alimentação Escolar (PNAE)" Icon={ShoppingBag}/>
-            <L1 to="/siops-detalhado"       label="SIOPS Detalhado"       Icon={Landmark}/>
-            <L1 to="/siops-live"            label="SIOPS — Dados Oficiais" Icon={Landmark}/>
-            <L1 to="/pat-saude"             label="Patrimônio de Saúde"   Icon={Wrench}/>
-            <L1 to="/visa-alimentos"        label="VISA Alimentos"        Icon={ShieldCheck}/>
-            <L1 to="/academia-saude"        label="Academia da Saúde"     Icon={Activity}/>
+            <L1 to="/sim-sinasc"        label="SIM / SINASC"          Icon={BarChart2}/>
+            <L1 to="/cancer-rastreio"   label="Rastreio de Câncer"    Icon={Search}/>
+            <L1 to="/ccih"              label="CCIH"                  Icon={ShieldCheck}/>
+
+            {/* ── Assistência ── */}
+            <SbSection label="Assistência e Suporte"/>
+            <L1 to="/assist-farmaceutica" label="Assist. Farmacêutica"   Icon={FlaskRound}/>
+            <L1 to="/transporte-sanitario"label="Transporte / TFD"       Icon={Truck}/>
+            <L1 to="/atencao-domiciliar"  label="Atenção Domiciliar"     Icon={Home}/>
+            <L1 to="/manutencao"          label="Manutenção Equipam."    Icon={Wrench}/>
+            <L1 to="/frota"               label="Frota de Saúde"         Icon={Truck}/>
+
+            {/* ── Planejamento ── */}
+            <SbSection label="Planejamento e Gestão"/>
+            <L1 to="/plano-municipal-saude" label="Plano Municipal Saúde"  Icon={BookOpen}/>
+            <L1 to="/score-municipal"       label="Score / Diagnóstico"    Icon={Star}/>
+            <L1 to="/conselho-saude-apui"   label="Conselho de Saúde"     Icon={Users}/>
+            <L1 to="/ouvidoria-apui"        label="Ouvidoria Municipal"    Icon={MessageSquare}/>
+            <L1 to="/telessaude-apui"       label="TeleSaúde"             Icon={Monitor}/>
+            <L1 to="/absenteismo-apui"      label="Absenteísmo / RHS"     Icon={UserCog}/>
+
+            {/* ── Demais módulos ── */}
+            <SbSection label="Outros Módulos"/>
+            <L1 to="/sadt"              label="SADT"                     Icon={FlaskConical}/>
+            <L1 to="/pgrss"             label="PGRSS"                    Icon={Trash2}/>
+            <L1 to="/gestao-qualidade"  label="Gestão da Qualidade"      Icon={Star}/>
+            <L1 to="/cme"               label="CME"                      Icon={Thermometer}/>
+            <L1 to="/saude-servidor"    label="Saúde do Servidor"        Icon={UserCog}/>
+            <L1 to="/acolhimento"       label="Acolhimento / Classif."   Icon={Clock}/>
+            <L1 to="/samu"              label="SAMU 192"                 Icon={Radio}/>
+            <L1 to="/pnae"              label="Alimentação Escolar"      Icon={ShoppingBag}/>
+            <L1 to="/pat-saude"         label="Patrimônio de Saúde"      Icon={Wrench}/>
+            <L1 to="/visa-alimentos"    label="VISA Alimentos"           Icon={ShieldCheck}/>
+            <L1 to="/academia-saude"    label="Academia da Saúde"        Icon={Activity}/>
             <L1 to="/atencao-especializada" label="Atenção Especializada" Icon={Stethoscope}/>
-            <L1 to="/plano-municipal-saude"  label="Plano Municipal Saúde"  Icon={BookOpen}/>
-            <L1 to="/score-municipal"        label="Score / Diagnóstico"    Icon={Star}/>
-            <L1 to="/regulacao-acesso-apui"       label="Regulação e Acesso"     Icon={Network}/>
-            <L1 to="/gestao-leitos-apui"          label="Gestão de Leitos"       Icon={Building2}/>
-            <L1 to="/conselho-saude-apui"    label="Conselho de Saúde"     Icon={Users}/>
-            <L1 to="/ouvidoria-apui"         label="Ouvidoria Municipal"   Icon={MessageSquare}/>
-            <L1 to="/seguranca-paciente-apui"label="Segurança do Paciente" Icon={Shield}/>
-            <L1 to="/telessaude-apui"        label="TeleSaúde"             Icon={Monitor}/>
-            <L1 to="/nutricao-sisvan-apui"        label="Nutrição / SISVAN"    Icon={ShoppingBag}/>
+            <L1 to="/regulacao-acesso-apui" label="Regulação e Acesso"   Icon={Network}/>
+            <L1 to="/gestao-leitos-apui"    label="Gestão de Leitos"     Icon={Building2}/>
+            <L1 to="/seguranca-paciente-apui" label="Segurança do Paciente" Icon={Shield}/>
+            <L1 to="/nutricao-sisvan-apui"  label="Nutrição / SISVAN"    Icon={ShoppingBag}/>
             <L1 to="/regulacao-especializada-apui" label="Regulação Especializ." Icon={Globe}/>
-            <L1 to="/saude-lgbtqia-apui"          label="Saúde LGBTQIA+"          Icon={Smile}/>
-            <L1 to="/saude-escolar-pse-apui"       label="Saúde Escolar / PSE"      Icon={School}/>
-            <L1 to="/absenteismo-apui"                label="Absenteísmo / RHS"        Icon={UserCog}/>
-            <L1 to="/pics-apui"                       label="PICS — Práticas Integrat." Icon={Sparkles}/>
-            <L1 to="/ranking" label="Ranking"            Icon={BarChart2}/>
-            <L1 to="/mapa"    label="Mapa de Desempenho" Icon={Map}/>
+            <L1 to="/saude-lgbtqia-apui"    label="Saúde LGBTQIA+"       Icon={Smile}/>
+            <L1 to="/saude-escolar-pse-apui" label="Saúde Escolar / PSE" Icon={School}/>
+            <L1 to="/pics-apui"             label="PICS"                  Icon={Sparkles}/>
+            <L1 to="/ranking"               label="Ranking"               Icon={BarChart2}/>
+            <L1 to="/mapa"                  label="Mapa de Desempenho"   Icon={Map}/>
 
             {/* ── Saúde Brasil 360 ── */}
             <Acc1 label="Saúde Brasil 360">
@@ -613,48 +763,56 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
               <L2 to="/relatorios"  label="Relatórios"               Icon={FileText}/>
             </Acc1>
 
-            {/* ── Informatiza APS ── */}
-            <div style={{borderTop:"1px solid #f0f0f0", marginTop:4}}>
-              <L1 to="/informatiza-aps" label="Informatiza APS"  Icon={Network}/>
-              <L1 to="/sus360"          label="SUS 360° — MS"    Icon={Monitor}/>
-              <L1 to="/ia"              label="IA Gestora"        Icon={Bot}/>
-            </div>
+            {/* ── Digital / IA ── */}
+            <SbSection label="Digital e Inteligência"/>
+            <L1 to="/informatiza-aps" label="Informatiza APS"        Icon={Network}/>
+            <L1 to="/sus360"          label="SUS 360° — MS"          Icon={Monitor}/>
+            <L1 to="/ia"              label="IA Gestora"              Icon={Bot}/>
+            <L1 to="/bi"              label="Business Intelligence"   Icon={TrendingUp}/>
 
-            {/* ── Gestão Operacional ── */}
-            <div style={{borderTop:"1px solid #f0f0f0", marginTop:4}}>
-              <L1 to="/agenda"          label="Agenda de Gestão"      Icon={Calendar}/>
-              <L1 to="/conformidade"    label="Conformidade Legal"    Icon={Shield}/>
-              <L1 to="/alertas/historico" label="Histórico de Alertas" Icon={Bell}/>
-            <L1 to="/bi"              label="Business Intelligence" Icon={TrendingUp}/>
-              <L1 to="/ocis"            label="OCIS — Operações"      Icon={Radio}/>
-              <L1 to="/patrimonio"      label="Patrimônio e Frota"    Icon={Truck}/>
-              <L1 to="/portal-gestor"   label="Painel do Prefeito"     Icon={Star}/>
-              <L1 to="/portal-cidadao"  label="Portal do Cidadão"     Icon={Globe}/>
-              <L1 to="/marketplace"     label="Marketplace & Academia" Icon={ShoppingBag}/>
-            </div>
+            {/* ── Operacional ── */}
+            <SbSection label="Operacional"/>
+            <L1 to="/agenda"           label="Agenda de Gestão"      Icon={Calendar}/>
+            <L1 to="/conformidade"     label="Conformidade Legal"     Icon={Shield}/>
+            <L1 to="/alertas/historico"label="Histórico de Alertas"  Icon={Bell}/>
+            <L1 to="/ocis"             label="OCIS — Operações"      Icon={Radio}/>
+            <L1 to="/patrimonio"       label="Patrimônio e Frota"    Icon={Truck}/>
+            <L1 to="/portal-gestor"    label="Painel do Prefeito"    Icon={Star}/>
+            <L1 to="/portal-cidadao"   label="Portal do Cidadão"     Icon={Globe}/>
+            <L1 to="/marketplace"      label="Marketplace & Academia" Icon={ShoppingBag}/>
 
             {/* ── Administração ── */}
-            <div style={{borderTop:"1px solid #f0f0f0", marginTop:4}}>
-              <L1 to="/rh"         label="Recursos Humanos"     Icon={UserCog}/>
-              <L1 to="/cadastros"  label="Cadastros Mestres"    Icon={Layers}/>
-              <L1 to="/usuarios"   label="Gestão de Usuários"   Icon={Users}/>
-              <L1 to="/auditoria"  label="Auditoria do Sistema" Icon={Shield}/>
-            </div>
+            <SbSection label="Administração"/>
+            <L1 to="/rh"         label="Recursos Humanos"     Icon={UserCog}/>
+            <L1 to="/cadastros"  label="Cadastros Mestres"    Icon={Layers}/>
+            <L1 to="/usuarios"   label="Gestão de Usuários"   Icon={Users}/>
+            <L1 to="/auditoria"  label="Auditoria do Sistema" Icon={Shield}/>
 
+            <div style={{height:24}}/>
           </div>
 
-          {/* Footer */}
-          <div style={{padding:"12px 16px",borderTop:"1px solid #e0e0e0",fontSize:11,color:"#9e9e9e",lineHeight:1.8,flexShrink:0}}>
-            <div>ERSUS 360 by <span style={{color:BLUE}}>FMS Apuí/AM</span></div>
-            <div>v1.0.0 | <span style={{color:BLUE,cursor:"pointer"}}>Termos de uso</span></div>
-            <div style={{display:"flex",alignItems:"center",gap:5,color:"#c62828",cursor:"pointer",marginTop:6,fontWeight:600,fontSize:12}} onClick={onLogout}>
+          {/* Footer sidebar */}
+          <div style={{
+            padding:"12px 14px", borderTop:"1px solid #1a2d40",
+            flexShrink:0, background:"#0a1520",
+          }}>
+            <div style={{fontSize:11,color:SB_MUTED,marginBottom:8,lineHeight:1.6}}>
+              <span style={{color:"#38bdf8",fontWeight:700}}>ERSUS 360</span> · FMS Apuí/AM
+              <br/><span style={{fontSize:10}}>v1.0.0 · SAPS ©2026</span>
+            </div>
+            <div style={{
+              display:"flex", alignItems:"center", gap:6, cursor:"pointer",
+              color:"#f87171", fontSize:12, fontWeight:600,
+              padding:"6px 10px", borderRadius:6, border:"1px solid #7f1d1d22",
+              background:"rgba(239,68,68,.08)", transition:"background .15s",
+            }} onClick={onLogout}>
               <LogOut size={13}/> Sair do sistema
             </div>
           </div>
         </aside>
 
         {/* Main */}
-        <main style={{flex:1,overflow:"auto",background:LIGHT_BG}}>{children}</main>
+        <main style={{flex:1,overflow:"auto",background:"#f1f5f9"}}>{children}</main>
       </div>
     </div>
   );
