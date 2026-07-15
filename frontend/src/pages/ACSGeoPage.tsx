@@ -2,12 +2,13 @@
  * ACSGeoPage — Página de Geo-localização em Tempo Real dos ACS
  * Mapa Leaflet + feed de produção + painel lateral de status
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Wifi, WifiOff, MapPin, Activity, Users, CheckCircle,
   Clock, Navigation, RefreshCw, AlertTriangle, Smartphone,
-  ClipboardList, ChevronDown, ChevronRight,
+  ClipboardList, ChevronDown, ChevronRight, Filter,
+  FileText, Printer, Search, Calendar,
 } from "lucide-react";
 import { AcsMapaGeo } from "../components/AcsMapaGeo";
 import { useAcsGeo, type PosicaoAcs, type RegistroProducao } from "../hooks/useAcsGeo";
@@ -181,11 +182,226 @@ function FeedProducao({ registros }: { registros: RegistroProducao[] }) {
   );
 }
 
+// ── Timeline: visitas + envios de produção ────────────────────────────────────
+
+interface EventoTimeline {
+  tipo: "visita" | "producao" | "login" | "offline";
+  acs_id: number;
+  acs_nome: string;
+  microarea: string;
+  descricao: string;
+  ts: string;
+  lat?: number;
+  lng?: number;
+}
+
+const TIMELINE_DEMO: EventoTimeline[] = [
+  { tipo:"producao", acs_id:3,  acs_nome:"Ana Paula Ferreira",       microarea:"MA-03", descricao:"Produção enviada — 4 registros (1 gestante, 2 crianças, 1 HAS)", ts: new Date(Date.now()-300_000).toISOString(), lat:-7.1992, lng:-59.8914 },
+  { tipo:"visita",   acs_id:4,  acs_nome:"Raimundo Nonato Costa",    microarea:"MA-04", descricao:"Visita domiciliar — Família Pereira (DM, orientação dieta)", ts: new Date(Date.now()-600_000).toISOString(), lat:-7.2019, lng:-59.8858 },
+  { tipo:"visita",   acs_id:7,  acs_nome:"Benedita Sousa Oliveira",  microarea:"MA-07", descricao:"Visita gestante — 28 semanas, PA 120/80, caderneta atualizada", ts: new Date(Date.now()-900_000).toISOString(), lat:-7.2098, lng:-59.8998 },
+  { tipo:"producao", acs_id:1,  acs_nome:"Maria Aparecida Silva",    microarea:"MA-01", descricao:"Produção enviada — 3 registros (HAS, visita domiciliar, cadastro atualizado)", ts: new Date(Date.now()-1_200_000).toISOString(), lat:-7.1928, lng:-59.8842 },
+  { tipo:"visita",   acs_id:1,  acs_nome:"Maria Aparecida Silva",    microarea:"MA-01", descricao:"Visita domiciliar — Família Souza (verificação PA, orientação)", ts: new Date(Date.now()-1_800_000).toISOString(), lat:-7.1930, lng:-59.8840 },
+  { tipo:"login",    acs_id:5,  acs_nome:"Francisca Lima Santos",    microarea:"MA-05", descricao:"ACS entrou em campo — início de jornada", ts: new Date(Date.now()-2_400_000).toISOString() },
+  { tipo:"visita",   acs_id:2,  acs_nome:"João Carlos Nascimento",   microarea:"MA-02", descricao:"Visita criança <2a — Caderneta vacinal conferida, DTP em dia", ts: new Date(Date.now()-3_000_000).toISOString(), lat:-7.1960, lng:-59.8790 },
+  { tipo:"offline",  acs_id:8,  acs_nome:"Sebastião Alves Teixeira", microarea:"MA-08", descricao:"ACS offline — bateria crítica (12%)", ts: new Date(Date.now()-3_600_000).toISOString() },
+  { tipo:"producao", acs_id:2,  acs_nome:"João Carlos Nascimento",   microarea:"MA-02", descricao:"Produção enviada — 2 registros (vacinas, visita domiciliar)", ts: new Date(Date.now()-4_200_000).toISOString() },
+  { tipo:"visita",   acs_id:5,  acs_nome:"Francisca Lima Santos",    microarea:"MA-05", descricao:"Visita idoso — Aferição PA + orientação medicação HAS", ts: new Date(Date.now()-4_800_000).toISOString(), lat:-7.1880, lng:-59.8950 },
+];
+
+const TIPO_COR: Record<string,string> = { visita:"#2563eb", producao:"#16a34a", login:"#0891b2", offline:"#9ca3af" };
+const TIPO_LABEL: Record<string,string> = { visita:"Visita", producao:"Produção enviada", login:"Entrada em campo", offline:"Offline" };
+const TIPO_ICON: Record<string,React.ReactNode> = {
+  visita:   <MapPin size={12}/>,
+  producao: <ClipboardList size={12}/>,
+  login:    <CheckCircle size={12}/>,
+  offline:  <AlertTriangle size={12}/>,
+};
+
+function TimelinePanel({ eventos, filtroAcs, filtroMicroarea, filtroTipo }:
+  { eventos: EventoTimeline[]; filtroAcs: string; filtroMicroarea: string; filtroTipo: string }) {
+
+  const filtrados = eventos.filter(e => {
+    if (filtroAcs !== "Todos" && e.acs_nome !== filtroAcs) return false;
+    if (filtroMicroarea !== "Todas" && e.microarea !== filtroMicroarea) return false;
+    if (filtroTipo !== "Todos" && e.tipo !== filtroTipo) return false;
+    return true;
+  });
+
+  return (
+    <div style={{ overflowY:"auto", maxHeight:460 }}>
+      {filtrados.length === 0 && (
+        <div style={{ textAlign:"center", padding:24, color:"#9ca3af", fontSize:12 }}>
+          Nenhum evento com os filtros selecionados.
+        </div>
+      )}
+      {filtrados.map((ev, i) => {
+        const cor = TIPO_COR[ev.tipo];
+        return (
+          <div key={i} style={{ display:"flex", gap:10, paddingBottom:12, position:"relative" }}>
+            {/* linha vertical */}
+            {i < filtrados.length - 1 && (
+              <div style={{ position:"absolute", left:15, top:28, width:2, bottom:0, background:"#e5e7eb" }}/>
+            )}
+            {/* dot */}
+            <div style={{
+              width:30, height:30, borderRadius:15, background:cor+"18",
+              border:`2px solid ${cor}`, display:"flex", alignItems:"center",
+              justifyContent:"center", flexShrink:0, color:cor, zIndex:1,
+            }}>{TIPO_ICON[ev.tipo]}</div>
+            {/* conteúdo */}
+            <div style={{ flex:1, background:"#fff", border:"1px solid #e5e7eb", borderRadius:8, padding:"8px 12px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                <div>
+                  <span style={{ fontSize:10, fontWeight:700, color:cor, background:cor+"12", padding:"1px 6px", borderRadius:8, marginRight:6 }}>
+                    {TIPO_LABEL[ev.tipo]}
+                  </span>
+                  <span style={{ fontSize:11, fontWeight:600 }}>{ev.acs_nome.split(" ").slice(0,2).join(" ")}</span>
+                  <span style={{ fontSize:10, color:"#9ca3af", marginLeft:6 }}>{ev.microarea}</span>
+                </div>
+                <span style={{ fontSize:10, color:"#9ca3af", whiteSpace:"nowrap" }}>
+                  {new Date(ev.ts).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
+                </span>
+              </div>
+              <div style={{ fontSize:11, color:"#6b7280", marginTop:4, lineHeight:1.4 }}>{ev.descricao}</div>
+              {ev.lat && (
+                <div style={{ fontSize:10, color:"#9ca3af", marginTop:2 }}>
+                  📍 {ev.lat.toFixed(4)}, {ev.lng?.toFixed(4)}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Painel de Relatório ───────────────────────────────────────────────────────
+
+function RelatorioPanel({ posicoes, producao, eventos }:
+  { posicoes: PosicaoAcs[]; producao: RegistroProducao[]; eventos: EventoTimeline[] }) {
+  const [filtroAcs, setFiltroAcs] = useState("Todos");
+  const [filtroMa, setFiltroMa] = useState("Todas");
+  const [filtroData, setFiltroData] = useState(new Date().toISOString().slice(0,10));
+
+  const acsNomes = ["Todos", ...posicoes.map(p => p.nome)];
+  const microareas = ["Todas", ...Array.from(new Set(posicoes.map(p => p.microarea)))];
+
+  const linhas = useMemo(() => posicoes.map(p => {
+    const evsAcs = eventos.filter(e => e.acs_id === p.acs_id);
+    const visitas = evsAcs.filter(e => e.tipo === "visita");
+    const envios  = evsAcs.filter(e => e.tipo === "producao");
+    const ultimaVisita = visitas[0]?.ts;
+    const ultimoEnvio  = envios[0]?.ts;
+    return {
+      ...p,
+      visitas_hoje: visitas.length,
+      envios_hoje:  envios.length,
+      ultima_visita: ultimaVisita
+        ? new Date(ultimaVisita).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})
+        : "—",
+      ultimo_envio: ultimoEnvio
+        ? new Date(ultimoEnvio).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})
+        : "—",
+    };
+  }).filter(r => {
+    if (filtroAcs !== "Todos" && r.nome !== filtroAcs) return false;
+    if (filtroMa !== "Todas" && r.microarea !== filtroMa) return false;
+    return true;
+  }), [posicoes, eventos, filtroAcs, filtroMa]);
+
+  return (
+    <div>
+      {/* Filtros relatório */}
+      <div style={{ display:"flex", gap:10, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <Calendar size={13} color="#9ca3af"/>
+          <input type="date" value={filtroData} onChange={e => setFiltroData(e.target.value)}
+            style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"5px 8px", fontSize:12 }}/>
+        </div>
+        <select value={filtroAcs} onChange={e => setFiltroAcs(e.target.value)}
+          style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"5px 8px", fontSize:12 }}>
+          {acsNomes.map(n => <option key={n} value={n}>{n === "Todos" ? "Todos os ACS" : n}</option>)}
+        </select>
+        <select value={filtroMa} onChange={e => setFiltroMa(e.target.value)}
+          style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"5px 8px", fontSize:12 }}>
+          {microareas.map(m => <option key={m} value={m}>{m === "Todas" ? "Todas as Microáreas" : m}</option>)}
+        </select>
+        <button onClick={() => window.print()} style={{
+          marginLeft:"auto", display:"flex", alignItems:"center", gap:6,
+          border:"1px solid #d1d5db", borderRadius:6, padding:"6px 12px",
+          background:"#fff", cursor:"pointer", fontSize:12,
+        }}>
+          <Printer size={13}/> Imprimir / PDF
+        </button>
+      </div>
+
+      {/* Tabela relatório */}
+      <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, overflow:"hidden" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
+          <thead>
+            <tr style={{ background:"#f9fafb", borderBottom:"1px solid #e5e7eb" }}>
+              {["ACS","Microárea","Status","Visitas Hoje","Últ. Visita","Envios Produção","Últ. Envio","Bateria"].map(h => (
+                <th key={h} style={{ padding:"10px 12px", textAlign:"left", fontWeight:600, color:"#6b7280", fontSize:11, whiteSpace:"nowrap" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((r, i) => {
+              const cor = STATUS_COR[r.status];
+              return (
+                <tr key={r.acs_id} style={{ borderBottom:"1px solid #f3f4f6", background: i%2===0?"#fff":"#fafafa" }}>
+                  <td style={{ padding:"10px 12px", fontWeight:500 }}>{r.nome.split(" ").slice(0,2).join(" ")}</td>
+                  <td style={{ padding:"10px 12px", color:"#6b7280" }}>{r.microarea}</td>
+                  <td style={{ padding:"10px 12px" }}>
+                    <span style={{ background:cor+"15", color:cor, fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:10 }}>
+                      {STATUS_LABEL[r.status]}
+                    </span>
+                  </td>
+                  <td style={{ padding:"10px 12px", textAlign:"center", fontWeight:700,
+                    color: r.visitas_hoje === 0 ? "#dc2626" : r.visitas_hoje >= 3 ? "#16a34a" : "#d97706" }}>
+                    {r.visitas_hoje}
+                  </td>
+                  <td style={{ padding:"10px 12px", color: r.ultima_visita === "—" ? "#dc2626" : "#374151" }}>
+                    {r.ultima_visita}
+                  </td>
+                  <td style={{ padding:"10px 12px", textAlign:"center", fontWeight:700,
+                    color: r.envios_hoje === 0 ? "#9ca3af" : "#16a34a" }}>
+                    {r.envios_hoje}
+                  </td>
+                  <td style={{ padding:"10px 12px", color: r.ultimo_envio === "—" ? "#9ca3af" : "#374151" }}>
+                    {r.ultimo_envio}
+                  </td>
+                  <td style={{ padding:"10px 12px" }}>
+                    {r.bateria !== null
+                      ? <span style={{ color: r.bateria < 20 ? "#dc2626" : r.bateria < 50 ? "#d97706" : "#16a34a", fontWeight:600 }}>
+                          🔋 {r.bateria}%
+                        </span>
+                      : <span style={{ color:"#9ca3af" }}>—</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <div style={{ padding:"10px 12px", borderTop:"1px solid #e5e7eb", fontSize:11, color:"#9ca3af" }}>
+          {linhas.length} ACS · Data: {filtroData} · Gerado em {new Date().toLocaleTimeString("pt-BR")}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Página principal ──────────────────────────────────────────────────────────
 
 export default function ACSGeoPage() {
   const { posicoes: posWs, producaoHoje: prodWs, totalAtivos, totalVisitas, conectado, ultimoEvento } = useAcsGeo();
   const [modoDemo, setModoDemo] = useState(false);
+  const [vistaGeo, setVistaGeo] = useState<"mapa"|"timeline"|"relatorio">("mapa");
+  const [filtroAcsGeo, setFiltroAcsGeo] = useState("Todos");
+  const [filtroMaGeo, setFiltroMaGeo] = useState("Todas");
+  const [filtroStatusGeo, setFiltroStatusGeo] = useState("Todos");
+  const [filtroTipoTimeline, setFiltroTipoTimeline] = useState("Todos");
 
   // Carrega snapshot REST como fallback (até WebSocket trazer dados)
   const { data: snapshot } = useQuery({
@@ -203,6 +419,17 @@ export default function ACSGeoPage() {
 
   const posicoes = modoDemo ? POS_DEMO : (posWs.length > 0 ? posWs : (snapshot?.posicoes ?? POS_DEMO));
   const producao = modoDemo ? PROD_DEMO : (prodWs.length > 0 ? prodWs : (snapshot?.producao_hoje ?? PROD_DEMO));
+  const timeline = TIMELINE_DEMO;
+
+  const acsNomesGeo  = useMemo(() => ["Todos", ...posicoes.map(p => p.nome)], [posicoes]);
+  const microareasGeo = useMemo(() => ["Todas", ...Array.from(new Set(posicoes.map(p => p.microarea)))], [posicoes]);
+
+  const posicoesFiltradas = useMemo(() => posicoes.filter(p => {
+    if (filtroAcsGeo !== "Todos" && p.nome !== filtroAcsGeo) return false;
+    if (filtroMaGeo !== "Todas" && p.microarea !== filtroMaGeo) return false;
+    if (filtroStatusGeo !== "Todos" && p.status !== filtroStatusGeo) return false;
+    return true;
+  }), [posicoes, filtroAcsGeo, filtroMaGeo, filtroStatusGeo]);
 
   const ativos       = posicoes.filter(p => p.status !== "offline").length;
   const emVisita     = posicoes.filter(p => p.status === "em_visita").length;
@@ -264,12 +491,98 @@ export default function ACSGeoPage() {
         ))}
       </div>
 
-      {/* Layout principal: mapa + painéis laterais */}
+      {/* ── Tabs de Vista ── */}
+      <div style={{ display:"flex", gap:4, borderBottom:"2px solid #e5e7eb" }}>
+        {([
+          { id:"mapa",      label:"🗺 Mapa em Tempo Real",   icon:<Navigation size={13}/> },
+          { id:"timeline",  label:"⏱ Timeline Visitas",      icon:<Clock size={13}/> },
+          { id:"relatorio", label:"📋 Relatório",             icon:<FileText size={13}/> },
+        ] as const).map(t => (
+          <button key={t.id} onClick={() => setVistaGeo(t.id)} style={{
+            display:"flex", alignItems:"center", gap:5,
+            padding:"8px 14px", border:"none", background:"none",
+            borderBottom: vistaGeo===t.id ? "2px solid #2563eb" : "2px solid transparent",
+            color: vistaGeo===t.id ? "#2563eb" : "#6b7280",
+            fontWeight: vistaGeo===t.id ? 700 : 400,
+            cursor:"pointer", fontSize:13, marginBottom:-2,
+          }}>{t.icon} {t.label}</button>
+        ))}
+      </div>
+
+      {/* ── Filtros globais (Mapa + Timeline) ── */}
+      {vistaGeo !== "relatorio" && (
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center", background:"#f9fafb", border:"1px solid #e5e7eb", borderRadius:8, padding:"8px 12px" }}>
+          <Filter size={13} color="#9ca3af"/>
+          <select value={filtroAcsGeo} onChange={e => setFiltroAcsGeo(e.target.value)}
+            style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"4px 8px", fontSize:12 }}>
+            {acsNomesGeo.map(n => <option key={n} value={n}>{n === "Todos" ? "Todos os ACS" : n.split(" ").slice(0,2).join(" ")}</option>)}
+          </select>
+          <select value={filtroMaGeo} onChange={e => setFiltroMaGeo(e.target.value)}
+            style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"4px 8px", fontSize:12 }}>
+            {microareasGeo.map(m => <option key={m} value={m}>{m === "Todas" ? "Todas as Microáreas" : m}</option>)}
+          </select>
+          {vistaGeo === "mapa" && (
+            <div style={{ display:"flex", gap:4 }}>
+              {["Todos","ativo","em_visita","deslocamento","offline"].map(s => (
+                <button key={s} onClick={() => setFiltroStatusGeo(s)} style={{
+                  padding:"3px 9px", fontSize:11, borderRadius:12,
+                  border:`1px solid ${STATUS_COR[s]??"#374151"}60`,
+                  background: filtroStatusGeo===s ? (STATUS_COR[s]??"#374151") : "#fff",
+                  color: filtroStatusGeo===s ? "#fff" : (STATUS_COR[s]??"#374151"),
+                  cursor:"pointer", fontWeight:600,
+                }}>{s === "Todos" ? "Todos" : STATUS_LABEL[s]}</button>
+              ))}
+            </div>
+          )}
+          {vistaGeo === "timeline" && (
+            <div style={{ display:"flex", gap:4 }}>
+              {["Todos","visita","producao","login","offline"].map(t => (
+                <button key={t} onClick={() => setFiltroTipoTimeline(t)} style={{
+                  padding:"3px 9px", fontSize:11, borderRadius:12,
+                  border:`1px solid ${TIPO_COR[t]??"#374151"}60`,
+                  background: filtroTipoTimeline===t ? (TIPO_COR[t]??"#374151") : "#fff",
+                  color: filtroTipoTimeline===t ? "#fff" : (TIPO_COR[t]??"#374151"),
+                  cursor:"pointer", fontWeight:600,
+                }}>{t === "Todos" ? "Todos" : TIPO_LABEL[t]}</button>
+              ))}
+            </div>
+          )}
+          <span style={{ marginLeft:"auto", fontSize:11, color:"#9ca3af" }}>
+            {vistaGeo === "mapa" ? `${posicoesFiltradas.length} ACS` : `${timeline.length} eventos`}
+          </span>
+        </div>
+      )}
+
+      {/* ── Vista: Timeline ── */}
+      {vistaGeo === "timeline" && (
+        <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:16 }}>
+          <div style={{ fontWeight:700, fontSize:14, marginBottom:14, display:"flex", alignItems:"center", gap:8 }}>
+            <Clock size={16} color="#2563eb"/> Timeline — Visitas e Envios de Produção
+            <span style={{ marginLeft:"auto", fontSize:11, color:"#9ca3af" }}>
+              {new Date().toLocaleDateString("pt-BR")} · Tempo Real
+            </span>
+          </div>
+          <TimelinePanel
+            eventos={timeline}
+            filtroAcs={filtroAcsGeo}
+            filtroMicroarea={filtroMaGeo}
+            filtroTipo={filtroTipoTimeline}
+          />
+        </div>
+      )}
+
+      {/* ── Vista: Relatório ── */}
+      {vistaGeo === "relatorio" && (
+        <RelatorioPanel posicoes={posicoes} producao={producao} eventos={timeline}/>
+      )}
+
+      {/* ── Vista: Mapa ── */}
+      {vistaGeo === "mapa" && (
       <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 14, flex: 1 }}>
 
         {/* Mapa */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <AcsMapaGeo posicoes={posicoes} producaoHoje={producao} altura={440} />
+          <AcsMapaGeo posicoes={posicoesFiltradas} producaoHoje={producao} altura={440} />
 
           {/* Último evento */}
           {ultimoEvento && (
@@ -303,7 +616,7 @@ export default function ACSGeoPage() {
             <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
               <MapPin size={14} color="#2563eb" /> Status em Campo
             </div>
-            <PainelStatusAcs posicoes={posicoes} />
+            <PainelStatusAcs posicoes={posicoesFiltradas} />
           </div>
 
           {/* Feed produção */}
@@ -318,7 +631,8 @@ export default function ACSGeoPage() {
             <FeedProducao registros={producao} />
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

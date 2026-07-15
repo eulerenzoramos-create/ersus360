@@ -362,21 +362,47 @@ export default function ACSPainel() {
     [listaData?.acs]
   );
 
-  const cadFiltrados = useMemo(() => todosCadastros.filter(p => {
+  const [sisMicroareaFiltro, setSisMicroareaFiltro] = useState("Todas");
+  const [sisIncFiltro, setSisIncFiltro] = useState(false);
+
+  const todasMicroareas = useMemo(() =>
+    ["Todas", ...Array.from(new Set(todosCadastros.map(p => p.microarea)))],
+    [todosCadastros]
+  );
+
+  // Detecção de inconsistências por paciente
+  const cadComInconsistencias = useMemo(() => todosCadastros.map(p => {
+    const inc: string[] = [];
+    if (!p.campos.find(c => c.campo === "cns___cpf" && c.preenchido)) inc.push("CNS/CPF ausente");
+    if (!p.campos.find(c => c.campo === "raça___cor" && c.preenchido)) inc.push("Raça/Cor não informada");
+    if (!p.campos.find(c => c.campo === "condições_de_saúde" && c.preenchido)) inc.push("Condições de saúde em branco");
+    if (!p.campos.find(c => c.campo === "endereço_completo" && c.preenchido)) inc.push("Endereço incompleto");
+    if (!p.campos.find(c => c.campo === "responsável_familiar" && c.preenchido)) inc.push("Responsável sem CNS");
+    if (p.visitas_no_mes === 0) inc.push("Sem visita no mês");
+    const ano = parseInt(p.data_nascimento.slice(0, 4));
+    if (ano > 2025) inc.push("Data nascimento inválida");
+    if (ano < 1900) inc.push("Data nascimento suspeita");
+    return { ...p, inconsistencias: inc };
+  }), [todosCadastros]);
+
+  const cadFiltrados = useMemo(() => cadComInconsistencias.filter(p => {
     if (sisAcsFiltro !== "Todos" && p.acs_nome !== sisAcsFiltro) return false;
+    if (sisMicroareaFiltro !== "Todas" && p.microarea !== sisMicroareaFiltro) return false;
     if (sisStatusFiltro !== "Todos" && p.status_cadastro !== sisStatusFiltro) return false;
+    if (sisIncFiltro && p.inconsistencias.length === 0) return false;
     if (sisBusca && !p.nome.toLowerCase().includes(sisBusca.toLowerCase()) &&
         !p.cns.includes(sisBusca)) return false;
     return true;
-  }), [todosCadastros, sisAcsFiltro, sisStatusFiltro, sisBusca]);
+  }), [cadComInconsistencias, sisAcsFiltro, sisMicroareaFiltro, sisStatusFiltro, sisIncFiltro, sisBusca]);
 
   const resumoSis = useMemo(() => ({
     total: todosCadastros.length,
-    completos:   todosCadastros.filter(p => p.status_cadastro === "completo").length,
-    parciais:    todosCadastros.filter(p => p.status_cadastro === "parcial").length,
-    incompletos: todosCadastros.filter(p => p.status_cadastro === "incompleto").length,
-    semVisita:   todosCadastros.filter(p => p.visitas_no_mes === 0).length,
-  }), [todosCadastros]);
+    completos:       todosCadastros.filter(p => p.status_cadastro === "completo").length,
+    parciais:        todosCadastros.filter(p => p.status_cadastro === "parcial").length,
+    incompletos:     todosCadastros.filter(p => p.status_cadastro === "incompleto").length,
+    semVisita:       todosCadastros.filter(p => p.visitas_no_mes === 0).length,
+    comInconsistencia: cadComInconsistencias.filter(p => p.inconsistencias.length > 0).length,
+  }), [todosCadastros, cadComInconsistencias]);
 
   const acsNomes = useMemo(() =>
     ["Todos", ...Array.from(new Set((listaData?.acs ?? []).map(a => a.nome)))],
@@ -599,13 +625,14 @@ export default function ACSPainel() {
         <div>
 
           {/* Resumo KPIs */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:10, marginBottom:18 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:10, marginBottom:18 }}>
             {[
-              { label:"Total Cadastros",  val:resumoSis.total,       cor:"#0891b2", bg:"#ecfeff" },
-              { label:"Completos",        val:resumoSis.completos,   cor:"#16a34a", bg:"#f0fdf4" },
-              { label:"Parciais",         val:resumoSis.parciais,    cor:"#d97706", bg:"#fffbeb" },
-              { label:"Incompletos",      val:resumoSis.incompletos, cor:"#dc2626", bg:"#fff7f7" },
-              { label:"Sem Visita/Mês",   val:resumoSis.semVisita,   cor:"#6b7280", bg:"#f9fafb" },
+              { label:"Total Cadastros",     val:resumoSis.total,                cor:"#0891b2", bg:"#ecfeff" },
+              { label:"Completos",           val:resumoSis.completos,            cor:"#16a34a", bg:"#f0fdf4" },
+              { label:"Parciais",            val:resumoSis.parciais,             cor:"#d97706", bg:"#fffbeb" },
+              { label:"Incompletos",         val:resumoSis.incompletos,          cor:"#dc2626", bg:"#fff7f7" },
+              { label:"Sem Visita/Mês",      val:resumoSis.semVisita,            cor:"#6b7280", bg:"#f9fafb" },
+              { label:"Com Inconsistências", val:resumoSis.comInconsistencia,    cor:"#9333ea", bg:"#faf5ff" },
             ].map(k => (
               <div key={k.label} style={{ background:k.bg, borderRadius:10, padding:"12px 14px", textAlign:"center" }}>
                 <div style={{ fontSize:22, fontWeight:700, color:k.cor }}>{k.val}</div>
@@ -678,13 +705,17 @@ export default function ACSPainel() {
                   style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"6px 10px", fontSize:12 }}>
                   {acsNomes.map(n => <option key={n} value={n}>{n === "Todos" ? "Todos os ACS" : n}</option>)}
                 </select>
+                <select value={sisMicroareaFiltro} onChange={e => setSisMicroareaFiltro(e.target.value)}
+                  style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"6px 10px", fontSize:12 }}>
+                  {todasMicroareas.map(m => <option key={m} value={m}>{m === "Todas" ? "Todas as Microáreas" : m}</option>)}
+                </select>
               </div>
-              <div style={{ display:"flex", gap:6 }}>
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                 {[
-                  { val:"Todos",      label:"Todos",      cor:"#374151" },
-                  { val:"completo",   label:"Completo",   cor:"#16a34a" },
-                  { val:"parcial",    label:"Parcial",    cor:"#d97706" },
-                  { val:"incompleto", label:"Incompleto", cor:"#dc2626" },
+                  { val:"Todos",      label:"Todos",         cor:"#374151" },
+                  { val:"completo",   label:"Completo",      cor:"#16a34a" },
+                  { val:"parcial",    label:"Parcial",       cor:"#d97706" },
+                  { val:"incompleto", label:"Incompleto",    cor:"#dc2626" },
                 ].map(s => (
                   <button key={s.val} onClick={() => setSisStatusFiltro(s.val)} style={{
                     padding:"4px 10px", fontSize:11, borderRadius:16,
@@ -694,6 +725,13 @@ export default function ACSPainel() {
                     cursor:"pointer", fontWeight:600,
                   }}>{s.label}</button>
                 ))}
+                <button onClick={() => setSisIncFiltro(v => !v)} style={{
+                  padding:"4px 10px", fontSize:11, borderRadius:16,
+                  border:"1px solid #9333ea60",
+                  background: sisIncFiltro ? "#9333ea" : "#fff",
+                  color: sisIncFiltro ? "#fff" : "#9333ea",
+                  cursor:"pointer", fontWeight:600,
+                }}>⚠ Só inconsistências</button>
               </div>
               <span style={{ fontSize:12, color:"#9ca3af", marginLeft:"auto" }}>{cadFiltrados.length} registros</span>
             </div>
@@ -705,7 +743,7 @@ export default function ACSPainel() {
               <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
                 <thead>
                   <tr style={{ background:"#f9fafb", borderBottom:"1px solid #e5e7eb" }}>
-                    {["Paciente / CNS","ACS","Microárea","Visitas/Mês","Últ. Visita","Completude","Campos Pendentes","Status"].map(h => (
+                    {["Paciente / CNS","ACS","Microárea","Visitas/Mês","Últ. Visita","Completude","Inconsistências SIS","Campos Pendentes","Status"].map(h => (
                       <th key={h} style={{ padding:"10px 12px", textAlign:"left", fontWeight:600, color:"#6b7280", fontSize:11, whiteSpace:"nowrap" }}>{h}</th>
                     ))}
                   </tr>
@@ -743,7 +781,22 @@ export default function ACSPainel() {
                             <span style={{ fontSize:11, fontWeight:700, color:corStatus, minWidth:30 }}>{p.pct_completo}%</span>
                           </div>
                         </td>
-                        <td style={{ padding:"10px 12px", maxWidth:180 }}>
+                        <td style={{ padding:"10px 12px", maxWidth:160 }}>
+                          {(p as any).inconsistencias?.length === 0 ? (
+                            <span style={{ color:"#16a34a", fontSize:11 }}>✓ Sem inconsistências</span>
+                          ) : (
+                            <div style={{ display:"flex", flexWrap:"wrap", gap:3 }}>
+                              {((p as any).inconsistencias as string[]).map((inc: string) => (
+                                <span key={inc} style={{
+                                  background:"#faf5ff", color:"#9333ea",
+                                  fontSize:9, padding:"1px 5px", borderRadius:4, whiteSpace:"nowrap",
+                                  border:"1px solid #e9d5ff",
+                                }}>⚠ {inc}</span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding:"10px 12px", maxWidth:160 }}>
                           {faltando.length === 0 ? (
                             <span style={{ color:"#16a34a", fontSize:11 }}>✓ Todos preenchidos</span>
                           ) : (
