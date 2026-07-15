@@ -600,8 +600,10 @@ from routers.monitoramento_metas_apui import router as monitoramento_metas_apui_
 from routers.monitoramento_rt_apui import router as monitoramento_rt_apui_router
 from routers.relatorio_producao import router as relatorio_producao_router
 from routers.parametros_ms import router as parametros_ms_router
+from routers.fichas_tecnicas import router as fichas_tecnicas_router
 app.include_router(relatorio_producao_router)
 app.include_router(parametros_ms_router)
+app.include_router(fichas_tecnicas_router)
 app.include_router(saude_sexual_reprodutiva_apui_router)
 app.include_router(auditoria_interna_apui_router)
 app.include_router(monitoramento_metas_apui_router)
