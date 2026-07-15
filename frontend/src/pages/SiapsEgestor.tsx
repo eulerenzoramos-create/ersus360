@@ -1226,7 +1226,7 @@ function AbaRelatorioPagamento() {
   const PARCELAS = Array.from({length:12},(_,i)=>`${i+1}/12`);
 
   const abrirEgestor = (modo: "tela"|"download") => {
-    const url = "https://egestorab.saude.gov.br/gestaoaps/relPagamentoEquipe.xhtml";
+    const url = "https://relatorioaps.saude.gov.br/gerenciaaps/pagamento";
     window.open(url, "_blank");
   };
 
