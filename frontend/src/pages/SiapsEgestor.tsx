@@ -597,6 +597,264 @@ function ViewQuadrimestral({ data }: { data: any }) {
   );
 }
 
+// ── Painel Gestor RT ─────────────────────────────────────────────────────────
+
+// Contexto Q2/2026: 1 Mai – 31 Ago/2026 (123 dias). Hoje: 15/Jul → 76 dias decorridos
+const _Q2 = {
+  label: "2º Quadrimestre 2026",
+  periodo: "Mai/2026 – Ago/2026",
+  dias_totais: 123,
+  dias_decorridos: 76,
+  dias_restantes: 47,
+  indicadores: [
+    { key: "ind1", label: "Pré-natal ≥6 consultas",   atual: 65.2, meta: 60,  q1: 72.5 },
+    { key: "ind2", label: "Citopatológico",             atual: 32.4, meta: 60,  q1: 37.1 },
+    { key: "ind3", label: "DTP/Penta",                  atual: 71.8, meta: 95,  q1: 76.5 },
+    { key: "ind4", label: "Consulta RN 1ª semana",      atual: 74.3, meta: 60,  q1: 81.9 },
+    { key: "ind5", label: "Acompanhamento HAS",          atual: 63.7, meta: 50,  q1: 70.5 },
+    { key: "ind6", label: "Acompanhamento DM",           atual: 48.2, meta: 50,  q1: 55.4 },
+    { key: "ind7", label: "Desenvolvimento Infantil",    atual: 61.8, meta: 60,  q1: 67.1 },
+  ],
+  equipes: [
+    { ubs:"UBS IRMÃ ELIZABETE",          equipe:"CACHOEIRA",            pts_q1:38.5, status:"bom",       ind:{ind1:74,ind2:28,ind3:68,ind4:83,ind5:71,ind6:52,ind7:68} },
+    { ubs:"UBS ANIZIO FERREIRA DA SILVA",equipe:"SÃO SEBASTIÃO",        pts_q1:36.2, status:"bom",       ind:{ind1:68,ind2:30,ind3:73,ind4:71,ind5:59,ind6:44,ind7:63} },
+    { ubs:"UBS ANIZIO FERREIRA DA SILVA",equipe:"ACARI",                 pts_q1:35.8, status:"bom",       ind:{ind1:71,ind2:31,ind3:72,ind4:78,ind5:65,ind6:47,ind7:60} },
+    { ubs:"UBS OSVALDO LEMES CABRAL",    equipe:"TRÊS ESTADOS",          pts_q1:18.4, status:"regular",   ind:{ind1:42,ind2:18,ind3:59,ind4:51,ind5:44,ind6:28,ind7:38} },
+    { ubs:"UBS LIBERDADE",               equipe:"LIBERDADE",             pts_q1:41.2, status:"otimo",     ind:{ind1:79,ind2:41,ind3:81,ind4:88,ind5:74,ind6:58,ind7:72} },
+    { ubs:"UBS SÃO RAIMUNDO",            equipe:"SÃO RAIMUNDO",          pts_q1:32.1, status:"suficiente",ind:{ind1:58,ind2:22,ind3:65,ind4:68,ind5:55,ind6:39,ind7:54} },
+    { ubs:"UBS RURAL I",                 equipe:"RURAL CACHOEIRA",       pts_q1:28.6, status:"suficiente",ind:{ind1:55,ind2:19,ind3:62,ind4:63,ind5:51,ind6:35,ind7:49} },
+    { ubs:"UBS RURAL II",                equipe:"LÁBREA",                pts_q1:22.3, status:"regular",   ind:{ind1:44,ind2:15,ind3:58,ind4:55,ind5:46,ind6:30,ind7:41} },
+    { ubs:"UBS NOVA ESPERANÇA",          equipe:"NOVA ESPERANÇA",        pts_q1:33.7, status:"suficiente",ind:{ind1:62,ind2:25,ind3:67,ind4:70,ind5:57,ind6:42,ind7:56} },
+    { ubs:"UBS SFR",                     equipe:"RURAL SÃO SEBASTIÃO",   pts_q1:26.4, status:"suficiente",ind:{ind1:51,ind2:17,ind3:61,ind4:60,ind5:48,ind6:33,ind7:46} },
+  ],
+};
+
+function PainelGestorRT() {
+  const { dias_totais, dias_decorridos, dias_restantes } = _Q2;
+  const pctTempo = Math.round((dias_decorridos / dias_totais) * 100);
+  const metas = [60, 60, 95, 60, 50, 50, 60];
+  const indKeys = ["ind1","ind2","ind3","ind4","ind5","ind6","ind7"] as const;
+
+  const corGap = (atual: number, meta: number) => {
+    const g = meta - atual;
+    if (g <= 0)  return "#16a34a";
+    if (g <= 10) return "#d97706";
+    return "#dc2626";
+  };
+  const bgGap = (atual: number, meta: number) => {
+    const g = meta - atual;
+    if (g <= 0)  return "#dcfce7";
+    if (g <= 10) return "#fef3c7";
+    return "#fee2e2";
+  };
+  const proj = (atual: number) => Math.min(Math.round((atual / pctTempo) * 100), 100);
+
+  const acoes = _Q2.equipes.flatMap(e =>
+    indKeys.map((k, i) => {
+      const gap = metas[i] - (e.ind as any)[k];
+      return { equipe: e.equipe, ind: _Q2.indicadores[i].label, gap, atual: (e.ind as any)[k], meta: metas[i] };
+    })
+  ).filter(a => a.gap > 14).sort((a, b) => b.gap - a.gap).slice(0, 8);
+
+  const hoje = new Date().toLocaleDateString("pt-BR");
+  const hora  = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+
+  return (
+    <div>
+      {/* ── Banner Quadrimestre ── */}
+      <div style={{ background:"linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 100%)", borderRadius:12, padding:"18px 22px", marginBottom:18, color:"#fff" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
+          <div>
+            <div style={{ fontSize:10, opacity:.75, fontWeight:700, textTransform:"uppercase", letterSpacing:".05em" }}>Acompanhamento em Tempo Real · Apuí/AM</div>
+            <div style={{ fontSize:18, fontWeight:800, marginTop:3 }}>{_Q2.label} — {_Q2.periodo}</div>
+            <div style={{ fontSize:12, opacity:.8, marginTop:3 }}>Previne Brasil · 7 indicadores · {_Q2.equipes.length} equipes ESF/eSF</div>
+          </div>
+          <div style={{ display:"flex", gap:10 }}>
+            {[
+              { val:dias_decorridos, sub:"dias decorridos", cor:"#fff" },
+              { val:dias_restantes,  sub:"dias restantes",  cor: dias_restantes<=30?"#fbbf24":"#fff" },
+              { val:`${pctTempo}%`,  sub:"do período",       cor:"#fff" },
+            ].map((k,i) => (
+              <div key={i} style={{ background:"rgba(255,255,255,.12)", borderRadius:8, padding:"8px 16px", textAlign:"center" }}>
+                <div style={{ fontSize:22, fontWeight:900, color:k.cor }}>{k.val}</div>
+                <div style={{ fontSize:10, opacity:.75 }}>{k.sub}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Barra tempo */}
+        <div style={{ marginTop:14 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, opacity:.7, marginBottom:5 }}>
+            <span>Maio/2026</span><span>{pctTempo}% decorrido — {dias_restantes} dias para o encerramento</span><span>Agosto/2026</span>
+          </div>
+          <div style={{ height:10, background:"rgba(255,255,255,.2)", borderRadius:5, overflow:"hidden", position:"relative" }}>
+            <div style={{ width:`${pctTempo}%`, height:"100%", background:"#60a5fa", borderRadius:5 }} />
+            <div style={{ position:"absolute", left:`${pctTempo}%`, top:0, transform:"translateX(-50%)", width:14, height:14, background:"#fff", borderRadius:"50%", border:"2px solid #1d4ed8", marginTop:-2 }} />
+          </div>
+          <div style={{ marginTop:5, fontSize:10, opacity:.65 }}>⏱ Atualizado em {hoje} às {hora}</div>
+        </div>
+      </div>
+
+      {/* ── Painel dos 7 Indicadores ── */}
+      <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+          <div style={{ fontSize:14, fontWeight:700 }}>Painel dos 7 Indicadores — Município · {hoje}</div>
+          <span style={{ fontSize:11, background:"#fef3c7", color:"#92400e", padding:"3px 10px", borderRadius:20, fontWeight:700 }}>Dado parcial Q2/2026</span>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
+          {_Q2.indicadores.map((ind, i) => {
+            const cor = corGap(ind.atual, ind.meta);
+            const gap = ind.meta - ind.atual;
+            const pj  = proj(ind.atual);
+            const pjCor = pj >= ind.meta ? "#16a34a" : pj >= ind.meta - 10 ? "#d97706" : "#dc2626";
+            const deltaQ1 = ind.atual - ind.q1;
+            return (
+              <div key={ind.key} style={{ display:"grid", gridTemplateColumns:"12px 230px 1fr 65px 72px 72px 82px", gap:10, alignItems:"center" }}>
+                <div style={{ width:10, height:10, borderRadius:"50%", background:cor }} />
+                <span style={{ fontSize:12 }}>Ind.{i+1} — {ind.label}</span>
+                <div style={{ position:"relative", height:8, background:"#f1f5f9", borderRadius:4 }}>
+                  <div style={{ position:"absolute", left:`${ind.meta}%`, top:-2, width:2, height:12, background:"#94a3b8", zIndex:2, borderRadius:1 }} title={`Meta: ${ind.meta}%`} />
+                  <div style={{ width:`${Math.min(ind.atual,100)}%`, height:"100%", background:cor, borderRadius:4 }} />
+                </div>
+                <span style={{ fontSize:13, fontWeight:800, color:cor, textAlign:"right" }}>{ind.atual}%</span>
+                <span style={{ fontSize:10, color:"#94a3b8", textAlign:"center" }}>meta {ind.meta}%</span>
+                <span style={{ fontSize:11, fontWeight:700, textAlign:"center", color: gap > 0 ? "#dc2626" : "#16a34a" }}>
+                  {gap > 0 ? `−${gap.toFixed(1)}` : `+${Math.abs(gap).toFixed(1)}`}p.p.
+                </span>
+                <div style={{ textAlign:"center", display:"flex", flexDirection:"column", gap:2 }}>
+                  <span style={{ fontSize:10, fontWeight:700, background:pjCor+"18", color:pjCor, padding:"2px 7px", borderRadius:10 }}>proj {pj}%</span>
+                  <span style={{ fontSize:9, color: deltaQ1 >= 0 ? "#16a34a" : "#dc2626" }}>
+                    vs Q1: {deltaQ1 >= 0 ? "+" : ""}{deltaQ1.toFixed(1)}p.p.
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display:"flex", gap:20, marginTop:12, fontSize:10, color:"#94a3b8", borderTop:"1px solid #f1f5f9", paddingTop:10, flexWrap:"wrap" }}>
+          <span>| = meta MS</span>
+          <span style={{ color:"#16a34a" }}>● acima da meta</span>
+          <span style={{ color:"#d97706" }}>● até 10p.p. abaixo</span>
+          <span style={{ color:"#dc2626" }}>● crítico (&gt;10p.p. abaixo)</span>
+          <span>proj. = projeção linear ao fim do quadrimestre</span>
+          <span>vs Q1 = comparação com resultado anterior</span>
+        </div>
+      </div>
+
+      {/* ── Matriz Equipe × Indicador ── */}
+      <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18, overflow:"auto" }}>
+        <div style={{ fontSize:14, fontWeight:700, marginBottom:4 }}>Matriz por Equipe × Indicador — Q2/2026 (parcial)</div>
+        <div style={{ fontSize:11, color:"#94a3b8", marginBottom:14 }}>
+          Resultado acumulado até {hoje}.
+          <span style={{ background:"#dcfce7", color:"#16a34a", fontWeight:700, padding:"1px 7px", borderRadius:4, marginLeft:8 }}>Verde ≥ meta</span>
+          <span style={{ background:"#fef3c7", color:"#d97706", fontWeight:700, padding:"1px 7px", borderRadius:4, marginLeft:4 }}>Amarelo até 10p.p.</span>
+          <span style={{ background:"#fee2e2", color:"#dc2626", fontWeight:700, padding:"1px 7px", borderRadius:4, marginLeft:4 }}>Vermelho crítico</span>
+        </div>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11, minWidth:820 }}>
+          <thead>
+            <tr style={{ background:"#f8fafc" }}>
+              <th style={{ padding:"8px 12px", textAlign:"left", borderBottom:"2px solid #e5e7eb", fontWeight:700, color:"#374151", minWidth:130 }}>Equipe / UBS</th>
+              {_Q2.indicadores.map((ind, i) => (
+                <th key={ind.key} style={{ padding:"8px 6px", textAlign:"center", borderBottom:"2px solid #e5e7eb", fontWeight:600, color:"#6b7280", minWidth:66 }}>
+                  <div style={{ fontSize:11 }}>Ind.{i+1}</div>
+                  <div style={{ fontSize:9, color:"#94a3b8", fontWeight:400 }}>M: {metas[i]}%</div>
+                </th>
+              ))}
+              <th style={{ padding:"8px 10px", textAlign:"center", borderBottom:"2px solid #e5e7eb", color:"#1d4ed8", fontWeight:700, fontSize:11 }}>Pts Q1</th>
+              <th style={{ padding:"8px 10px", textAlign:"center", borderBottom:"2px solid #e5e7eb", color:"#374151", fontWeight:700 }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {_Q2.equipes.map((e, i) => (
+              <tr key={i} style={{ borderBottom:"1px solid #f1f5f9", background: i%2===0?"#fff":"#fafafa" }}>
+                <td style={{ padding:"7px 12px", fontWeight:600 }}>
+                  <div style={{ fontSize:12 }}>{e.equipe}</div>
+                  <div style={{ fontSize:9, color:"#94a3b8", marginTop:1 }}>{e.ubs}</div>
+                </td>
+                {indKeys.map((k, j) => {
+                  const val = (e.ind as any)[k];
+                  return (
+                    <td key={k} style={{ padding:"5px 6px", textAlign:"center", background: bgGap(val, metas[j]) }}>
+                      <span style={{ fontSize:12, fontWeight:700, color: corGap(val, metas[j]) }}>{val}%</span>
+                    </td>
+                  );
+                })}
+                <td style={{ padding:"5px 10px", textAlign:"center", fontWeight:800, color: COR_STATUS(e.status) }}>{e.pts_q1}</td>
+                <td style={{ padding:"5px 10px", textAlign:"center" }}>
+                  <span style={{ fontSize:10, fontWeight:800, background: COR_STATUS(e.status)+"18", color: COR_STATUS(e.status), padding:"2px 8px", borderRadius:10 }}>
+                    {LABEL_STATUS(e.status)}
+                  </span>
+                </td>
+              </tr>
+            ))}
+            {/* Linha municipal */}
+            <tr style={{ borderTop:"2px solid #e5e7eb", background:"#eff6ff" }}>
+              <td style={{ padding:"8px 12px", fontWeight:800, color:"#1d4ed8" }}>📊 MÉDIA MUNICIPAL</td>
+              {_Q2.indicadores.map((ind, i) => (
+                <td key={ind.key} style={{ padding:"5px 6px", textAlign:"center" }}>
+                  <span style={{ fontSize:12, fontWeight:800, color: corGap(ind.atual, ind.meta) }}>{ind.atual}%</span>
+                </td>
+              ))}
+              <td colSpan={2} />
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* ── Ritmo Diário Necessário ── */}
+      <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18 }}>
+        <div style={{ fontSize:14, fontWeight:700, marginBottom:4 }}>📅 Ritmo Diário Necessário para Atingir a Meta</div>
+        <div style={{ fontSize:11, color:"#94a3b8", marginBottom:14 }}>Com {dias_restantes} dias restantes no quadrimestre, cada equipe precisa registrar os seguintes volumes POR DIA para atingir as metas nacionais.</div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:10 }}>
+          {_Q2.indicadores.map((ind, i) => {
+            const gap = Math.max(0, ind.meta - ind.atual);
+            const ritmo = gap > 0 ? (gap / dias_restantes).toFixed(1) : "0";
+            const atingiu = gap <= 0;
+            return (
+              <div key={ind.key} style={{ textAlign:"center", background: atingiu ? "#f0fdf4" : "#fff7f7", border:`1px solid ${atingiu?"#bbf7d0":"#fca5a5"}`, borderRadius:10, padding:"12px 8px" }}>
+                <div style={{ fontSize:10, color:"#94a3b8", fontWeight:600, marginBottom:4 }}>Ind.{i+1}</div>
+                {atingiu
+                  ? <div style={{ fontSize:22, fontWeight:900, color:"#16a34a" }}>✓</div>
+                  : <div style={{ fontSize:20, fontWeight:900, color:"#dc2626" }}>+{ritmo}<span style={{ fontSize:10 }}>p.p/dia</span></div>
+                }
+                <div style={{ fontSize:9, color: atingiu?"#16a34a":"#dc2626", marginTop:4, fontWeight:700 }}>
+                  {atingiu ? "Meta atingida" : `Gap: ${gap.toFixed(1)}p.p.`}
+                </div>
+                <div style={{ fontSize:9, color:"#94a3b8", marginTop:2 }}>{ind.label.slice(0,16)}…</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Ações Prioritárias ── */}
+      <div style={{ background:"#fff", border:"1px solid #fca5a5", borderRadius:12, padding:"18px 20px" }}>
+        <div style={{ fontSize:14, fontWeight:700, color:"#dc2626", marginBottom:4 }}>⚠ Plano de Ação — Gaps Críticos por Equipe</div>
+        <div style={{ fontSize:11, color:"#94a3b8", marginBottom:14 }}>Equipes e indicadores com maior distância da meta. Direcione esforços de busca ativa e registro no e-SUS nestes pontos prioritários.</div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:10 }}>
+          {acoes.map((a, i) => (
+            <div key={i} style={{ border:"1px solid #fee2e2", borderLeft:"4px solid #dc2626", borderRadius:8, padding:"10px 14px", background:"#fff7f7" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+                <span style={{ fontSize:12, fontWeight:800, color:"#dc2626" }}>Equipe: {a.equipe}</span>
+                <span style={{ fontSize:11, background:"#fecaca", color:"#991b1b", padding:"1px 8px", borderRadius:10, fontWeight:700 }}>−{a.gap.toFixed(1)}p.p.</span>
+              </div>
+              <div style={{ fontSize:12, color:"#374151", fontWeight:600 }}>{a.ind}</div>
+              <div style={{ fontSize:11, color:"#6b7280", marginTop:2 }}>Atual: <strong>{a.atual}%</strong> → Meta: <strong>{a.meta}%</strong></div>
+              <div style={{ fontSize:11, color:"#374151", marginTop:6, padding:"5px 8px", background:"#fef3c7", borderRadius:5, lineHeight:1.4 }}>
+                💡 {a.gap > 30
+                  ? "Busca ativa intensiva — mobilizar ACS para identificar e registrar todos os casos pendentes no e-SUS imediatamente."
+                  : a.gap > 20
+                  ? "Aumentar frequência de atendimentos e garantir registro adequado de todos os procedimentos realizados."
+                  : "Revisar registros em aberto e agendar atendimentos faltosos nos próximos dias úteis."}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Componente Qualidade ──────────────────────────────────────────────────────
 
 const IND_NOMES: Record<string, string> = {
@@ -611,7 +869,7 @@ const IND_NOMES: Record<string, string> = {
 
 function AbaQualidade({ data }: { data: any }) {
   const [equipeAberta, setEquipeAberta] = useState<string | null>(null);
-  const [periodo, setPeriodo] = useState<"competencia" | "diario" | "mensal" | "quadrimestral">("competencia");
+  const [periodo, setPeriodo] = useState<"gestor" | "competencia" | "diario" | "mensal" | "quadrimestral">("gestor");
 
   const { data: diario }        = useQuery({ queryKey: ["siaps-diario"],   queryFn: () => apiGet("/api/siaps/qualidade/diario"),         enabled: periodo === "diario" });
   const { data: mensal }        = useQuery({ queryKey: ["siaps-mensal"],   queryFn: () => apiGet("/api/siaps/qualidade/mensal"),         enabled: periodo === "mensal" });
@@ -627,8 +885,9 @@ function AbaQualidade({ data }: { data: any }) {
             <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>Componente Qualidade</h2>
             <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Previne Brasil — 7 indicadores oficiais · Competência Abr/2026</p>
           </div>
-          <div style={{ display: "flex", gap: 4, background: "#f3f4f6", borderRadius: 10, padding: 4 }}>
+          <div style={{ display: "flex", gap: 4, background: "#f3f4f6", borderRadius: 10, padding: 4, flexWrap:"wrap" }}>
             {([
+              { id: "gestor",         label: "🎯 Painel Gestor" },
               { id: "competencia",    label: "Competência atual" },
               { id: "diario",         label: "📅 Diário" },
               { id: "mensal",         label: "📆 Mensal" },
@@ -646,6 +905,7 @@ function AbaQualidade({ data }: { data: any }) {
         </div>
       </div>
 
+      {periodo === "gestor"         && <PainelGestorRT />}
       {periodo === "diario"        && <ViewDiaria data={diario as any} />}
       {periodo === "mensal"        && <ViewMensal data={mensal as any} />}
       {periodo === "quadrimestral" && <ViewQuadrimestral data={quadrimestral as any} />}
