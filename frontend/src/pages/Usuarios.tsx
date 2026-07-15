@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, apiUsuarios } from "../lib/api";
-import { Users, Plus, Trash2, Check, X, ShieldCheck } from "lucide-react";
+import { Users, Plus, Trash2, Check, X, ShieldCheck, Lock } from "lucide-react";
 
 const S = {
   page:  { padding: 20 } as React.CSSProperties,
@@ -13,31 +13,45 @@ const S = {
 };
 
 const PERFIS = [
-  { value: "admin",          label: "Administrador",   cor: "#dc2626" },
-  { value: "secretario",     label: "Secretário",      cor: "#7c3aed" },
-  { value: "tesouraria",     label: "Tesouraria",      cor: "#d97706" },
-  { value: "financeiro",     label: "Financeiro",      cor: "#1D9E75" },
-  { value: "contabilidade",  label: "Contabilidade",   cor: "#0284c7" },
-  { value: "planejamento",   label: "Planejamento",    cor: "#059669" },
-  { value: "auditoria",      label: "Auditoria",       cor: "#6b21a8" },
-  { value: "controladoria",  label: "Controladoria",   cor: "#b45309" },
-  { value: "prefeito",       label: "Prefeito",        cor: "#1e40af" },
-  { value: "conselho",       label: "Conselho",        cor: "#166534" },
-  { value: "consulta",       label: "Apenas Consulta", cor: "#737373" },
+  { value: "superadmin",   label: "Super Admin",         cor: "#7f1d1d" },
+  { value: "admin",        label: "Administrador",        cor: "#dc2626" },
+  { value: "gestor",       label: "Gestor Municipal",     cor: "#1e40af" },
+  { value: "coordenador",  label: "Coordenador APS",      cor: "#7c3aed" },
+  { value: "enfermeiro",   label: "Enfermeiro(a)",        cor: "#0284c7" },
+  { value: "medico",       label: "Médico(a)",            cor: "#0891b2" },
+  { value: "tecnico_aps",  label: "Técnico APS",          cor: "#0369a1" },
+  { value: "acs",          label: "ACS",                  cor: "#059669" },
+  { value: "odontologia",  label: "Odontólogo(a)",        cor: "#0d9488" },
+  { value: "farmaceutico", label: "Farmacêutico(a)",      cor: "#d97706" },
+  { value: "vigilancia",   label: "Vigilância em Saúde",  cor: "#b45309" },
+  { value: "financeiro",   label: "Financeiro",           cor: "#1D9E75" },
+  { value: "contabilidade",label: "Contabilidade",        cor: "#166534" },
+  { value: "planejamento", label: "Planejamento",         cor: "#065f46" },
+  { value: "auditoria",    label: "Auditoria",            cor: "#6b21a8" },
+  { value: "prefeito",     label: "Prefeito(a)",          cor: "#9f1239" },
+  { value: "conselho",     label: "Conselho de Saúde",    cor: "#854d0e" },
+  { value: "consulta",     label: "Apenas Consulta",      cor: "#737373" },
 ];
 
 const PERMISSOES: Record<string, string[]> = {
-  admin:         ["Acesso total ao sistema"],
-  secretario:    ["Dashboard", "Alertas", "Indicadores", "Relatórios", "APS", "Farmácia", "Vigilância", "Planejamento"],
-  tesouraria:    ["FNS/Convênios", "Execução Financeira", "Relatórios Financeiros"],
-  financeiro:    ["Empenhos", "Liquidações", "Pagamentos", "Restos a Pagar"],
-  contabilidade: ["Execução Financeira", "Relatórios", "Prestação de Contas"],
-  planejamento:  ["PMS/PAS/RAG", "Indicadores", "DIGISUS"],
-  auditoria:     ["Visualização completa (somente leitura)"],
-  controladoria: ["Visualização completa + Relatórios"],
-  prefeito:      ["Dashboard executivo", "Relatórios gerenciais"],
-  conselho:      ["Dashboard", "Indicadores", "Prestação de Contas"],
-  consulta:      ["Visualização limitada (somente leitura)"],
+  superadmin:   ["Acesso irrestrito — gestão de usuários, todos os módulos, configurações do sistema"],
+  admin:        ["Acesso total ao sistema — todos os módulos incluindo gestão de usuários"],
+  gestor:       ["Todos os módulos exceto gestão de usuários (exclusivo do Administrador)"],
+  coordenador:  ["APS, Qualidade, Parâmetros MS, SISAB, Busca Ativa, ACS, Vigilância, eGestor, Painel de Gestão — SEM acesso a Financeiro/Repasses/CAF/FNS/SIOPS/Contratos"],
+  enfermeiro:   ["APS, Componente Qualidade, SISAB, Busca Ativa, Sala de Vacinas, Vigilância, Atenção Domiciliar, eGestor"],
+  medico:       ["APS, Componente Qualidade, SISAB, Busca Ativa, Farmácia, Vigilância, Atenção Domiciliar, TeleSaúde"],
+  tecnico_aps:  ["APS, SISAB, Busca Ativa, ACS, Inconsistências, Sala de Vacinas, Painel de Gestão, eGestor"],
+  acs:          ["Painel do ACS, Busca Ativa, Cadastros, Mapa de Visitas, Monitor Tempo Real"],
+  odontologia:  ["APS, Componente Qualidade (Grupo B), Produção SISAB, Painel de Gestão, eGestor"],
+  farmaceutico: ["Assistência Farmacêutica, Produção SISAB, Relatório de Produção, eGestor"],
+  vigilancia:   ["Vigilância em Saúde, Epidemiologia/SINAN, Sala de Vacinas, SIM/SINASC, CCIH, Câncer"],
+  financeiro:   ["Painel Financeiro, FNS/Repasses/CAF, Execução Financeira, SIOPS, Contratos, PPA/LOA, eGestor"],
+  contabilidade:["Painel Financeiro, SIOPS, Contratos, PPA/LOA"],
+  planejamento: ["Plano Municipal Saúde, Score, Qualidade, Parâmetros MS, POEPS, PPA/LOA, eGestor"],
+  auditoria:    ["Visualização completa de todos os módulos exceto Gestão de Usuários — somente leitura"],
+  prefeito:     ["Dashboard, Score, Painel Financeiro, Portal do Gestor, eGestor, Qualidade"],
+  conselho:     ["Dashboard, Score, Qualidade, Parâmetros MS, Conselho de Saúde, SIM/SINASC"],
+  consulta:     ["Apenas Home e Alertas — acesso mínimo"],
 };
 
 interface Usuario {
@@ -45,7 +59,7 @@ interface Usuario {
   municipio_id: number; ultimo_acesso?: string;
 }
 
-const FORM_VAZIO = { nome: "", email: "", perfil: "financeiro", senha: "" };
+const FORM_VAZIO = { nome: "", email: "", perfil: "coordenador", senha: "", cargo: "", username: "" };
 
 export default function Usuarios() {
   const qc = useQueryClient();
@@ -53,13 +67,30 @@ export default function Usuarios() {
   const [form, setForm] = useState(FORM_VAZIO);
   const [perfilSelecionado, setPerfilSelecionado] = useState("");
 
+  const perfilAtual = localStorage.getItem("ersus_perfil") ?? "";
+  const podeGerenciar = ["superadmin", "admin"].includes(perfilAtual);
+
+  if (!podeGerenciar) {
+    return (
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"60vh", gap:12, color:"#737373" }}>
+        <Lock size={40} color="#dc2626"/>
+        <div style={{ fontSize:18, fontWeight:700, color:"#1e293b" }}>Acesso Restrito</div>
+        <div style={{ fontSize:13, textAlign:"center", maxWidth:380 }}>
+          A gestão de usuários é exclusiva do <strong>Administrador</strong>.<br/>
+          Solicite ao administrador do sistema para criar ou alterar acessos.
+        </div>
+      </div>
+    );
+  }
+
   const { data: usuarios = [] } = useQuery<Usuario[]>({
     queryKey: ["usuarios"],
     queryFn: apiUsuarios.lista,
   });
 
   const criar = useMutation({
-    mutationFn: (body: typeof form) => apiUsuarios.criar(body),
+    mutationFn: (body: typeof form) =>
+      api.post("/api/auth/registrar", body).then((r) => r.data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["usuarios"] }); setCriando(false); setForm(FORM_VAZIO); },
   });
 
@@ -122,9 +153,11 @@ export default function Usuarios() {
           <div style={{ background: "#f9f9f7", border: "1px solid #e5e5e3", borderRadius: 8, padding: 14, marginBottom: 14 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
               {[
-                { key: "nome",  label: "Nome completo" },
-                { key: "email", label: "E-mail", type: "email" },
-                { key: "senha", label: "Senha inicial", type: "password" },
+                { key: "username", label: "Login (usuário)" },
+                { key: "nome",     label: "Nome completo" },
+                { key: "email",    label: "E-mail", type: "email" },
+                { key: "cargo",    label: "Cargo / Função" },
+                { key: "senha",    label: "Senha inicial", type: "password" },
               ].map(({ key, label, type }) => (
                 <div key={key}>
                   <label style={{ fontSize: 11, color: "#737373", display: "block", marginBottom: 3 }}>{label}</label>

@@ -462,9 +462,31 @@ function QuickCard({ to, label, Icon, cor }: { to:string; label:string; Icon:Rea
   );
 }
 
+// ── Permissões por perfil ─────────────────────────────────────────────────────
+const PODE_FIN  = new Set(["superadmin","admin","gestor","financeiro","contabilidade","prefeito"]);
+const PODE_USR  = new Set(["superadmin","admin"]);
+const PODE_RH   = new Set(["superadmin","admin","gestor"]);
+const PODE_AUD  = new Set(["superadmin","admin","gestor","auditoria"]);
+
+const CARGO_LABEL: Record<string,string> = {
+  superadmin:"Administrador Geral", admin:"Administrador do Sistema",
+  gestor:"Gestor Municipal de Saúde", coordenador:"Coordenador de APS",
+  enfermeiro:"Enfermeiro(a)", medico:"Médico(a)", tecnico_aps:"Técnico(a) de APS",
+  acs:"Agente Comunitário de Saúde", odontologia:"Odontólogo(a)",
+  farmaceutico:"Farmacêutico(a)", vigilancia:"Vigilância em Saúde",
+  financeiro:"Setor Financeiro", contabilidade:"Contabilidade",
+  planejamento:"Planejamento", auditoria:"Auditoria",
+  prefeito:"Prefeito(a)", conselho:"Conselho de Saúde", consulta:"Consulta",
+};
+
 // ── Layout ───────────────────────────────────────────────────────────────────
-function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode; nomeUsuario:string; onLogout:()=>void }) {
+function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:React.ReactNode; nomeUsuario:string; perfilUsuario:string; onLogout:()=>void }) {
   const ini = (nomeUsuario||"G").split(" ").map((w:string)=>w[0]).join("").slice(0,2).toUpperCase();
+  const podeFin = PODE_FIN.has(perfilUsuario);
+  const podeUsr = PODE_USR.has(perfilUsuario);
+  const podeRH  = PODE_RH.has(perfilUsuario);
+  const podeAud = PODE_AUD.has(perfilUsuario);
+  const cargoExib = CARGO_LABEL[perfilUsuario] || "Usuário";
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",fontFamily:"system-ui,-apple-system,sans-serif"}}>
 
@@ -523,7 +545,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             }}>{ini}</div>
             <div>
               <div style={{color:"#f1f5f9",fontSize:12,fontWeight:700,lineHeight:1}}>{(nomeUsuario||"GESTOR").toUpperCase()}</div>
-              <div style={{color:"#64748b",fontSize:10}}>Gestor Municipal de Saúde</div>
+              <div style={{color:"#64748b",fontSize:10}}>{cargoExib}</div>
             </div>
             <ChevronDown size={12} color="#64748b"/>
           </div>
@@ -548,9 +570,9 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
               </div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
                 <QuickCard to="/"           label="Home"        Icon={Home}        cor="#38bdf8"/>
-                <QuickCard to="/financeiro" label="Financeiro"  Icon={DollarSign}  cor="#22c55e"/>
+                {podeFin && <QuickCard to="/financeiro" label="Financeiro"  Icon={DollarSign}  cor="#22c55e"/>}
                 <QuickCard to="/siaps"      label="e-Gestor"    Icon={Globe}       cor="#a78bfa"/>
-                <QuickCard to="/caf"        label="CAF"         Icon={TrendingUp}  cor="#fb923c"/>
+                {podeFin && <QuickCard to="/caf"        label="CAF"         Icon={TrendingUp}  cor="#fb923c"/>}
                 <QuickCard to="/previne"    label="Qualidade"   Icon={Target}      cor="#38bdf8"/>
                 <QuickCard to="/parametros-ms" label="Parâm. MS" Icon={BookOpen}  cor="#f472b6"/>
               </div>
@@ -574,10 +596,10 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <SbSection label="Principal"/>
             <L1 to="/"           label="Home"                   Icon={Home}         end/>
             <L1 to="/score"      label="Score ERSUS 360"        Icon={Star}/>
-            <L1 to="/financeiro" label="Painel Financeiro"      Icon={DollarSign}/>
+            {podeFin && <L1 to="/financeiro" label="Painel Financeiro"      Icon={DollarSign}/>}
             <L1 to="/gestao"     label="Gestão APS"             Icon={Activity}/>
             <L1 to="/siaps"      label="eGestor / SIAPS"        Icon={Globe}/>
-            <L1 to="/caf"        label="CAF — Cofinanciamento"  Icon={TrendingUp}/>
+            {podeFin && <L1 to="/caf"        label="CAF — Cofinanciamento"  Icon={TrendingUp}/>}
 
             {/* ── APS ── */}
             <SbSection label="Atenção Primária"/>
@@ -590,12 +612,12 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             <L1 to="/busca-ativa/gestante" label="Busca Ativa"         Icon={Search}/>
 
             {/* ── Financeiro/Gestão ── */}
-            <SbSection label="Financeiro e Gestão"/>
-            <L1 to="/contratos"     label="Contratos & Licitações" Icon={FileText}/>
-            <L1 to="/ppa-loa"       label="PPA / LOA"              Icon={ClipboardList}/>
-            <L1 to="/regulacao-mac" label="Regulação MAC"          Icon={Network}/>
-            <L1 to="/siops-detalhado" label="SIOPS Detalhado"      Icon={Landmark}/>
-            <L1 to="/siops-live"    label="SIOPS — Dados Oficiais" Icon={Landmark}/>
+            {podeFin && <SbSection label="Financeiro e Gestão"/>}
+            {podeFin && <L1 to="/contratos"       label="Contratos & Licitações" Icon={FileText}/>}
+            {podeFin && <L1 to="/ppa-loa"         label="PPA / LOA"              Icon={ClipboardList}/>}
+            {podeFin && <L1 to="/regulacao-mac"   label="Regulação MAC"          Icon={Network}/>}
+            {podeFin && <L1 to="/siops-detalhado" label="SIOPS Detalhado"        Icon={Landmark}/>}
+            {podeFin && <L1 to="/siops-live"      label="SIOPS — Dados Oficiais" Icon={Landmark}/>}
 
             {/* ── Vigilância ── */}
             <SbSection label="Vigilância e Epidemiologia"/>
@@ -736,6 +758,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
             </Acc1>
 
             {/* ── FNS / Convênios ── */}
+            {podeFin && (
             <Acc1 label="FNS / Convênios">
               <Acc2 label="Transferências Fundo a Fundo">
                 <L3 to="/fns"       label="Consolidado de Convênios"    Icon={Clipboard}/>
@@ -748,6 +771,7 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
                 <L3 to="/emendas"   label="Emendas Parlamentares"       Icon={Landmark}/>
               </Acc2>
             </Acc1>
+            )}
 
             {/* ── Módulos Operacionais ── */}
             <Acc1 label="Módulos Operacionais">
@@ -783,10 +807,10 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
 
             {/* ── Administração ── */}
             <SbSection label="Administração"/>
-            <L1 to="/rh"         label="Recursos Humanos"     Icon={UserCog}/>
-            <L1 to="/cadastros"  label="Cadastros Mestres"    Icon={Layers}/>
-            <L1 to="/usuarios"   label="Gestão de Usuários"   Icon={Users}/>
-            <L1 to="/auditoria"  label="Auditoria do Sistema" Icon={Shield}/>
+            {podeRH  && <L1 to="/rh"         label="Recursos Humanos"     Icon={UserCog}/>}
+            {podeRH  && <L1 to="/cadastros"  label="Cadastros Mestres"    Icon={Layers}/>}
+            {podeUsr && <L1 to="/usuarios"   label="Gestão de Usuários"   Icon={Users}/>}
+            {podeAud && <L1 to="/auditoria"  label="Auditoria do Sistema" Icon={Shield}/>}
 
             <div style={{height:24}}/>
           </div>
@@ -842,7 +866,7 @@ export default function App() {
   return (
     <QueryClientProvider client={qc}>
       <BrowserRouter>
-        <Layout nomeUsuario={nomeUsuario} onLogout={handleLogout}>
+        <Layout nomeUsuario={nomeUsuario} perfilUsuario={perfilUsuario} onLogout={handleLogout}>
           <Routes>
             <Route path="/"                          element={<PainelGestor/>}/>
             <Route path="/score"                     element={<ScoreERSUS/>}/>
