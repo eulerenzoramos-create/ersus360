@@ -195,17 +195,43 @@ interface EventoTimeline {
   lng?: number;
 }
 
+// Gera timestamp para N dias atrás na hora H:MM
+function ts(diasAtras: number, hora: number, min: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - diasAtras);
+  d.setHours(hora, min, 0, 0);
+  return d.toISOString();
+}
+
 const TIMELINE_DEMO: EventoTimeline[] = [
-  { tipo:"producao", acs_id:3,  acs_nome:"Ana Paula Ferreira",       microarea:"MA-03", descricao:"Produção enviada — 4 registros (1 gestante, 2 crianças, 1 HAS)", ts: new Date(Date.now()-300_000).toISOString(), lat:-7.1992, lng:-59.8914 },
-  { tipo:"visita",   acs_id:4,  acs_nome:"Raimundo Nonato Costa",    microarea:"MA-04", descricao:"Visita domiciliar — Família Pereira (DM, orientação dieta)", ts: new Date(Date.now()-600_000).toISOString(), lat:-7.2019, lng:-59.8858 },
-  { tipo:"visita",   acs_id:7,  acs_nome:"Benedita Sousa Oliveira",  microarea:"MA-07", descricao:"Visita gestante — 28 semanas, PA 120/80, caderneta atualizada", ts: new Date(Date.now()-900_000).toISOString(), lat:-7.2098, lng:-59.8998 },
-  { tipo:"producao", acs_id:1,  acs_nome:"Maria Aparecida Silva",    microarea:"MA-01", descricao:"Produção enviada — 3 registros (HAS, visita domiciliar, cadastro atualizado)", ts: new Date(Date.now()-1_200_000).toISOString(), lat:-7.1928, lng:-59.8842 },
-  { tipo:"visita",   acs_id:1,  acs_nome:"Maria Aparecida Silva",    microarea:"MA-01", descricao:"Visita domiciliar — Família Souza (verificação PA, orientação)", ts: new Date(Date.now()-1_800_000).toISOString(), lat:-7.1930, lng:-59.8840 },
-  { tipo:"login",    acs_id:5,  acs_nome:"Francisca Lima Santos",    microarea:"MA-05", descricao:"ACS entrou em campo — início de jornada", ts: new Date(Date.now()-2_400_000).toISOString() },
-  { tipo:"visita",   acs_id:2,  acs_nome:"João Carlos Nascimento",   microarea:"MA-02", descricao:"Visita criança <2a — Caderneta vacinal conferida, DTP em dia", ts: new Date(Date.now()-3_000_000).toISOString(), lat:-7.1960, lng:-59.8790 },
-  { tipo:"offline",  acs_id:8,  acs_nome:"Sebastião Alves Teixeira", microarea:"MA-08", descricao:"ACS offline — bateria crítica (12%)", ts: new Date(Date.now()-3_600_000).toISOString() },
-  { tipo:"producao", acs_id:2,  acs_nome:"João Carlos Nascimento",   microarea:"MA-02", descricao:"Produção enviada — 2 registros (vacinas, visita domiciliar)", ts: new Date(Date.now()-4_200_000).toISOString() },
-  { tipo:"visita",   acs_id:5,  acs_nome:"Francisca Lima Santos",    microarea:"MA-05", descricao:"Visita idoso — Aferição PA + orientação medicação HAS", ts: new Date(Date.now()-4_800_000).toISOString(), lat:-7.1880, lng:-59.8950 },
+  // Hoje
+  { tipo:"login",    acs_id:1,  acs_nome:"Maria Aparecida Silva",    microarea:"MA-01", descricao:"ACS entrou em campo — início de jornada", ts: ts(0,7,30) },
+  { tipo:"login",    acs_id:4,  acs_nome:"Raimundo Nonato Costa",    microarea:"MA-04", descricao:"ACS entrou em campo — início de jornada", ts: ts(0,7,45) },
+  { tipo:"visita",   acs_id:1,  acs_nome:"Maria Aparecida Silva",    microarea:"MA-01", descricao:"Visita domiciliar — Família Souza (verificação PA, orientação HAS)", ts: ts(0,8,20), lat:-7.1930, lng:-59.8840 },
+  { tipo:"visita",   acs_id:4,  acs_nome:"Raimundo Nonato Costa",    microarea:"MA-04", descricao:"Visita domiciliar — Família Pereira (DM, orientação dieta)", ts: ts(0,9,10), lat:-7.2019, lng:-59.8858 },
+  { tipo:"producao", acs_id:1,  acs_nome:"Maria Aparecida Silva",    microarea:"MA-01", descricao:"Produção enviada — 3 registros (HAS, visita domiciliar, cadastro atualizado)", ts: ts(0,9,45), lat:-7.1928, lng:-59.8842 },
+  { tipo:"visita",   acs_id:7,  acs_nome:"Benedita Sousa Oliveira",  microarea:"MA-07", descricao:"Visita gestante — 28 semanas, PA 120/80, caderneta atualizada", ts: ts(0,10,15), lat:-7.2098, lng:-59.8998 },
+  { tipo:"visita",   acs_id:2,  acs_nome:"João Carlos Nascimento",   microarea:"MA-02", descricao:"Visita criança <2a — Caderneta vacinal conferida, DTP em dia", ts: ts(0,10,50), lat:-7.1960, lng:-59.8790 },
+  { tipo:"producao", acs_id:3,  acs_nome:"Ana Paula Ferreira",       microarea:"MA-03", descricao:"Produção enviada — 4 registros (1 gestante, 2 crianças, 1 HAS)", ts: ts(0,11,30), lat:-7.1992, lng:-59.8914 },
+  { tipo:"offline",  acs_id:8,  acs_nome:"Sebastião Alves Teixeira", microarea:"MA-08", descricao:"ACS offline — bateria crítica (12%)", ts: ts(0,12,0) },
+  { tipo:"producao", acs_id:2,  acs_nome:"João Carlos Nascimento",   microarea:"MA-02", descricao:"Produção enviada — 2 registros (vacinas, visita domiciliar)", ts: ts(0,12,55) },
+  { tipo:"visita",   acs_id:5,  acs_nome:"Francisca Lima Santos",    microarea:"MA-05", descricao:"Visita idoso — Aferição PA + orientação medicação HAS", ts: ts(0,13,10), lat:-7.1880, lng:-59.8950 },
+  // Ontem (1 dia atrás)
+  { tipo:"login",    acs_id:3,  acs_nome:"Ana Paula Ferreira",       microarea:"MA-03", descricao:"ACS entrou em campo — início de jornada", ts: ts(1,7,30) },
+  { tipo:"visita",   acs_id:3,  acs_nome:"Ana Paula Ferreira",       microarea:"MA-03", descricao:"Visita domiciliar — Família Castro (gestante 32 sem)", ts: ts(1,8,10), lat:-7.1992, lng:-59.8914 },
+  { tipo:"visita",   acs_id:5,  acs_nome:"Francisca Lima Santos",    microarea:"MA-05", descricao:"Visita criança <2a — Vacinas em atraso, encaminhado UBS", ts: ts(1,9,0), lat:-7.1880, lng:-59.8950 },
+  { tipo:"producao", acs_id:5,  acs_nome:"Francisca Lima Santos",    microarea:"MA-05", descricao:"Produção enviada — 5 registros", ts: ts(1,11,45) },
+  { tipo:"visita",   acs_id:7,  acs_nome:"Benedita Sousa Oliveira",  microarea:"MA-07", descricao:"Visita HAS/DM — Família Rodrigues, medicação verificada", ts: ts(1,10,30), lat:-7.2100, lng:-59.9000 },
+  { tipo:"producao", acs_id:7,  acs_nome:"Benedita Sousa Oliveira",  microarea:"MA-07", descricao:"Produção enviada — 3 registros (HAS, visita gestante, idoso)", ts: ts(1,14,0) },
+  { tipo:"offline",  acs_id:2,  acs_nome:"João Carlos Nascimento",   microarea:"MA-02", descricao:"ACS offline — sem sinal (zona rural)", ts: ts(1,15,30) },
+  // 2 dias atrás
+  { tipo:"login",    acs_id:2,  acs_nome:"João Carlos Nascimento",   microarea:"MA-02", descricao:"ACS entrou em campo", ts: ts(2,7,15) },
+  { tipo:"visita",   acs_id:2,  acs_nome:"João Carlos Nascimento",   microarea:"MA-02", descricao:"Visita domiciliar — Família Silva (HAS, DM, idoso)", ts: ts(2,8,30), lat:-7.1960, lng:-59.8790 },
+  { tipo:"visita",   acs_id:1,  acs_nome:"Maria Aparecida Silva",    microarea:"MA-01", descricao:"Visita puérpera — RN 15 dias, aleitamento materno orientado", ts: ts(2,9,20), lat:-7.1930, lng:-59.8840 },
+  { tipo:"producao", acs_id:1,  acs_nome:"Maria Aparecida Silva",    microarea:"MA-01", descricao:"Produção enviada — 4 registros", ts: ts(2,12,0) },
+  { tipo:"producao", acs_id:2,  acs_nome:"João Carlos Nascimento",   microarea:"MA-02", descricao:"Produção enviada — 3 registros (visitas domiciliares)", ts: ts(2,13,15) },
+  { tipo:"visita",   acs_id:4,  acs_nome:"Raimundo Nonato Costa",    microarea:"MA-04", descricao:"Busca ativa gestante faltosa — localizada, agendada consulta", ts: ts(2,10,0), lat:-7.2020, lng:-59.8860 },
+  { tipo:"producao", acs_id:4,  acs_nome:"Raimundo Nonato Costa",    microarea:"MA-04", descricao:"Produção enviada — 2 registros (busca ativa, visita domiciliar)", ts: ts(2,14,30) },
 ];
 
 const TIPO_COR: Record<string,string> = { visita:"#2563eb", producao:"#16a34a", login:"#0891b2", offline:"#9ca3af" };
@@ -288,11 +314,16 @@ function RelatorioPanel({ posicoes, producao, eventos }:
   const microareas = ["Todas", ...Array.from(new Set(posicoes.map(p => p.microarea)))];
 
   const linhas = useMemo(() => posicoes.map(p => {
-    const evsAcs = eventos.filter(e => e.acs_id === p.acs_id);
+    // filtra eventos do ACS na data selecionada
+    const evsAcs = eventos.filter(e =>
+      e.acs_id === p.acs_id &&
+      new Date(e.ts).toISOString().slice(0, 10) === filtroData
+    );
     const visitas = evsAcs.filter(e => e.tipo === "visita");
     const envios  = evsAcs.filter(e => e.tipo === "producao");
-    const ultimaVisita = visitas[0]?.ts;
-    const ultimoEnvio  = envios[0]?.ts;
+    // ordena por hora decrescente para pegar o mais recente
+    const ultimaVisita = [...visitas].sort((a,b) => b.ts.localeCompare(a.ts))[0]?.ts;
+    const ultimoEnvio  = [...envios].sort((a,b) => b.ts.localeCompare(a.ts))[0]?.ts;
     return {
       ...p,
       visitas_hoje: visitas.length,
@@ -308,7 +339,7 @@ function RelatorioPanel({ posicoes, producao, eventos }:
     if (filtroAcs !== "Todos" && r.nome !== filtroAcs) return false;
     if (filtroMa !== "Todas" && r.microarea !== filtroMa) return false;
     return true;
-  }), [posicoes, eventos, filtroAcs, filtroMa]);
+  }), [posicoes, eventos, filtroAcs, filtroMa, filtroData]);
 
   return (
     <div>
