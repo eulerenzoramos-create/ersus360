@@ -89,7 +89,7 @@ export default function APS() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         {/* Indicadores por categoria */}
         <div style={S.card}>
-          <div style={S.title}>Indicadores do Previne Brasil / PAS</div>
+          <div style={S.title}>Indicadores Componente Qualidade (C/B/M) — Portaria 3.493/2024</div>
           {categorias.map((cat) => (
             <div key={cat} style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#737373", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>

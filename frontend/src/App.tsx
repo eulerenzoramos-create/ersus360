@@ -12,7 +12,7 @@ import {
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
   Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets, Utensils,
   Wind, Eye, TrendingDown, Trash2, School, Sparkles, Waves, Clock,
-  HeartPulse, HandHeart, Scale,
+  HeartPulse, HandHeart, Scale, Ship,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -516,16 +516,13 @@ function Layout({ children, nomeUsuario, onLogout }: { children:React.ReactNode;
               </Acc2>
             </Acc1>
 
-            {/* ── Previne Brasil ── */}
-            <Acc1 label="Previne Brasil">
-              <L2 to="/previne"      label="Consolidado"                              Icon={PieChart}/>
-              <L2 to="/previne/ind1" label="Ind. 1 — Pré-natal (≥6 consultas)"       Icon={Baby}/>
-              <L2 to="/previne/ind2" label="Ind. 2 — Citopatológico"                 Icon={Stethoscope}/>
-              <L2 to="/previne/ind3" label="Ind. 3 — Vacinação (DTP/Penta)"          Icon={Syringe}/>
-              <L2 to="/previne/ind4" label="Ind. 4 — Pré-natal 1ª semana"            Icon={Heart}/>
-              <L2 to="/previne/ind5" label="Ind. 5 — Hipertensão"                    Icon={Activity}/>
-              <L2 to="/previne/ind6" label="Ind. 6 — Diabetes"                       Icon={FlaskConical}/>
-              <L2 to="/previne/ind7" label="Ind. 7 — Desenvolvimento Infantil"       Icon={Star}/>
+            {/* ── Componente Qualidade (Portaria 3.493/2024) ── */}
+            <Acc1 label="Componente Qualidade">
+              <L2 to="/previne"            label="Consolidado C/B/M"                    Icon={PieChart}/>
+              <L2 to="/previne/grupoC"     label="Grupo C — eSF/eAP (7 ind.)"          Icon={Users}/>
+              <L2 to="/previne/grupoB"     label="Grupo B — eSB (6 ind.)"              Icon={Stethoscope}/>
+              <L2 to="/previne/grupoM"     label="Grupo M — eMulti (2 ind.)"           Icon={Activity}/>
+              <L2 to="/previne/ribeirinha" label="eRibeirinha — Indicadores"           Icon={Ship}/>
             </Acc1>
 
             {/* ── Painel de Gestão ── */}
@@ -695,7 +692,7 @@ export default function App() {
             <Route path="/mapa"                      element={<MapaDesempenho/>}/>
             {/* Saúde Brasil 360 */}
             <Route path="/sb360/*"                   element={<APS/>}/>
-            {/* Previne Brasil */}
+            {/* Componente Qualidade (substituiu Previne Brasil — Portaria 3.493/2024) */}
             <Route path="/previne"                   element={<PrevineBrasil/>}/>
             <Route path="/previne/*"                 element={<PrevineBrasil/>}/>
             {/* Painel de Gestão */}

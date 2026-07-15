@@ -1,6 +1,7 @@
 /**
  * Parâmetros do Ministério da Saúde — Apuí/AM
- * Previne Brasil · PMAQ-AB · SISPACTO · Cobertura Vacinal · Parâmetros CBO
+ * Componente Qualidade (15 indicadores C/B/M) · SISPACTO · Cobertura Vacinal · Parâmetros CBO
+ * Portaria GM/MS 3.493/2024 + 7.799/2025 — O Previne Brasil foi EXTINTO
  */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -51,13 +52,20 @@ function KPI({ label, value, sub, color="#3b82f6", icon }: { label:string; value
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 const ABAS = [
-  { key:"painel",   label:"Painel Gestor",     Icon:Target     },
-  { key:"previne",  label:"Previne Brasil",     Icon:Activity   },
-  { key:"pmaq",     label:"PMAQ-AB Odonto",     Icon:Shield     },
-  { key:"sispacto", label:"SISPACTO 2024",      Icon:TrendingUp },
-  { key:"vacinal",  label:"Cobertura Vacinal",  Icon:Syringe    },
-  { key:"cbo",      label:"Parâmetros CBO",     Icon:Users      },
+  { key:"painel",    label:"Painel Gestor",          Icon:Target     },
+  { key:"qualidade", label:"Componente Qualidade",   Icon:Activity   },
+  { key:"pmaq",      label:"Parâmetros CBO / PMAQ",  Icon:Shield     },
+  { key:"sispacto",  label:"SISPACTO 2024",           Icon:TrendingUp },
+  { key:"vacinal",   label:"Cobertura Vacinal",       Icon:Syringe    },
+  { key:"cbo",       label:"Parâmetros Produção CBO", Icon:Users      },
 ];
+
+const CONCEITO_STYLE: Record<string, { bg: string; border: string; text: string }> = {
+  "Ótimo":      { bg: "#f0fdf4", border: "#16a34a", text: "#166534" },
+  "Bom":        { bg: "#eff6ff", border: "#2563eb", text: "#1e40af" },
+  "Suficiente": { bg: "#fffbeb", border: "#d97706", text: "#92400e" },
+  "Regular":    { bg: "#fef2f2", border: "#dc2626", text: "#b91c1c" },
+};
 
 export default function ParametrosMS() {
   const hoje = new Date();
@@ -69,12 +77,12 @@ export default function ParametrosMS() {
   const anos = [hoje.getFullYear(), hoje.getFullYear() - 1];
 
   const qs = `mes=${mes}&ano=${ano}`;
-  const qPainel  = useQuery({ queryKey:["pm-painel",  mes, ano], queryFn:() => apiGet(`/api/parametros-ms/painel-gestor?${qs}`),  enabled: aba==="painel"   });
-  const qPrevine = useQuery({ queryKey:["pm-previne", mes, ano], queryFn:() => apiGet(`/api/parametros-ms/previne-brasil?${qs}`), enabled: aba==="previne"  });
-  const qPmaq    = useQuery({ queryKey:["pm-pmaq",    mes, ano], queryFn:() => apiGet(`/api/parametros-ms/pmaq-odonto?${qs}`),    enabled: aba==="pmaq"    });
-  const qSisp    = useQuery({ queryKey:["pm-sisp"],              queryFn:() => apiGet(`/api/parametros-ms/sispacto`),             enabled: aba==="sispacto" });
-  const qVac     = useQuery({ queryKey:["pm-vac",     mes, ano], queryFn:() => apiGet(`/api/parametros-ms/cobertura-vacinal?${qs}`), enabled: aba==="vacinal" });
-  const qCbo     = useQuery({ queryKey:["pm-cbo"],               queryFn:() => apiGet(`/api/parametros-ms/parametros-cbo`),       enabled: aba==="cbo"     });
+  const qPainel   = useQuery({ queryKey:["pm-painel",    mes, ano], queryFn:() => apiGet(`/api/parametros-ms/painel-gestor?${qs}`),         enabled: aba==="painel"    });
+  const qQual     = useQuery({ queryKey:["pm-qualidade", mes, ano], queryFn:() => apiGet(`/api/parametros-ms/componente-qualidade?${qs}`),  enabled: aba==="qualidade" });
+  const qPmaq     = useQuery({ queryKey:["pm-pmaq",      mes, ano], queryFn:() => apiGet(`/api/parametros-ms/pmaq-odonto?${qs}`),           enabled: aba==="pmaq"      });
+  const qSisp     = useQuery({ queryKey:["pm-sisp"],                queryFn:() => apiGet(`/api/parametros-ms/sispacto`),                    enabled: aba==="sispacto"  });
+  const qVac      = useQuery({ queryKey:["pm-vac",       mes, ano], queryFn:() => apiGet(`/api/parametros-ms/cobertura-vacinal?${qs}`),     enabled: aba==="vacinal"   });
+  const qCbo      = useQuery({ queryKey:["pm-cbo"],                 queryFn:() => apiGet(`/api/parametros-ms/parametros-cbo`),              enabled: aba==="cbo"       });
 
   // ── PAINEL GESTOR ─────────────────────────────────────────────────────────
   const pData = qPainel.data;
@@ -82,150 +90,219 @@ export default function ParametrosMS() {
     ? <div style={{ color:"var(--muted)", padding:32, textAlign:"center" }}>Carregando painel do gestor…</div>
     : (
     <div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:12, marginBottom:20 }}>
-        <KPI label="Previne Brasil"   icon={<Activity size={12}/>}   value={`${pData.resumo.previne_brasil.normal}/${pData.resumo.previne_brasil.total}`}   sub="indicadores atingidos" color="#3b82f6"/>
-        <KPI label="PMAQ Odonto"      icon={<Shield size={12}/>}     value={`${pData.resumo.pmaq_odonto.normal}/${pData.resumo.pmaq_odonto.total}`}         sub="indicadores atingidos" color="#8b5cf6"/>
-        <KPI label="SISPACTO"         icon={<TrendingUp size={12}/>} value={`${pData.resumo.sispacto.normal}/${pData.resumo.sispacto.total}`}               sub="metas pactuadas ok"    color="#0ea5e9"/>
-        <KPI label="Vacinas em Meta"  icon={<Syringe size={12}/>}    value={`${pData.resumo.cobertura_vacinal.adequadas}/${pData.resumo.cobertura_vacinal.total}`} sub="cobertura adequada" color="#10b981"/>
-        <KPI label="Alertas Críticos" icon={<AlertTriangle size={12}/>} value={pData.alertas_criticos.length} sub="ação imediata" color="#ef4444"/>
+      {/* Aviso extinção Previne Brasil */}
+      <div style={{ background:"#fef2f2", border:"1px solid #fca5a5", borderLeft:"4px solid #dc2626", borderRadius:8, padding:"10px 16px", marginBottom:16, fontSize:12, color:"#7f1d1d" }}>
+        <strong>⚠️ PREVINE BRASIL EXTINTO:</strong> {pData.aviso_previne_brasil}
       </div>
 
-      {/* Alertas críticos */}
-      {pData.alertas_criticos.length > 0 && (
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:12, marginBottom:20 }}>
+        <KPI label="Bom/Ótimo Qualidade" icon={<Activity size={12}/>}    value={`${pData.resumo.componente_qualidade?.pct_bom_otimo ?? 0}%`} sub="15 indicadores C/B/M" color="#3b82f6"/>
+        <KPI label="SISPACTO"            icon={<TrendingUp size={12}/>}  value={`${pData.resumo.sispacto?.normal ?? 0}/${pData.resumo.sispacto?.total ?? 0}`} sub="metas pactuadas ok" color="#0ea5e9"/>
+        <KPI label="Vacinas em Meta"     icon={<Syringe size={12}/>}     value={`${pData.resumo.cobertura_vacinal?.adequadas ?? 0}/${pData.resumo.cobertura_vacinal?.total ?? 0}`} sub="cobertura adequada" color="#10b981"/>
+        <KPI label="Score Geral"         icon={<Target size={12}/>}      value={`${pData.score_geral ?? 0}%`} sub="qualidade + vacinas" color="#8b5cf6"/>
+        <KPI label="Regular/Suficiente"  icon={<AlertTriangle size={12}/>} value={(pData.resumo.componente_qualidade?.regular ?? 0) + (pData.resumo.componente_qualidade?.suficiente ?? 0)} sub="indicadores a melhorar" color="#ef4444"/>
+      </div>
+
+      {/* Alertas por conceito Regular/Suficiente */}
+      {(pData.alertas_criticos ?? []).length > 0 && (
         <div style={{ marginBottom:20 }}>
           <div style={{ fontWeight:800, fontSize:13, color:"#b91c1c", marginBottom:10, display:"flex", alignItems:"center", gap:6 }}>
-            <AlertTriangle size={15}/> ALERTAS CRÍTICOS — AÇÃO IMEDIATA DO GESTOR
+            <AlertTriangle size={15}/> INDICADORES QUE IMPACTAM O FINANCIAMENTO — AÇÃO DO GESTOR
           </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            {pData.alertas_criticos.map((a: any, i: number) => (
-              <div key={i} style={{ background:"#fff8f8", border:"1px solid #fca5a5", borderLeft:"4px solid #dc2626", borderRadius:8, padding:"12px 16px" }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12, flexWrap:"wrap" }}>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:11, color:"#dc2626", fontWeight:700, textTransform:"uppercase", marginBottom:2 }}>{a.modulo}</div>
-                    <div style={{ fontWeight:700, fontSize:13, color:"#111", marginBottom:4 }}>{a.indicador}</div>
-                    <div style={{ fontSize:12, color:"#6b7280" }}>
-                      Atual: <strong style={{ color:"#dc2626" }}>{a.valor?.toFixed(1)}%</strong>
-                      {" · "}Meta: <strong>{a.meta?.toFixed(1)}%</strong>
-                      {" · "}Gap: <strong style={{ color:"#dc2626" }}>-{a.gap?.toFixed(1)}pp</strong>
-                    </div>
-                    {a.acoes?.length > 0 && (
-                      <div style={{ marginTop:8, display:"flex", gap:6, flexWrap:"wrap" }}>
-                        {a.acoes.map((ac: string, j: number) => (
-                          <span key={j} style={{ background:"#fee2e2", color:"#7f1d1d", borderRadius:4, padding:"2px 8px", fontSize:11 }}>→ {ac}</span>
-                        ))}
-                      </div>
-                    )}
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {pData.alertas_criticos.map((a: any, i: number) => {
+              const isRegular = a.conceito === "Regular";
+              return (
+                <div key={i} style={{ background: isRegular ? "#fff8f8" : "#fffbeb", border:`1px solid ${isRegular ? "#fca5a5" : "#fcd34d"}`, borderLeft:`4px solid ${isRegular ? "#dc2626" : "#d97706"}`, borderRadius:8, padding:"10px 14px" }}>
+                  <div style={{ fontSize:10, color: isRegular ? "#dc2626" : "#d97706", fontWeight:700, textTransform:"uppercase", marginBottom:2 }}>
+                    {a.modulo} — {a.conceito} (nota {a.nota?.toFixed(1)}/10)
                   </div>
-                  <Badge status="critico"/>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Painéis lado a lado */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-        <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:10, padding:14 }}>
-          <div style={{ fontWeight:800, fontSize:13, marginBottom:10, color:"#3b82f6", display:"flex", gap:6, alignItems:"center" }}>
-            <Activity size={14}/> Previne Brasil 2024-2025
-          </div>
-          {(pData.previne_brasil ?? []).map((ind: any) => (
-            <div key={ind.codigo} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:"1px solid var(--border)", gap:10 }}>
-              <div style={{ flex:1, fontSize:12, fontWeight:500 }}>{ind.indicador}</div>
-              <span style={{ fontSize:13, fontWeight:900, fontVariantNumeric:"tabular-nums", color:STATUS_STYLE[ind.status]?.border }}>{ind.valor_atual?.toFixed(1)}%</span>
-              <Badge status={ind.status}/>
-            </div>
-          ))}
-        </div>
-        <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:10, padding:14 }}>
-          <div style={{ fontWeight:800, fontSize:13, marginBottom:10, color:"#0ea5e9", display:"flex", gap:6, alignItems:"center" }}>
-            <TrendingUp size={14}/> SISPACTO 2024 — Apuí/AM
-          </div>
-          {(pData.sispacto ?? []).map((m: any, i: number) => (
-            <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:"1px solid var(--border)", gap:10 }}>
-              <div style={{ flex:1, fontSize:12 }}>{m.indicador}</div>
-              <span style={{ fontSize:12, fontWeight:700, fontVariantNumeric:"tabular-nums" }}>{m.atual_estimado}<span style={{ fontSize:10, color:"var(--muted)" }}> {m.unidade}</span></span>
-              <Badge status={m.status}/>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Nota ribeirinha */}
-      <div style={{ marginTop:16, background:"#fff7ed", border:"1px solid #fed7aa", borderRadius:8, padding:"10px 16px", fontSize:12, color:"#7c2d12" }}>
-        <strong>📊 Contexto Amazônia — Dados Verificados (Ciência &amp; Saúde Coletiva 2021):</strong> Equipes fluviais/ribeirinhas da Amazônia têm pré-natal ≥6 consultas de apenas <strong>21,8%</strong> (vs 49,1% urbanas) e HbA1c diabetes em <strong>3,5%</strong> (vs 12,8% urbanas). Apuí precisa de estratégia específica para populações ribeirinhas.
-      </div>
-    </div>
-  );
-
-  // ── PREVINE BRASIL ─────────────────────────────────────────────────────────
-  const pvData = qPrevine.data;
-  const abaPrevine = !pvData
-    ? <div style={{ color:"var(--muted)", padding:32, textAlign:"center" }}>Carregando…</div>
-    : (
-    <div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))", gap:10, marginBottom:18 }}>
-        <KPI label="Total"    value={pvData.resumo.total}   sub="indicadores Previne Brasil" color="#3b82f6" icon={<Activity size={12}/>}/>
-        <KPI label="Atingidos" value={pvData.resumo.normal}  sub="meta alcançada"             color="#16a34a" icon={<CheckCircle size={12}/>}/>
-        <KPI label="Atenção"  value={pvData.resumo.atencao} sub="abaixo da meta"             color="#d97706" icon={<AlertTriangle size={12}/>}/>
-        <KPI label="Críticos" value={pvData.resumo.critico} sub="ação imediata"              color="#dc2626" icon={<AlertTriangle size={12}/>}/>
-      </div>
-      <div style={{ fontSize:11, color:"var(--muted)", marginBottom:14 }}>Referência: {pvData.referencia} · Período: {pvData.periodo}</div>
-      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-        {pvData.indicadores.map((ind: any) => {
-          const exp = indDet === ind.codigo;
-          const s = STATUS_STYLE[ind.status] ?? STATUS_STYLE.atencao;
-          return (
-            <div key={ind.codigo} style={{ background:"var(--card)", border:`1px solid ${s.border}44`, borderLeft:`4px solid ${s.border}`, borderRadius:8, overflow:"hidden" }}>
-              <div style={{ padding:"12px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12 }}
-                onClick={() => setIndDet(exp ? null : ind.codigo)}>
-                <div style={{ flex:1 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4, flexWrap:"wrap" }}>
-                    <span style={{ background:"#dbeafe", color:"#1e40af", borderRadius:4, padding:"1px 7px", fontSize:10, fontWeight:800 }}>{ind.codigo}</span>
-                    <span style={{ fontSize:11, color:"var(--muted)", fontWeight:600, textTransform:"uppercase" }}>{ind.grupo}</span>
-                  </div>
-                  <div style={{ fontWeight:700, fontSize:14, color:"var(--fg)", marginBottom:6 }}>{ind.indicador}</div>
-                  <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
-                    <BarraMeta valor={ind.valor_atual} meta={ind.meta_apui} status={ind.status}/>
-                    <span style={{ fontSize:14, fontWeight:900, color:s.border, fontVariantNumeric:"tabular-nums", flexShrink:0 }}>{ind.valor_atual?.toFixed(1)}%</span>
-                    <span style={{ fontSize:12, color:"var(--muted)", flexShrink:0 }}>Meta Apuí: <strong>{ind.meta_apui}%</strong></span>
-                    <span style={{ fontSize:12, color:"var(--muted)", flexShrink:0 }}>Nacional: {ind.meta_nacional}%</span>
-                    {ind.gap_meta > 0 && <span style={{ fontSize:12, color:"#dc2626", fontWeight:700, flexShrink:0 }}>Gap: -{ind.gap_meta?.toFixed(1)}pp</span>}
-                  </div>
-                </div>
-                <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
-                  <Badge status={ind.status}/>
-                  {exp ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}
-                </div>
-              </div>
-              {exp && (
-                <div style={{ background:"var(--hover)", padding:"12px 16px", borderTop:`1px solid ${s.border}33` }}>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, fontSize:12, marginBottom:10 }}>
-                    <div><span style={{ color:"var(--muted)", fontWeight:600 }}>Numerador: </span>{ind.numerador}</div>
-                    <div><span style={{ color:"var(--muted)", fontWeight:600 }}>Denominador: </span>{ind.denominador}</div>
-                    <div><span style={{ color:"var(--muted)", fontWeight:600 }}>Fonte: </span>{ind.fonte}</div>
-                    <div><span style={{ color:"var(--muted)", fontWeight:600 }}>Periodicidade: </span>{ind.periodicidade}</div>
-                  </div>
-                  <div style={{ marginBottom:10, fontSize:12, color:"#1e40af", fontStyle:"italic", padding:"8px 10px", background:"#eff6ff", borderRadius:6 }}>
-                    📋 {ind.descricao_gestor}
-                  </div>
-                  {ind.acoes_melhoria?.length > 0 && (
-                    <div>
-                      <div style={{ fontWeight:700, fontSize:11, color:"var(--muted)", marginBottom:6, textTransform:"uppercase", letterSpacing:0.5 }}>Ações de Melhoria</div>
-                      {ind.acoes_melhoria.map((ac: string, i: number) => (
-                        <div key={i} style={{ display:"flex", gap:8, alignItems:"flex-start", fontSize:12, marginBottom:4 }}>
-                          <span style={{ color:"#16a34a", fontWeight:700, flexShrink:0 }}>→</span>{ac}
-                        </div>
+                  <div style={{ fontWeight:700, fontSize:13, color:"#111", marginBottom:4 }}>{a.indicador}</div>
+                  <div style={{ fontSize:11, color:"#6b7280" }}>Meta Apuí: {a.meta_apui}</div>
+                  {a.acoes?.length > 0 && (
+                    <div style={{ marginTop:6, display:"flex", gap:6, flexWrap:"wrap" }}>
+                      {a.acoes.map((ac: string, j: number) => (
+                        <span key={j} style={{ background: isRegular ? "#fee2e2" : "#fef3c7", color: isRegular ? "#7f1d1d" : "#92400e", borderRadius:4, padding:"2px 8px", fontSize:11 }}>→ {ac}</span>
                       ))}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Resumo Componente Qualidade por grupo */}
+      {pData.componente_qualidade && (
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:16 }}>
+          {[["grupo_C","C — eSF/eAP","#1565c0"], ["grupo_B","B — ESB","#7b1fa2"], ["grupo_M","M — eMulti","#1b5e20"]].map(([gk, label, cor]) => {
+            const g = pData.componente_qualidade?.[gk];
+            if (!g) return null;
+            const inds = g.indicadores ?? [];
+            const otimo = inds.filter((i: any) => i.conceito === "Ótimo").length;
+            const bom   = inds.filter((i: any) => i.conceito === "Bom").length;
+            const suf   = inds.filter((i: any) => i.conceito === "Suficiente").length;
+            const reg   = inds.filter((i: any) => i.conceito === "Regular").length;
+            return (
+              <div key={gk} style={{ background:"var(--card)", border:"1px solid var(--border)", borderTop:`4px solid ${cor}`, borderRadius:8, padding:12 }}>
+                <div style={{ fontWeight:700, fontSize:12, color:cor, marginBottom:8 }}>{label}</div>
+                {inds.map((ind: any) => {
+                  const cs = CONCEITO_STYLE[ind.conceito] ?? CONCEITO_STYLE["Suficiente"];
+                  return (
+                    <div key={ind.codigo} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"4px 0", borderBottom:"1px solid #f0f0f0", gap:8 }}>
+                      <div style={{ display:"flex", gap:6, alignItems:"center", flex:1 }}>
+                        <span style={{ background:cs.bg, color:cs.text, borderRadius:3, padding:"0 5px", fontSize:10, fontWeight:800, flexShrink:0 }}>{ind.codigo}</span>
+                        <span style={{ fontSize:11, color:"var(--fg)" }}>{ind.nome}</span>
+                      </div>
+                      <span style={{ fontSize:11, fontWeight:700, color:cs.text, flexShrink:0 }}>{ind.nota?.toFixed(1)}</span>
+                    </div>
+                  );
+                })}
+                <div style={{ marginTop:8, display:"flex", gap:6, flexWrap:"wrap", fontSize:10 }}>
+                  {otimo > 0 && <span style={{ background:"#f0fdf4", color:"#166534", borderRadius:4, padding:"2px 6px" }}>✅ Ótimo: {otimo}</span>}
+                  {bom > 0 && <span style={{ background:"#eff6ff", color:"#1e40af", borderRadius:4, padding:"2px 6px" }}>🔵 Bom: {bom}</span>}
+                  {suf > 0 && <span style={{ background:"#fffbeb", color:"#92400e", borderRadius:4, padding:"2px 6px" }}>⚠️ Suf: {suf}</span>}
+                  {reg > 0 && <span style={{ background:"#fef2f2", color:"#b91c1c", borderRadius:4, padding:"2px 6px" }}>🚨 Reg: {reg}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* SISPACTO */}
+      <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:10, padding:14 }}>
+        <div style={{ fontWeight:800, fontSize:13, marginBottom:10, color:"#0ea5e9", display:"flex", gap:6, alignItems:"center" }}>
+          <TrendingUp size={14}/> SISPACTO 2024 — Apuí/AM
+        </div>
+        {(pData.sispacto ?? []).map((m: any, i: number) => (
+          <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:"1px solid var(--border)", gap:10 }}>
+            <div style={{ flex:1, fontSize:12 }}>{m.indicador}</div>
+            <span style={{ fontSize:12, fontWeight:700, fontVariantNumeric:"tabular-nums" }}>{m.atual_estimado}<span style={{ fontSize:10, color:"var(--muted)" }}> {m.unidade}</span></span>
+            <Badge status={m.status}/>
+          </div>
+        ))}
+      </div>
+
+      {/* Nota ribeirinha */}
+      <div style={{ marginTop:16, background:"#fff7ed", border:"1px solid #fed7aa", borderRadius:8, padding:"10px 16px", fontSize:12, color:"#7c2d12" }}>
+        <strong>📊 Contexto Amazônia — Dados Verificados:</strong> Equipes fluviais da Amazônia têm C3 (pré-natal) em <strong>21,8%</strong> (vs meta ≥40%) e C4 (HbA1c DM) em <strong>3,5%</strong> (vs meta ≥15%). Os indicadores C/B/M são monitorados via SIAPS/e-Gestor APS.
+      </div>
+    </div>
+  );
+
+  // ── COMPONENTE QUALIDADE — 15 INDICADORES ─────────────────────────────────
+  const qualData = qQual.data;
+  const abaQualidade = !qualData
+    ? <div style={{ color:"var(--muted)", padding:32, textAlign:"center" }}>Carregando…</div>
+    : (
+    <div>
+      {/* Aviso extinção */}
+      <div style={{ background:"#fef2f2", border:"1px solid #fca5a5", borderLeft:"4px solid #dc2626", borderRadius:8, padding:"10px 16px", marginBottom:14, fontSize:12, color:"#7f1d1d" }}>
+        <strong>📌 {qualData.aviso}</strong><br/>
+        Efeitos financeiros: <strong>{qualData.efeitos_financeiros}</strong> · Fonte: <strong>{qualData.fonte}</strong>
+      </div>
+
+      {/* KPIs */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))", gap:10, marginBottom:16 }}>
+        <KPI label="Total"     value={qualData.resumo.total_indicadores} sub="15 indicadores C+B+M"     color="#1565c0" icon={<Activity size={12}/>}/>
+        <KPI label="Ótimo"     value={qualData.resumo.otimo}             sub="nota > 7,5 — bônus pleno" color="#16a34a" icon={<CheckCircle size={12}/>}/>
+        <KPI label="Bom"       value={qualData.resumo.bom}               sub="nota 5,0–7,5"             color="#2563eb" icon={<Activity size={12}/>}/>
+        <KPI label="Suficiente" value={qualData.resumo.suficiente}        sub="nota 2,6–4,9"             color="#d97706" icon={<AlertTriangle size={12}/>}/>
+        <KPI label="Regular"   value={qualData.resumo.regular}            sub="nota ≤2,5 — sem bônus"   color="#dc2626" icon={<AlertTriangle size={12}/>}/>
+        <KPI label="Bom+Ótimo" value={`${qualData.resumo.pct_bom_otimo}%`} sub="impacto positivo"       color="#7b1fa2" icon={<TrendingUp size={12}/>}/>
+      </div>
+
+      {/* Faixas */}
+      <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16, fontSize:11 }}>
+        {Object.entries(qualData.faixas_classificacao).map(([k, v]) => {
+          const cs = CONCEITO_STYLE[k.charAt(0).toUpperCase() + k.slice(1)] ?? CONCEITO_STYLE["Suficiente"];
+          return (
+            <span key={k} style={{ background:cs.bg, color:cs.text, border:`1px solid ${cs.border}44`, borderRadius:6, padding:"3px 10px" }}>
+              <strong>{k.charAt(0).toUpperCase() + k.slice(1)}:</strong> {v as string}
+            </span>
           );
         })}
       </div>
+
+      {/* Grupos */}
+      {["grupo_C", "grupo_B", "grupo_M"].map(gk => {
+        const grp = qualData.grupos?.[gk];
+        if (!grp) return null;
+        const cores: Record<string, string> = { grupo_C: "#1565c0", grupo_B: "#7b1fa2", grupo_M: "#1b5e20" };
+        const cor = cores[gk];
+        return (
+          <div key={gk} style={{ marginBottom:20 }}>
+            <div style={{ fontWeight:800, fontSize:14, color:cor, borderBottom:`2px solid ${cor}`, paddingBottom:6, marginBottom:12, display:"flex", gap:8, alignItems:"center" }}>
+              <span style={{ background:cor, color:"#fff", borderRadius:4, padding:"2px 8px", fontSize:11 }}>{grp.sigla}</span>
+              {grp.descricao}
+            </div>
+            <div style={{ fontSize:11, color:"var(--muted)", marginBottom:10 }}>
+              Equipes: {grp.equipes?.join(", ")} · {grp.nota_tecnica}
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              {(grp.indicadores ?? []).map((ind: any) => {
+                const exp = indDet === ind.codigo;
+                const cs = CONCEITO_STYLE[ind.conceito] ?? CONCEITO_STYLE["Suficiente"];
+                return (
+                  <div key={ind.codigo} style={{ background:"var(--card)", border:`1px solid ${cs.border}44`, borderLeft:`4px solid ${cs.border}`, borderRadius:8, overflow:"hidden" }}>
+                    <div style={{ padding:"12px 16px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12 }}
+                      onClick={() => setIndDet(exp ? null : ind.codigo)}>
+                      <div style={{ flex:1 }}>
+                        <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:4, flexWrap:"wrap" }}>
+                          <span style={{ background:cor, color:"#fff", borderRadius:4, padding:"1px 7px", fontSize:11, fontWeight:800 }}>{ind.codigo}</span>
+                          <span style={{ fontSize:11, color:"var(--muted)", fontWeight:600 }}>{ind.grupo}</span>
+                          <span style={{ background:cs.bg, color:cs.text, border:`1px solid ${cs.border}44`, borderRadius:5, padding:"1px 8px", fontSize:10, fontWeight:800 }}>
+                            {ind.conceito} — nota {ind.nota?.toFixed(1)}/10
+                          </span>
+                        </div>
+                        <div style={{ fontWeight:700, fontSize:14, color:"var(--fg)", marginBottom:4 }}>{ind.nome}</div>
+                        <div style={{ fontSize:11, color:"var(--muted)" }}>Meta Apuí: {ind.meta_apui} · Meta Nacional: {ind.meta_nacional}</div>
+                      </div>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
+                        {exp ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}
+                      </div>
+                    </div>
+                    {exp && (
+                      <div style={{ background:"var(--hover)", padding:"12px 16px", borderTop:`1px solid ${cs.border}33` }}>
+                        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, fontSize:12, marginBottom:10 }}>
+                          <div><span style={{ color:"var(--muted)", fontWeight:600 }}>Numerador: </span>{ind.numerador}</div>
+                          <div><span style={{ color:"var(--muted)", fontWeight:600 }}>Denominador: </span>{ind.denominador}</div>
+                          <div><span style={{ color:"var(--muted)", fontWeight:600 }}>Unidade: </span>{ind.unidade}</div>
+                          <div><span style={{ color:"var(--muted)", fontWeight:600 }}>Fonte: </span>{ind.fonte}</div>
+                          <div style={{ gridColumn:"1/-1" }}>
+                            <div style={{ fontWeight:600, color:"var(--muted)", marginBottom:4, fontSize:11 }}>Classificação:</div>
+                            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                              {Object.entries(ind.classificacao ?? {}).map(([k, v]) => {
+                                const cs2 = CONCEITO_STYLE[k.charAt(0).toUpperCase() + k.slice(1)] ?? CONCEITO_STYLE["Suficiente"];
+                                return <span key={k} style={{ background:cs2.bg, color:cs2.text, borderRadius:4, padding:"2px 8px", fontSize:10 }}>{k.charAt(0).toUpperCase() + k.slice(1)}: {v as string}</span>;
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ marginBottom:10, fontSize:12, color:"#1e40af", fontStyle:"italic", padding:"8px 10px", background:"#eff6ff", borderRadius:6 }}>
+                          📋 {ind.descricao_gestor}
+                        </div>
+                        {ind.acoes_melhoria?.length > 0 && (
+                          <div>
+                            <div style={{ fontWeight:700, fontSize:11, color:"var(--muted)", marginBottom:6, textTransform:"uppercase", letterSpacing:0.5 }}>Ações de Melhoria</div>
+                            {ind.acoes_melhoria.map((ac: string, i: number) => (
+                              <div key={i} style={{ display:"flex", gap:8, alignItems:"flex-start", fontSize:12, marginBottom:4 }}>
+                                <span style={{ color:cor, fontWeight:700, flexShrink:0 }}>→</span>{ac}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 
@@ -436,7 +513,7 @@ export default function ParametrosMS() {
   );
 
   const abaContent: Record<string, React.ReactNode> = {
-    painel:abaPainel, previne:abaPrevine, pmaq:abaPmaq,
+    painel:abaPainel, qualidade:abaQualidade, pmaq:abaPmaq,
     sispacto:abaSispacto, vacinal:abaVacinal, cbo:abaCbo,
   };
 
@@ -455,7 +532,7 @@ export default function ParametrosMS() {
           <BookOpen size={20}/> Parâmetros do Ministério da Saúde — Apuí/AM
         </h2>
         <div style={{ fontSize:12, color:"var(--muted)", marginTop:2 }}>
-          IBGE 1300144 · Porte I · Amazônia Legal · Previne Brasil · PMAQ-AB · SISPACTO 2024 · Calendário Vacinal · Parâmetros CBO por Portaria MS
+          IBGE 1300144 · Porte I · Amazônia Legal · Componente Qualidade (C/B/M) · PMAQ-AB · SISPACTO 2024 · Calendário Vacinal · Parâmetros CBO — Portaria GM/MS 3.493/2024
         </div>
       </div>
 

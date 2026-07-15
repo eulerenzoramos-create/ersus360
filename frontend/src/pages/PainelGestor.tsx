@@ -27,7 +27,7 @@ const corSev: Record<string, string> = { critico:"#c62828", atencao:"#f57f17", i
 // ── Módulos em destaque ─────────────────────────────────────────────────────
 const MODULOS = [
   { label:"Saúde Brasil 360",    desc:"Vínculo, acompanhamento e qualidade das equipes APS", Icon:Heart,      path:"/sb360/consolidado-territorial",  cor:"#1565c0" },
-  { label:"Previne Brasil",      desc:"7 indicadores oficiais de desempenho da APS",         Icon:Target,     path:"/previne",                         cor:"#2e7d32" },
+  { label:"Componente Qualidade",desc:"15 indicadores C/B/M — Portaria 3.493/2024",          Icon:Target,     path:"/previne",                         cor:"#2e7d32" },
   { label:"Painel de Gestão",    desc:"Atendimentos, procedimentos, visitas e vacinas",       Icon:BarChart2,  path:"/gestao",                          cor:"#6a1b9a" },
   { label:"Busca Ativa",         desc:"Identifique gestantes e crianças sem acompanhamento", Icon:Users,      path:"/busca-ativa/gestante",             cor:"#e65100" },
   { label:"ACS",                 desc:"Cadastros, visitas e calendário dos agentes",          Icon:ShieldCheck,path:"/acs/painel",                       cor:"#00695c" },
