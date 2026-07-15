@@ -11,6 +11,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 
+import os
 from config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
@@ -25,7 +26,7 @@ USERS_DB = {
         "nome": "Euler Ramos",
         "cargo": "Administrador Geral ERSUS 360",
         "municipio": "Apuí/AM",
-        "hashed_password": pwd_ctx.hash("euler@ersus2026"),
+        "hashed_password": pwd_ctx.hash(os.getenv("EULER_SENHA", "ersus@local")),
         "role": "superadmin",
         "email": "eulerenzoramos@gmail.com",
     },
