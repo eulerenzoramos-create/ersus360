@@ -308,47 +308,66 @@ function RelatorioPanel({ posicoes, producao, eventos }:
   { posicoes: PosicaoAcs[]; producao: RegistroProducao[]; eventos: EventoTimeline[] }) {
   const [filtroAcs, setFiltroAcs] = useState("Todos");
   const [filtroMa, setFiltroMa] = useState("Todas");
-  const [filtroData, setFiltroData] = useState(new Date().toISOString().slice(0,10));
+  // período: por padrão mostra os últimos 3 dias
+  const hoje = new Date().toISOString().slice(0,10);
+  const [dataInicio, setDataInicio] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 2); return d.toISOString().slice(0,10);
+  });
+  const [dataFim, setDataFim] = useState(hoje);
 
   const acsNomes = ["Todos", ...posicoes.map(p => p.nome)];
   const microareas = ["Todas", ...Array.from(new Set(posicoes.map(p => p.microarea)))];
 
+  const fmtData = (iso: string) =>
+    new Date(iso + "T00:00:00").toLocaleDateString("pt-BR", { day:"2-digit", month:"2-digit", year:"numeric" });
+
   const linhas = useMemo(() => posicoes.map(p => {
-    // filtra eventos do ACS na data selecionada
-    const evsAcs = eventos.filter(e =>
-      e.acs_id === p.acs_id &&
-      new Date(e.ts).toISOString().slice(0, 10) === filtroData
-    );
+    // filtra eventos do ACS no intervalo selecionado
+    const evsAcs = eventos.filter(e => {
+      if (e.acs_id !== p.acs_id) return false;
+      const d = new Date(e.ts).toISOString().slice(0, 10);
+      return d >= dataInicio && d <= dataFim;
+    });
     const visitas = evsAcs.filter(e => e.tipo === "visita");
     const envios  = evsAcs.filter(e => e.tipo === "producao");
-    // ordena por hora decrescente para pegar o mais recente
+    // data/hora do evento mais recente
     const ultimaVisita = [...visitas].sort((a,b) => b.ts.localeCompare(a.ts))[0]?.ts;
     const ultimoEnvio  = [...envios].sort((a,b) => b.ts.localeCompare(a.ts))[0]?.ts;
     return {
       ...p,
-      visitas_hoje: visitas.length,
-      envios_hoje:  envios.length,
+      visitas_periodo: visitas.length,
+      envios_periodo:  envios.length,
       ultima_visita: ultimaVisita
-        ? new Date(ultimaVisita).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})
+        ? new Date(ultimaVisita).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})
         : "—",
       ultimo_envio: ultimoEnvio
-        ? new Date(ultimoEnvio).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})
+        ? new Date(ultimoEnvio).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})
         : "—",
     };
   }).filter(r => {
     if (filtroAcs !== "Todos" && r.nome !== filtroAcs) return false;
     if (filtroMa !== "Todas" && r.microarea !== filtroMa) return false;
     return true;
-  }), [posicoes, eventos, filtroAcs, filtroMa, filtroData]);
+  }), [posicoes, eventos, filtroAcs, filtroMa, dataInicio, dataFim]);
+
+  const totalVisitas = linhas.reduce((s, r) => s + r.visitas_periodo, 0);
+  const totalEnvios  = linhas.reduce((s, r) => s + r.envios_periodo, 0);
 
   return (
     <div>
       {/* Filtros relatório */}
       <div style={{ display:"flex", gap:10, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-          <Calendar size={13} color="#9ca3af"/>
-          <input type="date" value={filtroData} onChange={e => setFiltroData(e.target.value)}
-            style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"5px 8px", fontSize:12 }}/>
+        {/* Período */}
+        <div style={{ display:"flex", alignItems:"center", gap:6, background:"#f9fafb", border:"1px solid #e5e7eb", borderRadius:8, padding:"4px 10px" }}>
+          <Calendar size={13} color="#6b7280"/>
+          <span style={{ fontSize:11, color:"#6b7280", fontWeight:600 }}>De</span>
+          <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)}
+            max={dataFim}
+            style={{ border:"none", background:"transparent", fontSize:12, outline:"none", cursor:"pointer" }}/>
+          <span style={{ fontSize:11, color:"#6b7280", fontWeight:600 }}>até</span>
+          <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)}
+            min={dataInicio} max={hoje}
+            style={{ border:"none", background:"transparent", fontSize:12, outline:"none", cursor:"pointer" }}/>
         </div>
         <select value={filtroAcs} onChange={e => setFiltroAcs(e.target.value)}
           style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"5px 8px", fontSize:12 }}>
@@ -367,12 +386,27 @@ function RelatorioPanel({ posicoes, producao, eventos }:
         </button>
       </div>
 
+      {/* KPIs do período */}
+      <div style={{ display:"flex", gap:10, marginBottom:12 }}>
+        {[
+          { label:"Total de Visitas", valor:totalVisitas, cor:"#2563eb" },
+          { label:"Envios de Produção", valor:totalEnvios, cor:"#16a34a" },
+          { label:"ACS no período", valor:linhas.filter(r => r.visitas_periodo > 0).length, cor:"#7c3aed" },
+        ].map(k => (
+          <div key={k.label} style={{ flex:1, background:"#fff", border:"1px solid #e5e7eb", borderRadius:8, padding:"10px 14px" }}>
+            <div style={{ fontSize:10, color:"#9ca3af", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.05em" }}>{k.label}</div>
+            <div style={{ fontSize:22, fontWeight:800, color:k.cor, marginTop:2 }}>{k.valor}</div>
+            <div style={{ fontSize:10, color:"#9ca3af", marginTop:1 }}>{fmtData(dataInicio)} → {fmtData(dataFim)}</div>
+          </div>
+        ))}
+      </div>
+
       {/* Tabela relatório */}
       <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, overflow:"hidden" }}>
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
           <thead>
             <tr style={{ background:"#f9fafb", borderBottom:"1px solid #e5e7eb" }}>
-              {["ACS","Microárea","Status","Visitas Hoje","Últ. Visita","Envios Produção","Últ. Envio","Bateria"].map(h => (
+              {["ACS","Microárea","Status","Visitas no Período","Últ. Visita","Envios Produção","Últ. Envio","Bateria"].map(h => (
                 <th key={h} style={{ padding:"10px 12px", textAlign:"left", fontWeight:600, color:"#6b7280", fontSize:11, whiteSpace:"nowrap" }}>{h}</th>
               ))}
             </tr>
@@ -390,17 +424,17 @@ function RelatorioPanel({ posicoes, producao, eventos }:
                     </span>
                   </td>
                   <td style={{ padding:"10px 12px", textAlign:"center", fontWeight:700,
-                    color: r.visitas_hoje === 0 ? "#dc2626" : r.visitas_hoje >= 3 ? "#16a34a" : "#d97706" }}>
-                    {r.visitas_hoje}
+                    color: r.visitas_periodo === 0 ? "#dc2626" : r.visitas_periodo >= 3 ? "#16a34a" : "#d97706" }}>
+                    {r.visitas_periodo}
                   </td>
-                  <td style={{ padding:"10px 12px", color: r.ultima_visita === "—" ? "#dc2626" : "#374151" }}>
+                  <td style={{ padding:"10px 12px", color: r.ultima_visita === "—" ? "#dc2626" : "#374151", fontSize:11 }}>
                     {r.ultima_visita}
                   </td>
                   <td style={{ padding:"10px 12px", textAlign:"center", fontWeight:700,
-                    color: r.envios_hoje === 0 ? "#9ca3af" : "#16a34a" }}>
-                    {r.envios_hoje}
+                    color: r.envios_periodo === 0 ? "#9ca3af" : "#16a34a" }}>
+                    {r.envios_periodo}
                   </td>
-                  <td style={{ padding:"10px 12px", color: r.ultimo_envio === "—" ? "#9ca3af" : "#374151" }}>
+                  <td style={{ padding:"10px 12px", color: r.ultimo_envio === "—" ? "#9ca3af" : "#374151", fontSize:11 }}>
                     {r.ultimo_envio}
                   </td>
                   <td style={{ padding:"10px 12px" }}>
@@ -416,7 +450,7 @@ function RelatorioPanel({ posicoes, producao, eventos }:
           </tbody>
         </table>
         <div style={{ padding:"10px 12px", borderTop:"1px solid #e5e7eb", fontSize:11, color:"#9ca3af" }}>
-          {linhas.length} ACS · Data: {filtroData} · Gerado em {new Date().toLocaleTimeString("pt-BR")}
+          {linhas.length} ACS · Período: {fmtData(dataInicio)} até {fmtData(dataFim)} · Gerado em {new Date().toLocaleTimeString("pt-BR")}
         </div>
       </div>
     </div>
