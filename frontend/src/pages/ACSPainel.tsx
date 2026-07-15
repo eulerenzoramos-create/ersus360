@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Users, MapPin, Home, CheckCircle, TrendingUp, Baby,
   Heart, Activity, Star, AlertTriangle, RefreshCw, ChevronDown,
-  ChevronRight, UserCheck, User, Navigation,
+  ChevronRight, UserCheck, User, Navigation, FileText,
+  XCircle, Search, Filter,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
 import ACSGeoPage from "./ACSGeoPage";
@@ -60,6 +61,76 @@ interface Microarea {
 }
 
 interface ListaAcs { acs: AcsItem[] }
+
+// ── Cadastro SIS ──────────────────────────────────────────────────────────────
+interface CampoSis {
+  campo: string;
+  label: string;
+  preenchido: boolean;
+}
+
+interface CadastroPaciente {
+  id: number;
+  nome: string;
+  cns: string;
+  data_nascimento: string;
+  microarea: string;
+  acs_nome: string;
+  acs_id: number;
+  visitas_no_mes: number;
+  ultima_visita: string;
+  campos: CampoSis[];
+  pct_completo: number;
+  status_cadastro: "completo" | "parcial" | "incompleto";
+}
+
+// ── Dados simulados SIS ───────────────────────────────────────────────────────
+const CAMPOS_SIS = [
+  "CNS / CPF",
+  "Data de Nascimento",
+  "Raça / Cor",
+  "Escolaridade",
+  "Situação de Trabalho",
+  "Condições de Saúde",
+  "Endereço Completo",
+  "Responsável Familiar",
+];
+
+function gerarCadastrosSIS(acs: AcsItem[]): CadastroPaciente[] {
+  const seed = (n: number) => ((n * 1103515245 + 12345) & 0x7fffffff) % 100;
+  const pacientes: CadastroPaciente[] = [];
+  let id = 1;
+  acs.forEach(a => {
+    const qtd = Math.floor(a.familias_cadastradas * 3.2);
+    for (let i = 0; i < Math.min(qtd, 15); i++) {
+      const campos: CampoSis[] = CAMPOS_SIS.map((label, ci) => ({
+        campo: label.toLowerCase().replace(/\s+/g, "_").replace(/\//g, "_"),
+        label,
+        preenchido: seed((a.id * 31 + i * 17 + ci * 7)) > (a.status === "critico" ? 55 : a.status === "destaque" ? 15 : 35),
+      }));
+      const preenchidos = campos.filter(c => c.preenchido).length;
+      const pct = Math.round((preenchidos / campos.length) * 100);
+      const status_cadastro: CadastroPaciente["status_cadastro"] =
+        pct === 100 ? "completo" : pct >= 60 ? "parcial" : "incompleto";
+      const visitas = seed(a.id * 13 + i * 5) > 50 ? Math.floor(seed(a.id + i) / 25) + 1 : 0;
+      pacientes.push({
+        id: id++,
+        nome: `Paciente ${i + 1} — ${a.microarea}`,
+        cns: `${700_000_000_000_000 + a.id * 10000 + i}`,
+        data_nascimento: `${1940 + ((a.id * 7 + i * 3) % 65)}-${String(((a.id + i) % 12) + 1).padStart(2,"0")}-${String(((a.id * 3 + i) % 28) + 1).padStart(2,"0")}`,
+        microarea: a.microarea,
+        acs_nome: a.nome,
+        acs_id: a.id,
+        visitas_no_mes: visitas,
+        ultima_visita: visitas > 0 ? `2025-06-${String(((a.id * 5 + i * 2) % 28) + 1).padStart(2,"0")}` : "—",
+        campos,
+        pct_completo: pct,
+        status_cadastro,
+      });
+    }
+  });
+  return pacientes;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -164,15 +235,24 @@ function AcsCard({ a }: { a: AcsItem }) {
         <div style={{ padding: "10px 14px 14px", borderTop: "1px solid " + cor + "30" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12, marginBottom: 12 }}>
             <div>
-              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>Visitas — {a.visitas.realizadas}/{a.visitas.programadas}</div>
+              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>
+                Visitas — <strong>{a.visitas.realizadas}</strong>/{a.visitas.programadas} programadas
+              </div>
               <MiniBar pct={a.pct_visitas} cor={a.pct_visitas >= 90 ? "#16a34a" : a.pct_visitas >= 70 ? "#d97706" : "#dc2626"} />
               <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>
                 {a.visitas.nao_encontradas} não encontradas · {a.visitas.recusas} recusas
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>Cadastro — {a.familias_cadastradas}/{a.familias_meta} fam.</div>
+              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>
+                Cadastro SIS — {a.familias_cadastradas}/{a.familias_meta} fam. · {a.pct_cadastro}% completo
+              </div>
               <MiniBar pct={a.pct_cadastro} cor={a.pct_cadastro >= 90 ? "#16a34a" : "#d97706"} />
+              <div style={{ fontSize: 10, color: a.pct_cadastro < 80 ? "#dc2626" : "#9ca3af", marginTop: 2 }}>
+                {a.pct_cadastro < 80
+                  ? `⚠ ${a.familias_meta - a.familias_cadastradas} cadastros pendentes no SIS`
+                  : "✓ Cadastros SIS atualizados"}
+              </div>
             </div>
           </div>
 
@@ -247,9 +327,12 @@ function MicroareaCard({ ma }: { ma: Microarea }) {
 // ── Página principal ──────────────────────────────────────────────────────────
 
 export default function ACSPainel() {
-  const [aba, setAba] = useState<"dashboard" | "acs" | "microareas" | "geo">("dashboard");
+  const [aba, setAba] = useState<"dashboard" | "acs" | "microareas" | "geo" | "sis">("dashboard");
   const [esfFiltro, setEsfFiltro] = useState("Todas");
   const [statusFiltro, setStatusFiltro] = useState("Todos");
+  const [sisAcsFiltro, setSisAcsFiltro] = useState("Todos");
+  const [sisStatusFiltro, setSisStatusFiltro] = useState("Todos");
+  const [sisBusca, setSisBusca] = useState("");
 
   const { data: dash, isLoading, refetch } = useQuery<DashboardAcs>({
     queryKey: ["acs-dashboard"],
@@ -274,11 +357,38 @@ export default function ACSPainel() {
     statusFiltro === "Todos" || a.status === statusFiltro
   );
 
+  const todosCadastros = useMemo(
+    () => gerarCadastrosSIS(listaData?.acs ?? []),
+    [listaData?.acs]
+  );
+
+  const cadFiltrados = useMemo(() => todosCadastros.filter(p => {
+    if (sisAcsFiltro !== "Todos" && p.acs_nome !== sisAcsFiltro) return false;
+    if (sisStatusFiltro !== "Todos" && p.status_cadastro !== sisStatusFiltro) return false;
+    if (sisBusca && !p.nome.toLowerCase().includes(sisBusca.toLowerCase()) &&
+        !p.cns.includes(sisBusca)) return false;
+    return true;
+  }), [todosCadastros, sisAcsFiltro, sisStatusFiltro, sisBusca]);
+
+  const resumoSis = useMemo(() => ({
+    total: todosCadastros.length,
+    completos:   todosCadastros.filter(p => p.status_cadastro === "completo").length,
+    parciais:    todosCadastros.filter(p => p.status_cadastro === "parcial").length,
+    incompletos: todosCadastros.filter(p => p.status_cadastro === "incompleto").length,
+    semVisita:   todosCadastros.filter(p => p.visitas_no_mes === 0).length,
+  }), [todosCadastros]);
+
+  const acsNomes = useMemo(() =>
+    ["Todos", ...Array.from(new Set((listaData?.acs ?? []).map(a => a.nome)))],
+    [listaData?.acs]
+  );
+
   const ABAS = [
-    { id: "dashboard",  label: "Dashboard",              icon: <Activity   size={13} /> },
-    { id: "geo",        label: "🗺 Localização Tempo Real", icon: <Navigation size={13} /> },
-    { id: "acs",        label: "Lista de ACS",            icon: <Users      size={13} /> },
-    { id: "microareas", label: "Microáreas",              icon: <MapPin     size={13} /> },
+    { id: "dashboard",  label: "Dashboard",                 icon: <Activity   size={13} /> },
+    { id: "geo",        label: "🗺 Tempo Real",              icon: <Navigation size={13} /> },
+    { id: "acs",        label: "Lista de ACS",              icon: <Users      size={13} /> },
+    { id: "microareas", label: "Microáreas",                icon: <MapPin     size={13} /> },
+    { id: "sis",        label: "Cadastros SIS",             icon: <FileText   size={13} /> },
   ] as const;
 
   return (
@@ -474,20 +584,201 @@ export default function ACSPainel() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
             {(maData?.microareas ?? []).map(ma => <MicroareaCard key={ma.codigo} ma={ma} />)}
           </div>
-
-          {/* Legenda */}
           <div style={{ marginTop: 16, display: "flex", gap: 16, fontSize: 11, color: "#9ca3af" }}>
-            {[
-              { cor: "#16a34a", label: "≥90% cobertura" },
-              { cor: "#d97706", label: "70–89%" },
-              { cor: "#dc2626", label: "<70%" },
-            ].map(l => (
-              <span key={l.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 2, background: l.cor, display: "inline-block" }} />
-                {l.label}
+            {[{ cor:"#16a34a",label:"≥90% cobertura"},{cor:"#d97706",label:"70–89%"},{cor:"#dc2626",label:"<70%"}].map(l => (
+              <span key={l.label} style={{ display:"flex",alignItems:"center",gap:4 }}>
+                <span style={{ width:10,height:10,borderRadius:2,background:l.cor,display:"inline-block" }}/>{l.label}
               </span>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ── Cadastros SIS ── */}
+      {aba === "sis" && (
+        <div>
+
+          {/* Resumo KPIs */}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:10, marginBottom:18 }}>
+            {[
+              { label:"Total Cadastros",  val:resumoSis.total,       cor:"#0891b2", bg:"#ecfeff" },
+              { label:"Completos",        val:resumoSis.completos,   cor:"#16a34a", bg:"#f0fdf4" },
+              { label:"Parciais",         val:resumoSis.parciais,    cor:"#d97706", bg:"#fffbeb" },
+              { label:"Incompletos",      val:resumoSis.incompletos, cor:"#dc2626", bg:"#fff7f7" },
+              { label:"Sem Visita/Mês",   val:resumoSis.semVisita,   cor:"#6b7280", bg:"#f9fafb" },
+            ].map(k => (
+              <div key={k.label} style={{ background:k.bg, borderRadius:10, padding:"12px 14px", textAlign:"center" }}>
+                <div style={{ fontSize:22, fontWeight:700, color:k.cor }}>{k.val}</div>
+                <div style={{ fontSize:11, color:"#9ca3af", marginTop:2 }}>{k.label}</div>
+                <div style={{ marginTop:6 }}>
+                  <MiniBar pct={Math.round((k.val/resumoSis.total)*100)} cor={k.cor}/>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Barra de completude geral */}
+          <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:"14px 16px", marginBottom:16 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+              <span style={{ fontSize:13, fontWeight:600 }}>Completude Geral dos Cadastros SIS</span>
+              <span style={{ fontSize:13, fontWeight:700, color:"#16a34a" }}>
+                {resumoSis.total > 0 ? Math.round((resumoSis.completos/resumoSis.total)*100) : 0}% completos
+              </span>
+            </div>
+            <div style={{ height:10, background:"#e5e7eb", borderRadius:5, overflow:"hidden", display:"flex" }}>
+              <div style={{ width:`${Math.round((resumoSis.completos/resumoSis.total)*100)}%`, background:"#16a34a", transition:"width .5s" }}/>
+              <div style={{ width:`${Math.round((resumoSis.parciais/resumoSis.total)*100)}%`, background:"#d97706" }}/>
+              <div style={{ width:`${Math.round((resumoSis.incompletos/resumoSis.total)*100)}%`, background:"#dc2626" }}/>
+            </div>
+            <div style={{ display:"flex", gap:16, marginTop:6, fontSize:11, color:"#9ca3af" }}>
+              <span style={{ display:"flex", alignItems:"center", gap:4 }}><span style={{ width:10, height:10, borderRadius:2, background:"#16a34a", display:"inline-block" }}/> Completo</span>
+              <span style={{ display:"flex", alignItems:"center", gap:4 }}><span style={{ width:10, height:10, borderRadius:2, background:"#d97706", display:"inline-block" }}/> Parcial (≥60%)</span>
+              <span style={{ display:"flex", alignItems:"center", gap:4 }}><span style={{ width:10, height:10, borderRadius:2, background:"#dc2626", display:"inline-block" }}/> Incompleto (&lt;60%)</span>
+            </div>
+          </div>
+
+          {/* Campos mais problemáticos */}
+          <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:"14px 16px", marginBottom:16 }}>
+            <div style={{ fontSize:13, fontWeight:600, marginBottom:12 }}>Campos com Maior Pendência</div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
+              {CAMPOS_SIS.map(campo => {
+                const faltando = todosCadastros.filter(p =>
+                  p.campos.find(c => c.label === campo && !c.preenchido)
+                ).length;
+                const pct = todosCadastros.length > 0 ? Math.round((faltando/todosCadastros.length)*100) : 0;
+                return (
+                  <div key={campo} style={{ background:pct>40?"#fff7f7":pct>20?"#fffbeb":"#f9fafb", borderRadius:8, padding:"10px 12px" }}>
+                    <div style={{ fontSize:12, fontWeight:500, marginBottom:4 }}>{campo}</div>
+                    <div style={{ fontSize:18, fontWeight:700, color:pct>40?"#dc2626":pct>20?"#d97706":"#16a34a" }}>
+                      {faltando} <span style={{ fontSize:11, fontWeight:400, color:"#9ca3af" }}>pendentes</span>
+                    </div>
+                    <MiniBar pct={100-pct} cor={pct>40?"#dc2626":pct>20?"#d97706":"#16a34a"}/>
+                    <div style={{ fontSize:10, color:"#9ca3af", marginTop:2 }}>{100-pct}% preenchido</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Filtros */}
+          <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:"12px 16px", marginBottom:14 }}>
+            <div style={{ display:"flex", gap:12, flexWrap:"wrap", alignItems:"center" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:6, flex:1, minWidth:200 }}>
+                <Search size={13} color="#9ca3af"/>
+                <input
+                  value={sisBusca}
+                  onChange={e => setSisBusca(e.target.value)}
+                  placeholder="Buscar por nome ou CNS..."
+                  style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"6px 10px", fontSize:12, flex:1 }}
+                />
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <Filter size={13} color="#9ca3af"/>
+                <select value={sisAcsFiltro} onChange={e => setSisAcsFiltro(e.target.value)}
+                  style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"6px 10px", fontSize:12 }}>
+                  {acsNomes.map(n => <option key={n} value={n}>{n === "Todos" ? "Todos os ACS" : n}</option>)}
+                </select>
+              </div>
+              <div style={{ display:"flex", gap:6 }}>
+                {[
+                  { val:"Todos",      label:"Todos",      cor:"#374151" },
+                  { val:"completo",   label:"Completo",   cor:"#16a34a" },
+                  { val:"parcial",    label:"Parcial",    cor:"#d97706" },
+                  { val:"incompleto", label:"Incompleto", cor:"#dc2626" },
+                ].map(s => (
+                  <button key={s.val} onClick={() => setSisStatusFiltro(s.val)} style={{
+                    padding:"4px 10px", fontSize:11, borderRadius:16,
+                    border:"1px solid " + s.cor + "60",
+                    background: sisStatusFiltro===s.val ? s.cor : "#fff",
+                    color: sisStatusFiltro===s.val ? "#fff" : s.cor,
+                    cursor:"pointer", fontWeight:600,
+                  }}>{s.label}</button>
+                ))}
+              </div>
+              <span style={{ fontSize:12, color:"#9ca3af", marginLeft:"auto" }}>{cadFiltrados.length} registros</span>
+            </div>
+          </div>
+
+          {/* Tabela de cadastros */}
+          <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, overflow:"hidden" }}>
+            <div style={{ overflowX:"auto" }}>
+              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
+                <thead>
+                  <tr style={{ background:"#f9fafb", borderBottom:"1px solid #e5e7eb" }}>
+                    {["Paciente / CNS","ACS","Microárea","Visitas/Mês","Últ. Visita","Completude","Campos Pendentes","Status"].map(h => (
+                      <th key={h} style={{ padding:"10px 12px", textAlign:"left", fontWeight:600, color:"#6b7280", fontSize:11, whiteSpace:"nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {cadFiltrados.map((p, i) => {
+                    const corStatus = p.status_cadastro === "completo" ? "#16a34a" : p.status_cadastro === "parcial" ? "#d97706" : "#dc2626";
+                    const bgRow = i % 2 === 0 ? "#fff" : "#fafafa";
+                    const faltando = p.campos.filter(c => !c.preenchido).map(c => c.label);
+                    return (
+                      <tr key={p.id} style={{ borderBottom:"1px solid #f3f4f6", background:bgRow }}>
+                        <td style={{ padding:"10px 12px" }}>
+                          <div style={{ fontWeight:500 }}>{p.nome}</div>
+                          <div style={{ fontSize:10, color:"#9ca3af" }}>CNS: {p.cns.slice(0,7)}…</div>
+                        </td>
+                        <td style={{ padding:"10px 12px", color:"#374151" }}>{p.acs_nome}</td>
+                        <td style={{ padding:"10px 12px", color:"#374151" }}>{p.microarea}</td>
+                        <td style={{ padding:"10px 12px", textAlign:"center" }}>
+                          <span style={{
+                            fontWeight:700, fontSize:13,
+                            color: p.visitas_no_mes === 0 ? "#dc2626" : p.visitas_no_mes >= 2 ? "#16a34a" : "#d97706",
+                          }}>
+                            {p.visitas_no_mes}
+                          </span>
+                          {p.visitas_no_mes === 0 && (
+                            <div style={{ fontSize:9, color:"#dc2626" }}>sem visita</div>
+                          )}
+                        </td>
+                        <td style={{ padding:"10px 12px", color:"#374151", whiteSpace:"nowrap" }}>
+                          {p.ultima_visita !== "—" ? new Date(p.ultima_visita).toLocaleDateString("pt-BR") : <span style={{ color:"#dc2626" }}>—</span>}
+                        </td>
+                        <td style={{ padding:"10px 12px", minWidth:100 }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                            <MiniBar pct={p.pct_completo} cor={corStatus}/>
+                            <span style={{ fontSize:11, fontWeight:700, color:corStatus, minWidth:30 }}>{p.pct_completo}%</span>
+                          </div>
+                        </td>
+                        <td style={{ padding:"10px 12px", maxWidth:180 }}>
+                          {faltando.length === 0 ? (
+                            <span style={{ color:"#16a34a", fontSize:11 }}>✓ Todos preenchidos</span>
+                          ) : (
+                            <div style={{ display:"flex", flexWrap:"wrap", gap:3 }}>
+                              {faltando.map(f => (
+                                <span key={f} style={{
+                                  background:"#fee2e2", color:"#dc2626",
+                                  fontSize:9, padding:"1px 5px", borderRadius:4, whiteSpace:"nowrap",
+                                }}>{f}</span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding:"10px 12px" }}>
+                          <span style={{
+                            background: corStatus + "18", color: corStatus,
+                            fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:10,
+                            whiteSpace:"nowrap",
+                          }}>
+                            {p.status_cadastro === "completo" ? "✓ Completo" : p.status_cadastro === "parcial" ? "⚠ Parcial" : "✗ Incompleto"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {cadFiltrados.length === 0 && (
+                <div style={{ textAlign:"center", padding:32, color:"#9ca3af", fontSize:13 }}>
+                  Nenhum cadastro encontrado com os filtros selecionados.
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       )}
     </div>
