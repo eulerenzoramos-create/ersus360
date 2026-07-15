@@ -479,7 +479,7 @@ export default function ACSPainel() {
             <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: "16px" }}>
               <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 700 }}>Distribuição por Equipe ESF</h3>
               {Object.entries(dash!.distribuicao_esf).map(([esf, n]) => {
-                const cores: Record<string, string> = { "ESF I": "#0891b2", "ESF II": "#7c3aed", "ESF III": "#16a34a" };
+                const cores: Record<string, string> = { "ESF I": "#0891b2", "ESF II": "#7c3aed", "ESF III": "#16a34a", "ESF IV": "#d97706", "ESF V": "#dc2626" };
                 return (
                   <div key={esf} style={{ marginBottom: 10 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
@@ -565,7 +565,7 @@ export default function ACSPainel() {
         <div>
           {/* Filtros */}
           <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-            {["Todas", "ESF I", "ESF II", "ESF III"].map(e => (
+            {["Todas", "ESF I", "ESF II", "ESF III", "ESF IV", "ESF V"].map(e => (
               <button key={e} onClick={() => setEsfFiltro(e)} style={{
                 padding: "4px 12px", fontSize: 12, borderRadius: 20,
                 border: "1px solid #d1d5db",

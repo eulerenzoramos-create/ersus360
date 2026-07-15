@@ -1,6 +1,6 @@
 """
 Router: /api/acs — Módulo ACS (Agentes Comunitários de Saúde)
-Apuí/AM — 3 equipes ESF, 8 microáreas, 12 ACS ativos
+Apuí/AM — 5 equipes ESF, 65 microáreas, 65 ACS
 """
 from __future__ import annotations
 from datetime import date, datetime
@@ -12,62 +12,297 @@ router = APIRouter(prefix="/api/acs", tags=["ACS"])
 # ── Dados de referência ───────────────────────────────────────────────────────
 
 _ACS: list[dict] = [
-    {"id": 1,  "nome": "Maria Aparecida Silva",    "microarea": "MA-01", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 148, "familias_meta": 150},
-    {"id": 2,  "nome": "João Carlos Nascimento",   "microarea": "MA-02", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 132, "familias_meta": 150},
-    {"id": 3,  "nome": "Ana Paula Ferreira",        "microarea": "MA-03", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 141, "familias_meta": 150},
-    {"id": 4,  "nome": "Raimundo Nonato Costa",    "microarea": "MA-04", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 155, "familias_meta": 150},
-    {"id": 5,  "nome": "Francisca Lima Santos",    "microarea": "MA-05", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 137, "familias_meta": 150},
-    {"id": 6,  "nome": "Antônio Mendes Rocha",     "microarea": "MA-06", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 122, "familias_meta": 150},
-    {"id": 7,  "nome": "Benedita Sousa Oliveira",  "microarea": "MA-07", "esf": "ESF III", "ativo": True,  "familias_cadastradas": 163, "familias_meta": 150},
-    {"id": 8,  "nome": "Sebastião Alves Teixeira", "microarea": "MA-08", "esf": "ESF III", "ativo": True,  "familias_cadastradas": 118, "familias_meta": 150},
-    {"id": 9,  "nome": "Rosa Maria Barbosa",       "microarea": "MA-07", "esf": "ESF III", "ativo": True,  "familias_cadastradas": 87,  "familias_meta": 100},
-    {"id": 10, "nome": "Carlos Eduardo Martins",   "microarea": "MA-08", "esf": "ESF III", "ativo": False, "familias_cadastradas": 0,   "familias_meta": 100},
-    {"id": 11, "nome": "Teresinha Gomes Peixoto",  "microarea": "MA-02", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 76,  "familias_meta": 100},
-    {"id": 12, "nome": "Manoel Ferreira Nunes",    "microarea": "MA-05", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 95,  "familias_meta": 100},
+    # ── ESF I — Zona Urbana Centro (MA-01 a MA-15) ──────────────────────────
+    {"id":  1, "nome": "Maria Aparecida Silva",        "microarea": "MA-01", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 148, "familias_meta": 150},
+    {"id":  2, "nome": "João Carlos Nascimento",       "microarea": "MA-02", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 132, "familias_meta": 150},
+    {"id":  3, "nome": "Ana Paula Ferreira",           "microarea": "MA-03", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 141, "familias_meta": 150},
+    {"id":  4, "nome": "Raimundo Nonato Costa",        "microarea": "MA-04", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 155, "familias_meta": 150},
+    {"id":  5, "nome": "Francisca Lima Santos",        "microarea": "MA-05", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 137, "familias_meta": 150},
+    {"id":  6, "nome": "Antônio Mendes Rocha",         "microarea": "MA-06", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 122, "familias_meta": 150},
+    {"id":  7, "nome": "Benedita Sousa Oliveira",      "microarea": "MA-07", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 163, "familias_meta": 150},
+    {"id":  8, "nome": "Sebastião Alves Teixeira",     "microarea": "MA-08", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 118, "familias_meta": 150},
+    {"id":  9, "nome": "Rosa Maria Barbosa",           "microarea": "MA-09", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 144, "familias_meta": 150},
+    {"id": 10, "nome": "Teresinha Gomes Peixoto",      "microarea": "MA-10", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 136, "familias_meta": 150},
+    {"id": 11, "nome": "Manoel Ferreira Nunes",        "microarea": "MA-11", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 152, "familias_meta": 150},
+    {"id": 12, "nome": "Luzia dos Santos Pereira",     "microarea": "MA-12", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 138, "familias_meta": 150},
+    {"id": 13, "nome": "Carlos Eduardo Martins",       "microarea": "MA-13", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 129, "familias_meta": 150},
+    {"id": 14, "nome": "Joana Melo Araújo",            "microarea": "MA-14", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 143, "familias_meta": 150},
+    {"id": 15, "nome": "José Pereira Rodrigues",       "microarea": "MA-15", "esf": "ESF I",   "ativo": True,  "familias_cadastradas": 157, "familias_meta": 150},
+    # ── ESF II — Zona Urbana Expansão (MA-16 a MA-30) ───────────────────────
+    {"id": 16, "nome": "Deuzarina Farias Monteiro",    "microarea": "MA-16", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 126, "familias_meta": 150},
+    {"id": 17, "nome": "Aldenice Castro Ribeiro",      "microarea": "MA-17", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 138, "familias_meta": 150},
+    {"id": 18, "nome": "Valdeci Lopes Cardoso",        "microarea": "MA-18", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 117, "familias_meta": 150},
+    {"id": 19, "nome": "Creuza Brito Moraes",          "microarea": "MA-19", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 144, "familias_meta": 150},
+    {"id": 20, "nome": "Edilson Santos Carvalho",      "microarea": "MA-20", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 151, "familias_meta": 150},
+    {"id": 21, "nome": "Nazaré Corrêa Lima",           "microarea": "MA-21", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 133, "familias_meta": 150},
+    {"id": 22, "nome": "Erisvaldo Alves Mendes",       "microarea": "MA-22", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 108, "familias_meta": 150},
+    {"id": 23, "nome": "Ilma Rocha Barbosa",           "microarea": "MA-23", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 142, "familias_meta": 150},
+    {"id": 24, "nome": "Lindomar Costa Araújo",        "microarea": "MA-24", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 119, "familias_meta": 150},
+    {"id": 25, "nome": "Sueli Gomes Ferreira",         "microarea": "MA-25", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 147, "familias_meta": 150},
+    {"id": 26, "nome": "Neilton Oliveira Silva",       "microarea": "MA-26", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 135, "familias_meta": 150},
+    {"id": 27, "nome": "Vânia Nascimento Pereira",     "microarea": "MA-27", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 124, "familias_meta": 150},
+    {"id": 28, "nome": "Raimundinho Teixeira Costa",   "microarea": "MA-28", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 131, "familias_meta": 150},
+    {"id": 29, "nome": "Jacira Sousa Rodrigues",       "microarea": "MA-29", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 128, "familias_meta": 150},
+    {"id": 30, "nome": "Paulo Mendes Nunes",           "microarea": "MA-30", "esf": "ESF II",  "ativo": True,  "familias_cadastradas": 139, "familias_meta": 150},
+    # ── ESF III — Zona Rural Próxima (MA-31 a MA-45) ────────────────────────
+    {"id": 31, "nome": "Iraci Barbosa Santos",         "microarea": "MA-31", "esf": "ESF III", "ativo": True,  "familias_cadastradas":  98, "familias_meta": 120},
+    {"id": 32, "nome": "Cleber Martins Lopes",         "microarea": "MA-32", "esf": "ESF III", "ativo": True,  "familias_cadastradas": 107, "familias_meta": 120},
+    {"id": 33, "nome": "Leonizia Peixoto Lima",        "microarea": "MA-33", "esf": "ESF III", "ativo": True,  "familias_cadastradas":  89, "familias_meta": 120},
+    {"id": 34, "nome": "Sandro Farias Castro",         "microarea": "MA-34", "esf": "ESF III", "ativo": True,  "familias_cadastradas": 113, "familias_meta": 120},
+    {"id": 35, "nome": "Graça Maria Ribeiro",          "microarea": "MA-35", "esf": "ESF III", "ativo": True,  "familias_cadastradas": 102, "familias_meta": 120},
+    {"id": 36, "nome": "Wander Cardoso Alves",         "microarea": "MA-36", "esf": "ESF III", "ativo": True,  "familias_cadastradas":  94, "familias_meta": 120},
+    {"id": 37, "nome": "Fátima Araújo Corrêa",         "microarea": "MA-37", "esf": "ESF III", "ativo": True,  "familias_cadastradas": 116, "familias_meta": 120},
+    {"id": 38, "nome": "Marcos Moraes Carvalho",       "microarea": "MA-38", "esf": "ESF III", "ativo": True,  "familias_cadastradas":  85, "familias_meta": 120},
+    {"id": 39, "nome": "Edilene Rodrigues Brito",      "microarea": "MA-39", "esf": "ESF III", "ativo": True,  "familias_cadastradas": 101, "familias_meta": 120},
+    {"id": 40, "nome": "André Luiz Monteiro",          "microarea": "MA-40", "esf": "ESF III", "ativo": True,  "familias_cadastradas": 118, "familias_meta": 120},
+    {"id": 41, "nome": "Lúcia Ferreira Gomes",         "microarea": "MA-41", "esf": "ESF III", "ativo": True,  "familias_cadastradas":  92, "familias_meta": 120},
+    {"id": 42, "nome": "Rogério Pereira Costa",        "microarea": "MA-42", "esf": "ESF III", "ativo": True,  "familias_cadastradas": 110, "familias_meta": 120},
+    {"id": 43, "nome": "Neuza Lima Oliveira",          "microarea": "MA-43", "esf": "ESF III", "ativo": True,  "familias_cadastradas":  97, "familias_meta": 120},
+    {"id": 44, "nome": "Lindinalva Costa Barbosa",     "microarea": "MA-44", "esf": "ESF III", "ativo": True,  "familias_cadastradas":  88, "familias_meta": 120},
+    {"id": 45, "nome": "Cláudia Sousa Nascimento",     "microarea": "MA-45", "esf": "ESF III", "ativo": True,  "familias_cadastradas": 104, "familias_meta": 120},
+    # ── ESF IV — Zona Rural Ramais (MA-46 a MA-57) ──────────────────────────
+    {"id": 46, "nome": "Adenize Mendes Rocha",         "microarea": "MA-46", "esf": "ESF IV",  "ativo": True,  "familias_cadastradas":  76, "familias_meta": 100},
+    {"id": 47, "nome": "Pedro Alves Teixeira",         "microarea": "MA-47", "esf": "ESF IV",  "ativo": True,  "familias_cadastradas":  83, "familias_meta": 100},
+    {"id": 48, "nome": "Cristina Nunes Ferreira",      "microarea": "MA-48", "esf": "ESF IV",  "ativo": True,  "familias_cadastradas":  91, "familias_meta": 100},
+    {"id": 49, "nome": "Luís Rodrigues Santos",        "microarea": "MA-49", "esf": "ESF IV",  "ativo": True,  "familias_cadastradas":  68, "familias_meta": 100},
+    {"id": 50, "nome": "Eliene Peixoto Gomes",         "microarea": "MA-50", "esf": "ESF IV",  "ativo": True,  "familias_cadastradas":  87, "familias_meta": 100},
+    {"id": 51, "nome": "Valdilene Carvalho Lopes",     "microarea": "MA-51", "esf": "ESF IV",  "ativo": True,  "familias_cadastradas":  79, "familias_meta": 100},
+    {"id": 52, "nome": "Fábio Ribeiro Martins",        "microarea": "MA-52", "esf": "ESF IV",  "ativo": True,  "familias_cadastradas":  94, "familias_meta": 100},
+    {"id": 53, "nome": "Conceição Barbosa Araújo",     "microarea": "MA-53", "esf": "ESF IV",  "ativo": True,  "familias_cadastradas":  72, "familias_meta": 100},
+    {"id": 54, "nome": "Jucilene Moraes Castro",       "microarea": "MA-54", "esf": "ESF IV",  "ativo": True,  "familias_cadastradas":  85, "familias_meta": 100},
+    {"id": 55, "nome": "Márcia Farias Corrêa",         "microarea": "MA-55", "esf": "ESF IV",  "ativo": True,  "familias_cadastradas":  81, "familias_meta": 100},
+    {"id": 56, "nome": "Sebastiana Monteiro Silva",    "microarea": "MA-56", "esf": "ESF IV",  "ativo": True,  "familias_cadastradas":  63, "familias_meta": 100},
+    {"id": 57, "nome": "Raimunda Brito Cardoso",       "microarea": "MA-57", "esf": "ESF IV",  "ativo": True,  "familias_cadastradas":  77, "familias_meta": 100},
+    # ── ESF V — Zona Rural Remota / Assentamentos (MA-58 a MA-65) ───────────
+    {"id": 58, "nome": "Izabel Costa Lima",            "microarea": "MA-58", "esf": "ESF V",   "ativo": True,  "familias_cadastradas":  54, "familias_meta":  80},
+    {"id": 59, "nome": "Luzia Nascimento Rocha",       "microarea": "MA-59", "esf": "ESF V",   "ativo": True,  "familias_cadastradas":  61, "familias_meta":  80},
+    {"id": 60, "nome": "Neilson Alves Pereira",        "microarea": "MA-60", "esf": "ESF V",   "ativo": True,  "familias_cadastradas":  48, "familias_meta":  80},
+    {"id": 61, "nome": "Joselma Ribeiro Santos",       "microarea": "MA-61", "esf": "ESF V",   "ativo": True,  "familias_cadastradas":  67, "familias_meta":  80},
+    {"id": 62, "nome": "Arnaldo Gomes Barbosa",        "microarea": "MA-62", "esf": "ESF V",   "ativo": True,  "familias_cadastradas":  55, "familias_meta":  80},
+    {"id": 63, "nome": "Deuzorene Carvalho Lopes",     "microarea": "MA-63", "esf": "ESF V",   "ativo": False, "familias_cadastradas":  43, "familias_meta":  80},
+    {"id": 64, "nome": "Eliete Martins Costa",         "microarea": "MA-64", "esf": "ESF V",   "ativo": True,  "familias_cadastradas":  58, "familias_meta":  80},
+    {"id": 65, "nome": "Neusa Ferreira Rodrigues",     "microarea": "MA-65", "esf": "ESF V",   "ativo": True,  "familias_cadastradas":  51, "familias_meta":  80},
 ]
 
 _MES_REF = {"mes": 7, "ano": 2026, "label": "Julho/2026"}
 
 _VISITAS: list[dict] = [
-    {"acs_id": 1,  "programadas": 148, "realizadas": 141, "nao_encontradas": 12, "recusas": 3},
-    {"acs_id": 2,  "programadas": 143, "realizadas": 108, "nao_encontradas": 18, "recusas": 5},
-    {"acs_id": 3,  "programadas": 141, "realizadas": 138, "nao_encontradas": 8,  "recusas": 1},
-    {"acs_id": 4,  "programadas": 155, "realizadas": 155, "nao_encontradas": 7,  "recusas": 0},
-    {"acs_id": 5,  "programadas": 137, "realizadas": 124, "nao_encontradas": 15, "recusas": 4},
-    {"acs_id": 6,  "programadas": 122, "realizadas": 110, "nao_encontradas": 22, "recusas": 6},
-    {"acs_id": 7,  "programadas": 163, "realizadas": 152, "nao_encontradas": 14, "recusas": 2},
-    {"acs_id": 8,  "programadas": 118, "realizadas": 97,  "nao_encontradas": 19, "recusas": 7},
-    {"acs_id": 9,  "programadas": 87,  "realizadas": 83,  "nao_encontradas": 5,  "recusas": 1},
-    {"acs_id": 10, "programadas": 0,   "realizadas": 0,   "nao_encontradas": 0,  "recusas": 0},
-    {"acs_id": 11, "programadas": 76,  "realizadas": 72,  "nao_encontradas": 6,  "recusas": 2},
-    {"acs_id": 12, "programadas": 95,  "realizadas": 88,  "nao_encontradas": 10, "recusas": 3},
+    # ESF I — alta performance urbana
+    {"acs_id":  1, "programadas": 148, "realizadas": 141, "nao_encontradas": 12, "recusas": 3},
+    {"acs_id":  2, "programadas": 132, "realizadas": 108, "nao_encontradas": 18, "recusas": 5},
+    {"acs_id":  3, "programadas": 141, "realizadas": 138, "nao_encontradas":  8, "recusas": 1},
+    {"acs_id":  4, "programadas": 155, "realizadas": 155, "nao_encontradas":  7, "recusas": 0},
+    {"acs_id":  5, "programadas": 137, "realizadas": 124, "nao_encontradas": 15, "recusas": 4},
+    {"acs_id":  6, "programadas": 122, "realizadas": 110, "nao_encontradas": 22, "recusas": 6},
+    {"acs_id":  7, "programadas": 163, "realizadas": 152, "nao_encontradas": 14, "recusas": 2},
+    {"acs_id":  8, "programadas": 118, "realizadas":  97, "nao_encontradas": 19, "recusas": 7},
+    {"acs_id":  9, "programadas": 144, "realizadas": 140, "nao_encontradas":  9, "recusas": 2},
+    {"acs_id": 10, "programadas": 136, "realizadas": 129, "nao_encontradas": 11, "recusas": 3},
+    {"acs_id": 11, "programadas": 152, "realizadas": 148, "nao_encontradas":  6, "recusas": 1},
+    {"acs_id": 12, "programadas": 138, "realizadas": 131, "nao_encontradas": 10, "recusas": 2},
+    {"acs_id": 13, "programadas": 129, "realizadas": 117, "nao_encontradas": 14, "recusas": 4},
+    {"acs_id": 14, "programadas": 143, "realizadas": 138, "nao_encontradas":  8, "recusas": 1},
+    {"acs_id": 15, "programadas": 157, "realizadas": 149, "nao_encontradas": 12, "recusas": 3},
+    # ESF II — performance média-alta
+    {"acs_id": 16, "programadas": 126, "realizadas": 118, "nao_encontradas": 13, "recusas": 3},
+    {"acs_id": 17, "programadas": 138, "realizadas": 128, "nao_encontradas": 16, "recusas": 4},
+    {"acs_id": 18, "programadas": 117, "realizadas": 103, "nao_encontradas": 20, "recusas": 5},
+    {"acs_id": 19, "programadas": 144, "realizadas": 135, "nao_encontradas": 11, "recusas": 2},
+    {"acs_id": 20, "programadas": 151, "realizadas": 144, "nao_encontradas":  9, "recusas": 1},
+    {"acs_id": 21, "programadas": 133, "realizadas": 122, "nao_encontradas": 15, "recusas": 3},
+    {"acs_id": 22, "programadas": 108, "realizadas":  89, "nao_encontradas": 24, "recusas": 7},
+    {"acs_id": 23, "programadas": 142, "realizadas": 133, "nao_encontradas": 12, "recusas": 2},
+    {"acs_id": 24, "programadas": 119, "realizadas": 108, "nao_encontradas": 18, "recusas": 4},
+    {"acs_id": 25, "programadas": 147, "realizadas": 141, "nao_encontradas":  8, "recusas": 1},
+    {"acs_id": 26, "programadas": 135, "realizadas": 125, "nao_encontradas": 13, "recusas": 3},
+    {"acs_id": 27, "programadas": 124, "realizadas": 115, "nao_encontradas": 16, "recusas": 4},
+    {"acs_id": 28, "programadas": 131, "realizadas": 120, "nao_encontradas": 14, "recusas": 3},
+    {"acs_id": 29, "programadas": 128, "realizadas": 116, "nao_encontradas": 17, "recusas": 4},
+    {"acs_id": 30, "programadas": 139, "realizadas": 131, "nao_encontradas": 10, "recusas": 2},
+    # ESF III — rural próxima, variável
+    {"acs_id": 31, "programadas":  98, "realizadas":  91, "nao_encontradas":  8, "recusas": 2},
+    {"acs_id": 32, "programadas": 107, "realizadas":  99, "nao_encontradas": 10, "recusas": 2},
+    {"acs_id": 33, "programadas":  89, "realizadas":  79, "nao_encontradas": 12, "recusas": 3},
+    {"acs_id": 34, "programadas": 113, "realizadas": 106, "nao_encontradas":  9, "recusas": 1},
+    {"acs_id": 35, "programadas": 102, "realizadas":  95, "nao_encontradas":  8, "recusas": 2},
+    {"acs_id": 36, "programadas":  94, "realizadas":  82, "nao_encontradas": 14, "recusas": 3},
+    {"acs_id": 37, "programadas": 116, "realizadas": 110, "nao_encontradas":  7, "recusas": 1},
+    {"acs_id": 38, "programadas":  85, "realizadas":  73, "nao_encontradas": 15, "recusas": 4},
+    {"acs_id": 39, "programadas": 101, "realizadas":  93, "nao_encontradas": 10, "recusas": 2},
+    {"acs_id": 40, "programadas": 118, "realizadas": 112, "nao_encontradas":  8, "recusas": 1},
+    {"acs_id": 41, "programadas":  92, "realizadas":  84, "nao_encontradas": 11, "recusas": 3},
+    {"acs_id": 42, "programadas": 110, "realizadas": 102, "nao_encontradas":  9, "recusas": 2},
+    {"acs_id": 43, "programadas":  97, "realizadas":  88, "nao_encontradas": 12, "recusas": 3},
+    {"acs_id": 44, "programadas":  88, "realizadas":  76, "nao_encontradas": 14, "recusas": 4},
+    {"acs_id": 45, "programadas": 104, "realizadas":  97, "nao_encontradas":  9, "recusas": 2},
+    # ESF IV — rural ramais, dificuldade de acesso
+    {"acs_id": 46, "programadas":  76, "realizadas":  65, "nao_encontradas": 12, "recusas": 3},
+    {"acs_id": 47, "programadas":  83, "realizadas":  74, "nao_encontradas": 11, "recusas": 2},
+    {"acs_id": 48, "programadas":  91, "realizadas":  84, "nao_encontradas":  9, "recusas": 2},
+    {"acs_id": 49, "programadas":  68, "realizadas":  55, "nao_encontradas": 16, "recusas": 4},
+    {"acs_id": 50, "programadas":  87, "realizadas":  79, "nao_encontradas": 10, "recusas": 2},
+    {"acs_id": 51, "programadas":  79, "realizadas":  69, "nao_encontradas": 13, "recusas": 3},
+    {"acs_id": 52, "programadas":  94, "realizadas":  88, "nao_encontradas":  8, "recusas": 1},
+    {"acs_id": 53, "programadas":  72, "realizadas":  60, "nao_encontradas": 15, "recusas": 4},
+    {"acs_id": 54, "programadas":  85, "realizadas":  77, "nao_encontradas": 10, "recusas": 2},
+    {"acs_id": 55, "programadas":  81, "realizadas":  72, "nao_encontradas": 12, "recusas": 3},
+    {"acs_id": 56, "programadas":  63, "realizadas":  51, "nao_encontradas": 14, "recusas": 4},
+    {"acs_id": 57, "programadas":  77, "realizadas":  68, "nao_encontradas": 11, "recusas": 3},
+    # ESF V — remota / assentamentos
+    {"acs_id": 58, "programadas":  54, "realizadas":  46, "nao_encontradas":  9, "recusas": 2},
+    {"acs_id": 59, "programadas":  61, "realizadas":  54, "nao_encontradas":  8, "recusas": 1},
+    {"acs_id": 60, "programadas":  48, "realizadas":  38, "nao_encontradas": 12, "recusas": 3},
+    {"acs_id": 61, "programadas":  67, "realizadas":  59, "nao_encontradas":  9, "recusas": 2},
+    {"acs_id": 62, "programadas":  55, "realizadas":  47, "nao_encontradas": 10, "recusas": 2},
+    {"acs_id": 63, "programadas":   0, "realizadas":   0, "nao_encontradas":  0, "recusas": 0},
+    {"acs_id": 64, "programadas":  58, "realizadas":  50, "nao_encontradas":  9, "recusas": 2},
+    {"acs_id": 65, "programadas":  51, "realizadas":  43, "nao_encontradas": 10, "recusas": 3},
 ]
 
 _INDICADORES_ACS: list[dict] = [
-    # por ACS: gestantes acompanhadas, crianças < 2a, HAS, DM, idosos
-    {"acs_id": 1,  "gestantes_ativas": 8,  "criancas_lt2": 12, "has": 34, "dm": 11, "idosos": 22},
-    {"acs_id": 2,  "gestantes_ativas": 6,  "criancas_lt2": 9,  "has": 29, "dm": 8,  "idosos": 17},
-    {"acs_id": 3,  "gestantes_ativas": 7,  "criancas_lt2": 11, "has": 31, "dm": 9,  "idosos": 20},
-    {"acs_id": 4,  "gestantes_ativas": 9,  "criancas_lt2": 14, "has": 38, "dm": 12, "idosos": 25},
-    {"acs_id": 5,  "gestantes_ativas": 5,  "criancas_lt2": 8,  "has": 27, "dm": 7,  "idosos": 16},
-    {"acs_id": 6,  "gestantes_ativas": 4,  "criancas_lt2": 7,  "has": 24, "dm": 6,  "idosos": 14},
-    {"acs_id": 7,  "gestantes_ativas": 10, "criancas_lt2": 16, "has": 40, "dm": 14, "idosos": 28},
-    {"acs_id": 8,  "gestantes_ativas": 4,  "criancas_lt2": 6,  "has": 21, "dm": 5,  "idosos": 12},
-    {"acs_id": 9,  "gestantes_ativas": 3,  "criancas_lt2": 5,  "has": 17, "dm": 4,  "idosos": 10},
-    {"acs_id": 10, "gestantes_ativas": 0,  "criancas_lt2": 0,  "has": 0,  "dm": 0,  "idosos": 0},
-    {"acs_id": 11, "gestantes_ativas": 3,  "criancas_lt2": 4,  "has": 14, "dm": 3,  "idosos": 8},
-    {"acs_id": 12, "gestantes_ativas": 4,  "criancas_lt2": 6,  "has": 18, "dm": 5,  "idosos": 11},
+    # ESF I
+    {"acs_id":  1, "gestantes_ativas":  8, "criancas_lt2": 12, "has": 34, "dm": 11, "idosos": 22},
+    {"acs_id":  2, "gestantes_ativas":  6, "criancas_lt2":  9, "has": 29, "dm":  8, "idosos": 17},
+    {"acs_id":  3, "gestantes_ativas":  7, "criancas_lt2": 11, "has": 31, "dm":  9, "idosos": 20},
+    {"acs_id":  4, "gestantes_ativas":  9, "criancas_lt2": 14, "has": 38, "dm": 12, "idosos": 25},
+    {"acs_id":  5, "gestantes_ativas":  5, "criancas_lt2":  8, "has": 27, "dm":  7, "idosos": 16},
+    {"acs_id":  6, "gestantes_ativas":  4, "criancas_lt2":  7, "has": 24, "dm":  6, "idosos": 14},
+    {"acs_id":  7, "gestantes_ativas": 10, "criancas_lt2": 16, "has": 40, "dm": 14, "idosos": 28},
+    {"acs_id":  8, "gestantes_ativas":  4, "criancas_lt2":  6, "has": 21, "dm":  5, "idosos": 12},
+    {"acs_id":  9, "gestantes_ativas":  7, "criancas_lt2": 11, "has": 33, "dm": 10, "idosos": 21},
+    {"acs_id": 10, "gestantes_ativas":  6, "criancas_lt2": 10, "has": 30, "dm":  9, "idosos": 19},
+    {"acs_id": 11, "gestantes_ativas":  8, "criancas_lt2": 13, "has": 36, "dm": 11, "idosos": 24},
+    {"acs_id": 12, "gestantes_ativas":  6, "criancas_lt2": 10, "has": 31, "dm":  9, "idosos": 20},
+    {"acs_id": 13, "gestantes_ativas":  5, "criancas_lt2":  9, "has": 28, "dm":  8, "idosos": 17},
+    {"acs_id": 14, "gestantes_ativas":  7, "criancas_lt2": 11, "has": 32, "dm": 10, "idosos": 21},
+    {"acs_id": 15, "gestantes_ativas":  9, "criancas_lt2": 13, "has": 37, "dm": 12, "idosos": 24},
+    # ESF II
+    {"acs_id": 16, "gestantes_ativas":  5, "criancas_lt2":  9, "has": 28, "dm":  8, "idosos": 18},
+    {"acs_id": 17, "gestantes_ativas":  6, "criancas_lt2": 10, "has": 31, "dm":  9, "idosos": 20},
+    {"acs_id": 18, "gestantes_ativas":  4, "criancas_lt2":  8, "has": 25, "dm":  7, "idosos": 15},
+    {"acs_id": 19, "gestantes_ativas":  7, "criancas_lt2": 11, "has": 33, "dm": 10, "idosos": 21},
+    {"acs_id": 20, "gestantes_ativas":  8, "criancas_lt2": 13, "has": 36, "dm": 11, "idosos": 23},
+    {"acs_id": 21, "gestantes_ativas":  6, "criancas_lt2":  9, "has": 30, "dm":  9, "idosos": 19},
+    {"acs_id": 22, "gestantes_ativas":  3, "criancas_lt2":  7, "has": 23, "dm":  6, "idosos": 13},
+    {"acs_id": 23, "gestantes_ativas":  7, "criancas_lt2": 11, "has": 32, "dm": 10, "idosos": 20},
+    {"acs_id": 24, "gestantes_ativas":  4, "criancas_lt2":  8, "has": 26, "dm":  7, "idosos": 16},
+    {"acs_id": 25, "gestantes_ativas":  7, "criancas_lt2": 12, "has": 34, "dm": 10, "idosos": 22},
+    {"acs_id": 26, "gestantes_ativas":  6, "criancas_lt2": 10, "has": 30, "dm":  9, "idosos": 19},
+    {"acs_id": 27, "gestantes_ativas":  5, "criancas_lt2":  9, "has": 27, "dm":  8, "idosos": 17},
+    {"acs_id": 28, "gestantes_ativas":  5, "criancas_lt2":  9, "has": 29, "dm":  8, "idosos": 18},
+    {"acs_id": 29, "gestantes_ativas":  5, "criancas_lt2":  9, "has": 28, "dm":  8, "idosos": 17},
+    {"acs_id": 30, "gestantes_ativas":  6, "criancas_lt2": 11, "has": 31, "dm":  9, "idosos": 20},
+    # ESF III
+    {"acs_id": 31, "gestantes_ativas":  3, "criancas_lt2":  6, "has": 21, "dm":  6, "idosos": 13},
+    {"acs_id": 32, "gestantes_ativas":  4, "criancas_lt2":  7, "has": 24, "dm":  7, "idosos": 15},
+    {"acs_id": 33, "gestantes_ativas":  3, "criancas_lt2":  5, "has": 19, "dm":  5, "idosos": 11},
+    {"acs_id": 34, "gestantes_ativas":  4, "criancas_lt2":  8, "has": 25, "dm":  7, "idosos": 16},
+    {"acs_id": 35, "gestantes_ativas":  4, "criancas_lt2":  6, "has": 22, "dm":  6, "idosos": 14},
+    {"acs_id": 36, "gestantes_ativas":  3, "criancas_lt2":  5, "has": 20, "dm":  5, "idosos": 12},
+    {"acs_id": 37, "gestantes_ativas":  5, "criancas_lt2":  8, "has": 26, "dm":  7, "idosos": 16},
+    {"acs_id": 38, "gestantes_ativas":  2, "criancas_lt2":  5, "has": 18, "dm":  4, "idosos": 10},
+    {"acs_id": 39, "gestantes_ativas":  4, "criancas_lt2":  6, "has": 22, "dm":  6, "idosos": 13},
+    {"acs_id": 40, "gestantes_ativas":  5, "criancas_lt2":  8, "has": 26, "dm":  7, "idosos": 16},
+    {"acs_id": 41, "gestantes_ativas":  3, "criancas_lt2":  6, "has": 20, "dm":  5, "idosos": 12},
+    {"acs_id": 42, "gestantes_ativas":  4, "criancas_lt2":  7, "has": 24, "dm":  7, "idosos": 15},
+    {"acs_id": 43, "gestantes_ativas":  3, "criancas_lt2":  6, "has": 21, "dm":  6, "idosos": 13},
+    {"acs_id": 44, "gestantes_ativas":  3, "criancas_lt2":  5, "has": 19, "dm":  5, "idosos": 11},
+    {"acs_id": 45, "gestantes_ativas":  4, "criancas_lt2":  7, "has": 23, "dm":  6, "idosos": 14},
+    # ESF IV
+    {"acs_id": 46, "gestantes_ativas":  2, "criancas_lt2":  4, "has": 16, "dm":  4, "idosos":  9},
+    {"acs_id": 47, "gestantes_ativas":  3, "criancas_lt2":  5, "has": 18, "dm":  5, "idosos": 11},
+    {"acs_id": 48, "gestantes_ativas":  3, "criancas_lt2":  6, "has": 20, "dm":  5, "idosos": 12},
+    {"acs_id": 49, "gestantes_ativas":  2, "criancas_lt2":  4, "has": 14, "dm":  3, "idosos":  8},
+    {"acs_id": 50, "gestantes_ativas":  3, "criancas_lt2":  5, "has": 19, "dm":  5, "idosos": 11},
+    {"acs_id": 51, "gestantes_ativas":  2, "criancas_lt2":  4, "has": 17, "dm":  4, "idosos": 10},
+    {"acs_id": 52, "gestantes_ativas":  3, "criancas_lt2":  6, "has": 20, "dm":  5, "idosos": 12},
+    {"acs_id": 53, "gestantes_ativas":  2, "criancas_lt2":  4, "has": 15, "dm":  4, "idosos":  9},
+    {"acs_id": 54, "gestantes_ativas":  3, "criancas_lt2":  5, "has": 18, "dm":  5, "idosos": 11},
+    {"acs_id": 55, "gestantes_ativas":  2, "criancas_lt2":  5, "has": 17, "dm":  4, "idosos": 10},
+    {"acs_id": 56, "gestantes_ativas":  2, "criancas_lt2":  3, "has": 13, "dm":  3, "idosos":  7},
+    {"acs_id": 57, "gestantes_ativas":  2, "criancas_lt2":  4, "has": 16, "dm":  4, "idosos":  9},
+    # ESF V
+    {"acs_id": 58, "gestantes_ativas":  2, "criancas_lt2":  3, "has": 11, "dm":  3, "idosos":  6},
+    {"acs_id": 59, "gestantes_ativas":  2, "criancas_lt2":  4, "has": 13, "dm":  3, "idosos":  7},
+    {"acs_id": 60, "gestantes_ativas":  1, "criancas_lt2":  3, "has":  9, "dm":  2, "idosos":  5},
+    {"acs_id": 61, "gestantes_ativas":  2, "criancas_lt2":  4, "has": 14, "dm":  4, "idosos":  8},
+    {"acs_id": 62, "gestantes_ativas":  2, "criancas_lt2":  3, "has": 11, "dm":  3, "idosos":  6},
+    {"acs_id": 63, "gestantes_ativas":  0, "criancas_lt2":  0, "has":  0, "dm":  0, "idosos":  0},
+    {"acs_id": 64, "gestantes_ativas":  2, "criancas_lt2":  3, "has": 12, "dm":  3, "idosos":  7},
+    {"acs_id": 65, "gestantes_ativas":  2, "criancas_lt2":  3, "has": 10, "dm":  2, "idosos":  6},
 ]
 
 _MICROAREAS = [
-    {"codigo": "MA-01", "nome": "Centro",             "zona": "urbana", "esf": "ESF I"},
-    {"codigo": "MA-02", "nome": "Bairro Novo",        "zona": "urbana", "esf": "ESF I"},
-    {"codigo": "MA-03", "nome": "Santo Antônio",      "zona": "urbana", "esf": "ESF I"},
-    {"codigo": "MA-04", "nome": "Industrial",         "zona": "urbana", "esf": "ESF II"},
-    {"codigo": "MA-05", "nome": "Rio Apuí",           "zona": "rural",  "esf": "ESF II"},
-    {"codigo": "MA-06", "nome": "Setor Norte",        "zona": "rural",  "esf": "ESF II"},
-    {"codigo": "MA-07", "nome": "Ramal do Cupim",     "zona": "rural",  "esf": "ESF III"},
-    {"codigo": "MA-08", "nome": "Assentamento Trop.", "zona": "rural",  "esf": "ESF III"},
+    # ESF I — Urbana Centro
+    {"codigo": "MA-01", "nome": "Centro",                    "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-02", "nome": "Bairro Novo",               "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-03", "nome": "Santo Antônio",             "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-04", "nome": "Industrial",                "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-05", "nome": "Jardim Europa",             "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-06", "nome": "São Raimundo",              "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-07", "nome": "Aeroporto",                 "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-08", "nome": "Canaranas",                 "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-09", "nome": "Cajueiro",                  "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-10", "nome": "Novo Horizonte",            "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-11", "nome": "Cidade Nova",               "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-12", "nome": "Nova Esperança",            "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-13", "nome": "Baixa Verde",               "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-14", "nome": "João Paulo II",             "zona": "urbana", "esf": "ESF I"},
+    {"codigo": "MA-15", "nome": "Santa Luzia",               "zona": "urbana", "esf": "ESF I"},
+    # ESF II — Urbana Expansão / Periurbana
+    {"codigo": "MA-16", "nome": "Vila Nova",                 "zona": "urbana", "esf": "ESF II"},
+    {"codigo": "MA-17", "nome": "Bela Vista",                "zona": "urbana", "esf": "ESF II"},
+    {"codigo": "MA-18", "nome": "Parque das Flores",         "zona": "urbana", "esf": "ESF II"},
+    {"codigo": "MA-19", "nome": "Residencial Sul",           "zona": "urbana", "esf": "ESF II"},
+    {"codigo": "MA-20", "nome": "Setor Leste",               "zona": "urbana", "esf": "ESF II"},
+    {"codigo": "MA-21", "nome": "Conj. Habitacional",        "zona": "urbana", "esf": "ESF II"},
+    {"codigo": "MA-22", "nome": "Expansão Norte",            "zona": "urbana", "esf": "ESF II"},
+    {"codigo": "MA-23", "nome": "Setor Oeste",               "zona": "urbana", "esf": "ESF II"},
+    {"codigo": "MA-24", "nome": "Jardim Primavera",          "zona": "urbana", "esf": "ESF II"},
+    {"codigo": "MA-25", "nome": "Dom Pedro I",               "zona": "urbana", "esf": "ESF II"},
+    {"codigo": "MA-26", "nome": "Boa Vista",                 "zona": "urbana", "esf": "ESF II"},
+    {"codigo": "MA-27", "nome": "Jardim Tropical",           "zona": "periurbana", "esf": "ESF II"},
+    {"codigo": "MA-28", "nome": "Setor B",                   "zona": "periurbana", "esf": "ESF II"},
+    {"codigo": "MA-29", "nome": "Nova Apuí",                 "zona": "periurbana", "esf": "ESF II"},
+    {"codigo": "MA-30", "nome": "Bairro do Porto",           "zona": "periurbana", "esf": "ESF II"},
+    # ESF III — Rural Próxima
+    {"codigo": "MA-31", "nome": "Rio Apuí",                  "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-32", "nome": "Setor Norte",               "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-33", "nome": "Ramal do Cupim",            "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-34", "nome": "Assentamento Trop. Úm.",    "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-35", "nome": "Ramal km 20",               "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-36", "nome": "Comunidade São João",       "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-37", "nome": "Ramal do Maracajá",         "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-38", "nome": "Comunidade Boa Esperança",  "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-39", "nome": "Ramal 30 Sul",              "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-40", "nome": "Ramal Tucumã",              "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-41", "nome": "Comunidade São Francisco",  "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-42", "nome": "Ramal do Castanhal",        "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-43", "nome": "Assentamento Terra Nova",   "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-44", "nome": "Ramal 40",                  "zona": "rural", "esf": "ESF III"},
+    {"codigo": "MA-45", "nome": "Comunidade do Pedral",      "zona": "rural", "esf": "ESF III"},
+    # ESF IV — Rural Ramais Distantes
+    {"codigo": "MA-46", "nome": "Ramal Guaraná",             "zona": "rural", "esf": "ESF IV"},
+    {"codigo": "MA-47", "nome": "Assentamento Camucuim",     "zona": "rural", "esf": "ESF IV"},
+    {"codigo": "MA-48", "nome": "Comunidade São Paulo",      "zona": "rural", "esf": "ESF IV"},
+    {"codigo": "MA-49", "nome": "Ramal 50",                  "zona": "rural", "esf": "ESF IV"},
+    {"codigo": "MA-50", "nome": "Assentamento Açaí",         "zona": "rural", "esf": "ESF IV"},
+    {"codigo": "MA-51", "nome": "Comunidade Esperança",      "zona": "rural", "esf": "ESF IV"},
+    {"codigo": "MA-52", "nome": "Ramal Seringueiro",         "zona": "rural", "esf": "ESF IV"},
+    {"codigo": "MA-53", "nome": "Assen. Novo Amanhã",        "zona": "rural", "esf": "ESF IV"},
+    {"codigo": "MA-54", "nome": "Comunidade Santa Maria",    "zona": "rural", "esf": "ESF IV"},
+    {"codigo": "MA-55", "nome": "Ramal 60",                  "zona": "rural", "esf": "ESF IV"},
+    {"codigo": "MA-56", "nome": "Assentamento Ipiranga",     "zona": "rural", "esf": "ESF IV"},
+    {"codigo": "MA-57", "nome": "Comunidade São Pedro",      "zona": "rural", "esf": "ESF IV"},
+    # ESF V — Rural Remota / Assentamentos
+    {"codigo": "MA-58", "nome": "Ramal 70 Norte",            "zona": "rural", "esf": "ESF V"},
+    {"codigo": "MA-59", "nome": "Assen. Agroflor.",          "zona": "rural", "esf": "ESF V"},
+    {"codigo": "MA-60", "nome": "Comunidade Gavião",         "zona": "rural", "esf": "ESF V"},
+    {"codigo": "MA-61", "nome": "Ramal Guariba",             "zona": "rural", "esf": "ESF V"},
+    {"codigo": "MA-62", "nome": "Assentamento Itamarati",    "zona": "rural", "esf": "ESF V"},
+    {"codigo": "MA-63", "nome": "Comunidade Novo Éden",      "zona": "rural", "esf": "ESF V"},
+    {"codigo": "MA-64", "nome": "Ramal dos Seixos",          "zona": "rural", "esf": "ESF V"},
+    {"codigo": "MA-65", "nome": "Assen. São Cristóvão",      "zona": "rural", "esf": "ESF V"},
 ]
 
 
@@ -115,6 +350,7 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
     destaques = [a for a in acs_enriquecidos if a["status"] == "destaque"]
     criticos  = [a for a in acs_enriquecidos if a["status"] == "critico"]
 
+    esfs = ["ESF I", "ESF II", "ESF III", "ESF IV", "ESF V"]
     return {
         "municipio": "Apuí/AM",
         "mes_referencia": _MES_REF,
@@ -133,12 +369,11 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
             "has_acompanhados":     total_has,
             "dm_acompanhados":      total_dm,
         },
-        "acs_destaques":  destaques[:3],
+        "acs_destaques":  destaques[:5],
         "acs_criticos":   criticos,
         "distribuicao_esf": {
-            "ESF I":   sum(1 for a in acs_ativos if a["esf"] == "ESF I"),
-            "ESF II":  sum(1 for a in acs_ativos if a["esf"] == "ESF II"),
-            "ESF III": sum(1 for a in acs_ativos if a["esf"] == "ESF III"),
+            esf: sum(1 for a in acs_ativos if a["esf"] == esf)
+            for esf in esfs
         },
         "fonte": "referencia",
     }
@@ -165,9 +400,11 @@ async def microareas(_: UserOut = Depends(get_current_user)):
         acs_ativos_ma = [a for a in acs_ma if a["ativo"]]
         familias  = sum(a["familias_cadastradas"] for a in acs_ativos_ma)
         meta      = sum(a["familias_meta"] for a in acs_ma)
-        vis_prog  = sum(v["programadas"] for v in _VISITAS if v["acs_id"] in [a["id"] for a in acs_ma])
-        vis_real  = sum(v["realizadas"]  for v in _VISITAS if v["acs_id"] in [a["id"] for a in acs_ma])
-        gestantes = sum(i["gestantes_ativas"] for i in _INDICADORES_ACS if i["acs_id"] in [a["id"] for a in acs_ativos_ma])
+        ids_ma    = [a["id"] for a in acs_ma]
+        ids_at    = [a["id"] for a in acs_ativos_ma]
+        vis_prog  = sum(v["programadas"] for v in _VISITAS if v["acs_id"] in ids_ma)
+        vis_real  = sum(v["realizadas"]  for v in _VISITAS if v["acs_id"] in ids_ma)
+        gestantes = sum(i["gestantes_ativas"] for i in _INDICADORES_ACS if i["acs_id"] in ids_at)
 
         pct_cad = round(familias / meta * 100, 1) if meta else 0
         pct_vis = round(vis_real / vis_prog * 100, 1) if vis_prog else 0
@@ -200,16 +437,17 @@ async def detalhe_acs(
         from fastapi import HTTPException
         raise HTTPException(404, "ACS não encontrado")
 
+    meta = acs["familias_meta"]
     historico_visitas = [
-        {"mes": "Jan/26", "realizadas": 134, "programadas": 148},
-        {"mes": "Fev/26", "realizadas": 138, "programadas": 148},
-        {"mes": "Mar/26", "realizadas": 141, "programadas": 148},
-        {"mes": "Abr/26", "realizadas": 145, "programadas": 148},
-        {"mes": "Mai/26", "realizadas": 139, "programadas": 148},
-        {"mes": "Jun/26", "realizadas": 143, "programadas": 148},
+        {"mes": "Jan/26", "realizadas": round(meta * 0.88), "programadas": meta},
+        {"mes": "Fev/26", "realizadas": round(meta * 0.91), "programadas": meta},
+        {"mes": "Mar/26", "realizadas": round(meta * 0.93), "programadas": meta},
+        {"mes": "Abr/26", "realizadas": round(meta * 0.95), "programadas": meta},
+        {"mes": "Mai/26", "realizadas": round(meta * 0.90), "programadas": meta},
+        {"mes": "Jun/26", "realizadas": round(meta * 0.93), "programadas": meta},
         {"mes": "Jul/26", "realizadas": next(
             (v["realizadas"] for v in _VISITAS if v["acs_id"] == acs_id), 0
-        ), "programadas": 148},
+        ), "programadas": meta},
     ]
 
     return {
