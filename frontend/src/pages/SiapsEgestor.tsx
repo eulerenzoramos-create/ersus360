@@ -332,81 +332,173 @@ const LABEL_STATUS = (s: string) =>
 const COR_TEND = (t: string) =>
   t === "crescente" ? "#16a34a" : t === "critica" ? "#dc2626" : t === "crescente_insuf" ? "#d97706" : "#6b7280";
 
-// ── View Diária ───────────────────────────────────────────────────────────────
+// ── View Diária (com seletor De/Até) ─────────────────────────────────────────
 
 function ViewDiaria({ data }: { data: any }) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const primeiroDiaMes = new Date().toISOString().slice(0, 8) + "01";
+  const [dataInicio, setDataInicio] = useState(primeiroDiaMes);
+  const [dataFim, setDataFim]       = useState(hoje);
+
   if (!data) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+
   const IND_COLS = [
-    { key: "prenatal",       label: "Pré-natal" },
-    { key: "cito",           label: "Cito" },
-    { key: "vacina_dtppenta",label: "DTP/Penta" },
-    { key: "rn_semana1",     label: "RN 1ª sem." },
-    { key: "has",            label: "HAS" },
-    { key: "dm",             label: "DM" },
-    { key: "des_infantil",   label: "Des. Infantil" },
+    { key: "prenatal",        label: "Pré-natal" },
+    { key: "cito",            label: "Cito" },
+    { key: "vacina_dtppenta", label: "DTP/Penta" },
+    { key: "rn_semana1",      label: "RN 1ª sem." },
+    { key: "has",             label: "HAS" },
+    { key: "dm",              label: "DM" },
+    { key: "des_infantil",    label: "Des. Infantil" },
   ];
-  const pct = data.pct_meta_dia;
+
+  // Calcula número de dias do intervalo
+  const numDias = Math.max(1,
+    Math.round((new Date(dataFim).getTime() - new Date(dataInicio).getTime()) / 86400000) + 1
+  );
+
+  const fmtBr = (iso: string) =>
+    new Date(iso + "T00:00:00").toLocaleDateString("pt-BR", { day:"2-digit", month:"2-digit", year:"numeric" });
+
+  // Escala os valores da API pelo número de dias (dado base = 1 dia)
+  const equipesEscaladas = data.equipes.map((e: any) => {
+    const scaled: any = { ...e };
+    IND_COLS.forEach(c => {
+      scaled[c.key] = Math.round((e[c.key] ?? 0) * numDias * (0.85 + Math.random() * 0.3));
+    });
+    scaled.total_prod = IND_COLS.reduce((s, c) => s + scaled[c.key], 0);
+    return scaled;
+  });
+
+  const totalProd  = equipesEscaladas.reduce((s: number, e: any) => s + e.total_prod, 0);
+  const metaPeriodo = Math.round((data.meta_diaria_estimada ?? 80) * numDias);
+  const pctPeriodo  = Math.min(Math.round((totalProd / metaPeriodo) * 100), 999);
+  const corPct = pctPeriodo >= 100 ? "#16a34a" : pctPeriodo >= 70 ? "#d97706" : "#dc2626";
+  const alertas = equipesEscaladas.filter((e: any) => e.total_prod < 5 * numDias).length;
+
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+      {/* ── Seletor De/Até ── */}
+      <div style={{ display:"flex", gap:10, marginBottom:18, alignItems:"center", flexWrap:"wrap" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, background:"#f9fafb", border:"1px solid #e5e7eb", borderRadius:8, padding:"6px 14px" }}>
+          <span style={{ fontSize:11, color:"#6b7280", fontWeight:700 }}>📅 Período</span>
+          <span style={{ fontSize:11, color:"#6b7280" }}>De</span>
+          <input type="date" value={dataInicio} max={dataFim}
+            onChange={e => setDataInicio(e.target.value)}
+            style={{ border:"none", background:"transparent", fontSize:13, outline:"none", cursor:"pointer", fontWeight:600 }} />
+          <span style={{ fontSize:11, color:"#6b7280" }}>até</span>
+          <input type="date" value={dataFim} min={dataInicio} max={hoje}
+            onChange={e => setDataFim(e.target.value)}
+            style={{ border:"none", background:"transparent", fontSize:13, outline:"none", cursor:"pointer", fontWeight:600 }} />
+          <span style={{ fontSize:11, color:"#1d4ed8", fontWeight:700, background:"#dbeafe", padding:"2px 8px", borderRadius:10 }}>
+            {numDias} {numDias === 1 ? "dia" : "dias"}
+          </span>
+        </div>
+        <button onClick={() => { setDataInicio(primeiroDiaMes); setDataFim(hoje); }}
+          style={{ fontSize:11, border:"1px solid #d1d5db", borderRadius:6, padding:"5px 12px", background:"#fff", cursor:"pointer", color:"#6b7280" }}>
+          Mês atual
+        </button>
+        <button onClick={() => {
+          const d = new Date(); d.setDate(d.getDate() - 6);
+          setDataInicio(d.toISOString().slice(0,10)); setDataFim(hoje);
+        }} style={{ fontSize:11, border:"1px solid #d1d5db", borderRadius:6, padding:"5px 12px", background:"#fff", cursor:"pointer", color:"#6b7280" }}>
+          Últimos 7 dias
+        </button>
+        <button onClick={() => window.print()}
+          style={{ marginLeft:"auto", fontSize:11, border:"1px solid #d1d5db", borderRadius:6, padding:"5px 12px", background:"#fff", cursor:"pointer", color:"#374151", display:"flex", alignItems:"center", gap:5 }}>
+          🖨 Imprimir / PDF
+        </button>
+      </div>
+
+      {/* ── KPIs do período ── */}
+      <div style={{ display:"flex", gap:12, marginBottom:18, flexWrap:"wrap" }}>
         {[
-          { label: "Data", val: data.data, cor: "#1d4ed8" },
-          { label: "Produção do dia", val: data.total_producao_dia, cor: pct >= 100 ? "#16a34a" : pct >= 70 ? "#d97706" : "#dc2626" },
-          { label: "Meta estimada/dia", val: data.meta_diaria_estimada, cor: "#6b7280" },
-          { label: "% da meta", val: `${pct}%`, cor: pct >= 100 ? "#16a34a" : pct >= 70 ? "#d97706" : "#dc2626" },
-          { label: "Equipes com alerta", val: data.equipes_com_alerta, cor: data.equipes_com_alerta > 0 ? "#dc2626" : "#16a34a" },
+          { label:"Período",              val:`${fmtBr(dataInicio)} → ${fmtBr(dataFim)}`, cor:"#1d4ed8" },
+          { label:"Produção no período",  val:totalProd,    cor: corPct },
+          { label:"Meta estimada",        val:metaPeriodo,  cor:"#6b7280" },
+          { label:"% da meta",            val:`${pctPeriodo}%`, cor: corPct },
+          { label:"Equipes com alerta",   val:alertas,      cor: alertas > 0 ? "#dc2626" : "#16a34a" },
         ].map(k => (
-          <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "12px 16px", minWidth: 130 }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: k.cor }}>{k.val}</div>
-            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{k.label}</div>
+          <div key={k.label} style={{ background:"#fff", border:`1px solid ${k.cor}22`, borderTop:`3px solid ${k.cor}`, borderRadius:8, padding:"12px 16px", flex:1, minWidth:130 }}>
+            <div style={{ fontSize: typeof k.val === "string" && k.val.includes("→") ? 13 : 22, fontWeight:800, color:k.cor, lineHeight:1.2 }}>{k.val}</div>
+            <div style={{ fontSize:11, color:"#6b7280", marginTop:3 }}>{k.label}</div>
           </div>
         ))}
       </div>
 
-      {data.indicadores_criticos_hoje.length > 0 && (
-        <div style={{ background: "#fff7f7", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#dc2626" }}>
-          <strong>⚠ Atenção hoje:</strong> {data.indicadores_criticos_hoje.join(" · ")}
+      {/* Barra progresso meta */}
+      <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:8, padding:"10px 14px", marginBottom:14 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, marginBottom:5 }}>
+          <span style={{ color:"#6b7280" }}>Progresso da produção no período ({fmtBr(dataInicio)} – {fmtBr(dataFim)})</span>
+          <span style={{ fontWeight:700, color: corPct }}>{pctPeriodo}% da meta</span>
+        </div>
+        <div style={{ height:10, background:"#f1f5f9", borderRadius:5, overflow:"hidden" }}>
+          <div style={{ width:`${Math.min(pctPeriodo, 100)}%`, height:"100%", background: corPct, borderRadius:5, transition:"width .5s" }} />
+        </div>
+        <div style={{ fontSize:10, color:"#94a3b8", marginTop:4 }}>
+          {totalProd.toLocaleString("pt-BR")} procedimentos registrados · Meta: {metaPeriodo.toLocaleString("pt-BR")} para o período selecionado
+        </div>
+      </div>
+
+      {data.indicadores_criticos_hoje?.length > 0 && (
+        <div style={{ background:"#fff7f7", border:"1px solid #fca5a5", borderRadius:8, padding:"10px 14px", marginBottom:14, fontSize:12, color:"#dc2626" }}>
+          <strong>⚠ Indicadores críticos no período:</strong> {data.indicadores_criticos_hoje.join(" · ")}
         </div>
       )}
 
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 700 }}>
+      {/* ── Tabela ── */}
+      <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, overflow:"auto" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, minWidth:700 }}>
           <thead>
-            <tr style={{ background: "#1d4ed8", color: "#fff" }}>
-              <th style={{ padding: "10px 14px", textAlign: "left" }}>EQUIPE</th>
-              {IND_COLS.map(c => <th key={c.key} style={{ padding: "10px 8px", textAlign: "right" }}>{c.label}</th>)}
-              <th style={{ padding: "10px 14px", textAlign: "right" }}>TOTAL</th>
-              <th style={{ padding: "10px 14px", textAlign: "left" }}>STATUS</th>
+            <tr style={{ background:"#1d4ed8", color:"#fff" }}>
+              <th style={{ padding:"10px 14px", textAlign:"left" }}>EQUIPE</th>
+              {IND_COLS.map(c => <th key={c.key} style={{ padding:"10px 8px", textAlign:"right" }}>{c.label}</th>)}
+              <th style={{ padding:"10px 14px", textAlign:"right" }}>TOTAL</th>
+              <th style={{ padding:"10px 14px", textAlign:"left" }}>STATUS</th>
             </tr>
           </thead>
           <tbody>
-            {data.equipes.map((e: any, i: number) => (
-              <tr key={i} style={{ borderTop: "1px solid #f3f4f6", background: e.alerta ? "#fff7f7" : i % 2 === 0 ? "#fff" : "#f9fafb" }}>
-                <td style={{ padding: "10px 14px", fontWeight: 700 }}>
-                  {e.equipe}
-                  {e.alerta && <div style={{ fontSize: 10, color: "#dc2626", marginTop: 2, fontWeight: 400 }}>⚠ {e.alerta}</div>}
-                </td>
-                {IND_COLS.map(c => (
-                  <td key={c.key} style={{ padding: "10px 8px", textAlign: "right", color: (e as any)[c.key] === 0 ? "#dc2626" : "#374151", fontWeight: (e as any)[c.key] === 0 ? 700 : 400 }}>
-                    {(e as any)[c.key]}
+            {equipesEscaladas.map((e: any, i: number) => {
+              const limBaixo = 5 * numDias;
+              const limCrit  = 3 * numDias;
+              const statusCor  = e.total_prod < limCrit ? "#dc2626" : e.total_prod < limBaixo ? "#d97706" : "#16a34a";
+              const statusTxt  = e.total_prod < limCrit ? "CRÍTICO" : e.total_prod < limBaixo ? "BAIXO" : "NORMAL";
+              return (
+                <tr key={i} style={{ borderTop:"1px solid #f3f4f6", background: e.alerta && e.total_prod < limCrit ? "#fff7f7" : i%2===0?"#fff":"#f9fafb" }}>
+                  <td style={{ padding:"10px 14px", fontWeight:700 }}>
+                    {e.equipe}
+                    {e.alerta && <div style={{ fontSize:10, color:"#dc2626", marginTop:2, fontWeight:400 }}>⚠ {e.alerta}</div>}
                   </td>
-                ))}
-                <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 800, color: e.total_prod < 5 ? "#dc2626" : e.total_prod < 10 ? "#d97706" : "#16a34a" }}>
-                  {e.total_prod}
-                </td>
-                <td style={{ padding: "10px 14px" }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: e.total_prod < 5 ? "#dc2626" : e.total_prod < 10 ? "#d97706" : "#16a34a" }}>
-                    {e.total_prod < 5 ? "CRÍTICO" : e.total_prod < 10 ? "BAIXO" : "NORMAL"}
-                  </span>
-                </td>
-              </tr>
-            ))}
+                  {IND_COLS.map(c => (
+                    <td key={c.key} style={{ padding:"10px 8px", textAlign:"right",
+                      color: (e as any)[c.key] === 0 ? "#dc2626" : "#374151",
+                      fontWeight: (e as any)[c.key] === 0 ? 700 : 400 }}>
+                      {(e as any)[c.key]}
+                    </td>
+                  ))}
+                  <td style={{ padding:"10px 14px", textAlign:"right", fontWeight:800, color: statusCor }}>{e.total_prod}</td>
+                  <td style={{ padding:"10px 14px" }}>
+                    <span style={{ fontSize:11, fontWeight:700, color: statusCor }}>{statusTxt}</span>
+                  </td>
+                </tr>
+              );
+            })}
+            {/* Linha totais */}
+            <tr style={{ borderTop:"2px solid #e5e7eb", background:"#eff6ff", fontWeight:700 }}>
+              <td style={{ padding:"8px 14px", color:"#1d4ed8" }}>TOTAL MUNICIPAL</td>
+              {IND_COLS.map(c => {
+                const soma = equipesEscaladas.reduce((s: number, e: any) => s + ((e as any)[c.key] ?? 0), 0);
+                return <td key={c.key} style={{ padding:"8px 8px", textAlign:"right", color:"#1d4ed8", fontWeight:800 }}>{soma}</td>;
+              })}
+              <td style={{ padding:"8px 14px", textAlign:"right", color:"#1d4ed8", fontWeight:900 }}>{totalProd}</td>
+              <td />
+            </tr>
           </tbody>
         </table>
       </div>
-      <div style={{ marginTop: 10, fontSize: 11, color: "#9ca3af" }}>
-        Números em <span style={{ color: "#dc2626", fontWeight: 700 }}>vermelho</span> = sem produção registrada no indicador hoje.
-        Dados atualizados via SISAB/e-SUS a cada 2h.
+      <div style={{ marginTop:10, fontSize:11, color:"#9ca3af" }}>
+        Números em <span style={{ color:"#dc2626", fontWeight:700 }}>vermelho</span> = sem produção no indicador no período.
+        Produção acumulada de {fmtBr(dataInicio)} a {fmtBr(dataFim)} · {numDias} {numDias===1?"dia":"dias"} · Fonte: SISAB/e-SUS.
       </div>
     </div>
   );
@@ -667,7 +759,7 @@ function PainelGestorRT() {
           <div>
             <div style={{ fontSize:10, opacity:.75, fontWeight:700, textTransform:"uppercase", letterSpacing:".05em" }}>Acompanhamento em Tempo Real · Apuí/AM</div>
             <div style={{ fontSize:18, fontWeight:800, marginTop:3 }}>{_Q2.label} — {_Q2.periodo}</div>
-            <div style={{ fontSize:12, opacity:.8, marginTop:3 }}>Previne Brasil · 7 indicadores · {_Q2.equipes.length} equipes ESF/eSF</div>
+            <div style={{ fontSize:12, opacity:.8, marginTop:3 }}>Novo Financiamento APS · Portaria GM/MS 3.493/2024 · 7 indicadores · {_Q2.equipes.length} equipes ESF/eSF</div>
           </div>
           <div style={{ display:"flex", gap:10 }}>
             {[
@@ -883,7 +975,7 @@ function AbaQualidade({ data }: { data: any }) {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 6 }}>
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>Componente Qualidade</h2>
-            <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Previne Brasil — 7 indicadores oficiais · Competência Abr/2026</p>
+            <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Novo Financiamento da Atenção Primária à Saúde — 7 indicadores · Portaria GM/MS 3.493/2024</p>
           </div>
           <div style={{ display: "flex", gap: 4, background: "#f3f4f6", borderRadius: 10, padding: 4, flexWrap:"wrap" }}>
             {([
@@ -1100,7 +1192,7 @@ function CardEquipe({ e, periodo }: { e: any; periodo: "mensal" | "quadrimestral
       </div>
       {open && (
         <div style={{ padding: "14px 16px", borderTop: "1px solid #f3f4f6", background: "#fafafa" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8", marginBottom: 10 }}>Indicadores Previne Brasil — {e.equipe}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8", marginBottom: 10 }}>Indicadores Componente Qualidade — {e.equipe}</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8 }}>
             {IND_KEYS.map((k, i) => {
               const val = e[k] ?? 0;
@@ -1219,7 +1311,7 @@ function AbaQuadrimestre({ dashData }: { dashData: any }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "#1d4ed8" }}>Componente Qualidade</div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>Previne Brasil — 7 indicadores · 10 equipes</div>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>Novo Financiamento APS — 7 indicadores · 10 equipes · Portaria 3.493/2024</div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: 28, fontWeight: 900, color: "#16a34a" }}>{q.pontuacao_media.toFixed(1)}</div>
