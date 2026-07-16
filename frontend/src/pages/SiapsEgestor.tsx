@@ -551,7 +551,7 @@ function ViewMensal({ data }: { data: any }) {
           return (
             <div key={k} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", textAlign: "center", minWidth: 90 }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: v > 0 ? "#16a34a" : "#dc2626" }}>
-                {v > 0 ? "+" : ""}{v}p.p.
+                {v > 0 ? "+" : ""}{Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}p.p.
               </div>
               <div style={{ fontSize: 10, color: "#6b7280" }}>{nomes[k]}</div>
             </div>
@@ -600,8 +600,8 @@ function ViewMensal({ data }: { data: any }) {
               <tr key={i} style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#f9fafb" }}>
                 <td style={{ padding: "10px 14px", fontWeight: 700 }}>{e.equipe}</td>
                 {["nov","dez","jan","fev","mar","abr"].map(m => (
-                  <td key={m} style={{ padding: "10px 8px", textAlign: "right", fontWeight: m === "abr" ? 800 : 400, color: m === "abr" ? COR_PONT(e[m] / 5) : "#374151" }}>
-                    {e[m]}
+                  <td key={m} style={{ padding: "10px 8px", textAlign: "right", fontWeight: m === "abr" ? 800 : 400, color: m === "abr" ? COR_PONT(e[m] / 5) : "#374151", fontVariantNumeric: "tabular-nums" }}>
+                    {Number(e[m]).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                   </td>
                 ))}
                 <td style={{ padding: "10px 14px", textAlign: "center" }}>
@@ -660,11 +660,11 @@ function ViewQuadrimestral({ data }: { data: any }) {
                 return (
                   <tr key={i} style={{ borderTop: "1px solid #f3f4f6", background: atingiu ? "#f0fdf4" : "#fff" }}>
                     <td style={{ padding: "8px 12px", fontWeight: 600 }}>{r.indicador}</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af" }}>{r["1q_2025"]}%</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af" }}>{r["2q_2025"]}%</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280" }}>{r["3q_2025"]}%</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 800, color: atingiu ? "#16a34a" : "#dc2626" }}>{r["1q_2026"]}%</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280" }}>{r.meta}%</td>
+                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>{Number(r["1q_2025"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}%</td>
+                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>{Number(r["2q_2025"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}%</td>
+                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280", fontVariantNumeric: "tabular-nums" }}>{Number(r["3q_2025"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}%</td>
+                    <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 800, color: atingiu ? "#16a34a" : "#dc2626", fontVariantNumeric: "tabular-nums" }}>{Number(r["1q_2026"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}%</td>
+                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280", fontVariantNumeric: "tabular-nums" }}>{Number(r.meta).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}%</td>
                     <td style={{ padding: "8px 10px", textAlign: "center", fontSize: 11, fontWeight: 700, color: COR_TEND(r.tendencia) }}>
                       {r.tendencia === "crescente_insuf" ? "↑ INSUF." : r.tendencia === "crescente" ? "↑" : "→"}
                     </td>
@@ -691,11 +691,11 @@ function ViewQuadrimestral({ data }: { data: any }) {
             {data.equipes.map((e: any, i: number) => (
               <tr key={i} style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#f9fafb" }}>
                 <td style={{ padding: "10px 14px", fontWeight: 700 }}>{e.equipe}</td>
-                <td style={{ padding: "10px 10px", textAlign: "right", color: "#9ca3af" }}>{e["1q_2025"]}</td>
-                <td style={{ padding: "10px 10px", textAlign: "right", color: "#9ca3af" }}>{e["2q_2025"]}</td>
-                <td style={{ padding: "10px 10px", textAlign: "right", color: "#6b7280" }}>{e["3q_2025"]}</td>
-                <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 800, color: COR_STATUS(e.status) }}>{e["1q_2026"]}</td>
-                <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 700, color: "#16a34a" }}>+{e.variacao}</td>
+                <td style={{ padding: "10px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>{Number(e["1q_2025"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}</td>
+                <td style={{ padding: "10px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>{Number(e["2q_2025"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}</td>
+                <td style={{ padding: "10px 10px", textAlign: "right", color: "#6b7280", fontVariantNumeric: "tabular-nums" }}>{Number(e["3q_2025"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}</td>
+                <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 800, color: COR_STATUS(e.status), fontVariantNumeric: "tabular-nums" }}>{Number(e["1q_2026"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}</td>
+                <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 700, color: "#16a34a", fontVariantNumeric: "tabular-nums" }}>+{Number(e.variacao).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}</td>
                 <td style={{ padding: "10px 14px", textAlign: "center" }}>
                   <span style={{ fontSize: 10, fontWeight: 800, background: COR_STATUS(e.status) + "18", color: COR_STATUS(e.status), padding: "2px 8px", borderRadius: 10 }}>
                     {LABEL_STATUS(e.status)}
