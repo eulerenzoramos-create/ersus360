@@ -228,6 +228,7 @@ function AbaConsultaFNS() {
   const [dtIni, setDtIni]         = useState("");
   const [dtFim, setDtFim]         = useState("");
   const [portaria, setPortaria]   = useState("");
+  const [modalPortaria, setModalPortaria] = useState<any | null>(null);
   const [pgSize, setPgSize]       = useState(25);
   const [pgCur, setPgCur]         = useState(1);
 
@@ -289,8 +290,69 @@ function AbaConsultaFNS() {
     </button>
   );
 
+  /* ── Modal Portaria ─────────────────────────────────────────────────────── */
+  const ModalPortaria = modalPortaria && (
+    <div onClick={() => setModalPortaria(null)}
+      style={{ position: "fixed", inset: 0, background: "rgba(10,20,50,0.55)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ background: "#fff", borderRadius: 10, padding: 28, maxWidth: 560, width: "90%", boxShadow: "0 8px 40px rgba(0,0,0,0.22)", position: "relative" }}>
+        {/* Cabeçalho */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 18 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Portaria de Referência</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#1a3a6b", lineHeight: 1.45 }}>{modalPortaria.grupo}</div>
+            <div style={{ fontSize: 12, color: "#374151", marginTop: 4, lineHeight: 1.4 }}>{modalPortaria.acao_detalhada}</div>
+          </div>
+          <button onClick={() => setModalPortaria(null)}
+            style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#9ca3af", marginLeft: 12, lineHeight: 1 }}>✕</button>
+        </div>
+
+        <hr style={{ border: "none", borderTop: "1px solid #e5e7eb", margin: "0 0 16px" }} />
+
+        {/* Portaria */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 5 }}>📄 Instrumento Legal</div>
+          <div style={{ fontSize: 13, color: "#111827", lineHeight: 1.55, fontWeight: 600 }}>{modalPortaria.portaria}</div>
+        </div>
+
+        {/* Base Legal */}
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 5 }}>⚖️ Base Legal</div>
+          <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.55 }}>{modalPortaria.base_legal}</div>
+        </div>
+
+        {/* Valor */}
+        {modalPortaria.valor_liquido != null && (
+          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "10px 14px", marginBottom: 18, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "#166534", fontWeight: 600 }}>Valor Líquido Recebido (Jan–Jun 2026)</span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#15803d" }}>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(modalPortaria.valor_liquido)}</span>
+          </div>
+        )}
+
+        {/* Botões */}
+        <div style={{ display: "flex", gap: 10 }}>
+          {modalPortaria.link_portaria && (
+            <button onClick={() => window.open(modalPortaria.link_portaria, "_blank")}
+              style={{ flex: 1, background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, padding: "9px 16px", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+              🔗 Acessar Portaria
+            </button>
+          )}
+          <button onClick={() => window.open("https://consultafns.saude.gov.br/#/detalhada", "_blank")}
+            style={{ flex: 1, background: "#f3f4f6", color: "#374151", border: "1px solid #d1d5db", borderRadius: 6, padding: "9px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+            📊 Ver no FNS
+          </button>
+          <button onClick={() => setModalPortaria(null)}
+            style={{ background: "#f3f4f6", color: "#374151", border: "1px solid #d1d5db", borderRadius: 6, padding: "9px 14px", cursor: "pointer", fontSize: 13 }}>
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ fontFamily: "system-ui, sans-serif" }} onClick={() => showMenuTipos && setShowMenuTipos(false)}>
+      {ModalPortaria}
 
       {/* ── Header FNS ── */}
       <div style={{ background: "#1a3a6b", color: "#fff", borderRadius: "10px 10px 0 0", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -516,9 +578,11 @@ function AbaConsultaFNS() {
                         <td style={{ padding: "9px 10px", textAlign: "right", color: "#374151" }}>{row.valor_desconto != null ? BRL(row.valor_desconto) : ""}</td>
                         <td style={{ padding: "9px 10px", textAlign: "right", fontWeight: row.valor_liquido ? 700 : 400, color: row.valor_liquido ? "#16a34a" : "#9ca3af" }}>{row.valor_liquido != null ? BRL(row.valor_liquido) : ""}</td>
                         <td style={{ padding: "9px 10px", textAlign: "center" }}>
-                          <button onClick={() => window.open("https://consultafns.saude.gov.br/#/detalhada","_blank")}
-                            style={{ background: "#2a5298", border: "none", borderRadius: 4, width: 28, height: 28, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                            <span style={{ color: "#fff", fontSize: 13 }}>👁</span>
+                          <button
+                            title={row.portaria ? "Ver portaria de referência" : "Ver no FNS"}
+                            onClick={() => row.portaria ? setModalPortaria(row) : window.open("https://consultafns.saude.gov.br/#/detalhada","_blank")}
+                            style={{ background: row.portaria ? "#1d4ed8" : "#6b7280", border: "none", borderRadius: 4, width: 28, height: 28, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ color: "#fff", fontSize: 13 }}>📋</span>
                           </button>
                         </td>
                       </tr>
