@@ -312,6 +312,7 @@ import TriagemNeonatalApui          from "./pages/TriagemNeonatalApui";
 import AbsenteismoApui              from "./pages/AbsenteismoApui";
 import PICSApui                     from "./pages/PICSApui";
 import { SinoAlertas } from "./components/SinoAlertas";
+import ExportarRelatorio from "./components/ExportarRelatorio";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
 
@@ -530,6 +531,8 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
           </div>
 
           <SinoAlertas />
+
+          <ExportarRelatorio nomeUsuario={nomeUsuario} perfilUsuario={perfilUsuario} />
 
           {/* User */}
           <div style={{
