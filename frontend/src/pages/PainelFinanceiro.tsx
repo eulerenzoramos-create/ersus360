@@ -187,6 +187,71 @@ const TIPOS_ABA_FNS = [
   { id: "proposta",          label: "Proposta",                                     publico: false, hash: "proposta"           },
 ];
 
+// ── Mapeamento de portarias por ação (usado quando API não retorna o campo) ──
+const PORTARIA_MAP: Record<string, { portaria: string; base_legal: string; link_portaria: string }> = {
+  "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC": {
+    portaria: "Portaria de Consolidação GM/MS nº 6/2017 — Bloco MAC (Atenção de Média e Alta Complexidade Ambulatorial e Hospitalar)",
+    base_legal: "Lei nº 8.080/1990, art. 26; Port. GM/MS nº 1.631/2015; Nota Técnica DAHU/MS",
+    link_portaria: "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0006_03_10_2017.html",
+  },
+  "EMENDA - INCREMENTO TEMPORÁRIO AO CUSTEIO DOS SERVIÇOS DE ASSISTÊNCIA HOSPITALAR E AMBULATORIAL": {
+    portaria: "Lei Orçamentária Anual (LOA) — Emenda Parlamentar ao custeio do MAC",
+    base_legal: "CF/1988, art. 166, §9º; Lei nº 8.080/1990; Resolução CFO nº 1/2006",
+    link_portaria: "https://www.planalto.gov.br/ccivil_03/constituicao/constituicao.htm",
+  },
+  "INCENTIVO FINANCEIRO DA APS - ATENCAO A SAUDE BUCAL": {
+    portaria: "Portaria GM/MS nº 3.493, de 10 de abril de 2024 — Novo Financiamento da Atenção Primária à Saúde",
+    base_legal: "Lei nº 8.080/1990, art. 198 §1º; Dec. nº 7.508/2011; Port. GM/MS nº 3.493/2024, Anexo III",
+    link_portaria: "https://www.in.gov.br/en/web/dou/-/portaria-gm/ms-n-3.493-de-10-de-abril-de-2024",
+  },
+  "INCENTIVO FINANCEIRO DA APS - EQUIPES DE SAÚDE DA FAMÍLIA/ESF E EQUIPES DE ATENÇÃO PRIMÁRIA/EAP": {
+    portaria: "Portaria GM/MS nº 3.493, de 10 de abril de 2024 — Novo Financiamento da Atenção Primária à Saúde",
+    base_legal: "Lei nº 8.080/1990, art. 198 §1º; Dec. nº 7.508/2011; Port. GM/MS nº 3.493/2024, Anexos I e II",
+    link_portaria: "https://www.in.gov.br/en/web/dou/-/portaria-gm/ms-n-3.493-de-10-de-abril-de-2024",
+  },
+  "INCENTIVO FINANCEIRO DA APS - DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA ATENÇÃO PRIMÁRIA": {
+    portaria: "Portaria GM/MS nº 3.493, de 10 de abril de 2024 — Novo Financiamento da Atenção Primária à Saúde",
+    base_legal: "Lei nº 8.080/1990, art. 198 §1º; Dec. nº 7.508/2011; Port. GM/MS nº 3.493/2024, Anexo IV",
+    link_portaria: "https://www.in.gov.br/en/web/dou/-/portaria-gm/ms-n-3.493-de-10-de-abril-de-2024",
+  },
+  "INCENTIVO FINANCEIRO DA APS - EQUIPES MULTIPROFISSIONAIS - EMULTI": {
+    portaria: "Portaria GM/MS nº 635, de 22 de maio de 2023 — Equipes Multiprofissionais (eMulti) | Port. GM/MS nº 3.493/2024",
+    base_legal: "Lei nº 8.080/1990; Port. GM/MS nº 635/2023; Port. GM/MS nº 3.493/2024, Anexo V",
+    link_portaria: "https://www.in.gov.br/en/web/dou/-/portaria-gm/ms-n-635-de-22-de-maio-de-2023",
+  },
+  "AGENTES COMUNITÁRIOS DE SAÚDE": {
+    portaria: "Portaria GM/MS nº 3.493, de 10 de abril de 2024 — Novo Financiamento da Atenção Primária à Saúde",
+    base_legal: "Lei nº 11.350/2006 (ACS e ACE); Port. GM/MS nº 3.493/2024, Anexo VI; Dec. nº 7.508/2011",
+    link_portaria: "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2006/lei/l11350.htm",
+  },
+  "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS": {
+    portaria: "Lei nº 11.350/2006 — Agentes de Combate às Endemias (ACE) | Port. GM/MS nº 1.378/2013 — Vigilância em Saúde",
+    base_legal: "Lei nº 11.350/2006, art. 11; Port. GM/MS nº 1.378/2013; Dec. nº 7.508/2011",
+    link_portaria: "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2006/lei/l11350.htm",
+  },
+  "INCENTIVO FINANCEIRO AOS ESTADOS, DISTRITO FEDERAL E MUNICÍPIOS PARA A VIGILÂNCIA EM SAÚDE - DESPESAS": {
+    portaria: "Portaria GM/MS nº 1.378, de 9 de julho de 2013 — Vigilância em Saúde",
+    base_legal: "Lei nº 8.080/1990; Port. GM/MS nº 1.378/2013; Dec. nº 7.508/2011",
+    link_portaria: "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2013/prt1378_09_07_2013.html",
+  },
+  "CBAF - RECURSOS FINANCEIROS A TRANSFERIR PARA AQUISICAO PELAS SECRETARIAS DE SAUDE DOS ESTADOS, MUNICIPIOS E DO DISTRITO FEDERAL": {
+    portaria: "Portaria GM/MS nº 3.992/2017 — Financiamento e transferência de recursos federais para Assistência Farmacêutica",
+    base_legal: "Lei nº 8.080/1990, art. 6º e 26; Dec. nº 7.508/2011; Port. GM/MS nº 3.992/2017",
+    link_portaria: "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prt3992_28_12_2017.html",
+  },
+};
+
+function _getPortaria(row: any) {
+  if (row.portaria) return row;
+  const acao = (row.acao ?? "").toUpperCase().trim();
+  if (!acao) return null;
+  // Exact match first
+  if (PORTARIA_MAP[acao]) return { ...row, ...PORTARIA_MAP[acao] };
+  // Partial: check if any key is contained in acao or vice-versa
+  const key = Object.keys(PORTARIA_MAP).find(k => acao.includes(k) || k.includes(acao));
+  return key ? { ...row, ...PORTARIA_MAP[key] } : null;
+}
+
 function AbaConsultaFNS() {
   const anoAtual = new Date().getFullYear();
   const mesAtual = MESES_FNS[new Date().getMonth()];
@@ -578,12 +643,14 @@ function AbaConsultaFNS() {
                         <td style={{ padding: "9px 10px", textAlign: "right", color: "#374151" }}>{row.valor_desconto != null ? BRL(row.valor_desconto) : ""}</td>
                         <td style={{ padding: "9px 10px", textAlign: "right", fontWeight: row.valor_liquido ? 700 : 400, color: row.valor_liquido ? "#16a34a" : "#9ca3af" }}>{row.valor_liquido != null ? BRL(row.valor_liquido) : ""}</td>
                         <td style={{ padding: "9px 10px", textAlign: "center" }}>
+                          {(() => { const pr = _getPortaria(row); return (
                           <button
-                            title={row.portaria ? "Ver portaria de referência" : "Ver no FNS"}
-                            onClick={() => row.portaria ? setModalPortaria(row) : window.open("https://consultafns.saude.gov.br/#/detalhada","_blank")}
-                            style={{ background: row.portaria ? "#1d4ed8" : "#6b7280", border: "none", borderRadius: 4, width: 28, height: 28, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                            <span style={{ color: "#fff", fontSize: 13 }}>📋</span>
+                            title={pr ? "Ver portaria de referência" : "Ver no FNS"}
+                            onClick={() => pr ? setModalPortaria(pr) : window.open("https://consultafns.saude.gov.br/#/detalhada","_blank")}
+                            style={{ background: pr ? "#1d4ed8" : "#6b7280", border: "none", borderRadius: 4, width: 28, height: 28, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ color: "#fff", fontSize: 13 }}>{pr ? "📋" : "👁"}</span>
                           </button>
+                          ); })()}
                         </td>
                       </tr>
                     ))}
