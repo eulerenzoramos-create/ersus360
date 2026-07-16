@@ -241,15 +241,29 @@ const PORTARIA_MAP: Record<string, { portaria: string; base_legal: string; link_
   },
 };
 
+const PORTARIA_KEYWORDS: Array<{ keywords: string[]; key: string }> = [
+  { keywords: ["PROCEDIMENTOS NO MAC", "ATENÇÃO À SAÚDE DA POPULAÇÃO"], key: "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC" },
+  { keywords: ["EMENDA", "INCREMENTO TEMPORÁRIO"], key: "EMENDA - INCREMENTO TEMPORÁRIO AO CUSTEIO DOS SERVIÇOS DE ASSISTÊNCIA HOSPITALAR E AMBULATORIAL" },
+  { keywords: ["SAUDE BUCAL", "SAÚDE BUCAL", "BUCAL"], key: "INCENTIVO FINANCEIRO DA APS - ATENCAO A SAUDE BUCAL" },
+  { keywords: ["EMULTI", "MULTIPROFISSIONAIS", "EQUIPES MULTIPROFISSIONAIS"], key: "INCENTIVO FINANCEIRO DA APS - EQUIPES MULTIPROFISSIONAIS - EMULTI" },
+  { keywords: ["ESF", "EQUIPES DE SAÚDE DA FAMÍLIA", "EQUIPES DE SAUDE DA FAMILIA", "EAP"], key: "INCENTIVO FINANCEIRO DA APS - EQUIPES DE SAÚDE DA FAMÍLIA/ESF E EQUIPES DE ATENÇÃO PRIMÁRIA/EAP" },
+  { keywords: ["DEMAIS PROGRAMAS", "DEMAIS PROG"], key: "INCENTIVO FINANCEIRO DA APS - DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA ATENÇÃO PRIMÁRIA" },
+  { keywords: ["AGENTES COMUNITÁRIOS", "AGENTES COMUNITARIOS", "ACS"], key: "AGENTES COMUNITÁRIOS DE SAÚDE" },
+  { keywords: ["AGENTES DE COMBATE", "ENDEMIAS", "ACE"], key: "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS" },
+  { keywords: ["VIGILÂNCIA EM SAÚDE", "VIGILANCIA EM SAUDE", "INCENTIVO FINANCEIRO AOS ESTADOS"], key: "INCENTIVO FINANCEIRO AOS ESTADOS, DISTRITO FEDERAL E MUNICÍPIOS PARA A VIGILÂNCIA EM SAÚDE - DESPESAS" },
+  { keywords: ["CBAF", "AQUISICAO", "AQUISIÇÃO"], key: "CBAF - RECURSOS FINANCEIROS A TRANSFERIR PARA AQUISICAO PELAS SECRETARIAS DE SAUDE DOS ESTADOS, MUNICIPIOS E DO DISTRITO FEDERAL" },
+];
+
 function _getPortaria(row: any) {
   if (row.portaria) return row;
-  const acao = (row.acao ?? "").toUpperCase().trim();
-  if (!acao) return null;
-  // Exact match first
-  if (PORTARIA_MAP[acao]) return { ...row, ...PORTARIA_MAP[acao] };
-  // Partial: check if any key is contained in acao or vice-versa
-  const key = Object.keys(PORTARIA_MAP).find(k => acao.includes(k) || k.includes(acao));
-  return key ? { ...row, ...PORTARIA_MAP[key] } : null;
+  const text = ((row.acao ?? "") + " " + (row.acao_detalhada ?? "")).toUpperCase();
+  if (!text.trim()) return null;
+  for (const { keywords, key } of PORTARIA_KEYWORDS) {
+    if (keywords.some(kw => text.includes(kw.toUpperCase())) && PORTARIA_MAP[key]) {
+      return { ...row, ...PORTARIA_MAP[key] };
+    }
+  }
+  return null;
 }
 
 function AbaConsultaFNS() {
