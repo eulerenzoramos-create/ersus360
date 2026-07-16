@@ -228,7 +228,7 @@ function AbaConsultaFNS() {
   const [dtIni, setDtIni]         = useState("");
   const [dtFim, setDtFim]         = useState("");
   const [portaria, setPortaria]   = useState("");
-  const [pgSize, setPgSize]       = useState(25);
+  const [pgSize, setPgSize]       = useState(100);
   const [pgCur, setPgCur]         = useState(1);
 
   const [consultaParams, setConsultaParams] = useState<{
