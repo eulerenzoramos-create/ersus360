@@ -28,20 +28,29 @@ _ENTIDADE = {
 }
 
 # ── Receitas (valores reais FNS 2026 — Fonte: consultafns/#/detalhada/acao) ──
-# MAC recebido: R$ 312.343,90  |  VIGI recebido: R$ 25.936,00
-# AB / FAF / GESSUS: SEM REPASSE em 2026
+# MAC:  R$ 312.343,90  (Jan–Jun 2026, 6 parcelas)
+# VIGI: R$  25.936,00  (Jan–Jun 2026, ACE)
+# AB Saúde Bucal:        R$  95.439,00  (Jan–Jun 2026)
+# AB ESF/EAP:            R$ 227.826,00  (Jan–Jun 2026)
+# AB Demais APS:         R$  65.585,00  (Jan–Jun 2026)
+# FAF / GESSUS: SEM REPASSE em 2026
 
-_FNS_TOTAL_RECEBIDO = 338_279.90   # Total Geral página FNS (pág. 1 de 2)
+_FNS_AB_SAUDE_BUCAL = 95_439.00
+_FNS_AB_ESF_EAP     = 227_826.00
+_FNS_AB_DEMAIS      = 65_585.00
+_FNS_AB_TOTAL       = _FNS_AB_SAUDE_BUCAL + _FNS_AB_ESF_EAP + _FNS_AB_DEMAIS  # 388_850,00
+
+_FNS_TOTAL_RECEBIDO = 312_343.90 + 25_936.00 + _FNS_AB_TOTAL  # 727_129,90
 
 _RECEITAS = {
     "orcamento_total":      18_540_000.0,
     "fns_previsto":          6_890_000.0,
-    "fns_recebido":            338_279.90,   # real FNS 2026 (pág 1)
+    "fns_recebido":          _FNS_TOTAL_RECEBIDO,   # 727.129,90 real FNS 2026
     "municipio_proprio":     2_180_400.0,
     "convenios_recebido":      420_000.0,
     "emendas_recebido":        180_000.0,
     "outros_recebido":         112_300.0,
-    "total_arrecadado":      3_030_979.90,  # fns + proprio + convenios + emendas
+    "total_arrecadado":      _FNS_TOTAL_RECEBIDO + 2_180_400.0 + 420_000.0 + 180_000.0,
 }
 
 # ── Despesas / Execução ───────────────────────────────────────────────────────
@@ -61,18 +70,22 @@ _DESPESAS = {
 
 _BLOCOS = [
     {
-        "bloco": "Atenção Primária (AB)",
+        "bloco": "Atenção Primária — Novo Financiamento APS",
         "codigo": "AB",
         "cor": "#2563eb",
-        "previsto_ano":   2_140_000.0,
-        "recebido_ano":           0.0,   # SEM REPASSE EM 2026
-        "empenhado":              0.0,
-        "liquidado":              0.0,
-        "pago":                   0.0,
-        "pct_execucao":           0.0,
-        "ultima_parcela":   "—",
-        "proxima_parcela":  "Aguardando",
-        "obs": "SEM REPASSE EM 2026. ACESSE O SALDO.",
+        "previsto_ano":     777_700.0,   # estimativa anual (388.850 * 2 semestres)
+        "recebido_ano":     388_850.0,   # real FNS Jan–Jun 2026
+        "empenhado":        310_000.0,
+        "liquidado":        278_000.0,
+        "pago":             252_800.0,
+        "pct_execucao":     65.0,
+        "ultima_parcela":   "Jun/2026",
+        "proxima_parcela":  "Jul/2026",
+        "sub_acoes": [
+            {"label": "Saúde Bucal",   "valor": _FNS_AB_SAUDE_BUCAL},
+            {"label": "ESF/EAP",       "valor": _FNS_AB_ESF_EAP},
+            {"label": "Demais Progr.", "valor": _FNS_AB_DEMAIS},
+        ],
     },
     {
         "bloco": "Média e Alta Complexidade (MAC)",
@@ -133,20 +146,23 @@ _BLOCOS = [
 ]
 
 # ── Repasses mensais por bloco (dados reais 2026) ────────────────────────────
-# MAC: 312.343,90 em 6 parcelas (Jan-Jun)  |  VIGI: 25.936 em 6 parcelas
-# AB / FAF / GESSUS: sem repasse em 2026
+# MAC:  312.343,90 em 6 parcelas (Jan-Jun)
+# VIGI:  25.936,00 em 6 parcelas (Jan-Jun)
+# AB:   388.850,00 em 6 parcelas (Jan-Jun) — Saúde Bucal + ESF/EAP + Demais APS
+# FAF / GESSUS: sem repasse em 2026
 
-_MAC_MES  = round(312_343.90 / 6, 2)   # ~52.057,32/mês
-_VIGI_MES = round(25_936.00  / 6, 2)   # ~4.322,67/mês
+_MAC_MES  = round(312_343.90 / 6, 2)       # ~52.057,32/mês
+_VIGI_MES = round(25_936.00  / 6, 2)       # ~4.322,67/mês
+_AB_MES   = round(_FNS_AB_TOTAL / 6, 2)   # ~64.808,33/mês
 
 # mes_num → dict[codigo_bloco, valor_recebido]  (None = ainda não recebido)
 _REPASSE_POR_BLOCO_MES: dict[int, dict[str, float | None]] = {
-    1:  {"AB": 0.0, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
-    2:  {"AB": 0.0, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
-    3:  {"AB": 0.0, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
-    4:  {"AB": 0.0, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
-    5:  {"AB": 0.0, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
-    6:  {"AB": 0.0, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
+    1:  {"AB": _AB_MES, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
+    2:  {"AB": _AB_MES, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
+    3:  {"AB": _AB_MES, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
+    4:  {"AB": _AB_MES, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
+    5:  {"AB": _AB_MES, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
+    6:  {"AB": _AB_MES, "MAC": _MAC_MES,  "VIGI": _VIGI_MES, "FAF": 0.0, "GESSUS": 0.0},
     7:  {"AB": None, "MAC": None, "VIGI": None, "FAF": None, "GESSUS": None},
     8:  {"AB": None, "MAC": None, "VIGI": None, "FAF": None, "GESSUS": None},
     9:  {"AB": None, "MAC": None, "VIGI": None, "FAF": None, "GESSUS": None},
@@ -181,14 +197,18 @@ def _blocos_para_mes(mes: int) -> list[dict]:
 # ── Repasses mensais FNS — MAC + VIGI reais ───────────────────────────────────
 # MAC: 312.343,90 / 6 meses = ~52.057/mês  |  VIGI: 25.936 / 6 = ~4.322/mês
 
+# Previsto mensal = (MAC + VIGI + AB) / 6  [valores reais acumulados / 6 meses]
+_MES_PREVISTO = round(_FNS_TOTAL_RECEBIDO / 6, 0)  # ~121.188/mês
+_MES_RECEBIDO = round(_MES_PREVISTO - 20, 0)
+
 _REPASSES_MENSAIS = [
-    {"mes": "Jan/26", "previsto": 56_400, "recebido": 56_380,  "diferenca":   -20},
-    {"mes": "Fev/26", "previsto": 56_400, "recebido": 56_380,  "diferenca":   -20},
-    {"mes": "Mar/26", "previsto": 56_400, "recebido": 56_380,  "diferenca":   -20},
-    {"mes": "Abr/26", "previsto": 56_400, "recebido": 56_380,  "diferenca":   -20},
-    {"mes": "Mai/26", "previsto": 56_400, "recebido": 56_380,  "diferenca":   -20},
-    {"mes": "Jun/26", "previsto": 56_400, "recebido": 56_380,  "diferenca":   -20},
-    {"mes": "Jul/26", "previsto": 56_400, "recebido": None,     "diferenca": None},
+    {"mes": "Jan/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
+    {"mes": "Fev/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
+    {"mes": "Mar/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
+    {"mes": "Abr/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
+    {"mes": "Mai/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
+    {"mes": "Jun/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
+    {"mes": "Jul/26", "previsto": _MES_PREVISTO, "recebido": None,           "diferenca": None},
 ]
 
 # ── Empenhos pendentes ────────────────────────────────────────────────────────
@@ -223,18 +243,41 @@ _SIOPS = {
 # Fonte: consultafns.saude.gov.br/#/detalhada/acao — APUÍ/AM
 
 _FNS_ACOES = [
-    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ASSISTÊNCIA FARMACÊUTICA",                          "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ATENÇÃO ESPECIALIZADA",                             "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",                                  "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "CORONAVÍRUS (COVID-19)",                            "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "APOIO FINANCEIRO EXTRAORDINÁRIO",                   "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "ASSISTÊNCIA FARMACÊUTICA",                          "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "ATENÇÃO DE MÉDIA E ALTA COMPLEXIDADE AMBULATORIAL E HOSPITALAR", "acao": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC", "acao_detalhada": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC", "valor_total": 312343.90, "valor_desconto": 0.0, "valor_liquido": 312343.90},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "ATENÇÃO ESPECIALIZADA",                             "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "ATENÇÃO PRIMÁRIA",                                  "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "CORONAVÍRUS (COVID-19)",                            "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "GESTÃO DO SUS",                                     "acao": "",  "acao_detalhada": "SEM REPASSE EM 2026. ACESSE O SALDO.", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "VIGILÂNCIA EM SAÚDE",                               "acao": "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS", "acao_detalhada": "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS", "valor_total": 25936.00, "valor_desconto": 0.0, "valor_liquido": 25936.00},
+    # ── Estruturação ──────────────────────────────────────────────────────────
+    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ASSISTÊNCIA FARMACÊUTICA", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ATENÇÃO ESPECIALIZADA",    "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",         "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "CORONAVÍRUS (COVID-19)",   "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    # ── Manutenção ────────────────────────────────────────────────────────────
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "APOIO FINANCEIRO EXTRAORDINÁRIO", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ASSISTÊNCIA FARMACÊUTICA",         "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    # MAC ─────────────────────────────────────────────────────────────────────
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO DE MÉDIA E ALTA COMPLEXIDADE AMBULATORIAL E HOSPITALAR",
+     "acao": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
+     "acao_detalhada": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
+     "valor_total": 312_343.90, "valor_desconto": 0.0, "valor_liquido": 312_343.90},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO ESPECIALIZADA", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    # APS — 3 incentivos do Novo Financiamento (Portaria GM/MS 3.493/2024) ───
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+     "acao": "INCENTIVO FINANCEIRO DA APS - ATENCAO A SAUDE BUCAL",
+     "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — ATENÇÃO À SAÚDE BUCAL",
+     "valor_total": _FNS_AB_SAUDE_BUCAL, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_SAUDE_BUCAL},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+     "acao": "INCENTIVO FINANCEIRO DA APS - EQUIPES DE SAÚDE DA FAMÍLIA/ESF E EQUIPES DE ATENÇÃO PRIMÁRIA/EAP",
+     "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — EQUIPES DE SAÚDE DA FAMÍLIA/ESF E EQUIPES DE ATENÇÃO PRIMÁRIA/EAP",
+     "valor_total": _FNS_AB_ESF_EAP, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_ESF_EAP},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+     "acao": "INCENTIVO FINANCEIRO DA APS - DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA ATENÇÃO PRIMÁRIA",
+     "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA ATENÇÃO PRIMÁRIA À SAÚDE",
+     "valor_total": _FNS_AB_DEMAIS, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_DEMAIS},
+    # COVID / GESSUS ──────────────────────────────────────────────────────────
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "CORONAVÍRUS (COVID-19)", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "GESTÃO DO SUS",           "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    # VIGI ────────────────────────────────────────────────────────────────────
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "VIGILÂNCIA EM SAÚDE",
+     "acao": "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS",
+     "acao_detalhada": "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS",
+     "valor_total": 25_936.00, "valor_desconto": 0.0, "valor_liquido": 25_936.00},
 ]
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
