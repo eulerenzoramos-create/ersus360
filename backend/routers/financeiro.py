@@ -246,92 +246,55 @@ _SIOPS = {
 }
 
 
-# ── Tabela FNS Detalhada por Ação — mês a mês Jan–Jun 2026 ───────────────────
+# ── Tabela FNS Detalhada por Ação (acumulado Jan–Jun 2026) ───────────────────
 # Fonte: consultafns.saude.gov.br/#/detalhada/acao — APUÍ/AM
+# Uma linha por incentivo com o total acumulado Jan–Jun 2026
 
-_MESES_REF = ["Jan/2026","Fev/2026","Mar/2026","Abr/2026","Mai/2026","Jun/2026"]
-
-# Valor mensal de cada incentivo (total / 6 meses)
-_MV = {
-    "mac":   round(_FNS_MAC             / 6, 2),  # 52.057,32
-    "vigi":  round(_FNS_VIGI            / 6, 2),  # 4.322,67
-    "esf":   round(_FNS_AB_ESF_EAP     / 6, 2),  # 37.971,00
-    "acs":   round(_FNS_AB_ACS         / 6, 2),  # 35.662,00
-    "bucal": round(_FNS_AB_SAUDE_BUCAL / 6, 2),  # 15.906,50
-    "dem":   round(_FNS_AB_DEMAIS      / 6, 2),  # 10.930,83
-    "emul":  round(_FNS_AB_EMULTI      / 6, 2),  # 2.791,67
-}
-
-def _acao_mes(mes: str, grupo: str, acao: str, acao_det: str, valor: float) -> dict:
-    return {
-        "bloco": "Manutenção das Ações e Serviços Públicos de Saúde",
-        "grupo": grupo,
-        "acao": acao,
-        "acao_detalhada": acao_det,
-        "mes_referencia": mes,
-        "valor_total": valor,
-        "valor_desconto": 0.0,
-        "valor_liquido": valor,
-    }
-
-_FNS_ACOES_MENSAIS: list[dict] = []
-for _m in _MESES_REF:
-    # MAC
-    _FNS_ACOES_MENSAIS.append(_acao_mes(_m,
-        "ATENÇÃO DE MÉDIA E ALTA COMPLEXIDADE AMBULATORIAL E HOSPITALAR",
-        "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
-        "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
-        _MV["mac"]))
-    # APS — ESF/EAP
-    _FNS_ACOES_MENSAIS.append(_acao_mes(_m,
-        "ATENÇÃO PRIMÁRIA",
-        "INCENTIVO FINANCEIRO DA APS - EQUIPES DE SAÚDE DA FAMÍLIA/ESF E EQUIPES DE ATENÇÃO PRIMÁRIA/EAP",
-        "INCENTIVO FINANCEIRO DA APS — EQUIPES ESF/EAP",
-        _MV["esf"]))
-    # APS — ACS
-    _FNS_ACOES_MENSAIS.append(_acao_mes(_m,
-        "ATENÇÃO PRIMÁRIA",
-        "AGENTES COMUNITÁRIOS DE SAÚDE",
-        "AGENTES COMUNITÁRIOS DE SAÚDE — INCENTIVO FINANCEIRO APS",
-        _MV["acs"]))
-    # APS — Saúde Bucal
-    _FNS_ACOES_MENSAIS.append(_acao_mes(_m,
-        "ATENÇÃO PRIMÁRIA",
-        "INCENTIVO FINANCEIRO DA APS - ATENCAO A SAUDE BUCAL",
-        "INCENTIVO FINANCEIRO DA APS — ATENÇÃO À SAÚDE BUCAL",
-        _MV["bucal"]))
-    # APS — Demais
-    _FNS_ACOES_MENSAIS.append(_acao_mes(_m,
-        "ATENÇÃO PRIMÁRIA",
-        "INCENTIVO FINANCEIRO DA APS - DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA ATENÇÃO PRIMÁRIA",
-        "INCENTIVO FINANCEIRO DA APS — DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA APS",
-        _MV["dem"]))
-    # APS — eMulti
-    _FNS_ACOES_MENSAIS.append(_acao_mes(_m,
-        "ATENÇÃO PRIMÁRIA",
-        "INCENTIVO FINANCEIRO DA APS - EQUIPES MULTIPROFISSIONAIS - EMULTI",
-        "INCENTIVO FINANCEIRO DA APS — EQUIPES MULTIPROFISSIONAIS (eMulti)",
-        _MV["emul"]))
-    # VIGI
-    _FNS_ACOES_MENSAIS.append(_acao_mes(_m,
-        "VIGILÂNCIA EM SAÚDE",
-        "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS",
-        "TRANSFERÊNCIA — PAGAMENTO VENCIMENTOS AGENTES DE COMBATE ÀS ENDEMIAS (ACE)",
-        _MV["vigi"]))
-
-# Itens sem repasse (exibidos uma vez, sem mês)
-_FNS_ACOES_SEM_REPASSE = [
-    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ASSISTÊNCIA FARMACÊUTICA",  "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "mes_referencia": "—", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ATENÇÃO ESPECIALIZADA",     "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "mes_referencia": "—", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "CORONAVÍRUS (COVID-19)",    "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "mes_referencia": "—", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "APOIO FINANCEIRO EXTRAORDINÁRIO", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "mes_referencia": "—", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "ASSISTÊNCIA FARMACÊUTICA",  "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "mes_referencia": "—", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "ATENÇÃO ESPECIALIZADA",     "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "mes_referencia": "—", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "CORONAVÍRUS (COVID-19)",    "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "mes_referencia": "—", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde",  "grupo": "GESTÃO DO SUS",             "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "mes_referencia": "—", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+_FNS_ACOES = [
+    # ── Estruturação — sem repasse ────────────────────────────────────────────
+    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ASSISTÊNCIA FARMACÊUTICA", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ATENÇÃO ESPECIALIZADA",    "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",         "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "CORONAVÍRUS (COVID-19)",   "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    # ── Manutenção — sem repasse ──────────────────────────────────────────────
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "APOIO FINANCEIRO EXTRAORDINÁRIO", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ASSISTÊNCIA FARMACÊUTICA",        "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    # ── MAC ───────────────────────────────────────────────────────────────────
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO DE MÉDIA E ALTA COMPLEXIDADE AMBULATORIAL E HOSPITALAR",
+     "acao": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
+     "acao_detalhada": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
+     "valor_total": _FNS_MAC, "valor_desconto": 0.0, "valor_liquido": _FNS_MAC},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO ESPECIALIZADA", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    # ── APS — Novo Financiamento (Portaria GM/MS 3.493/2024) ─────────────────
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+     "acao": "INCENTIVO FINANCEIRO DA APS - ATENCAO A SAUDE BUCAL",
+     "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — ATENÇÃO À SAÚDE BUCAL",
+     "valor_total": _FNS_AB_SAUDE_BUCAL, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_SAUDE_BUCAL},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+     "acao": "INCENTIVO FINANCEIRO DA APS - EQUIPES DE SAÚDE DA FAMÍLIA/ESF E EQUIPES DE ATENÇÃO PRIMÁRIA/EAP",
+     "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — EQUIPES DE SAÚDE DA FAMÍLIA/ESF E EQUIPES DE ATENÇÃO PRIMÁRIA/EAP",
+     "valor_total": _FNS_AB_ESF_EAP, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_ESF_EAP},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+     "acao": "INCENTIVO FINANCEIRO DA APS - DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA ATENÇÃO PRIMÁRIA",
+     "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA ATENÇÃO PRIMÁRIA À SAÚDE",
+     "valor_total": _FNS_AB_DEMAIS, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_DEMAIS},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+     "acao": "INCENTIVO FINANCEIRO DA APS - EQUIPES MULTIPROFISSIONAIS - EMULTI",
+     "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — EQUIPES MULTIPROFISSIONAIS (eMulti)",
+     "valor_total": _FNS_AB_EMULTI, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_EMULTI},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+     "acao": "AGENTES COMUNITÁRIOS DE SAÚDE",
+     "acao_detalhada": "AGENTES COMUNITÁRIOS DE SAÚDE — INCENTIVO FINANCEIRO APS",
+     "valor_total": _FNS_AB_ACS, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_ACS},
+    # ── COVID / GESSUS — sem repasse ─────────────────────────────────────────
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "CORONAVÍRUS (COVID-19)", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "GESTÃO DO SUS",           "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
+    # ── VIGI ──────────────────────────────────────────────────────────────────
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "VIGILÂNCIA EM SAÚDE",
+     "acao": "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS",
+     "acao_detalhada": "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS",
+     "valor_total": _FNS_VIGI, "valor_desconto": 0.0, "valor_liquido": _FNS_VIGI},
 ]
-
-_FNS_ACOES = _FNS_ACOES_MENSAIS + _FNS_ACOES_SEM_REPASSE
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
@@ -418,51 +381,6 @@ def _mes_num(mes_str: str) -> str:
     return str(_MESES_NOME_NUM.get(_norm(mes_str).lower(), ""))
 
 
-_APUI_IBGE = "1300144"   # código IBGE real de Apuí/AM
-
-_MESES_COM_DADOS = {"jan","fev","mar","abr","mai","jun"}   # meses com repasse em 2026
-
-def _acoes_apui_local(mes_filtro: str) -> dict:
-    """Retorna dados locais mensais de Apuí/AM — já com mes_referencia.
-    Se o mês filtrado não tem dados (Jul–Dez), retorna o acumulado Jan–Jun."""
-    mes3 = mes_filtro[:3].lower() if mes_filtro else ""
-    if mes3 and mes3 not in _MESES_COM_DADOS:
-        # mês sem repasse: mostra acumulado Jan–Jun com aviso
-        acoes = _FNS_ACOES_MENSAIS
-        competencia = "Jan/2026 a Jun/2026 (acumulado — sem repasse em " + mes_filtro + "/2026)"
-    elif mes3:
-        acoes = [a for a in _FNS_ACOES_MENSAIS
-                 if a["mes_referencia"].lower().startswith(mes3)]
-        competencia = mes_filtro + "/2026"
-    else:
-        acoes = _FNS_ACOES_MENSAIS
-        competencia = "Jan/2026 a Jun/2026 (acumulado)"
-    total_liq = round(sum(a["valor_liquido"] for a in acoes if a.get("valor_liquido")), 2)
-    return {
-        "entidade": {
-            "nome":                _ENTIDADE["nome"],
-            "cnpj":               _ENTIDADE["cnpj"],
-            "ibge":               _APUI_IBGE,
-            "uf":                 "AM",
-            "municipio":          "APUÍ",
-            "populacao":          _ENTIDADE["populacao"],
-            "ano_censo":          _ENTIDADE["ano_censo"],
-            "prefeito":           _ENTIDADE["prefeito"],
-            "data_gestao":        _ENTIDADE["data_gestao"],
-            "secretario":         _ENTIDADE["secretario"],
-            "presidente_conselho":_ENTIDADE["presidente_conselho"],
-        },
-        "acoes":          acoes + _FNS_ACOES_SEM_REPASSE,
-        "total_geral":    total_liq,
-        "total_desconto": 0.0,
-        "total_liquido":  total_liq,
-        "competencia":    competencia,
-        "fonte":          "ersus360-local (dados reais FNS Jan–Jun/2026)",
-        "ano":            "2026",
-        "mes":            mes_filtro,
-    }
-
-
 @router.get("/fns-acoes")
 async def fns_acoes(
     estado:    str = Query("AM"),
@@ -480,10 +398,6 @@ async def fns_acoes(
 
     UF = estado.upper()
     mes_num = _mes_num(mes)   # "Julho" → "7", "" → "" (acumulado anual)
-
-    # ── Override local para Apuí/AM — dados reais com mes_referencia ──────────
-    if _norm(municipio) in ("APUI", "APUÍ") and UF == "AM" and ano == "2026":
-        return _acoes_apui_local(mes)
 
     # ── 1. Resolve código IBGE do município via API do próprio FNS ────────────
     ibge_code = None

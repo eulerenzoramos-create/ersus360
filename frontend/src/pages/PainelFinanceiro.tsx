@@ -199,7 +199,7 @@ function AbaConsultaFNS() {
 
   // ── Detalhada states ──────────────────────────────────────────────────────
   const [ano, setAno]             = useState(String(anoAtual));
-  const [mes, setMes]             = useState("");   // vazio = acumulado anual
+  const [mes, setMes]             = useState(mesAtual);
   const [tipoConsulta, setTipo]   = useState("Fundo a Fundo");
   const [bloco, setBloco]         = useState("");
   const [cpf, setCpf]             = useState("");
@@ -228,7 +228,7 @@ function AbaConsultaFNS() {
   const [dtIni, setDtIni]         = useState("");
   const [dtFim, setDtFim]         = useState("");
   const [portaria, setPortaria]   = useState("");
-  const [pgSize, setPgSize]       = useState(100);
+  const [pgSize, setPgSize]       = useState(25);
   const [pgCur, setPgCur]         = useState(1);
 
   const [consultaParams, setConsultaParams] = useState<{
@@ -379,7 +379,6 @@ function AbaConsultaFNS() {
               </div>
               <div><label style={lblSt}>Mês</label>
                 <select value={mes} onChange={e => setMes(e.target.value)} style={selSt}>
-                  <option value="">Todos (acumulado)</option>
                   {MESES_FNS.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
@@ -502,7 +501,7 @@ function AbaConsultaFNS() {
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 900 }}>
                   <thead>
                     <tr style={{ background: "#b8cce4", color: "#1a3a6b" }}>
-                      {["Mês Ref. ⇅","Bloco ⇅","Grupo ⇅","Ação Detalhada ⇅","Valor Total ⇅","Valor Desconto ⇅","Valor Líquido ⇅","Ações"].map(h => (
+                      {["Bloco ⇅","Grupo ⇅","Ação Detalhada ⇅","Valor Total ⇅","Valor Desconto ⇅","Valor Líquido ⇅","Ações"].map(h => (
                         <th key={h} style={{ padding: "10px 10px", textAlign: h.startsWith("Valor") ? "right" : "left", fontWeight: 700, borderRight: "1px solid #a8bcd4", whiteSpace: "nowrap" }}>{h}</th>
                       ))}
                     </tr>
@@ -510,11 +509,6 @@ function AbaConsultaFNS() {
                   <tbody>
                     {paginadas.map((row: any, i: number) => (
                       <tr key={i} style={{ borderBottom: "1px solid #e2eaf4", background: i % 2 === 0 ? "#fff" : "#f4f8fc" }}>
-                        <td style={{ padding: "9px 10px", textAlign: "center", whiteSpace: "nowrap" }}>
-                          {row.mes_referencia && row.mes_referencia !== "—"
-                            ? <span style={{ background: "#dbeafe", color: "#1e40af", fontWeight: 700, fontSize: 11, padding: "2px 8px", borderRadius: 10 }}>{row.mes_referencia}</span>
-                            : <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>}
-                        </td>
                         <td style={{ padding: "9px 10px", color: "#2a5298", fontSize: 11, maxWidth: 140, lineHeight: 1.4 }}>{row.bloco}</td>
                         <td style={{ padding: "9px 10px", fontWeight: 600, color: "#1a3a6b", maxWidth: 160, lineHeight: 1.4 }}>{row.grupo}</td>
                         <td style={{ padding: "9px 10px", color: row.valor_total ? "#374151" : "#6b7280", fontStyle: row.valor_total ? "normal" : "italic", maxWidth: 220, lineHeight: 1.4 }}>{row.acao_detalhada}</td>
@@ -532,7 +526,7 @@ function AbaConsultaFNS() {
                   </tbody>
                   <tfoot>
                     <tr style={{ background: "#e8f0f8", fontWeight: 700 }}>
-                      <td colSpan={4} style={{ padding: "10px 10px", textAlign: "right", color: "#1a3a6b", fontSize: 13 }}>Total Geral</td>
+                      <td colSpan={3} style={{ padding: "10px 10px", textAlign: "right", color: "#1a3a6b", fontSize: 13 }}>Total Geral</td>
                       <td style={{ padding: "10px 10px", textAlign: "right", color: "#1a3a6b", fontSize: 13 }}>{fnsData ? BRL(fnsData.total_geral) : "—"}</td>
                       <td style={{ padding: "10px 10px", textAlign: "right", color: "#1a3a6b", fontSize: 13 }}>{fnsData ? BRL(fnsData.total_desconto) : "—"}</td>
                       <td style={{ padding: "10px 10px", textAlign: "right", color: "#16a34a", fontSize: 13 }}>{fnsData ? BRL(fnsData.total_liquido) : "—"}</td>
