@@ -418,6 +418,39 @@ def _mes_num(mes_str: str) -> str:
     return str(_MESES_NOME_NUM.get(_norm(mes_str).lower(), ""))
 
 
+_APUI_IBGE = "1300144"   # código IBGE real de Apuí/AM
+
+def _acoes_apui_local(mes_filtro: str) -> dict:
+    """Retorna dados locais mensais de Apuí/AM — já com mes_referencia."""
+    acoes = _FNS_ACOES_MENSAIS if not mes_filtro else [
+        a for a in _FNS_ACOES_MENSAIS if a["mes_referencia"].lower().startswith(mes_filtro[:3].lower())
+    ]
+    total_liq = round(sum(a["valor_liquido"] for a in acoes if a.get("valor_liquido")), 2)
+    return {
+        "entidade": {
+            "nome":                _ENTIDADE["nome"],
+            "cnpj":               _ENTIDADE["cnpj"],
+            "ibge":               _APUI_IBGE,
+            "uf":                 "AM",
+            "municipio":          "APUÍ",
+            "populacao":          _ENTIDADE["populacao"],
+            "ano_censo":          _ENTIDADE["ano_censo"],
+            "prefeito":           _ENTIDADE["prefeito"],
+            "data_gestao":        _ENTIDADE["data_gestao"],
+            "secretario":         _ENTIDADE["secretario"],
+            "presidente_conselho":_ENTIDADE["presidente_conselho"],
+        },
+        "acoes":          acoes + _FNS_ACOES_SEM_REPASSE,
+        "total_geral":    total_liq,
+        "total_desconto": 0.0,
+        "total_liquido":  total_liq,
+        "competencia":    mes_filtro if mes_filtro else "Jan/2026 a Jun/2026",
+        "fonte":          "ersus360-local (dados reais FNS 2026)",
+        "ano":            "2026",
+        "mes":            mes_filtro,
+    }
+
+
 @router.get("/fns-acoes")
 async def fns_acoes(
     estado:    str = Query("AM"),
@@ -429,12 +462,16 @@ async def fns_acoes(
 ):
     """
     Tabela FNS por ação por competência — API pública consultafns.saude.gov.br/recursos/.
-    Funciona para qualquer município do Brasil.
+    Para Apuí/AM usa dados locais reais com mês de referência por parcela.
     """
     import httpx
 
     UF = estado.upper()
     mes_num = _mes_num(mes)   # "Julho" → "7", "" → "" (acumulado anual)
+
+    # ── Override local para Apuí/AM — dados reais com mes_referencia ──────────
+    if _norm(municipio) in ("APUI", "APUÍ") and UF == "AM" and ano == "2026":
+        return _acoes_apui_local(mes)
 
     # ── 1. Resolve código IBGE do município via API do próprio FNS ────────────
     ibge_code = None
