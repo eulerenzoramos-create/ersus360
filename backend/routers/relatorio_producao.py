@@ -325,7 +325,7 @@ async def producao_por_tipo(
     if profissional_id:
         profs = [p for p in profs if p["id"] == profissional_id]
 
-    # Acumula por tipo de atendimento
+    # Acumula por tipo de atendimento, rastreando quais CBOs contribuem
     acum: dict[str, dict] = {}
     dias_uteis = 0
 
@@ -342,6 +342,7 @@ async def producao_por_tipo(
                         "tipo": k,
                         "label": prod["label"],
                         "grupo": prod["grupo"],
+                        "cbo": prof["cbo"],        # CBO do profissional
                         "realizado": 0,
                         "meta_total": 0,
                         "dias": 0,
@@ -349,6 +350,13 @@ async def producao_por_tipo(
                 acum[k]["realizado"]  += prod["realizado"]
                 acum[k]["meta_total"] += prod["meta"]
                 acum[k]["dias"]       += 1
+
+    # Detecta labels duplicados dentro do mesmo grupo e diferencia pelo CBO
+    from collections import Counter
+    label_grupo_count: Counter = Counter((v["grupo"], v["label"]) for v in acum.values())
+    for item in acum.values():
+        if label_grupo_count[(item["grupo"], item["label"])] > 1:
+            item["label"] = f"{item['label']} ({item['cbo']})"
 
     resultado = []
     for item in acum.values():
