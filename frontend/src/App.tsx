@@ -61,6 +61,7 @@ import PainelFinanceiro  from "./pages/PainelFinanceiro";
 import PainelGestaoAPS  from "./pages/PainelGestaoAPS";
 import SiapsEgestor      from "./pages/SiapsEgestor";
 import PainelCAF         from "./pages/PainelCAF";
+import MatrizNormativaAPS from "./pages/MatrizNormativaAPS";
 import Ouvidoria         from "./pages/Ouvidoria";
 import RegulacaoMAC      from "./pages/RegulacaoMAC";
 import PainelPPALOA      from "./pages/PainelPPALOA";
@@ -603,6 +604,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             <L1 to="/gestao"     label="Gestão APS"             Icon={Activity}/>
             <L1 to="/siaps"      label="eGestor / SIAPS"        Icon={Globe}/>
             {podeFin && <L1 to="/caf"        label="CAF — Cofinanciamento"  Icon={TrendingUp}/>}
+            <L1 to="/matriz-normativa-aps" label="Matriz Normativa APS"  Icon={BookOpen}/>
 
             {/* ── APS ── */}
             <SbSection label="Atenção Primária"/>
@@ -926,6 +928,7 @@ export default function App() {
             <Route path="/financeiro"                element={<PainelFinanceiro/>}/>
             <Route path="/siaps"                     element={<SiapsEgestor/>}/>
             <Route path="/caf"                       element={<PainelCAF/>}/>
+            <Route path="/matriz-normativa-aps"      element={<MatrizNormativaAPS/>}/>
             <Route path="/ouvidoria"                 element={<Ouvidoria/>}/>
             <Route path="/regulacao-mac"             element={<RegulacaoMAC/>}/>
             <Route path="/ppa-loa"                   element={<PainelPPALOA/>}/>
