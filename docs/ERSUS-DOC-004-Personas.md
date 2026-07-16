@@ -29,7 +29,7 @@ Definir as personas do ERSUS 360 — representações semi-fictícias dos usuár
 
 #### Dores principais
 - "Recebo dados de 8 sistemas diferentes e não consigo ter uma visão única"
-- "Não sei se vou atingir as metas do Previne Brasil até o fim do quadrimestre"
+- "Não sei se vou atingir as metas do Novo Financiamento APS até o fim do quadrimestre"
 - "O Ministério da Saúde pediu um relatório e minha equipe levou 3 dias para montar"
 - "Temos 4 convênios com o FNS e não sei o status de nenhum em tempo real"
 
@@ -45,7 +45,7 @@ Definir as personas do ERSUS 360 — representações semi-fictícias dos usuár
 - Não quer treinamento longo — precisa usar sozinho
 
 #### Critério de sucesso
-> "Se eu conseguir saber em 30 segundos como está o Previne Brasil, já vale o investimento."
+> "Se eu conseguir saber em 30 segundos como está o Novo Financiamento APS, já vale o investimento."
 
 ---
 
@@ -60,7 +60,7 @@ Definir as personas do ERSUS 360 — representações semi-fictícias dos usuár
 - Usuária principal do sistema no dia a dia
 - Gerencia 3 equipes ESF, 1 equipe eSB e 12 ACS
 - Opera o e-SUS APS todos os dias
-- Conhece bem os indicadores do Previne Brasil
+- Conhece bem os indicadores do Novo Financiamento APS
 - Tem pouco tempo — atende pacientes e gerencia a equipe ao mesmo tempo
 
 #### Dores principais
@@ -72,12 +72,12 @@ Definir as personas do ERSUS 360 — representações semi-fictícias dos usuár
 #### O que ela precisa do ERSUS 360
 - Busca Ativa automática: lista de gestantes e crianças sem acompanhamento
 - Painel de cada ACS com produção, visitas e cadastros
-- Indicadores Previne Brasil por equipe, não só consolidado
+- Indicadores Novo Financiamento APS por equipe, não só consolidado
 - Alertas de vacinas vencendo nos próximos 30 dias
 
 #### Comportamento no sistema
 - Acessa todos os dias, manhã e tarde
-- Usa muito: Previne Brasil, Painel de Gestão, Busca Ativa, ACS
+- Usa muito: Novo Financiamento APS, Painel de Gestão, Busca Ativa, ACS
 - Quer exportar dados para apresentar em reunião de equipe
 
 #### Critério de sucesso
@@ -186,7 +186,7 @@ Definir as personas do ERSUS 360 — representações semi-fictícias dos usuár
 | Módulo | Secretário | Coord. APS | Financeiro | ACS | Prefeito | Cidadão |
 |---|---|---|---|---|---|---|
 | Home / Dashboard | ⭐⭐⭐ | ⭐⭐ | ⭐ | — | ⭐⭐⭐ | — |
-| Previne Brasil | ⭐⭐⭐ | ⭐⭐⭐ | ⭐ | — | ⭐⭐ | — |
+| Novo Financiamento APS | ⭐⭐⭐ | ⭐⭐⭐ | ⭐ | — | ⭐⭐ | — |
 | Painel de Gestão | ⭐⭐ | ⭐⭐⭐ | ⭐ | — | ⭐ | — |
 | Busca Ativa | — | ⭐⭐⭐ | — | ⭐⭐⭐ | — | — |
 | ACS | — | ⭐⭐ | — | ⭐⭐⭐ | — | — |

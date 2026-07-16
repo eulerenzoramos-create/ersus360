@@ -308,7 +308,7 @@ test: adição ou correção de testes
 chore: tarefas de manutenção (deps, configs)
 
 Exemplos:
-  feat: add módulo Previne Brasil com 7 indicadores
+  feat: add módulo Novo Financiamento APS com 7 indicadores
   fix: corrigir fallback quando FNS API offline
   docs: add DOC-010 Guia do Desenvolvedor
   refactor: extrair service layer para integrações

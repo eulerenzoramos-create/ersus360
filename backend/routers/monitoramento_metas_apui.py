@@ -1,4 +1,4 @@
-"""Monitoramento de Metas — PMS / Previne Brasil / Quadrimestral · Apuí/AM"""
+"""Monitoramento de Metas — PMS / Novo Financiamento APS / Quadrimestral · Apuí/AM"""
 from __future__ import annotations
 import asyncio
 from datetime import date as _date
@@ -56,7 +56,7 @@ HISTORICO = [
 
 INDICADORES = [
     {"indicador": "Metas PMS alcançadas",         "valor": "18/48", "meta": "48/48", "status": "atencao"},
-    {"indicador": "Nota Previne Brasil",           "valor": 5.84,    "meta": 7.0,     "status": "atencao"},
+    {"indicador": "Nota Novo Financiamento APS",           "valor": 5.84,    "meta": 7.0,     "status": "atencao"},
     {"indicador": "Indicadores Previne na meta",  "valor": "9/21",  "meta": "21/21", "status": "atencao"},
     {"indicador": "Metas críticas",               "valor": 8,       "meta": 0,       "status": "critico"},
     {"indicador": "Relatório quadrimestral CMS",  "valor": "Em dia", "meta": "Em dia","status": "ok"},

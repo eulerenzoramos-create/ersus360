@@ -59,7 +59,7 @@ RAG (1 ano) → relatório anual consolidado de gestão
 | Indicador | Meta anual | Quadrimestre |
 |---|---|---|
 | Cobertura ESF | 80% | Anual |
-| Previne Brasil — Média | 75% | Quadrimestral |
+| Novo Financiamento APS — Média | 75% | Quadrimestral |
 | Cobertura vacinal poliomielite | 95% | Anual |
 | Cobertura vacinal pentavalente | 95% | Anual |
 | IPA malária | < 10/1.000 hab | Anual |

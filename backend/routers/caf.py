@@ -1,7 +1,7 @@
 """
 CAF — Componente de Acesso e Financiamento da APS
 Cálculo do Cofinanciamento Federal para Apuí/AM
-Referência: Portaria GM/MS nº 3.222/2019 e IN SAPS nº 08/2023
+Referência: Portaria GM/MS nº 3.493/2024 (Novo Financiamento APS)
 """
 from fastapi import APIRouter
 from datetime import date
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/caf", tags=["CAF"])
 # ── Parâmetros oficiais (valores vigentes 2026) ───────────────────────────────
 
 # Capitação Ponderada — valor per capita base R$/pessoa/mês
-VALOR_CAPITA_BASE = 7.84   # Portaria GM/MS 3.222/2019 atualizado
+VALOR_CAPITA_BASE = 7.84   # Portaria GM/MS 3.493/2024 (Novo Financiamento APS)
 
 # Ponderadores IED (Índice de Equidade e Dimensionamento)
 PONDERADOR_IED = {

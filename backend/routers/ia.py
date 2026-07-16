@@ -44,7 +44,7 @@ CONTEXTO ATUAL (Junho/2026):
 - UBS: 4 unidades, 3 equipes SF ativas
 
 MÓDULOS DO SISTEMA:
-- APS: Atenção Primária (SISAB, e-SUS, ICSAP, Previne Brasil)
+- APS: Atenção Primária (SISAB, e-SUS, ICSAP, Novo Financiamento APS)
 - FNS/Convênios: repasses federais, sync automático diário às 06h
 - Farmácia: Hórus, BNAFAR, estoque, dispensação, Farmácia Popular
 - Planejamento: PMS, PAS, RAG automatizado, exportação DIGISUS
@@ -55,7 +55,7 @@ MÓDULOS DO SISTEMA:
 LEGISLAÇÃO RELEVANTE:
 - Portaria GM/MS nº 3.992/2017 (blocos de financiamento)
 - Decreto nº 7.508/2011 (RENAME, Redes de Atenção)
-- Previne Brasil (Portaria 2.979/2019)
+- Novo Financiamento APS (Portaria 2.979/2019)
 - NOB-RH/SUS, LGPD aplicada à saúde
 
 Responda sempre em português do Brasil. Seja objetivo, técnico e prático. Cite normas quando relevante. Máximo 5 parágrafos."""

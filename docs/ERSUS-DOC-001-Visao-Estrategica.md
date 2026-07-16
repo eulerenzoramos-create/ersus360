@@ -44,7 +44,7 @@ O sistema integra dados dos principais sistemas do SUS (e-SUS APS, FNS, CNES, SI
 - Gestores recebem dados fragmentados de 10+ sistemas diferentes
 - Não há visão consolidada de desempenho em tempo real
 - Decisões baseadas em planilhas manuais desatualizadas
-- Alto risco de perda de recursos por metas não atingidas (Previne Brasil)
+- Alto risco de perda de recursos por metas não atingidas (Novo Financiamento APS — Portaria 3.493/2024)
 - Retrabalho operacional estimado em 30% do tempo das equipes
 
 ### 6.2 Impacto financeiro
@@ -108,7 +108,7 @@ O sistema integra dados dos principais sistemas do SUS (e-SUS APS, FNS, CNES, SI
 | Integração FNS em tempo real | ✅ | ⚠️ Parcial |
 | e-SUS APS integrado | ✅ | ⚠️ Parcial |
 | CNES integrado | ✅ | ⚠️ Parcial |
-| Previne Brasil automático | ✅ | ⚠️ Manual |
+| Novo Financiamento APS automático | ✅ | ⚠️ Manual |
 | App para ACS | ✅ Roadmap | ❌ Não tem |
 | Portal do Cidadão | ✅ Roadmap | ❌ Não tem |
 | Marketplace de protocolos | ✅ Roadmap | ❌ Não tem |

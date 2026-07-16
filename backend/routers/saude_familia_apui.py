@@ -63,9 +63,9 @@ _HISTORICO = [
 _INDICADORES = [
     {"indicador": "Cobertura ESF",                   "valor": 84.2,  "meta": 100.0, "unidade": "%",         "status": "atencao", "observacao": "2 equipes sem médico — 3.908 pessoas em área descoberta ou sem cobertura ESF plena. Médicos ausentes em Ramal do Acará e Área Rural"},
     {"indicador": "ACS / 1.000 habitantes",          "valor": 1.9,   "meta": 2.3,   "unidade": "/1k hab.",  "status": "atencao", "observacao": "48 ACS para 24.748 hab. — 10 ACS a menos do necessário. Cada ACS acima de 750 famílias perde qualidade das visitas domiciliares"},
-    {"indicador": "Nota Previne Brasil",             "valor": 6.4,   "meta": 7.0,   "unidade": "pontos",    "status": "atencao", "observacao": "6,4/10 — abaixo da meta 7,0. Pior indicador: pré-natal com odontológico (38,4% vs meta 60%). Impacto no financiamento federal"},
+    {"indicador": "Nota Novo Financiamento APS",             "valor": 6.4,   "meta": 7.0,   "unidade": "pontos",    "status": "atencao", "observacao": "6,4/10 — abaixo da meta 7,0. Pior indicador: pré-natal com odontológico (38,4% vs meta 60%). Impacto no financiamento federal"},
     {"indicador": "Famílias acompanhadas",           "valor": 78.4,  "meta": 100.0, "unidade": "%",         "status": "atencao", "observacao": "21,6% das famílias cadastradas sem acompanhamento regular — área rural e ribeirinha principal gargalo"},
-    {"indicador": "Equipes c/ saúde bucal",          "valor": 62.5,  "meta": 100.0, "unidade": "%",         "status": "atencao", "observacao": "5 de 8 equipes têm ESB. 3 UBS sem dentista → gestantes sem odonto é o pior indicador Previne Brasil da SMS"},
+    {"indicador": "Equipes c/ saúde bucal",          "valor": 62.5,  "meta": 100.0, "unidade": "%",         "status": "atencao", "observacao": "5 de 8 equipes têm ESB. 3 UBS sem dentista → gestantes sem odonto é o pior indicador Novo Financiamento APS da SMS"},
     {"indicador": "Visitas domiciliares/família/mês","valor": 1.34,  "meta": 1.0,   "unidade": "visitas",   "status": "ok",      "observacao": "Meta cumprida — 8.420 visitas/mês. Risco: ACS sobrecaminhados, qualidade pode cair com ampliação de famílias cadastradas"},
 ]
 

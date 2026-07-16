@@ -1,7 +1,7 @@
 /**
  * Parâmetros do Ministério da Saúde — Apuí/AM
  * Componente Qualidade (15 indicadores C/B/M) · SISPACTO · Cobertura Vacinal · Parâmetros CBO
- * Portaria GM/MS 3.493/2024 + 7.799/2025 — O Previne Brasil foi EXTINTO
+ * Portaria GM/MS 3.493/2024 + 7.799/2025 — O Novo Financiamento APS foi EXTINTO
  */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -90,7 +90,7 @@ export default function ParametrosMS() {
     ? <div style={{ color:"var(--muted)", padding:32, textAlign:"center" }}>Carregando painel do gestor…</div>
     : (
     <div>
-      {/* Aviso extinção Previne Brasil */}
+      {/* Aviso extinção Novo Financiamento APS */}
       <div style={{ background:"#fef2f2", border:"1px solid #fca5a5", borderLeft:"4px solid #dc2626", borderRadius:8, padding:"10px 16px", marginBottom:16, fontSize:12, color:"#7f1d1d" }}>
         <strong>⚠️ PREVINE BRASIL EXTINTO:</strong> {pData.aviso_previne_brasil}
       </div>

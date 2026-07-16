@@ -1,4 +1,4 @@
-// src/pages/BuscaAtiva.tsx — Busca Ativa de Pacientes (Previne Brasil)
+// src/pages/BuscaAtiva.tsx — Busca Ativa de Pacientes (Novo Financiamento APS)
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiPrevine } from "../lib/api";
@@ -290,7 +290,7 @@ export default function BuscaAtiva() {
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#1565c0" }}>Busca Ativa</h2>
         </div>
         <p style={{ margin: 0, color: "#666", fontSize: 13 }}>
-          Identifique pacientes elegíveis com ações pendentes · 7 indicadores Previne Brasil · Apuí/AM · Jul/2026
+          Identifique pacientes elegíveis com ações pendentes · 7 indicadores Novo Financiamento APS · Apuí/AM · Jul/2026
         </p>
       </div>
 

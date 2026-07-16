@@ -149,7 +149,7 @@ async def gerar_rdqa(
         # Ações por eixo
         "eixos": _ACOES_EXECUTADAS,
 
-        # Previne Brasil
+        # Novo Financiamento APS
         "previne_brasil": {
             "indicadores": _INDICADORES_PREVINE,
             "total_verde": prev_verde,

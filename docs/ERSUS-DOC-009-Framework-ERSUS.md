@@ -203,7 +203,7 @@ const CORES = {
 ### 5.4 Nomenclatura de rotas
 ```
 /                        → Home (PainelGestor)
-/previne-brasil          → Previne Brasil
+/previne-brasil          → Novo Financiamento APS
 /previne-brasil/ind-1    → Indicador específico
 /painel-gestao           → Painel de Gestão
 /fns/convenios           → FNS Convênios
@@ -363,7 +363,7 @@ Quando uma API real não está disponível, o sistema usa dados validados do mun
 
 | Módulo | Fonte | Atualização |
 |---|---|---|
-| Previne Brasil | Relatório quadrimestral Apuí/AM | Trimestral |
+| Novo Financiamento APS | Relatório quadrimestral Apuí/AM | Trimestral |
 | Repasses FNS | Portal FNS público | Mensal |
 | Equipes CNES | DATASUS público | Mensal |
 | Produção APS | e-SUS PEC Apuí/AM | Diária (quando online) |

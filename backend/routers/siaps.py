@@ -150,7 +150,7 @@ _VINCULO_EQUIPES = [
     },
 ]
 
-# ── Componente Qualidade (Previne Brasil 7 indicadores) ───────────────────────
+# ── Componente Qualidade (Novo Financiamento APS 7 indicadores) ───────────────────────
 
 _QUALIDADE_EQUIPES = [
     {
@@ -289,7 +289,7 @@ _BOAS_PRATICAS = [
     },
     {
         "titulo": "Consulta RN — Equipe LIBERDADE 100%",
-        "descricao": "100% dos recém-nascidos com consulta na 1ª semana de vida. Indicador 4 do Previne Brasil — atingido por apenas 1 equipe no município.",
+        "descricao": "100% dos recém-nascidos com consulta na 1ª semana de vida. Indicador 4 do Novo Financiamento APS — atingido por apenas 1 equipe no município.",
         "ubs": "CENTRO DE SAÚDE CURUMIM", "equipe": "LIBERDADE",
         "tipo": "qualidade", "destaque": True,
     },

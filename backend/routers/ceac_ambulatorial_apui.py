@@ -66,7 +66,7 @@ _INDICADORES = [
     {"indicador":"Taxa de Absenteismo",                "valor":"22,4%",    "meta":"≤ 10%",  "status":"atencao","obs":"1 em cada 5 consultas não comparece. Causas: distância (rural), transporte (sem vale-transporte), falta de comunicação (agendamento só por telefone fixo)"},
     {"indicador":"Resolubilidade APS",                 "valor":"78,4%",    "meta":"≥ 85%",  "status":"atencao","obs":"21,6% dos atendimentos APS resultam em encaminhamento — acima do aceitável. Treinamento e protocolos clínicos insuficientes para médicos generalistas recém-formados"},
     {"indicador":"Execução MAC/Teto Financeiro",       "valor":"91,0%",    "meta":"≥ 95%",  "status":"atencao","obs":"R$ 284k executados de R$ 312k teto. Subexecução por falta de prestadores credenciados locais, não por falta de demanda"},
-    {"indicador":"Completude SISAB",                   "valor":"84,2%",    "meta":"≥ 95%",  "status":"atencao","obs":"15,8% dos atendimentos sem registro adequado no SISAB — impacta Previne Brasil e programação orçamentária"},
+    {"indicador":"Completude SISAB",                   "valor":"84,2%",    "meta":"≥ 95%",  "status":"atencao","obs":"15,8% dos atendimentos sem registro adequado no SISAB — impacta Novo Financiamento APS e programação orçamentária"},
 ]
 
 @router.get("/dashboard")

@@ -39,7 +39,7 @@ async def central_alertas(_=Depends(get_current_user)):
             },
             {
                 "id": 3, "nivel": "CRITICO", "categoria": "Clínico",
-                "titulo": "Meta Previne Brasil — 2 indicadores abaixo",
+                "titulo": "Meta Novo Financiamento APS — 2 indicadores abaixo",
                 "descricao": "Ind.5 Hipertensão (58%) e Ind.6 Diabetes (55%) abaixo da meta de 60%",
                 "data": "2026-07-01T06:00:00", "resolvido": False,
             },

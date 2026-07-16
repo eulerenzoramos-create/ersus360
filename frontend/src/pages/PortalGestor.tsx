@@ -100,10 +100,10 @@ export default function PortalGestor() {
       {/* Linha 2 */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
 
-        {/* Metas Previne Brasil */}
+        {/* Metas Novo Financiamento APS */}
         <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e0e0e0", padding: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: "#333" }}>Metas Previne Brasil</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: "#333" }}>Metas Novo Financiamento APS</div>
             <div style={{ background: d.metas_previne_atingidas >= d.metas_previne_total * 0.7 ? "#e8f5e9" : "#fff3e0", color: d.metas_previne_atingidas >= d.metas_previne_total * 0.7 ? "#2e7d32" : "#e65100", padding: "4px 12px", borderRadius: 20, fontSize: 13, fontWeight: 800 }}>
               {d.metas_previne_atingidas}/{d.metas_previne_total} atingidas
             </div>

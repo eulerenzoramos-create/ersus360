@@ -5,7 +5,7 @@ Versão 1.0 · Julho/2026
 ---
 
 ## 1. Objetivo
-Detalhar o módulo de Atenção Primária à Saúde (APS) do ERSUS 360, integrando Saúde Brasil 360, Previne Brasil, Busca Ativa, ACS, Inconsistências, POEPS e Programa Saúde na Escola — todos alimentados pelo e-SUS PEC de Apuí/AM.
+Detalhar o módulo de Atenção Primária à Saúde (APS) do ERSUS 360, integrando Saúde Brasil 360, Novo Financiamento APS, Busca Ativa, ACS, Inconsistências, POEPS e Programa Saúde na Escola — todos alimentados pelo e-SUS PEC de Apuí/AM.
 
 ---
 
@@ -14,7 +14,7 @@ Detalhar o módulo de Atenção Primária à Saúde (APS) do ERSUS 360, integran
 | Sub-módulo | Fonte | Status |
 |---|---|---|
 | Saúde Brasil 360 | SISAB / e-SUS | 🟡 Telas criadas |
-| Previne Brasil (7 ind.) | FNS API / SISAB | ✅ Produção |
+| Novo Financiamento APS (7 ind.) | FNS API / SISAB | ✅ Produção |
 | Busca Ativa — Gestante | e-SUS PEC | 🟡 Telas criadas |
 | Busca Ativa — Vacinas | e-SUS PEC / SI-PNI | 🟡 Telas criadas |
 | ACS — Painel e Produção | e-SUS PEC | 🟡 Telas criadas |
@@ -39,7 +39,7 @@ Detalhar o módulo de Atenção Primária à Saúde (APS) do ERSUS 360, integran
 
 ---
 
-## 4. Previne Brasil — 7 Indicadores
+## 4. Novo Financiamento APS — 7 Indicadores
 
 | # | Indicador | Eixo | Meta | Fórmula |
 |---|---|---|---|---|
@@ -73,12 +73,12 @@ Detalhar o módulo de Atenção Primária à Saúde (APS) do ERSUS 360, integran
 
 | # | Tipo | Descrição | Impacto |
 |---|---|---|---|
-| 1 | Gestante sem ACS | Gestante sem agente responsável | Previne Brasil Ind. 1 |
+| 1 | Gestante sem ACS | Gestante sem agente responsável | Novo Financiamento APS Ind. 1 |
 | 2 | Cadastro desatualizado | > 24 meses sem atualização | Financiamento PAB |
 | 3 | Óbito sem encerramento | Paciente óbito no SIM sem encerramento no e-SUS | Indicadores distorcidos |
 | 4 | Duplicidade de cadastro | Mesmo CNS em duas fichas | Dupla contagem |
 | 5 | Profissional sem CBO | Atendimento sem classificação ocupacional | SISAB rejeitado |
-| 6 | Produção sem identificação | Atendimento sem CNS ou CPF | Não conta para Previne Brasil |
+| 6 | Produção sem identificação | Atendimento sem CNS ou CPF | Não conta para Novo Financiamento APS |
 
 ---
 
@@ -116,7 +116,7 @@ Detalhar o módulo de Atenção Primária à Saúde (APS) do ERSUS 360, integran
 
 ```
 GET /api/aps/saude-brasil-360          → painéis SB360
-GET /api/aps/previne/consolidado       → Previne Brasil consolidado
+GET /api/aps/previne/consolidado       → Novo Financiamento APS consolidado
 GET /api/aps/previne/indicadores       → 7 indicadores detalhados
 GET /api/aps/busca-ativa/gestantes     → gestantes sem acompanhamento
 GET /api/aps/busca-ativa/vacinas       → crianças com vacinas em atraso
@@ -130,7 +130,7 @@ GET /api/aps/producao                  → produção APS por equipe/período
 
 ## 10. Regras de Negócio
 
-- RN-015-01: Todos os indicadores Previne Brasil devem exibir o quadrimestre atual
+- RN-015-01: Todos os indicadores Novo Financiamento APS devem exibir o quadrimestre atual
 - RN-015-02: Busca Ativa deve listar apenas pacientes da área de abrangência do ACS logado
 - RN-015-03: Inconsistências devem ser resolvidas em até 30 dias após identificação
 - RN-015-04: Dados do e-SUS PEC são a fonte primária — fallback usa SISAB público
@@ -140,7 +140,7 @@ GET /api/aps/producao                  → produção APS por equipe/período
 
 ## 11. Critérios de Aceite
 
-- [ ] Previne Brasil exibindo 7 indicadores com semáforo e evolução
+- [ ] Novo Financiamento APS exibindo 7 indicadores com semáforo e evolução
 - [ ] Busca Ativa com lista filtrável por ACS e microárea
 - [ ] Inconsistências com contagem por tipo e botão de exportação
 - [ ] POEPS com 7 indicadores e comparativo com meta

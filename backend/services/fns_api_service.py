@@ -127,7 +127,7 @@ async def buscar_convenios() -> list[dict]:
 
 
 async def buscar_indicadores_previne() -> list[dict]:
-    """Busca indicadores do Previne Brasil para Apuí/AM."""
+    """Busca indicadores do Novo Financiamento APS para Apuí/AM."""
     token = await _autenticar()
     if not token:
         return []

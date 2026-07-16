@@ -24,7 +24,7 @@ Definir a IA Gestora Avançada do ERSUS 360 — assistente inteligente baseado n
 - Criar ofícios e comunicados técnicos
 
 ### 2.3 Predição e alertas inteligentes
-- Prever risco de não cumprimento de metas Previne Brasil
+- Prever risco de não cumprimento de metas Novo Financiamento APS
 - Calcular probabilidade de surto epidemiológico (série temporal)
 - Prever insuficiência de estoque de medicamentos
 - Alertar sobre contratos e convênios em situação de risco
@@ -48,7 +48,7 @@ Gestão atual: {secretario}
 SITUAÇÃO ATUAL:
 - ESF: {num_equipes} equipes ({num_acs} ACS)
 - Famílias cadastradas: {num_familias}
-- Previne Brasil (média): {previne_media}%
+- Novo Financiamento APS (média): {previne_media}%
 - Execução PAB: {execucao_pab}%
 - Alertas críticos: {num_alertas}
 - Score ERSUS 360: {score}/100
@@ -86,7 +86,7 @@ Você é a IA Gestora do ERSUS 360, assistente especializado em
 gestão municipal de saúde pública no Brasil. Você conhece:
 - O SUS, suas normas, portarias e financiamento
 - Os sistemas SISAB, e-SUS, SINAN, CNES, FNS, SIOPS
-- O Previne Brasil e seus 7 indicadores
+- O Novo Financiamento APS e seus 7 indicadores
 - As especificidades do município de {municipio}
 
 Responda em português, de forma clara e objetiva.

@@ -10,7 +10,7 @@ const BRAND = "#1e3a5f"
 const MODULOS = [
   {
     label: "Atenção Primária",
-    sub: "ESF · SISAB · eMulti · Previne Brasil",
+    sub: "ESF · SISAB · eMulti · Novo Financiamento APS",
     path: "/atencao-primaria-apui",
     Icon: Activity,
     cor: "#1d4ed8",

@@ -22,7 +22,7 @@ Painel executivo simplificado para o prefeito acompanhar os principais indicador
 | Execução orçamentária | Financeiro | % por bloco |
 | Famílias atendidas pela ESF | APS | Número |
 | Cobertura vacinal | Vigilância | % |
-| Metas Previne Brasil | APS | Semáforo |
+| Metas Novo Financiamento APS | APS | Semáforo |
 | Obras em andamento | Obras | Contador + status |
 | Alertas críticos | OCIS | Badge vermelho |
 
@@ -45,7 +45,7 @@ Página pública (sem login) com dados de saúde do município disponíveis à p
 | Unidades de saúde (nome, endereço, horário) | Manual |
 | Equipes de saúde (ESF ativas) | Mensal |
 | Cobertura da Atenção Básica (%) | Mensal |
-| Indicadores Previne Brasil (resultado) | Quadrimestral |
+| Indicadores Novo Financiamento APS (resultado) | Quadrimestral |
 | Coberturas vacinais | Mensal |
 | Execução financeira simplificada | Mensal |
 | Obras de saúde (status) | Mensal |

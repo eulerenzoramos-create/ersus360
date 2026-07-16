@@ -65,7 +65,7 @@ ESF_EAP = {
             },
             {
                 "nome": "Bônus por Desempenho (ISF)",
-                "descricao": "Índice de Saúde da Família — pagamento por performance nos 8 indicadores Previne Brasil",
+                "descricao": "Índice de Saúde da Família — pagamento por performance nos 8 indicadores Novo Financiamento APS",
                 "valor_referencia": "Até 100% adicional sobre a capitação",
                 "indicadores_fonte": "SIAPS / e-Gestor APS",
             },

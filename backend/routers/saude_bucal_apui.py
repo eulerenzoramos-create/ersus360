@@ -59,9 +59,9 @@ _INDICADORES = [
     {"indicador": "CEO-d em crianças de 5 anos",       "valor": 4.2,  "meta": 2.0,  "unidade": "",        "status": "critico", "observacao": "CEO-d 4,2 vs meta OMS 2,0 — alta prevalência de cárie precoce da infância. Aleitamento noturno prolongado e consumo de açúcar são os fatores principais"},
     {"indicador": "Proporção de exodontias",           "valor": 38.4, "meta": 30.0, "unidade": "%",       "status": "critico", "observacao": "38,4% dos procedimentos são exodontias — modelo mutilador ainda prevalente. Meta Brasil < 30%. Falta de acesso oportuno leva ao estágio de necessidade de extração"},
     {"indicador": "Edentulismo (65-74a)",              "valor": 38.4, "meta": 15.0, "unidade": "%",       "status": "critico", "observacao": "38,4% dos idosos edêntulos — reflexo de décadas de exodontia como única oferta. Impacto nutricional, social e cognitivo significativo"},
-    {"indicador": "Gestantes atendidas (pré-natal)",   "valor": 38.4, "meta": 60.0, "unidade": "%",       "status": "critico", "observacao": "38,4% vs meta 60% — 3 UBS sem ESB. Gestantes sem odontológico pioram o Previne Brasil e aumentam risco de prematuridade por infecção periodontal"},
+    {"indicador": "Gestantes atendidas (pré-natal)",   "valor": 38.4, "meta": 60.0, "unidade": "%",       "status": "critico", "observacao": "38,4% vs meta 60% — 3 UBS sem ESB. Gestantes sem odontológico pioram o Novo Financiamento APS e aumentam risco de prematuridade por infecção periodontal"},
     {"indicador": "Prevenção (flúor/selante) no total","valor": 16.5, "meta": 30.0, "unidade": "%",       "status": "critico", "observacao": "16,5% dos procedimentos são preventivos vs meta 30% — modelo ainda curativo-mutilador. Selante e aplicação de flúor são subofertados"},
-    {"indicador": "ESB implantadas",                   "valor": 62.5, "meta": 100.0,"unidade": "%",       "status": "atencao", "observacao": "5 de 8 equipes têm ESB — 3 UBS sem dentista. Equipes incompletas não atingem indicadores Previne Brasil de saúde bucal no pré-natal"},
+    {"indicador": "ESB implantadas",                   "valor": 62.5, "meta": 100.0,"unidade": "%",       "status": "atencao", "observacao": "5 de 8 equipes têm ESB — 3 UBS sem dentista. Equipes incompletas não atingem indicadores Novo Financiamento APS de saúde bucal no pré-natal"},
 ]
 
 

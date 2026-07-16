@@ -110,7 +110,7 @@ export default function PortalCidadao() {
             </div>
           </div>
           <div style={{ background: "#fff", borderRadius: 8, border: "1px solid #e0e0e0", padding: 20 }}>
-            <div style={{ fontWeight: 700, marginBottom: 16, color: "#333" }}>Indicadores Previne Brasil — {indicadores.municipio}</div>
+            <div style={{ fontWeight: 700, marginBottom: 16, color: "#333" }}>Indicadores Novo Financiamento APS — {indicadores.municipio}</div>
             {indicadores.previne_brasil?.map((ind: Indicador) => {
               const pct = ind.resultado_pct;
               const atingiu = pct >= ind.meta_pct;

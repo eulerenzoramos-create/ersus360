@@ -88,8 +88,8 @@ _OBRIGACOES: list[dict] = [
      "prazo": f"{_ANO}-01-31", "status": "nao_iniciado", "responsavel": "VISA Municipal",
      "base_legal": "Lei 6.437/1977", "modulo": "/vigilancia", "prioridade": "media"},
 
-    # ── Previne Brasil ──────────────────────────────────────────────────────
-    {"id": "PREVINE-AVALIAC-Q3", "categoria": "Previne Brasil", "titulo": "Avaliação Previne Brasil — 3º Quadrimestre",
+    # ── Novo Financiamento APS ──────────────────────────────────────────────────────
+    {"id": "PREVINE-AVALIAC-Q3", "categoria": "Novo Financiamento APS", "titulo": "Avaliação Novo Financiamento APS — 3º Quadrimestre",
      "descricao": "Fechamento dos 7 indicadores para competição de desempenho",
      "prazo": f"{_ANO}-11-30", "status": "nao_iniciado", "responsavel": "Coord. APS",
      "base_legal": "Portaria 2.979/2019", "modulo": "/previne", "prioridade": "alta"},

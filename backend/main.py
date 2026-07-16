@@ -679,7 +679,7 @@ async def sistema_info():
         "uf": settings.MUNICIPIO_UF,
         "ibge": settings.FNS_MUNICIPIO_IBGE,
         "modulos": [
-            "FNS/Convênios", "Previne Brasil", "APS", "Farmácia",
+            "FNS/Convênios", "Novo Financiamento APS", "APS", "Farmácia",
             "Vigilância", "RH", "Obras", "Patrimônio",
             "BI", "OCIS", "Portais", "Marketplace",
         ],

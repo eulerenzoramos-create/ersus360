@@ -22,7 +22,7 @@ const LABEL_SCORE = (s: number) =>
 
 // ── Indicadores dimensionais Apuí ─────────────────────────────────────────────
 const DIMENSOES = [
-  { label: "APS / Previne Brasil",      score: 78.2, peso: 35, cor: "#1565c0",  icone: "🏥" },
+  { label: "APS / Novo Financiamento APS",      score: 78.2, peso: 35, cor: "#1565c0",  icone: "🏥" },
   { label: "Financeiro / FNS",          score: 81.4, peso: 25, cor: "#2e7d32",  icone: "💰" },
   { label: "Epidemiologia / Vigilância",score: 64.7, peso: 20, cor: "#f57f17",  icone: "🦟" },
   { label: "Gestão / RH / Obras",       score: 70.1, peso: 10, cor: "#6a1b9a",  icone: "⚙️" },
@@ -222,7 +222,7 @@ export default function MapaDesempenho() {
             {[
               { label: "Score ERSUS", apui: scoreAtual, media: 59.0, unidade: "pts" },
               { label: "Cobertura ESF", apui: 89.2, media: 70.1, unidade: "%" },
-              { label: "Previne Brasil", apui: 68.4, media: 52.3, unidade: "%" },
+              { label: "Novo Financiamento APS", apui: 68.4, media: 52.3, unidade: "%" },
               { label: "Equipes ESF/10k hab", apui: 1.20, media: 0.92, unidade: "" },
             ].map(c => (
               <div key={c.label} style={{ marginBottom: 16 }}>

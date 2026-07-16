@@ -1,5 +1,5 @@
 """
-Previne Brasil Service — e-Gestor APS / SISAB
+Novo Financiamento APS Service — e-Gestor APS / SISAB
 Tenta buscar indicadores via API pública do e-Gestor APS.
 Fallback: dados de referência para Apuí/AM.
 
@@ -79,7 +79,7 @@ def _parse_indicador(raw: dict, numero: int) -> dict:
 
 async def buscar_indicadores(competencia: str) -> dict:
     """
-    Indicadores Previne Brasil municipais.
+    Indicadores Novo Financiamento APS municipais.
     competencia: formato AAAAMM, ex: '202507'
     """
     # Tenta e-Gestor APS API

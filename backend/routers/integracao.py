@@ -87,7 +87,7 @@ async def convenios_fns(_=Depends(get_current_user)):
 
 @router.get("/fns/previne")
 async def indicadores_previne(_=Depends(get_current_user)):
-    """Busca indicadores do Previne Brasil para Apuí/AM."""
+    """Busca indicadores do Novo Financiamento APS para Apuí/AM."""
     data = await buscar_indicadores_previne()
     return {"indicadores": data}
 

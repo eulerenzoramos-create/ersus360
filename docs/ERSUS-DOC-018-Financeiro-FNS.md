@@ -33,7 +33,7 @@ Definir o módulo Financeiro do ERSUS 360, cobrindo repasses FNS, convênios, ex
 | ACS (por agente) | Mensal | R$ 2.400/ACS |
 | Saúde Bucal (eSB II) | Mensal | R$ 5.000/equipe |
 | NASF-AB / eMulti | Mensal | R$ 8.000/equipe |
-| Previne Brasil | Quadrimestral | Variável (% metas) |
+| Novo Financiamento APS (Portaria 3.493/2024) | Quadrimestral | Variável (% metas) |
 | PMAQ/IQDAQ | Quadrimestral | Variável |
 
 ### 3.2 Dados do repasse

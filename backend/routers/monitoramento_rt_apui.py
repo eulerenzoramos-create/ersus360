@@ -248,7 +248,7 @@ _PROD = {
     },
 }
 
-# ── Indicadores Previne Brasil (por equipe ESF) ────────────────────────────────
+# ── Indicadores Novo Financiamento APS (por equipe ESF) ────────────────────────────────
 _INDICADORES_PREVINE = [
     {"ind": "ind1", "label": "Pré-natal ≥7 consultas",              "meta_pct": 60.0, "peso": 1},
     {"ind": "ind2", "label": "Gestante c/ exames 1º trimestre",     "meta_pct": 60.0, "peso": 1},
@@ -606,6 +606,11 @@ async def producao_mensal():
     # Previne: acumula valores ao longo do mês (média ponderada progressiva)
     ind_acum: dict[str, list[float]] = {ind["ind"]: [] for ind in _INDICADORES_PREVINE}
     odo_acum: dict[str, list[float]] = {ind["ind"]: [] for ind in _INDICADORES_ODO}
+    # Acumulado por equipe ESB
+    odo_acum_eq: dict[str, dict[str, list[float]]] = {
+        eq["nome"]: {ind["ind"]: [] for ind in _INDICADORES_ODO}
+        for eq in _EQUIPES_ESB
+    }
 
     for d in range(1, dias_no_mes + 1):
         data_d = date(ano, mes, d)
@@ -678,11 +683,18 @@ async def producao_mensal():
                 "status": "verde" if media >= ind["meta_pct"] else "amarelo" if media >= ind["meta_pct"] * 0.7 else "vermelho",
             })
 
-        # indicadores odonto — média das 3 ESB
+        # indicadores odonto — por equipe ESB + média geral
         inds_dia_esb: dict[str, list[float]] = {ind["ind"]: [] for ind in _INDICADORES_ODO}
+        inds_odo_dia_por_eq: list[dict] = []
         for eq in _EQUIPES_ESB:
-            for ind in _indicadores_odo_dia(eq["nome"], ano, mes, d, is_hoje, hora_atual):
+            eq_inds_dia = _indicadores_odo_dia(eq["nome"], ano, mes, d, is_hoje, hora_atual)
+            eq_inds_out = []
+            for ind in eq_inds_dia:
                 inds_dia_esb[ind["ind"]].append(ind["resultado_pct"])
+                odo_acum_eq[eq["nome"]][ind["ind"]].append(ind["resultado_pct"])
+                media_acum_eq = round(sum(odo_acum_eq[eq["nome"]][ind["ind"]]) / len(odo_acum_eq[eq["nome"]][ind["ind"]]), 1)
+                eq_inds_out.append({**ind, "acumulado_pct": media_acum_eq})
+            inds_odo_dia_por_eq.append({"equipe": eq["nome"], "ubs": eq["ubs"], "indicadores": eq_inds_out})
 
         inds_odo_dia = []
         for ind in _INDICADORES_ODO:
@@ -712,6 +724,7 @@ async def producao_mensal():
             "total":  prod_esf["total"] + prod_esb["total"] + prod_emulti["total"],
             "indicadores_previne": inds_previne_dia,
             "indicadores_odonto":  inds_odo_dia,
+            "indicadores_odonto_por_equipe": inds_odo_dia_por_eq,
             "acumulado_mes_esf":    acumulado_esf,
             "acumulado_mes_esb":    acumulado_esb,
             "acumulado_mes_emulti": acumulado_emulti,
@@ -721,7 +734,7 @@ async def producao_mensal():
     total_mes = sum(d["total"] for d in dias_com_dados)
     media_dia  = round(total_mes / max(len(dias_com_dados), 1))
 
-    # Consolidado mensal dos indicadores Previne Brasil
+    # Consolidado mensal dos indicadores Novo Financiamento APS
     inds_mes: list[dict] = []
     for ind in _INDICADORES_PREVINE:
         vals = ind_acum.get(ind["ind"], [])
@@ -746,6 +759,22 @@ async def producao_mensal():
             "status": "verde" if media_mes >= ind["meta_pct"] else "amarelo" if media_mes >= ind["meta_pct"] * 0.7 else "vermelho",
         })
 
+    # Consolidado mensal por equipe ESB
+    inds_odo_mes_por_equipe: list[dict] = []
+    for eq in _EQUIPES_ESB:
+        eq_inds = []
+        for ind in _INDICADORES_ODO:
+            vals = odo_acum_eq[eq["nome"]].get(ind["ind"], [])
+            media_mes = round(sum(vals) / len(vals), 1) if vals else 0.0
+            eq_inds.append({
+                "ind": ind["ind"],
+                "label": ind["label"],
+                "meta_pct": ind["meta_pct"],
+                "resultado_pct": media_mes,
+                "status": "verde" if media_mes >= ind["meta_pct"] else "amarelo" if media_mes >= ind["meta_pct"] * 0.7 else "vermelho",
+            })
+        inds_odo_mes_por_equipe.append({"equipe": eq["nome"], "ubs": eq["ubs"], "indicadores": eq_inds})
+
     return {
         "timestamp": agora.isoformat(),
         "mes_ano": agora.strftime("%B/%Y"),
@@ -760,5 +789,6 @@ async def producao_mensal():
         "acumulado_emulti": acumulado_emulti,
         "indicadores_previne_mes": inds_mes,
         "indicadores_odonto_mes":  inds_odo_mes,
+        "indicadores_odonto_mes_por_equipe": inds_odo_mes_por_equipe,
         "dias": dias,
     }

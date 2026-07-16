@@ -61,7 +61,7 @@ async def _job_score_ersus() -> None:
             await manager.broadcast({
                 "nivel": "AVISO",
                 "titulo": f"Score ERSUS 360: {score:.1f}/100 ({nivel})",
-                "mensagem": "Melhore a execução financeira e cobertura Previne Brasil.",
+                "mensagem": "Melhore a execução financeira e cobertura do Novo Financiamento APS.",
                 "modulo": "Score ERSUS",
             })
     except Exception as exc:

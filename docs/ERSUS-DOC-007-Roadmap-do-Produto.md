@@ -30,7 +30,7 @@ Definir o roadmap oficial de desenvolvimento do ERSUS 360, detalhando as 20 fase
 | Integração FNS API | ✅ Produção | Credenciais configuradas |
 | Integração e-SUS PEC | ✅ Produção | Apuí/AM |
 | Sidebar VersaSaúde (11 módulos) | ✅ Produção | Modelo completo |
-| Previne Brasil (7 indicadores) | ✅ Produção | Com dados reais |
+| Novo Financiamento APS (7 indicadores) | ✅ Produção | Com dados reais |
 | SUS 360° integrado (iframe) | ✅ Produção | MS |
 | DOC-001 a DOC-006 | ✅ Concluídos | Fase 1 Governança |
 
@@ -182,7 +182,7 @@ Fase 20                                                              ██ (Mar
 | Módulo | Status |
 |---|---|
 | Saúde Brasil 360 | 🔜 Telas criadas, dados pendentes |
-| Previne Brasil (7 ind.) | ✅ Produção |
+| Novo Financiamento APS (7 ind.) | ✅ Produção |
 | Painel de Gestão | ✅ Produção |
 | Busca Ativa | 🔜 Telas criadas, dados pendentes |
 | ACS | 🔜 Telas criadas, dados pendentes |

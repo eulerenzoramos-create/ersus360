@@ -413,7 +413,7 @@ export const apiPatrimonio = {
   abastecimento: () => apiGet("/api/patrimonio/abastecimento"),
 };
 
-// ── Previne Brasil ────────────────────────────────────────────────────────────
+// ── Novo Financiamento APS (Portaria 3.493/2024) ─────────────────────────────
 export const apiPrevine = {
   indicadores: (competencia = "202507") => apiGet("/api/previne/indicadores", { competencia }),
   historico: (meses = 6) => apiGet("/api/previne/historico", { meses }),

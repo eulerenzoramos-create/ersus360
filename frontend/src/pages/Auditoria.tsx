@@ -45,7 +45,7 @@ interface LogEntry {
 // Dados de exemplo para quando a API retornar vazio
 const LOGS_DEMO: LogEntry[] = [
   { id: 1, usuario_nome: "Euler Ramos", ip_address: "177.91.x.x", acao: "login", modulo: "auth", descricao: "Login realizado com sucesso", nivel: "INFO", criado_em: new Date().toISOString() },
-  { id: 2, usuario_nome: "Euler Ramos", ip_address: "177.91.x.x", acao: "visualizar", modulo: "previne", descricao: "Acessou Previne Brasil — 7 indicadores", nivel: "INFO", criado_em: new Date(Date.now() - 300000).toISOString() },
+  { id: 2, usuario_nome: "Euler Ramos", ip_address: "177.91.x.x", acao: "visualizar", modulo: "previne", descricao: "Acessou Novo Financiamento APS — 7 indicadores", nivel: "INFO", criado_em: new Date(Date.now() - 300000).toISOString() },
   { id: 3, usuario_nome: "Ana Souza", ip_address: "189.34.x.x", acao: "exportar", modulo: "fns", descricao: "Exportou relatório FNS — Convênios 2026", nivel: "AUDIT", criado_em: new Date(Date.now() - 600000).toISOString() },
   { id: 4, usuario_nome: "Desconhecido", ip_address: "200.10.x.x", acao: "login_falhou", modulo: "auth", descricao: "Senha incorreta — tentativa 1/5", nivel: "WARN", criado_em: new Date(Date.now() - 900000).toISOString() },
   { id: 5, usuario_nome: "Ana Souza", ip_address: "189.34.x.x", acao: "criar", modulo: "usuarios", descricao: "Criou usuário João Silva (perfil: financeiro)", nivel: "AUDIT", criado_em: new Date(Date.now() - 1800000).toISOString() },

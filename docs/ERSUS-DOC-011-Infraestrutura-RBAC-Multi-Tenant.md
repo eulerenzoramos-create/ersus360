@@ -100,7 +100,7 @@ async def get_municipio_atual(usuario = Depends(get_current_user)):
 | Módulo | superadmin | admin | gestor | coordenador | financeiro | acs | visualizador |
 |---|---|---|---|---|---|---|---|
 | Home/Dashboard | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| Previne Brasil | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
+| Novo Financiamento APS | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
 | Painel de Gestão | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
 | Busca Ativa | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
 | ACS | ✅ | ✅ | ✅ | ✅ | ❌ | ✅* | ✅ |

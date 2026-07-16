@@ -23,7 +23,7 @@ const PARCEIROS: Parceiro[] = [
 const TRILHAS: Trilha[] = [
   {
     id: 1, titulo: "Gestão em Saúde para Iniciantes",
-    descricao: "Como funciona o SUS no município, financiamento PAB, Previne Brasil e RDQA.",
+    descricao: "Como funciona o SUS no município, financiamento PAB, Novo Financiamento APS e RDQA.",
     duracao: "8 horas", modulos: 4, nivel: "Iniciante", plano_minimo: "Bronze", certificado: true,
   },
   {

@@ -71,7 +71,7 @@ _ALERTAS_REF = [
     {
         "id": 3,
         "nivel": "AVISO",
-        "categoria": "Previne Brasil",
+        "categoria": "Novo Financiamento APS",
         "titulo": "Meta Ind.2 — Citopatológico abaixo do esperado",
         "descricao": "Cobertura atual: 43% · Meta: 60%. Equipes ESF precisam intensificar busca ativa.",
         "modulo": "aps",

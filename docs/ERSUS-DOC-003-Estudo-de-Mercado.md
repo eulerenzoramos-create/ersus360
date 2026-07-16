@@ -102,7 +102,7 @@ SOM — Serviceable Obtainable Market (meta 5 anos)
 | Diferencial | ERSUS | VersaSaúde | Betha | Tasy |
 |---|---|---|---|---|
 | IA Gestora nativa | ✅ | ❌ | ❌ | ⚠️ Parcial |
-| Previne Brasil automático | ✅ | ✅ | ❌ | ❌ |
+| Novo Financiamento APS automático | ✅ | ✅ | ❌ | ❌ |
 | Integração FNS em tempo real | ✅ | ⚠️ | ❌ | ❌ |
 | e-SUS APS integrado | ✅ | ✅ | ❌ | ❌ |
 | CNES integrado | ✅ | ⚠️ | ❌ | ⚠️ |
@@ -118,13 +118,13 @@ SOM — Serviceable Obtainable Market (meta 5 anos)
 
 ### 6.1 Macro tendências
 1. **Digitalização do SUS**: O Ministério da Saúde investe R$ 1,5 bi/ano em TIS (Tecnologia da Informação em Saúde)
-2. **Previne Brasil**: Programa vincula repasses ao desempenho — cria demanda urgente por BI
+2. **Novo Financiamento APS (Portaria 3.493/2024)**: Programa vincula repasses ao desempenho — cria demanda urgente por BI
 3. **RNDS (Rede Nacional de Dados em Saúde)**: Integração obrigatória exige sistemas compatíveis
 4. **IA em saúde pública**: Tendência global chegando aos municípios brasileiros
 5. **Open data SUS**: Dados públicos permitem integrações sem burocracia
 
 ### 6.2 Oportunidades imediatas
-- **Previne Brasil**: 2.100+ municípios perderam recursos por falta de monitoramento em 2024
+- **Novo Financiamento APS**: 2.100+ municípios perderam recursos por falta de monitoramento em 2024
 - **POEPS**: Programa novo sem ferramentas adequadas de monitoramento
 - **e-Gestor**: Secretários sem visão consolidada dos programas federais
 - **TransfereGov**: Municípios sem sistema para gerir convênios
@@ -173,7 +173,7 @@ SOM — Serviceable Obtainable Market (meta 5 anos)
 | **Ouro** | < 100 mil hab. | R$ 1.997 | Médio porte com orçamento maior |
 | **Diamante** | > 100 mil hab. | R$ 3.997 | Grande porte, solução completa |
 
-**Premissa:** todo município com Previne Brasil ativo pode pagar o plano Bronze com menos de 0,1% do repasse mensal recebido.
+**Premissa:** todo município com Novo Financiamento APS ativo pode pagar o plano Bronze com menos de 0,1% do repasse mensal recebido.
 
 ---
 

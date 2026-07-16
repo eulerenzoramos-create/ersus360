@@ -265,7 +265,7 @@ export default function RDQA() {
   const ABAS = [
     { id: "resumo",     label: "Resumo Executivo", icon: <BarChart2 size={14} /> },
     { id: "acoes",      label: "Ações por Eixo",   icon: <CheckCircle size={14} /> },
-    { id: "previne",    label: "Previne Brasil",    icon: <Activity size={14} /> },
+    { id: "previne",    label: "Novo Financiamento APS",    icon: <Activity size={14} /> },
     { id: "financeiro", label: "Financeiro",        icon: <DollarSign size={14} /> },
     { id: "historico",  label: "Histórico CMS",     icon: <Calendar size={14} /> },
   ] as const;
@@ -440,7 +440,7 @@ export default function RDQA() {
             </div>
           )}
 
-          {/* ── Previne Brasil ── */}
+          {/* ── Novo Financiamento APS ── */}
           {aba === "previne" && (
             <div>
               <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>

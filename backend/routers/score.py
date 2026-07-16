@@ -1,7 +1,7 @@
 """
 Router: /api/score — Score ERSUS 360
 Índice composto 0–100 calculado a partir dos 5 eixos principais:
-  35% APS (Atenção Primária / Previne Brasil)
+  35% APS (Atenção Primária / Novo Financiamento APS)
   25% Financeiro (SIOPS, execução FNS, conformidade)
   20% Epidemiologia (vigilância, cobertura vacinal, agravos)
   10% Gestão (oblrigações cumpridas, documentos, RH)
@@ -32,9 +32,9 @@ _PESOS = {
 
 async def _score_aps() -> dict:
     """
-    Score APS = média ponderada dos 7 indicadores Previne Brasil
+    Score APS = média ponderada dos 7 indicadores Novo Financiamento APS
     + cobertura ESF + coleta de dados SISAB.
-    Usa dados reais da API Previne Brasil quando disponíveis.
+    Usa dados reais da API Novo Financiamento APS quando disponíveis.
     """
     hoje = date.today()
     comp = f"{hoje.year}{hoje.month:02d}"

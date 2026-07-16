@@ -58,7 +58,7 @@ Conforme LAI, o município deve publicar proativamente:
 - Portal do Cidadão expõe dados LAI automaticamente
 - Execução financeira simplificada em tempo real
 - Contratos visíveis (sem valores nominais de servidores)
-- Indicadores Previne Brasil publicados quadrimestralmente
+- Indicadores Novo Financiamento APS publicados quadrimestralmente
 
 ### 3.3 Ouvidoria integrada
 - Prazo legal: 20 dias úteis (prorrogável mais 10)

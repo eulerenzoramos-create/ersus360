@@ -46,7 +46,7 @@ export default function PlanejamentoSaudeApui() {
 
   const ABAS = [
     { key: "dashboard",   label: "Dashboard",       icon: <BarChart2 size={15}/> },
-    { key: "previne",     label: "Previne Brasil",   icon: <Activity size={15}/> },
+    { key: "previne",     label: "Novo Financiamento APS",   icon: <Activity size={15}/> },
     { key: "idsus",       label: "IDSUS",            icon: <Activity size={15}/> },
     { key: "historico",   label: "Histórico",        icon: <TrendingUp size={15}/> },
     { key: "indicadores", label: "Indicadores",      icon: <AlertTriangle size={15}/> },
@@ -61,7 +61,7 @@ export default function PlanejamentoSaudeApui() {
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Planejamento e Monitoramento — Apuí/AM</h1>
-            <p className="text-sm text-slate-500">PMS · Previne Brasil · IDSUS · RAG · CMS · FMS Apuí/AM</p>
+            <p className="text-sm text-slate-500">PMS · Novo Financiamento APS · IDSUS · RAG · CMS · FMS Apuí/AM</p>
           </div>
         </div>
 
@@ -78,7 +78,7 @@ export default function PlanejamentoSaudeApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Previne Brasil — metas"    value={`${dashRaw.previne_brasil_meta_atingida}/${dashRaw.previne_brasil_indicadores_total}`} color={CRIT} sub={`${dashRaw.previne_brasil_meta_atingida_pct}% atingidas`} />
+              <KPI label="Novo Financiamento APS — metas"    value={`${dashRaw.previne_brasil_meta_atingida}/${dashRaw.previne_brasil_indicadores_total}`} color={CRIT} sub={`${dashRaw.previne_brasil_meta_atingida_pct}% atingidas`} />
               <KPI label="IDSUS municipal"            value={`${dashRaw.idsus_nota_municipio}`}                                                    color={WARN} sub={`AM: ${dashRaw.idsus_media_am} · BR: ${dashRaw.idsus_media_brasil}`} />
               <KPI label="Metas PMS atingidas"        value={`${dashRaw.metas_pms_atingidas_pct}%`}                                                color={WARN} sub={`PMS ${dashRaw.pms_vigente}`} />
               <KPI label="Reuniões CMS 2025"          value={`${dashRaw.cms_reunioes_realizadas_2025}/${dashRaw.cms_reunioes_previstas_2025}`}      color={WARN} sub={`Delib. implementadas: ${dashRaw.cms_deliberacoes_implementadas_pct}%`} />
@@ -94,7 +94,7 @@ export default function PlanejamentoSaudeApui() {
                 <h3 className="font-semibold text-slate-700 mb-3">Painel de Planejamento</h3>
                 <div className="space-y-2 text-sm">
                   {[
-                    { label: "Previne Brasil — metas atingidas (meta: 80%)",  value: dashRaw.previne_brasil_meta_atingida_pct, color: CRIT },
+                    { label: "Novo Financiamento APS — metas atingidas (meta: 80%)",  value: dashRaw.previne_brasil_meta_atingida_pct, color: CRIT },
                     { label: "IDSUS (meta: 5,6 pts — escala 10)",             value: dashRaw.idsus_nota_municipio * 10,        color: WARN },
                     { label: "Metas PMS atingidas (meta: 80%)",               value: dashRaw.metas_pms_atingidas_pct,          color: WARN },
                     { label: "Delib. CMS implementadas (meta: 80%)",          value: dashRaw.cms_deliberacoes_implementadas_pct, color: WARN },
@@ -110,7 +110,7 @@ export default function PlanejamentoSaudeApui() {
                 </div>
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 flex flex-col gap-2 justify-center">
-                <p><b>28,6% das metas Previne Brasil atingidas</b> — cada indicador abaixo da meta = redução do repasse PAB. Perda estimada 2025: R$ 280k em incentivos federais não captados. Municípios de porte similar com equipe completa atingem 60-70% das metas.</p>
+                <p><b>28,6% das metas Novo Financiamento APS atingidas</b> — cada indicador abaixo da meta = redução do repasse PAB. Perda estimada 2025: R$ 280k em incentivos federais não captados. Municípios de porte similar com equipe completa atingem 60-70% das metas.</p>
                 <p><b>IDSUS 4,2 — 1,4 pontos abaixo da média nacional</b> — tendência de melhora lenta (0,1/ano). No ritmo atual, Apuí atingirá a média nacional em 2040. Atenção Hospitalar nota 3,6: pior componente — sem UTI, 28 leitos (meta 62).</p>
                 <p><b>COAP não assinado com SES-AM</b> — sem Contrato Organizativo, referência e contrarreferência não têm responsabilidades formalizadas. Paciente transferido para Humaitá/Manaus sem garantia de vaga ou retorno com resumo de alta.</p>
               </div>
@@ -121,7 +121,7 @@ export default function PlanejamentoSaudeApui() {
         {aba === "previne" && Array.isArray(previne) && (
           <div className="space-y-4">
             <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm mb-2">
-              <h3 className="font-semibold text-slate-700 mb-3">Previne Brasil — Resultado vs Meta</h3>
+              <h3 className="font-semibold text-slate-700 mb-3">Novo Financiamento APS — Resultado vs Meta</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={previne as any[]} layout="vertical" margin={{ left: 200, right: 30 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />

@@ -1,5 +1,5 @@
 // src/pages/PrevineBrasil.tsx — Componente Qualidade · Portaria GM/MS 3.493/2024 + 7.799/2025
-// Substituiu o Previne Brasil (extinto em abril/2024)
+// Substituiu o Novo Financiamento APS (extinto em abril/2024)
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, Target, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, AlertTriangle, Ship, Users, Stethoscope, Baby, Heart, FlaskConical, Eye, Pill } from "lucide-react";

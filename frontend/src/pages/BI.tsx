@@ -105,12 +105,12 @@ export default function BI() {
         <div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
             <KPI label="Cobertura ESF" value={`${exec.cobertura_esf_pct}%`} cor="#1565c0" />
-            <KPI label="Previne Brasil (média)" value={`${exec.previne_media_pct}%`} cor="#2e7d32" />
+            <KPI label="Novo Financiamento APS (média)" value={`${exec.previne_media_pct}%`} cor="#2e7d32" />
             <KPI label="Famílias Cadastradas" value={exec.familias_cadastradas?.toLocaleString()} cor="#6a1b9a" />
             <KPI label="Alertas Críticos" value={exec.alertas_criticos} cor="#c62828" />
           </div>
           <div style={{ background: "#fff", borderRadius: 8, border: "1px solid #e0e0e0", padding: 20 }}>
-            <div style={{ fontWeight: 700, marginBottom: 16, color: "#333" }}>Indicadores Previne Brasil</div>
+            <div style={{ fontWeight: 700, marginBottom: 16, color: "#333" }}>Indicadores Novo Financiamento APS</div>
             {exec.previne_indicadores?.map((ind: { indicador: string; resultado: number; meta: number; status: string }) => (
               <div key={ind.indicador} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
                 <div style={{ width: 10, height: 10, borderRadius: "50%", flexShrink: 0, background: ind.status === "verde" ? "#2e7d32" : ind.status === "amarelo" ? "#f57f17" : "#c62828" }} />

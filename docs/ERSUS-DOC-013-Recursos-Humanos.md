@@ -262,7 +262,7 @@ GET    /api/rh/alertas                    → todos os alertas RH
 |---|---|---|
 | Cadastros Mestres | Profissionais, Equipes, UBS | Base de dados para servidores |
 | FNS / Convênios | Fontes de recurso | Custeio de folha por programa |
-| Previne Brasil | Equipes ESF | Calcular custeio por equipe |
+| Novo Financiamento APS | Equipes ESF | Calcular custeio por equipe |
 | Auditoria | Logs | Rastrear alterações de folha |
 | Planejamento (PAS) | Metas de headcount | Comparar real vs. planejado |
 

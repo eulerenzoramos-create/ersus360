@@ -1262,7 +1262,7 @@ function AbaQuadrimestre({ dashData }: { dashData: any }) {
     { indicador: "Vínculo",       valor: v.pontuacao_media * 10 },
     { indicador: "Qualidade",     valor: Math.min(q.pontuacao_media, 50) * 2 },
     { indicador: "Cobertura ESF", valor: 82 },
-    { indicador: "Previne (Cito)",valor: q.cito_meta_pct_media },
+    { indicador: "Fin. APS (Cito)",valor: q.cito_meta_pct_media },
     { indicador: "SISAB",         valor: 97 },
   ];
 

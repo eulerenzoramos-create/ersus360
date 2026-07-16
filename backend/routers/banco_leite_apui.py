@@ -53,7 +53,7 @@ _HISTORICO = [
 ]
 
 _INDICADORES = [
-    {"indicador":"Cobertura Aleitamento Exclusivo 6 meses","valor":"38,4%","meta":"≥ 50%","status":"critico","obs":"Meta Previne Brasil e OMS não atingida. Fatores: retorno precoce ao trabalho informal (garimpo), leite em pó amplamente distribuído por programas sociais, falta de suporte pós-alta"},
+    {"indicador":"Cobertura Aleitamento Exclusivo 6 meses","valor":"38,4%","meta":"≥ 50%","status":"critico","obs":"Meta Novo Financiamento APS e OMS não atingida. Fatores: retorno precoce ao trabalho informal (garimpo), leite em pó amplamente distribuído por programas sociais, falta de suporte pós-alta"},
     {"indicador":"Coleta BLH / Meta",                     "valor":"4.280/6.000 mL/mês","meta":"6.000 mL","status":"atencao","obs":"71,3% da meta. Captação de doadoras em zona rural zero — ausência de estrutura de coleta e refrigeração para transporte fluvial"},
     {"indicador":"Perdas Controle de Qualidade",          "valor":"4,2%","meta":"≤ 3%","status":"atencao","obs":"Principal causa: contaminação microbiológica por técnica de extração domiciliar incorreta. Frascos de coleta inadequados (vidro não esterilizado). Kit de coleta entregue mas sem supervisão"},
     {"indicador":"Receptores RNPT Atendidos",             "valor":"22 bebês","meta":"28","status":"atencao","obs":"6 RNPT sem acesso ao leite pasteurizado — estoque insuficiente para demanda da UTIN referência em Humaitá. Transporte refrigerado até 200 km sem garantia de manutenção de cadeia de frio"},

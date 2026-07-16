@@ -122,7 +122,7 @@ export default function SaudeBucalApui() {
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
                 <p><b>Modelo mutilador persistente</b> — 38,4% dos procedimentos são exodontias vs meta ≤ 30%. O município extrai onde poderia restaurar, gerando o ciclo de edentulismo já visível nos idosos (38,4%).</p>
-                <p><b>3 UBS sem ESB</b> — ESF sem dentista não atinge indicadores Previne Brasil de saúde bucal no pré-natal. Gestantes não triadas = risco de parto prematuro por infecção periodontal.</p>
+                <p><b>3 UBS sem ESB</b> — ESF sem dentista não atinge indicadores Novo Financiamento APS de saúde bucal no pré-natal. Gestantes não triadas = risco de parto prematuro por infecção periodontal.</p>
                 <p><b>CEO não implantado</b> — sem referência para endodontia, prótese, periodontia. Procedimentos especializados só em Manicoré (160 km) ou Manaus (784 km).</p>
               </div>
             </div>

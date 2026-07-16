@@ -8,7 +8,7 @@ interface Msg { role: "user" | "assistant"; content: string }
 const CHIPS = [
   "Qual a situação geral do FMS Apuí em junho/2026?",
   "O que precisa de ação urgente?",
-  "Explique o que é o Previne Brasil",
+  "Explique o que é o Novo Financiamento APS",
   "Como melhorar a execução MAC?",
   "Gere um resumo executivo para a câmara municipal",
   "O que é ICSAP e por que é importante?",

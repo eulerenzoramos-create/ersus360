@@ -11,7 +11,7 @@ _DIMENSOES = [
     {"dimensao": "Atenção Primária à Saúde",     "peso": 25, "score": 52.4, "cor": "#2563eb",
      "subdimensoes": [
          {"item": "Cobertura ESF", "valor": 72.0, "meta": 95.0, "score": 44.4},
-         {"item": "Previne Brasil (IFP)", "valor": 0.52, "meta": 1.0, "score": 52.0},
+         {"item": "Novo Financiamento APS (IFP)", "valor": 0.52, "meta": 1.0, "score": 52.0},
          {"item": "ICSAP (inverso)", "valor": 18.4, "meta": 8.0, "score": 43.5},
          {"item": "Produção APS/hab", "valor": 3.2, "meta": 5.0, "score": 64.0},
      ]},
@@ -115,7 +115,7 @@ async def _dimensoes_dinamicas() -> list[dict]:
 
     dims = list(_DIMENSOES)  # cópia rasa
 
-    # Dimensão 0: APS — Previne Brasil + SIH/ICSAP + SIA produção
+    # Dimensão 0: APS — Novo Financiamento APS + SIH/ICSAP + SIA produção
     ind_previne = previne_data.get("indicadores", [])
     media_pct = previne_data.get("media_geral_pct") or 68.0
     ifp = round(sum(
@@ -131,7 +131,7 @@ async def _dimensoes_dinamicas() -> list[dict]:
         "score": round(media_pct * 0.55 + icsap_score * 0.25 + min(per_capita / 5.0 * 100, 100) * 0.1 + 68.4 / 95.0 * 100 * 0.1, 1),
         "subdimensoes": [
             {"item": "Cobertura ESF",       "valor": 68.4,     "meta": 95.0, "score": round(68.4 / 95.0 * 100, 1)},
-            {"item": "Previne Brasil (IFP)", "valor": ifp,      "meta": 1.0,  "score": round(ifp * 100, 1)},
+            {"item": "Novo Financiamento APS (IFP)", "valor": ifp,      "meta": 1.0,  "score": round(ifp * 100, 1)},
             {"item": "ICSAP (inverso)",      "valor": icsap_pct,"meta": 8.0,  "score": icsap_score},
             {"item": "Produção APS/hab",     "valor": per_capita,"meta": 5.0, "score": round(min(per_capita / 5.0 * 100, 100), 1)},
         ],
@@ -282,7 +282,7 @@ _RECOMENDACOES_ESTATICAS = {
     "recomendacoes": [
         {"prioridade": 1, "dimensao": "Saúde Mental", "acao": "Ativar protocolo de crise e ampliar atendimento CAPS — reduzir superlotação de 108% para <80%", "impacto": "+8,4 pts", "prazo": "60 dias", "responsavel": "Coordenador CAPS / Secretário de Saúde", "urgencia": "critico"},
         {"prioridade": 2, "dimensao": "Recursos Humanos", "acao": "Contratar 1 médico via PMM e 2 enfermeiros para elevar razão enfermeiro/leito de 0,18 para 0,25", "impacto": "+5,1 pts", "prazo": "90 dias", "responsavel": "RH / Gestão de Contratos", "urgencia": "critico"},
-        {"prioridade": 3, "dimensao": "Atenção Primária à Saúde", "acao": "Intensificar busca ativa para elevar cobertura ESF de 68,4% para ≥75% (Meta Previne Brasil Q4)", "impacto": "+4,2 pts", "prazo": "30 dias", "responsavel": "Coordenador APS / ACS", "urgencia": "alto"},
+        {"prioridade": 3, "dimensao": "Atenção Primária à Saúde", "acao": "Intensificar busca ativa para elevar cobertura ESF de 68,4% para ≥75% (Meta Novo Financiamento APS Q4)", "impacto": "+4,2 pts", "prazo": "30 dias", "responsavel": "Coordenador APS / ACS", "urgencia": "alto"},
         {"prioridade": 4, "dimensao": "Vigilância em Saúde", "acao": "Campanha vacinação casa a casa para elevar cobertura média de 83,4% para ≥90% (BCG, pentavalente, HPV)", "impacto": "+3,8 pts", "prazo": "60 dias", "responsavel": "Coordenador Imunização / Sala de Vacinas", "urgencia": "alto"},
         {"prioridade": 5, "dimensao": "Saúde da Mulher e Criança", "acao": "Criar grupo de pré-natal de risco e agenda prioritária para elevar 7+ consultas de 58,4% para ≥70%", "impacto": "+3,2 pts", "prazo": "90 dias", "responsavel": "Enfermeira obstetra / Coordenador Materno-Infantil", "urgencia": "alto"},
         {"prioridade": 6, "dimensao": "Financeiro / Gestão FMS", "acao": "Executar emendas parlamentares paradas — elevar de 57% para ≥80% de execução até dezembro", "impacto": "+2,9 pts", "prazo": "6 meses", "responsavel": "Diretor FMS / Contador", "urgencia": "medio"},

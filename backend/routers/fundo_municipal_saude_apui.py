@@ -34,7 +34,7 @@ _DASHBOARD = {
 }
 
 _RECEITAS = [
-    {"fonte": "PAB Fixo (MAC)",                 "valor_R": 4200000, "executado_pct": 84.2, "status": "ok",      "observacao": "Piso de Atenção Básica transferido mensalmente via Fundo a Fundo. Redução relativa por baixa produção APS (absenteísmo 28,4%). Previne Brasil: 3 indicadores abaixo da meta = desconto no próximo quadrimestre"},
+    {"fonte": "PAB Fixo (MAC)",                 "valor_R": 4200000, "executado_pct": 84.2, "status": "ok",      "observacao": "Piso de Atenção Básica transferido mensalmente via Fundo a Fundo. Redução relativa por baixa produção APS (absenteísmo 28,4%). Novo Financiamento APS: 3 indicadores abaixo da meta = desconto no próximo quadrimestre"},
     {"fonte": "MAC (Média/Alta Complexidade)",   "valor_R": 3800000, "executado_pct": 78.4, "status": "atencao","observacao": "MAC subutilizado — Apuí não tem especialidades para faturar procedimentos de média complexidade. 32,4% das internações transferidas para Humaitá/Manaus = MAC perdido para outro município"},
     {"fonte": "Vigilância em Saúde",             "valor_R": 1400000, "executado_pct": 92.4, "status": "ok",      "observacao": "Bloco bem executado. Inclui PNAB vigilância, PNCT, Malária (alto endemismo) e Dengue (surto 2025). Agentes de endemias: 2 (meta 12) — subexecução por incapacidade de contratar"},
     {"fonte": "Rede de Atenção Psicossocial",    "valor_R": 480000,  "executado_pct": 64.2, "status": "atencao","observacao": "CAPS I sem CAPS AD credenciado = recurso RAPS não reivindicado. Zero CAPS AD = zero incentivo federal CAPS AD. Transferência federal para RAPS depende de serviços credenciados: Apuí perde R$ 280k/ano por não ter CAPS AD"},

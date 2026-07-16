@@ -35,7 +35,7 @@ interface ScoreData {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const EIXOS_META = [
-  { key: "aps",            label: "Atenção Primária",  peso: "35%", Icon: Heart,     descricao: "Previne Brasil, cobertura ESF, SISAB" },
+  { key: "aps",            label: "Atenção Primária",  peso: "35%", Icon: Heart,     descricao: "Novo Financiamento APS, cobertura ESF, SISAB" },
   { key: "financeiro",     label: "Financeiro",         peso: "25%", Icon: DollarSign, descricao: "Execução FNS, SIOPS, recursos próprios" },
   { key: "epidemiologia",  label: "Epidemiologia",      peso: "20%", Icon: Activity,  descricao: "Notificações, vacinação, malária, dengue" },
   { key: "gestao",         label: "Gestão",             peso: "10%", Icon: Briefcase, descricao: "Obrigações legais, RH, documentação" },
@@ -120,7 +120,7 @@ function EixoCard({ eixoKey, meta, data }: {
   const cor = corScore(data.score);
   const Icon = meta.Icon;
   const subLabels: Record<string, string> = {
-    previne_brasil:           "Previne Brasil",
+    previne_brasil:           "Novo Financiamento APS",
     cobertura_esf:            "Cobertura ESF (%)",
     sisab_regularidade:       "Regularidade SISAB (%)",
     execucao_fns_pct:         "Execução FNS (%)",
@@ -181,7 +181,7 @@ function EixoCard({ eixoKey, meta, data }: {
         {data.indicadores && (
           <div style={{ marginTop: 8 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 6, textTransform: "uppercase" }}>
-              Indicadores Previne Brasil
+              Indicadores Novo Financiamento APS
             </div>
             {data.indicadores.map(ind => (
               <div key={ind.nome} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3, color: "#6b7280" }}>

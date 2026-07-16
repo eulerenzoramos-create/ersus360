@@ -54,7 +54,7 @@ function AbaVisaoGeral({ dash }: { dash: any }) {
       <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 16px", marginBottom: 20, display: "flex", gap: 10, alignItems: "flex-start" }}>
         <Info size={14} color="#1d4ed8" style={{ marginTop: 2, flexShrink: 0 }} />
         <span style={{ fontSize: 12, color: "#1e40af" }}>
-          Cofinanciamento Federal da APS — Portaria GM/MS nº 3.222/2019 · IED Apuí/AM = <strong>2</strong> · Ponderador = <strong>1,25×</strong> · Competência <strong>{dash.competencia}</strong>
+          Cofinanciamento Federal da APS — Portaria GM/MS nº 3.493/2024 (Novo Financiamento APS) · IED Apuí/AM = <strong>2</strong> · Ponderador = <strong>1,25×</strong> · Competência <strong>{dash.competencia}</strong>
         </span>
       </div>
 

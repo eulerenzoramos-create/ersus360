@@ -154,7 +154,7 @@ async def gerar_rag(municipio_id: int = Query(1), ano: int = Query(2026)):
                 ]
             },
             {
-                "titulo": "4. Metas e Indicadores do Previne Brasil",
+                "titulo": "4. Metas e Indicadores do Novo Financiamento APS",
                 "conteudo": (
                     "Do total de 20 indicadores avaliados no ciclo 2022–2025, "
                     "14 foram atingidos (70%). Os principais destaques positivos são: "

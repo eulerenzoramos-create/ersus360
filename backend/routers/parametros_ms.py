@@ -4,7 +4,7 @@ Apuí/AM — IBGE 1300144
 
 Fontes:
 - Portaria GM/MS nº 3.493/2024 — Novo modelo de cofinanciamento federal da APS
-  (substitui e extingue o Previne Brasil — Portaria GM/MS 2.979/2019)
+  (substitui e extingue o Novo Financiamento APS — Portaria GM/MS 2.979/2019)
 - Portaria GM/MS nº 7.799/2025 — atualização componente qualidade e vínculo
 - Nota Técnica DEAPS/SAPS/MS nº 6/2025 — metodologia cálculo vínculo e qualidade
 - Nota Técnica DESF/SAPS/MS nº 30/2025 — metodologia cofinanciamento eSF/eAP
@@ -57,9 +57,9 @@ INDICADORES_QUALIDADE = {
         "portaria_extincao": "Portaria GM/MS nº 3.493, de 10 de abril de 2024",
         "substituido_por": "Componente Qualidade — Portaria 3.493/2024 + Portaria 7.799/2025",
         "observacao": (
-            "O Previne Brasil (Portaria GM/MS 2.979/2019) foi formalmente extinto com a "
+            "O Novo Financiamento APS (Portaria GM/MS 2.979/2019) foi formalmente extinto com a "
             "publicação da Portaria GM/MS 3.493/2024, que instituiu o novo modelo de "
-            "cofinanciamento federal da APS. Os 8 indicadores do Previne Brasil foram "
+            "cofinanciamento federal da APS. Os 8 indicadores do Novo Financiamento APS foram "
             "substituídos por 15 novos indicadores organizados em 3 grupos: C (eSF/eAP), "
             "B (eSB) e M (eMulti). Efeitos financeiros a partir de maio/2025 (parcela 05/2025)."
         ),
@@ -121,7 +121,7 @@ INDICADORES_QUALIDADE = {
                 "fonte": "SIAPS / e-Gestor APS",
                 "peso": 1,
                 "descricao_gestor": (
-                    "Substitui o antigo indicador de vacinação do Previne Brasil. "
+                    "Substitui o antigo indicador de vacinação do Novo Financiamento APS. "
                     "Foca no cuidado longitudinal da criança — puericultura regular. "
                     "Atualização 2025: pediatristas e especialistas agora elegíveis; "
                     "visita domiciliar após 30 dias de vida contabiliza."
@@ -874,7 +874,7 @@ async def get_municipio():
 async def get_componente_qualidade(mes: int = Query(default=None), ano: int = Query(default=None)):
     """
     15 indicadores do Componente Qualidade — Portaria GM/MS 3.493/2024 + 7.799/2025.
-    Substitui o Previne Brasil (extinto). Grupos C (eSF/eAP), B (eSB), M (eMulti).
+    Substitui o Novo Financiamento APS (extinto). Grupos C (eSF/eAP), B (eSB), M (eMulti).
     """
     hoje = date.today()
     if not mes: mes = hoje.month

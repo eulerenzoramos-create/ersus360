@@ -5,7 +5,7 @@ import { apiGet } from "../lib/api"
 import { Target } from "lucide-react"
 
 const BRAND="#1e3a5f", ACCENT="#1d4ed8", OK="#16a34a", WARN="#d97706", CRIT="#dc2626"
-const ABAS=["Dashboard","Metas PMS","Previne Brasil","Histórico","Indicadores"]
+const ABAS=["Dashboard","Metas PMS","Novo Financiamento APS","Histórico","Indicadores"]
 const sc=(s:string)=>s==="ok"?OK:s==="atencao"?WARN:CRIT
 function KPI({label,value,sub,color=BRAND}:{label:string;value:string|number;sub?:string;color?:string}){
   return <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"14px 18px",minWidth:130}}>
@@ -18,7 +18,7 @@ export default function MonitoramentoMetasApui(){
   const [aba,setAba]=useState("Dashboard")
   const dash=useQuery({queryKey:["metas-dash"],  queryFn:()=>apiGet("/api/monitoramento-metas-apui/dashboard"),      enabled:aba==="Dashboard"})
   const pms =useQuery({queryKey:["metas-pms"],   queryFn:()=>apiGet("/api/monitoramento-metas-apui/metas-pms"),      enabled:aba==="Metas PMS"})
-  const prev=useQuery({queryKey:["metas-prev"],  queryFn:()=>apiGet("/api/monitoramento-metas-apui/previne-brasil"), enabled:aba==="Previne Brasil"})
+  const prev=useQuery({queryKey:["metas-prev"],  queryFn:()=>apiGet("/api/monitoramento-metas-apui/previne-brasil"), enabled:aba==="Novo Financiamento APS"})
   const hist=useQuery({queryKey:["metas-hist"],  queryFn:()=>apiGet("/api/monitoramento-metas-apui/historico"),      enabled:aba==="Histórico"})
   const ind =useQuery({queryKey:["metas-ind"],   queryFn:()=>apiGet("/api/monitoramento-metas-apui/indicadores"),    enabled:aba==="Indicadores"})
   const d=dash.data as any, p=pms.data as any, pr=prev.data as any, h=hist.data as any, i=ind.data as any
@@ -28,7 +28,7 @@ export default function MonitoramentoMetasApui(){
         <Target size={28} color={ACCENT}/>
         <div>
           <div style={{fontSize:22,fontWeight:800,color:BRAND}}>Monitoramento de Metas</div>
-          <div style={{fontSize:12,color:"#6b7280"}}>PMS · Previne Brasil · Quadrimestral — Apuí/AM</div>
+          <div style={{fontSize:12,color:"#6b7280"}}>PMS · Novo Financiamento APS · Quadrimestral — Apuí/AM</div>
         </div>
       </div>
       <div style={{display:"flex",gap:8,marginBottom:24}}>
@@ -41,12 +41,12 @@ export default function MonitoramentoMetasApui(){
             <KPI label="Metas PMS Alcançadas" value={`${d.metas_alcancadas}/${d.metas_pms_total}`} color={WARN} />
             <KPI label="Metas em Andamento"   value={d.metas_andamento} color={ACCENT} />
             <KPI label="Metas Críticas"        value={d.metas_criticas} color={CRIT} />
-            <KPI label="Nota Previne Brasil"   value={d.nota_previne_brasil} sub={`Meta: ${d.meta_nota_previne}`} color={WARN} />
+            <KPI label="Nota Novo Financiamento APS"   value={d.nota_previne_brasil} sub={`Meta: ${d.meta_nota_previne}`} color={WARN} />
             <KPI label="Indicadores na Meta"   value={`${d.indicadores_previne_meta}/${d.indicadores_previne_total}`} color={WARN} />
             <KPI label="Relatório"             value={d.relatorio_quadrimestral} color={OK} />
           </div>
           <div style={{background:"#e8f5e9",border:"1px solid #a5d6a7",borderRadius:10,padding:14,fontSize:13,color:"#1b5e20"}}>
-            <b>Previne Brasil:</b> Nota {d.nota_previne_brasil} / 10 — {d.indicadores_previne_meta} de {d.indicadores_previne_total} indicadores na meta
+            <b>Novo Financiamento APS:</b> Nota {d.nota_previne_brasil} / 10 — {d.indicadores_previne_meta} de {d.indicadores_previne_total} indicadores na meta
           </div>
         </div>
       )}
@@ -75,10 +75,10 @@ export default function MonitoramentoMetasApui(){
         </div>
       )}
 
-      {aba==="Previne Brasil"&&pr&&Array.isArray(pr)&&(
+      {aba==="Novo Financiamento APS"&&pr&&Array.isArray(pr)&&(
         <div>
           <div style={{background:"#fff",borderRadius:12,padding:20,marginBottom:16}}>
-            <div style={{fontWeight:700,color:BRAND,marginBottom:12}}>Nota por Indicador — Previne Brasil</div>
+            <div style={{fontWeight:700,color:BRAND,marginBottom:12}}>Nota por Indicador — Novo Financiamento APS</div>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={pr} layout="vertical" margin={{left:260,right:40,top:10,bottom:10}}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
@@ -124,7 +124,7 @@ export default function MonitoramentoMetasApui(){
               <Tooltip/>
               <Legend/>
               <Line type="monotone" dataKey="metas_alcancadas" stroke={OK}    strokeWidth={2} name="Metas Alcançadas" dot/>
-              <Line type="monotone" dataKey="nota_previne"     stroke={ACCENT}strokeWidth={2} name="Nota Previne"     dot/>
+              <Line type="monotone" dataKey="nota_previne"     stroke={ACCENT}strokeWidth={2} name="Nota Fin. APS"     dot/>
               <Line type="monotone" dataKey="execucao_orc_pct" stroke={WARN}  strokeWidth={2} name="Exec. Orç.%"      dot strokeDasharray="4 2"/>
             </LineChart>
           </ResponsiveContainer>

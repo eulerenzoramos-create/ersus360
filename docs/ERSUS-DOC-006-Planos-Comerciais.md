@@ -36,7 +36,7 @@ Detalhar os planos comerciais do ERSUS 360 — Bronze, Prata, Ouro e Diamante �
 | Módulo | Incluído |
 |---|---|
 | Home / Dashboard executivo | ✅ |
-| Previne Brasil (7 indicadores) | ✅ |
+| Novo Financiamento APS (7 indicadores) | ✅ |
 | Painel de Gestão (consolidado) | ✅ |
 | FNS / Convênios (visualização) | ✅ |
 | Alertas automáticos | ✅ |
@@ -195,7 +195,7 @@ Detalhar os planos comerciais do ERSUS 360 — Bronze, Prata, Ouro e Diamante �
 | Funcionalidade | Bronze | Prata | Ouro | Diamante |
 |---|---|---|---|---|
 | Home / Dashboard | ✅ | ✅ | ✅ | ✅ |
-| Previne Brasil | ✅ | ✅ | ✅ | ✅ |
+| Novo Financiamento APS | ✅ | ✅ | ✅ | ✅ |
 | Painel de Gestão | ✅ | ✅ | ✅ | ✅ |
 | Busca Ativa | ✅ | ✅ | ✅ | ✅ |
 | ACS básico | ✅ | ✅ | ✅ | ✅ |

@@ -31,7 +31,7 @@ Piloto: **Apuí/AM** · IBGE 1300144
 ## Módulos implementados
 
 ### APS e Vigilância
-- Painel Previne Brasil (7 indicadores com metas)
+- Painel Novo Financiamento APS — 7 indicadores com metas (Portaria 3.493/2024)
 - Atenção Primária — produção ESF, busca ativa, ACS
 - Vigilância em Saúde — SINAN, vacinação, epidemiologia
 - Saúde Brasil 360 — painéis SISAB

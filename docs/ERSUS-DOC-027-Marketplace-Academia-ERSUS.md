@@ -63,7 +63,7 @@ Plataforma de capacitação em gestão municipal de saúde — cursos online, tr
 | Perfil | Foco |
 |---|---|
 | Secretário(a) de Saúde | Gestão estratégica, indicadores, planejamento |
-| Coordenador APS | Previne Brasil, produção ESF, e-SUS |
+| Coordenador APS | Novo Financiamento APS, produção ESF, e-SUS |
 | Financeiro | FNS, SIOPS, RREO, execução orçamentária |
 | ACS | Visita domiciliar, SISAB, ficha E |
 | TI da prefeitura | Instalação, configuração, Railway/Vercel |
@@ -73,7 +73,7 @@ Plataforma de capacitação em gestão municipal de saúde — cursos online, tr
 **Trilha 1 — Gestão em Saúde para Iniciantes**
 - Módulo 1: Como funciona o SUS no município
 - Módulo 2: Financiamento (PAB, blocos, convênios)
-- Módulo 3: Previne Brasil — os 7 indicadores
+- Módulo 3: Novo Financiamento APS — os 7 indicadores
 - Módulo 4: RDQA — o que é e como preencher
 - Duração: 8h | Certificado: Sim
 

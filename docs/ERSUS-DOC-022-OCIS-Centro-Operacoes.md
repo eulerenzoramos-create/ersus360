@@ -90,7 +90,7 @@ Definir o OCIS (Operações Centrais Integradas em Saúde) do ERSUS 360 — o ce
 |---|---|
 | Epidemiológico | Surto dengue, IPA acima do limiar |
 | Financeiro | Convênio vencendo, meta de execução baixa |
-| Clínico | Meta Previne Brasil em risco |
+| Clínico | Meta Novo Financiamento APS em risco |
 | Operacional | Servidor afastado, médico ausente |
 | Infraestrutura | Equipamento sem manutenção, obra paralisada |
 | Administrativo | Férias vencidas, contrato expirando |

@@ -1,5 +1,5 @@
 """
-Router: /api/previne — Previne Brasil (7 indicadores oficiais)
+Router: /api/previne — Novo Financiamento APS (7 indicadores oficiais)
 API: https://egestorab.saude.gov.br/api/v1/previne/
 """
 from __future__ import annotations
@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
 from services import previne_service
 
-router = APIRouter(prefix="/api/previne", tags=["Previne Brasil"])
+router = APIRouter(prefix="/api/previne", tags=["Novo Financiamento APS"])
 
 # ── Dados de referência Apuí/AM ───────────────────────────────────────────────
 
@@ -139,7 +139,7 @@ async def listar_indicadores(
     competencia: str = Query("202507", description="AAAAMM"),
     _: UserOut = Depends(get_current_user),
 ):
-    """7 indicadores Previne Brasil com metas e status."""
+    """7 indicadores Novo Financiamento APS com metas e status."""
     return await previne_service.buscar_indicadores(competencia)
 
 
@@ -157,7 +157,7 @@ async def indicadores_por_equipe(
     competencia: str = Query("202507"),
     _: UserOut = Depends(get_current_user),
 ):
-    """Indicadores Previne Brasil por equipe de saúde da família."""
+    """Indicadores Novo Financiamento APS por equipe de saúde da família."""
     return {
         "competencia": competencia,
         "total_equipes": len(_EQUIPES),

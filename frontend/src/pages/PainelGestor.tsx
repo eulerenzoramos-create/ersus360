@@ -39,7 +39,7 @@ const MODULOS = [
 // ── Benefícios ──────────────────────────────────────────────────────────────
 const BENEFICIOS = [
   { Icon:BarChart2,  label:"Análise de dados do e-SUS APS",           desc:"Cruza dados de múltiplos sistemas em tempo real" },
-  { Icon:Target,     label:"Indicadores de atendimento ao cidadão",    desc:"Monitore metas do Previne Brasil e POEPS" },
+  { Icon:Target,     label:"Indicadores de atendimento ao cidadão",    desc:"Monitore metas do Novo Financiamento APS e POEPS" },
   { Icon:DollarSign, label:"Decisões financeiras mais assertivas",     desc:"Controle de repasses FNS, convênios e execução" },
   { Icon:TrendingUp, label:"Redução de custo e retrabalho",            desc:"Automatize processos manuais e elimine planilhas" },
   { Icon:Activity,   label:"Painéis de indicadores de desempenho",     desc:"Semáforos visuais com alertas em tempo real" },

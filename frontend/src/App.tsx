@@ -877,7 +877,7 @@ export default function App() {
             <Route path="/mapa"                      element={<MapaDesempenho/>}/>
             {/* Saúde Brasil 360 */}
             <Route path="/sb360/*"                   element={<APS/>}/>
-            {/* Componente Qualidade (substituiu Previne Brasil — Portaria 3.493/2024) */}
+            {/* Componente Qualidade — Novo Financiamento APS (Portaria 3.493/2024) */}
             <Route path="/previne"                   element={<PrevineBrasil/>}/>
             <Route path="/previne/*"                 element={<PrevineBrasil/>}/>
             {/* Painel de Gestão */}

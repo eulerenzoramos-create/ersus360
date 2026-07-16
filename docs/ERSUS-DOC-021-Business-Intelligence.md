@@ -31,7 +31,7 @@ Fontes de Dados (todos os módulos)
 | Indicador | Visualização |
 |---|---|
 | Score ERSUS 360 (0–100) | Gauge chart |
-| Previne Brasil — média quadrimestral | Progress bars |
+| Novo Financiamento APS — média quadrimestral | Progress bars |
 | Execução financeira PAB | Barra empilhada |
 | Headcount por vínculo | Donut chart |
 | Top 5 doenças notificadas | Ranking |
@@ -42,7 +42,7 @@ Fontes de Dados (todos os módulos)
 | Indicador | Visualização |
 |---|---|
 | Produção por equipe (consultas/mês) | Barras horizontais |
-| Indicadores Previne Brasil por equipe | Heatmap |
+| Indicadores Novo Financiamento APS por equipe | Heatmap |
 | Famílias com cadastro ativo vs. total | Stacked bar |
 | Evolução mensal de atendimentos | Linha temporal |
 | ACS: visitas realizadas vs. meta | Gauge por ACS |
@@ -72,7 +72,7 @@ Fontes de Dados (todos os módulos)
 ### 4.1 Composição do score (0–100 pontos)
 | Dimensão | Peso | Indicadores |
 |---|---|---|
-| Atenção Primária | 35% | Previne Brasil (média 7 ind.) |
+| Atenção Primária | 35% | Novo Financiamento APS (média 7 ind.) |
 | Financeiro | 25% | Execução PAB, mínimo const., adimplência |
 | Epidemiologia | 20% | Coberturas vacinais, IPA malária |
 | Gestão | 10% | Planilhas RDQA, indicadores PAS |
@@ -111,7 +111,7 @@ Fontes de Dados (todos os módulos)
 ### 6.2 Relatórios pré-formatados
 - Relatório mensal de gestão (automático no dia 1)
 - Relatório quadrimestral RDQA (template MS)
-- Relatório de indicadores Previne Brasil
+- Relatório de indicadores Novo Financiamento APS
 - Relatório financeiro por bloco
 - Relatório epidemiológico semanal
 
