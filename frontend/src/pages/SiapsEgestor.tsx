@@ -515,8 +515,33 @@ function ViewMensal({ data }: { data: any }) {
   if (!data) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
   const variacoes = data.variacao_mes_anterior;
   const TEND_ICON = (t: string) => t === "crescente" ? "↑" : t === "critica" ? "↓" : t === "estavel" ? "→" : "↑";
+
+  const agora = new Date();
+  const mesRef = agora.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const dataGeracao = agora.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+  const horaGeracao = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
   return (
     <div>
+      {/* ── Cabeçalho de referência ── */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", border: "1px solid #e2e8f0", borderLeft: "4px solid #1d4ed8", borderRadius: "0 8px 8px 0", padding: "10px 16px", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", textTransform: "uppercase" as const, letterSpacing: 1 }}>Relatório Mensal</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>Competência: <span style={{ color: "#1d4ed8", textTransform: "capitalize" as const }}>{mesRef}</span></div>
+          </div>
+          <div style={{ width: 1, height: 32, background: "#e2e8f0" }} />
+          <div>
+            <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600 }}>Gerado em</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>{dataGeracao} às {horaGeracao}</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "right" as const }}>
+          <div>Apuí / AM · IBGE 1300144</div>
+          <div>Novo Financiamento APS · Portaria GM/MS 3.493/2024</div>
+        </div>
+      </div>
+
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         {Object.entries(variacoes).map(([k, v]: [string, any]) => {
           const nomes: Record<string, string> = {
