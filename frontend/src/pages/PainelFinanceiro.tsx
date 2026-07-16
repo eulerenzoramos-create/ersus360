@@ -501,7 +501,7 @@ function AbaConsultaFNS() {
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 900 }}>
                   <thead>
                     <tr style={{ background: "#b8cce4", color: "#1a3a6b" }}>
-                      {["Bloco ⇅","Grupo ⇅","Ação ⇅","Ação Detalhada ⇅","Valor Total ⇅","Valor Desconto ⇅","Valor Líquido ⇅","Ações"].map(h => (
+                      {["Mês Ref. ⇅","Bloco ⇅","Grupo ⇅","Ação Detalhada ⇅","Valor Total ⇅","Valor Desconto ⇅","Valor Líquido ⇅","Ações"].map(h => (
                         <th key={h} style={{ padding: "10px 10px", textAlign: h.startsWith("Valor") ? "right" : "left", fontWeight: 700, borderRight: "1px solid #a8bcd4", whiteSpace: "nowrap" }}>{h}</th>
                       ))}
                     </tr>
@@ -509,9 +509,13 @@ function AbaConsultaFNS() {
                   <tbody>
                     {paginadas.map((row: any, i: number) => (
                       <tr key={i} style={{ borderBottom: "1px solid #e2eaf4", background: i % 2 === 0 ? "#fff" : "#f4f8fc" }}>
-                        <td style={{ padding: "9px 10px", color: "#2a5298", fontSize: 12, maxWidth: 160, lineHeight: 1.4 }}>{row.bloco}</td>
-                        <td style={{ padding: "9px 10px", fontWeight: 600, color: "#1a3a6b", maxWidth: 180, lineHeight: 1.4 }}>{row.grupo}</td>
-                        <td style={{ padding: "9px 10px", color: "#374151", maxWidth: 200, lineHeight: 1.4 }}>{row.acao || ""}</td>
+                        <td style={{ padding: "9px 10px", textAlign: "center", whiteSpace: "nowrap" }}>
+                          {row.mes_referencia && row.mes_referencia !== "—"
+                            ? <span style={{ background: "#dbeafe", color: "#1e40af", fontWeight: 700, fontSize: 11, padding: "2px 8px", borderRadius: 10 }}>{row.mes_referencia}</span>
+                            : <span style={{ color: "#9ca3af", fontSize: 11 }}>—</span>}
+                        </td>
+                        <td style={{ padding: "9px 10px", color: "#2a5298", fontSize: 11, maxWidth: 140, lineHeight: 1.4 }}>{row.bloco}</td>
+                        <td style={{ padding: "9px 10px", fontWeight: 600, color: "#1a3a6b", maxWidth: 160, lineHeight: 1.4 }}>{row.grupo}</td>
                         <td style={{ padding: "9px 10px", color: row.valor_total ? "#374151" : "#6b7280", fontStyle: row.valor_total ? "normal" : "italic", maxWidth: 220, lineHeight: 1.4 }}>{row.acao_detalhada}</td>
                         <td style={{ padding: "9px 10px", textAlign: "right", fontWeight: row.valor_total ? 700 : 400, color: row.valor_total ? "#1a3a6b" : "#9ca3af" }}>{row.valor_total != null ? BRL(row.valor_total) : ""}</td>
                         <td style={{ padding: "9px 10px", textAlign: "right", color: "#374151" }}>{row.valor_desconto != null ? BRL(row.valor_desconto) : ""}</td>
