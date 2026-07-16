@@ -27,25 +27,30 @@ _ENTIDADE = {
     "presidente_conselho": "ALICE OLIVEIRA",
 }
 
-# ── Receitas (valores reais FNS 2026 — Fonte: consultafns/#/detalhada/acao) ──
-# MAC:  R$ 312.343,90  (Jan–Jun 2026, 6 parcelas)
-# VIGI: R$  25.936,00  (Jan–Jun 2026, ACE)
-# AB Saúde Bucal:        R$  95.439,00  (Jan–Jun 2026)
-# AB ESF/EAP:            R$ 227.826,00  (Jan–Jun 2026)
-# AB Demais APS:         R$  65.585,00  (Jan–Jun 2026)
+# ── Receitas reais FNS 2026 — Fonte: consultafns/#/detalhada/acao — APUÍ/AM ──
+# Todos os incentivos recebidos Jan–Jun 2026 (acumulado)
+
+# Atenção Primária — Novo Financiamento APS (Portaria GM/MS 3.493/2024)
+_FNS_AB_SAUDE_BUCAL = 95_439.00     # Incentivo APS — Saúde Bucal
+_FNS_AB_ESF_EAP     = 227_826.00    # Incentivo APS — ESF/EAP
+_FNS_AB_DEMAIS      = 65_585.00     # Incentivo APS — Demais Prog./Serv./Equipes
+_FNS_AB_EMULTI      = 16_750.00     # Incentivo APS — Equipes Multiprofissionais (eMulti)
+_FNS_AB_ACS         = 213_972.00    # Agentes Comunitários de Saúde (ACS)
+_FNS_AB_TOTAL       = (_FNS_AB_SAUDE_BUCAL + _FNS_AB_ESF_EAP + _FNS_AB_DEMAIS
+                       + _FNS_AB_EMULTI + _FNS_AB_ACS)  # 619_572,00
+
+# Outros blocos
+_FNS_MAC  = 312_343.90   # MAC — Atenção à Saúde da População (MAC)
+_FNS_VIGI =  25_936.00   # VIGI — Pagamento Vencimentos ACE
+
 # FAF / GESSUS: SEM REPASSE em 2026
 
-_FNS_AB_SAUDE_BUCAL = 95_439.00
-_FNS_AB_ESF_EAP     = 227_826.00
-_FNS_AB_DEMAIS      = 65_585.00
-_FNS_AB_TOTAL       = _FNS_AB_SAUDE_BUCAL + _FNS_AB_ESF_EAP + _FNS_AB_DEMAIS  # 388_850,00
-
-_FNS_TOTAL_RECEBIDO = 312_343.90 + 25_936.00 + _FNS_AB_TOTAL  # 727_129,90
+_FNS_TOTAL_RECEBIDO = _FNS_AB_TOTAL + _FNS_MAC + _FNS_VIGI  # 957_851,90
 
 _RECEITAS = {
     "orcamento_total":      18_540_000.0,
     "fns_previsto":          6_890_000.0,
-    "fns_recebido":          _FNS_TOTAL_RECEBIDO,   # 727.129,90 real FNS 2026
+    "fns_recebido":          _FNS_TOTAL_RECEBIDO,   # 957.851,90 real FNS Jan–Jun 2026
     "municipio_proprio":     2_180_400.0,
     "convenios_recebido":      420_000.0,
     "emendas_recebido":        180_000.0,
@@ -73,18 +78,20 @@ _BLOCOS = [
         "bloco": "Atenção Primária — Novo Financiamento APS",
         "codigo": "AB",
         "cor": "#2563eb",
-        "previsto_ano":     777_700.0,   # estimativa anual (388.850 * 2 semestres)
-        "recebido_ano":     388_850.0,   # real FNS Jan–Jun 2026
-        "empenhado":        310_000.0,
-        "liquidado":        278_000.0,
-        "pago":             252_800.0,
-        "pct_execucao":     65.0,
+        "previsto_ano":   1_239_144.0,   # estimativa anual (619.572 * 2 semestres)
+        "recebido_ano":     619_572.0,   # real FNS Jan–Jun 2026 (5 incentivos)
+        "empenhado":        495_000.0,
+        "liquidado":        446_000.0,
+        "pago":             412_000.0,
+        "pct_execucao":     66.5,
         "ultima_parcela":   "Jun/2026",
         "proxima_parcela":  "Jul/2026",
         "sub_acoes": [
-            {"label": "Saúde Bucal",   "valor": _FNS_AB_SAUDE_BUCAL},
-            {"label": "ESF/EAP",       "valor": _FNS_AB_ESF_EAP},
-            {"label": "Demais Progr.", "valor": _FNS_AB_DEMAIS},
+            {"label": "ESF/EAP",          "valor": _FNS_AB_ESF_EAP},
+            {"label": "ACS",              "valor": _FNS_AB_ACS},
+            {"label": "Saúde Bucal",      "valor": _FNS_AB_SAUDE_BUCAL},
+            {"label": "Demais APS",       "valor": _FNS_AB_DEMAIS},
+            {"label": "eMulti",           "valor": _FNS_AB_EMULTI},
         ],
     },
     {
@@ -92,7 +99,7 @@ _BLOCOS = [
         "codigo": "MAC",
         "cor": "#dc2626",
         "previsto_ano":     624_687.80,  # estimativa anual (312k * 2 semestres)
-        "recebido_ano":     312_343.90,  # real FNS
+        "recebido_ano":     _FNS_MAC,    # real FNS Jan–Jun 2026
         "empenhado":        248_000.0,
         "liquidado":        216_000.0,
         "pago":             196_800.0,
@@ -146,14 +153,14 @@ _BLOCOS = [
 ]
 
 # ── Repasses mensais por bloco (dados reais 2026) ────────────────────────────
-# MAC:  312.343,90 em 6 parcelas (Jan-Jun)
-# VIGI:  25.936,00 em 6 parcelas (Jan-Jun)
-# AB:   388.850,00 em 6 parcelas (Jan-Jun) — Saúde Bucal + ESF/EAP + Demais APS
+# MAC:     312.343,90 / 6 = ~52.057/mês
+# VIGI:     25.936,00 / 6 = ~4.322/mês
+# AB:      619.572,00 / 6 = ~103.262/mês (ESF/EAP + ACS + Bucal + Demais + eMulti)
 # FAF / GESSUS: sem repasse em 2026
 
-_MAC_MES  = round(312_343.90 / 6, 2)       # ~52.057,32/mês
-_VIGI_MES = round(25_936.00  / 6, 2)       # ~4.322,67/mês
-_AB_MES   = round(_FNS_AB_TOTAL / 6, 2)   # ~64.808,33/mês
+_MAC_MES  = round(_FNS_MAC       / 6, 2)   # ~52.057,32/mês
+_VIGI_MES = round(_FNS_VIGI      / 6, 2)   # ~4.322,67/mês
+_AB_MES   = round(_FNS_AB_TOTAL  / 6, 2)   # ~103.262,00/mês
 
 # mes_num → dict[codigo_bloco, valor_recebido]  (None = ainda não recebido)
 _REPASSE_POR_BLOCO_MES: dict[int, dict[str, float | None]] = {
@@ -257,7 +264,7 @@ _FNS_ACOES = [
      "acao_detalhada": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
      "valor_total": 312_343.90, "valor_desconto": 0.0, "valor_liquido": 312_343.90},
     {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO ESPECIALIZADA", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
-    # APS — 3 incentivos do Novo Financiamento (Portaria GM/MS 3.493/2024) ───
+    # APS — 5 incentivos do Novo Financiamento (Portaria GM/MS 3.493/2024) ───
     {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
      "acao": "INCENTIVO FINANCEIRO DA APS - ATENCAO A SAUDE BUCAL",
      "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — ATENÇÃO À SAÚDE BUCAL",
@@ -270,6 +277,14 @@ _FNS_ACOES = [
      "acao": "INCENTIVO FINANCEIRO DA APS - DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA ATENÇÃO PRIMÁRIA",
      "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA ATENÇÃO PRIMÁRIA À SAÚDE",
      "valor_total": _FNS_AB_DEMAIS, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_DEMAIS},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+     "acao": "INCENTIVO FINANCEIRO DA APS - EQUIPES MULTIPROFISSIONAIS - EMULTI",
+     "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — EQUIPES MULTIPROFISSIONAIS (eMulti)",
+     "valor_total": _FNS_AB_EMULTI, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_EMULTI},
+    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+     "acao": "AGENTES COMUNITÁRIOS DE SAÚDE",
+     "acao_detalhada": "AGENTES COMUNITÁRIOS DE SAÚDE — INCENTIVO FINANCEIRO APS",
+     "valor_total": _FNS_AB_ACS, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_ACS},
     # COVID / GESSUS ──────────────────────────────────────────────────────────
     {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "CORONAVÍRUS (COVID-19)", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
     {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "GESTÃO DO SUS",           "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None},
