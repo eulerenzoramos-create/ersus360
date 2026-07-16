@@ -199,7 +199,7 @@ function AbaConsultaFNS() {
 
   // ── Detalhada states ──────────────────────────────────────────────────────
   const [ano, setAno]             = useState(String(anoAtual));
-  const [mes, setMes]             = useState(mesAtual);
+  const [mes, setMes]             = useState("");   // vazio = acumulado anual
   const [tipoConsulta, setTipo]   = useState("Fundo a Fundo");
   const [bloco, setBloco]         = useState("");
   const [cpf, setCpf]             = useState("");
@@ -233,7 +233,7 @@ function AbaConsultaFNS() {
 
   const [consultaParams, setConsultaParams] = useState<{
     estado: string; municipio: string; ano: string; mes: string; bloco: string;
-  } | null>({ estado: "AM", municipio: "APUÍ", ano: String(anoAtual), mes: MESES_FNS[hoje.getMonth()], bloco: "" });
+  } | null>({ estado: "AM", municipio: "APUÍ", ano: String(anoAtual), mes: "", bloco: "" });
 
   const { data: fnsData, isFetching: fnsLoading } = useQuery({
     queryKey: ["fns-acoes", consultaParams],
@@ -379,7 +379,8 @@ function AbaConsultaFNS() {
               </div>
               <div><label style={lblSt}>Mês</label>
                 <select value={mes} onChange={e => setMes(e.target.value)} style={selSt}>
-                  {MESES_FNS.map(m => <option key={m}>{m}</option>)}
+                  <option value="">Todos (acumulado)</option>
+                  {MESES_FNS.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
               <div><label style={lblSt}><span style={{ color: "#dc2626" }}>* </span>Tipo de consulta</label>

@@ -420,11 +420,23 @@ def _mes_num(mes_str: str) -> str:
 
 _APUI_IBGE = "1300144"   # código IBGE real de Apuí/AM
 
+_MESES_COM_DADOS = {"jan","fev","mar","abr","mai","jun"}   # meses com repasse em 2026
+
 def _acoes_apui_local(mes_filtro: str) -> dict:
-    """Retorna dados locais mensais de Apuí/AM — já com mes_referencia."""
-    acoes = _FNS_ACOES_MENSAIS if not mes_filtro else [
-        a for a in _FNS_ACOES_MENSAIS if a["mes_referencia"].lower().startswith(mes_filtro[:3].lower())
-    ]
+    """Retorna dados locais mensais de Apuí/AM — já com mes_referencia.
+    Se o mês filtrado não tem dados (Jul–Dez), retorna o acumulado Jan–Jun."""
+    mes3 = mes_filtro[:3].lower() if mes_filtro else ""
+    if mes3 and mes3 not in _MESES_COM_DADOS:
+        # mês sem repasse: mostra acumulado Jan–Jun com aviso
+        acoes = _FNS_ACOES_MENSAIS
+        competencia = "Jan/2026 a Jun/2026 (acumulado — sem repasse em " + mes_filtro + "/2026)"
+    elif mes3:
+        acoes = [a for a in _FNS_ACOES_MENSAIS
+                 if a["mes_referencia"].lower().startswith(mes3)]
+        competencia = mes_filtro + "/2026"
+    else:
+        acoes = _FNS_ACOES_MENSAIS
+        competencia = "Jan/2026 a Jun/2026 (acumulado)"
     total_liq = round(sum(a["valor_liquido"] for a in acoes if a.get("valor_liquido")), 2)
     return {
         "entidade": {
@@ -444,8 +456,8 @@ def _acoes_apui_local(mes_filtro: str) -> dict:
         "total_geral":    total_liq,
         "total_desconto": 0.0,
         "total_liquido":  total_liq,
-        "competencia":    mes_filtro if mes_filtro else "Jan/2026 a Jun/2026",
-        "fonte":          "ersus360-local (dados reais FNS 2026)",
+        "competencia":    competencia,
+        "fonte":          "ersus360-local (dados reais FNS Jan–Jun/2026)",
         "ano":            "2026",
         "mes":            mes_filtro,
     }
