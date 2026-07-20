@@ -2,7 +2,170 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
-import { FileText, Download, Printer, Filter, Users, DollarSign, TrendingUp, AlertTriangle } from "lucide-react";
+import { FileText, Download, Printer, Filter, AlertTriangle } from "lucide-react";
+
+// ── CSS impressão injetado no <head> uma única vez ────────────────────────────
+const PRINT_CSS = `
+@media print {
+  body * { visibility: hidden !important; }
+  #folha-print-area, #folha-print-area * { visibility: visible !important; }
+  #folha-print-area {
+    position: fixed; inset: 0; width: 100%; padding: 0;
+    background: #fff; font-family: Arial, sans-serif; font-size: 10pt;
+  }
+  @page { size: A4 landscape; margin: 12mm 10mm; }
+}
+`;
+function injectPrintCSS() {
+  if (document.getElementById("folha-print-css")) return;
+  const s = document.createElement("style");
+  s.id = "folha-print-css";
+  s.textContent = PRINT_CSS;
+  document.head.appendChild(s);
+}
+
+// ── Geração de janela de impressão isolada ────────────────────────────────────
+function imprimirFolha(folha: any, competencia: string, compLabel: string) {
+  const BRL2 = (v: number) => v.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+  const LABEL_V: Record<string,string> = {
+    estatutario:"Estatutário", temporario:"Temporário",
+    clt:"CLT", terceirizado:"Terceirizado", comissionado:"Comissionado",
+  };
+
+  const rows = folha.verbas.map((v: any, i: number) => `
+    <tr style="background:${i%2===0?"#fff":"#f7fafc"}">
+      <td>${i+1}</td>
+      <td style="font-family:monospace;color:#1a6baa">${v.matricula}</td>
+      <td style="font-weight:600">${v.nome}</td>
+      <td>${v.cargo}</td>
+      <td>${LABEL_V[v.vinculo]||v.vinculo}</td>
+      <td>${v.fonte_contabil} · ${v.fonte_grupo}</td>
+      <td style="text-align:right">${BRL2(v.salario_base)}</td>
+      <td style="text-align:right;color:#b07a00">${v.adicional_interioridade>0?"+"+BRL2(v.adicional_interioridade):"—"}</td>
+      <td style="text-align:right;font-weight:700">${BRL2(v.bruto)}</td>
+      <td style="text-align:right;color:#b07a00">(${BRL2(v.desc_inss)})</td>
+      <td style="text-align:right;color:#b83232">(${BRL2(v.desc_irrf)})</td>
+      <td style="text-align:right;font-weight:800;color:#14864e">${BRL2(v.liquido)}</td>
+      <td style="text-align:right;color:#b83232">${BRL2(v.custo_total_empregador)}</td>
+    </tr>
+  `).join("");
+
+  const resumoRows = folha.resumo_por_fonte.map((r: any) => `
+    <tr>
+      <td style="font-weight:600">${r.label}</td>
+      <td style="font-family:monospace;color:#1a6baa">${r.contabil}</td>
+      <td>${r.grupo}</td>
+      <td style="text-align:center">${r.servidores}</td>
+      <td style="text-align:right">${BRL2(r.bruto)}</td>
+      <td style="text-align:right;color:#14864e">${BRL2(r.liquido)}</td>
+      <td style="text-align:right;color:#b83232">${BRL2(r.custo_total)}</td>
+    </tr>
+  `).join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<title>Folha de Pagamento — SMS Apuí/AM — ${compLabel}</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:Arial,sans-serif; font-size:9pt; color:#222; background:#fff; }
+  h1 { font-size:14pt; font-weight:800; color:#0d2137; }
+  h2 { font-size:11pt; font-weight:700; color:#1a6baa; margin:16px 0 6px; border-bottom:1px solid #dde4ee; padding-bottom:4px; }
+  .header { background:#0d2137; color:#fff; padding:10px 16px; margin-bottom:12px; }
+  .header span { font-size:9pt; color:#9ab8d8; }
+  .kpis { display:flex; gap:10px; margin-bottom:14px; }
+  .kpi { flex:1; border:1px solid #dde4ee; border-radius:6px; padding:8px 12px; border-top:3px solid #1a6baa; }
+  .kpi .l { font-size:7.5pt; color:#6b7280; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+  .kpi .v { font-size:15pt; font-weight:800; margin-top:2px; }
+  table { width:100%; border-collapse:collapse; font-size:8pt; margin-bottom:16px; }
+  th { background:#e8f1fa; color:#0d2137; font-weight:700; padding:5px 7px; text-align:left; border-bottom:2px solid #1a6baa; white-space:nowrap; font-size:7.5pt; }
+  td { padding:4px 7px; border-bottom:1px solid #e8edf4; vertical-align:middle; }
+  .total-row { background:#0d2137; color:#fff; font-weight:800; }
+  .total-row td { color:#fff; border-color:#0d2137; }
+  .rodape { margin-top:20px; font-size:7pt; color:#9ca3af; border-top:1px solid #dde4ee; padding-top:8px; }
+  .assinaturas { display:flex; gap:40px; margin-top:32px; }
+  .ass { flex:1; border-top:1px solid #333; padding-top:6px; font-size:8pt; text-align:center; }
+  @page { size:A4 landscape; margin:12mm 10mm; }
+  @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>FOLHA DE PAGAMENTO — SMS APUÍ/AM</h1>
+  <span>Competência: <strong style="color:#fff">${compLabel}</strong> &nbsp;·&nbsp; Processado em: ${new Date().toLocaleString("pt-BR")} &nbsp;·&nbsp; ERSUS 360</span>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="l">Total Servidores</div><div class="v" style="color:#0d2137">${folha.total_servidores}</div></div>
+  <div class="kpi"><div class="l">Total Bruto</div><div class="v" style="color:#1a6baa">${BRL2(folha.total_bruto)}</div></div>
+  <div class="kpi"><div class="l">Total Líquido</div><div class="v" style="color:#14864e">${BRL2(folha.total_liquido)}</div></div>
+  <div class="kpi"><div class="l">INSS Descontado</div><div class="v" style="color:#b07a00">${BRL2(folha.total_inss_descontado)}</div></div>
+  <div class="kpi"><div class="l">IRRF Descontado</div><div class="v" style="color:#b83232">${BRL2(folha.total_irrf_descontado)}</div></div>
+  <div class="kpi"><div class="l">Custo Empregador</div><div class="v" style="color:#b83232">${BRL2(folha.total_custo_empregador)}</div></div>
+</div>
+
+<h2>I — Resumo por Fonte de Pagamento</h2>
+<table>
+  <thead><tr>
+    <th>Fonte de Pagamento</th><th>Contábil (FR)</th><th>Grupo</th>
+    <th style="text-align:center">Serv.</th><th style="text-align:right">Bruto</th>
+    <th style="text-align:right">Líquido</th><th style="text-align:right">Custo Total</th>
+  </tr></thead>
+  <tbody>${resumoRows}</tbody>
+  <tr class="total-row">
+    <td colspan="3"><strong>TOTAL GERAL</strong></td>
+    <td style="text-align:center">${folha.total_servidores}</td>
+    <td style="text-align:right">${BRL2(folha.total_bruto)}</td>
+    <td style="text-align:right">${BRL2(folha.total_liquido)}</td>
+    <td style="text-align:right">${BRL2(folha.total_custo_empregador)}</td>
+  </tr>
+</table>
+
+<h2>II — Folha Detalhada de Servidores (ordenada por Fonte → Nome)</h2>
+<table>
+  <thead><tr>
+    <th>#</th><th>Matrícula</th><th>Nome</th><th>Cargo</th><th>Vínculo</th>
+    <th>Fonte / FR</th><th style="text-align:right">Sal. Base</th>
+    <th style="text-align:right">Adicional</th><th style="text-align:right">Bruto</th>
+    <th style="text-align:right">INSS</th><th style="text-align:right">IRRF</th>
+    <th style="text-align:right">Líquido</th><th style="text-align:right">Custo Total</th>
+  </tr></thead>
+  <tbody>${rows}</tbody>
+  <tr class="total-row">
+    <td colspan="6"><strong>TOTAL</strong></td>
+    <td style="text-align:right">${BRL2(folha.verbas.reduce((a:number,v:any)=>a+v.salario_base,0))}</td>
+    <td style="text-align:right">${BRL2(folha.verbas.reduce((a:number,v:any)=>a+v.adicional_interioridade,0))}</td>
+    <td style="text-align:right">${BRL2(folha.total_bruto)}</td>
+    <td style="text-align:right">(${BRL2(folha.total_inss_descontado)})</td>
+    <td style="text-align:right">(${BRL2(folha.total_irrf_descontado)})</td>
+    <td style="text-align:right">${BRL2(folha.total_liquido)}</td>
+    <td style="text-align:right">${BRL2(folha.total_custo_empregador)}</td>
+  </tr>
+</table>
+
+<div class="assinaturas">
+  <div class="ass">Secretário(a) Municipal de Saúde</div>
+  <div class="ass">Responsável pelo Setor de RH</div>
+  <div class="ass">Contador(a) Responsável — CRC</div>
+  <div class="ass">Ordenador(a) de Despesa</div>
+</div>
+
+<div class="rodape">
+  Folha processada pelo sistema ERSUS 360 · FMS Apuí/AM · Competência ${compLabel} ·
+  Salários calculados conforme PCCS SMS Apuí (ref. Jul/2026) · INSS/IRRF: tabelas vigentes 2026 ·
+  Encargos: IN RFB 2.110/2022 · Para fins contábeis, utilizar os valores empenho pela Contabilidade Municipal.
+</div>
+
+<script>window.onload=function(){window.print();window.onafterprint=function(){window.close();};};</script>
+</body></html>`;
+
+  const w = window.open("", "_blank", "width=1200,height=850");
+  if (!w) { alert("Permita pop-ups para este site para gerar a impressão."); return; }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -44,6 +207,7 @@ function Badge({ label, cor }: { label: string; cor: string }) {
 type Aba = "resumo" | "detalhada" | "por_fonte" | "encargos";
 
 export default function FolhaPagamento() {
+  useState(() => { injectPrintCSS(); });
   const [aba, setAba] = useState<Aba>("resumo");
   const [competencia, setCompetencia] = useState("2026-07");
   const [filtroFonte, setFiltroFonte] = useState("");
@@ -120,7 +284,7 @@ export default function FolhaPagamento() {
           <button style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 14px",
             background:"#1a6baa", border:"none", borderRadius:6, color:"#fff", fontSize:12,
             cursor:"pointer", fontWeight:600 }}
-            onClick={() => window.print()}>
+            onClick={() => folha && imprimirFolha(folha, competencia, COMP_LABEL[competencia]||competencia)}>
             <Printer size={14}/> Imprimir
           </button>
           <button style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 14px",
