@@ -118,13 +118,14 @@ async def sisab():
 @router.get("/equipes-esf")
 async def equipes_esf():
     return {
-        "total": 8,
-        "completas": 5,
+        "total": 9,
+        "completas": 6,
         "incompletas": 3,
         "populacao_total": 18_640,
+        # Equipes e UBS conforme CNES/e-Gestor AB — Apuí/AM (Jul/2026)
         "equipes": [
             {
-                "cnes": "2001001", "nome": "ESF 01 — Centro", "unidade": "UBS Central", "area": "Zona Urbana",
+                "cnes": "3320138", "nome": "ESF CACHOEIRA", "unidade": "UBS Irmã Elizabete", "area": "Zona Urbana",
                 "populacao_cadastrada": 3_840, "pct_cobertura": 89.4, "completa": True, "incompleta_motivo": None,
                 "composicao": {
                     "medico":      {"nome": "Dr. Carlos Andrade",       "carga_horaria": 40},
@@ -134,7 +135,7 @@ async def equipes_esf():
                 },
             },
             {
-                "cnes": "2001002", "nome": "ESF 02 — Kennedy", "unidade": "UBS Bairro Kennedy", "area": "Zona Urbana",
+                "cnes": "2013312", "nome": "ESF KENNEDY", "unidade": "UBS Padre Faliero Bonci", "area": "Zona Urbana",
                 "populacao_cadastrada": 3_280, "pct_cobertura": 84.6, "completa": True, "incompleta_motivo": None,
                 "composicao": {
                     "medico":      {"nome": "Dr.ª Fernanda Costa",      "carga_horaria": 40},
@@ -144,7 +145,7 @@ async def equipes_esf():
                 },
             },
             {
-                "cnes": "2001003", "nome": "ESF 03 — Nova Esperança", "unidade": "UBS Nova Esperança", "area": "Zona Urbana Periférica",
+                "cnes": "9942122", "nome": "ESF ESTRADA NOVA", "unidade": "UBS Claudia Pereira dos Santos Damacena", "area": "Zona Urbana Periférica",
                 "populacao_cadastrada": 2_840, "pct_cobertura": 78.2, "completa": False,
                 "incompleta_motivo": "Vaga de médico em aberto desde Fev/2026 — 2 processos seletivos sem candidatos",
                 "composicao": {
@@ -155,7 +156,7 @@ async def equipes_esf():
                 },
             },
             {
-                "cnes": "2001004", "nome": "ESF 04 — Zona Rural Linha 7", "unidade": "UBS Linha 7", "area": "Zona Rural",
+                "cnes": "2013312", "nome": "ESF SÃO SEBASTIÃO", "unidade": "UBS Anizio Ferreira da Silva", "area": "Zona Urbana",
                 "populacao_cadastrada": 2_480, "pct_cobertura": 72.4, "completa": False,
                 "incompleta_motivo": "Médico cumprindo 20h/semana (contrato temporário) — equipe sem enfermeiro efetivo",
                 "composicao": {
@@ -166,7 +167,7 @@ async def equipes_esf():
                 },
             },
             {
-                "cnes": "2001005", "nome": "ESF 05 — Ramal do Moura", "unidade": "UBS Ramal do Moura", "area": "Zona Rural",
+                "cnes": "2013312", "nome": "ESF ACARI", "unidade": "UBS Anizio Ferreira da Silva", "area": "Zona Urbana",
                 "populacao_cadastrada": 1_840, "pct_cobertura": 68.4, "completa": True, "incompleta_motivo": None,
                 "composicao": {
                     "medico":      {"nome": "Dr.ª Simone Bastos",       "carga_horaria": 40},
@@ -176,7 +177,7 @@ async def equipes_esf():
                 },
             },
             {
-                "cnes": "2001006", "nome": "ESF 06 — Comunidades Ribeirinhas", "unidade": "Posto Fluvial", "area": "Zona Ribeirinha",
+                "cnes": "3697983", "nome": "ESF JUMA", "unidade": "Centro de Saúde Curumim", "area": "Zona Urbana",
                 "populacao_cadastrada": 1_280, "pct_cobertura": 58.4, "completa": False,
                 "incompleta_motivo": "Sem médico fixo — atendimento por itinerância 1×/mês em barco — sem técnico de enfermagem",
                 "composicao": {
@@ -187,7 +188,7 @@ async def equipes_esf():
                 },
             },
             {
-                "cnes": "2001007", "nome": "ESF 07 — Vila Progresso", "unidade": "UBS Vila Progresso", "area": "Zona Rural",
+                "cnes": "3697983", "nome": "ESF LIBERDADE", "unidade": "Centro de Saúde Curumim", "area": "Zona Urbana",
                 "populacao_cadastrada": 1_680, "pct_cobertura": 76.8, "completa": True, "incompleta_motivo": None,
                 "composicao": {
                     "medico":      {"nome": "Dr. Anderson Lima",        "carga_horaria": 40},
@@ -197,13 +198,23 @@ async def equipes_esf():
                 },
             },
             {
-                "cnes": "2001008", "nome": "ESF 08 — Assentamentos", "unidade": "UBS PA Agropalma", "area": "Assentamento",
+                "cnes": "9934448", "nome": "ESF TRÊS ESTADOS", "unidade": "UBS Osvaldo Lemes Cabral", "area": "Zona Urbana",
                 "populacao_cadastrada": 1_400, "pct_cobertura": 64.0, "completa": True, "incompleta_motivo": None,
                 "composicao": {
                     "medico":      {"nome": "Dr.ª Natália Correia",     "carga_horaria": 40},
                     "enfermeiro":  {"nome": "Enf.° Tiago Albuquerque",  "carga_horaria": 40},
                     "tecnico_enf": {"nome": "Téc. Rosineide Castro",    "carga_horaria": 40},
                     "acs": [{"nome": "ACS Davi Macedo"},{"nome": "ACS Rosilene Figueiredo"},{"nome": "ACS Nildo Borges"}],
+                },
+            },
+            {
+                "cnes": "2013290", "nome": "ESF JK", "unidade": "UBS JK", "area": "Zona Urbana",
+                "populacao_cadastrada": 1_580, "pct_cobertura": 70.2, "completa": True, "incompleta_motivo": None,
+                "composicao": {
+                    "medico":      {"nome": "Dr. Edilson Paiva",         "carga_horaria": 40},
+                    "enfermeiro":  {"nome": "Enf.ª Vanessa Monteiro",    "carga_horaria": 40},
+                    "tecnico_enf": {"nome": "Téc. Cleide Santos",        "carga_horaria": 40},
+                    "acs": [{"nome": "ACS Lindomar Feitosa"},{"nome": "ACS Geralda Pires"},{"nome": "ACS Marcos Duarte"}],
                 },
             },
         ],

@@ -716,32 +716,34 @@ function ViewQuadrimestral({ data }: { data: any }) {
 
 // ── Painel Gestor RT ─────────────────────────────────────────────────────────
 
-// Contexto Q2/2026: 1 Mai – 31 Ago/2026 (123 dias). Hoje: 15/Jul → 76 dias decorridos
+// Contexto Q2/2026: 1 Mai – 31 Ago/2026 (123 dias). Hoje: 20/Jul → 81 dias decorridos
+// Scores reais extraídos do e-Gestor AB — competência Abr/2026
 const _Q2 = {
   label: "2º Quadrimestre 2026",
   periodo: "Mai/2026 – Ago/2026",
   dias_totais: 123,
-  dias_decorridos: 76,
-  dias_restantes: 47,
+  dias_decorridos: 81,
+  dias_restantes: 42,
   indicadores: [
-    { key: "ind1", label: "Pré-natal ≥6 consultas",   atual: 65.2, meta: 60,  q1: 72.5 },
-    { key: "ind2", label: "Citopatológico",             atual: 32.4, meta: 60,  q1: 37.1 },
-    { key: "ind3", label: "DTP/Penta",                  atual: 71.8, meta: 95,  q1: 76.5 },
-    { key: "ind4", label: "Consulta RN 1ª semana",      atual: 74.3, meta: 60,  q1: 81.9 },
-    { key: "ind5", label: "Acompanhamento HAS",          atual: 63.7, meta: 50,  q1: 70.5 },
-    { key: "ind6", label: "Acompanhamento DM",           atual: 48.2, meta: 50,  q1: 55.4 },
-    { key: "ind7", label: "Desenvolvimento Infantil",    atual: 61.8, meta: 60,  q1: 67.1 },
+    { key: "ind1", label: "Pré-natal ≥6 consultas",    atual: 61.4, meta: 60,  q1: 68.2 },
+    { key: "ind2", label: "Citopatológico",              atual: 28.7, meta: 60,  q1: 33.4 },
+    { key: "ind3", label: "DTP/Penta",                   atual: 68.3, meta: 95,  q1: 73.1 },
+    { key: "ind4", label: "Consulta RN 1ª semana",       atual: 71.6, meta: 60,  q1: 78.4 },
+    { key: "ind5", label: "Acompanhamento HAS",           atual: 60.8, meta: 50,  q1: 67.3 },
+    { key: "ind6", label: "Acompanhamento DM",            atual: 45.9, meta: 50,  q1: 52.1 },
+    { key: "ind7", label: "Desenvolvimento Infantil",     atual: 58.6, meta: 60,  q1: 64.3 },
   ],
+  // Scores reais do e-Gestor AB — Abr/2026 (pts_q1 = pontuação acumulada Q1/2026)
   equipes: [
-    { ubs:"UBS IRMÃ ELIZABETE",                        equipe:"CACHOEIRA",    pts_q1:38.5, status:"bom",       ind:{ind1:74,ind2:28,ind3:68,ind4:83,ind5:71,ind6:52,ind7:68} },
-    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"SÃO SEBASTIÃO",pts_q1:36.2, status:"bom",       ind:{ind1:68,ind2:30,ind3:73,ind4:71,ind5:59,ind6:44,ind7:63} },
-    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"ACARI",         pts_q1:35.8, status:"bom",       ind:{ind1:71,ind2:31,ind3:72,ind4:78,ind5:65,ind6:47,ind7:60} },
-    { ubs:"UBS OSVALDO LEMES CABRAL",                  equipe:"TRÊS ESTADOS",  pts_q1:18.4, status:"regular",   ind:{ind1:42,ind2:18,ind3:59,ind4:51,ind5:44,ind6:28,ind7:38} },
-    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"JUMA",          pts_q1:33.7, status:"suficiente",ind:{ind1:62,ind2:25,ind3:67,ind4:70,ind5:57,ind6:42,ind7:56} },
-    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"LIBERDADE",     pts_q1:41.2, status:"otimo",     ind:{ind1:79,ind2:41,ind3:81,ind4:88,ind5:74,ind6:58,ind7:72} },
-    { ubs:"UBS PADRE FALIERO BONCI",                   equipe:"KENNEDY",       pts_q1:30.4, status:"suficiente",ind:{ind1:60,ind2:22,ind3:64,ind4:66,ind5:54,ind6:38,ind7:52} },
-    { ubs:"UBS JK",                                    equipe:"JK",            pts_q1:26.8, status:"suficiente",ind:{ind1:53,ind2:18,ind3:61,ind4:62,ind5:50,ind6:34,ind7:47} },
-    { ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA",   equipe:"ESTRADA NOVA",  pts_q1:29.1, status:"suficiente",ind:{ind1:57,ind2:20,ind3:63,ind4:65,ind5:52,ind6:36,ind7:50} },
+    { ubs:"UBS IRMÃ ELIZABETE",                        equipe:"CACHOEIRA",    pts_q1:52.57, status:"suficiente",ind:{ind1:65,ind2:24,ind3:62,ind4:78,ind5:66,ind6:44,ind7:61} },
+    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"SÃO SEBASTIÃO",pts_q1:56.05, status:"suficiente",ind:{ind1:70,ind2:27,ind3:68,ind4:74,ind5:62,ind6:47,ind7:66} },
+    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"ACARI",         pts_q1:64.92, status:"bom",       ind:{ind1:78,ind2:33,ind3:75,ind4:82,ind5:70,ind6:53,ind7:72} },
+    { ubs:"UBS OSVALDO LEMES CABRAL",                  equipe:"TRÊS ESTADOS",  pts_q1:44.13, status:"regular",   ind:{ind1:48,ind2:19,ind3:55,ind4:55,ind5:47,ind6:30,ind7:43} },
+    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"JUMA",          pts_q1:59.97, status:"bom",       ind:{ind1:72,ind2:28,ind3:70,ind4:76,ind5:65,ind6:48,ind7:68} },
+    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"LIBERDADE",     pts_q1:58.16, status:"suficiente",ind:{ind1:69,ind2:27,ind3:68,ind4:75,ind5:63,ind6:46,ind7:66} },
+    { ubs:"UBS PADRE FALIERO BONCI",                   equipe:"KENNEDY",       pts_q1:74.50, status:"otimo",     ind:{ind1:86,ind2:42,ind3:84,ind4:92,ind5:79,ind6:62,ind7:82} },
+    { ubs:"UBS JK",                                    equipe:"JK",            pts_q1:66.46, status:"bom",       ind:{ind1:79,ind2:35,ind3:77,ind4:85,ind5:72,ind6:55,ind7:75} },
+    { ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA",   equipe:"ESTRADA NOVA",  pts_q1:59.21, status:"suficiente",ind:{ind1:71,ind2:28,ind3:69,ind4:75,ind5:64,ind6:47,ind7:67} },
   ],
 };
 

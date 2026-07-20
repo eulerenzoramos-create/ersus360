@@ -11,23 +11,23 @@ from fastapi import APIRouter
 router = APIRouter(prefix="/api/monitoramento-rt", tags=["monitoramento_rt"])
 
 # ── Equipes ───────────────────────────────────────────────────────────────────
+# UBS conforme CNES (consultado Jul/2026): cnes.datasus.gov.br — Apuí/AM
 _EQUIPES_ESF = [
-    {"id": "ESF-01", "nome": "CACHOEIRA",      "ubs": "UBS Irmã Elizabete",   "tipo": "eSF",  "ine": "0001483724"},
-    {"id": "ESF-02", "nome": "SÃO SEBASTIÃO",  "ubs": "UBS São Sebastião",    "tipo": "eSF",  "ine": "0001483732"},
-    {"id": "ESF-03", "nome": "ACARI",           "ubs": "UBS Acari",            "tipo": "eSF",  "ine": "0001483740"},
-    {"id": "ESF-04", "nome": "TRÊS ESTADOS",    "ubs": "UBS Três Estados",     "tipo": "eSF",  "ine": "0001483759"},
-    {"id": "ESF-05", "nome": "JUMA",            "ubs": "UBS Juma",             "tipo": "eSF",  "ine": "0001483767"},
-    {"id": "ESF-06", "nome": "LIBERDADE",       "ubs": "UBS Liberdade",        "tipo": "eSF",  "ine": "0001483775"},
-    {"id": "ESF-07", "nome": "KENNEDY",         "ubs": "UBS Kennedy",          "tipo": "eSF",  "ine": "0001483783"},
-    {"id": "ESF-08", "nome": "JK",              "ubs": "UBS JK",               "tipo": "eSF",  "ine": "0001483791"},
-    {"id": "ESF-09", "nome": "ESTRADA NOVA",    "ubs": "UBS Estrada Nova",     "tipo": "eSF",  "ine": "0001483805"},
-    {"id": "ESF-10", "nome": "RIBEIRINHA",      "ubs": "UBS Fluvial Ribeirinha","tipo": "eSF", "ine": "0001483813"},
+    {"id": "ESF-01", "nome": "CACHOEIRA",      "ubs": "UBS Irmã Elizabete",                         "cnes": "3320138", "tipo": "eSF", "ine": "0001483724"},
+    {"id": "ESF-02", "nome": "SÃO SEBASTIÃO",  "ubs": "UBS Anizio Ferreira da Silva",               "cnes": "2013312", "tipo": "eSF", "ine": "0001483732"},
+    {"id": "ESF-03", "nome": "ACARI",           "ubs": "UBS Anizio Ferreira da Silva",               "cnes": "2013312", "tipo": "eSF", "ine": "0001483740"},
+    {"id": "ESF-04", "nome": "TRÊS ESTADOS",    "ubs": "UBS Osvaldo Lemes Cabral",                   "cnes": "9934448", "tipo": "eSF", "ine": "0001483759"},
+    {"id": "ESF-05", "nome": "JUMA",            "ubs": "Centro de Saúde Curumim",                    "cnes": "3697983", "tipo": "eSF", "ine": "0001483767"},
+    {"id": "ESF-06", "nome": "LIBERDADE",       "ubs": "Centro de Saúde Curumim",                    "cnes": "3697983", "tipo": "eSF", "ine": "0001483775"},
+    {"id": "ESF-07", "nome": "KENNEDY",         "ubs": "UBS Padre Faliero Bonci",                    "cnes": "2013304", "tipo": "eSF", "ine": "0001483783"},
+    {"id": "ESF-08", "nome": "JK",              "ubs": "UBS JK",                                     "cnes": "2013290", "tipo": "eSF", "ine": "0001483791"},
+    {"id": "ESF-09", "nome": "ESTRADA NOVA",    "ubs": "UBS Claudia Pereira dos Santos Damacena",    "cnes": "9942122", "tipo": "eSF", "ine": "0001483805"},
 ]
 
 _EQUIPES_ESB = [
-    {"id": "ESB-01", "nome": "ESB I — CACHOEIRA",        "ubs": "UBS Irmã Elizabete",  "tipo": "eSB",  "ine": "0001483820"},
-    {"id": "ESB-02", "nome": "ESB II — SÃO SEBASTIÃO",   "ubs": "UBS São Sebastião",   "tipo": "eSB",  "ine": "0001483839"},
-    {"id": "ESB-03", "nome": "ESB III — CEO Apuí",        "ubs": "CEO Apuí",            "tipo": "eSB",  "ine": "0001483847"},
+    {"id": "ESB-01", "nome": "ESB I — CACHOEIRA",        "ubs": "UBS Irmã Elizabete",                "cnes": "3320138", "tipo": "eSB", "ine": "0001483820"},
+    {"id": "ESB-02", "nome": "ESB II — SÃO SEBASTIÃO",   "ubs": "UBS Anizio Ferreira da Silva",      "cnes": "2013312", "tipo": "eSB", "ine": "0001483839"},
+    {"id": "ESB-03", "nome": "ESB III — CEO Apuí",        "ubs": "Centro de Saúde Curumim",           "cnes": "3697983", "tipo": "eSB", "ine": "0001483847"},
 ]
 
 _EQUIPES_EMULTI = [
