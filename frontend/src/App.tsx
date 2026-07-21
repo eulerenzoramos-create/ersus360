@@ -314,6 +314,7 @@ import TriagemNeonatalApui          from "./pages/TriagemNeonatalApui";
 import AbsenteismoApui              from "./pages/AbsenteismoApui";
 import PICSApui                     from "./pages/PICSApui";
 import SprintOtimo                  from "./pages/SprintOtimo";
+import AnaliseMunicipio             from "./pages/AnaliseMunicipio";
 import { SinoAlertas } from "./components/SinoAlertas";
 import ExportarRelatorio from "./components/ExportarRelatorio";
 
@@ -612,6 +613,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             <SbSection label="Atenção Primária"/>
             <L1 to="/previne"           label="Componente Qualidade"  Icon={Target}/>
             <L1 to="/sprint-otimo"      label="Sprint ÓTIMO — Q2/2026" Icon={Trophy}/>
+            <L1 to="/analise-municipio" label="Análise Brasil 360"     Icon={Search}/>
             <L1 to="/parametros-ms"     label="Parâmetros MS/Apuí"    Icon={BookOpen}/>
             <L1 to="/fichas-tecnicas"   label="Fichas Técnicas APS"   Icon={FileText}/>
             <L1 to="/producao-sisab"    label="Produção APS / SISAB"  Icon={BarChart2}/>
@@ -888,6 +890,7 @@ export default function App() {
             <Route path="/previne"                   element={<PrevineBrasil/>}/>
             <Route path="/previne/*"                 element={<PrevineBrasil/>}/>
             <Route path="/sprint-otimo"              element={<SprintOtimo/>}/>
+            <Route path="/analise-municipio"         element={<AnaliseMunicipio/>}/>
             {/* Painel de Gestão */}
             <Route path="/gestao"                    element={<PainelGestaoAPS/>}/>
             <Route path="/gestao/*"                  element={<PainelGestaoAPS/>}/>
