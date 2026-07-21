@@ -1,6 +1,6 @@
 // src/pages/SprintOtimo.tsx — Sprint ÓTIMO Q2 Mai–Ago/2026
 import { useState, useEffect } from "react";
-import { Trophy, Target, Zap, CheckSquare, Square, TrendingUp, AlertTriangle, Clock } from "lucide-react";
+import { Trophy, Target, Zap, CheckSquare, Square, TrendingUp, AlertTriangle, Clock, Users, UserCheck, ShieldAlert, FileText } from "lucide-react";
 
 // ── Dados das equipes ──────────────────────────────────────────────────────
 const EQUIPES = [
@@ -102,6 +102,152 @@ const FRENTE_COR: Record<string,string> = {
   "Fechamento": "#3b82f6",
 };
 
+// ── Dados de Diagnóstico de Composição ────────────────────────────────────
+// Parâmetro Apuí: município 20.001–50.000 hab → ref. 2.500 vínculos/eSF, máx 3.750
+const DIAGNOSTICO = [
+  {
+    nome: "KENNEDY",
+    ubs: "UBS Kennedy",
+    tipo: "eSF",
+    cnesStatus: "regular",
+    medico: { nome: "Dr. Gilmar Oliveira", cbo: "225125", cnes: "OK", vinculo: "Estatutário" },
+    enfermeiro: { nome: "Enf. Patrícia Lima", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
+    tecEnf: { nome: "Téc. Rosângela Silva", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
+    acs: 5, acsMin: 4,
+    populacaoVinculada: 2680,
+    populacaoRef: 2500,
+    populacaoMax: 3750,
+    pendencias: [],
+    obs: "Equipe dentro dos parâmetros. Manter monitoramento mensal de vínculos no SCNES.",
+  },
+  {
+    nome: "JK",
+    ubs: "UBS JK",
+    tipo: "eSF",
+    cnesStatus: "regular",
+    medico: { nome: "Dr. Anízio Ferreira", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
+    enfermeiro: { nome: "Enf. Marcela Santos", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
+    tecEnf: { nome: "Téc. Ana Paula Costa", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
+    acs: 4, acsMin: 4,
+    populacaoVinculada: 2420,
+    populacaoRef: 2500,
+    populacaoMax: 3750,
+    pendencias: ["INE compartilhado com ACARI — dividir no SCNES"],
+    obs: "INE vinculado a dois territórios. Separar imediatamente para evitar mistura de produção no e-Gestor.",
+  },
+  {
+    nome: "ACARI",
+    ubs: "UBS Anízio Ferreira",
+    tipo: "eSF",
+    cnesStatus: "regular",
+    medico: { nome: "Dr. Anízio Ferreira", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
+    enfermeiro: { nome: "Enf. Cláudia Rocha", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
+    tecEnf: { nome: "Téc. Fátima Alves", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
+    acs: 4, acsMin: 3,
+    populacaoVinculada: 1980,
+    populacaoRef: 2500,
+    populacaoMax: 3750,
+    pendencias: ["INE compartilhado com SÃO SEBASTIÃO — dividir no SCNES"],
+    obs: "População abaixo da referência (1.980 vs 2.500). Verificar se território está completo no cadastro.",
+  },
+  {
+    nome: "JUMA",
+    ubs: "UBS Curumim / Juma",
+    tipo: "eSF",
+    cnesStatus: "regular",
+    medico: { nome: "Dr. Curumim", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
+    enfermeiro: { nome: "Enf. Maria José", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
+    tecEnf: { nome: "Téc. Valdete Cruz", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
+    acs: 3, acsMin: 3,
+    populacaoVinculada: 1650,
+    populacaoRef: 2500,
+    populacaoMax: 3750,
+    pendencias: ["INE compartilhado com LIBERDADE — dividir no SCNES"],
+    obs: "Equipe ribeirinha. Fichas CDS das expedições devem ser digitalizadas mensalmente. INE precisa ser separado.",
+  },
+  {
+    nome: "ESTRADA NOVA",
+    ubs: "UBS Estrada Nova",
+    tipo: "eSF",
+    cnesStatus: "regular",
+    medico: { nome: "Dr. Roberto Nunes", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
+    enfermeiro: { nome: "Enf. Simone Borges", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
+    tecEnf: { nome: "Téc. Lúcia Ferreira", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
+    acs: 4, acsMin: 3,
+    populacaoVinculada: 2150,
+    populacaoRef: 2500,
+    populacaoMax: 3750,
+    pendencias: [],
+    obs: "Composição mínima atendida. Fortalecer digitalização de produção e agenda de puericultura.",
+  },
+  {
+    nome: "LIBERDADE",
+    ubs: "UBS Curumim / Liberdade",
+    tipo: "eSF",
+    cnesStatus: "regular",
+    medico: { nome: "Dr. Curumim", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
+    enfermeiro: { nome: "Enf. Teresinha Mota", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
+    tecEnf: { nome: "Téc. Adriana Pinto", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
+    acs: 3, acsMin: 3,
+    populacaoVinculada: 1480,
+    populacaoRef: 2500,
+    populacaoMax: 3750,
+    pendencias: ["INE compartilhado com JUMA — dividir no SCNES"],
+    obs: "Equipe com menor cobertura populacional. Verificar se há área descoberta no território.",
+  },
+  {
+    nome: "SÃO SEBASTIÃO",
+    ubs: "UBS Anízio Ferreira / São Sebastião",
+    tipo: "eSF",
+    cnesStatus: "regular",
+    medico: { nome: "Dr. Anízio Ferreira", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
+    enfermeiro: { nome: "Enf. Beatriz Lima", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
+    tecEnf: { nome: "Téc. Joana Sousa", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
+    acs: 3, acsMin: 3,
+    populacaoVinculada: 1720,
+    populacaoRef: 2500,
+    populacaoMax: 3750,
+    pendencias: ["INE compartilhado com ACARI — dividir no SCNES"],
+    obs: "Médico compartilhado com ACARI e JK. Verificar carga horária e distribuição de atendimentos no PEC.",
+  },
+  {
+    nome: "CACHOEIRA",
+    ubs: "UBS Cachoeira / Ribeirinha",
+    tipo: "eRibeirinha",
+    cnesStatus: "regular",
+    medico: { nome: "Dr. Pedro Matias", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
+    enfermeiro: { nome: "Enf. Cristiane Nunes", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
+    tecEnf: { nome: "Téc. Solange Dias", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
+    acs: 2, acsMin: 2,
+    populacaoVinculada: 820,
+    populacaoRef: 1000,
+    populacaoMax: 1500,
+    pendencias: ["Fichas CDS das expedições de jun e jul não digitalizadas"],
+    obs: "Equipe Ribeirinha com menor população adscrita por natureza do território. Principal gap: digitalização das fichas CDS das expedições fluviais.",
+  },
+  {
+    nome: "TRÊS ESTADOS",
+    ubs: "UBS Três Estados",
+    tipo: "eSF",
+    cnesStatus: "expirado",
+    medico: { nome: "Dr. (a confirmar)", cbo: "225125", cnes: "EXPIRADO", vinculo: "Desatualizado" },
+    enfermeiro: { nome: "Enf. (a confirmar)", cbo: "223505", cnes: "EXPIRADO", vinculo: "Desatualizado" },
+    tecEnf: { nome: "Téc. (a confirmar)", cbo: "322205", cnes: "EXPIRADO", vinculo: "Desatualizado" },
+    acs: 2, acsMin: 2,
+    populacaoVinculada: 980,
+    populacaoRef: 2500,
+    populacaoMax: 3750,
+    pendencias: [
+      "🚨 Vínculos do médico expirados no SCNES — RH/SMS deve reativar HOJE",
+      "🚨 Vínculos dos ACS expirados no SCNES",
+      "🚨 Toda produção está sendo descartada pelo e-Gestor",
+      "População vinculada muito abaixo da referência (980 vs 2.500)",
+      "Verificar se território está cadastrado completamente",
+    ],
+    obs: "SITUAÇÃO CRÍTICA: sem a regularização do SCNES, nenhuma produção desta equipe é reconhecida pelo Ministério da Saúde para fins de financiamento. Ligar para o e-Gestor: 0800 722 4310.",
+  },
+];
+
 // ── Countdown ──────────────────────────────────────────────────────────────
 function useCountdown() {
   const [diasRestantes, setDiasRestantes] = useState(0);
@@ -126,8 +272,9 @@ function useCountdown() {
 
 // ── Componente Principal ───────────────────────────────────────────────────
 export default function SprintOtimo() {
-  const [aba, setAba] = useState<"visao"|"indicadores"|"equipe"|"checklist">("visao");
+  const [aba, setAba] = useState<"visao"|"indicadores"|"equipe"|"checklist"|"diagnostico">("visao");
   const [equipeAtiva, setEquipeAtiva] = useState("JK");
+  const [diagEquipe, setDiagEquipe] = useState("KENNEDY");
   const [checks, setChecks] = useState<Record<string,boolean>>({});
   const { diasRestantes, horasRestantes } = useCountdown();
 
@@ -176,20 +323,193 @@ export default function SprintOtimo() {
       </div>
 
       {/* ── Tabs ── */}
-      <div style={{ display: "flex", gap: 4, padding: "0 24px 0 24px", borderBottom: "1px solid #1e293b", flexWrap: "wrap" }}>
-        {(["visao","indicadores","equipe","checklist"] as const).map(t => (
-          <button key={t} onClick={() => setAba(t)} style={{
-            padding: "8px 18px", fontSize: 13, fontWeight: aba === t ? 700 : 400,
-            border: "none", borderBottom: aba === t ? "2px solid #22c55e" : "2px solid transparent",
-            background: "transparent", color: aba === t ? "#22c55e" : "#94a3b8",
-            cursor: "pointer", marginBottom: -1
+      <div style={{ display: "flex", gap: 0, padding: "0 24px 0 24px", borderBottom: "1px solid #1e293b", flexWrap: "wrap" }}>
+        {([
+          { key: "visao",        label: "📊 Visão Geral" },
+          { key: "diagnostico",  label: "🔍 Diagnóstico de Equipe" },
+          { key: "indicadores",  label: "📈 Indicadores-Chave" },
+          { key: "equipe",       label: "👥 Por Equipe" },
+          { key: "checklist",    label: "✅ Checklist" },
+        ] as {key: "visao"|"indicadores"|"equipe"|"checklist"|"diagnostico"; label: string}[]).map(t => (
+          <button key={t.key} onClick={() => setAba(t.key)} style={{
+            padding: "9px 16px", fontSize: 12.5, fontWeight: aba === t.key ? 700 : 400,
+            border: "none", borderBottom: aba === t.key ? "2px solid #22c55e" : "2px solid transparent",
+            background: "transparent", color: aba === t.key ? "#22c55e" : "#94a3b8",
+            cursor: "pointer", marginBottom: -1, whiteSpace: "nowrap"
           }}>
-            {t === "visao" ? "📊 Visão Geral" : t === "indicadores" ? "📈 Indicadores-Chave" : t === "equipe" ? "👥 Por Equipe" : "✅ Checklist"}
+            {t.label}
           </button>
         ))}
       </div>
 
       <div style={{ padding: "20px 24px" }}>
+
+        {/* ── ABA: Diagnóstico de Equipe ── */}
+        {aba === "diagnostico" && (() => {
+          const d = DIAGNOSTICO.find(x => x.nome === diagEquipe) || DIAGNOSTICO[0];
+          const popPct = Math.round((d.populacaoVinculada / d.populacaoMax) * 100);
+          const popStatus = d.populacaoVinculada >= d.populacaoRef ? "ok" : d.populacaoVinculada >= d.populacaoRef * 0.8 ? "alerta" : "baixo";
+          const popCor = popStatus === "ok" ? "#22c55e" : popStatus === "alerta" ? "#f59e0b" : "#ef4444";
+          const isCritico = d.cnesStatus === "expirado";
+
+          return (
+            <div>
+              {/* Seletor de equipe */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+                {DIAGNOSTICO.map(eq => (
+                  <button key={eq.nome} onClick={() => setDiagEquipe(eq.nome)} style={{
+                    padding: "6px 14px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+                    fontWeight: diagEquipe === eq.nome ? 700 : 400,
+                    border: `1px solid ${diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#ef4444" : "#22c55e") : "#334155"}`,
+                    background: diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#450a0a" : "#14532d") : "transparent",
+                    color: diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#fca5a5" : "#bbf7d0") : "#94a3b8",
+                  }}>
+                    {eq.cnesStatus === "expirado" ? "🚨 " : ""}{eq.nome}
+                  </button>
+                ))}
+              </div>
+
+              {/* Alerta crítico CNES */}
+              {isCritico && (
+                <div style={{ background: "#450a0a", border: "1px solid #ef4444", borderRadius: 10, padding: 16, marginBottom: 16, display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <ShieldAlert size={22} color="#ef4444" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div>
+                    <div style={{ fontWeight: 800, color: "#ef4444", fontSize: 14, marginBottom: 6 }}>CNES EXPIRADO — FINANCIAMENTO BLOQUEADO</div>
+                    <p style={{ fontSize: 13, color: "#fca5a5", margin: 0 }}>
+                      Com vínculos expirados no SCNES, <strong>toda a produção desta equipe está sendo descartada pelo e-Gestor</strong>.
+                      Nenhum indicador é contabilizado para fins de financiamento pela Portaria GM/MS 3.493/2024.
+                      O RH/SMS deve reativar os vínculos <strong>imediatamente</strong>.
+                      Suporte e-Gestor: <strong>0800 722 4310</strong>.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+
+                {/* Card composição mínima */}
+                <div style={{ background: "#1e293b", borderRadius: 10, padding: 18, border: "1px solid #334155" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                    <Users size={16} color="#3b82f6" />
+                    <span style={{ fontWeight: 700, fontSize: 13, color: "#f1f5f9" }}>Composição Mínima da Equipe</span>
+                    <span style={{ fontSize: 10, color: "#64748b" }}>PNAB / Port. Cons. nº 2/2017</span>
+                  </div>
+                  {[
+                    { cargo: "Médico", pessoa: d.medico, cbo: "225125" },
+                    { cargo: "Enfermeiro", pessoa: d.enfermeiro, cbo: "223505" },
+                    { cargo: "Téc./Aux. Enfermagem", pessoa: d.tecEnf, cbo: "322205" },
+                  ].map(p => {
+                    const ok = p.pessoa.cnes === "OK";
+                    return (
+                      <div key={p.cargo} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #0f172a" }}>
+                        <div>
+                          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 2 }}>{p.cargo} · CBO {p.cbo}</div>
+                          <div style={{ fontSize: 13, color: "#f1f5f9", fontWeight: 500 }}>{p.pessoa.nome}</div>
+                          <div style={{ fontSize: 11, color: "#94a3b8" }}>{p.pessoa.vinculo}</div>
+                        </div>
+                        <div style={{ textAlign: "center", minWidth: 70 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: ok ? "#22c55e" : "#ef4444",
+                            background: ok ? "#14532d" : "#450a0a", borderRadius: 8, padding: "3px 10px" }}>
+                            {ok ? "✓ Regular" : "✗ Expirado"}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div style={{ marginTop: 10, padding: "8px 0", borderTop: "1px solid #334155" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 2 }}>ACS (mínimo necessário: {d.acsMin})</div>
+                        <div style={{ fontSize: 13, color: "#f1f5f9", fontWeight: 500 }}>{d.acs} ACS ativos no SCNES</div>
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 700,
+                        color: d.acs >= d.acsMin ? "#22c55e" : "#ef4444",
+                        background: d.acs >= d.acsMin ? "#14532d" : "#450a0a",
+                        borderRadius: 8, padding: "3px 10px" }}>
+                        {d.acs >= d.acsMin ? "✓ Suficiente" : "✗ Insuficiente"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card população vinculada */}
+                <div style={{ background: "#1e293b", borderRadius: 10, padding: 18, border: "1px solid #334155" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                    <UserCheck size={16} color="#3b82f6" />
+                    <span style={{ fontWeight: 700, fontSize: 13, color: "#f1f5f9" }}>População Vinculada</span>
+                    <span style={{ fontSize: 10, color: "#64748b" }}>Port. 3.493/2024</span>
+                  </div>
+
+                  <div style={{ textAlign: "center", marginBottom: 16 }}>
+                    <div style={{ fontSize: 36, fontWeight: 800, color: popCor }}>{d.populacaoVinculada.toLocaleString("pt-BR")}</div>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>pessoas vinculadas</div>
+                  </div>
+
+                  <div style={{ height: 10, background: "#334155", borderRadius: 5, marginBottom: 8, position: "relative" as const, overflow: "hidden" }}>
+                    <div style={{ position: "absolute" as const, height: "100%", width: `${Math.min(100,(d.populacaoRef/d.populacaoMax)*100)}%`, background: "#334155", borderRight: "2px dashed #f59e0b" }} />
+                    <div style={{ height: "100%", width: `${popPct}%`, background: popCor, borderRadius: 5, transition: "width 0.4s" }} />
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginBottom: 14 }}>
+                    <span>0</span>
+                    <span style={{ color: "#f59e0b" }}>Ref: {d.populacaoRef.toLocaleString("pt-BR")}</span>
+                    <span style={{ color: "#94a3b8" }}>Máx: {d.populacaoMax.toLocaleString("pt-BR")}</span>
+                  </div>
+
+                  {[
+                    { label: "Parâmetro de referência", val: d.populacaoRef.toLocaleString("pt-BR"), cor: "#f59e0b" },
+                    { label: "Limite máximo financiamento", val: d.populacaoMax.toLocaleString("pt-BR"), cor: "#94a3b8" },
+                    { label: "Situação", val: popStatus === "ok" ? "Dentro do parâmetro" : popStatus === "alerta" ? "Abaixo da referência" : "Muito abaixo — verificar cadastro", cor: popCor },
+                  ].map(item => (
+                    <div key={item.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", borderBottom: "1px solid #0f172a" }}>
+                      <span style={{ color: "#94a3b8" }}>{item.label}</span>
+                      <span style={{ fontWeight: 600, color: item.cor }}>{item.val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pendências */}
+              {d.pendencias.length > 0 && (
+                <div style={{ background: "#1e293b", borderRadius: 10, padding: 16, marginBottom: 14, border: "1px solid #b45309" }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
+                    <AlertTriangle size={15} color="#f59e0b" />
+                    <span style={{ fontWeight: 700, fontSize: 13, color: "#f59e0b" }}>Pendências Identificadas</span>
+                  </div>
+                  {d.pendencias.map((p, i) => (
+                    <div key={i} style={{ fontSize: 13, color: "#fbbf24", padding: "5px 0", borderBottom: i < d.pendencias.length - 1 ? "1px solid #292524" : "none" }}>
+                      • {p}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Observação técnica */}
+              <div style={{ background: "#0f172a", borderRadius: 10, padding: 16, border: "1px solid #1e3a5f", marginBottom: 14 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                  <FileText size={14} color="#3b82f6" />
+                  <span style={{ fontWeight: 700, fontSize: 12, color: "#3b82f6" }}>Observação Técnica</span>
+                </div>
+                <p style={{ fontSize: 13, color: "#cbd5e1", margin: 0 }}>{d.obs}</p>
+              </div>
+
+              {/* Fundamentação legal */}
+              <div style={{ background: "#1e293b", borderRadius: 10, padding: 16, border: "1px solid #334155" }}>
+                <div style={{ fontWeight: 700, fontSize: 12, color: "#64748b", marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>Fundamentação Legal</div>
+                {[
+                  { norm: "Portaria de Consolidação GM/MS nº 2/2017", desc: "Anexo XXII — Política Nacional de Atenção Básica (PNAB). Define composição mínima obrigatória: 1 médico, 1 enfermeiro, 1 técnico/auxiliar de enfermagem e ACS em número suficiente." },
+                  { norm: "Portaria GM/MS nº 3.493/2024", desc: "Institui o Novo Financiamento da APS (Brasil 360). Para municípios de 20.001–50.000 hab. (como Apuí), parâmetro de referência é 2.500 pessoas/eSF, com limite máximo de 3.750 para fins de cofinanciamento federal." },
+                  { norm: "SCNES — Cadastro Nacional de Estabelecimentos de Saúde", desc: "Vínculos expirados impedem o reconhecimento da produção pelo Ministério da Saúde e comprometem o financiamento da APS. Atualização mensal obrigatória." },
+                ].map(item => (
+                  <div key={item.norm} style={{ padding: "10px 0", borderBottom: "1px solid #0f172a" }}>
+                    <div style={{ fontWeight: 600, fontSize: 12, color: "#93c5fd", marginBottom: 4 }}>{item.norm}</div>
+                    <div style={{ fontSize: 12, color: "#94a3b8" }}>{item.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── ABA: Visão Geral ── */}
         {aba === "visao" && (
