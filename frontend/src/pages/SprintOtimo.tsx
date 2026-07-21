@@ -662,6 +662,67 @@ export default function SprintOtimo() {
               })}
             </div>
 
+            {/* População vinculada por equipe */}
+            <div style={{ background: "#1e293b", borderRadius: 10, padding: 20, border: "1px solid #334155", marginBottom: 14 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9", marginBottom: 4 }}>👥 População Vinculada por Equipe</div>
+              <div style={{ fontSize: 11, color: "#64748b", marginBottom: 14 }}>
+                Parâmetro Portaria 3.493/2024 — Apuí (20.001–50.000 hab): referência 2.500 pessoas/eSF · máximo 3.750 · eRibeirinha: ref. 1.000 · máx 1.500
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 620 }}>
+                  <thead>
+                    <tr style={{ background: "#0f172a" }}>
+                      {["Equipe","Tipo","Pessoas Vinculadas","Referência","Máximo Financ.","Status","Score Atual"].map(h => (
+                        <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: "#64748b", fontWeight: 600, fontSize: 11, borderBottom: "1px solid #334155" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {DIAGNOSTICO.map(d => {
+                      const popStatus = d.populacaoVinculada >= d.populacaoRef ? "ok" : d.populacaoVinculada >= d.populacaoRef * 0.8 ? "alerta" : "baixo";
+                      const popCor = popStatus === "ok" ? "#22c55e" : popStatus === "alerta" ? "#f59e0b" : "#ef4444";
+                      const popLabel = popStatus === "ok" ? "✓ Regular" : popStatus === "alerta" ? "⚠ Abaixo" : "✗ Muito baixo";
+                      const eq = EQUIPES.find(e => e.nome === d.nome);
+                      const ptsCor = eq ? (eq.pts >= 75 ? "#22c55e" : eq.pts >= 60 ? "#f59e0b" : "#ef4444") : "#94a3b8";
+                      const pctBarra = Math.min(100, Math.round((d.populacaoVinculada / d.populacaoMax) * 100));
+                      return (
+                        <tr key={d.nome} style={{ borderBottom: "1px solid #0f172a" }}>
+                          <td style={{ padding: "9px 10px", fontWeight: 600, color: "#f1f5f9" }}>{d.nome}</td>
+                          <td style={{ padding: "9px 10px" }}>
+                            <span style={{ background: "#334155", borderRadius: 6, padding: "2px 7px", fontSize: 10 }}>{d.tipo}</span>
+                          </td>
+                          <td style={{ padding: "9px 10px" }}>
+                            <div style={{ fontWeight: 700, fontSize: 14, color: popCor, marginBottom: 3 }}>
+                              {d.populacaoVinculada.toLocaleString("pt-BR")}
+                            </div>
+                            <div style={{ height: 5, background: "#334155", borderRadius: 3, width: 100, overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${pctBarra}%`, background: popCor, borderRadius: 3 }} />
+                            </div>
+                          </td>
+                          <td style={{ padding: "9px 10px", color: "#f59e0b", fontWeight: 600 }}>{d.populacaoRef.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "9px 10px", color: "#64748b" }}>{d.populacaoMax.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "9px 10px" }}>
+                            <span style={{ background: popCor + "22", color: popCor, borderRadius: 10, padding: "2px 9px", fontSize: 11, fontWeight: 700 }}>{popLabel}</span>
+                          </td>
+                          <td style={{ padding: "9px 10px", fontWeight: 800, color: ptsCor }}>{eq ? eq.pts : "—"} pts</td>
+                        </tr>
+                      );
+                    })}
+                    {/* Totais */}
+                    <tr style={{ background: "#0f172a", fontWeight: 700 }}>
+                      <td colSpan={2} style={{ padding: "9px 10px", color: "#94a3b8" }}>TOTAL MUNICÍPIO</td>
+                      <td style={{ padding: "9px 10px", color: "#f1f5f9", fontWeight: 800, fontSize: 14 }}>
+                        {DIAGNOSTICO.reduce((a, d) => a + d.populacaoVinculada, 0).toLocaleString("pt-BR")}
+                      </td>
+                      <td colSpan={4} style={{ padding: "9px 10px", color: "#64748b", fontSize: 11 }}>
+                        pessoas cadastradas em equipes de APS · {DIAGNOSTICO.length} equipes ativas
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             {/* Resumo financeiro */}
             <div style={{ background: "#1e293b", borderRadius: 10, padding: 20, border: "1px solid #334155" }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9", marginBottom: 12 }}>💰 Impacto Financeiro — BOM vs ÓTIMO</div>
