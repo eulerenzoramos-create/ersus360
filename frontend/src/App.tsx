@@ -12,7 +12,7 @@ import {
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
   Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets, Utensils,
   Wind, Eye, TrendingDown, Trash2, School, Sparkles, Waves, Clock,
-  HeartPulse, HandHeart, Scale, Ship,
+  HeartPulse, HandHeart, Scale, Ship, Trophy,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -313,6 +313,7 @@ import EssenciaisApui               from "./pages/EssenciaisApui";
 import TriagemNeonatalApui          from "./pages/TriagemNeonatalApui";
 import AbsenteismoApui              from "./pages/AbsenteismoApui";
 import PICSApui                     from "./pages/PICSApui";
+import SprintOtimo                  from "./pages/SprintOtimo";
 import { SinoAlertas } from "./components/SinoAlertas";
 import ExportarRelatorio from "./components/ExportarRelatorio";
 
@@ -610,6 +611,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             {/* ── APS ── */}
             <SbSection label="Atenção Primária"/>
             <L1 to="/previne"           label="Componente Qualidade"  Icon={Target}/>
+            <L1 to="/sprint-otimo"      label="Sprint ÓTIMO — Q2/2026" Icon={Trophy}/>
             <L1 to="/parametros-ms"     label="Parâmetros MS/Apuí"    Icon={BookOpen}/>
             <L1 to="/fichas-tecnicas"   label="Fichas Técnicas APS"   Icon={FileText}/>
             <L1 to="/producao-sisab"    label="Produção APS / SISAB"  Icon={BarChart2}/>
@@ -701,6 +703,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
               <L2 to="/previne/grupoB"     label="Grupo B — eSB (6 ind.)"              Icon={Stethoscope}/>
               <L2 to="/previne/grupoM"     label="Grupo M — eMulti (2 ind.)"           Icon={Activity}/>
               <L2 to="/previne/ribeirinha" label="eRibeirinha — Indicadores"           Icon={Ship}/>
+              <L2 to="/sprint-otimo"       label="Sprint ÓTIMO — Q2/2026"              Icon={Star}/>
             </Acc1>
 
             {/* ── Painel de Gestão ── */}
@@ -884,6 +887,7 @@ export default function App() {
             {/* Componente Qualidade — Novo Financiamento APS (Portaria 3.493/2024) */}
             <Route path="/previne"                   element={<PrevineBrasil/>}/>
             <Route path="/previne/*"                 element={<PrevineBrasil/>}/>
+            <Route path="/sprint-otimo"              element={<SprintOtimo/>}/>
             {/* Painel de Gestão */}
             <Route path="/gestao"                    element={<PainelGestaoAPS/>}/>
             <Route path="/gestao/*"                  element={<PainelGestaoAPS/>}/>
