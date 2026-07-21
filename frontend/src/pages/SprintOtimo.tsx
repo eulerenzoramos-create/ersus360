@@ -270,17 +270,31 @@ function useCountdown() {
   return { diasRestantes, horasRestantes };
 }
 
+// ── Períodos de análise ────────────────────────────────────────────────────
+const PERIODOS = [
+  { key: "diaria",        label: "📅 Diária",        desc: "Monitoramento do dia — produção, pendências e alertas urgentes" },
+  { key: "mensal",        label: "📆 Mensal",         desc: "Consolidado mensal — competência atual vs mês anterior" },
+  { key: "quadrimestral", label: "📊 Quadrimestral",  desc: "Q2 Mai–Ago/2026 — resultado para fins de financiamento federal" },
+];
+
 // ── Componente Principal ───────────────────────────────────────────────────
 export default function SprintOtimo() {
   const [aba, setAba] = useState<"visao"|"indicadores"|"equipe"|"checklist"|"diagnostico">("visao");
   const [equipeAtiva, setEquipeAtiva] = useState("JK");
   const [diagEquipe, setDiagEquipe] = useState("KENNEDY");
   const [checks, setChecks] = useState<Record<string,boolean>>({});
+  const [periodo, setPeriodo] = useState<"diaria"|"mensal"|"quadrimestral">("quadrimestral");
+  const [municipioNome, setMunicipioNome] = useState("Apuí");
+  const [municipioUF, setMunicipioUF] = useState("AM");
+  const [municipioIBGE, setMunicipioIBGE] = useState("1300144");
+  const [editandoMunicipio, setEditandoMunicipio] = useState(false);
   const { diasRestantes, horasRestantes } = useCountdown();
 
   const totalChecks = CHECKLIST.length;
   const feitos = Object.values(checks).filter(Boolean).length;
   const pct = Math.round((feitos / totalChecks) * 100);
+
+  const periodoAtual = PERIODOS.find(p => p.key === periodo)!;
 
   function toggle(id: string) {
     setChecks(p => ({ ...p, [id]: !p[id] }));
@@ -288,38 +302,99 @@ export default function SprintOtimo() {
 
   const FRENTES = ["Sistema","Clínica","ACS","Retroativo","Fechamento"];
 
+  const ESTADOS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+
   return (
     <div style={{ padding: "0 0 40px 0", fontFamily: "Inter, system-ui, sans-serif", background: "var(--bg, #0f172a)", minHeight: "100vh", color: "var(--fg, #f1f5f9)" }}>
 
       {/* ── Header ── */}
-      <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #14532d 100%)", borderBottom: "1px solid #1e293b", padding: "16px 24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-              <Trophy size={22} color="#f59e0b" />
-              <span style={{ fontWeight: 700, fontSize: 17, color: "#f1f5f9" }}>SPRINT ÓTIMO — Meta: ≥75 pts em TODAS as equipes</span>
+      <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #14532d 100%)", borderBottom: "1px solid #1e293b", padding: "14px 24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <Trophy size={20} color="#f59e0b" />
+              <span style={{ fontWeight: 700, fontSize: 16, color: "#f1f5f9" }}>SPRINT ÓTIMO — Meta: ≥75 pts em TODAS as equipes</span>
             </div>
-            <div style={{ fontSize: 12, color: "#94a3b8" }}>Apuí/AM · Portaria GM/MS 3.493/2024 · Componente Qualidade · Fechamento Q2: 31/Ago/2026</div>
+
+            {/* Município editável */}
+            {editandoMunicipio ? (
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
+                <input
+                  value={municipioNome}
+                  onChange={e => setMunicipioNome(e.target.value)}
+                  placeholder="Nome do município"
+                  style={{ background: "#0f172a", border: "1px solid #3b82f6", borderRadius: 6, color: "#f1f5f9", padding: "5px 10px", fontSize: 12, width: 160, outline: "none" }}
+                />
+                <select value={municipioUF} onChange={e => setMunicipioUF(e.target.value)}
+                  style={{ background: "#0f172a", border: "1px solid #3b82f6", borderRadius: 6, color: "#f1f5f9", padding: "5px 8px", fontSize: 12, outline: "none" }}>
+                  {ESTADOS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                </select>
+                <input
+                  value={municipioIBGE}
+                  onChange={e => setMunicipioIBGE(e.target.value)}
+                  placeholder="IBGE"
+                  style={{ background: "#0f172a", border: "1px solid #3b82f6", borderRadius: 6, color: "#f1f5f9", padding: "5px 10px", fontSize: 12, width: 90, outline: "none" }}
+                />
+                <button onClick={() => setEditandoMunicipio(false)}
+                  style={{ background: "#166534", color: "#bbf7d0", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  ✓ Confirmar
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 13, color: "#94a3b8" }}>
+                  📍 <strong style={{ color: "#f1f5f9" }}>{municipioNome}/{municipioUF}</strong>
+                  {municipioIBGE && <span style={{ color: "#64748b" }}> · IBGE {municipioIBGE}</span>}
+                  <span style={{ color: "#64748b" }}> · Portaria GM/MS 3.493/2024 · Componente Qualidade</span>
+                </span>
+                <button onClick={() => setEditandoMunicipio(true)}
+                  style={{ background: "#1e3a5f", color: "#93c5fd", border: "1px solid #1e40af", borderRadius: 6, padding: "2px 10px", fontSize: 11, cursor: "pointer" }}>
+                  ✏️ Trocar município
+                </button>
+              </div>
+            )}
+
+            {/* Seletor de período */}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {PERIODOS.map(p => (
+                <button key={p.key} onClick={() => setPeriodo(p.key as any)}
+                  style={{
+                    padding: "4px 14px", borderRadius: 20, fontSize: 11, fontWeight: periodo === p.key ? 700 : 500,
+                    border: `1px solid ${periodo === p.key ? "#22c55e" : "#334155"}`,
+                    background: periodo === p.key ? "#14532d" : "#0f172a",
+                    color: periodo === p.key ? "#bbf7d0" : "#64748b",
+                    cursor: "pointer"
+                  }}>
+                  {p.label}
+                </button>
+              ))}
+              <span style={{ fontSize: 11, color: "#475569", alignSelf: "center", paddingLeft: 4 }}>{periodoAtual.desc}</span>
+            </div>
           </div>
+
+          {/* Countdown */}
           <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 28, fontWeight: 800, color: "#f1f5f9", lineHeight: 1 }}>{diasRestantes}</div>
-              <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", letterSpacing: 1 }}>DIAS</div>
+              <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" as const, letterSpacing: 1 }}>DIAS</div>
             </div>
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 28, fontWeight: 800, color: "#f1f5f9", lineHeight: 1 }}>{horasRestantes}</div>
-              <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase", letterSpacing: 1 }}>HORAS</div>
+              <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" as const, letterSpacing: 1 }}>HORAS</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* ── Badges resumo ── */}
-      <div style={{ display: "flex", gap: 10, padding: "12px 24px", flexWrap: "wrap" }}>
-        <span style={{ background: "#166534", color: "#bbf7d0", padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>🏆 Meta ≥75 pts</span>
-        <span style={{ background: "#7f1d1d", color: "#fca5a5", padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>5 equipes em risco crítico</span>
-        <span style={{ background: "#1e3a5f", color: "#93c5fd", padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>{diasRestantes} dias de sprint</span>
-        <span style={{ background: "#3730a3", color: "#c7d2fe", padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>Checklist {feitos}/{totalChecks}</span>
+      <div style={{ display: "flex", gap: 8, padding: "10px 24px", flexWrap: "wrap", alignItems: "center", background: "#0f172a", borderBottom: "1px solid #1e293b" }}>
+        <span style={{ background: "#166534", color: "#bbf7d0", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>🏆 Meta ≥75 pts</span>
+        <span style={{ background: "#7f1d1d", color: "#fca5a5", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>5 equipes em risco crítico</span>
+        <span style={{ background: "#1e3a5f", color: "#93c5fd", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{diasRestantes} dias de sprint</span>
+        <span style={{ background: "#3730a3", color: "#c7d2fe", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>Checklist {feitos}/{totalChecks}</span>
+        <span style={{ background: periodo === "diaria" ? "#7c3aed" : periodo === "mensal" ? "#0f4c81" : "#14532d", color: "#fff", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>
+          {periodoAtual.label}
+        </span>
       </div>
 
       {/* ── Tabs ── */}
@@ -514,6 +589,53 @@ export default function SprintOtimo() {
         {/* ── ABA: Visão Geral ── */}
         {aba === "visao" && (
           <div>
+
+            {/* Banner de contexto por período */}
+            {periodo === "diaria" && (
+              <div style={{ background: "#2e1065", border: "1px solid #7c3aed", borderRadius: 10, padding: 14, marginBottom: 16, display: "flex", gap: 14, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 22 }}>📅</span>
+                <div>
+                  <div style={{ fontWeight: 700, color: "#c4b5fd", marginBottom: 4 }}>Análise Diária — {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</div>
+                  <div style={{ fontSize: 12, color: "#a78bfa" }}>Foco de hoje: verificar no PEC se há produção sem INE vinculado, confirmar lançamentos do dia anterior e garantir que ACS realizaram visitas programadas. Toda produção de hoje conta para o fechamento de agosto.</div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                    {["✓ Verificar produção sem equipe no e-Gestor","✓ PA de hipertensos lançada?","✓ Puericultura do dia agendada?","✓ ACS com lista de busca ativa?"].map(t => (
+                      <span key={t} style={{ background: "#3b0764", color: "#c4b5fd", padding: "3px 10px", borderRadius: 12, fontSize: 11 }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {periodo === "mensal" && (
+              <div style={{ background: "#0c1a2e", border: "1px solid #1d4ed8", borderRadius: 10, padding: 14, marginBottom: 16, display: "flex", gap: 14, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 22 }}>📆</span>
+                <div>
+                  <div style={{ fontWeight: 700, color: "#93c5fd", marginBottom: 4 }}>Análise Mensal — {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</div>
+                  <div style={{ fontSize: 12, color: "#60a5fa" }}>Competência aberta até ~dia 20 do próximo mês. Verificar no e-Gestor se os indicadores desta competência estão subindo. Focar nos indicadores com maior gap vs meta.</div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                    {["✓ Resultados HbA1c/VDRL lançados no PEC?","✓ Produção digitalizada até ontem?","✓ Mutirão de puericultura realizado?","✓ Monitor e-Gestor atualizado?"].map(t => (
+                      <span key={t} style={{ background: "#1e3a5f", color: "#93c5fd", padding: "3px 10px", borderRadius: 12, fontSize: 11 }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {periodo === "quadrimestral" && (
+              <div style={{ background: "#052e16", border: "1px solid #166534", borderRadius: 10, padding: 14, marginBottom: 16, display: "flex", gap: 14, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 22 }}>📊</span>
+                <div>
+                  <div style={{ fontWeight: 700, color: "#86efac", marginBottom: 4 }}>Q2 Mai–Ago/2026 — Fechamento em 31/Agosto</div>
+                  <div style={{ fontSize: 12, color: "#4ade80" }}>Este é o quadrimestre que define o pagamento de setembro. Scores acumulados de maio a agosto. Toda produção lançada até 31/ago será contabilizada. Foco total em C2 (pré-natal) e C6 (puericultura).</div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                    {[`✓ ${diasRestantes} dias restantes`,`✓ ${5} equipes abaixo de 75 pts`,"✓ CNES TRÊS ESTADOS — regularizar HOJE","✓ Retroativos de gaveta — lançar agora"].map(t => (
+                      <span key={t} style={{ background: "#14532d", color: "#86efac", padding: "3px 10px", borderRadius: 12, fontSize: 11 }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14, marginBottom: 24 }}>
               {EQUIPES.map(eq => {
                 const pctBar = Math.min(100, (eq.pts / 75) * 100);
