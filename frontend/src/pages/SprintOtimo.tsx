@@ -126,7 +126,7 @@ const DIAGNOSTICO = [
     enfermeiro: { nome: "Enf. Patrícia Lima", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
     tecEnf: { nome: "Téc. Rosângela Silva", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
     acs: 5, acsMin: 4,
-    populacaoVinculada: 0,
+    populacaoVinculada: 761,
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [],
@@ -145,7 +145,7 @@ const DIAGNOSTICO = [
     enfermeiro: { nome: "Enf. Marcela Santos", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
     tecEnf: { nome: "Téc. Ana Paula Costa", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
     acs: 4, acsMin: 4,
-    populacaoVinculada: 2420,
+    populacaoVinculada: 1497,
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [
@@ -166,7 +166,7 @@ const DIAGNOSTICO = [
     enfermeiro: { nome: "Enf. Cláudia Rocha", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
     tecEnf: { nome: "Téc. Fátima Alves", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
     acs: 4, acsMin: 3,
-    populacaoVinculada: 1980,
+    populacaoVinculada: 1611,
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [],
@@ -185,7 +185,7 @@ const DIAGNOSTICO = [
     enfermeiro: { nome: "Enf. Maria José", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
     tecEnf: { nome: "Téc. Valdete Cruz", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
     acs: 3, acsMin: 3,
-    populacaoVinculada: 1650,
+    populacaoVinculada: 1732,
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [],
@@ -204,7 +204,7 @@ const DIAGNOSTICO = [
     enfermeiro: { nome: "Enf. Simone Borges", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
     tecEnf: { nome: "Téc. Lúcia Ferreira", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
     acs: 4, acsMin: 3,
-    populacaoVinculada: 2150,
+    populacaoVinculada: 806,
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [],
@@ -223,7 +223,7 @@ const DIAGNOSTICO = [
     enfermeiro: { nome: "Enf. Teresinha Mota", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
     tecEnf: { nome: "Téc. Adriana Pinto", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
     acs: 3, acsMin: 3,
-    populacaoVinculada: 1480,
+    populacaoVinculada: 1784,
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [],
@@ -242,7 +242,7 @@ const DIAGNOSTICO = [
     enfermeiro: { nome: "Enf. Beatriz Lima", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
     tecEnf: { nome: "Téc. Joana Sousa", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
     acs: 3, acsMin: 3,
-    populacaoVinculada: 1720,
+    populacaoVinculada: 1585,
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [],
@@ -261,7 +261,7 @@ const DIAGNOSTICO = [
     enfermeiro: { nome: "Enf. Cristiane Nunes", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
     tecEnf: { nome: "Téc. Solange Dias", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
     acs: 2, acsMin: 2,
-    populacaoVinculada: 820,
+    populacaoVinculada: 1552,
     populacaoRef: 1000,
     populacaoMax: 1500,
     pendencias: [
@@ -283,7 +283,7 @@ const DIAGNOSTICO = [
     enfermeiro: { nome: "Enf. (a confirmar)", cbo: "223505", cnes: "EXPIRADO", vinculo: "Desatualizado" },
     tecEnf: { nome: "Téc. (a confirmar)", cbo: "322205", cnes: "EXPIRADO", vinculo: "Desatualizado" },
     acs: 2, acsMin: 2,
-    populacaoVinculada: 980,
+    populacaoVinculada: 1035,
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [
@@ -1025,21 +1025,31 @@ export default function SprintOtimo() {
             )}
 
             {periodo === "quadrimestral" && (
-              <div style={{ background: "#052e16", border: "1px solid #166534", borderRadius: 10, padding: 14, marginBottom: 16, display: "flex", gap: 14, alignItems: "flex-start" }}>
-                <span style={{ fontSize: 22 }}>📊</span>
-                <div>
-                  <div style={{ fontWeight: 700, color: "#86efac", marginBottom: 4 }}>Q2 Mai–Ago/2026 — Fechamento em 31/Agosto</div>
-                  <div style={{ fontSize: 12, color: "#4ade80" }}>Este é o quadrimestre que define o pagamento de setembro. Scores acumulados de maio a agosto. Toda produção lançada até 31/ago será contabilizada. Foco total em C2 (pré-natal) e C6 (puericultura).</div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                    {[`✓ ${diasRestantes} dias restantes`,`✓ ${EQUIPES.filter(e => e.pts < 75 && e.risco !== "apurar").length} equipes abaixo de 75 pts`,"✓ CNES TRÊS ESTADOS — regularizar HOJE","✓ Retroativos de gaveta — lançar agora"].map(t => (
-                      <span key={t} style={{ background: "#14532d", color: "#86efac", padding: "3px 10px", borderRadius: 12, fontSize: 11 }}>{t}</span>
+              <div style={{ background: "linear-gradient(135deg, #061a0e 0%, #07120f 60%, #0a1a1a 100%)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 14, padding: "16px 20px", marginBottom: 20, display: "flex", gap: 16, alignItems: "flex-start", boxShadow: "0 0 30px rgba(34,197,94,0.06)" }}>
+                <div style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 10, padding: "8px 10px", flexShrink: 0 }}>
+                  <span style={{ fontSize: 18 }}>📊</span>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                    <span style={{ fontWeight: 800, color: "#4ade80", fontSize: 14 }}>Q2 Mai–Ago/2026</span>
+                    <span style={{ fontSize: 11, color: "#16a34a", background: "rgba(22,163,74,0.15)", border: "1px solid rgba(22,163,74,0.25)", padding: "1px 8px", borderRadius: 20 }}>Fechamento 31/Agosto</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: "#86efac", marginBottom: 10, lineHeight: 1.6 }}>Scores acumulados de maio a agosto. Toda produção lançada até 31/ago contabiliza. Foco em <strong>C2</strong> (pré-natal) e <strong>C6</strong> (puericultura).</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {[
+                      { t: `${diasRestantes} dias restantes`, cor: "#22c55e" },
+                      { t: `${EQUIPES.filter(e => e.pts < 75 && e.risco !== "apurar").length} equipes abaixo de 75 pts`, cor: "#f59e0b" },
+                      { t: "CNES TRÊS ESTADOS — regularizar HOJE", cor: "#ef4444" },
+                      { t: "Retroativos de gaveta — lançar agora", cor: "#60a5fa" },
+                    ].map(({ t, cor }) => (
+                      <span key={t} style={{ background: cor + "18", color: cor, border: `1px solid ${cor}35`, padding: "3px 11px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>✓ {t}</span>
                     ))}
                   </div>
                 </div>
               </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14, marginBottom: 24 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12, marginBottom: 28 }}>
               {EQUIPES.map(eq => {
                 const isApurar = eq.risco === "apurar";
                 const pctBar = isApurar ? 0 : Math.min(100, (eq.pts / 75) * 100);
@@ -1088,22 +1098,25 @@ export default function SprintOtimo() {
             </div>
 
             {/* População vinculada por equipe */}
-            <div style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.3)", padding: 20, border: "1px solid rgba(255,255,255,0.07)", marginBottom: 16 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9", marginBottom: 4 }}>👥 População Vinculada por Equipe</div>
-              <div style={{ fontSize: 11, color: "#64748b", marginBottom: 14 }}>
-                Parâmetro Portaria 3.493/2024 — Apuí (20.001–50.000 hab): referência 2.500 pessoas/eSF · máximo 3.750 · eRibeirinha: ref. 1.000 · máx 1.500
+            <div style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 14, boxShadow: "0 4px 20px rgba(0,0,0,0.4)", padding: 20, border: "1px solid rgba(255,255,255,0.07)", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
+                <span style={{ fontSize: 15, fontWeight: 800, color: "#f8fafc" }}>👥 População Vinculada</span>
+                <span style={{ fontSize: 11, color: "#475569" }}>por Equipe · ABR/2026 · SIAPS</span>
+              </div>
+              <div style={{ fontSize: 11, color: "#334155", marginBottom: 16 }}>
+                Ref. 2.500/eSF · máx 3.750 · eRibeirinha: ref. 1.000 · máx 1.500 · Portaria 3.493/2024
               </div>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 620 }}>
                   <thead>
-                    <tr style={{ background: "#07101e" }}>
-                      {["Equipe","Tipo","Pessoas Vinculadas","Referência","Máximo Financ.","Status","Score Atual"].map(h => (
-                        <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: "#64748b", fontWeight: 600, fontSize: 11, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>{h}</th>
+                    <tr>
+                      {["Equipe","Tipo","Pessoas Vinculadas","Referência","Máximo Financ.","Status","Score"].map(h => (
+                        <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "#334155", fontWeight: 700, fontSize: 10, textTransform: "uppercase" as const, letterSpacing: 0.6, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {DIAGNOSTICO.map(d => {
+                    {DIAGNOSTICO.map((d, idx) => {
                       const popStatus = d.populacaoVinculada >= d.populacaoRef ? "ok" : d.populacaoVinculada >= d.populacaoRef * 0.8 ? "alerta" : "baixo";
                       const popCor = popStatus === "ok" ? "#22c55e" : popStatus === "alerta" ? "#f59e0b" : "#ef4444";
                       const popLabel = popStatus === "ok" ? "✓ Regular" : popStatus === "alerta" ? "⚠ Abaixo" : "✗ Muito baixo";
@@ -1111,35 +1124,35 @@ export default function SprintOtimo() {
                       const ptsCor = eq ? (eq.pts >= 75 ? "#22c55e" : eq.pts >= 60 ? "#f59e0b" : "#ef4444") : "#94a3b8";
                       const pctBarra = Math.min(100, Math.round((d.populacaoVinculada / d.populacaoMax) * 100));
                       return (
-                        <tr key={d.nome} style={{ borderBottom: "1px solid #0f172a" }}>
-                          <td style={{ padding: "9px 10px", fontWeight: 600, color: "#f1f5f9" }}>{d.nome}</td>
-                          <td style={{ padding: "9px 10px" }}>
-                            <span style={{ background: "#334155", borderRadius: 6, padding: "2px 7px", fontSize: 10 }}>{d.tipo}</span>
+                        <tr key={d.nome} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)" }}>
+                          <td style={{ padding: "10px 12px", fontWeight: 700, color: "#e2e8f0", fontSize: 12 }}>{d.nome}</td>
+                          <td style={{ padding: "10px 12px" }}>
+                            <span style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8", borderRadius: 6, padding: "2px 8px", fontSize: 10, fontWeight: 600 }}>{d.tipo}</span>
                           </td>
-                          <td style={{ padding: "9px 10px" }}>
-                            <div style={{ fontWeight: 700, fontSize: 14, color: popCor, marginBottom: 3 }}>
-                              {d.populacaoVinculada.toLocaleString("pt-BR")}
+                          <td style={{ padding: "10px 12px" }}>
+                            <div style={{ fontWeight: 800, fontSize: 15, color: popCor, marginBottom: 4, fontVariantNumeric: "tabular-nums" }}>
+                              {d.populacaoVinculada === 0 ? <span style={{ color: "#334155", fontSize: 12, fontStyle: "italic" }}>a apurar</span> : d.populacaoVinculada.toLocaleString("pt-BR")}
                             </div>
-                            <div style={{ height: 5, background: "#334155", borderRadius: 3, width: 100, overflow: "hidden" }}>
-                              <div style={{ height: "100%", width: `${pctBarra}%`, background: popCor, borderRadius: 3 }} />
+                            <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, width: 110, overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${pctBarra}%`, background: popCor, borderRadius: 2 }} />
                             </div>
                           </td>
-                          <td style={{ padding: "9px 10px", color: "#f59e0b", fontWeight: 600 }}>{d.populacaoRef.toLocaleString("pt-BR")}</td>
-                          <td style={{ padding: "9px 10px", color: "#64748b" }}>{d.populacaoMax.toLocaleString("pt-BR")}</td>
-                          <td style={{ padding: "9px 10px" }}>
-                            <span style={{ background: popCor + "22", color: popCor, borderRadius: 10, padding: "2px 9px", fontSize: 11, fontWeight: 700 }}>{popLabel}</span>
+                          <td style={{ padding: "10px 12px", color: "#f59e0b", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{d.populacaoRef.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "10px 12px", color: "#334155", fontVariantNumeric: "tabular-nums" }}>{d.populacaoMax.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "10px 12px" }}>
+                            <span style={{ background: popCor + "18", color: popCor, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700, border: `1px solid ${popCor}30` }}>{popLabel}</span>
                           </td>
-                          <td style={{ padding: "9px 10px", fontWeight: 800, color: ptsCor }}>{eq ? eq.pts : "—"} pts</td>
+                          <td style={{ padding: "10px 12px", fontWeight: 800, color: ptsCor, fontVariantNumeric: "tabular-nums" }}>{eq ? eq.pts : "—"}</td>
                         </tr>
                       );
                     })}
                     {/* Totais */}
-                    <tr style={{ background: "#07101e", fontWeight: 700 }}>
-                      <td colSpan={2} style={{ padding: "9px 10px", color: "#94a3b8" }}>TOTAL MUNICÍPIO</td>
-                      <td style={{ padding: "9px 10px", color: "#f1f5f9", fontWeight: 800, fontSize: 14 }}>
+                    <tr style={{ background: "rgba(245,158,11,0.05)", borderTop: "1px solid rgba(245,158,11,0.15)" }}>
+                      <td colSpan={2} style={{ padding: "10px 12px", color: "#94a3b8", fontWeight: 700, fontSize: 11, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>Total município</td>
+                      <td style={{ padding: "10px 12px", color: "#f59e0b", fontWeight: 800, fontSize: 16, fontVariantNumeric: "tabular-nums" }}>
                         {DIAGNOSTICO.reduce((a, d) => a + d.populacaoVinculada, 0).toLocaleString("pt-BR")}
                       </td>
-                      <td colSpan={4} style={{ padding: "9px 10px", color: "#64748b", fontSize: 11 }}>
+                      <td colSpan={4} style={{ padding: "10px 12px", color: "#475569", fontSize: 11 }}>
                         pessoas cadastradas em equipes de APS · {DIAGNOSTICO.length} equipes ativas
                       </td>
                     </tr>
@@ -1149,18 +1162,21 @@ export default function SprintOtimo() {
             </div>
 
             {/* Resumo financeiro */}
-            <div style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.3)", padding: 20, border: "1px solid rgba(255,255,255,0.07)" }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9", marginBottom: 12 }}>💰 Impacto Financeiro — BOM vs ÓTIMO</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
+            <div style={{ background: "linear-gradient(135deg, #0a1a10 0%, #070c18 100%)", borderRadius: 14, boxShadow: "0 4px 20px rgba(0,0,0,0.4)", padding: 20, border: "1px solid rgba(34,197,94,0.1)" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 14 }}>
+                <span style={{ fontSize: 15, fontWeight: 800, color: "#f8fafc" }}>💰 Impacto Financeiro</span>
+                <span style={{ fontSize: 11, color: "#475569" }}>BOM → ÓTIMO · Portaria 3.493/2024</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
                 {[
-                  { label: "Diferença ÓTIMO/BOM por equipe/mês", valor: "≈ R$ 2.050", cor: "#22c55e" },
-                  { label: "9 equipes × 12 meses (projeção)", valor: "≈ R$ 221.400/ano", cor: "#22c55e" },
-                  { label: "Q2 fechamento em agosto", valor: "3 meses acumulados", cor: "#f59e0b" },
-                  { label: "Pagamentos retroativos set/2026", valor: "Reflect score Q2", cor: "#3b82f6" },
+                  { label: "Diferença ÓTIMO/BOM por equipe/mês", valor: "≈ R$ 2.050", cor: "#22c55e", icon: "📈" },
+                  { label: "9 equipes × 12 meses (projeção anual)", valor: "≈ R$ 221.400", cor: "#4ade80", icon: "💵" },
+                  { label: "Q2 fechamento — meses acumulados", valor: "3 meses", cor: "#f59e0b", icon: "📅" },
+                  { label: "Pagamento retroativo set/2026", valor: "Score Q2", cor: "#60a5fa", icon: "🏦" },
                 ].map(item => (
-                  <div key={item.label} style={{ background: "#07101e", borderRadius: 8, padding: 12 }}>
-                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>{item.label}</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: item.cor }}>{item.valor}</div>
+                  <div key={item.label} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${item.cor}20`, borderRadius: 10, padding: "14px 16px", borderLeft: `3px solid ${item.cor}` }}>
+                    <div style={{ fontSize: 10, color: "#475569", marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>{item.icon} {item.label}</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: item.cor, fontVariantNumeric: "tabular-nums" }}>{item.valor}</div>
                   </div>
                 ))}
               </div>
