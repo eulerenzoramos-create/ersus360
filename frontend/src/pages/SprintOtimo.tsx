@@ -297,30 +297,33 @@ const DIAGNOSTICO = [
     ],
     obs: "CNES 9934448 — UBS Osvaldo Lemes Cabral. SIAPS ABR/26 registra 1.035 vinculadas/acompanhadas (dado preliminar), sugerindo que parte da produção está sendo reconhecida. Porém vínculos SCNES ainda constam expirados — regularizar imediatamente para garantir continuidade do financiamento. Suporte e-Gestor: 0800 722 4310.",
   },
-  // ── AREAL — equipe identificada no SCNES 07/2026 · não monitorada anteriormente ──
+  // ── AREAL — eSF Ribeirinha · CNES 2013290 · UBS Eduardo Biazin ──────────────
+  // CNES2 confirma 2 equipes no CNES 2013290:
+  //   AREAL 0001 → ESB  · INE 0001773941 · ativa 10/11/1998 (representada pelo badge +ESB)
+  //   AREAL 0002 → ESF Ribeirinha · INE 0000007048 · ativa 10/11/1998 (esta equipe)
   {
     nome: "AREAL",
     ubs: "UBS Eduardo Biazin",             // SCNES 07/2026 — CNES 2013290
     cnesUbs: "2013290",
     ine: "0000007048",
     cnesCodEquipe: "0002",
-    tipo: "eSF",
-    esb: true,
+    tipo: "eRibeirinha",                   // SCNES confirma: coluna Ribeirinha = X
+    esb: true,                             // ESB vinculada: AREAL 0001 · INE 0001773941
     cnesStatus: "apurar",
     medico: { nome: "(a confirmar no e-Gestor)", cbo: "225125", cnes: "A APURAR", vinculo: "A apurar" },
     enfermeiro: { nome: "(a confirmar no e-Gestor)", cbo: "223505", cnes: "A APURAR", vinculo: "A apurar" },
     tecEnf: { nome: "(a confirmar no e-Gestor)", cbo: "322205", cnes: "A APURAR", vinculo: "A apurar" },
-    acs: 0, acsMin: 3,
+    acs: 0, acsMin: 2,                     // eRibeirinha: mínimo 2 ACS (não 3)
     populacaoVinculada: 0,
-    populacaoRef: 2500,
-    populacaoMax: 3750,
+    populacaoRef: 1000,                    // Portaria 3.493/2024 — eRibeirinha: ref 1.000
+    populacaoMax: 1500,                    // eRibeirinha: máx 1.500
     pendencias: [
-      "🔍 Equipe identificada no SCNES 07/2026 — não estava no monitoramento ERSUS",
-      "🔍 Confirmar status de atividade no e-Gestor / SIAPS",
-      "🔍 Levantar composição real da equipe no SCNES",
-      "🔍 Incluir no Sprint ÓTIMO Q2/2026 se estiver produzindo",
+      "🔍 AREAL 0002 (ESF Ribeirinha) — confirmar composição no e-Gestor/SCNES",
+      "🔍 Levantar médico, enfermeiro e ACS ativos no CNES 2013290",
+      "🔍 Verificar produção no SIAPS (ausente no relatório ABR/26)",
+      "🔍 ESB AREAL 0001 (INE 0001773941) — confirmar vínculos ESB no SCNES",
     ],
-    obs: "CNES 2013290 — UBS Eduardo Biazin. Equipe identificada na análise do Protocolo de Exportação SCNES 07/2026 (gerado 20/07/2026). Não havia registro no sistema ERSUS 360. Verificação e inclusão no monitoramento pendente.",
+    obs: "CNES 2013290 — UBS Eduardo Biazin. SCNES registra 2 equipes: AREAL 0001 (ESB, INE 0001773941) e AREAL 0002 (ESF Ribeirinha, INE 0000007048), ambas ativas desde 10/11/1998. A ESB é representada pelo badge +ESB. Parâmetros eRibeirinha: ref. 1.000 / máx. 1.500. Ausente no relatório SIAPS ABR/26 — verificar se equipe está produzindo.",
   },
 ];
 
