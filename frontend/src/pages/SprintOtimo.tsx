@@ -1148,17 +1148,49 @@ export default function SprintOtimo() {
 
             {(() => {
               const eq = EQUIPES.find(e => e.nome === equipeAtiva)!;
+              const diag = DIAGNOSTICO.find(d => d.nome === equipeAtiva);
               const inds = INDICADORES[equipeAtiva] || [];
               const totalPtsDisp = inds.reduce((a,i) => a + i.pts, 0);
               return (
                 <div>
                   <div style={{ background: "#1e293b", borderRadius: 10, padding: 20, marginBottom: 16 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                       <div>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: "#f1f5f9" }}>{eq.nome}</div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: "#f1f5f9", marginBottom: 4 }}>{eq.nome}</div>
+                        {diag && (
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                            <span style={{ background: "#0f172a", border: "1px solid #334155", color: "#94a3b8", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace" }}>
+                              🏥 {diag.ubs}
+                            </span>
+                            <span style={{ background: "#1e3a5f", border: "1px solid #1d4ed8", color: "#93c5fd", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace", fontWeight: 700 }}>
+                              CNES {diag.cnesUbs}
+                            </span>
+                            <span style={{ background: "#1a1a3e", border: "1px solid #4338ca", color: "#a5b4fc", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace" }}>
+                              Equipe {diag.cnesCodEquipe}
+                            </span>
+                            <span style={{ background: "#14532d", border: "1px solid #166534", color: "#86efac", fontSize: 11, padding: "2px 8px", borderRadius: 6 }}>
+                              {diag.tipo}
+                            </span>
+                            {diag.esb && (
+                              <span style={{ background: "#1e3a5f", border: "1px solid #0284c7", color: "#7dd3fc", fontSize: 11, padding: "2px 8px", borderRadius: 6 }}>
+                                + ESB
+                              </span>
+                            )}
+                            {diag.cnesStatus === "expirado" && (
+                              <span style={{ background: "#450a0a", border: "1px solid #ef4444", color: "#fca5a5", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontWeight: 700 }}>
+                                🚨 CNES EXPIRADO
+                              </span>
+                            )}
+                            {diag.cnesStatus === "apurar" && (
+                              <span style={{ background: "#1e293b", border: "1px solid #6b7280", color: "#9ca3af", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontWeight: 700 }}>
+                                🔍 A APURAR
+                              </span>
+                            )}
+                          </div>
+                        )}
                         <div style={{ fontSize: 13, color: "#94a3b8" }}>Score atual: <strong style={{ color: eq.cor }}>{eq.pts} pts</strong> → Meta: <strong style={{ color: "#22c55e" }}>75 pts (ÓTIMO)</strong></div>
                       </div>
-                      <div style={{ textAlign: "center", background: "#0f172a", borderRadius: 10, padding: "12px 20px" }}>
+                      <div style={{ textAlign: "center", background: "#0f172a", borderRadius: 10, padding: "12px 20px", flexShrink: 0 }}>
                         <div style={{ fontSize: 28, fontWeight: 800, color: eq.cor }}>+{eq.ganho}</div>
                         <div style={{ fontSize: 11, color: "#64748b" }}>pontos necessários</div>
                       </div>
