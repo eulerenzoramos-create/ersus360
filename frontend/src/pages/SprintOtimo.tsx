@@ -297,33 +297,42 @@ const DIAGNOSTICO = [
     ],
     obs: "CNES 9934448 — UBS Osvaldo Lemes Cabral. SIAPS ABR/26 registra 1.035 vinculadas/acompanhadas (dado preliminar), sugerindo que parte da produção está sendo reconhecida. Porém vínculos SCNES ainda constam expirados — regularizar imediatamente para garantir continuidade do financiamento. Suporte e-Gestor: 0800 722 4310.",
   },
-  // ── AREAL — eSF Ribeirinha · CNES 2013290 · UBS Eduardo Biazin ──────────────
-  // CNES2 confirma 2 equipes no CNES 2013290:
-  //   AREAL 0001 → ESB  · INE 0001773941 · ativa 10/11/1998 (representada pelo badge +ESB)
-  //   AREAL 0002 → ESF Ribeirinha · INE 0000007048 · ativa 10/11/1998 (esta equipe)
+  // ── AREAL — eSF · CNES 2013290 · UBS Eduardo Biazin ─────────────────────────
+  // Fonte: Ficha Estabelecimento SCNES 07/2026 — Exibe_Ficha_Estabelecimento CNES 2013290
+  //   Equipe Tipo 70 (ESF): AREAL — 1 médico, 2 enfermeiros, 2 téc. enf., 5 ACS, 1 microscopista
+  //   Equipe Tipo 71 (ESB): KENNEDY ESB — cirurgião-dentista + técnico em saúde bucal
   {
     nome: "AREAL",
-    ubs: "UBS Eduardo Biazin",             // SCNES 07/2026 — CNES 2013290
+    ubs: "UBS Eduardo Biazin",
     cnesUbs: "2013290",
     ine: "0000007048",
     cnesCodEquipe: "0002",
-    tipo: "eRibeirinha",                   // SCNES confirma: coluna Ribeirinha = X
-    esb: true,                             // ESB vinculada: AREAL 0001 · INE 0001773941
-    cnesStatus: "apurar",
-    medico: { nome: "(a confirmar no e-Gestor)", cbo: "225125", cnes: "A APURAR", vinculo: "A apurar" },
-    enfermeiro: { nome: "(a confirmar no e-Gestor)", cbo: "223505", cnes: "A APURAR", vinculo: "A apurar" },
-    tecEnf: { nome: "(a confirmar no e-Gestor)", cbo: "322205", cnes: "A APURAR", vinculo: "A apurar" },
-    acs: 0, acsMin: 2,                     // eRibeirinha: mínimo 2 ACS (não 3)
+    tipo: "eRibeirinha",                   // SCNES: Tipo 70 ESF com característica Ribeirinha
+    esb: true,                             // ESB "KENNEDY" (Tipo 71) registrada no CNES 2013290
+    cnesStatus: "ativo",
+    medico:    { nome: "EDVAN SOARES GONCALVES",      cbo: "225142", cnes: "705008041383950", vinculo: "40h ambulatorial — entrada 03/02/2025" },
+    enfermeiro:{ nome: "ALINE COSTA DA SILVA",         cbo: "223565", cnes: "708604555293783", vinculo: "40h ambulatorial — entrada 03/06/2024" },
+    tecEnf:    { nome: "RITHERLY DOS SANTOS PINTO",    cbo: "322245", cnes: "703002848573774", vinculo: "40h ambulatorial — entrada 16/04/2025" },
+    acs: 5, acsMin: 2,
+    // ACS confirmados no SCNES 07/2026:
+    //   CLEUCIANE PALESTIS (515105 · 700500143901354 · desde 01/04/2020)
+    //   ERVINO GUDER (515105 · 703407617781100 · desde 15/06/2026)
+    //   MARIA RAIMUNDA LEMOS DA SILVA (515105 · 700404405741140 · desde 01/06/2008)
+    //   ROSELAINE MARTINS DA SILVA (515105 · 706804706469925 · desde 03/01/2020)
+    //   VERONICA DE FATIMA FERNANDES (515105 · 706200052886060 · desde 01/04/2012)
+    // Outros profissionais no SCNES: ALAN ALEXANDER HISTER (2º enfermeiro, 223565, desde 13/11/2024)
+    //   JOAO BARBOSA DE OLIVEIRA FILHO (microscopista 5152A1, desde 01/05/2025)
+    //   MARIA LUIZA TRINDADE FIGUEIREDO (2º téc. enf. 322245, desde 10/12/2025)
     populacaoVinculada: 0,
-    populacaoRef: 1000,                    // Portaria 3.493/2024 — eRibeirinha: ref 1.000
-    populacaoMax: 1500,                    // eRibeirinha: máx 1.500
+    populacaoRef: 1000,
+    populacaoMax: 1500,
     pendencias: [
-      "🔍 AREAL 0002 (ESF Ribeirinha) — confirmar composição no e-Gestor/SCNES",
-      "🔍 Levantar médico, enfermeiro e ACS ativos no CNES 2013290",
-      "🔍 Verificar produção no SIAPS (ausente no relatório ABR/26)",
-      "🔍 ESB AREAL 0001 (INE 0001773941) — confirmar vínculos ESB no SCNES",
+      "⚠ AREAL ausente no SIAPS ABR/26 — verificar produção lançada (competência MAI/26 ou anterior)",
+      "⚠ ESB 'KENNEDY' (Tipo 71 — CNES 2013290) — confirmar INE e vínculo com equipe AREAL no e-Gestor",
+      "⚠ ERVINO GUDER (ACS) — data entrada 15/06/2026, confirmar se já está produzindo no PEC",
+      "⚠ 2º enfermeiro ALAN ALEXANDER HISTER (desde 13/11/2024) — verificar se é cobertura ou excedente",
     ],
-    obs: "CNES 2013290 — UBS Eduardo Biazin. SCNES registra 2 equipes: AREAL 0001 (ESB, INE 0001773941) e AREAL 0002 (ESF Ribeirinha, INE 0000007048), ambas ativas desde 10/11/1998. A ESB é representada pelo badge +ESB. Parâmetros eRibeirinha: ref. 1.000 / máx. 1.500. Ausente no relatório SIAPS ABR/26 — verificar se equipe está produzindo.",
+    obs: "CNES 2013290 — UBS Eduardo Biazin. Tipo 70 (ESF/Ribeirinha). Composição SCNES 07/2026 confirmada: médico EDVAN SOARES GONCALVES (CBO 225142), enfermeira principal ALINE COSTA DA SILVA + 2º enfermeiro ALAN ALEXANDER HISTER (CBO 223565), 2 técnicos de enfermagem (RITHERLY DOS SANTOS PINTO + MARIA LUIZA TRINDADE FIGUEIREDO, CBO 322245), 5 ACS confirmados, microscopista JOAO BARBOSA DE OLIVEIRA FILHO (5152A1). ESB registrada no mesmo CNES como 'KENNEDY ESB' (Tipo 71) com cirurgião-dentista THIAGO RIBEIRO MENDES (CBO 223293) e técnico KELLY SANTOS DE SOUZA (CBO 322425). Equipe ausente no SIAPS ABR/26 — levantar histórico de produção.",
   },
 ];
 
