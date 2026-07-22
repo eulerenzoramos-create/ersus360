@@ -126,7 +126,7 @@ const DIAGNOSTICO = [
     enfermeiro: { nome: "Enf. Patrícia Lima", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
     tecEnf: { nome: "Téc. Rosângela Silva", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
     acs: 5, acsMin: 4,
-    populacaoVinculada: 2680,
+    populacaoVinculada: 0,
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [],
@@ -289,8 +289,8 @@ const DIAGNOSTICO = [
     pendencias: [
       "🚨 Vínculos do médico expirados no SCNES — RH/SMS deve reativar HOJE",
       "🚨 Vínculos dos ACS expirados no SCNES",
-      "🚨 Toda produção está sendo descartada pelo e-Gestor",
-      "População vinculada muito abaixo da referência (980 vs 2.500)",
+      "⚠️ SIAPS ABR/26 mostra produção (1.035 vinculadas) — confirmar regularização do SCNES",
+      "Populações vinculadas ABR/26: 1.035 — verificar crescimento territorial",
       "Verificar se território está cadastrado completamente",
     ],
     obs: "SITUAÇÃO CRÍTICA: sem a regularização do SCNES, nenhuma produção desta equipe é reconhecida pelo MS para fins de financiamento. CNES 9934448 — UBS Osvaldo Lemes Cabral. Ligar para o e-Gestor: 0800 722 4310.",
@@ -350,20 +350,22 @@ export const CVAT_VARIAVEIS = [
 // criancasIdosos ≈ crianças (0–12a ~18%) + idosos (≥60a ~8%) = ~26%
 // Dados CVAT por equipe — Apuí/AM · Abr/2026
 // Fonte: SIAPS CVAT — 11 variáveis completas do dropdown Visão por Variável
+// Fonte: SIAPS · Dado Agregado Visão Geral CVAT · Competência: ABR/26 · Gerado: 22/07/2026 14:34h
+// Campos confirmados: totalCadastro, acompanhadas, vinculadas
+// semCriterio ≈ vinculadas (base populacional); demais campos sem dados nesta competência
 const CVAT_EQUIPES: Record<string, Record<string, number>> = {
-  //                         semCrit  somCI   ciEcd  totCad  criId  bpcPbf  criBpc  acomp  atSuj  atAval  vinc
-  KENNEDY:         { semCriterio:2680, somenteCI:402, ciEcd:2143, totalCadastro:2545, criancasIdosos:696, bpcPbf:322, criancasIdososBpc:214, acompanhadas:1876, atendSujeitos:1340, atendAvaliados:871, vinculadas:2680 },
-  JK:              { semCriterio:2420, somenteCI:363, ciEcd:1936, totalCadastro:2299, criancasIdosos:629, bpcPbf:291, criancasIdososBpc:193, acompanhadas:1694, atendSujeitos:1210, atendAvaliados:787, vinculadas:2420 },
-  ACARI:           { semCriterio:1980, somenteCI:297, ciEcd:1584, totalCadastro:1881, criancasIdosos:515, bpcPbf:238, criancasIdososBpc:158, acompanhadas:1386, atendSujeitos:990,  atendAvaliados:644, vinculadas:1980 },
-  JUMA:            { semCriterio:1650, somenteCI:248, ciEcd:1320, totalCadastro:1568, criancasIdosos:429, bpcPbf:198, criancasIdososBpc:132, acompanhadas:1155, atendSujeitos:825,  atendAvaliados:536, vinculadas:1650 },
-  "ESTRADA NOVA":  { semCriterio:2150, somenteCI:323, ciEcd:1720, totalCadastro:2043, criancasIdosos:559, bpcPbf:258, criancasIdososBpc:172, acompanhadas:1505, atendSujeitos:1075, atendAvaliados:699, vinculadas:2150 },
-  LIBERDADE:       { semCriterio:1480, somenteCI:222, ciEcd:1184, totalCadastro:1406, criancasIdosos:385, bpcPbf:178, criancasIdososBpc:118, acompanhadas:1036, atendSujeitos:740,  atendAvaliados:481, vinculadas:1480 },
-  "SÃO SEBASTIÃO": { semCriterio:1720, somenteCI:258, ciEcd:1376, totalCadastro:1634, criancasIdosos:447, bpcPbf:206, criancasIdososBpc:138, acompanhadas:1204, atendSujeitos:860,  atendAvaliados:559, vinculadas:1720 },
-  CACHOEIRA:       { semCriterio:820,  somenteCI:123, ciEcd:656,  totalCadastro:779,  criancasIdosos:213, bpcPbf:98,  criancasIdososBpc:66,  acompanhadas:574,  atendSujeitos:410,  atendAvaliados:267, vinculadas:820  },
-  "TRÊS ESTADOS":  { semCriterio:980,  somenteCI:147, ciEcd:784,  totalCadastro:931,  criancasIdosos:255, bpcPbf:118, criancasIdososBpc:78,  acompanhadas:0,    atendSujeitos:0,    atendAvaliados:0,   vinculadas:980  },
-  // TRÊS ESTADOS: acompanhamentos = 0 — CNES expirado → produção descartada pelo e-Gestor
-  // AREAL: dados a apurar no e-Gestor/SIAPS — equipe identificada no SCNES 07/2026
-  "AREAL":         { semCriterio:0,    somenteCI:0,   ciEcd:0,    totalCadastro:0,    criancasIdosos:0,   bpcPbf:0,   criancasIdososBpc:0,   acompanhadas:0,    atendSujeitos:0,    atendAvaliados:0,   vinculadas:0    },
+  //                         semCrit  somCI  ciEcd  totCad  criId  bpcPbf  criBpc  acomp  atSuj  atAval  vinc
+  KENNEDY:         { semCriterio:761,  somenteCI:0, ciEcd:0, totalCadastro:773,  criancasIdosos:0, bpcPbf:0, criancasIdososBpc:0, acompanhadas:761,  atendSujeitos:0, atendAvaliados:0, vinculadas:761  },
+  JK:              { semCriterio:1497, somenteCI:0, ciEcd:0, totalCadastro:1540, criancasIdosos:0, bpcPbf:0, criancasIdososBpc:0, acompanhadas:1497, atendSujeitos:0, atendAvaliados:0, vinculadas:1497 },
+  ACARI:           { semCriterio:1611, somenteCI:0, ciEcd:0, totalCadastro:1639, criancasIdosos:0, bpcPbf:0, criancasIdososBpc:0, acompanhadas:1611, atendSujeitos:0, atendAvaliados:0, vinculadas:1611 },
+  JUMA:            { semCriterio:1732, somenteCI:0, ciEcd:0, totalCadastro:1761, criancasIdosos:0, bpcPbf:0, criancasIdososBpc:0, acompanhadas:1732, atendSujeitos:0, atendAvaliados:0, vinculadas:1732 },
+  "ESTRADA NOVA":  { semCriterio:806,  somenteCI:0, ciEcd:0, totalCadastro:822,  criancasIdosos:0, bpcPbf:0, criancasIdososBpc:0, acompanhadas:806,  atendSujeitos:0, atendAvaliados:0, vinculadas:806  },
+  LIBERDADE:       { semCriterio:1784, somenteCI:0, ciEcd:0, totalCadastro:1797, criancasIdosos:0, bpcPbf:0, criancasIdososBpc:0, acompanhadas:1784, atendSujeitos:0, atendAvaliados:0, vinculadas:1784 },
+  "SÃO SEBASTIÃO": { semCriterio:1585, somenteCI:0, ciEcd:0, totalCadastro:1619, criancasIdosos:0, bpcPbf:0, criancasIdososBpc:0, acompanhadas:1585, atendSujeitos:0, atendAvaliados:0, vinculadas:1585 },
+  CACHOEIRA:       { semCriterio:1552, somenteCI:0, ciEcd:0, totalCadastro:1565, criancasIdosos:0, bpcPbf:0, criancasIdososBpc:0, acompanhadas:1552, atendSujeitos:0, atendAvaliados:0, vinculadas:1552 },
+  "TRÊS ESTADOS":  { semCriterio:1035, somenteCI:0, ciEcd:0, totalCadastro:1045, criancasIdosos:0, bpcPbf:0, criancasIdososBpc:0, acompanhadas:1035, atendSujeitos:0, atendAvaliados:0, vinculadas:1035 },
+  // AREAL: ausente no relatório ABR/26 (eSF Ribeirinha — competência pode diferir)
+  "AREAL":         { semCriterio:0,    somenteCI:0, ciEcd:0, totalCadastro:0,    criancasIdosos:0, bpcPbf:0, criancasIdososBpc:0, acompanhadas:0,    atendSujeitos:0, atendAvaliados:0, vinculadas:0    },
 };
 
 // ── Countdown ──────────────────────────────────────────────────────────────
