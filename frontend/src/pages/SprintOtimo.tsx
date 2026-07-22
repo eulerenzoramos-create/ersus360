@@ -978,7 +978,7 @@ export default function SprintOtimo() {
                   <div style={{ fontWeight: 700, color: "#86efac", marginBottom: 4 }}>Q2 Mai–Ago/2026 — Fechamento em 31/Agosto</div>
                   <div style={{ fontSize: 12, color: "#4ade80" }}>Este é o quadrimestre que define o pagamento de setembro. Scores acumulados de maio a agosto. Toda produção lançada até 31/ago será contabilizada. Foco total em C2 (pré-natal) e C6 (puericultura).</div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                    {[`✓ ${diasRestantes} dias restantes`,`✓ ${EQUIPES.filter(e => e.risco === "critico").length} equipes abaixo de 75 pts`,"✓ CNES TRÊS ESTADOS — regularizar HOJE","✓ Retroativos de gaveta — lançar agora"].map(t => (
+                    {[`✓ ${diasRestantes} dias restantes`,`✓ ${EQUIPES.filter(e => e.pts < 75 && e.risco !== "apurar").length} equipes abaixo de 75 pts`,"✓ CNES TRÊS ESTADOS — regularizar HOJE","✓ Retroativos de gaveta — lançar agora"].map(t => (
                       <span key={t} style={{ background: "#14532d", color: "#86efac", padding: "3px 10px", borderRadius: 12, fontSize: 11 }}>{t}</span>
                     ))}
                   </div>
