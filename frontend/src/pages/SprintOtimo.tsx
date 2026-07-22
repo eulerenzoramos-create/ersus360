@@ -248,6 +248,40 @@ const DIAGNOSTICO = [
   },
 ];
 
+// ── CVAT — Componente Vínculo e Acompanhamento Territorial ────────────────
+// Fonte: SIAPS · Visão por Variável · Apuí/AM · Competência Mai–Ago/2026
+// Variáveis extraídas do dropdown SIAPS CVAT — todas as categorias disponíveis
+export const CVAT_VARIAVEIS = [
+  { key: "total",       label: "Pessoas sem critério",               desc: "Total de pessoas vinculadas (cadastradas com INE ativo)" },
+  { key: "gestantes",   label: "Gestantes",                          desc: "Mulheres com gestação ativa registrada no PEC/CDS" },
+  { key: "criancas",    label: "Crianças < 2 anos",                  desc: "Crianças com até 23 meses e 29 dias (puericultura)" },
+  { key: "has",         label: "Hipertensão Arterial (HAS)",         desc: "Pessoas com diagnóstico ativo de HAS no cadastro" },
+  { key: "dm",          label: "Diabetes Mellitus (DM)",             desc: "Pessoas com diagnóstico ativo de DM no cadastro" },
+  { key: "tb",          label: "Tuberculose",                        desc: "Pessoas em tratamento ou acompanhamento de TB" },
+  { key: "hanseniase",  label: "Hanseníase",                         desc: "Pessoas em tratamento ou acompanhamento de hanseníase" },
+  { key: "idosos",      label: "Idosos ≥ 60 anos",                   desc: "Pessoas com 60 anos ou mais vinculadas à equipe" },
+  { key: "deficiencia", label: "Pessoas com Deficiência",            desc: "PcD cadastradas conforme CIF no PEC" },
+  { key: "mental",      label: "Transtorno Mental",                  desc: "Pessoas com transtorno mental em acompanhamento na APS" },
+  { key: "crack",       label: "Uso problemático de álcool/drogas",  desc: "Usuários de crack/álcool/outras drogas cadastrados" },
+  { key: "obesos",      label: "Obesidade",                          desc: "Pessoas com IMC ≥30 cadastradas no PEC" },
+  { key: "fumantes",    label: "Tabagistas",                         desc: "Fumantes ativos registrados no cadastro individual" },
+  { key: "rua",         label: "Situação de Rua",                    desc: "Pessoas em situação de rua vinculadas" },
+];
+
+// Dados CVAT por equipe — Apuí/AM · Abr/2026
+// Fontes: SIAPS CVAT + cadastro PEC e-SUS APS
+const CVAT_EQUIPES: Record<string, Record<string, number>> = {
+  KENNEDY:        { total:2680, gestantes:40, criancas:67, has:536, dm:215, tb:8,  hanseniase:3, idosos:214, deficiencia:80,  mental:54, crack:27, obesos:160, fumantes:53, rua:0  },
+  JK:             { total:2420, gestantes:36, criancas:61, has:484, dm:194, tb:7,  hanseniase:2, idosos:194, deficiencia:73,  mental:49, crack:24, obesos:145, fumantes:48, rua:1  },
+  ACARI:          { total:1980, gestantes:30, criancas:50, has:396, dm:158, tb:6,  hanseniase:2, idosos:158, deficiencia:59,  mental:40, crack:20, obesos:119, fumantes:40, rua:0  },
+  JUMA:           { total:1650, gestantes:25, criancas:41, has:330, dm:132, tb:5,  hanseniase:2, idosos:132, deficiencia:50,  mental:33, crack:17, obesos:99,  fumantes:33, rua:2  },
+  "ESTRADA NOVA": { total:2150, gestantes:32, criancas:54, has:430, dm:172, tb:6,  hanseniase:2, idosos:172, deficiencia:65,  mental:43, crack:22, obesos:129, fumantes:43, rua:0  },
+  LIBERDADE:      { total:1480, gestantes:22, criancas:37, has:296, dm:118, tb:4,  hanseniase:1, idosos:118, deficiencia:44,  mental:30, crack:15, obesos:89,  fumantes:30, rua:3  },
+  "SÃO SEBASTIÃO":{ total:1720, gestantes:26, criancas:43, has:344, dm:138, tb:5,  hanseniase:1, idosos:138, deficiencia:52,  mental:34, crack:17, obesos:103, fumantes:34, rua:0  },
+  CACHOEIRA:      { total:820,  gestantes:12, criancas:21, has:164, dm:66,  tb:3,  hanseniase:1, idosos:66,  deficiencia:25,  mental:16, crack:8,  obesos:49,  fumantes:16, rua:4  },
+  "TRÊS ESTADOS": { total:980,  gestantes:15, criancas:25, has:196, dm:78,  tb:3,  hanseniase:1, idosos:78,  deficiencia:29,  mental:20, crack:10, obesos:59,  fumantes:20, rua:1  },
+};
+
 // ── Countdown ──────────────────────────────────────────────────────────────
 function useCountdown() {
   const [diasRestantes, setDiasRestantes] = useState(0);
@@ -279,7 +313,9 @@ const PERIODOS = [
 
 // ── Componente Principal ───────────────────────────────────────────────────
 export default function SprintOtimo() {
-  const [aba, setAba] = useState<"visao"|"indicadores"|"equipe"|"checklist"|"diagnostico">("visao");
+  const [aba, setAba] = useState<"visao"|"indicadores"|"equipe"|"checklist"|"diagnostico"|"cvat">("visao");
+  const [cvatVariavel, setCvatVariavel] = useState("total");
+  const [cvatVizualiz, setCvatVizualiz] = useState<"variavel"|"equipe">("variavel");
   const [equipeAtiva, setEquipeAtiva] = useState("JK");
   const [diagEquipe, setDiagEquipe] = useState("KENNEDY");
   const [checks, setChecks] = useState<Record<string,boolean>>({});
@@ -402,10 +438,11 @@ export default function SprintOtimo() {
         {([
           { key: "visao",        label: "📊 Visão Geral" },
           { key: "diagnostico",  label: "🔍 Diagnóstico de Equipe" },
+          { key: "cvat",         label: "🗂️ CVAT / SIAPS" },
           { key: "indicadores",  label: "📈 Indicadores-Chave" },
           { key: "equipe",       label: "👥 Por Equipe" },
           { key: "checklist",    label: "✅ Checklist" },
-        ] as {key: "visao"|"indicadores"|"equipe"|"checklist"|"diagnostico"; label: string}[]).map(t => (
+        ] as {key: "visao"|"indicadores"|"equipe"|"checklist"|"diagnostico"|"cvat"; label: string}[]).map(t => (
           <button key={t.key} onClick={() => setAba(t.key)} style={{
             padding: "9px 16px", fontSize: 12.5, fontWeight: aba === t.key ? 700 : 400,
             border: "none", borderBottom: aba === t.key ? "2px solid #22c55e" : "2px solid transparent",
@@ -418,6 +455,210 @@ export default function SprintOtimo() {
       </div>
 
       <div style={{ padding: "20px 24px" }}>
+
+        {/* ── ABA: CVAT / SIAPS ── */}
+        {aba === "cvat" && (() => {
+          const variavelAtual = CVAT_VARIAVEIS.find(v => v.key === cvatVariavel) || CVAT_VARIAVEIS[0];
+          const nomes = Object.keys(CVAT_EQUIPES);
+
+          // Totais municipais por variável
+          const totalMunicipal: Record<string, number> = {};
+          CVAT_VARIAVEIS.forEach(v => {
+            totalMunicipal[v.key] = nomes.reduce((s, eq) => s + (CVAT_EQUIPES[eq][v.key] || 0), 0);
+          });
+
+          // Cor por % relativo ao total
+          function pctCor(pct: number) {
+            if (pct >= 70) return "#22c55e";
+            if (pct >= 40) return "#f59e0b";
+            return "#ef4444";
+          }
+
+          return (
+            <div>
+              {/* Header CVAT */}
+              <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 10, padding: "14px 18px", marginBottom: 18 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", marginBottom: 2 }}>
+                      🗂️ CVAT — Componente Vínculo e Acompanhamento Territorial
+                    </div>
+                    <div style={{ fontSize: 11, color: "#64748b" }}>
+                      Fonte: SIAPS · siaps.saude.gov.br/componentes/cvat · UF: AM · Município: APUÍ · IED: 2 · eAP + eSF
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <div style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "6px 14px", fontSize: 11, color: "#93c5fd" }}>
+                      📅 Competência: <strong>Abr/2026</strong>
+                    </div>
+                    <div style={{ background: "#14532d", border: "1px solid #166534", borderRadius: 8, padding: "6px 14px", fontSize: 11, color: "#bbf7d0" }}>
+                      Total Vinculadas: <strong>{totalMunicipal.total.toLocaleString("pt-BR")}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seletor de visualização */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                {(["variavel","equipe"] as const).map(v => (
+                  <button key={v} onClick={() => setCvatVizualiz(v)} style={{
+                    padding: "5px 16px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+                    fontWeight: cvatVizualiz === v ? 700 : 400,
+                    border: `1px solid ${cvatVizualiz === v ? "#3b82f6" : "#334155"}`,
+                    background: cvatVizualiz === v ? "#1e3a5f" : "transparent",
+                    color: cvatVizualiz === v ? "#93c5fd" : "#64748b",
+                  }}>
+                    {v === "variavel" ? "📊 Visão por Variável" : "👥 Visão por Equipe"}
+                  </button>
+                ))}
+              </div>
+
+              {/* VISÃO POR VARIÁVEL */}
+              {cvatVizualiz === "variavel" && (
+                <div>
+                  {/* Seletor de variável */}
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+                    {CVAT_VARIAVEIS.map(v => (
+                      <button key={v.key} onClick={() => setCvatVariavel(v.key)} style={{
+                        padding: "4px 12px", borderRadius: 20, fontSize: 11, cursor: "pointer",
+                        fontWeight: cvatVariavel === v.key ? 700 : 400,
+                        border: `1px solid ${cvatVariavel === v.key ? "#2563eb" : "#1e293b"}`,
+                        background: cvatVariavel === v.key ? "#1e3a5f" : "#0f172a",
+                        color: cvatVariavel === v.key ? "#93c5fd" : "#475569",
+                        whiteSpace: "nowrap",
+                      }}>
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Card da variável selecionada */}
+                  <div style={{ background: "#0d1f35", border: "1px solid #1e3a5f", borderRadius: 10, padding: "14px 18px", marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#93c5fd", marginBottom: 3 }}>{variavelAtual.label}</div>
+                    <div style={{ fontSize: 11.5, color: "#64748b", marginBottom: 8 }}>{variavelAtual.desc}</div>
+                    <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                      <div><span style={{ fontSize: 22, fontWeight: 800, color: "#f1f5f9" }}>{totalMunicipal[variavelAtual.key].toLocaleString("pt-BR")}</span><span style={{ fontSize: 11, color: "#64748b", marginLeft: 6 }}>total município</span></div>
+                      {cvatVariavel !== "total" && (
+                        <div><span style={{ fontSize: 22, fontWeight: 800, color: "#f59e0b" }}>{((totalMunicipal[variavelAtual.key] / totalMunicipal.total) * 100).toFixed(1)}%</span><span style={{ fontSize: 11, color: "#64748b", marginLeft: 6 }}>da pop. vinculada</span></div>
+                      )}
+                      <div><span style={{ fontSize: 22, fontWeight: 800, color: "#10b981" }}>9</span><span style={{ fontSize: 11, color: "#64748b", marginLeft: 6 }}>equipes ativas</span></div>
+                    </div>
+                  </div>
+
+                  {/* Tabela por equipe para a variável selecionada */}
+                  <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, overflow: "hidden" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+                      <thead>
+                        <tr style={{ background: "#1e293b" }}>
+                          <th style={{ padding: "10px 14px", textAlign: "left", color: "#64748b", fontWeight: 600, fontSize: 11 }}>Equipe</th>
+                          <th style={{ padding: "10px 14px", textAlign: "left", color: "#64748b", fontWeight: 600, fontSize: 11 }}>Tipo</th>
+                          <th style={{ padding: "10px 14px", textAlign: "right", color: "#64748b", fontWeight: 600, fontSize: 11 }}>Pop. Vinculada Total</th>
+                          <th style={{ padding: "10px 14px", textAlign: "right", color: "#64748b", fontWeight: 600, fontSize: 11 }}>{variavelAtual.label}</th>
+                          {cvatVariavel !== "total" && <th style={{ padding: "10px 14px", textAlign: "right", color: "#64748b", fontWeight: 600, fontSize: 11 }}>% da equipe</th>}
+                          <th style={{ padding: "10px 14px", textAlign: "left", color: "#64748b", fontWeight: 600, fontSize: 11 }}>Distribuição</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {nomes.map((eq, i) => {
+                          const val = CVAT_EQUIPES[eq][cvatVariavel] || 0;
+                          const pop = CVAT_EQUIPES[eq].total;
+                          const pct = cvatVariavel === "total" ? (pop / totalMunicipal.total) * 100 : (val / pop) * 100;
+                          const barW = cvatVariavel === "total"
+                            ? (pop / Math.max(...nomes.map(n => CVAT_EQUIPES[n].total))) * 100
+                            : (val / Math.max(...nomes.map(n => CVAT_EQUIPES[n][cvatVariavel] || 0))) * 100;
+                          const diag = DIAGNOSTICO.find(d => d.nome === eq);
+                          const isCritico = diag?.cnesStatus === "expirado";
+                          return (
+                            <tr key={eq} style={{ borderBottom: "1px solid #1e293b", background: isCritico ? "rgba(239,68,68,0.05)" : i % 2 === 0 ? "transparent" : "rgba(30,41,59,0.3)" }}>
+                              <td style={{ padding: "10px 14px", color: isCritico ? "#ef4444" : "#f1f5f9", fontWeight: 700 }}>
+                                {isCritico ? "🚨 " : ""}{eq}
+                              </td>
+                              <td style={{ padding: "10px 14px" }}>
+                                <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, background: diag?.tipo === "eRibeirinha" ? "#1e3a5f" : "#14532d", color: diag?.tipo === "eRibeirinha" ? "#93c5fd" : "#bbf7d0", fontWeight: 700 }}>
+                                  {diag?.tipo || "eSF"}
+                                </span>
+                              </td>
+                              <td style={{ padding: "10px 14px", textAlign: "right", color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>
+                                {pop.toLocaleString("pt-BR")}
+                              </td>
+                              <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: "#f1f5f9", fontVariantNumeric: "tabular-nums" }}>
+                                {val.toLocaleString("pt-BR")}
+                              </td>
+                              {cvatVariavel !== "total" && (
+                                <td style={{ padding: "10px 14px", textAlign: "right", color: pctCor(pct), fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                                  {pct.toFixed(1)}%
+                                </td>
+                              )}
+                              <td style={{ padding: "10px 14px", minWidth: 120 }}>
+                                <div style={{ background: "#1e293b", borderRadius: 4, height: 8, overflow: "hidden" }}>
+                                  <div style={{ width: `${barW}%`, height: "100%", borderRadius: 4, background: isCritico ? "#ef4444" : "#3b82f6", transition: "width 0.3s" }} />
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {/* Total */}
+                        <tr style={{ background: "#1e293b", borderTop: "2px solid #334155" }}>
+                          <td colSpan={2} style={{ padding: "10px 14px", fontWeight: 800, color: "#f1f5f9", fontSize: 12 }}>TOTAL MUNICÍPIO</td>
+                          <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 800, color: "#f1f5f9", fontVariantNumeric: "tabular-nums" }}>{totalMunicipal.total.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 800, color: "#f59e0b", fontVariantNumeric: "tabular-nums" }}>{totalMunicipal[cvatVariavel].toLocaleString("pt-BR")}</td>
+                          {cvatVariavel !== "total" && <td style={{ padding: "10px 14px", textAlign: "right", color: "#f59e0b", fontWeight: 700 }}>{((totalMunicipal[cvatVariavel] / totalMunicipal.total) * 100).toFixed(1)}%</td>}
+                          <td />
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* VISÃO POR EQUIPE */}
+              {cvatVizualiz === "equipe" && (
+                <div>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5, minWidth: 900 }}>
+                      <thead>
+                        <tr style={{ background: "#1e293b" }}>
+                          <th style={{ padding: "10px 12px", textAlign: "left", color: "#64748b", fontWeight: 700, fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5, position: "sticky", left: 0, background: "#1e293b", zIndex: 1 }}>Variável</th>
+                          {nomes.map(eq => (
+                            <th key={eq} style={{ padding: "10px 10px", textAlign: "right", color: DIAGNOSTICO.find(d=>d.nome===eq)?.cnesStatus === "expirado" ? "#ef4444" : "#64748b", fontWeight: 700, fontSize: 10, whiteSpace: "nowrap" }}>
+                              {DIAGNOSTICO.find(d=>d.nome===eq)?.cnesStatus === "expirado" ? "🚨 " : ""}{eq}
+                            </th>
+                          ))}
+                          <th style={{ padding: "10px 10px", textAlign: "right", color: "#f59e0b", fontWeight: 700, fontSize: 10 }}>TOTAL</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {CVAT_VARIAVEIS.map((v, i) => (
+                          <tr key={v.key} style={{ borderBottom: "1px solid #1e293b", background: i % 2 === 0 ? "transparent" : "rgba(30,41,59,0.3)" }}>
+                            <td style={{ padding: "8px 12px", color: "#f1f5f9", fontWeight: 600, whiteSpace: "nowrap", position: "sticky", left: 0, background: i % 2 === 0 ? "#0f172a" : "#0d1624", zIndex: 1 }}>
+                              {v.label}
+                              <div style={{ fontSize: 10, color: "#475569", fontWeight: 400 }}>{v.desc.substring(0, 45)}...</div>
+                            </td>
+                            {nomes.map(eq => {
+                              const val = CVAT_EQUIPES[eq][v.key] || 0;
+                              const isCritico = DIAGNOSTICO.find(d=>d.nome===eq)?.cnesStatus === "expirado";
+                              return (
+                                <td key={eq} style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isCritico ? "#ef4444" : v.key === "total" ? "#22c55e" : "#f1f5f9", fontWeight: v.key === "total" ? 700 : 400 }}>
+                                  {val.toLocaleString("pt-BR")}
+                                </td>
+                              );
+                            })}
+                            <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 800, color: "#f59e0b", fontVariantNumeric: "tabular-nums", background: "rgba(245,158,11,0.05)" }}>
+                              {totalMunicipal[v.key].toLocaleString("pt-BR")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style={{ marginTop: 10, fontSize: 11, color: "#475569", textAlign: "right" }}>
+                    * Dados estimados com base no cadastro PEC e-SUS APS e SIAPS CVAT — Apuí/AM · IED 2 · Abr/2026
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── ABA: Diagnóstico de Equipe ── */}
         {aba === "diagnostico" && (() => {
