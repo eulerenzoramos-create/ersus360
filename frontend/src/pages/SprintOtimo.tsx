@@ -453,7 +453,7 @@ const PERIODOS = [
 
 // ── Componente Principal ───────────────────────────────────────────────────
 export default function SprintOtimo() {
-  const [aba, setAba] = useState<"visao"|"indicadores"|"equipe"|"checklist"|"diagnostico"|"cvat">("visao");
+  const [aba, setAba] = useState<"visao"|"indicadores"|"equipe"|"checklist"|"diagnostico"|"cvat"|"inconsistencias">("visao");
   const [cvatVariavel, setCvatVariavel] = useState("semCriterio");
   const [cvatVizualiz, setCvatVizualiz] = useState<"variavel"|"equipe">("variavel");
   const [equipeAtiva, setEquipeAtiva] = useState("JK");
@@ -602,8 +602,9 @@ export default function SprintOtimo() {
           { key: "cvat",         label: "CVAT / SIAPS",          icon: "🗂️" },
           { key: "indicadores",  label: "Indicadores-Chave",     icon: "📈" },
           { key: "equipe",       label: "Por Equipe",            icon: "👥" },
-          { key: "checklist",    label: "Checklist",             icon: "✅" },
-        ] as {key: "visao"|"indicadores"|"equipe"|"checklist"|"diagnostico"|"cvat"; label: string; icon: string}[]).map(t => (
+          { key: "checklist",       label: "Checklist",             icon: "✅" },
+          { key: "inconsistencias", label: "Inconsistências",       icon: "⚠" },
+        ] as {key: "visao"|"indicadores"|"equipe"|"checklist"|"diagnostico"|"cvat"|"inconsistencias"; label: string; icon: string}[]).map(t => (
           <button key={t.key} onClick={() => setAba(t.key)} style={{
             padding: "7px 16px", fontSize: 12.5, fontWeight: aba === t.key ? 700 : 500,
             border: aba === t.key ? "1px solid rgba(34,197,94,0.35)" : "1px solid rgba(255,255,255,0.07)",
@@ -1523,6 +1524,137 @@ export default function SprintOtimo() {
             </div>
           </div>
         )}
+
+        {/* ── ABA: Inconsistências ── */}
+        {aba === "inconsistencias" && (() => {
+          const INCONSISTENCIAS = [
+            {
+              gravidade: "critico", label: "CRÍTICO", cor: "#ef4444", bg: "rgba(239,68,68,0.08)", borda: "rgba(239,68,68,0.3)",
+              equipe: "ESTRADA NOVA", tipo: "CBO incorreto — Composição Mínima ESF",
+              descricao: "RUDINEI SIMONETTI cadastrado com CBO 322250 (Auxiliar de Enfermagem ESF). A composição mínima exige CBO 322245 (Técnico de Enfermagem ESF). Auxiliar é nível inferior e pode invalidar o reconhecimento da equipe.",
+              acao: "Solicitar ao RH atualizar CBO de 322250 para 322245 no SCNES 9942122 (UBS Claudia Pereira dos Santos Damacena). CNS: 706204085033060.",
+              fonte: "SCNES 07/2026",
+            },
+            {
+              gravidade: "critico", label: "CRÍTICO", cor: "#ef4444", bg: "rgba(239,68,68,0.08)", borda: "rgba(239,68,68,0.3)",
+              equipe: "JK", tipo: "ESB ausente do SIAPS Q1/26",
+              descricao: "A Equipe de Saúde Bucal da JK está ativa no SCNES desde 06/06/2023 (CNES 4184688), mas não aparece na Nota Final do Componente de Qualidade Q1/26. Produção odontológica pode não estar sendo reconhecida.",
+              acao: "Verificar no e-Gestor se a ESB JK tem produção lançada. Confirmar se INE da ESB está correto no e-Gestor/SIAPS. Contato suporte: 0800 722 4310.",
+              fonte: "SIAPS Q1/2026",
+            },
+            {
+              gravidade: "medio", label: "MÉDIO", cor: "#f59e0b", bg: "rgba(245,158,11,0.08)", borda: "rgba(245,158,11,0.3)",
+              equipe: "JK", tipo: "CBO genérico — Técnico de Enfermagem",
+              descricao: "MARIA ANTONIA MIRANDA BARROS cadastrada com CBO 322205 (Técnico de Enfermagem genérico). Na equipe ESF o CBO correto é 322245 (Técnico de Enfermagem da ESF). A equipe JK já conta com JAMILLY e REJANE (ambas 322245).",
+              acao: "Atualizar CBO de MARIA ANTONIA para 322245 no SCNES 4184688, ou verificar se o vínculo deve ser removido da equipe. CNS: 705408412586591.",
+              fonte: "SCNES 07/2026",
+            },
+            {
+              gravidade: "medio", label: "MÉDIO", cor: "#f59e0b", bg: "rgba(245,158,11,0.08)", borda: "rgba(245,158,11,0.3)",
+              equipe: "CACHOEIRA", tipo: "CBO legado — Auxiliar de Enfermagem",
+              descricao: "ELILDA DIAS HISTER cadastrada com CBO 322230 (Auxiliar de Enfermagem) desde 01/09/2009. Vínculo anterior à padronização ESF. CBO 322230 não corresponde ao perfil exigido para equipes ESF (322245).",
+              acao: "Verificar no e-Gestor se ELILDA compõe oficialmente a equipe ou se é vínculo legado. Se for composição, atualizar CBO para 322245. Se não for da equipe, desvincular no SCNES 3320138. CNS: 704104879343850.",
+              fonte: "SCNES 07/2026",
+            },
+            {
+              gravidade: "medio", label: "MÉDIO", cor: "#f59e0b", bg: "rgba(245,158,11,0.08)", borda: "rgba(245,158,11,0.3)",
+              equipe: "TRÊS ESTADOS", tipo: "CBO não-ESF — Atendente de Enfermagem",
+              descricao: "MARINETE RIBEIRO DE ARAÚJO SOARES cadastrada com CBO 515110 (Atendente de Enfermagem) na equipe. CBO 515110 não é perfil ESF padrão — não é ACS (515105), não é técnico (322245). Vínculo irregular.",
+              acao: "Verificar no SCNES 9934448 se MARINETE está vinculada à equipe ESF ou ao estabelecimento. Se for vínculo incorreto, corrigir ou remover. CNS: 706409674985182.",
+              fonte: "SCNES 07/2026",
+            },
+            {
+              gravidade: "medio", label: "MÉDIO", cor: "#f59e0b", bg: "rgba(245,158,11,0.08)", borda: "rgba(245,158,11,0.3)",
+              equipe: "AREAL", tipo: "Duplicidade — 2 Enfermeiros na mesma equipe",
+              descricao: "ALINE COSTA DA SILVA (entrada 03/06/2024) e ALAN ALEXANDER HISTER (entrada 13/11/2024), ambos CBO 223565 (Enfermeiro da ESF), cadastrados na mesma equipe AREAL. ESF admite 1 enfermeiro na composição mínima.",
+              acao: "Definir no e-Gestor/SCNES 2013290 qual enfermeiro é o oficial da equipe AREAL. O outro deve ser desvinculado da equipe ou alocado em outro cargo. CNS ALINE: 708604555293783 · CNS ALAN: 703002880074478.",
+              fonte: "SCNES 07/2026",
+            },
+            {
+              gravidade: "atencao", label: "ATENÇÃO", cor: "#38bdf8", bg: "rgba(56,189,248,0.07)", borda: "rgba(56,189,248,0.25)",
+              equipe: "KENNEDY", tipo: "ESB Q1/26 no limite exato Bom/Ótimo",
+              descricao: "ESB KENNEDY (INE 0001773984) obteve nota 7.5 no Q1/26 — exatamente no limite entre Bom (5–7.5) e Ótimo (>7.5). Qualquer redução na produção odontológica em Q2/26 resulta em queda de classificação.",
+              acao: "Monitorar semanalmente a produção da ESB KENNEDY no e-Gestor. Garantir que todas as consultas odontológicas sejam registradas no PEC. Meta: manter nota >7.5 no Q2/26.",
+              fonte: "SIAPS Q1/2026",
+            },
+            {
+              gravidade: "atencao", label: "ATENÇÃO", cor: "#38bdf8", bg: "rgba(56,189,248,0.07)", borda: "rgba(56,189,248,0.25)",
+              equipe: "CACHOEIRA", tipo: "Modalidade indefinida — eSF vs. eRibeirinha",
+              descricao: "SIAPS ABR/26 classifica CACHOEIRA como eSF (parâmetro ref. 2.500), mas a operação real é de equipe ribeirinha. Se o cofinanciamento correto for eRibeirinha (ref. 1.000), a meta de vínculos e os parâmetros financeiros mudam.",
+              acao: "Verificar no e-Gestor qual modalidade de cofinanciamento está ativa para CACHOEIRA. Se for eRibeirinha, solicitar à SMS a mudança cadastral e atualizar os parâmetros no sistema.",
+              fonte: "SIAPS ABR/2026",
+            },
+          ];
+
+          const criticos = INCONSISTENCIAS.filter(i => i.gravidade === "critico");
+          const medios = INCONSISTENCIAS.filter(i => i.gravidade === "medio");
+          const atencao = INCONSISTENCIAS.filter(i => i.gravidade === "atencao");
+
+          const CardInc = ({ inc }: { inc: typeof INCONSISTENCIAS[0] }) => (
+            <div style={{ background: inc.bg, border: `1px solid ${inc.borda}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10 }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <div style={{ flexShrink: 0, marginTop: 2 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: inc.cor, background: `rgba(0,0,0,0.25)`, padding: "2px 8px", borderRadius: 20, border: `1px solid ${inc.borda}` }}>{inc.label}</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap", marginBottom: 4 }}>
+                    <span style={{ fontWeight: 800, fontSize: 13, color: "#f1f5f9" }}>{inc.equipe}</span>
+                    <span style={{ fontSize: 12, color: "#94a3b8" }}>— {inc.tipo}</span>
+                  </div>
+                  <p style={{ fontSize: 12.5, color: "#cbd5e1", margin: "0 0 8px 0", lineHeight: 1.6 }}>{inc.descricao}</p>
+                  <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 6, padding: "8px 10px" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>Ação: </span>
+                    <span style={{ fontSize: 12, color: "#94a3b8" }}>{inc.acao}</span>
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 11, color: "#475569" }}>Fonte: {inc.fonte}</div>
+                </div>
+              </div>
+            </div>
+          );
+
+          return (
+            <div>
+              {/* Resumo */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 20 }}>
+                {[
+                  { label: "Críticos", count: criticos.length, cor: "#ef4444", bg: "rgba(239,68,68,0.1)", borda: "rgba(239,68,68,0.25)" },
+                  { label: "Médios", count: medios.length, cor: "#f59e0b", bg: "rgba(245,158,11,0.1)", borda: "rgba(245,158,11,0.25)" },
+                  { label: "Atenção", count: atencao.length, cor: "#38bdf8", bg: "rgba(56,189,248,0.08)", borda: "rgba(56,189,248,0.2)" },
+                  { label: "Total", count: INCONSISTENCIAS.length, cor: "#94a3b8", bg: "rgba(148,163,184,0.07)", borda: "rgba(148,163,184,0.15)" },
+                ].map(s => (
+                  <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.borda}`, borderRadius: 10, padding: "12px 16px", textAlign: "center" }}>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: s.cor, fontVariantNumeric: "tabular-nums" }}>{s.count}</div>
+                    <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Fonte */}
+              <div style={{ fontSize: 11, color: "#475569", marginBottom: 16 }}>
+                Varredura: SCNES 07/2026 · SIAPS Q1/2026 · Competência gerada 22/07/2026
+              </div>
+
+              {criticos.length > 0 && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#ef4444", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>🚨 Críticos — risco de impacto no financiamento</div>
+                  {criticos.map((inc, i) => <CardInc key={i} inc={inc} />)}
+                </div>
+              )}
+              {medios.length > 0 && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>⚠ Médios — regularizar no SCNES</div>
+                  {medios.map((inc, i) => <CardInc key={i} inc={inc} />)}
+                </div>
+              )}
+              {atencao.length > 0 && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#38bdf8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>⚡ Atenção — monitorar</div>
+                  {atencao.map((inc, i) => <CardInc key={i} inc={inc} />)}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
       </div>
     </div>
