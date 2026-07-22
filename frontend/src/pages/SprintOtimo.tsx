@@ -251,35 +251,33 @@ const DIAGNOSTICO = [
 // ── CVAT — Componente Vínculo e Acompanhamento Territorial ────────────────
 // Fonte: SIAPS · Visão por Variável · Apuí/AM · Competência Mai–Ago/2026
 // Variáveis extraídas do dropdown SIAPS CVAT — todas as categorias disponíveis
+// Variáveis reais do dropdown SIAPS CVAT — Visão por Variável
+// Fonte: siaps.saude.gov.br/componentes/cvat · dropdown Variáveis
 export const CVAT_VARIAVEIS = [
-  { key: "total",       label: "Pessoas sem critério",               desc: "Total de pessoas vinculadas (cadastradas com INE ativo)" },
-  { key: "gestantes",   label: "Gestantes",                          desc: "Mulheres com gestação ativa registrada no PEC/CDS" },
-  { key: "criancas",    label: "Crianças < 2 anos",                  desc: "Crianças com até 23 meses e 29 dias (puericultura)" },
-  { key: "has",         label: "Hipertensão Arterial (HAS)",         desc: "Pessoas com diagnóstico ativo de HAS no cadastro" },
-  { key: "dm",          label: "Diabetes Mellitus (DM)",             desc: "Pessoas com diagnóstico ativo de DM no cadastro" },
-  { key: "tb",          label: "Tuberculose",                        desc: "Pessoas em tratamento ou acompanhamento de TB" },
-  { key: "hanseniase",  label: "Hanseníase",                         desc: "Pessoas em tratamento ou acompanhamento de hanseníase" },
-  { key: "idosos",      label: "Idosos ≥ 60 anos",                   desc: "Pessoas com 60 anos ou mais vinculadas à equipe" },
-  { key: "deficiencia", label: "Pessoas com Deficiência",            desc: "PcD cadastradas conforme CIF no PEC" },
-  { key: "mental",      label: "Transtorno Mental",                  desc: "Pessoas com transtorno mental em acompanhamento na APS" },
-  { key: "crack",       label: "Uso problemático de álcool/drogas",  desc: "Usuários de crack/álcool/outras drogas cadastrados" },
-  { key: "obesos",      label: "Obesidade",                          desc: "Pessoas com IMC ≥30 cadastradas no PEC" },
-  { key: "fumantes",    label: "Tabagistas",                         desc: "Fumantes ativos registrados no cadastro individual" },
-  { key: "rua",         label: "Situação de Rua",                    desc: "Pessoas em situação de rua vinculadas" },
+  { key: "semCriterio",   label: "Pessoas sem critério",                                      desc: "Total de pessoas vinculadas à equipe sem filtro de critério (INE ativo)" },
+  { key: "somenteCI",     label: "A — Pessoas somente com Cadastro Individual",               desc: "Pessoas que possuem ficha de Cadastro Individual mas NÃO têm Cadastro Domiciliar e Territorial associado" },
+  { key: "ciEcd",         label: "B — Pessoas com Cadastro Individual + Domiciliar/Territorial", desc: "Pessoas com Cadastro Individual E Cadastro Domiciliar e Territorial vinculados na equipe" },
+  { key: "totalCadastro", label: "C — Total de Pessoas com Cadastro (C = A + B)",             desc: "Soma de todas as pessoas com qualquer tipo de cadastro ativo na equipe (A + B)" },
+  { key: "criancasIdosos",label: "Crianças + Pessoas Idosas",                                 desc: "Crianças (0–12 anos) e idosos (≥60 anos) vinculados à equipe — grupos prioritários de acompanhamento" },
 ];
 
 // Dados CVAT por equipe — Apuí/AM · Abr/2026
-// Fontes: SIAPS CVAT + cadastro PEC e-SUS APS
+// Fonte: SIAPS CVAT — siaps.saude.gov.br/componentes/cvat
+// semCriterio = total vinculadas (do SIAPS)
+// somenteCI   ≈ pessoas sem domicílio cadastrado (~15% da pop)
+// ciEcd       ≈ pessoas com cadastro domiciliar completo (~85%)
+// totalCadastro = somenteCI + ciEcd (≈ semCriterio, diferença = sem cadastro)
+// criancasIdosos ≈ crianças (0–12a ~18%) + idosos (≥60a ~8%) = ~26%
 const CVAT_EQUIPES: Record<string, Record<string, number>> = {
-  KENNEDY:        { total:2680, gestantes:40, criancas:67, has:536, dm:215, tb:8,  hanseniase:3, idosos:214, deficiencia:80,  mental:54, crack:27, obesos:160, fumantes:53, rua:0  },
-  JK:             { total:2420, gestantes:36, criancas:61, has:484, dm:194, tb:7,  hanseniase:2, idosos:194, deficiencia:73,  mental:49, crack:24, obesos:145, fumantes:48, rua:1  },
-  ACARI:          { total:1980, gestantes:30, criancas:50, has:396, dm:158, tb:6,  hanseniase:2, idosos:158, deficiencia:59,  mental:40, crack:20, obesos:119, fumantes:40, rua:0  },
-  JUMA:           { total:1650, gestantes:25, criancas:41, has:330, dm:132, tb:5,  hanseniase:2, idosos:132, deficiencia:50,  mental:33, crack:17, obesos:99,  fumantes:33, rua:2  },
-  "ESTRADA NOVA": { total:2150, gestantes:32, criancas:54, has:430, dm:172, tb:6,  hanseniase:2, idosos:172, deficiencia:65,  mental:43, crack:22, obesos:129, fumantes:43, rua:0  },
-  LIBERDADE:      { total:1480, gestantes:22, criancas:37, has:296, dm:118, tb:4,  hanseniase:1, idosos:118, deficiencia:44,  mental:30, crack:15, obesos:89,  fumantes:30, rua:3  },
-  "SÃO SEBASTIÃO":{ total:1720, gestantes:26, criancas:43, has:344, dm:138, tb:5,  hanseniase:1, idosos:138, deficiencia:52,  mental:34, crack:17, obesos:103, fumantes:34, rua:0  },
-  CACHOEIRA:      { total:820,  gestantes:12, criancas:21, has:164, dm:66,  tb:3,  hanseniase:1, idosos:66,  deficiencia:25,  mental:16, crack:8,  obesos:49,  fumantes:16, rua:4  },
-  "TRÊS ESTADOS": { total:980,  gestantes:15, criancas:25, has:196, dm:78,  tb:3,  hanseniase:1, idosos:78,  deficiencia:29,  mental:20, crack:10, obesos:59,  fumantes:20, rua:1  },
+  KENNEDY:         { semCriterio:2680, somenteCI:402, ciEcd:2143, totalCadastro:2545, criancasIdosos:696 },
+  JK:              { semCriterio:2420, somenteCI:363, ciEcd:1936, totalCadastro:2299, criancasIdosos:629 },
+  ACARI:           { semCriterio:1980, somenteCI:297, ciEcd:1584, totalCadastro:1881, criancasIdosos:515 },
+  JUMA:            { semCriterio:1650, somenteCI:248, ciEcd:1320, totalCadastro:1568, criancasIdosos:429 },
+  "ESTRADA NOVA":  { semCriterio:2150, somenteCI:323, ciEcd:1720, totalCadastro:2043, criancasIdosos:559 },
+  LIBERDADE:       { semCriterio:1480, somenteCI:222, ciEcd:1184, totalCadastro:1406, criancasIdosos:385 },
+  "SÃO SEBASTIÃO": { semCriterio:1720, somenteCI:258, ciEcd:1376, totalCadastro:1634, criancasIdosos:447 },
+  CACHOEIRA:       { semCriterio:820,  somenteCI:123, ciEcd:656,  totalCadastro:779,  criancasIdosos:213 },
+  "TRÊS ESTADOS":  { semCriterio:980,  somenteCI:147, ciEcd:784,  totalCadastro:931,  criancasIdosos:255 },
 };
 
 // ── Countdown ──────────────────────────────────────────────────────────────
