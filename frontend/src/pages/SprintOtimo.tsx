@@ -129,8 +129,10 @@ const DIAGNOSTICO = [
     populacaoVinculada: 761,
     populacaoRef: 2500,
     populacaoMax: 3750,
-    pendencias: [],
-    obs: "Equipe dentro dos parâmetros. Manter monitoramento mensal de vínculos no SCNES.",
+    pendencias: [
+      "⚠️ SIAPS ABR/26: apenas 761 vinculadas (30% da referência 2.500) — verificar cadastros no PEC e microáreas dos ACS",
+    ],
+    obs: "SIAPS ABR/26: 761 vinculadas (cadastro 773) — apenas 30% da referência de 2.500. Verificar se microáreas do território estão cadastradas no PEC e se há ACS sem famílias ativas. Score 74.5 pts — próximo ao ÓTIMO.",
   },
   {
     nome: "JK",
@@ -170,7 +172,7 @@ const DIAGNOSTICO = [
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [],
-    obs: "Mesma UBS que SÃO SEBASTIÃO (CNES 2013312). INE próprio confirmado: 0000007064. População abaixo da referência (1.980 vs 2.500) — verificar se território está cadastrado completamente.",
+    obs: "Mesma UBS que SÃO SEBASTIÃO (CNES 2013312). INE próprio confirmado: 0000007064. SIAPS ABR/26: 1.611 vinculadas (cadastro 1.639) — 64% da referência. Monitorar crescimento; verificar microárea descoberta.",
   },
   {
     nome: "JUMA",
@@ -208,7 +210,7 @@ const DIAGNOSTICO = [
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [],
-    obs: "Composição mínima atendida. Fortalecer digitalização de produção e agenda de puericultura.",
+    obs: "SIAPS ABR/26: 806 vinculadas (cadastro 822) — 32% da referência de 2.500. Composição mínima atendida, mas cobertura territorial muito baixa. Verificar microáreas descobertas e cadastros incompletos no PEC. CVAT REGULAR (3,25 pts) — fortalecer acompanhamento e digitalização.",
   },
   {
     nome: "LIBERDADE",
@@ -227,7 +229,7 @@ const DIAGNOSTICO = [
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [],
-    obs: "Mesma UBS que JUMA (CNES 3697983 — Centro de Saúde Curumim). INE próprio confirmado: 0000007099. Equipe com menor cobertura populacional — verificar se há área descoberta no território.",
+    obs: "Mesma UBS que JUMA (CNES 3697983 — Centro de Saúde Curumim). INE próprio confirmado: 0000007099. SIAPS ABR/26: 1.784 vinculadas (cadastro 1.797) — 71% da referência. CVAT ÓTIMO (10,00 pts) — melhor territorial do município. Elevar score clínico para atingir ÓTIMO.",
   },
   {
     nome: "SÃO SEBASTIÃO",
@@ -254,7 +256,7 @@ const DIAGNOSTICO = [
     cnesUbs: "3320138",
     ine: "0000007072",
     cnesCodEquipe: "0010",
-    tipo: "eRibeirinha",                   // ⚠️ SCNES registra como ESF — confirmar tipo real no e-Gestor
+    tipo: "eSF",                            // SIAPS ABR/26 confirma eSF com parâmetro 2500 — eRibeirinha pendente de confirmação
     esb: true,
     cnesStatus: "regular",
     medico: { nome: "Dr. Pedro Matias", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
@@ -262,13 +264,13 @@ const DIAGNOSTICO = [
     tecEnf: { nome: "Téc. Solange Dias", cbo: "322205", cnes: "OK", vinculo: "Estatutário" },
     acs: 2, acsMin: 2,
     populacaoVinculada: 1552,
-    populacaoRef: 1000,
-    populacaoMax: 1500,
+    populacaoRef: 2500,
+    populacaoMax: 3750,
     pendencias: [
-      "Fichas CDS das expedições de jun e jul não digitalizadas",
-      "⚠️ SCNES 07/2026 classifica como ESF — confirmar cofinanciamento como eRibeirinha no e-Gestor",
+      "🔍 Confirmar modalidade: SIAPS ABR/26 registra como eSF (parâmetro 2.500); operação é ribeirinha — verificar cofinanciamento no e-Gestor",
+      "📋 Fichas CDS das expedições de jun e jul a digitalizar",
     ],
-    obs: "CNES 3320138 — UBS Irmã Elizabete. SCNES exporta como ESF, mas operação é ribeirinha. Confirmar no e-Gestor qual modalidade está sendo paga. Parâmetros eRibeirinha: ref. 1.000 / máx. 1.500.",
+    obs: "CNES 3320138 — UBS Irmã Elizabete. SIAPS ABR/26 classifica como eSF com parâmetro 2.500 (1.565 cadastradas, 1.552 vinculadas — CVAT BOM 8,25 pts). Operação é de equipe ribeirinha mas cofinanciamento eSF está ativo. Confirmar no e-Gestor a modalidade vigente para parametrização correta da meta de vínculos.",
   },
   {
     nome: "TRÊS ESTADOS",
@@ -289,11 +291,11 @@ const DIAGNOSTICO = [
     pendencias: [
       "🚨 Vínculos do médico expirados no SCNES — RH/SMS deve reativar HOJE",
       "🚨 Vínculos dos ACS expirados no SCNES",
-      "⚠️ SIAPS ABR/26 mostra produção (1.035 vinculadas) — confirmar regularização do SCNES",
-      "Populações vinculadas ABR/26: 1.035 — verificar crescimento territorial",
-      "Verificar se território está cadastrado completamente",
+      "🚨 SIAPS ABR/26 mostra 1.035 vinculadas — confirmar se SCNES já foi regularizado",
+      "🔍 Verificar no e-Gestor se produção ABR/26 foi aceita ou descartada",
+      "📋 Levantar composição atualizada dos vínculos SCNES (médico, ACS)",
     ],
-    obs: "SITUAÇÃO CRÍTICA: sem a regularização do SCNES, nenhuma produção desta equipe é reconhecida pelo MS para fins de financiamento. CNES 9934448 — UBS Osvaldo Lemes Cabral. Ligar para o e-Gestor: 0800 722 4310.",
+    obs: "CNES 9934448 — UBS Osvaldo Lemes Cabral. SIAPS ABR/26 registra 1.035 vinculadas/acompanhadas (dado preliminar), sugerindo que parte da produção está sendo reconhecida. Porém vínculos SCNES ainda constam expirados — regularizar imediatamente para garantir continuidade do financiamento. Suporte e-Gestor: 0800 722 4310.",
   },
   // ── AREAL — equipe identificada no SCNES 07/2026 · não monitorada anteriormente ──
   {
