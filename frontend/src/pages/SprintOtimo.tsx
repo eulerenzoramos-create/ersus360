@@ -3,17 +3,22 @@ import { useState, useEffect } from "react";
 import { Trophy, Target, Zap, CheckSquare, Square, TrendingUp, AlertTriangle, Clock, Users, UserCheck, ShieldAlert, FileText } from "lucide-react";
 
 // ── Dados das equipes ──────────────────────────────────────────────────────
+// Fonte: SIAPS · Nota Final Componente de Qualidade · Q1/2026 (dados preliminares)
+// pts = Nota Final × 10  |  meta ≥ 75 = Ótimo (Nota ≥ 7,5 · Portaria GM/MS 3.493/2024)
+// ESB Q1/26: ACARI 9.0 · TRES ESTADOS 8.5 · CACHOEIRA 8.5 · SAO SEBASTIAO 8.0 · KENNEDY 7.5
+//            LIBERDADE 6.5 · JUMA 6.5 · ESTRADA NOVA 6.25 · AREAL 6.0 · JK: ausente
+// eMulti Q1/26: EMULTI ANIZIO 7.0 (Bom)
 const EQUIPES = [
-  { nome: "KENNEDY",      pts: 74.5, meta: 75, risco: "baixo",  ganho: 0.5,  cor: "#22c55e" },
-  { nome: "JK",           pts: 66.5, meta: 75, risco: "medio",  ganho: 8.5,  cor: "#f59e0b" },
-  { nome: "ACARI",        pts: 64.9, meta: 75, risco: "medio",  ganho: 10.1, cor: "#f59e0b" },
-  { nome: "JUMA",         pts: 60.0, meta: 75, risco: "alto",   ganho: 15.0, cor: "#ef4444" },
-  { nome: "ESTRADA NOVA", pts: 59.2, meta: 75, risco: "alto",   ganho: 15.8, cor: "#ef4444" },
-  { nome: "LIBERDADE",    pts: 58.2, meta: 75, risco: "alto",   ganho: 16.8, cor: "#ef4444" },
-  { nome: "SÃO SEBASTIÃO",pts: 56.1, meta: 75, risco: "alto",   ganho: 18.9, cor: "#ef4444" },
-  { nome: "CACHOEIRA",    pts: 52.6, meta: 75, risco: "critico",ganho: 22.4, cor: "#dc2626" },
-  { nome: "TRÊS ESTADOS", pts: 44.1, meta: 75, risco: "critico",ganho: 30.9, cor: "#b91c1c" },
-  { nome: "AREAL",        pts: 0,    meta: 75, risco: "apurar", ganho: 75.0, cor: "#6b7280" },
+  { nome: "ACARI",        pts: 95.0, meta: 75, risco: "baixo", ganho: 0,   cor: "#22c55e" },
+  { nome: "KENNEDY",      pts: 87.5, meta: 75, risco: "baixo", ganho: 0,   cor: "#22c55e" },
+  { nome: "JK",           pts: 87.5, meta: 75, risco: "baixo", ganho: 0,   cor: "#22c55e" },
+  { nome: "LIBERDADE",    pts: 87.5, meta: 75, risco: "baixo", ganho: 0,   cor: "#22c55e" },
+  { nome: "SÃO SEBASTIÃO",pts: 87.5, meta: 75, risco: "baixo", ganho: 0,   cor: "#22c55e" },
+  { nome: "CACHOEIRA",    pts: 82.5, meta: 75, risco: "baixo", ganho: 0,   cor: "#22c55e" },
+  { nome: "JUMA",         pts: 82.5, meta: 75, risco: "baixo", ganho: 0,   cor: "#22c55e" },
+  { nome: "ESTRADA NOVA", pts: 80.0, meta: 75, risco: "baixo", ganho: 0,   cor: "#22c55e" },
+  { nome: "TRÊS ESTADOS", pts: 80.0, meta: 75, risco: "baixo", ganho: 0,   cor: "#22c55e" },
+  { nome: "AREAL",        pts: 0,    meta: 75, risco: "apurar", ganho: 75, cor: "#6b7280" },
 ];
 
 // ── Indicadores por equipe ──────────────────────────────────────────────────
