@@ -117,6 +117,7 @@ const DIAGNOSTICO = [
     nome: "KENNEDY",
     ubs: "UBS Padre Faliero Bonci",        // SCNES 07/2026 — CNES 2013304
     cnesUbs: "2013304",
+    ine: "0000007056",
     cnesCodEquipe: "0001",
     tipo: "eSF",
     esb: true,
@@ -135,6 +136,7 @@ const DIAGNOSTICO = [
     nome: "JK",
     ubs: "UBS Pedro Alexandre Santos da Silva", // SCNES 07/2026 — CNES 4184688 (ATIVO)
     cnesUbs: "4184688",                          // ⚠️ CNES 3324915 (UBS JK) está INATIVO no SCNES
+    ine: "0002323613",
     cnesCodEquipe: "0012",
     tipo: "eSF",
     esb: true,
@@ -148,7 +150,6 @@ const DIAGNOSTICO = [
     populacaoMax: 3750,
     pendencias: [
       "⚠️ CNES 3324915 (UBS JK) consta INATIVO no SCNES — confirmar vínculos no CNES 4184688",
-      "INE compartilhado com ACARI — dividir no SCNES",
     ],
     obs: "UBS JK (CNES 3324915) está INATIVA no SCNES 07/2026. A equipe opera no CNES 4184688 (UBS Pedro Alexandre Santos da Silva). Auditar vínculos para garantir que todos os profissionais estão no estabelecimento correto.",
   },
@@ -156,6 +157,7 @@ const DIAGNOSTICO = [
     nome: "ACARI",
     ubs: "UBS Anízio Ferreira da Silva",   // SCNES 07/2026 — CNES 2013312
     cnesUbs: "2013312",
+    ine: "0000007064",
     cnesCodEquipe: "0005",
     tipo: "eSF",
     esb: true,
@@ -167,13 +169,14 @@ const DIAGNOSTICO = [
     populacaoVinculada: 1980,
     populacaoRef: 2500,
     populacaoMax: 3750,
-    pendencias: ["INE compartilhado com SÃO SEBASTIÃO — dividir no SCNES (mesmo CNES 2013312)"],
-    obs: "Mesma UBS que SÃO SEBASTIÃO (CNES 2013312). INE deve ser separado. População abaixo da referência (1.980 vs 2.500) — verificar se território está cadastrado completamente.",
+    pendencias: [],
+    obs: "Mesma UBS que SÃO SEBASTIÃO (CNES 2013312). INE próprio confirmado: 0000007064. População abaixo da referência (1.980 vs 2.500) — verificar se território está cadastrado completamente.",
   },
   {
     nome: "JUMA",
     ubs: "Centro de Saúde Curumim",        // SCNES 07/2026 — CNES 3697983
     cnesUbs: "3697983",
+    ine: "0000007080",
     cnesCodEquipe: "0014",
     tipo: "eSF",
     esb: true,
@@ -185,13 +188,14 @@ const DIAGNOSTICO = [
     populacaoVinculada: 1650,
     populacaoRef: 2500,
     populacaoMax: 3750,
-    pendencias: ["INE compartilhado com LIBERDADE — dividir no SCNES (mesmo CNES 3697983)"],
-    obs: "Mesma UBS que LIBERDADE (CNES 3697983 — Centro de Saúde Curumim). Fichas CDS das expedições devem ser digitalizadas mensalmente. INE precisa ser separado.",
+    pendencias: [],
+    obs: "Mesma UBS que LIBERDADE (CNES 3697983 — Centro de Saúde Curumim). INE próprio confirmado: 0000007080. Fichas CDS das expedições devem ser digitalizadas mensalmente.",
   },
   {
     nome: "ESTRADA NOVA",
     ubs: "UBS Claudia Pereira dos Santos Damacena", // SCNES 07/2026 — CNES 9942122
     cnesUbs: "9942122",
+    ine: "0001690426",
     cnesCodEquipe: "0009",
     tipo: "eSF",
     esb: true,
@@ -210,6 +214,7 @@ const DIAGNOSTICO = [
     nome: "LIBERDADE",
     ubs: "Centro de Saúde Curumim",        // SCNES 07/2026 — CNES 3697983
     cnesUbs: "3697983",
+    ine: "0000007099",
     cnesCodEquipe: "0011",
     tipo: "eSF",
     esb: true,
@@ -221,13 +226,14 @@ const DIAGNOSTICO = [
     populacaoVinculada: 1480,
     populacaoRef: 2500,
     populacaoMax: 3750,
-    pendencias: ["INE compartilhado com JUMA — dividir no SCNES (mesmo CNES 3697983)"],
-    obs: "Mesma UBS que JUMA (CNES 3697983 — Centro de Saúde Curumim). Equipe com menor cobertura populacional. Verificar se há área descoberta no território.",
+    pendencias: [],
+    obs: "Mesma UBS que JUMA (CNES 3697983 — Centro de Saúde Curumim). INE próprio confirmado: 0000007099. Equipe com menor cobertura populacional — verificar se há área descoberta no território.",
   },
   {
     nome: "SÃO SEBASTIÃO",
     ubs: "UBS Anízio Ferreira da Silva",   // SCNES 07/2026 — CNES 2013312
     cnesUbs: "2013312",
+    ine: "0001536974",
     cnesCodEquipe: "0004",
     tipo: "eSF",
     esb: true,
@@ -239,13 +245,14 @@ const DIAGNOSTICO = [
     populacaoVinculada: 1720,
     populacaoRef: 2500,
     populacaoMax: 3750,
-    pendencias: ["INE compartilhado com ACARI — dividir no SCNES (mesmo CNES 2013312)"],
-    obs: "Mesma UBS que ACARI (CNES 2013312). Médico compartilhado com ACARI e JK. Verificar carga horária no PEC. INE deve ser separado urgentemente.",
+    pendencias: [],
+    obs: "Mesma UBS que ACARI (CNES 2013312). INE próprio confirmado: 0001536974. Médico compartilhado com ACARI e JK — verificar carga horária no PEC.",
   },
   {
     nome: "CACHOEIRA",
     ubs: "UBS Irmã Elizabete",             // SCNES 07/2026 — CNES 3320138
     cnesUbs: "3320138",
+    ine: "0000007072",
     cnesCodEquipe: "0010",
     tipo: "eRibeirinha",                   // ⚠️ SCNES registra como ESF — confirmar tipo real no e-Gestor
     esb: true,
@@ -267,6 +274,7 @@ const DIAGNOSTICO = [
     nome: "TRÊS ESTADOS",
     ubs: "UBS Osvaldo Lemes Cabral",       // SCNES 07/2026 — CNES 9934448
     cnesUbs: "9934448",
+    ine: "0001690442",
     cnesCodEquipe: "0008",
     tipo: "eSF",
     esb: true,
@@ -292,6 +300,7 @@ const DIAGNOSTICO = [
     nome: "AREAL",
     ubs: "UBS Eduardo Biazin",             // SCNES 07/2026 — CNES 2013290
     cnesUbs: "2013290",
+    ine: "0000007048",
     cnesCodEquipe: "0002",
     tipo: "eSF",
     esb: true,
@@ -1185,6 +1194,11 @@ export default function SprintOtimo() {
                             <span style={{ background: "#1a1a3e", border: "1px solid #4338ca", color: "#a5b4fc", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace" }}>
                               Equipe {diag.cnesCodEquipe}
                             </span>
+                            {diag.ine && (
+                              <span style={{ background: "#1c1917", border: "1px solid #78716c", color: "#d6d3d1", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace" }} title="Identificador Nacional de Equipes — e-Gestor APS">
+                                INE {diag.ine}
+                              </span>
+                            )}
                             <span style={{ background: "#14532d", border: "1px solid #166534", color: "#86efac", fontSize: 11, padding: "2px 8px", borderRadius: 6 }}>
                               {diag.tipo}
                             </span>
