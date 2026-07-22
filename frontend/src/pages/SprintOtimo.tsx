@@ -13,6 +13,7 @@ const EQUIPES = [
   { nome: "SÃO SEBASTIÃO",pts: 56.1, meta: 75, risco: "alto",   ganho: 18.9, cor: "#ef4444" },
   { nome: "CACHOEIRA",    pts: 52.6, meta: 75, risco: "critico",ganho: 22.4, cor: "#dc2626" },
   { nome: "TRÊS ESTADOS", pts: 44.1, meta: 75, risco: "critico",ganho: 30.9, cor: "#b91c1c" },
+  { nome: "AREAL",        pts: 0,    meta: 75, risco: "apurar", ganho: 75.0, cor: "#6b7280" },
 ];
 
 // ── Indicadores por equipe ──────────────────────────────────────────────────
@@ -103,12 +104,16 @@ const FRENTE_COR: Record<string,string> = {
 };
 
 // ── Dados de Diagnóstico de Composição ────────────────────────────────────
+// Fonte oficial: SCNES · Protocolo de Exportação DATASUS · Competência 07/2026 · Gerado 20/07/2026
 // Parâmetro Apuí: município 20.001–50.000 hab → ref. 2.500 vínculos/eSF, máx 3.750
 const DIAGNOSTICO = [
   {
     nome: "KENNEDY",
-    ubs: "UBS Kennedy",
+    ubs: "UBS Padre Faliero Bonci",        // SCNES 07/2026 — CNES 2013304
+    cnesUbs: "2013304",
+    cnesCodEquipe: "0001",
     tipo: "eSF",
+    esb: true,
     cnesStatus: "regular",
     medico: { nome: "Dr. Gilmar Oliveira", cbo: "225125", cnes: "OK", vinculo: "Estatutário" },
     enfermeiro: { nome: "Enf. Patrícia Lima", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
@@ -122,8 +127,11 @@ const DIAGNOSTICO = [
   },
   {
     nome: "JK",
-    ubs: "UBS JK",
+    ubs: "UBS Pedro Alexandre Santos da Silva", // SCNES 07/2026 — CNES 4184688 (ATIVO)
+    cnesUbs: "4184688",                          // ⚠️ CNES 3324915 (UBS JK) está INATIVO no SCNES
+    cnesCodEquipe: "0012",
     tipo: "eSF",
+    esb: true,
     cnesStatus: "regular",
     medico: { nome: "Dr. Anízio Ferreira", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
     enfermeiro: { nome: "Enf. Marcela Santos", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
@@ -132,13 +140,19 @@ const DIAGNOSTICO = [
     populacaoVinculada: 2420,
     populacaoRef: 2500,
     populacaoMax: 3750,
-    pendencias: ["INE compartilhado com ACARI — dividir no SCNES"],
-    obs: "INE vinculado a dois territórios. Separar imediatamente para evitar mistura de produção no e-Gestor.",
+    pendencias: [
+      "⚠️ CNES 3324915 (UBS JK) consta INATIVO no SCNES — confirmar vínculos no CNES 4184688",
+      "INE compartilhado com ACARI — dividir no SCNES",
+    ],
+    obs: "UBS JK (CNES 3324915) está INATIVA no SCNES 07/2026. A equipe opera no CNES 4184688 (UBS Pedro Alexandre Santos da Silva). Auditar vínculos para garantir que todos os profissionais estão no estabelecimento correto.",
   },
   {
     nome: "ACARI",
-    ubs: "UBS Anízio Ferreira",
+    ubs: "UBS Anízio Ferreira da Silva",   // SCNES 07/2026 — CNES 2013312
+    cnesUbs: "2013312",
+    cnesCodEquipe: "0005",
     tipo: "eSF",
+    esb: true,
     cnesStatus: "regular",
     medico: { nome: "Dr. Anízio Ferreira", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
     enfermeiro: { nome: "Enf. Cláudia Rocha", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
@@ -147,13 +161,16 @@ const DIAGNOSTICO = [
     populacaoVinculada: 1980,
     populacaoRef: 2500,
     populacaoMax: 3750,
-    pendencias: ["INE compartilhado com SÃO SEBASTIÃO — dividir no SCNES"],
-    obs: "População abaixo da referência (1.980 vs 2.500). Verificar se território está completo no cadastro.",
+    pendencias: ["INE compartilhado com SÃO SEBASTIÃO — dividir no SCNES (mesmo CNES 2013312)"],
+    obs: "Mesma UBS que SÃO SEBASTIÃO (CNES 2013312). INE deve ser separado. População abaixo da referência (1.980 vs 2.500) — verificar se território está cadastrado completamente.",
   },
   {
     nome: "JUMA",
-    ubs: "UBS Curumim / Juma",
+    ubs: "Centro de Saúde Curumim",        // SCNES 07/2026 — CNES 3697983
+    cnesUbs: "3697983",
+    cnesCodEquipe: "0014",
     tipo: "eSF",
+    esb: true,
     cnesStatus: "regular",
     medico: { nome: "Dr. Curumim", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
     enfermeiro: { nome: "Enf. Maria José", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
@@ -162,13 +179,16 @@ const DIAGNOSTICO = [
     populacaoVinculada: 1650,
     populacaoRef: 2500,
     populacaoMax: 3750,
-    pendencias: ["INE compartilhado com LIBERDADE — dividir no SCNES"],
-    obs: "Equipe ribeirinha. Fichas CDS das expedições devem ser digitalizadas mensalmente. INE precisa ser separado.",
+    pendencias: ["INE compartilhado com LIBERDADE — dividir no SCNES (mesmo CNES 3697983)"],
+    obs: "Mesma UBS que LIBERDADE (CNES 3697983 — Centro de Saúde Curumim). Fichas CDS das expedições devem ser digitalizadas mensalmente. INE precisa ser separado.",
   },
   {
     nome: "ESTRADA NOVA",
-    ubs: "UBS Estrada Nova",
+    ubs: "UBS Claudia Pereira dos Santos Damacena", // SCNES 07/2026 — CNES 9942122
+    cnesUbs: "9942122",
+    cnesCodEquipe: "0009",
     tipo: "eSF",
+    esb: true,
     cnesStatus: "regular",
     medico: { nome: "Dr. Roberto Nunes", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
     enfermeiro: { nome: "Enf. Simone Borges", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
@@ -182,8 +202,11 @@ const DIAGNOSTICO = [
   },
   {
     nome: "LIBERDADE",
-    ubs: "UBS Curumim / Liberdade",
+    ubs: "Centro de Saúde Curumim",        // SCNES 07/2026 — CNES 3697983
+    cnesUbs: "3697983",
+    cnesCodEquipe: "0011",
     tipo: "eSF",
+    esb: true,
     cnesStatus: "regular",
     medico: { nome: "Dr. Curumim", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
     enfermeiro: { nome: "Enf. Teresinha Mota", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
@@ -192,13 +215,16 @@ const DIAGNOSTICO = [
     populacaoVinculada: 1480,
     populacaoRef: 2500,
     populacaoMax: 3750,
-    pendencias: ["INE compartilhado com JUMA — dividir no SCNES"],
-    obs: "Equipe com menor cobertura populacional. Verificar se há área descoberta no território.",
+    pendencias: ["INE compartilhado com JUMA — dividir no SCNES (mesmo CNES 3697983)"],
+    obs: "Mesma UBS que JUMA (CNES 3697983 — Centro de Saúde Curumim). Equipe com menor cobertura populacional. Verificar se há área descoberta no território.",
   },
   {
     nome: "SÃO SEBASTIÃO",
-    ubs: "UBS Anízio Ferreira / São Sebastião",
+    ubs: "UBS Anízio Ferreira da Silva",   // SCNES 07/2026 — CNES 2013312
+    cnesUbs: "2013312",
+    cnesCodEquipe: "0004",
     tipo: "eSF",
+    esb: true,
     cnesStatus: "regular",
     medico: { nome: "Dr. Anízio Ferreira", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
     enfermeiro: { nome: "Enf. Beatriz Lima", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
@@ -207,13 +233,16 @@ const DIAGNOSTICO = [
     populacaoVinculada: 1720,
     populacaoRef: 2500,
     populacaoMax: 3750,
-    pendencias: ["INE compartilhado com ACARI — dividir no SCNES"],
-    obs: "Médico compartilhado com ACARI e JK. Verificar carga horária e distribuição de atendimentos no PEC.",
+    pendencias: ["INE compartilhado com ACARI — dividir no SCNES (mesmo CNES 2013312)"],
+    obs: "Mesma UBS que ACARI (CNES 2013312). Médico compartilhado com ACARI e JK. Verificar carga horária no PEC. INE deve ser separado urgentemente.",
   },
   {
     nome: "CACHOEIRA",
-    ubs: "UBS Cachoeira / Ribeirinha",
-    tipo: "eRibeirinha",
+    ubs: "UBS Irmã Elizabete",             // SCNES 07/2026 — CNES 3320138
+    cnesUbs: "3320138",
+    cnesCodEquipe: "0010",
+    tipo: "eRibeirinha",                   // ⚠️ SCNES registra como ESF — confirmar tipo real no e-Gestor
+    esb: true,
     cnesStatus: "regular",
     medico: { nome: "Dr. Pedro Matias", cbo: "225125", cnes: "OK", vinculo: "Contratado" },
     enfermeiro: { nome: "Enf. Cristiane Nunes", cbo: "223505", cnes: "OK", vinculo: "Estatutário" },
@@ -222,13 +251,19 @@ const DIAGNOSTICO = [
     populacaoVinculada: 820,
     populacaoRef: 1000,
     populacaoMax: 1500,
-    pendencias: ["Fichas CDS das expedições de jun e jul não digitalizadas"],
-    obs: "Equipe Ribeirinha com menor população adscrita por natureza do território. Principal gap: digitalização das fichas CDS das expedições fluviais.",
+    pendencias: [
+      "Fichas CDS das expedições de jun e jul não digitalizadas",
+      "⚠️ SCNES 07/2026 classifica como ESF — confirmar cofinanciamento como eRibeirinha no e-Gestor",
+    ],
+    obs: "CNES 3320138 — UBS Irmã Elizabete. SCNES exporta como ESF, mas operação é ribeirinha. Confirmar no e-Gestor qual modalidade está sendo paga. Parâmetros eRibeirinha: ref. 1.000 / máx. 1.500.",
   },
   {
     nome: "TRÊS ESTADOS",
-    ubs: "UBS Três Estados",
+    ubs: "UBS Osvaldo Lemes Cabral",       // SCNES 07/2026 — CNES 9934448
+    cnesUbs: "9934448",
+    cnesCodEquipe: "0008",
     tipo: "eSF",
+    esb: true,
     cnesStatus: "expirado",
     medico: { nome: "Dr. (a confirmar)", cbo: "225125", cnes: "EXPIRADO", vinculo: "Desatualizado" },
     enfermeiro: { nome: "Enf. (a confirmar)", cbo: "223505", cnes: "EXPIRADO", vinculo: "Desatualizado" },
@@ -244,7 +279,31 @@ const DIAGNOSTICO = [
       "População vinculada muito abaixo da referência (980 vs 2.500)",
       "Verificar se território está cadastrado completamente",
     ],
-    obs: "SITUAÇÃO CRÍTICA: sem a regularização do SCNES, nenhuma produção desta equipe é reconhecida pelo Ministério da Saúde para fins de financiamento. Ligar para o e-Gestor: 0800 722 4310.",
+    obs: "SITUAÇÃO CRÍTICA: sem a regularização do SCNES, nenhuma produção desta equipe é reconhecida pelo MS para fins de financiamento. CNES 9934448 — UBS Osvaldo Lemes Cabral. Ligar para o e-Gestor: 0800 722 4310.",
+  },
+  // ── AREAL — equipe identificada no SCNES 07/2026 · não monitorada anteriormente ──
+  {
+    nome: "AREAL",
+    ubs: "UBS Eduardo Biazin",             // SCNES 07/2026 — CNES 2013290
+    cnesUbs: "2013290",
+    cnesCodEquipe: "0002",
+    tipo: "eSF",
+    esb: true,
+    cnesStatus: "apurar",
+    medico: { nome: "(a confirmar no e-Gestor)", cbo: "225125", cnes: "A APURAR", vinculo: "A apurar" },
+    enfermeiro: { nome: "(a confirmar no e-Gestor)", cbo: "223505", cnes: "A APURAR", vinculo: "A apurar" },
+    tecEnf: { nome: "(a confirmar no e-Gestor)", cbo: "322205", cnes: "A APURAR", vinculo: "A apurar" },
+    acs: 0, acsMin: 3,
+    populacaoVinculada: 0,
+    populacaoRef: 2500,
+    populacaoMax: 3750,
+    pendencias: [
+      "🔍 Equipe identificada no SCNES 07/2026 — não estava no monitoramento ERSUS",
+      "🔍 Confirmar status de atividade no e-Gestor / SIAPS",
+      "🔍 Levantar composição real da equipe no SCNES",
+      "🔍 Incluir no Sprint ÓTIMO Q2/2026 se estiver produzindo",
+    ],
+    obs: "CNES 2013290 — UBS Eduardo Biazin. Equipe identificada na análise do Protocolo de Exportação SCNES 07/2026 (gerado 20/07/2026). Não havia registro no sistema ERSUS 360. Verificação e inclusão no monitoramento pendente.",
   },
 ];
 
@@ -287,7 +346,9 @@ const CVAT_EQUIPES: Record<string, Record<string, number>> = {
   "SÃO SEBASTIÃO": { semCriterio:1720, somenteCI:258, ciEcd:1376, totalCadastro:1634, criancasIdosos:447, bpcPbf:206, criancasIdososBpc:138, acompanhadas:1204, atendSujeitos:860,  atendAvaliados:559, vinculadas:1720 },
   CACHOEIRA:       { semCriterio:820,  somenteCI:123, ciEcd:656,  totalCadastro:779,  criancasIdosos:213, bpcPbf:98,  criancasIdososBpc:66,  acompanhadas:574,  atendSujeitos:410,  atendAvaliados:267, vinculadas:820  },
   "TRÊS ESTADOS":  { semCriterio:980,  somenteCI:147, ciEcd:784,  totalCadastro:931,  criancasIdosos:255, bpcPbf:118, criancasIdososBpc:78,  acompanhadas:0,    atendSujeitos:0,    atendAvaliados:0,   vinculadas:980  },
-  // TRÊS ESTADOS: acompanhamentos e atendimentos = 0 pois CNES expirado → produção descartada pelo e-Gestor
+  // TRÊS ESTADOS: acompanhamentos = 0 — CNES expirado → produção descartada pelo e-Gestor
+  // AREAL: dados a apurar no e-Gestor/SIAPS — equipe identificada no SCNES 07/2026
+  "AREAL":         { semCriterio:0,    somenteCI:0,   ciEcd:0,    totalCadastro:0,    criancasIdosos:0,   bpcPbf:0,   criancasIdososBpc:0,   acompanhadas:0,    atendSujeitos:0,    atendAvaliados:0,   vinculadas:0    },
 };
 
 // ── Countdown ──────────────────────────────────────────────────────────────
@@ -684,16 +745,50 @@ export default function SprintOtimo() {
                   <button key={eq.nome} onClick={() => setDiagEquipe(eq.nome)} style={{
                     padding: "6px 14px", borderRadius: 20, fontSize: 12, cursor: "pointer",
                     fontWeight: diagEquipe === eq.nome ? 700 : 400,
-                    border: `1px solid ${diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#ef4444" : "#22c55e") : "#334155"}`,
-                    background: diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#450a0a" : "#14532d") : "transparent",
-                    color: diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#fca5a5" : "#bbf7d0") : "#94a3b8",
+                    border: `1px solid ${diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#ef4444" : eq.cnesStatus === "apurar" ? "#6b7280" : "#22c55e") : "#334155"}`,
+                    background: diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#450a0a" : eq.cnesStatus === "apurar" ? "#1e293b" : "#14532d") : "transparent",
+                    color: diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#fca5a5" : eq.cnesStatus === "apurar" ? "#94a3b8" : "#bbf7d0") : "#94a3b8",
                   }}>
-                    {eq.cnesStatus === "expirado" ? "🚨 " : ""}{eq.nome}
+                    {eq.cnesStatus === "expirado" ? "🚨 " : eq.cnesStatus === "apurar" ? "🔍 " : ""}{eq.nome}
                   </button>
                 ))}
               </div>
 
-              {/* Alerta crítico CNES */}
+              {/* Badge CNES oficial */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "#64748b" }}>📋 Fonte: SCNES 07/2026 · Exportação DATASUS 20/07/2026</span>
+                {(d as any).cnesUbs && (
+                  <span style={{ background: "#1e3a5f", color: "#93c5fd", fontSize: 10, fontWeight: 700, padding: "2px 10px", borderRadius: 10, fontFamily: "monospace" }}>
+                    CNES {(d as any).cnesUbs}
+                  </span>
+                )}
+                {(d as any).cnesCodEquipe && (
+                  <span style={{ background: "#14532d", color: "#bbf7d0", fontSize: 10, fontWeight: 700, padding: "2px 10px", borderRadius: 10, fontFamily: "monospace" }}>
+                    Equipe {(d as any).cnesCodEquipe}
+                  </span>
+                )}
+                {(d as any).esb && (
+                  <span style={{ background: "#3b1a6e", color: "#c4b5fd", fontSize: 10, fontWeight: 700, padding: "2px 10px", borderRadius: 10 }}>ESB vinculada</span>
+                )}
+              </div>
+
+              {/* Alerta AREAL a apurar */}
+              {d.cnesStatus === "apurar" && (
+                <div style={{ background: "#1e293b", border: "1px solid #475569", borderRadius: 10, padding: 16, marginBottom: 16, display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <FileText size={22} color="#94a3b8" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div>
+                    <div style={{ fontWeight: 800, color: "#f1f5f9", fontSize: 14, marginBottom: 6 }}>EQUIPE IDENTIFICADA NO SCNES — DADOS A APURAR</div>
+                    <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>
+                      A equipe <strong>AREAL</strong> (CNES 2013290 — UBS Eduardo Biazin) foi identificada no Protocolo de Exportação SCNES 07/2026
+                      mas <strong>não estava no monitoramento ERSUS 360</strong>.
+                      Verificar no e-Gestor / SIAPS se a equipe está ativa e produzindo.
+                      Se confirmada, incluir no Sprint ÓTIMO e levantar composição completa via SCNES.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Alerta crítico CNES expirado */}
               {isCritico && (
                 <div style={{ background: "#450a0a", border: "1px solid #ef4444", borderRadius: 10, padding: 16, marginBottom: 16, display: "flex", gap: 12, alignItems: "flex-start" }}>
                   <ShieldAlert size={22} color="#ef4444" style={{ flexShrink: 0, marginTop: 2 }} />
