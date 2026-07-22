@@ -70,6 +70,11 @@ const INDICADORES: Record<string, {ind: string; desc: string; atual: number; met
     { ind:"C5", desc:"HAS controlada", atual:50, meta:70, pts:3, acao:"Técnico lança PA em todos os atendimentos" },
     { ind:"C1", desc:"Acesso avaliado", atual:40, meta:70, pts:1, acao:"Registrar retorno no PEC" },
   ],
+  "AREAL": [
+    { ind:"CNES", desc:"Status CNES — verificar no e-Gestor", atual:0, meta:100, pts:0, acao:"🔍 Confirmar equipe ativa no e-Gestor e SCNES (CNES 2013290)" },
+    { ind:"SIAPS", desc:"Produção no SIAPS — levantar histórico", atual:0, meta:100, pts:0, acao:"🔍 Acessar SIAPS e verificar se há produção lançada para esta equipe" },
+    { ind:"COMP", desc:"Composição — confirmar profissionais vinculados", atual:0, meta:100, pts:0, acao:"🔍 Levantar médico, enfermeiro, técnico e ACS no SCNES 07/2026" },
+  ],
 };
 
 // ── Checklist ─────────────────────────────────────────────────────────────
@@ -93,6 +98,7 @@ const CHECKLIST = [
   { id:"c17", frente:"Fechamento", texto:"Monitoramento semanal e-Gestor iniciado — toda segunda-feira" },
   { id:"c18", frente:"Fechamento", texto:"Contato suporte e-Gestor se TRÊS ESTADOS não aparecer (0800 722 4310)" },
   { id:"c19", frente:"Fechamento", texto:"Confirmação final — score de todas as equipes conferido até 15/agosto" },
+  { id:"c20", frente:"Sistema",    texto:"AREAL — confirmar status no e-Gestor e SIAPS (SCNES 2013290 / UBS Eduardo Biazin)" },
 ];
 
 const FRENTE_COR: Record<string,string> = {
@@ -494,7 +500,7 @@ export default function SprintOtimo() {
       {/* ── Badges resumo ── */}
       <div style={{ display: "flex", gap: 8, padding: "10px 24px", flexWrap: "wrap", alignItems: "center", background: "#0f172a", borderBottom: "1px solid #1e293b" }}>
         <span style={{ background: "#166534", color: "#bbf7d0", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>🏆 Meta ≥75 pts</span>
-        <span style={{ background: "#7f1d1d", color: "#fca5a5", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>5 equipes em risco crítico</span>
+        <span style={{ background: "#7f1d1d", color: "#fca5a5", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{EQUIPES.filter(e => e.risco === "critico").length} equipes em risco crítico</span>
         <span style={{ background: "#1e3a5f", color: "#93c5fd", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{diasRestantes} dias de sprint</span>
         <span style={{ background: "#3730a3", color: "#c7d2fe", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>Checklist {feitos}/{totalChecks}</span>
         <span style={{ background: periodo === "diaria" ? "#7c3aed" : periodo === "mensal" ? "#0f4c81" : "#14532d", color: "#fff", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>
@@ -972,7 +978,7 @@ export default function SprintOtimo() {
                   <div style={{ fontWeight: 700, color: "#86efac", marginBottom: 4 }}>Q2 Mai–Ago/2026 — Fechamento em 31/Agosto</div>
                   <div style={{ fontSize: 12, color: "#4ade80" }}>Este é o quadrimestre que define o pagamento de setembro. Scores acumulados de maio a agosto. Toda produção lançada até 31/ago será contabilizada. Foco total em C2 (pré-natal) e C6 (puericultura).</div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                    {[`✓ ${diasRestantes} dias restantes`,`✓ ${5} equipes abaixo de 75 pts`,"✓ CNES TRÊS ESTADOS — regularizar HOJE","✓ Retroativos de gaveta — lançar agora"].map(t => (
+                    {[`✓ ${diasRestantes} dias restantes`,`✓ ${EQUIPES.filter(e => e.risco === "critico").length} equipes abaixo de 75 pts`,"✓ CNES TRÊS ESTADOS — regularizar HOJE","✓ Retroativos de gaveta — lançar agora"].map(t => (
                       <span key={t} style={{ background: "#14532d", color: "#86efac", padding: "3px 10px", borderRadius: 12, fontSize: 11 }}>{t}</span>
                     ))}
                   </div>
@@ -982,21 +988,28 @@ export default function SprintOtimo() {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14, marginBottom: 24 }}>
               {EQUIPES.map(eq => {
-                const pctBar = Math.min(100, (eq.pts / 75) * 100);
-                const label = eq.pts >= 75 ? "ÓTIMO" : eq.pts >= 60 ? "BOM" : "RISCO";
-                const labelCor = eq.pts >= 75 ? "#22c55e" : eq.pts >= 60 ? "#f59e0b" : "#ef4444";
+                const isApurar = eq.risco === "apurar";
+                const pctBar = isApurar ? 0 : Math.min(100, (eq.pts / 75) * 100);
+                const label = isApurar ? "A APURAR" : eq.pts >= 75 ? "ÓTIMO" : eq.pts >= 60 ? "BOM" : "RISCO";
+                const labelCor = isApurar ? "#6b7280" : eq.pts >= 75 ? "#22c55e" : eq.pts >= 60 ? "#f59e0b" : "#ef4444";
+                const barCor = isApurar ? "#475569" : eq.pts >= 75 ? "#22c55e" : eq.pts >= 60 ? "#f59e0b" : "#ef4444";
                 return (
-                  <div key={eq.nome} style={{ background: "#1e293b", borderRadius: 10, padding: 16, border: `1px solid ${eq.pts >= 75 ? "#166534" : "#334155"}` }}>
+                  <div key={eq.nome} style={{ background: "#1e293b", borderRadius: 10, padding: 16, border: `1px solid ${isApurar ? "#475569" : eq.pts >= 75 ? "#166534" : "#334155"}` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <span style={{ fontWeight: 700, fontSize: 13, color: "#f1f5f9" }}>{eq.nome}</span>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: isApurar ? "#94a3b8" : "#f1f5f9" }}>{eq.nome}</span>
                       <span style={{ fontSize: 11, fontWeight: 700, color: labelCor, background: labelCor + "22", padding: "2px 8px", borderRadius: 10 }}>{label}</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>
-                      <span>{eq.pts} pts atuais</span>
-                      <span style={{ color: eq.ganho <= 3 ? "#22c55e" : eq.ganho <= 15 ? "#f59e0b" : "#ef4444", fontWeight: 600 }}>+{eq.ganho} pts necessários</span>
+                      {isApurar
+                        ? <span style={{ color: "#6b7280", fontStyle: "italic" }}>🔍 Verificar no e-Gestor/SIAPS</span>
+                        : <>
+                            <span>{eq.pts} pts atuais</span>
+                            <span style={{ color: eq.ganho <= 3 ? "#22c55e" : eq.ganho <= 15 ? "#f59e0b" : "#ef4444", fontWeight: 600 }}>+{eq.ganho} pts necessários</span>
+                          </>
+                      }
                     </div>
                     <div style={{ height: 8, background: "#334155", borderRadius: 4, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${pctBar}%`, background: eq.pts >= 75 ? "#22c55e" : eq.pts >= 60 ? "#f59e0b" : "#ef4444", borderRadius: 4, transition: "width 0.4s" }} />
+                      <div style={{ height: "100%", width: `${pctBar}%`, background: barCor, borderRadius: 4, transition: "width 0.4s" }} />
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#64748b", marginTop: 4 }}>
                       <span>0</span><span style={{ color: "#22c55e" }}>75 (ÓTIMO)</span>
