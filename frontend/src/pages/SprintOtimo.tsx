@@ -138,9 +138,10 @@ const DIAGNOSTICO = [
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [
-      "⚠️ SIAPS ABR/26: apenas 761 vinculadas (30% da referência 2.500) — verificar cadastros no PEC e microáreas dos ACS",
+      "⚠ SIAPS ABR/26: apenas 761 vinculadas (30% da referência 2.500) — verificar cadastros no PEC e microáreas dos ACS",
+      "⚠ ESB KENNEDY (INE 0001773984) — nota Q1/26 exatamente 7.5 (limite Bom/Ótimo) — qualquer queda em Q2/26 perde a classificação Ótimo",
     ],
-    obs: "SIAPS ABR/26: 761 vinculadas (cadastro 773) — apenas 30% da referência de 2.500. Verificar se microáreas do território estão cadastradas no PEC e se há ACS sem famílias ativas. Score 74.5 pts — próximo ao ÓTIMO.",
+    obs: "SCNES 07/2026: composição regular (médico, enfermeiro, técnico, 7 ACS). SIAPS Q1/26 ESF: 8.75 (Ótimo). ESB Q1/26: 7.5 — exatamente no limite Bom/Ótimo (>7.5 = Ótimo). Monitorar produção odontológica Q2/26. SIAPS ABR/26: 761 vinculadas (30% da ref. 2.500) — priorizar cadastros no PEC.",
   },
   {
     nome: "JK",
@@ -162,9 +163,11 @@ const DIAGNOSTICO = [
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [
-      "⚠️ CNES 3324915 (UBS JK) consta INATIVO no SCNES — confirmar vínculos no CNES 4184688",
+      "⚠ CNES 3324915 (UBS JK) consta INATIVO no SCNES — confirmar que todos os vínculos estão no CNES 4184688",
+      "🚨 ESB JK ausente do SIAPS Q1/26 — equipe ESB ativada em 06/06/2023 no SCNES mas sem Nota Final Q1/26. Verificar produção odontológica lançada e reconhecimento no e-Gestor",
+      "⚠ MARIA ANTONIA MIRANDA BARROS (CBO 322205 — Técnico de Enfermagem genérico) na equipe. CBO correto para ESF é 322245. Regularizar no SCNES 4184688",
     ],
-    obs: "UBS JK (CNES 3324915) está INATIVA no SCNES 07/2026. A equipe opera no CNES 4184688 (UBS Pedro Alexandre Santos da Silva). Auditar vínculos para garantir que todos os profissionais estão no estabelecimento correto.",
+    obs: "SCNES 07/2026: médico LUCIANE MATTES (desde 01/04/2026), enfermeira CRISTIANA FEITOSA (desde 01/09/2025), 2 técnicos ESF (322245), 6 ACS. SIAPS Q1/26 ESF: 8.75 (Ótimo). INCONSISTÊNCIA: MARIA ANTONIA MIRANDA BARROS cadastrada com CBO 322205 (genérico) — deve ser 322245 (ESF). ESB ausente do SIAPS Q1/26 apesar de ativada em 06/06/2023 — verificar se há produção lançada.",
   },
   {
     nome: "ACARI",
@@ -231,8 +234,11 @@ const DIAGNOSTICO = [
     populacaoVinculada: 806,
     populacaoRef: 2500,
     populacaoMax: 3750,
-    pendencias: [],
-    obs: "SIAPS ABR/26: 806 vinculadas (cadastro 822) — 32% da referência de 2.500. Composição mínima atendida, mas cobertura territorial muito baixa. Verificar microáreas descobertas e cadastros incompletos no PEC. CVAT REGULAR (3,25 pts) — fortalecer acompanhamento e digitalização.",
+    pendencias: [
+      "🚨 RUDINEI SIMONETTI cadastrado com CBO 322250 (Auxiliar de Enfermagem ESF) — composição mínima ESF exige CBO 322245 (Técnico de Enfermagem ESF). Regularizar no SCNES 9942122 IMEDIATAMENTE — risco de não reconhecimento da equipe",
+      "⚠ SIAPS ABR/26: apenas 806 vinculadas (32% da referência 2.500) — fortalecer cadastros no PEC",
+    ],
+    obs: "SCNES 07/2026: INCONSISTÊNCIA CRÍTICA — RUDINEI SIMONETTI registrado como CBO 322250 (Auxiliar de Enfermagem ESF), não como CBO 322245 (Técnico de Enfermagem ESF). A composição mínima da eSF exige Técnico (322245), não Auxiliar (322250). Solicitar à gestão atualizar o CBO no SCNES ou contratar profissional com CBO 322245. SIAPS Q1/26 ESF: 8.0 (Ótimo). SIAPS ABR/26: 806 vinculadas (32% da ref. 2.500) — cobertura muito baixa.",
   },
   {
     nome: "LIBERDADE",
@@ -254,7 +260,7 @@ const DIAGNOSTICO = [
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [],
-    obs: "Mesma UBS que JUMA (CNES 3697983 — Centro de Saúde Curumim). INE próprio confirmado: 0000007099. SIAPS ABR/26: 1.784 vinculadas (cadastro 1.797) — 71% da referência. CVAT ÓTIMO (10,00 pts) — melhor territorial do município. Elevar score clínico para atingir ÓTIMO.",
+    obs: "SCNES 07/2026: médica BEATRIZ DOS SANTOS MANFRE (225142), enfermeira MARIANDIA MARTINS DO CARMO (223565), técnica IVANA DE CASTRO SILIPRANDI (322245), 7 ACS. Mesma UBS que JUMA (CNES 3697983). SIAPS Q1/26 ESF: 8.75 (Ótimo) · ESB: 6.5 (Bom — fortalecer produção odontológica Q2/26). SIAPS ABR/26: 1.784 vinculadas (71% da ref. 2.500).",
   },
   {
     nome: "SÃO SEBASTIÃO",
@@ -277,7 +283,7 @@ const DIAGNOSTICO = [
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [],
-    obs: "Mesma UBS que ACARI (CNES 2013312). INE próprio confirmado: 0001536974. Médico compartilhado com ACARI e JK — verificar carga horária no PEC.",
+    obs: "SCNES 07/2026: médico ESTEPHANIE BASILIO DE SOUZA (225142), enfermeira WILLIANE WESSLING (223565), técnico JOAB PINTO RAMOS (322245), 8 ACS. Mesma UBS que ACARI (CNES 2013312) — equipes distintas com médicos diferentes. SIAPS Q1/26 ESF: 8.75 (Ótimo) · ESB Q1/26: 8.0 (Ótimo).",
   },
   {
     nome: "CACHOEIRA",
@@ -301,9 +307,10 @@ const DIAGNOSTICO = [
     populacaoMax: 3750,
     pendencias: [
       "🔍 Confirmar modalidade: SIAPS ABR/26 registra como eSF (parâmetro 2.500); operação é ribeirinha — verificar cofinanciamento no e-Gestor",
-      "📋 Fichas CDS das expedições de jun e jul a digitalizar",
+      "⚠ ELILDA DIAS HISTER (CBO 322230 — Auxiliar de Enfermagem genérico) na equipe desde 01/09/2009 — vínculo legado. CBO 322230 não é perfil ESF padrão (deveria ser 322245 ou sair da equipe). Verificar se afeta composição reconhecida",
+      "📋 Fichas CDS das expedições a manter atualizadas",
     ],
-    obs: "CNES 3320138 — UBS Irmã Elizabete. SIAPS ABR/26 classifica como eSF com parâmetro 2.500 (1.565 cadastradas, 1.552 vinculadas — CVAT BOM 8,25 pts). Operação é de equipe ribeirinha mas cofinanciamento eSF está ativo. Confirmar no e-Gestor a modalidade vigente para parametrização correta da meta de vínculos.",
+    obs: "SCNES 07/2026: médico ROBSON GARCIA DA ROSA (225142), enfermeira BRUNA ROZELLA PEREIRA (223565), técnica KAROLAINE MOREIRA DE SOUZA (322245), 6 ACS. INCONSISTÊNCIA: ELILDA DIAS HISTER (CBO 322230 — Auxiliar de Enfermagem genérico) cadastrada na equipe desde 2009 — CBO legado pré-ESF. SIAPS Q1/26 ESF: 8.25 (Ótimo) · ESB Q1/26: 8.5 (Ótimo). Operação ribeirinha mas cofinanciamento eSF ativo — confirmar modalidade no e-Gestor.",
   },
   {
     nome: "TRÊS ESTADOS",
@@ -325,13 +332,10 @@ const DIAGNOSTICO = [
     populacaoRef: 2500,
     populacaoMax: 3750,
     pendencias: [
-      "🚨 Vínculos do médico expirados no SCNES — RH/SMS deve reativar HOJE",
-      "🚨 Vínculos dos ACS expirados no SCNES",
-      "🚨 SIAPS ABR/26 mostra 1.035 vinculadas — confirmar se SCNES já foi regularizado",
-      "🔍 Verificar no e-Gestor se produção ABR/26 foi aceita ou descartada",
-      "📋 Levantar composição atualizada dos vínculos SCNES (médico, ACS)",
+      "⚠ MARINETE RIBEIRO DE ARAÚJO SOARES (CBO 515110 — Atendente de Enfermagem) cadastrada na equipe. CBO 515110 não é perfil ESF (não é ACS 515105 nem técnico). Verificar se vínculo irregular interfere na composição reconhecida no e-Gestor",
+      "⚠ Confirmar se vínculos anteriormente expirados foram regularizados — SIAPS Q1/26 mostra Ótimo (8.0), sugerindo que produção está sendo reconhecida",
     ],
-    obs: "CNES 9934448 — UBS Osvaldo Lemes Cabral. SIAPS ABR/26 registra 1.035 vinculadas/acompanhadas (dado preliminar), sugerindo que parte da produção está sendo reconhecida. Porém vínculos SCNES ainda constam expirados — regularizar imediatamente para garantir continuidade do financiamento. Suporte e-Gestor: 0800 722 4310.",
+    obs: "SCNES 07/2026: composição atualizada — médica CARINA SATELES PINHEIRO (225142, desde 05/01/2023), enfermeira TAYANE BARROS CARVALHO (223565, desde 17/06/2025), técnica ANGELA MARIA MELO GUERRA DOS SANTOS (322245, desde 01/08/2025), 6 ACS. INCONSISTÊNCIA: MARINETE RIBEIRO DE ARAÚJO SOARES (CBO 515110 — Atendente de Enfermagem) na equipe — vínculo não-padrão ESF. SIAPS Q1/26 ESF: 8.0 (Ótimo) · ESB: 8.5 (Ótimo). SIAPS ABR/26: 1.035 vinculadas.",
   },
   // ── AREAL — eSF Ribeirinha · CNES 2013290 · UBS Eduardo Biazin ──────────────
   // Fonte: Protocolo de Exportação SCNES 07/2026 + Ficha Estabelecimento CNES 2013290
@@ -363,10 +367,10 @@ const DIAGNOSTICO = [
     populacaoRef: 1000,
     populacaoMax: 1500,
     pendencias: [
-      "⚠ AREAL ausente no SIAPS ABR/26 — verificar produção lançada (competência MAI/26 ou anterior)",
-      "⚠ ESB 'KENNEDY' (Tipo 71 — CNES 2013290) — confirmar INE e vínculo com equipe AREAL no e-Gestor",
-      "⚠ ERVINO GUDER (ACS) — data entrada 15/06/2026, confirmar se já está produzindo no PEC",
-      "⚠ 2º enfermeiro ALAN ALEXANDER HISTER (desde 13/11/2024) — verificar se é cobertura ou excedente",
+      "🚨 2 enfermeiros (CBO 223565) cadastrados na mesma equipe: ALINE COSTA DA SILVA (desde 03/06/2024) e ALAN ALEXANDER HISTER (desde 13/11/2024). ESF admite 1 enfermeiro na composição mínima. Verificar no e-Gestor qual é o enfermeiro oficial e desativar o excedente no SCNES",
+      "⚠ AREAL ausente no SIAPS ABR/26 — equipe sem produção reconhecida. Verificar se há produção lançada em competência anterior",
+      "⚠ ESB AREAL (código 0001, INE 0001773941) — SIAPS Q1/26 ESB: 6.0 (Bom). Confirmar vínculo com equipe ESF no e-Gestor",
+      "⚠ ERVINO GUDER (ACS) — entrada 15/06/2026, recente. Confirmar se já está com microárea definida e produzindo no PEC",
     ],
     obs: "CNES 2013290 — UBS Eduardo Biazin. Tipo 70 (ESF/Ribeirinha). Protocolo Exportação SCNES 07/2026 confirma: código ESF 0002, ESB vinculada código 0001 (AREAL ESB). Composição SCNES 07/2026: médico EDVAN SOARES GONCALVES (CBO 225142), enfermeira ALINE COSTA DA SILVA + ALAN ALEXANDER HISTER (CBO 223565), téc. enf. RITHERLY DOS SANTOS PINTO + MARIA LUIZA TRINDADE FIGUEIREDO (CBO 322245), 5 ACS (CLEUCIANE PALESTIS, ERVINO GUDER, MARIA RAIMUNDA LEMOS DA SILVA, ROSELAINE MARTINS DA SILVA, VERONICA DE FATIMA FERNANDES), microscopista JOAO BARBOSA DE OLIVEIRA FILHO (5152A1). CNES 2013282 (Hospital Dorvalino Lagasse) — sem equipes ESF, apenas hospital. Ausente SIAPS ABR/26 — levantar histórico de produção.",
   },
