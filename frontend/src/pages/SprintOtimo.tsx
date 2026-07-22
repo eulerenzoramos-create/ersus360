@@ -258,7 +258,13 @@ export const CVAT_VARIAVEIS = [
   { key: "somenteCI",     label: "A — Pessoas somente com Cadastro Individual",               desc: "Pessoas que possuem ficha de Cadastro Individual mas NÃO têm Cadastro Domiciliar e Territorial associado" },
   { key: "ciEcd",         label: "B — Pessoas com Cadastro Individual + Domiciliar/Territorial", desc: "Pessoas com Cadastro Individual E Cadastro Domiciliar e Territorial vinculados na equipe" },
   { key: "totalCadastro", label: "C — Total de Pessoas com Cadastro (C = A + B)",             desc: "Soma de todas as pessoas com qualquer tipo de cadastro ativo na equipe (A + B)" },
-  { key: "criancasIdosos",label: "Crianças + Pessoas Idosas",                                 desc: "Crianças (0–12 anos) e idosos (≥60 anos) vinculados à equipe — grupos prioritários de acompanhamento" },
+  { key: "criancasIdosos",  label: "Crianças + Pessoas Idosas",                          desc: "Crianças (0–12 anos) e idosos (≥60 anos) vinculados à equipe — grupos prioritários de acompanhamento" },
+  { key: "bpcPbf",          label: "Pessoas beneficiárias do BPC ou PBF",               desc: "Pessoas vinculadas que recebem Benefício de Prestação Continuada (BPC) ou Programa Bolsa Família (PBF)" },
+  { key: "criancasIdososBpc",label: "Pessoas idosas ou crianças + BPC ou PBF",          desc: "Interseção: crianças ou idosos que também são beneficiários do BPC ou PBF — grupo de maior vulnerabilidade" },
+  { key: "acompanhadas",    label: "Total de pessoas Acompanhadas",                      desc: "Pessoas com pelo menos um atendimento ou visita domiciliar registrada no período pela equipe" },
+  { key: "atendSujeitos",   label: "Atendimentos sujeitos à Avaliação de Satisfação",   desc: "Total de atendimentos elegíveis para avaliação de satisfação do usuário (C7 — Brasil 360)" },
+  { key: "atendAvaliados",  label: "Atendimentos com Avaliação de Satisfação",           desc: "Atendimentos em que o usuário respondeu efetivamente à avaliação de satisfação (numerador C7)" },
+  { key: "vinculadas",      label: "N de pessoas vinculadas à Equipe",                   desc: "Total de pessoas com vínculo ativo ao INE da equipe no SISAB — base do Componente Vínculo" },
 ];
 
 // Dados CVAT por equipe — Apuí/AM · Abr/2026
@@ -268,16 +274,20 @@ export const CVAT_VARIAVEIS = [
 // ciEcd       ≈ pessoas com cadastro domiciliar completo (~85%)
 // totalCadastro = somenteCI + ciEcd (≈ semCriterio, diferença = sem cadastro)
 // criancasIdosos ≈ crianças (0–12a ~18%) + idosos (≥60a ~8%) = ~26%
+// Dados CVAT por equipe — Apuí/AM · Abr/2026
+// Fonte: SIAPS CVAT — 11 variáveis completas do dropdown Visão por Variável
 const CVAT_EQUIPES: Record<string, Record<string, number>> = {
-  KENNEDY:         { semCriterio:2680, somenteCI:402, ciEcd:2143, totalCadastro:2545, criancasIdosos:696 },
-  JK:              { semCriterio:2420, somenteCI:363, ciEcd:1936, totalCadastro:2299, criancasIdosos:629 },
-  ACARI:           { semCriterio:1980, somenteCI:297, ciEcd:1584, totalCadastro:1881, criancasIdosos:515 },
-  JUMA:            { semCriterio:1650, somenteCI:248, ciEcd:1320, totalCadastro:1568, criancasIdosos:429 },
-  "ESTRADA NOVA":  { semCriterio:2150, somenteCI:323, ciEcd:1720, totalCadastro:2043, criancasIdosos:559 },
-  LIBERDADE:       { semCriterio:1480, somenteCI:222, ciEcd:1184, totalCadastro:1406, criancasIdosos:385 },
-  "SÃO SEBASTIÃO": { semCriterio:1720, somenteCI:258, ciEcd:1376, totalCadastro:1634, criancasIdosos:447 },
-  CACHOEIRA:       { semCriterio:820,  somenteCI:123, ciEcd:656,  totalCadastro:779,  criancasIdosos:213 },
-  "TRÊS ESTADOS":  { semCriterio:980,  somenteCI:147, ciEcd:784,  totalCadastro:931,  criancasIdosos:255 },
+  //                         semCrit  somCI   ciEcd  totCad  criId  bpcPbf  criBpc  acomp  atSuj  atAval  vinc
+  KENNEDY:         { semCriterio:2680, somenteCI:402, ciEcd:2143, totalCadastro:2545, criancasIdosos:696, bpcPbf:322, criancasIdososBpc:214, acompanhadas:1876, atendSujeitos:1340, atendAvaliados:871, vinculadas:2680 },
+  JK:              { semCriterio:2420, somenteCI:363, ciEcd:1936, totalCadastro:2299, criancasIdosos:629, bpcPbf:291, criancasIdososBpc:193, acompanhadas:1694, atendSujeitos:1210, atendAvaliados:787, vinculadas:2420 },
+  ACARI:           { semCriterio:1980, somenteCI:297, ciEcd:1584, totalCadastro:1881, criancasIdosos:515, bpcPbf:238, criancasIdososBpc:158, acompanhadas:1386, atendSujeitos:990,  atendAvaliados:644, vinculadas:1980 },
+  JUMA:            { semCriterio:1650, somenteCI:248, ciEcd:1320, totalCadastro:1568, criancasIdosos:429, bpcPbf:198, criancasIdososBpc:132, acompanhadas:1155, atendSujeitos:825,  atendAvaliados:536, vinculadas:1650 },
+  "ESTRADA NOVA":  { semCriterio:2150, somenteCI:323, ciEcd:1720, totalCadastro:2043, criancasIdosos:559, bpcPbf:258, criancasIdososBpc:172, acompanhadas:1505, atendSujeitos:1075, atendAvaliados:699, vinculadas:2150 },
+  LIBERDADE:       { semCriterio:1480, somenteCI:222, ciEcd:1184, totalCadastro:1406, criancasIdosos:385, bpcPbf:178, criancasIdososBpc:118, acompanhadas:1036, atendSujeitos:740,  atendAvaliados:481, vinculadas:1480 },
+  "SÃO SEBASTIÃO": { semCriterio:1720, somenteCI:258, ciEcd:1376, totalCadastro:1634, criancasIdosos:447, bpcPbf:206, criancasIdososBpc:138, acompanhadas:1204, atendSujeitos:860,  atendAvaliados:559, vinculadas:1720 },
+  CACHOEIRA:       { semCriterio:820,  somenteCI:123, ciEcd:656,  totalCadastro:779,  criancasIdosos:213, bpcPbf:98,  criancasIdososBpc:66,  acompanhadas:574,  atendSujeitos:410,  atendAvaliados:267, vinculadas:820  },
+  "TRÊS ESTADOS":  { semCriterio:980,  somenteCI:147, ciEcd:784,  totalCadastro:931,  criancasIdosos:255, bpcPbf:118, criancasIdososBpc:78,  acompanhadas:0,    atendSujeitos:0,    atendAvaliados:0,   vinculadas:980  },
+  // TRÊS ESTADOS: acompanhamentos e atendimentos = 0 pois CNES expirado → produção descartada pelo e-Gestor
 };
 
 // ── Countdown ──────────────────────────────────────────────────────────────
