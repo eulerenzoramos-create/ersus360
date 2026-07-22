@@ -322,7 +322,7 @@ const PERIODOS = [
 // ── Componente Principal ───────────────────────────────────────────────────
 export default function SprintOtimo() {
   const [aba, setAba] = useState<"visao"|"indicadores"|"equipe"|"checklist"|"diagnostico"|"cvat">("visao");
-  const [cvatVariavel, setCvatVariavel] = useState("total");
+  const [cvatVariavel, setCvatVariavel] = useState("semCriterio");
   const [cvatVizualiz, setCvatVizualiz] = useState<"variavel"|"equipe">("variavel");
   const [equipeAtiva, setEquipeAtiva] = useState("JK");
   const [diagEquipe, setDiagEquipe] = useState("KENNEDY");
@@ -500,7 +500,7 @@ export default function SprintOtimo() {
                       📅 Competência: <strong>Abr/2026</strong>
                     </div>
                     <div style={{ background: "#14532d", border: "1px solid #166534", borderRadius: 8, padding: "6px 14px", fontSize: 11, color: "#bbf7d0" }}>
-                      Total Vinculadas: <strong>{totalMunicipal.total.toLocaleString("pt-BR")}</strong>
+                      Total Vinculadas: <strong>{totalMunicipal.semCriterio.toLocaleString("pt-BR")}</strong>
                     </div>
                   </div>
                 </div>
@@ -546,8 +546,8 @@ export default function SprintOtimo() {
                     <div style={{ fontSize: 11.5, color: "#64748b", marginBottom: 8 }}>{variavelAtual.desc}</div>
                     <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
                       <div><span style={{ fontSize: 22, fontWeight: 800, color: "#f1f5f9" }}>{totalMunicipal[variavelAtual.key].toLocaleString("pt-BR")}</span><span style={{ fontSize: 11, color: "#64748b", marginLeft: 6 }}>total município</span></div>
-                      {cvatVariavel !== "total" && (
-                        <div><span style={{ fontSize: 22, fontWeight: 800, color: "#f59e0b" }}>{((totalMunicipal[variavelAtual.key] / totalMunicipal.total) * 100).toFixed(1)}%</span><span style={{ fontSize: 11, color: "#64748b", marginLeft: 6 }}>da pop. vinculada</span></div>
+                      {cvatVariavel !== "semCriterio" && totalMunicipal.semCriterio > 0 && (
+                        <div><span style={{ fontSize: 22, fontWeight: 800, color: "#f59e0b" }}>{((totalMunicipal[variavelAtual.key] / totalMunicipal.semCriterio) * 100).toFixed(1)}%</span><span style={{ fontSize: 11, color: "#64748b", marginLeft: 6 }}>da pop. vinculada</span></div>
                       )}
                       <div><span style={{ fontSize: 22, fontWeight: 800, color: "#10b981" }}>9</span><span style={{ fontSize: 11, color: "#64748b", marginLeft: 6 }}>equipes ativas</span></div>
                     </div>
@@ -562,18 +562,18 @@ export default function SprintOtimo() {
                           <th style={{ padding: "10px 14px", textAlign: "left", color: "#64748b", fontWeight: 600, fontSize: 11 }}>Tipo</th>
                           <th style={{ padding: "10px 14px", textAlign: "right", color: "#64748b", fontWeight: 600, fontSize: 11 }}>Pop. Vinculada Total</th>
                           <th style={{ padding: "10px 14px", textAlign: "right", color: "#64748b", fontWeight: 600, fontSize: 11 }}>{variavelAtual.label}</th>
-                          {cvatVariavel !== "total" && <th style={{ padding: "10px 14px", textAlign: "right", color: "#64748b", fontWeight: 600, fontSize: 11 }}>% da equipe</th>}
+                          {cvatVariavel !== "semCriterio" && <th style={{ padding: "10px 14px", textAlign: "right", color: "#64748b", fontWeight: 600, fontSize: 11 }}>% da equipe</th>}
                           <th style={{ padding: "10px 14px", textAlign: "left", color: "#64748b", fontWeight: 600, fontSize: 11 }}>Distribuição</th>
                         </tr>
                       </thead>
                       <tbody>
                         {nomes.map((eq, i) => {
                           const val = CVAT_EQUIPES[eq][cvatVariavel] || 0;
-                          const pop = CVAT_EQUIPES[eq].total;
-                          const pct = cvatVariavel === "total" ? (pop / totalMunicipal.total) * 100 : (val / pop) * 100;
-                          const barW = cvatVariavel === "total"
-                            ? (pop / Math.max(...nomes.map(n => CVAT_EQUIPES[n].total))) * 100
-                            : (val / Math.max(...nomes.map(n => CVAT_EQUIPES[n][cvatVariavel] || 0))) * 100;
+                          const pop = CVAT_EQUIPES[eq].semCriterio;
+                          const pct = cvatVariavel === "semCriterio" ? (pop / (totalMunicipal.semCriterio || 1)) * 100 : (val / (pop || 1)) * 100;
+                          const barW = cvatVariavel === "semCriterio"
+                            ? (pop / Math.max(...nomes.map(n => CVAT_EQUIPES[n].semCriterio))) * 100
+                            : (val / Math.max(1, ...nomes.map(n => CVAT_EQUIPES[n][cvatVariavel] || 0))) * 100;
                           const diag = DIAGNOSTICO.find(d => d.nome === eq);
                           const isCritico = diag?.cnesStatus === "expirado";
                           return (
@@ -592,7 +592,7 @@ export default function SprintOtimo() {
                               <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: "#f1f5f9", fontVariantNumeric: "tabular-nums" }}>
                                 {val.toLocaleString("pt-BR")}
                               </td>
-                              {cvatVariavel !== "total" && (
+                              {cvatVariavel !== "semCriterio" && (
                                 <td style={{ padding: "10px 14px", textAlign: "right", color: pctCor(pct), fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                                   {pct.toFixed(1)}%
                                 </td>
@@ -608,9 +608,9 @@ export default function SprintOtimo() {
                         {/* Total */}
                         <tr style={{ background: "#1e293b", borderTop: "2px solid #334155" }}>
                           <td colSpan={2} style={{ padding: "10px 14px", fontWeight: 800, color: "#f1f5f9", fontSize: 12 }}>TOTAL MUNICÍPIO</td>
-                          <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 800, color: "#f1f5f9", fontVariantNumeric: "tabular-nums" }}>{totalMunicipal.total.toLocaleString("pt-BR")}</td>
-                          <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 800, color: "#f59e0b", fontVariantNumeric: "tabular-nums" }}>{totalMunicipal[cvatVariavel].toLocaleString("pt-BR")}</td>
-                          {cvatVariavel !== "total" && <td style={{ padding: "10px 14px", textAlign: "right", color: "#f59e0b", fontWeight: 700 }}>{((totalMunicipal[cvatVariavel] / totalMunicipal.total) * 100).toFixed(1)}%</td>}
+                          <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 800, color: "#f1f5f9", fontVariantNumeric: "tabular-nums" }}>{totalMunicipal.semCriterio.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 800, color: "#f59e0b", fontVariantNumeric: "tabular-nums" }}>{(totalMunicipal[cvatVariavel] || 0).toLocaleString("pt-BR")}</td>
+                          {cvatVariavel !== "semCriterio" && <td style={{ padding: "10px 14px", textAlign: "right", color: "#f59e0b", fontWeight: 700 }}>{totalMunicipal.semCriterio > 0 ? ((totalMunicipal[cvatVariavel] / totalMunicipal.semCriterio) * 100).toFixed(1) : "0.0"}%</td>}
                           <td />
                         </tr>
                       </tbody>
