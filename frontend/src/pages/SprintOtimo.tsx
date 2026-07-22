@@ -7,6 +7,7 @@ import { Trophy, Target, Zap, CheckSquare, Square, TrendingUp, AlertTriangle, Cl
 // pts = Nota Final × 10  |  meta ≥ 75 = Ótimo (Nota ≥ 7,5 · Portaria GM/MS 3.493/2024)
 // ESB Q1/26: ACARI 9.0 · TRES ESTADOS 8.5 · CACHOEIRA 8.5 · SAO SEBASTIAO 8.0 · KENNEDY 7.5
 //            LIBERDADE 6.5 · JUMA 6.5 · ESTRADA NOVA 6.25 · AREAL 6.0 · JK: ausente
+// AREAL pts 60 = ESB Q1/26 (6.0 × 10) — eSF ausente no SIAPS Q1/26, ESB confirmada
 // eMulti Q1/26: EMULTI ANIZIO 7.0 (Bom)
 const EQUIPES = [
   { nome: "ACARI",        pts: 95.0, meta: 75, risco: "baixo", ganho: 0,   cor: "#22c55e" },
@@ -18,7 +19,7 @@ const EQUIPES = [
   { nome: "JUMA",         pts: 82.5, meta: 75, risco: "baixo", ganho: 0,   cor: "#22c55e" },
   { nome: "ESTRADA NOVA", pts: 80.0, meta: 75, risco: "baixo", ganho: 0,   cor: "#22c55e" },
   { nome: "TRÊS ESTADOS", pts: 80.0, meta: 75, risco: "baixo", ganho: 0,   cor: "#22c55e" },
-  { nome: "AREAL",        pts: 0,    meta: 75, risco: "apurar", ganho: 75, cor: "#6b7280" },
+  { nome: "AREAL",        pts: 60,   meta: 75, risco: "atencao", ganho: 15, cor: "#f59e0b" },
 ];
 
 // ── Indicadores por equipe ──────────────────────────────────────────────────
