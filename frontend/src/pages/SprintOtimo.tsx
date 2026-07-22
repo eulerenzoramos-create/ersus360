@@ -427,120 +427,145 @@ export default function SprintOtimo() {
   const ESTADOS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
   return (
-    <div style={{ padding: "0 0 40px 0", fontFamily: "Inter, system-ui, sans-serif", background: "var(--bg, #0f172a)", minHeight: "100vh", color: "var(--fg, #f1f5f9)" }}>
+    <div style={{ padding: "0 0 60px 0", fontFamily: "Inter, system-ui, sans-serif", background: "#070c18", minHeight: "100vh", color: "#f1f5f9" }}>
 
       {/* ── Header ── */}
-      <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #14532d 100%)", borderBottom: "1px solid #1e293b", padding: "14px 24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <Trophy size={20} color="#f59e0b" />
-              <span style={{ fontWeight: 700, fontSize: 16, color: "#f1f5f9" }}>SPRINT ÓTIMO — Meta: ≥75 pts em TODAS as equipes</span>
-            </div>
+      <div style={{ background: "linear-gradient(180deg, #0d1a35 0%, #09121f 100%)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "16px 28px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
 
-            {/* Município editável */}
+          {/* Lado esquerdo — logo + info */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            {/* Logo mark */}
+            <div style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", borderRadius: 12, width: 42, height: 42, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 20px rgba(245,158,11,0.3)" }}>
+              <Trophy size={22} color="#fff" />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                <span style={{ fontWeight: 800, fontSize: 18, color: "#f8fafc", letterSpacing: -0.3 }}>Sprint ÓTIMO</span>
+                <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", padding: "1px 8px", borderRadius: 20 }}>Q2 · 2026</span>
+              </div>
+              <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                Meta ≥ 75 pts · Portaria GM/MS 3.493/2024
+              </div>
+            </div>
+          </div>
+
+          {/* Município editável — centro */}
+          <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
             {editandoMunicipio ? (
-              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                 <input
                   value={municipioNome}
                   onChange={e => setMunicipioNome(e.target.value)}
                   placeholder="Nome do município"
-                  style={{ background: "#0f172a", border: "1px solid #3b82f6", borderRadius: 6, color: "#f1f5f9", padding: "5px 10px", fontSize: 12, width: 160, outline: "none" }}
+                  style={{ background: "#07101e", border: "1px solid #3b82f6", borderRadius: 8, color: "#f1f5f9", padding: "6px 12px", fontSize: 13, width: 160, outline: "none" }}
                 />
                 <select value={municipioUF} onChange={e => setMunicipioUF(e.target.value)}
-                  style={{ background: "#0f172a", border: "1px solid #3b82f6", borderRadius: 6, color: "#f1f5f9", padding: "5px 8px", fontSize: 12, outline: "none" }}>
+                  style={{ background: "#07101e", border: "1px solid #3b82f6", borderRadius: 8, color: "#f1f5f9", padding: "6px 10px", fontSize: 13, outline: "none" }}>
                   {ESTADOS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
                 </select>
                 <input
                   value={municipioIBGE}
                   onChange={e => setMunicipioIBGE(e.target.value)}
                   placeholder="IBGE"
-                  style={{ background: "#0f172a", border: "1px solid #3b82f6", borderRadius: 6, color: "#f1f5f9", padding: "5px 10px", fontSize: 12, width: 90, outline: "none" }}
+                  style={{ background: "#07101e", border: "1px solid #3b82f6", borderRadius: 8, color: "#f1f5f9", padding: "6px 12px", fontSize: 13, width: 90, outline: "none" }}
                 />
                 <button onClick={() => setEditandoMunicipio(false)}
-                  style={{ background: "#166534", color: "#bbf7d0", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                  ✓ Confirmar
+                  style={{ background: "#15803d", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  ✓
                 </button>
               </div>
             ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <span style={{ fontSize: 13, color: "#94a3b8" }}>
-                  📍 <strong style={{ color: "#f1f5f9" }}>{municipioNome}/{municipioUF}</strong>
-                  {municipioIBGE && <span style={{ color: "#64748b" }}> · IBGE {municipioIBGE}</span>}
-                  <span style={{ color: "#64748b" }}> · Portaria GM/MS 3.493/2024 · Componente Qualidade</span>
-                </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "#f1f5f9" }}>{municipioNome} / {municipioUF}</div>
+                  {municipioIBGE && <div style={{ fontSize: 11, color: "#475569" }}>IBGE {municipioIBGE}</div>}
+                </div>
                 <button onClick={() => setEditandoMunicipio(true)}
-                  style={{ background: "#1e3a5f", color: "#93c5fd", border: "1px solid #1e40af", borderRadius: 6, padding: "2px 10px", fontSize: 11, cursor: "pointer" }}>
-                  ✏️ Trocar município
+                  style={{ background: "rgba(59,130,246,0.1)", color: "#60a5fa", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 8, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>
+                  ✏️
                 </button>
               </div>
             )}
+          </div>
 
+          {/* Lado direito — período + countdown */}
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
             {/* Seletor de período */}
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: 4 }}>
               {PERIODOS.map(p => (
                 <button key={p.key} onClick={() => setPeriodo(p.key as any)}
                   style={{
-                    padding: "4px 14px", borderRadius: 20, fontSize: 11, fontWeight: periodo === p.key ? 700 : 500,
-                    border: `1px solid ${periodo === p.key ? "#22c55e" : "#334155"}`,
-                    background: periodo === p.key ? "#14532d" : "#0f172a",
-                    color: periodo === p.key ? "#bbf7d0" : "#64748b",
-                    cursor: "pointer"
+                    padding: "5px 12px", borderRadius: 7, fontSize: 11, fontWeight: periodo === p.key ? 700 : 400,
+                    border: "none",
+                    background: periodo === p.key ? "#15803d" : "transparent",
+                    color: periodo === p.key ? "#fff" : "#64748b",
+                    cursor: "pointer", transition: "all 0.15s"
                   }}>
                   {p.label}
                 </button>
               ))}
-              <span style={{ fontSize: 11, color: "#475569", alignSelf: "center", paddingLeft: 4 }}>{periodoAtual.desc}</span>
             </div>
-          </div>
 
-          {/* Countdown */}
-          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#f1f5f9", lineHeight: 1 }}>{diasRestantes}</div>
-              <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" as const, letterSpacing: 1 }}>DIAS</div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#f1f5f9", lineHeight: 1 }}>{horasRestantes}</div>
-              <div style={{ fontSize: 10, color: "#64748b", textTransform: "uppercase" as const, letterSpacing: 1 }}>HORAS</div>
+            {/* Countdown */}
+            <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+              <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "6px 14px", textAlign: "center", minWidth: 56 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#f8fafc", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{diasRestantes}</div>
+                <div style={{ fontSize: 9, color: "#475569", textTransform: "uppercase" as const, letterSpacing: 1, marginTop: 2 }}>dias</div>
+              </div>
+              <div style={{ color: "#334155", fontWeight: 800, fontSize: 16 }}>:</div>
+              <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "6px 14px", textAlign: "center", minWidth: 56 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#f8fafc", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{horasRestantes}</div>
+                <div style={{ fontSize: 9, color: "#475569", textTransform: "uppercase" as const, letterSpacing: 1, marginTop: 2 }}>horas</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Badges resumo ── */}
-      <div style={{ display: "flex", gap: 8, padding: "10px 24px", flexWrap: "wrap", alignItems: "center", background: "#0f172a", borderBottom: "1px solid #1e293b" }}>
-        <span style={{ background: "#166534", color: "#bbf7d0", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>🏆 Meta ≥75 pts</span>
-        <span style={{ background: "#7f1d1d", color: "#fca5a5", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{EQUIPES.filter(e => e.risco === "critico").length} equipes em risco crítico</span>
-        <span style={{ background: "#1e3a5f", color: "#93c5fd", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{diasRestantes} dias de sprint</span>
-        <span style={{ background: "#3730a3", color: "#c7d2fe", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>Checklist {feitos}/{totalChecks}</span>
-        <span style={{ background: periodo === "diaria" ? "#7c3aed" : periodo === "mensal" ? "#0f4c81" : "#14532d", color: "#fff", padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>
-          {periodoAtual.label}
-        </span>
+      {/* ── Stats bar ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 0, background: "#0a1020", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        {[
+          { label: "Meta sprint", value: "≥ 75 pts", sub: "Componente Qualidade", color: "#f59e0b", bg: "rgba(245,158,11,0.08)" },
+          { label: "Equipes ÓTIMO", value: `${EQUIPES.filter(e => e.pts >= 75).length} / ${EQUIPES.filter(e => e.risco !== "apurar").length}`, sub: "meta atingida", color: "#22c55e", bg: "rgba(34,197,94,0.07)" },
+          { label: "Em risco crítico", value: String(EQUIPES.filter(e => e.risco === "critico").length), sub: "precisam ação imediata", color: "#ef4444", bg: "rgba(239,68,68,0.07)" },
+          { label: "Checklist", value: `${feitos} / ${totalChecks}`, sub: `${pct}% concluído`, color: "#818cf8", bg: "rgba(129,140,248,0.07)" },
+          { label: "Sprint encerra", value: `${diasRestantes}d ${horasRestantes}h`, sub: periodoAtual.desc, color: "#38bdf8", bg: "rgba(56,189,248,0.07)" },
+        ].map((s, i, arr) => (
+          <div key={s.label} style={{ padding: "12px 20px", borderRight: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", background: s.bg }}>
+            <div style={{ fontSize: 10, color: "#475569", textTransform: "uppercase" as const, letterSpacing: 0.8, marginBottom: 4 }}>{s.label}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: s.color, fontVariantNumeric: "tabular-nums" }}>{s.value}</div>
+            <div style={{ fontSize: 10, color: "#334155", marginTop: 2 }}>{s.sub}</div>
+          </div>
+        ))}
       </div>
 
       {/* ── Tabs ── */}
-      <div style={{ display: "flex", gap: 0, padding: "0 24px 0 24px", borderBottom: "1px solid #1e293b", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 6, padding: "12px 28px", background: "#070c18", borderBottom: "1px solid rgba(255,255,255,0.05)", flexWrap: "wrap" }}>
         {([
-          { key: "visao",        label: "📊 Visão Geral" },
-          { key: "diagnostico",  label: "🔍 Diagnóstico de Equipe" },
-          { key: "cvat",         label: "🗂️ CVAT / SIAPS" },
-          { key: "indicadores",  label: "📈 Indicadores-Chave" },
-          { key: "equipe",       label: "👥 Por Equipe" },
-          { key: "checklist",    label: "✅ Checklist" },
-        ] as {key: "visao"|"indicadores"|"equipe"|"checklist"|"diagnostico"|"cvat"; label: string}[]).map(t => (
+          { key: "visao",        label: "Visão Geral",           icon: "📊" },
+          { key: "diagnostico",  label: "Diagnóstico de Equipe", icon: "🔍" },
+          { key: "cvat",         label: "CVAT / SIAPS",          icon: "🗂️" },
+          { key: "indicadores",  label: "Indicadores-Chave",     icon: "📈" },
+          { key: "equipe",       label: "Por Equipe",            icon: "👥" },
+          { key: "checklist",    label: "Checklist",             icon: "✅" },
+        ] as {key: "visao"|"indicadores"|"equipe"|"checklist"|"diagnostico"|"cvat"; label: string; icon: string}[]).map(t => (
           <button key={t.key} onClick={() => setAba(t.key)} style={{
-            padding: "9px 16px", fontSize: 12.5, fontWeight: aba === t.key ? 700 : 400,
-            border: "none", borderBottom: aba === t.key ? "2px solid #22c55e" : "2px solid transparent",
-            background: "transparent", color: aba === t.key ? "#22c55e" : "#94a3b8",
-            cursor: "pointer", marginBottom: -1, whiteSpace: "nowrap"
+            padding: "7px 16px", fontSize: 12.5, fontWeight: aba === t.key ? 700 : 500,
+            border: aba === t.key ? "1px solid rgba(34,197,94,0.35)" : "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 8,
+            background: aba === t.key ? "linear-gradient(135deg, rgba(21,128,61,0.45), rgba(20,83,45,0.35))" : "rgba(255,255,255,0.03)",
+            color: aba === t.key ? "#4ade80" : "#64748b",
+            cursor: "pointer", whiteSpace: "nowrap", display: "flex", gap: 6, alignItems: "center",
+            transition: "all 0.15s",
+            boxShadow: aba === t.key ? "0 0 12px rgba(34,197,94,0.12), inset 0 1px 0 rgba(255,255,255,0.05)" : "none",
           }}>
-            {t.label}
+            <span style={{ fontSize: 13 }}>{t.icon}</span>{t.label}
           </button>
         ))}
       </div>
 
-      <div style={{ padding: "20px 24px" }}>
+      <div style={{ padding: "24px 28px" }}>
 
         {/* ── ABA: CVAT / SIAPS ── */}
         {aba === "cvat" && (() => {
@@ -563,7 +588,7 @@ export default function SprintOtimo() {
           return (
             <div>
               {/* Header CVAT */}
-              <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 10, padding: "14px 18px", marginBottom: 18 }}>
+              <div style={{ background: "#07101e", border: "1px solid #1e3a5f", borderRadius: 10, padding: "14px 18px", marginBottom: 18 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", marginBottom: 2 }}>
@@ -574,7 +599,7 @@ export default function SprintOtimo() {
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <div style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, padding: "6px 14px", fontSize: 11, color: "#93c5fd" }}>
+                    <div style={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: "6px 14px", fontSize: 11, color: "#93c5fd" }}>
                       📅 Competência: <strong>Abr/2026</strong>
                     </div>
                     <div style={{ background: "#14532d", border: "1px solid #166534", borderRadius: 8, padding: "6px 14px", fontSize: 11, color: "#bbf7d0" }}>
@@ -632,7 +657,7 @@ export default function SprintOtimo() {
                   </div>
 
                   {/* Tabela por equipe para a variável selecionada */}
-                  <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, overflow: "hidden" }}>
+                  <div style={{ background: "#07101e", border: "1px solid #1e293b", borderRadius: 10, overflow: "hidden" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                       <thead>
                         <tr style={{ background: "#1e293b" }}>
@@ -838,10 +863,10 @@ export default function SprintOtimo() {
                 </div>
               )}
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
 
                 {/* Card composição mínima */}
-                <div style={{ background: "#1e293b", borderRadius: 10, padding: 18, border: "1px solid #334155" }}>
+                <div style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 12, padding: 18, border: "1px solid rgba(255,255,255,0.07)", boxShadow: "0 2px 12px rgba(0,0,0,0.3)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                     <Users size={16} color="#3b82f6" />
                     <span style={{ fontWeight: 700, fontSize: 13, color: "#f1f5f9" }}>Composição Mínima da Equipe</span>
@@ -869,7 +894,7 @@ export default function SprintOtimo() {
                       </div>
                     );
                   })}
-                  <div style={{ marginTop: 10, padding: "8px 0", borderTop: "1px solid #334155" }}>
+                  <div style={{ marginTop: 10, padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div>
                         <div style={{ fontSize: 11, color: "#64748b", marginBottom: 2 }}>ACS (mínimo necessário: {d.acsMin})</div>
@@ -886,7 +911,7 @@ export default function SprintOtimo() {
                 </div>
 
                 {/* Card população vinculada */}
-                <div style={{ background: "#1e293b", borderRadius: 10, padding: 18, border: "1px solid #334155" }}>
+                <div style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 12, padding: 18, border: "1px solid rgba(255,255,255,0.07)", boxShadow: "0 2px 12px rgba(0,0,0,0.3)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                     <UserCheck size={16} color="#3b82f6" />
                     <span style={{ fontWeight: 700, fontSize: 13, color: "#f1f5f9" }}>População Vinculada</span>
@@ -924,7 +949,7 @@ export default function SprintOtimo() {
 
               {/* Pendências */}
               {d.pendencias.length > 0 && (
-                <div style={{ background: "#1e293b", borderRadius: 10, padding: 16, marginBottom: 14, border: "1px solid #b45309" }}>
+                <div style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.3)", padding: 16, marginBottom: 14, border: "1px solid #b45309" }}>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
                     <AlertTriangle size={15} color="#f59e0b" />
                     <span style={{ fontWeight: 700, fontSize: 13, color: "#f59e0b" }}>Pendências Identificadas</span>
@@ -938,7 +963,7 @@ export default function SprintOtimo() {
               )}
 
               {/* Observação técnica */}
-              <div style={{ background: "#0f172a", borderRadius: 10, padding: 16, border: "1px solid #1e3a5f", marginBottom: 14 }}>
+              <div style={{ background: "#07101e", borderRadius: 10, padding: 16, border: "1px solid #1e3a5f", marginBottom: 14 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
                   <FileText size={14} color="#3b82f6" />
                   <span style={{ fontWeight: 700, fontSize: 12, color: "#3b82f6" }}>Observação Técnica</span>
@@ -947,7 +972,7 @@ export default function SprintOtimo() {
               </div>
 
               {/* Fundamentação legal */}
-              <div style={{ background: "#1e293b", borderRadius: 10, padding: 16, border: "1px solid #334155" }}>
+              <div style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.3)", padding: 16, border: "1px solid rgba(255,255,255,0.07)" }}>
                 <div style={{ fontWeight: 700, fontSize: 12, color: "#64748b", marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>Fundamentação Legal</div>
                 {[
                   { norm: "Portaria de Consolidação GM/MS nº 2/2017", desc: "Anexo XXII — Política Nacional de Atenção Básica (PNAB). Define composição mínima obrigatória: 1 médico, 1 enfermeiro, 1 técnico/auxiliar de enfermagem e ACS em número suficiente." },
@@ -1020,27 +1045,42 @@ export default function SprintOtimo() {
                 const pctBar = isApurar ? 0 : Math.min(100, (eq.pts / 75) * 100);
                 const label = isApurar ? "A APURAR" : eq.pts >= 75 ? "ÓTIMO" : eq.pts >= 60 ? "BOM" : "RISCO";
                 const labelCor = isApurar ? "#6b7280" : eq.pts >= 75 ? "#22c55e" : eq.pts >= 60 ? "#f59e0b" : "#ef4444";
-                const barCor = isApurar ? "#475569" : eq.pts >= 75 ? "#22c55e" : eq.pts >= 60 ? "#f59e0b" : "#ef4444";
+                const barCor = isApurar ? "#334155" : eq.pts >= 75 ? "#22c55e" : eq.pts >= 60 ? "#f59e0b" : "#ef4444";
+                const accentCor = isApurar ? "#334155" : eq.pts >= 75 ? "#16a34a" : eq.pts >= 60 ? "#d97706" : "#dc2626";
                 return (
-                  <div key={eq.nome} style={{ background: "#1e293b", borderRadius: 10, padding: 16, border: `1px solid ${isApurar ? "#475569" : eq.pts >= 75 ? "#166534" : "#334155"}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <span style={{ fontWeight: 700, fontSize: 13, color: isApurar ? "#94a3b8" : "#f1f5f9" }}>{eq.nome}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: labelCor, background: labelCor + "22", padding: "2px 8px", borderRadius: 10 }}>{label}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>
-                      {isApurar
-                        ? <span style={{ color: "#6b7280", fontStyle: "italic" }}>🔍 Verificar no e-Gestor/SIAPS</span>
-                        : <>
-                            <span>{eq.pts} pts atuais</span>
-                            <span style={{ color: eq.ganho <= 3 ? "#22c55e" : eq.ganho <= 15 ? "#f59e0b" : "#ef4444", fontWeight: 600 }}>+{eq.ganho} pts necessários</span>
-                          </>
-                      }
-                    </div>
-                    <div style={{ height: 8, background: "#334155", borderRadius: 4, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${pctBar}%`, background: barCor, borderRadius: 4, transition: "width 0.4s" }} />
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#64748b", marginTop: 4 }}>
-                      <span>0</span><span style={{ color: "#22c55e" }}>75 (ÓTIMO)</span>
+                  <div key={eq.nome} style={{
+                    background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)",
+                    borderRadius: 12, padding: 0, overflow: "hidden",
+                    border: `1px solid rgba(255,255,255,0.07)`,
+                    boxShadow: isApurar ? "none" : eq.pts >= 75 ? "0 0 18px rgba(22,163,74,0.12)" : eq.pts < 60 ? "0 0 18px rgba(220,38,38,0.1)" : "none",
+                  }}>
+                    {/* Accent bar top */}
+                    <div style={{ height: 3, background: accentCor, borderRadius: "0" }} />
+                    <div style={{ padding: 16 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: isApurar ? "#64748b" : "#f1f5f9", letterSpacing: 0.2 }}>{eq.nome}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: labelCor, background: labelCor + "20", border: `1px solid ${labelCor}40`, padding: "2px 9px", borderRadius: 20 }}>{label}</span>
+                      </div>
+                      {isApurar ? (
+                        <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic", marginBottom: 10 }}>🔍 Verificar no e-Gestor/SIAPS</div>
+                      ) : (
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+                          <div>
+                            <span style={{ fontSize: 28, fontWeight: 800, color: labelCor, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{eq.pts}</span>
+                            <span style={{ fontSize: 11, color: "#475569", marginLeft: 4 }}>pts</span>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontSize: 11, color: eq.ganho <= 3 ? "#22c55e" : eq.ganho <= 15 ? "#f59e0b" : "#ef4444", fontWeight: 700 }}>+{eq.ganho} necessários</div>
+                            <div style={{ fontSize: 10, color: "#334155" }}>para ÓTIMO</div>
+                          </div>
+                        </div>
+                      )}
+                      <div style={{ height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${pctBar}%`, background: barCor, borderRadius: 3, transition: "width 0.5s ease" }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#334155", marginTop: 5 }}>
+                        <span>0</span><span style={{ color: "#15803d" }}>75 · ÓTIMO</span><span>100</span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1048,7 +1088,7 @@ export default function SprintOtimo() {
             </div>
 
             {/* População vinculada por equipe */}
-            <div style={{ background: "#1e293b", borderRadius: 10, padding: 20, border: "1px solid #334155", marginBottom: 14 }}>
+            <div style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.3)", padding: 20, border: "1px solid rgba(255,255,255,0.07)", marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9", marginBottom: 4 }}>👥 População Vinculada por Equipe</div>
               <div style={{ fontSize: 11, color: "#64748b", marginBottom: 14 }}>
                 Parâmetro Portaria 3.493/2024 — Apuí (20.001–50.000 hab): referência 2.500 pessoas/eSF · máximo 3.750 · eRibeirinha: ref. 1.000 · máx 1.500
@@ -1056,9 +1096,9 @@ export default function SprintOtimo() {
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 620 }}>
                   <thead>
-                    <tr style={{ background: "#0f172a" }}>
+                    <tr style={{ background: "#07101e" }}>
                       {["Equipe","Tipo","Pessoas Vinculadas","Referência","Máximo Financ.","Status","Score Atual"].map(h => (
-                        <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: "#64748b", fontWeight: 600, fontSize: 11, borderBottom: "1px solid #334155" }}>{h}</th>
+                        <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: "#64748b", fontWeight: 600, fontSize: 11, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -1094,7 +1134,7 @@ export default function SprintOtimo() {
                       );
                     })}
                     {/* Totais */}
-                    <tr style={{ background: "#0f172a", fontWeight: 700 }}>
+                    <tr style={{ background: "#07101e", fontWeight: 700 }}>
                       <td colSpan={2} style={{ padding: "9px 10px", color: "#94a3b8" }}>TOTAL MUNICÍPIO</td>
                       <td style={{ padding: "9px 10px", color: "#f1f5f9", fontWeight: 800, fontSize: 14 }}>
                         {DIAGNOSTICO.reduce((a, d) => a + d.populacaoVinculada, 0).toLocaleString("pt-BR")}
@@ -1109,7 +1149,7 @@ export default function SprintOtimo() {
             </div>
 
             {/* Resumo financeiro */}
-            <div style={{ background: "#1e293b", borderRadius: 10, padding: 20, border: "1px solid #334155" }}>
+            <div style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.3)", padding: 20, border: "1px solid rgba(255,255,255,0.07)" }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9", marginBottom: 12 }}>💰 Impacto Financeiro — BOM vs ÓTIMO</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
                 {[
@@ -1118,7 +1158,7 @@ export default function SprintOtimo() {
                   { label: "Q2 fechamento em agosto", valor: "3 meses acumulados", cor: "#f59e0b" },
                   { label: "Pagamentos retroativos set/2026", valor: "Reflect score Q2", cor: "#3b82f6" },
                 ].map(item => (
-                  <div key={item.label} style={{ background: "#0f172a", borderRadius: 8, padding: 12 }}>
+                  <div key={item.label} style={{ background: "#07101e", borderRadius: 8, padding: 12 }}>
                     <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>{item.label}</div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: item.cor }}>{item.valor}</div>
                   </div>
@@ -1143,7 +1183,7 @@ export default function SprintOtimo() {
               { ind:"B1/B2", desc:"Saúde Bucal (35%)", peso:"SUBESPECIALIDADE", cor:"#8b5cf6",
                 texto:"eOE integrada nas expedições. Finalizar tratamentos em andamento no PEC. Dia D de citopatológico + odonto.", impacto:"Maior gap nas equipes ribeirinhas" },
             ].map(item => (
-              <div key={item.ind} style={{ background: "#1e293b", borderRadius: 10, padding: 16, marginBottom: 12, borderLeft: `4px solid ${item.cor}` }}>
+              <div key={item.ind} style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.3)", padding: 16, marginBottom: 12, borderLeft: `4px solid ${item.cor}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                   <div>
                     <span style={{ fontWeight: 800, fontSize: 16, color: item.cor }}>{item.ind}</span>
@@ -1181,13 +1221,13 @@ export default function SprintOtimo() {
               const totalPtsDisp = inds.reduce((a,i) => a + i.pts, 0);
               return (
                 <div>
-                  <div style={{ background: "#1e293b", borderRadius: 10, padding: 20, marginBottom: 16 }}>
+                  <div style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.3)", padding: 20, marginBottom: 16 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                       <div>
                         <div style={{ fontSize: 20, fontWeight: 800, color: "#f1f5f9", marginBottom: 4 }}>{eq.nome}</div>
                         {diag && (
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                            <span style={{ background: "#0f172a", border: "1px solid #334155", color: "#94a3b8", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace" }}>
+                            <span style={{ background: "#07101e", border: "1px solid rgba(255,255,255,0.07)", color: "#94a3b8", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace" }}>
                               🏥 {diag.ubs}
                             </span>
                             <span style={{ background: "#1e3a5f", border: "1px solid #1d4ed8", color: "#93c5fd", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace", fontWeight: 700 }}>
@@ -1223,7 +1263,7 @@ export default function SprintOtimo() {
                         )}
                         <div style={{ fontSize: 13, color: "#94a3b8" }}>Score atual: <strong style={{ color: eq.cor }}>{eq.pts} pts</strong> → Meta: <strong style={{ color: "#22c55e" }}>75 pts (ÓTIMO)</strong></div>
                       </div>
-                      <div style={{ textAlign: "center", background: "#0f172a", borderRadius: 10, padding: "12px 20px", flexShrink: 0 }}>
+                      <div style={{ textAlign: "center", background: "#07101e", borderRadius: 10, padding: "12px 20px", flexShrink: 0 }}>
                         <div style={{ fontSize: 28, fontWeight: 800, color: eq.cor }}>+{eq.ganho}</div>
                         <div style={{ fontSize: 11, color: "#64748b" }}>pontos necessários</div>
                       </div>
@@ -1250,7 +1290,7 @@ export default function SprintOtimo() {
 
                   {/* Diagnóstico SCNES — composição, população e pendências */}
                   {diag && (
-                    <div style={{ background: "#1e293b", borderRadius: 10, padding: 18, marginBottom: 16, border: "1px solid #334155" }}>
+                    <div style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.3)", padding: 18, marginBottom: 16, border: "1px solid rgba(255,255,255,0.07)" }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
                         <FileText size={15} color="#94a3b8" />
                         Diagnóstico SCNES — Competência 07/2026
@@ -1265,7 +1305,7 @@ export default function SprintOtimo() {
                             { label: "Enfermeiro", dados: diag.enfermeiro },
                             { label: "Téc. Enfermagem", dados: diag.tecEnf },
                           ].map(({ label, dados }) => (
-                            <div key={label} style={{ background: "#0f172a", borderRadius: 8, padding: "10px 12px", border: `1px solid ${dados.cnes === "EXPIRADO" ? "#7f1d1d" : dados.cnes === "A APURAR" ? "#374151" : "#1e3a5f"}` }}>
+                            <div key={label} style={{ background: "#07101e", borderRadius: 8, padding: "10px 12px", border: `1px solid ${dados.cnes === "EXPIRADO" ? "#7f1d1d" : dados.cnes === "A APURAR" ? "#374151" : "#1e3a5f"}` }}>
                               <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>{label}</div>
                               <div style={{ fontSize: 12, fontWeight: 600, color: dados.cnes === "EXPIRADO" ? "#fca5a5" : dados.cnes === "A APURAR" ? "#9ca3af" : "#f1f5f9" }}>{dados.nome}</div>
                               <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
@@ -1274,7 +1314,7 @@ export default function SprintOtimo() {
                               </div>
                             </div>
                           ))}
-                          <div style={{ background: "#0f172a", borderRadius: 8, padding: "10px 12px", border: "1px solid #1e3a5f" }}>
+                          <div style={{ background: "#07101e", borderRadius: 8, padding: "10px 12px", border: "1px solid #1e3a5f" }}>
                             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>ACS</div>
                             <div style={{ fontSize: 12, fontWeight: 600, color: diag.acs >= diag.acsMin ? "#f1f5f9" : "#fca5a5" }}>
                               {diag.acs} agentes {diag.acs < diag.acsMin && <span style={{ color: "#ef4444" }}>(mín. {diag.acsMin})</span>}
@@ -1311,7 +1351,7 @@ export default function SprintOtimo() {
                           <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Pendências SCNES</div>
                           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                             {diag.pendencias.map((p, i) => (
-                              <div key={i} style={{ background: "#0f172a", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: p.startsWith("🚨") ? "#fca5a5" : p.startsWith("⚠") ? "#fde68a" : "#94a3b8", borderLeft: `3px solid ${p.startsWith("🚨") ? "#ef4444" : p.startsWith("⚠") ? "#f59e0b" : "#475569"}` }}>
+                              <div key={i} style={{ background: "#07101e", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: p.startsWith("🚨") ? "#fca5a5" : p.startsWith("⚠") ? "#fde68a" : "#94a3b8", borderLeft: `3px solid ${p.startsWith("🚨") ? "#ef4444" : p.startsWith("⚠") ? "#f59e0b" : "#475569"}` }}>
                                 {p}
                               </div>
                             ))}
@@ -1321,7 +1361,7 @@ export default function SprintOtimo() {
 
                       {/* Observação */}
                       {diag.obs && (
-                        <div style={{ background: "#0f172a", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#64748b", borderLeft: "3px solid #334155", fontStyle: "italic" }}>
+                        <div style={{ background: "#07101e", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#64748b", borderLeft: "3px solid #334155", fontStyle: "italic" }}>
                           {diag.obs}
                         </div>
                       )}
@@ -1360,7 +1400,7 @@ export default function SprintOtimo() {
         {aba === "checklist" && (
           <div>
             {/* Barra progresso */}
-            <div style={{ background: "#1e293b", borderRadius: 10, padding: 16, marginBottom: 20 }}>
+            <div style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.3)", padding: 16, marginBottom: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9" }}>Progresso Total do Sprint</span>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#22c55e" }}>{feitos}/{totalChecks} ({pct}%)</span>
@@ -1375,7 +1415,7 @@ export default function SprintOtimo() {
               const itens = CHECKLIST.filter(c => c.frente === frente);
               const cor = FRENTE_COR[frente] || "#94a3b8";
               return (
-                <div key={frente} style={{ background: "#1e293b", borderRadius: 10, padding: 16, marginBottom: 14 }}>
+                <div key={frente} style={{ background: "linear-gradient(180deg, #111827 0%, #0f1623 100%)", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.3)", padding: 16, marginBottom: 14 }}>
                   <div style={{ fontWeight: 700, fontSize: 13, color: cor, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ width: 8, height: 8, borderRadius: "50%", background: cor, display: "inline-block" }} />
                     Frente {frente}
