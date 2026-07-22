@@ -616,7 +616,7 @@ export default function SprintOtimo() {
                       {cvatVariavel !== "semCriterio" && totalMunicipal.semCriterio > 0 && (
                         <div><span style={{ fontSize: 22, fontWeight: 800, color: "#f59e0b" }}>{((totalMunicipal[variavelAtual.key] / totalMunicipal.semCriterio) * 100).toFixed(1)}%</span><span style={{ fontSize: 11, color: "#64748b", marginLeft: 6 }}>da pop. vinculada</span></div>
                       )}
-                      <div><span style={{ fontSize: 22, fontWeight: 800, color: "#10b981" }}>9</span><span style={{ fontSize: 11, color: "#64748b", marginLeft: 6 }}>equipes ativas</span></div>
+                      <div><span style={{ fontSize: 22, fontWeight: 800, color: "#10b981" }}>{EQUIPES.filter(e => e.risco !== "apurar").length}</span><span style={{ fontSize: 11, color: "#64748b", marginLeft: 6 }}>equipes ativas</span></div>
                     </div>
                   </div>
 
@@ -643,31 +643,35 @@ export default function SprintOtimo() {
                             : (val / Math.max(1, ...nomes.map(n => CVAT_EQUIPES[n][cvatVariavel] || 0))) * 100;
                           const diag = DIAGNOSTICO.find(d => d.nome === eq);
                           const isCritico = diag?.cnesStatus === "expirado";
+                          const isApurar = diag?.cnesStatus === "apurar";
                           return (
-                            <tr key={eq} style={{ borderBottom: "1px solid #1e293b", background: isCritico ? "rgba(239,68,68,0.05)" : i % 2 === 0 ? "transparent" : "rgba(30,41,59,0.3)" }}>
-                              <td style={{ padding: "10px 14px", color: isCritico ? "#ef4444" : "#f1f5f9", fontWeight: 700 }}>
-                                {isCritico ? "🚨 " : ""}{eq}
+                            <tr key={eq} style={{ borderBottom: "1px solid #1e293b", background: isCritico ? "rgba(239,68,68,0.05)" : isApurar ? "rgba(107,114,128,0.05)" : i % 2 === 0 ? "transparent" : "rgba(30,41,59,0.3)" }}>
+                              <td style={{ padding: "10px 14px", color: isCritico ? "#ef4444" : isApurar ? "#6b7280" : "#f1f5f9", fontWeight: 700 }}>
+                                {isCritico ? "🚨 " : isApurar ? "🔍 " : ""}{eq}
                               </td>
                               <td style={{ padding: "10px 14px" }}>
-                                <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, background: diag?.tipo === "eRibeirinha" ? "#1e3a5f" : "#14532d", color: diag?.tipo === "eRibeirinha" ? "#93c5fd" : "#bbf7d0", fontWeight: 700 }}>
-                                  {diag?.tipo || "eSF"}
+                                <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, background: isApurar ? "#1e293b" : diag?.tipo === "eRibeirinha" ? "#1e3a5f" : "#14532d", color: isApurar ? "#6b7280" : diag?.tipo === "eRibeirinha" ? "#93c5fd" : "#bbf7d0", fontWeight: 700 }}>
+                                  {isApurar ? "—" : diag?.tipo || "eSF"}
                                 </span>
                               </td>
-                              <td style={{ padding: "10px 14px", textAlign: "right", color: "#94a3b8", fontVariantNumeric: "tabular-nums" }}>
-                                {pop.toLocaleString("pt-BR")}
+                              <td style={{ padding: "10px 14px", textAlign: "right", color: isApurar ? "#6b7280" : "#94a3b8", fontVariantNumeric: "tabular-nums", fontStyle: isApurar ? "italic" : "normal" }}>
+                                {isApurar ? "—" : pop.toLocaleString("pt-BR")}
                               </td>
-                              <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: "#f1f5f9", fontVariantNumeric: "tabular-nums" }}>
-                                {val.toLocaleString("pt-BR")}
+                              <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: isCritico ? "#ef4444" : isApurar ? "#6b7280" : "#f1f5f9", fontVariantNumeric: "tabular-nums", fontStyle: isApurar ? "italic" : "normal" }}>
+                                {isApurar ? "—" : isCritico && val === 0 ? <span title="Produção descartada pelo e-Gestor — CNES expirado">0 ⚠</span> : val.toLocaleString("pt-BR")}
                               </td>
                               {cvatVariavel !== "semCriterio" && (
-                                <td style={{ padding: "10px 14px", textAlign: "right", color: pctCor(pct), fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                                  {pct.toFixed(1)}%
+                                <td style={{ padding: "10px 14px", textAlign: "right", color: isApurar ? "#6b7280" : pctCor(pct), fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                                  {isApurar ? "—" : `${pct.toFixed(1)}%`}
                                 </td>
                               )}
                               <td style={{ padding: "10px 14px", minWidth: 120 }}>
-                                <div style={{ background: "#1e293b", borderRadius: 4, height: 8, overflow: "hidden" }}>
-                                  <div style={{ width: `${barW}%`, height: "100%", borderRadius: 4, background: isCritico ? "#ef4444" : "#3b82f6", transition: "width 0.3s" }} />
-                                </div>
+                                {isApurar
+                                  ? <div style={{ fontSize: 10, color: "#6b7280", fontStyle: "italic" }}>a apurar</div>
+                                  : <div style={{ background: "#1e293b", borderRadius: 4, height: 8, overflow: "hidden" }}>
+                                      <div style={{ width: `${barW}%`, height: "100%", borderRadius: 4, background: isCritico ? "#ef4444" : "#3b82f6", transition: "width 0.3s" }} />
+                                    </div>
+                                }
                               </td>
                             </tr>
                           );
@@ -694,11 +698,14 @@ export default function SprintOtimo() {
                       <thead>
                         <tr style={{ background: "#1e293b" }}>
                           <th style={{ padding: "10px 12px", textAlign: "left", color: "#64748b", fontWeight: 700, fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5, position: "sticky", left: 0, background: "#1e293b", zIndex: 1 }}>Variável</th>
-                          {nomes.map(eq => (
-                            <th key={eq} style={{ padding: "10px 10px", textAlign: "right", color: DIAGNOSTICO.find(d=>d.nome===eq)?.cnesStatus === "expirado" ? "#ef4444" : "#64748b", fontWeight: 700, fontSize: 10, whiteSpace: "nowrap" }}>
-                              {DIAGNOSTICO.find(d=>d.nome===eq)?.cnesStatus === "expirado" ? "🚨 " : ""}{eq}
-                            </th>
-                          ))}
+                          {nomes.map(eq => {
+                            const st = DIAGNOSTICO.find(d=>d.nome===eq)?.cnesStatus;
+                            return (
+                              <th key={eq} style={{ padding: "10px 10px", textAlign: "right", color: st === "expirado" ? "#ef4444" : st === "apurar" ? "#6b7280" : "#64748b", fontWeight: 700, fontSize: 10, whiteSpace: "nowrap" }}>
+                                {st === "expirado" ? "🚨 " : st === "apurar" ? "🔍 " : ""}{eq}
+                              </th>
+                            );
+                          })}
                           <th style={{ padding: "10px 10px", textAlign: "right", color: "#f59e0b", fontWeight: 700, fontSize: 10 }}>TOTAL</th>
                         </tr>
                       </thead>
@@ -711,10 +718,12 @@ export default function SprintOtimo() {
                             </td>
                             {nomes.map(eq => {
                               const val = CVAT_EQUIPES[eq][v.key] || 0;
-                              const isCritico = DIAGNOSTICO.find(d=>d.nome===eq)?.cnesStatus === "expirado";
+                              const st = DIAGNOSTICO.find(d=>d.nome===eq)?.cnesStatus;
+                              const isCritico = st === "expirado";
+                              const isApurar = st === "apurar";
                               return (
-                                <td key={eq} style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isCritico ? "#ef4444" : v.key === "total" ? "#22c55e" : "#f1f5f9", fontWeight: v.key === "total" ? 700 : 400 }}>
-                                  {val.toLocaleString("pt-BR")}
+                                <td key={eq} style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isApurar ? "#6b7280" : isCritico ? "#ef4444" : "#f1f5f9", fontWeight: 400, fontStyle: isApurar ? "italic" : "normal" }}>
+                                  {isApurar ? "—" : val === 0 && isCritico ? <span title="CNES expirado — produção descartada">0 ⚠</span> : val.toLocaleString("pt-BR")}
                                 </td>
                               );
                             })}
@@ -726,8 +735,16 @@ export default function SprintOtimo() {
                       </tbody>
                     </table>
                   </div>
-                  <div style={{ marginTop: 10, fontSize: 11, color: "#475569", textAlign: "right" }}>
-                    * Dados estimados com base no cadastro PEC e-SUS APS e SIAPS CVAT — Apuí/AM · IED 2 · Abr/2026
+                  <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11, color: "#ef4444" }}>🚨 CNES expirado — produção descartada pelo e-Gestor</span>
+                      <span style={{ fontSize: 11, color: "#6b7280" }}>🔍 Dados a apurar no e-Gestor/SIAPS</span>
+                      <span style={{ fontSize: 11, color: "#6b7280" }}>— Sem dados disponíveis</span>
+                      <span style={{ fontSize: 11, color: "#ef4444" }}>0 ⚠ Zero por bloqueio CNES, não ausência de produção</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#475569", textAlign: "right" }}>
+                      * Dados estimados com base no cadastro PEC e-SUS APS e SIAPS CVAT — Apuí/AM · IED 2 · Abr/2026
+                    </div>
                   </div>
                 </div>
               )}
