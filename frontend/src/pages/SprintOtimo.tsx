@@ -491,13 +491,13 @@ export default function SprintOtimo() {
           {/* Lado esquerdo — logo + info */}
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             {/* Logo mark */}
-            <div style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", borderRadius: 12, width: 42, height: 42, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 20px rgba(245,158,11,0.3)" }}>
+            <div style={{ background: "linear-gradient(135deg, #2563eb, #1d4ed8)", borderRadius: 12, width: 42, height: 42, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 20px rgba(37,99,235,0.4)" }}>
               <Trophy size={22} color="#fff" />
             </div>
             <div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                 <span style={{ fontWeight: 800, fontSize: 18, color: "#f8fafc", letterSpacing: -0.3 }}>Sprint ÓTIMO</span>
-                <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", padding: "1px 8px", borderRadius: 20 }}>Q2 · 2026</span>
+                <span style={{ fontSize: 12, color: "#60a5fa", fontWeight: 600, background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.3)", padding: "1px 8px", borderRadius: 20 }}>Q2 · 2026</span>
               </div>
               <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
                 Meta ≥ 75 pts · Portaria GM/MS 3.493/2024
@@ -581,11 +581,11 @@ export default function SprintOtimo() {
       {/* ── Stats bar ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 0, background: "#0a1020", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         {[
-          { label: "Meta sprint", value: "≥ 75 pts", sub: "Componente Qualidade", color: "#f59e0b", bg: "rgba(245,158,11,0.08)" },
+          { label: "Meta sprint", value: "≥ 75 pts", sub: "Componente Qualidade", color: "#60a5fa", bg: "rgba(59,130,246,0.08)" },
           { label: "Equipes ÓTIMO", value: `${EQUIPES.filter(e => e.pts >= 75).length} / ${EQUIPES.filter(e => e.risco !== "apurar").length}`, sub: "meta atingida", color: "#22c55e", bg: "rgba(34,197,94,0.07)" },
           { label: "Em risco crítico", value: String(EQUIPES.filter(e => e.risco === "critico").length), sub: "precisam ação imediata", color: "#ef4444", bg: "rgba(239,68,68,0.07)" },
           { label: "Checklist", value: `${feitos} / ${totalChecks}`, sub: `${pct}% concluído`, color: "#818cf8", bg: "rgba(129,140,248,0.07)" },
-          { label: "Sprint encerra", value: `${diasRestantes}d ${horasRestantes}h`, sub: periodoAtual.desc, color: "#38bdf8", bg: "rgba(56,189,248,0.07)" },
+          { label: "Sprint encerra", value: `${diasRestantes}d ${horasRestantes}h`, sub: periodoAtual.desc, color: "#60a5fa", bg: "rgba(59,130,246,0.07)" },
         ].map((s, i, arr) => (
           <div key={s.label} style={{ padding: "12px 20px", borderRight: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", background: s.bg }}>
             <div style={{ fontSize: 10, color: "#475569", textTransform: "uppercase" as const, letterSpacing: 0.8, marginBottom: 4 }}>{s.label}</div>
@@ -608,13 +608,13 @@ export default function SprintOtimo() {
         ] as {key: "visao"|"indicadores"|"equipe"|"checklist"|"diagnostico"|"cvat"|"inconsistencias"; label: string; icon: string}[]).map(t => (
           <button key={t.key} onClick={() => setAba(t.key)} style={{
             padding: "7px 16px", fontSize: 12.5, fontWeight: aba === t.key ? 700 : 500,
-            border: aba === t.key ? "1px solid rgba(34,197,94,0.35)" : "1px solid rgba(255,255,255,0.07)",
+            border: aba === t.key ? "1px solid rgba(59,130,246,0.5)" : "1px solid rgba(255,255,255,0.07)",
             borderRadius: 8,
-            background: aba === t.key ? "linear-gradient(135deg, rgba(21,128,61,0.45), rgba(20,83,45,0.35))" : "rgba(255,255,255,0.03)",
-            color: aba === t.key ? "#4ade80" : "#64748b",
+            background: aba === t.key ? "linear-gradient(135deg, rgba(37,99,235,0.5), rgba(29,78,216,0.4))" : "rgba(255,255,255,0.03)",
+            color: aba === t.key ? "#93c5fd" : "#64748b",
             cursor: "pointer", whiteSpace: "nowrap", display: "flex", gap: 6, alignItems: "center",
             transition: "all 0.15s",
-            boxShadow: aba === t.key ? "0 0 12px rgba(34,197,94,0.12), inset 0 1px 0 rgba(255,255,255,0.05)" : "none",
+            boxShadow: aba === t.key ? "0 0 12px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.05)" : "none",
           }}>
             <span style={{ fontSize: 13 }}>{t.icon}</span>{t.label}
           </button>
@@ -860,11 +860,11 @@ export default function SprintOtimo() {
                   <button key={eq.nome} onClick={() => setDiagEquipe(eq.nome)} style={{
                     padding: "6px 14px", borderRadius: 20, fontSize: 12, cursor: "pointer",
                     fontWeight: diagEquipe === eq.nome ? 700 : 400,
-                    border: `1px solid ${diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#ef4444" : eq.cnesStatus === "apurar" ? "#6b7280" : "#22c55e") : "#334155"}`,
-                    background: diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#450a0a" : eq.cnesStatus === "apurar" ? "#1e293b" : "#14532d") : "transparent",
-                    color: diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#fca5a5" : eq.cnesStatus === "apurar" ? "#94a3b8" : "#bbf7d0") : "#94a3b8",
+                    border: `1px solid ${diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#ef4444" : eq.cnesStatus === "apurar" ? "#6b7280" : "#3b82f6") : "#334155"}`,
+                    background: diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#450a0a" : eq.cnesStatus === "apurar" ? "#1e293b" : "#1e3a5f") : "transparent",
+                    color: diagEquipe === eq.nome ? (eq.cnesStatus === "expirado" ? "#fca5a5" : eq.cnesStatus === "apurar" ? "#94a3b8" : "#93c5fd") : "#94a3b8",
                   }}>
-                    {eq.cnesStatus === "expirado" ? "🚨 " : eq.cnesStatus === "apurar" ? "🔍 " : ""}{eq.nome}
+                    {eq.cnesStatus === "expirado" ? "🚨 " : ""}{eq.nome}
                   </button>
                 ))}
               </div>
@@ -1066,19 +1066,19 @@ export default function SprintOtimo() {
             )}
 
             {periodo === "quadrimestral" && (
-              <div style={{ background: "linear-gradient(135deg, #061a0e 0%, #07120f 60%, #0a1a1a 100%)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 14, padding: "16px 20px", marginBottom: 20, display: "flex", gap: 16, alignItems: "flex-start", boxShadow: "0 0 30px rgba(34,197,94,0.06)" }}>
-                <div style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 10, padding: "8px 10px", flexShrink: 0 }}>
+              <div style={{ background: "linear-gradient(135deg, #060e1f 0%, #070f1d 60%, #090f1a 100%)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 14, padding: "16px 20px", marginBottom: 20, display: "flex", gap: 16, alignItems: "flex-start", boxShadow: "0 0 30px rgba(59,130,246,0.06)" }}>
+                <div style={{ background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 10, padding: "8px 10px", flexShrink: 0 }}>
                   <span style={{ fontSize: 18 }}>📊</span>
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                    <span style={{ fontWeight: 800, color: "#4ade80", fontSize: 14 }}>Q2 Mai–Ago/2026</span>
-                    <span style={{ fontSize: 11, color: "#16a34a", background: "rgba(22,163,74,0.15)", border: "1px solid rgba(22,163,74,0.25)", padding: "1px 8px", borderRadius: 20 }}>Fechamento 31/Agosto</span>
+                    <span style={{ fontWeight: 800, color: "#93c5fd", fontSize: 14 }}>Q2 Mai–Ago/2026</span>
+                    <span style={{ fontSize: 11, color: "#3b82f6", background: "rgba(59,130,246,0.15)", border: "1px solid rgba(59,130,246,0.25)", padding: "1px 8px", borderRadius: 20 }}>Fechamento 31/Agosto</span>
                   </div>
-                  <div style={{ fontSize: 12, color: "#86efac", marginBottom: 10, lineHeight: 1.6 }}>Scores acumulados de maio a agosto. Toda produção lançada até 31/ago contabiliza. Foco em <strong>C2</strong> (pré-natal) e <strong>C6</strong> (puericultura).</div>
+                  <div style={{ fontSize: 12, color: "#bfdbfe", marginBottom: 10, lineHeight: 1.6 }}>Scores acumulados de maio a agosto. Toda produção lançada até 31/ago contabiliza. Foco em <strong>C2</strong> (pré-natal) e <strong>C6</strong> (puericultura).</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {[
-                      { t: `${diasRestantes} dias restantes`, cor: "#22c55e" },
+                      { t: `${diasRestantes} dias restantes`, cor: "#3b82f6" },
                       { t: `${EQUIPES.filter(e => e.pts < 75 && e.risco !== "apurar").length} equipes abaixo de 75 pts`, cor: "#f59e0b" },
                       { t: "CNES TRÊS ESTADOS — regularizar HOJE", cor: "#ef4444" },
                       { t: "Retroativos de gaveta — lançar agora", cor: "#60a5fa" },
@@ -1130,7 +1130,7 @@ export default function SprintOtimo() {
                         <div style={{ height: "100%", width: `${pctBar}%`, background: barCor, borderRadius: 3, transition: "width 0.5s ease" }} />
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#334155", marginTop: 5 }}>
-                        <span>0</span><span style={{ color: "#15803d" }}>75 · ÓTIMO</span><span>100</span>
+                        <span>0</span><span style={{ color: "#2563eb" }}>75 · meta</span><span>100</span>
                       </div>
                     </div>
                   </div>
