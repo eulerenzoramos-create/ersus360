@@ -887,21 +887,6 @@ export default function SprintOtimo() {
                 )}
               </div>
 
-              {/* Alerta AREAL a apurar */}
-              {d.cnesStatus === "apurar" && (
-                <div style={{ background: "#1e293b", border: "1px solid #475569", borderRadius: 10, padding: 16, marginBottom: 16, display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <FileText size={22} color="#94a3b8" style={{ flexShrink: 0, marginTop: 2 }} />
-                  <div>
-                    <div style={{ fontWeight: 800, color: "#f1f5f9", fontSize: 14, marginBottom: 6 }}>EQUIPE IDENTIFICADA NO SCNES — DADOS A APURAR</div>
-                    <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>
-                      A equipe <strong>AREAL</strong> (CNES 2013290 — UBS Eduardo Biazin) foi identificada no Protocolo de Exportação SCNES 07/2026
-                      mas <strong>não estava no monitoramento ERSUS 360</strong>.
-                      Verificar no e-Gestor / SIAPS se a equipe está ativa e produzindo.
-                      Se confirmada, incluir no Sprint ÓTIMO e levantar composição completa via SCNES.
-                    </p>
-                  </div>
-                </div>
-              )}
 
               {/* Alerta crítico CNES expirado */}
               {isCritico && (
@@ -933,7 +918,7 @@ export default function SprintOtimo() {
                     { cargo: "Enfermeiro", pessoa: d.enfermeiro, cbo: "223505" },
                     { cargo: "Téc./Aux. Enfermagem", pessoa: d.tecEnf, cbo: "322205" },
                   ].map(p => {
-                    const ok = p.pessoa.cnes === "OK";
+                    const ok = !!p.pessoa.cnes && p.pessoa.cnes !== "EXPIRADO" && p.pessoa.cnes !== "a apurar";
                     return (
                       <div key={p.cargo} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #0f172a" }}>
                         <div>
