@@ -1202,15 +1202,96 @@ export default function SprintOtimo() {
                     }
                   </div>
 
-                  {eq.nome === "TRÊS ESTADOS" && (
+                  {/* Alerta CNES expirado */}
+                  {diag && diag.cnesStatus === "expirado" && (
                     <div style={{ background: "#450a0a", border: "1px solid #ef4444", borderRadius: 10, padding: 16, marginBottom: 16 }}>
                       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
                         <AlertTriangle size={18} color="#ef4444" />
                         <span style={{ fontWeight: 700, color: "#ef4444", fontSize: 14 }}>AÇÃO IMEDIATA — CNES EXPIRADO</span>
                       </div>
                       <p style={{ fontSize: 13, color: "#fca5a5", margin: 0 }}>
-                        O CNES da equipe TRÊS ESTADOS está com vínculos expirados. <strong>Toda a produção registrada está sendo descartada pelo e-Gestor.</strong> Contato urgente com RH/SMS para reativar os vínculos no SCNES antes de qualquer outra ação. Telefone e-Gestor: <strong>0800 722 4310</strong>.
+                        O CNES da equipe <strong>{eq.nome}</strong> está com vínculos expirados. <strong>Toda a produção registrada está sendo descartada pelo e-Gestor.</strong> Contato urgente com RH/SMS para reativar os vínculos no SCNES antes de qualquer outra ação. Telefone e-Gestor: <strong>0800 722 4310</strong>.
                       </p>
+                    </div>
+                  )}
+
+                  {/* Diagnóstico SCNES — composição, população e pendências */}
+                  {diag && (
+                    <div style={{ background: "#1e293b", borderRadius: 10, padding: 18, marginBottom: 16, border: "1px solid #334155" }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+                        <FileText size={15} color="#94a3b8" />
+                        Diagnóstico SCNES — Competência 07/2026
+                      </div>
+
+                      {/* Composição da equipe */}
+                      <div style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Composição</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8 }}>
+                          {[
+                            { label: "Médico", dados: diag.medico },
+                            { label: "Enfermeiro", dados: diag.enfermeiro },
+                            { label: "Téc. Enfermagem", dados: diag.tecEnf },
+                          ].map(({ label, dados }) => (
+                            <div key={label} style={{ background: "#0f172a", borderRadius: 8, padding: "10px 12px", border: `1px solid ${dados.cnes === "EXPIRADO" ? "#7f1d1d" : dados.cnes === "A APURAR" ? "#374151" : "#1e3a5f"}` }}>
+                              <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>{label}</div>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: dados.cnes === "EXPIRADO" ? "#fca5a5" : dados.cnes === "A APURAR" ? "#9ca3af" : "#f1f5f9" }}>{dados.nome}</div>
+                              <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                                <span style={{ fontSize: 10, color: "#64748b" }}>CBO {dados.cbo}</span>
+                                <span style={{ fontSize: 10, color: dados.vinculo === "Desatualizado" ? "#ef4444" : dados.vinculo === "A apurar" ? "#9ca3af" : "#22c55e" }}>• {dados.vinculo}</span>
+                              </div>
+                            </div>
+                          ))}
+                          <div style={{ background: "#0f172a", borderRadius: 8, padding: "10px 12px", border: "1px solid #1e3a5f" }}>
+                            <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>ACS</div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: diag.acs >= diag.acsMin ? "#f1f5f9" : "#fca5a5" }}>
+                              {diag.acs} agentes {diag.acs < diag.acsMin && <span style={{ color: "#ef4444" }}>(mín. {diag.acsMin})</span>}
+                            </div>
+                            <div style={{ fontSize: 10, color: diag.acs >= diag.acsMin ? "#22c55e" : "#ef4444", marginTop: 4 }}>
+                              {diag.acs >= diag.acsMin ? "✓ Mínimo atendido" : "⚠ Abaixo do mínimo"}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* População vinculada */}
+                      <div style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>População Vinculada</div>
+                        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                          <div style={{ fontSize: 22, fontWeight: 800, color: diag.populacaoVinculada >= diag.populacaoRef ? "#22c55e" : diag.populacaoVinculada >= diag.populacaoRef * 0.8 ? "#f59e0b" : "#ef4444" }}>
+                            {diag.populacaoVinculada.toLocaleString("pt-BR")}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#64748b" }}>
+                            <div>Referência: {diag.populacaoRef.toLocaleString("pt-BR")} pessoas</div>
+                            <div>Máximo financ.: {diag.populacaoMax.toLocaleString("pt-BR")} pessoas</div>
+                          </div>
+                          <div style={{ flex: 1, minWidth: 120 }}>
+                            <div style={{ height: 6, background: "#334155", borderRadius: 3, overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${Math.min(100, Math.round((diag.populacaoVinculada / diag.populacaoMax) * 100))}%`, background: diag.populacaoVinculada >= diag.populacaoRef ? "#22c55e" : "#f59e0b", borderRadius: 3 }} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pendências */}
+                      {diag.pendencias.length > 0 && (
+                        <div style={{ marginBottom: 14 }}>
+                          <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Pendências SCNES</div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            {diag.pendencias.map((p, i) => (
+                              <div key={i} style={{ background: "#0f172a", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: p.startsWith("🚨") ? "#fca5a5" : p.startsWith("⚠") ? "#fde68a" : "#94a3b8", borderLeft: `3px solid ${p.startsWith("🚨") ? "#ef4444" : p.startsWith("⚠") ? "#f59e0b" : "#475569"}` }}>
+                                {p}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Observação */}
+                      {diag.obs && (
+                        <div style={{ background: "#0f172a", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#64748b", borderLeft: "3px solid #334155", fontStyle: "italic" }}>
+                          {diag.obs}
+                        </div>
+                      )}
                     </div>
                   )}
 
