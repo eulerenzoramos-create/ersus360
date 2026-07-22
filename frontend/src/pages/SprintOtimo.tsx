@@ -297,10 +297,10 @@ const DIAGNOSTICO = [
     ],
     obs: "CNES 9934448 — UBS Osvaldo Lemes Cabral. SIAPS ABR/26 registra 1.035 vinculadas/acompanhadas (dado preliminar), sugerindo que parte da produção está sendo reconhecida. Porém vínculos SCNES ainda constam expirados — regularizar imediatamente para garantir continuidade do financiamento. Suporte e-Gestor: 0800 722 4310.",
   },
-  // ── AREAL — eSF · CNES 2013290 · UBS Eduardo Biazin ─────────────────────────
-  // Fonte: Ficha Estabelecimento SCNES 07/2026 — Exibe_Ficha_Estabelecimento CNES 2013290
-  //   Equipe Tipo 70 (ESF): AREAL — 1 médico, 2 enfermeiros, 2 téc. enf., 5 ACS, 1 microscopista
-  //   Equipe Tipo 71 (ESB): KENNEDY ESB — cirurgião-dentista + técnico em saúde bucal
+  // ── AREAL — eSF Ribeirinha · CNES 2013290 · UBS Eduardo Biazin ──────────────
+  // Fonte: Protocolo de Exportação SCNES 07/2026 + Ficha Estabelecimento CNES 2013290
+  //   2013290-0001-0002 AREAL → ESB (código 0001, vinculada à ESF código 0002)
+  //   2013290-0002       AREAL → ESF Tipo 70 (Ribeirinha) — 1 médico, 2 enf., 2 téc.enf., 5 ACS, 1 microscopista
   {
     nome: "AREAL",
     ubs: "UBS Eduardo Biazin",
@@ -332,7 +332,7 @@ const DIAGNOSTICO = [
       "⚠ ERVINO GUDER (ACS) — data entrada 15/06/2026, confirmar se já está produzindo no PEC",
       "⚠ 2º enfermeiro ALAN ALEXANDER HISTER (desde 13/11/2024) — verificar se é cobertura ou excedente",
     ],
-    obs: "CNES 2013290 — UBS Eduardo Biazin. Tipo 70 (ESF/Ribeirinha). Composição SCNES 07/2026 confirmada: médico EDVAN SOARES GONCALVES (CBO 225142), enfermeira principal ALINE COSTA DA SILVA + 2º enfermeiro ALAN ALEXANDER HISTER (CBO 223565), 2 técnicos de enfermagem (RITHERLY DOS SANTOS PINTO + MARIA LUIZA TRINDADE FIGUEIREDO, CBO 322245), 5 ACS confirmados, microscopista JOAO BARBOSA DE OLIVEIRA FILHO (5152A1). ESB registrada no mesmo CNES como 'KENNEDY ESB' (Tipo 71) com cirurgião-dentista THIAGO RIBEIRO MENDES (CBO 223293) e técnico KELLY SANTOS DE SOUZA (CBO 322425). Equipe ausente no SIAPS ABR/26 — levantar histórico de produção.",
+    obs: "CNES 2013290 — UBS Eduardo Biazin. Tipo 70 (ESF/Ribeirinha). Protocolo Exportação SCNES 07/2026 confirma: código ESF 0002, ESB vinculada código 0001 (AREAL ESB). Composição SCNES 07/2026: médico EDVAN SOARES GONCALVES (CBO 225142), enfermeira ALINE COSTA DA SILVA + ALAN ALEXANDER HISTER (CBO 223565), téc. enf. RITHERLY DOS SANTOS PINTO + MARIA LUIZA TRINDADE FIGUEIREDO (CBO 322245), 5 ACS (CLEUCIANE PALESTIS, ERVINO GUDER, MARIA RAIMUNDA LEMOS DA SILVA, ROSELAINE MARTINS DA SILVA, VERONICA DE FATIMA FERNANDES), microscopista JOAO BARBOSA DE OLIVEIRA FILHO (5152A1). CNES 2013282 (Hospital Dorvalino Lagasse) — sem equipes ESF, apenas hospital. Ausente SIAPS ABR/26 — levantar histórico de produção.",
   },
 ];
 
