@@ -1,11 +1,16 @@
 """
 Router: /api/acs — Módulo ACS (Agentes Comunitários de Saúde)
 Apuí/AM — 5 equipes ESF, 65 microáreas, 65 ACS
+Integração eSUS PEC com fallback para dados de referência.
 """
 from __future__ import annotations
 from datetime import date, datetime
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
+from services.esus_pec import (
+    status_pec, visitas_domiciliares,
+    cadastros_individuais, cadastros_domiciliares, cidadaos
+)
 
 router = APIRouter(prefix="/api/acs", tags=["ACS"])
 
@@ -453,5 +458,189 @@ async def detalhe_acs(
     return {
         "acs": _enriquecer_acs(acs),
         "historico_visitas": historico_visitas,
+        "fonte": "referencia",
+    }
+
+
+# ── eSUS PEC endpoints ────────────────────────────────────────────────────────
+
+@router.get("/esus/status")
+async def esus_status(_: UserOut = Depends(get_current_user)):
+    """Verifica conectividade com o eSUS PEC."""
+    return await status_pec()
+
+
+@router.get("/esus/visitas")
+async def esus_visitas(
+    competencia: str | None = Query(None, description="AAAAMM ex: 202607"),
+    _: UserOut = Depends(get_current_user),
+):
+    """
+    Visitas domiciliares do eSUS PEC para o mês/competência.
+    Se PEC indisponível, retorna dados de referência enriquecidos.
+    """
+    pec_data = await visitas_domiciliares(competencia=competencia)
+    if pec_data:
+        return {"fonte": "esus_pec", "competencia": competencia, "dados": pec_data}
+
+    # Fallback: dados de referência em formato compatível
+    acs_enriq = [_enriquecer_acs(a) for a in _ACS]
+    visitas_ref = []
+    for a in acs_enriq:
+        if not a["ativo"]:
+            continue
+        v = a["visitas"]
+        for i in range(v["realizadas"]):
+            s = i + a["id"] * 100
+            visitas_ref.append({
+                "acs_id": a["id"],
+                "acs_nome": a["nome"],
+                "microarea": a["microarea"],
+                "esf": a["esf"],
+                "tipo_visita": ["visita_periodica","busca_ativa","acompanhamento_gestante","acompanhamento_crianca","outros"][s % 5],
+                "turno": ["manha","tarde","noite"][s % 3],
+                "desfecho": ["visita_realizada","ausente","recusa"][(s // 3) % 3],
+                "data": f"2026-07-{(s % 28) + 1:02d}",
+                "grupos_prioritarios": {
+                    "gestante": bool(s % 7 == 0),
+                    "crianca_lt2": bool(s % 11 == 0),
+                    "idoso": bool(s % 5 == 0),
+                },
+            })
+    return {
+        "fonte": "referencia",
+        "competencia": competencia or "202607",
+        "total": len(visitas_ref),
+        "dados": visitas_ref[:500],
+    }
+
+
+@router.get("/esus/cadastros-individuais")
+async def esus_cadastros_individuais(
+    pagina: int = Query(0),
+    _: UserOut = Depends(get_current_user),
+):
+    """Fichas de cadastro individual do eSUS PEC."""
+    pec_data = await cadastros_individuais(pagina=pagina)
+    if pec_data:
+        return {"fonte": "esus_pec", "dados": pec_data}
+
+    # Fallback: gera fichas sintéticas a partir dos ACS
+    fichas = []
+    for a in [a for a in _ACS if a["ativo"]]:
+        ind = next((i for i in _INDICADORES_ACS if i["acs_id"] == a["id"]), {})
+        total_pessoas = a["familias_cadastradas"] * 3
+        for n in range(min(total_pessoas, 12)):
+            s = a["id"] * 37 + n * 13
+            ano_nasc = 1940 + (s % 80)
+            fichas.append({
+                "id": len(fichas) + 1,
+                "cns": f"7{a['id']:02d}{n:04d}000000000",
+                "cpf_mascarado": f"***.{(s%999):03d}.{(s%999):03d}-**",
+                "nome": f"Cidadão {n+1} — {a['microarea']}",
+                "data_nascimento": f"{ano_nasc}-{(s%12)+1:02d}-{(s%28)+1:02d}",
+                "sexo": "F" if s % 2 == 0 else "M",
+                "raca_cor": ["Branca","Preta","Parda","Amarela","Indígena"][s % 5],
+                "microarea": a["microarea"],
+                "esf": a["esf"],
+                "acs_nome": a["nome"],
+                "acs_id": a["id"],
+                "condicoes_saude": {
+                    "gestante": bool(n < ind.get("gestantes_ativas", 0)),
+                    "crianca_lt2": bool(n < ind.get("criancas_lt2", 0)),
+                    "hipertensao": bool(s % 4 == 0),
+                    "diabetes": bool(s % 7 == 0),
+                    "doenca_respiratoria": bool(s % 11 == 0),
+                },
+                "situacao_moradia": ["propria","alugada","cedida","irregular"][s % 4],
+                "escolaridade": ["sem_escolaridade","fundamental_incompleto","fundamental_completo","medio_completo","superior"][s % 5],
+                "pct_completo": min(100, 40 + (s % 60)),
+                "status_cadastro": "completo" if s % 3 == 0 else ("parcial" if s % 3 == 1 else "incompleto"),
+                "ultima_atualizacao": f"2026-0{(s%6)+1:d}-{(s%28)+1:02d}",
+            })
+    return {
+        "fonte": "referencia",
+        "pagina": pagina,
+        "total": len(fichas),
+        "dados": fichas[pagina*50:(pagina+1)*50],
+    }
+
+
+@router.get("/esus/cadastros-domiciliares")
+async def esus_cadastros_domiciliares(
+    pagina: int = Query(0),
+    _: UserOut = Depends(get_current_user),
+):
+    """Fichas de cadastro domiciliar do eSUS PEC."""
+    pec_data = await cadastros_domiciliares(pagina=pagina)
+    if pec_data:
+        return {"fonte": "esus_pec", "dados": pec_data}
+
+    fichas = []
+    for a in [a for a in _ACS if a["ativo"]]:
+        for n in range(min(a["familias_cadastradas"], 12)):
+            s = a["id"] * 41 + n * 17
+            fichas.append({
+                "id": len(fichas) + 1,
+                "logradouro": f"Rua {['das Flores','Principal','do Bosque','Nova','do Sol'][s%5]}, {(s%200)+1}",
+                "microarea": a["microarea"],
+                "esf": a["esf"],
+                "acs_nome": a["nome"],
+                "acs_id": a["id"],
+                "moradores": (s % 6) + 1,
+                "tipo_moradia": ["casa","apartamento","comodo","improviso"][s % 4],
+                "abastecimento_agua": ["rede_publica","poco","rio_lago","outro"][s % 4],
+                "destino_lixo": ["coletado","queimado","enterrado","ceu_aberto"][s % 4],
+                "energia_eletrica": bool(s % 9 != 0),
+                "animais_domicilio": bool(s % 3 == 0),
+                "ultima_atualizacao": f"2026-0{(s%6)+1:d}-{(s%28)+1:02d}",
+                "status_cadastro": "completo" if s % 3 == 0 else ("parcial" if s % 3 == 1 else "incompleto"),
+            })
+    return {
+        "fonte": "referencia",
+        "pagina": pagina,
+        "total": len(fichas),
+        "dados": fichas[pagina*50:(pagina+1)*50],
+    }
+
+
+@router.get("/esus/calendario-visitas")
+async def calendario_visitas(
+    mes: int = Query(7),
+    ano: int = Query(2026),
+    esf: str | None = Query(None),
+    _: UserOut = Depends(get_current_user),
+):
+    """Calendário de visitas domiciliares programadas e realizadas."""
+    import calendar
+    _, dias_no_mes = calendar.monthrange(ano, mes)
+    acs_list = [a for a in _ACS if a["ativo"] and (not esf or a["esf"] == esf)]
+
+    eventos = []
+    for a in acs_list:
+        v = next((x for x in _VISITAS if x["acs_id"] == a["id"]), {})
+        prog = v.get("programadas", 0)
+        real = v.get("realizadas", 0)
+        visitas_por_dia = max(1, prog // 22)  # ~22 dias úteis/mês
+
+        for dia in range(1, dias_no_mes + 1):
+            s = (a["id"] * 31 + dia * 7) % 100
+            realizada = dia <= (dias_no_mes * real // max(prog, 1))
+            eventos.append({
+                "acs_id": a["id"],
+                "acs_nome": a["nome"],
+                "microarea": a["microarea"],
+                "esf": a["esf"],
+                "data": f"{ano}-{mes:02d}-{dia:02d}",
+                "dia": dia,
+                "programadas": visitas_por_dia,
+                "realizadas": visitas_por_dia if realizada else (visitas_por_dia - 1 if s > 20 else 0),
+                "status": "realizado" if realizada else ("parcial" if s > 50 else "pendente"),
+            })
+
+    return {
+        "mes": mes, "ano": ano, "dias": dias_no_mes,
+        "acs_count": len(acs_list),
+        "eventos": eventos,
         "fonte": "referencia",
     }

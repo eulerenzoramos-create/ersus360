@@ -1,26 +1,21 @@
-import { useState, useMemo } from "react";
+// src/pages/ACSPainel.tsx — Painel ACS · eSUS PEC integrado
+import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Users, MapPin, Home, CheckCircle, TrendingUp, Baby,
-  Heart, Activity, Star, AlertTriangle, RefreshCw, ChevronDown,
-  ChevronRight, UserCheck, User, Navigation, FileText,
-  XCircle, Search, Filter,
+  Users, MapPin, Home, CheckCircle, Activity, Baby, Heart,
+  Star, AlertTriangle, RefreshCw, ChevronDown, ChevronRight,
+  User, FileText, Search, Filter, Calendar, Wifi, WifiOff,
+  BarChart2, Navigation, ClipboardList, Building2, TrendingUp,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
 import ACSGeoPage from "./ACSGeoPage";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Tipos ────────────────────────────────────────────────────────────────────
 
 interface AcsItem {
-  id: number;
-  nome: string;
-  microarea: string;
-  esf: string;
-  ativo: boolean;
-  familias_cadastradas: number;
-  familias_meta: number;
-  pct_visitas: number;
-  pct_cadastro: number;
+  id: number; nome: string; microarea: string; esf: string; ativo: boolean;
+  familias_cadastradas: number; familias_meta: number;
+  pct_visitas: number; pct_cadastro: number;
   status: "destaque" | "regular" | "critico" | "afastado";
   visitas: { programadas: number; realizadas: number; nao_encontradas: number; recusas: number };
   indicadores: { gestantes_ativas: number; criancas_lt2: number; has: number; dm: number; idosos: number };
@@ -28,203 +23,96 @@ interface AcsItem {
 
 interface DashboardAcs {
   kpis: {
-    total_acs: number;
-    acs_ativos: number;
-    total_microareas: number;
-    familias_cadastradas: number;
-    pct_cobertura: number;
-    pct_visitas: number;
-    gestantes_ativas: number;
-    criancas_lt2: number;
-    has_acompanhados: number;
-    dm_acompanhados: number;
+    total_acs: number; acs_ativos: number; total_microareas: number;
+    familias_cadastradas: number; familias_meta: number; pct_cobertura: number;
+    visitas_programadas: number; visitas_realizadas: number; pct_visitas: number;
+    gestantes_ativas: number; criancas_lt2: number; has_acompanhados: number; dm_acompanhados: number;
   };
-  acs_destaques: AcsItem[];
-  acs_criticos: AcsItem[];
+  acs_destaques: AcsItem[]; acs_criticos: AcsItem[];
   distribuicao_esf: Record<string, number>;
   mes_referencia: { label: string };
 }
 
 interface Microarea {
-  codigo: string;
-  nome: string;
-  zona: string;
-  esf: string;
-  acs_count: number;
-  acs_ativos: number;
-  familias_cadastradas: number;
-  familias_meta: number;
-  pct_cobertura: number;
-  pct_visitas: number;
-  gestantes_ativas: number;
+  codigo: string; nome: string; zona: string; esf: string;
+  acs_count: number; acs_ativos: number;
+  familias_cadastradas: number; familias_meta: number;
+  pct_cobertura: number; pct_visitas: number; gestantes_ativas: number;
   semaforo: "verde" | "amarelo" | "vermelho";
 }
 
-interface ListaAcs { acs: AcsItem[] }
+interface EsusStatus { conectado: boolean; autenticado: boolean; url: string; versao: string | null }
 
-// ── Cadastro SIS ──────────────────────────────────────────────────────────────
-interface CampoSis {
-  campo: string;
-  label: string;
-  preenchido: boolean;
-}
+type Aba = "dashboard" | "visitas" | "calendario" | "cadastros_ind" | "cadastros_dom" | "lista" | "microareas" | "geo" | "sis";
 
-interface CadastroPaciente {
-  id: number;
-  nome: string;
-  cns: string;
-  data_nascimento: string;
-  microarea: string;
-  acs_nome: string;
-  acs_id: number;
-  visitas_no_mes: number;
-  ultima_visita: string;
-  campos: CampoSis[];
-  pct_completo: number;
-  status_cadastro: "completo" | "parcial" | "incompleto";
-}
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-// ── Dados simulados SIS ───────────────────────────────────────────────────────
-const CAMPOS_SIS = [
-  "CNS / CPF",
-  "Data de Nascimento",
-  "Raça / Cor",
-  "Escolaridade",
-  "Situação de Trabalho",
-  "Condições de Saúde",
-  "Endereço Completo",
-  "Responsável Familiar",
-];
+const STATUS_COR: Record<string, string> = { destaque:"#16a34a", regular:"#1351b4", critico:"#dc2626", afastado:"#9ca3af" };
+const STATUS_LABEL: Record<string, string> = { destaque:"Destaque", regular:"Regular", critico:"Atenção", afastado:"Afastado" };
+const SEM_COR: Record<string, string> = { verde:"#16a34a", amarelo:"#d97706", vermelho:"#dc2626" };
+const ESF_COR: Record<string, string> = { "ESF I":"#0891b2","ESF II":"#7c3aed","ESF III":"#16a34a","ESF IV":"#d97706","ESF V":"#dc2626" };
 
-function gerarCadastrosSIS(acs: AcsItem[]): CadastroPaciente[] {
-  const seed = (n: number) => ((n * 1103515245 + 12345) & 0x7fffffff) % 100;
-  const pacientes: CadastroPaciente[] = [];
-  let id = 1;
-  acs.forEach(a => {
-    const qtd = Math.floor(a.familias_cadastradas * 3.2);
-    for (let i = 0; i < Math.min(qtd, 15); i++) {
-      const campos: CampoSis[] = CAMPOS_SIS.map((label, ci) => ({
-        campo: label.toLowerCase().replace(/\s+/g, "_").replace(/\//g, "_"),
-        label,
-        preenchido: seed((a.id * 31 + i * 17 + ci * 7)) > (a.status === "critico" ? 55 : a.status === "destaque" ? 15 : 35),
-      }));
-      const preenchidos = campos.filter(c => c.preenchido).length;
-      const pct = Math.round((preenchidos / campos.length) * 100);
-      const status_cadastro: CadastroPaciente["status_cadastro"] =
-        pct === 100 ? "completo" : pct >= 60 ? "parcial" : "incompleto";
-      const visitas = seed(a.id * 13 + i * 5) > 50 ? Math.floor(seed(a.id + i) / 25) + 1 : 0;
-      pacientes.push({
-        id: id++,
-        nome: `Paciente ${i + 1} — ${a.microarea}`,
-        cns: `${700_000_000_000_000 + a.id * 10000 + i}`,
-        data_nascimento: `${1940 + ((a.id * 7 + i * 3) % 65)}-${String(((a.id + i) % 12) + 1).padStart(2,"0")}-${String(((a.id * 3 + i) % 28) + 1).padStart(2,"0")}`,
-        microarea: a.microarea,
-        acs_nome: a.nome,
-        acs_id: a.id,
-        visitas_no_mes: visitas,
-        ultima_visita: visitas > 0 ? `2025-06-${String(((a.id * 5 + i * 2) % 28) + 1).padStart(2,"0")}` : "—",
-        campos,
-        pct_completo: pct,
-        status_cadastro,
-      });
-    }
-  });
-  return pacientes;
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const statusCor: Record<string, string> = {
-  destaque: "#16a34a",
-  regular:  "#2563eb",
-  critico:  "#dc2626",
-  afastado: "#9ca3af",
-};
-const statusLabel: Record<string, string> = {
-  destaque: "Destaque",
-  regular:  "Regular",
-  critico:  "Atenção",
-  afastado: "Afastado",
-};
-
-const semCor: Record<string, string> = {
-  verde:    "#16a34a",
-  amarelo:  "#d97706",
-  vermelho: "#dc2626",
-};
-
-function MiniBar({ pct, cor }: { pct: number; cor: string }) {
+function Bar({ pct, cor, height = 6 }: { pct: number; cor: string; height?: number }) {
   return (
-    <div style={{ height: 6, background: "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
-      <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: cor, borderRadius: 3, transition: "width .5s" }} />
+    <div style={{ height, background: "#e5e7eb", borderRadius: 4, overflow: "hidden" }}>
+      <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: cor, borderRadius: 4, transition: "width .4s" }} />
     </div>
   );
 }
 
-function KpiCard({ icon, label, val, sub, cor = "#2563eb", bg = "#eff6ff" }: {
-  icon: React.ReactNode; label: string; val: string | number; sub?: string; cor?: string; bg?: string;
+function Badge({ label, cor, bg, border }: { label: string; cor: string; bg: string; border: string }) {
+  return (
+    <span style={{ background: bg, color: cor, border: `1px solid ${border}`, borderRadius: 20, padding: "2px 10px", fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" as const }}>
+      {label}
+    </span>
+  );
+}
+
+function KpiCard({ icon, label, val, sub, cor, bg, border }: {
+  icon: React.ReactNode; label: string; val: string | number; sub?: string;
+  cor: string; bg: string; border: string;
 }) {
   return (
-    <div style={{ background: bg, borderRadius: 10, padding: "14px 16px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-        <div style={{ color: cor }}>{icon}</div>
+    <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 12, padding: "16px 18px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
         <span style={{ fontSize: 12, color: "#6b7280" }}>{label}</span>
+        <div style={{ background: `${cor}18`, borderRadius: 7, padding: 6, color: cor }}>{icon}</div>
       </div>
-      <div style={{ fontSize: 24, fontWeight: 700, color: cor }}>{val}</div>
-      {sub && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontSize: 26, fontWeight: 800, color: cor, lineHeight: 1 }}>{val}</div>
+      {sub && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{sub}</div>}
     </div>
   );
 }
 
-// ── Card ACS ──────────────────────────────────────────────────────────────────
+// ── Card ACS ─────────────────────────────────────────────────────────────────
 
 function AcsCard({ a }: { a: AcsItem }) {
   const [open, setOpen] = useState(false);
-  const cor = statusCor[a.status];
+  const cor = STATUS_COR[a.status];
+  const corVis = a.pct_visitas >= 90 ? "#16a34a" : a.pct_visitas >= 70 ? "#d97706" : "#dc2626";
+  const corCad = a.pct_cadastro >= 90 ? "#16a34a" : "#d97706";
 
   return (
-    <div style={{
-      border: `1px solid ${cor}40`,
-      borderLeft: `4px solid ${cor}`,
-      borderRadius: 8,
-      background: a.status === "critico" ? "#fff7f7" : a.status === "destaque" ? "#f0fdf4" : "#fff",
-      overflow: "hidden",
-    }}>
-      <div onClick={() => setOpen(o => !o)} style={{
-        display: "flex", alignItems: "center", gap: 10,
-        padding: "11px 14px", cursor: "pointer",
-      }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 18, background: cor + "20",
-          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-        }}>
+    <div style={{ border: `1px solid ${cor}30`, borderLeft: `4px solid ${cor}`, borderRadius: 10, background: "#fff", overflow: "hidden" }}>
+      <div onClick={() => setOpen(o => !o)}
+        style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer" }}>
+        <div style={{ width: 38, height: 38, borderRadius: 19, background: `${cor}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <User size={16} color={cor} />
         </div>
-
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
             {a.nome}
-            <span style={{
-              background: cor + "22", color: cor,
-              fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 10,
-            }}>{statusLabel[a.status]}</span>
+            <Badge label={STATUS_LABEL[a.status]} cor={cor} bg={`${cor}15`} border={`${cor}40`} />
           </div>
-          <div style={{ fontSize: 11, color: "#9ca3af" }}>
-            {a.microarea} · {a.esf} · {a.familias_cadastradas} famílias
-          </div>
+          <div style={{ fontSize: 11, color: "#9ca3af" }}>{a.microarea} · {a.esf} · {a.familias_cadastradas} famílias</div>
         </div>
-
-        <div style={{ display: "flex", gap: 16, alignItems: "center", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 18, alignItems: "center", flexShrink: 0 }}>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: a.pct_visitas >= 90 ? "#16a34a" : a.pct_visitas >= 70 ? "#d97706" : "#dc2626" }}>
-              {a.pct_visitas}%
-            </div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: corVis }}>{a.pct_visitas}%</div>
             <div style={{ fontSize: 10, color: "#9ca3af" }}>visitas</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: a.pct_cadastro >= 90 ? "#16a34a" : "#d97706" }}>
-              {a.pct_cadastro}%
-            </div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: corCad }}>{a.pct_cadastro}%</div>
             <div style={{ fontSize: 10, color: "#9ca3af" }}>cadastro</div>
           </div>
           {open ? <ChevronDown size={14} color="#9ca3af" /> : <ChevronRight size={14} color="#9ca3af" />}
@@ -232,43 +120,37 @@ function AcsCard({ a }: { a: AcsItem }) {
       </div>
 
       {open && (
-        <div style={{ padding: "10px 14px 14px", borderTop: "1px solid " + cor + "30" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12, marginBottom: 12 }}>
+        <div style={{ padding: "12px 16px 16px", borderTop: `1px solid ${cor}20`, background: "#fafafa" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
             <div>
-              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>
-                Visitas — <strong>{a.visitas.realizadas}</strong>/{a.visitas.programadas} programadas
+              <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 5 }}>
+                Visitas — {a.visitas.realizadas}/{a.visitas.programadas} programadas · {a.pct_visitas}%
               </div>
-              <MiniBar pct={a.pct_visitas} cor={a.pct_visitas >= 90 ? "#16a34a" : a.pct_visitas >= 70 ? "#d97706" : "#dc2626"} />
-              <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>
+              <Bar pct={a.pct_visitas} cor={corVis} height={8} />
+              <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 4 }}>
                 {a.visitas.nao_encontradas} não encontradas · {a.visitas.recusas} recusas
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>
-                Cadastro SIS — {a.familias_cadastradas}/{a.familias_meta} fam. · {a.pct_cadastro}% completo
+              <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 5 }}>
+                Famílias — {a.familias_cadastradas}/{a.familias_meta} · {a.pct_cadastro}%
               </div>
-              <MiniBar pct={a.pct_cadastro} cor={a.pct_cadastro >= 90 ? "#16a34a" : "#d97706"} />
-              <div style={{ fontSize: 10, color: a.pct_cadastro < 80 ? "#dc2626" : "#9ca3af", marginTop: 2 }}>
-                {a.pct_cadastro < 80
-                  ? `⚠ ${a.familias_meta - a.familias_cadastradas} cadastros pendentes no SIS`
-                  : "✓ Cadastros SIS atualizados"}
+              <Bar pct={a.pct_cadastro} cor={corCad} height={8} />
+              <div style={{ fontSize: 10, color: a.pct_cadastro < 80 ? "#dc2626" : "#9ca3af", marginTop: 4 }}>
+                {a.pct_cadastro < 80 ? `⚠ ${a.familias_meta - a.familias_cadastradas} cadastros pendentes` : "✓ Meta atingida"}
               </div>
             </div>
           </div>
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
             {[
-              { label: "Gestantes",   val: a.indicadores.gestantes_ativas, cor: "#7c3aed" },
-              { label: "< 2 anos",    val: a.indicadores.criancas_lt2,     cor: "#0891b2" },
-              { label: "HAS",         val: a.indicadores.has,              cor: "#d97706" },
-              { label: "DM",          val: a.indicadores.dm,               cor: "#dc2626" },
-              { label: "Idosos",      val: a.indicadores.idosos,           cor: "#6b7280" },
+              { label: "Gestantes", val: a.indicadores.gestantes_ativas, cor: "#7c3aed" },
+              { label: "< 2 anos",  val: a.indicadores.criancas_lt2,     cor: "#0891b2" },
+              { label: "HAS",       val: a.indicadores.has,              cor: "#d97706" },
+              { label: "DM",        val: a.indicadores.dm,               cor: "#dc2626" },
+              { label: "Idosos",    val: a.indicadores.idosos,           cor: "#6b7280" },
             ].map(k => (
-              <div key={k.label} style={{
-                textAlign: "center", padding: "6px 10px", background: k.cor + "12",
-                borderRadius: 6, minWidth: 50,
-              }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: k.cor }}>{k.val}</div>
+              <div key={k.label} style={{ textAlign: "center", padding: "7px 12px", background: `${k.cor}10`, borderRadius: 8, minWidth: 56 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: k.cor }}>{k.val}</div>
                 <div style={{ fontSize: 10, color: "#9ca3af" }}>{k.label}</div>
               </div>
             ))}
@@ -279,60 +161,452 @@ function AcsCard({ a }: { a: AcsItem }) {
   );
 }
 
-// ── Card Microárea ────────────────────────────────────────────────────────────
+// ── Aba Visitas ───────────────────────────────────────────────────────────────
 
-function MicroareaCard({ ma }: { ma: Microarea }) {
-  const cor = semCor[ma.semaforo];
+function AbaVisitas({ fonte }: { fonte: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["acs-visitas"],
+    queryFn: () => apiGet("/api/acs/esus/visitas") as Promise<any>,
+    staleTime: 120_000,
+  });
+
+  const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [filtroEsf, setFiltroEsf] = useState("Todas");
+
+  const visitas = data?.dados ?? [];
+  const tiposCor: Record<string, string> = {
+    visita_periodica: "#1351b4", busca_ativa: "#d97706",
+    acompanhamento_gestante: "#7c3aed", acompanhamento_crianca: "#0891b2", outros: "#6b7280",
+  };
+  const tiposLabel: Record<string, string> = {
+    visita_periodica: "Periódica", busca_ativa: "Busca Ativa",
+    acompanhamento_gestante: "Gestante", acompanhamento_crianca: "Criança <2a", outros: "Outros",
+  };
+  const desfechoCor: Record<string, string> = {
+    visita_realizada: "#16a34a", ausente: "#d97706", recusa: "#dc2626",
+  };
+
+  const filtradas = visitas.filter((v: any) =>
+    (filtroTipo === "todos" || v.tipo_visita === filtroTipo) &&
+    (filtroEsf === "Todas" || v.esf === filtroEsf)
+  );
+
+  const resumo = {
+    total: visitas.length,
+    realizadas: visitas.filter((v: any) => v.desfecho === "visita_realizada").length,
+    ausentes: visitas.filter((v: any) => v.desfecho === "ausente").length,
+    recusas: visitas.filter((v: any) => v.desfecho === "recusa").length,
+  };
+
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando visitas...</div>;
+
   return (
-    <div style={{
-      border: `1px solid ${cor}40`,
-      borderTop: `3px solid ${cor}`,
-      borderRadius: 8, padding: "12px 14px",
-      background: "#fff",
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 13 }}>{ma.codigo}</div>
-          <div style={{ fontSize: 12, color: "#6b7280" }}>{ma.nome}</div>
-          <div style={{ fontSize: 11, color: "#9ca3af" }}>
-            {ma.zona === "urbana" ? "🏙 Urbana" : "🌲 Rural"} · {ma.esf}
+    <div>
+      {/* Resumo KPIs */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
+        {[
+          { label: "Total Visitas", val: resumo.total, cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
+          { label: "Realizadas", val: resumo.realizadas, cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+          { label: "Ausentes", val: resumo.ausentes, cor: "#d97706", bg: "#fef3c7", border: "#fde68a" },
+          { label: "Recusas", val: resumo.recusas, cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+        ].map(k => (
+          <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: 10, padding: "14px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: k.cor }}>{k.val}</div>
+            <div style={{ fontSize: 11, color: "#6b7280" }}>{k.label}</div>
           </div>
-        </div>
-        <div style={{
-          background: cor + "18", color: cor,
-          fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 10,
-        }}>
-          {ma.pct_cobertura}%
-        </div>
+        ))}
       </div>
 
-      <div style={{ marginBottom: 6 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9ca3af", marginBottom: 2 }}>
-          <span>Famílias: {ma.familias_cadastradas}/{ma.familias_meta}</span>
-          <span>Visitas: {ma.pct_visitas}%</span>
+      {/* Filtros */}
+      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 12, flexWrap: "wrap" as const, alignItems: "center" }}>
+        <select value={filtroEsf} onChange={e => setFiltroEsf(e.target.value)}
+          style={{ border: "1px solid #d1d5db", borderRadius: 7, padding: "7px 12px", fontSize: 12 }}>
+          {["Todas","ESF I","ESF II","ESF III","ESF IV","ESF V"].map(e => <option key={e}>{e}</option>)}
+        </select>
+        <div style={{ display: "flex", gap: 6 }}>
+          {["todos","visita_periodica","busca_ativa","acompanhamento_gestante","acompanhamento_crianca"].map(t => (
+            <button key={t} onClick={() => setFiltroTipo(t)}
+              style={{ padding: "5px 12px", fontSize: 11, borderRadius: 20, border: "1px solid #d1d5db", background: filtroTipo === t ? "#1351b4" : "#fff", color: filtroTipo === t ? "#fff" : "#374151", cursor: "pointer", fontWeight: filtroTipo === t ? 700 : 400 }}>
+              {t === "todos" ? "Todos" : tiposLabel[t]}
+            </button>
+          ))}
         </div>
-        <MiniBar pct={ma.pct_cobertura} cor={cor} />
+        <span style={{ marginLeft: "auto", fontSize: 12, color: "#9ca3af" }}>{filtradas.length} visitas</span>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9ca3af" }}>
-        <span>{ma.acs_ativos}/{ma.acs_count} ACS ativos</span>
-        {ma.gestantes_ativas > 0 && (
-          <span style={{ color: "#7c3aed" }}>♀ {ma.gestantes_ativas} gest.</span>
-        )}
+      {/* Tabela */}
+      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: "#f8fafc" }}>
+                {["Data","ACS","Microárea","ESF","Tipo","Turno","Desfecho","Grupos Prioritários"].map(h => (
+                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#6b7280", fontSize: 11, borderBottom: "2px solid #e4e7ec", whiteSpace: "nowrap" as const }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtradas.slice(0, 100).map((v: any, i: number) => {
+                const gps = Object.entries(v.grupos_prioritarios || {}).filter(([, val]) => val).map(([k]) => k.replace("_", " "));
+                return (
+                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                    <td style={{ padding: "9px 12px", color: "#374151" }}>{v.data}</td>
+                    <td style={{ padding: "9px 12px", fontWeight: 500 }}>{v.acs_nome}</td>
+                    <td style={{ padding: "9px 12px" }}><span style={{ background: "#eff6ff", color: "#1d4ed8", borderRadius: 5, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>{v.microarea}</span></td>
+                    <td style={{ padding: "9px 12px", fontSize: 11, color: ESF_COR[v.esf] || "#374151", fontWeight: 600 }}>{v.esf}</td>
+                    <td style={{ padding: "9px 12px" }}>
+                      <span style={{ background: `${tiposCor[v.tipo_visita] || "#6b7280"}15`, color: tiposCor[v.tipo_visita] || "#6b7280", borderRadius: 5, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
+                        {tiposLabel[v.tipo_visita] || v.tipo_visita}
+                      </span>
+                    </td>
+                    <td style={{ padding: "9px 12px", fontSize: 11, color: "#6b7280", textTransform: "capitalize" as const }}>{v.turno}</td>
+                    <td style={{ padding: "9px 12px" }}>
+                      <span style={{ background: `${desfechoCor[v.desfecho] || "#6b7280"}15`, color: desfechoCor[v.desfecho] || "#6b7280", borderRadius: 5, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
+                        {v.desfecho === "visita_realizada" ? "✓ Realizada" : v.desfecho === "ausente" ? "Ausente" : "Recusa"}
+                      </span>
+                    </td>
+                    <td style={{ padding: "9px 12px" }}>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const }}>
+                        {gps.map((g: string) => (
+                          <span key={g} style={{ background: "#faf5ff", color: "#7c3aed", fontSize: 9, padding: "1px 6px", borderRadius: 4, border: "1px solid #e9d5ff" }}>{g}</span>
+                        ))}
+                        {gps.length === 0 && <span style={{ color: "#d1d5db", fontSize: 10 }}>—</span>}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {filtradas.length > 100 && (
+            <div style={{ padding: "10px 16px", fontSize: 11, color: "#9ca3af", textAlign: "center", borderTop: "1px solid #f3f4f6" }}>
+              Mostrando 100 de {filtradas.length} visitas · Exporte para ver todas
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-// ── Página principal ──────────────────────────────────────────────────────────
+// ── Aba Calendário ────────────────────────────────────────────────────────────
+
+function AbaCalendario() {
+  const [esfSel, setEsfSel] = useState("Todas");
+  const { data, isLoading } = useQuery({
+    queryKey: ["acs-calendario", esfSel],
+    queryFn: () => apiGet("/api/acs/esus/calendario-visitas", esfSel !== "Todas" ? { esf: esfSel } : undefined) as Promise<any>,
+    staleTime: 120_000,
+  });
+
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando calendário...</div>;
+
+  const eventos = data?.eventos ?? [];
+  const dias = data?.dias ?? 31;
+
+  // Agrupar por dia
+  const porDia: Record<number, { prog: number; real: number; status: string }> = {};
+  eventos.forEach((e: any) => {
+    if (!porDia[e.dia]) porDia[e.dia] = { prog: 0, real: 0, status: "pendente" };
+    porDia[e.dia].prog += e.programadas;
+    porDia[e.dia].real += e.realizadas;
+  });
+
+  // ACS summary por ESF
+  const porEsf: Record<string, { prog: number; real: number }> = {};
+  eventos.forEach((e: any) => {
+    if (!porEsf[e.esf]) porEsf[e.esf] = { prog: 0, real: 0 };
+    porEsf[e.esf].prog += e.programadas;
+    porEsf[e.esf].real += e.realizadas;
+  });
+
+  const totalProg = Object.values(porDia).reduce((s, d) => s + d.prog, 0);
+  const totalReal = Object.values(porDia).reduce((s, d) => s + d.real, 0);
+  const pct = totalProg > 0 ? Math.round(totalReal / totalProg * 100) : 0;
+
+  return (
+    <div>
+      {/* Filtro ESF */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" as const }}>
+        {["Todas","ESF I","ESF II","ESF III","ESF IV","ESF V"].map(e => (
+          <button key={e} onClick={() => setEsfSel(e)}
+            style={{ padding: "7px 16px", fontSize: 12, borderRadius: 20, border: "1px solid #d1d5db", background: esfSel === e ? "#1351b4" : "#fff", color: esfSel === e ? "#fff" : "#374151", cursor: "pointer", fontWeight: esfSel === e ? 700 : 400 }}>
+            {e}
+          </button>
+        ))}
+      </div>
+
+      {/* KPIs */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
+        {[
+          { label: "Visitas Programadas", val: totalProg, cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
+          { label: "Visitas Realizadas", val: totalReal, cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+          { label: "Taxa de Realização", val: `${pct}%`, cor: pct >= 90 ? "#16a34a" : pct >= 70 ? "#d97706" : "#dc2626", bg: pct >= 90 ? "#f0fdf4" : pct >= 70 ? "#fef3c7" : "#fef2f2", border: pct >= 90 ? "#bbf7d0" : pct >= 70 ? "#fde68a" : "#fecaca" },
+        ].map(k => (
+          <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: 10, padding: "16px 18px", textAlign: "center" }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: k.cor }}>{k.val}</div>
+            <div style={{ fontSize: 12, color: "#6b7280" }}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Calendário grid */}
+      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "18px 20px", marginBottom: 18 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Julho/2026 — Calendário de Visitas Domiciliares</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
+          {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map(d => (
+            <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: "#9ca3af", paddingBottom: 6 }}>{d}</div>
+          ))}
+          {/* offset: 01/Jul/2026 = Quarta = índice 3 */}
+          {Array.from({ length: 3 }).map((_, i) => <div key={`e${i}`} />)}
+          {Array.from({ length: dias }).map((_, i) => {
+            const dia = i + 1;
+            const d = porDia[dia];
+            if (!d) return (
+              <div key={dia} style={{ aspectRatio: "1", borderRadius: 8, background: "#f9fafb", border: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#d1d5db" }}>
+                {dia}
+              </div>
+            );
+            const taxa = d.prog > 0 ? Math.round(d.real / d.prog * 100) : 0;
+            const cor = taxa >= 90 ? "#16a34a" : taxa >= 70 ? "#d97706" : "#dc2626";
+            return (
+              <div key={dia} style={{ aspectRatio: "1", borderRadius: 8, background: `${cor}10`, border: `1px solid ${cor}30`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#374151" }}>{dia}</div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: cor }}>{taxa}%</div>
+                <div style={{ fontSize: 8, color: "#9ca3af" }}>{d.real}/{d.prog}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display: "flex", gap: 16, marginTop: 12, fontSize: 10, color: "#9ca3af" }}>
+          {[{ cor:"#16a34a", label:"≥90%" },{ cor:"#d97706", label:"70-89%" },{ cor:"#dc2626", label:"<70%" }].map(l => (
+            <span key={l.label} style={{ display:"flex", alignItems:"center", gap:4 }}>
+              <span style={{ width:10, height:10, borderRadius:2, background:l.cor, display:"inline-block" }}/>{l.label} realizado
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Por ESF */}
+      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, padding: "16px 18px" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Realização por ESF</div>
+        {Object.entries(porEsf).map(([esf, d]) => {
+          const t = d.prog > 0 ? Math.round(d.real / d.prog * 100) : 0;
+          const cor = ESF_COR[esf] || "#6b7280";
+          return (
+            <div key={esf} style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: cor }}>{esf}</span>
+                <span style={{ fontSize: 12, color: "#374151" }}>{d.real}/{d.prog} · <strong style={{ color: cor }}>{t}%</strong></span>
+              </div>
+              <Bar pct={t} cor={cor} height={8} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Aba Cadastros Individuais ─────────────────────────────────────────────────
+
+function AbaCadastrosIndividuais() {
+  const [busca, setBusca] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [pagina, setPagina] = useState(0);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["acs-cad-ind", pagina],
+    queryFn: () => apiGet("/api/acs/esus/cadastros-individuais", { pagina }) as Promise<any>,
+    staleTime: 120_000,
+  });
+
+  const fichas = (data?.dados ?? []).filter((f: any) => {
+    if (filtroStatus !== "todos" && f.status_cadastro !== filtroStatus) return false;
+    if (busca && !f.nome.toLowerCase().includes(busca.toLowerCase()) && !f.cns.includes(busca)) return false;
+    return true;
+  });
+
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando cadastros...</div>;
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" as const, alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#fff", border: "1px solid #d1d5db", borderRadius: 8, padding: "7px 12px", flex: 1, minWidth: 200 }}>
+          <Search size={13} color="#9ca3af" />
+          <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por nome ou CNS..."
+            style={{ border: "none", outline: "none", fontSize: 12, flex: 1 }} />
+        </div>
+        {["todos","completo","parcial","incompleto"].map(s => {
+          const cor = s === "completo" ? "#16a34a" : s === "parcial" ? "#d97706" : s === "incompleto" ? "#dc2626" : "#374151";
+          return (
+            <button key={s} onClick={() => setFiltroStatus(s)}
+              style={{ padding: "6px 14px", fontSize: 11, borderRadius: 20, border: `1px solid ${cor}60`, background: filtroStatus === s ? cor : "#fff", color: filtroStatus === s ? "#fff" : cor, cursor: "pointer", fontWeight: 600 }}>
+              {s === "todos" ? "Todos" : s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          );
+        })}
+        <span style={{ fontSize: 12, color: "#9ca3af" }}>{fichas.length} fichas</span>
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: "#f8fafc" }}>
+                {["Nome / CNS","ACS","Microárea","Nascimento","Sexo","Raça/Cor","Condições","Moradia","Status","Completude"].map(h => (
+                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#6b7280", fontSize: 11, borderBottom: "2px solid #e4e7ec", whiteSpace: "nowrap" as const }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {fichas.slice(0, 50).map((f: any) => {
+                const cor = f.status_cadastro === "completo" ? "#16a34a" : f.status_cadastro === "parcial" ? "#d97706" : "#dc2626";
+                const conds = Object.entries(f.condicoes_saude || {}).filter(([,v]) => v).map(([k]) => k.replace(/_/g, " "));
+                return (
+                  <tr key={f.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                    <td style={{ padding: "9px 12px" }}>
+                      <div style={{ fontWeight: 500 }}>{f.nome}</div>
+                      <div style={{ fontSize: 10, color: "#9ca3af" }}>{f.cns?.slice(0,9)}...</div>
+                    </td>
+                    <td style={{ padding: "9px 12px", fontSize: 11 }}>{f.acs_nome}</td>
+                    <td style={{ padding: "9px 12px" }}><span style={{ background: "#eff6ff", color: "#1d4ed8", borderRadius: 5, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>{f.microarea}</span></td>
+                    <td style={{ padding: "9px 12px", color: "#6b7280", fontSize: 11 }}>{f.data_nascimento}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "center" }}>{f.sexo}</td>
+                    <td style={{ padding: "9px 12px", fontSize: 11 }}>{f.raca_cor}</td>
+                    <td style={{ padding: "9px 12px" }}>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const }}>
+                        {conds.map((c: string) => <span key={c} style={{ background: "#faf5ff", color: "#7c3aed", fontSize: 9, padding: "1px 5px", borderRadius: 4 }}>{c}</span>)}
+                        {conds.length === 0 && <span style={{ color: "#d1d5db", fontSize: 10 }}>—</span>}
+                      </div>
+                    </td>
+                    <td style={{ padding: "9px 12px", fontSize: 11, textTransform: "capitalize" as const, color: "#6b7280" }}>{f.situacao_moradia?.replace(/_/g, " ")}</td>
+                    <td style={{ padding: "9px 12px" }}>
+                      <span style={{ background: `${cor}15`, color: cor, borderRadius: 20, padding: "2px 9px", fontSize: 10, fontWeight: 700, border: `1px solid ${cor}40` }}>
+                        {f.status_cadastro === "completo" ? "✓" : f.status_cadastro === "parcial" ? "⚠" : "✗"} {f.status_cadastro}
+                      </span>
+                    </td>
+                    <td style={{ padding: "9px 12px", minWidth: 90 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <Bar pct={f.pct_completo} cor={cor} />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: cor, minWidth: 32 }}>{f.pct_completo}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12 }}>
+        <button onClick={() => setPagina(p => Math.max(0, p-1))} disabled={pagina === 0}
+          style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: 12 }}>← Anterior</button>
+        <span style={{ padding: "6px 14px", fontSize: 12, color: "#6b7280" }}>Página {pagina + 1}</span>
+        <button onClick={() => setPagina(p => p+1)}
+          style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: 12 }}>Próxima →</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Aba Cadastros Domiciliares ────────────────────────────────────────────────
+
+function AbaCadastrosDomiciliares() {
+  const [pagina, setPagina] = useState(0);
+  const { data, isLoading } = useQuery({
+    queryKey: ["acs-cad-dom", pagina],
+    queryFn: () => apiGet("/api/acs/esus/cadastros-domiciliares", { pagina }) as Promise<any>,
+    staleTime: 120_000,
+  });
+
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando domicílios...</div>;
+
+  const fichas = data?.dados ?? [];
+
+  const resumo = {
+    total: data?.total ?? 0,
+    completos: fichas.filter((f: any) => f.status_cadastro === "completo").length,
+    comAgua: fichas.filter((f: any) => f.abastecimento_agua === "rede_publica").length,
+    comEnergia: fichas.filter((f: any) => f.energia_eletrica).length,
+    animais: fichas.filter((f: any) => f.animais_domicilio).length,
+  };
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 20 }}>
+        {[
+          { label: "Total Domicílios", val: resumo.total, cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
+          { label: "Completos", val: resumo.completos, cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+          { label: "Rede Pública Água", val: resumo.comAgua, cor: "#0891b2", bg: "#ecfeff", border: "#a5f3fc" },
+          { label: "Com Energia Elét.", val: resumo.comEnergia, cor: "#d97706", bg: "#fef3c7", border: "#fde68a" },
+          { label: "Animais no Domicílio", val: resumo.animais, cor: "#7c3aed", bg: "#faf5ff", border: "#e9d5ff" },
+        ].map(k => (
+          <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: 10, padding: "14px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 26, fontWeight: 800, color: k.cor }}>{k.val}</div>
+            <div style={{ fontSize: 11, color: "#6b7280" }}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: "#f8fafc" }}>
+                {["Logradouro","ACS","Microárea","ESF","Moradores","Tipo Imóvel","Água","Lixo","Energia","Animais","Status"].map(h => (
+                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#6b7280", fontSize: 11, borderBottom: "2px solid #e4e7ec", whiteSpace: "nowrap" as const }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {fichas.slice(0, 50).map((f: any) => {
+                const cor = f.status_cadastro === "completo" ? "#16a34a" : f.status_cadastro === "parcial" ? "#d97706" : "#dc2626";
+                return (
+                  <tr key={f.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                    <td style={{ padding: "9px 12px", fontWeight: 500 }}>{f.logradouro}</td>
+                    <td style={{ padding: "9px 12px", fontSize: 11 }}>{f.acs_nome}</td>
+                    <td style={{ padding: "9px 12px" }}><span style={{ background: "#eff6ff", color: "#1d4ed8", borderRadius: 5, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>{f.microarea}</span></td>
+                    <td style={{ padding: "9px 12px", fontSize: 11, color: ESF_COR[f.esf] || "#374151", fontWeight: 600 }}>{f.esf}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "center", fontWeight: 700, color: "#374151" }}>{f.moradores}</td>
+                    <td style={{ padding: "9px 12px", fontSize: 11, textTransform: "capitalize" as const, color: "#6b7280" }}>{f.tipo_moradia}</td>
+                    <td style={{ padding: "9px 12px" }}>
+                      <span style={{ fontSize: 10, color: f.abastecimento_agua === "rede_publica" ? "#16a34a" : "#dc2626" }}>
+                        {f.abastecimento_agua === "rede_publica" ? "✓ Rede" : f.abastecimento_agua?.replace(/_/g, " ")}
+                      </span>
+                    </td>
+                    <td style={{ padding: "9px 12px", fontSize: 11, color: f.destino_lixo === "coletado" ? "#16a34a" : "#dc2626", textTransform: "capitalize" as const }}>{f.destino_lixo?.replace(/_/g, " ")}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "center" }}>{f.energia_eletrica ? "✓" : <span style={{ color: "#dc2626" }}>✗</span>}</td>
+                    <td style={{ padding: "9px 12px", textAlign: "center" }}>{f.animais_domicilio ? "Sim" : "—"}</td>
+                    <td style={{ padding: "9px 12px" }}>
+                      <span style={{ background: `${cor}15`, color: cor, borderRadius: 20, padding: "2px 9px", fontSize: 10, fontWeight: 700 }}>
+                        {f.status_cadastro}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12 }}>
+        <button onClick={() => setPagina(p => Math.max(0, p-1))} disabled={pagina === 0}
+          style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: 12 }}>← Anterior</button>
+        <span style={{ padding: "6px 14px", fontSize: 12, color: "#6b7280" }}>Página {pagina + 1}</span>
+        <button onClick={() => setPagina(p => p+1)}
+          style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: 12 }}>Próxima →</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Componente Principal ──────────────────────────────────────────────────────
 
 export default function ACSPainel() {
-  const [aba, setAba] = useState<"dashboard" | "acs" | "microareas" | "geo" | "sis">("dashboard");
+  const [aba, setAba] = useState<Aba>("dashboard");
   const [esfFiltro, setEsfFiltro] = useState("Todas");
   const [statusFiltro, setStatusFiltro] = useState("Todos");
-  const [sisAcsFiltro, setSisAcsFiltro] = useState("Todos");
-  const [sisStatusFiltro, setSisStatusFiltro] = useState("Todos");
-  const [sisBusca, setSisBusca] = useState("");
 
   const { data: dash, isLoading, refetch } = useQuery<DashboardAcs>({
     queryKey: ["acs-dashboard"],
@@ -340,500 +614,286 @@ export default function ACSPainel() {
     staleTime: 60_000,
   });
 
-  const { data: listaData } = useQuery<ListaAcs>({
+  const { data: listaData } = useQuery({
     queryKey: ["acs-lista", esfFiltro],
-    queryFn: () => apiGet("/api/acs/lista", esfFiltro !== "Todas" ? { esf: esfFiltro } : undefined) as Promise<ListaAcs>,
+    queryFn: () => apiGet("/api/acs/lista", esfFiltro !== "Todas" ? { esf: esfFiltro } : undefined) as Promise<any>,
     staleTime: 60_000,
   });
 
-  const { data: maData } = useQuery<{ microareas: Microarea[] }>({
+  const { data: maData } = useQuery({
     queryKey: ["acs-microareas"],
-    queryFn: () => apiGet("/api/acs/microareas") as Promise<{ microareas: Microarea[] }>,
+    queryFn: () => apiGet("/api/acs/microareas") as Promise<any>,
     staleTime: 60_000,
+  });
+
+  const { data: esusStatus } = useQuery<EsusStatus>({
+    queryKey: ["esus-status"],
+    queryFn: () => apiGet("/api/acs/esus/status") as Promise<EsusStatus>,
+    staleTime: 300_000,
+    retry: false,
   });
 
   const k = dash?.kpis;
-  const acsListaFiltrada = (listaData?.acs ?? []).filter(a =>
+  const acsListaFiltrada = ((listaData?.acs ?? []) as AcsItem[]).filter(a =>
     statusFiltro === "Todos" || a.status === statusFiltro
   );
 
-  const todosCadastros = useMemo(
-    () => gerarCadastrosSIS(listaData?.acs ?? []),
-    [listaData?.acs]
-  );
-
-  const [sisMicroareaFiltro, setSisMicroareaFiltro] = useState("Todas");
-  const [sisIncFiltro, setSisIncFiltro] = useState(false);
-
-  const todasMicroareas = useMemo(() =>
-    ["Todas", ...Array.from(new Set(todosCadastros.map(p => p.microarea)))],
-    [todosCadastros]
-  );
-
-  // Detecção de inconsistências por paciente
-  const cadComInconsistencias = useMemo(() => todosCadastros.map(p => {
-    const inc: string[] = [];
-    if (!p.campos.find(c => c.campo === "cns___cpf" && c.preenchido)) inc.push("CNS/CPF ausente");
-    if (!p.campos.find(c => c.campo === "raça___cor" && c.preenchido)) inc.push("Raça/Cor não informada");
-    if (!p.campos.find(c => c.campo === "condições_de_saúde" && c.preenchido)) inc.push("Condições de saúde em branco");
-    if (!p.campos.find(c => c.campo === "endereço_completo" && c.preenchido)) inc.push("Endereço incompleto");
-    if (!p.campos.find(c => c.campo === "responsável_familiar" && c.preenchido)) inc.push("Responsável sem CNS");
-    if (p.visitas_no_mes === 0) inc.push("Sem visita no mês");
-    const ano = parseInt(p.data_nascimento.slice(0, 4));
-    if (ano > 2025) inc.push("Data nascimento inválida");
-    if (ano < 1900) inc.push("Data nascimento suspeita");
-    return { ...p, inconsistencias: inc };
-  }), [todosCadastros]);
-
-  const cadFiltrados = useMemo(() => cadComInconsistencias.filter(p => {
-    if (sisAcsFiltro !== "Todos" && p.acs_nome !== sisAcsFiltro) return false;
-    if (sisMicroareaFiltro !== "Todas" && p.microarea !== sisMicroareaFiltro) return false;
-    if (sisStatusFiltro !== "Todos" && p.status_cadastro !== sisStatusFiltro) return false;
-    if (sisIncFiltro && p.inconsistencias.length === 0) return false;
-    if (sisBusca && !p.nome.toLowerCase().includes(sisBusca.toLowerCase()) &&
-        !p.cns.includes(sisBusca)) return false;
-    return true;
-  }), [cadComInconsistencias, sisAcsFiltro, sisMicroareaFiltro, sisStatusFiltro, sisIncFiltro, sisBusca]);
-
-  const resumoSis = useMemo(() => ({
-    total: todosCadastros.length,
-    completos:       todosCadastros.filter(p => p.status_cadastro === "completo").length,
-    parciais:        todosCadastros.filter(p => p.status_cadastro === "parcial").length,
-    incompletos:     todosCadastros.filter(p => p.status_cadastro === "incompleto").length,
-    semVisita:       todosCadastros.filter(p => p.visitas_no_mes === 0).length,
-    comInconsistencia: cadComInconsistencias.filter(p => p.inconsistencias.length > 0).length,
-  }), [todosCadastros, cadComInconsistencias]);
-
-  const acsNomes = useMemo(() =>
-    ["Todos", ...Array.from(new Set((listaData?.acs ?? []).map(a => a.nome)))],
-    [listaData?.acs]
-  );
-
   const ABAS = [
-    { id: "dashboard",  label: "Dashboard",                 icon: <Activity   size={13} /> },
-    { id: "geo",        label: "🗺 Tempo Real",              icon: <Navigation size={13} /> },
-    { id: "acs",        label: "Lista de ACS",              icon: <Users      size={13} /> },
-    { id: "microareas", label: "Microáreas",                icon: <MapPin     size={13} /> },
-    { id: "sis",        label: "Cadastros SIS",             icon: <FileText   size={13} /> },
-  ] as const;
+    { id: "dashboard" as Aba,       label: "Dashboard",            icon: <BarChart2 size={13} /> },
+    { id: "visitas" as Aba,         label: "Visitas",              icon: <Home size={13} /> },
+    { id: "calendario" as Aba,      label: "Calendário",           icon: <Calendar size={13} /> },
+    { id: "cadastros_ind" as Aba,   label: "Cadastros Individuais", icon: <User size={13} /> },
+    { id: "cadastros_dom" as Aba,   label: "Cadastros Domiciliares", icon: <Building2 size={13} /> },
+    { id: "lista" as Aba,           label: "Lista de ACS",         icon: <Users size={13} /> },
+    { id: "microareas" as Aba,      label: "Microáreas",           icon: <MapPin size={13} /> },
+    { id: "geo" as Aba,             label: "Tempo Real",           icon: <Navigation size={13} /> },
+  ];
+
+  const corPec = esusStatus?.conectado ? (esusStatus.autenticado ? "#16a34a" : "#d97706") : "#dc2626";
+  const bgPec  = esusStatus?.conectado ? (esusStatus.autenticado ? "#f0fdf4" : "#fef3c7") : "#fef2f2";
 
   return (
-    <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto" }}>
+    <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>
 
-      {/* Cabeçalho */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-            <UserCheck size={22} color="#0891b2" /> Painel ACS
-          </h1>
-          <p style={{ margin: "4px 0 0", color: "#6b7280", fontSize: 13 }}>
-            Agentes Comunitários de Saúde · Apuí/AM · {dash?.mes_referencia?.label ?? ""}
-          </p>
-        </div>
-        <button onClick={() => refetch()} style={{
-          display: "flex", alignItems: "center", gap: 6,
-          border: "1px solid #d1d5db", borderRadius: 6, padding: "6px 12px",
-          background: "#fff", cursor: "pointer", fontSize: 13,
-        }}>
-          <RefreshCw size={14} /> Atualizar
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 20, borderBottom: "2px solid #e4e7ec", paddingBottom: 0 }}>
-        {ABAS.map(a => (
-          <button key={a.id} onClick={() => setAba(a.id)} style={{
-            display: "flex", alignItems: "center", gap: 5,
-            padding: "8px 14px", border: "none", background: "none",
-            borderBottom: aba === a.id ? "2px solid #0891b2" : "2px solid transparent",
-            color: aba === a.id ? "#0891b2" : "#6b7280",
-            fontWeight: aba === a.id ? 700 : 400,
-            cursor: "pointer", fontSize: 13, marginBottom: -2,
-          }}>
-            {a.icon} {a.label}
-          </button>
-        ))}
-      </div>
-
-      {isLoading && (
-        <div style={{ textAlign: "center", padding: 60 }}>
-          <RefreshCw size={28} color="#9ca3af" style={{ animation: "spin 1s linear infinite" }} />
-        </div>
-      )}
-
-      {/* ── Dashboard ── */}
-      {aba === "dashboard" && k && (
-        <div>
-          {/* KPIs principais */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
-            <KpiCard icon={<Users size={18} />}     label="ACS Ativos"         val={`${k.acs_ativos}/${k.total_acs}`} sub={`${k.total_microareas} microáreas`} cor="#0891b2" bg="#ecfeff" />
-            <KpiCard icon={<Home size={18} />}      label="Cobertura Familiar"  val={`${k.pct_cobertura}%`} sub={`${k.familias_cadastradas.toLocaleString("pt-BR")} famílias`} cor="#16a34a" bg="#f0fdf4" />
-            <KpiCard icon={<CheckCircle size={18} />} label="Visitas Realizadas" val={`${k.pct_visitas}%`} sub="do programado" cor={k.pct_visitas >= 90 ? "#16a34a" : k.pct_visitas >= 70 ? "#d97706" : "#dc2626"} bg="#f9fafb" />
-            <KpiCard icon={<Activity size={18} />}  label="Grupos Prioritários" val={k.gestantes_ativas + k.criancas_lt2} sub={`${k.gestantes_ativas} gest. · ${k.criancas_lt2} <2a`} cor="#7c3aed" bg="#faf5ff" />
-          </div>
-
-          {/* Distribuição ESF + grupos */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-
-            {/* ESF */}
-            <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: "16px" }}>
-              <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 700 }}>Distribuição por Equipe ESF</h3>
-              {Object.entries(dash!.distribuicao_esf).map(([esf, n]) => {
-                const cores: Record<string, string> = { "ESF I": "#0891b2", "ESF II": "#7c3aed", "ESF III": "#16a34a", "ESF IV": "#d97706", "ESF V": "#dc2626" };
-                return (
-                  <div key={esf} style={{ marginBottom: 10 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                      <span>{esf}</span>
-                      <span style={{ fontWeight: 600, color: cores[esf] }}>{n} ACS</span>
-                    </div>
-                    <MiniBar pct={(n / k.acs_ativos) * 100} cor={cores[esf] ?? "#9ca3af"} />
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Grupos prioritários */}
-            <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: "16px" }}>
-              <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 700 }}>Grupos Prioritários Acompanhados</h3>
-              {[
-                { label: "Gestantes ativas",    val: k.gestantes_ativas,  cor: "#7c3aed", icon: <Baby size={14} /> },
-                { label: "Crianças < 2 anos",   val: k.criancas_lt2,      cor: "#0891b2", icon: <Baby size={14} /> },
-                { label: "HAS acompanhados",    val: k.has_acompanhados,  cor: "#d97706", icon: <Heart size={14} /> },
-                { label: "DM acompanhados",     val: k.dm_acompanhados,   cor: "#dc2626", icon: <Activity size={14} /> },
-              ].map(g => (
-                <div key={g.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #f3f4f6" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: g.cor }}>{g.icon}<span style={{ fontSize: 12, color: "#374151" }}>{g.label}</span></div>
-                  <span style={{ fontWeight: 700, color: g.cor }}>{g.val}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Destaques e atenção */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            {/* Destaques */}
-            {dash!.acs_destaques.length > 0 && (
-              <div>
-                <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-                  <Star size={14} color="#16a34a" /> ACS Destaque
-                </h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {dash!.acs_destaques.map(a => (
-                    <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#f0fdf4", borderRadius: 8, border: "1px solid #bbf7d0" }}>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{a.nome}</div>
-                        <div style={{ fontSize: 11, color: "#6b7280" }}>{a.microarea} · {a.esf}</div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#16a34a" }}>{a.pct_visitas}% visitas</div>
-                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{a.familias_cadastradas} fam.</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+      {/* Header InvestSUS */}
+      <div style={{ background: "linear-gradient(135deg,#1351b4 0%,#0c3d8a 100%)", padding: "18px 28px 0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
+              <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: 6 }}>
+                <Users size={18} color="#fff" />
               </div>
-            )}
-
-            {/* Críticos */}
-            {dash!.acs_criticos.length > 0 && (
-              <div>
-                <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-                  <AlertTriangle size={14} color="#dc2626" /> Necessitam Atenção
-                </h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {dash!.acs_criticos.map(a => (
-                    <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#fff7f7", borderRadius: 8, border: "1px solid #fca5a5" }}>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{a.nome}</div>
-                        <div style={{ fontSize: 11, color: "#6b7280" }}>{a.microarea} · {a.esf}</div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626" }}>{a.pct_visitas}% visitas</div>
-                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{a.pct_cadastro}% cad.</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Lista ACS ── */}
-      {aba === "acs" && (
-        <div>
-          {/* Filtros */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-            {["Todas", "ESF I", "ESF II", "ESF III", "ESF IV", "ESF V"].map(e => (
-              <button key={e} onClick={() => setEsfFiltro(e)} style={{
-                padding: "4px 12px", fontSize: 12, borderRadius: 20,
-                border: "1px solid #d1d5db",
-                background: esfFiltro === e ? "#0891b2" : "#fff",
-                color: esfFiltro === e ? "#fff" : "#374151",
-                cursor: "pointer", fontWeight: esfFiltro === e ? 600 : 400,
-              }}>{e}</button>
-            ))}
-            <div style={{ width: 1, height: 20, background: "#e5e7eb", margin: "auto 0" }} />
-            {["Todos", "destaque", "regular", "critico", "afastado"].map(s => (
-              <button key={s} onClick={() => setStatusFiltro(s)} style={{
-                padding: "4px 12px", fontSize: 12, borderRadius: 20,
-                border: "1px solid #d1d5db",
-                background: statusFiltro === s ? statusCor[s] ?? "#374151" : "#fff",
-                color: statusFiltro === s ? "#fff" : "#374151",
-                cursor: "pointer", fontWeight: statusFiltro === s ? 600 : 400,
-              }}>
-                {s === "Todos" ? "Todos" : statusLabel[s]}
-              </button>
-            ))}
-            <span style={{ marginLeft: "auto", fontSize: 12, color: "#9ca3af", alignSelf: "center" }}>
-              {acsListaFiltrada.length} ACS
-            </span>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {acsListaFiltrada.map(a => <AcsCard key={a.id} a={a} />)}
-          </div>
-        </div>
-      )}
-
-      {/* ── Geo-localização em Tempo Real ── */}
-      {aba === "geo" && (
-        <div style={{ margin: "0 -24px -24px", minHeight: 640 }}>
-          <ACSGeoPage />
-        </div>
-      )}
-
-      {/* ── Microáreas ── */}
-      {aba === "microareas" && (
-        <div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
-            {(maData?.microareas ?? []).map(ma => <MicroareaCard key={ma.codigo} ma={ma} />)}
-          </div>
-          <div style={{ marginTop: 16, display: "flex", gap: 16, fontSize: 11, color: "#9ca3af" }}>
-            {[{ cor:"#16a34a",label:"≥90% cobertura"},{cor:"#d97706",label:"70–89%"},{cor:"#dc2626",label:"<70%"}].map(l => (
-              <span key={l.label} style={{ display:"flex",alignItems:"center",gap:4 }}>
-                <span style={{ width:10,height:10,borderRadius:2,background:l.cor,display:"inline-block" }}/>{l.label}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Cadastros SIS ── */}
-      {aba === "sis" && (
-        <div>
-
-          {/* Resumo KPIs */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:10, marginBottom:18 }}>
-            {[
-              { label:"Total Cadastros",     val:resumoSis.total,                cor:"#0891b2", bg:"#ecfeff" },
-              { label:"Completos",           val:resumoSis.completos,            cor:"#16a34a", bg:"#f0fdf4" },
-              { label:"Parciais",            val:resumoSis.parciais,             cor:"#d97706", bg:"#fffbeb" },
-              { label:"Incompletos",         val:resumoSis.incompletos,          cor:"#dc2626", bg:"#fff7f7" },
-              { label:"Sem Visita/Mês",      val:resumoSis.semVisita,            cor:"#6b7280", bg:"#f9fafb" },
-              { label:"Com Inconsistências", val:resumoSis.comInconsistencia,    cor:"#9333ea", bg:"#faf5ff" },
-            ].map(k => (
-              <div key={k.label} style={{ background:k.bg, borderRadius:10, padding:"12px 14px", textAlign:"center" }}>
-                <div style={{ fontSize:22, fontWeight:700, color:k.cor }}>{k.val}</div>
-                <div style={{ fontSize:11, color:"#9ca3af", marginTop:2 }}>{k.label}</div>
-                <div style={{ marginTop:6 }}>
-                  <MiniBar pct={Math.round((k.val/resumoSis.total)*100)} cor={k.cor}/>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Barra de completude geral */}
-          <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:"14px 16px", marginBottom:16 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-              <span style={{ fontSize:13, fontWeight:600 }}>Completude Geral dos Cadastros SIS</span>
-              <span style={{ fontSize:13, fontWeight:700, color:"#16a34a" }}>
-                {resumoSis.total > 0 ? Math.round((resumoSis.completos/resumoSis.total)*100) : 0}% completos
+              <span style={{ fontWeight: 800, fontSize: 20, color: "#fff" }}>Painel ACS</span>
+              <span style={{ background: "rgba(255,255,255,0.15)", color: "#bfdbfe", borderRadius: 6, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>
+                {dash?.mes_referencia?.label ?? "Julho/2026"}
               </span>
             </div>
-            <div style={{ height:10, background:"#e5e7eb", borderRadius:5, overflow:"hidden", display:"flex" }}>
-              <div style={{ width:`${Math.round((resumoSis.completos/resumoSis.total)*100)}%`, background:"#16a34a", transition:"width .5s" }}/>
-              <div style={{ width:`${Math.round((resumoSis.parciais/resumoSis.total)*100)}%`, background:"#d97706" }}/>
-              <div style={{ width:`${Math.round((resumoSis.incompletos/resumoSis.total)*100)}%`, background:"#dc2626" }}/>
-            </div>
-            <div style={{ display:"flex", gap:16, marginTop:6, fontSize:11, color:"#9ca3af" }}>
-              <span style={{ display:"flex", alignItems:"center", gap:4 }}><span style={{ width:10, height:10, borderRadius:2, background:"#16a34a", display:"inline-block" }}/> Completo</span>
-              <span style={{ display:"flex", alignItems:"center", gap:4 }}><span style={{ width:10, height:10, borderRadius:2, background:"#d97706", display:"inline-block" }}/> Parcial (≥60%)</span>
-              <span style={{ display:"flex", alignItems:"center", gap:4 }}><span style={{ width:10, height:10, borderRadius:2, background:"#dc2626", display:"inline-block" }}/> Incompleto (&lt;60%)</span>
+            <div style={{ fontSize: 12, color: "#bfdbfe" }}>
+              Agentes Comunitários de Saúde · Apuí/AM · 65 ACS · 65 Microáreas
             </div>
           </div>
 
-          {/* Campos mais problemáticos */}
-          <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:"14px 16px", marginBottom:16 }}>
-            <div style={{ fontSize:13, fontWeight:600, marginBottom:12 }}>Campos com Maior Pendência</div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
-              {CAMPOS_SIS.map(campo => {
-                const faltando = todosCadastros.filter(p =>
-                  p.campos.find(c => c.label === campo && !c.preenchido)
-                ).length;
-                const pct = todosCadastros.length > 0 ? Math.round((faltando/todosCadastros.length)*100) : 0;
-                return (
-                  <div key={campo} style={{ background:pct>40?"#fff7f7":pct>20?"#fffbeb":"#f9fafb", borderRadius:8, padding:"10px 12px" }}>
-                    <div style={{ fontSize:12, fontWeight:500, marginBottom:4 }}>{campo}</div>
-                    <div style={{ fontSize:18, fontWeight:700, color:pct>40?"#dc2626":pct>20?"#d97706":"#16a34a" }}>
-                      {faltando} <span style={{ fontSize:11, fontWeight:400, color:"#9ca3af" }}>pendentes</span>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {/* Status eSUS PEC */}
+            <div style={{ background: bgPec, border: `1px solid ${corPec}40`, borderRadius: 8, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+              {esusStatus?.conectado ? <Wifi size={14} color={corPec} /> : <WifiOff size={14} color={corPec} />}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: corPec }}>
+                  eSUS PEC · {esusStatus?.conectado ? (esusStatus.autenticado ? "Conectado" : "Sem autenticação") : "Offline"}
+                </div>
+                <div style={{ fontSize: 9, color: "#6b7280" }}>
+                  {esusStatus?.conectado ? `v${esusStatus.versao || "—"}` : "Dados de referência em uso"}
+                </div>
+              </div>
+            </div>
+            <button onClick={() => refetch()}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+              <RefreshCw size={13} /> Atualizar
+            </button>
+          </div>
+        </div>
+
+        {/* Abas */}
+        <div style={{ display: "flex", gap: 0, overflowX: "auto" }}>
+          {ABAS.map(a => (
+            <button key={a.id} onClick={() => setAba(a.id)}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 18px", border: "none",
+                borderBottom: aba === a.id ? "3px solid #fff" : "3px solid transparent",
+                background: "transparent", color: aba === a.id ? "#fff" : "rgba(255,255,255,0.6)",
+                fontWeight: aba === a.id ? 700 : 400, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" as const, marginBottom: -1 }}>
+              {a.icon} {a.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding: "24px 28px 60px" }}>
+
+        {isLoading && <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>Carregando painel ACS...</div>}
+
+        {/* ── Dashboard ── */}
+        {aba === "dashboard" && k && (
+          <div>
+            {/* KPIs */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
+              <KpiCard icon={<Users size={18}/>}       label="ACS Ativos"           val={`${k.acs_ativos}/${k.total_acs}`} sub={`${k.total_microareas} microáreas`}          cor="#1351b4" bg="#eff6ff" border="#bfdbfe" />
+              <KpiCard icon={<Home size={18}/>}         label="Cobertura Familiar"   val={`${k.pct_cobertura}%`}             sub={`${k.familias_cadastradas.toLocaleString("pt-BR")} famílias`} cor="#16a34a" bg="#f0fdf4" border="#bbf7d0" />
+              <KpiCard icon={<CheckCircle size={18}/>} label="Visitas Realizadas"   val={`${k.pct_visitas}%`}               sub={`${k.visitas_realizadas}/${k.visitas_programadas} programadas`} cor={k.pct_visitas>=90?"#16a34a":k.pct_visitas>=70?"#d97706":"#dc2626"} bg={k.pct_visitas>=90?"#f0fdf4":k.pct_visitas>=70?"#fef3c7":"#fef2f2"} border={k.pct_visitas>=90?"#bbf7d0":k.pct_visitas>=70?"#fde68a":"#fecaca"} />
+              <KpiCard icon={<Activity size={18}/>}    label="Grupos Prioritários"  val={k.gestantes_ativas + k.criancas_lt2} sub={`${k.gestantes_ativas} gest. · ${k.criancas_lt2} <2a`} cor="#7c3aed" bg="#faf5ff" border="#e9d5ff" />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 22 }}>
+              {/* Distribuição ESF */}
+              <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "18px 20px" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Distribuição por Equipe ESF</div>
+                {Object.entries(dash!.distribuicao_esf).map(([esf, n]) => {
+                  const cor = ESF_COR[esf] || "#6b7280";
+                  return (
+                    <div key={esf} style={{ marginBottom: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>{esf}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: cor }}>{n} ACS</span>
+                      </div>
+                      <Bar pct={(n / k.acs_ativos) * 100} cor={cor} height={8} />
                     </div>
-                    <MiniBar pct={100-pct} cor={pct>40?"#dc2626":pct>20?"#d97706":"#16a34a"}/>
-                    <div style={{ fontSize:10, color:"#9ca3af", marginTop:2 }}>{100-pct}% preenchido</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                  );
+                })}
+              </div>
 
-          {/* Filtros */}
-          <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:"12px 16px", marginBottom:14 }}>
-            <div style={{ display:"flex", gap:12, flexWrap:"wrap", alignItems:"center" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:6, flex:1, minWidth:200 }}>
-                <Search size={13} color="#9ca3af"/>
-                <input
-                  value={sisBusca}
-                  onChange={e => setSisBusca(e.target.value)}
-                  placeholder="Buscar por nome ou CNS..."
-                  style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"6px 10px", fontSize:12, flex:1 }}
-                />
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                <Filter size={13} color="#9ca3af"/>
-                <select value={sisAcsFiltro} onChange={e => setSisAcsFiltro(e.target.value)}
-                  style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"6px 10px", fontSize:12 }}>
-                  {acsNomes.map(n => <option key={n} value={n}>{n === "Todos" ? "Todos os ACS" : n}</option>)}
-                </select>
-                <select value={sisMicroareaFiltro} onChange={e => setSisMicroareaFiltro(e.target.value)}
-                  style={{ border:"1px solid #e5e7eb", borderRadius:6, padding:"6px 10px", fontSize:12 }}>
-                  {todasMicroareas.map(m => <option key={m} value={m}>{m === "Todas" ? "Todas as Microáreas" : m}</option>)}
-                </select>
-              </div>
-              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+              {/* Grupos prioritários */}
+              <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "18px 20px" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Grupos Prioritários Acompanhados</div>
                 {[
-                  { val:"Todos",      label:"Todos",         cor:"#374151" },
-                  { val:"completo",   label:"Completo",      cor:"#16a34a" },
-                  { val:"parcial",    label:"Parcial",       cor:"#d97706" },
-                  { val:"incompleto", label:"Incompleto",    cor:"#dc2626" },
-                ].map(s => (
-                  <button key={s.val} onClick={() => setSisStatusFiltro(s.val)} style={{
-                    padding:"4px 10px", fontSize:11, borderRadius:16,
-                    border:"1px solid " + s.cor + "60",
-                    background: sisStatusFiltro===s.val ? s.cor : "#fff",
-                    color: sisStatusFiltro===s.val ? "#fff" : s.cor,
-                    cursor:"pointer", fontWeight:600,
-                  }}>{s.label}</button>
+                  { label: "Gestantes ativas",  val: k.gestantes_ativas, cor: "#7c3aed", icon: <Baby size={16}/> },
+                  { label: "Crianças < 2 anos", val: k.criancas_lt2,     cor: "#0891b2", icon: <Baby size={16}/> },
+                  { label: "HAS acompanhados",  val: k.has_acompanhados, cor: "#d97706", icon: <Heart size={16}/> },
+                  { label: "DM acompanhados",   val: k.dm_acompanhados,  cor: "#dc2626", icon: <Activity size={16}/> },
+                ].map(g => (
+                  <div key={g.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #f3f4f6" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ color: g.cor }}>{g.icon}</div>
+                      <span style={{ fontSize: 13, color: "#374151" }}>{g.label}</span>
+                    </div>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: g.cor }}>{g.val}</span>
+                  </div>
                 ))}
-                <button onClick={() => setSisIncFiltro(v => !v)} style={{
-                  padding:"4px 10px", fontSize:11, borderRadius:16,
-                  border:"1px solid #9333ea60",
-                  background: sisIncFiltro ? "#9333ea" : "#fff",
-                  color: sisIncFiltro ? "#fff" : "#9333ea",
-                  cursor:"pointer", fontWeight:600,
-                }}>⚠ Só inconsistências</button>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0" }}>
+                  <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>Total grupos</span>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: "#1351b4" }}>
+                    {k.gestantes_ativas + k.criancas_lt2 + k.has_acompanhados + k.dm_acompanhados}
+                  </span>
+                </div>
               </div>
-              <span style={{ fontSize:12, color:"#9ca3af", marginLeft:"auto" }}>{cadFiltrados.length} registros</span>
             </div>
-          </div>
 
-          {/* Tabela de cadastros */}
-          <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, overflow:"hidden" }}>
-            <div style={{ overflowX:"auto" }}>
-              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
-                <thead>
-                  <tr style={{ background:"#f9fafb", borderBottom:"1px solid #e5e7eb" }}>
-                    {["Paciente / CNS","ACS","Microárea","Visitas/Mês","Últ. Visita","Completude","Inconsistências SIS","Campos Pendentes","Status"].map(h => (
-                      <th key={h} style={{ padding:"10px 12px", textAlign:"left", fontWeight:600, color:"#6b7280", fontSize:11, whiteSpace:"nowrap" }}>{h}</th>
+            {/* Destaques e atenção */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+              {dash!.acs_destaques.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                    <Star size={15} color="#16a34a" /> ACS Destaque do Mês
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {dash!.acs_destaques.map(a => (
+                      <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#fff", borderRadius: 10, border: "1px solid #bbf7d0", borderLeft: "4px solid #16a34a" }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{a.nome}</div>
+                          <div style={{ fontSize: 11, color: "#6b7280" }}>{a.microarea} · {a.esf}</div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: "#16a34a" }}>{a.pct_visitas}% visitas</div>
+                          <div style={{ fontSize: 11, color: "#9ca3af" }}>{a.familias_cadastradas} fam.</div>
+                        </div>
+                      </div>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {cadFiltrados.map((p, i) => {
-                    const corStatus = p.status_cadastro === "completo" ? "#16a34a" : p.status_cadastro === "parcial" ? "#d97706" : "#dc2626";
-                    const bgRow = i % 2 === 0 ? "#fff" : "#fafafa";
-                    const faltando = p.campos.filter(c => !c.preenchido).map(c => c.label);
-                    return (
-                      <tr key={p.id} style={{ borderBottom:"1px solid #f3f4f6", background:bgRow }}>
-                        <td style={{ padding:"10px 12px" }}>
-                          <div style={{ fontWeight:500 }}>{p.nome}</div>
-                          <div style={{ fontSize:10, color:"#9ca3af" }}>CNS: {p.cns.slice(0,7)}…</div>
-                        </td>
-                        <td style={{ padding:"10px 12px", color:"#374151" }}>{p.acs_nome}</td>
-                        <td style={{ padding:"10px 12px", color:"#374151" }}>{p.microarea}</td>
-                        <td style={{ padding:"10px 12px", textAlign:"center" }}>
-                          <span style={{
-                            fontWeight:700, fontSize:13,
-                            color: p.visitas_no_mes === 0 ? "#dc2626" : p.visitas_no_mes >= 2 ? "#16a34a" : "#d97706",
-                          }}>
-                            {p.visitas_no_mes}
-                          </span>
-                          {p.visitas_no_mes === 0 && (
-                            <div style={{ fontSize:9, color:"#dc2626" }}>sem visita</div>
-                          )}
-                        </td>
-                        <td style={{ padding:"10px 12px", color:"#374151", whiteSpace:"nowrap" }}>
-                          {p.ultima_visita !== "—" ? new Date(p.ultima_visita).toLocaleDateString("pt-BR") : <span style={{ color:"#dc2626" }}>—</span>}
-                        </td>
-                        <td style={{ padding:"10px 12px", minWidth:100 }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                            <MiniBar pct={p.pct_completo} cor={corStatus}/>
-                            <span style={{ fontSize:11, fontWeight:700, color:corStatus, minWidth:30 }}>{p.pct_completo}%</span>
-                          </div>
-                        </td>
-                        <td style={{ padding:"10px 12px", maxWidth:160 }}>
-                          {(p as any).inconsistencias?.length === 0 ? (
-                            <span style={{ color:"#16a34a", fontSize:11 }}>✓ Sem inconsistências</span>
-                          ) : (
-                            <div style={{ display:"flex", flexWrap:"wrap", gap:3 }}>
-                              {((p as any).inconsistencias as string[]).map((inc: string) => (
-                                <span key={inc} style={{
-                                  background:"#faf5ff", color:"#9333ea",
-                                  fontSize:9, padding:"1px 5px", borderRadius:4, whiteSpace:"nowrap",
-                                  border:"1px solid #e9d5ff",
-                                }}>⚠ {inc}</span>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ padding:"10px 12px", maxWidth:160 }}>
-                          {faltando.length === 0 ? (
-                            <span style={{ color:"#16a34a", fontSize:11 }}>✓ Todos preenchidos</span>
-                          ) : (
-                            <div style={{ display:"flex", flexWrap:"wrap", gap:3 }}>
-                              {faltando.map(f => (
-                                <span key={f} style={{
-                                  background:"#fee2e2", color:"#dc2626",
-                                  fontSize:9, padding:"1px 5px", borderRadius:4, whiteSpace:"nowrap",
-                                }}>{f}</span>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ padding:"10px 12px" }}>
-                          <span style={{
-                            background: corStatus + "18", color: corStatus,
-                            fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:10,
-                            whiteSpace:"nowrap",
-                          }}>
-                            {p.status_cadastro === "completo" ? "✓ Completo" : p.status_cadastro === "parcial" ? "⚠ Parcial" : "✗ Incompleto"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              {cadFiltrados.length === 0 && (
-                <div style={{ textAlign:"center", padding:32, color:"#9ca3af", fontSize:13 }}>
-                  Nenhum cadastro encontrado com os filtros selecionados.
+                  </div>
+                </div>
+              )}
+              {dash!.acs_criticos.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                    <AlertTriangle size={15} color="#dc2626" /> Necessitam Atenção
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {dash!.acs_criticos.map(a => (
+                      <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#fff", borderRadius: 10, border: "1px solid #fecaca", borderLeft: "4px solid #dc2626" }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{a.nome}</div>
+                          <div style={{ fontSize: 11, color: "#6b7280" }}>{a.microarea} · {a.esf}</div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: "#dc2626" }}>{a.pct_visitas}% visitas</div>
+                          <div style={{ fontSize: 11, color: "#9ca3af" }}>{a.pct_cadastro}% cad.</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           </div>
+        )}
 
-        </div>
-      )}
+        {/* ── Visitas ── */}
+        {aba === "visitas" && <AbaVisitas fonte={esusStatus?.autenticado ? "esus_pec" : "referencia"} />}
+
+        {/* ── Calendário ── */}
+        {aba === "calendario" && <AbaCalendario />}
+
+        {/* ── Cadastros Individuais ── */}
+        {aba === "cadastros_ind" && <AbaCadastrosIndividuais />}
+
+        {/* ── Cadastros Domiciliares ── */}
+        {aba === "cadastros_dom" && <AbaCadastrosDomiciliares />}
+
+        {/* ── Lista ACS ── */}
+        {aba === "lista" && (
+          <div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" as const, alignItems: "center" }}>
+              {["Todas","ESF I","ESF II","ESF III","ESF IV","ESF V"].map(e => (
+                <button key={e} onClick={() => setEsfFiltro(e)}
+                  style={{ padding: "6px 14px", fontSize: 12, borderRadius: 20, border: "1px solid #d1d5db", background: esfFiltro === e ? "#1351b4" : "#fff", color: esfFiltro === e ? "#fff" : "#374151", cursor: "pointer", fontWeight: esfFiltro === e ? 700 : 400 }}>
+                  {e}
+                </button>
+              ))}
+              <div style={{ width: 1, height: 20, background: "#e5e7eb" }} />
+              {["Todos","destaque","regular","critico","afastado"].map(s => {
+                const cor = s === "Todos" ? "#374151" : STATUS_COR[s];
+                return (
+                  <button key={s} onClick={() => setStatusFiltro(s)}
+                    style={{ padding: "6px 14px", fontSize: 12, borderRadius: 20, border: `1px solid ${cor}60`, background: statusFiltro === s ? cor : "#fff", color: statusFiltro === s ? "#fff" : cor, cursor: "pointer", fontWeight: statusFiltro === s ? 700 : 400 }}>
+                    {s === "Todos" ? "Todos" : STATUS_LABEL[s]}
+                  </button>
+                );
+              })}
+              <span style={{ marginLeft: "auto", fontSize: 12, color: "#9ca3af" }}>{acsListaFiltrada.length} ACS</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {acsListaFiltrada.map(a => <AcsCard key={a.id} a={a} />)}
+            </div>
+          </div>
+        )}
+
+        {/* ── Microáreas ── */}
+        {aba === "microareas" && (
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 12 }}>
+              {(maData?.microareas ?? []).map((ma: Microarea) => {
+                const cor = SEM_COR[ma.semaforo];
+                return (
+                  <div key={ma.codigo} style={{ background: "#fff", border: `1px solid ${cor}30`, borderTop: `4px solid ${cor}`, borderRadius: 10, padding: "14px 16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{ma.codigo}</div>
+                        <div style={{ fontSize: 12, color: "#6b7280" }}>{ma.nome}</div>
+                        <div style={{ fontSize: 10, color: "#9ca3af" }}>{ma.zona === "urbana" ? "🏙 Urbana" : "🌲 Rural"} · {ma.esf}</div>
+                      </div>
+                      <div style={{ background: `${cor}18`, color: cor, fontSize: 14, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{ma.pct_cobertura}%</div>
+                    </div>
+                    <Bar pct={ma.pct_cobertura} cor={cor} height={8} />
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9ca3af", marginTop: 6 }}>
+                      <span>{ma.familias_cadastradas}/{ma.familias_meta} fam. · {ma.pct_visitas}% vis.</span>
+                      {ma.gestantes_ativas > 0 && <span style={{ color: "#7c3aed" }}>♀ {ma.gestantes_ativas}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", gap: 16, marginTop: 16, fontSize: 11, color: "#9ca3af" }}>
+              {[{cor:"#16a34a",l:"≥90%"},{cor:"#d97706",l:"70-89%"},{cor:"#dc2626",l:"<70%"}].map(x => (
+                <span key={x.l} style={{ display:"flex",alignItems:"center",gap:4 }}><span style={{ width:10,height:10,borderRadius:2,background:x.cor,display:"inline-block" }}/>{x.l} cobertura</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Geo ── */}
+        {aba === "geo" && (
+          <div style={{ margin: "-24px -28px", minHeight: 640 }}>
+            <ACSGeoPage />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
