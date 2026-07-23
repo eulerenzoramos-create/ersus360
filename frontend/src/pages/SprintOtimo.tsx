@@ -477,13 +477,12 @@ export default function SprintOtimo() {
   useEffect(() => {
     setSiapsLoading(true);
     setSiapsError(false);
-    // IBGE Apuí no formato da API (6 dígitos = código sem dígito verificador)
-    const ibgeApui = "130014";
-    fetch(`https://relatorioaps-prd.saude.gov.br/credenciamento/sujeitos-suspensao?nuCompCnes=${siapsComp}`)
-      .then(r => r.json())
+    const base = (import.meta as any).env?.VITE_API_URL ?? "http://localhost:8000";
+    fetch(`${base}/api/aps/siaps-ausencias?comp=${siapsComp}&ibge6=130014`)
+      .then(r => { if (!r.ok) throw new Error(r.status.toString()); return r.json(); })
       .then((data: any) => {
-        const apui = (data.equipes || []).filter((e: any) => e.coMunicipioIbge === ibgeApui);
-        setSiapsData({ equipes: apui, dataGeracao: data.dataGeracao || "" });
+        if (data.error) throw new Error(data.error);
+        setSiapsData({ equipes: data.equipes || [], dataGeracao: data.dataGeracao || "" });
       })
       .catch(() => setSiapsError(true))
       .finally(() => setSiapsLoading(false));

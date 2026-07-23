@@ -6,6 +6,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import JSONResponse
+import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, ConfigDict
@@ -100,6 +102,24 @@ async def producao_mensal(municipio_id: int = Query(1), ano: int = Query(2026)):
     meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"]
     valores = [1620, 1744, 1698, 1815, 1780, 1842]
     return [{"mes": m, "producao": v, "ano": ano} for m, v in zip(meses, valores)]
+
+
+@router.get("/siaps-ausencias")
+async def siaps_ausencias(comp: str = Query("202605", description="Competência CNES (AAAAMM)"), ibge6: str = Query("130014", description="Código IBGE 6 dígitos do município")):
+    """Proxy público para e-Gestor APS — ausência de envio SIAPS.
+    Evita bloqueio CORS do browser em domínios fora de .saude.gov.br.
+    Fonte: relatorioaps-prd.saude.gov.br/credenciamento/sujeitos-suspensao
+    """
+    url = f"https://relatorioaps-prd.saude.gov.br/credenciamento/sujeitos-suspensao?nuCompCnes={comp}"
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(url, headers={"Accept": "application/json"})
+            resp.raise_for_status()
+            data = resp.json()
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=502)
+    equipes = [e for e in (data.get("equipes") or []) if e.get("coMunicipioIbge") == ibge6]
+    return {"dataGeracao": data.get("dataGeracao", ""), "equipes": equipes, "comp": comp, "ibge6": ibge6}
 
 
 @router.get("/ubs")
