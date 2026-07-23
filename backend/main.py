@@ -355,6 +355,9 @@ from routers.queimadas_respiratoria_apui import router as queimadas_respiratoria
 from routers.saude_escolar_pse_apui import router as saude_escolar_pse_apui_router
 from routers.doencas_negligenciadas_apui import router as doencas_negligenciadas_apui_router
 from routers.saude_mental_infantojuvenil_apui import router as saude_mental_infantojuvenil_apui_router
+from routers.previsao_previne import router as previsao_previne_router
+from routers.score_risco import router as score_risco_router
+from routers.auditoria_auto import router as auditoria_auto_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -648,6 +651,9 @@ app.include_router(judicializacao_saude_apui_router)
 app.include_router(triagem_neonatal_apui_router)
 app.include_router(absenteismo_apui_router)
 app.include_router(pics_apui_router)
+app.include_router(previsao_previne_router)
+app.include_router(score_risco_router)
+app.include_router(auditoria_auto_router)
 
 
 @app.get("/")

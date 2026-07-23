@@ -13,6 +13,7 @@ import {
   Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets, Utensils,
   Wind, Eye, TrendingDown, Trash2, School, Sparkles, Waves, Clock,
   HeartPulse, HandHeart, Scale, Ship, Trophy, Package,
+  ShieldAlert, Calculator, ClipboardCheck,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -186,6 +187,10 @@ import QualidadeCADSUS          from "./pages/QualidadeCADSUS";
 import GatewayRNDS              from "./pages/GatewayRNDS";
 import LinhaTempoCidadao        from "./pages/LinhaTempoCidadao";
 import RelatorioTCETCU          from "./pages/RelatorioTCETCU";
+import PrevisaoPrevineBrasil    from "./pages/PrevisaoPrevineBrasil";
+import SimuladorCenarios        from "./pages/SimuladorCenarios";
+import ScoreRiscoESF            from "./pages/ScoreRiscoESF";
+import AuditoriaAutomatica      from "./pages/AuditoriaAutomatica";
 import VisaMunicipal            from "./pages/VisaMunicipal";
 import ConselhoSaudeApui        from "./pages/ConselhoSaudeApui";
 import OuvidoriaApui            from "./pages/OuvidoriaApui";
@@ -841,6 +846,10 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             {podeAud && <L1 to="/gateway-rnds"        label="Gateway RNDS · FHIR R4" Icon={Network}/>}
             <L1 to="/linha-tempo-cidadao"             label="Linha do Tempo Cidadão" Icon={Clock}/>
             {podeFin && <L1 to="/relatorio-tce-tcu"   label="Relatórios TCE / TCU"   Icon={Shield}/>}
+            <L1 to="/previsao-previne"        label="Previsão ML · Previne"     Icon={Brain}/>
+            <L1 to="/simulador-cenarios"      label="Simulador de Cenários"     Icon={Calculator}/>
+            {podeAud && <L1 to="/score-risco-esf"     label="Score de Risco ESF"        Icon={ShieldAlert}/>}
+            {podeAud && <L1 to="/auditoria-automatica" label="Auditoria Automática"      Icon={ClipboardCheck}/>}
 
             <div style={{height:24}}/>
           </div>
@@ -1221,6 +1230,10 @@ export default function App() {
             <Route path="/gateway-rnds"              element={<GatewayRNDS/>}/>
             <Route path="/linha-tempo-cidadao"       element={<LinhaTempoCidadao/>}/>
             <Route path="/relatorio-tce-tcu"         element={<RelatorioTCETCU/>}/>
+            <Route path="/previsao-previne"          element={<PrevisaoPrevineBrasil/>}/>
+            <Route path="/simulador-cenarios"        element={<SimuladorCenarios/>}/>
+            <Route path="/score-risco-esf"           element={<ScoreRiscoESF/>}/>
+            <Route path="/auditoria-automatica"      element={<AuditoriaAutomatica/>}/>
             <Route path="/cadastros"                 element={<CadastrosMestres/>}/>
             <Route path="/cadastros/*"               element={<CadastrosMestres/>}/>
             <Route path="/rh"                        element={<RH/>}/>
