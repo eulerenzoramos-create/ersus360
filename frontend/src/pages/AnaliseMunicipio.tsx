@@ -204,7 +204,7 @@ export default function AnaliseMunicipio() {
   }
 
   const s: Record<string, React.CSSProperties> = {
-    page: { padding: "0 0 60px 0", fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh", color: "#111827" },
+    page: { padding: "0 0 60px 0", fontFamily: "Inter, system-ui, sans-serif", background: "#fff", color: "#111827" },
     header: { background: "linear-gradient(135deg,#0f172a,#1e3a5f)", borderBottom: "1px solid #1e293b", padding: "16px 24px" },
     body: { padding: "20px 24px" },
     card: { background: "#e4e7ec", borderRadius: 10, padding: 18, marginBottom: 14, border: "1px solid #e4e7ec" },

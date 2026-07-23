@@ -213,7 +213,7 @@ export default function SaudeMulher() {
   ];
 
   return (
-    <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
+    <div style={{ background: "#fff", padding: "20px 24px 32px" }}>
       <div style={{ style_SIAPS_PLACEHOLDER }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>

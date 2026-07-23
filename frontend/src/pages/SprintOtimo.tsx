@@ -503,7 +503,7 @@ export default function SprintOtimo() {
   const ESTADOS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
   return (
-    <div style={{ padding: "0 0 60px 0", fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh", color: "#111827" }}>
+    <div style={{ padding: "0 0 60px 0", fontFamily: "Inter, system-ui, sans-serif", background: "#fff", color: "#111827" }}>
 
       {/* ── Header ── */}
       <div style={{ background: "linear-gradient(180deg, #0d1a35 0%, #09121f 100%)", borderBottom: "1px solid #e4e7ec", padding: "16px 28px" }}>

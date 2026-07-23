@@ -848,7 +848,27 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
         </aside>
 
         {/* Main */}
-        <main style={{flex:1,overflow:"auto",background:"#f1f5f9"}}>{children}</main>
+        <main style={{flex:1,overflow:"auto",background:"#f4f6f8",display:"flex",flexDirection:"column" as const}}>
+          {/* ── Barra SIAPS global (padrão e-Gestor APS) ── */}
+          <div style={{
+            background:"#1351b4", color:"#fff",
+            padding:"9px 24px", display:"flex", alignItems:"center",
+            gap:20, fontSize:13, fontWeight:600, flexShrink:0,
+          }}>
+            <span>UF: <strong>AM</strong></span>
+            <div style={{width:1,height:14,background:"rgba(255,255,255,0.35)"}}/>
+            <span>Município: <strong>APUÍ</strong></span>
+            <div style={{width:1,height:14,background:"rgba(255,255,255,0.35)"}}/>
+            <span>IBGE: <strong>1300144</strong></span>
+            <div style={{width:1,height:14,background:"rgba(255,255,255,0.35)"}}/>
+            <span>Competência: <strong>Jul/2026</strong></span>
+            <span style={{marginLeft:"auto",background:"#fff",color:"#1351b4",fontSize:11,fontWeight:700,padding:"2px 10px",borderRadius:3,letterSpacing:0}}>
+              Dado preliminar
+            </span>
+          </div>
+          {/* Conteúdo da página */}
+          <div style={{flex:1,overflow:"auto"}}>{children}</div>
+        </main>
       </div>
     </div>
   );

@@ -171,51 +171,42 @@ export default function SaudeIdoso() {
   ];
 
   return (
-    <div style={{ fontFamily: "Rawline, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>
-      {/* Barra azul SIAPS */}
-      <div style={{ background: "#1351b4", color: "#fff", padding: "10px 24px", display: "flex", alignItems: "center", gap: 28, fontSize: 13, fontWeight: 600 }}>
-        <span>UF: <strong>AM</strong></span>
-        <span>Município: <strong>APUÍ</strong></span>
-        <span>Competência: <strong>Jul/2026</strong></span>
-      </div>
-      {/* Conteúdo branco */}
-      <div style={{ background: "#fff", minHeight: "calc(100vh - 40px)", padding: "24px 28px" }}>
-        {/* Título da seção */}
-        <div style={{ fontSize: 18, fontWeight: 800, color: "#1351b4", marginBottom: 6 }}>Saúde da Pessoa Idosa</div>
-        <div style={{ fontSize: 12, color: "#555", marginBottom: 20 }}>IVCF · Fragilidade · Caderneta · Quedas · FMS Apuí/AM</div>
+    <div style={{ background: "#fff", padding: "20px 24px 32px" }}>
+      {/* Título da seção */}
+      <div style={{ fontSize: 18, fontWeight: 800, color: "#1351b4", marginBottom: 4 }}>Saúde da Pessoa Idosa</div>
+      <div style={{ fontSize: 12, color: "#555", marginBottom: 20 }}>IVCF · Fragilidade · Caderneta · Quedas · FMS Apuí/AM</div>
 
-        {/* Abas */}
-        <div style={{ display: "flex", borderBottom: "2px solid #d4d4d4", marginBottom: 24, gap: 0 }}>
-          {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "11px 20px", border: "none", background: "none", cursor: "pointer", fontSize: 13, fontWeight: aba===a.id?700:400, color: aba===a.id?"#1351b4":"#555", borderBottom: aba===a.id?"3px solid #1351b4":"3px solid transparent", marginBottom: -2, whiteSpace: "nowrap" }}>
-              {a.label}
-            </button>
+      {/* KPIs */}
+      {dashRaw && (
+        <div style={{ display: "flex", gap: 12, marginBottom: 18 }}>
+          {[
+            { label: "Idosos cadastrados", value: dashRaw.total_idosos,       cor: "#1351b4" },
+            { label: "Frágeis (IVCF)",     value: dashRaw.frageis,            cor: "#dc2626" },
+            { label: "Pré-frágeis",        value: dashRaw.pre_frageis,        cor: "#d97706" },
+            { label: "Com alerta",         value: dashRaw.com_alerta,         cor: "#d97706" },
+            { label: "Quedas acumuladas",  value: dashRaw.quedas_acumuladas,  cor: "#555"    },
+          ].map(k => (
+            <div key={k.label} style={{ flex: 1, background: "#fff", border: "1px solid #d4d4d4", borderRadius: 4, padding: "14px 18px", textAlign: "center" }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: k.cor, lineHeight: 1.1 }}>{k.value ?? "—"}</div>
+              <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>{k.label}</div>
+            </div>
           ))}
         </div>
+      )}
 
-        {/* KPIs */}
-        {dashRaw && (
-          <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-            {[
-              { label: "Idosos cadastrados", value: dashRaw.total_idosos, cor: "#1351b4" },
-              { label: "Frágeis (IVCF)",     value: dashRaw.frageis,      cor: "#dc2626" },
-              { label: "Pré-frágeis",        value: dashRaw.pre_frageis,  cor: "#d97706" },
-              { label: "Com alerta",         value: dashRaw.com_alerta,   cor: "#d97706" },
-              { label: "Quedas acumuladas",  value: dashRaw.quedas_acumuladas, cor: "#555" },
-            ].map(k => (
-              <div key={k.label} style={{ flex: 1, background: "#fff", border: "1px solid #d4d4d4", borderRadius: 4, padding: "14px 18px", textAlign: "center" }}>
-                <div style={{ fontSize: 28, fontWeight: 800, color: k.cor, lineHeight: 1.1 }}>{k.value ?? "—"}</div>
-                <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>{k.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Conteúdo das abas */}
-        {aba==="dashboard"   && <AbaDashboard dash={dash}/>}
-        {aba==="idosos"      && <AbaIdosos idosos={idosos}/>}
-        {aba==="indicadores" && <AbaIndicadores inds={inds}/>}
+      {/* Abas */}
+      <div style={{ display: "flex", borderBottom: "2px solid #d4d4d4", marginBottom: 24, gap: 0 }}>
+        {ABAS.map(a => (
+          <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "11px 20px", border: "none", background: "none", cursor: "pointer", fontSize: 13, fontWeight: aba===a.id?700:400, color: aba===a.id?"#1351b4":"#555", borderBottom: aba===a.id?"3px solid #1351b4":"3px solid transparent", marginBottom: -2, whiteSpace: "nowrap" }}>
+            {a.label}
+          </button>
+        ))}
       </div>
+
+      {/* Conteúdo das abas */}
+      {aba==="dashboard"   && <AbaDashboard dash={dash}/>}
+      {aba==="idosos"      && <AbaIdosos idosos={idosos}/>}
+      {aba==="indicadores" && <AbaIndicadores inds={inds}/>}
     </div>
   );
 }

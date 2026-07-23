@@ -210,7 +210,7 @@ export default function RelatorioProducao() {
               {g.total.toLocaleString("pt-BR")} atend.
             </span>
           </div>
-          <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderTop: "none", borderRadius: "0 0 8px 8px" }}>
+          <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderTop: "none" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ background: "var(--hover)" }}>
