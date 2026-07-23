@@ -358,6 +358,10 @@ from routers.saude_mental_infantojuvenil_apui import router as saude_mental_infa
 from routers.previsao_previne import router as previsao_previne_router
 from routers.score_risco import router as score_risco_router
 from routers.auditoria_auto import router as auditoria_auto_router
+from routers.okr import router as okr_router
+from routers.central_regulacao import router as central_regulacao_router
+from routers.monitor_epidem import router as monitor_epidem_router
+from routers.ras import router as ras_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -654,6 +658,10 @@ app.include_router(pics_apui_router)
 app.include_router(previsao_previne_router)
 app.include_router(score_risco_router)
 app.include_router(auditoria_auto_router)
+app.include_router(okr_router)
+app.include_router(central_regulacao_router)
+app.include_router(monitor_epidem_router)
+app.include_router(ras_router)
 
 
 @app.get("/")

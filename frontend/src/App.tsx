@@ -191,6 +191,10 @@ import PrevisaoPrevineBrasil    from "./pages/PrevisaoPrevineBrasil";
 import SimuladorCenarios        from "./pages/SimuladorCenarios";
 import ScoreRiscoESF            from "./pages/ScoreRiscoESF";
 import AuditoriaAutomatica      from "./pages/AuditoriaAutomatica";
+import PainelOKR               from "./pages/PainelOKR";
+import CentralRegulacao        from "./pages/CentralRegulacao";
+import MonitorEpidemiologico   from "./pages/MonitorEpidemiologico";
+import RelatorioRAS             from "./pages/RelatorioRAS";
 import VisaMunicipal            from "./pages/VisaMunicipal";
 import ConselhoSaudeApui        from "./pages/ConselhoSaudeApui";
 import OuvidoriaApui            from "./pages/OuvidoriaApui";
@@ -850,6 +854,10 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             <L1 to="/simulador-cenarios"      label="Simulador de Cenários"     Icon={Calculator}/>
             {podeAud && <L1 to="/score-risco-esf"     label="Score de Risco ESF"        Icon={ShieldAlert}/>}
             {podeAud && <L1 to="/auditoria-automatica" label="Auditoria Automática"      Icon={ClipboardCheck}/>}
+            <L1 to="/okr"                       label="OKRs Estratégicos"           Icon={Target}/>
+            <L1 to="/central-regulacao"         label="Central de Regulação"        Icon={ArrowLeftRight}/>
+            <L1 to="/monitor-epidemiologico"    label="Monitor Epidemiológico"      Icon={Activity}/>
+            {podeAud && <L1 to="/relatorio-ras"  label="Relatório RAS"              Icon={Network}/>}
 
             <div style={{height:24}}/>
           </div>
@@ -1234,6 +1242,10 @@ export default function App() {
             <Route path="/simulador-cenarios"        element={<SimuladorCenarios/>}/>
             <Route path="/score-risco-esf"           element={<ScoreRiscoESF/>}/>
             <Route path="/auditoria-automatica"      element={<AuditoriaAutomatica/>}/>
+            <Route path="/okr"                       element={<PainelOKR/>}/>
+            <Route path="/central-regulacao"         element={<CentralRegulacao/>}/>
+            <Route path="/monitor-epidemiologico"    element={<MonitorEpidemiologico/>}/>
+            <Route path="/relatorio-ras"             element={<RelatorioRAS/>}/>
             <Route path="/cadastros"                 element={<CadastrosMestres/>}/>
             <Route path="/cadastros/*"               element={<CadastrosMestres/>}/>
             <Route path="/rh"                        element={<RH/>}/>
