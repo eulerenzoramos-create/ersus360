@@ -12,7 +12,7 @@ import {
   TrendingUp, PieChart, Layers, Star, Shield, Monitor, UserCog,
   Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets, Utensils,
   Wind, Eye, TrendingDown, Trash2, School, Sparkles, Waves, Clock,
-  HeartPulse, HandHeart, Scale, Ship, Trophy,
+  HeartPulse, HandHeart, Scale, Ship, Trophy, Package,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -180,6 +180,9 @@ import GestaoContratosFms       from "./pages/GestaoContratosFms";
 import CentralAuditoria         from "./pages/CentralAuditoria";
 import PlanoAcao                from "./pages/PlanoAcao";
 import TrilhaAuditoria          from "./pages/TrilhaAuditoria";
+import MonitorLotesSIAPS        from "./pages/MonitorLotesSIAPS";
+import ConformidadeSCNES        from "./pages/ConformidadeSCNES";
+import QualidadeCADSUS          from "./pages/QualidadeCADSUS";
 import VisaMunicipal            from "./pages/VisaMunicipal";
 import ConselhoSaudeApui        from "./pages/ConselhoSaudeApui";
 import OuvidoriaApui            from "./pages/OuvidoriaApui";
@@ -829,6 +832,9 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             {podeAud && <L1 to="/central-auditoria"   label="Central de Auditoria APS" Icon={ShieldCheck}/>}
             {podeAud && <L1 to="/plano-acao"          label="Plano de Ação"          Icon={ClipboardList}/>}
             {podeAud && <L1 to="/trilha-auditoria"    label="Trilha de Auditoria"    Icon={GitBranch}/>}
+            {podeAud && <L1 to="/monitor-lotes-siaps" label="Monitor Lotes SIAPS"    Icon={Package}/>}
+            {podeAud && <L1 to="/conformidade-scnes"  label="Conformidade SCNES"     Icon={Building2}/>}
+            {podeAud && <L1 to="/qualidade-cadsus"    label="Qualidade CADSUS"       Icon={UserCheck}/>}
 
             <div style={{height:24}}/>
           </div>
@@ -1203,6 +1209,9 @@ export default function App() {
             <Route path="/central-auditoria"         element={<CentralAuditoria/>}/>
             <Route path="/plano-acao"                element={<PlanoAcao/>}/>
             <Route path="/trilha-auditoria"          element={<TrilhaAuditoria/>}/>
+            <Route path="/monitor-lotes-siaps"       element={<MonitorLotesSIAPS/>}/>
+            <Route path="/conformidade-scnes"        element={<ConformidadeSCNES/>}/>
+            <Route path="/qualidade-cadsus"          element={<QualidadeCADSUS/>}/>
             <Route path="/cadastros"                 element={<CadastrosMestres/>}/>
             <Route path="/cadastros/*"               element={<CadastrosMestres/>}/>
             <Route path="/rh"                        element={<RH/>}/>

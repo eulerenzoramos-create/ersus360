@@ -89,6 +89,9 @@ from routers.modulos import (
 from routers.integracao import router as integracao_router
 from routers.auditoria import router as auditoria_router
 from routers.auditoria_aps import router as auditoria_aps_router
+from routers.siaps_monitor import router as siaps_monitor_router
+from routers.scnes_conformidade import router as scnes_conformidade_router
+from routers.cadsus_qualidade import router as cadsus_qualidade_router
 from routers.cadastros import router as cadastros_router
 from routers.rh import router as rh_router
 from routers.folha_pagamento import router as folha_router
@@ -376,6 +379,9 @@ app.include_router(emendas_router)
 app.include_router(integracao_router)
 app.include_router(auditoria_router)
 app.include_router(auditoria_aps_router)
+app.include_router(siaps_monitor_router)
+app.include_router(scnes_conformidade_router)
+app.include_router(cadsus_qualidade_router)
 app.include_router(cadastros_router)
 app.include_router(rh_router)
 app.include_router(folha_router)
