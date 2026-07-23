@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import { Baby, Heart, AlertTriangle, CheckCircle } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
 const STATUS_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
 const RISCO_COR: Record<string, string>  = { alto: "#dc2626", habitual: "#d97706", baixo: "#16a34a" };
 
@@ -177,7 +177,7 @@ function AbaPuerperas({ puerperas }: { puerperas: any[] | undefined }) {
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
         {puerperas.map(p => (
-          <div key={p.id} style={{ background: "#fff", border: `1px solid ${p.consulta_puerp ? "#d1fae5" : "#b91c1c"}`, borderRadius: 8, padding: 14 }}>
+          <div key={p.id} style={{ background: "#fff", border: `1px solid ${p.consulta_puerp ? "#d1fae5" : "#fca5a5"}`, borderRadius: 8, padding: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
               <span style={{ fontWeight: 700, fontSize: 13 }}>{p.iniciais}</span>
               {p.consulta_puerp
@@ -213,8 +213,8 @@ export default function SaudeMulher() {
   ];
 
   return (
-    <div style={{ background: "#fff", padding: "20px 24px 32px" }}>
-      <div style={{ style_SIAPS_PLACEHOLDER }}>
+    <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
+      <div style={{ background: "linear-gradient(135deg,#ec4899 0%,#7c3aed 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Saúde da Mulher</h1>
@@ -229,7 +229,7 @@ export default function SaudeMulher() {
         </div>
       </div>
       <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #d4d4d4" }}>
+        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #fce7f3" }}>
           {ABAS.map(a => (
             <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba === a.id ? "2px solid #ec4899" : "2px solid transparent", color: aba === a.id ? "#ec4899" : "#6b7280", fontWeight: aba === a.id ? 700 : 400, marginBottom: -2 }}>{a.label}</button>
           ))}

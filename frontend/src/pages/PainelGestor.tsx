@@ -62,7 +62,7 @@ export default function PainelGestor() {
   const siapsAus = siaps?.equipes?.length ?? 0;
 
   return (
-    <div style={{ fontFamily: "Rawline, system-ui, sans-serif", background: "#fff", padding: "24px 28px" }}>
+    <div style={{ fontFamily: "Rawline, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh", padding: "24px 28px" }}>
 
       {/* ── Título da página ── */}
       <div style={{ fontSize: 15, fontWeight: 600, color: "#323232", marginBottom: 20 }}>Início</div>

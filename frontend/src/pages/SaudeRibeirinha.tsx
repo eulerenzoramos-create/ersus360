@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Waves, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -44,7 +44,7 @@ const RIO_COLORS: Record<string, string> = {
   "Maici":   ACCENT,
   "Acará":   "#0891b2",
   "Marmelos":"#7c3aed",
-  "Vários":  "#6b7280",
+  "Vários":  "#64748b",
 };
 
 export default function SaudeRibeirinha() {
@@ -140,7 +140,7 @@ export default function SaudeRibeirinha() {
                 <BarChart data={(comunidades as any[])} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="comunidade" tick={{ fontSize: 9 }} width={200} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip formatter={(v: any) => `${v} hab.`} />
                   <Bar dataKey="populacao" name="População" radius={[0,3,3,0]}>
                     {(comunidades as any[]).map((c: any) => <Cell key={c.comunidade} fill={RIO_COLORS[c.rio] || BRAND} />)}
@@ -183,7 +183,7 @@ export default function SaudeRibeirinha() {
                 <BarChart data={morbidade as any[]} layout="vertical" margin={{ left: 10, right: 80 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="agravo" tick={{ fontSize: 9 }} width={230} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip formatter={(v: any) => `${v.toLocaleString()}/100k`} />
                   <Bar dataKey="taxa_100k" name="Taxa /100k" radius={[0,3,3,0]}>
                     {(morbidade as any[]).map((m: any) => <Cell key={m.agravo} fill={statusColor(m.status)} />)}
@@ -213,7 +213,7 @@ export default function SaudeRibeirinha() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — Saúde Ribeirinha (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="s" orientation="right" tick={{ fontSize: 10 }} unit="%" />

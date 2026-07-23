@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Globe, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -125,7 +125,7 @@ export default function RegulacaoEspecializadaApui() {
                 <BarChart data={fila as any[]} layout="vertical" margin={{ left: 10, right: 80 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="especialidade" tick={{ fontSize: 9 }} width={160} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip />
                   <Bar dataKey="tempo_espera_dias" name="Espera (dias)" radius={[0,3,3,0]}>
                     {(fila as any[]).map((f: any) => <Cell key={f.especialidade} fill={statusColor(f.status)} />)}
@@ -161,7 +161,7 @@ export default function RegulacaoEspecializadaApui() {
                 <BarChart data={tfd as any[]} layout="vertical" margin={{ left: 10, right: 80 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="motivo" tick={{ fontSize: 8 }} width={280} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip />
                   <Bar dataKey="pacientes_mes" name="Pacientes/mês" radius={[0,3,3,0]}>
                     {(tfd as any[]).map((t: any) => <Cell key={t.motivo} fill={statusColor(t.status)} />)}
@@ -191,7 +191,7 @@ export default function RegulacaoEspecializadaApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal — Regulação / TFD (2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
                 <YAxis yAxisId="n" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />

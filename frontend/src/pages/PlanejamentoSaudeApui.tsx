@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { BarChart2, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -124,7 +124,7 @@ export default function PlanejamentoSaudeApui() {
               <h3 className="font-semibold text-slate-700 mb-3">Novo Financiamento APS — Resultado vs Meta</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={previne as any[]} layout="vertical" margin={{ left: 200, right: 30 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis type="number" tick={{ fontSize: 10 }} unit="%" domain={[0, 110]} />
                   <YAxis dataKey="indicador" type="category" tick={{ fontSize: 10 }} width={200} />
                   <Tooltip formatter={(v: any) => `${v}%`} />
@@ -134,7 +134,7 @@ export default function PlanejamentoSaudeApui() {
                       <Cell key={p.indicador} fill={statusColor(p.status)} />
                     ))}
                   </Bar>
-                  <Bar dataKey="meta_pct" name="Meta (%)" fill="#374151" />
+                  <Bar dataKey="meta_pct" name="Meta (%)" fill="#cbd5e1" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -165,7 +165,7 @@ export default function PlanejamentoSaudeApui() {
               <h3 className="font-semibold text-slate-700 mb-3">IDSUS — Notas por Componente (Apuí vs AM)</h3>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={idsus as any[]} layout="vertical" margin={{ left: 140, right: 30 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis type="number" tick={{ fontSize: 10 }} domain={[0, 7]} />
                   <YAxis dataKey="componente" type="category" tick={{ fontSize: 10 }} width={140} />
                   <Tooltip />
@@ -175,7 +175,7 @@ export default function PlanejamentoSaudeApui() {
                       <Cell key={c.componente} fill={statusColor(c.status)} />
                     ))}
                   </Bar>
-                  <Bar dataKey="media_am" name="Média AM" fill="#6b7280" />
+                  <Bar dataKey="media_am" name="Média AM" fill="#94a3b8" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -202,7 +202,7 @@ export default function PlanejamentoSaudeApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Planejamento — Apuí/AM (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />

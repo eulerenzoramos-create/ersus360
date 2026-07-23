@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Star, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -121,7 +121,7 @@ export default function MedicamentosAltoCustoApui() {
           <div className="space-y-4">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={medicamentos as any[]} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 180 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis type="number" domain={[0,100]} tick={{ fontSize: 10 }} />
                 <YAxis dataKey="doenca" type="category" tick={{ fontSize: 10 }} width={175} />
                 <Tooltip />
@@ -180,7 +180,7 @@ export default function MedicamentosAltoCustoApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Medicamentos de Alto Custo — Apuí/AM (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />

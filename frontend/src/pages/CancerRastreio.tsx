@@ -118,7 +118,7 @@ export default function CancerRastreio() {
                   <Bar dataKey="cobertura" name="Cobertura %" radius={[0,3,3,0]}>
                     {(rastreio as any[]).map((r: any) => <Cell key={r.cancer} fill={statusColor(r.status)} />)}
                   </Bar>
-                  <Bar dataKey="meta" name="Meta %" fill="#374151" radius={[0,3,3,0]} />
+                  <Bar dataKey="meta" name="Meta %" fill="#e2e8f0" radius={[0,3,3,0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -185,7 +185,7 @@ export default function CancerRastreio() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — Casos, Rastreio e Estadiamento</h3>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" tick={{ fontSize: 11 }} unit="%" />
                 <YAxis yAxisId="n"   orientation="right" tick={{ fontSize: 10 }} />

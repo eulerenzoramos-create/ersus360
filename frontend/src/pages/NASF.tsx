@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { Users, AlertTriangle, CheckCircle, TrendingUp } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
 const ST_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
 const CAT_COR: Record<string, string> = {
   "Psicologia": "#7c3aed", "Serviço Social": "#0891b2", "Fisioterapia": "#d97706",
@@ -173,8 +173,8 @@ export default function NASF() {
   ];
 
   return (
-    <div style={{ background: "#fff", padding: "20px 24px 32px" }}>
-      <div style={{ style_SIAPS_PLACEHOLDER }}>
+    <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
+      <div style={{ background: "linear-gradient(135deg,#0c4a6e 0%,#0891b2 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>NASF-AB</h1>
@@ -195,9 +195,9 @@ export default function NASF() {
         </div>
       </div>
       <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #d4d4d4" }}>
+        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #bae6fd" }}>
           {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"3px solid #1351b4":"2px solid transparent", color: aba===a.id?"#1351b4":"#555", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
+            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #0891b2":"2px solid transparent", color: aba===a.id?"#0891b2":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
           ))}
         </div>
         {aba==="dashboard"   && <AbaDashboard dash={dashRaw} hist={hist}/>}

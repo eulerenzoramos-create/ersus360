@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { BookOpen, AlertTriangle, Users, TrendingUp } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -144,7 +144,7 @@ export default function EducacaoPermanente() {
                 <BarChart data={(cursos as any[])} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="curso" tick={{ fontSize: 8 }} width={240} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip />
                   <Bar dataKey="participantes" name="Participantes" radius={[0,3,3,0]}>
                     {(cursos as any[]).map((c: any) => <Cell key={c.curso} fill={MODALIDADE_COLOR[c.modalidade] || ACCENT} />)}
@@ -158,7 +158,7 @@ export default function EducacaoPermanente() {
             </div>
             <div className="grid gap-2">
               {(cursos as any[]).map((c: any) => {
-                const badge = STATUS_CURSO[c.status] || { bg: "#111827", text: "#475569", label: c.status };
+                const badge = STATUS_CURSO[c.status] || { bg: "#f1f5f9", text: "#475569", label: c.status };
                 return (
                   <div key={c.curso} className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm">
                     <div className="flex items-start justify-between gap-2">
@@ -188,7 +188,7 @@ export default function EducacaoPermanente() {
                 <BarChart data={(necessidades as any[])} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="area" tick={{ fontSize: 10 }} width={200} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip />
                   <Bar dataKey="profissionais" name="Profissionais" radius={[0,3,3,0]}>
                     {(necessidades as any[]).map((n: any) => <Cell key={n.area} fill={DEMANDA_COLOR[n.demanda] || WARN} />)}
@@ -218,7 +218,7 @@ export default function EducacaoPermanente() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução — Educação Permanente (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />

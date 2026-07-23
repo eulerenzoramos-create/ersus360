@@ -120,7 +120,7 @@ export default function VisaAlimentos() {
               <h3 className="font-semibold text-slate-700 mb-4">Conformidade por Tipo (%)</h3>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={estabelecimentos} layout="vertical" margin={{ top: 5, right: 30, left: 220, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis type="number" domain={[0,100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="tipo" tick={{ fontSize: 10 }} width={215} />
                   <Tooltip formatter={(v: number) => `${v}%`} />
@@ -209,7 +209,7 @@ export default function VisaAlimentos() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução 2022–2026</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="conf" domain={[40,100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n" orientation="right" tick={{ fontSize: 11 }} />

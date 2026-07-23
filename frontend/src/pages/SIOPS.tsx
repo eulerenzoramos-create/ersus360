@@ -55,7 +55,7 @@ export default function SIOPS() {
       )}
 
       {/* Abas */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #d4d4d4" }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #e0e0e0" }}>
         {[
           { key: "apuracao"   as const, label: "Apuração Anual" },
           { key: "blocos"     as const, label: "Execução por Bloco" },

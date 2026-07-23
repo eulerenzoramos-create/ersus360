@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Stethoscope, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -38,11 +38,11 @@ const TOPO_COLORS: Record<string, string> = {
   "Mama feminina":      "#e11d48",
   "Próstata":           ACCENT,
   "Pele não melanoma":  OK,
-  "Pulmão":             "#6b7280",
+  "Pulmão":             "#64748b",
   "Estômago":           WARN,
   "Colorrretal":        "#7c3aed",
   "Leucemia / linfoma": "#0891b2",
-  "Outros":             "#6b7280",
+  "Outros":             "#94a3b8",
 };
 
 export default function OncologiaApui() {
@@ -139,7 +139,7 @@ export default function OncologiaApui() {
                 <BarChart data={topografias as any[]} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="topografia" tick={{ fontSize: 9 }} width={200} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip formatter={(v: any) => `${v} casos`} />
                   <Bar dataKey="casos_ano" name="Casos" radius={[0,3,3,0]}>
                     {(topografias as any[]).map((t: any) => <Cell key={t.topografia} fill={TOPO_COLORS[t.topografia] || BRAND} />)}
@@ -176,7 +176,7 @@ export default function OncologiaApui() {
                 <BarChart data={fluxo as any[]} layout="vertical" margin={{ left: 10, right: 80 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="etapa" tick={{ fontSize: 8 }} width={260} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip formatter={(v: any) => `${v} dias`} />
                   <Bar dataKey="tempo_medio_dias" name="Tempo médio (dias)" radius={[0,3,3,0]}>
                     {(fluxo as any[]).map((f: any) => <Cell key={f.etapa} fill={statusColor(f.status)} />)}
@@ -206,7 +206,7 @@ export default function OncologiaApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — Oncologia (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="s" orientation="right" tick={{ fontSize: 10 }} unit="%" />

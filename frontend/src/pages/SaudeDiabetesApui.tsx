@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Stethoscope, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -125,7 +125,7 @@ export default function SaudeDiabetesApui() {
               <h3 className="font-semibold text-slate-700 mb-3">Rastreio de Complicações (%)</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={complicacoes as any[]} layout="vertical" margin={{ left: 180, right: 30 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis type="number" tick={{ fontSize: 10 }} unit="%" domain={[0, 60]} />
                   <YAxis dataKey="complicacao" type="category" tick={{ fontSize: 9 }} width={180} />
                   <Tooltip formatter={(v: any) => `${v}%`} />
@@ -186,7 +186,7 @@ export default function SaudeDiabetesApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Diabetes — Apuí/AM (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />

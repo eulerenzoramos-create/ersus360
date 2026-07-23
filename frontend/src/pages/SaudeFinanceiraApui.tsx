@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { DollarSign, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -135,10 +135,10 @@ export default function SaudeFinanceiraApui() {
                   layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={(v) => `${v}k`} />
                   <YAxis type="category" dataKey="area" tick={{ fontSize: 7 }} width={180} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip formatter={(v: any) => `R$ ${v.toFixed(0)}k`} />
                   <Legend />
-                  <Bar dataKey="orcado"    name="Orçado"    fill="#374151" radius={[0,3,3,0]} />
+                  <Bar dataKey="orcado"    name="Orçado"    fill="#e2e8f0" radius={[0,3,3,0]} />
                   <Bar dataKey="executado" name="Executado" radius={[0,3,3,0]}>
                     {(orcamento as any[]).map((o: any) => <Cell key={o.area} fill={statusColor(o.status)} />)}
                   </Bar>
@@ -197,7 +197,7 @@ export default function SaudeFinanceiraApui() {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={(historico as any[]).map((h: any) => ({ ...h, orc_M: h.orcamento / 1000000 }))}
                 margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="m"   tick={{ fontSize: 11 }} tickFormatter={(v) => `${v.toFixed(1)}M`} />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />

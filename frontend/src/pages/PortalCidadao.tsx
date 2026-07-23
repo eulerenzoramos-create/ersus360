@@ -59,7 +59,7 @@ export default function PortalCidadao() {
       </div>
 
       {/* Abas */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #d4d4d4" }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #e0e0e0" }}>
         {abas.map(a => (
           <button key={a.key} onClick={() => setAba(a.key)}
             style={{ padding: "9px 18px", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,

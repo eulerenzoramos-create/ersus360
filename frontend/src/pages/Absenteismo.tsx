@@ -11,7 +11,7 @@ const COR_STATUS = (s: string) =>
   s === "critico" ? "#dc2626" : s === "atencao" ? "#d97706" : "#16a34a";
 const BG_STATUS = (s: string) =>
   s === "critico" ? "#fff7f7" : s === "atencao" ? "#fffbeb" : "#f0fdf4";
-const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
   return (
@@ -49,7 +49,7 @@ export default function Absenteismo() {
   return (
     <div style={{ padding: "0 0 32px", fontFamily: "system-ui, sans-serif" }}>
       {/* Cabeçalho */}
-      <div style={{ style_SIAPS_PLACEHOLDER }}>
+      <div style={{ background: "linear-gradient(135deg,#374151 0%,#7c3aed 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Absenteísmo — Gestão de Frequência</h1>

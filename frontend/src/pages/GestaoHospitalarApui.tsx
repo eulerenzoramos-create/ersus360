@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Landmark, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -123,7 +123,7 @@ export default function GestaoHospitalarApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Produção Hospitalar Mensal — 2025</h3>
             <ResponsiveContainer width="100%" height={300}>
               <ComposedChart data={producao as any[]} margin={{ left: 0, right: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="mes" tick={{ fontSize: 10 }} />
                 <YAxis yAxisId="left" tick={{ fontSize: 10 }} />
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} unit="%" domain={[60, 100]} />
@@ -157,7 +157,7 @@ export default function GestaoHospitalarApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — HMM (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />

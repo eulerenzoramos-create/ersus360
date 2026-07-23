@@ -349,7 +349,7 @@ export default function RDQA() {
           </div>
 
           {/* Tabs */}
-          <div style={{ display: "flex", gap: 4, marginBottom: 20, borderBottom: "2px solid #d4d4d4", paddingBottom: 0 }}>
+          <div style={{ display: "flex", gap: 4, marginBottom: 20, borderBottom: "2px solid #e5e7eb", paddingBottom: 0 }}>
             {ABAS.map(a => (
               <button key={a.id} onClick={() => setAba(a.id)} style={{
                 display: "flex", alignItems: "center", gap: 5,

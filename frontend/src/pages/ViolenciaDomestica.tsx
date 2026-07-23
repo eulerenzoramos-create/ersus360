@@ -27,7 +27,7 @@ const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?:
   </div>
 );
 
-const TIPO_COLORS = ["#dc2626","#7c3aed","#ef4444","#d97706","#0891b2","#6b7280"];
+const TIPO_COLORS = ["#dc2626","#7c3aed","#ef4444","#d97706","#0891b2","#64748b"];
 
 export default function ViolenciaDomestica() {
   const [aba, setAba] = useState("dashboard");
@@ -180,7 +180,7 @@ export default function ViolenciaDomestica() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal (2026)</h3>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />

@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Brain, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -108,7 +108,7 @@ export default function SaudeMentalCapsApui() {
                     { grupo: "Drogas",     pac: 18 },
                     { grupo: "Outros",     pac: dashRaw.pacientes_outros },
                   ]} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis dataKey="grupo" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip formatter={(v: any) => `${v} pacientes`} />
@@ -117,7 +117,7 @@ export default function SaudeMentalCapsApui() {
                       <Cell fill="#7c3aed" />
                       <Cell fill={ACCENT} />
                       <Cell fill={WARN} />
-                      <Cell fill="#6b7280" />
+                      <Cell fill="#64748b" />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -137,7 +137,7 @@ export default function SaudeMentalCapsApui() {
               <h3 className="font-semibold text-slate-700 mb-4">Pacientes e Internações por Diagnóstico</h3>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={diagnosticos as any[]} margin={{ top: 5, right: 60, bottom: 5, left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="cid" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="p" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="i" orientation="right" tick={{ fontSize: 10 }} />
@@ -199,7 +199,7 @@ export default function SaudeMentalCapsApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal — CAPS Apuí (Jan–Jun/2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="s" orientation="right" tick={{ fontSize: 10 }} />

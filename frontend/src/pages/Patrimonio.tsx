@@ -36,7 +36,7 @@ export default function Patrimonio() {
       </div>
 
       {/* Abas */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #d4d4d4" }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #e0e0e0" }}>
         {[
           { key: "painel" as const, label: "Painel" },
           { key: "frota" as const, label: "Frota" },

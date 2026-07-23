@@ -4,7 +4,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { apiGet } from "../lib/api"
 import { ShieldCheck } from "lucide-react"
 
-const BRAND="#dbeafe", ACCENT="#1d4ed8", OK="#16a34a", WARN="#d97706", CRIT="#dc2626"
+const BRAND="#1e3a5f", ACCENT="#1d4ed8", OK="#16a34a", WARN="#d97706", CRIT="#dc2626"
 const ABAS=["Dashboard","Matriz","Planos","Histórico","Indicadores"]
 const statusColor=(s:string)=>s==="ok"||s==="concluido"?OK:s==="atencao"||s==="andamento"?WARN:s==="alto"?WARN:s==="critico"?CRIT:WARN
 function KPI({label,value,sub,color=BRAND}:{label:string;value:string|number;sub?:string;color?:string}){

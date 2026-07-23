@@ -10,12 +10,12 @@ import {
   ExternalLink, Download, Search, Pencil, Trash2, Save, X,
 } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
 const CRIT   = "#dc2626";
-const COLORS = ["#dbeafe","#1d4ed8","#0891b2","#7c3aed","#16a34a","#d97706","#dc2626","#059669","#c026d3","#ea580c"];
+const COLORS = ["#1e3a5f","#1d4ed8","#0891b2","#7c3aed","#16a34a","#d97706","#dc2626","#059669","#c026d3","#ea580c"];
 
 const BRLK = (v: number) => {
   if (v >= 1_000_000) return `R$${(v / 1_000_000).toFixed(2)}M`;
@@ -27,9 +27,9 @@ const PCT = (a: number, b: number) => b ? `${((a / b) * 100).toFixed(1)}%` : "�
 
 const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
   <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 16, boxShadow: "0 1px 3px rgba(0,0,0,.07)" }}>
-    <p style={{ fontSize: 11, color: "#6b7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>{label}</p>
+    <p style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>{label}</p>
     <p style={{ fontSize: 22, fontWeight: 700, color: color || BRAND, margin: "4px 0 0" }}>{value}</p>
-    {sub && <p style={{ fontSize: 11, color: "#6b7280", margin: "2px 0 0" }}>{sub}</p>}
+    {sub && <p style={{ fontSize: 11, color: "#94a3b8", margin: "2px 0 0" }}>{sub}</p>}
   </div>
 );
 
@@ -168,7 +168,7 @@ function TabelaEditavel({
                             <Save size={13}/>
                           </button>
                           <button onClick={() => setEditKey(null)}
-                            className="p-1.5 rounded-lg text-white" style={{ background: "#6b7280" }}>
+                            className="p-1.5 rounded-lg text-white" style={{ background: "#94a3b8" }}>
                             <X size={13}/>
                           </button>
                         </div>
@@ -316,13 +316,13 @@ export default function SIOPSLive() {
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={() => sincMut.mutate()} disabled={sincMut.isPending}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all"
-              style={{ background: sincMut.isPending ? "#6b7280" : BRAND }}>
+              style={{ background: sincMut.isPending ? "#94a3b8" : BRAND }}>
               <RefreshCw size={14} className={sincMut.isPending ? "animate-spin" : ""}/>
               {sincMut.isPending ? "Sincronizando…" : "Sincronizar"}
             </button>
             <button onClick={baixarPdf} disabled={baixandoPdf || !st?.cache_valido}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all"
-              style={{ background: baixandoPdf || !st?.cache_valido ? "#6b7280" : OK }}>
+              style={{ background: baixandoPdf || !st?.cache_valido ? "#94a3b8" : OK }}>
               <Download size={14} className={baixandoPdf ? "animate-bounce" : ""}/>
               {baixandoPdf ? "Gerando PDF…" : "Baixar PDF"}
             </button>
@@ -415,7 +415,7 @@ export default function SIOPSLive() {
                 <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,.07)" }}>
                   <h3 className="font-semibold text-slate-700 mb-4">Pipeline Orçamentário</h3>
                   {[
-                    { label: "Dotação",   val: d.totais?.dotacao,   color: "#6b7280" },
+                    { label: "Dotação",   val: d.totais?.dotacao,   color: "#94a3b8" },
                     { label: "Empenhado", val: d.totais?.empenhado, color: ACCENT },
                     { label: "Liquidado", val: d.totais?.liquidado, color: "#0891b2" },
                     { label: "Pago",      val: d.totais?.pago,      color: OK },

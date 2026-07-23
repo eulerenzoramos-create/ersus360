@@ -204,13 +204,13 @@ export default function AnaliseMunicipio() {
   }
 
   const s: Record<string, React.CSSProperties> = {
-    page: { padding: "0 0 60px 0", fontFamily: "Inter, system-ui, sans-serif", background: "#fff", color: "#111827" },
+    page: { padding: "0 0 60px 0", fontFamily: "Inter, system-ui, sans-serif", background: "#0f172a", minHeight: "100vh", color: "#f1f5f9" },
     header: { background: "linear-gradient(135deg,#0f172a,#1e3a5f)", borderBottom: "1px solid #1e293b", padding: "16px 24px" },
     body: { padding: "20px 24px" },
-    card: { background: "#e4e7ec", borderRadius: 10, padding: 18, marginBottom: 14, border: "1px solid #e4e7ec" },
-    label: { fontSize: 11, color: "#6b7280", marginBottom: 4, display: "block", textTransform: "uppercase" as const, letterSpacing: 0.5 },
-    input: { background: "#f4f6f8", border: "1px solid #e4e7ec", borderRadius: 6, color: "#111827", padding: "7px 10px", fontSize: 13, width: "100%", outline: "none" },
-    select: { background: "#f4f6f8", border: "1px solid #e4e7ec", borderRadius: 6, color: "#111827", padding: "7px 10px", fontSize: 13, width: "100%", outline: "none" },
+    card: { background: "#1e293b", borderRadius: 10, padding: 18, marginBottom: 14, border: "1px solid #334155" },
+    label: { fontSize: 11, color: "#64748b", marginBottom: 4, display: "block", textTransform: "uppercase" as const, letterSpacing: 0.5 },
+    input: { background: "#0f172a", border: "1px solid #334155", borderRadius: 6, color: "#f1f5f9", padding: "7px 10px", fontSize: 13, width: "100%", outline: "none" },
+    select: { background: "#0f172a", border: "1px solid #334155", borderRadius: 6, color: "#f1f5f9", padding: "7px 10px", fontSize: 13, width: "100%", outline: "none" },
     btn: { padding: "8px 18px", borderRadius: 8, border: "none", fontWeight: 600, fontSize: 13, cursor: "pointer" },
     grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
     grid3: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 },
@@ -223,7 +223,7 @@ export default function AnaliseMunicipio() {
     return (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-          <span style={{ fontSize: 11, color: "#6b7280" }}>{label}</span>
+          <span style={{ fontSize: 11, color: "#94a3b8" }}>{label}</span>
           <span style={{ fontSize: 12, fontWeight: 700, color: cor }}>{valor}%</span>
         </div>
         <input type="range" min={0} max={100} step={1} value={valor}
@@ -244,11 +244,11 @@ export default function AnaliseMunicipio() {
               <Search size={20} color="#3b82f6" />
               <span style={{ fontWeight: 700, fontSize: 17 }}>Análise Brasil 360 — Qualquer Município</span>
             </div>
-            <div style={{ fontSize: 12, color: "#6b7280" }}>Portaria GM/MS 3.493/2024 · Componente Qualidade · eSF, eSB, eMulti, eRibeirinha</div>
+            <div style={{ fontSize: 12, color: "#64748b" }}>Portaria GM/MS 3.493/2024 · Componente Qualidade · eSF, eSB, eMulti, eRibeirinha</div>
           </div>
           {etapa === "analise" && (
             <div style={{ display: "flex", gap: 8 }}>
-              <button style={{ ...s.btn, background: "#dbeafe", color: "#1d4ed8" }} onClick={() => setEtapa("equipes")}>
+              <button style={{ ...s.btn, background: "#1e3a5f", color: "#93c5fd" }} onClick={() => setEtapa("equipes")}>
                 <RefreshCw size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />Editar
               </button>
               <button style={{ ...s.btn, background: "#166534", color: "#bbf7d0" }} onClick={imprimir}>
@@ -269,7 +269,7 @@ export default function AnaliseMunicipio() {
           <button key={t.key} onClick={() => { if (i === 0 || (i === 1) || etapa === "analise") setEtapa(t.key as any); }}
             style={{ padding: "10px 20px", fontSize: 13, fontWeight: etapa === t.key ? 700 : 400,
               border: "none", borderBottom: etapa === t.key ? "2px solid #3b82f6" : "2px solid transparent",
-              background: "transparent", color: etapa === t.key ? "#3b82f6" : "#6b7280", cursor: "pointer", marginBottom: -1 }}>
+              background: "transparent", color: etapa === t.key ? "#3b82f6" : "#64748b", cursor: "pointer", marginBottom: -1 }}>
             {t.label}
           </button>
         ))}
@@ -281,7 +281,7 @@ export default function AnaliseMunicipio() {
         {etapa === "municipio" && (
           <div style={{ maxWidth: 560 }}>
             <div style={s.card}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#111827", marginBottom: 16 }}>Identificação do Município</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#f1f5f9", marginBottom: 16 }}>Identificação do Município</div>
 
               <div style={{ ...s.grid2, marginBottom: 14 }}>
                 <div>
@@ -312,10 +312,10 @@ export default function AnaliseMunicipio() {
                 </select>
               </div>
 
-              <div style={{ background: "#f4f6f8", borderRadius: 8, padding: 14, marginBottom: 20, border: "1px solid #1e3a5f" }}>
+              <div style={{ background: "#0f172a", borderRadius: 8, padding: 14, marginBottom: 20, border: "1px solid #1e3a5f" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#3b82f6", marginBottom: 8 }}>📋 Como usar</div>
-                <ol style={{ fontSize: 12, color: "#6b7280", paddingLeft: 16, margin: 0, lineHeight: 1.8 }}>
-                  <li>Acesse o <strong style={{ color: "#111827" }}>e-Gestor AB</strong> → SIAPS → Componente Qualidade</li>
+                <ol style={{ fontSize: 12, color: "#94a3b8", paddingLeft: 16, margin: 0, lineHeight: 1.8 }}>
+                  <li>Acesse o <strong style={{ color: "#f1f5f9" }}>e-Gestor AB</strong> → SIAPS → Componente Qualidade</li>
                   <li>Selecione o município e o quadrimestre</li>
                   <li>Anote o score de cada indicador de cada equipe</li>
                   <li>Preencha aqui e gere a análise completa</li>
@@ -337,10 +337,10 @@ export default function AnaliseMunicipio() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 15 }}>{municipio.nome}/{municipio.uf} — {quadrimestre}</div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>Informe os scores de cada indicador (% de cobertura conforme e-Gestor AB)</div>
+                <div style={{ fontSize: 12, color: "#64748b" }}>Informe os scores de cada indicador (% de cobertura conforme e-Gestor AB)</div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button style={{ ...s.btn, background: "#dbeafe", color: "#1d4ed8" }} onClick={addEquipe}>
+                <button style={{ ...s.btn, background: "#1e3a5f", color: "#93c5fd" }} onClick={addEquipe}>
                   <Plus size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />Adicionar Equipe
                 </button>
                 <button style={{ ...s.btn, background: "#166534", color: "#bbf7d0" }}
@@ -364,7 +364,7 @@ export default function AnaliseMunicipio() {
                   {/* Cabeçalho da equipe */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: aberto ? 16 : 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
-                      <span style={{ background: "#f4f6f8", color: "#6b7280", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700, minWidth: 20, textAlign: "center" }}>{idx+1}</span>
+                      <span style={{ background: "#0f172a", color: "#64748b", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700, minWidth: 20, textAlign: "center" }}>{idx+1}</span>
                       <input style={{ ...s.input, maxWidth: 220, fontWeight: 600 }} placeholder="Nome da equipe (ex: ESF Kennedy)"
                         value={eq.nome} onChange={e => updateEquipe(eq.id, "nome", e.target.value)} />
                       <select style={{ ...s.select, maxWidth: 130 }} value={eq.tipo}
@@ -383,7 +383,7 @@ export default function AnaliseMunicipio() {
                         <div style={{ fontSize: 20, fontWeight: 800, color: cl.cor }}>{total}</div>
                         <div style={{ fontSize: 10, background: cl.bg, color: cl.cor, borderRadius: 10, padding: "1px 6px" }}>{cl.label}</div>
                       </div>
-                      <button onClick={() => toggleExp(eq.id)} style={{ background: "#d1d5db", border: "none", borderRadius: 6, padding: "6px 8px", cursor: "pointer", color: "#6b7280" }}>
+                      <button onClick={() => toggleExp(eq.id)} style={{ background: "#334155", border: "none", borderRadius: 6, padding: "6px 8px", cursor: "pointer", color: "#94a3b8" }}>
                         {aberto ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                       </button>
                       <button onClick={() => removeEquipe(eq.id)} style={{ background: "#450a0a", border: "none", borderRadius: 6, padding: "6px 8px", cursor: "pointer", color: "#ef4444" }}>
@@ -400,7 +400,7 @@ export default function AnaliseMunicipio() {
                         <IndSlider id={eq.id} campo="impl" label="Implantação (%)" valor={eq.impl} />
                       </div>
 
-                      <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      <div style={{ fontSize: 11, color: "#64748b", marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>
                         Componente Qualidade — {eq.tipo === "eSB" ? "Grupo B" : eq.tipo === "eMulti" ? "Grupo M" : "Grupo C"}
                       </div>
 
@@ -430,7 +430,7 @@ export default function AnaliseMunicipio() {
               );
             })}
 
-            <button style={{ ...s.btn, background: "#e4e7ec", color: "#6b7280", border: "1px dashed #334155", width: "100%", marginTop: 4 }} onClick={addEquipe}>
+            <button style={{ ...s.btn, background: "#1e293b", color: "#64748b", border: "1px dashed #334155", width: "100%", marginTop: 4 }} onClick={addEquipe}>
               <Plus size={13} style={{ marginRight: 6, verticalAlign: "middle" }} />Adicionar outra equipe
             </button>
           </div>
@@ -446,11 +446,11 @@ export default function AnaliseMunicipio() {
                 { label: "ÓTIMO ≥75", valor: otimo, cor: "#22c55e" },
                 { label: "BOM 60–74", valor: bom, cor: "#f59e0b" },
                 { label: "Risco <60", valor: risco, cor: "#ef4444" },
-                { label: "Total Equipes", valor: equipes.length, cor: "#6b7280" },
+                { label: "Total Equipes", valor: equipes.length, cor: "#94a3b8" },
               ].map(k => (
-                <div key={k.label} style={{ background: "#e4e7ec", borderRadius: 10, padding: "14px 16px", textAlign: "center", border: "1px solid #e4e7ec" }}>
+                <div key={k.label} style={{ background: "#1e293b", borderRadius: 10, padding: "14px 16px", textAlign: "center", border: "1px solid #334155" }}>
                   <div style={{ fontSize: 26, fontWeight: 800, color: k.cor }}>{k.valor}</div>
-                  <div style={{ fontSize: 11, color: "#6b7280" }}>{k.label}</div>
+                  <div style={{ fontSize: 11, color: "#64748b" }}>{k.label}</div>
                 </div>
               ))}
             </div>
@@ -460,9 +460,9 @@ export default function AnaliseMunicipio() {
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Resultado por Equipe — {municipio.nome}/{municipio.uf} · {quadrimestre}</div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 700 }}>
                 <thead>
-                  <tr style={{ background: "#f4f6f8" }}>
+                  <tr style={{ background: "#0f172a" }}>
                     {["Equipe","Tipo","Score","Classificação","Falta p/ ÓTIMO","Maior Gap","Ação Prioritária"].map(h => (
-                      <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 11, color: "#6b7280", fontWeight: 600, borderBottom: "1px solid #e4e7ec" }}>{h}</th>
+                      <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 11, color: "#64748b", fontWeight: 600, borderBottom: "1px solid #334155" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -473,7 +473,7 @@ export default function AnaliseMunicipio() {
                     return (
                       <tr key={r.eq.id} style={{ borderBottom: "1px solid #1e293b" }}>
                         <td style={{ padding: "9px 10px", fontWeight: 600 }}>{r.eq.nome || "(sem nome)"}</td>
-                        <td style={{ padding: "9px 10px" }}><span style={{ background: "#d1d5db", borderRadius: 6, padding: "2px 7px", fontSize: 11 }}>{r.eq.tipo}</span></td>
+                        <td style={{ padding: "9px 10px" }}><span style={{ background: "#334155", borderRadius: 6, padding: "2px 7px", fontSize: 11 }}>{r.eq.tipo}</span></td>
                         <td style={{ padding: "9px 10px", fontWeight: 800, fontSize: 16, color: cl.cor }}>{r.total}</td>
                         <td style={{ padding: "9px 10px" }}>
                           <span style={{ background: cl.bg, color: cl.cor, borderRadius: 10, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{cl.label}</span>
@@ -484,7 +484,7 @@ export default function AnaliseMunicipio() {
                         <td style={{ padding: "9px 10px" }}>
                           {gap ? <span style={{ color: "#f59e0b", fontWeight: 600 }}>{gap.ind} ({gap.atual}%)</span> : <span style={{ color: "#22c55e" }}>—</span>}
                         </td>
-                        <td style={{ padding: "9px 10px", fontSize: 12, color: "#6b7280", maxWidth: 260 }}>
+                        <td style={{ padding: "9px 10px", fontSize: 12, color: "#94a3b8", maxWidth: 260 }}>
                           {gap ? ACOES[gap.ind] || "—" : "Manter protocolo atual"}
                         </td>
                       </tr>
@@ -495,7 +495,7 @@ export default function AnaliseMunicipio() {
             </div>
 
             {/* Análise por equipe — gaps detalhados */}
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#111827", marginBottom: 12 }}>Gaps Detalhados por Equipe</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#f1f5f9", marginBottom: 12 }}>Gaps Detalhados por Equipe</div>
             {resultados.filter(r => r.gaps.length > 0).sort((a,b) => a.total - b.total).map(r => {
               const cl = classificar(r.total);
               return (
@@ -503,7 +503,7 @@ export default function AnaliseMunicipio() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                     <div>
                       <span style={{ fontWeight: 700, fontSize: 14 }}>{r.eq.nome}</span>
-                      <span style={{ fontSize: 11, background: "#d1d5db", borderRadius: 6, padding: "2px 7px", marginLeft: 8 }}>{r.eq.tipo}</span>
+                      <span style={{ fontSize: 11, background: "#334155", borderRadius: 6, padding: "2px 7px", marginLeft: 8 }}>{r.eq.tipo}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <span style={{ fontSize: 20, fontWeight: 800, color: cl.cor }}>{r.total} pts</span>
@@ -513,21 +513,21 @@ export default function AnaliseMunicipio() {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {r.gaps.map(g => (
-                      <div key={g.ind} style={{ background: "#f4f6f8", borderRadius: 8, padding: 12, display: "flex", gap: 12, alignItems: "flex-start" }}>
+                      <div key={g.ind} style={{ background: "#0f172a", borderRadius: 8, padding: 12, display: "flex", gap: 12, alignItems: "flex-start" }}>
                         <div style={{ minWidth: 40, textAlign: "center" }}>
                           <div style={{ fontWeight: 800, color: "#f59e0b", fontSize: 14 }}>{g.ind}</div>
-                          <div style={{ fontSize: 10, color: "#6b7280" }}>{g.atual}%</div>
+                          <div style={{ fontSize: 10, color: "#64748b" }}>{g.atual}%</div>
                         </div>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", marginBottom: 4 }}>{g.desc}</div>
-                          <div style={{ height: 5, background: "#e4e7ec", borderRadius: 3, marginBottom: 6 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: "#f1f5f9", marginBottom: 4 }}>{g.desc}</div>
+                          <div style={{ height: 5, background: "#1e293b", borderRadius: 3, marginBottom: 6 }}>
                             <div style={{ height: "100%", width: `${g.atual}%`, background: g.atual >= 80 ? "#22c55e" : g.atual >= 60 ? "#f59e0b" : "#ef4444", borderRadius: 3 }} />
                           </div>
-                          <div style={{ fontSize: 11, color: "#6b7280" }}>{ACOES[g.ind]}</div>
+                          <div style={{ fontSize: 11, color: "#64748b" }}>{ACOES[g.ind]}</div>
                         </div>
                         <div style={{ minWidth: 44, textAlign: "center", background: "#22c55e15", borderRadius: 6, padding: "4px 6px" }}>
                           <div style={{ fontSize: 13, fontWeight: 800, color: "#22c55e" }}>+{g.pts}</div>
-                          <div style={{ fontSize: 9, color: "#6b7280" }}>pts</div>
+                          <div style={{ fontSize: 9, color: "#64748b" }}>pts</div>
                         </div>
                       </div>
                     ))}
@@ -552,8 +552,8 @@ export default function AnaliseMunicipio() {
               </div>
             )}
 
-            <div style={{ ...s.card, background: "#f4f6f8", border: "1px solid #1e3a5f", marginTop: 8 }}>
-              <div style={{ fontSize: 11, color: "#6b7280" }}>
+            <div style={{ ...s.card, background: "#0f172a", border: "1px solid #1e3a5f", marginTop: 8 }}>
+              <div style={{ fontSize: 11, color: "#64748b" }}>
                 Análise gerada pelo ERSUS360 · Scores informados manualmente via e-Gestor AB · Portaria GM/MS 3.493/2024
               </div>
             </div>

@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { ShieldCheck, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -122,7 +122,7 @@ export default function InfecoesHospitalaresApui() {
               <h3 className="font-semibold text-slate-700 mb-3">Taxa de IRAS por Tipo (%)</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={(tipos as any[]).filter((t: any) => t.taxa_pct > 0)} margin={{ top: 5, right: 20, bottom: 40, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="tipo" tick={{ fontSize: 9 }} angle={-15} textAnchor="end" />
                   <YAxis tick={{ fontSize: 11 }} unit="%" />
                   <Tooltip formatter={(v: any) => `${v}%`} />
@@ -158,7 +158,7 @@ export default function InfecoesHospitalaresApui() {
               <h3 className="font-semibold text-slate-700 mb-3">Conformidade das Medidas de Prevenção (%)</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={prevencao as any[]} layout="vertical" margin={{ top: 5, right: 40, bottom: 5, left: 200 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
                   <YAxis type="category" dataKey="medida" tick={{ fontSize: 8 }} width={195} />
                   <Tooltip formatter={(v: any) => `${v}%`} />
@@ -193,7 +193,7 @@ export default function InfecoesHospitalaresApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução IRAS — HMM Apuí/AM (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />

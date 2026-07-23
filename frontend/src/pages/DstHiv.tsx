@@ -117,7 +117,7 @@ export default function DstHiv() {
               <h3 className="font-semibold text-slate-700 mb-4">PVHA por Faixa Etária</h3>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={pvha} margin={{ left: 0, right: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="faixa" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
@@ -192,7 +192,7 @@ export default function DstHiv() {
             <h3 className="font-semibold text-slate-700 mb-4">Série Mensal (2026)</h3>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={serie} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" domain={[85, 92]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />

@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { Waves, AlertTriangle, CheckCircle, TrendingDown } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
 const ST_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
 const TEND_COR: Record<string, string> = { melhora: "#16a34a", estavel: "#d97706", piora: "#dc2626" };
 
@@ -70,7 +70,7 @@ function AbaSistemas({ sistemas }: { sistemas: any[] | undefined }) {
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
               <div>
                 <span style={{ fontSize: 13, fontWeight: 700 }}>{s.sistema}</span>
-                <span style={{ marginLeft: 8, background: "#111827", fontSize: 10, padding: "2px 6px", borderRadius: 4, color: "#374151" }}>{s.tipo}</span>
+                <span style={{ marginLeft: 8, background: "#f1f5f9", fontSize: 10, padding: "2px 6px", borderRadius: 4, color: "#374151" }}>{s.tipo}</span>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 {s.parametro_critico && (
@@ -184,8 +184,8 @@ export default function VigiAgua() {
   ];
 
   return (
-    <div style={{ background: "#fff", padding: "20px 24px 32px" }}>
-      <div style={{ style_SIAPS_PLACEHOLDER }}>
+    <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
+      <div style={{ background: "linear-gradient(135deg,#0c4a6e 0%,#0369a1 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>VIGIÁGUA</h1>
@@ -206,9 +206,9 @@ export default function VigiAgua() {
         </div>
       </div>
       <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #d4d4d4" }}>
+        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #bae6fd" }}>
           {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"3px solid #1351b4":"2px solid transparent", color: aba===a.id?"#1351b4":"#555", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
+            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #0369a1":"2px solid transparent", color: aba===a.id?"#0369a1":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
           ))}
         </div>
         {aba==="dashboard"   && <AbaDashboard dash={dashRaw} hist={hist}/>}

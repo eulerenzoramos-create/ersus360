@@ -7,7 +7,7 @@ import {
 import { Syringe, Thermometer, AlertTriangle, CheckCircle, Package } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
   return (
@@ -144,7 +144,7 @@ function AbaTemperatura({ tempData }: { tempData: any }) {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 22 }}>
-        <div style={{ background: tempData.alerta ? "#fff7f7" : "#f0fdf4", border: `1px solid ${tempData.alerta ? "#b91c1c" : "#bbf7d0"}`, borderRadius: 10, padding: "16px 18px", textAlign: "center" }}>
+        <div style={{ background: tempData.alerta ? "#fff7f7" : "#f0fdf4", border: `1px solid ${tempData.alerta ? "#fca5a5" : "#bbf7d0"}`, borderRadius: 10, padding: "16px 18px", textAlign: "center" }}>
           <div style={{ fontSize: 32, fontWeight: 900, color: tempData.alerta ? "#dc2626" : "#16a34a" }}>{tempData.atual}°C</div>
           <div style={{ fontSize: 12, color: "#6b7280" }}>Temperatura atual câmara principal</div>
         </div>
@@ -235,7 +235,7 @@ export default function SalaVacinas() {
 
   return (
     <div style={{ padding:"0 0 32px", fontFamily:"system-ui,sans-serif" }}>
-      <div style={{ background:"linear-gradient(135deg,#1351b4 0%,#0c3fa4 100%)", color:"#fff", padding:"20px 24px 16px", borderRadius:"0 0 16px 16px", marginBottom:24 }}>
+      <div style={{ background:"linear-gradient(135deg,#7c3aed 0%,#0891b2 100%)", color:"#fff", padding:"20px 24px 16px", borderRadius:"0 0 16px 16px", marginBottom:24 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
           <div>
             <h1 style={{ fontSize:22, fontWeight:800, margin:"0 0 4px" }}>Sala de Vacinas — PNI</h1>
@@ -252,7 +252,7 @@ export default function SalaVacinas() {
       <div style={{ padding:"0 24px" }}>
         <div style={{ display:"flex", gap:2, marginBottom:24, borderBottom:"2px solid #dbeafe" }}>
           {ABAS.map(a=>(
-            <button key={a.id} onClick={()=>setAba(a.id)} style={{ padding:"9px 18px", border:"none", background:"none", cursor:"pointer", fontSize:13, borderBottom:aba===a.id?"3px solid #1351b4":"2px solid transparent", color:aba===a.id?"#7c3aed":"#6b7280", fontWeight:aba===a.id?700:400, marginBottom:-2 }}>{a.label}</button>
+            <button key={a.id} onClick={()=>setAba(a.id)} style={{ padding:"9px 18px", border:"none", background:"none", cursor:"pointer", fontSize:13, borderBottom:aba===a.id?"2px solid #7c3aed":"2px solid transparent", color:aba===a.id?"#7c3aed":"#6b7280", fontWeight:aba===a.id?700:400, marginBottom:-2 }}>{a.label}</button>
           ))}
         </div>
         {aba==="dashboard"   && <AbaDashboard dash={dash}/>}

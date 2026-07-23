@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Droplets, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -131,7 +131,7 @@ export default function MalariaApui() {
                 <BarChart data={estratificacao as any[]} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="localidade" tick={{ fontSize: 9 }} width={200} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip formatter={(v: any) => `IPA ${v}`} />
                   <Bar dataKey="ipa" name="IPA" radius={[0,3,3,0]}>
                     {(estratificacao as any[]).map((e: any) => <Cell key={e.localidade} fill={RISCO_COLORS[e.risco] || WARN} />)}
@@ -162,7 +162,7 @@ export default function MalariaApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Sazonalidade — Casos de Malária (2025)</h3>
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={sazonalidade} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
                 <YAxis yAxisId="c" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="g" orientation="right" tick={{ fontSize: 10 }} />

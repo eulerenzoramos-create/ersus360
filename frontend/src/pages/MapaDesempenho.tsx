@@ -389,7 +389,7 @@ export default function MapaDesempenho() {
           </p>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "6px 10px" }}>
-          <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 600, marginRight: 4 }}>NÍVEL:</span>
+          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginRight: 4 }}>NÍVEL:</span>
           {selectorBtn("regional", "🗺️ Regional")}
           {selectorBtn("estadual", "🏛️ Estadual AM")}
           {selectorBtn("nacional", "🇧🇷 Nacional")}
@@ -431,7 +431,7 @@ export default function MapaDesempenho() {
       </div>
 
       {/* Abas */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #d4d4d4" }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #e0e0e0" }}>
         {([
           { key: "dimensoes", label: "Dimensões do Score" },
           { key: "ranking",   label: "Ranking" },

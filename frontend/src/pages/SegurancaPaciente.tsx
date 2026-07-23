@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Shield, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -95,7 +95,7 @@ export default function SegurancaPaciente() {
                 <div className="flex items-center gap-4">
                   <div className="relative w-28 h-28 flex-shrink-0">
                     <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="#111827" strokeWidth="12" />
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="#f1f5f9" strokeWidth="12" />
                       <circle cx="50" cy="50" r="40" fill="none" stroke={WARN} strokeWidth="12"
                         strokeDasharray={`${dashRaw.cultura_seguranca_score * 2.513} 251.3`} strokeLinecap="round" />
                     </svg>
@@ -125,7 +125,7 @@ export default function SegurancaPaciente() {
                 <BarChart data={(eventos as any[])} layout="vertical" margin={{ left: 10, right: 80 }}>
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="categoria" tick={{ fontSize: 9 }} width={240} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="total_ano"  name="Total/ano" fill={WARN}   radius={[0,3,3,0]} />
@@ -163,7 +163,7 @@ export default function SegurancaPaciente() {
                 <BarChart data={(protocolos as any[])} layout="vertical" margin={{ left: 10, right: 80 }}>
                   <XAxis type="number" tick={{ fontSize: 10 }} unit="%" domain={[0, 100]} />
                   <YAxis type="category" dataKey="protocolo" tick={{ fontSize: 9 }} width={240} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip formatter={(v: any) => `${v}%`} />
                   <Bar dataKey="adesao_pct" name="Adesão" radius={[0,3,3,0]}>
                     {(protocolos as any[]).map((p: any) => <Cell key={p.protocolo} fill={statusColor(p.status)} />)}
@@ -197,7 +197,7 @@ export default function SegurancaPaciente() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal — Segurança do Paciente (Jan–Jun/2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />

@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { TrendingDown, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -125,7 +125,7 @@ export default function EconomiaSaudeApui() {
               <h3 className="font-semibold text-slate-700 mb-4">Gastos por Categoria (R$/ano)</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={(gastos as any[])} layout="vertical" margin={{ left: 160, right: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v/1000000).toFixed(1)}M`} />
                   <YAxis dataKey="categoria" type="category" tick={{ fontSize: 10 }} width={160} />
                   <Tooltip formatter={(v: any) => `R$ ${Number(v).toLocaleString()}`} />
@@ -163,7 +163,7 @@ export default function EconomiaSaudeApui() {
               <h3 className="font-semibold text-slate-700 mb-4">Ações Judiciais — Volume e Custo Mensal</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={(judicializacao as any[])} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="objeto" tick={{ fontSize: 10 }} angle={-15} textAnchor="end" />
                   <YAxis yAxisId="left"  tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} />
@@ -204,7 +204,7 @@ export default function EconomiaSaudeApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Econômica da Saúde — Apuí/AM (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v/1000000).toFixed(1)}M`} />
                 <Tooltip formatter={(v: any) => `R$ ${Number(v).toLocaleString()}`} />

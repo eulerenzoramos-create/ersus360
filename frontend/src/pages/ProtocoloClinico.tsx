@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { ClipboardList, AlertTriangle, Activity, CheckCircle } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
 const CRIT   = "#dc2626";
@@ -130,7 +130,7 @@ export default function ProtocoloClinico() {
               {["","ok","atencao","critico"].map(s => (
                 <button key={s} onClick={() => setFiltroStatus(s)}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
-                  style={filtroStatus === s ? { background: BRAND, color: "white", border: "none" } : { background: "white", color: "#6b7280", borderColor: "#374151" }}>
+                  style={filtroStatus === s ? { background: BRAND, color: "white", border: "none" } : { background: "white", color: "#64748b", borderColor: "#e2e8f0" }}>
                   {s === "" ? "Todos" : s.charAt(0).toUpperCase() + s.slice(1)}
                 </button>
               ))}
@@ -142,7 +142,7 @@ export default function ProtocoloClinico() {
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-slate-700">{p.nome}</span>
                       {p.pcdt_ms && <span className="text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">PCDT/MS</span>}
-                      <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: (CAT_COLORS[p.categoria] || "#6b7280") + "22", color: CAT_COLORS[p.categoria] || "#6b7280" }}>
+                      <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: (CAT_COLORS[p.categoria] || "#94a3b8") + "22", color: CAT_COLORS[p.categoria] || "#94a3b8" }}>
                         {p.categoria}
                       </span>
                     </div>
@@ -193,7 +193,7 @@ export default function ProtocoloClinico() {
               <h3 className="font-semibold text-slate-700 mb-4">Adesão Média e Desvios (2026)</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="ad" domain={[65, 85]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="dv" orientation="right" tick={{ fontSize: 11 }} />

@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Wind, AlertTriangle, Users, Activity } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#2563eb";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -160,7 +160,7 @@ export default function Tuberculose() {
                   <YAxis type="category" dataKey="categoria" tick={{ fontSize: 9 }} width={230} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="identificados" name="Identificados" fill="#1d4ed8" radius={[0,3,3,0]} />
+                  <Bar dataKey="identificados" name="Identificados" fill="#93c5fd" radius={[0,3,3,0]} />
                   <Bar dataKey="examinados"    name="Examinados"    fill={ACCENT}   radius={[0,3,3,0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -189,7 +189,7 @@ export default function Tuberculose() {
               <h3 className="font-semibold text-slate-700 mb-4">Série Histórica (2022–2026*)</h3>
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={serie} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="n"    tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="pct"  orientation="right" domain={[0, 25]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />

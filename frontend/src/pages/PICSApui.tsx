@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Sparkles, AlertTriangle, TrendingUp, FlaskConical } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -96,7 +96,7 @@ export default function PICSApui() {
                     { label: "Homeopatia",         disponivel: d.homeopatia_disponivel },
                   ].map((p) => (
                     <div key={p.label} className={`flex items-center gap-2 p-2 rounded-lg ${p.disponivel ? "bg-green-50" : "bg-slate-50"}`}>
-                      <span style={{ color: p.disponivel ? OK : "#6b7280", fontSize: 16 }}>{p.disponivel ? "✓" : "✗"}</span>
+                      <span style={{ color: p.disponivel ? OK : "#94a3b8", fontSize: 16 }}>{p.disponivel ? "✓" : "✗"}</span>
                       <span className={p.disponivel ? "text-slate-700 font-medium" : "text-slate-400"}>{p.label}</span>
                     </div>
                   ))}
@@ -119,7 +119,7 @@ export default function PICSApui() {
                 <BarChart data={praticas as any[]} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="pratica" tick={{ fontSize: 8 }} width={220} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip />
                   <Bar dataKey="atendimentos_mes" name="Atendimentos/mês" radius={[0,3,3,0]}>
                     {(praticas as any[]).map((_: any, i: number) => (
@@ -163,7 +163,7 @@ export default function PICSApui() {
             </div>
             {(horto as any[]).map((p: any) => (
               <div key={p.planta} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center gap-4">
-                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: p.disponivel ? OK : "#6b7280" }} />
+                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: p.disponivel ? OK : "#94a3b8" }} />
                 <div className="flex-1">
                   <p className="font-semibold text-sm text-slate-700">{p.planta}</p>
                   <p className="text-xs text-slate-400">{p.indicacao}</p>
@@ -181,7 +181,7 @@ export default function PICSApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução PICS — Atendimentos e Impacto (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={hist} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />

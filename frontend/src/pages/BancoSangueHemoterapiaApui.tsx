@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Droplets, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -97,13 +97,13 @@ export default function BancoSangueHemoterapiaApui() {
                     { tipo: "Coletadas",   qtd: dashRaw.coletas_ano },
                     { tipo: "Necessárias", qtd: dashRaw.necessidade_estimada_bolsas },
                   ]} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis dataKey="tipo" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip formatter={(v: any) => `${v} bolsas`} />
                     <Bar dataKey="qtd" name="Bolsas" radius={[3,3,0,0]}>
                       <Cell fill={CRIT} />
-                      <Cell fill="#374151" />
+                      <Cell fill="#e2e8f0" />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -173,7 +173,7 @@ export default function BancoSangueHemoterapiaApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — Hemoterapia (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />

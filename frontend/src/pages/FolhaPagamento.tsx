@@ -267,7 +267,7 @@ export default function FolhaPagamento() {
       <div style={{ background:"#0d2137", color:"#fff", padding:"16px 24px",
         display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <FileText size={22} color="#1565c0"/>
+          <FileText size={22} color="#60a5fa"/>
           <div>
             <div style={{ fontSize:17, fontWeight:700 }}>Folha de Pagamento — SMS Apuí/AM</div>
             <div style={{ fontSize:11, color:"#9ab8d8", marginTop:2 }}>
@@ -553,7 +553,7 @@ export default function FolhaPagamento() {
                         <td style={{ ...tdSt, color:"#fbbf24", textAlign:"right" }}>
                           {BRL(verbasFiltradas.reduce((a: number,v: any) => a+v.adicional_interioridade,0))}
                         </td>
-                        <td style={{ ...tdSt, color:"#1565c0", textAlign:"right" }}>
+                        <td style={{ ...tdSt, color:"#60a5fa", textAlign:"right" }}>
                           {BRL(verbasFiltradas.reduce((a: number,v: any) => a+v.bruto,0))}
                         </td>
                         <td style={{ ...tdSt, color:"#fbbf24", textAlign:"right" }}>
@@ -615,11 +615,11 @@ export default function FolhaPagamento() {
                     ))}
                     <tr style={{ background:"#0d2137", color:"#fff", fontWeight:800 }}>
                       <td colSpan={3} style={{ ...tdSt, color:"#fff" }}><strong>TOTAL GERAL</strong></td>
-                      <td style={{ ...tdSt, color:"#1565c0", textAlign:"right" }}>{BRL(folha.total_bruto)}</td>
+                      <td style={{ ...tdSt, color:"#60a5fa", textAlign:"right" }}>{BRL(folha.total_bruto)}</td>
                       <td style={{ ...tdSt, color:"#fbbf24", textAlign:"right" }}>
                         {BRL(folha.verbas.reduce((a: number,v: any) => a+v.enc_inss_patronal,0))}
                       </td>
-                      <td style={{ ...tdSt, color:"#1d4ed8", textAlign:"right" }}>
+                      <td style={{ ...tdSt, color:"#93c5fd", textAlign:"right" }}>
                         {BRL(folha.verbas.reduce((a: number,v: any) => a+v.enc_fgts,0))}
                       </td>
                       <td style={{ ...tdSt, color:"#c4b5fd", textAlign:"right" }}>

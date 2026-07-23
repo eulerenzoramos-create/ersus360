@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import { Baby, AlertTriangle, TrendingUp, MapPin } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -185,7 +185,7 @@ export default function TriagemNeonatalApui() {
                 <BarChart data={zona as any[]} margin={{ left: 0, right: 10 }}>
                   <XAxis dataKey="zona" tick={{ fontSize: 9 }} />
                   <YAxis tick={{ fontSize: 10 }} unit="%" domain={[0, 100]} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip formatter={(v: any) => `${v}%`} />
                   <Legend />
                   <Bar dataKey="pezinho_pct"   name="Pezinho (%)"   fill={ACCENT} radius={[3,3,0,0]} />
@@ -216,7 +216,7 @@ export default function TriagemNeonatalApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Cobertura dos 5 Testes — 2026</h3>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={hist} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis domain={[30, 105]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
                 <Tooltip />

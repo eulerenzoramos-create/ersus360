@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { ShieldCheck, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -117,7 +117,7 @@ export default function VisaMunicipalApui() {
           <div className="space-y-4">
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={estab as any[]} margin={{ top: 5, right: 20, bottom: 80, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="tipo" tick={{ fontSize: 8 }} angle={-20} textAnchor="end" />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
@@ -152,7 +152,7 @@ export default function VisaMunicipalApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Inspeções Realizadas — Apuí/AM 2025</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={inspecoes} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="left"  tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
