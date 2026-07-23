@@ -183,6 +183,9 @@ import TrilhaAuditoria          from "./pages/TrilhaAuditoria";
 import MonitorLotesSIAPS        from "./pages/MonitorLotesSIAPS";
 import ConformidadeSCNES        from "./pages/ConformidadeSCNES";
 import QualidadeCADSUS          from "./pages/QualidadeCADSUS";
+import GatewayRNDS              from "./pages/GatewayRNDS";
+import LinhaTempoCidadao        from "./pages/LinhaTempoCidadao";
+import RelatorioTCETCU          from "./pages/RelatorioTCETCU";
 import VisaMunicipal            from "./pages/VisaMunicipal";
 import ConselhoSaudeApui        from "./pages/ConselhoSaudeApui";
 import OuvidoriaApui            from "./pages/OuvidoriaApui";
@@ -835,6 +838,9 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             {podeAud && <L1 to="/monitor-lotes-siaps" label="Monitor Lotes SIAPS"    Icon={Package}/>}
             {podeAud && <L1 to="/conformidade-scnes"  label="Conformidade SCNES"     Icon={Building2}/>}
             {podeAud && <L1 to="/qualidade-cadsus"    label="Qualidade CADSUS"       Icon={UserCheck}/>}
+            {podeAud && <L1 to="/gateway-rnds"        label="Gateway RNDS · FHIR R4" Icon={Network}/>}
+            <L1 to="/linha-tempo-cidadao"             label="Linha do Tempo Cidadão" Icon={Clock}/>
+            {podeFin && <L1 to="/relatorio-tce-tcu"   label="Relatórios TCE / TCU"   Icon={Shield}/>}
 
             <div style={{height:24}}/>
           </div>
@@ -1212,6 +1218,9 @@ export default function App() {
             <Route path="/monitor-lotes-siaps"       element={<MonitorLotesSIAPS/>}/>
             <Route path="/conformidade-scnes"        element={<ConformidadeSCNES/>}/>
             <Route path="/qualidade-cadsus"          element={<QualidadeCADSUS/>}/>
+            <Route path="/gateway-rnds"              element={<GatewayRNDS/>}/>
+            <Route path="/linha-tempo-cidadao"       element={<LinhaTempoCidadao/>}/>
+            <Route path="/relatorio-tce-tcu"         element={<RelatorioTCETCU/>}/>
             <Route path="/cadastros"                 element={<CadastrosMestres/>}/>
             <Route path="/cadastros/*"               element={<CadastrosMestres/>}/>
             <Route path="/rh"                        element={<RH/>}/>
