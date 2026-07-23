@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Heart, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#2563eb";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -154,7 +154,7 @@ export default function DCNT() {
               <h3 className="font-semibold text-slate-700 mb-4">Consultas HAS/DM e Controle Glicêmico (2026)</h3>
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={serie} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="pct" orientation="right" domain={[50, 60]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />

@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import { Thermometer, AlertTriangle, Package, TrendingDown } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 const STATUS_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", alerta: "#dc2626", urgente: "#dc2626", critico: "#dc2626" };
 const CAUSA_COR: Record<string, string> = { "Vencimento": "#dc2626", "Frasco aberto": "#d97706", "Falha cadeia frio": "#7c3aed" };
 

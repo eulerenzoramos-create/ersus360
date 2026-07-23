@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { ShieldCheck, AlertTriangle, Search, TrendingUp } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -144,7 +144,7 @@ export default function VisaMunicipal() {
                 <BarChart data={(estab as any[])} margin={{ left: 0, right: 20 }}>
                   <XAxis dataKey="tipo" tick={{ fontSize: 8 }} interval={0} angle={-20} textAnchor="end" height={60} />
                   <YAxis tick={{ fontSize: 10 }} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="regulares"    name="Regulares"    fill={OK}   stackId="a" radius={[0,0,0,0]} />
@@ -159,7 +159,7 @@ export default function VisaMunicipal() {
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <span className="font-semibold text-sm text-slate-700">{e.tipo}</span>
-                      <span className="ml-2 text-xs px-2 py-0.5 rounded" style={{ background: "#f1f5f9", color: "#475569" }}>Risco {e.risco}</span>
+                      <span className="ml-2 text-xs px-2 py-0.5 rounded" style={{ background: "#111827", color: "#475569" }}>Risco {e.risco}</span>
                     </div>
                     <span className="text-xs font-bold px-2 py-0.5 rounded"
                       style={{ background: statusColor(e.status) + "22", color: statusColor(e.status) }}>
@@ -184,14 +184,14 @@ export default function VisaMunicipal() {
             <h3 className="font-semibold text-slate-700 mb-4">Inspeções Realizadas vs. Meta (Jan–Jun/2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={inspecoes} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="a"   orientation="right" tick={{ fontSize: 10 }} />
                 <Tooltip />
                 <Legend />
                 <Line yAxisId="n" dataKey="realizadas"     name="Inspeções realizadas" stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
-                <Line yAxisId="n" dataKey="meta"           name="Meta"                 stroke="#94a3b8" strokeWidth={1} strokeDasharray="5 5" dot={false} />
+                <Line yAxisId="n" dataKey="meta"           name="Meta"                 stroke="#6b7280" strokeWidth={1} strokeDasharray="5 5" dot={false} />
                 <Line yAxisId="n" dataKey="irregularidades"name="Irregularidades"      stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} />
                 <Line yAxisId="a" dataKey="autos"          name="Autos de infração"   stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
               </LineChart>
@@ -202,7 +202,7 @@ export default function VisaMunicipal() {
         {aba === "alertas" && Array.isArray(alertas) && (
           <div className="grid gap-3">
             {(alertas as any[]).map((a: any, i: number) => {
-              const badge = STATUS_BADGE[a.status] || { bg: "#f1f5f9", text: "#475569", label: a.status };
+              const badge = STATUS_BADGE[a.status] || { bg: "#111827", text: "#475569", label: a.status };
               return (
                 <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-start gap-4">
                   <div className="mt-1 w-3 h-3 rounded-full flex-shrink-0" style={{ background: a.risco === "alto" ? CRIT : WARN }} />

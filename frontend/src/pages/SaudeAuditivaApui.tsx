@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Radio, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -123,7 +123,7 @@ export default function SaudeAuditivaApui() {
               <h3 className="font-semibold text-slate-700 mb-3">Condições Auditivas — Estimados vs Diagnosticados</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={(condicoes as any[]).filter((c: any) => c.estimados > 0 && c.estimados < 2000)} margin={{ top: 5, right: 20, bottom: 50, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="condicao" tick={{ fontSize: 8 }} angle={-15} textAnchor="end" />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
@@ -178,7 +178,7 @@ export default function SaudeAuditivaApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Saúde Auditiva — Apuí/AM (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />

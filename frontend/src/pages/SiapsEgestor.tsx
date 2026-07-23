@@ -40,7 +40,7 @@ const BG_PONT = (p: number) =>
 const COR_IND = (s: string) =>
   s === "verde" ? "#16a34a" : s === "amarelo" ? "#d97706" : "#dc2626";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 // ── Logo MS ───────────────────────────────────────────────────────────────────
 
@@ -237,7 +237,7 @@ function AbaVinculo({ data }: { data: any }) {
               ))}
               <th style={{ padding: "10px 12px", textAlign: "right" }}>PONTUAÇÃO</th>
             </tr>
-            <tr style={{ background: "#1e40af", color: "#93c5fd", fontSize: 9 }}>
+            <tr style={{ background: "#1e40af", color: "#1d4ed8", fontSize: 9 }}>
               <th style={{ padding: "4px 12px", textAlign: "left", position: "sticky", left: 0, background: "#1e40af" }}>DIMENSÃO CADASTRO ←→ DIMENSÃO ACOMPANHAMENTO</th>
               <th />{["","","","","","","","","","",""].map((_,i) => <th key={i} />)}
               <th />
@@ -432,10 +432,10 @@ function ViewDiaria({ data }: { data: any }) {
           <span style={{ color:"#6b7280" }}>Progresso da produção no período ({fmtBr(dataInicio)} – {fmtBr(dataFim)})</span>
           <span style={{ fontWeight:700, color: corPct }}>{pctPeriodo}% da meta</span>
         </div>
-        <div style={{ height:10, background:"#f1f5f9", borderRadius:5, overflow:"hidden" }}>
+        <div style={{ height:10, background:"#111827", borderRadius:5, overflow:"hidden" }}>
           <div style={{ width:`${Math.min(pctPeriodo, 100)}%`, height:"100%", background: corPct, borderRadius:5, transition:"width .5s" }} />
         </div>
-        <div style={{ fontSize:10, color:"#94a3b8", marginTop:4 }}>
+        <div style={{ fontSize:10, color:"#6b7280", marginTop:4 }}>
           {totalProd.toLocaleString("pt-BR")} procedimentos registrados · Meta: {metaPeriodo.toLocaleString("pt-BR")} para o período selecionado
         </div>
       </div>
@@ -528,15 +528,15 @@ function ViewMensal({ data }: { data: any }) {
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", textTransform: "uppercase" as const, letterSpacing: 1 }}>Relatório Mensal</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>Competência: <span style={{ color: "#1d4ed8", textTransform: "capitalize" as const }}>{mesRef}</span></div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#f4f6f8" }}>Competência: <span style={{ color: "#1d4ed8", textTransform: "capitalize" as const }}>{mesRef}</span></div>
           </div>
-          <div style={{ width: 1, height: 32, background: "#e2e8f0" }} />
+          <div style={{ width: 1, height: 32, background: "#374151" }} />
           <div>
             <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600 }}>Gerado em</div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>{dataGeracao} às {horaGeracao}</div>
           </div>
         </div>
-        <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "right" as const }}>
+        <div style={{ fontSize: 10, color: "#6b7280", textAlign: "right" as const }}>
           <div>Apuí / AM · IBGE 1300144</div>
           <div>Novo Financiamento APS · Portaria GM/MS 3.493/2024</div>
         </div>
@@ -806,7 +806,7 @@ function PainelGestorRT() {
             <span>Maio/2026</span><span>{pctTempo}% decorrido — {dias_restantes} dias para o encerramento</span><span>Agosto/2026</span>
           </div>
           <div style={{ height:10, background:"rgba(255,255,255,.2)", borderRadius:5, overflow:"hidden", position:"relative" }}>
-            <div style={{ width:`${pctTempo}%`, height:"100%", background:"#60a5fa", borderRadius:5 }} />
+            <div style={{ width:`${pctTempo}%`, height:"100%", background:"#1565c0", borderRadius:5 }} />
             <div style={{ position:"absolute", left:`${pctTempo}%`, top:0, transform:"translateX(-50%)", width:14, height:14, background:"#fff", borderRadius:"50%", border:"2px solid #1d4ed8", marginTop:-2 }} />
           </div>
           <div style={{ marginTop:5, fontSize:10, opacity:.65 }}>⏱ Atualizado em {hoje} às {hora}</div>
@@ -830,12 +830,12 @@ function PainelGestorRT() {
               <div key={ind.key} style={{ display:"grid", gridTemplateColumns:"12px 230px 1fr 65px 72px 72px 82px", gap:10, alignItems:"center" }}>
                 <div style={{ width:10, height:10, borderRadius:"50%", background:cor }} />
                 <span style={{ fontSize:12 }}>Ind.{i+1} — {ind.label}</span>
-                <div style={{ position:"relative", height:8, background:"#f1f5f9", borderRadius:4 }}>
-                  <div style={{ position:"absolute", left:`${ind.meta}%`, top:-2, width:2, height:12, background:"#94a3b8", zIndex:2, borderRadius:1 }} title={`Meta: ${ind.meta}%`} />
+                <div style={{ position:"relative", height:8, background:"#111827", borderRadius:4 }}>
+                  <div style={{ position:"absolute", left:`${ind.meta}%`, top:-2, width:2, height:12, background:"#6b7280", zIndex:2, borderRadius:1 }} title={`Meta: ${ind.meta}%`} />
                   <div style={{ width:`${Math.min(ind.atual,100)}%`, height:"100%", background:cor, borderRadius:4 }} />
                 </div>
                 <span style={{ fontSize:13, fontWeight:800, color:cor, textAlign:"right" }}>{ind.atual}%</span>
-                <span style={{ fontSize:10, color:"#94a3b8", textAlign:"center" }}>meta {ind.meta}%</span>
+                <span style={{ fontSize:10, color:"#6b7280", textAlign:"center" }}>meta {ind.meta}%</span>
                 <span style={{ fontSize:11, fontWeight:700, textAlign:"center", color: gap > 0 ? "#dc2626" : "#16a34a" }}>
                   {gap > 0 ? `−${gap.toFixed(1)}` : `+${Math.abs(gap).toFixed(1)}`}p.p.
                 </span>
@@ -849,7 +849,7 @@ function PainelGestorRT() {
             );
           })}
         </div>
-        <div style={{ display:"flex", gap:20, marginTop:12, fontSize:10, color:"#94a3b8", borderTop:"1px solid #f1f5f9", paddingTop:10, flexWrap:"wrap" }}>
+        <div style={{ display:"flex", gap:20, marginTop:12, fontSize:10, color:"#6b7280", borderTop:"1px solid #f1f5f9", paddingTop:10, flexWrap:"wrap" }}>
           <span>| = meta MS</span>
           <span style={{ color:"#16a34a" }}>● acima da meta</span>
           <span style={{ color:"#d97706" }}>● até 10p.p. abaixo</span>
@@ -862,7 +862,7 @@ function PainelGestorRT() {
       {/* ── Matriz Equipe × Indicador ── */}
       <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18, overflow:"auto" }}>
         <div style={{ fontSize:14, fontWeight:700, marginBottom:4 }}>Matriz por Equipe × Indicador — Q2/2026 (parcial)</div>
-        <div style={{ fontSize:11, color:"#94a3b8", marginBottom:14 }}>
+        <div style={{ fontSize:11, color:"#6b7280", marginBottom:14 }}>
           Resultado acumulado até {hoje}.
           <span style={{ background:"#dcfce7", color:"#16a34a", fontWeight:700, padding:"1px 7px", borderRadius:4, marginLeft:8 }}>Verde ≥ meta</span>
           <span style={{ background:"#fef3c7", color:"#d97706", fontWeight:700, padding:"1px 7px", borderRadius:4, marginLeft:4 }}>Amarelo até 10p.p.</span>
@@ -875,7 +875,7 @@ function PainelGestorRT() {
               {_Q2.indicadores.map((ind, i) => (
                 <th key={ind.key} style={{ padding:"8px 6px", textAlign:"center", borderBottom:"2px solid #e5e7eb", fontWeight:600, color:"#6b7280", minWidth:66 }}>
                   <div style={{ fontSize:11 }}>Ind.{i+1}</div>
-                  <div style={{ fontSize:9, color:"#94a3b8", fontWeight:400 }}>M: {metas[i]}%</div>
+                  <div style={{ fontSize:9, color:"#6b7280", fontWeight:400 }}>M: {metas[i]}%</div>
                 </th>
               ))}
               <th style={{ padding:"8px 10px", textAlign:"center", borderBottom:"2px solid #e5e7eb", color:"#1d4ed8", fontWeight:700, fontSize:11 }}>Pts Q1</th>
@@ -887,7 +887,7 @@ function PainelGestorRT() {
               <tr key={i} style={{ borderBottom:"1px solid #f1f5f9", background: i%2===0?"#fff":"#fafafa" }}>
                 <td style={{ padding:"7px 12px", fontWeight:600 }}>
                   <div style={{ fontSize:12 }}>{e.equipe}</div>
-                  <div style={{ fontSize:9, color:"#94a3b8", marginTop:1 }}>{e.ubs}</div>
+                  <div style={{ fontSize:9, color:"#6b7280", marginTop:1 }}>{e.ubs}</div>
                 </td>
                 {indKeys.map((k, j) => {
                   const val = (e.ind as any)[k];
@@ -922,15 +922,15 @@ function PainelGestorRT() {
       {/* ── Ritmo Diário Necessário ── */}
       <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18 }}>
         <div style={{ fontSize:14, fontWeight:700, marginBottom:4 }}>📅 Ritmo Diário Necessário para Atingir a Meta</div>
-        <div style={{ fontSize:11, color:"#94a3b8", marginBottom:14 }}>Com {dias_restantes} dias restantes no quadrimestre, cada equipe precisa registrar os seguintes volumes POR DIA para atingir as metas nacionais.</div>
+        <div style={{ fontSize:11, color:"#6b7280", marginBottom:14 }}>Com {dias_restantes} dias restantes no quadrimestre, cada equipe precisa registrar os seguintes volumes POR DIA para atingir as metas nacionais.</div>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:10 }}>
           {_Q2.indicadores.map((ind, i) => {
             const gap = Math.max(0, ind.meta - ind.atual);
             const ritmo = gap > 0 ? (gap / dias_restantes).toFixed(1) : "0";
             const atingiu = gap <= 0;
             return (
-              <div key={ind.key} style={{ textAlign:"center", background: atingiu ? "#f0fdf4" : "#fff7f7", border:`1px solid ${atingiu?"#bbf7d0":"#fca5a5"}`, borderRadius:10, padding:"12px 8px" }}>
-                <div style={{ fontSize:10, color:"#94a3b8", fontWeight:600, marginBottom:4 }}>Ind.{i+1}</div>
+              <div key={ind.key} style={{ textAlign:"center", background: atingiu ? "#f0fdf4" : "#fff7f7", border:`1px solid ${atingiu?"#bbf7d0":"#b91c1c"}`, borderRadius:10, padding:"12px 8px" }}>
+                <div style={{ fontSize:10, color:"#6b7280", fontWeight:600, marginBottom:4 }}>Ind.{i+1}</div>
                 {atingiu
                   ? <div style={{ fontSize:22, fontWeight:900, color:"#16a34a" }}>✓</div>
                   : <div style={{ fontSize:20, fontWeight:900, color:"#dc2626" }}>+{ritmo}<span style={{ fontSize:10 }}>p.p/dia</span></div>
@@ -938,7 +938,7 @@ function PainelGestorRT() {
                 <div style={{ fontSize:9, color: atingiu?"#16a34a":"#dc2626", marginTop:4, fontWeight:700 }}>
                   {atingiu ? "Meta atingida" : `Gap: ${gap.toFixed(1)}p.p.`}
                 </div>
-                <div style={{ fontSize:9, color:"#94a3b8", marginTop:2 }}>{ind.label.slice(0,16)}…</div>
+                <div style={{ fontSize:9, color:"#6b7280", marginTop:2 }}>{ind.label.slice(0,16)}…</div>
               </div>
             );
           })}
@@ -948,7 +948,7 @@ function PainelGestorRT() {
       {/* ── Ações Prioritárias ── */}
       <div style={{ background:"#fff", border:"1px solid #fca5a5", borderRadius:12, padding:"18px 20px" }}>
         <div style={{ fontSize:14, fontWeight:700, color:"#dc2626", marginBottom:4 }}>⚠ Plano de Ação — Gaps Críticos por Equipe</div>
-        <div style={{ fontSize:11, color:"#94a3b8", marginBottom:14 }}>Equipes e indicadores com maior distância da meta. Direcione esforços de busca ativa e registro no e-SUS nestes pontos prioritários.</div>
+        <div style={{ fontSize:11, color:"#6b7280", marginBottom:14 }}>Equipes e indicadores com maior distância da meta. Direcione esforços de busca ativa e registro no e-SUS nestes pontos prioritários.</div>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:10 }}>
           {acoes.map((a, i) => (
             <div key={i} style={{ border:"1px solid #fee2e2", borderLeft:"4px solid #dc2626", borderRadius:8, padding:"10px 14px", background:"#fff7f7" }}>
@@ -1056,7 +1056,7 @@ function AbaQualidade({ data }: { data: any }) {
           const verdes = Object.values(e.indicadores).filter(i => i.status === "verde").length;
           const vermelhos = Object.values(e.indicadores).filter(i => i.status === "vermelho").length;
           return (
-            <div key={idx} style={{ border: `1px solid ${e.status_qualidade === "otimo" ? "#bfdbfe" : e.status_qualidade === "bom" ? "#bbf7d0" : e.status_qualidade === "suficiente" ? "#fde68a" : "#fca5a5"}`, borderLeft: `4px solid ${COR_PONT(e.pontuacao_qualidade / 5)}`, borderRadius: 8, background: "#fff", overflow: "hidden" }}>
+            <div key={idx} style={{ border: `1px solid ${e.status_qualidade === "otimo" ? "#374151" : e.status_qualidade === "bom" ? "#bbf7d0" : e.status_qualidade === "suficiente" ? "#92400e" : "#b91c1c"}`, borderLeft: `4px solid ${COR_PONT(e.pontuacao_qualidade / 5)}`, borderRadius: 8, background: "#fff", overflow: "hidden" }}>
               <div onClick={() => setEquipeAberta(isOpen ? null : e.equipe)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", cursor: "pointer" }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 10, color: "#9ca3af" }}>UBS: {e.ubs}</div>
@@ -1225,7 +1225,7 @@ function CardEquipe({ e, periodo }: { e: any; periodo: "mensal" | "quadrimestral
               const meta = IND_METAS[i];
               const atingiu = val >= meta;
               return (
-                <div key={k} style={{ textAlign: "center", background: "#fff", border: `1px solid ${atingiu ? "#bbf7d0" : "#fca5a5"}`, borderRadius: 8, padding: "10px 6px" }}>
+                <div key={k} style={{ textAlign: "center", background: "#fff", border: `1px solid ${atingiu ? "#bbf7d0" : "#b91c1c"}`, borderRadius: 8, padding: "10px 6px" }}>
                   <div style={{ fontSize: 17, fontWeight: 800, color: atingiu ? "#16a34a" : "#dc2626" }}>{val}%</div>
                   <div style={{ fontSize: 9, color: "#9ca3af", marginTop: 2 }}>meta {meta}%</div>
                   <div style={{ fontSize: 9, marginTop: 3, color: "#6b7280" }}>{IND_LABELS[i]}</div>
@@ -1575,8 +1575,8 @@ function AbaAnaliseIndicador() {
           <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, border: "1px solid #fde68a" }}>Dado preliminar</span>
         </div>
         <div style={{ display: "flex", gap: 16, marginBottom: 14, fontSize: 13, color: "#6b7280", borderBottom: "1px solid #f3f4f6", paddingBottom: 12 }}>
-          <span>Competência selecionada: <strong style={{ color: "#1e293b" }}>{competencia}</strong></span>
-          <span>Tipo de Equipe: <strong style={{ color: "#1e293b" }}>{tipos.join(" e ")}</strong></span>
+          <span>Competência selecionada: <strong style={{ color: "#e4e7ec" }}>{competencia}</strong></span>
+          <span>Tipo de Equipe: <strong style={{ color: "#e4e7ec" }}>{tipos.join(" e ")}</strong></span>
         </div>
         <div style={{ textAlign: "center", padding: "30px 0", color: "#9ca3af" }}>
           <div style={{ fontSize: 32, marginBottom: 10 }}>📊</div>
@@ -1623,14 +1623,14 @@ function AbaRelatorioPagamento() {
         </div>
 
         <div style={{ padding: "20px 24px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 10px" }}>Relatório de Pagamento</h2>
-          <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, margin: "0 0 14px" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e4e7ec", margin: "0 0 10px" }}>Relatório de Pagamento</h2>
+          <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6, margin: "0 0 14px" }}>
             Informamos que os valores apresentados neste relatório são referentes ao que o município faz jus a cada competência financeira. A partir de agora os valores serão disponibilizados nos relatórios do e-Gestor antes de serem apresentados no site do Fundo Nacional de Saúde – FNS.
           </p>
 
           {/* Links períodos anteriores */}
           <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, color: "#64748b" }}>Relatórios de períodos anteriores:</span>
+            <span style={{ fontSize: 13, color: "#6b7280" }}>Relatórios de períodos anteriores:</span>
             {["01/2022 - 04/2024","2020 - 2021","2017 - 2019"].map(p => (
               <span key={p} style={{ border: "1px solid #cbd5e1", borderRadius: 20, padding: "3px 12px", fontSize: 12, color: "#1a56db", cursor: "pointer" }} onClick={() => abrirEgestor("tela")}>
                 ({p}) ↗
@@ -1638,12 +1638,12 @@ function AbaRelatorioPagamento() {
             ))}
           </div>
 
-          <div style={{ fontSize: 13, color: "#64748b", marginBottom: 18 }}>Selecione as opções para gerar o relatório</div>
+          <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 18 }}>Selecione as opções para gerar o relatório</div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40 }}>
             {/* Unidade Geográfica */}
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", marginBottom: 16 }}>Unidade Geográfica</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#e4e7ec", marginBottom: 16 }}>Unidade Geográfica</h3>
               <div style={{ marginBottom: 14 }}>
                 <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Tipo de unidade:</label>
                 <select value={tipoUnidade} onChange={e => setTipoUnidade(e.target.value)} style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 6, padding: "9px 12px", fontSize: 13, background: "#fff", cursor: "pointer" }}>
@@ -1655,7 +1655,7 @@ function AbaRelatorioPagamento() {
                   <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Estados:</label>
                   <div style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "8px 12px", fontSize: 13, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span>{estado}</span>
-                    <span style={{ color: "#94a3b8" }}>✕ ∨</span>
+                    <span style={{ color: "#6b7280" }}>✕ ∨</span>
                   </div>
                 </div>
                 {tipoUnidade === "Município" && (
@@ -1663,13 +1663,13 @@ function AbaRelatorioPagamento() {
                     <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Municípios</label>
                     <div style={{ border: "2px solid #f59e0b", borderRadius: 6, padding: "8px 12px", fontSize: 13, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <span>{municipio}</span>
-                      <span style={{ color: "#94a3b8" }}>✕ ∨</span>
+                      <span style={{ color: "#6b7280" }}>✕ ∨</span>
                     </div>
                   </div>
                 )}
               </div>
               {tipoUnidade === "Município" && (
-                <div style={{ marginTop: 10, fontSize: 11, color: "#94a3b8", fontStyle: "italic" }}>
+                <div style={{ marginTop: 10, fontSize: 11, color: "#6b7280", fontStyle: "italic" }}>
                   A opção "TODOS" não permite a visualização em tela, apenas o download do arquivo.
                 </div>
               )}
@@ -1677,7 +1677,7 @@ function AbaRelatorioPagamento() {
 
             {/* Período */}
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", marginBottom: 16 }}>Período</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#e4e7ec", marginBottom: 16 }}>Período</h3>
               <div style={{ marginBottom: 14 }}>
                 <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Selecione o ano:</label>
                 <select value={ano} onChange={e => setAno(e.target.value)} style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 6, padding: "9px 12px", fontSize: 13, background: "#fff", cursor: "pointer" }}>

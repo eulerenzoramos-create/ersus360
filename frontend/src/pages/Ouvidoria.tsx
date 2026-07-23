@@ -38,7 +38,7 @@ const COR_TIPO: Record<string, string> = {
   "Acesso à Informação": "#374151",
 };
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 const CANAL_ICON: Record<string, React.ReactNode> = {
   "Presencial":   <User size={11} />,

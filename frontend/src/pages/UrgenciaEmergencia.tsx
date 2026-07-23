@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Clock, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -175,7 +175,7 @@ export default function UrgenciaEmergencia() {
                 <BarChart data={(causas as any[])} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="causa" tick={{ fontSize: 10 }} width={200} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip formatter={(v: any, n: any) => [v, n === "atend" ? "Atendimentos" : "Taxa internação %"]} />
                   <Bar dataKey="atend" name="Atendimentos" fill={ACCENT} radius={[0,3,3,0]} />
                 </BarChart>
@@ -187,7 +187,7 @@ export default function UrgenciaEmergencia() {
                 <BarChart data={(causas as any[])} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 10 }} unit="%" />
                   <YAxis type="category" dataKey="causa" tick={{ fontSize: 10 }} width={200} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip formatter={(v: any) => `${v}%`} />
                   <Bar dataKey="internacao_pct" name="Internação %" radius={[0,3,3,0]}>
                     {(causas as any[]).map((c: any) => <Cell key={c.causa} fill={c.internacao_pct > 15 ? CRIT : c.internacao_pct > 8 ? WARN : OK} />)}
@@ -203,7 +203,7 @@ export default function UrgenciaEmergencia() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução — Atendimentos UPA e SAMU (Jan–Jun/2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="upa" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="samu" orientation="right" tick={{ fontSize: 10 }} />

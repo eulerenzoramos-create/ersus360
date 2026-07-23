@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { ShoppingBag, AlertTriangle, CheckCircle, TrendingUp } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 const ST_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
 const ESC_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
 
@@ -71,7 +71,7 @@ function AbaEscolas({ escolas }: { escolas: any[] | undefined }) {
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
               <div>
                 <span style={{ fontSize: 13, fontWeight: 700 }}>{e.escola}</span>
-                <span style={{ marginLeft: 8, background: "#f1f5f9", color: "#374151", fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 4 }}>{e.tipo}</span>
+                <span style={{ marginLeft: 8, background: "#111827", color: "#374151", fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 4 }}>{e.tipo}</span>
                 {!e.nutricionista_visita_mes && <span style={{ marginLeft: 4, background: "#fef9c3", color: "#92400e", fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4 }}>SEM VISITA</span>}
                 {!e.cardapio_aprovado && <span style={{ marginLeft: 4, background: "#fef2f2", color: "#dc2626", fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4 }}>CARDÁPIO PENDENTE</span>}
               </div>

@@ -711,7 +711,7 @@ export default function SprintOtimo() {
                         padding: "4px 12px", borderRadius: 20, fontSize: 11, cursor: "pointer",
                         fontWeight: cvatVariavel === v.key ? 700 : 400,
                         border: `1px solid ${cvatVariavel === v.key ? "#2563eb" : "#e4e7ec"}`,
-                        background: cvatVariavel === v.key ? "#dbeafe" : "#f1f5f9",
+                        background: cvatVariavel === v.key ? "#dbeafe" : "#111827",
                         color: cvatVariavel === v.key ? "#1d4ed8" : "#475569",
                         whiteSpace: "nowrap",
                       }}>
@@ -1185,7 +1185,7 @@ export default function SprintOtimo() {
                       const pctBarra = Math.min(100, Math.round((d.populacaoVinculada / d.populacaoMax) * 100));
                       return (
                         <tr key={d.nome} style={{ borderBottom: "1px solid #e4e7ec", background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)" }}>
-                          <td style={{ padding: "10px 12px", fontWeight: 700, color: "#e2e8f0", fontSize: 12 }}>{d.nome}</td>
+                          <td style={{ padding: "10px 12px", fontWeight: 700, color: "#374151", fontSize: 12 }}>{d.nome}</td>
                           <td style={{ padding: "10px 12px" }}>
                             <span style={{ background: "rgba(255,255,255,0.06)", color: "#6b7280", borderRadius: 6, padding: "2px 8px", fontSize: 10, fontWeight: 600 }}>{d.tipo}</span>
                           </td>

@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Building2, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -135,7 +135,7 @@ export default function GestaoLeitos() {
                 <BarChart data={(leitos as any[])} margin={{ left: 0, right: 20 }}>
                   <XAxis dataKey="tipo" tick={{ fontSize: 9 }} />
                   <YAxis tick={{ fontSize: 10 }} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="total"    name="Total"    fill={ACCENT + "66"} radius={[3,3,0,0]} />
@@ -172,7 +172,7 @@ export default function GestaoLeitos() {
                 <BarChart data={(causas as any[])} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="cid_grupo" tick={{ fontSize: 9 }} width={220} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip formatter={(v: any, n: any) => [v, n === "internacoes" ? "Internações" : "Permanência (dias)"]} />
                   <Bar dataKey="internacoes" name="Internações" fill={ACCENT} radius={[0,3,3,0]} />
                 </BarChart>
@@ -184,7 +184,7 @@ export default function GestaoLeitos() {
                 <PieChart>
                   <Pie data={(causas as any[])} dataKey="pct" nameKey="cid_grupo" cx="50%" cy="50%" outerRadius={80} label={({ pct }: any) => `${pct}%`}>
                     {(causas as any[]).map((_: any, i: number) => {
-                      const colors = [BRAND, ACCENT, WARN, CRIT, OK, "#7c3aed", "#0891b2", "#059669", "#64748b"];
+                      const colors = [BRAND, ACCENT, WARN, CRIT, OK, "#7c3aed", "#0891b2", "#059669", "#6b7280"];
                       return <Cell key={i} fill={colors[i % colors.length]} />;
                     })}
                   </Pie>
@@ -201,7 +201,7 @@ export default function GestaoLeitos() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Hospitalar (Jan–Jun/2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />

@@ -22,7 +22,7 @@ const BRLK = (v: number) =>
 const COR_STATUS = (s: string) =>
   s === "otimo" ? "#1d4ed8" : s === "bom" ? "#16a34a" : s === "suficiente" ? "#d97706" : "#dc2626";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 // ── KPI Card ──────────────────────────────────────────────────────────────────
 function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string; sub?: string; cor: string; icon: React.ReactNode }) {

@@ -7,7 +7,7 @@ import {
 import { AlertTriangle, Activity, Shield, Search } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
   return (
@@ -191,9 +191,9 @@ function AbaAlertas({ alertas }: { alertas: any[] | undefined }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {alertas.map((a, i) => (
-        <div key={i} style={{ background: "#fff", border: `1px solid ${a.nivel==="critico"?"#fca5a5":"#fed7aa"}`, borderLeft: `4px solid ${NIVEL_COR[a.nivel]}`, borderRadius: 8, padding: "14px 16px" }}>
+        <div key={i} style={{ background: "#fff", border: `1px solid ${a.nivel==="critico"?"#b91c1c":"#fed7aa"}`, borderLeft: `4px solid ${NIVEL_COR[a.nivel]}`, borderRadius: 8, padding: "14px 16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{a.agravo}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#e4e7ec" }}>{a.agravo}</div>
             <span style={{ background: NIVEL_COR[a.nivel]+"15", color: NIVEL_COR[a.nivel], fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 4, textTransform: "uppercase" as const }}>{a.tipo}</span>
           </div>
           <div style={{ fontSize: 13, color: "#374151", marginTop: 6 }}>{a.descricao}</div>

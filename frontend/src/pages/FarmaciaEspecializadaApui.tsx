@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Pill, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -137,7 +137,7 @@ export default function FarmaciaEspecializadaApui() {
                 <BarChart data={(meds as any[])} layout="vertical" margin={{ left: 10, right: 80 }}>
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="medicamento" tick={{ fontSize: 8 }} width={230} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip formatter={(v: any) => `${v} pacientes`} />
                   <Bar dataKey="pacientes" name="Pacientes" radius={[0,3,3,0]}>
                     {(meds as any[]).map((m: any) => <Cell key={m.medicamento} fill={COMP_COLORS[m.componente] || BRAND} />)}
@@ -175,7 +175,7 @@ export default function FarmaciaEspecializadaApui() {
         {aba === "judicializacoes" && Array.isArray(judic) && (
           <div className="grid gap-3">
             {(judic as any[]).map((j: any, i: number) => {
-              const badge = JUDIC_STATUS[j.status] || { bg: "#f1f5f9", text: "#475569" };
+              const badge = JUDIC_STATUS[j.status] || { bg: "#111827", text: "#475569" };
               return (
                 <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-2">
@@ -206,7 +206,7 @@ export default function FarmaciaEspecializadaApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal — Farmácia Especializada (Jan–Jun/2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="s"   orientation="right" tick={{ fontSize: 10 }} />

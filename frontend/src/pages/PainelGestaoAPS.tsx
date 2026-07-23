@@ -12,7 +12,7 @@ import { apiGet } from "../lib/api";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-const TT = { fontSize: 12, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 12, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 const COR_STATUS: Record<string, string> = {
   verde: "#16a34a", amarelo: "#d97706", vermelho: "#dc2626",
@@ -262,7 +262,7 @@ function AbaSISAB() {
       {/* Status principal */}
       <div style={{
         background: emDia ? "#f0fdf4" : "#fff7f7",
-        border: `2px solid ${emDia ? "#bbf7d0" : "#fca5a5"}`,
+        border: `2px solid ${emDia ? "#bbf7d0" : "#b91c1c"}`,
         borderRadius: 12, padding: "20px 24px", marginBottom: 20,
         display: "flex", gap: 20, alignItems: "center",
       }}>
@@ -351,7 +351,7 @@ function AbaEquipesESF() {
         {data.equipes.map((e: any) => {
           const isOpen = expanded === e.cnes;
           return (
-            <div key={e.cnes} style={{ border: `1px solid ${e.completa ? "#bbf7d0" : "#fca5a5"}`, borderLeft: `4px solid ${e.completa ? "#16a34a" : "#dc2626"}`, borderRadius: 8, overflow: "hidden", background: "#fff" }}>
+            <div key={e.cnes} style={{ border: `1px solid ${e.completa ? "#bbf7d0" : "#b91c1c"}`, borderLeft: `4px solid ${e.completa ? "#16a34a" : "#dc2626"}`, borderRadius: 8, overflow: "hidden", background: "#fff" }}>
               <div onClick={() => setExpanded(isOpen ? null : e.cnes)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", cursor: "pointer" }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700 }}>{e.nome}</div>

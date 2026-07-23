@@ -7,7 +7,7 @@ import {
 import { Bug, AlertTriangle, Activity, Shield } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 const IIP_COR = (iip: number) => iip < 1.0 ? "#16a34a" : iip < 3.9 ? "#d97706" : "#dc2626";
 const IVPV_COR = (v: number) => v < 5 ? "#16a34a" : v < 10 ? "#d97706" : "#dc2626";
 const SIT_LABEL: Record<string, string> = { satisfatorio: "Satisfatório", alerta: "Alerta", risco: "Risco" };

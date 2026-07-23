@@ -7,7 +7,7 @@ import {
 import { Activity, CheckCircle, AlertTriangle, Upload } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 const STATUS_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
 
 function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
@@ -81,7 +81,7 @@ function AbaPorEquipe({ equipes }: { equipes: any[] | undefined }) {
               <Bar dataKey="medico"     name="Médico"      stackId="a" fill="#1d4ed8"/>
               <Bar dataKey="enfermeiro" name="Enfermeiro"  stackId="a" fill="#0891b2"/>
               <Bar dataKey="odonto"     name="Odonto"      stackId="a" fill="#7c3aed"/>
-              <Bar dataKey="outros"     name="Outros"      stackId="a" fill="#94a3b8" radius={[4,4,0,0]}/>
+              <Bar dataKey="outros"     name="Outros"      stackId="a" fill="#6b7280" radius={[4,4,0,0]}/>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -180,7 +180,7 @@ function AbaCiclos({ ciclos }: { ciclos: any[] | undefined }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {ciclos.map(c => (
-        <div key={c.ciclo} style={{ background: "#fff", border: `1px solid ${c.status === "pendente" ? "#fde68a" : "#d1fae5"}`, borderLeft: `4px solid ${c.status === "pendente" ? "#d97706" : "#16a34a"}`, borderRadius: 8, padding: "14px 18px" }}>
+        <div key={c.ciclo} style={{ background: "#fff", border: `1px solid ${c.status === "pendente" ? "#92400e" : "#d1fae5"}`, borderLeft: `4px solid ${c.status === "pendente" ? "#d97706" : "#16a34a"}`, borderRadius: 8, padding: "14px 18px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ fontSize: 15, fontWeight: 700 }}>Ciclo {c.ciclo}</div>
             <span style={{ background: c.status === "pendente" ? "#fffbeb" : "#f0fdf4", color: c.status === "pendente" ? "#d97706" : "#16a34a", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 5 }}>

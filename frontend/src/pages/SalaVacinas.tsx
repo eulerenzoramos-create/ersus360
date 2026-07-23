@@ -7,7 +7,7 @@ import {
 import { Syringe, Thermometer, AlertTriangle, CheckCircle, Package } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
   return (
@@ -144,7 +144,7 @@ function AbaTemperatura({ tempData }: { tempData: any }) {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 22 }}>
-        <div style={{ background: tempData.alerta ? "#fff7f7" : "#f0fdf4", border: `1px solid ${tempData.alerta ? "#fca5a5" : "#bbf7d0"}`, borderRadius: 10, padding: "16px 18px", textAlign: "center" }}>
+        <div style={{ background: tempData.alerta ? "#fff7f7" : "#f0fdf4", border: `1px solid ${tempData.alerta ? "#b91c1c" : "#bbf7d0"}`, borderRadius: 10, padding: "16px 18px", textAlign: "center" }}>
           <div style={{ fontSize: 32, fontWeight: 900, color: tempData.alerta ? "#dc2626" : "#16a34a" }}>{tempData.atual}°C</div>
           <div style={{ fontSize: 12, color: "#6b7280" }}>Temperatura atual câmara principal</div>
         </div>

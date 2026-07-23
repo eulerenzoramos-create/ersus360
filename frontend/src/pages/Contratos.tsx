@@ -47,7 +47,7 @@ const COR_MOD: Record<string, string> = {
   "Inexigibilidade":   "#7c3aed",
 };
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 // ── KPI Card ──────────────────────────────────────────────────────────────────
 function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {

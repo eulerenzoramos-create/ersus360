@@ -7,7 +7,7 @@ import {
 import { Brain, Users, AlertTriangle, Heart, Calendar } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
   return (
@@ -178,7 +178,7 @@ function AbaGrupos({ grupos }: { grupos: any[] | undefined }) {
         {grupos.map(g => (
           <div key={g.id} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{g.nome}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#e4e7ec" }}>{g.nome}</div>
               <span style={{ background: "#7c3aed15", color: "#7c3aed", fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 5 }}>{g.n_usuarios} usuários</span>
             </div>
             <div style={{ display: "flex", gap: 16, fontSize: 13, color: "#6b7280" }}>

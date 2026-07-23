@@ -72,7 +72,7 @@ function AbaReunioes({ reunioes }: { reunioes: any[] | undefined }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {reunioes.map(r => (
-        <div key={r.id} style={{ background: "#fff", border: `1px solid ${r.quorum === null ? "#bfdbfe" : "#e5e7eb"}`, borderLeft: `4px solid ${r.tipo === "extraordinaria" ? "#dc2626" : "#1d4ed8"}`, borderRadius: 8, padding: "14px 18px" }}>
+        <div key={r.id} style={{ background: "#fff", border: `1px solid ${r.quorum === null ? "#374151" : "#e5e7eb"}`, borderLeft: `4px solid ${r.tipo === "extraordinaria" ? "#dc2626" : "#1d4ed8"}`, borderRadius: 8, padding: "14px 18px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
             <div>
               <span style={{ fontSize: 13, fontWeight: 700 }}>{r.data}</span>

@@ -4,7 +4,7 @@ import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import { apiGet } from "../lib/api"
 import { Heart } from "lucide-react"
 
-const BRAND="#1e3a5f", ACCENT="#1d4ed8", OK="#16a34a", WARN="#d97706", CRIT="#dc2626"
+const BRAND="#dbeafe", ACCENT="#1d4ed8", OK="#16a34a", WARN="#d97706", CRIT="#dc2626"
 const ABAS=["Dashboard","Métodos","Gravidez Adolescente","Histórico","Indicadores"]
 const sc=(s:string)=>s==="ok"||s==="regular"?OK:s==="atencao"?WARN:CRIT
 const COLORS=[ACCENT,"#7c3aed",OK,WARN,"#06b6d4","#f59e0b","#10b981",CRIT]
@@ -98,7 +98,7 @@ export default function SaudeSexualReprodutoraApui(){
               <YAxis tick={{fontSize:11}}/>
               <Tooltip/>
               <Legend/>
-              <Bar dataKey="gestantes_2024" fill="#94a3b8" radius={[4,4,0,0]} name="2024"/>
+              <Bar dataKey="gestantes_2024" fill="#6b7280" radius={[4,4,0,0]} name="2024"/>
               <Bar dataKey="gestantes_2025" fill={ACCENT}  radius={[4,4,0,0]} name="2025"/>
             </BarChart>
           </ResponsiveContainer>

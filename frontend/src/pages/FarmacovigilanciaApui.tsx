@@ -4,7 +4,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { apiGet } from "../lib/api"
 import { FlaskConical } from "lucide-react"
 
-const BRAND="#1e3a5f", ACCENT="#1d4ed8", OK="#16a34a", WARN="#d97706", CRIT="#dc2626"
+const BRAND="#dbeafe", ACCENT="#1d4ed8", OK="#16a34a", WARN="#d97706", CRIT="#dc2626"
 const ABAS=["Dashboard","RAMs","Desvios Qualidade","Histórico","Indicadores"]
 const sc=(s:string)=>s==="ok"?OK:s==="atencao"?WARN:CRIT
 const GR_COR:Record<string,string>={grave:CRIT,moderada:WARN,leve:OK}

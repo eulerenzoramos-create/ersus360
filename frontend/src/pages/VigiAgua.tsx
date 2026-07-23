@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { Waves, AlertTriangle, CheckCircle, TrendingDown } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 const ST_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
 const TEND_COR: Record<string, string> = { melhora: "#16a34a", estavel: "#d97706", piora: "#dc2626" };
 
@@ -70,7 +70,7 @@ function AbaSistemas({ sistemas }: { sistemas: any[] | undefined }) {
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
               <div>
                 <span style={{ fontSize: 13, fontWeight: 700 }}>{s.sistema}</span>
-                <span style={{ marginLeft: 8, background: "#f1f5f9", fontSize: 10, padding: "2px 6px", borderRadius: 4, color: "#374151" }}>{s.tipo}</span>
+                <span style={{ marginLeft: 8, background: "#111827", fontSize: 10, padding: "2px 6px", borderRadius: 4, color: "#374151" }}>{s.tipo}</span>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 {s.parametro_critico && (

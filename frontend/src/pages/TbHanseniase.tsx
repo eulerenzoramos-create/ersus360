@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import { Activity, AlertTriangle, CheckCircle, Eye } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 const SIT_COR: Record<string, string> = { em_tratamento: "#1d4ed8", alta_cura: "#16a34a", abandono: "#dc2626" };
 const SIT_LABEL: Record<string, string> = { em_tratamento: "Em tratamento", alta_cura: "Alta/Cura", abandono: "Abandono" };
 const GRAD_COR: Record<number, string> = { 0: "#16a34a", 1: "#d97706", 2: "#dc2626" };

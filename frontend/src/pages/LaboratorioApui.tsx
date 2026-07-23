@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { FlaskConical, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -127,7 +127,7 @@ export default function LaboratorioApui() {
                 <BarChart data={(exames as any[])} layout="vertical" margin={{ left: 10, right: 80 }}>
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="grupo" tick={{ fontSize: 8 }} width={230} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip formatter={(v: any, n: any) => [v, n === "realizados_mes" ? "Realizados/mês" : "Tempo (dias)"]} />
                   <Bar dataKey="realizados_mes" name="Realizados/mês" radius={[0,3,3,0]}>
                     {(exames as any[]).map((e: any) => <Cell key={e.grupo} fill={e.proprio ? BRAND : ACCENT} />)}
@@ -183,7 +183,7 @@ export default function LaboratorioApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal — Laboratório (Jan–Jun/2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />

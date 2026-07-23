@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { Truck, AlertTriangle, CheckCircle, DollarSign } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 const ST_COR: Record<string, string> = { disponivel: "#16a34a", manutencao: "#d97706", inoperante: "#dc2626" };
 const MAN_COR: Record<string, string> = { em_andamento: "#d97706", agendada: "#1d4ed8", pendente: "#dc2626" };
 

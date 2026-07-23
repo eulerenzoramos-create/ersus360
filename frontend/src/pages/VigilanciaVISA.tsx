@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { ShieldCheck, AlertTriangle, FileText, CheckCircle, Search } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 const RESULT_COR: Record<string, string>  = { bom: "#16a34a", regular: "#d97706", insatisfatorio: "#dc2626" };
 const RESULT_LABEL: Record<string, string> = { bom: "Bom", regular: "Regular", insatisfatorio: "Insatisfatório" };
 const AUTO_COR: Record<string, string>    = { em_prazo: "#d97706", vencido: "#dc2626", encerrado: "#16a34a" };

@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { School, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -41,7 +41,7 @@ const ACAO_COLORS: Record<string, string> = {
   "Triagem auditiva":                   ACCENT,
   "Saúde mental / prevenção violência": "#7c3aed",
   "Prevenção de IST / DST":             "#e11d48",
-  "Saúde ambiental / parasitoses":      "#64748b",
+  "Saúde ambiental / parasitoses":      "#6b7280",
 };
 
 export default function SaudeEscolarApui() {
@@ -138,7 +138,7 @@ export default function SaudeEscolarApui() {
                 <BarChart data={acoes as any[]} layout="vertical" margin={{ left: 10, right: 80 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} unit="%" />
                   <YAxis type="category" dataKey="acao" tick={{ fontSize: 8 }} width={260} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip formatter={(v: any) => `${v}%`} />
                   <Bar dataKey="realizado_pct" name="Realizado (%)" radius={[0,3,3,0]}>
                     {(acoes as any[]).map((a: any) => <Cell key={a.acao} fill={statusColor(a.status)} />)}
@@ -171,7 +171,7 @@ export default function SaudeEscolarApui() {
                 <BarChart data={escolas as any[]} margin={{ left: 10, right: 30 }}>
                   <XAxis dataKey="localidade" tick={{ fontSize: 8 }} />
                   <YAxis tick={{ fontSize: 11 }} unit="%" />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip />
                   <Bar dataKey="cobertura_pct" name="Cobertura PSE (%)" radius={[4,4,0,0]}>
                     {(escolas as any[]).map((e: any) => <Cell key={e.localidade} fill={statusColor(e.status)} />)}
@@ -201,7 +201,7 @@ export default function SaudeEscolarApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — Saúde Escolar / PSE (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} unit="%" />
                 <Tooltip formatter={(v: any) => `${v}%`} />

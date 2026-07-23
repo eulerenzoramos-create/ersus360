@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { FlaskConical, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -141,7 +141,7 @@ export default function IstHivHepatitesApui() {
                 <BarChart data={sifilis as any[]} margin={{ left: 10, right: 30 }}>
                   <XAxis dataKey="categoria" tick={{ fontSize: 8 }} />
                   <YAxis tick={{ fontSize: 11 }} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip />
                   <Bar dataKey="casos" name="Casos" radius={[4,4,0,0]}>
                     {(sifilis as any[]).map((s: any) => <Cell key={s.categoria} fill={SIF_COLORS[s.categoria] || BRAND} />)}
@@ -189,7 +189,7 @@ export default function IstHivHepatitesApui() {
                 <BarChart data={hepatites as any[]} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="agravo" tick={{ fontSize: 9 }} width={180} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip />
                   <Bar dataKey="casos_ano" name="Casos/ano" radius={[0,3,3,0]}>
                     {(hepatites as any[]).map((h: any) => <Cell key={h.agravo} fill={HEP_COLORS[h.agravo] || BRAND} />)}
@@ -222,7 +222,7 @@ export default function IstHivHepatitesApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — IST/HIV/Hepatites (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />

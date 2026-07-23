@@ -173,7 +173,7 @@ export default function VigEpidemAvancada() {
               <h3 className="font-semibold text-slate-700 mb-4">Notificações por Semana Epidemiológica (2026)</h3>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={boletim} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="semana" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip />
@@ -252,7 +252,7 @@ export default function VigEpidemAvancada() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal (2026)</h3>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" domain={[70, 95]} tick={{ fontSize: 11 }} unit="%" />

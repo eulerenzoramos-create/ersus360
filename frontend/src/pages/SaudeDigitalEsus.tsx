@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Monitor, AlertTriangle, Wifi, Activity, Settings, CheckCircle, XCircle, RefreshCw } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#2563eb";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -69,7 +69,7 @@ function PecStatusBanner({ onConfig }: { onConfig: () => void }) {
               : `e-SUS PEC não acessível${pec?.url ? ` (${pec.url})` : ""} — configure a URL correta`}
         </span>
         {pec?.fonte === "fallback" && (
-          <span style={{ fontSize: 11, color: "#64748b", background: "#f1f5f9",
+          <span style={{ fontSize: 11, color: "#6b7280", background: "#111827",
             borderRadius: 6, padding: "1px 8px", border: "1px solid #e2e8f0" }}>
             dados de demonstração
           </span>
@@ -101,7 +101,7 @@ function PecConfigPanel({ onClose }: { onClose: () => void }) {
       padding: 20, marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <span style={{ fontWeight: 700, color: BRAND, fontSize: 14 }}>Configuração do e-SUS PEC</span>
-        <button onClick={onClose} style={{ fontSize: 18, color: "#94a3b8", background: "none",
+        <button onClick={onClose} style={{ fontSize: 18, color: "#6b7280", background: "none",
           border: "none", cursor: "pointer", lineHeight: 1 }}>×</button>
       </div>
 
@@ -147,7 +147,7 @@ function PecConfigPanel({ onClose }: { onClose: () => void }) {
         </div>
       )}
 
-      <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 10 }}>
+      <p style={{ fontSize: 11, color: "#6b7280", marginTop: 10 }}>
         Após salvar as variáveis no Railway, aguarde o redeploy (~1 min) e clique em "Configurar" novamente para verificar.
       </p>
     </div>
@@ -193,7 +193,7 @@ function TabPEC() {
           style={{ padding: "5px 10px", border: "1px solid #e2e8f0", borderRadius: 8,
             fontSize: 13, outline: "none", color: BRAND }} />
         {p?.fonte === "fallback" && (
-          <span style={{ fontSize: 11, color: "#64748b", background: "#f1f5f9",
+          <span style={{ fontSize: 11, color: "#6b7280", background: "#111827",
             borderRadius: 6, padding: "2px 8px", border: "1px solid #e2e8f0" }}>
             demonstração
           </span>
@@ -213,13 +213,13 @@ function TabPEC() {
               ["Visitas Domiciliares",  p.visitas_domiciliares,       "#0891b2"],
               ["Procedimentos",         p.procedimentos,              "#d97706"],
               ["Atividades Coletivas",  p.atividades_coletivas,       OK],
-              ["Encaminhamentos",       p.encaminhamentos,            "#64748b"],
+              ["Encaminhamentos",       p.encaminhamentos,            "#6b7280"],
             ].map(([l, v, c]) => (
               <div key={l as string} style={{ textAlign: "center", padding: "10px 0" }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: c as string }}>
                   {(v as number).toLocaleString("pt-BR")}
                 </div>
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{l as string}</div>
+                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{l as string}</div>
               </div>
             ))}
           </div>
@@ -256,7 +256,7 @@ function TabPEC() {
                 {(unidades as any[]).map((u: any, i: number) => (
                   <tr key={u.id || i} style={{ borderBottom: "1px solid #f1f5f9" }}>
                     <td style={{ padding: "7px 10px", color: BRAND, fontWeight: 500 }}>{u.nome}</td>
-                    <td style={{ padding: "7px 10px", color: "#64748b", fontFamily: "monospace" }}>{u.cnes}</td>
+                    <td style={{ padding: "7px 10px", color: "#6b7280", fontFamily: "monospace" }}>{u.cnes}</td>
                     <td style={{ padding: "7px 10px", color: "#475569" }}>{u.tipo}</td>
                   </tr>
                 ))}
@@ -287,7 +287,7 @@ function TabPEC() {
                 {(profissionais as any[]).map((pr: any, i: number) => (
                   <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
                     <td style={{ padding: "7px 10px", color: BRAND, fontWeight: 500 }}>{pr.nome}</td>
-                    <td style={{ padding: "7px 10px", color: "#64748b" }}>{pr.cbo}</td>
+                    <td style={{ padding: "7px 10px", color: "#6b7280" }}>{pr.cbo}</td>
                     <td style={{ padding: "7px 10px", color: "#475569" }}>{pr.unidade}</td>
                     <td style={{ padding: "7px 10px", color: "#475569" }}>{pr.equipe}</td>
                   </tr>
@@ -307,7 +307,7 @@ function TabPEC() {
               border: "1px solid #e2e8f0", padding: "12px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between",
                 alignItems: "center", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#d1d5db" }}>
                   {ind.indicador}
                 </span>
                 <span style={{ fontSize: 12, fontWeight: 700,
@@ -512,7 +512,7 @@ export default function SaudeDigitalEsus() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal (2026)</h3>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" domain={[84, 95]} tick={{ fontSize: 11 }} unit="%" />

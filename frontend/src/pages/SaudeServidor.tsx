@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { UserCog, AlertTriangle, CheckCircle, TrendingDown } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#e4e7ec", border: "none", borderRadius: 6, color: "#f8fafc" };
 const ST_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
 const CAT_COR: Record<string, string> = {
   "Saúde mental": "#7c3aed", "Musculoesquelético": "#d97706", "Infecciosa": "#dc2626",
@@ -221,7 +221,7 @@ export default function SaudeServidor() {
       <div style={{ padding: "0 24px" }}>
         <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #e2e8f0" }}>
           {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #334155":"2px solid transparent", color: aba===a.id?"#334155":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
+            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #334155":"2px solid transparent", color: aba===a.id?"#d1d5db":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
           ))}
         </div>
         {aba==="dashboard"    && <AbaDashboard dash={dashRaw} hist={hist}/>}
