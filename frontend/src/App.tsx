@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from "react-router-dom";
 import {
   Home, BarChart2, Map, ChevronDown, ChevronRight,
-  ArrowLeftRight, Target, Building2, Bot, LogOut,
+  ArrowLeftRight, Target, Building2, Bot, LogOut, GitBranch,
   FileText, DollarSign, FolderOpen, BarChart3, ClipboardList,
   Activity, Pill, ShieldCheck, Truck, Network, MapPin, Users,
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
@@ -177,6 +177,9 @@ import ProgramaSaudeEscola       from "./pages/ProgramaSaudeEscola";
 import PlanoMunicipalSaude      from "./pages/PlanoMunicipalSaude";
 import ScoreMunicipal           from "./pages/ScoreMunicipal";
 import GestaoContratosFms       from "./pages/GestaoContratosFms";
+import CentralAuditoria         from "./pages/CentralAuditoria";
+import PlanoAcao                from "./pages/PlanoAcao";
+import TrilhaAuditoria          from "./pages/TrilhaAuditoria";
 import VisaMunicipal            from "./pages/VisaMunicipal";
 import ConselhoSaudeApui        from "./pages/ConselhoSaudeApui";
 import OuvidoriaApui            from "./pages/OuvidoriaApui";
@@ -822,7 +825,10 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             {podeRH  && <L1 to="/rh"         label="Recursos Humanos"     Icon={UserCog}/>}
             {podeRH  && <L1 to="/cadastros"  label="Cadastros Mestres"    Icon={Layers}/>}
             {podeUsr && <L1 to="/usuarios"   label="Gestão de Usuários"   Icon={Users}/>}
-            {podeAud && <L1 to="/auditoria"  label="Auditoria do Sistema" Icon={Shield}/>}
+            {podeAud && <L1 to="/auditoria"           label="Auditoria do Sistema"   Icon={Shield}/>}
+            {podeAud && <L1 to="/central-auditoria"   label="Central de Auditoria APS" Icon={ShieldCheck}/>}
+            {podeAud && <L1 to="/plano-acao"          label="Plano de Ação"          Icon={ClipboardList}/>}
+            {podeAud && <L1 to="/trilha-auditoria"    label="Trilha de Auditoria"    Icon={GitBranch}/>}
 
             <div style={{height:24}}/>
           </div>
@@ -1194,6 +1200,9 @@ export default function App() {
             <Route path="/regulacao"                 element={<Regulacao/>}/>
             <Route path="/usuarios"                  element={<Usuarios/>}/>
             <Route path="/auditoria"                 element={<Auditoria/>}/>
+            <Route path="/central-auditoria"         element={<CentralAuditoria/>}/>
+            <Route path="/plano-acao"                element={<PlanoAcao/>}/>
+            <Route path="/trilha-auditoria"          element={<TrilhaAuditoria/>}/>
             <Route path="/cadastros"                 element={<CadastrosMestres/>}/>
             <Route path="/cadastros/*"               element={<CadastrosMestres/>}/>
             <Route path="/rh"                        element={<RH/>}/>

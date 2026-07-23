@@ -355,6 +355,9 @@ export const apiGet = <T = unknown>(path: string, params?: Record<string, unknow
 export const apiPost = <T = unknown>(path: string, body?: unknown) =>
   api.post<T>(path, body).then((r) => r.data);
 
+export const apiPut = <T = unknown>(path: string, body?: unknown) =>
+  api.put<T>(path, body).then((r) => r.data);
+
 // ── Auditoria ─────────────────────────────────────────────────────────────────
 export const apiAuditoria = {
   logs: (params?: { nivel?: string; modulo?: string; limite?: number }) =>
