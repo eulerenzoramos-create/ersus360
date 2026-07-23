@@ -47,10 +47,11 @@ const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 
 function LogoMS() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 24px", background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
-      <div style={{ display: "flex", gap: 3 }}>
-        <div style={{ width: 8, height: 24, background: "#009c3b" }} />
-        <div style={{ width: 8, height: 24, background: "#ffdf00" }} />
-        <div style={{ width: 8, height: 24, background: "#002776" }} />
+      {/* Ícone gov.br — faixas horizontais verde/amarelo/azul */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <div style={{ width: 28, height: 5, background: "#009c3b", borderRadius: 1 }} />
+        <div style={{ width: 28, height: 5, background: "#ffdf00", borderRadius: 1 }} />
+        <div style={{ width: 28, height: 5, background: "#002776", borderRadius: 1 }} />
       </div>
       <div style={{ fontSize: 11, fontWeight: 700, color: "#002776" }}>gov.br</div>
       <div style={{ width: 1, height: 20, background: "#d1d5db" }} />
