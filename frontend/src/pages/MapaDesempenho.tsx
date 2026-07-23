@@ -24,14 +24,16 @@ function scoreSintetico(ibge: number, uf: string): number {
 }
 
 // ── Dados: Regional (Sul do AM) ───────────────────────────────────────────────
+// score Apuí = média ponderada DIMENSOES com APS real SIAPS Sprint ÓTIMO Q2/26
+// scores demais municípios = ESTIMATIVA (pendente dados oficiais SIAPS/DAB)
 const MUNICIPIOS_REGIONAL = [
-  { nome: "Apuí",          ibge: 1300144, score: 72.4, pop: 25043, esf: 3, cobertura: 89.2, uf: "AM" },
-  { nome: "Humaitá",       ibge: 1301704, score: 68.1, pop: 45000, esf: 6, cobertura: 78.4, uf: "AM" },
-  { nome: "Novo Aripuanã", ibge: 1303304, score: 61.3, pop: 21000, esf: 3, cobertura: 71.2, uf: "AM" },
-  { nome: "Manicoré",      ibge: 1302702, score: 58.9, pop: 55000, esf: 7, cobertura: 65.8, uf: "AM" },
-  { nome: "Borba",         ibge: 1300805, score: 55.2, pop: 37000, esf: 5, cobertura: 62.1, uf: "AM" },
-  { nome: "Tapauá",        ibge: 1304104, score: 49.8, pop: 19000, esf: 2, cobertura: 58.3, uf: "AM" },
-  { nome: "Canutama",      ibge: 1300904, score: 47.1, pop: 16000, esf: 2, cobertura: 54.7, uf: "AM" },
+  { nome: "Apuí",          ibge: 1300144, score: 75.6, pop: 25043, esf: 10, cobertura: 89.2, uf: "AM", real: true  },
+  { nome: "Humaitá",       ibge: 1301704, score: 68.1, pop: 45000, esf:  6, cobertura: 78.4, uf: "AM", real: false },
+  { nome: "Novo Aripuanã", ibge: 1303304, score: 61.3, pop: 21000, esf:  3, cobertura: 71.2, uf: "AM", real: false },
+  { nome: "Manicoré",      ibge: 1302702, score: 58.9, pop: 55000, esf:  7, cobertura: 65.8, uf: "AM", real: false },
+  { nome: "Borba",         ibge: 1300805, score: 55.2, pop: 37000, esf:  5, cobertura: 62.1, uf: "AM", real: false },
+  { nome: "Tapauá",        ibge: 1304104, score: 49.8, pop: 19000, esf:  2, cobertura: 58.3, uf: "AM", real: false },
+  { nome: "Canutama",      ibge: 1300904, score: 47.1, pop: 16000, esf:  2, cobertura: 54.7, uf: "AM", real: false },
 ];
 
 // ── Dados: Estadual — todos os 62 municípios do Amazonas ─────────────────────
@@ -40,7 +42,7 @@ const MUNICIPIOS_AM_62_BASE = [
   { nome: "Amaturá",                   ibge: 1300060, pop:  10000, esf: 1 },
   { nome: "Anamã",                     ibge: 1300086, pop:  10000, esf: 1 },
   { nome: "Anori",                     ibge: 1300102, pop:  16000, esf: 2 },
-  { nome: "Apuí",                      ibge: 1300144, pop:  25043, esf: 3 },
+  { nome: "Apuí",                      ibge: 1300144, pop:  25043, esf: 10 },
   { nome: "Atalaia do Norte",          ibge: 1300300, pop:  21000, esf: 2 },
   { nome: "Autazes",                   ibge: 1300409, pop:  32000, esf: 4 },
   { nome: "Barcelos",                  ibge: 1300508, pop:  26000, esf: 3 },
@@ -102,7 +104,7 @@ const MUNICIPIOS_AM_62_BASE = [
 const MUNICIPIOS_AM_62 = MUNICIPIOS_AM_62_BASE.map(m => ({
   ...m,
   uf: "AM",
-  score: m.ibge === 1300144 ? 72.4 : scoreSintetico(m.ibge, "AM"),
+  score: m.ibge === 1300144 ? 75.6 : scoreSintetico(m.ibge, "AM"),
   cobertura: m.ibge === 1300144 ? 89.2 : Math.min(98, Math.max(30, scoreSintetico(m.ibge, "AM") + (m.ibge % 11) - 5)),
 })).sort((a, b) => b.score - a.score);
 
@@ -143,24 +145,29 @@ const REGIOES_COR: Record<string, string> = {
 };
 
 // ── Dimensões Apuí ────────────────────────────────────────────────────────────
+// APS: média das 10 equipes SIAPS Sprint ÓTIMO Q2/26 (83,0 pts) ÷ 100 × 100
+// Demais dimensões: estimativas ERSUS 360 (pendente validação SIOPS/FNS/SVS)
 const DIMENSOES = [
-  { label: "APS / Novo Financiamento APS", score: 78.2, peso: 35, cor: "#1565c0", icone: "🏥" },
-  { label: "Financeiro / FNS",             score: 81.4, peso: 25, cor: "#2e7d32", icone: "💰" },
-  { label: "Epidemiologia / Vigilância",   score: 64.7, peso: 20, cor: "#f57f17", icone: "🦟" },
-  { label: "Gestão / RH / Obras",          score: 70.1, peso: 10, cor: "#6a1b9a", icone: "⚙️" },
-  { label: "Infraestrutura / Patrimônio",  score: 62.3, peso: 10, cor: "#00838f", icone: "🏗️" },
+  { label: "APS / SIAPS Sprint ÓTIMO",     score: 83.0, peso: 35, cor: "#1565c0", icone: "🏥", real: true  },
+  { label: "Financeiro / FNS",             score: 81.4, peso: 25, cor: "#2e7d32", icone: "💰", real: false },
+  { label: "Epidemiologia / Vigilância",   score: 64.7, peso: 20, cor: "#f57f17", icone: "🦟", real: false },
+  { label: "Gestão / RH / Obras",          score: 70.1, peso: 10, cor: "#6a1b9a", icone: "⚙️", real: false },
+  { label: "Infraestrutura / Patrimônio",  score: 62.3, peso: 10, cor: "#00838f", icone: "🏗️", real: false },
 ];
 
 const PG = 60;
 
 // ── Sub-componentes ───────────────────────────────────────────────────────────
-function ScoreBar({ label, score, peso, cor, icone }: typeof DIMENSOES[0]) {
+function ScoreBar({ label, score, peso, cor, icone, real }: typeof DIMENSOES[0]) {
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: "#333" }}>
           {icone} {label}
           <span style={{ marginLeft: 8, fontSize: 11, color: "#888", fontWeight: 400 }}>peso {peso}%</span>
+          {real
+            ? <span style={{ marginLeft: 6, fontSize: 9, background: "#e3f2fd", color: "#1565c0", borderRadius: 3, padding: "1px 4px", fontWeight: 700 }}>SIAPS</span>
+            : <span style={{ marginLeft: 6, fontSize: 9, background: "#fff3e0", color: "#e65100", borderRadius: 3, padding: "1px 4px", fontWeight: 700 }}>estimativa</span>}
         </span>
         <span style={{ fontSize: 15, fontWeight: 800, color: cor }}>{score.toFixed(1)}</span>
       </div>
@@ -189,6 +196,7 @@ function RankCard({ item, pos, isApui, sub }: { item: any; pos: number; isApui?:
         <div style={{ fontWeight: isApui ? 700 : 600, fontSize: 13, color: "#222", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
           {item.nome}
           {isApui && <span style={{ fontSize: 10, color: "#1565c0", fontWeight: 700 }}>◀ você</span>}
+          {!isApui && item.real === false && <span style={{ fontSize: 9, background: "#fff3e0", color: "#e65100", borderRadius: 3, padding: "1px 4px", fontWeight: 700 }}>est.</span>}
           {item.uf && !isApui && <span style={{ fontSize: 10, color: "#999", background: "#f0f0f0", borderRadius: 3, padding: "1px 4px" }}>{item.uf}</span>}
           {item.regiao && <span style={{ fontSize: 10, color: REGIOES_COR[item.regiao] ?? "#888", fontWeight: 600 }}>{item.regiao}</span>}
         </div>
@@ -277,7 +285,7 @@ export default function MapaDesempenho() {
   const [pagina,    setPagina]    = useState(1);
 
   const { data: scoreData } = useQuery({ queryKey: ["bi-score-mapa"], queryFn: apiBI.score });
-  const scoreAtual = scoreData?.score_total ?? 72.4;
+  const scoreAtual = scoreData?.score_total ?? 75.6;
   const cor = COR_SCORE(scoreAtual);
 
   // ── Fetch IBGE — todos os municípios do Brasil ──────────────────────────
@@ -299,7 +307,7 @@ export default function MapaDesempenho() {
     return ibgeMunicipios.map((m: any) => {
       const uf: string = m.microrregiao?.mesorregiao?.UF?.sigla ?? "??";
       const regiao: string = m.microrregiao?.mesorregiao?.UF?.regiao?.nome ?? "";
-      const sc = m.id === 1300144 ? 72.4 : scoreSintetico(m.id as number, uf);
+      const sc = m.id === 1300144 ? 75.6 : scoreSintetico(m.id as number, uf);
       return { nome: m.nome as string, ibge: m.id as number, uf, regiao, score: sc };
     }).sort((a: any, b: any) => b.score - a.score);
   }, [ibgeMunicipios]);
@@ -403,9 +411,9 @@ export default function MapaDesempenho() {
           <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>{kpiDesc}</div>
         </div>
         <div style={{ background: "#fff", borderRadius: 10, padding: "18px 20px", border: "1px solid #e0e0e0", textAlign: "center" }}>
-          <div style={{ fontSize: 36, fontWeight: 900, color: "#2e7d32" }}>+11.2</div>
+          <div style={{ fontSize: 36, fontWeight: 900, color: "#2e7d32" }}>+{(scoreAtual - 61.2).toFixed(1)}</div>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#555", marginTop: 4 }}>Evolução 2026</div>
-          <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>pontos vs Jan/2026</div>
+          <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>pontos vs Jan/2026 (est.)</div>
         </div>
         {nivel === "nacional" ? (
           <div style={{ background: "#fff", borderRadius: 10, padding: "18px 20px", border: "1px solid #e0e0e0", textAlign: "center" }}>
@@ -607,7 +615,7 @@ export default function MapaDesempenho() {
                   );
                 })}
                 <div style={{ marginTop: 6, fontSize: 11, color: "#aaa", fontStyle: "italic" }}>
-                  Fonte: IBGE/MS · Portaria 3.493/2024 · Jul/2026
+                  Fonte: APS/SIAPS Sprint ÓTIMO Q2/26 (Apuí) · demais: estimativa ERSUS 360 (pendente validação) · IBGE 2022 · Jul/2026
                 </div>
               </div>
             </div>
@@ -635,8 +643,9 @@ export default function MapaDesempenho() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 20 }}>
             <div style={{ padding: "12px 16px", background: "#e8f5e9", borderRadius: 8, border: "1px solid #c8e6c9" }}>
               <div style={{ fontSize: 11, color: "#666", fontWeight: 600 }}>CRESCIMENTO 2026</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: "#2e7d32", marginTop: 4 }}>+11.2 pts</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#2e7d32", marginTop: 4 }}>+{(scoreAtual - 61.2).toFixed(1)} pts</div>
               <div style={{ fontSize: 12, color: "#555" }}>Jan 61.2 → Jul {scoreAtual.toFixed(1)}</div>
+              <div style={{ fontSize: 10, color: "#e65100", marginTop: 4 }}>⚠ série histórica estimada — APS validado SIAPS Q2/26</div>
             </div>
             <div style={{ padding: "12px 16px", background: "#e3f2fd", borderRadius: 8, border: "1px solid #bbdefb" }}>
               <div style={{ fontSize: 11, color: "#666", fontWeight: 600 }}>META 2026</div>
