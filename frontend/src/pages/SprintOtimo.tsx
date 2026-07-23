@@ -467,6 +467,28 @@ export default function SprintOtimo() {
   const [editandoMunicipio, setEditandoMunicipio] = useState(false);
   const { diasRestantes, horasRestantes } = useCountdown();
 
+  // ── Integração SIAPS: ausência de envio de produção (e-Gestor APS público) ──
+  const SIAPS_COMPS = ["202605","202604","202603","202602","202601"];
+  const [siapsComp, setSiapsComp] = useState("202605");
+  const [siapsData, setSiapsData] = useState<{equipes: any[], dataGeracao: string} | null>(null);
+  const [siapsLoading, setSiapsLoading] = useState(false);
+  const [siapsError, setSiapsError] = useState(false);
+
+  useEffect(() => {
+    setSiapsLoading(true);
+    setSiapsError(false);
+    // IBGE Apuí no formato da API (6 dígitos = código sem dígito verificador)
+    const ibgeApui = "130014";
+    fetch(`https://relatorioaps-prd.saude.gov.br/credenciamento/sujeitos-suspensao?nuCompCnes=${siapsComp}`)
+      .then(r => r.json())
+      .then((data: any) => {
+        const apui = (data.equipes || []).filter((e: any) => e.coMunicipioIbge === ibgeApui);
+        setSiapsData({ equipes: apui, dataGeracao: data.dataGeracao || "" });
+      })
+      .catch(() => setSiapsError(true))
+      .finally(() => setSiapsLoading(false));
+  }, [siapsComp]);
+
   const totalChecks = CHECKLIST.length;
   const feitos = Object.values(checks).filter(Boolean).length;
   const pct = Math.round((feitos / totalChecks) * 100);
@@ -1598,8 +1620,82 @@ export default function SprintOtimo() {
             </div>
           );
 
+          // ── Mapeamento tipo de equipe ──
+          const tipoLabel = (cod: string) =>
+            cod === "70" ? "eSF" : cod === "71" ? "eSF Ribeirinha" : cod === "72" ? "eMulti" :
+            cod === "76" ? "eSF Ribeirinha" : cod === "77" ? "eSF Fluvial" : `Tipo ${cod}`;
+          const gravidadeAus = (qt: string) =>
+            qt.includes("Superior") ? { label: "CRÍTICO", cor: "#ef4444", bg: "rgba(239,68,68,0.08)", borda: "rgba(239,68,68,0.3)" }
+            : qt.includes("03")      ? { label: "CRÍTICO", cor: "#ef4444", bg: "rgba(239,68,68,0.08)", borda: "rgba(239,68,68,0.3)" }
+            : qt.includes("02")      ? { label: "MÉDIO",   cor: "#f59e0b", bg: "rgba(245,158,11,0.08)", borda: "rgba(245,158,11,0.3)" }
+            :                          { label: "ATENÇÃO",  cor: "#38bdf8", bg: "rgba(56,189,248,0.07)", borda: "rgba(56,189,248,0.25)" };
+
+          const compLabel = (c: string) => {
+            const m = ["","Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+            return `${m[parseInt(c.slice(4))]}/${c.slice(2,4)}`;
+          };
+
           return (
             <div>
+              {/* ── Painel ao vivo: Ausências SIAPS (e-Gestor APS) ── */}
+              <div style={{ background: "rgba(15,23,42,0.8)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: 12, padding: "14px 16px", marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: "#60a5fa", textTransform: "uppercase", letterSpacing: 1 }}>
+                      📡 Ausências de Envio SIAPS — e-Gestor APS (ao vivo)
+                    </span>
+                    {siapsData && <span style={{ fontSize: 10, color: "#475569" }}>gerado {siapsData.dataGeracao}</span>}
+                  </div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {SIAPS_COMPS.map(c => (
+                      <button key={c} onClick={() => setSiapsComp(c)} style={{
+                        fontSize: 10, padding: "2px 8px", borderRadius: 5, border: "1px solid",
+                        borderColor: siapsComp === c ? "#3b82f6" : "rgba(71,85,105,0.4)",
+                        background: siapsComp === c ? "#1e3a5f" : "transparent",
+                        color: siapsComp === c ? "#93c5fd" : "#64748b", cursor: "pointer", fontWeight: siapsComp === c ? 700 : 400,
+                      }}>{compLabel(c)}</button>
+                    ))}
+                  </div>
+                </div>
+
+                {siapsLoading && (
+                  <div style={{ textAlign: "center", padding: "16px 0", color: "#60a5fa", fontSize: 12 }}>⏳ Consultando e-Gestor APS…</div>
+                )}
+                {siapsError && (
+                  <div style={{ textAlign: "center", padding: "12px 0", color: "#ef4444", fontSize: 12 }}>⚠ Erro ao consultar e-Gestor APS. Verifique a conexão.</div>
+                )}
+                {!siapsLoading && !siapsError && siapsData && (
+                  siapsData.equipes.length === 0
+                    ? <div style={{ textAlign: "center", padding: "12px 0", color: "#22c55e", fontSize: 13, fontWeight: 700 }}>
+                        ✓ Nenhuma equipe de Apuí com ausência de envio em {compLabel(siapsComp)}
+                      </div>
+                    : <div>
+                        <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 8 }}>
+                          Apuí — <strong style={{ color: "#f59e0b" }}>{siapsData.equipes.length} equipe{siapsData.equipes.length > 1 ? "s" : ""}</strong> com ausência de envio em {compLabel(siapsComp)}:
+                        </div>
+                        {siapsData.equipes.map((e, i) => {
+                          const g = gravidadeAus(e.qtCompetenciasConsecutivas);
+                          return (
+                            <div key={i} style={{ background: g.bg, border: `1px solid ${g.borda}`, borderRadius: 8, padding: "10px 12px", marginBottom: 8, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                              <span style={{ fontSize: 10, fontWeight: 800, color: g.cor, background: "rgba(0,0,0,0.25)", padding: "2px 7px", borderRadius: 20, border: `1px solid ${g.borda}`, flexShrink: 0, marginTop: 1 }}>{g.label}</span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "baseline", marginBottom: 3 }}>
+                                  <span style={{ fontWeight: 700, fontSize: 12, color: "#f1f5f9" }}>{tipoLabel(e.coTipoEquipe)}</span>
+                                  <span style={{ fontSize: 10, color: "#64748b", fontFamily: "monospace" }}>cód {e.coEquipe}</span>
+                                  <span style={{ fontSize: 10, color: g.cor, fontWeight: 600 }}>{e.qtCompetenciasConsecutivas}</span>
+                                </div>
+                                <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.5 }}>{e.dsSubTipoSuspensao}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div style={{ fontSize: 10, color: "#475569", marginTop: 4 }}>
+                          Fonte: relatorioaps.saude.gov.br/gerenciaaps/ausencia-envio-producao · Competência CNES {siapsComp}
+                        </div>
+                      </div>
+                )}
+              </div>
+
               {/* Resumo */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 20 }}>
                 {[
