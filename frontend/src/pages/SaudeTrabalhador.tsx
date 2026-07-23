@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Wrench, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -113,7 +113,7 @@ export default function SaudeTrabalhador() {
                 <BarChart data={(setores as any[])} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="setor" tick={{ fontSize: 9 }} width={210} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="cat_ano"       name="CATs/ano"    fill={WARN}   radius={[0,3,3,0]} />
@@ -149,7 +149,7 @@ export default function SaudeTrabalhador() {
                 <BarChart data={(intox as any[])} margin={{ left: 0, right: 20 }}>
                   <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 10 }} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="casos"          name="Casos"           fill={WARN}   radius={[3,3,0,0]} />
@@ -168,7 +168,7 @@ export default function SaudeTrabalhador() {
                   <div className="flex gap-4 text-right">
                     <div><p className="text-xs text-slate-400">Casos</p><p className="font-bold text-amber-700">{m.casos}</p></div>
                     <div><p className="text-xs text-slate-400">Hosp.</p><p className="font-bold text-red-600">{m.hospitalizacoes}</p></div>
-                    <div><p className="text-xs text-slate-400">Fatais</p><p className="font-bold" style={{ color: m.fatais > 0 ? CRIT : "#94a3b8" }}>{m.fatais}</p></div>
+                    <div><p className="text-xs text-slate-400">Fatais</p><p className="font-bold" style={{ color: m.fatais > 0 ? CRIT : "#6b7280" }}>{m.fatais}</p></div>
                   </div>
                 </div>
               ))}
@@ -181,7 +181,7 @@ export default function SaudeTrabalhador() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — Saúde do Trabalhador (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="s"   orientation="right" tick={{ fontSize: 10 }} />

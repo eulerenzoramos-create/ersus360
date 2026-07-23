@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Syringe, AlertTriangle, Users, Activity } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -27,7 +27,7 @@ const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?:
   </div>
 );
 
-const PIE_COLORS = ["#1d4ed8","#dc2626","#16a34a","#d97706","#7c3aed","#0891b2","#f59e0b","#ec4899","#94a3b8"];
+const PIE_COLORS = ["#1d4ed8","#dc2626","#16a34a","#d97706","#7c3aed","#0891b2","#f59e0b","#ec4899","#6b7280"];
 
 export default function CRIE() {
   const [aba, setAba] = useState("dashboard");
@@ -194,7 +194,7 @@ export default function CRIE() {
             <h3 className="font-semibold text-slate-700 mb-4">Doses Administradas e Solicitações (2026)</h3>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />

@@ -5,7 +5,7 @@ import {
   DollarSign, Target, AlertTriangle, ShieldCheck, Anchor
 } from "lucide-react"
 
-const BRAND = "#1e3a5f"
+const BRAND = "#dbeafe"
 
 const MODULOS = [
   {
@@ -125,7 +125,7 @@ const MODULOS = [
     sub: "PAB · MAC · Repasses · Execução",
     path: "/saude-financeira-apui",
     Icon: DollarSign,
-    cor: "#1e3a5f",
+    cor: "#dbeafe",
     desc: "Municípios pequenos dependem 70–90% de repasses federais (FNS). Gestão do PAB fixo/variável é essencial."
   },
 ]

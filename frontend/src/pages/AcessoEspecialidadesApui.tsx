@@ -4,7 +4,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { apiGet } from "../lib/api"
 import { Stethoscope } from "lucide-react"
 
-const BRAND="#1e3a5f", ACCENT="#1d4ed8", OK="#16a34a", WARN="#d97706", CRIT="#dc2626"
+const BRAND="#dbeafe", ACCENT="#1d4ed8", OK="#16a34a", WARN="#d97706", CRIT="#dc2626"
 const ABAS=["Dashboard","Especialidades","TFD","Histórico","Indicadores"]
 const statusColor=(s:string)=>s==="ok"||s==="concluido"?OK:s==="atencao"||s==="andamento"?WARN:CRIT
 function KPI({label,value,sub,color=BRAND}:{label:string;value:string|number;sub?:string;color?:string}){
@@ -100,7 +100,7 @@ export default function AcessoEspecialidadesApui(){
                 <YAxis tick={{fontSize:11}}/>
                 <Tooltip/>
                 <Legend/>
-                <Bar dataKey="solicitacoes" fill="#94a3b8" radius={[4,4,0,0]} name="Solicitações"/>
+                <Bar dataKey="solicitacoes" fill="#6b7280" radius={[4,4,0,0]} name="Solicitações"/>
                 <Bar dataKey="deferidos"    fill={OK}    radius={[4,4,0,0]} name="Deferidos"/>
                 <Bar dataKey="indeferidos"  fill={CRIT}  radius={[4,4,0,0]} name="Indeferidos"/>
               </BarChart>

@@ -159,7 +159,7 @@ export default function Abastecimento() {
               <h3 className="font-semibold text-slate-700 mb-4">Cobertura por Zona (%)</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={coberturas} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="zona" tick={{ fontSize: 9 }} />
                   <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(v: number) => `${v}%`} />
@@ -202,7 +202,7 @@ export default function Abastecimento() {
               <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal (últimos 6 meses)</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="conf" domain={[80, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="n" orientation="right" tick={{ fontSize: 11 }} />

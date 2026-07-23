@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Pill, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -41,7 +41,7 @@ const CAT_COLORS: Record<string, string> = {
   "Sífilis": "#e11d48",
   "Resp.":   "#0891b2",
   "TB":      OK,
-  "ATB":     "#64748b",
+  "ATB":     "#6b7280",
   "Nutric.": "#f97316",
 };
 
@@ -166,7 +166,7 @@ export default function FarmaciaBasicaApui() {
                 <BarChart data={adesao as any[]} layout="vertical" margin={{ left: 10, right: 80 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} unit="%" />
                   <YAxis type="category" dataKey="grupo" tick={{ fontSize: 9 }} width={220} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip formatter={(v: any) => `${v}%`} />
                   <Bar dataKey="adesao_pct" name="Adesão (%)" radius={[0,3,3,0]}>
                     {(adesao as any[]).map((a: any) => <Cell key={a.grupo} fill={statusColor(a.status)} />)}
@@ -197,7 +197,7 @@ export default function FarmaciaBasicaApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal — Farmácia Básica (2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
                 <YAxis yAxisId="pct" tick={{ fontSize: 11 }} unit="%" />
                 <YAxis yAxisId="n" orientation="right" tick={{ fontSize: 10 }} />

@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Waves, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -124,7 +124,7 @@ export default function SaudePcdApui() {
               <h3 className="font-semibold text-slate-700 mb-3">Acesso à Reabilitação por Tipo de Deficiência</h3>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={deficiencias as any[]} layout="vertical" margin={{ left: 120, right: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis type="number" tick={{ fontSize: 10 }} unit="%" domain={[0, 30]} />
                   <YAxis dataKey="tipo" type="category" tick={{ fontSize: 10 }} width={120} />
                   <Tooltip formatter={(v: any) => `${v}%`} />
@@ -190,7 +190,7 @@ export default function SaudePcdApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução — Saúde da PcD (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />

@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import { Users, AlertTriangle, Activity, CheckCircle } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 const STATUS_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
 const INT_CORES = ["#1d4ed8","#dc2626","#7c3aed","#0891b2","#d97706","#9ca3af"];
 
@@ -102,7 +102,7 @@ function AbaInternacoes({ internacoes }: { internacoes: any[] | undefined }) {
                 <YAxis type="category" dataKey="causa" tick={{ fontSize: 8 }} width={150}/>
                 <Tooltip contentStyle={TT}/>
                 <Bar dataKey="casos" name="Casos" radius={[0,4,4,0]}>
-                  {internacoes.map((_: any, i: number) => <Cell key={i} fill={INT_CORES[i]||"#94a3b8"}/>)}
+                  {internacoes.map((_: any, i: number) => <Cell key={i} fill={INT_CORES[i]||"#6b7280"}/>)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -114,7 +114,7 @@ function AbaInternacoes({ internacoes }: { internacoes: any[] | undefined }) {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={internacoes} dataKey="pct" nameKey="causa" cx="50%" cy="50%" outerRadius={80} label={({ name, pct }: any) => `${pct}%`}>
-                  {internacoes.map((_: any, i: number) => <Cell key={i} fill={INT_CORES[i]||"#94a3b8"}/>)}
+                  {internacoes.map((_: any, i: number) => <Cell key={i} fill={INT_CORES[i]||"#6b7280"}/>)}
                 </Pie>
                 <Tooltip contentStyle={TT} formatter={(v: any, n: any) => [`${v}%`, n]}/>
               </PieChart>
@@ -133,7 +133,7 @@ function AbaInternacoes({ internacoes }: { internacoes: any[] | undefined }) {
             {internacoes.map((r, i) => (
               <tr key={r.causa} style={{ borderTop: "1px solid #f3f4f6", background: i%2===0?"#fff":"#f9fafb" }}>
                 <td style={{ padding: "8px 12px", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 2, background: INT_CORES[i]||"#94a3b8", display: "inline-block", flexShrink: 0 }}/>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: INT_CORES[i]||"#6b7280", display: "inline-block", flexShrink: 0 }}/>
                   {r.causa}
                 </td>
                 <td style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700 }}>{r.casos}</td>
@@ -193,7 +193,7 @@ export default function SaudeHomem() {
 
   return (
     <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
-      <div style={{ background: "linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
+      <div style={{ background: "linear-gradient(135deg,#1565c0 0%,#1351b4 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Saúde do Homem</h1>
@@ -208,7 +208,7 @@ export default function SaudeHomem() {
         </div>
       </div>
       <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #dbeafe" }}>
+        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #e4e7ec" }}>
           {ABAS.map(a => (
             <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #1d4ed8":"2px solid transparent", color: aba===a.id?"#1d4ed8":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
           ))}

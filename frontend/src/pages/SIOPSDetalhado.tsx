@@ -18,7 +18,7 @@ const BRLK = (v: number) => {
 };
 const PCT = (v: number) => `${v.toFixed(1)}%`;
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -34,9 +34,9 @@ function sc(s: string) {
 /* ── Card KPI ─────────────────────────────────────────────────────────────── */
 const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
   <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "16px", boxShadow: "0 1px 3px rgba(0,0,0,.07)" }}>
-    <p style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>{label}</p>
+    <p style={{ fontSize: 11, color: "#6b7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>{label}</p>
     <p style={{ fontSize: 22, fontWeight: 700, color: color || BRAND, margin: "4px 0 0" }}>{value}</p>
-    {sub && <p style={{ fontSize: 11, color: "#94a3b8", margin: "2px 0 0" }}>{sub}</p>}
+    {sub && <p style={{ fontSize: 11, color: "#6b7280", margin: "2px 0 0" }}>{sub}</p>}
   </div>
 );
 
@@ -61,12 +61,12 @@ const InfoBox = ({ children, color }: { children: React.ReactNode; color: string
 
 const BarOrc = ({ label, val, max, color }: { label: string; val: number; max: number; color: string }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11 }}>
-    <span style={{ width: 80, color: "#64748b", flexShrink: 0 }}>{label}</span>
-    <div style={{ flex: 1, background: "#f1f5f9", borderRadius: 9999, height: 8 }}>
+    <span style={{ width: 80, color: "#6b7280", flexShrink: 0 }}>{label}</span>
+    <div style={{ flex: 1, background: "#111827", borderRadius: 9999, height: 8 }}>
       <div style={{ width: `${Math.min((val / max) * 100, 100)}%`, height: 8, borderRadius: 9999, background: color }} />
     </div>
-    <span style={{ width: 96, textAlign: "right", fontWeight: 600, color: "#334155" }}>{BRLK(val)}</span>
-    <span style={{ width: 40, textAlign: "right", color: "#94a3b8" }}>{PCT((val / max) * 100)}</span>
+    <span style={{ width: 96, textAlign: "right", fontWeight: 600, color: "#d1d5db" }}>{BRLK(val)}</span>
+    <span style={{ width: 40, textAlign: "right", color: "#6b7280" }}>{PCT((val / max) * 100)}</span>
   </div>
 );
 
@@ -111,7 +111,7 @@ export default function SIOPSDetalhado() {
           </div>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: BRAND, margin: 0 }}>SIOPS Detalhado</h1>
-            <p style={{ fontSize: 13, color: "#64748b", margin: 0 }}>
+            <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>
               Vinculação EC-29 · Blocos · Transferências FNS/FES · Execução Orçamentária · FMS Apuí/AM
             </p>
           </div>
@@ -150,7 +150,7 @@ export default function SIOPSDetalhado() {
             </Grid4>
 
             <Card>
-              <p style={{ fontWeight: 600, color: "#334155", marginBottom: 16, fontSize: 14 }}>Distribuição por Bloco de Financiamento</p>
+              <p style={{ fontWeight: 600, color: "#d1d5db", marginBottom: 16, fontSize: 14 }}>Distribuição por Bloco de Financiamento</p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
                 {[
                   { label: "Atenção Básica", pct: d.bloco_atencao_basica_pct },
@@ -161,7 +161,7 @@ export default function SIOPSDetalhado() {
                 ].map((b, i) => (
                   <div key={b.label} style={{ textAlign: "center", padding: 12, borderRadius: 8, background: `${BLOCOS[i]}14` }}>
                     <p style={{ fontSize: 22, fontWeight: 700, color: BLOCOS[i], margin: 0 }}>{b.pct}%</p>
-                    <p style={{ fontSize: 11, color: "#64748b", margin: "4px 0 0" }}>{b.label}</p>
+                    <p style={{ fontSize: 11, color: "#6b7280", margin: "4px 0 0" }}>{b.label}</p>
                   </div>
                 ))}
               </div>
@@ -179,10 +179,10 @@ export default function SIOPSDetalhado() {
         {aba === "blocos" && Array.isArray(blocos) && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Card>
-              <p style={{ fontWeight: 600, color: "#334155", marginBottom: 16, fontSize: 14 }}>Execução por Bloco (R$) — Federal · Estadual · Municipal</p>
+              <p style={{ fontWeight: 600, color: "#d1d5db", marginBottom: 16, fontSize: 14 }}>Execução por Bloco (R$) — Federal · Estadual · Municipal</p>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={blocos as any[]} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="bloco" tick={{ fontSize: 10 }} />
                   <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(v: number) => BRL(v)} />
@@ -196,19 +196,19 @@ export default function SIOPSDetalhado() {
             {(blocos as any[]).map((b: any, i: number) => (
               <Card key={b.bloco}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <span style={{ fontWeight: 600, color: "#334155" }}>{b.bloco}</span>
+                  <span style={{ fontWeight: 600, color: "#d1d5db" }}>{b.bloco}</span>
                   <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
-                    <span style={{ color: "#64748b" }}>Total: <b>{BRLK(b.total)}</b></span>
+                    <span style={{ color: "#6b7280" }}>Total: <b>{BRLK(b.total)}</b></span>
                     <span style={{ fontWeight: 700, color: BLOCOS[i] }}>{b.pct_exec}% executado</span>
                   </div>
                 </div>
-                <div style={{ background: "#f1f5f9", borderRadius: 9999, height: 8, marginBottom: 12 }}>
+                <div style={{ background: "#111827", borderRadius: 9999, height: 8, marginBottom: 12 }}>
                   <div style={{ width: `${b.pct_exec}%`, height: 8, borderRadius: 9999, background: BLOCOS[i] }} />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, fontSize: 12 }}>
                   {[["Federal",BRLK(b.federal),"#dbeafe","#1d4ed8"],["Estadual",BRLK(b.estadual),"#e0f2fe","#0891b2"],["Municipal",BRLK(b.municipal),"#ede9fe","#7c3aed"],["Executado",BRLK(b.executado),"#dcfce7","#16a34a"]].map(([lbl,val,bg,fg]) => (
                     <div key={lbl} style={{ background: bg, borderRadius: 6, padding: 8, textAlign: "center" }}>
-                      <p style={{ color: "#64748b", margin: 0, fontSize: 10 }}>{lbl}</p>
+                      <p style={{ color: "#6b7280", margin: 0, fontSize: 10 }}>{lbl}</p>
                       <p style={{ fontWeight: 700, color: fg, margin: "2px 0 0" }}>{val}</p>
                     </div>
                   ))}
@@ -245,13 +245,13 @@ export default function SIOPSDetalhado() {
                   <tbody>
                     {(transf as any[]).filter((t: any) => filtroBloco === "TODOS" || t.bloco === filtroBloco).map((t: any, i: number) => (
                       <tr key={t.programa} style={{ background: i % 2 === 0 ? "#f8fafc" : "#fff" }}>
-                        <td style={{ padding: "9px 12px", fontWeight: 500, color: "#334155" }}>{t.programa}</td>
-                        <td style={{ padding: "9px 12px" }}><span style={{ background: "#f1f5f9", color: "#475569", padding: "2px 6px", borderRadius: 4 }}>{t.bloco}</span></td>
+                        <td style={{ padding: "9px 12px", fontWeight: 500, color: "#d1d5db" }}>{t.programa}</td>
+                        <td style={{ padding: "9px 12px" }}><span style={{ background: "#111827", color: "#475569", padding: "2px 6px", borderRadius: 4 }}>{t.bloco}</span></td>
                         <td style={{ padding: "9px 12px" }}><span style={{ background: t.fonte === "FNS" ? "#dbeafe" : "#e0f2fe", color: t.fonte === "FNS" ? "#1d4ed8" : "#0891b2", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>{t.fonte}</span></td>
                         <td style={{ padding: "9px 12px", textAlign: "right" }}>{t.valor_anual > 0 ? BRLK(t.valor_anual) : "—"}</td>
                         <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 600 }}>{t.valor_recebido > 0 ? BRLK(t.valor_recebido) : "—"}</td>
                         <td style={{ padding: "9px 12px", textAlign: "center", fontWeight: 700, color: sc(t.status) }}>{t.valor_anual > 0 ? `${t.pct_exec}%` : "—"}</td>
-                        <td style={{ padding: "9px 12px", color: "#94a3b8", maxWidth: 240 }}>{t.obs}</td>
+                        <td style={{ padding: "9px 12px", color: "#6b7280", maxWidth: 240 }}>{t.obs}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -271,12 +271,12 @@ export default function SIOPSDetalhado() {
               <Card key={a.acao}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                   <div>
-                    <p style={{ fontWeight: 600, color: "#334155", fontSize: 14, margin: 0 }}>{a.acao}</p>
-                    <p style={{ fontSize: 11, color: "#94a3b8", margin: "2px 0 0" }}>Função: {a.funcao}</p>
+                    <p style={{ fontWeight: 600, color: "#d1d5db", fontSize: 14, margin: 0 }}>{a.acao}</p>
+                    <p style={{ fontSize: 11, color: "#6b7280", margin: "2px 0 0" }}>Função: {a.funcao}</p>
                   </div>
                   <div style={{ textAlign: "right", fontSize: 12 }}>
-                    <p style={{ color: "#94a3b8", margin: 0 }}>Dotação atual</p>
-                    <p style={{ fontWeight: 700, color: "#334155", margin: "2px 0 0" }}>{BRLK(a.dotacao_atual)}</p>
+                    <p style={{ color: "#6b7280", margin: 0 }}>Dotação atual</p>
+                    <p style={{ fontWeight: 700, color: "#d1d5db", margin: "2px 0 0" }}>{BRLK(a.dotacao_atual)}</p>
                     {a.creditos_adic > 0 && <p style={{ color: OK, fontSize: 11, margin: 0 }}>+{BRLK(a.creditos_adic)} créditos ad.</p>}
                   </div>
                 </div>
@@ -286,7 +286,7 @@ export default function SIOPSDetalhado() {
                   <BarOrc label="Pago"       val={a.pago}       max={a.dotacao_atual} color={OK} />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 12 }}>
-                  <span style={{ color: "#64748b" }}>A empenhar: <b style={{ color: "#334155" }}>{BRLK(a.a_empenhar)}</b></span>
+                  <span style={{ color: "#6b7280" }}>A empenhar: <b style={{ color: "#d1d5db" }}>{BRLK(a.a_empenhar)}</b></span>
                   <span style={{ padding: "2px 10px", borderRadius: 9999, fontWeight: 600, fontSize: 11, background: `${sc(a.status)}22`, color: sc(a.status) }}>
                     {a.status === "ok" ? "Regular" : a.status === "atencao" ? "Atenção" : "Crítico"}
                   </span>
@@ -301,7 +301,7 @@ export default function SIOPSDetalhado() {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Grid2>
               <Card>
-                <p style={{ fontWeight: 600, color: "#334155", marginBottom: 12, fontSize: 14 }}>Despesa por Natureza — Empenhado</p>
+                <p style={{ fontWeight: 600, color: "#d1d5db", marginBottom: 12, fontSize: 14 }}>Despesa por Natureza — Empenhado</p>
                 <ResponsiveContainer width="100%" height={240}>
                   <PieChart>
                     <Pie data={(natData as any).resumo} dataKey="empenhado" nameKey="natureza" cx="50%" cy="50%" outerRadius={85}>
@@ -313,17 +313,17 @@ export default function SIOPSDetalhado() {
                 </ResponsiveContainer>
               </Card>
               <Card>
-                <p style={{ fontWeight: 600, color: "#334155", marginBottom: 12, fontSize: 14 }}>Dotação vs Empenhado</p>
+                <p style={{ fontWeight: 600, color: "#d1d5db", marginBottom: 12, fontSize: 14 }}>Dotação vs Empenhado</p>
                 {((natData as any).resumo as any[]).map((n: any) => (
                   <div key={n.natureza} style={{ marginBottom: 10 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
                       <span style={{ color: "#475569", fontWeight: 500 }}>{n.natureza}</span>
                       <span style={{ fontWeight: 700, color: n.cor }}>{BRLK(n.empenhado)}</span>
                     </div>
-                    <div style={{ background: "#f1f5f9", borderRadius: 9999, height: 6 }}>
+                    <div style={{ background: "#111827", borderRadius: 9999, height: 6 }}>
                       <div style={{ width: `${Math.min((n.empenhado / n.dotacao) * 100, 100)}%`, height: 6, borderRadius: 9999, background: n.cor }} />
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginTop: 1 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#6b7280", marginTop: 1 }}>
                       <span>Dotação: {BRLK(n.dotacao)}</span>
                       <span>{PCT((n.empenhado / n.dotacao) * 100)} exec.</span>
                     </div>
@@ -332,15 +332,15 @@ export default function SIOPSDetalhado() {
               </Card>
             </Grid2>
             <Card>
-              <p style={{ fontWeight: 600, color: "#334155", marginBottom: 12, fontSize: 14 }}>Evolução Mensal por Natureza (R$)</p>
+              <p style={{ fontWeight: 600, color: "#d1d5db", marginBottom: 12, fontSize: 14 }}>Evolução Mensal por Natureza (R$)</p>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={(natData as any).mensal} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                   <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(v: number) => BRLK(v)} />
                   <Legend />
-                  <Bar dataKey="pessoal"      name="Pessoal"           fill="#1e3a5f" stackId="a" />
+                  <Bar dataKey="pessoal"      name="Pessoal"           fill="#dbeafe" stackId="a" />
                   <Bar dataKey="custeio"      name="Custeio/Serviços"  fill="#1d4ed8" stackId="a" />
                   <Bar dataKey="farmacia"     name="Mat. Farmacol."    fill="#7c3aed" stackId="a" />
                   <Bar dataKey="investimento" name="Investimento"      fill="#dc2626" stackId="a" radius={[3,3,0,0]} />
@@ -360,10 +360,10 @@ export default function SIOPSDetalhado() {
               <KPI label="Superávit" value={`${(ec29 as any).superavit_pct} p.p.`} sub={BRL((ec29 as any).superavit_valor)} color={OK} />
             </Grid3>
             <Card>
-              <p style={{ fontWeight: 600, color: "#334155", marginBottom: 12, fontSize: 14 }}>Série Histórica EC-29 (2021–2026)</p>
+              <p style={{ fontWeight: 600, color: "#d1d5db", marginBottom: 12, fontSize: 14 }}>Série Histórica EC-29 (2021–2026)</p>
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={(ec29 as any).serie_historica} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="pct" domain={[12, 22]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="val" orientation="right" tickFormatter={(v) => `${(v/1_000_000).toFixed(1)}M`} tick={{ fontSize: 10 }} />
@@ -382,10 +382,10 @@ export default function SIOPSDetalhado() {
         {aba === "receita" && Array.isArray(rfData) && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Card>
-              <p style={{ fontWeight: 600, color: "#334155", marginBottom: 12, fontSize: 14 }}>Receita Arrecadada vs Despesa Realizada (últimos 6 meses)</p>
+              <p style={{ fontWeight: 600, color: "#d1d5db", marginBottom: 12, fontSize: 14 }}>Receita Arrecadada vs Despesa Realizada (últimos 6 meses)</p>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={rfData as any[]} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                   <YAxis tickFormatter={(v) => `${(v/1000).toFixed(0)}K`} tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(v: number) => BRLK(v)} />
@@ -398,11 +398,11 @@ export default function SIOPSDetalhado() {
             </Card>
             {(rfData as any[]).map((r: any) => (
               <div key={r.mes} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 16, fontSize: 13 }}>
-                <span style={{ fontWeight: 600, color: "#64748b", width: 60, flexShrink: 0 }}>{r.mes}</span>
+                <span style={{ fontWeight: 600, color: "#6b7280", width: 60, flexShrink: 0 }}>{r.mes}</span>
                 <span style={{ color: "#7c3aed" }}>Própria: <b>{BRLK(r.receita_propria)}</b></span>
                 <span style={{ color: "#1d4ed8" }}>Transf.: <b>{BRLK(r.transferencias)}</b></span>
                 <span style={{ color: "#0891b2" }}>Total: <b>{BRLK(r.total_receita)}</b></span>
-                <span style={{ color: "#334155" }}>Despesa: <b>{BRLK(r.despesa_saude)}</b></span>
+                <span style={{ color: "#d1d5db" }}>Despesa: <b>{BRLK(r.despesa_saude)}</b></span>
                 <span style={{ marginLeft: "auto", fontWeight: 700, color: r.saldo >= 0 ? OK : CRIT }}>
                   {r.saldo >= 0 ? "+" : ""}{BRLK(r.saldo)}
                 </span>
@@ -419,13 +419,13 @@ export default function SIOPSDetalhado() {
                 <div style={{ width: 12, height: 12, borderRadius: "50%", background: sc(i.status), flexShrink: 0, marginTop: 3 }} />
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                    <span style={{ fontWeight: 600, color: "#334155", fontSize: 14 }}>{i.indicador}</span>
+                    <span style={{ fontWeight: 600, color: "#d1d5db", fontSize: 14 }}>{i.indicador}</span>
                     <span style={{ fontWeight: 700, fontSize: 13, color: sc(i.status) }}>
                       {typeof i.valor === "number" && i.unidade === "R$" ? BRL(i.valor) : `${i.valor} ${i.unidade}`}
                       {i.meta != null ? ` / meta: ${i.unidade === "R$" ? BRL(i.meta) : `${i.meta} ${i.unidade}`}` : ""}
                     </span>
                   </div>
-                  <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>{i.observacao}</p>
+                  <p style={{ fontSize: 12, color: "#6b7280", margin: "4px 0 0" }}>{i.observacao}</p>
                 </div>
               </div>
             ))}

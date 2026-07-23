@@ -7,7 +7,7 @@ import {
 import { Truck, MapPin, DollarSign, Calendar, AlertTriangle } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
   return (
@@ -149,7 +149,7 @@ function AbaViagens({ viagens }: { viagens: any[] | undefined }) {
           const custo = v.km_total * v.custo_km;
           const cor   = VIAGEM_COR[v.status] || "#6b7280";
           return (
-            <div key={v.id} style={{ background:"#fff", border:`1px solid ${v.status==="agendada"?"#bfdbfe":"#e5e7eb"}`, borderLeft:`4px solid ${cor}`, borderRadius:8, padding:"12px 16px" }}>
+            <div key={v.id} style={{ background:"#fff", border:`1px solid ${v.status==="agendada"?"#374151":"#e5e7eb"}`, borderLeft:`4px solid ${cor}`, borderRadius:8, padding:"12px 16px" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
                 <div>
                   <div style={{ fontSize:13, fontWeight:700 }}>Paciente: {v.paciente} — <span style={{ color:"#0891b2" }}>{v.especialidade}</span></div>
@@ -190,7 +190,7 @@ export default function TransporteSanitario() {
 
   return (
     <div style={{ padding:"0 0 32px", fontFamily:"system-ui,sans-serif" }}>
-      <div style={{ background:"linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%)", color:"#fff", padding:"20px 24px 16px", borderRadius:"0 0 16px 16px", marginBottom:24 }}>
+      <div style={{ background:"linear-gradient(135deg,#1565c0 0%,#1351b4 100%)", color:"#fff", padding:"20px 24px 16px", borderRadius:"0 0 16px 16px", marginBottom:24 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
           <div>
             <h1 style={{ fontSize:22, fontWeight:800, margin:"0 0 4px" }}>Transporte Sanitário / TFD</h1>

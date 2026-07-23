@@ -7,7 +7,7 @@ import {
 import { Bug, AlertTriangle, Activity, Shield } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 const IIP_COR = (iip: number) => iip < 1.0 ? "#16a34a" : iip < 3.9 ? "#d97706" : "#dc2626";
 const IVPV_COR = (v: number) => v < 5 ? "#16a34a" : v < 10 ? "#d97706" : "#dc2626";
 const SIT_LABEL: Record<string, string> = { satisfatorio: "Satisfatório", alerta: "Alerta", risco: "Risco" };
@@ -231,7 +231,7 @@ export default function ControleVetores() {
 
   return (
     <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
-      <div style={{ background: "linear-gradient(135deg,#854d0e 0%,#dc2626 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
+      <div style={{ background: "linear-gradient(135deg,#1565c0 0%,#1351b4 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Controle de Vetores e Zoonoses</h1>
@@ -246,9 +246,9 @@ export default function ControleVetores() {
         </div>
       </div>
       <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #fef3c7" }}>
+        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #e4e7ec" }}>
           {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #d97706":"2px solid transparent", color: aba===a.id?"#d97706":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
+            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"3px solid #1351b4":"2px solid transparent", color: aba===a.id?"#1351b4":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
           ))}
         </div>
         {aba==="dashboard" && <AbaDashboard dash={dash}/>}

@@ -72,7 +72,7 @@ function AbaReunioes({ reunioes }: { reunioes: any[] | undefined }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {reunioes.map(r => (
-        <div key={r.id} style={{ background: "#fff", border: `1px solid ${r.quorum === null ? "#bfdbfe" : "#e5e7eb"}`, borderLeft: `4px solid ${r.tipo === "extraordinaria" ? "#dc2626" : "#1d4ed8"}`, borderRadius: 8, padding: "14px 18px" }}>
+        <div key={r.id} style={{ background: "#fff", border: `1px solid ${r.quorum === null ? "#374151" : "#e5e7eb"}`, borderLeft: `4px solid ${r.tipo === "extraordinaria" ? "#dc2626" : "#1d4ed8"}`, borderRadius: 8, padding: "14px 18px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
             <div>
               <span style={{ fontSize: 13, fontWeight: 700 }}>{r.data}</span>
@@ -210,7 +210,7 @@ export default function ConselhoSaude() {
 
   return (
     <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
-      <div style={{ background: "linear-gradient(135deg,#1d4ed8 0%,#0891b2 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
+      <div style={{ background: "linear-gradient(135deg,#1565c0 0%,#1351b4 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Conselho Municipal de Saúde</h1>
@@ -225,7 +225,7 @@ export default function ConselhoSaude() {
         </div>
       </div>
       <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #dbeafe" }}>
+        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #e4e7ec" }}>
           {ABAS.map(a => (
             <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba === a.id ? "2px solid #1d4ed8" : "2px solid transparent", color: aba === a.id ? "#1d4ed8" : "#6b7280", fontWeight: aba === a.id ? 700 : 400, marginBottom: -2 }}>{a.label}</button>
           ))}

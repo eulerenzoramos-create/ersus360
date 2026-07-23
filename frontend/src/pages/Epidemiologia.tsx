@@ -55,7 +55,7 @@ export default function Epidemiologia() {
       )}
 
       {/* Abas */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #e0e0e0" }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #e4e7ec" }}>
         {[
           { key: "dashboard"     as const, label: "Resumo" },
           { key: "agravos"       as const, label: "Agravos Compulsórios" },

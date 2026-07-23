@@ -27,7 +27,7 @@ const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?:
   </div>
 );
 
-const T_COLORS = ["#7c3aed","#d97706","#ef4444","#0891b2","#dc2626","#8b5cf6","#d97706","#64748b"];
+const T_COLORS = ["#7c3aed","#d97706","#ef4444","#0891b2","#dc2626","#8b5cf6","#d97706","#6b7280"];
 
 export default function CAPSInfanto() {
   const [aba, setAba] = useState("dashboard");
@@ -174,7 +174,7 @@ export default function CAPSInfanto() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal (2026)</h3>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"  tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="w"  orientation="right" tick={{ fontSize: 11 }} />

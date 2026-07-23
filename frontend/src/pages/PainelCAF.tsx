@@ -22,7 +22,7 @@ const BRLK = (v: number) =>
 const COR_STATUS = (s: string) =>
   s === "otimo" ? "#1d4ed8" : s === "bom" ? "#16a34a" : s === "suficiente" ? "#d97706" : "#dc2626";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 // ── KPI Card ──────────────────────────────────────────────────────────────────
 function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string; sub?: string; cor: string; icon: React.ReactNode }) {
@@ -433,7 +433,7 @@ export default function PainelCAF() {
   return (
     <div style={{ padding: "0 0 32px", fontFamily: "system-ui, sans-serif" }}>
       {/* Cabeçalho */}
-      <div style={{ background: "linear-gradient(135deg,#1d4ed8 0%,#7c3aed 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
+      <div style={{ background: "linear-gradient(135deg,#1565c0 0%,#1351b4 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>CAF — Cofinanciamento Federal da APS</h1>
@@ -452,7 +452,7 @@ export default function PainelCAF() {
 
       <div style={{ padding: "0 24px" }}>
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #dbeafe" }}>
+        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #e4e7ec" }}>
           {ABAS.map(a => (
             <button key={a.id} onClick={() => setAba(a.id)} style={{
               padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13,

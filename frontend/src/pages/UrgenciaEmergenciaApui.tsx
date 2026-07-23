@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Clock, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -40,8 +40,8 @@ const CAUSA_COLORS: Record<string, string> = {
   "Infecção respiratória grave":          ACCENT,
   "Acidente ofídico / animal peçonhento": "#7c3aed",
   "DCNT em crise (HAS/DM/IAM)":          "#0891b2",
-  "Intoxicação / envenenamento":          "#64748b",
-  "Outros / não classificados":           "#94a3b8",
+  "Intoxicação / envenenamento":          "#6b7280",
+  "Outros / não classificados":           "#6b7280",
 };
 
 export default function UrgenciaEmergenciaApui() {
@@ -137,7 +137,7 @@ export default function UrgenciaEmergenciaApui() {
                 <BarChart data={causas as any[]} layout="vertical" margin={{ left: 10, right: 80 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="causa" tick={{ fontSize: 8 }} width={260} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip />
                   <Bar dataKey="atend_mes" name="Atend./mês" radius={[0,3,3,0]}>
                     {(causas as any[]).map((c: any) => <Cell key={c.causa} fill={CAUSA_COLORS[c.causa] || BRAND} />)}
@@ -170,7 +170,7 @@ export default function UrgenciaEmergenciaApui() {
                 <BarChart data={transf as any[]} layout="vertical" margin={{ left: 10, right: 80 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="destino" tick={{ fontSize: 8 }} width={260} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip />
                   <Bar dataKey="transferencias_mes" name="Transf./mês" radius={[0,3,3,0]}>
                     {(transf as any[]).map((t: any) => <Cell key={t.destino} fill={statusColor(t.status)} />)}
@@ -200,7 +200,7 @@ export default function UrgenciaEmergenciaApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal — Urgência e Emergência (2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 9 }} />
                 <YAxis yAxisId="n" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />
@@ -210,7 +210,7 @@ export default function UrgenciaEmergenciaApui() {
                 <Line yAxisId="n"   dataKey="internacoes"    name="Internações"       stroke={ACCENT} strokeWidth={2} dot={{ r: 3 }} />
                 <Line yAxisId="n"   dataKey="transferencias" name="Transferências"    stroke={WARN}   strokeWidth={2} dot={{ r: 3 }} strokeDasharray="4 4" />
                 <Line yAxisId="n"   dataKey="obitos"         name="Óbitos"            stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line yAxisId="pct" dataKey="ocupacao_pct"   name="Ocupação (%)"      stroke="#64748b" strokeWidth={2} dot={{ r: 3 }} strokeDasharray="4 4" />
+                <Line yAxisId="pct" dataKey="ocupacao_pct"   name="Ocupação (%)"      stroke="#6b7280" strokeWidth={2} dot={{ r: 3 }} strokeDasharray="4 4" />
               </LineChart>
             </ResponsiveContainer>
           </div>

@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Heart, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -131,7 +131,7 @@ export default function AleitamentoMaternoApui() {
                   layout="vertical" margin={{ left: 10, right: 80 }}>
                   <XAxis type="number" tick={{ fontSize: 9 }} />
                   <YAxis type="category" dataKey="ind" tick={{ fontSize: 8 }} width={240} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="valor" name="Valor atual" radius={[0,3,3,0]}>
@@ -139,7 +139,7 @@ export default function AleitamentoMaternoApui() {
                       <Cell key={i.indicador} fill={statusColor(i.status)} />
                     ))}
                   </Bar>
-                  <Bar dataKey="meta" name="Meta" fill="#e2e8f0" radius={[0,3,3,0]} />
+                  <Bar dataKey="meta" name="Meta" fill="#374151" radius={[0,3,3,0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -187,7 +187,7 @@ export default function AleitamentoMaternoApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — Aleitamento Materno (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} unit="%" />
                 <Tooltip />

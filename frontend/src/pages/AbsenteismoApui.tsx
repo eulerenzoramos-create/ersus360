@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { UserCog, AlertTriangle, TrendingUp, Users } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -119,7 +119,7 @@ export default function AbsenteismoApui() {
                 <BarChart data={categ as any[]} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="categoria" tick={{ fontSize: 9 }} width={200} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip />
                   <Bar dataKey="dias_perdidos" name="Dias perdidos" radius={[0,3,3,0]}>
                     {(categ as any[]).map((c: any, i: number) => (
@@ -155,7 +155,7 @@ export default function AbsenteismoApui() {
                 <BarChart data={cargos as any[]} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
                   <YAxis type="category" dataKey="cargo" tick={{ fontSize: 9 }} width={180} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <Tooltip formatter={(v: any) => `${v}%`} />
                   <Bar dataKey="cobertura_pct" name="Cobertura %" radius={[0,3,3,0]}>
                     {(cargos as any[]).map((c: any) => (
@@ -185,7 +185,7 @@ export default function AbsenteismoApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Absenteísmo e Rotatividade (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={hist} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct"  tick={{ fontSize: 11 }} unit="%" />
                 <YAxis yAxisId="n"    orientation="right" tick={{ fontSize: 10 }} />

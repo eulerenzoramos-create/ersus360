@@ -97,7 +97,7 @@ export default function CadastrosMestres() {
         <div style={S.card}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Profissionais de Saúde — {(profissionais as any[]).length} registros</div>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead><tr style={{ borderBottom: "2px solid #f0f0ee" }}>
+            <thead><tr style={{ borderBottom: "2px solid #e4e7ec" }}>
               {["Nome", "CBO / Função", "Vínculo", "Carga Hor.", "Unidade", "Equipe"].map(h => (
                 <th key={h} style={{ textAlign: "left", padding: "6px 8px", color: "#737373", fontWeight: 600 }}>{h}</th>
               ))}
@@ -160,7 +160,7 @@ export default function CadastrosMestres() {
         <div style={S.card}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Agentes Comunitários de Saúde — {(acs as any[]).length} registros</div>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead><tr style={{ borderBottom: "2px solid #f0f0ee" }}>
+            <thead><tr style={{ borderBottom: "2px solid #e4e7ec" }}>
               {["Nome", "Microárea", "Equipe", "Famílias", "Pessoas"].map(h => (
                 <th key={h} style={{ textAlign: "left", padding: "6px 8px", color: "#737373", fontWeight: 600 }}>{h}</th>
               ))}
@@ -190,7 +190,7 @@ export default function CadastrosMestres() {
         <div style={S.card}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Medicamentos — {(medicamentos as any[]).length} registros</div>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead><tr style={{ borderBottom: "2px solid #f0f0ee" }}>
+            <thead><tr style={{ borderBottom: "2px solid #e4e7ec" }}>
               {["DCB", "Apresentação", "Concentração", "RENAME", "Controlado"].map(h => (
                 <th key={h} style={{ textAlign: "left", padding: "6px 8px", color: "#737373", fontWeight: 600 }}>{h}</th>
               ))}

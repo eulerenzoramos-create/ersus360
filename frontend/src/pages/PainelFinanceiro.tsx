@@ -73,7 +73,7 @@ function MiniBar({ pct, cor, height = 8 }: { pct: number; cor: string; height?: 
   );
 }
 
-const TOOLTIPSTYLE = { fontSize: 12, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TOOLTIPSTYLE = { fontSize: 12, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 // ── Card KPI ──────────────────────────────────────────────────────────────────
 
@@ -155,7 +155,7 @@ function TooltipRepasse({ active, payload, label }: any) {
   return (
     <div style={{ ...TOOLTIPSTYLE, padding: "8px 12px" }}>
       <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
-      {prev && <div style={{ color: "#93c5fd" }}>Previsto: {R(prev.value)}</div>}
+      {prev && <div style={{ color: "#1d4ed8" }}>Previsto: {R(prev.value)}</div>}
       {rec  && <div style={{ color: "#4ade80" }}>Recebido: {R(rec.value)}</div>}
     </div>
   );
@@ -504,7 +504,7 @@ function AbaConsultaFNS() {
       {tipoAba === "detalhada" && (
         <>
           <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>Detalhada</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>Detalhada</h2>
             <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 8 }}>
               Os campos com <span style={{ color: "#dc2626" }}>*</span> são obrigatórios.
             </div>
@@ -627,7 +627,7 @@ function AbaConsultaFNS() {
                 ] as [string, any][]).map(([label, val]) => (
                   <div key={label} style={{ padding: "6px 0", borderBottom: "1px solid #f3f4f6" }}>
                     <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 1 }}>{label}</div>
-                    <div style={{ fontWeight: 600, color: "#1e293b" }}>{val}</div>
+                    <div style={{ fontWeight: 600, color: "#ffffff" }}>{val}</div>
                   </div>
                 ))}
               </div>
@@ -713,7 +713,7 @@ function AbaConsultaFNS() {
       {/* ══════════════════════════════════════════════════════════════════════════ */}
       {(tipoAba === "repasse-dia" || tipoAba === "contas-bancarias") && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>
             {tipoAtual.label}
           </h2>
           <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
@@ -806,7 +806,7 @@ function AbaConsultaFNS() {
       {/* ══════════════════════════════════════════════════════════════════════════ */}
       {tipoAba === "consolidada" && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>Consolidada Fundo a Fundo</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>Consolidada Fundo a Fundo</h2>
           <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
             Exibe o consolidado das transferências Fundo a Fundo para um município/estado em determinado exercício.
           </div>
@@ -863,7 +863,7 @@ function AbaConsultaFNS() {
       {/* ══════════════════════════════════════════════════════════════════════════ */}
       {tipoAba === "desconto-mac" && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>Desconto Mac</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>Desconto Mac</h2>
           <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
             Tipos de dedução (desconto) aplicados sobre o teto de Média e Alta Complexidade (MAC).
           </div>
@@ -909,14 +909,14 @@ function AbaConsultaFNS() {
       {/* ══════════════════════════════════════════════════════════════════════════ */}
       {!tipoAtual.publico && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "24px 20px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>
             {tipoAtual.label}
           </h2>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "32px 20px", background: "#f8fafc", borderRadius: 10, border: "1px dashed #cbd5e1", textAlign: "center" }}>
             <div style={{ fontSize: 48 }}>🔒</div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", marginBottom: 6 }}>Autenticação necessária</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", marginBottom: 6 }}>Autenticação necessária</div>
               <div style={{ fontSize: 13, color: "#6b7280", maxWidth: 420, lineHeight: 1.6 }}>
                 A consulta <strong>{tipoAtual.label}</strong> requer login com CPF e senha no portal do FNS. Acesse diretamente o portal para realizar esta consulta.
               </div>
@@ -1025,7 +1025,7 @@ export default function PainelFinanceiro() {
           )}
 
           {/* Tabs */}
-          <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "2px solid #e5e7eb" }}>
+          <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "2px solid #e4e7ec" }}>
             {ABAS.map(a => (
               <button key={a.id} onClick={() => setAba(a.id)} style={{
                 padding: "8px 14px", border: "none", background: "none", cursor: "pointer", fontSize: 13,
@@ -1082,8 +1082,8 @@ export default function PainelFinanceiro() {
                     <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>Estágios da despesa</div>
                     {[
                       { label: "Dotação atualizada", val: data.despesas.dotacao_atualizada, cor: "#e5e7eb", pct: 100 },
-                      { label: "Empenhado",          val: data.despesas.empenhado,           cor: "#93c5fd", pct: data.despesas.empenhado / data.despesas.dotacao_atualizada * 100 },
-                      { label: "Liquidado",          val: data.despesas.liquidado,           cor: "#60a5fa", pct: data.despesas.liquidado / data.despesas.dotacao_atualizada * 100 },
+                      { label: "Empenhado",          val: data.despesas.empenhado,           cor: "#1d4ed8", pct: data.despesas.empenhado / data.despesas.dotacao_atualizada * 100 },
+                      { label: "Liquidado",          val: data.despesas.liquidado,           cor: "#1565c0", pct: data.despesas.liquidado / data.despesas.dotacao_atualizada * 100 },
                       { label: "Pago",               val: data.despesas.pago,               cor: "#2563eb", pct: data.despesas.pago / data.despesas.dotacao_atualizada * 100 },
                     ].map(item => (
                       <div key={item.label} style={{ marginBottom: 10 }}>
@@ -1229,7 +1229,7 @@ export default function PainelFinanceiro() {
                     <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                     <YAxis tickFormatter={v => `${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
                     <Tooltip content={<TooltipRepasse />} />
-                    <Bar dataKey="previsto"  name="Previsto"  fill="#93c5fd" radius={[4,4,0,0]} />
+                    <Bar dataKey="previsto"  name="Previsto"  fill="#1d4ed8" radius={[4,4,0,0]} />
                     <Bar dataKey="recebido"  name="Recebido"  radius={[4,4,0,0]}>
                       {data.repasses_mensais.map((r, i) => (
                         <Cell key={i} fill={r.recebido == null ? "#e5e7eb" : "#2563eb"} />

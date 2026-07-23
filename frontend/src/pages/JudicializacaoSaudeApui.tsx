@@ -4,7 +4,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { apiGet } from "../lib/api"
 import { Scale } from "lucide-react"
 
-const BRAND="#1e3a5f", ACCENT="#1d4ed8", OK="#16a34a", WARN="#d97706", CRIT="#dc2626"
+const BRAND="#dbeafe", ACCENT="#1d4ed8", OK="#16a34a", WARN="#d97706", CRIT="#dc2626"
 const ABAS=["Dashboard","Por Categoria","Medicamentos","Histórico","Indicadores"]
 const sc=(s:string)=>s==="ok"?OK:s==="atencao"?WARN:CRIT
 function KPI({label,value,sub,color=BRAND}:{label:string;value:string|number;sub?:string;color?:string}){

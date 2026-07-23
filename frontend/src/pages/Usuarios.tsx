@@ -74,7 +74,7 @@ export default function Usuarios() {
     return (
       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"60vh", gap:12, color:"#737373" }}>
         <Lock size={40} color="#dc2626"/>
-        <div style={{ fontSize:18, fontWeight:700, color:"#1e293b" }}>Acesso Restrito</div>
+        <div style={{ fontSize:18, fontWeight:700, color:"#ffffff" }}>Acesso Restrito</div>
         <div style={{ fontSize:13, textAlign:"center", maxWidth:380 }}>
           A gestão de usuários é exclusiva do <strong>Administrador</strong>.<br/>
           Solicite ao administrador do sistema para criar ou alterar acessos.

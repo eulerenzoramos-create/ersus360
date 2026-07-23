@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Heart, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -166,7 +166,7 @@ export default function DoencasCronicasApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — DCNT (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" tick={{ fontSize: 11 }} unit="%" />
                 <YAxis yAxisId="n" orientation="right" tick={{ fontSize: 10 }} />
@@ -177,7 +177,7 @@ export default function DoencasCronicasApui() {
                 <Line yAxisId="pct" dataKey="hiperdia_ativo_pct"     name="HIPERDIA ativo (%)"      stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
                 <Line yAxisId="n"   dataKey="ami_casos"              name="IAM casos"               stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
                 <Line yAxisId="n"   dataKey="avc_casos"              name="AVC casos"               stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line yAxisId="n"   dataKey="drc_dialise"            name="DRC em diálise"          stroke="#64748b"strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
+                <Line yAxisId="n"   dataKey="drc_dialise"            name="DRC em diálise"          stroke="#6b7280"strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
               </LineChart>
             </ResponsiveContainer>
           </div>

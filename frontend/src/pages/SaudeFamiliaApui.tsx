@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { Users, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 
-const BRAND  = "#1e3a5f";
+const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -124,7 +124,7 @@ export default function SaudeFamiliaApui() {
               <h3 className="font-semibold text-slate-700 mb-4">Nota Novo Financiamento APS por Equipe ESF</h3>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={equipes as any[]} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="equipe" tick={{ fontSize: 8 }} />
                   <YAxis domain={[0, 10]} tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(v: any) => `${v}/10`} />
@@ -193,7 +193,7 @@ export default function SaudeFamiliaApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal — Saúde da Família (Jan–Jun/2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="s" orientation="right" tick={{ fontSize: 10 }} unit="%" />

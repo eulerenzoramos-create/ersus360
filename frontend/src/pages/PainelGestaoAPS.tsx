@@ -12,7 +12,7 @@ import { apiGet } from "../lib/api";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-const TT = { fontSize: 12, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 12, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 const COR_STATUS: Record<string, string> = {
   verde: "#16a34a", amarelo: "#d97706", vermelho: "#dc2626",
@@ -483,7 +483,7 @@ export default function PainelGestaoAPS() {
       )}
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "2px solid #e5e7eb" }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "2px solid #e4e7ec" }}>
         {ABAS.map(a => (
           <button key={a.id} onClick={() => setAba(a.id)} style={{
             padding: "8px 14px", border: "none", background: "none", cursor: "pointer", fontSize: 13,

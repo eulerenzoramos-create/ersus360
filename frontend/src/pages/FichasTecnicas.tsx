@@ -44,7 +44,7 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontWeight: 700, fontSize: 13, color: "#1565c0", borderBottom: "2px solid #1565c0", paddingBottom: 4, marginBottom: 12 }}>
+    <div style={{ fontWeight: 700, fontSize: 13, color: "#1565c0", borderBottom: "2px solid #e4e7ec", paddingBottom: 4, marginBottom: 12 }}>
       {children}
     </div>
   );

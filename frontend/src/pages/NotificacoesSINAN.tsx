@@ -7,7 +7,7 @@ import {
 import { AlertTriangle, Activity, Shield, Search } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
   return (
@@ -151,7 +151,7 @@ function AbaNotificacoes({ notif }: { notif: any[] | undefined }) {
       <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
-            <tr style={{ background: "#f9fafb", borderBottom: "2px solid #e5e7eb" }}>
+            <tr style={{ background: "#f9fafb", borderBottom: "2px solid #e4e7ec" }}>
               <th style={{ padding: "9px 14px", textAlign: "left" }}>Agravo</th>
               <th style={{ padding: "9px 10px", textAlign: "left" }}>Local</th>
               <th style={{ padding: "9px 10px", textAlign: "left" }}>Data</th>
@@ -193,7 +193,7 @@ function AbaAlertas({ alertas }: { alertas: any[] | undefined }) {
       {alertas.map((a, i) => (
         <div key={i} style={{ background: "#fff", border: `1px solid ${a.nivel==="critico"?"#fca5a5":"#fed7aa"}`, borderLeft: `4px solid ${NIVEL_COR[a.nivel]}`, borderRadius: 8, padding: "14px 16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{a.agravo}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#ffffff" }}>{a.agravo}</div>
             <span style={{ background: NIVEL_COR[a.nivel]+"15", color: NIVEL_COR[a.nivel], fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 4, textTransform: "uppercase" as const }}>{a.tipo}</span>
           </div>
           <div style={{ fontSize: 13, color: "#374151", marginTop: 6 }}>{a.descricao}</div>
@@ -226,7 +226,7 @@ export default function NotificacoesSINAN() {
 
   return (
     <div style={{ padding:"0 0 32px", fontFamily:"system-ui,sans-serif" }}>
-      <div style={{ background:"linear-gradient(135deg,#dc2626 0%,#7c2d12 100%)", color:"#fff", padding:"20px 24px 16px", borderRadius:"0 0 16px 16px", marginBottom:24 }}>
+      <div style={{ background:"linear-gradient(135deg,#1565c0 0%,#1351b4 100%)", color:"#fff", padding:"20px 24px 16px", borderRadius:"0 0 16px 16px", marginBottom:24 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
           <div>
             <h1 style={{ fontSize:22, fontWeight:800, margin:"0 0 4px" }}>Vigilância Epidemiológica — SINAN</h1>
@@ -243,7 +243,7 @@ export default function NotificacoesSINAN() {
       <div style={{ padding:"0 24px" }}>
         <div style={{ display:"flex", gap:2, marginBottom:24, borderBottom:"2px solid #fee2e2" }}>
           {ABAS.map(a=>(
-            <button key={a.id} onClick={()=>setAba(a.id)} style={{ padding:"9px 16px", border:"none", background:"none", cursor:"pointer", fontSize:13, borderBottom:aba===a.id?"2px solid #dc2626":"2px solid transparent", color:aba===a.id?"#dc2626":"#6b7280", fontWeight:aba===a.id?700:400, marginBottom:-2, display:"flex", alignItems:"center", gap:6 }}>
+            <button key={a.id} onClick={()=>setAba(a.id)} style={{ padding:"9px 16px", border:"none", background:"none", cursor:"pointer", fontSize:13, borderBottom:aba===a.id?"3px solid #1351b4":"2px solid transparent", color:aba===a.id?"#dc2626":"#6b7280", fontWeight:aba===a.id?700:400, marginBottom:-2, display:"flex", alignItems:"center", gap:6 }}>
               {a.label}
               {a.badge && a.badge > 0 ? <span style={{ background:"#dc2626", color:"#fff", borderRadius:"50%", fontSize:10, fontWeight:900, width:18, height:18, display:"inline-flex", alignItems:"center", justifyContent:"center" }}>{a.badge}</span> : null}
             </button>

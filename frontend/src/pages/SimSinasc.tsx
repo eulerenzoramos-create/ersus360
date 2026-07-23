@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import { Activity, AlertTriangle, Heart, Users } from "lucide-react";
 import { apiGet } from "../lib/api";
 
-const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 const LOCAL_COR: Record<string, string> = { hospital: "#1d4ed8", domicilio: "#d97706", via_publica: "#dc2626" };
 const TIPO_OI: Record<string, string> = { neonatal_precoce: "#dc2626", neonatal_tardio: "#d97706", pos_neonatal: "#7c3aed" };
 const TIPO_OI_LABEL: Record<string, string> = { neonatal_precoce: "Neonatal precoce (0-6d)", neonatal_tardio: "Neonatal tardio (7-27d)", pos_neonatal: "Pós-neonatal (28d-1a)" };
@@ -207,7 +207,7 @@ export default function SimSinasc() {
 
   return (
     <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
-      <div style={{ background: "linear-gradient(135deg,#374151 0%,#1d4ed8 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
+      <div style={{ background: "linear-gradient(135deg,#1565c0 0%,#1351b4 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>SIM / SINASC</h1>
@@ -228,7 +228,7 @@ export default function SimSinasc() {
         </div>
       </div>
       <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #f1f5f9" }}>
+        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #e4e7ec" }}>
           {ABAS.map(a => (
             <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #374151":"2px solid transparent", color: aba===a.id?"#374151":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
           ))}

@@ -27,7 +27,7 @@ const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?:
   </div>
 );
 
-const GRUPO_COLORS = ["#6366f1","#0891b2","#10b981","#f59e0b","#ec4899","#8b5cf6","#14b8a6","#f97316","#94a3b8"];
+const GRUPO_COLORS = ["#6366f1","#0891b2","#10b981","#f59e0b","#ec4899","#8b5cf6","#14b8a6","#f97316","#6b7280"];
 
 export default function Laboratorio() {
   const [aba, setAba] = useState("dashboard");
@@ -120,7 +120,7 @@ export default function Laboratorio() {
               <h3 className="font-semibold text-slate-700 mb-4">Exames por Grupo</h3>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={(producao as any).por_grupo} layout="vertical" margin={{ top: 5, right: 30, left: 150, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="grupo" tick={{ fontSize: 10 }} width={145} />
                   <Tooltip />
@@ -191,7 +191,7 @@ export default function Laboratorio() {
               <h3 className="font-semibold text-slate-700 mb-4">Produção e Prazo Médio (2026)</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="ex" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="pr" orientation="right" domain={[2,5]} tickFormatter={(v) => `${v}d`} tick={{ fontSize: 11 }} />
