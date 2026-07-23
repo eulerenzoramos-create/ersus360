@@ -483,11 +483,11 @@ export default function PainelGestaoAPS() {
       )}
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "2px solid #e5e7eb" }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "2px solid #d4d4d4" }}>
         {ABAS.map(a => (
           <button key={a.id} onClick={() => setAba(a.id)} style={{
             padding: "8px 14px", border: "none", background: "none", cursor: "pointer", fontSize: 13,
-            borderBottom: aba === a.id ? "2px solid #1d4ed8" : "2px solid transparent",
+            borderBottom: aba === a.id ? "3px solid #1351b4" : "2px solid transparent",
             color: aba === a.id ? "#1d4ed8" : "#6b7280",
             fontWeight: aba === a.id ? 700 : 400, marginBottom: -2,
           }}>{a.label}</button>

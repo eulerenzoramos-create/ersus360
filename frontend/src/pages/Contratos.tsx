@@ -366,7 +366,7 @@ export default function Contratos() {
   return (
     <div style={{ padding: "0 0 32px", fontFamily: "system-ui, sans-serif" }}>
       {/* Cabeçalho */}
-      <div style={{ background: "linear-gradient(135deg,#374151 0%,#1d4ed8 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
+      <div style={{ style_SIAPS_PLACEHOLDER }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Contratos & Licitações</h1>
@@ -391,11 +391,11 @@ export default function Contratos() {
 
       <div style={{ padding: "0 24px" }}>
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #dbeafe" }}>
+        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #d4d4d4" }}>
           {ABAS.map(a => (
             <button key={a.id} onClick={() => setAba(a.id)} style={{
               padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13,
-              borderBottom: aba === a.id ? "2px solid #1d4ed8" : "2px solid transparent",
+              borderBottom: aba === a.id ? "3px solid #1351b4" : "2px solid transparent",
               color: aba === a.id ? "#1d4ed8" : "#6b7280",
               fontWeight: aba === a.id ? 700 : 400, marginBottom: -2,
             }}>

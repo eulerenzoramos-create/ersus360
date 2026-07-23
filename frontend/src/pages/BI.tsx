@@ -87,7 +87,7 @@ export default function BI() {
       </div>
 
       {/* Abas */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #e0e0e0" }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #d4d4d4" }}>
         {abas.map(a => (
           <button key={a.key} onClick={() => setAba(a.key)}
             style={{ padding: "8px 18px", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,

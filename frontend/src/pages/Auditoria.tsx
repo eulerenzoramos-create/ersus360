@@ -155,7 +155,7 @@ export default function Auditoria() {
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
-              <tr style={{ borderBottom: "2px solid #f0f0ee" }}>
+              <tr style={{ borderBottom: "2px solid #d4d4d4" }}>
                 {["Data/Hora", "Usuário", "Ação", "Módulo", "Descrição", "Nível", "IP"].map((h) => (
                   <th key={h} style={{ textAlign: "left", padding: "6px 8px", color: "#737373", fontWeight: 600, whiteSpace: "nowrap" }}>{h}</th>
                 ))}

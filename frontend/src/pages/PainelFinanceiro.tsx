@@ -504,7 +504,7 @@ function AbaConsultaFNS() {
       {tipoAba === "detalhada" && (
         <>
           <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e4e7ec", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>Detalhada</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e4e7ec", margin: "0 0 12px", borderBottom: "2px solid #d4d4d4", paddingBottom: 8 }}>Detalhada</h2>
             <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 8 }}>
               Os campos com <span style={{ color: "#dc2626" }}>*</span> são obrigatórios.
             </div>
@@ -713,7 +713,7 @@ function AbaConsultaFNS() {
       {/* ══════════════════════════════════════════════════════════════════════════ */}
       {(tipoAba === "repasse-dia" || tipoAba === "contas-bancarias") && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e4e7ec", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e4e7ec", margin: "0 0 12px", borderBottom: "2px solid #d4d4d4", paddingBottom: 8 }}>
             {tipoAtual.label}
           </h2>
           <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
@@ -806,7 +806,7 @@ function AbaConsultaFNS() {
       {/* ══════════════════════════════════════════════════════════════════════════ */}
       {tipoAba === "consolidada" && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e4e7ec", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>Consolidada Fundo a Fundo</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e4e7ec", margin: "0 0 12px", borderBottom: "2px solid #d4d4d4", paddingBottom: 8 }}>Consolidada Fundo a Fundo</h2>
           <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
             Exibe o consolidado das transferências Fundo a Fundo para um município/estado em determinado exercício.
           </div>
@@ -863,7 +863,7 @@ function AbaConsultaFNS() {
       {/* ══════════════════════════════════════════════════════════════════════════ */}
       {tipoAba === "desconto-mac" && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e4e7ec", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>Desconto Mac</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e4e7ec", margin: "0 0 12px", borderBottom: "2px solid #d4d4d4", paddingBottom: 8 }}>Desconto Mac</h2>
           <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
             Tipos de dedução (desconto) aplicados sobre o teto de Média e Alta Complexidade (MAC).
           </div>
@@ -909,7 +909,7 @@ function AbaConsultaFNS() {
       {/* ══════════════════════════════════════════════════════════════════════════ */}
       {!tipoAtual.publico && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "24px 20px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e4e7ec", margin: "0 0 12px", borderBottom: "2px solid #1a3a6b", paddingBottom: 8 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#e4e7ec", margin: "0 0 12px", borderBottom: "2px solid #d4d4d4", paddingBottom: 8 }}>
             {tipoAtual.label}
           </h2>
 
@@ -1025,11 +1025,11 @@ export default function PainelFinanceiro() {
           )}
 
           {/* Tabs */}
-          <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "2px solid #e5e7eb" }}>
+          <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "2px solid #d4d4d4" }}>
             {ABAS.map(a => (
               <button key={a.id} onClick={() => setAba(a.id)} style={{
                 padding: "8px 14px", border: "none", background: "none", cursor: "pointer", fontSize: 13,
-                borderBottom: aba === a.id ? "2px solid #1d4ed8" : "2px solid transparent",
+                borderBottom: aba === a.id ? "3px solid #1351b4" : "2px solid transparent",
                 color: aba === a.id ? "#1d4ed8" : "#6b7280", fontWeight: aba === a.id ? 700 : 400, marginBottom: -2,
               }}>{a.label}</button>
             ))}

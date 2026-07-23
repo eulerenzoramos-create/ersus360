@@ -235,7 +235,7 @@ export default function SalaVacinas() {
 
   return (
     <div style={{ padding:"0 0 32px", fontFamily:"system-ui,sans-serif" }}>
-      <div style={{ background:"linear-gradient(135deg,#7c3aed 0%,#0891b2 100%)", color:"#fff", padding:"20px 24px 16px", borderRadius:"0 0 16px 16px", marginBottom:24 }}>
+      <div style={{ background:"linear-gradient(135deg,#1351b4 0%,#0c3fa4 100%)", color:"#fff", padding:"20px 24px 16px", borderRadius:"0 0 16px 16px", marginBottom:24 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
           <div>
             <h1 style={{ fontSize:22, fontWeight:800, margin:"0 0 4px" }}>Sala de Vacinas — PNI</h1>
@@ -252,7 +252,7 @@ export default function SalaVacinas() {
       <div style={{ padding:"0 24px" }}>
         <div style={{ display:"flex", gap:2, marginBottom:24, borderBottom:"2px solid #dbeafe" }}>
           {ABAS.map(a=>(
-            <button key={a.id} onClick={()=>setAba(a.id)} style={{ padding:"9px 18px", border:"none", background:"none", cursor:"pointer", fontSize:13, borderBottom:aba===a.id?"2px solid #7c3aed":"2px solid transparent", color:aba===a.id?"#7c3aed":"#6b7280", fontWeight:aba===a.id?700:400, marginBottom:-2 }}>{a.label}</button>
+            <button key={a.id} onClick={()=>setAba(a.id)} style={{ padding:"9px 18px", border:"none", background:"none", cursor:"pointer", fontSize:13, borderBottom:aba===a.id?"3px solid #1351b4":"2px solid transparent", color:aba===a.id?"#7c3aed":"#6b7280", fontWeight:aba===a.id?700:400, marginBottom:-2 }}>{a.label}</button>
           ))}
         </div>
         {aba==="dashboard"   && <AbaDashboard dash={dash}/>}

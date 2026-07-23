@@ -780,7 +780,7 @@ function PainelGestorRT() {
   return (
     <div>
       {/* ── Banner Quadrimestre ── */}
-      <div style={{ background:"linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 100%)", borderRadius:12, padding:"18px 22px", marginBottom:18, color:"#fff" }}>
+      <div style={{ background:"linear-gradient(135deg,#1351b4 0%,#0c3fa4 100%)", borderRadius:12, padding:"18px 22px", marginBottom:18, color:"#fff" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
           <div>
             <div style={{ fontSize:10, opacity:.75, fontWeight:700, textTransform:"uppercase", letterSpacing:".05em" }}>Acompanhamento em Tempo Real · Apuí/AM</div>
@@ -807,7 +807,7 @@ function PainelGestorRT() {
           </div>
           <div style={{ height:10, background:"rgba(255,255,255,.2)", borderRadius:5, overflow:"hidden", position:"relative" }}>
             <div style={{ width:`${pctTempo}%`, height:"100%", background:"#1565c0", borderRadius:5 }} />
-            <div style={{ position:"absolute", left:`${pctTempo}%`, top:0, transform:"translateX(-50%)", width:14, height:14, background:"#fff", borderRadius:"50%", border:"2px solid #1d4ed8", marginTop:-2 }} />
+            <div style={{ position:"absolute", left:`${pctTempo}%`, top:0, transform:"translateX(-50%)", width:14, height:14, background:"#fff", borderRadius:"50%", border:"3px solid #1351b4", marginTop:-2 }} />
           </div>
           <div style={{ marginTop:5, fontSize:10, opacity:.65 }}>⏱ Atualizado em {hoje} às {hora}</div>
         </div>
@@ -1776,11 +1776,11 @@ export default function SiapsEgestor() {
       <div style={{ padding: "24px 24px 32px", maxWidth: 1100, margin: "0 auto" }}>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #dbeafe", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #d4d4d4", flexWrap: "wrap" }}>
           {ABAS.map(a => (
             <button key={a.id} onClick={() => setAba(a.id)} style={{
               padding: "9px 16px", border: "none", background: "none", cursor: "pointer", fontSize: 13,
-              borderBottom: aba === a.id ? "2px solid #1d4ed8" : "2px solid transparent",
+              borderBottom: aba === a.id ? "3px solid #1351b4" : "2px solid transparent",
               color: aba === a.id ? "#1d4ed8" : "#6b7280",
               fontWeight: aba === a.id ? 700 : 400, marginBottom: -2, whiteSpace: "nowrap",
             }}>{a.label}</button>

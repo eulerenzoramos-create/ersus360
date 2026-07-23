@@ -431,7 +431,7 @@ export default function MapaDesempenho() {
       </div>
 
       {/* Abas */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #e0e0e0" }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #d4d4d4" }}>
         {([
           { key: "dimensoes", label: "Dimensões do Score" },
           { key: "ranking",   label: "Ranking" },

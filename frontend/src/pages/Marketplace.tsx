@@ -68,7 +68,7 @@ export default function Marketplace() {
       </div>
 
       {/* Abas */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "2px solid #e0e0e0" }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 20, borderBottom: "2px solid #d4d4d4" }}>
         {[{ key: "marketplace" as const, label: "🛒 Marketplace" }, { key: "academia" as const, label: "🎓 Academia ERSUS" }].map(a => (
           <button key={a.key} onClick={() => setAba(a.key)}
             style={{ padding: "9px 20px", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600,

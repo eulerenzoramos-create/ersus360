@@ -205,7 +205,7 @@ export default function PainelPPALOA() {
 
   return (
     <div style={{ padding: "0 0 32px", fontFamily: "system-ui, sans-serif" }}>
-      <div style={{ background: "linear-gradient(135deg,#0891b2 0%,#1d4ed8 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
+      <div style={{ style_SIAPS_PLACEHOLDER }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>PPA / LDO / LOA — Planejamento Orçamentário</h1>
@@ -221,7 +221,7 @@ export default function PainelPPALOA() {
       </div>
 
       <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #dbeafe" }}>
+        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #d4d4d4" }}>
           {ABAS.map(a => (
             <button key={a.id} onClick={() => setAba(a.id)} style={{
               padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13,

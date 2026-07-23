@@ -124,7 +124,7 @@ export default function RH() {
         <div style={S.card}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Servidores — {(servidores as any[]).length} registros</div>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead><tr style={{ borderBottom: "2px solid #f0f0ee" }}>
+            <thead><tr style={{ borderBottom: "2px solid #d4d4d4" }}>
               {["Matrícula", "Nome", "Cargo", "Vínculo", "C.H.", "Unidade", "Fonte Pagamento"].map(h => (
                 <th key={h} style={{ textAlign: "left", padding: "6px 8px", color: "#737373", fontWeight: 600 }}>{h}</th>
               ))}

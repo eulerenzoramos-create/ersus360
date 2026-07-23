@@ -171,33 +171,47 @@ export default function SaudeIdoso() {
   ];
 
   return (
-    <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
-      <div style={{ background: "linear-gradient(135deg,#7c3aed 0%,#1d4ed8 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Saúde da Pessoa Idosa</h1>
-            <p style={{ fontSize: 13, opacity: .85, margin: 0 }}>IVCF · Fragilidade · Caderneta · Quedas · FMS Apuí/AM</p>
-          </div>
-          {dashRaw && (
-            <div style={{ display: "flex", gap: 10 }}>
-              <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.frageis}</div>
-                <div style={{ fontSize: 10, opacity: .8 }}>frágeis</div>
-              </div>
-              <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.total_idosos}</div>
-                <div style={{ fontSize: 10, opacity: .8 }}>total ≥60a</div>
-              </div>
-            </div>
-          )}
-        </div>
+    <div style={{ fontFamily: "Rawline, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>
+      {/* Barra azul SIAPS */}
+      <div style={{ background: "#1351b4", color: "#fff", padding: "10px 24px", display: "flex", alignItems: "center", gap: 28, fontSize: 13, fontWeight: 600 }}>
+        <span>UF: <strong>AM</strong></span>
+        <span>Município: <strong>APUÍ</strong></span>
+        <span>Competência: <strong>Jul/2026</strong></span>
       </div>
-      <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #ede9fe" }}>
+      {/* Conteúdo branco */}
+      <div style={{ background: "#fff", minHeight: "calc(100vh - 40px)", padding: "24px 28px" }}>
+        {/* Título da seção */}
+        <div style={{ fontSize: 18, fontWeight: 800, color: "#1351b4", marginBottom: 6 }}>Saúde da Pessoa Idosa</div>
+        <div style={{ fontSize: 12, color: "#555", marginBottom: 20 }}>IVCF · Fragilidade · Caderneta · Quedas · FMS Apuí/AM</div>
+
+        {/* Abas */}
+        <div style={{ display: "flex", borderBottom: "2px solid #d4d4d4", marginBottom: 24, gap: 0 }}>
           {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #7c3aed":"2px solid transparent", color: aba===a.id?"#7c3aed":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
+            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "11px 20px", border: "none", background: "none", cursor: "pointer", fontSize: 13, fontWeight: aba===a.id?700:400, color: aba===a.id?"#1351b4":"#555", borderBottom: aba===a.id?"3px solid #1351b4":"3px solid transparent", marginBottom: -2, whiteSpace: "nowrap" }}>
+              {a.label}
+            </button>
           ))}
         </div>
+
+        {/* KPIs */}
+        {dashRaw && (
+          <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+            {[
+              { label: "Idosos cadastrados", value: dashRaw.total_idosos, cor: "#1351b4" },
+              { label: "Frágeis (IVCF)",     value: dashRaw.frageis,      cor: "#dc2626" },
+              { label: "Pré-frágeis",        value: dashRaw.pre_frageis,  cor: "#d97706" },
+              { label: "Com alerta",         value: dashRaw.com_alerta,   cor: "#d97706" },
+              { label: "Quedas acumuladas",  value: dashRaw.quedas_acumuladas, cor: "#555" },
+            ].map(k => (
+              <div key={k.label} style={{ flex: 1, background: "#fff", border: "1px solid #d4d4d4", borderRadius: 4, padding: "14px 18px", textAlign: "center" }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: k.cor, lineHeight: 1.1 }}>{k.value ?? "—"}</div>
+                <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Conteúdo das abas */}
         {aba==="dashboard"   && <AbaDashboard dash={dash}/>}
         {aba==="idosos"      && <AbaIdosos idosos={idosos}/>}
         {aba==="indicadores" && <AbaIndicadores inds={inds}/>}
