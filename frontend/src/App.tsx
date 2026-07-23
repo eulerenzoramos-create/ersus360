@@ -563,7 +563,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
 
         {/* ── Sidebar ── */}
-        <aside style={{
+        <aside id="ersus-sidebar" style={{
           width:252, background:SB_BG,
           display:"flex", flexDirection:"column" as const, overflow:"hidden",
           boxShadow:"2px 0 12px rgba(0,0,0,.3)",
@@ -848,7 +848,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
         </aside>
 
         {/* Main */}
-        <main style={{flex:1,overflow:"auto",background:"#f1f5f9"}}>{children}</main>
+        <main id="ersus-main" style={{flex:1,overflow:"auto",background:"#f1f5f9"}}>{children}</main>
       </div>
     </div>
   );

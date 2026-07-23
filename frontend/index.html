@@ -7,6 +7,82 @@
     <meta name="description" content="ERSUS 360 — Centro de Inteligência da Gestão do SUS. Fundo Municipal de Saúde de Apuí/AM." />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WPeM=" crossorigin=""></script>
+    <style>
+      /* ── Estilos de impressão ERSUS 360 ─────────────────────────────── */
+      @media print {
+        /* A4 paisagem para acomodar tabelas largas */
+        @page {
+          size: A4 landscape;
+          margin: 8mm 10mm 8mm 10mm;
+        }
+
+        /* Preservar cores de fundo/gradiente */
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+
+        /* Remover overflow de TODOS os elementos para que nada seja cortado */
+        body, #root, #root > *, #ersus-main, #ersus-main > * {
+          overflow: visible !important;
+        }
+
+        /* Ocultar sidebar e header de navegação */
+        #ersus-sidebar,
+        header {
+          display: none !important;
+        }
+
+        /* Main ocupa 100% sem margin da sidebar */
+        #ersus-main {
+          width: 100% !important;
+          max-width: 100% !important;
+          flex: none !important;
+          overflow: visible !important;
+        }
+
+        /* Wrapper flex que contém sidebar + main */
+        #root > div > div {
+          display: block !important;
+        }
+
+        /* Tabelas: sem overflow, texto quebra, fonte menor */
+        table {
+          width: 100% !important;
+          table-layout: auto !important;
+          font-size: 8pt !important;
+          border-collapse: collapse !important;
+          page-break-inside: auto;
+        }
+
+        th, td {
+          padding: 4px 5px !important;
+          font-size: 8pt !important;
+          word-break: break-word !important;
+          white-space: normal !important;
+        }
+
+        tr { page-break-inside: avoid; }
+
+        /* Containers com overflow-x: remover */
+        div[style*="overflow"] {
+          overflow: visible !important;
+          overflow-x: visible !important;
+          max-width: 100% !important;
+        }
+
+        /* Ocultar botões de ação e scrollbars */
+        button { display: none !important; }
+        ::-webkit-scrollbar { display: none !important; }
+
+        /* Links sem URL impressa */
+        a[href]::after { content: none !important; }
+
+        /* Evitar quebra dentro de cards KPI */
+        .kpi-card { page-break-inside: avoid; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
