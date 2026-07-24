@@ -1,76 +1,135 @@
-"""
-Conselho Municipal de Saúde — CMS Apuí
-FMS Apuí/AM · Controle Social · Lei 8.142/1990
-"""
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/cms", tags=["Conselho Municipal de Saúde"])
+router = APIRouter(prefix="/api/cms", tags=["cms"])
 
 _REUNIOES = [
-    {"id":1, "tipo":"ordinaria", "data":"2026-01-21","pauta":"Aprovação PAS 2026; Prestação de contas Dez/25","quorum":12,"total_conselheiros":14,"ata_aprovada":True, "deliberacoes":["Aprovação PAS 2026","Aprovação prestação de contas Dez/25"]},
-    {"id":2, "tipo":"ordinaria", "data":"2026-02-18","pauta":"SIOPS 4º trimestre 2025; Contratação TFD","quorum":11,"total_conselheiros":14,"ata_aprovada":True, "deliberacoes":["Aprovação SIOPS Dez/25 (17.16%)","Aprovação contratação TFD"]},
-    {"id":3, "tipo":"ordinaria", "data":"2026-03-18","pauta":"Prestação contas Fev/26; Reforma UBS Kennedy","quorum":13,"total_conselheiros":14,"ata_aprovada":True, "deliberacoes":["Aprovação prestação de contas","Aprovação licitação reforma UBS Kennedy R$680k"]},
-    {"id":4, "tipo":"extraordinaria","data":"2026-03-25","pauta":"Surto dengue — medidas emergenciais","quorum":10,"total_conselheiros":14,"ata_aprovada":True, "deliberacoes":["Aprovação plano de combate à dengue","Solicitação de recursos estaduais"]},
-    {"id":5, "tipo":"ordinaria", "data":"2026-04-15","pauta":"Prestação contas Mar/26; RAPS — CAPS I","quorum":12,"total_conselheiros":14,"ata_aprovada":False,"deliberacoes":["Em aprovação — ata pendente"]},
-    {"id":6, "tipo":"ordinaria", "data":"2026-05-20","pauta":"LOA 2027 (prévia); Concurso público RH","quorum":None,"total_conselheiros":14,"ata_aprovada":False,"deliberacoes":[]},
+    {
+        "id": "r01", "numero": "1", "data": "28/01/2026", "hora": "14h00", "local": "Câmara Municipal de Apuí",
+        "tipo": "ordinaria", "status": "realizada", "quorum": 14, "total_conselheiros": 16, "ata_aprovada": True,
+        "pauta": [
+            "Aprovação da ata da reunião anterior",
+            "Apresentação do Relatório de Gestão do 3º Quadrimestre de 2025",
+            "Apreciação do Plano Municipal de Saúde 2026-2029",
+            "Informes gerais",
+        ],
+        "deliberacoes": [
+            {"numero": "001/2026", "descricao": "Aprovação do Relatório de Gestão do 3º Quadrimestre/2025.", "situacao": "cumprida"},
+            {"numero": "002/2026", "descricao": "Aprovação do Plano Municipal de Saúde 2026-2029 com recomendações.", "situacao": "em_acompanhamento"},
+        ],
+    },
+    {
+        "id": "r02", "numero": "2", "data": "25/02/2026", "hora": "14h00", "local": "Câmara Municipal de Apuí",
+        "tipo": "ordinaria", "status": "realizada", "quorum": 13, "total_conselheiros": 16, "ata_aprovada": True,
+        "pauta": [
+            "Aprovação da ata da reunião anterior",
+            "Análise da execução orçamentária — Jan/Fev 2026",
+            "Situação do abastecimento de medicamentos",
+            "Informes gerais",
+        ],
+        "deliberacoes": [
+            {"numero": "003/2026", "descricao": "Solicitação de providências ao FMS quanto à falta de dipirona e amoxicilina.", "situacao": "em_acompanhamento"},
+        ],
+    },
+    {
+        "id": "r03", "numero": "3", "data": "31/03/2026", "hora": "14h00", "local": "UBS Central — Sala de Reuniões",
+        "tipo": "ordinaria", "status": "realizada", "quorum": 15, "total_conselheiros": 16, "ata_aprovada": True,
+        "pauta": [
+            "Aprovação da ata da reunião anterior",
+            "Visita técnica às instalações da UBS Central",
+            "Situação das equipes ESF — vagas em aberto",
+        ],
+        "deliberacoes": [
+            {"numero": "004/2026", "descricao": "Aprovação de moção de apoio ao processo seletivo para médico do ESF III rural.", "situacao": "cumprida"},
+            {"numero": "005/2026", "descricao": "Recomendação para manutenção da cadeira odontológica suspensa.", "situacao": "em_acompanhamento"},
+        ],
+    },
+    {
+        "id": "r04", "numero": "1-E", "data": "14/04/2026", "hora": "09h00", "local": "Câmara Municipal de Apuí",
+        "tipo": "extraordinaria", "status": "realizada", "quorum": 12, "total_conselheiros": 16, "ata_aprovada": True,
+        "pauta": [
+            "Análise e aprovação do Relatório de Gestão do 1º Quadrimestre de 2026",
+            "Execução financeira do 1º quadrimestre",
+        ],
+        "deliberacoes": [
+            {"numero": "006/2026", "descricao": "Aprovação do Relatório de Gestão do 1º Quadrimestre/2026 com ressalvas (indicadores de pré-natal e DM abaixo da meta).", "situacao": "cumprida"},
+        ],
+    },
+    {
+        "id": "r05", "numero": "4", "data": "28/04/2026", "hora": "14h00", "local": "Câmara Municipal de Apuí",
+        "tipo": "ordinaria", "status": "realizada", "quorum": 14, "total_conselheiros": 16, "ata_aprovada": False,
+        "pauta": [
+            "Aprovação da ata da reunião anterior",
+            "Cobertura vacinal — situação da febre amarela",
+            "Informes sobre o surto de malária no ramal do Castanhal",
+        ],
+        "deliberacoes": [
+            {"numero": "007/2026", "descricao": "Solicitação urgente de campanha de vacinação contra febre amarela na zona rural.", "situacao": "em_acompanhamento"},
+        ],
+    },
+    {
+        "id": "r06", "numero": "5", "data": "26/05/2026", "hora": "14h00", "local": "Câmara Municipal de Apuí",
+        "tipo": "ordinaria", "status": "realizada", "quorum": 16, "total_conselheiros": 16, "ata_aprovada": False,
+        "pauta": [
+            "Aprovação da ata da reunião anterior",
+            "Análise do contrato do laboratório (vencimento em jul/2026)",
+            "Situação do Almoxarifado — itens críticos",
+        ],
+        "deliberacoes": [
+            {"numero": "008/2026", "descricao": "Recomendação para renovação imediata do contrato de laboratório (CT-004/2026).", "situacao": "em_acompanhamento"},
+            {"numero": "009/2026", "descricao": "Solicitação de compra emergencial de dipirona e amoxicilina.", "situacao": "aprovada"},
+        ],
+    },
+    {
+        "id": "r07", "numero": "6", "data": "30/07/2026", "hora": "14h00", "local": "Câmara Municipal de Apuí",
+        "tipo": "ordinaria", "status": "agendada", "quorum": None, "total_conselheiros": 16, "ata_aprovada": False,
+        "pauta": [
+            "Aprovação das atas das reuniões 4ª e 5ª",
+            "Relatório de Gestão do 2º Quadrimestre de 2026",
+            "Situação da ESF III rural — contratação de médico",
+            "Informes gerais",
+        ],
+        "deliberacoes": [],
+    },
 ]
 
 _CONSELHEIROS = [
-    {"id":1, "nome":"Pedro A.L.",    "segmento":"gestão",      "cargo":"Presidente",         "ativo":True},
-    {"id":2, "nome":"Sandra R.M.",   "segmento":"trabalhadores","cargo":"Vice-presidente",    "ativo":True},
-    {"id":3, "nome":"José B.F.",     "segmento":"usuarios",    "cargo":"Secretário",         "ativo":True},
-    {"id":4, "nome":"Ana C.O.",      "segmento":"gestão",      "cargo":"Conselheiro(a)",     "ativo":True},
-    {"id":5, "nome":"Mário D.S.",    "segmento":"prestadores", "cargo":"Conselheiro(a)",     "ativo":True},
-    {"id":6, "nome":"Cláudia E.N.",  "segmento":"usuarios",    "cargo":"Conselheiro(a)",     "ativo":True},
-    {"id":7, "nome":"Roberto F.T.",  "segmento":"trabalhadores","cargo":"Conselheiro(a)",    "ativo":True},
-    {"id":8, "nome":"Lúcia G.P.",    "segmento":"usuarios",    "cargo":"Conselheiro(a)",     "ativo":True},
-    {"id":9, "nome":"Antônio H.Q.",  "segmento":"gestão",      "cargo":"Conselheiro(a)",     "ativo":True},
-    {"id":10,"nome":"Fernanda I.R.", "segmento":"usuarios",    "cargo":"Conselheiro(a)",     "ativo":True},
-    {"id":11,"nome":"Marcos J.U.",   "segmento":"trabalhadores","cargo":"Conselheiro(a)",    "ativo":True},
-    {"id":12,"nome":"Patrícia K.V.", "segmento":"prestadores", "cargo":"Conselheiro(a)",     "ativo":True},
-    {"id":13,"nome":"Carlos L.W.",   "segmento":"usuarios",    "cargo":"Conselheiro(a)",     "ativo":True},
-    {"id":14,"nome":"Beatriz M.X.",  "segmento":"gestão",      "cargo":"Conselheiro(a)",     "ativo":False},
+    {"id": "c01", "nome": "Raimunda Ferreira", "entidade": "Associação de Bairros de Apuí", "segmento": "usuarios", "cargo": "presidente", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c02", "nome": "José Carlos Melo", "entidade": "Sindicato dos Trabalhadores Rurais", "segmento": "usuarios", "cargo": "vice_presidente", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c03", "nome": "Ana Paula Rocha", "entidade": "Fundo Municipal de Saúde", "segmento": "gestao", "cargo": "secretario", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c04", "nome": "Dr. Marcos Alves", "entidade": "Clínica Saúde Plena", "segmento": "prestadores", "cargo": "membro", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c05", "nome": "Francisca Lima", "entidade": "Conselho Local de Saúde — MA-01", "segmento": "usuarios", "cargo": "membro", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c06", "nome": "Antônio Bentes", "entidade": "Conselho Local de Saúde — MA-02", "segmento": "usuarios", "cargo": "membro", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c07", "nome": "Rosa Viana", "entidade": "Conselho Local de Saúde — MA-03", "segmento": "usuarios", "cargo": "membro", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c08", "nome": "Marlene Figueiredo", "entidade": "Conselho Local de Saúde — MA-04", "segmento": "usuarios", "cargo": "membro", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c09", "nome": "Enf. Beatriz Santos", "entidade": "COFEN — Conselho de Enfermagem", "segmento": "trabalhadores", "cargo": "membro", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c10", "nome": "Dr. Paulo Henrique", "entidade": "CFM — Conselho de Medicina", "segmento": "trabalhadores", "cargo": "membro", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c11", "nome": "Célia Nunes", "entidade": "Secretaria Municipal de Saúde", "segmento": "gestao", "cargo": "membro", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c12", "nome": "Roberto Sousa", "entidade": "Secretaria Municipal de Educação", "segmento": "gestao", "cargo": "membro", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c13", "nome": "Tereza Cristina", "entidade": "Associação de Moradores Zona Rural", "segmento": "usuarios", "cargo": "membro", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c14", "nome": "Carlos Rodrigues", "entidade": "Laboratório Diagnose Amazônia", "segmento": "prestadores", "cargo": "membro", "titular": True, "mandato_ate": "31/12/2027"},
+    {"id": "c15", "nome": "Luzia Pereira", "entidade": "Associação de Bairros de Apuí", "segmento": "usuarios", "cargo": "membro", "titular": False, "mandato_ate": "31/12/2027"},
+    {"id": "c16", "nome": "Ernesto Matos", "entidade": "Sindicato dos Trabalhadores em Saúde", "segmento": "trabalhadores", "cargo": "membro", "titular": False, "mandato_ate": "31/12/2027"},
 ]
 
-_DELIBERACOES = [
-    {"id":1, "reuniao":1,"descricao":"Aprovação PAS 2026","status":"implementada","responsavel":"FMS","prazo":"2026-02-28"},
-    {"id":2, "reuniao":1,"descricao":"Aprovação prestação de contas Dez/25","status":"implementada","responsavel":"FMS","prazo":"2026-02-15"},
-    {"id":3, "reuniao":2,"descricao":"Aprovação SIOPS 4º trim 2025 (17.16%)","status":"implementada","responsavel":"FMS","prazo":"2026-03-15"},
-    {"id":4, "reuniao":2,"descricao":"Aprovação contratação empresa TFD","status":"em_andamento","responsavel":"FMS/Licitação","prazo":"2026-04-30"},
-    {"id":5, "reuniao":3,"descricao":"Aprovação licitação reforma UBS Kennedy","status":"em_andamento","responsavel":"Obras","prazo":"2026-06-30"},
-    {"id":6, "reuniao":4,"descricao":"Plano de ação dengue — mobilização comunitária","status":"em_andamento","responsavel":"Vigilância","prazo":"2026-04-30"},
-    {"id":7, "reuniao":4,"descricao":"Solicitar inseticida e insumos ao Estado/MS","status":"implementada","responsavel":"FMS","prazo":"2026-04-10"},
-    {"id":8, "reuniao":5,"descricao":"Aprovação CAPS I — relatório anual RAPS","status":"pendente","responsavel":"FMS","prazo":"2026-05-15"},
-]
-
-@router.get("/dashboard")
-async def dashboard():
-    realizadas  = [r for r in _REUNIOES if r["quorum"] is not None]
-    media_quorum= round(sum(r["quorum"] for r in realizadas) / len(realizadas), 1) if realizadas else 0
-    proxima     = next((r for r in _REUNIOES if r["quorum"] is None), None)
+@router.get("/resumo")
+def resumo():
+    realizadas = [r for r in _REUNIOES if r["status"] == "realizada"]
+    delibs = [d for r in _REUNIOES for d in r["deliberacoes"]]
+    cumpridas = [d for d in delibs if d["situacao"] == "cumprida"]
     return {
-        "competencia":         "2026",
-        "total_reunioes":      len([r for r in _REUNIOES if r["quorum"] is not None]),
-        "proxima_reuniao":     proxima["data"] if proxima else None,
-        "proxima_pauta":       proxima["pauta"] if proxima else None,
-        "media_quorum_pct":    round(media_quorum / 14 * 100, 1),
-        "conselheiros_ativos": sum(1 for c in _CONSELHEIROS if c["ativo"]),
-        "deliberacoes_total":  len(_DELIBERACOES),
-        "deliberacoes_pendentes": sum(1 for d in _DELIBERACOES if d["status"]=="pendente"),
-        "deliberacoes_andamento": sum(1 for d in _DELIBERACOES if d["status"]=="em_andamento"),
-        "deliberacoes_implant":   sum(1 for d in _DELIBERACOES if d["status"]=="implementada"),
-        "atas_pendentes":      sum(1 for r in _REUNIOES if r["quorum"] is not None and not r["ata_aprovada"]),
-        "reunioes_ano":        [{"tipo":r["tipo"],"data":r["data"],"quorum":r["quorum"],"total":r["total_conselheiros"]} for r in _REUNIOES if r["quorum"] is not None],
+        "total_conselheiros":     len(_CONSELHEIROS),
+        "reunioes_ano":           len(_REUNIOES),
+        "reunioes_realizadas":    len(realizadas),
+        "deliberacoes_total":     len(delibs),
+        "deliberacoes_cumpridas": len(cumpridas),
+        "proxima_reuniao":        "6ª Reunião Ordinária do CMS",
+        "proxima_data":           "30/07/2026",
     }
 
 @router.get("/reunioes")
-async def reunioes():
+def reunioes():
     return _REUNIOES
 
 @router.get("/conselheiros")
-async def conselheiros():
+def conselheiros():
     return _CONSELHEIROS
-
-@router.get("/deliberacoes")
-async def deliberacoes():
-    return _DELIBERACOES

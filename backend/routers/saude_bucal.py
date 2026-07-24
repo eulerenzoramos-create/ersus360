@@ -1,98 +1,102 @@
 from fastapi import APIRouter
+import random
 
-router = APIRouter(prefix="/api/saude-bucal", tags=["saude_bucal"])
+router = APIRouter(prefix="/api/saude-bucal", tags=["saude-bucal"])
 
-_EQUIPES = [
-    {"esf": "ESF Novo Aripuanã",    "cirurgiao_dentista": True,  "asb": True,  "tsb": False,
-     "primeira_consulta_mes": 48, "procedimentos_basicos_mes": 312, "meta_proc_basicos": 340,
-     "extracao_mes": 28, "restauracao_mes": 84, "status": "atencao"},
-    {"esf": "ESF São Lazaro",        "cirurgiao_dentista": True,  "asb": True,  "tsb": True,
-     "primeira_consulta_mes": 52, "procedimentos_basicos_mes": 388, "meta_proc_basicos": 340,
-     "extracao_mes": 22, "restauracao_mes": 102, "status": "ok"},
-    {"esf": "ESF Juma (ribeirinha)", "cirurgiao_dentista": False, "asb": False, "tsb": False,
-     "primeira_consulta_mes": 0,  "procedimentos_basicos_mes": 0,   "meta_proc_basicos": 340,
-     "extracao_mes": 0,  "restauracao_mes": 0,   "status": "critico"},
-    {"esf": "ESF Acari",             "cirurgiao_dentista": True,  "asb": True,  "tsb": False,
-     "primeira_consulta_mes": 44, "procedimentos_basicos_mes": 298, "meta_proc_basicos": 340,
-     "extracao_mes": 31, "restauracao_mes": 71,  "status": "atencao"},
-    {"esf": "ESF Centro",            "cirurgiao_dentista": True,  "asb": True,  "tsb": True,
-     "primeira_consulta_mes": 61, "procedimentos_basicos_mes": 421, "meta_proc_basicos": 340,
-     "extracao_mes": 18, "restauracao_mes": 118, "status": "ok"},
-    {"esf": "ESF Mapari",            "cirurgiao_dentista": False, "asb": True,  "tsb": False,
-     "primeira_consulta_mes": 12, "procedimentos_basicos_mes": 68,  "meta_proc_basicos": 340,
-     "extracao_mes": 8,  "restauracao_mes": 14,  "status": "critico"},
-]
+random.seed(17)
 
-_CEO_ESPECIALIDADES = [
-    {"especialidade": "Diagnóstico Bucal / Estomatologia", "procedimentos_mes": 42, "lista_espera": 18,
-     "tempo_espera_dias": 24, "meta_proc_mes": 40, "status": "ok"},
-    {"especialidade": "Periodontia", "procedimentos_mes": 68, "lista_espera": 64,
-     "tempo_espera_dias": 38, "meta_proc_mes": 80, "status": "atencao"},
-    {"especialidade": "Endodontia (Tratamento de Canal)", "procedimentos_mes": 34, "lista_espera": 112,
-     "tempo_espera_dias": 62, "meta_proc_mes": 60, "status": "critico"},
-    {"especialidade": "Cirurgia Oral Menor", "procedimentos_mes": 28, "lista_espera": 84,
-     "tempo_espera_dias": 48, "meta_proc_mes": 40, "status": "atencao"},
-    {"especialidade": "Prótese Dentária (Laboratorial)", "procedimentos_mes": 14, "lista_espera": 204,
-     "tempo_espera_dias": 98, "meta_proc_mes": 30, "status": "critico"},
-]
+_MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"]
 
-_HISTORICO = [
-    {"mes": "Jan", "primeiras_consultas": 186, "proc_basicos": 1024, "extracoes": 98, "restauracoes": 312, "ceo_proc": 168},
-    {"mes": "Fev", "primeiras_consultas": 178, "proc_basicos":  968, "extracoes": 88, "restauracoes": 298, "ceo_proc": 156},
-    {"mes": "Mar", "primeiras_consultas": 204, "proc_basicos": 1108, "extracoes": 112,"restauracoes": 348, "ceo_proc": 184},
-    {"mes": "Abr", "primeiras_consultas": 198, "proc_basicos": 1082, "extracoes": 104,"restauracoes": 334, "ceo_proc": 178},
-    {"mes": "Mai", "primeiras_consultas": 216, "proc_basicos": 1142, "extracoes": 118,"restauracoes": 362, "ceo_proc": 192},
-    {"mes": "Jun", "primeiras_consultas": 217, "proc_basicos": 1087, "extracoes": 107,"restauracoes": 389, "ceo_proc": 186},
-]
+def _hist(base: int) -> list:
+    v = base; out = []
+    for _ in range(12):
+        v = max(0, v + random.randint(-int(base * 0.15), int(base * 0.18)))
+        out.append(v)
+    return out
 
 _INDICADORES = [
-    {"indicador": "ESB sem cirurgião-dentista", "valor": 2, "meta": 0, "unidade": "equipes",
-     "status": "critico", "observacao": "Juma e Mapari sem CD — 2 ESF sem cobertura odontológica"},
-    {"indicador": "Razão extração/restauração", "valor": 0.28, "meta": 0.20, "unidade": "ratio",
-     "status": "critico", "observacao": "Ainda acima da meta — extração mais frequente que restauração"},
-    {"indicador": "Lista espera prótese CEO", "valor": 204, "meta": 0, "unidade": "pacientes",
-     "status": "critico", "observacao": "98 dias de espera para prótese — maior fila do CEO"},
-    {"indicador": "Cobertura 1ª consulta programática", "valor": 44.8, "meta": 50.0, "unidade": "%",
-     "status": "atencao", "observacao": "Abaixo da meta — ESF sem CD prejudica cobertura"},
-    {"indicador": "Procedimentos básicos/equipe/mês", "valor": 278.4, "meta": 340.0, "unidade": "proc",
-     "status": "critico", "observacao": "Média descontando as 2 ESF sem CD — meta 340 proc/equipe/mês"},
-    {"indicador": "CEO endodontia (espera)", "valor": 62, "meta": 30, "unidade": "dias",
-     "status": "critico", "observacao": "112 pacientes aguardando tratamento de canal — 62 dias de espera"},
+    {
+        "id": "sb01", "codigo": "C06", "nome": "Proporção de pessoas com 1ª consulta odontológica programática",
+        "grupo": "Previne Brasil", "meta": 420, "realizado": 312,
+        "unidade": "consultas", "pct_meta": 74.3, "status": "alerta", "tendencia": "alta",
+    },
+    {
+        "id": "sb02", "codigo": "C07", "nome": "Tratamentos odontológicos concluídos",
+        "grupo": "Previne Brasil", "meta": 300, "realizado": 241,
+        "unidade": "tratamentos", "pct_meta": 80.3, "status": "alerta", "tendencia": "estavel",
+    },
+    {
+        "id": "sb03", "codigo": "SB01", "nome": "Cobertura de 1ª consulta odontológica programática (% pop.)",
+        "grupo": "SB Brasil", "meta": 20, "realizado": 14,
+        "unidade": "%", "pct_meta": 70.0, "status": "alerta", "tendencia": "queda",
+    },
+    {
+        "id": "sb04", "codigo": "SB02", "nome": "Proporção de exodontias em relação às ações odontológicas básicas",
+        "grupo": "SB Brasil", "meta": 25, "realizado": 31,
+        "unidade": "%", "pct_meta": 0, "status": "critico", "tendencia": "queda",
+    },
+    {
+        "id": "sb05", "codigo": "SB03", "nome": "Média de ações odontológicas básicas por pessoa",
+        "grupo": "SB Brasil", "meta": 3, "realizado": 2.1,
+        "unidade": "ações/pess.", "pct_meta": 70.0, "status": "alerta", "tendencia": "alta",
+    },
+    {
+        "id": "sb06", "codigo": "CEO01", "nome": "Procedimentos especializados no CEO — periodontia",
+        "grupo": "CEO", "meta": 180, "realizado": 168,
+        "unidade": "procedimentos", "pct_meta": 93.3, "status": "meta_atingida", "tendencia": "estavel",
+    },
+    {
+        "id": "sb07", "codigo": "CEO02", "nome": "Procedimentos especializados no CEO — endodontia",
+        "grupo": "CEO", "meta": 120, "realizado": 118,
+        "unidade": "procedimentos", "pct_meta": 98.3, "status": "meta_atingida", "tendencia": "alta",
+    },
+    {
+        "id": "sb08", "codigo": "CEO03", "nome": "Procedimentos especializados no CEO — diagnóstico bucal",
+        "grupo": "CEO", "meta": 96, "realizado": 72,
+        "unidade": "exames", "pct_meta": 75.0, "status": "alerta", "tendencia": "alta",
+    },
 ]
 
+for ind in _INDICADORES:
+    base_m = int(ind["realizado"] / 6)
+    ind["historico"] = _hist(base_m)
+    ind["meses"] = _MESES
 
-@router.get("/dashboard")
-def dashboard():
+_PROCEDIMENTOS = [
+    {"codigo": "03.01.01.007-2", "descricao": "Consulta/atendimento odontológico", "quantidade": 312, "meta_mensal": 70},
+    {"codigo": "03.01.01.013-7", "descricao": "Tratamento de urgência em saúde bucal", "quantidade": 48, "meta_mensal": 40},
+    {"codigo": "03.01.06.003-6", "descricao": "Restauração em resina composta (1 face)", "quantidade": 186, "meta_mensal": 150},
+    {"codigo": "03.01.06.005-2", "descricao": "Restauração em resina composta (2+ faces)", "quantidade": 74, "meta_mensal": 80},
+    {"codigo": "03.01.06.009-5", "descricao": "Exodontia de dente permanente", "quantidade": 96, "meta_mensal": 60},
+    {"codigo": "03.01.06.011-7", "descricao": "Raspagem supragengival", "quantidade": 142, "meta_mensal": 120},
+    {"codigo": "03.01.06.013-3", "descricao": "Raspagem subgengival (por sextante)", "quantidade": 38, "meta_mensal": 60},
+    {"codigo": "03.01.07.003-4", "descricao": "Fluoretação dentária", "quantidade": 204, "meta_mensal": 180},
+    {"codigo": "03.01.07.009-3", "descricao": "Selante dentário (por dente)", "quantidade": 168, "meta_mensal": 160},
+    {"codigo": "03.01.07.015-8", "descricao": "Controle de placa bacteriana", "quantidade": 88, "meta_mensal": 100},
+    {"codigo": "03.01.08.001-0", "descricao": "Radiografia periapical (unitária)", "quantidade": 52, "meta_mensal": 60},
+    {"codigo": "03.01.06.002-8", "descricao": "Tratamento endodôntico — molar", "quantidade": 22, "meta_mensal": 25},
+]
+
+@router.get("/resumo")
+def resumo():
+    total_proc = sum(p["quantidade"] for p in _PROCEDIMENTOS)
+    meta_proc  = sum(p["meta_mensal"] for p in _PROCEDIMENTOS)
     return {
-        "esb_total": 6,
-        "esb_sem_cd": 2,
-        "primeiras_consultas_mes": 217,
-        "proc_basicos_mes": 1087,
-        "extracoes_mes": 107,
-        "restauracoes_mes": 389,
-        "ratio_extracao_restauracao": 0.28,
-        "ceo_procedimentos_mes": 186,
-        "ceo_lista_espera_total": 482,
-        "ceo_especialidades": 5,
-        "cobertura_primeira_consulta_pct": 44.8,
+        "score_sb":                  5.8,
+        "procedimentos_mes":         total_proc,
+        "meta_procedimentos":        meta_proc,
+        "primeira_consulta_pct":     74.3,
+        "tratamento_concluido_pct":  80.3,
+        "cobertura_1a_consulta":     14.0,
+        "exodontias_pct":            31.0,
+        "equipes_sb":                2,
+        "ceo_ativo":                 True,
     }
-
-
-@router.get("/equipes")
-def equipes():
-    return _EQUIPES
-
-
-@router.get("/ceo-especialidades")
-def ceo_especialidades():
-    return _CEO_ESPECIALIDADES
-
-
-@router.get("/historico")
-def historico():
-    return _HISTORICO
-
 
 @router.get("/indicadores")
 def indicadores():
     return _INDICADORES
+
+@router.get("/procedimentos")
+def procedimentos():
+    return _PROCEDIMENTOS

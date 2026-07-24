@@ -370,6 +370,10 @@ from routers.vacinacao import router as vacinacao_router
 from routers.almoxarifado import router as almoxarifado_router
 from routers.relatorio_gestao import router as relatorio_gestao_router
 from routers.mapa_sanitario import router as mapa_sanitario_router
+from routers.contratos import router as contratos_router
+from routers.cms import router as cms_router
+from routers.saude_bucal import router as saude_bucal_router
+from routers.producao_aps import router as producao_aps_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -678,6 +682,10 @@ app.include_router(vacinacao_router)
 app.include_router(almoxarifado_router)
 app.include_router(relatorio_gestao_router)
 app.include_router(mapa_sanitario_router)
+app.include_router(contratos_router)
+app.include_router(cms_router)
+app.include_router(saude_bucal_router)
+app.include_router(producao_aps_router)
 
 
 @app.get("/")

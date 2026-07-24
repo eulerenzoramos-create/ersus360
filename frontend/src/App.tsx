@@ -203,6 +203,10 @@ import PainelVacinacao          from "./pages/PainelVacinacao";
 import Almoxarifado             from "./pages/Almoxarifado";
 import RelatorioGestao          from "./pages/RelatorioGestao";
 import MapaSanitario            from "./pages/MapaSanitario";
+import GestaoContratos          from "./pages/GestaoContratos";
+import ConselhoMunicipalSaude   from "./pages/ConselhoMunicipalSaude";
+import SaudeBucal               from "./pages/SaudeBucal";
+import ProducaoAPS              from "./pages/ProducaoAPS";
 import VisaMunicipal            from "./pages/VisaMunicipal";
 import ConselhoSaudeApui        from "./pages/ConselhoSaudeApui";
 import OuvidoriaApui            from "./pages/OuvidoriaApui";
@@ -874,6 +878,10 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             <L1 to="/almoxarifado"              label="Almoxarifado"               Icon={Package}/>
             <L1 to="/relatorio-gestao"          label="Relatório de Gestão"        Icon={FileText}/>
             <L1 to="/mapa-sanitario"            label="Mapa Sanitário"             Icon={MapPin}/>
+            <L1 to="/gestao-contratos"          label="Gestão de Contratos"        Icon={DollarSign}/>
+            <L1 to="/conselho-saude"            label="Conselho Municipal Saúde"   Icon={Users}/>
+            <L1 to="/saude-bucal"               label="Saúde Bucal · CEO"          Icon={Stethoscope}/>
+            <L1 to="/producao-aps"              label="Produção APS · SISAB"       Icon={BarChart2}/>
 
             <div style={{height:24}}/>
           </div>
@@ -1270,6 +1278,10 @@ export default function App() {
             <Route path="/almoxarifado"            element={<Almoxarifado/>}/>
             <Route path="/relatorio-gestao"        element={<RelatorioGestao/>}/>
             <Route path="/mapa-sanitario"          element={<MapaSanitario/>}/>
+            <Route path="/gestao-contratos"        element={<GestaoContratos/>}/>
+            <Route path="/conselho-saude"          element={<ConselhoMunicipalSaude/>}/>
+            <Route path="/saude-bucal"             element={<SaudeBucal/>}/>
+            <Route path="/producao-aps"            element={<ProducaoAPS/>}/>
             <Route path="/cadastros"                 element={<CadastrosMestres/>}/>
             <Route path="/cadastros/*"               element={<CadastrosMestres/>}/>
             <Route path="/rh"                        element={<RH/>}/>
