@@ -362,6 +362,10 @@ from routers.okr import router as okr_router
 from routers.central_regulacao import router as central_regulacao_router
 from routers.monitor_epidem import router as monitor_epidem_router
 from routers.ras import router as ras_router
+from routers.cronograma_repasses import router as cronograma_repasses_router
+from routers.busca_ativa_ia import router as busca_ativa_ia_router
+from routers.equipamentos import router as equipamentos_router
+from routers.transparencia import router as transparencia_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -662,6 +666,10 @@ app.include_router(okr_router)
 app.include_router(central_regulacao_router)
 app.include_router(monitor_epidem_router)
 app.include_router(ras_router)
+app.include_router(cronograma_repasses_router)
+app.include_router(busca_ativa_ia_router)
+app.include_router(equipamentos_router)
+app.include_router(transparencia_router)
 
 
 @app.get("/")

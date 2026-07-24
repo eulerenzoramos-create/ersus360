@@ -195,6 +195,10 @@ import PainelOKR               from "./pages/PainelOKR";
 import CentralRegulacao        from "./pages/CentralRegulacao";
 import MonitorEpidemiologico   from "./pages/MonitorEpidemiologico";
 import RelatorioRAS             from "./pages/RelatorioRAS";
+import CronogramaRepasses       from "./pages/CronogramaRepasses";
+import BuscaAtivaIA             from "./pages/BuscaAtivaIA";
+import GestaoEquipamentos       from "./pages/GestaoEquipamentos";
+import PainelTransparencia      from "./pages/PainelTransparencia";
 import VisaMunicipal            from "./pages/VisaMunicipal";
 import ConselhoSaudeApui        from "./pages/ConselhoSaudeApui";
 import OuvidoriaApui            from "./pages/OuvidoriaApui";
@@ -858,6 +862,10 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             <L1 to="/central-regulacao"         label="Central de Regulação"        Icon={ArrowLeftRight}/>
             <L1 to="/monitor-epidemiologico"    label="Monitor Epidemiológico"      Icon={Activity}/>
             {podeAud && <L1 to="/relatorio-ras"  label="Relatório RAS"              Icon={Network}/>}
+            <L1 to="/cronograma-repasses"       label="Repasses FNS"               Icon={Calendar}/>
+            <L1 to="/busca-ativa-ia"            label="Busca Ativa · IA"           Icon={Brain}/>
+            <L1 to="/gestao-equipamentos"       label="Gestão de Equipamentos"     Icon={Wrench}/>
+            <L1 to="/painel-transparencia"      label="Transparência LAI"          Icon={Globe}/>
 
             <div style={{height:24}}/>
           </div>
@@ -1246,6 +1254,10 @@ export default function App() {
             <Route path="/central-regulacao"         element={<CentralRegulacao/>}/>
             <Route path="/monitor-epidemiologico"    element={<MonitorEpidemiologico/>}/>
             <Route path="/relatorio-ras"             element={<RelatorioRAS/>}/>
+            <Route path="/cronograma-repasses"       element={<CronogramaRepasses/>}/>
+            <Route path="/busca-ativa-ia"            element={<BuscaAtivaIA/>}/>
+            <Route path="/gestao-equipamentos"       element={<GestaoEquipamentos/>}/>
+            <Route path="/painel-transparencia"      element={<PainelTransparencia/>}/>
             <Route path="/cadastros"                 element={<CadastrosMestres/>}/>
             <Route path="/cadastros/*"               element={<CadastrosMestres/>}/>
             <Route path="/rh"                        element={<RH/>}/>
