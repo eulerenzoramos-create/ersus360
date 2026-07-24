@@ -540,31 +540,46 @@ export default function RelatorioProducao() {
   function imprimir() {
     const el = printRef.current;
     if (!el) return;
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-      <title>Relatório ERSUS360</title>
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
+      <title>Relatório de Produção — ERSUS 360</title>
       <style>
-        body{font-family:system-ui,sans-serif;margin:0;padding:24px;color:#111;}
-        .page-break{page-break-before:always;}
-        table{width:100%;border-collapse:collapse;font-size:12px;}
-        th{background:#1e40af;color:#fff;padding:6px 10px;text-align:left;}
-        td{padding:5px 10px;border-bottom:1px solid #e5e7eb;}
-        tr:nth-child(even) td{background:#f9fafb;}
-        .header{border-bottom:3px solid #1e40af;padding-bottom:12px;margin-bottom:20px;}
-        .kpis{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
-        .kpi{border:1px solid #e5e7eb;border-top:3px solid #1e40af;border-radius:8px;padding:10px 14px;min-width:130px;}
-        .kpi-v{font-size:22px;font-weight:800;} .kpi-l{font-size:11px;color:#6b7280;text-transform:uppercase;}
-        h3{color:#1e40af;margin:18px 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;}
-        .badge-ok{color:#166534;background:#f0fdf4;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;}
-        .badge-at{color:#92400e;background:#fffbeb;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;}
-        .badge-cr{color:#b91c1c;background:#fef2f2;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;}
-        @media print{body{margin:0;padding:16px;}}
+        @page { size: A4 portrait; margin: 1.5cm 1.2cm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #111; background: #fff; }
+        .aviso-estimado { background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:8px 12px; font-size:10px; color:#92400e; margin-bottom:14px; page-break-inside:avoid; }
+        .page-break { page-break-before: always; }
+        table { width:100%; border-collapse:collapse; font-size:11px; margin-bottom:14px; }
+        thead { display:table-header-group; }
+        th { background:#1e40af; color:#fff; padding:6px 9px; text-align:left; font-size:10px; }
+        td { padding:5px 9px; border-bottom:1px solid #e5e7eb; vertical-align:top; }
+        tbody tr { page-break-inside:avoid; break-inside:avoid; }
+        tr:nth-child(even) td { background:#f9fafb; }
+        .header { border-bottom:3px solid #1e40af; padding-bottom:12px; margin-bottom:18px; page-break-inside:avoid; }
+        .kpis { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; page-break-inside:avoid; }
+        .kpi { border:1px solid #e5e7eb; border-top:3px solid #1e40af; border-radius:8px; padding:9px 13px; min-width:110px; }
+        .kpi-v { font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; }
+        .kpi-l { font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:.4px; }
+        h3 { color:#1e40af; margin:16px 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.5px; page-break-after:avoid; }
+        .badge-ok { color:#166534; background:#f0fdf4; padding:2px 7px; border-radius:4px; font-size:9px; font-weight:700; }
+        .badge-at { color:#92400e; background:#fffbeb; padding:2px 7px; border-radius:4px; font-size:9px; font-weight:700; }
+        .badge-cr { color:#b91c1c; background:#fef2f2; padding:2px 7px; border-radius:4px; font-size:9px; font-weight:700; }
+        .rodape-pdf { border-top:1px solid #e5e7eb; margin-top:20px; padding-top:10px; font-size:9px; color:#9ca3af; display:flex; justify-content:space-between; page-break-inside:avoid; }
+        .assinaturas { display:grid; grid-template-columns:1fr 1fr; gap:60px; margin-top:40px; page-break-inside:avoid; }
+        .assinatura { border-top:1px solid #374151; padding-top:6px; font-size:9px; text-align:center; color:#374151; }
+        @media print {
+          body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+          thead { display:table-header-group; }
+          tbody tr { page-break-inside:avoid; break-inside:avoid; }
+          h3 { page-break-after:avoid; }
+          .header, .kpis, .aviso-estimado { page-break-inside:avoid; }
+        }
       </style></head><body>${el.innerHTML}</body></html>`;
-    const w = window.open("", "_blank");
+    const w = window.open("", "_blank", "width=1000,height=800");
     if (!w) return;
     w.document.write(html);
     w.document.close();
     w.focus();
-    setTimeout(() => { w.print(); }, 400);
+    setTimeout(() => { w.print(); }, 500);
   }
 
   const d = qGerar.data;
@@ -608,6 +623,11 @@ export default function RelatorioProducao() {
 
       {d && (
         <div ref={printRef}>
+          {/* Aviso dados estimados */}
+          <div className="aviso-estimado" style={{ background:"#fffbeb", border:"1px solid #fde68a", borderRadius:6, padding:"8px 12px", fontSize:11, color:"#92400e", marginBottom:14 }}>
+            ⚠️ <strong>Dados Estimados (Meta/Parâmetros)</strong> — Produção calculada com base nos parâmetros de metas por CBO definidos no ERSUS 360. Para dados reais, importe o relatório de produção do eSUS-PEC / SISAB.
+          </div>
+
           {/* CABEÇALHO */}
           <div className="header" style={{ borderBottom:"3px solid #1e40af", paddingBottom:12, marginBottom:20 }}>
             <div style={{ display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
@@ -783,10 +803,23 @@ export default function RelatorioProducao() {
             </div>
           )}
 
+          {/* ASSINATURAS */}
+          <div className="assinaturas" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:60, marginTop:40 }}>
+            {[
+              { cargo:"Secretário(a) Municipal de Saúde",       nome:"Secretaria Municipal de Saúde — Apuí/AM" },
+              { cargo:"Responsável pelo Monitoramento APS",     nome:"Departamento de Atenção Básica — FMS" },
+            ].map((a,i) => (
+              <div key={i} className="assinatura" style={{ borderTop:"1px solid #374151", paddingTop:6, fontSize:10, textAlign:"center" as const, color:"#374151" }}>
+                <div style={{ fontWeight:700 }}>{a.cargo}</div>
+                <div style={{ color:"#9ca3af", marginTop:2 }}>{a.nome}</div>
+              </div>
+            ))}
+          </div>
+
           {/* RODAPÉ */}
-          <div style={{ borderTop:"1px solid #e5e7eb", marginTop:24, paddingTop:10, fontSize:11, color:"#9ca3af", display:"flex", justifyContent:"space-between", flexWrap:"wrap" }}>
-            <span>Sistema ERSUS 360 — Secretaria Municipal de Saúde de Apuí/AM — IBGE 1300144</span>
-            <span>Gerado em {cab.gerado_em}</span>
+          <div className="rodape-pdf" style={{ borderTop:"1px solid #e5e7eb", marginTop:20, paddingTop:10, fontSize:10, color:"#9ca3af", display:"flex", justifyContent:"space-between", flexWrap:"wrap" as const }}>
+            <span>ERSUS 360 — Gestão Inteligente do SUS · SMS Apuí/AM · IBGE 1300144</span>
+            <span>Gerado em {cab.gerado_em} · Dados estimados por parâmetros ERSUS — confirmar com SISAB</span>
           </div>
         </div>
       )}
