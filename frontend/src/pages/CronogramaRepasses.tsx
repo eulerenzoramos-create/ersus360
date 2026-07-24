@@ -314,7 +314,7 @@ function ModalRelatorio({ repasses, mes, onFechar }: { repasses: Repasse[]; mes:
                 </div>
                 <div style={{ textAlign: "right" as const }}>
                   <div style={{ fontSize: 10, color: "#9ca3af" }}>CNPJ FMS</div>
-                  <div style={{ fontSize: 11, fontWeight: 700 }}>05.895.603/0001-79</div>
+                  <div style={{ fontSize: 11, fontWeight: 700 }}>12.834.320/0001-26</div>
                   <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 3 }}>Município</div>
                   <div style={{ fontSize: 11, fontWeight: 700 }}>Apuí — AM · IBGE 1300144</div>
                 </div>
