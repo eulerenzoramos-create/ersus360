@@ -2,7 +2,7 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Calendar, DollarSign, CheckCircle, Clock, AlertTriangle, FileText, Printer, X, Filter, RefreshCw, Edit2, Save, Database, Wifi } from "lucide-react";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGet, apiPost, apiPut } from "../lib/api";
 
 interface Repasse {
   id: string; competencia: string; bloco: string; programa: string;
@@ -97,16 +97,11 @@ function ModalEditar({ repasse, onFechar, onSalvo }: { repasse: Repasse; onFecha
       if (form.valor_creditado !== "") payload.valor_creditado = Number(form.valor_creditado);
       if (form.data_credito)           payload.data_credito    = form.data_credito;
 
-      const resp = await fetch(`/api/cronograma-repasses/${repasse.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!resp.ok) throw new Error(await resp.text());
+      await apiPut(`/api/cronograma-repasses/${repasse.id}`, payload);
       onSalvo();
       onFechar();
     } catch (e: unknown) {
-      setErro(e instanceof Error ? e.message : "Erro ao salvar");
+      setErro(e instanceof Error ? e.message : "Erro ao salvar — verifique o backend.");
     } finally {
       setSalvando(false);
     }
