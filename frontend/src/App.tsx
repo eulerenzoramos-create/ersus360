@@ -13,7 +13,7 @@ import {
   Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets, Utensils,
   Wind, Eye, TrendingDown, Trash2, School, Sparkles, Waves, Clock,
   HeartPulse, HandHeart, Scale, Ship, Trophy, Package,
-  ShieldAlert, Calculator, ClipboardCheck,
+  ShieldAlert, Calculator, ClipboardCheck, Download, Award,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -207,6 +207,10 @@ import GestaoContratos          from "./pages/GestaoContratos";
 import ConselhoMunicipalSaude   from "./pages/ConselhoMunicipalSaude";
 import SaudeBucal               from "./pages/SaudeBucal";
 import ProducaoAPS              from "./pages/ProducaoAPS";
+import DashboardExecutivo360    from "./pages/DashboardExecutivo360";
+import CentroNotificacoes       from "./pages/CentroNotificacoes";
+import ExportadorRelatorios     from "./pages/ExportadorRelatorios";
+import IDSUSMunicipal           from "./pages/IDSUSMunicipal";
 import VisaMunicipal            from "./pages/VisaMunicipal";
 import ConselhoSaudeApui        from "./pages/ConselhoSaudeApui";
 import OuvidoriaApui            from "./pages/OuvidoriaApui";
@@ -882,6 +886,10 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             <L1 to="/conselho-saude"            label="Conselho Municipal Saúde"   Icon={Users}/>
             <L1 to="/saude-bucal"               label="Saúde Bucal · CEO"          Icon={Stethoscope}/>
             <L1 to="/producao-aps"              label="Produção APS · SISAB"       Icon={BarChart2}/>
+            <L1 to="/dashboard-executivo"       label="Dashboard Executivo 360"    Icon={Activity}/>
+            <L1 to="/notificacoes"              label="Centro de Notificações"     Icon={Bell}/>
+            <L1 to="/exportador-relatorios"     label="Exportador de Relatórios"   Icon={Download}/>
+            <L1 to="/idsus-municipal"           label="IDSUS Municipal"            Icon={Award}/>
 
             <div style={{height:24}}/>
           </div>
@@ -1282,6 +1290,10 @@ export default function App() {
             <Route path="/conselho-saude"          element={<ConselhoMunicipalSaude/>}/>
             <Route path="/saude-bucal"             element={<SaudeBucal/>}/>
             <Route path="/producao-aps"            element={<ProducaoAPS/>}/>
+            <Route path="/dashboard-executivo"     element={<DashboardExecutivo360/>}/>
+            <Route path="/notificacoes"            element={<CentroNotificacoes/>}/>
+            <Route path="/exportador-relatorios"   element={<ExportadorRelatorios/>}/>
+            <Route path="/idsus-municipal"         element={<IDSUSMunicipal/>}/>
             <Route path="/cadastros"                 element={<CadastrosMestres/>}/>
             <Route path="/cadastros/*"               element={<CadastrosMestres/>}/>
             <Route path="/rh"                        element={<RH/>}/>

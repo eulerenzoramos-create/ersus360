@@ -374,6 +374,10 @@ from routers.contratos import router as contratos_router
 from routers.cms import router as cms_router
 from routers.saude_bucal import router as saude_bucal_router
 from routers.producao_aps import router as producao_aps_router
+from routers.dashboard_exec import router as dashboard_exec_router
+from routers.notificacoes import router as notificacoes_router
+from routers.exportador import router as exportador_router
+from routers.idsus import router as idsus_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -686,6 +690,10 @@ app.include_router(contratos_router)
 app.include_router(cms_router)
 app.include_router(saude_bucal_router)
 app.include_router(producao_aps_router)
+app.include_router(dashboard_exec_router)
+app.include_router(notificacoes_router)
+app.include_router(exportador_router)
+app.include_router(idsus_router)
 
 
 @app.get("/")
