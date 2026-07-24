@@ -17,6 +17,8 @@ interface AlertaESF {
 
 interface EquipeRisco {
   id: string; nome: string; score_risco: number; nivel_risco: "critico" | "alto" | "medio" | "baixo";
+  cnes: string; ine: string; tipo_equipe: string;
+  medico: string; enfermeiro: string; num_acs: number; area_cobertura: string;
   score_previne: number; score_scnes: number; score_cadsus: number; score_siaps: number;
   dimensoes: DimensaoRisco[];
   alertas: AlertaESF[];
@@ -76,13 +78,41 @@ function CardEquipe({ eq }: { eq: EquipeRisco }) {
         <ScoreRing score={eq.score_risco} nivel={eq.nivel_risco} size={68}/>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          {/* Linha 1: nome + nível + tendência */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" as const }}>
             <span style={{ fontWeight: 800, fontSize: 14 }}>{eq.nome}</span>
             <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 12, background: bg, color: cor }}>
               {LABEL_RISCO[eq.nivel_risco]}
             </span>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10, background: "#f0f9ff", color: "#0369a1", border: "1px solid #bae6fd" }}>
+              {eq.tipo_equipe}
+            </span>
             <span style={{ fontSize: 10, color: tend === "piorando" ? "#dc2626" : tend === "melhorando" ? "#16a34a" : "#9ca3af" }}>
               {tend === "piorando" ? "▼ Piorando" : tend === "melhorando" ? "▲ Melhorando" : "— Estável"}
+            </span>
+          </div>
+          {/* Linha 2: CNES / INE / Área */}
+          <div style={{ display: "flex", gap: 16, marginBottom: 6, flexWrap: "wrap" as const }}>
+            <span style={{ fontSize: 10, color: "#6b7280" }}>
+              <span style={{ fontWeight: 700, color: "#374151" }}>CNES:</span> {eq.cnes}
+            </span>
+            <span style={{ fontSize: 10, color: "#6b7280" }}>
+              <span style={{ fontWeight: 700, color: "#374151" }}>INE:</span> {eq.ine}
+            </span>
+            <span style={{ fontSize: 10, color: "#6b7280" }}>
+              <span style={{ fontWeight: 700, color: "#374151" }}>Área:</span> {eq.area_cobertura}
+            </span>
+          </div>
+          {/* Linha 3: Profissionais */}
+          <div style={{ display: "flex", gap: 14, marginBottom: 6, flexWrap: "wrap" as const }}>
+            <span style={{ fontSize: 10, color: eq.medico === "Vaga em aberto" ? "#dc2626" : "#6b7280", fontWeight: eq.medico === "Vaga em aberto" ? 700 : 400 }}>
+              <span style={{ fontWeight: 700, color: "#374151" }}>Médico:</span> {eq.medico}
+            </span>
+            <span style={{ fontSize: 10, color: "#6b7280" }}>
+              <span style={{ fontWeight: 700, color: "#374151" }}>Enfermeiro:</span> {eq.enfermeiro}
+            </span>
+            <span style={{ fontSize: 10, color: "#6b7280" }}>
+              <span style={{ fontWeight: 700, color: "#374151" }}>ACS:</span> {eq.num_acs} agentes
             </span>
           </div>
           {/* 4 sub-scores em barras */}
@@ -118,6 +148,20 @@ function CardEquipe({ eq }: { eq: EquipeRisco }) {
 
       {aberto && (
         <div style={{ borderTop: `1px solid ${cor}15`, background: "#fafafa", padding: "16px 18px" }}>
+          {/* Ficha de identificação */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 16, background: "#fff", border: "1px solid #e4e7ec", borderRadius: 8, padding: "10px 14px" }}>
+            {[
+              { l: "CNES",         v: eq.cnes },
+              { l: "INE",          v: eq.ine },
+              { l: "Tipo de equipe", v: eq.tipo_equipe },
+              { l: "Nº ACS",       v: `${eq.num_acs} agentes` },
+            ].map(f => (
+              <div key={f.l}>
+                <div style={{ fontSize: 9, color: "#9ca3af", marginBottom: 2 }}>{f.l}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#111" }}>{f.v}</div>
+              </div>
+            ))}
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             {/* Dimensões com peso */}
             <div>
