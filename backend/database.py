@@ -42,5 +42,6 @@ async def init_db():
         from models import (  # noqa
             convenio, repasse, cronograma, indicador, alerta,
             municipio, portaria, execucao, obra, usuario, documento, emenda,
+            repasse_fns,
         )
         await conn.run_sync(Base.metadata.create_all)

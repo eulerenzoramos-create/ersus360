@@ -68,6 +68,41 @@ async def _job_score_ersus() -> None:
         logger.error("[Scheduler] Erro ao recalcular Score ERSUS: %s", exc, exc_info=True)
 
 
+async def _job_sync_consultafns() -> None:
+    """Job: sincroniza repasses FNS Fundo a Fundo via consultafns.saude.gov.br — 3x ao dia."""
+    from database import AsyncSessionLocal
+    from services.consultafns_service import buscar_repasses_fns
+    from models.repasse_fns import RepasseFNS
+    from sqlalchemy import select
+    from datetime import datetime as dt
+
+    logger.info("[Scheduler] Iniciando sync consultafns.saude.gov.br...")
+    async with AsyncSessionLocal() as db:
+        try:
+            resultado = await buscar_repasses_fns(ano=2026)
+            if not resultado["ok"]:
+                logger.warning("[Scheduler] consultafns sem dados: %s", resultado.get("erros"))
+                return
+            agora = dt.utcnow()
+            inseridos = atualizados = 0
+            for item in resultado["repasses"]:
+                res = await db.execute(select(RepasseFNS).where(RepasseFNS.id == item["id"]))
+                ex  = res.scalar_one_or_none()
+                if ex:
+                    if ex.fonte != "manual":
+                        for k, v in item.items():
+                            if k != "id": setattr(ex, k, v)
+                        ex.sincronizado_em = agora
+                        atualizados += 1
+                else:
+                    db.add(RepasseFNS(sincronizado_em=agora, **item))
+                    inseridos += 1
+            await db.commit()
+            logger.info("[Scheduler] consultafns sync: %d novos, %d atualizados", inseridos, atualizados)
+        except Exception as exc:
+            logger.error("[Scheduler] Erro sync consultafns: %s", exc, exc_info=True)
+
+
 async def _job_alertas_automaticos() -> None:
     """Job: gera alertas WebSocket a partir de prazos urgentes da Agenda e outras fontes."""
     logger.info("[Scheduler] Verificando alertas automáticos...")
@@ -142,6 +177,16 @@ def start_scheduler() -> None:
         replace_existing=True,
         misfire_grace_time=3600,
     )
+
+    # Job 4: Sync consultafns.saude.gov.br — 3x ao dia (08:00, 13:00, 18:00)
+    for h in [8, 13, 18]:
+        scheduler.add_job(
+            _job_sync_consultafns,
+            CronTrigger(hour=h, minute=0, timezone="America/Manaus"),
+            id=f"consultafns_sync_{h}h",
+            replace_existing=True,
+            misfire_grace_time=3600,
+        )
 
     scheduler.start()
     logger.info(
