@@ -199,6 +199,10 @@ import CronogramaRepasses       from "./pages/CronogramaRepasses";
 import BuscaAtivaIA             from "./pages/BuscaAtivaIA";
 import GestaoEquipamentos       from "./pages/GestaoEquipamentos";
 import PainelTransparencia      from "./pages/PainelTransparencia";
+import PainelVacinacao          from "./pages/PainelVacinacao";
+import Almoxarifado             from "./pages/Almoxarifado";
+import RelatorioGestao          from "./pages/RelatorioGestao";
+import MapaSanitario            from "./pages/MapaSanitario";
 import VisaMunicipal            from "./pages/VisaMunicipal";
 import ConselhoSaudeApui        from "./pages/ConselhoSaudeApui";
 import OuvidoriaApui            from "./pages/OuvidoriaApui";
@@ -866,6 +870,10 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             <L1 to="/busca-ativa-ia"            label="Busca Ativa · IA"           Icon={Brain}/>
             <L1 to="/gestao-equipamentos"       label="Gestão de Equipamentos"     Icon={Wrench}/>
             <L1 to="/painel-transparencia"      label="Transparência LAI"          Icon={Globe}/>
+            <L1 to="/vacinacao"                 label="Painel de Vacinação"        Icon={Syringe}/>
+            <L1 to="/almoxarifado"              label="Almoxarifado"               Icon={Package}/>
+            <L1 to="/relatorio-gestao"          label="Relatório de Gestão"        Icon={FileText}/>
+            <L1 to="/mapa-sanitario"            label="Mapa Sanitário"             Icon={MapPin}/>
 
             <div style={{height:24}}/>
           </div>
@@ -1258,6 +1266,10 @@ export default function App() {
             <Route path="/busca-ativa-ia"            element={<BuscaAtivaIA/>}/>
             <Route path="/gestao-equipamentos"       element={<GestaoEquipamentos/>}/>
             <Route path="/painel-transparencia"      element={<PainelTransparencia/>}/>
+            <Route path="/vacinacao"               element={<PainelVacinacao/>}/>
+            <Route path="/almoxarifado"            element={<Almoxarifado/>}/>
+            <Route path="/relatorio-gestao"        element={<RelatorioGestao/>}/>
+            <Route path="/mapa-sanitario"          element={<MapaSanitario/>}/>
             <Route path="/cadastros"                 element={<CadastrosMestres/>}/>
             <Route path="/cadastros/*"               element={<CadastrosMestres/>}/>
             <Route path="/rh"                        element={<RH/>}/>

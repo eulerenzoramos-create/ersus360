@@ -366,6 +366,10 @@ from routers.cronograma_repasses import router as cronograma_repasses_router
 from routers.busca_ativa_ia import router as busca_ativa_ia_router
 from routers.equipamentos import router as equipamentos_router
 from routers.transparencia import router as transparencia_router
+from routers.vacinacao import router as vacinacao_router
+from routers.almoxarifado import router as almoxarifado_router
+from routers.relatorio_gestao import router as relatorio_gestao_router
+from routers.mapa_sanitario import router as mapa_sanitario_router
 
 app.include_router(auth_router)
 app.include_router(municipio_router)
@@ -670,6 +674,10 @@ app.include_router(cronograma_repasses_router)
 app.include_router(busca_ativa_ia_router)
 app.include_router(equipamentos_router)
 app.include_router(transparencia_router)
+app.include_router(vacinacao_router)
+app.include_router(almoxarifado_router)
+app.include_router(relatorio_gestao_router)
+app.include_router(mapa_sanitario_router)
 
 
 @app.get("/")
