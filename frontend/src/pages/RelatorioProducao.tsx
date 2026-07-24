@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { FileText, BarChart2, Users, Layers, Calendar, Download, Filter, Printer } from "lucide-react";
 import { apiGet } from "../lib/api";
 
+const BASE_URL = (import.meta.env.VITE_API_URL as string) ?? "http://localhost:8000";
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 const corStatus = (s: string) =>
   s === "critico" ? "#ef4444" : s === "atencao" ? "#f59e0b" : "#22c55e";
@@ -537,49 +539,40 @@ export default function RelatorioProducao() {
   );
 
   // ── ABA GERAR RELATÓRIO ───────────────────────────────────────────────────
-  function imprimir() {
-    const el = printRef.current;
-    if (!el) return;
-    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
-      <title>Relatório de Produção — ERSUS 360</title>
-      <style>
-        @page { size: A4 portrait; margin: 1.5cm 1.2cm; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #111; background: #fff; }
-        .aviso-estimado { background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:8px 12px; font-size:10px; color:#92400e; margin-bottom:14px; page-break-inside:avoid; }
-        .page-break { page-break-before: always; }
-        table { width:100%; border-collapse:collapse; font-size:11px; margin-bottom:14px; }
-        thead { display:table-header-group; }
-        th { background:#1e40af; color:#fff; padding:6px 9px; text-align:left; font-size:10px; }
-        td { padding:5px 9px; border-bottom:1px solid #e5e7eb; vertical-align:top; }
-        tbody tr { page-break-inside:avoid; break-inside:avoid; }
-        tr:nth-child(even) td { background:#f9fafb; }
-        .header { border-bottom:3px solid #1e40af; padding-bottom:12px; margin-bottom:18px; page-break-inside:avoid; }
-        .kpis { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; page-break-inside:avoid; }
-        .kpi { border:1px solid #e5e7eb; border-top:3px solid #1e40af; border-radius:8px; padding:9px 13px; min-width:110px; }
-        .kpi-v { font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; }
-        .kpi-l { font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:.4px; }
-        h3 { color:#1e40af; margin:16px 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.5px; page-break-after:avoid; }
-        .badge-ok { color:#166534; background:#f0fdf4; padding:2px 7px; border-radius:4px; font-size:9px; font-weight:700; }
-        .badge-at { color:#92400e; background:#fffbeb; padding:2px 7px; border-radius:4px; font-size:9px; font-weight:700; }
-        .badge-cr { color:#b91c1c; background:#fef2f2; padding:2px 7px; border-radius:4px; font-size:9px; font-weight:700; }
-        .rodape-pdf { border-top:1px solid #e5e7eb; margin-top:20px; padding-top:10px; font-size:9px; color:#9ca3af; display:flex; justify-content:space-between; page-break-inside:avoid; }
-        .assinaturas { display:grid; grid-template-columns:1fr 1fr; gap:60px; margin-top:40px; page-break-inside:avoid; }
-        .assinatura { border-top:1px solid #374151; padding-top:6px; font-size:9px; text-align:center; color:#374151; }
-        @media print {
-          body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-          thead { display:table-header-group; }
-          tbody tr { page-break-inside:avoid; break-inside:avoid; }
-          h3 { page-break-after:avoid; }
-          .header, .kpis, .aviso-estimado { page-break-inside:avoid; }
-        }
-      </style></head><body>${el.innerHTML}</body></html>`;
-    const w = window.open("", "_blank", "width=1000,height=800");
-    if (!w) return;
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(() => { w.print(); }, 500);
+  const [baixandoPDF, setBaixandoPDF] = useState(false);
+  const [erroDownload, setErroDownload] = useState<string | null>(null);
+
+  async function baixarPDF() {
+    setBaixandoPDF(true);
+    setErroDownload(null);
+    try {
+      const token = localStorage.getItem("ersus_token");
+      const params = new URLSearchParams({ tipo: tipoRel, mes: String(mes), ano: String(ano), dia: String(diaRel) });
+      if (equipe) params.set("equipe", equipe);
+      if (tipoEq) params.set("tipo_equipe", tipoEq);
+      if (profId) params.set("profissional_id", profId);
+
+      const resp = await fetch(`${BASE_URL}/api/relatorios/gerar-pdf?${params}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!resp.ok) throw new Error(`Erro ${resp.status}`);
+
+      const blob = await resp.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      const per  = `${MESES[mes-1].substring(0,3)}-${ano}`;
+      a.href     = url;
+      a.download = `ERSUS360_Producao_${per}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setErroDownload(err.message ?? "Erro ao gerar PDF");
+    } finally {
+      setBaixandoPDF(false);
+    }
   }
 
   const d = qGerar.data;
@@ -609,17 +602,27 @@ export default function RelatorioProducao() {
             <input type="number" min={1} max={31} value={diaRel} onChange={e => setDiaRel(Number(e.target.value))} style={{ width:70, padding:"6px 10px", borderRadius:6, border:"1px solid var(--border)", background:"var(--card-bg)", color:"var(--fg)", fontSize:13 }} />
           </div>
         )}
-        <button onClick={imprimir} disabled={!d} style={{
+        <button onClick={baixarPDF} disabled={baixandoPDF} style={{
           display:"flex", alignItems:"center", gap:6, padding:"8px 18px",
-          borderRadius:6, border:"none", background: d ? "#1e40af" : "var(--border)",
-          color:"#fff", cursor: d ? "pointer" : "default", fontSize:13, fontWeight:700, marginLeft:"auto",
+          borderRadius:6, border:"none",
+          background: baixandoPDF ? "#6b7280" : "#1e40af",
+          color:"#fff", cursor: baixandoPDF ? "wait" : "pointer",
+          fontSize:13, fontWeight:700, marginLeft:"auto",
         }}>
-          <Printer size={15} /> Imprimir / Salvar PDF
+          {baixandoPDF
+            ? <><span style={{ display:"inline-block", width:14, height:14, border:"2px solid #fff", borderTopColor:"transparent", borderRadius:"50%", animation:"spin 0.7s linear infinite" }}/> Gerando PDF...</>
+            : <><Printer size={15}/> Baixar PDF Completo</>
+          }
         </button>
       </div>
 
-      {qGerar.isLoading && <div style={{ color:"var(--muted)", padding:24 }}>Gerando relatório...</div>}
-      {qGerar.isError  && <div style={{ color:"#ef4444", padding:24 }}>Erro ao gerar relatório. Tente novamente.</div>}
+      {erroDownload && (
+        <div style={{ background:"#fef2f2", border:"1px solid #fca5a5", borderRadius:6, padding:"8px 14px", color:"#b91c1c", fontSize:12, marginBottom:12 }}>
+          ❌ {erroDownload} — Verifique se o backend está online.
+        </div>
+      )}
+      {qGerar.isLoading && <div style={{ color:"var(--muted)", padding:24 }}>Carregando pré-visualização...</div>}
+      {qGerar.isError  && <div style={{ color:"#ef4444", padding:24 }}>Erro ao carregar dados. Tente novamente.</div>}
 
       {d && (
         <div ref={printRef}>
@@ -838,6 +841,7 @@ export default function RelatorioProducao() {
         :root[data-theme="dark"]{--card-bg:#1e2127;--border:#374151;--fg:#f9fafb;--muted:#9ca3af;--accent:#60a5fa;--hover:#252a33;}
         :root[data-theme="light"]{--card-bg:#fff;--border:#e5e7eb;--fg:#111827;--muted:#6b7280;--accent:#3b82f6;--hover:#f9fafb;}
         *{box-sizing:border-box;} select,button{font-family:inherit;}
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
 
       {/* Header */}
