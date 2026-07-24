@@ -205,7 +205,6 @@ import RelatorioGestao          from "./pages/RelatorioGestao";
 import MapaSanitario            from "./pages/MapaSanitario";
 import GestaoContratos          from "./pages/GestaoContratos";
 import ConselhoMunicipalSaude   from "./pages/ConselhoMunicipalSaude";
-import SaudeBucal               from "./pages/SaudeBucal";
 import ProducaoAPS              from "./pages/ProducaoAPS";
 import DashboardExecutivo360    from "./pages/DashboardExecutivo360";
 import CentroNotificacoes       from "./pages/CentroNotificacoes";
