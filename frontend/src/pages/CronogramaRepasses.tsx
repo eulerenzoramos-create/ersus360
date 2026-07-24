@@ -230,35 +230,49 @@ function ModalRelatorio({ repasses, mes, onFechar }: { repasses: Repasse[]; mes:
   const handleImprimir = () => {
     const conteudo = printRef.current;
     if (!conteudo) return;
-    const janela = window.open("", "_blank", "width=900,height=700");
+    const janela = window.open("", "_blank", "width=1000,height=800");
     if (!janela) return;
     janela.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
       <title>Relatório de Repasses FNS — ${mes}</title>
       <style>
+        @page {
+          size: A4 portrait;
+          margin: 1.5cm 1.2cm;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #1a1a2e; background: #fff; padding: 28px 36px; }
-        .cabecalho { border-bottom: 2px solid #059669; padding-bottom: 14px; margin-bottom: 18px; }
-        .cabecalho h1 { font-size: 18px; font-weight: 800; color: #065f46; margin-bottom: 3px; }
-        .kpis { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px; }
-        .kpi { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; text-align: center; }
-        .kpi .val { font-size: 16px; font-weight: 900; }
-        .kpi .lbl { font-size: 9px; color: #6b7280; margin-top: 2px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        thead { background: #f0fdf4; }
-        thead th { text-align: left; font-size: 10px; font-weight: 700; color: #065f46; padding: 8px 10px; border-bottom: 1px solid #d1fae5; }
-        tbody tr { border-bottom: 1px solid #f3f4f6; }
-        tbody td { padding: 8px 10px; font-size: 11px; vertical-align: top; }
-        .badge { display: inline-block; font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 10px; }
-        .total-row { background: #f0fdf4; font-weight: 800; border-top: 2px solid #059669; }
-        .total-row td { padding: 10px; }
-        .rodape { border-top: 1px solid #e5e7eb; padding-top: 12px; font-size: 10px; color: #9ca3af; display: flex; justify-content: space-between; }
-        .assinaturas { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 50px; }
-        .assinatura { border-top: 1px solid #374151; padding-top: 6px; font-size: 10px; text-align: center; color: #374151; }
-        .fonte-aviso { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 8px 12px; font-size: 10px; color: #1d4ed8; margin-bottom: 16px; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; }
+        .cabecalho { border-bottom: 2px solid #059669; padding-bottom: 12px; margin-bottom: 16px; }
+        .cabecalho h1 { font-size: 16px; font-weight: 800; color: #065f46; margin-bottom: 3px; }
+        .kpis { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; page-break-inside: avoid; }
+        .kpi { border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 12px; text-align: center; }
+        .kpi .val { font-size: 13px; font-weight: 900; }
+        .kpi .lbl { font-size: 8px; color: #6b7280; margin-top: 2px; }
+        .badges-row { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; page-break-inside: avoid; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+        thead { display: table-header-group; background: #f0fdf4; }
+        thead th { text-align: left; font-size: 9px; font-weight: 700; color: #065f46; padding: 7px 8px; border-bottom: 2px solid #d1fae5; }
+        tbody { display: table-row-group; }
+        tbody tr { border-bottom: 1px solid #f3f4f6; page-break-inside: avoid; break-inside: avoid; }
+        tbody td { padding: 7px 8px; font-size: 10px; vertical-align: top; }
+        .badge { display: inline-block; font-size: 8px; font-weight: 800; padding: 2px 7px; border-radius: 10px; }
+        .total-row { background: #f0fdf4; font-weight: 800; }
+        .total-row td { padding: 9px 8px; border-top: 2px solid #059669; }
+        .assinaturas { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 40px; page-break-inside: avoid; }
+        .assinatura { border-top: 1px solid #374151; padding-top: 6px; font-size: 9px; text-align: center; color: #374151; }
+        .rodape { border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 16px; font-size: 9px; color: #9ca3af; display: flex; justify-content: space-between; page-break-inside: avoid; }
+        .fonte-aviso { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 7px 10px; font-size: 9px; color: #1d4ed8; margin-bottom: 14px; page-break-inside: avoid; }
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          thead { display: table-header-group; }
+          tbody tr { page-break-inside: avoid; break-inside: avoid; }
+          .total-row { page-break-inside: avoid; }
+          .assinaturas { page-break-inside: avoid; }
+          .rodape { page-break-inside: avoid; }
+        }
       </style></head><body>${conteudo.innerHTML}</body></html>`);
     janela.document.close();
     janela.focus();
-    setTimeout(() => { janela.print(); }, 400);
+    setTimeout(() => { janela.print(); }, 500);
   };
 
   const temDadosReais = repasses.some(r => r.fonte === "portal_transparencia");
