@@ -179,6 +179,7 @@ import PlanoMunicipalSaude      from "./pages/PlanoMunicipalSaude";
 import ScoreMunicipal           from "./pages/ScoreMunicipal";
 import GestaoContratosFms       from "./pages/GestaoContratosFms";
 import CentralAuditoria         from "./pages/CentralAuditoria";
+import GapAnalysisAPS           from "./pages/GapAnalysisAPS";
 import PlanoAcao                from "./pages/PlanoAcao";
 import TrilhaAuditoria          from "./pages/TrilhaAuditoria";
 import MonitorLotesSIAPS        from "./pages/MonitorLotesSIAPS";
@@ -857,6 +858,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             {podeUsr && <L1 to="/usuarios"   label="Gestão de Usuários"   Icon={Users}/>}
             {podeAud && <L1 to="/auditoria"           label="Auditoria do Sistema"   Icon={Shield}/>}
             {podeAud && <L1 to="/central-auditoria"   label="Central de Auditoria APS" Icon={ShieldCheck}/>}
+            {podeAud && <L1 to="/gap-analysis-aps"    label="Gap Analysis · Integrações" Icon={GitBranch}/>}
             {podeAud && <L1 to="/plano-acao"          label="Plano de Ação"          Icon={ClipboardList}/>}
             {podeAud && <L1 to="/trilha-auditoria"    label="Trilha de Auditoria"    Icon={GitBranch}/>}
             {podeAud && <L1 to="/monitor-lotes-siaps" label="Monitor Lotes SIAPS"    Icon={Package}/>}
@@ -1261,6 +1263,7 @@ export default function App() {
             <Route path="/usuarios"                  element={<Usuarios/>}/>
             <Route path="/auditoria"                 element={<Auditoria/>}/>
             <Route path="/central-auditoria"         element={<CentralAuditoria/>}/>
+            <Route path="/gap-analysis-aps"          element={<GapAnalysisAPS/>}/>
             <Route path="/plano-acao"                element={<PlanoAcao/>}/>
             <Route path="/trilha-auditoria"          element={<TrilhaAuditoria/>}/>
             <Route path="/monitor-lotes-siaps"       element={<MonitorLotesSIAPS/>}/>
