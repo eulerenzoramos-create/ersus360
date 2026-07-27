@@ -274,44 +274,124 @@ _QUALIDADE_EQUIPES = [
 
 # ── Boas Práticas ─────────────────────────────────────────────────────────────
 
-_BOAS_PRATICAS = [
-    {
+def _gerar_boas_praticas() -> list:
+    """Gera boas práticas e alertas por indicador a partir dos dados reais de cada equipe."""
+    INDS = [
+        ("ind1_prenatal", "Ind.1 — Pré-natal ≥6 consultas",       60.0),
+        ("ind2_cito",     "Ind.2 — Citopatológico",                60.0),
+        ("ind3_vacina",   "Ind.3 — Vacinação DTP/Penta",           95.0),
+        ("ind4_rn",       "Ind.4 — Consulta RN 1ª semana",         60.0),
+        ("ind5_has",      "Ind.5 — Acompanhamento HAS",            60.0),
+        ("ind6_dm",       "Ind.6 — Acompanhamento DM",             55.0),
+        ("ind7_infantil", "Ind.7 — Desenvolvimento Infantil",      60.0),
+    ]
+    resultado = []
+
+    # 1) Vínculo — destaque fixo (LIBERDADE)
+    resultado.append({
         "titulo": "Equipe LIBERDADE — Vínculo Ótimo",
         "descricao": "Pontuação máxima (10,0) no Componente Vínculo. Maior cobertura de acompanhamento do município — 1.784 pessoas acompanhadas de 2.500 do parâmetro.",
         "ubs": "CENTRO DE SAÚDE CURUMIM", "equipe": "LIBERDADE",
         "tipo": "vinculo", "destaque": True,
-    },
-    {
-        "titulo": "Pré-natal — Equipe CACHOEIRA acima da meta",
-        "descricao": "84,4% das gestantes com ≥6 consultas de pré-natal e início no 1º trimestre (meta: 60%). Maior taxa de adesão ao pré-natal do município.",
-        "ubs": "UBS IRMÃ ELIZABETE", "equipe": "CACHOEIRA",
-        "tipo": "qualidade", "destaque": True,
-    },
-    {
-        "titulo": "Consulta RN — Equipe LIBERDADE 100%",
-        "descricao": "100% dos recém-nascidos com consulta na 1ª semana de vida. Indicador 4 do Novo Financiamento APS — atingido por apenas 1 equipe no município.",
-        "ubs": "CENTRO DE SAÚDE CURUMIM", "equipe": "LIBERDADE",
-        "tipo": "qualidade", "destaque": True,
-    },
-    {
-        "titulo": "Citopatológico — Maior cobertura: Equipe LIBERDADE (52,4%)",
-        "descricao": "Apesar de ainda abaixo da meta (60%), equipe LIBERDADE lidera a cobertura de citopatológico. Atenção especial necessária em KENNEDY (22,1%) e ESTRADA NOVA (19,8%).",
-        "ubs": "CENTRO DE SAÚDE CURUMIM", "equipe": "LIBERDADE",
-        "tipo": "alerta_critico", "destaque": False,
-    },
-    {
-        "titulo": "Vacinação — Meta não atingida por nenhuma equipe",
-        "descricao": "Nenhuma das 9 equipes atingiu 95% de cobertura vacinal (DTP/Penta). Melhor desempenho: CACHOEIRA (88,2%). Prioridade: KENNEDY (58,3%) e ESTRADA NOVA (55,0%).",
-        "ubs": "TODAS", "equipe": "TODAS",
-        "tipo": "alerta_critico", "destaque": False,
-    },
-    {
-        "titulo": "Equipes KENNEDY e ESTRADA NOVA — Plano de Melhoria",
-        "descricao": "Pontuação Vínculo 3,25 (Regular). Recomendação: intensificar cadastros individuais e domiciliares, priorizar acompanhamento de idosos, crianças e beneficiários BPC/PBF.",
-        "ubs": "UBS PADRE FALIERO BONCI / UBS CLÁUDIA PEREIRA", "equipe": "KENNEDY / ESTRADA NOVA",
-        "tipo": "plano_melhoria", "destaque": False,
-    },
-]
+        "indicador": None, "por_equipe": [],
+    })
+
+    # 2) Para cada indicador: monta ranking de todas as equipes
+    for key, nome, meta in INDS:
+        ranking = sorted(
+            [
+                {
+                    "equipe": e["equipe"],
+                    "ubs": e["ubs"],
+                    "resultado": e["indicadores"][key]["resultado"],
+                    "status": e["indicadores"][key]["status"],
+                }
+                for e in _QUALIDADE_EQUIPES
+            ],
+            key=lambda x: x["resultado"],
+            reverse=True,
+        )
+        melhor = ranking[0]
+        pior   = ranking[-1]
+
+        # linha do ranking formatada
+        linhas_ranking = " | ".join(
+            f"{r['equipe']}: {r['resultado']}%" for r in ranking
+        )
+
+        # quantas equipes atingiram a meta
+        atingiram = [r for r in ranking if r["resultado"] >= meta]
+        n_ating   = len(atingiram)
+        n_total   = len(ranking)
+
+        if n_ating == n_total:
+            # todas atingiram — destaque positivo
+            resultado.append({
+                "titulo": f"{nome} — Todas as equipes acima da meta",
+                "descricao": (
+                    f"Todas as {n_total} equipes atingiram a meta de {meta}%. "
+                    f"Melhor: {melhor['equipe']} ({melhor['resultado']}%). "
+                    f"Ranking: {linhas_ranking}."
+                ),
+                "ubs": melhor["ubs"], "equipe": melhor["equipe"],
+                "tipo": "qualidade", "destaque": True,
+                "indicador": nome,
+                "por_equipe": ranking,
+            })
+        elif n_ating == 0:
+            # nenhuma atingiu — alerta crítico
+            resultado.append({
+                "titulo": f"{nome} — Meta não atingida por nenhuma equipe",
+                "descricao": (
+                    f"Nenhuma das {n_total} equipes atingiu a meta de {meta}%. "
+                    f"Melhor desempenho: {melhor['equipe']} ({melhor['resultado']}%). "
+                    f"Prioridade: {pior['equipe']} ({pior['resultado']}%). "
+                    f"Ranking: {linhas_ranking}."
+                ),
+                "ubs": "TODAS", "equipe": "TODAS",
+                "tipo": "alerta_critico", "destaque": False,
+                "indicador": nome,
+                "por_equipe": ranking,
+            })
+        else:
+            # parcial — destaque para melhor + alerta para pior
+            atingiram_str = ", ".join(f"{r['equipe']} ({r['resultado']}%)" for r in atingiram)
+            nao_ating     = [r for r in ranking if r["resultado"] < meta]
+            nao_str       = ", ".join(f"{r['equipe']} ({r['resultado']}%)" for r in reversed(nao_ating))
+            resultado.append({
+                "titulo": f"{nome} — {n_ating}/{n_total} equipes acima da meta",
+                "descricao": (
+                    f"Meta: {meta}%. "
+                    f"Acima: {atingiram_str}. "
+                    f"Abaixo: {nao_str}. "
+                    f"Ranking completo: {linhas_ranking}."
+                ),
+                "ubs": melhor["ubs"], "equipe": melhor["equipe"],
+                "tipo": "qualidade" if n_ating >= n_total / 2 else "alerta_critico",
+                "destaque": n_ating >= n_total / 2,
+                "indicador": nome,
+                "por_equipe": ranking,
+            })
+
+    # 3) Plano de melhoria — equipes com pontuação Regular
+    regulares = [e["equipe"] for e in _QUALIDADE_EQUIPES if e["status_qualidade"] == "regular"]
+    if regulares:
+        resultado.append({
+            "titulo": f"Plano de Melhoria — {', '.join(regulares)}",
+            "descricao": (
+                f"Equipes com status Regular no Componente Qualidade: {', '.join(regulares)}. "
+                "Recomendação: intensificar busca ativa para citopatológico e vacinação, "
+                "garantir registro adequado no e-SUS e acompanhar HAS/DM em atraso."
+            ),
+            "ubs": "VER DETALHES", "equipe": " / ".join(regulares),
+            "tipo": "plano_melhoria", "destaque": False,
+            "indicador": None, "por_equipe": [],
+        })
+
+    return resultado
+
+
+_BOAS_PRATICAS = _gerar_boas_praticas()
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 

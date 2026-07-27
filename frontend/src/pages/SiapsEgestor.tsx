@@ -1164,6 +1164,10 @@ function AbaBoasPraticas({ data }: { data: any }) {
         {data.boas_praticas.map((bp: any, i: number) => {
           const cor = COR_TIPO[bp.tipo] ?? "#6b7280";
           const bg  = BG_TIPO[bp.tipo]  ?? "#f9fafb";
+          const ranking: any[] = bp.por_equipe ?? [];
+          const meta = ranking.length > 0
+            ? (bp.descricao.match(/meta.*?(\d+(?:[,.]\d+)?)%/)?.[1] ?? null)
+            : null;
           return (
             <div key={i} style={{ background: bg, border: `1px solid ${cor}20`, borderLeft: `4px solid ${cor}`, borderRadius: 8, padding: "16px 18px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
@@ -1171,12 +1175,60 @@ function AbaBoasPraticas({ data }: { data: any }) {
                   {bp.destaque ? <Star size={14} color={cor} /> : <Info size={14} color={cor} />}
                   <span style={{ fontSize: 14, fontWeight: 700, color: cor }}>{bp.titulo}</span>
                 </div>
-                <span style={{ background: cor, color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, flexShrink: 0, marginLeft: 8 }}>
-                  {LABEL_TIPO[bp.tipo]}
-                </span>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: 8 }}>
+                  {bp.indicador && (
+                    <span style={{ background: "#f1f5f9", color: "#475569", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>
+                      {bp.indicador.split("—")[0].trim()}
+                    </span>
+                  )}
+                  <span style={{ background: cor, color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>
+                    {LABEL_TIPO[bp.tipo]}
+                  </span>
+                </div>
               </div>
-              <p style={{ margin: "0 0 8px", fontSize: 13, color: "#374151", lineHeight: 1.6 }}>{bp.descricao}</p>
-              {bp.ubs !== "TODAS" && (
+
+              {/* Ranking por equipe — só para cards de indicador */}
+              {ranking.length > 0 && (
+                <div style={{ marginBottom: 10, overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                    <thead>
+                      <tr style={{ background: "#f8fafc" }}>
+                        <th style={{ textAlign: "left", padding: "4px 8px", color: "#6b7280", fontWeight: 600, borderBottom: "1px solid #e5e7eb" }}>#</th>
+                        <th style={{ textAlign: "left", padding: "4px 8px", color: "#6b7280", fontWeight: 600, borderBottom: "1px solid #e5e7eb" }}>Equipe</th>
+                        <th style={{ textAlign: "left", padding: "4px 8px", color: "#6b7280", fontWeight: 600, borderBottom: "1px solid #e5e7eb" }}>UBS</th>
+                        <th style={{ textAlign: "right", padding: "4px 8px", color: "#6b7280", fontWeight: 600, borderBottom: "1px solid #e5e7eb" }}>Resultado</th>
+                        <th style={{ textAlign: "center", padding: "4px 8px", color: "#6b7280", fontWeight: 600, borderBottom: "1px solid #e5e7eb" }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ranking.map((r: any, j: number) => {
+                        const sCor = r.status === "verde" ? "#16a34a" : r.status === "amarelo" ? "#d97706" : "#dc2626";
+                        const sBg  = r.status === "verde" ? "#f0fdf4" : r.status === "amarelo" ? "#fffbeb" : "#fff7f7";
+                        return (
+                          <tr key={j} style={{ borderBottom: "1px solid #f1f5f9", background: j % 2 === 0 ? "#fff" : "#fafafa" }}>
+                            <td style={{ padding: "4px 8px", color: "#9ca3af", fontWeight: 700 }}>{j + 1}º</td>
+                            <td style={{ padding: "4px 8px", fontWeight: 700, color: "#1e293b" }}>{r.equipe}</td>
+                            <td style={{ padding: "4px 8px", color: "#64748b", fontSize: 10 }}>{r.ubs}</td>
+                            <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 800, color: sCor }}>
+                              {r.resultado}%
+                              {meta && (
+                                <span style={{ color: "#9ca3af", fontWeight: 400, marginLeft: 4 }}>/ {meta}%</span>
+                              )}
+                            </td>
+                            <td style={{ padding: "4px 8px", textAlign: "center" }}>
+                              <span style={{ background: sBg, color: sCor, fontWeight: 700, fontSize: 10, padding: "2px 7px", borderRadius: 10 }}>
+                                {r.status === "verde" ? "✓ Meta" : r.status === "amarelo" ? "~ Alerta" : "✗ Crítico"}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {bp.ubs !== "TODAS" && bp.ubs !== "VER DETALHES" && (
                 <div style={{ fontSize: 11, color: "#9ca3af" }}>
                   UBS: {bp.ubs} · Equipe: {bp.equipe}
                 </div>
