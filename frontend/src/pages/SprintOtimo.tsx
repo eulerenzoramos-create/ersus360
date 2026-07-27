@@ -1015,6 +1015,9 @@ export default function SprintOtimo() {
                   <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
                     <AlertTriangle size={15} color="#f59e0b" />
                     <span style={{ fontWeight: 700, fontSize: 13, color: "#f59e0b" }}>Pendências Identificadas</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b", background: "#78350f", padding: "1px 8px", borderRadius: 10, marginLeft: 4 }}>
+                      Equipe {d.nome} · {d.ubs}
+                    </span>
                   </div>
                   {d.pendencias.map((p, i) => (
                     <div key={i} style={{ fontSize: 13, color: "#fbbf24", padding: "5px 0", borderBottom: i < d.pendencias.length - 1 ? "1px solid #292524" : "none" }}>
