@@ -726,13 +726,13 @@ const _Q2 = {
   dias_decorridos: 81,
   dias_restantes: 42,
   indicadores: [
-    { key: "ind1", label: "Pré-natal ≥6 consultas",    atual: 61.4, meta: 60,  q1: 68.2 },
-    { key: "ind2", label: "Citopatológico",              atual: 28.7, meta: 60,  q1: 33.4 },
-    { key: "ind3", label: "DTP/Penta",                   atual: 68.3, meta: 95,  q1: 73.1 },
-    { key: "ind4", label: "Consulta RN 1ª semana",       atual: 71.6, meta: 60,  q1: 78.4 },
-    { key: "ind5", label: "Acompanhamento HAS",           atual: 60.8, meta: 50,  q1: 67.3 },
-    { key: "ind6", label: "Acompanhamento DM",            atual: 45.9, meta: 50,  q1: 52.1 },
-    { key: "ind7", label: "Desenvolvimento Infantil",     atual: 58.6, meta: 60,  q1: 64.3 },
+    { key: "ind1", label: "Pré-natal ≥6 consultas",    short: "Pré-natal",      atual: 61.4, meta: 60,  q1: 68.2 },
+    { key: "ind2", label: "Citopatológico",              short: "Cito",           atual: 28.7, meta: 60,  q1: 33.4 },
+    { key: "ind3", label: "DTP/Penta",                   short: "DTP/Penta",      atual: 68.3, meta: 95,  q1: 73.1 },
+    { key: "ind4", label: "Consulta RN 1ª semana",       short: "RN 1ª sem.",     atual: 71.6, meta: 60,  q1: 78.4 },
+    { key: "ind5", label: "Acompanhamento HAS",           short: "HAS",            atual: 60.8, meta: 50,  q1: 67.3 },
+    { key: "ind6", label: "Acompanhamento DM",            short: "Diabetes",       atual: 45.9, meta: 50,  q1: 52.1 },
+    { key: "ind7", label: "Desenvolvimento Infantil",     short: "Desenv. Infantil",atual: 58.6, meta: 60,  q1: 64.3 },
   ],
   // Scores reais do e-Gestor AB — Abr/2026 (pts_q1 = pontuação acumulada Q1/2026)
   equipes: [
@@ -874,9 +874,10 @@ function PainelGestorRT() {
             <tr style={{ background:"#f8fafc" }}>
               <th style={{ padding:"8px 12px", textAlign:"left", borderBottom:"2px solid #e5e7eb", fontWeight:700, color:"#374151", minWidth:130 }}>Equipe / UBS</th>
               {_Q2.indicadores.map((ind, i) => (
-                <th key={ind.key} style={{ padding:"8px 6px", textAlign:"center", borderBottom:"2px solid #e5e7eb", fontWeight:600, color:"#6b7280", minWidth:66 }}>
-                  <div style={{ fontSize:11 }}>Ind.{i+1}</div>
-                  <div style={{ fontSize:9, color:"#6b7280", fontWeight:400 }}>M: {metas[i]}%</div>
+                <th key={ind.key} title={ind.label} style={{ padding:"8px 6px", textAlign:"center", borderBottom:"2px solid #e5e7eb", fontWeight:600, color:"#6b7280", minWidth:80, cursor:"help" }}>
+                  <div style={{ fontSize:10, color:"#1d4ed8", fontWeight:700 }}>Ind.{i+1}</div>
+                  <div style={{ fontSize:9, color:"#374151", fontWeight:600, lineHeight:1.3, marginTop:2 }}>{(ind as any).short}</div>
+                  <div style={{ fontSize:9, color:"#6b7280", fontWeight:400, marginTop:2 }}>M: {metas[i]}%</div>
                 </th>
               ))}
               <th style={{ padding:"8px 10px", textAlign:"center", borderBottom:"2px solid #e5e7eb", color:"#1d4ed8", fontWeight:700, fontSize:11 }}>Pts Q1</th>
@@ -918,6 +919,15 @@ function PainelGestorRT() {
             </tr>
           </tbody>
         </table>
+
+        {/* Legenda dos indicadores */}
+        <div style={{ marginTop:12, display:"flex", flexWrap:"wrap", gap:"6px 18px" }}>
+          {_Q2.indicadores.map((ind, i) => (
+            <span key={ind.key} style={{ fontSize:10, color:"#6b7280" }}>
+              <strong style={{ color:"#1d4ed8" }}>Ind.{i+1}</strong> — {ind.label}
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* ── Ritmo Diário Necessário ── */}
@@ -939,7 +949,7 @@ function PainelGestorRT() {
                 <div style={{ fontSize:9, color: atingiu?"#16a34a":"#dc2626", marginTop:4, fontWeight:700 }}>
                   {atingiu ? "Meta atingida" : `Gap: ${gap.toFixed(1)}p.p.`}
                 </div>
-                <div style={{ fontSize:9, color:"#6b7280", marginTop:2 }}>{ind.label.slice(0,16)}…</div>
+                <div style={{ fontSize:9, color:"#6b7280", marginTop:2 }}>{(ind as any).short}</div>
               </div>
             );
           })}
