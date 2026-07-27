@@ -63,7 +63,8 @@ interface TarefaCorrecao {
 }
 
 interface Divergencia {
-  equipe: string; ine: string; cnes: string; campo: string;
+  equipe: string; ubs: string; ine: string; cnes: string; campo: string;
+  profissional?: string; cbo?: string;
   valor_scnes: string; valor_pec: string; status: "convergente" | "divergente" | "alerta";
   criticidade?: string; tipo: string; orientacao?: string;
 }
@@ -658,37 +659,58 @@ function AbaDivergenciaPEC() {
           const bg  = STATUS_BG[d.status];
           return (
             <div key={i} style={{ background: "#fff", border: `1px solid ${cor}30`, borderLeft: `3px solid ${cor}`, borderRadius: 8, padding: "12px 16px" }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 8, background: bg, color: cor }}>
-                      {STATUS_LABEL[d.status]}
-                    </span>
-                    {d.criticidade && (
-                      <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 8, background: `${CRIT_COR[d.criticidade]}15`, color: CRIT_COR[d.criticidade] }}>
-                        {CRIT_LABEL[d.criticidade]}
-                      </span>
-                    )}
-                    <span style={{ fontSize: 10, color: "#9ca3af" }}>{d.campo}</span>
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e", marginBottom: 2 }}>{d.equipe}</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-                    <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 6, padding: "6px 10px" }}>
-                      <div style={{ fontSize: 9, color: "#9ca3af", fontWeight: 600, marginBottom: 2 }}>SCNES</div>
-                      <div style={{ fontSize: 11, color: "#374151", fontFamily: "monospace" }}>{d.valor_scnes}</div>
-                    </div>
-                    <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 6, padding: "6px 10px" }}>
-                      <div style={{ fontSize: 9, color: "#9ca3af", fontWeight: 600, marginBottom: 2 }}>PEC</div>
-                      <div style={{ fontSize: 11, color: "#374151", fontFamily: "monospace" }}>{d.valor_pec}</div>
-                    </div>
-                  </div>
-                  {d.orientacao && (
-                    <div style={{ marginTop: 8, background: `${cor}10`, borderRadius: 6, padding: "6px 10px", fontSize: 10, color: "#374151" }}>
-                      <strong>Orientação:</strong> {d.orientacao}
-                    </div>
+              {/* Linha de badges */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 8, background: bg, color: cor }}>
+                  {STATUS_LABEL[d.status]}
+                </span>
+                {d.criticidade && (
+                  <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 8, background: `${CRIT_COR[d.criticidade]}15`, color: CRIT_COR[d.criticidade] }}>
+                    {CRIT_LABEL[d.criticidade]}
+                  </span>
+                )}
+                <span style={{ fontSize: 10, color: "#6b7280", fontWeight: 600 }}>{d.campo}</span>
+              </div>
+
+              {/* Equipe + UBS */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: "#1a1a2e" }}>{d.equipe}</span>
+                {d.ubs && (
+                  <span style={{ fontSize: 10, color: "#6b7280", background: "#f1f5f9", padding: "1px 8px", borderRadius: 10 }}>
+                    {d.ubs}
+                  </span>
+                )}
+                <span style={{ fontSize: 10, color: "#9ca3af", marginLeft: "auto" }}>INE: {d.ine}</span>
+              </div>
+
+              {/* Profissional + CBO */}
+              {d.profissional && d.profissional !== "—" && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, padding: "5px 10px", background: "#f8fafc", borderRadius: 6, border: "1px solid #e5e7eb" }}>
+                  <span style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, flexShrink: 0 }}>Profissional:</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#1e293b" }}>{d.profissional}</span>
+                  {d.cbo && d.cbo !== "—" && (
+                    <span style={{ fontSize: 10, color: "#64748b", marginLeft: 6, borderLeft: "1px solid #cbd5e1", paddingLeft: 8 }}>{d.cbo}</span>
                   )}
                 </div>
+              )}
+
+              {/* Comparativo SCNES × PEC */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
+                <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 6, padding: "6px 10px" }}>
+                  <div style={{ fontSize: 9, color: "#9ca3af", fontWeight: 700, marginBottom: 2 }}>SCNES</div>
+                  <div style={{ fontSize: 11, color: "#374151", fontFamily: "monospace" }}>{d.valor_scnes}</div>
+                </div>
+                <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 6, padding: "6px 10px" }}>
+                  <div style={{ fontSize: 9, color: "#9ca3af", fontWeight: 700, marginBottom: 2 }}>PEC</div>
+                  <div style={{ fontSize: 11, color: "#374151", fontFamily: "monospace" }}>{d.valor_pec}</div>
+                </div>
               </div>
+
+              {d.orientacao && (
+                <div style={{ marginTop: 8, background: `${cor}10`, borderRadius: 6, padding: "6px 10px", fontSize: 10, color: "#374151" }}>
+                  <strong>Orientação:</strong> {d.orientacao}
+                </div>
+              )}
             </div>
           );
         })}
