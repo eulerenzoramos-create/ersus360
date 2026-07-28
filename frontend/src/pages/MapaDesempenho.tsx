@@ -706,7 +706,7 @@ export default function MapaDesempenho() {
                     { equipe: "ESF São José",    ubs: "UBS São José",    v: [66.3, 32.2, 72.6, 77.1, 64.7, 49.1, 62.3] },
                     { equipe: "ESF Vila Verde",  ubs: "UBS Vila Verde",  v: [57.4, 25.8, 65.2, 69.7, 56.1, 41.7, 53.8] },
                   ].map((row, ri) => {
-                    const metas = [60, 60, 95, 60, 50, 50, 60];
+                    const metas = [60, 60, 95, 60, 60, 55, 60];
                     const media = row.v.reduce((s, v) => s + v, 0) / row.v.length;
                     return (
                       <tr key={row.equipe} style={{ background: ri % 2 === 0 ? "#fafafa" : "#fff" }}>
