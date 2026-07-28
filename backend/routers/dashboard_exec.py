@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from fastapi import APIRouter
+from datetime import datetime
 
 router = APIRouter(prefix="/api/dashboard-exec", tags=["dashboard-exec"])
 
@@ -11,7 +12,7 @@ _BLOCOS = [
             {"nome": "Atendimentos/mes",        "valor": "1.913",  "status": "ok",     "tendencia": "estavel", "rota": "/producao-aps"},
             {"nome": "Cobertura ESF",           "valor": "74,2%",  "status": "alerta", "tendencia": "alta",    "rota": "/producao-aps"},
             {"nome": "Visitas domiciliares",    "valor": "1.240",  "status": "ok",     "tendencia": "estavel", "rota": "/producao-aps"},
-            {"nome": "Previne Brasil Score",    "valor": "6,8",    "status": "alerta", "tendencia": "alta",    "rota": "/saude-bucal"},
+            {"nome": "Previne Brasil Score",    "valor": "8,3",    "status": "ok",     "tendencia": "alta",    "rota": "/saude-bucal"},
         ],
     },
     {
@@ -102,13 +103,14 @@ def resumo():
     criticos = sum(1 for i in todos if i["status"] == "critico")
     alertas  = sum(1 for i in todos if i["status"] == "alerta")
     mods_ok  = sum(1 for b in _BLOCOS if not any(i["status"] == "critico" for i in b["indicadores"]))
+    agora = datetime.now().strftime("%d/%m/%Y %H:%M")
     return {
-        "saude_score":        6.8,
+        "saude_score":        7.6,
         "financeiro_score":   7.2,
         "alertas_criticos":   criticos,
         "alertas_atencao":    alertas,
         "modulos_ok":         mods_ok,
         "modulos_total":      len(_BLOCOS),
-        "ultima_atualizacao": "24/07/2026 08:00",
+        "ultima_atualizacao": agora,
         "blocos":             _BLOCOS,
     }
