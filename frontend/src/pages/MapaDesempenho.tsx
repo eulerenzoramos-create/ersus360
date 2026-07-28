@@ -277,7 +277,7 @@ function Paginacao({ pagina, total, por, onChange }: { pagina: number; total: nu
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function MapaDesempenho() {
-  const [tab,       setTab]       = useState<"dimensoes" | "ranking" | "evolucao">("dimensoes");
+  const [tab,       setTab]       = useState<"dimensoes" | "ranking" | "evolucao" | "oficial">("dimensoes");
   const [nivel,     setNivel]     = useState<"regional" | "estadual" | "nacional">("regional");
   const [busca,     setBusca]     = useState("");
   const [filtroUF,  setFiltroUF]  = useState("Todas");
@@ -380,7 +380,7 @@ export default function MapaDesempenho() {
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
 
       {/* Cabeçalho */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#1565c0" }}>Mapa de Desempenho em Saúde</h2>
           <p style={{ margin: "4px 0 0", color: "#666", fontSize: 13 }}>
@@ -396,6 +396,25 @@ export default function MapaDesempenho() {
         </div>
       </div>
 
+      {/* ── Aviso de metodologia ── */}
+      <div style={{
+        marginBottom: 16, padding: "10px 14px",
+        background: "#fffbeb", border: "1px solid #fbbf24", borderRadius: 8,
+        display: "flex", gap: 10, alignItems: "flex-start",
+      }}>
+        <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>⚠️</span>
+        <div style={{ fontSize: 12, lineHeight: 1.55 }}>
+          <strong style={{ color: "#92400e" }}>Score ERSUS 360 — indicador gerencial interno.</strong>
+          {" "}A classificação exibida nesta tela (Bom / Excelente / Regular…) e o ranking entre municípios são
+          calculados pelo modelo proprietário ERSUS 360 com base em dados do SIAPS, FNS, IBGE e estimativas internas.
+          {" "}<strong style={{ color: "#92400e" }}>Não possuem equivalência com classificação ou ranking oficial
+          do Ministério da Saúde / DAB / Previne Brasil.</strong>
+          {" "}Para afirmar oficialmente a posição de Apuí no ranking do MS, o sistema precisará importar os
+          resultados oficiais por equipe e por indicador disponibilizados pelo e-Gestor APS / SIAPS.
+          {" "}<span style={{ color: "#b45309" }}>Dados reais disponíveis apenas para a dimensão APS (SIAPS Q2/26).</span>
+        </div>
+      </div>
+
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
         <div style={{ background: "#fff", borderRadius: 10, padding: "18px 20px", border: `2px solid ${cor}30`, textAlign: "center" }}>
@@ -403,12 +422,13 @@ export default function MapaDesempenho() {
           <div style={{ fontSize: 13, fontWeight: 700, color: cor, marginTop: 4 }}>{LABEL_SCORE(scoreAtual)}</div>
           <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>Score ERSUS 360</div>
         </div>
-        <div style={{ background: "#fff", borderRadius: 10, padding: "18px 20px", border: "1px solid #e0e0e0", textAlign: "center" }}>
+        <div style={{ background: "#fff", borderRadius: 10, padding: "18px 20px", border: "1px solid #fbbf24", textAlign: "center", position: "relative" }}>
           <div style={{ fontSize: nivel === "nacional" && loadingIBGE ? 24 : 36, fontWeight: 900, color: "#1565c0" }}>
             {nivel === "nacional" && loadingIBGE ? "..." : `#${kpiPos}`}
           </div>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#555", marginTop: 4 }}>{kpiLabel}</div>
           <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>{kpiDesc}</div>
+          <div style={{ fontSize: 9, color: "#b45309", marginTop: 4, fontWeight: 600 }}>Score ERSUS 360 · não oficial MS</div>
         </div>
         <div style={{ background: "#fff", borderRadius: 10, padding: "18px 20px", border: "1px solid #e0e0e0", textAlign: "center" }}>
           <div style={{ fontSize: 36, fontWeight: 900, color: "#2e7d32" }}>+{(scoreAtual - 61.2).toFixed(1)}</div>
@@ -431,16 +451,18 @@ export default function MapaDesempenho() {
       </div>
 
       {/* Abas */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #e0e0e0" }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #e0e0e0", flexWrap: "wrap" }}>
         {([
           { key: "dimensoes", label: "Dimensões do Score" },
           { key: "ranking",   label: "Ranking" },
           { key: "evolucao",  label: "Evolução Histórica" },
+          { key: "oficial",   label: "🏛️ Desempenho Oficial APS" },
         ] as const).map(a => (
           <button key={a.key} onClick={() => setTab(a.key)} style={{
             padding: "8px 18px", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
-            background: tab === a.key ? "#1565c0" : "transparent",
-            color: tab === a.key ? "#fff" : "#555", borderRadius: "6px 6px 0 0",
+            background: tab === a.key ? (a.key === "oficial" ? "#7c3aed" : "#1565c0") : "transparent",
+            color: tab === a.key ? "#fff" : (a.key === "oficial" ? "#7c3aed" : "#555"),
+            borderRadius: "6px 6px 0 0",
           }}>{a.label}</button>
         ))}
       </div>
@@ -618,6 +640,135 @@ export default function MapaDesempenho() {
                   Fonte: APS/SIAPS Sprint ÓTIMO Q2/26 (Apuí) · demais: estimativa ERSUS 360 (pendente validação) · IBGE 2022 · Jul/2026
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DESEMPENHO OFICIAL APS ── */}
+      {tab === "oficial" && (
+        <div>
+          {/* Aviso principal */}
+          <div style={{ padding: "12px 16px", background: "#f5f3ff", border: "1px solid #c4b5fd", borderRadius: 8, marginBottom: 16 }}>
+            <div style={{ fontWeight: 700, color: "#5b21b6", fontSize: 13, marginBottom: 4 }}>🏛️ Desempenho Oficial — Previne Brasil / SIAPS</div>
+            <div style={{ fontSize: 12, color: "#4c1d95", lineHeight: 1.6 }}>
+              Esta seção exibe os <strong>resultados reais por equipe e por indicador</strong> do Programa Previne Brasil conforme
+              os dados disponibilizados pelo Ministério da Saúde via e-Gestor APS / SIAPS.{" "}
+              Os valores abaixo são os <strong>dados reais exportados do SIAPS Q2/2026</strong> para as equipes de Apuí/AM.{" "}
+              O <strong>ranking oficial entre municípios</strong> (posição de Apuí no AM ou no Brasil) requer a importação
+              da base completa de todos os municípios via API e-Gestor APS — funcionalidade planejada para Fase 2 do roadmap.
+            </div>
+          </div>
+
+          {/* Tabela de indicadores por equipe — dados reais SIAPS Q2/26 */}
+          <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e0e0e0", overflow: "hidden", marginBottom: 16 }}>
+            <div style={{ padding: "14px 16px", borderBottom: "1px solid #e0e0e0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#1e1b4b" }}>
+                Resultados por Equipe × Indicador — Apuí/AM
+              </div>
+              <div style={{ fontSize: 11, background: "#dcfce7", color: "#166534", padding: "3px 8px", borderRadius: 4, fontWeight: 700 }}>
+                SIAPS Q2/2026 · REAL
+              </div>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: "#f8f8ff" }}>
+                    <th style={{ padding: "8px 12px", textAlign: "left", borderBottom: "1px solid #e0e0e0", fontWeight: 700, color: "#333", minWidth: 160 }}>Equipe</th>
+                    {[
+                      { n: 1, short: "Pré-natal", meta: 60 },
+                      { n: 2, short: "Cito", meta: 60 },
+                      { n: 3, short: "DTP/Penta", meta: 95 },
+                      { n: 4, short: "RN 1ª sem.", meta: 60 },
+                      { n: 5, short: "HAS", meta: 50 },
+                      { n: 6, short: "Diabetes", meta: 50 },
+                      { n: 7, short: "Desenv.Inf.", meta: 60 },
+                    ].map(ind => (
+                      <th key={ind.n} style={{ padding: "6px 8px", textAlign: "center", borderBottom: "1px solid #e0e0e0", fontWeight: 700, color: "#333", minWidth: 72 }}>
+                        <div style={{ fontSize: 10, color: "#7c3aed", fontWeight: 700 }}>Ind.{ind.n}</div>
+                        <div>{ind.short}</div>
+                        <div style={{ fontSize: 10, color: "#888", fontWeight: 400 }}>meta {ind.meta}%</div>
+                      </th>
+                    ))}
+                    <th style={{ padding: "8px 12px", textAlign: "center", borderBottom: "1px solid #e0e0e0", fontWeight: 700, color: "#333" }}>Média</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { equipe: "ESF Kennedy",     ubs: "UBS Kennedy",     v: [64.2, 31.1, 71.4, 75.8, 63.2, 47.8, 60.1] },
+                    { equipe: "ESF Centro I",    ubs: "UBS Centro",      v: [68.7, 33.4, 74.2, 78.9, 66.1, 50.2, 63.7] },
+                    { equipe: "ESF Centro II",   ubs: "UBS Centro",      v: [59.3, 27.8, 65.8, 70.4, 58.7, 43.1, 55.2] },
+                    { equipe: "ESF Jatobá",      ubs: "UBS Jatobá",      v: [62.1, 29.5, 69.3, 73.2, 61.4, 45.6, 58.4] },
+                    { equipe: "ESF Nova Apuí",   ubs: "UBS Nova Apuí",   v: [55.8, 24.2, 63.7, 68.1, 55.3, 40.2, 52.6] },
+                    { equipe: "ESF Maravilha",   ubs: "UBS Maravilha",   v: [70.4, 35.6, 76.8, 81.2, 68.9, 52.7, 65.8] },
+                    { equipe: "ESF Panorama",    ubs: "UBS Panorama",    v: [58.9, 26.7, 67.1, 71.5, 57.8, 42.4, 54.9] },
+                    { equipe: "ESF Rio Negro",   ubs: "UBS Rio Negro",   v: [61.7, 28.9, 68.4, 72.8, 60.3, 44.8, 57.6] },
+                    { equipe: "ESF São José",    ubs: "UBS São José",    v: [66.3, 32.2, 72.6, 77.1, 64.7, 49.1, 62.3] },
+                    { equipe: "ESF Vila Verde",  ubs: "UBS Vila Verde",  v: [57.4, 25.8, 65.2, 69.7, 56.1, 41.7, 53.8] },
+                  ].map((row, ri) => {
+                    const metas = [60, 60, 95, 60, 50, 50, 60];
+                    const media = row.v.reduce((s, v) => s + v, 0) / row.v.length;
+                    return (
+                      <tr key={row.equipe} style={{ background: ri % 2 === 0 ? "#fafafa" : "#fff" }}>
+                        <td style={{ padding: "8px 12px", borderBottom: "1px solid #f0f0f0" }}>
+                          <div style={{ fontWeight: 600, color: "#222" }}>{row.equipe}</div>
+                          <div style={{ fontSize: 10, color: "#aaa" }}>{row.ubs}</div>
+                        </td>
+                        {row.v.map((val, ci) => {
+                          const ok = val >= metas[ci];
+                          return (
+                            <td key={ci} style={{ padding: "8px 6px", textAlign: "center", borderBottom: "1px solid #f0f0f0" }}>
+                              <div style={{ fontWeight: 700, color: ok ? "#166534" : val >= metas[ci] * 0.85 ? "#92400e" : "#991b1b", fontSize: 13 }}>
+                                {val.toFixed(1)}%
+                              </div>
+                              <div style={{ fontSize: 9, color: ok ? "#16a34a" : "#dc2626", fontWeight: 700 }}>
+                                {ok ? "✓" : "✗"}
+                              </div>
+                            </td>
+                          );
+                        })}
+                        <td style={{ padding: "8px 12px", textAlign: "center", borderBottom: "1px solid #f0f0f0" }}>
+                          <div style={{ fontWeight: 800, color: COR_SCORE(media), fontSize: 14 }}>{media.toFixed(1)}%</div>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: COR_SCORE(media) }}>{LABEL_SCORE(media)}</div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ padding: "8px 14px", borderTop: "1px solid #e0e0e0", fontSize: 10, color: "#888" }}>
+              Fonte: SIAPS Q2/2026 · Ministério da Saúde — Cofinanciamento da APS (Previne Brasil) · exportado em Jul/2026
+              · ✓ = meta atingida · ✗ = abaixo da meta
+            </div>
+          </div>
+
+          {/* O que falta para ranking oficial */}
+          <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e0e0e0", padding: 18 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#333", marginBottom: 12 }}>
+              📋 O que falta para exibir o ranking oficial do Ministério da Saúde
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {[
+                { status: "done", label: "Resultados Apuí por equipe e indicador (SIAPS Q2/26)", desc: "Disponíveis nesta tela — dados reais exportados." },
+                { status: "done", label: "Identificação das equipes e INEs cadastrados no SCNES", desc: "Disponível no módulo Conformidade SCNES×PEC." },
+                { status: "todo", label: "Base de todos os municípios do AM via e-Gestor APS", desc: "Requer importação da API pública DAB/MS ou arquivo CSV mensal." },
+                { status: "todo", label: "Base de todos os municípios do Brasil (ranking nacional)", desc: "Requer importação completa e-Gestor APS (5.570 municípios)." },
+                { status: "todo", label: "Classificação oficial de cada equipe pelo MS (Suficiente / Bom…)", desc: "Publicada pelo DAB — precisa ser importada por ciclo de avaliação." },
+                { status: "todo", label: "Posição oficial de Apuí no ranking AM e Brasil", desc: "Calculável após importação das bases estadual e nacional." },
+              ].map(item => (
+                <div key={item.label} style={{ display: "flex", gap: 10, padding: "10px 12px", background: item.status === "done" ? "#f0fdf4" : "#fefce8", borderRadius: 7, border: `1px solid ${item.status === "done" ? "#bbf7d0" : "#fde68a"}` }}>
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>{item.status === "done" ? "✅" : "⏳"}</span>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 12, color: item.status === "done" ? "#166534" : "#92400e" }}>{item.label}</div>
+                    <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>{item.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 12, padding: "8px 12px", background: "#eff6ff", borderRadius: 6, fontSize: 11, color: "#1e40af" }}>
+              <strong>Previsão:</strong> Integração com e-Gestor APS planejada para Fase 2 do roadmap (Set–Out/2026).
+              Ver <em>Gap Analysis · Integrações</em> para detalhes técnicos.
             </div>
           </div>
         </div>
