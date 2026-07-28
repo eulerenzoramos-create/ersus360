@@ -136,7 +136,7 @@ export default function ParametrosMS() {
       {/* Resumo Componente Qualidade por grupo */}
       {pData.componente_qualidade && (
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:16 }}>
-          {[["grupo_C","C — eSF/eAP","#1565c0"], ["grupo_B","B — ESB","#7b1fa2"], ["grupo_M","M — eMulti","#1b5e20"]].map(([gk, label, cor]) => {
+          {[["C","C — eSF/eAP","#1565c0"], ["B","B — ESB","#7b1fa2"], ["M","M — eMulti","#1b5e20"]].map(([gk, label, cor]) => {
             const g = pData.componente_qualidade?.[gk];
             if (!g) return null;
             const inds = g.indicadores ?? [];
@@ -227,10 +227,10 @@ export default function ParametrosMS() {
       </div>
 
       {/* Grupos */}
-      {["grupo_C", "grupo_B", "grupo_M"].map(gk => {
+      {["C", "B", "M"].map(gk => {
         const grp = qualData.grupos?.[gk];
         if (!grp) return null;
-        const cores: Record<string, string> = { grupo_C: "#1565c0", grupo_B: "#7b1fa2", grupo_M: "#1b5e20" };
+        const cores: Record<string, string> = { C: "#1565c0", B: "#7b1fa2", M: "#1b5e20" };
         const cor = cores[gk];
         return (
           <div key={gk} style={{ marginBottom:20 }}>
