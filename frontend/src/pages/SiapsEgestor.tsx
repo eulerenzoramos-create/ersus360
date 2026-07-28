@@ -730,8 +730,8 @@ const _Q2 = {
     { key: "ind2", label: "Citopatológico",              short: "Cito",           atual: 28.7, meta: 60,  q1: 33.4 },
     { key: "ind3", label: "DTP/Penta",                   short: "DTP/Penta",      atual: 68.3, meta: 95,  q1: 73.1 },
     { key: "ind4", label: "Consulta RN 1ª semana",       short: "RN 1ª sem.",     atual: 71.6, meta: 60,  q1: 78.4 },
-    { key: "ind5", label: "Acompanhamento HAS",           short: "HAS",            atual: 60.8, meta: 50,  q1: 67.3 },
-    { key: "ind6", label: "Acompanhamento DM",            short: "Diabetes",       atual: 45.9, meta: 50,  q1: 52.1 },
+    { key: "ind5", label: "Acompanhamento HAS",           short: "HAS",            atual: 60.8, meta: 60,  q1: 67.3 },
+    { key: "ind6", label: "Acompanhamento DM",            short: "Diabetes",       atual: 45.9, meta: 55,  q1: 52.1 },
     { key: "ind7", label: "Desenvolvimento Infantil",     short: "Desenv. Infantil",atual: 58.6, meta: 60,  q1: 64.3 },
   ],
   // Scores reais do e-Gestor AB — Abr/2026 (pts_q1 = pontuação acumulada Q1/2026)
@@ -751,7 +751,7 @@ const _Q2 = {
 function PainelGestorRT() {
   const { dias_totais, dias_decorridos, dias_restantes } = _Q2;
   const pctTempo = Math.round((dias_decorridos / dias_totais) * 100);
-  const metas = [60, 60, 95, 60, 50, 50, 60];
+  const metas = [60, 60, 95, 60, 60, 55, 60];
   const indKeys = ["ind1","ind2","ind3","ind4","ind5","ind6","ind7"] as const;
 
   const corGap = (atual: number, meta: number) => {

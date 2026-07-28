@@ -680,8 +680,8 @@ export default function MapaDesempenho() {
                       { n: 2, short: "Cito", meta: 60 },
                       { n: 3, short: "DTP/Penta", meta: 95 },
                       { n: 4, short: "RN 1ª sem.", meta: 60 },
-                      { n: 5, short: "HAS", meta: 50 },
-                      { n: 6, short: "Diabetes", meta: 50 },
+                      { n: 5, short: "HAS", meta: 60 },
+                      { n: 6, short: "Diabetes", meta: 55 },
                       { n: 7, short: "Desenv.Inf.", meta: 60 },
                     ].map(ind => (
                       <th key={ind.n} style={{ padding: "6px 8px", textAlign: "center", borderBottom: "1px solid #e0e0e0", fontWeight: 700, color: "#333", minWidth: 72 }}>
