@@ -899,22 +899,40 @@ async def get_componente_qualidade(mes: int = Query(default=None), ano: int = Qu
             cor = "red"
         return {"nota": nota, "conceito": conceito, "cor": cor}
 
+    # chaves curtas ("C", "B", "M") conforme esperado pelo frontend
     grupos_resultado = {}
     total_otimo = total_bom = total_suficiente = total_regular = 0
 
-    for grupo_key in ("grupo_C", "grupo_B", "grupo_M"):
+    def _conceito_de_nota(nota: float) -> str:
+        if nota > 7.5:   return "Ótimo"
+        if nota >= 5.0:  return "Bom"
+        if nota >= 2.6:  return "Suficiente"
+        return "Regular"
+
+    for grupo_key, sigla in (("grupo_C", "C"), ("grupo_B", "B"), ("grupo_M", "M")):
         grupo = INDICADORES_QUALIDADE[grupo_key]
         inds = []
+        g_otimo = g_bom = g_suf = g_reg = 0
         for ind in grupo["indicadores"]:
             cls = _classificar(ind["codigo"], ano, mes)
-            if cls["conceito"] == "Ótimo": total_otimo += 1
-            elif cls["conceito"] == "Bom": total_bom += 1
-            elif cls["conceito"] == "Suficiente": total_suficiente += 1
-            else: total_regular += 1
+            c = cls["conceito"]
+            if c == "Ótimo":     total_otimo += 1;  g_otimo += 1
+            elif c == "Bom":     total_bom += 1;    g_bom += 1
+            elif c == "Suficiente": total_suficiente += 1; g_suf += 1
+            else:                total_regular += 1; g_reg += 1
             inds.append({**ind, **cls})
-        grupos_resultado[grupo_key] = {
+
+        g_total = len(inds)
+        notas = [i["nota"] for i in inds]
+        nota_media = round(sum(notas) / g_total, 1) if g_total else 0.0
+        pct_bom_otimo = round((g_otimo + g_bom) / g_total * 100) if g_total else 0
+
+        grupos_resultado[sigla] = {
             **{k: v for k, v in grupo.items() if k != "indicadores"},
             "indicadores": inds,
+            "nota_media": nota_media,
+            "conceito_medio": _conceito_de_nota(nota_media),
+            "pct_bom_otimo": pct_bom_otimo,
         }
 
     total = total_otimo + total_bom + total_suficiente + total_regular
@@ -940,7 +958,7 @@ async def get_componente_qualidade(mes: int = Query(default=None), ano: int = Qu
             "bom": total_bom,
             "suficiente": total_suficiente,
             "regular": total_regular,
-            "pct_bom_otimo": round((total_otimo + total_bom) / total * 100, 1),
+            "pct_bom_otimo": round((total_otimo + total_bom) / total * 100, 1) if total else 0,
         },
         "grupos": grupos_resultado,
     }
