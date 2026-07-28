@@ -598,8 +598,8 @@ _QUAD_COMPARATIVO = [
     {"indicador": "Ind.2 — Citopatológico","1q_2025": 28.5, "2q_2025": 30.1, "3q_2025": 33.8, "1q_2026": 37.1, "meta": 60.0, "tendencia": "crescente_insuf"},
     {"indicador": "Ind.3 — DTP/Penta",    "1q_2025": 68.0, "2q_2025": 70.5, "3q_2025": 73.2, "1q_2026": 76.5, "meta": 95.0, "tendencia": "crescente"},
     {"indicador": "Ind.4 — Consulta RN",  "1q_2025": 74.0, "2q_2025": 76.8, "3q_2025": 79.5, "1q_2026": 81.9, "meta": 60.0, "tendencia": "crescente"},
-    {"indicador": "Ind.5 — Acomp. HAS",   "1q_2025": 60.5, "2q_2025": 63.2, "3q_2025": 66.8, "1q_2026": 70.5, "meta": 50.0, "tendencia": "crescente"},
-    {"indicador": "Ind.6 — Acomp. DM",    "1q_2025": 45.0, "2q_2025": 48.5, "3q_2025": 52.1, "1q_2026": 55.4, "meta": 50.0, "tendencia": "crescente"},
+    {"indicador": "Ind.5 — Acomp. HAS",   "1q_2025": 60.5, "2q_2025": 63.2, "3q_2025": 66.8, "1q_2026": 70.5, "meta": 60.0, "tendencia": "crescente"},
+    {"indicador": "Ind.6 — Acomp. DM",    "1q_2025": 45.0, "2q_2025": 48.5, "3q_2025": 52.1, "1q_2026": 55.4, "meta": 55.0, "tendencia": "crescente"},
     {"indicador": "Ind.7 — Desenv. Infantil","1q_2025": 58.0,"2q_2025": 61.5,"3q_2025": 64.3,"1q_2026": 67.1,"meta": 60.0, "tendencia": "crescente"},
 ]
 
