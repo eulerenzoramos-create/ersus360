@@ -1,5 +1,6 @@
 // src/pages/ACSPainel.tsx — Painel ACS · eSUS PEC integrado
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Users, MapPin, Home, CheckCircle, Activity, Baby, Heart,
@@ -603,10 +604,31 @@ function AbaCadastrosDomiciliares() {
 
 // ── Componente Principal ──────────────────────────────────────────────────────
 
+// Rotas do menu lateral que já têm uma aba correspondente aqui dentro.
+// "Cadastros do Cidadão" (/acs/cadastros-cid) e "Visitas Domiciliares Cidadão"
+// (/acs/visitas-cidadao) ainda não têm conteúdo próprio — por isso não estão
+// neste mapa (cairiam incorretamente numa aba errada em vez de ficarem no
+// Dashboard, que é o comportamento honesto até essas telas existirem).
+const ROTA_PARA_ABA: Record<string, Aba> = {
+  "/acs/painel": "dashboard",
+  "/acs/calendario": "calendario",
+  "/acs/cadastros-ind": "cadastros_ind",
+  "/acs/cadastros-dom": "cadastros_dom",
+};
+
 export default function ACSPainel() {
-  const [aba, setAba] = useState<Aba>("dashboard");
+  const location = useLocation();
+  const [aba, setAba] = useState<Aba>(() => ROTA_PARA_ABA[location.pathname] ?? "dashboard");
   const [esfFiltro, setEsfFiltro] = useState("Todas");
   const [statusFiltro, setStatusFiltro] = useState("Todos");
+
+  // O catch-all "/acs/*" mantém este mesmo componente montado ao navegar entre
+  // os links do menu — sem isto, trocar de link não muda nada na tela (o bug
+  // relatado como "sistema travado").
+  useEffect(() => {
+    const nova = ROTA_PARA_ABA[location.pathname];
+    if (nova) setAba(nova);
+  }, [location.pathname]);
 
   const { data: dash, isLoading, refetch } = useQuery<DashboardAcs>({
     queryKey: ["acs-dashboard"],

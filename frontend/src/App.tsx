@@ -13,7 +13,7 @@ import {
   Radio, Globe, ShoppingBag, Bell, Search, MessageSquare, Wrench, Brain, Bug, FlaskRound, Smile, Thermometer, Droplets, Utensils,
   Wind, Eye, TrendingDown, Trash2, School, Sparkles, Waves, Clock,
   HeartPulse, HandHeart, Scale, Ship, Trophy, Package,
-  ShieldAlert, Calculator, ClipboardCheck, Download, Award,
+  ShieldAlert, Calculator, ClipboardCheck, Download, Award, Plug,
 } from "lucide-react";
 
 import PainelGestor    from "./pages/PainelGestor";
@@ -186,6 +186,11 @@ import MonitorLotesSIAPS        from "./pages/MonitorLotesSIAPS";
 import ConformidadeSCNES        from "./pages/ConformidadeSCNES";
 import QualidadeCADSUS          from "./pages/QualidadeCADSUS";
 import GatewayRNDS              from "./pages/GatewayRNDS";
+import IntegracaoPEC            from "./pages/IntegracaoPEC";
+import MapaVisitasDomiciliares  from "./pages/MapaVisitasDomiciliares";
+import RegistrarVisita          from "./pages/RegistrarVisita";
+import CadastrosCidadao         from "./pages/CadastrosCidadao";
+import VisitasDomiciliaresCidadao from "./pages/VisitasDomiciliaresCidadao";
 import LinhaTempoCidadao        from "./pages/LinhaTempoCidadao";
 import RelatorioTCETCU          from "./pages/RelatorioTCETCU";
 import PrevisaoPrevineBrasil    from "./pages/PrevisaoPrevineBrasil";
@@ -772,6 +777,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
               <L2 to="/acs/calendario"         label="Calendário de Visitas"            Icon={Calendar}/>
               <L2 to="/acs/visitas-cidadao"    label="Visitas Domiciliares Cidadão"     Icon={MapPin}/>
               <L2 to="/acs/mapa-visitas"       label="Mapa de Visitas Domiciliares"     Icon={Map}/>
+              <L2 to="/acs/registrar-visita"   label="Registrar Visita"                 Icon={ClipboardCheck}/>
             </Acc1>
 
             {/* ── Inconsistências ── */}
@@ -859,6 +865,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             {podeAud && <L1 to="/auditoria"           label="Auditoria do Sistema"   Icon={Shield}/>}
             {podeAud && <L1 to="/central-auditoria"   label="Central de Auditoria APS" Icon={ShieldCheck}/>}
             {podeAud && <L1 to="/gap-analysis-aps"    label="Gap Analysis · Integrações" Icon={GitBranch}/>}
+            {podeAud && <L1 to="/integracao-pec"      label="Integração PEC e-SUS APS" Icon={Plug}/>}
             {podeAud && <L1 to="/plano-acao"          label="Plano de Ação"          Icon={ClipboardList}/>}
             {podeAud && <L1 to="/trilha-auditoria"    label="Trilha de Auditoria"    Icon={GitBranch}/>}
             {podeAud && <L1 to="/monitor-lotes-siaps" label="Monitor Lotes SIAPS"    Icon={Package}/>}
@@ -967,6 +974,10 @@ export default function App() {
             <Route path="/busca-ativa/*"             element={<BuscaAtiva/>}/>
             {/* ACS */}
             <Route path="/acs/painel"                element={<ACSPainel/>}/>
+            <Route path="/acs/mapa-visitas"           element={<MapaVisitasDomiciliares/>}/>
+            <Route path="/acs/registrar-visita"       element={<RegistrarVisita/>}/>
+            <Route path="/acs/cadastros-cid"          element={<CadastrosCidadao/>}/>
+            <Route path="/acs/visitas-cidadao"        element={<VisitasDomiciliaresCidadao/>}/>
             <Route path="/acs/*"                     element={<ACSPainel/>}/>
             {/* Inconsistências */}
             <Route path="/inconsistencias/*"         element={<Documentos/>}/>
@@ -1270,6 +1281,7 @@ export default function App() {
             <Route path="/conformidade-scnes"        element={<ConformidadeSCNES/>}/>
             <Route path="/qualidade-cadsus"          element={<QualidadeCADSUS/>}/>
             <Route path="/gateway-rnds"              element={<GatewayRNDS/>}/>
+            <Route path="/integracao-pec"            element={<IntegracaoPEC/>}/>
             <Route path="/linha-tempo-cidadao"       element={<LinhaTempoCidadao/>}/>
             <Route path="/relatorio-tce-tcu"         element={<RelatorioTCETCU/>}/>
             <Route path="/previsao-previne"          element={<PrevisaoPrevineBrasil/>}/>

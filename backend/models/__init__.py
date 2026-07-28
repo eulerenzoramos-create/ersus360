@@ -14,6 +14,12 @@ from models.obra import Obra, ObraFoto, ObraCronograma, TipoEstabelecimento, Tip
 from models.usuario import Usuario, AuditLog, Perfil, PERMISSOES
 from models.documento import Documento
 from models.emenda import Emenda, TipoEmenda, FaseEmenda, QuadrimestreEmenda
+from models.pec_cadastro import (
+    OrigemDado, EquipeSaude, ProfissionalSaude, Microarea, Domicilio, Cidadao,
+)
+from models.visita_domiciliar import (
+    StatusFilaVisita, StatusLocalizacao, VisitaDomiciliar, VisitaTransmissao,
+)
 
 __all__ = [
     # Municipio
@@ -41,4 +47,8 @@ __all__ = [
     "Documento",
     # Emendas
     "Emenda", "TipoEmenda", "FaseEmenda", "QuadrimestreEmenda",
+    # Cadastros PEC (cache local — ver docs/DOC-PEC-INTEGRACAO.md)
+    "OrigemDado", "EquipeSaude", "ProfissionalSaude", "Microarea", "Domicilio", "Cidadao",
+    # Visitas domiciliares / fila LEDI
+    "StatusFilaVisita", "StatusLocalizacao", "VisitaDomiciliar", "VisitaTransmissao",
 ]

@@ -33,6 +33,26 @@ class Settings(BaseSettings):
     # CNES (DATASUS — sem credencial)
     CNES_API: str = "https://cnes.datasus.gov.br/services"
 
+    # e-SUS PEC — Integração LEDI/MIVDT (Mapa de Visitas Domiciliares ACS)
+    # Ver docs/DOC-PEC-INTEGRACAO.md para diagnóstico completo e passo a passo de ativação.
+    PEC_BASE_URL: str = ""
+    PEC_API_URL: str = ""
+    PEC_CLIENT_ID: str = ""
+    PEC_CLIENT_SECRET: str = ""
+    PEC_CERTIFICATE_PATH: str = ""
+    PEC_CERTIFICATE_PASSWORD: str = ""
+    PEC_ESTABLISHMENT_CNES: str = ""
+    PEC_REQUEST_TIMEOUT: int = 30
+    PEC_ENVIRONMENT: str = "homologacao"   # homologacao | producao
+    LEDI_VERSION: str = ""
+    MIVDT_VERSION: str = ""
+    ESUS_INTEGRATION_ENABLED: bool = False
+
+    @property
+    def pec_configurado(self) -> bool:
+        """True somente se URL + credenciais estiverem presentes. Não indica conectividade real."""
+        return bool(self.PEC_BASE_URL and self.PEC_CLIENT_ID and self.PEC_CLIENT_SECRET)
+
     # App
     APP_NAME: str = "ERSUS 360"
     MUNICIPIO_NOME: str = "Apuí"

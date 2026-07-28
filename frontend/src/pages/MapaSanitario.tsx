@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Activity, Users, Stethoscope, ChevronDown, ChevronRight } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { useAcsGeo, type PosicaoAcs } from "../hooks/useAcsGeo";
+import { MICROAREAS_GEO } from "../components/AcsMapaGeo";
 
 interface UnidadeSaude {
   id: string; nome: string; tipo: string; cnes: string;
@@ -48,10 +50,11 @@ function PinSVG({ cor, label }: { cor: string; label: string }) {
 }
 
 // SVG estilizado do município de Apuí (AM) — polígono simplificado
-function MapaApui({ unidades, selecionado, onSelect }: {
+function MapaApui({ unidades, selecionado, onSelect, posicoesAcs }: {
   unidades: UnidadeSaude[];
   selecionado: string | null;
   onSelect: (id: string) => void;
+  posicoesAcs: PosicaoAcs[];
 }) {
   // Coordenadas normalizadas para a viewport 600x360
   const toXY = (lat: number, lng: number) => {
@@ -88,6 +91,37 @@ function MapaApui({ unidades, selecionado, onSelect }: {
       <polyline points={rio1pts} fill="none" stroke="#60a5fa" strokeWidth="2" opacity={0.7} strokeDasharray="4 2"/>
       {/* Label do município */}
       <text x="300" y="30" textAnchor="middle" fontSize="12" fontWeight="800" fill="#166534" opacity={0.6}>APUÍ · AM</text>
+
+      {/* Microáreas — referência territorial dos ACS */}
+      {Object.entries(MICROAREAS_GEO).map(([codigo, ma]) => {
+        const { x, y } = toXY(ma.lat, ma.lng);
+        return (
+          <g key={codigo} transform={`translate(${x},${y})`}>
+            <circle cx="0" cy="0" r="16" fill={ma.cor} opacity={0.08} stroke={ma.cor} strokeWidth="1" strokeDasharray="2 2"/>
+            <text x="0" y="3" textAnchor="middle" fontSize="7" fontWeight="700" fill={ma.cor} opacity={0.75}>{codigo}</text>
+          </g>
+        );
+      })}
+
+      {/* ACS em atividade — localização operacional em tempo real (dado ERSUS 360, não oficial do PEC) */}
+      {posicoesAcs.map(pos => {
+        const { x, y } = toXY(pos.lat, pos.lng);
+        const emAtividade = pos.status !== "offline";
+        const cor = emAtividade ? "#2563eb" : "#9ca3af";
+        return (
+          <g key={pos.acs_id} transform={`translate(${x},${y})`}>
+            {emAtividade && (
+              <circle cx="0" cy="0" r="7" fill="none" stroke={cor} strokeWidth="1.5" opacity={0.6}>
+                <animate attributeName="r" values="7;16;7" dur="1.8s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.6;0;0.6" dur="1.8s" repeatCount="indefinite"/>
+              </circle>
+            )}
+            <circle cx="0" cy="0" r="6" fill={cor} stroke="#fff" strokeWidth="1.5"/>
+            <title>{`${pos.nome} — ${emAtividade ? "em atividade" : "fora de atividade"} · Microárea ${pos.microarea || "—"} · ${new Date(pos.ts).toLocaleTimeString("pt-BR")}`}</title>
+          </g>
+        );
+      })}
+
       {/* Unidades de saúde */}
       {unidades.map(u => {
         const { x, y } = toXY(u.latitude, u.longitude);
@@ -116,6 +150,14 @@ function MapaApui({ unidades, selecionado, onSelect }: {
           <text x="14" y="9" fontSize="9" fill="#374151">{tipo}</text>
         </g>
       ))}
+      <g transform="translate(10,348)">
+        <circle cx="5" cy="5" r="5" fill="#2563eb"/>
+        <text x="14" y="9" fontSize="9" fill="#374151">ACS em atividade (tempo real)</text>
+      </g>
+      <g transform="translate(210,348)">
+        <circle cx="5" cy="5" r="5" fill="none" stroke="#6b7280" strokeWidth="1" strokeDasharray="2 2"/>
+        <text x="14" y="9" fontSize="9" fill="#374151">Microárea</text>
+      </g>
     </svg>
   );
 }
@@ -193,6 +235,7 @@ export default function MapaSanitario() {
   const [selecionado, setSelecionado] = useState<string | null>(null);
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroZona, setFiltroZona] = useState("todos");
+  const { posicoes: posicoesAcs, conectado: acsConectado } = useAcsGeo();
 
   const { data: resumo } = useQuery<ResumoMapa>({
     queryKey: ["mapa-resumo"],
@@ -224,14 +267,18 @@ export default function MapaSanitario() {
               <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: 6 }}><MapPin size={18} color="#fff"/></div>
               <span style={{ fontWeight: 800, fontSize: 20, color: "#fff" }}>Mapa Sanitário · Rede de Atenção</span>
             </div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,.7)" }}>
-              Georreferenciamento das Unidades de Saúde · SCNES · Apuí/AM · {r?.area_km2?.toLocaleString("pt-BR") ?? "54.279"} km²
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,.7)", display: "flex", alignItems: "center", gap: 8 }}>
+              <span>Georreferenciamento das Unidades de Saúde · SCNES · Apuí/AM · {r?.area_km2?.toLocaleString("pt-BR") ?? "54.279"} km²</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,.1)", borderRadius: 6, padding: "2px 8px", fontSize: 10 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: acsConectado ? "#4ade80" : "#f87171", display: "inline-block" }}/>
+                ACS em tempo real {acsConectado ? "conectado" : "desconectado"}
+              </span>
             </div>
           </div>
         </div>
 
         {r && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 8, marginTop: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8, marginTop: 16 }}>
             {[
               { l: "Unidades",        v: r.total_unidades,                                    cor: "#bbf7d0" },
               { l: "Ativas",          v: r.unidades_ativas,                                   cor: "#86efac" },
@@ -239,6 +286,7 @@ export default function MapaSanitario() {
               { l: "Pop. Coberta",    v: r.populacao_coberta.toLocaleString("pt-BR"),         cor: "#bae6fd" },
               { l: "Pop. Total",      v: r.populacao_total.toLocaleString("pt-BR"),           cor: "#bae6fd" },
               { l: "Cobertura ESF",   v: `${r.cobertura_esf_pct}%`,                          cor: "#86efac" },
+              { l: "ACS em atividade", v: posicoesAcs.filter(p => p.status !== "offline").length, cor: "#93c5fd" },
             ].map(k => (
               <div key={k.l} style={{ background: "rgba(255,255,255,.12)", borderRadius: 8, padding: "10px 10px", textAlign: "center" as const }}>
                 <div style={{ fontSize: 16, fontWeight: 900, color: k.cor }}>{k.v}</div>
@@ -255,7 +303,7 @@ export default function MapaSanitario() {
           <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10, color: "#374151" }}>
             Distribuição Geográfica das Unidades · Clique para selecionar
           </div>
-          {!isLoading && <MapaApui unidades={visiveis} selecionado={selecionado} onSelect={id => setSelecionado(id === selecionado ? null : id)}/>}
+          {!isLoading && <MapaApui unidades={visiveis} selecionado={selecionado} onSelect={id => setSelecionado(id === selecionado ? null : id)} posicoesAcs={posicoesAcs}/>}
         </div>
 
         {/* Filtros */}

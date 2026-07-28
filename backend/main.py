@@ -623,10 +623,18 @@ from routers.integracao_fns_apui import router as integracao_fns_apui_router
 from routers.integracao_egestor_apui import router as integracao_egestor_apui_router
 from routers.integracao_esuspec_apui import router as integracao_esuspec_apui_router
 from routers.integracao_siaps_apui import router as integracao_siaps_apui_router
+from routers.integracao_pec import router as integracao_pec_router
+from routers.mapa_visitas_domiciliares import router as mapa_visitas_domiciliares_router
+from routers.visitas_domiciliares import router as visitas_domiciliares_router
+from routers.cidadaos import router as cidadaos_router
 app.include_router(integracao_fns_apui_router)
 app.include_router(integracao_egestor_apui_router)
 app.include_router(integracao_esuspec_apui_router)
 app.include_router(integracao_siaps_apui_router)
+app.include_router(integracao_pec_router)
+app.include_router(mapa_visitas_domiciliares_router)
+app.include_router(visitas_domiciliares_router)
+app.include_router(cidadaos_router)
 from routers.saude_populacao_rua_apui import router as saude_populacao_rua_apui_router
 from routers.gestao_riscos_saude_apui import router as gestao_riscos_saude_apui_router
 from routers.acesso_especialidades_apui import router as acesso_especialidades_apui_router

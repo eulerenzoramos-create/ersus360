@@ -65,6 +65,14 @@
 
 ---
 
+## Documentos complementares
+
+| Doc | Título | Conteúdo |
+|---|---|---|
+| [DOC-PEC-INTEGRACAO](ERSUS-DOC-PEC-INTEGRACAO.md) | Integração PEC e-SUS APS | Diagnóstico, variáveis PEC/LEDI/MIVDT, plano de homologação (Mapa de Visitas Domiciliares ACS) |
+
+---
+
 ## Apuí/AM — Dados de Referência
 
 Município piloto do ERSUS 360:

@@ -10,7 +10,7 @@ const APUI_CENTER: [number, number] = [-7.1972, -59.8878];
 const ZOOM_INICIAL = 14;
 
 // Microáreas — coordenadas aproximadas dos bairros de Apuí/AM
-const MICROAREAS_GEO: Record<string, { lat: number; lng: number; nome: string; cor: string }> = {
+export const MICROAREAS_GEO: Record<string, { lat: number; lng: number; nome: string; cor: string }> = {
   "MA-01": { lat: -7.193,  lng: -59.884, nome: "Centro",             cor: "#2563eb" },
   "MA-02": { lat: -7.196,  lng: -59.879, nome: "Bairro Novo",        cor: "#7c3aed" },
   "MA-03": { lat: -7.199,  lng: -59.891, nome: "Santo Antônio",      cor: "#0891b2" },
