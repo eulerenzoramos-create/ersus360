@@ -29,12 +29,6 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.error("Erro na inicialização do banco: %s", exc, exc_info=True)
 
-    # Sync automático do PEC na primeira inicialização (quando credenciais configuradas)
-    if settings.ESUS_USUARIO and settings.ESUS_SENHA:
-        try:
-            await _sync_pec_inicial()
-        except Exception as exc:
-            logger.error("Sync PEC inicial falhou (não crítico): %s", exc, exc_info=True)
 
     try:
         from scheduler import start_scheduler
@@ -123,7 +117,6 @@ from routers.financeiro import router as financeiro_router
 from routers.producao_aps import router as producao_aps_router
 from routers.siaps import router as siaps_router
 from routers.caf import router as caf_router
-from routers.ouvidoria import router as ouvidoria_router
 from routers.contratos import router as contratos_router
 from routers.regulacao_mac import router as regulacao_mac_router
 from routers.planejamento_orcamentario import router as planejamento_orc_router
@@ -132,60 +125,29 @@ from routers.vacinas import router as vacinas_router
 from routers.raps import router as raps_router
 from routers.manutencao import router as manutencao_router
 from routers.sinan import router as sinan_router
-from routers.assistencia_farmaceutica import router as assist_farm_router
 from routers.transporte_sanitario import router as transp_san_router
 from routers.producao_sisab import router as sisab_router
-from routers.saude_mulher import router as saude_mulher_router
 from routers.cms import router as cms_router
 from routers.saude_bucal import router as saude_bucal_router
-from routers.saude_crianca import router as saude_crianca_router
 from routers.visa import router as visa_router
 from routers.vetores import router as vetores_router
-from routers.sisvan import router as sisvan_router
-from routers.atencao_domiciliar import router as atencao_dom_router
-from routers.saude_indigena import router as saude_indigena_router
-from routers.tb_hanseniase import router as tb_hans_router
-from routers.ist_hiv import router as ist_hiv_router
-from routers.saude_idoso import router as saude_idoso_router
-from routers.saude_homem import router as saude_homem_router
 from routers.sim_sinasc import router as sim_sinasc_router
-from routers.saude_trabalhador import router as saude_trab_router
-from routers.saude_mental import router as saude_mental_router
-from routers.urgencia_emergencia import router as urgencia_router
-from routers.saude_adolescente import router as saude_adol_router
-from routers.hiperdia import router as hiperdia_router
 from routers.cancer_rastreio import router as cancer_router
 from routers.rede_frio import router as rede_frio_router
-from routers.reabilitacao import router as reabilitacao_router
-from routers.farmacia_especializada import router as farm_espec_router
-from routers.saude_ambiental import router as saude_amb_router
-from routers.gestao_leitos import router as gestao_leitos_router
-from routers.regulacao_acesso import router as regulacao_acesso_router
 from routers.controle_tabaco import router as controle_tabaco_router
-from routers.saude_ocular import router as saude_ocular_router
-from routers.icsap import router as icsap_router
 from routers.hemoterapia import router as hemoterapia_router
 from routers.ccih import router as ccih_router
 from routers.sadt import router as sadt_router
-from routers.saude_prisional import router as saude_prisional_router
-from routers.nutricao_clinica import router as nutricao_clinica_router
-from routers.telessaude import router as telessaude_router
-from routers.oncologia import router as oncologia_router
 from routers.pgrss import router as pgrss_router
-from routers.educacao_permanente import router as educacao_perm_router
 from routers.farmacovigilancia import router as farmacovigilancia_router
 from routers.gestao_qualidade import router as gestao_qualidade_router
-from routers.saude_digital import router as saude_digital_router
 from routers.cme import router as cme_router
-from routers.pse import router as pse_router
 from routers.blh import router as blh_router
 from routers.pics import router as pics_router
 from routers.frota import router as frota_router
 from routers.vigiagua import router as vigiagua_router
 from routers.nasf import router as nasf_router
-from routers.zoonoses import router as zoonoses_router
 from routers.saude_servidor import router as saude_servidor_router
-from routers.planejamento_familiar import router as planejamento_familiar_router
 from routers.acolhimento import router as acolhimento_router
 from routers.judicializacao import router as judicializacao_router
 from routers.spd import router as spd_router
@@ -196,43 +158,19 @@ from routers.siops_live     import router as siops_live_router
 from routers.pat_saude import router as pat_saude_router
 from routers.abastecimento import router as abastecimento_router
 from routers.gestao_aps import router as gestao_aps_router
-from routers.seguranca_paciente import router as seguranca_paciente_router
 from routers.visa_alimentos import router as visa_alimentos_router
 from routers.academia_saude import router as academia_saude_router
-from routers.laboratorio import router as laboratorio_router
 from routers.crie import router as crie_router
 from routers.protocolo_clinico import router as protocolo_clinico_router
-from routers.cuidados_paliativos import router as cuidados_paliativos_router
 from routers.consultorio_rua import router as consultorio_rua_router
-from routers.saude_ribeirinha import router as saude_ribeirinha_router
 from routers.cerest import router as cerest_router
 from routers.caps_infanto import router as caps_infanto_router
 from routers.vigilancia_obito import router as vigilancia_obito_router
 from routers.caps_ad import router as caps_ad_router
 from routers.saude_estomia import router as saude_estomia_router
-from routers.rede_cegonha import router as rede_cegonha_router
 from routers.triagem_neonatal import router as triagem_neonatal_router
-from routers.violencia_domestica import router as violencia_domestica_router
-from routers.malaria import router as malaria_router
-from routers.leishmaniose import router as leishmaniose_router
-from routers.arboviroses import router as arboviroses_router
-from routers.saude_indigena import router as saude_indigena_router
-from routers.hanseniase import router as hanseniase_router
-from routers.tuberculose import router as tuberculose_router
-from routers.dst_hiv import router as dst_hiv_router
-from routers.imunizacao import router as imunizacao_router
-from routers.saude_mental import router as saude_mental_router
-from routers.saude_bucal import router as saude_bucal_router
-from routers.saude_ocular import router as saude_ocular_router
-from routers.saude_auditiva import router as saude_auditiva_router
-from routers.oncologia import router as oncologia_router
-from routers.dcnt import router as dcnt_router
-from routers.nutricao import router as nutricao_router
-from routers.reabilitacao import router as reabilitacao_router
-from routers.assist_farmaceutica import router as assist_farm_router
 from routers.saude_ambiental import router as saude_ambiental_router
 from routers.vig_epidem_avancada import router as vig_epidem_av_router
-from routers.saude_digital_esus import router as saude_digital_esus_router
 from routers.gestao_pessoas import router as gestao_pessoas_router
 from routers.fundo_municipal import router as fundo_municipal_router
 from routers.judicializacao_saude import router as judicializacao_saude_router
@@ -240,15 +178,11 @@ from routers.atencao_especializada import router as atencao_espec_router
 from routers.plano_municipal_saude import router as pms_router
 from routers.score_municipal import router as score_municipal_router
 from routers.gestao_contratos_fms import router as contratos_fms_router
-from routers.saude_mental_caps import router as saude_mental_caps_router
-from routers.rede_cegonha import router as rede_cegonha_router
-from routers.programa_saude_escola import router as pse_router
 from routers.dcnt_cronicas import router as dcnt_cronicas_router
 from routers.cancer_rastreio import router as cancer_rastreio_router
 from routers.saude_bucal_municipal import router as saude_bucal_mun_router
 from routers.malaria_endemias import router as malaria_endemias_router
 from routers.vigilancia_nutricional import router as vig_nutricional_router
-from routers.saude_indigena_apui import router as saude_indigena_router
 from routers.urgencia_emergencia_apui import router as urgencia_emergencia_router
 from routers.regulacao_acesso_apui import router as regulacao_acesso_apui_router
 from routers.gestao_leitos_apui import router as gestao_leitos_apui_router
@@ -289,11 +223,8 @@ from routers.vigilancia_sanitaria_apui import router as vigilancia_sanitaria_apu
 from routers.saude_indigena_apui import router as saude_indigena_apui_router
 from routers.doencas_cronicas_apui import router as doencas_cronicas_apui_router
 from routers.saude_mental_apui2 import router as saude_mental_apui2_router
-from routers.imunizacao_apui import router as imunizacao_apui_router
 from routers.materno_infantil_apui import router as materno_infantil_apui_router
 from routers.atencao_primaria_apui import router as atencao_primaria_apui_router
-from routers.saude_idoso_apui import router as saude_idoso_apui_router
-from routers.saude_crianca_apui import router as saude_crianca_apui_router
 from routers.vigilancia_epidemiologica_apui import router as vigilancia_epidemiologica_apui_router
 from routers.gestao_hospitalar_apui import router as gestao_hospitalar_apui_router
 from routers.agua_saneamento_apui import router as agua_saneamento_apui_router
@@ -377,10 +308,6 @@ from routers.vacinacao import router as vacinacao_router
 from routers.almoxarifado import router as almoxarifado_router
 from routers.relatorio_gestao import router as relatorio_gestao_router
 from routers.mapa_sanitario import router as mapa_sanitario_router
-from routers.contratos import router as contratos_router
-from routers.cms import router as cms_router
-from routers.saude_bucal import router as saude_bucal_router
-from routers.producao_aps import router as producao_aps_router
 from routers.dashboard_exec import router as dashboard_exec_router
 from routers.notificacoes import router as notificacoes_router
 from routers.exportador import router as exportador_router
@@ -401,13 +328,6 @@ app.include_router(aps_router)
 app.include_router(farmacia_router)
 app.include_router(planejamento_router)
 app.include_router(ia_router)
-app.include_router(cronogramas_router)
-app.include_router(indicadores_router)
-app.include_router(alertas_router)
-app.include_router(dashboard_router)
-app.include_router(vigilancia_router)
-app.include_router(transporte_router)
-app.include_router(regulacao_router)
 app.include_router(emendas_router)
 app.include_router(integracao_router)
 app.include_router(auditoria_router)
@@ -447,6 +367,7 @@ app.include_router(raps_router)
 app.include_router(manutencao_router)
 app.include_router(sinan_router)
 app.include_router(transp_san_router)
+app.include_router(regulacao_mac_router)
 app.include_router(sisab_router)
 app.include_router(cms_router)
 app.include_router(visa_router)
@@ -613,17 +534,6 @@ app.include_router(queimadas_respiratoria_apui_router)
 app.include_router(saude_escolar_pse_apui_router)
 app.include_router(doencas_negligenciadas_apui_router)
 app.include_router(saude_mental_infantojuvenil_apui_router)
-from routers.mercurio_garimpo_apui import router as mercurio_garimpo_apui_router
-from routers.saude_ocular_apui import router as saude_ocular_apui_router
-from routers.violencia_domestica_sexual_apui import router as violencia_domestica_sexual_apui_router
-from routers.tuberculose_apui import router as tuberculose_apui_router
-from routers.saneamento_basico_apui import router as saneamento_basico_apui_router
-from routers.hanseniase_apui import router as hanseniase_apui_router
-from routers.saude_mulher_apui import router as saude_mulher_apui_router
-from routers.saude_homem_apui import router as saude_homem_apui_router
-from routers.dengue_arboviroses_apui import router as dengue_arboviroses_apui_router
-from routers.saude_neonatal_apui import router as saude_neonatal_apui_router
-from routers.infeccoes_hospitalares_apui import router as infeccoes_hospitalares_apui_router
 from routers.regulacao_referencia_apui import router as regulacao_referencia_apui_router
 app.include_router(regulacao_referencia_apui_router)
 from routers.integracao_fns_apui import router as integracao_fns_apui_router
@@ -703,10 +613,7 @@ app.include_router(vacinacao_router)
 app.include_router(almoxarifado_router)
 app.include_router(relatorio_gestao_router)
 app.include_router(mapa_sanitario_router)
-app.include_router(contratos_router)
-app.include_router(cms_router)
 app.include_router(saude_bucal_router)
-app.include_router(producao_aps_router)
 app.include_router(dashboard_exec_router)
 app.include_router(notificacoes_router)
 app.include_router(exportador_router)
@@ -860,33 +767,3 @@ async def _seed_dados_iniciais():
                     logger.error("Erro ao seed repasses FNS: %s", exc, exc_info=True)
 
 
-async def _sync_pec_inicial():
-    """Sincroniza cadastros do e-SUS PEC na inicialização (se cidadãos ainda não estiverem no banco)."""
-    from database import AsyncSessionLocal
-    from sqlalchemy import select
-    from models.pec_cadastro import Cidadao
-    from models import Municipio
-
-    async with AsyncSessionLocal() as db:
-        mun = (await db.execute(
-            select(Municipio).where(Municipio.codigo_ibge == "1300144")
-        )).scalar_one_or_none()
-        if not mun:
-            return
-
-        total = (await db.execute(
-            select(Cidadao).where(Cidadao.municipio_id == mun.id).limit(1)
-        )).scalar_one_or_none()
-
-        if total:
-            logger.info("PEC: banco já tem cidadãos — sync inicial ignorado.")
-            return
-
-        logger.info("PEC: banco vazio — iniciando sync com e-SUS (%s)...", settings.ESUS_URL)
-        from services.pec.sync_esus import sincronizar_cadastros_pec
-        resultado = await sincronizar_cadastros_pec(db)
-        logger.info(
-            "PEC sync inicial: %d equipes, %d profissionais, %d cidadãos. Erros: %s",
-            resultado.equipes_criadas, resultado.profissionais_criados,
-            resultado.cidadaos_criados, resultado.erros[:3] or "nenhum",
-        )

@@ -14,8 +14,8 @@ else:
         DATABASE_URL,
         echo=settings.DEBUG,
         pool_pre_ping=True,
-        pool_size=10,
-        max_overflow=20,
+        pool_size=2,
+        max_overflow=3,
     )
 
 AsyncSessionLocal = async_sessionmaker(
