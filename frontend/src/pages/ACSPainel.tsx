@@ -293,117 +293,195 @@ function AbaVisitas({ fonte }: { fonte: string }) {
 // ── Aba Calendário ────────────────────────────────────────────────────────────
 
 function AbaCalendario() {
-  const [esfSel, setEsfSel] = useState("Todas");
-  const { data, isLoading } = useQuery({
-    queryKey: ["acs-calendario", esfSel],
-    queryFn: () => apiGet("/api/acs/esus/calendario-visitas", esfSel !== "Todas" ? { esf: esfSel } : undefined) as Promise<any>,
-    staleTime: 120_000,
+  const [acsSel, setAcsSel] = useState<{ id: number; nome: string; esf: string; microarea: string } | null>(null);
+  const [busca, setBusca] = useState("");
+
+  // Lista de todos os ACS
+  const { data: listaData } = useQuery({
+    queryKey: ["acs-lista-calendario"],
+    queryFn: () => apiGet("/api/acs/lista") as Promise<any>,
+    staleTime: 300_000,
   });
 
-  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando calendário...</div>;
+  const todosAcs: AcsItem[] = listaData?.acs ?? [];
+
+  // Calendário do ACS selecionado (ou geral)
+  const { data, isLoading } = useQuery({
+    queryKey: ["acs-calendario", acsSel?.id ?? null],
+    queryFn: () => apiGet("/api/acs/esus/calendario-visitas", acsSel ? { acs_id: acsSel.id } : undefined) as Promise<any>,
+    staleTime: 120_000,
+  });
 
   const eventos = data?.eventos ?? [];
   const dias = data?.dias ?? 31;
 
   // Agrupar por dia
-  const porDia: Record<number, { prog: number; real: number; status: string }> = {};
+  const porDia: Record<number, { prog: number; real: number }> = {};
   eventos.forEach((e: any) => {
-    if (!porDia[e.dia]) porDia[e.dia] = { prog: 0, real: 0, status: "pendente" };
+    if (!porDia[e.dia]) porDia[e.dia] = { prog: 0, real: 0 };
     porDia[e.dia].prog += e.programadas;
     porDia[e.dia].real += e.realizadas;
-  });
-
-  // ACS summary por ESF
-  const porEsf: Record<string, { prog: number; real: number }> = {};
-  eventos.forEach((e: any) => {
-    if (!porEsf[e.esf]) porEsf[e.esf] = { prog: 0, real: 0 };
-    porEsf[e.esf].prog += e.programadas;
-    porEsf[e.esf].real += e.realizadas;
   });
 
   const totalProg = Object.values(porDia).reduce((s, d) => s + d.prog, 0);
   const totalReal = Object.values(porDia).reduce((s, d) => s + d.real, 0);
   const pct = totalProg > 0 ? Math.round(totalReal / totalProg * 100) : 0;
 
+  // Agrupar ACS por equipe para o painel lateral
+  const porEquipe: Record<string, AcsItem[]> = {};
+  todosAcs.forEach((a: AcsItem) => {
+    if (!porEquipe[a.esf]) porEquipe[a.esf] = [];
+    porEquipe[a.esf].push(a);
+  });
+  const esfsOrdem = ["ESF I", "ESF II", "ESF III", "ESF IV", "ESF V"];
+  const acsVisiveis = todosAcs.filter(a =>
+    !busca || a.nome.toLowerCase().includes(busca.toLowerCase()) || a.microarea.toLowerCase().includes(busca.toLowerCase())
+  );
+
+  const titulo = acsSel
+    ? `${acsSel.nome} · ${acsSel.microarea} · ${acsSel.esf}`
+    : "Todos os ACS — Julho/2026";
+
   return (
-    <div>
-      {/* Filtro ESF */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" as const }}>
-        {["Todas","ESF I","ESF II","ESF III","ESF IV","ESF V"].map(e => (
-          <button key={e} onClick={() => setEsfSel(e)}
-            style={{ padding: "7px 16px", fontSize: 12, borderRadius: 20, border: "1px solid #d1d5db", background: esfSel === e ? "#1351b4" : "#fff", color: esfSel === e ? "#fff" : "#374151", cursor: "pointer", fontWeight: esfSel === e ? 700 : 400 }}>
-            {e}
-          </button>
-        ))}
-      </div>
+    <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, alignItems: "start" }}>
+      {/* Painel lateral — seleção de ACS */}
+      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "14px 12px", maxHeight: 680, overflowY: "auto" as const }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 10 }}>Selecionar ACS</div>
 
-      {/* KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
-        {[
-          { label: "Visitas Programadas", val: totalProg, cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
-          { label: "Visitas Realizadas", val: totalReal, cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-          { label: "Taxa de Realização", val: `${pct}%`, cor: pct >= 90 ? "#16a34a" : pct >= 70 ? "#d97706" : "#dc2626", bg: pct >= 90 ? "#f0fdf4" : pct >= 70 ? "#fef3c7" : "#fef2f2", border: pct >= 90 ? "#bbf7d0" : pct >= 70 ? "#fde68a" : "#fecaca" },
-        ].map(k => (
-          <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: 10, padding: "16px 18px", textAlign: "center" }}>
-            <div style={{ fontSize: 28, fontWeight: 800, color: k.cor }}>{k.val}</div>
-            <div style={{ fontSize: 12, color: "#6b7280" }}>{k.label}</div>
+        {/* Busca */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "6px 10px", marginBottom: 12 }}>
+          <Search size={12} color="#9ca3af" />
+          <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar ACS ou microárea..."
+            style={{ border: "none", outline: "none", fontSize: 11, flex: 1, background: "transparent", color: "#374151" }} />
+        </div>
+
+        {/* Botão "Todos" */}
+        <button onClick={() => { setAcsSel(null); setBusca(""); }}
+          style={{ width: "100%", textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "1px solid", marginBottom: 10,
+            borderColor: !acsSel ? "#1351b4" : "#e5e7eb",
+            background: !acsSel ? "#eff6ff" : "transparent", cursor: "pointer" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: !acsSel ? "#1351b4" : "#374151" }}>Todos os ACS</div>
+          <div style={{ fontSize: 10, color: "#9ca3af" }}>{todosAcs.length} agentes · todas as equipes</div>
+        </button>
+
+        {/* Lista agrupada por equipe (ou filtrada pela busca) */}
+        {busca ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {acsVisiveis.map(a => {
+              const cor = ESF_COR[a.esf] || "#6b7280";
+              const sel = acsSel?.id === a.id;
+              return (
+                <button key={a.id} onClick={() => setAcsSel({ id: a.id, nome: a.nome, esf: a.esf, microarea: a.microarea })}
+                  style={{ textAlign: "left", padding: "7px 10px", borderRadius: 8, border: "1px solid",
+                    borderColor: sel ? cor : "transparent",
+                    background: sel ? `${cor}15` : "transparent", cursor: "pointer" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#374151" }}>{a.nome}</div>
+                  <div style={{ fontSize: 10, color: cor, fontWeight: 600 }}>{a.esf} · {a.microarea}</div>
+                </button>
+              );
+            })}
           </div>
-        ))}
-      </div>
-
-      {/* Calendário grid */}
-      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "18px 20px", marginBottom: 18 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Julho/2026 — Calendário de Visitas Domiciliares</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
-          {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map(d => (
-            <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: "#9ca3af", paddingBottom: 6 }}>{d}</div>
-          ))}
-          {/* offset: 01/Jul/2026 = Quarta = índice 3 */}
-          {Array.from({ length: 3 }).map((_, i) => <div key={`e${i}`} />)}
-          {Array.from({ length: dias }).map((_, i) => {
-            const dia = i + 1;
-            const d = porDia[dia];
-            if (!d) return (
-              <div key={dia} style={{ aspectRatio: "1", borderRadius: 8, background: "#f9fafb", border: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#d1d5db" }}>
-                {dia}
-              </div>
-            );
-            const taxa = d.prog > 0 ? Math.round(d.real / d.prog * 100) : 0;
-            const cor = taxa >= 90 ? "#16a34a" : taxa >= 70 ? "#d97706" : "#dc2626";
+        ) : (
+          esfsOrdem.filter(esf => porEquipe[esf]).map(esf => {
+            const cor = ESF_COR[esf] || "#6b7280";
             return (
-              <div key={dia} style={{ aspectRatio: "1", borderRadius: 8, background: `${cor}10`, border: `1px solid ${cor}30`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#374151" }}>{dia}</div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: cor }}>{taxa}%</div>
-                <div style={{ fontSize: 8, color: "#9ca3af" }}>{d.real}/{d.prog}</div>
+              <div key={esf} style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: cor, textTransform: "uppercase" as const,
+                  letterSpacing: "0.06em", padding: "4px 6px", background: `${cor}12`, borderRadius: 6, marginBottom: 4 }}>
+                  {esf} · {porEquipe[esf].length} ACS
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {porEquipe[esf].map(a => {
+                    const sel = acsSel?.id === a.id;
+                    return (
+                      <button key={a.id} onClick={() => setAcsSel({ id: a.id, nome: a.nome, esf: a.esf, microarea: a.microarea })}
+                        style={{ textAlign: "left", padding: "6px 10px", borderRadius: 7, border: "1px solid",
+                          borderColor: sel ? cor : "transparent",
+                          background: sel ? `${cor}18` : "transparent", cursor: "pointer" }}>
+                        <div style={{ fontSize: 11, fontWeight: sel ? 700 : 500, color: sel ? cor : "#374151" }}>{a.nome}</div>
+                        <div style={{ fontSize: 9, color: "#9ca3af" }}>{a.microarea}</div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             );
-          })}
-        </div>
-        <div style={{ display: "flex", gap: 16, marginTop: 12, fontSize: 10, color: "#9ca3af" }}>
-          {[{ cor:"#16a34a", label:"≥90%" },{ cor:"#d97706", label:"70-89%" },{ cor:"#dc2626", label:"<70%" }].map(l => (
-            <span key={l.label} style={{ display:"flex", alignItems:"center", gap:4 }}>
-              <span style={{ width:10, height:10, borderRadius:2, background:l.cor, display:"inline-block" }}/>{l.label} realizado
-            </span>
-          ))}
-        </div>
+          })
+        )}
       </div>
 
-      {/* Por ESF */}
-      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, padding: "16px 18px" }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Realização por ESF</div>
-        {Object.entries(porEsf).map(([esf, d]) => {
-          const t = d.prog > 0 ? Math.round(d.real / d.prog * 100) : 0;
-          const cor = ESF_COR[esf] || "#6b7280";
-          return (
-            <div key={esf} style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: cor }}>{esf}</span>
-                <span style={{ fontSize: 12, color: "#374151" }}>{d.real}/{d.prog} · <strong style={{ color: cor }}>{t}%</strong></span>
-              </div>
-              <Bar pct={t} cor={cor} height={8} />
+      {/* Conteúdo principal */}
+      <div>
+        {/* KPIs */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 16 }}>
+          {[
+            { label: "Visitas Programadas", val: isLoading ? "…" : totalProg, cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
+            { label: "Visitas Realizadas",  val: isLoading ? "…" : totalReal, cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+            { label: "Taxa de Realização",  val: isLoading ? "…" : `${pct}%`,
+              cor: pct >= 90 ? "#16a34a" : pct >= 70 ? "#d97706" : "#dc2626",
+              bg: pct >= 90 ? "#f0fdf4" : pct >= 70 ? "#fef3c7" : "#fef2f2",
+              border: pct >= 90 ? "#bbf7d0" : pct >= 70 ? "#fde68a" : "#fecaca" },
+          ].map(k => (
+            <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: 10, padding: "16px 18px", textAlign: "center" }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: k.cor }}>{k.val}</div>
+              <div style={{ fontSize: 12, color: "#6b7280" }}>{k.label}</div>
             </div>
-          );
-        })}
+          ))}
+        </div>
+
+        {/* Calendário grid */}
+        <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "18px 20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Julho/2026 — Calendário de Visitas</div>
+            {acsSel && (
+              <span style={{ fontSize: 11, background: `${ESF_COR[acsSel.esf] || "#6b7280"}18`,
+                color: ESF_COR[acsSel.esf] || "#6b7280", padding: "3px 10px", borderRadius: 20, fontWeight: 700 }}>
+                {acsSel.nome} · {acsSel.microarea}
+              </span>
+            )}
+          </div>
+
+          {isLoading ? (
+            <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>Carregando calendário...</div>
+          ) : (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
+                {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map(d => (
+                  <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: "#9ca3af", paddingBottom: 6 }}>{d}</div>
+                ))}
+                {/* offset: 01/Jul/2026 = Quarta = índice 3 */}
+                {Array.from({ length: 3 }).map((_, i) => <div key={`e${i}`} />)}
+                {Array.from({ length: dias }).map((_, i) => {
+                  const dia = i + 1;
+                  const d = porDia[dia];
+                  if (!d) return (
+                    <div key={dia} style={{ aspectRatio: "1", borderRadius: 8, background: "#f9fafb", border: "1px solid #f3f4f6",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#d1d5db" }}>
+                      {dia}
+                    </div>
+                  );
+                  const taxa = d.prog > 0 ? Math.round(d.real / d.prog * 100) : 0;
+                  const cor = taxa >= 90 ? "#16a34a" : taxa >= 70 ? "#d97706" : "#dc2626";
+                  return (
+                    <div key={dia} style={{ aspectRatio: "1", borderRadius: 8, background: `${cor}10`, border: `1px solid ${cor}30`,
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#374151" }}>{dia}</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: cor }}>{taxa}%</div>
+                      <div style={{ fontSize: 8, color: "#9ca3af" }}>{d.real}/{d.prog}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", gap: 16, marginTop: 12, fontSize: 10, color: "#9ca3af" }}>
+                {[{ cor:"#16a34a", label:"≥90%" },{ cor:"#d97706", label:"70-89%" },{ cor:"#dc2626", label:"<70%" }].map(l => (
+                  <span key={l.label} style={{ display:"flex", alignItems:"center", gap:4 }}>
+                    <span style={{ width:10, height:10, borderRadius:2, background:l.cor, display:"inline-block" }}/>{l.label} realizado
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

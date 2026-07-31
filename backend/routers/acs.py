@@ -609,12 +609,17 @@ async def calendario_visitas(
     mes: int = Query(7),
     ano: int = Query(2026),
     esf: str | None = Query(None),
+    acs_id: int | None = Query(None),
     _: UserOut = Depends(get_current_user),
 ):
     """Calendário de visitas domiciliares programadas e realizadas."""
     import calendar
     _, dias_no_mes = calendar.monthrange(ano, mes)
-    acs_list = [a for a in _ACS if a["ativo"] and (not esf or a["esf"] == esf)]
+    acs_list = [
+        a for a in _ACS if a["ativo"]
+        and (not acs_id or a["id"] == acs_id)
+        and (not esf or a["esf"] == esf)
+    ]
 
     eventos = []
     for a in acs_list:
