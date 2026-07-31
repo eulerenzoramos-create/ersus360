@@ -14,7 +14,7 @@ import ACSGeoPage from "./ACSGeoPage";
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
 interface AcsItem {
-  id: number; nome: string; microarea: string; esf: string; ativo: boolean;
+  id: number; nome: string; microarea: string; equipe: string; tipo: string; ativo: boolean;
   familias_cadastradas: number; familias_meta: number;
   pct_visitas: number; pct_cadastro: number;
   status: "destaque" | "regular" | "critico" | "afastado";
@@ -30,12 +30,12 @@ interface DashboardAcs {
     gestantes_ativas: number; criancas_lt2: number; has_acompanhados: number; dm_acompanhados: number;
   };
   acs_destaques: AcsItem[]; acs_criticos: AcsItem[];
-  distribuicao_esf: Record<string, number>;
+  distribuicao_equipe: Record<string, number>;
   mes_referencia: { label: string };
 }
 
 interface Microarea {
-  codigo: string; nome: string; zona: string; esf: string;
+  codigo: string; nome: string; zona: string; equipe: string; tipo: string;
   acs_count: number; acs_ativos: number;
   familias_cadastradas: number; familias_meta: number;
   pct_cobertura: number; pct_visitas: number; gestantes_ativas: number;
@@ -51,7 +51,14 @@ type Aba = "dashboard" | "visitas" | "calendario" | "cadastros_ind" | "cadastros
 const STATUS_COR: Record<string, string> = { destaque:"#16a34a", regular:"#1351b4", critico:"#dc2626", afastado:"#9ca3af" };
 const STATUS_LABEL: Record<string, string> = { destaque:"Destaque", regular:"Regular", critico:"Atenção", afastado:"Afastado" };
 const SEM_COR: Record<string, string> = { verde:"#16a34a", amarelo:"#d97706", vermelho:"#dc2626" };
-const ESF_COR: Record<string, string> = { "ESF I":"#0891b2","ESF II":"#7c3aed","ESF III":"#16a34a","ESF IV":"#d97706","ESF V":"#dc2626" };
+const EQUIPE_COR: Record<string, string> = {
+  "KENNEDY":"#0891b2","JK":"#7c3aed","ACARI":"#059669","JUMA":"#d97706",
+  "ESTRADA NOVA":"#dc2626","LIBERDADE":"#db2777","SÃO SEBASTIÃO":"#2563eb",
+  "CACHOEIRA":"#16a34a","TRÊS ESTADOS":"#9333ea","AREAL":"#0369a1",
+};
+const TIPO_COR: Record<string, string> = { "eSF":"#1351b4","eRibeirinha":"#0891b2" };
+// Legacy alias for compat
+const ESF_COR = EQUIPE_COR;
 
 function Bar({ pct, cor, height = 6 }: { pct: number; cor: string; height?: number }) {
   return (
@@ -105,7 +112,7 @@ function AcsCard({ a }: { a: AcsItem }) {
             {a.nome}
             <Badge label={STATUS_LABEL[a.status]} cor={cor} bg={`${cor}15`} border={`${cor}40`} />
           </div>
-          <div style={{ fontSize: 11, color: "#9ca3af" }}>{a.microarea} · {a.esf} · {a.familias_cadastradas} famílias</div>
+          <div style={{ fontSize: 11, color: "#9ca3af" }}>{a.microarea} · {a.equipe} · {a.familias_cadastradas} famílias</div>
         </div>
         <div style={{ display: "flex", gap: 18, alignItems: "center", flexShrink: 0 }}>
           <div style={{ textAlign: "center" }}>
@@ -189,7 +196,7 @@ function AbaVisitas({ fonte }: { fonte: string }) {
 
   const filtradas = visitas.filter((v: any) =>
     (filtroTipo === "todos" || v.tipo_visita === filtroTipo) &&
-    (filtroEsf === "Todas" || v.esf === filtroEsf)
+    (filtroEsf === "Todas" || v.equipe === filtroEsf)
   );
 
   const resumo = {
@@ -222,7 +229,7 @@ function AbaVisitas({ fonte }: { fonte: string }) {
       <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 12, flexWrap: "wrap" as const, alignItems: "center" }}>
         <select value={filtroEsf} onChange={e => setFiltroEsf(e.target.value)}
           style={{ border: "1px solid #d1d5db", borderRadius: 7, padding: "7px 12px", fontSize: 12 }}>
-          {["Todas","ESF I","ESF II","ESF III","ESF IV","ESF V"].map(e => <option key={e}>{e}</option>)}
+          {["Todas","KENNEDY","JK","ACARI","JUMA","ESTRADA NOVA","LIBERDADE","SÃO SEBASTIÃO","CACHOEIRA","TRÊS ESTADOS","AREAL"].map(e => <option key={e}>{e}</option>)}
         </select>
         <div style={{ display: "flex", gap: 6 }}>
           {["todos","visita_periodica","busca_ativa","acompanhamento_gestante","acompanhamento_crianca"].map(t => (
@@ -254,7 +261,7 @@ function AbaVisitas({ fonte }: { fonte: string }) {
                     <td style={{ padding: "9px 12px", color: "#374151" }}>{v.data}</td>
                     <td style={{ padding: "9px 12px", fontWeight: 500 }}>{v.acs_nome}</td>
                     <td style={{ padding: "9px 12px" }}><span style={{ background: "#eff6ff", color: "#1d4ed8", borderRadius: 5, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>{v.microarea}</span></td>
-                    <td style={{ padding: "9px 12px", fontSize: 11, color: ESF_COR[v.esf] || "#374151", fontWeight: 600 }}>{v.esf}</td>
+                    <td style={{ padding: "9px 12px", fontSize: 11, color: ESF_COR[v.equipe] || "#374151", fontWeight: 600 }}>{v.equipe}</td>
                     <td style={{ padding: "9px 12px" }}>
                       <span style={{ background: `${tiposCor[v.tipo_visita] || "#6b7280"}15`, color: tiposCor[v.tipo_visita] || "#6b7280", borderRadius: 5, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
                         {tiposLabel[v.tipo_visita] || v.tipo_visita}
@@ -293,7 +300,7 @@ function AbaVisitas({ fonte }: { fonte: string }) {
 // ── Aba Calendário ────────────────────────────────────────────────────────────
 
 function AbaCalendario() {
-  const [acsSel, setAcsSel] = useState<{ id: number; nome: string; esf: string; microarea: string } | null>(null);
+  const [acsSel, setAcsSel] = useState<{ id: number; nome: string; equipe: string; tipo: string; microarea: string } | null>(null);
   const [busca, setBusca] = useState("");
 
   // Lista de todos os ACS
@@ -330,16 +337,16 @@ function AbaCalendario() {
   // Agrupar ACS por equipe para o painel lateral
   const porEquipe: Record<string, AcsItem[]> = {};
   todosAcs.forEach((a: AcsItem) => {
-    if (!porEquipe[a.esf]) porEquipe[a.esf] = [];
-    porEquipe[a.esf].push(a);
+    if (!porEquipe[a.equipe]) porEquipe[a.equipe] = [];
+    porEquipe[a.equipe].push(a);
   });
-  const esfsOrdem = ["ESF I", "ESF II", "ESF III", "ESF IV", "ESF V"];
+  const esfsOrdem = ["KENNEDY","JK","ACARI","JUMA","ESTRADA NOVA","LIBERDADE","SÃO SEBASTIÃO","CACHOEIRA","TRÊS ESTADOS","AREAL"];
   const acsVisiveis = todosAcs.filter(a =>
     !busca || a.nome.toLowerCase().includes(busca.toLowerCase()) || a.microarea.toLowerCase().includes(busca.toLowerCase())
   );
 
   const titulo = acsSel
-    ? `${acsSel.nome} · ${acsSel.microarea} · ${acsSel.esf}`
+    ? `${acsSel.nome} · ${acsSel.microarea} · ${acsSel.equipe}`
     : "Todos os ACS — Julho/2026";
 
   return (
@@ -368,15 +375,15 @@ function AbaCalendario() {
         {busca ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {acsVisiveis.map(a => {
-              const cor = ESF_COR[a.esf] || "#6b7280";
+              const cor = ESF_COR[a.equipe] || "#6b7280";
               const sel = acsSel?.id === a.id;
               return (
-                <button key={a.id} onClick={() => setAcsSel({ id: a.id, nome: a.nome, esf: a.esf, microarea: a.microarea })}
+                <button key={a.id} onClick={() => setAcsSel({ id: a.id, nome: a.nome, esf: a.equipe, microarea: a.microarea })}
                   style={{ textAlign: "left", padding: "7px 10px", borderRadius: 8, border: "1px solid",
                     borderColor: sel ? cor : "transparent",
                     background: sel ? `${cor}15` : "transparent", cursor: "pointer" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#374151" }}>{a.nome}</div>
-                  <div style={{ fontSize: 10, color: cor, fontWeight: 600 }}>{a.esf} · {a.microarea}</div>
+                  <div style={{ fontSize: 10, color: cor, fontWeight: 600 }}><span style={{ background: TIPO_COR[a.tipo] || "#6b7280", color:"#fff", borderRadius:4, padding:"0 5px", fontSize:9, marginRight:4 }}>{a.tipo}</span>{a.microarea}</div>
                 </button>
               );
             })}
@@ -394,7 +401,7 @@ function AbaCalendario() {
                   {porEquipe[esf].map(a => {
                     const sel = acsSel?.id === a.id;
                     return (
-                      <button key={a.id} onClick={() => setAcsSel({ id: a.id, nome: a.nome, esf: a.esf, microarea: a.microarea })}
+                      <button key={a.id} onClick={() => setAcsSel({ id: a.id, nome: a.nome, esf: a.equipe, microarea: a.microarea })}
                         style={{ textAlign: "left", padding: "6px 10px", borderRadius: 7, border: "1px solid",
                           borderColor: sel ? cor : "transparent",
                           background: sel ? `${cor}18` : "transparent", cursor: "pointer" }}>
@@ -434,8 +441,8 @@ function AbaCalendario() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Julho/2026 — Calendário de Visitas</div>
             {acsSel && (
-              <span style={{ fontSize: 11, background: `${ESF_COR[acsSel.esf] || "#6b7280"}18`,
-                color: ESF_COR[acsSel.esf] || "#6b7280", padding: "3px 10px", borderRadius: 20, fontWeight: 700 }}>
+              <span style={{ fontSize: 11, background: `${ESF_COR[acsSel.equipe] || "#6b7280"}18`,
+                color: ESF_COR[acsSel.equipe] || "#6b7280", padding: "3px 10px", borderRadius: 20, fontWeight: 700 }}>
                 {acsSel.nome} · {acsSel.microarea}
               </span>
             )}
@@ -646,7 +653,7 @@ function AbaCadastrosDomiciliares() {
                     <td style={{ padding: "9px 12px", fontWeight: 500 }}>{f.logradouro}</td>
                     <td style={{ padding: "9px 12px", fontSize: 11 }}>{f.acs_nome}</td>
                     <td style={{ padding: "9px 12px" }}><span style={{ background: "#eff6ff", color: "#1d4ed8", borderRadius: 5, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>{f.microarea}</span></td>
-                    <td style={{ padding: "9px 12px", fontSize: 11, color: ESF_COR[f.esf] || "#374151", fontWeight: 600 }}>{f.esf}</td>
+                    <td style={{ padding: "9px 12px", fontSize: 11, color: ESF_COR[f.equipe] || "#374151", fontWeight: 600 }}>{f.equipe}</td>
                     <td style={{ padding: "9px 12px", textAlign: "center", fontWeight: 700, color: "#374151" }}>{f.moradores}</td>
                     <td style={{ padding: "9px 12px", fontSize: 11, textTransform: "capitalize" as const, color: "#6b7280" }}>{f.tipo_moradia}</td>
                     <td style={{ padding: "9px 12px" }}>
@@ -878,7 +885,7 @@ export default function ACSPainel() {
                       <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#fff", borderRadius: 10, border: "1px solid #bbf7d0", borderLeft: "4px solid #16a34a" }}>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600 }}>{a.nome}</div>
-                          <div style={{ fontSize: 11, color: "#6b7280" }}>{a.microarea} · {a.esf}</div>
+                          <div style={{ fontSize: 11, color: "#6b7280" }}>{a.microarea} · {a.equipe}</div>
                         </div>
                         <div style={{ textAlign: "right" }}>
                           <div style={{ fontSize: 14, fontWeight: 800, color: "#16a34a" }}>{a.pct_visitas}% visitas</div>
@@ -899,7 +906,7 @@ export default function ACSPainel() {
                       <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#fff", borderRadius: 10, border: "1px solid #fecaca", borderLeft: "4px solid #dc2626" }}>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600 }}>{a.nome}</div>
-                          <div style={{ fontSize: 11, color: "#6b7280" }}>{a.microarea} · {a.esf}</div>
+                          <div style={{ fontSize: 11, color: "#6b7280" }}>{a.microarea} · {a.equipe}</div>
                         </div>
                         <div style={{ textAlign: "right" }}>
                           <div style={{ fontSize: 14, fontWeight: 800, color: "#dc2626" }}>{a.pct_visitas}% visitas</div>
@@ -930,7 +937,7 @@ export default function ACSPainel() {
         {aba === "lista" && (
           <div>
             <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" as const, alignItems: "center" }}>
-              {["Todas","ESF I","ESF II","ESF III","ESF IV","ESF V"].map(e => (
+              {["Todas","KENNEDY","JK","ACARI","JUMA","ESTRADA NOVA","LIBERDADE","SÃO SEBASTIÃO","CACHOEIRA","TRÊS ESTADOS","AREAL"].map(e => (
                 <button key={e} onClick={() => setEsfFiltro(e)}
                   style={{ padding: "6px 14px", fontSize: 12, borderRadius: 20, border: "1px solid #d1d5db", background: esfFiltro === e ? "#1351b4" : "#fff", color: esfFiltro === e ? "#fff" : "#374151", cursor: "pointer", fontWeight: esfFiltro === e ? 700 : 400 }}>
                   {e}
@@ -966,7 +973,7 @@ export default function ACSPainel() {
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 14 }}>{ma.codigo}</div>
                         <div style={{ fontSize: 12, color: "#6b7280" }}>{ma.nome}</div>
-                        <div style={{ fontSize: 10, color: "#9ca3af" }}>{ma.zona === "urbana" ? "🏙 Urbana" : "🌲 Rural"} · {ma.esf}</div>
+                        <div style={{ fontSize: 10, color: "#9ca3af" }}>{ma.zona === "urbana" ? "🏙 Urbana" : "🌲 Rural"} · {ma.equipe}</div>
                       </div>
                       <div style={{ background: `${cor}18`, color: cor, fontSize: 14, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{ma.pct_cobertura}%</div>
                     </div>
