@@ -38,6 +38,8 @@ export default function VisitasDomiciliaresCidadao() {
     staleTime: 60_000,
   });
 
+  const modoDemo = cidadaos.length > 0 && cidadaos[0].id < 0;
+
   const { data: historico, isLoading: carregandoHistorico } = useQuery<HistoricoResposta>({
     queryKey: ["cidadao-visitas", cidadaoId],
     queryFn: () => apiGet(`/api/cidadaos/${cidadaoId}/visitas`) as Promise<HistoricoResposta>,
@@ -62,6 +64,12 @@ export default function VisitasDomiciliaresCidadao() {
         </div>
       </div>
 
+      {modoDemo && (
+        <div style={{ margin: "12px 28px 0", padding: "8px 14px", background: "#fffbeb", border: "1px solid #fbbf24", borderRadius: 8, fontSize: 11, color: "#92400e", display: "flex", gap: 8, alignItems: "center" }}>
+          <span>⚠️</span>
+          <span><strong>Dados de demonstração</strong> — cidadãos e visitas fictícios de Apuí/AM. Os dados reais serão carregados automaticamente após a integração com o e-SUS PEC.</span>
+        </div>
+      )}
       <div style={{ padding: "20px 28px 60px", display: "grid", gridTemplateColumns: "300px 1fr", gap: 16 }}>
         <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, padding: 14, height: "fit-content" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: "1px solid #e5e7eb",
