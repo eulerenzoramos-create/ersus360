@@ -29,6 +29,13 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.error("Erro na inicialização do banco: %s", exc, exc_info=True)
 
+    # Sync automático do PEC na primeira inicialização (quando credenciais configuradas)
+    if settings.ESUS_USUARIO and settings.ESUS_SENHA:
+        try:
+            await _sync_pec_inicial()
+        except Exception as exc:
+            logger.error("Sync PEC inicial falhou (não crítico): %s", exc, exc_info=True)
+
     try:
         from scheduler import start_scheduler
         start_scheduler()
@@ -838,6 +845,7 @@ async def _seed_dados_iniciais():
 
     # Auto-seed repasses se a tabela estiver vazia
     from models import Repasse
+
     async with AsyncSessionLocal() as db2:
         res_rep = await db2.execute(select(Repasse))
         if not res_rep.scalars().first():
@@ -850,3 +858,35 @@ async def _seed_dados_iniciais():
                     logger.info("Repasses FNS 2026/06 inseridos via seed automático.")
                 except Exception as exc:
                     logger.error("Erro ao seed repasses FNS: %s", exc, exc_info=True)
+
+
+async def _sync_pec_inicial():
+    """Sincroniza cadastros do e-SUS PEC na inicialização (se cidadãos ainda não estiverem no banco)."""
+    from database import AsyncSessionLocal
+    from sqlalchemy import select
+    from models.pec_cadastro import Cidadao
+    from models import Municipio
+
+    async with AsyncSessionLocal() as db:
+        mun = (await db.execute(
+            select(Municipio).where(Municipio.codigo_ibge == "1300144")
+        )).scalar_one_or_none()
+        if not mun:
+            return
+
+        total = (await db.execute(
+            select(Cidadao).where(Cidadao.municipio_id == mun.id).limit(1)
+        )).scalar_one_or_none()
+
+        if total:
+            logger.info("PEC: banco já tem cidadãos — sync inicial ignorado.")
+            return
+
+        logger.info("PEC: banco vazio — iniciando sync com e-SUS (%s)...", settings.ESUS_URL)
+        from services.pec.sync_esus import sincronizar_cadastros_pec
+        resultado = await sincronizar_cadastros_pec(db)
+        logger.info(
+            "PEC sync inicial: %d equipes, %d profissionais, %d cidadãos. Erros: %s",
+            resultado.equipes_criadas, resultado.profissionais_criados,
+            resultado.cidadaos_criados, resultado.erros[:3] or "nenhum",
+        )

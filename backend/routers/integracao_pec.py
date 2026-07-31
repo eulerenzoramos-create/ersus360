@@ -208,3 +208,41 @@ async def reprocessar_pendencias(
     # Reenvio real seria feito aqui via MivdtBuilderService + LediTransmissionService
     # assim que a integração estiver habilitada e os endpoints LEDI validados.
     return {"status": "nao_implementado", "total_encontrado": len(pendentes), "reprocessados": 0, "erros": []}
+
+
+@router.post("/sync-esus")
+async def sync_esus(
+    db: AsyncSession = Depends(get_db),
+    current_user: UserOut = Depends(get_current_user),
+):
+    """
+    Sincroniza equipes, profissionais e cidadãos diretamente do e-SUS PEC
+    via GraphQL (ESUS_USUARIO / ESUS_SENHA).
+
+    Não requer ESUS_INTEGRATION_ENABLED=true — usa as credenciais do gestor
+    já configuradas no Railway. Idempotente: upsert por pec_reference_id.
+    """
+    _exigir_admin_integracao(current_user)
+
+    if not (settings.ESUS_USUARIO and settings.ESUS_SENHA):
+        raise HTTPException(
+            status_code=503,
+            detail="ESUS_USUARIO e/ou ESUS_SENHA não configurados. "
+                   "Adicione as variáveis de ambiente no Railway.",
+        )
+
+    from services.pec.sync_esus import sincronizar_cadastros_pec
+    resultado = await sincronizar_cadastros_pec(db)
+
+    await PecAuditService().registrar(
+        db, usuario_id=None, acao="SYNC_ESUS_GRAPHQL", tabela="integracao_pec",
+        registro_id=None,
+        detalhe=(
+            f"cidadaos={resultado.cidadaos_criados}+{resultado.cidadaos_atualizados} "
+            f"equipes={resultado.equipes_criadas} "
+            f"profissionais={resultado.profissionais_criados} "
+            f"erros={len(resultado.erros)}"
+        ),
+    )
+    await db.commit()
+    return {"status": "concluido", **resultado.to_dict()}
