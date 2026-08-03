@@ -36,6 +36,11 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.error("Erro ao iniciar scheduler: %s", exc, exc_info=True)
 
+    # Libera memória dos módulos carregados que não estão mais em uso
+    import gc
+    gc.collect()
+    logger.info("GC startup: memória liberada após carregamento de routers.")
+
     yield
 
     # ── Shutdown ─────────────────────────────────────────────────
