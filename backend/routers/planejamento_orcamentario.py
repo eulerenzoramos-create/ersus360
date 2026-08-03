@@ -29,6 +29,122 @@ _META_SIOPS_HIST = [
     {"ano":2026,"pct_proprio":17.16,"meta":15.0,"conforme":True},
 ]
 
+# RREO — Relatório Resumido da Execução Orçamentária (bimestral) 2026
+# Fonte: SIOPS / STN · FMS Apuí/AM · Lei 4.320/64 art. 165 §3º
+_SIOPS_BIMESTRAL = [
+    {
+        "bimestre": "1º Bimestre", "periodo": "Jan–Fev/2026", "encerrado": True,
+        "receita_arrecadada":     3_104_000.0,
+        "receita_previsao":       3_090_000.0,
+        "gasto_proprio_saude":      421_000.0,
+        "pct_proprio":                  13.56,
+        "transferencias_sus":       1_903_000.0,
+        "gasto_total_saude":        2_324_000.0,
+        # Execução LOA acumulada no bimestre
+        "dotacao_atualizada":      10_510_000.0,
+        "empenhado_acum":           1_180_000.0,
+        "liquidado_acum":             740_000.0,
+        "pago_acum":                  740_000.0,
+        "pct_exec":                      11.23,
+        "alerta": "Abaixo do mínimo constitucional (15%) — será compensado nos bimestres seguintes (art. 25 LC 141/2012).",
+        "status": "pendente",
+    },
+    {
+        "bimestre": "2º Bimestre", "periodo": "Mar–Abr/2026", "encerrado": True,
+        "receita_arrecadada":     3_288_000.0,
+        "receita_previsao":       3_210_000.0,
+        "gasto_proprio_saude":      598_000.0,
+        "pct_proprio":                  18.19,
+        "transferencias_sus":       2_142_000.0,
+        "gasto_total_saude":        2_740_000.0,
+        "dotacao_atualizada":      10_510_000.0,
+        "empenhado_acum":           3_240_000.0,
+        "liquidado_acum":           2_100_000.0,
+        "pago_acum":                2_100_000.0,
+        "pct_exec":                      30.83,
+        "alerta": None,
+        "status": "atingido",
+    },
+    {
+        "bimestre": "3º Bimestre", "periodo": "Mai–Jun/2026", "encerrado": True,
+        "receita_arrecadada":     3_197_000.0,
+        "receita_previsao":       3_180_000.0,
+        "gasto_proprio_saude":      574_000.0,
+        "pct_proprio":                  17.95,
+        "transferencias_sus":       1_986_000.0,
+        "gasto_total_saude":        2_560_000.0,
+        "dotacao_atualizada":      10_510_000.0,
+        "empenhado_acum":           5_620_000.0,
+        "liquidado_acum":           3_690_000.0,
+        "pago_acum":                3_690_000.0,
+        "pct_exec":                      53.47,
+        "alerta": None,
+        "status": "atingido",
+    },
+    {
+        "bimestre": "4º Bimestre", "periodo": "Jul–Ago/2026", "encerrado": False,
+        "receita_arrecadada":     1_640_000.0,   # parcial (até 03/ago)
+        "receita_previsao":       3_250_000.0,
+        "gasto_proprio_saude":      206_000.0,   # parcial
+        "pct_proprio":                  12.56,   # parcial — em andamento
+        "transferencias_sus":       1_050_000.0,
+        "gasto_total_saude":        1_256_000.0,
+        "dotacao_atualizada":      10_510_000.0,
+        "empenhado_acum":           7_160_000.0,
+        "liquidado_acum":           4_930_000.0,
+        "pago_acum":                4_930_000.0,
+        "pct_exec":                      68.13,
+        "alerta": "Bimestre em andamento (até 03/ago/2026). Percentual parcial — apuração encerra em 31/ago.",
+        "status": "parcial",
+    },
+    {
+        "bimestre": "5º Bimestre", "periodo": "Set–Out/2026", "encerrado": False,
+        "receita_arrecadada":     None,
+        "receita_previsao":       3_310_000.0,
+        "gasto_proprio_saude":    None,
+        "pct_proprio":            None,
+        "transferencias_sus":     None,
+        "gasto_total_saude":      None,
+        "dotacao_atualizada":      10_510_000.0,
+        "empenhado_acum":         None,
+        "liquidado_acum":         None,
+        "pago_acum":              None,
+        "pct_exec":               None,
+        "alerta": None,
+        "status": "previsto",
+    },
+    {
+        "bimestre": "6º Bimestre", "periodo": "Nov–Dez/2026", "encerrado": False,
+        "receita_arrecadada":     None,
+        "receita_previsao":       3_368_000.0,
+        "gasto_proprio_saude":    None,
+        "pct_proprio":            None,
+        "transferencias_sus":     None,
+        "gasto_total_saude":      None,
+        "dotacao_atualizada":      10_510_000.0,
+        "empenhado_acum":         None,
+        "liquidado_acum":         None,
+        "pago_acum":              None,
+        "pct_exec":               None,
+        "alerta": None,
+        "status": "previsto",
+    },
+]
+
+# Execução LOA por programa — evolução bimestral (empenhado acumulado)
+_LOA_BIMESTRAL = {
+    "Atenção Básica em Saúde":       [210_000, 620_000, 980_000, 1_320_000, None, None],
+    "Média e Alta Complexidade":     [ 62_000, 180_000, 340_000,   492_000, None, None],
+    "Assistência Farmacêutica":      [ 75_000, 210_000, 350_000,   480_000, None, None],
+    "Vigilância em Saúde":           [ 38_000, 110_000, 185_000,   245_000, None, None],
+    "Infraestrutura e Equipamentos": [ 82_000, 240_000, 480_000,   680_000, None, None],
+    "Recursos Humanos em Saúde":     [460_000,1_380_000,2_100_000,2_800_000,None, None],
+    "Gestão e Administração":        [ 46_000, 130_000, 205_000,   280_000, None, None],
+    "Saúde Bucal":                   [ 42_000, 122_000, 195_000,   260_000, None, None],
+    "Transporte Sanitário":          [ 55_000, 158_000, 242_000,   324_000, None, None],
+    "Tecnologia da Informação":      [ 46_000, 136_000, 204_000,   276_000, None, None],
+}
+
 _LDO_METAS = [
     {"indicador":"Cobertura ESF (%)",              "meta_ldo":85.0,  "realizado":82.4, "status":"atencao"},
     {"indicador":"Vacinas (cobertura média %)",     "meta_ldo":95.0,  "realizado":88.4, "status":"atencao"},
@@ -94,3 +210,26 @@ async def ldo_metas():
 @router.get("/siops-historico")
 async def siops_historico():
     return _META_SIOPS_HIST
+
+
+@router.get("/siops-bimestral")
+async def siops_bimestral():
+    """RREO — Relatório Resumido da Execução Orçamentária (bimestral) 2026."""
+    encerrados = [b for b in _SIOPS_BIMESTRAL if b["encerrado"]]
+    receita_acum = sum(b["receita_arrecadada"] for b in encerrados)
+    gasto_acum   = sum(b["gasto_proprio_saude"] for b in encerrados)
+    pct_acum     = round(gasto_acum / receita_acum * 100, 2) if receita_acum else 0
+    return {
+        "municipio":        "Apuí/AM",
+        "exercicio":        2026,
+        "competencia_atual":"4º Bimestre (Jul–Ago/2026) — em andamento",
+        "bimestres":        _SIOPS_BIMESTRAL,
+        "acumulado": {
+            "receita_arrecadada": receita_acum,
+            "gasto_proprio":      gasto_acum,
+            "pct_proprio_acum":   pct_acum,
+            "status":             "atingido" if pct_acum >= 15.0 else "pendente",
+        },
+        "loa_bimestral":    _LOA_BIMESTRAL,
+        "fonte":            "SIOPS/STN · RREO · referencia",
+    }
