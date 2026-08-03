@@ -378,7 +378,7 @@ function AbaCalendario() {
               const cor = ESF_COR[a.equipe] || "#6b7280";
               const sel = acsSel?.id === a.id;
               return (
-                <button key={a.id} onClick={() => setAcsSel({ id: a.id, nome: a.nome, esf: a.equipe, microarea: a.microarea })}
+                <button key={a.id} onClick={() => setAcsSel({ id: a.id, nome: a.nome, equipe: a.equipe, tipo: a.tipo, microarea: a.microarea })}
                   style={{ textAlign: "left", padding: "7px 10px", borderRadius: 8, border: "1px solid",
                     borderColor: sel ? cor : "transparent",
                     background: sel ? `${cor}15` : "transparent", cursor: "pointer" }}>
@@ -401,7 +401,7 @@ function AbaCalendario() {
                   {porEquipe[esf].map(a => {
                     const sel = acsSel?.id === a.id;
                     return (
-                      <button key={a.id} onClick={() => setAcsSel({ id: a.id, nome: a.nome, esf: a.equipe, microarea: a.microarea })}
+                      <button key={a.id} onClick={() => setAcsSel({ id: a.id, nome: a.nome, equipe: a.equipe, tipo: a.tipo, microarea: a.microarea })}
                         style={{ textAlign: "left", padding: "6px 10px", borderRadius: 7, border: "1px solid",
                           borderColor: sel ? cor : "transparent",
                           background: sel ? `${cor}18` : "transparent", cursor: "pointer" }}>
