@@ -6,13 +6,10 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import {
-import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
   Landmark, DollarSign, AlertTriangle, BarChart3, Activity,
   ArrowDownUp, ClipboardList, Layers,
 } from "lucide-react";
-
-const BRL  = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const PCT = (v: number) => `${v.toFixed(1)}%`;
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";

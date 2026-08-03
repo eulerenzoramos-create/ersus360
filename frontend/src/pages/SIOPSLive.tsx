@@ -6,10 +6,10 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
   RefreshCw, CheckCircle, AlertTriangle, WifiOff, Database,
   ExternalLink, Download, Search, Pencil, Trash2, Save, X,
 } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -17,9 +17,6 @@ const OK     = "#16a34a";
 const WARN   = "#d97706";
 const CRIT   = "#dc2626";
 const COLORS = ["#dbeafe","#1d4ed8","#0891b2","#7c3aed","#16a34a","#d97706","#dc2626","#059669","#c026d3","#ea580c"];
-
-const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const PCT = (a: number, b: number) => b ? `${((a / b) * 100).toFixed(1)}%` : "—";
 
 const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
   <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 16, boxShadow: "0 1px 3px rgba(0,0,0,.07)" }}>
