@@ -18,7 +18,7 @@ ERROS_POSSIVEIS = [
     {"codigo": "ERR-008", "descricao": "Medicamento não consta na RENAME", "acao_corretiva": "Atualizar lista de medicamentos conforme RENAME vigente"},
 ]
 
-ESFS = ["ESF I", "ESF II", "ESF III", "ESF IV", "ESF V"]
+ESFS = ["KENNEDY", "JK", "ACARI", "JUMA", "ESTRADA NOVA", "LIBERDADE", "SÃO SEBASTIÃO", "CACHOEIRA", "TRÊS ESTADOS", "AREAL"]
 TIPOS_FICHA = ["Cadastro Individual", "Cadastro Domiciliar", "Visita Domiciliar", "Atendimento Individual", "Atividade Coletiva", "Procedimentos"]
 COMPETENCIAS = ["2025/12", "2026/01", "2026/02", "2026/03", "2026/04", "2026/05"]
 STATUSES = ["pendente", "processando", "processado", "rejeitado", "erro"]

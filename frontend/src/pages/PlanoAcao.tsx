@@ -40,7 +40,7 @@ const PRIO_COR: Record<string, string> = {
   critica: "#dc2626", alta: "#d97706", media: "#1351b4", baixa: "#6b7280",
 };
 const SISTEMAS = ["SCNES/CNES", "eSUS PEC", "SIAPS", "e-Gestor APS", "RNDS", "CADSUS", "Geral"];
-const RESPONSAVEIS = ["Rosangela", "Euler Ramos", "Gestor APS", "TI Municipal", "Enfermeira ESF I", "Coord. Atenção Primária"];
+const RESPONSAVEIS = ["Rosangela", "Euler Ramos", "Gestor APS", "TI Municipal", "Enfermeira KENNEDY", "Coord. Atenção Primária"];
 
 // ── Card Tarefa ───────────────────────────────────────────────────────────────
 
@@ -145,7 +145,7 @@ function ModalTarefa({ onSalvar, onFechar, inicial }: {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Título *</label>
-            <input value={form.titulo} onChange={e => set("titulo", e.target.value)} placeholder="Ex: Atualizar INE expirado ESF III"
+            <input value={form.titulo} onChange={e => set("titulo", e.target.value)} placeholder="Ex: Atualizar INE expirado equipe ACARI"
               style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 7, padding: "8px 12px", fontSize: 12 }} />
           </div>
           <div>

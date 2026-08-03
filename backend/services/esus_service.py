@@ -304,13 +304,13 @@ def _unidades_fallback() -> list[dict]:
 
 def _profissionais_fallback() -> list[dict]:
     return [
-        {"nome": "Dra. Ana Paula Costa",    "cns": "700 8012 4318 2456", "cbo": "Médico de Família",        "unidade": "UBS Central",       "equipe": "ESF I"},
-        {"nome": "Dr. Carlos Mendonça",     "cns": "700 8012 4319 1234", "cbo": "Médico de Família",        "unidade": "UBSF Rio Juma",     "equipe": "ESF III"},
-        {"nome": "Enf. Maria Silva",        "cns": "700 8012 4320 5678", "cbo": "Enfermeiro",               "unidade": "UBS Central",       "equipe": "ESF I"},
-        {"nome": "Enf. João Oliveira",      "cns": "700 8012 4321 9012", "cbo": "Enfermeiro",               "unidade": "UBSF Maracanã",     "equipe": "ESF II"},
+        {"nome": "Dra. Ana Paula Costa",    "cns": "700 8012 4318 2456", "cbo": "Médico de Família",        "unidade": "UBS Central",       "equipe": "KENNEDY"},
+        {"nome": "Dr. Carlos Mendonça",     "cns": "700 8012 4319 1234", "cbo": "Médico de Família",        "unidade": "UBSF Rio Juma",     "equipe": "JUMA"},
+        {"nome": "Enf. Maria Silva",        "cns": "700 8012 4320 5678", "cbo": "Enfermeiro",               "unidade": "UBS Central",       "equipe": "KENNEDY"},
+        {"nome": "Enf. João Oliveira",      "cns": "700 8012 4321 9012", "cbo": "Enfermeiro",               "unidade": "UBSF Maracanã",     "equipe": "JK"},
         {"nome": "Dra. Fernanda Rocha",     "cns": "700 8012 4322 3456", "cbo": "Cirurgião-Dentista",       "unidade": "CEO Apuí",          "equipe": "—"},
-        {"nome": "Marcos ACS",              "cns": "700 8012 4323 7890", "cbo": "Agente Comunitário Saúde", "unidade": "UBS Central",       "equipe": "ESF I"},
-        {"nome": "Lucia ACS",               "cns": "700 8012 4324 1234", "cbo": "Agente Comunitário Saúde", "unidade": "UBSF Rio Juma",     "equipe": "ESF III"},
+        {"nome": "Marcos ACS",              "cns": "700 8012 4323 7890", "cbo": "Agente Comunitário Saúde", "unidade": "UBS Central",       "equipe": "KENNEDY"},
+        {"nome": "Lucia ACS",               "cns": "700 8012 4324 1234", "cbo": "Agente Comunitário Saúde", "unidade": "UBSF Rio Juma",     "equipe": "JUMA"},
         {"nome": "Técn. Roberto Lima",      "cns": "700 8012 4325 5678", "cbo": "Técnico de Enfermagem",    "unidade": "Hospital Municipal", "equipe": "—"},
     ]
 

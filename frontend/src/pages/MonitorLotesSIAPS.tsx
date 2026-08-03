@@ -278,7 +278,7 @@ export default function MonitorLotesSIAPS() {
           </div>
           <select value={filtroESF} onChange={e => setFiltroESF(e.target.value)}
             style={{ border: "1px solid #d1d5db", borderRadius: 7, padding: "7px 10px", fontSize: 12 }}>
-            {["Todas","ESF I","ESF II","ESF III","ESF IV","ESF V"].map(e => <option key={e}>{e}</option>)}
+            {["Todas","KENNEDY","JK","ACARI","JUMA","ESTRADA NOVA","LIBERDADE","SÃO SEBASTIÃO","CACHOEIRA","TRÊS ESTADOS","AREAL"].map(e => <option key={e}>{e}</option>)}
           </select>
           <div style={{ display: "flex", gap: 6 }}>
             {["todos","processado","pendente","rejeitado","erro"].map(s => {
