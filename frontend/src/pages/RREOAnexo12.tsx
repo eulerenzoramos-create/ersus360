@@ -236,9 +236,9 @@ export default function RREOAnexo12() {
               {META.bimestre} Bimestre — {META.periodo} de {META.exercicio}
             </p>
           </div>
-          <div className="flex justify-between text-[9px] text-gray-500 mt-1">
-            <span>{META.anexo}</span>
-            <span>R$ 1,00</span>
+          <div className="flex justify-between items-end text-[9px] text-gray-600 mt-1">
+            <span className="font-semibold">{META.anexo}</span>
+            <span className="text-gray-500 italic">Em R$ 1,00</span>
           </div>
         </div>
 
@@ -317,10 +317,10 @@ export default function RREOAnexo12() {
           Despesas com Ações e Serviços Públicos de Saúde (ASPS) – Por Subfunção e Categoria Econômica
         </p>
         <div className="overflow-x-auto mb-4">
-          <table className="w-full border-collapse text-[9.5px]">
+          <table className="border-collapse text-[9.5px]" style={{minWidth:"1100px",width:"100%"}}>
             <thead>
               <tr>
-                <th className={`${TH} w-[24%] text-left`}>
+                <th className={`${TH} text-left`} style={{width:"26%"}}>
                   DESPESAS COM ASPS – POR SUBFUNÇÃO E CATEGORIA ECONÔMICA
                 </th>
                 <th className={TH}>DOTAÇÃO INICIAL</th>
@@ -533,10 +533,10 @@ export default function RREOAnexo12() {
           Despesas com Saúde — Totais
         </p>
         <div className="overflow-x-auto mb-4">
-          <table className="w-full border-collapse text-[9.5px]">
+          <table className="border-collapse text-[9.5px]" style={{minWidth:"1100px",width:"100%"}}>
             <thead>
               <tr>
-                <th className={`${TH} w-[24%] text-left`}>DESPESAS COM SAÚDE (POR GRUPO DE NATUREZA DA DESPESA)</th>
+                <th className={`${TH} text-left`} style={{width:"26%"}}>DESPESAS COM SAÚDE (POR GRUPO DE NATUREZA DA DESPESA)</th>
                 <th className={TH}>DOTAÇÃO INICIAL</th>
                 <th className={TH}>DOTAÇÃO ATUALIZADA (c)</th>
                 <th className={TH}>DESP. EMPENHADAS Até o Bimestre (d)</th>
