@@ -630,13 +630,22 @@ export default function SIOPSCompleto() {
                 Filtros {filtrosAtivos > 0 && `(${filtrosAtivos} ativo${filtrosAtivos > 1 ? "s" : ""})`}
               </button>
             )}
-            <a href="/api/siops-completo/exportar-csv" download
-              style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px",
-                border: "1px solid #d1d5db", borderRadius: 7, background: "#fff",
-                fontSize: 12, cursor: "pointer", color: "#374151", textDecoration: "none" }}>
-              <Download size={13} />
-              Exportar CSV
-            </a>
+            {(["csv","xlsx","pdf"] as const).map((fmt) => {
+              const API = import.meta.env.VITE_API_URL ?? "";
+              const url = `${API}/api/siops-completo/exportar-${fmt}`;
+              const label = fmt === "csv" ? "CSV" : fmt === "xlsx" ? "Excel" : "PDF";
+              const bg   = fmt === "pdf" ? "#fee2e2" : fmt === "xlsx" ? "#dcfce7" : "#fff";
+              const col  = fmt === "pdf" ? "#b91c1c" : fmt === "xlsx" ? "#15803d" : "#374151";
+              return (
+                <a key={fmt} href={url} download
+                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px",
+                    border: `1px solid ${col}40`, borderRadius: 7, background: bg,
+                    fontSize: 12, cursor: "pointer", color: col, textDecoration: "none" }}>
+                  <Download size={13} />
+                  {label}
+                </a>
+              );
+            })}
           </div>
         </div>
 

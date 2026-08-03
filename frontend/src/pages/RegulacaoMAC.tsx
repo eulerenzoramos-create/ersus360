@@ -10,11 +10,8 @@ import {
   Ambulance, Search,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
-const BRL  = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const BRLK = (v: number) =>
-  v >= 1_000_000 ? `R$ ${(v/1_000_000).toFixed(2).replace(".",",")}M`
-  : `R$ ${(v/1_000).toFixed(1).replace(".",",")}k`;
 
 const COR_META = (s: string) =>
   s === "critico" ? "#dc2626" : s === "atencao" ? "#d97706" : "#16a34a";
@@ -67,7 +64,7 @@ function AbaDashboard({ dash }: { dash: any }) {
         <KpiCard label="Urgentes na fila"    value={dash.urgentes}            sub="prioridade"              cor="#ea580c" icon={<Clock size={13} color="#ea580c"/>} />
         <KpiCard label="Espera médio"        value={`${dash.tempo_espera_medio_dias}d`} sub="dias p/ autorização" cor="#7c3aed" icon={<Clock size={13} color="#7c3aed"/>} />
         <KpiCard label="Taxa ocupação leitos" value={`${dash.taxa_ocupacao}%`} sub={`${dash.leitos_ocupados}/${dash.leitos_referenciados}`} cor="#0891b2" icon={<TrendingUp size={13} color="#0891b2"/>} />
-        <KpiCard label="AIH/mês"             value={BRLK(dash.valor_aih_mes)} sub="internações"            cor="#1d4ed8" icon={<DollarSign size={13} color="#1d4ed8"/>} />
+        <KpiCard label="AIH/mês"             value={BRL(dash.valor_aih_mes)} sub="internações"            cor="#1d4ed8" icon={<DollarSign size={13} color="#1d4ed8"/>} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 22 }}>

@@ -6,14 +6,10 @@ import {
   Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { Wrench, AlertTriangle, ClipboardList, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const BRLK = (v: number) => {
-  if (v >= 1_000_000) return `R$${(v / 1_000_000).toFixed(2)}M`;
-  if (v >= 1_000) return `R$${(v / 1_000).toFixed(0)}K`;
-  return BRL(v);
-};
 
 const BRAND = "#92400e";
 const ACCENT = "#d97706";
@@ -122,9 +118,9 @@ export default function PatSaude() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Bens Tombados" value={dashRaw.bens_tombados.toLocaleString()} />
-              <KPI label="Valor Patrimonial" value={BRLK(dashRaw.valor_patrimonial_total)} />
-              <KPI label="Valor Líquido" value={BRLK(dashRaw.valor_liquido_total)} sub="Após depreciação" />
-              <KPI label="Investimento 2026" value={BRLK(dashRaw.investimento_equipamentos_ano)} color={OK} />
+              <KPI label="Valor Patrimonial" value={BRL(dashRaw.valor_patrimonial_total)} />
+              <KPI label="Valor Líquido" value={BRL(dashRaw.valor_liquido_total)} sub="Após depreciação" />
+              <KPI label="Investimento 2026" value={BRL(dashRaw.investimento_equipamentos_ano)} color={OK} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Equip. Médicos" value={dashRaw.equipamentos_medicos.toString()} />
@@ -143,7 +139,7 @@ export default function PatSaude() {
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={categorias} layout="vertical" margin={{ top: 5, right: 30, left: 160, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
-                  <XAxis type="number" tickFormatter={(v) => BRLK(v)} tick={{ fontSize: 10 }} />
+                  <XAxis type="number" tickFormatter={(v) => BRL(v)} tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="categoria" tick={{ fontSize: 10 }} width={155} />
                   <Tooltip formatter={(v: number) => BRL(v)} />
                   <Legend />
@@ -167,8 +163,8 @@ export default function PatSaude() {
                   </div>
                   <div className="grid grid-cols-3 md:grid-cols-5 gap-2 text-xs text-slate-500 mt-2">
                     <span>Qtd: <b>{c.quantidade}</b></span>
-                    <span>Total: <b>{BRLK(c.valor_total)}</b></span>
-                    <span>Líquido: <b>{BRLK(c.valor_liquido)}</b></span>
+                    <span>Total: <b>{BRL(c.valor_total)}</b></span>
+                    <span>Líquido: <b>{BRL(c.valor_liquido)}</b></span>
                     <span>Deprec.: <b>{c.depreciacao_media_pct}%</b></span>
                     <span>Inop.: <b style={{ color: c.inoperantes > 0 ? CRIT : OK }}>{c.inoperantes}</b></span>
                   </div>

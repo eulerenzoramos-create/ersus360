@@ -131,10 +131,10 @@ export default function SaudeFinanceiraApui() {
                     area: o.area.substring(0, 22), orcado: o.orcado / 1000, executado: o.executado / 1000
                   }))}
                   layout="vertical" margin={{ left: 10, right: 60 }}>
-                  <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={(v) => `${v}k`} />
+                  <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={BRL_AXIS} />
                   <YAxis type="category" dataKey="area" tick={{ fontSize: 7 }} width={180} />
                   <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
-                  <Tooltip formatter={(v: any) => `R$ ${v.toFixed(0)}k`} />
+                  <Tooltip formatter={(v: any) => BRL(v)} />
                   <Legend />
                   <Bar dataKey="orcado"    name="Orçado"    fill="#374151" radius={[0,3,3,0]} />
                   <Bar dataKey="executado" name="Executado" radius={[0,3,3,0]}>
@@ -197,9 +197,9 @@ export default function SaudeFinanceiraApui() {
                 margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
-                <YAxis yAxisId="m"   tick={{ fontSize: 11 }} tickFormatter={(v) => `${v.toFixed(1)}M`} />
+                <YAxis yAxisId="m"   tick={{ fontSize: 11 }} tickFormatter={BRL_AXIS} />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />
-                <Tooltip formatter={(v: any, n: string) => n === "Orçamento (R$M)" ? `R$ ${v.toFixed(2)}M` : `${v}%`} />
+                <Tooltip formatter={(v: any, n: string) => n === "Orçamento (R$M)" ? BRL(v) : `${v}%`} />
                 <Legend />
                 <Line yAxisId="m"   dataKey="orc_M"         name="Orçamento (R$M)"    stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
                 <Line yAxisId="pct" dataKey="executado_pct"  name="Execução %"          stroke={OK}     strokeWidth={2} dot={{ r: 4 }} />

@@ -6,16 +6,12 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import {
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
   Landmark, DollarSign, AlertTriangle, BarChart3, Activity,
   ArrowDownUp, ClipboardList, Layers,
 } from "lucide-react";
 
 const BRL  = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const BRLK = (v: number) => {
-  if (v >= 1_000_000) return `R$${(v / 1_000_000).toFixed(2)}M`;
-  if (v >= 1_000)     return `R$${(v / 1_000).toFixed(0)}K`;
-  return BRL(v);
-};
 const PCT = (v: number) => `${v.toFixed(1)}%`;
 
 const BRAND  = "#dbeafe";
@@ -65,7 +61,7 @@ const BarOrc = ({ label, val, max, color }: { label: string; val: number; max: n
     <div style={{ flex: 1, background: "#111827", borderRadius: 9999, height: 8 }}>
       <div style={{ width: `${Math.min((val / max) * 100, 100)}%`, height: 8, borderRadius: 9999, background: color }} />
     </div>
-    <span style={{ width: 96, textAlign: "right", fontWeight: 600, color: "#d1d5db" }}>{BRLK(val)}</span>
+    <span style={{ width: 96, textAlign: "right", fontWeight: 600, color: "#d1d5db" }}>{BRL(val)}</span>
     <span style={{ width: 40, textAlign: "right", color: "#6b7280" }}>{PCT((val / max) * 100)}</span>
   </div>
 );
@@ -138,14 +134,14 @@ export default function SIOPSDetalhado() {
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <Grid4>
               <KPI label="EC-29 Aplicado"       value={PCT(d.aplicacao_saude_pct)}    sub={`Meta: ${d.vinculacao_minima_ec29_pct}%`} color={OK} />
-              <KPI label="Superávit EC-29"       value={BRLK(d.superavit_ec29_valor)} sub={`+${d.superavit_ec29_pct} p.p. acima`}    color={OK} />
-              <KPI label="MAC Executado"         value={PCT(d.mac_executado_pct)}      sub={BRLK(d.mac_executado_valor)}               color={WARN} />
-              <KPI label="Teto MAC Anual"        value={BRLK(d.teto_mac_anual)}        sub={d.competencia} />
+              <KPI label="Superávit EC-29"       value={BRL(d.superavit_ec29_valor)} sub={`+${d.superavit_ec29_pct} p.p. acima`}    color={OK} />
+              <KPI label="MAC Executado"         value={PCT(d.mac_executado_pct)}      sub={BRL(d.mac_executado_valor)}               color={WARN} />
+              <KPI label="Teto MAC Anual"        value={BRL(d.teto_mac_anual)}        sub={d.competencia} />
             </Grid4>
             <Grid4>
-              <KPI label="Total Transferências"  value={BRLK(d.total_transferencias_recebidas)} sub="FNS + FES recebidos"  color={ACCENT} />
-              <KPI label="Recursos Próprios"     value={BRLK(d.total_recursos_proprios)}         sub="Tesouro municipal"    color={BRAND} />
-              <KPI label="Despesa Total Saúde"   value={BRLK(d.total_despesa_saude)}             sub="Empenhado acumulado"  color={BRAND} />
+              <KPI label="Total Transferências"  value={BRL(d.total_transferencias_recebidas)} sub="FNS + FES recebidos"  color={ACCENT} />
+              <KPI label="Recursos Próprios"     value={BRL(d.total_recursos_proprios)}         sub="Tesouro municipal"    color={BRAND} />
+              <KPI label="Despesa Total Saúde"   value={BRL(d.total_despesa_saude)}             sub="Empenhado acumulado"  color={BRAND} />
               <KPI label="Despesa/Hab./Ano"      value="R$ 668" sub="Meta: R$600 — acima"        color={OK} />
             </Grid4>
 
@@ -184,7 +180,7 @@ export default function SIOPSDetalhado() {
                 <BarChart data={blocos as any[]} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="bloco" tick={{ fontSize: 10 }} />
-                  <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 11 }} />
+                  <YAxis tickFormatter={BRL_AXIS} tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(v: number) => BRL(v)} />
                   <Legend />
                   <Bar dataKey="federal"   name="Federal"   fill="#1d4ed8" radius={[3,3,0,0]} />
@@ -198,7 +194,7 @@ export default function SIOPSDetalhado() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                   <span style={{ fontWeight: 600, color: "#d1d5db" }}>{b.bloco}</span>
                   <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
-                    <span style={{ color: "#6b7280" }}>Total: <b>{BRLK(b.total)}</b></span>
+                    <span style={{ color: "#6b7280" }}>Total: <b>{BRL(b.total)}</b></span>
                     <span style={{ fontWeight: 700, color: BLOCOS[i] }}>{b.pct_exec}% executado</span>
                   </div>
                 </div>
@@ -206,7 +202,7 @@ export default function SIOPSDetalhado() {
                   <div style={{ width: `${b.pct_exec}%`, height: 8, borderRadius: 9999, background: BLOCOS[i] }} />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, fontSize: 12 }}>
-                  {[["Federal",BRLK(b.federal),"#dbeafe","#1d4ed8"],["Estadual",BRLK(b.estadual),"#e0f2fe","#0891b2"],["Municipal",BRLK(b.municipal),"#ede9fe","#7c3aed"],["Executado",BRLK(b.executado),"#dcfce7","#16a34a"]].map(([lbl,val,bg,fg]) => (
+                  {[["Federal",BRL(b.federal),"#dbeafe","#1d4ed8"],["Estadual",BRL(b.estadual),"#e0f2fe","#0891b2"],["Municipal",BRL(b.municipal),"#ede9fe","#7c3aed"],["Executado",BRL(b.executado),"#dcfce7","#16a34a"]].map(([lbl,val,bg,fg]) => (
                     <div key={lbl} style={{ background: bg, borderRadius: 6, padding: 8, textAlign: "center" }}>
                       <p style={{ color: "#6b7280", margin: 0, fontSize: 10 }}>{lbl}</p>
                       <p style={{ fontWeight: 700, color: fg, margin: "2px 0 0" }}>{val}</p>
@@ -248,8 +244,8 @@ export default function SIOPSDetalhado() {
                         <td style={{ padding: "9px 12px", fontWeight: 500, color: "#d1d5db" }}>{t.programa}</td>
                         <td style={{ padding: "9px 12px" }}><span style={{ background: "#111827", color: "#475569", padding: "2px 6px", borderRadius: 4 }}>{t.bloco}</span></td>
                         <td style={{ padding: "9px 12px" }}><span style={{ background: t.fonte === "FNS" ? "#dbeafe" : "#e0f2fe", color: t.fonte === "FNS" ? "#1d4ed8" : "#0891b2", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>{t.fonte}</span></td>
-                        <td style={{ padding: "9px 12px", textAlign: "right" }}>{t.valor_anual > 0 ? BRLK(t.valor_anual) : "—"}</td>
-                        <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 600 }}>{t.valor_recebido > 0 ? BRLK(t.valor_recebido) : "—"}</td>
+                        <td style={{ padding: "9px 12px", textAlign: "right" }}>{t.valor_anual > 0 ? BRL(t.valor_anual) : "—"}</td>
+                        <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 600 }}>{t.valor_recebido > 0 ? BRL(t.valor_recebido) : "—"}</td>
                         <td style={{ padding: "9px 12px", textAlign: "center", fontWeight: 700, color: sc(t.status) }}>{t.valor_anual > 0 ? `${t.pct_exec}%` : "—"}</td>
                         <td style={{ padding: "9px 12px", color: "#6b7280", maxWidth: 240 }}>{t.obs}</td>
                       </tr>
@@ -276,8 +272,8 @@ export default function SIOPSDetalhado() {
                   </div>
                   <div style={{ textAlign: "right", fontSize: 12 }}>
                     <p style={{ color: "#6b7280", margin: 0 }}>Dotação atual</p>
-                    <p style={{ fontWeight: 700, color: "#d1d5db", margin: "2px 0 0" }}>{BRLK(a.dotacao_atual)}</p>
-                    {a.creditos_adic > 0 && <p style={{ color: OK, fontSize: 11, margin: 0 }}>+{BRLK(a.creditos_adic)} créditos ad.</p>}
+                    <p style={{ fontWeight: 700, color: "#d1d5db", margin: "2px 0 0" }}>{BRL(a.dotacao_atual)}</p>
+                    {a.creditos_adic > 0 && <p style={{ color: OK, fontSize: 11, margin: 0 }}>+{BRL(a.creditos_adic)} créditos ad.</p>}
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -286,7 +282,7 @@ export default function SIOPSDetalhado() {
                   <BarOrc label="Pago"       val={a.pago}       max={a.dotacao_atual} color={OK} />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 12 }}>
-                  <span style={{ color: "#6b7280" }}>A empenhar: <b style={{ color: "#d1d5db" }}>{BRLK(a.a_empenhar)}</b></span>
+                  <span style={{ color: "#6b7280" }}>A empenhar: <b style={{ color: "#d1d5db" }}>{BRL(a.a_empenhar)}</b></span>
                   <span style={{ padding: "2px 10px", borderRadius: 9999, fontWeight: 600, fontSize: 11, background: `${sc(a.status)}22`, color: sc(a.status) }}>
                     {a.status === "ok" ? "Regular" : a.status === "atencao" ? "Atenção" : "Crítico"}
                   </span>
@@ -307,7 +303,7 @@ export default function SIOPSDetalhado() {
                     <Pie data={(natData as any).resumo} dataKey="empenhado" nameKey="natureza" cx="50%" cy="50%" outerRadius={85}>
                       {((natData as any).resumo as any[]).map((n: any) => <Cell key={n.natureza} fill={n.cor} />)}
                     </Pie>
-                    <Tooltip formatter={(v: number) => BRLK(v)} />
+                    <Tooltip formatter={(v: number) => BRL(v)} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -318,13 +314,13 @@ export default function SIOPSDetalhado() {
                   <div key={n.natureza} style={{ marginBottom: 10 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
                       <span style={{ color: "#475569", fontWeight: 500 }}>{n.natureza}</span>
-                      <span style={{ fontWeight: 700, color: n.cor }}>{BRLK(n.empenhado)}</span>
+                      <span style={{ fontWeight: 700, color: n.cor }}>{BRL(n.empenhado)}</span>
                     </div>
                     <div style={{ background: "#111827", borderRadius: 9999, height: 6 }}>
                       <div style={{ width: `${Math.min((n.empenhado / n.dotacao) * 100, 100)}%`, height: 6, borderRadius: 9999, background: n.cor }} />
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#6b7280", marginTop: 1 }}>
-                      <span>Dotação: {BRLK(n.dotacao)}</span>
+                      <span>Dotação: {BRL(n.dotacao)}</span>
                       <span>{PCT((n.empenhado / n.dotacao) * 100)} exec.</span>
                     </div>
                   </div>
@@ -337,8 +333,8 @@ export default function SIOPSDetalhado() {
                 <BarChart data={(natData as any).mensal} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                  <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: number) => BRLK(v)} />
+                  <YAxis tickFormatter={BRL_AXIS} tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: number) => BRL(v)} />
                   <Legend />
                   <Bar dataKey="pessoal"      name="Pessoal"           fill="#dbeafe" stackId="a" />
                   <Bar dataKey="custeio"      name="Custeio/Serviços"  fill="#1d4ed8" stackId="a" />
@@ -354,7 +350,7 @@ export default function SIOPSDetalhado() {
         {aba === "ec29" && ec29 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Grid3>
-              <KPI label="Receita Base" value={BRLK((ec29 as any).receita_base)} />
+              <KPI label="Receita Base" value={BRL((ec29 as any).receita_base)} />
               <KPI label="Mínimo EC-29 (15%)" value={BRL((ec29 as any).minimo_legal_valor)} />
               <KPI label="Aplicado" value={PCT((ec29 as any).aplicado_pct)} sub={BRL((ec29 as any).aplicado_valor)} color={OK} />
               <KPI label="Superávit" value={`${(ec29 as any).superavit_pct} p.p.`} sub={BRL((ec29 as any).superavit_valor)} color={OK} />
@@ -387,8 +383,8 @@ export default function SIOPSDetalhado() {
                 <BarChart data={rfData as any[]} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                  <YAxis tickFormatter={(v) => `${(v/1000).toFixed(0)}K`} tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: number) => BRLK(v)} />
+                  <YAxis tickFormatter={BRL_AXIS} tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: number) => BRL(v)} />
                   <Legend />
                   <Bar dataKey="receita_propria"  name="Receita Própria"   fill="#7c3aed" radius={[3,3,0,0]} />
                   <Bar dataKey="transferencias"   name="Transferências"    fill="#1d4ed8" radius={[3,3,0,0]} />
@@ -399,12 +395,12 @@ export default function SIOPSDetalhado() {
             {(rfData as any[]).map((r: any) => (
               <div key={r.mes} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 16, fontSize: 13 }}>
                 <span style={{ fontWeight: 600, color: "#6b7280", width: 60, flexShrink: 0 }}>{r.mes}</span>
-                <span style={{ color: "#7c3aed" }}>Própria: <b>{BRLK(r.receita_propria)}</b></span>
-                <span style={{ color: "#1d4ed8" }}>Transf.: <b>{BRLK(r.transferencias)}</b></span>
-                <span style={{ color: "#0891b2" }}>Total: <b>{BRLK(r.total_receita)}</b></span>
-                <span style={{ color: "#d1d5db" }}>Despesa: <b>{BRLK(r.despesa_saude)}</b></span>
+                <span style={{ color: "#7c3aed" }}>Própria: <b>{BRL(r.receita_propria)}</b></span>
+                <span style={{ color: "#1d4ed8" }}>Transf.: <b>{BRL(r.transferencias)}</b></span>
+                <span style={{ color: "#0891b2" }}>Total: <b>{BRL(r.total_receita)}</b></span>
+                <span style={{ color: "#d1d5db" }}>Despesa: <b>{BRL(r.despesa_saude)}</b></span>
                 <span style={{ marginLeft: "auto", fontWeight: 700, color: r.saldo >= 0 ? OK : CRIT }}>
-                  {r.saldo >= 0 ? "+" : ""}{BRLK(r.saldo)}
+                  {r.saldo >= 0 ? "+" : ""}{BRL(r.saldo)}
                 </span>
               </div>
             ))}

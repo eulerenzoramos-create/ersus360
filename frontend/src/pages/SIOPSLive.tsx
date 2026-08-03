@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
   RefreshCw, CheckCircle, AlertTriangle, WifiOff, Database,
   ExternalLink, Download, Search, Pencil, Trash2, Save, X,
 } from "lucide-react";
@@ -17,11 +18,6 @@ const WARN   = "#d97706";
 const CRIT   = "#dc2626";
 const COLORS = ["#dbeafe","#1d4ed8","#0891b2","#7c3aed","#16a34a","#d97706","#dc2626","#059669","#c026d3","#ea580c"];
 
-const BRLK = (v: number) => {
-  if (v >= 1_000_000) return `R$${(v / 1_000_000).toFixed(2)}M`;
-  if (v >= 1_000)     return `R$${(v / 1_000).toFixed(0)}K`;
-  return `R$${v.toFixed(2)}`;
-};
 const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const PCT = (a: number, b: number) => b ? `${((a / b) * 100).toFixed(1)}%` : "—";
 
@@ -406,10 +402,10 @@ export default function SIOPSLive() {
             {d && !dashLoading && (
               <div className="space-y-5">
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 16 }}>
-                  <KPI label="Dotação"    value={BRLK(d.totais?.dotacao   || 0)} color={BRAND}/>
-                  <KPI label="Empenhado"  value={BRLK(d.totais?.empenhado || 0)} sub={PCT(d.totais?.empenhado||0, d.totais?.dotacao||1)} color={ACCENT}/>
-                  <KPI label="Liquidado"  value={BRLK(d.totais?.liquidado || 0)} sub={PCT(d.totais?.liquidado||0, d.totais?.dotacao||1)} color={"#0891b2"}/>
-                  <KPI label="Pago"       value={BRLK(d.totais?.pago      || 0)} sub={`${d.pct_execucao || 0}% da dotação`} color={OK}/>
+                  <KPI label="Dotação"    value={BRL(d.totais?.dotacao   || 0)} color={BRAND}/>
+                  <KPI label="Empenhado"  value={BRL(d.totais?.empenhado || 0)} sub={PCT(d.totais?.empenhado||0, d.totais?.dotacao||1)} color={ACCENT}/>
+                  <KPI label="Liquidado"  value={BRL(d.totais?.liquidado || 0)} sub={PCT(d.totais?.liquidado||0, d.totais?.dotacao||1)} color={"#0891b2"}/>
+                  <KPI label="Pago"       value={BRL(d.totais?.pago      || 0)} sub={`${d.pct_execucao || 0}% da dotação`} color={OK}/>
                 </div>
 
                 <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,.07)" }}>
@@ -427,7 +423,7 @@ export default function SIOPSLive() {
                         <div className="flex-1 bg-slate-100 rounded-full h-3">
                           <div className="h-3 rounded-full" style={{ width: `${pct}%`, background: item.color }}/>
                         </div>
-                        <span className="w-28 text-right font-semibold text-slate-700">{BRLK(item.val||0)}</span>
+                        <span className="w-28 text-right font-semibold text-slate-700">{BRL(item.val||0)}</span>
                         <span className="w-10 text-right text-slate-400 text-xs">{pct.toFixed(1)}%</span>
                       </div>
                     );
@@ -439,7 +435,7 @@ export default function SIOPSLive() {
                     <h3 className="font-semibold text-slate-700 mb-3 text-sm">Top Fontes (pago)</h3>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={(d.top_fontes||[]).slice(0,6)} layout="vertical" margin={{ left: 0, right: 50 }}>
-                        <XAxis type="number" tickFormatter={(v) => `${(v/1000).toFixed(0)}K`} tick={{ fontSize: 9 }}/>
+                        <XAxis type="number" tickFormatter={BRL_AXIS} tick={{ fontSize: 9 }}/>
                         <YAxis type="category" dataKey="fonte" tick={{ fontSize: 8 }} width={130}/>
                         <Tooltip formatter={(v: number) => BRL(v)}/>
                         <Bar dataKey="pago" radius={[0,3,3,0]}>

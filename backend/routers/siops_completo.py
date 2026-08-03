@@ -479,6 +479,365 @@ async def comparativos():
     }
 
 
+@router.get("/exportar-excel")
+async def exportar_excel():
+    """Exporta programas em formato Excel (.xlsx) com formatação e cores."""
+    from fastapi.responses import StreamingResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import (
+        Font, PatternFill, Alignment, Border, Side, numbers
+    )
+    import io
+
+    wb = Workbook()
+
+    # ── Aba Painel Geral ────────────────────────────────────────────
+    ws1 = wb.active
+    ws1.title = "Painel Geral"
+
+    azul_esc = PatternFill("solid", fgColor="0C4A6E")
+    azul_med = PatternFill("solid", fgColor="1D4ED8")
+    verde     = PatternFill("solid", fgColor="16A34A")
+    amarelo   = PatternFill("solid", fgColor="D97706")
+    vermelho  = PatternFill("solid", fgColor="DC2626")
+    cinza     = PatternFill("solid", fgColor="E2E8F0")
+    branco    = PatternFill("solid", fgColor="FFFFFF")
+
+    def _borda(cells, thin=True):
+        s = Side(style="thin" if thin else "medium", color="CBD5E1")
+        b = Border(left=s, right=s, top=s, bottom=s)
+        for row in cells:
+            for c in row:
+                c.border = b
+
+    def _cabecalho(ws, texto, linha=1):
+        ws.merge_cells(f"A{linha}:G{linha}")
+        c = ws[f"A{linha}"]
+        c.value = texto
+        c.font = Font(bold=True, color="FFFFFF", size=13)
+        c.fill = azul_esc
+        c.alignment = Alignment(horizontal="center", vertical="center")
+        ws.row_dimensions[linha].height = 30
+
+    _cabecalho(ws1, "SIOPS — Gestão Orçamentária da Saúde · FMS Apuí/AM · 2026")
+
+    ws1.merge_cells("A2:G2")
+    sub = ws1["A2"]
+    sub.value = f"Fonte: {_META_IMPORTACAO['fonte']} | Período: {_META_IMPORTACAO['periodo']}"
+    sub.font = Font(italic=True, color="475569", size=10)
+    sub.fill = cinza
+    sub.alignment = Alignment(horizontal="center")
+    ws1.row_dimensions[2].height = 18
+
+    kpis = [
+        ("Receita Prevista", _PAINEL_GERAL["receita_prevista_total"]),
+        ("Receita Arrecadada", _PAINEL_GERAL["receita_arrecadada"]),
+        ("Dotação Atualizada", _PAINEL_GERAL["dotacao_atualizada"]),
+        ("Empenhado", _PAINEL_GERAL["empenhado"]),
+        ("Liquidado", _PAINEL_GERAL["liquidado"]),
+        ("Pago", _PAINEL_GERAL["pago"]),
+        ("ASPS % Aplicado", _PAINEL_GERAL["pct_asps_acumulado"]),
+        ("ASPS Mínimo Exigido", _PAINEL_GERAL["valor_minimo_exigido"]),
+        ("Exec. Orçamentária %", _PAINEL_GERAL["pct_execucao_orcamentaria"]),
+        ("Exec. Financeira %", _PAINEL_GERAL["pct_execucao_financeira"]),
+        ("Restos a Pagar", _PAINEL_GERAL["restos_pagar_inscritos"]),
+        ("Saldo a Empenhar", _PAINEL_GERAL["saldo_empenhar"]),
+    ]
+
+    ws1.append([""])
+    ws1.append(["Indicador", "Valor"])
+    hdr = ws1[f"A{ws1.max_row}:B{ws1.max_row}"]
+    for r in hdr:
+        for c in r:
+            c.font = Font(bold=True, color="FFFFFF")
+            c.fill = azul_med
+            c.alignment = Alignment(horizontal="center")
+
+    for label, val in kpis:
+        ws1.append([label, val])
+        row = ws1.max_row
+        ws1[f"B{row}"].number_format = (
+            'R$ #,##0.00' if not label.endswith("%") else '0.00"%"'
+        )
+
+    ws1.column_dimensions["A"].width = 30
+    ws1.column_dimensions["B"].width = 22
+    _borda(ws1.iter_rows(min_row=4, max_row=ws1.max_row, min_col=1, max_col=2))
+
+    # ── Aba Programas ───────────────────────────────────────────────
+    ws2 = wb.create_sheet("Programas LOA")
+    _cabecalho(ws2, "Programas — LOA por Subfunção · FMS Apuí/AM · 2026")
+
+    cols = ["Cód.", "Programa", "Ação", "Subfunção", "Fonte",
+            "Dotação (R$)", "Empenhado (R$)", "Liquidado (R$)", "Pago (R$)",
+            "Saldo Empenhar", "Saldo Liquidar", "Exec.Orc.%", "Exec.Fin.%", "Status"]
+    ws2.append([""])
+    ws2.append(cols)
+    hdr_row = ws2.max_row
+    for c in ws2[hdr_row]:
+        c.font = Font(bold=True, color="FFFFFF")
+        c.fill = azul_med
+        c.alignment = Alignment(horizontal="center", wrap_text=True)
+    ws2.row_dimensions[hdr_row].height = 32
+
+    STATUS_COLOR = {
+        "critico": "DC2626", "atencao": "D97706", "em_execucao": "1D4ED8", "ok": "16A34A"
+    }
+    for p in _PROGRAMAS:
+        e = _enriquecer_programa(p, {})
+        row_data = [
+            p["codigo"], p["programa"], p["acao"], p["subfuncao"], p["fonte"],
+            p["dotacao_atualizada"], p["empenhado"], p["liquidado"], p["pago"],
+            e["saldo_empenhar"], e["saldo_liquidar"],
+            e["pct_exec_orc"] / 100, e["pct_exec_fin"] / 100, p["status"],
+        ]
+        ws2.append(row_data)
+        r = ws2.max_row
+        for col_idx in range(6, 12):
+            ws2.cell(r, col_idx).number_format = "R$ #,##0.00"
+        ws2.cell(r, 12).number_format = "0.00%"
+        ws2.cell(r, 13).number_format = "0.00%"
+        cor_hex = STATUS_COLOR.get(p["status"], "94A3B8")
+        ws2.cell(r, 14).font = Font(bold=True, color=cor_hex)
+
+    widths = [6, 28, 30, 22, 24, 18, 18, 18, 18, 18, 18, 12, 12, 14]
+    for i, w in enumerate(widths, 1):
+        ws2.column_dimensions[ws2.cell(1, i).column_letter].width = w
+
+    _borda(ws2.iter_rows(min_row=hdr_row, max_row=ws2.max_row, min_col=1, max_col=14))
+
+    # ── Aba Alertas ──────────────────────────────────────────────────
+    ws3 = wb.create_sheet("Alertas Gerenciais")
+    _cabecalho(ws3, "Alertas Gerenciais · SIOPS FMS Apuí/AM · 2026")
+    ws3.append([""])
+    ws3.append(["Nível", "Programa", "Título", "Descrição", "Ação Recomendada"])
+    hdr_row = ws3.max_row
+    for c in ws3[hdr_row]:
+        c.font = Font(bold=True, color="FFFFFF")
+        c.fill = azul_med
+        c.alignment = Alignment(horizontal="center", wrap_text=True)
+
+    NIVEL_FILL = {"vermelho": "FEE2E2", "amarelo": "FEF3C7", "verde": "DCFCE7", "cinza": "F1F5F9"}
+    for al in _ALERTAS:
+        ws3.append([
+            al["nivel"].upper(), al["programa"], al["titulo"],
+            al["descricao"], al["acao_recomendada"],
+        ])
+        r = ws3.max_row
+        fill = PatternFill("solid", fgColor=NIVEL_FILL.get(al["nivel"], "FFFFFF"))
+        for col_idx in range(1, 6):
+            ws3.cell(r, col_idx).fill = fill
+            ws3.cell(r, col_idx).alignment = Alignment(wrap_text=True, vertical="top")
+
+    ws3.column_dimensions["A"].width = 12
+    ws3.column_dimensions["B"].width = 22
+    ws3.column_dimensions["C"].width = 30
+    ws3.column_dimensions["D"].width = 50
+    ws3.column_dimensions["E"].width = 40
+    _borda(ws3.iter_rows(min_row=hdr_row, max_row=ws3.max_row, min_col=1, max_col=5))
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    return StreamingResponse(
+        iter([buf.read()]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=siops_loa_2026.xlsx"},
+    )
+
+
+@router.get("/exportar-pdf")
+async def exportar_pdf():
+    """Exporta relatório gerencial em PDF com layout profissional."""
+    from fastapi.responses import StreamingResponse
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    )
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    import io
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=1.8 * cm, rightMargin=1.8 * cm,
+        topMargin=1.5 * cm, bottomMargin=1.5 * cm,
+    )
+
+    styles = getSampleStyleSheet()
+    AZUL  = colors.HexColor("#0C4A6E")
+    AZUL2 = colors.HexColor("#1D4ED8")
+    VERDE = colors.HexColor("#16A34A")
+    AMAR  = colors.HexColor("#D97706")
+    VERM  = colors.HexColor("#DC2626")
+    CINZA = colors.HexColor("#F1F5F9")
+
+    h1 = ParagraphStyle("h1", fontSize=15, textColor=colors.white,
+                         backColor=AZUL, spaceAfter=2, spaceBefore=4,
+                         leftIndent=6, leading=20, alignment=TA_LEFT, fontName="Helvetica-Bold")
+    h2 = ParagraphStyle("h2", fontSize=11, textColor=AZUL, spaceBefore=12,
+                         spaceAfter=4, fontName="Helvetica-Bold")
+    normal = ParagraphStyle("normal", fontSize=8.5, leading=12,
+                             fontName="Helvetica", textColor=colors.HexColor("#374151"))
+    rodape = ParagraphStyle("rodape", fontSize=7, textColor=colors.HexColor("#9CA3AF"),
+                             alignment=TA_CENTER, fontName="Helvetica")
+
+    def _tabela(dados, col_widths, header_fill=AZUL2):
+        ts = TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), header_fill),
+            ("TEXTCOLOR",  (0, 0), (-1, 0), colors.white),
+            ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE",   (0, 0), (-1, -1), 7.5),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
+            ("GRID",       (0, 0), (-1, -1), 0.4, colors.HexColor("#CBD5E1")),
+            ("ALIGN",      (0, 0), (0, -1), "LEFT"),
+            ("ALIGN",      (1, 0), (-1, -1), "RIGHT"),
+            ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING",  (0, 0), (-1, -1), 5),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING",   (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING",(0, 0), (-1, -1), 3),
+        ])
+        t = Table(dados, colWidths=col_widths, repeatRows=1)
+        t.setStyle(ts)
+        return t
+
+    def brl(v):
+        return f"R$ {v:_.2f}".replace("_", ".").replace(",", "X").replace(".", ",").replace("X", ".")
+
+    # ── Conteúdo ────────────────────────────────────────────────────
+    story = []
+
+    story.append(Paragraph("SIOPS — Gestão Orçamentária e Financeira da Saúde", h1))
+    story.append(Paragraph(
+        f"<b>FMS Apuí/AM</b> · Exercício 2026 · Lei 4.320/64 · LC 141/2012 · "
+        f"Fonte: {_META_IMPORTACAO['fonte']} · Período: {_META_IMPORTACAO['periodo']}",
+        ParagraphStyle("sub", fontSize=8, textColor=colors.HexColor("#78350F"),
+                       backColor=colors.HexColor("#FFF7ED"), leftIndent=4,
+                       spaceBefore=2, spaceAfter=8, fontName="Helvetica"),
+    ))
+
+    # Painel geral
+    story.append(Paragraph("1. Painel Geral — Indicadores Financeiros", h2))
+    pg = _PAINEL_GERAL
+    kpi_data = [
+        ["Indicador", "Valor", "Indicador", "Valor"],
+        ["Receita Prevista", brl(pg["receita_prevista_total"]),
+         "Receita Arrecadada", brl(pg["receita_arrecadada"])],
+        ["Dotação Atualizada", brl(pg["dotacao_atualizada"]),
+         "Empenhado", brl(pg["empenhado"])],
+        ["Liquidado", brl(pg["liquidado"]),
+         "Pago", brl(pg["pago"])],
+        ["Restos a Pagar", brl(pg["restos_pagar_inscritos"]),
+         "Saldo a Empenhar", brl(pg["saldo_empenhar"])],
+        ["ASPS Aplicado", f"{pg['pct_asps_acumulado']}% (mín. 15%)",
+         "Exec. Financeira", f"{pg['pct_execucao_financeira']}%"],
+    ]
+    pw = doc.width
+    story.append(_tabela(kpi_data, [pw * .28, pw * .22, pw * .28, pw * .22]))
+
+    # ASPS
+    story.append(Spacer(1, 0.3 * cm))
+    asps_ok = pg["status_minimo_constitucional"] == "atingido"
+    asps_cor = VERDE if asps_ok else VERM
+    asps_txt = "✓ Mínimo Constitucional ASPS ATINGIDO" if asps_ok else "✗ Mínimo Constitucional ASPS NÃO ATINGIDO"
+    story.append(Paragraph(
+        f'<font color="{"#16a34a" if asps_ok else "#dc2626"}">{asps_txt}</font> — '
+        f'Aplicado: {brl(pg["valor_efetivamente_aplicado"])} / '
+        f'Mínimo exigido (15%): {brl(pg["valor_minimo_exigido"])}',
+        ParagraphStyle("asps", fontSize=8.5, fontName="Helvetica-Bold",
+                       backColor=colors.HexColor("#DCFCE7" if asps_ok else "#FEE2E2"),
+                       leftIndent=4, spaceBefore=4, spaceAfter=8, leading=14),
+    ))
+
+    # Programas
+    story.append(Paragraph("2. Execução por Programa (LOA)", h2))
+    prog_data = [["Cód.", "Programa", "Dotação", "Empenhado", "Liquidado", "Pago",
+                  "Exec.Fin.%", "Status"]]
+    STATUS_LABEL = {"critico": "CRÍTICO", "atencao": "ATENÇÃO",
+                    "em_execucao": "EM EXEC.", "ok": "OK"}
+    for p in _PROGRAMAS:
+        e = _enriquecer_programa(p, {})
+        prog_data.append([
+            p["codigo"],
+            Paragraph(p["programa"][:30], ParagraphStyle("pp", fontSize=7, fontName="Helvetica")),
+            brl(p["dotacao_atualizada"]),
+            brl(p["empenhado"]),
+            brl(p["liquidado"]),
+            brl(p["pago"]),
+            f"{e['pct_exec_fin']:.1f}%",
+            STATUS_LABEL.get(p["status"], p["status"]),
+        ])
+
+    ts_prog = TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), AZUL2),
+        ("TEXTCOLOR",  (0, 0), (-1, 0), colors.white),
+        ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE",   (0, 0), (-1, -1), 7),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
+        ("GRID",       (0, 0), (-1, -1), 0.3, colors.HexColor("#CBD5E1")),
+        ("ALIGN",      (0, 0), (0, -1), "CENTER"),
+        ("ALIGN",      (1, 0), (1, -1), "LEFT"),
+        ("ALIGN",      (2, 0), (-1, -1), "RIGHT"),
+        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING",  (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING",   (0, 0), (-1, -1), 2),
+        ("BOTTOMPADDING",(0, 0), (-1, -1), 2),
+    ])
+    t_prog = Table(prog_data,
+                   colWidths=[pw*.05, pw*.2, pw*.13, pw*.13, pw*.13, pw*.13, pw*.1, pw*.13],
+                   repeatRows=1)
+    t_prog.setStyle(ts_prog)
+    story.append(t_prog)
+
+    # Alertas
+    story.append(Paragraph("3. Alertas Gerenciais", h2))
+    nivel_cor = {"vermelho": "#FEE2E2", "amarelo": "#FEF3C7",
+                 "verde": "#DCFCE7", "cinza": "#F1F5F9"}
+    for al in _ALERTAS:
+        bg = colors.HexColor(nivel_cor.get(al["nivel"], "#F1F5F9"))
+        story.append(Table(
+            [[Paragraph(
+                f'<b>[{al["nivel"].upper()}] {al["titulo"]}</b> — {al["programa"]}<br/>'
+                f'{al["descricao"]}<br/>'
+                f'<i>Ação: {al["acao_recomendada"]}</i>',
+                ParagraphStyle("al", fontSize=7.5, fontName="Helvetica", leading=12),
+            )]],
+            colWidths=[pw],
+            style=TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), bg),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#CBD5E1")),
+                ("TOPPADDING",    (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 6),
+            ]),
+        ))
+        story.append(Spacer(1, 0.15 * cm))
+
+    # Rodapé
+    story.append(Spacer(1, 0.4 * cm))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#CBD5E1")))
+    story.append(Paragraph(
+        "ERSUS 360 · FMS Apuí/AM · Gerado automaticamente · "
+        f"Fonte: {_META_IMPORTACAO['fonte']}",
+        rodape,
+    ))
+
+    doc.build(story)
+    buf.seek(0)
+
+    return StreamingResponse(
+        iter([buf.read()]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=siops_relatorio_2026.pdf"},
+    )
+
+
 @router.get("/exportar-csv")
 async def exportar_csv():
     """Exporta programas em formato CSV para download."""

@@ -9,15 +9,9 @@ import {
   ChevronDown, ChevronRight, Zap, Target,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const BRL = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
-
-const BRLK = (v: number) =>
-  v >= 1_000_000
-    ? `R$ ${(v / 1_000_000).toFixed(2).replace(".", ",")}M`
-    : `R$ ${(v / 1_000).toFixed(1).replace(".", ",")}k`;
 
 const COR_STATUS = (s: string) =>
   s === "otimo" ? "#1d4ed8" : s === "bom" ? "#16a34a" : s === "suficiente" ? "#d97706" : "#dc2626";
@@ -61,19 +55,19 @@ function AbaVisaoGeral({ dash }: { dash: any }) {
       {/* KPIs principais */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
         <KpiCard
-          label="Repasse Mensal Total" value={BRLK(dash.total_mensal)} sub={`${dash.n_equipes_esf} equipes eSF`}
+          label="Repasse Mensal Total" value={BRL(dash.total_mensal)} sub={`${dash.n_equipes_esf} equipes eSF`}
           cor="#1d4ed8" icon={<DollarSign size={16} color="#1d4ed8" />}
         />
         <KpiCard
-          label="Repasse Anual Projetado" value={BRLK(dash.total_anual)} sub="12 competências"
+          label="Repasse Anual Projetado" value={BRL(dash.total_anual)} sub="12 competências"
           cor="#7c3aed" icon={<TrendingUp size={16} color="#7c3aed" />}
         />
         <KpiCard
-          label="Potencial máximo / mês" value={BRLK(dash.potencial_mensal)} sub="todas equipes em Ótimo"
+          label="Potencial máximo / mês" value={BRL(dash.potencial_mensal)} sub="todas equipes em Ótimo"
           cor="#16a34a" icon={<Target size={16} color="#16a34a" />}
         />
         <KpiCard
-          label="Gap — valor não captado / mês" value={BRLK(dash.gap_mensal)} sub={`R$ ${(dash.gap_anual / 1000).toFixed(1).replace(".",",")}k/ano perdidos`}
+          label="Gap — valor não captado / mês" value={BRL(dash.gap_mensal)} sub={`R$ ${(dash.gap_anual / 1000).toFixed(1).replace(".",",")}k/ano perdidos`}
           cor="#dc2626" icon={<AlertTriangle size={16} color="#dc2626" />}
         />
       </div>
@@ -90,7 +84,7 @@ function AbaVisaoGeral({ dash }: { dash: any }) {
           <div style={{ width: `${dash.pct_aproveitamento}%`, height: "100%", borderRadius: 8, background: dash.pct_aproveitamento >= 85 ? "#16a34a" : "#d97706" }} />
         </div>
         <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 6 }}>
-          Atual {BRLK(dash.total_mensal)} / Potencial {BRLK(dash.potencial_mensal)}
+          Atual {BRL(dash.total_mensal)} / Potencial {BRL(dash.potencial_mensal)}
         </div>
       </div>
 
@@ -200,12 +194,12 @@ function AbaPorEquipe({ equipes }: { equipes: any[] | undefined }) {
                   <div style={{ fontSize: 11, color: "#9ca3af" }}>Param: {e.parametro.toLocaleString("pt-BR")} pessoas · Vínculo: {e.vinculo.toFixed(2)}</div>
                 </div>
                 <div style={{ textAlign: "right", minWidth: 90 }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: cor }}>{BRLK(e.total_mes)}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: cor }}>{BRL(e.total_mes)}</div>
                   <div style={{ fontSize: 10, color: "#9ca3af" }}>/mês</div>
                 </div>
                 {e.gap_mes > 500 && (
                   <div style={{ textAlign: "right", minWidth: 80 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#dc2626" }}>-{BRLK(e.gap_mes)}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#dc2626" }}>-{BRL(e.gap_mes)}</div>
                     <div style={{ fontSize: 10, color: "#9ca3af" }}>gap/mês</div>
                   </div>
                 )}
@@ -256,11 +250,11 @@ function AbaEstrategico({ estrategico }: { estrategico: any }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 24 }}>
         <div style={{ background: "#eff6ff", borderRadius: 10, padding: "16px 18px", textAlign: "center" }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color: "#1d4ed8" }}>{BRLK(estrategico.total_mes)}</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: "#1d4ed8" }}>{BRL(estrategico.total_mes)}</div>
           <div style={{ fontSize: 12, color: "#6b7280" }}>Total estratégico / mês</div>
         </div>
         <div style={{ background: "#f0fdf4", borderRadius: 10, padding: "16px 18px", textAlign: "center" }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color: "#16a34a" }}>{BRLK(estrategico.total_ano)}</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: "#16a34a" }}>{BRL(estrategico.total_ano)}</div>
           <div style={{ fontSize: 12, color: "#6b7280" }}>Total estratégico / ano</div>
         </div>
         <div style={{ background: "#fefce8", borderRadius: 10, padding: "16px 18px", textAlign: "center" }}>
@@ -328,7 +322,7 @@ function AbaSimulacao({ simulacao }: { simulacao: any }) {
             <Zap size={16} color="#16a34a" />
             <span style={{ fontSize: 13, fontWeight: 700, color: "#16a34a" }}>Cenário 1 — Atingir status BOM</span>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: "#16a34a" }}>+{BRLK(totalGanhoBom)}</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: "#16a34a" }}>+{BRL(totalGanhoBom)}</div>
           <div style={{ fontSize: 12, color: "#6b7280" }}>ganho anual adicional projetado</div>
         </div>
         <div style={{ background: "#fff", border: "2px solid #bfdbfe", borderRadius: 12, padding: "18px 20px" }}>
@@ -336,7 +330,7 @@ function AbaSimulacao({ simulacao }: { simulacao: any }) {
             <Target size={16} color="#1d4ed8" />
             <span style={{ fontSize: 13, fontWeight: 700, color: "#1d4ed8" }}>Cenário 2 — Atingir status ÓTIMO</span>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: "#1d4ed8" }}>+{BRLK(totalGanhoOtimo)}</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: "#1d4ed8" }}>+{BRL(totalGanhoOtimo)}</div>
           <div style={{ fontSize: 12, color: "#6b7280" }}>ganho anual adicional projetado</div>
         </div>
       </div>
@@ -359,7 +353,7 @@ function AbaSimulacao({ simulacao }: { simulacao: any }) {
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="Atual" fill="#dc2626" radius={[3,3,0,0]} />
               <Bar dataKey="Bom"   fill="#16a34a" radius={[3,3,0,0]}>
-                <LabelList dataKey="Bom" position="top" formatter={(v: number) => BRLK(v)} style={{ fontSize: 9 }} />
+                <LabelList dataKey="Bom" position="top" formatter={(v: number) => BRL(v)} style={{ fontSize: 9 }} />
               </Bar>
               <Bar dataKey="Ótimo" fill="#1d4ed8" radius={[3,3,0,0]} />
             </BarChart>
@@ -443,7 +437,7 @@ export default function PainelCAF() {
           </div>
           {dash && (
             <div style={{ textAlign: "right", background: "rgba(255,255,255,.12)", borderRadius: 10, padding: "10px 16px" }}>
-              <div style={{ fontSize: 26, fontWeight: 900 }}>{BRLK(dash.total_mensal)}</div>
+              <div style={{ fontSize: 26, fontWeight: 900 }}>{BRL(dash.total_mensal)}</div>
               <div style={{ fontSize: 11, opacity: 0.8 }}>repasse mensal atual</div>
             </div>
           )}
@@ -471,3 +465,4 @@ export default function PainelCAF() {
     </div>
   );
 }
+
