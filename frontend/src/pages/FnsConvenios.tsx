@@ -9,6 +9,7 @@ import {
   Plus, Trash2, TrendingUp,
 } from "lucide-react";
 import { apiFns, apiConvenios, apiRepasses, type FnsSyncResult } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const MESES = [
   "", "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
@@ -214,7 +215,7 @@ export default function FnsConvenios() {
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={graficoDados} barGap={4}>
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={BRL_AXIS} />
               <Tooltip formatter={(v: number) => fmt(v)} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="Previsto" fill="#B5D4F4" radius={[3, 3, 0, 0]} />

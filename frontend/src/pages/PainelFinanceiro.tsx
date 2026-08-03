@@ -1178,7 +1178,7 @@ export default function PainelFinanceiro() {
                               : <div style={{ fontSize: 20, fontWeight: 800, color: cor }}>{pct}%</div>}
                             <div style={{ fontSize: 10, color: "#6b7280" }}>{b.codigo}</div>
                             {blocosMes && b.recebido_mes != null && b.recebido_mes > 0 && (
-                              <div style={{ fontSize: 9, color: "#15803d", marginTop: 2 }}>R$ {(b.recebido_mes/1000).toFixed(1)}k</div>
+                              <div style={{ fontSize: 9, color: "#15803d", marginTop: 2 }}>{BRL(b.recebido_mes)}</div>
                             )}
                           </div>
                         );

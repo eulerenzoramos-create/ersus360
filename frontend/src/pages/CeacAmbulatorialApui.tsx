@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { apiGet } from "../lib/api"
 import { Stethoscope } from "lucide-react"
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND="#dbeafe", ACCENT="#1d4ed8", OK="#16a34a", WARN="#d97706", CRIT="#dc2626"
 const ABAS=["Dashboard","Especialidades","Exames","Histórico","Indicadores"]
@@ -52,7 +53,7 @@ export default function CeacAmbulatorialApui(){
               <b>Filas Críticas:</b> TC e RM com zero realizações — {d.exames_represados} exames represados. 5 especialidades sem médico local: Ortopedia ({184}d), Neurologia ({248}d), Endocrinologia.
             </div>
             <div style={{flex:1,background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:10,padding:14,fontSize:13,color:"#92400e"}}>
-              <b>MAC mensal:</b> R$ {(d.despesa_mac_mensal_r/1000).toFixed(0)}k de R$ {(d.teto_mac_mensal_r/1000).toFixed(0)}k teto. Resolubilidade APS {d.resolubilidade_aps_pct}% — meta 85%.
+              <b>MAC mensal:</b> {BRL(d.despesa_mac_mensal_r)} de {BRL(d.teto_mac_mensal_r)} teto. Resolubilidade APS {d.resolubilidade_aps_pct}% — meta 85%.
             </div>
           </div>
         </div>

@@ -91,7 +91,7 @@ export default function FundoMunicipal() {
               <KPI label="Exec. Emendas"         value={`${dashRaw.emendas_execucao_pct}%`} color={dashRaw.emendas_execucao_pct >= 90 ? OK : CRIT} />
             </div>
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
-              <b>Folha acima do limite prudencial</b> ({dashRaw.pessoal_pct_despesa}% vs 60%). Emendas parlamentares com execução de apenas {dashRaw.emendas_execucao_pct}% — risco de devolução. Judicialização crescente: R$ {(dashRaw.judicializacao_r/1000).toFixed(0)}k/mês.
+              <b>Folha acima do limite prudencial</b> ({dashRaw.pessoal_pct_despesa}% vs 60%). Emendas parlamentares com execução de apenas {dashRaw.emendas_execucao_pct}% — risco de devolução. Judicialização crescente: {BRL(dashRaw.judicializacao_r)}/mês.
             </div>
           </div>
         )}

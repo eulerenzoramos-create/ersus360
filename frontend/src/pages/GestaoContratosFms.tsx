@@ -6,6 +6,7 @@ import {
   Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import { FolderOpen, AlertTriangle, DollarSign, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#2563eb";
@@ -119,8 +120,8 @@ export default function GestaoContratosFms() {
                     <p className="text-xs text-slate-400">{ct.fornecedor} · Vigência até: {ct.vigencia_fim}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-lg" style={{ color: ACCENT }}>R$ {(ct.valor_total_r/1000).toFixed(0)}k</p>
-                    <p className="text-xs text-slate-500">R$ {(ct.valor_mensal_r/1000).toFixed(0)}k/mês</p>
+                    <p className="font-bold text-lg" style={{ color: ACCENT }}>{BRL(ct.valor_total_r)}</p>
+                    <p className="text-xs text-slate-500">{BRL(ct.valor_mensal_r)}/mês</p>
                   </div>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-1.5 mb-2">
@@ -152,7 +153,7 @@ export default function GestaoContratosFms() {
                       <p className="text-xs text-slate-400">Abertura: {lic.data_abertura} · Propostas: {lic.propostas_recebidas}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-lg" style={{ color: ACCENT }}>R$ {(lic.valor_estimado_r/1000).toFixed(0)}k</p>
+                      <p className="font-bold text-lg" style={{ color: ACCENT }}>{BRL(lic.valor_estimado_r)}</p>
                       <p className="text-xs text-slate-500">estimado</p>
                     </div>
                   </div>

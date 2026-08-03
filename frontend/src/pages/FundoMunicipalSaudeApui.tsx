@@ -154,7 +154,7 @@ export default function FundoMunicipalSaudeApui() {
               <ComposedChart data={despesas as any[]} margin={{ left: 10, right: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={BRL_AXIS} />
                 <Tooltip formatter={(v: any) => BRL(v)} />
                 <Legend />
                 <Bar dataKey="custeio"     name="Custeio"    fill={BRAND}  radius={[3,3,0,0]} stackId="a" />

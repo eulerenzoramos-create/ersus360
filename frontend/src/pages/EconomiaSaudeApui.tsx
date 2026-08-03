@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { TrendingDown, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -146,7 +147,7 @@ export default function EconomiaSaudeApui() {
                       <p className="font-semibold text-sm text-slate-700">{g.categoria}</p>
                     </div>
                     <div className="text-right text-xs">
-                      <span className="font-bold text-slate-700">R$ {(g.valor_ano/1000000).toFixed(2)}M</span>
+                      <span className="font-bold text-slate-700">{BRL(g.valor_ano)}</span>
                       <span className="text-slate-400 ml-1">({g.pct_orcamento}%)</span>
                     </div>
                   </div>
@@ -189,7 +190,7 @@ export default function EconomiaSaudeApui() {
                     <div className="text-right text-xs text-slate-500">
                       <span className="font-bold" style={{ color: CRIT }}>{j.acoes} ações</span>
                       {" · "}
-                      <span style={{ color: statusColor(j.status) }}>R$ {(j.custo_mensal/1000).toFixed(0)}k/mês</span>
+                      <span style={{ color: statusColor(j.status) }}>{BRL(j.custo_mensal)}/mês</span>
                     </div>
                   </div>
                   <p className="text-xs text-slate-500 ml-5">{j.observacao}</p>

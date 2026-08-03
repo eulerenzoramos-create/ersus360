@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { Globe, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -188,7 +189,7 @@ export default function TfdEspecialidadesApui() {
                     <div className="text-right text-xs text-slate-500">
                       <span className="font-bold text-slate-700">{d.tfd_ano} TFDs</span>
                       {" · "}
-                      <span style={{ color: CRIT }}>R$ {(d.custo_total_ano/1000).toFixed(0)}k/ano</span>
+                      <span style={{ color: CRIT }}>{BRL(d.custo_total_ano)}/ano</span>
                     </div>
                   </div>
                   <p className="text-xs text-blue-600 ml-5 mb-1">{d.especialidades_principais}</p>

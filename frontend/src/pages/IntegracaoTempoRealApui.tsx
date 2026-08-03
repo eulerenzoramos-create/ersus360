@@ -6,6 +6,7 @@ import {
 } from "recharts"
 import { apiGet } from "../lib/api"
 import { Wifi, WifiOff, AlertCircle, CheckCircle, RefreshCw, Database, Activity } from "lucide-react"
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND = "#dbeafe"
 const ACCENT = "#1d4ed8"
@@ -203,7 +204,7 @@ export default function IntegracaoTempoRealApui() {
                 <tbody>{fnsTrRaw.dados.map((t: any, i: number) => (
                   <tr key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
                     <td style={{ padding: "8px 12px" }}>{t.programa}</td>
-                    <td style={{ padding: "8px 12px", textAlign: "right" }}>R$ {(t.valor/1000).toFixed(0)}k</td>
+                    <td style={{ padding: "8px 12px", textAlign: "right" }}>{BRL(t.valor)}</td>
                     <td style={{ padding: "8px 12px", textAlign: "center" }}>{t.competencia}</td>
                     <td style={{ padding: "8px 12px", textAlign: "center" }}>
                       <span style={{ color: t.situacao === "pago" ? OK : WARN, fontWeight: 600 }}>{t.situacao}</span>

@@ -94,7 +94,7 @@ export default function JudicializacaoSaude() {
               <KPI label="Origem MP"           value={`${dashRaw.origem_mp_pct}%`} color={WARN} />
             </div>
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
-              <b>{dashRaw.descumprimentos} ordens judiciais descumpridas</b> — multa diária de R$ 500–5.000 por processo. Custo total estimado R$ {(dashRaw.custo_acumulado_ano_r/1_000_000).toFixed(2)}M em 2026. Taxa de cumprimento: {dashRaw.cumprimento_pct}% (meta: 95%).
+              <b>{dashRaw.descumprimentos} ordens judiciais descumpridas</b> — multa diária de R$ 500–5.000 por processo. Custo total estimado {BRL(dashRaw.custo_acumulado_ano_r)} em 2026. Taxa de cumprimento: {dashRaw.cumprimento_pct}% (meta: 95%).
             </div>
           </div>
         )}
