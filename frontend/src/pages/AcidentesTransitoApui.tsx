@@ -80,7 +80,7 @@ export default function AcidentesTransitoApui() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Óbitos no trânsito 2025"   value={dashRaw.obitos_transito_2025}                       color={CRIT} sub={`${dashRaw.taxa_mortalidade_transito_100k}/100k (meta ${dashRaw.meta_taxa_mortalidade_transito_100k})`} />
-              <KPI label="Internações por trauma"     value={dashRaw.internacoes_trauma_2025}                   color={CRIT} sub={{BRL(dashRaw.custo_internacao_trauma_anual)}} />
+              <KPI label="Internações por trauma"     value={dashRaw.internacoes_trauma_2025}                   color={CRIT} sub={BRL(dashRaw.custo_internacao_trauma_anual)} />
               <KPI label="Condutores alcoolizados"    value={`${dashRaw.condutor_alcool_pct}%`}                 color={CRIT} sub="dos acidentes com vítima" />
               <KPI label="SAMU tempo resposta"        value={`${dashRaw.samu_tempo_resposta_min} min`}          color={CRIT} sub={`meta ${dashRaw.meta_samu_tempo_resposta_min} min`} />
             </div>

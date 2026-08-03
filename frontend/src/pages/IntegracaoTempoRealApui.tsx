@@ -1,4 +1,4 @@
-import { useState } from "react"
+﻿import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -22,7 +22,7 @@ function StatusBadge({ status, fonte }: { status: FonteStatus; fonte: string }) 
   const Icon = status === "ok" ? CheckCircle : status === "degradado" ? AlertCircle : WifiOff
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 12, background: color + "22", color, fontWeight: 600, fontSize: 12 }}>
-      <Icon size={12} /> {status.toUpperCase()} · {fonte}
+      <Icon size={12} /> {status.toUpperCase()} Â· {fonte}
     </span>
   )
 }
@@ -48,7 +48,7 @@ function SistemaCard({ nome, status, fonte, ts, credOk, items }: { nome: string;
         <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
           <StatusBadge status={status} fonte={fonte} />
           <span style={{ fontSize: 11, color: credOk ? OK : CRIT }}>
-            {credOk ? "✓ Credenciais OK" : "✗ Credenciais não configuradas"}
+            {credOk ? "âœ“ Credenciais OK" : "âœ— Credenciais nÃ£o configuradas"}
           </span>
         </div>
       </div>
@@ -117,8 +117,8 @@ export default function IntegracaoTempoRealApui() {
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
         <Wifi size={28} color={ACCENT} />
         <div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: BRAND }}>Integração em Tempo Real</div>
-          <div style={{ fontSize: 12, color: "#6b7280" }}>e-Gestor AB · e-SUS PEC · FNS · SIAPS — Apuí/AM (IBGE 1300144)</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: BRAND }}>IntegraÃ§Ã£o em Tempo Real</div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>e-Gestor AB Â· e-SUS PEC Â· FNS Â· SIAPS â€” ApuÃ­/AM (IBGE 1300144)</div>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
           <KPI label="Sistemas" value={`${onlineCount}/4`} sub="online" color={onlineCount === 4 ? OK : onlineCount > 1 ? WARN : CRIT} />
@@ -138,14 +138,14 @@ export default function IntegracaoTempoRealApui() {
       {/* ABA STATUS */}
       {aba === "Status" && (
         <div>
-          <div style={{ marginBottom: 20, fontWeight: 700, color: BRAND }}>Status de Conectividade — Sistemas Federais</div>
+          <div style={{ marginBottom: 20, fontWeight: 700, color: BRAND }}>Status de Conectividade â€” Sistemas Federais</div>
           {sistemas.map(({ nome, s, d }) => (
             <SistemaCard
               key={nome}
               nome={nome}
               status={(d?.status ?? s?.status ?? "offline") as FonteStatus}
-              fonte={d?.fonte ?? "—"}
-              ts={d?.ultima_atualizacao ?? s?.ultima_verificacao ?? "—"}
+              fonte={d?.fonte ?? "â€”"}
+              ts={d?.ultima_atualizacao ?? s?.ultima_verificacao ?? "â€”"}
               credOk={s?.credenciais_configuradas ?? false}
               items={d ? [
                 ...Object.entries(d).filter(([k]) => !["status","fonte","ultima_atualizacao","municipio","ibge","credenciais_ok"].includes(k))
@@ -155,9 +155,9 @@ export default function IntegracaoTempoRealApui() {
             />
           ))}
           <div style={{ background: "#fff3cd", border: "1px solid #ffd07a", borderRadius: 10, padding: 16, marginTop: 8, fontSize: 13, color: "#7c4a00" }}>
-            <b>Configuração necessária:</b> Adicionar as seguintes variáveis de ambiente no Railway para ativar cada sistema:
+            <b>ConfiguraÃ§Ã£o necessÃ¡ria:</b> Adicionar as seguintes variÃ¡veis de ambiente no Railway para ativar cada sistema:
             <ul style={{ margin: "8px 0 0 16px" }}>
-              <li><b>FNS/Transparência:</b> TRANSPARENCIA_API_KEY, FNS_API_CPF ✓ (já configurado), FNS_API_SENHA ✓</li>
+              <li><b>FNS/TransparÃªncia:</b> TRANSPARENCIA_API_KEY, FNS_API_CPF âœ“ (jÃ¡ configurado), FNS_API_SENHA âœ“</li>
               <li><b>e-Gestor AB:</b> EGESTOR_USUARIO, EGESTOR_SENHA, EGESTOR_TOKEN</li>
               <li><b>e-SUS PEC / RNDS:</b> RNDS_CLIENT_ID, RNDS_CLIENT_SECRET, RNDS_CERT_B64, RNDS_CERT_PASSWORD</li>
               <li><b>SIAPS / HORUS:</b> SIAPS_TOKEN</li>
@@ -170,10 +170,10 @@ export default function IntegracaoTempoRealApui() {
       {aba === "FNS" && (
         <div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
-            <KPI label="Total Repassado 2025" value={fnsDashRaw ? BRL(fnsDashRaw.total_repassado_2025/1e6) : "—"} color={ACCENT} />
-            <KPI label="Blocos de Financiamento" value={fnsDashRaw?.blocos ?? "—"} />
-            <KPI label="Competência" value={fnsDashRaw?.competencia_atual ?? "—"} />
-            <KPI label="Pendências" value={fnsDashRaw?.pendencias ?? "—"} color={fnsDashRaw?.pendencias > 0 ? WARN : OK} />
+            <KPI label="Total Repassado 2025" value={fnsDashRaw ? BRL(fnsDashRaw.total_repassado_2025/1e6) : "â€”"} color={ACCENT} />
+            <KPI label="Blocos de Financiamento" value={fnsDashRaw?.blocos ?? "â€”"} />
+            <KPI label="CompetÃªncia" value={fnsDashRaw?.competencia_atual ?? "â€”"} />
+            <KPI label="PendÃªncias" value={fnsDashRaw?.pendencias ?? "â€”"} color={fnsDashRaw?.pendencias > 0 ? WARN : OK} />
           </div>
           {fnsRepRaw?.dados && Array.isArray(fnsRepRaw.dados) && (
             <div style={{ background: "#fff", borderRadius: 12, padding: 20, marginBottom: 16 }}>
@@ -183,8 +183,8 @@ export default function IntegracaoTempoRealApui() {
                 <BarChart data={fnsRepRaw.dados} margin={{ top: 10, right: 20, left: 20, bottom: 60 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="bloco" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" interval={0} />
-                  <YAxis tickFormatter={v => BRL(v/1e6)} tick={{ fontSize: 10 }} />
-                  <Tooltip formatter={(v: number) => BRL(v)}k`, "Valor Anual"]} />
+                  <YAxis tickFormatter={BRL_AXIS} tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={(v: number) => [BRL(v), "Valor Anual"]} />
                   <Bar dataKey="valor_anual" fill={ACCENT} radius={[4,4,0,0]} name="Valor Anual" />
                 </BarChart>
               </ResponsiveContainer>
@@ -192,14 +192,14 @@ export default function IntegracaoTempoRealApui() {
           )}
           {fnsTrRaw?.dados && Array.isArray(fnsTrRaw.dados) && (
             <div style={{ background: "#fff", borderRadius: 12, padding: 20 }}>
-              <div style={{ fontWeight: 700, color: BRAND, marginBottom: 12 }}>Transferências Recentes</div>
+              <div style={{ fontWeight: 700, color: BRAND, marginBottom: 12 }}>TransferÃªncias Recentes</div>
               <StatusBadge status={fnsTrRaw.status as FonteStatus} fonte={fnsTrRaw.fonte} />
               <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12, fontSize: 13 }}>
                 <thead><tr style={{ background: "#f3f4f6" }}>
                   <th style={{ padding: "8px 12px", textAlign: "left", color: BRAND }}>Programa</th>
                   <th style={{ padding: "8px 12px", textAlign: "right", color: BRAND }}>Valor</th>
-                  <th style={{ padding: "8px 12px", textAlign: "center", color: BRAND }}>Competência</th>
-                  <th style={{ padding: "8px 12px", textAlign: "center", color: BRAND }}>Situação</th>
+                  <th style={{ padding: "8px 12px", textAlign: "center", color: BRAND }}>CompetÃªncia</th>
+                  <th style={{ padding: "8px 12px", textAlign: "center", color: BRAND }}>SituaÃ§Ã£o</th>
                 </tr></thead>
                 <tbody>{fnsTrRaw.dados.map((t: any, i: number) => (
                   <tr key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
@@ -221,22 +221,22 @@ export default function IntegracaoTempoRealApui() {
       {aba === "e-Gestor" && (
         <div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
-            <KPI label="Equipes Cadastradas" value={egestDashRaw?.equipes_cadastradas ?? "—"} />
-            <KPI label="Equipes Ativas" value={egestDashRaw?.equipes_ativas ?? "—"} color={OK} />
-            <KPI label="Cobertura ESF" value={egestDashRaw ? `${egestDashRaw.cobertura_esf_pct}%` : "—"} color={ACCENT} />
-            <KPI label="Pop. Cadastrada" value={egestDashRaw ? egestDashRaw.populacao_cadastrada.toLocaleString("pt-BR") : "—"} />
+            <KPI label="Equipes Cadastradas" value={egestDashRaw?.equipes_cadastradas ?? "â€”"} />
+            <KPI label="Equipes Ativas" value={egestDashRaw?.equipes_ativas ?? "â€”"} color={OK} />
+            <KPI label="Cobertura ESF" value={egestDashRaw ? `${egestDashRaw.cobertura_esf_pct}%` : "â€”"} color={ACCENT} />
+            <KPI label="Pop. Cadastrada" value={egestDashRaw ? egestDashRaw.populacao_cadastrada.toLocaleString("pt-BR") : "â€”"} />
           </div>
           {egestEqRaw?.dados && Array.isArray(egestEqRaw.dados) && (
             <div style={{ background: "#fff", borderRadius: 12, padding: 20, marginBottom: 16 }}>
-              <div style={{ fontWeight: 700, color: BRAND, marginBottom: 12 }}>Equipes de Saúde da Família</div>
+              <div style={{ fontWeight: 700, color: BRAND, marginBottom: 12 }}>Equipes de SaÃºde da FamÃ­lia</div>
               <StatusBadge status={egestEqRaw.status as FonteStatus} fonte={egestEqRaw.fonte} />
               <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12, fontSize: 13 }}>
                 <thead><tr style={{ background: "#f3f4f6" }}>
                   <th style={{ padding: "8px 12px", textAlign: "left", color: BRAND }}>Equipe</th>
                   <th style={{ padding: "8px 12px", textAlign: "center", color: BRAND }}>Tipo</th>
-                  <th style={{ padding: "8px 12px", textAlign: "center", color: BRAND }}>Médico</th>
+                  <th style={{ padding: "8px 12px", textAlign: "center", color: BRAND }}>MÃ©dico</th>
                   <th style={{ padding: "8px 12px", textAlign: "center", color: BRAND }}>ACS</th>
-                  <th style={{ padding: "8px 12px", textAlign: "left", color: BRAND }}>Área</th>
+                  <th style={{ padding: "8px 12px", textAlign: "left", color: BRAND }}>Ãrea</th>
                   <th style={{ padding: "8px 12px", textAlign: "center", color: BRAND }}>CNES</th>
                 </tr></thead>
                 <tbody>{egestEqRaw.dados.map((e: any, i: number) => (
@@ -244,7 +244,7 @@ export default function IntegracaoTempoRealApui() {
                     <td style={{ padding: "8px 12px" }}>{e.equipe}</td>
                     <td style={{ padding: "8px 12px", textAlign: "center" }}>{e.tipo}</td>
                     <td style={{ padding: "8px 12px", textAlign: "center" }}>
-                      <span style={{ color: e.medico ? OK : CRIT }}>{e.medico ? "✓" : "✗"}</span>
+                      <span style={{ color: e.medico ? OK : CRIT }}>{e.medico ? "âœ“" : "âœ—"}</span>
                     </td>
                     <td style={{ padding: "8px 12px", textAlign: "center" }}>{e.acs}</td>
                     <td style={{ padding: "8px 12px", fontSize: 11 }}>{e.area_cobertura}</td>
@@ -258,7 +258,7 @@ export default function IntegracaoTempoRealApui() {
           )}
           {egestPrRaw?.dados && Array.isArray(egestPrRaw.dados) && (
             <div style={{ background: "#fff", borderRadius: 12, padding: 20 }}>
-              <div style={{ fontWeight: 700, color: BRAND, marginBottom: 12 }}>Profissionais de Saúde</div>
+              <div style={{ fontWeight: 700, color: BRAND, marginBottom: 12 }}>Profissionais de SaÃºde</div>
               <StatusBadge status={egestPrRaw.status as FonteStatus} fonte={egestPrRaw.fonte} />
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={egestPrRaw.dados} layout="vertical" margin={{ left: 120, right: 20, top: 10, bottom: 10 }}>
@@ -278,14 +278,14 @@ export default function IntegracaoTempoRealApui() {
       {aba === "e-SUS PEC" && (
         <div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
-            <KPI label="Atendimentos/Mês" value={esusDashRaw?.atendimentos_mes?.toLocaleString("pt-BR") ?? "—"} color={ACCENT} />
-            <KPI label="Prescrições/Mês" value={esusDashRaw?.prescricoes_mes?.toLocaleString("pt-BR") ?? "—"} />
-            <KPI label="Doses Vacinação" value={esusDashRaw?.doses_vacinacao_mes?.toLocaleString("pt-BR") ?? "—"} />
-            <KPI label="Cobertura Vacinal Média" value={esusDashRaw ? `${esusDashRaw.cobertura_vacinal_media_pct}%` : "—"} color={OK} />
+            <KPI label="Atendimentos/MÃªs" value={esusDashRaw?.atendimentos_mes?.toLocaleString("pt-BR") ?? "â€”"} color={ACCENT} />
+            <KPI label="PrescriÃ§Ãµes/MÃªs" value={esusDashRaw?.prescricoes_mes?.toLocaleString("pt-BR") ?? "â€”"} />
+            <KPI label="Doses VacinaÃ§Ã£o" value={esusDashRaw?.doses_vacinacao_mes?.toLocaleString("pt-BR") ?? "â€”"} />
+            <KPI label="Cobertura Vacinal MÃ©dia" value={esusDashRaw ? `${esusDashRaw.cobertura_vacinal_media_pct}%` : "â€”"} color={OK} />
           </div>
           {esusAteRaw?.dados?.por_tipo && (
             <div style={{ background: "#fff", borderRadius: 12, padding: 20, marginBottom: 16 }}>
-              <div style={{ fontWeight: 700, color: BRAND, marginBottom: 12 }}>Atendimentos por Tipo — {esusAteRaw.dados.competencia}</div>
+              <div style={{ fontWeight: 700, color: BRAND, marginBottom: 12 }}>Atendimentos por Tipo â€” {esusAteRaw.dados.competencia}</div>
               <StatusBadge status={esusAteRaw.status as FonteStatus} fonte={esusAteRaw.fonte} />
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={esusAteRaw.dados.por_tipo} margin={{ top: 10, right: 20, left: 20, bottom: 60 }}>
@@ -305,7 +305,7 @@ export default function IntegracaoTempoRealApui() {
               <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12, fontSize: 13 }}>
                 <thead><tr style={{ background: "#f3f4f6" }}>
                   <th style={{ padding: "8px 12px", textAlign: "left", color: BRAND }}>Vacina</th>
-                  <th style={{ padding: "8px 12px", textAlign: "right", color: BRAND }}>Doses/Mês</th>
+                  <th style={{ padding: "8px 12px", textAlign: "right", color: BRAND }}>Doses/MÃªs</th>
                   <th style={{ padding: "8px 12px", textAlign: "right", color: BRAND }}>Cobertura</th>
                   <th style={{ padding: "8px 12px", textAlign: "right", color: BRAND }}>Meta</th>
                   <th style={{ padding: "8px 12px", textAlign: "center", color: BRAND }}>Status</th>
@@ -319,7 +319,7 @@ export default function IntegracaoTempoRealApui() {
                       <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: ok ? OK : WARN }}>{v.cobertura_pct}%</td>
                       <td style={{ padding: "8px 12px", textAlign: "right", color: "#6b7280" }}>{v.meta_pct}%</td>
                       <td style={{ padding: "8px 12px", textAlign: "center" }}>
-                        <span style={{ color: ok ? OK : WARN }}>{ok ? "✓ Meta" : "▼ Abaixo"}</span>
+                        <span style={{ color: ok ? OK : WARN }}>{ok ? "âœ“ Meta" : "â–¼ Abaixo"}</span>
                       </td>
                     </tr>
                   )
@@ -334,12 +334,12 @@ export default function IntegracaoTempoRealApui() {
       {aba === "SIAPS" && (
         <div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
-            <KPI label="Medicamentos Monitorados" value={siapsDashRaw?.medicamentos_monitorados ?? "—"} />
-            <KPI label="Itens Críticos" value={siapsDashRaw?.itens_criticos ?? "—"} color={CRIT} />
-            <KPI label="Itens Atenção" value={siapsDashRaw?.itens_atencao ?? "—"} color={WARN} />
-            <KPI label="Dispensações/Mês" value={siapsDashRaw?.dispensacoes_mes?.toLocaleString("pt-BR") ?? "—"} color={ACCENT} />
-            <KPI label="Usuários Atendidos" value={siapsDashRaw?.usuarios_atendidos_mes?.toLocaleString("pt-BR") ?? "—"} />
-            <KPI label="Cobertura Farmácia" value={siapsDashRaw ? `${siapsDashRaw.taxa_cobertura_farmacia_pct}%` : "—"} color={OK} />
+            <KPI label="Medicamentos Monitorados" value={siapsDashRaw?.medicamentos_monitorados ?? "â€”"} />
+            <KPI label="Itens CrÃ­ticos" value={siapsDashRaw?.itens_criticos ?? "â€”"} color={CRIT} />
+            <KPI label="Itens AtenÃ§Ã£o" value={siapsDashRaw?.itens_atencao ?? "â€”"} color={WARN} />
+            <KPI label="DispensaÃ§Ãµes/MÃªs" value={siapsDashRaw?.dispensacoes_mes?.toLocaleString("pt-BR") ?? "â€”"} color={ACCENT} />
+            <KPI label="UsuÃ¡rios Atendidos" value={siapsDashRaw?.usuarios_atendidos_mes?.toLocaleString("pt-BR") ?? "â€”"} />
+            <KPI label="Cobertura FarmÃ¡cia" value={siapsDashRaw ? `${siapsDashRaw.taxa_cobertura_farmacia_pct}%` : "â€”"} color={OK} />
           </div>
           {siapsEstRaw?.dados && Array.isArray(siapsEstRaw.dados) && (
             <div style={{ background: "#fff", borderRadius: 12, padding: 20 }}>
@@ -375,3 +375,4 @@ export default function IntegracaoTempoRealApui() {
     </div>
   )
 }
+

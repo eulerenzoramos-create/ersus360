@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
 import {
@@ -48,8 +48,8 @@ export default function EconomiaSaudeApui() {
   const ABAS = [
     { key: "dashboard",      label: "Dashboard",      icon: <TrendingDown size={15}/> },
     { key: "gastos",         label: "Gastos",         icon: <Activity size={15}/> },
-    { key: "judicializacao", label: "Judicialização", icon: <AlertTriangle size={15}/> },
-    { key: "historico",      label: "Histórico",      icon: <TrendingUp size={15}/> },
+    { key: "judicializacao", label: "JudicializaÃ§Ã£o", icon: <AlertTriangle size={15}/> },
+    { key: "historico",      label: "HistÃ³rico",      icon: <TrendingUp size={15}/> },
     { key: "indicadores",    label: "Indicadores",    icon: <AlertTriangle size={15}/> },
   ];
 
@@ -61,8 +61,8 @@ export default function EconomiaSaudeApui() {
             <TrendingDown size={22} color="white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Economia da Saúde — Apuí/AM</h1>
-            <p className="text-sm text-slate-500">Gastos · Judicialização · Prevenção · Custo-efetividade · FMS Apuí/AM</p>
+            <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Economia da SaÃºde â€” ApuÃ­/AM</h1>
+            <p className="text-sm text-slate-500">Gastos Â· JudicializaÃ§Ã£o Â· PrevenÃ§Ã£o Â· Custo-efetividade Â· FMS ApuÃ­/AM</p>
           </div>
         </div>
 
@@ -79,28 +79,28 @@ export default function EconomiaSaudeApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Orçamento saúde 2025"     value={BRL(dashRaw.orcamento_saude_total_2025)} color={BRAND} sub={`R$ ${dashRaw.gasto_per_capita_saude}/hab (BR: R$ ${dashRaw.gasto_per_capita_media_br})`} />
-              <KPI label="TFD (% orçamento)"        value={`${dashRaw.custo_tfd_pct_orcamento}%`}                             color={CRIT}  sub={`R$ ${BRL(dashRaw.custo_tfd_pct_orcamento*dashRaw.orcamento_saude_total_2025/100)}/ano`} />
-              <KPI label="Judicialização (% orçam)" value={`${dashRaw.custo_judicial_anual && (dashRaw.custo_judicial_anual/dashRaw.orcamento_saude_total_2025*100).toFixed(1)}%`} color={CRIT} sub={`R$ ${BRL(dashRaw.custo_judicial_anual)}/ano`} />
-              <KPI label="Ações judiciais ativas"   value={dashRaw.judicializacoes_ativas}                                    color={CRIT}  sub={`R$ ${BRL(dashRaw.custo_judicial_mensal)}/mês`} />
+              <KPI label="OrÃ§amento saÃºde 2025"     value={BRL(dashRaw.orcamento_saude_total_2025)} color={BRAND} sub={`R$ ${dashRaw.gasto_per_capita_saude}/hab (BR: R$ ${dashRaw.gasto_per_capita_media_br})`} />
+              <KPI label="TFD (% orÃ§amento)"        value={`${dashRaw.custo_tfd_pct_orcamento}%`}                             color={CRIT}  sub={`R$ ${BRL(dashRaw.custo_tfd_pct_orcamento*dashRaw.orcamento_saude_total_2025/100)}/ano`} />
+              <KPI label="JudicializaÃ§Ã£o (% orÃ§am)" value={`${dashRaw.custo_judicial_anual && (dashRaw.custo_judicial_anual/dashRaw.orcamento_saude_total_2025*100).toFixed(1)}%`} color={CRIT} sub={`R$ ${BRL(dashRaw.custo_judicial_anual)}/ano`} />
+              <KPI label="AÃ§Ãµes judiciais ativas"   value={dashRaw.judicializacoes_ativas}                                    color={CRIT}  sub={`R$ ${BRL(dashRaw.custo_judicial_mensal)}/mÃªs`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Gasto em prevenção"       value={`${dashRaw.custo_prevencao_pct}%`}                                 color={CRIT}  sub={`meta: ${dashRaw.custo_prevencao_meta_pct}%`} />
-              <KPI label="Internações evitáveis"    value={`${dashRaw.internacoes_causas_preveniveis_pct}%`}                  color={CRIT}  sub={`R$ ${BRL(dashRaw.custo_hospitalizacoes_preveniveis_ano)}/ano desperdiçados`} />
-              <KPI label="ROI prevenção"            value={`R$ ${dashRaw.retorno_investimento_prevencao}/R$1`}                color={OK}    sub="retorno por real investido" />
-              <KPI label="Receita própria saúde"    value={`${dashRaw.receita_propria_saude_pct}%`}                           color={CRIT}  sub={`dependência FNS: ${dashRaw.fundo_fns_repasse_pct}%`} />
+              <KPI label="Gasto em prevenÃ§Ã£o"       value={`${dashRaw.custo_prevencao_pct}%`}                                 color={CRIT}  sub={`meta: ${dashRaw.custo_prevencao_meta_pct}%`} />
+              <KPI label="InternaÃ§Ãµes evitÃ¡veis"    value={`${dashRaw.internacoes_causas_preveniveis_pct}%`}                  color={CRIT}  sub={`R$ ${BRL(dashRaw.custo_hospitalizacoes_preveniveis_ano)}/ano desperdiÃ§ados`} />
+              <KPI label="ROI prevenÃ§Ã£o"            value={`R$ ${dashRaw.retorno_investimento_prevencao}/R$1`}                color={OK}    sub="retorno por real investido" />
+              <KPI label="Receita prÃ³pria saÃºde"    value={`${dashRaw.receita_propria_saude_pct}%`}                           color={CRIT}  sub={`dependÃªncia FNS: ${dashRaw.fundo_fns_repasse_pct}%`} />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <h3 className="font-semibold text-slate-700 mb-3">Alocação do Orçamento de Saúde</h3>
+                <h3 className="font-semibold text-slate-700 mb-3">AlocaÃ§Ã£o do OrÃ§amento de SaÃºde</h3>
                 <div className="space-y-3 text-sm">
                   {[
                     { label: `Pessoal (48,0%)`,              value: 48.0, max: 100, color: ACCENT },
                     { label: `TFD (${dashRaw.custo_tfd_pct_orcamento}%)`, value: dashRaw.custo_tfd_pct_orcamento, max: 100, color: CRIT },
-                    { label: `Judicialização (34,1%)`,       value: 34.1, max: 100, color: CRIT },
+                    { label: `JudicializaÃ§Ã£o (34,1%)`,       value: 34.1, max: 100, color: CRIT },
                     { label: `Medicamentos (12,0%)`,         value: 12.0, max: 100, color: WARN },
-                    { label: `Atenção Básica (9,8%)`,        value: 9.8,  max: 100, color: CRIT },
-                    { label: `Prevenção (${dashRaw.custo_prevencao_pct}%)`, value: dashRaw.custo_prevencao_pct, max: 100, color: CRIT },
+                    { label: `AtenÃ§Ã£o BÃ¡sica (9,8%)`,        value: 9.8,  max: 100, color: CRIT },
+                    { label: `PrevenÃ§Ã£o (${dashRaw.custo_prevencao_pct}%)`, value: dashRaw.custo_prevencao_pct, max: 100, color: CRIT },
                   ].map((b: any) => (
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
@@ -112,9 +112,9 @@ export default function EconomiaSaudeApui() {
                 </div>
               </div>
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 flex flex-col gap-2 justify-center">
-                <p><b>Judicialização superou TFD em 2025</b> — R$ 3,4M em ações judiciais vs R$ 2,84M em TFD. Total: R$ 6,25M = 62,5% do orçamento em acesso a serviços que deveriam estar disponíveis.</p>
-                <p><b>Internações evitáveis: R$ 1,24M/ano</b> — 42,4% das internações por causas evitáveis na AB. 1 internação = 59 consultas de AB. Cada R$ 1M em prevenção retorna R$ 4,2M em 5 anos.</p>
-                <p><b>Gasto per capita: R$ 405/hab = 59% da média nacional</b> — subfinanciamento crônico + custo de acesso em região amazônica = círculo vicioso. PEC do Piso da AB universal: R$ 684/hab mínimo.</p>
+                <p><b>JudicializaÃ§Ã£o superou TFD em 2025</b> â€” R$ 3,4M em aÃ§Ãµes judiciais vs R$ 2,84M em TFD. Total: R$ 6,25M = 62,5% do orÃ§amento em acesso a serviÃ§os que deveriam estar disponÃ­veis.</p>
+                <p><b>InternaÃ§Ãµes evitÃ¡veis: R$ 1,24M/ano</b> â€” 42,4% das internaÃ§Ãµes por causas evitÃ¡veis na AB. 1 internaÃ§Ã£o = 59 consultas de AB. Cada R$ 1M em prevenÃ§Ã£o retorna R$ 4,2M em 5 anos.</p>
+                <p><b>Gasto per capita: R$ 405/hab = 59% da mÃ©dia nacional</b> â€” subfinanciamento crÃ´nico + custo de acesso em regiÃ£o amazÃ´nica = cÃ­rculo vicioso. PEC do Piso da AB universal: R$ 684/hab mÃ­nimo.</p>
               </div>
             </div>
           </div>
@@ -127,9 +127,9 @@ export default function EconomiaSaudeApui() {
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={(gastos as any[])} layout="vertical" margin={{ left: 160, right: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
-                  <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={BRL_AXIS}M`} />
+                  <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={BRL_AXIS} />
                   <YAxis dataKey="categoria" type="category" tick={{ fontSize: 10 }} width={160} />
-                  <Tooltip formatter={(v: any) => `R$ ${Number(v).toLocaleString()}`} />
+                  <Tooltip formatter={(v: number) => BRL(v)} />
                   <Bar dataKey="valor_ano" name="Valor (R$/ano)" radius={[0,3,3,0]}>
                     {(gastos as any[]).map((g: any, i: number) => (
                       <Cell key={i} fill={statusColor(g.status)} />
@@ -161,7 +161,7 @@ export default function EconomiaSaudeApui() {
         {aba === "judicializacao" && Array.isArray(judicializacao) && (
           <div className="space-y-4">
             <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h3 className="font-semibold text-slate-700 mb-4">Ações Judiciais — Volume e Custo Mensal</h3>
+              <h3 className="font-semibold text-slate-700 mb-4">AÃ§Ãµes Judiciais â€” Volume e Custo Mensal</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={(judicializacao as any[])} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
@@ -170,12 +170,12 @@ export default function EconomiaSaudeApui() {
                   <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={BRL_AXIS} />
                   <Tooltip />
                   <Legend />
-                  <Bar yAxisId="left"  dataKey="acoes"         name="Ações ativas" fill={ACCENT} radius={[4,4,0,0]}>
+                  <Bar yAxisId="left"  dataKey="acoes"         name="AÃ§Ãµes ativas" fill={ACCENT} radius={[4,4,0,0]}>
                     {(judicializacao as any[]).map((j: any, i: number) => (
                       <Cell key={i} fill={statusColor(j.status)} />
                     ))}
                   </Bar>
-                  <Bar yAxisId="right" dataKey="custo_mensal"  name="Custo/mês (R$)" fill={WARN} radius={[4,4,0,0]} />
+                  <Bar yAxisId="right" dataKey="custo_mensal"  name="Custo/mÃªs (R$)" fill={WARN} radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -188,9 +188,9 @@ export default function EconomiaSaudeApui() {
                       <p className="font-semibold text-sm text-slate-700">{j.objeto}</p>
                     </div>
                     <div className="text-right text-xs text-slate-500">
-                      <span className="font-bold" style={{ color: CRIT }}>{j.acoes} ações</span>
-                      {" · "}
-                      <span style={{ color: statusColor(j.status) }}>{BRL(j.custo_mensal)}/mês</span>
+                      <span className="font-bold" style={{ color: CRIT }}>{j.acoes} aÃ§Ãµes</span>
+                      {" Â· "}
+                      <span style={{ color: statusColor(j.status) }}>{BRL(j.custo_mensal)}/mÃªs</span>
                     </div>
                   </div>
                   <p className="text-xs text-slate-500 ml-5">{j.observacao}</p>
@@ -202,18 +202,18 @@ export default function EconomiaSaudeApui() {
 
         {aba === "historico" && Array.isArray(historico) && (
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <h3 className="font-semibold text-slate-700 mb-4">Evolução Econômica da Saúde — Apuí/AM (2022–2025)</h3>
+            <h3 className="font-semibold text-slate-700 mb-4">EvoluÃ§Ã£o EconÃ´mica da SaÃºde â€” ApuÃ­/AM (2022â€“2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={BRL_AXIS}M`} />
-                <Tooltip formatter={(v: any) => `R$ ${Number(v).toLocaleString()}`} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={BRL_AXIS} />
+                <Tooltip formatter={(v: number) => BRL(v)} />
                 <Legend />
-                <Line dataKey="orcamento_total"  name="Orçamento total"      stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
+                <Line dataKey="orcamento_total"  name="OrÃ§amento total"      stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />
                 <Line dataKey="tfd_custo"         name="TFD"                  stroke={CRIT}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="4 4" />
-                <Line dataKey="judicial_custo"    name="Judicialização"       stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
-                <Line dataKey="prev_custo"        name="Prevenção"            stroke={OK}     strokeWidth={2} dot={{ r: 4 }} />
+                <Line dataKey="judicial_custo"    name="JudicializaÃ§Ã£o"       stroke={WARN}   strokeWidth={2} dot={{ r: 4 }} strokeDasharray="2 2" />
+                <Line dataKey="prev_custo"        name="PrevenÃ§Ã£o"            stroke={OK}     strokeWidth={2} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -241,3 +241,4 @@ export default function EconomiaSaudeApui() {
     </div>
   );
 }
+

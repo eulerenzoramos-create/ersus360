@@ -171,7 +171,7 @@ export default function GestaoContratosFms() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
-                <YAxis yAxisId="r"   orientation="right" tick={{ fontSize: 10 }} tickFormatter={BRL_AXIS}M`} />
+                <YAxis yAxisId="r"   orientation="right" tick={{ fontSize: 10 }} tickFormatter={BRL_AXIS} />
                 <Tooltip />
                 <Legend />
                 <Line yAxisId="n" dataKey="contratos_ativos"      name="Contratos Ativos"   stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />
