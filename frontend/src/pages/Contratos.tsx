@@ -10,11 +10,11 @@ import {
   Building2, DollarSign, TrendingUp, ExternalLink,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS } from "../lib/fmt";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const BRL  = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const BRLK = (v: number) =>
   v >= 1_000_000 ? `R$ ${(v/1_000_000).toFixed(2).replace(".",",")}M`
   : `R$ ${(v/1_000).toFixed(1).replace(".",",")}k`;
 
@@ -75,8 +75,8 @@ function AbaDashboard({ dash }: { dash: any }) {
         <KpiCard label="Vigentes"             value={dash.vigentes}         sub="em execução"               cor="#16a34a"  icon={<CheckCircle size={14} color="#16a34a" />} />
         <KpiCard label="Vencendo em 30 dias"  value={dash.vencendo_30d}     sub="renovar urgente"           cor="#d97706"  icon={<Clock size={14} color="#d97706" />} />
         <KpiCard label="Em licitação"         value={dash.em_licitacao}     sub="processos abertos"         cor="#7c3aed"  icon={<TrendingUp size={14} color="#7c3aed" />} />
-        <KpiCard label="Valor total contratos" value={BRLK(dash.total_valor)} sub="soma dos contratos 2026" cor="#0891b2"  icon={<DollarSign size={14} color="#0891b2" />} />
-        <KpiCard label="Execução (% pago)"    value={`${dash.pct_pago}%`}   sub={`${BRLK(dash.total_pago)} pagos`} cor={dash.pct_pago >= 50 ? "#16a34a" : "#d97706"} icon={<TrendingUp size={14} color={dash.pct_pago >= 50 ? "#16a34a" : "#d97706"} />} />
+        <KpiCard label="Valor total contratos" value={BRL(dash.total_valor)} sub="soma dos contratos 2026" cor="#0891b2"  icon={<DollarSign size={14} color="#0891b2" />} />
+        <KpiCard label="Execução (% pago)"    value={`${dash.pct_pago}%`}   sub={`${BRL(dash.total_pago)} pagos`} cor={dash.pct_pago >= 50 ? "#16a34a" : "#d97706"} icon={<TrendingUp size={14} color={dash.pct_pago >= 50 ? "#16a34a" : "#d97706"} />} />
       </div>
 
       {/* Barra execução geral */}
@@ -377,7 +377,7 @@ export default function Contratos() {
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             {dash && (
               <div style={{ background: "rgba(255,255,255,.12)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{BRLK(dash.total_valor)}</div>
+                <div style={{ fontSize: 20, fontWeight: 900 }}>{BRL(dash.total_valor)}</div>
                 <div style={{ fontSize: 10, opacity: 0.8 }}>valor total 2026</div>
               </div>
             )}

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
 import { Landmark, AlertTriangle, CheckCircle, DollarSign } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS } from "../lib/fmt";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 const ST_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
@@ -31,7 +32,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
         <KpiCard label="Ações ativas"         value={dash.acoes_ativas}                              sub={`+${dash.acoes_novas_mes} novas · -${dash.acoes_encerradas_mes} encerradas`}    cor="#374151"   icon={<Landmark size={14} color="#374151"/>}/>
-        <KpiCard label="Custo mensal"         value={`R$${(dash.custo_mensal_total/1000).toFixed(1)}k`} sub="medicamentos + procedimentos"                                               cor="#dc2626"   icon={<DollarSign size={14} color="#dc2626"/>}/>
+        <KpiCard label="Custo mensal"         value={BRL(dash.custo_mensal_total)} sub="medicamentos + procedimentos"                                               cor="#dc2626"   icon={<DollarSign size={14} color="#dc2626"/>}/>
         <KpiCard label="Cumprimento de prazos"value={dash.cumprimento_prazo_pct+"%"}                 sub={`meta: ${dash.meta_cumprimento_pct}%`}                                          cor={dash.cumprimento_prazo_pct>=95?"#16a34a":"#d97706"} icon={<CheckCircle size={14} color={dash.cumprimento_prazo_pct>=95?"#16a34a":"#d97706"}/>}/>
         <KpiCard label="Liminares ativas"     value={dash.medidas_liminares_ativas}                  sub={`${Math.round(dash.medidas_liminares_ativas/dash.acoes_ativas*100)}% das ações`} cor="#d97706"   icon={<AlertTriangle size={14} color="#d97706"/>}/>
       </div>
@@ -44,7 +45,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6"/>
                 <XAxis dataKey="mes" tick={{ fontSize: 9 }}/>
                 <YAxis yAxisId="l" tick={{ fontSize: 10 }}/>
-                <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 9 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`}/>
+                <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 9 }} tickFormatter={BRL_AXIS}/>
                 <Tooltip contentStyle={TT} formatter={(v: any, n: string) => n.includes("custo") ? `R$${v.toLocaleString("pt-BR")}` : v}/>
                 <Bar yAxisId="l" dataKey="acoes_ativas" name="Ações ativas" fill="#374151" radius={[4,4,0,0]}/>
                 <Line yAxisId="r" type="monotone" dataKey="custo_total" name="Custo total" stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }}/>

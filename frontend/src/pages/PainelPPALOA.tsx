@@ -6,11 +6,7 @@ import {
 } from "recharts";
 import { ClipboardList, AlertTriangle, CheckCircle, TrendingUp, DollarSign } from "lucide-react";
 import { apiGet } from "../lib/api";
-
-const BRL  = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const BRLK = (v: number) =>
-  v >= 1_000_000 ? `R$ ${(v/1_000_000).toFixed(2).replace(".",",")}M`
-  : `R$ ${(v/1_000).toFixed(1).replace(".",",")}k`;
+import { BRL, BRL_AXIS } from "../lib/fmt";
 
 const COR_STATUS = (s: string) =>
   s === "critico" ? "#dc2626" : s === "atencao" ? "#d97706" : "#16a34a";
@@ -44,10 +40,10 @@ function AbaLOA({ loa, dash }: { loa: any[] | undefined; dash: any }) {
     <div>
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 14, marginBottom: 22 }}>
-        <KpiCard label="Dotação total 2026"   value={BRLK(dash.total_dotacao)}  sub={`${dash.n_programas} programas`} cor="#1d4ed8" icon={<DollarSign size={14} color="#1d4ed8"/>} />
-        <KpiCard label="Empenhado"            value={BRLK(dash.total_empenhado)} sub={`${dash.pct_execucao}%`}        cor="#7c3aed" icon={<TrendingUp size={14} color="#7c3aed"/>} />
-        <KpiCard label="Pago"                 value={BRLK(dash.total_pago)}      sub={`${dash.pct_pago}%`}            cor="#16a34a" icon={<CheckCircle size={14} color="#16a34a"/>} />
-        <KpiCard label="Saldo disponível"     value={BRLK(dash.total_saldo)}     sub="não empenhado"                  cor="#0891b2" icon={<DollarSign size={14} color="#0891b2"/>} />
+        <KpiCard label="Dotação total 2026"   value={BRL(dash.total_dotacao)}  sub={`${dash.n_programas} programas`} cor="#1d4ed8" icon={<DollarSign size={14} color="#1d4ed8"/>} />
+        <KpiCard label="Empenhado"            value={BRL(dash.total_empenhado)} sub={`${dash.pct_execucao}%`}        cor="#7c3aed" icon={<TrendingUp size={14} color="#7c3aed"/>} />
+        <KpiCard label="Pago"                 value={BRL(dash.total_pago)}      sub={`${dash.pct_pago}%`}            cor="#16a34a" icon={<CheckCircle size={14} color="#16a34a"/>} />
+        <KpiCard label="Saldo disponível"     value={BRL(dash.total_saldo)}     sub="não empenhado"                  cor="#0891b2" icon={<DollarSign size={14} color="#0891b2"/>} />
         <KpiCard label="SIOPS rec. próprios"  value={`${dash.siops_atual}%`}     sub={`meta ≥ ${dash.siops_meta}%`}  cor={dash.siops_conforme ? "#16a34a" : "#dc2626"} icon={<CheckCircle size={14} color={dash.siops_conforme ? "#16a34a" : "#dc2626"}/>} />
       </div>
 
@@ -59,7 +55,7 @@ function AbaLOA({ loa, dash }: { loa: any[] | undefined; dash: any }) {
             <BarChart data={barData} barGap={3} barSize={10}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
               <XAxis dataKey="programa" tick={{ fontSize: 8 }} angle={-20} textAnchor="end" height={50} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
+              <YAxis tick={{ fontSize: 10 }} width={90} tickFormatter={BRL_AXIS} />
               <Tooltip contentStyle={TT} formatter={(v: number, name) => [BRL(v), name as string]} />
               <Bar dataKey="Dotação"   fill="#dbeafe" radius={[3,3,0,0]} />
               <Bar dataKey="Empenhado" fill="#7c3aed" radius={[3,3,0,0]} />
@@ -197,8 +193,8 @@ function AbaSIOPS({ historico, bimestral }: { historico: any[] | undefined; bime
           {/* Acumulado banner */}
           {acum && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
-              <KpiCard label="Receita acumulada (1º–3º Bim)" value={BRLK(acum.receita_arrecadada)} sub="encerrados" cor="#1d4ed8" icon={<DollarSign size={14} color="#1d4ed8"/>} />
-              <KpiCard label="Gasto próprio saúde acum." value={BRLK(acum.gasto_proprio)} sub="recursos próprios" cor="#7c3aed" icon={<TrendingUp size={14} color="#7c3aed"/>} />
+              <KpiCard label="Receita acumulada (1º–3º Bim)" value={BRL(acum.receita_arrecadada)} sub="encerrados" cor="#1d4ed8" icon={<DollarSign size={14} color="#1d4ed8"/>} />
+              <KpiCard label="Gasto próprio saúde acum." value={BRL(acum.gasto_proprio)} sub="recursos próprios" cor="#7c3aed" icon={<TrendingUp size={14} color="#7c3aed"/>} />
               <KpiCard label="% Próprio acumulado" value={`${acum.pct_proprio_acum}%`} sub={acum.status === "atingido" ? "✓ Meta ≥ 15% atingida" : "⚠ Abaixo do mínimo"} cor={acum.status === "atingido" ? "#16a34a" : "#dc2626"} icon={<CheckCircle size={14} color={acum.status === "atingido" ? "#16a34a" : "#dc2626"}/>} />
             </div>
           )}
@@ -232,7 +228,7 @@ function AbaSIOPS({ historico, bimestral }: { historico: any[] | undefined; bime
                 <BarChart data={chartExec} barGap={4} barSize={20}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v/1_000_000).toFixed(1)}M`} />
+                  <YAxis tick={{ fontSize: 10 }} width={90} tickFormatter={BRL_AXIS} />
                   <Tooltip contentStyle={TT} formatter={(v: number, name) => [BRL(v), name as string]} />
                   <Bar dataKey="empenhado" name="Empenhado" fill="#7c3aed" radius={[3,3,0,0]} />
                   <Bar dataKey="pago"      name="Pago/Liquidado" fill="#16a34a" radius={[3,3,0,0]} />
@@ -261,11 +257,11 @@ function AbaSIOPS({ historico, bimestral }: { historico: any[] | undefined; bime
                     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
                       <div style={{ background:"#f9fafb", borderRadius:6, padding:"6px 8px" }}>
                         <div style={{ fontSize:9, color:"#9ca3af" }}>Receita impostos</div>
-                        <div style={{ fontSize:12, fontWeight:700 }}>{b.receita_arrecadada ? BRLK(b.receita_arrecadada) : "—"}</div>
+                        <div style={{ fontSize:12, fontWeight:700 }}>{b.receita_arrecadada ? BRL(b.receita_arrecadada) : "—"}</div>
                       </div>
                       <div style={{ background:"#f9fafb", borderRadius:6, padding:"6px 8px" }}>
                         <div style={{ fontSize:9, color:"#9ca3af" }}>Gasto próprio saúde</div>
-                        <div style={{ fontSize:12, fontWeight:700 }}>{b.gasto_proprio_saude ? BRLK(b.gasto_proprio_saude) : "—"}</div>
+                        <div style={{ fontSize:12, fontWeight:700 }}>{b.gasto_proprio_saude ? BRL(b.gasto_proprio_saude) : "—"}</div>
                       </div>
                       <div style={{ background:`${cor}12`, borderRadius:6, padding:"6px 8px" }}>
                         <div style={{ fontSize:9, color:"#9ca3af" }}>% Próprio</div>
@@ -279,18 +275,18 @@ function AbaSIOPS({ historico, bimestral }: { historico: any[] | undefined; bime
                         <>
                           <div style={{ background:"#f9fafb", borderRadius:6, padding:"6px 8px" }}>
                             <div style={{ fontSize:9, color:"#9ca3af" }}>Empenhado acum.</div>
-                            <div style={{ fontSize:11, fontWeight:700, color:"#7c3aed" }}>{BRLK(b.empenhado_acum)}</div>
+                            <div style={{ fontSize:11, fontWeight:700, color:"#7c3aed" }}>{BRL(b.empenhado_acum)}</div>
                           </div>
                           <div style={{ background:"#f9fafb", borderRadius:6, padding:"6px 8px" }}>
                             <div style={{ fontSize:9, color:"#9ca3af" }}>Pago acum.</div>
-                            <div style={{ fontSize:11, fontWeight:700, color:"#16a34a" }}>{BRLK(b.pago_acum)}</div>
+                            <div style={{ fontSize:11, fontWeight:700, color:"#16a34a" }}>{BRL(b.pago_acum)}</div>
                           </div>
                         </>
                       )}
                     </div>
                   ) : (
                     <div style={{ textAlign:"center", padding:"12px 0", color:"#9ca3af", fontSize:11 }}>
-                      Previsão: {BRLK(b.receita_previsao)}<br/>Bimestre não iniciado
+                      Previsão: {BRL(b.receita_previsao)}<br/>Bimestre não iniciado
                     </div>
                   )}
                   {b.alerta && (
@@ -323,7 +319,7 @@ function AbaSIOPS({ historico, bimestral }: { historico: any[] | undefined; bime
                         <td key={j} style={{ padding:"7px 10px", textAlign:"right",
                           color: v == null ? "#d1d5db" : "#374151",
                           fontStyle: v == null ? "italic" : "normal" }}>
-                          {v != null ? BRLK(v) : "—"}
+                          {v != null ? BRL(v) : "—"}
                         </td>
                       ))}
                     </tr>
@@ -399,7 +395,7 @@ export default function PainelPPALOA() {
           </div>
           {dash && (
             <div style={{ background: "rgba(255,255,255,.12)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 900 }}>{BRLK(dash.total_dotacao)}</div>
+              <div style={{ fontSize: 20, fontWeight: 900 }}>{BRL(dash.total_dotacao)}</div>
               <div style={{ fontSize: 10, opacity: 0.8 }}>dotação total 2026</div>
             </div>
           )}

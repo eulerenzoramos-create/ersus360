@@ -126,6 +126,7 @@ import SAMU                  from "./pages/SAMU";
 import PNAE                  from "./pages/PNAE";
 import SIOPSDetalhado         from "./pages/SIOPSDetalhado";
 import SIOPSLive              from "./pages/SIOPSLive";
+import SIOPSCompleto          from "./pages/SIOPSCompleto";
 import PatSaude               from "./pages/PatSaude";
 import Abastecimento          from "./pages/Abastecimento";
 import SegurancaPaciente       from "./pages/SegurancaPaciente";
@@ -665,8 +666,9 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             {podeFin && <L1 to="/contratos"       label="Contratos & Licitações" Icon={FileText}/>}
             {podeFin && <L1 to="/ppa-loa"         label="PPA / LOA"              Icon={ClipboardList}/>}
             {podeFin && <L1 to="/regulacao-mac"   label="Regulação MAC"          Icon={Network}/>}
-            {podeFin && <L1 to="/siops-detalhado" label="SIOPS Detalhado"        Icon={Landmark}/>}
-            {podeFin && <L1 to="/siops-live"      label="SIOPS — Dados Oficiais" Icon={Landmark}/>}
+            {podeFin && <L1 to="/siops-completo"   label="SIOPS — Gestão Completa" Icon={Landmark}/>}
+            {podeFin && <L1 to="/siops-detalhado" label="SIOPS Detalhado"         Icon={Landmark}/>}
+            {podeFin && <L1 to="/siops-live"      label="SIOPS — Dados Oficiais"  Icon={Landmark}/>}
 
             {/* ── Vigilância ── */}
             <SbSection label="Vigilância e Epidemiologia"/>
@@ -1074,6 +1076,7 @@ export default function App() {
             <Route path="/contratos"                 element={<Contratos/>}/>
             <Route path="/samu"                      element={<SAMU/>}/>
             <Route path="/pnae"                      element={<PNAE/>}/>
+            <Route path="/siops-completo"            element={<SIOPSCompleto/>}/>
             <Route path="/siops-detalhado"           element={<SIOPSDetalhado/>}/>
             <Route path="/siops-live"               element={<SIOPSLive/>}/>
             <Route path="/pat-saude"                 element={<PatSaude/>}/>

@@ -126,7 +126,7 @@ export default function EconomiaSaudeApui() {
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={(gastos as any[])} layout="vertical" margin={{ left: 160, right: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
-                  <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v/1000000).toFixed(1)}M`} />
+                  <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={BRL_AXIS}M`} />
                   <YAxis dataKey="categoria" type="category" tick={{ fontSize: 10 }} width={160} />
                   <Tooltip formatter={(v: any) => `R$ ${Number(v).toLocaleString()}`} />
                   <Bar dataKey="valor_ano" name="Valor (R$/ano)" radius={[0,3,3,0]}>
@@ -206,7 +206,7 @@ export default function EconomiaSaudeApui() {
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v/1000000).toFixed(1)}M`} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={BRL_AXIS}M`} />
                 <Tooltip formatter={(v: any) => `R$ ${Number(v).toLocaleString()}`} />
                 <Legend />
                 <Line dataKey="orcamento_total"  name="Orçamento total"      stroke={BRAND}  strokeWidth={2} dot={{ r: 4 }} />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS } from "../lib/fmt";
 import {
   BarChart, Bar, LineChart, Line, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -19,7 +20,7 @@ function statusColor(s: string) {
   return CRIT;
 }
 
-function fmtR(v: number) {
+function BRL(v: number) {
   if (v >= 1000000) return `R$ ${(v / 1000000).toFixed(1)}M`;
   if (v >= 1000) return `R$ ${(v / 1000).toFixed(0)}k`;
   return `R$ ${v}`;
@@ -84,25 +85,25 @@ export default function FundoMunicipalSaudeApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Receita prevista"         value={fmtR(dashRaw.receita_total_prevista_R)}   color={BRAND} sub={`exercício ${dashRaw.ano_referencia}`} />
-              <KPI label="Receita executada"        value={fmtR(dashRaw.receita_total_executada_R)}  color={WARN}  sub={`${dashRaw.execucao_pct}% executado`} />
+              <KPI label="Receita prevista"         value={BRL(dashRaw.receita_total_prevista_R)}   color={BRAND} sub={`exercício ${dashRaw.ano_referencia}`} />
+              <KPI label="Receita executada"        value={BRL(dashRaw.receita_total_executada_R)}  color={WARN}  sub={`${dashRaw.execucao_pct}% executado`} />
               <KPI label="Gasto per capita"         value={`R$ ${dashRaw.gasto_per_capita_R}/hab`}   color={WARN}  sub={`média BR: R$ ${dashRaw.media_brasil_per_capita_R}`} />
               <KPI label="ASPS (%)"                 value={`${dashRaw.asps_percentual_pct}%`}        color={OK}    sub={`mín. const.: ${dashRaw.meta_asps_pct}%`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Emendas parlamentares"   value={fmtR(dashRaw.emendas_parlamentares_R)}     color={WARN}  sub={`${dashRaw.emendas_executadas_pct}% executado`} />
-              <KPI label="Bloco custeio"           value={fmtR(dashRaw.blocos_custeio_R)}             color={BRAND} sub="despesa corrente" />
-              <KPI label="Bloco investimento"      value={fmtR(dashRaw.blocos_investimento_R)}        color={CRIT}  sub={`${dashRaw.blocos_investimento_executado_pct}% executado`} />
-              <KPI label="Transfências federais"   value={fmtR(dashRaw.transferencias_federais_R)}    color={BRAND} sub="fundo a fundo" />
+              <KPI label="Emendas parlamentares"   value={BRL(dashRaw.emendas_parlamentares_R)}     color={WARN}  sub={`${dashRaw.emendas_executadas_pct}% executado`} />
+              <KPI label="Bloco custeio"           value={BRL(dashRaw.blocos_custeio_R)}             color={BRAND} sub="despesa corrente" />
+              <KPI label="Bloco investimento"      value={BRL(dashRaw.blocos_investimento_R)}        color={CRIT}  sub={`${dashRaw.blocos_investimento_executado_pct}% executado`} />
+              <KPI label="Transfências federais"   value={BRL(dashRaw.transferencias_federais_R)}    color={BRAND} sub="fundo a fundo" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                 <h3 className="font-semibold text-slate-700 mb-3">Subfunções — Distribuição</h3>
                 <div className="space-y-2 text-sm">
                   {[
-                    { label: "Atenção Básica",           value: dashRaw.subfuncao_atencao_basica_R,       total: dashRaw.receita_total_executada_R, display: fmtR(dashRaw.subfuncao_atencao_basica_R) },
-                    { label: "Hospitalar/Ambulatorial",  value: dashRaw.subfuncao_hospitalar_ambulatorial_R, total: dashRaw.receita_total_executada_R, display: fmtR(dashRaw.subfuncao_hospitalar_ambulatorial_R) },
-                    { label: "Vigilância em Saúde",      value: dashRaw.subfuncao_vigilancia_R,           total: dashRaw.receita_total_executada_R, display: fmtR(dashRaw.subfuncao_vigilancia_R) },
+                    { label: "Atenção Básica",           value: dashRaw.subfuncao_atencao_basica_R,       total: dashRaw.receita_total_executada_R, display: BRL(dashRaw.subfuncao_atencao_basica_R) },
+                    { label: "Hospitalar/Ambulatorial",  value: dashRaw.subfuncao_hospitalar_ambulatorial_R, total: dashRaw.receita_total_executada_R, display: BRL(dashRaw.subfuncao_hospitalar_ambulatorial_R) },
+                    { label: "Vigilância em Saúde",      value: dashRaw.subfuncao_vigilancia_R,           total: dashRaw.receita_total_executada_R, display: BRL(dashRaw.subfuncao_vigilancia_R) },
                   ].map((b: any) => (
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
@@ -133,7 +134,7 @@ export default function FundoMunicipalSaudeApui() {
                     <p className="font-semibold text-sm text-slate-700">{r.fonte}</p>
                   </div>
                   <div className="text-right text-sm">
-                    <span className="font-bold" style={{ color: BRAND }}>{fmtR(r.valor_R)}</span>
+                    <span className="font-bold" style={{ color: BRAND }}>{BRL(r.valor_R)}</span>
                     <p className="text-xs" style={{ color: statusColor(r.status) }}>{r.executado_pct}% executado</p>
                   </div>
                 </div>
@@ -154,7 +155,7 @@ export default function FundoMunicipalSaudeApui() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: any) => fmtR(v)} />
+                <Tooltip formatter={(v: any) => BRL(v)} />
                 <Legend />
                 <Bar dataKey="custeio"     name="Custeio"    fill={BRAND}  radius={[3,3,0,0]} stackId="a" />
                 <Bar dataKey="investimento" name="Investimento" fill={ACCENT} radius={[0,0,0,0]} stackId="a" />

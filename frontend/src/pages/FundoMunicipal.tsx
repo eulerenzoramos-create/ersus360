@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS } from "../lib/fmt";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -50,7 +51,7 @@ export default function FundoMunicipal() {
     { key: "indicadores",label: "Indicadores",  icon: <AlertTriangle size={15}/> },
   ];
 
-  const fmt = (v: number) => `R$ ${(v / 1_000_000).toFixed(2)}M`;
+  const fmt = (v: number) => BRL(v );
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -86,7 +87,7 @@ export default function FundoMunicipal() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Aplic. Constitucional" value={`${dashRaw.percentual_impostos_saude}%`} sub="mínimo: 15%" color={OK} />
               <KPI label="Pessoal/Despesa"       value={`${dashRaw.pessoal_pct_despesa}%`}       sub="limite: 60%" color={dashRaw.pessoal_pct_despesa > 60 ? CRIT : OK} />
-              <KPI label="Judicialização/Mês"    value={`R$ ${(dashRaw.judicializacao_r/1000).toFixed(0)}k`} color={CRIT} />
+              <KPI label="Judicialização/Mês"    value={BRL(dashRaw.judicializacao_r)} color={CRIT} />
               <KPI label="Exec. Emendas"         value={`${dashRaw.emendas_execucao_pct}%`} color={dashRaw.emendas_execucao_pct >= 90 ? OK : CRIT} />
             </div>
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
@@ -204,7 +205,7 @@ export default function FundoMunicipal() {
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={BRL_AXIS} />
                 <Tooltip formatter={(v: any) => `R$ ${v.toLocaleString()}`} />
                 <Legend />
                 <Line dataKey="receita_r"  name="Receita"  stroke={OK}    strokeWidth={2} dot={{ r: 4 }} />

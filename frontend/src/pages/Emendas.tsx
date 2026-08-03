@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, apiEmendas } from "../lib/api";
+import { BRL, BRL_AXIS } from "../lib/fmt";
 import { Landmark, Plus, Check, X, TrendingUp } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -137,7 +138,7 @@ export default function Emendas() {
             <div style={S.title}>Por Parlamentar</div>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={dashboard.por_parlamentar} layout="vertical" margin={{ left: 10, right: 20 }}>
-                <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
+                <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => BRL(v)} />
                 <YAxis type="category" dataKey="parlamentar" tick={{ fontSize: 10 }} width={110} />
                 <Tooltip formatter={(v: number) => fmt(v)} />
                 <Bar dataKey="total" name="Indicado" fill="#7c3aed" radius={[0, 4, 4, 0]} />
@@ -340,7 +341,7 @@ export default function Emendas() {
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={dashboard.por_quadrimestre}>
                 <XAxis dataKey="quadrimestre" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={v => BRL(v)} />
                 <Tooltip formatter={(v: number) => fmt(v)} />
                 <Legend />
                 <Bar dataKey="indicado" name="Indicado" fill="#7c3aed" radius={[4, 4, 0, 0]} />

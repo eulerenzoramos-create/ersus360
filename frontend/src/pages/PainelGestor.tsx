@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiDashboard, apiAlertas, apiSistema, apiGet, apiConformidade } from "../lib/api";
+import { BRL, BRL_AXIS } from "../lib/fmt";
 import {
   Heart, Target, BarChart2, Users, Pill, Syringe, Brain, Map,
   TrendingUp, DollarSign, FileText, Activity, Eye, EyeOff,
@@ -28,8 +29,8 @@ const MODULOS = [
 ];
 
 const fmt = (v: number) =>
-  v >= 1_000_000 ? `R$ ${(v / 1_000_000).toFixed(2).replace(".", ",")} M`
-  : v >= 1_000   ? `R$ ${(v / 1_000).toFixed(2).replace(".", ",")} K`
+  v >= 1_000_000 ? BRL(v )
+  : v >= 1_000   ? BRL(v )
   : `R$ ${v.toFixed(2).replace(".", ",")}`;
 
 export default function PainelGestor() {

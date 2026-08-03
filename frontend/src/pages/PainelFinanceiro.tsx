@@ -10,6 +10,7 @@ import {
   ChevronDown, ChevronRight, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS } from "../lib/fmt";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

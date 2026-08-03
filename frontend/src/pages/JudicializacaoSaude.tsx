@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS } from "../lib/fmt";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, Cell,
@@ -83,8 +84,8 @@ export default function JudicializacaoSaude() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Processos Ativos"   value={dashRaw.processos_ativos.toString()}               color={CRIT} />
               <KPI label="Novos/Mês"          value={dashRaw.novos_mes.toString()}                      color={WARN} />
-              <KPI label="Custo/Mês"          value={`R$ ${(dashRaw.custo_mensal_r/1000).toFixed(0)}k`} color={CRIT} />
-              <KPI label="Custo Acum./Ano"    value={`R$ ${(dashRaw.custo_acumulado_ano_r/1_000_000).toFixed(2)}M`} color={CRIT} />
+              <KPI label="Custo/Mês"          value={BRL(dashRaw.custo_mensal_r)} color={CRIT} />
+              <KPI label="Custo Acum./Ano"    value={BRL(dashRaw.custo_acumulado_ano_r)} color={CRIT} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Cumprimento"         value={`${dashRaw.cumprimento_pct}%`}  color={dashRaw.cumprimento_pct >= 95 ? OK : CRIT} />
@@ -131,7 +132,7 @@ export default function JudicializacaoSaude() {
               <h3 className="font-semibold text-slate-700 mb-4">Custo Mensal por Objeto da Ação (R$)</h3>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={porObjeto} layout="vertical" margin={{ left: 10, right: 20 }}>
-                  <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                  <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={BRL_AXIS} />
                   <YAxis type="category" dataKey="objeto" tick={{ fontSize: 8 }} width={220} />
                   <Tooltip formatter={(v: any) => `R$ ${v.toLocaleString()}`} />
                   <Bar dataKey="custo_mensal_r" name="Custo/mês" fill={ACCENT} radius={[0,3,3,0]} />
@@ -163,7 +164,7 @@ export default function JudicializacaoSaude() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
-                <YAxis yAxisId="r"   orientation="right" tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                <YAxis yAxisId="r"   orientation="right" tick={{ fontSize: 10 }} tickFormatter={BRL_AXIS} />
                 <Tooltip />
                 <Legend />
                 <Line yAxisId="n" dataKey="total_ativos"       name="Processos Ativos"  stroke={ACCENT} strokeWidth={2} dot={{ r: 4 }} />

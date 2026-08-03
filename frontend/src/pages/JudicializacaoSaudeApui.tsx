@@ -39,9 +39,9 @@ export default function JudicializacaoSaudeApui(){
         <div>
           <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20}}>
             <KPI label="Processos Ativos 2025"     value={d.processos_ativos_2025}   sub={`+${d.processos_novos_2025} novos`}      color={CRIT}/>
-            <KPI label="Gasto Judicialização 2025" value={`R$ ${(d.gasto_judicializacao_2025_r/1000).toFixed(0)}k`} sub={`${d.gasto_judicializacao_orcamento_saude_pct}% do orçamento`} color={CRIT}/>
+            <KPI label="Gasto Judicialização 2025" value={BRL(d.gasto_judicializacao_2025_r)} sub={`${d.gasto_judicializacao_orcamento_saude_pct}% do orçamento`} color={CRIT}/>
             <KPI label="Cumprimento em Dia"        value={`${d.cumprimento_judicial_em_dia_pct}%`} sub="Meta: ≥ 95%"               color={WARN}/>
-            <KPI label="Multas por Descumprimento" value={`R$ ${(d.descumprimento_multas_2025_r/1000).toFixed(0)}k`}               color={CRIT}/>
+            <KPI label="Multas por Descumprimento" value={BRL(d.descumprimento_multas_2025_r)}               color={CRIT}/>
             <KPI label="Medicamentos Distintos"    value={d.medicamentos_demandados_distintos}                                     color={ACCENT}/>
             <KPI label="Fora RENAME/REMUME"        value={`${d.medicamentos_fora_lista_pct}%`} sub="Meta: < 30%"                  color={CRIT}/>
             <KPI label="Cirurgias Judiciais"       value={d.cirurgias_judiciais_pendentes}   sub="pendentes"                      color={WARN}/>
@@ -65,7 +65,7 @@ export default function JudicializacaoSaudeApui(){
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={c} layout="vertical" margin={{left:260,right:60,top:10,bottom:10}}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
-                <XAxis type="number" tickFormatter={v=>`R$${(v/1000).toFixed(0)}k`} tick={{fontSize:10}}/>
+                <XAxis type="number" tickFormatter={v=>BRL(v)} tick={{fontSize:10}}/>
                 <YAxis dataKey="categoria" type="category" tick={{fontSize:10}} width={260}/>
                 <Tooltip formatter={(v:number)=>[`R$ ${v.toLocaleString()}`,"Custo/mês"]}/>
                 <Bar dataKey="valor_mensal_r" fill={CRIT} radius={[0,4,4,0]} name="Custo Mensal"/>
