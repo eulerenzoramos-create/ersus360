@@ -34,6 +34,8 @@ export default function CadastrosCidadao() {
     staleTime: 60_000,
   });
 
+  const modoDemo = cidadaos.length > 0 && cidadaos[0].id < 0;
+
   const visiveis = cidadaos.filter(c =>
     !busca || c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.microarea ?? "").toLowerCase().includes(busca.toLowerCase())
   );
@@ -53,6 +55,13 @@ export default function CadastrosCidadao() {
       </div>
 
       <div style={{ padding: "20px 28px 60px" }}>
+        {modoDemo && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fffbeb", border: "1px solid #fcd34d",
+            borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#92400e", marginBottom: 14 }}>
+            <Info size={14} />
+            <span><strong>Modo demonstração</strong> — dados fictícios para referência. Sincronize o PEC para visualizar cadastros reais (Configurações → Integrações → PEC e-SUS APS).</span>
+          </div>
+        )}
         <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, padding: "12px 16px",
           marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
           <Search size={13} color="#9ca3af" />

@@ -169,7 +169,7 @@ export default function SIOPSDetalhado() {
 
             <Grid3>
               <InfoBox color="#16a34a"><p><b>EC-29 superado em 4,8 p.p.</b> — Apuí aplica 19,8% da receita de impostos em saúde. O superávit de R$895.920 representa margem real de custeio.</p></InfoBox>
-              <InfoBox color="#d97706"><p><b>MAC com 25,8% de saldo</b> — R$1.105.272 disponíveis. Risco de devolução ao FNS se não houver aceleração no 2º trimestre.</p></InfoBox>
+              <InfoBox color="#d97706"><p><b>MAC com 25,8% de saldo</b> — R$1.105.272 disponíveis. Risco de devolução ao FNS se não houver aceleração no 2º semestre.</p></InfoBox>
               <InfoBox color="#1d4ed8"><p><b>34,3% de recursos próprios</b> — R$2,87M de tesouro municipal. Acima da média AM para municípios de porte similar (28,4%).</p></InfoBox>
             </Grid3>
           </div>
