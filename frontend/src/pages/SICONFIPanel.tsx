@@ -55,18 +55,15 @@ const FonteBadge = ({ fonte }: { fonte: "live" | "referencia" }) => (
 const KPI = ({
   label, value, sub, color = BLUE, tooltip,
 }: { label: string; value: string; sub?: string; color?: string; tooltip?: string }) => (
-  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm relative group">
-    {tooltip && (
-      <div className="absolute top-2 right-2 cursor-help">
-        <Info size={13} color={SLATE}/>
-        <div className="hidden group-hover:block absolute right-0 top-5 z-10 bg-slate-800 text-white text-xs rounded p-2 w-56 leading-relaxed">
-          {tooltip}
-        </div>
-      </div>
-    )}
-    <p className="text-xs text-slate-500 font-medium uppercase tracking-wide pr-4">{label}</p>
-    <p className="text-2xl font-bold mt-1" style={{ color }}>{value}</p>
-    {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+  <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0",
+    padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,.07)", position: "relative" }}>
+    <p style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textTransform: "uppercase",
+      letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 4 }}>
+      {label}
+      {tooltip && <span title={tooltip} style={{ cursor: "help", lineHeight: 0 }}><Info size={12} color={SLATE}/></span>}
+    </p>
+    <p style={{ fontSize: 24, fontWeight: 700, marginTop: 6, color }}>{value}</p>
+    {sub && <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{sub}</p>}
   </div>
 );
 
@@ -130,7 +127,7 @@ function AbaRREO({ rreo }: { rreo: RREOResp }) {
       )}
 
       {/* KPIs receita/despesa */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14 }}>
         <KPI label="Receita Orçada" value={BRL(d.receitaOrcada)} color={BLUE}
           tooltip="Total de receitas previstas na LOA para o exercício"/>
         <KPI label="Receita Realizada" value={BRL(d.receitaRealizada)}
@@ -144,14 +141,14 @@ function AbaRREO({ rreo }: { rreo: RREOResp }) {
           tooltip="Diferença entre receita realizada e despesa liquidada"/>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14 }}>
         <KPI label="Despesa Empenhada"  value={BRL(d.despesaEmpenhada)}  color={BLUE}/>
         <KPI label="Despesa Paga"       value={BRL(d.despesaPaga)}       color={GREEN}/>
         <KPI label="Restos a Pagar"     value={BRL(d.restosApagarInscritos)}
           sub={`Pagos: ${BRL(d.restosApagarPagos)}`} color={AMBER}
           tooltip="Valores empenhados não pagos no exercício — inscritos em restos a pagar"/>
         <KPI label="ASPS % Aplicado"    value={`${d.aspsPctAplicado}%`}
-          sub={`Mín. constitucional: 15%`} color={d.aspsCumpriu ? GREEN : RED}
+          sub="Mín. constitucional: 15%" color={d.aspsCumpriu ? GREEN : RED}
           tooltip="LC 141/2012 — mínimo de 15% das receitas líquidas em Ações e Serviços Públicos de Saúde"/>
       </div>
 
