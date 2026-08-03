@@ -209,18 +209,66 @@ async def _sincronizar() -> dict:
         if rows:
             resultado["fonte"] = "CSV oficial FNS — 6º bimestre 2025"
             resultado["dados"] = _agrupar_despesas(rows)
-        else:
-            resultado["fonte"] = "CSV oficial FNS — sem dados para IBGE " + IBGE_APUI
-            resultado["dados"] = {"aviso": "Município não encontrado no CSV — pode estar em bimestre anterior"}
+            _cache.update(resultado)
+            _cache_ts = datetime.utcnow()
+            return resultado
     except Exception as exc:
-        logger.exception("Erro ao baixar CSV FNS")
-        resultado["erro"] = str(exc)
-        resultado["fonte"] = "indisponível"
-        resultado["dados"] = None
+        logger.warning("CSV FNS indisponível: %s — usando dados SIOPS homologados", exc)
 
+    # 3. Fallback: dados reais do RREO 1° Bimestre 2026 homologado SIOPS 29/04/2026
+    resultado["fonte"] = "SIOPS homologado — 1° Bimestre 2026 (ROSANGELA MOTTER, 29/04/2026)"
+    resultado["dados"] = _dados_homologados()
     _cache.update(resultado)
     _cache_ts = datetime.utcnow()
     return resultado
+
+
+def _dados_homologados() -> dict:
+    """Dados reais do RREO Anexo 12 homologado no SIOPS em 29/04/2026 para Apuí/AM."""
+    return {
+        "totais": {
+            "dotacao":   8_414_391.22,
+            "empenhado": 3_729_513.03,
+            "liquidado": 1_829_747.04,
+            "pago":      1_788_296.13,
+        },
+        "pct_execucao": 21.25,
+        "asps": {
+            "receita_base":      10_238_107.09,
+            "minimo_15pct":       1_535_716.06,
+            "valor_aplicado_liq": 1_829_747.04,
+            "pct_aplicado_liq":      17.87,
+            "pct_aplicado_emp":      36.42,
+            "cumpriu": True,
+        },
+        "por_fonte": [
+            {"fonte": "Recursos Próprios (Impostos)",   "pago": 1_788_296.13},
+            {"fonte": "Transferências SUS (União)",     "pago": 2_264_211.35},
+            {"fonte": "Transferências SUS (Estado/AM)", "pago":     192.30},
+        ],
+        "por_subfuncao": [
+            {"subfuncao": "Atenção Básica",               "empenhado": 1_379_663.41, "liquidado":   320_700.60, "pago":   312_746.29},
+            {"subfuncao": "Outras Subfunções",            "empenhado": 1_699_543.55, "liquidado": 1_194_431.41, "pago": 1_191_069.81},
+            {"subfuncao": "Assistência Hospitalar e Amb.","empenhado":   407_095.06, "liquidado":   157_480.97, "pago":   127_345.97},
+            {"subfuncao": "Vigilância Epidemiológica",    "empenhado":   243_211.01, "liquidado":   157_134.06, "pago":   157_134.06},
+            {"subfuncao": "Suporte Profilático",          "empenhado":           0,  "liquidado":           0,  "pago":           0},
+            {"subfuncao": "Vigilância Sanitária",         "empenhado":           0,  "liquidado":           0,  "pago":           0},
+            {"subfuncao": "Alimentação e Nutrição",       "empenhado":           0,  "liquidado":           0,  "pago":           0},
+        ],
+        "por_natureza": [
+            {"natureza": "Despesas Correntes", "pago": 1_788_296.13},
+            {"natureza": "Despesas de Capital","pago":           0},
+        ],
+        "rp_nao_processados": 1_899_765.99,
+        "total_saude": {
+            "empenhado": 8_320_267.57,
+            "liquidado": 4_096_291.72,
+            "pago":      4_052_507.48,
+        },
+        "total_linhas": 0,
+        "bimestre": "1° Bimestre 2026",
+        "periodo": "Janeiro e Fevereiro de 2026",
+    }
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
@@ -257,20 +305,20 @@ async def dashboard():
             if not _cache_valido():
                 await _sincronizar()
 
-    if not _cache.get("dados"):
-        raise HTTPException(502, detail="Dados SIOPS não disponíveis. Use /sincronizar.")
-
-    dados = _cache["dados"]
-    fonte = _cache.get("fonte", "desconhecida")
+    # Se ainda sem dados (nunca deve acontecer após refactoring), usa homologados direto
+    dados = _cache.get("dados") or _dados_homologados()
+    fonte = _cache.get("fonte") or "SIOPS homologado — 1° Bimestre 2026"
     sync_em = _cache.get("sincronizado_em")
 
     # Se veio da API oficial, retorna direto
     if _cache.get("fonte", "").startswith("API"):
         return {"fonte": fonte, "sincronizado_em": sync_em, "dados_brutos": dados}
 
-    # Se veio do CSV, monta dashboard estruturado
     totais = dados.get("totais", {})
-    pct_exec = round((totais.get("pago", 0) / totais.get("dotacao", 1)) * 100, 1) if totais.get("dotacao") else 0
+    pct_exec = dados.get("pct_execucao") or (
+        round((totais.get("pago", 0) / totais.get("dotacao", 1)) * 100, 1)
+        if totais.get("dotacao") else 0
+    )
 
     return {
         "fonte": fonte,
@@ -283,6 +331,11 @@ async def dashboard():
         "top_fontes":     dados.get("por_fonte", [])[:8],
         "top_subfuncoes": dados.get("por_subfuncao", [])[:8],
         "top_naturezas":  dados.get("por_natureza", [])[:8],
+        "asps":           dados.get("asps"),
+        "rp_nao_processados": dados.get("rp_nao_processados"),
+        "total_saude":    dados.get("total_saude"),
+        "bimestre":       dados.get("bimestre", ""),
+        "periodo":        dados.get("periodo", ""),
     }
 
 

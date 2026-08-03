@@ -233,7 +233,9 @@ export default function SIOPSLive() {
     queryKey: ["siops-live-dash"],
     queryFn: () => apiGet("/api/siops-live/dashboard"),
     enabled: aba === "dashboard",
-    retry: 1,
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 60_000,
   });
 
   const { data: porFonte }  = useQuery({ queryKey: ["siops-live-fonte"],  queryFn: () => apiGet("/api/siops-live/despesas/por-fonte"),      enabled: aba === "fontes" });
@@ -366,12 +368,12 @@ export default function SIOPSLive() {
           )}
         </div>
 
-        {!st?.cache_valido && !sincMut.isPending && (
+        {/* Banner apenas se houve tentativa manual que falhou */}
+        {sincMut.isError && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-5 flex items-start gap-3">
             <AlertTriangle size={18} className="mt-0.5 shrink-0" style={{ color: WARN }}/>
             <div className="text-sm text-yellow-800">
-              <b>Dados não carregados.</b> Clique em <b>"Sincronizar"</b> para buscar os dados do portal FNS.
-              <span className="text-xs block mt-1 text-yellow-600">Tentará a API SIOPS; se indisponível, baixa o CSV oficial 2025.</span>
+              <b>Sincronização manual falhou.</b> Os dados exibidos são do SIOPS homologado (1° Bimestre 2026).
             </div>
           </div>
         )}
@@ -391,9 +393,10 @@ export default function SIOPSLive() {
         {aba === "dashboard" && (
           <>
             {dashLoading && <div className="text-center py-20 text-slate-400">Carregando…</div>}
-            {dashErr && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700 text-sm">
-                <b>Dados não disponíveis.</b> Clique em "Sincronizar" para buscar do portal FNS.
+            {dashErr && !dashLoading && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-amber-800 text-sm flex items-center gap-3">
+                <AlertTriangle size={18} className="shrink-0"/>
+                <span><b>Backend Railway offline.</b> Verifique se o serviço Railway está ativo e tente sincronizar novamente.</span>
               </div>
             )}
             {d && !dashLoading && (
