@@ -127,6 +127,7 @@ import PNAE                  from "./pages/PNAE";
 import SIOPSDetalhado         from "./pages/SIOPSDetalhado";
 import SIOPSLive              from "./pages/SIOPSLive";
 import SIOPSCompleto          from "./pages/SIOPSCompleto";
+import SICONFIPanel           from "./pages/SICONFIPanel";
 import PatSaude               from "./pages/PatSaude";
 import Abastecimento          from "./pages/Abastecimento";
 import SegurancaPaciente       from "./pages/SegurancaPaciente";
@@ -669,6 +670,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
             {podeFin && <L1 to="/siops-completo"   label="SIOPS — Gestão Completa" Icon={Landmark}/>}
             {podeFin && <L1 to="/siops-detalhado" label="SIOPS Detalhado"         Icon={Landmark}/>}
             {podeFin && <L1 to="/siops-live"      label="SIOPS — Dados Oficiais"  Icon={Landmark}/>}
+            {podeFin && <L1 to="/siconfi"         label="SICONFI — Tesouro Nac."  Icon={Globe}/>}
 
             {/* ── Vigilância ── */}
             <SbSection label="Vigilância e Epidemiologia"/>
@@ -1079,6 +1081,7 @@ export default function App() {
             <Route path="/siops-completo"            element={<SIOPSCompleto/>}/>
             <Route path="/siops-detalhado"           element={<SIOPSDetalhado/>}/>
             <Route path="/siops-live"               element={<SIOPSLive/>}/>
+            <Route path="/siconfi"                  element={<SICONFIPanel/>}/>
             <Route path="/pat-saude"                 element={<PatSaude/>}/>
             <Route path="/abastecimento"             element={<Abastecimento/>}/>
             <Route path="/seguranca-paciente"        element={<SegurancaPaciente/>}/>

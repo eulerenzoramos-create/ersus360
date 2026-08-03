@@ -156,6 +156,7 @@ from routers.pnae import router as pnae_router
 from routers.siops_detalhado import router as siops_detalhado_router
 from routers.siops_live     import router as siops_live_router
 from routers.siops_completo import router as siops_completo_router
+from routers.siconfi        import router as siconfi_router
 from routers.pat_saude import router as pat_saude_router
 from routers.abastecimento import router as abastecimento_router
 from routers.gestao_aps import router as gestao_aps_router
@@ -398,6 +399,7 @@ app.include_router(pnae_router)
 app.include_router(siops_detalhado_router)
 app.include_router(siops_live_router)
 app.include_router(siops_completo_router)
+app.include_router(siconfi_router)
 app.include_router(pat_saude_router)
 app.include_router(abastecimento_router)
 app.include_router(gestao_aps_router)
