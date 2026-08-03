@@ -9,6 +9,7 @@ import {
   ChevronDown, ChevronRight, RefreshCw, Download, Info,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -204,7 +205,7 @@ function AbaVinculo({ data }: { data: any }) {
             <BarChart data={data.equipes.map((e: EquipeVinculo) => ({ nome: e.equipe, pontuacao: e.pontuacao, status: e.status }))} barGap={4}>
               <XAxis dataKey="nome" tick={{ fontSize: 9 }} angle={-25} textAnchor="end" height={45} />
               <YAxis domain={[0, 10.5]} tick={{ fontSize: 10 }} />
-              <Tooltip contentStyle={TT} formatter={(v: number) => [v.toFixed(2), "Pontuação"]} />
+              <Tooltip contentStyle={TT} formatter={(v: number) => BRL(v)} />
               <Bar dataKey="pontuacao" name="Pontuação" radius={[4,4,0,0]}>
                 {data.equipes.map((e: EquipeVinculo, i: number) => (
                   <Cell key={i} fill={COR_PONT(e.pontuacao)} />

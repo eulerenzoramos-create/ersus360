@@ -3,6 +3,7 @@ import { useState, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Calculator, TrendingUp, TrendingDown, RefreshCw, DollarSign, Target, Sliders } from "lucide-react";
 import { apiPost } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -20,7 +21,6 @@ interface ResultadoSimulacao {
 
 // ── Formatador BRL ─────────────────────────────────────────────────────────────
 
-const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 // ── Slider com valor ──────────────────────────────────────────────────────────
 

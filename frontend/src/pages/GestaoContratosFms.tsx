@@ -85,8 +85,8 @@ export default function GestaoContratosFms() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Contratos Ativos"      value={dashRaw.contratos_ativos.toString()} color={ACCENT} />
               <KPI label="Contratos Vencidos"    value={dashRaw.contratos_vencidos.toString()} color={CRIT} />
-              <KPI label="Valor Total Contratos" value={`R$ ${(dashRaw.valor_total_contratos_r/1_000_000).toFixed(2)}M`} color={ACCENT} />
-              <KPI label="Empenhado/Mês"         value={`R$ ${(dashRaw.valor_empenhado_mes_r/1000).toFixed(0)}k`} color={WARN} />
+              <KPI label="Valor Total Contratos" value={BRL(dashRaw.valor_total_contratos_r_000)} color={ACCENT} />
+              <KPI label="Empenhado/Mês"         value={BRL(dashRaw.valor_empenhado_mes_r)} color={WARN} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Licitações em Andamento" value={dashRaw.licitacoes_em_andamento.toString()} color={WARN} />

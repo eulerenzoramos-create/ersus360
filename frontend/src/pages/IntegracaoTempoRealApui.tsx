@@ -170,7 +170,7 @@ export default function IntegracaoTempoRealApui() {
       {aba === "FNS" && (
         <div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
-            <KPI label="Total Repassado 2025" value={fnsDashRaw ? `R$ ${(fnsDashRaw.total_repassado_2025/1e6).toFixed(2)}M` : "—"} color={ACCENT} />
+            <KPI label="Total Repassado 2025" value={fnsDashRaw ? BRL(fnsDashRaw.total_repassado_2025/1e6) : "—"} color={ACCENT} />
             <KPI label="Blocos de Financiamento" value={fnsDashRaw?.blocos ?? "—"} />
             <KPI label="Competência" value={fnsDashRaw?.competencia_atual ?? "—"} />
             <KPI label="Pendências" value={fnsDashRaw?.pendencias ?? "—"} color={fnsDashRaw?.pendencias > 0 ? WARN : OK} />
@@ -183,8 +183,8 @@ export default function IntegracaoTempoRealApui() {
                 <BarChart data={fnsRepRaw.dados} margin={{ top: 10, right: 20, left: 20, bottom: 60 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="bloco" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" interval={0} />
-                  <YAxis tickFormatter={v => `R$ ${(v/1e6).toFixed(1)}M`} tick={{ fontSize: 10 }} />
-                  <Tooltip formatter={(v: number) => [`R$ ${(v/1000).toFixed(0)}k`, "Valor Anual"]} />
+                  <YAxis tickFormatter={v => BRL(v/1e6)} tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={(v: number) => BRL(v)}k`, "Valor Anual"]} />
                   <Bar dataKey="valor_anual" fill={ACCENT} radius={[4,4,0,0]} name="Valor Anual" />
                 </BarChart>
               </ResponsiveContainer>

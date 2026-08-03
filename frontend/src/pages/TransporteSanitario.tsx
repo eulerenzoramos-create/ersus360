@@ -6,6 +6,7 @@ import {
 } from "recharts";
 import { Truck, MapPin, DollarSign, Calendar, AlertTriangle } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 
@@ -37,7 +38,7 @@ function AbaDashboard({ dash }: { dash: any }) {
         <KpiCard label="Viagens realizadas"   value={dash.viagens_realizadas_mes}                     sub="Abr/2026"               cor="#1d4ed8" icon={<MapPin size={14} color="#1d4ed8"/>}/>
         <KpiCard label="Viagens agendadas"    value={dash.viagens_agendadas}                          sub="próximas"               cor="#0891b2" icon={<Calendar size={14} color="#0891b2"/>}/>
         <KpiCard label="KM rodados"           value={dash.km_total_mes.toLocaleString("pt-BR")}       sub="no mês"                 cor="#7c3aed" icon={<Truck size={14} color="#7c3aed"/>}/>
-        <KpiCard label="Custo estimado"       value={`R$ ${(dash.custo_estimado_mes/1000).toFixed(1)}k`} sub="combustível+motorista" cor="#d97706" icon={<DollarSign size={14} color="#d97706"/>}/>
+        <KpiCard label="Custo estimado"       value={BRL(dash.custo_estimado_mes)} sub="combustível+motorista" cor="#d97706" icon={<DollarSign size={14} color="#d97706"/>}/>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:18 }}>
         <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:18 }}>
@@ -65,7 +66,7 @@ function AbaDashboard({ dash }: { dash: any }) {
               <LineChart data={dash.historico_mensal}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6"/>
                 <XAxis dataKey="mes" tick={{ fontSize:9 }}/>
-                <YAxis tick={{ fontSize:10 }} tickFormatter={v=>`${(v/1000).toFixed(0)}k`}/>
+                <YAxis tick={{ fontSize:10 }} tickFormatter={v=>`${BRL(v)}`}/>
                 <Tooltip contentStyle={TT} formatter={(v:number)=>[`R$ ${v.toLocaleString("pt-BR")}`, "Custo"]}/>
                 <Line type="monotone" dataKey="custo" stroke="#d97706" strokeWidth={2.5} dot={{ r:4 }} name="Custo"/>
               </LineChart>

@@ -72,12 +72,12 @@ async def historico():
 async def indicadores():
     return [
         {"indicador": "Vinculação EC29 (receita aplicada)",   "valor": 19.8, "meta": 15.0, "unidade": "%","status": "ok",      "observacao": "Superávit de 4.8 p.p. acima do mínimo constitucional"},
-        {"indicador": "Teto MAC executado",                    "valor": 74.2, "meta": 90.0, "unidade": "%","status": "atencao", "observacao": "R$3.178.728 de R$4.284.000 — saldo de R$1.105.272 ainda disponível"},
+        {"indicador": "Teto MAC executado",                    "valor": 74.2, "meta": 90.0, "unidade": "%","status": "atencao", "observacao": "R$ 3.178.728,00 de R$ 4.284.000,00 — saldo de R$ 1.105.272,00 disponível"},
         {"indicador": "Bloco Atenção Básica — execução",       "valor": 94.6, "meta": 90.0, "unidade": "%","status": "ok",      "observacao": "Execução acima da meta — reforço de custeio nas UBS"},
         {"indicador": "Bloco Assistência Farmacêutica",        "valor": 95.1, "meta": 90.0, "unidade": "%","status": "ok",      "observacao": "COMBASE e CEAF com execução adequada"},
         {"indicador": "Bloco Gestão do SUS — execução",        "valor": 87.9, "meta": 90.0, "unidade": "%","status": "atencao", "observacao": "Treinamentos e capacitações com menor execução no trimestre"},
         {"indicador": "Despesa total em saúde / habitante/ano","valor": 668.4,"meta": 600,  "unidade": "R$","status": "ok",     "observacao": "Acima da média regional para municípios do porte de Apuí"},
-        {"indicador": "Recursos próprios aplicados em saúde",  "valor": 34.3, "meta": 30.0, "unidade": "%","status": "ok",     "observacao": "R$2.875.992 de recursos municipais próprios — acima da meta"},
+        {"indicador": "Recursos próprios aplicados em saúde",  "valor": 34.3, "meta": 30.0, "unidade": "%","status": "ok",     "observacao": "R$ 2.875.992,00 de recursos municipais próprios — acima da meta"},
         {"indicador": "Empenho sobre dotação anual",           "valor": 72.4, "meta": 80.0, "unidade": "%","status": "atencao","observacao": "Ritmo de empenho abaixo do esperado para o 1º trimestre"},
     ]
 
@@ -88,23 +88,23 @@ async def transferencias():
     """Transferências fundo a fundo recebidas pelo FMS — detalhamento por programa/incentivo"""
     return [
         # Atenção Básica
-        {"programa": "PAB Fixo — Atenção Básica",         "bloco": "AB",   "fonte": "FNS",  "valor_anual": 480_000,   "valor_recebido": 480_000,   "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "Piso da Atenção Básica fixo — 4 eSF × R$120k"},
-        {"programa": "PAB Variável — eSF",                "bloco": "AB",   "fonte": "FNS",  "valor_anual": 384_000,   "valor_recebido": 384_000,   "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "4 equipes SF com cobertura ≥85%"},
-        {"programa": "PAB Variável — ACS",                "bloco": "AB",   "fonte": "FNS",  "valor_anual": 168_000,   "valor_recebido": 168_000,   "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "42 ACS × R$4k/ano"},
+        {"programa": "PAB Fixo — Atenção Básica",         "bloco": "AB",   "fonte": "FNS",  "valor_anual": 480_000,   "valor_recebido": 480_000,   "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "Piso da Atenção Básica fixo — 4 eSF × R$ 120.000,00"},
+        {"programa": "PAB Variável — eSF",                "bloco": "AB",   "fonte": "FNS",  "valor_anual": 384_000,   "valor_recebido": 384_000,   "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "4 equipes SF com cobertura igual ou superior a 85%"},
+        {"programa": "PAB Variável — ACS",                "bloco": "AB",   "fonte": "FNS",  "valor_anual": 168_000,   "valor_recebido": 168_000,   "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "42 ACS — R$ 4.000,00/ACS/ano"},
         {"programa": "Incentivo NASF-AB / eMultiprofissional","bloco":"AB", "fonte": "FNS",  "valor_anual": 120_000,   "valor_recebido": 90_000,    "pct_exec": 75.0,  "competencia": "Jan–Mar/26", "status": "atencao", "obs": "Parcela de Jan/26 pendente — aguardando validação SISPREP"},
         {"programa": "Incentivo CEO — Centro Especialidades","bloco": "AB", "fonte": "FNS",  "valor_anual": 132_000,   "valor_recebido": 132_000,   "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "CEO Tipo I — 3 especialidades habilitadas"},
-        {"programa": "UBS — Manutenção / Implantação",    "bloco": "AB",   "fonte": "FNS",  "valor_anual": 0,         "valor_recebido": 0,         "pct_exec": 0.0,   "competencia": "—",          "status": "crit",    "obs": "Projeto UBS Nova Floresta aguardando aprovação MS — R$480k previsto"},
+        {"programa": "UBS — Manutenção / Implantação",    "bloco": "AB",   "fonte": "FNS",  "valor_anual": 0,         "valor_recebido": 0,         "pct_exec": 0.0,   "competencia": "—",          "status": "crit",    "obs": "Projeto UBS Nova Floresta aguardando aprovação MS — R$ 480.000,00 previsto"},
         # MAC
-        {"programa": "Teto Financeiro MAC",               "bloco": "MAC",  "fonte": "FNS",  "valor_anual": 4_284_000, "valor_recebido": 3_178_728, "pct_exec": 74.2,  "competencia": "Jan–Mar/26", "status": "atencao", "obs": "Saldo R$1.105.272 — 4º trimestre com execução crítica"},
+        {"programa": "Teto Financeiro MAC",               "bloco": "MAC",  "fonte": "FNS",  "valor_anual": 4_284_000, "valor_recebido": 3_178_728, "pct_exec": 74.2,  "competencia": "Jan–Mar/26", "status": "atencao", "obs": "Saldo R$ 1.105.272,00 — 4° trimestre com execução crítica"},
         {"programa": "FAEC — Procedimentos Especiais",    "bloco": "MAC",  "fonte": "FNS",  "valor_anual": 284_000,   "valor_recebido": 218_640,   "pct_exec": 77.0,  "competencia": "Jan–Mar/26", "status": "atencao", "obs": "Cirurgias eletivas e procedimentos de alto custo"},
-        {"programa": "SAMU 192 — Custeio",                "bloco": "MAC",  "fonte": "FNS",  "valor_anual": 196_000,   "valor_recebido": 196_000,   "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "Parcela mensal R$16.333 — regularizada"},
+        {"programa": "SAMU 192 — Custeio",                "bloco": "MAC",  "fonte": "FNS",  "valor_anual": 196_000,   "valor_recebido": 196_000,   "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "Parcela mensal R$ 16.333,00 — regularizada"},
         # Vigilância
         {"programa": "VISA — Vigilância Sanitária",       "bloco": "VIG",  "fonte": "FNS",  "valor_anual": 84_000,    "valor_recebido": 84_000,    "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "Incentivo VISA municipal — contrapartida 40% municipal"},
         {"programa": "SVS — Epidemiologia e Controle",    "bloco": "VIG",  "fonte": "FNS",  "valor_anual": 120_000,   "valor_recebido": 120_000,   "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "PNCD, malária, leishmaniose — região endêmica"},
         {"programa": "CGPNI — Imunizações PNI",           "bloco": "VIG",  "fonte": "FNS",  "valor_anual": 80_000,    "valor_recebido": 80_000,    "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "Sala de vacinas — cadeia de frio própria"},
         {"programa": "Fundo Estadual de Saúde (FES/AM)",  "bloco": "VIG",  "fonte": "FES",  "valor_anual": 48_000,    "valor_recebido": 48_000,    "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "Repasse SUSAM — vigilância ambiental e endemias"},
         # Farmácia
-        {"programa": "COMBASE — Farmácia Básica",         "bloco": "FARM", "fonte": "FNS",  "valor_anual": 420_000,   "valor_recebido": 420_000,   "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "Componente básico — R$35k/mês"},
+        {"programa": "COMBASE — Farmácia Básica",         "bloco": "FARM", "fonte": "FNS",  "valor_anual": 420_000,   "valor_recebido": 420_000,   "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "Componente básico — R$ 35.000,00/mês"},
         {"programa": "CEAF — Medicamentos Especializados","bloco": "FARM", "fonte": "FNS",  "valor_anual": 264_000,   "valor_recebido": 264_000,   "pct_exec": 100.0, "competencia": "Jan–Mar/26", "status": "ok",      "obs": "Componente especializado — dispensação na farmácia hospitalar"},
         {"programa": "Farmácia Popular",                  "bloco": "FARM", "fonte": "FNS",  "valor_anual": 0,         "valor_recebido": 0,         "pct_exec": 0.0,   "competencia": "—",          "status": "crit",    "obs": "Município não habilitado — credenciamento em andamento"},
     ]

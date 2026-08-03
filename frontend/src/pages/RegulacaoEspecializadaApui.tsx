@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import { Globe, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -81,7 +82,7 @@ export default function RegulacaoEspecializadaApui() {
               <KPI label="Fila Total"              value={dashRaw.pacientes_fila_especialidades.toLocaleString()} color={CRIT} sub="pacientes aguardando" />
               <KPI label="Tempo Médio Espera"      value={`${dashRaw.tempo_medio_espera_dias} dias`}              color={CRIT} sub={`meta: ${dashRaw.meta_espera_dias} dias`} />
               <KPI label="TFD / Mês"               value={dashRaw.tfd_pacientes_mes.toString()}                   color={CRIT} sub="deslocamentos p/ Manaus" />
-              <KPI label="Custo TFD / Mês"         value={`R$ ${(dashRaw.tfd_custo_mensal_R/1000).toFixed(0)}k`}  color={CRIT} sub="maior despesa SMS s/ folha" />
+              <KPI label="Custo TFD / Mês"         value={BRL(dashRaw.tfd_custo_mensal_R)}  color={CRIT} sub="maior despesa SMS s/ folha" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Especialidades Dispon."  value={`${dashRaw.especialidades_disponiveis_municipio}/${dashRaw.especialidades_necessarias_municipio}`} color={CRIT} sub="no município" />

@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { Baby, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -87,7 +88,7 @@ export default function PcdCriancaApui() {
               <KPI label="APAE / CRIES em Apuí"     value="Inexistente"                                            color={CRIT} sub="zero reabilitação infantil" />
               <KPI label="Cadeirantes sem cadeira"   value={dashRaw.cadeirante_sem_cadeira_de_rodas}                color={CRIT} sub="ORCID disponível: R$ 0" />
               <KPI label="Surdos sem AASI"           value={dashRaw.deficiencia_auditiva_sem_aparelho}              color={CRIT} sub="SUS fornece via CRER-AM" />
-              <KPI label="Custo social anual"        value={`R$ ${(dashRaw.custo_social_pcd_sem_suporte_anual/1000000).toFixed(1)}M`} color={CRIT} sub="estimado sem suporte" />
+              <KPI label="Custo social anual"        value={BRL(dashRaw.custo_social_pcd_sem_suporte_anual)} color={CRIT} sub="estimado sem suporte" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">

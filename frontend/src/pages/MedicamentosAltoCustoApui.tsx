@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { Star, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -80,13 +81,13 @@ export default function MedicamentosAltoCustoApui() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Pacientes MAC/CEAF"       value={`${dashRaw.pacientes_programa_mac}/${dashRaw.meta_pacientes_mac}`} color={WARN} sub={`${dashRaw.acesso_mac_pct}% de acesso`} />
               <KPI label="Tempo de espera MAC"       value={`${dashRaw.tempo_espera_medio_dias} dias`}                        color={CRIT} sub={`meta: ${dashRaw.meta_tempo_espera_dias} dias`} />
-              <KPI label="Processos de judicializ."  value={dashRaw.judicializacao_processos_2025}                            color={CRIT} sub={`R$ ${(dashRaw.custo_judicializacao_2025/1000000).toFixed(2)}M`} />
+              <KPI label="Processos de judicializ."  value={dashRaw.judicializacao_processos_2025}                            color={CRIT} sub={BRL(dashRaw.custo_judicializacao_2025)} />
               <KPI label="TARV — cobertura HIV"      value={`${dashRaw.hiv_cobertura_tarv_pct}%`}                            color={CRIT} sub={`meta UNAIDS: ${dashRaw.meta_hiv_tarv_pct}%`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Doenças raras sem trat."   value={`${dashRaw.doencas_raras_sem_tratamento_pct}%`}  color={CRIT} sub={`${dashRaw.doencas_rara_pacientes} pacientes totais`} />
               <KPI label="Início trat. oncológico"   value={`${dashRaw.cancer_tempo_espera_inicio_trat_dias} dias`}  color={CRIT} sub={`meta legal: ${dashRaw.meta_cancer_tempo_espera_dias} dias`} />
-              <KPI label="Custo MAC total 2025"       value={`R$ ${(dashRaw.custo_mac_total_2025/1000000).toFixed(2)}M`} color={BRAND} sub={`${dashRaw.mac_financiado_federal_pct}% federal`} />
+              <KPI label="Custo MAC total 2025"       value={BRL(dashRaw.custo_mac_total_2025)} color={BRAND} sub={`${dashRaw.mac_financiado_federal_pct}% federal`} />
               <KPI label="Sem tratamento MAC"         value={`${dashRaw.pacientes_sem_tratamento_pct}%`}     color={CRIT} sub="dos pacientes estimados" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">

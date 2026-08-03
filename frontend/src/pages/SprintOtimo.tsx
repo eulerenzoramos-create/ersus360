@@ -1,6 +1,7 @@
 // src/pages/SprintOtimo.tsx — Sprint ÓTIMO Q2 Mai–Ago/2026
 import { useState, useEffect } from "react";
 import { Trophy, Target, Zap, CheckSquare, Square, TrendingUp, AlertTriangle, Clock, Users, UserCheck, ShieldAlert, FileText } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 // ── Dados das equipes ──────────────────────────────────────────────────────
 // Fonte: SIAPS · Nota Final Componente de Qualidade · Q1/2026 (dados preliminares)
@@ -775,7 +776,7 @@ export default function SprintOtimo() {
                               </td>
                               {cvatVariavel !== "semCriterio" && (
                                 <td style={{ padding: "10px 14px", textAlign: "right", color: isApurar ? "#6b7280" : pctCor(pct), fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                                  {isApurar ? "—" : `${pct.toFixed(1)}%`}
+                                  {isApurar ? "—" : PCT(pct)}
                                 </td>
                               )}
                               <td style={{ padding: "10px 14px", minWidth: 120 }}>

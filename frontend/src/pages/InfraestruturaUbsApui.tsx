@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { Wrench, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -87,7 +88,7 @@ export default function InfraestruturaUbsApui() {
               <KPI label="Acessibilidade PcD"      value={`${dashRaw.acessibilidade_pcd_pct}%`}         color={CRIT} sub="meta: 100%" />
               <KPI label="Prontuário eletrônico"   value={`${dashRaw.prontuario_eletronico_ubs_pct}%`}  color={CRIT} sub="e-SUS PEC" />
               <KPI label="Sala vacinas adequada"   value={`${dashRaw.sala_vacinas_refrigerador_adequado_pct}%`} color={WARN} sub="cadeia de frio" />
-              <KPI label="Custo obras necessárias" value={`R$ ${(dashRaw.custo_obras_necessarias_estimado/1000000).toFixed(1)}M`} color={CRIT} sub="estimado 2025" />
+              <KPI label="Custo obras necessárias" value={BRL(dashRaw.custo_obras_necessarias_estimado)} color={CRIT} sub="estimado 2025" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">

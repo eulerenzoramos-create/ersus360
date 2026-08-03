@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { UserCog, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -87,7 +88,7 @@ export default function DemenciaAlzheimerApui() {
               <KPI label="Quedas (demência) 2025"        value={dashRaw.quedas_idoso_demencia_2025}     color={CRIT} sub={`${dashRaw.obitos_quedas_demencia_2025} óbitos`} />
               <KPI label="Internações evitáveis"         value={dashRaw.internacoes_demencia_2025}      color={CRIT} sub={`${dashRaw.internacoes_evitageis_cuidado_domiciliar_pct}% evitáveis`} />
               <KPI label="Abuso notificado vs estimado"  value={`${dashRaw.abuso_idoso_demencia_notificado}/${dashRaw.abuso_idoso_demencia_estimado}`} color={CRIT} sub="subnotificação 85,7%" />
-              <KPI label="Custo social anual"            value={`R$ ${((dashRaw.custo_social_demencia_anual||0)/1000000).toFixed(1)}M`} color={CRIT} sub="estimado" />
+              <KPI label="Custo social anual"            value={BRL(dashRaw.custo_social_demencia_anual||0)} color={CRIT} sub="estimado" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">

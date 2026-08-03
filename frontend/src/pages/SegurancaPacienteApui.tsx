@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { Shield, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -81,7 +82,7 @@ export default function SegurancaPacienteApui() {
               <KPI label="Pulseira identificação (meta: 100%)" value={`${dashRaw.pulseira_identificacao_pct}%`}       color={CRIT} sub={`${dashRaw.erro_medicacao_2025} erros medicação (${dashRaw.erro_medicacao_grave_2025} graves) 2025`} />
               <KPI label="Avaliação risco queda hosp. (meta: 100%)" value={`${dashRaw.avaliacao_risco_queda_hospitalar_pct}%`} color={CRIT} sub={`${dashRaw.queda_hospitalar_2025} quedas · ${dashRaw.queda_com_dano_2025} com dano`} />
               <KPI label="Lesão por pressão (meta: < 3%)"      value={`${dashRaw.lesao_pressao_incidencia_pct}%`}    color={CRIT} sub={`protocolo lesão: ${dashRaw.protocolo_lesao_pressao ? "SIM" : "NÃO"} · 1 lesão g4: R$ 84.000`} />
-              <KPI label="Custo estimado eventos adversos/ano" value={`R$ ${((dashRaw.custo_evento_adverso_estimado||0)/1e6).toFixed(1)}M`} color={CRIT} sub="42 eventos adversos × custo médio R$ 48k = custo prevenível" />
+              <KPI label="Custo estimado eventos adversos/ano" value={BRL(dashRaw.custo_evento_adverso_estimado||0)/1e6)} color={CRIT} sub="42 eventos adversos × custo médio R$ 48k = custo prevenível" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">

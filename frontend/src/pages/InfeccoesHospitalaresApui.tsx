@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { ShieldCheck, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -84,7 +85,7 @@ export default function InfeccoesHospitalaresApui() {
               <KPI label="KPC + MRSA 2025"                        value={`${dashRaw.kpc_casos_2025 + dashRaw.mrsa_casos_2025} casos`} color={CRIT} sub={`KPC: ${dashRaw.kpc_casos_2025} · MRSA: ${dashRaw.mrsa_casos_2025} · mortalidade KPC: 50-70%`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Custo estimado das IRAS 2025"            value={`R$ ${(dashRaw.custo_iras_2025_estimado/1000000).toFixed(2)}M`} color={CRIT} sub="352 IRAS × R$ 8.000/caso médio" />
+              <KPI label="Custo estimado das IRAS 2025"            value={BRL(dashRaw.custo_iras_2025_estimado)} color={CRIT} sub="352 IRAS × R$ 8.000/caso médio" />
               <KPI label="ISC — Infecção do Sítio Cirúrgico"       value={`${dashRaw.taxa_iras_estimada_pct}% est.`}     color={CRIT} sub="cefazolina 2g pré-operatório: R$ 2,80 → ROI 2.857:1" />
               <KPI label="Farmacêutico clínico (stewardship)"      value={dashRaw.farmaceutico_clinico_apui === 0 ? "Nenhum" : dashRaw.farmaceutico_clinico_apui} color={CRIT} sub="carbapenemo empírico: 28,4% sem antibiograma" />
               <KPI label="Autoclave com validação mensal"          value={dashRaw.validacao_autoclave_mensal ? "Validada" : "Sem validação"} color={CRIT} sub={`${dashRaw.autoclave_apui} autoclaves · RDC 15/2012 obrigatória`} />

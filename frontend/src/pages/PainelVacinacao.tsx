@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Syringe, AlertTriangle, CheckCircle, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 interface ImunoBiologico {
   id: string; nome: string; sigla: string;
@@ -96,7 +97,7 @@ function CardImuno({ im }: { im: ImunoBiologico }) {
           </div>
           <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
             {[
-              { l: "Cobertura atual", v: `${im.cobertura_pct.toFixed(1)}%`, cor: cor },
+              { l: "Cobertura atual", v: PCT(im.cobertura_pct), cor: cor },
               { l: "Meta anual",      v: im.meta.toLocaleString("pt-BR"),   cor: "#374151" },
               { l: "Déficit",         v: Math.max(0, im.meta - im.doses_aplicadas).toLocaleString("pt-BR") + " doses", cor: "#dc2626" },
             ].map(k => (

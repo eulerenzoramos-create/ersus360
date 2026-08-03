@@ -6,6 +6,7 @@ import {
   Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { BookOpen, AlertTriangle, Target, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#2563eb";
@@ -154,7 +155,7 @@ export default function PlanoMunicipalSaude() {
                     <p className="text-xs text-slate-400">{m.eixo} · Prazo: {m.prazo}</p>
                   </div>
                   <span className="font-bold text-sm" style={{ color: statusColor(m.status) }}>
-                    {m.progresso_pct === 100 ? "✓ Cumprida" : `${m.progresso_pct.toFixed(0)}%`}
+                    {m.progresso_pct === 100 ? "✓ Cumprida" : PCT(m.progresso_pct)}
                   </span>
                 </div>
                 <ProgressBar value={m.progresso_pct} max={100} color={statusColor(m.status)} />

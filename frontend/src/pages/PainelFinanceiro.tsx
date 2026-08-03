@@ -1189,7 +1189,7 @@ export default function PainelFinanceiro() {
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={fonte} barGap={4}>
                           <XAxis dataKey="codigo" tick={{ fontSize: 11 }} />
-                          <YAxis tickFormatter={v => `${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                          <YAxis tickFormatter={v => `${BRL(v)}`} tick={{ fontSize: 11 }} />
                           <Tooltip
                             formatter={(v: number, name: string) => [R(v), name === "recebido_ano" ? "Recebido (ano)" : name === "recebido_mes" ? "Recebido (mês)" : name === "pago" ? "Pago" : name]}
                             contentStyle={TOOLTIPSTYLE}
@@ -1228,7 +1228,7 @@ export default function PainelFinanceiro() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data.repasses_mensais} barGap={6}>
                     <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                    <YAxis tickFormatter={v => `${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                    <YAxis tickFormatter={v => `${BRL(v)}`} tick={{ fontSize: 11 }} />
                     <Tooltip content={<TooltipRepasse />} />
                     <Bar dataKey="previsto"  name="Previsto"  fill="#1d4ed8" radius={[4,4,0,0]} />
                     <Bar dataKey="recebido"  name="Recebido"  radius={[4,4,0,0]}>

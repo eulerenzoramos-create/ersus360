@@ -1,6 +1,7 @@
 // src/pages/PortalGestor.tsx — Painel do Prefeito / Secretário
 import { useQuery } from "@tanstack/react-query";
 import { apiPortais } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 function GaugeCircle({ score, size = 120 }: { score: number; size?: number }) {
   const cor = score >= 80 ? "#2e7d32" : score >= 60 ? "#f57f17" : score >= 40 ? "#e65100" : "#c62828";
@@ -91,7 +92,7 @@ export default function PortalGestor() {
 
       {/* KPIs principais */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
-        <KpiCard icon="💰" label="FNS recebido no mês" value={`R$ ${(d.fns_recebido_mes / 1000).toFixed(0)}k`} sub="Transferência fundo a fundo" cor="#2e7d32" />
+        <KpiCard icon="💰" label="FNS recebido no mês" value={BRL(d.fns_recebido_mes)} sub="Transferência fundo a fundo" cor="#2e7d32" />
         <KpiCard icon="📊" label="Execução orçamentária" value={`${d.execucao_orcamentaria_pct}%`} sub="PAB + MAC + VS + Farmácia" cor={d.execucao_orcamentaria_pct >= 70 ? "#1565c0" : "#c62828"} />
         <KpiCard icon="👨‍👩‍👧‍👦" label="Famílias atendidas pela ESF" value={d.familias_atendidas_esf.toLocaleString("pt-BR")} sub="Cadastros ativos no SISAB" cor="#6a1b9a" />
         <KpiCard icon="💉" label="Cobertura vacinal" value={`${d.cobertura_vacinal_pct}%`} sub="Vacinas do calendário básico" cor={d.cobertura_vacinal_pct >= 90 ? "#2e7d32" : "#f57f17"} />

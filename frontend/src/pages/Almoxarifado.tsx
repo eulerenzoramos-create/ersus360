@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronRight, RefreshCw, TrendingDown,
 } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 interface Insumo {
   id: string; nome: string; codigo: string; categoria: string;
@@ -29,7 +30,6 @@ const COR_STATUS: Record<string, string> = {
 const LABEL_STATUS: Record<string, string> = {
   ok: "OK", alerta: "Alerta", critico: "Crítico", vencido: "Vencido", sem_estoque: "Sem Estoque",
 };
-const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
 
 function BarEstoque({ atual, min, max }: { atual: number; min: number; max: number }) {
   const pct = Math.min(100, max > 0 ? (atual / max) * 100 : 0);

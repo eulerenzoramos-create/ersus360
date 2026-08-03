@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { Heart, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -87,7 +88,7 @@ export default function PrevencaoSuicidioApui() {
               <KPI label="Suicídios em jovens 15-29"    value={`${dashRaw.suicidio_jovem_15_29_pct}%`}           color={CRIT} sub="dos óbitos de 2025" />
               <KPI label="Suicídios em garimpeiros"     value={`${dashRaw.suicidio_garimpeiro_pct}%`}            color={CRIT} sub="exposição a Hg + isolamento" />
               <KPI label="Busca ativa pós-tentativa"    value="Inexistente"                                      color={CRIT} sub="zero protocolo implantado" />
-              <KPI label="Custo social anual"           value={`R$ ${(dashRaw.custo_social_suicidio_anual/1000000).toFixed(1)}M`} color={CRIT} sub="estimado IPEA" />
+              <KPI label="Custo social anual"           value={BRL(dashRaw.custo_social_suicidio_anual)} color={CRIT} sub="estimado IPEA" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">

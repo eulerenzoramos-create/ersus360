@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, Download, Globe, FileText, DollarSign, Users, BarChart3, Shield } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -30,7 +31,6 @@ interface ResumoTransparencia {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 const COR_STATUS_IND: Record<string, string> = {
   publicado: "#16a34a", pendente: "#d97706", revisao: "#1351b4",

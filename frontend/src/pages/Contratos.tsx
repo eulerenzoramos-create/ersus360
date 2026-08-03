@@ -14,9 +14,6 @@ import { BRL, BRL_AXIS } from "../lib/fmt";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const BRL  = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  v >= 1_000_000 ? `R$ ${(v/1_000_000).toFixed(2).replace(".",",")}M`
-  : `R$ ${(v/1_000).toFixed(1).replace(".",",")}k`;
 
 const COR_STATUS: Record<string, string> = {
   vigente:   "#16a34a",
@@ -109,7 +106,7 @@ function AbaDashboard({ dash }: { dash: any }) {
           <div style={{ height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dash.por_area} layout="vertical" barSize={14}>
-                <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
+                <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={v => `${BRL(v)}`} />
                 <YAxis type="category" dataKey="area" tick={{ fontSize: 10 }} width={100} />
                 <Tooltip contentStyle={TT} formatter={(v: number) => [BRL(v), "Valor"]} />
                 <Bar dataKey="valor" name="Valor" fill="#1d4ed8" radius={[0,4,4,0]}>

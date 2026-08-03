@@ -359,7 +359,7 @@ export default function SIOPSDetalhado() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="pct" domain={[12, 22]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
-                  <YAxis yAxisId="val" orientation="right" tickFormatter={(v) => `${(v/1_000_000).toFixed(1)}M`} tick={{ fontSize: 10 }} />
+                  <YAxis yAxisId="val" orientation="right" tickFormatter={BRL_AXIS} tick={{ fontSize: 10 }} />
                   <Tooltip />
                   <Legend />
                   <ReferenceLine yAxisId="pct" y={15} stroke={CRIT} strokeDasharray="4 4" label={{ value: "Mín. 15%", position: "insideRight", fontSize: 10 }} />

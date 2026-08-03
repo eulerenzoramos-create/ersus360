@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { Trash2, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -87,7 +88,7 @@ export default function ResiduosSolidosUrbanosApui() {
               <KPI label="Catadores no lixão"      value={dashRaw.lixao_catadores_informais}             color={CRIT} sub={`${dashRaw.catadores_epi_pct}% com EPI`} />
               <KPI label="Doenças relacionadas"    value={dashRaw.casos_doencas_relacionadas_lixo_2025}  color={CRIT} sub="casos em 2025" />
               <KPI label="PGRSS nas UBSs"          value="0%"                                            color={CRIT} sub="zero UBSs com PGRSS" />
-              <KPI label="Custo saúde do lixão"    value={`R$ ${(dashRaw.custo_lixao_saude_anual/1000000).toFixed(2)}M`} color={CRIT} sub="estimado/ano" />
+              <KPI label="Custo saúde do lixão"    value={BRL(dashRaw.custo_lixao_saude_anual)} color={CRIT} sub="estimado/ano" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">

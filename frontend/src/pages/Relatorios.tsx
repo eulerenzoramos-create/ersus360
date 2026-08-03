@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRelatorios } from "../lib/api";
 import { BarChart3, Download, FileText, TrendingUp, PieChart, Calendar } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Legend } from "recharts";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const S = {
   page:  { padding: 20 } as React.CSSProperties,
@@ -14,7 +15,7 @@ const S = {
 };
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const fmtPct = (v: number) => `${v.toFixed(1)}%`;
+const fmtPct = (v: number) => PCT(v);
 
 const CORES = ["#1D9E75", "#2563eb", "#d97706", "#dc2626", "#7c3aed", "#0284c7"];
 
@@ -219,7 +220,7 @@ export default function Relatorios() {
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={porBloco as Array<{ bloco: string; total: number }>} margin={{ left: 10 }}>
                     <XAxis dataKey="bloco" tick={{ fontSize: 11 }} />
-                    <YAxis tickFormatter={(v: number) => `R$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                    <YAxis tickFormatter={(v: number) => BRL(v)} tick={{ fontSize: 11 }} />
                     <Tooltip formatter={(v: number) => fmt(v)} />
                     <Bar dataKey="total" fill="#1D9E75" radius={[4, 4, 0, 0]} name="Total" />
                   </BarChart>

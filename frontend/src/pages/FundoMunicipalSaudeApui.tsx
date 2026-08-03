@@ -21,8 +21,8 @@ function statusColor(s: string) {
 }
 
 function BRL(v: number) {
-  if (v >= 1000000) return `R$ ${(v / 1000000).toFixed(1)}M`;
-  if (v >= 1000) return `R$ ${(v / 1000).toFixed(0)}k`;
+  if (v >= 1000000) return BRL(v);
+  if (v >= 1000) return BRL(v);
   return `R$ ${v}`;
 }
 

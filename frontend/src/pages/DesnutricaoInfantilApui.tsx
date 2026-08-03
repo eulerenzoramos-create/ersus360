@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { Brain, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -87,7 +88,7 @@ export default function DesnutricaoInfantilApui() {
               <KPI label="SISVAN cobertura (< 5 anos)"   value={`${dashRaw.sisvan_cobertura_pct}%`}                                                color={CRIT} sub="71,6% invisíveis ao sistema" />
               <KPI label="NutriSUS cobertura"            value={`${dashRaw.nutrisus_cobertura_pct}%`}                                              color={WARN} sub="meta 100%" />
               <KPI label="Internações por desnutrição"   value={dashRaw.internacoes_desnutricao_2025}                                              color={CRIT} sub={`${dashRaw.obitos_desnutricao_2025} óbitos diretos`} />
-              <KPI label="Custo total 2025"              value={`R$ ${((dashRaw.custo_total_desnutricao_2025||0)/1000000).toFixed(2)}M`}            color={CRIT} sub="só em internações" />
+              <KPI label="Custo total 2025"              value={BRL(dashRaw.custo_total_desnutricao_2025||0)}            color={CRIT} sub="só em internações" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
 import { Pill, AlertTriangle, Clock, DollarSign } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 const STATUS_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626", urgente: "#dc2626" };
@@ -42,7 +43,7 @@ function AbaDashboard({ dash, meds }: { dash: any; meds: any[] | undefined }) {
           <div style={{ height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={barData} layout="vertical" barSize={14}>
-                <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={(v) => `R$${v.toLocaleString("pt-BR")}`}/>
+                <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={BRL_AXIS}/>
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={100}/>
                 <Tooltip contentStyle={TT} formatter={(v: any) => `R$ ${v.toLocaleString("pt-BR")}`}/>
                 <Bar dataKey="custo" name="Custo/mês" radius={[0,4,4,0]}>

@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
 import { FileText, Download, Printer, Filter, AlertTriangle } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 // ── CSS impressão injetado no <head> uma única vez ────────────────────────────
 const PRINT_CSS = `
@@ -168,7 +169,6 @@ function imprimirFolha(folha: any, competencia: string, compLabel: string) {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const COR_VINCULO: Record<string, string> = {
   estatutario: "#059669", temporario: "#d97706",

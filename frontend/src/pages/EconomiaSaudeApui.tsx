@@ -79,14 +79,14 @@ export default function EconomiaSaudeApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Orçamento saúde 2025"     value={`R$ ${(dashRaw.orcamento_saude_total_2025/1000000).toFixed(1)}M`} color={BRAND} sub={`R$ ${dashRaw.gasto_per_capita_saude}/hab (BR: R$ ${dashRaw.gasto_per_capita_media_br})`} />
-              <KPI label="TFD (% orçamento)"        value={`${dashRaw.custo_tfd_pct_orcamento}%`}                             color={CRIT}  sub={`R$ ${(dashRaw.custo_tfd_pct_orcamento*dashRaw.orcamento_saude_total_2025/100/1000000).toFixed(2)}M/ano`} />
-              <KPI label="Judicialização (% orçam)" value={`${dashRaw.custo_judicial_anual && (dashRaw.custo_judicial_anual/dashRaw.orcamento_saude_total_2025*100).toFixed(1)}%`} color={CRIT} sub={`R$ ${(dashRaw.custo_judicial_anual/1000000).toFixed(2)}M/ano`} />
-              <KPI label="Ações judiciais ativas"   value={dashRaw.judicializacoes_ativas}                                    color={CRIT}  sub={`R$ ${(dashRaw.custo_judicial_mensal/1000).toFixed(0)}k/mês`} />
+              <KPI label="Orçamento saúde 2025"     value={BRL(dashRaw.orcamento_saude_total_2025)} color={BRAND} sub={`R$ ${dashRaw.gasto_per_capita_saude}/hab (BR: R$ ${dashRaw.gasto_per_capita_media_br})`} />
+              <KPI label="TFD (% orçamento)"        value={`${dashRaw.custo_tfd_pct_orcamento}%`}                             color={CRIT}  sub={`R$ ${BRL(dashRaw.custo_tfd_pct_orcamento*dashRaw.orcamento_saude_total_2025/100)}/ano`} />
+              <KPI label="Judicialização (% orçam)" value={`${dashRaw.custo_judicial_anual && (dashRaw.custo_judicial_anual/dashRaw.orcamento_saude_total_2025*100).toFixed(1)}%`} color={CRIT} sub={`R$ ${BRL(dashRaw.custo_judicial_anual)}/ano`} />
+              <KPI label="Ações judiciais ativas"   value={dashRaw.judicializacoes_ativas}                                    color={CRIT}  sub={`R$ ${BRL(dashRaw.custo_judicial_mensal)}/mês`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Gasto em prevenção"       value={`${dashRaw.custo_prevencao_pct}%`}                                 color={CRIT}  sub={`meta: ${dashRaw.custo_prevencao_meta_pct}%`} />
-              <KPI label="Internações evitáveis"    value={`${dashRaw.internacoes_causas_preveniveis_pct}%`}                  color={CRIT}  sub={`R$ ${(dashRaw.custo_hospitalizacoes_preveniveis_ano/1000).toFixed(0)}k/ano desperdiçados`} />
+              <KPI label="Internações evitáveis"    value={`${dashRaw.internacoes_causas_preveniveis_pct}%`}                  color={CRIT}  sub={`R$ ${BRL(dashRaw.custo_hospitalizacoes_preveniveis_ano)}/ano desperdiçados`} />
               <KPI label="ROI prevenção"            value={`R$ ${dashRaw.retorno_investimento_prevencao}/R$1`}                color={OK}    sub="retorno por real investido" />
               <KPI label="Receita própria saúde"    value={`${dashRaw.receita_propria_saude_pct}%`}                           color={CRIT}  sub={`dependência FNS: ${dashRaw.fundo_fns_repasse_pct}%`} />
             </div>
@@ -167,7 +167,7 @@ export default function EconomiaSaudeApui() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                   <XAxis dataKey="objeto" tick={{ fontSize: 10 }} angle={-15} textAnchor="end" />
                   <YAxis yAxisId="left"  tick={{ fontSize: 11 }} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={BRL_AXIS} />
                   <Tooltip />
                   <Legend />
                   <Bar yAxisId="left"  dataKey="acoes"         name="Ações ativas" fill={ACCENT} radius={[4,4,0,0]}>

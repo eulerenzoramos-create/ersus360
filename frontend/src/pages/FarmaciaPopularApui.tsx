@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { ShoppingBag, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -80,7 +81,7 @@ export default function FarmaciaPopularApui() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Desabastecimento REMUME"  value={`${dashRaw.desabastecimento_itens_pct}%`}          color={CRIT} sub={`${dashRaw.medicamentos_remume_itens} itens no REMUME`} />
               <KPI label="Adesão terapêutica crônicos" value={`${dashRaw.adesao_terapeutica_doencas_cronicas_pct}%`} color={CRIT} sub={`meta ${dashRaw.meta_adesao_terapeutica_pct}%`} />
-              <KPI label="Perda por vencimento/a"   value={`R$ ${(dashRaw.medicamentos_vencidos_perda_anual/1000).toFixed(0)}k`} color={CRIT} sub="8,4% do orçamento de medicamentos" />
+              <KPI label="Perda por vencimento/a"   value={BRL(dashRaw.medicamentos_vencidos_perda_anual)} color={CRIT} sub="8,4% do orçamento de medicamentos" />
               <KPI label="Automedicação ATB"         value={`${dashRaw.antimicrobianos_automedicacao_pct}%`}   color={CRIT} sub="resistência bacteriana crescente" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

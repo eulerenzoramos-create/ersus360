@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { Stethoscope, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -79,7 +80,7 @@ export default function IcsapApui() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Taxa ICSAP (meta: 20%)"       value={`${dashRaw.icsap_pct_total}%`}               color={CRIT} sub={`${dashRaw.internacoes_icsap_2025} internações evitáveis`} />
-              <KPI label="Custo ICSAP 2025"             value={`R$ ${((dashRaw.custo_icsap_2025||0)/1000000).toFixed(2)}M`} color={CRIT} sub={`R$ ${dashRaw.custo_icsap_por_internacao_media?.toLocaleString()}/internação`} />
+              <KPI label="Custo ICSAP 2025"             value={BRL(dashRaw.custo_icsap_2025||0)} color={CRIT} sub={`R$ ${dashRaw.custo_icsap_por_internacao_media?.toLocaleString()}/internação`} />
               <KPI label="Cobertura da APS"             value={`${dashRaw.cobertura_aps_pct}%`}              color={CRIT} sub={`${dashRaw.esf_equipes_ativas}/${dashRaw.esf_equipes_necessarias} ESFs ativas`} />
               <KPI label="Sem APS vinculada"            value={(dashRaw.populacao_sem_aps_vinculada||0).toLocaleString()} color={CRIT} sub="sem equipe de saúde da família" />
             </div>

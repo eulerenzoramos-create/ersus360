@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronRight, Search, DollarSign,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 interface Contrato {
   id: string; numero: string; objeto: string; contratado: string;
@@ -31,7 +32,6 @@ const LABEL: Record<string, string> = {
   vigente: "Vigente", vencendo: "Vencendo", vencido: "Vencido",
   suspenso: "Suspenso", encerrado: "Encerrado",
 };
-const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 
 function BarExec({ total, exec }: { total: number; exec: number }) {
   const pct = Math.min(100, total > 0 ? (exec / total) * 100 : 0);

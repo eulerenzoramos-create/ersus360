@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiSiops } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
@@ -103,7 +104,7 @@ export default function SIOPS() {
               { label: "Receita de Impostos",     value: fmt(apuracao.receita_impostos),   ok: true },
               { label: "15% Mínimo Obrigatório",  value: fmt(apuracao.minimo_constitucional_valor_obrigatorio), ok: true },
               { label: "Gasto Próprio Aplicado",  value: fmt(apuracao.gasto_proprio_saude), ok: apuracao.gasto_proprio_saude >= apuracao.minimo_constitucional_valor_obrigatorio },
-              { label: "% Aplicado",              value: `${apuracao.minimo_constitucional_pct_aplicado.toFixed(2)}%`, ok: true },
+              { label: "% Aplicado",              value: PCT(apuracao.minimo_constitucional_pct_aplicado), ok: true },
               { label: "Situação",                value: apuracao.status_minimo.toUpperCase(), ok: apuracao.status_minimo === "atingido" },
             ].map(r => (
               <div key={r.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #f5f5f5" }}>

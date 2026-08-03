@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import { Brain, AlertTriangle, Activity, TrendingUp } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -79,7 +80,7 @@ export default function PsicologiaApsApui() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Psicólogos NASF"        value={`${dashRaw.psicologos_nasf}/${dashRaw.psicologos_necessarios}`} color={CRIT} sub="disponíveis / necessários" />
-              <KPI label="Cobertura psicologia"   value={`${dashRaw.cobertura_pct.toFixed(1)}%`}  color={CRIT} sub="meta: 80%" />
+              <KPI label="Cobertura psicologia"   value={PCT(dashRaw.cobertura_pct)}  color={CRIT} sub="meta: 80%" />
               <KPI label="Lista de espera"        value={dashRaw.lista_espera.toString()}          color={CRIT} sub={`espera: ${dashRaw.tempo_espera_medio_dias} dias`} />
               <KPI label="Prevalência TMC"        value={`${dashRaw.transtornos_comuns_prevalencia_pct}%`} color={WARN} sub="adultos com TMC" />
             </div>

@@ -114,7 +114,7 @@ function AbaVisaoGeral({ dash }: { dash: any }) {
               <LineChart data={dash.historico}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                 <XAxis dataKey="mes" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${BRL(v)}`} />
                 <Tooltip contentStyle={TT} formatter={(v: number) => [BRL(v), "Repasse"]} />
                 <Line type="monotone" dataKey="repasse" stroke="#1d4ed8" strokeWidth={2.5} dot={{ r: 4 }} />
               </LineChart>
@@ -171,7 +171,7 @@ function AbaPorEquipe({ equipes }: { equipes: any[] | undefined }) {
             <BarChart data={barData} barSize={22}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
               <XAxis dataKey="nome" tick={{ fontSize: 9 }} angle={-20} textAnchor="end" height={42} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
+              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${BRL(v)}`} />
               <Tooltip contentStyle={TT} formatter={(v: number, name) => [BRL(v), name as string]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="Capitação"   stackId="a" fill="#1d4ed8" />
@@ -348,7 +348,7 @@ function AbaSimulacao({ simulacao }: { simulacao: any }) {
             }))} barGap={6} barSize={30}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
               <XAxis dataKey="equipe" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
+              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${BRL(v)}`} />
               <Tooltip contentStyle={TT} formatter={(v: number, name) => [BRL(v), name as string]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="Atual" fill="#dc2626" radius={[3,3,0,0]} />

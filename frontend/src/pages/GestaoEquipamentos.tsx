@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronRight, RefreshCw, Plus, Package,
 } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -38,7 +39,6 @@ const COR_STATUS: Record<string, string> = {
 const LABEL_STATUS: Record<string, string> = {
   operacional: "Operacional", manutencao: "Em Manutenção", aguardando_peca: "Aguard. Peça", inativo: "Inativo", descarte: "Descarte",
 };
-const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 function StatusIcon({ s }: { s: string }) {
   if (s === "operacional")    return <CheckCircle size={16} color="#16a34a"/>;

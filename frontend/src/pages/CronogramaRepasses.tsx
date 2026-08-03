@@ -3,6 +3,7 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Calendar, DollarSign, CheckCircle, Clock, AlertTriangle, FileText, Printer, X, Filter, RefreshCw, Edit2, Save, Database, Wifi } from "lucide-react";
 import { apiGet, apiPost, apiPut } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 interface Repasse {
   id: string; competencia: string; bloco: string; programa: string;
@@ -23,7 +24,6 @@ interface ResumoRepasses {
   ibge?: string;
 }
 
-const BRL  = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const BRLd = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 
 const COR_STATUS: Record<string, string> = {

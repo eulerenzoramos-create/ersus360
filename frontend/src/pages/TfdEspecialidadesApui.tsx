@@ -80,7 +80,7 @@ export default function TfdEspecialidadesApui() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="TFD autorizadas/ano"     value={dashRaw.tfd_autorizacoes_ano?.toLocaleString()}     color={CRIT} sub="crescendo 10,9%/aa" />
-              <KPI label="Custo TFD/ano"           value={`R$ ${(dashRaw.tfd_custo_total_ano/1000000).toFixed(2)}M`} color={CRIT} sub="28,4% do orçamento saúde" />
+              <KPI label="Custo TFD/ano"           value={BRL(dashRaw.tfd_custo_total_ano)} color={CRIT} sub="28,4% do orçamento saúde" />
               <KPI label="Fila total especialidades" value={dashRaw.fila_total_especialidades?.toLocaleString()} color={CRIT} sub={`espera: ${dashRaw.tempo_medio_espera_dias} dias (meta ${dashRaw.meta_espera_dias})`} />
               <KPI label="Óbitos na fila 2025"     value={dashRaw.pacientes_obito_na_fila_2025}               color={CRIT} sub="potencialmente evitáveis" />
             </div>

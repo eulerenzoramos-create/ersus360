@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { Wind, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -85,7 +86,7 @@ export default function QueimAdasRespiratoriaApui() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Óbitos respiratórios 2025"       value={dashRaw.obitos_respiratorios_2025}                color={CRIT} sub={`${dashRaw.obitos_atribuiveis_queimadas_estimados} atribuíveis`} />
-              <KPI label="Área queimada 2025"              value={`${((dashRaw.area_queimada_ha_2025||0)/1000).toFixed(0)}k ha`} color={CRIT} sub="fumaça afeta toda a região" />
+              <KPI label="Área queimada 2025"              value={`${BRL(dashRaw.area_queimada_ha_2025||0)} ha`} color={CRIT} sub="fumaça afeta toda a região" />
               <KPI label="Estação de queimadas pico"       value={dashRaw.estacao_queimadas_pico || "Ago/Set"}      color={WARN} sub="julho a outubro" />
               <KPI label="Monitoramento qualidade ar"      value="Inexistente"                                      color={CRIT} sub="zero sensor em Apuí" />
             </div>

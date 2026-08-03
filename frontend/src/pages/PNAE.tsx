@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
 import { ShoppingBag, AlertTriangle, CheckCircle, TrendingUp } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 const ST_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
@@ -32,7 +33,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
         <KpiCard label="Alunos beneficiados"    value={dash.alunos_beneficiados.toLocaleString("pt-BR")} sub={`${dash.escolas_atendidas} escolas`}             cor="#16a34a" icon={<CheckCircle size={14} color="#16a34a"/>}/>
-        <KpiCard label="Repasse FNDE/mês"       value={`R$${(dash.repasse_fnde_mensal/1000).toFixed(1)}k`} sub="R$0,53/aluno/dia"                              cor="#1d4ed8" icon={<ShoppingBag size={14} color="#1d4ed8"/>}/>
+        <KpiCard label="Repasse FNDE/mês"       value={BRL(dash.repasse_fnde_mensal)} sub="R$0,53/aluno/dia"                              cor="#1d4ed8" icon={<ShoppingBag size={14} color="#1d4ed8"/>}/>
         <KpiCard label="Agricultura familiar"   value={`${dash.agricultores_da_local_pct}%`}             sub={`meta: ≥${dash.meta_da_local_pct}% — ✓`}        cor="#16a34a" icon={<TrendingUp size={14} color="#16a34a"/>}/>
         <KpiCard label="Amostras conform."      value={`${dash.amostras_laboratorio_ok_pct}%`}           sub="meta: 95%"                                      cor={dash.amostras_laboratorio_ok_pct>=95?"#16a34a":"#d97706"} icon={<AlertTriangle size={14} color={dash.amostras_laboratorio_ok_pct>=95?"#16a34a":"#d97706"}/>}/>
       </div>
@@ -112,7 +113,7 @@ function AbaFornecedores({ forn }: { forn: any[] | undefined }) {
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
                   <span style={{ color: f.entregas_no_prazo_pct < 85 ? "#d97706" : "#6b7280" }}>entrega: {f.entregas_no_prazo_pct}%</span>
-                  <strong style={{ color: cor }}>R${(f.valor_contrato_mensal/1000).toFixed(1)}k ({pct}%)</strong>
+                  <strong style={{ color: cor }}>{BRL(f.valor_contrato_mensal)} ({pct}%)</strong>
                 </div>
               </div>
               <div style={{ background: "#f3f4f6", borderRadius: 6, height: 8 }}>
@@ -198,7 +199,7 @@ export default function PNAE() {
                 <div style={{ fontSize: 10, opacity: .8 }}>alunos beneficiados</div>
               </div>
               <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 900 }}>R${(dashRaw.repasse_fnde_mensal/1000).toFixed(1)}k</div>
+                <div style={{ fontSize: 18, fontWeight: 900 }}>{BRL(dashRaw.repasse_fnde_mensal)}</div>
                 <div style={{ fontSize: 10, opacity: .8 }}>FNDE/mês</div>
               </div>
             </div>

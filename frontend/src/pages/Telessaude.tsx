@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, Cell } from "recharts";
 import { Monitor, Clock, TrendingUp, DollarSign } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 const STATUS_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
@@ -201,7 +202,7 @@ export default function Telessaude() {
                 <div style={{ fontSize: 10, opacity: .8 }}>atendimentos/mês</div>
               </div>
               <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 16, fontWeight: 900 }}>R${(dashRaw.economia_estimada_mes/1000).toFixed(1)}k</div>
+                <div style={{ fontSize: 16, fontWeight: 900 }}>{BRL(dashRaw.economia_estimada_mes)}</div>
                 <div style={{ fontSize: 10, opacity: .8 }}>economia/mês</div>
               </div>
             </div>

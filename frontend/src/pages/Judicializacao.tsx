@@ -187,7 +187,7 @@ export default function Judicializacao() {
           {dash && (
             <div style={{ display: "flex", gap: 10 }}>
               <div style={{ background: "rgba(220,38,38,.3)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 900 }}>R${(dashRaw.custo_mensal_total/1000).toFixed(1)}k</div>
+                <div style={{ fontSize: 18, fontWeight: 900 }}>{BRL(dashRaw.custo_mensal_total)}</div>
                 <div style={{ fontSize: 10, opacity: .8 }}>custo/mês</div>
               </div>
               <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>

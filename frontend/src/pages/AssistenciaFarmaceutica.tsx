@@ -6,6 +6,7 @@ import {
 } from "recharts";
 import { Pill, Package, AlertTriangle, CheckCircle, DollarSign } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 const PROG_COR = ["#1d4ed8","#7c3aed","#ec4899","#0891b2","#16a34a"];
@@ -32,7 +33,7 @@ function AbaDashboard({ dash }: { dash: any }) {
         <KpiCard label="Itens na REMUME"     value={dash.total_medicamentos}    sub={`${dash.taxa_disponibilidade}% disponíveis`}   cor="#16a34a" icon={<Pill size={14} color="#16a34a"/>}/>
         <KpiCard label="Receitas dispensadas" value={dash.receitas_mes.toLocaleString("pt-BR")} sub="Abr/2026"               cor="#1d4ed8" icon={<Package size={14} color="#1d4ed8"/>}/>
         <KpiCard label="Itens dispensados"    value={dash.itens_dispensados_mes.toLocaleString("pt-BR")} sub="no mês"         cor="#7c3aed" icon={<Package size={14} color="#7c3aed"/>}/>
-        <KpiCard label="Valor dispensado"     value={`R$ ${(dash.valor_dispensado_mes/1000).toFixed(1)}k`} sub="custo mensal"  cor="#0891b2" icon={<DollarSign size={14} color="#0891b2"/>}/>
+        <KpiCard label="Valor dispensado"     value={BRL(dash.valor_dispensado_mes)} sub="custo mensal"  cor="#0891b2" icon={<DollarSign size={14} color="#0891b2"/>}/>
         <KpiCard label="Estoque crítico"      value={dash.itens_criticos}        sub={`${dash.itens_atencao} em atenção`}         cor={dash.itens_criticos>0?"#dc2626":"#16a34a"} icon={<AlertTriangle size={14} color={dash.itens_criticos>0?"#dc2626":"#16a34a"}/>}/>
       </div>
 
@@ -201,7 +202,7 @@ function AbaDispensacao({ hist }: { hist: any[] | undefined }) {
               <LineChart data={hist}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6"/>
                 <XAxis dataKey="mes" tick={{ fontSize:9 }}/>
-                <YAxis tick={{ fontSize:10 }} tickFormatter={v=>`${(v/1000).toFixed(0)}k`}/>
+                <YAxis tick={{ fontSize:10 }} tickFormatter={v=>`${BRL(v)}`}/>
                 <Tooltip contentStyle={TT} formatter={(v:number)=>[`R$ ${v.toLocaleString("pt-BR")}`, "Valor"]}/>
                 <Line type="monotone" dataKey="valor" stroke="#16a34a" strokeWidth={2.5} dot={{ r:4 }} name="Valor"/>
               </LineChart>

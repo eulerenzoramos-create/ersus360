@@ -6,6 +6,7 @@ import {
   Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import { UserCog, AlertTriangle, Users, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#2563eb";
@@ -100,7 +101,7 @@ export default function GestaoPessoas() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Cargos Críticos Vagos"    value={dashRaw.cargos_vagos_criticos.toString()} color={CRIT} />
               <KPI label="Estagiários"              value={dashRaw.estagiarios.toString()} />
-              <KPI label="Folha Mensal"             value={`R$ ${(dashRaw.folha_mensal_r/1000).toFixed(0)}k`} color={WARN} />
+              <KPI label="Folha Mensal"             value={BRL(dashRaw.folha_mensal_r)} color={WARN} />
               <KPI label="Folha/Receita Saúde"      value={`${dashRaw.folha_percentual_receita_saude}%`} color={dashRaw.folha_percentual_receita_saude > 60 ? CRIT : OK} sub="limite: 60%" />
             </div>
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">

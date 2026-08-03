@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from "recharts";
 import { Clock, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -87,7 +88,7 @@ export default function FilaCirurgicaApui() {
               <KPI label="Cirurgias HMM/2025"           value={dashRaw.cirurgias_realizadas_hmm_2025}                             color={WARN} sub={`necessárias: ${dashRaw.cirurgias_necessarias_estimadas}`} />
               <KPI label="SISREG — tempo de aprovação"  value={`${dashRaw.tempo_aprovacao_sisreg_dias} dias`}                     color={CRIT} sub={`meta: ${dashRaw.meta_aprovacao_sisreg_dias} dias`} />
               <KPI label="Cegos por catarata operável"  value={dashRaw.obitos_fila_espera_2025 > 0 ? "68 pessoas" : "0"}          color={CRIT} sub="aguardando mutirão Visão Brasil" />
-              <KPI label="Custo social da fila"         value={`R$ ${(dashRaw.custo_social_fila_anual/1000000).toFixed(1)}M`}     color={CRIT} sub="estimado/ano" />
+              <KPI label="Custo social da fila"         value={BRL(dashRaw.custo_social_fila_anual)}     color={CRIT} sub="estimado/ano" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">

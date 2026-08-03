@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { apiGet } from "../lib/api"
 import { Stethoscope } from "lucide-react"
+import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 const BRAND="#dbeafe", ACCENT="#1d4ed8", OK="#16a34a", WARN="#d97706", CRIT="#dc2626"
 const ABAS=["Dashboard","Especialidades","TFD","Histórico","Indicadores"]
@@ -22,7 +23,7 @@ export default function AcessoEspecialidadesApui(){
   const hist=useQuery({queryKey:["espec-hist"], queryFn:()=>apiGet("/api/acesso-especialidades-apui/historico"),    enabled:aba==="Histórico"})
   const ind =useQuery({queryKey:["espec-ind"],  queryFn:()=>apiGet("/api/acesso-especialidades-apui/indicadores"),  enabled:aba==="Indicadores"})
   const d=dash.data as any, e=esp.data as any, t=tfd.data as any, h=hist.data as any, i=ind.data as any
-  const fmt=(v:number)=>`R$ ${(v/1000).toFixed(1)}k`
+  const fmt=(v:number)=>BRL(v)
 
   return (
     <div style={{padding:"24px 32px",fontFamily:"Inter,sans-serif",background:"#f8fafc",minHeight:"100vh"}}>
