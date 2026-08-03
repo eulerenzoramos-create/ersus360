@@ -636,14 +636,28 @@ export default function SIOPSCompleto() {
               const label = fmt === "csv" ? "CSV" : fmt === "xlsx" ? "Excel" : "PDF";
               const bg   = fmt === "pdf" ? "#fee2e2" : fmt === "xlsx" ? "#dcfce7" : "#fff";
               const col  = fmt === "pdf" ? "#b91c1c" : fmt === "xlsx" ? "#15803d" : "#374151";
+              const mime = fmt === "csv" ? "text/csv" : fmt === "xlsx"
+                ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                : "application/pdf";
+              const filename = `siops_loa_2026.${fmt}`;
+              async function baixar() {
+                const r = await fetch(url);
+                if (!r.ok) { alert("Erro ao gerar arquivo. Verifique se o backend está online."); return; }
+                const blob = await r.blob();
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(new Blob([blob], { type: mime }));
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(a.href);
+              }
               return (
-                <a key={fmt} href={url} download
+                <button key={fmt} onClick={baixar}
                   style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px",
                     border: `1px solid ${col}40`, borderRadius: 7, background: bg,
-                    fontSize: 12, cursor: "pointer", color: col, textDecoration: "none" }}>
+                    fontSize: 12, cursor: "pointer", color: col }}>
                   <Download size={13} />
                   {label}
-                </a>
+                </button>
               );
             })}
           </div>

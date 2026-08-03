@@ -206,10 +206,17 @@ export default function RREOAnexo12() {
             className="flex items-center gap-1.5 text-xs bg-white border border-gray-300 rounded px-3 py-1.5 hover:bg-gray-50">
             <Printer size={13}/> Imprimir
           </button>
-          <a href={`${API}/api/rreo-anexo12/exportar-pdf`} target="_blank" rel="noreferrer"
-            className="flex items-center gap-1.5 text-xs bg-blue-700 text-white rounded px-3 py-1.5 hover:bg-blue-800">
+          <button onClick={async () => {
+            const r = await fetch(`${API}/api/rreo-anexo12/exportar-pdf`);
+            if (!r.ok) { alert("Erro ao gerar PDF. Backend offline?"); return; }
+            const blob = await r.blob();
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+            a.download = "rreo_anexo12_apui_2026.pdf";
+            a.click(); URL.revokeObjectURL(a.href);
+          }} className="flex items-center gap-1.5 text-xs bg-blue-700 text-white rounded px-3 py-1.5 hover:bg-blue-800 cursor-pointer border-0">
             <Download size={13}/> Exportar PDF
-          </a>
+          </button>
         </div>
       </div>
 
