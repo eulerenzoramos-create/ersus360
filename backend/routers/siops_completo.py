@@ -481,175 +481,128 @@ async def comparativos():
 
 @router.get("/exportar-excel")
 async def exportar_excel():
-    """Exporta programas em formato Excel (.xlsx) com formatação e cores."""
+    """Exporta programas em formato Excel (.xlsx) — usa xlsxwriter (streaming, baixo uso de RAM)."""
+    import gc
     from fastapi.responses import StreamingResponse
-    from openpyxl import Workbook
-    from openpyxl.styles import (
-        Font, PatternFill, Alignment, Border, Side, numbers
-    )
+    import xlsxwriter
     import io
 
-    wb = Workbook()
+    buf = io.BytesIO()
+    wb = xlsxwriter.Workbook(buf, {"in_memory": True, "constant_memory": False})
 
-    # ── Aba Painel Geral ────────────────────────────────────────────
-    ws1 = wb.active
-    ws1.title = "Painel Geral"
+    # Formatos
+    fmt_title  = wb.add_format({"bold": True, "font_size": 13, "font_color": "#FFFFFF", "bg_color": "#0C4A6E", "align": "center", "valign": "vcenter"})
+    fmt_sub    = wb.add_format({"italic": True, "font_size": 10, "font_color": "#475569", "bg_color": "#E2E8F0", "align": "center"})
+    fmt_hdr    = wb.add_format({"bold": True, "font_color": "#FFFFFF", "bg_color": "#1D4ED8", "align": "center", "border": 1, "text_wrap": True})
+    fmt_brl    = wb.add_format({"num_format": 'R$ #,##0.00', "border": 1})
+    fmt_pct    = wb.add_format({"num_format": '0.00"%"', "border": 1})
+    fmt_txt    = wb.add_format({"border": 1, "text_wrap": True})
+    fmt_verde  = wb.add_format({"bold": True, "font_color": "#16A34A", "border": 1})
+    fmt_amarelo= wb.add_format({"bold": True, "font_color": "#D97706", "border": 1})
+    fmt_vermelho=wb.add_format({"bold": True, "font_color": "#DC2626", "border": 1})
+    fmt_azul   = wb.add_format({"bold": True, "font_color": "#1D4ED8", "border": 1})
+    fmt_cinza  = wb.add_format({"font_color": "#64748B", "border": 1})
 
-    azul_esc = PatternFill("solid", fgColor="0C4A6E")
-    azul_med = PatternFill("solid", fgColor="1D4ED8")
-    verde     = PatternFill("solid", fgColor="16A34A")
-    amarelo   = PatternFill("solid", fgColor="D97706")
-    vermelho  = PatternFill("solid", fgColor="DC2626")
-    cinza     = PatternFill("solid", fgColor="E2E8F0")
-    branco    = PatternFill("solid", fgColor="FFFFFF")
+    STATUS_FMT = {"ok": fmt_verde, "em_execucao": fmt_azul, "atencao": fmt_amarelo, "critico": fmt_vermelho}
 
-    def _borda(cells, thin=True):
-        s = Side(style="thin" if thin else "medium", color="CBD5E1")
-        b = Border(left=s, right=s, top=s, bottom=s)
-        for row in cells:
-            for c in row:
-                c.border = b
-
-    def _cabecalho(ws, texto, linha=1):
-        ws.merge_cells(f"A{linha}:G{linha}")
-        c = ws[f"A{linha}"]
-        c.value = texto
-        c.font = Font(bold=True, color="FFFFFF", size=13)
-        c.fill = azul_esc
-        c.alignment = Alignment(horizontal="center", vertical="center")
-        ws.row_dimensions[linha].height = 30
-
-    _cabecalho(ws1, "SIOPS — Gestão Orçamentária da Saúde · FMS Apuí/AM · 2026")
-
-    ws1.merge_cells("A2:G2")
-    sub = ws1["A2"]
-    sub.value = f"Fonte: {_META_IMPORTACAO['fonte']} | Período: {_META_IMPORTACAO['periodo']}"
-    sub.font = Font(italic=True, color="475569", size=10)
-    sub.fill = cinza
-    sub.alignment = Alignment(horizontal="center")
-    ws1.row_dimensions[2].height = 18
+    # ── Aba Painel Geral ───────────────────────────────────────────
+    ws1 = wb.add_worksheet("Painel Geral")
+    ws1.merge_range("A1:B1", "SIOPS — Gestão Orçamentária da Saúde · FMS Apuí/AM · 2026", fmt_title)
+    ws1.set_row(0, 30)
+    ws1.merge_range("A2:B2", f"Fonte: {_META_IMPORTACAO['fonte']} | Período: {_META_IMPORTACAO['periodo']}", fmt_sub)
+    ws1.set_row(1, 18)
+    ws1.write(2, 0, "Indicador", fmt_hdr)
+    ws1.write(2, 1, "Valor", fmt_hdr)
+    ws1.set_row(2, 20)
+    ws1.set_column("A:A", 30)
+    ws1.set_column("B:B", 22)
 
     kpis = [
-        ("Receita Prevista", _PAINEL_GERAL["receita_prevista_total"]),
-        ("Receita Arrecadada", _PAINEL_GERAL["receita_arrecadada"]),
-        ("Dotação Atualizada", _PAINEL_GERAL["dotacao_atualizada"]),
-        ("Empenhado", _PAINEL_GERAL["empenhado"]),
-        ("Liquidado", _PAINEL_GERAL["liquidado"]),
-        ("Pago", _PAINEL_GERAL["pago"]),
-        ("ASPS % Aplicado", _PAINEL_GERAL["pct_asps_acumulado"]),
-        ("ASPS Mínimo Exigido", _PAINEL_GERAL["valor_minimo_exigido"]),
-        ("Exec. Orçamentária %", _PAINEL_GERAL["pct_execucao_orcamentaria"]),
-        ("Exec. Financeira %", _PAINEL_GERAL["pct_execucao_financeira"]),
-        ("Restos a Pagar", _PAINEL_GERAL["restos_pagar_inscritos"]),
-        ("Saldo a Empenhar", _PAINEL_GERAL["saldo_empenhar"]),
+        ("Receita Prevista", _PAINEL_GERAL["receita_prevista_total"], False),
+        ("Receita Arrecadada", _PAINEL_GERAL["receita_arrecadada"], False),
+        ("Dotação Atualizada", _PAINEL_GERAL["dotacao_atualizada"], False),
+        ("Empenhado", _PAINEL_GERAL["empenhado"], False),
+        ("Liquidado", _PAINEL_GERAL["liquidado"], False),
+        ("Pago", _PAINEL_GERAL["pago"], False),
+        ("ASPS % Aplicado", _PAINEL_GERAL["pct_asps_acumulado"], True),
+        ("ASPS Mínimo Exigido (R$)", _PAINEL_GERAL["valor_minimo_exigido"], False),
+        ("Exec. Orçamentária %", _PAINEL_GERAL["pct_execucao_orcamentaria"], True),
+        ("Exec. Financeira %", _PAINEL_GERAL["pct_execucao_financeira"], True),
+        ("Restos a Pagar", _PAINEL_GERAL["restos_pagar_inscritos"], False),
+        ("Saldo a Empenhar", _PAINEL_GERAL["saldo_empenhar"], False),
     ]
+    for i, (label, val, is_pct) in enumerate(kpis, start=3):
+        ws1.write(i, 0, label, fmt_txt)
+        ws1.write(i, 1, val, fmt_pct if is_pct else fmt_brl)
 
-    ws1.append([""])
-    ws1.append(["Indicador", "Valor"])
-    hdr = ws1[f"A{ws1.max_row}:B{ws1.max_row}"]
-    for r in hdr:
-        for c in r:
-            c.font = Font(bold=True, color="FFFFFF")
-            c.fill = azul_med
-            c.alignment = Alignment(horizontal="center")
-
-    for label, val in kpis:
-        ws1.append([label, val])
-        row = ws1.max_row
-        ws1[f"B{row}"].number_format = (
-            'R$ #,##0.00' if not label.endswith("%") else '0.00"%"'
-        )
-
-    ws1.column_dimensions["A"].width = 30
-    ws1.column_dimensions["B"].width = 22
-    _borda(ws1.iter_rows(min_row=4, max_row=ws1.max_row, min_col=1, max_col=2))
-
-    # ── Aba Programas ───────────────────────────────────────────────
-    ws2 = wb.create_sheet("Programas LOA")
-    _cabecalho(ws2, "Programas — LOA por Subfunção · FMS Apuí/AM · 2026")
-
+    # ── Aba Programas ──────────────────────────────────────────────
+    ws2 = wb.add_worksheet("Programas LOA")
+    ws2.merge_range("A1:N1", "Programas — LOA por Subfunção · FMS Apuí/AM · 2026", fmt_title)
+    ws2.set_row(0, 30)
     cols = ["Cód.", "Programa", "Ação", "Subfunção", "Fonte",
             "Dotação (R$)", "Empenhado (R$)", "Liquidado (R$)", "Pago (R$)",
             "Saldo Empenhar", "Saldo Liquidar", "Exec.Orc.%", "Exec.Fin.%", "Status"]
-    ws2.append([""])
-    ws2.append(cols)
-    hdr_row = ws2.max_row
-    for c in ws2[hdr_row]:
-        c.font = Font(bold=True, color="FFFFFF")
-        c.fill = azul_med
-        c.alignment = Alignment(horizontal="center", wrap_text=True)
-    ws2.row_dimensions[hdr_row].height = 32
-
-    STATUS_COLOR = {
-        "critico": "DC2626", "atencao": "D97706", "em_execucao": "1D4ED8", "ok": "16A34A"
-    }
-    for p in _PROGRAMAS:
-        e = _enriquecer_programa(p, {})
-        row_data = [
-            p["codigo"], p["programa"], p["acao"], p["subfuncao"], p["fonte"],
-            p["dotacao_atualizada"], p["empenhado"], p["liquidado"], p["pago"],
-            e["saldo_empenhar"], e["saldo_liquidar"],
-            e["pct_exec_orc"] / 100, e["pct_exec_fin"] / 100, p["status"],
-        ]
-        ws2.append(row_data)
-        r = ws2.max_row
-        for col_idx in range(6, 12):
-            ws2.cell(r, col_idx).number_format = "R$ #,##0.00"
-        ws2.cell(r, 12).number_format = "0.00%"
-        ws2.cell(r, 13).number_format = "0.00%"
-        cor_hex = STATUS_COLOR.get(p["status"], "94A3B8")
-        ws2.cell(r, 14).font = Font(bold=True, color=cor_hex)
-
+    for j, c in enumerate(cols):
+        ws2.write(1, j, c, fmt_hdr)
+    ws2.set_row(1, 32)
     widths = [6, 28, 30, 22, 24, 18, 18, 18, 18, 18, 18, 12, 12, 14]
-    for i, w in enumerate(widths, 1):
-        ws2.column_dimensions[ws2.cell(1, i).column_letter].width = w
+    for j, w in enumerate(widths):
+        ws2.set_column(j, j, w)
 
-    _borda(ws2.iter_rows(min_row=hdr_row, max_row=ws2.max_row, min_col=1, max_col=14))
+    for i, p in enumerate(_PROGRAMAS, start=2):
+        e = _enriquecer_programa(p, {})
+        ws2.write(i, 0, p["codigo"], fmt_txt)
+        ws2.write(i, 1, p["programa"], fmt_txt)
+        ws2.write(i, 2, p["acao"], fmt_txt)
+        ws2.write(i, 3, p["subfuncao"], fmt_txt)
+        ws2.write(i, 4, p["fonte"], fmt_txt)
+        ws2.write(i, 5, p["dotacao_atualizada"], fmt_brl)
+        ws2.write(i, 6, p["empenhado"], fmt_brl)
+        ws2.write(i, 7, p["liquidado"], fmt_brl)
+        ws2.write(i, 8, p["pago"], fmt_brl)
+        ws2.write(i, 9, e["saldo_empenhar"], fmt_brl)
+        ws2.write(i, 10, e["saldo_liquidar"], fmt_brl)
+        ws2.write(i, 11, e["pct_exec_orc"], fmt_pct)
+        ws2.write(i, 12, e["pct_exec_fin"], fmt_pct)
+        ws2.write(i, 13, p["status"].upper(), STATUS_FMT.get(p["status"], fmt_cinza))
 
-    # ── Aba Alertas ──────────────────────────────────────────────────
-    ws3 = wb.create_sheet("Alertas Gerenciais")
-    _cabecalho(ws3, "Alertas Gerenciais · SIOPS FMS Apuí/AM · 2026")
-    ws3.append([""])
-    ws3.append(["Nível", "Programa", "Título", "Descrição", "Ação Recomendada"])
-    hdr_row = ws3.max_row
-    for c in ws3[hdr_row]:
-        c.font = Font(bold=True, color="FFFFFF")
-        c.fill = azul_med
-        c.alignment = Alignment(horizontal="center", wrap_text=True)
+    # ── Aba Alertas ───────────────────────────────────────────────
+    ws3 = wb.add_worksheet("Alertas Gerenciais")
+    ws3.merge_range("A1:E1", "Alertas Gerenciais · SIOPS FMS Apuí/AM · 2026", fmt_title)
+    ws3.set_row(0, 30)
+    for j, c in enumerate(["Nível", "Programa", "Título", "Descrição", "Ação Recomendada"]):
+        ws3.write(1, j, c, fmt_hdr)
+    ws3.set_column("A:A", 12); ws3.set_column("B:B", 22); ws3.set_column("C:C", 30)
+    ws3.set_column("D:D", 50); ws3.set_column("E:E", 40)
 
-    NIVEL_FILL = {"vermelho": "FEE2E2", "amarelo": "FEF3C7", "verde": "DCFCE7", "cinza": "F1F5F9"}
-    for al in _ALERTAS:
-        ws3.append([
-            al["nivel"].upper(), al["programa"], al["titulo"],
-            al["descricao"], al["acao_recomendada"],
-        ])
-        r = ws3.max_row
-        fill = PatternFill("solid", fgColor=NIVEL_FILL.get(al["nivel"], "FFFFFF"))
-        for col_idx in range(1, 6):
-            ws3.cell(r, col_idx).fill = fill
-            ws3.cell(r, col_idx).alignment = Alignment(wrap_text=True, vertical="top")
+    NIVEL_FMT = {"vermelho": fmt_vermelho, "amarelo": fmt_amarelo, "verde": fmt_verde}
+    for i, al in enumerate(_ALERTAS, start=2):
+        f = NIVEL_FMT.get(al["nivel"], fmt_cinza)
+        ws3.write(i, 0, al["nivel"].upper(), f)
+        ws3.write(i, 1, al["programa"], fmt_txt)
+        ws3.write(i, 2, al["titulo"], fmt_txt)
+        ws3.write(i, 3, al["descricao"], fmt_txt)
+        ws3.write(i, 4, al["acao_recomendada"], fmt_txt)
 
-    ws3.column_dimensions["A"].width = 12
-    ws3.column_dimensions["B"].width = 22
-    ws3.column_dimensions["C"].width = 30
-    ws3.column_dimensions["D"].width = 50
-    ws3.column_dimensions["E"].width = 40
-    _borda(ws3.iter_rows(min_row=hdr_row, max_row=ws3.max_row, min_col=1, max_col=5))
-
-    buf = io.BytesIO()
-    wb.save(buf)
+    wb.close()
     buf.seek(0)
+    data = buf.read()
+    buf.close()
+    gc.collect()
 
     return StreamingResponse(
-        iter([buf.read()]),
+        iter([data]),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=siops_loa_2026.xlsx"},
     )
 
 
+
+
 @router.get("/exportar-pdf")
 async def exportar_pdf():
     """Exporta relatório gerencial em PDF com layout profissional."""
+    import gc
     from fastapi.responses import StreamingResponse
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
@@ -830,9 +783,12 @@ async def exportar_pdf():
 
     doc.build(story)
     buf.seek(0)
+    data_pdf = buf.read()
+    buf.close()
+    gc.collect()
 
     return StreamingResponse(
-        iter([buf.read()]),
+        iter([data_pdf]),
         media_type="application/pdf",
         headers={"Content-Disposition": "attachment; filename=siops_relatorio_2026.pdf"},
     )
