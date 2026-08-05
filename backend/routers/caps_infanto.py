@@ -1,23 +1,27 @@
 """CAPS Infanto-Juvenil — Saúde Mental Infanto-Juvenil · FMS Apuí/AM"""
 from fastapi import APIRouter
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/caps-infanto", tags=["caps_infanto"])
 
-_TRANSTORNOS = [
-    {"transtorno": "TDAH",                               "n": 48, "em_acompanhamento": 44, "alta_mes": 3,  "abandono_mes": 2,  "status": "ok"},
-    {"transtorno": "Transtorno de ansiedade",             "n": 38, "em_acompanhamento": 36, "alta_mes": 2,  "abandono_mes": 3,  "status": "atencao"},
-    {"transtorno": "Depressão infanto-juvenil",           "n": 28, "em_acompanhamento": 26, "alta_mes": 1,  "abandono_mes": 2,  "status": "atencao"},
-    {"transtorno": "TEA (autismo)",                      "n": 24, "em_acompanhamento": 24, "alta_mes": 0,  "abandono_mes": 0,  "status": "critico"},
-    {"transtorno": "Uso prejudicial de substâncias",     "n": 18, "em_acompanhamento": 16, "alta_mes": 2,  "abandono_mes": 4,  "status": "critico"},
-    {"transtorno": "Psicose na infância/adolescência",   "n": 12, "em_acompanhamento": 12, "alta_mes": 0,  "abandono_mes": 1,  "status": "critico"},
-    {"transtorno": "Transtorno de conduta",              "n": 14, "em_acompanhamento": 13, "alta_mes": 1,  "abandono_mes": 2,  "status": "atencao"},
-    {"transtorno": "Outras demandas",                    "n": 22, "em_acompanhamento": 20, "alta_mes": 3,  "abandono_mes": 1,  "status": "ok"},
-]
+@lru_cache(maxsize=1)
+def _TRANSTORNOS():
+    return [
+        {"transtorno": "TDAH",                               "n": 48, "em_acompanhamento": 44, "alta_mes": 3,  "abandono_mes": 2,  "status": "ok"},
+        {"transtorno": "Transtorno de ansiedade",             "n": 38, "em_acompanhamento": 36, "alta_mes": 2,  "abandono_mes": 3,  "status": "atencao"},
+        {"transtorno": "Depressão infanto-juvenil",           "n": 28, "em_acompanhamento": 26, "alta_mes": 1,  "abandono_mes": 2,  "status": "atencao"},
+        {"transtorno": "TEA (autismo)",                      "n": 24, "em_acompanhamento": 24, "alta_mes": 0,  "abandono_mes": 0,  "status": "critico"},
+        {"transtorno": "Uso prejudicial de substâncias",     "n": 18, "em_acompanhamento": 16, "alta_mes": 2,  "abandono_mes": 4,  "status": "critico"},
+        {"transtorno": "Psicose na infância/adolescência",   "n": 12, "em_acompanhamento": 12, "alta_mes": 0,  "abandono_mes": 1,  "status": "critico"},
+        {"transtorno": "Transtorno de conduta",              "n": 14, "em_acompanhamento": 13, "alta_mes": 1,  "abandono_mes": 2,  "status": "atencao"},
+        {"transtorno": "Outras demandas",                    "n": 22, "em_acompanhamento": 20, "alta_mes": 3,  "abandono_mes": 1,  "status": "ok"},
+    ]
+
 
 @router.get("/dashboard")
 async def dashboard():
-    total = sum(t["em_acompanhamento"] for t in _TRANSTORNOS)
-    criticos = sum(1 for t in _TRANSTORNOS if t["status"] == "critico")
+    total = sum(t["em_acompanhamento"] for t in _TRANSTORNOS())
+    criticos = sum(1 for t in _TRANSTORNOS() if t["status"] == "critico")
     return {
         "pacientes_ativos": total,
         "novos_cadastros_mes": 12,

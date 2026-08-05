@@ -1,19 +1,26 @@
 """Vigilância do Óbito — Materno, Infantil e Fetal · FMS Apuí/AM"""
 from fastapi import APIRouter
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/vigilancia-obito", tags=["vigilancia_obito"])
 
-_OBITOS_MATERNOS = [
-    {"caso": "OM-2026-01", "idade": 22, "causa_basica": "Hemorragia pós-parto", "tipo": "direta", "semana_gestacional": 38, "local_obito": "Hospital Municipal", "comite_investigou": True,  "evitavel": True,  "conclusao": "Retardo no atendimento de urgência obstétrica", "competencia": "Jan/2026"},
-    {"caso": "OM-2026-02", "idade": 34, "causa_basica": "Eclâmpsia",             "tipo": "direta", "semana_gestacional": 32, "local_obito": "Hospital Municipal", "comite_investigou": True,  "evitavel": True,  "conclusao": "Pré-natal inadequado — 3 consultas apenas", "competencia": "Mar/2026"},
-    {"caso": "OM-2026-03", "idade": 28, "causa_basica": "Sepse puerperal",       "tipo": "direta", "semana_gestacional": 40, "local_obito": "Domicílio",          "comite_investigou": True,  "evitavel": True,  "conclusao": "Falta de reconhecimento de sinais de alerta — parto domiciliar sem assistência", "competencia": "Mai/2026"},
-]
+@lru_cache(maxsize=1)
+def _OBITOS_MATERNOS():
+    return [
+        {"caso": "OM-2026-01", "idade": 22, "causa_basica": "Hemorragia pós-parto", "tipo": "direta", "semana_gestacional": 38, "local_obito": "Hospital Municipal", "comite_investigou": True,  "evitavel": True,  "conclusao": "Retardo no atendimento de urgência obstétrica", "competencia": "Jan/2026"},
+        {"caso": "OM-2026-02", "idade": 34, "causa_basica": "Eclâmpsia",             "tipo": "direta", "semana_gestacional": 32, "local_obito": "Hospital Municipal", "comite_investigou": True,  "evitavel": True,  "conclusao": "Pré-natal inadequado — 3 consultas apenas", "competencia": "Mar/2026"},
+        {"caso": "OM-2026-03", "idade": 28, "causa_basica": "Sepse puerperal",       "tipo": "direta", "semana_gestacional": 40, "local_obito": "Domicílio",          "comite_investigou": True,  "evitavel": True,  "conclusao": "Falta de reconhecimento de sinais de alerta — parto domiciliar sem assistência", "competencia": "Mai/2026"},
+    ]
 
-_OBITOS_INFANTIS = [
-    {"faixa": "Neonatal precoce (0–6 dias)",   "n_2024": 8,  "n_2025": 7,  "n_2026": 5,  "causas_principais": ["Prematuridade","Malformações congênitas","Asfixia"], "evitaveis_pct": 60.0},
-    {"faixa": "Neonatal tardio (7–27 dias)",    "n_2024": 4,  "n_2025": 3,  "n_2026": 2,  "causas_principais": ["Sepse neonatal","Malformações"], "evitaveis_pct": 50.0},
-    {"faixa": "Pós-neonatal (28d–1 ano)",       "n_2024": 6,  "n_2025": 5,  "n_2026": 3,  "causas_principais": ["Pneumonia","Diarreia","Desnutrição"], "evitaveis_pct": 80.0},
-]
+
+@lru_cache(maxsize=1)
+def _OBITOS_INFANTIS():
+    return [
+        {"faixa": "Neonatal precoce (0–6 dias)",   "n_2024": 8,  "n_2025": 7,  "n_2026": 5,  "causas_principais": ["Prematuridade","Malformações congênitas","Asfixia"], "evitaveis_pct": 60.0},
+        {"faixa": "Neonatal tardio (7–27 dias)",    "n_2024": 4,  "n_2025": 3,  "n_2026": 2,  "causas_principais": ["Sepse neonatal","Malformações"], "evitaveis_pct": 50.0},
+        {"faixa": "Pós-neonatal (28d–1 ano)",       "n_2024": 6,  "n_2025": 5,  "n_2026": 3,  "causas_principais": ["Pneumonia","Diarreia","Desnutrição"], "evitaveis_pct": 80.0},
+    ]
+
 
 @router.get("/dashboard")
 async def dashboard():

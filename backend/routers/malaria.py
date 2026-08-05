@@ -1,16 +1,20 @@
 """Malária — Vigilância e Controle · FMS Apuí/AM"""
 from fastapi import APIRouter
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/malaria", tags=["malaria"])
 
-_LOCALIDADES = [
-    {"localidade": "Zona Urbana — Sede",            "area": "urbana",    "exames_mes": 48,  "positivos_mes": 12, "ipa": 4.2,  "falciparum_pct": 18.4, "vivax_pct": 81.6, "status": "atencao"},
-    {"localidade": "Linha 7 e Ramais",              "area": "rural",     "exames_mes": 84,  "positivos_mes": 38, "ipa": 22.6, "falciparum_pct": 28.9, "vivax_pct": 71.1, "status": "critico"},
-    {"localidade": "Matupi e área",                 "area": "rural",     "exames_mes": 62,  "positivos_mes": 28, "ipa": 19.4, "falciparum_pct": 25.0, "vivax_pct": 75.0, "status": "critico"},
-    {"localidade": "Comunidades Ribeirinhas",        "area": "ribeirinha","exames_mes": 36,  "positivos_mes": 18, "ipa": 28.8, "falciparum_pct": 33.3, "vivax_pct": 66.7, "status": "critico"},
-    {"localidade": "Assentamentos rurais",           "area": "rural",     "exames_mes": 42,  "positivos_mes": 16, "ipa": 15.2, "falciparum_pct": 12.5, "vivax_pct": 87.5, "status": "atencao"},
-    {"localidade": "Área de garimpo",               "area": "garimpo",   "exames_mes": 22,  "positivos_mes": 14, "ipa": 63.6, "falciparum_pct": 57.1, "vivax_pct": 42.9, "status": "critico"},
-]
+@lru_cache(maxsize=1)
+def _LOCALIDADES():
+    return [
+        {"localidade": "Zona Urbana — Sede",            "area": "urbana",    "exames_mes": 48,  "positivos_mes": 12, "ipa": 4.2,  "falciparum_pct": 18.4, "vivax_pct": 81.6, "status": "atencao"},
+        {"localidade": "Linha 7 e Ramais",              "area": "rural",     "exames_mes": 84,  "positivos_mes": 38, "ipa": 22.6, "falciparum_pct": 28.9, "vivax_pct": 71.1, "status": "critico"},
+        {"localidade": "Matupi e área",                 "area": "rural",     "exames_mes": 62,  "positivos_mes": 28, "ipa": 19.4, "falciparum_pct": 25.0, "vivax_pct": 75.0, "status": "critico"},
+        {"localidade": "Comunidades Ribeirinhas",        "area": "ribeirinha","exames_mes": 36,  "positivos_mes": 18, "ipa": 28.8, "falciparum_pct": 33.3, "vivax_pct": 66.7, "status": "critico"},
+        {"localidade": "Assentamentos rurais",           "area": "rural",     "exames_mes": 42,  "positivos_mes": 16, "ipa": 15.2, "falciparum_pct": 12.5, "vivax_pct": 87.5, "status": "atencao"},
+        {"localidade": "Área de garimpo",               "area": "garimpo",   "exames_mes": 22,  "positivos_mes": 14, "ipa": 63.6, "falciparum_pct": 57.1, "vivax_pct": 42.9, "status": "critico"},
+    ]
+
 
 @router.get("/dashboard")
 async def dashboard():

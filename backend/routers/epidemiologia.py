@@ -8,54 +8,67 @@ from datetime import date as _date
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
 from services import sinan_service
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/epidemiologia", tags=["Epidemiologia"])
 
 # ── Dados de referência Apuí/AM ───────────────────────────────────────────────
 
-_AGRAVOS = [
-    { "agravo": "Malária",            "cid": "B50-B54", "casos_mes": 12, "casos_ano": 87,  "ipa": 3.47,  "meta_ipa": 10.0, "status": "verde",    "tendencia": "queda" },
-    { "agravo": "Dengue",             "cid": "A90",     "casos_mes": 4,  "casos_ano": 28,  "incidencia": 111.8, "status": "verde",    "tendencia": "estavel" },
-    { "agravo": "Tuberculose",        "cid": "A15-A19", "casos_mes": 1,  "casos_ano": 5,   "incidencia": 20.0,  "status": "amarelo",  "tendencia": "estavel" },
-    { "agravo": "Hanseníase",         "cid": "A30",     "casos_mes": 0,  "casos_ano": 2,   "incidencia": 8.0,   "status": "verde",    "tendencia": "queda" },
-    { "agravo": "Leptospirose",       "cid": "A27",     "casos_mes": 2,  "casos_ano": 11,  "incidencia": 43.9,  "status": "amarelo",  "tendencia": "subida" },
-    { "agravo": "Leishmaniose Visc.", "cid": "B55.0",   "casos_mes": 0,  "casos_ano": 3,   "incidencia": 12.0,  "status": "verde",    "tendencia": "estavel" },
-    { "agravo": "Hepatite B",         "cid": "B16",     "casos_mes": 1,  "casos_ano": 7,   "incidencia": 27.9,  "status": "amarelo",  "tendencia": "estavel" },
-    { "agravo": "HIV/AIDS",           "cid": "B20-B24", "casos_mes": 0,  "casos_ano": 4,   "incidencia": 16.0,  "status": "verde",    "tendencia": "estavel" },
-]
+@lru_cache(maxsize=1)
+def _AGRAVOS():
+    return [
+        { "agravo": "Malária",            "cid": "B50-B54", "casos_mes": 12, "casos_ano": 87,  "ipa": 3.47,  "meta_ipa": 10.0, "status": "verde",    "tendencia": "queda" },
+        { "agravo": "Dengue",             "cid": "A90",     "casos_mes": 4,  "casos_ano": 28,  "incidencia": 111.8, "status": "verde",    "tendencia": "estavel" },
+        { "agravo": "Tuberculose",        "cid": "A15-A19", "casos_mes": 1,  "casos_ano": 5,   "incidencia": 20.0,  "status": "amarelo",  "tendencia": "estavel" },
+        { "agravo": "Hanseníase",         "cid": "A30",     "casos_mes": 0,  "casos_ano": 2,   "incidencia": 8.0,   "status": "verde",    "tendencia": "queda" },
+        { "agravo": "Leptospirose",       "cid": "A27",     "casos_mes": 2,  "casos_ano": 11,  "incidencia": 43.9,  "status": "amarelo",  "tendencia": "subida" },
+        { "agravo": "Leishmaniose Visc.", "cid": "B55.0",   "casos_mes": 0,  "casos_ano": 3,   "incidencia": 12.0,  "status": "verde",    "tendencia": "estavel" },
+        { "agravo": "Hepatite B",         "cid": "B16",     "casos_mes": 1,  "casos_ano": 7,   "incidencia": 27.9,  "status": "amarelo",  "tendencia": "estavel" },
+        { "agravo": "HIV/AIDS",           "cid": "B20-B24", "casos_mes": 0,  "casos_ano": 4,   "incidencia": 16.0,  "status": "verde",    "tendencia": "estavel" },
+    ]
 
-_MALARIA_MENSAL = [
-    { "mes": "Jan/26", "vf": 18, "vv": 31, "total": 49, "ipa": 1.96 },
-    { "mes": "Fev/26", "vf": 15, "vv": 28, "total": 43, "ipa": 1.72 },
-    { "mes": "Mar/26", "vf": 22, "vv": 35, "total": 57, "ipa": 2.28 },
-    { "mes": "Abr/26", "vf": 19, "vv": 29, "total": 48, "ipa": 1.92 },
-    { "mes": "Mai/26", "vf": 16, "vv": 25, "total": 41, "ipa": 1.64 },
-    { "mes": "Jun/26", "vf": 14, "vv": 22, "total": 36, "ipa": 1.44 },
-    { "mes": "Jul/26", "vf": 8,  "vv": 4,  "total": 12, "ipa": 0.48 },
-]
 
-_DENGUE_MENSAL = [
-    { "mes": "Jan/26", "casos": 8,  "graves": 0, "obitos": 0 },
-    { "mes": "Fev/26", "casos": 12, "graves": 0, "obitos": 0 },
-    { "mes": "Mar/26", "casos": 6,  "graves": 1, "obitos": 0 },
-    { "mes": "Abr/26", "casos": 3,  "graves": 0, "obitos": 0 },
-    { "mes": "Mai/26", "casos": 2,  "graves": 0, "obitos": 0 },
-    { "mes": "Jun/26", "casos": 1,  "graves": 0, "obitos": 0 },
-    { "mes": "Jul/26", "casos": 4,  "graves": 0, "obitos": 0 },
-]
+@lru_cache(maxsize=1)
+def _MALARIA_MENSAL():
+    return [
+        { "mes": "Jan/26", "vf": 18, "vv": 31, "total": 49, "ipa": 1.96 },
+        { "mes": "Fev/26", "vf": 15, "vv": 28, "total": 43, "ipa": 1.72 },
+        { "mes": "Mar/26", "vf": 22, "vv": 35, "total": 57, "ipa": 2.28 },
+        { "mes": "Abr/26", "vf": 19, "vv": 29, "total": 48, "ipa": 1.92 },
+        { "mes": "Mai/26", "vf": 16, "vv": 25, "total": 41, "ipa": 1.64 },
+        { "mes": "Jun/26", "vf": 14, "vv": 22, "total": 36, "ipa": 1.44 },
+        { "mes": "Jul/26", "vf": 8,  "vv": 4,  "total": 12, "ipa": 0.48 },
+    ]
 
-_MORTALIDADE = {
-    "mortalidade_geral": 4.2,
-    "mortalidade_infantil": 8.1,
-    "mortalidade_materna": 0,
-    "mortalidade_prop_doencas_infecciosas_pct": 23.4,
-    "mortalidade_prop_circulatorio_pct": 31.2,
-    "mortalidade_prop_neoplasias_pct": 14.8,
-    "mortalidade_prop_causas_externas_pct": 18.9,
-    "expectativa_vida": 71.3,
-    "meta_mort_infantil": 10.0,
-    "status_mort_infantil": "verde",
-}
+
+@lru_cache(maxsize=1)
+def _DENGUE_MENSAL():
+    return [
+        { "mes": "Jan/26", "casos": 8,  "graves": 0, "obitos": 0 },
+        { "mes": "Fev/26", "casos": 12, "graves": 0, "obitos": 0 },
+        { "mes": "Mar/26", "casos": 6,  "graves": 1, "obitos": 0 },
+        { "mes": "Abr/26", "casos": 3,  "graves": 0, "obitos": 0 },
+        { "mes": "Mai/26", "casos": 2,  "graves": 0, "obitos": 0 },
+        { "mes": "Jun/26", "casos": 1,  "graves": 0, "obitos": 0 },
+        { "mes": "Jul/26", "casos": 4,  "graves": 0, "obitos": 0 },
+    ]
+
+
+@lru_cache(maxsize=1)
+def _MORTALIDADE():
+    return {
+        "mortalidade_geral": 4.2,
+        "mortalidade_infantil": 8.1,
+        "mortalidade_materna": 0,
+        "mortalidade_prop_doencas_infecciosas_pct": 23.4,
+        "mortalidade_prop_circulatorio_pct": 31.2,
+        "mortalidade_prop_neoplasias_pct": 14.8,
+        "mortalidade_prop_causas_externas_pct": 18.9,
+        "expectativa_vida": 71.3,
+        "meta_mort_infantil": 10.0,
+        "status_mort_infantil": "verde",
+    }
+
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -117,8 +130,8 @@ async def notificacoes(
 async def agravos_prioritarios(_: UserOut = Depends(get_current_user)):
     """Lista de agravos de notificação compulsória com situação atual."""
     return {
-        "total_agravos_monitorados": len(_AGRAVOS),
-        "alertas_ativos": sum(1 for a in _AGRAVOS if a["status"] in ("amarelo", "vermelho")),
+        "total_agravos_monitorados": len(_AGRAVOS()),
+        "alertas_ativos": sum(1 for a in _AGRAVOS() if a["status"] in ("amarelo", "vermelho")),
         "agravos": _AGRAVOS,
         "fonte": "referencia",
     }

@@ -1,31 +1,38 @@
 """Saúde da Pessoa com Ostomia e Cateterismo · FMS Apuí/AM"""
 from fastapi import APIRouter
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/saude-estomia", tags=["saude_estomia"])
 
-_PACIENTES = [
-    {"tipo": "Colostomia",           "n": 28, "pct": 37.3, "provisoria": 8,  "definitiva": 20, "motivo_principal": "Câncer colorretal", "status": "ok"},
-    {"tipo": "Urostomia",            "n": 12, "pct": 16.0, "provisoria": 3,  "definitiva": 9,  "motivo_principal": "Câncer de bexiga",  "status": "ok"},
-    {"tipo": "Ileostomia",           "n": 10, "pct": 13.3, "provisoria": 6,  "definitiva": 4,  "motivo_principal": "Doença de Crohn/retocolite", "status": "atencao"},
-    {"tipo": "Cateterismo vesical intermitente", "n": 18, "pct": 24.0, "provisoria": 0, "definitiva": 18, "motivo_principal": "Bexiga neurogênica/lesão medular", "status": "ok"},
-    {"tipo": "Traqueostomia",        "n": 7,  "pct": 9.3,  "provisoria": 2,  "definitiva": 5,  "motivo_principal": "Obstrução/AVC/TCE",  "status": "atencao"},
-]
+@lru_cache(maxsize=1)
+def _PACIENTES():
+    return [
+        {"tipo": "Colostomia",           "n": 28, "pct": 37.3, "provisoria": 8,  "definitiva": 20, "motivo_principal": "Câncer colorretal", "status": "ok"},
+        {"tipo": "Urostomia",            "n": 12, "pct": 16.0, "provisoria": 3,  "definitiva": 9,  "motivo_principal": "Câncer de bexiga",  "status": "ok"},
+        {"tipo": "Ileostomia",           "n": 10, "pct": 13.3, "provisoria": 6,  "definitiva": 4,  "motivo_principal": "Doença de Crohn/retocolite", "status": "atencao"},
+        {"tipo": "Cateterismo vesical intermitente", "n": 18, "pct": 24.0, "provisoria": 0, "definitiva": 18, "motivo_principal": "Bexiga neurogênica/lesão medular", "status": "ok"},
+        {"tipo": "Traqueostomia",        "n": 7,  "pct": 9.3,  "provisoria": 2,  "definitiva": 5,  "motivo_principal": "Obstrução/AVC/TCE",  "status": "atencao"},
+    ]
 
-_INSUMOS = [
-    {"insumo": "Bolsa coletora 1 peça — opaca",    "consumo_mes": 420, "estoque_atual": 840,  "meses_estoque": 2.0, "status": "atencao"},
-    {"insumo": "Bolsa coletora 2 peças — placa",   "consumo_mes": 180, "estoque_atual": 720,  "meses_estoque": 4.0, "status": "ok"},
-    {"insumo": "Bolsa urostomia",                   "consumo_mes": 72,  "estoque_atual": 288,  "meses_estoque": 4.0, "status": "ok"},
-    {"insumo": "Sonda uretral intermitente 14Fr",   "consumo_mes": 108, "estoque_atual": 108,  "meses_estoque": 1.0, "status": "critico"},
-    {"insumo": "Pasta protetora periostomia",       "consumo_mes": 50,  "estoque_atual": 100,  "meses_estoque": 2.0, "status": "atencao"},
-    {"insumo": "Filtro carvão ativado p/ bolsa",    "consumo_mes": 280, "estoque_atual": 560,  "meses_estoque": 2.0, "status": "atencao"},
-    {"insumo": "Cânula de traqueostomia (adulto)",  "consumo_mes": 14,  "estoque_atual": 42,   "meses_estoque": 3.0, "status": "ok"},
-]
+
+@lru_cache(maxsize=1)
+def _INSUMOS():
+    return [
+        {"insumo": "Bolsa coletora 1 peça — opaca",    "consumo_mes": 420, "estoque_atual": 840,  "meses_estoque": 2.0, "status": "atencao"},
+        {"insumo": "Bolsa coletora 2 peças — placa",   "consumo_mes": 180, "estoque_atual": 720,  "meses_estoque": 4.0, "status": "ok"},
+        {"insumo": "Bolsa urostomia",                   "consumo_mes": 72,  "estoque_atual": 288,  "meses_estoque": 4.0, "status": "ok"},
+        {"insumo": "Sonda uretral intermitente 14Fr",   "consumo_mes": 108, "estoque_atual": 108,  "meses_estoque": 1.0, "status": "critico"},
+        {"insumo": "Pasta protetora periostomia",       "consumo_mes": 50,  "estoque_atual": 100,  "meses_estoque": 2.0, "status": "atencao"},
+        {"insumo": "Filtro carvão ativado p/ bolsa",    "consumo_mes": 280, "estoque_atual": 560,  "meses_estoque": 2.0, "status": "atencao"},
+        {"insumo": "Cânula de traqueostomia (adulto)",  "consumo_mes": 14,  "estoque_atual": 42,   "meses_estoque": 3.0, "status": "ok"},
+    ]
+
 
 @router.get("/dashboard")
 async def dashboard():
-    total = sum(p["n"] for p in _PACIENTES)
-    criticos_insumo = sum(1 for i in _INSUMOS if i["status"] == "critico")
-    atencao_insumo  = sum(1 for i in _INSUMOS if i["status"] == "atencao")
+    total = sum(p["n"] for p in _PACIENTES())
+    criticos_insumo = sum(1 for i in _INSUMOS() if i["status"] == "critico")
+    atencao_insumo  = sum(1 for i in _INSUMOS() if i["status"] == "atencao")
     return {
         "pacientes_cadastrados": total,
         "novos_cadastros_mes": 4,

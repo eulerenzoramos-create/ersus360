@@ -1,21 +1,28 @@
 """Leishmaniose — LTA e LV · FMS Apuí/AM"""
 from fastapi import APIRouter
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/leishmaniose", tags=["leishmaniose"])
 
-_CASOS_LTA = [
-    {"forma": "Cutânea localizada",   "casos_ano": 28, "tratados": 26, "cura_pct": 89.3, "abandono": 2,  "efeito_adverso_grave": 0, "status": "atencao"},
-    {"forma": "Cutânea disseminada",  "casos_ano": 6,  "tratados": 6,  "cura_pct": 83.3, "abandono": 1,  "efeito_adverso_grave": 1, "status": "atencao"},
-    {"forma": "Mucosa",               "casos_ano": 4,  "tratados": 4,  "cura_pct": 75.0, "abandono": 0,  "efeito_adverso_grave": 2, "status": "critico"},
-    {"forma": "Cutâneomucosa",        "casos_ano": 2,  "tratados": 2,  "cura_pct": 50.0, "abandono": 0,  "efeito_adverso_grave": 1, "status": "critico"},
-]
+@lru_cache(maxsize=1)
+def _CASOS_LTA():
+    return [
+        {"forma": "Cutânea localizada",   "casos_ano": 28, "tratados": 26, "cura_pct": 89.3, "abandono": 2,  "efeito_adverso_grave": 0, "status": "atencao"},
+        {"forma": "Cutânea disseminada",  "casos_ano": 6,  "tratados": 6,  "cura_pct": 83.3, "abandono": 1,  "efeito_adverso_grave": 1, "status": "atencao"},
+        {"forma": "Mucosa",               "casos_ano": 4,  "tratados": 4,  "cura_pct": 75.0, "abandono": 0,  "efeito_adverso_grave": 2, "status": "critico"},
+        {"forma": "Cutâneomucosa",        "casos_ano": 2,  "tratados": 2,  "cura_pct": 50.0, "abandono": 0,  "efeito_adverso_grave": 1, "status": "critico"},
+    ]
 
-_MUNICIPIOS_PROCEDENCIA = [
-    {"municipio": "Apuí/AM (autóctone)",     "casos_lta": 28, "casos_lv": 2, "pct_total": 70.0},
-    {"municipio": "Humaitá/AM",              "casos_lta": 6,  "casos_lv": 0, "pct_total": 15.0},
-    {"municipio": "Manicoré/AM",             "casos_lta": 4,  "casos_lv": 1, "pct_total": 12.5},
-    {"municipio": "Outros/Ignorado",         "casos_lta": 2,  "casos_lv": 0, "pct_total": 5.0},
-]
+
+@lru_cache(maxsize=1)
+def _MUNICIPIOS_PROCEDENCIA():
+    return [
+        {"municipio": "Apuí/AM (autóctone)",     "casos_lta": 28, "casos_lv": 2, "pct_total": 70.0},
+        {"municipio": "Humaitá/AM",              "casos_lta": 6,  "casos_lv": 0, "pct_total": 15.0},
+        {"municipio": "Manicoré/AM",             "casos_lta": 4,  "casos_lv": 1, "pct_total": 12.5},
+        {"municipio": "Outros/Ignorado",         "casos_lta": 2,  "casos_lv": 0, "pct_total": 5.0},
+    ]
+
 
 @router.get("/dashboard")
 async def dashboard():

@@ -1,31 +1,38 @@
 """CAPS AD — Álcool e Drogas · FMS Apuí/AM"""
 from fastapi import APIRouter
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/caps-ad", tags=["caps_ad"])
 
-_SUBSTANCIAS = [
-    {"substancia": "Álcool",              "n": 148, "pct": 47.0, "acompanhamento_ativo": 132, "abandono_mes": 12, "status": "critico"},
-    {"substancia": "Cannabis",            "n": 64,  "pct": 20.3, "acompanhamento_ativo": 58,  "abandono_mes": 6,  "status": "atencao"},
-    {"substancia": "Crack/Pasta-base",    "n": 48,  "pct": 15.2, "acompanhamento_ativo": 42,  "abandono_mes": 9,  "status": "critico"},
-    {"substancia": "Benzodiazepínico",    "n": 28,  "pct": 8.9,  "acompanhamento_ativo": 26,  "abandono_mes": 2,  "status": "atencao"},
-    {"substancia": "Tabaco (dependência)","n": 18,  "pct": 5.7,  "acompanhamento_ativo": 16,  "abandono_mes": 1,  "status": "ok"},
-    {"substancia": "Outras drogas",       "n": 9,   "pct": 2.9,  "acompanhamento_ativo": 8,   "abandono_mes": 1,  "status": "atencao"},
-]
+@lru_cache(maxsize=1)
+def _SUBSTANCIAS():
+    return [
+        {"substancia": "Álcool",              "n": 148, "pct": 47.0, "acompanhamento_ativo": 132, "abandono_mes": 12, "status": "critico"},
+        {"substancia": "Cannabis",            "n": 64,  "pct": 20.3, "acompanhamento_ativo": 58,  "abandono_mes": 6,  "status": "atencao"},
+        {"substancia": "Crack/Pasta-base",    "n": 48,  "pct": 15.2, "acompanhamento_ativo": 42,  "abandono_mes": 9,  "status": "critico"},
+        {"substancia": "Benzodiazepínico",    "n": 28,  "pct": 8.9,  "acompanhamento_ativo": 26,  "abandono_mes": 2,  "status": "atencao"},
+        {"substancia": "Tabaco (dependência)","n": 18,  "pct": 5.7,  "acompanhamento_ativo": 16,  "abandono_mes": 1,  "status": "ok"},
+        {"substancia": "Outras drogas",       "n": 9,   "pct": 2.9,  "acompanhamento_ativo": 8,   "abandono_mes": 1,  "status": "atencao"},
+    ]
 
-_SERVICOS = [
-    {"servico": "Acolhimento/triagem",              "realizados_mes": 38, "profissional": "Assistente Social + Psicólogo", "status": "ok"},
-    {"servico": "Atendimento individual",           "realizados_mes": 284,"profissional": "Psicólogo + Médico Psiquiatra",  "status": "ok"},
-    {"servico": "Grupo terapêutico semanal",        "realizados_mes": 96, "profissional": "Psicólogo",                     "status": "ok"},
-    {"servico": "Grupo de familiares",              "realizados_mes": 48, "profissional": "Assistente Social",              "status": "ok"},
-    {"servico": "Oficina redução de danos",         "realizados_mes": 32, "profissional": "Psicólogo + Enfermeiro",         "status": "atencao"},
-    {"servico": "Visita domiciliar",                "realizados_mes": 24, "profissional": "Equipe multiprofissional",       "status": "atencao"},
-    {"servico": "Internação breve (leitos CAPS AD)","realizados_mes": 0,  "profissional": "N/A — sem leitos",              "status": "critico"},
-    {"servico": "Referência p/ comunidade terapêutica","realizados_mes": 4,"profissional": "Assistente Social",            "status": "atencao"},
-]
+
+@lru_cache(maxsize=1)
+def _SERVICOS():
+    return [
+        {"servico": "Acolhimento/triagem",              "realizados_mes": 38, "profissional": "Assistente Social + Psicólogo", "status": "ok"},
+        {"servico": "Atendimento individual",           "realizados_mes": 284,"profissional": "Psicólogo + Médico Psiquiatra",  "status": "ok"},
+        {"servico": "Grupo terapêutico semanal",        "realizados_mes": 96, "profissional": "Psicólogo",                     "status": "ok"},
+        {"servico": "Grupo de familiares",              "realizados_mes": 48, "profissional": "Assistente Social",              "status": "ok"},
+        {"servico": "Oficina redução de danos",         "realizados_mes": 32, "profissional": "Psicólogo + Enfermeiro",         "status": "atencao"},
+        {"servico": "Visita domiciliar",                "realizados_mes": 24, "profissional": "Equipe multiprofissional",       "status": "atencao"},
+        {"servico": "Internação breve (leitos CAPS AD)","realizados_mes": 0,  "profissional": "N/A — sem leitos",              "status": "critico"},
+        {"servico": "Referência p/ comunidade terapêutica","realizados_mes": 4,"profissional": "Assistente Social",            "status": "atencao"},
+    ]
+
 
 @router.get("/dashboard")
 async def dashboard():
-    total = sum(s["acompanhamento_ativo"] for s in _SUBSTANCIAS)
+    total = sum(s["acompanhamento_ativo"] for s in _SUBSTANCIAS())
     return {
         "pacientes_ativos": total,
         "novos_cadastros_mes": 22,

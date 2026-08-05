@@ -1,27 +1,34 @@
 """CEREST — Centro de Referência em Saúde do Trabalhador · FMS Apuí/AM"""
 from fastapi import APIRouter
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/cerest", tags=["cerest"])
 
-_AGRAVOS = [
-    {"agravo": "LER/DORT",                        "casos_novos": 8,  "em_acompanhamento": 42, "alta_reabilitacao": 4,  "afastados": 12, "cat_emitidas": 6,  "status": "atencao"},
-    {"agravo": "Acidente de trabalho grave",       "casos_novos": 3,  "em_acompanhamento": 12, "alta_reabilitacao": 2,  "afastados": 8,  "cat_emitidas": 3,  "status": "atencao"},
-    {"agravo": "Intoxicação por agrotóxico",       "casos_novos": 5,  "em_acompanhamento": 18, "alta_reabilitacao": 3,  "afastados": 4,  "cat_emitidas": 4,  "status": "critico"},
-    {"agravo": "Perda auditiva induzida por ruído","casos_novos": 4,  "em_acompanhamento": 28, "alta_reabilitacao": 2,  "afastados": 6,  "cat_emitidas": 2,  "status": "atencao"},
-    {"agravo": "Transtorno mental relacionado ao trabalho","casos_novos": 6,"em_acompanhamento": 22,"alta_reabilitacao": 3,"afastados": 14,"cat_emitidas": 5, "status": "critico"},
-    {"agravo": "Dermatose ocupacional",            "casos_novos": 2,  "em_acompanhamento": 8,  "alta_reabilitacao": 2,  "afastados": 2,  "cat_emitidas": 1,  "status": "ok"},
-    {"agravo": "Dorsalgia/lombalgia ocupacional",  "casos_novos": 7,  "em_acompanhamento": 36, "alta_reabilitacao": 4,  "afastados": 9,  "cat_emitidas": 5,  "status": "atencao"},
-]
+@lru_cache(maxsize=1)
+def _AGRAVOS():
+    return [
+        {"agravo": "LER/DORT",                        "casos_novos": 8,  "em_acompanhamento": 42, "alta_reabilitacao": 4,  "afastados": 12, "cat_emitidas": 6,  "status": "atencao"},
+        {"agravo": "Acidente de trabalho grave",       "casos_novos": 3,  "em_acompanhamento": 12, "alta_reabilitacao": 2,  "afastados": 8,  "cat_emitidas": 3,  "status": "atencao"},
+        {"agravo": "Intoxicação por agrotóxico",       "casos_novos": 5,  "em_acompanhamento": 18, "alta_reabilitacao": 3,  "afastados": 4,  "cat_emitidas": 4,  "status": "critico"},
+        {"agravo": "Perda auditiva induzida por ruído","casos_novos": 4,  "em_acompanhamento": 28, "alta_reabilitacao": 2,  "afastados": 6,  "cat_emitidas": 2,  "status": "atencao"},
+        {"agravo": "Transtorno mental relacionado ao trabalho","casos_novos": 6,"em_acompanhamento": 22,"alta_reabilitacao": 3,"afastados": 14,"cat_emitidas": 5, "status": "critico"},
+        {"agravo": "Dermatose ocupacional",            "casos_novos": 2,  "em_acompanhamento": 8,  "alta_reabilitacao": 2,  "afastados": 2,  "cat_emitidas": 1,  "status": "ok"},
+        {"agravo": "Dorsalgia/lombalgia ocupacional",  "casos_novos": 7,  "em_acompanhamento": 36, "alta_reabilitacao": 4,  "afastados": 9,  "cat_emitidas": 5,  "status": "atencao"},
+    ]
 
-_SETORES = [
-    {"setor": "Extrativismo mineral/madeireiro", "trabalhadores": 2840, "casos_mes": 12, "risco_predominante": "Acidente/agrotóxico", "status": "critico"},
-    {"setor": "Agropecuária/pequenos produtores", "trabalhadores": 1680, "casos_mes": 8,  "risco_predominante": "Intoxicação agrotóxico/LER","status": "critico"},
-    {"setor": "Serviço público municipal",        "trabalhadores": 1240, "casos_mes": 6,  "risco_predominante": "LER/DORT/TM",          "status": "atencao"},
-    {"setor": "Comércio local",                   "trabalhadores": 820,  "casos_mes": 4,  "risco_predominante": "LER/Dorsalgia",         "status": "atencao"},
-    {"setor": "Construção civil",                 "trabalhadores": 480,  "casos_mes": 5,  "risco_predominante": "Acidente grave",        "status": "atencao"},
-    {"setor": "Pesca artesanal/ribeirinha",       "trabalhadores": 640,  "casos_mes": 3,  "risco_predominante": "Acidente/PAIR",         "status": "atencao"},
-    {"setor": "Saúde (trabalhadores da saúde)",   "trabalhadores": 420,  "casos_mes": 4,  "risco_predominante": "TM/LER/biológico",      "status": "atencao"},
-]
+
+@lru_cache(maxsize=1)
+def _SETORES():
+    return [
+        {"setor": "Extrativismo mineral/madeireiro", "trabalhadores": 2840, "casos_mes": 12, "risco_predominante": "Acidente/agrotóxico", "status": "critico"},
+        {"setor": "Agropecuária/pequenos produtores", "trabalhadores": 1680, "casos_mes": 8,  "risco_predominante": "Intoxicação agrotóxico/LER","status": "critico"},
+        {"setor": "Serviço público municipal",        "trabalhadores": 1240, "casos_mes": 6,  "risco_predominante": "LER/DORT/TM",          "status": "atencao"},
+        {"setor": "Comércio local",                   "trabalhadores": 820,  "casos_mes": 4,  "risco_predominante": "LER/Dorsalgia",         "status": "atencao"},
+        {"setor": "Construção civil",                 "trabalhadores": 480,  "casos_mes": 5,  "risco_predominante": "Acidente grave",        "status": "atencao"},
+        {"setor": "Pesca artesanal/ribeirinha",       "trabalhadores": 640,  "casos_mes": 3,  "risco_predominante": "Acidente/PAIR",         "status": "atencao"},
+        {"setor": "Saúde (trabalhadores da saúde)",   "trabalhadores": 420,  "casos_mes": 4,  "risco_predominante": "TM/LER/biológico",      "status": "atencao"},
+    ]
+
 
 @router.get("/dashboard")
 async def dashboard():

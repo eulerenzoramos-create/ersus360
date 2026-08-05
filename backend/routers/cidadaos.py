@@ -21,26 +21,30 @@ from models import Municipio
 from models.pec_cadastro import Cidadao, Domicilio
 from models.visita_domiciliar import VisitaDomiciliar
 from routers.auth import get_current_user, UserOut
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/cidadaos", tags=["Cidadãos"])
 
 # ---------------------------------------------------------------------------
 # Dados demo — usados somente quando o banco está vazio (pré-integração PEC)
 # ---------------------------------------------------------------------------
-_DEMO_CIDADAOS = [
-    {"id": -1,  "nome": "Ana Clara Ferreira dos Santos",    "cns_mascarado": "***.***.***-01", "microarea": "MA-01", "origem_dado": "demo"},
-    {"id": -2,  "nome": "Benedito Souza Lima",              "cns_mascarado": "***.***.***-02", "microarea": "MA-01", "origem_dado": "demo"},
-    {"id": -3,  "nome": "Claudete Rodrigues da Silva",      "cns_mascarado": "***.***.***-03", "microarea": "MA-02", "origem_dado": "demo"},
-    {"id": -4,  "nome": "Davi Mendonça Barbosa",            "cns_mascarado": "***.***.***-04", "microarea": "MA-02", "origem_dado": "demo"},
-    {"id": -5,  "nome": "Edilene Alves Costa",              "cns_mascarado": "***.***.***-05", "microarea": "MA-03", "origem_dado": "demo"},
-    {"id": -6,  "nome": "Francisco Pereira Neto",           "cns_mascarado": "***.***.***-06", "microarea": "MA-03", "origem_dado": "demo"},
-    {"id": -7,  "nome": "Geralda Teixeira Moraes",          "cns_mascarado": "***.***.***-07", "microarea": "MA-04", "origem_dado": "demo"},
-    {"id": -8,  "nome": "Hélio Costa Monteiro",             "cns_mascarado": "***.***.***-08", "microarea": "MA-04", "origem_dado": "demo"},
-    {"id": -9,  "nome": "Ivanilsa Ramos Carvalho",          "cns_mascarado": "***.***.***-09", "microarea": "MA-RIO", "origem_dado": "demo"},
-    {"id": -10, "nome": "José Ribeiro Pantoja",             "cns_mascarado": "***.***.***-10", "microarea": "MA-RIO", "origem_dado": "demo"},
-    {"id": -11, "nome": "Katiane Figueiredo Nascimento",    "cns_mascarado": "***.***.***-11", "microarea": "MA-05", "origem_dado": "demo"},
-    {"id": -12, "nome": "Luiz Augusto Pinheiro",            "cns_mascarado": "***.***.***-12", "microarea": "MA-05", "origem_dado": "demo"},
-]
+@lru_cache(maxsize=1)
+def _DEMO_CIDADAOS():
+    return [
+        {"id": -1,  "nome": "Ana Clara Ferreira dos Santos",    "cns_mascarado": "***.***.***-01", "microarea": "MA-01", "origem_dado": "demo"},
+        {"id": -2,  "nome": "Benedito Souza Lima",              "cns_mascarado": "***.***.***-02", "microarea": "MA-01", "origem_dado": "demo"},
+        {"id": -3,  "nome": "Claudete Rodrigues da Silva",      "cns_mascarado": "***.***.***-03", "microarea": "MA-02", "origem_dado": "demo"},
+        {"id": -4,  "nome": "Davi Mendonça Barbosa",            "cns_mascarado": "***.***.***-04", "microarea": "MA-02", "origem_dado": "demo"},
+        {"id": -5,  "nome": "Edilene Alves Costa",              "cns_mascarado": "***.***.***-05", "microarea": "MA-03", "origem_dado": "demo"},
+        {"id": -6,  "nome": "Francisco Pereira Neto",           "cns_mascarado": "***.***.***-06", "microarea": "MA-03", "origem_dado": "demo"},
+        {"id": -7,  "nome": "Geralda Teixeira Moraes",          "cns_mascarado": "***.***.***-07", "microarea": "MA-04", "origem_dado": "demo"},
+        {"id": -8,  "nome": "Hélio Costa Monteiro",             "cns_mascarado": "***.***.***-08", "microarea": "MA-04", "origem_dado": "demo"},
+        {"id": -9,  "nome": "Ivanilsa Ramos Carvalho",          "cns_mascarado": "***.***.***-09", "microarea": "MA-RIO", "origem_dado": "demo"},
+        {"id": -10, "nome": "José Ribeiro Pantoja",             "cns_mascarado": "***.***.***-10", "microarea": "MA-RIO", "origem_dado": "demo"},
+        {"id": -11, "nome": "Katiane Figueiredo Nascimento",    "cns_mascarado": "***.***.***-11", "microarea": "MA-05", "origem_dado": "demo"},
+        {"id": -12, "nome": "Luiz Augusto Pinheiro",            "cns_mascarado": "***.***.***-12", "microarea": "MA-05", "origem_dado": "demo"},
+    ]
+
 
 _DEMO_VISITAS: dict[int, list[dict]] = {
     -1: [
@@ -139,7 +143,7 @@ async def visitas_do_cidadao(
 ):
     # Fallback demo: IDs negativos são cidadãos demo
     if cidadao_id < 0:
-        demo = next((c for c in _DEMO_CIDADAOS if c["id"] == cidadao_id), None)
+        demo = next((c for c in _DEMO_CIDADAOS() if c["id"] == cidadao_id), None)
         if not demo:
             raise HTTPException(status_code=404, detail="Cidadão demo não encontrado")
         return {

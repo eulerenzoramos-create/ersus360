@@ -3,27 +3,34 @@ from __future__ import annotations
 from datetime import date as _date
 from fastapi import APIRouter
 from services import sinan_service
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/arboviroses", tags=["arboviroses"])
 
-_SEMANAS = [
-    {"semana": "SE 01/26", "dengue_notif": 12, "dengue_conf": 8,  "zika_notif": 1, "chik_notif": 2, "dengue_grave": 0},
-    {"semana": "SE 04/26", "dengue_notif": 18, "dengue_conf": 12, "zika_notif": 0, "chik_notif": 3, "dengue_grave": 0},
-    {"semana": "SE 08/26", "dengue_notif": 28, "dengue_conf": 19, "zika_notif": 2, "chik_notif": 4, "dengue_grave": 1},
-    {"semana": "SE 12/26", "dengue_notif": 42, "dengue_conf": 31, "zika_notif": 2, "chik_notif": 6, "dengue_grave": 1},
-    {"semana": "SE 16/26", "dengue_notif": 56, "dengue_conf": 42, "zika_notif": 3, "chik_notif": 8, "dengue_grave": 2},
-    {"semana": "SE 20/26", "dengue_notif": 48, "dengue_conf": 36, "zika_notif": 2, "chik_notif": 7, "dengue_grave": 1},
-    {"semana": "SE 24/26", "dengue_notif": 38, "dengue_conf": 28, "zika_notif": 1, "chik_notif": 5, "dengue_grave": 1},
-]
+@lru_cache(maxsize=1)
+def _SEMANAS():
+    return [
+        {"semana": "SE 01/26", "dengue_notif": 12, "dengue_conf": 8,  "zika_notif": 1, "chik_notif": 2, "dengue_grave": 0},
+        {"semana": "SE 04/26", "dengue_notif": 18, "dengue_conf": 12, "zika_notif": 0, "chik_notif": 3, "dengue_grave": 0},
+        {"semana": "SE 08/26", "dengue_notif": 28, "dengue_conf": 19, "zika_notif": 2, "chik_notif": 4, "dengue_grave": 1},
+        {"semana": "SE 12/26", "dengue_notif": 42, "dengue_conf": 31, "zika_notif": 2, "chik_notif": 6, "dengue_grave": 1},
+        {"semana": "SE 16/26", "dengue_notif": 56, "dengue_conf": 42, "zika_notif": 3, "chik_notif": 8, "dengue_grave": 2},
+        {"semana": "SE 20/26", "dengue_notif": 48, "dengue_conf": 36, "zika_notif": 2, "chik_notif": 7, "dengue_grave": 1},
+        {"semana": "SE 24/26", "dengue_notif": 38, "dengue_conf": 28, "zika_notif": 1, "chik_notif": 5, "dengue_grave": 1},
+    ]
 
-_BAIRROS = [
-    {"bairro": "Centro",            "iip": 4.2,  "ib": 3.8,  "ito": 2.1,  "risco": "alto",   "status": "critico"},
-    {"bairro": "Nova Esperança",    "iip": 5.8,  "ib": 5.2,  "ito": 2.8,  "risco": "alto",   "status": "critico"},
-    {"bairro": "São José",          "iip": 3.4,  "ib": 3.0,  "ito": 1.8,  "risco": "alto",   "status": "critico"},
-    {"bairro": "Matupi (distrito)", "iip": 2.8,  "ib": 2.4,  "ito": 1.4,  "risco": "médio",  "status": "atencao"},
-    {"bairro": "Bairro novo/expansão","iip": 6.4,"ib": 5.8,  "ito": 3.2,  "risco": "alto",   "status": "critico"},
-    {"bairro": "Área rural/vilas",  "iip": 1.2,  "ib": 1.0,  "ito": 0.6,  "risco": "baixo",  "status": "ok"},
-]
+
+@lru_cache(maxsize=1)
+def _BAIRROS():
+    return [
+        {"bairro": "Centro",            "iip": 4.2,  "ib": 3.8,  "ito": 2.1,  "risco": "alto",   "status": "critico"},
+        {"bairro": "Nova Esperança",    "iip": 5.8,  "ib": 5.2,  "ito": 2.8,  "risco": "alto",   "status": "critico"},
+        {"bairro": "São José",          "iip": 3.4,  "ib": 3.0,  "ito": 1.8,  "risco": "alto",   "status": "critico"},
+        {"bairro": "Matupi (distrito)", "iip": 2.8,  "ib": 2.4,  "ito": 1.4,  "risco": "médio",  "status": "atencao"},
+        {"bairro": "Bairro novo/expansão","iip": 6.4,"ib": 5.8,  "ito": 3.2,  "risco": "alto",   "status": "critico"},
+        {"bairro": "Área rural/vilas",  "iip": 1.2,  "ib": 1.0,  "ito": 0.6,  "risco": "baixo",  "status": "ok"},
+    ]
+
 
 @router.get("/dashboard")
 async def dashboard():

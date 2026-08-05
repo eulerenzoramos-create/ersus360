@@ -7,6 +7,7 @@ import asyncio
 from datetime import date, datetime
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/financeiro", tags=["Financeiro"])
 
@@ -15,17 +16,20 @@ _ANO = 2026
 # ── Entidade (dados reais FNS / IBGE) ────────────────────────────────────────
 # Fonte: consultafns.saude.gov.br — FUNDO MUNICIPAL DE SAUDE DE APUI
 
-_ENTIDADE = {
-    "nome":              "FUNDO MUNICIPAL DE SAUDE DE APUI",
-    "cnpj":              "12.834.320/0001-26",
-    "ibge":              "130014",
-    "populacao":         21_781,
-    "ano_censo":         2025,
-    "prefeito":          "ANTONIO MARCOS MACIEL FERNANDES",
-    "data_gestao":       "01/01/2025",
-    "secretario":        "ROSANGELA MOTTER",
-    "presidente_conselho": "ALICE OLIVEIRA",
-}
+@lru_cache(maxsize=1)
+def _ENTIDADE():
+    return {
+        "nome":              "FUNDO MUNICIPAL DE SAUDE DE APUI",
+        "cnpj":              "12.834.320/0001-26",
+        "ibge":              "130014",
+        "populacao":         21_781,
+        "ano_censo":         2025,
+        "prefeito":          "ANTONIO MARCOS MACIEL FERNANDES",
+        "data_gestao":       "01/01/2025",
+        "secretario":        "ROSANGELA MOTTER",
+        "presidente_conselho": "ALICE OLIVEIRA",
+    }
+
 
 # ── Receitas reais FNS 2026 — Fonte: consultafns/#/detalhada/acao — APUÍ/AM ──
 # Todos os incentivos recebidos Jan–Jun 2026 (acumulado)
@@ -47,110 +51,119 @@ _FNS_VIGI =  25_936.00   # VIGI — Pagamento Vencimentos ACE
 
 _FNS_TOTAL_RECEBIDO = _FNS_AB_TOTAL + _FNS_MAC + _FNS_VIGI  # 957_851,90
 
-_RECEITAS = {
-    "orcamento_total":      18_540_000.0,
-    "fns_previsto":          6_890_000.0,
-    "fns_recebido":          _FNS_TOTAL_RECEBIDO,   # 957.851,90 real FNS Jan–Jun 2026
-    "municipio_proprio":     2_180_400.0,
-    "convenios_recebido":      420_000.0,
-    "emendas_recebido":        180_000.0,
-    "outros_recebido":         112_300.0,
-    "total_arrecadado":      _FNS_TOTAL_RECEBIDO + 2_180_400.0 + 420_000.0 + 180_000.0,
-}
+@lru_cache(maxsize=1)
+def _RECEITAS():
+    return {
+        "orcamento_total":      18_540_000.0,
+        "fns_previsto":          6_890_000.0,
+        "fns_recebido":          _FNS_TOTAL_RECEBIDO,   # 957.851,90 real FNS Jan–Jun 2026
+        "municipio_proprio":     2_180_400.0,
+        "convenios_recebido":      420_000.0,
+        "emendas_recebido":        180_000.0,
+        "outros_recebido":         112_300.0,
+        "total_arrecadado":      _FNS_TOTAL_RECEBIDO + 2_180_400.0 + 420_000.0 + 180_000.0,
+    }
+
 
 # ── Despesas / Execução ───────────────────────────────────────────────────────
 
-_DESPESAS = {
-    "dotacao_inicial":      18_540_000.0,
-    "dotacao_atualizada":   19_100_000.0,
-    "empenhado":             7_820_500.0,
-    "liquidado":             6_988_200.0,
-    "pago":                  6_845_200.0,
-    "a_pagar":                 143_000.0,
-    "a_liquidar":              832_300.0,
-}
+@lru_cache(maxsize=1)
+def _DESPESAS():
+    return {
+        "dotacao_inicial":      18_540_000.0,
+        "dotacao_atualizada":   19_100_000.0,
+        "empenhado":             7_820_500.0,
+        "liquidado":             6_988_200.0,
+        "pago":                  6_845_200.0,
+        "a_pagar":                 143_000.0,
+        "a_liquidar":              832_300.0,
+    }
+
 
 # ── Blocos de Financiamento FNS (valores reais 2026) ─────────────────────────
 # Fonte: consultafns.saude.gov.br/#/detalhada/acao — APUÍ/AM
 
-_BLOCOS = [
-    {
-        "bloco": "Atenção Primária — Novo Financiamento APS",
-        "codigo": "AB",
-        "cor": "#2563eb",
-        "previsto_ano":   1_239_144.0,   # estimativa anual (619.572 * 2 semestres)
-        "recebido_ano":     619_572.0,   # real FNS Jan–Jun 2026 (5 incentivos)
-        "empenhado":        495_000.0,
-        "liquidado":        446_000.0,
-        "pago":             412_000.0,
-        "pct_execucao":     66.5,
-        "ultima_parcela":   "Jun/2026",
-        "proxima_parcela":  "Jul/2026",
-        "sub_acoes": [
-            {"label": "ESF/EAP",          "valor": _FNS_AB_ESF_EAP},
-            {"label": "ACS",              "valor": _FNS_AB_ACS},
-            {"label": "Saúde Bucal",      "valor": _FNS_AB_SAUDE_BUCAL},
-            {"label": "Demais APS",       "valor": _FNS_AB_DEMAIS},
-            {"label": "eMulti",           "valor": _FNS_AB_EMULTI},
-        ],
-    },
-    {
-        "bloco": "Média e Alta Complexidade (MAC)",
-        "codigo": "MAC",
-        "cor": "#dc2626",
-        "previsto_ano":     624_687.80,  # estimativa anual (312k * 2 semestres)
-        "recebido_ano":     _FNS_MAC,    # real FNS Jan–Jun 2026
-        "empenhado":        248_000.0,
-        "liquidado":        216_000.0,
-        "pago":             196_800.0,
-        "pct_execucao":     63.0,
-        "ultima_parcela":   "2026-06",
-        "proxima_parcela":  "2026-07",
-        "obs": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
-    },
-    {
-        "bloco": "Vigilância em Saúde (VIGI)",
-        "codigo": "VIGI",
-        "cor": "#d97706",
-        "previsto_ano":      51_872.0,   # estimativa anual (25.9k * 2)
-        "recebido_ano":      25_936.0,   # real FNS
-        "empenhado":         20_000.0,
-        "liquidado":         18_000.0,
-        "pago":              16_500.0,
-        "pct_execucao":      63.6,
-        "ultima_parcela":   "2026-06",
-        "proxima_parcela":  "2026-07",
-        "obs": "PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS",
-    },
-    {
-        "bloco": "Assistência Farmacêutica (FAF)",
-        "codigo": "FAF",
-        "cor": "#7c3aed",
-        "previsto_ano":   1_200_000.0,
-        "recebido_ano":           0.0,   # SEM REPASSE EM 2026
-        "empenhado":              0.0,
-        "liquidado":              0.0,
-        "pago":                   0.0,
-        "pct_execucao":           0.0,
-        "ultima_parcela":   "—",
-        "proxima_parcela":  "Aguardando",
-        "obs": "SEM REPASSE EM 2026. ACESSE O SALDO.",
-    },
-    {
-        "bloco": "Gestão do SUS (GESSUS)",
-        "codigo": "GESSUS",
-        "cor": "#0891b2",
-        "previsto_ano":     550_000.0,
-        "recebido_ano":           0.0,   # SEM REPASSE EM 2026
-        "empenhado":              0.0,
-        "liquidado":              0.0,
-        "pago":                   0.0,
-        "pct_execucao":           0.0,
-        "ultima_parcela":   "—",
-        "proxima_parcela":  "Aguardando",
-        "obs": "SEM REPASSE EM 2026. ACESSE O SALDO.",
-    },
-]
+@lru_cache(maxsize=1)
+def _BLOCOS():
+    return [
+        {
+            "bloco": "Atenção Primária — Novo Financiamento APS",
+            "codigo": "AB",
+            "cor": "#2563eb",
+            "previsto_ano":   1_239_144.0,   # estimativa anual (619.572 * 2 semestres)
+            "recebido_ano":     619_572.0,   # real FNS Jan–Jun 2026 (5 incentivos)
+            "empenhado":        495_000.0,
+            "liquidado":        446_000.0,
+            "pago":             412_000.0,
+            "pct_execucao":     66.5,
+            "ultima_parcela":   "Jun/2026",
+            "proxima_parcela":  "Jul/2026",
+            "sub_acoes": [
+                {"label": "ESF/EAP",          "valor": _FNS_AB_ESF_EAP},
+                {"label": "ACS",              "valor": _FNS_AB_ACS},
+                {"label": "Saúde Bucal",      "valor": _FNS_AB_SAUDE_BUCAL},
+                {"label": "Demais APS",       "valor": _FNS_AB_DEMAIS},
+                {"label": "eMulti",           "valor": _FNS_AB_EMULTI},
+            ],
+        },
+        {
+            "bloco": "Média e Alta Complexidade (MAC)",
+            "codigo": "MAC",
+            "cor": "#dc2626",
+            "previsto_ano":     624_687.80,  # estimativa anual (312k * 2 semestres)
+            "recebido_ano":     _FNS_MAC,    # real FNS Jan–Jun 2026
+            "empenhado":        248_000.0,
+            "liquidado":        216_000.0,
+            "pago":             196_800.0,
+            "pct_execucao":     63.0,
+            "ultima_parcela":   "2026-06",
+            "proxima_parcela":  "2026-07",
+            "obs": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
+        },
+        {
+            "bloco": "Vigilância em Saúde (VIGI)",
+            "codigo": "VIGI",
+            "cor": "#d97706",
+            "previsto_ano":      51_872.0,   # estimativa anual (25.9k * 2)
+            "recebido_ano":      25_936.0,   # real FNS
+            "empenhado":         20_000.0,
+            "liquidado":         18_000.0,
+            "pago":              16_500.0,
+            "pct_execucao":      63.6,
+            "ultima_parcela":   "2026-06",
+            "proxima_parcela":  "2026-07",
+            "obs": "PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS",
+        },
+        {
+            "bloco": "Assistência Farmacêutica (FAF)",
+            "codigo": "FAF",
+            "cor": "#7c3aed",
+            "previsto_ano":   1_200_000.0,
+            "recebido_ano":           0.0,   # SEM REPASSE EM 2026
+            "empenhado":              0.0,
+            "liquidado":              0.0,
+            "pago":                   0.0,
+            "pct_execucao":           0.0,
+            "ultima_parcela":   "—",
+            "proxima_parcela":  "Aguardando",
+            "obs": "SEM REPASSE EM 2026. ACESSE O SALDO.",
+        },
+        {
+            "bloco": "Gestão do SUS (GESSUS)",
+            "codigo": "GESSUS",
+            "cor": "#0891b2",
+            "previsto_ano":     550_000.0,
+            "recebido_ano":           0.0,   # SEM REPASSE EM 2026
+            "empenhado":              0.0,
+            "liquidado":              0.0,
+            "pago":                   0.0,
+            "pct_execucao":           0.0,
+            "ultima_parcela":   "—",
+            "proxima_parcela":  "Aguardando",
+            "obs": "SEM REPASSE EM 2026. ACESSE O SALDO.",
+        },
+    ]
+
 
 # ── Repasses mensais por bloco (dados reais 2026) ────────────────────────────
 # MAC:     312.343,90 / 6 = ~52.057/mês
@@ -178,14 +191,17 @@ _REPASSE_POR_BLOCO_MES: dict[int, dict[str, float | None]] = {
     12: {"AB": None, "MAC": None, "VIGI": None, "FAF": None, "GESSUS": None},
 }
 
-_NOMES_MESES = ["","Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-                 "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+@lru_cache(maxsize=1)
+def _NOMES_MESES():
+    return ["","Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                     "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+
 
 def _blocos_para_mes(mes: int) -> list[dict]:
     """Retorna _BLOCOS com recebido_ano e pct_execucao ajustados para o mês."""
     vals = _REPASSE_POR_BLOCO_MES.get(mes, {})
     result = []
-    for b in _BLOCOS:
+    for b in _BLOCOS():
         cod = b["codigo"]
         rec_mes = vals.get(cod)
         entrada = dict(b)
@@ -208,109 +224,121 @@ def _blocos_para_mes(mes: int) -> list[dict]:
 _MES_PREVISTO = round(_FNS_TOTAL_RECEBIDO / 6, 0)  # ~121.188/mês
 _MES_RECEBIDO = round(_MES_PREVISTO - 20, 0)
 
-_REPASSES_MENSAIS = [
-    {"mes": "Jan/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
-    {"mes": "Fev/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
-    {"mes": "Mar/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
-    {"mes": "Abr/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
-    {"mes": "Mai/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
-    {"mes": "Jun/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
-    {"mes": "Jul/26", "previsto": _MES_PREVISTO, "recebido": None,           "diferenca": None},
-]
+@lru_cache(maxsize=1)
+def _REPASSES_MENSAIS():
+    return [
+        {"mes": "Jan/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
+        {"mes": "Fev/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
+        {"mes": "Mar/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
+        {"mes": "Abr/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
+        {"mes": "Mai/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
+        {"mes": "Jun/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
+        {"mes": "Jul/26", "previsto": _MES_PREVISTO, "recebido": None,           "diferenca": None},
+    ]
+
 
 # ── Empenhos pendentes ────────────────────────────────────────────────────────
 
-_EMPENHOS_PENDENTES = [
-    {"id": "2026NE001847", "credor": "UNIMED Manaus Coop.",           "objeto": "Serv. amb. MAC",       "valor": 48_200.0, "data": "2026-06-30", "bloco": "MAC",  "status": "a_liquidar"},
-    {"id": "2026NE001863", "credor": "Distribuidora Farmacêutica AM", "objeto": "Med. Componente Básico","valor": 31_400.0, "data": "2026-07-01", "bloco": "FAF",  "status": "a_liquidar"},
-    {"id": "2026NE001891", "credor": "Auto Peças do Norte Ltda",      "objeto": "Manutenção veículos",  "valor": 12_780.0, "data": "2026-06-28", "bloco": "AB",   "status": "a_pagar"},
-    {"id": "2026NE001902", "credor": "Lab. Rede Cerrado",             "objeto": "Exames diagnósticos",  "valor": 22_500.0, "data": "2026-07-05", "bloco": "MAC",  "status": "a_liquidar"},
-    {"id": "2026NE001918", "credor": "Cooperativa COOPAM",            "objeto": "Transporte sanitário", "valor": 18_300.0, "data": "2026-07-03", "bloco": "AB",   "status": "a_pagar"},
-]
+@lru_cache(maxsize=1)
+def _EMPENHOS_PENDENTES():
+    return [
+        {"id": "2026NE001847", "credor": "UNIMED Manaus Coop.",           "objeto": "Serv. amb. MAC",       "valor": 48_200.0, "data": "2026-06-30", "bloco": "MAC",  "status": "a_liquidar"},
+        {"id": "2026NE001863", "credor": "Distribuidora Farmacêutica AM", "objeto": "Med. Componente Básico","valor": 31_400.0, "data": "2026-07-01", "bloco": "FAF",  "status": "a_liquidar"},
+        {"id": "2026NE001891", "credor": "Auto Peças do Norte Ltda",      "objeto": "Manutenção veículos",  "valor": 12_780.0, "data": "2026-06-28", "bloco": "AB",   "status": "a_pagar"},
+        {"id": "2026NE001902", "credor": "Lab. Rede Cerrado",             "objeto": "Exames diagnósticos",  "valor": 22_500.0, "data": "2026-07-05", "bloco": "MAC",  "status": "a_liquidar"},
+        {"id": "2026NE001918", "credor": "Cooperativa COOPAM",            "objeto": "Transporte sanitário", "valor": 18_300.0, "data": "2026-07-03", "bloco": "AB",   "status": "a_pagar"},
+    ]
+
 
 # ── SIOPS ─────────────────────────────────────────────────────────────────────
 
-_SIOPS = {
-    "receita_total_saude":     12_700_000.0,
-    "despesa_saude":           12_700_000.0 * 0.1716,  # 17,16%
-    "pct_proprio_saude":       17.16,
-    "meta_minima":             15.0,
-    "conforme":                True,
-    "margem_seguranca":        2.16,
-    "historico": [
-        {"ano": 2023, "pct": 15.82, "conforme": True},
-        {"ano": 2024, "pct": 16.44, "conforme": True},
-        {"ano": 2025, "pct": 16.91, "conforme": True},
-        {"ano": 2026, "pct": 17.16, "conforme": True, "parcial": True},
-    ],
-}
+@lru_cache(maxsize=1)
+def _SIOPS():
+    return {
+        "receita_total_saude":     12_700_000.0,
+        "despesa_saude":           12_700_000.0 * 0.1716,  # 17,16%
+        "pct_proprio_saude":       17.16,
+        "meta_minima":             15.0,
+        "conforme":                True,
+        "margem_seguranca":        2.16,
+        "historico": [
+            {"ano": 2023, "pct": 15.82, "conforme": True},
+            {"ano": 2024, "pct": 16.44, "conforme": True},
+            {"ano": 2025, "pct": 16.91, "conforme": True},
+            {"ano": 2026, "pct": 17.16, "conforme": True, "parcial": True},
+        ],
+    }
+
 
 
 # ── Tabela FNS Detalhada por Ação (acumulado Jan–Jun 2026) ───────────────────
 # Fonte: consultafns.saude.gov.br/#/detalhada/acao — APUÍ/AM
 # Uma linha por incentivo com o total acumulado Jan–Jun 2026
 
-_FNS_ACOES = [
-    # ── Estruturação — sem repasse ────────────────────────────────────────────
-    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ASSISTÊNCIA FARMACÊUTICA", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
-     "portaria": "Portaria de Consolidação GM/MS nº 6/2017 — Bloco de Estruturação da Rede de Serviços Públicos de Saúde", "base_legal": "Lei nº 8.080/1990, art. 26; Dec. nº 7.508/2011", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0006_03_10_2017.html"},
-    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ATENÇÃO ESPECIALIZADA",    "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
-     "portaria": "Portaria de Consolidação GM/MS nº 6/2017 — Bloco de Estruturação da Rede de Serviços Públicos de Saúde", "base_legal": "Lei nº 8.080/1990, art. 26; Dec. nº 7.508/2011", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0006_03_10_2017.html"},
-    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",         "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
-     "portaria": "Portaria de Consolidação GM/MS nº 6/2017 — Bloco de Estruturação da Rede de Serviços Públicos de Saúde", "base_legal": "Lei nº 8.080/1990, art. 26; Dec. nº 7.508/2011", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0006_03_10_2017.html"},
-    {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "CORONAVÍRUS (COVID-19)",   "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
-     "portaria": "Lei nº 13.979/2020 — Medidas de enfrentamento da COVID-19", "base_legal": "Lei nº 13.979/2020; EC nº 109/2021", "link_portaria": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2020/lei/l13979.htm"},
-    # ── Manutenção — sem repasse ──────────────────────────────────────────────
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "APOIO FINANCEIRO EXTRAORDINÁRIO", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
-     "portaria": "Portaria GM/MS nº 204/2007 — Blocos de Financiamento do SUS (revogada pela Port. Cons. nº 6/2017)", "base_legal": "Lei nº 8.080/1990; Dec. nº 7.508/2011", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2007/prt0204_29_01_2007.html"},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ASSISTÊNCIA FARMACÊUTICA",        "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
-     "portaria": "Portaria GM/MS nº 3.992/2017 — Financiamento e transferência dos recursos federais para a Assistência Farmacêutica", "base_legal": "Lei nº 8.080/1990, art. 6º e 26; Dec. nº 7.508/2011", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prt3992_28_12_2017.html"},
-    # ── MAC ───────────────────────────────────────────────────────────────────
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO DE MÉDIA E ALTA COMPLEXIDADE AMBULATORIAL E HOSPITALAR",
-     "acao": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
-     "acao_detalhada": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
-     "valor_total": _FNS_MAC, "valor_desconto": 0.0, "valor_liquido": _FNS_MAC,
-     "portaria": "Portaria de Consolidação GM/MS nº 6/2017 — Bloco MAC (Atenção de Média e Alta Complexidade Ambulatorial e Hospitalar)", "base_legal": "Lei nº 8.080/1990, art. 26; Port. GM/MS nº 1.631/2015; Nota Técnica DAHU/MS", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0006_03_10_2017.html"},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO ESPECIALIZADA", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
-     "portaria": "Portaria de Consolidação GM/MS nº 6/2017 — Bloco MAC", "base_legal": "Lei nº 8.080/1990, art. 26; Dec. nº 7.508/2011", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0006_03_10_2017.html"},
-    # ── APS — Novo Financiamento (Portaria GM/MS 3.493/2024) ─────────────────
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
-     "acao": "INCENTIVO FINANCEIRO DA APS - ATENCAO A SAUDE BUCAL",
-     "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — ATENÇÃO À SAÚDE BUCAL",
-     "valor_total": _FNS_AB_SAUDE_BUCAL, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_SAUDE_BUCAL,
-     "portaria": "Portaria GM/MS nº 3.493, de 10 de abril de 2024 — Novo Financiamento da Atenção Primária à Saúde", "base_legal": "Lei nº 8.080/1990, art. 198, §1º; Dec. nº 7.508/2011; Port. GM/MS nº 3.493/2024, Anexo III", "link_portaria": "https://www.in.gov.br/en/web/dou/-/portaria-gm/ms-n-3.493-de-10-de-abril-de-2024"},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
-     "acao": "INCENTIVO FINANCEIRO DA APS - EQUIPES DE SAÚDE DA FAMÍLIA/ESF E EQUIPES DE ATENÇÃO PRIMÁRIA/EAP",
-     "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — EQUIPES DE SAÚDE DA FAMÍLIA/ESF E EQUIPES DE ATENÇÃO PRIMÁRIA/EAP",
-     "valor_total": _FNS_AB_ESF_EAP, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_ESF_EAP,
-     "portaria": "Portaria GM/MS nº 3.493, de 10 de abril de 2024 — Novo Financiamento da Atenção Primária à Saúde", "base_legal": "Lei nº 8.080/1990, art. 198, §1º; Dec. nº 7.508/2011; Port. GM/MS nº 3.493/2024, Anexos I e II", "link_portaria": "https://www.in.gov.br/en/web/dou/-/portaria-gm/ms-n-3.493-de-10-de-abril-de-2024"},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
-     "acao": "INCENTIVO FINANCEIRO DA APS - DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA ATENÇÃO PRIMÁRIA",
-     "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA ATENÇÃO PRIMÁRIA À SAÚDE",
-     "valor_total": _FNS_AB_DEMAIS, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_DEMAIS,
-     "portaria": "Portaria GM/MS nº 3.493, de 10 de abril de 2024 — Novo Financiamento da Atenção Primária à Saúde", "base_legal": "Lei nº 8.080/1990, art. 198, §1º; Dec. nº 7.508/2011; Port. GM/MS nº 3.493/2024, Anexo IV", "link_portaria": "https://www.in.gov.br/en/web/dou/-/portaria-gm/ms-n-3.493-de-10-de-abril-de-2024"},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
-     "acao": "INCENTIVO FINANCEIRO DA APS - EQUIPES MULTIPROFISSIONAIS - EMULTI",
-     "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — EQUIPES MULTIPROFISSIONAIS (eMulti)",
-     "valor_total": _FNS_AB_EMULTI, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_EMULTI,
-     "portaria": "Portaria GM/MS nº 635, de 22 de maio de 2023 — Equipes Multiprofissionais (eMulti) | Portaria GM/MS nº 3.493/2024", "base_legal": "Lei nº 8.080/1990, art. 198, §1º; Port. GM/MS nº 635/2023; Port. GM/MS nº 3.493/2024, Anexo V", "link_portaria": "https://www.in.gov.br/en/web/dou/-/portaria-gm/ms-n-635-de-22-de-maio-de-2023"},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
-     "acao": "AGENTES COMUNITÁRIOS DE SAÚDE",
-     "acao_detalhada": "AGENTES COMUNITÁRIOS DE SAÚDE — INCENTIVO FINANCEIRO APS",
-     "valor_total": _FNS_AB_ACS, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_ACS,
-     "portaria": "Portaria GM/MS nº 3.493, de 10 de abril de 2024 — Novo Financiamento da Atenção Primária à Saúde", "base_legal": "Lei nº 11.350/2006 (ACS e ACE); Port. GM/MS nº 3.493/2024, Anexo VI; Dec. nº 7.508/2011", "link_portaria": "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2006/lei/l11350.htm"},
-    # ── COVID / GESSUS — sem repasse ─────────────────────────────────────────
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "CORONAVÍRUS (COVID-19)", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
-     "portaria": "Lei nº 13.979/2020 — Medidas de enfrentamento da emergência de saúde pública de importância internacional decorrente do coronavírus", "base_legal": "Lei nº 13.979/2020; EC nº 109/2021 (emergência fiscal)", "link_portaria": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2020/lei/l13979.htm"},
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "GESTÃO DO SUS",           "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
-     "portaria": "Portaria de Consolidação GM/MS nº 6/2017 — Bloco de Gestão do SUS", "base_legal": "Lei nº 8.080/1990; Dec. nº 7.508/2011; Port. GM/MS nº 204/2007 (revogada)", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0006_03_10_2017.html"},
-    # ── VIGI ──────────────────────────────────────────────────────────────────
-    {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "VIGILÂNCIA EM SAÚDE",
-     "acao": "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS",
-     "acao_detalhada": "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS",
-     "valor_total": _FNS_VIGI, "valor_desconto": 0.0, "valor_liquido": _FNS_VIGI,
-     "portaria": "Lei nº 11.350/2006 — Agentes de Combate às Endemias (ACE) | Port. GM/MS nº 1.378/2013 — Vigilância em Saúde", "base_legal": "Lei nº 11.350/2006, art. 11; Port. GM/MS nº 1.378/2013; Dec. nº 7.508/2011", "link_portaria": "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2006/lei/l11350.htm"},
-]
+@lru_cache(maxsize=1)
+def _FNS_ACOES():
+    return [
+        # ── Estruturação — sem repasse ────────────────────────────────────────────
+        {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ASSISTÊNCIA FARMACÊUTICA", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
+         "portaria": "Portaria de Consolidação GM/MS nº 6/2017 — Bloco de Estruturação da Rede de Serviços Públicos de Saúde", "base_legal": "Lei nº 8.080/1990, art. 26; Dec. nº 7.508/2011", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0006_03_10_2017.html"},
+        {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ATENÇÃO ESPECIALIZADA",    "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
+         "portaria": "Portaria de Consolidação GM/MS nº 6/2017 — Bloco de Estruturação da Rede de Serviços Públicos de Saúde", "base_legal": "Lei nº 8.080/1990, art. 26; Dec. nº 7.508/2011", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0006_03_10_2017.html"},
+        {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",         "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
+         "portaria": "Portaria de Consolidação GM/MS nº 6/2017 — Bloco de Estruturação da Rede de Serviços Públicos de Saúde", "base_legal": "Lei nº 8.080/1990, art. 26; Dec. nº 7.508/2011", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0006_03_10_2017.html"},
+        {"bloco": "Estruturação da Rede de Serviços Públicos de Saúde", "grupo": "CORONAVÍRUS (COVID-19)",   "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
+         "portaria": "Lei nº 13.979/2020 — Medidas de enfrentamento da COVID-19", "base_legal": "Lei nº 13.979/2020; EC nº 109/2021", "link_portaria": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2020/lei/l13979.htm"},
+        # ── Manutenção — sem repasse ──────────────────────────────────────────────
+        {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "APOIO FINANCEIRO EXTRAORDINÁRIO", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
+         "portaria": "Portaria GM/MS nº 204/2007 — Blocos de Financiamento do SUS (revogada pela Port. Cons. nº 6/2017)", "base_legal": "Lei nº 8.080/1990; Dec. nº 7.508/2011", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2007/prt0204_29_01_2007.html"},
+        {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ASSISTÊNCIA FARMACÊUTICA",        "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
+         "portaria": "Portaria GM/MS nº 3.992/2017 — Financiamento e transferência dos recursos federais para a Assistência Farmacêutica", "base_legal": "Lei nº 8.080/1990, art. 6º e 26; Dec. nº 7.508/2011", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prt3992_28_12_2017.html"},
+        # ── MAC ───────────────────────────────────────────────────────────────────
+        {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO DE MÉDIA E ALTA COMPLEXIDADE AMBULATORIAL E HOSPITALAR",
+         "acao": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
+         "acao_detalhada": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
+         "valor_total": _FNS_MAC, "valor_desconto": 0.0, "valor_liquido": _FNS_MAC,
+         "portaria": "Portaria de Consolidação GM/MS nº 6/2017 — Bloco MAC (Atenção de Média e Alta Complexidade Ambulatorial e Hospitalar)", "base_legal": "Lei nº 8.080/1990, art. 26; Port. GM/MS nº 1.631/2015; Nota Técnica DAHU/MS", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0006_03_10_2017.html"},
+        {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO ESPECIALIZADA", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
+         "portaria": "Portaria de Consolidação GM/MS nº 6/2017 — Bloco MAC", "base_legal": "Lei nº 8.080/1990, art. 26; Dec. nº 7.508/2011", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0006_03_10_2017.html"},
+        # ── APS — Novo Financiamento (Portaria GM/MS 3.493/2024) ─────────────────
+        {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+         "acao": "INCENTIVO FINANCEIRO DA APS - ATENCAO A SAUDE BUCAL",
+         "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — ATENÇÃO À SAÚDE BUCAL",
+         "valor_total": _FNS_AB_SAUDE_BUCAL, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_SAUDE_BUCAL,
+         "portaria": "Portaria GM/MS nº 3.493, de 10 de abril de 2024 — Novo Financiamento da Atenção Primária à Saúde", "base_legal": "Lei nº 8.080/1990, art. 198, §1º; Dec. nº 7.508/2011; Port. GM/MS nº 3.493/2024, Anexo III", "link_portaria": "https://www.in.gov.br/en/web/dou/-/portaria-gm/ms-n-3.493-de-10-de-abril-de-2024"},
+        {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+         "acao": "INCENTIVO FINANCEIRO DA APS - EQUIPES DE SAÚDE DA FAMÍLIA/ESF E EQUIPES DE ATENÇÃO PRIMÁRIA/EAP",
+         "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — EQUIPES DE SAÚDE DA FAMÍLIA/ESF E EQUIPES DE ATENÇÃO PRIMÁRIA/EAP",
+         "valor_total": _FNS_AB_ESF_EAP, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_ESF_EAP,
+         "portaria": "Portaria GM/MS nº 3.493, de 10 de abril de 2024 — Novo Financiamento da Atenção Primária à Saúde", "base_legal": "Lei nº 8.080/1990, art. 198, §1º; Dec. nº 7.508/2011; Port. GM/MS nº 3.493/2024, Anexos I e II", "link_portaria": "https://www.in.gov.br/en/web/dou/-/portaria-gm/ms-n-3.493-de-10-de-abril-de-2024"},
+        {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+         "acao": "INCENTIVO FINANCEIRO DA APS - DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA ATENÇÃO PRIMÁRIA",
+         "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — DEMAIS PROGRAMAS, SERVIÇOS E EQUIPES DA ATENÇÃO PRIMÁRIA À SAÚDE",
+         "valor_total": _FNS_AB_DEMAIS, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_DEMAIS,
+         "portaria": "Portaria GM/MS nº 3.493, de 10 de abril de 2024 — Novo Financiamento da Atenção Primária à Saúde", "base_legal": "Lei nº 8.080/1990, art. 198, §1º; Dec. nº 7.508/2011; Port. GM/MS nº 3.493/2024, Anexo IV", "link_portaria": "https://www.in.gov.br/en/web/dou/-/portaria-gm/ms-n-3.493-de-10-de-abril-de-2024"},
+        {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+         "acao": "INCENTIVO FINANCEIRO DA APS - EQUIPES MULTIPROFISSIONAIS - EMULTI",
+         "acao_detalhada": "INCENTIVO FINANCEIRO DA APS — EQUIPES MULTIPROFISSIONAIS (eMulti)",
+         "valor_total": _FNS_AB_EMULTI, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_EMULTI,
+         "portaria": "Portaria GM/MS nº 635, de 22 de maio de 2023 — Equipes Multiprofissionais (eMulti) | Portaria GM/MS nº 3.493/2024", "base_legal": "Lei nº 8.080/1990, art. 198, §1º; Port. GM/MS nº 635/2023; Port. GM/MS nº 3.493/2024, Anexo V", "link_portaria": "https://www.in.gov.br/en/web/dou/-/portaria-gm/ms-n-635-de-22-de-maio-de-2023"},
+        {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "ATENÇÃO PRIMÁRIA",
+         "acao": "AGENTES COMUNITÁRIOS DE SAÚDE",
+         "acao_detalhada": "AGENTES COMUNITÁRIOS DE SAÚDE — INCENTIVO FINANCEIRO APS",
+         "valor_total": _FNS_AB_ACS, "valor_desconto": 0.0, "valor_liquido": _FNS_AB_ACS,
+         "portaria": "Portaria GM/MS nº 3.493, de 10 de abril de 2024 — Novo Financiamento da Atenção Primária à Saúde", "base_legal": "Lei nº 11.350/2006 (ACS e ACE); Port. GM/MS nº 3.493/2024, Anexo VI; Dec. nº 7.508/2011", "link_portaria": "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2006/lei/l11350.htm"},
+        # ── COVID / GESSUS — sem repasse ─────────────────────────────────────────
+        {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "CORONAVÍRUS (COVID-19)", "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
+         "portaria": "Lei nº 13.979/2020 — Medidas de enfrentamento da emergência de saúde pública de importância internacional decorrente do coronavírus", "base_legal": "Lei nº 13.979/2020; EC nº 109/2021 (emergência fiscal)", "link_portaria": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2020/lei/l13979.htm"},
+        {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "GESTÃO DO SUS",           "acao": "", "acao_detalhada": "SEM REPASSE EM 2026", "valor_total": None, "valor_desconto": None, "valor_liquido": None,
+         "portaria": "Portaria de Consolidação GM/MS nº 6/2017 — Bloco de Gestão do SUS", "base_legal": "Lei nº 8.080/1990; Dec. nº 7.508/2011; Port. GM/MS nº 204/2007 (revogada)", "link_portaria": "https://bvsms.saude.gov.br/bvs/saudelegis/gm/2017/prc0006_03_10_2017.html"},
+        # ── VIGI ──────────────────────────────────────────────────────────────────
+        {"bloco": "Manutenção das Ações e Serviços Públicos de Saúde", "grupo": "VIGILÂNCIA EM SAÚDE",
+         "acao": "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS",
+         "acao_detalhada": "TRANSFERÊNCIA AOS ENTES FEDERATIVOS PARA O PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS",
+         "valor_total": _FNS_VIGI, "valor_desconto": 0.0, "valor_liquido": _FNS_VIGI,
+         "portaria": "Lei nº 11.350/2006 — Agentes de Combate às Endemias (ACE) | Port. GM/MS nº 1.378/2013 — Vigilância em Saúde", "base_legal": "Lei nº 11.350/2006, art. 11; Port. GM/MS nº 1.378/2013; Dec. nº 7.508/2011", "link_portaria": "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2006/lei/l11350.htm"},
+    ]
+
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
@@ -325,32 +353,32 @@ async def painel_financeiro(
 
     # Alertas financeiros automáticos
     alertas = []
-    for b in _BLOCOS:
+    for b in _BLOCOS():
         if b["pct_execucao"] < 35:
             alertas.append({"nivel": "CRITICO", "bloco": b["codigo"], "msg": f"{b['bloco']}: execução {b['pct_execucao']}% — risco de devolução"})
         elif b["pct_execucao"] < 55:
             alertas.append({"nivel": "AVISO", "bloco": b["codigo"], "msg": f"{b['bloco']}: execução {b['pct_execucao']}% — abaixo do esperado"})
 
-    if _EMPENHOS_PENDENTES:
-        total_pendente = sum(e["valor"] for e in _EMPENHOS_PENDENTES if e["status"] == "a_liquidar")
+    if _EMPENHOS_PENDENTES():
+        total_pendente = sum(e["valor"] for e in _EMPENHOS_PENDENTES() if e["status"] == "a_liquidar")
         if total_pendente > 50_000:
             alertas.append({"nivel": "AVISO", "bloco": "—", "msg": f"R$ {total_pendente:,.0f} em empenhos aguardando liquidação"})
 
-    pct_exec_geral = round(_DESPESAS["pago"] / _RECEITAS["orcamento_total"] * 100, 1)
-    pct_arrecadacao = round(_RECEITAS["total_arrecadado"] / (_RECEITAS["fns_previsto"] + _RECEITAS["municipio_proprio"] + _RECEITAS["convenios_recebido"]) * 100, 1)
+    pct_exec_geral = round(_DESPESAS()["pago"] / _RECEITAS()["orcamento_total"] * 100, 1)
+    pct_arrecadacao = round(_RECEITAS()["total_arrecadado"] / (_RECEITAS()["fns_previsto"] + _RECEITAS()["municipio_proprio"] + _RECEITAS()["convenios_recebido"]) * 100, 1)
 
     return {
         "municipio":        "Apuí",
         "uf":               "AM",
-        "ibge":             _ENTIDADE["ibge"],
-        "cnpj":             _ENTIDADE["cnpj"],
-        "populacao":        _ENTIDADE["populacao"],
-        "prefeito":         _ENTIDADE["prefeito"],
-        "secretario":       _ENTIDADE["secretario"],
-        "presidente_conselho": _ENTIDADE["presidente_conselho"],
+        "ibge":             _ENTIDADE()["ibge"],
+        "cnpj":             _ENTIDADE()["cnpj"],
+        "populacao":        _ENTIDADE()["populacao"],
+        "prefeito":         _ENTIDADE()["prefeito"],
+        "secretario":       _ENTIDADE()["secretario"],
+        "presidente_conselho": _ENTIDADE()["presidente_conselho"],
         "ano":              ano,
         "mes":              mes,
-        "mes_referencia":   f"{_NOMES_MESES[mes]}/{ano}" if mes else "Julho/2026",
+        "mes_referencia":   f"{_NOMES_MESES()[mes]}/{ano}" if mes else "Julho/2026",
         "blocos_mes":       _blocos_para_mes(mes) if mes else [],
         "fns_total_recebido": _FNS_TOTAL_RECEBIDO,
         "fonte_fns":        "consultafns.saude.gov.br/#/detalhada/acao",
@@ -367,10 +395,10 @@ async def painel_financeiro(
         "kpis": {
             "pct_execucao_geral":  pct_exec_geral,
             "pct_arrecadacao":     pct_arrecadacao,
-            "saldo_disponivel":    round(_RECEITAS["total_arrecadado"] - _DESPESAS["pago"], 2),
-            "siops_conforme":      _SIOPS["conforme"],
-            "total_empenhos_pendentes": len(_EMPENHOS_PENDENTES),
-            "valor_pendente_liquidar": sum(e["valor"] for e in _EMPENHOS_PENDENTES if e["status"] == "a_liquidar"),
+            "saldo_disponivel":    round(_RECEITAS()["total_arrecadado"] - _DESPESAS()["pago"], 2),
+            "siops_conforme":      _SIOPS()["conforme"],
+            "total_empenhos_pendentes": len(_EMPENHOS_PENDENTES()),
+            "valor_pendente_liquidar": sum(e["valor"] for e in _EMPENHOS_PENDENTES() if e["status"] == "a_liquidar"),
         },
 
         "fonte": "referencia",
@@ -379,10 +407,13 @@ async def painel_financeiro(
 
 _FNS_BASE = "https://consultafns.saude.gov.br/recursos"
 
-_MESES_NOME_NUM = {
-    "janeiro":1,"fevereiro":2,"março":3,"marco":3,"abril":4,"maio":5,"junho":6,
-    "julho":7,"agosto":8,"setembro":9,"outubro":10,"novembro":11,"dezembro":12,
-}
+@lru_cache(maxsize=1)
+def _MESES_NOME_NUM():
+    return {
+        "janeiro":1,"fevereiro":2,"março":3,"marco":3,"abril":4,"maio":5,"junho":6,
+        "julho":7,"agosto":8,"setembro":9,"outubro":10,"novembro":11,"dezembro":12,
+    }
+
 
 def _norm(s: str) -> str:
     import unicodedata
@@ -394,7 +425,7 @@ def _mes_num(mes_str: str) -> str:
         return ""
     if mes_str.isdigit():
         return mes_str
-    return str(_MESES_NOME_NUM.get(_norm(mes_str).lower(), ""))
+    return str(_MESES_NOME_NUM().get(_norm(mes_str).lower(), ""))
 
 
 @router.get("/fns-acoes")
@@ -600,4 +631,4 @@ async def repasses_fns(_: UserOut = Depends(get_current_user)):
 
 @router.get("/empenhos")
 async def empenhos_pendentes(_: UserOut = Depends(get_current_user)):
-    return {"empenhos": _EMPENHOS_PENDENTES, "total": len(_EMPENHOS_PENDENTES), "fonte": "referencia"}
+    return {"empenhos": _EMPENHOS_PENDENTES, "total": len(_EMPENHOS_PENDENTES()), "fonte": "referencia"}

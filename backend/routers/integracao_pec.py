@@ -26,14 +26,18 @@ from services.pec.cadastros import (
 )
 from services.pec.auditoria import PecAuditService
 from services.pec.exceptions import PecIntegracaoDesativadaError
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/integracao-pec", tags=["Integração PEC e-SUS APS"])
 
-_ADMINS_INTEGRACAO = {"superadmin", "admin", "gestor"}
+@lru_cache(maxsize=1)
+def _ADMINS_INTEGRACAO():
+    return {"superadmin", "admin", "gestor"}
+
 
 
 def _exigir_admin_integracao(current_user: UserOut) -> None:
-    if current_user.role not in _ADMINS_INTEGRACAO:
+    if current_user.role not in _ADMINS_INTEGRACAO():
         raise HTTPException(status_code=403, detail="Acesso negado — somente administradores da integração")
 
 

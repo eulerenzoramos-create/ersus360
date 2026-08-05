@@ -7,6 +7,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
+from functools import lru_cache
 from services.esus_pec import (
     status_pec, visitas_domiciliares,
     cadastros_individuais, cadastros_domiciliares, cidadaos
@@ -89,7 +90,10 @@ _ACS: list[dict] = [
     {"id": 65, "nome": "Neusa Ferreira Rodrigues",     "microarea": "MA-65", "equipe": "AREAL", "tipo": "eRibeirinha",   "ativo": True,  "familias_cadastradas":  51, "familias_meta":  80},
 ]
 
-_MES_REF = {"mes": 7, "ano": 2026, "label": "Julho/2026"}
+@lru_cache(maxsize=1)
+def _MES_REF():
+    return {"mes": 7, "ano": 2026, "label": "Julho/2026"}
+
 
 _VISITAS: list[dict] = [
     # ESF I — alta performance urbana
@@ -237,78 +241,81 @@ _INDICADORES_ACS: list[dict] = [
     {"acs_id": 65, "gestantes_ativas":  2, "criancas_lt2":  3, "has": 10, "dm":  2, "idosos":  6},
 ]
 
-_MICROAREAS = [
-    # ESF I — Urbana Centro
-    {"codigo": "MA-01", "nome": "Centro",                    "zona": "urbana", "equipe": "KENNEDY", "tipo": "eSF"},
-    {"codigo": "MA-02", "nome": "Bairro Novo",               "zona": "urbana", "equipe": "KENNEDY", "tipo": "eSF"},
-    {"codigo": "MA-03", "nome": "Santo Antônio",             "zona": "urbana", "equipe": "KENNEDY", "tipo": "eSF"},
-    {"codigo": "MA-04", "nome": "Industrial",                "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
-    {"codigo": "MA-05", "nome": "Jardim Europa",             "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
-    {"codigo": "MA-06", "nome": "São Raimundo",              "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
-    {"codigo": "MA-07", "nome": "Aeroporto",                 "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
-    {"codigo": "MA-08", "nome": "Canaranas",                 "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
-    {"codigo": "MA-09", "nome": "Cajueiro",                  "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
-    {"codigo": "MA-10", "nome": "Novo Horizonte",            "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
-    {"codigo": "MA-11", "nome": "Cidade Nova",               "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
-    {"codigo": "MA-12", "nome": "Nova Esperança",            "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
-    {"codigo": "MA-13", "nome": "Baixa Verde",               "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
-    {"codigo": "MA-14", "nome": "João Paulo II",             "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
-    {"codigo": "MA-15", "nome": "Santa Luzia",               "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
-    # ESF II — Urbana Expansão / Periurbana
-    {"codigo": "MA-16", "nome": "Vila Nova",                 "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
-    {"codigo": "MA-17", "nome": "Bela Vista",                "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
-    {"codigo": "MA-18", "nome": "Parque das Flores",         "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
-    {"codigo": "MA-19", "nome": "Residencial Sul",           "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
-    {"codigo": "MA-20", "nome": "Setor Leste",               "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
-    {"codigo": "MA-21", "nome": "Conj. Habitacional",        "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
-    {"codigo": "MA-22", "nome": "Expansão Norte",            "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
-    {"codigo": "MA-23", "nome": "Setor Oeste",               "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
-    {"codigo": "MA-24", "nome": "Jardim Primavera",          "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
-    {"codigo": "MA-25", "nome": "Dom Pedro I",               "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
-    {"codigo": "MA-26", "nome": "Boa Vista",                 "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
-    {"codigo": "MA-27", "nome": "Jardim Tropical",           "zona": "periurbana", "equipe": "JUMA", "tipo": "eSF"},
-    {"codigo": "MA-28", "nome": "Setor B",                   "zona": "periurbana", "equipe": "JUMA", "tipo": "eSF"},
-    {"codigo": "MA-29", "nome": "Nova Apuí",                 "zona": "periurbana", "equipe": "ESTRADA NOVA", "tipo": "eSF"},
-    {"codigo": "MA-30", "nome": "Bairro do Porto",           "zona": "periurbana", "equipe": "ESTRADA NOVA", "tipo": "eSF"},
-    # ESF III — Rural Próxima
-    {"codigo": "MA-31", "nome": "Rio Apuí",                  "zona": "rural", "equipe": "ESTRADA NOVA", "tipo": "eSF"},
-    {"codigo": "MA-32", "nome": "Setor Norte",               "zona": "rural", "equipe": "ESTRADA NOVA", "tipo": "eSF"},
-    {"codigo": "MA-33", "nome": "Ramal do Cupim",            "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
-    {"codigo": "MA-34", "nome": "Assentamento Trop. Úm.",    "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
-    {"codigo": "MA-35", "nome": "Ramal km 20",               "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
-    {"codigo": "MA-36", "nome": "Comunidade São João",       "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
-    {"codigo": "MA-37", "nome": "Ramal do Maracajá",         "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
-    {"codigo": "MA-38", "nome": "Comunidade Boa Esperança",  "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
-    {"codigo": "MA-39", "nome": "Ramal 30 Sul",              "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
-    {"codigo": "MA-40", "nome": "Ramal Tucumã",              "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
-    {"codigo": "MA-41", "nome": "Comunidade São Francisco",  "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
-    {"codigo": "MA-42", "nome": "Ramal do Castanhal",        "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
-    {"codigo": "MA-43", "nome": "Assentamento Terra Nova",   "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
-    {"codigo": "MA-44", "nome": "Ramal 40",                  "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
-    {"codigo": "MA-45", "nome": "Comunidade do Pedral",      "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
-    # ESF IV — Rural Ramais Distantes
-    {"codigo": "MA-46", "nome": "Ramal Guaraná",             "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
-    {"codigo": "MA-47", "nome": "Assentamento Camucuim",     "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
-    {"codigo": "MA-48", "nome": "Comunidade São Paulo",      "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
-    {"codigo": "MA-49", "nome": "Ramal 50",                  "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
-    {"codigo": "MA-50", "nome": "Assentamento Açaí",         "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
-    {"codigo": "MA-51", "nome": "Comunidade Esperança",      "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
-    {"codigo": "MA-52", "nome": "Ramal Seringueiro",         "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
-    {"codigo": "MA-53", "nome": "Assen. Novo Amanhã",        "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
-    {"codigo": "MA-54", "nome": "Comunidade Santa Maria",    "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
-    {"codigo": "MA-55", "nome": "Ramal 60",                  "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
-    {"codigo": "MA-56", "nome": "Assentamento Ipiranga",     "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
-    {"codigo": "MA-57", "nome": "Comunidade São Pedro",      "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
-    # ESF V — Rural Remota / Assentamentos
-    {"codigo": "MA-58", "nome": "Ramal 70 Norte",            "zona": "rural", "equipe": "TRÊS ESTADOS", "tipo": "eSF"},
-    {"codigo": "MA-59", "nome": "Assen. Agroflor.",          "zona": "rural", "equipe": "TRÊS ESTADOS", "tipo": "eSF"},
-    {"codigo": "MA-60", "nome": "Comunidade Gavião",         "zona": "rural", "equipe": "TRÊS ESTADOS", "tipo": "eSF"},
-    {"codigo": "MA-61", "nome": "Ramal Guariba",             "zona": "rural", "equipe": "TRÊS ESTADOS", "tipo": "eSF"},
-    {"codigo": "MA-62", "nome": "Assentamento Itamarati",    "zona": "rural", "equipe": "TRÊS ESTADOS", "tipo": "eSF"},
-    {"codigo": "MA-63", "nome": "Comunidade Novo Éden",      "zona": "rural", "equipe": "AREAL", "tipo": "eRibeirinha"},
-    {"codigo": "MA-64", "nome": "Ramal dos Seixos",          "zona": "rural", "equipe": "AREAL", "tipo": "eRibeirinha"},
-    {"codigo": "MA-65", "nome": "Assen. São Cristóvão",      "zona": "rural", "equipe": "AREAL", "tipo": "eRibeirinha"},
-]
+@lru_cache(maxsize=1)
+def _MICROAREAS():
+    return [
+        # ESF I — Urbana Centro
+        {"codigo": "MA-01", "nome": "Centro",                    "zona": "urbana", "equipe": "KENNEDY", "tipo": "eSF"},
+        {"codigo": "MA-02", "nome": "Bairro Novo",               "zona": "urbana", "equipe": "KENNEDY", "tipo": "eSF"},
+        {"codigo": "MA-03", "nome": "Santo Antônio",             "zona": "urbana", "equipe": "KENNEDY", "tipo": "eSF"},
+        {"codigo": "MA-04", "nome": "Industrial",                "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
+        {"codigo": "MA-05", "nome": "Jardim Europa",             "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
+        {"codigo": "MA-06", "nome": "São Raimundo",              "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
+        {"codigo": "MA-07", "nome": "Aeroporto",                 "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
+        {"codigo": "MA-08", "nome": "Canaranas",                 "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
+        {"codigo": "MA-09", "nome": "Cajueiro",                  "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
+        {"codigo": "MA-10", "nome": "Novo Horizonte",            "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
+        {"codigo": "MA-11", "nome": "Cidade Nova",               "zona": "urbana", "equipe": "JK", "tipo": "eSF"},
+        {"codigo": "MA-12", "nome": "Nova Esperança",            "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
+        {"codigo": "MA-13", "nome": "Baixa Verde",               "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
+        {"codigo": "MA-14", "nome": "João Paulo II",             "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
+        {"codigo": "MA-15", "nome": "Santa Luzia",               "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
+        # ESF II — Urbana Expansão / Periurbana
+        {"codigo": "MA-16", "nome": "Vila Nova",                 "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
+        {"codigo": "MA-17", "nome": "Bela Vista",                "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
+        {"codigo": "MA-18", "nome": "Parque das Flores",         "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
+        {"codigo": "MA-19", "nome": "Residencial Sul",           "zona": "urbana", "equipe": "ACARI", "tipo": "eSF"},
+        {"codigo": "MA-20", "nome": "Setor Leste",               "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
+        {"codigo": "MA-21", "nome": "Conj. Habitacional",        "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
+        {"codigo": "MA-22", "nome": "Expansão Norte",            "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
+        {"codigo": "MA-23", "nome": "Setor Oeste",               "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
+        {"codigo": "MA-24", "nome": "Jardim Primavera",          "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
+        {"codigo": "MA-25", "nome": "Dom Pedro I",               "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
+        {"codigo": "MA-26", "nome": "Boa Vista",                 "zona": "urbana", "equipe": "JUMA", "tipo": "eSF"},
+        {"codigo": "MA-27", "nome": "Jardim Tropical",           "zona": "periurbana", "equipe": "JUMA", "tipo": "eSF"},
+        {"codigo": "MA-28", "nome": "Setor B",                   "zona": "periurbana", "equipe": "JUMA", "tipo": "eSF"},
+        {"codigo": "MA-29", "nome": "Nova Apuí",                 "zona": "periurbana", "equipe": "ESTRADA NOVA", "tipo": "eSF"},
+        {"codigo": "MA-30", "nome": "Bairro do Porto",           "zona": "periurbana", "equipe": "ESTRADA NOVA", "tipo": "eSF"},
+        # ESF III — Rural Próxima
+        {"codigo": "MA-31", "nome": "Rio Apuí",                  "zona": "rural", "equipe": "ESTRADA NOVA", "tipo": "eSF"},
+        {"codigo": "MA-32", "nome": "Setor Norte",               "zona": "rural", "equipe": "ESTRADA NOVA", "tipo": "eSF"},
+        {"codigo": "MA-33", "nome": "Ramal do Cupim",            "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
+        {"codigo": "MA-34", "nome": "Assentamento Trop. Úm.",    "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
+        {"codigo": "MA-35", "nome": "Ramal km 20",               "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
+        {"codigo": "MA-36", "nome": "Comunidade São João",       "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
+        {"codigo": "MA-37", "nome": "Ramal do Maracajá",         "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
+        {"codigo": "MA-38", "nome": "Comunidade Boa Esperança",  "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
+        {"codigo": "MA-39", "nome": "Ramal 30 Sul",              "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
+        {"codigo": "MA-40", "nome": "Ramal Tucumã",              "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
+        {"codigo": "MA-41", "nome": "Comunidade São Francisco",  "zona": "rural", "equipe": "LIBERDADE", "tipo": "eSF"},
+        {"codigo": "MA-42", "nome": "Ramal do Castanhal",        "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
+        {"codigo": "MA-43", "nome": "Assentamento Terra Nova",   "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
+        {"codigo": "MA-44", "nome": "Ramal 40",                  "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
+        {"codigo": "MA-45", "nome": "Comunidade do Pedral",      "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
+        # ESF IV — Rural Ramais Distantes
+        {"codigo": "MA-46", "nome": "Ramal Guaraná",             "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
+        {"codigo": "MA-47", "nome": "Assentamento Camucuim",     "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
+        {"codigo": "MA-48", "nome": "Comunidade São Paulo",      "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
+        {"codigo": "MA-49", "nome": "Ramal 50",                  "zona": "rural", "equipe": "SÃO SEBASTIÃO", "tipo": "eSF"},
+        {"codigo": "MA-50", "nome": "Assentamento Açaí",         "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
+        {"codigo": "MA-51", "nome": "Comunidade Esperança",      "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
+        {"codigo": "MA-52", "nome": "Ramal Seringueiro",         "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
+        {"codigo": "MA-53", "nome": "Assen. Novo Amanhã",        "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
+        {"codigo": "MA-54", "nome": "Comunidade Santa Maria",    "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
+        {"codigo": "MA-55", "nome": "Ramal 60",                  "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
+        {"codigo": "MA-56", "nome": "Assentamento Ipiranga",     "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
+        {"codigo": "MA-57", "nome": "Comunidade São Pedro",      "zona": "rural", "equipe": "CACHOEIRA", "tipo": "eSF"},
+        # ESF V — Rural Remota / Assentamentos
+        {"codigo": "MA-58", "nome": "Ramal 70 Norte",            "zona": "rural", "equipe": "TRÊS ESTADOS", "tipo": "eSF"},
+        {"codigo": "MA-59", "nome": "Assen. Agroflor.",          "zona": "rural", "equipe": "TRÊS ESTADOS", "tipo": "eSF"},
+        {"codigo": "MA-60", "nome": "Comunidade Gavião",         "zona": "rural", "equipe": "TRÊS ESTADOS", "tipo": "eSF"},
+        {"codigo": "MA-61", "nome": "Ramal Guariba",             "zona": "rural", "equipe": "TRÊS ESTADOS", "tipo": "eSF"},
+        {"codigo": "MA-62", "nome": "Assentamento Itamarati",    "zona": "rural", "equipe": "TRÊS ESTADOS", "tipo": "eSF"},
+        {"codigo": "MA-63", "nome": "Comunidade Novo Éden",      "zona": "rural", "equipe": "AREAL", "tipo": "eRibeirinha"},
+        {"codigo": "MA-64", "nome": "Ramal dos Seixos",          "zona": "rural", "equipe": "AREAL", "tipo": "eRibeirinha"},
+        {"codigo": "MA-65", "nome": "Assen. São Cristóvão",      "zona": "rural", "equipe": "AREAL", "tipo": "eRibeirinha"},
+    ]
+
 
 
 def _enriquecer_acs(acs: dict) -> dict:
@@ -362,7 +369,7 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
         "kpis": {
             "total_acs":            len(_ACS),
             "acs_ativos":           len(acs_ativos),
-            "total_microareas":     len(_MICROAREAS),
+            "total_microareas":     len(_MICROAREAS()),
             "familias_cadastradas": total_familias,
             "familias_meta":        total_meta,
             "pct_cobertura":        round(total_familias / total_meta * 100, 1) if total_meta else 0,
@@ -400,7 +407,7 @@ async def lista_acs(
 @router.get("/microareas")
 async def microareas(_: UserOut = Depends(get_current_user)):
     resultado = []
-    for ma in _MICROAREAS:
+    for ma in _MICROAREAS():
         acs_ma = [a for a in _ACS if a["microarea"] == ma["codigo"]]
         acs_ativos_ma = [a for a in acs_ma if a["ativo"]]
         familias  = sum(a["familias_cadastradas"] for a in acs_ativos_ma)

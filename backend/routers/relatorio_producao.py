@@ -8,111 +8,118 @@ from datetime import date, datetime
 from random import Random
 from fastapi import APIRouter, Query
 from typing import Optional
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/relatorios", tags=["relatorios"])
 
 # ── Dados base (reutilizados do monitoramento) ────────────────────────────────
-_EQUIPES = [
-    {"id": "ESF-01", "nome": "CACHOEIRA",      "tipo": "ESF", "ubs": "UBS Irmã Elizabete"},
-    {"id": "ESF-02", "nome": "SÃO SEBASTIÃO",  "tipo": "ESF", "ubs": "UBS São Sebastião"},
-    {"id": "ESF-03", "nome": "ACARI",           "tipo": "ESF", "ubs": "UBS Acari"},
-    {"id": "ESF-04", "nome": "TRÊS ESTADOS",    "tipo": "ESF", "ubs": "UBS Três Estados"},
-    {"id": "ESF-05", "nome": "JUMA",            "tipo": "ESF", "ubs": "UBS Juma"},
-    {"id": "ESF-06", "nome": "LIBERDADE",       "tipo": "ESF", "ubs": "UBS Liberdade"},
-    {"id": "ESF-07", "nome": "KENNEDY",         "tipo": "ESF", "ubs": "UBS Kennedy"},
-    {"id": "ESF-08", "nome": "JK",              "tipo": "ESF", "ubs": "UBS JK"},
-    {"id": "ESF-09", "nome": "ESTRADA NOVA",    "tipo": "ESF", "ubs": "UBS Estrada Nova"},
-    {"id": "ESF-10", "nome": "RIBEIRINHA",      "tipo": "ESF", "ubs": "UBS Fluvial Ribeirinha"},
-    {"id": "ESB-01", "nome": "ESB I — CACHOEIRA",       "tipo": "ESB", "ubs": "UBS Irmã Elizabete"},
-    {"id": "ESB-02", "nome": "ESB II — SÃO SEBASTIÃO",  "tipo": "ESB", "ubs": "UBS São Sebastião"},
-    {"id": "ESB-03", "nome": "ESB III — CEO Apuí",       "tipo": "ESB", "ubs": "CEO Apuí"},
-    {"id": "eM-01",  "nome": "eMulti Apuí",     "tipo": "eMulti", "ubs": "Núcleo eMulti SMS"},
-]
+@lru_cache(maxsize=1)
+def _EQUIPES():
+    return [
+        {"id": "ESF-01", "nome": "CACHOEIRA",      "tipo": "ESF", "ubs": "UBS Irmã Elizabete"},
+        {"id": "ESF-02", "nome": "SÃO SEBASTIÃO",  "tipo": "ESF", "ubs": "UBS São Sebastião"},
+        {"id": "ESF-03", "nome": "ACARI",           "tipo": "ESF", "ubs": "UBS Acari"},
+        {"id": "ESF-04", "nome": "TRÊS ESTADOS",    "tipo": "ESF", "ubs": "UBS Três Estados"},
+        {"id": "ESF-05", "nome": "JUMA",            "tipo": "ESF", "ubs": "UBS Juma"},
+        {"id": "ESF-06", "nome": "LIBERDADE",       "tipo": "ESF", "ubs": "UBS Liberdade"},
+        {"id": "ESF-07", "nome": "KENNEDY",         "tipo": "ESF", "ubs": "UBS Kennedy"},
+        {"id": "ESF-08", "nome": "JK",              "tipo": "ESF", "ubs": "UBS JK"},
+        {"id": "ESF-09", "nome": "ESTRADA NOVA",    "tipo": "ESF", "ubs": "UBS Estrada Nova"},
+        {"id": "ESF-10", "nome": "RIBEIRINHA",      "tipo": "ESF", "ubs": "UBS Fluvial Ribeirinha"},
+        {"id": "ESB-01", "nome": "ESB I — CACHOEIRA",       "tipo": "ESB", "ubs": "UBS Irmã Elizabete"},
+        {"id": "ESB-02", "nome": "ESB II — SÃO SEBASTIÃO",  "tipo": "ESB", "ubs": "UBS São Sebastião"},
+        {"id": "ESB-03", "nome": "ESB III — CEO Apuí",       "tipo": "ESB", "ubs": "CEO Apuí"},
+        {"id": "eM-01",  "nome": "eMulti Apuí",     "tipo": "eMulti", "ubs": "Núcleo eMulti SMS"},
+    ]
+
 
 # Todos os profissionais com equipe e CBO
-_PROFISSIONAIS = [
-    # ESF CACHOEIRA
-    {"id":"P001","nome":"Dr. João Carlos Fonseca",        "cbo":"Médico de Família e Comunidade","equipe":"CACHOEIRA","tipo":"ESF"},
-    {"id":"P002","nome":"Enf. Maria da Conceição Silva",   "cbo":"Enfermeiro",                    "equipe":"CACHOEIRA","tipo":"ESF"},
-    {"id":"P003","nome":"Téc. José Raimundo Almeida",      "cbo":"Técnico de Enfermagem",         "equipe":"CACHOEIRA","tipo":"ESF"},
-    {"id":"P004","nome":"ACS Marcos Antônio Lima",         "cbo":"Agente Comunitário de Saúde",   "equipe":"CACHOEIRA","tipo":"ESF"},
-    {"id":"P005","nome":"ACS Lúcia Aparecida Souza",       "cbo":"Agente Comunitário de Saúde",   "equipe":"CACHOEIRA","tipo":"ESF"},
-    {"id":"P006","nome":"ACS Francisco das Chagas",        "cbo":"Agente Comunitário de Saúde",   "equipe":"CACHOEIRA","tipo":"ESF"},
-    # ESF SÃO SEBASTIÃO
-    {"id":"P007","nome":"Dr. Raimundo Nonato Ferreira",    "cbo":"Médico de Família e Comunidade","equipe":"SÃO SEBASTIÃO","tipo":"ESF"},
-    {"id":"P008","nome":"Enf. Francisca Nunes Pereira",    "cbo":"Enfermeiro",                    "equipe":"SÃO SEBASTIÃO","tipo":"ESF"},
-    {"id":"P009","nome":"Téc. Antônia Rocha Barbosa",      "cbo":"Técnico de Enfermagem",         "equipe":"SÃO SEBASTIÃO","tipo":"ESF"},
-    {"id":"P010","nome":"ACS Paulo César Mendes",          "cbo":"Agente Comunitário de Saúde",   "equipe":"SÃO SEBASTIÃO","tipo":"ESF"},
-    {"id":"P011","nome":"ACS Rosária Bezerra Santos",      "cbo":"Agente Comunitário de Saúde",   "equipe":"SÃO SEBASTIÃO","tipo":"ESF"},
-    # ESF ACARI
-    {"id":"P012","nome":"Dra. Suely de Moraes Costa",      "cbo":"Médico de Família e Comunidade","equipe":"ACARI","tipo":"ESF"},
-    {"id":"P013","nome":"Enf. Roberto Carlos da Costa",    "cbo":"Enfermeiro",                    "equipe":"ACARI","tipo":"ESF"},
-    {"id":"P014","nome":"Téc. Joana Pereira Teixeira",     "cbo":"Técnico de Enfermagem",         "equipe":"ACARI","tipo":"ESF"},
-    {"id":"P015","nome":"ACS Benedita dos Santos Lima",    "cbo":"Agente Comunitário de Saúde",   "equipe":"ACARI","tipo":"ESF"},
-    {"id":"P016","nome":"ACS Edilson Freire Cardoso",      "cbo":"Agente Comunitário de Saúde",   "equipe":"ACARI","tipo":"ESF"},
-    # ESF TRÊS ESTADOS
-    {"id":"P017","nome":"Dr. Manoel Oliveira Júnior",      "cbo":"Médico de Família e Comunidade","equipe":"TRÊS ESTADOS","tipo":"ESF"},
-    {"id":"P018","nome":"Enf. Cláudia Lima Figueiredo",    "cbo":"Enfermeiro",                    "equipe":"TRÊS ESTADOS","tipo":"ESF"},
-    {"id":"P019","nome":"Téc. Sandro Freitas Moura",       "cbo":"Técnico de Enfermagem",         "equipe":"TRÊS ESTADOS","tipo":"ESF"},
-    {"id":"P020","nome":"ACS Terezinha Barbosa Nunes",     "cbo":"Agente Comunitário de Saúde",   "equipe":"TRÊS ESTADOS","tipo":"ESF"},
-    {"id":"P021","nome":"ACS Gilmar Pinheiro Ramos",       "cbo":"Agente Comunitário de Saúde",   "equipe":"TRÊS ESTADOS","tipo":"ESF"},
-    # ESF JUMA
-    {"id":"P022","nome":"Dra. Patrícia Carvalho Matos",    "cbo":"Médico de Família e Comunidade","equipe":"JUMA","tipo":"ESF"},
-    {"id":"P023","nome":"Enf. Wagner Pinheiro Sousa",      "cbo":"Enfermeiro",                    "equipe":"JUMA","tipo":"ESF"},
-    {"id":"P024","nome":"Téc. Rosimeire Tavares Cruz",     "cbo":"Técnico de Enfermagem",         "equipe":"JUMA","tipo":"ESF"},
-    {"id":"P025","nome":"ACS Gilberto Nascimento Dias",    "cbo":"Agente Comunitário de Saúde",   "equipe":"JUMA","tipo":"ESF"},
-    {"id":"P026","nome":"ACS Marinalva Gomes Viana",       "cbo":"Agente Comunitário de Saúde",   "equipe":"JUMA","tipo":"ESF"},
-    # ESF LIBERDADE
-    {"id":"P027","nome":"Dr. André Luís Monteiro",         "cbo":"Médico de Família e Comunidade","equipe":"LIBERDADE","tipo":"ESF"},
-    {"id":"P028","nome":"Enf. Simone Araújo Corrêa",       "cbo":"Enfermeiro",                    "equipe":"LIBERDADE","tipo":"ESF"},
-    {"id":"P029","nome":"Téc. Valdinei Cruz Farias",       "cbo":"Técnico de Enfermagem",         "equipe":"LIBERDADE","tipo":"ESF"},
-    {"id":"P030","nome":"ACS Neuza Correia Batista",       "cbo":"Agente Comunitário de Saúde",   "equipe":"LIBERDADE","tipo":"ESF"},
-    {"id":"P031","nome":"ACS Irene Soares Mendonça",       "cbo":"Agente Comunitário de Saúde",   "equipe":"LIBERDADE","tipo":"ESF"},
-    {"id":"P032","nome":"ACS Davi Almeida Ferraz",         "cbo":"Agente Comunitário de Saúde",   "equipe":"LIBERDADE","tipo":"ESF"},
-    # ESF KENNEDY
-    {"id":"P033","nome":"Dra. Fernanda Ramos Leite",       "cbo":"Médico de Família e Comunidade","equipe":"KENNEDY","tipo":"ESF"},
-    {"id":"P034","nome":"Enf. Cícero Viana Lopes",         "cbo":"Enfermeiro",                    "equipe":"KENNEDY","tipo":"ESF"},
-    {"id":"P035","nome":"Téc. Marinete Alves Borges",      "cbo":"Técnico de Enfermagem",         "equipe":"KENNEDY","tipo":"ESF"},
-    {"id":"P036","nome":"ACS Iramar Sousa Campos",         "cbo":"Agente Comunitário de Saúde",   "equipe":"KENNEDY","tipo":"ESF"},
-    {"id":"P037","nome":"ACS Zelinda Pires Duarte",        "cbo":"Agente Comunitário de Saúde",   "equipe":"KENNEDY","tipo":"ESF"},
-    # ESF JK
-    {"id":"P038","nome":"Dr. Itamar Figueiredo Luz",       "cbo":"Médico de Família e Comunidade","equipe":"JK","tipo":"ESF"},
-    {"id":"P039","nome":"Enf. Eliane Brito Cardoso",       "cbo":"Enfermeiro",                    "equipe":"JK","tipo":"ESF"},
-    {"id":"P040","nome":"Téc. Osmar Teixeira Vieira",      "cbo":"Técnico de Enfermagem",         "equipe":"JK","tipo":"ESF"},
-    {"id":"P041","nome":"ACS Verônica Dias Queiroz",       "cbo":"Agente Comunitário de Saúde",   "equipe":"JK","tipo":"ESF"},
-    {"id":"P042","nome":"ACS Cleison Matos Andrade",       "cbo":"Agente Comunitário de Saúde",   "equipe":"JK","tipo":"ESF"},
-    # ESF ESTRADA NOVA
-    {"id":"P043","nome":"Dra. Aldira Mendes Castilho",     "cbo":"Médico de Família e Comunidade","equipe":"ESTRADA NOVA","tipo":"ESF"},
-    {"id":"P044","nome":"Enf. Nilton Barros Siqueira",     "cbo":"Enfermeiro",                    "equipe":"ESTRADA NOVA","tipo":"ESF"},
-    {"id":"P045","nome":"Téc. Eronildes Castro Lima",      "cbo":"Técnico de Enfermagem",         "equipe":"ESTRADA NOVA","tipo":"ESF"},
-    {"id":"P046","nome":"ACS Zuleide Farias Maciel",       "cbo":"Agente Comunitário de Saúde",   "equipe":"ESTRADA NOVA","tipo":"ESF"},
-    {"id":"P047","nome":"ACS Adeílson Luz Pinheiro",       "cbo":"Agente Comunitário de Saúde",   "equipe":"ESTRADA NOVA","tipo":"ESF"},
-    # ESF RIBEIRINHA
-    {"id":"P048","nome":"Dr. Sebastião Pereira da Cruz",  "cbo":"Médico de Família e Comunidade","equipe":"RIBEIRINHA","tipo":"ESF"},
-    {"id":"P049","nome":"Enf. Dalva Santos Ribeiro",      "cbo":"Enfermeiro",                    "equipe":"RIBEIRINHA","tipo":"ESF"},
-    {"id":"P050","nome":"Téc. Ediomar Lopes Tavares",     "cbo":"Técnico de Enfermagem",         "equipe":"RIBEIRINHA","tipo":"ESF"},
-    {"id":"P051","nome":"ACS Antônio Nascimento Flexa",   "cbo":"Agente Comunitário de Saúde",   "equipe":"RIBEIRINHA","tipo":"ESF"},
-    {"id":"P052","nome":"ACS Raimunda Lima Pantoja",      "cbo":"Agente Comunitário de Saúde",   "equipe":"RIBEIRINHA","tipo":"ESF"},
-    {"id":"P053","nome":"ACS Djanilson Costa Ferreira",   "cbo":"Agente Comunitário de Saúde",   "equipe":"RIBEIRINHA","tipo":"ESF"},
-    {"id":"P054","nome":"ACS Gleiciane Nunes Barbosa",    "cbo":"Agente Comunitário de Saúde",   "equipe":"RIBEIRINHA","tipo":"ESF"},
-    # ESB
-    {"id":"D001","nome":"Dr. Carlos Henrique Bezerra",     "cbo":"Cirurgião-Dentista",             "equipe":"ESB I — CACHOEIRA",       "tipo":"ESB"},
-    {"id":"D002","nome":"ASB Marta Cristina Sousa",        "cbo":"Auxiliar em Saúde Bucal",        "equipe":"ESB I — CACHOEIRA",       "tipo":"ESB"},
-    {"id":"D003","nome":"TSB Renato Alves Martins",        "cbo":"Técnico em Saúde Bucal",         "equipe":"ESB I — CACHOEIRA",       "tipo":"ESB"},
-    {"id":"D004","nome":"Dra. Ana Cristina Monteiro",      "cbo":"Cirurgião-Dentista",             "equipe":"ESB II — SÃO SEBASTIÃO",  "tipo":"ESB"},
-    {"id":"D005","nome":"ASB Fátima Regina Oliveira",      "cbo":"Auxiliar em Saúde Bucal",        "equipe":"ESB II — SÃO SEBASTIÃO",  "tipo":"ESB"},
-    {"id":"D006","nome":"Dr. Eduardo Pinto Lacerda",       "cbo":"Cirurgião-Dentista",             "equipe":"ESB III — CEO Apuí",      "tipo":"ESB"},
-    {"id":"D007","nome":"Esp. Sandra Lima Cavalcante",     "cbo":"Cirurgião-Dentista Especialista","equipe":"ESB III — CEO Apuí",      "tipo":"ESB"},
-    {"id":"D008","nome":"ASB Josefa Alencar Prado",        "cbo":"Auxiliar em Saúde Bucal",        "equipe":"ESB III — CEO Apuí",      "tipo":"ESB"},
-    # eMulti
-    {"id":"M001","nome":"Fisiot. Luciana Borges Maia",     "cbo":"Fisioterapeuta",                "equipe":"eMulti Apuí","tipo":"eMulti"},
-    {"id":"M002","nome":"Nutr. Camila Ferreira Lopes",     "cbo":"Nutricionista",                 "equipe":"eMulti Apuí","tipo":"eMulti"},
-    {"id":"M003","nome":"Psic. Débora Santana Furtado",    "cbo":"Psicólogo",                     "equipe":"eMulti Apuí","tipo":"eMulti"},
-    {"id":"M004","nome":"A.S. Vanessa Coelho Rodrigues",   "cbo":"Assistente Social",             "equipe":"eMulti Apuí","tipo":"eMulti"},
-    {"id":"M005","nome":"Farm. Tiago Nunes Cavalcante",    "cbo":"Farmacêutico",                  "equipe":"eMulti Apuí","tipo":"eMulti"},
-    {"id":"M006","nome":"Ed.Fis. Marcos Pinheiro Freitas", "cbo":"Educador Físico",               "equipe":"eMulti Apuí","tipo":"eMulti"},
-    {"id":"M007","nome":"Fonoaud. Priscila Arruda Costa",  "cbo":"Fonoaudiólogo",                 "equipe":"eMulti Apuí","tipo":"eMulti"},
-]
+@lru_cache(maxsize=1)
+def _PROFISSIONAIS():
+    return [
+        # ESF CACHOEIRA
+        {"id":"P001","nome":"Dr. João Carlos Fonseca",        "cbo":"Médico de Família e Comunidade","equipe":"CACHOEIRA","tipo":"ESF"},
+        {"id":"P002","nome":"Enf. Maria da Conceição Silva",   "cbo":"Enfermeiro",                    "equipe":"CACHOEIRA","tipo":"ESF"},
+        {"id":"P003","nome":"Téc. José Raimundo Almeida",      "cbo":"Técnico de Enfermagem",         "equipe":"CACHOEIRA","tipo":"ESF"},
+        {"id":"P004","nome":"ACS Marcos Antônio Lima",         "cbo":"Agente Comunitário de Saúde",   "equipe":"CACHOEIRA","tipo":"ESF"},
+        {"id":"P005","nome":"ACS Lúcia Aparecida Souza",       "cbo":"Agente Comunitário de Saúde",   "equipe":"CACHOEIRA","tipo":"ESF"},
+        {"id":"P006","nome":"ACS Francisco das Chagas",        "cbo":"Agente Comunitário de Saúde",   "equipe":"CACHOEIRA","tipo":"ESF"},
+        # ESF SÃO SEBASTIÃO
+        {"id":"P007","nome":"Dr. Raimundo Nonato Ferreira",    "cbo":"Médico de Família e Comunidade","equipe":"SÃO SEBASTIÃO","tipo":"ESF"},
+        {"id":"P008","nome":"Enf. Francisca Nunes Pereira",    "cbo":"Enfermeiro",                    "equipe":"SÃO SEBASTIÃO","tipo":"ESF"},
+        {"id":"P009","nome":"Téc. Antônia Rocha Barbosa",      "cbo":"Técnico de Enfermagem",         "equipe":"SÃO SEBASTIÃO","tipo":"ESF"},
+        {"id":"P010","nome":"ACS Paulo César Mendes",          "cbo":"Agente Comunitário de Saúde",   "equipe":"SÃO SEBASTIÃO","tipo":"ESF"},
+        {"id":"P011","nome":"ACS Rosária Bezerra Santos",      "cbo":"Agente Comunitário de Saúde",   "equipe":"SÃO SEBASTIÃO","tipo":"ESF"},
+        # ESF ACARI
+        {"id":"P012","nome":"Dra. Suely de Moraes Costa",      "cbo":"Médico de Família e Comunidade","equipe":"ACARI","tipo":"ESF"},
+        {"id":"P013","nome":"Enf. Roberto Carlos da Costa",    "cbo":"Enfermeiro",                    "equipe":"ACARI","tipo":"ESF"},
+        {"id":"P014","nome":"Téc. Joana Pereira Teixeira",     "cbo":"Técnico de Enfermagem",         "equipe":"ACARI","tipo":"ESF"},
+        {"id":"P015","nome":"ACS Benedita dos Santos Lima",    "cbo":"Agente Comunitário de Saúde",   "equipe":"ACARI","tipo":"ESF"},
+        {"id":"P016","nome":"ACS Edilson Freire Cardoso",      "cbo":"Agente Comunitário de Saúde",   "equipe":"ACARI","tipo":"ESF"},
+        # ESF TRÊS ESTADOS
+        {"id":"P017","nome":"Dr. Manoel Oliveira Júnior",      "cbo":"Médico de Família e Comunidade","equipe":"TRÊS ESTADOS","tipo":"ESF"},
+        {"id":"P018","nome":"Enf. Cláudia Lima Figueiredo",    "cbo":"Enfermeiro",                    "equipe":"TRÊS ESTADOS","tipo":"ESF"},
+        {"id":"P019","nome":"Téc. Sandro Freitas Moura",       "cbo":"Técnico de Enfermagem",         "equipe":"TRÊS ESTADOS","tipo":"ESF"},
+        {"id":"P020","nome":"ACS Terezinha Barbosa Nunes",     "cbo":"Agente Comunitário de Saúde",   "equipe":"TRÊS ESTADOS","tipo":"ESF"},
+        {"id":"P021","nome":"ACS Gilmar Pinheiro Ramos",       "cbo":"Agente Comunitário de Saúde",   "equipe":"TRÊS ESTADOS","tipo":"ESF"},
+        # ESF JUMA
+        {"id":"P022","nome":"Dra. Patrícia Carvalho Matos",    "cbo":"Médico de Família e Comunidade","equipe":"JUMA","tipo":"ESF"},
+        {"id":"P023","nome":"Enf. Wagner Pinheiro Sousa",      "cbo":"Enfermeiro",                    "equipe":"JUMA","tipo":"ESF"},
+        {"id":"P024","nome":"Téc. Rosimeire Tavares Cruz",     "cbo":"Técnico de Enfermagem",         "equipe":"JUMA","tipo":"ESF"},
+        {"id":"P025","nome":"ACS Gilberto Nascimento Dias",    "cbo":"Agente Comunitário de Saúde",   "equipe":"JUMA","tipo":"ESF"},
+        {"id":"P026","nome":"ACS Marinalva Gomes Viana",       "cbo":"Agente Comunitário de Saúde",   "equipe":"JUMA","tipo":"ESF"},
+        # ESF LIBERDADE
+        {"id":"P027","nome":"Dr. André Luís Monteiro",         "cbo":"Médico de Família e Comunidade","equipe":"LIBERDADE","tipo":"ESF"},
+        {"id":"P028","nome":"Enf. Simone Araújo Corrêa",       "cbo":"Enfermeiro",                    "equipe":"LIBERDADE","tipo":"ESF"},
+        {"id":"P029","nome":"Téc. Valdinei Cruz Farias",       "cbo":"Técnico de Enfermagem",         "equipe":"LIBERDADE","tipo":"ESF"},
+        {"id":"P030","nome":"ACS Neuza Correia Batista",       "cbo":"Agente Comunitário de Saúde",   "equipe":"LIBERDADE","tipo":"ESF"},
+        {"id":"P031","nome":"ACS Irene Soares Mendonça",       "cbo":"Agente Comunitário de Saúde",   "equipe":"LIBERDADE","tipo":"ESF"},
+        {"id":"P032","nome":"ACS Davi Almeida Ferraz",         "cbo":"Agente Comunitário de Saúde",   "equipe":"LIBERDADE","tipo":"ESF"},
+        # ESF KENNEDY
+        {"id":"P033","nome":"Dra. Fernanda Ramos Leite",       "cbo":"Médico de Família e Comunidade","equipe":"KENNEDY","tipo":"ESF"},
+        {"id":"P034","nome":"Enf. Cícero Viana Lopes",         "cbo":"Enfermeiro",                    "equipe":"KENNEDY","tipo":"ESF"},
+        {"id":"P035","nome":"Téc. Marinete Alves Borges",      "cbo":"Técnico de Enfermagem",         "equipe":"KENNEDY","tipo":"ESF"},
+        {"id":"P036","nome":"ACS Iramar Sousa Campos",         "cbo":"Agente Comunitário de Saúde",   "equipe":"KENNEDY","tipo":"ESF"},
+        {"id":"P037","nome":"ACS Zelinda Pires Duarte",        "cbo":"Agente Comunitário de Saúde",   "equipe":"KENNEDY","tipo":"ESF"},
+        # ESF JK
+        {"id":"P038","nome":"Dr. Itamar Figueiredo Luz",       "cbo":"Médico de Família e Comunidade","equipe":"JK","tipo":"ESF"},
+        {"id":"P039","nome":"Enf. Eliane Brito Cardoso",       "cbo":"Enfermeiro",                    "equipe":"JK","tipo":"ESF"},
+        {"id":"P040","nome":"Téc. Osmar Teixeira Vieira",      "cbo":"Técnico de Enfermagem",         "equipe":"JK","tipo":"ESF"},
+        {"id":"P041","nome":"ACS Verônica Dias Queiroz",       "cbo":"Agente Comunitário de Saúde",   "equipe":"JK","tipo":"ESF"},
+        {"id":"P042","nome":"ACS Cleison Matos Andrade",       "cbo":"Agente Comunitário de Saúde",   "equipe":"JK","tipo":"ESF"},
+        # ESF ESTRADA NOVA
+        {"id":"P043","nome":"Dra. Aldira Mendes Castilho",     "cbo":"Médico de Família e Comunidade","equipe":"ESTRADA NOVA","tipo":"ESF"},
+        {"id":"P044","nome":"Enf. Nilton Barros Siqueira",     "cbo":"Enfermeiro",                    "equipe":"ESTRADA NOVA","tipo":"ESF"},
+        {"id":"P045","nome":"Téc. Eronildes Castro Lima",      "cbo":"Técnico de Enfermagem",         "equipe":"ESTRADA NOVA","tipo":"ESF"},
+        {"id":"P046","nome":"ACS Zuleide Farias Maciel",       "cbo":"Agente Comunitário de Saúde",   "equipe":"ESTRADA NOVA","tipo":"ESF"},
+        {"id":"P047","nome":"ACS Adeílson Luz Pinheiro",       "cbo":"Agente Comunitário de Saúde",   "equipe":"ESTRADA NOVA","tipo":"ESF"},
+        # ESF RIBEIRINHA
+        {"id":"P048","nome":"Dr. Sebastião Pereira da Cruz",  "cbo":"Médico de Família e Comunidade","equipe":"RIBEIRINHA","tipo":"ESF"},
+        {"id":"P049","nome":"Enf. Dalva Santos Ribeiro",      "cbo":"Enfermeiro",                    "equipe":"RIBEIRINHA","tipo":"ESF"},
+        {"id":"P050","nome":"Téc. Ediomar Lopes Tavares",     "cbo":"Técnico de Enfermagem",         "equipe":"RIBEIRINHA","tipo":"ESF"},
+        {"id":"P051","nome":"ACS Antônio Nascimento Flexa",   "cbo":"Agente Comunitário de Saúde",   "equipe":"RIBEIRINHA","tipo":"ESF"},
+        {"id":"P052","nome":"ACS Raimunda Lima Pantoja",      "cbo":"Agente Comunitário de Saúde",   "equipe":"RIBEIRINHA","tipo":"ESF"},
+        {"id":"P053","nome":"ACS Djanilson Costa Ferreira",   "cbo":"Agente Comunitário de Saúde",   "equipe":"RIBEIRINHA","tipo":"ESF"},
+        {"id":"P054","nome":"ACS Gleiciane Nunes Barbosa",    "cbo":"Agente Comunitário de Saúde",   "equipe":"RIBEIRINHA","tipo":"ESF"},
+        # ESB
+        {"id":"D001","nome":"Dr. Carlos Henrique Bezerra",     "cbo":"Cirurgião-Dentista",             "equipe":"ESB I — CACHOEIRA",       "tipo":"ESB"},
+        {"id":"D002","nome":"ASB Marta Cristina Sousa",        "cbo":"Auxiliar em Saúde Bucal",        "equipe":"ESB I — CACHOEIRA",       "tipo":"ESB"},
+        {"id":"D003","nome":"TSB Renato Alves Martins",        "cbo":"Técnico em Saúde Bucal",         "equipe":"ESB I — CACHOEIRA",       "tipo":"ESB"},
+        {"id":"D004","nome":"Dra. Ana Cristina Monteiro",      "cbo":"Cirurgião-Dentista",             "equipe":"ESB II — SÃO SEBASTIÃO",  "tipo":"ESB"},
+        {"id":"D005","nome":"ASB Fátima Regina Oliveira",      "cbo":"Auxiliar em Saúde Bucal",        "equipe":"ESB II — SÃO SEBASTIÃO",  "tipo":"ESB"},
+        {"id":"D006","nome":"Dr. Eduardo Pinto Lacerda",       "cbo":"Cirurgião-Dentista",             "equipe":"ESB III — CEO Apuí",      "tipo":"ESB"},
+        {"id":"D007","nome":"Esp. Sandra Lima Cavalcante",     "cbo":"Cirurgião-Dentista Especialista","equipe":"ESB III — CEO Apuí",      "tipo":"ESB"},
+        {"id":"D008","nome":"ASB Josefa Alencar Prado",        "cbo":"Auxiliar em Saúde Bucal",        "equipe":"ESB III — CEO Apuí",      "tipo":"ESB"},
+        # eMulti
+        {"id":"M001","nome":"Fisiot. Luciana Borges Maia",     "cbo":"Fisioterapeuta",                "equipe":"eMulti Apuí","tipo":"eMulti"},
+        {"id":"M002","nome":"Nutr. Camila Ferreira Lopes",     "cbo":"Nutricionista",                 "equipe":"eMulti Apuí","tipo":"eMulti"},
+        {"id":"M003","nome":"Psic. Débora Santana Furtado",    "cbo":"Psicólogo",                     "equipe":"eMulti Apuí","tipo":"eMulti"},
+        {"id":"M004","nome":"A.S. Vanessa Coelho Rodrigues",   "cbo":"Assistente Social",             "equipe":"eMulti Apuí","tipo":"eMulti"},
+        {"id":"M005","nome":"Farm. Tiago Nunes Cavalcante",    "cbo":"Farmacêutico",                  "equipe":"eMulti Apuí","tipo":"eMulti"},
+        {"id":"M006","nome":"Ed.Fis. Marcos Pinheiro Freitas", "cbo":"Educador Físico",               "equipe":"eMulti Apuí","tipo":"eMulti"},
+        {"id":"M007","nome":"Fonoaud. Priscila Arruda Costa",  "cbo":"Fonoaudiólogo",                 "equipe":"eMulti Apuí","tipo":"eMulti"},
+    ]
+
 
 # Parâmetros completos de produção por CBO (label, meta_dia, grupo)
 _TIPOS_ATENDIMENTO: dict[str, list[dict]] = {
@@ -472,11 +479,11 @@ async def producao_por_equipe(
 
     equipes_filtro = _EQUIPES
     if tipo_equipe:
-        equipes_filtro = [e for e in _EQUIPES if e["tipo"] == tipo_equipe]
+        equipes_filtro = [e for e in _EQUIPES() if e["tipo"] == tipo_equipe]
 
     resultado = []
     for eq in equipes_filtro:
-        profs_eq = [p for p in _PROFISSIONAIS if p["equipe"] == eq["nome"]]
+        profs_eq = [p for p in _PROFISSIONAIS() if p["equipe"] == eq["nome"]]
         acum: dict[str, dict] = {}
         total_real = 0
         total_meta = 0
@@ -733,7 +740,7 @@ async def gerar_relatorio(
         "gerado_por": "Gestor Municipal de Saúde",
         "tipo": tipo,
         "equipe_filtro": equipe or tipo_equipe or "Todas as equipes",
-        "profissional_filtro": next((p["nome"] for p in _PROFISSIONAIS if p["id"] == profissional_id), "Todos") if profissional_id else "Todos",
+        "profissional_filtro": next((p["nome"] for p in _PROFISSIONAIS() if p["id"] == profissional_id), "Todos") if profissional_id else "Todos",
     }
 
     if tipo == "diario":

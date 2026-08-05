@@ -1,27 +1,31 @@
 """Saúde Ribeirinha — Comunidades Ribeirinhas · FMS Apuí/AM"""
 from fastapi import APIRouter
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/saude-ribeirinha", tags=["saude_ribeirinha"])
 
-_COMUNIDADES = [
-    {"id": 1, "nome": "Comunidade Santo Antônio do Matupi",  "rio": "Rio Madeira",      "populacao": 284, "distancia_sede_km": 42,  "acesso": "fluvial",          "ubs_referencia": "UBS Matupi",       "equipe_esf": "ESF Ribeirinhas",  "ultima_visita": "Jun/2026", "status": "ok"},
-    {"id": 2, "nome": "Comunidade São Raimundo do Aripuanã",  "rio": "Rio Aripuanã",    "populacao": 196, "distancia_sede_km": 78,  "acesso": "fluvial",          "ubs_referencia": "UBS Matupi",       "equipe_esf": "ESF Ribeirinhas",  "ultima_visita": "Mai/2026", "status": "atencao"},
-    {"id": 3, "nome": "Comunidade Linha 7 Margens",           "rio": "Rio Madeira",      "populacao": 148, "distancia_sede_km": 35,  "acesso": "fluvial/terrestre","ubs_referencia": "UBS Linha 7",      "equipe_esf": "ESF Linha 7",      "ultima_visita": "Jun/2026", "status": "atencao"},
-    {"id": 4, "nome": "Comunidade Nova Esperança do Juma",    "rio": "Rio Juma",         "populacao": 210, "distancia_sede_km": 94,  "acesso": "fluvial",          "ubs_referencia": "UBS Matupi",       "equipe_esf": "ESF Ribeirinhas",  "ultima_visita": "Abr/2026", "status": "critico"},
-    {"id": 5, "nome": "Comunidade Boca do Acari",             "rio": "Rio Acari",        "populacao": 124, "distancia_sede_km": 118, "acesso": "fluvial",          "ubs_referencia": "UBS Sede",         "equipe_esf": "ESF Ribeirinhas",  "ultima_visita": "Mar/2026", "status": "critico"},
-    {"id": 6, "nome": "Comunidade Boa Esperança",             "rio": "Rio Madeira",      "populacao": 88,  "distancia_sede_km": 28,  "acesso": "fluvial/terrestre","ubs_referencia": "UBS Sede",         "equipe_esf": "ESF Sede A",       "ultima_visita": "Jun/2026", "status": "ok"},
-    {"id": 7, "nome": "Comunidade São José do Mapari",        "rio": "Rio Mapari",       "populacao": 72,  "distancia_sede_km": 132, "acesso": "fluvial",          "ubs_referencia": "UBS Matupi",       "equipe_esf": "ESF Ribeirinhas",  "ultima_visita": "Fev/2026", "status": "critico"},
-    {"id": 8, "nome": "Comunidade Boa Vista do Jaraqui",      "rio": "Rio Madeira",      "populacao": 56,  "distancia_sede_km": 52,  "acesso": "fluvial",          "ubs_referencia": "UBS Sede",         "equipe_esf": "ESF Ribeirinhas",  "ultima_visita": "Mai/2026", "status": "ok"},
-]
+@lru_cache(maxsize=1)
+def _COMUNIDADES():
+    return [
+        {"id": 1, "nome": "Comunidade Santo Antônio do Matupi",  "rio": "Rio Madeira",      "populacao": 284, "distancia_sede_km": 42,  "acesso": "fluvial",          "ubs_referencia": "UBS Matupi",       "equipe_esf": "ESF Ribeirinhas",  "ultima_visita": "Jun/2026", "status": "ok"},
+        {"id": 2, "nome": "Comunidade São Raimundo do Aripuanã",  "rio": "Rio Aripuanã",    "populacao": 196, "distancia_sede_km": 78,  "acesso": "fluvial",          "ubs_referencia": "UBS Matupi",       "equipe_esf": "ESF Ribeirinhas",  "ultima_visita": "Mai/2026", "status": "atencao"},
+        {"id": 3, "nome": "Comunidade Linha 7 Margens",           "rio": "Rio Madeira",      "populacao": 148, "distancia_sede_km": 35,  "acesso": "fluvial/terrestre","ubs_referencia": "UBS Linha 7",      "equipe_esf": "ESF Linha 7",      "ultima_visita": "Jun/2026", "status": "atencao"},
+        {"id": 4, "nome": "Comunidade Nova Esperança do Juma",    "rio": "Rio Juma",         "populacao": 210, "distancia_sede_km": 94,  "acesso": "fluvial",          "ubs_referencia": "UBS Matupi",       "equipe_esf": "ESF Ribeirinhas",  "ultima_visita": "Abr/2026", "status": "critico"},
+        {"id": 5, "nome": "Comunidade Boca do Acari",             "rio": "Rio Acari",        "populacao": 124, "distancia_sede_km": 118, "acesso": "fluvial",          "ubs_referencia": "UBS Sede",         "equipe_esf": "ESF Ribeirinhas",  "ultima_visita": "Mar/2026", "status": "critico"},
+        {"id": 6, "nome": "Comunidade Boa Esperança",             "rio": "Rio Madeira",      "populacao": 88,  "distancia_sede_km": 28,  "acesso": "fluvial/terrestre","ubs_referencia": "UBS Sede",         "equipe_esf": "ESF Sede A",       "ultima_visita": "Jun/2026", "status": "ok"},
+        {"id": 7, "nome": "Comunidade São José do Mapari",        "rio": "Rio Mapari",       "populacao": 72,  "distancia_sede_km": 132, "acesso": "fluvial",          "ubs_referencia": "UBS Matupi",       "equipe_esf": "ESF Ribeirinhas",  "ultima_visita": "Fev/2026", "status": "critico"},
+        {"id": 8, "nome": "Comunidade Boa Vista do Jaraqui",      "rio": "Rio Madeira",      "populacao": 56,  "distancia_sede_km": 52,  "acesso": "fluvial",          "ubs_referencia": "UBS Sede",         "equipe_esf": "ESF Ribeirinhas",  "ultima_visita": "Mai/2026", "status": "ok"},
+    ]
+
 
 @router.get("/dashboard")
 async def dashboard():
-    total_pop = sum(c["populacao"] for c in _COMUNIDADES)
-    ok = sum(1 for c in _COMUNIDADES if c["status"] == "ok")
-    atencao = sum(1 for c in _COMUNIDADES if c["status"] == "atencao")
-    critico = sum(1 for c in _COMUNIDADES if c["status"] == "critico")
+    total_pop = sum(c["populacao"] for c in _COMUNIDADES())
+    ok = sum(1 for c in _COMUNIDADES() if c["status"] == "ok")
+    atencao = sum(1 for c in _COMUNIDADES() if c["status"] == "atencao")
+    critico = sum(1 for c in _COMUNIDADES() if c["status"] == "critico")
     return {
-        "comunidades_cadastradas": len(_COMUNIDADES),
+        "comunidades_cadastradas": len(_COMUNIDADES()),
         "populacao_ribeirinha_total": total_pop,
         "populacao_ribeirinha_pct_municipio": round(total_pop / 18852 * 100, 1),
         "comunidades_ok": ok,

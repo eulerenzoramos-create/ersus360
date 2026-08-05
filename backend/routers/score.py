@@ -15,18 +15,22 @@ from datetime import date, datetime
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
 from services import previne_service, siops_service
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/score", tags=["Score ERSUS 360"])
 
 # ── Pesos ────────────────────────────────────────────────────────────────────
 
-_PESOS = {
-    "aps":              0.35,
-    "financeiro":       0.25,
-    "epidemiologia":    0.20,
-    "gestao":           0.10,
-    "infraestrutura":   0.10,
-}
+@lru_cache(maxsize=1)
+def _PESOS():
+    return {
+        "aps":              0.35,
+        "financeiro":       0.25,
+        "epidemiologia":    0.20,
+        "gestao":           0.10,
+        "infraestrutura":   0.10,
+    }
+
 
 # ── Componentes de cada eixo ─────────────────────────────────────────────────
 
@@ -66,7 +70,7 @@ async def _score_aps() -> dict:
             "sisab_regularidade": sisab_reg,
         },
         "indicadores":  pontos,
-        "peso":         _PESOS["aps"],
+        "peso":         _PESOS()["aps"],
         "fonte_previne": previne.get("fonte", "referencia"),
     }
 
@@ -99,7 +103,7 @@ async def _score_financeiro() -> dict:
             "siops_conformidade": conformidade,
             "pendencias_fns":     pendencias_fns,
         },
-        "peso":        _PESOS["financeiro"],
+        "peso":        _PESOS()["financeiro"],
         "fonte_siops": siops.get("fonte", "referencia"),
     }
 
@@ -131,7 +135,7 @@ def _score_epidemiologia() -> dict:
             "ipa_malaria_controle":     ipa_malaria_controle,
             "dengue_confirmados":       dengue_confirmados,
         },
-        "peso": _PESOS["epidemiologia"],
+        "peso": _PESOS()["epidemiologia"],
     }
 
 
@@ -159,7 +163,7 @@ def _score_gestao() -> dict:
             "documentos_assinados_pct":  documentos_assinados_pct,
             "rdqa_em_dia":               rdqa_em_dia,
         },
-        "peso": _PESOS["gestao"],
+        "peso": _PESOS()["gestao"],
     }
 
 
@@ -183,7 +187,7 @@ def _score_infraestrutura() -> dict:
             "obras_no_prazo_pct":      obras_no_prazo_pct,
             "patrimonio_regular_pct":  patrimonio_regular_pct,
         },
-        "peso": _PESOS["infraestrutura"],
+        "peso": _PESOS()["infraestrutura"],
     }
 
 

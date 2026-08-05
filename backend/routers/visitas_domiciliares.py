@@ -27,10 +27,14 @@ from models import Municipio
 from models.pec_cadastro import ProfissionalSaude, Domicilio, Cidadao
 from models.visita_domiciliar import VisitaDomiciliar, StatusLocalizacao, OrigemDado
 from routers.auth import get_current_user, UserOut
+from functools import lru_cache
 
 router = APIRouter(prefix="/api/visitas-domiciliares", tags=["Visitas Domiciliares"])
 
-_PODE_REGISTRAR = {"acs", "enfermeiro", "coordenador", "gestor", "admin", "superadmin"}
+@lru_cache(maxsize=1)
+def _PODE_REGISTRAR():
+    return {"acs", "enfermeiro", "coordenador", "gestor", "admin", "superadmin"}
+
 
 
 async def _municipio_atual(db: AsyncSession) -> Municipio:
@@ -92,7 +96,7 @@ async def registrar_visita(
     db: AsyncSession = Depends(get_db),
     current_user: UserOut = Depends(get_current_user),
 ):
-    if current_user.role not in _PODE_REGISTRAR:
+    if current_user.role not in _PODE_REGISTRAR():
         raise HTTPException(status_code=403, detail="Perfil não autorizado a registrar visitas domiciliares")
 
     mun = await _municipio_atual(db)
