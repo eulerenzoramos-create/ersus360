@@ -92,7 +92,8 @@ INDICADORES_QUALIDADE = {
                 "peso": 1,
                 "descricao_gestor": (
                     "Mede a oferta de atendimentos em relação à população vinculada. "
-                    "Profissionais elegíveis: Médico ESF/MFC, Enfermeiro ESF. "
+                    "Profissionais elegíveis (atualização 2026): Médico ESF/MFC (CBO 2251-25 — Médico Clínico "
+                    "e CBO 2252-50 — Médico Ginecologista e Obstetra incluídos), Enfermeiro ESF. "
                     "Apuí: equipes ribeirinhas têm menor acesso por dispersão territorial."
                 ),
                 "acoes_melhoria": [
@@ -121,10 +122,12 @@ INDICADORES_QUALIDADE = {
                 "fonte": "SIAPS / e-Gestor APS",
                 "peso": 1,
                 "descricao_gestor": (
-                    "Substitui o antigo indicador de vacinação do Novo Financiamento APS. "
                     "Foca no cuidado longitudinal da criança — puericultura regular. "
-                    "Atualização 2025: pediatristas e especialistas agora elegíveis; "
-                    "visita domiciliar após 30 dias de vida contabiliza."
+                    "Atualização 2026: CBOs válidos para peso/altura ampliados: 2232 (Cirurgião-Dentista), "
+                    "2234 (Farmacêutico), 2236 (Fisioterapeuta), 2238 (Fonoaudiólogo), 2237 (Nutricionista), "
+                    "2241 (Prof. Educação Física), 2239 (Terapeuta Ocupacional/Ortoptista/Psicomotricista). "
+                    "Somente consultas classificadas como Puericultura são consideradas. "
+                    "Visita domiciliar: obrigatória 1 visita até 30 dias de vida E outra entre 31 dias e 6 meses."
                 ),
                 "acoes_melhoria": [
                     "Protocolo de puericultura por faixa etária (0–6m, 7–12m, 1–2a, 2–4a, 4–6a)",
@@ -137,7 +140,7 @@ INDICADORES_QUALIDADE = {
                 "codigo": "C3",
                 "nome": "Cuidado na Gestação e Puerpério",
                 "grupo": "Saúde da Mulher",
-                "numerador": "Gestantes/puérperas com ≥6 consultas pré-natal (sendo 1ª até 12ª semana) OU puérperas com consulta até 42º dia pós-parto",
+                "numerador": "Gestantes identificadas por CIAP-2 (W03/W78/W79/W81/W84/W85) ou CID-10 (O10–O99.7/Z32.1–Z64.0) com ≥6 consultas pré-natal (1ª até 12ª semana) OU puérperas (CID-10 F53/O72/O85–O99/Z37–Z39) com consulta até 42º dia pós-parto",
                 "denominador": "Total de nascidos vivos de mães vinculadas à equipe",
                 "unidade": "%",
                 "classificacao": {
@@ -152,9 +155,16 @@ INDICADORES_QUALIDADE = {
                 "fonte": "SIAPS / SINASC / e-Gestor APS",
                 "peso": 1,
                 "descricao_gestor": (
-                    "Incorpora pré-natal (antigo PB01) + puerpério. "
-                    "Atualização 2025: teleconsulta permitida até 12ª semana; "
-                    "ginecologistas/obstetras e dentistas agora elegíveis. "
+                    "Incorpora pré-natal + puerpério. "
+                    "Atualização 2026 — CIAP-2 válidos gestação: W03, W78, W79, W81, W84, W85. "
+                    "CID-10 gestação: O10–O16, O20–O26, O28–O36, O40–O41, O43–O44, O46–O48, "
+                    "O75.2, O75.3, O98–O99.7, Z32.1, Z33–Z36, Z64.0. "
+                    "Códigos rápidos ABP pré-natal (CIAP-2): 48, 49, P29, W18, W19, W70, W90–W96. "
+                    "Puerpério (CID-10): F53, F53.0–F53.9, M83.0, O10, O15.2, O26.6, O72.2–O72.3, "
+                    "O85–O87, O90–O92, O94, O98–O99, Z37.0–Z37.9, Z38–Z39. "
+                    "SIGTAP adicionados: 02.02.03.030-0 (Pesquisa Anti-HIV-1+HIV-2 Elisa) e "
+                    "02.02.03.031-8 (Pesquisa Anti-HTLV-1+HTLV-2). "
+                    "Saúde bucal: atividades 05 e 09 + práticas 02 e 04 realizadas na gestação são elegíveis. "
                     "CRÍTICO para Apuí: risco de mortalidade materna por baixa cobertura ribeirinha."
                 ),
                 "acoes_melhoria": [
@@ -169,7 +179,7 @@ INDICADORES_QUALIDADE = {
                 "codigo": "C4",
                 "nome": "Cuidado da Pessoa com Diabetes Mellitus",
                 "grupo": "DCNT",
-                "numerador": "Pessoas com DM vinculadas com ≥1 atendimento por médico/enfermeiro + hemoglobina glicada solicitada no período",
+                "numerador": "Pessoas com DM (CID-10 E10 + E11 + E13 + E14) vinculadas com ≥1 atendimento + hemoglobina glicada solicitada/avaliada no período",
                 "denominador": "Total de pessoas com DM vinculadas à equipe",
                 "unidade": "%",
                 "classificacao": {
@@ -184,8 +194,11 @@ INDICADORES_QUALIDADE = {
                 "fonte": "SIAPS / RNDS / e-Gestor APS",
                 "peso": 1,
                 "descricao_gestor": (
-                    "Incorpora e amplia o antigo PB06 (HbA1c). "
-                    "Agora exige TANTO consulta QUANTO exame laboratorial. "
+                    "Exige consulta + hemoglobina glicada solicitada/avaliada. "
+                    "Atualização 2026: CID-10 E10 (DM Insulino-Dependente) incluído na população acompanhada. "
+                    "CBOs válidos para PA: 2232, 2234, 2236, 2238, 2237, 2241, 2239, 3224. "
+                    "CBOs válidos para peso/altura: 2232, 2234, 2236, 2238, 2237, 2241, 2239. "
+                    "CBO válido para HbA1c solicitada/avaliada: 2234 (Farmacêutico). "
                     "CRÍTICO para Apuí: acesso a laboratório na zona rural é o maior gargalo."
                 ),
                 "acoes_melhoria": [
@@ -215,8 +228,14 @@ INDICADORES_QUALIDADE = {
                 "fonte": "SIAPS / e-Gestor APS",
                 "peso": 1,
                 "descricao_gestor": (
-                    "Amplia o antigo PB05. Agora exige 2 atendimentos com PA registrada (não apenas 1). "
-                    "Aferição de PA é o procedimento mais simples e mais resolutivo da APS."
+                    "Exige 2 atendimentos com PA registrada no período. "
+                    "Atualização 2026 — CBOs válidos para PA: 2232 (Cirurgião-Dentista), 2234 (Farmacêutico), "
+                    "2236 (Fisioterapeuta), 2238 (Fonoaudiólogo), 2237 (Nutricionista), "
+                    "2241 (Prof. Educação Física), 2239 (Terapeuta Ocupacional/Ortoptista), "
+                    "3224 (Técnico em Saúde Bucal). "
+                    "CBOs válidos para peso/altura: 2232, 2234, 2236, 2238, 2237, 2241, 2239. "
+                    "CBO 5151-05 (ACS) EXCLUÍDO do registro de PA. "
+                    "Identificação do cidadão prioriza Cadastro Individual (FCI), depois CPF e CNS."
                 ),
                 "acoes_melhoria": [
                     "Consulta de enfermagem HAS semestral obrigatória com PA registrada no e-SUS",
@@ -244,9 +263,12 @@ INDICADORES_QUALIDADE = {
                 "fonte": "SIAPS / e-Gestor APS",
                 "peso": 1,
                 "descricao_gestor": (
-                    "Incorpora e amplia o antigo PB08. "
                     "Avaliação multidimensional rápida identifica fragilidade, risco de quedas, "
-                    "polifarmácia e dependência funcional."
+                    "polifarmácia e dependência funcional. "
+                    "Atualização 2026 — CBOs válidos para peso/altura: 2232 (Cirurgião-Dentista), "
+                    "2234 (Farmacêutico), 2236 (Fisioterapeuta), 2238 (Fonoaudiólogo), "
+                    "2237 (Nutricionista), 2241 (Prof. Educação Física), "
+                    "2239 (Terapeuta Ocupacional/Ortoptista/Psicomotricista)."
                 ),
                 "acoes_melhoria": [
                     "AMR na consulta de enfermagem — Caderneta da Pessoa Idosa",
@@ -274,9 +296,11 @@ INDICADORES_QUALIDADE = {
                 "fonte": "SIAPS / SISCOLO / e-Gestor APS",
                 "peso": 1,
                 "descricao_gestor": (
-                    "Incorpora o antigo PB03 (citopatológico). "
                     "Câncer do colo do útero é a 2ª neoplasia mais frequente em mulheres amazônicas. "
-                    "100% evitável com rastreio regular."
+                    "100% evitável com rastreio regular. "
+                    "Atualização 2026: SIGTAP 02.02.10.025-1 (Exame Molecular HPV) incluído nas boas práticas "
+                    "com janela temporal de 60 meses (5 anos) para este exame específico. "
+                    "Citopatológico: janela de 36 meses (3 anos) mantida."
                 ),
                 "acoes_melhoria": [
                     "Mutirão de coleta: 1 dia/mês por equipe ESF exclusivo para citopatológico",
@@ -1137,3 +1161,176 @@ async def get_painel_gestor(mes: int = Query(default=None), ano: int = Query(def
         "cobertura_vacinal":    vac["vacinas"],
         "parametros_cbo":       {cbo: {"portaria": v["portaria"], "meta_mensal": v.get("meta_mensal", {}), "producao_dia": v["producao_dia"]} for cbo, v in PARAMETROS_CBO.items()},
     }
+
+# ── Changelog de critérios SISAB ──────────────────────────────────────────────
+
+_CHANGELOG_SISAB = [
+    {
+        "versao": "2026-07",
+        "tipo": "Melhoria",
+        "indicador": "C3 — Cuidado na Gestação e Puerpério",
+        "resumo": "Novos CIAP-2, CID-10, SIGTAP e atividades de saúde bucal incluídos",
+        "detalhes": {
+            "ciap2_gestacao": ["W03", "W78", "W79", "W81", "W84", "W85"],
+            "cid10_gestacao": [
+                "O10", "O11", "O12", "O13", "O14", "O15", "O16",
+                "O20", "O21", "O22", "O23", "O24", "O25", "O26", "O28", "O29",
+                "O30", "O31", "O32", "O33", "O34", "O35", "O36",
+                "O40", "O41", "O43", "O44", "O46", "O47", "O48",
+                "O75.2", "O75.3", "O98", "O99.0", "O99.1", "O99.2", "O99.3",
+                "O99.4", "O99.5", "O99.6", "O99.7",
+                "Z32.1", "Z33", "Z34", "Z35", "Z36", "Z64.0",
+            ],
+            "ciap2_abp_prenatal": ["48", "49", "P29", "W18", "W19", "W70",
+                                   "W90", "W91", "W92", "W93", "W94", "W95", "W96"],
+            "cid10_puerperio": [
+                "F53", "F53.0", "F53.1", "F53.8", "F53.9", "M83.0",
+                "O10", "O15.2", "O26.6", "O72.2", "O72.3", "O85", "O86", "O87",
+                "O90", "O91", "O92", "O94", "O98", "O99",
+                "Z37.0", "Z37.1", "Z37.2", "Z37.3", "Z37.4", "Z37.5", "Z37.6",
+                "Z37.7", "Z37.9", "Z38", "Z39",
+            ],
+            "sigtap_adicionados": [
+                {"codigo": "02.02.03.030-0", "descricao": "Pesquisa de Anticorpos Anti-HIV-1 + HIV-2 (Elisa)"},
+                {"codigo": "02.02.03.031-8", "descricao": "Pesquisa de Anticorpos Anti-HTLV-1 + HTLV-2"},
+            ],
+            "saude_bucal": "Atividades 05 e 09 + praticas 02 e 04 realizadas durante a gestacao sao elegiveis",
+        },
+    },
+    {
+        "versao": "2026-07",
+        "tipo": "Melhoria",
+        "indicador": "C2 — Cuidado no Desenvolvimento Infantil",
+        "resumo": "Novos CBOs para peso/altura, regra de visita domiciliar revisada, somente Puericultura",
+        "detalhes": {
+            "cbos_peso_altura": {
+                "2232": "Cirurgioes-Dentistas", "2234": "Farmaceuticos",
+                "2236": "Fisioterapeutas", "2238": "Fonoaudiologos",
+                "2237": "Nutricionistas", "2241": "Profissionais de Educacao Fisica",
+                "2239": "Terapeutas Ocupacionais / Ortoptistas / Psicomotricistas",
+            },
+            "visita_domiciliar": "Obrigatorio: 1 visita ate 30 dias de vida + 1 visita entre 31 dias e 6o mes",
+            "consultas": "Somente consultas classificadas como Puericultura sao consideradas",
+        },
+    },
+    {
+        "versao": "2026-07",
+        "tipo": "Melhoria",
+        "indicador": "C4 — Cuidado da Pessoa com Diabetes Mellitus",
+        "resumo": "CID-10 E10 incluido; novos CBOs para PA, peso/altura e HbA1c",
+        "detalhes": {
+            "cid10_adicionado": {"E10": "Diabetes Mellitus Insulino-Dependente"},
+            "cbos_pressao_arterial": {
+                "2232": "Cirurgioes-Dentistas", "2234": "Farmaceuticos",
+                "2236": "Fisioterapeutas", "2238": "Fonoaudiologos",
+                "2237": "Nutricionistas", "2241": "Prof. Educacao Fisica",
+                "2239": "Terapeutas Ocupacionais", "3224": "Tecnicos em Saude Bucal",
+            },
+            "cbos_peso_altura": {
+                "2232": "Cirurgioes-Dentistas", "2234": "Farmaceuticos",
+                "2236": "Fisioterapeutas", "2238": "Fonoaudiologos",
+                "2237": "Nutricionistas", "2241": "Prof. Educacao Fisica",
+                "2239": "Terapeutas Ocupacionais",
+            },
+            "cbos_hba1c": {"2234": "Farmaceutico"},
+        },
+    },
+    {
+        "versao": "2026-07",
+        "tipo": "Melhoria",
+        "indicador": "C6 — Cuidado da Pessoa Idosa",
+        "resumo": "Novos CBOs para antropometria (peso e altura)",
+        "detalhes": {
+            "cbos_peso_altura": {
+                "2232": "Cirurgioes-Dentistas", "2234": "Farmaceuticos",
+                "2236": "Fisioterapeutas", "2238": "Fonoaudiologos",
+                "2237": "Nutricionistas", "2241": "Prof. Educacao Fisica",
+                "2239": "Terapeutas Ocupacionais",
+            },
+        },
+    },
+    {
+        "versao": "2026-07",
+        "tipo": "Novidade",
+        "indicador": "C1 — Mais Acesso a APS",
+        "resumo": "Novos CBOs elegiveis: Medico Clinico e Medico Ginecologista/Obstetra",
+        "detalhes": {
+            "cbos_adicionados": {
+                "2251-25": "Medico Clinico",
+                "2252-50": "Medico Ginecologista e Obstetra",
+            },
+        },
+    },
+    {
+        "versao": "2026-07",
+        "tipo": "Novidade",
+        "indicador": "C7 — Cuidado da Mulher na Prevencao do Cancer",
+        "resumo": "Exame Molecular HPV incluido com janela de 60 meses",
+        "detalhes": {
+            "sigtap_adicionado": {
+                "codigo": "02.02.10.025-1",
+                "descricao": "Exame Molecular de Deteccao de HPV",
+                "janela_temporal_meses": 60,
+            },
+            "citopatologico_janela_meses": 36,
+        },
+    },
+    {
+        "versao": "2026-07",
+        "tipo": "Melhoria",
+        "indicador": "C5 — Cuidado da Pessoa com Hipertensao",
+        "resumo": "CBOs ampliados para PA e peso/altura; ACS excluido do registro de PA",
+        "detalhes": {
+            "cbos_pressao_arterial": {
+                "2232": "Cirurgioes-Dentistas", "2234": "Farmaceuticos",
+                "2236": "Fisioterapeutas", "2238": "Fonoaudiologos",
+                "2237": "Nutricionistas", "2241": "Prof. Educacao Fisica",
+                "2239": "Terapeutas Ocupacionais", "3224": "Tecnicos em Saude Bucal",
+            },
+            "cbos_peso_altura": {
+                "2232": "Cirurgioes-Dentistas", "2234": "Farmaceuticos",
+                "2236": "Fisioterapeutas", "2238": "Fonoaudiologos",
+                "2237": "Nutricionistas", "2241": "Prof. Educacao Fisica",
+                "2239": "Terapeutas Ocupacionais",
+            },
+            "cbo_excluido_pa": {"5151-05": "Agente Comunitario de Saude"},
+        },
+    },
+    {
+        "versao": "2026-07",
+        "tipo": "Melhoria",
+        "indicador": "Todos os indicadores",
+        "resumo": "Identificacao do cidadao prioriza FCI; cores nas colunas de boas praticas",
+        "detalhes": {
+            "identificacao_cidadao": "Prioridade: Cadastro Individual (FCI) > CPF > CNS",
+            "cores_boas_praticas": {
+                "verde": "Boa pratica realizada dentro do prazo",
+                "laranja": "Boa pratica pendente, ainda dentro do periodo permitido",
+                "vermelho": "Boa pratica nao realizada dentro do prazo previsto",
+            },
+            "boas_praticas_com_cor": ["Consulta", "Afericao de PA", "Visita Domiciliar", "Peso e Altura"],
+        },
+    },
+    {
+        "versao": "2026-07",
+        "tipo": "Correcao",
+        "indicador": "B3 — Taxa de Exodontias",
+        "resumo": "Corrigida exibicao de Procedimentos Exodontia que mostrava 0 por ignorar codigos ABP",
+        "detalhes": {
+            "causa": "Codigos ABP nao considerados na validacao de exodontias",
+            "correcao": "Apuracao adequada aos criterios da Nota Tecnica correspondente",
+        },
+    },
+]
+
+
+@router.get("/changelog-criterios")
+def changelog_criterios():
+    """Retorna o historico de atualizacoes metodologicas dos indicadores SISAB/Componente Qualidade."""
+    return {
+        "total": len(_CHANGELOG_SISAB),
+        "ultima_atualizacao": "2026-07",
+        "fonte": "Notas Tecnicas SISAB — DEAPS/SAPS/MS",
+        "alteracoes": _CHANGELOG_SISAB,
+    }
+

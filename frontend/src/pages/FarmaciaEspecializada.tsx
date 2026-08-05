@@ -45,7 +45,7 @@ function AbaDashboard({ dash, meds }: { dash: any; meds: any[] | undefined }) {
               <BarChart data={barData} layout="vertical" barSize={14}>
                 <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={BRL_AXIS}/>
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={100}/>
-                <Tooltip contentStyle={TT} formatter={(v: any) => `R$ ${v.toLocaleString("pt-BR")}`}/>
+                <Tooltip contentStyle={TT} formatter={(v: number) => [BRL(v), "Custo/mês"]}/>
                 <Bar dataKey="custo" name="Custo/mês" radius={[0,4,4,0]}>
                   {barData.map((m, i) => <Cell key={i} fill={COMP_COR[m.comp] || "#7c3aed"}/>)}
                 </Bar>
@@ -84,7 +84,7 @@ function AbaMedicamentos({ meds }: { meds: any[] | undefined }) {
                     <span style={{ background: (COMP_COR[m.componente]||"#7c3aed")+"15", color: COMP_COR[m.componente]||"#7c3aed", fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 3 }}>{m.componente}</span>
                   </td>
                   <td style={{ padding: "8px 10px", textAlign: "center", fontWeight: 700 }}>{m.pacientes}</td>
-                  <td style={{ padding: "8px 10px", textAlign: "center", fontWeight: 700, color: "#1d4ed8" }}>R$ {m.custo_mes.toLocaleString("pt-BR")}</td>
+                  <td style={{ padding: "8px 10px", textAlign: "center", fontWeight: 700, color: "#1d4ed8" }}>{BRL(m.custo_mes)}</td>
                   <td style={{ padding: "8px 10px", textAlign: "center" }}>{m.estoque_doses} doses</td>
                   <td style={{ padding: "8px 10px", textAlign: "center" }}>
                     <span style={{ background: cor+"15", color: cor, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>{m.status}</span>
@@ -121,7 +121,7 @@ function AbaJudicializacao({ juds }: { juds: any[] | undefined }) {
                 <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 600 }}>{j.medicamento}</span>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
-                <span style={{ background: "#fee2e2", color: "#dc2626", fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 4 }}>R$ {j.valor_mes.toLocaleString("pt-BR")}/mês</span>
+                <span style={{ background: "#fee2e2", color: "#dc2626", fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 4 }}>{BRL(j.valor_mes)}/mês</span>
               </div>
             </div>
             <div style={{ fontSize: 12, color: "#6b7280" }}>Fase: <strong>{j.fase}</strong> · Origem: {j.origem} · Início: {j.data_inicio}</div>
@@ -191,7 +191,7 @@ export default function FarmaciaEspecializada() {
                 <div style={{ fontSize: 10, opacity: .8 }}>pacientes CEAF</div>
               </div>
               <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 16, fontWeight: 900 }}>R${dashRaw.gasto_mes.toLocaleString("pt-BR")}</div>
+                <div style={{ fontSize: 16, fontWeight: 900 }}>{BRL(dashRaw.gasto_mes)}</div>
                 <div style={{ fontSize: 10, opacity: .8 }}>gasto/mês</div>
               </div>
             </div>

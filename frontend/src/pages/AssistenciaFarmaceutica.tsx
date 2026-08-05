@@ -203,7 +203,7 @@ function AbaDispensacao({ hist }: { hist: any[] | undefined }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6"/>
                 <XAxis dataKey="mes" tick={{ fontSize:9 }}/>
                 <YAxis tick={{ fontSize:10 }} tickFormatter={v=>`${BRL(v)}`}/>
-                <Tooltip contentStyle={TT} formatter={(v:number)=>[`R$ ${v.toLocaleString("pt-BR")}`, "Valor"]}/>
+                <Tooltip contentStyle={TT} formatter={(v:number)=>[BRL(v), "Valor"]}/>
                 <Line type="monotone" dataKey="valor" stroke="#16a34a" strokeWidth={2.5} dot={{ r:4 }} name="Valor"/>
               </LineChart>
             </ResponsiveContainer>
@@ -226,7 +226,7 @@ function AbaDispensacao({ hist }: { hist: any[] | undefined }) {
                 <td style={{ padding:"9px 14px", fontWeight:600 }}>{h.mes}</td>
                 <td style={{ padding:"9px 10px", textAlign:"right" }}>{h.receitas.toLocaleString("pt-BR")}</td>
                 <td style={{ padding:"9px 10px", textAlign:"right" }}>{h.itens_disp.toLocaleString("pt-BR")}</td>
-                <td style={{ padding:"9px 10px", textAlign:"right", fontWeight:700, color:"#16a34a" }}>R$ {h.valor.toLocaleString("pt-BR")}</td>
+                <td style={{ padding:"9px 10px", textAlign:"right", fontWeight:700, color:"#16a34a" }}>{BRL(h.valor)}</td>
               </tr>
             ))}
           </tbody>

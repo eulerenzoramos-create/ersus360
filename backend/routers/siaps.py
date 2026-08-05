@@ -277,13 +277,13 @@ _QUALIDADE_EQUIPES = [
 def _gerar_boas_praticas() -> list:
     """Gera boas práticas e alertas por indicador a partir dos dados reais de cada equipe."""
     INDS = [
-        ("ind1_prenatal", "Ind.1 — Pré-natal ≥6 consultas",       60.0),
-        ("ind2_cito",     "Ind.2 — Citopatológico",                60.0),
-        ("ind3_vacina",   "Ind.3 — Vacinação DTP/Penta",           95.0),
-        ("ind4_rn",       "Ind.4 — Consulta RN 1ª semana",         60.0),
-        ("ind5_has",      "Ind.5 — Acompanhamento HAS",            60.0),
-        ("ind6_dm",       "Ind.6 — Acompanhamento DM",             55.0),
-        ("ind7_infantil", "Ind.7 — Desenvolvimento Infantil",      60.0),
+        ("ind1_prenatal", "C3 — Cuidado na Gestação e Puerpério",           60.0),
+        ("ind2_cito",     "C7 — Cuidado da Mulher na Prevenção do Câncer", 60.0),
+        ("ind3_vacina",   "C3b — Vacinação DTP/Penta",                     95.0),
+        ("ind4_rn",       "C2b — Consulta RN 1ª semana",                   60.0),
+        ("ind5_has",      "C5 — Cuidado da Pessoa com Hipertensão",        60.0),
+        ("ind6_dm",       "C4 — Cuidado da Pessoa com Diabetes Mellitus",  55.0),
+        ("ind7_infantil", "C2 — Cuidado no Desenvolvimento Infantil",      60.0),
     ]
     resultado = []
 
