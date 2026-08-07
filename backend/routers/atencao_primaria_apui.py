@@ -9,10 +9,11 @@ router = APIRouter(prefix="/api/atencao-primaria-apui", tags=["atencao_primaria_
 @lru_cache(maxsize=1)
 def _DASHBOARD():
     return {
-        "populacao_estimada": 24700,
-        "equipes_esf_ativas": 8,
+        "populacao_estimada": 18732,       # IBGE Censo 2022
+        "populacao_fonte": "IBGE Censo 2022",
+        "equipes_esf_ativas": 9,
         "meta_equipes_esf": 12,
-        "cobertura_esf_pct": 64.2,
+        "cobertura_esf_pct": 66.0,         # 12.363 vinculadas / 18.732 hab (Siaps Q1/26)
         "meta_cobertura_esf_pct": 100.0,
         "acs_ativos": 28,
         "microareas_total": 42,
@@ -44,15 +45,17 @@ def _DASHBOARD():
 
 @lru_cache(maxsize=1)
 def _EQUIPES():
+    # Equipes reais — INE/CNES conforme monitoramento_rt_apui.py (CNES Jul/2026)
     return [
-        {"equipe": "ESF 01 — UBS Central",              "localidade": "Sede urbana",         "populacao": 3200, "medico": True,  "enfermeiro": True,  "acs": 4, "acs_meta": 4, "nasf": True,  "status": "ok",      "producao_consultas_mes": 384},
-        {"equipe": "ESF 02 — UBS Vila Nova",             "localidade": "Sede urbana",         "populacao": 2840, "medico": True,  "enfermeiro": True,  "acs": 3, "acs_meta": 4, "nasf": True,  "status": "atencao", "producao_consultas_mes": 312},
-        {"equipe": "ESF 03 — UBS Ramal do Acará",        "localidade": "Ramal do Acará",      "populacao": 2400, "medico": True,  "enfermeiro": True,  "acs": 3, "acs_meta": 4, "nasf": False, "status": "atencao", "producao_consultas_mes": 248},
-        {"equipe": "ESF 04 — UBS Vila do Juma",          "localidade": "Vila do Juma",        "populacao": 1840, "medico": False, "enfermeiro": True,  "acs": 2, "acs_meta": 3, "nasf": False, "status": "critico", "producao_consultas_mes": 128},
-        {"equipe": "ESF 05 — UBS Assentamento Juma",     "localidade": "Zona rural / assentam.", "populacao": 1680, "medico": True, "enfermeiro": True, "acs": 2, "acs_meta": 3, "nasf": False, "status": "atencao", "producao_consultas_mes": 184},
-        {"equipe": "ESF 06 — UBS PA Castanheira",        "localidade": "Assentamento rural",  "populacao": 1560, "medico": False, "enfermeiro": True,  "acs": 2, "acs_meta": 3, "nasf": False, "status": "critico", "producao_consultas_mes": 112},
-        {"equipe": "ESF 07 — UBS Ribeirinha I",          "localidade": "Área ribeirinha",     "populacao": 1280, "medico": False, "enfermeiro": True,  "acs": 2, "acs_meta": 3, "nasf": False, "status": "critico", "producao_consultas_mes": 84},
-        {"equipe": "ESF 08 — UBS Ribeirinha II",         "localidade": "Área ribeirinha",     "populacao": 1060, "medico": True,  "enfermeiro": True,  "acs": 2, "acs_meta": 3, "nasf": False, "status": "atencao", "producao_consultas_mes": 96},
+        {"equipe": "CACHOEIRA",     "ubs": "UBS Irmã Elizabete",                       "ine": "0001483724", "cnes": "3320138", "localidade": "Sede urbana",    "vinculadas": 1552, "medico": True,  "enfermeiro": True,  "acs": 3, "acs_meta": 3, "status": "bom",       "producao_consultas_mes": 384},
+        {"equipe": "SÃO SEBASTIÃO", "ubs": "UBS Anizio Ferreira da Silva",              "ine": "0001483732", "cnes": "2013312", "localidade": "Sede urbana",    "vinculadas": 1585, "medico": True,  "enfermeiro": True,  "acs": 3, "acs_meta": 3, "status": "bom",       "producao_consultas_mes": 340},
+        {"equipe": "ACARI",         "ubs": "UBS Anizio Ferreira da Silva",              "ine": "0001483740", "cnes": "2013312", "localidade": "Sede urbana",    "vinculadas": 1611, "medico": True,  "enfermeiro": True,  "acs": 3, "acs_meta": 3, "status": "bom",       "producao_consultas_mes": 328},
+        {"equipe": "TRÊS ESTADOS",  "ubs": "UBS Osvaldo Lemes Cabral",                  "ine": "0001483759", "cnes": "9934448", "localidade": "Zona rural",     "vinculadas": 1035, "medico": True,  "enfermeiro": True,  "acs": 2, "acs_meta": 3, "status": "suficiente", "producao_consultas_mes": 210},
+        {"equipe": "JUMA",          "ubs": "Centro de Saúde Curumim",                   "ine": "0001483767", "cnes": "3697983", "localidade": "Área ribeirinha", "vinculadas": 1732, "medico": True,  "enfermeiro": True,  "acs": 3, "acs_meta": 3, "status": "bom",       "producao_consultas_mes": 362},
+        {"equipe": "LIBERDADE",     "ubs": "Centro de Saúde Curumim",                   "ine": "0001483775", "cnes": "3697983", "localidade": "Sede urbana",    "vinculadas": 1784, "medico": True,  "enfermeiro": True,  "acs": 3, "acs_meta": 3, "status": "otimo",     "producao_consultas_mes": 398},
+        {"equipe": "KENNEDY",       "ubs": "UBS Padre Faliero Bonci",                   "ine": "0001483783", "cnes": "2013304", "localidade": "Sede urbana",    "vinculadas": 761,  "medico": False, "enfermeiro": True,  "acs": 2, "acs_meta": 3, "status": "regular",   "producao_consultas_mes": 128},
+        {"equipe": "JK",            "ubs": "UBS JK",                                    "ine": "0001483791", "cnes": "2013290", "localidade": "Sede urbana",    "vinculadas": 1497, "medico": True,  "enfermeiro": True,  "acs": 3, "acs_meta": 3, "status": "bom",       "producao_consultas_mes": 310},
+        {"equipe": "ESTRADA NOVA",  "ubs": "UBS Claudia Pereira dos Santos Damacena",   "ine": "0001483805", "cnes": "9942122", "localidade": "Zona rural",     "vinculadas": 806,  "medico": False, "enfermeiro": True,  "acs": 2, "acs_meta": 3, "status": "regular",   "producao_consultas_mes": 148},
     ]
 
 
