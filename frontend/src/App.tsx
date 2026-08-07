@@ -1,7 +1,7 @@
 // src/App.tsx — ERSUS 360 · Sidebar estilo VersaSaúde (3 níveis)
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, NavLink, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from "react-router-dom";
 import {
   Home, BarChart2, Map, ChevronDown, ChevronRight,
   ArrowLeftRight, Target, Building2, Bot, LogOut, GitBranch,
@@ -76,7 +76,6 @@ import AssistenciaFarmaceutica  from "./pages/AssistenciaFarmaceutica";
 import TransporteSanitario     from "./pages/TransporteSanitario";
 import ProducaoSISAB           from "./pages/ProducaoSISAB";
 import SaudeMulher             from "./pages/SaudeMulher";
-import ConselhoSaude           from "./pages/ConselhoSaude";
 import SaudeCrianca            from "./pages/SaudeCrianca";
 import VigilanciaVISA          from "./pages/VigilanciaVISA";
 import ControleVetores         from "./pages/ControleVetores";
@@ -151,7 +150,6 @@ import Arboviroses             from "./pages/Arboviroses";
 import SaudeIndigena           from "./pages/SaudeIndigena";
 import Hanseniase               from "./pages/Hanseniase";
 import Tuberculose              from "./pages/Tuberculose";
-import DstHiv                  from "./pages/DstHiv";
 import Imunizacao               from "./pages/Imunizacao";
 import SaudeMental              from "./pages/SaudeMental";
 import SaudeBucal               from "./pages/SaudeBucal";
@@ -1035,7 +1033,6 @@ export default function App() {
             <Route path="/transporte-sanitario"      element={<TransporteSanitario/>}/>
             <Route path="/producao-sisab"            element={<ProducaoSISAB/>}/>
             <Route path="/saude-mulher"              element={<SaudeMulher/>}/>
-            <Route path="/conselho-saude"            element={<ConselhoSaude/>}/>
             <Route path="/saude-crianca"             element={<SaudeCrianca/>}/>
             <Route path="/visa"                      element={<VigilanciaVISA/>}/>
             <Route path="/vetores"                   element={<ControleVetores/>}/>
@@ -1107,7 +1104,7 @@ export default function App() {
             <Route path="/saude-indigena"            element={<SaudeIndigena/>}/>
             <Route path="/hanseniase"                element={<Hanseniase/>}/>
             <Route path="/tuberculose"               element={<Tuberculose/>}/>
-            <Route path="/dst-hiv"                   element={<DstHiv/>}/>
+            <Route path="/dst-hiv"                   element={<Navigate to="/ist-hiv" replace/>}/>
             <Route path="/imunizacao"                element={<Imunizacao/>}/>
             <Route path="/saude-mental"              element={<SaudeMental/>}/>
             <Route path="/saude-bucal"               element={<SaudeBucal/>}/>
@@ -1311,8 +1308,7 @@ export default function App() {
             <Route path="/mapa-sanitario"          element={<MapaSanitario/>}/>
             <Route path="/gestao-contratos"        element={<GestaoContratos/>}/>
             <Route path="/conselho-saude"          element={<ConselhoMunicipalSaude/>}/>
-            <Route path="/saude-bucal"             element={<SaudeBucal/>}/>
-            <Route path="/producao-aps"            element={<ProducaoAPS/>}/>
+            <Route path="/producao-aps"            element={<Navigate to="/producao-sisab" replace/>}/>
             <Route path="/dashboard-executivo"     element={<DashboardExecutivo360/>}/>
             <Route path="/notificacoes"            element={<CentroNotificacoes/>}/>
             <Route path="/exportador-relatorios"   element={<ExportadorRelatorios/>}/>
