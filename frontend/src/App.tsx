@@ -1057,10 +1057,10 @@ export default function App() {
             <Route path="/caf"                       element={<PainelCAF/>}/>
             <Route path="/matriz-normativa-aps"      element={<MatrizNormativaAPS/>}/>
             <Route path="/folha-pagamento"            element={<FolhaPagamento/>}/>
-            <Route path="/ouvidoria"                 element={<Ouvidoria/>}/>
+            <Route path="/ouvidoria" element={<Navigate to="/ouvidoria-apui" replace/>}/>
             <Route path="/regulacao-mac"             element={<RegulacaoMAC/>}/>
             <Route path="/ppa-loa"                   element={<PainelPPALOA/>}/>
-            <Route path="/absenteismo"               element={<Absenteismo/>}/>
+            <Route path="/absenteismo" element={<Navigate to="/absenteismo-apui" replace/>}/>
             <Route path="/sala-vacinas"              element={<SalaVacinas/>}/>
             <Route path="/raps"                      element={<RAPS/>}/>
             <Route path="/manutencao"                element={<Manutencao/>}/>
@@ -1078,34 +1078,34 @@ export default function App() {
             <Route path="/saude-idoso"               element={<SaudeIdoso/>}/>
             <Route path="/saude-homem"               element={<SaudeHomem/>}/>
             <Route path="/sim-sinasc"                element={<SimSinasc/>}/>
-            <Route path="/saude-trabalhador"         element={<SaudeTrabalhador/>}/>
-            <Route path="/saude-adolescente"         element={<SaudeAdolescente/>}/>
-            <Route path="/hiperdia"                  element={<HiperDia/>}/>
+            <Route path="/saude-trabalhador" element={<Navigate to="/saude-trabalhador-apui" replace/>}/>
+            <Route path="/saude-adolescente" element={<Navigate to="/saude-adolescente-apui" replace/>}/>
+            <Route path="/hiperdia" element={<Navigate to="/hiperdia-apui" replace/>}/>
             <Route path="/rede-frio"                 element={<RedeFrio/>}/>
-            <Route path="/farmacia-especializada"    element={<FarmaciaEspecializada/>}/>
+            <Route path="/farmacia-especializada" element={<Navigate to="/farmacia-especializada-apui" replace/>}/>
             <Route path="/controle-tabaco"           element={<ControleTabaco/>}/>
-            <Route path="/icsap"                     element={<ICSAP/>}/>
+            <Route path="/icsap" element={<Navigate to="/icsap-apui" replace/>}/>
             <Route path="/hemoterapia"               element={<Hemoterapia/>}/>
             <Route path="/ccih"                      element={<CCIH/>}/>
             <Route path="/sadt"                      element={<SADT/>}/>
-            <Route path="/saude-prisional"           element={<SaudePrisional/>}/>
-            <Route path="/nutricao-clinica"          element={<NutricaoClinica/>}/>
-            <Route path="/telessaude"                element={<Telessaude/>}/>
+            <Route path="/saude-prisional" element={<Navigate to="/saude-prisional-apui" replace/>}/>
+            <Route path="/nutricao-clinica" element={<Navigate to="/nutricao-clinica-apui" replace/>}/>
+            <Route path="/telessaude" element={<Navigate to="/telessaude-apui" replace/>}/>
             <Route path="/pgrss"                     element={<PGRSS/>}/>
             <Route path="/educacao-permanente"       element={<EducacaoPermanente/>}/>
-            <Route path="/farmacovigilancia"         element={<Farmacovigilancia/>}/>
+            <Route path="/farmacovigilancia" element={<Navigate to="/farmacovigilancia-apui" replace/>}/>
             <Route path="/gestao-qualidade"          element={<GestaoQualidade/>}/>
-            <Route path="/saude-digital"             element={<SaudeDigital/>}/>
+            <Route path="/saude-digital" element={<Navigate to="/saude-digital-apui" replace/>}/>
             <Route path="/cme"                       element={<CME/>}/>
             <Route path="/pse"                       element={<PSE/>}/>
             <Route path="/blh"                       element={<BLH/>}/>
-            <Route path="/pics"                      element={<PICS/>}/>
+            <Route path="/pics" element={<Navigate to="/pics-apui" replace/>}/>
             <Route path="/frota"                     element={<Frota/>}/>
             <Route path="/vigiagua"                  element={<VigiAgua/>}/>
             <Route path="/nasf"                      element={<NASF/>}/>
-            <Route path="/zoonoses"                  element={<Zoonoses/>}/>
+            <Route path="/zoonoses" element={<Navigate to="/zoonoses-apui" replace/>}/>
             <Route path="/saude-servidor"            element={<SaudeServidor/>}/>
-            <Route path="/planejamento-familiar"     element={<PlanejamentoFamiliar/>}/>
+            <Route path="/planejamento-familiar" element={<Navigate to="/planejamento-familiar-apui" replace/>}/>
             <Route path="/acolhimento"               element={<Acolhimento/>}/>
             <Route path="/judicializacao"            element={<Judicializacao/>}/>
             <Route path="/spd"                       element={<SPD/>}/>
@@ -1119,10 +1119,10 @@ export default function App() {
             <Route path="/rreo-anexo12"             element={<RREOAnexo12/>}/>
             <Route path="/pat-saude"                 element={<PatSaude/>}/>
             <Route path="/abastecimento"             element={<Abastecimento/>}/>
-            <Route path="/seguranca-paciente"        element={<SegurancaPaciente/>}/>
+            <Route path="/seguranca-paciente" element={<Navigate to="/seguranca-paciente-apui" replace/>}/>
             <Route path="/visa-alimentos"            element={<VisaAlimentos/>}/>
             <Route path="/academia-saude"            element={<AcademiaSaude/>}/>
-            <Route path="/laboratorio"               element={<Laboratorio/>}/>
+            <Route path="/laboratorio" element={<Navigate to="/laboratorio-apui" replace/>}/>
             <Route path="/crie"                      element={<CRIE/>}/>
             <Route path="/protocolo-clinico"         element={<ProtocoloClinico/>}/>
             <Route path="/consultorio-rua"           element={<ConsultorioRua/>}/>
@@ -1131,47 +1131,47 @@ export default function App() {
             <Route path="/vigilancia-obito"          element={<VigilanciaObito/>}/>
             <Route path="/caps-ad"                   element={<CAPSAD/>}/>
             <Route path="/saude-estomia"             element={<SaudeEstomia/>}/>
-            <Route path="/triagem-neonatal"          element={<TriagemNeonatal/>}/>
+            <Route path="/triagem-neonatal" element={<Navigate to="/triagem-neonatal-apui" replace/>}/>
             <Route path="/violencia-domestica"       element={<ViolenciaDomestica/>}/>
-            <Route path="/malaria"                   element={<Malaria/>}/>
+            <Route path="/malaria" element={<Navigate to="/malaria-apui" replace/>}/>
             <Route path="/leishmaniose"              element={<Leishmaniose/>}/>
             <Route path="/arboviroses"               element={<Arboviroses/>}/>
             <Route path="/saude-indigena"            element={<SaudeIndigena/>}/>
-            <Route path="/hanseniase"                element={<Hanseniase/>}/>
-            <Route path="/tuberculose"               element={<Tuberculose/>}/>
+            <Route path="/hanseniase" element={<Navigate to="/hanseniase-apui" replace/>}/>
+            <Route path="/tuberculose" element={<Navigate to="/tuberculose-apui" replace/>}/>
             <Route path="/dst-hiv"                   element={<Navigate to="/ist-hiv" replace/>}/>
-            <Route path="/imunizacao"                element={<Imunizacao/>}/>
+            <Route path="/imunizacao" element={<Navigate to="/imunizacao-apui" replace/>}/>
             <Route path="/saude-mental"              element={<SaudeMental/>}/>
             <Route path="/saude-bucal"               element={<SaudeBucal/>}/>
-            <Route path="/saude-ocular"              element={<SaudeOcular/>}/>
-            <Route path="/saude-auditiva"            element={<SaudeAuditiva/>}/>
-            <Route path="/oncologia"                 element={<Oncologia/>}/>
+            <Route path="/saude-ocular" element={<Navigate to="/saude-ocular-apui" replace/>}/>
+            <Route path="/saude-auditiva" element={<Navigate to="/saude-auditiva-apui" replace/>}/>
+            <Route path="/oncologia" element={<Navigate to="/oncologia-apui" replace/>}/>
             <Route path="/dcnt"                      element={<DCNT/>}/>
             <Route path="/nutricao"                  element={<Nutricao/>}/>
-            <Route path="/reabilitacao"              element={<Reabilitacao/>}/>
+            <Route path="/reabilitacao" element={<Navigate to="/reabilitacao-apui" replace/>}/>
             <Route path="/assist-farmaceutica"       element={<AssistFarmaceutica/>}/>
-            <Route path="/saude-ambiental"           element={<SaudeAmbiental/>}/>
+            <Route path="/saude-ambiental" element={<Navigate to="/saude-ambiental-apui" replace/>}/>
             <Route path="/vig-epidem-avancada"       element={<VigEpidemAvancada/>}/>
             <Route path="/saude-digital-esus"        element={<SaudeDigitalEsus/>}/>
             <Route path="/gestao-pessoas"            element={<GestaoPessoas/>}/>
             <Route path="/fundo-municipal"           element={<FundoMunicipal/>}/>
-            <Route path="/judicializacao-saude"      element={<JudicializacaoSaude/>}/>
+            <Route path="/judicializacao-saude" element={<Navigate to="/judicializacao-saude-apui" replace/>}/>
             <Route path="/atencao-especializada"     element={<AtencaoEspecializada/>}/>
             <Route path="/malaria-endemias"        element={<MalariaEndemias/>}/>
             <Route path="/vigilancia-nutricional" element={<VigilanciaNutricional/>}/>
             <Route path="/dcnt-cronicas"           element={<DcntCronicas/>}/>
             <Route path="/cancer-rastreio"        element={<CancerRastreio/>}/>
             <Route path="/saude-bucal-municipal"  element={<SaudeBucalMunicipal/>}/>
-            <Route path="/saude-mental-caps"       element={<SaudeMentalCaps/>}/>
+            <Route path="/saude-mental-caps" element={<Navigate to="/saude-mental-caps-apui" replace/>}/>
             <Route path="/rede-cegonha"           element={<RedeCegonha/>}/>
             <Route path="/programa-saude-escola"  element={<ProgramaSaudeEscola/>}/>
             <Route path="/plano-municipal-saude"   element={<PlanoMunicipalSaude/>}/>
             <Route path="/score-municipal"         element={<ScoreMunicipal/>}/>
             <Route path="/gestao-contratos-fms"    element={<GestaoContratosFms/>}/>
-            <Route path="/urgencia-emergencia"    element={<UrgenciaEmergencia/>}/>
-            <Route path="/regulacao-acesso"       element={<RegulacaoAcesso/>}/>
-            <Route path="/gestao-leitos"          element={<GestaoLeitos/>}/>
-            <Route path="/visa-municipal"           element={<VisaMunicipal/>}/>
+            <Route path="/urgencia-emergencia" element={<Navigate to="/urgencia-emergencia-apui" replace/>}/>
+            <Route path="/regulacao-acesso" element={<Navigate to="/regulacao-acesso-apui" replace/>}/>
+            <Route path="/gestao-leitos" element={<Navigate to="/gestao-leitos-apui" replace/>}/>
+            <Route path="/visa-municipal" element={<Navigate to="/visa-municipal-apui" replace/>}/>
             <Route path="/visa-municipal-apui"      element={<VisaMunicipalApui/>}/>
             <Route path="/educacao-permanente-apui"element={<EducacaoPermanenteApui/>}/>
             <Route path="/conselho-saude-apui"          element={<ConselhoSaudeApui/>}/>
