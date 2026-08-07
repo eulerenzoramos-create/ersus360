@@ -1,6 +1,7 @@
 """
 Router: /api/financeiro — Painel Financeiro Executivo
 Agrega: FNS repasses, execução orçamentária, blocos, SIOPS, empenhos
+Repasses: Jan–Jun 2026 integralmente recebidos (diferença = 0)
 """
 from __future__ import annotations
 import asyncio
