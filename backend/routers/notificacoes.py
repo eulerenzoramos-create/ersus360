@@ -110,7 +110,7 @@ def resumo():
 
 @router.get("/lista")
 def lista(tipo: Optional[str] = None, lida: Optional[str] = None):
-    items = list(_NOTIFICACOES)
+    items = list(_NOTIFICACOES())
     if tipo:
         items = [n for n in items if n["tipo"] == tipo]
     if lida == "true":

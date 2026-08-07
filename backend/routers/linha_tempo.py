@@ -126,7 +126,7 @@ def _EVENTOS_DEMO():
 @router.get("/cidadao")
 def buscar_cidadao(cns: str = Query(...)):
     cns_num = cns.replace(" ", "")
-    return _CIDADAO_DEMO
+    return _CIDADAO_DEMO()
 
 
 @router.get("/eventos")
@@ -135,7 +135,7 @@ def listar_eventos(
     fontes: Optional[str] = Query(None),
     tipo: Optional[str] = Query(None),
 ):
-    eventos = list(_EVENTOS_DEMO)
+    eventos = list(_EVENTOS_DEMO())
     if fontes:
         lista_fontes = fontes.split(",")
         eventos = [e for e in eventos if e["fonte"] in lista_fontes]

@@ -63,11 +63,11 @@ async def dashboard():
 
 @router.get("/semanas-epidemiologicas")
 async def semanas_epidemiologicas():
-    return _SEMANAS
+    return _SEMANAS()
 
 @router.get("/levantamento-indice-stegomyia")
 async def levantamento_indice():
-    return _BAIRROS
+    return _BAIRROS()
 
 @router.get("/historico")
 async def historico():

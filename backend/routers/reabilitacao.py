@@ -91,19 +91,19 @@ def dashboard():
 
 @router.get("/modalidades")
 def modalidades():
-    return _MODALIDADES
+    return _MODALIDADES()
 
 
 @router.get("/pcd-cadastros")
 def pcd_cadastros():
-    return _PCD_CADASTROS
+    return _PCD_CADASTROS()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

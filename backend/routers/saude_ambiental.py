@@ -98,24 +98,24 @@ def dashboard():
 
 @router.get("/vigiagua")
 def vigiagua():
-    return _VIGIAGUA
+    return _VIGIAGUA()
 
 
 @router.get("/saneamento")
 def saneamento():
-    return _SANEAMENTO
+    return _SANEAMENTO()
 
 
 @router.get("/agrotoxicos")
 def agrotoxicos():
-    return _AGROTOXICOS
+    return _AGROTOXICOS()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

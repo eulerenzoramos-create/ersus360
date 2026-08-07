@@ -220,12 +220,12 @@ async def loa():
 
 @router.get("/ldo-metas")
 async def ldo_metas():
-    return _LDO_METAS
+    return _LDO_METAS()
 
 
 @router.get("/siops-historico")
 async def siops_historico():
-    return _META_SIOPS_HIST
+    return _META_SIOPS_HIST()
 
 
 @router.get("/siops-bimestral")

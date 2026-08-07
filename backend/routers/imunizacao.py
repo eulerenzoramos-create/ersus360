@@ -96,19 +96,19 @@ def dashboard():
 
 @router.get("/vacinas")
 def vacinas():
-    return _VACINAS
+    return _VACINAS()
 
 
 @router.get("/rede-frio")
 def rede_frio():
-    return _CAMERA_FRIA
+    return _CAMERA_FRIA()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

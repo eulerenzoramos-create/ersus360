@@ -85,12 +85,12 @@ async def dashboard():
 
 @router.get("/estoque")
 async def estoque():
-    return sorted(_MEDICAMENTOS, key=lambda x: (x["status"] != "critico", x["status"] != "atencao", x["principio"]))
+    return sorted(_MEDICAMENTOS(), key=lambda x: (x["status"] != "critico", x["status"] != "atencao", x["principio"]))
 
 @router.get("/dispensacao")
 async def dispensacao():
-    return _DISPENSACAO_MENSAL
+    return _DISPENSACAO_MENSAL()
 
 @router.get("/programas")
 async def programas():
-    return _PROGRAMAS
+    return _PROGRAMAS()

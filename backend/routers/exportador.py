@@ -96,7 +96,7 @@ def resumo():
 
 @router.get("/lista")
 def lista(modulo: Optional[str] = None):
-    items = list(_RELATORIOS)
+    items = list(_RELATORIOS())
     if modulo:
         items = [r for r in items if r["modulo"] == modulo]
     return items

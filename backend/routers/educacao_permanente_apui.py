@@ -106,24 +106,24 @@ def _PROGRAMAS():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/programas")
 def programas():
-    return _PROGRAMAS
+    return _PROGRAMAS()
 
 
 @router.get("/acoes")
 def acoes():
-    return _ACOES
+    return _ACOES()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

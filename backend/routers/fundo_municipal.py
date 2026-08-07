@@ -100,29 +100,29 @@ def dashboard():
 
 @router.get("/receitas")
 def receitas():
-    return _RECEITAS
+    return _RECEITAS()
 
 
 @router.get("/despesas")
 def despesas():
-    return _DESPESAS
+    return _DESPESAS()
 
 
 @router.get("/aplicacao-minima")
 def aplicacao_minima():
-    return _APLICACAO_MINIMA
+    return _APLICACAO_MINIMA()
 
 
 @router.get("/blocos")
 def blocos():
-    return _BLOCOS
+    return _BLOCOS()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

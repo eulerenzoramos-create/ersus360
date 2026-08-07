@@ -51,11 +51,11 @@ async def dashboard():
 
 @router.get("/tipos")
 async def tipos():
-    return _TIPOS_VIOLENCIA
+    return _TIPOS_VIOLENCIA()
 
 @router.get("/fluxo-atendimento")
 async def fluxo_atendimento():
-    return _FLUXO
+    return _FLUXO()
 
 @router.get("/historico")
 async def historico():

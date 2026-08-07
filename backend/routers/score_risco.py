@@ -164,14 +164,14 @@ def resumo():
         "medio_risco": sum(1 for e in _EQUIPES() if e["nivel_risco"] == "medio"),
         "baixo_risco": sum(1 for e in _EQUIPES() if e["nivel_risco"] == "baixo"),
         "score_medio_municipio": round(sum(scores) / len(scores), 1),
-        "equipe_mais_critica": next(e["nome"] for e in sorted(_EQUIPES, key=lambda x: -x["score_risco"])),
+        "equipe_mais_critica": next(e["nome"] for e in sorted(_EQUIPES(), key=lambda x: -x["score_risco"])),
         "ultima_atualizacao": "2026-07-01 06:00 (cron mensal)",
     }
 
 
 @router.get("/equipes")
 def listar_equipes():
-    return _EQUIPES
+    return _EQUIPES()
 
 
 @router.post("/recalcular")

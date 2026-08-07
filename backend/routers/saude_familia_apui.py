@@ -88,24 +88,24 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/equipes")
 def equipes():
-    return _EQUIPES
+    return _EQUIPES()
 
 
 @router.get("/previne")
 def previne():
-    return _INDICADORES_PREVINE
+    return _INDICADORES_PREVINE()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

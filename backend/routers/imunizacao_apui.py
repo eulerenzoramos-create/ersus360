@@ -94,7 +94,7 @@ async def dashboard(ano: int = Query(default=0)):
         ano = _date.today().year - 1
     cobertura = await pni_service.buscar_cobertura(ano)
     return {
-        **_DASHBOARD,
+        **_DASHBOARD(),
         "cobertura_vacinal_media_pct": cobertura["media_cobertura_pct"],
         "vacinas_abaixo_meta": cobertura["abaixo_meta"],
         "ano_referencia": ano,
@@ -109,20 +109,20 @@ async def vacinas(ano: int = Query(default=0)):
     cobertura = await pni_service.buscar_cobertura(ano)
     if cobertura.get("vacinas"):
         return {"ano": ano, "vacinas": cobertura["vacinas"], "fonte": cobertura["fonte"]}
-    return _VACINAS
+    return _VACINAS()
 
 
 @router.get("/cadeia-frio")
 def cadeia_frio():
-    return _CADEIA_FRIO
+    return _CADEIA_FRIO()
 
 
 @router.get("/historico")
 async def historico():
     hist = await pni_service.buscar_historico(5)
-    return hist or _HISTORICO
+    return hist or _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

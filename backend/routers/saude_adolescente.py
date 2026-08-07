@@ -77,20 +77,20 @@ def _PRODUCAO_MENSAL():
 
 @router.get("/dashboard")
 async def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 @router.get("/indicadores")
 async def indicadores():
-    return _INDICADORES
+    return _INDICADORES()
 
 @router.get("/gravidez-historico")
 async def gravidez_historico():
-    return _GRAVIDEZ_HISTORICO
+    return _GRAVIDEZ_HISTORICO()
 
 @router.get("/dst-ist")
 async def dst_ist():
-    return _CASOS_DST
+    return _CASOS_DST()
 
 @router.get("/producao")
 async def producao():
-    return _PRODUCAO_MENSAL
+    return _PRODUCAO_MENSAL()

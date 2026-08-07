@@ -74,7 +74,7 @@ async def dashboard():
 
 @router.get("/atendimentos")
 async def atendimentos():
-    return _ATENDIMENTOS_MENSAL
+    return _ATENDIMENTOS_MENSAL()
 
 @router.get("/samu")
 async def samu():
@@ -82,4 +82,4 @@ async def samu():
 
 @router.get("/causas")
 async def causas():
-    return _CAUSAS_ATENDIMENTO
+    return _CAUSAS_ATENDIMENTO()

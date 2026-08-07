@@ -67,7 +67,7 @@ def _INDICADORES():
 for ind in _INDICADORES():
     base_m = int(ind["realizado"] / 6)
     ind["historico"] = _hist(base_m)
-    ind["meses"] = _MESES
+    ind["meses"] = _MESES()
 
 @lru_cache(maxsize=1)
 def _PROCEDIMENTOS():
@@ -105,8 +105,8 @@ def resumo():
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()
 
 @router.get("/procedimentos")
 def procedimentos():
-    return _PROCEDIMENTOS
+    return _PROCEDIMENTOS()

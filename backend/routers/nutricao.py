@@ -110,19 +110,19 @@ def dashboard():
 
 @router.get("/sisvan-ciclos")
 def sisvan_ciclos():
-    return _SISVAN_CICLOS
+    return _SISVAN_CICLOS()
 
 
 @router.get("/programas")
 def programas():
-    return _BF_NUTRICAO
+    return _BF_NUTRICAO()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

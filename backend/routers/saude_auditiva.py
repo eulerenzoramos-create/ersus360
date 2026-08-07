@@ -94,24 +94,24 @@ def dashboard():
 
 @router.get("/graus-perda")
 def graus_perda():
-    return _GRAUS_PERDA
+    return _GRAUS_PERDA()
 
 
 @router.get("/tan-historico")
 def tan_historico():
-    return _TAN_RESULTADOS
+    return _TAN_RESULTADOS()
 
 
 @router.get("/aasi-estoque")
 def aasi_estoque():
-    return _AASI_ESTOQUE
+    return _AASI_ESTOQUE()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

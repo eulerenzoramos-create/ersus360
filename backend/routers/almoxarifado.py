@@ -150,7 +150,7 @@ def resumo():
 
 @router.get("/lista")
 def lista(status: Optional[str] = None, categoria: Optional[str] = None):
-    data = _INSUMOS
+    data = _INSUMOS()
     if status and status != "todos":
         data = [i for i in data if i["status"] == status]
     if categoria and categoria != "todos":

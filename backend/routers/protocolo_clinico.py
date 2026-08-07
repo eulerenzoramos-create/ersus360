@@ -48,7 +48,7 @@ async def dashboard():
 
 @router.get("/lista")
 async def lista(categoria: str = "", status: str = ""):
-    items = _PROTOCOLOS
+    items = _PROTOCOLOS()
     if categoria: items = [p for p in items if p["categoria"] == categoria]
     if status:    items = [p for p in items if p["status"] == status]
     return items

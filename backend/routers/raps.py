@@ -115,16 +115,16 @@ async def dashboard():
 
 @router.get("/caps")
 async def caps():
-    return _CAPS_DADOS
+    return _CAPS_DADOS()
 
 @router.get("/usuarios")
 async def usuarios():
-    return _USUARIOS
+    return _USUARIOS()
 
 @router.get("/grupos")
 async def grupos():
-    return _GRUPOS
+    return _GRUPOS()
 
 @router.get("/leitos")
 async def leitos():
-    return _LEITOS_REF
+    return _LEITOS_REF()

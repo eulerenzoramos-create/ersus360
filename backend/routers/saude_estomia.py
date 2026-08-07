@@ -54,11 +54,11 @@ async def dashboard():
 
 @router.get("/pacientes")
 async def pacientes():
-    return _PACIENTES
+    return _PACIENTES()
 
 @router.get("/insumos")
 async def insumos():
-    return _INSUMOS
+    return _INSUMOS()
 
 @router.get("/historico")
 async def historico():

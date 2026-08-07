@@ -103,19 +103,19 @@ def dashboard():
 
 @router.get("/contratos")
 def contratos():
-    return _CONTRATOS
+    return _CONTRATOS()
 
 
 @router.get("/licitacoes")
 def licitacoes():
-    return _LICITACOES
+    return _LICITACOES()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

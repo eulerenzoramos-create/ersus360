@@ -97,19 +97,19 @@ def dashboard():
 
 @router.get("/medicamentos-basicos")
 def medicamentos_basicos():
-    return _MEDICAMENTOS_BASICOS
+    return _MEDICAMENTOS_BASICOS()
 
 
 @router.get("/componente-especializado")
 def componente_especializado():
-    return _COMPONENTE_ESPECIALIZADO
+    return _COMPONENTE_ESPECIALIZADO()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

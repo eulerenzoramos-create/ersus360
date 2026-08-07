@@ -45,11 +45,11 @@ async def dashboard():
 
 @router.get("/obitos-maternos")
 async def obitos_maternos():
-    return _OBITOS_MATERNOS
+    return _OBITOS_MATERNOS()
 
 @router.get("/obitos-infantis")
 async def obitos_infantis():
-    return _OBITOS_INFANTIS
+    return _OBITOS_INFANTIS()
 
 @router.get("/historico")
 async def historico():

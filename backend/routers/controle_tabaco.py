@@ -72,20 +72,20 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 async def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 @router.get("/grupos")
 async def grupos():
-    return _GRUPOS_CESSACAO
+    return _GRUPOS_CESSACAO()
 
 @router.get("/usuarios")
 async def usuarios():
-    return _USUARIOS
+    return _USUARIOS()
 
 @router.get("/historico")
 async def historico():
-    return _HISTORICO_MENSAL
+    return _HISTORICO_MENSAL()
 
 @router.get("/indicadores")
 async def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

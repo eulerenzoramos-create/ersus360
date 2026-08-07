@@ -87,12 +87,12 @@ async def dashboard():
 
 @router.get("/criancas")
 async def criancas():
-    return sorted(_CRIANCAS_ACOMP, key=lambda x: (x["risco"]!="alto", x["risco"]!="medio"))
+    return sorted(_CRIANCAS_ACOMP(), key=lambda x: (x["risco"]!="alto", x["risco"]!="medio"))
 
 @router.get("/indicadores")
 async def indicadores():
-    return _INDICADORES
+    return _INDICADORES()
 
 @router.get("/bolsa-familia")
 async def bolsa_familia():
-    return _BOLSA_FAMILIA
+    return _BOLSA_FAMILIA()

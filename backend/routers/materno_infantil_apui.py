@@ -95,7 +95,7 @@ async def dashboard():
     ano = _date.today().year - 1
     nascidos = await sim_sinasc_service.buscar_nascidos_vivos(ano)
     return {
-        **_DASHBOARD,
+        **_DASHBOARD(),
         "nascidos_vivos_ano": nascidos.get("total_nascimentos", _DASHBOARD()["nascidos_vivos_ano"]),
         "cesarea_pct": nascidos.get("cesarea_pct", _DASHBOARD().get("cesarea_pct")),
         "prematuros": nascidos.get("prematuros"),
@@ -106,7 +106,7 @@ async def dashboard():
 
 @router.get("/prenatal")
 def prenatal():
-    return _PRENATAL
+    return _PRENATAL()
 
 
 @router.get("/mortalidade")
@@ -115,7 +115,7 @@ async def mortalidade():
     obitos = await sim_sinasc_service.buscar_obitos(ano)
     historico = await sim_sinasc_service.buscar_historico_mortalidade()
     return {
-        **_MORTALIDADE,
+        **_MORTALIDADE(),
         "obitos_gerais_ano": obitos.get("total_obitos", _MORTALIDADE().get("obitos_gerais_ano")),
         "causas_externas_pct": obitos.get("causas_externas_pct", _MORTALIDADE().get("causas_externas_pct")),
         "historico": historico,
@@ -125,9 +125,9 @@ async def mortalidade():
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

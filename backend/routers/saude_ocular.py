@@ -82,19 +82,19 @@ def dashboard():
 
 @router.get("/condicoes")
 def condicoes():
-    return _CONDICOES
+    return _CONDICOES()
 
 
 @router.get("/oculos-dispensados")
 def oculos_dispensados():
-    return _OCULOS
+    return _OCULOS()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

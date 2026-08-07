@@ -98,7 +98,7 @@ async def dashboard():
 
 @router.get("/testes")
 async def testes():
-    return _TESTES
+    return _TESTES()
 
 @router.get("/historico")
 async def historico():

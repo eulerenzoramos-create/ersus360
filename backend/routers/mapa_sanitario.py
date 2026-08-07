@@ -132,4 +132,4 @@ def resumo():
 
 @router.get("/unidades")
 def unidades():
-    return _UNIDADES
+    return _UNIDADES()

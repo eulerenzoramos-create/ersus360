@@ -81,16 +81,16 @@ async def dashboard():
 
 @router.get("/criancas")
 async def criancas():
-    return _CRIANCAS
+    return _CRIANCAS()
 
 @router.get("/gestantes")
 async def gestantes():
-    return _GESTANTES
+    return _GESTANTES()
 
 @router.get("/adultos")
 async def adultos():
-    return _ADULTOS_IDOSOS
+    return _ADULTOS_IDOSOS()
 
 @router.get("/bolsa-familia")
 async def bolsa_familia():
-    return _BOLSA_FAMILIA_NUTRI
+    return _BOLSA_FAMILIA_NUTRI()

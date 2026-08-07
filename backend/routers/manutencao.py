@@ -73,7 +73,7 @@ async def dashboard():
 async def equipamentos():
     return [
         {**e, "status_class": COR_STATUS.get(e["status"], "ok")}
-        for e in sorted(_EQUIPAMENTOS, key=lambda x: (-x["dias_parado"], x["criticidade"] != "critica"))
+        for e in sorted(_EQUIPAMENTOS(), key=lambda x: (-x["dias_parado"], x["criticidade"] != "critica"))
     ]
 
 @router.get("/ordens")
@@ -81,5 +81,5 @@ async def ordens():
     equip_map = {e["id"]: e["equipamento"] + " — " + e["unidade"] for e in _EQUIPAMENTOS()}
     return [
         {**o, "equipamento_nome": equip_map.get(o["equip_id"], "?")}
-        for o in sorted(_ORDENS, key=lambda x: x["status"] == "concluida")
+        for o in sorted(_ORDENS(), key=lambda x: x["status"] == "concluida")
     ]

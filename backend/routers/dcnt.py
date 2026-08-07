@@ -88,14 +88,14 @@ def dashboard():
 
 @router.get("/condicoes")
 def condicoes():
-    return _CONDICOES
+    return _CONDICOES()
 
 
 @router.get("/has-dm-serie")
 def has_dm_serie():
-    return _HAS_DM_SERIE
+    return _HAS_DM_SERIE()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

@@ -147,7 +147,7 @@ async def malaria(
         ano = _date.today().year - 1
     data = await sinan_service.buscar_malaria(ano)
     # Mantém série mensal de referência para o gráfico
-    mensal = _MALARIA_MENSAL
+    mensal = _MALARIA_MENSAL()
     return {
         "municipio": "Apuí/AM",
         "total_casos_ano": data["total_casos"],
@@ -186,4 +186,4 @@ async def dengue(
 @router.get("/mortalidade")
 async def mortalidade(_: UserOut = Depends(get_current_user)):
     """Indicadores de mortalidade — Apuí/AM."""
-    return { **_MORTALIDADE, "municipio": "Apuí/AM", "ano_referencia": 2025, "fonte": "referencia" }
+    return { **_MORTALIDADE(), "municipio": "Apuí/AM", "ano_referencia": 2025, "fonte": "referencia" }

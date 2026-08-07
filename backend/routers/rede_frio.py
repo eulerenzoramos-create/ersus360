@@ -70,16 +70,16 @@ def _PERDAS_MENSAL():
 
 @router.get("/dashboard")
 async def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 @router.get("/equipamentos")
 async def equipamentos():
-    return _EQUIPAMENTOS
+    return _EQUIPAMENTOS()
 
 @router.get("/estoque")
 async def estoque():
-    return _ESTOQUE
+    return _ESTOQUE()
 
 @router.get("/perdas")
 async def perdas():
-    return _PERDAS_MENSAL
+    return _PERDAS_MENSAL()

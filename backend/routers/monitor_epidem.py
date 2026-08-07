@@ -82,17 +82,17 @@ def _RESUMO():
 
 @router.get("/resumo")
 def resumo():
-    return _RESUMO
+    return _RESUMO()
 
 
 @router.get("/alertas")
 def alertas():
-    return _ALERTAS
+    return _ALERTAS()
 
 
 @router.get("/agravos")
 def agravos():
-    return _AGRAVOS
+    return _AGRAVOS()
 
 
 @router.post("/atualizar")

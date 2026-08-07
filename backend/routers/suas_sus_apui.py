@@ -77,19 +77,19 @@ def _INDICADORES():
 
 
 @router.get("/dashboard")
-def dashboard(): return _DASHBOARD
+def dashboard(): return _DASHBOARD()
 
 @router.get("/condicionalidades")
-def condicionalidades(): return _CONDICIONALIDADES
+def condicionalidades(): return _CONDICIONALIDADES()
 
 @router.get("/bpc-saude")
-def bpc_saude(): return _BPC_SAUDE
+def bpc_saude(): return _BPC_SAUDE()
 
 @router.get("/casos-interface")
-def casos_interface(): return _CASOS_INTERFACE
+def casos_interface(): return _CASOS_INTERFACE()
 
 @router.get("/historico")
-def historico(): return _HISTORICO
+def historico(): return _HISTORICO()
 
 @router.get("/indicadores")
-def indicadores(): return _INDICADORES
+def indicadores(): return _INDICADORES()

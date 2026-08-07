@@ -126,7 +126,7 @@ async def _dimensoes_dinamicas() -> list[dict]:
         sia_service.buscar_producao_aps(ano),
     )
 
-    dims = list(_DIMENSOES)  # cópia rasa
+    dims = list(_DIMENSOES())  # cópia rasa
 
     # Dimensão 0: APS — Novo Financiamento APS + SIH/ICSAP + SIA produção
     ind_previne = previne_data.get("indicadores", [])
@@ -212,17 +212,17 @@ async def dimensoes():
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO_SCORE
+    return _HISTORICO_SCORE()
 
 
 @router.get("/comparativo")
 def comparativo():
-    return _COMPARATIVO_AM
+    return _COMPARATIVO_AM()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()
 
 
 @router.get("/recomendacoes-ia")
@@ -230,7 +230,7 @@ async def recomendacoes_ia():
     """Gera recomendações priorizadas usando IA com base no score atual."""
     if not settings.ANTHROPIC_API_KEY:
         # Retorna recomendações estáticas quando IA não disponível
-        return _RECOMENDACOES_ESTATICAS
+        return _RECOMENDACOES_ESTATICAS()
 
     dims = await _dimensoes_dinamicas()
     dims_sorted = sorted(dims, key=lambda d: d["score"])
@@ -287,7 +287,7 @@ Seja específico para a realidade de Apuí/AM. Responda APENAS com o JSON, sem t
     except Exception as exc:
         import logging
         logging.getLogger(__name__).warning("IA recomendacoes erro: %s", exc)
-        return _RECOMENDACOES_ESTATICAS
+        return _RECOMENDACOES_ESTATICAS()
 
 
 @lru_cache(maxsize=1)
@@ -303,4 +303,3 @@ def _RECOMENDACOES_ESTATICAS():
             {"prioridade": 6, "dimensao": "Financeiro / Gestão FMS", "acao": "Executar emendas parlamentares paradas — elevar de 57% para ≥80% de execução até dezembro", "impacto": "+2,9 pts", "prazo": "6 meses", "responsavel": "Diretor FMS / Contador", "urgencia": "medio"},
         ],
     }
-

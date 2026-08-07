@@ -199,7 +199,7 @@ def _NOMES_MESES():
 
 
 def _blocos_para_mes(mes: int) -> list[dict]:
-    """Retorna _BLOCOS com recebido_ano e pct_execucao ajustados para o mês."""
+    """Retorna _BLOCOS() com recebido_ano e pct_execucao ajustados para o mês."""
     vals = _REPASSE_POR_BLOCO_MES.get(mes, {})
     result = []
     for b in _BLOCOS():

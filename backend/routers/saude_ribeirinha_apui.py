@@ -80,24 +80,24 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/comunidades")
 def comunidades():
-    return _COMUNIDADES
+    return _COMUNIDADES()
 
 
 @router.get("/morbidade")
 def morbidade():
-    return _PERFIL_MORBIDADE
+    return _PERFIL_MORBIDADE()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

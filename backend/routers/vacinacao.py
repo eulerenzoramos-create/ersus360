@@ -125,7 +125,7 @@ def _IMUNOS():
 for im in _IMUNOS():
     base_mensal = im["meta"] // 12
     im["doses_por_mes"] = _doses(base_mensal)
-    im["meses"] = _MESES
+    im["meses"] = _MESES()
 
 @router.get("/resumo")
 def resumo():
@@ -150,7 +150,7 @@ def resumo():
 
 @router.get("/imunobiologicos")
 def imunobiologicos(status: Optional[str] = None):
-    data = _IMUNOS
+    data = _IMUNOS()
     if status and status != "todos":
         data = [i for i in data if i["status"] == status]
     return data

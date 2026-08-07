@@ -76,16 +76,16 @@ async def dashboard():
 
 @router.get("/indicadores")
 async def indicadores():
-    return _INDICADORES
+    return _INDICADORES()
 
 @router.get("/producao")
 async def producao():
-    return _PRODUCAO_MENSAL
+    return _PRODUCAO_MENSAL()
 
 @router.get("/internacoes")
 async def internacoes():
-    return _CAUSAS_INTERNACAO
+    return _CAUSAS_INTERNACAO()
 
 @router.get("/acoes")
 async def acoes():
-    return _ACOES_PNAISH
+    return _ACOES_PNAISH()

@@ -83,24 +83,24 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/sifilis")
 def sifilis():
-    return _SIFILIS
+    return _SIFILIS()
 
 
 @router.get("/hepatites")
 def hepatites():
-    return _HEPATITES
+    return _HEPATITES()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

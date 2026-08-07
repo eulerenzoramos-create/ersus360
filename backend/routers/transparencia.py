@@ -97,18 +97,18 @@ def resumo():
 
 @router.get("/indicadores")
 def indicadores(categoria: Optional[str] = None):
-    data = _INDICADORES
+    data = _INDICADORES()
     if categoria and categoria != "todos":
         data = [i for i in data if i["categoria"] == categoria]
     return data
 
 @router.get("/lai")
 def lai(status: Optional[str] = None):
-    data = _LAI
+    data = _LAI()
     if status and status != "todos":
         data = [l for l in data if l["status"] == status]
     return data
 
 @router.get("/despesas")
 def despesas():
-    return _DESPESAS
+    return _DESPESAS()

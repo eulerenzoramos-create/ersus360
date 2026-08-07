@@ -87,24 +87,24 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _QUADRO_RESUMO
+    return _QUADRO_RESUMO()
 
 
 @router.get("/cargos")
 def cargos():
-    return _CARGOS
+    return _CARGOS()
 
 
 @router.get("/afastamentos")
 def afastamentos():
-    return _AFASTAMENTOS
+    return _AFASTAMENTOS()
 
 
 @router.get("/absenteismo")
 def absenteismo():
-    return _ABSENTEISMO
+    return _ABSENTEISMO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

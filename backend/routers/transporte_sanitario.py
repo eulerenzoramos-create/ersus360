@@ -77,12 +77,12 @@ async def dashboard():
 
 @router.get("/frota")
 async def frota():
-    return _FROTA
+    return _FROTA()
 
 @router.get("/viagens")
 async def viagens():
-    return _VIAGENS
+    return _VIAGENS()
 
 @router.get("/custo-mensal")
 async def custo_mensal():
-    return _CUSTO_MENSAL
+    return _CUSTO_MENSAL()

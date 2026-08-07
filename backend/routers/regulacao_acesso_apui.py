@@ -80,24 +80,24 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/especialidades")
 def especialidades():
-    return _ESPECIALIDADES_FILA
+    return _ESPECIALIDADES_FILA()
 
 
 @router.get("/exames-mac")
 def exames_mac():
-    return _EXAMES_MAC
+    return _EXAMES_MAC()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

@@ -116,7 +116,7 @@ def _filtrar(filtro: str) -> list:
         return [m for m in _MICROAREAS() if 65 <= m["score_qualidade"] < 85]
     elif filtro == "boas":
         return [m for m in _MICROAREAS() if m["score_qualidade"] >= 85]
-    return _MICROAREAS
+    return _MICROAREAS()
 
 
 @router.get("/resumo")

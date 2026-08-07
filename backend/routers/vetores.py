@@ -83,4 +83,4 @@ async def malaria():
 
 @router.get("/zoonoses")
 async def zoonoses():
-    return _ZOONOSES
+    return _ZOONOSES()

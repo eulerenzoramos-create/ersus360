@@ -49,11 +49,11 @@ async def dashboard():
 
 @router.get("/casos-lta")
 async def casos_lta():
-    return _CASOS_LTA
+    return _CASOS_LTA()
 
 @router.get("/procedencia")
 async def procedencia():
-    return _MUNICIPIOS_PROCEDENCIA
+    return _MUNICIPIOS_PROCEDENCIA()
 
 @router.get("/historico")
 async def historico():

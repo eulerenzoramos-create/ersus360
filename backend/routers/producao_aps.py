@@ -69,12 +69,12 @@ def resumo():
 
 @router.get("/atendimentos")
 def atendimentos():
-    return _ATENDIMENTOS
+    return _ATENDIMENTOS()
 
 @router.get("/cids")
 def cids():
-    return _CIDS
+    return _CIDS()
 
 @router.get("/fichas")
 def fichas():
-    return _FICHAS
+    return _FICHAS()

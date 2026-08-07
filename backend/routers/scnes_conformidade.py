@@ -111,7 +111,7 @@ def _filtrar_equipes(status: str) -> list:
         return [e for e in _EQUIPES() if 70 <= e["score_geral"] < 90]
     elif status == "conformes":
         return [e for e in _EQUIPES() if e["score_geral"] >= 90]
-    return _EQUIPES
+    return _EQUIPES()
 
 
 @router.get("/resumo")

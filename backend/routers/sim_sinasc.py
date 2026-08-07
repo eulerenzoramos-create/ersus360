@@ -97,4 +97,4 @@ async def historico():
 
 @router.get("/obitos-infantis")
 async def obitos_infantis():
-    return _OBITOS_INFANTIS_2026
+    return _OBITOS_INFANTIS_2026()

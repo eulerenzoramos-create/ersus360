@@ -98,7 +98,7 @@ def resumo():
 
 @router.get("/secoes")
 def secoes():
-    return _SECOES
+    return _SECOES()
 
 @router.post("/gerar")
 def gerar():

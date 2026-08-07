@@ -90,5 +90,5 @@ async def dashboard():
 async def servidores():
     return [
         {**s, "taxa": _taxa(s), "status": "critico" if _taxa(s) >= 10 else "atencao" if _taxa(s) >= 5 else "ok"}
-        for s in sorted(_SERVIDORES, key=lambda x: -_taxa(x))
+        for s in sorted(_SERVIDORES(), key=lambda x: -_taxa(x))
     ]

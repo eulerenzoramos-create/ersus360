@@ -354,7 +354,7 @@ async def exportar_pdf():
          p("% (b/a) x\n100", 6.5, bold=True, align=TA_CENTER)],
     ]
     r_rows = []
-    rec = _RECEITAS
+    rec = _RECEITAS()
 
     def rec_row(label, d, negrito=False, bg=None):
         return [p(label, 6.5, bold=negrito),
@@ -426,7 +426,7 @@ async def exportar_pdf():
                            p(fmt(s["pago"]), 6, align=TA_RIGHT), p(pct(s["pago_pct"]), 6, align=TA_RIGHT),
                            p(fmt(s["rp_np"]), 6, align=TA_RIGHT)])
 
-    d_rows.append(d_row(_TOTAL_XI()["label"], _TOTAL_XI, negrito=True))
+    d_rows.append(d_row(_TOTAL_XI()["label"], _TOTAL_XI(), negrito=True))
 
     cw = [pw*0.22, pw*0.08, pw*0.09, pw*0.09, pw*0.06, pw*0.09, pw*0.06, pw*0.09, pw*0.06, pw*0.10]
     t_desp = Table(d_head + d_rows, colWidths=cw)
@@ -440,7 +440,7 @@ async def exportar_pdf():
     story.append(Spacer(1, 4))
 
     # ── APURAÇÃO ──────────────────────────────────────────────────────────────
-    ap = _APURACAO
+    ap = _APURACAO()
     a_rows = [
         [p("APURAÇÃO DO CUMPRIMENTO DO LIMITE MÍNIMO PARA APLICAÇÃO EM ASPS", 6.5, bold=True, align=TA_CENTER),
          p("DESPESAS\nEMPENHADAS (d)", 6.5, bold=True, align=TA_CENTER),

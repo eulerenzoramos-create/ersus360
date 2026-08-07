@@ -99,7 +99,7 @@ async def dashboard():
     previne = await previne_service.buscar_indicadores(comp)
     media_pct = previne.get("media_geral_pct") or 68.0
     return {
-        **_DASHBOARD,
+        **_DASHBOARD(),
         "previne_media_pct": media_pct,
         "previne_indicadores": len(previne.get("indicadores", [])),
         "fonte_previne": previne.get("fonte", "referencia"),
@@ -108,7 +108,7 @@ async def dashboard():
 
 @router.get("/equipes")
 def equipes():
-    return _EQUIPES
+    return _EQUIPES()
 
 
 @router.get("/indicadores-aps")
@@ -119,14 +119,14 @@ async def indicadores_aps():
     inds = previne.get("indicadores", [])
     if inds:
         return {"fonte": previne.get("fonte"), "indicadores": inds}
-    return _INDICADORES_APS
+    return _INDICADORES_APS()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

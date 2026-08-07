@@ -77,12 +77,12 @@ async def dashboard():
 
 @router.get("/agravos")
 async def agravos():
-    return sorted(_AGRAVOS_2026, key=lambda a: (a["alerta"] is None, -a["afastamento_dias"]))
+    return sorted(_AGRAVOS_2026(), key=lambda a: (a["alerta"] is None, -a["afastamento_dias"]))
 
 @router.get("/setores")
 async def setores():
-    return sorted(_SETORES, key=lambda s: -s["taxa_acidente"])
+    return sorted(_SETORES(), key=lambda s: -s["taxa_acidente"])
 
 @router.get("/acoes")
 async def acoes():
-    return _ACOES_CEREST
+    return _ACOES_CEREST()

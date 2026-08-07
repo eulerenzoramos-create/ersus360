@@ -81,20 +81,20 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 async def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 @router.get("/hipertensos")
 async def hipertensos():
-    return _HIPERTENSOS
+    return _HIPERTENSOS()
 
 @router.get("/diabeticos")
 async def diabeticos():
-    return _DIABETICOS
+    return _DIABETICOS()
 
 @router.get("/internacoes")
 async def internacoes():
-    return _INTERNACOES_MENSAIS
+    return _INTERNACOES_MENSAIS()
 
 @router.get("/indicadores")
 async def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

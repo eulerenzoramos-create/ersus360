@@ -84,24 +84,24 @@ def dashboard():
 
 @router.get("/casos-por-forma")
 def casos_por_forma():
-    return _CASOS
+    return _CASOS()
 
 
 @router.get("/graus-incapacidade")
 def graus_incapacidade():
-    return _GRAUS
+    return _GRAUS()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO_MES
+    return _HISTORICO_MES()
 
 
 @router.get("/serie-historica")
 def serie_historica():
-    return _CONTATOS
+    return _CONTATOS()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

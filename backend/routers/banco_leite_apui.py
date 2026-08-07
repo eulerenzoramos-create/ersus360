@@ -80,19 +80,19 @@ def _INDICADORES():
 
 
 @router.get("/dashboard")
-def dashboard(): return _DASHBOARD
+def dashboard(): return _DASHBOARD()
 
 @router.get("/doadoras")
-def doadoras(): return _DOADORAS
+def doadoras(): return _DOADORAS()
 
 @router.get("/receptores")
-def receptores(): return _RECEPTORES
+def receptores(): return _RECEPTORES()
 
 @router.get("/acoes-aleitamento")
-def acoes(): return _ACOES_ALEITAMENTO
+def acoes(): return _ACOES_ALEITAMENTO()
 
 @router.get("/historico")
-def historico(): return _HISTORICO
+def historico(): return _HISTORICO()
 
 @router.get("/indicadores")
-def indicadores(): return _INDICADORES
+def indicadores(): return _INDICADORES()

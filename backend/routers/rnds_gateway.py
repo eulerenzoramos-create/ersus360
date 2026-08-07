@@ -59,7 +59,7 @@ def status_rnds():
 def listar_registros(status: Optional[str] = Query(None)):
     if status:
         return [r for r in _REGISTROS() if r["status"] == status]
-    return _REGISTROS
+    return _REGISTROS()
 
 
 @router.get("/estatisticas")

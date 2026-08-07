@@ -95,19 +95,19 @@ def dashboard():
 
 @router.get("/tipos-cancer")
 def tipos_cancer():
-    return _TIPOS_CANCER
+    return _TIPOS_CANCER()
 
 
 @router.get("/rastreio")
 def rastreio():
-    return _RASTREIO
+    return _RASTREIO()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

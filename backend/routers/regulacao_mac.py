@@ -113,14 +113,14 @@ async def dashboard():
 
 @router.get("/fila-ambulatorial")
 async def fila_ambulatorial():
-    return sorted(_FILA_AMBULATORIAL, key=lambda x: -x["fila"])
+    return sorted(_FILA_AMBULATORIAL(), key=lambda x: -x["fila"])
 
 
 @router.get("/internacoes")
 async def internacoes():
-    return _INTERNACOES
+    return _INTERNACOES()
 
 
 @router.get("/tfd")
 async def tfd():
-    return sorted(_TFD_SOLICITACOES, key=lambda x: (x["status"] != "em_analise", x["data"]))
+    return sorted(_TFD_SOLICITACOES(), key=lambda x: (x["status"] != "em_analise", x["data"]))

@@ -44,7 +44,7 @@ async def dashboard():
 
 @router.get("/transtornos")
 async def transtornos():
-    return _TRANSTORNOS
+    return _TRANSTORNOS()
 
 @router.get("/atividades")
 async def atividades():

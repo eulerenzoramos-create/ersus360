@@ -98,7 +98,7 @@ async def dashboard():
     gasto_proprio = float(siops.get("gastoProprioSaude") or 0) or _DASHBOARD()["recursos_proprios_municipio_R"]
     receita = float(siops.get("receitaImpostos") or 0) or _DASHBOARD()["receita_total_prevista_R"]
     return {
-        **_DASHBOARD,
+        **_DASHBOARD(),
         "asps_percentual_pct": proprio_pct,
         "asps_status": "ok" if proprio_pct >= 15.0 else "critico",
         "recursos_proprios_municipio_R": int(gasto_proprio) if gasto_proprio > 0 else _DASHBOARD()["recursos_proprios_municipio_R"],
@@ -109,19 +109,19 @@ async def dashboard():
 
 @router.get("/receitas")
 def receitas():
-    return _RECEITAS
+    return _RECEITAS()
 
 
 @router.get("/despesas-mensais")
 def despesas_mensais():
-    return _DESPESAS_MENSAIS
+    return _DESPESAS_MENSAIS()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

@@ -83,19 +83,19 @@ def dashboard():
 
 @router.get("/servicos-raps")
 def servicos_raps():
-    return _SERVICOS_RAPS
+    return _SERVICOS_RAPS()
 
 
 @router.get("/transtornos")
 def transtornos():
-    return _TRANSTORNOS
+    return _TRANSTORNOS()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

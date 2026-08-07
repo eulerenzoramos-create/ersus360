@@ -101,24 +101,24 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/grupos-populacionais")
 def grupos_populacionais():
-    return _GRUPOS_POPULACIONAIS
+    return _GRUPOS_POPULACIONAIS()
 
 
 @router.get("/programas")
 def programas():
-    return _PROGRAMAS
+    return _PROGRAMAS()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

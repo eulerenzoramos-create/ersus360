@@ -83,11 +83,11 @@ async def dashboard():
 
 @router.get("/notificacoes")
 async def notificacoes():
-    return _NOTIFICACOES
+    return _NOTIFICACOES()
 
 @router.get("/alertas")
 async def alertas():
-    return _ALERTAS
+    return _ALERTAS()
 
 @router.get("/por-agravo")
 async def por_agravo():

@@ -682,9 +682,9 @@ async def producao_mensal():
             })
             continue
 
-        prod_esf    = _prod_dia(_PROFS_ESF,    ano, mes, d, is_hoje, hora_atual)
-        prod_esb    = _prod_dia(_PROFS_ESB,    ano, mes, d, is_hoje, hora_atual)
-        prod_emulti = _prod_dia(_PROFS_EMULTI, ano, mes, d, is_hoje, hora_atual)
+        prod_esf    = _prod_dia(_PROFS_ESF(),    ano, mes, d, is_hoje, hora_atual)
+        prod_esb    = _prod_dia(_PROFS_ESB(),    ano, mes, d, is_hoje, hora_atual)
+        prod_emulti = _prod_dia(_PROFS_EMULTI(), ano, mes, d, is_hoje, hora_atual)
 
         acumulado_esf    += prod_esf["total"]
         acumulado_esb    += prod_esb["total"]

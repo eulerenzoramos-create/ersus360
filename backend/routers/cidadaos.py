@@ -115,7 +115,7 @@ async def listar_cidadaos(
     )).scalars().all()
 
     if not rows:
-        return _DEMO_CIDADAOS
+        return _DEMO_CIDADAOS()
 
     return [
         {

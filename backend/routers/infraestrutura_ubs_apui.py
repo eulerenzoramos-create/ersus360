@@ -115,7 +115,7 @@ async def dashboard():
     estabelecimentos = await cnes_service.buscar_estabelecimentos()
     ubs_cnes = [e for e in estabelecimentos if "SAUDE" in e.get("tipo", "").upper() or "HOSPITAL" in e.get("tipo", "").upper()]
     return {
-        **_DASHBOARD,
+        **_DASHBOARD(),
         "ubs_cnes_total": len(ubs_cnes) or _DASHBOARD()["ubs_total"],
         "fonte_cnes": "cnes_datasus" if ubs_cnes else "referencia",
     }
@@ -126,19 +126,19 @@ async def unidades():
     estabelecimentos = await cnes_service.buscar_estabelecimentos()
     if estabelecimentos:
         return {"total": len(estabelecimentos), "unidades": estabelecimentos, "fonte": "cnes_datasus"}
-    return _UNIDADES
+    return _UNIDADES()
 
 
 @router.get("/acoes")
 def acoes():
-    return _ACOES
+    return _ACOES()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

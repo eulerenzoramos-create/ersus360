@@ -132,7 +132,7 @@ async def dashboard(ano: int = Query(default=0)):
         ano = _date.today().year - 1
     sih = await sih_service.buscar_internacoes(ano)
     return {
-        **_DASHBOARD,
+        **_DASHBOARD(),
         "total_internacoes_ano": sih["total_internacoes"],
         "icsap_total": sih["icsap"],
         "icsap_pct": sih["icsap_pct"],
@@ -145,20 +145,20 @@ async def dashboard(ano: int = Query(default=0)):
 
 @router.get("/condicoes")
 def condicoes():
-    return _CONDICOES
+    return _CONDICOES()
 
 
 @router.get("/acoes")
 def acoes():
-    return _ACOES
+    return _ACOES()
 
 
 @router.get("/historico")
 async def historico():
     hist = await sih_service.buscar_historico(5)
-    return hist or _HISTORICO
+    return hist or _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

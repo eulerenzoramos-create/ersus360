@@ -78,19 +78,19 @@ def dashboard():
 
 @router.get("/casos-por-tipo")
 def casos_por_tipo():
-    return _CASOS_TIPO
+    return _CASOS_TIPO()
 
 
 @router.get("/investigacao-contatos")
 def investigacao_contatos():
-    return _CONTATOS
+    return _CONTATOS()
 
 
 @router.get("/serie-historica")
 def serie_historica():
-    return _SERIE
+    return _SERIE()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

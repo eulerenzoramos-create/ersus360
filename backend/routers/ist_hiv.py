@@ -76,16 +76,16 @@ async def dashboard():
 
 @router.get("/indicadores")
 async def indicadores():
-    return _INDICADORES_IST
+    return _INDICADORES_IST()
 
 @router.get("/hiv-pacientes")
 async def hiv_pacientes():
-    return sorted(_PACIENTES_HIV, key=lambda p: (p["alerta"] is None, p["adesao"]!="irregular"))
+    return sorted(_PACIENTES_HIV(), key=lambda p: (p["alerta"] is None, p["adesao"]!="irregular"))
 
 @router.get("/testagem")
 async def testagem():
-    return _TESTAGEM_MENSAL
+    return _TESTAGEM_MENSAL()
 
 @router.get("/prep")
 async def prep():
-    return _PREP_PREP
+    return _PREP_PREP()

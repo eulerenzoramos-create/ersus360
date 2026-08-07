@@ -74,12 +74,12 @@ def _CONFIG():
 
 @router.get("/execucoes")
 def listar_execucoes():
-    return _EXECUCOES
+    return _EXECUCOES()
 
 
 @router.get("/config")
 def obter_config():
-    return _CONFIG
+    return _CONFIG()
 
 
 @router.post("/disparar")

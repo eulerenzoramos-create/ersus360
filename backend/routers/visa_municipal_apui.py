@@ -78,24 +78,24 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/estabelecimentos")
 def estabelecimentos():
-    return _ESTABELECIMENTOS_TIPO
+    return _ESTABELECIMENTOS_TIPO()
 
 
 @router.get("/inspecoes")
 def inspecoes():
-    return _INSPECOES
+    return _INSPECOES()
 
 
 @router.get("/alertas-produtos")
 def alertas_produtos():
-    return _ALERTAS_PRODUTOS
+    return _ALERTAS_PRODUTOS()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

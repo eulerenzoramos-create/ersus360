@@ -69,12 +69,12 @@ async def dashboard():
 
 @router.get("/idosos")
 async def idosos():
-    return sorted(_IDOSOS, key=lambda i: (i["fragilidade"]!="fragil", i["ivcf"]*-1))
+    return sorted(_IDOSOS(), key=lambda i: (i["fragilidade"]!="fragil", i["ivcf"]*-1))
 
 @router.get("/indicadores")
 async def indicadores():
-    return _INDICADORES
+    return _INDICADORES()
 
 @router.get("/historico")
 async def historico():
-    return _HISTORICO
+    return _HISTORICO()

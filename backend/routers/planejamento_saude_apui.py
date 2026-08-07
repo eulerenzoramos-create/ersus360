@@ -81,24 +81,24 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/previne-brasil")
 def previne_brasil():
-    return _PREVINE_BRASIL
+    return _PREVINE_BRASIL()
 
 
 @router.get("/idsus")
 def idsus():
-    return _IDSUS_COMPONENTES
+    return _IDSUS_COMPONENTES()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

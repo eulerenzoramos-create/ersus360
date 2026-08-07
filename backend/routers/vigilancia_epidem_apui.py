@@ -96,7 +96,7 @@ async def dashboard():
         sinan_service.buscar_dengue(ano),
     )
     return {
-        **_DASHBOARD,
+        **_DASHBOARD(),
         "malaria_casos_ano":  malaria_data["total_casos"],
         "dengue_casos_ano":   dengue_data["total_casos"],
         "malaria_ipa":        malaria_data["ipa"],
@@ -108,19 +108,19 @@ async def dashboard():
 
 @router.get("/agravos")
 def agravos():
-    return _AGRAVOS
+    return _AGRAVOS()
 
 
 @router.get("/surtos")
 def surtos():
-    return _SURTOS
+    return _SURTOS()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

@@ -189,7 +189,7 @@ def resumo():
 
 @router.get("/priorizada")
 def priorizada(nivel: Optional[str] = None, microarea: Optional[str] = None):
-    data = sorted(_CIDADAOS, key=lambda c: -c["score_prioridade"])
+    data = sorted(_CIDADAOS(), key=lambda c: -c["score_prioridade"])
     if nivel and nivel != "todos":
         data = [c for c in data if c["nivel"] == nivel]
     if microarea and microarea != "todos":

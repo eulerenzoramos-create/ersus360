@@ -88,24 +88,24 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/agravos")
 def agravos():
-    return _AGRAVOS_SINAN
+    return _AGRAVOS_SINAN()
 
 
 @router.get("/surtos")
 def surtos():
-    return _SURTOS
+    return _SURTOS()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

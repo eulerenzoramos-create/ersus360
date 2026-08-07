@@ -109,19 +109,19 @@ def dashboard():
 
 @router.get("/eixos")
 def eixos():
-    return _EIXOS
+    return _EIXOS()
 
 
 @router.get("/metas-destaque")
 def metas_destaque():
-    return _METAS_DESTAQUE
+    return _METAS_DESTAQUE()
 
 
 @router.get("/historico-monitoramento")
 def historico_monitoramento():
-    return _HISTORICO_MONITORAMENTO
+    return _HISTORICO_MONITORAMENTO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

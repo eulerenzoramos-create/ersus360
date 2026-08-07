@@ -123,24 +123,24 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/doencas")
 def doencas():
-    return _DOENCAS
+    return _DOENCAS()
 
 
 @router.get("/risco-cv")
 def risco_cv():
-    return _RISCO_CV
+    return _RISCO_CV()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

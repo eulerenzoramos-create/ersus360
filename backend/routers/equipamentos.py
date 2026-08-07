@@ -131,7 +131,7 @@ def resumo():
 
 @router.get("/lista")
 def lista(status: Optional[str] = None, unidade: Optional[str] = None):
-    data = _EQUIPAMENTOS
+    data = _EQUIPAMENTOS()
     if status and status != "todos":
         data = [e for e in data if e["status"] == status]
     if unidade and unidade != "todos":

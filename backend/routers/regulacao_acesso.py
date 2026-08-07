@@ -81,20 +81,20 @@ def _HISTORICO_MENSAL():
 
 @router.get("/dashboard")
 async def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 @router.get("/especialidades")
 async def especialidades():
-    return _ESPECIALIDADES
+    return _ESPECIALIDADES()
 
 @router.get("/exames")
 async def exames():
-    return _EXAMES_COMPLEMENTARES
+    return _EXAMES_COMPLEMENTARES()
 
 @router.get("/tfd")
 async def tfd():
-    return _TFD
+    return _TFD()
 
 @router.get("/historico")
 async def historico():
-    return _HISTORICO_MENSAL
+    return _HISTORICO_MENSAL()

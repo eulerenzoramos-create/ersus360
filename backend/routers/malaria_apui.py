@@ -74,19 +74,19 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/estratificacao")
 def estratificacao():
-    return _ESTRATIFICACAO
+    return _ESTRATIFICACAO()
 
 
 @router.get("/sazonalidade")
 def sazonalidade():
-    return _SAZONALIDADE
+    return _SAZONALIDADE()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

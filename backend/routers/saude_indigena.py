@@ -87,19 +87,19 @@ def dashboard():
 
 @router.get("/aldeias")
 def aldeias():
-    return _ALDEIAS
+    return _ALDEIAS()
 
 
 @router.get("/agravos")
 def agravos():
-    return _AGRAVOS
+    return _AGRAVOS()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

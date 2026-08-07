@@ -135,8 +135,8 @@ def resumo():
 
 @router.get("/reunioes")
 def reunioes():
-    return _REUNIOES
+    return _REUNIOES()
 
 @router.get("/conselheiros")
 def conselheiros():
-    return _CONSELHEIROS
+    return _CONSELHEIROS()

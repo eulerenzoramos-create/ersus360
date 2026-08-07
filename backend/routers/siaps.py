@@ -407,7 +407,7 @@ _BOAS_PRATICAS = _gerar_boas_praticas()
 
 @router.get("/abrangencia")
 async def abrangencia(_: UserOut = Depends(get_current_user)):
-    return {**_ABRANGENCIA, "competencia": "Abr/2026", "fonte": "siaps_referencia"}
+    return {**_ABRANGENCIA(), "competencia": "Abr/2026", "fonte": "siaps_referencia"}
 
 
 @router.get("/vinculo-acompanhamento")
@@ -416,7 +416,7 @@ async def vinculo_acompanhamento(
     tipo_equipe: str = Query("eAP,eSF"),
     _: UserOut = Depends(get_current_user),
 ):
-    equipes = _VINCULO_EQUIPES
+    equipes = _VINCULO_EQUIPES()
     total_vinculadas = sum(e["K"] for e in equipes)
     total_acompanhadas = sum(e["H"] for e in equipes)
     pontuacao_media = round(sum(e["pontuacao"] for e in equipes) / len(equipes), 2)
@@ -450,7 +450,7 @@ async def componente_qualidade(
     competencia: str = Query("2026-04"),
     _: UserOut = Depends(get_current_user),
 ):
-    equipes = _QUALIDADE_EQUIPES
+    equipes = _QUALIDADE_EQUIPES()
     pontuacao_media = round(sum(e["pontuacao_qualidade"] for e in equipes) / len(equipes), 2)
 
     # Consolidado por indicador
@@ -503,9 +503,9 @@ async def boas_praticas(_: UserOut = Depends(get_current_user)):
 
 @router.get("/dashboard")
 async def dashboard_siaps(_: UserOut = Depends(get_current_user)):
-    equipes_vinculo = _VINCULO_EQUIPES
+    equipes_vinculo = _VINCULO_EQUIPES()
     pontuacao_media_vinculo = round(sum(e["pontuacao"] for e in equipes_vinculo) / len(equipes_vinculo), 2)
-    equipes_qualidade = _QUALIDADE_EQUIPES
+    equipes_qualidade = _QUALIDADE_EQUIPES()
     pontuacao_media_qualidade = round(sum(e["pontuacao_qualidade"] for e in equipes_qualidade) / len(equipes_qualidade), 2)
 
     return {

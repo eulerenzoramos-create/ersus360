@@ -143,7 +143,7 @@ def resumo():
 
 @router.get("/indicadores")
 def listar_indicadores(grupo: Optional[str] = Query(None)):
-    inds = _INDICADORES
+    inds = _INDICADORES()
     if grupo:
         inds = [i for i in inds if i["grupo"] == grupo]
     return inds

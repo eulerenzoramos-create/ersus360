@@ -77,24 +77,24 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/leitos-tipo")
 def leitos_tipo():
-    return _LEITOS_TIPO
+    return _LEITOS_TIPO()
 
 
 @router.get("/causas-internacao")
 def causas_internacao():
-    return _PRINCIPAIS_CAUSAS_INTERNACAO
+    return _PRINCIPAIS_CAUSAS_INTERNACAO()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

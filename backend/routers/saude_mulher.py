@@ -85,12 +85,12 @@ async def dashboard():
 
 @router.get("/gestantes")
 async def gestantes():
-    return sorted(_GESTANTES, key=lambda x: (-["alto","habitual","baixo"].index(x["risco"]) if x["risco"] in ["alto","habitual","baixo"] else 0, x["ig_atual"]))
+    return sorted(_GESTANTES(), key=lambda x: (-["alto","habitual","baixo"].index(x["risco"]) if x["risco"] in ["alto","habitual","baixo"] else 0, x["ig_atual"]))
 
 @router.get("/indicadores")
 async def indicadores():
-    return _INDICADORES
+    return _INDICADORES()
 
 @router.get("/puerperas")
 async def puerperas():
-    return _PUERPERAS
+    return _PUERPERAS()

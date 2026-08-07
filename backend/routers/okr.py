@@ -88,12 +88,12 @@ def _RESUMO():
 
 @router.get("/resumo")
 def resumo():
-    return _RESUMO
+    return _RESUMO()
 
 
 @router.get("/objetivos")
 def listar():
-    return _OBJETIVOS
+    return _OBJETIVOS()
 
 
 @router.post("/atualizar")

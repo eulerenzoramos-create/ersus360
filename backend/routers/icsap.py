@@ -72,20 +72,20 @@ def _ACOES():
 
 @router.get("/dashboard")
 async def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 @router.get("/causas")
 async def causas():
-    return _CAUSAS_ICSAP
+    return _CAUSAS_ICSAP()
 
 @router.get("/historico")
 async def historico():
-    return _HISTORICO_MENSAL
+    return _HISTORICO_MENSAL()
 
 @router.get("/por-esf")
 async def por_esf():
-    return _POR_ESF
+    return _POR_ESF()
 
 @router.get("/acoes")
 async def acoes():
-    return _ACOES
+    return _ACOES()

@@ -91,29 +91,29 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/prenatal")
 def prenatal():
-    return _PRENATAL
+    return _PRENATAL()
 
 
 @router.get("/parto")
 def parto():
-    return _PARTO
+    return _PARTO()
 
 
 @router.get("/mortalidade")
 def mortalidade():
-    return _MORTALIDADE
+    return _MORTALIDADE()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

@@ -75,16 +75,16 @@ def _INDICADORES():
 
 
 @router.get("/dashboard")
-def dashboard(): return _DASHBOARD
+def dashboard(): return _DASHBOARD()
 
 @router.get("/liraa")
-def liraa(): return _LIRAA
+def liraa(): return _LIRAA()
 
 @router.get("/nebulizacoes")
-def nebulizacoes(): return _NEBULIZACOES
+def nebulizacoes(): return _NEBULIZACOES()
 
 @router.get("/historico")
-def historico(): return _HISTORICO
+def historico(): return _HISTORICO()
 
 @router.get("/indicadores")
-def indicadores(): return _INDICADORES
+def indicadores(): return _INDICADORES()

@@ -281,7 +281,7 @@ async def listar_equipes():
 
 @router.get("/profissionais")
 async def listar_profissionais(equipe: Optional[str] = None, tipo: Optional[str] = None):
-    profs = _PROFISSIONAIS
+    profs = _PROFISSIONAIS()
     if equipe:
         profs = [p for p in profs if p["equipe"] == equipe]
     if tipo:
@@ -324,7 +324,7 @@ async def producao_por_tipo(
     hora_atual = min(datetime.now().hour, 17)
 
     _, dias_no_mes = calendar.monthrange(ano, mes)
-    profs = _PROFISSIONAIS
+    profs = _PROFISSIONAIS()
     if equipe:
         profs = [p for p in profs if p["equipe"] == equipe]
     if tipo_equipe:
@@ -410,7 +410,7 @@ async def producao_por_profissional(
     hora_atual = min(datetime.now().hour, 17)
     _, dias_no_mes = calendar.monthrange(ano, mes)
 
-    profs = _PROFISSIONAIS
+    profs = _PROFISSIONAIS()
     if equipe:
         profs = [p for p in profs if p["equipe"] == equipe]
     if tipo_equipe:
@@ -477,7 +477,7 @@ async def producao_por_equipe(
     hora_atual = min(datetime.now().hour, 17)
     _, dias_no_mes = calendar.monthrange(ano, mes)
 
-    equipes_filtro = _EQUIPES
+    equipes_filtro = _EQUIPES()
     if tipo_equipe:
         equipes_filtro = [e for e in _EQUIPES() if e["tipo"] == tipo_equipe]
 
@@ -548,7 +548,7 @@ async def relatorio_diario(
     hora_atual = min(datetime.now().hour, 17)
     _, dias_no_mes = calendar.monthrange(ano, mes)
 
-    profs = _PROFISSIONAIS
+    profs = _PROFISSIONAIS()
     if equipe:
         profs = [p for p in profs if p["equipe"] == equipe]
     if tipo_equipe:
@@ -623,7 +623,7 @@ async def relatorio_anual(
         ano = hoje.year
     hora_atual = min(datetime.now().hour, 17)
 
-    profs = _PROFISSIONAIS
+    profs = _PROFISSIONAIS()
     if equipe:
         profs = [p for p in profs if p["equipe"] == equipe]
     if tipo_equipe:
@@ -720,7 +720,7 @@ async def gerar_relatorio(
         dia = hoje.day
     hora_atual = min(datetime.now().hour, 17)
 
-    profs = _PROFISSIONAIS
+    profs = _PROFISSIONAIS()
     if equipe:
         profs = [p for p in profs if p["equipe"] == equipe]
     if tipo_equipe:

@@ -76,17 +76,17 @@ async def dashboard():
         "ciclo_atual_status":"pendente",
         "registros_abr":    _CICLOS()[-1]["registros"],
         "historico":        _HISTORICO(),
-        "top_proc":         [{"proc":p["procedimento"],"qtd":p["qtd"]} for p in sorted(_PROCEDIMENTOS,key=lambda x:-x["qtd"])[:5]],
+        "top_proc":         [{"proc":p["procedimento"],"qtd":p["qtd"]} for p in sorted(_PROCEDIMENTOS(),key=lambda x:-x["qtd"])[:5]],
     }
 
 @router.get("/por-equipe")
 async def por_equipe():
-    return _ATENDIMENTOS
+    return _ATENDIMENTOS()
 
 @router.get("/procedimentos")
 async def procedimentos():
-    return _PROCEDIMENTOS
+    return _PROCEDIMENTOS()
 
 @router.get("/ciclos")
 async def ciclos():
-    return _CICLOS
+    return _CICLOS()

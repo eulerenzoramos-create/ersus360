@@ -120,17 +120,17 @@ def _RESUMO():
 
 @router.get("/resumo")
 def resumo():
-    return _RESUMO
+    return _RESUMO()
 
 
 @router.get("/pontos")
 def pontos():
-    return _PONTOS
+    return _PONTOS()
 
 
 @router.get("/fluxos")
 def fluxos():
-    return _FLUXOS
+    return _FLUXOS()
 
 
 @router.post("/gerar-relatorio")

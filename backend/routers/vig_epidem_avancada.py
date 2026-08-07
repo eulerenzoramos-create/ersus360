@@ -96,24 +96,24 @@ def dashboard():
 
 @router.get("/surtos")
 def surtos():
-    return _SURTOS
+    return _SURTOS()
 
 
 @router.get("/boletim-semanal")
 def boletim_semanal():
-    return _BOLETIM_SEMANAS
+    return _BOLETIM_SEMANAS()
 
 
 @router.get("/sinan-agravos")
 def sinan_agravos():
-    return _SINAN_AGRAVOS
+    return _SINAN_AGRAVOS()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

@@ -42,7 +42,7 @@ async def dashboard():
 
 @router.get("/localidades")
 async def localidades():
-    return _LOCALIDADES
+    return _LOCALIDADES()
 
 @router.get("/serie-semanas")
 async def serie_semanas():

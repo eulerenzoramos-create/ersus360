@@ -78,19 +78,19 @@ def dashboard():
 
 @router.get("/pvha-perfil")
 def pvha_perfil():
-    return _PVHA
+    return _PVHA()
 
 
 @router.get("/dst-notificacoes")
 def dst_notificacoes():
-    return _DST_NOTIFICACOES
+    return _DST_NOTIFICACOES()
 
 
 @router.get("/serie-mensal")
 def serie_mensal():
-    return _SERIE
+    return _SERIE()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

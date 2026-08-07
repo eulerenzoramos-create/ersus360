@@ -87,19 +87,19 @@ def dashboard():
 
 @router.get("/processos")
 def processos():
-    return _PROCESSOS
+    return _PROCESSOS()
 
 
 @router.get("/por-objeto")
 def por_objeto():
-    return _POR_OBJETO
+    return _POR_OBJETO()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

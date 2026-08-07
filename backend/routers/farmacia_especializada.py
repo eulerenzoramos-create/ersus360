@@ -67,16 +67,16 @@ def _RENOVACOES():
 
 @router.get("/dashboard")
 async def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 @router.get("/medicamentos")
 async def medicamentos():
-    return _MEDICAMENTOS
+    return _MEDICAMENTOS()
 
 @router.get("/judicializacoes")
 async def judicializacoes():
-    return _JUDICIALIZACOES
+    return _JUDICIALIZACOES()
 
 @router.get("/renovacoes")
 async def renovacoes():
-    return _RENOVACOES
+    return _RENOVACOES()

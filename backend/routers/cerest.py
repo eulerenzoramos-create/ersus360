@@ -51,11 +51,11 @@ async def dashboard():
 
 @router.get("/agravos")
 async def agravos():
-    return _AGRAVOS
+    return _AGRAVOS()
 
 @router.get("/setores")
 async def setores():
-    return _SETORES
+    return _SETORES()
 
 @router.get("/historico")
 async def historico():

@@ -101,24 +101,24 @@ def _INDICADORES():
 
 @router.get("/dashboard")
 def dashboard():
-    return _DASHBOARD
+    return _DASHBOARD()
 
 
 @router.get("/estado-nutricional")
 def estado_nutricional():
-    return _ESTADO_NUTRICIONAL
+    return _ESTADO_NUTRICIONAL()
 
 
 @router.get("/micronutrientes")
 def micronutrientes():
-    return _MICRONUTRIENTES
+    return _MICRONUTRIENTES()
 
 
 @router.get("/historico")
 def historico():
-    return _HISTORICO
+    return _HISTORICO()
 
 
 @router.get("/indicadores")
 def indicadores():
-    return _INDICADORES
+    return _INDICADORES()

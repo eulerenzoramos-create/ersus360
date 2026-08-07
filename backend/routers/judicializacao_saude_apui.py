@@ -72,16 +72,16 @@ def _INDICADORES():
 
 
 @router.get("/dashboard")
-def dashboard(): return _DASHBOARD
+def dashboard(): return _DASHBOARD()
 
 @router.get("/processos-categoria")
-def processos_categoria(): return _PROCESSOS_POR_CATEGORIA
+def processos_categoria(): return _PROCESSOS_POR_CATEGORIA()
 
 @router.get("/medicamentos-judiciais")
-def medicamentos(): return _MEDICAMENTOS_JUDICIAIS
+def medicamentos(): return _MEDICAMENTOS_JUDICIAIS()
 
 @router.get("/historico")
-def historico(): return _HISTORICO
+def historico(): return _HISTORICO()
 
 @router.get("/indicadores")
-def indicadores(): return _INDICADORES
+def indicadores(): return _INDICADORES()

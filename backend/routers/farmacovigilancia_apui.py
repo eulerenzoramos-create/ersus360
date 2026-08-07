@@ -74,16 +74,16 @@ def _INDICADORES():
 
 
 @router.get("/dashboard")
-def dashboard(): return _DASHBOARD
+def dashboard(): return _DASHBOARD()
 
 @router.get("/rams")
-def rams(): return _RAMS
+def rams(): return _RAMS()
 
 @router.get("/desvios-qualidade")
-def desvios(): return _DESVIOS_QUALIDADE
+def desvios(): return _DESVIOS_QUALIDADE()
 
 @router.get("/historico")
-def historico(): return _HISTORICO
+def historico(): return _HISTORICO()
 
 @router.get("/indicadores")
-def indicadores(): return _INDICADORES
+def indicadores(): return _INDICADORES()

@@ -45,7 +45,7 @@ async def dashboard():
 
 @router.get("/comunidades")
 async def comunidades():
-    return _COMUNIDADES
+    return _COMUNIDADES()
 
 @router.get("/atendimentos-itinerantes")
 async def atendimentos_itinerantes():

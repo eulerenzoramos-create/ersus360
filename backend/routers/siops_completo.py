@@ -431,7 +431,7 @@ async def listar_programas(
     tipo_recurso: Optional[str] = Query(None),
 ):
     filtros = dict(programa=programa, fonte=fonte, status=status, tipo_recurso=tipo_recurso)
-    programas_filtrados = _aplicar_filtros(_PROGRAMAS, filtros)
+    programas_filtrados = _aplicar_filtros(_PROGRAMAS(), filtros)
     enriquecidos = [_enriquecer_programa(p, filtros) for p in programas_filtrados]
     total_dot   = sum(p["dotacao_atualizada"] for p in enriquecidos)
     total_emp   = sum(p["empenhado"] for p in enriquecidos)
@@ -565,7 +565,7 @@ async def exportar_excel():
     for j, w in enumerate(widths):
         ws2.set_column(j, j, w)
 
-    for i, p in enumerate(_PROGRAMAS, start=2):
+    for i, p in enumerate(_PROGRAMAS(), start=2):
         e = _enriquecer_programa(p, {})
         ws2.write(i, 0, p["codigo"], fmt_txt)
         ws2.write(i, 1, p["programa"], fmt_txt)
@@ -592,7 +592,7 @@ async def exportar_excel():
     ws3.set_column("D:D", 50); ws3.set_column("E:E", 40)
 
     NIVEL_FMT = {"vermelho": fmt_vermelho, "amarelo": fmt_amarelo, "verde": fmt_verde}
-    for i, al in enumerate(_ALERTAS, start=2):
+    for i, al in enumerate(_ALERTAS(), start=2):
         f = NIVEL_FMT.get(al["nivel"], fmt_cinza)
         ws3.write(i, 0, al["nivel"].upper(), f)
         ws3.write(i, 1, al["programa"], fmt_txt)
@@ -692,7 +692,7 @@ async def exportar_pdf():
 
     # Painel geral
     story.append(Paragraph("1. Painel Geral — Indicadores Financeiros", h2))
-    pg = _PAINEL_GERAL
+    pg = _PAINEL_GERAL()
     kpi_data = [
         ["Indicador", "Valor", "Indicador", "Valor"],
         ["Receita Prevista", brl(pg["receita_prevista_total"]),

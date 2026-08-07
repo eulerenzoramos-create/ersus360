@@ -107,7 +107,7 @@ def resumo():
 
 @router.get("/lista")
 def lista(status: Optional[str] = None):
-    data = _CONTRATOS
+    data = _CONTRATOS()
     if status and status != "todos":
         data = [c for c in data if c["status"] == status]
     return data

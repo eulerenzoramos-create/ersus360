@@ -54,17 +54,17 @@ def _RESUMO():
 
 @router.get("/resumo")
 def resumo():
-    return _RESUMO
+    return _RESUMO()
 
 
 @router.get("/solicitacoes")
 def solicitacoes():
-    return _SOLICITACOES
+    return _SOLICITACOES()
 
 
 @router.get("/especialidades")
 def especialidades():
-    return _ESPECIALIDADES
+    return _ESPECIALIDADES()
 
 
 @router.post("/sincronizar")

@@ -104,14 +104,14 @@ def _FINANCEIRO():
 def listar_relatorios(tipo: Optional[str] = Query(None)):
     if tipo:
         return [r for r in _RELATORIOS() if r["tipo"] == tipo]
-    return _RELATORIOS
+    return _RELATORIOS()
 
 
 @router.post("/gerar")
 def gerar_relatorio(body: dict):
     tipo = body.get("tipo", "TCE")
     competencia = body.get("competencia", "2026")
-    secoes = _SECOES_TCE if tipo == "TCE" else _SECOES_TCU
+    secoes = _SECOES_TCE() if tipo == "TCE" else _SECOES_TCU()
     return {
         "ok": True,
         "id": len(_RELATORIOS()) + 10,
@@ -146,4 +146,4 @@ def gerar_pdf(relatorio_id: int):
 
 @router.get("/resumo-financeiro")
 def resumo_financeiro(ano: str = Query("2026")):
-    return _FINANCEIRO
+    return _FINANCEIRO()

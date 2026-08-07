@@ -99,7 +99,7 @@ async def dashboard():
 
 @router.get("/manifestacoes")
 async def manifestacoes(status: str = "", tipo: str = "", prioridade: str = ""):
-    items = _MANIFESTACOES
+    items = _MANIFESTACOES()
     if status:     items = [m for m in items if m["status"] == status]
     if tipo:       items = [m for m in items if m["tipo"] == tipo]
     if prioridade: items = [m for m in items if m["prioridade"] == prioridade]
