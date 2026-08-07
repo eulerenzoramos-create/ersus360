@@ -239,13 +239,13 @@ async def siops_bimestral():
         "municipio":        "Apuí/AM",
         "exercicio":        2026,
         "competencia_atual":"4º Bimestre (Jul–Ago/2026) — em andamento",
-        "bimestres":        _SIOPS_BIMESTRAL,
+        "bimestres":        _SIOPS_BIMESTRAL(),
         "acumulado": {
             "receita_arrecadada": receita_acum,
             "gasto_proprio":      gasto_acum,
             "pct_proprio_acum":   pct_acum,
             "status":             "atingido" if pct_acum >= 15.0 else "pendente",
         },
-        "loa_bimestral":    _LOA_BIMESTRAL,
+        "loa_bimestral":    _LOA_BIMESTRAL(),
         "fonte":            "SIOPS/STN · RREO · referencia",
     }

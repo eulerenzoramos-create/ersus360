@@ -132,7 +132,7 @@ async def agravos_prioritarios(_: UserOut = Depends(get_current_user)):
     return {
         "total_agravos_monitorados": len(_AGRAVOS()),
         "alertas_ativos": sum(1 for a in _AGRAVOS() if a["status"] in ("amarelo", "vermelho")),
-        "agravos": _AGRAVOS,
+        "agravos": _AGRAVOS(),
         "fonte": "referencia",
     }
 
@@ -178,7 +178,7 @@ async def dengue(
         "obitos": data.get("obitos", 0),
         "incidencia_por_100k": data.get("incidencia_100k", 0),
         "nivel_alerta": "verde" if data["total_casos"] < 50 else "amarelo",
-        "serie_mensal": _DENGUE_MENSAL,
+        "serie_mensal": _DENGUE_MENSAL(),
         "fonte": data["fonte"],
     }
 

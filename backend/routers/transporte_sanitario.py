@@ -72,7 +72,7 @@ async def dashboard():
         "custo_estimado_mes":round(custo_mes, 2),
         "destinos": {"manaus": sum(1 for v in realizadas if v["destino"]=="Manaus"), "humaita": sum(1 for v in realizadas if v["destino"]=="Humaitá")},
         "top_especialidades": [{"esp":k,"n":v} for k,v in top_esp],
-        "historico_mensal":  _CUSTO_MENSAL,
+        "historico_mensal":  _CUSTO_MENSAL(),
     }
 
 @router.get("/frota")

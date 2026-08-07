@@ -276,7 +276,7 @@ def _fator_dia(ano: int, mes: int, dia: int, hoje: date, hora_atual: int) -> flo
 
 @router.get("/equipes")
 async def listar_equipes():
-    return {"equipes": _EQUIPES}
+    return {"equipes": _EQUIPES()}
 
 
 @router.get("/profissionais")

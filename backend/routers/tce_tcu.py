@@ -43,7 +43,7 @@ def _RELATORIOS():
             "status": "enviado",
             "assinado_por": "Euler Ramos", "assinado_em": "2026-02-05 14:38",
             "hash_sha256": hashlib.sha256(b"TCE2025-APUI").hexdigest(),
-            "tamanho_kb": 2840, "paginas": 52, "secoes": _SECOES_TCE,
+            "tamanho_kb": 2840, "paginas": 52, "secoes": _SECOES_TCE(),
         },
         {
             "id": 2, "tipo": "TCU", "titulo": "Relatório Anual de Gestão — TCU 2025",
@@ -51,7 +51,7 @@ def _RELATORIOS():
             "status": "assinado",
             "assinado_por": "Euler Ramos", "assinado_em": "2026-02-10 15:00",
             "hash_sha256": hashlib.sha256(b"TCU2025-APUI").hexdigest(),
-            "tamanho_kb": 1620, "paginas": 38, "secoes": _SECOES_TCU,
+            "tamanho_kb": 1620, "paginas": 38, "secoes": _SECOES_TCU(),
         },
         {
             "id": 3, "tipo": "TCE", "titulo": "Prestação de Contas — 1º Sem. FMS Apuí 2026",
@@ -59,7 +59,7 @@ def _RELATORIOS():
             "status": "gerado",
             "assinado_por": None, "assinado_em": None,
             "hash_sha256": None,
-            "tamanho_kb": 1380, "paginas": 44, "secoes": _SECOES_TCE,
+            "tamanho_kb": 1380, "paginas": 44, "secoes": _SECOES_TCE(),
         },
     ]
 

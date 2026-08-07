@@ -1335,6 +1335,6 @@ def changelog_criterios():
         "total": len(_CHANGELOG_SISAB()),
         "ultima_atualizacao": "2026-07",
         "fonte": "Notas Tecnicas SISAB — DEAPS/SAPS/MS",
-        "alteracoes": _CHANGELOG_SISAB,
+        "alteracoes": _CHANGELOG_SISAB(),
     }
 

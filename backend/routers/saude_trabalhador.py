@@ -72,7 +72,7 @@ async def dashboard():
         "alertas":          len(alertas),
         "dias_afastamento": total_af,
         "cat_pendentes":    sum(1 for a in _AGRAVOS_2026() if not a["cat_emitida"]),
-        "historico":        _HISTORICO,
+        "historico":        _HISTORICO(),
     }
 
 @router.get("/agravos")

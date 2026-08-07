@@ -40,14 +40,14 @@ def _EXECUCOES():
             "inicio": "2026-07-01 06:00", "fim": "2026-07-01 06:12",
             "status": "com_falhas", "total_verificacoes": 8,
             "ok": 4, "alertas": 2, "criticos": 2,
-            "disparada_por": "cron", "itens": _ITENS_JUL,
+            "disparada_por": "cron", "itens": _ITENS_JUL(),
         },
         {
             "id": 2, "competencia": "Junho/2026",
             "inicio": "2026-06-01 06:00", "fim": "2026-06-01 06:10",
             "status": "concluida", "total_verificacoes": 8,
             "ok": 7, "alertas": 1, "criticos": 0,
-            "disparada_por": "cron", "itens": _ITENS_JUN,
+            "disparada_por": "cron", "itens": _ITENS_JUN(),
         },
         {
             "id": 1, "competencia": "Maio/2026",

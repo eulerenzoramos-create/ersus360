@@ -71,7 +71,7 @@ async def dashboard():
         "testagens_mes":        ult_test["hiv_rapido"],
         "prep_usuarios":        _PREP_PREP()["usuarios_prep_ativos"],
         "indicadores_criticos": sum(1 for i in _INDICADORES_IST() if i["status"]=="critico"),
-        "historico_testagem":   _TESTAGEM_MENSAL,
+        "historico_testagem":   _TESTAGEM_MENSAL(),
     }
 
 @router.get("/indicadores")

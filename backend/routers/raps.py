@@ -110,7 +110,7 @@ async def dashboard():
         "leitos_disponiveis":sum(l["disponiveis"] for l in _LEITOS_REF()),
         "internacoes_mes":   sum(l["internacoes_mes"] for l in _LEITOS_REF()),
         "por_diagnostico":   [{"diag":k,"n":v} for k,v in sorted(por_diag.items(), key=lambda x:-x[1])],
-        "historico":         _HISTORICO,
+        "historico":         _HISTORICO(),
     }
 
 @router.get("/caps")

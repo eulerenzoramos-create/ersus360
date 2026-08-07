@@ -83,7 +83,7 @@ async def listar_eventos(
         "pendentes": len(pendentes),
         "vencidos": len(vencidos),
         "urgentes_7d": len(urgentes),
-        "categorias_cor": _CATEGORIAS_COR,
+        "categorias_cor": _CATEGORIAS_COR(),
         "eventos": eventos,
         "fonte": "referencia",
     }

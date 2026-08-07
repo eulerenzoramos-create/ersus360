@@ -51,7 +51,7 @@ def status_rnds():
         "latencia_ms": 210,
         "ambiente": "producao",
         "versao_fhir": "R4 4.0.1",
-        "endpoints": _ENDPOINTS,
+        "endpoints": _ENDPOINTS(),
     }
 
 

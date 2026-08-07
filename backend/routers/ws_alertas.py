@@ -111,7 +111,7 @@ async def ws_alertas(websocket: WebSocket):
         # Envia snapshot inicial dos alertas ativos
         await websocket.send_text(json.dumps({
             "tipo": "snapshot",
-            "alertas": _ALERTAS_REF,
+            "alertas": _ALERTAS_REF(),
             "total_nao_lidos": sum(1 for a in _ALERTAS_REF() if not a["lido"]),
             "ts": datetime.utcnow().isoformat(),
             "fonte": "referencia",

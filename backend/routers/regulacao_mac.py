@@ -107,7 +107,7 @@ async def dashboard():
         "mac_dotacao":       mac_dotacao,
         "mac_empenhado":     mac_empenhado,
         "mac_pct":           mac_pct,
-        "historico":         _HISTORICO_AUTORIZACOES,
+        "historico":         _HISTORICO_AUTORIZACOES(),
     }
 
 

@@ -365,7 +365,7 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
     equipes_ordem = ["KENNEDY","JK","ACARI","JUMA","ESTRADA NOVA","LIBERDADE","SÃO SEBASTIÃO","CACHOEIRA","TRÊS ESTADOS","AREAL"]
     return {
         "municipio": "Apuí/AM",
-        "mes_referencia": _MES_REF,
+        "mes_referencia": _MES_REF(),
         "kpis": {
             "total_acs":            len(_ACS),
             "acs_ativos":           len(acs_ativos),
@@ -398,7 +398,7 @@ async def lista_acs(
 ):
     acs_list = _ACS if not esf else [a for a in _ACS if a["equipe"] == esf]
     return {
-        "mes_referencia": _MES_REF,
+        "mes_referencia": _MES_REF(),
         "acs": [_enriquecer_acs(a) for a in acs_list],
         "fonte": "referencia",
     }

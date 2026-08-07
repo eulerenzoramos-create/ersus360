@@ -71,7 +71,7 @@ async def dashboard():
         "indicadores_criticos": crit,
         "acoes_ativas":         sum(1 for a in _ACOES_PNAISH() if a["realizado"]),
         "acoes_total":          len(_ACOES_PNAISH()),
-        "historico":            _PRODUCAO_MENSAL,
+        "historico":            _PRODUCAO_MENSAL(),
     }
 
 @router.get("/indicadores")

@@ -83,7 +83,7 @@ async def dashboard():
             "licenca": sum(s["motivos"]["licenca"] for s in _SERVIDORES()),
         },
         "por_cargo": por_cargo_list,
-        "historico": _HISTORICO,
+        "historico": _HISTORICO(),
     }
 
 @router.get("/servidores")

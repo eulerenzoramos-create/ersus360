@@ -74,7 +74,7 @@ async def dashboard():
         "com_alerta":        len(alertas),
         "visitas_mes":       ult["visitas_domiciliares"],
         "procedimentos_mes": ult["procedimentos"],
-        "historico":         _PRODUCAO_MENSAL,
+        "historico":         _PRODUCAO_MENSAL(),
     }
 
 @router.get("/pacientes")

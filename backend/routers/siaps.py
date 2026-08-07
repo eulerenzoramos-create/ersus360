@@ -514,7 +514,7 @@ async def dashboard_siaps(_: UserOut = Depends(get_current_user)):
         "ibge": "1300144",
         "competencia": "Abr/2026",
         "ied": 2,
-        "abrangencia": _ABRANGENCIA,
+        "abrangencia": _ABRANGENCIA(),
         "vinculo": {
             "pontuacao_media": pontuacao_media_vinculo,
             "otimo": sum(1 for e in equipes_vinculo if e["pontuacao"] > 8.5),
@@ -561,7 +561,7 @@ async def qualidade_diario(_: UserOut = Depends(get_current_user)):
         "meta_diaria_estimada": 80,
         "pct_meta_dia": round(total_prod / 80 * 100, 1),
         "indicadores_criticos_hoje": ["Citopatológico (0 registros em 6 equipes)"],
-        "equipes": _DIARIO_EQUIPES,
+        "equipes": _DIARIO_EQUIPES(),
     }
 
 
@@ -603,8 +603,8 @@ async def qualidade_mensal(_: UserOut = Depends(get_current_user)):
             "ind1_prenatal": +0.7, "ind2_cito": +1.1, "ind3_vacina": +0.6,
             "ind4_rn": +0.9, "ind5_has": +1.3, "ind6_dm": +0.7, "ind7_infantil": +1.2,
         },
-        "evolucao": _MENSAL_EVOLUCAO,
-        "equipes_evolucao": _MENSAL_EQUIPES_EVOL,
+        "evolucao": _MENSAL_EVOLUCAO(),
+        "equipes_evolucao": _MENSAL_EQUIPES_EVOL(),
         "alerta_mensal": "Ind.2 (Citopatológico): 37.1% — 22.9 p.p. abaixo da meta. Crescimento de apenas +1.1 p.p./mês — insuficiente para atingir a meta no quadrimestre.",
         "destaque_mensal": "Equipe LIBERDADE: melhor pontuação pelo 3º mês consecutivo (44.8 pts).",
     }
@@ -710,8 +710,8 @@ async def qualidade_quadrimestral(_: UserOut = Depends(get_current_user)):
         "media_geral_anterior": 63.7,
         "variacao_geral": +2.2,
         "projecao_2q_2026": 68.5,
-        "indicadores": _QUAD_COMPARATIVO,
-        "equipes": _QUAD_EQUIPES_RESUMO,
+        "indicadores": _QUAD_COMPARATIVO(),
+        "equipes": _QUAD_EQUIPES_RESUMO(),
         "parecer_gestor": (
             "Apuí apresenta evolução consistente (+2.2 p.p.) no 1º quadrimestre de 2026. "
             "Destaque para o Ind.4 (Consulta RN na 1ª semana) que atingiu 81.9%, acima da meta. "

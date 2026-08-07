@@ -171,7 +171,7 @@ async def indicadores_por_equipe(
     return {
         "competencia": competencia,
         "total_equipes": len(_EQUIPES()),
-        "equipes": _EQUIPES,
+        "equipes": _EQUIPES(),
         "fonte": "referencia",
     }
 

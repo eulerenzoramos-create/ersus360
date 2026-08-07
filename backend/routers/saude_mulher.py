@@ -80,7 +80,7 @@ async def dashboard():
         "puerperas_ativas":  len(_PUERPERAS()),
         "puerperas_sem_consulta": sum(1 for p in _PUERPERAS() if not p["consulta_puerp"]),
         "indicadores_criticos": sum(1 for i in _INDICADORES() if i["status"]=="critico"),
-        "historico":         _HISTORICO,
+        "historico":         _HISTORICO(),
     }
 
 @router.get("/gestantes")

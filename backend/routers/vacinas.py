@@ -82,7 +82,7 @@ async def dashboard():
         "proximos_vencer":    [v["vacina"] for v in proximos_vencer],
         "n_proximos_vencer":  len(proximos_vencer),
         "temp_atual_camera":  _TEMP_HIST()[-1]["temp"],
-        "historico_mensal":   _COBERTURA_MENSAL,
+        "historico_mensal":   _COBERTURA_MENSAL(),
     }
 
 @router.get("/estoque")
@@ -94,11 +94,11 @@ async def estoque():
 
 @router.get("/temperatura")
 async def temperatura():
-    return {"historico_24h": _TEMP_HIST, "atual": _TEMP_HIST()[-1]["temp"], "alerta": _TEMP_HIST()[-1]["temp"] > 8}
+    return {"historico_24h": _TEMP_HIST(), "atual": _TEMP_HIST()[-1]["temp"], "alerta": _TEMP_HIST()[-1]["temp"] > 8}
 
 @router.get("/cobertura")
 async def cobertura():
     return {
         "por_vacina":  [{"vacina": v["vacina"], "cobertura": v["cobertura_pct"], "meta": v["meta_pct"], "status": "ok" if v["cobertura_pct"] >= v["meta_pct"] else "critico"} for v in _ESTOQUE()],
-        "historico":   _COBERTURA_MENSAL,
+        "historico":   _COBERTURA_MENSAL(),
     }

@@ -68,8 +68,8 @@ async def dashboard():
         "tempo_resposta_samu":  ult_samu["tempo_resposta_med_min"],
         "frota_disponivel":     sum(1 for v in _FROTA_SAMU() if v["status"]=="operacional"),
         "frota_total":          len(_FROTA_SAMU()),
-        "historico_ue":         _ATENDIMENTOS_MENSAL,
-        "historico_samu":       _SAMU_OCORRENCIAS,
+        "historico_ue":         _ATENDIMENTOS_MENSAL(),
+        "historico_samu":       _SAMU_OCORRENCIAS(),
     }
 
 @router.get("/atendimentos")
@@ -78,7 +78,7 @@ async def atendimentos():
 
 @router.get("/samu")
 async def samu():
-    return {"ocorrencias": _SAMU_OCORRENCIAS, "frota": _FROTA_SAMU}
+    return {"ocorrencias": _SAMU_OCORRENCIAS(), "frota": _FROTA_SAMU()}
 
 @router.get("/causas")
 async def causas():

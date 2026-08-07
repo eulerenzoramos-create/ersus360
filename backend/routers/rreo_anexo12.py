@@ -271,14 +271,14 @@ def _TOTAIS_FINAIS():
 @router.get("/dados")
 async def dados():
     return {
-        "meta": _META,
-        "receitas": _RECEITAS,
-        "despesas_asps": _DESPESAS_ASPS,
-        "total_xi": _TOTAL_XI,
-        "apuracao": _APURACAO,
-        "receitas_adicionais": _RECEITAS_ADICIONAIS,
-        "total_xl": _TOTAL_XL,
-        "totais_finais": _TOTAIS_FINAIS,
+        "meta": _META(),
+        "receitas": _RECEITAS(),
+        "despesas_asps": _DESPESAS_ASPS(),
+        "total_xi": _TOTAL_XI(),
+        "apuracao": _APURACAO(),
+        "receitas_adicionais": _RECEITAS_ADICIONAIS(),
+        "total_xl": _TOTAL_XL(),
+        "totais_finais": _TOTAIS_FINAIS(),
     }
 
 

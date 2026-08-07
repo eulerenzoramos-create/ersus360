@@ -77,7 +77,7 @@ async def dashboard():
         "obitos":          sum(n["obitos"] for n in _NOTIFICACOES()),
         "agravos_distintos": len(set(n["agravo"] for n in _NOTIFICACOES())),
         "top_agravos":     [{"agravo":k,"n":v} for k,v in top5],
-        "historico_semanal": _HISTORICO_SEMANAL,
+        "historico_semanal": _HISTORICO_SEMANAL(),
         "n_alertas_criticos": sum(1 for a in _ALERTAS() if a["nivel"]=="critico"),
     }
 

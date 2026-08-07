@@ -75,7 +75,7 @@ async def dashboard():
         "equipes_ok":       sum(1 for e in _ATENDIMENTOS() if e["status"]=="ok"),
         "ciclo_atual_status":"pendente",
         "registros_abr":    _CICLOS()[-1]["registros"],
-        "historico":        _HISTORICO,
+        "historico":        _HISTORICO(),
         "top_proc":         [{"proc":p["procedimento"],"qtd":p["qtd"]} for p in sorted(_PROCEDIMENTOS,key=lambda x:-x["qtd"])[:5]],
     }
 

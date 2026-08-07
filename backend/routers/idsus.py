@@ -73,7 +73,7 @@ def resumo():
         "total_municipios_am":   62,
         "ranking_nacional":      2847,
         "total_municipios_br":   5570,
-        "dimensoes":             _DIMENSOES,
+        "dimensoes":             _DIMENSOES(),
         "ultima_atualizacao":    "Jul/2026",
         "competencia":           "2º Quad. 2026",
     }

@@ -61,20 +61,20 @@ async def dashboard():
         "malaria_ipa": mal_ult["ipa"],
         "zoonoses_cobertura_antirabica": _ZOONOSES()["campanha_antirabica_2025"]["cobertura_pct"],
         "historico_dengue_iip": [{"ciclo": c["ciclo"], "iip": c["iip"], "ibp": c["ibp"]} for c in _CICLOS_DENGUE()],
-        "historico_malaria": _MALARIA_MENSAL,
+        "historico_malaria": _MALARIA_MENSAL(),
     }
 
 @router.get("/dengue")
 async def dengue():
     return {
-        "ciclos": _CICLOS_DENGUE,
+        "ciclos": _CICLOS_DENGUE(),
         "limites": {"iip_satisfatorio": 1.0, "iip_alerta": 3.9, "ibp_satisfatorio": 2.0, "ibp_alerta": 5.0},
     }
 
 @router.get("/malaria")
 async def malaria():
     return {
-        "historico": _MALARIA_MENSAL,
+        "historico": _MALARIA_MENSAL(),
         "limite_alerta_ivpv": 5.0,
         "limite_critico_ivpv": 10.0,
         "ipa_alto_risco": 50,

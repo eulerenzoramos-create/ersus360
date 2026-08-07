@@ -75,7 +75,7 @@ async def dashboard():
         "adultos_acompanhados":  sum(g["acomp"] for g in _ADULTOS_IDOSOS()),
         "desnutricao_criancas_pct": round(desnut_global, 1),
         "sobrepeso_criancas_pct":   round(sob_global, 1),
-        "historico_acompanhamento": _HISTORICO_ACOMP,
+        "historico_acompanhamento": _HISTORICO_ACOMP(),
         "bf_inadimplentes_total":   sum(e["inadimplentes"] for e in _BOLSA_FAMILIA_NUTRI()),
     }
 

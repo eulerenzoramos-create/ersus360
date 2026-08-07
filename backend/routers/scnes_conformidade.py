@@ -261,7 +261,7 @@ def alertas_cnes():
         "criticos": criticos,
         "altos": altos,
         "medios": medios,
-        "alertas": _ALERTAS_CNES,
+        "alertas": _ALERTAS_CNES(),
         "ultima_verificacao": "2026-07-24 06:00",
     }
 
@@ -387,7 +387,7 @@ def historico_alteracoes():
         "aprovadas": sum(1 for h in _HISTORICO() if h["status"] == "aprovada"),
         "pendentes_regularizacao": sum(1 for h in _HISTORICO() if h["status"] == "pendente_regularizacao"),
         "periodo": "Maio 2026 — Julho 2026",
-        "alteracoes": _HISTORICO,
+        "alteracoes": _HISTORICO(),
     }
 
 
@@ -420,7 +420,7 @@ def status_sincronizacao():
             "competencia": ultima["competencia"],
         },
         "proxima_sincronizacao": "2026-08-01 06:00",
-        "historico_execucoes": _SINCRONIZACOES,
+        "historico_execucoes": _SINCRONIZACOES(),
         "endpoints_scnes": [
             {"nome": "Consulta Equipe", "url": "/fnes/r01007ie01.asp", "status": "online"},
             {"nome": "Profissionais", "url": "/fnes/r01007ie04.asp", "status": "online"},
@@ -545,7 +545,7 @@ def plano_correcao():
         "em_andamento": andamento,
         "concluidos": concluidos,
         "ganho_potencial_score": ganho_total,
-        "tarefas": _PLANO_CORRECAO,
+        "tarefas": _PLANO_CORRECAO(),
     }
 
 
@@ -726,6 +726,6 @@ def divergencia_pec():
         "taxa_convergencia": round(convergentes / len(_DIVERGENCIAS()) * 100),
         "competencia_scnes": "2026/06",
         "competencia_pec": "2026/07",
-        "divergencias": _DIVERGENCIAS,
+        "divergencias": _DIVERGENCIAS(),
         "ultima_comparacao": "2026-07-24 06:00",
     }

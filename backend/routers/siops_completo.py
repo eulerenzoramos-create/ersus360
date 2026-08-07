@@ -418,8 +418,8 @@ def _aplicar_filtros(programas: list, filtros: dict) -> list:
 async def painel_geral():
     """Painel geral com todos os indicadores financeiros da saúde municipal."""
     return {
-        "indicadores": _PAINEL_GERAL,
-        "importacao": _META_IMPORTACAO,
+        "indicadores": _PAINEL_GERAL(),
+        "importacao": _META_IMPORTACAO(),
     }
 
 
@@ -449,7 +449,7 @@ async def listar_programas(
             "pct_exec_fin":       round(total_pago / total_dot * 100, 2) if total_dot else 0.0,
         },
         "filtros_ativos": {k: v for k, v in filtros.items() if v},
-        "importacao": _META_IMPORTACAO,
+        "importacao": _META_IMPORTACAO(),
     }
 
 
@@ -462,7 +462,7 @@ async def detalhe_programa(programa_id: int):
     enriquecido = _enriquecer_programa(prog, {})
     return {
         "programa": enriquecido,
-        "importacao": _META_IMPORTACAO,
+        "importacao": _META_IMPORTACAO(),
     }
 
 
@@ -474,7 +474,7 @@ async def alertas_gerenciais():
     verdes    = [a for a in _ALERTAS() if a["nivel"] == "verde"]
     cinzas    = [a for a in _ALERTAS() if a["nivel"] == "cinza"]
     return {
-        "alertas": _ALERTAS,
+        "alertas": _ALERTAS(),
         "resumo": {
             "total": len(_ALERTAS()),
             "criticos": len(vermelhos),
@@ -482,7 +482,7 @@ async def alertas_gerenciais():
             "regulares": len(verdes),
             "sem_dado":  len(cinzas),
         },
-        "importacao": _META_IMPORTACAO,
+        "importacao": _META_IMPORTACAO(),
     }
 
 
@@ -490,8 +490,8 @@ async def alertas_gerenciais():
 async def comparativos():
     """Dados para gráficos comparativos: previsto vs arrecadado, dotação vs empenhado, etc."""
     return {
-        "comparativos": _COMPARATIVOS,
-        "importacao": _META_IMPORTACAO,
+        "comparativos": _COMPARATIVOS(),
+        "importacao": _META_IMPORTACAO(),
     }
 
 

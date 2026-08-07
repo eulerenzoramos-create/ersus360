@@ -92,7 +92,7 @@ async def dashboard():
         "por_tipo":          [{"tipo": k, "n": v} for k, v in sorted(por_tipo.items(), key=lambda x: -x[1])],
         "por_area":          [{"area": k, "n": v} for k, v in sorted(por_area.items(), key=lambda x: -x[1])],
         "por_canal":         [{"canal": k, "n": v} for k, v in sorted(por_canal.items(), key=lambda x: -x[1])],
-        "historico":         _HISTORICO_MENSAL,
+        "historico":         _HISTORICO_MENSAL(),
         "competencia":       "Abr/2026",
     }
 

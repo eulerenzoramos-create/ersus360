@@ -64,7 +64,7 @@ async def dashboard():
         "com_alerta":        len(alertas),
         "polifarmacia":      sum(1 for i in _IDOSOS() if i["polifarmacia"]),
         "quedas_acumuladas": sum(i["quedas_ultimo_ano"] for i in _IDOSOS()),
-        "historico":         _HISTORICO,
+        "historico":         _HISTORICO(),
     }
 
 @router.get("/idosos")

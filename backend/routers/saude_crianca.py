@@ -82,7 +82,7 @@ async def dashboard():
         "indicadores_criticos": sum(1 for i in _INDICADORES() if i["status"]=="critico"),
         "familias_bf_total": sum(e["familias_bf"] for e in _BOLSA_FAMILIA()),
         "familias_bf_acomp": sum(e["acomp_saude"] for e in _BOLSA_FAMILIA()),
-        "historico":         _HISTORICO,
+        "historico":         _HISTORICO(),
     }
 
 @router.get("/criancas")

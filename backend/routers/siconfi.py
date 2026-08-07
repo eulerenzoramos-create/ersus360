@@ -178,10 +178,10 @@ async def rreo(exercicio: int = 2024, bimestre: int = 6):
         "aviso": "Município não enviou RREO ao SICONFI — exibindo dados de referência SIOPS 2024",
         "exercicio": _REF_RREO()["exercicio"],
         "bimestre": _REF_RREO()["bimestre"],
-        "dados": _REF_RREO,
-        "rubricas_receita": _REF_RUBRICAS_RECEITA,
-        "rubricas_despesa": _REF_RUBRICAS_DESPESA,
-        "bimestres": _REF_RREO_BIMESTRES,
+        "dados": _REF_RREO(),
+        "rubricas_receita": _REF_RUBRICAS_RECEITA(),
+        "rubricas_despesa": _REF_RUBRICAS_DESPESA(),
+        "bimestres": _REF_RREO_BIMESTRES(),
     }
 
 
@@ -211,7 +211,7 @@ async def rgf(exercicio: int = 2024, quadrimestre: int = 3):
         "aviso": "Município não enviou RGF ao SICONFI — exibindo dados de referência SIOPS 2024",
         "exercicio": _REF_RGF()["exercicio"],
         "quadrimestre": _REF_RGF()["quadrimestre"],
-        "dados": _REF_RGF,
+        "dados": _REF_RGF(),
     }
 
 
@@ -237,5 +237,5 @@ async def rreo_bimestres(exercicio: int = 2024):
         "fonte": "referencia",
         "aviso": "Usando dados de referência — município não enviou ao SICONFI",
         "exercicio": 2024,
-        "bimestres": _REF_RREO_BIMESTRES,
+        "bimestres": _REF_RREO_BIMESTRES(),
     }

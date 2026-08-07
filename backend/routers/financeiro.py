@@ -633,4 +633,4 @@ async def repasses_fns(_: UserOut = Depends(get_current_user)):
 
 @router.get("/empenhos")
 async def empenhos_pendentes(_: UserOut = Depends(get_current_user)):
-    return {"empenhos": _EMPENHOS_PENDENTES, "total": len(_EMPENHOS_PENDENTES()), "fonte": "referencia"}
+    return {"empenhos": _EMPENHOS_PENDENTES(), "total": len(_EMPENHOS_PENDENTES()), "fonte": "referencia"}

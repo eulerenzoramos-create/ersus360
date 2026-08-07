@@ -116,5 +116,5 @@ def resumo():
         "modulos_ok":         mods_ok,
         "modulos_total":      len(_BLOCOS()),
         "ultima_atualizacao": agora,
-        "blocos":             _BLOCOS,
+        "blocos":             _BLOCOS(),
     }

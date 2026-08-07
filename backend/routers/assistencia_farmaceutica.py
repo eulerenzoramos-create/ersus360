@@ -79,7 +79,7 @@ async def dashboard():
         "valor_dispensado_mes":  _DISPENSACAO_MENSAL()[-1]["valor"],
         "itens_criticos_lista": criticos,
         "proximos_vencer":    [m["principio"] for m in proximos_vencer],
-        "historico_dispensacao": _DISPENSACAO_MENSAL,
+        "historico_dispensacao": _DISPENSACAO_MENSAL(),
         "taxa_disponibilidade": round(ok_count / total_itens * 100, 1),
     }
 

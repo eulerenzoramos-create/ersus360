@@ -77,7 +77,7 @@ async def execucao_trimestral(_: UserOut = Depends(get_current_user)):
     """Execução trimestral do mínimo constitucional."""
     return {
         "municipio": "Apuí/AM",
-        "trimestres": _SIOPS_TRIMESTRAL,
+        "trimestres": _SIOPS_TRIMESTRAL(),
         "alerta_1t": "1T abaixo do mínimo — compensado nos trimestres seguintes.",
         "fonte": "referencia",
     }
@@ -93,7 +93,7 @@ async def execucao_blocos(_: UserOut = Depends(get_current_user)):
         "total_transferido": total_transf,
         "total_aplicado": total_aplic,
         "pct_exec_total": round(total_aplic / total_transf * 100, 1),
-        "blocos": _BLOCOS,
+        "blocos": _BLOCOS(),
         "fonte": "referencia",
     }
 

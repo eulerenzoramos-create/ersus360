@@ -163,21 +163,21 @@ async def gerar_rdqa(
         },
 
         # Ações por eixo
-        "eixos": _ACOES_EXECUTADAS,
+        "eixos": _ACOES_EXECUTADAS(),
 
         # Novo Financiamento APS
         "previne_brasil": {
-            "indicadores": _INDICADORES_PREVINE,
+            "indicadores": _INDICADORES_PREVINE(),
             "total_verde": prev_verde,
             "total_vermelho": prev_vermelho,
             "total_amarelo": len(_INDICADORES_PREVINE()) - prev_verde - prev_vermelho,
         },
 
         # Financeiro
-        "financeiro": _FINANCEIRO,
+        "financeiro": _FINANCEIRO(),
 
         # Alertas para CMS
-        "alertas_gestao": _ALERTAS_GESTAO,
+        "alertas_gestao": _ALERTAS_GESTAO(),
 
         # Próximos passos
         "proximos_passos": [
