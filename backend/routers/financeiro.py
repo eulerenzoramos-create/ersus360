@@ -386,12 +386,12 @@ async def painel_financeiro(
         "fonte_fns":        "consultafns.saude.gov.br/#/detalhada/acao",
         "gerado_em":        datetime.utcnow().isoformat() + "Z",
 
-        "receitas":         _RECEITAS,
-        "despesas":         _DESPESAS,
-        "blocos":           _BLOCOS,
-        "repasses_mensais": _REPASSES_MENSAIS,
-        "empenhos_pendentes": _EMPENHOS_PENDENTES,
-        "siops":            _SIOPS,
+        "receitas":         _RECEITAS(),
+        "despesas":         _DESPESAS(),
+        "blocos":           _BLOCOS(),
+        "repasses_mensais": _REPASSES_MENSAIS(),
+        "empenhos_pendentes": _EMPENHOS_PENDENTES(),
+        "siops":            _SIOPS(),
         "alertas":          alertas,
 
         "kpis": {
@@ -623,12 +623,12 @@ async def fns_repasse_dia(
 
 @router.get("/blocos")
 async def blocos_financiamento(_: UserOut = Depends(get_current_user)):
-    return {"blocos": _BLOCOS, "fonte": "referencia"}
+    return {"blocos": _BLOCOS(), "fonte": "referencia"}
 
 
 @router.get("/repasses")
 async def repasses_fns(_: UserOut = Depends(get_current_user)):
-    return {"repasses": _REPASSES_MENSAIS, "fonte": "referencia"}
+    return {"repasses": _REPASSES_MENSAIS(), "fonte": "referencia"}
 
 
 @router.get("/empenhos")
