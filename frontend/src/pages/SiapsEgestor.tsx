@@ -510,8 +510,11 @@ function ViewDiaria({ data }: { data: any }) {
 // ── View Mensal ───────────────────────────────────────────────────────────────
 
 const IND_CORES: Record<string, string> = {
-  ind1: "#1d4ed8", ind2: "#dc2626", ind3: "#7c3aed",
-  ind4: "#0891b2", ind5: "#d97706", ind6: "#ea580c", ind7: "#16a34a",
+  ind1:  "#1d4ed8", ind2:  "#dc2626", ind3:  "#7c3aed", ind4:  "#0891b2",
+  ind5:  "#0d9488", ind6:  "#0f766e", ind7:  "#14b8a6",
+  ind8:  "#d97706", ind9:  "#ea580c", ind10: "#16a34a",
+  ind11: "#9333ea", ind12: "#c026d3", ind13: "#db2777",
+  ind14: "#b91c1c", ind15: "#991b1b",
 };
 
 function ViewMensal({ data }: { data: any }) {
@@ -549,7 +552,10 @@ function ViewMensal({ data }: { data: any }) {
         {Object.entries(variacoes).map(([k, v]: [string, any]) => {
           const nomes: Record<string, string> = {
             ind1_prenatal: "Pré-natal", ind2_cito: "Cito", ind3_vacina: "DTP/Penta",
-            ind4_rn: "RN 1ª sem.", ind5_has: "HAS", ind6_dm: "DM", ind7_infantil: "Des. Infantil",
+            ind4_rn: "Puerpério", ind5_odonto1: "1ª Odonto", ind6_odonto_comp: "Odonto Comp.",
+            ind7_urg_odonto: "Urg. Odonto", ind8_has: "HAS", ind9_dm: "DM HbA1c",
+            ind10_obesidade: "Obesidade", ind11_cv: "Risco CV", ind12_psicose: "Psicose",
+            ind13_tab: "TAB", ind14_sif_gest: "Síf. Gest.", ind15_sif_cong: "Síf. Cong.",
           };
           return (
             <div key={k} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", textAlign: "center", minWidth: 90 }}>
@@ -574,15 +580,15 @@ function ViewMensal({ data }: { data: any }) {
       )}
 
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Evolução dos 7 Indicadores — últimos 6 meses</div>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Evolução dos 15 Indicadores — últimos 6 meses</div>
         <ResponsiveContainer width="100%" height={240}>
           <LineChart data={data.evolucao} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
             <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
             <YAxis domain={[25, 90]} tick={{ fontSize: 10 }} unit="%" />
             <Tooltip formatter={(v: number) => [`${v}%`]} contentStyle={TT} />
             <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
-            {["ind1","ind2","ind3","ind4","ind5","ind6","ind7"].map((k, i) => {
-              const nomes = ["Pré-natal","Cito","DTP/Penta","Consulta RN","HAS","DM","Des. Infantil"];
+            {["ind1","ind2","ind3","ind4","ind5","ind6","ind7","ind8","ind9","ind10","ind11","ind12","ind13","ind14","ind15"].map((k, i) => {
+              const nomes = ["Pré-natal","Cito","DTP/Penta","Puerpério","1ª Odonto","Odonto Comp.","Urg. Odonto","HAS","DM HbA1c","Obesidade","Risco CV","Psicose","TAB","Síf. Gest.","Síf. Cong."];
               return <Line key={k} dataKey={k} name={nomes[i]} stroke={IND_CORES[k]} strokeWidth={2} dot={false} strokeDasharray={k === "ind2" ? "4 2" : undefined} />;
             })}
           </LineChart>
@@ -728,33 +734,46 @@ const _Q2 = {
   dias_decorridos: 81,
   dias_restantes: 42,
   indicadores: [
-    { key: "ind1", label: "Pré-natal ≥6 consultas",    short: "Pré-natal",      atual: 61.4, meta: 60,  q1: 68.2 },
-    { key: "ind2", label: "Citopatológico",              short: "Cito",           atual: 28.7, meta: 60,  q1: 33.4 },
-    { key: "ind3", label: "DTP/Penta",                   short: "DTP/Penta",      atual: 68.3, meta: 95,  q1: 73.1 },
-    { key: "ind4", label: "Consulta RN 1ª semana",       short: "RN 1ª sem.",     atual: 71.6, meta: 60,  q1: 78.4 },
-    { key: "ind5", label: "Acompanhamento HAS",           short: "HAS",            atual: 60.8, meta: 60,  q1: 67.3 },
-    { key: "ind6", label: "Acompanhamento DM",            short: "Diabetes",       atual: 45.9, meta: 55,  q1: 52.1 },
-    { key: "ind7", label: "Desenvolvimento Infantil",     short: "Desenv. Infantil",atual: 58.6, meta: 60,  q1: 64.3 },
+    // Eixo Criança e Mulher
+    { key: "ind1",  label: "Pré-natal ≥7 consultas (1º trim.)",     short: "Pré-natal",   atual: 72.5, meta: 55,  q1: 68.2, eixo: "Criança/Mulher" },
+    { key: "ind2",  label: "Citopatológico (colo uterino)",          short: "Cito",        atual: 37.1, meta: 50,  q1: 33.4, eixo: "Criança/Mulher" },
+    { key: "ind3",  label: "DTP/Pentavalente",                       short: "DTP/Penta",   atual: 76.5, meta: 90,  q1: 73.1, eixo: "Criança/Mulher" },
+    { key: "ind4",  label: "Puerpério / RN 1ª semana",               short: "Puerpério",   atual: 81.9, meta: 55,  q1: 78.4, eixo: "Criança/Mulher" },
+    // Eixo Saúde Bucal
+    { key: "ind5",  label: "1ª Consulta Odontológica Programática",  short: "1ª Odonto",   atual: 32.6, meta: 45,  q1: 29.1, eixo: "Saúde Bucal" },
+    { key: "ind6",  label: "Tratamento Odontológico Completado",     short: "Odonto Comp.",atual: 25.8, meta: 45,  q1: 22.5, eixo: "Saúde Bucal" },
+    { key: "ind7",  label: "Urgência Odontológica Resolvida",        short: "Urg. Odonto", atual: 51.8, meta: 45,  q1: 48.0, eixo: "Saúde Bucal" },
+    // Eixo Doenças Crônicas
+    { key: "ind8",  label: "Acompanhamento HAS",                     short: "HAS",         atual: 70.5, meta: 60,  q1: 66.8, eixo: "Doenças Crônicas" },
+    { key: "ind9",  label: "Acompanhamento DM (HbA1c)",              short: "DM HbA1c",    atual: 55.4, meta: 55,  q1: 52.1, eixo: "Doenças Crônicas" },
+    { key: "ind10", label: "Obesidade Infantil (IMC 5-9 anos)",      short: "Obesidade",   atual: 67.1, meta: 55,  q1: 64.3, eixo: "Doenças Crônicas" },
+    { key: "ind11", label: "Alto Risco Cardiovascular",              short: "Risco CV",    atual: 37.8, meta: 50,  q1: 34.8, eixo: "Doenças Crônicas" },
+    // Eixo Saúde Mental
+    { key: "ind12", label: "Esquizofrenia / Psicose",                short: "Psicose",     atual: 43.5, meta: 50,  q1: 40.5, eixo: "Saúde Mental" },
+    { key: "ind13", label: "Transtorno Afetivo Bipolar",             short: "TAB",         atual: 38.4, meta: 50,  q1: 35.0, eixo: "Saúde Mental" },
+    // Eixo IST
+    { key: "ind14", label: "Sífilis em Gestante — Tratamento",       short: "Síf. Gest.",  atual: 76.8, meta: 55,  q1: 74.5, eixo: "IST" },
+    { key: "ind15", label: "Sífilis Congênita — Tratamento",         short: "Síf. Cong.",  atual: 81.4, meta: 55,  q1: 78.8, eixo: "IST" },
   ],
   // Scores reais do e-Gestor AB — Abr/2026 (pts_q1 = pontuação acumulada Q1/2026)
   equipes: [
-    { ubs:"UBS IRMÃ ELIZABETE",                        equipe:"CACHOEIRA",    pts_q1:52.57, status:"suficiente",ind:{ind1:65,ind2:24,ind3:62,ind4:78,ind5:66,ind6:44,ind7:61} },
-    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"SÃO SEBASTIÃO",pts_q1:56.05, status:"suficiente",ind:{ind1:70,ind2:27,ind3:68,ind4:74,ind5:62,ind6:47,ind7:66} },
-    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"ACARI",         pts_q1:64.92, status:"bom",       ind:{ind1:78,ind2:33,ind3:75,ind4:82,ind5:70,ind6:53,ind7:72} },
-    { ubs:"UBS OSVALDO LEMES CABRAL",                  equipe:"TRÊS ESTADOS",  pts_q1:44.13, status:"regular",   ind:{ind1:48,ind2:19,ind3:55,ind4:55,ind5:47,ind6:30,ind7:43} },
-    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"JUMA",          pts_q1:59.97, status:"bom",       ind:{ind1:72,ind2:28,ind3:70,ind4:76,ind5:65,ind6:48,ind7:68} },
-    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"LIBERDADE",     pts_q1:58.16, status:"suficiente",ind:{ind1:69,ind2:27,ind3:68,ind4:75,ind5:63,ind6:46,ind7:66} },
-    { ubs:"UBS PADRE FALIERO BONCI",                   equipe:"KENNEDY",       pts_q1:74.50, status:"otimo",     ind:{ind1:86,ind2:42,ind3:84,ind4:92,ind5:79,ind6:62,ind7:82} },
-    { ubs:"UBS JK",                                    equipe:"JK",            pts_q1:66.46, status:"bom",       ind:{ind1:79,ind2:35,ind3:77,ind4:85,ind5:72,ind6:55,ind7:75} },
-    { ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA",   equipe:"ESTRADA NOVA",  pts_q1:59.21, status:"suficiente",ind:{ind1:71,ind2:28,ind3:69,ind4:75,ind5:64,ind6:47,ind7:67} },
+    { ubs:"UBS IRMÃ ELIZABETE",                        equipe:"CACHOEIRA",    pts_q1:38.5, status:"bom",      ind:{ind1:85,ind2:43,ind3:88,ind4:91, ind5:39,ind6:30,ind7:55, ind8:79,ind9:63,ind10:78, ind11:43,ind12:48,ind13:42, ind14:80,ind15:83} },
+    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"SÃO SEBASTIÃO",pts_q1:36.2, status:"bom",      ind:{ind1:80,ind2:41,ind3:82,ind4:89, ind5:37,ind6:29,ind7:54, ind8:75,ind9:58,ind10:73, ind11:41,ind12:47,ind13:41, ind14:77,ind15:80} },
+    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"ACARI",        pts_q1:35.8, status:"bom",      ind:{ind1:79,ind2:40,ind3:80,ind4:90, ind5:37,ind6:29,ind7:52, ind8:77,ind9:60,ind10:72, ind11:40,ind12:47,ind13:40, ind14:75,ind15:79} },
+    { ubs:"UBS OSVALDO LEMES CABRAL",                  equipe:"TRÊS ESTADOS", pts_q1:18.4, status:"regular",  ind:{ind1:56,ind2:28,ind3:63,ind4:67, ind5:25,ind6:18,ind7:39, ind8:58,ind9:46,ind10:55, ind11:29,ind12:32,ind13:26, ind14:50,ind15:50} },
+    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"JUMA",         pts_q1:39.1, status:"bom",      ind:{ind1:86,ind2:45,ind3:85,ind4:93, ind5:39,ind6:31,ind7:56, ind8:81,ind9:64,ind10:79, ind11:44,ind12:49,ind13:44, ind14:82,ind15:86} },
+    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"LIBERDADE",    pts_q1:44.8, status:"otimo",    ind:{ind1:91,ind2:52,ind3:91,ind4:100,ind5:46,ind6:39,ind7:63, ind8:85,ind9:71,ind10:83, ind11:53,ind12:58,ind13:53, ind14:92,ind15:100} },
+    { ubs:"UBS PADRE FALIERO BONCI",                   equipe:"KENNEDY",      pts_q1:12.6, status:"regular",  ind:{ind1:50,ind2:22,ind3:58,ind4:60, ind5:22,ind6:17,ind7:36, ind8:53,ind9:40,ind10:46, ind11:24,ind12:29,ind13:23, ind14:43,ind15:50} },
+    { ubs:"UBS JK",                                    equipe:"JK",           pts_q1:37.6, status:"bom",      ind:{ind1:83,ind2:43,ind3:86,ind4:90, ind5:38,ind6:30,ind7:53, ind8:78,ind9:62,ind10:77, ind11:41,ind12:48,ind13:41, ind14:78,ind15:82} },
+    { ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA",   equipe:"ESTRADA NOVA", pts_q1:9.8,  status:"regular",  ind:{ind1:44,ind2:20,ind3:55,ind4:57, ind5:21,ind6:15,ind7:34, ind8:49,ind9:36,ind10:41, ind11:22,ind12:26,ind13:20, ind14:39,ind15:43} },
   ],
 };
 
 function PainelGestorRT() {
   const { dias_totais, dias_decorridos, dias_restantes } = _Q2;
   const pctTempo = Math.round((dias_decorridos / dias_totais) * 100);
-  const metas = [60, 60, 95, 60, 60, 55, 60];
-  const indKeys = ["ind1","ind2","ind3","ind4","ind5","ind6","ind7"] as const;
+  const metas = [55, 50, 90, 55, 45, 45, 45, 60, 55, 55, 50, 50, 50, 55, 55];
+  const indKeys = ["ind1","ind2","ind3","ind4","ind5","ind6","ind7","ind8","ind9","ind10","ind11","ind12","ind13","ind14","ind15"] as const;
 
   const corGap = (atual: number, meta: number) => {
     const g = meta - atual;
@@ -788,7 +807,7 @@ function PainelGestorRT() {
           <div>
             <div style={{ fontSize:10, opacity:.75, fontWeight:700, textTransform:"uppercase", letterSpacing:".05em" }}>Acompanhamento em Tempo Real · Apuí/AM</div>
             <div style={{ fontSize:18, fontWeight:800, marginTop:3 }}>{_Q2.label} — {_Q2.periodo}</div>
-            <div style={{ fontSize:12, opacity:.8, marginTop:3 }}>Novo Financiamento APS · Portaria GM/MS 3.493/2024 · 7 indicadores · {_Q2.equipes.length} equipes ESF/eSF</div>
+            <div style={{ fontSize:12, opacity:.8, marginTop:3 }}>Novo Financiamento APS · Portaria GM/MS 3.493/2024 · 15 indicadores · {_Q2.equipes.length} equipes ESF/eSF</div>
           </div>
           <div style={{ display:"flex", gap:10 }}>
             {[
@@ -819,7 +838,7 @@ function PainelGestorRT() {
       {/* ── Painel dos 7 Indicadores ── */}
       <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-          <div style={{ fontSize:14, fontWeight:700 }}>Painel dos 7 Indicadores — Município · {hoje}</div>
+          <div style={{ fontSize:14, fontWeight:700 }}>Painel dos 15 Indicadores — Município · {hoje}</div>
           <span style={{ fontSize:11, background:"#fef3c7", color:"#92400e", padding:"3px 10px", borderRadius:20, fontWeight:700 }}>Dado parcial Q2/2026</span>
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
@@ -936,7 +955,7 @@ function PainelGestorRT() {
       <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18 }}>
         <div style={{ fontSize:14, fontWeight:700, marginBottom:4 }}>📅 Ritmo Diário Necessário para Atingir a Meta</div>
         <div style={{ fontSize:11, color:"#6b7280", marginBottom:14 }}>Com {dias_restantes} dias restantes no quadrimestre, cada equipe precisa registrar os seguintes volumes POR DIA para atingir as metas nacionais.</div>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:10 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:10 }}>
           {_Q2.indicadores.map((ind, i) => {
             const gap = Math.max(0, ind.meta - ind.atual);
             const ritmo = gap > 0 ? (gap / dias_restantes).toFixed(1) : "0";
@@ -989,13 +1008,21 @@ function PainelGestorRT() {
 // ── Componente Qualidade ──────────────────────────────────────────────────────
 
 const IND_NOMES: Record<string, string> = {
-  ind1_prenatal: "Ind.1 — Pré-natal (≥6 consultas)",
-  ind2_cito:     "Ind.2 — Citopatológico",
-  ind3_vacina:   "Ind.3 — Vacinação DTP/Penta",
-  ind4_rn:       "Ind.4 — Consulta RN 1ª semana",
-  ind5_has:      "Ind.5 — Acompanhamento HAS",
-  ind6_dm:       "Ind.6 — Acompanhamento DM",
-  ind7_infantil: "Ind.7 — Desenvolvimento Infantil",
+  ind1_prenatal:    "I01 — Pré-natal ≥7 consultas (1º trim.)",
+  ind2_cito:        "I02 — Citopatológico",
+  ind3_vacina:      "I03 — DTP/Pentavalente",
+  ind4_rn:          "I04 — Puerpério / RN 1ª semana",
+  ind5_odonto1:     "I05 — 1ª Consulta Odontológica",
+  ind6_odonto_comp: "I06 — Tratamento Odontológico Completado",
+  ind7_urg_odonto:  "I07 — Urgência Odontológica Resolvida",
+  ind8_has:         "I08 — Acompanhamento HAS",
+  ind9_dm:          "I09 — Acompanhamento DM (HbA1c)",
+  ind10_obesidade:  "I10 — Obesidade Infantil",
+  ind11_cv:         "I11 — Alto Risco Cardiovascular",
+  ind12_psicose:    "I12 — Esquizofrenia / Psicose",
+  ind13_tab:        "I13 — Transtorno Afetivo Bipolar",
+  ind14_sif_gest:   "I14 — Sífilis em Gestante",
+  ind15_sif_cong:   "I15 — Sífilis Congênita",
 };
 
 function AbaQualidade({ data }: { data: any }) {
@@ -1014,7 +1041,7 @@ function AbaQualidade({ data }: { data: any }) {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 6 }}>
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>Componente Qualidade</h2>
-            <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Novo Financiamento da Atenção Primária à Saúde — 7 indicadores · Portaria GM/MS 3.493/2024</p>
+            <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Novo Financiamento da Atenção Primária à Saúde — 15 indicadores · Portaria GM/MS 3.493/2024</p>
           </div>
           <div style={{ display: "flex", gap: 4, background: "#f3f4f6", borderRadius: 10, padding: 4, flexWrap:"wrap" }}>
             {([
@@ -1095,7 +1122,7 @@ function AbaQualidade({ data }: { data: any }) {
 
               {isOpen && (
                 <div style={{ padding: "12px 16px", borderTop: "1px solid #f3f4f6", background: "#fafafa" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
                     {Object.entries(e.indicadores).map(([key, ind]) => {
                       const cor2 = COR_IND(ind.status);
                       return (
@@ -1245,9 +1272,9 @@ function AbaBoasPraticas({ data }: { data: any }) {
 
 // ── Aba: Avaliação Quadrimestral ──────────────────────────────────────────────
 
-const IND_LABELS = ["Pré-natal","Cito","DTP/Penta","Consulta RN","HAS","DM","Des. Infantil"];
-const IND_KEYS   = ["ind1","ind2","ind3","ind4","ind5","ind6","ind7"];
-const IND_METAS  = [60, 60, 95, 60, 50, 50, 60];
+const IND_LABELS = ["Pré-natal","Cito","DTP/Penta","Puerpério","1ª Odonto","Odonto Comp.","Urg. Odonto","HAS","DM HbA1c","Obesidade","Risco CV","Psicose","TAB","Síf. Gest.","Síf. Cong."];
+const IND_KEYS   = ["ind1","ind2","ind3","ind4","ind5","ind6","ind7","ind8","ind9","ind10","ind11","ind12","ind13","ind14","ind15"];
+const IND_METAS  = [55, 50, 90, 55, 45, 45, 45, 60, 55, 55, 50, 50, 50, 55, 55];
 
 function CardEquipe({ e, periodo }: { e: any; periodo: "mensal" | "quadrimestral" }) {
   const [open, setOpen] = useState(false);
@@ -1284,7 +1311,7 @@ function CardEquipe({ e, periodo }: { e: any; periodo: "mensal" | "quadrimestral
       {open && (
         <div style={{ padding: "14px 16px", borderTop: "1px solid #f3f4f6", background: "#fafafa" }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8", marginBottom: 10 }}>Indicadores Componente Qualidade — {e.equipe}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
             {IND_KEYS.map((k, i) => {
               const val = e[k] ?? 0;
               const meta = IND_METAS[i];
@@ -1402,7 +1429,7 @@ function AbaQuadrimestre({ dashData }: { dashData: any }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "#1d4ed8" }}>Componente Qualidade</div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>Novo Financiamento APS — 7 indicadores · 10 equipes · Portaria 3.493/2024</div>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>Novo Financiamento APS — 15 indicadores · 9 equipes · Portaria 3.493/2024</div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: 28, fontWeight: 900, color: "#16a34a" }}>{q.pontuacao_media.toFixed(1)}</div>
@@ -1410,7 +1437,7 @@ function AbaQuadrimestre({ dashData }: { dashData: any }) {
               </div>
             </div>
             <div style={{ background: "#fff7f7", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#dc2626" }}>
-              <strong>⚠ Citopatológico:</strong> {q.cito_meta_pct_media}% (meta 60%) — todas as equipes abaixo da meta.
+              <strong>⚠ Citopatológico:</strong> {q.cito_meta_pct_media}% (meta 50%) — todas as equipes abaixo da meta.
             </div>
             <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#16a34a" }}>
               <strong>✓ Pré-natal e Consulta RN</strong> — acima da meta na maioria das equipes. LIBERDADE: 96% no Ind.4.
