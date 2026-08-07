@@ -6,7 +6,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from typing import Set
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -58,7 +58,7 @@ def _ALERTAS_REF():
             "nivel": "CRITICO",
             "categoria": "Financeiro",
             "titulo": "Convênio FNS vencendo em 7 dias",
-            "descricao": "Convênio MAC — R$ 94.800 — vence em 11/07/2026. Necessário renovação urgente.",
+            "descricao": f"Convênio MAC — R$ 94.800 — vence em {(date.today() + timedelta(days=7)).strftime('%d/%m/%Y')}. Necessário renovação urgente.",
             "modulo": "financeiro",
             "lido": False,
         },

@@ -122,21 +122,52 @@ def _HISTORICO():
 
 @lru_cache(maxsize=1)
 def _EQUIPES():
+    # INEs reais conforme CNES Jul/2026 — 9 equipes ESF de Apuí/AM
     return [
         {
-            "ine": "0000315758", "nome": "ESF Apuí I", "tipo": "ESF",
-            "ind1": 84.4, "ind2": 45.2, "ind3": 83.1, "ind4": 92.0, "ind5": 80.2, "ind6": 63.5, "ind7": 57.1,
-            "media": 72.2, "status": "verde",
+            "ine": "0001483724", "nome": "CACHOEIRA",     "ubs": "UBS Irmã Elizabete",                      "tipo": "ESF",
+            "ind1": 86.7, "ind2": 45.2, "ind3": 84.1, "ind4": 93.3, "ind5": 81.5, "ind6": 64.3, "ind7": 58.2,
+            "media": 73.3, "status": "verde",
         },
         {
-            "ine": "0000315766", "nome": "ESF Apuí II", "tipo": "ESF",
-            "ind1": 82.1, "ind2": 41.8, "ind3": 80.4, "ind4": 89.7, "ind5": 77.4, "ind6": 61.9, "ind7": 52.3,
-            "media": 69.4, "status": "verde",
+            "ine": "0001483732", "nome": "SÃO SEBASTIÃO", "ubs": "UBS Anizio Ferreira da Silva",             "tipo": "ESF",
+            "ind1": 84.4, "ind2": 43.8, "ind3": 83.5, "ind4": 91.1, "ind5": 80.4, "ind6": 63.2, "ind7": 56.9,
+            "media": 71.9, "status": "verde",
         },
         {
-            "ine": "0000315774", "nome": "ESF Vila do Castanho", "tipo": "ESF",
-            "ind1": 86.7, "ind2": 40.1, "ind3": 84.2, "ind4": 91.5, "ind5": 79.5, "ind6": 62.8, "ind7": 57.7,
-            "media": 71.8, "status": "verde",
+            "ine": "0001483740", "nome": "ACARI",          "ubs": "UBS Anizio Ferreira da Silva",             "tipo": "ESF",
+            "ind1": 83.3, "ind2": 44.1, "ind3": 82.6, "ind4": 90.0, "ind5": 79.2, "ind6": 62.5, "ind7": 55.8,
+            "media": 71.1, "status": "verde",
+        },
+        {
+            "ine": "0001483759", "nome": "TRÊS ESTADOS",   "ubs": "UBS Osvaldo Lemes Cabral",                 "tipo": "ESF",
+            "ind1": 80.0, "ind2": 38.9, "ind3": 79.4, "ind4": 88.9, "ind5": 75.6, "ind6": 59.8, "ind7": 51.4,
+            "media": 67.7, "status": "amarelo",
+        },
+        {
+            "ine": "0001483767", "nome": "JUMA",           "ubs": "Centro de Saúde Curumim",                  "tipo": "ESF",
+            "ind1": 88.9, "ind2": 46.7, "ind3": 85.2, "ind4": 93.3, "ind5": 82.2, "ind6": 65.5, "ind7": 59.4,
+            "media": 74.5, "status": "verde",
+        },
+        {
+            "ine": "0001483775", "nome": "LIBERDADE",      "ubs": "Centro de Saúde Curumim",                  "tipo": "ESF",
+            "ind1": 88.9, "ind2": 47.8, "ind3": 86.3, "ind4": 95.6, "ind5": 83.3, "ind6": 66.7, "ind7": 61.1,
+            "media": 75.7, "status": "verde",
+        },
+        {
+            "ine": "0001483783", "nome": "KENNEDY",        "ubs": "UBS Padre Faliero Bonci",                  "tipo": "ESF",
+            "ind1": 77.8, "ind2": 37.8, "ind3": 77.8, "ind4": 86.7, "ind5": 72.2, "ind6": 57.8, "ind7": 48.9,
+            "media": 65.6, "status": "amarelo",
+        },
+        {
+            "ine": "0001483791", "nome": "JK",             "ubs": "UBS JK",                                   "tipo": "ESF",
+            "ind1": 83.3, "ind2": 41.2, "ind3": 81.5, "ind4": 90.0, "ind5": 77.8, "ind6": 61.5, "ind7": 54.2,
+            "media": 69.9, "status": "verde",
+        },
+        {
+            "ine": "0001483805", "nome": "ESTRADA NOVA",   "ubs": "UBS Claudia Pereira dos Santos Damacena",  "tipo": "ESF",
+            "ind1": 77.8, "ind2": 36.7, "ind3": 76.9, "ind4": 85.6, "ind5": 71.1, "ind6": 57.1, "ind7": 47.8,
+            "media": 64.7, "status": "amarelo",
         },
     ]
 
