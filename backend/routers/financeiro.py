@@ -217,22 +217,24 @@ def _blocos_para_mes(mes: int) -> list[dict]:
         result.append(entrada)
     return result
 
-# ── Repasses mensais FNS — MAC + VIGI reais ───────────────────────────────────
-# MAC: 312.343,90 / 6 meses = ~52.057/mês  |  VIGI: 25.936 / 6 = ~4.322/mês
+# ── Repasses mensais FNS — AB + MAC + VIGI (Jan–Jun 2026 recebidos) ───────────
+# AB:   619.572,00 / 6 = 103.262,00/mês (exato)
+# MAC:  312.343,90 / 6 =  52.057,32/mês
+# VIGI:  25.936,00 / 6 =   4.322,67/mês
+# Total previsto/recebido: 159.641,99/mês — FAF e GESSUS sem repasse em 2026
 
-# Previsto mensal = (MAC + VIGI + AB) / 6  [valores reais acumulados / 6 meses]
-_MES_PREVISTO = round(_FNS_TOTAL_RECEBIDO / 6, 0)  # ~121.188/mês
-_MES_RECEBIDO = round(_MES_PREVISTO - 20, 0)
+_MES_PREVISTO = round(_AB_MES + _MAC_MES + _VIGI_MES, 2)  # 159.641,99/mês
+_MES_RECEBIDO = _MES_PREVISTO                              # Jan–Jun: tudo recebido
 
 @lru_cache(maxsize=1)
 def _REPASSES_MENSAIS():
     return [
-        {"mes": "Jan/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
-        {"mes": "Fev/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
-        {"mes": "Mar/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
-        {"mes": "Abr/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
-        {"mes": "Mai/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
-        {"mes": "Jun/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": -20},
+        {"mes": "Jan/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": 0.0},
+        {"mes": "Fev/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": 0.0},
+        {"mes": "Mar/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": 0.0},
+        {"mes": "Abr/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": 0.0},
+        {"mes": "Mai/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": 0.0},
+        {"mes": "Jun/26", "previsto": _MES_PREVISTO, "recebido": _MES_RECEBIDO, "diferenca": 0.0},
         {"mes": "Jul/26", "previsto": _MES_PREVISTO, "recebido": None,           "diferenca": None},
     ]
 
