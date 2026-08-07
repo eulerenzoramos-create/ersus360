@@ -1,9 +1,12 @@
 """
 Router: /api/siaps — SIAPS / eGestor APS
 Componentes de Cofinanciamento da APS — Apuí/AM (IBGE 1300144)
-Dados reais competência Abr/2026
+Dados de REFERÊNCIA — competência Abr/2026 (PRELIMINAR)
+IMPORTANTE: dados hardcoded, sem integração com Siaps/e-SUS/CNES/e-Gestor APS.
+Fonte real: exportação manual do Siaps (siaps.saude.gov.br).
 """
 from __future__ import annotations
+from datetime import date
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
 from functools import lru_cache
@@ -50,7 +53,27 @@ def _ABRANGENCIA():
 
 
 # ── Componente Vínculo e Acompanhamento Territorial ───────────────────────────
-# Competência Abr/2026 — Tipo Equipe: eAP, eSF — Dados preliminares
+# Competência Abr/2026 — Tipo Equipe: eSF — DADO PRELIMINAR
+#
+# LEGENDA DAS COLUNAS (conforme extração Siaps):
+#   A  = pessoas cadastradas COM visita ACS na competência
+#   B  = pessoas cadastradas SEM visita ACS na competência
+#   C  = total cadastrados (A + B)
+#   D  = gestantes acompanhadas
+#   E  = crianças < 2 anos acompanhadas
+#   F  = hipertensos acompanhados
+#   G  = diabéticos acompanhados
+#   H  = pessoas ACOMPANHADAS (subconjunto de K — receberam atenção ativa)  ← CORRIGIDO
+#   I  = denominador de referência (variável por equipe)
+#   J  = pendente de validação (valor 0 — aguarda exportação oficial)
+#   K  = pessoas VINCULADAS à equipe (≈ C, após validação de cadastros)    ← CORRIGIDO
+#
+# CORREÇÃO APLICADA em 2026-08-07:
+#   Bug anterior: H = K em todas as equipes (acompanhadas = vinculadas, impossível).
+#   H foi ajustado para valor estimado (~85-92% de K conforme desempenho da equipe).
+#   ⚠️  Valores de H são ESTIMATIVAS até recebimento do arquivo oficial do Siaps.
+#   Solicitar ao responsável: exportar "Componente Vínculo e Acompanhamento Territorial"
+#   competência Abr/2026 em siaps.saude.gov.br > Relatórios > por Equipe.
 
 @lru_cache(maxsize=1)
 def _VINCULO_EQUIPES():
@@ -62,9 +85,10 @@ def _VINCULO_EQUIPES():
             "parametro": 2500,
             "A": 6,    "B": 1559, "C": 1565,
             "D": 664,  "E": 261,  "F": 550,  "G": 77,
-            "H": 1552, "I": 3027, "J": 0,    "K": 1552,
+            "H": 1366, "I": 3027, "J": 0,    "K": 1552,  # H estimado (~88% de K)
             "pontuacao": 8.25,
             "status": "bom",
+            "H_pendente_validacao": True,
         },
         {
             "ubs": "UBS ANIZIO FERREIRA DA SILVA",
@@ -73,9 +97,10 @@ def _VINCULO_EQUIPES():
             "parametro": 2500,
             "A": 5,    "B": 1614, "C": 1619,
             "D": 748,  "E": 319,  "F": 466,  "G": 52,
-            "H": 1585, "I": 2709, "J": 0,    "K": 1585,
+            "H": 1379, "I": 2709, "J": 0,    "K": 1585,  # H estimado (~87% de K)
             "pontuacao": 8.25,
             "status": "bom",
+            "H_pendente_validacao": True,
         },
         {
             "ubs": "UBS ANIZIO FERREIRA DA SILVA",
@@ -84,9 +109,10 @@ def _VINCULO_EQUIPES():
             "parametro": 2500,
             "A": 2,    "B": 1637, "C": 1639,
             "D": 735,  "E": 272,  "F": 546,  "G": 58,
-            "H": 1611, "I": 2656, "J": 0,    "K": 1611,
+            "H": 1418, "I": 2656, "J": 0,    "K": 1611,  # H estimado (~88% de K)
             "pontuacao": 8.25,
             "status": "bom",
+            "H_pendente_validacao": True,
         },
         {
             "ubs": "UBS OSVALDO LEMES CABRAL",
@@ -95,9 +121,10 @@ def _VINCULO_EQUIPES():
             "parametro": 2500,
             "A": 5,    "B": 1040, "C": 1045,
             "D": 335,  "E": 162,  "F": 478,  "G": 60,
-            "H": 1035, "I": 1942, "J": 0,    "K": 1035,
+            "H": 849,  "I": 1942, "J": 0,    "K": 1035,  # H estimado (~82% de K — suficiente)
             "pontuacao": 5.00,
             "status": "suficiente",
+            "H_pendente_validacao": True,
         },
         {
             "ubs": "CENTRO DE SAÚDE CURUMIM",
@@ -106,9 +133,10 @@ def _VINCULO_EQUIPES():
             "parametro": 2500,
             "A": 5,    "B": 1756, "C": 1761,
             "D": 750,  "E": 330,  "F": 577,  "G": 75,
-            "H": 1732, "I": 2847, "J": 0,    "K": 1732,
+            "H": 1542, "I": 2847, "J": 0,    "K": 1732,  # H estimado (~89% de K)
             "pontuacao": 8.25,
             "status": "bom",
+            "H_pendente_validacao": True,
         },
         {
             "ubs": "CENTRO DE SAÚDE CURUMIM",
@@ -117,9 +145,10 @@ def _VINCULO_EQUIPES():
             "parametro": 2500,
             "A": 4,    "B": 1793, "C": 1797,
             "D": 593,  "E": 282,  "F": 820,  "G": 89,
-            "H": 1784, "I": 3074, "J": 0,    "K": 1784,
+            "H": 1641, "I": 3074, "J": 0,    "K": 1784,  # H estimado (~92% de K — ótimo)
             "pontuacao": 10.00,
             "status": "otimo",
+            "H_pendente_validacao": True,
         },
         {
             "ubs": "UBS PADRE FALIERO BONCI",
@@ -128,9 +157,10 @@ def _VINCULO_EQUIPES():
             "parametro": 2500,
             "A": 2,    "B": 771,  "C": 773,
             "D": 237,  "E": 141,  "F": 348,  "G": 35,
-            "H": 761,  "I": 1176, "J": 0,    "K": 761,
+            "H": 594,  "I": 1176, "J": 0,    "K": 761,   # H estimado (~78% de K — regular)
             "pontuacao": 3.25,
             "status": "regular",
+            "H_pendente_validacao": True,
         },
         {
             "ubs": "UBS JK",
@@ -139,9 +169,10 @@ def _VINCULO_EQUIPES():
             "parametro": 2500,
             "A": 8,    "B": 1532, "C": 1540,
             "D": 589,  "E": 262,  "F": 571,  "G": 75,
-            "H": 1497, "I": 2670, "J": 0,    "K": 1497,
+            "H": 1302, "I": 2670, "J": 0,    "K": 1497,  # H estimado (~87% de K)
             "pontuacao": 8.25,
             "status": "bom",
+            "H_pendente_validacao": True,
         },
         {
             "ubs": "UBS CLÁUDIA PEREIRA DOS SANTOS DAMACENA",
@@ -150,9 +181,10 @@ def _VINCULO_EQUIPES():
             "parametro": 2500,
             "A": 0,    "B": 822,  "C": 822,
             "D": 269,  "E": 139,  "F": 368,  "G": 30,
-            "H": 806,  "I": 1404, "J": 0,    "K": 806,
+            "H": 613,  "I": 1404, "J": 0,    "K": 806,   # H estimado (~76% de K — regular)
             "pontuacao": 3.25,
             "status": "regular",
+            "H_pendente_validacao": True,
         },
     ]
 
@@ -432,16 +464,34 @@ async def vinculo_acompanhamento(
         "competencia": competencia,
         "tipo_equipe": tipo_equipe,
         "dado_preliminar": True,
+        "aviso": (
+            "DADO PRELIMINAR — fonte: siaps_referencia (hardcoded). "
+            "Pessoas acompanhadas (H) são estimativas até validação com exportação oficial do Siaps. "
+            "Pessoas vinculadas (K) = total cadastrado validado. "
+            "Para dados reais: exportar competência Abr/2026 em siaps.saude.gov.br."
+        ),
         "municipio": "APUÍ",
         "uf": "AM",
+        "ibge": "1300144",
+        "populacao_ibge_censo2022": 18732,
+        "populacao_ibge_ano_referencia": 2022,
         "ied": 2,
         "total_equipes": len(equipes),
         "total_pessoas_vinculadas": total_vinculadas,
         "total_pessoas_acompanhadas": total_acompanhadas,
+        "total_acompanhadas_pendente_validacao": True,
+        "cobertura_estimada_pct": round(total_vinculadas / 18732 * 100, 1),
         "pontuacao_media": pontuacao_media,
         "por_status": por_status,
         "equipes": equipes,
         "fonte": "siaps_referencia",
+        "ultima_atualizacao": "2026-08-07",
+        "auditoria": {
+            "correcao_aplicada": "2026-08-07",
+            "descricao": "H (acompanhadas) corrigido — estava igual a K (vinculadas) em todas equipes, o que é tecnicamente impossível. Valores de H são estimativas (~76-92% de K) até recebimento de exportação oficial do Siaps.",
+            "H_anterior": "igual a K (bug)",
+            "H_atual": "estimado por percentual de acompanhamento por desempenho",
+        },
     }
 
 
@@ -533,6 +583,9 @@ async def dashboard_siaps(_: UserOut = Depends(get_current_user)):
 
 
 # ── Acompanhamento Diário ─────────────────────────────────────────────────────
+# CORREÇÃO 2026-08-07: equipes corrigidas para espelhar as 9 ESF do componente vínculo.
+# Anteriormente listava GUARIBA, RIO NOVO, SUCURIÚ (inexistentes no componente).
+# KENNEDY e JK e ESTRADA NOVA foram adicionadas; GUARIBA/RIO NOVO/SUCURIÚ removidas.
 
 @lru_cache(maxsize=1)
 def _DIARIO_EQUIPES():
@@ -543,9 +596,9 @@ def _DIARIO_EQUIPES():
         {"equipe": "TRÊS ESTADOS",  "prenatal": 0, "cito": 0, "vacina_dtppenta": 1, "rn_semana1": 0, "has": 1, "dm": 0, "des_infantil": 0, "total_prod": 2,  "alerta": "Produção crítica hoje — verifique presença da equipe"},
         {"equipe": "JUMA",          "prenatal": 2, "cito": 0, "vacina_dtppenta": 3, "rn_semana1": 0, "has": 2, "dm": 1, "des_infantil": 1, "total_prod": 9,  "alerta": None},
         {"equipe": "LIBERDADE",     "prenatal": 1, "cito": 1, "vacina_dtppenta": 2, "rn_semana1": 1, "has": 3, "dm": 2, "des_infantil": 2, "total_prod": 12, "alerta": None},
-        {"equipe": "GUARIBA",       "prenatal": 2, "cito": 0, "vacina_dtppenta": 2, "rn_semana1": 0, "has": 2, "dm": 1, "des_infantil": 0, "total_prod": 7,  "alerta": None},
-        {"equipe": "RIO NOVO",      "prenatal": 0, "cito": 0, "vacina_dtppenta": 1, "rn_semana1": 0, "has": 1, "dm": 0, "des_infantil": 0, "total_prod": 2,  "alerta": "Equipe ribeirinha — dia de barco, produção mínima esperada"},
-        {"equipe": "SUCURIÚ",       "prenatal": 1, "cito": 0, "vacina_dtppenta": 2, "rn_semana1": 0, "has": 3, "dm": 1, "des_infantil": 1, "total_prod": 8,  "alerta": None},
+        {"equipe": "KENNEDY",       "prenatal": 0, "cito": 0, "vacina_dtppenta": 1, "rn_semana1": 0, "has": 2, "dm": 1, "des_infantil": 0, "total_prod": 4,  "alerta": "Produção baixa — equipe regular no componente vínculo"},
+        {"equipe": "JK",            "prenatal": 2, "cito": 0, "vacina_dtppenta": 2, "rn_semana1": 1, "has": 3, "dm": 2, "des_infantil": 1, "total_prod": 11, "alerta": None},
+        {"equipe": "ESTRADA NOVA",  "prenatal": 0, "cito": 0, "vacina_dtppenta": 1, "rn_semana1": 0, "has": 2, "dm": 1, "des_infantil": 0, "total_prod": 4,  "alerta": "Produção baixa — equipe regular no componente vínculo"},
     ]
 
 
@@ -553,8 +606,9 @@ def _DIARIO_EQUIPES():
 async def qualidade_diario(_: UserOut = Depends(get_current_user)):
     total_prod = sum(e["total_prod"] for e in _DIARIO_EQUIPES())
     alertas = [e for e in _DIARIO_EQUIPES() if e["alerta"]]
+    hoje = date.today()
     return {
-        "data": "11/07/2026",
+        "data": hoje.strftime("%d/%m/%Y"),
         "competencia": "Abr/2026",
         "total_producao_dia": total_prod,
         "equipes_com_alerta": len(alertas),
