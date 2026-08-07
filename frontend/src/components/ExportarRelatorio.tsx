@@ -57,7 +57,7 @@ export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nome
       @media print {
         body > * { display: none !important; }
         #ersus-print-area { display: block !important; }
-        #ersus-print-area { position: fixed; inset: 0; background: #fff; z-index: 99999; padding: 0; margin: 0; }
+        #ersus-print-area { position: static; background: #fff; padding: 0; margin: 0; width: 100%; }
         @page { size: A4; margin: 18mm 15mm; }
       }
       #ersus-print-area { display: none; }
