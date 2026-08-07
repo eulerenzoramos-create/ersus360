@@ -46,6 +46,7 @@ const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 
 // ── Logo MS ───────────────────────────────────────────────────────────────────
 
 function LogoMS() {
+  const nome = localStorage.getItem("ersus_nome") || "Usuário";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 24px", background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
       {/* Ícone gov.br — faixas horizontais verde/amarelo/azul */}
@@ -65,7 +66,7 @@ function LogoMS() {
         <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Users size={14} color="#6b7280" />
         </div>
-        Olá, Rosangela ▾
+        Olá, {nome} ▾
       </div>
     </div>
   );
