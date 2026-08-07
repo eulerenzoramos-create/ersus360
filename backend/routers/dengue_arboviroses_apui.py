@@ -61,7 +61,7 @@ def _VETORES():
         {"arbovirose": "Aedes aegypti — Índice de Infestação Predial (IIP) 4,8%",
          "casos_2025": 0, "obitos_2025": 0, "graves": 0,
          "status": "critico",
-         "observacao": "IIP 4,8% (nível de alerta: 0,5%; nível crítico: > 1,0% = epidemia iminente). Apuí: 4,8% = epidemia de dengue é CERTA sem controle vetorial imediato. 6 agentes de combate a endemias (ACEs) para 24.700 habitantes (meta: 1 ACE/750 hab = 33 ACEs). Déficit: 27 ACEs. LIRAA (Levantamento de Índice Rápido Aedes): realizado em 48,4% dos quarteirões (meta 100%). Principais criadouros Apuí: tonéis/tambores (garimpo) 34,8% + pneus 18,4% + laje/calha 14,2%. Plano de Contingência: não existe em Apuí (obrigatório pelo PNCD — Programa Nacional de Controle da Dengue). Larvitrapa biossensor: R$ 8.400/ano → IIP mensal em tempo real. Wolbachia (liberação de mosquitos estéreis): parceria Fiocruz — disponível para municípios no AM."},
+         "observacao": "IIP 4,8% (nível de alerta: 0,5%; nível crítico: > 1,0% = epidemia iminente). Apuí: 4,8% = epidemia de dengue é CERTA sem controle vetorial imediato. 6 agentes de combate a endemias (ACEs) para 18.732 habitantes (meta: 1 ACE/750 hab = 33 ACEs). Déficit: 27 ACEs. LIRAA (Levantamento de Índice Rápido Aedes): realizado em 48,4% dos quarteirões (meta 100%). Principais criadouros Apuí: tonéis/tambores (garimpo) 34,8% + pneus 18,4% + laje/calha 14,2%. Plano de Contingência: não existe em Apuí (obrigatório pelo PNCD — Programa Nacional de Controle da Dengue). Larvitrapa biossensor: R$ 8.400/ano → IIP mensal em tempo real. Wolbachia (liberação de mosquitos estéreis): parceria Fiocruz — disponível para municípios no AM."},
     ]
 
 
@@ -70,7 +70,7 @@ def _ACOES():
     return [
         {"acao": "Contratação emergencial de 12 ACEs (agentes de combate a endemias)",
          "implementada": False, "custo": 504000, "prazo_meses": 3,
-         "observacao": "6 ACEs para 24.700 hab (meta 33 ACEs — 1/750 hab). Déficit crítico: IIP 4,8% com apenas 6 ACEs = impossível controlar. Custo: 12 ACEs × R$ 3.500/mês × 12 meses = R$ 504.000/ano. Financiamento: Piso de Atenção Básica Variável (PAB-V) para vigilância epidemiológica + emenda parlamentar. 12 ACEs adicionais: cobertura de 18.000 imóveis/mês → IIP projetado: < 1% em 6 meses. ROI: 1.842 casos atuais × R$ 840/caso (tratamento + produtividade) = R$ 1,55M evitados por ano vs R$ 504k de ACEs."},
+         "observacao": "6 ACEs para 18.732 hab (meta 33 ACEs — 1/750 hab). Déficit crítico: IIP 4,8% com apenas 6 ACEs = impossível controlar. Custo: 12 ACEs × R$ 3.500/mês × 12 meses = R$ 504.000/ano. Financiamento: Piso de Atenção Básica Variável (PAB-V) para vigilância epidemiológica + emenda parlamentar. 12 ACEs adicionais: cobertura de 18.000 imóveis/mês → IIP projetado: < 1% em 6 meses. ROI: 1.842 casos atuais × R$ 840/caso (tratamento + produtividade) = R$ 1,55M evitados por ano vs R$ 504k de ACEs."},
         {"acao": "Plano de Contingência para Dengue — obrigatório pelo PNCD",
          "implementada": False, "custo": 8400, "prazo_meses": 2,
          "observacao": "Zero plano de contingência (obrigatório pelo PNCD/MS). Custo de elaboração: R$ 8.400 (2 meses, 1 técnico). Plano inclui: fluxo de atendimento (UBS → PA → hospital), capacidade de leitos, estoque de soro fisiológico, protocolo de dengue grave, comunicação de risco. Sem plano: epidemia vira caos (como 2023 no AM). PNCD/MS: município sem plano = bloqueado de acesso a recursos emergenciais federais para dengue."},
@@ -99,7 +99,7 @@ def _HISTORICO():
 @lru_cache(maxsize=1)
 def _INDICADORES():
     return [
-        {"indicador": "IIP Aedes aegypti (alerta: 0,5% | crítico: > 1%)",     "valor": 4.8,   "meta": 1.0,   "unidade": "%",    "status": "critico", "observacao": "4,8% = epidemia iminente. 6 ACEs para 24.700 hab (meta 33). Contratação emergencial 12 ACEs: R$ 504k. Wolbachia Fiocruz: -77% de casos."},
+        {"indicador": "IIP Aedes aegypti (alerta: 0,5% | crítico: > 1%)",     "valor": 4.8,   "meta": 1.0,   "unidade": "%",    "status": "critico", "observacao": "4,8% = epidemia iminente. 6 ACEs para 18.732 hab (meta 33). Contratação emergencial 12 ACEs: R$ 504k. Wolbachia Fiocruz: -77% de casos."},
         {"indicador": "Dengue — incidência 2025 (meta: < 300/100k)",           "valor": 7456.7,"meta": 300.0, "unidade": "/100k","status": "critico", "observacao": "7.456/100k (24,9× a meta). 1.842 casos. 4 óbitos. Plano de contingência: R$ 8.400. Salas de hidratação: R$ 48.000 (6 UBSs)."},
         {"indicador": "Dengue grave — letalidade (meta: ≤ 0,1%)",              "valor": 0.22,  "meta": 0.1,   "unidade": "%",    "status": "critico", "observacao": "0,22% (2,2× a meta). 4 óbitos. Hematócrito portátil + SF 0,9% em todas UBSs. 1 óbito evitado: R$ 280k de UTI."},
         {"indicador": "Zika em gestantes (meta: zero)",                        "valor": 28,    "meta": 0,     "unidade": "casos","status": "critico", "observacao": "28 gestantes com Zika. 4 casos de microcefalia 2023-25. Mosquiteiro impregnado + repelente DEET 15% (seguro na gestação). RT-PCR: LACEN-AM."},

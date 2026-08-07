@@ -65,7 +65,7 @@ def _PRODUCAO():
 @lru_cache(maxsize=1)
 def _FRAGILIDADES():
     return [
-        {"area": "Capacidade instalada",       "status": "critico",  "descricao": "28 leitos SUS para 24.700 hab = 1,13/1k (meta 2,5/1k). 34 leitos adicionais necessários. Ocupação 84,2% em estrutura subdimensionada = internação no corredor em pico de demanda (dengue, sazonal)"},
+        {"area": "Capacidade instalada",       "status": "critico",  "descricao": "28 leitos SUS para 18.732 hab = 1,13/1k (meta 2,5/1k). 34 leitos adicionais necessários. Ocupação 84,2% em estrutura subdimensionada = internação no corredor em pico de demanda (dengue, sazonal)"},
         {"area": "UTI (zero leitos)",          "status": "critico",  "descricao": "Sem UTI: IAM, AVC, sepse grave, politrauma, RN prematuro = transfer imediato. 48 transferências/mês, 33% em condição crítica. Transfer para Humaitá 284 km em viatura sem UTI móvel = alta mortalidade no trajeto"},
         {"area": "Banco de sangue",            "status": "critico",  "descricao": "Sem banco de sangue — hemorragia cirúrgica ou obstétrica depende de transfer para HEMOAM Manaus. Cirurgia de emergência com sangramento intraoperatório = suspensão do procedimento ou óbito intraoperatório"},
         {"area": "Centro cirúrgico (1 sala)",  "status": "critico",  "descricao": "1 sala cirúrgica suspensa 3 meses em 2025 por falta de anestesista. Cirurgias eletivas acumulam fila. Cirurgia de urgência (apendicite, fratura, CES) concorre com a única sala disponível"},

@@ -51,7 +51,7 @@ def _CONDICOES():
             "meta_controle_pct": 70.0,
             "status": "critico",
             "complicacoes_ano": {"ami": 12, "avc": 18, "drc": 84, "retinopatia": 48},
-            "observacao": "58,9% não diagnosticados — HIPERDIA com acompanhamento ativo 58,4%. Sal de cozinha e alimentação hipersódica são determinantes culturais de difícil modificação sem nutricionista (apenas 1 para 24.700 hab)"
+            "observacao": "58,9% não diagnosticados — HIPERDIA com acompanhamento ativo 58,4%. Sal de cozinha e alimentação hipersódica são determinantes culturais de difícil modificação sem nutricionista (apenas 1 para 18.732 hab)"
         },
         {
             "condicao": "Diabetes Mellitus (DM)",

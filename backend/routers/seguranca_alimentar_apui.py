@@ -58,7 +58,7 @@ def _SISVAN():
 def _PROGRAMAS():
     return [
         {"programa": "Bolsa Família",         "cobertura_pct": 84.2, "meta_pct": 95.0, "status": "atencao",
-         "observacao": "15,8% dos elegíveis sem Bolsa Família — sem CPF, sem certidão, sem Cadastro Único atualizado (zona ribeirinha). CRAS: 1 unidade para 24.700 habitantes. Condicionalidades: 72,4% com acompanhamento de saúde em dia — 27,6% com pendência (consulta não realizada = suspensão do benefício = família sem renda)"},
+         "observacao": "15,8% dos elegíveis sem Bolsa Família — sem CPF, sem certidão, sem Cadastro Único atualizado (zona ribeirinha). CRAS: 1 unidade para 18.732 habitantes. Condicionalidades: 72,4% com acompanhamento de saúde em dia — 27,6% com pendência (consulta não realizada = suspensão do benefício = família sem renda)"},
         {"programa": "PNAE (Merenda Escolar)","cobertura_pct": 100.0,"meta_pct": 100.0,"status": "atencao",
          "observacao": "Cobertura total das 12 escolas. Agricultura familiar: 28,4% vs meta 30% (PNAE exige mínimo 30% de compra da AF). Merenda ribeirinha: transporte fluvial de alimentos precário — merenda chega com 14-21 dias de atraso após descarga em comunidade. Alimento perecível sem cadeia frio: desperdício estimado 18%"},
         {"programa": "SISVAN (monitoramento)","cobertura_pct": 48.4, "meta_pct": 80.0, "status": "critico",

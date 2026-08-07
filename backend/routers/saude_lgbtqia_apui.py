@@ -8,7 +8,7 @@ def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
         "populacao_total": 18732,  # IBGE Censo 2022,
-        "populacao_lgbtqia_estimada": 2470,
+        "populacao_lgbtqia_estimada": 1873,
         "populacao_lgbtqia_pct": 10.0,
         "acesso_saude_lgbtqia_pct": 28.4,
         "discriminacao_relato_pct": 62.4,

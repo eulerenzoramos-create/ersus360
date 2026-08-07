@@ -59,7 +59,7 @@ def _CONDICOES():
         {"condicao": "Infecção do trato urinário (ITU)",
          "internacoes_2025": 128, "custo_total": 980000, "evitageis_pct": 88.4,
          "status": "critico",
-         "observacao": "128 internações, 88,4% evitáveis. Custo: R$ 980k/ano. 84,4% são mulheres (ITU recorrente não tratada → pielonefrite → sepse urinária). Nitrofurantoína: disponível no REMUME. Problema: consulta de APS não disponível (4 ESFs para 24.700 hab = consulta em 18 dias de espera). Urocultura: UBS sem capacidade laboratorial (resultado em Manaus = 28 dias). Protocolo de tratamento empírico: médico prescreve sem urocultura prévia → < R$ 12 de medicamento vs R$ 9.287 de internação. Consulta telefônica de APS: reduziria 60% das internações por ITU"},
+         "observacao": "128 internações, 88,4% evitáveis. Custo: R$ 980k/ano. 84,4% são mulheres (ITU recorrente não tratada → pielonefrite → sepse urinária). Nitrofurantoína: disponível no REMUME. Problema: consulta de APS não disponível (4 ESFs para 18.732 hab = consulta em 18 dias de espera). Urocultura: UBS sem capacidade laboratorial (resultado em Manaus = 28 dias). Protocolo de tratamento empírico: médico prescreve sem urocultura prévia → < R$ 12 de medicamento vs R$ 9.287 de internação. Consulta telefônica de APS: reduziria 60% das internações por ITU"},
         {"condicao": "Diabetes mellitus descompensado",
          "internacoes_2025": 112, "custo_total": 1240000, "evitageis_pct": 84.4,
          "status": "critico",
