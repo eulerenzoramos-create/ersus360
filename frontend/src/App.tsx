@@ -639,269 +639,304 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
               </NavLink>
             </div>
 
-            {/* ── Principais ── */}
+            {/* ── Principal ── */}
             <SbSection label="Principal"/>
-            <L1 to="/"           label="Home"                   Icon={Home}         end/>
-            <L1 to="/score"      label="Score ERSUS 360"        Icon={Star}/>
-            {podeFin && <L1 to="/financeiro" label="Painel Financeiro"      Icon={DollarSign}/>}
-            <L1 to="/gestao"     label="Gestão APS"             Icon={Activity}/>
-            <L1 to="/siaps"      label="eGestor / SIAPS"        Icon={Globe}/>
-            {podeFin && <L1 to="/caf"        label="CAF — Cofinanciamento"  Icon={TrendingUp}/>}
-            <L1 to="/matriz-normativa-aps" label="Matriz Normativa APS"  Icon={BookOpen}/>
+            <L1 to="/"                       label="Home"                     Icon={Home}       end/>
+            <L1 to="/score"                  label="Score ERSUS 360"          Icon={Star}/>
+            {podeFin && <L1 to="/financeiro" label="Painel Financeiro"        Icon={DollarSign}/>}
+            <L1 to="/siaps"                  label="eGestor / SIAPS"          Icon={Globe}/>
+            {podeFin && <L1 to="/caf"        label="CAF — Cofinanciamento"    Icon={TrendingUp}/>}
+            <L1 to="/matriz-normativa-aps"   label="Matriz Normativa APS"     Icon={BookOpen}/>
+            <L1 to="/dashboard-executivo"    label="Dashboard Executivo 360"  Icon={Monitor}/>
+            <L1 to="/notificacoes"           label="Centro de Notificações"   Icon={Bell}/>
 
-            {/* ── APS ── */}
+            {/* ── Atenção Primária ── */}
             <SbSection label="Atenção Primária"/>
-            <L1 to="/previne"           label="Componente Qualidade"  Icon={Target}/>
-            <L1 to="/sprint-otimo"      label="Sprint ÓTIMO — Q2/2026" Icon={Trophy}/>
-            <L1 to="/analise-municipio" label="Análise Brasil 360"     Icon={Search}/>
-            <L1 to="/parametros-ms"     label="Parâmetros MS/Apuí"    Icon={BookOpen}/>
-            <L1 to="/fichas-tecnicas"   label="Fichas Técnicas APS"   Icon={FileText}/>
-            <L1 to="/producao-sisab"    label="Produção APS / SISAB"  Icon={BarChart2}/>
-            <L1 to="/relatorio-producao"label="Relatório Produção"     Icon={ClipboardList}/>
-            <L1 to="/monitoramento-rt-apui" label="Monitor Tempo Real" Icon={Activity} badge="AO VIVO"/>
-            <L1 to="/busca-ativa/gestante" label="Busca Ativa"         Icon={Search}/>
 
-            {/* ── Financeiro/Gestão ── */}
-            {podeFin && <SbSection label="Financeiro e Gestão"/>}
-            {podeFin && <L1 to="/contratos"       label="Contratos & Licitações" Icon={FileText}/>}
-            {podeFin && <L1 to="/ppa-loa"         label="PPA / LOA"              Icon={ClipboardList}/>}
-            {podeFin && <L1 to="/regulacao-mac"   label="Regulação MAC"          Icon={Network}/>}
-            {podeFin && <L1 to="/siops-completo"   label="SIOPS — Gestão Completa" Icon={Landmark}/>}
-            {podeFin && <L1 to="/siops-detalhado" label="SIOPS Detalhado"         Icon={Landmark}/>}
-            {podeFin && <L1 to="/siops-live"      label="SIOPS — Dados Oficiais"  Icon={Landmark}/>}
-            {podeFin && <L1 to="/siconfi"         label="SICONFI — Tesouro Nac."  Icon={Globe}/>}
-            {podeFin && <L1 to="/rreo-anexo12"    label="RREO Anexo 12 — LC 141"  Icon={ClipboardCheck}/>}
+            <Acc1 label="Componente Qualidade (P. 3.493)">
+              <L2 to="/previne"            label="Consolidado C/B/M"               Icon={PieChart}/>
+              <L2 to="/previne/grupoC"     label="Grupo C — eSF/eAP (7 ind.)"     Icon={Users}/>
+              <L2 to="/previne/grupoB"     label="Grupo B — eSB (6 ind.)"         Icon={Stethoscope}/>
+              <L2 to="/previne/grupoM"     label="Grupo M — eMulti (2 ind.)"      Icon={Activity}/>
+              <L2 to="/previne/ribeirinha" label="eRibeirinha — Indicadores"      Icon={Ship}/>
+              <L2 to="/sprint-otimo"       label="Sprint ÓTIMO — Q2/2026"         Icon={Star}/>
+            </Acc1>
 
-            {/* ── Vigilância ── */}
-            <SbSection label="Vigilância e Epidemiologia"/>
-            <L1 to="/sala-vacinas"      label="Sala de Vacinas"       Icon={Syringe}/>
-            <L1 to="/sim-sinasc"        label="SIM / SINASC"          Icon={BarChart2}/>
-            <L1 to="/cancer-rastreio"   label="Rastreio de Câncer"    Icon={Search}/>
-            <L1 to="/ccih"              label="CCIH"                  Icon={ShieldCheck}/>
-
-            {/* ── Assistência ── */}
-            <SbSection label="Assistência e Suporte"/>
-            <L1 to="/assist-farmaceutica" label="Assist. Farmacêutica"   Icon={FlaskRound}/>
-            <L1 to="/transporte-sanitario"label="Transporte / TFD"       Icon={Truck}/>
-            <L1 to="/atencao-domiciliar"  label="Atenção Domiciliar"     Icon={Home}/>
-            <L1 to="/manutencao"          label="Manutenção Equipam."    Icon={Wrench}/>
-            <L1 to="/frota"               label="Frota de Saúde"         Icon={Truck}/>
-
-            {/* ── Planejamento ── */}
-            <SbSection label="Planejamento e Gestão"/>
-            <L1 to="/plano-municipal-saude" label="Plano Municipal Saúde"  Icon={BookOpen}/>
-            <L1 to="/score-municipal"       label="Score / Diagnóstico"    Icon={Star}/>
-            <L1 to="/conselho-saude-apui"   label="Conselho de Saúde"     Icon={Users}/>
-            <L1 to="/ouvidoria-apui"        label="Ouvidoria Municipal"    Icon={MessageSquare}/>
-            <L1 to="/telessaude-apui"       label="TeleSaúde"             Icon={Monitor}/>
-            <L1 to="/absenteismo-apui"      label="Absenteísmo / RHS"     Icon={UserCog}/>
-
-            {/* ── Demais módulos ── */}
-            <SbSection label="Outros Módulos"/>
-            <L1 to="/sadt"              label="SADT"                     Icon={FlaskConical}/>
-            <L1 to="/pgrss"             label="PGRSS"                    Icon={Trash2}/>
-            <L1 to="/gestao-qualidade"  label="Gestão da Qualidade"      Icon={Star}/>
-            <L1 to="/cme"               label="CME"                      Icon={Thermometer}/>
-            <L1 to="/saude-servidor"    label="Saúde do Servidor"        Icon={UserCog}/>
-            <L1 to="/acolhimento"       label="Acolhimento / Classif."   Icon={Clock}/>
-            <L1 to="/samu"              label="SAMU 192"                 Icon={Radio}/>
-            <L1 to="/pnae"              label="Alimentação Escolar"      Icon={ShoppingBag}/>
-            <L1 to="/pat-saude"         label="Patrimônio de Saúde"      Icon={Wrench}/>
-            <L1 to="/visa-alimentos"    label="VISA Alimentos"           Icon={ShieldCheck}/>
-            <L1 to="/academia-saude"    label="Academia da Saúde"        Icon={Activity}/>
-            <L1 to="/atencao-especializada" label="Atenção Especializada" Icon={Stethoscope}/>
-            <L1 to="/regulacao-acesso-apui" label="Regulação e Acesso"   Icon={Network}/>
-            <L1 to="/gestao-leitos-apui"    label="Gestão de Leitos"     Icon={Building2}/>
-            <L1 to="/seguranca-paciente-apui" label="Segurança do Paciente" Icon={Shield}/>
-            <L1 to="/nutricao-sisvan-apui"  label="Nutrição / SISVAN"    Icon={ShoppingBag}/>
-            <L1 to="/regulacao-especializada-apui" label="Regulação Especializ." Icon={Globe}/>
-            <L1 to="/saude-lgbtqia-apui"    label="Saúde LGBTQIA+"       Icon={Smile}/>
-            <L1 to="/saude-escolar-pse-apui" label="Saúde Escolar / PSE" Icon={School}/>
-            <L1 to="/pics-apui"             label="PICS"                  Icon={Sparkles}/>
-            <L1 to="/ranking"               label="Ranking"               Icon={BarChart2}/>
-            <L1 to="/mapa"                  label="Mapa de Desempenho"   Icon={Map}/>
-
-            {/* ── Saúde Brasil 360 ── */}
             <Acc1 label="Saúde Brasil 360">
               <Acc2 label="Vínculo e Acompanhamento">
-                <L3 to="/sb360/consolidado-territorial"   label="Consolidado Acompanhamento Territorial" Icon={PieChart}/>
-                <L3 to="/sb360/acompanhamento-territorial" label="Acompanhamento Territorial"           Icon={MapPin}/>
+                <L3 to="/sb360/consolidado-territorial"    label="Consolidado Territorial"     Icon={PieChart}/>
+                <L3 to="/sb360/acompanhamento-territorial" label="Acompanhamento Territorial"  Icon={MapPin}/>
               </Acc2>
               <Acc2 label="Qualidade e Desempenho">
                 <Acc2 label="Equipes de Atenção Primária">
-                  <L3 to="/sb360/mais-acesso-aps"              label="Mais Acesso à APS"                    Icon={Heart}/>
-                  <L3 to="/sb360/desenvolvimento-infantil"     label="Cuidado no Desenvolvimento Infantil"  Icon={Baby}/>
-                  <L3 to="/sb360/gestante-puerpera"            label="Cuidado da Gestante e Puérpera"       Icon={Baby}/>
-                  <L3 to="/sb360/pessoa-diabetes"              label="Cuidado da Pessoa com Diabetes"       Icon={FlaskConical}/>
-                  <L3 to="/sb360/pessoa-hipertensao"           label="Cuidado da Pessoa com Hipertensão"    Icon={Activity}/>
-                  <L3 to="/sb360/pessoa-idosa"                 label="Cuidado da Pessoa Idosa"              Icon={UserCheck}/>
-                  <L3 to="/sb360/mulher-cancer"                label="Cuidado da Mulher — Prevenção Câncer" Icon={ShieldCheck}/>
+                  <L3 to="/sb360/mais-acesso-aps"          label="Mais Acesso à APS"           Icon={Heart}/>
+                  <L3 to="/sb360/desenvolvimento-infantil" label="Desenvolvimento Infantil"     Icon={Baby}/>
+                  <L3 to="/sb360/gestante-puerpera"        label="Gestante e Puérpera"         Icon={Baby}/>
+                  <L3 to="/sb360/pessoa-diabetes"          label="Pessoa com Diabetes"         Icon={FlaskConical}/>
+                  <L3 to="/sb360/pessoa-hipertensao"       label="Pessoa com Hipertensão"      Icon={Activity}/>
+                  <L3 to="/sb360/pessoa-idosa"             label="Pessoa Idosa"                Icon={UserCheck}/>
+                  <L3 to="/sb360/mulher-cancer"            label="Mulher — Prevenção Câncer"   Icon={ShieldCheck}/>
                 </Acc2>
-                <L3 to="/sb360/equipes-multiprofissionais"   label="Equipes Multiprofissionais"            Icon={Users}/>
+                <L3 to="/sb360/equipes-multiprofissionais" label="Equipes Multiprofissionais"  Icon={Users}/>
               </Acc2>
             </Acc1>
 
-            {/* ── Componente Qualidade (Portaria 3.493/2024) ── */}
-            <Acc1 label="Componente Qualidade">
-              <L2 to="/previne"            label="Consolidado C/B/M"                    Icon={PieChart}/>
-              <L2 to="/previne/grupoC"     label="Grupo C — eSF/eAP (7 ind.)"          Icon={Users}/>
-              <L2 to="/previne/grupoB"     label="Grupo B — eSB (6 ind.)"              Icon={Stethoscope}/>
-              <L2 to="/previne/grupoM"     label="Grupo M — eMulti (2 ind.)"           Icon={Activity}/>
-              <L2 to="/previne/ribeirinha" label="eRibeirinha — Indicadores"           Icon={Ship}/>
-              <L2 to="/sprint-otimo"       label="Sprint ÓTIMO — Q2/2026"              Icon={Star}/>
+            <Acc1 label="Produção e Monitoramento">
+              <L2 to="/producao-sisab"         label="Produção APS · SISAB"     Icon={BarChart2}/>
+              <L2 to="/relatorio-producao"     label="Relatório de Produção"    Icon={FileText}/>
+              <L2 to="/parametros-ms"          label="Parâmetros MS"            Icon={BookOpen}/>
+              <L2 to="/fichas-tecnicas"        label="Fichas Técnicas"          Icon={Clipboard}/>
+              <L2 to="/analise-municipio"      label="Análise Brasil 360"       Icon={PieChart}/>
+              <L2 to="/monitoramento-rt-apui"  label="Monitor Tempo Real"       Icon={Activity}/>
+              <L2 to="/ranking"                label="Ranking Municipal"        Icon={BarChart2}/>
+              <L2 to="/mapa"                   label="Mapa de Desempenho"       Icon={Map}/>
+              <L2 to="/idsus-municipal"         label="IDSUS Municipal"         Icon={Award}/>
+              <L2 to="/score-municipal"         label="Score Municipal"         Icon={Star}/>
             </Acc1>
 
-            {/* ── Painel de Gestão ── */}
-            <Acc1 label="Painel de Gestão">
-              <L2 to="/gestao"                  label="Consolidado"               Icon={PieChart}/>
-              <L2 to="/gestao/atend"            label="Atendimentos"              Icon={UserCheck}/>
-              <L2 to="/gestao/atend-odonto"     label="Atendimentos Odontológicos" Icon={Stethoscope}/>
-              <L2 to="/gestao/atividades"       label="Atividades Coletivas"      Icon={Users}/>
-              <L2 to="/gestao/procedimentos"    label="Consolidado Procedimentos" Icon={Clipboard}/>
-              <L2 to="/gestao/encaminhamentos"  label="Encaminhamentos"           Icon={ArrowLeftRight}/>
-              <L2 to="/gestao/procedimentos2"   label="Procedimentos"             Icon={ClipboardList}/>
-              <L2 to="/gestao/vacinas"          label="Vacinas"                   Icon={Syringe}/>
-              <L2 to="/gestao/visitas"          label="Visitas Domiciliares"      Icon={Home}/>
+            <Acc1 label="Painel de Gestão APS">
+              <L2 to="/gestao"                 label="Consolidado"                Icon={PieChart}/>
+              <L2 to="/gestao/atend"           label="Atendimentos"               Icon={UserCheck}/>
+              <L2 to="/gestao/atend-odonto"    label="Atendimentos Odontológicos" Icon={Stethoscope}/>
+              <L2 to="/gestao/atividades"      label="Atividades Coletivas"       Icon={Users}/>
+              <L2 to="/gestao/procedimentos"   label="Consolidado Procedimentos"  Icon={Clipboard}/>
+              <L2 to="/gestao/encaminhamentos" label="Encaminhamentos"            Icon={ArrowLeftRight}/>
+              <L2 to="/gestao/procedimentos2"  label="Procedimentos"              Icon={ClipboardList}/>
+              <L2 to="/gestao/vacinas"         label="Vacinas"                    Icon={Syringe}/>
+              <L2 to="/gestao/visitas"         label="Visitas Domiciliares"       Icon={Home}/>
             </Acc1>
 
-            {/* ── Busca Ativa ── */}
             <Acc1 label="Busca Ativa">
-              <L2 to="/busca-ativa"           label="Painel Geral"    Icon={Search}/>
-              <L2 to="/busca-ativa/gestante"  label="Gestante"        Icon={Baby}/>
-              <L2 to="/busca-ativa/vacinas"   label="Vacinas"         Icon={Syringe}/>
-              <L2 to="/busca-ativa/cito"      label="Citopatológico"  Icon={Activity}/>
+              <L2 to="/busca-ativa"          label="Painel Geral"      Icon={Search}/>
+              <L2 to="/busca-ativa/gestante" label="Gestante"          Icon={Baby}/>
+              <L2 to="/busca-ativa/vacinas"  label="Vacinas"           Icon={Syringe}/>
+              <L2 to="/busca-ativa/cito"     label="Citopatológico"    Icon={Activity}/>
+              <L2 to="/busca-ativa-ia"       label="Busca Ativa · IA"  Icon={Brain}/>
             </Acc1>
 
-            {/* ── ACS ── */}
             <Acc1 label="ACS">
-              <L2 to="/acs/painel"             label="Painel do ACS"                    Icon={BarChart3}/>
-              <L2 to="/acs/cadastros-ind"      label="Cadastros Individuais"            Icon={UserCheck}/>
-              <L2 to="/acs/cadastros-dom"      label="Cadastros Domiciliares"           Icon={Home}/>
-              <L2 to="/acs/cadastros-cid"      label="Cadastros do Cidadão"             Icon={Users}/>
-              <L2 to="/acs/calendario"         label="Calendário de Visitas"            Icon={Calendar}/>
-              <L2 to="/acs/visitas-cidadao"    label="Visitas Domiciliares Cidadão"     Icon={MapPin}/>
-              <L2 to="/acs/mapa-visitas"       label="Mapa de Visitas Domiciliares"     Icon={Map}/>
-              <L2 to="/acs/registrar-visita"   label="Registrar Visita"                 Icon={ClipboardCheck}/>
+              <L2 to="/acs/painel"           label="Painel do ACS"          Icon={BarChart3}/>
+              <L2 to="/acs/cadastros-ind"    label="Cadastros Individuais"  Icon={UserCheck}/>
+              <L2 to="/acs/cadastros-dom"    label="Cadastros Domiciliares" Icon={Home}/>
+              <L2 to="/acs/cadastros-cid"    label="Cadastros do Cidadão"   Icon={Users}/>
+              <L2 to="/acs/calendario"       label="Calendário de Visitas"  Icon={Calendar}/>
+              <L2 to="/acs/visitas-cidadao"  label="Visitas Domiciliares"   Icon={MapPin}/>
+              <L2 to="/acs/mapa-visitas"     label="Mapa de Visitas"        Icon={Map}/>
+              <L2 to="/acs/registrar-visita" label="Registrar Visita"       Icon={ClipboardCheck}/>
             </Acc1>
 
-            {/* ── Inconsistências ── */}
             <Acc1 label="Inconsistências">
-              <L2 to="/inconsistencias/sem-responsavel"  label="Sem Responsável Informado"     Icon={UserCheck}/>
-              <L2 to="/inconsistencias/sem-documentos"   label="Sem Documentos"                Icon={FileText}/>
-              <L2 to="/inconsistencias/duplicados"       label="Cadastros Ind. Duplicados"     Icon={Clipboard}/>
-              <L2 to="/inconsistencias/domicilio-atual"  label="Cadastros Em Domicílio Atual"  Icon={Home}/>
-              <L2 to="/inconsistencias/cbo"              label="Cadastros Com CBO Divergente"  Icon={AlertTriangle}/>
-              <L2 to="/inconsistencias/prontuarios"      label="Prontuários Duplicados"        Icon={BookOpen}/>
+              <L2 to="/inconsistencias/sem-responsavel" label="Sem Responsável Informado"    Icon={UserCheck}/>
+              <L2 to="/inconsistencias/sem-documentos"  label="Sem Documentos"               Icon={FileText}/>
+              <L2 to="/inconsistencias/duplicados"      label="Cadastros Ind. Duplicados"    Icon={Clipboard}/>
+              <L2 to="/inconsistencias/domicilio-atual" label="Cadastros Em Domicílio Atual" Icon={Home}/>
+              <L2 to="/inconsistencias/cbo"             label="Cadastros Com CBO Divergente" Icon={AlertTriangle}/>
+              <L2 to="/inconsistencias/prontuarios"     label="Prontuários Duplicados"       Icon={BookOpen}/>
             </Acc1>
 
-            {/* ── POEPS ── */}
             <Acc1 label="POEPS">
-              <L2 to="/poeps/ind1"  label="Ind. 1 — Atividade Física"                    Icon={Activity}/>
-              <L2 to="/poeps/ind2"  label="Ind. 2 — Educação em Saúde"                   Icon={BookOpen}/>
-              <L2 to="/poeps/ind3"  label="Ind. 3 — Vigilância Alimentar e Nutricional"  Icon={ShieldCheck}/>
-              <L2 to="/poeps/ind5"  label="Ind. 5 — Vigilância Alimentar e Nutricional"  Icon={Shield}/>
-              <L2 to="/poeps/ind6"  label="Ind. 6 — Política de Equidade"                Icon={Star}/>
-              <L2 to="/poeps/ind7"  label="Ind. 7 — Política de Equidade"                Icon={Target}/>
-              <L2 to="/poeps/ind8"  label="Ind. 8 — Práticas Integrativas"               Icon={Heart}/>
+              <L2 to="/poeps/ind1" label="Ind. 1 — Atividade Física"                   Icon={Activity}/>
+              <L2 to="/poeps/ind2" label="Ind. 2 — Educação em Saúde"                  Icon={BookOpen}/>
+              <L2 to="/poeps/ind3" label="Ind. 3 — Vigilância Alimentar e Nutricional" Icon={ShieldCheck}/>
+              <L2 to="/poeps/ind5" label="Ind. 5 — Vigilância Alimentar e Nutricional" Icon={Shield}/>
+              <L2 to="/poeps/ind6" label="Ind. 6 — Política de Equidade"               Icon={Star}/>
+              <L2 to="/poeps/ind7" label="Ind. 7 — Política de Equidade"               Icon={Target}/>
+              <L2 to="/poeps/ind8" label="Ind. 8 — Práticas Integrativas"              Icon={Heart}/>
             </Acc1>
 
-            {/* ── Programa Saúde na Escola ── */}
-            <Acc1 label="Programa Saúde na Escola">
-              <L2 to="/pse/consolidado" label="Consolidado"  Icon={PieChart}/>
-              <L2 to="/pse/ind1"        label="Indicador 1"  Icon={BookOpen}/>
-              <L2 to="/pse/ind2"        label="Indicador 2"  Icon={BookOpen}/>
+            <Acc1 label="Saúde na Escola (PSE)">
+              <L2 to="/pse/consolidado"        label="Consolidado"          Icon={PieChart}/>
+              <L2 to="/pse/ind1"               label="Indicador 1"          Icon={BookOpen}/>
+              <L2 to="/pse/ind2"               label="Indicador 2"          Icon={BookOpen}/>
+              <L2 to="/saude-escolar-pse-apui" label="Saúde Escolar Apuí"  Icon={School}/>
             </Acc1>
 
-            {/* ── FNS / Convênios ── */}
+            <L1 to="/acolhimento"        label="Acolhimento / Classif."  Icon={Clock}/>
+            <L1 to="/academia-saude"     label="Academia da Saúde"       Icon={Activity}/>
+            <L1 to="/pics-apui"          label="PICS"                    Icon={Sparkles}/>
+            <L1 to="/previsao-previne"   label="Previsão ML · Previne"   Icon={Brain}/>
+            <L1 to="/simulador-cenarios" label="Simulador de Cenários"   Icon={Calculator}/>
+
+            {/* ── Financeiro e Gestão Fiscal ── */}
+            <SbSection label="Financeiro e Gestão Fiscal"/>
             {podeFin && (
-            <Acc1 label="FNS / Convênios">
-              <Acc2 label="Transferências Fundo a Fundo">
-                <L3 to="/fns"       label="Consolidado de Convênios"    Icon={Clipboard}/>
-                <L3 to="/repasses"  label="Cronograma de Repasses"      Icon={Calendar}/>
-                <L3 to="/portarias" label="Portarias FNS"               Icon={FileText}/>
-              </Acc2>
-              <Acc2 label="Execução Financeira">
-                <L3 to="/execucao"  label="Execução por Bloco"          Icon={DollarSign}/>
-                <L3 to="/siops"     label="SIOPS / Mínimo Const."       Icon={Target}/>
-                <L3 to="/emendas"   label="Emendas Parlamentares"       Icon={Landmark}/>
-              </Acc2>
-            </Acc1>
+            <>
+              <Acc1 label="FNS / Convênios">
+                <Acc2 label="Transferências Fundo a Fundo">
+                  <L3 to="/fns"                label="Consolidado de Convênios"  Icon={Clipboard}/>
+                  <L3 to="/repasses"           label="Cronograma de Repasses"   Icon={Calendar}/>
+                  <L3 to="/cronograma-repasses" label="Repasses FNS"            Icon={Calendar}/>
+                  <L3 to="/portarias"          label="Portarias FNS"            Icon={FileText}/>
+                </Acc2>
+                <Acc2 label="Execução Financeira">
+                  <L3 to="/execucao" label="Execução por Bloco"       Icon={DollarSign}/>
+                  <L3 to="/emendas"  label="Emendas Parlamentares"    Icon={Landmark}/>
+                </Acc2>
+              </Acc1>
+
+              <Acc1 label="SIOPS">
+                <L2 to="/siops"           label="SIOPS / Mínimo Const." Icon={Target}/>
+                <L2 to="/siops-completo"  label="SIOPS Completo"        Icon={PieChart}/>
+                <L2 to="/siops-detalhado" label="SIOPS Detalhado"       Icon={FileText}/>
+                <L2 to="/siops-live"      label="SIOPS Live"            Icon={Activity}/>
+              </Acc1>
+
+              <L1 to="/siconfi"              label="SICONFI"                 Icon={Building2}/>
+              <L1 to="/rreo-anexo12"         label="RREO Anexo 12"           Icon={FileText}/>
+              <L1 to="/ppa-loa"              label="PPA / LOA"               Icon={ClipboardList}/>
+              <L1 to="/regulacao-mac"        label="Regulação MAC"           Icon={ArrowLeftRight}/>
+              <L1 to="/contratos"            label="Contratos & Licitações"  Icon={FileText}/>
+              <L1 to="/relatorio-tce-tcu"    label="Relatórios TCE / TCU"   Icon={Shield}/>
+              <L1 to="/painel-transparencia" label="Transparência LAI"       Icon={Globe}/>
+            </>
             )}
 
-            {/* ── Módulos Operacionais ── */}
-            <Acc1 label="Módulos Operacionais">
-              <L2 to="/farmacia"    label="Assistência Farmacêutica" Icon={Pill}/>
-              <L2 to="/aps"         label="Atenção Primária (APS)"   Icon={Heart}/>
-              <L2 to="/vigilancia"    label="Vigilância em Saúde"       Icon={ShieldCheck}/>
-              <L2 to="/epidemiologia" label="Epidemiologia / SINAN"    Icon={Activity}/>
-              <L2 to="/planejamento" label="Planejamento em Saúde"   Icon={ClipboardList}/>
-              <L2 to="/rdqa"         label="RDQA — Relatório Quad."  Icon={Calendar}/>
-              <L2 to="/obras"       label="Obras e Infraestrutura"   Icon={Building2}/>
-              <L2 to="/regulacao"   label="Regulação SUS"            Icon={ArrowLeftRight}/>
-              <L2 to="/alertas"     label="Central de Alertas"       Icon={AlertTriangle}/>
-              <L2 to="/relatorios"  label="Relatórios"               Icon={FileText}/>
+            {/* ── Vigilância e Epidemiologia ── */}
+            <SbSection label="Vigilância e Epidemiologia"/>
+            <L1 to="/sala-vacinas"           label="Sala de Vacinas"         Icon={Syringe}/>
+            <L1 to="/vacinacao"              label="Painel de Vacinação"     Icon={Syringe}/>
+            <L1 to="/epidemiologia"          label="Epidemiologia / SINAN"   Icon={Activity}/>
+            <L1 to="/ist-hiv"                label="IST / HIV / Hepatites"   Icon={ShieldCheck}/>
+            <L1 to="/sim-sinasc"             label="SIM / SINASC"            Icon={FileText}/>
+            <L1 to="/sisvan"                 label="SISVAN / Nutrição"       Icon={ShoppingBag}/>
+            <L1 to="/malaria"                label="Malária"                 Icon={Bug}/>
+            <L1 to="/monitor-epidemiologico" label="Monitor Epidemiológico"  Icon={Activity}/>
+            <L1 to="/cancer-rastreio"        label="Rastreio de Câncer"      Icon={Activity}/>
+            <L1 to="/ccih"                   label="CCIH / Infecções"        Icon={Shield}/>
+            <L1 to="/vigiagua"               label="VigiÁgua"                Icon={Droplets}/>
+            <Acc1 label="VISA / Vigilância Sanitária">
+              <L2 to="/visa"               label="VISA Municipal"        Icon={Shield}/>
+              <L2 to="/visa-alimentos"     label="VISA Alimentos"        Icon={ShieldCheck}/>
+              <L2 to="/visa-municipal"     label="VISA Painel"           Icon={Building2}/>
+              <L2 to="/visa-municipal-apui" label="VISA Municipal Apuí" Icon={MapPin}/>
             </Acc1>
+            <L1 to="/vetores"                label="Controle de Vetores"     Icon={Bug}/>
+            <L1 to="/zoonoses"               label="Zoonoses"                Icon={Bug}/>
 
-            {/* ── Digital / IA ── */}
+            {/* ── Saúde Específica ── */}
+            <SbSection label="Saúde Específica"/>
+            <Acc1 label="Saúde da Mulher">
+              <L2 to="/saude-mulher"          label="Saúde da Mulher"        Icon={Heart}/>
+              <L2 to="/rede-cegonha"          label="Rede Cegonha"           Icon={Baby}/>
+              <L2 to="/planejamento-familiar"  label="Planejamento Familiar" Icon={Users}/>
+              <L2 to="/materno-infantil-apui"  label="Materno Infantil Apuí" Icon={Baby}/>
+            </Acc1>
+            <Acc1 label="Saúde da Criança">
+              <L2 to="/saude-crianca"     label="Saúde da Criança"     Icon={Baby}/>
+              <L2 to="/triagem-neonatal"  label="Triagem Neonatal"     Icon={Baby}/>
+              <L2 to="/saude-adolescente" label="Saúde do Adolescente" Icon={Users}/>
+            </Acc1>
+            <Acc1 label="Saúde Mental">
+              <L2 to="/saude-mental"      label="Saúde Mental"      Icon={HeartPulse}/>
+              <L2 to="/raps"              label="RAPS"              Icon={Network}/>
+              <L2 to="/caps-ad"           label="CAPS AD"           Icon={Activity}/>
+              <L2 to="/saude-mental-caps" label="Saúde Mental CAPS" Icon={Building2}/>
+            </Acc1>
+            <L1 to="/saude-idoso"          label="Saúde do Idoso"          Icon={UserCheck}/>
+            <L1 to="/saude-bucal"          label="Saúde Bucal · CEO"       Icon={Stethoscope}/>
+            <L1 to="/saude-homem"          label="Saúde do Homem"          Icon={UserCheck}/>
+            <L1 to="/saude-trabalhador"    label="Saúde do Trabalhador"    Icon={Wrench}/>
+            <L1 to="/saude-lgbtqia-apui"   label="Saúde LGBTQIA+"          Icon={Smile}/>
+            <L1 to="/hiperdia"             label="HiperDia"                Icon={Activity}/>
+            <L1 to="/tb-hanseniase"        label="TB / Hanseníase"         Icon={ShieldCheck}/>
+            <L1 to="/leishmaniose"         label="Leishmaniose"            Icon={Bug}/>
+            <L1 to="/arboviroses"          label="Arboviroses / Dengue"    Icon={Bug}/>
+
+            {/* ── Atenção Especializada ── */}
+            <SbSection label="Atenção Especializada"/>
+            <L1 to="/atencao-especializada"   label="Atenção Especializada"  Icon={Stethoscope}/>
+            <L1 to="/urgencia-emergencia"     label="Urgência / Emergência"  Icon={Activity}/>
+            <L1 to="/samu"                    label="SAMU 192"               Icon={Radio}/>
+            <L1 to="/atencao-domiciliar"      label="Atenção Domiciliar"     Icon={Home}/>
+            <L1 to="/regulacao-acesso-apui"   label="Regulação e Acesso"     Icon={Network}/>
+            <L1 to="/gestao-leitos-apui"      label="Gestão de Leitos"       Icon={Building2}/>
+            <L1 to="/seguranca-paciente-apui" label="Segurança do Paciente"  Icon={Shield}/>
+            <L1 to="/telessaude-apui"         label="TeleSaúde"              Icon={Monitor}/>
+            <L1 to="/reabilitacao"            label="Reabilitação"           Icon={Activity}/>
+            <L1 to="/sadt"                    label="SADT"                   Icon={FlaskConical}/>
+            <L1 to="/hemoterapia"             label="Hemoterapia"            Icon={Droplets}/>
+            <L1 to="/nutricao-sisvan-apui"    label="Nutrição / SISVAN"      Icon={ShoppingBag}/>
+            <L1 to="/regulacao-especializada-apui" label="Regulação Especializ." Icon={Globe}/>
+
+            {/* ── Assistência Farmacêutica ── */}
+            <SbSection label="Assistência Farmacêutica"/>
+            <L1 to="/farmacia-basica-apui"   label="Farmácia Básica Apuí"    Icon={Pill}/>
+            <L1 to="/farmacia"               label="Assistência Farmacêutica" Icon={Pill}/>
+            <L1 to="/farmacia-especializada" label="Farmácia Especializada"   Icon={Pill}/>
+            <L1 to="/farmacovigilancia"      label="Farmacovigilância"        Icon={ShieldCheck}/>
+            <L1 to="/almoxarifado"           label="Almoxarifado"             Icon={Package}/>
+            <L1 to="/pnae"                   label="Alimentação Escolar"      Icon={ShoppingBag}/>
+
+            {/* ── Planejamento e Gestão ── */}
+            <SbSection label="Planejamento e Gestão"/>
+            <L1 to="/plano-municipal-saude"  label="Plano Municipal de Saúde" Icon={ClipboardList}/>
+            <L1 to="/planejamento"           label="Planejamento em Saúde"    Icon={ClipboardList}/>
+            <L1 to="/rdqa"                   label="RDQA — Relatório Quad."   Icon={Calendar}/>
+            <L1 to="/okr"                    label="OKRs Estratégicos"        Icon={Target}/>
+            <L1 to="/plano-acao"             label="Plano de Ação"            Icon={ClipboardList}/>
+            <L1 to="/gestao-contratos"       label="Gestão de Contratos"      Icon={DollarSign}/>
+            <L1 to="/absenteismo-apui"       label="Absenteísmo / RHS"        Icon={UserCog}/>
+            <L1 to="/conselho-saude-apui"    label="Conselho de Saúde"        Icon={Users}/>
+            <L1 to="/conselho-saude"         label="Conselho Municipal Saúde" Icon={Users}/>
+            <L1 to="/ouvidoria-apui"         label="Ouvidoria Municipal"      Icon={MessageSquare}/>
+            <L1 to="/relatorio-gestao"       label="Relatório de Gestão"      Icon={FileText}/>
+            <L1 to="/exportador-relatorios"  label="Exportador de Relatórios" Icon={Download}/>
+
+            {/* ── Digital e Inteligência ── */}
             <SbSection label="Digital e Inteligência"/>
-            <L1 to="/informatiza-aps" label="Informatiza APS"        Icon={Network}/>
-            <L1 to="/sus360"          label="SUS 360° — MS"          Icon={Monitor}/>
-            <L1 to="/ia"              label="IA Gestora"              Icon={Bot}/>
-            <L1 to="/bi"              label="Business Intelligence"   Icon={TrendingUp}/>
+            <L1 to="/informatiza-aps"     label="Informatiza APS"          Icon={Network}/>
+            <L1 to="/sus360"              label="SUS 360° — MS"            Icon={Monitor}/>
+            <L1 to="/ia"                  label="IA Gestora"               Icon={Bot}/>
+            <L1 to="/bi"                  label="Business Intelligence"    Icon={TrendingUp}/>
+            <L1 to="/linha-tempo-cidadao" label="Linha do Tempo Cidadão"   Icon={Clock}/>
+            <L1 to="/mapa-sanitario"      label="Mapa Sanitário"           Icon={MapPin}/>
+            {podeAud && <L1 to="/gateway-rnds"    label="Gateway RNDS · FHIR R4"   Icon={Network}/>}
+            {podeAud && <L1 to="/integracao-pec"  label="Integração PEC e-SUS APS" Icon={Plug}/>}
 
             {/* ── Operacional ── */}
             <SbSection label="Operacional"/>
-            <L1 to="/agenda"           label="Agenda de Gestão"      Icon={Calendar}/>
-            <L1 to="/conformidade"     label="Conformidade Legal"     Icon={Shield}/>
-            <L1 to="/alertas/historico"label="Histórico de Alertas"  Icon={Bell}/>
-            <L1 to="/ocis"             label="OCIS — Operações"      Icon={Radio}/>
-            <L1 to="/patrimonio"       label="Patrimônio e Frota"    Icon={Truck}/>
-            <L1 to="/portal-gestor"    label="Painel do Prefeito"    Icon={Star}/>
-            <L1 to="/portal-cidadao"   label="Portal do Cidadão"     Icon={Globe}/>
-            <L1 to="/marketplace"      label="Marketplace & Academia" Icon={ShoppingBag}/>
+            <L1 to="/agenda"              label="Agenda de Gestão"       Icon={Calendar}/>
+            <L1 to="/conformidade"        label="Conformidade Legal"     Icon={Shield}/>
+            <L1 to="/alertas/historico"   label="Histórico de Alertas"   Icon={Bell}/>
+            <L1 to="/ocis"                label="OCIS — Operações"       Icon={Radio}/>
+            <L1 to="/patrimonio"          label="Patrimônio e Frota"     Icon={Truck}/>
+            <L1 to="/gestao-equipamentos" label="Gestão de Equipamentos" Icon={Wrench}/>
+            <L1 to="/manutencao"          label="Manutenção"             Icon={Wrench}/>
+            <L1 to="/portal-gestor"       label="Painel do Prefeito"     Icon={Star}/>
+            <L1 to="/portal-cidadao"      label="Portal do Cidadão"      Icon={Globe}/>
+            <L1 to="/marketplace"         label="Marketplace & Academia" Icon={ShoppingBag}/>
+            <L1 to="/saude-servidor"      label="Saúde do Servidor"      Icon={UserCog}/>
+            <L1 to="/pat-saude"           label="Patrimônio de Saúde"    Icon={Wrench}/>
+            <L1 to="/gestao-qualidade"    label="Gestão da Qualidade"    Icon={Star}/>
+            <L1 to="/cme"                 label="CME"                    Icon={Thermometer}/>
+            <L1 to="/pgrss"               label="PGRSS"                  Icon={Trash2}/>
+            <L1 to="/central-regulacao"   label="Central de Regulação"   Icon={ArrowLeftRight}/>
+            <L1 to="/obras"               label="Obras e Infraestrutura" Icon={Building2}/>
+            <L1 to="/regulacao"           label="Regulação SUS"          Icon={ArrowLeftRight}/>
+            <L1 to="/alertas"             label="Central de Alertas"     Icon={AlertTriangle}/>
+            <L1 to="/relatorios"          label="Relatórios"             Icon={FileText}/>
 
             {/* ── Administração ── */}
             <SbSection label="Administração"/>
-            {podeRH  && <L1 to="/folha-pagamento" label="Folha de Pagamento"  Icon={DollarSign}/>}
-            {podeRH  && <L1 to="/rh"         label="Recursos Humanos"     Icon={UserCog}/>}
-            {podeRH  && <L1 to="/cadastros"  label="Cadastros Mestres"    Icon={Layers}/>}
-            {podeUsr && <L1 to="/usuarios"   label="Gestão de Usuários"   Icon={Users}/>}
-            {podeAud && <L1 to="/auditoria"           label="Auditoria do Sistema"   Icon={Shield}/>}
-            {podeAud && <L1 to="/central-auditoria"   label="Central de Auditoria APS" Icon={ShieldCheck}/>}
-            {podeAud && <L1 to="/gap-analysis-aps"    label="Gap Analysis · Integrações" Icon={GitBranch}/>}
-            {podeAud && <L1 to="/integracao-pec"      label="Integração PEC e-SUS APS" Icon={Plug}/>}
-            {podeAud && <L1 to="/plano-acao"          label="Plano de Ação"          Icon={ClipboardList}/>}
-            {podeAud && <L1 to="/trilha-auditoria"    label="Trilha de Auditoria"    Icon={GitBranch}/>}
-            {podeAud && <L1 to="/monitor-lotes-siaps" label="Monitor Lotes SIAPS"    Icon={Package}/>}
-            {podeAud && <L1 to="/conformidade-scnes"  label="Conformidade SCNES"     Icon={Building2}/>}
-            {podeAud && <L1 to="/qualidade-cadsus"    label="Qualidade CADSUS"       Icon={UserCheck}/>}
-            {podeAud && <L1 to="/gateway-rnds"        label="Gateway RNDS · FHIR R4" Icon={Network}/>}
-            <L1 to="/linha-tempo-cidadao"             label="Linha do Tempo Cidadão" Icon={Clock}/>
-            {podeFin && <L1 to="/relatorio-tce-tcu"   label="Relatórios TCE / TCU"   Icon={Shield}/>}
-            <L1 to="/previsao-previne"        label="Previsão ML · Previne"     Icon={Brain}/>
-            <L1 to="/simulador-cenarios"      label="Simulador de Cenários"     Icon={Calculator}/>
-            {podeAud && <L1 to="/score-risco-esf"     label="Score de Risco ESF"        Icon={ShieldAlert}/>}
-            {podeAud && <L1 to="/auditoria-automatica" label="Auditoria Automática"      Icon={ClipboardCheck}/>}
-            <L1 to="/okr"                       label="OKRs Estratégicos"           Icon={Target}/>
-            <L1 to="/central-regulacao"         label="Central de Regulação"        Icon={ArrowLeftRight}/>
-            <L1 to="/monitor-epidemiologico"    label="Monitor Epidemiológico"      Icon={Activity}/>
-            {podeAud && <L1 to="/relatorio-ras"  label="Relatório RAS"              Icon={Network}/>}
-            <L1 to="/cronograma-repasses"       label="Repasses FNS"               Icon={Calendar}/>
-            <L1 to="/busca-ativa-ia"            label="Busca Ativa · IA"           Icon={Brain}/>
-            <L1 to="/gestao-equipamentos"       label="Gestão de Equipamentos"     Icon={Wrench}/>
-            <L1 to="/painel-transparencia"      label="Transparência LAI"          Icon={Globe}/>
-            <L1 to="/vacinacao"                 label="Painel de Vacinação"        Icon={Syringe}/>
-            <L1 to="/almoxarifado"              label="Almoxarifado"               Icon={Package}/>
-            <L1 to="/relatorio-gestao"          label="Relatório de Gestão"        Icon={FileText}/>
-            <L1 to="/mapa-sanitario"            label="Mapa Sanitário"             Icon={MapPin}/>
-            <L1 to="/gestao-contratos"          label="Gestão de Contratos"        Icon={DollarSign}/>
-            <L1 to="/conselho-saude"            label="Conselho Municipal Saúde"   Icon={Users}/>
-            <L1 to="/saude-bucal"               label="Saúde Bucal · CEO"          Icon={Stethoscope}/>
-            <L1 to="/producao-aps"              label="Produção APS · SISAB"       Icon={BarChart2}/>
-            <L1 to="/dashboard-executivo"       label="Dashboard Executivo 360"    Icon={Activity}/>
-            <L1 to="/notificacoes"              label="Centro de Notificações"     Icon={Bell}/>
-            <L1 to="/exportador-relatorios"     label="Exportador de Relatórios"   Icon={Download}/>
-            <L1 to="/idsus-municipal"           label="IDSUS Municipal"            Icon={Award}/>
+            {podeRH  && <L1 to="/folha-pagamento" label="Folha de Pagamento" Icon={DollarSign}/>}
+            {podeRH  && <L1 to="/rh"              label="Recursos Humanos"   Icon={UserCog}/>}
+            {podeRH  && <L1 to="/cadastros"       label="Cadastros Mestres"  Icon={Layers}/>}
+            {podeUsr && <L1 to="/usuarios"        label="Gestão de Usuários" Icon={Users}/>}
+            {podeAud && (
+            <Acc1 label="Auditoria e Controle">
+              <L2 to="/auditoria"            label="Auditoria do Sistema"       Icon={Shield}/>
+              <L2 to="/central-auditoria"    label="Central de Auditoria APS"   Icon={ShieldCheck}/>
+              <L2 to="/auditoria-automatica" label="Auditoria Automática"       Icon={ClipboardCheck}/>
+              <L2 to="/score-risco-esf"      label="Score de Risco ESF"         Icon={ShieldAlert}/>
+              <L2 to="/trilha-auditoria"     label="Trilha de Auditoria"        Icon={GitBranch}/>
+              <L2 to="/gap-analysis-aps"     label="Gap Analysis · Integrações" Icon={GitBranch}/>
+              <L2 to="/monitor-lotes-siaps"  label="Monitor Lotes SIAPS"        Icon={Package}/>
+              <L2 to="/conformidade-scnes"   label="Conformidade SCNES"         Icon={Building2}/>
+              <L2 to="/qualidade-cadsus"     label="Qualidade CADSUS"           Icon={UserCheck}/>
+              <L2 to="/relatorio-ras"        label="Relatório RAS"              Icon={Network}/>
+              <L2 to="/plano-acao"           label="Plano de Ação"              Icon={ClipboardList}/>
+            </Acc1>
+            )}
 
             <div style={{height:24}}/>
           </div>
