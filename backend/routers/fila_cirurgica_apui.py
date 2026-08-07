@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/fila-cirurgica-apui", tags=["fila_cirurgica_apui
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "pacientes_fila_cirurgica": 842,
         "tempo_espera_medio_dias": 728,
         "meta_tempo_espera_dias": 180,

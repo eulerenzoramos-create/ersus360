@@ -6,7 +6,7 @@ router = APIRouter(prefix="/api/saude-pcd-apui", tags=["saude_pcd_apui"])
 @lru_cache(maxsize=1)
 def _DASHBOARD():
     return {
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "pcd_estimada_ibge_pct": 8.4,
         "pcd_estimada_total": 2075,
         "pcd_cadastradas_cadsus": 484,

@@ -6,7 +6,7 @@ router = APIRouter(prefix="/api/saude-cardiovascular-apui", tags=["saude_cardiov
 @lru_cache(maxsize=1)
 def _DASHBOARD():
     return {
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "has_prevalencia_estimada_pct": 22.4,
         "has_casos_estimados": 5533,
         "has_cadastrados_hiperdia": 3684,

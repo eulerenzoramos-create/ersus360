@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/seguranca-paciente-apui", tags=["seguranca_pacie
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "leitos_hospitalares_apui": 28,
         # Eventos adversos
         "eventos_adversos_2025": 42,

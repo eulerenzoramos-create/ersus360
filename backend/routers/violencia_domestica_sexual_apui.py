@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/violencia-domestica-sexual-apui", tags=["violenc
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "mulheres_total": 11420,
         "mulheres_10_49_anos": 5840,
         "violencia_domestica_notificada_2025": 284,

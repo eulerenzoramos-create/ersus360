@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/hanseniase-apui", tags=["hanseniase_apui"])
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "coeficiente_deteccao_100k_2025": 84.4,
         "meta_coeficiente_100k": 10.0,
         "casos_novos_2025": 208,

@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/ilpi-idoso-apui", tags=["ilpi_idoso_apui"])
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "populacao_idosa_60mais": 2224,
         "populacao_idosa_pct": 9.0,
         "idosos_dependentes_estimados": 334,

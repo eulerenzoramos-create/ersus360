@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/prenatal-risco-gestacional-apui", tags=["prenata
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "nascidos_vivos_2025": 524,
         "gestantes_estimadas": 620,
         "prenatal_7_consultas_pct": 28.4,

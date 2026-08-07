@@ -6,7 +6,7 @@ router = APIRouter(prefix="/api/saude-auditiva-apui", tags=["saude_auditiva_apui
 @lru_cache(maxsize=1)
 def _DASHBOARD():
     return {
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "otorrinolaringologista_municipio": 0,
         "otorrinolaringologista_referencia": "Humaitá (284 km) ou Manaus (784 km)",
         "fila_consulta_otorrinolaringologia_dias": 120,

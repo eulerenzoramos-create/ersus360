@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/prevencao-suicidio-apui", tags=["prevencao_suici
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "obitos_suicidio_2025": 14,
         "taxa_suicidio_100k": 56.7,
         "media_nacional_suicidio_100k": 6.4,

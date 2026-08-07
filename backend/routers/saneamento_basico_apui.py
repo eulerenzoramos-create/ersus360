@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/saneamento-basico-apui", tags=["saneamento_basic
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "populacao_urbana": 18400,
         "populacao_rural_ribeirinha": 6300,
         "abastecimento_agua_tratada_urbana_pct": 62.4,

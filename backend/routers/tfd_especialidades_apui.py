@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/tfd-especialidades-apui", tags=["tfd_especialida
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "tfd_autorizacoes_ano": 1842,
         "tfd_custo_total_ano": 2840000,
         "tfd_custo_per_capita": 115,

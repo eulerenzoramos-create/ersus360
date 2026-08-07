@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/demencia-alzheimer-apui", tags=["demencia_alzhei
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "populacao_60_mais": 2224,
         "idosos_demencia_estimados": 334,
         "idosos_demencia_diagnosticados": 48,

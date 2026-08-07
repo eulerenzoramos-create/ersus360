@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/queimadas-respiratoria-apui", tags=["queimadas_r
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "area_municipio_km2": 54248,
         "focos_incendio_2025": 4284,
         "focos_incendio_2024": 2842,

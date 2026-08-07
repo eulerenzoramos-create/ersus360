@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/regulacao-referencia-apui", tags=["regulacao_ref
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         # SISREG
         "solicitacoes_sisreg_pendentes": 2840,
         "tempo_medio_espera_dias": 184,

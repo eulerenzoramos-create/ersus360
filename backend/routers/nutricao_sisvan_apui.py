@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/nutricao-sisvan-apui", tags=["nutricao_sisvan_ap
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         # SISVAN cobertura
         "sisvan_cobertura_pct": 42.4,
         "meta_sisvan_pct": 100.0,

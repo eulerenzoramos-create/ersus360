@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/saude-prisional-apui", tags=["saude_prisional_ap
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "unidade_prisional_apui": "CPP Apuí",
         "capacidade_unidade": 84,
         "presos_atual": 242,

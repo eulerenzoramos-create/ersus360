@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/saude-ambiental-apui", tags=["saude_ambiental_ap
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         # Queimadas e qualidade do ar
         "focos_queimada_2025": 2842,
         "queimada_area_ha_2025": 84200,

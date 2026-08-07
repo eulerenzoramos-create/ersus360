@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/mortalidade-materna-apui", tags=["mortalidade_ma
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "nascidos_vivos_2025": 484,
         "razao_mortalidade_materna_2025": 124.0,
         "meta_rmm_ods": 30.0,

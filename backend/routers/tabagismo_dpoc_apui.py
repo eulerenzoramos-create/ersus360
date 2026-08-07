@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/tabagismo-dpoc-apui", tags=["tabagismo_dpoc_apui
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "prevalencia_tabagismo_adulto_pct": 28.4,
         "media_brasil_tabagismo_pct": 12.1,
         "tabagismo_gestante_pct": 28.4,

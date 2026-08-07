@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/tuberculose-apui", tags=["tuberculose_apui"])
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "incidencia_tb_100k_2025": 142.4,
         "meta_incidencia_100k": 10.0,
         "casos_tb_2025": 352,

@@ -6,7 +6,7 @@ router = APIRouter(prefix="/api/violencia-acidentes-apui", tags=["violencia_acid
 @lru_cache(maxsize=1)
 def _DASHBOARD():
     return {
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "obitos_causas_externas_ano": 48,
         "taxa_mortalidade_causas_externas_100k": 194.3,
         "media_nacional_causas_externas_100k": 142.0,

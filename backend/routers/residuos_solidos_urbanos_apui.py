@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/residuos-solidos-urbanos-apui", tags=["residuos_
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "lixao_ativo": True,
         "aterro_sanitario": False,
         "coleta_seletiva": False,

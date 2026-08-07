@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/pcd-crianca-apui", tags=["pcd_crianca_apui"])
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "populacao_0_17_anos": 8400,
         "criancas_pcd_estimadas": 840,
         "criancas_pcd_diagnosticadas": 284,

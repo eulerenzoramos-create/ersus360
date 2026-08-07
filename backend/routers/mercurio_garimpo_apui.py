@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/mercurio-garimpo-apui", tags=["mercurio_garimpo_
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "garimpeiros_ativos_estimados": 4200,
         "garimpeiros_formalizados": 284,
         "garimpeiros_formalizados_pct": 6.8,

@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/saude-homem-apui", tags=["saude_homem_apui"])
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "homens_total": 12900,
         "homens_20_59": 5842,
         # Câncer de próstata

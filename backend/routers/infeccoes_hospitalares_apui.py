@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/infeccoes-hospitalares-apui", tags=["infeccoes_h
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "internacoes_anuais_apui": 2840,
         # IRAS
         "taxa_iras_estimada_pct": 12.4,

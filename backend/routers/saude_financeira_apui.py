@@ -12,7 +12,7 @@ async def dashboard():
     proprio_pct = float(siops.get("minimo_constitucional_pct_aplicado") or 16.8)
     gasto = float(siops.get("gastoProprio") or siops.get("gastoProprioSaude") or 10341856.0)
     receita = float(siops.get("receitaImpostos") or 14284000.0)
-    pop = 24700
+    pop = 18732  # IBGE Censo 2022
     return {
         "orcamento_fms_2025": int(receita),
         "executado_valor": int(gasto),

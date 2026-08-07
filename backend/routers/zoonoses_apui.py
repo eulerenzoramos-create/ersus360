@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/zoonoses-apui", tags=["zoonoses_apui"])
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "raiva_animais_confirmada_2025": 4,
         "raiva_humana_casos_2025": 0,
         "profilaxia_antirabica_iniciada_2025": 142,

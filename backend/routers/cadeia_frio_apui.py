@@ -63,7 +63,7 @@ def _COBERTURAS():
         {"vacina":"dT adulto",               "publico":"Adultos",          "aplicadas_2025":1248,"meta":1850,"cobertura_pct":67.5,"status":"atencao"},
         {"vacina":"dTpa gestante",           "publico":"Gestantes",        "aplicadas_2025":102,"meta":149,"cobertura_pct":68.5,"status":"atencao"},
         {"vacina":"Influenza",               "publico":"Grupos prioritários","aplicadas_2025":3284,"meta":4920,"cobertura_pct":66.7,"status":"atencao"},
-        {"vacina":"COVID-19 (atualizado)",   "publico":"Todos ≥ 6m",       "aplicadas_2025":9484,"meta":24700,"cobertura_pct":38.4,"status":"critico"},
+        {"vacina":"COVID-19 (atualizado)",   "publico":"Todos ≥ 6m",       "aplicadas_2025":9484,"meta":18732,"cobertura_pct":50.6,"status":"critico"},  # meta = pop IBGE 2022
         {"vacina":"Febre Amarela",           "publico":"≥ 9 meses (AM)",   "aplicadas_2025":1284,"meta":1850,"cobertura_pct":69.4,"status":"atencao"},
         {"vacina":"HPV (1ª dose)",           "publico":"9-14 anos",        "aplicadas_2025":248,"meta":412,"cobertura_pct":60.2,"status":"atencao"},
     ]

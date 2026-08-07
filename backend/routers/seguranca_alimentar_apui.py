@@ -6,7 +6,7 @@ router = APIRouter(prefix="/api/seguranca-alimentar-apui", tags=["seguranca_alim
 @lru_cache(maxsize=1)
 def _DASHBOARD():
     return {
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "inseguranca_alimentar_leve_pct": 28.4,
         "inseguranca_alimentar_moderada_pct": 18.4,
         "inseguranca_alimentar_grave_pct": 8.4,

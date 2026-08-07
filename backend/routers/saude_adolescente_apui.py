@@ -6,7 +6,7 @@ router = APIRouter(prefix="/api/saude-adolescente-apui", tags=["saude_adolescent
 @lru_cache(maxsize=1)
 def _DASHBOARD():
     return {
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "populacao_adolescente_10_19a": 5180,
         "populacao_adolescente_pct": 21.0,
         "gravidez_adolescente_taxa_1k": 68.4,

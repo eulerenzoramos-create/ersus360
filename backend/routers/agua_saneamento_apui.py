@@ -6,7 +6,7 @@ router = APIRouter(prefix="/api/agua-saneamento-apui", tags=["agua_saneamento_ap
 @lru_cache(maxsize=1)
 def _DASHBOARD():
     return {
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "abastecimento_agua_tratada_pct": 48.4,
         "meta_agua_tratada_pct": 100.0,
         "abastecimento_rural_agua_tratada_pct": 12.4,

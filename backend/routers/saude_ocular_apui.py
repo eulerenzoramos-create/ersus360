@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/saude-ocular-apui", tags=["saude_ocular_apui"])
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "populacao_acima_40_anos": 8642,
         "oftalmologista_apui": 0,
         "referencia_oftalmologia": "Humaitá/AM (180 km) ou Manaus (480 km)",

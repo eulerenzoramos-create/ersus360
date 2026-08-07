@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/saude-mental-infantil-apui", tags=["saude_mental
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 24700,
+        "populacao_total": 18732,  # IBGE Censo 2022,
         "populacao_0_17_anos": 8648,
         "populacao_0_17_pct": 35.0,
         "transtorno_mental_0_17_estimados": 1297,
