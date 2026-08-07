@@ -145,7 +145,7 @@ def _PROFS_EMULTI():
 
 
 # Todos juntos
-_TODOS_PROFS = _PROFS_ESF + _PROFS_ESB + _PROFS_EMULTI
+_TODOS_PROFS = _PROFS_ESF() + _PROFS_ESB() + _PROFS_EMULTI()
 
 # ── Parâmetros de produção por CBO ────────────────────────────────────────────
 @lru_cache(maxsize=1)
