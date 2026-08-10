@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     # SIAPS / gov.br — credenciais para busca de dados reais
     SIAPS_CPF: str = ""        # CPF sem pontos/traços (ex: 12345678901)
     SIAPS_SENHA: str = ""      # Senha gov.br
+    SIAPS_TOKEN: str = ""      # Bearer JWT extraído da sessão autenticada do SIAPS
 
     # App
     APP_NAME: str = "ERSUS 360"

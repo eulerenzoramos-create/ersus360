@@ -53,12 +53,14 @@ def _from_cache(key: str) -> Any | None:
 
 
 def _auth_headers() -> dict:
-    token = _auth.get("token")
+    # Prioridade: SIAPS_TOKEN do Railway > token obtido via auth dinâmica
+    token = (settings.SIAPS_TOKEN or "").strip() or _auth.get("token")
     if token:
         return {
             "Authorization": f"Bearer {token}",
             "Accept": "application/json",
-            "User-Agent": "ERSUS360/2.0 FMS-Apui-AM",
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 ERSUS360/2.0",
         }
     return {
         "Accept": "application/json",
@@ -296,6 +298,17 @@ async def buscar_qualidade(competencia: str = "202605") -> list[dict] | None:
     quad = 1 if mes <= 4 else (2 if mes <= 8 else 3)
 
     urls_tentativas = [
+        # ── API PRIVADA SIAPS (requer Bearer token) ───────────────────────────
+        (f"{_APISIAPS}/api/componente/equipe",
+         {"coMunicipioIbge": ibge_long, "nuQuadrimestre": quad, "nuAno": ano, "coTipoIndicador": "QUALIDADE"}),
+        (f"{_APISIAPS}/api/componente/qualidade/municipio/{ibge_long}/equipe",
+         {"nuQuadrimestre": quad, "nuAno": ano}),
+        (f"{_APISIAPS}/api/municipio/{ibge_long}/componente/qualidade/equipe",
+         {"nuQuadrimestre": quad, "nuAno": ano}),
+        (f"{_APISIAPS}/api/municipio/{ibge_short}/componente/qualidade/equipe",
+         {"nuQuadrimestre": quad, "nuAno": ano}),
+        (f"{_APISIAPS}/api/v1/componente/qualidade/equipe",
+         {"coMunicipioIbge": ibge_long, "nuQuadrimestre": quad, "nuAno": ano}),
         # ── API PÚBLICA SIAPS (sem autenticação) ─────────────────────────────
         (f"{_APISIAPS}/api/public/componente/indicador-quadrimestre",
          {"coMunicipioIbge": ibge_long, "nuQuadrimestre": quad, "coTipoIndicador": "QUALIDADE", "size": 20}),
@@ -427,6 +440,13 @@ async def buscar_vinculo(competencia: str = "202605") -> list[dict] | None:
     quad = 1 if mes <= 4 else (2 if mes <= 8 else 3)
 
     urls_tentativas = [
+        # ── API PRIVADA SIAPS (requer Bearer token) ───────────────────────────
+        (f"{_APISIAPS}/api/componente/equipe",
+         {"coMunicipioIbge": ibge_long, "nuQuadrimestre": quad, "nuAno": ano, "coTipoIndicador": "VINCULO"}),
+        (f"{_APISIAPS}/api/componente/vinculo/municipio/{ibge_long}/equipe",
+         {"nuQuadrimestre": quad, "nuAno": ano}),
+        (f"{_APISIAPS}/api/municipio/{ibge_long}/componente/vinculo/equipe",
+         {"nuQuadrimestre": quad, "nuAno": ano}),
         # ── API PÚBLICA SIAPS ────────────────────────────────────────────────
         (f"{_APISIAPS}/api/public/componente/indicador-quadrimestre",
          {"coMunicipioIbge": ibge_long, "nuQuadrimestre": quad, "coTipoIndicador": "VINCULO", "size": 20}),
