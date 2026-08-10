@@ -755,17 +755,17 @@ const _Q2 = {
     { key: "ind14", label: "Sífilis em Gestante — Tratamento",       short: "Síf. Gest.",  atual: 76.8, meta: 55,  q1: 74.5, eixo: "IST" },
     { key: "ind15", label: "Sífilis Congênita — Tratamento",         short: "Síf. Cong.",  atual: 81.4, meta: 55,  q1: 78.8, eixo: "IST" },
   ],
-  // Scores reais do e-Gestor AB — Abr/2026 (pts_q1 = pontuação acumulada Q1/2026)
+  // Scores reais SIAPS — Mai/2026 (pts_q1 = pontuação componente qualidade)
   equipes: [
-    { ubs:"UBS IRMÃ ELIZABETE",                        equipe:"CACHOEIRA",    pts_q1:38.5, status:"bom",      ind:{ind1:85,ind2:43,ind3:88,ind4:91, ind5:39,ind6:30,ind7:55, ind8:79,ind9:63,ind10:78, ind11:43,ind12:48,ind13:42, ind14:80,ind15:83} },
-    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"SÃO SEBASTIÃO",pts_q1:36.2, status:"bom",      ind:{ind1:80,ind2:41,ind3:82,ind4:89, ind5:37,ind6:29,ind7:54, ind8:75,ind9:58,ind10:73, ind11:41,ind12:47,ind13:41, ind14:77,ind15:80} },
-    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"ACARI",        pts_q1:35.8, status:"bom",      ind:{ind1:79,ind2:40,ind3:80,ind4:90, ind5:37,ind6:29,ind7:52, ind8:77,ind9:60,ind10:72, ind11:40,ind12:47,ind13:40, ind14:75,ind15:79} },
-    { ubs:"UBS OSVALDO LEMES CABRAL",                  equipe:"TRÊS ESTADOS", pts_q1:18.4, status:"regular",  ind:{ind1:56,ind2:28,ind3:63,ind4:67, ind5:25,ind6:18,ind7:39, ind8:58,ind9:46,ind10:55, ind11:29,ind12:32,ind13:26, ind14:50,ind15:50} },
-    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"JUMA",         pts_q1:39.1, status:"bom",      ind:{ind1:86,ind2:45,ind3:85,ind4:93, ind5:39,ind6:31,ind7:56, ind8:81,ind9:64,ind10:79, ind11:44,ind12:49,ind13:44, ind14:82,ind15:86} },
-    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"LIBERDADE",    pts_q1:44.8, status:"otimo",    ind:{ind1:91,ind2:52,ind3:91,ind4:100,ind5:46,ind6:39,ind7:63, ind8:85,ind9:71,ind10:83, ind11:53,ind12:58,ind13:53, ind14:92,ind15:100} },
-    { ubs:"UBS PADRE FALIERO BONCI",                   equipe:"KENNEDY",      pts_q1:12.6, status:"regular",  ind:{ind1:50,ind2:22,ind3:58,ind4:60, ind5:22,ind6:17,ind7:36, ind8:53,ind9:40,ind10:46, ind11:24,ind12:29,ind13:23, ind14:43,ind15:50} },
-    { ubs:"UBS JK",                                    equipe:"JK",           pts_q1:37.6, status:"bom",      ind:{ind1:83,ind2:43,ind3:86,ind4:90, ind5:38,ind6:30,ind7:53, ind8:78,ind9:62,ind10:77, ind11:41,ind12:48,ind13:41, ind14:78,ind15:82} },
-    { ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA",   equipe:"ESTRADA NOVA", pts_q1:9.8,  status:"regular",  ind:{ind1:44,ind2:20,ind3:55,ind4:57, ind5:21,ind6:15,ind7:34, ind8:49,ind9:36,ind10:41, ind11:22,ind12:26,ind13:20, ind14:39,ind15:43} },
+    { ubs:"UBS IRMÃ ELIZABETE",                        equipe:"CACHOEIRA",    pts_q1:55.27, status:"bom",       ind:{ind1:85,ind2:43,ind3:88,ind4:91, ind5:39,ind6:30,ind7:55, ind8:79,ind9:63,ind10:78, ind11:43,ind12:48,ind13:42, ind14:80,ind15:83} },
+    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"SÃO SEBASTIÃO",pts_q1:53.52, status:"suficiente",ind:{ind1:80,ind2:41,ind3:82,ind4:89, ind5:37,ind6:29,ind7:54, ind8:75,ind9:58,ind10:73, ind11:41,ind12:47,ind13:41, ind14:77,ind15:80} },
+    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"ACARI",        pts_q1:63.99, status:"bom",       ind:{ind1:79,ind2:40,ind3:80,ind4:90, ind5:37,ind6:29,ind7:52, ind8:77,ind9:60,ind10:72, ind11:40,ind12:47,ind13:40, ind14:75,ind15:79} },
+    { ubs:"UBS OSVALDO LEMES CABRAL",                  equipe:"TRÊS ESTADOS", pts_q1:33.41, status:"regular",   ind:{ind1:56,ind2:28,ind3:63,ind4:67, ind5:25,ind6:18,ind7:39, ind8:58,ind9:46,ind10:55, ind11:29,ind12:32,ind13:26, ind14:50,ind15:50} },
+    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"JUMA",         pts_q1:55.17, status:"bom",       ind:{ind1:86,ind2:45,ind3:85,ind4:93, ind5:39,ind6:31,ind7:56, ind8:81,ind9:64,ind10:79, ind11:44,ind12:49,ind13:44, ind14:82,ind15:86} },
+    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"LIBERDADE",    pts_q1:63.62, status:"bom",       ind:{ind1:91,ind2:52,ind3:91,ind4:100,ind5:46,ind6:39,ind7:63, ind8:85,ind9:71,ind10:83, ind11:53,ind12:58,ind13:53, ind14:92,ind15:100} },
+    { ubs:"UBS PADRE FALIERO BONCI",                   equipe:"KENNEDY",      pts_q1:70.89, status:"otimo",     ind:{ind1:72,ind2:40,ind3:76,ind4:80, ind5:50,ind6:46,ind7:58, ind8:82,ind9:68,ind10:75, ind11:58,ind12:55,ind13:52, ind14:72,ind15:75} },
+    { ubs:"UBS JK",                                    equipe:"JK",           pts_q1:68.14, status:"bom",       ind:{ind1:83,ind2:43,ind3:86,ind4:90, ind5:38,ind6:30,ind7:53, ind8:78,ind9:62,ind10:77, ind11:41,ind12:48,ind13:41, ind14:78,ind15:82} },
+    { ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA",   equipe:"ESTRADA NOVA", pts_q1:54.48, status:"suficiente",ind:{ind1:44,ind2:20,ind3:55,ind4:57, ind5:21,ind6:15,ind7:34, ind8:49,ind9:36,ind10:41, ind11:22,ind12:26,ind13:20, ind14:39,ind15:43} },
   ],
 };
 

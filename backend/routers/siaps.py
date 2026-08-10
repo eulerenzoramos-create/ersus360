@@ -218,7 +218,7 @@ def _QUALIDADE_EQUIPES():
                 "ind14_sif_gest":  {"resultado": 80.0, "meta": 55.0, "status": "verde"},
                 "ind15_sif_cong":  {"resultado": 83.3, "meta": 55.0, "status": "verde"},
             },
-            "pontuacao_qualidade": 38.5, "status_qualidade": "bom",
+            "pontuacao_qualidade": 55.27, "status_qualidade": "bom",
         },
         {
             "ubs": "UBS ANIZIO FERREIRA DA SILVA", "equipe": "SÃO SEBASTIÃO",
@@ -239,7 +239,7 @@ def _QUALIDADE_EQUIPES():
                 "ind14_sif_gest":  {"resultado": 76.9, "meta": 55.0, "status": "verde"},
                 "ind15_sif_cong":  {"resultado": 80.0, "meta": 55.0, "status": "verde"},
             },
-            "pontuacao_qualidade": 36.2, "status_qualidade": "bom",
+            "pontuacao_qualidade": 53.52, "status_qualidade": "suficiente",
         },
         {
             "ubs": "UBS ANIZIO FERREIRA DA SILVA", "equipe": "ACARI",
@@ -260,7 +260,7 @@ def _QUALIDADE_EQUIPES():
                 "ind14_sif_gest":  {"resultado": 75.0, "meta": 55.0, "status": "verde"},
                 "ind15_sif_cong":  {"resultado": 78.6, "meta": 55.0, "status": "verde"},
             },
-            "pontuacao_qualidade": 35.8, "status_qualidade": "bom",
+            "pontuacao_qualidade": 63.99, "status_qualidade": "bom",
         },
         {
             "ubs": "UBS OSVALDO LEMES CABRAL", "equipe": "TRÊS ESTADOS",
@@ -281,7 +281,7 @@ def _QUALIDADE_EQUIPES():
                 "ind14_sif_gest":  {"resultado": 50.0, "meta": 55.0, "status": "amarelo"},
                 "ind15_sif_cong":  {"resultado": 50.0, "meta": 55.0, "status": "amarelo"},
             },
-            "pontuacao_qualidade": 18.4, "status_qualidade": "regular",
+            "pontuacao_qualidade": 33.41, "status_qualidade": "regular",
         },
         {
             "ubs": "CENTRO DE SAÚDE CURUMIM", "equipe": "JUMA",
@@ -302,7 +302,7 @@ def _QUALIDADE_EQUIPES():
                 "ind14_sif_gest":  {"resultado": 82.4, "meta": 55.0, "status": "verde"},
                 "ind15_sif_cong":  {"resultado": 85.7, "meta": 55.0, "status": "verde"},
             },
-            "pontuacao_qualidade": 39.1, "status_qualidade": "bom",
+            "pontuacao_qualidade": 55.17, "status_qualidade": "bom",
         },
         {
             "ubs": "CENTRO DE SAÚDE CURUMIM", "equipe": "LIBERDADE",
@@ -323,28 +323,28 @@ def _QUALIDADE_EQUIPES():
                 "ind14_sif_gest":  {"resultado": 91.7, "meta": 55.0, "status": "verde"},
                 "ind15_sif_cong":  {"resultado": 100.0,"meta": 55.0, "status": "verde"},
             },
-            "pontuacao_qualidade": 44.8, "status_qualidade": "otimo",
+            "pontuacao_qualidade": 63.62, "status_qualidade": "bom",
         },
         {
             "ubs": "UBS PADRE FALIERO BONCI", "equipe": "KENNEDY",
             "indicadores": {
-                "ind1_prenatal":   {"resultado": 50.0, "meta": 55.0, "status": "amarelo"},
-                "ind2_cito":       {"resultado": 22.1, "meta": 50.0, "status": "vermelho"},
-                "ind3_vacina":     {"resultado": 58.3, "meta": 90.0, "status": "vermelho"},
-                "ind4_rn":         {"resultado": 60.0, "meta": 55.0, "status": "verde"},
-                "ind5_odonto1":    {"resultado": 22.4, "meta": 45.0, "status": "vermelho"},
-                "ind6_odonto_comp":{"resultado": 16.8, "meta": 45.0, "status": "vermelho"},
-                "ind7_urg_odonto": {"resultado": 36.0, "meta": 45.0, "status": "vermelho"},
-                "ind8_has":        {"resultado": 52.6, "meta": 60.0, "status": "vermelho"},
-                "ind9_dm":         {"resultado": 40.0, "meta": 55.0, "status": "vermelho"},
-                "ind10_obesidade": {"resultado": 45.5, "meta": 55.0, "status": "vermelho"},
-                "ind11_cv":        {"resultado": 24.0, "meta": 50.0, "status": "vermelho"},
-                "ind12_psicose":   {"resultado": 28.5, "meta": 50.0, "status": "vermelho"},
-                "ind13_tab":       {"resultado": 22.8, "meta": 50.0, "status": "vermelho"},
-                "ind14_sif_gest":  {"resultado": 42.9, "meta": 55.0, "status": "vermelho"},
-                "ind15_sif_cong":  {"resultado": 50.0, "meta": 55.0, "status": "amarelo"},
+                "ind1_prenatal":   {"resultado": 72.0, "meta": 55.0, "status": "verde"},
+                "ind2_cito":       {"resultado": 40.0, "meta": 50.0, "status": "amarelo"},
+                "ind3_vacina":     {"resultado": 76.0, "meta": 90.0, "status": "amarelo"},
+                "ind4_rn":         {"resultado": 80.0, "meta": 55.0, "status": "verde"},
+                "ind5_odonto1":    {"resultado": 50.0, "meta": 45.0, "status": "verde"},
+                "ind6_odonto_comp":{"resultado": 46.0, "meta": 45.0, "status": "verde"},
+                "ind7_urg_odonto": {"resultado": 58.0, "meta": 45.0, "status": "verde"},
+                "ind8_has":        {"resultado": 82.0, "meta": 60.0, "status": "verde"},
+                "ind9_dm":         {"resultado": 68.0, "meta": 55.0, "status": "verde"},
+                "ind10_obesidade": {"resultado": 75.0, "meta": 55.0, "status": "verde"},
+                "ind11_cv":        {"resultado": 58.0, "meta": 50.0, "status": "verde"},
+                "ind12_psicose":   {"resultado": 55.0, "meta": 50.0, "status": "verde"},
+                "ind13_tab":       {"resultado": 52.0, "meta": 50.0, "status": "verde"},
+                "ind14_sif_gest":  {"resultado": 72.0, "meta": 55.0, "status": "verde"},
+                "ind15_sif_cong":  {"resultado": 75.0, "meta": 55.0, "status": "verde"},
             },
-            "pontuacao_qualidade": 12.6, "status_qualidade": "regular",
+            "pontuacao_qualidade": 70.89, "status_qualidade": "otimo",
         },
         {
             "ubs": "UBS JK", "equipe": "JK",
@@ -365,7 +365,7 @@ def _QUALIDADE_EQUIPES():
                 "ind14_sif_gest":  {"resultado": 77.8, "meta": 55.0, "status": "verde"},
                 "ind15_sif_cong":  {"resultado": 81.8, "meta": 55.0, "status": "verde"},
             },
-            "pontuacao_qualidade": 37.6, "status_qualidade": "bom",
+            "pontuacao_qualidade": 68.14, "status_qualidade": "bom",
         },
         {
             "ubs": "UBS CLÁUDIA PEREIRA DOS SANTOS DAMACENA", "equipe": "ESTRADA NOVA",
@@ -386,7 +386,7 @@ def _QUALIDADE_EQUIPES():
                 "ind14_sif_gest":  {"resultado": 38.5, "meta": 55.0, "status": "vermelho"},
                 "ind15_sif_cong":  {"resultado": 42.9, "meta": 55.0, "status": "vermelho"},
             },
-            "pontuacao_qualidade": 9.8, "status_qualidade": "regular",
+            "pontuacao_qualidade": 54.48, "status_qualidade": "suficiente",
         },
     ]
 
@@ -529,7 +529,7 @@ async def abrangencia(_: UserOut = Depends(get_current_user)):
 
 @router.get("/vinculo-acompanhamento")
 async def vinculo_acompanhamento(
-    competencia: str = Query("2026-04"),
+    competencia: str = Query("2026-05"),
     tipo_equipe: str = Query("eAP,eSF"),
     _: UserOut = Depends(get_current_user),
 ):
@@ -582,7 +582,7 @@ async def vinculo_acompanhamento(
 
 @router.get("/qualidade")
 async def componente_qualidade(
-    competencia: str = Query("2026-04"),
+    competencia: str = Query("2026-05"),
     _: UserOut = Depends(get_current_user),
 ):
     equipes = _QUALIDADE_EQUIPES()
