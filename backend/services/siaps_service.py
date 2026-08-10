@@ -28,6 +28,7 @@ _EGESTOR    = "https://egestorab.saude.gov.br/api/v1"
 _SISAB      = "https://sisab.saude.gov.br"
 _DADOSAB    = "https://apidadosabertos.saude.gov.br"
 _SIAPS      = "https://siaps.saude.gov.br"
+_APISIAPS   = "https://apisiaps.saude.gov.br"   # API pública real do SIAPS
 _GOVBR_SSO  = "https://sso.acesso.gov.br"
 _TIMEOUT    = 20
 
@@ -289,32 +290,29 @@ async def buscar_qualidade(competencia: str = "202605") -> list[dict] | None:
     ibge_short = _IBGE_CURTO
     comp_fmt   = competencia  # já no formato AAAAMM
 
+    # Converter competencia AAAAMM → quadrimestre/ano para apisiaps.saude.gov.br
+    ano  = int(competencia[:4])
+    mes  = int(competencia[4:])
+    quad = 1 if mes <= 4 else (2 if mes <= 8 else 3)
+
     urls_tentativas = [
-        # eGestor APS — Novo Financiamento APS
+        # ── API PÚBLICA SIAPS (sem autenticação) ─────────────────────────────
+        (f"{_APISIAPS}/api/public/componente/indicador-quadrimestre",
+         {"coMunicipioIbge": ibge_long, "nuQuadrimestre": quad, "coTipoIndicador": "QUALIDADE", "size": 20}),
+        (f"{_APISIAPS}/api/public/componente/indicador-quadrimestre",
+         {"coMunicipioIbge": ibge_long, "nuQuadrimestre": quad, "size": 20}),
+        (f"{_APISIAPS}/api/public/componente/qualidade/municipio/{ibge_long}",
+         {"nuQuadrimestre": quad, "nuAno": ano}),
+        # ── eGestor APS ───────────────────────────────────────────────────────
         (f"{_EGESTOR}/relatorio/municipio/{ibge_long}/componenteQualidade",
          {"competencia": comp_fmt}),
         (f"{_EGESTOR}/relatorio/municipio/{ibge_short}/componenteQualidade",
          {"competencia": comp_fmt}),
-        # eGestor — caminhos alternativos conhecidos
         (f"{_EGESTOR}/siaps/qualidade/municipio/{ibge_long}/equipes",
          {"competencia": comp_fmt}),
-        (f"{_EGESTOR}/novoFinanciamento/municipio/{ibge_long}/qualidade",
-         {"competencia": comp_fmt}),
-        # SIAPS API direta (requer cookie mas tentamos sem)
-        (f"{_SIAPS}/api/v1/municipio/{ibge_long}/qualidade/equipes",
-         {"competencia": comp_fmt}),
-        (f"{_SIAPS}/api/componenteQualidade/municipio/{ibge_short}/equipes",
-         {"competencia": comp_fmt}),
-        (f"{_SIAPS}/api/componenteQualidade/municipio/{ibge_long}/equipes",
-         {"competencia": comp_fmt}),
-        # SISAB / Dados Abertos
+        # ── SISAB / Dados Abertos ─────────────────────────────────────────────
         (f"{_DADOSAB}/siaps/componentes/qualidade",
          {"ibge": ibge_long, "competencia": comp_fmt}),
-        (f"{_DADOSAB}/indicadores/novoFinanciamento/municipio/{ibge_long}",
-         {"competencia": comp_fmt}),
-        # Tentativa com competência no formato AAAA-MM
-        (f"{_EGESTOR}/relatorio/municipio/{ibge_long}/componenteQualidade",
-         {"competencia": f"{competencia[:4]}-{competencia[4:]}"}),
     ]
 
     for url, params in urls_tentativas:
@@ -424,14 +422,20 @@ async def buscar_vinculo(competencia: str = "202605") -> list[dict] | None:
     ibge_long  = _IBGE
     ibge_short = _IBGE_CURTO
 
+    ano  = int(competencia[:4])
+    mes  = int(competencia[4:])
+    quad = 1 if mes <= 4 else (2 if mes <= 8 else 3)
+
     urls_tentativas = [
+        # ── API PÚBLICA SIAPS ────────────────────────────────────────────────
+        (f"{_APISIAPS}/api/public/componente/indicador-quadrimestre",
+         {"coMunicipioIbge": ibge_long, "nuQuadrimestre": quad, "coTipoIndicador": "VINCULO", "size": 20}),
+        (f"{_APISIAPS}/api/public/componente/vinculo/municipio/{ibge_long}",
+         {"nuQuadrimestre": quad, "nuAno": ano}),
+        # ── eGestor APS ─────────────────────────────────────────────────────
         (f"{_EGESTOR}/relatorio/municipio/{ibge_long}/componenteVinculo",
          {"competencia": competencia}),
         (f"{_EGESTOR}/siaps/vinculo/municipio/{ibge_long}/equipes",
-         {"competencia": competencia}),
-        (f"{_SIAPS}/api/v1/municipio/{ibge_long}/vinculo/equipes",
-         {"competencia": competencia}),
-        (f"{_SIAPS}/api/componenteVinculo/municipio/{ibge_short}/equipes",
          {"competencia": competencia}),
         (f"{_DADOSAB}/siaps/componentes/vinculo",
          {"ibge": ibge_long, "competencia": competencia}),
