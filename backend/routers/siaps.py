@@ -730,7 +730,7 @@ async def refresh_cache(_: UserOut = Depends(get_current_user)):
 
 
 @router.get("/diagnostico-api")
-async def diagnostico_api(_: UserOut = Depends(get_current_user)):
+async def diagnostico_api():
     """Testa autenticação SIAPS e retorna status das credenciais e conexão."""
     from config import settings as cfg
     cpf_ok    = bool(cfg.SIAPS_CPF)
