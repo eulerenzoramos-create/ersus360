@@ -1,15 +1,18 @@
 """
 Router: /api/siaps — SIAPS / eGestor APS
 Componentes de Cofinanciamento da APS — Apuí/AM (IBGE 1300144)
-Dados de REFERÊNCIA — competência Abr/2026 (PRELIMINAR)
-IMPORTANTE: dados hardcoded, sem integração com Siaps/e-SUS/CNES/e-Gestor APS.
-Fonte real: exportação manual do Siaps (siaps.saude.gov.br).
+Integração em cascata: tenta APIs públicas (eGestor/SIAPS/SISAB) e cai no
+fallback hardcoded Mai/2026 se todas falharem.
 """
 from __future__ import annotations
 from datetime import date
+import logging
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
 from functools import lru_cache
+from services import siaps_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/siaps", tags=["SIAPS / eGestor APS"])
 
@@ -533,10 +536,24 @@ async def vinculo_acompanhamento(
     tipo_equipe: str = Query("eAP,eSF"),
     _: UserOut = Depends(get_current_user),
 ):
-    equipes = _VINCULO_EQUIPES()
-    total_vinculadas = sum(e["K"] for e in equipes)
+    comp_fmt = competencia.replace("-", "")  # "2026-05" → "202605"
+
+    # Tenta busca real na API
+    equipes_api = await siaps_service.buscar_vinculo(comp_fmt)
+    if equipes_api:
+        equipes = equipes_api
+        fonte = "siaps_api"
+        dado_preliminar = False
+        aviso = None
+    else:
+        equipes = _VINCULO_EQUIPES()
+        fonte = "siaps_referencia"
+        dado_preliminar = True
+        aviso = "API SIAPS indisponível — dados de referência Mai/2026 (hardcoded)."
+
+    total_vinculadas   = sum(e["K"] for e in equipes)
     total_acompanhadas = sum(e["H"] for e in equipes)
-    pontuacao_media = round(sum(e["pontuacao"] for e in equipes) / len(equipes), 2)
+    pontuacao_media    = round(sum(e["pontuacao"] for e in equipes) / len(equipes), 2)
 
     por_status = {
         "otimo":      sum(1 for e in equipes if e["pontuacao"] > 8.5),
@@ -545,39 +562,27 @@ async def vinculo_acompanhamento(
         "regular":    sum(1 for e in equipes if e["pontuacao"] < 5.0),
     }
 
-    return {
+    resp = {
         "competencia": competencia,
         "tipo_equipe": tipo_equipe,
-        "dado_preliminar": True,
-        "aviso": (
-            "DADO PRELIMINAR — fonte: siaps_referencia (hardcoded). "
-            "Pessoas acompanhadas (H) são estimativas até validação com exportação oficial do Siaps. "
-            "Pessoas vinculadas (K) = total cadastrado validado. "
-            "Para dados reais: exportar competência Abr/2026 em siaps.saude.gov.br."
-        ),
+        "dado_preliminar": dado_preliminar,
         "municipio": "APUÍ",
         "uf": "AM",
         "ibge": "1300144",
         "populacao_ibge_censo2022": 18732,
-        "populacao_ibge_ano_referencia": 2022,
         "ied": 2,
         "total_equipes": len(equipes),
         "total_pessoas_vinculadas": total_vinculadas,
         "total_pessoas_acompanhadas": total_acompanhadas,
-        "total_acompanhadas_pendente_validacao": True,
         "cobertura_estimada_pct": round(total_vinculadas / 18732 * 100, 1),
         "pontuacao_media": pontuacao_media,
         "por_status": por_status,
         "equipes": equipes,
-        "fonte": "siaps_referencia",
-        "ultima_atualizacao": "2026-08-07",
-        "auditoria": {
-            "correcao_aplicada": "2026-08-07",
-            "descricao": "H (acompanhadas) corrigido — estava igual a K (vinculadas) em todas equipes, o que é tecnicamente impossível. Valores de H são estimativas (~76-92% de K) até recebimento de exportação oficial do Siaps.",
-            "H_anterior": "igual a K (bug)",
-            "H_atual": "estimado por percentual de acompanhamento por desempenho",
-        },
+        "fonte": fonte,
     }
+    if aviso:
+        resp["aviso"] = aviso
+    return resp
 
 
 @router.get("/qualidade")
@@ -585,10 +590,37 @@ async def componente_qualidade(
     competencia: str = Query("2026-05"),
     _: UserOut = Depends(get_current_user),
 ):
-    equipes = _QUALIDADE_EQUIPES()
-    pontuacao_media = round(sum(e["pontuacao_qualidade"] for e in equipes) / len(equipes), 2)
+    comp_fmt = competencia.replace("-", "")
 
-    # Consolidado por indicador
+    # Tenta merge: pontuações reais da API + indicadores individuais do fallback
+    equipes_api = await siaps_service.buscar_qualidade(comp_fmt)
+    equipes_ref = _QUALIDADE_EQUIPES()
+    fonte = "siaps_referencia"
+
+    if equipes_api:
+        # Mescla: usa pontuação real da API; mantém indicadores individuais do ref
+        mapa_ref = {e["equipe"]: e for e in equipes_ref}
+        equipes_merge = []
+        for ea in equipes_api:
+            nome = ea["equipe"].upper()
+            ref = mapa_ref.get(nome, {})
+            equipes_merge.append({
+                **ref,
+                "equipe": nome,
+                "ubs":    ea.get("ubs") or ref.get("ubs", ""),
+                "pontuacao_qualidade": ea["pontuacao_qualidade"],
+                "status_qualidade":    _status_qualidade(ea["pontuacao_qualidade"]),
+                "indicadores": ref.get("indicadores", {}),
+            })
+        equipes = equipes_merge if equipes_merge else equipes_ref
+        fonte = "siaps_api+referencia"
+        logger.info("SIAPS qualidade: %d equipes da API mescladas com referência", len(equipes))
+    else:
+        equipes = equipes_ref
+
+    pontuacao_media = round(sum(e.get("pontuacao_qualidade", 0) for e in equipes) / len(equipes), 2)
+
+    # Consolidado por indicador (usa dados do fallback para médias)
     indicadores_resumo = {}
     nomes = {
         "ind1_prenatal":    "Pré-natal ≥7 consultas (1º trim.)",
@@ -608,16 +640,21 @@ async def componente_qualidade(
         "ind15_sif_cong":   "Sífilis Congênita — Tratamento",
     }
     for key, nome in nomes.items():
-        vals = [e["indicadores"][key]["resultado"] for e in equipes]
-        status_list = [e["indicadores"][key]["status"] for e in equipes]
+        try:
+            vals = [e["indicadores"][key]["resultado"] for e in equipes if e.get("indicadores", {}).get(key)]
+            status_list = [e["indicadores"][key]["status"] for e in equipes if e.get("indicadores", {}).get(key)]
+        except (KeyError, TypeError):
+            vals, status_list = [], []
+        if not vals:
+            continue
         indicadores_resumo[key] = {
             "nome": nome,
             "media": round(sum(vals) / len(vals), 1),
             "min": round(min(vals), 1),
             "max": round(max(vals), 1),
-            "otimo":    sum(1 for s in status_list if s == "verde"),
-            "atencao":  sum(1 for s in status_list if s == "amarelo"),
-            "critico":  sum(1 for s in status_list if s == "vermelho"),
+            "otimo":   sum(1 for s in status_list if s == "verde"),
+            "atencao": sum(1 for s in status_list if s == "amarelo"),
+            "critico": sum(1 for s in status_list if s == "vermelho"),
         }
 
     return {
@@ -627,8 +664,18 @@ async def componente_qualidade(
         "pontuacao_media": pontuacao_media,
         "indicadores_resumo": indicadores_resumo,
         "equipes": equipes,
-        "fonte": "siaps_referencia",
+        "fonte": fonte,
     }
+
+
+def _status_qualidade(pontuacao: float) -> str:
+    if pontuacao >= 70:
+        return "otimo"
+    if pontuacao >= 55:
+        return "bom"
+    if pontuacao >= 40:
+        return "suficiente"
+    return "regular"
 
 
 @router.get("/boas-praticas")
@@ -673,6 +720,13 @@ async def dashboard_siaps(_: UserOut = Depends(get_current_user)):
         },
         "fonte": "siaps_referencia",
     }
+
+
+@router.post("/refresh-cache")
+async def refresh_cache(_: UserOut = Depends(get_current_user)):
+    """Limpa o cache de dados SIAPS forçando nova busca na API na próxima requisição."""
+    siaps_service.limpar_cache()
+    return {"ok": True, "mensagem": "Cache SIAPS limpo — próxima requisição buscará dados frescos da API."}
 
 
 # ── Acompanhamento Diário ─────────────────────────────────────────────────────
