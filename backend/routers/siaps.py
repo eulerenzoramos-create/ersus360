@@ -738,18 +738,17 @@ async def diagnostico_api():
     auth_ok   = await siaps_service._autenticar()
     token_ok  = bool(siaps_service._auth.get("token"))
     cookie_ok = bool(siaps_service._auth.get("cookies"))
+    # Testa API pública SIAPS (sem autenticação)
+    dados_api = await siaps_service.buscar_qualidade("202601")
     return {
         "credenciais_configuradas": cpf_ok and senha_ok,
         "SIAPS_CPF_definido":   cpf_ok,
         "SIAPS_SENHA_definida": senha_ok,
         "autenticacao_ok": auth_ok,
         "metodo": "bearer_token" if token_ok else ("cookie" if cookie_ok else "nenhum"),
-        "instrucao": (
-            "Configure SIAPS_CPF e SIAPS_SENHA no Railway com o CPF (sem pontos) "
-            "e a senha gov.br da Rosangela."
-        ) if not (cpf_ok and senha_ok) else (
-            "Credenciais presentes." + (" Autenticação OK!" if auth_ok else " Autenticação FALHOU — verifique CPF/senha.")
-        ),
+        "api_publica_siaps": "OK" if dados_api else "FALHOU",
+        "equipes_encontradas": len(dados_api) if dados_api else 0,
+        "instrucao": "API pública SIAPS ativa!" if dados_api else "Usando dados de referência Mai/2026.",
     }
 
 
