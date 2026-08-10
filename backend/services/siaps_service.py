@@ -2,11 +2,15 @@
 SIAPS Service — Integração com eGestor APS / SISAB / SIAPS
 Busca dados reais do Componente Qualidade e Vínculo e Acompanhamento.
 
-Estratégia em cascata (tenta a mais simples primeiro):
-  1. eGestor APS API pública — egestorab.saude.gov.br/api/v1
-  2. SISAB dados abertos    — apidadosabertos.saude.gov.br
-  3. SIAPS API direta       — siaps.saude.gov.br (com ou sem auth)
-  4. Fallback               — dados de referência Mai/2026 hardcoded
+Estratégia de autenticação em cascata:
+  1. Token Bearer via gov.br OAuth2 (SIAPS_CPF + SIAPS_SENHA no Railway)
+  2. Session cookie via login direto no SIAPS
+  3. eGestor APS API sem autenticação (dados públicos)
+  4. Fallback: dados de referência Mai/2026 hardcoded
+
+Credenciais necessárias no Railway:
+  SIAPS_CPF   — CPF sem pontos/traços (ex: 12345678901)
+  SIAPS_SENHA — Senha gov.br
 """
 from __future__ import annotations
 import logging
@@ -24,11 +28,15 @@ _EGESTOR    = "https://egestorab.saude.gov.br/api/v1"
 _SISAB      = "https://sisab.saude.gov.br"
 _DADOSAB    = "https://apidadosabertos.saude.gov.br"
 _SIAPS      = "https://siaps.saude.gov.br"
-_TIMEOUT    = 12
+_GOVBR_SSO  = "https://sso.acesso.gov.br"
+_TIMEOUT    = 20
 
-# Cache simples em memória — 30 minutos por chave
+# ── Cache em memória ──────────────────────────────────────────────────────────
 _cache: dict[str, tuple[Any, float]] = {}
-_TTL = 1800
+_TTL = 1800  # 30 minutos
+
+# ── Auth token cache ──────────────────────────────────────────────────────────
+_auth: dict[str, Any] = {}   # {"token": str, "cookies": dict, "expira": float}
 
 
 def _cached(key: str, data: Any) -> Any:
@@ -43,13 +51,160 @@ def _from_cache(key: str) -> Any | None:
     return None
 
 
+def _auth_headers() -> dict:
+    token = _auth.get("token")
+    if token:
+        return {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+            "User-Agent": "ERSUS360/2.0 FMS-Apui-AM",
+        }
+    return {
+        "Accept": "application/json",
+        "User-Agent": "ERSUS360/2.0 FMS-Apui-AM",
+    }
+
+
+def _auth_cookies() -> dict:
+    return _auth.get("cookies") or {}
+
+
+async def _autenticar() -> bool:
+    """
+    Tenta autenticar no SIAPS/gov.br via CPF+senha (Railway env vars).
+    Estratégia 1: Bearer token via /api/auth/login do SIAPS
+    Estratégia 2: Bearer token via gov.br OAuth2 password grant
+    Estratégia 3: Session cookie via form login gov.br
+    Retorna True se alguma estratégia funcionou.
+    """
+    cpf   = (settings.SIAPS_CPF or "").strip().replace(".", "").replace("-", "")
+    senha = (settings.SIAPS_SENHA or "").strip()
+
+    if not cpf or not senha:
+        logger.debug("SIAPS auth: SIAPS_CPF/SIAPS_SENHA não configurados")
+        return False
+
+    # Verifica se ainda temos token válido (expira em 55 min)
+    if _auth.get("token") and _auth.get("expira", 0) > time.time():
+        return True
+    if _auth.get("cookies") and _auth.get("expira", 0) > time.time():
+        return True
+
+    async with httpx.AsyncClient(timeout=_TIMEOUT, verify=False, follow_redirects=True) as c:
+
+        # ── Estratégia 1: SIAPS /api/auth/login ──────────────────────────────
+        try:
+            r = await c.post(
+                f"{_SIAPS}/api/auth/login",
+                json={"cpf": cpf, "senha": senha},
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
+            )
+            if r.status_code in (200, 201):
+                data = r.json()
+                token = data.get("access_token") or data.get("token") or data.get("jwt")
+                if token:
+                    _auth["token"]  = token
+                    _auth["expira"] = time.time() + 3300  # 55 min
+                    logger.info("SIAPS auth: token via /api/auth/login OK")
+                    return True
+        except Exception as e:
+            logger.debug("SIAPS auth estratégia 1 falhou: %s", e)
+
+        # ── Estratégia 2: gov.br OAuth2 password grant ────────────────────────
+        for client_id in ("siaps", "egestor-aps", "sisab"):
+            try:
+                r = await c.post(
+                    f"{_GOVBR_SSO}/oauth2/token",
+                    data={
+                        "grant_type": "password",
+                        "username": cpf,
+                        "password": senha,
+                        "scope": "openid profile email govbr_confiabilidades",
+                        "client_id": client_id,
+                    },
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
+                if r.status_code == 200:
+                    data = r.json()
+                    token = data.get("access_token")
+                    if token:
+                        _auth["token"]  = token
+                        _auth["expira"] = time.time() + int(data.get("expires_in", 3300))
+                        logger.info("SIAPS auth: token gov.br OAuth2 OK (client_id=%s)", client_id)
+                        return True
+            except Exception as e:
+                logger.debug("SIAPS auth gov.br OAuth2 (client_id=%s) falhou: %s", client_id, e)
+
+        # ── Estratégia 3: eGestor APS login ──────────────────────────────────
+        try:
+            r = await c.post(
+                f"{_EGESTOR}/auth/login",
+                json={"cpf": cpf, "senha": senha},
+                headers={"Content-Type": "application/json"},
+            )
+            if r.status_code in (200, 201):
+                data = r.json()
+                token = data.get("access_token") or data.get("token")
+                if token:
+                    _auth["token"]  = token
+                    _auth["expira"] = time.time() + 3300
+                    logger.info("SIAPS auth: token eGestor OK")
+                    return True
+        except Exception as e:
+            logger.debug("SIAPS auth eGestor falhou: %s", e)
+
+        # ── Estratégia 4: form login SIAPS com cookie de sessão ───────────────
+        try:
+            # Busca página de login para pegar CSRF token / hidden fields
+            r_get = await c.get(f"{_SIAPS}/login", headers={"Accept": "text/html"})
+            cookies = dict(r_get.cookies)
+
+            # Extrai CSRF ou viewstate se houver
+            extra: dict = {}
+            text = r_get.text
+            for field in ("_csrf", "javax.faces.ViewState", "lt", "execution"):
+                import re
+                m = re.search(rf'name="{field}"[^>]*value="([^"]+)"', text)
+                if m:
+                    extra[field] = m.group(1)
+
+            r_post = await c.post(
+                f"{_SIAPS}/login",
+                data={"cpf": cpf, "senha": senha, **extra},
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                cookies=cookies,
+            )
+            merged_cookies = {**cookies, **dict(r_post.cookies)}
+            # Sucesso se redirecionou para página autenticada (não /login)
+            if r_post.status_code in (200, 302) and "/login" not in str(r_post.url):
+                _auth["cookies"] = merged_cookies
+                _auth["expira"]  = time.time() + 3300
+                logger.info("SIAPS auth: sessão via cookie OK")
+                return True
+        except Exception as e:
+            logger.debug("SIAPS auth cookie falhou: %s", e)
+
+    logger.warning("SIAPS auth: todas as estratégias falharam para CPF %s***", cpf[:3])
+    return False
+
+
 async def _get(url: str, params: dict | None = None, headers: dict | None = None) -> Any | None:
+    """GET com auth automática (token Bearer ou cookie de sessão)."""
+    hdrs = headers or _auth_headers()
+    cookies = _auth_cookies()
     try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT, verify=False, follow_redirects=True) as c:
-            r = await c.get(url, params=params or {}, headers=headers or {
-                "Accept": "application/json",
-                "User-Agent": "ERSUS360/2.0 FMS-Apui-AM",
-            })
+        async with httpx.AsyncClient(
+            timeout=_TIMEOUT, verify=False, follow_redirects=True,
+            cookies=cookies,
+        ) as c:
+            r = await c.get(url, params=params or {}, headers=hdrs)
+            if r.status_code == 401 and _auth.get("token"):
+                # Token expirou — limpa e tenta sem auth
+                _auth.clear()
+                r = await c.get(url, params=params or {}, headers={
+                    "Accept": "application/json",
+                    "User-Agent": "ERSUS360/2.0 FMS-Apui-AM",
+                })
             if r.status_code == 200:
                 try:
                     return r.json()
@@ -126,6 +281,9 @@ async def buscar_qualidade(competencia: str = "202605") -> list[dict] | None:
     cached = _from_cache(cache_key)
     if cached is not None:
         return cached
+
+    # Tenta autenticar com credenciais do Railway
+    await _autenticar()
 
     ibge_long  = _IBGE
     ibge_short = _IBGE_CURTO
@@ -260,6 +418,8 @@ async def buscar_vinculo(competencia: str = "202605") -> list[dict] | None:
     cached = _from_cache(cache_key)
     if cached is not None:
         return cached
+
+    await _autenticar()
 
     ibge_long  = _IBGE
     ibge_short = _IBGE_CURTO

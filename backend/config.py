@@ -53,6 +53,10 @@ class Settings(BaseSettings):
         """True somente se URL + credenciais estiverem presentes. Não indica conectividade real."""
         return bool(self.PEC_BASE_URL and self.PEC_CLIENT_ID and self.PEC_CLIENT_SECRET)
 
+    # SIAPS / gov.br — credenciais para busca de dados reais
+    SIAPS_CPF: str = ""        # CPF sem pontos/traços (ex: 12345678901)
+    SIAPS_SENHA: str = ""      # Senha gov.br
+
     # App
     APP_NAME: str = "ERSUS 360"
     MUNICIPIO_NOME: str = "Apuí"

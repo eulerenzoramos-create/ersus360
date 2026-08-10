@@ -729,6 +729,30 @@ async def refresh_cache(_: UserOut = Depends(get_current_user)):
     return {"ok": True, "mensagem": "Cache SIAPS limpo — próxima requisição buscará dados frescos da API."}
 
 
+@router.get("/diagnostico-api")
+async def diagnostico_api(_: UserOut = Depends(get_current_user)):
+    """Testa autenticação SIAPS e retorna status das credenciais e conexão."""
+    from config import settings as cfg
+    cpf_ok    = bool(cfg.SIAPS_CPF)
+    senha_ok  = bool(cfg.SIAPS_SENHA)
+    auth_ok   = await siaps_service._autenticar()
+    token_ok  = bool(siaps_service._auth.get("token"))
+    cookie_ok = bool(siaps_service._auth.get("cookies"))
+    return {
+        "credenciais_configuradas": cpf_ok and senha_ok,
+        "SIAPS_CPF_definido":   cpf_ok,
+        "SIAPS_SENHA_definida": senha_ok,
+        "autenticacao_ok": auth_ok,
+        "metodo": "bearer_token" if token_ok else ("cookie" if cookie_ok else "nenhum"),
+        "instrucao": (
+            "Configure SIAPS_CPF e SIAPS_SENHA no Railway com o CPF (sem pontos) "
+            "e a senha gov.br da Rosangela."
+        ) if not (cpf_ok and senha_ok) else (
+            "Credenciais presentes." + (" Autenticação OK!" if auth_ok else " Autenticação FALHOU — verifique CPF/senha.")
+        ),
+    }
+
+
 # ── Acompanhamento Diário ─────────────────────────────────────────────────────
 # CORREÇÃO 2026-08-07: equipes corrigidas para espelhar as 9 ESF do componente vínculo.
 # Anteriormente listava GUARIBA, RIO NOVO, SUCURIÚ (inexistentes no componente).
