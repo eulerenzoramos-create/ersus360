@@ -1,5 +1,18 @@
 // src/App.tsx — ERSUS 360 · Sidebar estilo VersaSaúde (3 níveis)
-import { useState } from "react";
+import { useState, createContext, useContext } from "react";
+
+// ── Auth Context — disponível para qualquer componente filho ──────────────────
+export interface AuthUser {
+  nome: string;
+  perfil: string;
+  municipio_ibge: string;   // "" = assessoria (acesso total)
+  municipio: string;
+  perfis_assessoria: boolean;
+}
+export const AuthContext = createContext<AuthUser>({
+  nome: "", perfil: "", municipio_ibge: "", municipio: "", perfis_assessoria: false,
+});
+export const useAuth = () => useContext(AuthContext);
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from "react-router-dom";
 import {
@@ -525,7 +538,15 @@ const CARGO_LABEL: Record<string,string> = {
 };
 
 // ── Layout ───────────────────────────────────────────────────────────────────
-function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:React.ReactNode; nomeUsuario:string; perfilUsuario:string; onLogout:()=>void }) {
+function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipioNome, perfisAssessoria, onLogout }: {
+  children: React.ReactNode;
+  nomeUsuario: string;
+  perfilUsuario: string;
+  municipioIbge: string;
+  municipioNome: string;
+  perfisAssessoria: boolean;
+  onLogout: () => void;
+}) {
   const ini = (nomeUsuario||"G").split(" ").map((w:string)=>w[0]).join("").slice(0,2).toUpperCase();
   const podeFin = PODE_FIN.has(perfilUsuario);
   const podeUsr = PODE_USR.has(perfilUsuario);
@@ -533,6 +554,13 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
   const podeAud = PODE_AUD.has(perfilUsuario);
   const cargoExib = CARGO_LABEL[perfilUsuario] || "Usuário";
   return (
+    <AuthContext.Provider value={{
+      nome: nomeUsuario,
+      perfil: perfilUsuario,
+      municipio_ibge: municipioIbge,
+      municipio: municipioNome,
+      perfis_assessoria: perfisAssessoria,
+    }}>
     <div style={{display:"flex",flexDirection:"column",height:"100vh",fontFamily:"system-ui,-apple-system,sans-serif"}}>
 
       {/* ── Header ── */}
@@ -563,8 +591,12 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
         {/* Breadcrumb / Município */}
         <div style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.06)",borderRadius:8,padding:"6px 12px",border:"1px solid rgba(255,255,255,.1)"}}>
           <MapPin size={13} color="#38bdf8"/>
-          <span style={{color:"#e2e8f0",fontSize:13,fontWeight:700}}>Apuí / AM</span>
-          <span style={{color:"#475569",fontSize:11}}>· IBGE 1300144</span>
+          <span style={{color:"#e2e8f0",fontSize:13,fontWeight:700}}>
+            {perfisAssessoria ? "Assessoria" : (municipioNome || "Apuí / AM")}
+          </span>
+          {!perfisAssessoria && (
+            <span style={{color:"#475569",fontSize:11}}>· IBGE {municipioIbge || "1300144"}</span>
+          )}
         </div>
 
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
@@ -965,23 +997,41 @@ function Layout({ children, nomeUsuario, perfilUsuario, onLogout }: { children:R
         <main id="ersus-main" style={{flex:1,overflow:"auto",background:"#f1f5f9"}}>{children}</main>
       </div>
     </div>
+    </AuthContext.Provider>
   );
 }
 
 // ── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [autenticado, setAutenticado] = useState(!!localStorage.getItem("ersus_token"));
-  const [nomeUsuario, setNomeUsuario] = useState(localStorage.getItem("ersus_nome") ?? "");
-  const [perfilUsuario, setPerfilUsuario] = useState(localStorage.getItem("ersus_perfil") ?? "");
+  const [autenticado, setAutenticado]         = useState(!!localStorage.getItem("ersus_token"));
+  const [nomeUsuario, setNomeUsuario]         = useState(localStorage.getItem("ersus_nome") ?? "");
+  const [perfilUsuario, setPerfilUsuario]     = useState(localStorage.getItem("ersus_perfil") ?? "");
+  const [municipioIbge, setMunicipioIbge]     = useState(localStorage.getItem("ersus_municipio_ibge") ?? "");
+  const [municipioNome, setMunicipioNome]     = useState(localStorage.getItem("ersus_municipio") ?? "");
+  const [perfisAssessoria, setPerfisAssessoria] = useState(
+    localStorage.getItem("ersus_perfis_assessoria") === "true"
+  );
 
-  const handleLogin = (_token: string, perfil: string, nome: string) => {
-    setNomeUsuario(nome); setPerfilUsuario(perfil); setAutenticado(true);
+  const handleLogin = (
+    _token: string,
+    perfil: string,
+    nome: string,
+    ibge: string | null,
+    municipio: string,
+    assessoria: boolean,
+  ) => {
+    setNomeUsuario(nome);
+    setPerfilUsuario(perfil);
+    setMunicipioIbge(ibge ?? "");
+    setMunicipioNome(municipio);
+    setPerfisAssessoria(assessoria);
+    setAutenticado(true);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("ersus_token");
-    localStorage.removeItem("ersus_perfil");
-    localStorage.removeItem("ersus_nome");
+    ["ersus_token","ersus_perfil","ersus_nome",
+     "ersus_municipio_ibge","ersus_municipio","ersus_perfis_assessoria"]
+      .forEach(k => localStorage.removeItem(k));
     setAutenticado(false);
   };
 
@@ -992,7 +1042,14 @@ export default function App() {
   return (
     <QueryClientProvider client={qc}>
       <BrowserRouter>
-        <Layout nomeUsuario={nomeUsuario} perfilUsuario={perfilUsuario} onLogout={handleLogout}>
+        <Layout
+          nomeUsuario={nomeUsuario}
+          perfilUsuario={perfilUsuario}
+          municipioIbge={municipioIbge}
+          municipioNome={municipioNome}
+          perfisAssessoria={perfisAssessoria}
+          onLogout={handleLogout}
+        >
           <Routes>
             <Route path="/"                          element={<PainelGestor/>}/>
             <Route path="/score"                     element={<ScoreERSUS/>}/>

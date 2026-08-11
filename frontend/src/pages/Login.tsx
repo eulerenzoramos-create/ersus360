@@ -3,7 +3,16 @@ import { useState, FormEvent } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { api } from "../lib/api";
 
-interface Props { onLogin: (token: string, perfil: string, nome: string) => void }
+interface Props {
+  onLogin: (
+    token: string,
+    perfil: string,
+    nome: string,
+    municipio_ibge: string | null,
+    municipio: string,
+    perfis_assessoria: boolean,
+  ) => void
+}
 
 export default function Login({ onLogin }: Props) {
   const [email, setEmail]       = useState("");
@@ -23,12 +32,18 @@ export default function Login({ onLogin }: Props) {
       const { data } = await api.post("/api/auth/login", params, {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
-      const perfil = data.user?.role ?? "financeiro";
-      const nome   = data.user?.nome ?? email;
-      localStorage.setItem("ersus_token",  data.access_token);
-      localStorage.setItem("ersus_perfil", perfil);
-      localStorage.setItem("ersus_nome",   nome);
-      onLogin(data.access_token, perfil, nome);
+      const perfil             = data.user?.role ?? "financeiro";
+      const nome               = data.user?.nome ?? email;
+      const municipio_ibge     = data.user?.municipio_ibge ?? null;
+      const municipio          = data.user?.municipio ?? "";
+      const perfis_assessoria  = data.user?.perfis_assessoria ?? false;
+      localStorage.setItem("ersus_token",             data.access_token);
+      localStorage.setItem("ersus_perfil",            perfil);
+      localStorage.setItem("ersus_nome",              nome);
+      localStorage.setItem("ersus_municipio_ibge",    municipio_ibge ?? "");
+      localStorage.setItem("ersus_municipio",         municipio);
+      localStorage.setItem("ersus_perfis_assessoria", String(perfis_assessoria));
+      onLogin(data.access_token, perfil, nome, municipio_ibge, municipio, perfis_assessoria);
     } catch {
       setErro("Usuário ou senha inválidos.");
     } finally {

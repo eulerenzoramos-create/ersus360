@@ -21,7 +21,7 @@ from typing import Any
 import httpx
 from fastapi import APIRouter, Depends, Path, Query, HTTPException
 
-from routers.auth import get_current_user, UserOut
+from routers.auth import get_current_user, UserOut, require_municipio_access
 from services import siaps_municipio
 
 router = APIRouter(prefix="/api/cvat", tags=["CVAT — Multimunicípio"])
@@ -109,8 +109,9 @@ def _calcular_metricas(equipes: list[dict], populacao: int | None) -> dict:
 async def cvat_vinculo(
     ibge: str = Path(..., description="Código IBGE do município (7 dígitos)", regex=r"^\d{7}$"),
     competencia: str = Query("202605", description="Competência AAAAMM", regex=r"^\d{6}$"),
-    _: UserOut = Depends(get_current_user),
+    current_user: UserOut = Depends(get_current_user),
 ):
+    require_municipio_access(ibge, current_user)
     """
     Retorna dados do Componente Vínculo e Acompanhamento Territorial para qualquer município.
 
@@ -170,8 +171,9 @@ async def cvat_vinculo(
 @router.get("/{ibge}/status-fontes")
 async def cvat_status_fontes(
     ibge: str = Path(..., description="Código IBGE do município", regex=r"^\d{7}$"),
-    _: UserOut = Depends(get_current_user),
+    current_user: UserOut = Depends(get_current_user),
 ):
+    require_municipio_access(ibge, current_user)
     """
     Verifica quais fontes estão configuradas e acessíveis para o município.
     """
