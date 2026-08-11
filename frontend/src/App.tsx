@@ -371,6 +371,7 @@ import AnaliseMunicipio             from "./pages/AnaliseMunicipio";
 import CvatDashboard                from "./pages/CvatDashboard";
 import Inconsistencias              from "./pages/Inconsistencias";
 import RelatorioERSUS               from "./pages/RelatorioERSUS";
+import PainelIntegracoes            from "./pages/PainelIntegracoes";
 import { SinoAlertas } from "./components/SinoAlertas";
 import ExportarRelatorio from "./components/ExportarRelatorio";
 
@@ -958,8 +959,9 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
             {podeRH  && <L1 to="/rh"              label="Recursos Humanos"   Icon={UserCog}/>}
             {podeRH  && <L1 to="/cadastros"       label="Cadastros Mestres"  Icon={Layers}/>}
             {podeUsr && <L1 to="/usuarios"        label="Gestão de Usuários" Icon={Users}/>}
-            <L1 to="/inconsistencias"   label="Inconsistências ★"    Icon={AlertTriangle}/>
+            <L1 to="/inconsistencias"   label="Inconsistências ★"      Icon={AlertTriangle}/>
             <L1 to="/relatorio-ersus"   label="Relatórios ERSUS 360 ★" Icon={FileText}/>
+            <L1 to="/integracoes"       label="Painel de Integrações ★" Icon={Plug}/>
 
             {podeAud && (
             <Acc1 label="Auditoria e Controle">
@@ -1091,6 +1093,9 @@ export default function App() {
             {/* Relatórios ERSUS 360 */}
             <Route path="/relatorio-ersus"           element={<RelatorioERSUS/>}/>
             <Route path="/relatorio-ersus/*"         element={<RelatorioERSUS/>}/>
+            {/* Painel de Integrações */}
+            <Route path="/integracoes"               element={<PainelIntegracoes/>}/>
+            <Route path="/integracoes/*"             element={<PainelIntegracoes/>}/>
             {/* POEPS */}
             <Route path="/poeps/*"                   element={<Indicadores/>}/>
             {/* PSE */}
