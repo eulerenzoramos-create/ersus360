@@ -56,9 +56,9 @@ def _ABRANGENCIA():
 
 
 # ── Componente Vínculo e Acompanhamento Territorial ───────────────────────────
-# Competência Abr/2026 — Tipo Equipe: eSF — DADO PRELIMINAR
+# Competência Mai/2026 — Tipo Equipe: eSF
 #
-# LEGENDA DAS COLUNAS (conforme extração Siaps):
+# LEGENDA DAS COLUNAS (conforme extração Siaps — Visão por Variável):
 #   A  = pessoas cadastradas COM visita ACS na competência
 #   B  = pessoas cadastradas SEM visita ACS na competência
 #   C  = total cadastrados (A + B)
@@ -66,17 +66,13 @@ def _ABRANGENCIA():
 #   E  = crianças < 2 anos acompanhadas
 #   F  = hipertensos acompanhados
 #   G  = diabéticos acompanhados
-#   H  = pessoas ACOMPANHADAS (subconjunto de K — receberam atenção ativa)  ← CORRIGIDO
+#   H  = pessoas ACOMPANHADAS (estimado ~85-92% de K conforme desempenho)
 #   I  = denominador de referência (variável por equipe)
-#   J  = pendente de validação (valor 0 — aguarda exportação oficial)
-#   K  = pessoas VINCULADAS à equipe (≈ C, após validação de cadastros)    ← CORRIGIDO
+#   J  = pendente de validação (valor 0)
+#   K  = pessoas VINCULADAS à equipe (= coluna C da extração SIAPS Mai/2026)
 #
-# CORREÇÃO APLICADA em 2026-08-07:
-#   Bug anterior: H = K em todas as equipes (acompanhadas = vinculadas, impossível).
-#   H foi ajustado para valor estimado (~85-92% de K conforme desempenho da equipe).
-#   ⚠️  Valores de H são ESTIMATIVAS até recebimento do arquivo oficial do Siaps.
-#   Solicitar ao responsável: exportar "Componente Vínculo e Acompanhamento Territorial"
-#   competência Abr/2026 em siaps.saude.gov.br > Relatórios > por Equipe.
+# Fonte: SIAPS Componente Vínculo — Visão por Variável "Pessoas c/ Cadastro Individual" — Mai/2026
+# H permanece estimado (~mesmo percentual de K do mês anterior) até extração oficial por equipe.
 
 @lru_cache(maxsize=1)
 def _VINCULO_EQUIPES():
@@ -86,9 +82,9 @@ def _VINCULO_EQUIPES():
             "equipe": "CACHOEIRA",
             "tipo": "eSF",
             "parametro": 2500,
-            "A": 6,    "B": 1559, "C": 1565,
-            "D": 664,  "E": 261,  "F": 550,  "G": 77,
-            "H": 1366, "I": 3027, "J": 0,    "K": 1552,  # H estimado (~88% de K)
+            "A": 7,    "B": 1579, "C": 1586,
+            "D": 670,  "E": 266,  "F": 560,  "G": 76,
+            "H": 1395, "I": 3419, "J": 0,    "K": 1586,  # H estimado (~88% de K)
             "pontuacao": 8.25,
             "status": "bom",
             "H_pendente_validacao": True,
@@ -98,9 +94,9 @@ def _VINCULO_EQUIPES():
             "equipe": "SÃO SEBASTIÃO",
             "tipo": "eSF",
             "parametro": 2500,
-            "A": 5,    "B": 1614, "C": 1619,
-            "D": 748,  "E": 319,  "F": 466,  "G": 52,
-            "H": 1379, "I": 2709, "J": 0,    "K": 1585,  # H estimado (~87% de K)
+            "A": 3,    "B": 1635, "C": 1638,
+            "D": 759,  "E": 326,  "F": 460,  "G": 55,
+            "H": 1425, "I": 2679, "J": 0,    "K": 1638,  # H estimado (~87% de K)
             "pontuacao": 8.25,
             "status": "bom",
             "H_pendente_validacao": True,
@@ -110,9 +106,9 @@ def _VINCULO_EQUIPES():
             "equipe": "ACARI",
             "tipo": "eSF",
             "parametro": 2500,
-            "A": 2,    "B": 1637, "C": 1639,
-            "D": 735,  "E": 272,  "F": 546,  "G": 58,
-            "H": 1418, "I": 2656, "J": 0,    "K": 1611,  # H estimado (~88% de K)
+            "A": 2,    "B": 1655, "C": 1657,
+            "D": 740,  "E": 280,  "F": 553,  "G": 57,
+            "H": 1458, "I": 2653, "J": 0,    "K": 1657,  # H estimado (~88% de K)
             "pontuacao": 8.25,
             "status": "bom",
             "H_pendente_validacao": True,
@@ -122,9 +118,9 @@ def _VINCULO_EQUIPES():
             "equipe": "TRÊS ESTADOS",
             "tipo": "eSF",
             "parametro": 2500,
-            "A": 5,    "B": 1040, "C": 1045,
-            "D": 335,  "E": 162,  "F": 478,  "G": 60,
-            "H": 849,  "I": 1942, "J": 0,    "K": 1035,  # H estimado (~82% de K — suficiente)
+            "A": 5,    "B": 1064, "C": 1069,
+            "D": 341,  "E": 165,  "F": 489,  "G": 60,
+            "H": 877,  "I": 2051, "J": 0,    "K": 1069,  # H estimado (~82% de K — suficiente)
             "pontuacao": 5.00,
             "status": "suficiente",
             "H_pendente_validacao": True,
@@ -134,9 +130,9 @@ def _VINCULO_EQUIPES():
             "equipe": "JUMA",
             "tipo": "eSF",
             "parametro": 2500,
-            "A": 5,    "B": 1756, "C": 1761,
-            "D": 750,  "E": 330,  "F": 577,  "G": 75,
-            "H": 1542, "I": 2847, "J": 0,    "K": 1732,  # H estimado (~89% de K)
+            "A": 4,    "B": 1765, "C": 1769,
+            "D": 743,  "E": 332,  "F": 583,  "G": 73,
+            "H": 1574, "I": 2827, "J": 0,    "K": 1769,  # H estimado (~89% de K)
             "pontuacao": 8.25,
             "status": "bom",
             "H_pendente_validacao": True,
@@ -146,9 +142,9 @@ def _VINCULO_EQUIPES():
             "equipe": "LIBERDADE",
             "tipo": "eSF",
             "parametro": 2500,
-            "A": 4,    "B": 1793, "C": 1797,
-            "D": 593,  "E": 282,  "F": 820,  "G": 89,
-            "H": 1641, "I": 3074, "J": 0,    "K": 1784,  # H estimado (~92% de K — ótimo)
+            "A": 1,    "B": 1807, "C": 1808,
+            "D": 597,  "E": 285,  "F": 819,  "G": 87,
+            "H": 1663, "I": 3094, "J": 0,    "K": 1808,  # H estimado (~92% de K — ótimo)
             "pontuacao": 10.00,
             "status": "otimo",
             "H_pendente_validacao": True,
@@ -159,8 +155,8 @@ def _VINCULO_EQUIPES():
             "tipo": "eSF",
             "parametro": 2500,
             "A": 2,    "B": 771,  "C": 773,
-            "D": 237,  "E": 141,  "F": 348,  "G": 35,
-            "H": 594,  "I": 1176, "J": 0,    "K": 761,   # H estimado (~78% de K — regular)
+            "D": 240,  "E": 138,  "F": 349,  "G": 35,
+            "H": 603,  "I": 1283, "J": 0,    "K": 773,   # H estimado (~78% de K — regular)
             "pontuacao": 3.25,
             "status": "regular",
             "H_pendente_validacao": True,
@@ -170,9 +166,9 @@ def _VINCULO_EQUIPES():
             "equipe": "JK",
             "tipo": "eSF",
             "parametro": 2500,
-            "A": 8,    "B": 1532, "C": 1540,
-            "D": 589,  "E": 262,  "F": 571,  "G": 75,
-            "H": 1302, "I": 2670, "J": 0,    "K": 1497,  # H estimado (~87% de K)
+            "A": 7,    "B": 1528, "C": 1535,
+            "D": 587,  "E": 257,  "F": 581,  "G": 70,
+            "H": 1335, "I": 2741, "J": 0,    "K": 1535,  # H estimado (~87% de K)
             "pontuacao": 8.25,
             "status": "bom",
             "H_pendente_validacao": True,
@@ -182,9 +178,9 @@ def _VINCULO_EQUIPES():
             "equipe": "ESTRADA NOVA",
             "tipo": "eSF",
             "parametro": 2500,
-            "A": 0,    "B": 822,  "C": 822,
-            "D": 269,  "E": 139,  "F": 368,  "G": 30,
-            "H": 613,  "I": 1404, "J": 0,    "K": 806,   # H estimado (~76% de K — regular)
+            "A": 0,    "B": 814,  "C": 814,
+            "D": 271,  "E": 138,  "F": 365,  "G": 30,
+            "H": 619,  "I": 1375, "J": 0,    "K": 814,   # H estimado (~76% de K — regular)
             "pontuacao": 3.25,
             "status": "regular",
             "H_pendente_validacao": True,
@@ -527,7 +523,7 @@ _BOAS_PRATICAS = _gerar_boas_praticas()
 
 @router.get("/abrangencia")
 async def abrangencia(_: UserOut = Depends(get_current_user)):
-    return {**_ABRANGENCIA(), "competencia": "Abr/2026", "fonte": "siaps_referencia"}
+    return {**_ABRANGENCIA(), "competencia": "Mai/2026", "fonte": "siaps_referencia"}
 
 
 @router.get("/vinculo-acompanhamento")
@@ -549,7 +545,7 @@ async def vinculo_acompanhamento(
         equipes = _VINCULO_EQUIPES()
         fonte = "siaps_referencia"
         dado_preliminar = True
-        aviso = "API SIAPS indisponível — dados de referência Mai/2026 (hardcoded)."
+        aviso = "API SIAPS indisponível — dados de referência Mai/2026."
 
     total_vinculadas   = sum(e["K"] for e in equipes)
     total_acompanhadas = sum(e["H"] for e in equipes)
@@ -682,7 +678,7 @@ def _status_qualidade(pontuacao: float) -> str:
 async def boas_praticas(_: UserOut = Depends(get_current_user)):
     return {
         "municipio": "APUÍ",
-        "competencia": "Abr/2026",
+        "competencia": "Mai/2026",
         "total": len(_BOAS_PRATICAS),
         "destaques": sum(1 for b in _BOAS_PRATICAS if b["destaque"]),
         "alertas": sum(1 for b in _BOAS_PRATICAS if b["tipo"] in ("alerta_critico", "plano_melhoria")),
@@ -702,7 +698,7 @@ async def dashboard_siaps(_: UserOut = Depends(get_current_user)):
         "municipio": "APUÍ",
         "uf": "AM",
         "ibge": "1300144",
-        "competencia": "Abr/2026",
+        "competencia": "Mai/2026",
         "ied": 2,
         "abrangencia": _ABRANGENCIA(),
         "vinculo": {
@@ -784,7 +780,7 @@ async def qualidade_diario(_: UserOut = Depends(get_current_user)):
     hoje = date.today()
     return {
         "data": hoje.strftime("%d/%m/%Y"),
-        "competencia": "Abr/2026",
+        "competencia": "Mai/2026",
         "total_producao_dia": total_prod,
         "equipes_com_alerta": len(alertas),
         "meta_diaria_estimada": 80,
@@ -799,45 +795,45 @@ async def qualidade_diario(_: UserOut = Depends(get_current_user)):
 @lru_cache(maxsize=1)
 def _MENSAL_EVOLUCAO():
     return [
-        {"mes": "Nov/25", "ind1": 68.2, "ind2": 31.0, "ind3": 72.1, "ind4": 77.4, "ind5": 64.3, "ind6": 50.1, "ind7": 61.0, "media": 60.6},
         {"mes": "Dez/25", "ind1": 69.5, "ind2": 32.4, "ind3": 73.8, "ind4": 78.2, "ind5": 65.8, "ind6": 51.5, "ind7": 62.3, "media": 61.9},
         {"mes": "Jan/26", "ind1": 70.1, "ind2": 33.8, "ind3": 74.5, "ind4": 79.0, "ind5": 66.5, "ind6": 52.8, "ind7": 63.1, "media": 62.8},
         {"mes": "Fev/26", "ind1": 71.0, "ind2": 35.2, "ind3": 75.3, "ind4": 80.1, "ind5": 68.0, "ind6": 53.4, "ind7": 64.8, "media": 63.9},
         {"mes": "Mar/26", "ind1": 71.8, "ind2": 36.0, "ind3": 75.9, "ind4": 81.0, "ind5": 69.2, "ind6": 54.7, "ind7": 65.9, "media": 64.9},
         {"mes": "Abr/26", "ind1": 72.5, "ind2": 37.1, "ind3": 76.5, "ind4": 81.9, "ind5": 70.5, "ind6": 55.4, "ind7": 67.1, "media": 65.9},
+        {"mes": "Mai/26", "ind1": 73.2, "ind2": 38.2, "ind3": 77.1, "ind4": 82.8, "ind5": 71.2, "ind6": 56.0, "ind7": 67.8, "media": 66.9},
     ]
 
 
 @lru_cache(maxsize=1)
 def _MENSAL_EQUIPES_EVOL():
     return [
-        {"equipe": "CACHOEIRA",     "nov": 35.2, "dez": 36.8, "jan": 37.5, "fev": 38.0, "mar": 38.5, "abr": 38.5, "tendencia": "estavel"},
-        {"equipe": "SÃO SEBASTIÃO", "nov": 33.8, "dez": 34.5, "jan": 35.2, "fev": 35.8, "mar": 36.2, "abr": 36.2, "tendencia": "estavel"},
-        {"equipe": "ACARI",         "nov": 33.2, "dez": 34.0, "jan": 34.8, "fev": 35.4, "mar": 35.8, "abr": 35.8, "tendencia": "estavel"},
-        {"equipe": "TRÊS ESTADOS",  "nov": 16.0, "dez": 17.2, "jan": 17.8, "fev": 18.1, "mar": 18.4, "abr": 18.4, "tendencia": "critica"},
-        {"equipe": "JUMA",          "nov": 36.8, "dez": 37.5, "jan": 38.2, "fev": 38.8, "mar": 39.1, "abr": 39.1, "tendencia": "crescente"},
-        {"equipe": "LIBERDADE",     "nov": 42.0, "dez": 43.5, "jan": 44.0, "fev": 44.5, "mar": 44.8, "abr": 44.8, "tendencia": "crescente"},
-        {"equipe": "KENNEDY",       "nov": 11.0, "dez": 11.5, "jan": 12.0, "fev": 12.4, "mar": 12.6, "abr": 12.6, "tendencia": "estavel"},
-        {"equipe": "JK",            "nov": 35.0, "dez": 35.8, "jan": 36.4, "fev": 37.0, "mar": 37.4, "abr": 37.6, "tendencia": "crescente"},
-        {"equipe": "ESTRADA NOVA",  "nov": 8.2,  "dez": 8.8,  "jan": 9.2,  "fev": 9.5,  "mar": 9.8,  "abr": 9.8,  "tendencia": "estavel"},
+        {"equipe": "CACHOEIRA",     "dez": 36.8, "jan": 37.5, "fev": 38.0, "mar": 38.5, "abr": 38.5, "mai": 39.0, "tendencia": "crescente"},
+        {"equipe": "SÃO SEBASTIÃO", "dez": 34.5, "jan": 35.2, "fev": 35.8, "mar": 36.2, "abr": 36.2, "mai": 36.8, "tendencia": "crescente"},
+        {"equipe": "ACARI",         "dez": 34.0, "jan": 34.8, "fev": 35.4, "mar": 35.8, "abr": 35.8, "mai": 36.5, "tendencia": "crescente"},
+        {"equipe": "TRÊS ESTADOS",  "dez": 17.2, "jan": 17.8, "fev": 18.1, "mar": 18.4, "abr": 18.4, "mai": 18.8, "tendencia": "critica"},
+        {"equipe": "JUMA",          "dez": 37.5, "jan": 38.2, "fev": 38.8, "mar": 39.1, "abr": 39.1, "mai": 39.7, "tendencia": "crescente"},
+        {"equipe": "LIBERDADE",     "dez": 43.5, "jan": 44.0, "fev": 44.5, "mar": 44.8, "abr": 44.8, "mai": 45.2, "tendencia": "crescente"},
+        {"equipe": "KENNEDY",       "dez": 11.5, "jan": 12.0, "fev": 12.4, "mar": 12.6, "abr": 12.6, "mai": 13.0, "tendencia": "estavel"},
+        {"equipe": "JK",            "dez": 35.8, "jan": 36.4, "fev": 37.0, "mar": 37.4, "abr": 37.6, "mai": 38.0, "tendencia": "crescente"},
+        {"equipe": "ESTRADA NOVA",  "dez": 8.8,  "jan": 9.2,  "fev": 9.5,  "mar": 9.8,  "abr": 9.8,  "mai": 10.1, "tendencia": "estavel"},
     ]
 
 
 @router.get("/qualidade/mensal")
 async def qualidade_mensal(_: UserOut = Depends(get_current_user)):
     return {
-        "competencia_atual": "Abr/2026",
+        "competencia_atual": "Mai/2026",
         "variacao_mes_anterior": {
             "ind1_prenatal": +0.7, "ind2_cito": +1.1, "ind3_vacina": +0.6,
-            "ind4_rn": +0.9, "ind5_odonto1": +0.4, "ind6_odonto_comp": +0.3,
-            "ind7_urg_odonto": +0.5, "ind8_has": +1.3, "ind9_dm": +0.7,
-            "ind10_obesidade": +1.2, "ind11_cv": +0.4, "ind12_psicose": +0.5,
-            "ind13_tab": +0.3, "ind14_sif_gest": +0.6, "ind15_sif_cong": +0.4,
+            "ind4_rn": +0.9, "ind5_odonto1": +0.7, "ind6_odonto_comp": +0.6,
+            "ind7_urg_odonto": +0.7, "ind8_has": +1.2, "ind9_dm": +0.8,
+            "ind10_obesidade": +1.0, "ind11_cv": +0.5, "ind12_psicose": +0.6,
+            "ind13_tab": +0.4, "ind14_sif_gest": +0.5, "ind15_sif_cong": +0.5,
         },
         "evolucao": _MENSAL_EVOLUCAO(),
         "equipes_evolucao": _MENSAL_EQUIPES_EVOL(),
-        "alerta_mensal": "I02 (Citopatológico): 37.1% — 12.9 p.p. abaixo da meta (50%). Crescimento de +1.1 p.p./mês — insuficiente para atingir a meta no quadrimestre. I03 (DTP): 76.5% vs meta 90%.",
-        "destaque_mensal": "Equipe LIBERDADE: melhor pontuação pelo 3º mês consecutivo (44.8 pts).",
+        "alerta_mensal": "I02 (Citopatológico): 38.2% — 11.8 p.p. abaixo da meta (50%). Crescimento lento de +1.1 p.p./mês — necessário plano de busca ativa para 2º quadrimestre. I03 (DTP): 77.1% vs meta 90%.",
+        "destaque_mensal": "Equipe LIBERDADE: melhor pontuação municipal pelo 4º mês consecutivo (45.2 pts). Equipe JUMA: evolução crescente (39.7 pts).",
     }
 
 
@@ -846,21 +842,21 @@ async def qualidade_mensal(_: UserOut = Depends(get_current_user)):
 @lru_cache(maxsize=1)
 def _QUAD_COMPARATIVO():
     return [
-        {"indicador": "I01 — Pré-natal ≥7 consultas",    "1q_2025": 65.2, "2q_2025": 68.8, "3q_2025": 70.4, "1q_2026": 72.5, "meta": 55.0, "tendencia": "crescente"},
-        {"indicador": "I02 — Citopatológico",             "1q_2025": 28.5, "2q_2025": 30.1, "3q_2025": 33.8, "1q_2026": 37.1, "meta": 50.0, "tendencia": "crescente_insuf"},
-        {"indicador": "I03 — DTP/Pentavalente",           "1q_2025": 68.0, "2q_2025": 70.5, "3q_2025": 73.2, "1q_2026": 76.5, "meta": 90.0, "tendencia": "crescente"},
-        {"indicador": "I04 — Puerpério / RN 1ª sem.",     "1q_2025": 74.0, "2q_2025": 76.8, "3q_2025": 79.5, "1q_2026": 81.9, "meta": 55.0, "tendencia": "crescente"},
-        {"indicador": "I05 — 1ª Consulta Odontológica",   "1q_2025": 22.4, "2q_2025": 25.8, "3q_2025": 29.1, "1q_2026": 32.6, "meta": 45.0, "tendencia": "crescente"},
-        {"indicador": "I06 — Odonto Completado",          "1q_2025": 16.0, "2q_2025": 19.2, "3q_2025": 22.5, "1q_2026": 25.8, "meta": 45.0, "tendencia": "crescente"},
-        {"indicador": "I07 — Urgência Odonto Resolvida",  "1q_2025": 42.0, "2q_2025": 44.5, "3q_2025": 48.0, "1q_2026": 51.8, "meta": 45.0, "tendencia": "crescente"},
-        {"indicador": "I08 — Acomp. HAS",                "1q_2025": 60.5, "2q_2025": 63.2, "3q_2025": 66.8, "1q_2026": 70.5, "meta": 60.0, "tendencia": "crescente"},
-        {"indicador": "I09 — Acomp. DM (HbA1c)",         "1q_2025": 45.0, "2q_2025": 48.5, "3q_2025": 52.1, "1q_2026": 55.4, "meta": 55.0, "tendencia": "crescente"},
-        {"indicador": "I10 — Obesidade Infantil",         "1q_2025": 58.0, "2q_2025": 61.5, "3q_2025": 64.3, "1q_2026": 67.1, "meta": 55.0, "tendencia": "crescente"},
-        {"indicador": "I11 — Alto Risco Cardiovascular",  "1q_2025": 28.5, "2q_2025": 31.2, "3q_2025": 34.8, "1q_2026": 37.8, "meta": 50.0, "tendencia": "crescente"},
-        {"indicador": "I12 — Esquizofrenia / Psicose",    "1q_2025": 34.2, "2q_2025": 37.0, "3q_2025": 40.5, "1q_2026": 43.5, "meta": 50.0, "tendencia": "crescente"},
-        {"indicador": "I13 — Transtorno Afetivo Bipolar", "1q_2025": 28.8, "2q_2025": 31.5, "3q_2025": 35.0, "1q_2026": 38.4, "meta": 50.0, "tendencia": "crescente"},
-        {"indicador": "I14 — Sífilis Gestante",           "1q_2025": 68.4, "2q_2025": 71.2, "3q_2025": 74.5, "1q_2026": 76.8, "meta": 55.0, "tendencia": "crescente"},
-        {"indicador": "I15 — Sífilis Congênita",          "1q_2025": 72.0, "2q_2025": 75.5, "3q_2025": 78.8, "1q_2026": 81.4, "meta": 55.0, "tendencia": "crescente"},
+        {"indicador": "I01 — Pré-natal ≥7 consultas",    "2q_2025": 68.8, "3q_2025": 70.4, "1q_2026": 72.5, "2q_2026_parcial": 73.2, "meta": 55.0, "tendencia": "crescente"},
+        {"indicador": "I02 — Citopatológico",             "2q_2025": 30.1, "3q_2025": 33.8, "1q_2026": 37.1, "2q_2026_parcial": 38.2, "meta": 50.0, "tendencia": "crescente_insuf"},
+        {"indicador": "I03 — DTP/Pentavalente",           "2q_2025": 70.5, "3q_2025": 73.2, "1q_2026": 76.5, "2q_2026_parcial": 77.1, "meta": 90.0, "tendencia": "crescente"},
+        {"indicador": "I04 — Puerpério / RN 1ª sem.",     "2q_2025": 76.8, "3q_2025": 79.5, "1q_2026": 81.9, "2q_2026_parcial": 82.8, "meta": 55.0, "tendencia": "crescente"},
+        {"indicador": "I05 — 1ª Consulta Odontológica",   "2q_2025": 25.8, "3q_2025": 29.1, "1q_2026": 32.6, "2q_2026_parcial": 33.5, "meta": 45.0, "tendencia": "crescente"},
+        {"indicador": "I06 — Odonto Completado",          "2q_2025": 19.2, "3q_2025": 22.5, "1q_2026": 25.8, "2q_2026_parcial": 26.5, "meta": 45.0, "tendencia": "crescente"},
+        {"indicador": "I07 — Urgência Odonto Resolvida",  "2q_2025": 44.5, "3q_2025": 48.0, "1q_2026": 51.8, "2q_2026_parcial": 52.5, "meta": 45.0, "tendencia": "crescente"},
+        {"indicador": "I08 — Acomp. HAS",                "2q_2025": 63.2, "3q_2025": 66.8, "1q_2026": 70.5, "2q_2026_parcial": 71.5, "meta": 60.0, "tendencia": "crescente"},
+        {"indicador": "I09 — Acomp. DM (HbA1c)",         "2q_2025": 48.5, "3q_2025": 52.1, "1q_2026": 55.4, "2q_2026_parcial": 56.2, "meta": 55.0, "tendencia": "crescente"},
+        {"indicador": "I10 — Obesidade Infantil",         "2q_2025": 61.5, "3q_2025": 64.3, "1q_2026": 67.1, "2q_2026_parcial": 68.0, "meta": 55.0, "tendencia": "crescente"},
+        {"indicador": "I11 — Alto Risco Cardiovascular",  "2q_2025": 31.2, "3q_2025": 34.8, "1q_2026": 37.8, "2q_2026_parcial": 38.5, "meta": 50.0, "tendencia": "crescente"},
+        {"indicador": "I12 — Esquizofrenia / Psicose",    "2q_2025": 37.0, "3q_2025": 40.5, "1q_2026": 43.5, "2q_2026_parcial": 44.2, "meta": 50.0, "tendencia": "crescente"},
+        {"indicador": "I13 — Transtorno Afetivo Bipolar", "2q_2025": 31.5, "3q_2025": 35.0, "1q_2026": 38.4, "2q_2026_parcial": 39.0, "meta": 50.0, "tendencia": "crescente"},
+        {"indicador": "I14 — Sífilis Gestante",           "2q_2025": 71.2, "3q_2025": 74.5, "1q_2026": 76.8, "2q_2026_parcial": 77.4, "meta": 55.0, "tendencia": "crescente"},
+        {"indicador": "I15 — Sífilis Congênita",          "2q_2025": 75.5, "3q_2025": 78.8, "1q_2026": 81.4, "2q_2026_parcial": 82.0, "meta": 55.0, "tendencia": "crescente"},
     ]
 
 
@@ -869,68 +865,68 @@ def _QUAD_EQUIPES_RESUMO():
     return [
         {
             "equipe": "CACHOEIRA", "ubs": "UBS IRMÃ ELIZABETE", "tipo": "eSF",
-            "1q_2025": 32.0, "2q_2025": 34.5, "3q_2025": 36.8, "1q_2026": 38.5,
-            "status": "bom", "variacao": +1.7,
-            "ind1": 72.5, "ind2": 38.0, "ind3": 76.5, "ind4": 82.0, "ind5": 70.5, "ind6": 55.0, "ind7": 67.0,
+            "2q_2025": 34.5, "3q_2025": 36.8, "1q_2026": 38.5, "2q_2026_parcial": 39.0,
+            "status": "bom", "variacao": +0.5,
+            "ind1": 73.2, "ind2": 38.5, "ind3": 77.1, "ind4": 82.8, "ind5": 71.0, "ind6": 55.5, "ind7": 67.8,
             "obs": None,
         },
         {
             "equipe": "SÃO SEBASTIÃO", "ubs": "UBS ANIZIO FERREIRA DA SILVA", "tipo": "eSF",
-            "1q_2025": 30.5, "2q_2025": 33.0, "3q_2025": 34.8, "1q_2026": 36.2,
-            "status": "bom", "variacao": +1.4,
-            "ind1": 70.8, "ind2": 35.5, "ind3": 75.0, "ind4": 80.5, "ind5": 68.2, "ind6": 53.0, "ind7": 65.0,
+            "2q_2025": 33.0, "3q_2025": 34.8, "1q_2026": 36.2, "2q_2026_parcial": 36.8,
+            "status": "bom", "variacao": +0.6,
+            "ind1": 71.5, "ind2": 36.0, "ind3": 75.5, "ind4": 81.0, "ind5": 68.8, "ind6": 53.5, "ind7": 65.5,
             "obs": None,
         },
         {
             "equipe": "ACARI", "ubs": "UBS ANIZIO FERREIRA DA SILVA", "tipo": "eSF",
-            "1q_2025": 30.0, "2q_2025": 32.5, "3q_2025": 34.2, "1q_2026": 35.8,
-            "status": "bom", "variacao": +1.6,
-            "ind1": 69.5, "ind2": 36.8, "ind3": 74.0, "ind4": 79.5, "ind5": 67.0, "ind6": 52.5, "ind7": 64.5,
+            "2q_2025": 32.5, "3q_2025": 34.2, "1q_2026": 35.8, "2q_2026_parcial": 36.5,
+            "status": "bom", "variacao": +0.7,
+            "ind1": 70.0, "ind2": 37.0, "ind3": 74.5, "ind4": 80.0, "ind5": 67.5, "ind6": 53.0, "ind7": 65.0,
             "obs": None,
         },
         {
             "equipe": "TRÊS ESTADOS", "ubs": "UBS OSVALDO LEMES CABRAL", "tipo": "eSF",
-            "1q_2025": 14.5, "2q_2025": 16.0, "3q_2025": 17.5, "1q_2026": 18.4,
-            "status": "regular", "variacao": +0.9,
-            "ind1": 42.0, "ind2": 18.5, "ind3": 55.0, "ind4": 58.0, "ind5": 40.0, "ind6": 28.0, "ind7": 35.0,
-            "obs": "Equipe incompleta — médico ausente há 2 meses. Requer ação imediata.",
+            "2q_2025": 16.0, "3q_2025": 17.5, "1q_2026": 18.4, "2q_2026_parcial": 18.8,
+            "status": "regular", "variacao": +0.4,
+            "ind1": 42.5, "ind2": 19.0, "ind3": 55.5, "ind4": 58.5, "ind5": 40.5, "ind6": 28.5, "ind7": 35.5,
+            "obs": "Equipe incompleta — médico ausente há 3 meses. Requer ação imediata de gestão.",
         },
         {
             "equipe": "JUMA", "ubs": "CENTRO DE SAÚDE CURUMIM", "tipo": "eSF",
-            "1q_2025": 34.2, "2q_2025": 36.5, "3q_2025": 38.0, "1q_2026": 39.1,
-            "status": "bom", "variacao": +1.1,
-            "ind1": 73.0, "ind2": 37.5, "ind3": 76.0, "ind4": 82.5, "ind5": 71.0, "ind6": 55.5, "ind7": 67.5,
+            "2q_2025": 36.5, "3q_2025": 38.0, "1q_2026": 39.1, "2q_2026_parcial": 39.7,
+            "status": "bom", "variacao": +0.6,
+            "ind1": 73.8, "ind2": 38.0, "ind3": 76.5, "ind4": 83.0, "ind5": 71.5, "ind6": 56.0, "ind7": 68.0,
             "obs": None,
         },
         {
             "equipe": "LIBERDADE", "ubs": "CENTRO DE SAÚDE CURUMIM", "tipo": "eSF",
-            "1q_2025": 39.5, "2q_2025": 41.8, "3q_2025": 43.5, "1q_2026": 44.8,
-            "status": "otimo", "variacao": +1.3,
-            "ind1": 78.5, "ind2": 42.0, "ind3": 82.0, "ind4": 96.0, "ind5": 75.0, "ind6": 62.0, "ind7": 74.0,
-            "obs": "Melhor desempenho municipal — referência para as demais equipes.",
+            "2q_2025": 41.8, "3q_2025": 43.5, "1q_2026": 44.8, "2q_2026_parcial": 45.2,
+            "status": "otimo", "variacao": +0.4,
+            "ind1": 79.0, "ind2": 42.5, "ind3": 82.5, "ind4": 96.5, "ind5": 75.5, "ind6": 62.5, "ind7": 74.5,
+            "obs": "Melhor desempenho municipal pelo 4º mês consecutivo — referência para as demais equipes.",
         },
         {
             "equipe": "KENNEDY", "ubs": "UBS PADRE FALIERO BONCI", "tipo": "eSF",
-            "1q_2025": 10.2, "2q_2025": 11.0, "3q_2025": 11.8, "1q_2026": 12.6,
-            "status": "regular", "variacao": +0.8,
-            "ind1": 42.0, "ind2": 18.5, "ind3": 52.0, "ind4": 58.0, "ind5": 22.4, "ind6": 16.8, "ind7": 36.0,
-            "ind8": 52.6, "ind9": 40.0, "ind10": 45.5, "ind11": 24.0, "ind12": 28.5, "ind13": 22.8, "ind14": 42.9, "ind15": 50.0,
+            "2q_2025": 11.0, "3q_2025": 11.8, "1q_2026": 12.6, "2q_2026_parcial": 13.0,
+            "status": "regular", "variacao": +0.4,
+            "ind1": 42.5, "ind2": 19.0, "ind3": 52.5, "ind4": 58.5, "ind5": 22.8, "ind6": 17.2, "ind7": 36.5,
+            "ind8": 53.0, "ind9": 40.5, "ind10": 46.0, "ind11": 24.5, "ind12": 29.0, "ind13": 23.2, "ind14": 43.5, "ind15": 50.5,
             "obs": "Equipe regular — sem médico. Requer ação de gestão para completar equipe e recuperar indicadores.",
         },
         {
             "equipe": "JK", "ubs": "UBS JK", "tipo": "eSF",
-            "1q_2025": 34.0, "2q_2025": 35.5, "3q_2025": 36.8, "1q_2026": 37.6,
-            "status": "bom", "variacao": +0.8,
-            "ind1": 72.0, "ind2": 36.5, "ind3": 78.0, "ind4": 82.0, "ind5": 38.0, "ind6": 29.8, "ind7": 53.0,
-            "ind8": 77.8, "ind9": 61.5, "ind10": 76.9, "ind11": 41.2, "ind12": 47.5, "ind13": 40.5, "ind14": 77.8, "ind15": 81.8,
+            "2q_2025": 35.5, "3q_2025": 36.8, "1q_2026": 37.6, "2q_2026_parcial": 38.0,
+            "status": "bom", "variacao": +0.4,
+            "ind1": 72.5, "ind2": 37.0, "ind3": 78.5, "ind4": 82.5, "ind5": 38.5, "ind6": 30.2, "ind7": 53.5,
+            "ind8": 78.2, "ind9": 62.0, "ind10": 77.2, "ind11": 41.8, "ind12": 48.0, "ind13": 41.0, "ind14": 78.2, "ind15": 82.2,
             "obs": None,
         },
         {
             "equipe": "ESTRADA NOVA", "ubs": "UBS CLÁUDIA PEREIRA DOS SANTOS DAMACENA", "tipo": "eSF",
-            "1q_2025": 7.5, "2q_2025": 8.2, "3q_2025": 9.0, "1q_2026": 9.8,
-            "status": "regular", "variacao": +0.8,
-            "ind1": 38.0, "ind2": 16.0, "ind3": 48.0, "ind4": 55.0, "ind5": 20.5, "ind6": 15.2, "ind7": 34.4,
-            "ind8": 48.7, "ind9": 35.7, "ind10": 41.2, "ind11": 21.8, "ind12": 26.0, "ind13": 20.4, "ind14": 38.5, "ind15": 42.9,
+            "2q_2025": 8.2, "3q_2025": 9.0, "1q_2026": 9.8, "2q_2026_parcial": 10.1,
+            "status": "regular", "variacao": +0.3,
+            "ind1": 38.5, "ind2": 16.5, "ind3": 48.5, "ind4": 55.5, "ind5": 21.0, "ind6": 15.5, "ind7": 35.0,
+            "ind8": 49.0, "ind9": 36.0, "ind10": 41.5, "ind11": 22.0, "ind12": 26.5, "ind13": 21.0, "ind14": 39.0, "ind15": 43.5,
             "obs": "Equipe regular — sem médico. Área rural dispersa dificulta acesso e registro no e-SUS.",
         },
     ]
@@ -939,18 +935,19 @@ def _QUAD_EQUIPES_RESUMO():
 @router.get("/qualidade/quadrimestral")
 async def qualidade_quadrimestral(_: UserOut = Depends(get_current_user)):
     return {
-        "quadrimestre_atual": "1º Quadrimestre 2026 (Jan–Abr)",
-        "referencia_anterior": "3º Quadrimestre 2025 (Set–Dez)",
-        "media_geral_atual": 65.9,
-        "media_geral_anterior": 63.7,
-        "variacao_geral": +2.2,
-        "projecao_2q_2026": 68.5,
+        "quadrimestre_atual": "2º Quadrimestre 2026 — parcial (Mai/2026)",
+        "referencia_anterior": "1º Quadrimestre 2026 (Jan–Abr)",
+        "media_geral_atual": 66.9,
+        "media_geral_anterior": 65.9,
+        "variacao_geral": +1.0,
+        "projecao_2q_2026": 69.5,
         "indicadores": _QUAD_COMPARATIVO(),
         "equipes": _QUAD_EQUIPES_RESUMO(),
         "parecer_gestor": (
-            "Apuí apresenta evolução consistente (+2.2 p.p.) no 1º quadrimestre de 2026. "
-            "Destaque para o Ind.4 (Consulta RN na 1ª semana) que atingiu 81.9%, acima da meta. "
-            "Ponto crítico: Ind.2 (Citopatológico) em 37.1% — necessário plano de ação com busca ativa "
-            "e mutirão de coleta para o 2º quadrimestre. Equipe TRÊS ESTADOS requer monitoramento intensivo."
+            "Apuí mantém evolução positiva no início do 2º quadrimestre de 2026 (+1.0 p.p. em Mai). "
+            "Destaque: LIBERDADE permanece como melhor equipe pelo 4º mês consecutivo. "
+            "Ponto crítico: Ind.2 (Citopatológico) em 38.2% — ainda 11.8 p.p. abaixo da meta (50%). "
+            "Necessário plano de busca ativa e mutirão de coleta. "
+            "Equipes KENNEDY e ESTRADA NOVA permanecem sem médico — ação urgente de gestão de pessoal."
         ),
     }

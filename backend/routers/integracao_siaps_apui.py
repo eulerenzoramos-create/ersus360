@@ -91,14 +91,14 @@ async def dispensacoes():
     except Exception as e:
         return {"status": "offline", "fonte": "fallback", "ultima_atualizacao": _ts(), "erro": str(e),
                 "dados": {
-                    "total_dispensacoes_mes": 4284,
-                    "usuarios_atendidos": 2140,
-                    "receitas_rejeitadas": 48,
-                    "taxa_rejeicao_pct": 1.1,
-                    "componente_basico": 3840,
-                    "componente_especializado": 184,
+                    "total_dispensacoes_mes": 4412,
+                    "usuarios_atendidos": 2210,
+                    "receitas_rejeitadas": 44,
+                    "taxa_rejeicao_pct": 1.0,
+                    "componente_basico": 3960,
+                    "componente_especializado": 192,
                     "programa_farmacia_popular": 260,
-                    "competencia": "Jun/2025",
+                    "competencia": "Mai/2026",
                 }}
 
 @router.get("/aquisicoes")

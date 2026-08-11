@@ -105,15 +105,15 @@ async def cobertura_aps():
     except Exception as e:
         return {"status": "offline", "fonte": "fallback", "ultima_atualizacao": _ts(), "erro": str(e),
                 "dados": {
-                    "populacao_cadastrada": 17284,
-                    "populacao_estimada": 19788,
-                    "cobertura_esf_pct": 87.3,
-                    "equipes_ativas": 7,
-                    "equipes_incompletas": 2,
-                    "medicos_sf": 5,
-                    "enfermeiros_sf": 7,
-                    "acs": 39,
-                    "competencia": "Jun/2025",
+                    "populacao_cadastrada": 17648,
+                    "populacao_estimada": 18732,
+                    "cobertura_esf_pct": 94.2,
+                    "equipes_ativas": 9,
+                    "equipes_incompletas": 3,
+                    "medicos_sf": 6,
+                    "enfermeiros_sf": 9,
+                    "acs": 42,
+                    "competencia": "Mai/2026",
                 }}
 
 @router.get("/profissionais")
@@ -153,7 +153,7 @@ async def dashboard():
         "municipio": "Apuí/AM", "ibge": IBGE_APUI,
         "equipes_cadastradas": len(equipes_data) if isinstance(equipes_data, list) else 8,
         "equipes_ativas": ativas,
-        "cobertura_esf_pct": 87.3,
-        "populacao_cadastrada": 17284,
+        "cobertura_esf_pct": 94.2,
+        "populacao_cadastrada": 17648,
         "credenciais_ok": bool(EGESTOR_TOKEN or (EGESTOR_USER and EGESTOR_PASS)),
     }
