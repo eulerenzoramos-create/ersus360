@@ -299,16 +299,20 @@ async def buscar_qualidade(competencia: str = "202605") -> list[dict] | None:
 
     urls_tentativas = [
         # ── API PRIVADA SIAPS (requer Bearer token) ───────────────────────────
+        # Padrão identificado: /componente/cq/visao-por-competencia
+        (f"{_APISIAPS}/componente/cq/visao-por-competencia",
+         {"coMunicipioIbge": ibge_long, "tiposEquipe": "eSF,eAP", "stEquipeHomologada": "S",
+          "nuMes": mes, "nuAno": ano, "nivelVisualizacao": "equipe"}),
+        (f"{_APISIAPS}/componente/cq/visao-por-equipe",
+         {"coMunicipioIbge": ibge_long, "tiposEquipe": "eSF,eAP", "stEquipeHomologada": "S",
+          "nuMes": mes, "nuAno": ano}),
+        (f"{_APISIAPS}/componente/qualidade/visao-por-competencia",
+         {"coMunicipioIbge": ibge_long, "tiposEquipe": "eSF,eAP", "stEquipeHomologada": "S",
+          "nuMes": mes, "nuAno": ano, "nivelVisualizacao": "equipe"}),
         (f"{_APISIAPS}/api/componente/equipe",
          {"coMunicipioIbge": ibge_long, "nuQuadrimestre": quad, "nuAno": ano, "coTipoIndicador": "QUALIDADE"}),
         (f"{_APISIAPS}/api/componente/qualidade/municipio/{ibge_long}/equipe",
          {"nuQuadrimestre": quad, "nuAno": ano}),
-        (f"{_APISIAPS}/api/municipio/{ibge_long}/componente/qualidade/equipe",
-         {"nuQuadrimestre": quad, "nuAno": ano}),
-        (f"{_APISIAPS}/api/municipio/{ibge_short}/componente/qualidade/equipe",
-         {"nuQuadrimestre": quad, "nuAno": ano}),
-        (f"{_APISIAPS}/api/v1/componente/qualidade/equipe",
-         {"coMunicipioIbge": ibge_long, "nuQuadrimestre": quad, "nuAno": ano}),
         # ── API PÚBLICA SIAPS (sem autenticação) ─────────────────────────────
         (f"{_APISIAPS}/api/public/componente/indicador-quadrimestre",
          {"coMunicipioIbge": ibge_long, "nuQuadrimestre": quad, "coTipoIndicador": "QUALIDADE", "size": 20}),
@@ -441,6 +445,13 @@ async def buscar_vinculo(competencia: str = "202605") -> list[dict] | None:
 
     urls_tentativas = [
         # ── API PRIVADA SIAPS (requer Bearer token) ───────────────────────────
+        # Padrão identificado: /componente/cvat/visao-por-competencia
+        (f"{_APISIAPS}/componente/cvat/visao-por-competencia",
+         {"coMunicipioIbge": ibge_long, "tiposEquipe": "eSF,eAP", "stEquipeHomologada": "S",
+          "nuMes": mes, "nuAno": ano, "nivelVisualizacao": "equipe"}),
+        (f"{_APISIAPS}/componente/cvat/visao-por-equipe",
+         {"coMunicipioIbge": ibge_long, "tiposEquipe": "eSF,eAP", "stEquipeHomologada": "S",
+          "nuMes": mes, "nuAno": ano}),
         (f"{_APISIAPS}/api/componente/equipe",
          {"coMunicipioIbge": ibge_long, "nuQuadrimestre": quad, "nuAno": ano, "coTipoIndicador": "VINCULO"}),
         (f"{_APISIAPS}/api/componente/vinculo/municipio/{ibge_long}/equipe",
