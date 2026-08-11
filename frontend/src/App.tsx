@@ -368,6 +368,7 @@ import AbsenteismoApui              from "./pages/AbsenteismoApui";
 import PICSApui                     from "./pages/PICSApui";
 import SprintOtimo                  from "./pages/SprintOtimo";
 import AnaliseMunicipio             from "./pages/AnaliseMunicipio";
+import CvatDashboard                from "./pages/CvatDashboard";
 import { SinoAlertas } from "./components/SinoAlertas";
 import ExportarRelatorio from "./components/ExportarRelatorio";
 
@@ -696,6 +697,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
 
             <Acc1 label="Saúde Brasil 360">
               <Acc2 label="Vínculo e Acompanhamento">
+                <L3 to="/cvat"                             label="CVAT — Multimunicípio ★"     Icon={Users}/>
                 <L3 to="/sb360/consolidado-territorial"    label="Consolidado Territorial"     Icon={PieChart}/>
                 <L3 to="/sb360/acompanhamento-territorial" label="Acompanhamento Territorial"  Icon={MapPin}/>
               </Acc2>
@@ -1075,6 +1077,9 @@ export default function App() {
             <Route path="/acs/cadastros-cid"          element={<CadastrosCidadao/>}/>
             <Route path="/acs/visitas-cidadao"        element={<VisitasDomiciliaresCidadao/>}/>
             <Route path="/acs/*"                     element={<ACSPainel/>}/>
+            {/* CVAT — Vínculo e Acompanhamento Territorial (multimunicípio) */}
+            <Route path="/cvat"                      element={<CvatDashboard/>}/>
+            <Route path="/cvat/*"                    element={<CvatDashboard/>}/>
             {/* Inconsistências */}
             <Route path="/inconsistencias/*"         element={<Documentos/>}/>
             {/* POEPS */}

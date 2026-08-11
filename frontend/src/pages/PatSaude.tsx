@@ -8,8 +8,6 @@ import {
 import { Wrench, AlertTriangle, ClipboardList, Activity } from "lucide-react";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
-const BRL = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const BRAND = "#92400e";
 const ACCENT = "#d97706";

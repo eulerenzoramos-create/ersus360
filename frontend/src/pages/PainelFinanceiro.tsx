@@ -172,8 +172,6 @@ const BLOCOS_FNS_OPT = ["Atenção Primária","Atenção Especializada","Vigilâ
 const REPASSES_FNS = ["PAB Fixo","PAB Variável","Média e Alta Complexidade","FAEC","Medicamentos","Ações Estratégicas"];
 const ESTADOS_BR = ["","AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
-const BRL = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
 const TIPOS_ABA_FNS = [
   { id: "detalhada",         label: "Detalhada",                                    publico: true,  hash: "detalhada"          },

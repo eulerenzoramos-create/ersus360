@@ -20,11 +20,6 @@ function statusColor(s: string) {
   return CRIT;
 }
 
-function BRL(v: number) {
-  if (v >= 1000000) return BRL(v);
-  if (v >= 1000) return BRL(v);
-  return `R$ ${v}`;
-}
 
 const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
   <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
