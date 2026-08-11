@@ -1,130 +1,267 @@
-# backend/routers/siaps_monitor.py — Monitor de Lotes SIAPS em Tempo Real
-from fastapi import APIRouter, Query
-from typing import Optional
-import random
+"""
+Router: /api/siaps-monitor
+Monitor de Status SIAPS por Competência — ERSUS 360
 
-router = APIRouter(prefix="/api/siaps-monitor", tags=["siaps-monitor"])
+Fontes de dados REAIS:
+  - siaps_service: busca dados do Componente Vínculo via API SIAPS gov.br
+  - tabela extracoes: histórico de extrações já realizadas
+  - tabela inconsistencias: inconsistências relacionadas ao SIAPS
 
-# ── Dados de referência ───────────────────────────────────────────────────────
+REGRA: nenhum valor é inventado. Campos sem dado real recebem situacao_dado
+adequada (nao_disponivel, dado_nao_validado). random() é PROIBIDO.
+"""
+from __future__ import annotations
+import asyncio
+import logging
+from datetime import datetime
+from typing import Any
 
-ERROS_POSSIVEIS = [
-    {"codigo": "ERR-001", "descricao": "Campo obrigatório ausente (CNS)", "acao_corretiva": "Preencher CNS do cidadão no eSUS PEC e retransmitir"},
-    {"codigo": "ERR-002", "descricao": "Data de nascimento inválida", "acao_corretiva": "Corrigir data de nascimento no cadastro individual"},
-    {"codigo": "ERR-003", "descricao": "Duplicidade de CNES na ficha", "acao_corretiva": "Verificar CNES da unidade e retransmitir"},
-    {"codigo": "ERR-004", "descricao": "INE da equipe não encontrado no SCNES", "acao_corretiva": "Sincronizar equipes no SCNES antes da transmissão"},
-    {"codigo": "ERR-005", "descricao": "Competência fora do prazo de envio", "acao_corretiva": "Solicitar reabertura do prazo ao DAB/CGAB"},
-    {"codigo": "ERR-006", "descricao": "CBO profissional inválido para o tipo de atendimento", "acao_corretiva": "Corrigir CBO do profissional no cadastro de profissionais"},
-    {"codigo": "ERR-007", "descricao": "Ficha de atividade coletiva sem participantes", "acao_corretiva": "Incluir participantes ou excluir a ficha"},
-    {"codigo": "ERR-008", "descricao": "Medicamento não consta na RENAME", "acao_corretiva": "Atualizar lista de medicamentos conforme RENAME vigente"},
-]
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select, desc, func
+from sqlalchemy.ext.asyncio import AsyncSession
 
-ESFS = ["KENNEDY", "JK", "ACARI", "JUMA", "ESTRADA NOVA", "LIBERDADE", "SÃO SEBASTIÃO", "CACHOEIRA", "TRÊS ESTADOS", "AREAL"]
-TIPOS_FICHA = ["Cadastro Individual", "Cadastro Domiciliar", "Visita Domiciliar", "Atendimento Individual", "Atividade Coletiva", "Procedimentos"]
-COMPETENCIAS = ["2025/12", "2026/01", "2026/02", "2026/03", "2026/04", "2026/05"]
-STATUSES = ["pendente", "processando", "processado", "rejeitado", "erro"]
+from database import get_db
+from routers.auth import get_current_user, UserOut
+from services import siaps_service
 
-def _gerar_lotes(status_filtro: Optional[str] = None, esf_filtro: Optional[str] = None):
-    lotes = []
-    random.seed(42)
-    for i in range(24):
-        esf = ESFS[i % len(ESFS)]
-        comp = COMPETENCIAS[i % len(COMPETENCIAS)]
-        status = STATUSES[i % len(STATUSES)]
-        if i < 3:
-            status = "processado"
-        elif i == 3:
-            status = "processando"
-        elif i in [4, 5]:
-            status = "rejeitado"
-        elif i in [6, 7]:
-            status = "erro"
+logger = logging.getLogger(__name__)
 
-        total = 80 + (i * 7) % 120
-        taxa = 0 if status == "processado" else (i * 3) % 18
-        rejeitadas = int(total * taxa / 100)
-        processadas = total - rejeitadas if status != "processando" else int(total * 0.6)
+router = APIRouter(prefix="/api/siaps-monitor", tags=["Monitor SIAPS"])
 
-        erros_lote = []
-        if status in ["rejeitado", "erro"] and taxa > 0:
-            for j in range(min(3, len(ERROS_POSSIVEIS))):
-                e = ERROS_POSSIVEIS[(i + j) % len(ERROS_POSSIVEIS)]
-                qtd = max(1, int(rejeitadas * (0.4 if j == 0 else 0.3 if j == 1 else 0.3)))
-                erros_lote.append({
-                    "codigo": e["codigo"],
-                    "descricao": e["descricao"],
-                    "quantidade": qtd,
-                    "fichas_afetadas": [f"FC-{total+k:04d}" for k in range(min(qtd, 5))],
-                    "acao_corretiva": e["acao_corretiva"],
-                })
+# Competências monitoradas (mais recentes primeiro)
+COMPETENCIAS = ["202605", "202604", "202603", "202602", "202601",
+                "202512", "202511", "202510"]
 
-        tipos = {}
-        for t in TIPOS_FICHA:
-            tipos[t] = max(0, int(total * (0.1 + random.random() * 0.2)))
+_IBGE = "1300144"
 
-        lote = {
-            "id": i + 1,
-            "numero_lote": f"LOTE-{comp.replace('/','-')}-{esf.replace(' ','')}-{i+1:03d}",
-            "competencia": comp,
-            "esf": esf,
-            "data_envio": f"2026-0{(i%6)+1}-{15+(i%10):02d}",
-            "data_processamento": f"2026-0{(i%6)+1}-{16+(i%8):02d}" if status == "processado" else None,
-            "status": status,
-            "total_fichas": total,
-            "fichas_processadas": processadas,
-            "fichas_rejeitadas": rejeitadas,
-            "taxa_rejeicao": taxa,
-            "tipos_ficha": tipos,
-            "erros": erros_lote,
+
+def _ts() -> str:
+    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _fmt_comp(c: str) -> str:
+    """'202605' → '05/2026'"""
+    return f"{c[4:]}/{c[:4]}"
+
+
+# ── Busca dados de uma competência no SIAPS ───────────────────────────────────
+
+async def _dados_competencia(competencia: str) -> dict:
+    """
+    Busca dados reais do SIAPS para uma competência.
+    Retorna dict com metricas e situacao_dado.
+    """
+    try:
+        dados = await siaps_service.buscar_vinculo(competencia)
+        if dados is None:
+            return {
+                "competencia": competencia,
+                "situacao_dado": "nao_disponivel",
+                "fonte": "siaps_api",
+                "total_vinculadas": None,
+                "total_acompanhadas": None,
+                "total_equipes": None,
+                "nota": "API SIAPS não retornou dados para esta competência.",
+            }
+
+        # Extrai métricas do payload real
+        metricas = dados.get("metricas") or dados
+        return {
+            "competencia": competencia,
+            "situacao_dado": dados.get("situacao_dado", "dado_nao_validado"),
+            "fonte": dados.get("fonte", "siaps_api"),
+            "total_vinculadas":   metricas.get("total_vinculadas"),
+            "total_acompanhadas": metricas.get("total_acompanhadas"),
+            "total_equipes":      metricas.get("total_equipes"),
+            "situacao_k":         metricas.get("situacao_k", "dado_nao_validado"),
+            "situacao_h":         metricas.get("situacao_h", "dado_nao_validado"),
+            "nota":               dados.get("nota_metodologica") or dados.get("nota") or "",
+            "proveniencia":       dados.get("proveniencia"),
         }
-        if (not status_filtro or status_filtro == lote["status"]) and (not esf_filtro or esf_filtro == lote["esf"]):
-            lotes.append(lote)
-    return lotes
+    except Exception as exc:
+        logger.warning("Erro ao buscar SIAPS competencia %s: %s", competencia, exc)
+        return {
+            "competencia": competencia,
+            "situacao_dado": "nao_disponivel",
+            "fonte": "siaps_api",
+            "total_vinculadas": None,
+            "total_acompanhadas": None,
+            "total_equipes": None,
+            "nota": f"Erro ao consultar API: {exc}",
+        }
 
+
+# ── Extracoes da tabela de histórico ─────────────────────────────────────────
+
+async def _historico_extracoes(ibge: str, db: AsyncSession) -> list[dict]:
+    try:
+        from models.extracao import ExtracaoRegistro
+        stmt = (
+            select(ExtracaoRegistro)
+            .where(ExtracaoRegistro.municipio_ibge == ibge)
+            .where(ExtracaoRegistro.fonte_sistema.in_(["SIAPS", "SIAPS_VINCULO"]))
+            .order_by(desc(ExtracaoRegistro.realizada_em))
+            .limit(30)
+        )
+        rows = (await db.execute(stmt)).scalars().all()
+        return [
+            {
+                "id": r.id,
+                "competencia": r.competencia,
+                "realizada_em": r.realizada_em.isoformat(),
+                "sucesso": r.sucesso,
+                "metodo": r.metodo,
+                "registros": r.registros_obtidos,
+                "observacao": r.observacao,
+            }
+            for r in rows
+        ]
+    except Exception as exc:
+        logger.debug("Sem tabela extracoes ou erro: %s", exc)
+        return []
+
+
+# ── Inconsistências SIAPS ─────────────────────────────────────────────────────
+
+async def _incons_siaps(ibge: str, db: AsyncSession) -> int:
+    try:
+        from models.inconsistencia import Inconsistencia
+        n = (await db.execute(
+            select(func.count())
+            .where(Inconsistencia.municipio_ibge == ibge)
+            .where(Inconsistencia.programa == "SIAPS")
+            .where(Inconsistencia.situacao.in_(["identificada", "em_correcao"]))
+        )).scalar_one()
+        return n
+    except Exception:
+        return 0
+
+
+# ── Status da conexão SIAPS ───────────────────────────────────────────────────
+
+async def _status_conexao() -> str:
+    from config import settings
+    tem_creds = bool(
+        (getattr(settings, "SIAPS_CPF", None) or "").strip() and
+        (getattr(settings, "SIAPS_SENHA", None) or "").strip()
+    ) or bool((getattr(settings, "SIAPS_TOKEN", None) or "").strip())
+
+    if not tem_creds:
+        return "sem_credenciais"
+
+    autenticado = await siaps_service._autenticar()
+    return "online" if autenticado else "degradado"
+
+
+# ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("/resumo")
-def resumo_siaps():
-    lotes = _gerar_lotes()
-    processados = sum(1 for l in lotes if l["status"] == "processado")
-    pendentes = sum(1 for l in lotes if l["status"] in ["pendente", "processando"])
-    com_erro = sum(1 for l in lotes if l["status"] in ["rejeitado", "erro"])
-    total_fichas = sum(l["total_fichas"] for l in lotes)
-    fichas_ok = sum(l["fichas_processadas"] for l in lotes)
-    fichas_rej = sum(l["fichas_rejeitadas"] for l in lotes)
-    taxa_geral = round((fichas_rej / total_fichas) * 100, 1) if total_fichas > 0 else 0
+async def resumo_siaps(
+    ibge: str = Query(_IBGE, regex=r"^\d{7}$"),
+    _: UserOut = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Resumo do status SIAPS: conexão, competência mais recente com dados,
+    inconsistências abertas e histórico de extrações.
+    """
+    # Busca competência mais recente em paralelo com status da conexão
+    comp_atual_task = _dados_competencia(COMPETENCIAS[0])
+    status_task = _status_conexao()
+    incons_task = _incons_siaps(ibge, db)
+    hist_task   = _historico_extracoes(ibge, db)
 
-    historico = [
-        {"competencia": "2025/07", "taxa": 8.3},
-        {"competencia": "2025/08", "taxa": 6.1},
-        {"competencia": "2025/09", "taxa": 7.4},
-        {"competencia": "2025/10", "taxa": 5.2},
-        {"competencia": "2025/11", "taxa": 4.8},
-        {"competencia": "2025/12", "taxa": 3.9},
-        {"competencia": "2026/01", "taxa": 4.2},
-        {"competencia": "2026/02", "taxa": 3.1},
-        {"competencia": "2026/03", "taxa": 2.8},
-        {"competencia": "2026/04", "taxa": 3.4},
-        {"competencia": "2026/05", "taxa": taxa_geral},
-    ]
+    comp_atual, status_conn, n_incons, historico = await asyncio.gather(
+        comp_atual_task, status_task, incons_task, hist_task
+    )
+
+    # Calcula quantas competências têm dados reais
+    comp_com_dados = 1 if comp_atual.get("situacao_dado") not in (
+        "nao_disponivel", "dado_nao_validado", None
+    ) else 0
 
     return {
-        "competencia_atual": "2026/05",
-        "total_lotes": len(lotes),
-        "lotes_processados": processados,
-        "lotes_pendentes": pendentes,
-        "lotes_com_erro": com_erro,
-        "total_fichas": total_fichas,
-        "fichas_ok": fichas_ok,
-        "fichas_rejeitadas": fichas_rej,
-        "taxa_rejeicao_geral": taxa_geral,
-        "ultima_transmissao": "2026-05-20 14:32",
-        "status_conexao": "online",
-        "historico_taxa": historico,
+        "ibge": ibge,
+        "competencia_atual": _fmt_comp(COMPETENCIAS[0]),
+        "competencia_codigo": COMPETENCIAS[0],
+        "status_conexao": status_conn,
+        "competencias_monitoradas": len(COMPETENCIAS),
+        "competencias_com_dados": comp_com_dados,
+        "inconsistencias_abertas": n_incons,
+        "ultima_extracao": historico[0] if historico else None,
+        "total_extracoes_historico": len(historico),
+        "situacao_dado_atual": comp_atual.get("situacao_dado", "nao_disponivel"),
+        "vinculadas_atual": comp_atual.get("total_vinculadas"),
+        "acompanhadas_atual": comp_atual.get("total_acompanhadas"),
+        "verificado_em": _ts(),
     }
 
 
-@router.get("/lotes")
-def listar_lotes(
-    status: Optional[str] = Query(None),
-    esf: Optional[str] = Query(None),
+@router.get("/competencias")
+async def competencias_siaps(
+    ibge: str = Query(_IBGE, regex=r"^\d{7}$"),
+    _: UserOut = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    return _gerar_lotes(status_filtro=status, esf_filtro=esf)
+    """
+    Lista todas as competências monitoradas com seus dados reais do SIAPS.
+    Busca em paralelo para minimizar latência.
+    """
+    historico = await _historico_extracoes(ibge, db)
+    hist_por_comp = {h["competencia"]: h for h in historico}
+
+    # Busca até 4 competências em paralelo (mais recentes)
+    recentes = COMPETENCIAS[:4]
+    antigas   = COMPETENCIAS[4:]
+
+    resultados_recentes = await asyncio.gather(*[_dados_competencia(c) for c in recentes])
+
+    # Antigas: tenta buscar mas não espera muito
+    resultados_antigas = []
+    for c in antigas:
+        # Verifica se já temos no histórico
+        if c in hist_por_comp:
+            h = hist_por_comp[c]
+            resultados_antigas.append({
+                "competencia": c,
+                "situacao_dado": "oficial_validado" if h.get("sucesso") else "dado_nao_validado",
+                "fonte": "historico_extracao",
+                "total_vinculadas": h.get("registros"),
+                "total_acompanhadas": None,
+                "total_equipes": None,
+                "nota": f"Dado do histórico de extrações — {h.get('realizada_em', '')[:10]}",
+            })
+        else:
+            resultados_antigas.append({
+                "competencia": c,
+                "situacao_dado": "nao_disponivel",
+                "fonte": "sem_dado",
+                "total_vinculadas": None,
+                "total_acompanhadas": None,
+                "total_equipes": None,
+                "nota": "Competência sem dado disponível no histórico.",
+            })
+
+    todos = list(resultados_recentes) + resultados_antigas
+
+    return [
+        {
+            **r,
+            "competencia_fmt": _fmt_comp(r["competencia"]),
+            "tem_dado_real": r.get("situacao_dado") not in (
+                "nao_disponivel", "dado_nao_validado", "sem_dado", None
+            ),
+            "extracao_historico": hist_por_comp.get(r["competencia"]),
+        }
+        for r in todos
+    ]
+
+
+@router.get("/historico-extracoes")
+async def historico_extracoes_siaps(
+    ibge: str = Query(_IBGE, regex=r"^\d{7}$"),
+    _: UserOut = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Lista o histórico de extrações SIAPS registradas no banco."""
+    return await _historico_extracoes(ibge, db)

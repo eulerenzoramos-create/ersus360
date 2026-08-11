@@ -1,314 +1,395 @@
-// src/pages/MonitorLotesSIAPS.tsx — Monitor de Lotes SIAPS em Tempo Real
-import { useState } from "react";
+/**
+ * MonitorLotesSIAPS — ERSUS 360
+ * Monitor de Status SIAPS por Competência
+ *
+ * Dados reais da API SIAPS (gov.br) + histórico da tabela de extrações.
+ * Nunca exibe dados simulados — campos sem dado real mostram situacao_dado.
+ */
 import { useQuery } from "@tanstack/react-query";
 import {
-  Database, AlertTriangle, CheckCircle, Clock, RefreshCw,
-  ChevronDown, ChevronRight, Search, Download, Activity,
-  XCircle, Package, TrendingUp, FileText, Zap,
+  Package, RefreshCw, CheckCircle, XCircle, AlertTriangle,
+  Clock, Wifi, WifiOff, AlertOctagon, ChevronDown, ChevronRight,
+  Database, Info, Activity,
 } from "lucide-react";
-import { apiGet } from "../lib/api";
+import { useState } from "react";
+import { api } from "../lib/api";
+import { useMunicipioSeletor } from "../lib/municipio";
+import MunicipioSeletor from "../components/MunicipioSeletor";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-interface Lote {
-  id: number; numero_lote: string; competencia: string; esf: string;
-  data_envio: string; data_processamento: string | null;
-  status: "pendente" | "processando" | "processado" | "rejeitado" | "erro";
-  total_fichas: number; fichas_processadas: number; fichas_rejeitadas: number;
-  taxa_rejeicao: number; tipos_ficha: Record<string, number>;
-  erros: ErroLote[];
+interface Resumo {
+  ibge: string; competencia_atual: string; competencia_codigo: string;
+  status_conexao: "online" | "degradado" | "sem_credenciais";
+  competencias_monitoradas: number; competencias_com_dados: number;
+  inconsistencias_abertas: number;
+  ultima_extracao: { realizada_em: string; sucesso: boolean; metodo: string } | null;
+  total_extracoes_historico: number;
+  situacao_dado_atual: string;
+  vinculadas_atual: number | null;
+  acompanhadas_atual: number | null;
+  verificado_em: string;
 }
 
-interface ErroLote {
-  codigo: string; descricao: string; quantidade: number;
-  fichas_afetadas: string[]; acao_corretiva: string;
+interface CompetenciaItem {
+  competencia: string; competencia_fmt: string;
+  situacao_dado: string; fonte: string; tem_dado_real: boolean;
+  total_vinculadas: number | null;
+  total_acompanhadas: number | null;
+  total_equipes: number | null;
+  situacao_k?: string; situacao_h?: string;
+  nota: string;
+  extracao_historico: { realizada_em: string; sucesso: boolean } | null;
 }
 
-interface ResumoSIAPS {
-  competencia_atual: string;
-  total_lotes: number; lotes_processados: number; lotes_pendentes: number; lotes_com_erro: number;
-  total_fichas: number; fichas_ok: number; fichas_rejeitadas: number; taxa_rejeicao_geral: number;
-  ultima_transmissao: string; status_conexao: "online" | "offline" | "degradado";
-  historico_taxa: { competencia: string; taxa: number }[];
-}
+// ── Helpers visuais ───────────────────────────────────────────────────────────
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const STATUS_COR: Record<string, string> = {
-  pendente: "#9ca3af", processando: "#1351b4", processado: "#16a34a",
-  rejeitado: "#dc2626", erro: "#7c3aed",
+const SITUACAO_COR: Record<string, string> = {
+  oficial_validado:      "#166534",
+  oficial_aguardando:    "#854d0e",
+  divergente:            "#9a3412",
+  rejeitado:             "#991b1b",
+  estimativa_autorizada: "#1d4ed8",
+  dado_nao_validado:     "#6b7280",
+  nao_disponivel:        "#94a3b8",
+  sem_dado:              "#94a3b8",
 };
-const STATUS_LABEL: Record<string, string> = {
-  pendente: "⏳ Pendente", processando: "⚡ Processando", processado: "✓ Processado",
-  rejeitado: "✗ Rejeitado", erro: "⚠ Erro",
+
+const SITUACAO_LABEL: Record<string, string> = {
+  oficial_validado:      "Oficial validado",
+  oficial_aguardando:    "Aguardando validação",
+  divergente:            "Divergente",
+  rejeitado:             "Rejeitado",
+  estimativa_autorizada: "Estimativa autorizada",
+  dado_nao_validado:     "Não validado",
+  nao_disponivel:        "Não disponível",
+  sem_dado:              "Sem dado",
 };
 
-function Bar({ pct, cor, height = 6 }: { pct: number; cor: string; height?: number }) {
+function Tag({ s }: { s: string }) {
+  const cor = SITUACAO_COR[s] ?? "#6b7280";
   return (
-    <div style={{ height, background: "#e5e7eb", borderRadius: 4, overflow: "hidden" }}>
-      <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: cor, borderRadius: 4, transition: "width .4s" }} />
+    <span style={{ fontSize:10, fontWeight:700, padding:"2px 7px", borderRadius:10,
+      color:cor, background:`${cor}15`, border:`1px solid ${cor}40` }}>
+      {SITUACAO_LABEL[s] ?? s}
+    </span>
+  );
+}
+
+function Num({ v, cor }: { v: number | null | undefined; cor?: string }) {
+  if (v == null) return <span style={{ color:"#94a3b8", fontSize:11 }}>—</span>;
+  return (
+    <span style={{ fontWeight:700, color:cor || "#1e293b", fontVariantNumeric:"tabular-nums" }}>
+      {v.toLocaleString("pt-BR")}
+    </span>
+  );
+}
+
+// ── Card por competência ──────────────────────────────────────────────────────
+
+function CardComp({ c }: { c: CompetenciaItem }) {
+  const [aberto, setAberto] = useState(false);
+  const corSit = SITUACAO_COR[c.situacao_dado] ?? "#6b7280";
+  const isOk = c.tem_dado_real;
+
+  return (
+    <div style={{ background:"#fff", border:`1px solid ${corSit}30`,
+      borderLeft:`4px solid ${corSit}`, borderRadius:10,
+      overflow:"hidden", marginBottom:8 }}>
+
+      <button onClick={() => setAberto(o => !o)}
+        style={{ width:"100%", display:"flex", alignItems:"center", gap:14,
+          padding:"13px 16px", background:"none", border:"none", cursor:"pointer",
+          textAlign:"left" }}>
+
+        {/* Competência */}
+        <div style={{ minWidth:80 }}>
+          <div style={{ fontSize:15, fontWeight:800, color:"#1e293b" }}>
+            {c.competencia_fmt}
+          </div>
+          <div style={{ fontSize:10, color:"#94a3b8", fontFamily:"monospace" }}>
+            {c.competencia}
+          </div>
+        </div>
+
+        {/* Tag situação */}
+        <Tag s={c.situacao_dado}/>
+
+        {/* Métricas */}
+        <div style={{ flex:1, display:"flex", gap:24, alignItems:"center" }}>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontSize:14, fontWeight:700, color:"#1d4ed8" }}>
+              <Num v={c.total_equipes}/>
+            </div>
+            <div style={{ fontSize:9, color:"#94a3b8" }}>equipes</div>
+          </div>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontSize:14, fontWeight:700, color:"#166534" }}>
+              <Num v={c.total_vinculadas}/>
+            </div>
+            <div style={{ fontSize:9, color:"#94a3b8" }}>vinculadas (K)</div>
+          </div>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontSize:14, fontWeight:700,
+              color: c.total_acompanhadas ? "#0369a1" : "#94a3b8" }}>
+              <Num v={c.total_acompanhadas}/>
+            </div>
+            <div style={{ fontSize:9, color:"#94a3b8" }}>acompanhadas (H)</div>
+          </div>
+        </div>
+
+        {/* Fonte e última extração */}
+        <div style={{ textAlign:"right", fontSize:10, color:"#94a3b8" }}>
+          <div style={{ fontFamily:"monospace" }}>{c.fonte}</div>
+          {c.extracao_historico && (
+            <div style={{ marginTop:2 }}>
+              {c.extracao_historico.sucesso
+                ? <CheckCircle size={10} color="#166534" style={{ verticalAlign:"middle", marginRight:3 }}/>
+                : <XCircle size={10} color="#dc2626" style={{ verticalAlign:"middle", marginRight:3 }}/>
+              }
+              {new Date(c.extracao_historico.realizada_em).toLocaleDateString("pt-BR")}
+            </div>
+          )}
+        </div>
+
+        {aberto
+          ? <ChevronDown size={13} color="#94a3b8"/>
+          : <ChevronRight size={13} color="#94a3b8"/>
+        }
+      </button>
+
+      {aberto && (
+        <div style={{ borderTop:`1px solid ${corSit}20`, padding:"12px 16px",
+          background:"#fafafa" }}>
+          <div style={{ fontSize:12, color:"#475569", marginBottom:8 }}>
+            {c.nota || "Sem nota disponível."}
+          </div>
+          {c.situacao_k && (
+            <div style={{ display:"flex", gap:12, flexWrap:"wrap" as const }}>
+              <div>
+                <span style={{ fontSize:11, color:"#64748b" }}>Campo K: </span>
+                <Tag s={c.situacao_k}/>
+              </div>
+              {c.situacao_h && (
+                <div>
+                  <span style={{ fontSize:11, color:"#64748b" }}>Campo H: </span>
+                  <Tag s={c.situacao_h}/>
+                </div>
+              )}
+            </div>
+          )}
+          {!c.tem_dado_real && (
+            <div style={{ marginTop:10, padding:"8px 12px", background:"#fff7ed",
+              border:"1px solid #fed7aa", borderRadius:8, fontSize:11, color:"#9a3412" }}>
+              <AlertTriangle size={11} style={{ verticalAlign:"middle", marginRight:4 }}/>
+              Configure <code>SIAPS_CPF</code> e <code>SIAPS_SENHA</code> no Railway para
+              obter dados reais desta competência.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Card Lote ─────────────────────────────────────────────────────────────────
+// ── Status da conexão ─────────────────────────────────────────────────────────
 
-function CardLote({ lote }: { lote: Lote }) {
-  const [aberto, setAberto] = useState(false);
-  const cor = STATUS_COR[lote.status];
-  const corTaxa = lote.taxa_rejeicao === 0 ? "#16a34a" : lote.taxa_rejeicao < 5 ? "#d97706" : "#dc2626";
+function StatusConexao({ s }: { s: string }) {
+  const cfg: Record<string, { cor: string; label: string; icon: React.ReactNode }> = {
+    online:           { cor:"#16a34a", label:"Online",           icon:<Wifi size={13}/> },
+    degradado:        { cor:"#d97706", label:"Degradado",        icon:<Activity size={13}/> },
+    sem_credenciais:  { cor:"#dc2626", label:"Sem credenciais",  icon:<WifiOff size={13}/> },
+  };
+  const c = cfg[s] ?? { cor:"#6b7280", label:s, icon:<Info size={13}/> };
+  return (
+    <span style={{ display:"inline-flex", alignItems:"center", gap:5, fontSize:11,
+      fontWeight:700, padding:"3px 10px", borderRadius:10,
+      color:c.cor, background:`${c.cor}15`, border:`1px solid ${c.cor}40` }}>
+      {c.icon} {c.label}
+    </span>
+  );
+}
+
+// ── Barra de progresso de cobertura ──────────────────────────────────────────
+
+function BarraCobertura({ ok, total }: { ok: number; total: number }) {
+  const pct = total > 0 ? Math.round(ok / total * 100) : 0;
+  const cor = pct === 100 ? "#16a34a" : pct >= 50 ? "#d97706" : "#dc2626";
+  return (
+    <div>
+      <div style={{ display:"flex", justifyContent:"space-between", fontSize:11,
+        color:"#64748b", marginBottom:3 }}>
+        <span>{ok} de {total} competências com dados</span>
+        <span style={{ fontWeight:700, color:cor }}>{pct}%</span>
+      </div>
+      <div style={{ height:6, background:"#f1f5f9", borderRadius:4, overflow:"hidden" }}>
+        <div style={{ height:"100%", width:`${pct}%`, background:cor,
+          borderRadius:4, transition:"width .5s" }}/>
+      </div>
+    </div>
+  );
+}
+
+// ── Página principal ──────────────────────────────────────────────────────────
+
+export default function MonitorLotesSIAPS() {
+  const { ibge, setIbge } = useMunicipioSeletor();
+  const token = localStorage.getItem("ersus_token") ?? "";
+
+  const { data: resumo, isLoading: loadR, refetch } = useQuery<Resumo>({
+    queryKey: ["siaps-resumo", ibge],
+    queryFn: () =>
+      api.get(`/api/siaps-monitor/resumo?ibge=${ibge}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.data),
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
+  });
+
+  const { data: competencias = [], isLoading: loadC } = useQuery<CompetenciaItem[]>({
+    queryKey: ["siaps-competencias", ibge],
+    queryFn: () =>
+      api.get(`/api/siaps-monitor/competencias?ibge=${ibge}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.data),
+    staleTime: 60_000,
+  });
+
+  const isLoading = loadR || loadC;
 
   return (
-    <div style={{ background: "#fff", border: `1px solid ${cor}30`, borderLeft: `4px solid ${cor}`, borderRadius: 10, overflow: "hidden", marginBottom: 8 }}>
-      {/* Header do card */}
-      <div onClick={() => setAberto(o => !o)}
-        style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 16px", cursor: "pointer" }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-            <span style={{ fontWeight: 700, fontSize: 13 }}>{lote.numero_lote}</span>
-            <span style={{ background: `${cor}15`, color: cor, fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 20, border: `1px solid ${cor}40` }}>
-              {STATUS_LABEL[lote.status]}
-            </span>
-            <span style={{ background: "#eff6ff", color: "#1d4ed8", fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>
-              {lote.esf}
-            </span>
+    <div style={{ padding:24, maxWidth:960, margin:"0 auto" }}>
+
+      {/* Cabeçalho */}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between",
+        marginBottom:20, flexWrap:"wrap", gap:12 }}>
+        <div>
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
+            <Package size={22} color="#d97706"/>
+            <h1 style={{ margin:0, fontSize:20, fontWeight:700, color:"#1e293b" }}>
+              Monitor SIAPS — Componente Vínculo
+            </h1>
           </div>
-          <div style={{ fontSize: 11, color: "#6b7280" }}>
-            Competência {lote.competencia} · Enviado {lote.data_envio}
-            {lote.data_processamento && ` · Processado ${lote.data_processamento}`}
+          <div style={{ fontSize:12, color:"#64748b" }}>
+            Status por competência · Campo K (vinculadas) · Campo H (acompanhadas) · Fonte: API SIAPS gov.br
           </div>
         </div>
-
-        <div style={{ display: "flex", gap: 20, alignItems: "center", flexShrink: 0 }}>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#374151" }}>{lote.total_fichas}</div>
-            <div style={{ fontSize: 10, color: "#9ca3af" }}>fichas</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#16a34a" }}>{lote.fichas_processadas}</div>
-            <div style={{ fontSize: 10, color: "#9ca3af" }}>ok</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#dc2626" }}>{lote.fichas_rejeitadas}</div>
-            <div style={{ fontSize: 10, color: "#9ca3af" }}>rejeit.</div>
-          </div>
-          <div style={{ textAlign: "center", minWidth: 56 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: corTaxa }}>{lote.taxa_rejeicao}%</div>
-            <div style={{ fontSize: 10, color: "#9ca3af" }}>rejeição</div>
-          </div>
-          {aberto ? <ChevronDown size={14} color="#9ca3af" /> : <ChevronRight size={14} color="#9ca3af" />}
+        <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" as const }}>
+          <MunicipioSeletor onChange={setIbge}/>
+          <button onClick={() => refetch()}
+            style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 14px",
+              borderRadius:9, border:"1.5px solid #e2e8f0", background:"#fff",
+              fontSize:12, fontWeight:600, cursor:"pointer", color:"#374151" }}>
+            <RefreshCw size={13} style={{ animation: isLoading ? "spin 1s linear infinite" : "none" }}/>
+            Atualizar
+          </button>
         </div>
       </div>
 
-      {/* Barra de progresso */}
-      {lote.status === "processando" && (
-        <div style={{ padding: "0 16px 12px" }}>
-          <Bar pct={(lote.fichas_processadas / lote.total_fichas) * 100} cor="#1351b4" height={4} />
-          <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 4 }}>
-            {lote.fichas_processadas}/{lote.total_fichas} processadas…
-          </div>
-        </div>
-      )}
+      <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
 
-      {/* Detalhe expandido */}
-      {aberto && (
-        <div style={{ borderTop: `1px solid ${cor}20`, padding: "14px 16px", background: "#fafafa" }}>
-          {/* Tipos de ficha */}
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Fichas por Tipo</div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
-              {Object.entries(lote.tipos_ficha).map(([tipo, qtd]) => (
-                <div key={tipo} style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: "#1351b4" }}>{qtd}</div>
-                  <div style={{ fontSize: 9, color: "#9ca3af" }}>{tipo}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Erros */}
-          {lote.erros.length > 0 && (
+      {/* Painel de resumo */}
+      {resumo && (
+        <div style={{ background:"linear-gradient(135deg,#78350f,#b45309)", borderRadius:14,
+          padding:"20px 24px", marginBottom:20, color:"#fff" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+            marginBottom:14, flexWrap:"wrap", gap:8 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: "#dc2626" }}>
-                ⚠ Erros de Processamento — {lote.erros.length} tipo(s)
+              <div style={{ fontSize:11, color:"rgba(255,255,255,.6)", marginBottom:4,
+                textTransform:"uppercase", letterSpacing:"0.08em" }}>
+                Competência atual
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {lote.erros.map((e, i) => (
-                  <div key={i} style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 14px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-                      <div>
-                        <span style={{ fontFamily: "monospace", fontSize: 10, background: "#dc262615", color: "#dc2626", padding: "1px 6px", borderRadius: 4, marginRight: 8 }}>{e.codigo}</span>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{e.descricao}</span>
-                      </div>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: "#dc2626", flexShrink: 0 }}>{e.quantidade} fichas</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 6 }}>
-                      Fichas: {e.fichas_afetadas.slice(0, 3).join(", ")}{e.fichas_afetadas.length > 3 ? ` +${e.fichas_afetadas.length - 3}` : ""}
-                    </div>
-                    <div style={{ fontSize: 11, color: "#16a34a", fontWeight: 600 }}>
-                      ✓ Ação: {e.acao_corretiva}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <div style={{ fontSize:20, fontWeight:800 }}>{resumo.competencia_atual}</div>
             </div>
-          )}
-
-          {lote.erros.length === 0 && lote.status === "processado" && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#16a34a", fontSize: 12, fontWeight: 600 }}>
-              <CheckCircle size={14} /> Lote processado sem erros
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Principal ─────────────────────────────────────────────────────────────────
-
-export default function MonitorLotesSIAPS() {
-  const [filtroStatus, setFiltroStatus] = useState("todos");
-  const [filtroESF, setFiltroESF] = useState("Todas");
-  const [busca, setBusca] = useState("");
-
-  const { data: resumo, isLoading: loadResumo, refetch } = useQuery<ResumoSIAPS>({
-    queryKey: ["siaps-resumo"],
-    queryFn: () => apiGet("/api/siaps-monitor/resumo") as Promise<ResumoSIAPS>,
-    staleTime: 30_000,
-    refetchInterval: 60_000,
-  });
-
-  const { data: lotes = [], isLoading: loadLotes } = useQuery<Lote[]>({
-    queryKey: ["siaps-lotes", filtroStatus, filtroESF],
-    queryFn: () => apiGet("/api/siaps-monitor/lotes", {
-      status: filtroStatus !== "todos" ? filtroStatus : undefined,
-      esf: filtroESF !== "Todas" ? filtroESF : undefined,
-    }) as Promise<Lote[]>,
-    staleTime: 30_000,
-  });
-
-  const lotesFiltrados = lotes.filter(l =>
-    !busca || l.numero_lote.includes(busca) || l.competencia.includes(busca)
-  );
-
-  const r = resumo;
-  const corConexao = r?.status_conexao === "online" ? "#16a34a" : r?.status_conexao === "degradado" ? "#d97706" : "#dc2626";
-
-  return (
-    <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>
-
-      {/* Header */}
-      <div style={{ background: "linear-gradient(135deg,#92400e 0%,#d97706 100%)", padding: "18px 28px 18px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
-              <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: 6 }}>
-                <Package size={18} color="#fff" />
-              </div>
-              <span style={{ fontWeight: 800, fontSize: 20, color: "#fff" }}>Monitor de Lotes SIAPS</span>
-              {r && (
-                <span style={{ background: `${corConexao}25`, color: corConexao, borderRadius: 6, padding: "2px 10px", fontSize: 11, fontWeight: 700, border: `1px solid ${corConexao}50` }}>
-                  {r.status_conexao === "online" ? "● Online" : r.status_conexao === "degradado" ? "◐ Degradado" : "○ Offline"}
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,.7)" }}>
-              Transmissão · Processamento · Rejeições · Erros por ficha · {r?.competencia_atual}
-            </div>
+            <StatusConexao s={resumo.status_conexao}/>
           </div>
-          <button onClick={() => refetch()}
-            style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.15)", color: "#fff", border: "1px solid rgba(255,255,255,.3)", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
-            <RefreshCw size={13} /> Atualizar
-          </button>
-        </div>
 
-        {/* KPIs */}
-        {r && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginTop: 16 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:10, marginBottom:16 }}>
             {[
-              { label: "Total de Lotes", val: r.total_lotes, cor: "#fff" },
-              { label: "Processados", val: r.lotes_processados, cor: "#86efac" },
-              { label: "Pendentes", val: r.lotes_pendentes, cor: "#fde68a" },
-              { label: "Com Erro", val: r.lotes_com_erro, cor: "#fca5a5" },
-              { label: "Taxa Rejeição", val: `${r.taxa_rejeicao_geral}%`, cor: r.taxa_rejeicao_geral < 5 ? "#86efac" : "#fca5a5" },
+              { label:"Vinculadas (K)",   val: resumo.vinculadas_atual?.toLocaleString("pt-BR") ?? "—", cor:"#fde68a" },
+              { label:"Acompanhadas (H)", val: resumo.acompanhadas_atual?.toLocaleString("pt-BR") ?? "—", cor:"#a5f3fc" },
+              { label:"Inconsistências",  val: String(resumo.inconsistencias_abertas), cor: resumo.inconsistencias_abertas > 0 ? "#fca5a5" : "#86efac" },
+              { label:"Extrações hist.",  val: String(resumo.total_extracoes_historico), cor:"#fff" },
             ].map(k => (
-              <div key={k.label} style={{ background: "rgba(255,255,255,.12)", borderRadius: 8, padding: "10px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: k.cor }}>{k.val}</div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,.6)" }}>{k.label}</div>
+              <div key={k.label} style={{ background:"rgba(255,255,255,.12)",
+                borderRadius:8, padding:"10px 14px", textAlign:"center" }}>
+                <div style={{ fontSize:20, fontWeight:900, color:k.cor }}>{k.val}</div>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,.6)" }}>{k.label}</div>
               </div>
             ))}
           </div>
-        )}
-      </div>
 
-      <div style={{ padding: "20px 28px 60px" }}>
+          <BarraCobertura ok={resumo.competencias_com_dados} total={resumo.competencias_monitoradas}/>
 
-        {/* Gráfico histórico taxa rejeição */}
-        {r?.historico_taxa && r.historico_taxa.length > 0 && (
-          <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "18px 20px", marginBottom: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Histórico — Taxa de Rejeição por Competência</div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 80 }}>
-              {r.historico_taxa.map((h, i) => {
-                const cor = h.taxa === 0 ? "#16a34a" : h.taxa < 5 ? "#d97706" : "#dc2626";
-                const altura = Math.max(6, (h.taxa / 15) * 80);
-                return (
-                  <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: cor }}>{h.taxa}%</div>
-                    <div style={{ width: "100%", height: altura, background: cor, borderRadius: "3px 3px 0 0", opacity: 0.85 }} />
-                    <div style={{ fontSize: 9, color: "#9ca3af", whiteSpace: "nowrap" as const }}>{h.competencia}</div>
-                  </div>
-                );
-              })}
+          {resumo.ultima_extracao && (
+            <div style={{ marginTop:10, fontSize:11, color:"rgba(255,255,255,.5)" }}>
+              Última extração: {new Date(resumo.ultima_extracao.realizada_em).toLocaleString("pt-BR")}
+              {" · "}{resumo.ultima_extracao.sucesso ? "✓ Sucesso" : "✗ Falha"}
+              {" · método: "}{resumo.ultima_extracao.metodo}
             </div>
-            <div style={{ display: "flex", gap: 16, marginTop: 10, fontSize: 10, color: "#9ca3af" }}>
-              {[{c:"#16a34a",l:"0%"},{c:"#d97706",l:"<5%"},{c:"#dc2626",l:"≥5%"}].map(x=>(
-                <span key={x.l} style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:x.c,display:"inline-block"}}/>{x.l} rejeição</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Filtros */}
-        <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 12, flexWrap: "wrap" as const, alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "7px 12px" }}>
-            <Search size={12} color="#9ca3af" />
-            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar lote ou competência..."
-              style={{ border: "none", outline: "none", fontSize: 12, width: 180, background: "transparent" }} />
-          </div>
-          <select value={filtroESF} onChange={e => setFiltroESF(e.target.value)}
-            style={{ border: "1px solid #d1d5db", borderRadius: 7, padding: "7px 10px", fontSize: 12 }}>
-            {["Todas","KENNEDY","JK","ACARI","JUMA","ESTRADA NOVA","LIBERDADE","SÃO SEBASTIÃO","CACHOEIRA","TRÊS ESTADOS","AREAL"].map(e => <option key={e}>{e}</option>)}
-          </select>
-          <div style={{ display: "flex", gap: 6 }}>
-            {["todos","processado","pendente","rejeitado","erro"].map(s => {
-              const cor = STATUS_COR[s] || "#374151";
-              return (
-                <button key={s} onClick={() => setFiltroStatus(s)}
-                  style={{ padding: "5px 12px", fontSize: 11, borderRadius: 20, border: `1px solid ${filtroStatus===s?cor:"#d1d5db"}`, background: filtroStatus===s?`${cor}15`:"#fff", color: filtroStatus===s?cor:"#374151", cursor: "pointer", fontWeight: filtroStatus===s?700:400 }}>
-                  {s === "todos" ? "Todos" : STATUS_LABEL[s]}
-                </button>
-              );
-            })}
-          </div>
-          <span style={{ marginLeft: "auto", fontSize: 12, color: "#9ca3af" }}>{lotesFiltrados.length} lotes</span>
+          )}
         </div>
+      )}
 
-        {/* Lista de lotes */}
-        {(loadLotes || loadResumo) ? (
-          <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>Carregando lotes SIAPS...</div>
-        ) : (
+      {/* Alerta sem credenciais */}
+      {resumo?.status_conexao === "sem_credenciais" && (
+        <div style={{ background:"#fff7ed", border:"1px solid #fed7aa", borderRadius:12,
+          padding:"14px 18px", marginBottom:20, display:"flex", gap:12, alignItems:"flex-start" }}>
+          <AlertOctagon size={18} color="#d97706" style={{ flexShrink:0, marginTop:1 }}/>
           <div>
-            {lotesFiltrados.map(l => <CardLote key={l.id} lote={l} />)}
-            {lotesFiltrados.length === 0 && (
-              <div style={{ textAlign: "center", padding: 48, color: "#9ca3af" }}>
-                <Package size={32} color="#d1d5db" style={{ marginBottom: 8 }} /><br/>
-                Nenhum lote encontrado.
-              </div>
-            )}
+            <div style={{ fontSize:13, fontWeight:700, color:"#9a3412", marginBottom:4 }}>
+              Credenciais SIAPS não configuradas
+            </div>
+            <div style={{ fontSize:12, color:"#9a3412" }}>
+              Configure as variáveis <code style={{ background:"#fef9c3", padding:"1px 4px",
+                borderRadius:3 }}>SIAPS_CPF</code> e{" "}
+              <code style={{ background:"#fef9c3", padding:"1px 4px", borderRadius:3 }}>SIAPS_SENHA</code>{" "}
+              no painel do Railway para habilitar a busca de dados reais do SIAPS.
+              Acesse <strong>Painel de Integrações</strong> para o guia completo.
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Loading */}
+      {isLoading && (
+        <div style={{ textAlign:"center", padding:60, color:"#94a3b8" }}>
+          <RefreshCw size={28} style={{ animation:"spin 1s linear infinite", marginBottom:12 }}/>
+          <div style={{ fontSize:14 }}>Consultando SIAPS para cada competência…</div>
+        </div>
+      )}
+
+      {/* Lista de competências */}
+      {!isLoading && competencias.length > 0 && (
+        <>
+          <div style={{ fontSize:13, fontWeight:700, color:"#374151", marginBottom:12 }}>
+            Status por Competência — {competencias.length} competências monitoradas
+          </div>
+          {competencias.map(c => <CardComp key={c.competencia} c={c}/>)}
+        </>
+      )}
+
+      {/* Legenda */}
+      {!isLoading && (
+        <div style={{ marginTop:16, padding:"12px 16px", background:"#f8fafc",
+          border:"1px solid #e2e8f0", borderRadius:10 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:8 }}>
+            <Database size={13} color="#64748b"/>
+            <span style={{ fontSize:12, fontWeight:700, color:"#374151" }}>
+              Classificação SituacaoDado
+            </span>
+          </div>
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap" as const }}>
+            {Object.entries(SITUACAO_LABEL).map(([k, v]) => (
+              <Tag key={k} s={k}/>
+            ))}
+          </div>
+          <div style={{ marginTop:8, fontSize:11, color:"#94a3b8" }}>
+            Nenhum valor é estimado ou inventado — campos sem dado real da API
+            recebem a classificação <em>nao_disponivel</em>.
+          </div>
+        </div>
+      )}
     </div>
   );
 }
