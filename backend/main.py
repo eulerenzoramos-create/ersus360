@@ -562,6 +562,10 @@ app.include_router(integracao_esuspec_apui_router)
 app.include_router(integracao_siaps_apui_router)
 app.include_router(integracao_pec_router)
 app.include_router(integracao_status_router)
+from routers.auditoria_dados import router as auditoria_dados_router
+from routers.cvat_municipio import router as cvat_municipio_router
+app.include_router(auditoria_dados_router)
+app.include_router(cvat_municipio_router)
 app.include_router(mapa_visitas_domiciliares_router)
 app.include_router(visitas_domiciliares_router)
 app.include_router(cidadaos_router)

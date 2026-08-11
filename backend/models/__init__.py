@@ -20,6 +20,13 @@ from models.pec_cadastro import (
 from models.visita_domiciliar import (
     StatusFilaVisita, StatusLocalizacao, VisitaDomiciliar, VisitaTransmissao,
 )
+from models.extracao import (
+    ExtracaoRegistro, DataRecord, SituacaoDado, MetodoExtracao, FonteSistema,
+)
+from models.inconsistencia import (
+    Inconsistencia, GravidadeInconsistencia, SituacaoInconsistencia,
+)
+from models.credencial_municipio import CredencialMunicipio
 
 __all__ = [
     # Municipio
@@ -51,4 +58,10 @@ __all__ = [
     "OrigemDado", "EquipeSaude", "ProfissionalSaude", "Microarea", "Domicilio", "Cidadao",
     # Visitas domiciliares / fila LEDI
     "StatusFilaVisita", "StatusLocalizacao", "VisitaDomiciliar", "VisitaTransmissao",
+    # Proveniência e rastreabilidade (missão ERSUS 360)
+    "ExtracaoRegistro", "DataRecord", "SituacaoDado", "MetodoExtracao", "FonteSistema",
+    # Inconsistências
+    "Inconsistencia", "GravidadeInconsistencia", "SituacaoInconsistencia",
+    # Credenciais por município
+    "CredencialMunicipio",
 ]
