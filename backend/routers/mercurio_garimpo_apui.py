@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/mercurio-garimpo-apui", tags=["mercurio_garimpo_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/mercurio-garimpo-apui", tags=["mercurio_garimpo_
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "garimpeiros_ativos_estimados": 4200,
         "garimpeiros_formalizados": 284,
         "garimpeiros_formalizados_pct": 6.8,

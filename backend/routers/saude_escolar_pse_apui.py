@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/saude-escolar-pse-apui", tags=["saude_escolar_pse_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/saude-escolar-pse-apui", tags=["saude_escolar_ps
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "alunos_matriculados_2025": 6840,
         "escolas_municipais": 18,
         "escolas_estaduais": 4,

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Integração e-Gestor Atenção Básica (SISAB/SCNES)
 Env vars (Railway):
   EGESTOR_USUARIO  — login gov.br com perfil gestor municipal
@@ -106,8 +106,8 @@ async def cobertura_aps():
         return {"status": "offline", "fonte": "fallback", "ultima_atualizacao": _ts(), "erro": str(e),
                 "dados": {
                     "populacao_cadastrada": 17648,
-                    "populacao_estimada": 18732,
-                    "cobertura_esf_pct": 94.2,
+                    "populacao_estimada": 20647,      # IBGE Censo 2022 oficial
+                    "cobertura_esf_pct": round(17648 / 20647 * 100, 1),  # 85.5%
                     "equipes_ativas": 9,
                     "equipes_incompletas": 3,
                     "medicos_sf": 6,
@@ -153,7 +153,7 @@ async def dashboard():
         "municipio": "Apuí/AM", "ibge": IBGE_APUI,
         "equipes_cadastradas": len(equipes_data) if isinstance(equipes_data, list) else 8,
         "equipes_ativas": ativas,
-        "cobertura_esf_pct": 94.2,
+        "cobertura_esf_pct": 85.5,
         "populacao_cadastrada": 17648,
         "credenciais_ok": bool(EGESTOR_TOKEN or (EGESTOR_USER and EGESTOR_PASS)),
     }

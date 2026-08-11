@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/pcd-crianca-apui", tags=["pcd_crianca_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/pcd-crianca-apui", tags=["pcd_crianca_apui"])
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "populacao_0_17_anos": 8400,
         "criancas_pcd_estimadas": 840,
         "criancas_pcd_diagnosticadas": 284,

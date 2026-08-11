@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/residuos-solidos-urbanos-apui", tags=["residuos_solidos_urbanos_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/residuos-solidos-urbanos-apui", tags=["residuos_
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "lixao_ativo": True,
         "aterro_sanitario": False,
         "coleta_seletiva": False,

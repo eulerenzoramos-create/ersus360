@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/saude-prisional-apui", tags=["saude_prisional_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/saude-prisional-apui", tags=["saude_prisional_ap
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "unidade_prisional_apui": "CPP Apuí",
         "capacidade_unidade": 84,
         "presos_atual": 242,

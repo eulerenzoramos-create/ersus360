@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/economia-saude-apui", tags=["economia_saude_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/economia-saude-apui", tags=["economia_saude_apui
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "orcamento_saude_total_2025": 10000000,
         "gasto_per_capita_saude": 405,
         "gasto_per_capita_media_am": 484,

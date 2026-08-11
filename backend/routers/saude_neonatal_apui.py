@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/saude-neonatal-apui", tags=["saude_neonatal_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/saude-neonatal-apui", tags=["saude_neonatal_apui
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "nascidos_vivos_2025": 1057,
         # Mortalidade neonatal
         "obitos_neonatais_2025": 18,

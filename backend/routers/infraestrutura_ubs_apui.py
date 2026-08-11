@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from fastapi import APIRouter
 from services import cnes_service
 from functools import lru_cache
@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/infraestrutura-ubs-apui", tags=["infraestrutura_
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "ubs_total": 6,
         "ubs_propria_prefeitura": 4,
         "ubs_alugada": 2,

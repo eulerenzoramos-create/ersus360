@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/leishmaniose-visceral-apui", tags=["leishmaniose_visceral_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/leishmaniose-visceral-apui", tags=["leishmaniose
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "casos_lv_2025": 42,
         "incidencia_lv_100k": 170.0,
         "meta_incidencia_lv_100k": 1.0,

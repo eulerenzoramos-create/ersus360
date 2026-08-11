@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/desnutricao-infantil-apui", tags=["desnutricao_infantil_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/desnutricao-infantil-apui", tags=["desnutricao_i
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "criancas_menores_5_anos": 3210,
         "desnutricao_aguda_grave_pct": 8.4,
         "desnutricao_aguda_moderada_pct": 14.2,

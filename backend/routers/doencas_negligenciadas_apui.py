@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/doencas-negligenciadas-apui", tags=["doencas_negligenciadas_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/doencas-negligenciadas-apui", tags=["doencas_neg
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "populacao_risco_dnts": 18400,
         "chagas_soropositivos_estimados": 420,
         "chagas_diagnosticados": 48,

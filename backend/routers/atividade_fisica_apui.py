@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/atividade-fisica-apui", tags=["atividade_fisica_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/atividade-fisica-apui", tags=["atividade_fisica_
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "sedentarismo_adultos_pct": 62.4,
         "meta_sedentarismo_pct": 15.0,
         "atividade_fisica_suficiente_pct": 22.4,

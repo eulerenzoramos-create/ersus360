@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from datetime import date as _date
 from fastapi import APIRouter
 from services import previne_service
@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/atencao-primaria-apui", tags=["atencao_primaria_
 @lru_cache(maxsize=1)
 def _DASHBOARD():
     return {
-        "populacao_estimada": 18732,       # IBGE Censo 2022
+        "populacao_estimada": 20647,       # IBGE Censo 2022
         "populacao_fonte": "IBGE Censo 2022",
         "equipes_esf_ativas": 9,
         "meta_equipes_esf": 12,

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/doencas-cronicas-apui", tags=["doencas_cronicas_apui"])
@@ -6,7 +6,7 @@ router = APIRouter(prefix="/api/doencas-cronicas-apui", tags=["doencas_cronicas_
 @lru_cache(maxsize=1)
 def _DASHBOARD():
     return {
-        "populacao_estimada": 18732,  # IBGE Censo 2022,
+        "populacao_estimada": 20647,  # IBGE Censo 2022,
         "has_diagnosticados": 2840,
         "has_prevalencia_estimada_pct": 28.0,
         "has_diagnosticados_estimados_pct": 41.1,

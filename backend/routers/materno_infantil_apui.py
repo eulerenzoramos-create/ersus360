@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from datetime import date as _date
 from fastapi import APIRouter
 from services import sim_sinasc_service
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/materno-infantil-apui", tags=["materno_infantil_
 def _DASHBOARD():
     return {
         "nascidos_vivos_ano": 248,
-        "populacao_estimada": 18732,  # IBGE Censo 2022,
+        "populacao_estimada": 20647,  # IBGE Censo 2022,
         "tpn_por_mil_mulheres_15_49": 52.4,
         "prenatal_6_consultas_pct": 64.2,
         "meta_prenatal_pct": 75.0,

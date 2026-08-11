@@ -1,4 +1,4 @@
-"""
+﻿"""
 Router: /api/siaps — SIAPS / eGestor APS
 Componentes de Cofinanciamento da APS — Apuí/AM (IBGE 1300144)
 Integração em cascata: tenta APIs públicas (eGestor/SIAPS/SISAB) e cai no
@@ -76,10 +76,17 @@ def _ABRANGENCIA():
 
 @lru_cache(maxsize=1)
 def _VINCULO_EQUIPES():
+    # CNES oficiais confirmados via DATASUS/CNES2 em 11/08/2026
+    # Rejeição de equipes CNES: 2013290 SIM | 2013304 SIM | 2013312 SIM | 3320138 SIM | 3697983 SIM | 4184688 NÃO | 9934448 NÃO | 9942122 NÃO
+    # ATENÇÃO: UBS Eduardo Biazin (CNES 2013290 — Posto de Saúde Rural Sucunduri) está no CNES
+    # com REJEIÇÃO SIM mas NÃO consta nesta lista — sua equipe e dados de vínculo precisam ser levantados.
     return [
         {
             "ubs": "UBS IRMÃ ELIZABETE",
+            "cnes_ubs": "3320138",          # CNES oficial confirmado DATASUS 11/08/2026
+            "rejeicao_cnes": True,           # Rejeição de equipe no CNES = SIM
             "equipe": "CACHOEIRA",
+            "ine": None,                     # Pendente verificação e-Gestor APS
             "tipo": "eSF",
             "parametro": 2500,
             "A": 7,    "B": 1579, "C": 1586,
@@ -91,7 +98,10 @@ def _VINCULO_EQUIPES():
         },
         {
             "ubs": "UBS ANIZIO FERREIRA DA SILVA",
+            "cnes_ubs": "2013312",
+            "rejeicao_cnes": True,
             "equipe": "SÃO SEBASTIÃO",
+            "ine": None,
             "tipo": "eSF",
             "parametro": 2500,
             "A": 3,    "B": 1635, "C": 1638,
@@ -103,7 +113,10 @@ def _VINCULO_EQUIPES():
         },
         {
             "ubs": "UBS ANIZIO FERREIRA DA SILVA",
+            "cnes_ubs": "2013312",
+            "rejeicao_cnes": True,
             "equipe": "ACARI",
+            "ine": None,
             "tipo": "eSF",
             "parametro": 2500,
             "A": 2,    "B": 1655, "C": 1657,
@@ -115,7 +128,10 @@ def _VINCULO_EQUIPES():
         },
         {
             "ubs": "UBS OSVALDO LEMES CABRAL",
+            "cnes_ubs": "9934448",
+            "rejeicao_cnes": False,
             "equipe": "TRÊS ESTADOS",
+            "ine": None,
             "tipo": "eSF",
             "parametro": 2500,
             "A": 5,    "B": 1064, "C": 1069,
@@ -127,7 +143,10 @@ def _VINCULO_EQUIPES():
         },
         {
             "ubs": "CENTRO DE SAÚDE CURUMIM",
-            "equipe": "JUMA",
+            "cnes_ubs": "3697983",
+            "rejeicao_cnes": True,
+            "equipe": "JUMA",                # Verificar nome oficial — pode ser "UMAPÁ" no e-Gestor
+            "ine": None,
             "tipo": "eSF",
             "parametro": 2500,
             "A": 4,    "B": 1765, "C": 1769,
@@ -139,7 +158,10 @@ def _VINCULO_EQUIPES():
         },
         {
             "ubs": "CENTRO DE SAÚDE CURUMIM",
+            "cnes_ubs": "3697983",
+            "rejeicao_cnes": True,
             "equipe": "LIBERDADE",
+            "ine": None,
             "tipo": "eSF",
             "parametro": 2500,
             "A": 1,    "B": 1807, "C": 1808,
@@ -151,7 +173,10 @@ def _VINCULO_EQUIPES():
         },
         {
             "ubs": "UBS PADRE FALIERO BONCI",
+            "cnes_ubs": "2013304",
+            "rejeicao_cnes": True,
             "equipe": "KENNEDY",
+            "ine": None,
             "tipo": "eSF",
             "parametro": 2500,
             "A": 2,    "B": 771,  "C": 773,
@@ -162,8 +187,11 @@ def _VINCULO_EQUIPES():
             "H_pendente_validacao": True,
         },
         {
-            "ubs": "UBS JK",
+            "ubs": "UBS JK",                 # Também cadastrada como "UBS Pedro Alexandre Santos da Silva"
+            "cnes_ubs": "4184688",
+            "rejeicao_cnes": False,
             "equipe": "JK",
+            "ine": None,
             "tipo": "eSF",
             "parametro": 2500,
             "A": 7,    "B": 1528, "C": 1535,
@@ -174,8 +202,11 @@ def _VINCULO_EQUIPES():
             "H_pendente_validacao": True,
         },
         {
-            "ubs": "UBS CLÁUDIA PEREIRA DOS SANTOS DAMACENA",
+            "ubs": "UBS CLÁUDIA PEREIRA DOS SANTOS DAMACENA",  # Também: Comunidade KM 30
+            "cnes_ubs": "9942122",
+            "rejeicao_cnes": False,
             "equipe": "ESTRADA NOVA",
+            "ine": None,
             "tipo": "eSF",
             "parametro": 2500,
             "A": 0,    "B": 814,  "C": 814,
@@ -186,6 +217,15 @@ def _VINCULO_EQUIPES():
             "H_pendente_validacao": True,
         },
     ]
+
+
+# Estabelecimento no CNES não incluído no Componente Vínculo — requer levantamento
+_CNES_NAO_MAPEADO = {
+    "cnes": "2013290",
+    "nome": "UBS EDUARDO BIAZIN / POSTO DE SAÚDE RURAL SUCUNDURI",
+    "rejeicao_cnes": True,
+    "observacao": "Estabelecimento identificado no CNES/DATASUS em 11/08/2026 mas sem equipe ESF mapeada no ERSUS 360. Requer levantamento de INE, vinculação de equipe e dados do Componente Vínculo.",
+}
 
 
 # ── Componente Qualidade (Novo Financiamento APS — 15 indicadores — Portaria 3.493/2024) ──
@@ -565,12 +605,14 @@ async def vinculo_acompanhamento(
         "municipio": "APUÍ",
         "uf": "AM",
         "ibge": "1300144",
-        "populacao_ibge_censo2022": 18732,
+        "populacao_ibge_censo2022": 20647,
+        "sem_vinculo_esf": 20647 - total_vinculadas,
+        "sem_vinculo_pct": round((20647 - total_vinculadas) / 20647 * 100, 1),
         "ied": 2,
         "total_equipes": len(equipes),
         "total_pessoas_vinculadas": total_vinculadas,
         "total_pessoas_acompanhadas": total_acompanhadas,
-        "cobertura_estimada_pct": round(total_vinculadas / 18732 * 100, 1),
+        "cobertura_estimada_pct": round(total_vinculadas / 20647 * 100, 1),
         "pontuacao_media": pontuacao_media,
         "por_status": por_status,
         "equipes": equipes,

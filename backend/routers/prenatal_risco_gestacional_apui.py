@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/prenatal-risco-gestacional-apui", tags=["prenatal_risco_gestacional_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/prenatal-risco-gestacional-apui", tags=["prenata
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "nascidos_vivos_2025": 524,
         "gestantes_estimadas": 620,
         "prenatal_7_consultas_pct": 28.4,

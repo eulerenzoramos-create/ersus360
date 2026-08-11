@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/violencia-domestica-sexual-apui", tags=["violencia_domestica_sexual_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/violencia-domestica-sexual-apui", tags=["violenc
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "mulheres_total": 11420,
         "mulheres_10_49_anos": 5840,
         "violencia_domestica_notificada_2025": 284,

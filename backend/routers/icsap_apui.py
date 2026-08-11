@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from datetime import date as _date
 from fastapi import APIRouter, Query
 from services import sih_service
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/icsap-apui", tags=["icsap_apui"])
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "internacoes_totais_2025": 1842,
         "internacoes_icsap_2025": 842,
         "icsap_pct_total": 45.7,

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/saude-ambiental-apui", tags=["saude_ambiental_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/saude-ambiental-apui", tags=["saude_ambiental_ap
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         # Queimadas e qualidade do ar
         "focos_queimada_2025": 2842,
         "queimada_area_ha_2025": 84200,
@@ -64,7 +64,7 @@ def _RISCOS():
          "status": "critico",
          "observacao": "84.000 ha de soja em Apuí. 84 notificações de intoxicação por agrotóxico em 2025 + 2 óbitos. Subnotificação estimada: 10:1 = ~840 casos reais. Glifosato + 2,4-D + paraquat: principais agrotóxicos usados na região. Paraquat: proibido na UE, ainda legal no Brasil — sem antídoto, mortalidade 80% por ingestão. Residual em água: detectado no manancial de captação de Apuí (análise 2024) — monitoramento regular ausente. ANOVA/SINITOX: notificação obrigatória ao CIAT (Centro de Informação e Assistência Toxicológica) — 0800-722-6001. EPI (Equipamento de Proteção Individual): 28,4% dos trabalhadores rurais usam EPI completo. Treinamento de uso seguro de agrotóxicos: EMATER — disponível gratuitamente."},
         {"risco": "Lixão ativo — vetores e contaminação ambiental",
-         "expostos_estimados": 18732,  # IBGE Censo 2022 "casos_2025": 0, "obitos_2025": 0,
+         "expostos_estimados": 20647,  # IBGE Censo 2022 "casos_2025": 0, "obitos_2025": 0,
          "status": "critico",
          "observacao": "Lixão ativo em Apuí (ilegal desde Lei 12.305/2010 — prazo venceu em 2014). IBAMA: multa de R$ 84k a R$ 840k. Resíduos de saúde (RSS) descartados corretamente: 28,4% (meta 100%). RSS inadequado: agulhas + sangue + químicos = contaminação do solo e lençol freático. IIP Aedes no lixão: contribui para IIP 4,8% municipal. Plano Municipal de Gestão Integrada de Resíduos Sólidos (PMGIRS): inexistente. PMGIRS + aterro sanitário consorciado: R$ 28M disponíveis no PAC Saneamento (bloqueados pelo PMSB). Consórcio intermunicipal de resíduos: Apuí + Humaitá + outros = viabilidade de aterro sanitário regional. Catadores: formalização em Cooperativa = MNCR + inclusão produtiva + CATAFORTE (MTE)."},
         {"risco": "Qualidade da água de abastecimento — contaminação por agrotóxicos e metais",

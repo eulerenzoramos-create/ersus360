@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/hepatites-virais-apui", tags=["hepatites_virais_apui"])
@@ -6,7 +6,7 @@ router = APIRouter(prefix="/api/hepatites-virais-apui", tags=["hepatites_virais_
 @lru_cache(maxsize=1)
 def _DASHBOARD():
     return {
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "hepatite_a_casos_2025": 28,
         "hepatite_a_surto_2025": True,
         "hepatite_b_prevalencia_estimada_pct": 4.8,

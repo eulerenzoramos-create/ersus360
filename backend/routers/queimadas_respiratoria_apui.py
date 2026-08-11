@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/queimadas-respiratoria-apui", tags=["queimadas_respiratoria_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/queimadas-respiratoria-apui", tags=["queimadas_r
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "area_municipio_km2": 54248,
         "focos_incendio_2025": 4284,
         "focos_incendio_2024": 2842,

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+﻿from fastapi import APIRouter
 from functools import lru_cache
 
 router = APIRouter(prefix="/api/saude-mental-infantojuvenil-apui", tags=["saude_mental_infantojuvenil_apui"])
@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/saude-mental-infantojuvenil-apui", tags=["saude_
 def _DASHBOARD():
     return {
         "municipio": "Apuí/AM",
-        "populacao_total": 18732,  # IBGE Censo 2022,
+        "populacao_total": 20647,  # IBGE Censo 2022,
         "populacao_0_17_anos": 9882,
         "prevalencia_transtorno_mental_infantojuv_pct": 18.4,
         "criancas_adolescentes_transtorno_estimados": 1818,
