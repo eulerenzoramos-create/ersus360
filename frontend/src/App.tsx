@@ -369,6 +369,7 @@ import PICSApui                     from "./pages/PICSApui";
 import SprintOtimo                  from "./pages/SprintOtimo";
 import AnaliseMunicipio             from "./pages/AnaliseMunicipio";
 import CvatDashboard                from "./pages/CvatDashboard";
+import Inconsistencias              from "./pages/Inconsistencias";
 import { SinoAlertas } from "./components/SinoAlertas";
 import ExportarRelatorio from "./components/ExportarRelatorio";
 
@@ -956,6 +957,8 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
             {podeRH  && <L1 to="/rh"              label="Recursos Humanos"   Icon={UserCog}/>}
             {podeRH  && <L1 to="/cadastros"       label="Cadastros Mestres"  Icon={Layers}/>}
             {podeUsr && <L1 to="/usuarios"        label="Gestão de Usuários" Icon={Users}/>}
+            <L1 to="/inconsistencias" label="Inconsistências ★" Icon={AlertTriangle}/>
+
             {podeAud && (
             <Acc1 label="Auditoria e Controle">
               <L2 to="/auditoria"            label="Auditoria do Sistema"       Icon={Shield}/>
@@ -1081,7 +1084,8 @@ export default function App() {
             <Route path="/cvat"                      element={<CvatDashboard/>}/>
             <Route path="/cvat/*"                    element={<CvatDashboard/>}/>
             {/* Inconsistências */}
-            <Route path="/inconsistencias/*"         element={<Documentos/>}/>
+            <Route path="/inconsistencias"           element={<Inconsistencias/>}/>
+            <Route path="/inconsistencias/*"         element={<Inconsistencias/>}/>
             {/* POEPS */}
             <Route path="/poeps/*"                   element={<Indicadores/>}/>
             {/* PSE */}

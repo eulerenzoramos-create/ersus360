@@ -313,6 +313,10 @@ from routers.cronograma_repasses import router as cronograma_repasses_router
 from routers.busca_ativa_ia import router as busca_ativa_ia_router
 from routers.equipamentos import router as equipamentos_router
 from routers.transparencia import router as transparencia_router
+from routers.inconsistencias import router as inconsistencias_router
+from routers.integracao_status import router as integracao_status_router
+from routers.auditoria_dados import router as auditoria_dados_router
+from routers.cvat_municipio import router as cvat_municipio_router
 from routers.vacinacao import router as vacinacao_router
 from routers.almoxarifado import router as almoxarifado_router
 from routers.relatorio_gestao import router as relatorio_gestao_router
@@ -639,6 +643,10 @@ app.include_router(dashboard_router)
 app.include_router(notificacoes_router)
 app.include_router(exportador_router)
 app.include_router(idsus_router)
+app.include_router(inconsistencias_router)
+app.include_router(integracao_status_router)
+app.include_router(auditoria_dados_router)
+app.include_router(cvat_municipio_router)
 
 
 @app.get("/")
