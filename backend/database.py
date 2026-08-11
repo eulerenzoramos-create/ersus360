@@ -43,5 +43,6 @@ async def init_db():
             convenio, repasse, cronograma, indicador, alerta,
             municipio, portaria, execucao, obra, usuario, documento, emenda,
             repasse_fns, pec_cadastro, visita_domiciliar,
+            extracao, inconsistencia, credencial_municipio,
         )
         await conn.run_sync(Base.metadata.create_all)

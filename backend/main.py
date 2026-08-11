@@ -66,6 +66,7 @@ app.add_middleware(
 
 # ── Routers ──────────────────────────────────────────────────────────────────
 from routers.auth import router as auth_router
+from routers.municipios import router as municipios_router
 from routers.fns import router as fns_router
 from routers.convenios import router as convenios_router
 from routers.repasses import router as repasses_router
@@ -322,6 +323,7 @@ from routers.exportador import router as exportador_router
 from routers.idsus import router as idsus_router
 
 app.include_router(auth_router)
+app.include_router(municipios_router)
 app.include_router(municipio_router)
 app.include_router(fns_router)
 app.include_router(convenios_router)
@@ -707,10 +709,16 @@ async def _seed_dados_iniciais():
         res = await db.execute(select(Municipio).where(Municipio.codigo_ibge == "1300144"))
         mun = res.scalar_one_or_none()
         if not mun:
-            mun = Municipio(nome="Apuí", uf="AM", codigo_ibge="1300144")
+            mun = Municipio(
+                nome="APUÍ", uf="AM", codigo_ibge="1300144",
+                populacao=20647,  # IBGE Censo 2022 — oficial confirmado via API
+                cnpj_fundo="12.834.320/0001-26",
+            )
             db.add(mun)
             await db.flush()
-            logger.info("Município Apuí/AM criado (id=%s)", mun.id)
+            logger.info("Município Apuí/AM criado (id=%s, pop=20647 IBGE Censo 2022)", mun.id)
+        elif not mun.populacao:
+            mun.populacao = 20647  # atualiza se estava sem população
 
         # Blocos de pacto
         blocos_nomes = [
