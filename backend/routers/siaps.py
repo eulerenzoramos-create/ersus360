@@ -735,20 +735,25 @@ async def diagnostico_api():
     from config import settings as cfg
     cpf_ok    = bool(cfg.SIAPS_CPF)
     senha_ok  = bool(cfg.SIAPS_SENHA)
+    # SIAPS_TOKEN: Bearer JWT extraído da sessão autenticada
+    siaps_token_raw = (cfg.SIAPS_TOKEN or "").strip()
+    siaps_token_ok  = len(siaps_token_raw) > 50 and siaps_token_raw.startswith("eyJ")
     auth_ok   = await siaps_service._autenticar()
-    token_ok  = bool(siaps_service._auth.get("token"))
+    token_ok  = bool(siaps_service._auth.get("token")) or siaps_token_ok
     cookie_ok = bool(siaps_service._auth.get("cookies"))
-    # Testa API pública SIAPS (sem autenticação)
-    dados_api = await siaps_service.buscar_qualidade("202601")
+    # Testa API com competência Mai/2026
+    dados_api = await siaps_service.buscar_qualidade("202605")
     return {
         "credenciais_configuradas": cpf_ok and senha_ok,
         "SIAPS_CPF_definido":   cpf_ok,
         "SIAPS_SENHA_definida": senha_ok,
-        "autenticacao_ok": auth_ok,
-        "metodo": "bearer_token" if token_ok else ("cookie" if cookie_ok else "nenhum"),
-        "api_publica_siaps": "OK" if dados_api else "FALHOU",
+        "SIAPS_TOKEN_definido": siaps_token_ok,
+        "SIAPS_TOKEN_preview":  siaps_token_raw[:20] + "..." if siaps_token_ok else siaps_token_raw[:30] or "(vazio)",
+        "autenticacao_ok": auth_ok or siaps_token_ok,
+        "metodo": "bearer_token_railway" if siaps_token_ok else ("bearer_token" if token_ok else ("cookie" if cookie_ok else "nenhum")),
+        "api_siaps": "OK" if dados_api else "FALHOU",
         "equipes_encontradas": len(dados_api) if dados_api else 0,
-        "instrucao": "API pública SIAPS ativa!" if dados_api else "Usando dados de referência Mai/2026.",
+        "instrucao": "API SIAPS ativa!" if dados_api else "Usando dados de referência Mai/2026.",
     }
 
 
