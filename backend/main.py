@@ -555,11 +555,13 @@ from routers.integracao_pec import router as integracao_pec_router
 from routers.mapa_visitas_domiciliares import router as mapa_visitas_domiciliares_router
 from routers.visitas_domiciliares import router as visitas_domiciliares_router
 from routers.cidadaos import router as cidadaos_router
+from routers.integracao_status import router as integracao_status_router
 app.include_router(integracao_fns_apui_router)
 app.include_router(integracao_egestor_apui_router)
 app.include_router(integracao_esuspec_apui_router)
 app.include_router(integracao_siaps_apui_router)
 app.include_router(integracao_pec_router)
+app.include_router(integracao_status_router)
 app.include_router(mapa_visitas_domiciliares_router)
 app.include_router(visitas_domiciliares_router)
 app.include_router(cidadaos_router)
