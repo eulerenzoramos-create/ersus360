@@ -157,64 +157,11 @@ def _parse_html(html: str, mes: int, ano: int) -> list[FnsRepasseItem]:
     return itens
 
 
-def _dados_simulados(mes: int, ano: int) -> list[FnsRepasseItem]:
-    """
-    Dados reais de Apuí/AM 2026 (fonte: consultafns.saude.gov.br).
-    Usados como fallback quando o portal FNS está indisponível.
-    """
-    competencia = _competencia_str(mes, ano)
-    return [
-        FnsRepasseItem(
-            numero_convenio="793456/2024",
-            objeto="Atenção Básica — Piso de Atenção Básica Variável",
-            bloco="Atenção Básica",
-            competencia=competencia,
-            valor_previsto=0.0,
-            valor_realizado=0.0,
-            data_repasse=None,
-            tipo="Federal",
-            novos=0,
-        ),
-        FnsRepasseItem(
-            numero_convenio="793457/2024",
-            objeto="Média e Alta Complexidade — MAC",
-            bloco="MAC",
-            competencia=competencia,
-            valor_previsto=624_687.80,
-            valor_realizado=312_343.90,
-            data_repasse=f"{ano}-{mes:02d}-15",
-            tipo="Federal",
-            novos=1,
-        ),
-        FnsRepasseItem(
-            numero_convenio="793458/2024",
-            objeto="Vigilância em Saúde — Bloco de Financiamento",
-            bloco="Vigilância em Saúde",
-            competencia=competencia,
-            valor_previsto=51_872.0,
-            valor_realizado=25_936.0,
-            data_repasse=f"{ano}-{mes:02d}-12",
-            tipo="Federal",
-            novos=0,
-        ),
-        FnsRepasseItem(
-            numero_convenio="793459/2024",
-            objeto="Assistência Farmacêutica — Componente Básico",
-            bloco="Farmácia",
-            competencia=competencia,
-            valor_previsto=0.0,
-            valor_realizado=0.0,
-            data_repasse=None,
-            tipo="Federal",
-            novos=0,
-        ),
-    ]
-
-
 async def fns_preview(mes: int, ano: int) -> list[FnsRepasseItem]:
     """
     Consulta o FNS e retorna a lista de repasses SEM gravar no banco.
     Usado pelo endpoint GET /api/fns/sync (modo preview).
+    Portal indisponivel → lista vazia (sem dados de demonstracao).
     """
     html = await _fetch_fns_page(mes, ano, settings.FNS_MUNICIPIO_IBGE)
 
@@ -223,8 +170,8 @@ async def fns_preview(mes: int, ano: int) -> list[FnsRepasseItem]:
         if itens:
             return itens
 
-    logger.info("Portal FNS indisponível ou sem dados — usando dados de demonstração")
-    return _dados_simulados(mes, ano)
+    logger.info("Portal FNS indisponivel ou sem dados — retornando lista vazia (sem fallback ficticio)")
+    return []
 
 
 async def fns_sync(
