@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiAuditoria } from "../lib/api";
 import { Shield, Download, Search, AlertTriangle, Info, CheckCircle } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page:  { padding: 20 } as React.CSSProperties,
@@ -42,14 +43,6 @@ interface LogEntry {
   criado_em: string;
 }
 
-// Dados de exemplo para quando a API retornar vazio
-const LOGS_DEMO: LogEntry[] = [
-  { id: 1, usuario_nome: "Euler Ramos", ip_address: "177.91.x.x", acao: "login", modulo: "auth", descricao: "Login realizado com sucesso", nivel: "INFO", criado_em: new Date().toISOString() },
-  { id: 2, usuario_nome: "Euler Ramos", ip_address: "177.91.x.x", acao: "visualizar", modulo: "previne", descricao: "Acessou Novo Financiamento APS — 7 indicadores", nivel: "INFO", criado_em: new Date(Date.now() - 300000).toISOString() },
-  { id: 3, usuario_nome: "Ana Souza", ip_address: "189.34.x.x", acao: "exportar", modulo: "fns", descricao: "Exportou relatório FNS — Convênios 2026", nivel: "AUDIT", criado_em: new Date(Date.now() - 600000).toISOString() },
-  { id: 4, usuario_nome: "Desconhecido", ip_address: "200.10.x.x", acao: "login_falhou", modulo: "auth", descricao: "Senha incorreta — tentativa 1/5", nivel: "WARN", criado_em: new Date(Date.now() - 900000).toISOString() },
-  { id: 5, usuario_nome: "Ana Souza", ip_address: "189.34.x.x", acao: "criar", modulo: "usuarios", descricao: "Criou usuário João Silva (perfil: financeiro)", nivel: "AUDIT", criado_em: new Date(Date.now() - 1800000).toISOString() },
-];
 
 export default function Auditoria() {
   const [busca, setBusca] = useState("");
@@ -62,7 +55,7 @@ export default function Auditoria() {
     staleTime: 30_000,
   });
 
-  const logs: LogEntry[] = logsApi.length > 0 ? logsApi : LOGS_DEMO;
+  const logs: LogEntry[] = logsApi;
 
   const logsFiltrados = logs.filter((l) => {
     const matchBusca = !busca || l.usuario_nome.toLowerCase().includes(busca.toLowerCase()) || l.descricao.toLowerCase().includes(busca.toLowerCase());
@@ -91,6 +84,17 @@ export default function Auditoria() {
     a.href = url;
     a.download = `auditoria_ersus_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
+  }
+
+  if (logs.length === 0) {
+    return (
+      <div style={S.page}>
+        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+          <Shield size={16} color="#1565C0" /> Auditoria do Sistema
+        </div>
+        <NaoDisponivelBanner titulo="Logs de auditoria indisponiveis" nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />
+      </div>
+    );
   }
 
   return (
