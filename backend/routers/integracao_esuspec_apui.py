@@ -5,7 +5,8 @@ Env vars (Railway):
   RNDS_CLIENT_SECRET  — client_secret
   RNDS_CERT_B64       — certificado .pfx em base64 (ICP-Brasil)
   RNDS_CERT_PASSWORD  — senha do certificado
-CNES Apuí: 2206406  |  IBGE: 1300144
+  RNDS_CNES           — CNES da credencial RNDS (padrão: 6820662 — Apuí/AM)
+IBGE: 1300144
 API indisponível → nao_disponivel. Nunca atendimentos, prescrições ou doses inventadas.
 """
 import os
@@ -18,18 +19,24 @@ from services.cache_service import cache_get, cache_set
 router = APIRouter(prefix="/api/integracao-esuspec-apui", tags=["Integração e-SUS PEC"])
 
 IBGE_APUI    = "1300144"
-CNES_APUI    = "2206406"
+CNES_APUI    = os.getenv("RNDS_CNES", "6820662")
 CLIENT_ID    = os.getenv("RNDS_CLIENT_ID", "")
 CLIENT_SEC   = os.getenv("RNDS_CLIENT_SECRET", "")
 CERT_B64     = os.getenv("RNDS_CERT_B64", "")
 CERT_PASS    = os.getenv("RNDS_CERT_PASSWORD", "")
-ESUS_BASE    = "https://ehr.saude.gov.br/api/fhir/r4"
+TOKEN_URL    = os.getenv("RNDS_TOKEN_URL", "https://ehr.saude.gov.br/api/oauth2/token")
+ESUS_BASE    = os.getenv("RNDS_FHIR_BASE", "https://ehr.saude.gov.br/api/fhir/r4")
 TIMEOUT      = 12.0
 
 _NAO_DISP = {
     "situacao_dado": "nao_disponivel",
     "dados": None,
-    "nota": "Dados requerem integração com RNDS/e-SUS PEC. Configure RNDS_CLIENT_ID e RNDS_CLIENT_SECRET no Railway. Nenhum valor inventado.",
+    "nota": (
+        "Dados requerem integração com RNDS/e-SUS PEC. "
+        "Configure no Railway: RNDS_CNES, RNDS_CLIENT_ID, RNDS_CLIENT_SECRET, "
+        "RNDS_CERT_B64 (certificado .pfx em base64), RNDS_CERT_PASSWORD. "
+        "Nenhum valor inventado."
+    ),
 }
 
 _rnds_token: Optional[str] = None
@@ -48,7 +55,7 @@ async def _get_rnds_token() -> Optional[str]:
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             r = await client.post(
-                "https://ehr.saude.gov.br/api/oauth2/token",
+                TOKEN_URL,
                 data={"grant_type": "client_credentials", "client_id": CLIENT_ID, "client_secret": CLIENT_SEC},
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
@@ -82,8 +89,9 @@ async def status():
         "sistema": "e-SUS PEC / RNDS (Rede Nacional de Dados em Saúde)",
         "ibge": IBGE_APUI,
         "cnes": CNES_APUI,
-        "env_vars_necessarias": ["RNDS_CLIENT_ID", "RNDS_CLIENT_SECRET", "RNDS_CERT_B64", "RNDS_CERT_PASSWORD"],
+        "env_vars_necessarias": ["RNDS_CNES", "RNDS_CLIENT_ID", "RNDS_CLIENT_SECRET", "RNDS_CERT_B64", "RNDS_CERT_PASSWORD"],
         "env_vars_ok": {
+            "RNDS_CNES":          bool(CNES_APUI),
             "RNDS_CLIENT_ID":     bool(CLIENT_ID),
             "RNDS_CLIENT_SECRET": bool(CLIENT_SEC),
             "RNDS_CERT_B64":      bool(CERT_B64),
