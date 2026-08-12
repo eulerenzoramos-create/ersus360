@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
@@ -75,6 +76,13 @@ export default function FarmaciaPopularApui() {
             </button>
           ))}
         </div>
+
+        {aba === "dashboard" && !dashRaw && (
+          <NaoDisponivelBanner
+            titulo="Farmácia Popular — Dados Indisponíveis"
+            nota="Integração com Farmácia Popular do Brasil ou BNAFAR ainda não configurada. Nenhum dado de dispensação ou adesão foi inventado."
+          />
+        )}
 
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">

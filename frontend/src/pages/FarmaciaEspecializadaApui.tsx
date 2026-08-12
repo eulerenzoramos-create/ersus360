@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import {
   BarChart, Bar, LineChart, Line, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -86,6 +87,13 @@ export default function FarmaciaEspecializadaApui() {
             </button>
           ))}
         </div>
+
+        {aba === "dashboard" && !dashRaw && (
+          <NaoDisponivelBanner
+            titulo="Farmácia Especializada — Dados Indisponíveis"
+            nota="Integração com CEAF/RENAME ou sistema estadual de farmácia especializada ainda não configurada. Nenhum dado de paciente ou dispensação foi inventado."
+          />
+        )}
 
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">

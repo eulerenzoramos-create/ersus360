@@ -3,6 +3,7 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Calendar, DollarSign, CheckCircle, Clock, AlertTriangle, FileText, Printer, X, Filter, RefreshCw, Edit2, Save, Database, Wifi } from "lucide-react";
 import { apiGet, apiPost, apiPut } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 interface Repasse {
@@ -611,6 +612,13 @@ export default function CronogramaRepasses() {
         {/* Cards */}
         {isLoading ? (
           <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>Carregando cronograma...</div>
+        ) : repasses.length === 0 ? (
+          <div style={{ padding: "16px 0" }}>
+            <NaoDisponivelBanner
+              titulo="Cronograma de Repasses FNS Indisponível"
+              nota="Os dados de repasses FNS/Fundo a Fundo requerem a TRANSPARENCIA_API_KEY configurada no Railway ou registro manual via sincronização. Nenhum valor foi inventado."
+            />
+          </div>
         ) : filtroMes === "todos" ? (
           meses.map(mes => {
             const doMes   = visiveis.filter(r => r.competencia === mes);
