@@ -147,10 +147,6 @@ export default function Login({ onLogin }: Props) {
           </button>
         </form>
 
-        <div style={{ marginTop: 20, padding: "12px 14px", background: "#f0fdf4", borderRadius: 8, fontSize: 12, color: "#166534" }}>
-          <strong>Credenciais padrão:</strong><br />
-          gestor / ersus2026 &nbsp;·&nbsp; admin / admin2026
-        </div>
 
         <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: "#9ca3af" }}>
           Fundo Municipal de Saúde — Apuí / AM<br />
