@@ -1,14 +1,27 @@
 """
-Router: /api/financeiro — Painel Financeiro Executivo
-Agrega: FNS repasses, execução orçamentária, blocos, SIOPS, empenhos
-Repasses: Jan–Jun 2026 integralmente recebidos (diferença = 0)
+Router: /api/financeiro — Painel Financeiro Executivo ERSUS 360
+
+Fontes de dados:
+  - Valores FNS recebidos (AB/MAC/VIGI): transcritos de consultafns.saude.gov.br
+    → situacao_dado = "oficial_aguardando" (real, inserido manualmente)
+  - /fns-acoes: chama consultafns.saude.gov.br/recursos/ em tempo real
+    → situacao_dado = "oficial_validado" quando API responde
+  - SIOPS: mínimo constitucional via siops_service (API pública DATASUS)
+  - Execução orçamentária (empenhado/liquidado/pago): sem API pública
+    → situacao_dado = "nao_disponivel"
+
+REGRA: empenhos e credores não são simulados. Sem API = sem dado.
 """
 from __future__ import annotations
 import asyncio
+import logging
 from datetime import date, datetime
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
 from functools import lru_cache
+from services import siops_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/financeiro", tags=["Financeiro"])
 
@@ -55,14 +68,22 @@ _FNS_TOTAL_RECEBIDO = _FNS_AB_TOTAL + _FNS_MAC + _FNS_VIGI  # 957_851,90
 @lru_cache(maxsize=1)
 def _RECEITAS():
     return {
-        "orcamento_total":      18_540_000.0,
-        "fns_previsto":          6_890_000.0,
-        "fns_recebido":          _FNS_TOTAL_RECEBIDO,   # 957.851,90 real FNS Jan–Jun 2026
-        "municipio_proprio":     2_180_400.0,
-        "convenios_recebido":      420_000.0,
-        "emendas_recebido":        180_000.0,
-        "outros_recebido":         112_300.0,
-        "total_arrecadado":      _FNS_TOTAL_RECEBIDO + 2_180_400.0 + 420_000.0 + 180_000.0,
+        # FNS recebido Jan–Jun 2026: real, transcrito de consultafns.saude.gov.br
+        "fns_recebido":          _FNS_TOTAL_RECEBIDO,
+        "situacao_dado_fns":     "oficial_aguardando",
+        "fonte_fns":             "consultafns.saude.gov.br (transcrição manual Jan–Jun 2026)",
+        # Demais receitas: sem API pública para extração automática
+        "orcamento_total":       None,
+        "fns_previsto":          None,
+        "municipio_proprio":     None,
+        "convenios_recebido":    None,
+        "emendas_recebido":      None,
+        "total_arrecadado":      None,
+        "situacao_dado_orcamento": "nao_disponivel",
+        "nota_orcamento": (
+            "Orçamento total, receita própria e convênios requerem acesso ao "
+            "sistema orçamentário municipal (SIAFIC/LOA). Sem API pública disponível."
+        ),
     }
 
 
@@ -71,13 +92,18 @@ def _RECEITAS():
 @lru_cache(maxsize=1)
 def _DESPESAS():
     return {
-        "dotacao_inicial":      18_540_000.0,
-        "dotacao_atualizada":   19_100_000.0,
-        "empenhado":             7_820_500.0,
-        "liquidado":             6_988_200.0,
-        "pago":                  6_845_200.0,
-        "a_pagar":                 143_000.0,
-        "a_liquidar":              832_300.0,
+        "situacao_dado":    "nao_disponivel",
+        "dotacao_inicial":  None,
+        "dotacao_atualizada": None,
+        "empenhado":        None,
+        "liquidado":        None,
+        "pago":             None,
+        "a_pagar":          None,
+        "a_liquidar":       None,
+        "nota": (
+            "Execução orçamentária (empenho/liquidação/pagamento) requer acesso ao "
+            "sistema contábil municipal (SIAFIC). Sem API pública municipal disponível."
+        ),
     }
 
 
@@ -86,82 +112,92 @@ def _DESPESAS():
 
 @lru_cache(maxsize=1)
 def _BLOCOS():
+    """
+    Blocos de financiamento FNS.
+    recebido_ano = valores reais Jan–Jun 2026 transcritos de consultafns.saude.gov.br.
+    Execução orçamentária (empenhado/pago) = nao_disponivel (sem API pública).
+    """
     return [
         {
             "bloco": "Atenção Primária — Novo Financiamento APS",
             "codigo": "AB",
             "cor": "#2563eb",
-            "previsto_ano":   1_239_144.0,   # estimativa anual (619.572 * 2 semestres)
-            "recebido_ano":     619_572.0,   # real FNS Jan–Jun 2026 (5 incentivos)
-            "empenhado":        495_000.0,
-            "liquidado":        446_000.0,
-            "pago":             412_000.0,
-            "pct_execucao":     66.5,
+            "recebido_ano":     619_572.0,   # real FNS Jan–Jun 2026
+            "situacao_dado_recebido": "oficial_aguardando",
+            "previsto_ano":          None,   # sem API pública para previsão
+            "empenhado":             None,
+            "liquidado":             None,
+            "pago":                  None,
+            "situacao_dado_execucao": "nao_disponivel",
             "ultima_parcela":   "Jun/2026",
             "proxima_parcela":  "Jul/2026",
             "sub_acoes": [
-                {"label": "ESF/EAP",          "valor": _FNS_AB_ESF_EAP},
-                {"label": "ACS",              "valor": _FNS_AB_ACS},
-                {"label": "Saúde Bucal",      "valor": _FNS_AB_SAUDE_BUCAL},
-                {"label": "Demais APS",       "valor": _FNS_AB_DEMAIS},
-                {"label": "eMulti",           "valor": _FNS_AB_EMULTI},
+                {"label": "ESF/EAP",     "valor": _FNS_AB_ESF_EAP,     "situacao_dado": "oficial_aguardando"},
+                {"label": "ACS",         "valor": _FNS_AB_ACS,          "situacao_dado": "oficial_aguardando"},
+                {"label": "Saúde Bucal", "valor": _FNS_AB_SAUDE_BUCAL,  "situacao_dado": "oficial_aguardando"},
+                {"label": "Demais APS",  "valor": _FNS_AB_DEMAIS,       "situacao_dado": "oficial_aguardando"},
+                {"label": "eMulti",      "valor": _FNS_AB_EMULTI,       "situacao_dado": "oficial_aguardando"},
             ],
         },
         {
             "bloco": "Média e Alta Complexidade (MAC)",
             "codigo": "MAC",
             "cor": "#dc2626",
-            "previsto_ano":     624_687.80,  # estimativa anual (312k * 2 semestres)
             "recebido_ano":     _FNS_MAC,    # real FNS Jan–Jun 2026
-            "empenhado":        248_000.0,
-            "liquidado":        216_000.0,
-            "pago":             196_800.0,
-            "pct_execucao":     63.0,
-            "ultima_parcela":   "2026-06",
-            "proxima_parcela":  "2026-07",
+            "situacao_dado_recebido": "oficial_aguardando",
+            "previsto_ano":          None,
+            "empenhado":             None,
+            "liquidado":             None,
+            "pago":                  None,
+            "situacao_dado_execucao": "nao_disponivel",
+            "ultima_parcela":   "Jun/2026",
+            "proxima_parcela":  "Jul/2026",
             "obs": "ATENÇÃO À SAÚDE DA POPULAÇÃO PARA PROCEDIMENTOS NO MAC",
         },
         {
             "bloco": "Vigilância em Saúde (VIGI)",
             "codigo": "VIGI",
             "cor": "#d97706",
-            "previsto_ano":      51_872.0,   # estimativa anual (25.9k * 2)
-            "recebido_ano":      25_936.0,   # real FNS
-            "empenhado":         20_000.0,
-            "liquidado":         18_000.0,
-            "pago":              16_500.0,
-            "pct_execucao":      63.6,
-            "ultima_parcela":   "2026-06",
-            "proxima_parcela":  "2026-07",
+            "recebido_ano":     _FNS_VIGI,   # real FNS Jan–Jun 2026
+            "situacao_dado_recebido": "oficial_aguardando",
+            "previsto_ano":          None,
+            "empenhado":             None,
+            "liquidado":             None,
+            "pago":                  None,
+            "situacao_dado_execucao": "nao_disponivel",
+            "ultima_parcela":   "Jun/2026",
+            "proxima_parcela":  "Jul/2026",
             "obs": "PAGAMENTO DOS VENCIMENTOS DOS AGENTES DE COMBATE ÀS ENDEMIAS",
         },
         {
             "bloco": "Assistência Farmacêutica (FAF)",
             "codigo": "FAF",
             "cor": "#7c3aed",
-            "previsto_ano":   1_200_000.0,
             "recebido_ano":           0.0,   # SEM REPASSE EM 2026
-            "empenhado":              0.0,
-            "liquidado":              0.0,
-            "pago":                   0.0,
-            "pct_execucao":           0.0,
+            "situacao_dado_recebido": "oficial_aguardando",
+            "previsto_ano":           None,
+            "empenhado":              None,
+            "liquidado":              None,
+            "pago":                   None,
+            "situacao_dado_execucao": "nao_disponivel",
             "ultima_parcela":   "—",
             "proxima_parcela":  "Aguardando",
-            "obs": "SEM REPASSE EM 2026. ACESSE O SALDO.",
+            "obs": "SEM REPASSE EM 2026.",
         },
         {
             "bloco": "Gestão do SUS (GESSUS)",
             "codigo": "GESSUS",
             "cor": "#0891b2",
-            "previsto_ano":     550_000.0,
             "recebido_ano":           0.0,   # SEM REPASSE EM 2026
-            "empenhado":              0.0,
-            "liquidado":              0.0,
-            "pago":                   0.0,
-            "pct_execucao":           0.0,
+            "situacao_dado_recebido": "oficial_aguardando",
+            "previsto_ano":           None,
+            "empenhado":              None,
+            "liquidado":              None,
+            "pago":                   None,
+            "situacao_dado_execucao": "nao_disponivel",
             "ultima_parcela":   "—",
             "proxima_parcela":  "Aguardando",
-            "obs": "SEM REPASSE EM 2026. ACESSE O SALDO.",
+            "obs": "SEM REPASSE EM 2026.",
         },
     ]
 
@@ -241,36 +277,40 @@ def _REPASSES_MENSAIS():
 
 
 # ── Empenhos pendentes ────────────────────────────────────────────────────────
+# Sem API pública municipal de empenhos — não simulamos credores nem NE numbers.
 
-@lru_cache(maxsize=1)
 def _EMPENHOS_PENDENTES():
-    return [
-        {"id": "2026NE001847", "credor": "UNIMED Manaus Coop.",           "objeto": "Serv. amb. MAC",       "valor": 48_200.0, "data": "2026-06-30", "bloco": "MAC",  "status": "a_liquidar"},
-        {"id": "2026NE001863", "credor": "Distribuidora Farmacêutica AM", "objeto": "Med. Componente Básico","valor": 31_400.0, "data": "2026-07-01", "bloco": "FAF",  "status": "a_liquidar"},
-        {"id": "2026NE001891", "credor": "Auto Peças do Norte Ltda",      "objeto": "Manutenção veículos",  "valor": 12_780.0, "data": "2026-06-28", "bloco": "AB",   "status": "a_pagar"},
-        {"id": "2026NE001902", "credor": "Lab. Rede Cerrado",             "objeto": "Exames diagnósticos",  "valor": 22_500.0, "data": "2026-07-05", "bloco": "MAC",  "status": "a_liquidar"},
-        {"id": "2026NE001918", "credor": "Cooperativa COOPAM",            "objeto": "Transporte sanitário", "valor": 18_300.0, "data": "2026-07-03", "bloco": "AB",   "status": "a_pagar"},
-    ]
+    return []   # populado via integração SIAFIC/sistema contábil municipal
 
 
-# ── SIOPS ─────────────────────────────────────────────────────────────────────
+# ── SIOPS (via siops_service — API pública DATASUS) ───────────────────────────
 
-@lru_cache(maxsize=1)
-def _SIOPS():
-    return {
-        "receita_total_saude":     12_700_000.0,
-        "despesa_saude":           12_700_000.0 * 0.1716,  # 17,16%
-        "pct_proprio_saude":       17.16,
-        "meta_minima":             15.0,
-        "conforme":                True,
-        "margem_seguranca":        2.16,
-        "historico": [
-            {"ano": 2023, "pct": 15.82, "conforme": True},
-            {"ano": 2024, "pct": 16.44, "conforme": True},
-            {"ano": 2025, "pct": 16.91, "conforme": True},
-            {"ano": 2026, "pct": 17.16, "conforme": True, "parcial": True},
-        ],
-    }
+async def _siops_real() -> dict:
+    hoje = date.today()
+    try:
+        dados = await siops_service.buscar_apuracao(hoje.year)
+        proprio = dados.get("minimo_constitucional_pct_aplicado")
+        fonte   = dados.get("fonte", "")
+        sit     = "oficial_validado" if fonte not in ("referencia", None, "") else "nao_disponivel"
+        return {
+            "pct_proprio_saude":    float(proprio) if proprio else None,
+            "meta_minima":          15.0,
+            "conforme":             float(proprio) >= 15.0 if proprio else None,
+            "margem_seguranca":     round(float(proprio) - 15.0, 2) if proprio else None,
+            "situacao_dado":        sit,
+            "fonte":                fonte,
+            "nota": f"SIOPS {hoje.year} — fonte: {fonte or 'indisponível'}",
+        }
+    except Exception as exc:
+        logger.warning("Erro SIOPS: %s", exc)
+        return {
+            "pct_proprio_saude":  None,
+            "meta_minima":        15.0,
+            "conforme":           None,
+            "margem_seguranca":   None,
+            "situacao_dado":      "nao_disponivel",
+            "nota":               f"Erro ao consultar SIOPS: {exc}",
+        }
 
 
 
@@ -352,59 +392,59 @@ async def painel_financeiro(
     _: UserOut = Depends(get_current_user),
 ):
     """Painel financeiro executivo consolidado."""
-    hoje = date.today()
+    siops = await _siops_real()
 
-    # Alertas financeiros automáticos
+    # Alertas baseados apenas em dados reais disponíveis
     alertas = []
-    for b in _BLOCOS():
-        if b["pct_execucao"] < 35:
-            alertas.append({"nivel": "CRITICO", "bloco": b["codigo"], "msg": f"{b['bloco']}: execução {b['pct_execucao']}% — risco de devolução"})
-        elif b["pct_execucao"] < 55:
-            alertas.append({"nivel": "AVISO", "bloco": b["codigo"], "msg": f"{b['bloco']}: execução {b['pct_execucao']}% — abaixo do esperado"})
-
-    if _EMPENHOS_PENDENTES():
-        total_pendente = sum(e["valor"] for e in _EMPENHOS_PENDENTES() if e["status"] == "a_liquidar")
-        if total_pendente > 50_000:
-            alertas.append({"nivel": "AVISO", "bloco": "—", "msg": f"R$ {total_pendente:,.0f} em empenhos aguardando liquidação"})
-
-    pct_exec_geral = round(_DESPESAS()["pago"] / _RECEITAS()["orcamento_total"] * 100, 1)
-    pct_arrecadacao = round(_RECEITAS()["total_arrecadado"] / (_RECEITAS()["fns_previsto"] + _RECEITAS()["municipio_proprio"] + _RECEITAS()["convenios_recebido"]) * 100, 1)
+    if siops["conforme"] is False:
+        alertas.append({
+            "nivel": "CRITICO", "bloco": "SIOPS",
+            "msg": f"Mínimo constitucional saúde abaixo de 15%: {siops['pct_proprio_saude']}%",
+        })
 
     return {
-        "municipio":        "Apuí",
-        "uf":               "AM",
-        "ibge":             _ENTIDADE()["ibge"],
-        "cnpj":             _ENTIDADE()["cnpj"],
-        "populacao":        _ENTIDADE()["populacao"],
-        "prefeito":         _ENTIDADE()["prefeito"],
-        "secretario":       _ENTIDADE()["secretario"],
+        "municipio":           "Apuí",
+        "uf":                  "AM",
+        "ibge":                _ENTIDADE()["ibge"],
+        "cnpj":                _ENTIDADE()["cnpj"],
+        "populacao":           _ENTIDADE()["populacao"],
+        "prefeito":            _ENTIDADE()["prefeito"],
+        "secretario":          _ENTIDADE()["secretario"],
         "presidente_conselho": _ENTIDADE()["presidente_conselho"],
-        "ano":              ano,
-        "mes":              mes,
-        "mes_referencia":   f"{_NOMES_MESES()[mes]}/{ano}" if mes else "Julho/2026",
-        "blocos_mes":       _blocos_para_mes(mes) if mes else [],
-        "fns_total_recebido": _FNS_TOTAL_RECEBIDO,
-        "fonte_fns":        "consultafns.saude.gov.br/#/detalhada/acao",
-        "gerado_em":        datetime.utcnow().isoformat() + "Z",
+        "ano":                 ano,
+        "mes":                 mes,
+        "mes_referencia":      f"{_NOMES_MESES()[mes]}/{ano}" if mes else f"Jul/{ano}",
+        "blocos_mes":          _blocos_para_mes(mes) if mes else [],
 
-        "receitas":         _RECEITAS(),
-        "despesas":         _DESPESAS(),
-        "blocos":           _BLOCOS(),
-        "repasses_mensais": _REPASSES_MENSAIS(),
-        "empenhos_pendentes": _EMPENHOS_PENDENTES(),
-        "siops":            _SIOPS(),
-        "alertas":          alertas,
+        # FNS recebido: real (transcrito de consultafns.saude.gov.br)
+        "fns_total_recebido":  _FNS_TOTAL_RECEBIDO,
+        "situacao_dado_fns":   "oficial_aguardando",
+        "fonte_fns":           "consultafns.saude.gov.br/#/detalhada/acao (transcrição manual)",
+
+        "receitas":            _RECEITAS(),
+        "despesas":            _DESPESAS(),
+        "blocos":              _BLOCOS(),
+        "repasses_mensais":    _REPASSES_MENSAIS(),
+        "empenhos_pendentes":  [],  # requer integração SIAFIC
+        "siops":               siops,
+        "alertas":             alertas,
 
         "kpis": {
-            "pct_execucao_geral":  pct_exec_geral,
-            "pct_arrecadacao":     pct_arrecadacao,
-            "saldo_disponivel":    round(_RECEITAS()["total_arrecadado"] - _DESPESAS()["pago"], 2),
-            "siops_conforme":      _SIOPS()["conforme"],
-            "total_empenhos_pendentes": len(_EMPENHOS_PENDENTES()),
-            "valor_pendente_liquidar": sum(e["valor"] for e in _EMPENHOS_PENDENTES() if e["status"] == "a_liquidar"),
+            "siops_minimo_constitucional": siops.get("pct_proprio_saude"),
+            "siops_conforme":              siops.get("conforme"),
+            "situacao_dado_kpis":          siops.get("situacao_dado"),
+            # Execução orçamentária: nao_disponivel sem sistema contábil municipal
+            "pct_execucao_geral":          None,
+            "saldo_disponivel":            None,
+            "nota_execucao": "Requer integração com sistema contábil municipal (SIAFIC).",
         },
 
-        "fonte": "referencia",
+        "gerado_em":           datetime.utcnow().isoformat() + "Z",
+        "nota": (
+            "Valores FNS recebidos (Jan–Jun 2026): transcritos de consultafns.saude.gov.br — "
+            "situacao_dado=oficial_aguardando. SIOPS via API pública DATASUS. "
+            "Execução orçamentária aguarda integração SIAFIC."
+        ),
     }
 
 
