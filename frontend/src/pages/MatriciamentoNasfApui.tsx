@@ -36,6 +36,7 @@ export default function MatriciamentoNasfApui(){
         {ABAS.map(ab=><button key={ab} onClick={()=>setAba(ab)} style={{padding:"6px 18px",borderRadius:20,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:aba===ab?ACCENT:"#e5e7eb",color:aba===ab?"#fff":"#374151"}}>{ab}</button>)}
       </div>
 
+      {aba==="Dashboard"&&!d&&<NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />}
       {aba==="Dashboard"&&d&&(
         <div>
           <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20}}>
