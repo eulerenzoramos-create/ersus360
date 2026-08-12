@@ -349,7 +349,22 @@ export const apiSiaps = {
 };
 
 // ── Helper genérico (para novos módulos) ──────────────────────────────────────
+// Quando o backend retorna { situacao_dado: "nao_disponivel", dados: null },
+// apiGet retorna undefined — os defaults `= []` no useQuery entram em ação
+// e as páginas não crasham em .map(). Para preservar a mensagem de indisponível,
+// use apiGetRaw() que devolve a resposta completa.
 export const apiGet = <T = unknown>(path: string, params?: Record<string, unknown>) =>
+  api.get<T>(path, { params }).then((r) => {
+    const d = r.data as any;
+    if (d && typeof d === "object" && !Array.isArray(d) && d.situacao_dado === "nao_disponivel" && d.dados === null) {
+      return undefined as unknown as T;
+    }
+    return d as T;
+  });
+
+// apiGetRaw: igual a apiGet mas preserva respostas nao_disponivel (para páginas
+// que precisam exibir mensagem de indisponibilidade ao usuário).
+export const apiGetRaw = <T = unknown>(path: string, params?: Record<string, unknown>) =>
   api.get<T>(path, { params }).then((r) => r.data);
 
 export const apiPost = <T = unknown>(path: string, body?: unknown) =>

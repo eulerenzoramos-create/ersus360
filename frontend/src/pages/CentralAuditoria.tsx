@@ -7,7 +7,7 @@ import {
   Wifi, WifiOff, Database, Activity, Users, Zap, Play,
   ChevronRight, BarChart2, Bell, GitBranch, Eye,
 } from "lucide-react";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGetRaw, apiPost } from "../lib/api";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -270,7 +270,7 @@ export default function CentralAuditoria() {
 
   const { data, isLoading, refetch } = useQuery<DashAuditoria>({
     queryKey: ["central-auditoria"],
-    queryFn: () => apiGet("/api/auditoria/dashboard") as Promise<DashAuditoria>,
+    queryFn: () => apiGetRaw("/api/auditoria/dashboard") as Promise<DashAuditoria>,
     staleTime: 60_000,
   });
 

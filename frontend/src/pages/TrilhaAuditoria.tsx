@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { GitBranch, Search, Filter, Download, Shield, User, Clock, Eye, AlertTriangle, CheckCircle, Database } from "lucide-react";
-import { apiGet } from "../lib/api";
+import { apiGetRaw } from "../lib/api";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -43,7 +43,7 @@ export default function TrilhaAuditoria() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["trilha-auditoria", pagina, filtroAcao, filtroSistema, filtroSev],
-    queryFn: () => apiGet("/api/auditoria/trilha", {
+    queryFn: () => apiGetRaw("/api/auditoria/trilha", {
       pagina,
       acao: filtroAcao !== "Todas" ? filtroAcao : undefined,
       sistema: filtroSistema !== "Todos" ? filtroSistema : undefined,

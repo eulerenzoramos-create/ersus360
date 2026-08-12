@@ -9,7 +9,7 @@ import {
   CheckCircle, Clock, RefreshCw, Download, FileText,
   ChevronDown, ChevronRight, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
-import { apiGet } from "../lib/api";
+import { apiGet, apiGetRaw } from "../lib/api";
 import { BRL, BRL_AXIS } from "../lib/fmt";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -954,7 +954,7 @@ export default function PainelFinanceiro() {
 
   const { data, isLoading, refetch } = useQuery<Painel>({
     queryKey: ["financeiro-painel", mesBlocos],
-    queryFn: () => apiGet(`/api/financeiro/painel${mesBlocos ? `?mes=${mesBlocos}` : ""}`) as Promise<Painel>,
+    queryFn: () => apiGetRaw(`/api/financeiro/painel${mesBlocos ? `?mes=${mesBlocos}` : ""}`) as Promise<Painel>,
     staleTime: 60_000,
   });
 

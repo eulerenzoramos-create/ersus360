@@ -1,7 +1,7 @@
 // src/pages/FolhaPagamento.tsx — Folha de Pagamento SMS Apuí/AM
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "../lib/api";
+import { apiGetRaw } from "../lib/api";
 import { FileText, Download, Printer, Filter, AlertTriangle } from "lucide-react";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
@@ -217,7 +217,7 @@ export default function FolhaPagamento() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["folha", competencia],
-    queryFn: () => apiGet(`/api/folha/folha?competencia=${competencia}`),
+    queryFn: () => apiGetRaw(`/api/folha/folha?competencia=${competencia}`),
   });
 
   const folha = data as any;
