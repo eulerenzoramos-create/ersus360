@@ -1,4 +1,4 @@
-﻿"""
+"""
 Integração e-Gestor Atenção Básica (SISAB/SCNES)
 Env vars (Railway):
   EGESTOR_USUARIO  — login gov.br com perfil gestor municipal
