@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/dcnt", tags=["dcnt"])
 async def dashboard():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -26,7 +26,7 @@ async def dashboard():
 async def condicoes():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -36,7 +36,7 @@ async def condicoes():
 async def has_dm_serie():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -46,7 +46,7 @@ async def has_dm_serie():
 async def indicadores():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }

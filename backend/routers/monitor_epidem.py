@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/monitor-epidem", tags=["monitor-epidem"])
 async def resumo():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -26,7 +26,7 @@ async def resumo():
 async def alertas():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -36,7 +36,7 @@ async def alertas():
 async def agravos():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -46,7 +46,7 @@ async def agravos():
 async def atualizar():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }

@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/hanseniase", tags=["hanseniase"])
 async def dashboard():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -26,7 +26,7 @@ async def dashboard():
 async def casos_por_forma():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -36,7 +36,7 @@ async def casos_por_forma():
 async def graus_incapacidade():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -46,7 +46,7 @@ async def graus_incapacidade():
 async def historico():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -56,7 +56,7 @@ async def historico():
 async def serie_historica():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -66,7 +66,7 @@ async def serie_historica():
 async def indicadores():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }

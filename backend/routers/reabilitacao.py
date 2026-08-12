@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/reabilitacao", tags=["reabilitacao"])
 async def dashboard():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -26,7 +26,7 @@ async def dashboard():
 async def modalidades():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -36,7 +36,7 @@ async def modalidades():
 async def pcd_cadastros():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -46,7 +46,7 @@ async def pcd_cadastros():
 async def historico():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -56,7 +56,7 @@ async def historico():
 async def indicadores():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }

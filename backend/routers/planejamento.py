@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/planejamento", tags=["Planejamento"])
 async def planejamento_dashboard():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -26,7 +26,7 @@ async def planejamento_dashboard():
 async def listar_acoes_pas():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -36,7 +36,7 @@ async def listar_acoes_pas():
 async def gerar_rag():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -46,7 +46,7 @@ async def gerar_rag():
 async def exportar_digisus():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }

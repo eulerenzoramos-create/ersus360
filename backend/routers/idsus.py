@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/idsus", tags=["idsus"])
 async def resumo():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }

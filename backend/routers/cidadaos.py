@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/cidadaos", tags=["Cidadãos"])
 async def visitas_do_cidadao():
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }

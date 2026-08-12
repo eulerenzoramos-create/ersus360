@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/ocis", tags=["OCIS"])
 async def dashboard_ocis(_: UserOut = Depends(get_current_user)):
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -26,7 +26,7 @@ async def dashboard_ocis(_: UserOut = Depends(get_current_user)):
 async def central_alertas(_: UserOut = Depends(get_current_user)):
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -36,7 +36,7 @@ async def central_alertas(_: UserOut = Depends(get_current_user)):
 async def fila_espera(_: UserOut = Depends(get_current_user)):
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -46,7 +46,7 @@ async def fila_espera(_: UserOut = Depends(get_current_user)):
 async def listar_tfd(_: UserOut = Depends(get_current_user)):
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -56,7 +56,7 @@ async def listar_tfd(_: UserOut = Depends(get_current_user)):
 async def dashboard_tfd(_: UserOut = Depends(get_current_user)):
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
@@ -66,7 +66,7 @@ async def dashboard_tfd(_: UserOut = Depends(get_current_user)):
 async def mapa_unidades(_: UserOut = Depends(get_current_user)):
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Integração pendente. Configure no Railway.",
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }

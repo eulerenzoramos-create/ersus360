@@ -163,7 +163,7 @@ async def listar_acs(
     """ACS cadastrados — requer integracao com e-SUS PEC ou CNES."""
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Cadastro de ACS requer integracao com e-SUS PEC. Configure ESUS_URL no Railway.",
     }
 
@@ -177,7 +177,7 @@ async def listar_medicamentos(
     """Medicamentos — requer integracao com sistema de farmacia municipal."""
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Estoque de medicamentos requer integracao com SIAFARM ou sistema local.",
     }
 
@@ -187,7 +187,7 @@ async def listar_fornecedores(usuario: UserOut = Depends(get_current_user)):
     """Fornecedores — requer integracao com sistema de compras/licitacoes."""
     return {
         "situacao_dado": "nao_disponivel",
-        "dados": [],
+        "dados": None,
         "nota": "Cadastro de fornecedores requer integracao com sistema de licitacoes municipal.",
     }
 

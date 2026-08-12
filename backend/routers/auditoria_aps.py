@@ -169,7 +169,7 @@ async def dashboard_auditoria():
         "score_geral":        _score_geral(),
         "situacao_dado":      "oficial_validado",
         "sistemas":           sistemas,
-        "alertas_ativos":     {"situacao_dado": "nao_disponivel", "dados": [], "nota": "Alertas operacionais requerem integracao com banco de inconsistencias."},
+        "alertas_ativos":     {"situacao_dado": "nao_disponivel", "dados": None, "nota": "Alertas operacionais requerem integracao com banco de inconsistencias."},
         "regras":             REGRAS_BASE,
         "tarefas_abertas":    sum(1 for t in _tarefas if t["status"] in ("aberto","em_andamento")),
         "nota":               "Score calculado a partir do checklist de funcionalidades implementadas no ERSUS 360.",
