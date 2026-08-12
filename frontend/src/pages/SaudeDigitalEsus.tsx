@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
@@ -404,6 +405,10 @@ export default function SaudeDigitalEsus() {
         </div>
 
         {aba === "pec" && <TabPEC />}
+
+        {aba === "dashboard" && !dashRaw && (
+          <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />
+        )}
 
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">

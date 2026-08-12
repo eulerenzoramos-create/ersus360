@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { BRL, BRL_AXIS } from "../lib/fmt";
 import {
   BarChart, Bar, LineChart, Line, ComposedChart,
@@ -76,6 +77,10 @@ export default function FundoMunicipalSaudeApui() {
             </button>
           ))}
         </div>
+
+        {aba === "dashboard" && !dashRaw && (
+          <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />
+        )}
 
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
