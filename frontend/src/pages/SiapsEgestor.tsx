@@ -76,7 +76,7 @@ function LogoMS() {
 // ── Abrangência Municipal ─────────────────────────────────────────────────────
 
 function AbaAbrangencia({ data }: { data: any }) {
-  if (!data) return null;
+  if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum valor de abrangência foi inventado." />;
   const TIPOS = ["eAP", "eAPP", "eCR", "eMulti", "eSB", "eSF", "eSFR"];
   const COLS = [
     { key: "total_equipes",             label: "Total de equipes",                     icon: <Users size={20} color="#1d4ed8" /> },
@@ -143,7 +143,7 @@ const VARIAVEIS = [
 function AbaVinculo({ data }: { data: any }) {
   const [showVars, setShowVars] = useState(false);
   const [filtro, setFiltro] = useState("");
-  if (!data) return null;
+  if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum valor de vinculação foi inventado." />;
 
   const equipes: EquipeVinculo[] = data.equipes.filter((e: EquipeVinculo) =>
     filtro === "" || e.ubs.toLowerCase().includes(filtro.toLowerCase()) || e.equipe.toLowerCase().includes(filtro.toLowerCase())
@@ -1034,7 +1034,7 @@ function AbaQualidade({ data }: { data: any }) {
   const { data: mensal }        = useQuery({ queryKey: ["siaps-mensal"],   queryFn: () => apiGet("/api/siaps/qualidade/mensal"),         enabled: periodo === "mensal" });
   const { data: quadrimestral } = useQuery({ queryKey: ["siaps-quad"],    queryFn: () => apiGet("/api/siaps/qualidade/quadrimestral"),  enabled: periodo === "quadrimestral" });
 
-  if (!data) return null;
+  if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum indicador de qualidade foi inventado." />;
 
   return (
     <div>
@@ -1154,7 +1154,7 @@ function AbaQualidade({ data }: { data: any }) {
 // ── Boas Práticas ─────────────────────────────────────────────────────────────
 
 function AbaBoasPraticas({ data }: { data: any }) {
-  if (!data) return null;
+  if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum dado de boas práticas foi inventado." />;
   const COR_TIPO: Record<string, string> = {
     vinculo: "#1d4ed8", qualidade: "#16a34a",
     alerta_critico: "#dc2626", plano_melhoria: "#d97706",
@@ -1340,6 +1340,7 @@ function AbaQuadrimestre({ dashData }: { dashData: any }) {
   const { data: quadData } = useQuery({ queryKey: ["siaps-quad2"], queryFn: () => apiGet("/api/siaps/qualidade/quadrimestral") as Promise<any> });
   const { data: mensalData } = useQuery({ queryKey: ["siaps-mensal2"], queryFn: () => apiGet("/api/siaps/qualidade/mensal") as Promise<any> });
 
+  if (!dashData && !quadData && !mensalData) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum dado quadrimestral foi inventado." />;
   if (!dashData || !quadData || !mensalData) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
 
   const equipes: any[] = quadData.equipes ?? [];
