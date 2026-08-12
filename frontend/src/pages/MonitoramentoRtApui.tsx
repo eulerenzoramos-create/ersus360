@@ -83,7 +83,7 @@ function OdontoEquipes({ m, hoje }: { m: any; hoje: number }) {
 
   const diasFiltrados = (m.dias ?? []).filter((d: any) => d.is_util && !d.is_futuro && d.total != null);
 
-  if (!eq) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!eq) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
 
   return (
     <div>

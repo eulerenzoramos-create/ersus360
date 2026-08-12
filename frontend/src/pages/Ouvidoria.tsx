@@ -194,7 +194,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 function AbaManifestacoes({ items }: { items: any[] | undefined }) {
   const [abertas, setAbertas] = useState<Set<number>>(new Set());
   const [busca, setBusca] = useState("");
-  if (!items) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!items) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
 
   const toggle = (id: number) => setAbertas(prev => {
     const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s;
@@ -294,7 +294,7 @@ function AbaManifestacoes({ items }: { items: any[] | undefined }) {
 
 // ── Aba: Alertas ──────────────────────────────────────────────────────────────
 function AbaAlertas({ alertas }: { alertas: any }) {
-  if (!alertas) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!alertas) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ marginBottom: 18 }}>

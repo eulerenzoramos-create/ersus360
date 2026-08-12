@@ -152,7 +152,7 @@ function AbaPacientesHIV({ pacientes }: { pacientes: any[] | undefined }) {
 }
 
 function AbaPrEP({ prep }: { prep: any }) {
-  if (!prep) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!prep) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>

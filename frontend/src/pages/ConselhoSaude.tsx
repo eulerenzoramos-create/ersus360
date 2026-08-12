@@ -69,7 +69,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 }
 
 function AbaReunioes({ reunioes }: { reunioes: any[] | undefined }) {
-  if (!reunioes) return <NaoDisponivelBanner nota="Dados n„o disponÌveis no momento. IntegraÁ„o pendente de configuraÁ„o no Railway." />;
+  if (!reunioes) return <NaoDisponivelBanner nota="Dados nao disponiveis ‚Äî integracao pendente de configuracao no Railway." />;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {reunioes.map(r => (
@@ -108,7 +108,7 @@ function AbaReunioes({ reunioes }: { reunioes: any[] | undefined }) {
 }
 
 function AbaConselheiros({ conselheiros }: { conselheiros: any[] | undefined }) {
-  if (!conselheiros) return <NaoDisponivelBanner nota="Dados n„o disponÌveis no momento. IntegraÁ„o pendente de configuraÁ„o no Railway." />;
+  if (!conselheiros) return <NaoDisponivelBanner nota="Dados nao disponiveis ‚Äî integracao pendente de configuracao no Railway." />;
   const segmentos = ["gest√£o", "trabalhadores", "usuarios", "prestadores"];
   return (
     <div>
@@ -157,7 +157,7 @@ function AbaConselheiros({ conselheiros }: { conselheiros: any[] | undefined }) 
 
 function AbaDeliberacoes({ deliberacoes }: { deliberacoes: any[] | undefined }) {
   const [filtro, setFiltro] = useState("todos");
-  if (!deliberacoes) return <NaoDisponivelBanner nota="Dados n„o disponÌveis no momento. IntegraÁ„o pendente de configuraÁ„o no Railway." />;
+  if (!deliberacoes) return <NaoDisponivelBanner nota="Dados nao disponiveis ‚Äî integracao pendente de configuracao no Railway." />;
   const lista = filtro === "todos" ? deliberacoes : deliberacoes.filter(d => d.status === filtro);
   return (
     <div>

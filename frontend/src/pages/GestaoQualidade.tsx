@@ -63,7 +63,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 }
 
 function AbaIndicadoresQ({ indsQ }: { indsQ: any[] | undefined }) {
-  if (!indsQ) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!indsQ) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   const areas = [...new Set(indsQ.map(i => i.area))];
   return (
     <div>
@@ -101,7 +101,7 @@ function AbaIndicadoresQ({ indsQ }: { indsQ: any[] | undefined }) {
 }
 
 function AbaAuditorias({ auds }: { auds: any[] | undefined }) {
-  if (!auds) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!auds) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -127,7 +127,7 @@ function AbaAuditorias({ auds }: { auds: any[] | undefined }) {
 }
 
 function AbaNCs({ ncs }: { ncs: any[] | undefined }) {
-  if (!ncs) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!ncs) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>

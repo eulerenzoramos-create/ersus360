@@ -62,7 +62,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaMetodos({ metodos }: { metodos: any[] | undefined }) {
-  if (!metodos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!metodos) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   const total = metodos.reduce((s, m) => s + m.usuarios_ativos, 0);
   return (
     <div>
@@ -89,7 +89,7 @@ function AbaMetodos({ metodos }: { metodos: any[] | undefined }) {
 }
 
 function AbaFaixaEtaria({ faixas }: { faixas: any[] | undefined }) {
-  if (!faixas) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!faixas) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>

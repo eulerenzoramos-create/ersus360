@@ -60,7 +60,7 @@ function AbaDashboard({ dash, meds }: { dash: any; meds: any[] | undefined }) {
 }
 
 function AbaMedicamentos({ meds }: { meds: any[] | undefined }) {
-  if (!meds) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!meds) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "auto" }}>
@@ -101,7 +101,7 @@ function AbaMedicamentos({ meds }: { meds: any[] | undefined }) {
 }
 
 function AbaJudicializacao({ juds }: { juds: any[] | undefined }) {
-  if (!juds) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!juds) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   const total = juds.reduce((s, j) => s + j.valor_mes, 0);
   return (
     <div>
@@ -135,7 +135,7 @@ function AbaJudicializacao({ juds }: { juds: any[] | undefined }) {
 }
 
 function AbaRenovacoes({ renovacoes }: { renovacoes: any[] | undefined }) {
-  if (!renovacoes) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!renovacoes) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

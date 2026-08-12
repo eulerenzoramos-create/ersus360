@@ -61,7 +61,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaAcidentes({ acidentes }: { acidentes: any[] | undefined }) {
-  if (!acidentes) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!acidentes) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       {acidentes.map(a => {
@@ -95,7 +95,7 @@ function AbaAcidentes({ acidentes }: { acidentes: any[] | undefined }) {
 }
 
 function AbaRaiva({ raiva }: { raiva: any | undefined }) {
-  if (!raiva) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!raiva) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14, marginBottom: 18 }}>

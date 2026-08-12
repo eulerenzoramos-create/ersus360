@@ -72,7 +72,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 }
 
 function AbaTB({ casos }: { casos: any[] | undefined }) {
-  if (!casos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!casos) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -112,7 +112,7 @@ function AbaTB({ casos }: { casos: any[] | undefined }) {
 }
 
 function AbaHanseniase({ casos }: { casos: any[] | undefined }) {
-  if (!casos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!casos) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

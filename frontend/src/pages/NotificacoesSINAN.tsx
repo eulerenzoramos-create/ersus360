@@ -91,7 +91,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 
 // ── Por Agravo ────────────────────────────────────────────────────────────────
 function AbaAgravo({ dados }: { dados: any[] | undefined }) {
-  if (!dados) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!dados) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "auto" }}>
@@ -134,7 +134,7 @@ function AbaAgravo({ dados }: { dados: any[] | undefined }) {
 function AbaNotificacoes({ notif }: { notif: any[] | undefined }) {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("todos");
-  if (!notif) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!notif) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
   const lista = notif.filter(n =>
     (filtro === "todos" || n.status === filtro) &&
     (busca === "" || n.agravo.toLowerCase().includes(busca.toLowerCase()) || n.local.toLowerCase().includes(busca.toLowerCase()))
@@ -188,7 +188,7 @@ function AbaNotificacoes({ notif }: { notif: any[] | undefined }) {
 
 // ── Alertas ───────────────────────────────────────────────────────────────────
 function AbaAlertas({ alertas }: { alertas: any[] | undefined }) {
-  if (!alertas) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!alertas) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {alertas.map((a, i) => (

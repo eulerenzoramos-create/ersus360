@@ -63,7 +63,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaEscolas({ escolas }: { escolas: any[] | undefined }) {
-  if (!escolas) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!escolas) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       {escolas.map(e => {
@@ -96,7 +96,7 @@ function AbaEscolas({ escolas }: { escolas: any[] | undefined }) {
 }
 
 function AbaFornecedores({ forn }: { forn: any[] | undefined }) {
-  if (!forn) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!forn) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   const total = forn.reduce((s, f) => s + f.valor_contrato_mensal, 0);
   return (
     <div>

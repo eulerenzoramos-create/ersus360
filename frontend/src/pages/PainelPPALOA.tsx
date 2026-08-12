@@ -107,7 +107,7 @@ function AbaLOA({ loa, dash }: { loa: any[] | undefined; dash: any }) {
 
 // ── LDO Metas ─────────────────────────────────────────────────────────────────
 function AbaLDO({ metas }: { metas: any[] | undefined }) {
-  if (!metas) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!metas) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ marginBottom: 18 }}>

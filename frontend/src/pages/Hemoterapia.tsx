@@ -93,7 +93,7 @@ function AbaEstoque({ estoque }: { estoque: any[] | undefined }) {
 }
 
 function AbaTriagem({ causas }: { causas: any[] | undefined }) {
-  if (!causas) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!causas) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 16 }}>

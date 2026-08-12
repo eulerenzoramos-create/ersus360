@@ -59,7 +59,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaTipos({ tipos }: { tipos: any[] | undefined }) {
-  if (!tipos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!tipos) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   const totalCad = tipos.reduce((s, t) => s + t.total, 0);
   return (
     <div>
@@ -87,7 +87,7 @@ function AbaTipos({ tipos }: { tipos: any[] | undefined }) {
 }
 
 function AbaReabilitacao({ reab }: { reab: any[] | undefined }) {
-  if (!reab) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!reab) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       {reab.map(s => {

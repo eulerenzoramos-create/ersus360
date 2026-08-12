@@ -75,7 +75,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 }
 
 function AbaCriancas({ dados }: { dados: any[] | undefined }) {
-  if (!dados) return <NaoDisponivelBanner nota="Dados n„o disponÌveis no momento. IntegraÁ„o pendente de configuraÁ„o no Railway." />;
+  if (!dados) return <NaoDisponivelBanner nota="Dados nao disponiveis ‚Äî integracao pendente de configuracao no Railway." />;
   const COLS = ["Faixa et√°ria","Acomp.","Eutr√≥fico","Sobrepeso","Obesidade","Desnutri√ß√£o","Risco desnut."];
   return (
     <div>
@@ -121,7 +121,7 @@ function AbaCriancas({ dados }: { dados: any[] | undefined }) {
 }
 
 function AbaGestantes({ dados }: { dados: any[] | undefined }) {
-  if (!dados) return <NaoDisponivelBanner nota="Dados n„o disponÌveis no momento. IntegraÁ„o pendente de configuraÁ„o no Railway." />;
+  if (!dados) return <NaoDisponivelBanner nota="Dados nao disponiveis ‚Äî integracao pendente de configuracao no Railway." />;
   const barData = dados.map(g => ({
     name: g.trimestre,
     eutrofica: g.eutrofica_pct,
@@ -164,7 +164,7 @@ function AbaGestantes({ dados }: { dados: any[] | undefined }) {
 }
 
 function AbaBolsaFamilia({ dados }: { dados: any[] | undefined }) {
-  if (!dados) return <NaoDisponivelBanner nota="Dados n„o disponÌveis no momento. IntegraÁ„o pendente de configuraÁ„o no Railway." />;
+  if (!dados) return <NaoDisponivelBanner nota="Dados nao disponiveis ‚Äî integracao pendente de configuracao no Railway." />;
   const total_benef = dados.reduce((s, e) => s + e.beneficiarios, 0);
   const total_inad  = dados.reduce((s, e) => s + e.inadimplentes, 0);
   return (

@@ -57,7 +57,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaGrupos({ grupos }: { grupos: any[] | undefined }) {
-  if (!grupos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!grupos) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -91,7 +91,7 @@ function AbaGrupos({ grupos }: { grupos: any[] | undefined }) {
 }
 
 function AbaNaoConformidades({ ncs }: { ncs: any[] | undefined }) {
-  if (!ncs) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!ncs) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>

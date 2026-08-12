@@ -113,7 +113,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 function AbaFila({ fila }: { fila: any[] | undefined }) {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("");
-  if (!fila) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!fila) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
 
   const filtrada = fila.filter(f =>
     (!busca || f.especialidade.toLowerCase().includes(busca.toLowerCase())) &&
@@ -196,7 +196,7 @@ function AbaFila({ fila }: { fila: any[] | undefined }) {
 
 // ── Internações / Leitos ──────────────────────────────────────────────────────
 function AbaInternacoes({ internacoes }: { internacoes: any[] | undefined }) {
-  if (!internacoes) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!internacoes) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
   const totalLeitos = internacoes.reduce((s, i) => s + i.leitos_ref, 0);
   const ocupados    = internacoes.reduce((s, i) => s + i.ocupados, 0);
   const totalAIH    = internacoes.reduce((s, i) => s + i.valor_aih_mes, 0);
@@ -266,7 +266,7 @@ function AbaInternacoes({ internacoes }: { internacoes: any[] | undefined }) {
 
 // ── TFD ───────────────────────────────────────────────────────────────────────
 function AbaTFD({ tfd }: { tfd: any[] | undefined }) {
-  if (!tfd) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!tfd) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ marginBottom: 18 }}>

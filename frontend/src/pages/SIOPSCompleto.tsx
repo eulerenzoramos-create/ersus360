@@ -60,7 +60,7 @@ function Banner() {
 }
 
 function FonteBadge({ info }: { info: any }) {
-  if (!info) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!info) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   const cor = info.status === "referencia" ? "#d97706" : "#16a34a";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fffbeb",

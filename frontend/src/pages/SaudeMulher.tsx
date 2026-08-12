@@ -69,7 +69,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 }
 
 function AbaIndicadores({ indicadores }: { indicadores: any[] | undefined }) {
-  if (!indicadores) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!indicadores) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       {["critico", "atencao", "ok"].map(nivel => {
@@ -113,7 +113,7 @@ function AbaIndicadores({ indicadores }: { indicadores: any[] | undefined }) {
 
 function AbaGestantes({ gestantes }: { gestantes: any[] | undefined }) {
   const [filtro, setFiltro] = useState("todos");
-  if (!gestantes) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!gestantes) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   const lista = filtro === "todos" ? gestantes : gestantes.filter(g => g.risco === filtro);
   return (
     <div>
@@ -165,7 +165,7 @@ function AbaGestantes({ gestantes }: { gestantes: any[] | undefined }) {
 }
 
 function AbaPuerperas({ puerperas }: { puerperas: any[] | undefined }) {
-  if (!puerperas) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!puerperas) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       {puerperas.filter(p => !p.consulta_puerp).length > 0 && (

@@ -72,7 +72,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 }
 
 function AbaCAPS({ caps }: { caps: any }) {
-  if (!caps) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!caps) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   const ocup = Math.round(caps.usuarios_ativos / caps.capacidade * 100);
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
@@ -120,7 +120,7 @@ function AbaCAPS({ caps }: { caps: any }) {
 function AbaUsuarios({ usuarios }: { usuarios: any[] | undefined }) {
   const [busca, setBusca] = useState("");
   const [filtroRisco, setFiltroRisco] = useState("todos");
-  if (!usuarios) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!usuarios) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   const lista = usuarios.filter(u =>
     (filtroRisco === "todos" || u.risco === filtroRisco) &&
     (busca === "" || u.diagnostico.toLowerCase().includes(busca.toLowerCase()) || u.iniciais.toLowerCase().includes(busca.toLowerCase()))
@@ -172,7 +172,7 @@ function AbaUsuarios({ usuarios }: { usuarios: any[] | undefined }) {
 }
 
 function AbaGrupos({ grupos }: { grupos: any[] | undefined }) {
-  if (!grupos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!grupos) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14 }}>
@@ -197,7 +197,7 @@ function AbaGrupos({ grupos }: { grupos: any[] | undefined }) {
 }
 
 function AbaLeitos({ leitos }: { leitos: any[] | undefined }) {
-  if (!leitos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!leitos) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>

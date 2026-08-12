@@ -80,7 +80,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 }
 
 function AbaDengue({ dados }: { dados: any }) {
-  if (!dados) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!dados) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   const ciclos = dados.ciclos || [];
   return (
     <div>
@@ -135,7 +135,7 @@ function AbaDengue({ dados }: { dados: any }) {
 }
 
 function AbaMalaria({ dados }: { dados: any }) {
-  if (!dados) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!dados) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 18 }}>
@@ -173,7 +173,7 @@ function AbaMalaria({ dados }: { dados: any }) {
 }
 
 function AbaZoonoses({ dados }: { dados: any }) {
-  if (!dados) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!dados) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   const anti = dados.campanha_antirabica_2025;
   return (
     <div>

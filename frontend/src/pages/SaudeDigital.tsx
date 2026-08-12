@@ -62,7 +62,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaSistemas({ sistemas }: { sistemas: any[] | undefined }) {
-  if (!sistemas) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!sistemas) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
@@ -99,7 +99,7 @@ function AbaSistemas({ sistemas }: { sistemas: any[] | undefined }) {
 }
 
 function AbaRNDS({ rnds }: { rnds: any | undefined }) {
-  if (!rnds) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!rnds) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 18 }}>

@@ -68,7 +68,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaAfastamentos({ afasts }: { afasts: any[] | undefined }) {
-  if (!afasts) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!afasts) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   const total_casos = afasts.reduce((s, a) => s + a.casos, 0);
   const total_dias  = afasts.reduce((s, a) => s + a.dias_mes, 0);
   return (
@@ -113,7 +113,7 @@ function AbaAfastamentos({ afasts }: { afasts: any[] | undefined }) {
 }
 
 function AbaCAT({ cats }: { cats: any[] | undefined }) {
-  if (!cats) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!cats) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       {cats.map(c => {

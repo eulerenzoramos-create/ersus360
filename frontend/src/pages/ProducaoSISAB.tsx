@@ -67,7 +67,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 }
 
 function AbaPorEquipe({ equipes }: { equipes: any[] | undefined }) {
-  if (!equipes) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!equipes) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 18 }}>
@@ -128,7 +128,7 @@ function AbaPorEquipe({ equipes }: { equipes: any[] | undefined }) {
 }
 
 function AbaProcedimentos({ procs }: { procs: any[] | undefined }) {
-  if (!procs) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!procs) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div>
       <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "auto" }}>
@@ -177,7 +177,7 @@ function AbaProcedimentos({ procs }: { procs: any[] | undefined }) {
 }
 
 function AbaCiclos({ ciclos }: { ciclos: any[] | undefined }) {
-  if (!ciclos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!ciclos) return <NaoDisponivelBanner nota="Dados nao disponiveis â€” integracao pendente de configuracao no Railway." />;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {ciclos.map(c => (

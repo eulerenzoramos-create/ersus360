@@ -145,7 +145,7 @@ function AbaVisaoGeral({ dash }: { dash: any }) {
 // ── Aba: Por Equipe ───────────────────────────────────────────────────────────
 function AbaPorEquipe({ equipes }: { equipes: any[] | undefined }) {
   const [abertas, setAbertas] = useState<Set<string>>(new Set());
-  if (!equipes) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!equipes) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
 
   const toggle = (nome: string) => setAbertas(prev => {
     const s = new Set(prev);
@@ -236,7 +236,7 @@ function AbaPorEquipe({ equipes }: { equipes: any[] | undefined }) {
 
 // ── Aba: Componente Estratégico ───────────────────────────────────────────────
 function AbaEstrategico({ estrategico }: { estrategico: any }) {
-  if (!estrategico) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!estrategico) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
   const LABEL: Record<string, string> = {
     eSFR:   "Equipe Saúde da Família Rural",
     eSB:    "Equipe de Saúde Bucal",
@@ -303,7 +303,7 @@ function AbaEstrategico({ estrategico }: { estrategico: any }) {
 
 // ── Aba: Simulação ────────────────────────────────────────────────────────────
 function AbaSimulacao({ simulacao }: { simulacao: any }) {
-  if (!simulacao) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!simulacao) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
   const totalGanhoBom  = simulacao.cenarios.reduce((s: number, c: any) => s + c.ganho_bom_ano, 0);
   const totalGanhoOtimo = simulacao.cenarios.reduce((s: number, c: any) => s + c.ganho_otimo_ano, 0);
 

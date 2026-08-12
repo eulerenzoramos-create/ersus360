@@ -91,7 +91,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 // ── Equipamentos ──────────────────────────────────────────────────────────────
 function AbaEquipamentos({ equips }: { equips: any[] | undefined }) {
   const [filtro, setFiltro] = useState("todos");
-  if (!equips) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!equips) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
   const lista = filtro === "todos" ? equips : equips.filter(e => e.status === filtro);
   return (
     <div>
@@ -147,7 +147,7 @@ function AbaEquipamentos({ equips }: { equips: any[] | undefined }) {
 
 // ── Ordens de Serviço ─────────────────────────────────────────────────────────
 function AbaOrdens({ ordens }: { ordens: any[] | undefined }) {
-  if (!ordens) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!ordens) return <NaoDisponivelBanner nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />;
   const totalCusto = ordens.filter(o => o.status !== "concluida").reduce((s, o) => s + o.custo_est, 0);
   return (
     <div>
