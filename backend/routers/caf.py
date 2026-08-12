@@ -5,8 +5,8 @@ Portaria GM/MS 3.493/2024 — Novo Financiamento APS.
 Nunca inventa dados — valores baseados em transferencias reais FNS.
 """
 from datetime import datetime
-from fastapi import APIRouter, Depends
-from routers.auth import get_current_user, UserOut
+from fastapi import APIRouter
+from routers.auth import CurrentUser
 
 router = APIRouter(prefix="/api/caf", tags=["CAF"])
 
@@ -52,7 +52,7 @@ def _competencia():
 
 
 @router.get("/dashboard")
-async def dashboard(_: UserOut = Depends(get_current_user)):
+async def dashboard(_: CurrentUser):
     """Resumo executivo CAF — valores reais consultafns.saude.gov.br Jan-Jun 2026."""
     return {
         "competencia": _competencia(),
@@ -88,7 +88,7 @@ async def dashboard(_: UserOut = Depends(get_current_user)):
 
 
 @router.get("/equipes")
-async def equipes(_: UserOut = Depends(get_current_user)):
+async def equipes(_: CurrentUser):
     """Repasse por equipe ESF — distribuicao uniforme dos totais reais do consultafns."""
     return [
         {
@@ -107,7 +107,7 @@ async def equipes(_: UserOut = Depends(get_current_user)):
 
 
 @router.get("/estrategico")
-async def estrategico(_: UserOut = Depends(get_current_user)):
+async def estrategico(_: CurrentUser):
     """Componente Estrategico — valores reais por incentivo (consultafns Jan-Jun 2026)."""
     acs_mes    = round(_ACS_6M    / 6, 2)   # 35_662,00
     sb_mes     = round(_SB_6M     / 6, 2)   # 15_906,50
@@ -151,7 +151,7 @@ async def estrategico(_: UserOut = Depends(get_current_user)):
 
 
 @router.get("/simulacao")
-async def simulacao(_: UserOut = Depends(get_current_user)):
+async def simulacao(_: CurrentUser):
     """
     Simulacao de cenarios CAF por equipe.
     Atual = FPC + Estrategico (sem APQ). Bom = +35% APQ. Otimo = +50% APQ.

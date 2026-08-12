@@ -145,8 +145,8 @@ async def sync_todos(
 
 @router.get("/transferencias-transparencia")
 async def transferencias_transparencia(
+    _: CurrentUser,
     ano: int = Query(2025),
-    _: CurrentUser = Depends(get_current_user),
 ):
     """
     Busca transferências diretamente do Portal da Transparência.
