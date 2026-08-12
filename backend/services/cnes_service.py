@@ -154,10 +154,10 @@ def _fallback_apui() -> list[dict]:
     ]
 
 
-async def buscar_equipes_saude() -> list[dict]:
+async def buscar_equipes_saude(ibge: str = IBGE) -> list[dict]:
     """Retorna equipes de saúde da família ativas em Apuí/AM."""
     try:
-        url = f"https://apidadosabertos.saude.gov.br/cnes/equipes?co_municipio={IBGE}&tp_equipe=70&limit=50"
+        url = f"https://apidadosabertos.saude.gov.br/cnes/equipes?co_municipio={ibge}&tp_equipe=70&limit=50"
         async with httpx.AsyncClient(timeout=TIMEOUT, verify=False) as client:
             r = await client.get(url, headers={"Accept": "application/json"})
             if r.status_code == 200:

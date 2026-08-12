@@ -664,14 +664,14 @@ async def fns_repasse_dia(
 
 @router.get("/blocos")
 async def blocos_financiamento(_: UserOut = Depends(get_current_user)):
-    return {"blocos": _BLOCOS(), "fonte": "referencia"}
+    return {"blocos": _BLOCOS(), "situacao_dado": "oficial_aguardando", "fonte": "consultafns_manual", "nota": "Valores reais Jan-Jun 2026 transcritos de consultafns.saude.gov.br."}
 
 
 @router.get("/repasses")
 async def repasses_fns(_: UserOut = Depends(get_current_user)):
-    return {"repasses": _REPASSES_MENSAIS(), "fonte": "referencia"}
+    return {"repasses": _REPASSES_MENSAIS(), "situacao_dado": "oficial_aguardando", "fonte": "consultafns_manual", "nota": "Valores reais Jan-Jun 2026 transcritos de consultafns.saude.gov.br."}
 
 
 @router.get("/empenhos")
 async def empenhos_pendentes(_: UserOut = Depends(get_current_user)):
-    return {"empenhos": _EMPENHOS_PENDENTES(), "total": len(_EMPENHOS_PENDENTES()), "fonte": "referencia"}
+    return {"empenhos": _EMPENHOS_PENDENTES(), "total": len(_EMPENHOS_PENDENTES()), "situacao_dado": "nao_disponivel", "fonte": "nao_disponivel", "nota": "Empenhos requerem integracao com SIAFIC/sistema contabil municipal."}
