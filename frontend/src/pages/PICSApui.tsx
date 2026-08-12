@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import {
   BarChart, Bar, LineChart, Line, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -68,6 +69,10 @@ export default function PICSApui() {
             </button>
           ))}
         </div>
+
+        {aba === "dashboard" && !d && (
+          <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />
+        )}
 
         {aba === "dashboard" && d && (
           <div className="space-y-6">

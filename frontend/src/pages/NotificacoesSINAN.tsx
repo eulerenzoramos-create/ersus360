@@ -6,6 +6,7 @@ import {
 } from "recharts";
 import { AlertTriangle, Activity, Shield, Search } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 
@@ -249,6 +250,7 @@ export default function NotificacoesSINAN() {
             </button>
           ))}
         </div>
+        {aba==="dashboard" && !dash && <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />}
         {aba==="dashboard"    && <AbaDashboard dash={dash}/>}
         {aba==="agravo"       && <AbaAgravo dados={agravo}/>}
         {aba==="notificacoes" && <AbaNotificacoes notif={notif}/>}

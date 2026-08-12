@@ -6,6 +6,7 @@ import {
 } from "recharts";
 import { Activity, CheckCircle, AlertTriangle, Upload } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 const STATUS_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
@@ -239,6 +240,7 @@ export default function ProducaoSISAB() {
             <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba === a.id ? "2px solid #1d4ed8" : "2px solid transparent", color: aba === a.id ? "#1d4ed8" : "#6b7280", fontWeight: aba === a.id ? 700 : 400, marginBottom: -2 }}>{a.label}</button>
           ))}
         </div>
+        {aba === "dashboard" && !dash && <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />}
         {aba === "dashboard"     && <AbaDashboard dash={dash}/>}
         {aba === "equipe"        && <AbaPorEquipe equipes={equipes}/>}
         {aba === "procedimentos" && <AbaProcedimentos procs={procs}/>}

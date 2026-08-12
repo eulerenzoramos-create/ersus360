@@ -10,6 +10,7 @@ import {
   Building2, DollarSign, TrendingUp, ExternalLink,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { BRL, BRL_AXIS } from "../lib/fmt";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -420,6 +421,7 @@ export default function Contratos() {
           </div>
         )}
 
+        {aba === "dashboard" && !dash && <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />}
         {aba === "dashboard" && <AbaDashboard dash={dash} />}
         {aba === "lista"     && <AbaLista items={lista} />}
         {aba === "alertas"   && <AbaAlertas alertas={alertas} />}

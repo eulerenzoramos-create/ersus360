@@ -9,6 +9,7 @@ import {
   BarChart2, Navigation, ClipboardList, Building2, TrendingUp,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import ACSGeoPage from "./ACSGeoPage";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -819,6 +820,10 @@ export default function ACSPainel() {
         {isLoading && <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>Carregando painel ACS...</div>}
 
         {/* ── Dashboard ── */}
+        {aba === "dashboard" && !k && (
+          <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />
+        )}
+
         {aba === "dashboard" && k && (
           <div>
             {/* KPIs */}

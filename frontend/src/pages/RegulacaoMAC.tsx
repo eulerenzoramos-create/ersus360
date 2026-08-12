@@ -10,6 +10,7 @@ import {
   Ambulance, Search,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 
@@ -369,6 +370,7 @@ export default function RegulacaoMAC() {
           ))}
         </div>
 
+        {aba === "dashboard" && !dash && <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />}
         {aba === "dashboard"   && <AbaDashboard dash={dash} />}
         {aba === "fila"        && <AbaFila fila={fila} />}
         {aba === "internacoes" && <AbaInternacoes internacoes={internacoes} />}

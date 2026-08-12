@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Cell } from "recharts";
 import { Activity, AlertTriangle, CheckCircle, Eye } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 const SIT_COR: Record<string, string> = { em_tratamento: "#1d4ed8", alta_cura: "#16a34a", abandono: "#dc2626" };
@@ -191,6 +192,7 @@ export default function TbHanseniase() {
             <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #1d4ed8":"2px solid transparent", color: aba===a.id?"#1d4ed8":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
           ))}
         </div>
+        {aba==="dashboard" && !dashFull && <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />}
         {aba==="dashboard"  && <AbaDashboard dash={dashFull}/>}
         {aba==="tb"         && <AbaTB casos={tb}/>}
         {aba==="hanseniase" && <AbaHanseniase casos={hans}/>}

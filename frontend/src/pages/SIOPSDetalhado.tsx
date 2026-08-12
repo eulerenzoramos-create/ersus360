@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine,
@@ -127,6 +128,10 @@ export default function SIOPSDetalhado() {
         </div>
 
         {/* ── DASHBOARD ── */}
+        {aba === "dashboard" && !d && (
+          <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />
+        )}
+
         {aba === "dashboard" && d && (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <Grid4>

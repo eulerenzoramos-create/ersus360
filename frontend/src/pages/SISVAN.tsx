@@ -6,6 +6,7 @@ import {
 } from "recharts";
 import { Activity, AlertTriangle, Users, TrendingUp } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 
@@ -248,6 +249,7 @@ export default function SISVAN() {
             <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"3px solid #1351b4":"2px solid transparent", color: aba===a.id?"#1351b4":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
           ))}
         </div>
+        {aba==="dashboard" && !dash && <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />}
         {aba==="dashboard" && <AbaDashboard dash={dash}/>}
         {aba==="criancas"  && <AbaCriancas dados={criancas}/>}
         {aba==="gestantes" && <AbaGestantes dados={gestantes}/>}

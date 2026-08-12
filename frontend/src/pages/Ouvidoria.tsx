@@ -10,6 +10,7 @@ import {
   Phone, Mail, Monitor, User, Search,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -440,6 +441,7 @@ export default function Ouvidoria() {
           </div>
         )}
 
+        {aba === "dashboard" && !dash && <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />}
         {aba === "dashboard"     && <AbaDashboard dash={dash} />}
         {aba === "manifestacoes" && <AbaManifestacoes items={manif} />}
         {aba === "alertas"       && <AbaAlertas alertas={alertas} />}
