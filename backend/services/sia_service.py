@@ -1,11 +1,7 @@
 """
-SIA Service — Sistema de Informação Ambulatorial via DATASUS dados abertos
+SIA Service — Sistema de Informacao Ambulatorial via DATASUS dados abertos
 https://apidadosabertos.saude.gov.br/sia/
-
-Provê:
-  - Produção ambulatorial (BPA/PA) do município
-  - Procedimentos por grupo (APS, especialidades, exames)
-  - Produção per capita
+API indisponivel → nao_disponivel (sem fallback com dados ficticios).
 """
 from __future__ import annotations
 import logging
@@ -18,9 +14,9 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 _BASE    = "https://apidadosabertos.saude.gov.br/sia"
-_IBGE6   = settings.FNS_MUNICIPIO_IBGE[:6]   # "130014"
+_IBGE6   = settings.FNS_MUNICIPIO_IBGE[:6]
 _TIMEOUT = 15
-_POP     = 25_000  # Apuí estimativa
+_POP     = 25_000
 
 
 async def _get(url: str, params: dict) -> Optional[dict | list]:
@@ -34,18 +30,29 @@ async def _get(url: str, params: dict) -> Optional[dict | list]:
     return None
 
 
+def _sem_dado(ano: int) -> dict:
+    return {
+        "ano":                  ano,
+        "situacao_dado":        "nao_disponivel",
+        "total_procedimentos":  None,
+        "per_capita":           None,
+        "fonte":                "nao_disponivel",
+        "nota":                 "API SIA/DATASUS nao retornou dados para este municipio/ano.",
+    }
+
+
 async def buscar_producao(ano: int, mes: int = 0) -> dict:
-    """Produção ambulatorial BPA do município."""
+    """Producao ambulatorial BPA do municipio."""
     if not ano:
         ano = date.today().year - 1
 
-    params = {"co_municipio_estabelecimento": _IBGE6, "ano": ano, "limit": 500}
+    params: dict = {"co_municipio_estabelecimento": _IBGE6, "ano": ano, "limit": 500}
     if mes:
         params["mes"] = mes
 
     for path in ["/producao-ambulatorial-bpa", "/bpa", "/procedimento-ambulatorial"]:
         data = await _get(f"{_BASE}{path}", params)
-        procs = []
+        procs: list = []
         if isinstance(data, list):
             procs = data
         elif isinstance(data, dict):
@@ -55,30 +62,30 @@ async def buscar_producao(ano: int, mes: int = 0) -> dict:
             total = sum(int(p.get("qt_apresentada") or p.get("quantidade") or 1) for p in procs)
             per_capita = round(total / _POP, 2)
             return {
-                "ano": ano,
+                "ano":                 ano,
                 "total_procedimentos": total,
-                "per_capita": per_capita,
-                "meta_per_capita": 5.0,
-                "status": "ok" if per_capita >= 5.0 else "atencao" if per_capita >= 3.0 else "critico",
-                "fonte": "sia_datasus",
+                "per_capita":          per_capita,
+                "meta_per_capita":     5.0,
+                "status":              "ok" if per_capita >= 5.0 else "atencao" if per_capita >= 3.0 else "critico",
+                "situacao_dado":       "oficial_validado",
+                "fonte":               "sia_datasus",
             }
 
-    return _fallback(ano)
+    return _sem_dado(ano)
 
 
 async def buscar_producao_aps(ano: int) -> dict:
-    """Produção específica de APS (grupos 01-09 SIGTAP)."""
+    """Producao especifica de APS (grupos 01-09 SIGTAP)."""
     if not ano:
         ano = date.today().year - 1
 
-    params = {
+    data = await _get(f"{_BASE}/producao-ambulatorial-bpa", {
         "co_municipio_estabelecimento": _IBGE6,
-        "ano": ano,
-        "co_grupo_procedimento": "01",  # APS
-        "limit": 500,
-    }
-    data = await _get(f"{_BASE}/producao-ambulatorial-bpa", params)
-    procs = []
+        "ano":                          ano,
+        "co_grupo_procedimento":        "01",
+        "limit":                        500,
+    })
+    procs: list = []
     if isinstance(data, list):
         procs = data
     elif isinstance(data, dict):
@@ -86,17 +93,19 @@ async def buscar_producao_aps(ano: int) -> dict:
 
     if procs:
         total = sum(int(p.get("qt_apresentada") or 1) for p in procs)
-        return {"ano": ano, "total_aps": total, "per_capita": round(total / _POP, 2), "fonte": "sia_datasus"}
+        return {
+            "ano":           ano,
+            "total_aps":     total,
+            "per_capita":    round(total / _POP, 2),
+            "situacao_dado": "oficial_validado",
+            "fonte":         "sia_datasus",
+        }
 
-    return {"ano": ano, "total_aps": 79200, "per_capita": 3.2, "fonte": "referencia"}
-
-
-def _fallback(ano: int) -> dict:
     return {
-        "ano": ano,
-        "total_procedimentos": 79_200,
-        "per_capita": 3.2,
-        "meta_per_capita": 5.0,
-        "status": "critico",
-        "fonte": "referencia",
+        "ano":           ano,
+        "total_aps":     None,
+        "per_capita":    None,
+        "situacao_dado": "nao_disponivel",
+        "fonte":         "nao_disponivel",
+        "nota":          "API SIA/DATASUS nao retornou producao APS.",
     }
