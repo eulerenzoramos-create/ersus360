@@ -1,5 +1,6 @@
 // src/pages/GapAnalysisAPS.tsx â€” ERSUS 360 Â· Auditoria da APS Â· Gap Analysis
 import { useState } from "react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import {
   ShieldCheck, AlertTriangle, CheckCircle, XCircle, Clock,
   Database, Wifi, FileText, GitBranch, Map, BarChart2,
@@ -338,7 +339,7 @@ function AbaResumo() {
 function AbaSistema({ sigla }: { sigla: string }) {
   const gaps = GAPS.filter(g => g.sistema === sigla);
   const sis  = SISTEMAS_STATUS.find(s => s.sigla === sigla);
-  if (!sis) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+  if (!sis) return <NaoDisponivelBanner nota="Dados nï¿½o disponï¿½veis no momento. Integraï¿½ï¿½o pendente de configuraï¿½ï¿½o no Railway." />;
   const cor = SIS_COR[sis.status];
 
   return (

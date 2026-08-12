@@ -10,6 +10,7 @@ import {
   Syringe, Users, BookOpen, TrendingUp, Filter, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const STATUS_STYLE: Record<string, { bg: string; border: string; text: string; label: string }> = {
   normal:  { bg: "#f0fdf4", border: "#16a34a", text: "#166534", label: "âœ… ATINGIDA"  },
@@ -138,7 +139,7 @@ export default function ParametrosMS() {
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:16 }}>
           {[["C","C â€” eSF/eAP","#1565c0"], ["B","B â€” ESB","#7b1fa2"], ["M","M â€” eMulti","#1b5e20"]].map(([gk, label, cor]) => {
             const g = pData.componente_qualidade?.[gk];
-            if (!g) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+            if (!g) return <NaoDisponivelBanner nota="Dados nï¿½o disponï¿½veis no momento. Integraï¿½ï¿½o pendente de configuraï¿½ï¿½o no Railway." />;
             const inds = g.indicadores ?? [];
             const otimo = inds.filter((i: any) => i.conceito === "Ã“timo").length;
             const bom   = inds.filter((i: any) => i.conceito === "Bom").length;
@@ -229,7 +230,7 @@ export default function ParametrosMS() {
       {/* Grupos */}
       {["C", "B", "M"].map(gk => {
         const grp = qualData.grupos?.[gk];
-        if (!grp) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
+        if (!grp) return <NaoDisponivelBanner nota="Dados nï¿½o disponï¿½veis no momento. Integraï¿½ï¿½o pendente de configuraï¿½ï¿½o no Railway." />;
         const cores: Record<string, string> = { C: "#1565c0", B: "#7b1fa2", M: "#1b5e20" };
         const cor = cores[gk];
         return (

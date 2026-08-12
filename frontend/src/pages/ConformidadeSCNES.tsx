@@ -15,6 +15,7 @@ import {
 import { api } from "../lib/api";
 import { useMunicipioSeletor } from "../lib/municipio";
 import MunicipioSeletor from "../components/MunicipioSeletor";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -253,7 +254,7 @@ function PainelAlertas({ ibge, token }: { ibge: string; token: string }) {
     staleTime: 120_000,
   });
 
-  if (!data) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
+  if (!data) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
   if (data.situacao_dado === "nao_disponivel" || data.total === 0) {
     return (
       <div style={{ padding:"12px 16px", background:"#f0fdf4",

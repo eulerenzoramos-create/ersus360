@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Users, DollarSign, AlertTriangle, ChevronDown, ChevronRight, CheckCircle, Info } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const API = import.meta.env.VITE_API_URL ?? "";
 const apiGet = (path: string) => fetch(`${API}${path}`).then(r => r.json());
