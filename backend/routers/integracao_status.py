@@ -20,6 +20,8 @@ from typing import Any
 import httpx
 from fastapi import APIRouter, Depends
 
+import os
+
 from routers.auth import get_current_user, UserOut
 from services import siaps_service, esus_pec, cnes_service
 from config import settings
@@ -29,7 +31,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/integracao", tags=["Integrações"])
 
 _IBGE = "1300144"
-_CNES_SMS = "2206406"
+_CNES_SMS = os.getenv("CNES_APUI", "6820662")
 _COMPETENCIA = "202605"
 
 EGESTOR_BASE  = "https://egestorab.saude.gov.br/api"
