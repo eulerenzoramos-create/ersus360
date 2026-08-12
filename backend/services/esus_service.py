@@ -212,42 +212,64 @@ async def buscar_producao(competencia: str) -> dict:
                 "encaminhamentos":             r.get("totalEncaminhamentos",            0),
                 "fonte": "esus_pec",
             }
-    return _producao_fallback(competencia)
+    return {
+        "competencia":                competencia,
+        "situacao_dado":              "nao_disponivel",
+        "atendimentos_individuais":   None,
+        "atendimentos_odontologicos": None,
+        "visitas_domiciliares":        None,
+        "procedimentos":              None,
+        "atividades_coletivas":        None,
+        "encaminhamentos":             None,
+        "fonte":                      "nao_disponivel",
+        "nota": "e-SUS PEC nao acessivel. Configure ESUS_URL, ESUS_USUARIO, ESUS_SENHA no Railway.",
+    }
 
 
 async def buscar_cadastros() -> dict:
-    """Total de cidadãos cadastrados no eSUS PEC."""
+    """Total de cidadaos cadastrados no eSUS PEC."""
     token = await _autenticar()
     if token:
         data = await _gql(_GQL_CIDADAOS, {"municipio": IBGE, "page": 0}, token=token)
         if data and data.get("cidadaos"):
             total = data["cidadaos"].get("totalElements", 0)
-            return {"individuais": total, "domiciliares": 0,
-                    "atualizados_12m": 0, "fonte": "esus_pec"}
-    return {"individuais": 18_924, "domiciliares": 6_241,
-            "atualizados_12m": 12_100, "fonte": "fallback"}
+            return {
+                "individuais":     total,
+                "domiciliares":    0,
+                "atualizados_12m": 0,
+                "situacao_dado":   "oficial_validado",
+                "fonte":           "esus_pec",
+            }
+    return {
+        "situacao_dado": "nao_disponivel",
+        "individuais":   None,
+        "domiciliares":  None,
+        "fonte":         "nao_disponivel",
+        "nota": "e-SUS PEC nao acessivel. Configure ESUS_URL no Railway.",
+    }
 
 
 async def buscar_unidades() -> list[dict]:
-    """Unidades de saúde cadastradas no eSUS PEC."""
+    """Unidades de saude cadastradas no eSUS PEC."""
     token = await _autenticar()
     if token:
         data = await _gql(_GQL_UNIDADES, {"municipio": IBGE}, token=token)
         if data and data.get("unidadesSaude"):
             return [
                 {
-                    "id":   u.get("id"),
-                    "nome": u.get("nome"),
-                    "cnes": u.get("cnes"),
-                    "tipo": (u.get("tipo") or {}).get("descricao", "—"),
+                    "id":            u.get("id"),
+                    "nome":          u.get("nome"),
+                    "cnes":          u.get("cnes"),
+                    "tipo":          (u.get("tipo") or {}).get("descricao", "—"),
+                    "situacao_dado": "oficial_validado",
                 }
                 for u in data["unidadesSaude"]
             ]
-    return _unidades_fallback()
+    return []
 
 
 async def buscar_profissionais() -> list[dict]:
-    """Profissionais de saúde cadastrados no eSUS PEC."""
+    """Profissionais de saude cadastrados no eSUS PEC."""
     token = await _autenticar()
     if token:
         data = await _gql(_GQL_PROFISSIONAIS, {"municipio": IBGE}, token=token)
@@ -256,71 +278,20 @@ async def buscar_profissionais() -> list[dict]:
             for p in data["profissionaisDeSaude"]:
                 lots = p.get("lotacoes") or [{}]
                 result.append({
-                    "nome":    p.get("nome", "—"),
-                    "cns":     p.get("cns", "—"),
-                    "cbo":     (p.get("cbo") or {}).get("descricao", "—"),
-                    "unidade": (lots[0].get("unidadeSaude") or {}).get("nome", "—"),
-                    "equipe":  (lots[0].get("equipe") or {}).get("nome", "—"),
+                    "nome":          p.get("nome", "—"),
+                    "cns":           p.get("cns", "—"),
+                    "cbo":           (p.get("cbo") or {}).get("descricao", "—"),
+                    "unidade":       (lots[0].get("unidadeSaude") or {}).get("nome", "—"),
+                    "equipe":        (lots[0].get("equipe") or {}).get("nome", "—"),
+                    "situacao_dado": "oficial_validado",
                 })
             return result
-    return _profissionais_fallback()
+    return []
 
 
 async def buscar_indicadores_aps() -> list[dict]:
-    return _indicadores_fallback()
+    return []
 
 
 async def buscar_equipes() -> list[dict]:
     return []
-
-
-# ── Fallbacks (dados de demonstração) ────────────────────────────────────────
-
-def _producao_fallback(competencia: str) -> dict:
-    return {
-        "competencia": competencia,
-        "atendimentos_individuais":    1_240,
-        "atendimentos_odontologicos":    318,
-        "visitas_domiciliares":           892,
-        "procedimentos":               2_156,
-        "atividades_coletivas":           47,
-        "encaminhamentos":               183,
-        "fonte": "fallback",
-    }
-
-
-def _unidades_fallback() -> list[dict]:
-    return [
-        {"id": 1, "nome": "UBS Central Apuí",           "cnes": "2784520", "tipo": "Centro de Saúde/UBS"},
-        {"id": 2, "nome": "UBSF Rio Juma",               "cnes": "2784539", "tipo": "UBS Fluvial"},
-        {"id": 3, "nome": "UBSF Estrada Maracanã",       "cnes": "2784547", "tipo": "UBSF"},
-        {"id": 4, "nome": "UBS Bairro Independência",    "cnes": "2784555", "tipo": "Centro de Saúde/UBS"},
-        {"id": 5, "nome": "Hospital Municipal de Apuí",  "cnes": "2784563", "tipo": "Hospital Geral"},
-        {"id": 6, "nome": "UPA 24h Apuí",                "cnes": "6523412", "tipo": "UPA"},
-        {"id": 7, "nome": "CAPS II Apuí",                "cnes": "7834521", "tipo": "CAPS"},
-        {"id": 8, "nome": "CEO Apuí",                    "cnes": "7834522", "tipo": "CEO"},
-    ]
-
-
-def _profissionais_fallback() -> list[dict]:
-    return [
-        {"nome": "Dra. Ana Paula Costa",    "cns": "700 8012 4318 2456", "cbo": "Médico de Família",        "unidade": "UBS Central",       "equipe": "KENNEDY"},
-        {"nome": "Dr. Carlos Mendonça",     "cns": "700 8012 4319 1234", "cbo": "Médico de Família",        "unidade": "UBSF Rio Juma",     "equipe": "JUMA"},
-        {"nome": "Enf. Maria Silva",        "cns": "700 8012 4320 5678", "cbo": "Enfermeiro",               "unidade": "UBS Central",       "equipe": "KENNEDY"},
-        {"nome": "Enf. João Oliveira",      "cns": "700 8012 4321 9012", "cbo": "Enfermeiro",               "unidade": "UBSF Maracanã",     "equipe": "JK"},
-        {"nome": "Dra. Fernanda Rocha",     "cns": "700 8012 4322 3456", "cbo": "Cirurgião-Dentista",       "unidade": "CEO Apuí",          "equipe": "—"},
-        {"nome": "Marcos ACS",              "cns": "700 8012 4323 7890", "cbo": "Agente Comunitário Saúde", "unidade": "UBS Central",       "equipe": "KENNEDY"},
-        {"nome": "Lucia ACS",               "cns": "700 8012 4324 1234", "cbo": "Agente Comunitário Saúde", "unidade": "UBSF Rio Juma",     "equipe": "JUMA"},
-        {"nome": "Técn. Roberto Lima",      "cns": "700 8012 4325 5678", "cbo": "Técnico de Enfermagem",    "unidade": "Hospital Municipal", "equipe": "—"},
-    ]
-
-
-def _indicadores_fallback() -> list[dict]:
-    return [
-        {"indicador": "Pré-natal ≥ 7 consultas",                   "alcancado": 85, "meta": 100, "situacao": "EM_ANDAMENTO"},
-        {"indicador": "Cobertura vacinal BCG",                      "alcancado": 92, "meta": 100, "situacao": "ATINGIDO"},
-        {"indicador": "Cobertura ESF",                              "alcancado": 68, "meta": 100, "situacao": "EM_ANDAMENTO"},
-        {"indicador": "Rastreamento câncer de colo do útero",       "alcancado": 80, "meta": 100, "situacao": "ATINGIDO"},
-        {"indicador": "Hipertensão — pressão aferida",              "alcancado": 74, "meta": 100, "situacao": "EM_ANDAMENTO"},
-        {"indicador": "Diabetes — HbA1c coletada",                  "alcancado": 61, "meta": 100, "situacao": "EM_ANDAMENTO"},
-    ]

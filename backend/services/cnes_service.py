@@ -32,8 +32,8 @@ async def buscar_estabelecimentos() -> list[dict]:
         except Exception as e:
             logger.warning("CNES tentativa falhou (%s): %s", url, e)
 
-    # Fallback com dados reais do CNES para Apuí/AM
-    logger.info("CNES: usando fallback com dados conhecidos de Apuí/AM")
+    # Dados confirmados manualmente do CNES2/DATASUS em 11/08/2026
+    logger.info("CNES: API indisponivel — usando dados confirmados CNES2/DATASUS 2026-08-11")
     return _fallback_apui()
 
 
@@ -58,9 +58,8 @@ def _normalizar(items: list) -> list[dict]:
 
 def _fallback_apui() -> list[dict]:
     """
-    Dados oficiais dos estabelecimentos de saúde de Apuí/AM.
-    Fonte: CNES2/DATASUS — confirmados em 11/08/2026.
-    8 UBS mapeadas. Rejeição de equipes ESF conforme extração CNES2.
+    Estabelecimentos confirmados via CNES2/DATASUS em 11/08/2026.
+    situacao_dado = oficial_aguardando: dado real, aguardando validacao automatica via API.
     """
     return [
         {
