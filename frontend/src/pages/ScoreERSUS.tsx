@@ -1,196 +1,190 @@
+/**
+ * ScoreERSUS — ERSUS 360
+ * Score composto 0–100 com situacao_dado explícito por métrica.
+ * Eixos sem API pública são exibidos como "Sem dado disponível".
+ */
 import { useQuery } from "@tanstack/react-query";
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Info, Activity, DollarSign, Heart, Briefcase, Truck } from "lucide-react";
-import { apiGet } from "../lib/api";
+import {
+  RefreshCw, Activity, DollarSign, Heart,
+  Briefcase, Truck, Info, AlertCircle, CheckCircle,
+} from "lucide-react";
+import { api } from "../lib/api";
+import { useMunicipioSeletor } from "../lib/municipio";
+import MunicipioSeletor from "../components/MunicipioSeletor";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 
-interface EixoData {
-  score: number;
-  peso: number;
-  subcomponentes: Record<string, number | boolean | string>;
-  indicadores?: { nome: string; resultado: number; meta: number; pct_meta: number }[];
+interface Metrica {
+  label: string; valor: number | string | boolean | null;
+  situacao_dado: string; observacao: string;
 }
 
-interface Benchmark { nome: string; score: number }
+interface Eixo {
+  score: number | null; situacao_dado: string;
+  metricas: Record<string, Metrica>;
+  indicadores_raw?: Array<{
+    nome: string; resultado_pct: number | null; meta_pct: number; pct_meta: number | null;
+    situacao_dado: string;
+  }>;
+  peso: number; contribuicao: number | null; nota: string;
+}
 
 interface ScoreData {
-  score_total: number;
-  nivel: string;
-  cor: string;
-  emoji: string;
-  municipio: string;
-  uf: string;
-  calculado_em: string;
+  score_total: number | null; situacao_dado: string;
+  nivel: string; cor: string;
+  municipio: string; uf: string; ibge: string;
+  calculado_em: string; nota: string;
   eixos: {
-    aps:           EixoData;
-    financeiro:    EixoData;
-    epidemiologia: EixoData;
-    gestao:        EixoData;
-    infraestrutura:EixoData;
+    aps: Eixo; financeiro: Eixo; epidemiologia: Eixo;
+    gestao: Eixo; infraestrutura: Eixo;
   };
-  historico: { mes: string; score: number }[];
-  benchmarks: { municipio: Benchmark; estado_am: Benchmark; nacional: Benchmark };
 }
+
+// ── Constantes ────────────────────────────────────────────────────────────────
+
+const SIT_COR: Record<string, string> = {
+  oficial_validado:   "#166534",
+  oficial_aguardando: "#854d0e",
+  divergente:         "#991b1b",
+  dado_nao_validado:  "#6b7280",
+  nao_disponivel:     "#94a3b8",
+};
+const SIT_LABEL: Record<string, string> = {
+  oficial_validado:   "Oficial validado",
+  oficial_aguardando: "Aguardando",
+  divergente:         "Divergente",
+  dado_nao_validado:  "Não validado",
+  nao_disponivel:     "Não disponível",
+};
+
+const EIXOS_META = [
+  { key: "aps",            label: "Atenção Primária",  peso: "35%", Icon: Heart,      cor: "#e11d48" },
+  { key: "financeiro",     label: "Financeiro",         peso: "25%", Icon: DollarSign, cor: "#16a34a" },
+  { key: "epidemiologia",  label: "Epidemiologia",      peso: "20%", Icon: Activity,   cor: "#7c3aed" },
+  { key: "gestao",         label: "Gestão",             peso: "10%", Icon: Briefcase,  cor: "#0ea5e9" },
+  { key: "infraestrutura", label: "Infraestrutura",     peso: "10%", Icon: Truck,      cor: "#f59e0b" },
+] as const;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const EIXOS_META = [
-  { key: "aps",            label: "Atenção Primária",  peso: "35%", Icon: Heart,     descricao: "Novo Financiamento APS, cobertura ESF, SISAB" },
-  { key: "financeiro",     label: "Financeiro",         peso: "25%", Icon: DollarSign, descricao: "Execução FNS, SIOPS, recursos próprios" },
-  { key: "epidemiologia",  label: "Epidemiologia",      peso: "20%", Icon: Activity,  descricao: "Notificações, vacinação, malária, dengue" },
-  { key: "gestao",         label: "Gestão",             peso: "10%", Icon: Briefcase, descricao: "Obrigações legais, RH, documentação" },
-  { key: "infraestrutura", label: "Infraestrutura",     peso: "10%", Icon: Truck,     descricao: "Frota, obras, patrimônio" },
-] as const;
+function corScore(s: number | null) {
+  if (s === null) return "#94a3b8";
+  if (s >= 80) return "#16a34a";
+  if (s >= 65) return "#2563eb";
+  if (s >= 50) return "#d97706";
+  return "#dc2626";
+}
 
-const corScore = (s: number) =>
-  s >= 80 ? "#16a34a" : s >= 65 ? "#2563eb" : s >= 50 ? "#d97706" : "#dc2626";
-
-function GaugeCircle({ score, cor }: { score: number; cor: string }) {
-  const r = 72;
-  const circ = 2 * Math.PI * r;
-  const dash = (score / 100) * circ;
-
+function Tag({ s }: { s: string }) {
+  const cor = SIT_COR[s] ?? "#6b7280";
   return (
-    <svg width={180} height={180} viewBox="0 0 180 180" style={{ display: "block" }}>
-      {/* Trilha */}
-      <circle cx={90} cy={90} r={r} fill="none" stroke="#e5e7eb" strokeWidth={12} />
-      {/* Arco */}
-      <circle
-        cx={90} cy={90} r={r}
-        fill="none"
-        stroke={cor}
-        strokeWidth={12}
-        strokeDasharray={`${dash} ${circ}`}
-        strokeLinecap="round"
-        transform="rotate(-90 90 90)"
-        style={{ transition: "stroke-dasharray .8s ease" }}
-      />
-      {/* Texto */}
-      <text x={90} y={86} textAnchor="middle" fontSize={32} fontWeight={700} fill={cor}>{score}</text>
-      <text x={90} y={108} textAnchor="middle" fontSize={13} fill="#6b7280">/100</text>
+    <span style={{ fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:10,
+      color:cor, background:`${cor}15`, border:`1px solid ${cor}30` }}>
+      {SIT_LABEL[s] ?? s}
+    </span>
+  );
+}
+
+// ── Gauge SVG ─────────────────────────────────────────────────────────────────
+
+function GaugeCircle({ score, cor }: { score: number | null; cor: string }) {
+  const r = 70, circ = 2 * Math.PI * r;
+  const dash = score !== null ? (score / 100) * circ : 0;
+  return (
+    <svg width={170} height={170} viewBox="0 0 170 170">
+      <circle cx={85} cy={85} r={r} fill="none" stroke="#e5e7eb" strokeWidth={12}/>
+      <circle cx={85} cy={85} r={r} fill="none" stroke={cor} strokeWidth={12}
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+        transform="rotate(-90 85 85)"
+        style={{ transition:"stroke-dasharray .8s ease" }}/>
+      {score !== null
+        ? <>
+            <text x={85} y={80} textAnchor="middle" fontSize={34} fontWeight={800} fill={cor}>{score}</text>
+            <text x={85} y={100} textAnchor="middle" fontSize={12} fill="#9ca3af">/100</text>
+          </>
+        : <text x={85} y={90} textAnchor="middle" fontSize={13} fill="#94a3b8">Sem dado</text>
+      }
     </svg>
   );
 }
 
-function MiniBar({ score, label, cor, max = 100 }: { score: number; label: string; cor: string; max?: number }) {
-  const w = Math.min((score / max) * 100, 100);
-  return (
-    <div style={{ marginBottom: 6 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 2 }}>
-        <span style={{ color: "#6b7280" }}>{label}</span>
-        <span style={{ fontWeight: 600, color: cor }}>{typeof score === "boolean" ? (score ? "Sim" : "Não") : `${score}`}</span>
-      </div>
-      <div style={{ height: 6, background: "#e5e7eb", borderRadius: 3 }}>
-        <div style={{ width: `${w}%`, height: "100%", background: cor, borderRadius: 3, transition: "width .5s" }} />
-      </div>
-    </div>
-  );
-}
+// ── Card de eixo ──────────────────────────────────────────────────────────────
 
-function SparkLine({ historico }: { historico: { mes: string; score: number }[] }) {
-  const w = 340, h = 70, pad = 10;
-  const scores = historico.map(h => h.score);
-  const min = Math.min(...scores) - 5;
-  const max = Math.max(...scores) + 5;
-  const xStep = (w - pad * 2) / (scores.length - 1);
-  const yScale = (s: number) => h - pad - ((s - min) / (max - min)) * (h - pad * 2);
-
-  const pts = scores.map((s, i) => `${pad + i * xStep},${yScale(s)}`).join(" ");
+function EixoCard({ eixoKey, e }: { eixoKey: string; e: Eixo }) {
+  const meta = EIXOS_META.find(m => m.key === eixoKey)!;
+  const { Icon, label, peso, cor } = meta;
+  const scoreColor = corScore(e.score);
+  const semDado = e.score === null;
 
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-      <polyline points={pts} fill="none" stroke="#2563eb" strokeWidth={2} />
-      {scores.map((s, i) => (
-        <g key={i}>
-          <circle cx={pad + i * xStep} cy={yScale(s)} r={3} fill={corScore(s)} />
-          <text x={pad + i * xStep} y={h - 1} textAnchor="middle" fontSize={9} fill="#9ca3af">
-            {historico[i].mes.slice(0, 3)}
-          </text>
-        </g>
-      ))}
-    </svg>
-  );
-}
-
-function EixoCard({ eixoKey, meta, data }: {
-  eixoKey: string;
-  meta: typeof EIXOS_META[number];
-  data: EixoData;
-}) {
-  const cor = corScore(data.score);
-  const Icon = meta.Icon;
-  const subLabels: Record<string, string> = {
-    previne_brasil:           "Novo Financiamento APS",
-    cobertura_esf:            "Cobertura ESF (%)",
-    sisab_regularidade:       "Regularidade SISAB (%)",
-    execucao_fns_pct:         "Execução FNS (%)",
-    proprio_saude_pct:        "Recursos próprios (%)",
-    siops_conformidade:       "Conformidade SIOPS (%)",
-    pendencias_fns:           "Pendências FNS",
-    notificacao_oportuna_pct: "Notificação oportuna (%)",
-    cobertura_vacinal_pct:    "Cobertura vacinal (%)",
-    ipa_malaria_controle:     "Controle IPA malária (%)",
-    dengue_confirmados:       "Casos dengue confirmados",
-    obrigacoes_cumpridas_pct: "Obrigações cumpridas (%)",
-    servidores_regulares_pct: "Servidores sem pendências (%)",
-    documentos_assinados_pct: "Documentos assinados (%)",
-    rdqa_em_dia:              "RDQA apresentado",
-    frota_operacional_pct:    "Frota operacional (%)",
-    obras_no_prazo_pct:       "Obras no prazo (%)",
-    patrimonio_regular_pct:   "Patrimônio regular (%)",
-  };
-
-  return (
-    <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+    <div style={{ border:`1px solid ${cor}20`, borderRadius:10, overflow:"hidden" }}>
       {/* Header */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "12px 16px", background: cor + "0d",
-        borderBottom: "1px solid #e5e7eb",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Icon size={18} color={cor} />
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+        padding:"12px 16px", background:`${cor}08`, borderBottom:`1px solid ${cor}15` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <Icon size={18} color={cor}/>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>{meta.label}</div>
-            <div style={{ fontSize: 11, color: "#9ca3af" }}>{meta.descricao}</div>
+            <div style={{ fontWeight:700, fontSize:14, color:"#1e293b" }}>{label}</div>
+            <div style={{ fontSize:11, color:"#9ca3af" }}>peso {peso}</div>
           </div>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 26, fontWeight: 700, color: cor, lineHeight: 1 }}>{data.score}</div>
-          <div style={{ fontSize: 11, color: "#9ca3af" }}>peso {meta.peso}</div>
+        <div style={{ textAlign:"right" }}>
+          {semDado
+            ? <div style={{ fontSize:13, color:"#94a3b8", fontStyle:"italic" }}>Sem dado</div>
+            : <div style={{ fontSize:26, fontWeight:800, color:scoreColor }}>{e.score}</div>
+          }
+          <Tag s={e.situacao_dado}/>
         </div>
       </div>
 
-      {/* Subcomponentes */}
-      <div style={{ padding: "12px 16px" }}>
-        {Object.entries(data.subcomponentes).map(([k, v]) => {
-          if (typeof v === "boolean") {
-            return (
-              <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                <span style={{ color: "#6b7280" }}>{subLabels[k] ?? k}</span>
-                <span style={{ fontWeight: 600, color: v ? "#16a34a" : "#dc2626" }}>{v ? "Sim ✓" : "Não ✗"}</span>
-              </div>
-            );
-          }
-          const num = Number(v);
-          const c = num >= 70 ? "#16a34a" : num >= 40 ? "#d97706" : "#dc2626";
-          return <MiniBar key={k} score={num} label={subLabels[k] ?? k} cor={c} />;
-        })}
-
-        {/* Indicadores Previne (só APS) */}
-        {data.indicadores && (
-          <div style={{ marginTop: 8 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 6, textTransform: "uppercase" }}>
-              Indicadores Novo Financiamento APS
+      {/* Métricas */}
+      <div style={{ padding:"12px 16px" }}>
+        {Object.entries(e.metricas).map(([k, m]) => (
+          <div key={k} style={{ display:"flex", alignItems:"flex-start",
+            justifyContent:"space-between", marginBottom:8, gap:10 }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:12, color:"#374151", fontWeight:600 }}>{m.label}</div>
+              {m.observacao && (
+                <div style={{ fontSize:11, color:"#94a3b8", marginTop:1 }}>{m.observacao}</div>
+              )}
             </div>
-            {data.indicadores.map(ind => (
-              <div key={ind.nome} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3, color: "#6b7280" }}>
-                <span style={{ maxWidth: "70%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ind.nome}</span>
-                <span style={{ fontWeight: 600, color: ind.resultado >= ind.meta ? "#16a34a" : "#dc2626" }}>
-                  {ind.resultado}% / {ind.meta}%
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:3, flexShrink:0 }}>
+              <span style={{ fontSize:13, fontWeight:700, color: m.valor !== null ? "#1e293b" : "#94a3b8" }}>
+                {m.valor !== null && m.valor !== undefined ? String(m.valor) : "—"}
+              </span>
+              <Tag s={m.situacao_dado}/>
+            </div>
+          </div>
+        ))}
+
+        {/* Indicadores Previne (APS) */}
+        {e.indicadores_raw && e.indicadores_raw.length > 0 && (
+          <div style={{ marginTop:10, borderTop:"1px solid #f1f5f9", paddingTop:10 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:"#6b7280",
+              textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:8 }}>
+              Indicadores Previne Brasil
+            </div>
+            {e.indicadores_raw.map((ind, i) => (
+              <div key={i} style={{ display:"flex", justifyContent:"space-between",
+                fontSize:11, marginBottom:4, color:"#6b7280" }}>
+                <span style={{ maxWidth:"65%", overflow:"hidden",
+                  textOverflow:"ellipsis", whiteSpace:"nowrap" as const }}>{ind.nome}</span>
+                <span style={{ fontWeight:600, color:
+                  ind.resultado_pct !== null && ind.resultado_pct >= ind.meta_pct
+                    ? "#16a34a" : "#dc2626" }}>
+                  {ind.resultado_pct !== null ? `${ind.resultado_pct}%` : "—"} / {ind.meta_pct}%
                 </span>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Nota eixo */}
+        {e.nota && (
+          <div style={{ marginTop:8, fontSize:11, color:"#94a3b8",
+            display:"flex", alignItems:"flex-start", gap:6 }}>
+            <Info size={11} style={{ flexShrink:0, marginTop:1 }}/>
+            {e.nota}
           </div>
         )}
       </div>
@@ -198,144 +192,143 @@ function EixoCard({ eixoKey, meta, data }: {
   );
 }
 
-// ── Página principal ──────────────────────────────────────────────────────────
+// ── Página ────────────────────────────────────────────────────────────────────
 
 export default function ScoreERSUS() {
-  const { data, isLoading, refetch, dataUpdatedAt } = useQuery<ScoreData>({
-    queryKey: ["score-ersus"],
-    queryFn: () => apiGet("/api/score") as Promise<ScoreData>,
-    staleTime: 120_000,
+  const { ibge, setIbge } = useMunicipioSeletor();
+  const token = localStorage.getItem("ersus_token") ?? "";
+
+  const { data, isLoading, refetch } = useQuery<ScoreData>({
+    queryKey: ["score-ersus", ibge],
+    queryFn: () =>
+      api.get(`/api/score?ibge=${ibge}`,
+        { headers: { Authorization: `Bearer ${token}` } }).then(r => r.data),
+    staleTime: 300_000,
   });
 
-  const ultimaAtualizacao = dataUpdatedAt
-    ? new Date(dataUpdatedAt).toLocaleString("pt-BR")
-    : "—";
-
-  if (isLoading) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300 }}>
-        <RefreshCw size={28} color="#9ca3af" style={{ animation: "spin 1s linear infinite" }} />
-      </div>
-    );
-  }
-
-  if (!data) return null;
-
-  const ultimoScore = data.historico.at(-2)?.score ?? data.score_total;
-  const variacao = data.score_total - ultimoScore;
+  const scoreColor = corScore(data?.score_total ?? null);
 
   return (
-    <div style={{ padding: 24, maxWidth: 1000, margin: "0 auto" }}>
+    <div style={{ padding:24, maxWidth:960, margin:"0 auto" }}>
+      <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
 
       {/* Cabeçalho */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between",
+        marginBottom:20, flexWrap:"wrap", gap:12 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Score ERSUS 360</h1>
-          <p style={{ margin: "4px 0 0", color: "#6b7280", fontSize: 13 }}>
-            Índice composto de gestão municipal em saúde — {data.municipio}/{data.uf}
-          </p>
+          <h1 style={{ margin:0, fontSize:20, fontWeight:700, color:"#1e293b" }}>
+            Score ERSUS 360
+          </h1>
+          <div style={{ fontSize:12, color:"#64748b" }}>
+            Índice composto — dados reais de APIs públicas · situacao_dado por métrica
+          </div>
         </div>
-        <button onClick={() => refetch()} style={{
-          display: "flex", alignItems: "center", gap: 6,
-          border: "1px solid #d1d5db", borderRadius: 6, padding: "6px 12px",
-          background: "#fff", cursor: "pointer", fontSize: 13,
-        }}>
-          <RefreshCw size={14} /> Recalcular
-        </button>
+        <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" as const }}>
+          <MunicipioSeletor onChange={setIbge}/>
+          <button onClick={() => refetch()}
+            style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 14px",
+              borderRadius:9, border:"1.5px solid #e2e8f0", background:"#fff",
+              fontSize:12, fontWeight:600, cursor:"pointer", color:"#374151" }}>
+            <RefreshCw size={13} style={{ animation: isLoading ? "spin 1s linear infinite" : "none" }}/>
+            Atualizar
+          </button>
+        </div>
       </div>
 
-      {/* Score principal */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "220px 1fr", gap: 20,
-        background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12,
-        padding: 24, marginBottom: 20,
-      }}>
-        {/* Gauge */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-          <GaugeCircle score={data.score_total} cor={data.cor} />
-          <div style={{
-            background: data.cor + "18", color: data.cor,
-            fontWeight: 700, fontSize: 14, padding: "4px 16px", borderRadius: 20,
-          }}>
-            {data.emoji} {data.nivel}
-          </div>
-          <div style={{ fontSize: 11, color: "#9ca3af" }}>Atualizado: {ultimaAtualizacao}</div>
+      {isLoading && (
+        <div style={{ textAlign:"center", padding:60, color:"#94a3b8" }}>
+          <RefreshCw size={28} style={{ animation:"spin 1s linear infinite" }}/>
+          <div style={{ marginTop:10, fontSize:14 }}>Calculando score…</div>
         </div>
+      )}
 
-        {/* Resumo direito */}
-        <div>
-          {/* Variação */}
-          <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {variacao > 0
-                ? <TrendingUp size={18} color="#16a34a" />
-                : variacao < 0
-                ? <TrendingDown size={18} color="#dc2626" />
-                : <Minus size={18} color="#9ca3af" />}
-              <span style={{ fontSize: 13, color: variacao >= 0 ? "#16a34a" : "#dc2626", fontWeight: 600 }}>
-                {variacao > 0 ? "+" : ""}{variacao.toFixed(1)} pts vs mês anterior
-              </span>
+      {data && (
+        <>
+          {/* Hero */}
+          <div style={{ background:"linear-gradient(135deg,#1e3a5f,#1d4ed8)",
+            borderRadius:14, padding:"24px 28px", marginBottom:20,
+            display:"flex", alignItems:"center", gap:28, flexWrap:"wrap", color:"#fff" }}>
+            <GaugeCircle score={data.score_total} cor={scoreColor}/>
+            <div style={{ flex:1, minWidth:200 }}>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,.55)", textTransform:"uppercase",
+                letterSpacing:"0.09em", marginBottom:4 }}>Score ERSUS 360</div>
+              <div style={{ fontSize:28, fontWeight:900, marginBottom:4 }}>
+                {data.municipio} / {data.uf}
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" as const }}>
+                <span style={{ fontSize:16, fontWeight:700,
+                  color: scoreColor === "#94a3b8" ? "rgba(255,255,255,.6)" : scoreColor }}>
+                  {data.nivel}
+                </span>
+                <Tag s={data.situacao_dado}/>
+              </div>
+              {data.score_total === null && (
+                <div style={{ marginTop:10, fontSize:13, color:"rgba(255,255,255,.6)",
+                  display:"flex", alignItems:"center", gap:6 }}>
+                  <AlertCircle size={14}/>
+                  Nenhum eixo retornou dado real ainda. Configure as integrações no Railway.
+                </div>
+              )}
+              {data.score_total !== null && (
+                <div style={{ marginTop:10, fontSize:12, color:"rgba(255,255,255,.5)" }}>
+                  Calculado em: {data.calculado_em.slice(0, 16).replace("T", " ")} UTC
+                </div>
+              )}
+            </div>
+
+            {/* Contribuições por eixo */}
+            <div style={{ minWidth:180 }}>
+              {EIXOS_META.map(m => {
+                const e = data.eixos[m.key as keyof typeof data.eixos];
+                return (
+                  <div key={m.key} style={{ display:"flex", justifyContent:"space-between",
+                    alignItems:"center", marginBottom:6, gap:16 }}>
+                    <span style={{ fontSize:12, color:"rgba(255,255,255,.65)" }}>
+                      {m.label} ({m.peso})
+                    </span>
+                    {e.score !== null
+                      ? <span style={{ fontSize:13, fontWeight:700, color:corScore(e.score) }}>
+                          {e.score}
+                        </span>
+                      : <span style={{ fontSize:11, color:"rgba(255,255,255,.35)" }}>—</span>
+                    }
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Eixos resumo */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 16 }}>
-            {EIXOS_META.map(m => {
-              const eixo = (data.eixos as Record<string, EixoData>)[m.key];
-              const c = corScore(eixo.score);
-              const Icon = m.Icon;
-              return (
-                <div key={m.key} style={{ textAlign: "center", padding: "8px 4px", background: c + "0d", borderRadius: 8 }}>
-                  <Icon size={16} color={c} style={{ marginBottom: 2 }} />
-                  <div style={{ fontSize: 18, fontWeight: 700, color: c }}>{eixo.score}</div>
-                  <div style={{ fontSize: 10, color: "#9ca3af", lineHeight: 1.2 }}>{m.label}</div>
-                  <div style={{ fontSize: 10, color: "#d1d5db" }}>{m.peso}</div>
-                </div>
-              );
-            })}
+          {/* Nota geral */}
+          <div style={{ padding:"10px 16px", background:"#f8fafc",
+            border:"1px solid #e2e8f0", borderRadius:10, marginBottom:20,
+            fontSize:12, color:"#64748b",
+            display:"flex", alignItems:"flex-start", gap:8 }}>
+            <Info size={13} style={{ flexShrink:0, marginTop:1 }}/>
+            {data.nota}
           </div>
 
-          {/* Benchmarks */}
-          <div style={{ display: "flex", gap: 12 }}>
-            {Object.values(data.benchmarks).map(b => (
-              <div key={b.nome} style={{ flex: 1, textAlign: "center" }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: corScore(b.score) }}>{b.score}</div>
-                <div style={{ fontSize: 11, color: "#9ca3af" }}>{b.nome}</div>
-              </div>
+          {/* Eixos */}
+          <div style={{ display:"grid", gap:14 }}>
+            {EIXOS_META.map(m => (
+              <EixoCard key={m.key}
+                eixoKey={m.key}
+                e={data.eixos[m.key as keyof typeof data.eixos]}/>
             ))}
           </div>
-        </div>
-      </div>
 
-      {/* Evolução histórica */}
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "16px 20px", marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-          <TrendingUp size={16} color="#2563eb" />
-          <strong style={{ fontSize: 13 }}>Evolução do Score — 2026</strong>
-        </div>
-        <SparkLine historico={data.historico} />
-      </div>
-
-      {/* Cards por eixo */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        {EIXOS_META.map(m => (
-          <EixoCard
-            key={m.key}
-            eixoKey={m.key}
-            meta={m}
-            data={(data.eixos as Record<string, EixoData>)[m.key]}
-          />
-        ))}
-      </div>
-
-      {/* Nota metodológica */}
-      <div style={{ marginTop: 16, display: "flex", gap: 8, alignItems: "flex-start", color: "#9ca3af", fontSize: 11 }}>
-        <Info size={13} style={{ flexShrink: 0, marginTop: 1 }} />
-        <span>
-          Score composto: APS 35% + Financeiro 25% + Epidemiologia 20% + Gestão 10% + Infraestrutura 10%.
-          Valores baseados em dados de referência Apuí/AM. Integração com FNS e e-SUS em implantação.
-        </span>
-      </div>
+          {/* Nota de dados */}
+          <div style={{ marginTop:16, padding:"12px 16px", background:"#f8fafc",
+            border:"1px solid #e2e8f0", borderRadius:10, fontSize:11, color:"#94a3b8" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+              <CheckCircle size={11}/> <strong>Integridade dos dados</strong>
+            </div>
+            Todos os valores exibidos provêm de APIs públicas (Previne Brasil, SIOPS/DATASUS).
+            Eixos sem API pública disponível são declarados como "Não disponível" — nenhum
+            número é estimado ou simulado. Configure integrações locais via Railway para habilitar
+            os demais eixos.
+          </div>
+        </>
+      )}
     </div>
   );
 }
