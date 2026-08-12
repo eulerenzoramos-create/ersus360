@@ -23,7 +23,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
@@ -58,7 +58,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaMicrorganismos({ orgs }: { orgs: any[] | undefined }) {
-  if (!orgs) return null;
+  if (!orgs) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

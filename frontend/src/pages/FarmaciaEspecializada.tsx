@@ -28,7 +28,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash, meds }: { dash: any; meds: any[] | undefined }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   const barData = meds?.map(m => ({ name: m.medicamento.split(" ")[0], custo: m.custo_mes, comp: m.componente })) ?? [];
   return (
     <div>

@@ -22,7 +22,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   return (
     <div>
       {dash.criticos_pendentes > 0 && (

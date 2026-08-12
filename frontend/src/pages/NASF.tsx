@@ -27,7 +27,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
@@ -118,7 +118,7 @@ function AbaPrioridades({ prioridades }: { prioridades: any[] | undefined }) {
 }
 
 function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
-  if (!inds) return null;
+  if (!inds) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   return (
     <div>
       {["critico","atencao","ok"].map(nivel => {

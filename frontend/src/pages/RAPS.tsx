@@ -27,7 +27,7 @@ const RISCO_COR: Record<string, string> = { alto: "#dc2626", medio: "#d97706", b
 const STATUS_COR: Record<string, string> = { critico: "#dc2626", atencao: "#d97706", estavel: "#16a34a" };
 
 function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 22 }}>

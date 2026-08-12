@@ -25,7 +25,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   const modalData = [
     { mod: "AD1", n: dash.ad1, cor: "#16a34a" },
     { mod: "AD2", n: dash.ad2, cor: "#1d4ed8" },
@@ -89,7 +89,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 function AbaPacientes({ pacientes }: { pacientes: any[] | undefined }) {
   const [filtro, setFiltro] = useState("todos");
   const [busca, setBusca] = useState("");
-  if (!pacientes) return null;
+  if (!pacientes) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   const lista = pacientes.filter(p =>
     (filtro === "todos" || p.modalidade === filtro || (filtro === "alerta" && p.alerta)) &&
     (busca === "" || p.nome.toLowerCase().includes(busca.toLowerCase()) || p.cid.toLowerCase().includes(busca.toLowerCase()))
@@ -135,7 +135,7 @@ function AbaPacientes({ pacientes }: { pacientes: any[] | undefined }) {
 }
 
 function AbaEquipe({ emad }: { emad: any }) {
-  if (!emad) return null;
+  if (!emad) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 20, marginBottom: 16 }}>
@@ -159,7 +159,7 @@ function AbaEquipe({ emad }: { emad: any }) {
 }
 
 function AbaProducao({ prod }: { prod: any[] | undefined }) {
-  if (!prod) return null;
+  if (!prod) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 18 }}>

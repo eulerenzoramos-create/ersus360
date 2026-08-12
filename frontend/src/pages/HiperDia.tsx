@@ -23,7 +23,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash, intern }: { dash: any; intern: any[] | undefined }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   const pieDCNT = [
     { name: "HAS",        n: intern?.[intern.length-1]?.has        ?? 0, cor: "#dc2626" },
     { name: "DM",         n: intern?.[intern.length-1]?.dm         ?? 0, cor: "#d97706" },
@@ -142,7 +142,7 @@ function AbaDiabeticos({ lista }: { lista: any[] | undefined }) {
 }
 
 function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
-  if (!inds) return null;
+  if (!inds) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   const barData = inds.filter(i => typeof i.valor === "number" && i.meta && i.meta > 1);
   return (
     <div>

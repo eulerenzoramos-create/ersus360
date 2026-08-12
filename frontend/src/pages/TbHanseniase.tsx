@@ -24,7 +24,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   const histBar = dash.historico.filter((h: any) => h.ano !== "2026*");
   return (
     <div>

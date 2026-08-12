@@ -27,7 +27,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:22 }}>
@@ -77,7 +77,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 function AbaEstoque({ estoque }: { estoque: any[] | undefined }) {
   const [busca, setBusca] = useState("");
   const [filtroGrupo, setFiltroGrupo] = useState("todos");
-  if (!estoque) return null;
+  if (!estoque) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   const grupos = Array.from(new Set(estoque.map(m => m.grupo))).sort();
   const lista = estoque.filter(m =>
     (filtroGrupo==="todos" || m.grupo===filtroGrupo) &&
@@ -138,7 +138,7 @@ function AbaEstoque({ estoque }: { estoque: any[] | undefined }) {
 
 // ── Programas ─────────────────────────────────────────────────────────────────
 function AbaProgramas({ programas }: { programas: any[] | undefined }) {
-  if (!programas) return null;
+  if (!programas) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:20 }}>
@@ -178,7 +178,7 @@ function AbaProgramas({ programas }: { programas: any[] | undefined }) {
 
 // ── Dispensação ───────────────────────────────────────────────────────────────
 function AbaDispensacao({ hist }: { hist: any[] | undefined }) {
-  if (!hist) return null;
+  if (!hist) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:18 }}>

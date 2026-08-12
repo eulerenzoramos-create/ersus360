@@ -24,7 +24,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   const fragData = [
     { name: "Frágil",    n: dash.frageis,    cor: "#dc2626" },
     { name: "Pré-frágil",n: dash.pre_frageis,cor: "#d97706" },
@@ -115,7 +115,7 @@ function AbaIdosos({ idosos }: { idosos: any[] | undefined }) {
 }
 
 function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
-  if (!inds) return null;
+  if (!inds) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   return (
     <div>
       {["critico","atencao","ok"].map(nivel => {

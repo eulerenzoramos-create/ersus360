@@ -23,7 +23,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 22 }}>
@@ -71,7 +71,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 }
 
 function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
-  if (!inds) return null;
+  if (!inds) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   return (
     <div>
       {["critico","atencao","ok"].map(nivel => {
@@ -109,7 +109,7 @@ function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
 }
 
 function AbaPacientesHIV({ pacientes }: { pacientes: any[] | undefined }) {
-  if (!pacientes) return null;
+  if (!pacientes) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   const alertas = pacientes.filter(p => p.alerta);
   return (
     <div>

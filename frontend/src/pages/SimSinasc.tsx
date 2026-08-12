@@ -24,7 +24,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   const capitulosBar = [
     { name: "Cardiovasc.", n: 3, cor: "#1d4ed8" },
     { name: "Causas ext.", n: 2, cor: "#dc2626" },

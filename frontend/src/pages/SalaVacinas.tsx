@@ -25,7 +25,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 22 }}>
@@ -87,7 +87,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 
 // ── Estoque ───────────────────────────────────────────────────────────────────
 function AbaEstoque({ estoque }: { estoque: any[] | undefined }) {
-  if (!estoque) return null;
+  if (!estoque) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "auto" }}>

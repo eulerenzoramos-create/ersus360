@@ -22,7 +22,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ background: "#fef9c3", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#92400e" }}>
@@ -121,7 +121,7 @@ function AbaAcoes({ acoes }: { acoes: any[] | undefined }) {
 }
 
 function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
-  if (!inds) return null;
+  if (!inds) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   return (
     <div>
       {["critico","atencao","ok"].map(nivel => {

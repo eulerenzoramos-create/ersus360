@@ -46,13 +46,13 @@ export default function PainelGestor() {
   const municipio      = sysInfo?.municipio ?? "APUÍ";
   const uf             = sysInfo?.uf        ?? "AM";
   const ibge           = sysInfo?.ibge      ?? "1300144";
-  const scoreTotal     = scoreData?.score_total ?? 85;
-  const scoreNivel     = scoreData?.nivel       ?? "Excelente";
-  const confPct        = conformidadeData?.pct_conformidade ?? 23.5;
+  const scoreTotal     = scoreData?.score_total ?? null;
+  const scoreNivel     = scoreData?.nivel       ?? null;
+  const confPct        = conformidadeData?.pct_conformidade ?? null;
   const repasses       = stats?.total_repasses  ?? 0;
-  const execucao       = stats?.execucao_pas    ?? 69;
-  const metasOk        = stats?.indicadores_atingidos ?? 4;
-  const metasTotal     = stats?.total_indicadores     ?? 8;
+  const execucao       = stats?.execucao_pas    ?? null;
+  const metasOk        = stats?.indicadores_atingidos ?? null;
+  const metasTotal     = stats?.total_indicadores     ?? null;
 
   const base = (import.meta as any).env?.VITE_API_URL ?? "http://localhost:8000";
   const { data: siaps } = useQuery({
@@ -100,8 +100,8 @@ export default function PainelGestor() {
           <div style={{ marginBottom: 18 }}>
             <div style={{ fontSize: 11, opacity: 0.75, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.8 }}>Score ERSUS 360</div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              <span style={{ fontSize: 36, fontWeight: 800, lineHeight: 1 }}>{isLoading ? "—" : scoreTotal.toFixed?.(0) ?? scoreTotal}</span>
-              <span style={{ fontSize: 12, opacity: 0.8 }}>pts · {scoreNivel}</span>
+              <span style={{ fontSize: 36, fontWeight: 800, lineHeight: 1 }}>{isLoading ? "—" : scoreTotal !== null ? (scoreTotal as number).toFixed(0) : "—"}</span>
+              <span style={{ fontSize: 12, opacity: 0.8 }}>pts · {scoreNivel ?? "N/D"}</span>
             </div>
           </div>
 
@@ -123,9 +123,9 @@ export default function PainelGestor() {
 
           {/* KPIs menores */}
           {[
-            { label: "Execução PAS",        value: `${execucao.toFixed?.(0) ?? execucao}%` },
-            { label: "Metas atingidas",      value: `${metasOk}/${metasTotal}` },
-            { label: "Conformidade Legal",   value: `${confPct}%` },
+            { label: "Execução PAS",        value: execucao !== null ? `${(execucao as number).toFixed(0)}%` : "—" },
+            { label: "Metas atingidas",      value: metasOk !== null && metasTotal !== null ? `${metasOk}/${metasTotal}` : "—" },
+            { label: "Conformidade Legal",   value: confPct !== null ? `${confPct}%` : "—" },
             { label: "Alertas ativos",       value: String(alertasAtivos.length) },
           ].map(k => (
             <div key={k.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>

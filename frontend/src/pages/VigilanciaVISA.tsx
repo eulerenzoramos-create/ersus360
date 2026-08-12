@@ -24,7 +24,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   const barData = [
     { nome: "Bom",            n: dash.resultado_bom || 0,            cor: "#16a34a" },
     { nome: "Regular",        n: dash.resultado_regular || 0,        cor: "#d97706" },

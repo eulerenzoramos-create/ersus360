@@ -42,7 +42,7 @@ const ORDEM_STATUS_COR: Record<string, string> = {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   const disponib = dash.taxa_disponibilidade;
   const barData = [
     { nome: "Operantes",        n: dash.operantes,         cor: "#16a34a" },

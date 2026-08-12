@@ -28,7 +28,7 @@ const STATUS_COR: Record<string, string> = { encerrado: "#16a34a", em_invest: "#
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   const CORES = ["#dc2626", "#d97706", "#0891b2", "#7c3aed", "#16a34a"];
   return (
     <div>

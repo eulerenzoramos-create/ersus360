@@ -30,7 +30,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   const classDist = [
     { key: "vermelho_emergencia",   n: dash.vermelho_emergencia },
     { key: "laranja_muito_urgente", n: dash.laranja_muito_urgente },
@@ -93,7 +93,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaFluxo({ fluxo }: { fluxo: any | undefined }) {
-  if (!fluxo) return null;
+  if (!fluxo) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 14 }}>
@@ -137,7 +137,7 @@ function AbaFluxo({ fluxo }: { fluxo: any | undefined }) {
 }
 
 function AbaQueixas({ queixas }: { queixas: any[] | undefined }) {
-  if (!queixas) return null;
+  if (!queixas) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   const total = queixas.reduce((s, q) => s + q.casos, 0);
   return (
     <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
@@ -164,7 +164,7 @@ function AbaQueixas({ queixas }: { queixas: any[] | undefined }) {
 }
 
 function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
-  if (!inds) return null;
+  if (!inds) return <NaoDisponivelBanner nota="Dados indisponíveis. Nenhum valor foi inventado." />;
   return (
     <div>
       {["critico","atencao","ok"].map(nivel => {

@@ -28,7 +28,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 }
 
 function AbaDashboard({ dash }: { dash: any }) {
-  if (!dash) return null;
+  if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
   const iipCor = IIP_COR(dash.dengue_iip_atual);
   const ivpvCor = IVPV_COR(dash.malaria_ivpv_atual);
   return (
