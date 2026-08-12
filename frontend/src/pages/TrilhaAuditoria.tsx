@@ -144,6 +144,14 @@ export default function TrilhaAuditoria() {
         {/* Tabela */}
         {isLoading ? (
           <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>Carregando trilha de auditoria...</div>
+        ) : (data as any)?.situacao_dado === "nao_disponivel" ? (
+          <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "48px 24px", textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#0d2137", marginBottom: 8 }}>Trilha de Auditoria Indisponível</div>
+            <div style={{ fontSize: 13, color: "#64748b", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
+              {(data as any).nota || "A trilha requer integração com sistema de logs operacionais. Nenhum evento simulado."}
+            </div>
+          </div>
         ) : (
           <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, overflow: "hidden" }}>
             <div style={{ overflowX: "auto" }}>

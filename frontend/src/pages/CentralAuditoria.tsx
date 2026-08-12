@@ -285,12 +285,16 @@ export default function CentralAuditoria() {
   });
 
   const d = data;
+  // alertas_ativos pode ser array (legado) ou objeto {situacao_dado, dados} (novo)
+  const alertasAtivos: AlertaAtivo[] = d
+    ? (Array.isArray(d.alertas_ativos) ? d.alertas_ativos : (d.alertas_ativos as any)?.dados ?? [])
+    : [];
   const corGeral = d ? (d.score_geral >= 80 ? "#16a34a" : d.score_geral >= 60 ? "#d97706" : "#dc2626") : "#9ca3af";
 
   const ABAS = [
     { id: "overview" as Aba,  label: "Visão Geral",     icon: <BarChart2 size={13}/> },
     { id: "regras" as Aba,    label: "Motor de Regras", icon: <Settings size={13}/> },
-    { id: "alertas" as Aba,   label: `Alertas${d ? ` (${d.alertas_ativos.filter(a=>a.status!=="resolvido").length})` : ""}`, icon: <Bell size={13}/> },
+    { id: "alertas" as Aba,   label: `Alertas${d ? ` (${alertasAtivos.filter(a=>a.status!=="resolvido").length})` : ""}`, icon: <Bell size={13}/> },
     { id: "historico" as Aba, label: "Histórico",       icon: <GitBranch size={13}/> },
   ];
 
@@ -353,10 +357,10 @@ export default function CentralAuditoria() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 24 }}>
               {[
                 { label: "Score Geral", val: `${d.score_geral}/100`, cor: corGeral, bg: `${corGeral}10`, border: `${corGeral}30`, icon: <ShieldCheck size={16}/> },
-                { label: "Alertas Ativos", val: d.alertas_ativos.filter(a=>a.status!=="resolvido").length, cor: "#dc2626", bg: "#fef2f2", border: "#fecaca", icon: <AlertTriangle size={16}/> },
+                { label: "Alertas Ativos", val: alertasAtivos.filter(a=>a.status!=="resolvido").length, cor: "#dc2626", bg: "#fef2f2", border: "#fecaca", icon: <AlertTriangle size={16}/> },
                 { label: "Tarefas Abertas", val: d.tarefas_abertas, cor: "#d97706", bg: "#fef3c7", border: "#fde68a", icon: <Clock size={16}/> },
                 { label: "Regras Ativas", val: d.regras.filter(r=>r.ativa).length, cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe", icon: <Settings size={16}/> },
-                { label: "Conformidade", val: `${d.conformidade_pct}%`, cor: d.conformidade_pct>=80?"#16a34a":d.conformidade_pct>=60?"#d97706":"#dc2626", bg: "#f0fdf4", border: "#bbf7d0", icon: <CheckCircle size={16}/> },
+                { label: "Conformidade", val: `${d.score_geral}%`, cor: d.score_geral>=80?"#16a34a":d.score_geral>=60?"#d97706":"#dc2626", bg: "#f0fdf4", border: "#bbf7d0", icon: <CheckCircle size={16}/> },
               ].map(k => (
                 <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: 12, padding: "16px 18px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
@@ -411,7 +415,7 @@ export default function CentralAuditoria() {
             </div>
 
             {/* Alertas recentes */}
-            {d.alertas_ativos.filter(a => a.status !== "resolvido").length > 0 && (
+            {alertasAtivos.filter(a => a.status !== "resolvido").length > 0 && (
               <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "18px 20px" }}>
                 <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, display: "flex", justifyContent: "space-between" }}>
                   <span>Alertas Não Resolvidos</span>
@@ -420,7 +424,7 @@ export default function CentralAuditoria() {
                   </button>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {d.alertas_ativos.filter(a => a.status !== "resolvido").slice(0, 5).map(a => {
+                  {alertasAtivos.filter(a => a.status !== "resolvido").slice(0, 5).map(a => {
                     const cor = SEV_COR[a.severidade];
                     return (
                       <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: `${cor}08`, border: `1px solid ${cor}25`, borderLeft: `3px solid ${cor}`, borderRadius: 8 }}>
@@ -445,7 +449,7 @@ export default function CentralAuditoria() {
         )}
 
         {/* ── Alertas ── */}
-        {aba === "alertas" && d && <AbaAlertas alertas={d.alertas_ativos} />}
+        {aba === "alertas" && d && <AbaAlertas alertas={alertasAtivos} />}
 
         {/* ── Histórico ── */}
         {aba === "historico" && (

@@ -1005,7 +1005,18 @@ export default function PainelFinanceiro() {
 
       {isLoading && <div style={{ textAlign: "center", padding: 60 }}><RefreshCw size={28} color="#9ca3af" style={{ animation: "spin 1s linear infinite" }} /></div>}
 
-      {data && k && (
+      {(data as any)?.situacao_dado === "nao_disponivel" && (
+        <div style={{ maxWidth:800, margin:"48px auto", padding:"32px 24px", background:"#fff",
+          border:"1px solid #e2e8f0", borderRadius:12, textAlign:"center" }}>
+          <AlertTriangle size={36} color="#d97706" style={{ marginBottom:12 }}/>
+          <div style={{ fontSize:16, fontWeight:700, color:"#0d2137", marginBottom:8 }}>Painel Financeiro Indisponível</div>
+          <div style={{ fontSize:13, color:"#64748b", maxWidth:500, margin:"0 auto", lineHeight:1.6 }}>
+            {(data as any).nota || "Integração com sistema financeiro ainda não configurada."}
+          </div>
+        </div>
+      )}
+
+      {data && k && (data as any)?.situacao_dado !== "nao_disponivel" && (
         <>
           {/* Alertas */}
           {data.alertas.length > 0 && (

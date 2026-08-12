@@ -299,7 +299,24 @@ export default function FolhaPagamento() {
         <div style={{ padding:48, textAlign:"center", color:"#6b7280" }}>Carregando folha de pagamento...</div>
       )}
 
-      {folha && (
+      {folha?.situacao_dado === "nao_disponivel" && (
+        <div style={{ maxWidth:900, margin:"48px auto", padding:"32px 24px", background:"#fff",
+          border:"1px solid #e2e8f0", borderRadius:12, textAlign:"center" }}>
+          <AlertTriangle size={40} color="#d97706" style={{ marginBottom:16 }}/>
+          <div style={{ fontSize:18, fontWeight:700, color:"#0d2137", marginBottom:8 }}>
+            Folha de Pagamento Indisponível
+          </div>
+          <div style={{ fontSize:13, color:"#64748b", maxWidth:560, margin:"0 auto 16px", lineHeight:1.6 }}>
+            {folha.nota || "Integração com SIAPE ou sistema de RH municipal ainda não configurada. Nenhum servidor inventado."}
+          </div>
+          <div style={{ display:"inline-flex", gap:8, padding:"8px 16px", background:"#fef3c7",
+            border:"1px solid #d97706", borderRadius:8, fontSize:12, color:"#92400e" }}>
+            <AlertTriangle size={14}/> situacao_dado: nao_disponivel
+          </div>
+        </div>
+      )}
+
+      {folha && folha.situacao_dado !== "nao_disponivel" && (
         <div style={{ maxWidth:1300, margin:"0 auto", padding:"20px 20px 48px" }}>
 
           {/* KPIs */}
