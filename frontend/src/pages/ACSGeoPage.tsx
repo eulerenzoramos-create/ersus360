@@ -13,6 +13,7 @@ import {
 import { AcsMapaGeo } from "../components/AcsMapaGeo";
 import { useAcsGeo, type PosicaoAcs, type RegistroProducao } from "../hooks/useAcsGeo";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Coordenadas fixas p/ simular ACS no mapa (demo) ──────────────────────────
 // Em produção, os ACS enviam localização real pelo app/celular.
@@ -476,15 +477,27 @@ export default function ACSGeoPage() {
     refetchInterval: 30_000,
   });
 
-  // Usa demo automaticamente se WS não trouxe dados ainda
+  // Sem WebSocket ativo e sem snapshot → aguarda dados reais
   useEffect(() => {
-    if (!conectado && posWs.length === 0) setModoDemo(true);
+    if (!conectado && posWs.length === 0) setModoDemo(false);
     else if (posWs.length > 0) setModoDemo(false);
   }, [conectado, posWs.length]);
 
-  const posicoes = modoDemo ? POS_DEMO : (posWs.length > 0 ? posWs : (snapshot?.posicoes ?? POS_DEMO));
-  const producao = modoDemo ? PROD_DEMO : (prodWs.length > 0 ? prodWs : (snapshot?.producao_hoje ?? PROD_DEMO));
+  const posicoes = posWs.length > 0 ? posWs : (snapshot?.posicoes ?? []);
+  const producao = prodWs.length > 0 ? prodWs : (snapshot?.producao_hoje ?? []);
   const timeline = TIMELINE_DEMO;
+
+  // Sem dados reais → mostrar banner em vez de DEMO fictício
+  if (!conectado && posicoes.length === 0) {
+    return (
+      <div style={{ padding: 40 }}>
+        <NaoDisponivelBanner
+          titulo="Localização ACS indisponível"
+          nota="Nenhum ACS com app de rastreamento conectado. Para habilitar o monitoramento em tempo real, os ACS precisam instalar o app ERSUS ACS e ativar o envio de localização."
+        />
+      </div>
+    );
+  }
 
   const acsNomesGeo  = useMemo(() => ["Todos", ...posicoes.map(p => p.nome)], [posicoes]);
   const microareasGeo = useMemo(() => ["Todas", ...Array.from(new Set(posicoes.map(p => p.microarea)))], [posicoes]);
