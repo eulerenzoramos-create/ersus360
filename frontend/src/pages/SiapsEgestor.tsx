@@ -368,7 +368,7 @@ function ViewDiaria({ data }: { data: any }) {
   const equipesEscaladas = data.equipes.map((e: any) => {
     const scaled: any = { ...e };
     IND_COLS.forEach(c => {
-      scaled[c.key] = Math.round((e[c.key] ?? 0) * numDias * (0.85 + Math.random() * 0.3));
+      scaled[c.key] = Math.round((e[c.key] ?? 0) * numDias);
     });
     scaled.total_prod = IND_COLS.reduce((s, c) => s + scaled[c.key], 0);
     return scaled;
