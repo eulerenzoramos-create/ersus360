@@ -62,7 +62,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaEspecialidades({ specs }: { specs: any[] | undefined }) {
-  if (!specs) return null;
+  if (!specs) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -95,7 +95,7 @@ function AbaEspecialidades({ specs }: { specs: any[] | undefined }) {
 }
 
 function AbaESF({ units }: { units: any[] | undefined }) {
-  if (!units) return null;
+  if (!units) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

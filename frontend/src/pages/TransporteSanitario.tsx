@@ -81,7 +81,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 
 // ── Frota ─────────────────────────────────────────────────────────────────────
 function AbaFrota({ frota }: { frota: any[] | undefined }) {
-  if (!frota) return null;
+  if (!frota) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
   return (
     <div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:20 }}>
@@ -134,7 +134,7 @@ function AbaFrota({ frota }: { frota: any[] | undefined }) {
 // ── Viagens ───────────────────────────────────────────────────────────────────
 function AbaViagens({ viagens }: { viagens: any[] | undefined }) {
   const [filtro, setFiltro] = useState("todos");
-  if (!viagens) return null;
+  if (!viagens) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
   const lista = filtro==="todos" ? viagens : viagens.filter(v=>v.status===filtro);
   return (
     <div>

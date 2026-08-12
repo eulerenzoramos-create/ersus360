@@ -82,7 +82,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 function AbaEstabelecimentos({ estabs }: { estabs: any[] | undefined }) {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("todos");
-  if (!estabs) return null;
+  if (!estabs) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   const lista = estabs.filter(e =>
     (filtro === "todos" || e.resultado === filtro || (filtro === "licenca_vencida" && !e.licenca_valida)) &&
     (busca === "" || e.razao.toLowerCase().includes(busca.toLowerCase()) || e.atividade.toLowerCase().includes(busca.toLowerCase()))
@@ -146,7 +146,7 @@ function AbaEstabelecimentos({ estabs }: { estabs: any[] | undefined }) {
 }
 
 function AbaAutos({ autos }: { autos: any[] | undefined }) {
-  if (!autos) return null;
+  if (!autos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   const total_multas = autos.reduce((s, a) => s + a.multa_est, 0);
   return (
     <div>

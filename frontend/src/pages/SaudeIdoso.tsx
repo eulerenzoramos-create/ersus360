@@ -78,7 +78,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 
 function AbaIdosos({ idosos }: { idosos: any[] | undefined }) {
   const [filtro, setFiltro] = useState("todos");
-  if (!idosos) return null;
+  if (!idosos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   const lista = filtro === "todos" ? idosos : filtro === "alerta" ? idosos.filter(i => i.alerta) : idosos.filter(i => i.fragilidade === filtro);
   return (
     <div>

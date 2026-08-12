@@ -57,7 +57,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaGrupos({ grupos }: { grupos: any[] | undefined }) {
-  if (!grupos) return null;
+  if (!grupos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -87,7 +87,7 @@ function AbaGrupos({ grupos }: { grupos: any[] | undefined }) {
 }
 
 function AbaUsuarios({ usuarios }: { usuarios: any[] | undefined }) {
-  if (!usuarios) return null;
+  if (!usuarios) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

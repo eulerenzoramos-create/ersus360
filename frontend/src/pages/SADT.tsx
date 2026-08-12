@@ -59,7 +59,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaLaboratorio({ exames }: { exames: any[] | undefined }) {
-  if (!exames) return null;
+  if (!exames) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "auto" }}>
@@ -101,7 +101,7 @@ function AbaLaboratorio({ exames }: { exames: any[] | undefined }) {
 }
 
 function AbaImagem({ modalidades }: { modalidades: any[] | undefined }) {
-  if (!modalidades) return null;
+  if (!modalidades) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -130,7 +130,7 @@ function AbaImagem({ modalidades }: { modalidades: any[] | undefined }) {
 }
 
 function AbaCriticos({ criticos }: { criticos: any[] | undefined }) {
-  if (!criticos) return null;
+  if (!criticos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

@@ -61,7 +61,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaCausas({ causas }: { causas: any[] | undefined }) {
-  if (!causas) return null;
+  if (!causas) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 16 }}>
@@ -110,7 +110,7 @@ function AbaCausas({ causas }: { causas: any[] | undefined }) {
 }
 
 function AbaPorESF({ esfs }: { esfs: any[] | undefined }) {
-  if (!esfs) return null;
+  if (!esfs) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -145,7 +145,7 @@ function AbaPorESF({ esfs }: { esfs: any[] | undefined }) {
 }
 
 function AbaAcoes({ acoes }: { acoes: any[] | undefined }) {
-  if (!acoes) return null;
+  if (!acoes) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   const PRIOR_COR: Record<string, string> = { alta: "#dc2626", media: "#d97706", baixa: "#16a34a" };
   const SIT_COR: Record<string, string> = { "em andamento": "#1d4ed8", "planejado": "#d97706", "concluido": "#16a34a" };
   return (

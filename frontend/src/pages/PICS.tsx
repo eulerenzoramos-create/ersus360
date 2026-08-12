@@ -55,7 +55,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaModalidades({ mods }: { mods: any[] | undefined }) {
-  if (!mods) return null;
+  if (!mods) return <NaoDisponivelBanner nota="Dados n„o disponÌveis no momento. IntegraÁ„o pendente de configuraÁ„o no Railway." />;
   return (
     <div>
       {mods.map(m => {
@@ -82,7 +82,7 @@ function AbaModalidades({ mods }: { mods: any[] | undefined }) {
 }
 
 function AbaCondicoes({ conds }: { conds: any[] | undefined }) {
-  if (!conds) return null;
+  if (!conds) return <NaoDisponivelBanner nota="Dados n„o disponÌveis no momento. IntegraÁ„o pendente de configuraÁ„o no Railway." />;
   return (
     <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
       <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Condi√ß√µes tratadas com PICS ‚Äî melhora cl√≠nica relatada</div>

@@ -60,7 +60,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaEscolas({ escolas }: { escolas: any[] | undefined }) {
-  if (!escolas) return null;
+  if (!escolas) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       {escolas.map(e => {
@@ -87,7 +87,7 @@ function AbaEscolas({ escolas }: { escolas: any[] | undefined }) {
 }
 
 function AbaAcoes({ acoes }: { acoes: any[] | undefined }) {
-  if (!acoes) return null;
+  if (!acoes) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>

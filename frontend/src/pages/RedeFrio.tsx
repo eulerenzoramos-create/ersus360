@@ -55,7 +55,7 @@ function AbaDashboard({ dash, perdas }: { dash: any; perdas: any[] | undefined }
 }
 
 function AbaEquipamentos({ equip }: { equip: any[] | undefined }) {
-  if (!equip) return null;
+  if (!equip) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>

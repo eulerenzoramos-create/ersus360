@@ -138,7 +138,7 @@ export default function ParametrosMS() {
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:16 }}>
           {[["C","C â€” eSF/eAP","#1565c0"], ["B","B â€” ESB","#7b1fa2"], ["M","M â€” eMulti","#1b5e20"]].map(([gk, label, cor]) => {
             const g = pData.componente_qualidade?.[gk];
-            if (!g) return null;
+            if (!g) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
             const inds = g.indicadores ?? [];
             const otimo = inds.filter((i: any) => i.conceito === "Ã“timo").length;
             const bom   = inds.filter((i: any) => i.conceito === "Bom").length;
@@ -229,7 +229,7 @@ export default function ParametrosMS() {
       {/* Grupos */}
       {["C", "B", "M"].map(gk => {
         const grp = qualData.grupos?.[gk];
-        if (!grp) return null;
+        if (!grp) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
         const cores: Record<string, string> = { C: "#1565c0", B: "#7b1fa2", M: "#1b5e20" };
         const cor = cores[gk];
         return (

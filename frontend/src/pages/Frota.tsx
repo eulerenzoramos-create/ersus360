@@ -61,7 +61,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaVeiculos({ veiculos }: { veiculos: any[] | undefined }) {
-  if (!veiculos) return null;
+  if (!veiculos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       {veiculos.map(v => {
@@ -95,7 +95,7 @@ function AbaVeiculos({ veiculos }: { veiculos: any[] | undefined }) {
 }
 
 function AbaManutencoes({ mans }: { mans: any[] | undefined }) {
-  if (!mans) return null;
+  if (!mans) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       {mans.map(m => {

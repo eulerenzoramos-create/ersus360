@@ -80,7 +80,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 
 function AbaCriancas({ criancas }: { criancas: any[] | undefined }) {
   const [filtro, setFiltro] = useState("todos");
-  if (!criancas) return null;
+  if (!criancas) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   const lista = filtro === "todos" ? criancas : criancas.filter(c => c.risco === filtro);
   return (
     <div>
@@ -136,7 +136,7 @@ function AbaCriancas({ criancas }: { criancas: any[] | undefined }) {
 }
 
 function AbaIndicadores({ indicadores }: { indicadores: any[] | undefined }) {
-  if (!indicadores) return null;
+  if (!indicadores) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       {["critico","atencao","ok"].map(nivel => {
@@ -173,7 +173,7 @@ function AbaIndicadores({ indicadores }: { indicadores: any[] | undefined }) {
 }
 
 function AbaBolsaFamilia({ bf }: { bf: any[] | undefined }) {
-  if (!bf) return null;
+  if (!bf) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   const total_fam  = bf.reduce((s, e) => s + e.familias_bf, 0);
   const total_acomp = bf.reduce((s, e) => s + e.acomp_saude, 0);
   const pct_total  = Math.round(total_acomp / total_fam * 100);

@@ -253,7 +253,7 @@ function PainelAlertas({ ibge, token }: { ibge: string; token: string }) {
     staleTime: 120_000,
   });
 
-  if (!data) return null;
+  if (!data) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   if (data.situacao_dado === "nao_disponivel" || data.total === 0) {
     return (
       <div style={{ padding:"12px 16px", background:"#f0fdf4",

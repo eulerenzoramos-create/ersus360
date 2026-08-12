@@ -60,7 +60,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaAcoes({ acoes }: { acoes: any[] | undefined }) {
-  if (!acoes) return null;
+  if (!acoes) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       {acoes.map(a => {
@@ -88,7 +88,7 @@ function AbaAcoes({ acoes }: { acoes: any[] | undefined }) {
 }
 
 function AbaMedicamentos({ meds }: { meds: any[] | undefined }) {
-  if (!meds) return null;
+  if (!meds) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   const totalCusto = meds.reduce((s, m) => s + m.custo_mes, 0);
   return (
     <div>

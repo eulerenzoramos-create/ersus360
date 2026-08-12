@@ -60,7 +60,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaOcorrencias({ ocorr }: { ocorr: any[] | undefined }) {
-  if (!ocorr) return null;
+  if (!ocorr) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   const total = ocorr.reduce((s, o) => s + o.total, 0);
   return (
     <div>
@@ -94,7 +94,7 @@ function AbaOcorrencias({ ocorr }: { ocorr: any[] | undefined }) {
 }
 
 function AbaVeiculos({ veics }: { veics: any[] | undefined }) {
-  if (!veics) return null;
+  if (!veics) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       {veics.map(v => {

@@ -89,7 +89,7 @@ function AbaPacientes({ pacientes }: { pacientes: any[] | undefined }) {
 }
 
 function AbaSetores({ setores }: { setores: any[] | undefined }) {
-  if (!setores) return null;
+  if (!setores) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

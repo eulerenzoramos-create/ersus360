@@ -62,7 +62,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaNotificacoes({ nots }: { nots: any[] | undefined }) {
-  if (!nots) return null;
+  if (!nots) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
@@ -93,7 +93,7 @@ function AbaNotificacoes({ nots }: { nots: any[] | undefined }) {
 }
 
 function AbaAlertas({ alertas }: { alertas: any[] | undefined }) {
-  if (!alertas) return null;
+  if (!alertas) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

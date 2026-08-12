@@ -60,7 +60,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaEquipe({ equipe }: { equipe: any[] | undefined }) {
-  if (!equipe) return null;
+  if (!equipe) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       {equipe.map(p => {
@@ -88,7 +88,7 @@ function AbaEquipe({ equipe }: { equipe: any[] | undefined }) {
 }
 
 function AbaPrioridades({ prioridades }: { prioridades: any[] | undefined }) {
-  if (!prioridades) return null;
+  if (!prioridades) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   const total = prioridades.reduce((s, p) => s + p.casos, 0);
   return (
     <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>

@@ -59,7 +59,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaEquipamentos({ ciclos }: { ciclos: any[] | undefined }) {
-  if (!ciclos) return null;
+  if (!ciclos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       {ciclos.map(eq => {
@@ -87,7 +87,7 @@ function AbaEquipamentos({ ciclos }: { ciclos: any[] | undefined }) {
 }
 
 function AbaRastreabilidade({ lotes }: { lotes: any[] | undefined }) {
-  if (!lotes) return null;
+  if (!lotes) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       {lotes.map(l => {

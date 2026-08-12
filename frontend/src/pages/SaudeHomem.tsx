@@ -90,7 +90,7 @@ function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
 }
 
 function AbaInternacoes({ internacoes }: { internacoes: any[] | undefined }) {
-  if (!internacoes) return null;
+  if (!internacoes) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 18 }}>
@@ -150,7 +150,7 @@ function AbaInternacoes({ internacoes }: { internacoes: any[] | undefined }) {
 }
 
 function AbaAcoes({ acoes }: { acoes: any[] | undefined }) {
-  if (!acoes) return null;
+  if (!acoes) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

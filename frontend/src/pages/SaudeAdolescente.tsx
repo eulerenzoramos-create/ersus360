@@ -54,7 +54,7 @@ function AbaDashboard({ dash, prod }: { dash: any; prod: any[] | undefined }) {
 }
 
 function AbaGravidez({ historico }: { historico: any[] | undefined }) {
-  if (!historico) return null;
+  if (!historico) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 18 }}>
@@ -102,7 +102,7 @@ function AbaGravidez({ historico }: { historico: any[] | undefined }) {
 }
 
 function AbaDst({ casos }: { casos: any[] | undefined }) {
-  if (!casos) return null;
+  if (!casos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

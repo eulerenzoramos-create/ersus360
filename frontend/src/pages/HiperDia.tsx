@@ -73,7 +73,7 @@ function AbaDashboard({ dash, intern }: { dash: any; intern: any[] | undefined }
 
 function AbaHipertensos({ lista }: { lista: any[] | undefined }) {
   const [filtro, setFiltro] = useState("todos");
-  if (!lista) return null;
+  if (!lista) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   const items = filtro === "todos" ? lista : filtro === "alerta" ? lista.filter(h => h.controle === "nao") : lista.filter(h => h.classificacao.includes(filtro));
   return (
     <div>
@@ -108,7 +108,7 @@ function AbaHipertensos({ lista }: { lista: any[] | undefined }) {
 }
 
 function AbaDiabeticos({ lista }: { lista: any[] | undefined }) {
-  if (!lista) return null;
+  if (!lista) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

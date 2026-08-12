@@ -140,7 +140,7 @@ function AbaEstoque({ estoque }: { estoque: any[] | undefined }) {
 
 // ── Temperatura ───────────────────────────────────────────────────────────────
 function AbaTemperatura({ tempData }: { tempData: any }) {
-  if (!tempData) return null;
+  if (!tempData) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
   const alertas = tempData.historico_24h.filter((h: any) => h.temp > 8 || h.temp < 2);
   return (
     <div>
@@ -185,7 +185,7 @@ function AbaTemperatura({ tempData }: { tempData: any }) {
 
 // ── Cobertura ─────────────────────────────────────────────────────────────────
 function AbaCobertura({ cob }: { cob: any }) {
-  if (!cob) return null;
+  if (!cob) return <NaoDisponivelBanner nota="Dados n�o dispon�veis no momento. Integra��o pendente de configura��o no Railway." />;
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 20 }}>

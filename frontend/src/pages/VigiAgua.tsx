@@ -61,7 +61,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
 }
 
 function AbaSistemas({ sistemas }: { sistemas: any[] | undefined }) {
-  if (!sistemas) return null;
+  if (!sistemas) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       {sistemas.map(s => {
@@ -95,7 +95,7 @@ function AbaSistemas({ sistemas }: { sistemas: any[] | undefined }) {
 }
 
 function AbaParametros({ params }: { params: any[] | undefined }) {
-  if (!params) return null;
+  if (!params) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>

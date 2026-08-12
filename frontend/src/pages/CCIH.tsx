@@ -86,7 +86,7 @@ function AbaMicrorganismos({ orgs }: { orgs: any[] | undefined }) {
 }
 
 function AbaAntibioticos({ atbs }: { atbs: any[] | undefined }) {
-  if (!atbs) return null;
+  if (!atbs) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 16 }}>
@@ -116,7 +116,7 @@ function AbaAntibioticos({ atbs }: { atbs: any[] | undefined }) {
 }
 
 function AbaBundles({ bundles }: { bundles: any[] | undefined }) {
-  if (!bundles) return null;
+  if (!bundles) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

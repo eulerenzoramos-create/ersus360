@@ -78,7 +78,7 @@ function AbaDashboard({ dash }: { dash: any }) {
 }
 
 function AbaObitos({ obitos }: { obitos: any[] | undefined }) {
-  if (!obitos) return null;
+  if (!obitos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -108,7 +108,7 @@ function AbaObitos({ obitos }: { obitos: any[] | undefined }) {
 }
 
 function AbaObitosInfantis({ obitos }: { obitos: any[] | undefined }) {
-  if (!obitos) return null;
+  if (!obitos) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 14px", fontSize: 12, marginBottom: 16, color: "#dc2626" }}>
@@ -142,7 +142,7 @@ function AbaObitosInfantis({ obitos }: { obitos: any[] | undefined }) {
 }
 
 function AbaNascidosVivos({ nvs }: { nvs: any[] | undefined }) {
-  if (!nvs) return null;
+  if (!nvs) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 18 }}>

@@ -338,7 +338,7 @@ function AbaResumo() {
 function AbaSistema({ sigla }: { sigla: string }) {
   const gaps = GAPS.filter(g => g.sistema === sigla);
   const sis  = SISTEMAS_STATUS.find(s => s.sigla === sigla);
-  if (!sis) return null;
+  if (!sis) return <NaoDisponivelBanner nota="Dados não disponíveis no momento. Integração pendente de configuração no Railway." />;
   const cor = SIS_COR[sis.status];
 
   return (
