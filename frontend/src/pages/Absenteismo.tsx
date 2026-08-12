@@ -6,6 +6,7 @@ import {
 } from "recharts";
 import { Users, AlertTriangle, CheckCircle, Clock, Search } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const COR_STATUS = (s: string) =>
   s === "critico" ? "#dc2626" : s === "atencao" ? "#d97706" : "#16a34a";
@@ -38,7 +39,7 @@ export default function Absenteismo() {
     s.unidade.toLowerCase().includes(busca.toLowerCase())
   );
 
-  if (!dash) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando…</div>;
+  if (!dash) return <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />;
 
   const motivos = [
     { label: "Atestado médico", n: dash.motivos.medico,  cor: "#d97706" },

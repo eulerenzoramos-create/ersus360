@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, Target, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, AlertTriangle, Ship, Users, Stethoscope, Baby, Heart, FlaskConical, Eye, Pill } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── tipos ─────────────────────────────────────────────────────────────────────
 type Conceito = "Ótimo" | "Bom" | "Suficiente" | "Regular";
@@ -261,7 +262,11 @@ export default function ComponenteQualidade() {
       </div>
 
       {/* KPIs consolidado */}
-      {data && (
+      {!data && (
+          <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />
+        )}
+
+        {data && (
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))", gap:10, marginBottom:20 }}>
           {[
             { label:"15 Indicadores", val:"C/B/M",            cor:"#1e40af", sub:"Componente Qualidade"         },

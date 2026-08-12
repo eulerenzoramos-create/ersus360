@@ -86,7 +86,7 @@ function ProfTable({ rows }: { rows: { profissional: string; cbo: string; ch_min
 function TabResumo() {
   const q = useQuery({ queryKey: ["ft-resumo"], queryFn: () => apiGet("/api/fichas-tecnicas/resumo") });
   const d = q.data;
-  if (q.isLoading) return <div style={{ padding: 32, textAlign: "center", color: "#9e9e9e" }}>Carregando...</div>;
+  if (q.isLoading || !q.data) return <NaoDisponivelBanner nota="Integração com sistema de fichas técnicas ainda não configurada no Railway. Nenhum dado foi inventado." />;
 
   return (
     <div style={{ padding: 16 }}>
@@ -136,7 +136,7 @@ function TabResumo() {
 function TabESF() {
   const q = useQuery({ queryKey: ["ft-esf"], queryFn: () => apiGet("/api/fichas-tecnicas/esf") });
   const d = q.data;
-  if (q.isLoading) return <div style={{ padding: 32, textAlign: "center", color: "#9e9e9e" }}>Carregando...</div>;
+  if (q.isLoading || !q.data) return <NaoDisponivelBanner nota="Integração com sistema de fichas técnicas ainda não configurada no Railway. Nenhum dado foi inventado." />;
 
   return (
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -225,7 +225,7 @@ function TabESF() {
 function TabESB() {
   const q = useQuery({ queryKey: ["ft-esb"], queryFn: () => apiGet("/api/fichas-tecnicas/esb") });
   const d = q.data;
-  if (q.isLoading) return <div style={{ padding: 32, textAlign: "center", color: "#9e9e9e" }}>Carregando...</div>;
+  if (q.isLoading || !q.data) return <NaoDisponivelBanner nota="Integração com sistema de fichas técnicas ainda não configurada no Railway. Nenhum dado foi inventado." />;
 
   return (
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -266,7 +266,7 @@ function TabEMulti() {
   const q = useQuery({ queryKey: ["ft-emulti"], queryFn: () => apiGet("/api/fichas-tecnicas/emulti") });
   const d = q.data;
   const [cboDet, setCboDet] = useState(false);
-  if (q.isLoading) return <div style={{ padding: 32, textAlign: "center", color: "#9e9e9e" }}>Carregando...</div>;
+  if (q.isLoading || !q.data) return <NaoDisponivelBanner nota="Integração com sistema de fichas técnicas ainda não configurada no Railway. Nenhum dado foi inventado." />;
 
   return (
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -369,7 +369,7 @@ function TabEMulti() {
 function TabRibeirinha() {
   const q = useQuery({ queryKey: ["ft-ribeirinha"], queryFn: () => apiGet("/api/fichas-tecnicas/ribeirinha") });
   const d = q.data;
-  if (q.isLoading) return <div style={{ padding: 32, textAlign: "center", color: "#9e9e9e" }}>Carregando...</div>;
+  if (q.isLoading || !q.data) return <NaoDisponivelBanner nota="Integração com sistema de fichas técnicas ainda não configurada no Railway. Nenhum dado foi inventado." />;
 
   return (
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -450,7 +450,7 @@ function TabRibeirinha() {
 function TabConsultorioRua() {
   const q = useQuery({ queryKey: ["ft-cr"], queryFn: () => apiGet("/api/fichas-tecnicas/consultorio-na-rua") });
   const d = q.data;
-  if (q.isLoading) return <div style={{ padding: 32, textAlign: "center", color: "#9e9e9e" }}>Carregando...</div>;
+  if (q.isLoading || !q.data) return <NaoDisponivelBanner nota="Integração com sistema de fichas técnicas ainda não configurada no Railway. Nenhum dado foi inventado." />;
 
   return (
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -490,7 +490,7 @@ function TabConsultorioRua() {
 function TabPrisional() {
   const q = useQuery({ queryKey: ["ft-prisional"], queryFn: () => apiGet("/api/fichas-tecnicas/prisional") });
   const d = q.data;
-  if (q.isLoading) return <div style={{ padding: 32, textAlign: "center", color: "#9e9e9e" }}>Carregando...</div>;
+  if (q.isLoading || !q.data) return <NaoDisponivelBanner nota="Integração com sistema de fichas técnicas ainda não configurada no Railway. Nenhum dado foi inventado." />;
 
   return (
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>

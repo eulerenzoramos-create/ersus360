@@ -11,6 +11,7 @@ import {
   ChevronDown, ChevronRight, Download, Filter, Info, Clock,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 // ── Tema ──────────────────────────────────────────────────────────────────────
@@ -115,7 +116,7 @@ function KpiCard({ label, value, sub, cor, icon, tooltip }: {
 // ── Aba: Painel Geral ─────────────────────────────────────────────────────────
 
 function AbaPainelGeral({ dados }: { dados: any }) {
-  if (!dados) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+  if (!dados) return <NaoDisponivelBanner nota="Integração com SIOPS ainda não configurada no Railway. Nenhum dado fiscal foi inventado." />;
   const ind = dados.indicadores;
 
   const kpisReceita = [
@@ -210,7 +211,7 @@ function AbaPainelGeral({ dados }: { dados: any }) {
 function AbaProgramas({ dados }: { dados: any }) {
   const [expandidos, setExpandidos] = useState<Set<number>>(new Set());
 
-  if (!dados) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+  if (!dados) return <NaoDisponivelBanner nota="Integração com SIOPS ainda não configurada no Railway. Nenhum dado fiscal foi inventado." />;
   const { programas, totais } = dados;
 
   const toggle = (id: number) => {
@@ -391,7 +392,7 @@ function AbaProgramas({ dados }: { dados: any }) {
 // ── Aba: Comparativos ─────────────────────────────────────────────────────────
 
 function AbaComparativos({ dados }: { dados: any }) {
-  if (!dados) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+  if (!dados) return <NaoDisponivelBanner nota="Integração com SIOPS ainda não configurada no Railway. Nenhum dado fiscal foi inventado." />;
   const c = dados.comparativos;
 
   const chartStyle = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 16 };
@@ -489,7 +490,7 @@ function AbaComparativos({ dados }: { dados: any }) {
 // ── Aba: Alertas ──────────────────────────────────────────────────────────────
 
 function AbaAlertas({ dados }: { dados: any }) {
-  if (!dados) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+  if (!dados) return <NaoDisponivelBanner nota="Integração com SIOPS ainda não configurada no Railway. Nenhum dado fiscal foi inventado." />;
   const { alertas, resumo } = dados;
 
   const resumoItems = [

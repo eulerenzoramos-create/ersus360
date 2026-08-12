@@ -9,6 +9,7 @@ import {
   ChevronDown, ChevronRight, Zap, Target,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -34,7 +35,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 
 // ── Aba: Visão Geral ──────────────────────────────────────────────────────────
 function AbaVisaoGeral({ dash }: { dash: any }) {
-  if (!dash) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando…</div>;
+  if (!dash) return <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />;
 
   const COMPONENTES = [
     { label: "Capitação Ponderada",  val: dash.total_capita_mes,      cor: "#1d4ed8", pct: Math.round((dash.total_capita_mes / dash.total_mensal) * 100) },

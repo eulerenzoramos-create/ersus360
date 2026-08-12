@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -247,6 +248,10 @@ export default function Conformidade() {
         <div style={{ textAlign: "center", padding: 60 }}>
           <RefreshCw size={28} color="#9ca3af" style={{ animation: "spin 1s linear infinite" }} />
         </div>
+      )}
+
+      {!isLoading && !r && (
+        <NaoDisponivelBanner nota="Integração com sistema de conformidade ainda não configurada no Railway. Nenhum dado foi inventado." />
       )}
 
       {r && (

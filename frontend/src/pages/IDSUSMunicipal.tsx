@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Award, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronRight } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 interface IndicadorIDSUS {
   codigo: string; nome: string; dimensao: string;
@@ -123,9 +124,18 @@ export default function IDSUSMunicipal() {
     staleTime: 300_000,
   });
 
-  if (isLoading || !resumo) return (
+  if (isLoading) return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af" }}>
       Carregando IDSUS Municipal...
+    </div>
+  );
+
+  if (!resumo) return (
+    <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh", padding: "48px 24px" }}>
+      <NaoDisponivelBanner
+        titulo="IDSUS Municipal Indisponível"
+        nota="Integração com IDSUS/DATASUS ainda não configurada. Nenhum score ou indicador foi inventado."
+      />
     </div>
   );
 

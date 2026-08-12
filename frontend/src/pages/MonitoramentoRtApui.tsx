@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, Users, Stethoscope, BarChart2, Clock, Smile, UserCheck, RefreshCw, CalendarDays } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const corStatus = (s: string) =>
@@ -245,7 +246,7 @@ export default function MonitoramentoRtApui() {
 
   // ── ABA GERAL ────────────────────────────────────────────────────────────────
   const abaGeral = !dash ? (
-    <div style={{ color: "var(--muted)", padding: 24 }}>Carregando dashboard...</div>
+    <NaoDisponivelBanner nota="Integração com e-SUS PEC ou sistema de monitoramento em tempo real ainda não configurada no Railway. Nenhum valor de atendimento foi inventado." />
   ) : (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(155px,1fr))", gap: 12, marginBottom: 20 }}>

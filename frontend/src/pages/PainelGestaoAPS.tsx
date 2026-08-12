@@ -9,6 +9,8 @@ import {
   RefreshCw, ChevronDown, ChevronRight, Send,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -48,7 +50,7 @@ function AbaAtendimentos() {
     queryKey: ["gestao-atendimentos"],
     queryFn: () => apiGet("/api/gestao/atendimentos") as Promise<any>,
   });
-  if (!data) return <div style={{ textAlign: "center", padding: 40 }}><RefreshCw size={24} color="#9ca3af" /></div>;
+  if (!data) return <NaoDisponivelBanner nota="Integração com sistema de gestão APS ainda não configurada no Railway. Nenhum dado foi inventado." />;
 
   return (
     <div>
@@ -114,7 +116,7 @@ function AbaProcedimentos() {
     queryKey: ["gestao-procedimentos"],
     queryFn: () => apiGet("/api/gestao/procedimentos") as Promise<any>,
   });
-  if (!data) return <div style={{ textAlign: "center", padding: 40 }}><RefreshCw size={24} color="#9ca3af" /></div>;
+  if (!data) return <NaoDisponivelBanner nota="Integração com sistema de gestão APS ainda não configurada no Railway. Nenhum dado foi inventado." />;
 
   return (
     <div>
@@ -168,7 +170,7 @@ function AbaVacinas() {
     queryKey: ["gestao-vacinas"],
     queryFn: () => apiGet("/api/gestao/vacinas") as Promise<any>,
   });
-  if (!data) return <div style={{ textAlign: "center", padding: 40 }}><RefreshCw size={24} color="#9ca3af" /></div>;
+  if (!data) return <NaoDisponivelBanner nota="Integração com sistema de gestão APS ainda não configurada no Railway. Nenhum dado foi inventado." />;
 
   return (
     <div>
@@ -214,7 +216,7 @@ function AbaVisitas() {
     queryKey: ["gestao-visitas"],
     queryFn: () => apiGet("/api/gestao/visitas") as Promise<any>,
   });
-  if (!data) return <div style={{ textAlign: "center", padding: 40 }}><RefreshCw size={24} color="#9ca3af" /></div>;
+  if (!data) return <NaoDisponivelBanner nota="Integração com sistema de gestão APS ainda não configurada no Railway. Nenhum dado foi inventado." />;
 
   return (
     <div>
@@ -253,7 +255,7 @@ function AbaSISAB() {
     queryKey: ["gestao-sisab"],
     queryFn: () => apiGet("/api/gestao/sisab") as Promise<any>,
   });
-  if (!data) return <div style={{ textAlign: "center", padding: 40 }}><RefreshCw size={24} color="#9ca3af" /></div>;
+  if (!data) return <NaoDisponivelBanner nota="Integração com sistema de gestão APS ainda não configurada no Railway. Nenhum dado foi inventado." />;
 
   const emDia = data.status_envio === "em_dia";
 
@@ -334,7 +336,7 @@ function AbaEquipesESF() {
     queryKey: ["gestao-equipes-esf"],
     queryFn: () => apiGet("/api/gestao/equipes-esf") as Promise<any>,
   });
-  if (!data) return <div style={{ textAlign: "center", padding: 40 }}><RefreshCw size={24} color="#9ca3af" /></div>;
+  if (!data) return <NaoDisponivelBanner nota="Integração com sistema de gestão APS ainda não configurada no Railway. Nenhum dado foi inventado." />;
 
   return (
     <div>

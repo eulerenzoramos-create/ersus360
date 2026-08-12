@@ -6,6 +6,7 @@ import {
 } from "recharts";
 import { ClipboardList, AlertTriangle, CheckCircle, TrendingUp, DollarSign } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { BRL, BRL_AXIS } from "../lib/fmt";
 
 const COR_STATUS = (s: string) =>
@@ -27,7 +28,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 
 // ── LOA ───────────────────────────────────────────────────────────────────────
 function AbaLOA({ loa, dash }: { loa: any[] | undefined; dash: any }) {
-  if (!loa || !dash) return null;
+  if (!loa || !dash) return <NaoDisponivelBanner nota="Integração com sistema de planejamento orçamentário ainda não configurada no Railway. Nenhum valor de LOA ou PPA foi inventado." />;
   const barData = loa.map(p => ({
     programa: p.programa.split(" ").slice(0, 3).join(" "),
     Dotação:  p.dotacao,

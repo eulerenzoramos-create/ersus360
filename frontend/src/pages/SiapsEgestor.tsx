@@ -9,6 +9,7 @@ import {
   ChevronDown, ChevronRight, RefreshCw, Download, Info,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -343,7 +344,7 @@ function ViewDiaria({ data }: { data: any }) {
   const [dataInicio, setDataInicio] = useState(primeiroDiaMes);
   const [dataFim, setDataFim]       = useState(hoje);
 
-  if (!data) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+  if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum valor de vinculação ou cobertura foi inventado." />;
 
   const IND_COLS = [
     { key: "prenatal",        label: "Pré-natal" },
@@ -518,7 +519,7 @@ const IND_CORES: Record<string, string> = {
 };
 
 function ViewMensal({ data }: { data: any }) {
-  if (!data) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+  if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum valor de vinculação ou cobertura foi inventado." />;
   const variacoes = data.variacao_mes_anterior;
   const TEND_ICON = (t: string) => t === "crescente" ? "↑" : t === "critica" ? "↓" : t === "estavel" ? "→" : "↑";
 
@@ -630,7 +631,7 @@ function ViewMensal({ data }: { data: any }) {
 // ── View Quadrimestral ────────────────────────────────────────────────────────
 
 function ViewQuadrimestral({ data }: { data: any }) {
-  if (!data) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+  if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum valor de vinculação ou cobertura foi inventado." />;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>

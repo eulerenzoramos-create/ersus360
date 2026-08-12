@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, BarChart2, Users, Layers, Calendar, Download, Filter, Printer } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string) ?? "http://localhost:8000";
 
@@ -174,7 +175,7 @@ export default function RelatorioProducao() {
 
   // ── ABA POR TIPO ──────────────────────────────────────────────────────────
   const abaTipo = !qTipo.data ? (
-    <div style={{ color: "var(--muted)", padding: 24 }}>Carregando...</div>
+    <NaoDisponivelBanner compact nota="Integração com sistema externo ainda não configurada no Railway. Nenhum dado foi inventado." />
   ) : (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 10, marginBottom: 16 }}>
@@ -248,7 +249,7 @@ export default function RelatorioProducao() {
   // ── ABA POR PROFISSIONAL ──────────────────────────────────────────────────
   const [profExpandido, setProfExpandido] = useState<string | null>(null);
   const abaProf = !qProf.data ? (
-    <div style={{ color: "var(--muted)", padding: 24 }}>Carregando...</div>
+    <NaoDisponivelBanner compact nota="Integração com sistema externo ainda não configurada no Railway. Nenhum dado foi inventado." />
   ) : (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 10, marginBottom: 16 }}>
@@ -332,7 +333,7 @@ export default function RelatorioProducao() {
   // ── ABA POR EQUIPE ────────────────────────────────────────────────────────
   const [eqExpandida, setEqExpandida] = useState<string | null>(null);
   const abaEquipe = !qEq.data ? (
-    <div style={{ color: "var(--muted)", padding: 24 }}>Carregando...</div>
+    <NaoDisponivelBanner compact nota="Integração com sistema externo ainda não configurada no Railway. Nenhum dado foi inventado." />
   ) : (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 10, marginBottom: 16 }}>
@@ -434,7 +435,7 @@ export default function RelatorioProducao() {
 
   // ── ABA DIÁRIO ────────────────────────────────────────────────────────────
   const abaDiario = !qDiario.data ? (
-    <div style={{ color: "var(--muted)", padding: 24 }}>Carregando...</div>
+    <NaoDisponivelBanner compact nota="Integração com sistema externo ainda não configurada no Railway. Nenhum dado foi inventado." />
   ) : (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 10, marginBottom: 16 }}>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -446,13 +447,13 @@ export default function SICONFIPanel() {
         {aba === "rreo" && (
           rreoLoad
             ? <p className="text-slate-500 text-sm">Consultando SICONFI…</p>
-            : rreo ? <AbaRREO rreo={rreo}/> : null
+            : rreo ? <AbaRREO rreo={rreo}/> : <NaoDisponivelBanner compact nota="RREO indisponível — integração com SICONFI não configurada no Railway. Nenhum dado fiscal foi inventado." />
         )}
 
         {aba === "rgf" && (
           rgfLoad
             ? <p className="text-slate-500 text-sm">Consultando SICONFI…</p>
-            : rgf ? <AbaRGF rgf={rgf}/> : null
+            : rgf ? <AbaRGF rgf={rgf}/> : <NaoDisponivelBanner compact nota="RGF indisponível — integração com SICONFI não configurada no Railway. Nenhum dado fiscal foi inventado." />
         )}
 
         {aba === "status" && (
