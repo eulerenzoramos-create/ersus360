@@ -36,8 +36,9 @@ class RepasseMensalOut(BaseModel):
     mes: int
     ano: int
     competencia: str
-    valor_previsto: float
-    valor_realizado: float
+    total_previsto: float
+    total_realizado: float
+    novos_repasses: int = 0
     total_repasses: int
 
 
@@ -94,8 +95,8 @@ async def repasses_mensais(
             mes=r.mes,
             ano=r.ano,
             competencia=r.competencia,
-            valor_previsto=float(r.valor_previsto or 0),
-            valor_realizado=float(r.valor_realizado or 0),
+            total_previsto=float(r.valor_previsto or 0),
+            total_realizado=float(r.valor_realizado or 0),
             total_repasses=r.total_repasses,
         )
         for r in rows
