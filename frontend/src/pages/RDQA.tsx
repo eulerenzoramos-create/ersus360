@@ -6,6 +6,7 @@ import {
   ChevronRight, Calendar, Users, BarChart2,
 } from "lucide-react";
 import { apiRdqa } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -320,6 +321,12 @@ export default function RDQA() {
         <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>
           <RefreshCw size={28} style={{ animation: "spin 1s linear infinite" }} />
           <p style={{ marginTop: 12 }}>Gerando RDQA…</p>
+        </div>
+      )}
+
+      {!isLoading && !rdqa && (
+        <div style={{ padding: 24 }}>
+          <NaoDisponivelBanner titulo="RDQA indisponivel" nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />
         </div>
       )}
 

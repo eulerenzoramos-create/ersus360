@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiBI } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Gauge Score ──────────────────────────────────────────────────────────────
 function GaugeScore({ score }: { score: number }) {
@@ -69,22 +70,27 @@ export default function BI() {
       </div>
 
       {/* Score + dimensões */}
-      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16, marginBottom: 20 }}>
-        <div style={{ background: "#fff", borderRadius: 8, border: "1px solid #e0e0e0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <GaugeScore score={scoreData?.score_total ?? 72.4} />
-        </div>
-        <div style={{ background: "#fff", borderRadius: 8, border: "1px solid #e0e0e0", padding: 20 }}>
-          <div style={{ fontWeight: 700, marginBottom: 14, color: "#333" }}>Composição do Score por Dimensão</div>
-          {scoreData?.dimensoes && Object.entries(scoreData.dimensoes as Record<string, { peso: number; score: number; contribuicao: number }>).map(([key, d]) => (
-            <BarProgress
-              key={key}
-              label={`${key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())} (peso ${d.peso}%)`}
-              value={d.score}
-              meta={60}
-            />
-          ))}
-        </div>
-      </div>
+      {!scoreData
+        ? <NaoDisponivelBanner titulo="Score ERSUS 360 indisponivel" nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />
+        : (
+          <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16, marginBottom: 20 }}>
+            <div style={{ background: "#fff", borderRadius: 8, border: "1px solid #e0e0e0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <GaugeScore score={scoreData.score_total} />
+            </div>
+            <div style={{ background: "#fff", borderRadius: 8, border: "1px solid #e0e0e0", padding: 20 }}>
+              <div style={{ fontWeight: 700, marginBottom: 14, color: "#333" }}>Composição do Score por Dimensão</div>
+              {scoreData.dimensoes && Object.entries(scoreData.dimensoes as Record<string, { peso: number; score: number; contribuicao: number }>).map(([key, d]) => (
+                <BarProgress
+                  key={key}
+                  label={`${key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())} (peso ${d.peso}%)`}
+                  value={d.score}
+                  meta={60}
+                />
+              ))}
+            </div>
+          </div>
+        )
+      }
 
       {/* Abas */}
       <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: "2px solid #e4e7ec" }}>
@@ -101,6 +107,7 @@ export default function BI() {
       </div>
 
       {/* Painel Executivo */}
+      {aba === "executivo" && !exec && <NaoDisponivelBanner titulo="Painel executivo indisponivel" nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />}
       {aba === "executivo" && exec && (
         <div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
@@ -128,6 +135,7 @@ export default function BI() {
       )}
 
       {/* Painel APS */}
+      {aba === "aps" && !aps && <NaoDisponivelBanner titulo="Painel APS indisponivel" nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />}
       {aba === "aps" && aps && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div style={{ background: "#fff", borderRadius: 8, border: "1px solid #e0e0e0", padding: 20 }}>
@@ -162,6 +170,7 @@ export default function BI() {
       )}
 
       {/* Painel Financeiro */}
+      {aba === "financeiro" && !fin && <NaoDisponivelBanner titulo="Painel financeiro indisponivel" nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />}
       {aba === "financeiro" && fin && (
         <div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 16 }}>
@@ -187,6 +196,7 @@ export default function BI() {
       )}
 
       {/* Painel Epidemiológico */}
+      {aba === "epidemiologico" && !epi && <NaoDisponivelBanner titulo="Painel epidemiologico indisponivel" nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />}
       {aba === "epidemiologico" && epi && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div style={{ background: "#fff", borderRadius: 8, border: "1px solid #e0e0e0", padding: 20 }}>

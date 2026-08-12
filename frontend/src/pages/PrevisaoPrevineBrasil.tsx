@@ -6,6 +6,7 @@ import {
   CheckCircle, Zap, BarChart3, Activity, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -255,7 +256,9 @@ export default function PrevisaoPrevineBrasil() {
 
         {(loadInd || loadRes)
           ? <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>Calculando previsões...</div>
-          : visiveis.map(ind => <CardIndicador key={ind.codigo} ind={ind}/>)
+          : visiveis.length === 0
+            ? <NaoDisponivelBanner titulo="Previsao ML indisponivel" nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />
+            : visiveis.map(ind => <CardIndicador key={ind.codigo} ind={ind}/>)
         }
       </div>
     </div>

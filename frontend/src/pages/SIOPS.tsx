@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiSiops } from "../lib/api";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
@@ -27,6 +28,9 @@ export default function SIOPS() {
       </div>
 
       {/* Gauge mínimo */}
+      {!apuracao && (
+        <NaoDisponivelBanner titulo="SIOPS indisponivel" nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />
+      )}
       {apuracao && (
         <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 16, marginBottom: 20 }}>
           <div style={{ background: "#fff", borderRadius: 10, padding: 24, border: "2px solid #2e7d3230", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>

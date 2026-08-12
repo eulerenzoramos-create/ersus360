@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Activity, Search } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 interface AtendimentoMes {
   mes: string; medico: number; enfermeiro: number; odontologia: number;
@@ -167,7 +168,9 @@ export default function ProducaoAPS() {
         {aba === "atendimentos" && (
           loadA
             ? <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>Carregando atendimentos...</div>
-            : [...atendimentos].reverse().map(m => <CardMes key={m.mes} m={m} maxTotal={maxTotal}/>)
+            : atendimentos.length === 0
+              ? <NaoDisponivelBanner titulo="Producao APS indisponivel" nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />
+              : [...atendimentos].reverse().map(m => <CardMes key={m.mes} m={m} maxTotal={maxTotal}/>)
         )}
 
         {aba === "cid" && (

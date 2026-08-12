@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiPortais } from "../lib/api";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 function GaugeCircle({ score, size = 120 }: { score: number; size?: number }) {
   const cor = score >= 80 ? "#2e7d32" : score >= 60 ? "#f57f17" : score >= 40 ? "#e65100" : "#c62828";
@@ -60,18 +61,15 @@ export default function PortalGestor() {
     queryFn: apiPortais.gestor,
   });
 
-  const d = resumo ?? {
-    score_ersus: 72.4,
-    fns_recebido_mes: 187066,
-    execucao_orcamentaria_pct: 81.2,
-    familias_atendidas_esf: 3847,
-    cobertura_vacinal_pct: 90.3,
-    metas_previne_atingidas: 5,
-    metas_previne_total: 7,
-    obras_andamento: 2,
-    alertas_criticos: 3,
-    competencia: "2026-06",
-  };
+  if (!isLoading && !resumo) {
+    return (
+      <div style={{ padding: 24 }}>
+        <NaoDisponivelBanner titulo="Painel do Gestor indisponivel" nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />
+      </div>
+    );
+  }
+
+  const d = resumo!;
 
   return (
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif", maxWidth: 1100 }}>
