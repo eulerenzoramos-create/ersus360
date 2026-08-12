@@ -17,7 +17,7 @@ from services.cache_service import cache_get, cache_set
 router = APIRouter(prefix="/api/integracao-egestor-apui", tags=["Integração e-Gestor"])
 
 IBGE_APUI     = "1300144"
-CNES_APUI     = "2206406"
+CNES_APUI     = os.getenv("CNES_APUI", "6820662")
 EGESTOR_USER  = os.getenv("EGESTOR_USUARIO", "")
 EGESTOR_PASS  = os.getenv("EGESTOR_SENHA", "")
 EGESTOR_TOKEN = os.getenv("EGESTOR_TOKEN", "")

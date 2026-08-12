@@ -1,9 +1,12 @@
 """
 Integração SIAPS — Sistema de Informações em Assistência Farmacêutica / HORUS
 Env vars (Railway):
-  SIAPS_TOKEN — Bearer token de acesso ao SIAPS/HORUS
+  SIAPS_TOKEN   — Bearer token de acesso ao SIAPS/HORUS
+  SIAPS_CPF     — CPF do gestor (gov.br) para autenticação automática
+  SIAPS_SENHA   — Senha gov.br para autenticação automática
+  CNES_APUI     — CNES do município (padrão: 6820662 — Apuí/AM)
 HORUS: https://horus.saude.gov.br
-IBGE: 1300144  |  CNES Apuí: 2206406
+IBGE: 1300144
 API indisponível → nao_disponivel. Nunca estoques ou dispensações inventadas.
 """
 import os
@@ -15,15 +18,21 @@ from services.cache_service import cache_get, cache_set
 router = APIRouter(prefix="/api/integracao-siaps-apui", tags=["Integração SIAPS"])
 
 IBGE_APUI   = "1300144"
-CNES_APUI   = "2206406"
+CNES_APUI   = os.getenv("CNES_APUI", "6820662")
 SIAPS_TOKEN = os.getenv("SIAPS_TOKEN", "")
-HORUS_BASE  = "https://horus.saude.gov.br/api"
+SIAPS_CPF   = os.getenv("SIAPS_CPF", "")
+SIAPS_SENHA = os.getenv("SIAPS_SENHA", "")
+HORUS_BASE  = os.getenv("HORUS_BASE", "https://horus.saude.gov.br/api")
 TIMEOUT     = 12.0
 
 _NAO_DISP = {
     "situacao_dado": "nao_disponivel",
     "dados": None,
-    "nota": "Dados requerem integração com HORUS/SIAPS. Configure SIAPS_TOKEN no Railway. Nenhum valor inventado.",
+    "nota": (
+        "Dados requerem integração com HORUS/SIAPS. "
+        "Configure no Railway: SIAPS_TOKEN (ou SIAPS_CPF + SIAPS_SENHA para autenticação automática). "
+        "Nenhum valor inventado."
+    ),
 }
 
 def _ts():
@@ -55,9 +64,14 @@ async def status():
         "sistema": "SIAPS / HORUS — Assistência Farmacêutica",
         "ibge": IBGE_APUI,
         "cnes": CNES_APUI,
-        "env_vars_necessarias": ["SIAPS_TOKEN"],
-        "env_vars_ok": {"SIAPS_TOKEN": bool(SIAPS_TOKEN)},
-        "credenciais_configuradas": bool(SIAPS_TOKEN),
+        "env_vars_necessarias": ["SIAPS_TOKEN", "SIAPS_CPF", "SIAPS_SENHA", "CNES_APUI"],
+        "env_vars_ok": {
+            "SIAPS_TOKEN": bool(SIAPS_TOKEN),
+            "SIAPS_CPF":   bool(SIAPS_CPF),
+            "SIAPS_SENHA": bool(SIAPS_SENHA),
+            "CNES_APUI":   bool(CNES_APUI),
+        },
+        "credenciais_configuradas": bool(SIAPS_TOKEN) or bool(SIAPS_CPF and SIAPS_SENHA),
         "cache_ttl_minutos": 15,
         "ultima_verificacao": _ts(),
     }
