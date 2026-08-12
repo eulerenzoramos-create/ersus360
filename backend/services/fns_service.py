@@ -1,18 +1,17 @@
 """
-FNS Service — Integração com consultafns.saude.gov.br
+FNS Service — Integração FNS / Portal da Transparência
 
-Fluxo:
-  1. fns_preview(mes, ano, municipio_ibge) → busca dados sem gravar
-  2. fns_sync(mes, ano, municipio_id, db)  → grava repasses + gera alertas
+Fontes (em ordem de prioridade):
+  1. consultafns.saude.gov.br REST API
+  2. Portal da Transparência (TRANSPARENCIA_API_KEY)
+  3. consultafns.saude.gov.br scraping HTML
 
-O portal FNS não tem API pública oficial; usamos httpx + BeautifulSoup
-para raspar a página de consulta de transferências.
-
-Fallback: se o portal estiver indisponível, retorna status="sem_dados"
-sem levantar exceção (sistema continua funcionando offline).
+Fallback: se todos falharem, retorna status="sem_dados".
 """
 from __future__ import annotations
+import json
 import logging
+import os
 import re
 from datetime import datetime
 
@@ -25,6 +24,9 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 from config import settings
 from models import Convenio, Repasse, Alerta, SeveridadeAlerta
 from schemas.fns import FnsRepasseItem, FnsSyncResult
+
+TRANSP_KEY  = os.getenv("TRANSPARENCIA_API_KEY", "")
+TRANSP_BASE = "https://api.portaldatransparencia.gov.br/api-de-dados"
 
 logger = logging.getLogger(__name__)
 
@@ -157,20 +159,104 @@ def _parse_html(html: str, mes: int, ano: int) -> list[FnsRepasseItem]:
     return itens
 
 
+async def _fetch_transparencia(mes: int, ano: int) -> list[FnsRepasseItem]:
+    """
+    Busca transferências do Portal da Transparência (API oficial com chave).
+    Fonte: transferencias-voluntarias (convênios FNS → município).
+    """
+    if not TRANSP_KEY:
+        return []
+
+    competencia = _competencia_str(mes, ano)
+    headers = {"chave-api": TRANSP_KEY, "Accept": "application/json"}
+    itens: list[FnsRepasseItem] = []
+
+    # Transferências voluntárias (convênios)
+    url_vol = f"{TRANSP_BASE}/transferencias-voluntarias-municipio-estado"
+    params_vol = {
+        "codigoMunicipio": settings.FNS_MUNICIPIO_IBGE,
+        "dataInicio": f"{ano}-{mes:02d}-01",
+        "dataFim":   f"{ano}-{mes:02d}-28",
+        "pagina": 1,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            r = await client.get(url_vol, headers=headers, params=params_vol)
+            if r.status_code == 200:
+                data = r.json()
+                registros = data if isinstance(data, list) else data.get("content", data.get("data", []))
+                for rec in registros:
+                    itens.append(FnsRepasseItem(
+                        numero_convenio=str(
+                            rec.get("codigoConvenio") or rec.get("codigo") or rec.get("id") or ""
+                        ),
+                        objeto=str(rec.get("objeto") or rec.get("descricao") or "Transferência FNS")[:500],
+                        bloco=str(rec.get("programa") or rec.get("acao") or rec.get("bloco") or "Custeio FNS"),
+                        competencia=competencia,
+                        valor_previsto=float(rec.get("valorProgramado") or rec.get("valor") or 0),
+                        valor_realizado=float(rec.get("valorTransferido") or rec.get("valorRealizado") or rec.get("valor") or 0),
+                        data_repasse=str(rec.get("dataPublicacao") or rec.get("dataTransferencia") or "")[:10] or None,
+                        tipo="Federal",
+                        novos=0,
+                    ))
+    except Exception as exc:
+        logger.warning("Portal Transparência (voluntárias) falhou: %s", exc)
+
+    # Transferências fundo a fundo (repasses bloco FNS)
+    url_faf = f"{TRANSP_BASE}/transferencias/municipios"
+    params_faf = {
+        "municipiosCodigo": settings.FNS_MUNICIPIO_IBGE,
+        "dataInicio": f"{ano}-{mes:02d}-01",
+        "dataFim":   f"{ano}-{mes:02d}-28",
+        "pagina": 1,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            r2 = await client.get(url_faf, headers=headers, params=params_faf)
+            if r2.status_code == 200:
+                data2 = r2.json()
+                registros2 = data2 if isinstance(data2, list) else data2.get("content", [])
+                for rec in registros2:
+                    # Filtra só FNS (unidade gestora 36213)
+                    ug = rec.get("unidadeGestora", {})
+                    if "saude" in str(ug.get("nome", "")).lower() or "fns" in str(ug.get("nome", "")).lower() or not ug:
+                        itens.append(FnsRepasseItem(
+                            numero_convenio=str(rec.get("codigo") or rec.get("id") or ""),
+                            objeto=str(rec.get("objeto") or rec.get("descricao") or "Repasse FNS bloco")[:500],
+                            bloco=str(rec.get("programa") or "Bloco de Financiamento SUS"),
+                            competencia=competencia,
+                            valor_previsto=float(rec.get("valor") or 0),
+                            valor_realizado=float(rec.get("valor") or 0),
+                            data_repasse=str(rec.get("data") or "")[:10] or None,
+                            tipo="Federal",
+                            novos=0,
+                        ))
+    except Exception as exc:
+        logger.warning("Portal Transparência (municipios) falhou: %s", exc)
+
+    logger.info("Portal Transparência: %d repasses encontrados para %s/%d", len(itens), mes, ano)
+    return itens
+
+
 async def fns_preview(mes: int, ano: int) -> list[FnsRepasseItem]:
     """
     Consulta o FNS e retorna a lista de repasses SEM gravar no banco.
-    Usado pelo endpoint GET /api/fns/sync (modo preview).
-    Portal indisponivel → lista vazia (sem dados de demonstracao).
+    Ordem: consultafns REST → Portal Transparência → consultafns HTML.
     """
+    # 1. Tenta API REST do consultafns
     html = await _fetch_fns_page(mes, ano, settings.FNS_MUNICIPIO_IBGE)
-
     if html:
         itens = _parse_html(html, mes, ano)
         if itens:
+            logger.info("consultafns: %d repasses encontrados", len(itens))
             return itens
 
-    logger.info("Portal FNS indisponivel ou sem dados — retornando lista vazia (sem fallback ficticio)")
+    # 2. Fallback: Portal da Transparência (API oficial com chave)
+    itens_transp = await _fetch_transparencia(mes, ano)
+    if itens_transp:
+        return itens_transp
+
+    logger.info("Todas as fontes FNS indisponíveis para %02d/%d — sem dados.", mes, ano)
     return []
 
 
