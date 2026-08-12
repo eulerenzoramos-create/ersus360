@@ -283,9 +283,9 @@ def _gerar_avisos(metricas: dict, incons: dict, fontes_pend: list, situacao_cvat
 
 @router.get("/{ibge}/executivo")
 async def relatorio_executivo(
+    current_user: CurrentUser,
     ibge: str = Path(..., regex=r"^\d{7}$"),
     competencia: str = Query("202605", regex=r"^\d{6}$"),
-    current_user: CurrentUser = Depends(),
     db: AsyncSession = Depends(get_db),
     authorization: str = Header(default=""),
 ):
@@ -303,9 +303,9 @@ async def relatorio_executivo(
 
 @router.get("/{ibge}/tecnico")
 async def relatorio_tecnico(
+    current_user: CurrentUser,
     ibge: str = Path(..., regex=r"^\d{7}$"),
     competencia: str = Query("202605", regex=r"^\d{6}$"),
-    current_user: CurrentUser = Depends(),
     db: AsyncSession = Depends(get_db),
     authorization: str = Header(default=""),
 ):
@@ -329,8 +329,8 @@ async def relatorio_tecnico(
 
 @router.get("/{ibge}/historico")
 async def historico_relatorios(
+    current_user: CurrentUser,
     ibge: str = Path(..., regex=r"^\d{7}$"),
-    current_user: CurrentUser = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
     """Lista relatórios gerados para o município (extrações registradas)."""

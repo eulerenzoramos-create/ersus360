@@ -213,8 +213,8 @@ async def resumo_inconsistencias(
 
 @router.get("/{inc_id}")
 async def detalhe_inconsistencia(
+    current_user: CurrentUser,
     inc_id: int = Path(...),
-    current_user: CurrentUser = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
     from models.inconsistencia import Inconsistencia
@@ -232,8 +232,8 @@ async def detalhe_inconsistencia(
 
 @router.post("", status_code=201)
 async def criar_inconsistencia(
-    body: InconsistenciaIn,
     current_user: CurrentUser,
+    body: InconsistenciaIn,
     db: AsyncSession = Depends(get_db),
 ):
     """Registra nova inconsistência. Isolamento: município do corpo deve ser acessível."""
@@ -296,9 +296,9 @@ async def criar_inconsistencia(
 
 @router.patch("/{inc_id}/situacao")
 async def atualizar_situacao(
+    current_user: CurrentUser,
     inc_id: int = Path(...),
     body: SituacaoUpdate = ...,
-    current_user: CurrentUser = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
     """Atualiza situação da inconsistência."""
@@ -333,9 +333,9 @@ async def atualizar_situacao(
 
 @router.delete("/{inc_id}")
 async def descartar_inconsistencia(
+    current_user: CurrentUser,
     inc_id: int = Path(...),
     justificativa: str = Query(..., min_length=10),
-    current_user: CurrentUser = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
     """Marca como descartada com justificativa (não exclui fisicamente)."""

@@ -282,8 +282,8 @@ async def permissoes_perfil(perfil: str, current_user: CurrentUser):
 
 @router.post("/registrar")
 async def registrar_usuario(
-    body: dict,
     current_user: CurrentUser,
+    body: dict,
     db: AsyncSession = Depends(get_db),
 ):
     """Cria usuário no banco. Somente superadmin/admin da assessoria."""
@@ -342,9 +342,9 @@ async def registrar_usuario(
 
 @router.get("/usuarios")
 async def listar_usuarios(
-    municipio_ibge: str | None = Query(None),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
+    municipio_ibge: str | None = Query(None),
 ):
     """Lista usuários. Admin/superadmin veem todos; gestor vê só seu município."""
     if current_user.role not in ("superadmin", "admin"):

@@ -12,7 +12,7 @@ from routers.auth import get_current_user, UserOut
 router = APIRouter(prefix="/api/rh", tags=["Recursos Humanos"])
 
 
-@router.get("/servidores", response_model=list[ServidorOut])
+@router.get("/servidores")
 async def listar_servidores():
     return {
         "situacao_dado": "nao_disponivel",
@@ -22,7 +22,7 @@ async def listar_servidores():
     }
 
 
-@router.get("/ferias", response_model=list[FeriasOut])
+@router.get("/ferias")
 async def listar_ferias():
     return {
         "situacao_dado": "nao_disponivel",
@@ -32,7 +32,7 @@ async def listar_ferias():
     }
 
 
-@router.get("/ferias/vencidas", response_model=list[FeriasOut])
+@router.get("/ferias/vencidas")
 async def ferias_vencidas(_: UserOut = Depends(get_current_user)):
     return {
         "situacao_dado": "nao_disponivel",
@@ -42,7 +42,7 @@ async def ferias_vencidas(_: UserOut = Depends(get_current_user)):
     }
 
 
-@router.get("/movimentacoes", response_model=list[MovimentacaoOut])
+@router.get("/movimentacoes")
 async def listar_movimentacoes():
     return {
         "situacao_dado": "nao_disponivel",
@@ -52,7 +52,7 @@ async def listar_movimentacoes():
     }
 
 
-@router.get("/contratos", response_model=list[ContratoOut])
+@router.get("/contratos")
 async def listar_contratos(_: UserOut = Depends(get_current_user)):
     return {
         "situacao_dado": "nao_disponivel",
@@ -62,7 +62,7 @@ async def listar_contratos(_: UserOut = Depends(get_current_user)):
     }
 
 
-@router.get("/contratos/vencendo", response_model=list[ContratoOut])
+@router.get("/contratos/vencendo")
 async def contratos_vencendo(_: UserOut = Depends(get_current_user)):
     return {
         "situacao_dado": "nao_disponivel",
@@ -72,7 +72,7 @@ async def contratos_vencendo(_: UserOut = Depends(get_current_user)):
     }
 
 
-@router.get("/painel", response_model=PainelRHOut)
+@router.get("/painel")
 async def painel_rh(_: UserOut = Depends(get_current_user)):
     return {
         "situacao_dado": "nao_disponivel",

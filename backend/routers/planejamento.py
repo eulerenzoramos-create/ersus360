@@ -12,7 +12,7 @@ from routers.auth import get_current_user, UserOut
 router = APIRouter(prefix="/api/planejamento", tags=["Planejamento"])
 
 
-@router.get("/dashboard", response_model=PlanejamentoDashboard)
+@router.get("/dashboard")
 async def planejamento_dashboard():
     return {
         "situacao_dado": "nao_disponivel",
@@ -22,7 +22,7 @@ async def planejamento_dashboard():
     }
 
 
-@router.get("/pas/acoes", response_model=list[AcaoPAS])
+@router.get("/pas/acoes")
 async def listar_acoes_pas():
     return {
         "situacao_dado": "nao_disponivel",
