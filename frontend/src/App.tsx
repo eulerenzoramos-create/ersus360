@@ -1,5 +1,42 @@
 // src/App.tsx — ERSUS 360 · Sidebar estilo VersaSaúde (3 níveis)
-import { useState, createContext, useContext } from "react";
+import { useState, createContext, useContext, Component } from "react";
+
+// ── Error Boundary global — evita tela branca em crashes de componentes ───────
+class AppErrorBoundary extends Component<
+  { children: React.ReactNode },
+  { hasError: boolean; message: string }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, message: "" };
+  }
+  static getDerivedStateFromError(error: unknown) {
+    return { hasError: true, message: String(error) };
+  }
+  componentDidCatch(error: unknown, info: unknown) {
+    console.error("[ERSUS ErrorBoundary]", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", fontFamily: "system-ui", background: "#f4f6f8" }}>
+          <div style={{ background: "#fff", borderRadius: 12, padding: 32, maxWidth: 480, textAlign: "center", boxShadow: "0 2px 16px rgba(0,0,0,0.08)" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+            <h2 style={{ color: "#1e3a5f", marginBottom: 8 }}>Erro ao carregar o ERSUS 360</h2>
+            <p style={{ color: "#64748b", fontSize: 13, marginBottom: 20 }}>{this.state.message}</p>
+            <button
+              onClick={() => { localStorage.clear(); window.location.reload(); }}
+              style={{ background: "#1e3a5f", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", cursor: "pointer", fontSize: 14 }}
+            >
+              Limpar sessão e tentar novamente
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ── Auth Context — disponível para qualquer componente filho ──────────────────
 export interface AuthUser {
@@ -1045,10 +1082,11 @@ export default function App() {
   };
 
   if (!autenticado) {
-    return <QueryClientProvider client={qc}><Login onLogin={handleLogin}/></QueryClientProvider>;
+    return <AppErrorBoundary><QueryClientProvider client={qc}><Login onLogin={handleLogin}/></QueryClientProvider></AppErrorBoundary>;
   }
 
   return (
+    <AppErrorBoundary>
     <QueryClientProvider client={qc}>
       <BrowserRouter>
         <Layout
@@ -1445,5 +1483,6 @@ export default function App() {
         </Layout>
       </BrowserRouter>
     </QueryClientProvider>
+    </AppErrorBoundary>
   );
 }
