@@ -19,21 +19,9 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 router = APIRouter(tags=["WS-ACS"])
 logger = logging.getLogger(__name__)
 
-# ── Nomes dos ACS (espelha o router acs.py) ───────────────────────────────────
-
-_ACS_NOMES: Dict[int, str] = {
-    1:  "Maria Aparecida Silva",
-    2:  "João Carlos Nascimento",
-    3:  "Ana Paula Ferreira",
-    4:  "Raimundo Nonato Costa",
-    5:  "Francisca Lima Santos",
-    6:  "Antônio Mendes Rocha",
-    7:  "Benedita Sousa Oliveira",
-    8:  "Sebastião Alves Teixeira",
-    9:  "Rosa Maria Barbosa",
-    11: "Teresinha Gomes Peixoto",
-    12: "Manoel Ferreira Nunes",
-}
+# ── Nomes dos ACS: preenchido dinamicamente via app ACS no payload de ping ────
+# Nao usamos nomes inventados. Identificacao por acs_id ate app ACS conectar.
+_ACS_NOMES: Dict[int, str] = {}  # populado em _ping quando app envia "nome"
 
 # ── Estado em memória ─────────────────────────────────────────────────────────
 
@@ -104,6 +92,9 @@ async def ws_acs_geo(ws: WebSocket):
             if tipo == "ping":
                 aid = int(dados.get("acs_id", acs_id or 0))
                 ts = datetime.now(timezone.utc).isoformat()
+                # Captura nome real enviado pelo app ACS (se presente)
+                if dados.get("nome") and aid:
+                    _ACS_NOMES[aid] = dados["nome"]
                 pos = {
                     "acs_id":    aid,
                     "nome":      _ACS_NOMES.get(aid, f"ACS {aid}"),
