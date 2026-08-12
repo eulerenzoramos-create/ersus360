@@ -5,10 +5,10 @@ Env vars (Railway):
   RNDS_CLIENT_SECRET  — client_secret
   RNDS_CERT_B64       — certificado .pfx em base64 (ICP-Brasil)
   RNDS_CERT_PASSWORD  — senha do certificado
-CNES Apuí: 2206406
-IBGE: 1300144
+CNES Apuí: 2206406  |  IBGE: 1300144
+API indisponível → nao_disponivel. Nunca atendimentos, prescrições ou doses inventadas.
 """
-import os, base64
+import os
 from datetime import datetime
 from typing import Optional
 import httpx
@@ -23,9 +23,14 @@ CLIENT_ID    = os.getenv("RNDS_CLIENT_ID", "")
 CLIENT_SEC   = os.getenv("RNDS_CLIENT_SECRET", "")
 CERT_B64     = os.getenv("RNDS_CERT_B64", "")
 CERT_PASS    = os.getenv("RNDS_CERT_PASSWORD", "")
-RNDS_AUTH    = "https://ehr.saude.gov.br/api/fhir/r4"
 ESUS_BASE    = "https://ehr.saude.gov.br/api/fhir/r4"
 TIMEOUT      = 12.0
+
+_NAO_DISP = {
+    "situacao_dado": "nao_disponivel",
+    "dados": None,
+    "nota": "Dados requerem integração com RNDS/e-SUS PEC. Configure RNDS_CLIENT_ID e RNDS_CLIENT_SECRET no Railway. Nenhum valor inventado.",
+}
 
 _rnds_token: Optional[str] = None
 _rnds_token_exp: float = 0.0
@@ -61,14 +66,15 @@ async def _rnds_get(path: str, cache_key: str, params: dict = {}):
         return cached
     token = await _get_rnds_token()
     if not token:
-        raise Exception("Token RNDS indisponível — configurar RNDS_CLIENT_ID e RNDS_CLIENT_SECRET")
+        return {**_NAO_DISP, "ultima_atualizacao": _ts()}
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
         r = await client.get(f"{ESUS_BASE}{path}", headers={"Authorization": f"Bearer {token}"}, params=params)
         r.raise_for_status()
         data = r.json()
-        result = {"status": "ok", "fonte": "api", "ultima_atualizacao": _ts(), "dados": data}
+        result = {"situacao_dado": "oficial_validado", "fonte": "api", "ultima_atualizacao": _ts(), "dados": data}
         cache_set(cache_key, result, ttl=900)
         return result
+
 
 @router.get("/status")
 async def status():
@@ -88,6 +94,7 @@ async def status():
         "ultima_verificacao": _ts(),
     }
 
+
 @router.get("/atendimentos")
 async def atendimentos():
     try:
@@ -96,26 +103,8 @@ async def atendimentos():
             "rnds_atendimentos",
         )
     except Exception as e:
-        return {"status": "offline", "fonte": "fallback", "ultima_atualizacao": _ts(), "erro": str(e),
-                "dados": _fallback_atendimentos()}
+        return {**_NAO_DISP, "erro": str(e), "ultima_atualizacao": _ts()}
 
-def _fallback_atendimentos():
-    return {
-        "total_mes": 1912,
-        "ubs_central": 648,
-        "ubs_sao_francisco": 432,
-        "ubs_jardim_apui": 324,
-        "ubs_industrial": 298,
-        "zona_rural": 210,
-        "competencia": "Mai/2026",
-        "por_tipo": [
-            {"tipo": "Consulta médica",       "qtd": 776},
-            {"tipo": "Consulta enfermagem",   "qtd": 530},
-            {"tipo": "Consulta odontológica", "qtd": 292},
-            {"tipo": "Visita domiciliar",     "qtd": 194},
-            {"tipo": "Procedimento",          "qtd": 120},
-        ],
-    }
 
 @router.get("/prescricoes")
 async def prescricoes():
@@ -125,14 +114,8 @@ async def prescricoes():
             "rnds_prescricoes",
         )
     except Exception as e:
-        return {"status": "offline", "fonte": "fallback", "ultima_atualizacao": _ts(), "erro": str(e),
-                "dados": [
-                    {"medicamento": "Amoxicilina 500mg",    "prescricoes_mes": 284, "atendidas_pct": 91.2},
-                    {"medicamento": "Losartana 50mg",       "prescricoes_mes": 248, "atendidas_pct": 97.6},
-                    {"medicamento": "Metformina 850mg",     "prescricoes_mes": 184, "atendidas_pct": 94.0},
-                    {"medicamento": "Atenolol 25mg",        "prescricoes_mes": 162, "atendidas_pct": 98.8},
-                    {"medicamento": "Omeprazol 20mg",       "prescricoes_mes": 148, "atendidas_pct": 88.5},
-                ]}
+        return {**_NAO_DISP, "erro": str(e), "ultima_atualizacao": _ts()}
+
 
 @router.get("/vacinacao")
 async def vacinacao():
@@ -142,14 +125,8 @@ async def vacinacao():
             "rnds_vacinacao",
         )
     except Exception as e:
-        return {"status": "offline", "fonte": "fallback", "ultima_atualizacao": _ts(), "erro": str(e),
-                "dados": [
-                    {"vacina": "Influenza",          "doses_mes": 284, "cobertura_pct": 84.2, "meta_pct": 90.0},
-                    {"vacina": "COVID-19 (bivalente)","doses_mes": 148, "cobertura_pct": 72.4, "meta_pct": 90.0},
-                    {"vacina": "Febre Amarela",      "doses_mes": 84,  "cobertura_pct": 96.8, "meta_pct": 95.0},
-                    {"vacina": "Tríplice Viral",     "doses_mes": 42,  "cobertura_pct": 88.4, "meta_pct": 95.0},
-                    {"vacina": "Pentavalente",       "doses_mes": 38,  "cobertura_pct": 91.2, "meta_pct": 95.0},
-                ]}
+        return {**_NAO_DISP, "erro": str(e), "ultima_atualizacao": _ts()}
+
 
 @router.get("/dashboard")
 async def dashboard():
@@ -160,16 +137,14 @@ async def dashboard():
         status_rnds = "offline"
 
     return {
-        "status": "ok" if status_rnds == "online" else "degradado",
-        "fonte": "api" if status_rnds == "online" else "fallback",
+        "situacao_dado": "oficial_validado" if status_rnds == "online" else "nao_disponivel",
+        "fonte": "api" if status_rnds == "online" else "sem_dados",
         "ultima_atualizacao": _ts(),
         "municipio": "Apuí/AM",
         "ibge": IBGE_APUI,
         "cnes": CNES_APUI,
-        "atendimentos_mes": 1912,
-        "prescricoes_mes": 1058,
-        "doses_vacinacao_mes": 618,
-        "cobertura_vacinal_media_pct": 87.4,
         "rnds_status": status_rnds,
         "credenciais_ok": bool(CLIENT_ID and CLIENT_SEC),
+        "dados": None,
+        "nota": None if status_rnds == "online" else "Configure RNDS_CLIENT_ID e RNDS_CLIENT_SECRET no Railway.",
     }

@@ -5,8 +5,9 @@ Fontes:
     Env: TRANSPARENCIA_API_KEY
   - FNS autenticado (credenciais já em Railway)
     Env: FNS_API_CPF, FNS_API_SENHA (nunca ecoados)
+API indisponível → nao_disponivel. Nunca repasses ou transferências inventadas.
 """
-import os, time
+import os
 from datetime import datetime
 import httpx
 from fastapi import APIRouter
@@ -21,14 +22,23 @@ FNS_SENHA      = os.getenv("FNS_API_SENHA", "")
 TRANSP_BASE    = "https://api.portaldatransparencia.gov.br/api-de-dados"
 TIMEOUT        = 10.0
 
+_NAO_DISP = {
+    "situacao_dado": "nao_disponivel",
+    "dados": None,
+    "nota": "Dados requerem integração com Portal da Transparência. Configure TRANSPARENCIA_API_KEY no Railway. Nenhum valor inventado.",
+}
+
 def _ts():
     return datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
+
 async def _get_transferencias_transparencia():
-    """Repasses federais para Apuí via Portal da Transparência (API pública)."""
     cached = cache_get("fns_transferencias")
     if cached:
         return cached
+
+    if not TRANSP_KEY:
+        return {**_NAO_DISP, "ultima_atualizacao": _ts()}
 
     headers = {"chave-api": TRANSP_KEY, "Accept": "application/json"}
     url = f"{TRANSP_BASE}/transferencias-voluntarias-municipio-estado"
@@ -44,26 +54,15 @@ async def _get_transferencias_transparencia():
             r = await client.get(url, headers=headers, params=params)
             r.raise_for_status()
             data = r.json()
-            result = {"status": "ok", "fonte": "api", "ultima_atualizacao": _ts(), "dados": data}
+            result = {"situacao_dado": "oficial_validado", "fonte": "api", "ultima_atualizacao": _ts(), "dados": data}
             cache_set("fns_transferencias", result, ttl=900)
             return result
     except Exception as e:
-        fallback = cache_get("fns_transferencias_last")
-        if fallback:
-            fallback["status"] = "degradado"
-            fallback["fonte"] = "cache"
-            return fallback
-        return {"status": "offline", "fonte": "fallback", "ultima_atualizacao": _ts(),
-                "erro": str(e), "dados": _fallback_transferencias()}
+        cached_last = cache_get("fns_transferencias_last")
+        if cached_last:
+            return {**cached_last, "situacao_dado": "oficial_aguardando", "fonte": "cache"}
+        return {**_NAO_DISP, "erro": str(e), "ultima_atualizacao": _ts()}
 
-def _fallback_transferencias():
-    return [
-        {"programa": "PAB Fixo",               "valor": 1284000.0, "competencia": "2025-06", "situacao": "pago"},
-        {"programa": "CAPS I",                  "valor": 284000.0,  "competencia": "2025-06", "situacao": "pago"},
-        {"programa": "Vigilância Epidemiológica","valor": 228000.0, "competencia": "2025-06", "situacao": "pago"},
-        {"programa": "Rede Cegonha",            "valor": 184000.0,  "competencia": "2025-06", "situacao": "pendente"},
-        {"programa": "Emenda Parlamentar",      "valor": 384000.0,  "competencia": "2025-05", "situacao": "pago"},
-    ]
 
 @router.get("/status")
 async def status():
@@ -78,16 +77,20 @@ async def status():
         "ultima_verificacao": _ts(),
     }
 
+
 @router.get("/transferencias")
 async def transferencias():
     return await _get_transferencias_transparencia()
 
+
 @router.get("/repasses-sus")
 async def repasses_sus():
-    """Repasses SUS por bloco de financiamento (cálculo a partir de dados conhecidos)."""
     cached = cache_get("fns_repasses_sus")
     if cached:
         return cached
+
+    if not TRANSP_KEY:
+        return {**_NAO_DISP, "ultima_atualizacao": _ts()}
 
     headers = {"chave-api": TRANSP_KEY, "Accept": "application/json"}
     url = f"{TRANSP_BASE}/transferencias"
@@ -98,31 +101,24 @@ async def repasses_sus():
             r = await client.get(url, headers=headers, params=params)
             r.raise_for_status()
             data = r.json()
-            result = {"status": "ok", "fonte": "api", "ultima_atualizacao": _ts(), "dados": data}
+            result = {"situacao_dado": "oficial_validado", "fonte": "api", "ultima_atualizacao": _ts(), "dados": data}
             cache_set("fns_repasses_sus", result, ttl=900)
             return result
     except Exception as e:
-        return {"status": "offline", "fonte": "fallback", "ultima_atualizacao": _ts(), "erro": str(e),
-                "dados": [
-                    {"bloco": "Atenção Básica",           "valor_anual": 1468000.0, "pct": 34.2, "comp_atual": "Jun/25"},
-                    {"bloco": "Média e Alta Complexidade", "valor_anual": 1284000.0, "pct": 29.9, "comp_atual": "Jun/25"},
-                    {"bloco": "Vigilância em Saúde",       "valor_anual": 684000.0,  "pct": 15.9, "comp_atual": "Jun/25"},
-                    {"bloco": "Saúde Mental",              "valor_anual": 284000.0,  "pct": 6.6,  "comp_atual": "Jun/25"},
-                    {"bloco": "Assistência Farmacêutica",  "valor_anual": 584000.0,  "pct": 13.4, "comp_atual": "Jun/25"},
-                ]}
+        return {**_NAO_DISP, "erro": str(e), "ultima_atualizacao": _ts()}
+
 
 @router.get("/dashboard")
 async def dashboard():
     tr = await _get_transferencias_transparencia()
+    dados_api = tr.get("situacao_dado") == "oficial_validado"
     return {
-        "status": tr["status"],
-        "fonte": tr["fonte"],
-        "ultima_atualizacao": tr["ultima_atualizacao"],
+        "situacao_dado": tr["situacao_dado"],
+        "fonte": tr.get("fonte", "sem_dados"),
+        "ultima_atualizacao": _ts(),
         "municipio": "Apuí/AM",
         "ibge": IBGE_APUI,
-        "total_repassado_2025": 4284000.0,
-        "blocos": 5,
-        "competencia_atual": "Jun/2025",
-        "pendencias": 1,
         "credenciais_ok": bool(TRANSP_KEY and FNS_CPF),
+        "dados": tr.get("dados") if dados_api else None,
+        "nota": None if dados_api else "Configure TRANSPARENCIA_API_KEY no Railway.",
     }
