@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import PainelVacinacao from "./PainelVacinacao";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, ReferenceLine, Cell,
@@ -218,7 +219,7 @@ function AbaCobertura({ cob }: { cob: any }) {
   );
 }
 
-type Aba = "dashboard"|"estoque"|"temperatura"|"cobertura";
+type Aba = "dashboard"|"estoque"|"temperatura"|"cobertura"|"painel";
 
 export default function SalaVacinas() {
   const [aba, setAba] = useState<Aba>("dashboard");
@@ -232,6 +233,7 @@ export default function SalaVacinas() {
     {id:"estoque",     label:"Estoque"},
     {id:"temperatura", label:"Temperatura"},
     {id:"cobertura",   label:"Cobertura Vacinal"},
+    {id:"painel",      label:"Painel SIPNI"},
   ];
 
   return (
@@ -261,6 +263,7 @@ export default function SalaVacinas() {
         {aba==="estoque"     && <AbaEstoque estoque={estoque}/>}
         {aba==="temperatura" && <AbaTemperatura tempData={temp}/>}
         {aba==="cobertura"   && <AbaCobertura cob={cob}/>}
+        {aba==="painel"      && <PainelVacinacao/>}
       </div>
     </div>
   );
