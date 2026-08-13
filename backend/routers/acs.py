@@ -113,6 +113,7 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
         "acs_destaques": destaques,
         "acs_criticos": criticos,
         "distribuicao_equipe": dist_eq,
+        "distribuicao_esf": dist_eq,
         "mes_referencia": MES_REF,
         "verificado_em": _ts(),
         "nota": "Dados de referência CNES — aguardando integração e-SUS PEC para dados operacionais em tempo real.",
