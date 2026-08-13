@@ -1059,7 +1059,7 @@ export default function App() {
             <Route path="/informatiza-aps"           element={<APS/>}/>
             {/* Demais */}
             <Route path="/ia"                        element={<IAGestora/>}/>
-            <Route path="/sus360"                    element={<Sus360/>}/>
+            <Route path="/sus360" element={<Navigate to="/" replace/>}/>{/* arquivado: sistema MS externo */}
             <Route path="/obras"                     element={<Obras/>}/>
             <Route path="/obras/*"                   element={<Obras/>}/>
             <Route path="/documentos"                element={<Documentos/>}/>
@@ -1132,17 +1132,17 @@ export default function App() {
             <Route path="/vigiagua"                  element={<VigiAgua/>}/>
             <Route path="/nasf"                      element={<NASF/>}/>
             <Route path="/zoonoses" element={<Navigate to="/zoonoses-apui" replace/>}/>
-            <Route path="/saude-servidor"            element={<SaudeServidor/>}/>
+            <Route path="/saude-servidor" element={<Navigate to="/absenteismo-apui" replace/>}/>
             <Route path="/planejamento-familiar" element={<Navigate to="/planejamento-familiar-apui" replace/>}/>
             <Route path="/acolhimento"               element={<Acolhimento/>}/>
             <Route path="/judicializacao"            element={<Judicializacao/>}/>
             <Route path="/spd"                       element={<SPD/>}/>
-            <Route path="/contratos"                 element={<Contratos/>}/>
+            <Route path="/contratos" element={<Navigate to="/gestao-contratos" replace/>}/>
             <Route path="/samu"                      element={<SAMU/>}/>
-            <Route path="/pnae"                      element={<PNAE/>}/>
+            <Route path="/pnae" element={<Navigate to="/" replace/>}/>{/* arquivado: competência Educação */}
             <Route path="/siconfi"                  element={<SICONFIPanel/>}/>
             <Route path="/rreo-anexo12"             element={<RREOAnexo12/>}/>
-            <Route path="/pat-saude"                 element={<PatSaude/>}/>
+            <Route path="/pat-saude" element={<Navigate to="/patrimonio" replace/>}/>
             <Route path="/abastecimento"             element={<Abastecimento/>}/>
             <Route path="/seguranca-paciente" element={<Navigate to="/seguranca-paciente-apui" replace/>}/>
             <Route path="/visa-alimentos" element={<Navigate to="/visa" replace/>}/>
@@ -1191,8 +1191,8 @@ export default function App() {
             <Route path="/rede-cegonha"           element={<RedeCegonha/>}/>
             <Route path="/programa-saude-escola"  element={<ProgramaSaudeEscola/>}/>
             <Route path="/plano-municipal-saude"   element={<PlanoMunicipalSaude/>}/>
-            <Route path="/score-municipal"         element={<ScoreMunicipal/>}/>
-            <Route path="/gestao-contratos-fms"    element={<GestaoContratosFms/>}/>
+            <Route path="/score-municipal" element={<Navigate to="/score" replace/>}/>
+            <Route path="/gestao-contratos-fms" element={<Navigate to="/gestao-contratos" replace/>}/>
             <Route path="/urgencia-emergencia" element={<Navigate to="/urgencia-emergencia-apui" replace/>}/>
             <Route path="/regulacao-acesso" element={<Navigate to="/regulacao-acesso-apui" replace/>}/>
             <Route path="/gestao-leitos" element={<Navigate to="/gestao-leitos-apui" replace/>}/>
@@ -1216,7 +1216,7 @@ export default function App() {
             <Route path="/mortalidade-prematura-apui"    element={<MortalidadePrematuraApui/>}/>
             <Route path="/saude-financeira-apui"         element={<SaudeFinanceiraApui/>}/>
             <Route path="/politica-prevencao-apui"      element={<PoliticaPrevencaoApui/>}/>
-            <Route path="/gestao-contratos-apui"        element={<GestaoContratosApui/>}/>
+            <Route path="/gestao-contratos-apui" element={<Navigate to="/gestao-contratos" replace/>}/>
             <Route path="/regulacao-acesso-apui"        element={<RegulacaoAcessoApui/>}/>
             <Route path="/saude-ribeirinha-apui"        element={<SaudeRibeirinhaApui/>}/>
             <Route path="/saude-ribeirinha"              element={<SaudeRibeirinha/>}/>
@@ -1352,7 +1352,7 @@ export default function App() {
             <Route path="/integracao-pec"            element={<IntegracaoPEC/>}/>
             <Route path="/linha-tempo-cidadao"       element={<LinhaTempoCidadao/>}/>
             <Route path="/relatorio-tce-tcu"         element={<RelatorioTCETCU/>}/>
-            <Route path="/previsao-previne"          element={<PrevisaoPrevineBrasil/>}/>
+            <Route path="/previsao-previne" element={<Navigate to="/aps" replace/>}/>{/* arquivado: ML sem API */}
             <Route path="/simulador-cenarios"        element={<SimuladorCenarios/>}/>
             <Route path="/score-risco-esf"           element={<ScoreRiscoESF/>}/>
             <Route path="/okr"                       element={<PainelOKR/>}/>
@@ -1383,9 +1383,9 @@ export default function App() {
             <Route path="/ocis/*"                    element={<OCIS/>}/>
             <Route path="/patrimonio"                element={<Patrimonio/>}/>
             <Route path="/patrimonio/*"              element={<Patrimonio/>}/>
-            <Route path="/portal-gestor"             element={<PortalGestor/>}/>
-            <Route path="/portal-cidadao"            element={<PortalCidadao/>}/>
-            <Route path="/marketplace"               element={<Marketplace/>}/>
+            <Route path="/portal-gestor" element={<Navigate to="/dashboard-executivo" replace/>}/>
+            <Route path="/portal-cidadao" element={<Navigate to="/" replace/>}/>
+            <Route path="/marketplace" element={<Navigate to="/" replace/>}/>{/* arquivado */}
             <Route path="/municipio"                 element={<Municipio/>}/>
             <Route path="/modulos"                   element={<Modulos/>}/>
             <Route path="/indicadores"               element={<Indicadores/>}/>
