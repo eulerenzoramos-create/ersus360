@@ -186,13 +186,26 @@ async def _egestor_get(path: str, cache_key: str, params: dict = {}):
         return cached
 
     token = await _obter_token()
-    headers = {"Accept": "application/json"}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-
     url = f"{EGESTOR_BASE}{path}"
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT, verify=False, follow_redirects=True) as client:
+            # Tenta primeiro sem autenticação (muitos endpoints SIAPS são públicos)
+            r_pub = await client.get(url, headers={"Accept": "application/json"}, params=params)
+            if r_pub.status_code == 200:
+                data = r_pub.json()
+                result = {
+                    "situacao_dado": "oficial_validado",
+                    "fonte": "egestor_aps_publico",
+                    "ultima_atualizacao": _ts(),
+                    "dados": data,
+                }
+                cache_set(cache_key, result, ttl=900)
+                cache_set(f"{cache_key}_last", result, ttl=86400)
+                return result
+
+            headers = {"Accept": "application/json"}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
             r = await client.get(url, headers=headers, params=params)
 
             # Captura token renovado da resposta (SIAPS envia novo token no header)
