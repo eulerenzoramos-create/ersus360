@@ -119,7 +119,7 @@ function CardEquipe({ eq }: { eq: EquipeRisco }) {
           {/* 4 sub-scores em barras */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
             {[
-              { l: "Previne Brasil", v: eq.score_previne, cor: "#1351b4" },
+              { l: "Cofinanc. APS", v: eq.score_previne, cor: "#1351b4" },
               { l: "SCNES", v: eq.score_scnes, cor: "#059669" },
               { l: "CADSUS", v: eq.score_cadsus, cor: "#0369a1" },
               { l: "SIAPS", v: eq.score_siaps, cor: "#d97706" },
@@ -247,7 +247,7 @@ export default function ScoreRiscoESF() {
               <span style={{ fontWeight: 800, fontSize: 20, color: "#fff" }}>Score de Risco por Equipe ESF</span>
             </div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,.7)" }}>
-              Índice composto: Previne Brasil + SCNES + CADSUS + SIAPS · Atualização mensal via auditoria automática
+              Índice composto: Cofinanc. APS + SCNES + CADSUS + SIAPS · Atualização mensal via auditoria automática
             </div>
           </div>
           <button onClick={() => recalcular.mutate()} disabled={recalcular.isPending}

@@ -295,7 +295,7 @@ import SaudeTrabalhadorApui       from "./pages/SaudeTrabalhadorApui";
 import FarmaciaBasicaApui         from "./pages/FarmaciaBasicaApui";
 import SaudeEscolarApui           from "./pages/SaudeEscolarApui";
 import VigilanciaSanitariaApui    from "./pages/VigilanciaSanitariaApui";
-import SaudeIndígenaApui          from "./pages/SaudeIndígenaApui";
+import SaudeIndigenaApui          from "./pages/SaudeIndigenaApui";
 import DoencasCronicasApui        from "./pages/DoencasCronicasApui";
 import SaudeMentalApui2           from "./pages/SaudeMentalApui2";
 import ImunizacaoApui             from "./pages/ImunizacaoApui";
@@ -1333,7 +1333,7 @@ export default function App() {
             <Route path="/farmacia-basica-apui"     element={<FarmaciaBasicaApui/>}/>
             <Route path="/saude-escolar-apui"       element={<SaudeEscolarApui/>}/>
             <Route path="/vigilancia-sanitaria-apui" element={<VigilanciaSanitariaApui/>}/>
-            <Route path="/saude-indigena-apui"       element={<SaudeIndígenaApui/>}/>
+            <Route path="/saude-indigena-apui"       element={<SaudeIndigenaApui/>}/>
             <Route path="/doencas-cronicas-apui"     element={<DoencasCronicasApui/>}/>
             <Route path="/saude-mental-apui"         element={<SaudeMentalApui2/>}/>
             <Route path="/materno-infantil-apui"     element={<MaternoInfantilApui/>}/>

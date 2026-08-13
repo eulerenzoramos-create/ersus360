@@ -113,7 +113,7 @@ _LDO_METAS = [
     {"indicador": "% recurso próprio em saúde (SIOPS)",    "meta_ldo": 15,  "realizado": 16.8,"status": "ok"},
     {"indicador": "Consultas APS per capita (ano)",         "meta_ldo": 4.0, "realizado": 3.2, "status": "atencao"},
     {"indicador": "Ações de vigilância sanitária (nº)",    "meta_ldo": 200, "realizado": 187, "status": "ok"},
-    {"indicador": "Programas Previne Brasil ≥ meta (%)",   "meta_ldo": 80,  "realizado": 57,  "status": "critico"},
+    {"indicador": "Indicadores Cofinanciamento APS ≥ meta (%)",   "meta_ldo": 80,  "realizado": 57,  "status": "critico"},
     {"indicador": "Mortalidade infantil (por 1.000 NV)",   "meta_ldo": 15,  "realizado": 12,  "status": "ok"},
     {"indicador": "Internações evitáveis APS (%)",         "meta_ldo": 20,  "realizado": 24,  "status": "critico"},
     {"indicador": "Satisfação usuário SUS (NPS)",          "meta_ldo": 70,  "realizado": 74,  "status": "ok"},

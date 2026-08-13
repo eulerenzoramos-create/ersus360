@@ -38,7 +38,7 @@ async def dashboard(_: UserOut = Depends(get_current_user)):
 
 @router.get("/indicadores")
 async def indicadores(_: UserOut = Depends(get_current_user)):
-    """Indicadores APS (Componente Qualidade Previne Brasil) — referencia municipal."""
+    """Indicadores APS (Componente Qualidade — P. 3.493/2024) — referencia municipal."""
     return [
         # Saude da Mulher
         {"nome": "Pre-natal >= 6 consultas",        "categoria": "Saude da Mulher",      "valor": 62.1, "meta": 70.0, "unidade": "%", "competencia": "Jun/2026", "semaforo": "amarelo"},

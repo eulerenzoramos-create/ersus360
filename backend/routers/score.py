@@ -9,7 +9,7 @@ Regras de dados:
   - random() e valores hardcoded de desempenho são PROIBIDOS.
 
 Pesos dos eixos:
-  35% APS          — Previne Brasil (API pública) + SISAB regularidade (API pública)
+  35% APS          — Cofinanciamento APS (P. 3.493/2024) (API pública) + SISAB regularidade (API pública)
   25% Financeiro   — SIOPS mínimo constitucional (API pública) + execução FNS (sem API = nao_disponivel)
   20% Epidemiologia— sem API pública nacional consolidada → nao_disponivel
   10% Gestão       — sem API pública nacional consolidada → nao_disponivel
@@ -65,7 +65,7 @@ def _classificar(score: float) -> dict:
 
 async def _score_aps(ibge: str) -> dict:
     """
-    Score APS baseado nos indicadores Previne Brasil (API gov.br pública).
+    Score APS baseado nos indicadores Cofinanciamento APS (P. 3.493/2024) (API gov.br pública).
     Cobertura ESF e regularidade SISAB: situacao_dado nao_disponivel (sem API pública).
     """
     hoje = date.today()
@@ -100,7 +100,7 @@ async def _score_aps(ibge: str) -> dict:
 
     metricas = {
         "previne_brasil": _metrica(
-            "Indicadores Previne Brasil",
+            "Indicadores Cofinanciamento APS",
             round(score_previne, 1) if pontos and score_final else None,
             sit_previne,
             obs=f"API Previne ({comp}) — {len(pontos)} indicadores" if pontos else

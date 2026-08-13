@@ -1,5 +1,5 @@
 """
-Router: /api/previne — Novo Financiamento APS (7 indicadores Previne Brasil)
+Router: /api/previne — Novo Financiamento APS (7 indicadores Cofinanciamento APS (P. 3.493/2024))
 Dados de referencia municipal para Apui/AM.
 situacao_dado = "referencia_municipal" em todos os endpoints.
 """
@@ -105,7 +105,7 @@ async def listar_indicadores(
     competencia: str = Query(None, description="AAAAMM — omitir usa competencia atual"),
     _: UserOut = Depends(get_current_user),
 ):
-    """7 indicadores Previne Brasil — referencia municipal Apui/AM."""
+    """7 indicadores Cofinanciamento APS (P. 3.493/2024) — referencia municipal Apui/AM."""
     comp = competencia or _COMP
     return {
         "situacao_dado":  "referencia_municipal",
@@ -126,7 +126,7 @@ async def historico_indicadores(
     meses: int = Query(6, ge=1, le=24),
     _: UserOut = Depends(get_current_user),
 ):
-    """Historico mensal dos indicadores Previne Brasil — referencia municipal."""
+    """Histórico mensal dos indicadores Cofinanciamento APS — referencia municipal."""
     historico = []
     competencias = [
         ("202601", "Jan/26"), ("202602", "Fev/26"), ("202603", "Mar/26"),
@@ -168,7 +168,7 @@ async def indicadores_por_equipe(
     ibge: str = Query(_IBGE, regex=r"^\d{7}$"),
     _: UserOut = Depends(get_current_user),
 ):
-    """Indicadores Previne Brasil por equipe ESF — referencia municipal."""
+    """Indicadores Cofinanciamento APS por equipe ESF — referencia municipal."""
     equipes = [
         {
             "ine":          "0000735456",

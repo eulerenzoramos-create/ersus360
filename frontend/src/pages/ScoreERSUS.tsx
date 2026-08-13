@@ -163,7 +163,7 @@ function EixoCard({ eixoKey, e }: { eixoKey: string; e: Eixo }) {
           <div style={{ marginTop:10, borderTop:"1px solid #f1f5f9", paddingTop:10 }}>
             <div style={{ fontSize:11, fontWeight:700, color:"#6b7280",
               textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:8 }}>
-              Indicadores Previne Brasil
+              Indicadores Cofinanciamento APS
             </div>
             {e.indicadores_raw.map((ind, i) => (
               <div key={i} style={{ display:"flex", justifyContent:"space-between",
@@ -332,7 +332,7 @@ export default function ScoreERSUS() {
             <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
               <CheckCircle size={11}/> <strong>Integridade dos dados</strong>
             </div>
-            Todos os valores exibidos provêm de APIs públicas (Previne Brasil, SIOPS/DATASUS).
+            Todos os valores exibidos provêm de APIs públicas (Cofinanciamento APS — P. 3.493/2024, SIOPS/DATASUS).
             Eixos sem API pública disponível são declarados como "Não disponível" — nenhum
             número é estimado ou simulado. Configure integrações locais via Railway para habilitar
             os demais eixos.

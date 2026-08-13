@@ -157,7 +157,7 @@ export default function SimuladorCenarios() {
               <span style={{ fontWeight: 800, fontSize: 20, color: "#fff" }}>Simulador de Cenários Financeiros</span>
             </div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,.7)" }}>
-              Previne Brasil · FPQ + APQ · Ajuste de parâmetros e projeção de receita federal
+              Cofinanciamento APS (P. 3.493/2024) · FPQ + APQ · Ajuste de parâmetros e projeção de receita federal
             </div>
           </div>
           <button onClick={resetar}

@@ -81,7 +81,7 @@ async def _bloco_aps(ibge: str) -> dict:
     return _bloco(
         "Atenção Primária (APS)", "hospital", sit,
         [
-            _ind("Previne Brasil — Score médio",
+            _ind("Cofinanciamento APS — Score médio",
                  f"{score_previne:.1f}%" if score_previne else None,
                  "ok" if score_previne and score_previne >= 60 else "alerta",
                  sit, None, "/producao-aps"),
@@ -93,7 +93,7 @@ async def _bloco_aps(ibge: str) -> dict:
             _ind("Visitas domiciliares / mês", None, "alerta",
                  "nao_disponivel", None, "/producao-aps"),
         ],
-        nota=f"Previne Brasil competência {comp} — fonte: {fonte or 'indisponível'}",
+        nota=f"Cofinanc. APS competência {comp} — fonte: {fonte or 'indisponível'}",
     )
 
 
@@ -226,7 +226,7 @@ async def get_blocos(
 ):
     """
     Blocos do dashboard executivo com dados reais e situacao_dado por indicador.
-    Fontes: Previne Brasil, SIOPS, CNES/DATASUS, SIAPS (quando credenciado).
+    Fontes: Cofinanciamento APS (P.3.493/2024), SIOPS, CNES/DATASUS, SIAPS (quando credenciado).
     """
     blocos_aps, blocos_fin, blocos_cnes, blocos_siaps, blocos_vig = await asyncio.gather(
         _bloco_aps(ibge),
