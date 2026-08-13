@@ -8,6 +8,7 @@ import {
   ChevronRight, BarChart2, Bell, GitBranch, Eye,
 } from "lucide-react";
 import { apiGetRaw, apiPost } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -297,6 +298,15 @@ export default function CentralAuditoria() {
     { id: "alertas" as Aba,   label: `Alertas${d ? ` (${alertasAtivos.filter(a=>a.status!=="resolvido").length})` : ""}`, icon: <Bell size={13}/> },
     { id: "historico" as Aba, label: "Histórico",       icon: <GitBranch size={13}/> },
   ];
+
+  if (!isLoading && !data) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="CentralAuditoria indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

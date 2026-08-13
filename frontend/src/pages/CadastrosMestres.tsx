@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiCadastros } from "../lib/api";
 import { Users, Building2, UserCheck, Pill, Truck, LayoutGrid, Stethoscope } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -53,6 +54,15 @@ export default function CadastrosMestres() {
     { id: "medicamentos",   label: "Medicamentos",  icon: <Pill size={13}/> },
     { id: "fornecedores",   label: "Fornecedores",  icon: <Truck size={13}/> },
   ];
+
+  if (!isLoading && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="CadastrosMestres indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

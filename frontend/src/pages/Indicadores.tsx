@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiIndicadores, type Indicador } from "../lib/api";
 import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const COR: Record<string, string> = {
   "Atingido": "#3B6D11",
@@ -69,6 +70,15 @@ export default function Indicadores() {
   const execMedia = indicadores.length
     ? Math.round(indicadores.reduce((s, i) => s + i.valor_alcancado, 0) / indicadores.length)
     : 0;
+
+  if (!isLoading && !indicadores) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Indicadores indisponiveis"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px" }}>

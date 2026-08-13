@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiPlanejamento } from "../lib/api";
 import { ClipboardList, Download, CheckCircle2, Clock, AlertTriangle, XCircle } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page:  { padding: 20 } as React.CSSProperties,
@@ -64,6 +65,15 @@ export default function Planejamento() {
     a.download = `${nome}.json`;
     a.click();
   };
+
+  if (!isLoading && !dashboard) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Planejamento indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

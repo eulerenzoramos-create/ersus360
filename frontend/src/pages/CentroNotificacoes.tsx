@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronRight,
 } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 interface Notificacao {
   id: string; titulo: string; descricao: string;
@@ -108,6 +109,15 @@ export default function CentroNotificacoes() {
   });
 
   const r = resumo;
+
+  if (!isLoading && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="CentroNotificacoes indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

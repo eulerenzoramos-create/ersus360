@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiAgenda } from "../lib/api";
 import { Calendar, Clock, AlertTriangle, CheckCircle2, ChevronRight } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 type Evento = {
   id: number; titulo: string; tipo: string; data: string; status: string;
@@ -101,6 +102,15 @@ export default function Agenda() {
   const urgentesCount = eventos.filter(e => e.urgencia === "urgente" || e.urgencia === "vencido").length;
 
   const tipos = ["todos", "legal", "producao", "rh", "reuniao", "patrimonio", "capacitacao", "vigilancia"];
+
+  if (!isLoading && !data) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Agenda indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>

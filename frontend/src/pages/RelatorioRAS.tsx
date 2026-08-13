@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Network, CheckCircle, AlertTriangle, XCircle, RefreshCw, Download, BarChart3, Layers } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -113,6 +114,15 @@ export default function RelatorioRAS() {
 
   const r = resumo;
   const visiveis = pontos.filter(p => filtroNivel === "todos" || p.nivel_atencao === filtroNivel);
+
+  if (!isLoading && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="RelatorioRAS indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

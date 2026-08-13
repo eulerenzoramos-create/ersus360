@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Syringe, AlertTriangle, CheckCircle, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { apiGet } from "../lib/api";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 interface ImunoBiologico {
   id: string; nome: string; sigla: string;
@@ -129,6 +130,15 @@ export default function PainelVacinacao() {
   });
 
   const r = resumo;
+
+  if (!isLoading && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="PainelVacinacao indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

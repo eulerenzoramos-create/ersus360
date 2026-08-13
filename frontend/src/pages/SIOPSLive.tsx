@@ -10,6 +10,7 @@ import {
   ExternalLink, Download, Search, Pencil, Trash2, Save, X,
 } from "lucide-react";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const BRAND  = "#dbeafe";
 const ACCENT = "#1d4ed8";
@@ -292,6 +293,15 @@ export default function SIOPSLive() {
     { key: "subfuncoes", label: "Por Subfunção" },
     { key: "natureza",   label: "Por Natureza"  },
   ];
+
+  if (!dashLoading && !status) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="SIOPSLive indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">

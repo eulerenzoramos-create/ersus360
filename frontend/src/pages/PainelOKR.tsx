@@ -6,6 +6,7 @@ import {
   AlertTriangle, TrendingUp, TrendingDown, Plus, RefreshCw,
 } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -152,6 +153,15 @@ export default function PainelOKR() {
   });
 
   const r = resumo;
+
+  if (!isLoading && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="PainelOKR indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

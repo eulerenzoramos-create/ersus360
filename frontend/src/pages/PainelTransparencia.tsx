@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Eye, Download, Globe, FileText, DollarSign, Users, BarChart3, Shield } from "lucide-react";
 import { apiGet } from "../lib/api";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -100,6 +101,15 @@ export default function PainelTransparencia() {
 
   const r = resumo;
   const categorias = Array.from(new Set(indicadores.map(i => i.categoria)));
+
+  if (!isLoading && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="PainelTransparencia indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Search, Info } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 interface CidadaoItem {
   id: number;
@@ -38,6 +39,15 @@ export default function CadastrosCidadao() {
 
   const visiveis = cidadaos.filter(c =>
     !busca || c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.microarea ?? "").toLowerCase().includes(busca.toLowerCase())
+  );
+
+  if (!isLoading && !cidadaos) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="CadastrosCidadao indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
   );
 
   return (

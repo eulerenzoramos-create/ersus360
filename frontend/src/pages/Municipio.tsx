@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, apiMunicipio } from "../lib/api";
 import { MapPin, Plus, Trash2, Edit2, Check, X } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page:  { padding: 20 } as React.CSSProperties,
@@ -70,6 +71,15 @@ export default function Municipio() {
     if (mun) setForm({ ...mun });
     setEditando(true);
   };
+
+  if (!isLoading && !mun) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Municipio indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

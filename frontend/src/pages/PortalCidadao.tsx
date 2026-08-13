@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiPortais, apiPost } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 type Unidade = { nome: string; endereco: string; telefone: string; horario: string; servicos: string[] };
 type Obra = { descricao: string; status: string; percentual_fisico: number; valor_total: number; origem_recurso: string; previsao_conclusao: string };
@@ -49,6 +50,15 @@ export default function PortalCidadao() {
     { key: "obras" as const, label: "Obras" },
     { key: "ouvidoria" as const, label: "Ouvidoria" },
   ];
+
+  if (!isLoading && !unidades) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="PortalCidadao indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>

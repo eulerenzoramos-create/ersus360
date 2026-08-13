@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, TrendingDown, TrendingUp, AlertTriangle, CheckCircle, RefreshCw, ChevronDown, ChevronRight, Activity } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -225,6 +226,15 @@ export default function ScoreRiscoESF() {
 
   const visiveis = equipes.filter(e => filtro === "todos" || e.nivel_risco === filtro);
   const r = resumo;
+
+  if (!isLoading && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="ScoreRiscoESF indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

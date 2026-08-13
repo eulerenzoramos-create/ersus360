@@ -17,6 +17,7 @@ import {
 import { apiGet, api } from "../lib/api";
 import { useMunicipioSeletor } from "../lib/municipio";
 import MunicipioSeletor from "../components/MunicipioSeletor";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -411,6 +412,15 @@ export default function Inconsistencias() {
     padding:"7px 10px", borderRadius:9, border:"1.5px solid #e2e8f0",
     fontSize:12, fontWeight:500, color:"#374151", background:"#fff", cursor:"pointer",
   };
+
+  if (!loadingResumo && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Inconsistencias indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ padding:24, maxWidth:1300, margin:"0 auto" }}>

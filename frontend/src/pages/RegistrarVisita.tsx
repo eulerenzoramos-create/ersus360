@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ClipboardCheck, MapPin, Play, CheckCircle2 } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 interface Opcoes {
   profissionais: { id: number; nome: string; cargo: string | null }[];
@@ -81,6 +82,15 @@ export default function RegistrarVisita() {
       { enableHighAccuracy: true, timeout: 10_000 },
     );
   };
+
+  if (!isLoading && !opcoes) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="RegistrarVisita indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

@@ -5,6 +5,7 @@ import { MapPin, Activity, Users, Stethoscope, ChevronDown, ChevronRight } from 
 import { apiGet } from "../lib/api";
 import { useAcsGeo, type PosicaoAcs } from "../hooks/useAcsGeo";
 import { MICROAREAS_GEO } from "../components/AcsMapaGeo";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 interface UnidadeSaude {
   id: string; nome: string; tipo: string; cnes: string;
@@ -257,6 +258,15 @@ export default function MapaSanitario() {
   });
 
   const r = resumo;
+
+  if (!isLoading && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="MapaSanitario indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

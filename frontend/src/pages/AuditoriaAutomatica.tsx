@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardCheck, PlayCircle, Clock, CheckCircle, XCircle, AlertTriangle, RefreshCw, ChevronDown, ChevronRight, Calendar } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -145,6 +146,15 @@ export default function AuditoriaAutomatica() {
 
   const ultima = execucoes.find(e => e.status === "concluida" || e.status === "com_falhas");
   const emExecucao = execucoes.some(e => e.status === "executando");
+
+  if (!isLoading && !execucoes) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="AuditoriaAutomatica indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

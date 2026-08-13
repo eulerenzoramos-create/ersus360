@@ -3,6 +3,7 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiDocumentos, type Documento } from "../lib/api";
 import { FolderOpen, Upload, Download, Trash2, Search, File, FileText, Image } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page: { padding: 20 } as React.CSSProperties,
@@ -120,6 +121,15 @@ export default function Documentos() {
   });
 
   const totalKb = (docs as Documento[]).reduce((s, d) => s + (d.tamanho_kb ?? 0), 0);
+
+  if (!isLoading && !docs) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Documentos indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

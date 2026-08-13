@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiPatrimonio } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 type Veiculo = { placa: string; descricao: string; tipo: string; ano: number; km_atual: number; ultima_manutencao: string; status: string; responsavel: string };
 type Bem = { tombamento: string; descricao: string; tipo: string; estado: string; valor_aquisicao: number; ano: number };
@@ -27,6 +28,15 @@ export default function Patrimonio() {
   const { data: bens } = useQuery({ queryKey: ["patrimonio-bens"], queryFn: apiPatrimonio.bens });
   const { data: manut } = useQuery({ queryKey: ["patrimonio-manut"], queryFn: apiPatrimonio.manutencao });
   const { data: comb } = useQuery({ queryKey: ["patrimonio-comb"], queryFn: apiPatrimonio.abastecimento });
+
+  if (!isLoading && !painel) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Patrimonio indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>

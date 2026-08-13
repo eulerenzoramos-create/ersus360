@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiBI } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const COR_SCORE = (s: number) =>
@@ -374,6 +375,15 @@ export default function MapaDesempenho() {
       color: nivel === v ? "#fff" : "#374151",
       fontWeight: nivel === v ? 700 : 500, fontSize: 12, cursor: "pointer",
     }}>{label}</button>
+  );
+
+  if (!loadingIBGE && !scoreData) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="MapaDesempenho indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
   );
 
   return (

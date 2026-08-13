@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFarmacia } from "../lib/api";
 import { Pill, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page:  { padding: 20 } as React.CSSProperties,
@@ -57,6 +58,15 @@ export default function Farmacia() {
     queryFn: apiFarmacia.programas,
     enabled: aba === "programas",
   });
+
+  if (!isLoading && !dashboard) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Farmacia indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

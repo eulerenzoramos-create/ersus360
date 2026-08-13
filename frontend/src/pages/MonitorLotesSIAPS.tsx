@@ -15,6 +15,7 @@ import { useState } from "react";
 import { api } from "../lib/api";
 import { useMunicipioSeletor } from "../lib/municipio";
 import MunicipioSeletor from "../components/MunicipioSeletor";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -256,6 +257,15 @@ export default function MonitorLotesSIAPS() {
   });
 
   const isLoading = loadR || loadC;
+
+  if (!loadR && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="MonitorLotesSIAPS indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ padding:24, maxWidth:960, margin:"0 auto" }}>

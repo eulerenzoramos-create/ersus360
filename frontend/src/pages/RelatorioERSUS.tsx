@@ -15,6 +15,7 @@ import {
 import { api } from "../lib/api";
 import { useMunicipioSeletor } from "../lib/municipio";
 import MunicipioSeletor from "../components/MunicipioSeletor";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -392,6 +393,15 @@ export default function RelatorioERSUS() {
   const handleImprimir = () => {
     window.print();
   };
+
+  if (!isLoading && !data) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="RelatorioERSUS indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ padding:24, maxWidth:1100, margin:"0 auto" }}>

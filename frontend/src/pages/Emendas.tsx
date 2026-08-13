@@ -5,6 +5,7 @@ import { api, apiEmendas } from "../lib/api";
 import { BRL, BRL_AXIS } from "../lib/fmt";
 import { Landmark, Plus, Check, X, TrendingUp } from "lucide-react";
 import {
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
@@ -76,6 +77,15 @@ export default function Emendas() {
   });
 
   const f = (field: string, value: string | number) => setForm(p => ({ ...p, [field]: value }));
+
+  if (!isLoading && !dashboard) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Emendas indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

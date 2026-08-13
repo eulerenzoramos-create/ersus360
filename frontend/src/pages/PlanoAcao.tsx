@@ -7,6 +7,7 @@ import {
   Filter, Search, Trash2, Edit3, Save, X,
 } from "lucide-react";
 import { apiGet, apiPost, apiPut } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -246,6 +247,15 @@ export default function PlanoAcao() {
     concluidas: tarefas.filter(t => t.status === "concluido").length,
     vencidas: tarefas.filter(t => new Date(t.prazo) < new Date() && t.status !== "concluido").length,
   };
+
+  if (!isLoading && !tarefas) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="PlanoAcao indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { apiFns, apiConvenios, apiRepasses, type FnsSyncResult } from "../lib/api";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const MESES = [
   "", "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
@@ -79,6 +80,15 @@ export default function FnsConvenios() {
 
   const totalPrevisto = repasses.reduce((s, r) => s + r.valor_previsto, 0);
   const totalRealizado = repasses.reduce((s, r) => s + r.valor_realizado, 0);
+
+  if (!isLoading && !status) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="FnsConvenios indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px" }}>

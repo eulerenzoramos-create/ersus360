@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronRight, Thermometer, Eye,
 } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -188,6 +189,15 @@ export default function MonitorEpidemiologico() {
 
   const r = resumo;
   const alertasFiltrados = alertas.filter(a => filtroNivel === "todos" || a.nivel === filtroNivel);
+
+  if (!loadAl && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="MonitorEpidemiologico indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

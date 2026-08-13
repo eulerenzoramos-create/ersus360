@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Info, Search } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 interface CidadaoItem {
   id: number; nome: string; cns_mascarado: string; microarea: string | null;
@@ -48,6 +49,15 @@ export default function VisitasDomiciliaresCidadao() {
 
   const visiveis = cidadaos.filter(c =>
     !busca || c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.microarea ?? "").toLowerCase().includes(busca.toLowerCase())
+  );
+
+  if (!carregandoHistorico && !cidadaos) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="VisitasDomiciliaresCidadao indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
   );
 
   return (

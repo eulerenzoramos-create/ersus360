@@ -11,6 +11,7 @@ import {
 import { api } from "../lib/api";
 import { useMunicipioSeletor } from "../lib/municipio";
 import MunicipioSeletor from "../components/MunicipioSeletor";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -174,6 +175,15 @@ export default function DashboardExecutivo360() {
   const totalAlertas = blocos.flatMap(b => b.indicadores)
     .filter(i => i.status === "alerta").length;
   const comDado = blocos.filter(b => b.situacao_dado !== "nao_disponivel").length;
+
+  if (!isLoading && !data) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="DashboardExecutivo360 indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily:"Inter, system-ui, sans-serif", background:"#f4f6f8", minHeight:"100vh" }}>

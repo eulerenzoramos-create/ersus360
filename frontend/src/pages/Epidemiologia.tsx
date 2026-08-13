@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiEpidemiologia } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 type Agravo = {
   agravo: string; cid: string; casos_mes: number; casos_ano: number;
@@ -27,6 +28,15 @@ export default function Epidemiologia() {
   const { data: malaria } = useQuery({ queryKey: ["epi-malaria"], queryFn: apiEpidemiologia.malaria, enabled: tab === "malaria" });
   const { data: dengue }  = useQuery({ queryKey: ["epi-dengue"],  queryFn: apiEpidemiologia.dengue,  enabled: tab === "dengue" });
   const { data: notif }   = useQuery({ queryKey: ["epi-notif"],   queryFn: () => apiEpidemiologia.notificacoes(), enabled: tab === "notificacoes" });
+
+  if (!isLoading && !dash) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Painel Epidemiologico indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>

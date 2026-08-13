@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiAlertas, type Alerta } from "../lib/api";
 import { Bell, AlertTriangle, Info, CheckCircle2, X, RefreshCw } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page: { padding: 20 } as React.CSSProperties,
@@ -115,6 +116,15 @@ export default function Alertas() {
   const criticos = (alertas as Alerta[]).filter((a) => !a.resolvido && a.severidade === "critico").length;
   const atencao  = (alertas as Alerta[]).filter((a) => !a.resolvido && a.severidade === "atencao").length;
   const total    = (alertas as Alerta[]).filter((a) => !a.resolvido).length;
+
+  if (!isLoading && !alertas) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Alertas indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

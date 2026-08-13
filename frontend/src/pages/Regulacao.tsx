@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRegulacao } from "../lib/api";
 import { Network, CheckCircle2, XCircle, Clock } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page:  { padding: 20 } as React.CSSProperties,
@@ -40,6 +41,15 @@ export default function Regulacao() {
   const lista = filtroStatus
     ? (solicitacoes as Solicitacao[]).filter((s) => s.status === filtroStatus)
     : (solicitacoes as Solicitacao[]);
+
+  if (!isLoading && !dashboard) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Regulacao indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

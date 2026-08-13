@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiVigilancia } from "../lib/api";
 import { ShieldCheck, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page:  { padding: 20 } as React.CSSProperties,
@@ -38,6 +39,15 @@ export default function Vigilancia() {
     queryFn: apiVigilancia.vacinacao,
     enabled: aba === "vacinal",
   });
+
+  if (!isLoading && !dashboard) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Vigilancia indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

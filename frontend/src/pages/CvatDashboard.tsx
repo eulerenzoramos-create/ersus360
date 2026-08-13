@@ -17,6 +17,7 @@ import {
 import { apiGet } from "../lib/api";
 import { useMunicipioSeletor } from "../lib/municipio";
 import MunicipioSeletor from "../components/MunicipioSeletor";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -261,6 +262,15 @@ export default function CvatDashboard() {
   });
 
   const temDados = data && data.equipes && data.equipes.length > 0;
+
+  if (!isLoading && !data) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="CvatDashboard indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ padding: 24, maxWidth: 1200, margin: "0 auto" }}>

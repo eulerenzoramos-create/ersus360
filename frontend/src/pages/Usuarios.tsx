@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, apiUsuarios } from "../lib/api";
 import { Users, Plus, Trash2, Check, X, ShieldCheck, Lock } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page:  { padding: 20 } as React.CSSProperties,
@@ -71,6 +72,15 @@ export default function Usuarios() {
   const podeGerenciar = ["superadmin", "admin"].includes(perfilAtual);
 
   if (!podeGerenciar) {
+  if (!isLoading && !usuarios) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Usuarios indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
+
     return (
       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"60vh", gap:12, color:"#737373" }}>
         <Lock size={40} color="#dc2626"/>

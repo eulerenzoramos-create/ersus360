@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiPortarias, type Portaria } from "../lib/api";
 import { Search, Plus, FileText, Trash2, ExternalLink } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page: { padding: 20 } as React.CSSProperties,
@@ -112,6 +113,15 @@ export default function Portarias() {
   });
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  if (!isLoading && !portarias) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Portarias indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

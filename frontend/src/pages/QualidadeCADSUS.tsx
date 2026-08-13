@@ -13,6 +13,7 @@ import {
 import { api } from "../lib/api";
 import { useMunicipioSeletor } from "../lib/municipio";
 import MunicipioSeletor from "../components/MunicipioSeletor";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -163,6 +164,15 @@ export default function QualidadeCADSUS() {
         { headers: { Authorization: `Bearer ${token}` } }).then(r => r.data),
     staleTime: 120_000,
   });
+
+  if (!isLoading && !data) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="QualidadeCADSUS indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ padding:24, maxWidth:860, margin:"0 auto" }}>

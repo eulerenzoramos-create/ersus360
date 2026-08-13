@@ -6,6 +6,7 @@ import {
   Phone, RefreshCw, ChevronDown, ChevronRight, Zap,
 } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -158,6 +159,15 @@ export default function BuscaAtivaIA() {
 
   const visiveis = cidadaos.filter(c =>
     !busca || c.nome.toLowerCase().includes(busca.toLowerCase()) || c.cns.includes(busca)
+  );
+
+  if (!isLoading && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="BuscaAtivaIA indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
   );
 
   return (

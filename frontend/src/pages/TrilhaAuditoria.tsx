@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { GitBranch, Search, Filter, Download, Shield, User, Clock, Eye, AlertTriangle, CheckCircle, Database } from "lucide-react";
 import { apiGetRaw } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,15 @@ export default function TrilhaAuditoria() {
     avisos: (data?.eventos ?? []).filter(e => e.severidade === "aviso").length,
     usuarios_ativos: [...new Set((data?.eventos ?? []).map(e => e.usuario))].length,
   };
+
+  if (!isLoading && !data) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="TrilhaAuditoria indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

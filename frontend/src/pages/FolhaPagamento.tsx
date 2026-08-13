@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGetRaw } from "../lib/api";
 import { FileText, Download, Printer, Filter, AlertTriangle } from "lucide-react";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── CSS impressão injetado no <head> uma única vez ────────────────────────────
 const PRINT_CSS = `
@@ -259,6 +260,15 @@ export default function FolhaPagamento() {
   const tdSt: React.CSSProperties = {
     padding:"8px 12px", fontSize:12, borderBottom:"1px solid #e8edf4", verticalAlign:"middle",
   };
+
+  if (!isLoading && !data) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="FolhaPagamento indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily:"system-ui,sans-serif", minHeight:"100vh", background:"#f0f5fb" }}>

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Map, Info } from "lucide-react";
 import { apiGet } from "../lib/api";
 import { useAcsGeo } from "../hooks/useAcsGeo";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const APUI_CENTER: [number, number] = [-7.1972, -59.8878];
 
@@ -184,6 +185,15 @@ export default function MapaVisitasDomiciliares() {
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
+
+  if (!isLoading && !dados) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="MapaVisitasDomiciliares indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

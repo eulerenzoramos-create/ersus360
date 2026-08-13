@@ -6,6 +6,7 @@ import {
   Calendar, MessageSquare, Download,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 interface Reuniao {
   id: string; numero: string; data: string; hora: string; local: string;
@@ -145,6 +146,15 @@ export default function ConselhoMunicipalSaude() {
   });
 
   const r = resumo;
+
+  if (!loadR && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="ConselhoMunicipalSaude indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

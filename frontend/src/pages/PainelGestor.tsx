@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiDashboard, apiAlertas, apiSistema, apiGet, apiConformidade } from "../lib/api";
 import { BRL, BRL_AXIS } from "../lib/fmt";
 import {
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
   Heart, Target, BarChart2, Users, Pill, Syringe, Brain, Map,
   TrendingUp, DollarSign, FileText, Activity, Eye, EyeOff,
   CheckCircle, AlertTriangle, Wifi,
@@ -61,6 +62,15 @@ export default function PainelGestor() {
     staleTime: 300_000,
   });
   const siapsAus = siaps?.equipes?.length ?? 0;
+
+  if (!isLoading && !stats) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="PainelGestor indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Rawline, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh", padding: "24px 28px" }}>

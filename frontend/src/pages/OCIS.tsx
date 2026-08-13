@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiOCIS } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 type Alerta = { id: number; nivel: string; categoria: string; titulo: string; descricao: string; data: string; resolvido: boolean };
 type TFD = { id: number; paciente: string; cid: string; especialidade: string; hospital_destino: string; tipo_transporte: string; data_viagem: string; status: string; custo_estimado: number };
@@ -19,6 +20,15 @@ export default function OCIS() {
   const { data: alertas } = useQuery({ queryKey: ["ocis-alertas"], queryFn: apiOCIS.centralAlertas });
   const { data: fila } = useQuery({ queryKey: ["ocis-fila"], queryFn: apiOCIS.filaEspera });
   const { data: tfd } = useQuery({ queryKey: ["ocis-tfd"], queryFn: apiOCIS.tfd });
+
+  if (!isLoading && !dash) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="OCIS indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiExecucao, apiConvenios, type Empenho, type SaldoConvenio } from "../lib/api";
 import { DollarSign, Plus, TrendingUp, AlertCircle } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page: { padding: 20 } as React.CSSProperties,
@@ -170,6 +171,15 @@ export default function Execucao() {
 
   const totalPago = (empenhos as Empenho[]).reduce((s, e) => s + e.valor_pago, 0);
   const totalEmpenhado = (empenhos as Empenho[]).reduce((s, e) => s + e.valor, 0);
+
+  if (!loadEmp && !convenios) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Execucao Orcamentaria indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

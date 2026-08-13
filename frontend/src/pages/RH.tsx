@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRH } from "../lib/api";
 import { UserCog, Calendar, AlertTriangle, FileText, TrendingUp, Users, Clock } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page:  { padding: 20 } as React.CSSProperties,
@@ -50,6 +51,15 @@ export default function RH() {
   ];
 
   const COR_ALERTA: Record<string, string> = { critico: "#dc2626", atencao: "#d97706", info: "#0284c7" };
+
+  if (!isLoading && !painel) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Recursos Humanos indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

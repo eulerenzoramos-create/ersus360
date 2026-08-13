@@ -6,6 +6,7 @@ import {
   BarChart2, Target, Users, DollarSign, Activity, TrendingUp,
 } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 interface SecaoRelatorio {
   id: string; titulo: string; descricao: string;
@@ -139,6 +140,15 @@ export default function RelatorioGestao() {
   });
 
   const r = resumo;
+
+  if (!isLoading && !resumo) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="RelatorioGestao indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>

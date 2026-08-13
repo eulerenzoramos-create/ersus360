@@ -5,6 +5,7 @@ import { apiRelatorios } from "../lib/api";
 import { BarChart3, Download, FileText, TrendingUp, PieChart, Calendar } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Legend } from "recharts";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page:  { padding: 20 } as React.CSSProperties,
@@ -123,6 +124,15 @@ export default function Relatorios() {
 
   const exportarPDF = () =>
     downloadArquivo(`/api/relatorios/exportar-pdf?tipo=gerencial&ano=${ano}`, `relatorio_gerencial_${ano}.pdf`);
+
+  if (!loadFin && !financeiro) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Relatorios indisponiveis"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

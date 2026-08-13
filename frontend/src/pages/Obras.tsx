@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiObras, type Obra } from "../lib/api";
 import { Building2, Plus, AlertTriangle, CheckCircle2, Clock, XCircle } from "lucide-react";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
   page: { padding: 20 } as React.CSSProperties,
@@ -149,6 +150,15 @@ export default function Obras() {
   const atrasadas = obras.filter((o: Obra) => (o.dias_atraso ?? 0) > 0).length;
   const emAndamento = obras.filter((o: Obra) => o.status === "Em andamento").length;
   const concluidas = obras.filter((o: Obra) => o.status === "Concluída").length;
+
+  if (!isLoading && !obras) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="Obras indisponiveis"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={S.page}>

@@ -7,6 +7,7 @@ import {
   Heart, Shield, Clock, Database, RefreshCw, X,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
+import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -223,6 +224,15 @@ export default function LinhaTempoCidadao() {
   const toggleFonte = (f: string) => {
     setFiltroFonte(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]);
   };
+
+  if (!loadCid && !cidadao) return (
+    <div style={{ padding: 24 }}>
+      <NaoDisponivelBanner
+        titulo="LinhaTempoCidadao indisponivel"
+        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+      />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>
