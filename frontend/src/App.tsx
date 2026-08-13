@@ -1270,8 +1270,8 @@ export default function App() {
             <Route path="/urgencia-emergencia" element={<Navigate to="/urgencia-emergencia-apui" replace/>}/>
             <Route path="/regulacao-acesso" element={<Navigate to="/regulacao-acesso-apui" replace/>}/>
             <Route path="/gestao-leitos" element={<Navigate to="/gestao-leitos-apui" replace/>}/>
-            <Route path="/visa-municipal" element={<Navigate to="/visa-municipal-apui" replace/>}/>
-            <Route path="/visa-municipal-apui"      element={<VisaMunicipalApui/>}/>
+            <Route path="/visa-municipal" element={<Navigate to="/visa" replace/>}/>
+            <Route path="/visa-municipal-apui" element={<Navigate to="/visa" replace/>}/>
             <Route path="/educacao-permanente-apui"element={<EducacaoPermanenteApui/>}/>
             <Route path="/conselho-saude-apui"          element={<ConselhoSaudeApui/>}/>
             <Route path="/ouvidoria-apui"               element={<OuvidoriaApui/>}/>

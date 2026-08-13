@@ -1,9 +1,11 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { ShieldCheck, AlertTriangle, FileText, CheckCircle, Search } from "lucide-react";
+import { ShieldCheck, AlertTriangle, FileText, Search } from "lucide-react";
 import { apiGet } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
+import VisaAlimentos from "./VisaAlimentos";
+import VisaMunicipalApui from "./VisaMunicipalApui";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
 const RESULT_COR: Record<string, string>  = { bom: "#16a34a", regular: "#d97706", insatisfatorio: "#dc2626" };
@@ -187,10 +189,11 @@ function AbaAutos({ autos }: { autos: any[] | undefined }) {
   );
 }
 
-type Aba = "dashboard"|"estabelecimentos"|"autos";
+type AbaInterna = "dashboard"|"estabelecimentos"|"autos";
+type AbaTopLevel = "municipal"|"alimentos"|"apui";
 
-export default function VigilanciaVISA() {
-  const [aba, setAba] = useState<Aba>("dashboard");
+function PainelMunicipal() {
+  const [aba, setAba] = useState<AbaInterna>("dashboard");
   const { data: dashRaw }  = useQuery({ queryKey: ["visa-dash"],  queryFn: () => apiGet("/api/visa/dashboard") as Promise<any> });
   const { data: estabs }   = useQuery({ queryKey: ["visa-estab"], queryFn: () => apiGet("/api/visa/estabelecimentos") as Promise<any[]>, enabled: aba==="estabelecimentos" });
   const { data: autos }    = useQuery({ queryKey: ["visa-autos"], queryFn: () => apiGet("/api/visa/autos") as Promise<any[]>,            enabled: aba==="autos" });
@@ -203,39 +206,73 @@ export default function VigilanciaVISA() {
     resultado_regular:       5,
   } : null;
 
-  const ABAS: { id: Aba; label: string }[] = [
+  const ABAS: { id: AbaInterna; label: string }[] = [
     { id: "dashboard",        label: "Dashboard" },
     { id: "estabelecimentos", label: "Estabelecimentos" },
     { id: "autos",            label: `Autos (${dashRaw?.autos_abertos ?? 0})` },
   ];
 
   return (
+    <div style={{ padding: "0 24px" }}>
+      <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #e4e7ec" }}>
+        {ABAS.map(a => (
+          <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #0f766e":"2px solid transparent", color: aba===a.id?"#0f766e":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
+        ))}
+      </div>
+      {aba==="dashboard" && !dash && <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />}
+      {aba==="dashboard"        && <AbaDashboard dash={dash}/>}
+      {aba==="estabelecimentos" && <AbaEstabelecimentos estabs={estabs}/>}
+      {aba==="autos"            && <AbaAutos autos={autos}/>}
+    </div>
+  );
+}
+
+const TOP_ABAS: { id: AbaTopLevel; label: string }[] = [
+  { id: "municipal", label: "Municipal" },
+  { id: "alimentos", label: "Alimentos" },
+  { id: "apui",      label: "Painel Apuí" },
+];
+
+export default function VigilanciaVISA() {
+  const [abaTop, setAbaTop] = useState<AbaTopLevel>("municipal");
+
+  return (
     <div style={{ padding: "0 0 32px", fontFamily: "system-ui,sans-serif" }}>
       <div style={{ background: "linear-gradient(135deg,#1565c0 0%,#1351b4 100%)", color: "#fff", padding: "20px 24px 16px", borderRadius: "0 0 16px 16px", marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Vigilância Sanitária — VISA</h1>
-            <p style={{ fontSize: 13, opacity: .85, margin: 0 }}>Inspeções · Licenças · Autos de Infração · FMS Apuí/AM</p>
-          </div>
-          {dashRaw && (
-            <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.total_estabelecimentos}</div>
-              <div style={{ fontSize: 10, opacity: .8 }}>estabelecimentos</div>
-            </div>
-          )}
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px" }}>Vigilância Sanitária — VISA</h1>
+          <p style={{ fontSize: 13, opacity: .85, margin: 0 }}>Municipal · Alimentos · Painel Apuí · FMS Apuí/AM</p>
         </div>
       </div>
-      <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #e4e7ec" }}>
-          {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba===a.id?"2px solid #0f766e":"2px solid transparent", color: aba===a.id?"#0f766e":"#6b7280", fontWeight: aba===a.id?700:400, marginBottom: -2 }}>{a.label}</button>
+
+      <div style={{ padding: "0 24px", marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 4, borderBottom: "2px solid #e4e7ec" }}>
+          {TOP_ABAS.map(a => (
+            <button
+              key={a.id}
+              onClick={() => setAbaTop(a.id)}
+              style={{
+                padding: "10px 22px",
+                border: "none",
+                background: "none",
+                cursor: "pointer",
+                fontSize: 14,
+                fontWeight: abaTop === a.id ? 700 : 400,
+                color: abaTop === a.id ? "#1565c0" : "#6b7280",
+                borderBottom: abaTop === a.id ? "2px solid #1565c0" : "2px solid transparent",
+                marginBottom: -2,
+                transition: "color .12s",
+              }}
+            >
+              {a.label}
+            </button>
           ))}
         </div>
-        {aba==="dashboard" && !dash && <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />}
-        {aba==="dashboard"        && <AbaDashboard dash={dash}/>}
-        {aba==="estabelecimentos" && <AbaEstabelecimentos estabs={estabs}/>}
-        {aba==="autos"            && <AbaAutos autos={autos}/>}
       </div>
+
+      {abaTop === "municipal" && <PainelMunicipal />}
+      {abaTop === "alimentos" && <VisaAlimentos />}
+      {abaTop === "apui"      && <VisaMunicipalApui />}
     </div>
   );
 }
