@@ -874,10 +874,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
             <L1 to="/ccih"                   label="CCIH / Infecções"        Icon={Shield}/>
             <L1 to="/vigiagua"               label="VigiÁgua"                Icon={Droplets}/>
             <Acc1 label="VISA / Vigilância Sanitária">
-              <L2 to="/visa"               label="VISA Municipal"        Icon={Shield}/>
-              <L2 to="/visa-alimentos"     label="VISA Alimentos"        Icon={ShieldCheck}/>
-              <L2 to="/visa-municipal"     label="VISA Painel"           Icon={Building2}/>
-              <L2 to="/visa-municipal-apui" label="VISA Municipal Apuí" Icon={MapPin}/>
+              <L2 to="/visa" label="VISA Municipal" Icon={Shield}/>
             </Acc1>
             <L1 to="/vetores"                label="Controle de Vetores"     Icon={Bug}/>
             <L1 to="/zoonoses"               label="Zoonoses"                Icon={Bug}/>
@@ -998,15 +995,11 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
             {podeAud && (
             <Acc1 label="Auditoria e Controle">
               <L2 to="/auditoria"            label="Auditoria do Sistema"       Icon={Shield}/>
-              <L2 to="/central-auditoria"    label="Central de Auditoria APS"   Icon={ShieldCheck}/>
-              <L2 to="/auditoria-automatica" label="Auditoria Automática"       Icon={ClipboardCheck}/>
               <L2 to="/score-risco-esf"      label="Score de Risco ESF"         Icon={ShieldAlert}/>
-              <L2 to="/trilha-auditoria"     label="Trilha de Auditoria"        Icon={GitBranch}/>
               <L2 to="/gap-analysis-aps"     label="Gap Analysis · Integrações" Icon={GitBranch}/>
               <L2 to="/monitor-lotes-siaps"  label="Monitor Lotes SIAPS"        Icon={Package}/>
               <L2 to="/conformidade-scnes"   label="Conformidade SCNES"         Icon={Building2}/>
               <L2 to="/qualidade-cadsus"     label="Qualidade CADSUS"           Icon={UserCheck}/>
-              <L2 to="/relatorio-ras"        label="Relatório RAS"              Icon={Network}/>
               <L2 to="/plano-acao"           label="Plano de Ação"              Icon={ClipboardList}/>
             </Acc1>
             )}
@@ -1229,7 +1222,7 @@ export default function App() {
             <Route path="/pat-saude"                 element={<PatSaude/>}/>
             <Route path="/abastecimento"             element={<Abastecimento/>}/>
             <Route path="/seguranca-paciente" element={<Navigate to="/seguranca-paciente-apui" replace/>}/>
-            <Route path="/visa-alimentos"            element={<VisaAlimentos/>}/>
+            <Route path="/visa-alimentos" element={<Navigate to="/visa" replace/>}/>
             <Route path="/academia-saude"            element={<AcademiaSaude/>}/>
             <Route path="/laboratorio" element={<Navigate to="/laboratorio-apui" replace/>}/>
             <Route path="/crie"                      element={<CRIE/>}/>
@@ -1423,10 +1416,12 @@ export default function App() {
             <Route path="/regulacao"                 element={<Regulacao/>}/>
             <Route path="/usuarios"                  element={<Usuarios/>}/>
             <Route path="/auditoria"                 element={<Auditoria/>}/>
-            <Route path="/central-auditoria"         element={<CentralAuditoria/>}/>
+            <Route path="/central-auditoria"         element={<Navigate to="/auditoria" replace/>}/>
+            <Route path="/auditoria-automatica"      element={<Navigate to="/auditoria" replace/>}/>
+            <Route path="/trilha-auditoria"          element={<Navigate to="/auditoria" replace/>}/>
+            <Route path="/relatorio-ras"             element={<Navigate to="/auditoria" replace/>}/>
             <Route path="/gap-analysis-aps"          element={<GapAnalysisAPS/>}/>
             <Route path="/plano-acao"                element={<PlanoAcao/>}/>
-            <Route path="/trilha-auditoria"          element={<TrilhaAuditoria/>}/>
             <Route path="/monitor-lotes-siaps"       element={<MonitorLotesSIAPS/>}/>
             <Route path="/conformidade-scnes"        element={<ConformidadeSCNES/>}/>
             <Route path="/qualidade-cadsus"          element={<QualidadeCADSUS/>}/>
@@ -1437,11 +1432,9 @@ export default function App() {
             <Route path="/previsao-previne"          element={<PrevisaoPrevineBrasil/>}/>
             <Route path="/simulador-cenarios"        element={<SimuladorCenarios/>}/>
             <Route path="/score-risco-esf"           element={<ScoreRiscoESF/>}/>
-            <Route path="/auditoria-automatica"      element={<AuditoriaAutomatica/>}/>
             <Route path="/okr"                       element={<PainelOKR/>}/>
             <Route path="/central-regulacao"         element={<CentralRegulacao/>}/>
             <Route path="/monitor-epidemiologico"    element={<MonitorEpidemiologico/>}/>
-            <Route path="/relatorio-ras"             element={<RelatorioRAS/>}/>
             <Route path="/cronograma-repasses"       element={<CronogramaRepasses/>}/>
             <Route path="/busca-ativa-ia"            element={<BuscaAtivaIA/>}/>
             <Route path="/gestao-equipamentos"       element={<GestaoEquipamentos/>}/>

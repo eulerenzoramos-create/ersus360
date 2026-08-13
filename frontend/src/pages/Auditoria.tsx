@@ -1,9 +1,15 @@
-// Fase 2 — Auditoria do Sistema (logs de acesso e operações)
+// Fase 5 — Auditoria consolidada em painel único com abas
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiAuditoria } from "../lib/api";
 import { Shield, Download, Search, AlertTriangle, Info, CheckCircle } from "lucide-react";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
+import CentralAuditoria from "./CentralAuditoria";
+import AuditoriaAutomatica from "./AuditoriaAutomatica";
+import TrilhaAuditoria from "./TrilhaAuditoria";
+import RelatorioRAS from "./RelatorioRAS";
+
+// ── Estilos compartilhados ────────────────────────────────────────────────────
 
 const S = {
   page:  { padding: 20 } as React.CSSProperties,
@@ -43,8 +49,9 @@ interface LogEntry {
   criado_em: string;
 }
 
+// ── Aba Sistema (conteúdo original) ──────────────────────────────────────────
 
-export default function Auditoria() {
+function AbaSistema() {
   const [busca, setBusca] = useState("");
   const [nivelFiltro, setNivelFiltro] = useState("TODOS");
   const [moduloFiltro, setModuloFiltro] = useState("todos");
@@ -89,9 +96,6 @@ export default function Auditoria() {
   if (logs.length === 0) {
     return (
       <div style={S.page}>
-        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-          <Shield size={16} color="#1565C0" /> Auditoria do Sistema
-        </div>
         <NaoDisponivelBanner titulo="Logs de auditoria indisponiveis" nota="Dados nao disponiveis — integracao pendente de configuracao no Railway." />
       </div>
     );
@@ -99,10 +103,6 @@ export default function Auditoria() {
 
   return (
     <div style={S.page}>
-      <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-        <Shield size={16} color="#1565C0" /> Auditoria do Sistema
-      </div>
-
       {/* Cards de resumo por nível */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
         {(["INFO", "AUDIT", "WARN", "CRITICAL"] as const).map((nivel) => {
@@ -196,9 +196,66 @@ export default function Auditoria() {
         </div>
       </div>
 
-      {/* Nota de retenção */}
       <div style={{ fontSize: 11, color: "#737373", textAlign: "center" }}>
         Logs de auditoria são mantidos por 5 anos conforme RN-011-03. Exportação disponível somente para perfis Gestor e Admin.
+      </div>
+    </div>
+  );
+}
+
+// ── Painel principal com abas ────────────────────────────────────────────────
+
+type TabId = "sistema" | "central" | "automatica" | "trilha" | "ras";
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: "sistema",    label: "Sistema"      },
+  { id: "central",    label: "APS Central"  },
+  { id: "automatica", label: "Automática"   },
+  { id: "trilha",     label: "Trilha"       },
+  { id: "ras",        label: "RAS"          },
+];
+
+export default function Auditoria() {
+  const [activeTab, setActiveTab] = useState<TabId>("sistema");
+
+  return (
+    <div style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+      {/* Cabeçalho com abas */}
+      <div style={{ background: "#fff", borderBottom: "1px solid #e5e5e3", padding: "12px 20px 0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <Shield size={16} color="#1565C0" />
+          <span style={{ fontSize: 16, fontWeight: 700, color: "#0d2137" }}>Auditoria do Sistema</span>
+        </div>
+        <div style={{ display: "flex", gap: 0 }}>
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: "8px 18px",
+                border: "none",
+                borderBottom: activeTab === tab.id ? "3px solid #1565C0" : "3px solid transparent",
+                background: "transparent",
+                color: activeTab === tab.id ? "#1565C0" : "#737373",
+                fontWeight: activeTab === tab.id ? 700 : 400,
+                cursor: "pointer",
+                fontSize: 13,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Conteúdo da aba ativa */}
+      <div>
+        {activeTab === "sistema"    && <AbaSistema />}
+        {activeTab === "central"    && <CentralAuditoria />}
+        {activeTab === "automatica" && <AuditoriaAutomatica />}
+        {activeTab === "trilha"     && <TrilhaAuditoria />}
+        {activeTab === "ras"        && <RelatorioRAS />}
       </div>
     </div>
   );
