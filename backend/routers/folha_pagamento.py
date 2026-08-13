@@ -159,18 +159,54 @@ async def gerar_folha(
         servidores = [s for s in servidores if s["vinculo"] == vinculo]
 
     verbas = [_calcular_verba(s) for s in servidores]
-    total_bruto   = round(sum(v["bruto"] for v in verbas), 2)
-    total_liquido = round(sum(v["liquido"] for v in verbas), 2)
+    total_bruto          = round(sum(v["bruto"] for v in verbas), 2)
+    total_liquido        = round(sum(v["liquido"] for v in verbas), 2)
+    total_inss           = round(sum(v["desc_inss"] for v in verbas), 2)
+    total_irrf           = round(sum(v["desc_irrf"] for v in verbas), 2)
+    total_custo          = round(sum(v["custo_total_empregador"] for v in verbas), 2)
+
+    # Resumo por fonte de recurso (para aba "Por Fonte de Pagamento")
+    fontes_vistas: dict = {}
+    for v in verbas:
+        key = v["fonte_contabil"]
+        if key not in fontes_vistas:
+            srv_ref = next((s for s in _SERVIDORES_REF if s["mat"] == v["matricula"]), {})
+            fi = FONTE_INFO.get(srv_ref.get("fonte", ""), {})
+            fontes_vistas[key] = {
+                "fonte":      srv_ref.get("fonte", key),
+                "label":      fi.get("label", key),
+                "contabil":   key,
+                "grupo":      v["fonte_grupo"],
+                "servidores": 0,
+                "bruto":      0.0,
+                "liquido":    0.0,
+                "custo_total": 0.0,
+            }
+        fontes_vistas[key]["servidores"] += 1
+        fontes_vistas[key]["bruto"]      += v["bruto"]
+        fontes_vistas[key]["liquido"]    += v["liquido"]
+        fontes_vistas[key]["custo_total"] += v["custo_total_empregador"]
+
+    resumo_por_fonte = []
+    for item in sorted(fontes_vistas.values(), key=lambda x: x["contabil"]):
+        item["bruto"]      = round(item["bruto"], 2)
+        item["liquido"]    = round(item["liquido"], 2)
+        item["custo_total"] = round(item["custo_total"], 2)
+        resumo_por_fonte.append(item)
 
     return {
-        "situacao_dado":    "referencia_municipal",
-        "competencia":      competencia,
-        "municipio":        "Apuí/AM",
-        "verbas":           verbas,
-        "total_servidores": len(verbas),
-        "total_bruto":      total_bruto,
-        "total_liquido":    total_liquido,
-        "nota":             "Quadro de referência PCCS/CNES SMS Apuí. Confirme com RH municipal para dados operacionais.",
+        "situacao_dado":          "referencia_municipal",
+        "competencia":            competencia,
+        "municipio":              "Apuí/AM",
+        "verbas":                 verbas,
+        "total_servidores":       len(verbas),
+        "total_bruto":            total_bruto,
+        "total_liquido":          total_liquido,
+        "total_inss_descontado":  total_inss,
+        "total_irrf_descontado":  total_irrf,
+        "total_custo_empregador": total_custo,
+        "resumo_por_fonte":       resumo_por_fonte,
+        "nota":                   "Quadro de referência PCCS/CNES SMS Apuí. Confirme com RH municipal para dados operacionais.",
     }
 
 
