@@ -28,8 +28,8 @@ EGESTOR_TOKEN = (
 IBGE_APUI   = "1300144"
 IBGE6_APUI  = "130014"   # 6 dígitos para alguns endpoints
 CNES_APUI   = os.getenv("CNES_APUI", "6820662")
-EGESTOR_BASE = "https://egestorab.saude.gov.br"
-APISIAPS_BASE = "https://apisiaps.saude.gov.br"
+EGESTOR_BASE = "https://apisiaps.saude.gov.br"
+APISIAPS_BASE = "https://egestorab.saude.gov.br"
 TIMEOUT     = 15.0
 
 # Cache de token autenticado em memória
@@ -159,9 +159,9 @@ async def _egestor_get(path: str, cache_key: str, params: dict = {}):
 async def abrangencia(_: UserOut = Depends(get_current_user)):
     """Abrangência municipal — equipes por tipo."""
     return await _egestor_get(
-        "/gestaoaps/api/abrangencia",
+        "/componente/abrangencia",
         "siaps_abrangencia",
-        {"coIbge": IBGE_APUI, "nuCompetencia": "202604"},
+        {"coMunicipioIbge": IBGE_APUI, "competencias": "202605"},
     )
 
 
@@ -169,9 +169,11 @@ async def abrangencia(_: UserOut = Depends(get_current_user)):
 async def vinculo_acompanhamento(_: UserOut = Depends(get_current_user)):
     """Componente Vínculo e Acompanhamento Territorial."""
     return await _egestor_get(
-        "/gestaoaps/api/vinculo",
+        "/componente/cvat/visao-competencia",
         "siaps_vinculo",
-        {"coIbge": IBGE_APUI, "nuCompetencia": "202604"},
+        {"coMunicipioIbge": IBGE_APUI, "competencias": "202605",
+         "sgEquipes": "eAP,eSF", "stEquipeHomologada": "S",
+         "page": "0", "size": "50"},
     )
 
 
@@ -179,9 +181,9 @@ async def vinculo_acompanhamento(_: UserOut = Depends(get_current_user)):
 async def componente_qualidade(_: UserOut = Depends(get_current_user)):
     """Componente Qualidade — indicadores Previne Brasil."""
     return await _egestor_get(
-        "/gestaoaps/api/resultado",
+        "/componente/qualidade/resultado",
         "siaps_qualidade",
-        {"coIbge": IBGE_APUI, "nuCompetencia": "202604"},
+        {"coMunicipioIbge": IBGE_APUI, "competencias": "202605"},
     )
 
 
@@ -189,18 +191,18 @@ async def componente_qualidade(_: UserOut = Depends(get_current_user)):
 async def boas_praticas(_: UserOut = Depends(get_current_user)):
     """Componente Boas Práticas de Gestão."""
     return await _egestor_get(
-        "/gestaoaps/api/boasPraticas",
+        "/componente/boasPraticas",
         "siaps_boas_praticas",
-        {"coIbge": IBGE_APUI, "nuCompetencia": "202604"},
+        {"coMunicipioIbge": IBGE_APUI, "competencias": "202605"},
     )
 
 
 @router.get("/dashboard")
 async def dashboard_siaps(_: UserOut = Depends(get_current_user)):
     """Dashboard consolidado — tenta todos os componentes."""
-    abr  = await _egestor_get("/gestaoaps/api/abrangencia",  "siaps_abrangencia",   {"coIbge": IBGE_APUI})
-    qual = await _egestor_get("/gestaoaps/api/resultado",    "siaps_qualidade",     {"coIbge": IBGE_APUI})
-    vinc = await _egestor_get("/gestaoaps/api/vinculo",      "siaps_vinculo",       {"coIbge": IBGE_APUI})
+    abr  = await _egestor_get("/componente/abrangencia",            "siaps_abrangencia", {"coMunicipioIbge": IBGE_APUI, "competencias": "202605"})
+    qual = await _egestor_get("/componente/qualidade/resultado",    "siaps_qualidade",   {"coMunicipioIbge": IBGE_APUI, "competencias": "202605"})
+    vinc = await _egestor_get("/componente/cvat/visao-competencia", "siaps_vinculo",     {"coMunicipioIbge": IBGE_APUI, "competencias": "202605", "page": "0", "size": "50"})
 
     algum_ok = any(
         d.get("situacao_dado") == "oficial_validado"
@@ -272,25 +274,25 @@ async def diagnostico_api():
 @router.get("/qualidade/diario")
 async def qualidade_diario(_: UserOut = Depends(get_current_user)):
     return await _egestor_get(
-        "/gestaoaps/api/resultado",
+        "/componente/qualidade/resultado",
         "siaps_qualidade_diario",
-        {"coIbge": IBGE_APUI, "nuCompetencia": "202604", "tipo": "diario"},
+        {"coMunicipioIbge": IBGE_APUI, "competencias": "202605", "tipo": "diario"},
     )
 
 
 @router.get("/qualidade/mensal")
 async def qualidade_mensal(_: UserOut = Depends(get_current_user)):
     return await _egestor_get(
-        "/gestaoaps/api/resultado",
+        "/componente/qualidade/resultado",
         "siaps_qualidade_mensal",
-        {"coIbge": IBGE_APUI, "nuCompetencia": "202604", "tipo": "mensal"},
+        {"coMunicipioIbge": IBGE_APUI, "competencias": "202605", "tipo": "mensal"},
     )
 
 
 @router.get("/qualidade/quadrimestral")
 async def qualidade_quadrimestral(_: UserOut = Depends(get_current_user)):
     return await _egestor_get(
-        "/gestaoaps/api/resultado",
+        "/componente/qualidade/resultado",
         "siaps_qualidade_quadrimestral",
-        {"coIbge": IBGE_APUI, "nuCompetencia": "202604", "tipo": "quadrimestral"},
+        {"coMunicipioIbge": IBGE_APUI, "competencias": "202605", "tipo": "quadrimestral"},
     )
