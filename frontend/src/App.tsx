@@ -996,10 +996,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
             <Acc1 label="Auditoria e Controle">
               <L2 to="/auditoria"            label="Auditoria do Sistema"       Icon={Shield}/>
               <L2 to="/score-risco-esf"      label="Score de Risco ESF"         Icon={ShieldAlert}/>
-              <L2 to="/gap-analysis-aps"     label="Gap Analysis · Integrações" Icon={GitBranch}/>
-              <L2 to="/monitor-lotes-siaps"  label="Monitor Lotes SIAPS"        Icon={Package}/>
-              <L2 to="/conformidade-scnes"   label="Conformidade SCNES"         Icon={Building2}/>
-              <L2 to="/qualidade-cadsus"     label="Qualidade CADSUS"           Icon={UserCheck}/>
+
               <L2 to="/plano-acao"           label="Plano de Ação"              Icon={ClipboardList}/>
             </Acc1>
             )}
@@ -1420,11 +1417,11 @@ export default function App() {
             <Route path="/auditoria-automatica"      element={<Navigate to="/auditoria" replace/>}/>
             <Route path="/trilha-auditoria"          element={<Navigate to="/auditoria" replace/>}/>
             <Route path="/relatorio-ras"             element={<Navigate to="/auditoria" replace/>}/>
-            <Route path="/gap-analysis-aps"          element={<GapAnalysisAPS/>}/>
+            <Route path="/conformidade-scnes"   element={<Navigate to="/inconsistencias" replace/>}/>
+            <Route path="/qualidade-cadsus"      element={<Navigate to="/inconsistencias" replace/>}/>
+            <Route path="/monitor-lotes-siaps"   element={<Navigate to="/inconsistencias" replace/>}/>
+            <Route path="/gap-analysis-aps"      element={<Navigate to="/inconsistencias" replace/>}/>
             <Route path="/plano-acao"                element={<PlanoAcao/>}/>
-            <Route path="/monitor-lotes-siaps"       element={<MonitorLotesSIAPS/>}/>
-            <Route path="/conformidade-scnes"        element={<ConformidadeSCNES/>}/>
-            <Route path="/qualidade-cadsus"          element={<QualidadeCADSUS/>}/>
             <Route path="/gateway-rnds"              element={<GatewayRNDS/>}/>
             <Route path="/integracao-pec"            element={<IntegracaoPEC/>}/>
             <Route path="/linha-tempo-cidadao"       element={<LinhaTempoCidadao/>}/>

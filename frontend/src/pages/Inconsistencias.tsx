@@ -1,10 +1,9 @@
 /**
  * Inconsistências — ERSUS 360
- * Módulo central de rastreamento estruturado de inconsistências por município.
+ * Central de Inconsistências com abas:
+ *   Cadastros | SCNES | CADSUS | SIAPS | Integrações
  *
- * Acesso:
- *   - Assessoria: vê todas (pode filtrar por município)
- *   - Municipal: vê apenas o próprio município
+ * Fase 6 — cada aba embute o respectivo módulo de auditoria.
  */
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,12 +11,18 @@ import {
   AlertTriangle, CheckCircle, Clock, XCircle, Search,
   Plus, ChevronDown, ChevronRight, Filter, RefreshCw,
   Shield, FileText, ExternalLink, Users, Building2,
-  TrendingDown, AlertOctagon,
+  TrendingDown, AlertOctagon, Package, UserCheck,
 } from "lucide-react";
 import { apiGet, api } from "../lib/api";
 import { useMunicipioSeletor } from "../lib/municipio";
 import MunicipioSeletor from "../components/MunicipioSeletor";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
+
+// Abas externas
+import ConformidadeSCNES from "./ConformidadeSCNES";
+import QualidadeCADSUS   from "./QualidadeCADSUS";
+import MonitorLotesSIAPS from "./MonitorLotesSIAPS";
+import GapAnalysisAPS    from "./GapAnalysisAPS";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -51,6 +56,14 @@ interface Resumo {
   risco_financeiro_total: number;
   por_situacao: Record<string, number>;
   por_gravidade: Record<string, number>;
+}
+
+interface ScnesResumo {
+  inconsistencias_abertas: number;
+}
+
+interface SiapsResumo {
+  inconsistencias_abertas: number;
 }
 
 // ── Config visual ─────────────────────────────────────────────────────────────
@@ -336,7 +349,7 @@ function Chip({ label, valor }: { label: string; valor: string }) {
   );
 }
 
-// ── Página principal ──────────────────────────────────────────────────────────
+// ── Aba Cadastros (conteúdo original de Inconsistencias) ──────────────────────
 
 const PROGRAMAS = ["", "CVAT", "Qualidade APS", "CNES/SCNES", "FNS Repasses", "e-SUS PEC", "SIAPS"];
 const GRAVIDADES: Array<{ value: string; label: string }> = [
@@ -355,8 +368,7 @@ const SITUACOES: Array<{ value: string; label: string }> = [
   { value:"descartada",   label:"Descartadas" },
 ];
 
-export default function Inconsistencias() {
-  const { ibge, setIbge } = useMunicipioSeletor();
+function AbaCadastros({ ibge }: { ibge: string }) {
   const qc = useQueryClient();
 
   const [gravidade, setGravidade] = useState("");
@@ -364,7 +376,6 @@ export default function Inconsistencias() {
   const [programa, setPrograma] = useState("");
   const [busca, setBusca] = useState("");
 
-  // Dados
   const { data: resumo, isLoading: loadingResumo } = useQuery<Resumo>({
     queryKey: ["inconsistencias-resumo", ibge],
     queryFn: () => apiGet(`/api/inconsistencias/resumo?municipio_ibge=${ibge}`),
@@ -414,40 +425,14 @@ export default function Inconsistencias() {
   };
 
   if (!loadingResumo && !resumo) return (
-    <div style={{ padding: 24 }}>
-      <NaoDisponivelBanner
-        titulo="Inconsistencias indisponivel"
-        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
-      />
-    </div>
+    <NaoDisponivelBanner
+      titulo="Inconsistencias indisponivel"
+      nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+    />
   );
 
   return (
-    <div style={{ padding:24, maxWidth:1300, margin:"0 auto" }}>
-
-      {/* Cabeçalho */}
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between",
-        marginBottom:24, flexWrap:"wrap", gap:12 }}>
-        <div>
-          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
-            <AlertOctagon size={22} color="#dc2626"/>
-            <h1 style={{ margin:0, fontSize:20, fontWeight:700, color:"#1e293b" }}>
-              Módulo de Inconsistências
-            </h1>
-          </div>
-          <div style={{ fontSize:12, color:"#64748b" }}>
-            Rastreamento estruturado · ERSUS 360 · Isolamento total por município
-          </div>
-        </div>
-        <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
-          <MunicipioSeletor onChange={(novoIbge) => setIbge(novoIbge)}/>
-          <button onClick={() => refetch()} style={{ ...select_style, display:"flex",
-            alignItems:"center", gap:6, border:"1px solid #e2e8f0" }}>
-            <RefreshCw size={13}/> Atualizar
-          </button>
-        </div>
-      </div>
-
+    <div>
       {/* Resumo */}
       {!loadingResumo && resumo && (
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
@@ -498,6 +483,11 @@ export default function Inconsistencias() {
             <option key={p} value={p}>{p || "Todos os programas"}</option>
           ))}
         </select>
+
+        <button onClick={() => refetch()} style={{ ...select_style, display:"flex",
+          alignItems:"center", gap:6, border:"1px solid #e2e8f0" }}>
+          <RefreshCw size={13}/> Atualizar
+        </button>
       </div>
 
       {/* Tabela */}
@@ -562,6 +552,129 @@ export default function Inconsistencias() {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Página principal com abas ─────────────────────────────────────────────────
+
+type TabId = "cadastros" | "scnes" | "cadsus" | "siaps" | "integracoes";
+
+export default function Inconsistencias() {
+  const { ibge, setIbge } = useMunicipioSeletor();
+  const [activeTab, setActiveTab] = useState<TabId>("cadastros");
+  const token = localStorage.getItem("ersus_token") ?? "";
+
+  // Badges: contagens de inconsistências abertas por aba
+  const { data: resumoCad } = useQuery<Resumo>({
+    queryKey: ["inconsistencias-resumo", ibge],
+    queryFn: () => apiGet(`/api/inconsistencias/resumo?municipio_ibge=${ibge}`),
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: resumoScnes } = useQuery<ScnesResumo>({
+    queryKey: ["scnes-resumo", ibge],
+    queryFn: () =>
+      api.get(`/api/scnes-conformidade/resumo?ibge=${ibge}`,
+        { headers: { Authorization: `Bearer ${token}` } }).then(r => r.data),
+    staleTime: 120_000,
+  });
+
+  const { data: resumoSiaps } = useQuery<SiapsResumo>({
+    queryKey: ["siaps-resumo", ibge],
+    queryFn: () =>
+      api.get(`/api/siaps-monitor/resumo?ibge=${ibge}`,
+        { headers: { Authorization: `Bearer ${token}` } }).then(r => r.data),
+    staleTime: 60_000,
+  });
+
+  const badgeCad   = resumoCad?.abertas ?? null;
+  const badgeScnes = resumoScnes?.inconsistencias_abertas ?? null;
+  const badgeSiaps = resumoSiaps?.inconsistencias_abertas ?? null;
+  // Integrações: 10 gaps, 0 implementados (estático)
+  const badgeInteg = 10;
+
+  const totalGeral =
+    (badgeCad   ?? 0) +
+    (badgeScnes ?? 0) +
+    (badgeSiaps ?? 0);
+
+  interface TabDef { id: TabId; label: string; badge: number | null }
+  const TABS: TabDef[] = [
+    { id: "cadastros",   label: "Cadastros",   badge: badgeCad   },
+    { id: "scnes",       label: "SCNES",        badge: badgeScnes },
+    { id: "cadsus",      label: "CADSUS",       badge: null       },
+    { id: "siaps",       label: "SIAPS",        badge: badgeSiaps },
+    { id: "integracoes", label: "Integrações",  badge: badgeInteg },
+  ];
+
+  const tabBarStyle: React.CSSProperties = {
+    display:"flex", gap:0, borderBottom:"2px solid #e2e8f0",
+    marginBottom:24, overflowX:"auto",
+  };
+
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    display:"flex", alignItems:"center", gap:7,
+    padding:"10px 20px", fontSize:13, fontWeight: active ? 700 : 500,
+    color: active ? "#1d4ed8" : "#64748b",
+    background:"transparent", border:"none",
+    borderBottom: active ? "3px solid #1d4ed8" : "3px solid transparent",
+    marginBottom:"-2px", cursor:"pointer", whiteSpace:"nowrap",
+    transition:"color .15s",
+  });
+
+  const badgeStyle: React.CSSProperties = {
+    fontSize:9, fontWeight:800, background:"#ef4444", color:"#fff",
+    padding:"1px 5px", borderRadius:8, marginLeft:2,
+  };
+
+  return (
+    <div style={{ padding:24, maxWidth:1300, margin:"0 auto" }}>
+
+      {/* Cabeçalho */}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between",
+        marginBottom:20, flexWrap:"wrap", gap:12 }}>
+        <div>
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
+            <AlertOctagon size={22} color="#dc2626"/>
+            <h1 style={{ margin:0, fontSize:20, fontWeight:700, color:"#1e293b" }}>
+              Central de Inconsistências
+            </h1>
+            {totalGeral > 0 && (
+              <span style={{ fontSize:11, fontWeight:800, background:"#dc2626", color:"#fff",
+                padding:"2px 10px", borderRadius:12 }}>
+                {totalGeral} abertas
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize:12, color:"#64748b" }}>
+            Cadastros · SCNES · CADSUS · SIAPS · Integrações — ERSUS 360
+          </div>
+        </div>
+        <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
+          <MunicipioSeletor onChange={(novoIbge) => setIbge(novoIbge)}/>
+        </div>
+      </div>
+
+      {/* Barra de abas */}
+      <div style={tabBarStyle}>
+        {TABS.map(t => (
+          <button key={t.id} style={tabStyle(activeTab === t.id)}
+            onClick={() => setActiveTab(t.id)}>
+            {t.label}
+            {t.badge != null && t.badge > 0 && (
+              <span style={badgeStyle}>{t.badge}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Conteúdo das abas */}
+      {activeTab === "cadastros"   && <AbaCadastros ibge={ibge}/>}
+      {activeTab === "scnes"       && <ConformidadeSCNES/>}
+      {activeTab === "cadsus"      && <QualidadeCADSUS/>}
+      {activeTab === "siaps"       && <MonitorLotesSIAPS/>}
+      {activeTab === "integracoes" && <GapAnalysisAPS/>}
 
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
     </div>
