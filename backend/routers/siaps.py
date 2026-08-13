@@ -30,10 +30,14 @@ IBGE6_APUI  = "130014"   # 6 dígitos para alguns endpoints
 CNES_APUI   = os.getenv("CNES_APUI", "6820662")
 EGESTOR_BASE = "https://apisiaps.saude.gov.br"
 APISIAPS_BASE = "https://egestorab.saude.gov.br"
+AUTH_REFRESH_URL = "https://apiautenticacao-aps.saude.gov.br/auth/refresh-token"
 TIMEOUT     = 15.0
 
 # Cache de token autenticado em memória
-_auth_cache: dict = {}
+SIAPS_REFRESH_TOKEN = os.getenv("SIAPS_REFRESH_TOKEN", "")
+_auth_cache: dict = {
+    "refresh_token": SIAPS_REFRESH_TOKEN,
+}
 
 
 async def _obter_token() -> str:
@@ -46,6 +50,37 @@ async def _obter_token() -> str:
     expira = _auth_cache.get("expira", 0)
     if cached and expira > time.time():
         return cached
+
+    # Tenta refresh via refresh_token armazenado
+    rt = _auth_cache.get("refresh_token")
+    if rt:
+        renovado = await _refresh_token_siaps.__wrapped__(rt) if hasattr(_refresh_token_siaps, "__wrapped__") else None
+        # chama diretamente o endpoint com o refresh_token
+        try:
+            async with httpx.AsyncClient(timeout=10, verify=False) as c:
+                r = await c.post(
+                    AUTH_REFRESH_URL,
+                    headers={
+                        "Authorization": f"Bearer {rt}",
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                        "Origin": "https://siaps.saude.gov.br",
+                    },
+                )
+                if r.status_code == 200:
+                    body = r.json() or {}
+                    novo = body.get("access_token", "")
+                    novo_rt = body.get("refresh_token", "")
+                    expires = body.get("expires_in", 1100)
+                    if novo:
+                        _auth_cache["token"] = novo
+                        _auth_cache["expira"] = time.time() + max(expires - 60, 60)
+                        if novo_rt:
+                            _auth_cache["refresh_token"] = novo_rt
+                        logger.info("SIAPS: token renovado via refresh_token (expira em %ss)", expires)
+                        return novo
+        except Exception as e:
+            logger.debug("refresh via refresh_token falhou: %s", e)
 
     if not SIAPS_CPF or not SIAPS_SENHA:
         return ""
@@ -108,6 +143,40 @@ def _nao_disp(motivo: str = ""):
     }
 
 
+async def _refresh_token_siaps() -> str:
+    """Renova token via apiautenticacao-aps.saude.gov.br/auth/refresh-token."""
+    current = _auth_cache.get("token") or EGESTOR_TOKEN
+    if not current:
+        return ""
+    try:
+        async with httpx.AsyncClient(timeout=10, verify=False) as c:
+            r = await c.post(
+                AUTH_REFRESH_URL,
+                headers={
+                    "Authorization": f"Bearer {current}",
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "Origin": "https://siaps.saude.gov.br",
+                    "Referer": "https://siaps.saude.gov.br/",
+                },
+            )
+            if r.status_code == 200:
+                body = r.json() or {}
+                novo = body.get("access_token", "")
+                refresh = body.get("refresh_token", "")
+                expires = body.get("expires_in", 1100)
+                if novo:
+                    _auth_cache["token"] = novo
+                    _auth_cache["expira"] = time.time() + max(expires - 60, 60)
+                    if refresh:
+                        _auth_cache["refresh_token"] = refresh
+                    logger.info("SIAPS: token renovado via refresh-token (expira em %ss)", expires)
+                    return novo
+    except Exception as e:
+        logger.debug("refresh-token falhou: %s", e)
+    return current
+
+
 async def _egestor_get(path: str, cache_key: str, params: dict = {}):
     """Chama e-Gestor APS autenticando dinamicamente se necessário."""
     cached = cache_get(cache_key)
@@ -119,35 +188,50 @@ async def _egestor_get(path: str, cache_key: str, params: dict = {}):
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
-    # Tenta egestorab e apisiaps (fallback público)
-    urls_tentadas = [
-        f"{EGESTOR_BASE}{path}",
-        f"{APISIAPS_BASE}{path}",
-    ]
-    for url in urls_tentadas:
-        try:
-            async with httpx.AsyncClient(timeout=TIMEOUT, verify=False, follow_redirects=True) as client:
-                r = await client.get(url, headers=headers, params=params)
-                if r.status_code == 401:
-                    # Limpa cache de token e tenta sem auth
+    url = f"{EGESTOR_BASE}{path}"
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, verify=False, follow_redirects=True) as client:
+            r = await client.get(url, headers=headers, params=params)
+
+            # Captura token renovado da resposta (SIAPS envia novo token no header)
+            novo_token = r.headers.get("Authorization", "").replace("Bearer ", "").strip()
+            if novo_token and novo_token != token:
+                _auth_cache["token"] = novo_token
+                _auth_cache["expira"] = time.time() + 1100
+                logger.info("SIAPS: token atualizado a partir da resposta da API")
+
+            if r.status_code == 401:
+                # Token expirado — tenta refresh
+                novo = await _refresh_token_siaps()
+                if novo and novo != token:
+                    headers["Authorization"] = f"Bearer {novo}"
+                    r2 = await client.get(url, headers=headers, params=params)
+                    if r2.status_code == 200:
+                        r = r2
+                    else:
+                        _auth_cache.clear()
+                        return _nao_disp("Token expirado. Atualize EGESTOR_TOKEN no Railway.")
+                else:
                     _auth_cache.clear()
-                    continue
-                if r.status_code == 200:
-                    data = r.json()
-                    result = {
-                        "situacao_dado": "oficial_validado",
-                        "fonte": "egestor_aps",
-                        "ultima_atualizacao": _ts(),
-                        "dados": data,
-                    }
-                    cache_set(cache_key, result, ttl=900)
-                    cache_set(f"{cache_key}_last", result, ttl=86400)
-                    return result
-        except httpx.TimeoutException:
-            continue
-        except Exception as e:
-            logger.debug("egestor_get %s → %s", url, e)
-            continue
+                    return _nao_disp("Token expirado. Atualize EGESTOR_TOKEN no Railway.")
+
+            if r.status_code == 200:
+                data = r.json()
+                result = {
+                    "situacao_dado": "oficial_validado",
+                    "fonte": "egestor_aps",
+                    "ultima_atualizacao": _ts(),
+                    "dados": data,
+                }
+                cache_set(cache_key, result, ttl=900)
+                cache_set(f"{cache_key}_last", result, ttl=86400)
+                return result
+
+            logger.debug("egestor_get %s → HTTP %s", url, r.status_code)
+    except httpx.TimeoutException:
+        logger.debug("egestor_get timeout: %s", url)
+    except Exception as e:
+        logger.debug("egestor_get %s → %s", url, e)
 
     last = cache_get(f"{cache_key}_last")
     if last:
