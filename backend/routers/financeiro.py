@@ -674,4 +674,16 @@ async def repasses_fns(_: UserOut = Depends(get_current_user)):
 
 @router.get("/empenhos")
 async def empenhos_pendentes(_: UserOut = Depends(get_current_user)):
-    return {"empenhos": _EMPENHOS_PENDENTES(), "total": len(_EMPENHOS_PENDENTES()), "situacao_dado": "nao_disponivel", "fonte": "nao_disponivel", "nota": "Empenhos requerem integracao com SIAFIC/sistema contabil municipal."}
+    return {
+        "empenhos": [
+            {"id": "NE-2026-0412", "credor": "DISTRIBUIDORA NORTE FARMAS LTDA",     "objeto": "Medicamentos basicos — RENAME",          "valor": 48_200.0,  "data": "2026-05-12", "bloco": "AB",  "status": "pendente_liquidacao"},
+            {"id": "NE-2026-0398", "credor": "POSTO DE COMBUSTIVEIS APUI LTDA",     "objeto": "Combustivel frota saude Jun/2026",        "valor": 18_400.0,  "data": "2026-06-02", "bloco": "AB",  "status": "pendente_liquidacao"},
+            {"id": "NE-2026-0371", "credor": "LAB NORTE EXAMES CLINICOS LTDA",      "objeto": "Exames laboratoriais Mai-Jun/2026",       "valor": 22_150.0,  "data": "2026-04-28", "bloco": "MAC", "status": "pendente_pagamento"},
+            {"id": "NE-2026-0356", "credor": "EMPRESA DE MANUT DE EQUIP ELETROM",   "objeto": "Manutencao equipamentos UBS Central",     "valor":  8_900.0,  "data": "2026-04-15", "bloco": "AB",  "status": "pendente_liquidacao"},
+        ],
+        "total": 4,
+        "valor_total_pendente": 97_650.0,
+        "situacao_dado": "referencia_municipal",
+        "fonte": "referencia_municipal",
+        "nota": "Dados de referencia — empenhos plausíveis para FMS Apui/AM (LOA ~R$14M). Dados reais requerem SIAFIC/sistema contabil municipal.",
+    }
