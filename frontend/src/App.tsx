@@ -848,12 +848,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
                 </Acc2>
               </Acc1>
 
-              <Acc1 label="SIOPS">
-                <L2 to="/siops"           label="SIOPS / Mínimo Const." Icon={Target}/>
-                <L2 to="/siops-completo"  label="SIOPS Completo"        Icon={PieChart}/>
-                <L2 to="/siops-detalhado" label="SIOPS Detalhado"       Icon={FileText}/>
-                <L2 to="/siops-live"      label="SIOPS Live"            Icon={Activity}/>
-              </Acc1>
+              <L1 to="/siops" label="SIOPS / Mínimo Const." Icon={Target}/>
 
               <L1 to="/siconfi"              label="SICONFI"                 Icon={Building2}/>
               <L1 to="/rreo-anexo12"         label="RREO Anexo 12"           Icon={FileText}/>
@@ -1166,6 +1161,9 @@ export default function App() {
             <Route path="/epidemiologia"             element={<Epidemiologia/>}/>
             <Route path="/epidemiologia/*"           element={<Epidemiologia/>}/>
             <Route path="/siops"                     element={<SIOPS/>}/>
+            <Route path="/siops-completo"            element={<Navigate to="/siops" replace/>}/>
+            <Route path="/siops-detalhado"           element={<Navigate to="/siops" replace/>}/>
+            <Route path="/siops-live"                element={<Navigate to="/siops" replace/>}/>
             <Route path="/financeiro"                element={<PainelFinanceiro/>}/>
             <Route path="/siaps"                     element={<SiapsEgestor/>}/>
             <Route path="/caf"                       element={<PainelCAF/>}/>
@@ -1226,9 +1224,6 @@ export default function App() {
             <Route path="/contratos"                 element={<Contratos/>}/>
             <Route path="/samu"                      element={<SAMU/>}/>
             <Route path="/pnae"                      element={<PNAE/>}/>
-            <Route path="/siops-completo"            element={<SIOPSCompleto/>}/>
-            <Route path="/siops-detalhado"           element={<SIOPSDetalhado/>}/>
-            <Route path="/siops-live"               element={<SIOPSLive/>}/>
             <Route path="/siconfi"                  element={<SICONFIPanel/>}/>
             <Route path="/rreo-anexo12"             element={<RREOAnexo12/>}/>
             <Route path="/pat-saude"                 element={<PatSaude/>}/>

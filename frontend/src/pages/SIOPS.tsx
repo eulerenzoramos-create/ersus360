@@ -4,13 +4,26 @@ import { useQuery } from "@tanstack/react-query";
 import { apiSiops } from "../lib/api";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
+import SIOPSCompleto from "./SIOPSCompleto";
+import SIOPSDetalhado from "./SIOPSDetalhado";
+import SIOPSLive from "./SIOPSLive";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 type Bloco = { bloco: string; transferido: number; aplicado: number; pct_exec: number };
 type Trim  = { trimestre: string; receita_imp: number; gasto_proprio: number; minimo_pct: number; status: string };
 
+type OuterTab = "resumo" | "completo" | "detalhado" | "live";
+
+const OUTER_TABS: { key: OuterTab; label: string }[] = [
+  { key: "resumo",    label: "Resumo" },
+  { key: "completo",  label: "Completo" },
+  { key: "detalhado", label: "Detalhado" },
+  { key: "live",      label: "Live" },
+];
+
 export default function SIOPS() {
+  const [outerTab, setOuterTab] = useState<OuterTab>("resumo");
   const [tab, setTab] = useState<"apuracao" | "blocos" | "trimestral" | "historico">("apuracao");
 
   const { data: apuracao } = useQuery({ queryKey: ["siops-apuracao"], queryFn: () => apiSiops.apuracao() });
@@ -19,7 +32,31 @@ export default function SIOPS() {
   const { data: hist }     = useQuery({ queryKey: ["siops-hist"],     queryFn: apiSiops.historico, enabled: tab === "historico" });
 
   return (
-    <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
+    <div style={{ fontFamily: "system-ui, sans-serif" }}>
+      {/* Abas externas */}
+      <div style={{ display: "flex", gap: 0, borderBottom: "3px solid #1565c0", background: "#f5f7fa", padding: "0 24px" }}>
+        {OUTER_TABS.map(a => (
+          <button key={a.key} onClick={() => setOuterTab(a.key)}
+            style={{
+              padding: "12px 22px", border: "none", cursor: "pointer",
+              fontSize: 14, fontWeight: outerTab === a.key ? 700 : 500,
+              background: outerTab === a.key ? "#1565c0" : "transparent",
+              color: outerTab === a.key ? "#fff" : "#555",
+              borderRadius: "6px 6px 0 0",
+              marginBottom: -3,
+              borderBottom: outerTab === a.key ? "3px solid #1565c0" : "3px solid transparent",
+            }}>
+            {a.label}
+          </button>
+        ))}
+      </div>
+
+      {outerTab === "completo"  && <SIOPSCompleto />}
+      {outerTab === "detalhado" && <SIOPSDetalhado />}
+      {outerTab === "live"      && <SIOPSLive />}
+
+      {outerTab === "resumo" && (
+      <div style={{ padding: 24 }}>
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#1565c0" }}>SIOPS — Mínimo Constitucional</h2>
         <p style={{ margin: "4px 0 0", color: "#666", fontSize: 13 }}>
@@ -233,6 +270,8 @@ export default function SIOPS() {
             ✅ Apuí/AM atingiu o mínimo constitucional em saúde nos últimos 5 anos consecutivos. Média do período: {(hist.historico.reduce((s: number, h: { minimo_pct: number }) => s + h.minimo_pct, 0) / hist.historico.length).toFixed(2)}%
           </div>
         </div>
+      )}
+      </div>
       )}
     </div>
   );
