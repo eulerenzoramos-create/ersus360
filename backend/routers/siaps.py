@@ -41,9 +41,12 @@ _auth_cache: dict = {
 
 
 async def _obter_token() -> str:
-    """Retorna Bearer token: env var direta ou autentica via CPF+senha."""
-    if EGESTOR_TOKEN:
-        return EGESTOR_TOKEN
+    """Retorna Bearer token válido: cache → refresh → CPF+senha → env var."""
+    # Seed inicial: se cache vazio, carrega EGESTOR_TOKEN com TTL curto para
+    # forçar tentativa de refresh na próxima chamada
+    if EGESTOR_TOKEN and not _auth_cache.get("token"):
+        _auth_cache["token"] = EGESTOR_TOKEN
+        _auth_cache["expira"] = time.time() + 60  # 1 min → força refresh logo
 
     # Verifica cache de auth
     cached = _auth_cache.get("token")
@@ -54,7 +57,6 @@ async def _obter_token() -> str:
     # Tenta refresh via refresh_token armazenado
     rt = _auth_cache.get("refresh_token")
     if rt:
-        renovado = await _refresh_token_siaps.__wrapped__(rt) if hasattr(_refresh_token_siaps, "__wrapped__") else None
         # chama diretamente o endpoint com o refresh_token
         try:
             async with httpx.AsyncClient(timeout=10, verify=False) as c:
