@@ -204,7 +204,7 @@ export default function SaudeMulher() {
   const { data: dash }        = useQuery({ queryKey: ["sm-dash"],  queryFn: () => apiGet("/api/saude-mulher/dashboard") as Promise<any> });
   const { data: indicadores } = useQuery({ queryKey: ["sm-ind"],   queryFn: () => apiGet("/api/saude-mulher/indicadores") as Promise<any[]>,  enabled: aba === "indicadores" });
   const { data: gestantes }   = useQuery({ queryKey: ["sm-gest"],  queryFn: () => apiGet("/api/saude-mulher/gestantes") as Promise<any[]>,    enabled: aba === "gestantes" });
-  const { data: puerperas }   = useQuery({ queryKey: ["sm-puerp"], queryFn: () => apiGet("/api/saude-mulher/puerperas") as Promise<any[]>,    enabled: aba === "puerperas" });
+  const { data: puerperas = []}   = useQuery({ queryKey: ["sm-puerp"], queryFn: () => apiGet("/api/saude-mulher/puerperas") as Promise<any[]>,    enabled: aba === "puerperas" });
 
   const ABAS: { id: Aba; label: string }[] = [
     { id: "dashboard",   label: "Dashboard" },

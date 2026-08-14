@@ -193,9 +193,9 @@ export default function SimSinasc() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dashRaw } = useQuery({ queryKey: ["sim-dash"],  queryFn: () => apiGet("/api/sim-sinasc/dashboard")      as Promise<any> });
   const { data: hist }    = useQuery({ queryKey: ["sim-hist"],  queryFn: () => apiGet("/api/sim-sinasc/historico")       as Promise<any[]>, enabled: aba==="dashboard" });
-  const { data: obitos }  = useQuery({ queryKey: ["sim-obit"],  queryFn: () => apiGet("/api/sim-sinasc/obitos")          as Promise<any[]>, enabled: aba==="obitos" });
+  const { data: obitos = []}  = useQuery({ queryKey: ["sim-obit"],  queryFn: () => apiGet("/api/sim-sinasc/obitos")          as Promise<any[]>, enabled: aba==="obitos" });
   const { data: oi }      = useQuery({ queryKey: ["sim-oi"],    queryFn: () => apiGet("/api/sim-sinasc/obitos-infantis") as Promise<any[]>, enabled: aba==="infantis" });
-  const { data: nvs }     = useQuery({ queryKey: ["sim-nv"],    queryFn: () => apiGet("/api/sim-sinasc/nascidos-vivos")  as Promise<any[]>, enabled: aba==="nv" });
+  const { data: nvs = []}     = useQuery({ queryKey: ["sim-nv"],    queryFn: () => apiGet("/api/sim-sinasc/nascidos-vivos")  as Promise<any[]>, enabled: aba==="nv" });
 
   const dash = dashRaw && hist ? { ...dashRaw, historico: hist } : null;
 

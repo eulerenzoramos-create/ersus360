@@ -165,7 +165,7 @@ export default function PlanejamentoFamiliar() {
   const { data: dash   } = useQuery({ queryKey: ["pf-dash"],   queryFn: () => apiGet("/api/planejamento-familiar/dashboard")    as Promise<any> });
   const { data: hist   } = useQuery({ queryKey: ["pf-hist"],   queryFn: () => apiGet("/api/planejamento-familiar/historico")    as Promise<any[]>, enabled: aba==="dashboard" });
   const { data: mets   } = useQuery({ queryKey: ["pf-met"],    queryFn: () => apiGet("/api/planejamento-familiar/metodos")      as Promise<any[]>, enabled: aba==="metodos" });
-  const { data: faixas } = useQuery({ queryKey: ["pf-faixa"],  queryFn: () => apiGet("/api/planejamento-familiar/faixa-etaria") as Promise<any[]>, enabled: aba==="faixaetaria" });
+  const { data: faixas = []} = useQuery({ queryKey: ["pf-faixa"],  queryFn: () => apiGet("/api/planejamento-familiar/faixa-etaria") as Promise<any[]>, enabled: aba==="faixaetaria" });
   const { data: inds   } = useQuery({ queryKey: ["pf-ind"],    queryFn: () => apiGet("/api/planejamento-familiar/indicadores")  as Promise<any[]>, enabled: aba==="indicadores" });
 
   const dashRaw = dash as any;

@@ -162,7 +162,7 @@ export default function PSE() {
   const { data: dash  } = useQuery({ queryKey: ["pse-dash"],  queryFn: () => apiGet("/api/pse/dashboard")   as Promise<any> });
   const { data: hist  } = useQuery({ queryKey: ["pse-hist"],  queryFn: () => apiGet("/api/pse/historico")   as Promise<any[]>, enabled: aba==="dashboard" });
   const { data: esc   } = useQuery({ queryKey: ["pse-esc"],   queryFn: () => apiGet("/api/pse/escolas")     as Promise<any[]>, enabled: aba==="escolas" });
-  const { data: acoes } = useQuery({ queryKey: ["pse-acao"],  queryFn: () => apiGet("/api/pse/acoes")       as Promise<any[]>, enabled: aba==="acoes" });
+  const { data: acoes = []} = useQuery({ queryKey: ["pse-acao"],  queryFn: () => apiGet("/api/pse/acoes")       as Promise<any[]>, enabled: aba==="acoes" });
   const { data: inds  } = useQuery({ queryKey: ["pse-ind"],   queryFn: () => apiGet("/api/pse/indicadores") as Promise<any[]>, enabled: aba==="indicadores" });
 
   const dashRaw = dash as any;

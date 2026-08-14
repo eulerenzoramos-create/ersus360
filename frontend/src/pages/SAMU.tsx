@@ -172,8 +172,8 @@ export default function SAMU() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash  } = useQuery({ queryKey: ["samu-dash"],  queryFn: () => apiGet("/api/samu/dashboard")   as Promise<any> });
   const { data: hist  } = useQuery({ queryKey: ["samu-hist"],  queryFn: () => apiGet("/api/samu/historico")   as Promise<any[]>, enabled: aba==="dashboard" });
-  const { data: ocorr } = useQuery({ queryKey: ["samu-ocorr"], queryFn: () => apiGet("/api/samu/ocorrencias") as Promise<any[]>, enabled: aba==="ocorrencias" });
-  const { data: veics } = useQuery({ queryKey: ["samu-veic"],  queryFn: () => apiGet("/api/samu/veiculos")    as Promise<any[]>, enabled: aba==="veiculos" });
+  const { data: ocorr = []} = useQuery({ queryKey: ["samu-ocorr"], queryFn: () => apiGet("/api/samu/ocorrencias") as Promise<any[]>, enabled: aba==="ocorrencias" });
+  const { data: veics = []} = useQuery({ queryKey: ["samu-veic"],  queryFn: () => apiGet("/api/samu/veiculos")    as Promise<any[]>, enabled: aba==="veiculos" });
   const { data: inds  } = useQuery({ queryKey: ["samu-ind"],   queryFn: () => apiGet("/api/samu/indicadores") as Promise<any[]>, enabled: aba==="indicadores" });
 
   const dashRaw = dash as any;

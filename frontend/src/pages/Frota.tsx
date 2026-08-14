@@ -161,7 +161,7 @@ export default function Frota() {
   const { data: dash  } = useQuery({ queryKey: ["frt-dash"],  queryFn: () => apiGet("/api/frota/dashboard")    as Promise<any> });
   const { data: hist  } = useQuery({ queryKey: ["frt-hist"],  queryFn: () => apiGet("/api/frota/historico")    as Promise<any[]>, enabled: aba==="dashboard" });
   const { data: veics } = useQuery({ queryKey: ["frt-veic"],  queryFn: () => apiGet("/api/frota/veiculos")     as Promise<any[]>, enabled: aba==="veiculos" });
-  const { data: mans  } = useQuery({ queryKey: ["frt-man"],   queryFn: () => apiGet("/api/frota/manutencoes")  as Promise<any[]>, enabled: aba==="manutencoes" });
+  const { data: mans = []} = useQuery({ queryKey: ["frt-man"],   queryFn: () => apiGet("/api/frota/manutencoes")  as Promise<any[]>, enabled: aba==="manutencoes" });
   const { data: inds  } = useQuery({ queryKey: ["frt-ind"],   queryFn: () => apiGet("/api/frota/indicadores")  as Promise<any[]>, enabled: aba==="indicadores" });
 
   const dashRaw = dash as any;

@@ -181,7 +181,7 @@ type Aba = "dashboard"|"frota"|"viagens";
 export default function TransporteSanitario() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash }    = useQuery({ queryKey:["ts-dash"],   queryFn:()=>apiGet("/api/transporte-sanitario/dashboard") as Promise<any> });
-  const { data: frota }   = useQuery({ queryKey:["ts-frota"],  queryFn:()=>apiGet("/api/transporte-sanitario/frota") as Promise<any[]>,   enabled:aba==="frota" });
+  const { data: frota = []}   = useQuery({ queryKey:["ts-frota"],  queryFn:()=>apiGet("/api/transporte-sanitario/frota") as Promise<any[]>,   enabled:aba==="frota" });
   const { data: viagens } = useQuery({ queryKey:["ts-viagens"],queryFn:()=>apiGet("/api/transporte-sanitario/viagens") as Promise<any[]>, enabled:aba==="viagens" });
 
   const ABAS: { id: Aba; label: string }[] = [

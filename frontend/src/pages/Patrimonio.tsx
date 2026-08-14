@@ -25,7 +25,7 @@ export default function Patrimonio() {
 
   const { data: painel, isLoading } = useQuery({ queryKey: ["patrimonio-painel"], queryFn: apiPatrimonio.painel });
   const { data: frota } = useQuery({ queryKey: ["patrimonio-frota"], queryFn: apiPatrimonio.frota });
-  const { data: bens } = useQuery({ queryKey: ["patrimonio-bens"], queryFn: apiPatrimonio.bens });
+  const { data: bens = []} = useQuery({ queryKey: ["patrimonio-bens"], queryFn: apiPatrimonio.bens });
   const { data: manut } = useQuery({ queryKey: ["patrimonio-manut"], queryFn: apiPatrimonio.manutencao });
   const { data: comb } = useQuery({ queryKey: ["patrimonio-comb"], queryFn: apiPatrimonio.abastecimento });
 

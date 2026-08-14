@@ -128,7 +128,7 @@ type Aba = "dashboard"|"equipamentos"|"estoque";
 export default function RedeFrio() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash  } = useQuery({ queryKey: ["rf-dash"],  queryFn: () => apiGet("/api/rede-frio/dashboard")    as Promise<any> });
-  const { data: equip } = useQuery({ queryKey: ["rf-equip"], queryFn: () => apiGet("/api/rede-frio/equipamentos") as Promise<any[]>, enabled: aba==="equipamentos" });
+  const { data: equip = []} = useQuery({ queryKey: ["rf-equip"], queryFn: () => apiGet("/api/rede-frio/equipamentos") as Promise<any[]>, enabled: aba==="equipamentos" });
   const { data: est   } = useQuery({ queryKey: ["rf-est"],   queryFn: () => apiGet("/api/rede-frio/estoque")      as Promise<any[]>, enabled: aba==="estoque" });
   const { data: perd  } = useQuery({ queryKey: ["rf-perd"],  queryFn: () => apiGet("/api/rede-frio/perdas")       as Promise<any[]>, enabled: aba==="dashboard" });
 

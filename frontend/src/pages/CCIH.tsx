@@ -151,9 +151,9 @@ export default function CCIH() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash    } = useQuery({ queryKey: ["ccih-dash"],  queryFn: () => apiGet("/api/ccih/dashboard")     as Promise<any> });
   const { data: hist    } = useQuery({ queryKey: ["ccih-hist"],  queryFn: () => apiGet("/api/ccih/historico")     as Promise<any[]>, enabled: aba==="dashboard" });
-  const { data: orgs    } = useQuery({ queryKey: ["ccih-orgs"],  queryFn: () => apiGet("/api/ccih/microrganismos") as Promise<any[]>, enabled: aba==="microrganismos" });
-  const { data: atbs    } = useQuery({ queryKey: ["ccih-atbs"],  queryFn: () => apiGet("/api/ccih/antibioticos")  as Promise<any[]>, enabled: aba==="antibioticos" });
-  const { data: bundles } = useQuery({ queryKey: ["ccih-bund"],  queryFn: () => apiGet("/api/ccih/bundles")       as Promise<any[]>, enabled: aba==="bundles" });
+  const { data: orgs = []} = useQuery({ queryKey: ["ccih-orgs"],  queryFn: () => apiGet("/api/ccih/microrganismos") as Promise<any[]>, enabled: aba==="microrganismos" });
+  const { data: atbs = []} = useQuery({ queryKey: ["ccih-atbs"],  queryFn: () => apiGet("/api/ccih/antibioticos")  as Promise<any[]>, enabled: aba==="antibioticos" });
+  const { data: bundles = []} = useQuery({ queryKey: ["ccih-bund"],  queryFn: () => apiGet("/api/ccih/bundles")       as Promise<any[]>, enabled: aba==="bundles" });
 
   const dashRaw = dash as any;
 

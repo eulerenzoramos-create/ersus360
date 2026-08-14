@@ -27,7 +27,7 @@ export default function SIOPS() {
   const [tab, setTab] = useState<"apuracao" | "blocos" | "trimestral" | "historico">("apuracao");
 
   const { data: apuracao } = useQuery({ queryKey: ["siops-apuracao"], queryFn: () => apiSiops.apuracao() });
-  const { data: blocos }   = useQuery({ queryKey: ["siops-blocos"],   queryFn: apiSiops.blocos,    enabled: tab === "blocos" });
+  const { data: blocos = []}   = useQuery({ queryKey: ["siops-blocos"],   queryFn: apiSiops.blocos,    enabled: tab === "blocos" });
   const { data: trim }     = useQuery({ queryKey: ["siops-trim"],     queryFn: apiSiops.trimestral, enabled: tab === "trimestral" });
   const { data: hist }     = useQuery({ queryKey: ["siops-hist"],     queryFn: apiSiops.historico, enabled: tab === "historico" });
 

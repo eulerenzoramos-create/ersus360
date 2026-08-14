@@ -150,8 +150,8 @@ export default function PICS() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash  } = useQuery({ queryKey: ["pics-dash"],  queryFn: () => apiGet("/api/pics/dashboard")    as Promise<any> });
   const { data: hist  } = useQuery({ queryKey: ["pics-hist"],  queryFn: () => apiGet("/api/pics/historico")    as Promise<any[]>, enabled: aba==="dashboard" });
-  const { data: mods  } = useQuery({ queryKey: ["pics-mods"],  queryFn: () => apiGet("/api/pics/modalidades")  as Promise<any[]>, enabled: aba==="modalidades" });
-  const { data: conds } = useQuery({ queryKey: ["pics-cond"],  queryFn: () => apiGet("/api/pics/condicoes")    as Promise<any[]>, enabled: aba==="condicoes" });
+  const { data: mods = []} = useQuery({ queryKey: ["pics-mods"],  queryFn: () => apiGet("/api/pics/modalidades")  as Promise<any[]>, enabled: aba==="modalidades" });
+  const { data: conds = []} = useQuery({ queryKey: ["pics-cond"],  queryFn: () => apiGet("/api/pics/condicoes")    as Promise<any[]>, enabled: aba==="condicoes" });
   const { data: inds  } = useQuery({ queryKey: ["pics-ind"],   queryFn: () => apiGet("/api/pics/indicadores")  as Promise<any[]>, enabled: aba==="indicadores" });
 
   const dashRaw = dash as any;

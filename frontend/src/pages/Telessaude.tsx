@@ -175,7 +175,7 @@ export default function Telessaude() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash  } = useQuery({ queryKey: ["tele-dash"],  queryFn: () => apiGet("/api/telessaude/dashboard")      as Promise<any> });
   const { data: hist  } = useQuery({ queryKey: ["tele-hist"],  queryFn: () => apiGet("/api/telessaude/historico")      as Promise<any[]>, enabled: aba==="dashboard" });
-  const { data: specs } = useQuery({ queryKey: ["tele-spec"],  queryFn: () => apiGet("/api/telessaude/especialidades") as Promise<any[]>, enabled: aba==="especialidades" });
+  const { data: specs = []} = useQuery({ queryKey: ["tele-spec"],  queryFn: () => apiGet("/api/telessaude/especialidades") as Promise<any[]>, enabled: aba==="especialidades" });
   const { data: esfs  } = useQuery({ queryKey: ["tele-esf"],   queryFn: () => apiGet("/api/telessaude/solicitantes")   as Promise<any[]>, enabled: aba==="esf" });
   const { data: inds  } = useQuery({ queryKey: ["tele-ind"],   queryFn: () => apiGet("/api/telessaude/indicadores")    as Promise<any[]>, enabled: aba==="indicadores" });
 

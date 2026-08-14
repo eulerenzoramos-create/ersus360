@@ -319,8 +319,8 @@ export default function RegulacaoMAC() {
 
   const { data: dash }        = useQuery({ queryKey: ["reg-dashboard"],    queryFn: () => apiGet("/api/regulacao-mac/dashboard") as Promise<any> });
   const { data: fila }        = useQuery({ queryKey: ["reg-fila"],         queryFn: () => apiGet("/api/regulacao-mac/fila-ambulatorial") as Promise<any[]>, enabled: aba === "fila" });
-  const { data: internacoes } = useQuery({ queryKey: ["reg-internacoes"],  queryFn: () => apiGet("/api/regulacao-mac/internacoes") as Promise<any[]>, enabled: aba === "internacoes" });
-  const { data: tfd }         = useQuery({ queryKey: ["reg-tfd"],          queryFn: () => apiGet("/api/regulacao-mac/tfd") as Promise<any[]>, enabled: aba === "tfd" });
+  const { data: internacoes = []} = useQuery({ queryKey: ["reg-internacoes"],  queryFn: () => apiGet("/api/regulacao-mac/internacoes") as Promise<any[]>, enabled: aba === "internacoes" });
+  const { data: tfd = []}         = useQuery({ queryKey: ["reg-tfd"],          queryFn: () => apiGet("/api/regulacao-mac/tfd") as Promise<any[]>, enabled: aba === "tfd" });
 
   const ABAS: { id: Aba; label: string }[] = [
     { id: "dashboard",   label: "Dashboard" },

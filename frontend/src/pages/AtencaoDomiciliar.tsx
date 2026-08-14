@@ -212,7 +212,7 @@ export default function AtencaoDomiciliar() {
   const { data: dash }      = useQuery({ queryKey: ["ad-dash"],  queryFn: () => apiGet("/api/atencao-domiciliar/dashboard") as Promise<any> });
   const { data: pacientes } = useQuery({ queryKey: ["ad-pac"],   queryFn: () => apiGet("/api/atencao-domiciliar/pacientes")  as Promise<any[]>, enabled: aba==="pacientes" });
   const { data: emad }      = useQuery({ queryKey: ["ad-emad"],  queryFn: () => apiGet("/api/atencao-domiciliar/equipe")     as Promise<any>,   enabled: aba==="equipe" });
-  const { data: prod }      = useQuery({ queryKey: ["ad-prod"],  queryFn: () => apiGet("/api/atencao-domiciliar/producao")   as Promise<any[]>, enabled: aba==="producao" });
+  const { data: prod = []}      = useQuery({ queryKey: ["ad-prod"],  queryFn: () => apiGet("/api/atencao-domiciliar/producao")   as Promise<any[]>, enabled: aba==="producao" });
 
   const ABAS: { id: Aba; label: string }[] = [
     { id: "dashboard", label: "Dashboard" },

@@ -17,9 +17,9 @@ export default function OCIS() {
   const [aba, setAba] = useState<"central" | "regulacao" | "tfd">("central");
 
   const { data: dash, isLoading } = useQuery({ queryKey: ["ocis-dash"], queryFn: apiOCIS.dashboard });
-  const { data: alertas } = useQuery({ queryKey: ["ocis-alertas"], queryFn: apiOCIS.centralAlertas });
-  const { data: fila } = useQuery({ queryKey: ["ocis-fila"], queryFn: apiOCIS.filaEspera });
-  const { data: tfd } = useQuery({ queryKey: ["ocis-tfd"], queryFn: apiOCIS.tfd });
+  const { data: alertas = []} = useQuery({ queryKey: ["ocis-alertas"], queryFn: apiOCIS.centralAlertas });
+  const { data: fila = []} = useQuery({ queryKey: ["ocis-fila"], queryFn: apiOCIS.filaEspera });
+  const { data: tfd = []} = useQuery({ queryKey: ["ocis-tfd"], queryFn: apiOCIS.tfd });
 
   if (!isLoading && !dash) return (
     <div style={{ padding: 24 }}>

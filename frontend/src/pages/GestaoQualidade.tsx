@@ -196,9 +196,9 @@ type Aba = "dashboard"|"indicadores-q"|"auditorias"|"ncs"|"indicadores";
 export default function GestaoQualidade() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash  } = useQuery({ queryKey: ["gq-dash"],  queryFn: () => apiGet("/api/gestao-qualidade/dashboard")             as Promise<any> });
-  const { data: indsQ } = useQuery({ queryKey: ["gq-indq"],  queryFn: () => apiGet("/api/gestao-qualidade/indicadores-qualidade") as Promise<any[]>, enabled: aba==="indicadores-q" });
-  const { data: auds  } = useQuery({ queryKey: ["gq-auds"],  queryFn: () => apiGet("/api/gestao-qualidade/auditorias")            as Promise<any[]>, enabled: aba==="auditorias" });
-  const { data: ncs   } = useQuery({ queryKey: ["gq-ncs"],   queryFn: () => apiGet("/api/gestao-qualidade/nao-conformidades")     as Promise<any[]>, enabled: aba==="ncs" });
+  const { data: indsQ = []} = useQuery({ queryKey: ["gq-indq"],  queryFn: () => apiGet("/api/gestao-qualidade/indicadores-qualidade") as Promise<any[]>, enabled: aba==="indicadores-q" });
+  const { data: auds = []} = useQuery({ queryKey: ["gq-auds"],  queryFn: () => apiGet("/api/gestao-qualidade/auditorias")            as Promise<any[]>, enabled: aba==="auditorias" });
+  const { data: ncs = []} = useQuery({ queryKey: ["gq-ncs"],   queryFn: () => apiGet("/api/gestao-qualidade/nao-conformidades")     as Promise<any[]>, enabled: aba==="ncs" });
   const { data: inds  } = useQuery({ queryKey: ["gq-ind"],   queryFn: () => apiGet("/api/gestao-qualidade/indicadores")          as Promise<any[]>, enabled: aba==="indicadores" });
 
   const dashRaw = dash as any;

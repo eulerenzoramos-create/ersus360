@@ -164,7 +164,7 @@ export default function SaudePrisional() {
   const { data: dash   } = useQuery({ queryKey: ["pris-dash"],  queryFn: () => apiGet("/api/saude-prisional/dashboard")        as Promise<any> });
   const { data: hist   } = useQuery({ queryKey: ["pris-hist"],  queryFn: () => apiGet("/api/saude-prisional/producao")         as Promise<any[]>, enabled: aba==="dashboard" });
   const { data: doenc  } = useQuery({ queryKey: ["pris-doe"],   queryFn: () => apiGet("/api/saude-prisional/doencas-prevalentes") as Promise<any[]>, enabled: aba==="doencas" });
-  const { data: acoes  } = useQuery({ queryKey: ["pris-ac"],    queryFn: () => apiGet("/api/saude-prisional/acoes-saude")      as Promise<any[]>, enabled: aba==="acoes" });
+  const { data: acoes = []} = useQuery({ queryKey: ["pris-ac"],    queryFn: () => apiGet("/api/saude-prisional/acoes-saude")      as Promise<any[]>, enabled: aba==="acoes" });
   const { data: inds   } = useQuery({ queryKey: ["pris-ind"],   queryFn: () => apiGet("/api/saude-prisional/indicadores")      as Promise<any[]>, enabled: aba==="indicadores" });
 
   const dashRaw = dash as any;

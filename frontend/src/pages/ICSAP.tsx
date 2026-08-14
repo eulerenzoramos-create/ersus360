@@ -179,8 +179,8 @@ export default function ICSAP() {
   const { data: dash  } = useQuery({ queryKey: ["ic-dash"],  queryFn: () => apiGet("/api/icsap/dashboard") as Promise<any> });
   const { data: hist  } = useQuery({ queryKey: ["ic-hist"],  queryFn: () => apiGet("/api/icsap/historico") as Promise<any[]>, enabled: aba==="dashboard" });
   const { data: caus  } = useQuery({ queryKey: ["ic-caus"],  queryFn: () => apiGet("/api/icsap/causas")    as Promise<any[]>, enabled: aba==="causas" });
-  const { data: esfs  } = useQuery({ queryKey: ["ic-esf"],   queryFn: () => apiGet("/api/icsap/por-esf")  as Promise<any[]>, enabled: aba==="por-esf" });
-  const { data: acoes } = useQuery({ queryKey: ["ic-acoes"], queryFn: () => apiGet("/api/icsap/acoes")    as Promise<any[]>, enabled: aba==="acoes" });
+  const { data: esfs = []} = useQuery({ queryKey: ["ic-esf"],   queryFn: () => apiGet("/api/icsap/por-esf")  as Promise<any[]>, enabled: aba==="por-esf" });
+  const { data: acoes = []} = useQuery({ queryKey: ["ic-acoes"], queryFn: () => apiGet("/api/icsap/acoes")    as Promise<any[]>, enabled: aba==="acoes" });
 
   const dashRaw = dash as any;
 

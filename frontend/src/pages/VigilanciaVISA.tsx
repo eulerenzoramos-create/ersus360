@@ -196,7 +196,7 @@ function PainelMunicipal() {
   const [aba, setAba] = useState<AbaInterna>("dashboard");
   const { data: dashRaw }  = useQuery({ queryKey: ["visa-dash"],  queryFn: () => apiGet("/api/visa/dashboard") as Promise<any> });
   const { data: estabs }   = useQuery({ queryKey: ["visa-estab"], queryFn: () => apiGet("/api/visa/estabelecimentos") as Promise<any[]>, enabled: aba==="estabelecimentos" });
-  const { data: autos }    = useQuery({ queryKey: ["visa-autos"], queryFn: () => apiGet("/api/visa/autos") as Promise<any[]>,            enabled: aba==="autos" });
+  const { data: autos = []}    = useQuery({ queryKey: ["visa-autos"], queryFn: () => apiGet("/api/visa/autos") as Promise<any[]>,            enabled: aba==="autos" });
   const { data: hist }     = useQuery({ queryKey: ["visa-hist"],  queryFn: () => apiGet("/api/visa/inspecoes") as Promise<any[]>,        enabled: aba==="dashboard" });
 
   const dash = dashRaw && hist ? {

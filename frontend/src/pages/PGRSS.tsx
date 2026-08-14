@@ -162,7 +162,7 @@ export default function PGRSS() {
   const { data: dash } = useQuery({ queryKey: ["pgr-dash"], queryFn: () => apiGet("/api/pgrss/dashboard")          as Promise<any> });
   const { data: hist } = useQuery({ queryKey: ["pgr-hist"], queryFn: () => apiGet("/api/pgrss/historico")          as Promise<any[]>, enabled: aba==="dashboard" });
   const { data: grps } = useQuery({ queryKey: ["pgr-grps"], queryFn: () => apiGet("/api/pgrss/grupos")            as Promise<any[]>, enabled: aba==="grupos" });
-  const { data: ncs  } = useQuery({ queryKey: ["pgr-ncs"],  queryFn: () => apiGet("/api/pgrss/nao-conformidades") as Promise<any[]>, enabled: aba==="nao-conformidades" });
+  const { data: ncs = []} = useQuery({ queryKey: ["pgr-ncs"],  queryFn: () => apiGet("/api/pgrss/nao-conformidades") as Promise<any[]>, enabled: aba==="nao-conformidades" });
   const { data: inds } = useQuery({ queryKey: ["pgr-ind"],  queryFn: () => apiGet("/api/pgrss/indicadores")       as Promise<any[]>, enabled: aba==="indicadores" });
 
   const dashRaw = dash as any;

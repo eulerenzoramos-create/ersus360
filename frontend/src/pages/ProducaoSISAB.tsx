@@ -207,9 +207,9 @@ type Aba = "dashboard" | "equipe" | "procedimentos" | "ciclos";
 export default function ProducaoSISAB() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash }   = useQuery({ queryKey: ["sisab-dash"],  queryFn: () => apiGet("/api/sisab/dashboard") as Promise<any> });
-  const { data: equipes }= useQuery({ queryKey: ["sisab-equip"], queryFn: () => apiGet("/api/sisab/por-equipe") as Promise<any[]>,    enabled: aba === "equipe" });
-  const { data: procs }  = useQuery({ queryKey: ["sisab-proc"],  queryFn: () => apiGet("/api/sisab/procedimentos") as Promise<any[]>, enabled: aba === "procedimentos" });
-  const { data: ciclos } = useQuery({ queryKey: ["sisab-cicl"],  queryFn: () => apiGet("/api/sisab/ciclos") as Promise<any[]>,        enabled: aba === "ciclos" });
+  const { data: equipes = []}= useQuery({ queryKey: ["sisab-equip"], queryFn: () => apiGet("/api/sisab/por-equipe") as Promise<any[]>,    enabled: aba === "equipe" });
+  const { data: procs = []}  = useQuery({ queryKey: ["sisab-proc"],  queryFn: () => apiGet("/api/sisab/procedimentos") as Promise<any[]>, enabled: aba === "procedimentos" });
+  const { data: ciclos = []} = useQuery({ queryKey: ["sisab-cicl"],  queryFn: () => apiGet("/api/sisab/ciclos") as Promise<any[]>,        enabled: aba === "ciclos" });
 
   const ABAS: { id: Aba; label: string }[] = [
     { id: "dashboard",    label: "Dashboard" },

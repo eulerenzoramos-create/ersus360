@@ -181,7 +181,7 @@ export default function SaudeHomem() {
   const { data: hist }   = useQuery({ queryKey: ["hom-hist"],  queryFn: () => apiGet("/api/saude-homem/producao")    as Promise<any[]>, enabled: aba==="dashboard" });
   const { data: inds }   = useQuery({ queryKey: ["hom-ind"],   queryFn: () => apiGet("/api/saude-homem/indicadores") as Promise<any[]>, enabled: aba==="indicadores" });
   const { data: intrs }  = useQuery({ queryKey: ["hom-int"],   queryFn: () => apiGet("/api/saude-homem/internacoes") as Promise<any[]>, enabled: aba==="internacoes" });
-  const { data: acoes }  = useQuery({ queryKey: ["hom-acao"],  queryFn: () => apiGet("/api/saude-homem/acoes")       as Promise<any[]>, enabled: aba==="acoes" });
+  const { data: acoes = []}  = useQuery({ queryKey: ["hom-acao"],  queryFn: () => apiGet("/api/saude-homem/acoes")       as Promise<any[]>, enabled: aba==="acoes" });
 
   const dashFull = dash && hist ? { ...dash, historico: hist } : null;
 

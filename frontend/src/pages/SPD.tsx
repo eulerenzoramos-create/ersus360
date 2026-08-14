@@ -162,8 +162,8 @@ export default function SPD() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash } = useQuery({ queryKey: ["spd-dash"], queryFn: () => apiGet("/api/spd/dashboard")    as Promise<any> });
   const { data: hist } = useQuery({ queryKey: ["spd-hist"], queryFn: () => apiGet("/api/spd/historico")    as Promise<any[]>, enabled: aba==="dashboard" });
-  const { data: tipos} = useQuery({ queryKey: ["spd-tip"],  queryFn: () => apiGet("/api/spd/tipos")        as Promise<any[]>, enabled: aba==="tipos" });
-  const { data: reab } = useQuery({ queryKey: ["spd-reab"], queryFn: () => apiGet("/api/spd/reabilitacao") as Promise<any[]>, enabled: aba==="reabilitacao" });
+  const { data: tipos = []} = useQuery({ queryKey: ["spd-tip"],  queryFn: () => apiGet("/api/spd/tipos")        as Promise<any[]>, enabled: aba==="tipos" });
+  const { data: reab = []} = useQuery({ queryKey: ["spd-reab"], queryFn: () => apiGet("/api/spd/reabilitacao") as Promise<any[]>, enabled: aba==="reabilitacao" });
   const { data: inds } = useQuery({ queryKey: ["spd-ind"],  queryFn: () => apiGet("/api/spd/indicadores")  as Promise<any[]>, enabled: aba==="indicadores" });
 
   const dashRaw = dash as any;

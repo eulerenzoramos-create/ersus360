@@ -164,8 +164,8 @@ type Aba = "dashboard"|"medicamentos"|"judicializacao"|"renovacoes";
 export default function FarmaciaEspecializada() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash } = useQuery({ queryKey: ["fe-dash"], queryFn: () => apiGet("/api/farmacia-especializada/dashboard")       as Promise<any> });
-  const { data: meds } = useQuery({ queryKey: ["fe-med"],  queryFn: () => apiGet("/api/farmacia-especializada/medicamentos")    as Promise<any[]>, enabled: aba==="dashboard"||aba==="medicamentos" });
-  const { data: juds } = useQuery({ queryKey: ["fe-jud"],  queryFn: () => apiGet("/api/farmacia-especializada/judicializacoes") as Promise<any[]>, enabled: aba==="judicializacao" });
+  const { data: meds = []} = useQuery({ queryKey: ["fe-med"],  queryFn: () => apiGet("/api/farmacia-especializada/medicamentos")    as Promise<any[]>, enabled: aba==="dashboard"||aba==="medicamentos" });
+  const { data: juds = []} = useQuery({ queryKey: ["fe-jud"],  queryFn: () => apiGet("/api/farmacia-especializada/judicializacoes") as Promise<any[]>, enabled: aba==="judicializacao" });
   const { data: renov}= useQuery({ queryKey: ["fe-ren"],  queryFn: () => apiGet("/api/farmacia-especializada/renovacoes")     as Promise<any[]>, enabled: aba==="renovacoes" });
 
   const dashRaw = dash as any;

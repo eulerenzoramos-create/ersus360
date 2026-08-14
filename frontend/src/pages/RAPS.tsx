@@ -239,8 +239,8 @@ export default function RAPS() {
   const { data: dash }     = useQuery({ queryKey: ["raps-dash"],   queryFn: () => apiGet("/api/raps/dashboard") as Promise<any> });
   const { data: caps }     = useQuery({ queryKey: ["raps-caps"],   queryFn: () => apiGet("/api/raps/caps") as Promise<any>,    enabled: aba === "caps" });
   const { data: usuarios } = useQuery({ queryKey: ["raps-users"],  queryFn: () => apiGet("/api/raps/usuarios") as Promise<any[]>, enabled: aba === "usuarios" });
-  const { data: grupos }   = useQuery({ queryKey: ["raps-grp"],    queryFn: () => apiGet("/api/raps/grupos") as Promise<any[]>,  enabled: aba === "grupos" });
-  const { data: leitos }   = useQuery({ queryKey: ["raps-leitos"], queryFn: () => apiGet("/api/raps/leitos") as Promise<any[]>,  enabled: aba === "leitos" });
+  const { data: grupos = []}   = useQuery({ queryKey: ["raps-grp"],    queryFn: () => apiGet("/api/raps/grupos") as Promise<any[]>,  enabled: aba === "grupos" });
+  const { data: leitos = []}   = useQuery({ queryKey: ["raps-leitos"], queryFn: () => apiGet("/api/raps/leitos") as Promise<any[]>,  enabled: aba === "leitos" });
 
   const ABAS: { id: Aba; label: string }[] = [
     { id: "dashboard", label: "Dashboard" },

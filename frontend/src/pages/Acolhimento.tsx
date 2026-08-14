@@ -207,7 +207,7 @@ export default function Acolhimento() {
   const { data: dash   } = useQuery({ queryKey: ["acol-dash"],  queryFn: () => apiGet("/api/acolhimento/dashboard")   as Promise<any> });
   const { data: hist   } = useQuery({ queryKey: ["acol-hist"],  queryFn: () => apiGet("/api/acolhimento/historico")   as Promise<any[]>, enabled: aba==="dashboard" });
   const { data: fluxo  } = useQuery({ queryKey: ["acol-flux"],  queryFn: () => apiGet("/api/acolhimento/fluxo")       as Promise<any>,   enabled: aba==="fluxo" });
-  const { data: queixas} = useQuery({ queryKey: ["acol-qx"],    queryFn: () => apiGet("/api/acolhimento/queixas")     as Promise<any[]>, enabled: aba==="queixas" });
+  const { data: queixas = []} = useQuery({ queryKey: ["acol-qx"],    queryFn: () => apiGet("/api/acolhimento/queixas")     as Promise<any[]>, enabled: aba==="queixas" });
   const { data: inds   } = useQuery({ queryKey: ["acol-ind"],   queryFn: () => apiGet("/api/acolhimento/indicadores") as Promise<any[]>, enabled: aba==="indicadores" });
 
   const dashRaw = dash as any;

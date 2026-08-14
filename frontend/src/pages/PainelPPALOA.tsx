@@ -375,8 +375,8 @@ type Aba = "loa" | "ldo" | "siops";
 export default function PainelPPALOA() {
   const [aba, setAba] = useState<Aba>("loa");
   const { data: dash }      = useQuery({ queryKey: ["ppa-dashboard"], queryFn: () => apiGet("/api/planejamento-orc/dashboard") as Promise<any> });
-  const { data: loa }       = useQuery({ queryKey: ["ppa-loa"],       queryFn: () => apiGet("/api/planejamento-orc/loa") as Promise<any[]> });
-  const { data: metas }     = useQuery({ queryKey: ["ppa-ldo"],       queryFn: () => apiGet("/api/planejamento-orc/ldo-metas") as Promise<any[]>, enabled: aba === "ldo" });
+  const { data: loa = []}       = useQuery({ queryKey: ["ppa-loa"],       queryFn: () => apiGet("/api/planejamento-orc/loa") as Promise<any[]> });
+  const { data: metas = []}     = useQuery({ queryKey: ["ppa-ldo"],       queryFn: () => apiGet("/api/planejamento-orc/ldo-metas") as Promise<any[]>, enabled: aba === "ldo" });
   const { data: siopsHist } = useQuery({ queryKey: ["ppa-siops"],     queryFn: () => apiGet("/api/planejamento-orc/siops-historico") as Promise<any[]>, enabled: aba === "siops" });
   const { data: siopsBim }  = useQuery({ queryKey: ["ppa-siops-bim"], queryFn: () => apiGet("/api/planejamento-orc/siops-bimestral") as Promise<any>, enabled: aba === "siops" });
 

@@ -242,9 +242,9 @@ type Aba = "dashboard"|"estoque"|"programas"|"dispensacao";
 export default function AssistenciaFarmaceutica() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash }      = useQuery({ queryKey:["af-dash"],  queryFn:()=>apiGet("/api/farmacia-basica/dashboard") as Promise<any> });
-  const { data: estoque }   = useQuery({ queryKey:["af-est"],   queryFn:()=>apiGet("/api/farmacia-basica/estoque") as Promise<any[]>,     enabled:aba==="estoque" });
-  const { data: programas } = useQuery({ queryKey:["af-prog"],  queryFn:()=>apiGet("/api/farmacia-basica/programas") as Promise<any[]>,   enabled:aba==="programas" });
-  const { data: hist }      = useQuery({ queryKey:["af-disp"],  queryFn:()=>apiGet("/api/farmacia-basica/dispensacao") as Promise<any[]>, enabled:aba==="dispensacao" });
+  const { data: estoque = []}   = useQuery({ queryKey:["af-est"],   queryFn:()=>apiGet("/api/farmacia-basica/estoque") as Promise<any[]>,     enabled:aba==="estoque" });
+  const { data: programas = []} = useQuery({ queryKey:["af-prog"],  queryFn:()=>apiGet("/api/farmacia-basica/programas") as Promise<any[]>,   enabled:aba==="programas" });
+  const { data: hist = []}      = useQuery({ queryKey:["af-disp"],  queryFn:()=>apiGet("/api/farmacia-basica/dispensacao") as Promise<any[]>, enabled:aba==="dispensacao" });
 
   const ABAS: { id: Aba; label: string }[] = [
     { id:"dashboard",   label:"Dashboard" },

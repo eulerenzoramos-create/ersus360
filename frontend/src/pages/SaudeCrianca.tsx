@@ -229,7 +229,7 @@ export default function SaudeCrianca() {
   const { data: dashRaw }    = useQuery({ queryKey: ["sc-dash"],  queryFn: () => apiGet("/api/saude-crianca/dashboard") as Promise<any> });
   const { data: criancas }   = useQuery({ queryKey: ["sc-cri"],   queryFn: () => apiGet("/api/saude-crianca/criancas") as Promise<any[]>,      enabled: aba==="criancas" });
   const { data: indicadores }= useQuery({ queryKey: ["sc-ind"],   queryFn: () => apiGet("/api/saude-crianca/indicadores") as Promise<any[]>,   enabled: aba==="indicadores" });
-  const { data: bf }         = useQuery({ queryKey: ["sc-bf"],    queryFn: () => apiGet("/api/saude-crianca/bolsa-familia") as Promise<any[]>, enabled: aba==="dashboard"||aba==="bolsa" });
+  const { data: bf = []}         = useQuery({ queryKey: ["sc-bf"],    queryFn: () => apiGet("/api/saude-crianca/bolsa-familia") as Promise<any[]>, enabled: aba==="dashboard"||aba==="bolsa" });
 
   const dash = dashRaw && bf ? { ...dashRaw, bf_resumo: bf.map(e => ({ equipe: e.equipe.replace("ESF ",""), pct: e.pct })) } : null;
 

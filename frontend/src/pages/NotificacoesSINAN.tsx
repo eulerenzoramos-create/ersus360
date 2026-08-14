@@ -214,7 +214,7 @@ export default function NotificacoesSINAN() {
   const { data: dash }    = useQuery({ queryKey:["sinan-dash"],  queryFn:()=>apiGet("/api/sinan/dashboard") as Promise<any> });
   const { data: agravo }  = useQuery({ queryKey:["sinan-agr"],   queryFn:()=>apiGet("/api/sinan/por-agravo") as Promise<any[]>, enabled:aba==="agravo" });
   const { data: notif }   = useQuery({ queryKey:["sinan-not"],   queryFn:()=>apiGet("/api/sinan/notificacoes") as Promise<any[]>, enabled:aba==="notificacoes" });
-  const { data: alertas } = useQuery({ queryKey:["sinan-alert"], queryFn:()=>apiGet("/api/sinan/alertas") as Promise<any[]>, enabled:aba==="alertas" });
+  const { data: alertas = []} = useQuery({ queryKey:["sinan-alert"], queryFn:()=>apiGet("/api/sinan/alertas") as Promise<any[]>, enabled:aba==="alertas" });
 
   const nAlertas = dash?.n_alertas_criticos ?? 0;
 

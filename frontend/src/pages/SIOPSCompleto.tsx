@@ -582,7 +582,7 @@ export default function SIOPSCompleto() {
   const { data: painel }   = useQuery({ queryKey: ["sc-painel"], queryFn: () => apiGet("/api/siops-completo/painel-geral") as Promise<any> });
   const { data: progs }    = useQuery({ queryKey: ["sc-progs", qParams], queryFn: () => apiGet(`/api/siops-completo/programas${qParams ? "?" + qParams : ""}`) as Promise<any>, enabled: aba === "programas" });
   const { data: comps }    = useQuery({ queryKey: ["sc-comps"], queryFn: () => apiGet("/api/siops-completo/comparativos") as Promise<any>, enabled: aba === "comparativos" });
-  const { data: alertas }  = useQuery({ queryKey: ["sc-alertas"], queryFn: () => apiGet("/api/siops-completo/alertas") as Promise<any>, enabled: aba === "alertas" });
+  const { data: alertas = []}  = useQuery({ queryKey: ["sc-alertas"], queryFn: () => apiGet("/api/siops-completo/alertas") as Promise<any>, enabled: aba === "alertas" });
 
   const limparFiltros = () => { setFiltroProg(""); setFiltroStatus(""); setFiltroTipo(""); };
   const filtrosAtivos = [filtroProg, filtroStatus, filtroTipo].filter(Boolean).length;

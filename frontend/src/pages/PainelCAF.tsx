@@ -414,7 +414,7 @@ export default function PainelCAF() {
   const [aba, setAba] = useState<Aba>("geral");
 
   const { data: dash }       = useQuery({ queryKey: ["caf-dashboard"],   queryFn: () => apiGet("/api/caf/dashboard") as Promise<any> });
-  const { data: equipes }    = useQuery({ queryKey: ["caf-equipes"],     queryFn: () => apiGet("/api/caf/equipes") as Promise<any[]>, enabled: aba === "equipes" });
+  const { data: equipes = []}    = useQuery({ queryKey: ["caf-equipes"],     queryFn: () => apiGet("/api/caf/equipes") as Promise<any[]>, enabled: aba === "equipes" });
   const { data: estrategico }= useQuery({ queryKey: ["caf-estrategico"], queryFn: () => apiGet("/api/caf/estrategico") as Promise<any>, enabled: aba === "estrategico" });
   const { data: simulacao }  = useQuery({ queryKey: ["caf-simulacao"],   queryFn: () => apiGet("/api/caf/simulacao") as Promise<any>, enabled: aba === "simulacao" });
 

@@ -198,9 +198,9 @@ type Aba = "dashboard" | "reunioes" | "conselheiros" | "deliberacoes";
 export default function ConselhoSaude() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash }         = useQuery({ queryKey: ["cms-dash"],  queryFn: () => apiGet("/api/cms/dashboard") as Promise<any> });
-  const { data: reunioes }     = useQuery({ queryKey: ["cms-reun"],  queryFn: () => apiGet("/api/cms/reunioes") as Promise<any[]>,       enabled: aba === "reunioes" });
-  const { data: conselheiros } = useQuery({ queryKey: ["cms-cons"],  queryFn: () => apiGet("/api/cms/conselheiros") as Promise<any[]>,   enabled: aba === "conselheiros" });
-  const { data: deliberacoes } = useQuery({ queryKey: ["cms-delib"], queryFn: () => apiGet("/api/cms/deliberacoes") as Promise<any[]>,   enabled: aba === "deliberacoes" });
+  const { data: reunioes = []}     = useQuery({ queryKey: ["cms-reun"],  queryFn: () => apiGet("/api/cms/reunioes") as Promise<any[]>,       enabled: aba === "reunioes" });
+  const { data: conselheiros = []} = useQuery({ queryKey: ["cms-cons"],  queryFn: () => apiGet("/api/cms/conselheiros") as Promise<any[]>,   enabled: aba === "conselheiros" });
+  const { data: deliberacoes = []} = useQuery({ queryKey: ["cms-delib"], queryFn: () => apiGet("/api/cms/deliberacoes") as Promise<any[]>,   enabled: aba === "deliberacoes" });
 
   const ABAS: { id: Aba; label: string }[] = [
     { id: "dashboard",    label: "Dashboard" },

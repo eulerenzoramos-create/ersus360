@@ -224,7 +224,7 @@ type Aba = "dashboard"|"estoque"|"temperatura"|"cobertura"|"painel";
 export default function SalaVacinas() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash }   = useQuery({ queryKey:["vac-dash"],   queryFn:()=>apiGet("/api/vacinas/dashboard") as Promise<any> });
-  const { data: estoque }= useQuery({ queryKey:["vac-est"],    queryFn:()=>apiGet("/api/vacinas/estoque") as Promise<any[]>, enabled:aba==="estoque" });
+  const { data: estoque = []}= useQuery({ queryKey:["vac-est"],    queryFn:()=>apiGet("/api/vacinas/estoque") as Promise<any[]>, enabled:aba==="estoque" });
   const { data: temp }   = useQuery({ queryKey:["vac-temp"],   queryFn:()=>apiGet("/api/vacinas/temperatura") as Promise<any>, enabled:aba==="temperatura" });
   const { data: cob }    = useQuery({ queryKey:["vac-cob"],    queryFn:()=>apiGet("/api/vacinas/cobertura") as Promise<any>, enabled:aba==="cobertura" });
 

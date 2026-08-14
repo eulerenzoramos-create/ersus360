@@ -202,7 +202,7 @@ export default function Manutencao() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash }   = useQuery({ queryKey: ["man-dash"],  queryFn: () => apiGet("/api/manutencao/dashboard") as Promise<any> });
   const { data: equips } = useQuery({ queryKey: ["man-equip"], queryFn: () => apiGet("/api/manutencao/equipamentos") as Promise<any[]>, enabled: aba === "equipamentos" });
-  const { data: ordens } = useQuery({ queryKey: ["man-ord"],   queryFn: () => apiGet("/api/manutencao/ordens") as Promise<any[]>,        enabled: aba === "ordens" });
+  const { data: ordens = []} = useQuery({ queryKey: ["man-ord"],   queryFn: () => apiGet("/api/manutencao/ordens") as Promise<any[]>,        enabled: aba === "ordens" });
 
   const ABAS: { id: Aba; label: string }[] = [
     { id: "dashboard",    label: "Dashboard" },

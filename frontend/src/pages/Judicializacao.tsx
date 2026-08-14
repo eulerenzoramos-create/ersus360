@@ -164,8 +164,8 @@ export default function Judicializacao() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash  } = useQuery({ queryKey: ["jud-dash"],  queryFn: () => apiGet("/api/judicializacao/dashboard")    as Promise<any> });
   const { data: hist  } = useQuery({ queryKey: ["jud-hist"],  queryFn: () => apiGet("/api/judicializacao/historico")    as Promise<any[]>, enabled: aba==="dashboard" });
-  const { data: acoes } = useQuery({ queryKey: ["jud-acao"],  queryFn: () => apiGet("/api/judicializacao/acoes")        as Promise<any[]>, enabled: aba==="acoes" });
-  const { data: meds  } = useQuery({ queryKey: ["jud-med"],   queryFn: () => apiGet("/api/judicializacao/medicamentos") as Promise<any[]>, enabled: aba==="medicamentos" });
+  const { data: acoes = []} = useQuery({ queryKey: ["jud-acao"],  queryFn: () => apiGet("/api/judicializacao/acoes")        as Promise<any[]>, enabled: aba==="acoes" });
+  const { data: meds = []} = useQuery({ queryKey: ["jud-med"],   queryFn: () => apiGet("/api/judicializacao/medicamentos") as Promise<any[]>, enabled: aba==="medicamentos" });
   const { data: inds  } = useQuery({ queryKey: ["jud-ind"],   queryFn: () => apiGet("/api/judicializacao/indicadores")  as Promise<any[]>, enabled: aba==="indicadores" });
 
   const dashRaw = dash as any;

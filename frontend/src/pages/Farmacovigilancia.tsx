@@ -158,7 +158,7 @@ export default function Farmacovigilancia() {
   const [aba, setAba] = useState<Aba>("dashboard");
   const { data: dash  } = useQuery({ queryKey: ["fvg-dash"],  queryFn: () => apiGet("/api/farmacovigilancia/dashboard")     as Promise<any> });
   const { data: hist  } = useQuery({ queryKey: ["fvg-hist"],  queryFn: () => apiGet("/api/farmacovigilancia/historico")     as Promise<any[]>, enabled: aba==="dashboard" });
-  const { data: nots  } = useQuery({ queryKey: ["fvg-nots"],  queryFn: () => apiGet("/api/farmacovigilancia/notificacoes")  as Promise<any[]>, enabled: aba==="notificacoes" });
+  const { data: nots = []} = useQuery({ queryKey: ["fvg-nots"],  queryFn: () => apiGet("/api/farmacovigilancia/notificacoes")  as Promise<any[]>, enabled: aba==="notificacoes" });
   const { data: alts  } = useQuery({ queryKey: ["fvg-alts"],  queryFn: () => apiGet("/api/farmacovigilancia/alertas")       as Promise<any[]>, enabled: aba==="alertas" });
   const { data: inds  } = useQuery({ queryKey: ["fvg-ind"],   queryFn: () => apiGet("/api/farmacovigilancia/indicadores")   as Promise<any[]>, enabled: aba==="indicadores" });
 

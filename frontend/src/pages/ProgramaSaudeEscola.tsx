@@ -39,7 +39,7 @@ export default function ProgramaSaudeEscola() {
 
   const { data: dash }      = useQuery({ queryKey: ["pse-dashboard"], queryFn: () => apiGet("/api/programa-saude-escola/dashboard"), enabled: aba === "dashboard" });
   const { data: escolas }   = useQuery({ queryKey: ["pse-escolas"],   queryFn: () => apiGet("/api/programa-saude-escola/escolas"),   enabled: aba === "escolas" });
-  const { data: acoes }     = useQuery({ queryKey: ["pse-acoes"],     queryFn: () => apiGet("/api/programa-saude-escola/acoes"),     enabled: aba === "acoes" });
+  const { data: acoes = []}     = useQuery({ queryKey: ["pse-acoes"],     queryFn: () => apiGet("/api/programa-saude-escola/acoes"),     enabled: aba === "acoes" });
   const { data: historico } = useQuery({ queryKey: ["pse-historico"], queryFn: () => apiGet("/api/programa-saude-escola/historico"), enabled: aba === "historico" });
   const { data: indicadores }= useQuery({ queryKey: ["pse-ind"],     queryFn: () => apiGet("/api/programa-saude-escola/indicadores"),enabled: aba === "indicadores" });
 

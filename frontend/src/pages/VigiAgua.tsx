@@ -172,7 +172,7 @@ export default function VigiAgua() {
   const { data: dash   } = useQuery({ queryKey: ["va-dash"],  queryFn: () => apiGet("/api/vigiagua/dashboard")   as Promise<any> });
   const { data: hist   } = useQuery({ queryKey: ["va-hist"],  queryFn: () => apiGet("/api/vigiagua/historico")   as Promise<any[]>, enabled: aba==="dashboard" });
   const { data: sists  } = useQuery({ queryKey: ["va-sys"],   queryFn: () => apiGet("/api/vigiagua/sistemas")    as Promise<any[]>, enabled: aba==="sistemas" });
-  const { data: params } = useQuery({ queryKey: ["va-par"],   queryFn: () => apiGet("/api/vigiagua/parametros")  as Promise<any[]>, enabled: aba==="parametros" });
+  const { data: params = []} = useQuery({ queryKey: ["va-par"],   queryFn: () => apiGet("/api/vigiagua/parametros")  as Promise<any[]>, enabled: aba==="parametros" });
   const { data: inds   } = useQuery({ queryKey: ["va-ind"],   queryFn: () => apiGet("/api/vigiagua/indicadores") as Promise<any[]>, enabled: aba==="indicadores" });
 
   const dashRaw = dash as any;

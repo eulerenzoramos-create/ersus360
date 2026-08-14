@@ -185,7 +185,7 @@ export default function SaudeServidor() {
   const { data: dash  } = useQuery({ queryKey: ["ss-dash"],  queryFn: () => apiGet("/api/saude-servidor/dashboard")    as Promise<any> });
   const { data: hist  } = useQuery({ queryKey: ["ss-hist"],  queryFn: () => apiGet("/api/saude-servidor/historico")    as Promise<any[]>, enabled: aba==="dashboard" });
   const { data: afsts } = useQuery({ queryKey: ["ss-afst"],  queryFn: () => apiGet("/api/saude-servidor/afastamentos") as Promise<any[]>, enabled: aba==="afastamentos" });
-  const { data: cats  } = useQuery({ queryKey: ["ss-cat"],   queryFn: () => apiGet("/api/saude-servidor/cat")          as Promise<any[]>, enabled: aba==="cat" });
+  const { data: cats = []} = useQuery({ queryKey: ["ss-cat"],   queryFn: () => apiGet("/api/saude-servidor/cat")          as Promise<any[]>, enabled: aba==="cat" });
   const { data: inds  } = useQuery({ queryKey: ["ss-ind"],   queryFn: () => apiGet("/api/saude-servidor/indicadores")  as Promise<any[]>, enabled: aba==="indicadores" });
 
   const dashRaw = dash as any;
