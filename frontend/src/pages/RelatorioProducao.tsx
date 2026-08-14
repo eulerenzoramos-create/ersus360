@@ -706,7 +706,7 @@ export default function RelatorioProducao() {
                                 <td>{t.label}</td>
                                 <td style={{ textAlign:"right", fontWeight:700, fontVariantNumeric:"tabular-nums" }}>{(t.realizado ?? 0).toLocaleString("pt-BR")}</td>
                                 <td style={{ textAlign:"right", color:"#6b7280", fontVariantNumeric:"tabular-nums" }}>{(t.meta ?? 0).toLocaleString("pt-BR")}</td>
-                                <td style={{ textAlign:"right", fontVariantNumeric:"tabular-nums" }}>{pct.toFixed(1)}%</td>
+                                <td style={{ textAlign:"right", fontVariantNumeric:"tabular-nums" }}>{pct?.toFixed(1)}%</td>
                                 <td><span style={sitStyle}>{sit}</span></td>
                               </tr>
                             );

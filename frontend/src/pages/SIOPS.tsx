@@ -130,7 +130,7 @@ export default function SIOPS() {
                 <div key={item.label} style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
                     <span>{item.label}</span>
-                    <span style={{ fontWeight: 700, color: item.cor }}>{fmt(item.v)} ({pct.toFixed(1)}%)</span>
+                    <span style={{ fontWeight: 700, color: item.cor }}>{fmt(item.v)} ({pct?.toFixed(1)}%)</span>
                   </div>
                   <div style={{ height: 8, background: "#f0f0f0", borderRadius: 4 }}>
                     <div style={{ height: "100%", width: `${pct}%`, background: item.cor, borderRadius: 4 }} />

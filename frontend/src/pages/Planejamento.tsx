@@ -110,7 +110,7 @@ export default function Planejamento() {
               <div key={label}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 13 }}>{label}</span>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: cor }}>{perc.toFixed(1)}%</span>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: cor }}>{perc?.toFixed(1)}%</span>
                 </div>
                 <div style={{ height: 8, background: "#e5e5e3", borderRadius: 4, overflow: "hidden" }}>
                   <div style={{ width: `${Math.min(perc, 100)}%`, height: "100%", background: cor, borderRadius: 4 }} />
@@ -167,7 +167,7 @@ export default function Planejamento() {
                     <div style={{ fontSize: 11, color: "#9ca3af" }}>Responsável: {acao.responsavel}</div>
                   </div>
                   <div style={{ textAlign: "right", marginLeft: 16, flexShrink: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: cor }}>{perc.toFixed(0)}%</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: cor }}>{perc?.toFixed(0)}%</div>
                     <div style={{ fontSize: 11, color: "#9ca3af" }}>exec. fin.</div>
                   </div>
                 </div>

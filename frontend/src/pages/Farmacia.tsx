@@ -103,7 +103,7 @@ export default function Farmacia() {
             <div key={label} style={{ ...S.card, padding: 14, margin: 0 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 500 }}>{label}</span>
-                <span style={{ fontSize: 16, fontWeight: 700, color: cor }}>{perc.toFixed(1)}%</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: cor }}>{perc?.toFixed(1)}%</span>
               </div>
               <div style={{ height: 8, background: "#e5e5e3", borderRadius: 4, overflow: "hidden" }}>
                 <div style={{ width: `${Math.min(perc, 100)}%`, height: "100%", background: cor, borderRadius: 4 }} />

@@ -29,7 +29,7 @@ function Semaforo({ perc }: { perc: number }) {
       <div style={{ width: 100, height: 6, background: "#e5e5e3", borderRadius: 3, overflow: "hidden" }}>
         <div style={{ width: `${Math.min(perc, 100)}%`, height: "100%", background: cor, borderRadius: 3 }} />
       </div>
-      <span style={{ fontSize: 12, color: cor, fontWeight: 600 }}>{perc.toFixed(0)}%</span>
+      <span style={{ fontSize: 12, color: cor, fontWeight: 600 }}>{perc?.toFixed(0)}%</span>
     </div>
   );
 }

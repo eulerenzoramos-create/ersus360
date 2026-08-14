@@ -34,7 +34,7 @@ function SemaforoBar({ valor, meta, cor }: { valor: number; meta: number; cor: s
         <div style={{ width: `${perc}%`, height: "100%", background: cor, borderRadius: 3 }} />
       </div>
       <span style={{ fontSize: 12, color: cor, fontWeight: 600, minWidth: 45, textAlign: "right" }}>
-        {valor.toFixed(1)}%
+        {valor?.toFixed(1)}%
       </span>
       <span style={{ fontSize: 11, color: "#9ca3af" }}>/{meta}%</span>
     </div>

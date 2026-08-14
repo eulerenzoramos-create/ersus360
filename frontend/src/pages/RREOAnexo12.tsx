@@ -156,7 +156,7 @@ function N(v: number) {
   if (v === 0) return "0,00";
   return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-function P(v: number) { return v.toFixed(2).replace(".", ","); }
+function P(v: number) { return v?.toFixed(2).replace(".", ","); }
 
 // ── Estilos das células ───────────────────────────────────────────────────────
 

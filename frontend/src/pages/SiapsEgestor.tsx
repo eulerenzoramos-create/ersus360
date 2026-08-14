@@ -860,12 +860,12 @@ function PainelGestorRT() {
                 <span style={{ fontSize:13, fontWeight:800, color:cor, textAlign:"right" }}>{ind.atual}%</span>
                 <span style={{ fontSize:10, color:"#6b7280", textAlign:"center" }}>meta {ind.meta}%</span>
                 <span style={{ fontSize:11, fontWeight:700, textAlign:"center", color: gap > 0 ? "#dc2626" : "#16a34a" }}>
-                  {gap > 0 ? `−${gap.toFixed(1)}` : `+${Math.abs(gap).toFixed(1)}`}p.p.
+                  {gap > 0 ? `−${gap?.toFixed(1)}` : `+${Math.abs(gap).toFixed(1)}`}p.p.
                 </span>
                 <div style={{ textAlign:"center", display:"flex", flexDirection:"column", gap:2 }}>
                   <span style={{ fontSize:10, fontWeight:700, background:pjCor+"18", color:pjCor, padding:"2px 7px", borderRadius:10 }}>proj {pj}%</span>
                   <span style={{ fontSize:9, color: deltaQ1 >= 0 ? "#16a34a" : "#dc2626" }}>
-                    vs Q1: {deltaQ1 >= 0 ? "+" : ""}{deltaQ1.toFixed(1)}p.p.
+                    vs Q1: {deltaQ1 >= 0 ? "+" : ""}{deltaQ1?.toFixed(1)}p.p.
                   </span>
                 </div>
               </div>
@@ -969,7 +969,7 @@ function PainelGestorRT() {
                   : <div style={{ fontSize:20, fontWeight:900, color:"#dc2626" }}>+{ritmo}<span style={{ fontSize:10 }}>p.p/dia</span></div>
                 }
                 <div style={{ fontSize:9, color: atingiu?"#16a34a":"#dc2626", marginTop:4, fontWeight:700 }}>
-                  {atingiu ? "Meta atingida" : `Gap: ${gap.toFixed(1)}p.p.`}
+                  {atingiu ? "Meta atingida" : `Gap: ${gap?.toFixed(1)}p.p.`}
                 </div>
                 <div style={{ fontSize:9, color:"#6b7280", marginTop:2 }}>{(ind as any).short}</div>
               </div>

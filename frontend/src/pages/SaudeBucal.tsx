@@ -56,7 +56,7 @@ function CardIndicadorSB({ ind }: { ind: IndicadorSB }) {
               strokeDasharray={`${(pct / 100) * 125.6} 125.6`}
               strokeDashoffset="31.4" strokeLinecap="round"/>
           </svg>
-          <span style={{ fontSize: 9, fontWeight: 900, color: cor, position: "relative" as const, zIndex: 1 }}>{pct.toFixed(0)}%</span>
+          <span style={{ fontSize: 9, fontWeight: 900, color: cor, position: "relative" as const, zIndex: 1 }}>{pct?.toFixed(0)}%</span>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" as const }}>

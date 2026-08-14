@@ -10,7 +10,7 @@ function GaugeScore({ score }: { score: number }) {
   const label = score >= 80 ? "Excelente" : score >= 60 ? "Em desenvolvimento" : score >= 40 ? "Atenção" : "Crítico";
   return (
     <div style={{ textAlign: "center", padding: 24 }}>
-      <div style={{ fontSize: 72, fontWeight: 900, color: cor, lineHeight: 1 }}>{score.toFixed(1)}</div>
+      <div style={{ fontSize: 72, fontWeight: 900, color: cor, lineHeight: 1 }}>{score?.toFixed(1)}</div>
       <div style={{ fontSize: 18, color: cor, fontWeight: 700 }}>{label}</div>
       <div style={{ fontSize: 13, color: "#666", marginTop: 4 }}>Score ERSUS 360</div>
     </div>
@@ -36,7 +36,7 @@ function BarProgress({ label, value, meta, max = 100 }: { label: string; value: 
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
         <span style={{ color: "#333" }}>{label}</span>
-        <span style={{ fontWeight: 700, color: cor }}>{value.toFixed(1)}%</span>
+        <span style={{ fontWeight: 700, color: cor }}>{value?.toFixed(1)}%</span>
       </div>
       <div style={{ height: 8, background: "#f0f0f0", borderRadius: 4, overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${pct}%`, background: cor, borderRadius: 4, transition: "width .5s" }} />

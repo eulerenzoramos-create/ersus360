@@ -174,7 +174,7 @@ function TabelaEditavel({
                         {BRL(valorExibido)}
                         {ovr && <span className="block text-xs font-normal text-slate-400 line-through">{BRL(r.pago || 0)}</span>}
                       </td>
-                      <td className="px-4 py-3 text-right text-slate-500 tabular-nums">{pct.toFixed(1)}%</td>
+                      <td className="px-4 py-3 text-right text-slate-500 tabular-nums">{pct?.toFixed(1)}%</td>
                       <td className="px-4 py-3">
                         <div className="w-full bg-slate-100 rounded-full h-2 min-w-[60px]">
                           <div className="h-2 rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: COLORS[i % COLORS.length] }} />
@@ -434,7 +434,7 @@ export default function SIOPSLive() {
                           <div className="h-3 rounded-full" style={{ width: `${pct}%`, background: item.color }}/>
                         </div>
                         <span className="w-28 text-right font-semibold text-slate-700">{BRL(item.val||0)}</span>
-                        <span className="w-10 text-right text-slate-400 text-xs">{pct.toFixed(1)}%</span>
+                        <span className="w-10 text-right text-slate-400 text-xs">{pct?.toFixed(1)}%</span>
                       </div>
                     );
                   })}

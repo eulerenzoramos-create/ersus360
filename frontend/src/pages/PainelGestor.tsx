@@ -32,7 +32,7 @@ const MODULOS = [
 const fmt = (v: number) =>
   v >= 1_000_000 ? BRL(v )
   : v >= 1_000   ? BRL(v )
-  : `R$ ${v.toFixed(2).replace(".", ",")}`;
+  : `R$ ${v?.toFixed(2).replace(".", ",")}`;
 
 export default function PainelGestor() {
   const [showSaldo, setShowSaldo] = useState(true);

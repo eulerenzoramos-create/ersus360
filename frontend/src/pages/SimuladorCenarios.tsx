@@ -55,7 +55,7 @@ function VarBadge({ val }: { val: number }) {
     <span style={{ fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 10,
       background: val > 0 ? "#dcfce7" : val < 0 ? "#fee2e2" : "#f1f5f9",
       color: val > 0 ? "#16a34a" : val < 0 ? "#dc2626" : "#6b7280" }}>
-      {val > 0 ? "+" : ""}{val.toFixed(1)}%
+      {val > 0 ? "+" : ""}{val?.toFixed(1)}%
     </span>
   );
 }

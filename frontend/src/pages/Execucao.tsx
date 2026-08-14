@@ -44,7 +44,7 @@ function SaldoCard({ saldo }: { saldo: SaldoConvenio }) {
         <div style={{ flex: 1, height: 6, background: "#e5e5e3", borderRadius: 3, overflow: "hidden" }}>
           <div style={{ width: `${Math.min(perc, 100)}%`, height: "100%", background: cor, borderRadius: 3 }} />
         </div>
-        <span style={{ fontSize: 12, color: cor, fontWeight: 600, minWidth: 40 }}>{perc.toFixed(1)}%</span>
+        <span style={{ fontSize: 12, color: cor, fontWeight: 600, minWidth: 40 }}>{perc?.toFixed(1)}%</span>
         <span style={{ fontSize: 11, color: "#737373" }}>executado</span>
       </div>
       {saldo.total_rendimento > 0 && (

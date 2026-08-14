@@ -170,7 +170,7 @@ function ScoreBar({ label, score, peso, cor, icone, real }: typeof DIMENSOES[0])
             ? <span style={{ marginLeft: 6, fontSize: 9, background: "#e3f2fd", color: "#1565c0", borderRadius: 3, padding: "1px 4px", fontWeight: 700 }}>SIAPS</span>
             : <span style={{ marginLeft: 6, fontSize: 9, background: "#fff3e0", color: "#e65100", borderRadius: 3, padding: "1px 4px", fontWeight: 700 }}>estimativa</span>}
         </span>
-        <span style={{ fontSize: 15, fontWeight: 800, color: cor }}>{score.toFixed(1)}</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: cor }}>{score?.toFixed(1)}</span>
       </div>
       <div style={{ height: 10, background: "#f0f0f0", borderRadius: 5, overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${score}%`, background: cor, borderRadius: 5 }} />
@@ -428,7 +428,7 @@ export default function MapaDesempenho() {
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
         <div style={{ background: "#fff", borderRadius: 10, padding: "18px 20px", border: `2px solid ${cor}30`, textAlign: "center" }}>
-          <div style={{ fontSize: 42, fontWeight: 900, color: cor, lineHeight: 1 }}>{scoreAtual.toFixed(0)}</div>
+          <div style={{ fontSize: 42, fontWeight: 900, color: cor, lineHeight: 1 }}>{scoreAtual?.toFixed(0)}</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: cor, marginTop: 4 }}>{LABEL_SCORE(scoreAtual)}</div>
           <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>Score ERSUS 360</div>
         </div>
@@ -502,7 +502,7 @@ export default function MapaDesempenho() {
               </div>
             ))}
             <div style={{ marginTop: 14, padding: 12, background: `${cor}10`, borderRadius: 8, border: `1px solid ${cor}30` }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: cor }}>Apuí/AM: {LABEL_SCORE(scoreAtual)} ({scoreAtual.toFixed(1)} pts)</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: cor }}>Apuí/AM: {LABEL_SCORE(scoreAtual)} ({scoreAtual?.toFixed(1)} pts)</div>
               <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>Meta 2026: 80 pts · Faltam {Math.max(0, 80 - scoreAtual).toFixed(1)} pontos</div>
             </div>
           </div>
@@ -729,7 +729,7 @@ export default function MapaDesempenho() {
                           return (
                             <td key={ci} style={{ padding: "8px 6px", textAlign: "center", borderBottom: "1px solid #f0f0f0" }}>
                               <div style={{ fontWeight: 700, color: ok ? "#166534" : val >= metas[ci] * 0.85 ? "#92400e" : "#991b1b", fontSize: 13 }}>
-                                {val.toFixed(1)}%
+                                {val?.toFixed(1)}%
                               </div>
                               <div style={{ fontSize: 9, color: ok ? "#16a34a" : "#dc2626", fontWeight: 700 }}>
                                 {ok ? "✓" : "✗"}
@@ -738,7 +738,7 @@ export default function MapaDesempenho() {
                           );
                         })}
                         <td style={{ padding: "8px 12px", textAlign: "center", borderBottom: "1px solid #f0f0f0" }}>
-                          <div style={{ fontWeight: 800, color: COR_SCORE(media), fontSize: 14 }}>{media.toFixed(1)}%</div>
+                          <div style={{ fontWeight: 800, color: COR_SCORE(media), fontSize: 14 }}>{media?.toFixed(1)}%</div>
                           <div style={{ fontSize: 9, fontWeight: 700, color: COR_SCORE(media) }}>{LABEL_SCORE(media)}</div>
                         </td>
                       </tr>
@@ -805,7 +805,7 @@ export default function MapaDesempenho() {
             <div style={{ padding: "12px 16px", background: "#e8f5e9", borderRadius: 8, border: "1px solid #c8e6c9" }}>
               <div style={{ fontSize: 11, color: "#666", fontWeight: 600 }}>CRESCIMENTO 2026</div>
               <div style={{ fontSize: 22, fontWeight: 800, color: "#2e7d32", marginTop: 4 }}>+{(scoreAtual - 61.2).toFixed(1)} pts</div>
-              <div style={{ fontSize: 12, color: "#555" }}>Jan 61.2 → Jul {scoreAtual.toFixed(1)}</div>
+              <div style={{ fontSize: 12, color: "#555" }}>Jan 61.2 → Jul {scoreAtual?.toFixed(1)}</div>
               <div style={{ fontSize: 10, color: "#e65100", marginTop: 4 }}>⚠ série histórica estimada — APS validado SIAPS Q2/26</div>
             </div>
             <div style={{ padding: "12px 16px", background: "#e3f2fd", borderRadius: 8, border: "1px solid #bbdefb" }}>

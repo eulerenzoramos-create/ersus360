@@ -61,7 +61,7 @@ const Pct = ({ v, meta, inverted = false }: { v: number; meta?: number; inverted
   const ok = meta ? (inverted ? v <= meta : v >= meta) : v >= 70;
   return (
     <span style={{ fontWeight: 700, color: ok ? "#16a34a" : v >= (meta ?? 0) * 0.8 ? "#d97706" : "#dc2626" }}>
-      {v.toFixed(1)}%
+      {v?.toFixed(1)}%
     </span>
   );
 };

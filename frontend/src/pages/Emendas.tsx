@@ -197,7 +197,7 @@ export default function Emendas() {
                 <div key={p.parlamentar} style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
                     <span style={{ fontSize: 12 }}>{p.parlamentar} <span style={{ fontSize: 10, color: "#737373" }}>({p.partido})</span></span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: cor }}>{perc.toFixed(0)}%</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: cor }}>{perc?.toFixed(0)}%</span>
                   </div>
                   <div style={{ height: 6, background: "#e5e5e3", borderRadius: 3, overflow: "hidden" }}>
                     <div style={{ width: `${Math.min(perc, 100)}%`, height: "100%", background: cor, borderRadius: 3 }} />
@@ -336,7 +336,7 @@ export default function Emendas() {
                       <div style={{ height: 10, background: "#e5e5e3", borderRadius: 5, overflow: "hidden", marginBottom: 6 }}>
                         <div style={{ width: `${Math.min(perc, 100)}%`, height: "100%", background: cor, borderRadius: 5 }} />
                       </div>
-                      <div style={{ textAlign: "center", fontSize: 22, fontWeight: 700, color: cor }}>{perc.toFixed(0)}%</div>
+                      <div style={{ textAlign: "center", fontSize: 22, fontWeight: 700, color: cor }}>{perc?.toFixed(0)}%</div>
                       <div style={{ textAlign: "center", fontSize: 11, color: "#737373" }}>execução</div>
                     </>
                   ) : (

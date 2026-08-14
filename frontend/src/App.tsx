@@ -38,6 +38,49 @@ class AppErrorBoundary extends Component<
   }
 }
 
+// ── Page-level Error Boundary — isola crash de uma página sem derrubar o app ──
+class PageErrorBoundary extends Component<
+  { children: React.ReactNode },
+  { hasError: boolean; message: string }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, message: "" };
+  }
+  static getDerivedStateFromError(error: unknown) {
+    return { hasError: true, message: String(error) };
+  }
+  componentDidCatch(error: unknown, info: unknown) {
+    console.error("[ERSUS PageError]", error, info);
+  }
+  componentDidUpdate(prev: { children: React.ReactNode }) {
+    if (prev.children !== this.props.children && this.state.hasError) {
+      this.setState({ hasError: false, message: "" });
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ display:"flex", flexDirection:"column" as const, alignItems:"center", justifyContent:"center",
+          height:"100%", fontFamily:"system-ui", padding:40, gap:16 }}>
+          <div style={{ background:"#fff8f0", border:"1px solid #fbbf24", borderRadius:12, padding:24,
+            maxWidth:480, textAlign:"center" as const }}>
+            <div style={{ fontSize:32, marginBottom:8 }}>⚠️</div>
+            <h3 style={{ color:"#92400e", marginBottom:8, fontSize:16 }}>Erro nesta página</h3>
+            <p style={{ color:"#78350f", fontSize:12, marginBottom:16 }}>{this.state.message}</p>
+            <button onClick={() => this.setState({ hasError:false, message:"" })}
+              style={{ background:"#1e3a5f", color:"#fff", border:"none", borderRadius:8,
+                padding:"8px 20px", cursor:"pointer", fontSize:13 }}>
+              Tentar novamente
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ── Auth Context — disponível para qualquer componente filho ──────────────────
 export interface AuthUser {
   nome: string;
@@ -968,7 +1011,9 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
         </aside>
 
         {/* Main */}
-        <main id="ersus-main" style={{flex:1,overflow:"auto",background:"#f1f5f9"}}>{children}</main>
+        <main id="ersus-main" style={{flex:1,overflow:"auto",background:"#f1f5f9"}}>
+          <PageErrorBoundary>{children}</PageErrorBoundary>
+        </main>
       </div>
     </div>
     </AuthContext.Provider>

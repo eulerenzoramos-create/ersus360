@@ -47,7 +47,7 @@ function GaugeArco({ score }: { score: number }) {
     <svg width="112" height="68" viewBox="0 0 112 68">
       <path d={`M ${start.x} ${start.y} A ${r} ${r} 0 0 1 ${end.x} ${end.y}`} fill="none" stroke="#e4e7ec" strokeWidth="9" strokeLinecap="round"/>
       <path d={`M ${start.x} ${start.y} A ${r} ${r} 0 0 1 ${cur.x} ${cur.y}`}  fill="none" stroke={cor}     strokeWidth="9" strokeLinecap="round"/>
-      <text x={cx} y={cy - 4} textAnchor="middle" fontSize="22" fontWeight="900" fill={cor}>{score.toFixed(1)}</text>
+      <text x={cx} y={cy - 4} textAnchor="middle" fontSize="22" fontWeight="900" fill={cor}>{score?.toFixed(1)}</text>
       <text x={cx} y={cy + 10} textAnchor="middle" fontSize="8" fill="#9ca3af">/10</text>
     </svg>
   );
@@ -171,7 +171,7 @@ export default function IDSUSMunicipal() {
                 <div style={{ fontSize: 9, color: "rgba(255,255,255,.5)", marginBottom: 3 }}>VARIAÇÃO</div>
                 <div style={{ fontSize: 20, fontWeight: 900, color: delta >= 0 ? "#86efac" : "#fca5a5", display: "flex", alignItems: "center", gap: 5 }}>
                   {delta >= 0 ? <TrendingUp size={16}/> : <TrendingDown size={16}/>}
-                  {delta >= 0 ? "+" : ""}{delta.toFixed(1)}
+                  {delta >= 0 ? "+" : ""}{delta?.toFixed(1)}
                 </div>
                 <div style={{ fontSize: 9, color: "rgba(255,255,255,.4)" }}>vs. período anterior</div>
               </div>
