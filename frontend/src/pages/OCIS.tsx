@@ -13,10 +13,10 @@ function NivelBadge({ nivel }: { nivel: string }) {
   return <span style={{ background: `${cor}15`, color: cor, padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>{nivel}</span>;
 }
 
-export default function OCIS() {
+export default function OCIS() { 
   const [aba, setAba] = useState<"central" | "regulacao" | "tfd">("central");
 
-  const { data: dash } = useQuery({ queryKey: ["ocis-dash"], queryFn: apiOCIS.dashboard });
+  const { data: dash, isLoading } = useQuery({ queryKey: ["ocis-dash"], queryFn: apiOCIS.dashboard });
   const { data: alertas } = useQuery({ queryKey: ["ocis-alertas"], queryFn: apiOCIS.centralAlertas });
   const { data: fila } = useQuery({ queryKey: ["ocis-fila"], queryFn: apiOCIS.filaEspera });
   const { data: tfd } = useQuery({ queryKey: ["ocis-tfd"], queryFn: apiOCIS.tfd });

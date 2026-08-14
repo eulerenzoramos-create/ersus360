@@ -78,7 +78,7 @@ export default function Emendas() {
 
   const f = (field: string, value: string | number) => setForm(p => ({ ...p, [field]: value }));
 
-  if (!isLoading && !dashboard) return (
+  if (!dashboard) return (
     <div style={{ padding: 24 }}>
       <NaoDisponivelBanner
         titulo="Emendas indisponivel"

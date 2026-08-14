@@ -20,10 +20,10 @@ function EstadoBadge({ estado }: { estado: string }) {
   return <span style={{ background: s.bg, color: s.cor, padding: "2px 10px", borderRadius: 4, fontSize: 11, fontWeight: 700, textTransform: "capitalize" as const }}>{estado}</span>;
 }
 
-export default function Patrimonio() {
+export default function Patrimonio() { 
   const [aba, setAba] = useState<"painel" | "frota" | "bens" | "manutencao" | "combustivel">("painel");
 
-  const { data: painel } = useQuery({ queryKey: ["patrimonio-painel"], queryFn: apiPatrimonio.painel });
+  const { data: painel, isLoading } = useQuery({ queryKey: ["patrimonio-painel"], queryFn: apiPatrimonio.painel });
   const { data: frota } = useQuery({ queryKey: ["patrimonio-frota"], queryFn: apiPatrimonio.frota });
   const { data: bens } = useQuery({ queryKey: ["patrimonio-bens"], queryFn: apiPatrimonio.bens });
   const { data: manut } = useQuery({ queryKey: ["patrimonio-manut"], queryFn: apiPatrimonio.manutencao });

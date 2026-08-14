@@ -42,7 +42,7 @@ export default function Regulacao() {
     ? (solicitacoes as Solicitacao[]).filter((s) => s.status === filtroStatus)
     : (solicitacoes as Solicitacao[]);
 
-  if (!isLoading && !dashboard) return (
+  if (!dashboard) return (
     <div style={{ padding: 24 }}>
       <NaoDisponivelBanner
         titulo="Regulacao indisponivel"

@@ -52,7 +52,7 @@ export default function Transporte() {
     enabled: aba === "tfd",
   });
 
-  if (!isLoading && !dashboard) return (
+  if (!dashboard) return (
     <div style={{ padding: 24 }}>
       <NaoDisponivelBanner
         titulo="Transporte indisponivel"

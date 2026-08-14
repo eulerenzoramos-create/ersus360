@@ -102,7 +102,7 @@ export default function PainelTransparencia() {
   const r = resumo;
   const categorias = Array.from(new Set(indicadores.map(i => i.categoria)));
 
-  if (!isLoading && !resumo) return (
+  if (!resumo) return (
     <div style={{ padding: 24 }}>
       <NaoDisponivelBanner
         titulo="PainelTransparencia indisponivel"

@@ -20,10 +20,10 @@ function SemaforoBadge({ status }: { status: string }) {
   );
 }
 
-export default function Epidemiologia() {
+export default function Epidemiologia() { 
   const [tab, setTab] = useState<"dashboard" | "agravos" | "malaria" | "dengue" | "notificacoes">("dashboard");
 
-  const { data: dash }   = useQuery({ queryKey: ["epi-dash"],   queryFn: apiEpidemiologia.dashboard });
+  const { data: dash, isLoading } = useQuery({ queryKey: ["epi-dash"],   queryFn: apiEpidemiologia.dashboard });
   const { data: agravos } = useQuery({ queryKey: ["epi-agravos"], queryFn: apiEpidemiologia.agravos, enabled: tab === "agravos" });
   const { data: malaria } = useQuery({ queryKey: ["epi-malaria"], queryFn: apiEpidemiologia.malaria, enabled: tab === "malaria" });
   const { data: dengue }  = useQuery({ queryKey: ["epi-dengue"],  queryFn: apiEpidemiologia.dengue,  enabled: tab === "dengue" });

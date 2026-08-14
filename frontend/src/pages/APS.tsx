@@ -61,7 +61,7 @@ export default function APS() {
 
   const categorias = [...new Set(indicadores.map((i) => i.categoria))];
 
-  if (!isLoading && !dashboard) return (
+  if (!dashboard) return (
     <div style={{ padding: 24 }}>
       <NaoDisponivelBanner
         titulo="APS indisponivel"

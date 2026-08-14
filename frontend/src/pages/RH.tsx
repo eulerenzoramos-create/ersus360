@@ -32,10 +32,10 @@ const LABEL_MOV: Record<string, string> = {
 
 type Aba = "painel" | "servidores" | "ferias" | "movimentacoes" | "contratos";
 
-export default function RH() {
+export default function RH() { 
   const [aba, setAba] = useState<Aba>("painel");
 
-  const { data: painel }        = useQuery({ queryKey: ["rh-painel"],        queryFn: apiRH.painel });
+  const { data: painel, isLoading } = useQuery({ queryKey: ["rh-painel"],        queryFn: apiRH.painel });
   const { data: alertas }       = useQuery({ queryKey: ["rh-alertas"],       queryFn: apiRH.alertas });
   const { data: servidores = [] } = useQuery({ queryKey: ["servidores"],     queryFn: apiRH.servidores,    enabled: aba === "servidores" });
   const { data: ferias = [] }   = useQuery({ queryKey: ["ferias"],           queryFn: apiRH.ferias,        enabled: aba === "ferias" });

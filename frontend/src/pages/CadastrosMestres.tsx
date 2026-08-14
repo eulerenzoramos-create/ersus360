@@ -34,10 +34,10 @@ const COR_EQUIPE: Record<string, string> = {
 
 type Aba = "resumo" | "profissionais" | "unidades" | "equipes" | "acs" | "medicamentos" | "fornecedores";
 
-export default function CadastrosMestres() {
+export default function CadastrosMestres() { 
   const [aba, setAba] = useState<Aba>("resumo");
 
-  const { data: resumo }           = useQuery({ queryKey: ["cadastros-resumo"],   queryFn: apiCadastros.resumo });
+  const { data: resumo, isLoading } = useQuery({ queryKey: ["cadastros-resumo"],   queryFn: apiCadastros.resumo });
   const { data: profissionais = [] } = useQuery({ queryKey: ["profissionais"],     queryFn: apiCadastros.profissionais, enabled: aba === "profissionais" });
   const { data: unidades = [] }     = useQuery({ queryKey: ["unidades"],           queryFn: apiCadastros.unidades,      enabled: aba === "unidades" });
   const { data: equipes = [] }      = useQuery({ queryKey: ["equipes"],            queryFn: apiCadastros.equipes,       enabled: aba === "equipes" });

@@ -45,7 +45,7 @@ export default function Planejamento() {
     queryFn: () => apiPlanejamento.acoes(eixoFiltro ? { eixo: eixoFiltro } : undefined),
     enabled: aba === "pas",
   });
-  const { data: rag } = useQuery({
+  const {  data: rag, isLoading } = useQuery({
     queryKey: ["rag"],
     queryFn: apiPlanejamento.rag,
     enabled: aba === "rag",

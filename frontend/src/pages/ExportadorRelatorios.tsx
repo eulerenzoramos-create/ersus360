@@ -114,7 +114,7 @@ export default function ExportadorRelatorios() {
 
   const modulos = ["todos", ...Array.from(new Set(relatorios.map(r => r.modulo)))];
 
-  if (!isLoading && !resumo) return (
+  if (!resumo) return (
     <div style={{ padding: 24 }}>
       <NaoDisponivelBanner
         titulo="ExportadorRelatorios indisponivel"

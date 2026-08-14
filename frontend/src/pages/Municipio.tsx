@@ -72,7 +72,7 @@ export default function Municipio() {
     setEditando(true);
   };
 
-  if (!isLoading && !mun) return (
+  if (!mun) return (
     <div style={{ padding: 24 }}>
       <NaoDisponivelBanner
         titulo="Municipio indisponivel"

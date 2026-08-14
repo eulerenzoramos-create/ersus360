@@ -40,7 +40,7 @@ export default function Vigilancia() {
     enabled: aba === "vacinal",
   });
 
-  if (!isLoading && !dashboard) return (
+  if (!dashboard) return (
     <div style={{ padding: 24 }}>
       <NaoDisponivelBanner
         titulo="Vigilancia indisponivel"

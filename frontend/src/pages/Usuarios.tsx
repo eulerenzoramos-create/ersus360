@@ -72,7 +72,7 @@ export default function Usuarios() {
   const podeGerenciar = ["superadmin", "admin"].includes(perfilAtual);
 
   if (!podeGerenciar) {
-  if (!isLoading && !usuarios) return (
+  if (!usuarios) return (
     <div style={{ padding: 24 }}>
       <NaoDisponivelBanner
         titulo="Usuarios indisponivel"

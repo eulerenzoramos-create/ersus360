@@ -59,7 +59,7 @@ export default function Farmacia() {
     enabled: aba === "programas",
   });
 
-  if (!isLoading && !dashboard) return (
+  if (!dashboard) return (
     <div style={{ padding: 24 }}>
       <NaoDisponivelBanner
         titulo="Farmacia indisponivel"
