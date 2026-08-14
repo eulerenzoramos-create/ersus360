@@ -153,7 +153,7 @@ function AbaAutos({ autos }: { autos: any[] | undefined }) {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 18 }}>
-        {[["Em prazo", autos.filter(a=>a.status==="em_prazo").length, "#d97706"],["Vencidos", autos.filter(a=>a.status==="vencido").length, "#dc2626"],["Multas est.", `R$ ${total_multas.toLocaleString("pt-BR",{minimumFractionDigits:0})}`, "#7c3aed"]].map(([k,v,c])=>(
+        {[["Em prazo", autos.filter(a=>a.status==="em_prazo").length, "#d97706"],["Vencidos", autos.filter(a=>a.status==="vencido").length, "#dc2626"],["Multas est.", `R$ ${total_multas?.toLocaleString("pt-BR",{minimumFractionDigits:0})}`, "#7c3aed"]].map(([k,v,c])=>(
           <div key={String(k)} style={{ background: "#fff", border: `1px solid ${c}22`, borderTop: `3px solid ${c}`, borderRadius: 10, padding: "12px 16px", textAlign: "center" }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: String(c) }}>{v}</div>
             <div style={{ fontSize: 12, color: "#6b7280" }}>{k}</div>
@@ -176,7 +176,7 @@ function AbaAutos({ autos }: { autos: any[] | undefined }) {
                 <span>Base: <strong style={{ color: "#374151" }}>{a.base_legal}</strong></span>
                 <span>Data: <strong>{a.data}</strong></span>
                 <span>Prazo: <strong style={{ color: a.prazo_regularizacao<"2026-05-01"?"#dc2626":"#374151" }}>{a.prazo_regularizacao}</strong></span>
-                <span>Multa est.: <strong style={{ color: "#7c3aed" }}>R$ {a.multa_est.toLocaleString("pt-BR",{minimumFractionDigits:0})}</strong></span>
+                <span>Multa est.: <strong style={{ color: "#7c3aed" }}>R$ {a.multa_est?.toLocaleString("pt-BR",{minimumFractionDigits:0})}</strong></span>
               </div>
             </div>
           );

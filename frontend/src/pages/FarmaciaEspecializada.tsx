@@ -34,7 +34,7 @@ function AbaDashboard({ dash, meds }: { dash: any; meds: any[] | undefined }) {
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
         <KpiCard label="Pacientes CEAF"         value={dash.pacientes_ceaf}               sub="cadastros ativos"       cor="#7c3aed"                                      icon={<Pill size={14} color="#7c3aed"/>}/>
-        <KpiCard label="Gasto mensal"           value={"R$"+dash.gasto_mes.toLocaleString("pt-BR")} sub={`${dash.gasto_federal_pct}% federal`} cor="#1d4ed8"           icon={<DollarSign size={14} color="#1d4ed8"/>}/>
+        <KpiCard label="Gasto mensal"           value={"R$"+dash.gasto_mes?.toLocaleString("pt-BR")} sub={`${dash.gasto_federal_pct}% federal`} cor="#1d4ed8"           icon={<DollarSign size={14} color="#1d4ed8"/>}/>
         <KpiCard label="Ações judiciais ativas" value={dash.demandas_judiciais_ativas}     sub="judicialização"         cor={STATUS_COR[dash.demandas_judiciais_status]}   icon={<AlertTriangle size={14} color={STATUS_COR[dash.demandas_judiciais_status]}/>}/>
         <KpiCard label="Renovações a vencer"    value={dash.renovacoes_vencer_30d}         sub="próximos 30 dias"       cor={STATUS_COR[dash.renovacoes_status]}           icon={<Clock size={14} color={STATUS_COR[dash.renovacoes_status]}/>}/>
       </div>
@@ -106,7 +106,7 @@ function AbaJudicializacao({ juds }: { juds: any[] | undefined }) {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 18 }}>
-        {[["Ações ativas",juds.length,"#dc2626"],["Gasto judicial/mês","R$"+total.toLocaleString("pt-BR"),"#d97706"],["Sentença favorável",juds.filter(j=>j.fase==="Sentença favorável").length,"#7c3aed"]].map(([k,v,c])=>(
+        {[["Ações ativas",juds.length,"#dc2626"],["Gasto judicial/mês","R$"+total?.toLocaleString("pt-BR"),"#d97706"],["Sentença favorável",juds.filter(j=>j.fase==="Sentença favorável").length,"#7c3aed"]].map(([k,v,c])=>(
           <div key={String(k)} style={{ background:"#fff",border:`1px solid ${c}22`,borderTop:`3px solid ${c}`,borderRadius:10,padding:"12px 14px",textAlign:"center" }}>
             <div style={{ fontSize:20,fontWeight:800,color:String(c) }}>{v}</div>
             <div style={{ fontSize:12,color:"#6b7280" }}>{k}</div>

@@ -83,7 +83,7 @@ export default function TelessaudeApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Teleconsultas/Ano"       value={dashRaw.teleconsultas_realizadas_ano.toLocaleString()} color={ACCENT} sub={`${dashRaw.teleconsultas_mes_atual}/mês atual`} />
+              <KPI label="Teleconsultas/Ano"       value={dashRaw.teleconsultas_realizadas_ano?.toLocaleString()} color={ACCENT} sub={`${dashRaw.teleconsultas_mes_atual}/mês atual`} />
               <KPI label="Telediagnósticos/Ano"    value={dashRaw.telediagnosticos_ano.toString()} color={BRAND} />
               <KPI label="Resolubilidade"          value={`${dashRaw.taxa_resolubilidade_pct}%`} color={WARN} sub="meta: 80%" />
               <KPI label="Referências Evitadas"    value={`${dashRaw.evitou_referencia_manaus_pct}%`} color={OK} sub="evitou viagem a Manaus" />

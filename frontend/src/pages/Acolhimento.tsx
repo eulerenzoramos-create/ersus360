@@ -46,13 +46,13 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
         </div>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
-        <KpiCard label="Atendimentos/mês"   value={dash.atendimentos_upa_mes.toLocaleString("pt-BR")} sub={`${dash.atendimentos_classificados_pct}% classificados`}                   cor="#374151"   icon={<Users size={14} color="#374151"/>}/>
+        <KpiCard label="Atendimentos/mês"   value={dash.atendimentos_upa_mes?.toLocaleString("pt-BR")} sub={`${dash.atendimentos_classificados_pct}% classificados`}                   cor="#374151"   icon={<Users size={14} color="#374151"/>}/>
         <KpiCard label="Espera Verde (P3)"  value={dash.tempo_espera_verde_min+"min"}                 sub={`meta: ≤${dash.meta_verde_min} min`}                                     cor={dash.tempo_espera_verde_min<=dash.meta_verde_min?"#16a34a":"#d97706"} icon={<Clock size={14} color={dash.tempo_espera_verde_min<=dash.meta_verde_min?"#16a34a":"#d97706"}/>}/>
         <KpiCard label="Espera Amarelo (P2)"value={dash.tempo_espera_amarelo_min+"min"}               sub={`meta: ≤${dash.meta_amarelo_min} min`}                                   cor={dash.tempo_espera_amarelo_min<=dash.meta_amarelo_min?"#16a34a":"#d97706"} icon={<CheckCircle size={14} color={dash.tempo_espera_amarelo_min<=dash.meta_amarelo_min?"#16a34a":"#d97706"}/>}/>
         <KpiCard label="Fuga antes atend."  value={dash.fuga_antes_atend_pct+"%"}                     sub="meta: ≤3%"                                                               cor={dash.fuga_antes_atend_pct<=3?"#16a34a":"#d97706"} icon={<AlertTriangle size={14} color={dash.fuga_antes_atend_pct<=3?"#16a34a":"#d97706"}/>}/>
       </div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 14 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Distribuição por classificação — mês atual ({dash.atendimentos_upa_mes.toLocaleString("pt-BR")} atend.)</div>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Distribuição por classificação — mês atual ({dash.atendimentos_upa_mes?.toLocaleString("pt-BR")} atend.)</div>
         {classDist.map(c => {
           const pct = Math.round(c.n / dash.atendimentos_upa_mes * 100);
           const cor = CLASS_COR[c.key];
@@ -141,7 +141,7 @@ function AbaQueixas({ queixas }: { queixas: any[] | undefined }) {
   const total = queixas.reduce((s, q) => s + q.casos, 0);
   return (
     <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Principais queixas — {total.toLocaleString("pt-BR")} atendimentos</div>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Principais queixas — {total?.toLocaleString("pt-BR")} atendimentos</div>
       {queixas.map(q => {
         const cor = q.classificacao_modal === "Vermelho" ? "#dc2626" : q.classificacao_modal === "Laranja" ? "#ea580c" : q.classificacao_modal === "Amarelo" ? "#ca8a04" : q.classificacao_modal === "Azul" ? "#2563eb" : "#16a34a";
         return (
@@ -230,7 +230,7 @@ export default function Acolhimento() {
           {dash && (
             <div style={{ display: "flex", gap: 10 }}>
               <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.atendimentos_upa_mes.toLocaleString("pt-BR")}</div>
+                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.atendimentos_upa_mes?.toLocaleString("pt-BR")}</div>
                 <div style={{ fontSize: 10, opacity: .8 }}>atend./mês UPA</div>
               </div>
               <div style={{ background: dashRaw.tempo_espera_verde_min>dashRaw.meta_verde_min?"rgba(255,200,50,.3)":"rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>

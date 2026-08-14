@@ -133,7 +133,7 @@ export default function SaudeMentalApui2() {
                     <span className="font-semibold text-slate-700">{ag.agravo}</span>
                   </div>
                   <div className="text-xs text-right ml-4 space-y-0.5">
-                    {ag.prevalencia_estimada && <div>Estimado: <b>{ag.prevalencia_estimada.toLocaleString()}</b> | Tratados: <b>{ag.em_tratamento}</b></div>}
+                    {ag.prevalencia_estimada && <div>Estimado: <b>{ag.prevalencia_estimada?.toLocaleString()}</b> | Tratados: <b>{ag.em_tratamento}</b></div>}
                     {ag.cobertura_pct && <div>Cobertura: <b style={{ color: statusColor(ag.status) }}>{ag.cobertura_pct}%</b></div>}
                   </div>
                 </div>

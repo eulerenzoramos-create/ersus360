@@ -86,7 +86,7 @@ export default function MercurioGarimpoApui() {
               <KPI label="Crianças com Hg > limite CDC"    value={`${dashRaw.criancas_hg_acima_limite_pct}%`}            color={CRIT} sub={`média ${dashRaw.criancas_hg_sangue_ug_dl_medio} µg/dL (limite ${dashRaw.limite_cdc_hg_sangue_ug_dl})`} />
               <KPI label="Hg médio em peixes (rios garimpo)" value={`${dashRaw.nivel_hg_peixe_medio_mg_kg} mg/kg`}       color={CRIT} sub={`${dashRaw.nivel_hg_peixe_vezes_limite}× o limite OMS (${dashRaw.limite_oms_hg_peixe_mg_kg} mg/kg)`} />
               <KPI label="Gestantes com Hg acima OMS"      value={`${dashRaw.gestantes_expostas_hg_estimadas} gestantes`}color={CRIT} sub={`cabelo médio ${dashRaw.gestantes_hg_cabelo_ppm_medio} ppm (limite ${dashRaw.limite_oms_gestante_hg_cabelo_ppm} ppm)`} />
-              <KPI label="Garimpeiros com Hg > limite"     value={`${dashRaw.garimpeiros_hg_urina_acima_limite_pct}%`}   color={CRIT} sub={`${dashRaw.garimpeiros_ativos_estimados.toLocaleString()} garimpeiros ativos`} />
+              <KPI label="Garimpeiros com Hg > limite"     value={`${dashRaw.garimpeiros_hg_urina_acima_limite_pct}%`}   color={CRIT} sub={`${dashRaw.garimpeiros_ativos_estimados?.toLocaleString()} garimpeiros ativos`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Microcefalia — área de garimpo"  value={dashRaw.microcefalia_garimpo_2025}                     color={CRIT} sub="nenhuma investigada para Hg em 2025" />

@@ -538,7 +538,7 @@ function AbaAlertas({ dados }: { dados: any }) {
                 {a.pct != null && (
                   <div style={{ background: cor + "15", color: cor, fontSize: 12, fontWeight: 800,
                     padding: "3px 10px", borderRadius: 20 }}>
-                    {a.pct.toFixed(1).replace(".", ",")}%
+                    {a.pct?.toFixed(1).replace(".", ",")}%
                   </div>
                 )}
               </div>

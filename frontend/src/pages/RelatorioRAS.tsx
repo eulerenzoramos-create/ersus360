@@ -65,8 +65,8 @@ function CardPonto({ ponto }: { ponto: PontoRAS }) {
           <div style={{ height: "100%", width: `${ponto.ocupacao_pct}%`, background: ocCor, borderRadius: 2 }}/>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
-          <span style={{ fontSize: 9, color: "#9ca3af" }}>Produção: {ponto.producao_mes.toLocaleString("pt-BR")}</span>
-          <span style={{ fontSize: 9, color: "#9ca3af" }}>Cap.: {ponto.capacidade_instalada.toLocaleString("pt-BR")}</span>
+          <span style={{ fontSize: 9, color: "#9ca3af" }}>Produção: {ponto.producao_mes?.toLocaleString("pt-BR")}</span>
+          <span style={{ fontSize: 9, color: "#9ca3af" }}>Cap.: {ponto.capacidade_instalada?.toLocaleString("pt-BR")}</span>
         </div>
       </div>
 
@@ -151,7 +151,7 @@ export default function RelatorioRAS() {
               { l: "UBS/eSF",          v: r.aps_credenciadas,                   cor: "#86efac" },
               { l: "Serviços MAC",     v: r.servicos_mac,                       cor: "#bfdbfe" },
               { l: "Cobertura Pop.",   v: `${r.cobertura_populacao_pct}%`,      cor: "#c4b5fd" },
-              { l: "Produção/Mês",     v: r.producao_total_mes.toLocaleString("pt-BR"), cor: "#c4b5fd" },
+              { l: "Produção/Mês",     v: r.producao_total_mes?.toLocaleString("pt-BR"), cor: "#c4b5fd" },
               { l: "Serv. Integrados", v: r.servicos_integrados,                cor: "#86efac" },
             ].map(k => (
               <div key={k.l} style={{ background: "rgba(255,255,255,.12)", borderRadius: 8, padding: "10px 12px", textAlign: "center" as const }}>
@@ -224,7 +224,7 @@ export default function RelatorioRAS() {
                 ["UBS / equipes ESF ativas",    String(r.aps_credenciadas)],
                 ["Serviços de média/alta comp.", String(r.servicos_mac)],
                 ["Cobertura populacional APS",  `${r.cobertura_populacao_pct}%`],
-                ["Produção total mês",          r.producao_total_mes.toLocaleString("pt-BR")],
+                ["Produção total mês",          r.producao_total_mes?.toLocaleString("pt-BR")],
                 ["Serviços integrados ao RNDS", String(r.servicos_integrados)],
                 ["Última atualização",          r.ultima_atualizacao],
               ].map(([l, v]) => (

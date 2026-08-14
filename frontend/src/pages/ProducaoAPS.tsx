@@ -52,7 +52,7 @@ function CardMes({ m, maxTotal }: { m: AtendimentoMes; maxTotal: number }) {
     <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderLeft: "4px solid #1351b4", borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
       <div onClick={() => setAberto(o => !o)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", cursor: "pointer" }}>
         <div style={{ width: 52, flexShrink: 0, textAlign: "center" as const }}>
-          <div style={{ fontSize: 16, fontWeight: 900, color: "#1351b4" }}>{m.total.toLocaleString("pt-BR")}</div>
+          <div style={{ fontSize: 16, fontWeight: 900, color: "#1351b4" }}>{m.total?.toLocaleString("pt-BR")}</div>
           <div style={{ fontSize: 9, color: "#9ca3af" }}>{m.mes}</div>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -136,11 +136,11 @@ export default function ProducaoAPS() {
         {r && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 8, marginTop: 16 }}>
             {[
-              { l: "Atend./mês",       v: r.atendimentos_mes.toLocaleString("pt-BR"),   cor: "#bfdbfe" },
-              { l: "Meta/mês",         v: r.meta_mensal.toLocaleString("pt-BR"),        cor: "#bfdbfe" },
+              { l: "Atend./mês",       v: r.atendimentos_mes?.toLocaleString("pt-BR"),   cor: "#bfdbfe" },
+              { l: "Meta/mês",         v: r.meta_mensal?.toLocaleString("pt-BR"),        cor: "#bfdbfe" },
               { l: "% Meta",           v: `${r.pct_meta}%`,                             cor: r.pct_meta >= 100 ? "#86efac" : r.pct_meta >= 80 ? "#fde68a" : "#fca5a5" },
-              { l: "Médico",           v: r.atendimentos_medico.toLocaleString("pt-BR"), cor: "#bfdbfe" },
-              { l: "Enfermeiro",       v: r.atendimentos_enfermeiro.toLocaleString("pt-BR"), cor: "#86efac" },
+              { l: "Médico",           v: r.atendimentos_medico?.toLocaleString("pt-BR"), cor: "#bfdbfe" },
+              { l: "Enfermeiro",       v: r.atendimentos_enfermeiro?.toLocaleString("pt-BR"), cor: "#86efac" },
               { l: "Retorno %",        v: `${r.consultas_retorno_pct}%`,                cor: "#bfdbfe" },
               { l: "Dem. Espontânea",  v: `${r.atend_demanda_espontanea_pct}%`,         cor: "#fde68a" },
               { l: "PEC registrado",   v: `${r.registros_pec_pct}%`,                   cor: r.registros_pec_pct >= 95 ? "#86efac" : "#fde68a" },
@@ -233,8 +233,8 @@ export default function ProducaoAPS() {
                       return (
                         <tr key={f.tipo} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                           <td style={{ padding: "9px 14px", fontSize: 11, fontWeight: 700, color: "#374151" }}>{f.tipo}</td>
-                          <td style={{ padding: "9px 14px", fontSize: 11, fontWeight: 700 }}>{f.registros.toLocaleString("pt-BR")}</td>
-                          <td style={{ padding: "9px 14px", fontSize: 11, color: "#6b7280" }}>{f.meta_mensal.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "9px 14px", fontSize: 11, fontWeight: 700 }}>{f.registros?.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "9px 14px", fontSize: 11, color: "#6b7280" }}>{f.meta_mensal?.toLocaleString("pt-BR")}</td>
                           <td style={{ padding: "9px 14px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <div style={{ flex: 1, height: 5, background: "#e5e7eb", borderRadius: 3 }}>

@@ -112,7 +112,7 @@ export default function Abastecimento() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Pop. Atendida" value={dashRaw.populacao_atendida.toLocaleString()} sub={`de ${dashRaw.populacao_total_municipio.toLocaleString()}`} />
+              <KPI label="Pop. Atendida" value={dashRaw.populacao_atendida?.toLocaleString()} sub={`de ${dashRaw.populacao_total_municipio?.toLocaleString()}`} />
               <KPI label="Cobertura Água Tratada" value={`${dashRaw.cobertura_agua_tratada_pct}%`} color={WARN} />
               <KPI label="Cobertura Esgotamento" value={`${dashRaw.cobertura_esgotamento_pct}%`} color={CRIT} />
               <KPI label="Coleta de Lixo" value={`${dashRaw.cobertura_coleta_lixo_pct}%`} color={WARN} />
@@ -120,7 +120,7 @@ export default function Abastecimento() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Amostras/Mês" value={dashRaw.amostras_agua_potavel_mes.toString()} />
               <KPI label="Conformidade" value={`${dashRaw.amostras_conforme_pct}%`} sub={`${dashRaw.amostras_nao_conforme} não conformes`} color={WARN} />
-              <KPI label="Domicílios sem Água Tratada" value={dashRaw.domicilios_sem_agua_tratada.toLocaleString()} color={CRIT} />
+              <KPI label="Domicílios sem Água Tratada" value={dashRaw.domicilios_sem_agua_tratada?.toLocaleString()} color={CRIT} />
               <KPI label="Doenças Hídricas/Mês" value={dashRaw.doencas_transmitidas_agua_mes.toString()} color={CRIT} />
             </div>
           </div>
@@ -189,7 +189,7 @@ export default function Abastecimento() {
                     </span>
                   </div>
                   <div className="grid grid-cols-3 md:grid-cols-5 gap-2 text-xs text-slate-500">
-                    <span>Pop.: <b>{z.populacao.toLocaleString()}</b></span>
+                    <span>Pop.: <b>{z.populacao?.toLocaleString()}</b></span>
                     <span>Água: <b style={{ color: z.agua_tratada_pct < 50 ? CRIT : z.agua_tratada_pct < 80 ? WARN : OK }}>{z.agua_tratada_pct}%</b></span>
                     <span>Esgoto: <b style={{ color: z.esgotamento_pct < 20 ? CRIT : z.esgotamento_pct < 50 ? WARN : OK }}>{z.esgotamento_pct}%</b></span>
                     <span>Lixo: <b style={{ color: z.coleta_lixo_pct < 40 ? CRIT : z.coleta_lixo_pct < 70 ? WARN : OK }}>{z.coleta_lixo_pct}%</b></span>

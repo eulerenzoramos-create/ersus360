@@ -178,7 +178,7 @@ function CardUnidade({ u }: { u: UnidadeSaude }) {
             <span style={{ fontSize: 8, color: "#9ca3af" }}>CNES {u.cnes} · {u.zona}</span>
           </div>
           <div style={{ fontSize: 10, color: "#6b7280" }}>
-            {u.endereco} · Pop. vinculada: <b>{u.populacao_vinculada.toLocaleString("pt-BR")}</b>
+            {u.endereco} · Pop. vinculada: <b>{u.populacao_vinculada?.toLocaleString("pt-BR")}</b>
           </div>
         </div>
         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
@@ -293,8 +293,8 @@ export default function MapaSanitario() {
               { l: "Unidades",        v: r.total_unidades,                                    cor: "#bbf7d0" },
               { l: "Ativas",          v: r.unidades_ativas,                                   cor: "#86efac" },
               { l: "Equipes ESF",     v: r.equipes_esf,                                       cor: "#86efac" },
-              { l: "Pop. Coberta",    v: r.populacao_coberta.toLocaleString("pt-BR"),         cor: "#bae6fd" },
-              { l: "Pop. Total",      v: r.populacao_total.toLocaleString("pt-BR"),           cor: "#bae6fd" },
+              { l: "Pop. Coberta",    v: r.populacao_coberta?.toLocaleString("pt-BR"),         cor: "#bae6fd" },
+              { l: "Pop. Total",      v: r.populacao_total?.toLocaleString("pt-BR"),           cor: "#bae6fd" },
               { l: "Cobertura ESF",   v: `${r.cobertura_esf_pct}%`,                          cor: "#86efac" },
               { l: "ACS em atividade", v: posicoesAcs.filter(p => p.status !== "offline").length, cor: "#93c5fd" },
             ].map(k => (

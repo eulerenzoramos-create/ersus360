@@ -86,8 +86,8 @@ export default function AtencaoEspecializada() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Consultas Espec./Mês" value={dashRaw.consultas_especializadas_mes.toLocaleString()} color={ACCENT} />
-              <KPI label="Lista de Espera Total" value={dashRaw.total_lista_espera.toLocaleString()} color={CRIT} />
+              <KPI label="Consultas Espec./Mês" value={dashRaw.consultas_especializadas_mes?.toLocaleString()} color={ACCENT} />
+              <KPI label="Lista de Espera Total" value={dashRaw.total_lista_espera?.toLocaleString()} color={CRIT} />
               <KPI label="Espec. Presencial Fixo" value={`${dashRaw.especialidades_presencial}/${dashRaw.especialidades_disponiveis}`} color={WARN} />
               <KPI label="Espec. Críticas" value={dashRaw.especialidades_criticas.toString()} color={CRIT} sub="sem profissional local" />
             </div>

@@ -171,7 +171,7 @@ export default function AtividadeFisicaApui() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${p.implementado ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                       {p.implementado ? "Implementado" : "Não implementado"}
                     </span>
-                    <p className="text-xs text-slate-400 mt-0.5">R$ {p.custo.toLocaleString()} · {p.prazo_meses}m</p>
+                    <p className="text-xs text-slate-400 mt-0.5">R$ {p.custo?.toLocaleString()} · {p.prazo_meses}m</p>
                   </div>
                 </div>
                 <p className="text-xs text-slate-500 ml-5">{p.observacao}</p>

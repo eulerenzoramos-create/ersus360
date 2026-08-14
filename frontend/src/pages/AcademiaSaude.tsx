@@ -102,8 +102,8 @@ export default function AcademiaSaude() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Usuários Ativos/Mês" value={dashRaw.usuarios_ativos_mes.toLocaleString()} sub={`meta: ${dashRaw.meta_usuarios_2026.toLocaleString()}`} color={WARN} />
-              <KPI label="Cadastrados"         value={dashRaw.usuarios_cadastrados.toLocaleString()} />
+              <KPI label="Usuários Ativos/Mês" value={dashRaw.usuarios_ativos_mes?.toLocaleString()} sub={`meta: ${dashRaw.meta_usuarios_2026?.toLocaleString()}`} color={WARN} />
+              <KPI label="Cadastrados"         value={dashRaw.usuarios_cadastrados?.toLocaleString()} />
               <KPI label="Polos Ativos"        value={`${dashRaw.polos_ativos}/${dashRaw.polos_cadastrados}`} color={dashRaw.polos_ativos < dashRaw.polos_cadastrados ? WARN : OK} />
               <KPI label="Grupos Especiais"    value={dashRaw.grupos_especiais.toString()} sub="usuários em grupos" color={ACCENT} />
             </div>
@@ -111,7 +111,7 @@ export default function AcademiaSaude() {
               <KPI label="Freq. Média/Semana"  value={`${dashRaw.frequencia_media_semana}×`} sub="meta: 4×/sem" color={WARN} />
               <KPI label="Modalidades"         value={dashRaw.modalidades_ofertadas.toString()} />
               <KPI label="Prof. Ed. Física"    value={`${dashRaw.profissionais_ef_vinculados}/${dashRaw.profissionais_ef_meta}`} color={dashRaw.polos_ativos < dashRaw.polos_cadastrados ? WARN : OK} />
-              <KPI label="Custo Mensal"        value={`R$${dashRaw.custo_mensal.toLocaleString("pt-BR",{minimumFractionDigits:0})}`} />
+              <KPI label="Custo Mensal"        value={`R$${dashRaw.custo_mensal?.toLocaleString("pt-BR",{minimumFractionDigits:0})}`} />
             </div>
             {dashRaw.polo_inativo > 0 && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">

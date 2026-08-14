@@ -112,7 +112,7 @@ export default function Portarias() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["portarias"] }),
   });
 
-  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const fmt = (v: number) => v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   if (!isLoading && !portarias) return (
     <div style={{ padding: 24 }}>

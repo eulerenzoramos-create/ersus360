@@ -121,8 +121,8 @@ export default function ProtocoloClinico() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Adesão Média"       value={`${dashRaw.adesao_media_pct}%`} sub="meta: 85%" color={WARN} />
-              <KPI label="Pacientes em Prot." value={dashRaw.pacientes_em_protocolo.toLocaleString()} />
-              <KPI label="Monitoramentos/Mês" value={dashRaw.monitoramentos_mes.toLocaleString()} />
+              <KPI label="Pacientes em Prot." value={dashRaw.pacientes_em_protocolo?.toLocaleString()} />
+              <KPI label="Monitoramentos/Mês" value={dashRaw.monitoramentos_mes?.toLocaleString()} />
               <KPI label="Desvios/Mês"        value={dashRaw.desvios_mes.toString()} color={WARN} />
             </div>
           </div>
@@ -159,8 +159,8 @@ export default function ProtocoloClinico() {
                     <div className="h-2 rounded-full" style={{ width: `${p.adesao_pct}%`, background: statusColor(p.status) }} />
                   </div>
                   <div className="grid grid-cols-4 gap-2 text-xs text-slate-500">
-                    <span>Pacientes: <b>{p.pacientes_alvo.toLocaleString()}</b></span>
-                    <span>Em prot.: <b>{p.em_protocolo.toLocaleString()}</b></span>
+                    <span>Pacientes: <b>{p.pacientes_alvo?.toLocaleString()}</b></span>
+                    <span>Em prot.: <b>{p.em_protocolo?.toLocaleString()}</b></span>
                     <span>Monitor./mês: <b>{p.monitoramentos_mes}</b></span>
                     <span>Desvios: <b style={{ color: p.desvios_mes > 0 ? WARN : OK }}>{p.desvios_mes}</b></span>
                   </div>

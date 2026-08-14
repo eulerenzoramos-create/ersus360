@@ -145,7 +145,7 @@ export default function Obras() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["obras"] }),
   });
 
-  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const fmt = (v: number) => v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const atrasadas = obras.filter((o: Obra) => (o.dias_atraso ?? 0) > 0).length;
   const emAndamento = obras.filter((o: Obra) => o.status === "Em andamento").length;

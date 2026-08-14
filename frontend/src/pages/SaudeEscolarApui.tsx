@@ -95,7 +95,7 @@ export default function SaudeEscolarApui() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Escolas PSE"           value={`${dashRaw.escolas_pse_parceiras}/${dashRaw.escolas_municipio_total}`} color={WARN} sub={`${dashRaw.cobertura_escolas_pse_pct}% cobertura`} />
-              <KPI label="Alunos Cobertos"       value={`${dashRaw.alunos_cobertos_pse.toLocaleString()}/${dashRaw.alunos_total.toLocaleString()}`} color={WARN} sub={`${dashRaw.cobertura_alunos_pct}%`} />
+              <KPI label="Alunos Cobertos"       value={`${dashRaw.alunos_cobertos_pse?.toLocaleString()}/${dashRaw.alunos_total?.toLocaleString()}`} color={WARN} sub={`${dashRaw.cobertura_alunos_pct}%`} />
               <KPI label="Gravidez Adolescente"  value={`${dashRaw.maternidade_adolescente_pct}%`} color={CRIT} sub={`meta: ${dashRaw.meta_gravidez_adol_pct}%`} />
               <KPI label="Triagem Visual"        value={`${dashRaw.triagem_visual_pct}%`}           color={CRIT} sub="71,6% sem triagem" />
             </div>
@@ -159,7 +159,7 @@ export default function SaudeEscolarApui() {
                       <div className="w-3 h-3 rounded-full" style={{ background: statusColor(a.status) }} />
                       <span className="font-semibold text-sm text-slate-700">{a.acao}</span>
                     </div>
-                    <span className="text-xs font-bold" style={{ color: statusColor(a.status) }}>{a.realizado_pct}% / meta {a.meta_pct}% — {a.alunos_beneficiados.toLocaleString()} alunos</span>
+                    <span className="text-xs font-bold" style={{ color: statusColor(a.status) }}>{a.realizado_pct}% / meta {a.meta_pct}% — {a.alunos_beneficiados?.toLocaleString()} alunos</span>
                   </div>
                   <p className="text-xs text-slate-500 ml-5">{a.observacao}</p>
                 </div>
@@ -193,7 +193,7 @@ export default function SaudeEscolarApui() {
                   </div>
                   <div className="text-xs text-right space-y-0.5">
                     <div>Escolas PSE: <span className="font-bold">{e.pse_parceiras}/{e.escolas}</span> (<span style={{ color: statusColor(e.status) }}>{e.cobertura_pct}%</span>)</div>
-                    <div className="text-slate-400">{e.alunos.toLocaleString()} alunos</div>
+                    <div className="text-slate-400">{e.alunos?.toLocaleString()} alunos</div>
                   </div>
                 </div>
               ))}

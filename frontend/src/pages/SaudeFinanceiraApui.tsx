@@ -89,7 +89,7 @@ export default function SaudeFinanceiraApui() {
               <KPI label="Orçamento FMS 2025"    value={BRL(dashRaw.orcamento_fms_2025)}   color={BRAND} />
               <KPI label="Executado"             value={`${dashRaw.executado_pct}%`}         color={statusColor(dashRaw.status_execucao)} sub={BRL(dashRaw.executado_valor)} />
               <KPI label="Vinculação saúde"      value={`${dashRaw.aplicado_saude_receitas_pct}%`} color={OK} sub={`mín. constitucional: ${dashRaw.vinculacao_constitucional_pct}%`} />
-              <KPI label="Per capita"            value={`R$ ${dashRaw.custo_per_capita.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} color={WARN} sub="meta: R$ 2.000/hab" />
+              <KPI label="Per capita"            value={`R$ ${dashRaw.custo_per_capita?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} color={WARN} sub="meta: R$ 2.000/hab" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Restos a pagar"        value={BRL(dashRaw.restos_a_pagar)}         color={WARN} sub="9% do orçamento" />

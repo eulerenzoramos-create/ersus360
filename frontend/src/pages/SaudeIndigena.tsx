@@ -97,7 +97,7 @@ export default function SaudeIndigena() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Pop. Indígena"       value={dashRaw.populacao_indigena_total.toLocaleString()} sub={`${dashRaw.povos_atendidos} povos`} />
+              <KPI label="Pop. Indígena"       value={dashRaw.populacao_indigena_total?.toLocaleString()} sub={`${dashRaw.povos_atendidos} povos`} />
               <KPI label="Aldeias Monitoradas" value={dashRaw.aldeias_monitoradas.toString()} />
               <KPI label="Sem EMSI"            value={dashRaw.aldeias_sem_emsi.toString()} sub="aldeias sem equipe" color={CRIT} />
               <KPI label="IPA Indígena"        value={`${dashRaw.ipa_indigena}`} sub="/1000 hab" color={CRIT} />

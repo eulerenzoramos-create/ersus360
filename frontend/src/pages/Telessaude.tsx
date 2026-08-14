@@ -28,13 +28,13 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
   return (
     <div>
       <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#166534" }}>
-        <strong>Telessaúde Apuí:</strong> {dash.regulacoes_evitadas_mes} regulações evitadas/mês · economia estimada de <strong>R${dash.economia_estimada_mes.toLocaleString("pt-BR")}</strong> em TFD + diárias. Tempo médio resposta: {dash.tempo_medio_resposta_horas}h (meta {dash.meta_resposta_horas}h).
+        <strong>Telessaúde Apuí:</strong> {dash.regulacoes_evitadas_mes} regulações evitadas/mês · economia estimada de <strong>R${dash.economia_estimada_mes?.toLocaleString("pt-BR")}</strong> em TFD + diárias. Tempo médio resposta: {dash.tempo_medio_resposta_horas}h (meta {dash.meta_resposta_horas}h).
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
         <KpiCard label="Teleatendimentos/mês"   value={dash.total_teleatendimentos_mes}    sub={`${dash.especialidades_ativas} especialidades`}    cor="#1d4ed8"                              icon={<Monitor size={14} color="#1d4ed8"/>}/>
         <KpiCard label="Tempo resp. médio"       value={dash.tempo_medio_resposta_horas+"h"} sub={`meta: ${dash.meta_resposta_horas}h`}             cor={dash.tempo_medio_resposta_horas<=dash.meta_resposta_horas?"#16a34a":"#d97706"} icon={<Clock size={14} color={dash.tempo_medio_resposta_horas<=dash.meta_resposta_horas?"#16a34a":"#d97706"}/>}/>
         <KpiCard label="Internações evitadas"   value={dash.internacoes_evitadas_pct+"%"}  sub="resolubilidade na APS"                            cor="#16a34a"                              icon={<TrendingUp size={14} color="#16a34a"/>}/>
-        <KpiCard label="Economia/mês"           value={"R$"+dash.economia_estimada_mes.toLocaleString("pt-BR")} sub="TFD + transporte + diárias"   cor="#16a34a"                              icon={<DollarSign size={14} color="#16a34a"/>}/>
+        <KpiCard label="Economia/mês"           value={"R$"+dash.economia_estimada_mes?.toLocaleString("pt-BR")} sub="TFD + transporte + diárias"   cor="#16a34a"                              icon={<DollarSign size={14} color="#16a34a"/>}/>
       </div>
       {hist && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>

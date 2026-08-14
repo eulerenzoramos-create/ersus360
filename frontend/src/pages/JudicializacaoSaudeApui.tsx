@@ -68,7 +68,7 @@ export default function JudicializacaoSaudeApui(){
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
                 <XAxis type="number" tickFormatter={v=>BRL(v)} tick={{fontSize:10}}/>
                 <YAxis dataKey="categoria" type="category" tick={{fontSize:10}} width={260}/>
-                <Tooltip formatter={(v:number)=>[`R$ ${v.toLocaleString()}`,"Custo/mês"]}/>
+                <Tooltip formatter={(v:number)=>[`R$ ${v?.toLocaleString()}`,"Custo/mês"]}/>
                 <Bar dataKey="valor_mensal_r" fill={CRIT} radius={[0,4,4,0]} name="Custo Mensal"/>
               </BarChart>
             </ResponsiveContainer>
@@ -86,7 +86,7 @@ export default function JudicializacaoSaudeApui(){
                 <tr key={idx} style={{borderBottom:"1px solid #f3f4f6"}}>
                   <td style={{padding:"8px 10px",fontWeight:600}}>{r.categoria}</td>
                   <td style={{padding:"8px 10px",textAlign:"right",fontWeight:700,color:sc(r.status)}}>{r.processos}</td>
-                  <td style={{padding:"8px 10px",textAlign:"right",fontWeight:700,color:r.valor_mensal_r>10000?CRIT:WARN}}>R$ {r.valor_mensal_r.toLocaleString()}</td>
+                  <td style={{padding:"8px 10px",textAlign:"right",fontWeight:700,color:r.valor_mensal_r>10000?CRIT:WARN}}>R$ {r.valor_mensal_r?.toLocaleString()}</td>
                   <td style={{padding:"8px 10px",textAlign:"center",fontSize:11,color:r.complexidade==="alta"?CRIT:WARN}}>{r.complexidade}</td>
                   <td style={{padding:"8px 10px",fontSize:11,color:"#6b7280"}}>{r.principais}</td>
                 </tr>
@@ -109,7 +109,7 @@ export default function JudicializacaoSaudeApui(){
                   <span style={{background:med2.lista_sus==="Não"?"#fee2e2":"#fef3c7",color:med2.lista_sus==="Não"?CRIT:WARN,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:10}}>
                     {med2.lista_sus==="Não"?"Fora do SUS":"No SUS"}
                   </span>
-                  <span style={{fontWeight:700,color:CRIT,fontSize:14}}>R$ {med2.custo_mensal_r.toLocaleString()}/mês</span>
+                  <span style={{fontWeight:700,color:CRIT,fontSize:14}}>R$ {med2.custo_mensal_r?.toLocaleString()}/mês</span>
                   <span style={{fontSize:11,color:"#6b7280"}}>{med2.processos} processo(s)</span>
                 </div>
               </div>

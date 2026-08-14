@@ -95,7 +95,7 @@ export default function UrgenciaEmergenciaApui() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Leitos UTI SUS"        value={`${dashRaw.leitos_uti_sus} funcionais`}      color={CRIT} sub={`necessários: ${dashRaw.leitos_uti_necessarios}`} />
-              <KPI label="Atend. PS / Mês"       value={dashRaw.atendimentos_ps_mes.toLocaleString()} color={BRAND} sub={`${dashRaw.internacoes_mes} internações`} />
+              <KPI label="Atend. PS / Mês"       value={dashRaw.atendimentos_ps_mes?.toLocaleString()} color={BRAND} sub={`${dashRaw.internacoes_mes} internações`} />
               <KPI label="Tempo Resp. SAMU"      value={`${dashRaw.samu_tempo_resposta_min} min`}     color={CRIT} sub={`meta: ${dashRaw.meta_samu_resposta_min} min`} />
               <KPI label="Transferências/Mês"    value={dashRaw.transferencias_manaus_mes.toString()}  color={CRIT} sub="para Manaus (784 km)" />
             </div>
@@ -191,7 +191,7 @@ export default function UrgenciaEmergenciaApui() {
                     <span className="font-semibold text-sm text-slate-700">{t.destino}</span>
                   </div>
                   <div className="text-xs text-right space-y-0.5">
-                    <div><span className="font-bold">{t.transferencias_mes}</span> transf./mês | <span className="font-bold">R$ {t.custo_medio_R.toLocaleString()}</span>/transf.</div>
+                    <div><span className="font-bold">{t.transferencias_mes}</span> transf./mês | <span className="font-bold">R$ {t.custo_medio_R?.toLocaleString()}</span>/transf.</div>
                     <div>Tempo: <span className="font-bold">{t.tempo_medio_h}h</span> | Resolvido: <span className="font-bold" style={{ color: t.retorno_resolvido_pct >= 80 ? OK : WARN }}>{t.retorno_resolvido_pct}%</span></div>
                   </div>
                 </div>

@@ -25,7 +25,7 @@ interface ResumoRepasses {
   ibge?: string;
 }
 
-const BRLd = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
+const BRLd = (v: number) => v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 
 const COR_STATUS: Record<string, string> = {
   creditado: "#16a34a", previsto: "#1351b4", atrasado: "#dc2626", parcial: "#d97706",

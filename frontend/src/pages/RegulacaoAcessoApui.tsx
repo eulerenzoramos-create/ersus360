@@ -77,7 +77,7 @@ export default function RegulacaoAcessoApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Fila de espera ativa"              value={`${dashRaw.fila_total_ativa.toLocaleString()} pacientes`} color={CRIT} sub={`consultas: ${dashRaw.fila_consultas_espec} · exames MAC: ${dashRaw.fila_exames_mac} · cirurgias: ${dashRaw.fila_cirurgias_eletivas}`} />
+              <KPI label="Fila de espera ativa"              value={`${dashRaw.fila_total_ativa?.toLocaleString()} pacientes`} color={CRIT} sub={`consultas: ${dashRaw.fila_consultas_espec} · exames MAC: ${dashRaw.fila_exames_mac} · cirurgias: ${dashRaw.fila_cirurgias_eletivas}`} />
               <KPI label="Tempo médio de espera (meta: 60d)" value={`${dashRaw.tempo_medio_espera_dias} dias`}                color={CRIT} sub={`neurologia: 312d · ortopedia: 284d · urologia: 224d`} />
               <KPI label="Pacientes >180 dias em fila"       value={`${dashRaw.pendentes_mais_180dias}`}                      color={CRIT} sub="Risco de agravamento clínico + judicialização SUS" />
               <KPI label="Referências a Manaus/mês"          value={`${dashRaw.referencias_manaus_mes}`}                      color={WARN} sub="600 km · TFD ou lancha/avião particular · custo R$ 1.200–8.400" />

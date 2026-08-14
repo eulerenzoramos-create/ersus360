@@ -87,7 +87,7 @@ export default function AbsenteismoApui() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Afastados LTS"           value={d.servidores_afastados_lts.toString()} color={CRIT} />
               <KPI label="Dias Perdidos/Mês"       value={d.dias_perdidos_mes.toString()} color={CRIT} sub="equivale a 22 profissionais" />
-              <KPI label="Horas Extras/Mês"        value={d.horas_extras_mes.toLocaleString("pt-BR")} color={WARN} sub="R$ 51 mil/mês" />
+              <KPI label="Horas Extras/Mês"        value={d.horas_extras_mes?.toLocaleString("pt-BR")} color={WARN} sub="R$ 51 mil/mês" />
               <KPI label="Médicos RPA (não efetivos)" value={`${d.medicos_contratados_rpa}/${d.medicos_efetivos + d.medicos_contratados_rpa}`} color={CRIT} sub="9 de 13 médicos sem vínculo" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">

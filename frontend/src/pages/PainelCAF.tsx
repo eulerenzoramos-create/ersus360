@@ -192,7 +192,7 @@ function AbaPorEquipe({ equipes }: { equipes: any[] | undefined }) {
               <div onClick={() => toggle(e.nome)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", cursor: "pointer" }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{e.nome}</div>
-                  <div style={{ fontSize: 11, color: "#9ca3af" }}>Param: {e.parametro.toLocaleString("pt-BR")} pessoas · Vínculo: {e.vinculo.toFixed(2)}</div>
+                  <div style={{ fontSize: 11, color: "#9ca3af" }}>Param: {e.parametro?.toLocaleString("pt-BR")} pessoas · Vínculo: {e.vinculo?.toFixed(2)}</div>
                 </div>
                 <div style={{ textAlign: "right", minWidth: 90 }}>
                   <div style={{ fontSize: 18, fontWeight: 800, color: cor }}>{BRL(e.total_mes)}</div>

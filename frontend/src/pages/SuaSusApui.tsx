@@ -41,10 +41,10 @@ export default function SuaSusApui(){
       {aba==="Dashboard"&&d&&(
         <div>
           <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20}}>
-            <KPI label="Famílias CRAS"           value={d.familias_cras_referenciadas.toLocaleString()}  color={ACCENT}/>
+            <KPI label="Famílias CRAS"           value={d.familias_cras_referenciadas?.toLocaleString()}  color={ACCENT}/>
             <KPI label="Vulnerabilidade Extrema" value={d.familias_vulnerabilidade_extrema}              color={CRIT}/>
             <KPI label="Beneficiários BPC/Saúde" value={d.beneficiarios_bpc_saude}                       color={ACCENT}/>
-            <KPI label="Bolsa Família + Cond."   value={d.beneficiarios_bolsa_familia_com_condicionalidades.toLocaleString()} color={BRAND}/>
+            <KPI label="Bolsa Família + Cond."   value={d.beneficiarios_bolsa_familia_com_condicionalidades?.toLocaleString()} color={BRAND}/>
             <KPI label="Condicionalidades Cumpr." value={`${d.condicionalidades_saude_cumpridas_pct}%`}  sub="Meta: ≥ 90%" color={WARN}/>
             <KPI label="Casos SUAS/SUS Abertos"  value={d.casos_interface_suas_sus_abertos}              color={WARN}/>
             <KPI label="Crianças Acomp. Conjunto" value={d.criancas_acompanhamento_conjunto}             color={ACCENT}/>

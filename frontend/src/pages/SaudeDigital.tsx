@@ -33,7 +33,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
         <KpiCard label="Cobertura PEC"        value={dash.cobertura_pec_pct+"%"}          sub={`meta: ${dash.meta_pec_pct}%`}                          cor={dash.cobertura_pec_pct>=95?"#16a34a":"#d97706"} icon={<Monitor size={14} color={dash.cobertura_pec_pct>=95?"#16a34a":"#d97706"}/>}/>
-        <KpiCard label="Envios RNDS"          value={dash.envios_rnds_sucesso_pct+"%"}    sub={`${dash.registros_rnds_mes.toLocaleString("pt-BR")} reg./mês`} cor={dash.envios_rnds_sucesso_pct>=98?"#16a34a":"#d97706"} icon={<Globe size={14} color={dash.envios_rnds_sucesso_pct>=98?"#16a34a":"#d97706"}/>}/>
+        <KpiCard label="Envios RNDS"          value={dash.envios_rnds_sucesso_pct+"%"}    sub={`${dash.registros_rnds_mes?.toLocaleString("pt-BR")} reg./mês`} cor={dash.envios_rnds_sucesso_pct>=98?"#16a34a":"#d97706"} icon={<Globe size={14} color={dash.envios_rnds_sucesso_pct>=98?"#16a34a":"#d97706"}/>}/>
         <KpiCard label="Fichas digitais"      value={dash.fichas_digitais_pct+"%"}        sub="sem papel"                                              cor={dash.fichas_digitais_pct>=90?"#16a34a":"#d97706"} icon={<CheckCircle size={14} color={dash.fichas_digitais_pct>=90?"#16a34a":"#d97706"}/>}/>
         <KpiCard label="Sync pendentes"       value={dash.sincronizacoes_pendentes}       sub="CDS Matupi"                                             cor={dash.sincronizacoes_pendentes>50?"#d97706":"#16a34a"} icon={<AlertTriangle size={14} color={dash.sincronizacoes_pendentes>50?"#d97706":"#16a34a"}/>}/>
       </div>
@@ -104,7 +104,7 @@ function AbaRNDS({ rnds }: { rnds: any | undefined }) {
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 18 }}>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: "#374151" }}>{rnds.registros_mes.toLocaleString("pt-BR")}</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#374151" }}>{rnds.registros_mes?.toLocaleString("pt-BR")}</div>
           <div style={{ fontSize: 11, color: "#9ca3af" }}>registros/mês</div>
         </div>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
@@ -213,7 +213,7 @@ export default function SaudeDigital() {
           {dash && (
             <div style={{ display: "flex", gap: 10 }}>
               <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 16, fontWeight: 900 }}>{dashRaw.registros_rnds_mes.toLocaleString("pt-BR")}</div>
+                <div style={{ fontSize: 16, fontWeight: 900 }}>{dashRaw.registros_rnds_mes?.toLocaleString("pt-BR")}</div>
                 <div style={{ fontSize: 10, opacity: .8 }}>registros RNDS/mês</div>
               </div>
               <div style={{ background: dashRaw.alertas_integracao > 0 ? "rgba(255,200,50,.3)" : "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>

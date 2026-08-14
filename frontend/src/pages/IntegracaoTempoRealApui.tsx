@@ -224,7 +224,7 @@ export default function IntegracaoTempoRealApui() {
             <KPI label="Equipes Cadastradas" value={egestDashRaw?.equipes_cadastradas ?? "â€”"} />
             <KPI label="Equipes Ativas" value={egestDashRaw?.equipes_ativas ?? "â€”"} color={OK} />
             <KPI label="Cobertura ESF" value={egestDashRaw ? `${egestDashRaw.cobertura_esf_pct}%` : "â€”"} color={ACCENT} />
-            <KPI label="Pop. Cadastrada" value={egestDashRaw ? egestDashRaw.populacao_cadastrada.toLocaleString("pt-BR") : "â€”"} />
+            <KPI label="Pop. Cadastrada" value={egestDashRaw ? egestDashRaw.populacao_cadastrada?.toLocaleString("pt-BR") : "â€”"} />
           </div>
           {egestEqRaw?.dados && Array.isArray(egestEqRaw.dados) && (
             <div style={{ background: "#fff", borderRadius: 12, padding: 20, marginBottom: 16 }}>
@@ -358,9 +358,9 @@ export default function IntegracaoTempoRealApui() {
                   return (
                     <tr key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
                       <td style={{ padding: "8px 12px" }}>{m.medicamento}</td>
-                      <td style={{ padding: "8px 12px", textAlign: "right" }}>{m.estoque.toLocaleString("pt-BR")} {m.unidade}</td>
-                      <td style={{ padding: "8px 12px", textAlign: "right" }}>{m.consumo_medio_mensal.toLocaleString("pt-BR")}</td>
-                      <td style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700, color: cor }}>{m.cobertura_meses.toFixed(1)} m</td>
+                      <td style={{ padding: "8px 12px", textAlign: "right" }}>{m.estoque?.toLocaleString("pt-BR")} {m.unidade}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "right" }}>{m.consumo_medio_mensal?.toLocaleString("pt-BR")}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700, color: cor }}>{m.cobertura_meses?.toFixed(1)} m</td>
                       <td style={{ padding: "8px 12px", textAlign: "center" }}>
                         <span style={{ color: cor, fontWeight: 700 }}>{m.status.toUpperCase()}</span>
                       </td>

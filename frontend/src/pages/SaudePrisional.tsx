@@ -70,7 +70,7 @@ function AbaDoencas({ doencas }: { doencas: any[] | undefined }) {
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <div>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>{d.doenca}</span>
-                  <span style={{ marginLeft: 8, fontSize: 11, color: "#6b7280" }}>{d.casos} casos · {d.prevalencia_1000.toFixed(1)}/1.000</span>
+                  <span style={{ marginLeft: 8, fontSize: 11, color: "#6b7280" }}>{d.casos} casos · {d.prevalencia_1000?.toFixed(1)}/1.000</span>
                 </div>
                 <span style={{ background: cor+"15", color: cor, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>
                   {d.em_tratamento_pct}% em trat.

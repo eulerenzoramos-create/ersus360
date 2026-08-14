@@ -100,7 +100,7 @@ export default function FarmaciaBasicaApui() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Disponibilidade Básico"  value={`${dashRaw.disponibilidade_basico_pct}%`}    color={WARN} sub={`meta: ${dashRaw.meta_disponibilidade_pct}%`} />
               <KPI label="Itens em Falta > 30d"    value={dashRaw.itens_em_falta_30d.toString()}       color={CRIT} sub={`de ${dashRaw.itens_rename_pactuados} pactuados`} />
-              <KPI label="Dispensações / Mês"      value={dashRaw.dispensacoes_mes.toLocaleString()}   color={BRAND} sub="Componente Básico" />
+              <KPI label="Dispensações / Mês"      value={dashRaw.dispensacoes_mes?.toLocaleString()}   color={BRAND} sub="Componente Básico" />
               <KPI label="Adesão HIPERDIA"         value={`${dashRaw.adesao_medicamento_hiperdia_pct}%`} color={WARN} sub={`meta: ${dashRaw.meta_adesao_pct}%`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -127,7 +127,7 @@ export default function FarmaciaBasicaApui() {
                     </div>
                   ))}
                   <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-600 mt-1">
-                    <b>Custo componente básico:</b> R$ {dashRaw.custo_total_componente_basico_mes_R.toLocaleString()}/mês | <b>Perdas por vencimento:</b> {dashRaw.perdas_validade_pct}% (meta 2%)
+                    <b>Custo componente básico:</b> R$ {dashRaw.custo_total_componente_basico_mes_R?.toLocaleString()}/mês | <b>Perdas por vencimento:</b> {dashRaw.perdas_validade_pct}% (meta 2%)
                   </div>
                 </div>
               </div>

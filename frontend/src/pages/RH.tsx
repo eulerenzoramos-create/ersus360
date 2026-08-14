@@ -219,7 +219,7 @@ export default function RH() {
               {c.empresa && <div style={{ fontSize: 11, color: "#737373" }}>Empresa: {c.empresa}</div>}
               <div style={{ fontSize: 11, color: "#737373" }}>Vigência: {c.inicio} → {c.fim}</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#1565C0", marginTop: 6 }}>
-                R$ {c.valor_mensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês
+                R$ {c.valor_mensal?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês
               </div>
             </div>
           ))}

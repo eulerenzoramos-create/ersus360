@@ -83,8 +83,8 @@ export default function SaudeRespiratoriaApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Asma controlada"           value={`${dashRaw.asma_controlada_pct}%`}              color={CRIT} sub={`${dashRaw.asma_casos_estimados.toLocaleString()} casos estimados`} />
-              <KPI label="DPOC diagnosticada"         value={`${dashRaw.dpoc_diagnosticada_pct}%`}           color={CRIT} sub={`${dashRaw.dpoc_casos_estimados.toLocaleString()} casos estimados`} />
+              <KPI label="Asma controlada"           value={`${dashRaw.asma_controlada_pct}%`}              color={CRIT} sub={`${dashRaw.asma_casos_estimados?.toLocaleString()} casos estimados`} />
+              <KPI label="DPOC diagnosticada"         value={`${dashRaw.dpoc_diagnosticada_pct}%`}           color={CRIT} sub={`${dashRaw.dpoc_casos_estimados?.toLocaleString()} casos estimados`} />
               <KPI label="Pneumonia — internações"    value={`${dashRaw.pneumonia_internacoes_ano}/ano`}      color={WARN} sub={`mortalidade: ${dashRaw.pneumonia_mortalidade_hospitalar_pct}%`} />
               <KPI label="Influenza — cobertura vac." value={`${dashRaw.influenza_cobertura_vacinal_pct}%`}  color={CRIT} sub={`meta: ${dashRaw.meta_influenza_pct}%`} />
             </div>
@@ -151,7 +151,7 @@ export default function SaudeRespiratoriaApui() {
                   </div>
                   <div className="text-right text-sm">
                     {c.prevalencia_estimada > 0 && (
-                      <span className="font-bold" style={{ color: BRAND }}>{c.prevalencia_estimada.toLocaleString()} estimados</span>
+                      <span className="font-bold" style={{ color: BRAND }}>{c.prevalencia_estimada?.toLocaleString()} estimados</span>
                     )}
                     {c.hospitalizacoes_ano > 0 && (
                       <p className="text-xs" style={{ color: statusColor(c.status) }}>{c.hospitalizacoes_ano} internações/ano</p>

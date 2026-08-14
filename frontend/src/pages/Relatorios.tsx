@@ -15,7 +15,7 @@ const S = {
   tab:   (a: boolean) => ({ padding: "8px 16px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 13, background: a ? "#1D9E75" : "#f5f5f3", color: a ? "#fff" : "#404040" }) as React.CSSProperties,
 };
 
-const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmt = (v: number) => v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtPct = (v: number) => PCT(v);
 
 const CORES = ["#1D9E75", "#2563eb", "#d97706", "#dc2626", "#7c3aed", "#0284c7"];

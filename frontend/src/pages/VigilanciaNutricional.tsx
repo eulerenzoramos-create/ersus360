@@ -95,7 +95,7 @@ export default function VigilanciaNutricional() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Acompanham. SISVAN/Mês" value={dashRaw.acompanhamentos_sisvan_mes.toLocaleString()} color={ACCENT} />
+              <KPI label="Acompanham. SISVAN/Mês" value={dashRaw.acompanhamentos_sisvan_mes?.toLocaleString()} color={ACCENT} />
               <KPI label="Cobertura SISVAN"        value={`${dashRaw.cobertura_sisvan_pct}%`}     color={WARN} sub="meta: 75%" />
               <KPI label="Desnutrição Infantil"    value={`${dashRaw.desnutricao_infantil_pct}%`} color={WARN} sub="crianças <5a" />
               <KPI label="Desnutrição Grave"       value={`${dashRaw.desnutricao_grave_pct}%`}    color={CRIT} sub="urgência clínica" />
@@ -118,7 +118,7 @@ export default function VigilanciaNutricional() {
               <div key={faixa.faixa} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-slate-700">{faixa.faixa}</h3>
-                  <span className="text-xs text-slate-400">n={faixa.n_acompanhados.toLocaleString()}</span>
+                  <span className="text-xs text-slate-400">n={faixa.n_acompanhados?.toLocaleString()}</span>
                 </div>
                 <ResponsiveContainer width="100%" height={40}>
                   <BarChart data={[faixa.categorias.reduce((acc: any, c: any) => { acc[c.cat] = c.pct; return acc; }, {})]} layout="vertical">

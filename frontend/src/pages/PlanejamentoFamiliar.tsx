@@ -32,7 +32,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
         </div>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
-        <KpiCard label="Mulheres em método"   value={dash.mulheres_em_metodo_ativo.toLocaleString("pt-BR")} sub={`cobertura: ${dash.cobertura_pct}%`}            cor={dash.cobertura_pct>=80?"#16a34a":"#d97706"} icon={<CheckCircle size={14} color={dash.cobertura_pct>=80?"#16a34a":"#d97706"}/>}/>
+        <KpiCard label="Mulheres em método"   value={dash.mulheres_em_metodo_ativo?.toLocaleString("pt-BR")} sub={`cobertura: ${dash.cobertura_pct}%`}            cor={dash.cobertura_pct>=80?"#16a34a":"#d97706"} icon={<CheckCircle size={14} color={dash.cobertura_pct>=80?"#16a34a":"#d97706"}/>}/>
         <KpiCard label="DIU inseridos/mês"    value={dash.diu_inseridos_mes}                               sub="método de longa duração"                         cor="#7c3aed"   icon={<Baby size={14} color="#7c3aed"/>}/>
         <KpiCard label="Gestações n/planejadas"value={dash.gestacoes_nao_planejadas_pct+"%"}               sub="meta: ≤25%"                                      cor={dash.gestacoes_nao_planejadas_pct<=25?"#16a34a":"#dc2626"} icon={<AlertTriangle size={14} color={dash.gestacoes_nao_planejadas_pct<=25?"#16a34a":"#dc2626"}/>}/>
         <KpiCard label="Adolesc. em método"   value={dash.adolescentes_em_metodo_pct+"%"}                 sub="meta: 60%"                                       cor={dash.adolescentes_em_metodo_pct>=60?"#16a34a":"#dc2626"} icon={<TrendingDown size={14} color={dash.adolescentes_em_metodo_pct>=60?"#16a34a":"#dc2626"}/>}/>
@@ -67,7 +67,7 @@ function AbaMetodos({ metodos }: { metodos: any[] | undefined }) {
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Mix de métodos contraceptivos — {total.toLocaleString("pt-BR")} usuárias ativas</div>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Mix de métodos contraceptivos — {total?.toLocaleString("pt-BR")} usuárias ativas</div>
         {metodos.map((m, i) => (
           <div key={m.metodo} style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
@@ -188,7 +188,7 @@ export default function PlanejamentoFamiliar() {
           {dash && (
             <div style={{ display: "flex", gap: 10 }}>
               <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.mulheres_em_metodo_ativo.toLocaleString("pt-BR")}</div>
+                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.mulheres_em_metodo_ativo?.toLocaleString("pt-BR")}</div>
                 <div style={{ fontSize: 10, opacity: .8 }}>em método ativo</div>
               </div>
               <div style={{ background: dashRaw.gestacoes_nao_planejadas_pct>30?"rgba(255,200,50,.3)":"rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>

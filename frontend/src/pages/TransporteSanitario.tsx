@@ -38,7 +38,7 @@ function AbaDashboard({ dash }: { dash: any }) {
         <KpiCard label="Frota operacional"    value={`${dash.frota_operacional}/${dash.total_frota}`}  sub="veículos disponíveis"   cor="#16a34a" icon={<Truck size={14} color="#16a34a"/>}/>
         <KpiCard label="Viagens realizadas"   value={dash.viagens_realizadas_mes}                     sub="Abr/2026"               cor="#1d4ed8" icon={<MapPin size={14} color="#1d4ed8"/>}/>
         <KpiCard label="Viagens agendadas"    value={dash.viagens_agendadas}                          sub="próximas"               cor="#0891b2" icon={<Calendar size={14} color="#0891b2"/>}/>
-        <KpiCard label="KM rodados"           value={dash.km_total_mes.toLocaleString("pt-BR")}       sub="no mês"                 cor="#7c3aed" icon={<Truck size={14} color="#7c3aed"/>}/>
+        <KpiCard label="KM rodados"           value={dash.km_total_mes?.toLocaleString("pt-BR")}       sub="no mês"                 cor="#7c3aed" icon={<Truck size={14} color="#7c3aed"/>}/>
         <KpiCard label="Custo estimado"       value={BRL(dash.custo_estimado_mes)} sub="combustível+motorista" cor="#d97706" icon={<DollarSign size={14} color="#d97706"/>}/>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:18 }}>
@@ -68,7 +68,7 @@ function AbaDashboard({ dash }: { dash: any }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6"/>
                 <XAxis dataKey="mes" tick={{ fontSize:9 }}/>
                 <YAxis tick={{ fontSize:10 }} tickFormatter={v=>`${BRL(v)}`}/>
-                <Tooltip contentStyle={TT} formatter={(v:number)=>[`R$ ${v.toLocaleString("pt-BR")}`, "Custo"]}/>
+                <Tooltip contentStyle={TT} formatter={(v:number)=>[`R$ ${v?.toLocaleString("pt-BR")}`, "Custo"]}/>
                 <Line type="monotone" dataKey="custo" stroke="#d97706" strokeWidth={2.5} dot={{ r:4 }} name="Custo"/>
               </LineChart>
             </ResponsiveContainer>
@@ -115,7 +115,7 @@ function AbaFrota({ frota }: { frota: any[] | undefined }) {
                   <td style={{ padding:"9px 10px", color:"#374151" }}>{f.tipo}</td>
                   <td style={{ padding:"9px 10px", color:"#6b7280" }}>{f.marca} ({f.ano})</td>
                   <td style={{ padding:"9px 10px", color:"#374151" }}>{f.base}</td>
-                  <td style={{ padding:"9px 10px", textAlign:"right", color:"#6b7280" }}>{f.km.toLocaleString("pt-BR")}</td>
+                  <td style={{ padding:"9px 10px", textAlign:"right", color:"#6b7280" }}>{f.km?.toLocaleString("pt-BR")}</td>
                   <td style={{ padding:"9px 10px", textAlign:"right", color:"#9ca3af" }}>{f.capacidade}</td>
                   <td style={{ padding:"9px 10px", fontSize:11, color:f.proxima_rev<"2026-07-01"?"#d97706":"#6b7280" }}>{f.proxima_rev}</td>
                   <td style={{ padding:"9px 10px", textAlign:"center" }}>
@@ -161,7 +161,7 @@ function AbaViagens({ viagens }: { viagens: any[] | undefined }) {
                     <span>Veículo: <strong>{v.veiculo}</strong></span>
                     <span>Motorista: <strong>{v.motorista}</strong></span>
                     <span>Acomp.: {v.acomp}</span>
-                    <span>KM: {v.km_total.toLocaleString("pt-BR")} · <strong style={{ color:"#d97706" }}>R$ {custo.toLocaleString("pt-BR",{minimumFractionDigits:0})}</strong></span>
+                    <span>KM: {v.km_total?.toLocaleString("pt-BR")} · <strong style={{ color:"#d97706" }}>R$ {custo?.toLocaleString("pt-BR",{minimumFractionDigits:0})}</strong></span>
                   </div>
                 </div>
                 <span style={{ background:cor+"15", color:cor, fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:4, flexShrink:0 }}>

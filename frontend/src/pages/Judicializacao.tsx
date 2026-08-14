@@ -29,7 +29,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
   return (
     <div>
       <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#dc2626" }}>
-        <strong>⚠ Custo mensal: R${dash.custo_mensal_total.toLocaleString("pt-BR",{minimumFractionDigits:2})}</strong> — {dash.acoes_ativas} ações ativas · {dash.medidas_liminares_ativas} liminares · Crescimento de 16.7% em 6 meses.
+        <strong>⚠ Custo mensal: R${dash.custo_mensal_total?.toLocaleString("pt-BR",{minimumFractionDigits:2})}</strong> — {dash.acoes_ativas} ações ativas · {dash.medidas_liminares_ativas} liminares · Crescimento de 16.7% em 6 meses.
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
         <KpiCard label="Ações ativas"         value={dash.acoes_ativas}                              sub={`+${dash.acoes_novas_mes} novas · -${dash.acoes_encerradas_mes} encerradas`}    cor="#374151"   icon={<Landmark size={14} color="#374151"/>}/>
@@ -47,7 +47,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
                 <XAxis dataKey="mes" tick={{ fontSize: 9 }}/>
                 <YAxis yAxisId="l" tick={{ fontSize: 10 }}/>
                 <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 9 }} tickFormatter={BRL_AXIS}/>
-                <Tooltip contentStyle={TT} formatter={(v: any, n: string) => n.includes("custo") ? `R$${v.toLocaleString("pt-BR")}` : v}/>
+                <Tooltip contentStyle={TT} formatter={(v: any, n: string) => n.includes("custo") ? `R$${v?.toLocaleString("pt-BR")}` : v}/>
                 <Bar yAxisId="l" dataKey="acoes_ativas" name="Ações ativas" fill="#374151" radius={[4,4,0,0]}/>
                 <Line yAxisId="r" type="monotone" dataKey="custo_total" name="Custo total" stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }}/>
               </BarChart>
@@ -74,7 +74,7 @@ function AbaAcoes({ acoes }: { acoes: any[] | undefined }) {
                 {a.liminar && <span style={{ marginLeft: 4, background: "#fef2f2", color: "#dc2626", fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4 }}>LIMINAR</span>}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                {a.valor_mes > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: "#dc2626" }}>R${a.valor_mes.toLocaleString("pt-BR",{minimumFractionDigits:2})}/mês</span>}
+                {a.valor_mes > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: "#dc2626" }}>R${a.valor_mes?.toLocaleString("pt-BR",{minimumFractionDigits:2})}/mês</span>}
                 <span style={{ background: cor+"15", color: cor, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>{a.status}</span>
               </div>
             </div>
@@ -93,7 +93,7 @@ function AbaMedicamentos({ meds }: { meds: any[] | undefined }) {
   return (
     <div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Medicamentos judicializados — R${totalCusto.toLocaleString("pt-BR",{minimumFractionDigits:2})}/mês</div>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Medicamentos judicializados — R${totalCusto?.toLocaleString("pt-BR",{minimumFractionDigits:2})}/mês</div>
         {meds.map(m => {
           const cor = MED_COR[m.status];
           const pct = Math.round(m.custo_mes / totalCusto * 100);
@@ -107,7 +107,7 @@ function AbaMedicamentos({ meds }: { meds: any[] | undefined }) {
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
                   <span style={{ color: "#6b7280" }}>{m.processos} proc.</span>
-                  <strong style={{ color: cor }}>R${m.custo_mes.toLocaleString("pt-BR",{minimumFractionDigits:2})} ({pct}%)</strong>
+                  <strong style={{ color: cor }}>R${m.custo_mes?.toLocaleString("pt-BR",{minimumFractionDigits:2})} ({pct}%)</strong>
                 </div>
               </div>
               <div style={{ background: "#f3f4f6", borderRadius: 6, height: 9 }}>
@@ -140,7 +140,7 @@ function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
                     {ind.observacao && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{ind.observacao}</div>}
                   </div>
                   <div style={{ flexShrink: 0, marginLeft: 12 }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{typeof ind.valor==="number"?ind.valor.toLocaleString("pt-BR"):ind.valor}{ind.unidade==="%"?"%":ind.unidade==="R$"?"":""}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{typeof ind.valor==="number"?ind.valor?.toLocaleString("pt-BR"):ind.valor}{ind.unidade==="%"?"%":ind.unidade==="R$"?"":""}</span>
                     {ind.meta !== null && ind.meta !== undefined && <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 6 }}>meta: {ind.meta}{ind.unidade==="%"?"%":""}</span>}
                   </div>
                 </div>

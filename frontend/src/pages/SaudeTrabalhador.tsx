@@ -83,7 +83,7 @@ export default function SaudeTrabalhador() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Trabalhadores Estimados" value={dashRaw.populacao_trabalhadora_estimada.toLocaleString()} color={ACCENT} />
+              <KPI label="Trabalhadores Estimados" value={dashRaw.populacao_trabalhadora_estimada?.toLocaleString()} color={ACCENT} />
               <KPI label="CATs Registradas/Ano"    value={dashRaw.cat_registradas_ano.toString()} color={WARN} sub={`subnotif. est. ${dashRaw.cat_subnotificadas_estimativa_pct}%`} />
               <KPI label="Acidentes Fatais/Ano"    value={dashRaw.acidentes_fatais_ano.toString()} color={CRIT} />
               <KPI label="Intox. Agrotóxicos/Ano"  value={dashRaw.intoxicacoes_agrotoxicos_ano.toString()} color={CRIT} sub="notificações confirmadas" />
@@ -132,7 +132,7 @@ export default function SaudeTrabalhador() {
                   <div className="flex items-start justify-between mb-1">
                     <div>
                       <span className="font-semibold text-sm text-slate-700">{s.setor}</span>
-                      <div className="text-xs text-slate-400 mt-0.5">{s.trabalhadores.toLocaleString()} trabalhadores · Risco <b>{s.risco}</b></div>
+                      <div className="text-xs text-slate-400 mt-0.5">{s.trabalhadores?.toLocaleString()} trabalhadores · Risco <b>{s.risco}</b></div>
                     </div>
                     <span className="text-xs font-bold px-2 py-0.5 rounded flex-shrink-0"
                       style={{ background: statusColor(s.status) + "22", color: statusColor(s.status) }}>

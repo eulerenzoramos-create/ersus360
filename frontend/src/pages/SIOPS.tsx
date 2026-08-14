@@ -8,7 +8,7 @@ import SIOPSCompleto from "./SIOPSCompleto";
 import SIOPSDetalhado from "./SIOPSDetalhado";
 import SIOPSLive from "./SIOPSLive";
 
-const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const fmt = (v: number) => v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 type Bloco = { bloco: string; transferido: number; aplicado: number; pct_exec: number };
 type Trim  = { trimestre: string; receita_imp: number; gasto_proprio: number; minimo_pct: number; status: string };
@@ -71,9 +71,9 @@ export default function SIOPS() {
       {apuracao && (
         <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 16, marginBottom: 20 }}>
           <div style={{ background: "#fff", borderRadius: 10, padding: 24, border: "2px solid #2e7d3230", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ fontSize: 56, fontWeight: 900, color: "#2e7d32", lineHeight: 1 }}>{apuracao.minimo_constitucional_pct_aplicado.toFixed(1)}%</div>
+            <div style={{ fontSize: 56, fontWeight: 900, color: "#2e7d32", lineHeight: 1 }}>{apuracao.minimo_constitucional_pct_aplicado?.toFixed(1)}%</div>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#2e7d32", marginTop: 6 }}>MÍNIMO ATINGIDO</div>
-            <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>Meta: ≥ {apuracao.minimo_constitucional_pct_obrigatorio}% · Superávit: +{apuracao.superavit_minimo_pct.toFixed(1)}%</div>
+            <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>Meta: ≥ {apuracao.minimo_constitucional_pct_obrigatorio}% · Superávit: +{apuracao.superavit_minimo_pct?.toFixed(1)}%</div>
             <div style={{ marginTop: 14, height: 12, width: "100%", background: "#f0f0f0", borderRadius: 6, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${Math.min((apuracao.minimo_constitucional_pct_aplicado / 25) * 100, 100)}%`, background: "#2e7d32", borderRadius: 6 }} />
             </div>
@@ -189,7 +189,7 @@ export default function SIOPS() {
                         <div style={{ height: "100%", width: `${Math.min(b.pct_exec, 100)}%`, background: b.pct_exec >= 90 ? "#2e7d32" : b.pct_exec >= 70 ? "#f57f17" : "#c62828", borderRadius: 4 }} />
                       </div>
                       <span style={{ fontWeight: 700, fontSize: 13, color: b.pct_exec >= 90 ? "#2e7d32" : b.pct_exec >= 70 ? "#f57f17" : "#c62828", minWidth: 45, textAlign: "right" }}>
-                        {b.pct_exec.toFixed(1)}%
+                        {b.pct_exec?.toFixed(1)}%
                       </span>
                     </div>
                   </td>
@@ -221,7 +221,7 @@ export default function SIOPS() {
               }}>
                 <div style={{ fontWeight: 700, fontSize: 14, color: "#333", marginBottom: 12 }}>{t.trimestre}</div>
                 <div style={{ fontSize: 30, fontWeight: 900, color: t.status === "atingido" ? "#2e7d32" : "#c62828" }}>
-                  {t.minimo_pct.toFixed(2)}%
+                  {t.minimo_pct?.toFixed(2)}%
                 </div>
                 <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>Meta: ≥ 15%</div>
                 <div style={{ marginTop: 12, fontSize: 12, color: "#555" }}>
@@ -252,7 +252,7 @@ export default function SIOPS() {
               const hh = (h.minimo_pct / maxV) * 160;
               return (
                 <div key={h.ano} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: "#2e7d32" }}>{h.minimo_pct.toFixed(2)}%</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#2e7d32" }}>{h.minimo_pct?.toFixed(2)}%</div>
                   <div style={{ width: "100%", height: hh, background: "#2e7d32", borderRadius: "4px 4px 0 0", position: "relative" }}>
                     {/* Linha de 15% */}
                     <div style={{ position: "absolute", bottom: (15 / maxV) * hh - 1, left: 0, right: 0, borderTop: "2px dashed #c62828" }} />

@@ -87,7 +87,7 @@ export default function FundoMunicipal() {
               <KPI label="Receita Prevista"    value={fmt(dashRaw.receita_total_prevista_r)} />
               <KPI label="Receita Realizada"   value={fmt(dashRaw.receita_total_realizada_r)} color={ACCENT} />
               <KPI label="Despesa Total"       value={fmt(dashRaw.despesa_total_r)} color={WARN} />
-              <KPI label="Saldo Acumulado"     value={`R$ ${dashRaw.saldo_acumulado_r.toLocaleString()}`} color={dashRaw.saldo_acumulado_r >= 0 ? OK : CRIT} />
+              <KPI label="Saldo Acumulado"     value={`R$ ${dashRaw.saldo_acumulado_r?.toLocaleString()}`} color={dashRaw.saldo_acumulado_r >= 0 ? OK : CRIT} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Aplic. Constitucional" value={`${dashRaw.percentual_impostos_saude}%`} sub="mínimo: 15%" color={OK} />
@@ -211,7 +211,7 @@ export default function FundoMunicipal() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={BRL_AXIS} />
-                <Tooltip formatter={(v: any) => `R$ ${v.toLocaleString()}`} />
+                <Tooltip formatter={(v: any) => `R$ ${v?.toLocaleString()}`} />
                 <Legend />
                 <Line dataKey="receita_r"  name="Receita"  stroke={OK}    strokeWidth={2} dot={{ r: 4 }} />
                 <Line dataKey="despesa_r"  name="Despesa"  stroke={CRIT}  strokeWidth={2} dot={{ r: 4 }} />
@@ -230,7 +230,7 @@ export default function FundoMunicipal() {
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-slate-700 text-sm">{ind.indicador}</span>
                     <span className="font-bold text-sm" style={{ color: statusColor(ind.status) }}>
-                      {`${typeof ind.valor === "number" && ind.valor > 10000 ? "R$ " + ind.valor.toLocaleString() : ind.valor} ${ind.unidade}`}
+                      {`${typeof ind.valor === "number" && ind.valor > 10000 ? "R$ " + ind.valor?.toLocaleString() : ind.valor} ${ind.unidade}`}
                       {ind.meta != null ? ` / meta: ${ind.meta} ${ind.unidade}` : ""}
                     </span>
                   </div>

@@ -93,7 +93,7 @@ export default function TrilhaAuditoria() {
               </span>
             </div>
             <div style={{ fontSize: 12, color: "#bfdbfe" }}>
-              Log completo de todas as ações do sistema · Conforme LGPD · {resumo.total.toLocaleString("pt-BR")} eventos registrados
+              Log completo de todas as ações do sistema · Conforme LGPD · {resumo.total?.toLocaleString("pt-BR")} eventos registrados
             </div>
           </div>
           <button style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.15)", color: "#fff", border: "1px solid rgba(255,255,255,.3)", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
@@ -104,7 +104,7 @@ export default function TrilhaAuditoria() {
         {/* KPIs */}
         <div style={{ display: "flex", gap: 12, marginTop: 14 }}>
           {[
-            { label: "Total Eventos", val: resumo.total.toLocaleString("pt-BR"), cor: "#bfdbfe" },
+            { label: "Total Eventos", val: resumo.total?.toLocaleString("pt-BR"), cor: "#bfdbfe" },
             { label: "Críticos", val: resumo.criticos, cor: "#fca5a5" },
             { label: "Avisos", val: resumo.avisos, cor: "#fde68a" },
             { label: "Usuários Ativos", val: resumo.usuarios_ativos, cor: "#86efac" },

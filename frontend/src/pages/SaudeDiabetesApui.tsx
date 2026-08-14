@@ -83,7 +83,7 @@ export default function SaudeDiabetesApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="DM cadastrados"         value={`${dashRaw.dm_cadastrados_hiperdia.toLocaleString()}`}   color={BRAND} sub={`${dashRaw.dm_casos_estimados.toLocaleString()} estimados`} />
+              <KPI label="DM cadastrados"         value={`${dashRaw.dm_cadastrados_hiperdia?.toLocaleString()}`}   color={BRAND} sub={`${dashRaw.dm_casos_estimados?.toLocaleString()} estimados`} />
               <KPI label="HbA1c controlada"        value={`${dashRaw.dm_hba1c_controlada_pct}%`}                  color={CRIT}  sub={`meta: ${dashRaw.meta_hba1c_controlada_pct}%`} />
               <KPI label="Amputações/ano"          value={`${dashRaw.dm_amputacao_pé_diabetico_ano}`}             color={CRIT}  sub="meta: 4/ano" />
               <KPI label="Endocrinologista"        value={`${dashRaw.endocrinologista_municipio}`}                 color={CRIT}  sub="zero no município" />

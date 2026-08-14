@@ -104,7 +104,7 @@ export default function Laboratorio() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Exames/Mês"          value={dashRaw.exames_mes.toLocaleString()} />
+              <KPI label="Exames/Mês"          value={dashRaw.exames_mes?.toLocaleString()} />
               <KPI label="Pendentes"           value={dashRaw.exames_pendentes.toString()} sub={`${dashRaw.exames_pendentes_criticos} críticos`} color={WARN} />
               <KPI label="Prazo Médio"         value={`${dashRaw.prazo_medio_resultado_dias}d`} sub="meta: 3,0 dias" color={dashRaw.prazo_medio_resultado_dias > 3 ? WARN : OK} />
               <KPI label="Amostras Rejeitadas" value={`${dashRaw.amostras_rejeitadas_mes} (${dashRaw.amostras_rejeitadas_pct}%)`} color={WARN} />
@@ -113,7 +113,7 @@ export default function Laboratorio() {
               <KPI label="Críticos Notificados" value={`${dashRaw.taxa_exames_criticos_notificados_pct}%`} color={WARN} />
               <KPI label="Reagentes em Falta"   value={dashRaw.reagentes_em_falta.toString()} color={CRIT} />
               <KPI label="Equipamentos Calibr." value={`${dashRaw.calibracoes_em_dia_pct}%`} color={WARN} />
-              <KPI label="Custo Médio/Exame"    value={`R$ ${dashRaw.custo_exame_medio.toFixed(2)}`} />
+              <KPI label="Custo Médio/Exame"    value={`R$ ${dashRaw.custo_exame_medio?.toFixed(2)}`} />
             </div>
           </div>
         )}
@@ -154,7 +154,7 @@ export default function Laboratorio() {
                     <tr key={e.codigo} className={`border-b border-slate-50 ${i % 2 === 0 ? "" : "bg-slate-50/50"}`}>
                       <td className="px-4 py-2 font-mono text-xs text-slate-400">{e.codigo}</td>
                       <td className="px-4 py-2 font-medium">{e.exame}</td>
-                      <td className="px-4 py-2 font-bold" style={{ color: ACCENT }}>{e.quantidade.toLocaleString()}</td>
+                      <td className="px-4 py-2 font-bold" style={{ color: ACCENT }}>{e.quantidade?.toLocaleString()}</td>
                       <td className="px-4 py-2 text-xs" style={{ color: e.prazo > 5 ? CRIT : e.prazo > 3 ? WARN : OK }}>{e.prazo}d</td>
                     </tr>
                   ))}

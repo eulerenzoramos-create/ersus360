@@ -153,7 +153,7 @@ export default function ScoreMunicipal() {
                     {dim.subdimensoes.map((sub: any) => (
                       <div key={sub.item} className="flex justify-between text-xs text-slate-500">
                         <span>{sub.item}</span>
-                        <span className="font-bold" style={{ color: scoreColor(sub.score) }}>{sub.score.toFixed(0)}</span>
+                        <span className="font-bold" style={{ color: scoreColor(sub.score) }}>{sub.score?.toFixed(0)}</span>
                       </div>
                     ))}
                   </div>

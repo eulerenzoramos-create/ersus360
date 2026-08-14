@@ -829,7 +829,7 @@ export default function ACSPainel() {
             {/* KPIs */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
               <KpiCard icon={<Users size={18}/>}       label="ACS Ativos"           val={`${k.acs_ativos}/${k.total_acs}`} sub={`${k.total_microareas} microáreas`}          cor="#1351b4" bg="#eff6ff" border="#bfdbfe" />
-              <KpiCard icon={<Home size={18}/>}         label="Cobertura Familiar"   val={`${k.pct_cobertura}%`}             sub={`${k.familias_cadastradas.toLocaleString("pt-BR")} famílias`} cor="#16a34a" bg="#f0fdf4" border="#bbf7d0" />
+              <KpiCard icon={<Home size={18}/>}         label="Cobertura Familiar"   val={`${k.pct_cobertura}%`}             sub={`${k.familias_cadastradas?.toLocaleString("pt-BR")} famílias`} cor="#16a34a" bg="#f0fdf4" border="#bbf7d0" />
               <KpiCard icon={<CheckCircle size={18}/>} label="Visitas Realizadas"   val={`${k.pct_visitas}%`}               sub={`${k.visitas_realizadas}/${k.visitas_programadas} programadas`} cor={k.pct_visitas>=90?"#16a34a":k.pct_visitas>=70?"#d97706":"#dc2626"} bg={k.pct_visitas>=90?"#f0fdf4":k.pct_visitas>=70?"#fef3c7":"#fef2f2"} border={k.pct_visitas>=90?"#bbf7d0":k.pct_visitas>=70?"#fde68a":"#fecaca"} />
               <KpiCard icon={<Activity size={18}/>}    label="Grupos Prioritários"  val={k.gestantes_ativas + k.criancas_lt2} sub={`${k.gestantes_ativas} gest. · ${k.criancas_lt2} <2a`} cor="#7c3aed" bg="#faf5ff" border="#e9d5ff" />
             </div>

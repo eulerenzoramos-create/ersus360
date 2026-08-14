@@ -90,7 +90,7 @@ export default function SegurancaAlimentarApui() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="SISVAN — cobertura"        value={`${dashRaw.sisvan_cobertura_criancas_pct}%`}         color={CRIT} sub="crianças monitoradas" />
-              <KPI label="Bolsa Família"             value={`${dashRaw.bolsa_familia_familias.toLocaleString()}`}color={WARN} sub={`${dashRaw.bolsa_familia_cobertura_estimada_pct}% de cobertura`} />
+              <KPI label="Bolsa Família"             value={`${dashRaw.bolsa_familia_familias?.toLocaleString()}`}color={WARN} sub={`${dashRaw.bolsa_familia_cobertura_estimada_pct}% de cobertura`} />
               <KPI label="Nutricionista"             value={`${dashRaw.nutricionista_municipal}`}                color={CRIT} sub="zero no município" />
               <KPI label="Banco de alimentos"        value={dashRaw.banco_alimentos_municipal ? "Ativo" : "Não existe"} color={CRIT} sub="nenhum em Apuí" />
             </div>

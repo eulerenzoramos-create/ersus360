@@ -172,9 +172,9 @@ function AbaVinculo({ data }: { data: any }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 20 }}>
         {[
           { label: "Equipes", val: data.total_equipes, cor: "#1d4ed8" },
-          { label: "Pessoas vinculadas", val: data.total_pessoas_vinculadas.toLocaleString("pt-BR"), cor: "#7c3aed" },
-          { label: "Pessoas acompanhadas", val: data.total_pessoas_acompanhadas.toLocaleString("pt-BR"), cor: "#16a34a" },
-          { label: "Pontuação média", val: data.pontuacao_media.toFixed(2), cor: COR_PONT(data.pontuacao_media) },
+          { label: "Pessoas vinculadas", val: data.total_pessoas_vinculadas?.toLocaleString("pt-BR"), cor: "#7c3aed" },
+          { label: "Pessoas acompanhadas", val: data.total_pessoas_acompanhadas?.toLocaleString("pt-BR"), cor: "#16a34a" },
+          { label: "Pontuação média", val: data.pontuacao_media?.toFixed(2), cor: COR_PONT(data.pontuacao_media) },
           { label: "IED municipal", val: data.ied, cor: "#d97706" },
         ].map(k => (
           <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
@@ -256,7 +256,7 @@ function AbaVinculo({ data }: { data: any }) {
                     <div style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>UBS: {e.ubs}</div>
                     <div style={{ fontWeight: 700 }}>Equipe: {e.equipe}</div>
                   </td>
-                  <td style={{ padding: "10px 8px", textAlign: "right", color: "#6b7280" }}>{e.parametro.toLocaleString("pt-BR")}</td>
+                  <td style={{ padding: "10px 8px", textAlign: "right", color: "#6b7280" }}>{e.parametro?.toLocaleString("pt-BR")}</td>
                   {(["A","B","C","D","E","F","G","H","I","J","K"] as const).map(v => (
                     <td key={v} style={{ padding: "10px 8px", textAlign: "right", fontWeight: ["C","H","K"].includes(v) ? 700 : 400, color: ["C","H","K"].includes(v) ? "#1d4ed8" : "#374151" }}>
                       {(e as any)[v].toLocaleString("pt-BR")}
@@ -264,7 +264,7 @@ function AbaVinculo({ data }: { data: any }) {
                   ))}
                   <td style={{ padding: "10px 12px", textAlign: "right" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
-                      <span style={{ fontSize: 16, fontWeight: 800, color: cor }}>{e.pontuacao.toFixed(2)}</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: cor }}>{e.pontuacao?.toFixed(2)}</span>
                       <span style={{ background: BG_PONT(e.pontuacao), color: cor, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>
                         {LABEL_PONT(e.pontuacao)}
                       </span>
@@ -440,7 +440,7 @@ function ViewDiaria({ data }: { data: any }) {
           <div style={{ width:`${Math.min(pctPeriodo, 100)}%`, height:"100%", background: corPct, borderRadius:5, transition:"width .5s" }} />
         </div>
         <div style={{ fontSize:10, color:"#6b7280", marginTop:4 }}>
-          {totalProd.toLocaleString("pt-BR")} procedimentos registrados · Meta: {metaPeriodo.toLocaleString("pt-BR")} para o período selecionado
+          {totalProd?.toLocaleString("pt-BR")} procedimentos registrados · Meta: {metaPeriodo?.toLocaleString("pt-BR")} para o período selecionado
         </div>
       </div>
 
@@ -987,7 +987,7 @@ function PainelGestorRT() {
             <div key={i} style={{ border:"1px solid #fee2e2", borderLeft:"4px solid #dc2626", borderRadius:8, padding:"10px 14px", background:"#fff7f7" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
                 <span style={{ fontSize:12, fontWeight:800, color:"#dc2626" }}>Equipe: {a.equipe}</span>
-                <span style={{ fontSize:11, background:"#fecaca", color:"#991b1b", padding:"1px 8px", borderRadius:10, fontWeight:700 }}>−{a.gap.toFixed(1)}p.p.</span>
+                <span style={{ fontSize:11, background:"#fecaca", color:"#991b1b", padding:"1px 8px", borderRadius:10, fontWeight:700 }}>−{a.gap?.toFixed(1)}p.p.</span>
               </div>
               <div style={{ fontSize:12, color:"#374151", fontWeight:600 }}>{a.ind}</div>
               <div style={{ fontSize:11, color:"#6b7280", marginTop:2 }}>Atual: <strong>{a.atual}%</strong> → Meta: <strong>{a.meta}%</strong></div>
@@ -1112,7 +1112,7 @@ function AbaQualidade({ data }: { data: any }) {
                   <span style={{ fontSize: 11, color: "#16a34a" }}>✓{verdes}</span>
                   <span style={{ fontSize: 11, color: "#dc2626" }}>✗{vermelhos}</span>
                   <span style={{ fontSize: 16, fontWeight: 800, color: COR_PONT(e.pontuacao_qualidade / 5), minWidth: 52, textAlign: "right" }}>
-                    {e.pontuacao_qualidade.toFixed(1)}pts
+                    {e.pontuacao_qualidade?.toFixed(1)}pts
                   </span>
                   <span style={{ fontSize: 10, fontWeight: 700, background: BG_PONT(e.pontuacao_qualidade / 5), color: COR_PONT(e.pontuacao_qualidade / 5), padding: "2px 7px", borderRadius: 4 }}>
                     {e.status_qualidade.toUpperCase()}
@@ -1128,7 +1128,7 @@ function AbaQualidade({ data }: { data: any }) {
                       const cor2 = COR_IND(ind.status);
                       return (
                         <div key={key} style={{ textAlign: "center", background: "#fff", border: `1px solid ${cor2}22`, borderRadius: 8, padding: "10px 6px" }}>
-                          <div style={{ fontSize: 18, fontWeight: 800, color: cor2 }}>{ind.resultado.toFixed(1)}%</div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: cor2 }}>{ind.resultado?.toFixed(1)}%</div>
                           <div style={{ fontSize: 9, color: "#9ca3af", marginTop: 2 }}>meta {ind.meta}%</div>
                           <div style={{ fontSize: 9, marginTop: 4, color: "#6b7280" }}>{IND_NOMES[key]?.slice(0, 20) ?? key}</div>
                           <div style={{ marginTop: 4 }}>
@@ -1404,7 +1404,7 @@ function AbaQuadrimestre({ dashData }: { dashData: any }) {
                 <div style={{ fontSize: 12, color: "#6b7280" }}>e Acompanhamento Territorial</div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 28, fontWeight: 900, color: COR_PONT(v.pontuacao_media) }}>{v.pontuacao_media.toFixed(2)}</div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: COR_PONT(v.pontuacao_media) }}>{v.pontuacao_media?.toFixed(2)}</div>
                 <div style={{ fontSize: 11, color: "#9ca3af" }}>média municipal</div>
               </div>
             </div>
@@ -1423,7 +1423,7 @@ function AbaQuadrimestre({ dashData }: { dashData: any }) {
               </div>
             ))}
             <div style={{ marginTop: 10, fontSize: 12, color: "#6b7280" }}>
-              Vinculadas: <strong>{v.total_vinculadas.toLocaleString("pt-BR")}</strong> · Acompanhadas: <strong>{v.total_acompanhadas.toLocaleString("pt-BR")}</strong>
+              Vinculadas: <strong>{v.total_vinculadas?.toLocaleString("pt-BR")}</strong> · Acompanhadas: <strong>{v.total_acompanhadas?.toLocaleString("pt-BR")}</strong>
             </div>
           </div>
 
@@ -1434,7 +1434,7 @@ function AbaQuadrimestre({ dashData }: { dashData: any }) {
                 <div style={{ fontSize: 12, color: "#6b7280" }}>Novo Financiamento APS — 15 indicadores · 9 equipes · Portaria 3.493/2024</div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 28, fontWeight: 900, color: "#16a34a" }}>{q.pontuacao_media.toFixed(1)}</div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: "#16a34a" }}>{q.pontuacao_media?.toFixed(1)}</div>
                 <div style={{ fontSize: 11, color: "#9ca3af" }}>pts médios/equipe</div>
               </div>
             </div>

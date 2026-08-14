@@ -83,7 +83,7 @@ export default function SaudeRenalApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="DRC diagnosticada"       value={`${dashRaw.drc_diagnosticada_pct}%`}               color={CRIT} sub={`${dashRaw.drc_casos_estimados.toLocaleString()} estimados`} />
+              <KPI label="DRC diagnosticada"       value={`${dashRaw.drc_diagnosticada_pct}%`}               color={CRIT} sub={`${dashRaw.drc_casos_estimados?.toLocaleString()} estimados`} />
               <KPI label="DRC em estágio avançado" value={`${dashRaw.drc_estadio_avancado_pct}%`}             color={CRIT} sub="G4-G5 no diagnóstico" />
               <KPI label="Hemodiálise em TFD"      value={`${dashRaw.tfd_hemodialise_viagens_mes} viagens/mês`}color={CRIT} sub={dashRaw.hemodialise_referencia} />
               <KPI label="Nefrologista"             value={`${dashRaw.nefrologista_municipio}`}               color={CRIT} sub="zero no município" />
@@ -92,7 +92,7 @@ export default function SaudeRenalApui() {
               <KPI label="Amputação (pé diabético)"value={`${dashRaw.amputacao_diabetes_ano}/ano`}            color={CRIT} sub="meta: 4/ano" />
               <KPI label="ITU — internações"        value={`${dashRaw.itu_internacoes_ano}/ano`}              color={WARN} sub="pielonefrite inclusa" />
               <KPI label="Creatinina — espera"      value={`${dashRaw.creatinina_laboratorio_dias} dias`}     color={WARN} sub="resultado laboratorial" />
-              <KPI label="Custo TFD hemodiálise"   value={`R$ ${dashRaw.tfd_custo_paciente_hemodialise_R_mes.toLocaleString()}/mês`} color={CRIT} sub="por paciente" />
+              <KPI label="Custo TFD hemodiálise"   value={`R$ ${dashRaw.tfd_custo_paciente_hemodialise_R_mes?.toLocaleString()}/mês`} color={CRIT} sub="por paciente" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">

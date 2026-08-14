@@ -89,7 +89,7 @@ function CardEndpoint({ ep }: { ep: EndpointFHIR }) {
           </div>
         )}
         <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: "#374151" }}>{ep.total_chamadas.toLocaleString("pt-BR")}</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#374151" }}>{ep.total_chamadas?.toLocaleString("pt-BR")}</div>
           <div style={{ fontSize: 9, color: "#9ca3af" }}>chamadas</div>
         </div>
         {ep.erros_24h > 0 && (

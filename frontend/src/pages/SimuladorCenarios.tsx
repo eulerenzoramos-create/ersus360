@@ -34,7 +34,7 @@ function Slider({ param, onChange }: { param: Parametro; onChange: (id: string, 
           <div style={{ fontSize: 10, color: "#9ca3af" }}>{param.descricao}</div>
         </div>
         <div style={{ textAlign: "right" as const }}>
-          <div style={{ fontSize: 16, fontWeight: 900, color: "#1e1b4b" }}>{param.valor.toFixed(param.step < 1 ? 1 : 0)}{param.sufixo}</div>
+          <div style={{ fontSize: 16, fontWeight: 900, color: "#1e1b4b" }}>{param.valor?.toFixed(param.step < 1 ? 1 : 0)}{param.sufixo}</div>
           <div style={{ fontSize: 9, color: "#9ca3af" }}>{param.min}{param.sufixo} – {param.max}{param.sufixo}</div>
         </div>
       </div>

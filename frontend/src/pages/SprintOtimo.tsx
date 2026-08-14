@@ -681,7 +681,7 @@ export default function SprintOtimo() {
                       📅 Competência: <strong>Abr/2026</strong>
                     </div>
                     <div style={{ background: "#14532d", border: "1px solid #166534", borderRadius: 8, padding: "6px 14px", fontSize: 11, color: "#bbf7d0" }}>
-                      Total Vinculadas: <strong>{totalMunicipal.semCriterio.toLocaleString("pt-BR")}</strong>
+                      Total Vinculadas: <strong>{totalMunicipal.semCriterio?.toLocaleString("pt-BR")}</strong>
                     </div>
                   </div>
                 </div>
@@ -769,10 +769,10 @@ export default function SprintOtimo() {
                                 </span>
                               </td>
                               <td style={{ padding: "10px 14px", textAlign: "right", color: isApurar ? "#6b7280" : "#94a3b8", fontVariantNumeric: "tabular-nums", fontStyle: isApurar ? "italic" : "normal" }}>
-                                {isApurar ? "—" : pop.toLocaleString("pt-BR")}
+                                {isApurar ? "—" : pop?.toLocaleString("pt-BR")}
                               </td>
                               <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: isCritico ? "#ef4444" : isApurar ? "#6b7280" : "#f1f5f9", fontVariantNumeric: "tabular-nums", fontStyle: isApurar ? "italic" : "normal" }}>
-                                {isApurar ? "—" : isCritico && val === 0 ? <span title="Produção descartada pelo e-Gestor — CNES expirado">0 ⚠</span> : val.toLocaleString("pt-BR")}
+                                {isApurar ? "—" : isCritico && val === 0 ? <span title="Produção descartada pelo e-Gestor — CNES expirado">0 ⚠</span> : val?.toLocaleString("pt-BR")}
                               </td>
                               {cvatVariavel !== "semCriterio" && (
                                 <td style={{ padding: "10px 14px", textAlign: "right", color: isApurar ? "#6b7280" : pctCor(pct), fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
@@ -793,7 +793,7 @@ export default function SprintOtimo() {
                         {/* Total */}
                         <tr style={{ background: "#1e293b", borderTop: "2px solid #334155" }}>
                           <td colSpan={2} style={{ padding: "10px 14px", fontWeight: 800, color: "#f1f5f9", fontSize: 12 }}>TOTAL MUNICÍPIO</td>
-                          <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 800, color: "#f1f5f9", fontVariantNumeric: "tabular-nums" }}>{totalMunicipal.semCriterio.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 800, color: "#f1f5f9", fontVariantNumeric: "tabular-nums" }}>{totalMunicipal.semCriterio?.toLocaleString("pt-BR")}</td>
                           <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 800, color: "#f59e0b", fontVariantNumeric: "tabular-nums" }}>{(totalMunicipal[cvatVariavel] || 0).toLocaleString("pt-BR")}</td>
                           {cvatVariavel !== "semCriterio" && <td style={{ padding: "10px 14px", textAlign: "right", color: "#f59e0b", fontWeight: 700 }}>{totalMunicipal.semCriterio > 0 ? ((totalMunicipal[cvatVariavel] / totalMunicipal.semCriterio) * 100).toFixed(1) : "0.0"}%</td>}
                           <td />
@@ -837,7 +837,7 @@ export default function SprintOtimo() {
                               const isApurar = st === "apurar";
                               return (
                                 <td key={eq} style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isApurar ? "#6b7280" : isCritico ? "#ef4444" : "#f1f5f9", fontWeight: 400, fontStyle: isApurar ? "italic" : "normal" }}>
-                                  {isApurar ? "—" : val === 0 && isCritico ? <span title="CNES expirado — produção descartada">0 ⚠</span> : val.toLocaleString("pt-BR")}
+                                  {isApurar ? "—" : val === 0 && isCritico ? <span title="CNES expirado — produção descartada">0 ⚠</span> : val?.toLocaleString("pt-BR")}
                                 </td>
                               );
                             })}
@@ -982,7 +982,7 @@ export default function SprintOtimo() {
                   </div>
 
                   <div style={{ textAlign: "center", marginBottom: 16 }}>
-                    <div style={{ fontSize: 36, fontWeight: 800, color: popCor }}>{d.populacaoVinculada.toLocaleString("pt-BR")}</div>
+                    <div style={{ fontSize: 36, fontWeight: 800, color: popCor }}>{d.populacaoVinculada?.toLocaleString("pt-BR")}</div>
                     <div style={{ fontSize: 12, color: "#64748b" }}>pessoas vinculadas</div>
                   </div>
 
@@ -993,13 +993,13 @@ export default function SprintOtimo() {
 
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginBottom: 14 }}>
                     <span>0</span>
-                    <span style={{ color: "#f59e0b" }}>Ref: {d.populacaoRef.toLocaleString("pt-BR")}</span>
-                    <span style={{ color: "#94a3b8" }}>Máx: {d.populacaoMax.toLocaleString("pt-BR")}</span>
+                    <span style={{ color: "#f59e0b" }}>Ref: {d.populacaoRef?.toLocaleString("pt-BR")}</span>
+                    <span style={{ color: "#94a3b8" }}>Máx: {d.populacaoMax?.toLocaleString("pt-BR")}</span>
                   </div>
 
                   {[
-                    { label: "Parâmetro de referência", val: d.populacaoRef.toLocaleString("pt-BR"), cor: "#f59e0b" },
-                    { label: "Limite máximo financiamento", val: d.populacaoMax.toLocaleString("pt-BR"), cor: "#94a3b8" },
+                    { label: "Parâmetro de referência", val: d.populacaoRef?.toLocaleString("pt-BR"), cor: "#f59e0b" },
+                    { label: "Limite máximo financiamento", val: d.populacaoMax?.toLocaleString("pt-BR"), cor: "#94a3b8" },
                     { label: "Situação", val: popStatus === "ok" ? "Dentro do parâmetro" : popStatus === "alerta" ? "Abaixo da referência" : "Muito abaixo — verificar cadastro", cor: popCor },
                   ].map(item => (
                     <div key={item.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", borderBottom: "1px solid #0f172a" }}>
@@ -1197,14 +1197,14 @@ export default function SprintOtimo() {
                           </td>
                           <td style={{ padding: "10px 12px" }}>
                             <div style={{ fontWeight: 800, fontSize: 15, color: popCor, marginBottom: 4, fontVariantNumeric: "tabular-nums" }}>
-                              {d.populacaoVinculada === 0 ? <span style={{ color: "#334155", fontSize: 12, fontStyle: "italic" }}>a apurar</span> : d.populacaoVinculada.toLocaleString("pt-BR")}
+                              {d.populacaoVinculada === 0 ? <span style={{ color: "#334155", fontSize: 12, fontStyle: "italic" }}>a apurar</span> : d.populacaoVinculada?.toLocaleString("pt-BR")}
                             </div>
                             <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, width: 110, overflow: "hidden" }}>
                               <div style={{ height: "100%", width: `${pctBarra}%`, background: popCor, borderRadius: 2 }} />
                             </div>
                           </td>
-                          <td style={{ padding: "10px 12px", color: "#f59e0b", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{d.populacaoRef.toLocaleString("pt-BR")}</td>
-                          <td style={{ padding: "10px 12px", color: "#334155", fontVariantNumeric: "tabular-nums" }}>{d.populacaoMax.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "10px 12px", color: "#f59e0b", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{d.populacaoRef?.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "10px 12px", color: "#334155", fontVariantNumeric: "tabular-nums" }}>{d.populacaoMax?.toLocaleString("pt-BR")}</td>
                           <td style={{ padding: "10px 12px" }}>
                             <span style={{ background: popCor + "18", color: popCor, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700, border: `1px solid ${popCor}30` }}>{popLabel}</span>
                           </td>
@@ -1413,11 +1413,11 @@ export default function SprintOtimo() {
                         <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>População Vinculada</div>
                         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
                           <div style={{ fontSize: 22, fontWeight: 800, color: diag.populacaoVinculada >= diag.populacaoRef ? "#22c55e" : diag.populacaoVinculada >= diag.populacaoRef * 0.8 ? "#f59e0b" : "#ef4444" }}>
-                            {diag.populacaoVinculada.toLocaleString("pt-BR")}
+                            {diag.populacaoVinculada?.toLocaleString("pt-BR")}
                           </div>
                           <div style={{ fontSize: 11, color: "#64748b" }}>
-                            <div>Referência: {diag.populacaoRef.toLocaleString("pt-BR")} pessoas</div>
-                            <div>Máximo financ.: {diag.populacaoMax.toLocaleString("pt-BR")} pessoas</div>
+                            <div>Referência: {diag.populacaoRef?.toLocaleString("pt-BR")} pessoas</div>
+                            <div>Máximo financ.: {diag.populacaoMax?.toLocaleString("pt-BR")} pessoas</div>
                           </div>
                           <div style={{ flex: 1, minWidth: 120 }}>
                             <div style={{ height: 6, background: "#334155", borderRadius: 3, overflow: "hidden" }}>

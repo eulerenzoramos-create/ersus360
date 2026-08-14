@@ -34,7 +34,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
         <KpiCard label="Conformidade geral"    value={dash.amostras_conformes_pct+"%"}  sub={`meta: ${dash.meta_conformidade_pct}%`}           cor={dash.amostras_conformes_pct>=95?"#16a34a":"#dc2626"} icon={<CheckCircle size={14} color={dash.amostras_conformes_pct>=95?"#16a34a":"#dc2626"}/>}/>
         <KpiCard label="Amostras coletadas"    value={dash.amostras_mes}                sub={`${dash.amostras_nao_conformes} não conformes`}    cor="#374151"   icon={<Waves size={14} color="#374151"/>}/>
-        <KpiCard label="Cobertura tratada"     value={dash.cobertura_abastecimento_pct+"%"} sub={`${dash.populacao_abastecida.toLocaleString("pt-BR")} hab.`} cor={dash.cobertura_abastecimento_pct>=90?"#16a34a":"#d97706"} icon={<AlertTriangle size={14} color={dash.cobertura_abastecimento_pct>=90?"#16a34a":"#d97706"}/>}/>
+        <KpiCard label="Cobertura tratada"     value={dash.cobertura_abastecimento_pct+"%"} sub={`${dash.populacao_abastecida?.toLocaleString("pt-BR")} hab.`} cor={dash.cobertura_abastecimento_pct>=90?"#16a34a":"#d97706"} icon={<AlertTriangle size={14} color={dash.cobertura_abastecimento_pct>=90?"#16a34a":"#d97706"}/>}/>
         <KpiCard label="Parâmetros críticos"   value={dash.parametros_criticos}         sub="Portaria GM/MS 888/2021"                           cor={dash.parametros_criticos===0?"#16a34a":"#dc2626"} icon={<TrendingDown size={14} color={dash.parametros_criticos===0?"#16a34a":"#dc2626"}/>}/>
       </div>
       {hist && (
@@ -81,7 +81,7 @@ function AbaSistemas({ sistemas }: { sistemas: any[] | undefined }) {
               </div>
             </div>
             <div style={{ display: "flex", gap: 20, fontSize: 11, color: "#6b7280" }}>
-              <span>Pop.: <strong style={{ color: "#374151" }}>{s.populacao.toLocaleString("pt-BR")} hab.</strong></span>
+              <span>Pop.: <strong style={{ color: "#374151" }}>{s.populacao?.toLocaleString("pt-BR")} hab.</strong></span>
               <span>Amostras/mês: <strong>{s.amostras_mes}</strong></span>
               <span>Conformidade: <strong style={{ color: ST_COR[s.status] }}>{s.conformidade_pct}%</strong></span>
               <span>Cloro: <strong style={{ color: s.cloro_residual>=0.2?"#374151":"#dc2626" }}>{s.cloro_residual} mg/L</strong></span>

@@ -93,8 +93,8 @@ export default function DCNT() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="HAS em Tratamento"    value={dashRaw.has_em_tratamento.toLocaleString()} />
-              <KPI label="DM em Tratamento"     value={dashRaw.dm_em_tratamento.toLocaleString()} />
+              <KPI label="HAS em Tratamento"    value={dashRaw.has_em_tratamento?.toLocaleString()} />
+              <KPI label="DM em Tratamento"     value={dashRaw.dm_em_tratamento?.toLocaleString()} />
               <KPI label="Controle HAS"         value={`${dashRaw.controle_has_pct}%`} sub="meta: 70%" color={WARN} />
               <KPI label="Controle DM"          value={`${dashRaw.controle_dm_pct}%`} sub="meta: 70%" color={CRIT} />
             </div>
@@ -105,7 +105,7 @@ export default function DCNT() {
               <KPI label="Óbitos DCNT/Ano"     value={dashRaw.obitos_dcnt_ano.toString()} color={CRIT} />
             </div>
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
-              <b>HiperDia cadastrados: {dashRaw.hiperdia_cadastrados.toLocaleString()}</b> — controle HAS {dashRaw.controle_has_pct}% e DM {dashRaw.controle_dm_pct}% abaixo das metas. {dashRaw.amputacoes_dm_ano} amputações por DM — sinal de controle insuficiente. {dashRaw.internacoes_evitaveis_mes} internações evitáveis/mês.
+              <b>HiperDia cadastrados: {dashRaw.hiperdia_cadastrados?.toLocaleString()}</b> — controle HAS {dashRaw.controle_has_pct}% e DM {dashRaw.controle_dm_pct}% abaixo das metas. {dashRaw.amputacoes_dm_ano} amputações por DM — sinal de controle insuficiente. {dashRaw.internacoes_evitaveis_mes} internações evitáveis/mês.
             </div>
           </div>
         )}
@@ -142,8 +142,8 @@ export default function DCNT() {
                     <div className="h-2 rounded-full" style={{ width: `${c.controle_pct}%`, background: statusColor(c.status) }} />
                   </div>
                   <div className="grid grid-cols-4 gap-2 text-xs text-slate-500">
-                    <span>Diagn.: <b>{c.diagnosticados.toLocaleString()}</b></span>
-                    <span>Trat.: <b>{c.em_tratamento.toLocaleString()}</b></span>
+                    <span>Diagn.: <b>{c.diagnosticados?.toLocaleString()}</b></span>
+                    <span>Trat.: <b>{c.em_tratamento?.toLocaleString()}</b></span>
                     <span>Intern./ano: <b style={{ color: c.internacoes_ano > 30 ? CRIT : WARN }}>{c.internacoes_ano}</b></span>
                     <span>Óbitos: <b style={{ color: c.obitos_ano > 10 ? CRIT : WARN }}>{c.obitos_ano}</b></span>
                   </div>

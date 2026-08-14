@@ -121,7 +121,7 @@ function MetCard({ label, valor, tag, cor="#1e293b", sub }: {
       <div style={{ fontSize:11, color:"#64748b", fontWeight:500, marginBottom:4 }}>{label}</div>
       <div style={{ fontSize: semDado ? 13 : 22, fontWeight:700,
         color: semDado ? "#94a3b8" : cor, marginBottom:4 }}>
-        {semDado ? "Não disponível" : (typeof valor === "number" ? valor.toLocaleString("pt-BR") : valor)}
+        {semDado ? "Não disponível" : (typeof valor === "number" ? valor?.toLocaleString("pt-BR") : valor)}
       </div>
       {tag && <Tag s={tag}/>}
       {sub && <div style={{ fontSize:11, color:"#94a3b8", marginTop:4 }}>{sub}</div>}
@@ -270,7 +270,7 @@ function CorpoRelatorio({ data, tipo }: { data: RelatorioData; tipo: TipoRelator
           <MetCard label="Altas" valor={inc.altas} cor="#f97316"/>
           <MetCard label="Risco financeiro"
             valor={inc.risco_financeiro_total > 0
-              ? `R$ ${inc.risco_financeiro_total.toLocaleString("pt-BR",{minimumFractionDigits:2})}`
+              ? `R$ ${inc.risco_financeiro_total?.toLocaleString("pt-BR",{minimumFractionDigits:2})}`
               : null}
             cor="#9a3412"/>
         </div>

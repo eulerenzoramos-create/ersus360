@@ -99,7 +99,7 @@ export default function FarmaciaEspecializadaApui() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Pacientes CEAF Ativos"   value={dashRaw.pacientes_ceaf_ativos.toString()} color={ACCENT} sub="dispensação regular" />
-              <KPI label="Dispensações/Mês"        value={dashRaw.medicamentos_dispensados_mes.toLocaleString()} color={BRAND} />
+              <KPI label="Dispensações/Mês"        value={dashRaw.medicamentos_dispensados_mes?.toLocaleString()} color={BRAND} />
               <KPI label="Aprovação CEAF"          value={`${dashRaw.aprovadas_pct}%`} color={WARN} sub="meta: 95%" />
               <KPI label="Medicamentos em Falta"   value={dashRaw.medicamentos_falta_itens.toString()} color={CRIT} sub="itens desabastecidos" />
             </div>
@@ -199,7 +199,7 @@ export default function FarmaciaEspecializadaApui() {
                         {j.status === "deferido" ? "Deferido" : j.status === "em_andamento" ? "Em andamento" : "Negado"}
                       </span>
                       <p className="text-sm font-bold mt-1" style={{ color: CRIT }}>
-                        R$ {j.valor_r.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}/mês
+                        R$ {j.valor_r?.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}/mês
                       </p>
                     </div>
                   </div>

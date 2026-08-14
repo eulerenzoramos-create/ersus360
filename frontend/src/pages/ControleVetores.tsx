@@ -139,7 +139,7 @@ function AbaMalaria({ dados }: { dados: any }) {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 18 }}>
-        {[["IPA Alto risco","≥ "+dados.ipa_alto_risco+"/mil","#dc2626"],["Pop. em risco",dados.populacao_risco.toLocaleString("pt-BR")+" hab.","#7c3aed"],["Alerta IVPV","≥ "+dados.limite_alerta_ivpv+"%","#d97706"]].map(([k,v,c])=>(
+        {[["IPA Alto risco","≥ "+dados.ipa_alto_risco+"/mil","#dc2626"],["Pop. em risco",dados.populacao_risco?.toLocaleString("pt-BR")+" hab.","#7c3aed"],["Alerta IVPV","≥ "+dados.limite_alerta_ivpv+"%","#d97706"]].map(([k,v,c])=>(
           <div key={String(k)} style={{ background: "#fff", border: `1px solid ${c}22`, borderTop: `3px solid ${c}`, borderRadius: 8, padding:"12px 14px", textAlign:"center" }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: String(c) }}>{v}</div>
             <div style={{ fontSize: 12, color: "#6b7280" }}>{k}</div>
@@ -179,7 +179,7 @@ function AbaZoonoses({ dados }: { dados: any }) {
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
         <KpiCard label="Cobertura anti-rábica" value={anti.cobertura_pct+"%"} sub="cães + gatos 2025" cor={anti.cobertura_pct>=80?"#16a34a":"#dc2626"} icon={<Shield size={14} color={anti.cobertura_pct>=80?"#16a34a":"#dc2626"}/>}/>
-        <KpiCard label="Cães vacinados"   value={anti.cao.toLocaleString("pt-BR")}  sub={`meta: ${anti.meta.toLocaleString("pt-BR")}`} cor="#1d4ed8" icon={<Shield size={14} color="#1d4ed8"/>}/>
+        <KpiCard label="Cães vacinados"   value={anti.cao?.toLocaleString("pt-BR")}  sub={`meta: ${anti.meta?.toLocaleString("pt-BR")}`} cor="#1d4ed8" icon={<Shield size={14} color="#1d4ed8"/>}/>
         <KpiCard label="Leishm. cães +"   value={dados.leishmaniose_caes_positivos} sub={`${dados.leishmaniose_caes_eutanasiados} eutanasiados`} cor="#dc2626" icon={<AlertTriangle size={14} color="#dc2626"/>}/>
         <KpiCard label="Leptospirose 2026" value={dados.leptospirose_casos_2026}    sub="casos notificados"  cor={dados.leptospirose_casos_2026>0?"#d97706":"#16a34a"} icon={<Activity size={14} color={dados.leptospirose_casos_2026>0?"#d97706":"#16a34a"}/>}/>
       </div>

@@ -108,7 +108,7 @@ export default function AtencaoPrimariaApui() {
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
                         <span className="text-slate-600">{b.label}</span>
-                        <span className="font-bold" style={{ color: b.color }}>{b.value.toFixed(1)}%</span>
+                        <span className="font-bold" style={{ color: b.color }}>{b.value?.toFixed(1)}%</span>
                       </div>
                       <ProgressBar value={b.value} max={100} color={b.color} />
                     </div>
@@ -133,7 +133,7 @@ export default function AtencaoPrimariaApui() {
                     <div className="w-3 h-3 rounded-full mt-0.5" style={{ background: statusColor(e.status) }} />
                     <div>
                       <p className="font-semibold text-sm text-slate-700">{e.equipe}</p>
-                      <p className="text-xs text-slate-400">{e.localidade} · {e.populacao.toLocaleString()} hab</p>
+                      <p className="text-xs text-slate-400">{e.localidade} · {e.populacao?.toLocaleString()} hab</p>
                     </div>
                   </div>
                   <div className="text-xs text-right space-y-0.5 ml-4">

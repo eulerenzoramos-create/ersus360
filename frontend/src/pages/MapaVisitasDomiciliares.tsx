@@ -67,7 +67,7 @@ function PainelDetalheVisita({ v, onFechar }: { v: VisitaMapa; onFechar: () => v
         { label: "Hora de início", val: new Date(v.hora_inicio).toLocaleTimeString("pt-BR") },
         { label: "Hora de conclusão", val: v.hora_conclusao ? new Date(v.hora_conclusao).toLocaleTimeString("pt-BR") : "—" },
         { label: "Duração", val: formatarDuracao(v.duracao_segundos) },
-        { label: "Precisão do GPS", val: v.precisao_gps_metros != null ? `${v.precisao_gps_metros.toFixed(0)}m` : "—" },
+        { label: "Precisão do GPS", val: v.precisao_gps_metros != null ? `${v.precisao_gps_metros?.toFixed(0)}m` : "—" },
         { label: "Status de sincronização", val: STATUS_LABEL[v.status_sincronizacao] || v.status_sincronizacao },
         { label: "Status no PEC", val: STATUS_LABEL[v.status_pec] || v.status_pec },
         { label: "Número de controle", val: v.numero_controle, mono: true },

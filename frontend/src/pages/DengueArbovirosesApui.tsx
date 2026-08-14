@@ -84,7 +84,7 @@ export default function DengueArbovirosesApui() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="IIP Aedes aegypti (crítico: > 1%)"    value={`${dashRaw.iip_aedes_atual_pct}%`}          color={CRIT} sub={`Breteau: ${dashRaw.ib_breteau_atual} — LIRAA ${dashRaw.cobertura_liraa_pct}% cobertura`} />
-              <KPI label="Dengue — incidência 2025"              value={`${dashRaw.dengue_incidencia_100k.toFixed(0)}/100k`} color={CRIT} sub={`${dashRaw.dengue_casos_2025} casos · ${dashRaw.dengue_obitos_2025} óbitos · ${dashRaw.dengue_graves_2025} graves`} />
+              <KPI label="Dengue — incidência 2025"              value={`${dashRaw.dengue_incidencia_100k?.toFixed(0)}/100k`} color={CRIT} sub={`${dashRaw.dengue_casos_2025} casos · ${dashRaw.dengue_obitos_2025} óbitos · ${dashRaw.dengue_graves_2025} graves`} />
               <KPI label="Agentes de Endemias (ACEs)"            value={`${dashRaw.agentes_endemias_apui} / ${dashRaw.meta_agentes_endemias}`} color={CRIT} sub="déficit 27 ACEs (1 ACE/750 hab = 33 necessários)" />
               <KPI label="Plano de Contingência"                 value={dashRaw.plano_contingencia_dengue_apui ? "Ativo" : "Inexistente"} color={CRIT} sub="obrigatório PNCD — bloqueia recursos federais" />
             </div>

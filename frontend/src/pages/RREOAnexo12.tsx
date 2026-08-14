@@ -154,7 +154,7 @@ const RECURSOS_PROPRIOS = { dot_ini: 8_414_391.22, dot_atu: 8_414_391.22, emp: 3
 
 function N(v: number) {
   if (v === 0) return "0,00";
-  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return v?.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function P(v: number) { return v?.toFixed(2).replace(".", ","); }
 

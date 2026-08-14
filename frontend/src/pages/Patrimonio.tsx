@@ -122,7 +122,7 @@ export default function Patrimonio() {
                   <td style={{ padding: "10px 14px", fontSize: 13 }}>{v.descricao}</td>
                   <td style={{ padding: "10px 14px", fontSize: 12, color: "#666" }}>{v.tipo.replace(/_/g, " ")}</td>
                   <td style={{ padding: "10px 14px", fontSize: 13 }}>{v.ano}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 13 }}>{v.km_atual.toLocaleString("pt-BR")} km</td>
+                  <td style={{ padding: "10px 14px", fontSize: 13 }}>{v.km_atual?.toLocaleString("pt-BR")} km</td>
                   <td style={{ padding: "10px 14px", fontSize: 12 }}>{v.ultima_manutencao}</td>
                   <td style={{ padding: "10px 14px", fontSize: 12, color: "#666" }}>{v.responsavel}</td>
                   <td style={{ padding: "10px 14px" }}>
@@ -155,7 +155,7 @@ export default function Patrimonio() {
                   <td style={{ padding: "10px 14px", fontSize: 13 }}>{b.descricao}</td>
                   <td style={{ padding: "10px 14px", fontSize: 12, color: "#666" }}>{b.tipo.replace(/_/g, " ")}</td>
                   <td style={{ padding: "10px 14px", fontSize: 13 }}>{b.ano}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 600 }}>R$ {b.valor_aquisicao.toLocaleString("pt-BR")}</td>
+                  <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 600 }}>R$ {b.valor_aquisicao?.toLocaleString("pt-BR")}</td>
                   <td style={{ padding: "10px 14px" }}><EstadoBadge estado={b.estado} /></td>
                 </tr>
               ))}
@@ -179,7 +179,7 @@ export default function Patrimonio() {
                   <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>Oficina: {m.oficina} · Data: {m.data}</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "#1565c0" }}>R$ {m.custo.toLocaleString("pt-BR")}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#1565c0" }}>R$ {m.custo?.toLocaleString("pt-BR")}</div>
                   <span style={{ background: m.status === "concluida" ? "#e8f5e9" : "#fff3e0", color: m.status === "concluida" ? "#2e7d32" : "#e65100", padding: "2px 10px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
                     {m.status === "concluida" ? "CONCLUÍDA" : "EM ANDAMENTO"}
                   </span>
@@ -210,9 +210,9 @@ export default function Patrimonio() {
                   <tr key={i} style={{ borderTop: "1px solid #f0f0f0", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                     <td style={{ padding: "10px 14px", fontSize: 13 }}>{a.data}</td>
                     <td style={{ padding: "10px 14px", fontSize: 13, fontFamily: "monospace" }}>{a.veiculo}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 13 }}>{a.km.toLocaleString("pt-BR")} km</td>
+                    <td style={{ padding: "10px 14px", fontSize: 13 }}>{a.km?.toLocaleString("pt-BR")} km</td>
                     <td style={{ padding: "10px 14px", fontSize: 13 }}>{a.litros} L</td>
-                    <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 700 }}>R$ {a.valor_total.toLocaleString("pt-BR")}</td>
+                    <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 700 }}>R$ {a.valor_total?.toLocaleString("pt-BR")}</td>
                     <td style={{ padding: "10px 14px", fontSize: 13 }}>{a.consumo_km_l} km/l</td>
                   </tr>
                 ))}

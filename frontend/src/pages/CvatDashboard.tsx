@@ -105,7 +105,7 @@ function MetCard({
     }}>
       <div style={{ fontSize: 12, color: "#64748b", fontWeight: 500, marginBottom: 6 }}>{label}</div>
       <div style={{ fontSize: semDado ? 14 : 28, fontWeight: 700, color: semDado ? "#94a3b8" : cor, marginBottom: 8 }}>
-        {semDado ? "Dado não validado" : (typeof valor === "number" ? valor.toLocaleString("pt-BR") : valor)}
+        {semDado ? "Dado não validado" : (typeof valor === "number" ? valor?.toLocaleString("pt-BR") : valor)}
       </div>
       <SituacaoBadge s={situacao} />
       {nota && (
@@ -163,8 +163,8 @@ function TabelaEquipes({ equipes }: { equipes: EquipeCVAT[] }) {
               <td style={td}>{e.ubs}</td>
               <td style={td}>{e.equipe}</td>
               <td style={td}><span style={{ fontSize: 11, padding: "2px 7px", background: "#eff6ff", color: "#1d4ed8", borderRadius: 6 }}>{e.tipo}</span></td>
-              <td style={num}>{e.K > 0 ? e.K.toLocaleString("pt-BR") : <span style={{ color: "#94a3b8" }}>—</span>}</td>
-              <td style={num}>{e.H > 0 ? e.H.toLocaleString("pt-BR") : <span style={{ color: "#94a3b8" }}>—</span>}</td>
+              <td style={num}>{e.K > 0 ? e.K?.toLocaleString("pt-BR") : <span style={{ color: "#94a3b8" }}>—</span>}</td>
+              <td style={num}>{e.H > 0 ? e.H?.toLocaleString("pt-BR") : <span style={{ color: "#94a3b8" }}>—</span>}</td>
               <td style={{ ...td, fontFamily: "monospace", fontSize: 11 }}>{e.ine ?? <span style={{ color: "#94a3b8" }}>Aguardando</span>}</td>
               <td style={{ ...td, fontFamily: "monospace", fontSize: 11 }}>{e.cnes ?? "—"}</td>
               <td style={td}>
@@ -238,7 +238,7 @@ function SemDados({ dados }: { dados: CvatResponse }) {
         <div style={{ marginTop: 20, padding: "12px 20px", background: "#eff6ff", borderRadius: 10, display: "inline-block" }}>
           <div style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 600 }}>IBGE Censo 2022 (disponível)</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: "#1e293b" }}>
-            {dados.populacao_ibge.populacao.toLocaleString("pt-BR")} hab.
+            {dados.populacao_ibge.populacao?.toLocaleString("pt-BR")} hab.
           </div>
         </div>
       )}

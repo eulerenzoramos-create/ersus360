@@ -18,7 +18,7 @@ const MESES = [
 ];
 
 const fmt = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+  v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 const pct = (realizado: number, previsto: number) =>
   previsto > 0 ? Math.round((realizado / previsto) * 100) : 0;

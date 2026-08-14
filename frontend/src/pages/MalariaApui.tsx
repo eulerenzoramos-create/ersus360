@@ -88,7 +88,7 @@ export default function MalariaApui() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="IPA (casos/1k hab.)" value={dashRaw.ipa.toString()}           color={CRIT} sub={`meta eliminação: ${dashRaw.meta_ipa_eliminacao}`} />
-              <KPI label="Casos/Ano"           value={dashRaw.casos_ano.toLocaleString()} color={CRIT} sub="município grupo 3 PNCM" />
+              <KPI label="Casos/Ano"           value={dashRaw.casos_ano?.toLocaleString()} color={CRIT} sub="município grupo 3 PNCM" />
               <KPI label="P. vivax"            value={`${dashRaw.ivp_pct}%`}             color={WARN} sub={`P. falciparum: ${dashRaw.iaf_pct}%`} />
               <KPI label="Óbitos/Ano"          value={dashRaw.obitos_malaria_ano.toString()} color={CRIT} sub={`${dashRaw.casos_graves_ano} casos graves`} />
             </div>

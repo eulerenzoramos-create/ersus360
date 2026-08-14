@@ -111,7 +111,7 @@ function AbaVeiculos({ veics }: { veics: any[] | undefined }) {
               <div style={{ display: "flex", gap: 10, fontSize: 12 }}>
                 <span style={{ color: "#6b7280" }}>Placa: {v.placa}</span>
                 <span style={{ color: "#6b7280" }}>Ano: {v.ano}</span>
-                {v.km_mes > 0 && <span><strong>{v.km_mes.toLocaleString("pt-BR")}</strong> km/mês</span>}
+                {v.km_mes > 0 && <span><strong>{v.km_mes?.toLocaleString("pt-BR")}</strong> km/mês</span>}
               </div>
             </div>
             {v.observacao && (
@@ -148,7 +148,7 @@ function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
                     {ind.observacao && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{ind.observacao}</div>}
                   </div>
                   <div style={{ flexShrink: 0, marginLeft: 12 }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{typeof ind.valor==="number"?ind.valor.toLocaleString("pt-BR"):ind.valor}{ind.unidade==="%"?"%":ind.unidade==="min"?" min":""}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{typeof ind.valor==="number"?ind.valor?.toLocaleString("pt-BR"):ind.valor}{ind.unidade==="%"?"%":ind.unidade==="min"?" min":""}</span>
                     {ind.meta !== null && ind.meta !== undefined && <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 6 }}>meta: {ind.meta}{ind.unidade==="%"?"%":ind.unidade==="min"?" min":""}</span>}
                   </div>
                 </div>

@@ -197,7 +197,7 @@ export default function GestaoContratosFms() {
                     <span className="font-semibold text-slate-700 text-sm">{ind.indicador}</span>
                     <span className="font-bold text-sm" style={{ color: ind.status === "ok" ? OK : ind.status === "atencao" ? WARN : CRIT }}>
                       {typeof ind.valor === "number" && ind.valor > 100000
-                        ? `R$ ${ind.valor.toLocaleString()} ${ind.unidade}`
+                        ? `R$ ${ind.valor?.toLocaleString()} ${ind.unidade}`
                         : `${ind.valor} ${ind.unidade}`}
                       {ind.meta != null ? ` / meta: ${ind.meta} ${ind.unidade}` : ""}
                     </span>

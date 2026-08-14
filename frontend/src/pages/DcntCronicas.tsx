@@ -85,9 +85,9 @@ export default function DcntCronicas() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Hipertensos Cadastrados"  value={dashRaw.hipertensao_cadastrados.toLocaleString()} color={ACCENT} />
+              <KPI label="Hipertensos Cadastrados"  value={dashRaw.hipertensao_cadastrados?.toLocaleString()} color={ACCENT} />
               <KPI label="HAS Controlados"          value={`${dashRaw.hipertensao_controlados_pct}%`} color={statusColor(dashRaw.status_has)} sub="PA controlada" />
-              <KPI label="Diabéticos Cadastrados"   value={dashRaw.diabetes_cadastrados.toLocaleString()} color={ACCENT} />
+              <KPI label="Diabéticos Cadastrados"   value={dashRaw.diabetes_cadastrados?.toLocaleString()} color={ACCENT} />
               <KPI label="DM Controlados"           value={`${dashRaw.diabetes_controlados_pct}%`} color={statusColor(dashRaw.status_dm)} sub="glicemia controlada" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -151,8 +151,8 @@ export default function DcntCronicas() {
                   </div>
                   <ProgressBar value={d.controlados_pct} max={d.meta_controle_pct} color={statusColor(d.status)} />
                   <div className="flex gap-6 mt-2 text-xs text-slate-500">
-                    <span>Cadastrados: <b>{d.cadastrados.toLocaleString()}</b></span>
-                    <span style={{ color: OK }}>Controlados: <b>{d.controlados.toLocaleString()}</b></span>
+                    <span>Cadastrados: <b>{d.cadastrados?.toLocaleString()}</b></span>
+                    <span style={{ color: OK }}>Controlados: <b>{d.controlados?.toLocaleString()}</b></span>
                     <span>Meta: <b>{d.meta_controle_pct}%</b></span>
                     <span>Consultas/ano: <b>{d.consultas_ano}</b></span>
                   </div>
@@ -191,7 +191,7 @@ export default function DcntCronicas() {
                       <div className="w-3 h-3 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
                       <span className="font-semibold text-slate-700">{r.faixa}</span>
                     </div>
-                    <span className="font-bold text-lg" style={{ color: PIE_COLORS[i % PIE_COLORS.length] }}>{r.n.toLocaleString()}</span>
+                    <span className="font-bold text-lg" style={{ color: PIE_COLORS[i % PIE_COLORS.length] }}>{r.n?.toLocaleString()}</span>
                   </div>
                   <ProgressBar value={r.pct} max={100} color={PIE_COLORS[i % PIE_COLORS.length]} />
                   <p className="text-xs text-slate-400 mt-1">{r.pct}% da carteira HAS/DM</p>

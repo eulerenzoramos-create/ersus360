@@ -84,7 +84,7 @@ export default function GestaoLeitosApui() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Internações/mês"              value={`${dashRaw.internacoes_mes}`}            color={ACCENT} sub={`altas: ${dashRaw.alta_mes} · óbitos: ${dashRaw.obito_hospitalar_mes}`} />
-              <KPI label="AIH aprovadas/mês"            value={`${dashRaw.aih_aprovadas_mes}`}          color={ACCENT} sub={`R$ ${dashRaw.aih_valor_medio_r.toLocaleString("pt-BR")} valor médio/AIH`} />
+              <KPI label="AIH aprovadas/mês"            value={`${dashRaw.aih_aprovadas_mes}`}          color={ACCENT} sub={`R$ ${dashRaw.aih_valor_medio_r?.toLocaleString("pt-BR")} valor médio/AIH`} />
               <KPI label="Leitos isolamento (100% ocup.)" value="4/4 — LOTADO"                         color={CRIT}   sub="Sem reserva de capacidade para surtos ou epidemias" />
               <KPI label="Taxa de ocupação hospitalar"  value={`${dashRaw.taxa_ocupacao_pct}%`}         color={WARN}   sub="Ideal: 70–85%. Risco de superlotação em pico de malária/respiratório" />
             </div>

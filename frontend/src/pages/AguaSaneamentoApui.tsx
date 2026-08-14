@@ -146,7 +146,7 @@ export default function AguaSaneamentoApui() {
                   <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: statusColor(z.status) }} />
                   <div className="flex-1">
                     <p className="font-semibold text-sm text-slate-700">{z.zona}</p>
-                    <p className="text-xs text-slate-400">Pop.: {z.populacao.toLocaleString("pt-BR")}</p>
+                    <p className="text-xs text-slate-400">Pop.: {z.populacao?.toLocaleString("pt-BR")}</p>
                   </div>
                   <div className="text-right text-xs space-y-0.5">
                     <p>Água: <b style={{ color: statusColor(z.agua_tratada_pct < 50 ? "critico" : "atencao") }}>{z.agua_tratada_pct}%</b></p>

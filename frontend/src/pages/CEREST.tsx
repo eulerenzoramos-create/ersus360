@@ -167,7 +167,7 @@ export default function CEREST() {
                     <p className="text-xs text-slate-400">Risco: {s.risco_predominante}</p>
                   </div>
                   <div className="text-xs text-right">
-                    <div>Trabalhadores: <b>{s.trabalhadores.toLocaleString()}</b></div>
+                    <div>Trabalhadores: <b>{s.trabalhadores?.toLocaleString()}</b></div>
                     <div style={{ color: statusColor(s.status) }}>Casos/mês: <b>{s.casos_mes}</b></div>
                   </div>
                 </div>

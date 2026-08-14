@@ -164,7 +164,7 @@ function LinhaInconsistencia({ inc, onAtualizarSituacao }: {
         <td style={{ ...td, textAlign:"right", fontVariantNumeric:"tabular-nums" }}>
           {inc.risco_financeiro
             ? <span style={{ color:"#dc2626", fontWeight:700 }}>
-                R$ {inc.risco_financeiro.toLocaleString("pt-BR",{minimumFractionDigits:2})}
+                R$ {inc.risco_financeiro?.toLocaleString("pt-BR",{minimumFractionDigits:2})}
               </span>
             : <span style={{ color:"#94a3b8" }}>—</span>
           }
@@ -218,7 +218,7 @@ function LinhaInconsistencia({ inc, onAtualizarSituacao }: {
                       {inc.ine && <Chip label="INE" valor={inc.ine}/>}
                       {inc.equipe_nome && <Chip label="Equipe" valor={inc.equipe_nome}/>}
                       {inc.quantidade_afetada && (
-                        <Chip label="Pessoas" valor={inc.quantidade_afetada.toLocaleString("pt-BR")}/>
+                        <Chip label="Pessoas" valor={inc.quantidade_afetada?.toLocaleString("pt-BR")}/>
                       )}
                     </div>
                   </Section>
@@ -445,7 +445,7 @@ function AbaCadastros({ ibge }: { ibge: string }) {
           <ResumoCard
             label="Risco financeiro"
             valor={resumo.risco_financeiro_total > 0
-              ? `R$ ${resumo.risco_financeiro_total.toLocaleString("pt-BR",{minimumFractionDigits:2})}`
+              ? `R$ ${resumo.risco_financeiro_total?.toLocaleString("pt-BR",{minimumFractionDigits:2})}`
               : "—"
             }
             Icon={TrendingDown} cor="#9a3412"

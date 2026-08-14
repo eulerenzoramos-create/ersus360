@@ -30,7 +30,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
         <strong>⚠ Oficina Ortopédica sem profissional desde Jan/26</strong> — 48 pacientes aguardando órteses/próteses sem previsão de atendimento. Fonoaudiologia com espera de 75 dias.
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
-        <KpiCard label="PCD cadastradas"        value={dash.pessoas_cadastradas.toLocaleString("pt-BR")} sub="Carteira Saúde PCD: 312"                            cor="#374151"   icon={<UserCheck size={14} color="#374151"/>}/>
+        <KpiCard label="PCD cadastradas"        value={dash.pessoas_cadastradas?.toLocaleString("pt-BR")} sub="Carteira Saúde PCD: 312"                            cor="#374151"   icon={<UserCheck size={14} color="#374151"/>}/>
         <KpiCard label="Em reabilitação ativa"  value={dash.em_reabilitacao_ativa}                       sub={`${Math.round(dash.em_reabilitacao_ativa/dash.pessoas_cadastradas*100)}% do total`} cor="#1d4ed8" icon={<Activity size={14} color="#1d4ed8"/>}/>
         <KpiCard label="BPC beneficiários"      value={dash.bpc_beneficiarios}                           sub="acompanhamento APS 100%"                           cor="#16a34a"   icon={<CheckCircle size={14} color="#16a34a"/>}/>
         <KpiCard label="Aguard. avaliação"      value={dash.aguardando_avaliacao}                        sub="CIF + BPC + Regulação"                             cor="#d97706"   icon={<AlertTriangle size={14} color="#d97706"/>}/>
@@ -138,7 +138,7 @@ function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
                     {ind.observacao && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{ind.observacao}</div>}
                   </div>
                   <div style={{ flexShrink: 0, marginLeft: 12 }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{typeof ind.valor==="number"?ind.valor.toLocaleString("pt-BR"):ind.valor}{ind.unidade==="%"?"%":""}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{typeof ind.valor==="number"?ind.valor?.toLocaleString("pt-BR"):ind.valor}{ind.unidade==="%"?"%":""}</span>
                     {ind.meta !== null && ind.meta !== undefined && <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 6 }}>meta: {ind.meta}{ind.unidade==="%"?"%":""}</span>}
                   </div>
                 </div>

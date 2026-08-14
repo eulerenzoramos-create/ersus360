@@ -83,7 +83,7 @@ export default function UrgenciaEmergencia() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Atendimentos UPA/mês" value={dashRaw.atendimentos_upa_mes.toLocaleString()} color={ACCENT} sub="UPA 24h ativa" />
+              <KPI label="Atendimentos UPA/mês" value={dashRaw.atendimentos_upa_mes?.toLocaleString()} color={ACCENT} sub="UPA 24h ativa" />
               <KPI label="SAMU — Ocorrências/mês" value={dashRaw.atendimentos_samu_mes.toString()} color={BRAND} />
               <KPI label="Tempo Médio Espera" value={`${dashRaw.tempo_medio_espera_upa_min} min`} color={WARN} sub={`meta: ${dashRaw.meta_tempo_espera_min} min`} />
               <KPI label="Transferências Manaus/mês" value={dashRaw.transferencias_manaus_mes.toString()} color={CRIT} sub="UTI / especialidades" />
@@ -133,7 +133,7 @@ export default function UrgenciaEmergencia() {
                       <div className="w-4 h-4 rounded-full" style={{ background: c.cor }} />
                       <span className="font-semibold text-slate-700">{c.nivel}</span>
                     </div>
-                    <span className="text-lg font-bold" style={{ color: c.cor }}>{c.atend_mes.toLocaleString()} atend.</span>
+                    <span className="text-lg font-bold" style={{ color: c.cor }}>{c.atend_mes?.toLocaleString()} atend.</span>
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>

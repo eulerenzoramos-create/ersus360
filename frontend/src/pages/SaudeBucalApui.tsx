@@ -100,7 +100,7 @@ export default function SaudeBucalApui() {
               <KPI label="ESB Implantadas"      value={`${dashRaw.esb_implantadas}/${dashRaw.esb_necessarias}`} color={statusColor(dashRaw.status_cobertura)} sub={`${dashRaw.cobertura_esb_pct}% cobertura`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Procedimentos/Mês"    value={dashRaw.procedimentos_basicos_mes.toLocaleString()} color={BRAND} sub="básicos + especializados" />
+              <KPI label="Procedimentos/Mês"    value={dashRaw.procedimentos_basicos_mes?.toLocaleString()} color={BRAND} sub="básicos + especializados" />
               <KPI label="Gestantes Atendidas"  value={`${dashRaw.gestantes_atendidas_pre_natal_pct}%`} color={CRIT} sub={`meta: ${dashRaw.meta_gestantes_pct}%`} />
               <KPI label="Fluorose Leve"        value={`${dashRaw.fluorose_leve_pct}%`}           color={WARN} sub={`Moderada: ${dashRaw.fluorose_moderada_pct}%`} />
               <KPI label="Água Fluoretada"      value={`${dashRaw.cobertura_agua_fluoretada_pct}%`} color={WARN} sub="cobertura municipal" />

@@ -84,7 +84,7 @@ export default function VisaMunicipalApui() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Interdições ano 2025"                 value={`${dashRaw.interdictions_ano}`}               color={WARN} sub="Abatedouros + manipulação alimentos + cosméticos clandestinos" />
-              <KPI label="Multas arrecadadas 2025"              value={`R$ ${dashRaw.multas_valor_r.toLocaleString("pt-BR")}`} color={ACCENT} sub={`${dashRaw.autos_infracao_ano} autos de infração lavrados`} />
+              <KPI label="Multas arrecadadas 2025"              value={`R$ ${dashRaw.multas_valor_r?.toLocaleString("pt-BR")}`} color={ACCENT} sub={`${dashRaw.autos_infracao_ano} autos de infração lavrados`} />
               <KPI label="Reclamações ouvidoria/ano"            value={`${dashRaw.reclamacoes_ouvidoria_ano}`}       color={WARN} sub="Alimentos, cosméticos, serviços saúde" />
               <KPI label="Tempo médio resolução notificação"    value="28 dias"                                       color={WARN} sub="meta: 15 dias · 2 técnicos VISA para 24.892 habitantes" />
             </div>

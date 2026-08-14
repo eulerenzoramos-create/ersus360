@@ -92,7 +92,7 @@ function AbaPrioridades({ prioridades }: { prioridades: any[] | undefined }) {
   const total = prioridades.reduce((s, p) => s + p.casos, 0);
   return (
     <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Demandas NASF-AB por categoria — {total.toLocaleString("pt-BR")} pacientes</div>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Demandas NASF-AB por categoria — {total?.toLocaleString("pt-BR")} pacientes</div>
       {prioridades.map(p => {
         const cor = ST_COR[p.status];
         return (

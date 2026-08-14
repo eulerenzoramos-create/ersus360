@@ -107,7 +107,7 @@ export default function PlanejamentoSaudeApui() {
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
                         <span className="text-slate-600">{b.label}</span>
-                        <span className="font-bold" style={{ color: b.color }}>{b.value.toFixed(1)}%</span>
+                        <span className="font-bold" style={{ color: b.color }}>{b.value?.toFixed(1)}%</span>
                       </div>
                       <ProgressBar value={b.value} max={100} color={b.color} />
                     </div>

@@ -85,9 +85,9 @@ export default function HiperdiaApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Hipertensos Cadastrados" value={dashRaw.hipertensos_cadastrados.toLocaleString()} color={BRAND} sub={`${dashRaw.hipertensos_cobertura_pct}% da estimativa`} />
+              <KPI label="Hipertensos Cadastrados" value={dashRaw.hipertensos_cadastrados?.toLocaleString()} color={BRAND} sub={`${dashRaw.hipertensos_cobertura_pct}% da estimativa`} />
               <KPI label="HAS Controlada"          value={`${dashRaw.hipertensos_controlados_pct}%`} color={CRIT} sub={`meta: ${dashRaw.meta_controlados_pct}%`} />
-              <KPI label="Diabéticos Cadastrados"  value={dashRaw.diabeticos_cadastrados.toLocaleString()} color={BRAND} sub={`${dashRaw.diabeticos_cobertura_pct}% da estimativa`} />
+              <KPI label="Diabéticos Cadastrados"  value={dashRaw.diabeticos_cadastrados?.toLocaleString()} color={BRAND} sub={`${dashRaw.diabeticos_cobertura_pct}% da estimativa`} />
               <KPI label="DM Controlado (HbA1c)"  value={`${dashRaw.diabeticos_controlados_pct}%`} color={CRIT} sub={`meta: ${dashRaw.meta_diabeticos_controlados_pct}%`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

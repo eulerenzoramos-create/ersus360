@@ -42,7 +42,7 @@ export default function CadeiaFrioApui(){
           <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20}}>
             <KPI label="Equipamentos OK"        value={`${d.equipamentos_funcionando}/${d.equipamentos_refrigeracao_total}`} color={WARN}/>
             <KPI label="Temperatura Central"    value={`${d.temperatura_media_central_c}°C`} sub="Meta: 2–8°C" color={d.temperatura_media_central_c>8||d.temperatura_media_central_c<2?CRIT:OK}/>
-            <KPI label="Doses Aplicadas 2025"   value={d.doses_aplicadas_2025.toLocaleString()} color={ACCENT}/>
+            <KPI label="Doses Aplicadas 2025"   value={d.doses_aplicadas_2025?.toLocaleString()} color={ACCENT}/>
             <KPI label="Perda de Doses"         value={`${d.perda_pct}%`} sub="Meta: ≤ 2%"  color={OK}/>
             <KPI label="Cobertura Polio <5a"    value={`${d.cobertura_polio_menores_5_pct}%`} sub="Meta: ≥ 95%" color={WARN}/>
             <KPI label="Cobertura Tríplice Viral" value={`${d.cobertura_triplice_viral_pct}%`} sub="Meta: ≥ 95%" color={WARN}/>
@@ -115,8 +115,8 @@ export default function CadeiaFrioApui(){
                 <tr key={idx} style={{borderBottom:"1px solid #f3f4f6"}}>
                   <td style={{padding:"8px 10px",fontWeight:600}}>{r.vacina}</td>
                   <td style={{padding:"8px 10px",fontSize:11,color:"#6b7280"}}>{r.publico}</td>
-                  <td style={{padding:"8px 10px",textAlign:"right"}}>{r.aplicadas_2025.toLocaleString()}</td>
-                  <td style={{padding:"8px 10px",textAlign:"right",color:"#6b7280"}}>{r.meta.toLocaleString()}</td>
+                  <td style={{padding:"8px 10px",textAlign:"right"}}>{r.aplicadas_2025?.toLocaleString()}</td>
+                  <td style={{padding:"8px 10px",textAlign:"right",color:"#6b7280"}}>{r.meta?.toLocaleString()}</td>
                   <td style={{padding:"8px 10px",textAlign:"right",fontWeight:700,color:sc(r.status)}}>{r.cobertura_pct}%</td>
                   <td style={{padding:"8px 10px",textAlign:"center"}}><span style={{color:sc(r.status),fontWeight:700,fontSize:10}}>{r.status.toUpperCase()}</span></td>
                 </tr>

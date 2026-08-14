@@ -97,7 +97,7 @@ export default function Imunizacao() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Doses Aplicadas/Mês"  value={dashRaw.doses_aplicadas_mes.toLocaleString()} color={ACCENT} />
+              <KPI label="Doses Aplicadas/Mês"  value={dashRaw.doses_aplicadas_mes?.toLocaleString()} color={ACCENT} />
               <KPI label="Vacinas Monitoradas"  value={dashRaw.vacinas_monitoradas.toString()} />
               <KPI label="Metas Atingidas"      value={`${dashRaw.vacinas_meta_atingida}/${dashRaw.vacinas_monitoradas}`} sub="vacinas acima da meta" color={WARN} />
               <KPI label="Cobertura Média"      value={`${dashRaw.cobertura_media_pct}%`} sub="meta: 95%" color={CRIT} />
@@ -140,7 +140,7 @@ export default function Imunizacao() {
                       <span className="font-medium text-slate-700 text-sm">{v.vacina}</span>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-slate-500">
-                      <span>Doses: <b>{v.doses_aplicadas.toLocaleString()}</b></span>
+                      <span>Doses: <b>{v.doses_aplicadas?.toLocaleString()}</b></span>
                       <span style={{ color: statusColor(v.status) }}>Cob.: <b>{v.cobertura_pct}%</b></span>
                       <span>Meta: <b>{v.meta_pct}%</b></span>
                     </div>

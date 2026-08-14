@@ -43,7 +43,7 @@ const ST_LABEL: Record<string, string> = {
 };
 
 function formatBRL(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 // ── Card Relatório ────────────────────────────────────────────────────────────

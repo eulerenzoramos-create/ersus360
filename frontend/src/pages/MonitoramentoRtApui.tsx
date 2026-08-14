@@ -699,11 +699,11 @@ export default function MonitoramentoRtApui() {
       <div>
         {/* KPIs do mês */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(148px,1fr))", gap: 10, marginBottom: 18 }}>
-          <KPI label="Total Mês"      value={m.total_mes.toLocaleString("pt-BR")} sub={m.mes_ano}                      cor="#3b82f6" />
+          <KPI label="Total Mês"      value={m.total_mes?.toLocaleString("pt-BR")} sub={m.mes_ano}                      cor="#3b82f6" />
           <KPI label="Média/Dia"      value={m.media_dia}                          sub="atend. por dia útil"            cor="#8b5cf6" />
-          <KPI label="ESF acumulado"  value={m.acumulado_esf.toLocaleString("pt-BR")} sub="Saúde da Família"           cor="#10b981" />
-          <KPI label="ESB acumulado"  value={m.acumulado_esb.toLocaleString("pt-BR")} sub="Odontologia"                cor="#8b5cf6" />
-          <KPI label="eMulti acum."   value={m.acumulado_emulti.toLocaleString("pt-BR")} sub="Multiprofissional"       cor="#06b6d4" />
+          <KPI label="ESF acumulado"  value={m.acumulado_esf?.toLocaleString("pt-BR")} sub="Saúde da Família"           cor="#10b981" />
+          <KPI label="ESB acumulado"  value={m.acumulado_esb?.toLocaleString("pt-BR")} sub="Odontologia"                cor="#8b5cf6" />
+          <KPI label="eMulti acum."   value={m.acumulado_emulti?.toLocaleString("pt-BR")} sub="Multiprofissional"       cor="#06b6d4" />
           <KPI label="Dias úteis"     value={m.dias_uteis_passados}                sub={`de ${m.dias_no_mes} dias`}    cor="#f59e0b" />
         </div>
 
@@ -799,13 +799,13 @@ export default function MonitoramentoRtApui() {
                           {d.total != null ? d.total : "—"}
                         </td>
                         <td style={{ padding: "6px 8px", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
-                          {d.acumulado_mes_esf != null ? d.acumulado_mes_esf.toLocaleString("pt-BR") : "—"}
+                          {d.acumulado_mes_esf != null ? d.acumulado_mes_esf?.toLocaleString("pt-BR") : "—"}
                         </td>
                         <td style={{ padding: "6px 8px", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
-                          {d.acumulado_mes_esb != null ? d.acumulado_mes_esb.toLocaleString("pt-BR") : "—"}
+                          {d.acumulado_mes_esb != null ? d.acumulado_mes_esb?.toLocaleString("pt-BR") : "—"}
                         </td>
                         <td style={{ padding: "6px 8px", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
-                          {d.acumulado_mes_emulti != null ? d.acumulado_mes_emulti.toLocaleString("pt-BR") : "—"}
+                          {d.acumulado_mes_emulti != null ? d.acumulado_mes_emulti?.toLocaleString("pt-BR") : "—"}
                         </td>
                         <td style={{ padding: "6px 8px" }}>
                           {d.is_util && !d.is_futuro && d.total != null && (

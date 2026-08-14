@@ -74,7 +74,7 @@ function CardIndicador({ ind, grupo }: { ind: Indicador; grupo: string }) {
           <div style={{ fontWeight:700, fontSize:13, color:"#111827", lineHeight:1.3 }}>{ind.nome}</div>
         </div>
         <div style={{ textAlign:"right", flexShrink:0, marginLeft:12 }}>
-          <div style={{ fontSize:28, fontWeight:900, color:c.cor, lineHeight:1 }}>{ind.nota.toFixed(1)}</div>
+          <div style={{ fontSize:28, fontWeight:900, color:c.cor, lineHeight:1 }}>{ind.nota?.toFixed(1)}</div>
           <div style={{ fontSize:10, color:"#6b7280" }}>nota /10</div>
         </div>
       </div>
@@ -187,7 +187,7 @@ function GrupoHeader({ grupo, data }: { grupo: string; data: GrupoQual }) {
         <span style={{ fontSize:13, marginLeft:10, opacity:.85 }}>{data.descricao}</span>
       </div>
       <div style={{ textAlign:"right" }}>
-        <div style={{ fontSize:22, fontWeight:900 }}>{data.nota_media.toFixed(1)}</div>
+        <div style={{ fontSize:22, fontWeight:900 }}>{data.nota_media?.toFixed(1)}</div>
         <div style={{ fontSize:11, opacity:.8, background:c.bg, color:c.cor, padding:"1px 8px", borderRadius:10, marginTop:2 }}>
           {data.conceito_medio} · {data.pct_bom_otimo}% Bom/Ótimo
         </div>
@@ -271,9 +271,9 @@ export default function ComponenteQualidade() {
           {[
             { label:"15 Indicadores", val:"C/B/M",            cor:"#1e40af", sub:"Componente Qualidade"         },
             { label:"Bom/Ótimo",      val:`${totalBomOtimo}%`, cor:"#15803d", sub:"indicadores consolidados"     },
-            { label:"Grupo C (eSF)",  val:`${grupoC?.nota_media.toFixed(1) ?? "—"}/10`, cor:GRUPO_COR.C, sub:`${grupoC?.conceito_medio ?? "—"} · 7 ind.` },
-            { label:"Grupo B (eSB)",  val:`${grupoB?.nota_media.toFixed(1) ?? "—"}/10`, cor:GRUPO_COR.B, sub:`${grupoB?.conceito_medio ?? "—"} · 6 ind.` },
-            { label:"Grupo M (eMulti)",val:`${grupoM?.nota_media.toFixed(1) ?? "—"}/10`,cor:GRUPO_COR.M, sub:`${grupoM?.conceito_medio ?? "—"} · 2 ind.` },
+            { label:"Grupo C (eSF)",  val:`${grupoC?.nota_media?.toFixed(1) ?? "—"}/10`, cor:GRUPO_COR.C, sub:`${grupoC?.conceito_medio ?? "—"} · 7 ind.` },
+            { label:"Grupo B (eSB)",  val:`${grupoB?.nota_media?.toFixed(1) ?? "—"}/10`, cor:GRUPO_COR.B, sub:`${grupoB?.conceito_medio ?? "—"} · 6 ind.` },
+            { label:"Grupo M (eMulti)",val:`${grupoM?.nota_media?.toFixed(1) ?? "—"}/10`,cor:GRUPO_COR.M, sub:`${grupoM?.conceito_medio ?? "—"} · 2 ind.` },
           ].map(k => (
             <div key={k.label} style={{ background:"#fff", borderRadius:8, padding:"12px 16px", border:`2px solid ${k.cor}20`, textAlign:"center" }}>
               <div style={{ fontSize:24, fontWeight:900, color:k.cor, lineHeight:1 }}>{k.val}</div>
@@ -472,7 +472,7 @@ export default function ComponenteQualidade() {
                       <div style={{ fontWeight:700, fontSize:13, color:"#111827", lineHeight:1.3 }}>{ind.nome}</div>
                     </div>
                     <div style={{ textAlign:"right", flexShrink:0, marginLeft:12 }}>
-                      <div style={{ fontSize:26, fontWeight:900, color:c.cor, lineHeight:1 }}>{ind.nota.toFixed(1)}</div>
+                      <div style={{ fontSize:26, fontWeight:900, color:c.cor, lineHeight:1 }}>{ind.nota?.toFixed(1)}</div>
                       <div style={{ fontSize:10, color:"#6b7280" }}>nota /10</div>
                     </div>
                   </div>

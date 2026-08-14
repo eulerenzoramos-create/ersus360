@@ -90,7 +90,7 @@ export default function ZoonosesApui() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="CCZ no município"            value={dashRaw.ccz_apui ? "Ativo" : "Inexistente"}          color={CRIT} sub="2 AGVs vs necessidade de 8" />
-              <KPI label="Cães errantes estimados"     value={dashRaw.caes_errantes_estimados.toLocaleString()}    color={CRIT} sub={`${dashRaw.castracoes_sus_2025} castrações (meta ${dashRaw.meta_castracoes_ano})`} />
+              <KPI label="Cães errantes estimados"     value={dashRaw.caes_errantes_estimados?.toLocaleString()}    color={CRIT} sub={`${dashRaw.castracoes_sus_2025} castrações (meta ${dashRaw.meta_castracoes_ano})`} />
               <KPI label="Leishmaniose Tegumentar"     value={`${dashRaw.leishmaniose_tegumentar_casos_2025} casos`} color={CRIT} sub="garimpeiros e rurais" />
               <KPI label="Brucelose 2025"              value={`${dashRaw.brucelose_casos_2025} casos`}             color={WARN} sub="trabalhadores rurais" />
             </div>
@@ -175,7 +175,7 @@ export default function ZoonosesApui() {
                       {a.implementada ? "Implementada" : "Não implementada"}
                     </span>
                     {a.cobertura_atual_pct != null && <p className="text-xs mt-0.5">{a.cobertura_atual_pct}% / meta {a.meta_pct}%</p>}
-                    {a.custo > 0 && <p className="text-xs text-slate-400">R$ {a.custo.toLocaleString()} · {a.prazo_meses}m</p>}
+                    {a.custo > 0 && <p className="text-xs text-slate-400">R$ {a.custo?.toLocaleString()} · {a.prazo_meses}m</p>}
                     {a.custo === 0 && <p className="text-xs text-green-600">custo R$ 0 · {a.prazo_meses}m</p>}
                   </div>
                 </div>

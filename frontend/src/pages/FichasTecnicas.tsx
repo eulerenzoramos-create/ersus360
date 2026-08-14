@@ -182,7 +182,7 @@ function TabESF() {
               {(d?.parametro_populacional?.tabela ?? []).map((r: { porte: string; pessoas: number }, i: number) => (
                 <tr key={i} style={{ borderBottom: "1px solid #f0f0f0", background: i === 0 ? "#e8f5e9" : undefined }}>
                   <td style={{ padding: "6px 10px" }}>{r.porte}</td>
-                  <td style={{ padding: "6px 10px", textAlign: "center", fontWeight: i === 0 ? 700 : 400 }}>{r.pessoas.toLocaleString("pt-BR")}</td>
+                  <td style={{ padding: "6px 10px", textAlign: "center", fontWeight: i === 0 ? 700 : 400 }}>{r.pessoas?.toLocaleString("pt-BR")}</td>
                 </tr>
               ))}
             </tbody>
@@ -312,13 +312,13 @@ function TabEMulti() {
               <div style={{ background: "#e8f5e9", borderRadius: 6, padding: "6px 10px" }}>
                 <div style={{ fontSize: 10, color: "#9e9e9e" }}>Custeio base/mês</div>
                 <div style={{ fontWeight: 700, fontSize: 13, color: "#1b5e20" }}>
-                  R$ {m.financiamento_mensal.toLocaleString("pt-BR")}
+                  R$ {m.financiamento_mensal?.toLocaleString("pt-BR")}
                 </div>
               </div>
               <div style={{ background: "#e3f2fd", borderRadius: 6, padding: "6px 10px" }}>
                 <div style={{ fontSize: 10, color: "#9e9e9e" }}>Bônus desempenho</div>
                 <div style={{ fontWeight: 700, fontSize: 13, color: "#1565c0" }}>
-                  + R$ {m.bonus_desempenho.toLocaleString("pt-BR")}
+                  + R$ {m.bonus_desempenho?.toLocaleString("pt-BR")}
                 </div>
               </div>
             </div>
@@ -326,7 +326,7 @@ function TabEMulti() {
             <div style={{ background: "#e8f5e9", borderRadius: 6, padding: "8px 12px", textAlign: "center", marginBottom: 8 }}>
               <div style={{ fontSize: 10, color: "#616161" }}>Total potencial/mês</div>
               <div style={{ fontWeight: 800, fontSize: 16, color: "#1b5e20" }}>
-                R$ {m.total_potencial_mes.toLocaleString("pt-BR")}
+                R$ {m.total_potencial_mes?.toLocaleString("pt-BR")}
               </div>
             </div>
 

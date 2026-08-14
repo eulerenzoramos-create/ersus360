@@ -43,7 +43,7 @@ export default function ControleVetorialApui(){
             <KPI label="Nível de Risco Dengue"  value={d.nivel_risco_dengue.toUpperCase()} color={CRIT}/>
             <KPI label="Agentes de Endemias"    value={`${d.agentes_endemias_ativo}/${d.agentes_endemias_necessario}`} sub="necessários" color={CRIT}/>
             <KPI label="Cobertura Visitas"      value={`${d.cobertura_visitas_pct}%`} sub="dos imóveis/mês"     color={WARN}/>
-            <KPI label="Focos Eliminados 2025"  value={d.focos_eliminados_2025.toLocaleString()} color={OK}/>
+            <KPI label="Focos Eliminados 2025"  value={d.focos_eliminados_2025?.toLocaleString()} color={OK}/>
             <KPI label="Estoque Inseticida"     value={`${d.inseticidas_estoque_meses} meses`} sub="Meta: ≥ 3 meses" color={CRIT}/>
             <KPI label="Nebulizações 2025"      value={`${d.nebulizacoes_realizadas_2025}/${d.nebulizacoes_meta_2025}`} color={WARN}/>
             <KPI label="Positividade Ovitrampa" value={`${d.positivas_ovitrampa_pct}%`} color={WARN}/>

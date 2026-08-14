@@ -19,7 +19,7 @@ const S = {
   btn:   (cor?: string) => ({ padding: "7px 14px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 13, background: cor ?? "#f5f5f3", color: cor ? "#fff" : "#404040", display: "flex", alignItems: "center", gap: 5 }) as React.CSSProperties,
 };
 
-const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmt = (v: number) => v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const FASES: Record<string, { label: string; cor: string; bg: string; ordem: number }> = {
   indicada:    { label: "Indicada",    cor: "#737373", bg: "#f5f5f3", ordem: 1 },
@@ -122,7 +122,7 @@ export default function Emendas() {
             ].map((item, i) => (
               <div key={item.label} style={{ flex: 1, textAlign: "center", position: "relative" }}>
                 <div style={{ background: item.cor + "15", border: `2px solid ${item.cor}`, borderRadius: 8, padding: "12px 8px", margin: i === 0 ? 0 : "0 0 0 -8px" }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: item.cor }}>{item.perc.toFixed(0)}%</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: item.cor }}>{item.perc?.toFixed(0)}%</div>
                   <div style={{ fontSize: 12, fontWeight: 600 }}>{item.label}</div>
                   <div style={{ fontSize: 11, color: "#737373" }}>{fmt(item.valor)}</div>
                 </div>
@@ -296,7 +296,7 @@ export default function Emendas() {
                     <div style={{ fontSize: 15, fontWeight: 700 }}>{fmt(e.valor_indicado)}</div>
                     <div style={{ fontSize: 11, color: "#9ca3af" }}>indicado</div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: e.perc_executado >= 75 ? "#059669" : e.perc_executado >= 40 ? "#d97706" : "#dc2626", marginTop: 4 }}>
-                      {e.perc_executado.toFixed(0)}% pago
+                      {e.perc_executado?.toFixed(0)}% pago
                     </div>
                   </div>
                 </div>

@@ -110,7 +110,7 @@ export default function VigEpidemAvancada() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Surtos Ativos"           value={dashRaw.surtos_ativos.toString()}             color={dashRaw.surtos_ativos > 0 ? CRIT : OK} />
-              <KPI label="Notificações/Mês"        value={dashRaw.notificacoes_mes.toLocaleString()}    color={ACCENT} />
+              <KPI label="Notificações/Mês"        value={dashRaw.notificacoes_mes?.toLocaleString()}    color={ACCENT} />
               <KPI label="Pendentes >60d"          value={dashRaw.notificacoes_pendentes_60d.toString()} color={CRIT} sub="aguardando encerramento" />
               <KPI label="Encerramento Oportuno"   value={`${dashRaw.encerramento_oportuno_pct}%`}      color={dashRaw.encerramento_oportuno_pct >= 90 ? OK : CRIT} />
             </div>

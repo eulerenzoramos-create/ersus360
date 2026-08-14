@@ -40,7 +40,7 @@ export default function SaudeSexualReprodutoraApui(){
       {aba==="Dashboard"&&d&&(
         <div>
           <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20}}>
-            <KPI label="Mulheres Idade Fértil"   value={d.mulheres_idade_fertil.toLocaleString("pt-BR")} />
+            <KPI label="Mulheres Idade Fértil"   value={d.mulheres_idade_fertil?.toLocaleString("pt-BR")} />
             <KPI label="Cobertura Contraceptiva" value={`${d.cobertura_metodo_contraceptivo_pct}%`} sub={`Meta: ${d.meta_cobertura_pct}%`} color={WARN} />
             <KPI label="Gestantes Acomp."        value={d.gestantes_acompanhadas} color={ACCENT} />
             <KPI label="Pré-natal Adequado"      value={`${d.prenatal_adequado_pct}%`} sub={`Meta: ${d.meta_prenatal_pct}%`} color={WARN} />
@@ -80,7 +80,7 @@ export default function SaudeSexualReprodutoraApui(){
             <tbody>{m.map((r:any,idx:number)=>(
               <tr key={idx} style={{borderBottom:"1px solid #f3f4f6"}}>
                 <td style={{padding:"8px 12px"}}>{r.metodo}</td>
-                <td style={{padding:"8px 12px",textAlign:"right"}}>{r.usuarios.toLocaleString("pt-BR")}</td>
+                <td style={{padding:"8px 12px",textAlign:"right"}}>{r.usuarios?.toLocaleString("pt-BR")}</td>
                 <td style={{padding:"8px 12px",textAlign:"right"}}>{r.pct_fertil}%</td>
                 <td style={{padding:"8px 12px",textAlign:"center"}}><span style={{color:sc(r.disponibilidade),fontWeight:600}}>{r.disponibilidade}</span></td>
               </tr>

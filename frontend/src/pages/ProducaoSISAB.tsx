@@ -29,11 +29,11 @@ function AbaDashboard({ dash }: { dash: any }) {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 22 }}>
-        <KpiCard label="Atendimentos (Mar)"  value={dash.total_atendimentos.toLocaleString("pt-BR")} sub={`meta: ${dash.meta_total.toLocaleString("pt-BR")}`} cor="#1d4ed8" icon={<Activity size={14} color="#1d4ed8"/>}/>
+        <KpiCard label="Atendimentos (Mar)"  value={dash.total_atendimentos?.toLocaleString("pt-BR")} sub={`meta: ${dash.meta_total?.toLocaleString("pt-BR")}`} cor="#1d4ed8" icon={<Activity size={14} color="#1d4ed8"/>}/>
         <KpiCard label="% da meta"           value={`${Math.round(dash.total_atendimentos/dash.meta_total*100)}%`} sub="produção vs meta"  cor={dash.total_atendimentos>=dash.meta_total?"#16a34a":"#d97706"} icon={<CheckCircle size={14} color={dash.total_atendimentos>=dash.meta_total?"#16a34a":"#d97706"}/>}/>
         <KpiCard label="Equipes críticas"    value={dash.equipes_criticas}   sub="abaixo da meta"                  cor={dash.equipes_criticas>0?"#dc2626":"#16a34a"} icon={<AlertTriangle size={14} color={dash.equipes_criticas>0?"#dc2626":"#16a34a"}/>}/>
         <KpiCard label="Equipes OK"          value={dash.equipes_ok}         sub="atingiram meta"                  cor="#16a34a" icon={<CheckCircle size={14} color="#16a34a"/>}/>
-        <KpiCard label="Ciclo Abr/26"        value={dash.registros_abr.toLocaleString("pt-BR")} sub={`status: ${dash.ciclo_atual_status}`} cor={dash.ciclo_atual_status==="pendente"?"#d97706":"#16a34a"} icon={<Upload size={14} color={dash.ciclo_atual_status==="pendente"?"#d97706":"#16a34a"}/>}/>
+        <KpiCard label="Ciclo Abr/26"        value={dash.registros_abr?.toLocaleString("pt-BR")} sub={`status: ${dash.ciclo_atual_status}`} cor={dash.ciclo_atual_status==="pendente"?"#d97706":"#16a34a"} icon={<Upload size={14} color={dash.ciclo_atual_status==="pendente"?"#d97706":"#16a34a"}/>}/>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
@@ -57,7 +57,7 @@ function AbaDashboard({ dash }: { dash: any }) {
           {dash.top_proc.map((p: any, i: number) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f3f4f6", fontSize: 13 }}>
               <span style={{ color: "#374151", fontSize: 12 }}>{p.proc}</span>
-              <span style={{ fontWeight: 700, color: "#1d4ed8" }}>{p.qtd.toLocaleString("pt-BR")}</span>
+              <span style={{ fontWeight: 700, color: "#1d4ed8" }}>{p.qtd?.toLocaleString("pt-BR")}</span>
             </div>
           ))}
         </div>
@@ -151,8 +151,8 @@ function AbaProcedimentos({ procs }: { procs: any[] | undefined }) {
                 <tr key={p.codigo} style={{ borderTop: "1px solid #f3f4f6", background: p.status === "critico" ? "#fff7f7" : i % 2 === 0 ? "#fff" : "#f9fafb" }}>
                   <td style={{ padding: "9px 14px", fontWeight: 500 }}>{p.procedimento}</td>
                   <td style={{ padding: "9px 10px", fontSize: 11, color: "#9ca3af", fontFamily: "monospace" }}>{p.codigo}</td>
-                  <td style={{ padding: "9px 10px", textAlign: "right", fontWeight: 700 }}>{p.qtd.toLocaleString("pt-BR")}</td>
-                  <td style={{ padding: "9px 10px", textAlign: "right", color: "#9ca3af" }}>{p.meta_mes.toLocaleString("pt-BR")}</td>
+                  <td style={{ padding: "9px 10px", textAlign: "right", fontWeight: 700 }}>{p.qtd?.toLocaleString("pt-BR")}</td>
+                  <td style={{ padding: "9px 10px", textAlign: "right", color: "#9ca3af" }}>{p.meta_mes?.toLocaleString("pt-BR")}</td>
                   <td style={{ padding: "9px 10px", textAlign: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
                       <div style={{ background: "#f3f4f6", borderRadius: 4, height: 8, width: 60, overflow: "hidden" }}>
@@ -190,7 +190,7 @@ function AbaCiclos({ ciclos }: { ciclos: any[] | undefined }) {
           </div>
           <div style={{ display: "flex", gap: 24, fontSize: 12, color: "#6b7280", marginTop: 6 }}>
             {c.data_envio && <span>Enviado em: <strong style={{ color: "#374151" }}>{c.data_envio}</strong></span>}
-            {c.registros && <span>Registros: <strong style={{ color: "#374151" }}>{c.registros.toLocaleString("pt-BR")}</strong></span>}
+            {c.registros && <span>Registros: <strong style={{ color: "#374151" }}>{c.registros?.toLocaleString("pt-BR")}</strong></span>}
             {c.criticas !== null && c.criticas !== undefined && <span>Críticas: <strong style={{ color: c.criticas > 0 ? "#d97706" : "#16a34a" }}>{c.criticas}</strong></span>}
           </div>
         </div>
@@ -228,7 +228,7 @@ export default function ProducaoSISAB() {
           </div>
           {dash && (
             <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 900 }}>{dash.total_atendimentos.toLocaleString("pt-BR")}</div>
+              <div style={{ fontSize: 20, fontWeight: 900 }}>{dash.total_atendimentos?.toLocaleString("pt-BR")}</div>
               <div style={{ fontSize: 10, opacity: .8 }}>atend. Mar/26</div>
             </div>
           )}

@@ -18,7 +18,7 @@ const S = {
   }) as React.CSSProperties,
 };
 
-const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmt = (v: number) => v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function SaldoCard({ saldo }: { saldo: SaldoConvenio }) {
   const perc = saldo.perc_executado;

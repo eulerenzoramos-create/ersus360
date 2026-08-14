@@ -55,11 +55,11 @@ function AbaAtendimentos() {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
-        <KpiCard label="Total no período" val={data.total_periodo.toLocaleString("pt-BR")} sub="Jan–Jul/2026"
+        <KpiCard label="Total no período" val={data.total_periodo?.toLocaleString("pt-BR")} sub="Jan–Jul/2026"
           icon={<Activity size={18} />} cor="#1d4ed8" />
         <KpiCard label="Média mensal" val={Math.round(data.media_mensal).toLocaleString("pt-BR")}
           sub="atendimentos/mês" icon={<Users size={18} />} cor="#16a34a" />
-        <KpiCard label="Último mês (parcial)" val={data.serie_mensal.at(-1).total.toLocaleString("pt-BR")}
+        <KpiCard label="Último mês (parcial)" val={data.serie_mensal.at(-1).total?.toLocaleString("pt-BR")}
           sub={data.serie_mensal.at(-1).mes} icon={<Activity size={18} />} cor="#d97706" />
       </div>
 
@@ -95,11 +95,11 @@ function AbaAtendimentos() {
             {data.serie_mensal.map((m: any) => (
               <tr key={m.mes} style={{ borderTop: "1px solid #f3f4f6" }}>
                 <td style={{ padding: "7px 12px", fontWeight: 500 }}>{m.mes}</td>
-                <td style={{ padding: "7px 12px", textAlign: "right", color: "#2563eb" }}>{m.medico.toLocaleString("pt-BR")}</td>
-                <td style={{ padding: "7px 12px", textAlign: "right", color: "#16a34a" }}>{m.enfermeiro.toLocaleString("pt-BR")}</td>
-                <td style={{ padding: "7px 12px", textAlign: "right", color: "#7c3aed" }}>{m.odontologico.toLocaleString("pt-BR")}</td>
-                <td style={{ padding: "7px 12px", textAlign: "right", color: "#9ca3af" }}>{m.outros.toLocaleString("pt-BR")}</td>
-                <td style={{ padding: "7px 12px", textAlign: "right", fontWeight: 700 }}>{m.total.toLocaleString("pt-BR")}</td>
+                <td style={{ padding: "7px 12px", textAlign: "right", color: "#2563eb" }}>{m.medico?.toLocaleString("pt-BR")}</td>
+                <td style={{ padding: "7px 12px", textAlign: "right", color: "#16a34a" }}>{m.enfermeiro?.toLocaleString("pt-BR")}</td>
+                <td style={{ padding: "7px 12px", textAlign: "right", color: "#7c3aed" }}>{m.odontologico?.toLocaleString("pt-BR")}</td>
+                <td style={{ padding: "7px 12px", textAlign: "right", color: "#9ca3af" }}>{m.outros?.toLocaleString("pt-BR")}</td>
+                <td style={{ padding: "7px 12px", textAlign: "right", fontWeight: 700 }}>{m.total?.toLocaleString("pt-BR")}</td>
               </tr>
             ))}
           </tbody>
@@ -127,7 +127,7 @@ function AbaProcedimentos() {
             <BarChart data={data.procedimentos} layout="vertical" margin={{ left: 20 }}>
               <XAxis type="number" tick={{ fontSize: 10 }} />
               <YAxis type="category" dataKey="descricao" width={220} tick={{ fontSize: 10 }} />
-              <Tooltip contentStyle={TT} formatter={(v: number) => [v.toLocaleString("pt-BR"), "Quantidade"]} />
+              <Tooltip contentStyle={TT} formatter={(v: number) => [v?.toLocaleString("pt-BR"), "Quantidade"]} />
               <Bar dataKey="quantidade" name="Quantidade" fill="#2563eb" radius={[0,4,4,0]}>
                 {data.procedimentos.map((_: any, i: number) => (
                   <Cell key={i} fill={`hsl(${220 - i * 12}, 70%, 50%)`} />
@@ -152,7 +152,7 @@ function AbaProcedimentos() {
               <tr key={p.codigo} style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#f9fafb" }}>
                 <td style={{ padding: "7px 12px", fontFamily: "monospace", color: "#6b7280" }}>{p.codigo}</td>
                 <td style={{ padding: "7px 12px" }}>{p.descricao}</td>
-                <td style={{ padding: "7px 12px", fontWeight: 700, color: "#1d4ed8" }}>{p.quantidade.toLocaleString("pt-BR")}</td>
+                <td style={{ padding: "7px 12px", fontWeight: 700, color: "#1d4ed8" }}>{p.quantidade?.toLocaleString("pt-BR")}</td>
                 <td style={{ padding: "7px 12px", color: "#9ca3af", fontSize: 11 }}>{p.unidade}</td>
               </tr>
             ))}
@@ -194,8 +194,8 @@ function AbaVacinas() {
                   <span style={{ fontSize: 13, fontWeight: 600 }}>{v.vacina}</span>
                 </div>
                 <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: "#6b7280" }}>{v.doses_aplicadas.toLocaleString("pt-BR")} / {v.meta_ano.toLocaleString("pt-BR")} doses</span>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: cor, minWidth: 52, textAlign: "right" }}>{v.pct.toFixed(1)}%</span>
+                  <span style={{ fontSize: 12, color: "#6b7280" }}>{v.doses_aplicadas?.toLocaleString("pt-BR")} / {v.meta_ano?.toLocaleString("pt-BR")} doses</span>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: cor, minWidth: 52, textAlign: "right" }}>{v.pct?.toFixed(1)}%</span>
                 </div>
               </div>
               <div style={{ height: 6, background: "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
@@ -221,9 +221,9 @@ function AbaVisitas() {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
-        <KpiCard label="Visitas programadas" val={data.total_programadas.toLocaleString("pt-BR")}
+        <KpiCard label="Visitas programadas" val={data.total_programadas?.toLocaleString("pt-BR")}
           sub="Jan–Jul/2026" icon={<Home size={18} />} cor="#6b7280" />
-        <KpiCard label="Visitas realizadas" val={data.total_realizadas.toLocaleString("pt-BR")}
+        <KpiCard label="Visitas realizadas" val={data.total_realizadas?.toLocaleString("pt-BR")}
           icon={<CheckCircle size={18} />} cor="#16a34a" />
         <KpiCard label="Cumprimento geral" val={`${data.pct_cumprimento}%`}
           icon={<Activity size={18} />} cor={data.pct_cumprimento >= 90 ? "#16a34a" : "#d97706"} />
@@ -317,7 +317,7 @@ function AbaSISAB() {
                   <Badge label={h.status === "enviado" ? "✓ Enviado" : "⏳ Pendente"} status={h.status === "enviado" ? "verde" : "amarelo"} />
                 </td>
                 <td style={{ padding: "8px 14px", fontWeight: 700, color: "#1d4ed8" }}>
-                  {h.fichas != null ? h.fichas.toLocaleString("pt-BR") : "—"}
+                  {h.fichas != null ? h.fichas?.toLocaleString("pt-BR") : "—"}
                 </td>
               </tr>
             ))}
@@ -345,7 +345,7 @@ function AbaEquipesESF() {
         <KpiCard label="Equipes completas"  val={data.completas} icon={<CheckCircle size={18} />} cor="#16a34a" />
         <KpiCard label="Equipes incompletas" val={data.incompletas} icon={<AlertTriangle size={18} />}
           cor={data.incompletas > 0 ? "#dc2626" : "#16a34a"} />
-        <KpiCard label="Pop. cadastrada ESF" val={data.populacao_total.toLocaleString("pt-BR")} sub="cidadãos"
+        <KpiCard label="Pop. cadastrada ESF" val={data.populacao_total?.toLocaleString("pt-BR")} sub="cidadãos"
           icon={<Users size={18} />} cor="#7c3aed" />
       </div>
 
@@ -361,7 +361,7 @@ function AbaEquipesESF() {
                 </div>
                 <div style={{ marginLeft: "auto", display: "flex", gap: 12, alignItems: "center" }}>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 14, fontWeight: 700 }}>{e.populacao_cadastrada.toLocaleString("pt-BR")}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>{e.populacao_cadastrada?.toLocaleString("pt-BR")}</div>
                     <div style={{ fontSize: 10, color: "#9ca3af" }}>cadastrados</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
@@ -421,8 +421,8 @@ function AbaEquipesESF() {
                   </div>
                   <div style={{ marginTop: 10, fontSize: 12, color: "#6b7280" }}>
                     CNES: <span style={{ fontFamily: "monospace" }}>{e.cnes}</span> ·
-                    Produção mês: <strong>{e.producao_mes.toLocaleString("pt-BR")}</strong> atendimentos ·
-                    Famílias: <strong>{e.familias.toLocaleString("pt-BR")}</strong>
+                    Produção mês: <strong>{e.producao_mes?.toLocaleString("pt-BR")}</strong> atendimentos ·
+                    Famílias: <strong>{e.familias?.toLocaleString("pt-BR")}</strong>
                   </div>
                 </div>
               )}
@@ -469,12 +469,12 @@ export default function PainelGestaoAPS() {
       {/* KPIs topo */}
       {painel && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
-          <KpiCard label="Atendimentos/ano" val={painel.total_atendimentos_ano.toLocaleString("pt-BR")}
+          <KpiCard label="Atendimentos/ano" val={painel.total_atendimentos_ano?.toLocaleString("pt-BR")}
             sub={`≈ ${painel.media_mensal_atendimentos}/mês`} icon={<Activity size={18} />} cor="#1d4ed8" />
-          <KpiCard label="Visitas domiciliares" val={painel.total_visitas_domiciliares_ano.toLocaleString("pt-BR")}
+          <KpiCard label="Visitas domiciliares" val={painel.total_visitas_domiciliares_ano?.toLocaleString("pt-BR")}
             sub="Jan–Jul/2026" icon={<Home size={18} />} cor="#16a34a" />
           <KpiCard label="Cobertura ESF" val={`${painel.pct_cobertura_media}%`}
-            sub={`${painel.populacao_coberta_esf.toLocaleString("pt-BR")} cadastrados`}
+            sub={`${painel.populacao_coberta_esf?.toLocaleString("pt-BR")} cadastrados`}
             icon={<Users size={18} />} cor="#7c3aed" />
           <KpiCard label="SISAB"
             val={painel.sisab_status === "em_dia" ? "Em dia" : "Pendente"}

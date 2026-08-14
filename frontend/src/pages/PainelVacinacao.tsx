@@ -66,8 +66,8 @@ function CardImuno({ im }: { im: ImunoBiologico }) {
             <span style={{ fontSize: 9, color: "#9ca3af" }}>{im.sigla} · {im.publico_alvo}</span>
           </div>
           <div style={{ display: "flex", gap: 16, fontSize: 10, color: "#6b7280" }}>
-            <span>Aplicadas: <b style={{ color: "#111" }}>{im.doses_aplicadas.toLocaleString("pt-BR")}</b></span>
-            <span>Meta: <b style={{ color: "#111" }}>{im.meta.toLocaleString("pt-BR")}</b></span>
+            <span>Aplicadas: <b style={{ color: "#111" }}>{im.doses_aplicadas?.toLocaleString("pt-BR")}</b></span>
+            <span>Meta: <b style={{ color: "#111" }}>{im.meta?.toLocaleString("pt-BR")}</b></span>
             <span>Homogeneidade: <b style={{ color: im.homogeneidade_pct >= 80 ? "#16a34a" : "#dc2626" }}>{im.homogeneidade_pct}%</b></span>
           </div>
           {im.alertas.length > 0 && (
@@ -99,7 +99,7 @@ function CardImuno({ im }: { im: ImunoBiologico }) {
           <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
             {[
               { l: "Cobertura atual", v: PCT(im.cobertura_pct), cor: cor },
-              { l: "Meta anual",      v: im.meta.toLocaleString("pt-BR"),   cor: "#374151" },
+              { l: "Meta anual",      v: im.meta?.toLocaleString("pt-BR"),   cor: "#374151" },
               { l: "Déficit",         v: Math.max(0, im.meta - im.doses_aplicadas).toLocaleString("pt-BR") + " doses", cor: "#dc2626" },
             ].map(k => (
               <div key={k.l} style={{ background: "#fff", borderRadius: 8, padding: "10px 12px", border: "1px solid #e4e7ec" }}>
@@ -159,14 +159,14 @@ export default function PainelVacinacao() {
         {r && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 8, marginTop: 16 }}>
             {[
-              { l: "Doses no Ano",      v: r.total_doses_ano.toLocaleString("pt-BR"), cor: "#bae6fd" },
-              { l: "Meta Anual",        v: r.meta_doses_ano.toLocaleString("pt-BR"),  cor: "#bae6fd" },
+              { l: "Doses no Ano",      v: r.total_doses_ano?.toLocaleString("pt-BR"), cor: "#bae6fd" },
+              { l: "Meta Anual",        v: r.meta_doses_ano?.toLocaleString("pt-BR"),  cor: "#bae6fd" },
               { l: "Cobertura Média",   v: `${r.cobertura_media}%`,                   cor: "#86efac" },
               { l: "Homogeneidade",     v: `${r.homogeneidade_media}%`,               cor: "#86efac" },
               { l: "Meta Atingida",     v: r.imuno_meta_atingida,                     cor: "#86efac" },
               { l: "Em Alerta",         v: r.imuno_alerta,                            cor: "#fde68a" },
               { l: "Crítico",           v: r.imuno_critico,                           cor: "#fca5a5" },
-              { l: "Doses Ult. Mês",   v: r.doses_ultimo_mes.toLocaleString("pt-BR"), cor: "#bae6fd" },
+              { l: "Doses Ult. Mês",   v: r.doses_ultimo_mes?.toLocaleString("pt-BR"), cor: "#bae6fd" },
             ].map(k => (
               <div key={k.l} style={{ background: "rgba(255,255,255,.12)", borderRadius: 8, padding: "10px 8px", textAlign: "center" as const }}>
                 <div style={{ fontSize: 16, fontWeight: 900, color: k.cor }}>{k.v}</div>

@@ -12,7 +12,7 @@ const S = {
   tab:   (a: boolean) => ({ padding: "7px 14px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 12, background: a ? "#0284c7" : "#f5f5f3", color: a ? "#fff" : "#404040" }) as React.CSSProperties,
 };
 
-const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmt = (v: number) => v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 interface Dashboard {
   veiculos_total: number; veiculos_disponiveis: number;
@@ -92,7 +92,7 @@ export default function Transporte() {
           </div>
           <div>
             <div style={{ fontSize: 12, color: "#737373" }}>Km Rodados / Mês</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: "#0284c7" }}>{dashboard.km_rodados_mes.toLocaleString("pt-BR")} km</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "#0284c7" }}>{dashboard.km_rodados_mes?.toLocaleString("pt-BR")} km</div>
           </div>
         </div>
       )}
@@ -125,10 +125,10 @@ export default function Transporte() {
                     {v.motorista && <div style={{ fontSize: 11, color: "#9ca3af" }}>Motorista: {v.motorista}</div>}
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 12, color: "#737373" }}>{v.km_atual.toLocaleString("pt-BR")} km</div>
+                    <div style={{ fontSize: 12, color: "#737373" }}>{v.km_atual?.toLocaleString("pt-BR")} km</div>
                     {v.proxima_revisao_km > 0 && (
                       <div style={{ fontSize: 11, color: kmAteRevisao <= 2000 ? "#dc2626" : "#9ca3af" }}>
-                        revisão em {kmAteRevisao.toLocaleString("pt-BR")} km
+                        revisão em {kmAteRevisao?.toLocaleString("pt-BR")} km
                       </div>
                     )}
                   </div>

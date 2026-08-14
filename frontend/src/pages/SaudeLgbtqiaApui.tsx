@@ -157,7 +157,7 @@ export default function SaudeLgbtqiaApui() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${b.impacto === "alto" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
                       impacto {b.impacto}
                     </span>
-                    {b.custo_solucao > 0 && <p className="text-xs text-slate-400 mt-0.5">custo: R$ {b.custo_solucao.toLocaleString()} · {b.prazo_meses}m</p>}
+                    {b.custo_solucao > 0 && <p className="text-xs text-slate-400 mt-0.5">custo: R$ {b.custo_solucao?.toLocaleString()} · {b.prazo_meses}m</p>}
                     {b.custo_solucao === 0 && <p className="text-xs text-green-600 mt-0.5">custo R$ 0 · {b.prazo_meses}m</p>}
                   </div>
                 </div>

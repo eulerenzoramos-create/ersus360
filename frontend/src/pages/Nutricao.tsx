@@ -100,14 +100,14 @@ export default function Nutricao() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Avaliados SISVAN/Mês"   value={dashRaw.avaliados_sisvan_mes.toLocaleString()} color={ACCENT} />
+              <KPI label="Avaliados SISVAN/Mês"   value={dashRaw.avaliados_sisvan_mes?.toLocaleString()} color={ACCENT} />
               <KPI label="Desnutrição Grave <5"   value={`${dashRaw.desnutricao_grave_criancas_pct}%`} sub="meta: ≤1%" color={CRIT} />
               <KPI label="Obesidade Adultos"      value={`${dashRaw.obesidade_adultos_pct}%`} color={CRIT} />
               <KPI label="Cobertura SISVAN Média" value={`${dashRaw.cobertura_sisvan_media_pct}%`} color={WARN} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Famílias BF Acomp."    value={dashRaw.familias_bf_acompanhadas.toLocaleString()} color={OK} />
-              <KPI label="BF Total Famílias"     value={dashRaw.bf_total_familias.toLocaleString()} />
+              <KPI label="Famílias BF Acomp."    value={dashRaw.familias_bf_acompanhadas?.toLocaleString()} color={OK} />
+              <KPI label="BF Total Famílias"     value={dashRaw.bf_total_familias?.toLocaleString()} />
               <KPI label="Vitamina A <5 anos"    value={`${dashRaw.suplementacao_vit_a_pct}%`} sub="meta: 80%" color={WARN} />
               <KPI label="Ferro <2 anos"         value={`${dashRaw.suplementacao_ferro_pct}%`} sub="meta: 80%" color={CRIT} />
             </div>
@@ -142,7 +142,7 @@ export default function Nutricao() {
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full" style={{ background: CICLO_COLORS[i % CICLO_COLORS.length] }} />
                       <span className="font-semibold text-slate-700 text-sm">{s.ciclo_vida}</span>
-                      <span className="text-xs text-slate-400">({s.avaliados.toLocaleString()} avaliados)</span>
+                      <span className="text-xs text-slate-400">({s.avaliados?.toLocaleString()} avaliados)</span>
                     </div>
                     <span className="text-xs" style={{ color: statusColor(s.status) }}>Cob.: <b>{s.cobertura_pct}%</b></span>
                   </div>
@@ -176,8 +176,8 @@ export default function Nutricao() {
                   <div className="h-2 rounded-full" style={{ width: `${p.cobertura_pct}%`, background: statusColor(p.status) }} />
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs text-slate-500">
-                  <span>Acompanhadas: <b>{p.acompanhadas_saude.toLocaleString()}</b></span>
-                  <span>Crianças avaliadas: <b>{p.criancas_avaliadas.toLocaleString()}</b></span>
+                  <span>Acompanhadas: <b>{p.acompanhadas_saude?.toLocaleString()}</b></span>
+                  <span>Crianças avaliadas: <b>{p.criancas_avaliadas?.toLocaleString()}</b></span>
                   {p.descumprimento_pct && <span style={{ color: p.descumprimento_pct > 5 ? CRIT : WARN }}>Descumprimento: <b>{p.descumprimento_pct}%</b></span>}
                 </div>
               </div>

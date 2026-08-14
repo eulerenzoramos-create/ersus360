@@ -102,7 +102,7 @@ function AbaRaiva({ raiva }: { raiva: any | undefined }) {
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Cães — Cobertura antirrábica</div>
           <div style={{ fontSize: 26, fontWeight: 900, color: raiva.cobertura_pct>=95?"#16a34a":"#dc2626" }}>{raiva.cobertura_pct}%</div>
-          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 10 }}>{raiva.vacinados_campanha.toLocaleString("pt-BR")} / {raiva.total_caes_estimado.toLocaleString("pt-BR")} cães</div>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 10 }}>{raiva.vacinados_campanha?.toLocaleString("pt-BR")} / {raiva.total_caes_estimado?.toLocaleString("pt-BR")} cães</div>
           <div style={{ background: "#f3f4f6", borderRadius: 6, height: 10, marginBottom: 4 }}>
             <div style={{ background: raiva.cobertura_pct>=95?"#16a34a":"#dc2626", height: "100%", width: `${raiva.cobertura_pct}%`, borderRadius: 6 }}/>
           </div>

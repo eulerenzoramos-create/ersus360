@@ -92,7 +92,7 @@ export default function ReabilitacaoApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Pop. Estimada c/ Defic." value={dashRaw.populacao_estimada_deficiencia.toLocaleString()} color={BRAND} sub={`${dashRaw.pct_populacao_total}% da população`} />
+              <KPI label="Pop. Estimada c/ Defic." value={dashRaw.populacao_estimada_deficiencia?.toLocaleString()} color={BRAND} sub={`${dashRaw.pct_populacao_total}% da população`} />
               <KPI label="Beneficiários BPC"        value={dashRaw.beneficiarios_bpc.toString()} color={ACCENT} sub="LOAS pessoa com deficiência" />
               <KPI label="Pacientes Fisioterapia"   value={dashRaw.pacientes_fisioterapia_municipio.toString()} color={WARN} sub={`lista espera: ${dashRaw.lista_espera_reab}`} />
               <KPI label="CRIE Implantado"          value="NÃO" color={CRIT} sub={`Ref.: ${dashRaw.cer_referencia}`} />
@@ -143,7 +143,7 @@ export default function ReabilitacaoApui() {
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="tipo" tick={{ fontSize: 9 }} width={240} />
                   <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
-                  <Tooltip formatter={(v: any) => `${v.toLocaleString()}`} />
+                  <Tooltip formatter={(v: any) => `${v?.toLocaleString()}`} />
                   <Bar dataKey="estimativa" name="Estimativa" radius={[0,3,3,0]}>
                     {(deficiencias as any[]).map((d: any) => <Cell key={d.tipo} fill={DEF_COLORS[d.tipo] || BRAND} />)}
                   </Bar>
@@ -157,7 +157,7 @@ export default function ReabilitacaoApui() {
                     <div>
                       <span className="font-semibold text-sm text-slate-700">{d.tipo}</span>
                       <div className="flex gap-3 text-xs text-slate-400 mt-0.5">
-                        <span>Est.: {d.estimativa.toLocaleString()} ({d.pct}%)</span>
+                        <span>Est.: {d.estimativa?.toLocaleString()} ({d.pct}%)</span>
                         <span>BPC: {d.bpc_beneficiarios}</span>
                       </div>
                     </div>

@@ -83,7 +83,7 @@ export default function RegulacaoAcesso() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Fila Total Ativa"         value={dashRaw.fila_total_ativa.toLocaleString()} color={CRIT} sub="pacientes aguardando" />
+              <KPI label="Fila Total Ativa"         value={dashRaw.fila_total_ativa?.toLocaleString()} color={CRIT} sub="pacientes aguardando" />
               <KPI label="Tempo Médio Espera"       value={`${dashRaw.tempo_medio_espera_dias} dias`} color={CRIT} sub={`meta: ${dashRaw.meta_tempo_espera_dias} dias`} />
               <KPI label=">180 dias em fila"        value={dashRaw.pendentes_mais_180dias.toString()} color={CRIT} />
               <KPI label="Ref. a Manaus/mês"        value={dashRaw.referencias_manaus_mes.toString()}  color={WARN} sub="600 km" />

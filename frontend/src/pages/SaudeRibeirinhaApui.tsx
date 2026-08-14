@@ -77,7 +77,7 @@ export default function SaudeRibeirinhaApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Populaçao ribeirinha estimada"       value={`${dashRaw.populacao_ribeirinha_estimada.toLocaleString()}`} color={BRAND} sub={`${dashRaw.pct_populacao_total}% da pop. · ${dashRaw.comunidades_ribeirinhas} comunidades`} />
+              <KPI label="Populaçao ribeirinha estimada"       value={`${dashRaw.populacao_ribeirinha_estimada?.toLocaleString()}`} color={BRAND} sub={`${dashRaw.pct_populacao_total}% da pop. · ${dashRaw.comunidades_ribeirinhas} comunidades`} />
               <KPI label="Cobertura de atendimento (meta: 90%)" value={`${dashRaw.cobertura_atendimento_pct}%`}                   color={CRIT}  sub={`${dashRaw.comunidades_com_atendimento_regular}/${dashRaw.comunidades_ribeirinhas} comunidades · ${dashRaw.equipes_fluviais_ativas} equipes fluviais`} />
               <KPI label="Água tratada nas comunidades"        value="ZERO"                                                        color={CRIT}  sub="100% usam água do rio sem tratamento — DDA, hepatite A, parasitoses" />
               <KPI label="Mortalidade infantil ribeirinha"     value={`${dashRaw.mortalidade_infantil_ribeirinha}/mil NV`}         color={CRIT}  sub="3,2× a meta nacional (10/mil NV) — partos domiciliares + diarreia" />
@@ -164,7 +164,7 @@ export default function SaudeRibeirinhaApui() {
                     <span className="text-sm font-semibold text-slate-700">{m.agravo}</span>
                   </div>
                   <div className="text-right text-xs">
-                    <span className="font-bold" style={{ color: statusColor(m.status) }}>{m.taxa_100k.toLocaleString()}/100k</span>
+                    <span className="font-bold" style={{ color: statusColor(m.status) }}>{m.taxa_100k?.toLocaleString()}/100k</span>
                     <p className="text-slate-400">{m.ribeirinho_vs_urbano} mais que área urbana</p>
                   </div>
                 </div>

@@ -92,7 +92,7 @@ export default function MortalidadePrematuraApui() {
               <KPI label="Óbitos totais/ano"      value={dashRaw.obitos_totais_ano.toString()}           color={BRAND} sub={`taxa: ${dashRaw.taxa_mortalidade_geral}/1000 hab`} />
               <KPI label="Mortalidade prematura"  value={`${dashRaw.mortalidade_prematura_pct}%`}        color={WARN}  sub={`${dashRaw.obitos_prematuros_30_69} óbitos 30–69 anos`} />
               <KPI label="Principal causa"        value={`${dashRaw.principal_causa_pct}%`}              color={CRIT}  sub={dashRaw.principal_causa} />
-              <KPI label="AVPP"                   value={dashRaw.anos_vida_perdidos_prematuramente.toLocaleString()} color={CRIT} sub="anos de vida perdidos prematuramente" />
+              <KPI label="AVPP"                   value={dashRaw.anos_vida_perdidos_prematuramente?.toLocaleString()} color={CRIT} sub="anos de vida perdidos prematuramente" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Causas externas 15–39" value={`${dashRaw.obitos_causas_externas_15_39_100k}/100k`} color={CRIT} sub="meta: < 80/100k" />

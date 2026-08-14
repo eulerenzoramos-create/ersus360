@@ -40,9 +40,9 @@ export default function CeacAmbulatorialApui(){
       {aba==="Dashboard"&&d&&(
         <div>
           <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20}}>
-            <KPI label="Procedimentos Amb./mês"  value={d.procedimentos_ambulatoriais_mes.toLocaleString()} color={ACCENT}/>
+            <KPI label="Procedimentos Amb./mês"  value={d.procedimentos_ambulatoriais_mes?.toLocaleString()} color={ACCENT}/>
             <KPI label="Consultas Especializadas" value={d.consultas_especializadas_mes} sub="por mês"       color={ACCENT}/>
-            <KPI label="Exames Represados"        value={d.exames_represados.toLocaleString()}               color={CRIT}/>
+            <KPI label="Exames Represados"        value={d.exames_represados?.toLocaleString()}               color={CRIT}/>
             <KPI label="Fila Cirúrgica Total"     value={d.fila_cirurgica_total}          sub="eletivas"     color={CRIT}/>
             <KPI label="Espera Consulta Espec."   value={`${d.tempo_espera_consulta_especializada_dias}d`} sub="Meta: ≤ 60d" color={CRIT}/>
             <KPI label="Espera Cirurgia Eletiva"  value={`${d.tempo_espera_cirurgia_eletiva_dias}d`} sub="Meta: ≤ 120d" color={CRIT}/>

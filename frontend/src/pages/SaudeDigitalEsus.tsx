@@ -413,7 +413,7 @@ export default function SaudeDigitalEsus() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Atend. Digitais/Mês"  value={dashRaw.atendimentos_digitais_mes.toLocaleString()} color={ACCENT} />
+              <KPI label="Atend. Digitais/Mês"  value={dashRaw.atendimentos_digitais_mes?.toLocaleString()} color={ACCENT} />
               <KPI label="Atend. em Papel/Mês"  value={dashRaw.atendimentos_papel_mes.toString()}         color={WARN} />
               <KPI label="Adesão PEC"           value={`${dashRaw.adesao_pec_pct}%`}                      color={dashRaw.adesao_pec_pct >= 95 ? OK : WARN} />
               <KPI label="Cobertura Prontuário" value={`${dashRaw.cobertura_prontuario_pct}%`}             color={dashRaw.cobertura_prontuario_pct >= 80 ? OK : CRIT} />
@@ -449,7 +449,7 @@ export default function SaudeDigitalEsus() {
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs text-slate-500">
                   <span>Unidades ativas: <b>{sis.unidades_ativas}/{sis.unidades_total}</b></span>
-                  {sis.producao_mes && <span>Produção/mês: <b>{sis.producao_mes.toLocaleString()}</b></span>}
+                  {sis.producao_mes && <span>Produção/mês: <b>{sis.producao_mes?.toLocaleString()}</b></span>}
                   {sis.ultima_sync && <span>Último sync: <b>{sis.ultima_sync}</b></span>}
                 </div>
               </div>
@@ -460,8 +460,8 @@ export default function SaudeDigitalEsus() {
         {aba === "prontuario" && pronRaw && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <KPI label="Pacientes com PEC"     value={pronRaw.pacientes_com_pec.toLocaleString()}   color={ACCENT} />
-              <KPI label="Total Cadastrados"     value={pronRaw.pacientes_cadastrados_total.toLocaleString()} />
+              <KPI label="Pacientes com PEC"     value={pronRaw.pacientes_com_pec?.toLocaleString()}   color={ACCENT} />
+              <KPI label="Total Cadastrados"     value={pronRaw.pacientes_cadastrados_total?.toLocaleString()} />
               <KPI label="Cobertura PEC"         value={`${pronRaw.cobertura_pec_pct}%`}              color={pronRaw.cobertura_pec_pct >= 80 ? OK : CRIT} />
               <KPI label="Profissionais Ativos"  value={`${pronRaw.profissionais_ativos_pec}/${pronRaw.profissionais_total}`} color={ACCENT} />
               <KPI label="Adesão Profissionais"  value={`${pronRaw.adesao_pec_pct}%`}                 color={pronRaw.adesao_pec_pct >= 95 ? OK : WARN} />

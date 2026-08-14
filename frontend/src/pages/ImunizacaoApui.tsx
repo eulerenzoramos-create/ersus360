@@ -171,7 +171,7 @@ export default function ImunizacaoApui() {
                   </div>
                 </div>
                 <div className="text-xs text-right space-y-0.5">
-                  {s.doses_armazenadas > 0 && <div>Doses: <b>{s.doses_armazenadas.toLocaleString()}</b></div>}
+                  {s.doses_armazenadas > 0 && <div>Doses: <b>{s.doses_armazenadas?.toLocaleString()}</b></div>}
                   {s.temperatura_ok_pct > 0 && <div>Temp OK: <b style={{ color: s.temperatura_ok_pct >= 90 ? OK : s.temperatura_ok_pct >= 80 ? WARN : CRIT }}>{s.temperatura_ok_pct}%</b></div>}
                   {!s.funcionando && <div className="font-bold" style={{ color: CRIT }}>Vacinação impossível</div>}
                 </div>

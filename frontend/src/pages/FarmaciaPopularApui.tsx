@@ -179,7 +179,7 @@ export default function FarmaciaPopularApui() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${g.implementado ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                       {g.implementado ? "Implementado" : "Não implementado"}
                     </span>
-                    {g.custo > 0 && <p className="text-xs text-slate-400 mt-0.5">R$ {g.custo.toLocaleString()} · {g.prazo_meses}m</p>}
+                    {g.custo > 0 && <p className="text-xs text-slate-400 mt-0.5">R$ {g.custo?.toLocaleString()} · {g.prazo_meses}m</p>}
                     {g.custo === 0 && <p className="text-xs text-green-600 mt-0.5">custo R$ 0 · {g.prazo_meses}m</p>}
                   </div>
                 </div>

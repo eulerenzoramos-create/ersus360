@@ -84,7 +84,7 @@ export default function RegulacaoEspecializadaApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Fila Total"              value={dashRaw.pacientes_fila_especialidades.toLocaleString()} color={CRIT} sub="pacientes aguardando" />
+              <KPI label="Fila Total"              value={dashRaw.pacientes_fila_especialidades?.toLocaleString()} color={CRIT} sub="pacientes aguardando" />
               <KPI label="Tempo Médio Espera"      value={`${dashRaw.tempo_medio_espera_dias} dias`}              color={CRIT} sub={`meta: ${dashRaw.meta_espera_dias} dias`} />
               <KPI label="TFD / Mês"               value={dashRaw.tfd_pacientes_mes.toString()}                   color={CRIT} sub="deslocamentos p/ Manaus" />
               <KPI label="Custo TFD / Mês"         value={BRL(dashRaw.tfd_custo_mensal_R)}  color={CRIT} sub="maior despesa SMS s/ folha" />
@@ -107,7 +107,7 @@ export default function RegulacaoEspecializadaApui() {
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
                         <span className="text-slate-600">{b.label}</span>
-                        <span className="font-bold" style={{ color: b.color }}>{b.value.toFixed(1)}% / meta {b.meta}%</span>
+                        <span className="font-bold" style={{ color: b.color }}>{b.value?.toFixed(1)}% / meta {b.meta}%</span>
                       </div>
                       <ProgressBar value={b.value} max={100} color={b.color} />
                     </div>
@@ -183,7 +183,7 @@ export default function RegulacaoEspecializadaApui() {
                     <span className="font-semibold text-sm text-slate-700">{t.motivo}</span>
                   </div>
                   <div className="text-xs text-right space-y-0.5">
-                    <div><span className="font-bold">{t.pacientes_mes}</span> pcts | R$ {t.custo_medio_R.toLocaleString()}/viagem | {t.dias_deslocamento}d</div>
+                    <div><span className="font-bold">{t.pacientes_mes}</span> pcts | R$ {t.custo_medio_R?.toLocaleString()}/viagem | {t.dias_deslocamento}d</div>
                     <div>Resolvido: <span className="font-bold" style={{ color: t.retorno_resolvido_pct >= 80 ? OK : WARN }}>{t.retorno_resolvido_pct}%</span></div>
                   </div>
                 </div>

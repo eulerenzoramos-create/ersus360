@@ -139,8 +139,8 @@ export default function CancerRastreio() {
                   </div>
                   <ProgressBar value={r.cobertura_pct} max={r.meta_pct} color={statusColor(r.status)} />
                   <div className="flex gap-6 mt-2 text-xs text-slate-500">
-                    <span>Público-alvo: <b>{r.n_alvo.toLocaleString()}</b></span>
-                    <span>Exames: <b>{r.exames_realizados_ano.toLocaleString()}</b></span>
+                    <span>Público-alvo: <b>{r.n_alvo?.toLocaleString()}</b></span>
+                    <span>Exames: <b>{r.exames_realizados_ano?.toLocaleString()}</b></span>
                     <span style={{ color: WARN }}>Alterados: <b>{r.alterados} ({r.alterados_pct}%)</b></span>
                     <span style={{ color: CRIT }}>Casos: <b>{r.casos_confirmados_ano}</b></span>
                   </div>

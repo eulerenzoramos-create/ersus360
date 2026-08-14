@@ -89,13 +89,13 @@ export default function VigilanciaEpidemApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Notificações/Ano"       value={dashRaw.notificacoes_ano.toLocaleString()} color={BRAND} />
+              <KPI label="Notificações/Ano"       value={dashRaw.notificacoes_ano?.toLocaleString()} color={BRAND} />
               <KPI label="Investigadas"           value={`${dashRaw.notificacoes_investigadas_pct}%`} color={statusColor(dashRaw.status_notificacao)} sub="meta: 100%" />
               <KPI label="Surtos Ativos"          value={dashRaw.surtos_em_investigacao.toString()} color={CRIT} sub={`${dashRaw.surtos_confirmados_ano} confirmados/ano`} />
               <KPI label="Completude SINAN"       value={`${dashRaw.completude_ficha_pct}%`} color={statusColor(dashRaw.status_completude)} sub="meta: 90%" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Malária (casos/ano)"    value={dashRaw.malaria_casos_ano.toLocaleString()} color={CRIT} sub="endêmica regional" />
+              <KPI label="Malária (casos/ano)"    value={dashRaw.malaria_casos_ano?.toLocaleString()} color={CRIT} sub="endêmica regional" />
               <KPI label="Dengue (casos/ano)"     value={dashRaw.dengue_casos_ano.toString()} color={CRIT} sub="2 surtos ativos" />
               <KPI label="Leishmaniose/ano"       value={dashRaw.leishmaniose_casos_ano.toString()} color={CRIT} sub="surto ativo Ramal Acará" />
               <KPI label="Agravos > Limiar"       value={dashRaw.agravos_acima_limiar.toString()} color={WARN} sub={`de ${dashRaw.agravos_monitorados} monitorados`} />
@@ -137,7 +137,7 @@ export default function VigilanciaEpidemApui() {
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="agravo" tick={{ fontSize: 8 }} width={220} />
                   <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
-                  <Tooltip formatter={(v: any) => `${v.toLocaleString()} casos`} />
+                  <Tooltip formatter={(v: any) => `${v?.toLocaleString()} casos`} />
                   <Bar dataKey="casos_ano" name="Casos" radius={[0,3,3,0]}>
                     {(agravos as any[]).map((a: any) => <Cell key={a.agravo} fill={statusColor(a.status)} />)}
                   </Bar>
@@ -155,7 +155,7 @@ export default function VigilanciaEpidemApui() {
                         <span className="font-semibold text-sm text-slate-700">{a.agravo}</span>
                         <div className="flex gap-3 text-xs text-slate-400 mt-0.5">
                           <span>CID: {a.cid}</span>
-                          {a.taxa_100k && <span>{a.taxa_100k.toLocaleString()}/100k</span>}
+                          {a.taxa_100k && <span>{a.taxa_100k?.toLocaleString()}/100k</span>}
                         </div>
                       </div>
                     </div>

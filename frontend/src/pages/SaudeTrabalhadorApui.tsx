@@ -94,10 +94,10 @@ export default function SaudeTrabalhadorApui() {
               <KPI label="Acidentes Trabalho/Ano"  value={dashRaw.acidentes_trabalho_ano.toString()}     color={CRIT} sub={`${dashRaw.obitos_acidente_trabalho_ano} óbitos`} />
               <KPI label="Acidentes Graves"        value={dashRaw.acidentes_graves_afastamento.toString()} color={CRIT} sub="afastamento > 15 dias" />
               <KPI label="Subnotificação CAT"      value={`${dashRaw.subnotificacao_cat_estimada_pct}%`}  color={CRIT} sub="estimada — informal" />
-              <KPI label="Garimpo Sem SST"         value={`${dashRaw.garimpo_cobertura_sst_pct}%`}       color={CRIT} sub={`${dashRaw.garimpo_trabalhadores_estimados.toLocaleString()} expostos`} />
+              <KPI label="Garimpo Sem SST"         value={`${dashRaw.garimpo_cobertura_sst_pct}%`}       color={CRIT} sub={`${dashRaw.garimpo_trabalhadores_estimados?.toLocaleString()} expostos`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Mercúrio Expostos"       value={dashRaw.mercurio_expostos_estimados.toLocaleString()} color={CRIT} sub="zero monitoramento" />
+              <KPI label="Mercúrio Expostos"       value={dashRaw.mercurio_expostos_estimados?.toLocaleString()} color={CRIT} sub="zero monitoramento" />
               <KPI label="Intox. Agrotóxico/Ano"  value={dashRaw.intoxicacoes_agrotoxico_ano.toString()}  color={CRIT} sub="subnotificação ~70%" />
               <KPI label="Sem EPI (rurais)"        value={`${dashRaw.trabalhadores_rurais_sem_epi_pct}%`} color={CRIT} sub="agricultores sem proteção" />
               <KPI label="CEREST Referência"       value={dashRaw.cerest_referencia}                      color={WARN} sub={`${dashRaw.cerest_distancia_km} km de Apuí`} />

@@ -88,7 +88,7 @@ export default function RecursosHumanosSaudeApui() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Temporários (%)"           value={`${dashRaw.contratados_temporarios_pct}%`} color={CRIT} sub="vs concursados estáveis" />
-              <KPI label="Salário médico Apuí"       value={`R$ ${dashRaw.salario_medico_municipio_R.toLocaleString("pt-BR")}`} color={WARN} sub={`Manaus: R$ ${dashRaw.salario_medico_manaus_R.toLocaleString("pt-BR")}`} />
+              <KPI label="Salário médico Apuí"       value={`R$ ${dashRaw.salario_medico_municipio_R?.toLocaleString("pt-BR")}`} color={WARN} sub={`Manaus: R$ ${dashRaw.salario_medico_manaus_R?.toLocaleString("pt-BR")}`} />
               <KPI label="Capacitação (horas/ano)"   value={`${dashRaw.capacitacao_horas_ano_media}h`} color={WARN} sub={`meta: ${dashRaw.meta_capacitacao_horas}h`} />
               <KPI label="Plano de Cargos (PCCS)"    value={dashRaw.plano_cargos_salarios ? "Sim" : "Não"} color={CRIT} sub="zero PCCS implantado" />
             </div>
@@ -143,7 +143,7 @@ export default function RecursosHumanosSaudeApui() {
                     </div>
                   </div>
                   <div className="text-right text-sm">
-                    <span className="font-bold" style={{ color: BRAND }}>R$ {c.salario_R.toLocaleString("pt-BR")}</span>
+                    <span className="font-bold" style={{ color: BRAND }}>R$ {c.salario_R?.toLocaleString("pt-BR")}</span>
                     <p className="text-xs" style={{ color: statusColor(c.status) }}>{Math.round(c.preenchidas/c.vagas*100)}% preenchido</p>
                   </div>
                 </div>

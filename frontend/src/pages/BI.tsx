@@ -127,7 +127,7 @@ export default function BI() {
                     <div style={{ height: "100%", width: `${Math.min((ind.resultado / 100) * 100, 100)}%`, background: ind.status === "verde" ? "#2e7d32" : "#f57f17", borderRadius: 3 }} />
                   </div>
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 13, minWidth: 48, textAlign: "right" }}>{ind.resultado.toFixed(1)}%</div>
+                <div style={{ fontWeight: 700, fontSize: 13, minWidth: 48, textAlign: "right" }}>{ind.resultado?.toFixed(1)}%</div>
               </div>
             ))}
           </div>
@@ -184,7 +184,7 @@ export default function BI() {
               <div key={b.nome} style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 3 }}>
                   <span>{b.nome}</span>
-                  <span>R$ {b.liquidado.toLocaleString("pt-BR")} / {b.empenhado.toLocaleString("pt-BR")} <strong>({b.pct.toFixed(1)}%)</strong></span>
+                  <span>R$ {b.liquidado?.toLocaleString("pt-BR")} / {b.empenhado?.toLocaleString("pt-BR")} <strong>({b.pct?.toFixed(1)}%)</strong></span>
                 </div>
                 <div style={{ height: 8, background: "#f0f0f0", borderRadius: 4 }}>
                   <div style={{ height: "100%", width: `${b.pct}%`, background: b.pct >= 80 ? "#2e7d32" : b.pct >= 60 ? "#f57f17" : "#c62828", borderRadius: 4 }} />

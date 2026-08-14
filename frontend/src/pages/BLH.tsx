@@ -41,7 +41,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
                 <XAxis dataKey="mes" tick={{ fontSize: 9 }}/>
                 <YAxis yAxisId="l" tick={{ fontSize: 9 }} tickFormatter={v => `${(v/1000).toFixed(0)}L`}/>
                 <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 9 }}/>
-                <Tooltip contentStyle={TT} formatter={(v: any) => `${v.toLocaleString("pt-BR")} mL`}/>
+                <Tooltip contentStyle={TT} formatter={(v: any) => `${v?.toLocaleString("pt-BR")} mL`}/>
                 <Bar yAxisId="l" dataKey="coletado"      name="Coletado"       fill="#0891b2" radius={[4,4,0,0]}/>
                 <Bar yAxisId="l" dataKey="pasteurizado"  name="Pasteurizado"   fill="#1d4ed8" radius={[4,4,0,0]}/>
                 <Bar yAxisId="l" dataKey="distribuido"   name="Distribuído"    fill="#16a34a" radius={[4,4,0,0]}/>
@@ -96,7 +96,7 @@ function AbaColeta({ coleta }: { coleta: any | undefined }) {
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6"/>
               <XAxis dataKey="semana" tick={{ fontSize: 10 }}/>
               <YAxis tick={{ fontSize: 9 }} tickFormatter={v => `${(v/1000).toFixed(1)}L`}/>
-              <Tooltip contentStyle={TT} formatter={(v: any) => `${v.toLocaleString("pt-BR")} mL`}/>
+              <Tooltip contentStyle={TT} formatter={(v: any) => `${v?.toLocaleString("pt-BR")} mL`}/>
               <Bar dataKey="hospitalar" name="Hospitalar" fill="#1d4ed8" stackId="a" radius={[0,0,4,4]}/>
               <Bar dataKey="domiciliar" name="Domiciliar" fill="#0891b2" stackId="a" radius={[4,4,0,0]}/>
             </BarChart>
@@ -169,7 +169,7 @@ function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
                     {ind.observacao && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{ind.observacao}</div>}
                   </div>
                   <div style={{ flexShrink: 0, marginLeft: 12 }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{typeof ind.valor==="number"?ind.valor.toLocaleString("pt-BR"):ind.valor}{ind.unidade==="%"?"%":ind.unidade==="°D"?"°D":ind.unidade==="mL"?" mL":""}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{typeof ind.valor==="number"?ind.valor?.toLocaleString("pt-BR"):ind.valor}{ind.unidade==="%"?"%":ind.unidade==="°D"?"°D":ind.unidade==="mL"?" mL":""}</span>
                     {ind.meta !== null && ind.meta !== undefined && <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 6 }}>meta: {ind.meta}{ind.unidade==="%"?"%":""}</span>}
                   </div>
                 </div>

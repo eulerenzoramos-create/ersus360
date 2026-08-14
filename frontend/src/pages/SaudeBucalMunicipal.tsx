@@ -80,7 +80,7 @@ export default function SaudeBucalMunicipal() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="ESB Funcionando"          value={`${dashRaw.esb_funcionando}/${dashRaw.esb_total}`} color={dashRaw.esb_funcionando < dashRaw.esb_total ? CRIT : OK} />
-              <KPI label="Procedimentos Básicos/Mês" value={dashRaw.procedimentos_basicos_mes.toLocaleString()} color={ACCENT} />
+              <KPI label="Procedimentos Básicos/Mês" value={dashRaw.procedimentos_basicos_mes?.toLocaleString()} color={ACCENT} />
               <KPI label="Urgências/Mês"             value={dashRaw.urgencias_mes.toString()} color={WARN} />
               <KPI label="Exodontias"                value={`${dashRaw.exodontias_mes} (${dashRaw.exodontias_pct_total}%)`} color={CRIT} sub={`meta: <${dashRaw.meta_exodontias_pct}%`} />
             </div>

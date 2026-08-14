@@ -292,7 +292,7 @@ function TimelinePanel({ eventos, filtroAcs, filtroMicroarea, filtroTipo }:
               <div style={{ fontSize:11, color:"#6b7280", marginTop:4, lineHeight:1.4 }}>{ev.descricao}</div>
               {ev.lat && (
                 <div style={{ fontSize:10, color:"#9ca3af", marginTop:2 }}>
-                  📍 {ev.lat.toFixed(4)}, {ev.lng?.toFixed(4)}
+                  📍 {ev.lat?.toFixed(4)}, {ev.lng?.toFixed(4)}
                 </div>
               )}
             </div>

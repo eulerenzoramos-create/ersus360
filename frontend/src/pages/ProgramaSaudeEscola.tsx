@@ -84,7 +84,7 @@ export default function ProgramaSaudeEscola() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Escolas no PSE"         value={`${dashRaw.escolas_pse_vinculadas}/${dashRaw.escolas_municipais_total}`} color={ACCENT} sub={`${dashRaw.escolas_pse_pct}% vinculadas`} />
-              <KPI label="Alunos Cobertos"         value={dashRaw.alunos_pse_cobertos.toLocaleString()} color={ACCENT} sub={`${dashRaw.alunos_pse_pct}% do total`} />
+              <KPI label="Alunos Cobertos"         value={dashRaw.alunos_pse_cobertos?.toLocaleString()} color={ACCENT} sub={`${dashRaw.alunos_pse_pct}% do total`} />
               <KPI label="Equipes Vinculadas"      value={dashRaw.equipes_saude_vinculadas.toString()} />
               <KPI label="Ações Realizadas (2025)" value={`${dashRaw.acoes_realizadas_ano}/${dashRaw.acoes_meta_ano}`} color={WARN} />
             </div>
@@ -139,7 +139,7 @@ export default function ProgramaSaudeEscola() {
                     <div key={a.acao}>
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm text-slate-600">{a.acao}</span>
-                        <span className="font-bold text-sm" style={{ color: statusColor(a.status) }}>{a.pct.toFixed(0)}%</span>
+                        <span className="font-bold text-sm" style={{ color: statusColor(a.status) }}>{a.pct?.toFixed(0)}%</span>
                       </div>
                       <ProgressBar value={a.pct} max={100} color={statusColor(a.status)} />
                       <p className="text-xs text-slate-400 mt-0.5">{a.realizadas} / {a.meta} {a.meta <= 50 ? "escolas" : "alunos"}</p>

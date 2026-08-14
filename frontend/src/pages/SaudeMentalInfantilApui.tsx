@@ -175,7 +175,7 @@ export default function SaudeMentalInfantilApui() {
                       {s.disponivel ? "Disponível" : "Indisponível"}
                     </span>
                     <p className="text-xs mt-0.5">demanda: {s.demanda_estimada}</p>
-                    {s.custo_implantacao > 0 && <p className="text-xs text-slate-400">R$ {s.custo_implantacao.toLocaleString()} · {s.prazo_meses}m</p>}
+                    {s.custo_implantacao > 0 && <p className="text-xs text-slate-400">R$ {s.custo_implantacao?.toLocaleString()} · {s.prazo_meses}m</p>}
                     {s.custo_implantacao === 0 && <p className="text-xs text-green-600">custo R$ 0 · {s.prazo_meses}m</p>}
                   </div>
                 </div>

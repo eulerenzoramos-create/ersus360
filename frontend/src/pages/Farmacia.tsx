@@ -20,7 +20,7 @@ const STATUS_CONFIG: Record<string, { cor: string; bg: string; label: string; ic
   excesso: { cor: "#d97706", bg: "#fffbeb", label: "Excesso", icon: <AlertTriangle size={12} /> },
 };
 
-const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmt = (v: number) => v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 interface Medicamento {
   id: number; nome: string; principio_ativo: string; forma_farmaceutica: string;
@@ -215,7 +215,7 @@ export default function Farmacia() {
               <div key={p.programa} style={{ marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 13, fontWeight: 500 }}>{p.programa}</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: cor }}>{p.execucao.toFixed(1)}%</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: cor }}>{p.execucao?.toFixed(1)}%</span>
                 </div>
                 <div style={{ height: 8, background: "#e5e5e3", borderRadius: 4, overflow: "hidden", marginBottom: 4 }}>
                   <div style={{ width: `${Math.min(p.execucao, 100)}%`, height: "100%", background: cor, borderRadius: 4 }} />

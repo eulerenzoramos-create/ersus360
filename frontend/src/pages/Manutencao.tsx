@@ -57,7 +57,7 @@ function AbaDashboard({ dash }: { dash: any }) {
         <KpiCard label="Em manutenção"     value={dash.em_manutencao}          sub="equipamentos"                                             cor="#dc2626" icon={<Wrench size={14} color="#dc2626"/>}/>
         <KpiCard label="Aguard. peça"      value={dash.aguardando_peca}        sub="equipamentos parados"                                     cor="#dc2626" icon={<AlertTriangle size={14} color="#dc2626"/>}/>
         <KpiCard label="Ordens abertas"    value={dash.ordens_abertas}         sub="em aberto"                                                cor="#d97706" icon={<Clock size={14} color="#d97706"/>}/>
-        <KpiCard label="Custo estimado"    value={`R$ ${dash.custo_estimado_aberto.toLocaleString("pt-BR",{minimumFractionDigits:0})}`} sub="ordens em aberto" cor="#7c3aed" icon={<DollarSign size={14} color="#7c3aed"/>}/>
+        <KpiCard label="Custo estimado"    value={`R$ ${dash.custo_estimado_aberto?.toLocaleString("pt-BR",{minimumFractionDigits:0})}`} sub="ordens em aberto" cor="#7c3aed" icon={<DollarSign size={14} color="#7c3aed"/>}/>
       </div>
 
       {dash.equipamentos_criticos_parados.length > 0 && (
@@ -161,7 +161,7 @@ function AbaOrdens({ ordens }: { ordens: any[] | undefined }) {
           <div style={{ fontSize: 12, color: "#6b7280" }}>Aguardando peça</div>
         </div>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, textAlign: "center" }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color: "#7c3aed" }}>R$ {totalCusto.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: "#7c3aed" }}>R$ {totalCusto?.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div>
           <div style={{ fontSize: 12, color: "#6b7280" }}>Custo total estimado</div>
         </div>
       </div>
@@ -186,7 +186,7 @@ function AbaOrdens({ ordens }: { ordens: any[] | undefined }) {
               <span>Empresa: <strong style={{ color: "#374151" }}>{o.empresa}</strong></span>
               <span>Abertura: <strong>{o.data_aber}</strong></span>
               <span>Previsão: <strong>{o.prev_conclusao}</strong></span>
-              <span>Custo est.: <strong style={{ color: "#7c3aed" }}>R$ {o.custo_est.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></span>
+              <span>Custo est.: <strong style={{ color: "#7c3aed" }}>R$ {o.custo_est?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></span>
               <span>Solicitante: <strong>{o.solicitante}</strong></span>
             </div>
           </div>

@@ -162,7 +162,7 @@ export default function GestaoPessoas() {
                   <span>Qtd: <b>{af.quantidade}</b></span>
                   <span>Média: <b>{af.media_dias}d</b></span>
                   {af.custo_mensal_r > 0 && (
-                    <span style={{ color: CRIT }}>Custo/mês: <b>R$ {af.custo_mensal_r.toLocaleString()}</b></span>
+                    <span style={{ color: CRIT }}>Custo/mês: <b>R$ {af.custo_mensal_r?.toLocaleString()}</b></span>
                   )}
                 </div>
               </div>

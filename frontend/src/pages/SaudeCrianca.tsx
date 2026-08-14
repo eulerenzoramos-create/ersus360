@@ -210,7 +210,7 @@ function AbaBolsaFamilia({ bf }: { bf: any[] | undefined }) {
                   <td style={{ padding: "9px 10px", textAlign: "right" }}>{e.criancas_vacinas_dia}</td>
                   <td style={{ padding: "9px 10px", textAlign: "right" }}>{e.criancas_crescimento}</td>
                   <td style={{ padding: "9px 10px", textAlign: "center" }}>
-                    <span style={{ background: cor+"15", color: cor, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>{e.pct.toFixed(1)}%</span>
+                    <span style={{ background: cor+"15", color: cor, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>{e.pct?.toFixed(1)}%</span>
                   </td>
                 </tr>
               );

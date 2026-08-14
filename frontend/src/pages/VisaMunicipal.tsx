@@ -129,7 +129,7 @@ export default function VisaMunicipal() {
                   </div>
                   <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                     <span className="text-sm text-slate-600">Multas aplicadas</span>
-                    <span className="font-bold">R$ {dashRaw.multas_valor_r.toLocaleString("pt-BR")}</span>
+                    <span className="font-bold">R$ {dashRaw.multas_valor_r?.toLocaleString("pt-BR")}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                     <span className="text-sm text-slate-600">Reclamações ouvidoria</span>

@@ -177,8 +177,8 @@ export default function Oncologia() {
                 {r.meta_ano && (
                   <div className="mb-2">
                     <div className="flex justify-between text-xs text-slate-500 mb-1">
-                      <span>Realizados: {r.realizados_ano.toLocaleString()}</span>
-                      <span>Meta: {r.meta_ano.toLocaleString()}</span>
+                      <span>Realizados: {r.realizados_ano?.toLocaleString()}</span>
+                      <span>Meta: {r.meta_ano?.toLocaleString()}</span>
                     </div>
                     <div className="w-full bg-slate-100 rounded-full h-2">
                       <div className="h-2 rounded-full" style={{
@@ -189,7 +189,7 @@ export default function Oncologia() {
                   </div>
                 )}
                 <div className="grid grid-cols-3 gap-2 text-xs text-slate-500">
-                  <span>Realizados: <b>{r.realizados_ano.toLocaleString()}</b></span>
+                  <span>Realizados: <b>{r.realizados_ano?.toLocaleString()}</b></span>
                   {r.alterados_pct && <span style={{ color: WARN }}>Alterados: <b>{r.alterados_pct}%</b></span>}
                   {r.positivos_pct && <span style={{ color: WARN }}>Positivos: <b>{r.positivos_pct}%</b></span>}
                   {r.bi_rads_4_5_pct && <span style={{ color: CRIT }}>BI-RADS 4/5: <b>{r.bi_rads_4_5_pct}%</b></span>}

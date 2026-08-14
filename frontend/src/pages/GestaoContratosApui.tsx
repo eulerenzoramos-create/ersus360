@@ -34,7 +34,7 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
   </div>
 );
 
-const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+const fmt = (v: number) => `R$ ${v?.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
 
 export default function GestaoContratosApui() {
   const [aba, setAba] = useState("dashboard");

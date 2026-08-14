@@ -32,8 +32,8 @@ function AbaDashboard({ dash }: { dash: any }) {
     <div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:22 }}>
         <KpiCard label="Itens na REMUME"     value={dash.total_medicamentos}    sub={`${dash.taxa_disponibilidade}% disponíveis`}   cor="#16a34a" icon={<Pill size={14} color="#16a34a"/>}/>
-        <KpiCard label="Receitas dispensadas" value={dash.receitas_mes.toLocaleString("pt-BR")} sub="Abr/2026"               cor="#1d4ed8" icon={<Package size={14} color="#1d4ed8"/>}/>
-        <KpiCard label="Itens dispensados"    value={dash.itens_dispensados_mes.toLocaleString("pt-BR")} sub="no mês"         cor="#7c3aed" icon={<Package size={14} color="#7c3aed"/>}/>
+        <KpiCard label="Receitas dispensadas" value={dash.receitas_mes?.toLocaleString("pt-BR")} sub="Abr/2026"               cor="#1d4ed8" icon={<Package size={14} color="#1d4ed8"/>}/>
+        <KpiCard label="Itens dispensados"    value={dash.itens_dispensados_mes?.toLocaleString("pt-BR")} sub="no mês"         cor="#7c3aed" icon={<Package size={14} color="#7c3aed"/>}/>
         <KpiCard label="Valor dispensado"     value={BRL(dash.valor_dispensado_mes)} sub="custo mensal"  cor="#0891b2" icon={<DollarSign size={14} color="#0891b2"/>}/>
         <KpiCard label="Estoque crítico"      value={dash.itens_criticos}        sub={`${dash.itens_atencao} em atenção`}         cor={dash.itens_criticos>0?"#dc2626":"#16a34a"} icon={<AlertTriangle size={14} color={dash.itens_criticos>0?"#dc2626":"#16a34a"}/>}/>
       </div>
@@ -116,8 +116,8 @@ function AbaEstoque({ estoque }: { estoque: any[] | undefined }) {
                   <td style={{ padding:"9px 10px", color:"#6b7280" }}>{m.forma}</td>
                   <td style={{ padding:"9px 10px", color:"#374151" }}>{m.grupo}</td>
                   <td style={{ padding:"9px 10px", fontSize:11, color:"#6b7280" }}>{m.programa}</td>
-                  <td style={{ padding:"9px 10px", textAlign:"right", fontWeight:700, color:cor }}>{m.estoque.toLocaleString("pt-BR")}</td>
-                  <td style={{ padding:"9px 10px", textAlign:"right", color:"#9ca3af" }}>{m.estoque_min.toLocaleString("pt-BR")}</td>
+                  <td style={{ padding:"9px 10px", textAlign:"right", fontWeight:700, color:cor }}>{m.estoque?.toLocaleString("pt-BR")}</td>
+                  <td style={{ padding:"9px 10px", textAlign:"right", color:"#9ca3af" }}>{m.estoque_min?.toLocaleString("pt-BR")}</td>
                   <td style={{ padding:"9px 10px", textAlign:"right", color:"#6b7280" }}>{m.consumo_mes}</td>
                   <td style={{ padding:"9px 10px", fontSize:11, color:m.validade<="2026-08-31"?"#d97706":"#374151" }}>{m.validade}</td>
                   <td style={{ padding:"9px 10px", textAlign:"center" }}>
@@ -154,8 +154,8 @@ function AbaProgramas({ programas }: { programas: any[] | undefined }) {
                 </span>
               </div>
               <div style={{ display:"flex", gap:18, fontSize:12, color:"#6b7280", marginBottom:10 }}>
-                <span>Pacientes: <strong style={{ color:"#374151" }}>{p.pacientes.toLocaleString("pt-BR")}</strong></span>
-                <span>Itens/mês: <strong style={{ color:"#374151" }}>{p.itens_mes.toLocaleString("pt-BR")}</strong></span>
+                <span>Pacientes: <strong style={{ color:"#374151" }}>{p.pacientes?.toLocaleString("pt-BR")}</strong></span>
+                <span>Itens/mês: <strong style={{ color:"#374151" }}>{p.itens_mes?.toLocaleString("pt-BR")}</strong></span>
               </div>
               <div>
                 <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"#9ca3af", marginBottom:4 }}>
@@ -225,8 +225,8 @@ function AbaDispensacao({ hist }: { hist: any[] | undefined }) {
             {hist.map((h, i) => (
               <tr key={h.mes} style={{ borderTop:"1px solid #f3f4f6", background:i%2===0?"#fff":"#f9fafb" }}>
                 <td style={{ padding:"9px 14px", fontWeight:600 }}>{h.mes}</td>
-                <td style={{ padding:"9px 10px", textAlign:"right" }}>{h.receitas.toLocaleString("pt-BR")}</td>
-                <td style={{ padding:"9px 10px", textAlign:"right" }}>{h.itens_disp.toLocaleString("pt-BR")}</td>
+                <td style={{ padding:"9px 10px", textAlign:"right" }}>{h.receitas?.toLocaleString("pt-BR")}</td>
+                <td style={{ padding:"9px 10px", textAlign:"right" }}>{h.itens_disp?.toLocaleString("pt-BR")}</td>
                 <td style={{ padding:"9px 10px", textAlign:"right", fontWeight:700, color:"#16a34a" }}>{BRL(h.valor)}</td>
               </tr>
             ))}

@@ -81,7 +81,7 @@ function Num({ v, cor }: { v: number | null | undefined; cor?: string }) {
   if (v == null) return <span style={{ color:"#94a3b8", fontSize:11 }}>—</span>;
   return (
     <span style={{ fontWeight:700, color:cor || "#1e293b", fontVariantNumeric:"tabular-nums" }}>
-      {v.toLocaleString("pt-BR")}
+      {v?.toLocaleString("pt-BR")}
     </span>
   );
 }

@@ -121,7 +121,7 @@ export default function JudicializacaoSaude() {
                       <p className="text-xs text-slate-400">{p.origem} · prazo: {p.prazo_cumprimento_d} dias</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-lg" style={{ color: CRIT }}>R$ {p.valor_mensal_r.toLocaleString()}</p>
+                      <p className="font-bold text-lg" style={{ color: CRIT }}>R$ {p.valor_mensal_r?.toLocaleString()}</p>
                       <p className="text-xs text-slate-500">/mês</p>
                     </div>
                   </div>
@@ -139,7 +139,7 @@ export default function JudicializacaoSaude() {
                 <BarChart data={porObjeto} layout="vertical" margin={{ left: 10, right: 20 }}>
                   <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={BRL_AXIS} />
                   <YAxis type="category" dataKey="objeto" tick={{ fontSize: 8 }} width={220} />
-                  <Tooltip formatter={(v: any) => `R$ ${v.toLocaleString()}`} />
+                  <Tooltip formatter={(v: any) => `R$ ${v?.toLocaleString()}`} />
                   <Bar dataKey="custo_mensal_r" name="Custo/mês" fill={ACCENT} radius={[0,3,3,0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -150,7 +150,7 @@ export default function JudicializacaoSaude() {
                   <span className="font-semibold text-slate-700 text-sm">{obj.objeto}</span>
                   <div className="flex gap-5 text-xs text-slate-500">
                     <span>Processos: <b>{obj.processos}</b></span>
-                    <span>Custo/mês: <b>R$ {obj.custo_mensal_r.toLocaleString()}</b></span>
+                    <span>Custo/mês: <b>R$ {obj.custo_mensal_r?.toLocaleString()}</b></span>
                     <span style={{ color: TEND_COLORS[obj.tendencia] }}>
                       {obj.tendencia === "crescente" ? "↑ Crescente" : obj.tendencia === "estavel" ? "→ Estável" : "↓ Decrescente"}
                     </span>

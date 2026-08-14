@@ -91,7 +91,7 @@ export default function PlanejamentoFamiliarApui() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="DIU ofertado no SUS"            value={dashRaw.diu_ofertado ? "Sim" : "Não"}                color={CRIT} sub="mais eficaz reversível (99,7%)" />
               <KPI label="Implante subdérmico"            value={dashRaw.implante_ofertado ? "Sim" : "Não"}           color={CRIT} sub="mais eficaz disponível (99,9%)" />
-              <KPI label="Preservativos distribuídos"     value={`${((dashRaw.preservativo_distribuido_2025/dashRaw.meta_preservativo_distribuicao)*100).toFixed(0)}%`} color={CRIT} sub={`${dashRaw.preservativo_distribuido_2025.toLocaleString()} de ${dashRaw.meta_preservativo_distribuicao.toLocaleString()}`} />
+              <KPI label="Preservativos distribuídos"     value={`${((dashRaw.preservativo_distribuido_2025/dashRaw.meta_preservativo_distribuicao)*100).toFixed(0)}%`} color={CRIT} sub={`${dashRaw.preservativo_distribuido_2025?.toLocaleString()} de ${dashRaw.meta_preservativo_distribuicao?.toLocaleString()}`} />
               <KPI label="Consultas planejamento fam."    value={`${((dashRaw.consulta_planejamento_familiar_2025/dashRaw.meta_consultas_planejamento_familiar)*100).toFixed(0)}%`} color={CRIT} sub={`${dashRaw.consulta_planejamento_familiar_2025} de ${dashRaw.meta_consultas_planejamento_familiar}`} />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
@@ -173,7 +173,7 @@ export default function PlanejamentoFamiliarApui() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${i.implementada ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                       {i.implementada ? "Implementada" : "Não implementada"}
                     </span>
-                    {i.custo > 0 && <p className="text-xs text-slate-400 mt-0.5">R$ {i.custo.toLocaleString()} · {i.prazo_meses}m</p>}
+                    {i.custo > 0 && <p className="text-xs text-slate-400 mt-0.5">R$ {i.custo?.toLocaleString()} · {i.prazo_meses}m</p>}
                     {i.custo === 0 && <p className="text-xs text-green-600 mt-0.5">custo R$ 0 · {i.prazo_meses}m</p>}
                   </div>
                 </div>

@@ -84,7 +84,7 @@ export default function PcdCriancaApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Crianças PcD estimadas"    value={dashRaw.criancas_pcd_estimadas}                        color={BRAND} sub={`${dashRaw.populacao_0_17_anos.toLocaleString()} crianças totais`} />
+              <KPI label="Crianças PcD estimadas"    value={dashRaw.criancas_pcd_estimadas}                        color={BRAND} sub={`${dashRaw.populacao_0_17_anos?.toLocaleString()} crianças totais`} />
               <KPI label="Diagnosticadas"            value={dashRaw.criancas_pcd_diagnosticadas}                   color={WARN}  sub={`${dashRaw.criancas_pcd_sem_diagnostico_pct}% sem diagnóstico`} />
               <KPI label="Sem BPC (elegíveis)"       value={dashRaw.criancas_pcd_sem_bpc_elegivel}                 color={CRIT}  sub={`R$ 1.412/mês não acessados cada`} />
               <KPI label="Fisioterapeuta/Fono SUS"   value={dashRaw.fisioterapeuta_sus + dashRaw.fonoaudiologo_sus} color={CRIT}  sub="zero no eMulti" />
@@ -169,7 +169,7 @@ export default function PcdCriancaApui() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${a.implementada ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                       {a.implementada ? "Implementada" : "Não implementada"}
                     </span>
-                    <p className="text-xs text-slate-400 mt-0.5">R$ {a.custo.toLocaleString()} · {a.prazo_meses}m</p>
+                    <p className="text-xs text-slate-400 mt-0.5">R$ {a.custo?.toLocaleString()} · {a.prazo_meses}m</p>
                   </div>
                 </div>
                 <p className="text-xs text-slate-500 ml-5">{a.observacao}</p>

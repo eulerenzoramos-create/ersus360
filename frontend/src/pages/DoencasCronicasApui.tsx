@@ -134,7 +134,7 @@ export default function DoencasCronicasApui() {
                     <span className="font-semibold text-slate-700">{c.condicao}</span>
                   </div>
                   <div className="text-xs text-right space-y-0.5 ml-4">
-                    <div>Diagnosticados: <b>{c.diagnosticados.toLocaleString()}</b> / estimados: <b>{c.prevalencia_estimada.toLocaleString()}</b></div>
+                    <div>Diagnosticados: <b>{c.diagnosticados?.toLocaleString()}</b> / estimados: <b>{c.prevalencia_estimada?.toLocaleString()}</b></div>
                     <div>Diagnóstico: <b style={{ color: WARN }}>{c.diagnostico_pct}%</b> | Tratamento: <b style={{ color: statusColor(c.status) }}>{c.tratamento_pct}%</b></div>
                     {c.controlados_pct != null && <div>Controlados: <b style={{ color: statusColor(c.status) }}>{c.controlados_pct}%</b> / meta {c.meta_controle_pct}%</div>}
                   </div>

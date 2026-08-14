@@ -30,7 +30,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
         <KpiCard label="Em cessação ativa"   value={dash.em_cessacao_ativa}          sub={`${dash.grupos_ativos} grupos ativos`}       cor="#374151"                              icon={<Users size={14} color="#374151"/>}/>
         <KpiCard label="Taxa cessação 12m"   value={dash.taxa_cessacao_12m_pct+"%"}  sub="meta PNCT 35%"                               cor={STATUS_COR[dash.taxa_cessacao_status]} icon={<TrendingDown size={14} color={STATUS_COR[dash.taxa_cessacao_status]}/>}/>
         <KpiCard label="TRN dispensados/mês" value={dash.trn_dispensados_mes}         sub="adesivos + goma + vareniclina"               cor="#1d4ed8"                              icon={<Activity size={14} color="#1d4ed8"/>}/>
-        <KpiCard label="Prevalência tabag."  value={dash.prevalencia_tabagismo_pct+"%"} sub={`~${dash.fumantes_estimados.toLocaleString("pt-BR")} fumantes`} cor={dash.prevalencia_tabagismo_pct>12?"#d97706":"#16a34a"} icon={<Wind size={14} color={dash.prevalencia_tabagismo_pct>12?"#d97706":"#16a34a"}/>}/>
+        <KpiCard label="Prevalência tabag."  value={dash.prevalencia_tabagismo_pct+"%"} sub={`~${dash.fumantes_estimados?.toLocaleString("pt-BR")} fumantes`} cor={dash.prevalencia_tabagismo_pct>12?"#d97706":"#16a34a"} icon={<Wind size={14} color={dash.prevalencia_tabagismo_pct>12?"#d97706":"#16a34a"}/>}/>
       </div>
       {hist && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>

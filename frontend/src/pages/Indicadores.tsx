@@ -193,7 +193,7 @@ export default function Indicadores() {
                       <div style={{ height: "100%", width: `${pct}%`, background: cor, borderRadius: 3, transition: "width .4s" }} />
                     </div>
                     <div style={{ fontSize: "12px", fontWeight: 500, color: cor, minWidth: 40, textAlign: "right" }}>
-                      {ind.valor_alcancado.toFixed(0)}{ind.unidade_medida}
+                      {ind.valor_alcancado?.toFixed(0)}{ind.unidade_medida}
                     </div>
                   </div>
                   <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 500, background: BG[ind.situacao] ?? "#f0f0f0", color: cor, flexShrink: 0 }}>

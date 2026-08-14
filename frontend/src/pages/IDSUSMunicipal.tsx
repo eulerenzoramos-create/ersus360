@@ -73,14 +73,14 @@ function CardDimensao({ d }: { d: DimensaoIDSUS }) {
     <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderTop: `3px solid ${cor}`, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", cursor: "pointer" }} onClick={() => setAberto(o => !o)}>
         <div style={{ width: 44, height: 44, borderRadius: 8, background: cor + "12", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <span style={{ fontSize: 22, fontWeight: 900, color: cor_score }}>{d.score.toFixed(1)}</span>
+          <span style={{ fontSize: 22, fontWeight: 900, color: cor_score }}>{d.score?.toFixed(1)}</span>
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 800, fontSize: 12, color: "#111", marginBottom: 2 }}>{d.nome}</div>
           <div style={{ fontSize: 10, color: "#6b7280" }}>{d.indicadores.length} indicadores · Peso {(d.peso * 100).toFixed(0)}%</div>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <span style={{ fontSize: 9, background: cor + "15", color: cor, padding: "2px 8px", borderRadius: 8, fontWeight: 700 }}>score {d.score.toFixed(1)}</span>
+          <span style={{ fontSize: 9, background: cor + "15", color: cor, padding: "2px 8px", borderRadius: 8, fontWeight: 700 }}>score {d.score?.toFixed(1)}</span>
           {aberto ? <ChevronDown size={13} color="#9ca3af"/> : <ChevronRight size={13} color="#9ca3af"/>}
         </div>
       </div>
@@ -165,7 +165,7 @@ export default function IDSUSMunicipal() {
               <div style={{ background: "rgba(255,255,255,.12)", borderRadius: 10, padding: "10px 14px" }}>
                 <div style={{ fontSize: 9, color: "rgba(255,255,255,.5)", marginBottom: 3 }}>RANKING NACIONAL</div>
                 <div style={{ fontSize: 20, fontWeight: 900, color: "#c4b5fd" }}>{r.ranking_nacional}°</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,.4)" }}>de {r.total_municipios_br.toLocaleString("pt-BR")} municípios</div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,.4)" }}>de {r.total_municipios_br?.toLocaleString("pt-BR")} municípios</div>
               </div>
               <div style={{ background: "rgba(255,255,255,.12)", borderRadius: 10, padding: "10px 14px" }}>
                 <div style={{ fontSize: 9, color: "rgba(255,255,255,.5)", marginBottom: 3 }}>VARIAÇÃO</div>
@@ -213,7 +213,7 @@ export default function IDSUSMunicipal() {
                       <div style={{ position: "absolute" as const, left: `${(media_am/10)*100}%`, top: "-3px", width: 2, height: 14, background: "#9ca3af", borderRadius: 1 }}/>
                     </div>
                   </div>
-                  <div style={{ textAlign: "right" as const, fontSize: 14, fontWeight: 900, color: cor }}>{d.score.toFixed(1)}</div>
+                  <div style={{ textAlign: "right" as const, fontSize: 14, fontWeight: 900, color: cor }}>{d.score?.toFixed(1)}</div>
                   <div style={{ textAlign: "right" as const, fontSize: 10, color: "#9ca3af" }}>AM: {media_am}</div>
                 </div>
               );

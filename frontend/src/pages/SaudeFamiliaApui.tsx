@@ -89,10 +89,10 @@ export default function SaudeFamiliaApui() {
               <KPI label="Nota Novo Financiamento APS"   value={`${dashRaw.previne_nota_geral}/10`} color={statusColor(dashRaw.status_previne)} sub={`meta: ${dashRaw.previne_meta_nota}`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Famílias Cadastradas"  value={dashRaw.familias_cadastradas.toLocaleString()} color={BRAND} />
+              <KPI label="Famílias Cadastradas"  value={dashRaw.familias_cadastradas?.toLocaleString()} color={BRAND} />
               <KPI label="Famílias Acomp."       value={`${dashRaw.familias_acompanhadas_pct}%`} color={WARN} sub="meta: 100%" />
-              <KPI label="Consultas Médicas/Mês" value={dashRaw.consultas_medicas_esf_mes.toLocaleString()} color={ACCENT} />
-              <KPI label="Visitas Domiciliares"  value={dashRaw.visitas_domiciliares_mes.toLocaleString()} color={OK} sub="/mês" />
+              <KPI label="Consultas Médicas/Mês" value={dashRaw.consultas_medicas_esf_mes?.toLocaleString()} color={ACCENT} />
+              <KPI label="Visitas Domiciliares"  value={dashRaw.visitas_domiciliares_mes?.toLocaleString()} color={OK} sub="/mês" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
@@ -107,7 +107,7 @@ export default function SaudeFamiliaApui() {
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-slate-600">{b.label}</span>
-                        <span className="font-medium" style={{ color: b.color }}>{b.value.toFixed(1)}%</span>
+                        <span className="font-medium" style={{ color: b.color }}>{b.value?.toFixed(1)}%</span>
                       </div>
                       <ProgressBar value={b.value} max={b.max} color={b.color} />
                     </div>
@@ -147,7 +147,7 @@ export default function SaudeFamiliaApui() {
                       <span className="font-semibold text-sm text-slate-700">{e.equipe}</span>
                       <div className="flex gap-3 text-xs text-slate-400 mt-0.5">
                         <span>{e.ubs}</span>
-                        <span>{e.populacao.toLocaleString()} hab.</span>
+                        <span>{e.populacao?.toLocaleString()} hab.</span>
                         <span>{e.acs} ACS</span>
                         {!e.medico && <span className="text-red-500 font-bold">SEM MÉDICO</span>}
                       </div>

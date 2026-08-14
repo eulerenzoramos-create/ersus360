@@ -100,10 +100,10 @@ export default function Reabilitacao() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="PCD Cadastrados"       value={dashRaw.pcd_cadastrados.toLocaleString()} />
-              <KPI label="Em Reabilitação"       value={dashRaw.pacientes_reab_ativos.toLocaleString()} color={ACCENT} />
+              <KPI label="PCD Cadastrados"       value={dashRaw.pcd_cadastrados?.toLocaleString()} />
+              <KPI label="Em Reabilitação"       value={dashRaw.pacientes_reab_ativos?.toLocaleString()} color={ACCENT} />
               <KPI label="Lista de Espera"       value={dashRaw.lista_espera_total.toString()} color={CRIT} />
-              <KPI label="Sessões/Mês"           value={dashRaw.sessoes_mes.toLocaleString()} color={ACCENT} />
+              <KPI label="Sessões/Mês"           value={dashRaw.sessoes_mes?.toLocaleString()} color={ACCENT} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="CER Municipal"         value={dashRaw.cer_municipal ? "Sim" : "NÃO"} color={CRIT} />

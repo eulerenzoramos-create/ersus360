@@ -120,7 +120,7 @@ export default function PatSaude() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Bens Tombados" value={dashRaw.bens_tombados.toLocaleString()} />
+              <KPI label="Bens Tombados" value={dashRaw.bens_tombados?.toLocaleString()} />
               <KPI label="Valor Patrimonial" value={BRL(dashRaw.valor_patrimonial_total)} />
               <KPI label="Valor Líquido" value={BRL(dashRaw.valor_liquido_total)} sub="Após depreciação" />
               <KPI label="Investimento 2026" value={BRL(dashRaw.investimento_equipamentos_ano)} color={OK} />

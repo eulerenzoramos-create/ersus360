@@ -27,7 +27,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
-        <KpiCard label="Resíduos totais/mês"    value={dash.residuos_total_kg_mes.toLocaleString("pt-BR")+" kg"} sub={`${dash.residuos_infectantes_kg_mes} kg infectantes`}  cor="#374151"  icon={<Trash2 size={14} color="#374151"/>}/>
+        <KpiCard label="Resíduos totais/mês"    value={dash.residuos_total_kg_mes?.toLocaleString("pt-BR")+" kg"} sub={`${dash.residuos_infectantes_kg_mes} kg infectantes`}  cor="#374151"  icon={<Trash2 size={14} color="#374151"/>}/>
         <KpiCard label="Conformidade PGRSS"     value={dash.conformidade_pct+"%"}                                sub={`meta: 90%`}                                            cor={STATUS_COR[dash.status_geral]}  icon={<CheckCircle size={14} color={STATUS_COR[dash.status_geral]}/>}/>
         <KpiCard label="Não conformidades"      value={dash.nao_conformidades_mes}                               sub="no mês"                                                 cor={dash.nao_conformidades_mes>4?"#dc2626":"#d97706"}  icon={<AlertTriangle size={14} color={dash.nao_conformidades_mes>4?"#dc2626":"#d97706"}/>}/>
         <KpiCard label="Próxima coleta"         value={dash.proxima_coleta_dias+"d"}                             sub={dash.empresa_coleta}                                    cor="#16a34a"  icon={<TrendingUp size={14} color="#16a34a"/>}/>
@@ -73,7 +73,7 @@ function AbaGrupos({ grupos }: { grupos: any[] | undefined }) {
                 <span style={{ fontSize: 14, fontWeight: 700, color: cor }}>{g.conformidade_pct}%</span>
               </div>
               <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#6b7280", marginBottom: 6 }}>
-                {g.kg_mes > 0 && <span><strong>{g.kg_mes.toLocaleString("pt-BR")} kg</strong>/mês</span>}
+                {g.kg_mes > 0 && <span><strong>{g.kg_mes?.toLocaleString("pt-BR")} kg</strong>/mês</span>}
                 {g.caixas_mes && <span><strong>{g.caixas_mes} caixas</strong>/mês</span>}
                 <span>Coleta: {g.coleta}</span>
                 <span>Destino: {g.destino}</span>
@@ -185,7 +185,7 @@ export default function PGRSS() {
           {dash && (
             <div style={{ display: "flex", gap: 10 }}>
               <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 16, fontWeight: 900 }}>{dashRaw.residuos_total_kg_mes.toLocaleString("pt-BR")} kg</div>
+                <div style={{ fontSize: 16, fontWeight: 900 }}>{dashRaw.residuos_total_kg_mes?.toLocaleString("pt-BR")} kg</div>
                 <div style={{ fontSize: 10, opacity: .8 }}>resíduos/mês</div>
               </div>
               <div style={{ background: dashRaw.conformidade_pct < 80 ? "rgba(255,200,50,.3)" : "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>

@@ -156,7 +156,7 @@ export default function SaudeAmbiental() {
                     <ProgressBar value={vig.conformes_pct} max={100} color={statusColor(vig.status)} />
                   </div>
                   <div className="grid grid-cols-4 gap-2 text-xs text-slate-500">
-                    <span>Pop.: <b>{vig.populacao_atendida.toLocaleString()}</b></span>
+                    <span>Pop.: <b>{vig.populacao_atendida?.toLocaleString()}</b></span>
                     <span>Amostras/mês: <b>{vig.amostras_mes}</b></span>
                     <span style={{ color: vig.cloro_residual_ok_pct >= 90 ? OK : CRIT }}>Cloro OK: {vig.cloro_residual_ok_pct}%</span>
                     <span style={{ color: vig.fluoreto_ok_pct >= 70 ? OK : CRIT }}>Fluoreto: {vig.fluoreto_ok_pct}%</span>
@@ -228,7 +228,7 @@ export default function SaudeAmbiental() {
                     ))}
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
-                    {agro.area_ha && <span>Área: <b>{agro.area_ha.toLocaleString()} ha</b></span>}
+                    {agro.area_ha && <span>Área: <b>{agro.area_ha?.toLocaleString()} ha</b></span>}
                     <span style={{ color: agro.monitoramento_ativo ? OK : CRIT }}>
                       {agro.monitoramento_ativo ? "Monitoramento ativo" : "SEM MONITORAMENTO"}
                     </span>

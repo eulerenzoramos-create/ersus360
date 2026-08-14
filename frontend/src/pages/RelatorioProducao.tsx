@@ -179,7 +179,7 @@ export default function RelatorioProducao() {
   ) : (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 10, marginBottom: 16 }}>
-        <KPI label="Total Atendimentos" value={qTipo.data.total_atendimentos.toLocaleString("pt-BR")} sub={`${MESES[mes-1]}/${ano}`} cor="#3b82f6" />
+        <KPI label="Total Atendimentos" value={qTipo.data.total_atendimentos?.toLocaleString("pt-BR")} sub={`${MESES[mes-1]}/${ano}`} cor="#3b82f6" />
         <KPI label="Tipos distintos"    value={qTipo.data.total_tipos}          sub="tipos de atendimento" cor="#8b5cf6" />
         <KPI label="Dias úteis"         value={qTipo.data.dias_uteis}           sub="dias com produção"    cor="#f59e0b" />
         <KPI label="Profissionais"      value={qTipo.data.profissionais_filtro} sub="no filtro"            cor="#06b6d4" />
@@ -210,7 +210,7 @@ export default function RelatorioProducao() {
           }}>
             <span style={{ fontWeight: 800, fontSize: 13, color: "var(--fg)" }}>{g.grupo}</span>
             <span style={{ fontSize: 12, color: "var(--accent)", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-              {g.total.toLocaleString("pt-BR")} atend.
+              {g.total?.toLocaleString("pt-BR")} atend.
             </span>
           </div>
           <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderTop: "none", borderRadius: "0 0 8px 8px" }}>
@@ -226,8 +226,8 @@ export default function RelatorioProducao() {
                 {g.tipos.map((t: any) => (
                   <tr key={t.tipo} style={{ borderBottom: "1px solid var(--border)" }}>
                     <td style={{ padding: "7px 10px", color: "var(--fg)", fontWeight: 600 }}>{t.label}</td>
-                    <td style={{ padding: "7px 10px", fontWeight: 800, color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>{t.realizado.toLocaleString("pt-BR")}</td>
-                    <td style={{ padding: "7px 10px", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{t.meta_total.toLocaleString("pt-BR")}</td>
+                    <td style={{ padding: "7px 10px", fontWeight: 800, color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>{t.realizado?.toLocaleString("pt-BR")}</td>
+                    <td style={{ padding: "7px 10px", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{t.meta_total?.toLocaleString("pt-BR")}</td>
                     <td style={{ padding: "7px 10px", minWidth: 110 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <Barra pct={t.pct_meta} />
@@ -254,7 +254,7 @@ export default function RelatorioProducao() {
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 10, marginBottom: 16 }}>
         <KPI label="Profissionais"   value={qProf.data.total_profissionais} cor="#3b82f6" />
-        <KPI label="Total Período"   value={qProf.data.total_atendimentos.toLocaleString("pt-BR")} sub={`${MESES[mes-1]}/${ano}`} cor="#8b5cf6" />
+        <KPI label="Total Período"   value={qProf.data.total_atendimentos?.toLocaleString("pt-BR")} sub={`${MESES[mes-1]}/${ano}`} cor="#8b5cf6" />
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <button onClick={() => {
@@ -280,7 +280,7 @@ export default function RelatorioProducao() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontWeight: 800, fontSize: 16, color: corStatus(p.status), fontVariantNumeric: "tabular-nums" }}>{p.total_realizado.toLocaleString("pt-BR")}</div>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: corStatus(p.status), fontVariantNumeric: "tabular-nums" }}>{p.total_realizado?.toLocaleString("pt-BR")}</div>
                   <div style={{ fontSize: 10, color: "var(--muted)" }}>atend. · {p.pct_meta}% meta</div>
                 </div>
                 <div style={{ minWidth: 90 }}>
@@ -309,8 +309,8 @@ export default function RelatorioProducao() {
                         <tr key={t.tipo} style={{ borderBottom: "1px solid var(--border)" }}>
                           <td style={{ padding: "5px 8px", fontWeight: 600 }}>{t.label}</td>
                           <td style={{ padding: "5px 8px", color: "var(--muted)", fontSize: 11 }}>{t.grupo}</td>
-                          <td style={{ padding: "5px 8px", fontWeight: 700, color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>{t.realizado.toLocaleString("pt-BR")}</td>
-                          <td style={{ padding: "5px 8px", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{t.meta.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "5px 8px", fontWeight: 700, color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>{t.realizado?.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "5px 8px", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{t.meta?.toLocaleString("pt-BR")}</td>
                           <td style={{ padding: "5px 8px", minWidth: 100 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                               <Barra pct={t.pct} />
@@ -338,7 +338,7 @@ export default function RelatorioProducao() {
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 10, marginBottom: 16 }}>
         <KPI label="Equipes"       value={qEq.data.total_equipes}                                  cor="#3b82f6" />
-        <KPI label="Total Período" value={qEq.data.total_atendimentos.toLocaleString("pt-BR")} sub={`${MESES[mes-1]}/${ano}`} cor="#8b5cf6" />
+        <KPI label="Total Período" value={qEq.data.total_atendimentos?.toLocaleString("pt-BR")} sub={`${MESES[mes-1]}/${ano}`} cor="#8b5cf6" />
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <button onClick={() => {
@@ -363,7 +363,7 @@ export default function RelatorioProducao() {
                   <span style={{ fontSize: 10, color: eq.tipo === "ESB" ? "#5b21b6" : eq.tipo === "eMulti" ? "#0891b2" : "#3b82f6", fontWeight: 700 }}>[{eq.tipo}]</span>
                 </div>
                 <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>
-                  {eq.total_realizado.toLocaleString("pt-BR")} · {eq.pct_meta}%
+                  {eq.total_realizado?.toLocaleString("pt-BR")} · {eq.pct_meta}%
                 </span>
               </div>
               <div style={{ background: "#e5e7eb", borderRadius: 4, height: 14, overflow: "hidden" }}>
@@ -389,7 +389,7 @@ export default function RelatorioProducao() {
               </div>
               <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontWeight: 800, fontSize: 16, color: corStatus(eq.status), fontVariantNumeric: "tabular-nums" }}>{eq.total_realizado.toLocaleString("pt-BR")}</div>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: corStatus(eq.status), fontVariantNumeric: "tabular-nums" }}>{eq.total_realizado?.toLocaleString("pt-BR")}</div>
                   <div style={{ fontSize: 10, color: "var(--muted)" }}>{eq.pct_meta}% meta · {eq.media_dia}/dia</div>
                 </div>
                 {badgeStatus(eq.status)}
@@ -412,8 +412,8 @@ export default function RelatorioProducao() {
                         <tr key={t.tipo} style={{ borderBottom: "1px solid var(--border)" }}>
                           <td style={{ padding: "5px 8px", fontWeight: 600 }}>{t.label}</td>
                           <td style={{ padding: "5px 8px", color: "var(--muted)", fontSize: 11 }}>{t.grupo}</td>
-                          <td style={{ padding: "5px 8px", fontWeight: 700, color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>{t.realizado.toLocaleString("pt-BR")}</td>
-                          <td style={{ padding: "5px 8px", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{t.meta.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "5px 8px", fontWeight: 700, color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>{t.realizado?.toLocaleString("pt-BR")}</td>
+                          <td style={{ padding: "5px 8px", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{t.meta?.toLocaleString("pt-BR")}</td>
                           <td style={{ padding: "5px 8px", minWidth: 100 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                               <Barra pct={t.pct} />
@@ -439,7 +439,7 @@ export default function RelatorioProducao() {
   ) : (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 10, marginBottom: 16 }}>
-        <KPI label="Total Mês"   value={qDiario.data.total_mes.toLocaleString("pt-BR")} sub={`${MESES[mes-1]}/${ano}`} cor="#3b82f6" />
+        <KPI label="Total Mês"   value={qDiario.data.total_mes?.toLocaleString("pt-BR")} sub={`${MESES[mes-1]}/${ano}`} cor="#3b82f6" />
         <KPI label="Dias Úteis"  value={qDiario.data.dias_uteis}     sub="com produção registrada"  cor="#8b5cf6" />
         <KPI label="Média/Dia"   value={qDiario.data.media_dia}      sub="atendimentos por dia"     cor="#f59e0b" />
       </div>
@@ -496,10 +496,10 @@ export default function RelatorioProducao() {
                       : null}
                   </td>
                   <td style={{ padding: "7px 10px", fontWeight: 800, fontSize: 14, color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>
-                    {d.total != null ? d.total.toLocaleString("pt-BR") : "—"}
+                    {d.total != null ? d.total?.toLocaleString("pt-BR") : "—"}
                   </td>
                   <td style={{ padding: "7px 10px", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
-                    {d.acumulado != null ? d.acumulado.toLocaleString("pt-BR") : "—"}
+                    {d.acumulado != null ? d.acumulado?.toLocaleString("pt-BR") : "—"}
                   </td>
                   <td style={{ padding: "7px 10px" }}>
                     {d.tipos?.slice(0, 3).map((t: any) => (

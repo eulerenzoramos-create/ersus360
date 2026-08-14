@@ -160,7 +160,7 @@ export default function OCIS() {
                       <span style={{ background: "#e3f2fd", color: "#1565c0", padding: "2px 8px", borderRadius: 4, fontSize: 11 }}>{t.tipo_transporte}</span>
                     </td>
                     <td style={{ padding: "10px 14px", fontSize: 12 }}>{t.data_viagem}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 600 }}>R$ {t.custo_estimado.toLocaleString("pt-BR")}</td>
+                    <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 600 }}>R$ {t.custo_estimado?.toLocaleString("pt-BR")}</td>
                     <td style={{ padding: "10px 14px" }}>
                       <span style={{ background: t.status === "realizado" ? "#e8f5e9" : "#fff8e1", color: t.status === "realizado" ? "#2e7d32" : "#f57f17", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
                         {t.status.toUpperCase()}

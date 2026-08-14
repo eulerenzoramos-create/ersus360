@@ -97,15 +97,15 @@ export default function AssistFarmaceutica() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Dispensações/Mês"   value={dashRaw.dispensacoes_mes.toLocaleString()} />
+              <KPI label="Dispensações/Mês"   value={dashRaw.dispensacoes_mes?.toLocaleString()} />
               <KPI label="Itens em Falta"     value={dashRaw.itens_em_falta.toString()} color={CRIT} />
               <KPI label="Receitas Atendidas" value={`${dashRaw.receitas_atendidas_pct}%`} color={dashRaw.receitas_atendidas_pct >= 95 ? OK : CRIT} />
-              <KPI label="Custo Básico/Mês"   value={`R$ ${dashRaw.custo_basico_mes_r.toLocaleString()}`} color={ACCENT} />
+              <KPI label="Custo Básico/Mês"   value={`R$ ${dashRaw.custo_basico_mes_r?.toLocaleString()}`} color={ACCENT} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Medicamentos Básicos" value={dashRaw.medicamentos_basicos_monitorados.toString()} />
               <KPI label="Pac. Comp. Especial."  value={dashRaw.componente_especializado_pacientes.toString()} color={ACCENT} />
-              <KPI label="Custo CE/Mês"          value={`R$ ${dashRaw.componente_especializado_custo_r.toLocaleString()}`} color={WARN} />
+              <KPI label="Custo CE/Mês"          value={`R$ ${dashRaw.componente_especializado_custo_r?.toLocaleString()}`} color={WARN} />
               <KPI label="Venc. ≤30 dias"        value={dashRaw.vencimento_proximo_30d.toString()} sub="lotes para vencer" color={WARN} />
             </div>
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
@@ -140,8 +140,8 @@ export default function AssistFarmaceutica() {
                     <div className="h-2 rounded-full" style={{ width: `${Math.min(m.estoque_dias / 90 * 100, 100)}%`, background: statusColor(m.status) }} />
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-xs text-slate-500">
-                    <span>Demanda/mês: <b>{m.demanda_mensal.toLocaleString()}</b></span>
-                    <span>Dispensado: <b>{m.dispensado_mes.toLocaleString()}</b></span>
+                    <span>Demanda/mês: <b>{m.demanda_mensal?.toLocaleString()}</b></span>
+                    <span>Dispensado: <b>{m.dispensado_mes?.toLocaleString()}</b></span>
                     <span style={{ color: m.ruptura_historica ? CRIT : OK }}>
                       {m.ruptura_historica ? "Ruptura histórica" : "Sem ruptura anterior"}
                     </span>
@@ -164,7 +164,7 @@ export default function AssistFarmaceutica() {
                 </div>
                 <div className="grid grid-cols-4 gap-2 text-xs text-slate-500">
                   <span>Pacientes: <b>{med.pacientes}</b></span>
-                  <span>Custo/mês: <b>R$ {med.custo_mensal_r.toLocaleString()}</b></span>
+                  <span>Custo/mês: <b>R$ {med.custo_mensal_r?.toLocaleString()}</b></span>
                   <span style={{ color: med.fornecimento_estadual ? OK : CRIT }}>
                     {med.fornecimento_estadual ? "Fornec. estadual" : "SEM fornec. estadual"}
                   </span>

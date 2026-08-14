@@ -33,7 +33,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
         <KpiCard label="ICSAP no mês"         value={dash.icsap_mes}                    sub={`de ${dash.internacoes_total_mes} internações`}      cor={STATUS_COR[dash.icsap_status]}   icon={<TrendingDown size={14} color={STATUS_COR[dash.icsap_status]}/>}/>
         <KpiCard label="Taxa ICSAP"           value={dash.icsap_pct+"%"}                sub={`meta: ${dash.meta_icsap_pct}%`}                     cor="#dc2626"                         icon={<Target size={14} color="#dc2626"/>}/>
-        <KpiCard label="Custo ICSAP/mês"      value={"R$"+dash.custo_icsap_mes.toLocaleString("pt-BR")} sub="internações evitáveis"              cor="#d97706"                         icon={<DollarSign size={14} color="#d97706"/>}/>
+        <KpiCard label="Custo ICSAP/mês"      value={"R$"+dash.custo_icsap_mes?.toLocaleString("pt-BR")} sub="internações evitáveis"              cor="#d97706"                         icon={<DollarSign size={14} color="#d97706"/>}/>
         <KpiCard label="ICSAP acumulado 12m"  value={dash.internacoes_evitiveis_12m}    sub="internações evitáveis"                               cor="#dc2626"                         icon={<AlertTriangle size={14} color="#dc2626"/>}/>
       </div>
       {hist && (
@@ -122,10 +122,10 @@ function AbaPorESF({ esfs }: { esfs: any[] | undefined }) {
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700 }}>{e.esf}</div>
-                  <div style={{ fontSize: 11, color: "#6b7280" }}>Pop. coberta: {e.pop_coberta.toLocaleString("pt-BR")} · Principal: {e.principal_causa}</div>
+                  <div style={{ fontSize: 11, color: "#6b7280" }}>Pop. coberta: {e.pop_coberta?.toLocaleString("pt-BR")} · Principal: {e.principal_causa}</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: cor }}>{e.taxa_100mil.toFixed(1)}</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: cor }}>{e.taxa_100mil?.toFixed(1)}</div>
                   <div style={{ fontSize: 10, color: "#9ca3af" }}>ICSAP/100mil · meta: {e.meta_100mil}</div>
                 </div>
               </div>

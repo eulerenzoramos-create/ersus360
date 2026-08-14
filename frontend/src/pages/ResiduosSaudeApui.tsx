@@ -175,7 +175,7 @@ export default function ResiduosSaudeApui() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${p.implementada ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                       {p.implementada ? "Implementada" : "Não implementada"}
                     </span>
-                    {p.custo > 0 && <p className="text-xs text-slate-400 mt-0.5">custo: R$ {p.custo.toLocaleString()} · prazo: {p.prazo_meses}m</p>}
+                    {p.custo > 0 && <p className="text-xs text-slate-400 mt-0.5">custo: R$ {p.custo?.toLocaleString()} · prazo: {p.prazo_meses}m</p>}
                     {p.custo === 0 && <p className="text-xs text-green-600 mt-0.5">custo R$ 0 · {p.prazo_meses}m</p>}
                     <p className="text-xs text-slate-400">{p.responsavel}</p>
                   </div>

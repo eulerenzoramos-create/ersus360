@@ -204,7 +204,7 @@ function RankCard({ item, pos, isApui, sub }: { item: any; pos: number; isApui?:
         <div style={{ fontSize: 11, color: "#aaa", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div>
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <div style={{ fontSize: 19, fontWeight: 800, color: cor, lineHeight: 1 }}>{item.score.toFixed(0)}</div>
+        <div style={{ fontSize: 19, fontWeight: 800, color: cor, lineHeight: 1 }}>{item.score?.toFixed(0)}</div>
         <div style={{ fontSize: 9, fontWeight: 700, background: cor + "18", color: cor, padding: "1px 5px", borderRadius: 3, marginTop: 2 }}>
           {LABEL_SCORE(item.score)}
         </div>
@@ -239,7 +239,7 @@ function EstadoCard({ estado, pos, isAM }: { estado: typeof ESTADOS_BRASIL[0]; p
         </div>
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <div style={{ fontSize: 19, fontWeight: 800, color: COR_SCORE(estado.score) }}>{estado.score.toFixed(0)}</div>
+        <div style={{ fontSize: 19, fontWeight: 800, color: COR_SCORE(estado.score) }}>{estado.score?.toFixed(0)}</div>
         <div style={{ fontSize: 9, fontWeight: 700, background: COR_SCORE(estado.score) + "18", color: COR_SCORE(estado.score), padding: "1px 5px", borderRadius: 3 }}>
           {LABEL_SCORE(estado.score)}
         </div>
@@ -270,7 +270,7 @@ function Paginacao({ pagina, total, por, onChange }: { pagina: number; total: nu
       {pags.map(p => btn(p))}
       {btn(Math.min(totalPags, pagina + 1), "›")} {btn(totalPags, "»")}
       <span style={{ fontSize: 11, color: "#9ca3af", alignSelf: "center", marginLeft: 6 }}>
-        {total.toLocaleString("pt-BR")} municípios
+        {total?.toLocaleString("pt-BR")} municípios
       </span>
     </div>
   );
@@ -329,7 +329,7 @@ export default function MapaDesempenho() {
     ? `de ${kpiTotal} municípios do Sul do AM`
     : nivel === "estadual"
     ? `de ${kpiTotal} municípios do AM`
-    : `de ${kpiTotal.toLocaleString("pt-BR")} municípios do Brasil`;
+    : `de ${kpiTotal?.toLocaleString("pt-BR")} municípios do Brasil`;
 
   const ufsDisponiveis = useMemo(() => ["Todas", ...Array.from(new Set(municipiosBR.map((m: any) => m.uf))).sort()], [municipiosBR]);
   const regioesDisp    = useMemo(() => ["Todas", ...Array.from(new Set(municipiosBR.map((m: any) => m.regiao).filter(Boolean))).sort()], [municipiosBR]);
@@ -395,7 +395,7 @@ export default function MapaDesempenho() {
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#1565c0" }}>Mapa de Desempenho em Saúde</h2>
           <p style={{ margin: "4px 0 0", color: "#666", fontSize: 13 }}>
             Apuí/AM · Score ERSUS 360 ·{" "}
-            {nivel === "regional" ? "Comparativo Regional (Sul AM)" : nivel === "estadual" ? `Todos os ${dadosEstadual.length} municípios do Amazonas` : `Todos os ${municipiosBR.length ? municipiosBR.length.toLocaleString("pt-BR") : "5.570"} municípios do Brasil`}
+            {nivel === "regional" ? "Comparativo Regional (Sul AM)" : nivel === "estadual" ? `Todos os ${dadosEstadual.length} municípios do Amazonas` : `Todos os ${municipiosBR.length ? municipiosBR.length?.toLocaleString("pt-BR") : "5.570"} municípios do Brasil`}
           </p>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "6px 10px" }}>
@@ -542,7 +542,7 @@ export default function MapaDesempenho() {
                   <div style={{ maxHeight: 500, overflowY: "auto", paddingRight: 4 }}>
                     {dadosRegional.map((m, i) => (
                       <RankCard key={m.ibge} item={m} pos={i + 1} isApui={m.ibge === 1300144}
-                        sub={`Pop. ${m.pop.toLocaleString("pt-BR")} · ${m.esf} ESF · Cob. ${m.cobertura}%`} />
+                        sub={`Pop. ${m.pop?.toLocaleString("pt-BR")} · ${m.esf} ESF · Cob. ${m.cobertura}%`} />
                     ))}
                   </div>
                 </>
@@ -561,7 +561,7 @@ export default function MapaDesempenho() {
                         <RankCard key={m.ibge} item={m}
                           pos={dadosEstadual.indexOf(m) + 1}
                           isApui={m.ibge === 1300144}
-                          sub={`Pop. ${m.pop.toLocaleString("pt-BR")} · ${m.esf} ESF · Cob. ${m.cobertura.toFixed(1)}%`} />
+                          sub={`Pop. ${m.pop?.toLocaleString("pt-BR")} · ${m.esf} ESF · Cob. ${m.cobertura?.toFixed(1)}%`} />
                       ))}
                   </div>
                 </>
@@ -571,7 +571,7 @@ export default function MapaDesempenho() {
               {nivel === "nacional" && (
                 <>
                   <div style={{ fontWeight: 700, marginBottom: 10, color: "#333", fontSize: 14 }}>
-                    Brasil — {loadingIBGE ? "carregando IBGE..." : `${totalFiltrados.toLocaleString("pt-BR")} municípios`}
+                    Brasil — {loadingIBGE ? "carregando IBGE..." : `${totalFiltrados?.toLocaleString("pt-BR")} municípios`}
                     {!loadingIBGE && filtroUF === "Todas" && filtroReg === "Todas" && !busca &&
                       <span style={{ fontSize: 11, fontWeight: 400, color: "#888", marginLeft: 6 }}>· todos os municípios brasileiros</span>}
                   </div>
@@ -632,8 +632,8 @@ export default function MapaDesempenho() {
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5, fontWeight: 600 }}>
                         <span style={{ color: "#444" }}>{c.label}</span>
                         <span>
-                          <span style={{ color: "#1565c0", fontWeight: 800 }}>Apuí {c.apui.toFixed(1)}{c.unidade}</span>
-                          <span style={{ color: "#9e9e9e", marginLeft: 8 }}>Média {c.media.toFixed(1)}{c.unidade}</span>
+                          <span style={{ color: "#1565c0", fontWeight: 800 }}>Apuí {c.apui?.toFixed(1)}{c.unidade}</span>
+                          <span style={{ color: "#9e9e9e", marginLeft: 8 }}>Média {c.media?.toFixed(1)}{c.unidade}</span>
                           <span style={{ marginLeft: 6, color: acima ? "#2e7d32" : "#c62828", fontWeight: 700 }}>
                             {acima ? "▲" : "▼"}{Math.abs(c.apui - c.media).toFixed(1)}
                           </span>
@@ -794,7 +794,7 @@ export default function MapaDesempenho() {
               const isLast = i === evolucao.length - 1;
               return (
                 <div key={e.mes} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                  <div style={{ fontSize: 11, fontWeight: isLast ? 800 : 600, color: COR_SCORE(e.score) }}>{e.score.toFixed(1)}</div>
+                  <div style={{ fontSize: 11, fontWeight: isLast ? 800 : 600, color: COR_SCORE(e.score) }}>{e.score?.toFixed(1)}</div>
                   <div style={{ width: "100%", height: h, background: isLast ? COR_SCORE(e.score) : COR_SCORE(e.score) + "80", borderRadius: "4px 4px 0 0", border: isLast ? `2px solid ${COR_SCORE(e.score)}` : "none" }} />
                   <div style={{ fontSize: 11, color: "#888" }}>{e.mes}</div>
                 </div>

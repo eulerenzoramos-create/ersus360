@@ -170,7 +170,7 @@ function AbaBolsaFamilia({ dados }: { dados: any[] | undefined }) {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 18 }}>
-        {[["Beneficiários SISVAN",total_benef.toLocaleString("pt-BR"),"#1d4ed8"],["Inadimplentes",total_inad,"#dc2626"],["Taxa inadimpl.",Math.round(total_inad/total_benef*100)+"%","#d97706"]].map(([k,v,c])=>(
+        {[["Beneficiários SISVAN",total_benef?.toLocaleString("pt-BR"),"#1d4ed8"],["Inadimplentes",total_inad,"#dc2626"],["Taxa inadimpl.",Math.round(total_inad/total_benef*100)+"%","#d97706"]].map(([k,v,c])=>(
           <div key={String(k)} style={{ background: "#fff", border:`1px solid ${c}22`, borderTop:`3px solid ${c}`, borderRadius:10, padding:"12px 14px", textAlign:"center" }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: String(c) }}>{v}</div>
             <div style={{ fontSize: 12, color: "#6b7280" }}>{k}</div>

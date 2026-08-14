@@ -83,7 +83,7 @@ export default function SaudeCardiovascularApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="HAS — PA controlada"     value={`${dashRaw.has_pa_controlada_pct}%`}               color={CRIT} sub={`${dashRaw.has_cadastrados_hiperdia.toLocaleString()} cadastrados`} />
+              <KPI label="HAS — PA controlada"     value={`${dashRaw.has_pa_controlada_pct}%`}               color={CRIT} sub={`${dashRaw.has_cadastrados_hiperdia?.toLocaleString()} cadastrados`} />
               <KPI label="IAM — mortalidade hosp." value={`${dashRaw.iam_mortalidade_hospitalar_pct}%`}       color={CRIT} sub={`${dashRaw.iam_internacoes_ano} internações/ano`} />
               <KPI label="AVC — sequela permanente"value={`${dashRaw.avc_sequela_permanente_pct}%`}           color={CRIT} sub={`${dashRaw.avc_internacoes_ano} AVC/ano`} />
               <KPI label="Mortalidade CV/100k"      value={`${dashRaw.mortalidade_cardiovascular_100k}`}      color={CRIT} sub={`vs BR: ${dashRaw.media_nacional_cardiovascular_100k}`} />
@@ -107,7 +107,7 @@ export default function SaudeCardiovascularApui() {
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
                         <span className="text-slate-600">{b.label}</span>
-                        <span className="font-bold" style={{ color: b.color }}>{b.value.toFixed(1)}%</span>
+                        <span className="font-bold" style={{ color: b.color }}>{b.value?.toFixed(1)}%</span>
                       </div>
                       <ProgressBar value={b.value} max={100} color={b.color} />
                     </div>
@@ -149,7 +149,7 @@ export default function SaudeCardiovascularApui() {
                     <p className="font-semibold text-sm text-slate-700">{c.condicao}</p>
                   </div>
                   <div className="text-right text-sm">
-                    {c.estimados > 0 && <span className="font-bold" style={{ color: BRAND }}>{c.estimados.toLocaleString()} estimados</span>}
+                    {c.estimados > 0 && <span className="font-bold" style={{ color: BRAND }}>{c.estimados?.toLocaleString()} estimados</span>}
                     {c.internacoes_ano > 0 && <p className="text-xs" style={{ color: statusColor(c.status) }}>{c.internacoes_ano} internações/ano</p>}
                     {c.controlados_pct > 0 && <p className="text-xs text-slate-400">{c.controlados_pct}% controlados</p>}
                   </div>

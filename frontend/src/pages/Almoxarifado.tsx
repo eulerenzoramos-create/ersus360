@@ -67,7 +67,7 @@ function CardInsumo({ ins }: { ins: Insumo }) {
           <div style={{ display: "flex", gap: 16, fontSize: 10, color: "#6b7280", marginBottom: 4 }}>
             <span>Estoque: <b style={{ color: cor }}>{ins.estoque_atual} {ins.unidade}</b></span>
             <span>Mín: <b>{ins.estoque_minimo}</b></span>
-            <span>Cobertura: <b style={{ color: ins.meses_cobertura < 1 ? "#dc2626" : ins.meses_cobertura < 2 ? "#d97706" : "#16a34a" }}>{ins.meses_cobertura.toFixed(1)} meses</b></span>
+            <span>Cobertura: <b style={{ color: ins.meses_cobertura < 1 ? "#dc2626" : ins.meses_cobertura < 2 ? "#d97706" : "#16a34a" }}>{ins.meses_cobertura?.toFixed(1)} meses</b></span>
             {ins.dias_vencimento !== null && ins.dias_vencimento <= 60 && (
               <span style={{ color: ins.dias_vencimento <= 0 ? "#dc2626" : "#d97706" }}>
                 Validade: {ins.dias_vencimento <= 0 ? "VENCIDO" : `${ins.dias_vencimento}d`}
@@ -110,7 +110,7 @@ function CardInsumo({ ins }: { ins: Insumo }) {
                 ["Estoque mínimo",         `${ins.estoque_minimo} ${ins.unidade}`],
                 ["Estoque máximo",         `${ins.estoque_maximo} ${ins.unidade}`],
                 ["Consumo médio mensal",   `${ins.consumo_medio_mensal} ${ins.unidade}/mês`],
-                ["Cobertura estimada",     `${ins.meses_cobertura.toFixed(1)} meses`],
+                ["Cobertura estimada",     `${ins.meses_cobertura?.toFixed(1)} meses`],
                 ["Ponto de ressuprimento", `${ins.estoque_minimo} ${ins.unidade}`],
                 ["Quantidade a repor",     `${Math.max(0, ins.estoque_maximo - ins.estoque_atual)} ${ins.unidade}`],
               ].map(([l, v]) => (

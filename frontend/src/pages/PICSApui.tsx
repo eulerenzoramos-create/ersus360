@@ -78,8 +78,8 @@ export default function PICSApui() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Práticas PNPIC Implantadas" value={`${d.praticas_implantadas}/${d.praticas_meta_pnpic}`} color={WARN} sub="meta: 10 práticas" />
-              <KPI label="Atendimentos/Ano"       value={d.atendimentos_ano.toLocaleString("pt-BR")} color={OK}   sub={`${d.atendimentos_mes_atual}/mês`} />
-              <KPI label="Usuários Cadastrados"   value={d.usuarios_cadastrados.toLocaleString("pt-BR")} color={ACCENT} />
+              <KPI label="Atendimentos/Ano"       value={d.atendimentos_ano?.toLocaleString("pt-BR")} color={OK}   sub={`${d.atendimentos_mes_atual}/mês`} />
+              <KPI label="Usuários Cadastrados"   value={d.usuarios_cadastrados?.toLocaleString("pt-BR")} color={ACCENT} />
               <KPI label="Satisfação do Usuário"  value={`${d.satisfacao_usuario_pct}%`} color={OK} sub="meta: 85%" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

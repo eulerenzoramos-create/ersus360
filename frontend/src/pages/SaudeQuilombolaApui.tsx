@@ -83,8 +83,8 @@ export default function SaudeQuilombolaApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Pop. quilombola"          value={`${dashRaw.populacao_quilombola_estimada.toLocaleString()}`}  color={BRAND} sub={`${dashRaw.comunidades_quilombolas_certificadas} comunidades certificadas`} />
-              <KPI label="Pop. ribeirinha"           value={`${dashRaw.populacao_ribeirinha_estimada.toLocaleString()}`} color={BRAND} sub="18 comunidades" />
+              <KPI label="Pop. quilombola"          value={`${dashRaw.populacao_quilombola_estimada?.toLocaleString()}`}  color={BRAND} sub={`${dashRaw.comunidades_quilombolas_certificadas} comunidades certificadas`} />
+              <KPI label="Pop. ribeirinha"           value={`${dashRaw.populacao_ribeirinha_estimada?.toLocaleString()}`} color={BRAND} sub="18 comunidades" />
               <KPI label="Cobertura ESF quilombola" value={`${dashRaw.esf_com_cobertura_quilombola_pct}%`}              color={CRIT}  sub="75% sem acesso regular" />
               <KPI label="Mortalidade infantil"     value={`${dashRaw.mortalidade_infantil_quilombola_1k}/1k NV`}        color={CRIT}  sub={`vs municipal: ${dashRaw.mortalidade_infantil_municipal_1k}/1k`} />
             </div>
@@ -108,7 +108,7 @@ export default function SaudeQuilombolaApui() {
                     <div key={b.label}>
                       <div className="flex justify-between text-xs mb-0.5">
                         <span className="text-slate-600">{b.label}</span>
-                        <span className="font-bold" style={{ color: b.color }}>{b.value.toFixed(1)}%</span>
+                        <span className="font-bold" style={{ color: b.color }}>{b.value?.toFixed(1)}%</span>
                       </div>
                       <ProgressBar value={b.value} max={100} color={b.color} />
                     </div>

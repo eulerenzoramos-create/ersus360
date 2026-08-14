@@ -83,7 +83,7 @@ export default function LaboratorioApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Exames/Mês"              value={dashRaw.exames_realizados_mes.toLocaleString()} color={ACCENT} sub={`${dashRaw.exames_realizados_ano.toLocaleString()}/ano`} />
+              <KPI label="Exames/Mês"              value={dashRaw.exames_realizados_mes?.toLocaleString()} color={ACCENT} sub={`${dashRaw.exames_realizados_ano?.toLocaleString()}/ano`} />
               <KPI label="Tempo Médio Laudo"       value={`${dashRaw.tempo_medio_laudo_dias} dias`} color={WARN} sub={`meta: ${dashRaw.meta_laudo_dias} dias`} />
               <KPI label="Exames Fora do Prazo"    value={`${dashRaw.exames_fora_prazo_pct}%`} color={WARN} sub="meta: 5%" />
               <KPI label="Cobertura Populacional"  value={`${dashRaw.cobertura_populacao_pct}%`} color={WARN} sub="meta: 90%" />
@@ -150,7 +150,7 @@ export default function LaboratorioApui() {
                   <div>
                     <span className="font-semibold text-sm text-slate-700">{e.grupo}</span>
                     <div className="flex gap-3 text-xs text-slate-400 mt-0.5">
-                      <span>{e.realizados_mes.toLocaleString()}/mês</span>
+                      <span>{e.realizados_mes?.toLocaleString()}/mês</span>
                       <span className={e.proprio ? "text-blue-600" : "text-purple-600"}>{e.proprio ? "Próprio" : "Terceirizado"}</span>
                     </div>
                   </div>

@@ -176,7 +176,7 @@ export default function AcidentesTransitoApui() {
                       {f.implementada ? "Implementada" : "Não implementada"}
                     </span>
                     {f.atual != null && <p className="text-xs mt-0.5">{f.atual} / meta {f.meta}</p>}
-                    {f.custo > 0 && <p className="text-xs text-slate-400">R$ {f.custo.toLocaleString()} · {f.prazo_meses}m</p>}
+                    {f.custo > 0 && <p className="text-xs text-slate-400">R$ {f.custo?.toLocaleString()} · {f.prazo_meses}m</p>}
                     {f.custo === 0 && <p className="text-xs text-green-600">custo R$ 0 · {f.prazo_meses}m</p>}
                   </div>
                 </div>

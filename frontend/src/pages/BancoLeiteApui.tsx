@@ -41,8 +41,8 @@ export default function BancoLeiteApui(){
         <div>
           <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20}}>
             <KPI label="Doadoras Ativas"           value={d.doadoras_ativas}         sub={`de ${d.doadoras_cadastradas_2025} cadastradas`} color={ACCENT}/>
-            <KPI label="Coleta mL/mês"             value={d.coleta_ml_mes.toLocaleString()} sub={`Meta: ${d.coleta_meta_ml_mes.toLocaleString()} mL`} color={WARN}/>
-            <KPI label="Pasteurizado/mês"          value={d.leite_pasteurizado_ml_mes.toLocaleString()} sub="mL" color={OK}/>
+            <KPI label="Coleta mL/mês"             value={d.coleta_ml_mes?.toLocaleString()} sub={`Meta: ${d.coleta_meta_ml_mes?.toLocaleString()} mL`} color={WARN}/>
+            <KPI label="Pasteurizado/mês"          value={d.leite_pasteurizado_ml_mes?.toLocaleString()} sub="mL" color={OK}/>
             <KPI label="Receptores RNPT"           value={`${d.receptores_rnpt_ativo}/${d.receptores_rnpt_meta}`} sub="ativos" color={WARN}/>
             <KPI label="AM Exclusivo 6 meses"      value={`${d.cobertura_aleitamento_exclusivo_6m_pct}%`} sub="Meta: ≥ 50%" color={CRIT}/>
             <KPI label="Perdas Qualidade"          value={`${d.perdas_controle_qualidade_pct}%`} sub="Meta: ≤ 3%" color={WARN}/>
@@ -80,7 +80,7 @@ export default function BancoLeiteApui(){
                 <div style={{textAlign:"right",minWidth:100}}>
                   <div style={{fontWeight:700,fontSize:20,color:dq.doadoras>0?ACCENT:CRIT}}>{dq.doadoras}</div>
                   <div style={{fontSize:10,color:"#9ca3af"}}>doadoras</div>
-                  <div style={{fontSize:11,color:WARN}}>{dq.coleta_ml_perfil.toLocaleString()} mL</div>
+                  <div style={{fontSize:11,color:WARN}}>{dq.coleta_ml_perfil?.toLocaleString()} mL</div>
                 </div>
               </div>
             ))}

@@ -90,7 +90,7 @@ export default function RedeLogisticaApui() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Cadeia frio adequada"       value={`${dashRaw.cadeia_frio_salas_adequadas}/${dashRaw.cadeia_frio_salas_total}`} color={CRIT} sub="salas certificadas PNI" />
-              <KPI label="Frete Manaus (R$/kg)"       value={`R$ ${dashRaw.custo_frete_manaus_R_kg.toFixed(2)}`} color={CRIT} sub={`vs nacional: R$ ${dashRaw.custo_frete_nacional_R_kg.toFixed(2)}`} />
+              <KPI label="Frete Manaus (R$/kg)"       value={`R$ ${dashRaw.custo_frete_manaus_R_kg?.toFixed(2)}`} color={CRIT} sub={`vs nacional: R$ ${dashRaw.custo_frete_nacional_R_kg?.toFixed(2)}`} />
               <KPI label="Ramais intransit. (chuvoso)" value={`${dashRaw.ramais_intransitaveis_chuvoso_pct}%`} color={CRIT} sub="4 meses/ano inacessíveis" />
               <KPI label="Energia — interrupções/mês" value={`${dashRaw.energia_eletrica_interrupção_horas_mes}h`} color={WARN} sub="impacta cadeia frio" />
             </div>

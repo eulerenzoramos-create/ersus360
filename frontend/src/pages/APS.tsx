@@ -84,7 +84,7 @@ export default function APS() {
             { label: "UBS",           valor: String(dashboard.ubs_total),        sub: "unidades ativas",            cor: "#0284c7", Icon: Building2 },
             { label: "Equipes SF",    valor: String(dashboard.equipes_sf),        sub: "Saúde da Família",           cor: "#1D9E75", Icon: Users },
             { label: "Cobertura ESF", valor: `${dashboard.cobertura_esf}%`,       sub: "meta 100%",                  cor: dashboard.cobertura_esf >= 75 ? "#059669" : "#dc2626", Icon: Activity },
-            { label: "Produção/Mês",  valor: dashboard.producao_mensal.toLocaleString("pt-BR"), sub: "atendimentos",cor: "#7c3aed", Icon: TrendingUp },
+            { label: "Produção/Mês",  valor: dashboard.producao_mensal?.toLocaleString("pt-BR"), sub: "atendimentos",cor: "#7c3aed", Icon: TrendingUp },
           ].map(({ label, valor, sub, cor, Icon }) => (
             <div key={label} style={{ ...S.card, padding: 14, textAlign: "center", margin: 0 }}>
               <Icon size={18} style={{ color: cor, marginBottom: 6 }} />
@@ -149,7 +149,7 @@ export default function APS() {
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 500 }}>{u.nome}</div>
                   <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>
-                    {u.populacao_cadastrada.toLocaleString("pt-BR")} cadastrados
+                    {u.populacao_cadastrada?.toLocaleString("pt-BR")} cadastrados
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>

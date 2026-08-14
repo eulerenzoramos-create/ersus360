@@ -93,7 +93,7 @@ export default function SaudeMentalCapsApui() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="CAPS I"                  value={dashRaw.caps_modalidade} color={OK} sub="implantado" />
               <KPI label="Pacientes Ativos CAPS"   value={dashRaw.caps_pacientes_ativos.toString()} color={ACCENT} sub="em acompanhamento" />
-              <KPI label="Atendimentos/Mês"        value={dashRaw.caps_atendimentos_mes.toLocaleString()} color={BRAND} />
+              <KPI label="Atendimentos/Mês"        value={dashRaw.caps_atendimentos_mes?.toLocaleString()} color={BRAND} />
               <KPI label="Abandono Tratamento"     value={`${dashRaw.abandonos_tratamento_pct}%`} color={CRIT} sub={`meta: ${dashRaw.meta_abandono_pct}%`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

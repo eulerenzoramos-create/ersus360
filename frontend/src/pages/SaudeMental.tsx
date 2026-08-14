@@ -109,7 +109,7 @@ export default function SaudeMental() {
               <KPI label="Tent. Suicídio/Mês" value={dashRaw.tentativas_suicidio_mes.toString()} color={CRIT} />
               <KPI label="Internações/Mês"    value={dashRaw.internacoes_mes.toString()} color={WARN} />
               <KPI label="Reinternação"       value={`${dashRaw.reinternacao_pct}%`} sub="meta: ≤15%" color={CRIT} />
-              <KPI label="Atendimentos/Mês"   value={dashRaw.atendimentos_mes.toLocaleString()} color={ACCENT} />
+              <KPI label="Atendimentos/Mês"   value={dashRaw.atendimentos_mes?.toLocaleString()} color={ACCENT} />
             </div>
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
               <b>Alerta RAPS:</b> {dashRaw.servicos_superlotados} serviços superlotados. {dashRaw.leitos_psiq_sus} leitos psiquiátricos SUS — internações dependem de regulação regional. Tentativas de suicídio em crescimento: {dashRaw.tentativas_suicidio_mes} em junho.

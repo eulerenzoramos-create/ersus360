@@ -97,7 +97,7 @@ export default function SaudeRibeirinha() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Pop. Ribeirinha Est."    value={dashRaw.populacao_ribeirinha_estimada.toLocaleString()} color={BRAND} sub={`${dashRaw.pct_populacao_total}% da população total`} />
+              <KPI label="Pop. Ribeirinha Est."    value={dashRaw.populacao_ribeirinha_estimada?.toLocaleString()} color={BRAND} sub={`${dashRaw.pct_populacao_total}% da população total`} />
               <KPI label="Comunidades"             value={`${dashRaw.comunidades_com_atendimento_regular} / ${dashRaw.comunidades_ribeirinhas}`} color={WARN} sub="com atendimento regular" />
               <KPI label="Equipes Fluviais"        value={dashRaw.equipes_fluviais_ativas.toString()} color={ACCENT} sub={`${dashRaw.lanchas_em_manutencao} lancha(s) em manutenção`} />
               <KPI label="Cobertura Atendimento"   value={`${dashRaw.cobertura_atendimento_pct}%`} color={CRIT} sub="meta: 90%" />
@@ -189,7 +189,7 @@ export default function SaudeRibeirinha() {
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="agravo" tick={{ fontSize: 9 }} width={230} />
                   <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
-                  <Tooltip formatter={(v: any) => `${v.toLocaleString()}/100k`} />
+                  <Tooltip formatter={(v: any) => `${v?.toLocaleString()}/100k`} />
                   <Bar dataKey="taxa_100k" name="Taxa /100k" radius={[0,3,3,0]}>
                     {(morbidade as any[]).map((m: any) => <Cell key={m.agravo} fill={statusColor(m.status)} />)}
                   </Bar>
@@ -203,7 +203,7 @@ export default function SaudeRibeirinha() {
                     <div className="w-3 h-3 rounded-full" style={{ background: statusColor(m.status) }} />
                     <div>
                       <span className="font-semibold text-sm text-slate-700">{m.agravo}</span>
-                      <p className="text-xs text-slate-400">{m.taxa_100k.toLocaleString()} casos/100 mil hab.</p>
+                      <p className="text-xs text-slate-400">{m.taxa_100k?.toLocaleString()} casos/100 mil hab.</p>
                     </div>
                   </div>
                   <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold">{m.ribeirinho_vs_urbano} vs urbano</span>

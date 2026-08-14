@@ -80,12 +80,12 @@ export default function NutricaoSisvanApui() {
               <KPI label="Desnutrição < 5a (meta: < 2,5%)"  value={`${dashRaw.desnutricao_crianca_pct}%`}          color={CRIT} sub={`aguda grave: ${dashRaw.desnutricao_aguda_crianca_pct}% · Ref: HGH-Humaitá`} />
               <KPI label="Anemia em gestantes (meta: < 20%)" value={`${dashRaw.anemia_gestante_pct}%`}              color={CRIT} sub="sulfato ferroso + ácido fólico: REMUME gratuito" />
               <KPI label="Obesidade adultos (meta: < 20%)"   value={`${dashRaw.obesidade_adulto_pct}%`}             color={WARN} sub={`sobrepeso: ${dashRaw.sobrepeso_adulto_pct}% · síndrome metabólica: ${dashRaw.sindrome_metabolica_estimada_pct}%`} />
-              <KPI label="SISVAN cobertura (meta: 100%)"     value={`${dashRaw.sisvan_cobertura_pct}%`}             color={CRIT} sub={`${dashRaw.criancas_acompanhadas_sisvan.toLocaleString()} crianças + ${dashRaw.gestantes_acompanhadas_sisvan} gestantes`} />
+              <KPI label="SISVAN cobertura (meta: 100%)"     value={`${dashRaw.sisvan_cobertura_pct}%`}             color={CRIT} sub={`${dashRaw.criancas_acompanhadas_sisvan?.toLocaleString()} crianças + ${dashRaw.gestantes_acompanhadas_sisvan} gestantes`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KPI label="Vitamina A 6m-5a (meta: 100%)"    value={`${dashRaw.vitamina_a_cobertura_pct}%`}         color={CRIT} sub="MS fornece gratuitamente — dose semestral" />
               <KPI label="Ferro profilático (meta: 100%)"    value={`${dashRaw.ferro_profilatico_pct}%`}            color={CRIT} sub="6m-5a + gestantes — REMUME gratuito" />
-              <KPI label="Insegurança alimentar grave"       value={`${dashRaw.inseguranca_alimentar_grave_pct}%`}  color={CRIT} sub={`${dashRaw.bolsa_familia_familias.toLocaleString()} famílias no Bolsa Família`} />
+              <KPI label="Insegurança alimentar grave"       value={`${dashRaw.inseguranca_alimentar_grave_pct}%`}  color={CRIT} sub={`${dashRaw.bolsa_familia_familias?.toLocaleString()} famílias no Bolsa Família`} />
               <KPI label="Nutricionista em Apuí"             value={`${dashRaw.nutricionista_apui} profissional`}   color={CRIT} sub="eMulti: R$ 84.000/ano (50% PREVINE) → 120 consultas/mês" />
             </div>
             <div className="grid md:grid-cols-2 gap-4">

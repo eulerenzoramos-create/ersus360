@@ -31,7 +31,7 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
         </div>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
-        <KpiCard label="Exames/mês"          value={dash.exames_mes.toLocaleString("pt-BR")} sub={`${dash.laudos_digitais_pct}% laudos digitais`} cor="#374151"                              icon={<FlaskConical size={14} color="#374151"/>}/>
+        <KpiCard label="Exames/mês"          value={dash.exames_mes?.toLocaleString("pt-BR")} sub={`${dash.laudos_digitais_pct}% laudos digitais`} cor="#374151"                              icon={<FlaskConical size={14} color="#374151"/>}/>
         <KpiCard label="TAT Laboratório"     value={dash.tat_lab_horas+"h"}                  sub={`meta: ${dash.meta_tat_lab_horas}h`}            cor={dash.tat_lab_horas<=dash.meta_tat_lab_horas?"#16a34a":"#d97706"}     icon={<Clock size={14} color={dash.tat_lab_horas<=dash.meta_tat_lab_horas?"#16a34a":"#d97706"}/>}/>
         <KpiCard label="Pendentes resultado" value={dash.pendentes_resultado}                sub={`${dash.pendentes_coleta} pend. coleta`}        cor={dash.pendentes_resultado>50?"#d97706":"#16a34a"}                     icon={<AlertTriangle size={14} color={dash.pendentes_resultado>50?"#d97706":"#16a34a"}/>}/>
         <KpiCard label="Exames alterados"    value={dash.alterados_pct+"%"}                  sub={`${dash.exames_alterados_mes} exames`}          cor="#d97706"                              icon={<CheckCircle size={14} color="#d97706"/>}/>
@@ -192,7 +192,7 @@ export default function SADT() {
           {dash && (
             <div style={{ display: "flex", gap: 10 }}>
               <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.exames_mes.toLocaleString("pt-BR")}</div>
+                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.exames_mes?.toLocaleString("pt-BR")}</div>
                 <div style={{ fontSize: 10, opacity: .8 }}>exames/mês</div>
               </div>
               {dashRaw.criticos_pendentes > 0 && (

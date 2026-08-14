@@ -28,7 +28,7 @@ function injectPrintCSS() {
 
 // ── Geração de janela de impressão isolada ────────────────────────────────────
 function imprimirFolha(folha: any, competencia: string, compLabel: string) {
-  const BRL2 = (v: number) => v.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+  const BRL2 = (v: number) => v?.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
   const LABEL_V: Record<string,string> = {
     estatutario:"Estatutário", temporario:"Temporário",
     clt:"CLT", terceirizado:"Terceirizado", comissionado:"Comissionado",

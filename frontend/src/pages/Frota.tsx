@@ -33,8 +33,8 @@ function AbaDashboard({ dash, hist }: { dash: any; hist: any[] | undefined }) {
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
         <KpiCard label="Disponibilidade"     value={dash.disponibilidade_pct+"%"}          sub={`${dash.disponiveis}/${dash.total_veiculos} disponíveis`}             cor={dash.disponibilidade_pct>=85?"#16a34a":"#dc2626"} icon={<Truck size={14} color={dash.disponibilidade_pct>=85?"#16a34a":"#dc2626"}/>}/>
-        <KpiCard label="Pacientes transp."   value={dash.pacientes_transportados_mes.toLocaleString("pt-BR")} sub={`${dash.viagens_mes} viagens`}                    cor="#374151"   icon={<CheckCircle size={14} color="#374151"/>}/>
-        <KpiCard label="Custo combustível"   value={`R$${dash.custo_combustivel_mes.toLocaleString("pt-BR",{minimumFractionDigits:0})}`} sub="este mês"             cor="#374151"   icon={<DollarSign size={14} color="#374151"/>}/>
+        <KpiCard label="Pacientes transp."   value={dash.pacientes_transportados_mes?.toLocaleString("pt-BR")} sub={`${dash.viagens_mes} viagens`}                    cor="#374151"   icon={<CheckCircle size={14} color="#374151"/>}/>
+        <KpiCard label="Custo combustível"   value={`R$${dash.custo_combustivel_mes?.toLocaleString("pt-BR",{minimumFractionDigits:0})}`} sub="este mês"             cor="#374151"   icon={<DollarSign size={14} color="#374151"/>}/>
         <KpiCard label="Em manutenção/inop." value={`${dash.manutencao+dash.inoperantes}`} sub={`${dash.manutencao} manut. + ${dash.inoperantes} inop.`}              cor={dash.manutencao+dash.inoperantes>=4?"#dc2626":"#d97706"} icon={<AlertTriangle size={14} color={dash.manutencao+dash.inoperantes>=4?"#dc2626":"#d97706"}/>}/>
       </div>
       {hist && (
@@ -82,8 +82,8 @@ function AbaVeiculos({ veiculos }: { veiculos: any[] | undefined }) {
               </div>
             </div>
             <div style={{ fontSize: 11, color: "#9ca3af" }}>
-              {v.km_atual && <>KM atual: <strong style={{ color: "#374151" }}>{v.km_atual.toLocaleString("pt-BR")}</strong> · </>}
-              {v.proxima_revisao_km && <>Próx. revisão: <strong style={{ color: v.km_atual>v.proxima_revisao_km-2000?"#d97706":"#374151" }}>{v.proxima_revisao_km.toLocaleString("pt-BR")} km</strong> · </>}
+              {v.km_atual && <>KM atual: <strong style={{ color: "#374151" }}>{v.km_atual?.toLocaleString("pt-BR")}</strong> · </>}
+              {v.proxima_revisao_km && <>Próx. revisão: <strong style={{ color: v.km_atual>v.proxima_revisao_km-2000?"#d97706":"#374151" }}>{v.proxima_revisao_km?.toLocaleString("pt-BR")} km</strong> · </>}
               Combustível: {v.combustivel}
             </div>
             {v.observacao && <div style={{ marginTop: 5, background: "#fef9c3", borderRadius: 4, padding: "4px 10px", fontSize: 11, color: "#92400e" }}>⚠ {v.observacao}</div>}
@@ -113,7 +113,7 @@ function AbaManutencoes({ mans }: { mans: any[] | undefined }) {
             <div style={{ display: "flex", gap: 20, fontSize: 11, color: "#6b7280" }}>
               <span>Oficina: {m.oficina}</span>
               <span>Prazo: <strong style={{ color: m.prazo_dias>30?"#dc2626":m.prazo_dias>7?"#d97706":"#374151" }}>{m.prazo_dias} dias</strong></span>
-              <span>Custo: <strong style={{ color: "#374151" }}>R${m.valor.toLocaleString("pt-BR",{minimumFractionDigits:2})}</strong></span>
+              <span>Custo: <strong style={{ color: "#374151" }}>R${m.valor?.toLocaleString("pt-BR",{minimumFractionDigits:2})}</strong></span>
             </div>
           </div>
         );
@@ -141,7 +141,7 @@ function AbaIndicadores({ inds }: { inds: any[] | undefined }) {
                     {ind.observacao && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{ind.observacao}</div>}
                   </div>
                   <div style={{ flexShrink: 0, marginLeft: 12 }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{typeof ind.valor==="number"?ind.valor.toLocaleString("pt-BR"):ind.valor}{ind.unidade==="%"?"%":ind.unidade==="R$/km"?" R$/km":""}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{typeof ind.valor==="number"?ind.valor?.toLocaleString("pt-BR"):ind.valor}{ind.unidade==="%"?"%":ind.unidade==="R$/km"?" R$/km":""}</span>
                     {ind.meta !== null && ind.meta !== undefined && <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 6 }}>meta: {ind.meta}{ind.unidade==="%"?"%":""}</span>}
                   </div>
                 </div>
@@ -188,7 +188,7 @@ export default function Frota() {
                 <div style={{ fontSize: 10, opacity: .8 }}>disponibilidade</div>
               </div>
               <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.km_rodados_mes.toLocaleString("pt-BR")}</div>
+                <div style={{ fontSize: 20, fontWeight: 900 }}>{dashRaw.km_rodados_mes?.toLocaleString("pt-BR")}</div>
                 <div style={{ fontSize: 10, opacity: .8 }}>km rodados/mês</div>
               </div>
             </div>
