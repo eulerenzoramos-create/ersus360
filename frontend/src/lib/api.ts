@@ -356,8 +356,10 @@ export const apiSiaps = {
 export const apiGet = <T = unknown>(path: string, params?: Record<string, unknown>) =>
   api.get<T>(path, { params }).then((r) => {
     const d = r.data as any;
-    if (d && typeof d === "object" && !Array.isArray(d) && d.situacao_dado === "nao_disponivel" && d.dados === null) {
-      return undefined as unknown as T;
+    // Desempacota envelope { situacao_dado, dados } do backend
+    if (d && typeof d === "object" && !Array.isArray(d) && "situacao_dado" in d) {
+      if (!d.dados) return undefined as unknown as T;
+      return d.dados as T;
     }
     return d as T;
   });
