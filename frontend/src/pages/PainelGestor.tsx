@@ -3,8 +3,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiDashboard, apiAlertas, apiSistema, apiGet, apiConformidade } from "../lib/api";
 import { BRL, BRL_AXIS } from "../lib/fmt";
-import {
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
+import {
   Heart, Target, BarChart2, Users, Pill, Syringe, Brain, Map,
   TrendingUp, DollarSign, FileText, Activity, Eye, EyeOff,
   CheckCircle, AlertTriangle, Wifi,
