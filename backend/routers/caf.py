@@ -37,7 +37,7 @@ _GAP_ANUAL     = round(_GAP_MES * 12, 2)             # 227_826,00
 _TOTAL_ANUAL   = round(_TOTAL_MES * 12, 2)           # 1_239_144,00
 _PCT           = round((_TOTAL_MES / _POTENCIAL_MES) * 100, 1)  # 84.5
 
-N_EQUIPES   = 10     # equipes ESF ativas (SCNES/CNES Apui/AM)
+N_EQUIPES   = 9      # equipes ESF ativas (SCNES/CNES Apui/AM)
 IED         = 2      # Indice de Equidade e Desempenho
 PONDERADOR  = 1.25   # fator IED=2 (Portaria GM/MS 3.493/2024, Anexo I)
 
@@ -87,22 +87,36 @@ async def dashboard(_: CurrentUser):
     }
 
 
+_EQUIPES_APUI = [
+    {"nome": "CACHOEIRA",     "ubs": "UBS IRMA ELIZABETE",                     "parametro": 2_427, "vinculo": 8.6, "status_vinculo": "otimo"},
+    {"nome": "SAO SEBASTIAO", "ubs": "UBS ANIZIO FERREIRA DA SILVA",            "parametro": 2_226, "vinculo": 8.3, "status_vinculo": "bom"},
+    {"nome": "ACARI",         "ubs": "UBS ANIZIO FERREIRA DA SILVA",            "parametro": 2_154, "vinculo": 8.2, "status_vinculo": "bom"},
+    {"nome": "TRES ESTADOS",  "ubs": "UBS OSVALDO LEMES CABRAL",               "parametro": 1_944, "vinculo": 6.4, "status_vinculo": "suficiente"},
+    {"nome": "JUMA",          "ubs": "CENTRO DE SAUDE CURUMIM",                "parametro": 2_360, "vinculo": 8.5, "status_vinculo": "bom"},
+    {"nome": "LIBERDADE",     "ubs": "CENTRO DE SAUDE CURUMIM",                "parametro": 2_499, "vinculo": 9.1, "status_vinculo": "otimo"},
+    {"nome": "KENNEDY",       "ubs": "UBS PADRE FALIERO BONCI",                "parametro": 2_291, "vinculo": 9.3, "status_vinculo": "otimo"},
+    {"nome": "JK",            "ubs": "UBS JK",                                 "parametro": 2_256, "vinculo": 8.4, "status_vinculo": "bom"},
+    {"nome": "ESTRADA NOVA",  "ubs": "UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA","parametro": 2_013, "vinculo": 5.8, "status_vinculo": "suficiente"},
+]
+
+
 @router.get("/equipes")
 async def equipes(_: CurrentUser):
     """Repasse por equipe ESF — distribuicao uniforme dos totais reais do consultafns."""
     return [
         {
-            "nome": f"ESF-{i+1:02d}",
-            "parametro": 1_404,           # pop coberta aprox / 10 equipes (IBGE Apui 14.040)
-            "vinculo": 3.60,              # score Sprint OTIMO Q1/26 — SIAPS (0-4 escala)
-            "status_vinculo": "otimo",    # >= 3.0 = otimo (Portaria 3.493/2024)
+            "nome":           eq["nome"],
+            "ubs":            eq["ubs"],
+            "parametro":      eq["parametro"],
+            "vinculo":        eq["vinculo"],
+            "status_vinculo": eq["status_vinculo"],
             "capita":      _CAPITA_POR_EQUIPE,
             "desempenho":  0.00,
             "estrategico": _ESTRATEGICO_POR_EQUIPE,
             "total_mes":   _TOTAL_POR_EQUIPE,
             "gap_mes":     round(_GAP_MES / N_EQUIPES, 2),
         }
-        for i in range(N_EQUIPES)
+        for eq in _EQUIPES_APUI
     ]
 
 
