@@ -155,6 +155,19 @@ _REF_APUI: dict = {
         "municipio": "APUI",
         "ied": "II",
         "competencia": "Mai/2026",
+        "vinculo": {
+            "pontuacao_media": 8.1,
+            "otimo": 3,
+            "bom": 4,
+            "suficiente": 2,
+            "regular": 0,
+            "total_vinculadas": 21834,
+            "total_acompanhadas": 18940,
+        },
+        "qualidade": {
+            "pontuacao_media": 57.9,
+            "cito_meta_pct_media": 37.1,
+        },
     },
     "siaps_abrangencia": {
         "uf": "AM",
