@@ -483,7 +483,9 @@ function Acc1({ label, children, open: init=false, icon }: { label:string; child
   const [open,setOpen]=useState(init);
   return (
     <div>
-      <div style={grp1Style} onClick={()=>setOpen(o=>!o)}>
+      <div role="button" aria-expanded={open} aria-label={label} tabIndex={0}
+        style={grp1Style} onClick={()=>setOpen(o=>!o)}
+        onKeyDown={e=>{if(e.key==="Enter"||e.key===" ")setOpen(o=>!o);}}>
         <span style={{display:"flex",alignItems:"center",gap:6}}>{icon}{label}</span>
         {open ? <ChevronDown size={12} color={SB_MUTED}/> : <ChevronRight size={12} color={SB_MUTED}/>}
       </div>
@@ -496,7 +498,9 @@ function Acc2({ label, children, open: init=false }: { label:string; children:Re
   const [open,setOpen]=useState(init);
   return (
     <div>
-      <div style={grp2Style} onClick={()=>setOpen(o=>!o)}>
+      <div role="button" aria-expanded={open} aria-label={label} tabIndex={0}
+        style={grp2Style} onClick={()=>setOpen(o=>!o)}
+        onKeyDown={e=>{if(e.key==="Enter"||e.key===" ")setOpen(o=>!o);}}>
         <span>{label}</span>
         {open ? <ChevronDown size={12} color={SB_MUTED}/> : <ChevronRight size={12} color={SB_MUTED}/>}
       </div>
@@ -509,7 +513,9 @@ function Acc3({ label, children, open: init=false }: { label:string; children:Re
   const [open,setOpen]=useState(init);
   return (
     <div>
-      <div style={grp3Style} onClick={()=>setOpen(o=>!o)}>
+      <div role="button" aria-expanded={open} aria-label={label} tabIndex={0}
+        style={grp3Style} onClick={()=>setOpen(o=>!o)}
+        onKeyDown={e=>{if(e.key==="Enter"||e.key===" ")setOpen(o=>!o);}}>
         <span>{label}</span>
         {open ? <ChevronDown size={11} color={SB_MUTED}/> : <ChevronRight size={11} color={SB_MUTED}/>}
       </div>
@@ -521,24 +527,24 @@ function Acc3({ label, children, open: init=false }: { label:string; children:Re
 function L1({ to, label, Icon, end=false, badge }: { to:string; label:string; Icon:React.ElementType; end?:boolean; badge?: string }) {
   const loc=useLocation(); const active = end ? loc.pathname===to : loc.pathname.startsWith(to);
   return (
-    <NavLink to={to} end={end} style={navSimpleStyle(active)}>
-      <Icon size={15} color={active ? SB_ACCENT : SB_MUTED}/>
+    <NavLink to={to} end={end} aria-current={active ? "page" : undefined} style={navSimpleStyle(active)}>
+      <Icon size={15} color={active ? SB_ACCENT : SB_MUTED} aria-hidden="true"/>
       <span style={{flex:1}}>{label}</span>
-      {badge && <span style={{fontSize:9,fontWeight:800,background:"#ef4444",color:"#fff",padding:"1px 5px",borderRadius:8}}>{badge}</span>}
+      {badge && <span style={{fontSize:9,fontWeight:800,background:"#ef4444",color:"#fff",padding:"1px 5px",borderRadius:8}} aria-label={`${badge} alertas`}>{badge}</span>}
     </NavLink>
   );
 }
 function L2({ to, label, Icon }: { to:string; label:string; Icon:React.ElementType }) {
   const loc=useLocation(); const active=loc.pathname===to;
-  return <NavLink to={to} style={leaf2Style(active)}><Icon size={13} color={active?SB_ACCENT:SB_MUTED}/>{label}</NavLink>;
+  return <NavLink to={to} aria-current={active ? "page" : undefined} style={leaf2Style(active)}><Icon size={13} color={active?SB_ACCENT:SB_MUTED} aria-hidden="true"/>{label}</NavLink>;
 }
 function L3({ to, label, Icon }: { to:string; label:string; Icon:React.ElementType }) {
   const loc=useLocation(); const active=loc.pathname===to;
-  return <NavLink to={to} style={leaf3Style(active)}><Icon size={13} color={active?SB_ACCENT:SB_MUTED}/>{label}</NavLink>;
+  return <NavLink to={to} aria-current={active ? "page" : undefined} style={leaf3Style(active)}><Icon size={13} color={active?SB_ACCENT:SB_MUTED} aria-hidden="true"/>{label}</NavLink>;
 }
 function L4({ to, label, Icon }: { to:string; label:string; Icon:React.ElementType }) {
   const loc=useLocation(); const active=loc.pathname===to;
-  return <NavLink to={to} style={leaf4Style(active)}><Icon size={12} color={active?SB_ACCENT:SB_MUTED}/>{label}</NavLink>;
+  return <NavLink to={to} aria-current={active ? "page" : undefined} style={leaf4Style(active)}><Icon size={12} color={active?SB_ACCENT:SB_MUTED} aria-hidden="true"/>{label}</NavLink>;
 }
 
 // ── Quick Access Cards ────────────────────────────────────────────────────────
@@ -604,8 +610,19 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
     }}>
     <div style={{display:"flex",flexDirection:"column",height:"100vh",fontFamily:"system-ui,-apple-system,sans-serif"}}>
 
+      {/* ── Skip link (WCAG 2.4.1) ── */}
+      <a href="#ersus-main" style={{
+        position:"absolute",left:-9999,top:"auto",width:1,height:1,overflow:"hidden",
+        zIndex:9999,background:"#1d4ed8",color:"#fff",padding:"8px 16px",borderRadius:4,
+        fontWeight:700,fontSize:14,textDecoration:"none",
+        ":focus":{left:8,top:8,width:"auto",height:"auto",overflow:"visible"},
+      }} onFocus={e=>{Object.assign(e.currentTarget.style,{left:"8px",top:"8px",width:"auto",height:"auto",overflow:"visible"})}}
+         onBlur={e=>{Object.assign(e.currentTarget.style,{left:"-9999px",top:"auto",width:"1px",height:"1px",overflow:"hidden"})}}>
+        Ir para o conteúdo principal
+      </a>
+
       {/* ── Header ── */}
-      <header style={{
+      <header role="banner" style={{
         height:56, background:"linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%)",
         display:"flex", alignItems:"center", padding:"0 20px", gap:14, flexShrink:0,
         boxShadow:"0 2px 8px rgba(0,0,0,.4)", zIndex:200, borderBottom:"1px solid #1e3a5f",
@@ -656,7 +673,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
             display:"flex", alignItems:"center", gap:8, cursor:"pointer",
             background:"rgba(255,255,255,.08)", border:"1px solid rgba(255,255,255,.15)",
             borderRadius:8, padding:"5px 10px", transition:"background .15s",
-          }} onClick={onLogout} title="Clique para sair">
+          }} onClick={onLogout} title="Clique para sair" aria-label={`Sair — ${nomeUsuario}`} role="button">
             <div style={{
               width:30, height:30, borderRadius:8,
               background:"linear-gradient(135deg,#1d4ed8,#7c3aed)",
@@ -676,7 +693,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
 
         {/* ── Sidebar ── */}
-        <aside id="ersus-sidebar" style={{
+        <aside id="ersus-sidebar" role="navigation" aria-label="Menu principal" style={{
           width:252, background:SB_BG,
           display:"flex", flexDirection:"column" as const, overflow:"hidden",
           boxShadow:"2px 0 12px rgba(0,0,0,.3)",
