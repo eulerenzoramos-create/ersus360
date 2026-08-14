@@ -176,14 +176,15 @@ async def simulacao(_: CurrentUser):
 
     cenarios = [
         {
-            "equipe":         f"ESF-{i+1:02d}",
-            "atual_mes":      _TOTAL_POR_EQUIPE,
-            "bom_mes":        round(_TOTAL_POR_EQUIPE + apq_bom, 2),
-            "otimo_mes":      round(_TOTAL_POR_EQUIPE + apq_otimo, 2),
-            "ganho_bom_ano":  round(apq_bom * 12, 2),
+            "equipe":          eq["nome"],
+            "ubs":             eq["ubs"],
+            "atual_mes":       _TOTAL_POR_EQUIPE,
+            "bom_mes":         round(_TOTAL_POR_EQUIPE + apq_bom, 2),
+            "otimo_mes":       round(_TOTAL_POR_EQUIPE + apq_otimo, 2),
+            "ganho_bom_ano":   round(apq_bom * 12, 2),
             "ganho_otimo_ano": round(apq_otimo * 12, 2),
         }
-        for i in range(N_EQUIPES)
+        for eq in _EQUIPES_APUI
     ]
 
     return {
