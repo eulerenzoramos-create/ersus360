@@ -335,19 +335,70 @@ export default function TelessaudeApui() {
             {/* Histórico de pagamentos */}
             <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, color: "#1d4ed8" }}>Histórico de Pagamentos — Jan a Ago/2026</div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
-                {d.historico_pagamentos?.map((h: any) => (
-                  <div key={h.competencia} style={{ background: h.status === "nao_pago" ? "#fef2f2" : "#f0fdf4", border: `1px solid ${h.status === "nao_pago" ? "#fca5a5" : "#86efac"}`, borderRadius: 7, padding: "8px 14px", textAlign: "center" as const }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280" }}>{h.competencia}</div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: h.status === "nao_pago" ? "#dc2626" : "#16a34a" }}>
-                      R$ {Number(h.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </div>
-                    <div style={{ fontSize: 9, color: "#9ca3af" }}>{h.parcela}</div>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: h.status === "nao_pago" ? "#dc2626" : "#16a34a", marginTop: 2 }}>
-                      {h.status === "nao_pago" ? "NÃO RECEBIDO" : "RECEBIDO"}
-                    </div>
-                  </div>
-                ))}
+              <div style={{ overflowX: "auto" as const }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: "#f0f9ff" }}>
+                      {["Competência", "Parcela", "Custeio", "Qualidade", "Remoto", "Total", "Status"].map(h => (
+                        <th key={h} style={{ padding: "6px 10px", textAlign: h === "Competência" || h === "Parcela" || h === "Status" ? "center" as const : "right" as const, fontSize: 10, fontWeight: 700, color: "#0369a1", borderBottom: "2px solid #bae6fd", whiteSpace: "nowrap" as const }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {d.historico_pagamentos?.map((h: any, i: number) => {
+                      const isParcial = h.status === "parcial";
+                      const isPago = h.status === "pago";
+                      const rowBg = i % 2 === 0 ? "#fff" : "#f9fafb";
+                      return (
+                        <tr key={h.competencia} style={{ background: rowBg }}>
+                          <td style={{ padding: "7px 10px", fontWeight: 700, color: "#111827", textAlign: "center" as const, whiteSpace: "nowrap" as const }}>{h.competencia}</td>
+                          <td style={{ padding: "7px 10px", color: "#6b7280", textAlign: "center" as const }}>{h.parcela}</td>
+                          <td style={{ padding: "7px 10px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums", color: h.custeio > 0 ? "#16a34a" : "#9ca3af", fontWeight: 600 }}>
+                            {h.custeio !== undefined ? `R$ ${Number(h.custeio).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
+                          </td>
+                          <td style={{ padding: "7px 10px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums", color: (h.qualidade ?? 0) > 0 ? "#16a34a" : "#9ca3af", fontWeight: 600 }}>
+                            {h.qualidade !== undefined ? `R$ ${Number(h.qualidade).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
+                          </td>
+                          <td style={{ padding: "7px 10px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums", color: "#dc2626", fontWeight: 700 }}>
+                            {h.remoto !== undefined ? `R$ ${Number(h.remoto).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
+                          </td>
+                          <td style={{ padding: "7px 10px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums", fontWeight: 800, color: isPago ? "#16a34a" : isParcial ? "#d97706" : "#dc2626" }}>
+                            R$ {Number(h.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </td>
+                          <td style={{ padding: "7px 10px", textAlign: "center" as const }}>
+                            <span style={{
+                              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                              background: isPago ? "#f0fdf4" : isParcial ? "#fffbeb" : "#fef2f2",
+                              color: isPago ? "#16a34a" : isParcial ? "#d97706" : "#dc2626",
+                              border: `1px solid ${isPago ? "#86efac" : isParcial ? "#fcd34d" : "#fca5a5"}`,
+                              whiteSpace: "nowrap" as const,
+                            }}>
+                              {isPago ? "✓ Pago" : isParcial ? "⚠ Parcial" : "✕ Não pago"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ background: "#eff6ff", borderTop: "2px solid #bfdbfe" }}>
+                      <td colSpan={2} style={{ padding: "8px 10px", fontWeight: 700, color: "#1e40af", fontSize: 12 }}>TOTAL Jan–Ago/2026</td>
+                      <td style={{ padding: "8px 10px", textAlign: "right" as const, fontWeight: 700, color: "#16a34a", fontVariantNumeric: "tabular-nums" }}>
+                        R$ {((d.historico_pagamentos ?? []).reduce((s: number, h: any) => s + (h.custeio ?? 0), 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: "8px 10px", textAlign: "right" as const, fontWeight: 700, color: "#16a34a", fontVariantNumeric: "tabular-nums" }}>
+                        R$ {((d.historico_pagamentos ?? []).reduce((s: number, h: any) => s + (h.qualidade ?? 0), 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: "8px 10px", textAlign: "right" as const, fontWeight: 700, color: "#dc2626", fontVariantNumeric: "tabular-nums" }}>
+                        R$ {((d.historico_pagamentos ?? []).reduce((s: number, h: any) => s + (h.remoto ?? 0), 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: "8px 10px", textAlign: "right" as const, fontWeight: 800, color: "#1e40af", fontVariantNumeric: "tabular-nums" }}>
+                        R$ {((d.historico_pagamentos ?? []).reduce((s: number, h: any) => s + (h.valor ?? 0), 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
             </div>
 

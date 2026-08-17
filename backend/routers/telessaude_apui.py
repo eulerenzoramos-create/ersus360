@@ -263,14 +263,14 @@ async def emulti_remoto():
     }
 
     historico = [
-        {"competencia": "Jan/2026", "mes": "2026-01", "parcela": "3/12",  "valor": 0.00, "status": "nao_pago"},
-        {"competencia": "Fev/2026", "mes": "2026-02", "parcela": "4/12",  "valor": 0.00, "status": "nao_pago"},
-        {"competencia": "Mar/2026", "mes": "2026-03", "parcela": "5/12",  "valor": 0.00, "status": "nao_pago"},
-        {"competencia": "Abr/2026", "mes": "2026-04", "parcela": "6/12",  "valor": 0.00, "status": "nao_pago"},
-        {"competencia": "Mai/2026", "mes": "2026-05", "parcela": "7/12",  "valor": 0.00, "status": "nao_pago"},
-        {"competencia": "Jun/2026", "mes": "2026-06", "parcela": "8/12",  "valor": 0.00, "status": "nao_pago"},
-        {"competencia": "Jul/2026", "mes": "2026-07", "parcela": "9/12",  "valor": 0.00, "status": "nao_pago"},
-        {"competencia": "Ago/2026", "mes": "2026-08", "parcela": "10/12", "valor": 0.00, "status": "nao_pago"},
+        {"competencia": "Jan/2026", "mes": "2026-01", "parcela": "3/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
+        {"competencia": "Fev/2026", "mes": "2026-02", "parcela": "4/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
+        {"competencia": "Mar/2026", "mes": "2026-03", "parcela": "5/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
+        {"competencia": "Abr/2026", "mes": "2026-04", "parcela": "6/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
+        {"competencia": "Mai/2026", "mes": "2026-05", "parcela": "7/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
+        {"competencia": "Jun/2026", "mes": "2026-06", "parcela": "8/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
+        {"competencia": "Jul/2026", "mes": "2026-07", "parcela": "9/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
+        {"competencia": "Ago/2026", "mes": "2026-08", "parcela": "10/12", "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
     ]
     meses_sem_receber = sum(1 for h in historico if h["status"] == "nao_pago")
     perda_acumulada   = 12000.00 * meses_sem_receber
