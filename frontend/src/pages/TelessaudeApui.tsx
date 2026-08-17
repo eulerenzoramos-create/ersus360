@@ -42,7 +42,7 @@ export default function TelessaudeApui() {
   const { data: conect }      = useQuery({ queryKey: ["ts-conect"],     queryFn: () => apiGet("/api/telessaude-apui/conectividade"), enabled: aba === "conectividade" });
   const { data: historico }   = useQuery({ queryKey: ["ts-historico"],  queryFn: () => apiGet("/api/telessaude-apui/historico"),     enabled: aba === "historico" });
   const { data: indicadores } = useQuery({ queryKey: ["ts-ind"],        queryFn: () => apiGet("/api/telessaude-apui/indicadores"),   enabled: aba === "indicadores" });
-  const { data: emulti }      = useQuery({ queryKey: ["ts-emulti"],     queryFn: () => apiGet("/api/telessaude-apui/emulti-remoto"), enabled: aba === "emulti" });
+  const { data: emulti, isLoading: emultiLoading, isError: emultiError } = useQuery({ queryKey: ["ts-emulti"], queryFn: () => apiGet("/api/telessaude-apui/emulti-remoto"), enabled: aba === "emulti", retry: 2 });
 
   const dashRaw   = dash as any;
   const emultiRaw = emulti as any;
@@ -314,8 +314,11 @@ export default function TelessaudeApui() {
           </div>
         )}
 
-        {aba === "emulti" && !emultiRaw && (
-          <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>
+        {aba === "emulti" && emultiLoading && (
+          <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando dados eMulti Remoto...</div>
+        )}
+        {aba === "emulti" && !emultiLoading && (emultiError || !emultiRaw) && (
+          <NaoDisponivelBanner nota="Backend Railway ainda iniciando — aguarde 30 segundos e clique na aba novamente." />
         )}
       </div>
     </div>
