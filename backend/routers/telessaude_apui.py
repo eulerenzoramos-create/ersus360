@@ -267,13 +267,13 @@ async def emulti_remoto():
         {"competencia": "Fev/2026", "mes": "2026-02", "parcela": "4/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
         {"competencia": "Mar/2026", "mes": "2026-03", "parcela": "5/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
         {"competencia": "Abr/2026", "mes": "2026-04", "parcela": "6/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
-        {"competencia": "Mai/2026", "mes": "2026-05", "parcela": "7/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
+        {"competencia": "Mai/2026", "mes": "2026-05", "parcela": "7/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 2500.00, "valor": 16750.00, "status": "pago"},
         {"competencia": "Jun/2026", "mes": "2026-06", "parcela": "8/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
         {"competencia": "Jul/2026", "mes": "2026-07", "parcela": "9/12",  "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
         {"competencia": "Ago/2026", "mes": "2026-08", "parcela": "10/12", "custeio": 12000.00, "qualidade": 2250.00, "remoto": 0.00, "valor": 14250.00, "status": "parcial"},
     ]
-    meses_sem_receber = sum(1 for h in historico if h["status"] == "nao_pago")
-    perda_acumulada   = 12000.00 * meses_sem_receber
+    meses_sem_receber = sum(1 for h in historico if h["status"] in ("nao_pago", "parcial"))
+    perda_acumulada   = sum(12000.00 - h.get("remoto", 0.00) for h in historico if h["status"] in ("nao_pago", "parcial"))
 
     inconsistencias = [
         {
