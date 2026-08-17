@@ -476,16 +476,57 @@ export default function TelessaudeApui() {
                               <div style={{ background: "#f0f9ff", borderTop: "1px solid #bae6fd", padding: "10px 16px 10px 28px" }}>
                                 <div style={{ fontSize: 11, fontWeight: 600, color: "#0369a1", marginBottom: 6 }}>Detalhamento dos sub-repasses:</div>
                                 {row.detalhes?.map((d: any, j: number) => (
-                                  <div key={j} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid #e0f2fe" }}>
-                                    <div style={{ flex: 1 }}>
-                                      <span style={{ fontSize: 12, color: "#374151" }}>{d.item}</span>
-                                      {d.alerta && <div style={{ fontSize: 10, color: "#dc2626", fontWeight: 700 }}>⚠ {d.alerta}</div>}
+                                  <div key={j} style={{ padding: "6px 0", borderBottom: "1px solid #e0f2fe" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                      <div style={{ flex: 1 }}>
+                                        <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{d.item}</span>
+                                        {d.alerta && <div style={{ fontSize: 10, color: "#dc2626", fontWeight: 700, marginTop: 2 }}>⚠ {d.alerta}</div>}
+                                      </div>
+                                      <div style={{ flexShrink: 0, fontWeight: 700, fontSize: 13, fontVariantNumeric: "tabular-nums", color: d.status === "nao_pago" ? "#dc2626" : "#16a34a", marginLeft: 16 }}>
+                                        R$ {Number(d.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                        {d.status === "nao_pago" && <span style={{ fontSize: 9, marginLeft: 4, color: "#dc2626" }}>✕</span>}
+                                        {d.status === "pago" && <span style={{ fontSize: 9, marginLeft: 4, color: "#16a34a" }}>✓</span>}
+                                      </div>
                                     </div>
-                                    <div style={{ flexShrink: 0, fontWeight: 700, fontSize: 13, fontVariantNumeric: "tabular-nums", color: d.status === "nao_pago" ? "#dc2626" : "#16a34a", marginLeft: 16 }}>
-                                      R$ {Number(d.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                                      {d.status === "nao_pago" && <span style={{ fontSize: 9, marginLeft: 4, color: "#dc2626" }}>✕</span>}
-                                      {d.status === "pago" && <span style={{ fontSize: 9, marginLeft: 4, color: "#16a34a" }}>✓</span>}
-                                    </div>
+                                    {d.egestor && (
+                                      <div style={{ marginTop: 6, padding: "6px 10px", background: "#fff", border: "1px solid #bae6fd", borderRadius: 6 }}>
+                                        <div style={{ fontSize: 10, fontWeight: 700, color: "#0369a1", marginBottom: 4 }}>📋 Dados e-Gestor APS — {d.egestor.competencia_cnes} · Parcela {d.egestor.parcela}</div>
+                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "3px 16px" }}>
+                                          {d.egestor.equipes_credenciadas !== undefined && (
+                                            <div style={{ fontSize: 10, color: "#374151" }}>Equipes credenciadas: <b>{d.egestor.equipes_credenciadas}</b></div>
+                                          )}
+                                          {d.egestor.equipes_adesao_remoto_tic !== undefined && (
+                                            <div style={{ fontSize: 10, color: "#374151" }}>Adesão Remoto TIC: <b>{d.egestor.equipes_adesao_remoto_tic}</b></div>
+                                          )}
+                                          {d.egestor.equipes_homologadas !== undefined && (
+                                            <div style={{ fontSize: 10, color: "#374151" }}>Homologadas: <b>{d.egestor.equipes_homologadas}</b></div>
+                                          )}
+                                          {d.egestor.equipes_pagas !== undefined && (
+                                            <div style={{ fontSize: 10, color: "#374151" }}>Equipes pagas: <b>{d.egestor.equipes_pagas}</b></div>
+                                          )}
+                                          {d.egestor.equipes_atendimento_remoto_pagas !== undefined && (
+                                            <div style={{ fontSize: 10, color: d.egestor.equipes_atendimento_remoto_pagas === 0 ? "#dc2626" : "#16a34a", fontWeight: 700 }}>
+                                              Remoto pagas: {d.egestor.equipes_atendimento_remoto_pagas} {d.egestor.equipes_atendimento_remoto_pagas === 0 ? "⚠" : "✓"}
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "3px 8px", marginTop: 4, paddingTop: 4, borderTop: "1px solid #e0f2fe" }}>
+                                          {[
+                                            { label: "Pagamento", val: d.egestor.pagamento },
+                                            { label: "Ajuste", val: d.egestor.ajuste },
+                                            { label: "Desconto", val: d.egestor.desconto },
+                                            { label: "Total", val: d.egestor.total },
+                                          ].map(({ label, val }) => (
+                                            <div key={label} style={{ fontSize: 10, textAlign: "center" as const }}>
+                                              <div style={{ color: "#6b7280" }}>{label}</div>
+                                              <div style={{ fontWeight: 700, color: val === 0 ? "#9ca3af" : "#111827", fontVariantNumeric: "tabular-nums" }}>
+                                                R$ {Number(val).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                                 <div style={{ fontSize: 10, color: "#0369a1", marginTop: 6 }}>{row.portaria}</div>
