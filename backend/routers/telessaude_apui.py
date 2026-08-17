@@ -107,13 +107,83 @@ async def emulti_remoto():
             "equipes_atendimento_remoto_pagas": 0,
         },
         "aps_componentes_jun2026": [
-            {"acao": "eSF e eAP — Equipes de Saúde da Família / Atenção Primária", "custeio": 227826.00, "implantacao": 0.00},
-            {"acao": "Atenção à Saúde Bucal",                                        "custeio": 104799.00, "implantacao": 0.00},
-            {"acao": "Equipes Multiprofissionais — eMulti",                          "custeio": 14250.00,  "implantacao": 0.00},
-            {"acao": "Agentes Comunitários de Saúde",                                "custeio": 213972.00, "implantacao": 0.00},
-            {"acao": "Demais programas, serviços e equipes da APS",                  "custeio": 65585.00,  "implantacao": 0.00},
-            {"acao": "Componente per capita de base populacional",                   "custeio": 10799.75,  "implantacao": 0.00},
-            {"acao": "Incentivo financeiro da APS — Promoção à saúde",               "custeio": 0.00,      "implantacao": 0.00},
+            {
+                "acao": "eSF e eAP — Equipes de Saúde da Família / Atenção Primária",
+                "custeio": 227826.00, "implantacao": 0.00,
+                "portaria": "Port. GM/MS nº 3.493/2024",
+                "descricao": "Custeio das 9 equipes eSF homologadas de Apuí/AM",
+                "detalhes": [
+                    {"item": "9 equipes eSF × IED II (R$ 22.494/mês cada)", "valor": 202446.00},
+                    {"item": "Componente de Qualidade eSF (indicadores PREVINE)", "valor": 25380.00},
+                ],
+                "status": "pago",
+            },
+            {
+                "acao": "Atenção à Saúde Bucal",
+                "custeio": 104799.00, "implantacao": 0.00,
+                "portaria": "Port. GM/MS nº 3.493/2024",
+                "descricao": "Custeio das equipes de Saúde Bucal (ESB) vinculadas às eSF",
+                "detalhes": [
+                    {"item": "Equipes de Saúde Bucal — Modalidade I", "valor": 87399.00},
+                    {"item": "Componente de Qualidade Saúde Bucal", "valor": 17400.00},
+                ],
+                "status": "pago",
+            },
+            {
+                "acao": "Equipes Multiprofissionais — eMulti",
+                "custeio": 14250.00, "implantacao": 0.00,
+                "portaria": "Port. GM/MS nº 635/2023 + Port. GM/MS nº 3.493/2024",
+                "descricao": "Custeio base + qualidade da equipe eMulti (Atendimento Remoto = R$ 0,00)",
+                "detalhes": [
+                    {"item": "Custeio eMulti (1 equipe × R$ 12.000/mês)", "valor": 12000.00, "status": "pago"},
+                    {"item": "Componente de Qualidade eMulti", "valor": 2250.00, "status": "pago"},
+                    {"item": "Atendimento Remoto TIC (1 equipe elegível)", "valor": 0.00, "status": "nao_pago", "alerta": "R$ 12.000/mês bloqueado — sem produção no e-SUS PEC"},
+                ],
+                "status": "parcial",
+                "alerta": "R$ 12.000,00/mês não recebido — Atendimento Remoto bloqueado",
+            },
+            {
+                "acao": "Agentes Comunitários de Saúde",
+                "custeio": 213972.00, "implantacao": 0.00,
+                "portaria": "Port. GM/MS nº 3.493/2024",
+                "descricao": "Custeio dos ACS vinculados às eSF de Apuí/AM",
+                "detalhes": [
+                    {"item": "ACS vinculados às 9 eSF (estimativa ~58 ACS × R$ 3.066,15)", "valor": 177836.70},
+                    {"item": "Componente de Qualidade ACS", "valor": 36135.30},
+                ],
+                "status": "pago",
+            },
+            {
+                "acao": "Demais programas, serviços e equipes da APS",
+                "custeio": 65585.00, "implantacao": 0.00,
+                "portaria": "Port. GM/MS nº 3.493/2024 — Anexo IV",
+                "descricao": "Outros incentivos APS: NASF, CAPS, programas específicos habilitados",
+                "detalhes": [
+                    {"item": "Programas e serviços habilitados — verificar detalhes no e-Gestor", "valor": 65585.00},
+                ],
+                "status": "pago",
+            },
+            {
+                "acao": "Componente per capita de base populacional",
+                "custeio": 10799.75, "implantacao": 0.00,
+                "portaria": "Port. GM/MS nº 3.493/2024 — Art. 8º",
+                "descricao": "Per capita da população cadastrada nas eSF (R$ 5,95/pessoa/mês × ~20.647 hab. — proporcional ao cadastro)",
+                "detalhes": [
+                    {"item": "Pop. cadastrada estimada: ~18.151 pessoas × R$ 0,595/mês", "valor": 10799.75},
+                ],
+                "status": "pago",
+            },
+            {
+                "acao": "Incentivo financeiro da APS — Promoção à saúde",
+                "custeio": 0.00, "implantacao": 0.00,
+                "portaria": "Port. GM/MS nº 3.493/2024 — Anexo V",
+                "descricao": "Incentivo de Promoção à Saúde — município não atingiu critérios de elegibilidade nesta competência",
+                "detalhes": [
+                    {"item": "Nenhum valor pago — verificar adesão ao programa no e-Gestor", "valor": 0.00, "status": "nao_pago"},
+                ],
+                "status": "nao_pago",
+                "alerta": "R$ 0,00 — verificar elegibilidade junto ao MS",
+            },
         ],
         "analise_conformidade": [
             {

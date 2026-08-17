@@ -36,6 +36,7 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
 
 export default function TelessaudeApui() {
   const [aba, setAba] = useState("dashboard");
+  const [expandedAps, setExpandedAps] = useState<string[]>([]);
 
   const { data: dash }        = useQuery({ queryKey: ["ts-dashboard"],  queryFn: () => apiGet("/api/telessaude-apui/dashboard"),    enabled: aba === "dashboard" });
   const { data: espec }       = useQuery({ queryKey: ["ts-espec"],      queryFn: () => apiGet("/api/telessaude-apui/especialidades"),enabled: aba === "especialidades" });
@@ -430,39 +431,77 @@ export default function TelessaudeApui() {
                     <div style={{ fontSize: 12, color: "#78350f" }}>{ceg.conclusao}</div>
                   </div>
 
-                  {/* Tabela APS */}
+                  {/* Tabela APS com detalhamento */}
                   <div style={{ padding: "12px 16px" }}>
-                    <div style={{ fontWeight: 600, fontSize: 12, color: "#374151", marginBottom: 8 }}>Todos os Componentes APS — JUN/2026</div>
-                    <div style={{ overflowX: "auto" as const }}>
-                      <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" as const }}>
-                        <thead>
-                          <tr style={{ background: "#f8fafc" }}>
-                            <th style={{ textAlign: "left" as const, padding: "6px 8px", borderBottom: "1px solid #e5e7eb", color: "#6b7280", fontWeight: 600 }}>Ação / Programa</th>
-                            <th style={{ textAlign: "right" as const, padding: "6px 8px", borderBottom: "1px solid #e5e7eb", color: "#6b7280", fontWeight: 600 }}>Custeio</th>
-                            <th style={{ textAlign: "right" as const, padding: "6px 8px", borderBottom: "1px solid #e5e7eb", color: "#6b7280", fontWeight: 600 }}>Implantação</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {ceg.aps_componentes_jun2026?.map((row: any, i: number) => (
-                            <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#f8fafc" }}>
-                              <td style={{ padding: "6px 8px", color: "#374151" }}>{row.acao}</td>
-                              <td style={{ padding: "6px 8px", textAlign: "right" as const, fontWeight: 600, color: row.custeio > 0 ? "#16a34a" : "#9ca3af", fontVariantNumeric: "tabular-nums" }}>
+                    <div style={{ fontWeight: 600, fontSize: 12, color: "#374151", marginBottom: 8 }}>
+                      Recursos APS por Componente — JUN/2026
+                      <span style={{ fontSize: 10, color: "#6b7280", fontWeight: 400, marginLeft: 8 }}>Clique em cada linha para ver o detalhamento</span>
+                    </div>
+                    <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
+                      {/* Header */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px 80px", background: "#f8fafc", padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#6b7280", gap: 8 }}>
+                        <span>Ação / Programa</span>
+                        <span style={{ textAlign: "right" as const }}>Custeio</span>
+                        <span style={{ textAlign: "right" as const }}>Portaria</span>
+                        <span style={{ textAlign: "center" as const }}>Status</span>
+                      </div>
+                      {ceg.aps_componentes_jun2026?.map((row: any, i: number) => {
+                        const isExpanded = expandedAps.includes(row.acao);
+                        const stColor = row.status === "pago" ? "#16a34a" : row.status === "parcial" ? "#d97706" : "#dc2626";
+                        const stBg = row.status === "pago" ? "#f0fdf4" : row.status === "parcial" ? "#fffbeb" : "#fef2f2";
+                        const stLabel = row.status === "pago" ? "Pago" : row.status === "parcial" ? "Parcial" : "R$ 0,00";
+                        return (
+                          <div key={i} style={{ borderTop: "1px solid #f3f4f6" }}>
+                            <div
+                              onClick={() => setExpandedAps(prev => isExpanded ? prev.filter(x => x !== row.acao) : [...prev, row.acao])}
+                              style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px 80px", padding: "10px 12px", gap: 8, cursor: "pointer", background: isExpanded ? "#f0f9ff" : (i % 2 === 0 ? "#fff" : "#fafafa"), alignItems: "center" }}
+                            >
+                              <div>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", display: "flex", alignItems: "center", gap: 6 }}>
+                                  <span style={{ fontSize: 10, color: "#6b7280" }}>{isExpanded ? "▼" : "▶"}</span>
+                                  {row.acao}
+                                </div>
+                                <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{row.descricao}</div>
+                                {row.alerta && <div style={{ fontSize: 10, color: "#dc2626", fontWeight: 700, marginTop: 2 }}>⚠ {row.alerta}</div>}
+                              </div>
+                              <div style={{ textAlign: "right" as const, fontWeight: 700, fontSize: 13, color: row.custeio > 0 ? "#16a34a" : "#9ca3af", fontVariantNumeric: "tabular-nums" }}>
                                 R$ {row.custeio.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                              </td>
-                              <td style={{ padding: "6px 8px", textAlign: "right" as const, color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>
-                                R$ {row.implantacao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                              </td>
-                            </tr>
-                          ))}
-                          <tr style={{ background: "#eff6ff", fontWeight: 700 }}>
-                            <td style={{ padding: "6px 8px", color: "#1e40af" }}>TOTAL REPASSE APS</td>
-                            <td style={{ padding: "6px 8px", textAlign: "right" as const, color: "#1e40af", fontVariantNumeric: "tabular-nums" }}>
-                              R$ {ceg.total_aps_repasse?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </td>
-                            <td style={{ padding: "6px 8px", textAlign: "right" as const, color: "#9ca3af" }}>—</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                              </div>
+                              <div style={{ textAlign: "right" as const, fontSize: 10, color: "#6b7280" }}>{row.portaria?.split("—")[0]?.trim()}</div>
+                              <div style={{ textAlign: "center" as const }}>
+                                <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: stBg, color: stColor, border: `1px solid ${stColor}` }}>{stLabel}</span>
+                              </div>
+                            </div>
+                            {isExpanded && (
+                              <div style={{ background: "#f0f9ff", borderTop: "1px solid #bae6fd", padding: "10px 16px 10px 28px" }}>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: "#0369a1", marginBottom: 6 }}>Detalhamento dos sub-repasses:</div>
+                                {row.detalhes?.map((d: any, j: number) => (
+                                  <div key={j} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid #e0f2fe" }}>
+                                    <div style={{ flex: 1 }}>
+                                      <span style={{ fontSize: 12, color: "#374151" }}>{d.item}</span>
+                                      {d.alerta && <div style={{ fontSize: 10, color: "#dc2626", fontWeight: 700 }}>⚠ {d.alerta}</div>}
+                                    </div>
+                                    <div style={{ flexShrink: 0, fontWeight: 700, fontSize: 13, fontVariantNumeric: "tabular-nums", color: d.status === "nao_pago" ? "#dc2626" : "#16a34a", marginLeft: 16 }}>
+                                      R$ {Number(d.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                      {d.status === "nao_pago" && <span style={{ fontSize: 9, marginLeft: 4, color: "#dc2626" }}>✕</span>}
+                                      {d.status === "pago" && <span style={{ fontSize: 9, marginLeft: 4, color: "#16a34a" }}>✓</span>}
+                                    </div>
+                                  </div>
+                                ))}
+                                <div style={{ fontSize: 10, color: "#0369a1", marginTop: 6 }}>{row.portaria}</div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px 80px", background: "#eff6ff", padding: "10px 12px", gap: 8, borderTop: "2px solid #bfdbfe" }}>
+                        <span style={{ fontWeight: 700, color: "#1e40af", fontSize: 12 }}>TOTAL REPASSE APS — JUN/2026</span>
+                        <span style={{ textAlign: "right" as const, fontWeight: 800, color: "#1e40af", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                          R$ {ceg.total_aps_repasse?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
+                        <span />
+                        <span style={{ textAlign: "center" as const, fontSize: 10, fontWeight: 700, color: "#d97706" }}>Parcial</span>
+                      </div>
                     </div>
                     <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 6 }}>Fonte: {ceg.fonte}</div>
                   </div>
