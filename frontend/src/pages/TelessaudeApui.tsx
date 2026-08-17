@@ -37,6 +37,49 @@ const ProgressBar = ({ value, max, color }: { value: number; max: number; color:
 export default function TelessaudeApui() {
   const [aba, setAba] = useState("dashboard");
   const [expandedAps, setExpandedAps] = useState<string[]>([]);
+  const [syncStatus, setSyncStatus] = useState<"idle"|"syncing"|"ok"|"error">("idle");
+  const [syncMsg, setSyncMsg] = useState<string>("");
+  const [syncTs, setSyncTs] = useState<string>("");
+
+  const apiBase = (import.meta.env.VITE_API_URL ?? "http://localhost:8000");
+
+  async function sincronizarEgestor() {
+    setSyncStatus("syncing");
+    setSyncMsg("Conectando ao e-Gestor APS...");
+    try {
+      const r = await fetch(`${apiBase}/api/telessaude-apui/sincronizar-egestor`, { method: "POST" });
+      const j = await r.json();
+      if (j.status === "cache_valido") {
+        setSyncStatus("ok");
+        setSyncMsg("Dados já atualizados recentemente.");
+        setSyncTs(j.ultima_atualizacao ?? "");
+      } else {
+        setSyncMsg("Sincronizando... aguarde ~30s");
+        // Polling do status
+        let tentativas = 0;
+        const poll = setInterval(async () => {
+          tentativas++;
+          try {
+            const sr = await fetch(`${apiBase}/api/telessaude-apui/status-sincronizacao`);
+            const sj = await sr.json();
+            if (sj.sincronizado) {
+              clearInterval(poll);
+              setSyncStatus("ok");
+              setSyncMsg("Sincronizado com e-Gestor APS!");
+              setSyncTs(sj.ultima_atualizacao ?? "");
+            } else if (tentativas >= 12) {
+              clearInterval(poll);
+              setSyncStatus("error");
+              setSyncMsg("Timeout. Verifique se o Playwright está instalado no Railway.");
+            }
+          } catch { /* continua polling */ }
+        }, 5000);
+      }
+    } catch {
+      setSyncStatus("error");
+      setSyncMsg("Erro ao conectar ao backend.");
+    }
+  }
 
   const { data: dash }        = useQuery({ queryKey: ["ts-dashboard"],  queryFn: () => apiGet("/api/telessaude-apui/dashboard"),    enabled: aba === "dashboard" });
   const { data: espec }       = useQuery({ queryKey: ["ts-espec"],      queryFn: () => apiGet("/api/telessaude-apui/especialidades"),enabled: aba === "especialidades" });
@@ -302,10 +345,23 @@ export default function TelessaudeApui() {
                   </div>
                 </div>
               </div>
-              <button onClick={gerarRelatorio}
-                style={{ flexShrink: 0, background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 7, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
-                ⬇ Gerar Relatório
-              </button>
+              <div style={{ display: "flex", flexDirection: "column" as const, gap: 6, alignItems: "flex-end", flexShrink: 0 }}>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={sincronizarEgestor} disabled={syncStatus === "syncing"}
+                    style={{ background: syncStatus === "ok" ? "#16a34a" : syncStatus === "error" ? "#dc2626" : "#0369a1", color: "#fff", border: "none", borderRadius: 7, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: syncStatus === "syncing" ? "wait" : "pointer", whiteSpace: "nowrap" as const, opacity: syncStatus === "syncing" ? 0.8 : 1 }}>
+                    {syncStatus === "syncing" ? "⏳ Sincronizando..." : syncStatus === "ok" ? "✓ e-Gestor Live" : syncStatus === "error" ? "✕ Erro Sync" : "🔄 Sincronizar e-Gestor"}
+                  </button>
+                  <button onClick={gerarRelatorio}
+                    style={{ background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 7, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" as const }}>
+                    ⬇ Gerar Relatório
+                  </button>
+                </div>
+                {syncMsg && (
+                  <div style={{ fontSize: 10, color: syncStatus === "ok" ? "#16a34a" : syncStatus === "error" ? "#dc2626" : "#0369a1", textAlign: "right" as const }}>
+                    {syncMsg}{syncTs ? ` · ${new Date(syncTs).toLocaleString("pt-BR")}` : ""}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Diagnóstico resumido */}

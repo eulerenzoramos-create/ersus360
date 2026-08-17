@@ -1,13 +1,16 @@
 """
 Router: /api/telessaude-apui — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
+Dados reais do e-Gestor APS com scraping ao vivo (Playwright) e cache de 6h.
 """
 from __future__ import annotations
+import asyncio
+import logging
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from typing import Optional
 from routers.auth import get_current_user, UserOut
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/telessaude-apui", tags=["telessaude_apui"])
 
@@ -436,5 +439,61 @@ async def emulti_remoto():
             "Atualizar mensalmente após processamento SISAB (competência anterior liberada até dia 20 do mês seguinte)."
         ),
     }
+    # Sobrescreve detalhes do e-Gestor com dados ao vivo se disponíveis no cache
+    try:
+        from services.egestor_scraper import get_cached_or_none
+        live = get_cached_or_none()
+        if live:
+            for comp in dados["conformidade_egestor"]["aps_componentes_jun2026"]:
+                if comp["acao"] == "Equipes Multiprofissionais — eMulti":
+                    for det in comp["detalhes"]:
+                        key_map = {"Custeio eMulti": "custeio", "Componente de Qualidade eMulti": "qualidade", "Atendimento Remoto TIC": "remoto"}
+                        lkey = key_map.get(det["item"])
+                        if lkey and live.get(lkey):
+                            det["egestor"].update(live[lkey])
+            dados["sincronizacao_egestor"] = {
+                "fonte": "egestor_live",
+                "ultima_atualizacao": live["ultima_sincronizacao"],
+                "status": "sincronizado",
+            }
+    except Exception as e:
+        logger.warning("Erro ao aplicar dados live do e-Gestor: %s", e)
+
     return {"situacao_dado": "referencia_municipal", "dados": dados}
+
+
+@router.post("/sincronizar-egestor")
+async def sincronizar_egestor(background_tasks: BackgroundTasks):
+    """
+    Dispara scraping ao vivo do e-Gestor APS em background.
+    Retorna imediatamente; o cache é atualizado quando concluído.
+    """
+    from services.egestor_scraper import fetch_egestor_emulti, get_cached_or_none, _cache_valid
+
+    cached = get_cached_or_none()
+    if cached:
+        return {
+            "status": "cache_valido",
+            "mensagem": "Dados já sincronizados recentemente.",
+            "ultima_atualizacao": cached["ultima_sincronizacao"],
+        }
+
+    background_tasks.add_task(fetch_egestor_emulti)
+    return {
+        "status": "sincronizando",
+        "mensagem": "Scraping do e-Gestor iniciado em background. Aguarde ~30s e recarregue.",
+    }
+
+
+@router.get("/status-sincronizacao")
+async def status_sincronizacao():
+    """Retorna o status atual do cache do e-Gestor."""
+    from services.egestor_scraper import get_cached_or_none, _cache, _cache_valid
+    cached = get_cached_or_none()
+    return {
+        "sincronizado": cached is not None,
+        "ultima_atualizacao": cached["ultima_sincronizacao"] if cached else None,
+        "dados_disponiveis": list(cached.keys()) if cached else [],
+        "ttl_horas": 6,
+    }
 
