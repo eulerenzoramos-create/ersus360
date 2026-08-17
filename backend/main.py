@@ -1,6 +1,7 @@
 """
 ERSUS 360 — FastAPI Main
 FMS Apuí / AM · Gestão Inteligente do SUS
+Build: 2026-08-17 — Playwright eGestor scraper
 """
 from contextlib import asynccontextmanager
 import logging
