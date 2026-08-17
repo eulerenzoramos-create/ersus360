@@ -230,34 +230,102 @@ export default function TelessaudeApui() {
         )}
 
         {/* ── eMulti Atendimento Remoto ── */}
-        {aba === "emulti" && emultiRaw && (
+        {aba === "emulti" && emultiRaw && (() => {
+          const d = emultiRaw;
+          const diag = d.diagnostico ?? {};
+          const gerarRelatorio = () => {
+            const linhas: string[] = [
+              "=".repeat(70),
+              "RELATÓRIO DE INCONSISTÊNCIAS — eMulti ATENDIMENTO REMOTO",
+              `Município: ${d.municipio}/${d.uf}   Período: ${d.periodo_analise ?? "JAN–AGO/2026"}`,
+              `Gerado em: ${new Date().toLocaleString("pt-BR")}`,
+              `Fonte: ${d.fonte_dados ?? "e-Gestor APS"}`,
+              "=".repeat(70),
+              "",
+              "► RESUMO EXECUTIVO",
+              diag.resumo_executivo ?? "",
+              "",
+              `► IMPACTO FINANCEIRO TOTAL: R$ ${(d.perda_acumulada ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+              `  Meses sem receber: ${d.meses_sem_receber ?? 0}   Potencial/mês: R$ ${(d.valor_potencial_mensal ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+              "",
+              "► HISTÓRICO DE PAGAMENTOS",
+              ...(d.historico_pagamentos ?? []).map((h: any) =>
+                `  ${h.competencia} (${h.parcela}): R$ ${Number(h.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} — ${h.status === "nao_pago" ? "NÃO RECEBIDO" : "RECEBIDO"}`
+              ),
+              "",
+              "► INCONSISTÊNCIAS IDENTIFICADAS",
+              ...(d.inconsistencias ?? []).flatMap((inc: any, i: number) => [
+                "",
+                `  [${inc.codigo}] ${inc.titulo}`,
+                `  Gravidade: ${inc.gravidade.toUpperCase()}   Status: ${inc.status.toUpperCase()}`,
+                `  Portaria: ${inc.portaria}`,
+                `  Descrição: ${inc.descricao}`,
+                `  Ação corretiva: ${inc.acao_corretiva}`,
+                `  Prazo: ${inc.prazo}   Responsável: ${inc.responsavel}`,
+                inc.impacto_financeiro > 0
+                  ? `  Impacto financeiro: R$ ${inc.impacto_financeiro.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                  : "",
+              ]),
+              "",
+              "► DIAGNÓSTICO E PREVISÃO",
+              `  Total de inconsistências: ${diag.total_inconsistencias ?? 0}`,
+              `  Críticas: ${diag.criticas ?? 0}   Altas: ${diag.altas ?? 0}   Médias: ${diag.medias ?? 0}`,
+              `  Previsão de regularização: ${diag.previsao_regularizacao ?? ""}`,
+              `  Próximo repasse estimado: ${diag.proximo_repasse_estimado ?? ""}`,
+              "",
+              "=".repeat(70),
+              "Relatório gerado pelo ERSUS 360 — FMS Apuí/AM   v1.0.0",
+              "=".repeat(70),
+            ];
+            const blob = new Blob([linhas.join("\n")], { type: "text/plain;charset=utf-8" });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement("a");
+            a.href = url; a.download = `relatorio_emulti_apui_${new Date().toISOString().slice(0,10)}.txt`;
+            a.click(); URL.revokeObjectURL(url);
+          };
+
+          return (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
             {/* Banner crítico */}
-            <div style={{ background: "#fef2f2", border: "2px solid #fca5a5", borderRadius: 10, padding: "14px 18px", display: "flex", gap: 14, alignItems: "flex-start" }}>
-              <span style={{ fontSize: 24 }}>🚨</span>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 15, color: "#b91c1c", marginBottom: 4 }}>
-                  eMulti — Atendimento Remoto: R$ 0,00 recebido em {emultiRaw.competencia_verificada}
-                </div>
-                <div style={{ fontSize: 13, color: "#7f1d1d" }}>
-                  Potencial <strong>R$ {emultiRaw.valor_potencial_mensal?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</strong> · Perda acumulada desde Jan/2026:{" "}
-                  <strong>R$ {(emultiRaw.valor_potencial_mensal * 6)?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong> · Portaria GM/MS nº 635/2023
+            <div style={{ background: "#fef2f2", border: "2px solid #fca5a5", borderRadius: 10, padding: "14px 18px", display: "flex", gap: 14, alignItems: "flex-start", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 24 }}>🚨</span>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: "#b91c1c", marginBottom: 4 }}>
+                    eMulti — Atendimento Remoto: R$ 0,00 recebido em {d.competencia_verificada}
+                  </div>
+                  <div style={{ fontSize: 13, color: "#7f1d1d" }}>
+                    Período analisado: <strong>{d.periodo_analise}</strong> · Perda acumulada:{" "}
+                    <strong>R$ {(d.perda_acumulada ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong> · {d.meses_sem_receber} meses sem receber · Port. GM/MS nº 635/2023
+                  </div>
                 </div>
               </div>
+              <button onClick={gerarRelatorio}
+                style={{ flexShrink: 0, background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 7, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                ⬇ Gerar Relatório
+              </button>
             </div>
+
+            {/* Diagnóstico resumido */}
+            {diag.resumo_executivo && (
+              <div style={{ background: "#fef9c3", border: "1px solid #fde047", borderRadius: 8, padding: "12px 16px", fontSize: 13, color: "#713f12" }}>
+                <strong>Diagnóstico:</strong> {diag.resumo_executivo}
+              </div>
+            )}
 
             {/* KPIs */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10 }}>
               {[
-                { label: "Recebido JUN/2026", val: "R$ 0,00",         cor: "#dc2626" },
-                { label: "Potencial/mês",     val: "R$ 12.000,00",    cor: "#d97706" },
-                { label: "Potencial/ano",     val: "R$ 144.000,00",   cor: "#d97706" },
-                { label: "Competências sem receber", val: "6 de 8",   cor: "#dc2626" },
-                { label: "Modalidade",        val: "Estratégica",      cor: "#1d4ed8" },
+                { label: `Recebido ${d.competencia_verificada}`, val: "R$ 0,00", cor: "#dc2626" },
+                { label: "Potencial/mês",     val: `R$ ${(d.valor_potencial_mensal??0).toLocaleString("pt-BR",{minimumFractionDigits:2})}`, cor: "#d97706" },
+                { label: "Perda acumulada",   val: `R$ ${(d.perda_acumulada??0).toLocaleString("pt-BR",{minimumFractionDigits:2})}`, cor: "#dc2626" },
+                { label: "Meses sem receber", val: `${d.meses_sem_receber} de ${d.parcela?.split("/")[1]??12}`, cor: "#dc2626" },
+                { label: "Inconsistências",   val: `${diag.criticas??0} críticas`, cor: "#dc2626" },
+                { label: "Modalidade",        val: d.modalidade_credenciada ?? "—", cor: "#1d4ed8" },
               ].map(k => (
                 <div key={k.label} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".07em" }}>{k.label}</div>
+                  <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase" as const, letterSpacing: ".07em" }}>{k.label}</div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: k.cor, marginTop: 4 }}>{k.val}</div>
                 </div>
               ))}
@@ -265,24 +333,76 @@ export default function TelessaudeApui() {
 
             {/* Histórico de pagamentos */}
             <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
-              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, color: "#1d4ed8" }}>Histórico de Pagamentos — 2026</div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {emultiRaw.historico_pagamentos?.map((h: any) => (
-                  <div key={h.competencia} style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 7, padding: "8px 14px", textAlign: "center" }}>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, color: "#1d4ed8" }}>Histórico de Pagamentos — Jan a Ago/2026</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+                {d.historico_pagamentos?.map((h: any) => (
+                  <div key={h.competencia} style={{ background: h.status === "nao_pago" ? "#fef2f2" : "#f0fdf4", border: `1px solid ${h.status === "nao_pago" ? "#fca5a5" : "#86efac"}`, borderRadius: 7, padding: "8px 14px", textAlign: "center" as const }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280" }}>{h.competencia}</div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "#dc2626" }}>R$ 0,00</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: h.status === "nao_pago" ? "#dc2626" : "#16a34a" }}>
+                      R$ {Number(h.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </div>
                     <div style={{ fontSize: 9, color: "#9ca3af" }}>{h.parcela}</div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: h.status === "nao_pago" ? "#dc2626" : "#16a34a", marginTop: 2 }}>
+                      {h.status === "nao_pago" ? "NÃO RECEBIDO" : "RECEBIDO"}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Checklist */}
+            {/* Inconsistências */}
+            {d.inconsistencias && d.inconsistencias.length > 0 && (
+              <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+                <div style={{ background: "#fef2f2", borderBottom: "1px solid #fca5a5", padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: 700, fontSize: 12, color: "#b91c1c", textTransform: "uppercase" as const, letterSpacing: ".07em" }}>
+                    Inconsistências Identificadas ({d.inconsistencias.length})
+                  </span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {diag.criticas > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: "#dc2626", color: "#fff", padding: "2px 8px", borderRadius: 20 }}>{diag.criticas} Crítica{diag.criticas > 1 ? "s" : ""}</span>}
+                    {diag.altas > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: "#d97706", color: "#fff", padding: "2px 8px", borderRadius: 20 }}>{diag.altas} Alta{diag.altas > 1 ? "s" : ""}</span>}
+                    {diag.medias > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: "#2563eb", color: "#fff", padding: "2px 8px", borderRadius: 20 }}>{diag.medias} Média{diag.medias > 1 ? "s" : ""}</span>}
+                  </div>
+                </div>
+                {d.inconsistencias.map((inc: any) => {
+                  const gCor = inc.gravidade === "critica" ? "#dc2626" : inc.gravidade === "alta" ? "#d97706" : "#2563eb";
+                  const gBg  = inc.gravidade === "critica" ? "#fef2f2" : inc.gravidade === "alta" ? "#fffbeb" : "#eff6ff";
+                  return (
+                    <div key={inc.codigo} style={{ borderBottom: "1px solid #f3f4f6", padding: "14px 16px" }}>
+                      <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, background: gBg, color: gCor, border: `1px solid ${gCor}`, padding: "2px 7px", borderRadius: 4, flexShrink: 0, marginTop: 2 }}>
+                          {inc.codigo}
+                        </span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: "#111827" }}>{inc.titulo}</div>
+                          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 3 }}>{inc.descricao}</div>
+                          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
+                            <span style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 600 }}>→ {inc.acao_corretiva}</span>
+                            <span style={{ fontSize: 10, background: "#dbeafe", color: "#1e40af", fontWeight: 700, padding: "1px 8px", borderRadius: 20 }}>⏰ {inc.prazo}</span>
+                            <span style={{ fontSize: 10, color: "#6b7280" }}>👤 {inc.responsavel}</span>
+                            {inc.impacto_financeiro > 0 && (
+                              <span style={{ fontSize: 10, background: "#fef2f2", color: "#dc2626", fontWeight: 700, padding: "1px 8px", borderRadius: 20 }}>
+                                💸 R$ {inc.impacto_financeiro.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ marginTop: 4, fontSize: 10, color: "#9ca3af" }}>{inc.portaria}</div>
+                        </div>
+                        <div style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: gBg, color: gCor, border: `1px solid ${gCor}` }}>
+                          {inc.gravidade.charAt(0).toUpperCase() + inc.gravidade.slice(1)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Checklist regulatório */}
             <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ background: "#f8faff", borderBottom: "1px solid #e5e7eb", padding: "10px 16px", fontWeight: 700, fontSize: 12, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: ".07em" }}>
+              <div style={{ background: "#f8faff", borderBottom: "1px solid #e5e7eb", padding: "10px 16px", fontWeight: 700, fontSize: 12, color: "#1d4ed8", textTransform: "uppercase" as const, letterSpacing: ".07em" }}>
                 Checklist Regulatório — Port. GM/MS nº 635/2023
               </div>
-              {emultiRaw.checklist?.map((c: any) => {
+              {d.checklist?.map((c: any) => {
                 const cor = c.status === "ok" ? "#16a34a" : c.status === "verificar" ? "#d97706" : "#dc2626";
                 const bg  = c.status === "ok" ? "#f0fdf4" : c.status === "verificar" ? "#fffbeb" : "#fef2f2";
                 const ic  = c.status === "ok" ? "✓" : c.status === "verificar" ? "!" : "✕";
@@ -294,7 +414,7 @@ export default function TelessaudeApui() {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: 13, color: "#111827" }}>{c.item}</div>
                       <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{c.descricao}</div>
-                      <div style={{ display: "flex", gap: 12, marginTop: 6, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: 12, marginTop: 6, flexWrap: "wrap" as const }}>
                         <span style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 600 }}>→ {c.acao}</span>
                         {c.prazo !== "—" && <span style={{ fontSize: 10, background: "#dbeafe", color: "#1e40af", fontWeight: 700, padding: "1px 8px", borderRadius: 20 }}>⏰ {c.prazo}</span>}
                       </div>
@@ -307,12 +427,14 @@ export default function TelessaudeApui() {
               })}
             </div>
 
+            {/* Previsão */}
             <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "12px 16px", fontSize: 12, color: "#78350f" }}>
-              <strong>Próximo passo:</strong> Regularizar o SCNES até 20/07/2026 e iniciar registro de produção remota no e-SUS PEC para receber a partir de AGO/2026 (parcela 10/12).
-              Verificar confirmação no e-Gestor APS em 15/08/2026.
+              <strong>Previsão de regularização:</strong> {diag.previsao_regularizacao} — <strong>Próximo repasse estimado:</strong> {diag.proximo_repasse_estimado}.
+              <br/>Verificar confirmação no e-Gestor APS até 15/09/2026 · Fonte: {d.fonte_dados}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {aba === "emulti" && emultiLoading && (
           <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando dados eMulti Remoto...</div>
