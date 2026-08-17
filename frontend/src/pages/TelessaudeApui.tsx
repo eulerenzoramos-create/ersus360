@@ -42,15 +42,18 @@ export default function TelessaudeApui() {
   const { data: conect }      = useQuery({ queryKey: ["ts-conect"],     queryFn: () => apiGet("/api/telessaude-apui/conectividade"), enabled: aba === "conectividade" });
   const { data: historico }   = useQuery({ queryKey: ["ts-historico"],  queryFn: () => apiGet("/api/telessaude-apui/historico"),     enabled: aba === "historico" });
   const { data: indicadores } = useQuery({ queryKey: ["ts-ind"],        queryFn: () => apiGet("/api/telessaude-apui/indicadores"),   enabled: aba === "indicadores" });
+  const { data: emulti }      = useQuery({ queryKey: ["ts-emulti"],     queryFn: () => apiGet("/api/telessaude-apui/emulti-remoto"), enabled: aba === "emulti" });
 
-  const dashRaw = dash as any;
+  const dashRaw   = dash as any;
+  const emultiRaw = emulti as any;
 
   const ABAS = [
-    { key: "dashboard",     label: "Dashboard",       icon: <Monitor size={15}/> },
-    { key: "especialidades",label: "Especialidades",  icon: <Radio size={15}/> },
-    { key: "conectividade", label: "Conectividade",   icon: <Radio size={15}/> },
-    { key: "historico",     label: "Histórico",       icon: <TrendingUp size={15}/> },
-    { key: "indicadores",   label: "Indicadores",     icon: <AlertTriangle size={15}/> },
+    { key: "dashboard",     label: "Dashboard",           icon: <Monitor size={15}/> },
+    { key: "especialidades",label: "Especialidades",      icon: <Radio size={15}/> },
+    { key: "conectividade", label: "Conectividade",       icon: <Radio size={15}/> },
+    { key: "historico",     label: "Histórico",           icon: <TrendingUp size={15}/> },
+    { key: "indicadores",   label: "Indicadores",         icon: <AlertTriangle size={15}/> },
+    { key: "emulti",        label: "🚨 eMulti Remoto",    icon: <AlertTriangle size={15}/> },
   ];
 
   return (
@@ -224,6 +227,95 @@ export default function TelessaudeApui() {
               </div>
             ))}
           </div>
+        )}
+
+        {/* ── eMulti Atendimento Remoto ── */}
+        {aba === "emulti" && emultiRaw && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+            {/* Banner crítico */}
+            <div style={{ background: "#fef2f2", border: "2px solid #fca5a5", borderRadius: 10, padding: "14px 18px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+              <span style={{ fontSize: 24 }}>🚨</span>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: "#b91c1c", marginBottom: 4 }}>
+                  eMulti — Atendimento Remoto: R$ 0,00 recebido em {emultiRaw.competencia_verificada}
+                </div>
+                <div style={{ fontSize: 13, color: "#7f1d1d" }}>
+                  Potencial <strong>R$ {emultiRaw.valor_potencial_mensal?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês</strong> · Perda acumulada desde Jan/2026:{" "}
+                  <strong>R$ {(emultiRaw.valor_potencial_mensal * 6)?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong> · Portaria GM/MS nº 635/2023
+                </div>
+              </div>
+            </div>
+
+            {/* KPIs */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10 }}>
+              {[
+                { label: "Recebido JUN/2026", val: "R$ 0,00",         cor: "#dc2626" },
+                { label: "Potencial/mês",     val: "R$ 12.000,00",    cor: "#d97706" },
+                { label: "Potencial/ano",     val: "R$ 144.000,00",   cor: "#d97706" },
+                { label: "Competências sem receber", val: "6 de 8",   cor: "#dc2626" },
+                { label: "Modalidade",        val: "Estratégica",      cor: "#1d4ed8" },
+              ].map(k => (
+                <div key={k.label} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "12px 14px" }}>
+                  <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".07em" }}>{k.label}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: k.cor, marginTop: 4 }}>{k.val}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Histórico de pagamentos */}
+            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, color: "#1d4ed8" }}>Histórico de Pagamentos — 2026</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {emultiRaw.historico_pagamentos?.map((h: any) => (
+                  <div key={h.competencia} style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 7, padding: "8px 14px", textAlign: "center" }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280" }}>{h.competencia}</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "#dc2626" }}>R$ 0,00</div>
+                    <div style={{ fontSize: 9, color: "#9ca3af" }}>{h.parcela}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Checklist */}
+            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ background: "#f8faff", borderBottom: "1px solid #e5e7eb", padding: "10px 16px", fontWeight: 700, fontSize: 12, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: ".07em" }}>
+                Checklist Regulatório — Port. GM/MS nº 635/2023
+              </div>
+              {emultiRaw.checklist?.map((c: any) => {
+                const cor = c.status === "ok" ? "#16a34a" : c.status === "verificar" ? "#d97706" : "#dc2626";
+                const bg  = c.status === "ok" ? "#f0fdf4" : c.status === "verificar" ? "#fffbeb" : "#fef2f2";
+                const ic  = c.status === "ok" ? "✓" : c.status === "verificar" ? "!" : "✕";
+                return (
+                  <div key={c.item} style={{ borderBottom: "1px solid #f3f4f6", padding: "12px 16px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <div style={{ flexShrink: 0, width: 22, height: 22, borderRadius: "50%", background: bg, border: `1.5px solid ${cor}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: cor, marginTop: 2 }}>
+                      {ic}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: "#111827" }}>{c.item}</div>
+                      <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{c.descricao}</div>
+                      <div style={{ display: "flex", gap: 12, marginTop: 6, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 600 }}>→ {c.acao}</span>
+                        {c.prazo !== "—" && <span style={{ fontSize: 10, background: "#dbeafe", color: "#1e40af", fontWeight: 700, padding: "1px 8px", borderRadius: 20 }}>⏰ {c.prazo}</span>}
+                      </div>
+                    </div>
+                    <div style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: bg, color: cor, border: `1px solid ${cor}`, marginTop: 2 }}>
+                      {c.status === "ok" ? "OK" : c.status === "verificar" ? "Verificar" : "Pendente"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "12px 16px", fontSize: 12, color: "#78350f" }}>
+              <strong>Próximo passo:</strong> Regularizar o SCNES até 20/07/2026 e iniciar registro de produção remota no e-SUS PEC para receber a partir de AGO/2026 (parcela 10/12).
+              Verificar confirmação no e-Gestor APS em 15/08/2026.
+            </div>
+          </div>
+        )}
+
+        {aba === "emulti" && !emultiRaw && (
+          <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>
         )}
       </div>
     </div>

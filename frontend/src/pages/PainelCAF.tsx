@@ -192,6 +192,7 @@ function AbaPorEquipe({ equipes }: { equipes: any[] | undefined }) {
               <div onClick={() => toggle(e.nome)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", cursor: "pointer" }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{e.nome}</div>
+                  {e.ubs && <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 500, marginBottom: 2 }}>{e.ubs}</div>}
                   <div style={{ fontSize: 11, color: "#9ca3af" }}>Param: {e.parametro?.toLocaleString("pt-BR")} pessoas · Vínculo: {e.vinculo?.toFixed(2)}</div>
                 </div>
                 <div style={{ textAlign: "right", minWidth: 90 }}>

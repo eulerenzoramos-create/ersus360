@@ -111,8 +111,8 @@ function AbaAbrangencia({ data }: { data: any }) {
                     <span style={{ fontSize: 10, color: "#1d4ed8" }}>📊</span>
                     <span style={{ fontSize: 13, fontWeight: 500 }}>{t}</span>
                   </div>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: data[col.key][t] > 0 ? "#1d4ed8" : "#9ca3af" }}>
-                    {data[col.key][t]}
+                  <span style={{ fontSize: 15, fontWeight: 700, color: (data[col.key]?.[t] ?? 0) > 0 ? "#1d4ed8" : "#9ca3af" }}>
+                    {data[col.key]?.[t] ?? 0}
                   </span>
                 </div>
               ))}
