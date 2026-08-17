@@ -65,8 +65,7 @@ async def indicadores():
 @router.get("/emulti-remoto")
 async def emulti_remoto():
     """Monitoramento do incentivo eMulti - Atendimento Remoto (Port. GM/MS 635/2023)."""
-    return {
-        "situacao_dado": "referencia_municipal",
+    dados = {
         "municipio": "APUI",
         "uf": "AM",
         "competencia_verificada": "JUN/2026",
@@ -137,4 +136,5 @@ async def emulti_remoto():
             "Atualizar após regularização no SCNES e registro de produção no e-SUS PEC."
         ),
     }
+    return {"situacao_dado": "referencia_municipal", "dados": dados}
 
