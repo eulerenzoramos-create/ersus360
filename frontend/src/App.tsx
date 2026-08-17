@@ -1,5 +1,5 @@
 // src/App.tsx — ERSUS 360 · Sidebar estilo VersaSaúde (3 níveis)
-import { useState, createContext, useContext, Component } from "react";
+import { useState, createContext, useContext, Component, useEffect } from "react";
 
 // ── Error Boundary global — evita tela branca em crashes de componentes ───────
 class AppErrorBoundary extends Component<
@@ -1022,6 +1022,12 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
 
 // ── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
+  // Acorda o backend Railway na inicialização (evita cold start lento)
+  useEffect(() => {
+    const base = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+    fetch(`${base}/health`, { method: "GET" }).catch(() => {});
+  }, []);
+
   const [autenticado, setAutenticado]         = useState(!!localStorage.getItem("ersus_token"));
   const [nomeUsuario, setNomeUsuario]         = useState(localStorage.getItem("ersus_nome") ?? "");
   const [perfilUsuario, setPerfilUsuario]     = useState(localStorage.getItem("ersus_perfil") ?? "");
