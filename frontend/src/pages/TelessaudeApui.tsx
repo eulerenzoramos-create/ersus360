@@ -350,6 +350,126 @@ export default function TelessaudeApui() {
               </div>
             </div>
 
+            {/* Conformidade e-Gestor */}
+            {d.conformidade_egestor && (() => {
+              const ceg = d.conformidade_egestor;
+              return (
+                <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+                  <div style={{ background: "#f0f9ff", borderBottom: "1px solid #bae6fd", padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontWeight: 700, fontSize: 12, color: "#0369a1", textTransform: "uppercase" as const, letterSpacing: ".07em" }}>
+                      Conformidade e-Gestor APS — {ceg.competencia_referencia} (Parcela {ceg.parcela_referencia})
+                    </span>
+                    <span style={{ fontSize: 11, color: "#0369a1" }}>Total APS: <strong>R$ {ceg.total_aps_repasse?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></span>
+                  </div>
+
+                  {/* Componentes eMulti */}
+                  <div style={{ padding: "12px 16px", borderBottom: "1px solid #f3f4f6" }}>
+                    <div style={{ fontWeight: 600, fontSize: 12, color: "#374151", marginBottom: 8 }}>Componentes eMulti (JUN/2026)</div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+                      {ceg.componentes_emulti?.map((c: any) => (
+                        <div key={c.componente} style={{ flex: 1, minWidth: 180, background: c.status === "pago" ? "#f0fdf4" : "#fef2f2", border: `1px solid ${c.status === "pago" ? "#86efac" : "#fca5a5"}`, borderRadius: 8, padding: "10px 12px" }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "#374151", marginBottom: 4 }}>{c.componente}</div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: c.status === "pago" ? "#16a34a" : "#dc2626" }}>
+                            R$ {c.valor_pago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </div>
+                          {c.valor_referencia !== c.valor_pago && (
+                            <div style={{ fontSize: 10, color: "#9ca3af" }}>Potencial: R$ {c.valor_referencia.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+                          )}
+                          <div style={{ fontSize: 10, fontWeight: 700, color: c.status === "pago" ? "#16a34a" : "#dc2626", marginTop: 4 }}>
+                            {c.status === "pago" ? "✓ PAGO" : "✕ NÃO PAGO"}
+                          </div>
+                          {c.motivo_bloqueio && <div style={{ fontSize: 10, color: "#dc2626", marginTop: 3 }}>{c.motivo_bloqueio}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Indicadores e-Gestor */}
+                  <div style={{ padding: "12px 16px", borderBottom: "1px solid #f3f4f6" }}>
+                    <div style={{ fontWeight: 600, fontSize: 12, color: "#374151", marginBottom: 8 }}>Indicadores e-Gestor — eMulti</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 8 }}>
+                      {Object.entries(ceg.indicadores_egestor ?? {}).map(([k, v]: [string, any]) => {
+                        const labels: Record<string, string> = {
+                          equipes_credenciadas: "Equipes credenciadas",
+                          equipes_adesao_remoto_tic: "Adesão Remoto TIC",
+                          equipes_homologadas: "Equipes homologadas",
+                          equipes_pagas: "Equipes pagas",
+                          equipes_atendimento_remoto_pagas: "Remoto pagas",
+                        };
+                        const isProblema = k === "equipes_atendimento_remoto_pagas" && v === 0;
+                        return (
+                          <div key={k} style={{ background: isProblema ? "#fef2f2" : "#f8fafc", border: `1px solid ${isProblema ? "#fca5a5" : "#e5e7eb"}`, borderRadius: 7, padding: "8px 12px" }}>
+                            <div style={{ fontSize: 10, color: "#6b7280" }}>{labels[k] ?? k}</div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: isProblema ? "#dc2626" : "#16a34a" }}>{v}</div>
+                            {isProblema && <div style={{ fontSize: 9, color: "#dc2626", fontWeight: 700 }}>⚠ BLOQUEIO</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Análise de conformidade */}
+                  <div style={{ padding: "12px 16px", borderBottom: "1px solid #f3f4f6" }}>
+                    <div style={{ fontWeight: 600, fontSize: 12, color: "#374151", marginBottom: 8 }}>Análise de Conformidade</div>
+                    {ceg.analise_conformidade?.map((a: any) => (
+                      <div key={a.item} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "6px 0", borderBottom: "1px solid #f9fafb" }}>
+                        <div style={{ flexShrink: 0, width: 18, height: 18, borderRadius: "50%", background: a.conforme ? "#f0fdf4" : "#fef2f2", border: `1.5px solid ${a.conforme ? "#16a34a" : "#dc2626"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: a.conforme ? "#16a34a" : "#dc2626" }}>
+                          {a.conforme ? "✓" : "✕"}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: "#111827" }}>{a.item}</div>
+                          <div style={{ fontSize: 11, color: "#6b7280" }}>{a.valor_egestor} — {a.obs}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Conclusão */}
+                  <div style={{ padding: "12px 16px", background: "#fef9c3", borderTop: "1px solid #fde047" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#713f12", marginBottom: 4 }}>Conclusão da Análise e-Gestor:</div>
+                    <div style={{ fontSize: 12, color: "#78350f" }}>{ceg.conclusao}</div>
+                  </div>
+
+                  {/* Tabela APS */}
+                  <div style={{ padding: "12px 16px" }}>
+                    <div style={{ fontWeight: 600, fontSize: 12, color: "#374151", marginBottom: 8 }}>Todos os Componentes APS — JUN/2026</div>
+                    <div style={{ overflowX: "auto" as const }}>
+                      <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" as const }}>
+                        <thead>
+                          <tr style={{ background: "#f8fafc" }}>
+                            <th style={{ textAlign: "left" as const, padding: "6px 8px", borderBottom: "1px solid #e5e7eb", color: "#6b7280", fontWeight: 600 }}>Ação / Programa</th>
+                            <th style={{ textAlign: "right" as const, padding: "6px 8px", borderBottom: "1px solid #e5e7eb", color: "#6b7280", fontWeight: 600 }}>Custeio</th>
+                            <th style={{ textAlign: "right" as const, padding: "6px 8px", borderBottom: "1px solid #e5e7eb", color: "#6b7280", fontWeight: 600 }}>Implantação</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ceg.aps_componentes_jun2026?.map((row: any, i: number) => (
+                            <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#f8fafc" }}>
+                              <td style={{ padding: "6px 8px", color: "#374151" }}>{row.acao}</td>
+                              <td style={{ padding: "6px 8px", textAlign: "right" as const, fontWeight: 600, color: row.custeio > 0 ? "#16a34a" : "#9ca3af", fontVariantNumeric: "tabular-nums" }}>
+                                R$ {row.custeio.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </td>
+                              <td style={{ padding: "6px 8px", textAlign: "right" as const, color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>
+                                R$ {row.implantacao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          ))}
+                          <tr style={{ background: "#eff6ff", fontWeight: 700 }}>
+                            <td style={{ padding: "6px 8px", color: "#1e40af" }}>TOTAL REPASSE APS</td>
+                            <td style={{ padding: "6px 8px", textAlign: "right" as const, color: "#1e40af", fontVariantNumeric: "tabular-nums" }}>
+                              R$ {ceg.total_aps_repasse?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </td>
+                            <td style={{ padding: "6px 8px", textAlign: "right" as const, color: "#9ca3af" }}>—</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 6 }}>Fonte: {ceg.fonte}</div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Inconsistências */}
             {d.inconsistencias && d.inconsistencias.length > 0 && (
               <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>

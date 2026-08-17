@@ -65,6 +65,90 @@ async def indicadores():
 @router.get("/emulti-remoto")
 async def emulti_remoto():
     """Monitoramento do incentivo eMulti - Atendimento Remoto (Port. GM/MS 635/2023)."""
+    # Dados reais extraídos do e-Gestor APS — Relatórios Públicos → Pagamento
+    # Fonte: consulta manual em AGO/2026 pelo gestor
+    conformidade_egestor = {
+        "competencia_referencia": "JUN/2026",
+        "parcela_referencia": "8/12",
+        "total_aps_repasse": 637231.75,
+        "fonte": "e-Gestor APS — Relatórios Públicos → Pagamento → Equipes multiprofissionais na APS - eMulti",
+        "componentes_emulti": [
+            {
+                "componente": "Custeio - eMulti",
+                "descricao": "Incentivo base de custeio da equipe eMulti (Port. GM/MS nº 635/2023)",
+                "valor_pago": 12000.00,
+                "valor_referencia": 12000.00,
+                "status": "pago",
+                "portaria": "Port. GM/MS nº 635/2023",
+            },
+            {
+                "componente": "Componente de Qualidade - eMulti",
+                "descricao": "Incentivo de qualidade eMulti (Port. GM/MS nº 3.493/2024)",
+                "valor_pago": 2250.00,
+                "valor_referencia": 2250.00,
+                "status": "pago",
+                "portaria": "Port. GM/MS nº 3.493/2024",
+            },
+            {
+                "componente": "Atendimento Remoto - eMulti",
+                "descricao": "Incentivo de Atendimento Remoto TIC (Port. GM/MS nº 635/2023)",
+                "valor_pago": 0.00,
+                "valor_referencia": 12000.00,
+                "status": "nao_pago",
+                "portaria": "Port. GM/MS nº 635/2023",
+                "motivo_bloqueio": "Quantidade de equipes com atendimento remoto pagas: 0 de 1",
+            },
+        ],
+        "indicadores_egestor": {
+            "equipes_credenciadas": 1,
+            "equipes_adesao_remoto_tic": 1,
+            "equipes_homologadas": 1,
+            "equipes_pagas": 1,
+            "equipes_atendimento_remoto_pagas": 0,
+        },
+        "aps_componentes_jun2026": [
+            {"acao": "eSF e eAP — Equipes de Saúde da Família / Atenção Primária", "custeio": 227826.00, "implantacao": 0.00},
+            {"acao": "Atenção à Saúde Bucal",                                        "custeio": 104799.00, "implantacao": 0.00},
+            {"acao": "Equipes Multiprofissionais — eMulti",                          "custeio": 14250.00,  "implantacao": 0.00},
+            {"acao": "Agentes Comunitários de Saúde",                                "custeio": 213972.00, "implantacao": 0.00},
+            {"acao": "Demais programas, serviços e equipes da APS",                  "custeio": 65585.00,  "implantacao": 0.00},
+            {"acao": "Componente per capita de base populacional",                   "custeio": 10799.75,  "implantacao": 0.00},
+            {"acao": "Incentivo financeiro da APS — Promoção à saúde",               "custeio": 0.00,      "implantacao": 0.00},
+        ],
+        "analise_conformidade": [
+            {
+                "item": "Equipe eMulti credenciada",
+                "valor_egestor": "1 equipe",
+                "conforme": True,
+                "obs": "Equipe ativa e credenciada no SCNES/CNES",
+            },
+            {
+                "item": "Adesão ao Atendimento Remoto TIC",
+                "valor_egestor": "1 equipe aderiu",
+                "conforme": True,
+                "obs": "A adesão está registrada — indica que o SCNES tem o campo marcado",
+            },
+            {
+                "item": "Equipe homologada",
+                "valor_egestor": "1 equipe homologada",
+                "conforme": True,
+                "obs": "Homologação aprovada pelo MS",
+            },
+            {
+                "item": "Pagamento Atendimento Remoto",
+                "valor_egestor": "0 de 1 pagas",
+                "conforme": False,
+                "obs": "Campo 'Quantidade de equipes com atendimento remoto pagas' = 0. Provável ausência de produção registrada no e-SUS PEC com modalidade Remoto.",
+            },
+        ],
+        "conclusao": (
+            "A equipe eMulti está credenciada, homologada e com adesão ao TIC confirmada no e-Gestor — "
+            "portanto o SCNES está correto. A causa do não pagamento é a AUSÊNCIA DE PRODUÇÃO registrada "
+            "com modalidade 'Remoto' no e-SUS PEC transmitida ao SISAB. "
+            "Sem produção comprovada, o MS não libera o incentivo mesmo com a adesão ativa."
+        ),
+    }
+
     historico = [
         {"competencia": "Jan/2026", "mes": "2026-01", "parcela": "3/12",  "valor": 0.00, "status": "nao_pago"},
         {"competencia": "Fev/2026", "mes": "2026-02", "parcela": "4/12",  "valor": 0.00, "status": "nao_pago"},
@@ -81,36 +165,38 @@ async def emulti_remoto():
     inconsistencias = [
         {
             "codigo": "INC-001",
-            "tipo": "cadastro_scnes",
-            "gravidade": "critica",
-            "titulo": "eMulti NÃO habilitada para Atendimento Remoto no SCNES",
-            "descricao": (
-                "O campo 'Tipo de Atendimento: Remoto' não está marcado no cadastro da equipe eMulti "
-                "no SCNES/CNES. Sem essa habilitação o Ministério da Saúde não reconhece a modalidade "
-                "e o repasse fica bloqueado automaticamente."
-            ),
-            "impacto_financeiro": perda_acumulada,
-            "portaria": "Art. 4º, §2º — Port. GM/MS nº 635/2023",
-            "acao_corretiva": "Acessar SCNES → Cadastro da equipe eMulti → Tipo de Atendimento → marcar 'Remoto' → Salvar",
-            "prazo": "2026-08-20",
-            "responsavel": "Gestor de Saúde / TI SCNES",
-            "status": "pendente",
-        },
-        {
-            "codigo": "INC-002",
             "tipo": "producao_esus",
             "gravidade": "critica",
             "titulo": "Nenhuma produção remota registrada no e-SUS PEC (Jan–Ago/2026)",
             "descricao": (
-                "8 meses consecutivos sem registro de atendimento com modalidade 'Remoto' no e-SUS PEC. "
-                "A produção deve ser transmitida ao SISAB para que o indicador de elegibilidade seja atendido. "
-                "Sem produção registrada, mesmo após a habilitação no SCNES o repasse pode ser suspenso."
+                "CAUSA RAIZ CONFIRMADA pelo e-Gestor APS: a equipe eMulti tem adesão TIC ativa e está "
+                "homologada, mas 'Quantidade de equipes com atendimento remoto pagas = 0'. "
+                "O bloqueio é por ausência de produção com modalidade 'Remoto' no e-SUS PEC transmitida "
+                "ao SISAB. 8 meses consecutivos sem nenhum atendimento remoto registrado."
             ),
             "impacto_financeiro": perda_acumulada,
             "portaria": "Art. 6º, I — Port. GM/MS nº 635/2023",
-            "acao_corretiva": "e-SUS PEC → Atendimento Individual → Modalidade: Remoto → preencher e transmitir ao SISAB",
+            "acao_corretiva": "e-SUS PEC → Atendimento Individual → Modalidade: Remoto → preencher → Transmitir ao SISAB",
             "prazo": "2026-09-01",
             "responsavel": "Coordenador da eMulti / Profissionais da equipe",
+            "status": "pendente",
+        },
+        {
+            "codigo": "INC-002",
+            "tipo": "cadastro_scnes",
+            "gravidade": "alta",
+            "titulo": "Adesão TIC ativa mas sem produção — confirmar configuração e-SUS PEC",
+            "descricao": (
+                "O e-Gestor confirma 'Quantidade de equipes com adesão ao atendimento remoto TIC = 1', "
+                "ou seja, o SCNES está correto. Porém o e-SUS PEC pode não estar configurado para "
+                "lançar atendimentos na modalidade Remoto, ou os profissionais não foram orientados "
+                "sobre o fluxo correto de registro."
+            ),
+            "impacto_financeiro": 0,
+            "portaria": "Art. 4º e 6º — Port. GM/MS nº 635/2023",
+            "acao_corretiva": "Verificar configuração do e-SUS PEC: Administração → Configurações → habilitar Atendimento Remoto e treinar equipe",
+            "prazo": "2026-08-25",
+            "responsavel": "TI e-SUS PEC / Coordenador da eMulti",
             "status": "pendente",
         },
         {
@@ -181,6 +267,7 @@ async def emulti_remoto():
         "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "fonte_dados": "e-Gestor APS — Relatórios Públicos → Pagamento → eMulti Atendimento Remoto",
         "historico_pagamentos": historico,
+        "conformidade_egestor": conformidade_egestor,
         "inconsistencias": inconsistencias,
         "diagnostico": diagnostico,
         "checklist": [
