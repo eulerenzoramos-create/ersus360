@@ -272,7 +272,11 @@ export default function RepassesFnsPanel() {
         setSincMsg("ok");
         setSincDetalhe(`${r.registros_inseridos} inseridos, ${r.registros_atualizados} atualizados. ` +
           (r.todas_paginas_coletadas ? "Todas as páginas coletadas." : "⚠ Nem todas as páginas foram coletadas."));
-        await qc.invalidateQueries({ queryKey: ["fns-"] });
+        await qc.invalidateQueries({ queryKey: ["fns-status"] });
+        await qc.invalidateQueries({ queryKey: ["fns-resumo"] });
+        await qc.invalidateQueries({ queryKey: ["fns-lista"] });
+        await qc.invalidateQueries({ queryKey: ["fns-tipos"] });
+        await qc.invalidateQueries({ queryKey: ["fns-mensal"] });
       } else {
         setSincMsg("err");
         setSincDetalhe(r.mensagem_erro || "Fonte não disponível.");

@@ -289,8 +289,12 @@ async def _fetch_consultafns(exercicio: int, mes: int) -> tuple[list[dict], Deci
 def _normalizar_detalhe(raw: dict, exercicio: int, mes: int, pagina: int) -> dict:
     """
     Normaliza um registro do endpoint /recursos/consulta-detalhada/detalhe-acao.
-    Campos reais retornados pela API: dsBloco, dsGrupo, dsAcao, dsAcaoDetalhada,
-    vlTotal, vlDesconto, vlLiquido, dtPagamento, nuOB, etc.
+    Estrutura real da API consultafns:
+      blocoPacto.nome  → bloco
+      grupoAcao.nome   → grupo
+      componenteBloco.nome → acao
+      descricao        → acao_detalhada
+      valorTotal / valorDescontoTotal / valorLiquido → valores
     """
     def _s(*keys: str):
         for k in keys:
@@ -299,13 +303,21 @@ def _normalizar_detalhe(raw: dict, exercicio: int, mes: int, pagina: int) -> dic
                 return str(v).strip()
         return None
 
-    bloco    = _s("dsBloco", "noBloco", "bloco", "Bloco")
-    grupo    = _s("dsGrupo", "noGrupo", "grupo", "Grupo")
-    acao     = _s("dsAcao",  "noAcao",  "acao",  "acaoProgramatica")
-    acao_det = _s("dsAcaoDetalhada", "noAcaoDetalhada", "acaoDetalhada", "subPrograma")
-    vl_total = _dec(raw.get("vlTotal") or raw.get("valorTotal") or raw.get("valor"))
-    vl_desc  = _dec(raw.get("vlDesconto") or raw.get("valorDesconto") or raw.get("desconto")) or Decimal("0.00")
-    vl_liq   = _dec(raw.get("vlLiquido") or raw.get("valorLiquido") or raw.get("valorLiquidoTransferido"))
+    def _nested(obj_key: str, field: str = "nome") -> str | None:
+        obj = raw.get(obj_key)
+        if isinstance(obj, dict):
+            v = obj.get(field)
+            if v and str(v).strip():
+                return str(v).strip()
+        return None
+
+    bloco    = _nested("blocoPacto") or _s("dsBloco", "noBloco", "bloco")
+    grupo    = _nested("grupoAcao") or _s("dsGrupo", "noGrupo", "grupo")
+    acao     = _nested("componenteBloco") or _s("dsAcao", "noAcao", "acao", "acaoProgramatica")
+    acao_det = _s("descricao", "dsAcaoDetalhada", "noAcaoDetalhada", "acaoDetalhada", "nomeResumido")
+    vl_total = _dec(raw.get("valorTotal") or raw.get("vlTotal") or raw.get("valor"))
+    vl_desc  = _dec(raw.get("valorDescontoTotal") or raw.get("vlDesconto") or raw.get("valorDesconto") or raw.get("desconto")) or Decimal("0.00")
+    vl_liq   = _dec(raw.get("valorLiquido") or raw.get("vlLiquido") or raw.get("valorLiquidoTransferido"))
     if vl_liq is None and vl_total is not None:
         vl_liq = vl_total - (vl_desc or Decimal("0.00"))
 
