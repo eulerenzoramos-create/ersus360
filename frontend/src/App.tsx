@@ -152,6 +152,7 @@ import ScoreERSUS       from "./pages/ScoreERSUS";
 import Conformidade      from "./pages/Conformidade";
 import ACSPainel         from "./pages/ACSPainel";
 import PainelFinanceiro  from "./pages/PainelFinanceiro";
+import RepassesApsApui  from "./pages/RepassesApsApui";
 import PainelGestaoAPS  from "./pages/PainelGestaoAPS";
 import SiapsEgestor      from "./pages/SiapsEgestor";
 import PainelCAF         from "./pages/PainelCAF";
@@ -850,6 +851,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
             {podeFin && (
             <>
               <L1 to="/financeiro"               label="Painel Financeiro"              Icon={DollarSign}/>
+              <L1 to="/repasses-aps-apui"        label="Repasses APS — Apuí/AM"         Icon={TrendingUp}/>
               <Acc1 label="FNS / Convênios">
                 <L2 to="/fns"       label="Consolidado de Convênios"  Icon={Clipboard}/>
                 <L2 to="/portarias" label="Portarias FNS"             Icon={FileText}/>
@@ -1427,6 +1429,7 @@ export default function App() {
             <Route path="/central-regulacao"         element={<CentralRegulacao/>}/>
             <Route path="/monitor-epidemiologico"    element={<MonitorEpidemiologico/>}/>
             <Route path="/cronograma-repasses"       element={<CronogramaRepasses/>}/>
+            <Route path="/repasses-aps-apui"          element={<RepassesApsApui/>}/>
             <Route path="/busca-ativa-ia"            element={<BuscaAtivaIA/>}/>
             <Route path="/gestao-equipamentos"       element={<GestaoEquipamentos/>}/>
             <Route path="/painel-transparencia"      element={<PainelTransparencia/>}/>

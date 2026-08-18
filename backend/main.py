@@ -327,6 +327,7 @@ from routers.dashboard_exec import router as dashboard_exec_router
 from routers.notificacoes import router as notificacoes_router
 from routers.exportador import router as exportador_router
 from routers.idsus import router as idsus_router
+from routers.repasses_aps_apui import router as repasses_aps_apui_router
 
 app.include_router(auth_router)
 app.include_router(municipios_router)
@@ -645,6 +646,7 @@ app.include_router(dashboard_router)
 app.include_router(notificacoes_router)
 app.include_router(exportador_router)
 app.include_router(idsus_router)
+app.include_router(repasses_aps_apui_router)
 app.include_router(inconsistencias_router)
 app.include_router(relatorio_ersus_router)
 app.include_router(integracao_status_router)
