@@ -5,9 +5,9 @@ Integração com e-SUS PEC (Prontuário Eletrônico do Cidadão)
 Duas fontes reais:
 1. API LOCAL do PEC (quando ESUS_PEC_URL estiver configurado no Railway)
    Credenciais: ESUS_USUARIO / ESUS_SENHA (Railway env vars)
-2. Indicadores PREVINE Brasil via e-Gestor APS (já integrado, sem autenticação)
+2. Indicadores de Qualidade APS via e-Gestor APS (já integrado, sem autenticação)
    — os indicadores de qualidade/vínculo publicados pelo e-Gestor APS são
-     calculados a partir dos dados transmitidos pelo e-SUS PEC.
+     calculados a partir dos dados transmitidos pelo e-SUS PEC (Portaria GM/MS nº 3.493/2024).
 
 REGRA ABSOLUTA: nenhum valor é simulado. Quando a fonte não está disponível,
 o campo retorna situacao_dado="nao_disponivel" e dado=null.
@@ -163,7 +163,7 @@ async def status_integracao():
             "disponivel": egestor_ok,
             "ultima_parcela": ultima_parcela,
             "nota": (
-                "Indicadores PREVINE Brasil disponíveis via e-Gestor APS "
+                "Indicadores de Qualidade APS disponíveis via e-Gestor APS "
                 "(calculados a partir dos dados transmitidos pelo e-SUS PEC)."
             ),
         },
@@ -172,17 +172,18 @@ async def status_integracao():
             "passo_1": "No Railway, adicione a variável ESUS_PEC_URL com a URL da instalação local do e-SUS PEC",
             "passo_2": "Configure ESUS_USUARIO e ESUS_SENHA com as credenciais do gestor municipal",
             "passo_3": "Certifique-se de que o servidor PEC está acessível pela internet (ou use um túnel)",
-            "nota": "Os indicadores PREVINE Brasil já estão disponíveis via e-Gestor APS sem configuração adicional.",
+            "nota": "Os indicadores de qualidade APS já estão disponíveis via e-Gestor APS sem configuração adicional.",
         },
     }
 
 
-@router.get("/indicadores-previne")
-async def indicadores_previne():
+@router.get("/indicadores-qualidade")
+@router.get("/indicadores-previne")  # alias de compatibilidade
+async def indicadores_qualidade():
     """
-    Indicadores PREVINE Brasil para Apuí/AM — fonte: e-Gestor APS.
-    Os indicadores de qualidade e vínculo são calculados pelo Ministério da Saúde
-    a partir dos dados transmitidos pelo e-SUS PEC e publicados no e-Gestor APS.
+    Indicadores de Qualidade APS para Apuí/AM — fonte: e-Gestor APS.
+    Calculados pelo Ministério da Saúde (Portaria GM/MS nº 3.493/2024) a partir
+    dos dados transmitidos pelo e-SUS PEC e publicados no e-Gestor APS.
     """
     try:
         parcelas = await listar_parcelas(ano=2026, co_uf=CO_UF)
@@ -235,9 +236,9 @@ async def indicadores_previne():
     return {
         "fonte": "e-Gestor APS (relatorioaps-prd.saude.gov.br)",
         "nota": (
-            "Indicadores calculados pelo DATASUS a partir dos dados transmitidos "
-            "pelo e-SUS PEC. Publicados mensalmente junto com o cálculo do "
-            "financiamento da APS. Nenhum valor estimado."
+            "Indicadores de qualidade calculados pelo DATASUS a partir dos dados "
+            "transmitidos pelo e-SUS PEC, publicados mensalmente junto ao financiamento "
+            "da APS (Portaria GM/MS nº 3.493/2024). Nenhum valor estimado."
         ),
         "competencia_referencia": _COMP_MAP.get(ultima, ultima),
         "nu_parcela": ultima,
@@ -361,7 +362,7 @@ async def consultar_situacao():
             "situacao_dado": "oficial_validado" if ultima else "nao_disponivel",
             "parcelas_ciclo_2026": n_parcelas,
             "ultima_parcela": ultima,
-            "nota": "Indicadores PREVINE disponíveis. Use /api/integracao-pec/indicadores-previne.",
+            "nota": "Indicadores de qualidade APS disponíveis. Use /api/integracao-pec/indicadores-qualidade.",
         },
     }
 

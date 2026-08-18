@@ -30,7 +30,7 @@ interface StatusPEC {
   instrucoes_configuracao: Record<string, string>;
 }
 
-interface IndicadoresPrevine {
+interface IndicadoresQualidade {
   fonte: string;
   nota: string;
   competencia_referencia: string;
@@ -156,7 +156,7 @@ function Btn({ onClick, disabled, cor, Icon, children }: {
 
 const ABAS = [
   { id: "status",      label: "Status",              Icon: Plug },
-  { id: "previne",     label: "Indicadores PREVINE",  Icon: BarChart2 },
+  { id: "qualidade",   label: "Indicadores de Qualidade", Icon: BarChart2 },
   { id: "producao",    label: "Produção APS",          Icon: Activity },
   { id: "config",      label: "Configuração",          Icon: Settings },
 ];
@@ -221,7 +221,7 @@ function AbaStatus({ status, sit, testar, sinc }: {
       </Card>
 
       {/* e-Gestor APS */}
-      <Card titulo="e-Gestor APS — Indicadores PREVINE" Icon={Database}>
+      <Card titulo="e-Gestor APS — Indicadores de Qualidade" Icon={Database}>
         {!s ? (
           <div style={{ color: "#9ca3af", textAlign: "center", padding: 24 }}>Consultando...</div>
         ) : (
@@ -287,7 +287,7 @@ function AbaStatus({ status, sit, testar, sinc }: {
             {
               nome: "e-Gestor APS (relatorioaps-prd.saude.gov.br)",
               status: s?.egestor_aps.disponivel ?? false,
-              descricao: "Financiamento + Indicadores PREVINE Brasil",
+              descricao: "Financiamento + Indicadores de Qualidade APS (Portaria 3.493/2024)",
             },
             {
               nome: `PEC Local (${s?.pec_local.url || "não configurado"})`,
@@ -318,9 +318,9 @@ function AbaStatus({ status, sit, testar, sinc }: {
   );
 }
 
-// ─── Sub-tela: Indicadores PREVINE ────────────────────────────────────────────
+// ─── Sub-tela: Indicadores de Qualidade APS ──────────────────────────────────
 
-function AbaPrevine({ data, isLoading }: { data: IndicadoresPrevine | undefined; isLoading: boolean }) {
+function AbaQualidade({ data, isLoading }: { data: IndicadoresQualidade | undefined; isLoading: boolean }) {
   if (isLoading || !data) {
     return (
       <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>
@@ -360,7 +360,7 @@ function AbaPrevine({ data, isLoading }: { data: IndicadoresPrevine | undefined;
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
 
         {/* Indicadores de classificação */}
-        <Card titulo="Classificação PREVINE Brasil" Icon={BarChart2}>
+        <Card titulo="Classificação de Qualidade APS" Icon={BarChart2}>
           {linhasIndicadores.map((row) => (
             <div key={row.label} style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -421,11 +421,11 @@ function AbaPrevine({ data, isLoading }: { data: IndicadoresPrevine | undefined;
           Como estes indicadores se relacionam com o e-SUS PEC
         </div>
         <p style={{ fontSize: 11, color: "#78350f", margin: 0, lineHeight: 1.6 }}>
-          Os indicadores PREVINE Brasil (qualidade, vínculo, equidade) são calculados pelo DATASUS
-          mensalmente a partir das fichas CDS e PEC transmitidas pelo e-SUS PEC. Eles são publicados
-          junto com o financiamento da APS no e-Gestor APS. Quando a instância local do PEC estiver
-          conectada ao ERSUS360, será possível acompanhar a evolução em tempo real antes da
-          publicação oficial.
+          Os indicadores de qualidade APS (classificação de qualidade eSF, eMulti, vínculo e estrato
+          de equidade) são calculados pelo DATASUS mensalmente a partir das fichas CDS e PEC
+          transmitidas pelo e-SUS PEC, com base na Portaria GM/MS nº 3.493/2024. São publicados
+          no e-Gestor APS junto ao financiamento. Com o PEC local conectado ao ERSUS360 é possível
+          acompanhar a evolução em tempo real antes da publicação oficial.
         </p>
       </div>
     </div>
@@ -550,7 +550,7 @@ function AbaConfig({ status }: { status: StatusPEC | undefined }) {
           de atendimentos da Atenção Primária à Saúde do SUS. Ele é instalado localmente nos
           municípios e transmite fichas CDS ao SISAB/DATASUS. A integração direta requer que o
           servidor PEC seja acessível via HTTPS na internet (ou via túnel). Os indicadores de
-          qualidade (PREVINE Brasil) calculados a partir dos dados do PEC já estão disponíveis
+          qualidade APS calculados a partir dos dados do PEC já estão disponíveis
           via e-Gestor APS, sem configuração adicional.
         </p>
       </Card>
@@ -562,7 +562,7 @@ function AbaConfig({ status }: { status: StatusPEC | undefined }) {
 
 export default function IntegracaoPEC() {
   const qc = useQueryClient();
-  const [aba, setAba] = useState<"status" | "previne" | "producao" | "config">("status");
+  const [aba, setAba] = useState<"status" | "qualidade" | "producao" | "config">("status");
 
   const { data: statusData, isLoading: loadingStatus } = useQuery<StatusPEC>({
     queryKey: ["integracao-pec-status-v2"],
@@ -570,9 +570,9 @@ export default function IntegracaoPEC() {
     staleTime: 30_000,
   });
 
-  const { data: previneData, isLoading: loadingPrevine } = useQuery<IndicadoresPrevine>({
-    queryKey: ["integracao-pec-previne"],
-    queryFn: () => apiGet("/api/integracao-pec/indicadores-previne") as Promise<IndicadoresPrevine>,
+  const { data: qualidadeData, isLoading: loadingQualidade } = useQuery<IndicadoresQualidade>({
+    queryKey: ["integracao-pec-qualidade"],
+    queryFn: () => apiGet("/api/integracao-pec/indicadores-qualidade") as Promise<IndicadoresQualidade>,
     staleTime: 120_000,
   });
 
@@ -633,7 +633,7 @@ export default function IntegracaoPEC() {
             <Btn
               onClick={() => {
                 qc.invalidateQueries({ queryKey: ["integracao-pec-status-v2"] });
-                qc.invalidateQueries({ queryKey: ["integracao-pec-previne"] });
+                qc.invalidateQueries({ queryKey: ["integracao-pec-qualidade"] });
               }}
               cor="#059669" Icon={RefreshCw}
             >
@@ -672,8 +672,8 @@ export default function IntegracaoPEC() {
             sinc={sinc}
           />
         )}
-        {aba === "previne" && (
-          <AbaPrevine data={previneData} isLoading={loadingPrevine} />
+        {aba === "qualidade" && (
+          <AbaQualidade data={qualidadeData} isLoading={loadingQualidade} />
         )}
         {aba === "producao" && (
           <AbaProducao statusPec={statusData} />
