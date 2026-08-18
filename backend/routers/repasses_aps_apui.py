@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query
 from typing import Any
 
-from services.egestor_aps import buscar_pagamentos, listar_parcelas, EGestorAPIError
+from services.egestor_aps import buscar_pagamentos, buscar_completo, listar_parcelas, EGestorAPIError
 
 router = APIRouter(prefix="/api/repasses-aps", tags=["repasses_aps"])
 
@@ -322,6 +322,42 @@ async def validar_conciliacao(nu_parcela: str):
         "divergencia": round(divergencia, 2),
         "status": "APROVADO" if comp["conciliado"] else "DIVERGENTE",
         "coletado_em": comp["coletado_em"],
+    }
+
+
+@router.get("/detalhado/{nu_parcela}")
+async def detalhar_completo(nu_parcela: str):
+    """
+    Retorna o detalhamento completo de uma parcela: equipes, quantidades,
+    vínculo, qualidade, indicadores de classificação.
+    Usa tipoRelatorio=COMPLETO da API do e-Gestor APS.
+    """
+    if len(nu_parcela) != 6 or not nu_parcela.isdigit():
+        raise HTTPException(
+            status_code=400,
+            detail={"erro": "Formato inválido. Use YYYYPP (ex: 202608)."},
+        )
+    try:
+        resultado = await buscar_completo(
+            co_municipio=IBGE,
+            co_uf=CO_UF,
+            parcela_inicio=nu_parcela,
+            parcela_fim=nu_parcela,
+        )
+    except EGestorAPIError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "erro": "Integração pendente",
+                "descricao": str(exc),
+                "acao_sugerida": "Consulte relatorioaps.saude.gov.br diretamente.",
+            },
+        )
+    return {
+        "meta": _meta(),
+        "data_consulta_egestor": resultado["data_consulta"],
+        "coletado_em": resultado["coletado_em"],
+        **resultado["detalhado"],
     }
 
 
