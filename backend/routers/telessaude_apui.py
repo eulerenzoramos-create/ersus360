@@ -115,6 +115,8 @@ async def emulti_remoto():
                 "custeio": 227826.00, "implantacao": 0.00,
                 "portaria": "Port. GM/MS nº 3.493/2024",
                 "descricao": "Custeio das 9 equipes eSF homologadas de Apuí/AM",
+                "fonte_dado": "estimativa",
+                "fonte_obs": "Valor estimado com base na tabela IED II vigente — confirmar no e-Gestor APS",
                 "detalhes": [
                     {"item": "9 equipes eSF × IED II (R$ 22.494/mês cada)", "valor": 202446.00},
                     {"item": "Componente de Qualidade eSF (indicadores PREVINE)", "valor": 25380.00},
@@ -126,6 +128,8 @@ async def emulti_remoto():
                 "custeio": 104799.00, "implantacao": 0.00,
                 "portaria": "Port. GM/MS nº 3.493/2024",
                 "descricao": "Custeio das equipes de Saúde Bucal (ESB) vinculadas às eSF",
+                "fonte_dado": "estimativa",
+                "fonte_obs": "Valor estimado com base na tabela ESB vigente — confirmar no e-Gestor APS",
                 "detalhes": [
                     {"item": "Equipes de Saúde Bucal — Modalidade I", "valor": 87399.00},
                     {"item": "Componente de Qualidade Saúde Bucal", "valor": 17400.00},
@@ -186,6 +190,8 @@ async def emulti_remoto():
                     },
                 ],
                 "status": "parcial",
+                "fonte_dado": "oficial",
+                "fonte_obs": "Valores confirmados por prints do e-Gestor APS enviados pelo gestor em AGO/2026",
                 "alerta": "R$ 12.000,00/mês não recebido — Atendimento Remoto bloqueado",
             },
             {
@@ -193,6 +199,8 @@ async def emulti_remoto():
                 "custeio": 213972.00, "implantacao": 0.00,
                 "portaria": "Port. GM/MS nº 3.493/2024",
                 "descricao": "Custeio dos ACS vinculados às eSF de Apuí/AM",
+                "fonte_dado": "estimativa",
+                "fonte_obs": "Valor estimado com base na tabela ACS vigente — confirmar no e-Gestor APS",
                 "detalhes": [
                     {"item": "ACS vinculados às 9 eSF (estimativa ~58 ACS × R$ 3.066,15)", "valor": 177836.70},
                     {"item": "Componente de Qualidade ACS", "valor": 36135.30},
@@ -204,6 +212,8 @@ async def emulti_remoto():
                 "custeio": 65585.00, "implantacao": 0.00,
                 "portaria": "Port. GM/MS nº 3.493/2024 — Anexo IV",
                 "descricao": "Outros incentivos APS: NASF, CAPS, programas específicos habilitados",
+                "fonte_dado": "estimativa",
+                "fonte_obs": "Valor estimado com base no total e-Gestor JUN/2026 — confirmar detalhamento no portal",
                 "detalhes": [
                     {"item": "Programas e serviços habilitados — verificar detalhes no e-Gestor", "valor": 65585.00},
                 ],
@@ -213,7 +223,9 @@ async def emulti_remoto():
                 "acao": "Componente per capita de base populacional",
                 "custeio": 10799.75, "implantacao": 0.00,
                 "portaria": "Port. GM/MS nº 3.493/2024 — Art. 8º",
-                "descricao": "Per capita da população cadastrada nas eSF (R$ 5,95/pessoa/mês × ~20.647 hab. — proporcional ao cadastro)",
+                "descricao": "Per capita da população cadastrada nas eSF",
+                "fonte_dado": "estimativa",
+                "fonte_obs": "Calculado com base na população cadastrada estimada — confirmar no e-Gestor APS",
                 "detalhes": [
                     {"item": "Pop. cadastrada estimada: ~18.151 pessoas × R$ 0,595/mês", "valor": 10799.75},
                 ],
@@ -223,7 +235,9 @@ async def emulti_remoto():
                 "acao": "Incentivo financeiro da APS — Promoção à saúde",
                 "custeio": 0.00, "implantacao": 0.00,
                 "portaria": "Port. GM/MS nº 3.493/2024 — Anexo V",
-                "descricao": "Incentivo de Promoção à Saúde — município não atingiu critérios de elegibilidade nesta competência",
+                "descricao": "Incentivo de Promoção à Saúde — município não atingiu critérios de elegibilidade",
+                "fonte_dado": "estimativa",
+                "fonte_obs": "Verificar elegibilidade no e-Gestor APS",
                 "detalhes": [
                     {"item": "Nenhum valor pago — verificar adesão ao programa no e-Gestor", "valor": 0.00, "status": "nao_pago"},
                 ],

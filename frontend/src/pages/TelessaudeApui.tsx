@@ -567,8 +567,17 @@ export default function TelessaudeApui() {
                                 <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", display: "flex", alignItems: "center", gap: 6 }}>
                                   <span style={{ fontSize: 10, color: "#6b7280" }}>{isExpanded ? "▼" : "▶"}</span>
                                   {row.acao}
+                                  {row.fonte_dado === "oficial" && (
+                                    <span title={row.fonte_obs} style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 10, background: "#dcfce7", color: "#166534", border: "1px solid #86efac", cursor: "help" }}>✓ OFICIAL e-Gestor</span>
+                                  )}
+                                  {row.fonte_dado === "estimativa" && (
+                                    <span title={row.fonte_obs} style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 10, background: "#fef9c3", color: "#854d0e", border: "1px solid #fde047", cursor: "help" }}>⚠ ESTIMATIVA</span>
+                                  )}
                                 </div>
                                 <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{row.descricao}</div>
+                                {row.fonte_dado === "estimativa" && row.fonte_obs && (
+                                  <div style={{ fontSize: 10, color: "#92400e", marginTop: 1 }}>ℹ {row.fonte_obs}</div>
+                                )}
                                 {row.alerta && <div style={{ fontSize: 10, color: "#dc2626", fontWeight: 700, marginTop: 2 }}>⚠ {row.alerta}</div>}
                               </div>
                               <div style={{ textAlign: "right" as const, fontWeight: 700, fontSize: 13, color: row.custeio > 0 ? "#16a34a" : "#9ca3af", fontVariantNumeric: "tabular-nums" }}>
