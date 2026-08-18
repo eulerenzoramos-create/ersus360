@@ -263,29 +263,45 @@ export default function RepassesFnsPanel() {
 
   // Sincronização
   const sincronizar = async () => {
-    if (!mes) { alert("Selecione o mês para sincronizar."); return; }
     setSincMsg("loading");
     setSincDetalhe("");
     try {
-      const r = await apiPost(`/api/repasses-fns/sincronizar?exercicio=${exercicio}&mes=${mes}`, {});
-      if (r.sucesso) {
-        setSincMsg("ok");
-        setSincDetalhe(`${r.registros_inseridos} inseridos, ${r.registros_atualizados} atualizados. ` +
-          (r.todas_paginas_coletadas ? "Todas as páginas coletadas." : "⚠ Nem todas as páginas foram coletadas."));
-        await qc.invalidateQueries({ queryKey: ["fns-status"] });
-        await qc.invalidateQueries({ queryKey: ["fns-resumo"] });
-        await qc.invalidateQueries({ queryKey: ["fns-lista"] });
-        await qc.invalidateQueries({ queryKey: ["fns-tipos"] });
-        await qc.invalidateQueries({ queryKey: ["fns-mensal"] });
+      let r: Record<string, unknown>;
+      if (!mes) {
+        // Sincronizar ano inteiro (jan–dez)
+        setSincDetalhe("Coletando todos os meses do ano...");
+        r = await apiPost(`/api/repasses-fns/sincronizar-periodo?exercicio=${exercicio}&mes_inicio=1&mes_fim=12`, {});
+        if (r.sucesso !== false) {
+          const meses = (r.resultados as {registros_inseridos?: number; registros_atualizados?: number}[]) || [];
+          const totalIns = meses.reduce((s, m) => s + (m.registros_inseridos || 0), 0);
+          const totalAtl = meses.reduce((s, m) => s + (m.registros_atualizados || 0), 0);
+          setSincMsg("ok");
+          setSincDetalhe(`Ano ${exercicio} completo: ${totalIns} inseridos, ${totalAtl} atualizados.`);
+        } else {
+          setSincMsg("err");
+          setSincDetalhe((r.mensagem_erro as string) || "Erro ao sincronizar.");
+        }
       } else {
-        setSincMsg("err");
-        setSincDetalhe(r.mensagem_erro || "Fonte não disponível.");
+        r = await apiPost(`/api/repasses-fns/sincronizar?exercicio=${exercicio}&mes=${mes}`, {});
+        if (r.sucesso) {
+          setSincMsg("ok");
+          setSincDetalhe(`${r.registros_inseridos} inseridos, ${r.registros_atualizados} atualizados. ` +
+            (r.todas_paginas_coletadas ? "Todas as páginas coletadas." : "⚠ Nem todas as páginas foram coletadas."));
+        } else {
+          setSincMsg("err");
+          setSincDetalhe((r.mensagem_erro as string) || "Fonte não disponível.");
+        }
       }
+      await qc.invalidateQueries({ queryKey: ["fns-status"] });
+      await qc.invalidateQueries({ queryKey: ["fns-resumo"] });
+      await qc.invalidateQueries({ queryKey: ["fns-lista"] });
+      await qc.invalidateQueries({ queryKey: ["fns-tipos"] });
+      await qc.invalidateQueries({ queryKey: ["fns-mensal"] });
     } catch (e: unknown) {
       setSincMsg("err");
       setSincDetalhe(e instanceof Error ? e.message : "Erro desconhecido.");
     }
-    setTimeout(() => setSincMsg(""), 8000);
+    setTimeout(() => setSincMsg(""), 12000);
   };
 
   const resumo = resumoQ.data;
