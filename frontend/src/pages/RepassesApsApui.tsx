@@ -73,7 +73,7 @@ interface DetalhadoData {
   esf: { qt_pagas: number; qt_100pct: number; qt_75pct: number; qt_teto?: number;
     vl_fixo: number; vl_vinculo: number; vl_qualidade: number; vl_total_bruto: number; };
   eap: { qt_pagas: number; vl_total_bruto: number };
-  emulti: { qt_pagas: number; qt_estrategica: number; vl_custeio: number; vl_qualidade: number; vl_total: number; };
+  emulti: { qt_pagas: number; qt_estrategica: number; qt_atend_remoto: number; vl_custeio: number; vl_qualidade: number; vl_atend_remoto: number; vl_total: number; };
   esb: { qt_40h_pagas_modal_i: number; qt_uom: number; vl_esb_40h: number;
     vl_qualidade_40h: number; vl_uom: number; vl_lrpd_municipal: number; vl_total_sb_calculado: number; };
   acs: { qt_teto: number; qt_direto_pago: number; vl_total: number };
@@ -226,7 +226,11 @@ function PainelEquipes({ nuParcela }: { nuParcela: string }) {
   const equipes = [
     { cor: "#1565c0", nome: "eSF — Saúde da Família",   qtd: `${esf.qt_pagas}`, teto: tetos.esf,   vl: esf.vl_total_bruto,      det: `F ${BRL(esf.vl_fixo)} · V ${BRL(esf.vl_vinculo)} · Q ${BRL(esf.vl_qualidade)}` },
     { cor: "#93c5fd", nome: "eAP — Atenção Primária",   qtd: `${eap.qt_pagas}`, teto: tetos.eap,   vl: eap.vl_total_bruto,     det: eap.qt_pagas === 0 ? "Sem equipes pagas" : "", dim: true },
-    { cor: "#7c3aed", nome: "eMulti — Multiprofissional",qtd: `${emulti.qt_pagas} (${emulti.qt_estrategica} est.)`, teto: tetos.emulti_estrategica, vl: emulti.vl_total, det: `C ${BRL(emulti.vl_custeio)} · Q ${BRL(emulti.vl_qualidade)}` },
+    { cor: "#7c3aed", nome: "eMulti — Multiprofissional",qtd: `${emulti.qt_pagas} (${emulti.qt_estrategica} est.)`, teto: tetos.emulti_estrategica, vl: emulti.vl_total, det: [
+        `C ${BRL(emulti.vl_custeio)}`,
+        `Q ${BRL(emulti.vl_qualidade)}`,
+        ...(emulti.vl_atend_remoto > 0 ? [`AR ${BRL(emulti.vl_atend_remoto)}`] : []),
+      ].join(" · ") },
     { cor: "#059669", nome: "eSB — Saúde Bucal",         qtd: `${esb.qt_40h_pagas_modal_i}+${esb.qt_uom} UOM`, teto: tetos.sb_40h, vl: esb.vl_total_sb_calculado, det: `C ${BRL(esb.vl_esb_40h)} · Q ${BRL(esb.vl_qualidade_40h)} · LRPD ${BRL(esb.vl_lrpd_municipal)}` },
     { cor: "#d97706", nome: "ACS — Agentes Comunitários",qtd: `${acs.qt_direto_pago}`, teto: acs.qt_teto, vl: acs.vl_total, det: acs.qt_direto_pago > 0 ? `${BRL(acs.vl_total / acs.qt_direto_pago)}/ACS` : "—" },
     ...(esfrb.qt_pagas > 0 ? [{ cor: "#ea580c", nome: "eSFRB — Ribeirinha", qtd: `${esfrb.qt_pagas}`, teto: null as number | null, vl: esfrb.vl_total, det: `C ${BRL(esfrb.vl_custeio)} · Q ${BRL(esfrb.vl_qualidade)} · V ${BRL(esfrb.vl_vinculo)} · Ext ${BRL(esfrb.vl_extra)}` }] : []),
