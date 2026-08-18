@@ -178,7 +178,6 @@ async def status_integracao():
 
 
 @router.get("/indicadores-qualidade")
-@router.get("/indicadores-previne")  # alias de compatibilidade
 async def indicadores_qualidade():
     """
     Indicadores de Qualidade APS para Apuí/AM — fonte: e-Gestor APS.
