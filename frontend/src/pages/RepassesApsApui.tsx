@@ -156,7 +156,7 @@ const COMP_CORES: Record<number, string> = {
 function PainelEquipes({ nuParcela }: { nuParcela: string }) {
   const { data, isLoading, error } = useQuery<DetalhadoData>({
     queryKey: ["repasse-detalhado", nuParcela],
-    queryFn: () => apiGet(`/repasses-aps/detalhado/${nuParcela}`),
+    queryFn: () => apiGet(`/api/repasses-aps/detalhado/${nuParcela}`),
     staleTime: 300_000,
   });
 
@@ -302,7 +302,7 @@ function DetalhePanel({ nuParcela, competencia }: { nuParcela: string; competenc
 
   const { data, isLoading, error } = useQuery<CompetenciaDetalhe>({
     queryKey: ["repasse-detalhe-v2", nuParcela],
-    queryFn: () => apiGet(`/repasses-aps/competencias/${nuParcela}`),
+    queryFn: () => apiGet(`/api/repasses-aps/competencias/${nuParcela}`),
     staleTime: 300_000,
   });
 
@@ -512,7 +512,7 @@ export default function RepassesApsApui() {
     dataUpdatedAt,
   } = useQuery<ListaResponse>({
     queryKey: ["repasses-aps-lista"],
-    queryFn: () => apiGet("/repasses-aps/competencias"),
+    queryFn: () => apiGet("/api/repasses-aps/competencias"),
     staleTime: 300_000,
   });
 
