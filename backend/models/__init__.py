@@ -65,3 +65,5 @@ __all__ = [
     # Credenciais por município
     "CredencialMunicipio",
 ]
+
+from models.transferencia_fns import TransferenciaFns, ColetaFns

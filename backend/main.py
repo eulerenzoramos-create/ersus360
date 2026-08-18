@@ -557,6 +557,7 @@ app.include_router(saude_mental_infantojuvenil_apui_router)
 from routers.regulacao_referencia_apui import router as regulacao_referencia_apui_router
 app.include_router(regulacao_referencia_apui_router)
 from routers.integracao_fns_apui import router as integracao_fns_apui_router
+from routers.repasses_fns_apui import router as repasses_fns_apui_router
 from routers.integracao_egestor_apui import router as integracao_egestor_apui_router
 from routers.integracao_esuspec_apui import router as integracao_esuspec_apui_router
 from routers.integracao_siaps_apui import router as integracao_siaps_apui_router
@@ -566,6 +567,7 @@ from routers.visitas_domiciliares import router as visitas_domiciliares_router
 from routers.cidadaos import router as cidadaos_router
 from routers.integracao_status import router as integracao_status_router
 app.include_router(integracao_fns_apui_router)
+app.include_router(repasses_fns_apui_router)
 app.include_router(integracao_egestor_apui_router)
 app.include_router(integracao_esuspec_apui_router)
 app.include_router(integracao_siaps_apui_router)

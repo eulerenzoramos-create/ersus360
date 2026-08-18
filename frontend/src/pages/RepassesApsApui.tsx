@@ -1,14 +1,16 @@
 /**
- * RepassesApsApui — Módulo de Repasses Financeiros da APS — Apuí/AM
- * Fonte: API oficial e-Gestor APS (relatorioaps-prd.saude.gov.br)
+ * RepassesApsApui — Módulo Financeiro ERSUS360 — Apuí/AM
  *
- * DIAGNÓSTICO E CORREÇÃO:
- *   O projeto NÃO usa Tailwind CSS (não está instalado nem configurado).
- *   A versão anterior usava classes Tailwind que nunca eram processadas,
- *   resultando em HTML sem estilização. Esta versão usa exclusivamente
- *   inline styles, seguindo o padrão do design system do ERSUS360.
+ * Estrutura em 3 abas:
+ *   1. Atenção Primária — e-Gestor APS  (dados de competência, parcelas, componentes, equipes)
+ *   2. Repasses do FNS                  (transferências fundo a fundo, classificadas por tipo)
+ *   3. Conciliação e-Gestor APS × FNS   (comparativo sem dupla contagem)
+ *
+ * Design: inline styles exclusivamente (sem Tailwind — não instalado no projeto).
  */
 import { useState, useMemo } from "react";
+import RepassesFnsPanel from "./RepassesFnsPanel";
+import ConciliacaoFnsPanel from "./ConciliacaoFnsPanel";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -540,7 +542,8 @@ function LinhaCompetencia({
 }
 
 // ─── Página principal ─────────────────────────────────────────────────────────
-export default function RepassesApsApui() {
+// ─── Componente APS (conteúdo original preservado integralmente) ─────────────
+function ApsPanel() {
   const qc = useQueryClient();
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [filtroBusca, setFiltroBusca] = useState("");
@@ -609,7 +612,7 @@ export default function RepassesApsApui() {
   };
 
   return (
-    <div style={{ background: C.grayLight, minHeight: "100vh", fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div>
       {/* CSS para animação */}
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -624,7 +627,7 @@ export default function RepassesApsApui() {
         }
       `}</style>
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 20px 60px" }}>
+      <div>
 
         {/* ── CABEÇALHO ── */}
         <div className="header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 20, flexWrap: "wrap" as const }}>
@@ -1013,6 +1016,69 @@ export default function RepassesApsApui() {
             </a>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Container principal com 3 abas ──────────────────────────────────────────
+const ABAS = [
+  { id: "aps",        label: "Atenção Primária — e-Gestor APS",  desc: "Competências, parcelas, componentes, equipes" },
+  { id: "fns",        label: "Repasses do Fundo Nacional de Saúde", desc: "Transferências fundo a fundo por tipo" },
+  { id: "conciliacao",label: "Conciliação e-Gestor APS × FNS",   desc: "Comparativo sem dupla contagem" },
+] as const;
+
+const CB = {
+  blue: "#1565c0", blueLight: "#e3f0ff", white: "#ffffff",
+  grayBdr: "#e4e7ec", grayLight: "#f4f6f8", textSec: "#6b7280", textPri: "#111827",
+};
+
+export default function RepassesApsApui() {
+  const [aba, setAba] = useState<"aps" | "fns" | "conciliacao">("aps");
+
+  return (
+    <div style={{ background: CB.grayLight, minHeight: "100vh", fontFamily: "Inter, system-ui, sans-serif" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 20px 60px" }}>
+
+        {/* Cabeçalho do módulo */}
+        <div style={{ marginBottom: 20 }}>
+          <h1 style={{ margin: "0 0 4px", fontSize: 22, fontWeight: 800, color: CB.textPri }}>
+            Módulo Financeiro — Repasses Federais
+          </h1>
+          <p style={{ margin: 0, fontSize: 13, color: CB.textSec }}>
+            Apuí/AM · FMS CNPJ 12.834.320/0001-26 · IBGE 130014
+            {" "}· Fontes: e-Gestor APS + FNS/MS
+          </p>
+        </div>
+
+        {/* Abas */}
+        <div style={{ display: "flex", borderBottom: `2px solid ${CB.grayBdr}`, marginBottom: 24, gap: 0,
+          overflowX: "auto" as const }}>
+          {ABAS.map(a => {
+            const ativo = aba === a.id;
+            return (
+              <button key={a.id} onClick={() => setAba(a.id)}
+                style={{
+                  padding: "12px 20px", fontSize: 13, fontWeight: ativo ? 700 : 500,
+                  color: ativo ? CB.blue : CB.textSec,
+                  background: ativo ? CB.blueLight : "transparent",
+                  border: "none", borderBottom: ativo ? `3px solid ${CB.blue}` : "3px solid transparent",
+                  cursor: "pointer", whiteSpace: "nowrap" as const, transition: "all .15s",
+                  borderRadius: "8px 8px 0 0",
+                }}>
+                <div>{a.label}</div>
+                <div style={{ fontSize: 10, fontWeight: 400, color: ativo ? CB.blue : CB.textSec, opacity: 0.7 }}>
+                  {a.desc}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Conteúdo da aba ativa */}
+        {aba === "aps"         && <ApsPanel />}
+        {aba === "fns"         && <RepassesFnsPanel />}
+        {aba === "conciliacao" && <ConciliacaoFnsPanel />}
       </div>
     </div>
   );
