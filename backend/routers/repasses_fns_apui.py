@@ -12,6 +12,7 @@ from datetime import datetime, date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
@@ -471,6 +472,32 @@ async def conciliacao(
             "FNS registra data de crédito bancário)."
         ),
     }
+
+
+# ── Geração de Planilha Excel ─────────────────────────────────────────────────
+
+@router.get("/planilha")
+async def gerar_planilha(
+    exercicio: int = Query(2026, description="Exercício fiscal a exportar"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Gera e retorna planilha Excel (.xlsx) com 9 abas:
+    Resumo, Repasses Mensais, Execução, APS, FNS, Conciliação, Portarias, Pendências, Base.
+    """
+    from services.excel_repasses import gerar_planilha_repasses
+    import io
+
+    xlsx_bytes = await gerar_planilha_repasses(db, exercicio=exercicio)
+
+    return StreamingResponse(
+        io.BytesIO(xlsx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="ERSUS360_REPASSES_EXECUCAO_APUI_{exercicio}.xlsx"',
+            "Content-Length": str(len(xlsx_bytes)),
+        },
+    )
 
 
 # ── Histórico de coletas ──────────────────────────────────────────────────────

@@ -220,6 +220,8 @@ export default function RepassesFnsPanel() {
   const [barraAtiva, setBarraAtiva] = useState<string | null>(null);
   const [sincMsg, setSincMsg] = useState<"" | "ok" | "err" | "loading">("");
   const [sincDetalhe, setSincDetalhe] = useState<string>("");
+  const [planilhaLoading, setPlanilhaLoading] = useState(false);
+  const [planilhaMsg, setPlanilhaMsg] = useState("");
 
   const statusQ = useQuery<StatusFns>({
     queryKey: ["fns-status"],
@@ -302,6 +304,33 @@ export default function RepassesFnsPanel() {
       setSincDetalhe(e instanceof Error ? e.message : "Erro desconhecido.");
     }
     setTimeout(() => setSincMsg(""), 12000);
+  };
+
+  const gerarPlanilha = async () => {
+    setPlanilhaLoading(true);
+    setPlanilhaMsg("Gerando planilha…");
+    try {
+      const API_BASE = (import.meta as Record<string, unknown>).env
+        ? ((import.meta as { env: Record<string, string> }).env.VITE_API_URL ?? "")
+        : "";
+      const url = `${API_BASE}/api/repasses-fns/planilha?exercicio=${exercicio}`;
+      const response = await fetch(url, { method: "GET" });
+      if (!response.ok) throw new Error(`Erro ${response.status}: ${await response.text()}`);
+      const blob = await response.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `ERSUS360_REPASSES_EXECUCAO_APUI_${exercicio}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      setPlanilhaMsg("✓ Planilha baixada com sucesso!");
+    } catch (e: unknown) {
+      setPlanilhaMsg(`✗ ${e instanceof Error ? e.message : "Erro ao gerar planilha."}`);
+    } finally {
+      setPlanilhaLoading(false);
+      setTimeout(() => setPlanilhaMsg(""), 10000);
+    }
   };
 
   const resumo = resumoQ.data;
@@ -403,6 +432,28 @@ export default function RepassesFnsPanel() {
             {sincMsg === "ok" && <span style={{ fontSize: 11, color: C.green, fontWeight: 700 }}>✓ {sincDetalhe}</span>}
             {sincMsg === "err" && <span style={{ fontSize: 11, color: C.red, fontWeight: 700 }}>✗ {sincDetalhe}</span>}
             {sincMsg === "loading" && <span style={{ fontSize: 11, color: C.amber }}>Coletando dados do FNS…</span>}
+            {planilhaMsg && (
+              <span style={{ fontSize: 11, fontWeight: 700,
+                color: planilhaMsg.startsWith("✓") ? C.green : planilhaMsg.startsWith("✗") ? C.red : C.amber }}>
+                {planilhaMsg}
+              </span>
+            )}
+            <button
+              onClick={gerarPlanilha}
+              disabled={planilhaLoading || sincMsg === "loading"}
+              title="Gerar planilha Excel com 9 abas: Resumo, Repasses Mensais, Execução, APS, FNS, Conciliação, Portarias, Pendências e Base de Dados"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                background: planilhaLoading ? C.grayLight : C.green,
+                color: planilhaLoading ? C.gray : C.white,
+                border: "none", borderRadius: 8, padding: "8px 16px",
+                fontSize: 13, fontWeight: 600, cursor: planilhaLoading ? "wait" : "pointer",
+                opacity: planilhaLoading ? 0.75 : 1,
+                boxShadow: planilhaLoading ? "none" : "0 1px 4px rgba(22,163,74,0.3)",
+              }}>
+              <Download size={13} />
+              {planilhaLoading ? "Gerando…" : "Gerar Planilha de Repasses e Execução"}
+            </button>
             <button onClick={sincronizar} disabled={sincMsg === "loading"}
               style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.blue, color: C.white,
                 border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer",
