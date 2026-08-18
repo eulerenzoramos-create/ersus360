@@ -11,7 +11,7 @@ import logging
 from datetime import datetime, date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
@@ -24,7 +24,6 @@ from services.fns_transferencias import (
     resumo_mensal,
     classificar_tipo,
 )
-from services.egestor_aps import listar_parcelas  # para conciliação
 
 logger = logging.getLogger(__name__)
 
@@ -372,8 +371,8 @@ async def conciliacao(
     # Busca competências e-Gestor APS
     egestor_data = []
     try:
-        from services.egestor_aps import buscar_pagamentos
-        parcelas = await listar_parcelas(exercicio)
+        from services.egestor_aps import buscar_pagamentos, listar_parcelas as _lp
+        parcelas = await _lp(exercicio)
         if parcelas:
             egestor_raw = await buscar_pagamentos(parcelas[0], parcelas[-1])
             egestor_data = egestor_raw if isinstance(egestor_raw, list) else egestor_raw.get("competencias", [])

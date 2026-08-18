@@ -508,7 +508,7 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
             "registros_atualizados": atualizados,
             "registros_sem_mudanca": sem_mudanca,
             "total_registros_fonte": total_fonte,
-            "total_coletado":        registros_coletados := len(registros),
+            "total_coletado":        len(registros),
             "total_oficial_fonte":   str(total_oficial) if total_oficial else None,
             "total_coletado_valor":  str(_dec(total_coletado)),
             "divergencia_total":     str(divergencia) if divergencia else "0.00",
