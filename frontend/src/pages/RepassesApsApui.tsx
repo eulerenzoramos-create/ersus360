@@ -48,9 +48,41 @@ interface CompetenciaDetalhe {
   fonte: string;
   fonte_situacao: string;
   coletado_em: string;
-  // Wrapper do endpoint /competencias/{nu_parcela}
   data_consulta_egestor?: string;
   meta?: Record<string, unknown>;
+}
+
+interface DetalhadoData {
+  competencia: string;
+  parcela: string;
+  populacao: number;
+  ano_ref_populacao: number;
+  faixa_equidade_esf: string;
+  classificacao_vinculo_esf: string;
+  classificacao_qualidade_esf: string;
+  classificacao_qualidade_emulti: string;
+  esf: {
+    qt_pagas: number; qt_100pct: number; qt_75pct: number; qt_50pct: number; qt_25pct: number;
+    vl_fixo: number; vl_vinculo: number; vl_qualidade: number; vl_total_bruto: number;
+  };
+  eap: { qt_pagas: number; vl_total_bruto: number };
+  emulti: {
+    qt_pagas: number; qt_estrategica: number; qt_complementar: number; qt_ampliada: number;
+    vl_custeio: number; vl_qualidade: number; vl_total: number;
+  };
+  esb: {
+    qt_40h_pagas_modal_i: number; qt_uom: number;
+    vl_esb_40h: number; vl_qualidade_40h: number; vl_uom: number; vl_lrpd_municipal: number;
+    vl_ceo_municipal: number; vl_total_sb_calculado: number;
+  };
+  acs: { qt_teto: number; qt_direto_pago: number; qt_indireto_pago: number; vl_total: number };
+  esfrb: { qt_pagas: number; vl_custeio: number; vl_qualidade: number; vl_vinculo: number; vl_extra: number; vl_total: number };
+  microscopistas: { qt_pagos: number; vl_total: number };
+  per_capita: { populacao: number; vl_pagamento: number };
+  tetos: { esf: number; eap: number; emulti_estrategica: number; sb_40h: number };
+  fonte_situacao: string;
+  coletado_em: string;
+  data_consulta_egestor?: string;
 }
 
 interface ListaResponse {
@@ -119,9 +151,155 @@ const COMP_CORES: Record<number, string> = {
   7:  "bg-lime-400",
 };
 
+// ─── Sub-painel: Equipes e Indicadores ───────────────────────────────────────
+
+function PainelEquipes({ nuParcela }: { nuParcela: string }) {
+  const { data, isLoading, error } = useQuery<DetalhadoData>({
+    queryKey: ["repasse-detalhado", nuParcela],
+    queryFn: () => apiGet(`/repasses-aps/detalhado/${nuParcela}`),
+    staleTime: 300_000,
+  });
+
+  if (isLoading) return <p className="text-slate-400 text-sm animate-pulse py-4">Consultando e-Gestor APS…</p>;
+  if (error || !data) return <p className="text-red-500 text-sm py-4">Não foi possível obter detalhamento de equipes.</p>;
+
+  function ClassBadge({ val }: { val: string }) {
+    const c = val === "BOM" ? "bg-green-100 text-green-800 border-green-300"
+            : val === "REGULAR" ? "bg-yellow-100 text-yellow-800 border-yellow-300"
+            : "bg-red-100 text-red-800 border-red-300";
+    return <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${c}`}>{val}</span>;
+  }
+
+  const { esf, eap, emulti, esb, acs, esfrb, microscopistas, per_capita, tetos } = data;
+
+  return (
+    <div className="space-y-4">
+      {/* Indicadores gerais */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Equidade eSF", val: data.faixa_equidade_esf },
+          { label: "Vínculo eSF/eAP", val: data.classificacao_vinculo_esf },
+          { label: "Qualidade eSF/eAP", val: data.classificacao_qualidade_esf },
+          { label: "Qualidade eMulti", val: data.classificacao_qualidade_emulti },
+        ].map((it) => (
+          <div key={it.label} className="bg-white dark:bg-slate-950 rounded-lg border border-slate-100 dark:border-slate-800 px-3 py-2">
+            <p className="text-xs text-slate-400 mb-1">{it.label}</p>
+            <ClassBadge val={it.val} />
+          </div>
+        ))}
+      </div>
+
+      {/* Tabela de equipes */}
+      <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-slate-100 dark:bg-slate-800 text-xs">
+              <th className="px-4 py-2 text-left font-semibold text-slate-600 dark:text-slate-300">Componente</th>
+              <th className="px-4 py-2 text-center font-semibold text-slate-600 dark:text-slate-300">Qtd Pagas</th>
+              <th className="px-4 py-2 text-center font-semibold text-slate-600 dark:text-slate-300">Teto</th>
+              <th className="px-4 py-2 text-right font-semibold text-slate-600 dark:text-slate-300">Valor Total</th>
+              <th className="px-4 py-2 text-right font-semibold text-slate-600 dark:text-slate-300">Detalhes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {/* eSF */}
+            <tr className="border-t border-slate-100 dark:border-slate-800">
+              <td className="px-4 py-2.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 mr-2" />eSF — Saúde da Família</td>
+              <td className="px-4 py-2.5 text-center tabular-nums">{esf.qt_pagas} <span className="text-slate-400 text-xs">({esf.qt_100pct} × 100%)</span></td>
+              <td className="px-4 py-2.5 text-center tabular-nums text-slate-400">{tetos.esf}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums font-semibold">{BRL(esf.vl_total_bruto)}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums text-xs text-slate-400">
+                F {BRL(esf.vl_fixo)} · V {BRL(esf.vl_vinculo)} · Q {BRL(esf.vl_qualidade)}
+              </td>
+            </tr>
+            {/* eAP */}
+            <tr className="border-t border-slate-100 dark:border-slate-800 opacity-60">
+              <td className="px-4 py-2.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-300 mr-2" />eAP — Atenção Primária</td>
+              <td className="px-4 py-2.5 text-center tabular-nums">{eap.qt_pagas}</td>
+              <td className="px-4 py-2.5 text-center tabular-nums text-slate-400">{tetos.eap}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums">{eap.vl_total_bruto > 0 ? BRL(eap.vl_total_bruto) : "—"}</td>
+              <td className="px-4 py-2.5 text-right text-xs text-slate-400">Sem equipes pagas</td>
+            </tr>
+            {/* eMulti */}
+            <tr className="border-t border-slate-100 dark:border-slate-800">
+              <td className="px-4 py-2.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-violet-500 mr-2" />eMulti — Multiprofissional</td>
+              <td className="px-4 py-2.5 text-center tabular-nums">{emulti.qt_pagas} <span className="text-slate-400 text-xs">({emulti.qt_estrategica} estratégica)</span></td>
+              <td className="px-4 py-2.5 text-center tabular-nums text-slate-400">{tetos.emulti_estrategica}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums font-semibold">{BRL(emulti.vl_total)}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums text-xs text-slate-400">
+                C {BRL(emulti.vl_custeio)} · Q {BRL(emulti.vl_qualidade)}
+              </td>
+            </tr>
+            {/* eSB */}
+            <tr className="border-t border-slate-100 dark:border-slate-800">
+              <td className="px-4 py-2.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2" />eSB — Saúde Bucal</td>
+              <td className="px-4 py-2.5 text-center tabular-nums">{esb.qt_40h_pagas_modal_i} + {esb.qt_uom} UOM</td>
+              <td className="px-4 py-2.5 text-center tabular-nums text-slate-400">{tetos.sb_40h}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums font-semibold">{BRL(esb.vl_total_sb_calculado)}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums text-xs text-slate-400">
+                C {BRL(esb.vl_esb_40h)} · Q {BRL(esb.vl_qualidade_40h)} · UOM {BRL(esb.vl_uom)} · LRPD {BRL(esb.vl_lrpd_municipal)}
+              </td>
+            </tr>
+            {/* ACS */}
+            <tr className="border-t border-slate-100 dark:border-slate-800">
+              <td className="px-4 py-2.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500 mr-2" />ACS — Agentes Comunitários</td>
+              <td className="px-4 py-2.5 text-center tabular-nums">{acs.qt_direto_pago}</td>
+              <td className="px-4 py-2.5 text-center tabular-nums text-slate-400">{acs.qt_teto}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums font-semibold">{BRL(acs.vl_total)}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums text-xs text-slate-400">
+                {acs.qt_direto_pago > 0 ? BRL(acs.vl_total / acs.qt_direto_pago) + "/ACS" : "—"}
+              </td>
+            </tr>
+            {/* eSFRB */}
+            {esfrb.qt_pagas > 0 && (
+              <tr className="border-t border-slate-100 dark:border-slate-800">
+                <td className="px-4 py-2.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-orange-400 mr-2" />eSFRB — Ribeirinha</td>
+                <td className="px-4 py-2.5 text-center tabular-nums">{esfrb.qt_pagas}</td>
+                <td className="px-4 py-2.5 text-center text-slate-400">—</td>
+                <td className="px-4 py-2.5 text-right tabular-nums font-semibold">{BRL(esfrb.vl_total)}</td>
+                <td className="px-4 py-2.5 text-right tabular-nums text-xs text-slate-400">
+                  C {BRL(esfrb.vl_custeio)} · Q {BRL(esfrb.vl_qualidade)} · V {BRL(esfrb.vl_vinculo)} · Ext {BRL(esfrb.vl_extra)}
+                </td>
+              </tr>
+            )}
+            {/* Microscopistas */}
+            {microscopistas.qt_pagos > 0 && (
+              <tr className="border-t border-slate-100 dark:border-slate-800">
+                <td className="px-4 py-2.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-orange-300 mr-2" />Microscopistas</td>
+                <td className="px-4 py-2.5 text-center tabular-nums">{microscopistas.qt_pagos}</td>
+                <td className="px-4 py-2.5 text-center text-slate-400">—</td>
+                <td className="px-4 py-2.5 text-right tabular-nums font-semibold">{BRL(microscopistas.vl_total)}</td>
+                <td className="px-4 py-2.5 text-right tabular-nums text-xs text-slate-400">
+                  {microscopistas.qt_pagos > 0 ? BRL(microscopistas.vl_total / microscopistas.qt_pagos) + "/mic" : "—"}
+                </td>
+              </tr>
+            )}
+            {/* Per capita */}
+            <tr className="border-t border-slate-100 dark:border-slate-800">
+              <td className="px-4 py-2.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 mr-2" />Per capita populacional</td>
+              <td className="px-4 py-2.5 text-center tabular-nums">{per_capita.populacao.toLocaleString("pt-BR")} hab</td>
+              <td className="px-4 py-2.5 text-center text-slate-400">—</td>
+              <td className="px-4 py-2.5 text-right tabular-nums font-semibold">{BRL(per_capita.vl_pagamento)}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums text-xs text-slate-400">
+                {BRL(per_capita.populacao > 0 ? per_capita.vl_pagamento / per_capita.populacao : 0)}/hab
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p className="text-xs text-slate-400">
+        Fonte: e-Gestor APS (tipoRelatorio=COMPLETO) · {data.coletado_em ? new Date(data.coletado_em).toLocaleString("pt-BR") : ""}
+      </p>
+    </div>
+  );
+}
+
 // ─── Painel de detalhe de uma competência ────────────────────────────────────
 
 function DetalhePanel({ nuParcela, competencia }: { nuParcela: string; competencia: string }) {
+  const [aba, setAba] = useState<"componentes" | "equipes">("componentes");
+
   const { data, isLoading, error } = useQuery<CompetenciaDetalhe>({
     queryKey: ["repasse-detalhe-v2", nuParcela],
     queryFn: () => apiGet(`/repasses-aps/competencias/${nuParcela}`),
@@ -155,7 +333,6 @@ function DetalhePanel({ nuParcela, competencia }: { nuParcela: string; competenc
     );
   }
 
-  // Detalhe real com componentes
   const componentes = data.componentes ?? [];
   const total = data.total_oficial;
 
@@ -180,116 +357,96 @@ function DetalhePanel({ nuParcela, competencia }: { nuParcela: string; competenc
 
       {/* Barra de composição */}
       {componentes.length > 0 && (
-        <div className="mb-5">
-          <div className="flex rounded-full h-4 overflow-hidden mb-2 gap-px">
-            {componentes.map((c) => {
-              const w = pct(c.vl_total, total);
-              const cor = COMP_CORES[c.co_seq] ?? "bg-slate-400";
-              return (
-                <div
-                  key={c.co_seq}
-                  className={`${cor} transition-all`}
-                  style={{ width: w }}
-                  title={`${c.descricao}: ${BRL(c.vl_total)}`}
-                />
-              );
-            })}
-          </div>
+        <div className="flex rounded-full h-3 overflow-hidden mb-4 gap-px">
+          {componentes.filter(c => c.vl_total > 0).map((c) => (
+            <div
+              key={c.co_seq}
+              className={`${COMP_CORES[c.co_seq] ?? "bg-slate-400"}`}
+              style={{ width: pct(c.vl_total, total) }}
+              title={`${c.descricao}: ${BRL(c.vl_total)}`}
+            />
+          ))}
         </div>
       )}
 
-      {/* Tabela de componentes */}
-      {componentes.length > 0 ? (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-100 dark:bg-slate-800">
-                <th className="px-4 py-2 text-left font-semibold text-slate-600 dark:text-slate-300">
-                  Componente
-                </th>
-                <th className="px-4 py-2 text-right font-semibold text-slate-600 dark:text-slate-300">
-                  Custeio
-                </th>
-                <th className="px-4 py-2 text-right font-semibold text-slate-600 dark:text-slate-300">
-                  Implantação
-                </th>
-                <th className="px-4 py-2 text-right font-semibold text-slate-600 dark:text-slate-300">
-                  Total
-                </th>
-                <th className="px-4 py-2 text-right font-semibold text-slate-600 dark:text-slate-300">
-                  %
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {componentes.map((c, i) => {
-                const cor = COMP_CORES[c.co_seq] ?? "bg-slate-400";
-                const zero = c.vl_total === 0;
-                return (
-                  <tr
-                    key={c.co_seq}
-                    className={`border-t border-slate-100 dark:border-slate-800 ${
-                      zero ? "opacity-50" : ""
-                    } ${i % 2 === 0 ? "" : "bg-white/50 dark:bg-slate-950/30"}`}
-                  >
-                    <td className="px-4 py-2.5 text-slate-700 dark:text-slate-200">
-                      <span
-                        className={`inline-block w-2.5 h-2.5 rounded-full ${cor} mr-2 flex-shrink-0`}
-                      />
-                      {c.descricao}
-                    </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">
-                      {c.vl_custeio > 0 ? BRL(c.vl_custeio) : "—"}
-                    </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">
-                      {c.vl_implantacao > 0 ? BRL(c.vl_implantacao) : "—"}
-                    </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-slate-800 dark:text-slate-100">
-                      {BRL(c.vl_total)}
-                    </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-400 text-xs">
-                      {pct(c.vl_total, total)}
-                    </td>
+      {/* Abas */}
+      <div className="flex gap-1 mb-4 border-b border-slate-200 dark:border-slate-700">
+        {(["componentes", "equipes"] as const).map((a) => (
+          <button
+            key={a}
+            onClick={() => setAba(a)}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              aba === a
+                ? "bg-white dark:bg-slate-800 border border-b-white dark:border-b-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
+            }`}
+          >
+            {a === "componentes" ? "Componentes" : "Equipes e Indicadores"}
+          </button>
+        ))}
+      </div>
+
+      {/* Aba Componentes */}
+      {aba === "componentes" && (
+        <>
+          {componentes.length > 0 ? (
+            <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-100 dark:bg-slate-800">
+                    <th className="px-4 py-2 text-left font-semibold text-slate-600 dark:text-slate-300">Componente</th>
+                    <th className="px-4 py-2 text-right font-semibold text-slate-600 dark:text-slate-300">Custeio</th>
+                    <th className="px-4 py-2 text-right font-semibold text-slate-600 dark:text-slate-300">Implantação</th>
+                    <th className="px-4 py-2 text-right font-semibold text-slate-600 dark:text-slate-300">Total</th>
+                    <th className="px-4 py-2 text-right font-semibold text-slate-600 dark:text-slate-300">%</th>
                   </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800">
-                <td className="px-4 py-2.5 font-bold text-slate-800 dark:text-slate-100">Total</td>
-                <td colSpan={2} />
-                <td className="px-4 py-2.5 text-right tabular-nums font-bold text-emerald-700 dark:text-emerald-400">
-                  {BRL(total)}
-                </td>
-                <td className="px-4 py-2.5 text-right tabular-nums text-slate-400 text-xs">
-                  100%
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      ) : (
-        <p className="text-sm text-slate-500">
-          Dado ainda não disponibilizado pela fonte oficial para esta competência.
-        </p>
+                </thead>
+                <tbody>
+                  {componentes.map((c, i) => (
+                    <tr
+                      key={c.co_seq}
+                      className={`border-t border-slate-100 dark:border-slate-800 ${c.vl_total === 0 ? "opacity-40" : ""} ${i % 2 === 0 ? "" : "bg-white/50 dark:bg-slate-950/30"}`}
+                    >
+                      <td className="px-4 py-2.5 text-slate-700 dark:text-slate-200">
+                        <span className={`inline-block w-2.5 h-2.5 rounded-full ${COMP_CORES[c.co_seq] ?? "bg-slate-400"} mr-2`} />
+                        {c.descricao}
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{c.vl_custeio > 0 ? BRL(c.vl_custeio) : "—"}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{c.vl_implantacao > 0 ? BRL(c.vl_implantacao) : "—"}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-slate-800 dark:text-slate-100">{BRL(c.vl_total)}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-slate-400 text-xs">{pct(c.vl_total, total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800">
+                    <td className="px-4 py-2.5 font-bold text-slate-800 dark:text-slate-100">Total</td>
+                    <td colSpan={2} />
+                    <td className="px-4 py-2.5 text-right tabular-nums font-bold text-emerald-700 dark:text-emerald-400">{BRL(total)}</td>
+                    <td className="px-4 py-2.5 text-right text-slate-400 text-xs">100%</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">Dado ainda não disponibilizado pela fonte oficial para esta competência.</p>
+          )}
+
+          {!data.conciliado && (
+            <div className="mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3 text-sm text-red-700 dark:text-red-300">
+              <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <span>Divergência: soma dos componentes ({BRL(data.soma_componentes)}) ≠ total oficial ({BRL(total)}).</span>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Conciliação */}
-      {!data.conciliado && (
-        <div className="mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3 text-sm text-red-700 dark:text-red-300">
-          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span>
-            Divergência de conciliação: soma dos componentes ({BRL(data.soma_componentes)}) ≠ total
-            oficial ({BRL(total)}).
-          </span>
-        </div>
-      )}
+      {/* Aba Equipes */}
+      {aba === "equipes" && <PainelEquipes nuParcela={nuParcela} />}
 
-      {/* Rodapé fonte */}
+      {/* Rodapé */}
       <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-400">
-        <span>
-          Coletado em: {data.coletado_em ? new Date(data.coletado_em).toLocaleString("pt-BR") : "—"}
-        </span>
+        <span>Coletado em: {data.coletado_em ? new Date(data.coletado_em).toLocaleString("pt-BR") : "—"}</span>
         <a
           href="https://relatorioaps.saude.gov.br/gerenciaaps/pagamento"
           target="_blank" rel="noopener noreferrer"
