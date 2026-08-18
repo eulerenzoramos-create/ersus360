@@ -9,8 +9,15 @@
  * Design: inline styles exclusivamente (sem Tailwind — não instalado no projeto).
  */
 import { useState, useMemo } from "react";
+import { lazy, Suspense } from "react";
 import RepassesFnsPanel from "./RepassesFnsPanel";
 import ConciliacaoFnsPanel from "./ConciliacaoFnsPanel";
+const MatrizFnsRaw = lazy(() => import("./MatrizFns"));
+const MatrizFnsLazy = () => (
+  <Suspense fallback={<div style={{ padding: 60, textAlign: "center", color: "#6b7280" }}>Carregando…</div>}>
+    <MatrizFnsRaw />
+  </Suspense>
+);
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -1025,6 +1032,7 @@ function ApsPanel() {
 const ABAS = [
   { id: "aps",        label: "Atenção Primária — e-Gestor APS",  desc: "Competências, parcelas, componentes, equipes" },
   { id: "fns",        label: "Repasses do Fundo Nacional de Saúde", desc: "Transferências fundo a fundo por tipo" },
+  { id: "matriz",     label: "Repasses Mensais — FNS",           desc: "Tabela matricial por grupo e mês" },
   { id: "conciliacao",label: "Conciliação e-Gestor APS × FNS",   desc: "Comparativo sem dupla contagem" },
 ] as const;
 
@@ -1034,7 +1042,7 @@ const CB = {
 };
 
 export default function RepassesApsApui() {
-  const [aba, setAba] = useState<"aps" | "fns" | "conciliacao">("aps");
+  const [aba, setAba] = useState<"aps" | "fns" | "matriz" | "conciliacao">("aps");
 
   return (
     <div style={{ background: CB.grayLight, minHeight: "100vh", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -1078,6 +1086,7 @@ export default function RepassesApsApui() {
         {/* Conteúdo da aba ativa */}
         {aba === "aps"         && <ApsPanel />}
         {aba === "fns"         && <RepassesFnsPanel />}
+        {aba === "matriz"      && <MatrizFnsLazy />}
         {aba === "conciliacao" && <ConciliacaoFnsPanel />}
       </div>
     </div>
