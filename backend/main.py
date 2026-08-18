@@ -557,7 +557,6 @@ app.include_router(saude_mental_infantojuvenil_apui_router)
 from routers.regulacao_referencia_apui import router as regulacao_referencia_apui_router
 app.include_router(regulacao_referencia_apui_router)
 from routers.integracao_fns_apui import router as integracao_fns_apui_router
-from routers.repasses_fns_apui import router as repasses_fns_apui_router
 from routers.integracao_egestor_apui import router as integracao_egestor_apui_router
 from routers.integracao_esuspec_apui import router as integracao_esuspec_apui_router
 from routers.integracao_siaps_apui import router as integracao_siaps_apui_router
@@ -567,7 +566,24 @@ from routers.visitas_domiciliares import router as visitas_domiciliares_router
 from routers.cidadaos import router as cidadaos_router
 from routers.integracao_status import router as integracao_status_router
 app.include_router(integracao_fns_apui_router)
-app.include_router(repasses_fns_apui_router)
+_repasses_fns_import_error = None
+try:
+    from routers.repasses_fns_apui import router as _rfns_router
+    app.include_router(_rfns_router)
+except Exception as _e:
+    import logging as _logging
+    _repasses_fns_import_error = str(_e)
+    _logging.getLogger("main").error("ERRO ao carregar repasses_fns_apui: %s", _e, exc_info=True)
+    from fastapi import APIRouter as _APIRouter
+    _dbg = _APIRouter(prefix="/api/repasses-fns", tags=["Repasses FNS DEBUG"])
+    _err_cap = _repasses_fns_import_error
+    @_dbg.get("/debug-import-error")
+    async def _debug_import():
+        return {"erro": _err_cap}
+    @_dbg.post("/sincronizar")
+    async def _dbg_sincronizar():
+        return {"sucesso": False, "mensagem_erro": f"Router nao carregou: {_err_cap}"}
+    app.include_router(_dbg)
 app.include_router(integracao_egestor_apui_router)
 app.include_router(integracao_esuspec_apui_router)
 app.include_router(integracao_siaps_apui_router)
