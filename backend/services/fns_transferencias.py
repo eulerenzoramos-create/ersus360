@@ -463,6 +463,19 @@ async def _salvar_registros(db: AsyncSession, registros: list[dict]) -> tuple[in
 
 # ── Função pública principal ───────────────────────────────────────────────────
 
+async def _limpar_periodo(exercicio: int, mes: int, db: AsyncSession) -> int:
+    """Remove todos os registros do período para permitir ressincronização limpa."""
+    from sqlalchemy import delete as sa_delete
+    stmt = sa_delete(TransferenciaFns).where(
+        TransferenciaFns.municipio_ibge == IBGE_APUI_7,
+        TransferenciaFns.exercicio == exercicio,
+        TransferenciaFns.mes == mes,
+    )
+    result = await db.execute(stmt)
+    await db.commit()
+    return result.rowcount
+
+
 async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> dict:
     """
     Coleta transferências do FNS para Apuí, salva no banco e retorna relatório.
@@ -477,6 +490,11 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
     - mensagem_erro: str | None
     """
     iniciado = datetime.utcnow()
+
+    # Limpa registros antigos do período (permite ressincronização com dados corrigidos)
+    removidos = await _limpar_periodo(exercicio, mes, db)
+    if removidos:
+        logger.info(f"FNS: removidos {removidos} registros antigos de {exercicio}/{mes:02d}")
 
     # Cria registro de coleta
     coleta = ColetaFns(
