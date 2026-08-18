@@ -200,15 +200,15 @@ def _normalizar(raw: dict, exercicio: int, mes: int | None, fonte: str, pagina: 
 
 async def _fetch_consultafns(exercicio: int, mes: int) -> tuple[list[dict], Decimal | None, int | None]:
     """
-    Consulta consultafns.saude.gov.br percorrendo todas as páginas.
-    Retorna (registros_normalizados, total_oficial, total_registros_fonte).
+    Consulta consultafns.saude.gov.br/recursos/consulta-detalhada/detalhe-acao
+    usando o mesmo padrão que já funciona em financeiro.py (/fns-acoes).
+
+    Fluxo:
+    1. /recursos/consulta-detalhada/entidades → obtém CNPJ do FMS Apuí
+    2. /recursos/consulta-detalhada/detalhe-acao → percorre todas as páginas
     """
-    competencia_yyyymm = f"{exercicio}{mes:02d}"
-    base_urls = [
-        "https://consultafns.saude.gov.br/api/transferencias",
-        "https://consultafns.saude.gov.br/api/repasse/listarRepasses",
-        "https://apifns.saude.gov.br/api/repasse/municipio/{ibge}/competencia/{comp}",
-    ]
+    _BASE = "https://consultafns.saude.gov.br/recursos"
+    CNPJ_FIXO = "12834320000126"  # CNPJ FMS Apuí sem formatação (fallback)
 
     headers = {
         "User-Agent": "Mozilla/5.0 (compatible; ERSUS360/1.0; +https://ersus360.vercel.app)",
@@ -221,98 +221,125 @@ async def _fetch_consultafns(exercicio: int, mes: int) -> tuple[list[dict], Deci
     total_oficial: Decimal | None = None
     total_fonte: int | None = None
 
-    async with httpx.AsyncClient(timeout=TIMEOUT, verify=False) as client:
-        for url_tmpl in base_urls:
-            url = url_tmpl.replace("{ibge}", IBGE_APUI_7).replace("{comp}", competencia_yyyymm)
+    async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
+        # ── 1. Resolve CNPJ via entidades ────────────────────────────────────
+        cnpj = CNPJ_FIXO
+        try:
+            ent_params: dict = {
+                "ano": exercicio, "count": 1, "estado": "AM",
+                "municipio": IBGE_APUI_7, "page": 1, "tipoConsulta": 2,
+                "mes": mes,
+            }
+            re = await client.get(f"{_BASE}/consulta-detalhada/entidades",
+                                  headers=headers, params=ent_params)
+            if re.status_code == 200:
+                dados = re.json().get("resultado", {}).get("dados", [])
+                if dados:
+                    raw_cnpj = dados[0].get("cpfCnpj") or dados[0].get("cpfCnpjFormatado", "")
+                    cnpj = raw_cnpj.replace(".", "").replace("/", "").replace("-", "") or CNPJ_FIXO
+        except Exception as e:
+            logger.info(f"FNS entidades (usando CNPJ fixo): {e}")
+
+        # ── 2. Percorre todas as páginas de detalhe-acao ──────────────────────
+        page = 1
+        while page <= MAX_PAGES:
+            acao_params: dict = {
+                "ano": exercicio, "count": PAGE_SIZE,
+                "cpfCnpjUg": cnpj,
+                "estado": "AM", "municipio": IBGE_APUI_7,
+                "page": page, "tipoConsulta": 2,
+                "mes": mes,
+            }
             try:
-                # Tenta página 0 para descobrir estrutura e total
-                params = {
-                    "coIbge":         IBGE_APUI_7,
-                    "nuCompetencia":  competencia_yyyymm,
-                    "page":           0,
-                    "size":           PAGE_SIZE,
-                    "municipio":      IBGE_APUI_7,
-                    "competencia":    competencia_yyyymm,
-                }
-                resp = await client.get(url, headers=headers, params=params)
-                if resp.status_code not in (200, 206):
-                    continue
+                r = await client.get(f"{_BASE}/consulta-detalhada/detalhe-acao",
+                                     headers=headers, params=acao_params)
+                if r.status_code != 200:
+                    logger.info(f"FNS detalhe-acao página {page}: HTTP {r.status_code}")
+                    break
 
-                data = resp.json()
+                payload = r.json().get("resultado", {})
+                dados = payload.get("dados", [])
+                if not dados:
+                    break
 
-                # Normaliza estrutura da resposta (vários formatos possíveis)
-                items: list[dict] = []
-                total_pages = 1
+                # Soma total oficial da fonte (campo totalValor/totalDesconto)
+                if page == 1 and total_oficial is None:
+                    tv = payload.get("totalValor") or payload.get("totalLiquido")
+                    if tv is not None:
+                        total_oficial = _dec(tv)
+                    total_fonte = payload.get("totalRegistros") or payload.get("total")
 
-                if isinstance(data, list):
-                    items = data
-                elif isinstance(data, dict):
-                    items = (
-                        data.get("content") or
-                        data.get("transferencias") or
-                        data.get("data") or
-                        data.get("items") or
-                        data.get("registros") or
-                        []
-                    )
-                    total_pages = (
-                        data.get("totalPages") or
-                        data.get("totalPaginas") or
-                        data.get("total_pages") or
-                        1
-                    )
-                    total_fonte = int(
-                        data.get("totalElements") or
-                        data.get("totalRegistros") or
-                        data.get("total") or
-                        len(items)
-                    )
-                    # Tenta extrair total oficial da fonte
-                    t = (
-                        data.get("totalValorLiquido") or
-                        data.get("valorTotalLiquido") or
-                        data.get("totalGeral") or
-                        data.get("sumValorLiquido")
-                    )
-                    if t is not None:
-                        total_oficial = _dec(t)
+                for item in dados:
+                    registros.append(_normalizar_detalhe(item, exercicio, mes, page))
 
-                for item in items:
-                    registros.append(_normalizar(item, exercicio, mes, "consultafns", 0))
-
-                # Percorre páginas restantes
-                for page in range(1, min(total_pages, MAX_PAGES)):
-                    params["page"] = page
-                    try:
-                        r2 = await client.get(url, headers=headers, params=params)
-                        if r2.status_code != 200:
-                            break
-                        d2 = r2.json()
-                        pg_items: list[dict] = []
-                        if isinstance(d2, list):
-                            pg_items = d2
-                        elif isinstance(d2, dict):
-                            pg_items = (
-                                d2.get("content") or d2.get("transferencias") or
-                                d2.get("data") or d2.get("items") or []
-                            )
-                        for item in pg_items:
-                            registros.append(_normalizar(item, exercicio, mes, "consultafns", page))
-                        if not pg_items:
-                            break
-                    except Exception as e:
-                        logger.warning(f"FNS página {page}: {e}")
-                        break
-
-                if registros:
-                    logger.info(f"FNS consultafns: {len(registros)} registros, {total_pages} páginas, total={total_oficial}")
-                    return registros, total_oficial, total_fonte
+                if len(dados) < PAGE_SIZE:
+                    break
+                page += 1
 
             except Exception as e:
-                logger.info(f"FNS endpoint {url}: {e}")
-                continue
+                logger.warning(f"FNS detalhe-acao página {page}: {e}")
+                break
 
-    return [], None, None
+    if registros:
+        logger.info(f"FNS consultafns: {len(registros)} registros coletados, total={total_oficial}")
+
+    return registros, total_oficial, total_fonte
+
+
+def _normalizar_detalhe(raw: dict, exercicio: int, mes: int, pagina: int) -> dict:
+    """
+    Normaliza um registro do endpoint /recursos/consulta-detalhada/detalhe-acao.
+    Campos reais retornados pela API: dsBloco, dsGrupo, dsAcao, dsAcaoDetalhada,
+    vlTotal, vlDesconto, vlLiquido, dtPagamento, nuOB, etc.
+    """
+    def _s(*keys: str):
+        for k in keys:
+            v = raw.get(k)
+            if v is not None and str(v).strip():
+                return str(v).strip()
+        return None
+
+    bloco    = _s("dsBloco", "noBloco", "bloco", "Bloco")
+    grupo    = _s("dsGrupo", "noGrupo", "grupo", "Grupo")
+    acao     = _s("dsAcao",  "noAcao",  "acao",  "acaoProgramatica")
+    acao_det = _s("dsAcaoDetalhada", "noAcaoDetalhada", "acaoDetalhada", "subPrograma")
+    vl_total = _dec(raw.get("vlTotal") or raw.get("valorTotal") or raw.get("valor"))
+    vl_desc  = _dec(raw.get("vlDesconto") or raw.get("valorDesconto") or raw.get("desconto")) or Decimal("0.00")
+    vl_liq   = _dec(raw.get("vlLiquido") or raw.get("valorLiquido") or raw.get("valorLiquidoTransferido"))
+    if vl_liq is None and vl_total is not None:
+        vl_liq = vl_total - (vl_desc or Decimal("0.00"))
+
+    vl_liq_str = str(vl_liq) if vl_liq is not None else "0"
+    chave = _chave(IBGE_APUI_7, exercicio, mes, bloco or "", grupo or "", acao or "", acao_det or "", vl_liq_str)
+
+    return {
+        "chave_unica":       chave,
+        "municipio_ibge":    IBGE_APUI_7,
+        "municipio_nome":    "Apuí",
+        "uf":                "AM",
+        "cnpj_fundo":        "12.834.320/0001-26",
+        "exercicio":         exercicio,
+        "mes":               mes,
+        "data_pagamento":    _parse_date(_s("dtPagamento", "dataPagamento", "dataCredito")),
+        "competencia":       _competencia_str(exercicio, mes),
+        "bloco":             bloco,
+        "grupo":             grupo,
+        "acao":              acao,
+        "acao_detalhada":    acao_det,
+        "tipo_incentivo":    classificar_tipo(bloco, grupo, acao, acao_det),
+        "numero_proposta":   _s("numeroProposta", "nuProposta"),
+        "numero_processo":   _s("numeroProcesso", "nuProcesso"),
+        "numero_portaria":   _s("numeroPortaria", "nuPortaria"),
+        "numero_ob":         _s("nuOB", "numeroOB", "ordemBancaria"),
+        "conta_bancaria":    _s("contaBancaria", "nuConta"),
+        "valor_total":       vl_total,
+        "valor_desconto":    vl_desc,
+        "valor_liquido":     vl_liq,
+        "situacao":          _s("situacao", "dsSituacao", "status") or "Pago",
+        "fonte":             "consultafns",
+        "pagina_coleta":     pagina,
+        "data_coleta":       datetime.utcnow(),
+    }
 
 
 async def _fetch_transparencia(exercicio: int, mes: int) -> tuple[list[dict], Decimal | None, int | None]:
