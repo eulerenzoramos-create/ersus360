@@ -19,6 +19,9 @@ RUN python -m playwright install chromium --with-deps
 
 COPY . .
 
+# Frontend pré-buildado (Vite dist copiado em frontend_dist/ antes do push)
+# Servido pelo FastAPI StaticFiles via main.py quando o diretório existir
+
 EXPOSE 8000
 
 CMD ["bash", "start.sh"]
