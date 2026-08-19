@@ -3,10 +3,11 @@ Router: /api/acs — Painel ACS Apuí/AM
 Dados de referência baseados no CNES e SCNES do município (65 ACS, 10 equipes eSF/eRibeirinha).
 """
 from __future__ import annotations
-from datetime import datetime
+from datetime import datetime, date
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
 from routers.auth import get_current_user, UserOut
+import services.esus_service as _esus
 
 router = APIRouter(prefix="/api/acs", tags=["ACS"])
 
@@ -107,16 +108,33 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
     dist_eq: dict = {}
     for a in ativos:
         dist_eq[a["equipe"]] = dist_eq.get(a["equipe"], 0) + 1
+
+    # Tenta enriquecer com dados reais do eSUS PEC
+    competencia = date.today().strftime("%Y-%m")
+    esus_prod = await _esus.buscar_producao(competencia)
+    esus_cad  = await _esus.buscar_cadastros()
+
+    kpis = _kpis()
+    if esus_prod.get("fonte") == "esus_pec":
+        kpis["visitas_esus_domiciliares"]    = esus_prod.get("visitas_domiciliares")
+        kpis["atendimentos_individuais_esus"] = esus_prod.get("atendimentos_individuais")
+        kpis["atendimentos_odonto_esus"]     = esus_prod.get("atendimentos_odontologicos")
+        kpis["competencia_esus"]             = esus_prod.get("competencia")
+    if esus_cad.get("fonte") == "esus_pec":
+        kpis["cidadaos_cadastrados_esus"] = esus_cad.get("individuais")
+
+    situacao = "dados_reais" if esus_prod.get("fonte") == "esus_pec" else "referencia_municipal"
+
     return {
-        "situacao_dado": "referencia_municipal",
-        "kpis": _kpis(),
+        "situacao_dado": situacao,
+        "kpis": kpis,
         "acs_destaques": destaques,
         "acs_criticos": criticos,
         "distribuicao_equipe": dist_eq,
         "distribuicao_esf": dist_eq,
         "mes_referencia": MES_REF,
+        "producao_esus": esus_prod if esus_prod.get("fonte") == "esus_pec" else None,
         "verificado_em": _ts(),
-        "nota": "Dados de referência CNES — aguardando integração e-SUS PEC para dados operacionais em tempo real.",
     }
 
 
@@ -163,31 +181,42 @@ async def microareas(_: UserOut = Depends(get_current_user)):
 
 @router.get("/esus/status")
 async def esus_status():
-    return {"conectado": False, "autenticado": False, "url": "", "versao": None}
+    resultado = await _esus.testar_conexao()
+    return {
+        "conectado":   resultado.get("conectado", False),
+        "autenticado": bool(resultado.get("instancia")),
+        "url":         resultado.get("url", ""),
+        "versao":      resultado.get("versao"),
+        "instancia":   resultado.get("instancia"),
+        "municipio":   resultado.get("municipio"),
+        "erro":        resultado.get("erro"),
+    }
 
 
 @router.get("/esus/visitas")
 async def esus_visitas(_: UserOut = Depends(get_current_user)):
-    return {"situacao_dado": "nao_disponivel", "dados": None,
-            "nota": "e-SUS PEC offline. Dados de visitas requerem integração ativa."}
+    competencia = date.today().strftime("%Y-%m")
+    dados = await _esus.buscar_producao(competencia)
+    return {"situacao_dado": dados.get("situacao_dado", "oficial_validado"), "dados": dados}
 
 
 @router.get("/esus/calendario-visitas")
 async def esus_calendario(_: UserOut = Depends(get_current_user)):
-    return {"situacao_dado": "nao_disponivel", "dados": None,
-            "nota": "e-SUS PEC offline."}
+    competencia = date.today().strftime("%Y-%m")
+    dados = await _esus.buscar_producao(competencia)
+    return {"situacao_dado": dados.get("situacao_dado", "oficial_validado"), "dados": dados}
 
 
 @router.get("/esus/cadastros-individuais")
 async def esus_cadastros_ind(_: UserOut = Depends(get_current_user)):
-    return {"situacao_dado": "nao_disponivel", "dados": None,
-            "nota": "e-SUS PEC offline."}
+    dados = await _esus.buscar_cadastros()
+    return {"situacao_dado": dados.get("situacao_dado", "oficial_validado"), "dados": dados}
 
 
 @router.get("/esus/cadastros-domiciliares")
 async def esus_cadastros_dom(_: UserOut = Depends(get_current_user)):
-    return {"situacao_dado": "nao_disponivel", "dados": None,
-            "nota": "e-SUS PEC offline."}
+    dados = await _esus.buscar_cadastros()
+    return {"situacao_dado": dados.get("situacao_dado", "oficial_validado"), "dados": dados}
 
 
 @router.get("/{acs_id}")

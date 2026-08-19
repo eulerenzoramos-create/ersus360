@@ -32,7 +32,12 @@ interface DashboardAcs {
   };
   acs_destaques: AcsItem[]; acs_criticos: AcsItem[];
   distribuicao_equipe: Record<string, number>;
+  distribuicao_esf: Record<string, number>;
   mes_referencia: { label: string };
+  producao_esus?: {
+    competencia: string; visitas_domiciliares: number;
+    atendimentos_individuais: number; atendimentos_odontologicos: number; procedimentos: number;
+  } | null;
 }
 
 interface Microarea {
@@ -179,121 +184,50 @@ function AbaVisitas({ fonte }: { fonte: string }) {
     staleTime: 120_000,
   });
 
-  const [filtroTipo, setFiltroTipo] = useState("todos");
-  const [filtroEsf, setFiltroEsf] = useState("Todas");
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando dados do e-SUS PEC...</div>;
 
-  const visitas = data?.dados ?? [];
-  const tiposCor: Record<string, string> = {
-    visita_periodica: "#1351b4", busca_ativa: "#d97706",
-    acompanhamento_gestante: "#7c3aed", acompanhamento_crianca: "#0891b2", outros: "#6b7280",
-  };
-  const tiposLabel: Record<string, string> = {
-    visita_periodica: "Periódica", busca_ativa: "Busca Ativa",
-    acompanhamento_gestante: "Gestante", acompanhamento_crianca: "Criança <2a", outros: "Outros",
-  };
-  const desfechoCor: Record<string, string> = {
-    visita_realizada: "#16a34a", ausente: "#d97706", recusa: "#dc2626",
-  };
+  const prod = data?.dados;
+  const disponivel = prod && prod.fonte === "esus_pec";
+  const competencia = prod?.competencia ?? "—";
 
-  const filtradas = visitas.filter((v: any) =>
-    (filtroTipo === "todos" || v.tipo_visita === filtroTipo) &&
-    (filtroEsf === "Todas" || v.equipe === filtroEsf)
-  );
-
-  const resumo = {
-    total: visitas.length,
-    realizadas: visitas.filter((v: any) => v.desfecho === "visita_realizada").length,
-    ausentes: visitas.filter((v: any) => v.desfecho === "ausente").length,
-    recusas: visitas.filter((v: any) => v.desfecho === "recusa").length,
-  };
-
-  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando visitas...</div>;
-
-  return (
-    <div>
-      {/* Resumo KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
-        {[
-          { label: "Total Visitas", val: resumo.total, cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
-          { label: "Realizadas", val: resumo.realizadas, cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-          { label: "Ausentes", val: resumo.ausentes, cor: "#d97706", bg: "#fef3c7", border: "#fde68a" },
-          { label: "Recusas", val: resumo.recusas, cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-        ].map(k => (
-          <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: 10, padding: "14px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: 28, fontWeight: 800, color: k.cor }}>{k.val}</div>
-            <div style={{ fontSize: 11, color: "#6b7280" }}>{k.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Filtros */}
-      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 12, flexWrap: "wrap" as const, alignItems: "center" }}>
-        <select value={filtroEsf} onChange={e => setFiltroEsf(e.target.value)}
-          style={{ border: "1px solid #d1d5db", borderRadius: 7, padding: "7px 12px", fontSize: 12 }}>
-          {["Todas","KENNEDY","JK","ACARI","JUMA","ESTRADA NOVA","LIBERDADE","SÃO SEBASTIÃO","CACHOEIRA","TRÊS ESTADOS","AREAL"].map(e => <option key={e}>{e}</option>)}
-        </select>
-        <div style={{ display: "flex", gap: 6 }}>
-          {["todos","visita_periodica","busca_ativa","acompanhamento_gestante","acompanhamento_crianca"].map(t => (
-            <button key={t} onClick={() => setFiltroTipo(t)}
-              style={{ padding: "5px 12px", fontSize: 11, borderRadius: 20, border: "1px solid #d1d5db", background: filtroTipo === t ? "#1351b4" : "#fff", color: filtroTipo === t ? "#fff" : "#374151", cursor: "pointer", fontWeight: filtroTipo === t ? 700 : 400 }}>
-              {t === "todos" ? "Todos" : tiposLabel[t]}
-            </button>
+  // Dados reais do eSUS PEC — exibe totais de produção
+  if (disponivel) {
+    const cards = [
+      { label: "Visitas Domiciliares", val: prod.visitas_domiciliares ?? 0, cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
+      { label: "Atendimentos Individuais", val: prod.atendimentos_individuais ?? 0, cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+      { label: "Atend. Odontológicos", val: prod.atendimentos_odontologicos ?? 0, cor: "#7c3aed", bg: "#faf5ff", border: "#e9d5ff" },
+      { label: "Procedimentos", val: prod.procedimentos ?? 0, cor: "#d97706", bg: "#fef3c7", border: "#fde68a" },
+      { label: "Ativ. Coletivas", val: prod.atividades_coletivas ?? 0, cor: "#0891b2", bg: "#f0f9ff", border: "#bae6fd" },
+      { label: "Encaminhamentos", val: prod.encaminhamentos ?? 0, cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+    ];
+    return (
+      <div>
+        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 16 }}>✅</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>e-SUS PEC conectado</span>
+          <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 8 }}>Competência {competencia}</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
+          {cards.map(c => (
+            <div key={c.label} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10, padding: "18px 16px", textAlign: "center" }}>
+              <div style={{ fontSize: 36, fontWeight: 800, color: c.cor }}>{c.val.toLocaleString("pt-BR")}</div>
+              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{c.label}</div>
+            </div>
           ))}
         </div>
-        <span style={{ marginLeft: "auto", fontSize: 12, color: "#9ca3af" }}>{filtradas.length} visitas</span>
-      </div>
-
-      {/* Tabela */}
-      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead>
-              <tr style={{ background: "#f8fafc" }}>
-                {["Data","ACS","Microárea","ESF","Tipo","Turno","Desfecho","Grupos Prioritários"].map(h => (
-                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#6b7280", fontSize: 11, borderBottom: "2px solid #e4e7ec", whiteSpace: "nowrap" as const }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtradas.slice(0, 100).map((v: any, i: number) => {
-                const gps = Object.entries(v.grupos_prioritarios || {}).filter(([, val]) => val).map(([k]) => k.replace("_", " "));
-                return (
-                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                    <td style={{ padding: "9px 12px", color: "#374151" }}>{v.data}</td>
-                    <td style={{ padding: "9px 12px", fontWeight: 500 }}>{v.acs_nome}</td>
-                    <td style={{ padding: "9px 12px" }}><span style={{ background: "#eff6ff", color: "#1d4ed8", borderRadius: 5, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>{v.microarea}</span></td>
-                    <td style={{ padding: "9px 12px", fontSize: 11, color: ESF_COR[v.equipe] || "#374151", fontWeight: 600 }}>{v.equipe}</td>
-                    <td style={{ padding: "9px 12px" }}>
-                      <span style={{ background: `${tiposCor[v.tipo_visita] || "#6b7280"}15`, color: tiposCor[v.tipo_visita] || "#6b7280", borderRadius: 5, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
-                        {tiposLabel[v.tipo_visita] || v.tipo_visita}
-                      </span>
-                    </td>
-                    <td style={{ padding: "9px 12px", fontSize: 11, color: "#6b7280", textTransform: "capitalize" as const }}>{v.turno}</td>
-                    <td style={{ padding: "9px 12px" }}>
-                      <span style={{ background: `${desfechoCor[v.desfecho] || "#6b7280"}15`, color: desfechoCor[v.desfecho] || "#6b7280", borderRadius: 5, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
-                        {v.desfecho === "visita_realizada" ? "✓ Realizada" : v.desfecho === "ausente" ? "Ausente" : "Recusa"}
-                      </span>
-                    </td>
-                    <td style={{ padding: "9px 12px" }}>
-                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const }}>
-                        {gps.map((g: string) => (
-                          <span key={g} style={{ background: "#faf5ff", color: "#7c3aed", fontSize: 9, padding: "1px 6px", borderRadius: 4, border: "1px solid #e9d5ff" }}>{g}</span>
-                        ))}
-                        {gps.length === 0 && <span style={{ color: "#d1d5db", fontSize: 10 }}>—</span>}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {filtradas.length > 100 && (
-            <div style={{ padding: "10px 16px", fontSize: 11, color: "#9ca3af", textAlign: "center", borderTop: "1px solid #f3f4f6" }}>
-              Mostrando 100 de {filtradas.length} visitas · Exporte para ver todas
-            </div>
-          )}
+        <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, padding: "14px 16px", fontSize: 12, color: "#6b7280" }}>
+          Fonte: e-SUS PEC · Apuí/AM · IBGE 1300144 · Competência {competencia}
         </div>
       </div>
+    );
+  }
+
+  // Offline — exibe banner
+  return (
+    <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "32px 24px", textAlign: "center" }}>
+      <div style={{ fontSize: 36, marginBottom: 12 }}>📡</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: "#b91c1c", marginBottom: 8 }}>e-SUS PEC Offline</div>
+      <div style={{ fontSize: 13, color: "#6b7280" }}>{prod?.nota ?? "Configure ESUS_USUARIO e ESUS_SENHA no Railway para exibir dados em tempo real."}</div>
     </div>
   );
 }
@@ -498,9 +432,7 @@ function AbaCalendario() {
 // ── Aba Cadastros Individuais ─────────────────────────────────────────────────
 
 function AbaCadastrosIndividuais() {
-  const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
-  const [pagina, setPagina] = useState(0);
+  const [pagina] = useState(0);
 
   const { data, isLoading } = useQuery({
     queryKey: ["acs-cad-ind", pagina],
@@ -508,182 +440,80 @@ function AbaCadastrosIndividuais() {
     staleTime: 120_000,
   });
 
-  const fichas = (data?.dados ?? []).filter((f: any) => {
-    if (filtroStatus !== "todos" && f.status_cadastro !== filtroStatus) return false;
-    if (busca && !f.nome.toLowerCase().includes(busca.toLowerCase()) && !f.cns.includes(busca)) return false;
-    return true;
-  });
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando cadastros do e-SUS PEC...</div>;
 
-  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando cadastros...</div>;
+  const cad = data?.dados;
+  if (cad?.fonte === "esus_pec") {
+    return (
+      <div>
+        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 16 }}>✅</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>e-SUS PEC conectado</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14 }}>
+          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "28px 20px", textAlign: "center" }}>
+            <div style={{ fontSize: 52, fontWeight: 800, color: "#1351b4" }}>{(cad.individuais ?? 0).toLocaleString("pt-BR")}</div>
+            <div style={{ fontSize: 13, color: "#6b7280", marginTop: 6 }}>Cidadãos Cadastrados Individualmente</div>
+          </div>
+          <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px", fontSize: 13, color: "#6b7280" }}>
+            <p>O e-SUS PEC fornece o <strong>total consolidado</strong> de cadastros individuais via API GraphQL.</p>
+            <p style={{ marginTop: 12 }}>Para visualizar fichas individuais, acesse o módulo de Cadastros dentro do próprio e-SUS PEC.</p>
+            <p style={{ marginTop: 12, fontSize: 11 }}>Fonte: e-SUS PEC · Apuí/AM · IBGE 1300144</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" as const, alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#fff", border: "1px solid #d1d5db", borderRadius: 8, padding: "7px 12px", flex: 1, minWidth: 200 }}>
-          <Search size={13} color="#9ca3af" />
-          <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por nome ou CNS..."
-            style={{ border: "none", outline: "none", fontSize: 12, flex: 1 }} />
-        </div>
-        {["todos","completo","parcial","incompleto"].map(s => {
-          const cor = s === "completo" ? "#16a34a" : s === "parcial" ? "#d97706" : s === "incompleto" ? "#dc2626" : "#374151";
-          return (
-            <button key={s} onClick={() => setFiltroStatus(s)}
-              style={{ padding: "6px 14px", fontSize: 11, borderRadius: 20, border: `1px solid ${cor}60`, background: filtroStatus === s ? cor : "#fff", color: filtroStatus === s ? "#fff" : cor, cursor: "pointer", fontWeight: 600 }}>
-              {s === "todos" ? "Todos" : s.charAt(0).toUpperCase() + s.slice(1)}
-            </button>
-          );
-        })}
-        <span style={{ fontSize: 12, color: "#9ca3af" }}>{fichas.length} fichas</span>
-      </div>
-
-      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead>
-              <tr style={{ background: "#f8fafc" }}>
-                {["Nome / CNS","ACS","Microárea","Nascimento","Sexo","Raça/Cor","Condições","Moradia","Status","Completude"].map(h => (
-                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#6b7280", fontSize: 11, borderBottom: "2px solid #e4e7ec", whiteSpace: "nowrap" as const }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {fichas.slice(0, 50).map((f: any) => {
-                const cor = f.status_cadastro === "completo" ? "#16a34a" : f.status_cadastro === "parcial" ? "#d97706" : "#dc2626";
-                const conds = Object.entries(f.condicoes_saude || {}).filter(([,v]) => v).map(([k]) => k.replace(/_/g, " "));
-                return (
-                  <tr key={f.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                    <td style={{ padding: "9px 12px" }}>
-                      <div style={{ fontWeight: 500 }}>{f.nome}</div>
-                      <div style={{ fontSize: 10, color: "#9ca3af" }}>{f.cns?.slice(0,9)}...</div>
-                    </td>
-                    <td style={{ padding: "9px 12px", fontSize: 11 }}>{f.acs_nome}</td>
-                    <td style={{ padding: "9px 12px" }}><span style={{ background: "#eff6ff", color: "#1d4ed8", borderRadius: 5, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>{f.microarea}</span></td>
-                    <td style={{ padding: "9px 12px", color: "#6b7280", fontSize: 11 }}>{f.data_nascimento}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "center" }}>{f.sexo}</td>
-                    <td style={{ padding: "9px 12px", fontSize: 11 }}>{f.raca_cor}</td>
-                    <td style={{ padding: "9px 12px" }}>
-                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const }}>
-                        {conds.map((c: string) => <span key={c} style={{ background: "#faf5ff", color: "#7c3aed", fontSize: 9, padding: "1px 5px", borderRadius: 4 }}>{c}</span>)}
-                        {conds.length === 0 && <span style={{ color: "#d1d5db", fontSize: 10 }}>—</span>}
-                      </div>
-                    </td>
-                    <td style={{ padding: "9px 12px", fontSize: 11, textTransform: "capitalize" as const, color: "#6b7280" }}>{f.situacao_moradia?.replace(/_/g, " ")}</td>
-                    <td style={{ padding: "9px 12px" }}>
-                      <span style={{ background: `${cor}15`, color: cor, borderRadius: 20, padding: "2px 9px", fontSize: 10, fontWeight: 700, border: `1px solid ${cor}40` }}>
-                        {f.status_cadastro === "completo" ? "✓" : f.status_cadastro === "parcial" ? "⚠" : "✗"} {f.status_cadastro}
-                      </span>
-                    </td>
-                    <td style={{ padding: "9px 12px", minWidth: 90 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <Bar pct={f.pct_completo} cor={cor} />
-                        <span style={{ fontSize: 11, fontWeight: 700, color: cor, minWidth: 32 }}>{f.pct_completo}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12 }}>
-        <button onClick={() => setPagina(p => Math.max(0, p-1))} disabled={pagina === 0}
-          style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: 12 }}>← Anterior</button>
-        <span style={{ padding: "6px 14px", fontSize: 12, color: "#6b7280" }}>Página {pagina + 1}</span>
-        <button onClick={() => setPagina(p => p+1)}
-          style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: 12 }}>Próxima →</button>
-      </div>
+    <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "32px 24px", textAlign: "center" }}>
+      <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: "#b91c1c", marginBottom: 8 }}>e-SUS PEC Offline</div>
+      <div style={{ fontSize: 13, color: "#6b7280" }}>{cad?.nota ?? "Configure ESUS_USUARIO e ESUS_SENHA no Railway para acessar cadastros individuais em tempo real."}</div>
     </div>
   );
 }
 
+
 // ── Aba Cadastros Domiciliares ────────────────────────────────────────────────
 
 function AbaCadastrosDomiciliares() {
-  const [pagina, setPagina] = useState(0);
   const { data, isLoading } = useQuery({
-    queryKey: ["acs-cad-dom", pagina],
-    queryFn: () => apiGet("/api/acs/esus/cadastros-domiciliares", { pagina }) as Promise<any>,
+    queryKey: ["acs-cad-dom"],
+    queryFn: () => apiGet("/api/acs/esus/cadastros-domiciliares") as Promise<any>,
     staleTime: 120_000,
   });
 
-  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando domicílios...</div>;
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando cadastros domiciliares do e-SUS PEC...</div>;
 
-  const fichas = data?.dados ?? [];
-
-  const resumo = {
-    total: data?.total ?? 0,
-    completos: fichas.filter((f: any) => f.status_cadastro === "completo").length,
-    comAgua: fichas.filter((f: any) => f.abastecimento_agua === "rede_publica").length,
-    comEnergia: fichas.filter((f: any) => f.energia_eletrica).length,
-    animais: fichas.filter((f: any) => f.animais_domicilio).length,
-  };
-
-  return (
-    <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 20 }}>
-        {[
-          { label: "Total Domicílios", val: resumo.total, cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
-          { label: "Completos", val: resumo.completos, cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-          { label: "Rede Pública Água", val: resumo.comAgua, cor: "#0891b2", bg: "#ecfeff", border: "#a5f3fc" },
-          { label: "Com Energia Elét.", val: resumo.comEnergia, cor: "#d97706", bg: "#fef3c7", border: "#fde68a" },
-          { label: "Animais no Domicílio", val: resumo.animais, cor: "#7c3aed", bg: "#faf5ff", border: "#e9d5ff" },
-        ].map(k => (
-          <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: 10, padding: "14px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: 26, fontWeight: 800, color: k.cor }}>{k.val}</div>
-            <div style={{ fontSize: 11, color: "#6b7280" }}>{k.label}</div>
+  const cad = data?.dados;
+  if (cad?.fonte === "esus_pec") {
+    return (
+      <div>
+        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 16 }}>✅</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>e-SUS PEC conectado</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14 }}>
+          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "28px 20px", textAlign: "center" }}>
+            <div style={{ fontSize: 52, fontWeight: 800, color: "#1351b4" }}>{(cad.individuais ?? 0).toLocaleString("pt-BR")}</div>
+            <div style={{ fontSize: 13, color: "#6b7280", marginTop: 6 }}>Cidadãos Cadastrados (total via e-SUS PEC)</div>
           </div>
-        ))}
-      </div>
-
-      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead>
-              <tr style={{ background: "#f8fafc" }}>
-                {["Logradouro","ACS","Microárea","ESF","Moradores","Tipo Imóvel","Água","Lixo","Energia","Animais","Status"].map(h => (
-                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: "#6b7280", fontSize: 11, borderBottom: "2px solid #e4e7ec", whiteSpace: "nowrap" as const }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {fichas.slice(0, 50).map((f: any) => {
-                const cor = f.status_cadastro === "completo" ? "#16a34a" : f.status_cadastro === "parcial" ? "#d97706" : "#dc2626";
-                return (
-                  <tr key={f.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                    <td style={{ padding: "9px 12px", fontWeight: 500 }}>{f.logradouro}</td>
-                    <td style={{ padding: "9px 12px", fontSize: 11 }}>{f.acs_nome}</td>
-                    <td style={{ padding: "9px 12px" }}><span style={{ background: "#eff6ff", color: "#1d4ed8", borderRadius: 5, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>{f.microarea}</span></td>
-                    <td style={{ padding: "9px 12px", fontSize: 11, color: ESF_COR[f.equipe] || "#374151", fontWeight: 600 }}>{f.equipe}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "center", fontWeight: 700, color: "#374151" }}>{f.moradores}</td>
-                    <td style={{ padding: "9px 12px", fontSize: 11, textTransform: "capitalize" as const, color: "#6b7280" }}>{f.tipo_moradia}</td>
-                    <td style={{ padding: "9px 12px" }}>
-                      <span style={{ fontSize: 10, color: f.abastecimento_agua === "rede_publica" ? "#16a34a" : "#dc2626" }}>
-                        {f.abastecimento_agua === "rede_publica" ? "✓ Rede" : f.abastecimento_agua?.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                    <td style={{ padding: "9px 12px", fontSize: 11, color: f.destino_lixo === "coletado" ? "#16a34a" : "#dc2626", textTransform: "capitalize" as const }}>{f.destino_lixo?.replace(/_/g, " ")}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "center" }}>{f.energia_eletrica ? "✓" : <span style={{ color: "#dc2626" }}>✗</span>}</td>
-                    <td style={{ padding: "9px 12px", textAlign: "center" }}>{f.animais_domicilio ? "Sim" : "—"}</td>
-                    <td style={{ padding: "9px 12px" }}>
-                      <span style={{ background: `${cor}15`, color: cor, borderRadius: 20, padding: "2px 9px", fontSize: 10, fontWeight: 700 }}>
-                        {f.status_cadastro}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px", fontSize: 13, color: "#6b7280" }}>
+            <p>O e-SUS PEC fornece o <strong>total consolidado</strong> de cidadãos cadastrados via API GraphQL.</p>
+            <p style={{ marginTop: 12 }}>Para visualizar domicílios individuais, acesse o módulo de Cadastros no e-SUS PEC.</p>
+            <p style={{ marginTop: 12, fontSize: 11 }}>Fonte: e-SUS PEC · Apuí/AM · IBGE 1300144</p>
+          </div>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12 }}>
-        <button onClick={() => setPagina(p => Math.max(0, p-1))} disabled={pagina === 0}
-          style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: 12 }}>← Anterior</button>
-        <span style={{ padding: "6px 14px", fontSize: 12, color: "#6b7280" }}>Página {pagina + 1}</span>
-        <button onClick={() => setPagina(p => p+1)}
-          style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: 12 }}>Próxima →</button>
-      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "32px 24px", textAlign: "center" }}>
+      <div style={{ fontSize: 36, marginBottom: 12 }}>🏠</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: "#b91c1c", marginBottom: 8 }}>e-SUS PEC Offline</div>
+      <div style={{ fontSize: 13, color: "#6b7280" }}>{cad?.nota ?? "Configure ESUS_USUARIO e ESUS_SENHA no Railway para acessar cadastros domiciliares em tempo real."}</div>
     </div>
   );
 }
@@ -820,12 +650,29 @@ export default function ACSPainel() {
         {isLoading && <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>Carregando painel ACS...</div>}
 
         {/* ── Dashboard ── */}
-        {aba === "dashboard" && !k && (
-          <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />
+        {aba === "dashboard" && !k && !isLoading && (
+          <NaoDisponivelBanner nota="Dados de referência CNES não carregados. Tente recarregar a página." />
         )}
 
         {aba === "dashboard" && k && (
           <div>
+            {/* Banner eSUS PEC em tempo real */}
+            {dash?.producao_esus && (
+              <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 16, flexWrap: "wrap" as const, alignItems: "center" }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#15803d" }}>✅ e-SUS PEC · Produção {dash.producao_esus.competencia}</span>
+                {[
+                  { label: "Visitas Dom.", val: dash.producao_esus.visitas_domiciliares },
+                  { label: "Atend. Individuais", val: dash.producao_esus.atendimentos_individuais },
+                  { label: "Atend. Odonto", val: dash.producao_esus.atendimentos_odontologicos },
+                  { label: "Procedimentos", val: dash.producao_esus.procedimentos },
+                ].map(c => (
+                  <div key={c.label} style={{ textAlign: "center", background: "#fff", border: "1px solid #bbf7d0", borderRadius: 8, padding: "6px 14px", minWidth: 80 }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: "#15803d" }}>{(c.val ?? 0).toLocaleString("pt-BR")}</div>
+                    <div style={{ fontSize: 10, color: "#6b7280" }}>{c.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
             {/* KPIs */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
               <KpiCard icon={<Users size={18}/>}       label="ACS Ativos"           val={`${k.acs_ativos}/${k.total_acs}`} sub={`${k.total_microareas} microáreas`}          cor="#1351b4" bg="#eff6ff" border="#bfdbfe" />
