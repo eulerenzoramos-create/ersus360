@@ -783,6 +783,10 @@ async def matriz_detalhe(
                 "numero_portaria": r.numero_portaria, "numero_ob": r.numero_ob,
                 "numero_proposta": r.numero_proposta, "numero_processo": r.numero_processo,
                 "conta_bancaria": r.conta_bancaria,
+                "banco_ob":        r.banco_ob,
+                "agencia_ob":      r.agencia_ob,
+                "numero_conta_ob": r.numero_conta_ob,
+                "data_ob":         r.data_ob.isoformat() if r.data_ob else None,
                 "valor_total":   float(r.valor_total)   if r.valor_total   else None,
                 "valor_desconto":float(r.valor_desconto) if r.valor_desconto else 0.0,
                 "valor_liquido": float(r.valor_liquido) if r.valor_liquido else None,
@@ -896,4 +900,145 @@ async def matriz_validacoes(
             "coletas_completas": len(incompletos) == 0,
             "todos_com_valor": sem_valor == 0,
         },
+    }
+
+
+@router.get("/contas-repasse")
+async def contas_repasse(
+    exercicio: int = Query(2026),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Consolidado de transferências agrupado por conta bancária (banco+agência+conta).
+    Útil para auditar quais contas receberam repasses e de quais grupos.
+    """
+    stmt = select(TransferenciaFns).where(
+        TransferenciaFns.municipio_ibge == IBGE_APUI,
+        TransferenciaFns.exercicio == exercicio,
+        TransferenciaFns.ativo == True,
+    ).order_by(TransferenciaFns.banco_ob, TransferenciaFns.agencia_ob, TransferenciaFns.numero_conta_ob)
+    result = await db.execute(stmt)
+    rows = result.scalars().all()
+
+    # Agrupa por conta bancária
+    contas: dict[str, dict] = {}
+    for r in rows:
+        banco   = r.banco_ob or "—"
+        agencia = r.agencia_ob or "—"
+        conta   = r.numero_conta_ob or r.conta_bancaria or "—"
+        chave   = f"{banco}/{agencia}/{conta}"
+
+        if chave not in contas:
+            contas[chave] = {
+                "banco":        banco,
+                "agencia":      agencia,
+                "conta":        conta,
+                "grupos":       set(),
+                "total_liquido": 0.0,
+                "qtd_transferencias": 0,
+                "meses":        set(),
+                "transferencias": [],
+            }
+        c = contas[chave]
+        c["grupos"].add(r.grupo or "Não classificado")
+        c["total_liquido"] += float(r.valor_liquido or 0)
+        c["qtd_transferencias"] += 1
+        if r.mes:
+            c["meses"].add(r.mes)
+        c["transferencias"].append({
+            "id": r.id, "mes": r.mes, "grupo": r.grupo, "acao": r.acao_detalhada or r.acao,
+            "numero_ob": r.numero_ob, "numero_portaria": r.numero_portaria,
+            "data_pagamento": r.data_pagamento.isoformat() if r.data_pagamento else None,
+            "valor_liquido": float(r.valor_liquido or 0),
+        })
+
+    lista = [
+        {
+            "banco":        c["banco"],
+            "agencia":      c["agencia"],
+            "conta":        c["conta"],
+            "grupos":       sorted(c["grupos"]),
+            "total_liquido": round(c["total_liquido"], 2),
+            "qtd_transferencias": c["qtd_transferencias"],
+            "meses":        sorted(c["meses"]),
+            "transferencias": sorted(c["transferencias"], key=lambda x: (x["mes"] or 0, x["data_pagamento"] or "")),
+        }
+        for c in contas.values()
+    ]
+    lista.sort(key=lambda x: -x["total_liquido"])
+
+    return {
+        "exercicio": exercicio,
+        "total_contas": len(lista),
+        "total_geral": round(sum(c["total_liquido"] for c in lista), 2),
+        "contas": lista,
+    }
+
+
+@router.get("/portarias-repasse")
+async def portarias_repasse(
+    exercicio: int = Query(2026),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Portarias ministeriais que fundamentam os repasses do exercício.
+    Agrupa transferências por número de portaria com totais e meses.
+    """
+    stmt = select(TransferenciaFns).where(
+        TransferenciaFns.municipio_ibge == IBGE_APUI,
+        TransferenciaFns.exercicio == exercicio,
+        TransferenciaFns.ativo == True,
+    ).order_by(TransferenciaFns.numero_portaria, TransferenciaFns.mes)
+    result = await db.execute(stmt)
+    rows = result.scalars().all()
+
+    portarias: dict[str, dict] = {}
+    for r in rows:
+        num = r.numero_portaria or "Sem portaria"
+        if num not in portarias:
+            portarias[num] = {
+                "numero_portaria": num,
+                "grupos":       set(),
+                "acoes":        set(),
+                "total_liquido": 0.0,
+                "qtd_transferencias": 0,
+                "meses_valores": {},   # mes -> total_liquido
+                "transferencias": [],
+            }
+        p = portarias[num]
+        p["grupos"].add(r.grupo or "Não classificado")
+        p["acoes"].add(r.acao or "")
+        vl = float(r.valor_liquido or 0)
+        p["total_liquido"] += vl
+        p["qtd_transferencias"] += 1
+        mes_k = str(r.mes or 0)
+        p["meses_valores"][mes_k] = round(p["meses_valores"].get(mes_k, 0) + vl, 2)
+        p["transferencias"].append({
+            "id": r.id, "mes": r.mes, "grupo": r.grupo,
+            "acao": r.acao_detalhada or r.acao,
+            "numero_ob": r.numero_ob,
+            "banco": r.banco_ob, "agencia": r.agencia_ob, "conta": r.numero_conta_ob,
+            "data_pagamento": r.data_pagamento.isoformat() if r.data_pagamento else None,
+            "valor_liquido": vl,
+        })
+
+    lista = [
+        {
+            "numero_portaria": p["numero_portaria"],
+            "grupos":       sorted(p["grupos"]),
+            "acoes":        sorted(a for a in p["acoes"] if a),
+            "total_liquido": round(p["total_liquido"], 2),
+            "qtd_transferencias": p["qtd_transferencias"],
+            "meses_valores": p["meses_valores"],
+            "transferencias": sorted(p["transferencias"], key=lambda x: (x["mes"] or 0)),
+        }
+        for p in portarias.values()
+    ]
+    lista.sort(key=lambda x: -x["total_liquido"])
+
+    return {
+        "exercicio": exercicio,
+        "total_portarias": len(lista),
+        "total_geral": round(sum(p["total_liquido"] for p in lista), 2),
+        "portarias": lista,
     }

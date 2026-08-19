@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import text
 from config import settings
 
 _raw_url = settings.DATABASE_URL
@@ -46,3 +47,17 @@ async def init_db():
             extracao, inconsistencia, credencial_municipio,
         )
         await conn.run_sync(Base.metadata.create_all)
+        # Migração incremental: adiciona colunas novas sem derrubar tabela
+        _novas_colunas = [
+            ("banco_ob",        "VARCHAR(10)"),
+            ("agencia_ob",      "VARCHAR(20)"),
+            ("numero_conta_ob", "VARCHAR(30)"),
+            ("data_ob",         "DATE"),
+        ]
+        for col, typ in _novas_colunas:
+            try:
+                await conn.execute(
+                    text(f"ALTER TABLE transferencias_fns ADD COLUMN IF NOT EXISTS {col} {typ}")
+                )
+            except Exception:
+                pass  # SQLite dev local não suporta IF NOT EXISTS — ignora

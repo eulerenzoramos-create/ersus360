@@ -54,6 +54,12 @@ class TransferenciaFns(Base):
     numero_ob       = Column(String(60), nullable=True)   # ordem bancária
     conta_bancaria  = Column(String(60), nullable=True)
 
+    # ── Dados bancários da OB (detalhamento fundo a fundo) ────────────────────
+    banco_ob         = Column(String(10),  nullable=True, comment="Código do banco da OB (ex: 001)")
+    agencia_ob       = Column(String(20),  nullable=True, comment="Agência bancária da OB (ex: 009261)")
+    numero_conta_ob  = Column(String(30),  nullable=True, comment="Número da conta bancária da OB")
+    data_ob          = Column(Date,        nullable=True, comment="Data da Ordem Bancária")
+
     # ── Valores (Numeric 14,2 — nunca Float para dinheiro) ────────────────────
     valor_total     = Column(Numeric(14, 2), nullable=True)
     valor_desconto  = Column(Numeric(14, 2), nullable=True, default=0)

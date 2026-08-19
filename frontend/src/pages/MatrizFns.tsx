@@ -106,9 +106,33 @@ interface Transferencia {
   numero_portaria: string | null; numero_ob: string | null;
   numero_proposta: string | null; numero_processo: string | null;
   conta_bancaria: string | null;
+  banco_ob: string | null; agencia_ob: string | null;
+  numero_conta_ob: string | null; data_ob: string | null;
   valor_total: number | null; valor_desconto: number; valor_liquido: number | null;
   situacao: string | null; fonte: string; url_consultada: string | null;
   data_coleta: string | null; pagina_coleta: number | null;
+}
+
+interface ContaRepasse {
+  banco: string; agencia: string; conta: string;
+  grupos: string[]; total_liquido: number; qtd_transferencias: number;
+  meses: number[];
+  transferencias: {
+    id: number; mes: number; grupo: string | null; acao: string | null;
+    numero_ob: string | null; numero_portaria: string | null;
+    data_pagamento: string | null; valor_liquido: number;
+  }[];
+}
+
+interface PortariaRepasse {
+  numero_portaria: string; grupos: string[]; acoes: string[];
+  total_liquido: number; qtd_transferencias: number;
+  meses_valores: Record<string, number>;
+  transferencias: {
+    id: number; mes: number; grupo: string | null; acao: string | null;
+    numero_ob: string | null; banco: string | null; agencia: string | null; conta: string | null;
+    data_pagamento: string | null; valor_liquido: number;
+  }[];
 }
 
 interface DetalheCelula {
@@ -117,6 +141,286 @@ interface DetalheCelula {
   qtd: number; total_bruto: number; total_desconto: number; total_liquido: number;
   transferencias: Transferencia[];
   validacao_liquido: boolean;
+}
+
+// ─── Nomes dos bancos mais comuns ─────────────────────────────────────────────
+const BANCOS: Record<string, string> = {
+  "001": "Banco do Brasil", "033": "Santander", "104": "Caixa Econômica",
+  "237": "Bradesco", "341": "Itaú", "756": "Sicoob", "748": "Sicredi",
+  "077": "Inter", "212": "Banco Original", "260": "Nu Pagamentos",
+  "336": "C6 Bank", "655": "Votorantim", "422": "Safra",
+};
+const _nomeBanco = (cod: string) => BANCOS[cod] ? `${cod} — ${BANCOS[cod]}` : cod;
+
+// ─── Aba: Contas de Repasse ───────────────────────────────────────────────────
+function AbaContas({ exercicio }: { exercicio: number }) {
+  const { data, isLoading } = useQuery<{ exercicio: number; total_contas: number; total_geral: number; contas: ContaRepasse[] }>({
+    queryKey: ["fns-contas-repasse", exercicio],
+    queryFn: () => apiGet(`/api/repasses-fns/contas-repasse?exercicio=${exercicio}`),
+    staleTime: 300_000,
+  });
+  const [expandido, setExpandido] = useState<string | null>(null);
+
+  if (isLoading) return <div style={{ padding: 40, textAlign: "center", color: C.gray }}>Carregando contas…</div>;
+  if (!data) return <div style={{ padding: 40, textAlign: "center", color: C.red }}>Erro ao carregar contas de repasse.</div>;
+
+  return (
+    <div>
+      {/* Resumo */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" as const }}>
+        {[
+          { label: "Contas identificadas", val: data.total_contas, brl: false, cor: C.blue },
+          { label: "Total geral", val: data.total_geral, brl: true, cor: C.green },
+        ].map(k => (
+          <div key={k.label} style={{ flex: "1 1 180px", background: C.grayL, borderRadius: 10,
+            padding: "12px 16px", border: `1px solid ${C.grayBdr}` }}>
+            <div style={{ fontSize: 11, color: C.textSec }}>{k.label}</div>
+            <div style={{ fontWeight: 700, fontSize: 18, color: k.cor, marginTop: 4 }}>
+              {k.brl ? BRL_ZERO(k.val as number) : k.val}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Lista de contas */}
+      <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
+        {data.contas.map((c, i) => {
+          const chave = `${c.banco}/${c.agencia}/${c.conta}`;
+          const aberto = expandido === chave;
+          return (
+            <div key={i} style={{ border: `1px solid ${C.grayBdr}`, borderRadius: 10, overflow: "hidden" }}>
+              <div
+                onClick={() => setExpandido(aberto ? null : chave)}
+                style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px",
+                  background: aberto ? C.blueL : C.white, cursor: "pointer" }}>
+                {/* Banco badge */}
+                <div style={{ background: C.blue, color: C.white, borderRadius: 8,
+                  padding: "6px 10px", textAlign: "center", minWidth: 60 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.8 }}>BANCO</div>
+                  <div style={{ fontSize: 16, fontWeight: 800 }}>{c.banco === "—" ? "?" : c.banco}</div>
+                </div>
+                {/* Dados da conta */}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: C.textPri }}>
+                    {c.banco !== "—" ? _nomeBanco(c.banco) : "Banco não identificado"}
+                  </div>
+                  <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>
+                    Ag. {c.agencia} · Conta {c.conta}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, marginTop: 4 }}>
+                    {c.grupos.map(g => {
+                      const gc = _grupoCor(g);
+                      return (
+                        <span key={g} style={{ background: gc.bg, color: gc.txt, borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 600 }}>
+                          {g}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+                {/* Totais */}
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: C.green }}>
+                    {BRL_ZERO(c.total_liquido)}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.textSec }}>
+                    {c.qtd_transferencias} transf. · {c.meses.length} {c.meses.length === 1 ? "mês" : "meses"}
+                  </div>
+                </div>
+                <ChevronDown size={16} style={{ color: C.gray, transform: aberto ? "rotate(180deg)" : "none", transition: "0.2s" }} />
+              </div>
+
+              {aberto && (
+                <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.grayBdr}`, overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ background: C.grayL }}>
+                        {["Mês","Ação / Componente","Grupo","Nº OB","Portaria","Data Pgto","Valor Líquido"].map(h => (
+                          <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600,
+                            color: C.textSec, whiteSpace: "nowrap", borderBottom: `1px solid ${C.grayBdr}` }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {c.transferencias.map((t, j) => (
+                        <tr key={j} style={{ background: j % 2 === 0 ? C.white : C.rowAlt }}>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap" }}>
+                            {t.mes ? MESES_ABREV[t.mes - 1] : "—"}
+                          </td>
+                          <td style={{ padding: "5px 10px", maxWidth: 200, wordBreak: "break-word" }}>{t.acao || "—"}</td>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap", fontSize: 11 }}>{t.grupo || "—"}</td>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap", fontWeight: 600, color: C.blue }}>{t.numero_ob || "—"}</td>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap" }}>{t.numero_portaria || "—"}</td>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap" }}>
+                            {t.data_pagamento ? new Date(t.data_pagamento + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
+                          </td>
+                          <td style={{ padding: "5px 10px", textAlign: "right", fontWeight: 700, color: C.green, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                            {BRL_ZERO(t.valor_liquido)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Aba: Portarias dos Repasses ──────────────────────────────────────────────
+const MESES_FULL_ABR = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+function AbaPortarias({ exercicio }: { exercicio: number }) {
+  const { data, isLoading } = useQuery<{
+    exercicio: number; total_portarias: number; total_geral: number;
+    portarias: PortariaRepasse[];
+  }>({
+    queryKey: ["fns-portarias-repasse", exercicio],
+    queryFn: () => apiGet(`/api/repasses-fns/portarias-repasse?exercicio=${exercicio}`),
+    staleTime: 300_000,
+  });
+  const [expandida, setExpandida] = useState<string | null>(null);
+
+  if (isLoading) return <div style={{ padding: 40, textAlign: "center", color: C.gray }}>Carregando portarias…</div>;
+  if (!data) return <div style={{ padding: 40, textAlign: "center", color: C.red }}>Erro ao carregar portarias.</div>;
+
+  return (
+    <div>
+      {/* Resumo */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" as const }}>
+        {[
+          { label: "Portarias identificadas", val: data.total_portarias, brl: false, cor: C.indigo },
+          { label: "Total geral", val: data.total_geral, brl: true, cor: C.green },
+        ].map(k => (
+          <div key={k.label} style={{ flex: "1 1 180px", background: C.grayL, borderRadius: 10,
+            padding: "12px 16px", border: `1px solid ${C.grayBdr}` }}>
+            <div style={{ fontSize: 11, color: C.textSec }}>{k.label}</div>
+            <div style={{ fontWeight: 700, fontSize: 18, color: k.cor, marginTop: 4 }}>
+              {k.brl ? BRL_ZERO(k.val as number) : k.val}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
+        {data.portarias.map((p, i) => {
+          const aberta = expandida === p.numero_portaria;
+          const mesesComValor = Object.entries(p.meses_valores)
+            .filter(([, v]) => v > 0)
+            .sort(([a], [b]) => Number(a) - Number(b));
+          return (
+            <div key={i} style={{ border: `1px solid ${C.grayBdr}`, borderRadius: 10, overflow: "hidden" }}>
+              <div
+                onClick={() => setExpandida(aberta ? null : p.numero_portaria)}
+                style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px",
+                  background: aberta ? C.indigoL : C.white, cursor: "pointer" }}>
+                {/* Portaria badge */}
+                <div style={{ background: C.indigo, color: C.white, borderRadius: 8,
+                  padding: "6px 12px", textAlign: "center", minWidth: 80 }}>
+                  <div style={{ fontSize: 9, fontWeight: 600, opacity: 0.8, textTransform: "uppercase" }}>Portaria</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, whiteSpace: "nowrap" }}>
+                    {p.numero_portaria === "Sem portaria" ? "S/N" : `Nº ${p.numero_portaria}`}
+                  </div>
+                </div>
+                {/* Dados */}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: C.textPri }}>
+                    {p.numero_portaria === "Sem portaria" ? "Transferências sem portaria identificada" : `Portaria nº ${p.numero_portaria}`}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, marginTop: 4 }}>
+                    {p.grupos.map(g => {
+                      const gc = _grupoCor(g);
+                      return (
+                        <span key={g} style={{ background: gc.bg, color: gc.txt, borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 600 }}>
+                          {g}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  {/* Mini-gráfico de barras por mês */}
+                  <div style={{ display: "flex", gap: 4, marginTop: 6, alignItems: "flex-end" }}>
+                    {mesesComValor.map(([mes, val]) => {
+                      const maxVal = Math.max(...mesesComValor.map(([, v]) => v));
+                      const pct = maxVal > 0 ? (val / maxVal) * 28 : 0;
+                      return (
+                        <div key={mes} style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 1 }}>
+                          <div style={{ width: 16, height: Math.max(2, pct), background: C.indigo, borderRadius: 2, opacity: 0.7 }} />
+                          <div style={{ fontSize: 8, color: C.textSec }}>
+                            {MESES_FULL_ABR[(Number(mes) || 1) - 1]}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                {/* Totais */}
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: C.green }}>
+                    {BRL_ZERO(p.total_liquido)}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.textSec }}>
+                    {p.qtd_transferencias} transf.
+                  </div>
+                </div>
+                <ChevronDown size={16} style={{ color: C.gray, transform: aberta ? "rotate(180deg)" : "none", transition: "0.2s" }} />
+              </div>
+
+              {aberta && (
+                <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.grayBdr}`, overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ background: C.grayL }}>
+                        {["Mês","Nº OB","Banco","Ag.","Conta","Ação / Componente","Data Pgto","Valor Líquido"].map(h => (
+                          <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600,
+                            color: C.textSec, whiteSpace: "nowrap", borderBottom: `1px solid ${C.grayBdr}` }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {p.transferencias.map((t, j) => (
+                        <tr key={j} style={{ background: j % 2 === 0 ? C.white : C.rowAlt }}>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap" }}>
+                            {t.mes ? MESES_ABREV[t.mes - 1] : "—"}
+                          </td>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap", fontWeight: 600, color: C.blue }}>{t.numero_ob || "—"}</td>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap" }}>
+                            {t.banco ? <span title={_nomeBanco(t.banco)}>{t.banco}</span> : "—"}
+                          </td>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{t.agencia || "—"}</td>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{t.conta || "—"}</td>
+                          <td style={{ padding: "5px 10px", maxWidth: 200, wordBreak: "break-word" }}>{t.acao || "—"}</td>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap" }}>
+                            {t.data_pagamento ? new Date(t.data_pagamento + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
+                          </td>
+                          <td style={{ padding: "5px 10px", textAlign: "right", fontWeight: 700, color: C.green, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                            {BRL_ZERO(t.valor_liquido)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background: C.indigoL, fontWeight: 700 }}>
+                        <td colSpan={7} style={{ padding: "6px 10px", fontSize: 12, color: C.indigo }}>
+                          Total — Portaria nº {p.numero_portaria}
+                        </td>
+                        <td style={{ padding: "6px 10px", textAlign: "right", color: C.green, fontVariantNumeric: "tabular-nums" }}>
+                          {BRL_ZERO(p.total_liquido)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // ─── Modal de detalhe da célula ───────────────────────────────────────────────
@@ -199,47 +503,67 @@ function ModalDetalhe({
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
                     <tr style={{ background: C.blue, color: C.white }}>
-                      {["Data Pgto","Ação Detalhada","Tipo","Portaria","Nº OB","Bruto","Desconto","Líquido","Situação","Fonte"].map(h => (
+                      {["Data OB","Nº OB","Banco","Agência","Conta","Portaria","Ação / Componente","Bruto","Desconto","Líquido","Situação"].map(h => (
                         <th key={h} style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {data.transferencias.map((t, i) => (
-                      <tr key={t.id} style={{ background: i % 2 === 0 ? C.white : C.rowAlt }}>
-                        <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
-                          {t.data_pagamento ? new Date(t.data_pagamento + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
-                        </td>
-                        <td style={{ padding: "6px 10px", maxWidth: 180, wordBreak: "break-word" }}>{t.acao_detalhada || t.acao || "—"}</td>
-                        <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>{t.tipo_incentivo || "—"}</td>
-                        <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>{t.numero_portaria || "—"}</td>
-                        <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>{t.numero_ob || "—"}</td>
-                        <td style={{ padding: "6px 10px", textAlign: "right", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                          {BRL_ZERO(t.valor_total ?? 0)}
-                        </td>
-                        <td style={{ padding: "6px 10px", textAlign: "right", whiteSpace: "nowrap", color: C.red, fontVariantNumeric: "tabular-nums" }}>
-                          {t.valor_desconto ? BRL_ZERO(t.valor_desconto) : "—"}
-                        </td>
-                        <td style={{ padding: "6px 10px", textAlign: "right", whiteSpace: "nowrap", fontWeight: 700, color: C.green, fontVariantNumeric: "tabular-nums" }}>
-                          {BRL_ZERO(t.valor_liquido ?? 0)}
-                        </td>
-                        <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
-                          <span style={{
-                            background: t.situacao === "Pago" ? C.greenL : C.amberL,
-                            color: t.situacao === "Pago" ? C.green : C.amber,
-                            borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 600,
-                          }}>{t.situacao || "—"}</span>
-                        </td>
-                        <td style={{ padding: "6px 10px", whiteSpace: "nowrap", fontSize: 11 }}>
-                          {t.url_consultada
-                            ? <a href={t.url_consultada} target="_blank" rel="noreferrer"
-                                style={{ color: C.blueM, display: "flex", alignItems: "center", gap: 4 }}>
-                                <ExternalLink size={11} />{t.fonte}
-                              </a>
-                            : t.fonte}
-                        </td>
-                      </tr>
-                    ))}
+                    {data.transferencias.map((t, i) => {
+                      const dtOb = t.data_ob || t.data_pagamento;
+                      return (
+                        <tr key={t.id} style={{ background: i % 2 === 0 ? C.white : C.rowAlt }}>
+                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
+                            {dtOb ? new Date(dtOb + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
+                          </td>
+                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap", fontWeight: 600, color: C.blue }}>
+                            {t.numero_ob || "—"}
+                          </td>
+                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
+                            {t.banco_ob ? (
+                              <span title={_nomeBanco(t.banco_ob)} style={{ fontVariantNumeric: "tabular-nums" }}>
+                                {t.banco_ob}
+                              </span>
+                            ) : "—"}
+                          </td>
+                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                            {t.agencia_ob || "—"}
+                          </td>
+                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                            {t.numero_conta_ob || t.conta_bancaria || "—"}
+                          </td>
+                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
+                            {t.numero_portaria ? (
+                              <span style={{ background: C.indigoL, color: C.indigo, borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 600 }}>
+                                {t.numero_portaria}
+                              </span>
+                            ) : "—"}
+                          </td>
+                          <td style={{ padding: "6px 10px", maxWidth: 200, wordBreak: "break-word" }}>
+                            <div>{t.acao_detalhada || t.acao || "—"}</div>
+                            {t.tipo_incentivo && (
+                              <div style={{ fontSize: 10, color: C.textSec, marginTop: 1 }}>{t.tipo_incentivo}</div>
+                            )}
+                          </td>
+                          <td style={{ padding: "6px 10px", textAlign: "right", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                            {BRL_ZERO(t.valor_total ?? 0)}
+                          </td>
+                          <td style={{ padding: "6px 10px", textAlign: "right", whiteSpace: "nowrap", color: C.red, fontVariantNumeric: "tabular-nums" }}>
+                            {t.valor_desconto ? BRL_ZERO(t.valor_desconto) : "—"}
+                          </td>
+                          <td style={{ padding: "6px 10px", textAlign: "right", whiteSpace: "nowrap", fontWeight: 700, color: C.green, fontVariantNumeric: "tabular-nums" }}>
+                            {BRL_ZERO(t.valor_liquido ?? 0)}
+                          </td>
+                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
+                            <span style={{
+                              background: t.situacao === "Pago" ? C.greenL : C.amberL,
+                              color: t.situacao === "Pago" ? C.green : C.amber,
+                              borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 600,
+                            }}>{t.situacao || "—"}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -329,7 +653,7 @@ export default function MatrizFns() {
   const [graficoAtivo, setGraficoAtivo] = useState<"barras" | "empilhado" | "linha">("barras");
   const [sincronizando, setSincronizando] = useState(false);
   const [sincMsg, setSincMsg] = useState("");
-  const [viewMode, setViewMode] = useState<"tabela" | "evolucao">("tabela");
+  const [viewMode, setViewMode] = useState<"tabela" | "evolucao" | "contas" | "portarias">("tabela");
 
   const qc = useQueryClient();
   const tabelaRef = useRef<HTMLDivElement>(null);
@@ -487,15 +811,17 @@ export default function MatrizFns() {
       </div>
 
       {/* ── Toggle de visão ── */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 16,
+      <div style={{ display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" as const,
         background: C.grayL, padding: 4, borderRadius: 10, width: "fit-content",
         border: `1px solid ${C.grayBdr}` }}>
         {([
-          { key: "tabela",   label: "📋 Relatório Mensal Detalhado" },
-          { key: "evolucao", label: "📈 Evolução Gráfica dos Repasses" },
+          { key: "tabela",    label: "📋 Relatório Mensal" },
+          { key: "evolucao",  label: "📈 Evolução Gráfica" },
+          { key: "contas",    label: "🏦 Contas de Repasse" },
+          { key: "portarias", label: "📜 Portarias" },
         ] as const).map(v => (
           <button key={v.key} onClick={() => setViewMode(v.key)} style={{
-            padding: "7px 16px", borderRadius: 8, border: "none", cursor: "pointer",
+            padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer",
             fontSize: 13, fontWeight: viewMode === v.key ? 700 : 500,
             background: viewMode === v.key ? C.blue : "transparent",
             color: viewMode === v.key ? C.white : C.textSec,
@@ -518,7 +844,29 @@ export default function MatrizFns() {
       )}
       {viewMode === "evolucao" && !data && !isLoading && (
         <div style={{ textAlign: "center", padding: 60, color: C.textSec }}>
-          Carregue os dados primeiro usando o Relatório Mensal Detalhado.
+          Carregue os dados primeiro usando o Relatório Mensal.
+        </div>
+      )}
+
+      {/* ── Visão: Contas de Repasse ── */}
+      {viewMode === "contas" && (
+        <div style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 12, padding: "20px 20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 16, color: C.blue }}>🏦 Contas de Repasse do FNS</div>
+            <div style={{ fontSize: 12, color: C.textSec }}>Exercício {exercicio}</div>
+          </div>
+          <AbaContas exercicio={exercicio} />
+        </div>
+      )}
+
+      {/* ── Visão: Portarias dos Repasses ── */}
+      {viewMode === "portarias" && (
+        <div style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 12, padding: "20px 20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 16, color: C.indigo }}>📜 Portarias dos Repasses FNS</div>
+            <div style={{ fontSize: 12, color: C.textSec }}>Exercício {exercicio}</div>
+          </div>
+          <AbaPortarias exercicio={exercicio} />
         </div>
       )}
 

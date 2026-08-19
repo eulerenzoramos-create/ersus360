@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import re
 from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
@@ -126,6 +127,23 @@ def _competencia_str(exercicio: int, mes: int | None) -> str | None:
     if mes:
         return f"{exercicio}/{mes:02d}"
     return None
+
+
+def _parsear_conta_bancaria(s: str | None) -> tuple[str | None, str | None, str | None]:
+    """
+    Tenta extrair banco/agencia/conta de string composta.
+    Formatos possíveis: '001/009261/0000266221' ou '009261/0000266221' ou número simples.
+    Retorna (banco, agencia, conta).
+    """
+    if not s:
+        return None, None, None
+    parts = re.split(r"[/\-\s]+", s.strip())
+    parts = [p for p in parts if p]
+    if len(parts) >= 3:
+        return parts[0][:10], parts[1][:20], parts[2][:30]
+    elif len(parts) == 2:
+        return None, parts[0][:20], parts[1][:30]
+    return None, None, s[:30]
 
 
 # ── Normalização de registro bruto da API ──────────────────────────────────────
@@ -324,6 +342,17 @@ def _normalizar_detalhe(raw: dict, exercicio: int, mes: int, pagina: int) -> dic
     vl_liq_str = str(vl_liq) if vl_liq is not None else "0"
     chave = _chave(IBGE_APUI_7, exercicio, mes, bloco or "", grupo or "", acao or "", acao_det or "", vl_liq_str)
 
+    # ── Dados bancários da OB ────────────────────────────────────────────────
+    conta_bancaria_raw = _s("contaBancaria", "nuConta")
+    banco_ob  = _s("codigoBanco", "cdBanco", "banco", "nuBanco")
+    agencia_ob= _s("codigoAgencia", "cdAgencia", "agencia", "nuAgencia")
+    conta_ob  = _s("numeroConta", "nuContaCorrente")
+    # Fallback: tenta extrair banco/agência/conta da string composta
+    if not banco_ob and not conta_ob:
+        banco_ob, agencia_ob, conta_ob = _parsear_conta_bancaria(conta_bancaria_raw)
+    data_pag = _parse_date(_s("dtPagamento", "dataPagamento", "dataCredito"))
+    data_ob_raw = _parse_date(_s("dataOB", "dtOB", "dataOrdemBancaria")) or data_pag
+
     return {
         "chave_unica":       chave,
         "municipio_ibge":    IBGE_APUI_7,
@@ -332,7 +361,7 @@ def _normalizar_detalhe(raw: dict, exercicio: int, mes: int, pagina: int) -> dic
         "cnpj_fundo":        "12.834.320/0001-26",
         "exercicio":         exercicio,
         "mes":               mes,
-        "data_pagamento":    _parse_date(_s("dtPagamento", "dataPagamento", "dataCredito")),
+        "data_pagamento":    data_pag,
         "competencia":       _competencia_str(exercicio, mes),
         "bloco":             bloco,
         "grupo":             grupo,
@@ -343,7 +372,11 @@ def _normalizar_detalhe(raw: dict, exercicio: int, mes: int, pagina: int) -> dic
         "numero_processo":   _s("numeroProcesso", "nuProcesso"),
         "numero_portaria":   _s("numeroPortaria", "nuPortaria"),
         "numero_ob":         _s("nuOB", "numeroOB", "ordemBancaria"),
-        "conta_bancaria":    _s("contaBancaria", "nuConta"),
+        "conta_bancaria":    conta_bancaria_raw,
+        "banco_ob":          banco_ob,
+        "agencia_ob":        agencia_ob,
+        "numero_conta_ob":   conta_ob,
+        "data_ob":           data_ob_raw,
         "valor_total":       vl_total,
         "valor_desconto":    vl_desc,
         "valor_liquido":     vl_liq,
