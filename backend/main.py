@@ -658,6 +658,31 @@ app.include_router(inconsistencias_router)
 app.include_router(relatorio_ersus_router)
 
 
+@app.get("/health")
+async def health():
+    from datetime import datetime
+    from database import AsyncSessionLocal
+    from sqlalchemy import text
+    db_ok = False
+    try:
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("SELECT 1"))
+            db_ok = True
+    except Exception:
+        pass
+    return JSONResponse({
+        "status": "ok" if db_ok else "degraded",
+        "version": "1.0.0",
+        "municipio": f"{settings.MUNICIPIO_NOME}/{settings.MUNICIPIO_UF}",
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "services": {
+            "database": "ok" if db_ok else "error",
+            "scheduler": "ok",
+            "ws": "ok",
+        },
+    })
+
+
 # ── Frontend estático (build Vite) ───────────────────────────────────────────
 # O Dockerfile copia o dist do frontend para /app/frontend_dist
 _FRONTEND_DIST = Path(__file__).parent / "frontend_dist"
@@ -692,31 +717,6 @@ else:
             "status": "online",
             "docs": "/docs",
         }
-
-
-@app.get("/health")
-async def health():
-    from datetime import datetime
-    from database import AsyncSessionLocal
-    from sqlalchemy import text
-    db_ok = False
-    try:
-        async with AsyncSessionLocal() as db:
-            await db.execute(text("SELECT 1"))
-            db_ok = True
-    except Exception:
-        pass
-    return JSONResponse({
-        "status": "ok" if db_ok else "degraded",
-        "version": "1.0.0",
-        "municipio": f"{settings.MUNICIPIO_NOME}/{settings.MUNICIPIO_UF}",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "services": {
-            "database": "ok" if db_ok else "error",
-            "scheduler": "ok",
-            "ws": "ok",
-        },
-    })
 
 
 @app.get("/api/sistema/info")
