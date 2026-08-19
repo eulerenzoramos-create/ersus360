@@ -1,5 +1,6 @@
-// src/App.tsx — ERSUS 360 · Sidebar estilo VersaSaúde (3 níveis)
+// src/App.tsx — ERSUS 360
 import { useState, createContext, useContext, Component, useEffect } from "react";
+import { Sidebar } from "./components/Sidebar";
 
 // ── Error Boundary global — evita tela branca em crashes de componentes ───────
 class AppErrorBoundary extends Component<
@@ -737,7 +738,10 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
 
         {/* ── Sidebar ── */}
-        <aside id="ersus-sidebar" role="navigation" aria-label="Menu principal" style={{
+        <Sidebar perfil={perfilUsuario} nomeUsuario={nomeUsuario} onLogout={onLogout} />
+
+        {/* LEGADO — bloco mantido apenas para referência; nunca será renderizado */}
+        {false && <aside id="ersus-sidebar" role="navigation" aria-label="Menu principal" style={{
           width:252, background:SB_BG,
           display:"flex", flexDirection:"column" as const, overflow:"hidden",
           boxShadow:"2px 0 12px rgba(0,0,0,.3)",
@@ -1010,7 +1014,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
               <LogOut size={13}/> Sair do sistema
             </div>
           </div>
-        </aside>
+        </aside>}
 
         {/* Main */}
         <main id="ersus-main" style={{flex:1,overflow:"auto",background:"#f1f5f9"}}>
