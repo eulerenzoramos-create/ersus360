@@ -29,6 +29,8 @@ from services.fns_transferencias import (
 
 logger = logging.getLogger(__name__)
 
+import httpx as _httpx
+
 router = APIRouter(prefix="/api/repasses-fns", tags=["Repasses FNS"])
 
 IBGE_APUI = "130014"
@@ -901,6 +903,47 @@ async def matriz_validacoes(
             "todos_com_valor": sem_valor == 0,
         },
     }
+
+
+@router.get("/debug-raw-fns")
+async def debug_raw_fns(
+    exercicio: int = Query(2026),
+    mes:       int = Query(5),
+):
+    """
+    Retorna a primeira página bruta da API consultafns para diagnóstico de campos.
+    Ajuda a identificar os nomes reais dos campos OB/portaria/conta retornados pela API.
+    """
+    _BASE = "https://consultafns.saude.gov.br/recursos"
+    CNPJ  = "12834320000126"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; ERSUS360/1.0)",
+        "Accept": "application/json",
+        "Origin": "https://consultafns.saude.gov.br",
+        "Referer": "https://consultafns.saude.gov.br/",
+    }
+    params = {
+        "ano": exercicio, "count": 3, "cpfCnpjUg": CNPJ,
+        "estado": "AM", "municipio": "130014",
+        "page": 1, "tipoConsulta": 2, "mes": mes,
+    }
+    try:
+        async with _httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            r = await client.get(f"{_BASE}/consulta-detalhada/detalhe-acao",
+                                 headers=headers, params=params)
+            raw = r.json()
+            dados = raw.get("resultado", {}).get("dados", [])
+            # Mostra as chaves do primeiro registro para diagnóstico
+            amostra = dados[:2] if dados else []
+            campos_primeiro = list(amostra[0].keys()) if amostra else []
+            return {
+                "status": r.status_code,
+                "total_registros": raw.get("resultado", {}).get("totalRegistros"),
+                "campos_primeiro_registro": campos_primeiro,
+                "amostra_bruta": amostra,
+            }
+    except Exception as e:
+        return {"erro": str(e)}
 
 
 @router.get("/contas-repasse")

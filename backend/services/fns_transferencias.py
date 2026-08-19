@@ -343,15 +343,17 @@ def _normalizar_detalhe(raw: dict, exercicio: int, mes: int, pagina: int) -> dic
     chave = _chave(IBGE_APUI_7, exercicio, mes, bloco or "", grupo or "", acao or "", acao_det or "", vl_liq_str)
 
     # ── Dados bancários da OB ────────────────────────────────────────────────
-    conta_bancaria_raw = _s("contaBancaria", "nuConta")
-    banco_ob  = _s("codigoBanco", "cdBanco", "banco", "nuBanco")
-    agencia_ob= _s("codigoAgencia", "cdAgencia", "agencia", "nuAgencia")
-    conta_ob  = _s("numeroConta", "nuContaCorrente")
+    conta_bancaria_raw = _s("contaBancaria", "nuConta", "numeroConta", "nrConta", "conta")
+    banco_ob  = _s("codigoBanco", "cdBanco", "banco", "nuBanco", "codigoBancoOB",
+                   "bancoOB", "cdBancoOB", "numBanco", "nrBanco")
+    agencia_ob= _s("codigoAgencia", "cdAgencia", "agencia", "nuAgencia", "agenciaOB",
+                   "codigoAgenciaOB", "numAgencia", "nrAgencia")
+    conta_ob  = _s("numeroConta", "nuContaCorrente", "contaCorrente", "numConta", "nrContaCorrente")
     # Fallback: tenta extrair banco/agência/conta da string composta
     if not banco_ob and not conta_ob:
         banco_ob, agencia_ob, conta_ob = _parsear_conta_bancaria(conta_bancaria_raw)
-    data_pag = _parse_date(_s("dtPagamento", "dataPagamento", "dataCredito"))
-    data_ob_raw = _parse_date(_s("dataOB", "dtOB", "dataOrdemBancaria")) or data_pag
+    data_pag = _parse_date(_s("dtPagamento", "dataPagamento", "dataCredito", "dtCredito"))
+    data_ob_raw = _parse_date(_s("dataOB", "dtOB", "dataOrdemBancaria", "dtOrdemBancaria")) or data_pag
 
     return {
         "chave_unica":       chave,
@@ -368,10 +370,12 @@ def _normalizar_detalhe(raw: dict, exercicio: int, mes: int, pagina: int) -> dic
         "acao":              acao,
         "acao_detalhada":    acao_det,
         "tipo_incentivo":    classificar_tipo(bloco, grupo, acao, acao_det),
-        "numero_proposta":   _s("numeroProposta", "nuProposta"),
-        "numero_processo":   _s("numeroProcesso", "nuProcesso"),
-        "numero_portaria":   _s("numeroPortaria", "nuPortaria"),
-        "numero_ob":         _s("nuOB", "numeroOB", "ordemBancaria"),
+        "numero_proposta":   _s("numeroProposta", "nuProposta", "proposta", "nrProposta"),
+        "numero_processo":   _s("numeroProcesso", "nuProcesso", "processo", "nrProcesso"),
+        "numero_portaria":   _s("numeroPortaria", "nuPortaria", "portaria", "nrPortaria",
+                                "portariaNumero", "numPortaria", "numPortariaMinisterial"),
+        "numero_ob":         _s("nuOB", "nuOb", "numeroOB", "numeroOb", "nrOB", "nrOb",
+                                "ordemBancaria", "numOB", "numOb", "ob"),
         "conta_bancaria":    conta_bancaria_raw,
         "banco_ob":          banco_ob,
         "agencia_ob":        agencia_ob,
