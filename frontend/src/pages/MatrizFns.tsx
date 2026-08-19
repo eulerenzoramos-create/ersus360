@@ -623,7 +623,7 @@ function Celula({
   } else if (status === "pendente") {
     conteudo = <span style={{ fontSize: 10, color: C.amber }}>Pendente</span>;
   } else if (status === "incompleto" && !temValor) {
-    conteudo = <span style={{ fontSize: 10, color: C.amber }}>Incompleto</span>;
+    conteudo = <span style={{ fontSize: 11, color: "#ccc" }}>—</span>;
   } else if (temValor) {
     conteudo = cel.valor!.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     txt = C.textPri;
