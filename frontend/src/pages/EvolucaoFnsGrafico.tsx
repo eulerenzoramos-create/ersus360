@@ -111,7 +111,7 @@ function calcVar(atual: number | null, anterior: number | null): Variacao | null
 interface PontoMensal {
   mes: number; label: string; labelFull: string;
   valor: number | null; status: string;
-  valido: boolean; // coletado = true, incompleto/futuro = false
+  valido: boolean; // true = exibe no gráfico (coletado OU incompleto com valor)
   variacao: Variacao | null;
   cor: string;
 }
@@ -123,12 +123,14 @@ function derivarPontos(
 ): PontoMensal[] {
   const pts: PontoMensal[] = mesesVisiveis.map(m => {
     const status = (mesesStatus[String(m)] ?? "nao_coletado") as StatusMes;
-    const valido = status === "coletado";
+    // Exibe o valor se há dado coletado (mesmo que incompleto) — apenas ignora futuro/nao_coletado sem valor
+    const temValor = (totais[String(m)] ?? 0) > 0;
+    const valido = status === "coletado" || (status === "incompleto" && temValor);
     const valor = valido ? (totais[String(m)] ?? null) : null;
     return { mes: m, label: MESES_ABREV[m-1], labelFull: MESES_FULL[m-1], valor, status, valido, variacao: null, cor: C.blue };
   });
 
-  // Calcular variação apenas entre meses válidos consecutivos
+  // Calcular variação entre meses válidos consecutivos
   for (let i = 1; i < pts.length; i++) {
     const a = pts[i]; const b = pts[i-1];
     if (a.valido && b.valido) {
