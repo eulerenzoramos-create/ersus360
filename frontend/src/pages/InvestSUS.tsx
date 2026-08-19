@@ -1555,6 +1555,114 @@ function RelatorioAcompanhamento({ municipio_id }: { municipio_id: number }) {
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
+// ── Sincronizar com InvestSUS ─────────────────────────────────────────────────
+function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
+  const qc = useQueryClient();
+  const [resultado, setResultado] = useState<any>(null);
+
+  const sync = useMutation({
+    mutationFn: () => api.post("/api/investsus/sincronizar", {}),
+    onSuccess: (data: any) => {
+      setResultado(data.data || data);
+      qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
+      qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
+    },
+  });
+
+  const cor = {
+    card:   { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 24, marginBottom: 16 },
+    titulo: { fontSize: 15, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 },
+    sub:    { fontSize: 12, color: "#6b7280", marginBottom: 16, lineHeight: 1.6 },
+    btn:    (loading: boolean) => ({
+      background: loading ? "#9ca3af" : "#1e3a5f", color: "#fff",
+      border: "none", borderRadius: 8, padding: "12px 28px",
+      fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
+      display: "flex", alignItems: "center", gap: 8,
+    } as React.CSSProperties),
+    ok:     { background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 16, marginTop: 16 },
+    err:    { background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 16, marginTop: 16 },
+    tag:    (c: string) => ({ background: c, color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 600 } as React.CSSProperties),
+  };
+
+  return (
+    <div>
+      {/* Card principal */}
+      <div style={cor.card}>
+        <div style={cor.titulo}>Sincronização com InvestSUS</div>
+        <div style={cor.sub}>
+          Conecta diretamente ao portal <strong>InvestSUS (Ministério da Saúde)</strong> usando suas credenciais SCPA,
+          busca todas as propostas do FMS Apuí e atualiza automaticamente o banco local.<br /><br />
+          Situações, valores aprovados, repasses e execução são sincronizados em tempo real.
+          Configure <code>INVESTSUS_CPF</code> e <code>INVESTSUS_SENHA</code> nas variáveis do Railway.
+        </div>
+
+        <button
+          style={cor.btn(sync.isPending)}
+          onClick={() => sync.mutate()}
+          disabled={sync.isPending}
+        >
+          <RefreshCw size={16} style={{ animation: sync.isPending ? "spin 1s linear infinite" : "none" }} />
+          {sync.isPending ? "Sincronizando com InvestSUS..." : "Sincronizar Agora"}
+        </button>
+
+        {sync.isError && (
+          <div style={cor.err}>
+            <strong>Erro na sincronização:</strong>{" "}
+            {(sync.error as any)?.response?.data?.erro || (sync.error as any)?.message || "Erro desconhecido"}
+            {(sync.error as any)?.response?.data?.instrucao && (
+              <div style={{ marginTop: 8, fontSize: 12, color: "#991b1b" }}>
+                {(sync.error as any).response.data.instrucao}
+              </div>
+            )}
+          </div>
+        )}
+
+        {resultado && !sync.isError && (
+          <div style={cor.ok}>
+            <div style={{ fontWeight: 700, color: "#166534", marginBottom: 10 }}>
+              ✓ Sincronização concluída — {resultado.sincronizado_em?.slice(0, 19).replace("T", " ")} UTC
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
+              <span style={cor.tag("#1e3a5f")}>{resultado.propostas_encontradas} propostas encontradas</span>
+              <span style={cor.tag("#065f46")}>{resultado.criadas} novas</span>
+              <span style={cor.tag("#92400e")}>{resultado.atualizadas} atualizadas</span>
+              {resultado.repasses > 0 && <span style={cor.tag("#4c1d95")}>{resultado.repasses} repasses</span>}
+            </div>
+            {resultado.erros?.length > 0 && (
+              <div style={{ marginTop: 12, fontSize: 12, color: "#92400e" }}>
+                <strong>Avisos:</strong>
+                <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
+                  {resultado.erros.map((e: any, i: number) => (
+                    <li key={i}>{e.endpoint}: {e.erro}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Instruções de configuração */}
+      <div style={cor.card}>
+        <div style={cor.titulo}>Configuração das Credenciais</div>
+        <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.8 }}>
+          <div style={{ marginBottom: 8 }}>
+            No <strong>Railway Dashboard</strong> → serviço <strong>ersus360</strong> → aba <strong>Variables</strong>:
+          </div>
+          <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: 12, fontFamily: "monospace", fontSize: 12 }}>
+            <div>INVESTSUS_CPF = <em>seu CPF (só números)</em></div>
+            <div>INVESTSUS_SENHA = <em>sua senha do SCPA/InvestSUS</em></div>
+          </div>
+          <div style={{ marginTop: 8, fontSize: 12, color: "#6b7280" }}>
+            São as mesmas credenciais usadas para acessar <strong>acesso.saude.gov.br</strong> (aba SCPA, não gov.br).
+            Após salvar, faça redeploy e clique em "Sincronizar Agora".
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function InvestSUS() {
   const [aba, setAba] = useState<"dashboard" | "propostas" | "alertas" | "importar" | "relatorio">("dashboard");
   const [propostaSelecionada, setPropostaSelecionada] = useState<any>(null);
@@ -1564,7 +1672,7 @@ export default function InvestSUS() {
     { key: "dashboard",  label: "Dashboard",  icone: <BarChart3 size={13} /> },
     { key: "propostas",  label: "Propostas",  icone: <FileText size={13} /> },
     { key: "alertas",    label: "Alertas",    icone: <Bell size={13} /> },
-    { key: "importar",   label: "Importar",   icone: <Upload size={13} /> },
+    { key: "sincronizar", label: "Sincronizar", icone: <RefreshCw size={13} /> },
     { key: "relatorio",  label: "Relatório",  icone: <Download size={13} /> },
   ] as const;
 
@@ -1610,8 +1718,8 @@ export default function InvestSUS() {
         <ListaPropostas municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
       ) : aba === "alertas" ? (
         <AlertasGlobais municipio_id={municipio_id} />
-      ) : aba === "importar" ? (
-        <ImportacaoAssistida municipio_id={municipio_id} />
+      ) : aba === "sincronizar" ? (
+        <SincronizarInvestSUS municipio_id={municipio_id} />
       ) : (
         <RelatorioAcompanhamento municipio_id={municipio_id} />
       )}

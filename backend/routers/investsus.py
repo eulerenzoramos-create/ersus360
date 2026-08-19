@@ -1285,3 +1285,120 @@ async def seed_exemplo_apui(db: DbDep, user: UserDep):
 
     await db.commit()
     return {"ok": True, "proposta_id": prop.id, "numero": "36000820396202600"}
+
+
+# ── Sincronização real com InvestSUS ──────────────────────────────────────────
+@router.post("/sincronizar")
+async def sincronizar_com_investsus(db: DbDep, user: UserDep):
+    """
+    Autentica no SCPA (InvestSUS) com as credenciais configuradas e sincroniza
+    as propostas do município com o banco local.
+
+    Requer env vars no Railway: INVESTSUS_CPF, INVESTSUS_SENHA
+    """
+    if user.role not in ("superadmin", "admin", "gestor", "financeiro"):
+        raise HTTPException(403, "Acesso restrito")
+
+    mid = _municipio_id(user)
+
+    from services.investsus_scraper import sincronizar_investsus
+    import os
+
+    if not os.getenv("INVESTSUS_CPF") or not os.getenv("INVESTSUS_SENHA"):
+        raise HTTPException(400, detail={
+            "erro": "Credenciais não configuradas",
+            "instrucao": "Adicione INVESTSUS_CPF e INVESTSUS_SENHA nas variáveis de ambiente do Railway.",
+        })
+
+    try:
+        dados = await sincronizar_investsus()
+    except RuntimeError as exc:
+        raise HTTPException(400, detail={"erro": str(exc)})
+    except Exception as exc:
+        logger.error("Sincronização InvestSUS falhou: %s", exc, exc_info=True)
+        raise HTTPException(500, detail={"erro": "Falha na sincronização", "detalhe": str(exc)})
+
+    criadas = 0
+    atualizadas = 0
+
+    for prop_raw in dados.get("propostas", []):
+        numero = prop_raw.get("numero_proposta", "")
+        if not numero:
+            continue
+
+        res = await db.execute(
+            select(PropostaInvestSUS).where(
+                PropostaInvestSUS.municipio_id == mid,
+                PropostaInvestSUS.numero_proposta == numero,
+            )
+        )
+        existing = res.scalar_one_or_none()
+
+        situacao_raw = prop_raw.get("situacao_raw", "")
+        # Tenta mapear para SituacaoNormalizada (busca por valor do enum)
+        situacao_norm = None
+        for s in SituacaoNormalizada:
+            if s.value.lower() in situacao_raw.lower() or situacao_raw.lower() in s.value.lower():
+                situacao_norm = s
+                break
+
+        if existing:
+            # Atualiza campos financeiros e situação
+            old_sit = existing.situacao_normalizada
+            if prop_raw.get("valor_aprovado"):
+                existing.valor_aprovado = prop_raw["valor_aprovado"]
+            if prop_raw.get("valor_repassado"):
+                existing.valor_pago = prop_raw["valor_repassado"]
+            if prop_raw.get("valor_executado"):
+                existing.valor_executado = prop_raw["valor_executado"]
+            existing.situacao_original = prop_raw.get("situacao_raw") or existing.situacao_original
+            if situacao_norm and situacao_norm != old_sit:
+                existing.situacao_normalizada = situacao_norm
+                db.add(HistoricoSituacao(
+                    proposta_id=existing.id,
+                    situacao_anterior=old_sit.value if old_sit else None,
+                    situacao_nova=situacao_norm.value,
+                    origem="sincronizacao_automatica",
+                    observacao=f"Atualizado via sincronização InvestSUS em {dados['sincronizado_em']}",
+                ))
+            atualizadas += 1
+        else:
+            # Cria nova proposta
+            nova = PropostaInvestSUS(
+                municipio_id=mid,
+                numero_proposta=numero,
+                numero_instrumento=prop_raw.get("numero_convenio") or "",
+                objeto=prop_raw.get("objeto") or "",
+                tipo_emenda=TipoEmenda.INDIVIDUAL,
+                valor_indicado=prop_raw.get("valor_global", 0),
+                valor_proposta=prop_raw.get("valor_global", 0),
+                valor_aprovado=prop_raw.get("valor_aprovado", 0),
+                valor_pago=prop_raw.get("valor_repassado", 0),
+                valor_executado=prop_raw.get("valor_executado", 0),
+                situacao_original=prop_raw.get("situacao_raw") or "",
+                situacao_normalizada=situacao_norm or SituacaoNormalizada.PROPOSTA_EM_ANALISE,
+                exercicio=prop_raw.get("exercicio", 2024),
+                entidade_cnpj=prop_raw.get("cnpj_proponente") or "12.834.320/0001-26",
+            )
+            db.add(nova)
+            await db.flush()  # garante que nova.id existe
+            db.add(HistoricoSituacao(
+                proposta_id=nova.id,
+                situacao_anterior=None,
+                situacao_nova=(situacao_norm or SituacaoNormalizada.PROPOSTA_EM_ANALISE).value,
+                origem="sincronizacao_automatica",
+                observacao=f"Importado via sincronização InvestSUS em {dados['sincronizado_em']}",
+            ))
+            criadas += 1
+
+    await db.commit()
+
+    return {
+        "ok": True,
+        "sincronizado_em": dados["sincronizado_em"],
+        "propostas_encontradas": len(dados["propostas"]),
+        "criadas": criadas,
+        "atualizadas": atualizadas,
+        "repasses": len(dados.get("repasses", [])),
+        "erros": dados.get("erros", []),
+    }

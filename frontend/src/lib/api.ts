@@ -522,6 +522,7 @@ export const apiInvestSUS = {
   importarPreview:  (rows: unknown[]) => apiPost("/api/investsus/importar/preview", rows),
   importarConfirmar:(rows: unknown[]) => apiPost("/api/investsus/importar/confirmar", rows),
   seedApui:         () => apiPost("/api/investsus/seed-exemplo-apui", {}),
+  sincronizar:      () => apiPost("/api/investsus/sincronizar", {}),
   addPlano:         (id: number, body: unknown) => apiPost(`/api/investsus/propostas/${id}/planos`, body),
   addAcao:          (plano_id: number, body: unknown) => apiPost(`/api/investsus/planos/${plano_id}/acoes`, body),
   relatorio:        (p: Record<string, unknown>) => apiGet("/api/investsus/relatorio", p),
