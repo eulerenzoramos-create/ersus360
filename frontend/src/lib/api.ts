@@ -503,6 +503,30 @@ export const apiEmendas = {
   criar: (body: unknown) => apiPost("/api/emendas", body),
 };
 
+// ── InvestSUS — Emendas, Propostas e Execução ─────────────────────────────────
+export const apiInvestSUS = {
+  dashboard:        (municipio_id: number) => apiGet(`/api/investsus/dashboard?municipio_id=${municipio_id}`),
+  propostas:        (p: Record<string, unknown>) => apiGet("/api/investsus/propostas", p),
+  proposta:         (id: number) => apiGet(`/api/investsus/propostas/${id}`),
+  criarProposta:    (body: unknown) => apiPost("/api/investsus/propostas", body),
+  atualizarProposta:(id: number, body: unknown) => api.put(`/api/investsus/propostas/${id}`, body),
+  addParecer:       (id: number, body: unknown) => apiPost(`/api/investsus/propostas/${id}/pareceres`, body),
+  addPagamento:     (id: number, body: unknown) => apiPost(`/api/investsus/propostas/${id}/pagamentos`, body),
+  addAtualizacao:   (id: number, body: unknown) => apiPost(`/api/investsus/propostas/${id}/atualizacoes`, body),
+  addUnidade:       (id: number, body: unknown) => apiPost(`/api/investsus/propostas/${id}/unidades`, body),
+  addNatureza:      (id: number, body: unknown) => apiPost(`/api/investsus/propostas/${id}/naturezas`, body),
+  alertas:          (municipio_id: number) => apiGet(`/api/investsus/alertas?municipio_id=${municipio_id}&apenas_abertos=true`),
+  resolverAlerta:   (id: number) => apiPost(`/api/investsus/alertas/${id}/resolver`, {}),
+  parlamentares:    () => apiGet("/api/investsus/parlamentares"),
+  programas:        () => apiGet("/api/investsus/programas"),
+  importarPreview:  (rows: unknown[]) => apiPost("/api/investsus/importar/preview", rows),
+  importarConfirmar:(rows: unknown[]) => apiPost("/api/investsus/importar/confirmar", rows),
+  seedApui:         () => apiPost("/api/investsus/seed-exemplo-apui", {}),
+  addPlano:         (id: number, body: unknown) => apiPost(`/api/investsus/propostas/${id}/planos`, body),
+  addAcao:          (plano_id: number, body: unknown) => apiPost(`/api/investsus/planos/${plano_id}/acoes`, body),
+  relatorio:        (p: Record<string, unknown>) => apiGet("/api/investsus/relatorio", p),
+};
+
 // ── Usuários ──────────────────────────────────────────────────────────────────
 export const apiUsuarios = {
   lista: () => apiGet("/api/usuarios"),

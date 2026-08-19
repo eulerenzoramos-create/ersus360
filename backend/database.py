@@ -45,6 +45,7 @@ async def init_db():
             municipio, portaria, execucao, obra, usuario, documento, emenda,
             repasse_fns, pec_cadastro, visita_domiciliar,
             extracao, inconsistencia, credencial_municipio,
+            investsus,
         )
         await conn.run_sync(Base.metadata.create_all)
         # Migração incremental: adiciona colunas novas sem derrubar tabela

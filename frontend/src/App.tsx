@@ -131,6 +131,7 @@ import Login           from "./pages/Login";
 import Transporte      from "./pages/Transporte";
 import Regulacao       from "./pages/Regulacao";
 import Emendas         from "./pages/Emendas";
+import InvestSUS       from "./pages/InvestSUS";
 import PrevineBrasil   from "./pages/PrevineBrasil";
 import Sus360          from "./pages/Sus360";
 import Auditoria       from "./pages/Auditoria";
@@ -860,7 +861,8 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
                 <L2 to="/fns"       label="Consolidado de Convênios"  Icon={Clipboard}/>
                 <L2 to="/portarias" label="Portarias FNS"             Icon={FileText}/>
                 <L2 to="/execucao"  label="Execução por Bloco"        Icon={DollarSign}/>
-                <L2 to="/emendas"   label="Emendas Parlamentares"     Icon={Landmark}/>
+                <L2 to="/emendas"     label="Emendas Parlamentares"         Icon={Landmark}/>
+                <L2 to="/investsus"  label="InvestSUS — Propostas/Execução" Icon={Landmark}/>
               </Acc1>
               <L1 to="/siops"                    label="SIOPS / Mínimo Constitucional"  Icon={Target}/>
               <L1 to="/siconfi"                  label="SICONFI"                        Icon={Building2}/>
@@ -1129,6 +1131,7 @@ export default function App() {
             <Route path="/portarias"                 element={<Portarias/>}/>
             <Route path="/execucao"                  element={<Execucao/>}/>
             <Route path="/emendas"                   element={<Emendas/>}/>
+            <Route path="/investsus"                 element={<InvestSUS/>}/>
             {/* Informatiza APS */}
             <Route path="/informatiza-aps"           element={<APS/>}/>
             {/* Demais */}
