@@ -498,75 +498,97 @@ function ModalDetalhe({
                 </div>
               )}
 
-              {/* Lista de transferências */}
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                  <thead>
-                    <tr style={{ background: C.blue, color: C.white }}>
-                      {["Data OB","Nº OB","Banco","Agência","Conta","Portaria","Ação / Componente","Bruto","Desconto","Líquido","Situação"].map(h => (
-                        <th key={h} style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.transferencias.map((t, i) => {
-                      const dtOb = t.data_ob || t.data_pagamento;
-                      return (
-                        <tr key={t.id} style={{ background: i % 2 === 0 ? C.white : C.rowAlt }}>
-                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
-                            {dtOb ? new Date(dtOb + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
-                          </td>
-                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap", fontWeight: 600, color: C.blue }}>
-                            {t.numero_ob || "—"}
-                          </td>
-                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
-                            {t.banco_ob ? (
-                              <span title={_nomeBanco(t.banco_ob)} style={{ fontVariantNumeric: "tabular-nums" }}>
-                                {t.banco_ob}
-                              </span>
-                            ) : "—"}
-                          </td>
-                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                            {t.agencia_ob || "—"}
-                          </td>
-                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                            {t.numero_conta_ob || t.conta_bancaria || "—"}
-                          </td>
-                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
-                            {t.numero_portaria ? (
-                              <span style={{ background: C.indigoL, color: C.indigo, borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 600 }}>
-                                {t.numero_portaria}
-                              </span>
-                            ) : "—"}
-                          </td>
-                          <td style={{ padding: "6px 10px", maxWidth: 200, wordBreak: "break-word" }}>
-                            <div>{t.acao_detalhada || t.acao || "—"}</div>
-                            {t.tipo_incentivo && (
-                              <div style={{ fontSize: 10, color: C.textSec, marginTop: 1 }}>{t.tipo_incentivo}</div>
-                            )}
-                          </td>
-                          <td style={{ padding: "6px 10px", textAlign: "right", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                            {BRL_ZERO(t.valor_total ?? 0)}
-                          </td>
-                          <td style={{ padding: "6px 10px", textAlign: "right", whiteSpace: "nowrap", color: C.red, fontVariantNumeric: "tabular-nums" }}>
-                            {t.valor_desconto ? BRL_ZERO(t.valor_desconto) : "—"}
-                          </td>
-                          <td style={{ padding: "6px 10px", textAlign: "right", whiteSpace: "nowrap", fontWeight: 700, color: C.green, fontVariantNumeric: "tabular-nums" }}>
-                            {BRL_ZERO(t.valor_liquido ?? 0)}
-                          </td>
-                          <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
-                            <span style={{
-                              background: t.situacao === "Pago" ? C.greenL : C.amberL,
-                              color: t.situacao === "Pago" ? C.green : C.amber,
-                              borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 600,
-                            }}>{t.situacao || "—"}</span>
-                          </td>
+              {/* Lista de transferências — colunas condicionais */}
+              {(() => {
+                const ts = data.transferencias;
+                const temOb       = ts.some(t => t.numero_ob);
+                const temPortaria = ts.some(t => t.numero_portaria);
+                const temBanco    = ts.some(t => t.banco_ob || t.agencia_ob || t.numero_conta_ob || t.conta_bancaria);
+                const temData     = ts.some(t => t.data_ob || t.data_pagamento);
+
+                return (
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <thead>
+                        <tr style={{ background: C.blue, color: C.white }}>
+                          {temData     && <th style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap" }}>Data Pgto</th>}
+                          {temOb       && <th style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap" }}>Nº OB</th>}
+                          {temBanco    && <th style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap" }}>Banco</th>}
+                          {temBanco    && <th style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap" }}>Agência</th>}
+                          {temBanco    && <th style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap" }}>Conta</th>}
+                          {temPortaria && <th style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap" }}>Portaria</th>}
+                          <th style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600 }}>Ação / Componente</th>
+                          <th style={{ padding: "7px 10px", textAlign: "right", fontWeight: 600, whiteSpace: "nowrap" }}>Bruto</th>
+                          <th style={{ padding: "7px 10px", textAlign: "right", fontWeight: 600, whiteSpace: "nowrap" }}>Desconto</th>
+                          <th style={{ padding: "7px 10px", textAlign: "right", fontWeight: 600, whiteSpace: "nowrap" }}>Líquido</th>
+                          <th style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap" }}>Situação</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      </thead>
+                      <tbody>
+                        {ts.map((t, i) => {
+                          const dt = t.data_ob || t.data_pagamento;
+                          return (
+                            <tr key={t.id} style={{ background: i % 2 === 0 ? C.white : C.rowAlt }}>
+                              {temData && (
+                                <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
+                                  {dt ? new Date(dt + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
+                                </td>
+                              )}
+                              {temOb && (
+                                <td style={{ padding: "6px 10px", whiteSpace: "nowrap", fontWeight: 600, color: C.blue }}>
+                                  {t.numero_ob || "—"}
+                                </td>
+                              )}
+                              {temBanco && (
+                                <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
+                                  {t.banco_ob ? <span title={_nomeBanco(t.banco_ob)}>{t.banco_ob}</span> : "—"}
+                                </td>
+                              )}
+                              {temBanco && (
+                                <td style={{ padding: "6px 10px", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                                  {t.agencia_ob || "—"}
+                                </td>
+                              )}
+                              {temBanco && (
+                                <td style={{ padding: "6px 10px", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                                  {t.numero_conta_ob || t.conta_bancaria || "—"}
+                                </td>
+                              )}
+                              {temPortaria && (
+                                <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
+                                  {t.numero_portaria
+                                    ? <span style={{ background: C.indigoL, color: C.indigo, borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 600 }}>{t.numero_portaria}</span>
+                                    : "—"}
+                                </td>
+                              )}
+                              <td style={{ padding: "6px 10px", maxWidth: 220, wordBreak: "break-word" }}>
+                                <div>{t.acao_detalhada || t.acao || "—"}</div>
+                                {t.tipo_incentivo && <div style={{ fontSize: 10, color: C.textSec, marginTop: 1 }}>{t.tipo_incentivo}</div>}
+                              </td>
+                              <td style={{ padding: "6px 10px", textAlign: "right", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                                {BRL_ZERO(t.valor_total ?? 0)}
+                              </td>
+                              <td style={{ padding: "6px 10px", textAlign: "right", whiteSpace: "nowrap", color: C.red, fontVariantNumeric: "tabular-nums" }}>
+                                {t.valor_desconto ? BRL_ZERO(t.valor_desconto) : "—"}
+                              </td>
+                              <td style={{ padding: "6px 10px", textAlign: "right", whiteSpace: "nowrap", fontWeight: 700, color: C.green, fontVariantNumeric: "tabular-nums" }}>
+                                {BRL_ZERO(t.valor_liquido ?? 0)}
+                              </td>
+                              <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
+                                <span style={{
+                                  background: t.situacao === "Pago" ? C.greenL : C.amberL,
+                                  color: t.situacao === "Pago" ? C.green : C.amber,
+                                  borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 600,
+                                }}>{t.situacao || "—"}</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
 
               <div style={{ marginTop: 12, fontSize: 11, color: C.textSec }}>
                 Fonte: consultafns.saude.gov.br · Fundo Nacional de Saúde (FNS)
