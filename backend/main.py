@@ -6,9 +6,12 @@ Build: 2026-08-17 — Playwright eGestor scraper
 from contextlib import asynccontextmanager
 import logging
 
-from fastapi import FastAPI
+import os
+from pathlib import Path
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from config import settings
 from database import init_db
@@ -655,14 +658,40 @@ app.include_router(inconsistencias_router)
 app.include_router(relatorio_ersus_router)
 
 
-@app.get("/")
-async def root():
-    return {
-        "app": settings.APP_NAME,
-        "municipio": f"{settings.MUNICIPIO_NOME}/{settings.MUNICIPIO_UF}",
-        "status": "online",
-        "docs": "/docs",
-    }
+# ── Frontend estático (build Vite) ───────────────────────────────────────────
+# O Dockerfile copia o dist do frontend para /app/frontend_dist
+_FRONTEND_DIST = Path(__file__).parent / "frontend_dist"
+
+if _FRONTEND_DIST.exists():
+    # Serve assets (JS/CSS/imagens) com cache longo
+    app.mount("/assets", StaticFiles(directory=str(_FRONTEND_DIST / "assets")), name="assets")
+
+    @app.get("/")
+    async def root_spa():
+        return FileResponse(str(_FRONTEND_DIST / "index.html"))
+
+    # SPA catch-all: qualquer rota não-API retorna o index.html
+    @app.get("/{full_path:path}")
+    async def spa_catchall(full_path: str):
+        # Rotas /api/* já são tratadas pelos routers acima
+        if full_path.startswith("api/") or full_path in ("health", "docs", "openapi.json", "redoc"):
+            from fastapi.responses import JSONResponse as _JR
+            return _JR({"detail": "Not Found"}, status_code=404)
+        index = _FRONTEND_DIST / "index.html"
+        if index.exists():
+            return FileResponse(str(index))
+        return FileResponse(str(_FRONTEND_DIST / "index.html"))
+
+else:
+    # Sem build do frontend: retorna JSON (comportamento anterior)
+    @app.get("/")
+    async def root():
+        return {
+            "app": settings.APP_NAME,
+            "municipio": f"{settings.MUNICIPIO_NOME}/{settings.MUNICIPIO_UF}",
+            "status": "online",
+            "docs": "/docs",
+        }
 
 
 @app.get("/health")
