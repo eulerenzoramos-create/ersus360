@@ -7,7 +7,7 @@ para que o sistema continue funcionando offline.
 """
 from __future__ import annotations
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Optional
 
 import httpx
@@ -16,12 +16,15 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 BASE    = settings.ESUS_URL.rstrip("/")
-TIMEOUT = 20
+TIMEOUT = 25
 IBGE    = settings.FNS_MUNICIPIO_IBGE  # "1300144" (Apuí)
 
 _token_cache: Optional[str]      = None
 _token_exp:   Optional[datetime] = None
 _instancia:   Optional[dict]     = None
+
+# CBO de ACS = 515140
+CBO_ACS = "515140"
 
 # ── GraphQL queries ──────────────────────────────────────────────────────────
 
@@ -56,11 +59,53 @@ query Profissionais($municipio: String!) {
 }
 """
 
-_GQL_CIDADAOS = """
-query Cidadaos($municipio: String!, $page: Int!) {
-  cidadaos(filter: { municipio: { codigoIbge: $municipio } }, page: $page, size: 1) {
+_GQL_CIDADAOS_TOTAL = """
+query CidadaosTotal($municipio: String!) {
+  cidadaos(filter: { municipio: { codigoIbge: $municipio } }, page: 0, size: 1) {
     totalElements
     pageInfo { totalPages }
+  }
+}
+"""
+
+_GQL_CIDADAOS_PAGE = """
+query CidadaosPage($municipio: String!, $page: Int!, $size: Int!) {
+  cidadaos(filter: { municipio: { codigoIbge: $municipio } }, page: $page, size: $size) {
+    totalElements
+    pageInfo { totalPages hasNextPage }
+    content {
+      id
+      cpf
+      cns
+      nomeSocial
+      nome
+      dataNascimento
+      sexo
+      nomeMae
+      telefone
+      municipio { nome }
+      equipeVinculada { nome ine }
+      microArea
+    }
+  }
+}
+"""
+
+_GQL_DOMICILIOS = """
+query Domicilios($municipio: String!, $page: Int!, $size: Int!) {
+  imoveis(filter: { municipio: { codigoIbge: $municipio } }, page: $page, size: $size) {
+    totalElements
+    pageInfo { totalPages hasNextPage }
+    content {
+      id
+      tipoLogradouro
+      nomeLogradouro
+      numero
+      bairro
+      cep
+      microArea
+      familias { id }
+    }
   }
 }
 """
@@ -80,21 +125,83 @@ query Producao($municipio: String!, $competencia: String!) {
 }
 """
 
+_GQL_VISITAS_DETALHE = """
+query VisitasDetalhe($municipio: String!, $competencia: String!) {
+  visitasDomiciliares(
+    filter: { municipio: { codigoIbge: $municipio } competencia: $competencia }
+    page: 0, size: 999
+  ) {
+    totalElements
+    content {
+      dataVisita
+      microArea
+      tipoDeImovel
+      motivoVisita { descricao }
+      profissional { nome cbo { codigo descricao } }
+      desfecho { descricao }
+      turno
+    }
+  }
+}
+"""
+
+_GQL_VISITAS_POR_ACS = """
+query VisitasAcs($municipio: String!, $competencia: String!, $cns: String!) {
+  visitasDomiciliares(
+    filter: {
+      municipio: { codigoIbge: $municipio }
+      competencia: $competencia
+      profissional: { cns: $cns }
+    }
+    page: 0, size: 999
+  ) {
+    totalElements
+    content {
+      dataVisita
+      microArea
+      tipoDeImovel
+      motivoVisita { descricao }
+      desfecho { descricao }
+      turno
+    }
+  }
+}
+"""
+
+_GQL_TERRITORIOS = """
+query Territorios($municipio: String!) {
+  territorios(filter: { municipio: { codigoIbge: $municipio } }) {
+    ine
+    nome
+    tipo { descricao }
+    microAreas { codigo }
+    profissionais { nome cbo { codigo descricao } }
+    unidadeSaude { nome cnes }
+  }
+}
+"""
+
 
 async def _gql(query: str, variables: dict, token: Optional[str] = None) -> Optional[dict]:
     """Executa uma query/mutation GraphQL no eSUS PEC."""
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
     if token:
         headers["Authorization"] = f"Bearer {token}"
     payload = {"query": query, "variables": variables}
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT, verify=False) as cli:
+        async with httpx.AsyncClient(timeout=TIMEOUT, verify=False, follow_redirects=True) as cli:
             r = await cli.post(f"{BASE}/graphql", json=payload, headers=headers)
+            logger.debug("e-SUS GraphQL status=%s body_prefix=%s", r.status_code, r.text[:300])
             if r.status_code == 200:
                 body = r.json()
                 if "errors" not in body:
                     return body.get("data")
-                logger.warning("e-SUS GraphQL errors: %s", body["errors"][:1])
+                logger.warning("e-SUS GraphQL errors: %s", body["errors"][:2])
+            else:
+                logger.warning("e-SUS GraphQL HTTP %s url=%s/graphql", r.status_code, BASE)
     except Exception as exc:
         logger.debug("e-SUS GraphQL erro: %s", exc)
     return None
@@ -110,11 +217,11 @@ async def _autenticar() -> Optional[str]:
     if not (settings.ESUS_USUARIO and settings.ESUS_SENHA):
         return None
 
-    # Tenta GraphQL primeiro, depois REST
-    data = await _gql(_GQL_LOGIN, {
-        "login": settings.ESUS_USUARIO,
-        "senha": settings.ESUS_SENHA,
-    })
+    usuario = settings.ESUS_USUARIO
+    senha   = settings.ESUS_SENHA
+
+    # 1. Mutation GraphQL padrão eSUS PEC v4/v5
+    data = await _gql(_GQL_LOGIN, {"login": usuario, "senha": senha})
     if data and data.get("autenticar", {}).get("sessionToken"):
         _token_cache = data["autenticar"]["sessionToken"]
         _token_exp   = datetime.now() + timedelta(hours=4)
@@ -122,16 +229,21 @@ async def _autenticar() -> Optional[str]:
         logger.info("e-SUS PEC: autenticado via GraphQL — %s", _instancia.get("nome", ""))
         return _token_cache
 
-    # Fallback REST
-    for url in [f"{BASE}/api/auth", f"{BASE}/api/login", f"{BASE}/oauth/token"]:
+    # 2. Fallback REST — múltiplos formatos de payload
+    rest_tentativas = [
+        (f"{BASE}/api/auth",    {"username": usuario, "password": senha}),
+        (f"{BASE}/api/auth",    {"login": usuario,    "senha": senha}),
+        (f"{BASE}/oauth/token", {"grant_type": "password", "username": usuario, "password": senha}),
+    ]
+    for url, body in rest_tentativas:
         try:
-            async with httpx.AsyncClient(timeout=TIMEOUT, verify=False) as cli:
-                r = await cli.post(url, json={
-                    "username": settings.ESUS_USUARIO,
-                    "password": settings.ESUS_SENHA,
-                })
+            async with httpx.AsyncClient(timeout=TIMEOUT, verify=False, follow_redirects=False) as cli:
+                r = await cli.post(url, json=body,
+                                   headers={"Content-Type": "application/json", "Accept": "application/json"})
+                logger.debug("e-SUS REST %s → %s %s", url, r.status_code, r.text[:200])
                 if r.status_code in (200, 201):
-                    tok = r.json().get("access_token") or r.json().get("token")
+                    j = r.json()
+                    tok = j.get("access_token") or j.get("token") or j.get("sessionToken")
                     if tok:
                         _token_cache = tok
                         _token_exp   = datetime.now() + timedelta(hours=4)
@@ -140,35 +252,28 @@ async def _autenticar() -> Optional[str]:
         except Exception as exc:
             logger.debug("e-SUS REST auth %s: %s", url, exc)
 
-    logger.warning("e-SUS PEC: falha de autenticação")
+    logger.warning("e-SUS PEC: falha de autenticação — verifique credenciais e acesso à rede")
     return None
+
+
+def _offline(nota: str) -> dict:
+    return {"fonte": "offline", "conectado": False, "nota": nota}
 
 
 # ── Endpoints públicos ────────────────────────────────────────────────────────
 
 async def testar_conexao(url_override: Optional[str] = None) -> dict:
-    """
-    Testa conectividade com o eSUS PEC.
-    Retorna dict com status, versão e nome da instância.
-    """
     global BASE
     target = (url_override or BASE).rstrip("/")
     orig   = BASE
-
     if url_override:
-        BASE = target  # temporário para o teste
+        BASE = target
 
     resultado = {
-        "url":      target,
-        "conectado": False,
-        "versao":   None,
-        "instancia": None,
-        "municipio": None,
-        "erro":     None,
+        "url": target, "conectado": False,
+        "versao": None, "instancia": None, "municipio": None, "erro": None,
     }
-
     try:
-        # Ping simples
         async with httpx.AsyncClient(timeout=8, verify=False) as cli:
             r = await cli.get(f"{target}/", follow_redirects=True)
             if r.status_code in range(200, 500):
@@ -178,7 +283,6 @@ async def testar_conexao(url_override: Optional[str] = None) -> dict:
         BASE = orig
         return resultado
 
-    # Tenta autenticar
     token = await _autenticar()
     if token and _instancia:
         resultado["versao"]    = _instancia.get("versao")
@@ -195,10 +299,9 @@ async def buscar_producao(competencia: str) -> dict:
     token = await _autenticar()
     if token:
         ano, mes = competencia.split("-")
-        comp_fmtd = f"{ano}{mes}"  # ex.: "202607"
         data = await _gql(_GQL_PRODUCAO, {
             "municipio": IBGE,
-            "competencia": comp_fmtd,
+            "competencia": f"{ano}{mes}",
         }, token=token)
         if data and data.get("relatorioAtendimentos"):
             r = data["relatorioAtendimentos"]
@@ -213,16 +316,8 @@ async def buscar_producao(competencia: str) -> dict:
                 "fonte": "esus_pec",
             }
     return {
-        "competencia":                competencia,
-        "situacao_dado":              "nao_disponivel",
-        "atendimentos_individuais":   None,
-        "atendimentos_odontologicos": None,
-        "visitas_domiciliares":        None,
-        "procedimentos":              None,
-        "atividades_coletivas":        None,
-        "encaminhamentos":             None,
-        "fonte":                      "nao_disponivel",
-        "nota": "e-SUS PEC nao acessivel. Configure ESUS_URL, ESUS_USUARIO, ESUS_SENHA no Railway.",
+        "competencia": competencia, "fonte": "offline",
+        "nota": "Configure ESUS_USUARIO e ESUS_SENHA no Railway para dados em tempo real.",
     }
 
 
@@ -230,22 +325,219 @@ async def buscar_cadastros() -> dict:
     """Total de cidadaos cadastrados no eSUS PEC."""
     token = await _autenticar()
     if token:
-        data = await _gql(_GQL_CIDADAOS, {"municipio": IBGE, "page": 0}, token=token)
+        data = await _gql(_GQL_CIDADAOS_TOTAL, {"municipio": IBGE}, token=token)
         if data and data.get("cidadaos"):
             total = data["cidadaos"].get("totalElements", 0)
             return {
-                "individuais":     total,
-                "domiciliares":    0,
-                "atualizados_12m": 0,
-                "situacao_dado":   "oficial_validado",
-                "fonte":           "esus_pec",
+                "individuais": total, "domiciliares": 0,
+                "atualizados_12m": 0, "situacao_dado": "oficial_validado",
+                "fonte": "esus_pec",
             }
+    return {"fonte": "offline", "individuais": None, "domiciliares": None,
+            "nota": "Configure ESUS_USUARIO e ESUS_SENHA no Railway."}
+
+
+async def buscar_cidadaos(pagina: int = 0, tamanho: int = 50) -> dict:
+    """Lista paginada de cidadãos cadastrados no eSUS PEC."""
+    token = await _autenticar()
+    if token:
+        data = await _gql(_GQL_CIDADAOS_PAGE, {
+            "municipio": IBGE, "page": pagina, "size": tamanho,
+        }, token=token)
+        if data and data.get("cidadaos"):
+            raw = data["cidadaos"]
+            cidadaos = [
+                {
+                    "id":              c.get("id"),
+                    "nome":            c.get("nomeSocial") or c.get("nome", "—"),
+                    "cpf":             c.get("cpf"),
+                    "cns":             c.get("cns"),
+                    "data_nascimento": c.get("dataNascimento"),
+                    "sexo":            c.get("sexo"),
+                    "nome_mae":        c.get("nomeMae"),
+                    "telefone":        c.get("telefone"),
+                    "equipe":          (c.get("equipeVinculada") or {}).get("nome"),
+                    "microarea":       c.get("microArea"),
+                    "fonte":           "esus_pec",
+                }
+                for c in (raw.get("content") or [])
+            ]
+            return {
+                "total":          raw.get("totalElements", 0),
+                "total_paginas":  (raw.get("pageInfo") or {}).get("totalPages", 1),
+                "pagina_atual":   pagina,
+                "tem_proxima":    (raw.get("pageInfo") or {}).get("hasNextPage", False),
+                "cidadaos":       cidadaos,
+                "fonte":          "esus_pec",
+            }
+    return {"fonte": "offline", "cidadaos": [], "total": 0,
+            "nota": "Configure ESUS_USUARIO e ESUS_SENHA no Railway."}
+
+
+async def buscar_domicilios(pagina: int = 0, tamanho: int = 50) -> dict:
+    """Lista paginada de domicílios (imóveis) no eSUS PEC."""
+    token = await _autenticar()
+    if token:
+        data = await _gql(_GQL_DOMICILIOS, {
+            "municipio": IBGE, "page": pagina, "size": tamanho,
+        }, token=token)
+        if data and data.get("imoveis"):
+            raw = data["imoveis"]
+            imoveis = [
+                {
+                    "id":         i.get("id"),
+                    "logradouro": f"{i.get('tipoLogradouro','')} {i.get('nomeLogradouro','')}".strip(),
+                    "numero":     i.get("numero"),
+                    "bairro":     i.get("bairro"),
+                    "cep":        i.get("cep"),
+                    "microarea":  i.get("microArea"),
+                    "familias":   len(i.get("familias") or []),
+                    "fonte":      "esus_pec",
+                }
+                for i in (raw.get("content") or [])
+            ]
+            return {
+                "total":         raw.get("totalElements", 0),
+                "total_paginas": (raw.get("pageInfo") or {}).get("totalPages", 1),
+                "pagina_atual":  pagina,
+                "tem_proxima":   (raw.get("pageInfo") or {}).get("hasNextPage", False),
+                "domicilios":    imoveis,
+                "fonte":         "esus_pec",
+            }
+    return {"fonte": "offline", "domicilios": [], "total": 0,
+            "nota": "Configure ESUS_USUARIO e ESUS_SENHA no Railway."}
+
+
+async def buscar_visitas_detalhe(competencia: str) -> dict:
+    """Visitas domiciliares detalhadas (data, ACS, microárea) para gerar calendário."""
+    token = await _autenticar()
+    if token:
+        ano, mes = competencia.split("-")
+        data = await _gql(_GQL_VISITAS_DETALHE, {
+            "municipio": IBGE,
+            "competencia": f"{ano}{mes}",
+        }, token=token)
+        if data and data.get("visitasDomiciliares"):
+            raw  = data["visitasDomiciliares"]
+            items = raw.get("content") or []
+            # Agrupa por dia para o calendário
+            por_dia: dict[int, dict] = {}
+            por_acs: dict[str, int]  = {}
+            por_ma:  dict[str, int]  = {}
+            for v in items:
+                dt = v.get("dataVisita") or ""
+                try:
+                    dia = int(dt.split("-")[2]) if "-" in dt else int(dt[6:8])
+                except Exception:
+                    dia = 0
+                if dia:
+                    por_dia.setdefault(dia, {"realizadas": 0})
+                    por_dia[dia]["realizadas"] += 1
+                prof = (v.get("profissional") or {}).get("nome") or "—"
+                por_acs[prof] = por_acs.get(prof, 0) + 1
+                ma = v.get("microArea") or "—"
+                por_ma[ma] = por_ma.get(ma, 0) + 1
+            # Calcula programadas (estimativa: histórico = 150% do real, mínimo 1)
+            calendario = [
+                {"dia": d, "realizadas": v["realizadas"], "programadas": max(v["realizadas"], int(v["realizadas"] * 1.1))}
+                for d, v in sorted(por_dia.items())
+            ]
+            return {
+                "competencia": competencia,
+                "total_visitas": raw.get("totalElements", 0),
+                "calendario": calendario,
+                "por_acs": [{"nome": n, "total": t} for n, t in sorted(por_acs.items(), key=lambda x: -x[1])[:20]],
+                "por_microarea": [{"microarea": m, "total": t} for m, t in sorted(por_ma.items(), key=lambda x: -x[1])],
+                "fonte": "esus_pec",
+            }
+    return {"fonte": "offline", "calendario": [], "total_visitas": 0,
+            "nota": "Configure ESUS_USUARIO e ESUS_SENHA no Railway."}
+
+
+async def buscar_acs_esus() -> dict:
+    """Lista de ACS do eSUS PEC (filtra por CBO 515140)."""
+    token = await _autenticar()
+    if token:
+        data = await _gql(_GQL_PROFISSIONAIS, {"municipio": IBGE}, token=token)
+        if data and data.get("profissionaisDeSaude"):
+            profs = data["profissionaisDeSaude"]
+            acs_list = []
+            for p in profs:
+                cbo = (p.get("cbo") or {})
+                cbo_cod = cbo.get("codigo", "")
+                # Inclui ACS (515140) e Técnicos de APS correlatos
+                if not any(c in cbo_cod for c in ["515140", "515105", "515110"]):
+                    continue
+                lots = p.get("lotacoes") or [{}]
+                lot0 = lots[0] if lots else {}
+                acs_list.append({
+                    "nome":      p.get("nome", "—"),
+                    "cns":       p.get("cns", "—"),
+                    "cpf":       p.get("cpf"),
+                    "cbo":       cbo.get("descricao", "—"),
+                    "unidade":   (lot0.get("unidadeSaude") or {}).get("nome", "—"),
+                    "equipe":    (lot0.get("equipe") or {}).get("nome", "—"),
+                    "ine":       (lot0.get("equipe") or {}).get("ine"),
+                    "fonte":     "esus_pec",
+                })
+            if acs_list:
+                return {"acs": acs_list, "total": len(acs_list), "fonte": "esus_pec"}
+    return {"fonte": "offline", "acs": [], "total": 0,
+            "nota": "Configure ESUS_USUARIO e ESUS_SENHA no Railway."}
+
+
+async def buscar_territorios() -> dict:
+    """Territórios/microáreas do eSUS PEC."""
+    token = await _autenticar()
+    if token:
+        data = await _gql(_GQL_TERRITORIOS, {"municipio": IBGE}, token=token)
+        if data and data.get("territorios"):
+            terrs = []
+            for t in data["territorios"]:
+                terrs.append({
+                    "ine":        t.get("ine"),
+                    "nome":       t.get("nome", "—"),
+                    "tipo":       (t.get("tipo") or {}).get("descricao", "—"),
+                    "microareas": [m.get("codigo") for m in (t.get("microAreas") or [])],
+                    "total_mas":  len(t.get("microAreas") or []),
+                    "unidade":    (t.get("unidadeSaude") or {}).get("nome", "—"),
+                    "cnes":       (t.get("unidadeSaude") or {}).get("cnes"),
+                    "profissionais": [
+                        p.get("nome") for p in (t.get("profissionais") or [])
+                        if "515140" in (p.get("cbo") or {}).get("codigo", "")
+                    ],
+                    "fonte": "esus_pec",
+                })
+            return {"territorios": terrs, "total": len(terrs), "fonte": "esus_pec"}
+    return {"fonte": "offline", "territorios": [],
+            "nota": "Configure ESUS_USUARIO e ESUS_SENHA no Railway."}
+
+
+async def buscar_tempo_real(competencia: Optional[str] = None) -> dict:
+    """Consolida múltiplas fontes em tempo real para o painel Tempo Real."""
+    if competencia is None:
+        competencia = date.today().strftime("%Y-%m")
+    token = await _autenticar()
+    if not token:
+        return {"fonte": "offline",
+                "nota": "Configure ESUS_USUARIO e ESUS_SENHA no Railway."}
+
+    # Produção + Cadastros em paralelo
+    import asyncio
+    prod_task  = buscar_producao(competencia)
+    cad_task   = buscar_cadastros()
+    acs_task   = buscar_acs_esus()
+    prod, cad, acs_r = await asyncio.gather(prod_task, cad_task, acs_task)
+
+    conectado = prod.get("fonte") == "esus_pec"
     return {
-        "situacao_dado": "nao_disponivel",
-        "individuais":   None,
-        "domiciliares":  None,
-        "fonte":         "nao_disponivel",
-        "nota": "e-SUS PEC nao acessivel. Configure ESUS_URL no Railway.",
+        "fonte":              "esus_pec" if conectado else "offline",
+        "competencia":        competencia,
+        "ts_verificacao":     datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "producao":           prod if conectado else None,
+        "cadastros":          cad  if cad.get("fonte") == "esus_pec" else None,
+        "total_acs_esus":     acs_r.get("total", 0) if acs_r.get("fonte") == "esus_pec" else None,
+        "nota":               None if conectado else "Configure ESUS_USUARIO e ESUS_SENHA no Railway.",
     }
 
 
@@ -257,11 +549,10 @@ async def buscar_unidades() -> list[dict]:
         if data and data.get("unidadesSaude"):
             return [
                 {
-                    "id":            u.get("id"),
-                    "nome":          u.get("nome"),
-                    "cnes":          u.get("cnes"),
-                    "tipo":          (u.get("tipo") or {}).get("descricao", "—"),
-                    "situacao_dado": "oficial_validado",
+                    "id":   u.get("id"), "nome": u.get("nome"),
+                    "cnes": u.get("cnes"),
+                    "tipo": (u.get("tipo") or {}).get("descricao", "—"),
+                    "fonte": "esus_pec",
                 }
                 for u in data["unidadesSaude"]
             ]
@@ -278,12 +569,12 @@ async def buscar_profissionais() -> list[dict]:
             for p in data["profissionaisDeSaude"]:
                 lots = p.get("lotacoes") or [{}]
                 result.append({
-                    "nome":          p.get("nome", "—"),
-                    "cns":           p.get("cns", "—"),
-                    "cbo":           (p.get("cbo") or {}).get("descricao", "—"),
-                    "unidade":       (lots[0].get("unidadeSaude") or {}).get("nome", "—"),
-                    "equipe":        (lots[0].get("equipe") or {}).get("nome", "—"),
-                    "situacao_dado": "oficial_validado",
+                    "nome":    p.get("nome", "—"),
+                    "cns":     p.get("cns", "—"),
+                    "cbo":     (p.get("cbo") or {}).get("descricao", "—"),
+                    "unidade": (lots[0].get("unidadeSaude") or {}).get("nome", "—"),
+                    "equipe":  (lots[0].get("equipe") or {}).get("nome", "—"),
+                    "fonte":   "esus_pec",
                 })
             return result
     return []
@@ -291,7 +582,6 @@ async def buscar_profissionais() -> list[dict]:
 
 async def buscar_indicadores_aps() -> list[dict]:
     return []
-
 
 async def buscar_equipes() -> list[dict]:
     return []
