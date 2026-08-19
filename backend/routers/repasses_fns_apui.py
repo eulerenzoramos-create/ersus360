@@ -563,6 +563,27 @@ _ORDEM_GRUPOS = {
 def _grupo_ordem(g: str) -> int:
     return next((v for k, v in _ORDEM_GRUPOS.items() if k.lower() in g.lower()), 50)
 
+# Normaliza grupos uppercase (Transparência API legada) para nomenclatura FNS oficial
+_NORM_GRUPO: dict[str, str] = {
+    "ATENÇÃO PRIMÁRIA": "Atenção Primária",
+    "ATENÇÃO ESPECIALIZADA": "Atenção Especializada",
+    "ATENÇÃO DE MÉDIA E ALTA COMPLEXIDADE AMBULATORIAL E HOSPITALAR": "MAC — Média e Alta Complexidade",
+    "ASSISTÊNCIA FARMACÊUTICA": "Assistência Farmacêutica",
+    "VIGILÂNCIA EM SAÚDE": "Vigilância em Saúde",
+    "GESTÃO DO SUS": "Gestão do SUS",
+    "CONTRATO DE GESTÃO": "Gestão do SUS",
+    "CORONAVÍRUS (COVID-19)": "Outros incentivos",
+    "APOIO FINANCEIRO EXTRAORDINÁRIO": "Outros incentivos",
+    "PISO SALARIAL DA ENFERMAGEM": "Piso Salarial da Enfermagem",
+    "EMENDAS PARLAMENTARES": "Emendas Parlamentares",
+    "INVESTIMENTOS": "Investimentos",
+}
+
+def _normalizar_grupo(g: str | None) -> str:
+    if not g:
+        return "Não classificado"
+    return _NORM_GRUPO.get(g.strip().upper(), g.strip())
+
 
 @router.get("/matriz-tabela")
 async def matriz_tabela(
@@ -612,7 +633,7 @@ async def matriz_tabela(
 
     linhas: dict[tuple, dict] = {}
     for r in registros:
-        grupo_k = r.grupo or r.tipo_incentivo or "Não classificado"
+        grupo_k = _normalizar_grupo(r.grupo or r.tipo_incentivo)
         acao_k  = r.acao or ""
         comp_k  = r.acao_detalhada or ""
         tipo_k  = r.tipo_incentivo or "Não classificado"
@@ -791,7 +812,7 @@ async def matriz_opcoes(
     result = await db.execute(stmt)
     rows = result.fetchall()
     return {
-        "grupos":      sorted(set(r[0] for r in rows if r[0])),
+        "grupos":      sorted(set(_normalizar_grupo(r[0]) for r in rows if r[0])),
         "acoes":       sorted(set(r[1] for r in rows if r[1])),
         "componentes": sorted(set(r[2] for r in rows if r[2])),
         "tipos":       sorted(set(r[3] for r in rows if r[3])),
@@ -851,6 +872,21 @@ async def matriz_validacoes(
         )
     )).scalar_one() or 0
 
+    sem_valor = (await db.execute(
+        select(func.count()).select_from(TransferenciaFns).where(
+            TransferenciaFns.municipio_ibge == IBGE_APUI,
+            TransferenciaFns.exercicio == exercicio,
+            TransferenciaFns.ativo == True,
+            TransferenciaFns.valor_liquido.is_(None),
+        )
+    )).scalar_one() or 0
+    if sem_valor:
+        alertas.append({
+            "tipo": "registros_sem_valor", "severidade": "media",
+            "mensagem": f"{sem_valor} registros sem valor líquido (fonte: Transparência API legada)",
+            "providencia": "Esses registros são agrupados em 'Outros incentivos'. Sincronize para obter valores via consultafns.",
+        })
+
     return {
         "exercicio": exercicio, "total_registros": total_r,
         "alertas": alertas,
@@ -858,5 +894,6 @@ async def matriz_validacoes(
         "validacoes_ok": {
             "registros_com_grupo": sem_grupo == 0,
             "coletas_completas": len(incompletos) == 0,
+            "todos_com_valor": sem_valor == 0,
         },
     }
