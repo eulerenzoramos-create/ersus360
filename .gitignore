@@ -54,3 +54,4 @@ logs/
 # ── Railway / Vercel (não precisam ser versionados) ───────────────
 .railway/
 .vercel/
+.env.prod

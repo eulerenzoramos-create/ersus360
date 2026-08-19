@@ -11,11 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgbm1 libasound2 libpango-1.0-0 libpangocairo-1.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY ../requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Instala Chromium do Playwright no momento do build
-RUN python -m playwright install chromium
+RUN python -m playwright install chromium --with-deps
 
 COPY . .
 
