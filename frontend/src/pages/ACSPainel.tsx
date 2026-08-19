@@ -48,7 +48,7 @@ interface Microarea {
   semaforo: "verde" | "amarelo" | "vermelho";
 }
 
-interface EsusStatus { conectado: boolean; autenticado: boolean; url: string; versao: string | null }
+interface EsusStatus { conectado: boolean; autenticado: boolean; url: string; versao: string | null; instancia?: string | null; municipio?: string | null }
 
 type Aba = "dashboard" | "visitas" | "calendario" | "cadastros_ind" | "cadastros_dom" | "lista" | "microareas" | "geo" | "sis";
 
@@ -617,10 +617,10 @@ export default function ACSPainel() {
               {esusStatus?.conectado ? <Wifi size={14} color={corPec} /> : <WifiOff size={14} color={corPec} />}
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: corPec }}>
-                  eSUS PEC · {esusStatus?.conectado ? (esusStatus.autenticado ? "Conectado" : "Sem autenticação") : "Offline"}
+                  eSUS PEC · {esusStatus?.conectado ? (esusStatus.autenticado ? "Conectado ✓" : "Sem credenciais") : "Offline"}
                 </div>
                 <div style={{ fontSize: 9, color: "#6b7280" }}>
-                  {esusStatus?.conectado ? `v${esusStatus.versao || "—"}` : "Dados de referência em uso"}
+                  {esusStatus?.autenticado ? `v${esusStatus.versao || "—"} · ${esusStatus.instancia || ""}` : esusStatus?.conectado ? "Adicione ESUS_USUARIO e ESUS_SENHA no Railway" : "Servidor inacessível"}
                 </div>
               </div>
             </div>
