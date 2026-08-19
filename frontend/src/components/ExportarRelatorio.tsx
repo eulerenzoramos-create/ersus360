@@ -58,7 +58,28 @@ export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nome
         body > * { display: none !important; }
         #ersus-print-area { display: block !important; }
         #ersus-print-area { position: static; background: #fff; padding: 0; margin: 0; width: 100%; }
-        @page { size: A4; margin: 18mm 15mm; }
+        @page { size: A4 landscape; margin: 12mm 10mm; }
+        #ersus-print-area table {
+          width: 100% !important;
+          table-layout: auto !important;
+          font-size: 7.5pt !important;
+          border-collapse: collapse !important;
+        }
+        #ersus-print-area table th,
+        #ersus-print-area table td {
+          padding: 2px 4px !important;
+          font-size: 7.5pt !important;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 120px;
+        }
+        #ersus-print-area table th:first-child,
+        #ersus-print-area table td:first-child {
+          max-width: 160px;
+          white-space: normal;
+        }
+        #ersus-print-area [style*="overflow"] { overflow: visible !important; }
       }
       #ersus-print-area { display: none; }
     `;
@@ -76,7 +97,14 @@ export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nome
 
     // Captura o conteúdo principal da página
     const main = document.querySelector("main") ?? document.querySelector("[data-main]") ?? document.getElementById("page-content");
-    const conteudo = main ? main.innerHTML : "<p style='color:#6b7280'>Nenhum conteúdo capturável neste módulo.</p>";
+    // Clona para não modificar o DOM original
+    let conteudo = "<p style='color:#6b7280'>Nenhum conteúdo capturável neste módulo.</p>";
+    if (main) {
+      const clone = main.cloneNode(true) as HTMLElement;
+      // Remove botões, inputs e elementos não imprimíveis
+      clone.querySelectorAll("button, input, select, [role='button'], .no-print, [data-no-print]").forEach(el => el.remove());
+      conteudo = clone.innerHTML;
+    }
 
     let area = document.getElementById("ersus-print-area");
     if (!area) {
