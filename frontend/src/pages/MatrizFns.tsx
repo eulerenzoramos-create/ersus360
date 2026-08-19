@@ -5,6 +5,7 @@
  */
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import EvolucaoFnsGrafico from "./EvolucaoFnsGrafico";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, LineChart, Line, Legend,
@@ -328,6 +329,7 @@ export default function MatrizFns() {
   const [graficoAtivo, setGraficoAtivo] = useState<"barras" | "empilhado" | "linha">("barras");
   const [sincronizando, setSincronizando] = useState(false);
   const [sincMsg, setSincMsg] = useState("");
+  const [viewMode, setViewMode] = useState<"tabela" | "evolucao">("tabela");
 
   const qc = useQueryClient();
   const tabelaRef = useRef<HTMLDivElement>(null);
@@ -472,9 +474,9 @@ export default function MatrizFns() {
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", color: C.textPri }}>
 
       {/* ── Cabeçalho ── */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 14 }}>
         <h2 style={{ fontSize: 20, fontWeight: 700, color: C.blue, margin: 0 }}>
-          Repasses Mensais do Fundo Nacional de Saúde
+          Módulo Financeiro — Repasses Federais FNS
         </h2>
         <p style={{ fontSize: 13, color: C.textSec, marginTop: 4, marginBottom: 0 }}>
           Apuí/AM · FMS CNPJ 12.834.320/0001-26 · IBGE 130014 ·{" "}
@@ -483,6 +485,45 @@ export default function MatrizFns() {
           {" "}· Valores <strong>NÃO somados</strong> com e-Gestor APS
         </p>
       </div>
+
+      {/* ── Toggle de visão ── */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 16,
+        background: C.grayL, padding: 4, borderRadius: 10, width: "fit-content",
+        border: `1px solid ${C.grayBdr}` }}>
+        {([
+          { key: "tabela",   label: "📋 Relatório Mensal Detalhado" },
+          { key: "evolucao", label: "📈 Evolução Gráfica dos Repasses" },
+        ] as const).map(v => (
+          <button key={v.key} onClick={() => setViewMode(v.key)} style={{
+            padding: "7px 16px", borderRadius: 8, border: "none", cursor: "pointer",
+            fontSize: 13, fontWeight: viewMode === v.key ? 700 : 500,
+            background: viewMode === v.key ? C.blue : "transparent",
+            color: viewMode === v.key ? C.white : C.textSec,
+            transition: "all 0.15s",
+          }}>
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Visão: Evolução Gráfica ── */}
+      {viewMode === "evolucao" && data && (
+        <EvolucaoFnsGrafico
+          data={data}
+          exercicio={exercicio}
+          onVoltar={() => setViewMode("tabela")}
+          onSincronizar={sincronizar}
+          isSincronizando={sincronizando}
+        />
+      )}
+      {viewMode === "evolucao" && !data && !isLoading && (
+        <div style={{ textAlign: "center", padding: 60, color: C.textSec }}>
+          Carregue os dados primeiro usando o Relatório Mensal Detalhado.
+        </div>
+      )}
+
+      {/* ── Visão: Tabela (original intacta) ── */}
+      {viewMode === "tabela" && (<>
 
       {/* ── Alertas de validação ── */}
       {validacoes?.alertas?.length > 0 && (
@@ -979,6 +1020,7 @@ export default function MatrizFns() {
           table { font-size: 11px; }
         }
       `}</style>
+      </>)}
     </div>
   );
 }
