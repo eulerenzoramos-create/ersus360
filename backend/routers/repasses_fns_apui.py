@@ -14,7 +14,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_
+from decimal import Decimal
 
 from database import get_db
 from models.transferencia_fns import TransferenciaFns, ColetaFns
@@ -540,3 +541,322 @@ async def historico_coletas(
         }
         for c in coletas
     ]
+
+
+# ── Matriz mensal: endpoints integrados ───────────────────────────────────────
+# Prefixo /api/repasses-fns/matriz-* para compatibilidade sem novo deploy
+
+_MESES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+               "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+
+_ORDEM_GRUPOS = {
+    "Atenção Primária": 1, "MAC — Média e Alta Complexidade": 2,
+    "Atenção Especializada": 2, "Assistência Farmacêutica": 3,
+    "Vigilância em Saúde": 4, "Gestão do SUS": 5,
+    "Piso Salarial da Enfermagem": 6,
+    "ACS — Agentes Comunitários de Saúde": 7,
+    "ACE — Agentes de Combate às Endemias": 8,
+    "Emendas Parlamentares": 9, "Investimentos": 10,
+    "Outros incentivos": 99, "Não classificado": 100,
+}
+
+def _grupo_ordem(g: str) -> int:
+    return next((v for k, v in _ORDEM_GRUPOS.items() if k.lower() in g.lower()), 50)
+
+
+@router.get("/matriz-tabela")
+async def matriz_tabela(
+    exercicio:      int            = Query(2026),
+    mes_inicio:     int            = Query(1, ge=1, le=12),
+    mes_fim:        int            = Query(12, ge=1, le=12),
+    grupo:          Optional[str]  = Query(None),
+    acao:           Optional[str]  = Query(None),
+    componente:     Optional[str]  = Query(None),
+    tipo_incentivo: Optional[str]  = Query(None),
+    busca:          Optional[str]  = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Retorna dados pivotados (grupo×ação×componente) × meses para tabela matricial."""
+    filtros = [
+        TransferenciaFns.municipio_ibge == IBGE_APUI,
+        TransferenciaFns.exercicio == exercicio,
+        TransferenciaFns.ativo == True,
+        TransferenciaFns.mes >= mes_inicio,
+        TransferenciaFns.mes <= mes_fim,
+    ]
+    if grupo:
+        filtros.append(TransferenciaFns.grupo.ilike(f"%{grupo}%"))
+    if acao:
+        filtros.append(TransferenciaFns.acao.ilike(f"%{acao}%"))
+    if componente:
+        filtros.append(TransferenciaFns.acao_detalhada.ilike(f"%{componente}%"))
+    if tipo_incentivo:
+        filtros.append(TransferenciaFns.tipo_incentivo == tipo_incentivo)
+    if busca:
+        p = f"%{busca}%"
+        filtros.append(
+            TransferenciaFns.grupo.ilike(p) |
+            TransferenciaFns.acao.ilike(p) |
+            TransferenciaFns.acao_detalhada.ilike(p) |
+            TransferenciaFns.tipo_incentivo.ilike(p)
+        )
+
+    stmt = (
+        select(TransferenciaFns)
+        .where(and_(*filtros))
+        .order_by(TransferenciaFns.grupo, TransferenciaFns.acao,
+                  TransferenciaFns.acao_detalhada, TransferenciaFns.mes)
+    )
+    result = await db.execute(stmt)
+    registros = result.scalars().all()
+
+    linhas: dict[tuple, dict] = {}
+    for r in registros:
+        grupo_k = r.grupo or r.tipo_incentivo or "Não classificado"
+        acao_k  = r.acao or ""
+        comp_k  = r.acao_detalhada or ""
+        tipo_k  = r.tipo_incentivo or "Não classificado"
+        key = (grupo_k, acao_k, comp_k, tipo_k)
+        if key not in linhas:
+            linhas[key] = {
+                "grupo": grupo_k, "acao": acao_k, "componente": comp_k,
+                "tipo": tipo_k, "bloco": r.bloco or "",
+                "meses": {m: {"total": Decimal("0"), "ids": [], "qtd": 0} for m in range(1, 13)},
+                "total_anual": Decimal("0"),
+            }
+        m = r.mes or 0
+        if 1 <= m <= 12:
+            vl = r.valor_liquido or Decimal("0")
+            linhas[key]["meses"][m]["total"] += vl
+            linhas[key]["meses"][m]["ids"].append(r.id)
+            linhas[key]["meses"][m]["qtd"] += 1
+            linhas[key]["total_anual"] += vl
+
+    linhas_ord = sorted(linhas.items(), key=lambda x: (_grupo_ordem(x[0][0]), x[0]))
+
+    subtotais: dict[str, dict] = {}
+    for key, d in linhas_ord:
+        g = d["grupo"]
+        if g not in subtotais:
+            subtotais[g] = {"meses": {m: Decimal("0") for m in range(1, 13)}, "total": Decimal("0")}
+        for m in range(1, 13):
+            subtotais[g]["meses"][m] += d["meses"][m]["total"]
+        subtotais[g]["total"] += d["total_anual"]
+
+    totais_mensais = {m: Decimal("0") for m in range(1, 13)}
+    total_geral = Decimal("0")
+    for d in linhas.values():
+        for m in range(1, 13):
+            totais_mensais[m] += d["meses"][m]["total"]
+        total_geral += d["total_anual"]
+
+    # Status dos meses (coleta ok/incompleto/pendente/nao_coletado)
+    coletas_stmt = select(ColetaFns.mes, ColetaFns.sucesso, ColetaFns.todas_paginas_ok).where(
+        ColetaFns.municipio_ibge == IBGE_APUI,
+        ColetaFns.exercicio == exercicio,
+    ).order_by(ColetaFns.id.desc())
+    coletas_r = await db.execute(coletas_stmt)
+    meses_status: dict[int, str] = {}
+    for row in coletas_r.fetchall():
+        m = row.mes or 0
+        if m not in meses_status:
+            meses_status[m] = (
+                "pendente" if not row.sucesso
+                else "incompleto" if row.todas_paginas_ok is False
+                else "ok"
+            )
+
+    def _sdec(d: Decimal) -> float | None:
+        v = float(d)
+        return v if v > 0 else None
+
+    return {
+        "exercicio": exercicio, "mes_inicio": mes_inicio, "mes_fim": mes_fim,
+        "total_linhas": len(linhas),
+        "total_geral": float(total_geral),
+        "totais_mensais": {str(m): float(totais_mensais[m]) for m in range(1, 13)},
+        "subtotais_grupo": {
+            g: {
+                "meses": {str(m): float(st["meses"][m]) for m in range(1, 13)},
+                "total": float(st["total"]),
+            }
+            for g, st in subtotais.items()
+        },
+        "linhas": [
+            {
+                "grupo": d["grupo"], "acao": d["acao"],
+                "componente": d["componente"], "tipo": d["tipo"], "bloco": d["bloco"],
+                "meses": {
+                    str(m): {
+                        "valor": _sdec(d["meses"][m]["total"]),
+                        "ids": d["meses"][m]["ids"],
+                        "qtd": d["meses"][m]["qtd"],
+                        "status_coleta": meses_status.get(m, "nao_coletado"),
+                    }
+                    for m in range(1, 13)
+                },
+                "total_anual": float(d["total_anual"]),
+            }
+            for _, d in linhas_ord
+        ],
+        "meses_status": {str(m): meses_status.get(m, "nao_coletado") for m in range(1, 13)},
+        "grupos_disponiveis": sorted(set(k[0] for k in linhas)),
+        "tipos_disponiveis":  sorted(set(k[3] for k in linhas)),
+    }
+
+
+@router.get("/matriz-detalhe")
+async def matriz_detalhe(
+    exercicio: int           = Query(...),
+    mes:       int           = Query(..., ge=1, le=12),
+    ids:       Optional[str] = Query(None),
+    grupo:     Optional[str] = Query(None),
+    acao:      Optional[str] = Query(None),
+    componente:Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Transferências individuais de uma célula da tabela matricial."""
+    if ids:
+        id_list = [int(i) for i in ids.split(",") if i.strip().isdigit()]
+        stmt = select(TransferenciaFns).where(TransferenciaFns.id.in_(id_list))
+    else:
+        filtros = [
+            TransferenciaFns.municipio_ibge == IBGE_APUI,
+            TransferenciaFns.exercicio == exercicio,
+            TransferenciaFns.mes == mes,
+            TransferenciaFns.ativo == True,
+        ]
+        if grupo:
+            filtros.append(
+                TransferenciaFns.grupo.ilike(f"%{grupo}%") |
+                TransferenciaFns.tipo_incentivo.ilike(f"%{grupo}%")
+            )
+        if acao:
+            filtros.append(TransferenciaFns.acao.ilike(f"%{acao}%"))
+        if componente:
+            filtros.append(TransferenciaFns.acao_detalhada.ilike(f"%{componente}%"))
+        stmt = select(TransferenciaFns).where(and_(*filtros))
+
+    stmt = stmt.order_by(TransferenciaFns.data_pagamento)
+    result = await db.execute(stmt)
+    rows = result.scalars().all()
+
+    total_liq = sum(float(r.valor_liquido or 0) for r in rows)
+    total_brt = sum(float(r.valor_total or 0) for r in rows)
+    total_des = sum(float(r.valor_desconto or 0) for r in rows)
+
+    return {
+        "exercicio": exercicio, "mes": mes, "mes_nome": _MESES_FULL[mes - 1],
+        "qtd": len(rows),
+        "total_bruto": round(total_brt, 2),
+        "total_desconto": round(total_des, 2),
+        "total_liquido": round(total_liq, 2),
+        "validacao_liquido": abs(round(total_brt - total_des, 2) - round(total_liq, 2)) < 0.02,
+        "transferencias": [
+            {
+                "id": r.id, "exercicio": r.exercicio, "mes": r.mes,
+                "competencia": r.competencia,
+                "data_pagamento": r.data_pagamento.isoformat() if r.data_pagamento else None,
+                "grupo": r.grupo, "acao": r.acao, "acao_detalhada": r.acao_detalhada,
+                "tipo_incentivo": r.tipo_incentivo, "bloco": r.bloco,
+                "numero_portaria": r.numero_portaria, "numero_ob": r.numero_ob,
+                "numero_proposta": r.numero_proposta, "numero_processo": r.numero_processo,
+                "conta_bancaria": r.conta_bancaria,
+                "valor_total":   float(r.valor_total)   if r.valor_total   else None,
+                "valor_desconto":float(r.valor_desconto) if r.valor_desconto else 0.0,
+                "valor_liquido": float(r.valor_liquido) if r.valor_liquido else None,
+                "situacao": r.situacao, "fonte": r.fonte,
+                "url_consultada": r.url_consultada,
+                "data_coleta": r.data_coleta.isoformat() if r.data_coleta else None,
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.get("/matriz-opcoes")
+async def matriz_opcoes(
+    exercicio: int = Query(2026),
+    db: AsyncSession = Depends(get_db),
+):
+    """Valores disponíveis para os filtros da tabela matricial."""
+    stmt = select(
+        TransferenciaFns.grupo, TransferenciaFns.acao,
+        TransferenciaFns.acao_detalhada, TransferenciaFns.tipo_incentivo,
+    ).where(
+        TransferenciaFns.municipio_ibge == IBGE_APUI,
+        TransferenciaFns.exercicio == exercicio,
+        TransferenciaFns.ativo == True,
+    ).distinct()
+    result = await db.execute(stmt)
+    rows = result.fetchall()
+    return {
+        "grupos":      sorted(set(r[0] for r in rows if r[0])),
+        "acoes":       sorted(set(r[1] for r in rows if r[1])),
+        "componentes": sorted(set(r[2] for r in rows if r[2])),
+        "tipos":       sorted(set(r[3] for r in rows if r[3])),
+    }
+
+
+@router.get("/matriz-validacoes")
+async def matriz_validacoes(
+    exercicio: int = Query(2026),
+    db: AsyncSession = Depends(get_db),
+):
+    """Validações automáticas dos dados coletados."""
+    alertas = []
+
+    sem_grupo = (await db.execute(
+        select(func.count()).select_from(TransferenciaFns).where(
+            TransferenciaFns.municipio_ibge == IBGE_APUI,
+            TransferenciaFns.exercicio == exercicio,
+            TransferenciaFns.grupo.is_(None),
+            TransferenciaFns.ativo == True,
+        )
+    )).scalar_one() or 0
+    if sem_grupo:
+        alertas.append({
+            "tipo": "classificacao_incompleta", "severidade": "media",
+            "mensagem": f"{sem_grupo} transferências sem grupo classificado",
+            "providencia": "Sincronizar novamente para preencher classificação",
+        })
+
+    coletas_r = await db.execute(
+        select(ColetaFns).where(
+            ColetaFns.municipio_ibge == IBGE_APUI,
+            ColetaFns.exercicio == exercicio,
+        ).order_by(ColetaFns.mes, ColetaFns.id.desc())
+    )
+    coletas = coletas_r.scalars().all()
+    vistos: set[int] = set()
+    incompletos = []
+    for c in coletas:
+        if c.mes not in vistos:
+            vistos.add(c.mes)
+            if c.todas_paginas_ok is False:
+                incompletos.append({"mes": c.mes, "registros": c.registros_coletados})
+    if incompletos:
+        alertas.append({
+            "tipo": "paginas_nao_coletadas", "severidade": "alta",
+            "mensagem": f"{len(incompletos)} meses com coleta incompleta",
+            "detalhes": incompletos,
+            "providencia": "Executar nova sincronização",
+        })
+
+    total_r = (await db.execute(
+        select(func.count()).select_from(TransferenciaFns).where(
+            TransferenciaFns.municipio_ibge == IBGE_APUI,
+            TransferenciaFns.exercicio == exercicio,
+            TransferenciaFns.ativo == True,
+        )
+    )).scalar_one() or 0
+
+    return {
+        "exercicio": exercicio, "total_registros": total_r,
+        "alertas": alertas,
+        "status": "ok" if not alertas else "com_alertas",
+        "validacoes_ok": {
+            "registros_com_grupo": sem_grupo == 0,
+            "coletas_completas": len(incompletos) == 0,
+        },
+    }

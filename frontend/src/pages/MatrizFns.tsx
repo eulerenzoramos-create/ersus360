@@ -129,7 +129,7 @@ function ModalDetalhe({
   const { data, isLoading } = useQuery<DetalheCelula>({
     queryKey: ["fns-detalhe-celula", idParam, info.mes, info.exercicio],
     queryFn: () =>
-      apiGet(`/api/matriz-fns/detalhe-celula?exercicio=${info.exercicio}&mes=${info.mes}` +
+      apiGet(`/api/repasses-fns/matriz-detalhe?exercicio=${info.exercicio}&mes=${info.mes}` +
         (idParam ? `&ids=${idParam}` : `&grupo=${encodeURIComponent(info.grupo)}&acao=${encodeURIComponent(info.acao)}&componente=${encodeURIComponent(info.componente)}`)),
     staleTime: 300_000,
   });
@@ -347,19 +347,19 @@ export default function MatrizFns() {
 
   const { data, isLoading, error } = useQuery<TabelaFns>({
     queryKey: ["fns-matriz", params.toString()],
-    queryFn: () => apiGet(`/api/matriz-fns/tabela?${params}`),
+    queryFn: () => apiGet(`/api/repasses-fns/matriz-tabela?${params}`),
     staleTime: 300_000,
   });
 
   const { data: opcoes } = useQuery({
     queryKey: ["fns-opcoes", exercicio],
-    queryFn: () => apiGet(`/api/matriz-fns/opcoes-filtro?exercicio=${exercicio}`),
+    queryFn: () => apiGet(`/api/repasses-fns/matriz-opcoes?exercicio=${exercicio}`),
     staleTime: 600_000,
   });
 
   const { data: validacoes } = useQuery({
     queryKey: ["fns-validacoes", exercicio],
-    queryFn: () => apiGet(`/api/matriz-fns/validacoes?exercicio=${exercicio}`),
+    queryFn: () => apiGet(`/api/repasses-fns/matriz-validacoes?exercicio=${exercicio}`),
     staleTime: 300_000,
   });
 
