@@ -8,12 +8,12 @@ import React, {
 } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  Home, Monitor, Star, Map, BarChart2, Award, Bot, Target, TrendingUp,
+  Home, Monitor, Star, Map as MapIcon, BarChart2, Award, Bot, Target, TrendingUp,
   Stethoscope, PieChart, Users, Activity, Ship, Search, BarChart3,
   MapPin, ClipboardCheck, Clock, BookOpen, DollarSign, Clipboard,
   FileText, Landmark, Building2, Globe, Shield, ArrowLeftRight,
   ClipboardList, Calendar, MessageSquare, Syringe, Bug, Droplets,
-  ShoppingBag, Pill, Network, Radio, Home as HomeIcon, Truck,
+  ShoppingBag, Pill, Network, Radio, Truck,
   ShieldCheck, Baby, HeartPulse, UserCheck, Smile, Wrench, Package,
   Calculator, Brain, School, Sparkles, AlertTriangle, Download,
   UserCog, Layers, Plug, Bell, Thermometer, Trash2, FlaskConical,
@@ -27,7 +27,7 @@ import {
 
 // ── Ícones ────────────────────────────────────────────────────────────────────
 const ICON_MAP: Record<string, React.ElementType> = {
-  Home, Monitor, Star, Map, BarChart2, Award, Bot, Target, TrendingUp,
+  Home, Monitor, Star, Map: MapIcon, BarChart2, Award, Bot, Target, TrendingUp,
   Stethoscope, PieChart, Users, Activity, Ship, Search, BarChart3,
   MapPin, ClipboardCheck, Clock, BookOpen, DollarSign, Clipboard,
   FileText, Landmark, Building2, Globe, Shield, ArrowLeftRight,
