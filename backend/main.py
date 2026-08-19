@@ -568,8 +568,6 @@ from routers.integracao_status import router as integracao_status_router
 app.include_router(integracao_fns_apui_router)
 from routers.repasses_fns_apui import router as _rfns_router
 app.include_router(_rfns_router)
-from routers.matriz_fns import router as _matriz_fns_router
-app.include_router(_matriz_fns_router)
 app.include_router(integracao_egestor_apui_router)
 app.include_router(integracao_esuspec_apui_router)
 app.include_router(integracao_siaps_apui_router)
@@ -653,9 +651,6 @@ app.include_router(idsus_router)
 app.include_router(repasses_aps_apui_router)
 app.include_router(inconsistencias_router)
 app.include_router(relatorio_ersus_router)
-app.include_router(integracao_status_router)
-app.include_router(auditoria_dados_router)
-app.include_router(cvat_municipio_router)
 
 
 @app.get("/")
