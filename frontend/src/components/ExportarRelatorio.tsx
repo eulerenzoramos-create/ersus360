@@ -156,7 +156,7 @@ export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nome
             e.style.overflowX = "visible";
           }
         });
-        printArea.style.zoom = "0.48";
+        printArea.style.zoom = "0.43";
       }
       window.print();
       setTimeout(() => {
