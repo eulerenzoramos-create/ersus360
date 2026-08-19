@@ -28,7 +28,22 @@ CBO_ACS = "515140"
 
 # ── GraphQL queries ──────────────────────────────────────────────────────────
 
+# eSUS PEC v5.x usa mutation "autenticar" sem wrapper "input"
 _GQL_LOGIN = """
+mutation Login($login: String!, $senha: String!) {
+  autenticar(login: $login, senha: $senha) {
+    sessionToken
+    dadoInstancia {
+      nome
+      versao
+      municipio { nome uf { nome sigla } }
+    }
+  }
+}
+"""
+
+# Fallback para versões mais antigas (v4.x) com wrapper input
+_GQL_LOGIN_V4 = """
 mutation Login($login: String!, $senha: String!) {
   autenticar(input: { login: $login, senha: $senha }) {
     sessionToken
@@ -220,14 +235,15 @@ async def _autenticar() -> Optional[str]:
     usuario = settings.ESUS_USUARIO
     senha   = settings.ESUS_SENHA
 
-    # 1. Mutation GraphQL padrão eSUS PEC v4/v5
-    data = await _gql(_GQL_LOGIN, {"login": usuario, "senha": senha})
-    if data and data.get("autenticar", {}).get("sessionToken"):
-        _token_cache = data["autenticar"]["sessionToken"]
-        _token_exp   = datetime.now() + timedelta(hours=4)
-        _instancia   = data["autenticar"].get("dadoInstancia", {})
-        logger.info("e-SUS PEC: autenticado via GraphQL — %s", _instancia.get("nome", ""))
-        return _token_cache
+    # 1. Tenta mutation v5.x (sem wrapper input) e v4.x (com wrapper input)
+    for gql_login in [_GQL_LOGIN, _GQL_LOGIN_V4]:
+        data = await _gql(gql_login, {"login": usuario, "senha": senha})
+        if data and data.get("autenticar", {}).get("sessionToken"):
+            _token_cache = data["autenticar"]["sessionToken"]
+            _token_exp   = datetime.now() + timedelta(hours=4)
+            _instancia   = data["autenticar"].get("dadoInstancia", {})
+            logger.info("e-SUS PEC: autenticado via GraphQL — %s", _instancia.get("nome", ""))
+            return _token_cache
 
     # 2. Fallback REST — múltiplos formatos de payload
     rest_tentativas = [
