@@ -58,28 +58,19 @@ export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nome
         body > * { display: none !important; }
         #ersus-print-area { display: block !important; }
         #ersus-print-area { position: static; background: #fff; padding: 0; margin: 0; width: 100%; }
-        @page { size: A4 landscape; margin: 12mm 10mm; }
+        @page { size: A4 landscape; margin: 8mm 8mm; }
+        #ersus-print-area { zoom: 0.62; }
         #ersus-print-area table {
           width: 100% !important;
           table-layout: auto !important;
-          font-size: 7.5pt !important;
           border-collapse: collapse !important;
         }
-        #ersus-print-area table th,
-        #ersus-print-area table td {
-          padding: 2px 4px !important;
-          font-size: 7.5pt !important;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 120px;
-        }
-        #ersus-print-area table th:first-child,
-        #ersus-print-area table td:first-child {
-          max-width: 160px;
-          white-space: normal;
-        }
-        #ersus-print-area [style*="overflow"] { overflow: visible !important; }
+        #ersus-print-area [style*="overflow-x"],
+        #ersus-print-area [style*="overflow: auto"],
+        #ersus-print-area [style*="overflow:auto"] { overflow: visible !important; }
+        #ersus-print-area button,
+        #ersus-print-area input,
+        #ersus-print-area select { display: none !important; }
       }
       #ersus-print-area { display: none; }
     `;
