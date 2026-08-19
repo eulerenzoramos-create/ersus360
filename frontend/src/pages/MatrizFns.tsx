@@ -697,8 +697,17 @@ export default function MatrizFns() {
         )}
 
         {error && (
-          <div style={{ padding: 40, textAlign: "center", color: C.red }}>
-            Erro ao carregar dados. Verifique a conexão e tente novamente.
+          <div style={{ padding: 40, textAlign: "center" }}>
+            <XCircle size={32} style={{ color: C.red, marginBottom: 8 }} />
+            <div style={{ fontWeight: 700, color: C.red, marginBottom: 6 }}>Erro ao carregar dados</div>
+            <div style={{ fontSize: 12, color: C.textSec, maxWidth: 420, margin: "0 auto" }}>
+              {String(error).includes("404")
+                ? "Endpoint ainda não disponível no servidor. Aguarde o deploy do Railway ser concluído e recarregue a página."
+                : "Verifique a conexão com a internet e tente novamente."}
+            </div>
+            <div style={{ fontSize: 11, color: "#aaa", marginTop: 10 }}>
+              {String(error)}
+            </div>
           </div>
         )}
 
