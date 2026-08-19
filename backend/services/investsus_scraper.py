@@ -46,7 +46,7 @@ def _credenciais() -> tuple[str, str]:
 async def _fazer_login_scpa(page: Page, cpf: str, senha: str) -> None:
     """Navega até o SCPA, preenche CPF/senha e aguarda redirecionamento."""
     logger.info("InvestSUS scraper: navegando para SCPA login")
-    await page.goto(_SCPA_LOGIN_URL, wait_until="networkidle", timeout=30_000)
+    await page.goto(_SCPA_LOGIN_URL, wait_until="domcontentloaded", timeout=60_000)
 
     # Clica na aba SCPA (em vez de gov.br OAuth)
     try:
@@ -68,9 +68,9 @@ async def _fazer_login_scpa(page: Page, cpf: str, senha: str) -> None:
     submit = page.locator("button[type='submit'], button:has-text('Entrar')").first
     await submit.click(timeout=10_000)
 
-    # Aguarda redirecionamento para InvestSUS (até 30s)
+    # Aguarda redirecionamento para InvestSUS (até 60s)
     try:
-        await page.wait_for_url("*investsus*", timeout=30_000)
+        await page.wait_for_url("*investsus*", timeout=60_000)
         logger.info("InvestSUS scraper: login OK — %s", page.url)
     except Exception:
         # Verifica se há mensagem de erro
@@ -120,6 +120,32 @@ def _normalizar_proposta(raw: dict) -> dict:
 
 
 # ── função principal de sincronização ─────────────────────────────────────────
+async def _login_via_http(cpf: str, senha: str) -> dict[str, str] | None:
+    """
+    Tenta autenticar via POST HTTP direto no SCPA (sem Playwright).
+    Mais rápido, mas pode falhar se o SCPA exigir JS para submeter o form.
+    """
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+            # Pega a página de login para extrair CSRF token se houver
+            resp = await client.get(_SCPA_LOGIN_URL)
+            cookies = dict(resp.cookies)
+
+            # Tenta POST de login SCPA
+            resp2 = await client.post(
+                f"{_SCPA_LOGIN_URL}/login",
+                data={"username": cpf, "password": senha},
+                headers={"Content-Type": "application/x-www-form-urlencoded",
+                         "Referer": _SCPA_LOGIN_URL},
+            )
+            # Verifica se redirecionou para InvestSUS
+            if "investsus" in str(resp2.url):
+                return dict(resp2.cookies)
+    except Exception as exc:
+        logger.debug("Login HTTP direto falhou: %s", exc)
+    return None
+
+
 async def sincronizar_investsus(cnpj: str | None = None) -> dict:
     """
     Autentica no SCPA, busca propostas do município e retorna dados normalizados.
@@ -136,8 +162,21 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
         "sincronizado_em": datetime.utcnow().isoformat() + "Z",
     }
 
+    # Tenta login HTTP direto primeiro (mais rápido)
+    session_cookies: dict[str, str] | None = await _login_via_http(cpf, senha)
+
+    if session_cookies:
+        logger.info("InvestSUS scraper: login via HTTP direto OK (%d cookies)", len(session_cookies))
+    else:
+        # Fallback: Playwright headless
+        logger.info("InvestSUS scraper: usando Playwright para login SCPA")
+
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch(headless=True, args=["--no-sandbox", "--disable-gpu"])
+        browser = await pw.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage",
+                  "--disable-setuid-sandbox", "--single-process"],
+        )
         context = await browser.new_context(
             viewport={"width": 1280, "height": 720},
             user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
@@ -145,12 +184,13 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
         page = await context.new_page()
 
         try:
-            # 1. Login SCPA
-            await _fazer_login_scpa(page, cpf, senha)
+            # 1. Login SCPA (somente se HTTP direto não funcionou)
+            if not session_cookies:
+                await _fazer_login_scpa(page, cpf, senha)
 
             # 2. Extrai cookies de sessão
-            cookies = await _extrair_cookies(context)
-            logger.info("InvestSUS scraper: %d cookies extraídos", len(cookies))
+            cookies = session_cookies or await _extrair_cookies(context)
+            logger.info("InvestSUS scraper: %d cookies disponíveis", len(cookies))
 
             # 3. Usa cookie para chamadas REST diretas (muito mais rápido que scraping de UI)
             async with httpx.AsyncClient(
