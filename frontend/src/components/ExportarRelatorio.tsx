@@ -57,17 +57,8 @@ export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nome
       @media print {
         body > * { display: none !important; }
         #ersus-print-area { display: block !important; }
-        #ersus-print-area { position: static; background: #fff; padding: 0; margin: 0; width: 100%; }
-        @page { size: A4 landscape; margin: 8mm 8mm; }
-        #ersus-print-area { zoom: 0.62; }
-        #ersus-print-area table {
-          width: 100% !important;
-          table-layout: auto !important;
-          border-collapse: collapse !important;
-        }
-        #ersus-print-area [style*="overflow-x"],
-        #ersus-print-area [style*="overflow: auto"],
-        #ersus-print-area [style*="overflow:auto"] { overflow: visible !important; }
+        #ersus-print-area { position: static; background: #fff; padding: 0; margin: 0; }
+        @page { size: A4 landscape; margin: 6mm 6mm; }
         #ersus-print-area button,
         #ersus-print-area input,
         #ersus-print-area select { display: none !important; }
@@ -154,8 +145,22 @@ export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nome
     `;
 
     setTimeout(() => {
+      // Aplica zoom direto no elemento — mais confiável que @media print zoom no Chrome
+      const printArea = document.getElementById("ersus-print-area");
+      if (printArea) {
+        // Remove overflow de todos os filhos para não cortar conteúdo
+        printArea.querySelectorAll("*").forEach((el) => {
+          const e = el as HTMLElement;
+          if (e.style && (e.style.overflow === "auto" || e.style.overflow === "hidden" || e.style.overflowX === "auto")) {
+            e.style.overflow = "visible";
+            e.style.overflowX = "visible";
+          }
+        });
+        printArea.style.zoom = "0.48";
+      }
       window.print();
       setTimeout(() => {
+        if (printArea) printArea.style.zoom = "";
         setImp(false);
         setOpen(false);
       }, 800);
