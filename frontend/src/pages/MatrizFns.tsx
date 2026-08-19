@@ -736,25 +736,39 @@ export default function MatrizFns() {
     }));
   }, [data, mesesVisiveis]);
 
-  // ── Sincronização ─────────────────────────────────────────────────────────
+  // ── Sincronização (mês a mês para evitar timeout de 60s do Railway) ──────
   const sincronizar = async () => {
     setSincronizando(true);
-    setSincMsg("Sincronizando todos os meses…");
-    try {
-      const r = await apiPost(
-        `/api/repasses-fns/sincronizar-periodo?exercicio=${exercicio}&mes_inicio=1&mes_fim=12`,
-        {}
-      ) as { total_inseridos?: number; resultados?: { registros_inseridos?: number }[] };
-      const ins = r.total_inseridos ?? 0;
-      setSincMsg(`✓ ${ins} registros importados.`);
-      await qc.invalidateQueries({ queryKey: ["fns-matriz"] });
-      await qc.invalidateQueries({ queryKey: ["fns-validacoes"] });
-    } catch (e) {
-      setSincMsg(`✗ Erro: ${e instanceof Error ? e.message : "Falha."}`);
-    } finally {
-      setSincronizando(false);
-      setTimeout(() => setSincMsg(""), 12000);
+    const mesAtual = new Date().getMonth() + 1; // não sincroniza meses futuros
+    const mesLimite = Math.min(mesAtual, 12);
+    let totalIns = 0;
+    let erros = 0;
+
+    for (let m = 1; m <= mesLimite; m++) {
+      setSincMsg(`⏳ Sincronizando ${MESES_FULL[m - 1]}… (${m}/${mesLimite})`);
+      try {
+        const r = await apiPost(
+          `/api/repasses-fns/sincronizar-periodo?exercicio=${exercicio}&mes_inicio=${m}&mes_fim=${m}`,
+          {}
+        ) as { total_inseridos?: number };
+        totalIns += r.total_inseridos ?? 0;
+        setSincMsg(`✓ ${MESES_FULL[m - 1]} OK · ${totalIns} registros acumulados (${m}/${mesLimite})`);
+      } catch (e) {
+        erros++;
+        setSincMsg(`⚠ Erro em ${MESES_FULL[m - 1]}: ${e instanceof Error ? e.message : "Falha"} · continuando…`);
+        await new Promise(res => setTimeout(res, 800));
+      }
     }
+
+    await qc.invalidateQueries({ queryKey: ["fns-matriz"] });
+    await qc.invalidateQueries({ queryKey: ["fns-validacoes"] });
+    await qc.invalidateQueries({ queryKey: ["fns-contas-repasse"] });
+    await qc.invalidateQueries({ queryKey: ["fns-portarias-repasse"] });
+    setSincronizando(false);
+    setSincMsg(erros === 0
+      ? `✓ Sincronização concluída — ${totalIns} registros importados.`
+      : `✓ Concluído com ${erros} erro(s) — ${totalIns} registros importados.`);
+    setTimeout(() => setSincMsg(""), 15000);
   };
 
   // ── Exportar Excel ────────────────────────────────────────────────────────
