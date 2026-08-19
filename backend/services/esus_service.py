@@ -245,21 +245,32 @@ async def _autenticar() -> Optional[str]:
             logger.info("e-SUS PEC: autenticado via GraphQL — %s", _instancia.get("nome", ""))
             return _token_cache
 
-    # 2. Fallback REST — múltiplos formatos de payload
+    # 2. Fallback REST — tenta form-urlencoded (Spring Security) e JSON
     rest_tentativas = [
-        (f"{BASE}/api/auth",    {"username": usuario, "password": senha}),
-        (f"{BASE}/api/auth",    {"login": usuario,    "senha": senha}),
-        (f"{BASE}/oauth/token", {"grant_type": "password", "username": usuario, "password": senha}),
+        # form-urlencoded — padrão Spring Security
+        (f"{BASE}/api/auth",  None, {"username": usuario, "password": senha}),
+        (f"{BASE}/api/auth",  None, {"login": usuario,    "senha": senha}),
+        # JSON
+        (f"{BASE}/api/auth",  {"username": usuario, "password": senha}, None),
+        (f"{BASE}/api/auth",  {"login": usuario,    "senha": senha},    None),
+        # Keycloak / OAuth2 form-urlencoded
+        (f"{BASE}/auth/realms/esus-pec/protocol/openid-connect/token", None,
+         {"grant_type": "password", "client_id": "esus-pec", "username": usuario, "password": senha}),
     ]
-    for url, body in rest_tentativas:
+    for url, json_body, form_body in rest_tentativas:
         try:
             async with httpx.AsyncClient(timeout=TIMEOUT, verify=False, follow_redirects=False) as cli:
-                r = await cli.post(url, json=body,
-                                   headers={"Content-Type": "application/json", "Accept": "application/json"})
-                logger.debug("e-SUS REST %s → %s %s", url, r.status_code, r.text[:200])
+                if form_body:
+                    r = await cli.post(url, data=form_body,
+                                       headers={"Accept": "application/json"})
+                else:
+                    r = await cli.post(url, json=json_body,
+                                       headers={"Content-Type": "application/json", "Accept": "application/json"})
+                logger.info("e-SUS REST %s → %s | %s", url, r.status_code, r.text[:300])
                 if r.status_code in (200, 201):
                     j = r.json()
-                    tok = j.get("access_token") or j.get("token") or j.get("sessionToken")
+                    tok = (j.get("access_token") or j.get("token")
+                           or j.get("sessionToken") or j.get("id_token"))
                     if tok:
                         _token_cache = tok
                         _token_exp   = datetime.now() + timedelta(hours=4)
