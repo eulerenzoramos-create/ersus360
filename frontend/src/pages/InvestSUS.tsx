@@ -1590,10 +1590,9 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
       <div style={cor.card}>
         <div style={cor.titulo}>Sincronização com InvestSUS</div>
         <div style={cor.sub}>
-          Conecta diretamente ao portal <strong>InvestSUS (Ministério da Saúde)</strong> usando suas credenciais SCPA,
-          busca todas as propostas do FMS Apuí e atualiza automaticamente o banco local.<br /><br />
-          Situações, valores aprovados, repasses e execução são sincronizados em tempo real.
-          Configure <code>INVESTSUS_CPF</code> e <code>INVESTSUS_SENHA</code> nas variáveis do Railway.
+          Busca <strong>emendas parlamentares, convênios e transferências</strong> do FMS Apuí via
+          Portal da Transparência (Ministério da Saúde) e atualiza o banco local automaticamente.<br /><br />
+          Usa a variável <code>TRANSPARENCIA_API_KEY</code> já configurada no Railway.
         </div>
 
         <button
@@ -1644,18 +1643,18 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
 
       {/* Instruções de configuração */}
       <div style={cor.card}>
-        <div style={cor.titulo}>Configuração das Credenciais</div>
+        <div style={cor.titulo}>Fonte dos dados</div>
         <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.8 }}>
           <div style={{ marginBottom: 8 }}>
-            No <strong>Railway Dashboard</strong> → serviço <strong>ersus360</strong> → aba <strong>Variables</strong>:
+            Os dados são obtidos via <strong>Portal da Transparência</strong> (API pública do governo federal):
           </div>
-          <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: 12, fontFamily: "monospace", fontSize: 12 }}>
-            <div>INVESTSUS_CPF = <em>seu CPF (só números)</em></div>
-            <div>INVESTSUS_SENHA = <em>sua senha do SCPA/InvestSUS</em></div>
-          </div>
-          <div style={{ marginTop: 8, fontSize: 12, color: "#6b7280" }}>
-            São as mesmas credenciais usadas para acessar <strong>acesso.saude.gov.br</strong> (aba SCPA, não gov.br).
-            Após salvar, faça redeploy e clique em "Sincronizar Agora".
+          <ul style={{ margin: "0 0 8px 16px", padding: 0, fontSize: 12, color: "#374151" }}>
+            <li>Emendas parlamentares destinadas ao CNPJ do FMS (12.834.320/0001-26)</li>
+            <li>Convênios e instrumentos de transferência voluntária</li>
+            <li>Transferências recebidas pelo município (IBGE 1300144)</li>
+          </ul>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>
+            A variável <code>TRANSPARENCIA_API_KEY</code> já está configurada no Railway.
           </div>
         </div>
       </div>

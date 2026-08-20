@@ -1291,10 +1291,8 @@ async def seed_exemplo_apui(db: DbDep, user: UserDep):
 @router.post("/sincronizar")
 async def sincronizar_com_investsus(db: DbDep, user: UserDep):
     """
-    Autentica no SCPA (InvestSUS) com as credenciais configuradas e sincroniza
-    as propostas do município com o banco local.
-
-    Requer env vars no Railway: INVESTSUS_CPF, INVESTSUS_SENHA
+    Busca propostas/emendas via Portal da Transparência e sincroniza com o banco.
+    Requer TRANSPARENCIA_API_KEY no Railway.
     """
     if user.role not in ("superadmin", "admin", "gestor", "financeiro"):
         raise HTTPException(403, "Acesso restrito")
@@ -1304,10 +1302,10 @@ async def sincronizar_com_investsus(db: DbDep, user: UserDep):
     from services.investsus_scraper import sincronizar_investsus
     import os
 
-    if not os.getenv("INVESTSUS_CPF") or not os.getenv("INVESTSUS_SENHA"):
+    if not os.getenv("TRANSPARENCIA_API_KEY"):
         raise HTTPException(400, detail={
-            "erro": "Credenciais não configuradas",
-            "instrucao": "Adicione INVESTSUS_CPF e INVESTSUS_SENHA nas variáveis de ambiente do Railway.",
+            "erro": "TRANSPARENCIA_API_KEY não configurada",
+            "instrucao": "A variável TRANSPARENCIA_API_KEY deve estar configurada no Railway.",
         })
 
     try:
