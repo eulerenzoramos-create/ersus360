@@ -42,7 +42,7 @@ def _headers(key: str) -> dict:
     return {
         "chave-api-dados": key,
         "Accept": "application/json",
-        "User-Agent": "ERSUS360/1.0 (FMS Apuí/AM; gestão municipal SUS)",
+        "User-Agent": "ERSUS360/1.0 (FMS Apui/AM; gestao municipal SUS)",
     }
 
 
