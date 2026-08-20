@@ -2083,23 +2083,20 @@ document.querySelectorAll("table tr").forEach(function(tr){
   }
 });
 
-// ─ Preview e envio ──────────────────────────────────────────────────────────
+// ─ Preview e envio via URL (sem CORS) ──────────────────────────────────────
 var preview="Saldo em Conta: R$"+(dados.saldo_conta||"?")+
   "\\nTotal a Receber: R$"+(dados.total_a_receber||"?")+
   "\\nRepasses: R$"+(dados.repasses_exercicio||"?")+
-  "\\nExecução: "+(dados.execucao_pct||"?")+"%"+
+  "\\nExecu\\u00e7\\u00e3o: "+(dados.execucao_pct||"?")+"%"+
   "\\nRPs capturados: "+dados.repasses_por_categoria.length+
   "\\nSIOPS fontes: "+dados.siops.length;
 
-if(!confirm("ERSUS360 — Capturar dados do InvestSUS?\\n\\n"+preview+"\\n\\nEnviar para ERSUS360?")){return;}
+if(!confirm("ERSUS360 \\u2014 Capturar dados do InvestSUS?\\n\\n"+preview+"\\n\\nAbre o ERSUS360 para salvar automaticamente?")){return;}
 
-fetch(BASE+"/api/investsus/snapshot",{
-  method:"POST",
-  headers:{"Content-Type":"application/json","Authorization":"Bearer "+TOKEN},
-  body:JSON.stringify(dados)
-}).then(function(r){return r.json();}).then(function(r){
-  alert("\\u2713 Dados enviados! ID: "+r.id+"\\nAbra a aba Painel MS no ERSUS360.");
-}).catch(function(e){alert("Erro: "+e.message);});
+// Codifica em base64 e abre o ERSUS360 — sem CORS, os dados passam pela URL
+var b64=btoa(unescape(encodeURIComponent(JSON.stringify(dados))));
+window.open(BASE+"/investsus?snap="+encodeURIComponent(b64),"_blank");
+alert("\\u2713 Dados prontos! A aba do ERSUS360 abriu e vai salvar automaticamente.\\nVeja a aba Painel MS.");
 })();`;
 
   const bmUrl = "javascript:" + encodeURIComponent(bmScript);
@@ -2170,7 +2167,29 @@ fetch(BASE+"/api/investsus/snapshot",{
 export default function InvestSUS() {
   const [aba, setAba] = useState<"painel" | "dashboard" | "propostas" | "alertas" | "importar" | "relatorio" | "sincronizar">("painel");
   const [propostaSelecionada, setPropostaSelecionada] = useState<any>(null);
+  const [snapMsg, setSnapMsg] = useState<string | null>(null);
   const municipio_id = 1; // TODO: pegar do contexto de autenticação
+  const qc = useQueryClient();
+
+  // Lê ?snap= da URL (dados enviados pelo bookmarklet), salva no backend
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const snap = params.get("snap");
+    if (!snap) return;
+    try {
+      const dados = JSON.parse(decodeURIComponent(escape(atob(snap))));
+      api.post("/api/investsus/snapshot", dados).then(() => {
+        setSnapMsg("✓ Dados do InvestSUS capturados e salvos com sucesso!");
+        qc.invalidateQueries({ queryKey: ["investsus-snapshot"] });
+        // Remove o parâmetro da URL sem recarregar
+        const url = new URL(window.location.href);
+        url.searchParams.delete("snap");
+        window.history.replaceState({}, "", url.toString());
+      }).catch(() => setSnapMsg("Erro ao salvar snapshot — verifique se está logado."));
+    } catch {
+      // ignora snap inválido
+    }
+  }, []);
 
   const abas = [
     { key: "painel",     label: "Painel MS",   icone: <Activity size={13} /> },
@@ -2197,6 +2216,14 @@ export default function InvestSUS() {
           <div>Atualização: manual auditável</div>
         </div>
       </div>
+
+      {/* Notificação de snapshot recém-capturado */}
+      {snapMsg && (
+        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px 16px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ color: "#166534", fontWeight: 600, fontSize: 13 }}>{snapMsg}</span>
+          <button onClick={() => setSnapMsg(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 16 }}>×</button>
+        </div>
+      )}
 
       {/* Abas */}
       {!propostaSelecionada && (
