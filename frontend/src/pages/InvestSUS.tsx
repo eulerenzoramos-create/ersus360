@@ -1560,49 +1560,63 @@ const _CNPJ_PREF = "04105419000151";   // Prefeitura Municipal de Apuí
 const _IBGE = "1300144";
 const _API_TRANSP = "https://api.portaltransparencia.gov.br/api-de-dados";
 
-async function _fetchJson(url: string, h: Record<string,string>): Promise<any[]> {
-  const r = await fetch(url, { headers: h });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const d = await r.json();
-  return Array.isArray(d) ? d : (d?.content ?? d?.data ?? []);
+async function _fetchRaw(url: string, h: Record<string,string>): Promise<{ ok: boolean; status: number; body: any; count: number }> {
+  try {
+    const r = await fetch(url, { headers: h });
+    let body: any;
+    try { body = await r.json(); } catch { body = await r.text(); }
+    const arr = Array.isArray(body) ? body : (body?.content ?? body?.data ?? body?.registros ?? []);
+    return { ok: r.ok, status: r.status, body, count: Array.isArray(arr) ? arr.length : 0 };
+  } catch (e: any) {
+    return { ok: false, status: 0, body: e?.message, count: 0 };
+  }
 }
 
-async function _buscarTransparencia(chave: string): Promise<{ propostas: any[]; repasses: any[]; erros: any[] }> {
+async function _buscarTransparencia(chave: string): Promise<{ propostas: any[]; repasses: any[]; erros: any[]; debug: any[] }> {
   const h = { "chave-api-dados": chave, "Accept": "application/json" };
   const ano = new Date().getFullYear();
   const propostas: any[] = [];
   const repasses: any[] = [];
   const erros: any[] = [];
+  const debug: any[] = [];
 
-  // Emendas — tenta FMS e Prefeitura, anos atual e anterior
-  for (const cnpj of [_CNPJ_FMS, _CNPJ_PREF]) {
-    for (const anoB of [ano, ano - 1]) {
-      try {
-        const d = await _fetchJson(`${_API_TRANSP}/emendas?cnpjBeneficiario=${cnpj}&ano=${anoB}&pagina=1`, h);
-        propostas.push(...d);
-      } catch (e: any) {
-        erros.push({ endpoint: `emendas/${cnpj.slice(0,8)}/${anoB}`, erro: e?.message });
-      }
+  const tentativas = [
+    // Emendas por CNPJ do FMS
+    `${_API_TRANSP}/emendas?cnpjBeneficiario=${_CNPJ_FMS}&ano=${ano}&pagina=1`,
+    `${_API_TRANSP}/emendas?cnpjBeneficiario=${_CNPJ_FMS}&ano=${ano - 1}&pagina=1`,
+    // Emendas por código IBGE do município
+    `${_API_TRANSP}/emendas?codigoMunicipio=${_IBGE}&ano=${ano}&pagina=1`,
+    `${_API_TRANSP}/emendas?codigoMunicipio=${_IBGE}&ano=${ano - 1}&pagina=1`,
+    // Convênios FMS
+    `${_API_TRANSP}/convenios?cnpjConvenente=${_CNPJ_FMS}&pagina=1&tamanhoPagina=50`,
+    // Transferências municipais (vários formatos)
+    `${_API_TRANSP}/transferencias/municipios?codigoMunicipio=${_IBGE}&ano=${ano}&pagina=1&tamanhoPagina=20`,
+    `${_API_TRANSP}/transferencias/municipios?codigoIbge=${_IBGE}&ano=${ano}&pagina=1`,
+  ];
+
+  for (const url of tentativas) {
+    const result = await _fetchRaw(url, h);
+    const endpoint = url.replace(_API_TRANSP + "/", "").split("?")[0];
+    const params   = url.split("?")[1] || "";
+    debug.push({ endpoint, params, status: result.status, count: result.count });
+
+    if (!result.ok) {
+      erros.push({ endpoint: endpoint + "?" + params, erro: `HTTP ${result.status}: ${JSON.stringify(result.body).slice(0, 120)}` });
+      continue;
+    }
+
+    const items = Array.isArray(result.body)
+      ? result.body
+      : (result.body?.content ?? result.body?.data ?? result.body?.registros ?? []);
+
+    if (endpoint.includes("transferencias")) {
+      repasses.push(...items);
+    } else {
+      propostas.push(...items);
     }
   }
 
-  // Convênios — tenta FMS e Prefeitura
-  for (const cnpj of [_CNPJ_FMS, _CNPJ_PREF]) {
-    try {
-      const d = await _fetchJson(`${_API_TRANSP}/convenios?cnpjConvenente=${cnpj}&pagina=1&tamanhoPagina=100`, h);
-      propostas.push(...d);
-    } catch (e: any) {
-      erros.push({ endpoint: `convenios/${cnpj.slice(0,8)}`, erro: e?.message });
-    }
-  }
-
-  // Transferências recebidas pelo município
-  try {
-    const d = await _fetchJson(`${_API_TRANSP}/transferencias/municipios?codigoMunicipio=${_IBGE}&ano=${ano}&pagina=1&tamanhoPagina=50`, h);
-    repasses.push(...d);
-  } catch (e: any) { erros.push({ endpoint: "transferencias", erro: e?.message }); }
-
-  return { propostas, repasses, erros };
+  return { propostas, repasses, erros, debug };
 }
 
 function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
@@ -1623,12 +1637,13 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
 
       // 2. Busca dados diretamente do Portal da Transparência (browser → gov.br)
       setProgresso("Consultando Portal da Transparência…");
-      const { propostas, repasses, erros } = await _buscarTransparencia(chave);
+      const { propostas, repasses, erros, debug } = await _buscarTransparencia(chave);
 
       // 3. Envia para o backend salvar
       setProgresso("Salvando no banco…");
       const ts = new Date().toISOString();
       const saveResp = await api.post("/api/investsus/sincronizar-dados", {
+        _debug: debug,
         propostas: propostas.map((p: any) => ({
           numero_proposta:    String(p.codigoEmenda || p.numero || ""),
           numero_instrumento: String(p.codigoSubEmenda || ""),
@@ -1705,6 +1720,29 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
                 <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
                   {resultado.erros.map((e: any, i: number) => <li key={i}>{e.endpoint}: {e.erro}</li>)}
                 </ul>
+              </div>
+            )}
+            {resultado._debug?.length > 0 && (
+              <div style={{ marginTop: 12, fontSize: 11, color: "#374151", background: "#f9fafb", borderRadius: 6, padding: 10 }}>
+                <strong>Diagnóstico (endpoints chamados):</strong>
+                <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 6 }}>
+                  <thead><tr style={{ background: "#e5e7eb" }}>
+                    <th style={{ textAlign: "left", padding: "2px 6px" }}>Endpoint</th>
+                    <th style={{ textAlign: "left", padding: "2px 6px" }}>Parâmetros</th>
+                    <th style={{ padding: "2px 6px" }}>Status</th>
+                    <th style={{ padding: "2px 6px" }}>Registros</th>
+                  </tr></thead>
+                  <tbody>
+                    {resultado._debug.map((d: any, i: number) => (
+                      <tr key={i} style={{ borderTop: "1px solid #e5e7eb", background: d.count > 0 ? "#f0fdf4" : d.status >= 400 ? "#fef2f2" : "transparent" }}>
+                        <td style={{ padding: "2px 6px", fontFamily: "monospace" }}>{d.endpoint}</td>
+                        <td style={{ padding: "2px 6px", fontFamily: "monospace", fontSize: 10 }}>{d.params}</td>
+                        <td style={{ padding: "2px 6px", textAlign: "center" }}>{d.status}</td>
+                        <td style={{ padding: "2px 6px", textAlign: "center", fontWeight: d.count > 0 ? 700 : 400 }}>{d.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
