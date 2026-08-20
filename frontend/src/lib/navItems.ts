@@ -335,6 +335,11 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Acompanhamento de emendas parlamentares destinadas à saúde",
     keywords:["emenda","parlamentar","deputado","senador","congresso","câmara","convênio","recurso"] },
 
+  { id:"investsus",           category:"Financeiro e Gestão Fiscal", subcategory:"FNS / Convênios", order:214, iconName:"TrendingUp",
+    title:"InvestSUS — Propostas/Execução", shortTitle:"InvestSUS", route:"/investsus", roles:ROLES_FIN,
+    description:"Propostas, emendas e execução financeira via InvestSUS (Ministério da Saúde)",
+    keywords:["investsus","proposta","emenda","execução","ministério saúde","ms","convênio","instrumento","parlamentar","recurso","indicado","aprovado","pago"] },
+
   { id:"siops",               category:"Financeiro e Gestão Fiscal", order:220, iconName:"Target",
     title:"SIOPS / Mínimo Constitucional", shortTitle:"SIOPS", route:"/siops", roles:ROLES_FIN,
     description:"Sistema de Informações sobre Orçamentos Públicos em Saúde — mínimo constitucional 15%",
