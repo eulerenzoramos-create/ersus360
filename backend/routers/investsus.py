@@ -1420,3 +1420,107 @@ async def status_sync_job(job_id: str, user: UserDep):
     if not job:
         raise HTTPException(404, "Job não encontrado")
     return job
+
+
+@router.get("/config-chave")
+async def get_transparencia_key(user: UserDep):
+    """Retorna a chave da API do Portal da Transparência para uso no browser."""
+    if user.role not in ("superadmin", "admin", "gestor", "financeiro"):
+        raise HTTPException(403, "Acesso restrito")
+    import os
+    key = os.getenv("TRANSPARENCIA_API_KEY", "")
+    if not key:
+        raise HTTPException(400, detail={"erro": "TRANSPARENCIA_API_KEY não configurada no Railway."})
+    return {"chave": key}
+
+
+@router.post("/sincronizar-dados")
+async def salvar_dados_sincronizados(payload: dict, db: DbDep, user: UserDep):
+    """
+    Recebe dados já buscados pelo browser diretamente no Portal da Transparência
+    e os salva no banco. Usado quando o Railway não consegue alcançar .gov.br.
+    payload: { propostas: [...], repasses: [...], sincronizado_em: str }
+    """
+    if user.role not in ("superadmin", "admin", "gestor", "financeiro"):
+        raise HTTPException(403, "Acesso restrito")
+
+    mid = _municipio_id(user)
+    criadas = atualizadas = 0
+
+    for prop_raw in payload.get("propostas", []):
+        numero = str(prop_raw.get("numero_proposta") or prop_raw.get("codigoEmenda") or prop_raw.get("numero") or "")
+        if not numero:
+            continue
+        res = await db.execute(
+            select(PropostaInvestSUS).where(
+                PropostaInvestSUS.municipio_id == mid,
+                PropostaInvestSUS.numero_proposta == numero,
+            )
+        )
+        existing = res.scalar_one_or_none()
+        situacao_raw = str(prop_raw.get("situacao_raw") or prop_raw.get("situacao") or prop_raw.get("fase") or "")
+        situacao_norm = None
+        for s in SituacaoNormalizada:
+            if s.value.lower() in situacao_raw.lower() or situacao_raw.lower() in s.value.lower():
+                situacao_norm = s
+                break
+
+        valor_global = float(prop_raw.get("valor_global") or prop_raw.get("valorEmpenhado") or prop_raw.get("valor") or 0)
+        valor_pago   = float(prop_raw.get("valor_repassado") or prop_raw.get("valorPago") or 0)
+        objeto       = str(prop_raw.get("objeto") or prop_raw.get("descricao") or prop_raw.get("tipoEmenda") or "")
+        parlamentar  = str(prop_raw.get("parlamentar") or prop_raw.get("nomeAutor") or "")
+        exercicio    = int(prop_raw.get("exercicio") or prop_raw.get("ano") or 2024)
+        ts           = payload.get("sincronizado_em", "")
+
+        if existing:
+            if valor_global:    existing.valor_aprovado = valor_global
+            if valor_pago:      existing.valor_pago = valor_pago
+            existing.situacao_original = situacao_raw or existing.situacao_original
+            if situacao_norm and situacao_norm != existing.situacao_normalizada:
+                db.add(HistoricoSituacao(
+                    proposta_id=existing.id,
+                    situacao_anterior=existing.situacao_normalizada.value if existing.situacao_normalizada else None,
+                    situacao_nova=situacao_norm.value,
+                    origem="sincronizacao_browser",
+                    observacao=f"Atualizado via browser em {ts}",
+                ))
+                existing.situacao_normalizada = situacao_norm
+            atualizadas += 1
+        else:
+            nova = PropostaInvestSUS(
+                municipio_id=mid,
+                numero_proposta=numero,
+                numero_instrumento=str(prop_raw.get("numero_instrumento") or prop_raw.get("codigoSubEmenda") or ""),
+                objeto=objeto,
+                tipo_emenda=TipoEmenda.INDIVIDUAL,
+                valor_indicado=valor_global,
+                valor_proposta=valor_global,
+                valor_aprovado=valor_global,
+                valor_pago=valor_pago,
+                valor_executado=float(prop_raw.get("valor_executado") or prop_raw.get("valorPago") or 0),
+                situacao_original=situacao_raw,
+                situacao_normalizada=situacao_norm or SituacaoNormalizada.PROPOSTA_EM_ANALISE,
+                exercicio=exercicio,
+                entidade_cnpj="12.834.320/0001-26",
+            )
+            db.add(nova)
+            await db.flush()
+            db.add(HistoricoSituacao(
+                proposta_id=nova.id,
+                situacao_anterior=None,
+                situacao_nova=(situacao_norm or SituacaoNormalizada.PROPOSTA_EM_ANALISE).value,
+                origem="sincronizacao_browser",
+                observacao=f"Importado via browser em {ts}",
+            ))
+            criadas += 1
+
+    await db.commit()
+    return {
+        "ok": True,
+        "sincronizado_em": payload.get("sincronizado_em", ""),
+        "propostas_encontradas": len(payload.get("propostas", [])),
+        "criadas": criadas,
+        "atualizadas": atualizadas,
+        "repasses": len(payload.get("repasses", [])),
+        "erros": [],
+    }

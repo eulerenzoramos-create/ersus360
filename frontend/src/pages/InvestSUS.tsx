@@ -1554,53 +1554,90 @@ function RelatorioAcompanhamento({ municipio_id }: { municipio_id: number }) {
   );
 }
 
-// ── Sincronizar com InvestSUS (job assíncrono + polling) ─────────────────────
+// ── Sincronizar via browser (browser busca .gov.br, envia ao backend) ─────────
+const _CNPJ = "12834320000126";
+const _IBGE = "1300144";
+const _API_TRANSP = "https://api.portaltransparencia.gov.br/api-de-dados";
+
+async function _buscarTransparencia(chave: string): Promise<{ propostas: any[]; repasses: any[]; erros: any[] }> {
+  const h = { "chave-api-dados": chave, "Accept": "application/json" };
+  const ano = new Date().getFullYear();
+  const propostas: any[] = [];
+  const repasses: any[] = [];
+  const erros: any[] = [];
+
+  for (const anoB of [ano, ano - 1]) {
+    try {
+      const r = await fetch(`${_API_TRANSP}/emendas?cnpjBeneficiario=${_CNPJ}&ano=${anoB}&pagina=1`, { headers: h });
+      if (r.ok) { const d = await r.json(); propostas.push(...(Array.isArray(d) ? d : [])); }
+      else erros.push({ endpoint: `emendas/${anoB}`, erro: `HTTP ${r.status}` });
+    } catch (e: any) { erros.push({ endpoint: `emendas/${anoB}`, erro: e?.message }); }
+  }
+  try {
+    const r = await fetch(`${_API_TRANSP}/convenios?cnpjConvenente=${_CNPJ}&pagina=1&tamanhoPagina=100`, { headers: h });
+    if (r.ok) { const d = await r.json(); propostas.push(...(Array.isArray(d) ? d : [])); }
+    else erros.push({ endpoint: "convenios", erro: `HTTP ${r.status}` });
+  } catch (e: any) { erros.push({ endpoint: "convenios", erro: e?.message }); }
+  try {
+    const r = await fetch(`${_API_TRANSP}/transferencias/municipios?codigoMunicipio=${_IBGE}&ano=${ano}&pagina=1&tamanhoPagina=20`, { headers: h });
+    if (r.ok) { const d = await r.json(); repasses.push(...(Array.isArray(d) ? d : [])); }
+    else erros.push({ endpoint: "transferencias", erro: `HTTP ${r.status}` });
+  } catch (e: any) { erros.push({ endpoint: "transferencias", erro: e?.message }); }
+
+  return { propostas, repasses, erros };
+}
+
 function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
   const qc = useQueryClient();
-  const [jobId, setJobId] = useState<string | null>(null);
   const [resultado, setResultado] = useState<any>(null);
   const [erroMsg, setErroMsg] = useState<string | null>(null);
-  const [polling, setPolling] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [progresso, setProgresso] = useState("");
 
-  // Inicia o job de sincronização
-  const iniciar = useMutation({
-    mutationFn: () => api.post("/api/investsus/sincronizar", {}),
-    onSuccess: (data: any) => {
-      const jid = data?.data?.job_id || data?.job_id;
-      if (jid) { setJobId(jid); setPolling(true); setErroMsg(null); }
-    },
-    onError: (err: any) => {
-      const d = err?.response?.data;
-      setErroMsg(d?.erro || d?.detail || err?.message || "Erro ao iniciar sincronização");
-    },
-  });
+  const sincronizar = async () => {
+    setLoading(true); setErroMsg(null); setResultado(null);
+    try {
+      // 1. Busca a chave no backend
+      setProgresso("Obtendo credenciais…");
+      const cfgResp = await api.get("/api/investsus/config-chave");
+      const chave: string = cfgResp?.data?.chave || cfgResp?.chave;
+      if (!chave) throw new Error("Chave da API não retornada pelo servidor");
 
-  // Polling do status do job
-  useEffect(() => {
-    if (!polling || !jobId) return;
-    let active = true;
-    const tick = async () => {
-      try {
-        const resp = await api.get(`/api/investsus/sincronizar/${jobId}`);
-        const job  = resp?.data || resp;
-        if (!active) return;
-        if (job.status === "concluido") {
-          setPolling(false);
-          setResultado(job.resultado);
-          qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
-          qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
-        } else if (job.status === "erro") {
-          setPolling(false);
-          setErroMsg(job.erro || "Erro na sincronização");
-        }
-      } catch { /* ignora falha de polling */ }
-    };
-    const id = setInterval(tick, 3000);
-    tick();
-    return () => { active = false; clearInterval(id); };
-  }, [polling, jobId, municipio_id, qc]);
+      // 2. Busca dados diretamente do Portal da Transparência (browser → gov.br)
+      setProgresso("Consultando Portal da Transparência…");
+      const { propostas, repasses, erros } = await _buscarTransparencia(chave);
 
-  const loading = iniciar.isPending || polling;
+      // 3. Envia para o backend salvar
+      setProgresso("Salvando no banco…");
+      const ts = new Date().toISOString();
+      const saveResp = await api.post("/api/investsus/sincronizar-dados", {
+        propostas: propostas.map((p: any) => ({
+          numero_proposta:    String(p.codigoEmenda || p.numero || ""),
+          numero_instrumento: String(p.codigoSubEmenda || ""),
+          objeto:             p.descricao || p.objeto || p.tipoEmenda || "",
+          tipo_emenda:        p.tipoEmenda || "",
+          parlamentar:        p.nomeAutor || "",
+          valor_global:       Number(p.valorEmpenhado || p.valor || 0),
+          valor_repassado:    Number(p.valorPago || 0),
+          valor_executado:    Number(p.valorPago || 0),
+          situacao_raw:       p.situacao || p.fase || "",
+          exercicio:          Number(p.ano || new Date().getFullYear()),
+        })),
+        repasses,
+        sincronizado_em: ts,
+      });
+
+      const res = saveResp?.data || saveResp;
+      setResultado(res);
+      qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
+      qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
+    } catch (e: any) {
+      const d = e?.response?.data;
+      setErroMsg(d?.erro || d?.detail || e?.message || "Erro desconhecido");
+    } finally {
+      setLoading(false); setProgresso("");
+    }
+  };
 
   const cor = {
     card:   { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 24, marginBottom: 16 },
@@ -1622,31 +1659,16 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
       <div style={cor.card}>
         <div style={cor.titulo}>Sincronização com InvestSUS</div>
         <div style={cor.sub}>
-          Busca <strong>emendas parlamentares, convênios e transferências</strong> do FMS Apuí via
-          Portal da Transparência (Ministério da Saúde) e atualiza o banco local automaticamente.<br /><br />
-          A sincronização roda em segundo plano — não trava a tela.
+          Busca <strong>emendas parlamentares, convênios e transferências</strong> do FMS Apuí
+          diretamente no Portal da Transparência e salva no banco automaticamente.
         </div>
 
-        <button
-          style={cor.btn(loading)}
-          onClick={() => { setResultado(null); setErroMsg(null); iniciar.mutate(); }}
-          disabled={loading}
-        >
+        <button style={cor.btn(loading)} onClick={sincronizar} disabled={loading}>
           <RefreshCw size={16} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
-          {polling ? "Sincronizando… aguarde" : iniciar.isPending ? "Iniciando…" : "Sincronizar Agora"}
+          {loading ? (progresso || "Sincronizando…") : "Sincronizar Agora"}
         </button>
 
-        {polling && (
-          <div style={{ marginTop: 12, fontSize: 12, color: "#6b7280" }}>
-            ⏳ Buscando dados no Portal da Transparência… (pode levar até 30s)
-          </div>
-        )}
-
-        {erroMsg && (
-          <div style={cor.err}>
-            <strong>Erro:</strong> {erroMsg}
-          </div>
-        )}
+        {erroMsg && <div style={cor.err}><strong>Erro:</strong> {erroMsg}</div>}
 
         {resultado && !erroMsg && (
           <div style={cor.ok}>
@@ -1654,7 +1676,7 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
               ✓ Concluído — {resultado.sincronizado_em?.slice(0, 19).replace("T", " ")} UTC
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
-              <span style={cor.tag("#1e3a5f")}>{resultado.propostas_encontradas} registros encontrados</span>
+              <span style={cor.tag("#1e3a5f")}>{resultado.propostas_encontradas} registros</span>
               <span style={cor.tag("#065f46")}>{resultado.criadas} novas</span>
               <span style={cor.tag("#92400e")}>{resultado.atualizadas} atualizadas</span>
               {resultado.repasses > 0 && <span style={cor.tag("#4c1d95")}>{resultado.repasses} repasses</span>}
@@ -1663,9 +1685,7 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
               <div style={{ marginTop: 12, fontSize: 12, color: "#92400e" }}>
                 <strong>Avisos:</strong>
                 <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
-                  {resultado.erros.map((e: any, i: number) => (
-                    <li key={i}>{e.endpoint}: {e.erro}</li>
-                  ))}
+                  {resultado.erros.map((e: any, i: number) => <li key={i}>{e.endpoint}: {e.erro}</li>)}
                 </ul>
               </div>
             )}
@@ -1677,15 +1697,15 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
         <div style={cor.titulo}>Fonte dos dados</div>
         <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.8 }}>
           <div style={{ marginBottom: 8 }}>
-            Dados obtidos via <strong>Portal da Transparência</strong> (API pública do governo federal):
+            Dados obtidos via <strong>Portal da Transparência</strong> (API pública):
           </div>
           <ul style={{ margin: "0 0 8px 16px", padding: 0, fontSize: 12, color: "#374151" }}>
-            <li>Emendas parlamentares destinadas ao CNPJ do FMS (12.834.320/0001-26)</li>
-            <li>Convênios e instrumentos de transferência voluntária</li>
-            <li>Transferências recebidas pelo município (IBGE 1300144)</li>
+            <li>Emendas parlamentares — CNPJ 12.834.320/0001-26</li>
+            <li>Convênios e transferências voluntárias</li>
+            <li>Transferências municipais — IBGE 1300144</li>
           </ul>
           <div style={{ fontSize: 12, color: "#6b7280" }}>
-            Variável <code>TRANSPARENCIA_API_KEY</code> já configurada no Railway.
+            A busca é feita pelo seu browser, que acessa api.portaltransparencia.gov.br diretamente.
           </div>
         </div>
       </div>
