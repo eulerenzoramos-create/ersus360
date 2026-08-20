@@ -1,5 +1,5 @@
 // src/pages/ACSPainel.tsx — Painel ACS · eSUS PEC integrado
-import { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
