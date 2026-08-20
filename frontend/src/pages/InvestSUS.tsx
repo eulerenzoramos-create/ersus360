@@ -1983,76 +1983,123 @@ if(!location.hostname.includes("investsus.saude.gov.br")){
   alert("Execute este script NA PÁGINA do portal InvestSUS (investsus.saude.gov.br)");
   return;
 }
-function txt(el){return el?el.textContent.trim():""}
-function num(s){if(!s)return null;var n=parseFloat(s.replace(/[^\\d,.-]/g,"").replace(",","."));return isNaN(n)?null:n}
-function sel(css){return document.querySelector(css)}
-function sela(css){return Array.from(document.querySelectorAll(css))}
 
-// KPIs do cabeçalho
-var cards=sela(".card-kpi, .card-valor, [class*='kpi'], [class*='card-']");
-var kpi={};
-cards.forEach(function(c){
-  var lbl=txt(c.querySelector("span,label,p,small,.label,.titulo"));
-  var val=txt(c.querySelector("strong,h2,h3,.valor,.value,b"));
-  if(lbl&&val) kpi[lbl]=val;
-});
+// ─ Helpers ─────────────────────────────────────────────────────────────────
+function parseReais(s){
+  if(!s)return null;
+  var c=s.replace(/[^\\d,.]/g,"");
+  if(!c)return null;
+  // formato BR: pontos = milhares, vírgula = decimal
+  c=c.replace(/\\./g,"").replace(",",".");
+  var n=parseFloat(c);
+  return isNaN(n)?null:n;
+}
+function parsePct(s){
+  if(!s)return null;
+  var c=s.replace(",",".").replace(/[^\\d.]/g,"");
+  var n=parseFloat(c);
+  return isNaN(n)?null:n;
+}
 
-// Fallback: pegar todos os textos de valores monetários visíveis
-var allText=document.body.innerText;
-var saldoM=allText.match(/Saldo em Conta[\\s\\S]{0,60}R\\$\\s*([\\d.,]+)/i);
-var receberM=allText.match(/Total a Receber[\\s\\S]{0,60}R\\$\\s*([\\d.,]+)/i);
-var repassesM=allText.match(/Repasses no Exerc[\\s\\S]{0,80}R\\$\\s*([\\d.,]+)/i);
-var execM=allText.match(/Execu[çc][aã]o[\\s\\S]{0,20}([\\d.,]+)\\s*%/i);
-var execGeralM=allText.match(/Execu[çc][aã]o Geral[\\s\\S]{0,20}([\\d.,]+)\\s*%/i);
+// ─ Extração linha-a-linha ──────────────────────────────────────────────────
+// Divide o texto da página em linhas limpas
+var lines=document.body.innerText.split("\\n").map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
 
-function parseNum(m){if(!m)return null;var s=m[1].replace(/\\./g,"").replace(",",".");return parseFloat(s)||null;}
+// Encontra o valor monetário (R$...) nas próximas N linhas após um label
+function valorApos(label,janela){
+  janela=janela||5;
+  for(var i=0;i<lines.length;i++){
+    if(lines[i].toLowerCase().indexOf(label.toLowerCase())>=0){
+      for(var j=i;j<Math.min(i+janela,lines.length);j++){
+        var m=lines[j].match(/R\\$\\s*([\\d.,]+)/);
+        if(m) return parseReais(m[1]);
+      }
+    }
+  }
+  return null;
+}
 
+// Encontra percentual nas próximas N linhas após um label
+function pctApos(label,janela){
+  janela=janela||5;
+  for(var i=0;i<lines.length;i++){
+    if(lines[i].toLowerCase().indexOf(label.toLowerCase())>=0){
+      for(var j=i;j<Math.min(i+janela,lines.length);j++){
+        var m=lines[j].match(/([\\d.,]+)\\s*%/);
+        if(m) return parsePct(m[1]);
+      }
+    }
+  }
+  return null;
+}
+
+// ─ KPIs principais ─────────────────────────────────────────────────────────
 var dados={
-  saldo_conta: parseNum(saldoM),
-  total_a_receber: parseNum(receberM),
-  repasses_exercicio: parseNum(repassesM),
-  execucao_pct: parseNum(execM),
-  execucao_geral_pct: parseNum(execGeralM),
+  saldo_conta:        valorApos("Saldo em Conta",4),
+  total_a_receber:    valorApos("Total a Receber",4),
+  repasses_exercicio: valorApos("Repasses no Exerc",6),
+  execucao_pct:       pctApos("Execu"),
+  execucao_geral_pct: pctApos("Execu\\u00e7\\u00e3o Geral",4)||pctApos("Execucao Geral",4),
   blocos:[],
   repasses_por_categoria:[],
   siops:[],
   origem:"bookmarklet",
   capturado_em: new Date().toISOString(),
   url: location.href,
-  kpi_raw: kpi,
 };
 
-// Blocos
-var blocoEls=sela("[class*='bloco'] tr, table tr");
-blocoEls.forEach(function(tr){
-  var cells=sela.call(tr,"td,th");
+// ─ Repasses por Categoria (RP) ─────────────────────────────────────────────
+// Procura padrão: "Label (RPn)" seguido por "R$ valor" nas próximas linhas
+for(var i=0;i<lines.length;i++){
+  var rpM=lines[i].match(/\\(?(RP\\d+)\\)?/);
+  if(rpM){
+    var rp=rpM[1];
+    for(var j=i;j<Math.min(i+4,lines.length);j++){
+      var vm=lines[j].match(/R\\$\\s*([\\d.,]+)/);
+      if(vm){
+        dados.repasses_por_categoria.push({rp:rp, valor:parseReais(vm[1])});
+        break;
+      }
+    }
+  }
+}
+
+// ─ SIOPS ──────────────────────────────────────────────────────────────────
+["Municipal","Estadual","Federal","Consolidado"].forEach(function(fonte){
+  var total=valorApos(fonte,6);
+  if(total!==null) dados.siops.push({fonte:fonte,total:total,executado:0});
+});
+
+// ─ Tabelas de blocos (se existirem) ────────────────────────────────────────
+document.querySelectorAll("table tr").forEach(function(tr){
+  var cells=Array.from(tr.querySelectorAll("td,th"));
   if(cells.length>=3){
-    var nome=txt(cells[0]);
-    var trans=num(txt(cells[1]));
-    var exec=num(txt(cells[2]));
-    if(nome&&trans!=null) dados.blocos.push({nome:nome,transferido:trans,executado:exec||0});
+    var nome=cells[0].textContent.trim();
+    var t=parseReais(cells[1].textContent);
+    var e=parseReais(cells[2].textContent);
+    if(nome&&t!==null&&nome.length>3&&nome.length<80){
+      dados.blocos.push({nome:nome,transferido:t,executado:e||0});
+    }
   }
 });
 
-// SIOPS
-var siopsLines=allText.match(/(Municipal|Estadual|Federal|Consolidado)[\\s\\S]{0,200}R\\$\\s*[\\d.,]+/gi)||[];
-["Municipal","Estadual","Federal","Consolidado"].forEach(function(fonte){
-  var rexT=new RegExp(fonte+"[\\\\s\\\\S]{0,200}?([\\\\d.]+,[\\\\d]+)","i");
-  var mT=allText.match(rexT);
-  if(mT) dados.siops.push({fonte:fonte,total:parseNum(mT),executado:0});
-});
+// ─ Preview e envio ──────────────────────────────────────────────────────────
+var preview="Saldo em Conta: R$"+(dados.saldo_conta||"?")+
+  "\\nTotal a Receber: R$"+(dados.total_a_receber||"?")+
+  "\\nRepasses: R$"+(dados.repasses_exercicio||"?")+
+  "\\nExecução: "+(dados.execucao_pct||"?")+"%"+
+  "\\nRPs capturados: "+dados.repasses_por_categoria.length+
+  "\\nSIOPS fontes: "+dados.siops.length;
 
-// Mostrar preview e confirmar
-var preview=JSON.stringify(dados,null,2).slice(0,500);
-if(!confirm("ERSUS360 — Capturar dados do InvestSUS?\\n\\nPreview:\\n"+preview+"\\n\\nEnviar para ERSUS360?")){return;}
+if(!confirm("ERSUS360 — Capturar dados do InvestSUS?\\n\\n"+preview+"\\n\\nEnviar para ERSUS360?")){return;}
 
 fetch(BASE+"/api/investsus/snapshot",{
   method:"POST",
   headers:{"Content-Type":"application/json","Authorization":"Bearer "+TOKEN},
   body:JSON.stringify(dados)
 }).then(function(r){return r.json();}).then(function(r){
-  alert("✓ Dados enviados para ERSUS360! ID: "+r.id+"\\nAtualize a aba Painel MS.");
-}).catch(function(e){alert("Erro ao enviar: "+e.message);});
+  alert("\\u2713 Dados enviados! ID: "+r.id+"\\nAbra a aba Painel MS no ERSUS360.");
+}).catch(function(e){alert("Erro: "+e.message);});
 })();`;
 
   const bmUrl = "javascript:" + encodeURIComponent(bmScript);
