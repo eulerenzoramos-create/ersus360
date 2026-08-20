@@ -1,6 +1,6 @@
 // InvestSUS — Emendas, Propostas e Execução
 // ERSUS 360 · FMS Apuí/AM
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import {
