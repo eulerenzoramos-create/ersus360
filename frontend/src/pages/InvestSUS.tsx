@@ -1961,7 +1961,61 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
         </div>
       </div>
 
+      <ColarDadosInvestSUS municipio_id={municipio_id} />
       <BookmarkletCaptura />
+    </div>
+  );
+}
+
+// ── Colar dados capturados pelo bookmarklet ───────────────────────────────────
+function ColarDadosInvestSUS({ municipio_id }: { municipio_id: number }) {
+  const qc = useQueryClient();
+  const [json, setJson] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [ok, setOk] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const salvar = async () => {
+    if (!json.trim()) return;
+    setSalvando(true); setErro(null); setOk(false);
+    try {
+      const dados = JSON.parse(json.trim());
+      await api.post("/api/investsus/snapshot", dados);
+      setOk(true);
+      setJson("");
+      qc.invalidateQueries({ queryKey: ["investsus-snapshot", municipio_id] });
+    } catch (e: any) {
+      setErro(e?.response?.data?.detail || e?.message || "Erro ao salvar");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 20, marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <Upload size={16} color="#059669" />
+        <span style={{ fontSize: 14, fontWeight: 700, color: "#1e3a5f" }}>Colar dados capturados do InvestSUS</span>
+      </div>
+      <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>
+        Após rodar o script no InvestSUS, cole o JSON copiado abaixo e clique em Salvar.
+      </div>
+      <textarea
+        value={json}
+        onChange={e => setJson(e.target.value)}
+        placeholder='Cole aqui o JSON copiado do InvestSUS (começa com {"saldo_conta":...})'
+        style={{ width: "100%", height: 80, borderRadius: 6, border: "1px solid #d1d5db", padding: "8px 10px", fontSize: 11, fontFamily: "monospace", boxSizing: "border-box", resize: "vertical" }}
+      />
+      <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
+        <button
+          onClick={salvar}
+          disabled={salvando || !json.trim()}
+          style={{ background: salvando || !json.trim() ? "#9ca3af" : "#059669", color: "#fff", border: "none", borderRadius: 6, padding: "8px 20px", fontSize: 13, fontWeight: 600, cursor: salvando || !json.trim() ? "not-allowed" : "pointer" }}>
+          {salvando ? "Salvando..." : "Salvar no Painel MS"}
+        </button>
+        {ok && <span style={{ color: "#059669", fontWeight: 600, fontSize: 13 }}>✓ Salvo! Veja a aba Painel MS.</span>}
+        {erro && <span style={{ color: "#dc2626", fontSize: 12 }}>{erro}</span>}
+      </div>
     </div>
   );
 }
@@ -2083,20 +2137,23 @@ document.querySelectorAll("table tr").forEach(function(tr){
   }
 });
 
-// ─ Preview e envio via URL (sem CORS) ──────────────────────────────────────
+// ─ Copia JSON para clipboard ────────────────────────────────────────────────
+var json=JSON.stringify(dados);
 var preview="Saldo em Conta: R$"+(dados.saldo_conta||"?")+
   "\\nTotal a Receber: R$"+(dados.total_a_receber||"?")+
   "\\nRepasses: R$"+(dados.repasses_exercicio||"?")+
   "\\nExecu\\u00e7\\u00e3o: "+(dados.execucao_pct||"?")+"%"+
   "\\nRPs capturados: "+dados.repasses_por_categoria.length+
-  "\\nSIOPS fontes: "+dados.siops.length;
+  "\\nSIOPS: "+dados.siops.length+" fontes";
 
-if(!confirm("ERSUS360 \\u2014 Capturar dados do InvestSUS?\\n\\n"+preview+"\\n\\nAbre o ERSUS360 para salvar automaticamente?")){return;}
+if(!confirm("ERSUS360 \\u2014 Dados capturados:\\n\\n"+preview+"\\n\\nCopiar para o clipboard?\\n(depois cole no ERSUS360 \\u2192 InvestSUS \\u2192 Sincronizar)")){return;}
 
-// Codifica em base64 e abre o ERSUS360 — sem CORS, os dados passam pela URL
-var b64=btoa(unescape(encodeURIComponent(JSON.stringify(dados))));
-window.open(BASE+"/investsus?snap="+encodeURIComponent(b64),"_blank");
-alert("\\u2713 Dados prontos! A aba do ERSUS360 abriu e vai salvar automaticamente.\\nVeja a aba Painel MS.");
+navigator.clipboard.writeText(json).then(function(){
+  alert("\\u2713 JSON copiado!\\n\\nAgora:\\n1. V\\u00e1 para o ERSUS360 \\u2192 InvestSUS \\u2192 Sincronizar\\n2. Role at\\u00e9 'Colar dados capturados'\\n3. Ctrl+V no campo e clique Salvar");
+}).catch(function(){
+  // fallback: mostra o JSON para copiar manualmente
+  prompt("Copie o JSON abaixo (Ctrl+A, Ctrl+C):",json);
+});
 })();`;
 
   const bmUrl = "javascript:" + encodeURIComponent(bmScript);
