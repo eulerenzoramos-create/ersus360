@@ -1232,10 +1232,10 @@ Promise.all([
       <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Como capturar dados do e-SUS PEC</div>
         {[
-          { n: "1", t: "Abra o e-SUS PEC no Chrome", d: "esus.apui.am.gov.br — faça login com gov.br normalmente" },
-          { n: "2", t: "Execute o bookmarklet", d: "Clique no botão abaixo para copiar o código, depois cole na barra de endereços do Chrome e pressione Enter" },
-          { n: "3", t: "Aguarde a captura", d: "O bookmarklet consulta a API do e-SUS PEC e copia o JSON automaticamente" },
-          { n: "4", t: "Cole e salve aqui", d: "Volte ao ERSUS360, cole o JSON na área abaixo e clique em Salvar" },
+          { n: "1", t: "Abra o e-SUS PEC no Chrome", d: "esus.apui.am.gov.br — faça login normalmente e entre como APUÍ / Gestor municipal" },
+          { n: "2", t: "Pressione F12 no teclado", d: "Abre o DevTools. Clique na aba Console (parte superior do painel que abriu)" },
+          { n: "3", t: "Copie o script abaixo e cole no Console", d: "Clique no botão azul, volte ao Chrome com o e-SUS PEC aberto, clique no Console e pressione Ctrl+V depois Enter" },
+          { n: "4", t: "Aguarde o alerta de confirmação", d: "Aparece: ✓ Dados do e-SUS PEC copiados! Então volte aqui e cole na caixa abaixo" },
         ].map(s => (
           <div key={s.n} style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 14 }}>
             <div style={{ minWidth: 28, height: 28, borderRadius: "50%", background: "#1351b4", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13 }}>{s.n}</div>
@@ -1246,12 +1246,16 @@ Promise.all([
           </div>
         ))}
 
+        {/* Script para Console — sem o prefixo javascript: */}
         <button
           onClick={() => {
-            navigator.clipboard.writeText(bookmarkletCode).then(() => alert("✓ Código copiado!\n\nAgora:\n1. Abra o e-SUS PEC no Chrome (esus.apui.am.gov.br)\n2. Clique na barra de endereços\n3. Delete o endereço e cole o código copiado\n4. Pressione Enter")).catch(() => prompt("Copie o código abaixo:", bookmarkletCode));
+            const consoleScript = bookmarkletCode.replace(/^javascript:/, "");
+            navigator.clipboard.writeText(consoleScript)
+              .then(() => alert("✓ Script copiado!\n\nAgora:\n1. Vá para a aba do e-SUS PEC no Chrome\n2. Pressione F12\n3. Clique na aba Console\n4. Cole (Ctrl+V) e pressione Enter"))
+              .catch(() => prompt("Copie o script abaixo e cole no Console do Chrome (F12):", consoleScript));
           }}
           style={{ display: "flex", alignItems: "center", gap: 8, background: "#1351b4", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", cursor: "pointer", fontSize: 13, fontWeight: 700, marginTop: 8 }}>
-          📋 Copiar código do bookmarklet
+          📋 Copiar script para o Console (F12)
         </button>
       </div>
 
