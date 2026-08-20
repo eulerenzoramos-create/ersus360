@@ -1554,6 +1554,201 @@ function RelatorioAcompanhamento({ municipio_id }: { municipio_id: number }) {
   );
 }
 
+// ── Painel Portal InvestSUS (dados do snapshot capturado via bookmarklet) ──────
+function PainelPortalInvestSUS({ municipio_id }: { municipio_id: number }) {
+  const { data: snap, isLoading, error } = useQuery({
+    queryKey: ["investsus-snapshot", municipio_id],
+    queryFn: () => api.get("/api/investsus/snapshot").then(r => r.data),
+    retry: 1,
+  });
+
+  if (isLoading) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+
+  if (!snap || error) {
+    return (
+      <div style={{ ...S.card, borderLeft: "4px solid #0284c7", background: "#eff6ff" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <Activity size={18} color="#0284c7" />
+          <span style={{ fontWeight: 700, color: "#1e40af" }}>Nenhum snapshot capturado ainda</span>
+        </div>
+        <p style={{ fontSize: 13, color: "#1e3a8a", lineHeight: 1.6 }}>
+          Use o <strong>Bookmarklet do InvestSUS</strong> na aba Sincronizar para capturar os dados
+          diretamente do portal, enquanto você está logado em investsus.saude.gov.br.
+        </p>
+        <button style={S.btn("#0284c7")} onClick={() => {}}>
+          <RefreshCw size={13} /> Ir para Sincronizar
+        </button>
+      </div>
+    );
+  }
+
+  const d = snap.dados ?? {};
+  const capturado = snap.capturado_em ? snap.capturado_em.slice(0, 19).replace("T", " ") + " UTC" : "";
+
+  const kpis = [
+    { label: "Saldo em Conta",       valor: d.saldo_conta,      cor: "#059669", icone: <DollarSign size={18} /> },
+    { label: "Total a Receber",      valor: d.total_a_receber,  cor: "#0284c7", icone: <TrendingUp size={18} /> },
+    { label: "Repasses no Exercício",valor: d.repasses_exercicio,cor: "#7c3aed", icone: <BarChart3 size={18} /> },
+    { label: "Execução",             valor: d.execucao_pct != null ? fmtPct(d.execucao_pct) : "—",  cor: "#d97706", icone: <Activity size={18} /> },
+  ];
+
+  const fmtV = (v: any) => (typeof v === "number" ? fmt(v) : (v ?? "—"));
+
+  const blocos: { nome: string; transferido: number; executado: number }[] = d.blocos ?? [];
+  const CORES_BLOCOS = ["#1e3a5f", "#0284c7", "#059669", "#7c3aed", "#d97706", "#dc2626"];
+
+  const rps: { rp: string; valor: number }[] = d.repasses_por_categoria ?? [];
+
+  const siops: { fonte: string; total: number; executado: number }[] = d.siops ?? [];
+  const siopsCorMap: Record<string,string> = {
+    "Municipal": "#059669",
+    "Estadual":  "#0284c7",
+    "Federal":   "#7c3aed",
+    "Consolidado":"#d97706",
+  };
+
+  const execGeralPct = d.execucao_geral_pct ?? 0;
+  const donutData = [
+    { name: "Executado", value: execGeralPct, fill: "#059669" },
+    { name: "A executar", value: Math.max(0, 100 - execGeralPct), fill: "#e5e7eb" },
+  ];
+
+  return (
+    <div>
+      {/* Cabeçalho de snapshot */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 14px" }}>
+        <span style={{ fontSize: 12, color: "#64748b" }}>
+          <strong>Dados do portal InvestSUS</strong> — capturado em {capturado}
+        </span>
+        <span style={{ fontSize: 11, color: "#94a3b8" }}>Origem: {snap.origem}</span>
+      </div>
+
+      {/* KPI cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
+        {kpis.map(k => (
+          <div key={k.label} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "14px 16px", borderTop: `3px solid ${k.cor}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, color: k.cor }}>
+              {k.icone}
+              <span style={{ fontSize: 11, fontWeight: 600 }}>{k.label}</span>
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: k.cor }}>{fmtV(k.valor)}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Execução Geral + Blocos */}
+      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 12, marginBottom: 14 }}>
+        {/* Donut */}
+        <div style={S.card}>
+          <div style={{ ...S.title, textAlign: "center" as const }}>Execução Geral</div>
+          <div style={{ position: "relative", width: "100%", height: 160 }}>
+            <ResponsiveContainer width="100%" height={160}>
+              <PieChart>
+                <Pie data={donutData} cx="50%" cy="50%" innerRadius={50} outerRadius={72} dataKey="value" startAngle={90} endAngle={-270} strokeWidth={0}>
+                  {donutData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" as const }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#059669" }}>{fmtPct(execGeralPct)}</div>
+              <div style={{ fontSize: 10, color: "#6b7280" }}>executado</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Blocos */}
+        <div style={S.card}>
+          <div style={S.title}>Transferido × Executado por Bloco de Financiamento</div>
+          {blocos.length === 0 ? (
+            <div style={{ fontSize: 12, color: "#9ca3af", padding: 20, textAlign: "center" as const }}>
+              Nenhum dado de bloco disponível — capture via bookmarklet.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={140}>
+              <BarChart data={blocos} layout="vertical" margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
+                <XAxis type="number" tickFormatter={v => `R$${(v/1e6).toFixed(1)}M`} tick={{ fontSize: 10 }} />
+                <YAxis type="category" dataKey="nome" width={160} tick={{ fontSize: 10 }} />
+                <Tooltip formatter={(v: any) => fmt(v)} />
+                <Bar dataKey="transferido" name="Transferido" fill="#0284c7" radius={[0,4,4,0]} />
+                <Bar dataKey="executado"   name="Executado"   fill="#059669" radius={[0,4,4,0]} />
+                <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Repasses por Categoria + SIOPS */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+        {/* Repasses por RP */}
+        <div style={S.card}>
+          <div style={S.title}>Repasses por Categoria (RP)</div>
+          {rps.length === 0 ? (
+            <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center" as const, padding: 20 }}>Capture via bookmarklet</div>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: "#f9fafb" }}>
+                  <th style={{ textAlign: "left", padding: "5px 8px", color: "#374151" }}>RP</th>
+                  <th style={{ textAlign: "right", padding: "5px 8px", color: "#374151" }}>Valor</th>
+                  <th style={{ width: 80, padding: "5px 8px" }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rps.map((r, i) => {
+                  const total = rps.reduce((s, x) => s + (x.valor || 0), 0);
+                  const pct = total > 0 ? (r.valor / total) * 100 : 0;
+                  return (
+                    <tr key={i} style={{ borderTop: "1px solid #f3f4f6" }}>
+                      <td style={{ padding: "5px 8px", fontWeight: 600, color: CORES_BLOCOS[i % CORES_BLOCOS.length] }}>{r.rp}</td>
+                      <td style={{ padding: "5px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmt(r.valor)}</td>
+                      <td style={{ padding: "5px 8px" }}>
+                        <div style={{ background: "#e5e7eb", borderRadius: 3, height: 6 }}>
+                          <div style={{ background: CORES_BLOCOS[i % CORES_BLOCOS.length], height: 6, borderRadius: 3, width: `${pct}%` }} />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* SIOPS */}
+        <div style={S.card}>
+          <div style={S.title}>SIOPS — Aplicação de Recursos em Saúde</div>
+          {siops.length === 0 ? (
+            <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center" as const, padding: 20 }}>Capture via bookmarklet</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
+              {siops.map((s, i) => {
+                const cor = siopsCorMap[s.fonte] ?? "#6b7280";
+                const pct = s.total > 0 ? (s.executado / s.total) * 100 : 0;
+                return (
+                  <div key={i} style={{ border: `1px solid ${cor}30`, borderLeft: `4px solid ${cor}`, borderRadius: 6, padding: "8px 12px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: cor }}>{s.fonte}</span>
+                      <span style={{ fontSize: 11, color: "#6b7280" }}>{fmtPct(pct)} executado</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#374151", marginBottom: 4 }}>
+                      <span>Total: <strong>{fmt(s.total)}</strong></span>
+                      <span>Exec.: <strong style={{ color: "#059669" }}>{fmt(s.executado)}</strong></span>
+                    </div>
+                    <div style={{ background: "#e5e7eb", borderRadius: 4, height: 7 }}>
+                      <div style={{ background: cor, height: 7, borderRadius: 4, width: `${Math.min(100, pct)}%`, transition: "width .4s" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Sincronizar via browser (browser busca .gov.br, envia ao backend) ─────────
 const _CNPJ_FMS  = "12834320000126";   // FMS Apuí
 const _CNPJ_PREF = "04105419000151";   // Prefeitura Municipal de Apuí
@@ -1765,21 +1960,178 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
           </div>
         </div>
       </div>
+
+      <BookmarkletCaptura />
+    </div>
+  );
+}
+
+// ── Bookmarklet de captura do portal InvestSUS ────────────────────────────────
+function BookmarkletCaptura() {
+  const [gerado, setGerado] = useState(false);
+  const [copiado, setCop] = useState(false);
+  const [snapResult, setSnapResult] = useState<any>(null);
+  const [erroBm, setErroBm] = useState<string | null>(null);
+
+  const backendBase = window.location.origin;
+  const token = typeof window !== "undefined" ? (localStorage.getItem("ersus_token") || "") : "";
+
+  const bmScript = `(function(){
+var TOKEN="${token}";
+var BASE="${backendBase}";
+if(!location.hostname.includes("investsus.saude.gov.br")){
+  alert("Execute este script NA PÁGINA do portal InvestSUS (investsus.saude.gov.br)");
+  return;
+}
+function txt(el){return el?el.textContent.trim():""}
+function num(s){if(!s)return null;var n=parseFloat(s.replace(/[^\\d,.-]/g,"").replace(",","."));return isNaN(n)?null:n}
+function sel(css){return document.querySelector(css)}
+function sela(css){return Array.from(document.querySelectorAll(css))}
+
+// KPIs do cabeçalho
+var cards=sela(".card-kpi, .card-valor, [class*='kpi'], [class*='card-']");
+var kpi={};
+cards.forEach(function(c){
+  var lbl=txt(c.querySelector("span,label,p,small,.label,.titulo"));
+  var val=txt(c.querySelector("strong,h2,h3,.valor,.value,b"));
+  if(lbl&&val) kpi[lbl]=val;
+});
+
+// Fallback: pegar todos os textos de valores monetários visíveis
+var allText=document.body.innerText;
+var saldoM=allText.match(/Saldo em Conta[\\s\\S]{0,60}R\\$\\s*([\\d.,]+)/i);
+var receberM=allText.match(/Total a Receber[\\s\\S]{0,60}R\\$\\s*([\\d.,]+)/i);
+var repassesM=allText.match(/Repasses no Exerc[\\s\\S]{0,80}R\\$\\s*([\\d.,]+)/i);
+var execM=allText.match(/Execu[çc][aã]o[\\s\\S]{0,20}([\\d.,]+)\\s*%/i);
+var execGeralM=allText.match(/Execu[çc][aã]o Geral[\\s\\S]{0,20}([\\d.,]+)\\s*%/i);
+
+function parseNum(m){if(!m)return null;var s=m[1].replace(/\\./g,"").replace(",",".");return parseFloat(s)||null;}
+
+var dados={
+  saldo_conta: parseNum(saldoM),
+  total_a_receber: parseNum(receberM),
+  repasses_exercicio: parseNum(repassesM),
+  execucao_pct: parseNum(execM),
+  execucao_geral_pct: parseNum(execGeralM),
+  blocos:[],
+  repasses_por_categoria:[],
+  siops:[],
+  origem:"bookmarklet",
+  capturado_em: new Date().toISOString(),
+  url: location.href,
+  kpi_raw: kpi,
+};
+
+// Blocos
+var blocoEls=sela("[class*='bloco'] tr, table tr");
+blocoEls.forEach(function(tr){
+  var cells=sela.call(tr,"td,th");
+  if(cells.length>=3){
+    var nome=txt(cells[0]);
+    var trans=num(txt(cells[1]));
+    var exec=num(txt(cells[2]));
+    if(nome&&trans!=null) dados.blocos.push({nome:nome,transferido:trans,executado:exec||0});
+  }
+});
+
+// SIOPS
+var siopsLines=allText.match(/(Municipal|Estadual|Federal|Consolidado)[\\s\\S]{0,200}R\\$\\s*[\\d.,]+/gi)||[];
+["Municipal","Estadual","Federal","Consolidado"].forEach(function(fonte){
+  var rexT=new RegExp(fonte+"[\\\\s\\\\S]{0,200}?([\\\\d.]+,[\\\\d]+)","i");
+  var mT=allText.match(rexT);
+  if(mT) dados.siops.push({fonte:fonte,total:parseNum(mT),executado:0});
+});
+
+// Mostrar preview e confirmar
+var preview=JSON.stringify(dados,null,2).slice(0,500);
+if(!confirm("ERSUS360 — Capturar dados do InvestSUS?\\n\\nPreview:\\n"+preview+"\\n\\nEnviar para ERSUS360?")){return;}
+
+fetch(BASE+"/api/investsus/snapshot",{
+  method:"POST",
+  headers:{"Content-Type":"application/json","Authorization":"Bearer "+TOKEN},
+  body:JSON.stringify(dados)
+}).then(function(r){return r.json();}).then(function(r){
+  alert("✓ Dados enviados para ERSUS360! ID: "+r.id+"\\nAtualize a aba Painel MS.");
+}).catch(function(e){alert("Erro ao enviar: "+e.message);});
+})();`;
+
+  const bmUrl = "javascript:" + encodeURIComponent(bmScript);
+
+  const copiar = () => {
+    navigator.clipboard.writeText(bmScript).then(() => { setCop(true); setTimeout(() => setCop(false), 2000); });
+  };
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <Activity size={18} color="#0284c7" />
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#1e3a5f" }}>Capturar dados do portal InvestSUS</span>
+      </div>
+      <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, marginBottom: 16 }}>
+        O portal InvestSUS (investsus.saude.gov.br) mostra dados ricos de saldo, repasses e execução
+        que não estão disponíveis via API pública. Para capturá-los:
+      </div>
+
+      {!gerado ? (
+        <button style={{ background: "#0284c7", color: "#fff", border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+          onClick={() => setGerado(true)}>
+          Gerar Bookmarklet / Script de Captura
+        </button>
+      ) : (
+        <div>
+          <ol style={{ fontSize: 13, color: "#374151", lineHeight: 2, margin: "0 0 16px 16px", padding: 0 }}>
+            <li>Abra o portal InvestSUS e faça login em <strong>investsus.saude.gov.br</strong></li>
+            <li>Navegue até a tela principal (<code>home-gestor</code>)</li>
+            <li>Copie o código abaixo e cole no <strong>Console do navegador</strong> (F12 → Console)</li>
+            <li>Confirme o envio no diálogo que aparecer</li>
+            <li>Volte para o ERSUS360 e vá na aba <strong>Painel MS</strong> para ver os dados</li>
+          </ol>
+
+          <div style={{ position: "relative" }}>
+            <pre style={{ background: "#1e293b", color: "#e2e8f0", borderRadius: 8, padding: 16, fontSize: 11, lineHeight: 1.5, overflow: "auto", maxHeight: 200, margin: 0, whiteSpace: "pre-wrap" as const, wordBreak: "break-all" as const }}>
+              {bmScript}
+            </pre>
+            <button
+              onClick={copiar}
+              style={{ position: "absolute", top: 8, right: 8, background: copiado ? "#059669" : "#334155", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+              {copiado ? "✓ Copiado!" : "Copiar código"}
+            </button>
+          </div>
+
+          <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 12, color: "#64748b" }}>Ou arraste para a barra de favoritos:</span>
+            <a
+              href={bmUrl}
+              onClick={e => { e.preventDefault(); alert("Arraste este link para sua barra de favoritos, depois clique nele quando estiver na página do InvestSUS."); }}
+              style={{ background: "#0284c7", color: "#fff", borderRadius: 6, padding: "5px 14px", fontSize: 12, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>
+              📊 ERSUS360 Captura InvestSUS
+            </a>
+            <span style={{ fontSize: 11, color: "#94a3b8" }}>(arraste para favoritos)</span>
+          </div>
+
+          {!token && (
+            <div style={{ marginTop: 12, background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: "#92400e" }}>
+              ⚠️ Token de sessão não encontrado. Certifique-se de estar logado no ERSUS360 ao gerar o script.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 export default function InvestSUS() {
-  const [aba, setAba] = useState<"dashboard" | "propostas" | "alertas" | "importar" | "relatorio">("dashboard");
+  const [aba, setAba] = useState<"painel" | "dashboard" | "propostas" | "alertas" | "importar" | "relatorio" | "sincronizar">("painel");
   const [propostaSelecionada, setPropostaSelecionada] = useState<any>(null);
   const municipio_id = 1; // TODO: pegar do contexto de autenticação
 
   const abas = [
-    { key: "dashboard",  label: "Dashboard",  icone: <BarChart3 size={13} /> },
-    { key: "propostas",  label: "Propostas",  icone: <FileText size={13} /> },
-    { key: "alertas",    label: "Alertas",    icone: <Bell size={13} /> },
-    { key: "sincronizar", label: "Sincronizar", icone: <RefreshCw size={13} /> },
-    { key: "relatorio",  label: "Relatório",  icone: <Download size={13} /> },
+    { key: "painel",     label: "Painel MS",   icone: <Activity size={13} /> },
+    { key: "dashboard",  label: "Dashboard",   icone: <BarChart3 size={13} /> },
+    { key: "propostas",  label: "Propostas",   icone: <FileText size={13} /> },
+    { key: "alertas",    label: "Alertas",     icone: <Bell size={13} /> },
+    { key: "sincronizar",label: "Sincronizar", icone: <RefreshCw size={13} /> },
+    { key: "relatorio",  label: "Relatório",   icone: <Download size={13} /> },
   ] as const;
 
   return (
@@ -1818,6 +2170,8 @@ export default function InvestSUS() {
           municipio_id={municipio_id}
           onVoltar={() => setPropostaSelecionada(null)}
         />
+      ) : aba === "painel" ? (
+        <PainelPortalInvestSUS municipio_id={municipio_id} />
       ) : aba === "dashboard" ? (
         <DashboardInvestSUS municipio_id={municipio_id} />
       ) : aba === "propostas" ? (

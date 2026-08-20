@@ -1524,3 +1524,44 @@ async def salvar_dados_sincronizados(payload: dict, db: DbDep, user: UserDep):
         "repasses": len(payload.get("repasses", [])),
         "erros": [],
     }
+
+
+# ── Snapshot do portal InvestSUS (capturado via bookmarklet) ──────────────────
+
+@router.post("/snapshot")
+async def salvar_snapshot(payload: dict, db: DbDep, user: UserDep):
+    """Salva snapshot dos dados capturados do portal InvestSUS via bookmarklet."""
+    from models.investsus import SnapshotInvestSUS
+    mid = _municipio_id(user)
+    snap = SnapshotInvestSUS(
+        municipio_id=mid,
+        dados=payload,
+        origem=payload.get("origem", "bookmarklet"),
+    )
+    db.add(snap)
+    await db.commit()
+    await db.refresh(snap)
+    return {"ok": True, "id": snap.id, "capturado_em": snap.capturado_em.isoformat()}
+
+
+@router.get("/snapshot")
+async def get_snapshot(db: DbDep, user: UserDep):
+    """Retorna o snapshot mais recente do portal InvestSUS."""
+    from models.investsus import SnapshotInvestSUS
+    from sqlalchemy import desc
+    mid = _municipio_id(user)
+    result = await db.execute(
+        select(SnapshotInvestSUS)
+        .where(SnapshotInvestSUS.municipio_id == mid)
+        .order_by(desc(SnapshotInvestSUS.capturado_em))
+        .limit(1)
+    )
+    snap = result.scalar_one_or_none()
+    if not snap:
+        return None
+    return {
+        "id": snap.id,
+        "capturado_em": snap.capturado_em.isoformat(),
+        "origem": snap.origem,
+        "dados": snap.dados,
+    }

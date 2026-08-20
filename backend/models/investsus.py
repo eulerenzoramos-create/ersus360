@@ -468,3 +468,19 @@ class AtualizacaoManual(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     proposta: Mapped["PropostaInvestSUS"] = relationship(back_populates="atualizacoes")
+
+
+# ── Snapshot do portal InvestSUS (capturado via bookmarklet) ──────────────────
+
+class SnapshotInvestSUS(Base):
+    __tablename__ = "is_snapshots"
+    __table_args__ = (
+        Index("ix_is_snapshots_municipio", "municipio_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
+    capturado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    origem: Mapped[str] = mapped_column(String(50), default="bookmarklet")
+    dados: Mapped[dict] = mapped_column(JSON, nullable=False)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

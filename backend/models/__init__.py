@@ -67,3 +67,9 @@ __all__ = [
 ]
 
 from models.transferencia_fns import TransferenciaFns, ColetaFns
+from models.investsus import (
+    Parlamentar, ProgramaInvestSUS, PropostaInvestSUS, HistoricoSituacao,
+    UnidadeBeneficiada, PlanoTrabalho, AcaoServico, NaturezaDespesa,
+    Parecer, PagamentoInvestSUS, AlertaInvestSUS, DocumentoInvestSUS,
+    AtualizacaoManual, SnapshotInvestSUS,
+)
