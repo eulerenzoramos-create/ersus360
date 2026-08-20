@@ -253,9 +253,13 @@ async def _autenticar() -> Optional[str]:
         # JSON
         (f"{BASE}/api/auth",  {"username": usuario, "password": senha}, None),
         (f"{BASE}/api/auth",  {"login": usuario,    "senha": senha},    None),
-        # Keycloak / OAuth2 form-urlencoded
+        # Keycloak — client_ids conhecidos do eSUS PEC
+        (f"{BASE}/auth/realms/esus-pec/protocol/openid-connect/token", None,
+         {"grant_type": "password", "client_id": "ehr-client", "username": usuario, "password": senha}),
         (f"{BASE}/auth/realms/esus-pec/protocol/openid-connect/token", None,
          {"grant_type": "password", "client_id": "esus-pec", "username": usuario, "password": senha}),
+        (f"{BASE}/auth/realms/esus-pec/protocol/openid-connect/token", None,
+         {"grant_type": "password", "client_id": "pec", "username": usuario, "password": senha}),
     ]
     for url, json_body, form_body in rest_tentativas:
         try:

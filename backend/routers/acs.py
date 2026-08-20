@@ -179,6 +179,33 @@ async def microareas(_: UserOut = Depends(get_current_user)):
     }
 
 
+@router.post("/esus/snapshot")
+async def salvar_snapshot_esus(payload: dict, _: UserOut = Depends(get_current_user)):
+    """Recebe snapshot capturado pelo bookmarklet do e-SUS PEC."""
+    from datetime import datetime
+    import json, os
+    snap_dir = "/tmp/esus_snapshots"
+    os.makedirs(snap_dir, exist_ok=True)
+    ts = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+    with open(f"{snap_dir}/snap_{ts}.json", "w") as f:
+        json.dump(payload, f)
+    # Salva o mais recente como "latest"
+    with open(f"{snap_dir}/latest.json", "w") as f:
+        json.dump({**payload, "capturado_em": datetime.utcnow().isoformat()}, f)
+    return {"ok": True, "capturado_em": datetime.utcnow().isoformat()}
+
+
+@router.get("/esus/snapshot")
+async def get_snapshot_esus(_: UserOut = Depends(get_current_user)):
+    """Retorna o último snapshot capturado pelo bookmarklet."""
+    import json, os
+    path = "/tmp/esus_snapshots/latest.json"
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
+        return json.load(f)
+
+
 @router.get("/esus/status")
 async def esus_status():
     resultado = await _esus.testar_conexao()
@@ -193,30 +220,135 @@ async def esus_status():
     }
 
 
+@router.get("/esus/debug-login")
+async def esus_debug_login():
+    """Endpoint temporário de diagnóstico — retorna resposta bruta do GraphQL."""
+    import httpx
+    from config import settings
+    base = settings.ESUS_URL.rstrip("/")
+    usuario = settings.ESUS_USUARIO
+    senha = settings.ESUS_SENHA
+    if not (usuario and senha):
+        return {"erro": "ESUS_USUARIO ou ESUS_SENHA não configurados", "usuario_vazio": not usuario, "senha_vazia": not senha}
+
+    resultados = []
+    mutations = [
+        ("v5_sem_input", """mutation Login($login:String!,$senha:String!){autenticar(login:$login,senha:$senha){sessionToken dadoInstancia{nome versao municipio{nome}}}}"""),
+        ("v4_com_input", """mutation Login($login:String!,$senha:String!){autenticar(input:{login:$login,senha:$senha}){sessionToken dadoInstancia{nome versao municipio{nome}}}}"""),
+    ]
+    for nome, gql in mutations:
+        try:
+            async with httpx.AsyncClient(timeout=15, verify=False, follow_redirects=True) as cli:
+                r = await cli.post(
+                    f"{base}/graphql",
+                    json={"query": gql, "variables": {"login": usuario, "senha": senha}},
+                    headers={"Content-Type": "application/json", "Accept": "application/json"},
+                )
+                resultados.append({
+                    "mutation": nome,
+                    "status_http": r.status_code,
+                    "body": r.text[:2000],
+                })
+        except Exception as exc:
+            resultados.append({"mutation": nome, "erro": str(exc)})
+
+    # Testa também o path sem /graphql
+    try:
+        async with httpx.AsyncClient(timeout=8, verify=False, follow_redirects=True) as cli:
+            r2 = await cli.get(f"{base}/", headers={"Accept": "application/json"})
+            resultados.append({"home_status": r2.status_code, "home_body_prefix": r2.text[:300]})
+    except Exception as exc:
+        resultados.append({"home_erro": str(exc)})
+
+    return {"base": base, "usuario_len": len(usuario), "resultados": resultados}
+
+
 @router.get("/esus/visitas")
 async def esus_visitas(_: UserOut = Depends(get_current_user)):
     competencia = date.today().strftime("%Y-%m")
     dados = await _esus.buscar_producao(competencia)
-    return {"situacao_dado": dados.get("situacao_dado", "oficial_validado"), "dados": dados}
+    return {"fonte": dados.get("fonte", "offline"), "dados": dados}
+
+
+@router.get("/esus/visitas-detalhe")
+async def esus_visitas_detalhe(
+    competencia: Optional[str] = Query(None),
+    _: UserOut = Depends(get_current_user)
+):
+    comp = competencia or date.today().strftime("%Y-%m")
+    dados = await _esus.buscar_visitas_detalhe(comp)
+    return {"fonte": dados.get("fonte", "offline"), "dados": dados}
 
 
 @router.get("/esus/calendario-visitas")
-async def esus_calendario(_: UserOut = Depends(get_current_user)):
-    competencia = date.today().strftime("%Y-%m")
-    dados = await _esus.buscar_producao(competencia)
-    return {"situacao_dado": dados.get("situacao_dado", "oficial_validado"), "dados": dados}
+async def esus_calendario(
+    competencia: Optional[str] = Query(None),
+    _: UserOut = Depends(get_current_user)
+):
+    comp = competencia or date.today().strftime("%Y-%m")
+    dados = await _esus.buscar_visitas_detalhe(comp)
+    # Mapeia para o formato que o frontend espera (eventos com dia/programadas/realizadas)
+    fonte = dados.get("fonte", "offline")
+    if fonte == "esus_pec":
+        eventos = [
+            {"dia": c["dia"], "programadas": c["programadas"], "realizadas": c["realizadas"]}
+            for c in dados.get("calendario", [])
+        ]
+        return {
+            "fonte": "esus_pec",
+            "eventos": eventos,
+            "dias": 31,
+            "total_visitas": dados.get("total_visitas", 0),
+            "por_acs": dados.get("por_acs", []),
+            "por_microarea": dados.get("por_microarea", []),
+            "competencia": comp,
+        }
+    return {"fonte": "offline", "eventos": [], "dias": 31,
+            "nota": dados.get("nota", "Configure ESUS_USUARIO e ESUS_SENHA no Railway.")}
 
 
 @router.get("/esus/cadastros-individuais")
-async def esus_cadastros_ind(_: UserOut = Depends(get_current_user)):
-    dados = await _esus.buscar_cadastros()
-    return {"situacao_dado": dados.get("situacao_dado", "oficial_validado"), "dados": dados}
+async def esus_cadastros_ind(
+    pagina: int = Query(0),
+    tamanho: int = Query(50),
+    _: UserOut = Depends(get_current_user)
+):
+    dados = await _esus.buscar_cidadaos(pagina, tamanho)
+    return {"fonte": dados.get("fonte", "offline"), "dados": dados}
 
 
 @router.get("/esus/cadastros-domiciliares")
-async def esus_cadastros_dom(_: UserOut = Depends(get_current_user)):
-    dados = await _esus.buscar_cadastros()
-    return {"situacao_dado": dados.get("situacao_dado", "oficial_validado"), "dados": dados}
+async def esus_cadastros_dom(
+    pagina: int = Query(0),
+    tamanho: int = Query(50),
+    _: UserOut = Depends(get_current_user)
+):
+    dados = await _esus.buscar_domicilios(pagina, tamanho)
+    return {"fonte": dados.get("fonte", "offline"), "dados": dados}
+
+
+@router.get("/esus/acs")
+async def esus_lista_acs(_: UserOut = Depends(get_current_user)):
+    """Lista ACS cadastrados no eSUS PEC (CBO 515140)."""
+    dados = await _esus.buscar_acs_esus()
+    return {"fonte": dados.get("fonte", "offline"), "dados": dados}
+
+
+@router.get("/esus/territorios")
+async def esus_territorios(_: UserOut = Depends(get_current_user)):
+    """Territórios/equipes cadastrados no eSUS PEC."""
+    dados = await _esus.buscar_territorios()
+    return {"fonte": dados.get("fonte", "offline"), "dados": dados}
+
+
+@router.get("/esus/tempo-real")
+async def esus_tempo_real(
+    competencia: Optional[str] = Query(None),
+    _: UserOut = Depends(get_current_user)
+):
+    """Dados consolidados em tempo real: produção + cadastros + ACS."""
+    dados = await _esus.buscar_tempo_real(competencia)
+    return {"fonte": dados.get("fonte", "offline"), "dados": dados}
 
 
 @router.get("/{acs_id}")

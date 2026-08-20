@@ -8,7 +8,7 @@ import {
   User, FileText, Search, Filter, Calendar, Wifi, WifiOff,
   BarChart2, Navigation, ClipboardList, Building2, TrendingUp,
 } from "lucide-react";
-import { apiGet } from "../lib/api";
+import { apiGet, apiPost } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import ACSGeoPage from "./ACSGeoPage";
 
@@ -50,7 +50,7 @@ interface Microarea {
 
 interface EsusStatus { conectado: boolean; autenticado: boolean; url: string; versao: string | null; instancia?: string | null; municipio?: string | null }
 
-type Aba = "dashboard" | "visitas" | "calendario" | "cadastros_ind" | "cadastros_dom" | "lista" | "microareas" | "geo" | "sis";
+type Aba = "dashboard" | "visitas" | "calendario" | "cadastros_ind" | "cadastros_dom" | "lista" | "microareas" | "geo" | "sis" | "capturar";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -247,15 +247,16 @@ function AbaCalendario() {
 
   const todosAcs: AcsItem[] = listaData?.acs ?? [];
 
-  // Calendário do ACS selecionado (ou geral)
+  // Calendário do eSUS PEC (dados reais)
   const { data, isLoading } = useQuery({
-    queryKey: ["acs-calendario", acsSel?.id ?? null],
-    queryFn: () => apiGet("/api/acs/esus/calendario-visitas", acsSel ? { acs_id: acsSel.id } : undefined) as Promise<any>,
+    queryKey: ["acs-calendario-esus"],
+    queryFn: () => apiGet("/api/acs/esus/calendario-visitas") as Promise<any>,
     staleTime: 120_000,
   });
 
+  const fonte   = data?.fonte ?? "offline";
   const eventos = data?.eventos ?? [];
-  const dias = data?.dias ?? 31;
+  const dias    = data?.dias ?? 31;
 
   // Agrupar por dia
   const porDia: Record<number, { prog: number; real: number }> = {};
@@ -265,8 +266,8 @@ function AbaCalendario() {
     porDia[e.dia].real += e.realizadas;
   });
 
-  const totalProg = Object.values(porDia).reduce((s, d) => s + d.prog, 0);
-  const totalReal = Object.values(porDia).reduce((s, d) => s + d.real, 0);
+  const totalProg = Object.values(porDia).reduce((s, d) => s + d.prog, 0) || (fonte === "offline" ? 0 : 0);
+  const totalReal = Object.values(porDia).reduce((s, d) => s + d.real, 0) || (data?.total_visitas ?? 0);
   const pct = totalProg > 0 ? Math.round(totalReal / totalProg * 100) : 0;
 
   // Agrupar ACS por equipe para o painel lateral
@@ -429,94 +430,428 @@ function AbaCalendario() {
   );
 }
 
+// ── Banner offline ────────────────────────────────────────────────────────────
+function OfflineBanner({ emoji, titulo, nota }: { emoji: string; titulo: string; nota?: string }) {
+  return (
+    <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "32px 24px", textAlign: "center" }}>
+      <div style={{ fontSize: 36, marginBottom: 12 }}>{emoji}</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: "#b91c1c", marginBottom: 8 }}>{titulo}</div>
+      <div style={{ fontSize: 13, color: "#6b7280" }}>{nota ?? "Configure ESUS_USUARIO e ESUS_SENHA no Railway para exibir dados em tempo real."}</div>
+    </div>
+  );
+}
+
+function ConectadoBanner({ texto }: { texto: string }) {
+  return (
+    <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ fontSize: 16 }}>✅</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>e-SUS PEC conectado</span>
+      {texto && <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 8 }}>{texto}</span>}
+    </div>
+  );
+}
+
 // ── Aba Cadastros Individuais ─────────────────────────────────────────────────
 
 function AbaCadastrosIndividuais() {
-  const [pagina] = useState(0);
+  const [pagina, setPagina] = useState(0);
+  const [busca,  setBusca]  = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["acs-cad-ind", pagina],
-    queryFn: () => apiGet("/api/acs/esus/cadastros-individuais", { pagina }) as Promise<any>,
+    queryFn: () => apiGet("/api/acs/esus/cadastros-individuais", { pagina, tamanho: 50 }) as Promise<any>,
     staleTime: 120_000,
   });
 
   if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando cadastros do e-SUS PEC...</div>;
 
   const cad = data?.dados;
-  if (cad?.fonte === "esus_pec") {
+  const conectado = data?.fonte === "esus_pec";
+
+  if (conectado) {
+    const cidadaos: any[] = cad?.cidadaos ?? [];
+    const filtrado = busca
+      ? cidadaos.filter(c => (c.nome ?? "").toLowerCase().includes(busca.toLowerCase()) || (c.cns ?? "").includes(busca) || (c.cpf ?? "").includes(busca))
+      : cidadaos;
     return (
       <div>
-        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 16 }}>✅</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>e-SUS PEC conectado</span>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14 }}>
-          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "28px 20px", textAlign: "center" }}>
-            <div style={{ fontSize: 52, fontWeight: 800, color: "#1351b4" }}>{(cad.individuais ?? 0).toLocaleString("pt-BR")}</div>
-            <div style={{ fontSize: 13, color: "#6b7280", marginTop: 6 }}>Cidadãos Cadastrados Individualmente</div>
+        <ConectadoBanner texto={`${(cad?.total ?? 0).toLocaleString("pt-BR")} cidadãos cadastrados · Apuí/AM`} />
+        <div style={{ display: "flex", gap: 12, marginBottom: 14, alignItems: "center" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px" }}>
+            <Search size={14} color="#9ca3af" />
+            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por nome, CNS ou CPF..."
+              style={{ border: "none", outline: "none", fontSize: 13, flex: 1, background: "transparent" }} />
           </div>
-          <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px", fontSize: 13, color: "#6b7280" }}>
-            <p>O e-SUS PEC fornece o <strong>total consolidado</strong> de cadastros individuais via API GraphQL.</p>
-            <p style={{ marginTop: 12 }}>Para visualizar fichas individuais, acesse o módulo de Cadastros dentro do próprio e-SUS PEC.</p>
-            <p style={{ marginTop: 12, fontSize: 11 }}>Fonte: e-SUS PEC · Apuí/AM · IBGE 1300144</p>
-          </div>
+          <div style={{ fontSize: 12, color: "#9ca3af" }}>Pág. {pagina + 1}/{cad?.total_paginas ?? 1} · {(cad?.total ?? 0).toLocaleString("pt-BR")} total</div>
+          <button onClick={() => setPagina(p => Math.max(0, p - 1))} disabled={pagina === 0}
+            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", background: pagina === 0 ? "#f9fafb" : "#fff", cursor: pagina === 0 ? "not-allowed" : "pointer", fontSize: 12 }}>← Ant.</button>
+          <button onClick={() => setPagina(p => p + 1)} disabled={!cad?.tem_proxima}
+            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", background: !cad?.tem_proxima ? "#f9fafb" : "#fff", cursor: !cad?.tem_proxima ? "not-allowed" : "pointer", fontSize: 12 }}>Próx. →</button>
         </div>
+        <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e4e7ec", overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+                {["Nome","CNS","CPF","Dt. Nasc.","Sexo","Equipe","Microárea"].map(h => (
+                  <th key={h} style={{ padding: "10px 14px", textAlign: "left" as const, fontWeight: 700, color: "#374151", whiteSpace: "nowrap" as const }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtrado.length === 0 ? (
+                <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>Nenhum registro encontrado</td></tr>
+              ) : filtrado.map((c: any, i: number) => (
+                <tr key={c.id ?? i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                  <td style={{ padding: "9px 14px", fontWeight: 500 }}>{c.nome ?? "—"}</td>
+                  <td style={{ padding: "9px 14px", fontFamily: "monospace", color: "#6b7280" }}>{c.cns ?? "—"}</td>
+                  <td style={{ padding: "9px 14px", fontFamily: "monospace", color: "#6b7280" }}>{c.cpf ?? "—"}</td>
+                  <td style={{ padding: "9px 14px", color: "#6b7280" }}>{c.data_nascimento ?? "—"}</td>
+                  <td style={{ padding: "9px 14px", color: "#6b7280" }}>{c.sexo ?? "—"}</td>
+                  <td style={{ padding: "9px 14px", color: "#1351b4", fontWeight: 600 }}>{c.equipe ?? "—"}</td>
+                  <td style={{ padding: "9px 14px", color: "#6b7280" }}>{c.microarea ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 10 }}>Fonte: e-SUS PEC · Apuí/AM · IBGE 1300144</div>
       </div>
     );
   }
 
-  return (
-    <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "32px 24px", textAlign: "center" }}>
-      <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: "#b91c1c", marginBottom: 8 }}>e-SUS PEC Offline</div>
-      <div style={{ fontSize: 13, color: "#6b7280" }}>{cad?.nota ?? "Configure ESUS_USUARIO e ESUS_SENHA no Railway para acessar cadastros individuais em tempo real."}</div>
-    </div>
-  );
+  return <OfflineBanner emoji="📋" titulo="e-SUS PEC Offline" nota={cad?.nota} />;
 }
 
 
 // ── Aba Cadastros Domiciliares ────────────────────────────────────────────────
 
 function AbaCadastrosDomiciliares() {
+  const [pagina, setPagina] = useState(0);
+  const [busca,  setBusca]  = useState("");
+
   const { data, isLoading } = useQuery({
-    queryKey: ["acs-cad-dom"],
-    queryFn: () => apiGet("/api/acs/esus/cadastros-domiciliares") as Promise<any>,
+    queryKey: ["acs-cad-dom", pagina],
+    queryFn: () => apiGet("/api/acs/esus/cadastros-domiciliares", { pagina, tamanho: 50 }) as Promise<any>,
     staleTime: 120_000,
   });
 
-  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando cadastros domiciliares do e-SUS PEC...</div>;
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando domicílios do e-SUS PEC...</div>;
 
   const cad = data?.dados;
-  if (cad?.fonte === "esus_pec") {
+  const conectado = data?.fonte === "esus_pec";
+
+  if (conectado) {
+    const domicilios: any[] = cad?.domicilios ?? [];
+    const filtrado = busca
+      ? domicilios.filter(d => (d.logradouro ?? "").toLowerCase().includes(busca.toLowerCase()) || (d.bairro ?? "").toLowerCase().includes(busca.toLowerCase()) || (d.microarea ?? "").includes(busca))
+      : domicilios;
     return (
       <div>
-        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 16 }}>✅</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>e-SUS PEC conectado</span>
+        <ConectadoBanner texto={`${(cad?.total ?? 0).toLocaleString("pt-BR")} domicílios · Apuí/AM`} />
+        <div style={{ display: "flex", gap: 12, marginBottom: 14, alignItems: "center" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px" }}>
+            <Search size={14} color="#9ca3af" />
+            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por logradouro, bairro ou microárea..."
+              style={{ border: "none", outline: "none", fontSize: 13, flex: 1, background: "transparent" }} />
+          </div>
+          <div style={{ fontSize: 12, color: "#9ca3af" }}>Pág. {pagina + 1}/{cad?.total_paginas ?? 1}</div>
+          <button onClick={() => setPagina(p => Math.max(0, p - 1))} disabled={pagina === 0}
+            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", cursor: pagina === 0 ? "not-allowed" : "pointer", fontSize: 12 }}>← Ant.</button>
+          <button onClick={() => setPagina(p => p + 1)} disabled={!cad?.tem_proxima}
+            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", cursor: !cad?.tem_proxima ? "not-allowed" : "pointer", fontSize: 12 }}>Próx. →</button>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14 }}>
-          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "28px 20px", textAlign: "center" }}>
-            <div style={{ fontSize: 52, fontWeight: 800, color: "#1351b4" }}>{(cad.individuais ?? 0).toLocaleString("pt-BR")}</div>
-            <div style={{ fontSize: 13, color: "#6b7280", marginTop: 6 }}>Cidadãos Cadastrados (total via e-SUS PEC)</div>
+        <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e4e7ec", overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+                {["Logradouro","Nº","Bairro","CEP","Microárea","Famílias"].map(h => (
+                  <th key={h} style={{ padding: "10px 14px", textAlign: "left" as const, fontWeight: 700, color: "#374151" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtrado.length === 0 ? (
+                <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>Nenhum registro encontrado</td></tr>
+              ) : filtrado.map((d: any, i: number) => (
+                <tr key={d.id ?? i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                  <td style={{ padding: "9px 14px", fontWeight: 500 }}>{d.logradouro || "—"}</td>
+                  <td style={{ padding: "9px 14px", color: "#6b7280" }}>{d.numero ?? "s/n"}</td>
+                  <td style={{ padding: "9px 14px", color: "#6b7280" }}>{d.bairro ?? "—"}</td>
+                  <td style={{ padding: "9px 14px", color: "#6b7280", fontFamily: "monospace" }}>{d.cep ?? "—"}</td>
+                  <td style={{ padding: "9px 14px", color: "#1351b4", fontWeight: 600 }}>{d.microarea ?? "—"}</td>
+                  <td style={{ padding: "9px 14px", color: "#16a34a", fontWeight: 700 }}>{d.familias ?? 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 10 }}>Fonte: e-SUS PEC · Apuí/AM · IBGE 1300144</div>
+      </div>
+    );
+  }
+
+  return <OfflineBanner emoji="🏠" titulo="e-SUS PEC Offline" nota={cad?.nota} />;
+}
+
+// ── Aba Lista ACS com dados eSUS PEC ─────────────────────────────────────────
+
+function AbaListaAcs({ acsRef }: { acsRef: AcsItem[] }) {
+  const [busca, setBusca]   = useState("");
+  const [filtroEq, setFiltroEq] = useState("Todas");
+
+  const { data: esusAcs } = useQuery({
+    queryKey: ["esus-acs"],
+    queryFn: () => apiGet("/api/acs/esus/acs") as Promise<any>,
+    staleTime: 300_000,
+    retry: false,
+  });
+
+  const conectado = esusAcs?.fonte === "esus_pec";
+  const acsList: any[] = conectado ? (esusAcs?.dados?.acs ?? []) : acsRef;
+
+  const equipes = ["Todas", ...Array.from(new Set(acsList.map((a: any) => a.equipe ?? a.equipe).filter(Boolean))) as string[]];
+
+  const filtrado = acsList.filter((a: any) => {
+    const okBusca = !busca || (a.nome ?? "").toLowerCase().includes(busca.toLowerCase()) || (a.cns ?? "").includes(busca);
+    const okEq    = filtroEq === "Todas" || a.equipe === filtroEq;
+    return okBusca && okEq;
+  });
+
+  return (
+    <div>
+      {conectado && <ConectadoBanner texto={`${esusAcs?.dados?.total ?? 0} ACS no e-SUS PEC · CBO 515140`} />}
+      {!conectado && (
+        <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#92400e" }}>
+          ⚠ Dados de referência CNES — configure ESUS_USUARIO e ESUS_SENHA no Railway para dados reais do e-SUS PEC.
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" as const, alignItems: "center" }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px" }}>
+          <Search size={14} color="#9ca3af" />
+          <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar ACS por nome ou CNS..."
+            style={{ border: "none", outline: "none", fontSize: 13, flex: 1, background: "transparent" }} />
+        </div>
+        <select value={filtroEq} onChange={e => setFiltroEq(e.target.value)}
+          style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12, background: "#fff" }}>
+          {equipes.map(e => <option key={e} value={e}>{e}</option>)}
+        </select>
+        <span style={{ fontSize: 12, color: "#9ca3af" }}>{filtrado.length} ACS</span>
+      </div>
+      <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e4e7ec", overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+          <thead>
+            <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+              {["Nome","CNS","CBO","Unidade","Equipe","INE"].map(h => (
+                <th key={h} style={{ padding: "10px 14px", textAlign: "left" as const, fontWeight: 700, color: "#374151" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtrado.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>Nenhum ACS encontrado</td></tr>
+            ) : filtrado.map((a: any, i: number) => {
+              const cor = ESF_COR[a.equipe ?? ""] || "#6b7280";
+              return (
+                <tr key={a.id ?? a.cns ?? i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                  <td style={{ padding: "9px 14px", fontWeight: 600 }}>{a.nome}</td>
+                  <td style={{ padding: "9px 14px", fontFamily: "monospace", color: "#6b7280" }}>{a.cns ?? "—"}</td>
+                  <td style={{ padding: "9px 14px", color: "#6b7280", fontSize: 11 }}>{a.cbo ?? "ACS"}</td>
+                  <td style={{ padding: "9px 14px", color: "#6b7280" }}>{a.unidade ?? "—"}</td>
+                  <td style={{ padding: "9px 14px" }}>
+                    <span style={{ background: `${cor}15`, color: cor, padding: "2px 8px", borderRadius: 6, fontWeight: 700, fontSize: 11 }}>{a.equipe ?? "—"}</span>
+                  </td>
+                  <td style={{ padding: "9px 14px", fontFamily: "monospace", color: "#9ca3af", fontSize: 10 }}>{a.ine ?? "—"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 10 }}>
+        Fonte: {conectado ? "e-SUS PEC · Apuí/AM · IBGE 1300144" : "CNES / Referência Municipal"}
+      </div>
+    </div>
+  );
+}
+
+// ── Aba Microáreas com dados eSUS PEC ─────────────────────────────────────────
+
+function AbaMicroareas({ maRef }: { maRef: any[] }) {
+  const { data: terr } = useQuery({
+    queryKey: ["esus-territorios"],
+    queryFn: () => apiGet("/api/acs/esus/territorios") as Promise<any>,
+    staleTime: 300_000,
+    retry: false,
+  });
+
+  const conectado = terr?.fonte === "esus_pec";
+  const microareas = maRef; // sempre mostra referência; enriquece com eSUS se disponível
+
+  return (
+    <div>
+      {conectado && <ConectadoBanner texto={`${terr?.dados?.total ?? 0} territórios no e-SUS PEC`} />}
+      {!conectado && (
+        <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#92400e" }}>
+          ⚠ Dados de referência — configure credenciais no Railway para territórios reais do e-SUS PEC.
+        </div>
+      )}
+
+      {/* Se eSUS conectado, mostra territórios reais */}
+      {conectado && terr?.dados?.territorios?.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: "#1351b4" }}>📍 Territórios / Equipes — e-SUS PEC</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12, marginBottom: 16 }}>
+            {(terr.dados.territorios as any[]).map((t: any, i: number) => (
+              <div key={t.ine ?? i} style={{ background: "#fff", border: "1px solid #bfdbfe", borderTop: "4px solid #1351b4", borderRadius: 10, padding: "14px 16px" }}>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{t.nome || `Equipe ${i+1}`}</div>
+                <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>INE: {t.ine ?? "—"} · {t.tipo}</div>
+                <div style={{ fontSize: 12, color: "#374151" }}>Unidade: {t.unidade ?? "—"}</div>
+                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{t.total_mas} microáreas</div>
+                {t.profissionais?.length > 0 && (
+                  <div style={{ fontSize: 10, color: "#6b7280", marginTop: 6, borderTop: "1px solid #f3f4f6", paddingTop: 6 }}>
+                    ACS: {t.profissionais.slice(0, 3).join(", ")}{t.profissionais.length > 3 ? ` +${t.profissionais.length - 3}` : ""}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-          <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px", fontSize: 13, color: "#6b7280" }}>
-            <p>O e-SUS PEC fornece o <strong>total consolidado</strong> de cidadãos cadastrados via API GraphQL.</p>
-            <p style={{ marginTop: 12 }}>Para visualizar domicílios individuais, acesse o módulo de Cadastros no e-SUS PEC.</p>
-            <p style={{ marginTop: 12, fontSize: 11 }}>Fonte: e-SUS PEC · Apuí/AM · IBGE 1300144</p>
-          </div>
+        </div>
+      )}
+
+      {/* Sempre mostra microáreas de referência */}
+      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Microáreas — Dados CNES de Referência</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 12 }}>
+        {microareas.map((ma: any) => {
+          const cor = SEM_COR[ma.semaforo];
+          return (
+            <div key={ma.codigo} style={{ background: "#fff", border: `1px solid ${cor}30`, borderTop: `4px solid ${cor}`, borderRadius: 10, padding: "14px 16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{ma.codigo}</div>
+                  <div style={{ fontSize: 12, color: "#6b7280" }}>{ma.nome}</div>
+                  <div style={{ fontSize: 10, color: "#9ca3af" }}>{ma.zona === "urbana" ? "🏙 Urbana" : "🌲 Rural"} · {ma.equipe}</div>
+                </div>
+                <div style={{ background: `${cor}18`, color: cor, fontSize: 14, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{ma.pct_cobertura}%</div>
+              </div>
+              <Bar pct={ma.pct_cobertura} cor={cor} height={8} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9ca3af", marginTop: 6 }}>
+                <span>{ma.familias_cadastradas}/{ma.familias_meta} fam. · {ma.pct_visitas}% vis.</span>
+                {ma.gestantes_ativas > 0 && <span style={{ color: "#7c3aed" }}>♀ {ma.gestantes_ativas}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 16, marginTop: 16, fontSize: 11, color: "#9ca3af" }}>
+        {[{cor:"#16a34a",l:"≥90%"},{cor:"#d97706",l:"70-89%"},{cor:"#dc2626",l:"<70%"}].map(x => (
+          <span key={x.l} style={{ display:"flex",alignItems:"center",gap:4 }}><span style={{ width:10,height:10,borderRadius:2,background:x.cor,display:"inline-block" }}/>{x.l} cobertura</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Aba Tempo Real ────────────────────────────────────────────────────────────
+
+function AbaTempoReal() {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["esus-tempo-real"],
+    queryFn: () => apiGet("/api/acs/esus/tempo-real") as Promise<any>,
+    staleTime: 60_000,
+    refetchInterval: 120_000, // atualiza a cada 2 min
+  });
+
+  const conectado = data?.fonte === "esus_pec";
+  const d         = data?.dados;
+  const prod      = d?.producao;
+  const cad       = d?.cadastros;
+  const ts        = d?.ts_verificacao ?? data?.dados?.ts_verificacao;
+  const tsLabel   = ts ? new Date(ts).toLocaleTimeString("pt-BR") : "—";
+
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Consultando e-SUS PEC em tempo real...</div>;
+
+  if (!conectado) {
+    return (
+      <div>
+        <OfflineBanner emoji="📡" titulo="e-SUS PEC Offline" nota={d?.nota} />
+        <div style={{ marginTop: 16, background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px 24px" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Como ativar o Tempo Real</div>
+          {[
+            { step: "1", desc: "Acesse Railway → seu projeto → Variables" },
+            { step: "2", desc: "Adicione ESUS_USUARIO com seu login do e-SUS PEC" },
+            { step: "3", desc: "Adicione ESUS_SENHA com sua senha" },
+            { step: "4", desc: "O Railway redeploy automaticamente em ~2 min" },
+          ].map(s => (
+            <div key={s.step} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 10 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#1351b4", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, flexShrink: 0 }}>{s.step}</div>
+              <div style={{ fontSize: 13, color: "#374151", paddingTop: 4 }}>{s.desc}</div>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "32px 24px", textAlign: "center" }}>
-      <div style={{ fontSize: 36, marginBottom: 12 }}>🏠</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: "#b91c1c", marginBottom: 8 }}>e-SUS PEC Offline</div>
-      <div style={{ fontSize: 13, color: "#6b7280" }}>{cad?.nota ?? "Configure ESUS_USUARIO e ESUS_SENHA no Railway para acessar cadastros domiciliares em tempo real."}</div>
+    <div>
+      <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" as const }}>
+        <span style={{ fontSize: 16 }}>🟢</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>e-SUS PEC · Tempo Real</span>
+        <span style={{ fontSize: 11, color: "#6b7280" }}>Última atualização: {tsLabel}</span>
+        <span style={{ fontSize: 11, color: "#6b7280" }}>Competência: {d?.competencia}</span>
+        <button onClick={() => refetch()}
+          style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, background: "#1351b4", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12 }}>
+          <RefreshCw size={12} /> Atualizar agora
+        </button>
+      </div>
+
+      {/* Produção em tempo real */}
+      {prod && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>📊 Produção — {d?.competencia}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+            {[
+              { label: "Visitas Domiciliares",     val: prod.visitas_domiciliares,        cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
+              { label: "Atendimentos Individuais", val: prod.atendimentos_individuais,    cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+              { label: "Atend. Odontológicos",     val: prod.atendimentos_odontologicos,  cor: "#7c3aed", bg: "#faf5ff", border: "#e9d5ff" },
+              { label: "Procedimentos",             val: prod.procedimentos,               cor: "#d97706", bg: "#fef3c7", border: "#fde68a" },
+              { label: "Atividades Coletivas",      val: prod.atividades_coletivas,        cor: "#0891b2", bg: "#f0f9ff", border: "#bae6fd" },
+              { label: "Encaminhamentos",           val: prod.encaminhamentos,             cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+            ].map(c => (
+              <div key={c.label} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10, padding: "18px 16px", textAlign: "center" }}>
+                <div style={{ fontSize: 36, fontWeight: 800, color: c.cor }}>{(c.val ?? 0).toLocaleString("pt-BR")}</div>
+                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{c.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cadastros */}
+      {cad && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
+          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "22px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 40, fontWeight: 800, color: "#1351b4" }}>{(cad.individuais ?? 0).toLocaleString("pt-BR")}</div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>Cidadãos Cadastrados</div>
+          </div>
+          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "22px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 40, fontWeight: 800, color: "#16a34a" }}>{d?.total_acs_esus ?? "—"}</div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>ACS Cadastrados no e-SUS</div>
+          </div>
+          <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "22px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#374151" }}>Apuí/AM</div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>IBGE 1300144</div>
+            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{d?.competencia}</div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ fontSize: 11, color: "#9ca3af" }}>Fonte: e-SUS PEC · {BASE_URL} · Atualização automática a cada 2 min</div>
     </div>
   );
 }
+
+const BASE_URL = "esus.apui.am.gov.br";
 
 // ── Componente Principal ──────────────────────────────────────────────────────
 
@@ -585,6 +920,7 @@ export default function ACSPainel() {
     { id: "lista" as Aba,           label: "Lista de ACS",         icon: <Users size={13} /> },
     { id: "microareas" as Aba,      label: "Microáreas",           icon: <MapPin size={13} /> },
     { id: "geo" as Aba,             label: "Tempo Real",           icon: <Navigation size={13} /> },
+    { id: "capturar" as Aba,       label: "📋 Capturar PEC",      icon: null },
   ];
 
   const corPec = esusStatus?.conectado ? (esusStatus.autenticado ? "#16a34a" : "#d97706") : "#dc2626";
@@ -786,72 +1122,156 @@ export default function ACSPainel() {
         {aba === "cadastros_dom" && <AbaCadastrosDomiciliares />}
 
         {/* ── Lista ACS ── */}
-        {aba === "lista" && (
-          <div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" as const, alignItems: "center" }}>
-              {["Todas","KENNEDY","JK","ACARI","JUMA","ESTRADA NOVA","LIBERDADE","SÃO SEBASTIÃO","CACHOEIRA","TRÊS ESTADOS","AREAL"].map(e => (
-                <button key={e} onClick={() => setEsfFiltro(e)}
-                  style={{ padding: "6px 14px", fontSize: 12, borderRadius: 20, border: "1px solid #d1d5db", background: esfFiltro === e ? "#1351b4" : "#fff", color: esfFiltro === e ? "#fff" : "#374151", cursor: "pointer", fontWeight: esfFiltro === e ? 700 : 400 }}>
-                  {e}
-                </button>
-              ))}
-              <div style={{ width: 1, height: 20, background: "#e5e7eb" }} />
-              {["Todos","destaque","regular","critico","afastado"].map(s => {
-                const cor = s === "Todos" ? "#374151" : STATUS_COR[s];
-                return (
-                  <button key={s} onClick={() => setStatusFiltro(s)}
-                    style={{ padding: "6px 14px", fontSize: 12, borderRadius: 20, border: `1px solid ${cor}60`, background: statusFiltro === s ? cor : "#fff", color: statusFiltro === s ? "#fff" : cor, cursor: "pointer", fontWeight: statusFiltro === s ? 700 : 400 }}>
-                    {s === "Todos" ? "Todos" : STATUS_LABEL[s]}
-                  </button>
-                );
-              })}
-              <span style={{ marginLeft: "auto", fontSize: 12, color: "#9ca3af" }}>{acsListaFiltrada.length} ACS</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {acsListaFiltrada.map(a => <AcsCard key={a.id} a={a} />)}
-            </div>
-          </div>
-        )}
+        {aba === "lista" && <AbaListaAcs acsRef={(listaData?.acs ?? []) as AcsItem[]} />}
 
         {/* ── Microáreas ── */}
-        {aba === "microareas" && (
-          <div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 12 }}>
-              {(maData?.microareas ?? []).map((ma: Microarea) => {
-                const cor = SEM_COR[ma.semaforo];
-                return (
-                  <div key={ma.codigo} style={{ background: "#fff", border: `1px solid ${cor}30`, borderTop: `4px solid ${cor}`, borderRadius: 10, padding: "14px 16px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 14 }}>{ma.codigo}</div>
-                        <div style={{ fontSize: 12, color: "#6b7280" }}>{ma.nome}</div>
-                        <div style={{ fontSize: 10, color: "#9ca3af" }}>{ma.zona === "urbana" ? "🏙 Urbana" : "🌲 Rural"} · {ma.equipe}</div>
-                      </div>
-                      <div style={{ background: `${cor}18`, color: cor, fontSize: 14, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{ma.pct_cobertura}%</div>
-                    </div>
-                    <Bar pct={ma.pct_cobertura} cor={cor} height={8} />
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9ca3af", marginTop: 6 }}>
-                      <span>{ma.familias_cadastradas}/{ma.familias_meta} fam. · {ma.pct_visitas}% vis.</span>
-                      {ma.gestantes_ativas > 0 && <span style={{ color: "#7c3aed" }}>♀ {ma.gestantes_ativas}</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ display: "flex", gap: 16, marginTop: 16, fontSize: 11, color: "#9ca3af" }}>
-              {[{cor:"#16a34a",l:"≥90%"},{cor:"#d97706",l:"70-89%"},{cor:"#dc2626",l:"<70%"}].map(x => (
-                <span key={x.l} style={{ display:"flex",alignItems:"center",gap:4 }}><span style={{ width:10,height:10,borderRadius:2,background:x.cor,display:"inline-block" }}/>{x.l} cobertura</span>
-              ))}
-            </div>
-          </div>
-        )}
+        {aba === "microareas" && <AbaMicroareas maRef={maData?.microareas ?? []} />}
 
-        {/* ── Geo ── */}
-        {aba === "geo" && (
-          <div style={{ margin: "-24px -28px", minHeight: 640 }}>
-            <ACSGeoPage />
+        {/* ── Tempo Real (e-SUS PEC) ── */}
+        {aba === "geo" && <AbaTempoReal />}
+
+        {/* ── Capturar PEC (bookmarklet) ── */}
+        {aba === "capturar" && <AbaCapturarPEC />}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Aba Capturar PEC — bookmarklet + colar dados
+// ─────────────────────────────────────────────────────────────────────────────
+function AbaCapturarPEC() {
+  const [json, setJson] = React.useState("");
+  const [salvando, setSalvando] = React.useState(false);
+  const [ok, setOk] = React.useState(false);
+  const [erro, setErro] = React.useState("");
+  const BASE_URL = window.location.origin;
+
+  const bookmarkletCode = `javascript:(function(){
+var ERSUS='${BASE_URL}';
+var IBGE='1300144';
+var comp=new Date().toISOString().slice(0,7).replace('-','');
+
+function gql(q,v){
+  return fetch('/graphql',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({query:q,variables:v})}).then(r=>r.json()).catch(()=>null);
+}
+
+var Q_PROD=\`query P($m:String!,$c:String!){relatorioAtendimentos(filter:{municipio:{codigoIbge:$m}competencia:$c}){totalAtendimentosIndividuais totalAtendimentosOdontologicos totalVisitasDomiciliares totalProcedimentos totalAtividadesColetivas totalEncaminhamentos}}\`;
+var Q_CAD=\`query C($m:String!){cidadaos(filter:{municipio:{codigoIbge:$m}},page:0,size:1){totalElements}}\`;
+var Q_ACS=\`query A($m:String!){profissionaisDeSaude(filter:{municipio:{codigoIbge:$m}}){nome cns cbo{codigo descricao}lotacoes{unidadeSaude{nome}equipe{ine nome}}}}\`;
+var Q_VIS=\`query V($m:String!,$c:String!){visitasDomiciliares(filter:{municipio:{codigoIbge:$m}competencia:$c},page:0,size:999){totalElements content{dataVisita microArea profissional{nome cbo{codigo}}desfecho{descricao}turno}}}\`;
+
+Promise.all([
+  gql(Q_PROD,{m:IBGE,c:comp}),
+  gql(Q_CAD,{m:IBGE}),
+  gql(Q_ACS,{m:IBGE}),
+  gql(Q_VIS,{m:IBGE,c:comp}),
+]).then(function(rs){
+  var prod=rs[0]&&rs[0].data&&rs[0].data.relatorioAtendimentos;
+  var cad=rs[1]&&rs[1].data&&rs[1].data.cidadaos;
+  var profs=rs[2]&&rs[2].data&&rs[2].data.profissionaisDeSaude;
+  var vis=rs[3]&&rs[3].data&&rs[3].data.visitasDomiciliares;
+
+  var acs=(profs||[]).filter(function(p){return p.cbo&&(p.cbo.codigo||'').indexOf('515140')>=0;});
+  var por_dia={};
+  var por_acs={};
+  (vis&&vis.content||[]).forEach(function(v){
+    var d=(v.dataVisita||'').split('-')[2]||'0';
+    por_dia[d]=(por_dia[d]||0)+1;
+    var n=(v.profissional&&v.profissional.nome)||'—';
+    por_acs[n]=(por_acs[n]||0)+1;
+  });
+
+  var dados={
+    origem:'bookmarklet_pec',
+    competencia:comp.slice(0,4)+'-'+comp.slice(4),
+    capturado_em:new Date().toISOString(),
+    producao:prod?{
+      visitas_domiciliares:prod.totalVisitasDomiciliares,
+      atendimentos_individuais:prod.totalAtendimentosIndividuais,
+      atendimentos_odontologicos:prod.totalAtendimentosOdontologicos,
+      procedimentos:prod.totalProcedimentos,
+      atividades_coletivas:prod.totalAtividadesColetivas,
+      encaminhamentos:prod.totalEncaminhamentos
+    }:null,
+    cadastros:cad?{total_cidadaos:cad.totalElements}:null,
+    total_acs:acs.length,
+    acs:acs.slice(0,10).map(function(p){return{nome:p.nome,cns:p.cns,cbo:(p.cbo||{}).descricao,equipe:(((p.lotacoes||[])[0]||{}).equipe||{}).nome};}),
+    visitas:{
+      total:vis?vis.totalElements:0,
+      por_dia:Object.keys(por_dia).sort().map(function(d){return{dia:parseInt(d),total:por_dia[d]};}),
+      por_acs:Object.keys(por_acs).sort(function(a,b){return por_acs[b]-por_acs[a];}).slice(0,10).map(function(n){return{nome:n,total:por_acs[n]};})
+    }
+  };
+
+  var json=JSON.stringify(dados);
+  navigator.clipboard.writeText(json).then(function(){
+    alert('✓ Dados do e-SUS PEC copiados!\\nAgora vá ao ERSUS360 → Painel ACS → Capturar PEC → cole e salve.');
+  }).catch(function(){
+    prompt('Copie o JSON abaixo (Ctrl+A, Ctrl+C):',json);
+  });
+}).catch(function(e){alert('Erro: '+e.message);});
+})();`;
+
+  async function salvar() {
+    if (!json.trim()) { setErro("Cole o JSON antes de salvar."); return; }
+    setSalvando(true); setErro(""); setOk(false);
+    try {
+      const dados = JSON.parse(json);
+      await apiPost("/api/acs/esus/snapshot", dados);
+      setOk(true); setJson("");
+    } catch (e: any) {
+      setErro("JSON inválido ou erro ao salvar: " + e.message);
+    } finally { setSalvando(false); }
+  }
+
+  return (
+    <div style={{ maxWidth: 720 }}>
+      {/* Instruções */}
+      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Como capturar dados do e-SUS PEC</div>
+        {[
+          { n: "1", t: "Abra o e-SUS PEC no Chrome", d: "esus.apui.am.gov.br — faça login com gov.br normalmente" },
+          { n: "2", t: "Execute o bookmarklet", d: "Clique no botão abaixo para copiar o código, depois cole na barra de endereços do Chrome e pressione Enter" },
+          { n: "3", t: "Aguarde a captura", d: "O bookmarklet consulta a API do e-SUS PEC e copia o JSON automaticamente" },
+          { n: "4", t: "Cole e salve aqui", d: "Volte ao ERSUS360, cole o JSON na área abaixo e clique em Salvar" },
+        ].map(s => (
+          <div key={s.n} style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 14 }}>
+            <div style={{ minWidth: 28, height: 28, borderRadius: "50%", background: "#1351b4", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13 }}>{s.n}</div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>{s.t}</div>
+              <div style={{ fontSize: 12, color: "#6b7280" }}>{s.d}</div>
+            </div>
           </div>
-        )}
+        ))}
+
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(bookmarkletCode).then(() => alert("✓ Código copiado!\n\nAgora:\n1. Abra o e-SUS PEC no Chrome (esus.apui.am.gov.br)\n2. Clique na barra de endereços\n3. Delete o endereço e cole o código copiado\n4. Pressione Enter")).catch(() => prompt("Copie o código abaixo:", bookmarkletCode));
+          }}
+          style={{ display: "flex", alignItems: "center", gap: 8, background: "#1351b4", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", cursor: "pointer", fontSize: 13, fontWeight: 700, marginTop: 8 }}>
+          📋 Copiar código do bookmarklet
+        </button>
+      </div>
+
+      {/* Área de colar */}
+      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px 24px" }}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Colar dados capturados do e-SUS PEC</div>
+        <textarea
+          value={json}
+          onChange={e => { setJson(e.target.value); setErro(""); setOk(false); }}
+          placeholder='Cole aqui o JSON copiado do e-SUS PEC (começa com {"origem":"bookmarklet_pec"...)'
+          style={{ width: "100%", height: 120, fontFamily: "monospace", fontSize: 11, border: "1px solid #d1d5db", borderRadius: 8, padding: 10, resize: "vertical", boxSizing: "border-box" as const }}
+        />
+        {erro && <div style={{ color: "#dc2626", fontSize: 12, marginTop: 6 }}>{erro}</div>}
+        {ok && <div style={{ color: "#16a34a", fontSize: 12, marginTop: 6 }}>✓ Dados salvos com sucesso! Acesse as outras abas para ver.</div>}
+        <button
+          onClick={salvar}
+          disabled={salvando || !json.trim()}
+          style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, background: salvando ? "#9ca3af" : "#16a34a", color: "#fff", border: "none", borderRadius: 8, padding: "10px 22px", cursor: salvando ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 700 }}>
+          {salvando ? "Salvando..." : "💾 Salvar no Painel ACS"}
+        </button>
       </div>
     </div>
   );

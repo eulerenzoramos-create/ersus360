@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ersus360-backend",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
+      "port": 8000,
+      "cwd": "C:\\Users\\Usuario\\Downloads\\ERSUS360_COMPLETO_v2\\ersus360\\backend"
+    },
+    {
+      "name": "ersus360-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173,
+      "cwd": "C:\\Users\\Usuario\\Downloads\\ERSUS360_COMPLETO_v2\\ersus360\\frontend"
+    }
+  ]
+}
