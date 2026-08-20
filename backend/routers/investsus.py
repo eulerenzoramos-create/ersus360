@@ -1288,115 +1288,135 @@ async def seed_exemplo_apui(db: DbDep, user: UserDep):
 
 
 # ── Sincronização real com InvestSUS ──────────────────────────────────────────
+# ── Job store em memória para sincronização assíncrona ────────────────────────
+import asyncio as _asyncio
+import uuid as _uuid
+_sync_jobs: dict = {}   # job_id → {status, resultado, erro}
+
+
+async def _executar_sync_job(job_id: str, mid: int) -> None:
+    """Roda sincronização em background e armazena resultado em _sync_jobs."""
+    from services.investsus_scraper import sincronizar_investsus
+    from database import AsyncSessionLocal
+
+    _sync_jobs[job_id]["status"] = "rodando"
+    try:
+        dados = await sincronizar_investsus()
+    except Exception as exc:
+        _sync_jobs[job_id].update({"status": "erro", "erro": str(exc)})
+        return
+
+    criadas = atualizadas = 0
+    async with AsyncSessionLocal() as db:
+        for prop_raw in dados.get("propostas", []):
+            numero = prop_raw.get("numero_proposta", "")
+            if not numero:
+                continue
+            res = await db.execute(
+                select(PropostaInvestSUS).where(
+                    PropostaInvestSUS.municipio_id == mid,
+                    PropostaInvestSUS.numero_proposta == numero,
+                )
+            )
+            existing = res.scalar_one_or_none()
+            situacao_raw = prop_raw.get("situacao_raw", "")
+            situacao_norm = None
+            for s in SituacaoNormalizada:
+                if s.value.lower() in situacao_raw.lower() or situacao_raw.lower() in s.value.lower():
+                    situacao_norm = s
+                    break
+
+            if existing:
+                old_sit = existing.situacao_normalizada
+                if prop_raw.get("valor_aprovado"):
+                    existing.valor_aprovado = prop_raw["valor_aprovado"]
+                if prop_raw.get("valor_repassado"):
+                    existing.valor_pago = prop_raw["valor_repassado"]
+                if prop_raw.get("valor_executado"):
+                    existing.valor_executado = prop_raw["valor_executado"]
+                existing.situacao_original = prop_raw.get("situacao_raw") or existing.situacao_original
+                if situacao_norm and situacao_norm != old_sit:
+                    existing.situacao_normalizada = situacao_norm
+                    db.add(HistoricoSituacao(
+                        proposta_id=existing.id,
+                        situacao_anterior=old_sit.value if old_sit else None,
+                        situacao_nova=situacao_norm.value,
+                        origem="sincronizacao_automatica",
+                        observacao=f"Atualizado via sincronização em {dados['sincronizado_em']}",
+                    ))
+                atualizadas += 1
+            else:
+                nova = PropostaInvestSUS(
+                    municipio_id=mid,
+                    numero_proposta=numero,
+                    numero_instrumento=prop_raw.get("numero_instrumento") or "",
+                    objeto=prop_raw.get("objeto") or "",
+                    tipo_emenda=TipoEmenda.INDIVIDUAL,
+                    valor_indicado=prop_raw.get("valor_global", 0),
+                    valor_proposta=prop_raw.get("valor_global", 0),
+                    valor_aprovado=prop_raw.get("valor_aprovado", 0),
+                    valor_pago=prop_raw.get("valor_repassado", 0),
+                    valor_executado=prop_raw.get("valor_executado", 0),
+                    situacao_original=prop_raw.get("situacao_raw") or "",
+                    situacao_normalizada=situacao_norm or SituacaoNormalizada.PROPOSTA_EM_ANALISE,
+                    exercicio=prop_raw.get("exercicio", 2024),
+                    entidade_cnpj=prop_raw.get("cnpj_proponente") or "12.834.320/0001-26",
+                )
+                db.add(nova)
+                await db.flush()
+                db.add(HistoricoSituacao(
+                    proposta_id=nova.id,
+                    situacao_anterior=None,
+                    situacao_nova=(situacao_norm or SituacaoNormalizada.PROPOSTA_EM_ANALISE).value,
+                    origem="sincronizacao_automatica",
+                    observacao=f"Importado via sincronização em {dados['sincronizado_em']}",
+                ))
+                criadas += 1
+        await db.commit()
+
+    _sync_jobs[job_id].update({
+        "status": "concluido",
+        "resultado": {
+            "ok": True,
+            "sincronizado_em": dados["sincronizado_em"],
+            "propostas_encontradas": len(dados["propostas"]),
+            "criadas": criadas,
+            "atualizadas": atualizadas,
+            "repasses": len(dados.get("repasses", [])),
+            "erros": dados.get("erros", []),
+        },
+    })
+
+
 @router.post("/sincronizar")
-async def sincronizar_com_investsus(db: DbDep, user: UserDep):
+async def sincronizar_com_investsus(user: UserDep):
     """
-    Busca propostas/emendas via Portal da Transparência e sincroniza com o banco.
-    Requer TRANSPARENCIA_API_KEY no Railway.
+    Inicia sincronização em background e retorna job_id imediatamente.
+    Use GET /api/investsus/sincronizar/{job_id} para verificar o status.
     """
     if user.role not in ("superadmin", "admin", "gestor", "financeiro"):
         raise HTTPException(403, "Acesso restrito")
 
-    mid = _municipio_id(user)
-
-    from services.investsus_scraper import sincronizar_investsus
     import os
-
     if not os.getenv("TRANSPARENCIA_API_KEY"):
         raise HTTPException(400, detail={
             "erro": "TRANSPARENCIA_API_KEY não configurada",
-            "instrucao": "A variável TRANSPARENCIA_API_KEY deve estar configurada no Railway.",
+            "instrucao": "Adicione TRANSPARENCIA_API_KEY nas variáveis de ambiente do Railway.",
         })
 
-    try:
-        dados = await sincronizar_investsus()
-    except RuntimeError as exc:
-        raise HTTPException(400, detail={"erro": str(exc)})
-    except Exception as exc:
-        logger.error("Sincronização InvestSUS falhou: %s", exc, exc_info=True)
-        raise HTTPException(500, detail={"erro": "Falha na sincronização", "detalhe": str(exc)})
+    mid = _municipio_id(user)
+    job_id = str(_uuid.uuid4())
+    _sync_jobs[job_id] = {"status": "iniciado", "resultado": None, "erro": None}
+    _asyncio.create_task(_executar_sync_job(job_id, mid))
+    return {"job_id": job_id, "status": "iniciado"}
 
-    criadas = 0
-    atualizadas = 0
 
-    for prop_raw in dados.get("propostas", []):
-        numero = prop_raw.get("numero_proposta", "")
-        if not numero:
-            continue
-
-        res = await db.execute(
-            select(PropostaInvestSUS).where(
-                PropostaInvestSUS.municipio_id == mid,
-                PropostaInvestSUS.numero_proposta == numero,
-            )
-        )
-        existing = res.scalar_one_or_none()
-
-        situacao_raw = prop_raw.get("situacao_raw", "")
-        # Tenta mapear para SituacaoNormalizada (busca por valor do enum)
-        situacao_norm = None
-        for s in SituacaoNormalizada:
-            if s.value.lower() in situacao_raw.lower() or situacao_raw.lower() in s.value.lower():
-                situacao_norm = s
-                break
-
-        if existing:
-            # Atualiza campos financeiros e situação
-            old_sit = existing.situacao_normalizada
-            if prop_raw.get("valor_aprovado"):
-                existing.valor_aprovado = prop_raw["valor_aprovado"]
-            if prop_raw.get("valor_repassado"):
-                existing.valor_pago = prop_raw["valor_repassado"]
-            if prop_raw.get("valor_executado"):
-                existing.valor_executado = prop_raw["valor_executado"]
-            existing.situacao_original = prop_raw.get("situacao_raw") or existing.situacao_original
-            if situacao_norm and situacao_norm != old_sit:
-                existing.situacao_normalizada = situacao_norm
-                db.add(HistoricoSituacao(
-                    proposta_id=existing.id,
-                    situacao_anterior=old_sit.value if old_sit else None,
-                    situacao_nova=situacao_norm.value,
-                    origem="sincronizacao_automatica",
-                    observacao=f"Atualizado via sincronização InvestSUS em {dados['sincronizado_em']}",
-                ))
-            atualizadas += 1
-        else:
-            # Cria nova proposta
-            nova = PropostaInvestSUS(
-                municipio_id=mid,
-                numero_proposta=numero,
-                numero_instrumento=prop_raw.get("numero_convenio") or "",
-                objeto=prop_raw.get("objeto") or "",
-                tipo_emenda=TipoEmenda.INDIVIDUAL,
-                valor_indicado=prop_raw.get("valor_global", 0),
-                valor_proposta=prop_raw.get("valor_global", 0),
-                valor_aprovado=prop_raw.get("valor_aprovado", 0),
-                valor_pago=prop_raw.get("valor_repassado", 0),
-                valor_executado=prop_raw.get("valor_executado", 0),
-                situacao_original=prop_raw.get("situacao_raw") or "",
-                situacao_normalizada=situacao_norm or SituacaoNormalizada.PROPOSTA_EM_ANALISE,
-                exercicio=prop_raw.get("exercicio", 2024),
-                entidade_cnpj=prop_raw.get("cnpj_proponente") or "12.834.320/0001-26",
-            )
-            db.add(nova)
-            await db.flush()  # garante que nova.id existe
-            db.add(HistoricoSituacao(
-                proposta_id=nova.id,
-                situacao_anterior=None,
-                situacao_nova=(situacao_norm or SituacaoNormalizada.PROPOSTA_EM_ANALISE).value,
-                origem="sincronizacao_automatica",
-                observacao=f"Importado via sincronização InvestSUS em {dados['sincronizado_em']}",
-            ))
-            criadas += 1
-
-    await db.commit()
-
-    return {
-        "ok": True,
-        "sincronizado_em": dados["sincronizado_em"],
-        "propostas_encontradas": len(dados["propostas"]),
-        "criadas": criadas,
-        "atualizadas": atualizadas,
-        "repasses": len(dados.get("repasses", [])),
-        "erros": dados.get("erros", []),
-    }
+@router.get("/sincronizar/{job_id}")
+async def status_sync_job(job_id: str, user: UserDep):
+    """Retorna status do job de sincronização."""
+    if user.role not in ("superadmin", "admin", "gestor", "financeiro"):
+        raise HTTPException(403, "Acesso restrito")
+    job = _sync_jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job não encontrado")
+    return job

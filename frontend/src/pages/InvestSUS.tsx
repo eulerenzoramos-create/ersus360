@@ -1554,75 +1554,107 @@ function RelatorioAcompanhamento({ municipio_id }: { municipio_id: number }) {
   );
 }
 
-// ── Componente principal ──────────────────────────────────────────────────────
-// ── Sincronizar com InvestSUS ─────────────────────────────────────────────────
+// ── Sincronizar com InvestSUS (job assíncrono + polling) ─────────────────────
 function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
   const qc = useQueryClient();
+  const [jobId, setJobId] = useState<string | null>(null);
   const [resultado, setResultado] = useState<any>(null);
+  const [erroMsg, setErroMsg] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
 
-  const sync = useMutation({
+  // Inicia o job de sincronização
+  const iniciar = useMutation({
     mutationFn: () => api.post("/api/investsus/sincronizar", {}),
     onSuccess: (data: any) => {
-      setResultado(data.data || data);
-      qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
-      qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
+      const jid = data?.data?.job_id || data?.job_id;
+      if (jid) { setJobId(jid); setPolling(true); setErroMsg(null); }
+    },
+    onError: (err: any) => {
+      const d = err?.response?.data;
+      setErroMsg(d?.erro || d?.detail || err?.message || "Erro ao iniciar sincronização");
     },
   });
+
+  // Polling do status do job
+  useEffect(() => {
+    if (!polling || !jobId) return;
+    let active = true;
+    const tick = async () => {
+      try {
+        const resp = await api.get(`/api/investsus/sincronizar/${jobId}`);
+        const job  = resp?.data || resp;
+        if (!active) return;
+        if (job.status === "concluido") {
+          setPolling(false);
+          setResultado(job.resultado);
+          qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
+          qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
+        } else if (job.status === "erro") {
+          setPolling(false);
+          setErroMsg(job.erro || "Erro na sincronização");
+        }
+      } catch { /* ignora falha de polling */ }
+    };
+    const id = setInterval(tick, 3000);
+    tick();
+    return () => { active = false; clearInterval(id); };
+  }, [polling, jobId, municipio_id, qc]);
+
+  const loading = iniciar.isPending || polling;
 
   const cor = {
     card:   { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 24, marginBottom: 16 },
     titulo: { fontSize: 15, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 },
     sub:    { fontSize: 12, color: "#6b7280", marginBottom: 16, lineHeight: 1.6 },
-    btn:    (loading: boolean) => ({
-      background: loading ? "#9ca3af" : "#1e3a5f", color: "#fff",
+    btn:    (l: boolean) => ({
+      background: l ? "#9ca3af" : "#1e3a5f", color: "#fff",
       border: "none", borderRadius: 8, padding: "12px 28px",
-      fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
+      fontSize: 14, fontWeight: 600, cursor: l ? "not-allowed" : "pointer",
       display: "flex", alignItems: "center", gap: 8,
     } as React.CSSProperties),
-    ok:     { background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 16, marginTop: 16 },
-    err:    { background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 16, marginTop: 16 },
-    tag:    (c: string) => ({ background: c, color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 600 } as React.CSSProperties),
+    ok:  { background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 16, marginTop: 16 },
+    err: { background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 16, marginTop: 16 },
+    tag: (c: string) => ({ background: c, color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 600 } as React.CSSProperties),
   };
 
   return (
     <div>
-      {/* Card principal */}
       <div style={cor.card}>
         <div style={cor.titulo}>Sincronização com InvestSUS</div>
         <div style={cor.sub}>
           Busca <strong>emendas parlamentares, convênios e transferências</strong> do FMS Apuí via
           Portal da Transparência (Ministério da Saúde) e atualiza o banco local automaticamente.<br /><br />
-          Usa a variável <code>TRANSPARENCIA_API_KEY</code> já configurada no Railway.
+          A sincronização roda em segundo plano — não trava a tela.
         </div>
 
         <button
-          style={cor.btn(sync.isPending)}
-          onClick={() => sync.mutate()}
-          disabled={sync.isPending}
+          style={cor.btn(loading)}
+          onClick={() => { setResultado(null); setErroMsg(null); iniciar.mutate(); }}
+          disabled={loading}
         >
-          <RefreshCw size={16} style={{ animation: sync.isPending ? "spin 1s linear infinite" : "none" }} />
-          {sync.isPending ? "Sincronizando com InvestSUS..." : "Sincronizar Agora"}
+          <RefreshCw size={16} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
+          {polling ? "Sincronizando… aguarde" : iniciar.isPending ? "Iniciando…" : "Sincronizar Agora"}
         </button>
 
-        {sync.isError && (
-          <div style={cor.err}>
-            <strong>Erro na sincronização:</strong>{" "}
-            {(sync.error as any)?.response?.data?.erro || (sync.error as any)?.message || "Erro desconhecido"}
-            {(sync.error as any)?.response?.data?.instrucao && (
-              <div style={{ marginTop: 8, fontSize: 12, color: "#991b1b" }}>
-                {(sync.error as any).response.data.instrucao}
-              </div>
-            )}
+        {polling && (
+          <div style={{ marginTop: 12, fontSize: 12, color: "#6b7280" }}>
+            ⏳ Buscando dados no Portal da Transparência… (pode levar até 30s)
           </div>
         )}
 
-        {resultado && !sync.isError && (
+        {erroMsg && (
+          <div style={cor.err}>
+            <strong>Erro:</strong> {erroMsg}
+          </div>
+        )}
+
+        {resultado && !erroMsg && (
           <div style={cor.ok}>
             <div style={{ fontWeight: 700, color: "#166534", marginBottom: 10 }}>
-              ✓ Sincronização concluída — {resultado.sincronizado_em?.slice(0, 19).replace("T", " ")} UTC
+              ✓ Concluído — {resultado.sincronizado_em?.slice(0, 19).replace("T", " ")} UTC
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
-              <span style={cor.tag("#1e3a5f")}>{resultado.propostas_encontradas} propostas encontradas</span>
+              <span style={cor.tag("#1e3a5f")}>{resultado.propostas_encontradas} registros encontrados</span>
               <span style={cor.tag("#065f46")}>{resultado.criadas} novas</span>
               <span style={cor.tag("#92400e")}>{resultado.atualizadas} atualizadas</span>
               {resultado.repasses > 0 && <span style={cor.tag("#4c1d95")}>{resultado.repasses} repasses</span>}
@@ -1641,12 +1673,11 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
         )}
       </div>
 
-      {/* Instruções de configuração */}
       <div style={cor.card}>
         <div style={cor.titulo}>Fonte dos dados</div>
         <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.8 }}>
           <div style={{ marginBottom: 8 }}>
-            Os dados são obtidos via <strong>Portal da Transparência</strong> (API pública do governo federal):
+            Dados obtidos via <strong>Portal da Transparência</strong> (API pública do governo federal):
           </div>
           <ul style={{ margin: "0 0 8px 16px", padding: 0, fontSize: 12, color: "#374151" }}>
             <li>Emendas parlamentares destinadas ao CNPJ do FMS (12.834.320/0001-26)</li>
@@ -1654,7 +1685,7 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
             <li>Transferências recebidas pelo município (IBGE 1300144)</li>
           </ul>
           <div style={{ fontSize: 12, color: "#6b7280" }}>
-            A variável <code>TRANSPARENCIA_API_KEY</code> já está configurada no Railway.
+            Variável <code>TRANSPARENCIA_API_KEY</code> já configurada no Railway.
           </div>
         </div>
       </div>
