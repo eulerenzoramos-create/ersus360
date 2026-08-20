@@ -1555,9 +1555,17 @@ function RelatorioAcompanhamento({ municipio_id }: { municipio_id: number }) {
 }
 
 // ── Sincronizar via browser (browser busca .gov.br, envia ao backend) ─────────
-const _CNPJ = "12834320000126";
+const _CNPJ_FMS  = "12834320000126";   // FMS Apuí
+const _CNPJ_PREF = "04105419000151";   // Prefeitura Municipal de Apuí
 const _IBGE = "1300144";
 const _API_TRANSP = "https://api.portaltransparencia.gov.br/api-de-dados";
+
+async function _fetchJson(url: string, h: Record<string,string>): Promise<any[]> {
+  const r = await fetch(url, { headers: h });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d = await r.json();
+  return Array.isArray(d) ? d : (d?.content ?? d?.data ?? []);
+}
 
 async function _buscarTransparencia(chave: string): Promise<{ propostas: any[]; repasses: any[]; erros: any[] }> {
   const h = { "chave-api-dados": chave, "Accept": "application/json" };
@@ -1566,22 +1574,32 @@ async function _buscarTransparencia(chave: string): Promise<{ propostas: any[]; 
   const repasses: any[] = [];
   const erros: any[] = [];
 
-  for (const anoB of [ano, ano - 1]) {
-    try {
-      const r = await fetch(`${_API_TRANSP}/emendas?cnpjBeneficiario=${_CNPJ}&ano=${anoB}&pagina=1`, { headers: h });
-      if (r.ok) { const d = await r.json(); propostas.push(...(Array.isArray(d) ? d : [])); }
-      else erros.push({ endpoint: `emendas/${anoB}`, erro: `HTTP ${r.status}` });
-    } catch (e: any) { erros.push({ endpoint: `emendas/${anoB}`, erro: e?.message }); }
+  // Emendas — tenta FMS e Prefeitura, anos atual e anterior
+  for (const cnpj of [_CNPJ_FMS, _CNPJ_PREF]) {
+    for (const anoB of [ano, ano - 1]) {
+      try {
+        const d = await _fetchJson(`${_API_TRANSP}/emendas?cnpjBeneficiario=${cnpj}&ano=${anoB}&pagina=1`, h);
+        propostas.push(...d);
+      } catch (e: any) {
+        erros.push({ endpoint: `emendas/${cnpj.slice(0,8)}/${anoB}`, erro: e?.message });
+      }
+    }
   }
+
+  // Convênios — tenta FMS e Prefeitura
+  for (const cnpj of [_CNPJ_FMS, _CNPJ_PREF]) {
+    try {
+      const d = await _fetchJson(`${_API_TRANSP}/convenios?cnpjConvenente=${cnpj}&pagina=1&tamanhoPagina=100`, h);
+      propostas.push(...d);
+    } catch (e: any) {
+      erros.push({ endpoint: `convenios/${cnpj.slice(0,8)}`, erro: e?.message });
+    }
+  }
+
+  // Transferências recebidas pelo município
   try {
-    const r = await fetch(`${_API_TRANSP}/convenios?cnpjConvenente=${_CNPJ}&pagina=1&tamanhoPagina=100`, { headers: h });
-    if (r.ok) { const d = await r.json(); propostas.push(...(Array.isArray(d) ? d : [])); }
-    else erros.push({ endpoint: "convenios", erro: `HTTP ${r.status}` });
-  } catch (e: any) { erros.push({ endpoint: "convenios", erro: e?.message }); }
-  try {
-    const r = await fetch(`${_API_TRANSP}/transferencias/municipios?codigoMunicipio=${_IBGE}&ano=${ano}&pagina=1&tamanhoPagina=20`, { headers: h });
-    if (r.ok) { const d = await r.json(); repasses.push(...(Array.isArray(d) ? d : [])); }
-    else erros.push({ endpoint: "transferencias", erro: `HTTP ${r.status}` });
+    const d = await _fetchJson(`${_API_TRANSP}/transferencias/municipios?codigoMunicipio=${_IBGE}&ano=${ano}&pagina=1&tamanhoPagina=50`, h);
+    repasses.push(...d);
   } catch (e: any) { erros.push({ endpoint: "transferencias", erro: e?.message }); }
 
   return { propostas, repasses, erros };
@@ -1700,7 +1718,7 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
             Dados obtidos via <strong>Portal da Transparência</strong> (API pública):
           </div>
           <ul style={{ margin: "0 0 8px 16px", padding: 0, fontSize: 12, color: "#374151" }}>
-            <li>Emendas parlamentares — CNPJ 12.834.320/0001-26</li>
+            <li>Emendas parlamentares — FMS (12.834.320/0001-26) e Prefeitura (04.105.419/0001-51)</li>
             <li>Convênios e transferências voluntárias</li>
             <li>Transferências municipais — IBGE 1300144</li>
           </ul>
