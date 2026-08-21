@@ -111,8 +111,12 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
 
     # Tenta enriquecer com dados reais do eSUS PEC
     competencia = date.today().strftime("%Y-%m")
-    esus_prod = await _esus.buscar_producao(competencia)
-    esus_cad  = await _esus.buscar_cadastros()
+    try:
+        esus_prod = await _esus.buscar_producao(competencia)
+        esus_cad  = await _esus.buscar_cadastros()
+    except Exception:
+        esus_prod = {}
+        esus_cad  = {}
 
     kpis = _kpis()
     producao_esus_display = None
@@ -127,13 +131,12 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
     if esus_cad.get("fonte") == "esus_pec":
         kpis["cidadaos_cadastrados_esus"] = esus_cad.get("individuais")
 
-    # Fallback: lê snapshot salvo manualmente
-    import json as _json, os as _os
-    _snap_path = "/tmp/esus_snapshots/latest.json"
-    if _os.path.exists(_snap_path) and esus_prod.get("fonte") != "esus_pec":
+    # Fallback: lê snapshot salvo manualmente (banco de dados)
+    if esus_prod.get("fonte") != "esus_pec":
         try:
-            with open(_snap_path) as _f:
-                snap = _json.load(_f)
+            snap = await _snap_ler()
+            if not snap:
+                snap = {}
             origem = snap.get("origem", "")
             if origem == "entrada_manual":
                 prod = snap.get("producao", {})
@@ -153,7 +156,7 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
                     "capturado_em": snap.get("capturado_em", ""),
                 }
         except Exception:
-            pass
+            snap = {}
 
     situacao = "dados_reais" if esus_prod.get("fonte") == "esus_pec" else (
         "snapshot_manual" if producao_esus_display else "referencia_municipal"
@@ -213,31 +216,48 @@ async def microareas(_: UserOut = Depends(get_current_user)):
     }
 
 
+async def _snap_salvar(payload: dict):
+    from datetime import datetime
+    import json
+    from database import AsyncSessionLocal
+    from sqlalchemy import text
+    dados = {**payload, "capturado_em": datetime.utcnow().isoformat()}
+    async with AsyncSessionLocal() as db:
+        await db.execute(text("""
+            CREATE TABLE IF NOT EXISTS esus_snapshot (
+                id SERIAL PRIMARY KEY,
+                dados JSONB NOT NULL,
+                criado_em TIMESTAMP DEFAULT NOW()
+            )
+        """))
+        await db.execute(text("INSERT INTO esus_snapshot (dados) VALUES (:d)"), {"d": json.dumps(dados)})
+        await db.commit()
+    return dados
+
+async def _snap_ler():
+    import json
+    from database import AsyncSessionLocal
+    from sqlalchemy import text
+    try:
+        async with AsyncSessionLocal() as db:
+            row = (await db.execute(text("SELECT dados FROM esus_snapshot ORDER BY criado_em DESC LIMIT 1"))).fetchone()
+            return json.loads(row[0]) if row else None
+    except Exception:
+        return None
+
+
 @router.post("/esus/snapshot")
 async def salvar_snapshot_esus(payload: dict, _: UserOut = Depends(get_current_user)):
-    """Recebe snapshot capturado pelo bookmarklet do e-SUS PEC."""
+    """Recebe snapshot capturado pelo bookmarklet ou entrada manual do e-SUS PEC."""
     from datetime import datetime
-    import json, os
-    snap_dir = "/tmp/esus_snapshots"
-    os.makedirs(snap_dir, exist_ok=True)
-    ts = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-    with open(f"{snap_dir}/snap_{ts}.json", "w") as f:
-        json.dump(payload, f)
-    # Salva o mais recente como "latest"
-    with open(f"{snap_dir}/latest.json", "w") as f:
-        json.dump({**payload, "capturado_em": datetime.utcnow().isoformat()}, f)
-    return {"ok": True, "capturado_em": datetime.utcnow().isoformat()}
+    dados = await _snap_salvar(payload)
+    return {"ok": True, "capturado_em": dados.get("capturado_em", datetime.utcnow().isoformat())}
 
 
 @router.get("/esus/snapshot")
 async def get_snapshot_esus(_: UserOut = Depends(get_current_user)):
-    """Retorna o último snapshot capturado pelo bookmarklet."""
-    import json, os
-    path = "/tmp/esus_snapshots/latest.json"
-    if not os.path.exists(path):
-        return None
-    with open(path) as f:
-        return json.load(f)
+    """Retorna o último snapshot capturado."""
+    return await _snap_ler()
 
 
 @router.get("/esus/status")
