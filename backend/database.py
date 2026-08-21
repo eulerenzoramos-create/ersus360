@@ -48,6 +48,23 @@ async def init_db():
             investsus,
         )
         await conn.run_sync(Base.metadata.create_all)
+        # Tabela de snapshot eSUS PEC (entrada manual ou bookmarklet)
+        if _raw_url.startswith("sqlite"):
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS esus_snapshot (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    dados TEXT NOT NULL,
+                    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+        else:
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS esus_snapshot (
+                    id SERIAL PRIMARY KEY,
+                    dados JSONB NOT NULL,
+                    criado_em TIMESTAMP DEFAULT NOW()
+                )
+            """))
         # Migração incremental: adiciona colunas novas sem derrubar tabela
         _novas_colunas = [
             ("banco_ob",        "VARCHAR(10)"),

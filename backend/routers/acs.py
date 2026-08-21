@@ -217,20 +217,24 @@ async def microareas(_: UserOut = Depends(get_current_user)):
 
 
 async def _snap_salvar(payload: dict):
-    from datetime import datetime
     import json
     from database import AsyncSessionLocal
     from sqlalchemy import text
     dados = {**payload, "capturado_em": datetime.utcnow().isoformat()}
+    json_str = json.dumps(dados, ensure_ascii=False)
     async with AsyncSessionLocal() as db:
-        await db.execute(text("""
-            CREATE TABLE IF NOT EXISTS esus_snapshot (
-                id SERIAL PRIMARY KEY,
-                dados JSONB NOT NULL,
-                criado_em TIMESTAMP DEFAULT NOW()
+        # Usa CAST explícito para JSONB; em SQLite a coluna é TEXT
+        try:
+            await db.execute(
+                text("INSERT INTO esus_snapshot (dados) VALUES (CAST(:d AS jsonb))"),
+                {"d": json_str},
             )
-        """))
-        await db.execute(text("INSERT INTO esus_snapshot (dados) VALUES (:d)"), {"d": json.dumps(dados)})
+        except Exception:
+            # Fallback para SQLite (sem CAST)
+            await db.execute(
+                text("INSERT INTO esus_snapshot (dados) VALUES (:d)"),
+                {"d": json_str},
+            )
         await db.commit()
     return dados
 
@@ -240,8 +244,16 @@ async def _snap_ler():
     from sqlalchemy import text
     try:
         async with AsyncSessionLocal() as db:
-            row = (await db.execute(text("SELECT dados FROM esus_snapshot ORDER BY criado_em DESC LIMIT 1"))).fetchone()
-            return json.loads(row[0]) if row else None
+            row = (await db.execute(
+                text("SELECT dados FROM esus_snapshot ORDER BY criado_em DESC LIMIT 1")
+            )).fetchone()
+            if not row:
+                return None
+            val = row[0]
+            # asyncpg deserializa JSONB → dict automaticamente; SQLite retorna str
+            if isinstance(val, (dict, list)):
+                return val
+            return json.loads(val)
     except Exception:
         return None
 
