@@ -1145,6 +1145,11 @@ function AbaCapturarPEC() {
   const [salvando, setSalvando] = React.useState(false);
   const [ok, setOk] = React.useState(false);
   const [erro, setErro] = React.useState("");
+  const [abaEntrada, setAbaEntrada] = React.useState<"manual"|"json">("manual");
+  const [form, setForm] = React.useState({ competencia: new Date().toISOString().slice(0,7), visitas: "", atendimentos: "", cadastros: "", acs: "" });
+  const [salvandoManual, setSalvandoManual] = React.useState(false);
+  const [okManual, setOkManual] = React.useState(false);
+  const [erroManual, setErroManual] = React.useState("");
   const BASE_URL = window.location.origin;
 
   const bookmarkletCode = `javascript:(function(){
@@ -1227,9 +1232,71 @@ Promise.all([
     } finally { setSalvando(false); }
   }
 
+  async function salvarManual() {
+    if (!form.visitas && !form.atendimentos && !form.cadastros) { setErroManual("Preencha ao menos um campo."); return; }
+    setSalvandoManual(true); setErroManual(""); setOkManual(false);
+    try {
+      const payload = {
+        origem: "entrada_manual",
+        competencia: form.competencia,
+        producao: {
+          totalVisitasDomiciliares: Number(form.visitas) || 0,
+          totalAtendimentosIndividuais: Number(form.atendimentos) || 0,
+        },
+        cadastros: { totalElements: Number(form.cadastros) || 0 },
+        total_acs: Number(form.acs) || 0,
+      };
+      await apiPost("/api/acs/esus/snapshot", payload);
+      setOkManual(true);
+    } catch (e: any) {
+      setErroManual("Erro ao salvar: " + e.message);
+    } finally { setSalvandoManual(false); }
+  }
+
+  const inp = (label: string, key: keyof typeof form, placeholder: string) => (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>{label}</label>
+      <input type={key === "competencia" ? "month" : "number"} value={form[key]}
+        onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+        placeholder={placeholder}
+        style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 8, padding: "8px 12px", fontSize: 14, boxSizing: "border-box" as const }} />
+    </div>
+  );
+
   return (
     <div style={{ maxWidth: 720 }}>
-      {/* Instruções */}
+      {/* Seletor de modo */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        {(["manual","json"] as const).map(m => (
+          <button key={m} onClick={() => setAbaEntrada(m)}
+            style={{ padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13,
+              background: abaEntrada === m ? "#1351b4" : "#e5e7eb", color: abaEntrada === m ? "#fff" : "#374151" }}>
+            {m === "manual" ? "✏️ Entrada Manual" : "📋 Colar JSON (avançado)"}
+          </button>
+        ))}
+      </div>
+
+      {/* FORMULÁRIO MANUAL */}
+      {abaEntrada === "manual" && (
+        <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Inserir dados do e-SUS PEC manualmente</div>
+          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 20 }}>Consulte os relatórios do e-SUS PEC e preencha os campos abaixo.</div>
+          {inp("Competência (mês/ano)", "competencia", "")}
+          {inp("Total de Visitas Domiciliares", "visitas", "Ex: 1248")}
+          {inp("Total de Atendimentos Individuais", "atendimentos", "Ex: 320")}
+          {inp("Total de Cadastros Individuais", "cadastros", "Ex: 8500")}
+          {inp("Número de ACS ativos", "acs", "Ex: 65")}
+          {erroManual && <div style={{ color: "#dc2626", fontSize: 12, marginBottom: 8 }}>{erroManual}</div>}
+          {okManual && <div style={{ color: "#16a34a", fontSize: 12, marginBottom: 8 }}>✓ Dados salvos! Acesse as outras abas para ver.</div>}
+          <button onClick={salvarManual} disabled={salvandoManual}
+            style={{ background: salvandoManual ? "#9ca3af" : "#1351b4", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", cursor: "pointer", fontWeight: 700, fontSize: 14 }}>
+            {salvandoManual ? "Salvando..." : "💾 Salvar dados"}
+          </button>
+        </div>
+      )}
+
+      {/* MODO JSON */}
+      {abaEntrada === "json" && (<div>
       <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Como capturar dados do e-SUS PEC</div>
         {[
@@ -1278,6 +1345,7 @@ Promise.all([
           {salvando ? "Salvando..." : "💾 Salvar no Painel ACS"}
         </button>
       </div>
+      </div>)}
     </div>
   );
 }
