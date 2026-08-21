@@ -89,10 +89,10 @@ def _kpis():
         "total_microareas": len(set(a["microarea"] for a in ativos)),
         "familias_cadastradas": sum(a["familias_cadastradas"] for a in ativos),
         "familias_meta": sum(a["familias_meta"] for a in ativos),
-        "pct_cobertura": round(sum(a["familias_cadastradas"] for a in ativos) / sum(a["familias_meta"] for a in ativos) * 100, 1),
+        "pct_cobertura": round(sum(a["familias_cadastradas"] for a in ativos) / max(sum(a["familias_meta"] for a in ativos), 1) * 100, 1),
         "visitas_programadas": sum(a["visitas"]["programadas"] for a in ativos),
         "visitas_realizadas": sum(a["visitas"]["realizadas"] for a in ativos),
-        "pct_visitas": round(sum(a["visitas"]["realizadas"] for a in ativos) / sum(a["visitas"]["programadas"] for a in ativos) * 100, 1),
+        "pct_visitas": round(sum(a["visitas"]["realizadas"] for a in ativos) / max(sum(a["visitas"]["programadas"] for a in ativos), 1) * 100, 1),
         "gestantes_ativas": sum(a["indicadores"]["gestantes_ativas"] for a in ativos),
         "criancas_lt2": sum(a["indicadores"]["criancas_lt2"] for a in ativos),
         "has_acompanhados": sum(a["indicadores"]["has"] for a in ativos),
@@ -115,15 +115,49 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
     esus_cad  = await _esus.buscar_cadastros()
 
     kpis = _kpis()
+    producao_esus_display = None
+
+    # Tenta enriquecer com dados ao vivo
     if esus_prod.get("fonte") == "esus_pec":
         kpis["visitas_esus_domiciliares"]    = esus_prod.get("visitas_domiciliares")
         kpis["atendimentos_individuais_esus"] = esus_prod.get("atendimentos_individuais")
         kpis["atendimentos_odonto_esus"]     = esus_prod.get("atendimentos_odontologicos")
         kpis["competencia_esus"]             = esus_prod.get("competencia")
+        producao_esus_display = esus_prod
     if esus_cad.get("fonte") == "esus_pec":
         kpis["cidadaos_cadastrados_esus"] = esus_cad.get("individuais")
 
-    situacao = "dados_reais" if esus_prod.get("fonte") == "esus_pec" else "referencia_municipal"
+    # Fallback: lê snapshot salvo manualmente
+    import json as _json, os as _os
+    _snap_path = "/tmp/esus_snapshots/latest.json"
+    if _os.path.exists(_snap_path) and esus_prod.get("fonte") != "esus_pec":
+        try:
+            with open(_snap_path) as _f:
+                snap = _json.load(_f)
+            origem = snap.get("origem", "")
+            if origem == "entrada_manual":
+                prod = snap.get("producao", {})
+                cad  = snap.get("cadastros", {})
+                kpis["visitas_esus_domiciliares"]     = prod.get("totalVisitasDomiciliares", 0)
+                kpis["atendimentos_individuais_esus"] = prod.get("totalAtendimentosIndividuais", 0)
+                kpis["competencia_esus"]              = snap.get("competencia", competencia)
+                if snap.get("total_acs"):
+                    kpis["total_acs"] = snap["total_acs"]
+                if cad.get("totalElements"):
+                    kpis["cidadaos_cadastrados_esus"] = cad["totalElements"]
+                producao_esus_display = {
+                    "competencia": snap.get("competencia", competencia),
+                    "visitas_domiciliares": prod.get("totalVisitasDomiciliares", 0),
+                    "atendimentos_individuais": prod.get("totalAtendimentosIndividuais", 0),
+                    "fonte": "snapshot_manual",
+                    "capturado_em": snap.get("capturado_em", ""),
+                }
+        except Exception:
+            pass
+
+    situacao = "dados_reais" if esus_prod.get("fonte") == "esus_pec" else (
+        "snapshot_manual" if producao_esus_display else "referencia_municipal"
+    )
 
     return {
         "situacao_dado": situacao,
@@ -133,7 +167,7 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
         "distribuicao_equipe": dist_eq,
         "distribuicao_esf": dist_eq,
         "mes_referencia": MES_REF,
-        "producao_esus": esus_prod if esus_prod.get("fonte") == "esus_pec" else None,
+        "producao_esus": producao_esus_display,
         "verificado_em": _ts(),
     }
 
