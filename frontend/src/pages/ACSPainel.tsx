@@ -1218,7 +1218,8 @@ Promise.all([
     if (!json.trim()) { setErro("Cole o JSON antes de salvar."); return; }
     setSalvando(true); setErro(""); setOk(false);
     try {
-      const dados = JSON.parse(json);
+      let dados = JSON.parse(json);
+      if (Array.isArray(dados)) dados = { origem: "bookmarklet_pec", graphql_responses: dados };
       await apiPost("/api/acs/esus/snapshot", dados);
       setOk(true); setJson("");
     } catch (e: any) {
