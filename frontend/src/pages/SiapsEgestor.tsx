@@ -94,7 +94,7 @@ function AbaAbrangencia({ data }: { data: any }) {
         <span style={{ background: "#e0f2fe", color: "#0369a1", fontWeight: 700, padding: "4px 12px", borderRadius: 20, fontSize: 12 }}>UF: {data.uf}</span>
         <span style={{ background: "#e0f2fe", color: "#0369a1", fontWeight: 700, padding: "4px 12px", borderRadius: 20, fontSize: 12 }}>Município: {data.municipio}</span>
         <span style={{ background: "#fef3c7", color: "#92400e", fontWeight: 700, padding: "4px 12px", borderRadius: 20, fontSize: 12 }}>IED: {data.ied}</span>
-        <span style={{ background: "#f3f4f6", color: "#6b7280", padding: "4px 12px", borderRadius: 20, fontSize: 12 }}>Competência: Abr/2026</span>
+        <span style={{ background: "#f3f4f6", color: "#6b7280", padding: "4px 12px", borderRadius: 20, fontSize: 12 }}>Competência: {data?.competencia ?? "—"}</span>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
@@ -159,7 +159,7 @@ function AbaVinculo({ data }: { data: any }) {
           </h2>
           <div style={{ display: "flex", gap: 8 }}>
             <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>Dado preliminar</span>
-            <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: 11, padding: "2px 8px", borderRadius: 4 }}>Competência: Abr/2026</span>
+            <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: 11, padding: "2px 8px", borderRadius: 4 }}>Competência: {data?.competencia ?? "—"}</span>
             <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: 11, padding: "2px 8px", borderRadius: 4 }}>Tipo: eAP, eSF</span>
           </div>
         </div>
@@ -1172,7 +1172,7 @@ function AbaBoasPraticas({ data }: { data: any }) {
     <div>
       <div style={{ marginBottom: 18 }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>Boas Práticas e Alertas</h2>
-        <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Destaques e recomendações para Apuí/AM — Abr/2026</p>
+        <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Destaques e recomendações para Apuí/AM</p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
@@ -1367,7 +1367,7 @@ function AbaQuadrimestre({ dashData }: { dashData: any }) {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
         <div>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>Avaliação do Quadrimestre</h2>
-          <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Cálculo dos Componentes de Cofinanciamento Federal da APS — Competência Abr/2026</p>
+          <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Cálculo dos Componentes de Cofinanciamento Federal da APS</p>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           {/* Filtro período */}

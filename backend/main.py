@@ -657,6 +657,9 @@ app.include_router(repasses_aps_apui_router)
 app.include_router(inconsistencias_router)
 app.include_router(relatorio_ersus_router)
 
+from routers.indicadores_aps import router as indicadores_aps_router
+app.include_router(indicadores_aps_router)
+
 
 @app.get("/health")
 async def health():

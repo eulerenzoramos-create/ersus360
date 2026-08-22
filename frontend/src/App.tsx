@@ -157,6 +157,7 @@ import PainelFinanceiro  from "./pages/PainelFinanceiro";
 import RepassesApsApui  from "./pages/RepassesApsApui";
 import PainelGestaoAPS  from "./pages/PainelGestaoAPS";
 import SiapsEgestor      from "./pages/SiapsEgestor";
+import IndicadoresAPS    from "./pages/IndicadoresAPS";
 import PainelCAF         from "./pages/PainelCAF";
 import MatrizNormativaAPS from "./pages/MatrizNormativaAPS";
 import FolhaPagamento from "./pages/FolhaPagamento";
@@ -757,6 +758,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
                 <QuickCard to="/"           label="Home"        Icon={Home}        cor="#38bdf8"/>
                 {podeFin && <QuickCard to="/financeiro" label="Financeiro"  Icon={DollarSign}  cor="#22c55e"/>}
+                <QuickCard to="/indicadores-aps" label="Indicadores APS" Icon={BarChart2} cor="#1d4ed8"/>
                 <QuickCard to="/siaps"      label="e-Gestor"    Icon={Globe}       cor="#a78bfa"/>
                 {podeFin && <QuickCard to="/caf"        label="CAF"         Icon={TrendingUp}  cor="#fb923c"/>}
                 <QuickCard to="/previne"    label="Qualidade"   Icon={Target}      cor="#38bdf8"/>
@@ -975,7 +977,8 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
             {podeRH  && <L1 to="/absenteismo-apui"  label="Absenteísmo / RHS"      Icon={UserCog}/>}
             {podeRH  && <L1 to="/cadastros"         label="Cadastros Mestres"      Icon={Layers}/>}
             {podeUsr && <L1 to="/usuarios"          label="Gestão de Usuários"     Icon={Users}/>}
-            <L1 to="/siaps"       label="eGestor / SIAPS"          Icon={Globe}/>
+            <L1 to="/indicadores-aps" label="Indicadores APS · SIAPS"  Icon={BarChart2}/>
+            <L1 to="/siaps"       label="eGestor (legado)"         Icon={Globe}/>
             <L1 to="/integracoes" label="Painel de Integrações ★"  Icon={Plug}/>
             {podeAud && <L1 to="/auditoria"      label="Auditoria e Controle"   Icon={Shield}/>}
             {podeAud && <L1 to="/gateway-rnds"   label="Gateway RNDS · FHIR R4" Icon={Network}/>}
@@ -1159,6 +1162,7 @@ export default function App() {
             <Route path="/siops-live"                element={<Navigate to="/siops" replace/>}/>
             <Route path="/financeiro"                element={<PainelFinanceiro/>}/>
             <Route path="/siaps"                     element={<SiapsEgestor/>}/>
+            <Route path="/indicadores-aps"           element={<IndicadoresAPS/>}/>
             <Route path="/caf"                       element={<PainelCAF/>}/>
             <Route path="/matriz-normativa-aps"      element={<MatrizNormativaAPS/>}/>
             <Route path="/folha-pagamento"            element={<FolhaPagamento/>}/>

@@ -47,6 +47,7 @@ async def init_db():
             extracao, inconsistencia, credencial_municipio,
             investsus,
         )
+        from models import indicadores_aps  # noqa — tabelas Indicadores APS (3 camadas)
         await conn.run_sync(Base.metadata.create_all)
         # Tabela de snapshot eSUS PEC (entrada manual ou bookmarklet)
         if _raw_url.startswith("sqlite"):
