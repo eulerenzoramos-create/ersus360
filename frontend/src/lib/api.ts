@@ -357,9 +357,11 @@ export const apiGet = <T = unknown>(path: string, params?: Record<string, unknow
   api.get<T>(path, { params }).then((r) => {
     const d = r.data as any;
     // Desempacota envelope { situacao_dado, dados } do backend
+    // Se há "dados" explícito, retorna só ele. Caso contrário, retorna o objeto todo
+    // (endpoints ACS/outros que embalam direto sem campo "dados").
     if (d && typeof d === "object" && !Array.isArray(d) && "situacao_dado" in d) {
-      if (!d.dados) return undefined as unknown as T;
-      return d.dados as T;
+      if ("dados" in d) return (d.dados ?? undefined) as unknown as T;
+      return d as T;
     }
     return d as T;
   });
