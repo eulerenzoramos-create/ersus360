@@ -115,6 +115,9 @@ def _label_competencia(comp: str) -> str:
 @router.get("/dashboard")
 async def dashboard_acs(
     competencia: Optional[str] = Query(None, description="Competência AAAA-MM (ex: 2026-07)"),
+    periodo: Optional[str] = Query(None, description="Tipo de período: diario | mensal | anual"),
+    data: Optional[str]       = Query(None, description="Data AAAA-MM-DD para período diário"),
+    ano: Optional[str]        = Query(None, description="Ano AAAA para período anual"),
     _: UserOut = Depends(get_current_user),
 ):
     ativos = [a for a in _ACS_REF if a["ativo"]]
@@ -124,9 +127,29 @@ async def dashboard_acs(
     for a in ativos:
         dist_eq[a["equipe"]] = dist_eq.get(a["equipe"], 0) + 1
 
-    # Usa competência informada ou mês atual
-    if not competencia:
-        competencia = date.today().strftime("%Y-%m")
+    # Resolve competência e label conforme o período escolhido
+    hoje = date.today()
+    if periodo == "diario" and data:
+        try:
+            d = date.fromisoformat(data)
+            competencia = d.strftime("%Y-%m")
+            periodo_label = d.strftime("%d/%m/%Y")
+            periodo_tipo  = "diario"
+        except Exception:
+            data = hoje.isoformat()
+            competencia   = hoje.strftime("%Y-%m")
+            periodo_label = hoje.strftime("%d/%m/%Y")
+            periodo_tipo  = "diario"
+    elif periodo == "anual" and ano:
+        competencia   = f"{ano}-01"
+        periodo_label = str(ano)
+        periodo_tipo  = "anual"
+    else:
+        # mensal (padrão)
+        if not competencia:
+            competencia = hoje.strftime("%Y-%m")
+        periodo_label = _label_competencia(competencia)
+        periodo_tipo  = "mensal"
     try:
         esus_prod = await _esus.buscar_producao(competencia)
         esus_cad  = await _esus.buscar_cadastros()
@@ -185,7 +208,7 @@ async def dashboard_acs(
         "acs_criticos": criticos,
         "distribuicao_equipe": dist_eq,
         "distribuicao_esf": dist_eq,
-        "mes_referencia": {"label": _label_competencia(competencia), "competencia": competencia},
+        "mes_referencia": {"label": periodo_label, "competencia": competencia, "tipo": periodo_tipo},
         "producao_esus": producao_esus_display,
         "verificado_em": _ts(),
     }

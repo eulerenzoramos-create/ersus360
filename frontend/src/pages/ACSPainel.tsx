@@ -872,10 +872,13 @@ export default function ACSPainel() {
   const [aba, setAba] = useState<Aba>(() => ROTA_PARA_ABA[location.pathname] ?? "dashboard");
   const [esfFiltro, setEsfFiltro] = useState("Todas");
   const [statusFiltro, setStatusFiltro] = useState("Todos");
+  const [periodTipo, setPeriodTipo] = useState<"diario" | "mensal" | "anual">("mensal");
   const [competencia, setCompetencia] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
+  const [dataFiltro, setDataFiltro] = useState(() => new Date().toISOString().slice(0, 10));
+  const [anoFiltro, setAnoFiltro] = useState(() => String(new Date().getFullYear()));
 
   // O catch-all "/acs/*" mantém este mesmo componente montado ao navegar entre
   // os links do menu — sem isto, trocar de link não muda nada na tela (o bug
@@ -885,9 +888,15 @@ export default function ACSPainel() {
     if (nova) setAba(nova);
   }, [location.pathname]);
 
+  const dashParams = useMemo(() => {
+    if (periodTipo === "diario")  return { periodo: "diario",  data: dataFiltro };
+    if (periodTipo === "anual")   return { periodo: "anual",   ano: anoFiltro };
+    return { periodo: "mensal", competencia };
+  }, [periodTipo, competencia, dataFiltro, anoFiltro]);
+
   const { data: dash, isLoading, refetch } = useQuery<DashboardAcs>({
-    queryKey: ["acs-dashboard", competencia],
-    queryFn: () => apiGet("/api/acs/dashboard", { competencia }) as Promise<DashboardAcs>,
+    queryKey: ["acs-dashboard", dashParams],
+    queryFn: () => apiGet("/api/acs/dashboard", dashParams) as Promise<DashboardAcs>,
     staleTime: 60_000,
   });
 
@@ -942,19 +951,32 @@ export default function ACSPainel() {
                 <Users size={18} color="#fff" />
               </div>
               <span style={{ fontWeight: 800, fontSize: 20, color: "#fff" }}>Painel ACS</span>
-              <input
-                type="month"
-                value={competencia}
-                onChange={e => setCompetencia(e.target.value)}
-                style={{
-                  background: "rgba(255,255,255,0.15)", color: "#bfdbfe",
-                  border: "1px solid rgba(255,255,255,0.3)", borderRadius: 6,
-                  padding: "2px 8px", fontSize: 11, fontWeight: 600,
-                  cursor: "pointer", outline: "none",
-                  colorScheme: "dark",
-                }}
-                title="Selecionar competência (mês/ano)"
-              />
+              {/* Seletor de período: Diário | Mensal | Anual */}
+              <div style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(0,0,0,0.2)", borderRadius: 8, padding: "3px 4px" }}>
+                {(["diario","mensal","anual"] as const).map(t => (
+                  <button key={t} onClick={() => setPeriodTipo(t)}
+                    style={{
+                      background: periodTipo === t ? "rgba(255,255,255,0.25)" : "transparent",
+                      color: periodTipo === t ? "#fff" : "rgba(255,255,255,0.55)",
+                      border: "none", borderRadius: 5, padding: "2px 9px",
+                      fontSize: 10, fontWeight: 700, cursor: "pointer", textTransform: "capitalize",
+                    }}>
+                    {t === "diario" ? "Diário" : t === "mensal" ? "Mensal" : "Anual"}
+                  </button>
+                ))}
+              </div>
+              {periodTipo === "diario" && (
+                <input type="date" value={dataFiltro} onChange={e => setDataFiltro(e.target.value)}
+                  style={{ background: "rgba(255,255,255,0.15)", color: "#bfdbfe", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 600, outline: "none", colorScheme: "dark" }} />
+              )}
+              {periodTipo === "mensal" && (
+                <input type="month" value={competencia} onChange={e => setCompetencia(e.target.value)}
+                  style={{ background: "rgba(255,255,255,0.15)", color: "#bfdbfe", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 600, outline: "none", colorScheme: "dark" }} />
+              )}
+              {periodTipo === "anual" && (
+                <input type="number" value={anoFiltro} onChange={e => setAnoFiltro(e.target.value)}
+                  min="2020" max="2030" style={{ background: "rgba(255,255,255,0.15)", color: "#bfdbfe", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 600, outline: "none", width: 72, colorScheme: "dark" }} />
+              )}
             </div>
             <div style={{ fontSize: 12, color: "#bfdbfe" }}>
               Agentes Comunitários de Saúde · Apuí/AM · 65 ACS · 65 Microáreas
