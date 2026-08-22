@@ -163,7 +163,7 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
     )
 
     return {
-        "situacao_dado": situacao,
+        "status": situacao,
         "kpis": kpis,
         "acs_destaques": destaques,
         "acs_criticos": criticos,
@@ -181,7 +181,7 @@ async def lista_acs(esf: Optional[str] = Query(None), _: UserOut = Depends(get_c
     if esf:
         dados = [a for a in dados if a["equipe"] == esf]
     return {
-        "situacao_dado": "referencia_municipal",
+        "status": "referencia_municipal",
         "acs": dados,
         "total": len(dados),
         "verificado_em": _ts(),
@@ -210,7 +210,7 @@ async def microareas(_: UserOut = Depends(get_current_user)):
         ma["pct_visitas"] = round(sum(a["pct_visitas"] for a in _ACS_REF if a["microarea"] == ma["codigo"]) / ma["acs_count"], 1) if ma["acs_count"] else 0
         ma["semaforo"] = "verde" if ma["pct_visitas"] >= 90 else ("amarelo" if ma["pct_visitas"] >= 75 else "vermelho")
     return {
-        "situacao_dado": "referencia_municipal",
+        "status": "referencia_municipal",
         "microareas": list(equipes_ma.values()),
         "verificado_em": _ts(),
     }
