@@ -177,57 +177,106 @@ function AcsCard({ a }: { a: AcsItem }) {
 
 // ── Aba Visitas ───────────────────────────────────────────────────────────────
 
-function AbaVisitas({ fonte }: { fonte: string }) {
+function AbaVisitas({ fonte, periodTipo, competencia: compProp, dataFiltro, anoFiltro }: {
+  fonte: string; periodTipo: string; competencia: string; dataFiltro: string; anoFiltro: string;
+}) {
+  const params = useMemo(() => {
+    if (periodTipo === "diario")  return { periodo: "diario",  data: dataFiltro };
+    if (periodTipo === "anual")   return { periodo: "anual",   ano: anoFiltro };
+    return { periodo: "mensal", competencia: compProp };
+  }, [periodTipo, compProp, dataFiltro, anoFiltro]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["acs-visitas"],
-    queryFn: () => apiGet("/api/acs/esus/visitas") as Promise<any>,
+    queryKey: ["acs-visitas", params],
+    queryFn: () => apiGet("/api/acs/esus/visitas", params) as Promise<any>,
     staleTime: 120_000,
   });
 
-  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando dados do e-SUS PEC...</div>;
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando visitas...</div>;
 
   const prod = data?.dados;
-  const disponivel = prod && prod.fonte === "esus_pec";
-  const competencia = prod?.competencia ?? "—";
+  if (!prod) return null;
 
-  // Dados reais do eSUS PEC — exibe totais de produção
-  if (disponivel) {
-    const cards = [
-      { label: "Visitas Domiciliares", val: prod.visitas_domiciliares ?? 0, cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
-      { label: "Atendimentos Individuais", val: prod.atendimentos_individuais ?? 0, cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-      { label: "Atend. Odontológicos", val: prod.atendimentos_odontologicos ?? 0, cor: "#7c3aed", bg: "#faf5ff", border: "#e9d5ff" },
-      { label: "Procedimentos", val: prod.procedimentos ?? 0, cor: "#d97706", bg: "#fef3c7", border: "#fde68a" },
-      { label: "Ativ. Coletivas", val: prod.atividades_coletivas ?? 0, cor: "#0891b2", bg: "#f0f9ff", border: "#bae6fd" },
-      { label: "Encaminhamentos", val: prod.encaminhamentos ?? 0, cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-    ];
-    return (
-      <div>
-        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 16 }}>✅</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>e-SUS PEC conectado</span>
-          <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 8 }}>Competência {competencia}</span>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
-          {cards.map(c => (
-            <div key={c.label} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10, padding: "18px 16px", textAlign: "center" }}>
-              <div style={{ fontSize: 36, fontWeight: 800, color: c.cor }}>{c.val.toLocaleString("pt-BR")}</div>
-              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{c.label}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, padding: "14px 16px", fontSize: 12, color: "#6b7280" }}>
-          Fonte: e-SUS PEC · Apuí/AM · IBGE 1300144 · Competência {competencia}
-        </div>
-      </div>
-    );
-  }
+  const isPec    = prod.fonte === "esus_pec";
+  const isRef    = prod.fonte === "referencia_municipal";
+  const compLabel = prod.periodo_label ?? prod.competencia ?? "—";
 
-  // Offline — exibe banner
+  const bannerBg    = isPec ? "#f0fdf4" : "#eff6ff";
+  const bannerBd    = isPec ? "#bbf7d0" : "#bfdbfe";
+  const bannerTxt   = isPec ? "#15803d" : "#1d4ed8";
+  const bannerEmoji = isPec ? "✅" : "📋";
+  const bannerMsg   = isPec ? "e-SUS PEC · Dados em tempo real" : "Dados de referência CNES · Apuí/AM";
+
+  const cardsTop = isPec ? [
+    { label: "Visitas Domiciliares",    val: prod.visitas_domiciliares ?? 0,       cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
+    { label: "Atend. Individuais",      val: prod.atendimentos_individuais ?? 0,    cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+    { label: "Atend. Odontológicos",    val: prod.atendimentos_odontologicos ?? 0,  cor: "#7c3aed", bg: "#faf5ff", border: "#e9d5ff" },
+    { label: "Procedimentos",           val: prod.procedimentos ?? 0,              cor: "#d97706", bg: "#fef3c7", border: "#fde68a" },
+    { label: "Ativ. Coletivas",         val: prod.atividades_coletivas ?? 0,       cor: "#0891b2", bg: "#f0f9ff", border: "#bae6fd" },
+    { label: "Encaminhamentos",         val: prod.encaminhamentos ?? 0,            cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+  ] : [
+    { label: "Visitas Realizadas",   val: prod.visitas_domiciliares ?? 0,  cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
+    { label: "Visitas Programadas",  val: prod.visitas_programadas ?? 0,   cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+    { label: "% Realizadas",         val: `${prod.pct_realizadas ?? 0}%`,  cor: "#7c3aed", bg: "#faf5ff", border: "#e9d5ff" },
+    { label: "Não Encontradas",      val: prod.nao_encontradas ?? 0,       cor: "#d97706", bg: "#fef3c7", border: "#fde68a" },
+    { label: "Recusas",              val: prod.recusas ?? 0,               cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+    { label: "ACS Ativos",           val: 65,                              cor: "#0891b2", bg: "#f0f9ff", border: "#bae6fd" },
+  ];
+
   return (
-    <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "32px 24px", textAlign: "center" }}>
-      <div style={{ fontSize: 36, marginBottom: 12 }}>📡</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: "#b91c1c", marginBottom: 8 }}>e-SUS PEC Offline</div>
-      <div style={{ fontSize: 13, color: "#6b7280" }}>{prod?.nota ?? "Configure ESUS_USUARIO e ESUS_SENHA no Railway para exibir dados em tempo real."}</div>
+    <div>
+      {/* Banner fonte */}
+      <div style={{ background: bannerBg, border: `1px solid ${bannerBd}`, borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 16 }}>{bannerEmoji}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: bannerTxt }}>{bannerMsg}</span>
+        <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 8 }}>Período: {compLabel}</span>
+        {isRef && <span style={{ marginLeft: "auto", fontSize: 11, color: "#9ca3af" }}>⚡ Conecte o e-SUS PEC para dados em tempo real</span>}
+      </div>
+
+      {/* KPI cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
+        {cardsTop.map(c => (
+          <div key={c.label} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10, padding: "18px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 36, fontWeight: 800, color: c.cor, fontVariantNumeric: "tabular-nums" }}>
+              {typeof c.val === "number" ? c.val.toLocaleString("pt-BR") : c.val}
+            </div>
+            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{c.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabela por equipe (dados de referência) */}
+      {isRef && Array.isArray(prod.por_equipe) && prod.por_equipe.length > 0 && (
+        <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid #f3f4f6", fontWeight: 700, fontSize: 13 }}>Visitas por Equipe ESF</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                {["Equipe","Realizadas","Programadas","% Meta"].map(h => (
+                  <th key={h} style={{ padding: "8px 14px", fontSize: 11, fontWeight: 600, color: "#6b7280", textAlign: h === "Equipe" ? "left" : "right" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {prod.por_equipe.map((eq: any) => {
+                const cor = eq.pct >= 90 ? "#16a34a" : eq.pct >= 75 ? "#d97706" : "#dc2626";
+                return (
+                  <tr key={eq.equipe} style={{ borderTop: "1px solid #f3f4f6" }}>
+                    <td style={{ padding: "8px 14px", fontSize: 12, fontWeight: 600 }}>{eq.equipe}</td>
+                    <td style={{ padding: "8px 14px", fontSize: 12, textAlign: "right", color: "#1351b4", fontWeight: 700 }}>{eq.realizadas.toLocaleString("pt-BR")}</td>
+                    <td style={{ padding: "8px 14px", fontSize: 12, textAlign: "right", color: "#6b7280" }}>{eq.programadas.toLocaleString("pt-BR")}</td>
+                    <td style={{ padding: "8px 14px", fontSize: 12, textAlign: "right", fontWeight: 700, color: cor }}>{eq.pct}%</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div style={{ marginTop: 12, fontSize: 11, color: "#9ca3af" }}>
+        Fonte: {isPec ? "e-SUS PEC" : "CNES Apuí/AM"} · IBGE 1300144 · Período: {compLabel}
+      </div>
     </div>
   );
 }
@@ -1146,7 +1195,7 @@ export default function ACSPainel() {
         )}
 
         {/* ── Visitas ── */}
-        {aba === "visitas" && <AbaVisitas fonte={esusStatus?.autenticado ? "esus_pec" : "referencia"} />}
+        {aba === "visitas" && <AbaVisitas fonte={esusStatus?.autenticado ? "esus_pec" : "referencia"} periodTipo={periodTipo} competencia={competencia} dataFiltro={dataFiltro} anoFiltro={anoFiltro} />}
 
         {/* ── Calendário ── */}
         {aba === "calendario" && <AbaCalendario />}

@@ -379,10 +379,61 @@ async def esus_debug_login():
 
 
 @router.get("/esus/visitas")
-async def esus_visitas(_: UserOut = Depends(get_current_user)):
-    competencia = date.today().strftime("%Y-%m")
-    dados = await _esus.buscar_producao(competencia)
-    return {"fonte": dados.get("fonte", "offline"), "dados": dados}
+async def esus_visitas(
+    periodo: Optional[str]  = Query(None),
+    data:    Optional[str]  = Query(None),
+    ano:     Optional[str]  = Query(None),
+    competencia: Optional[str] = Query(None),
+    _: UserOut = Depends(get_current_user),
+):
+    hoje = date.today()
+    if periodo == "diario" and data:
+        try:
+            d = date.fromisoformat(data)
+            comp = d.strftime("%Y-%m")
+            periodo_label = d.strftime("%d/%m/%Y")
+        except Exception:
+            comp = hoje.strftime("%Y-%m")
+            periodo_label = hoje.strftime("%d/%m/%Y")
+    elif periodo == "anual" and ano:
+        comp = f"{ano}-01"
+        periodo_label = str(ano)
+    else:
+        comp = competencia or hoje.strftime("%Y-%m")
+        periodo_label = _label_competencia(comp)
+
+    dados = await _esus.buscar_producao(comp)
+    fonte = dados.get("fonte", "offline")
+
+    # Fallback: usa dados de referência CNES quando PEC offline
+    if fonte != "esus_pec":
+        ativos = [a for a in _ACS_REF if a["ativo"]]
+        vis_prog = sum(a["visitas"]["programadas"] for a in ativos)
+        vis_real = sum(a["visitas"]["realizadas"] for a in ativos)
+        nao_enc  = sum(a["visitas"]["nao_encontradas"] for a in ativos)
+        recusas  = sum(a["visitas"]["recusas"] for a in ativos)
+        por_equipe = {}
+        for a in ativos:
+            eq = a["equipe"]
+            if eq not in por_equipe:
+                por_equipe[eq] = {"equipe": eq, "programadas": 0, "realizadas": 0, "pct": 0}
+            por_equipe[eq]["programadas"] += a["visitas"]["programadas"]
+            por_equipe[eq]["realizadas"]  += a["visitas"]["realizadas"]
+        for v in por_equipe.values():
+            v["pct"] = round(v["realizadas"] / max(v["programadas"], 1) * 100)
+        dados = {
+            "fonte": "referencia_municipal",
+            "competencia": comp,
+            "periodo_label": periodo_label,
+            "visitas_domiciliares": vis_real,
+            "visitas_programadas": vis_prog,
+            "nao_encontradas": nao_enc,
+            "recusas": recusas,
+            "pct_realizadas": round(vis_real / max(vis_prog, 1) * 100, 1),
+            "por_equipe": sorted(por_equipe.values(), key=lambda x: -x["realizadas"]),
+            "nota": "Dados de referência CNES Apuí/AM — conecte o e-SUS PEC para dados em tempo real.",
+        }
+    return {"fonte": dados.get("fonte"), "dados": dados}
 
 
 @router.get("/esus/visitas-detalhe")
