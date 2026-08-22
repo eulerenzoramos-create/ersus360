@@ -872,6 +872,10 @@ export default function ACSPainel() {
   const [aba, setAba] = useState<Aba>(() => ROTA_PARA_ABA[location.pathname] ?? "dashboard");
   const [esfFiltro, setEsfFiltro] = useState("Todas");
   const [statusFiltro, setStatusFiltro] = useState("Todos");
+  const [competencia, setCompetencia] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
 
   // O catch-all "/acs/*" mantém este mesmo componente montado ao navegar entre
   // os links do menu — sem isto, trocar de link não muda nada na tela (o bug
@@ -882,8 +886,8 @@ export default function ACSPainel() {
   }, [location.pathname]);
 
   const { data: dash, isLoading, refetch } = useQuery<DashboardAcs>({
-    queryKey: ["acs-dashboard"],
-    queryFn: () => apiGet("/api/acs/dashboard") as Promise<DashboardAcs>,
+    queryKey: ["acs-dashboard", competencia],
+    queryFn: () => apiGet("/api/acs/dashboard", { competencia }) as Promise<DashboardAcs>,
     staleTime: 60_000,
   });
 
@@ -938,9 +942,19 @@ export default function ACSPainel() {
                 <Users size={18} color="#fff" />
               </div>
               <span style={{ fontWeight: 800, fontSize: 20, color: "#fff" }}>Painel ACS</span>
-              <span style={{ background: "rgba(255,255,255,0.15)", color: "#bfdbfe", borderRadius: 6, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>
-                {dash?.mes_referencia?.label ?? "Julho/2026"}
-              </span>
+              <input
+                type="month"
+                value={competencia}
+                onChange={e => setCompetencia(e.target.value)}
+                style={{
+                  background: "rgba(255,255,255,0.15)", color: "#bfdbfe",
+                  border: "1px solid rgba(255,255,255,0.3)", borderRadius: 6,
+                  padding: "2px 8px", fontSize: 11, fontWeight: 600,
+                  cursor: "pointer", outline: "none",
+                  colorScheme: "dark",
+                }}
+                title="Selecionar competência (mês/ano)"
+              />
             </div>
             <div style={{ fontSize: 12, color: "#bfdbfe" }}>
               Agentes Comunitários de Saúde · Apuí/AM · 65 ACS · 65 Microáreas

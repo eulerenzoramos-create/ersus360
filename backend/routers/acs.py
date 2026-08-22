@@ -100,8 +100,23 @@ def _kpis():
     }
 
 
+_MESES_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+             "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+
+def _label_competencia(comp: str) -> str:
+    """'2026-07' → 'Julho/2026'"""
+    try:
+        ano, mes = comp.split("-")
+        return f"{_MESES_PT[int(mes)-1]}/{ano}"
+    except Exception:
+        return comp
+
+
 @router.get("/dashboard")
-async def dashboard_acs(_: UserOut = Depends(get_current_user)):
+async def dashboard_acs(
+    competencia: Optional[str] = Query(None, description="Competência AAAA-MM (ex: 2026-07)"),
+    _: UserOut = Depends(get_current_user),
+):
     ativos = [a for a in _ACS_REF if a["ativo"]]
     destaques = sorted([a for a in ativos if a["status"] == "destaque"], key=lambda x: -x["pct_visitas"])[:5]
     criticos  = sorted([a for a in ativos if a["status"] == "critico"],  key=lambda x:  x["pct_visitas"])[:5]
@@ -109,8 +124,9 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
     for a in ativos:
         dist_eq[a["equipe"]] = dist_eq.get(a["equipe"], 0) + 1
 
-    # Tenta enriquecer com dados reais do eSUS PEC
-    competencia = date.today().strftime("%Y-%m")
+    # Usa competência informada ou mês atual
+    if not competencia:
+        competencia = date.today().strftime("%Y-%m")
     try:
         esus_prod = await _esus.buscar_producao(competencia)
         esus_cad  = await _esus.buscar_cadastros()
@@ -169,7 +185,7 @@ async def dashboard_acs(_: UserOut = Depends(get_current_user)):
         "acs_criticos": criticos,
         "distribuicao_equipe": dist_eq,
         "distribuicao_esf": dist_eq,
-        "mes_referencia": MES_REF,
+        "mes_referencia": {"label": _label_competencia(competencia), "competencia": competencia},
         "producao_esus": producao_esus_display,
         "verificado_em": _ts(),
     }
