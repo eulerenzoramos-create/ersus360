@@ -687,25 +687,30 @@ async def health():
 # O Dockerfile copia o dist do frontend para /app/frontend_dist
 _FRONTEND_DIST = Path(__file__).parent / "frontend_dist"
 
+_NO_CACHE_HEADERS = {
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
+
 if _FRONTEND_DIST.exists():
-    # Serve assets (JS/CSS/imagens) com cache longo
+    # Serve assets (JS/CSS/imagens) com cache longo (nomes têm hash)
     app.mount("/assets", StaticFiles(directory=str(_FRONTEND_DIST / "assets")), name="assets")
 
     @app.get("/")
     async def root_spa():
-        return FileResponse(str(_FRONTEND_DIST / "index.html"))
+        return FileResponse(str(_FRONTEND_DIST / "index.html"), headers=_NO_CACHE_HEADERS)
 
     # SPA catch-all: qualquer rota não-API retorna o index.html
     @app.get("/{full_path:path}")
     async def spa_catchall(full_path: str):
-        # Rotas /api/* já são tratadas pelos routers acima
         if full_path.startswith("api/") or full_path in ("health", "docs", "openapi.json", "redoc"):
             from fastapi.responses import JSONResponse as _JR
             return _JR({"detail": "Not Found"}, status_code=404)
         index = _FRONTEND_DIST / "index.html"
         if index.exists():
-            return FileResponse(str(index))
-        return FileResponse(str(_FRONTEND_DIST / "index.html"))
+            return FileResponse(str(index), headers=_NO_CACHE_HEADERS)
+        return FileResponse(str(_FRONTEND_DIST / "index.html"), headers=_NO_CACHE_HEADERS)
 
 else:
     # Sem build do frontend: retorna JSON (comportamento anterior)
