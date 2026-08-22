@@ -220,6 +220,7 @@ async def _snap_salvar(payload: dict):
     import json
     from database import AsyncSessionLocal
     from sqlalchemy import text
+    global _snap_cache, _snap_cache_ts
     dados = {**payload, "capturado_em": datetime.utcnow().isoformat()}
     json_str = json.dumps(dados, ensure_ascii=False)
     async with AsyncSessionLocal() as db:
@@ -236,24 +237,33 @@ async def _snap_salvar(payload: dict):
                 {"d": json_str},
             )
         await db.commit()
+    _snap_cache = dados
+    _snap_cache_ts = __import__("time").monotonic()
     return dados
 
+_snap_cache: dict | None = None
+_snap_cache_ts: float = 0.0
+
 async def _snap_ler():
-    import json
+    import json, time
     from database import AsyncSessionLocal
     from sqlalchemy import text
+    global _snap_cache, _snap_cache_ts
+    if _snap_cache is not None and (time.monotonic() - _snap_cache_ts) < 60:
+        return _snap_cache
     try:
         async with AsyncSessionLocal() as db:
             row = (await db.execute(
                 text("SELECT dados FROM esus_snapshot ORDER BY criado_em DESC LIMIT 1")
             )).fetchone()
             if not row:
+                _snap_cache = None
                 return None
             val = row[0]
-            # asyncpg deserializa JSONB → dict automaticamente; SQLite retorna str
-            if isinstance(val, (dict, list)):
-                return val
-            return json.loads(val)
+            result = val if isinstance(val, (dict, list)) else json.loads(val)
+            _snap_cache = result
+            _snap_cache_ts = time.monotonic()
+            return result
     except Exception:
         return None
 
