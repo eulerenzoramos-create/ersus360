@@ -156,10 +156,16 @@ async def listar_competencias(
         except Exception:
             comps = []
 
-    # Garante competência atual sempre disponível
+    # Garante competências de referência sempre disponíveis
+    _COMPS_REF = ["2026-08", "2026-07", "2026-06", "2026-05", "2026-04"]
+    for c in _COMPS_REF:
+        if c not in comps:
+            comps = [c] + comps
     atual = date.today().strftime("%Y-%m")
     if atual not in comps:
         comps = [atual] + comps
+    # Ordena decrescente para exibição
+    comps = sorted(set(comps), reverse=True)
 
     return {
         "competencias": [{"valor": c, "label": _comp_label(c)} for c in comps],
@@ -190,7 +196,7 @@ async def dashboard_indicadores(
 
     # Fallback: referência municipal quando competência bate
     usando_ref = False
-    if not cvat_db and competencia in ("2026-05", "2026-04"):
+    if not cvat_db and competencia in ("2026-08", "2026-07", "2026-06", "2026-05", "2026-04"):
         cvat_db = _ref_cvat_para_resposta(competencia)
         usando_ref = True
 
@@ -258,7 +264,7 @@ async def cvat_competencia(
     dados = await _buscar_cvat_db(ibge, competencia)
     usando_ref = False
 
-    if not dados and competencia in ("2026-05", "2026-04"):
+    if not dados and competencia in ("2026-08", "2026-07", "2026-06", "2026-05", "2026-04"):
         dados = _ref_cvat_para_resposta(competencia)
         usando_ref = True
 
