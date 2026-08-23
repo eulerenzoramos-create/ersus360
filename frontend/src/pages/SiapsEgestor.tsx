@@ -770,6 +770,179 @@ const _Q2 = {
   ],
 };
 
+// ── Painel dos 15 Indicadores por Equipe ─────────────────────────────────────
+function PainelIndPorEquipe({ equipes, indicadores, metas, pctTempo, corGap, bgGap, proj }: {
+  equipes: any[]; indicadores: any[]; metas: number[];
+  pctTempo: number;
+  corGap: (a:number, m:number) => string;
+  bgGap:  (a:number, m:number) => string;
+  proj:   (a:number) => number;
+}) {
+  const [equipeSel, setEquipeSel] = useState<string>(equipes[0]?.equipe ?? "");
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+
+  const equipe = equipes.find(e => e.equipe === equipeSel);
+  const indKeys = ["ind1","ind2","ind3","ind4","ind5","ind6","ind7","ind8","ind9","ind10","ind11","ind12","ind13","ind14","ind15"];
+
+  const toggle = (eq: string) => setExpandidos(prev => {
+    const s = new Set(prev);
+    s.has(eq) ? s.delete(eq) : s.add(eq);
+    return s;
+  });
+
+  const COR_ST: Record<string,string> = { otimo:"#1d4ed8", bom:"#16a34a", suficiente:"#d97706", regular:"#dc2626" };
+  const LABEL_ST: Record<string,string> = { otimo:"Ótimo", bom:"Bom", suficiente:"Suficiente", regular:"Regular" };
+
+  return (
+    <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18 }}>
+      {/* Cabeçalho */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14, flexWrap:"wrap", gap:10 }}>
+        <div>
+          <div style={{ fontSize:14, fontWeight:700 }}>15 Indicadores por Equipe — Q2/2026</div>
+          <div style={{ fontSize:11, color:"#6b7280", marginTop:2 }}>Clique numa equipe para expandir · Barras mostram % atual vs meta MS</div>
+        </div>
+        {/* Seletor de equipe para view comparativa */}
+        <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+          {equipes.map(e => {
+            const cor = COR_ST[e.status] ?? "#6b7280";
+            const sel = equipeSel === e.equipe;
+            return (
+              <button key={e.equipe} onClick={() => setEquipeSel(e.equipe)}
+                style={{ padding:"4px 10px", border:`1px solid ${sel?cor:"#e5e7eb"}`, borderRadius:6,
+                  background:sel?cor+"18":"#fff", color:sel?cor:"#6b7280",
+                  fontWeight:sel?700:400, fontSize:11, cursor:"pointer" }}>
+                {e.equipe}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* View de uma equipe — barras dos 15 indicadores */}
+      {equipe && (
+        <div style={{ background:"#f8fafc", borderRadius:10, padding:"14px 16px", marginBottom:16 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+            <div>
+              <div style={{ fontSize:13, fontWeight:800, color:"#1e3a5f" }}>{equipe.equipe}</div>
+              <div style={{ fontSize:11, color:"#6b7280" }}>{equipe.ubs}</div>
+            </div>
+            <span style={{ background:COR_ST[equipe.status]+"18", color:COR_ST[equipe.status], fontWeight:700,
+              fontSize:11, padding:"3px 10px", borderRadius:20 }}>
+              {LABEL_ST[equipe.status] ?? equipe.status} · {equipe.pts_q1} pts
+            </span>
+          </div>
+
+          <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
+            {indicadores.map((ind: any, i: number) => {
+              const val  = (equipe.ind as any)[indKeys[i]] ?? 0;
+              const meta = metas[i];
+              const cor  = corGap(val, meta);
+              const gap  = meta - val;
+              const pj   = proj(val);
+              const pjCor = pj >= meta ? "#16a34a" : pj >= meta-10 ? "#d97706" : "#dc2626";
+              return (
+                <div key={ind.key} style={{ display:"grid", gridTemplateColumns:"12px 220px 1fr 58px 60px 60px 70px", gap:8, alignItems:"center" }}>
+                  <div style={{ width:9, height:9, borderRadius:"50%", background:cor, flexShrink:0 }} />
+                  <span style={{ fontSize:11, color:"#374151" }}>Ind.{i+1} — {ind.label}</span>
+                  <div style={{ position:"relative", height:8, background:"#e5e7eb", borderRadius:4, overflow:"visible" }}>
+                    <div style={{ position:"absolute", left:`${Math.min(meta,100)}%`, top:-2, width:2, height:12,
+                      background:"#9ca3af", zIndex:2, borderRadius:1 }} title={`Meta: ${meta}%`} />
+                    <div style={{ width:`${Math.min(val,100)}%`, height:"100%", background:cor, borderRadius:4 }} />
+                  </div>
+                  <span style={{ fontSize:13, fontWeight:800, color:cor, textAlign:"right" }}>{val}%</span>
+                  <span style={{ fontSize:10, color:"#9ca3af", textAlign:"center" }}>meta {meta}%</span>
+                  <span style={{ fontSize:11, fontWeight:700, textAlign:"center", color: gap>0?"#dc2626":"#16a34a" }}>
+                    {gap>0?`−${gap.toFixed(1)}`:`+${Math.abs(gap).toFixed(1)}`}p.p.
+                  </span>
+                  <span style={{ fontSize:10, fontWeight:700, background:pjCor+"18", color:pjCor,
+                    padding:"2px 6px", borderRadius:10, textAlign:"center" }}>proj {pj}%</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ display:"flex", gap:16, marginTop:10, fontSize:10, color:"#9ca3af", borderTop:"1px solid #e5e7eb", paddingTop:8, flexWrap:"wrap" }}>
+            <span>| = meta MS</span>
+            <span style={{color:"#16a34a"}}>● acima da meta</span>
+            <span style={{color:"#d97706"}}>● até 10p.p. abaixo</span>
+            <span style={{color:"#dc2626"}}>● crítico</span>
+            <span>proj. = projeção linear ao encerramento do Q2</span>
+          </div>
+        </div>
+      )}
+
+      {/* Accordion — todas as equipes expandíveis */}
+      <div style={{ borderTop:"1px solid #f1f5f9", paddingTop:12 }}>
+        <div style={{ fontSize:12, fontWeight:600, color:"#6b7280", marginBottom:8 }}>
+          Todas as equipes — clique para expandir
+        </div>
+        {equipes.map(e => {
+          const aberta = expandidos.has(e.equipe);
+          const cor = COR_ST[e.status] ?? "#6b7280";
+          // conta indicadores abaixo da meta
+          const criticos = indKeys.filter((k,i) => ((e.ind as any)[k] ?? 0) < metas[i]).length;
+          return (
+            <div key={e.equipe} style={{ border:`1px solid ${aberta?cor+"44":"#f1f5f9"}`,
+              borderLeft:`3px solid ${cor}`, borderRadius:8, marginBottom:6, overflow:"hidden" }}>
+              {/* Cabeçalho accordion */}
+              <div onClick={() => toggle(e.equipe)}
+                style={{ display:"flex", alignItems:"center", gap:12, padding:"9px 14px",
+                  cursor:"pointer", background: aberta?"#fafbff":"#fff" }}>
+                <span style={{ fontSize:12, color:"#9ca3af" }}>{aberta?"▼":"▶"}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:12, fontWeight:700 }}>{e.equipe}</div>
+                  <div style={{ fontSize:10, color:"#9ca3af" }}>{e.ubs}</div>
+                </div>
+                {/* Dots dos 15 indicadores */}
+                <div style={{ display:"flex", gap:3 }}>
+                  {indKeys.map((k,i) => {
+                    const val = (e.ind as any)[k] ?? 0;
+                    return <div key={k} style={{ width:7, height:7, borderRadius:"50%", background:corGap(val,metas[i]) }} title={`Ind.${i+1}: ${val}%`} />;
+                  })}
+                </div>
+                <span style={{ fontSize:10, color:criticos>0?"#dc2626":"#16a34a", fontWeight:700, minWidth:60, textAlign:"right" }}>
+                  {criticos>0 ? `${criticos} abaixo` : "✓ Todas ok"}
+                </span>
+                <span style={{ background:cor+"18", color:cor, fontWeight:700, fontSize:10,
+                  padding:"2px 8px", borderRadius:20 }}>{LABEL_ST[e.status]}</span>
+              </div>
+
+              {/* Conteúdo expandido */}
+              {aberta && (
+                <div style={{ padding:"10px 14px 14px", background:"#fafbff", borderTop:"1px solid #f1f5f9" }}>
+                  <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                    {indicadores.map((ind: any, i: number) => {
+                      const val  = (e.ind as any)[indKeys[i]] ?? 0;
+                      const meta = metas[i];
+                      const cor2 = corGap(val, meta);
+                      const gap  = meta - val;
+                      return (
+                        <div key={ind.key} style={{ display:"grid", gridTemplateColumns:"10px 220px 1fr 55px 58px 58px", gap:8, alignItems:"center" }}>
+                          <div style={{ width:8, height:8, borderRadius:"50%", background:cor2 }} />
+                          <span style={{ fontSize:11 }}>Ind.{i+1} — {ind.label}</span>
+                          <div style={{ position:"relative", height:7, background:"#e5e7eb", borderRadius:3 }}>
+                            <div style={{ position:"absolute", left:`${Math.min(meta,100)}%`, top:-2, width:2, height:11, background:"#9ca3af", borderRadius:1 }} />
+                            <div style={{ width:`${Math.min(val,100)}%`, height:"100%", background:cor2, borderRadius:3 }} />
+                          </div>
+                          <span style={{ fontSize:12, fontWeight:800, color:cor2, textAlign:"right" }}>{val}%</span>
+                          <span style={{ fontSize:10, color:"#9ca3af", textAlign:"center" }}>meta {meta}%</span>
+                          <span style={{ fontSize:11, fontWeight:700, textAlign:"right", color:gap>0?"#dc2626":"#16a34a" }}>
+                            {gap>0?`−${gap.toFixed(1)}`:`+${Math.abs(gap).toFixed(1)}`}p.p.
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PainelGestorRT() {
   const { dias_totais, dias_decorridos, dias_restantes } = _Q2;
   const pctTempo = Math.round((dias_decorridos / dias_totais) * 100);
@@ -899,6 +1072,17 @@ function PainelGestorRT() {
           <span>vs Q1 = comparação com resultado anterior</span>
         </div>
       </div>
+
+      {/* ── Painel 15 Indicadores por Equipe ── */}
+      <PainelIndPorEquipe
+        equipes={_Q2.equipes}
+        indicadores={_Q2.indicadores}
+        metas={metas}
+        pctTempo={pctTempo}
+        corGap={corGap}
+        bgGap={bgGap}
+        proj={proj}
+      />
 
       {/* ── Matriz Equipe × Indicador ── */}
       <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18, overflow:"auto" }}>
