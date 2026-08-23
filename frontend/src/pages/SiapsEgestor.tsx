@@ -770,6 +770,36 @@ const _Q2 = {
   ],
 };
 
+// Grupos de indicadores por tipo de equipe (índices 0-based)
+const GRUPOS_IND = {
+  esf: {
+    label: "eSF — Saúde da Família",
+    cor: "#1d4ed8",
+    bg: "#eff6ff",
+    border: "#bfdbfe",
+    indices: [0,1,2,3, 7,8,9,10, 13,14],   // ind1-4, ind8-11, ind14-15
+    eixos: ["Criança e Mulher","Doenças Crônicas","IST"],
+  },
+  bucal: {
+    label: "eSB — Saúde Bucal",
+    cor: "#7c3aed",
+    bg: "#faf5ff",
+    border: "#e9d5ff",
+    indices: [4,5,6],                        // ind5-7
+    eixos: ["Saúde Bucal"],
+  },
+  emulti: {
+    label: "eMulti — Multiprofissional",
+    cor: "#0891b2",
+    bg: "#f0f9ff",
+    border: "#bae6fd",
+    indices: [11,12],                        // ind12-13
+    eixos: ["Saúde Mental"],
+  },
+} as const;
+
+type TipoEquipe = keyof typeof GRUPOS_IND;
+
 // ── Painel dos 15 Indicadores por Equipe ─────────────────────────────────────
 function PainelIndPorEquipe({ equipes, indicadores, metas, pctTempo, corGap, bgGap, proj }: {
   equipes: any[]; indicadores: any[]; metas: number[];
@@ -780,9 +810,13 @@ function PainelIndPorEquipe({ equipes, indicadores, metas, pctTempo, corGap, bgG
 }) {
   const [equipeSel, setEquipeSel] = useState<string>(equipes[0]?.equipe ?? "");
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const [tipoAtivo, setTipoAtivo] = useState<TipoEquipe>("esf");
 
   const equipe = equipes.find(e => e.equipe === equipeSel);
   const indKeys = ["ind1","ind2","ind3","ind4","ind5","ind6","ind7","ind8","ind9","ind10","ind11","ind12","ind13","ind14","ind15"];
+
+  const grupo = GRUPOS_IND[tipoAtivo];
+  const indicesFiltrados = grupo.indices;
 
   const toggle = (eq: string) => setExpandidos(prev => {
     const s = new Set(prev);
@@ -793,15 +827,71 @@ function PainelIndPorEquipe({ equipes, indicadores, metas, pctTempo, corGap, bgG
   const COR_ST: Record<string,string> = { otimo:"#1d4ed8", bom:"#16a34a", suficiente:"#d97706", regular:"#dc2626" };
   const LABEL_ST: Record<string,string> = { otimo:"Ótimo", bom:"Bom", suficiente:"Suficiente", regular:"Regular" };
 
+  // Linhas de indicadores filtradas pelo grupo ativo
+  const renderLinhasInd = (eqInd: any, compact = false) =>
+    indicesFiltrados.map(i => {
+      const ind  = indicadores[i];
+      const key  = indKeys[i];
+      const val  = (eqInd as any)[key] ?? 0;
+      const meta = metas[i];
+      const cor  = corGap(val, meta);
+      const gap  = meta - val;
+      const pj   = proj(val);
+      const pjCor = pj >= meta ? "#16a34a" : pj >= meta-10 ? "#d97706" : "#dc2626";
+      return (
+        <div key={key} style={{ display:"grid",
+          gridTemplateColumns: compact ? "10px 200px 1fr 52px 55px 55px" : "12px 220px 1fr 58px 60px 60px 70px",
+          gap:8, alignItems:"center" }}>
+          <div style={{ width:compact?8:9, height:compact?8:9, borderRadius:"50%", background:cor, flexShrink:0 }} />
+          <span style={{ fontSize:11, color:"#374151" }}>Ind.{i+1} — {ind.label}</span>
+          <div style={{ position:"relative", height:7, background:"#e5e7eb", borderRadius:3 }}>
+            <div style={{ position:"absolute", left:`${Math.min(meta,100)}%`, top:-2, width:2, height:11,
+              background:"#9ca3af", borderRadius:1 }} title={`Meta: ${meta}%`} />
+            <div style={{ width:`${Math.min(val,100)}%`, height:"100%", background:cor, borderRadius:3 }} />
+          </div>
+          <span style={{ fontSize:12, fontWeight:800, color:cor, textAlign:"right" }}>{val}%</span>
+          <span style={{ fontSize:10, color:"#9ca3af", textAlign:"center" }}>meta {meta}%</span>
+          <span style={{ fontSize:11, fontWeight:700, textAlign:"right", color:gap>0?"#dc2626":"#16a34a" }}>
+            {gap>0?`−${gap.toFixed(1)}`:`+${Math.abs(gap).toFixed(1)}`}p.p.
+          </span>
+          {!compact && (
+            <span style={{ fontSize:10, fontWeight:700, background:pjCor+"18", color:pjCor,
+              padding:"2px 6px", borderRadius:10, textAlign:"center" }}>proj {pj}%</span>
+          )}
+        </div>
+      );
+    });
+
   return (
-    <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18 }}>
+    <div style={{ background:"#fff", border:`1px solid ${grupo.border}`, borderRadius:12, padding:"18px 20px", marginBottom:18 }}>
+
+      {/* ── Tabs de tipo de equipe ── */}
+      <div style={{ display:"flex", gap:0, marginBottom:16, borderBottom:`2px solid ${grupo.border}` }}>
+        {(Object.entries(GRUPOS_IND) as [TipoEquipe, typeof GRUPOS_IND[TipoEquipe]][]).map(([tipo, g]) => (
+          <button key={tipo} onClick={() => { setTipoAtivo(tipo); setExpandidos(new Set()); }}
+            style={{ padding:"9px 18px", border:"none", borderBottom: tipoAtivo===tipo ? `3px solid ${g.cor}` : "3px solid transparent",
+              background:"transparent", color: tipoAtivo===tipo ? g.cor : "#6b7280",
+              fontWeight: tipoAtivo===tipo ? 700 : 400, cursor:"pointer", fontSize:13, marginBottom:-2,
+              display:"flex", alignItems:"center", gap:6 }}>
+            <span style={{ width:8, height:8, borderRadius:"50%", background:g.cor, display:"inline-block" }} />
+            {g.label}
+            <span style={{ fontSize:10, background:tipoAtivo===tipo?g.cor+"18":"#f3f4f6",
+              color:tipoAtivo===tipo?g.cor:"#9ca3af", borderRadius:10, padding:"1px 7px", fontWeight:600 }}>
+              Ind.{g.indices.map(i=>i+1).join(", ")}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {/* Cabeçalho */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14, flexWrap:"wrap", gap:10 }}>
         <div>
-          <div style={{ fontSize:14, fontWeight:700 }}>15 Indicadores por Equipe — Q2/2026</div>
-          <div style={{ fontSize:11, color:"#6b7280", marginTop:2 }}>Clique numa equipe para expandir · Barras mostram % atual vs meta MS</div>
+          <div style={{ fontSize:14, fontWeight:700, color:grupo.cor }}>{grupo.label} — Indicadores por Equipe · Q2/2026</div>
+          <div style={{ fontSize:11, color:"#6b7280", marginTop:2 }}>
+            Eixos: {grupo.eixos.join(" · ")} · {indicesFiltrados.length} indicadores · Clique numa equipe para expandir
+          </div>
         </div>
-        {/* Seletor de equipe para view comparativa */}
+        {/* Seletor de equipe */}
         <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
           {equipes.map(e => {
             const cor = COR_ST[e.status] ?? "#6b7280";
@@ -818,9 +908,9 @@ function PainelIndPorEquipe({ equipes, indicadores, metas, pctTempo, corGap, bgG
         </div>
       </div>
 
-      {/* View de uma equipe — barras dos 15 indicadores */}
+      {/* View detalhada — equipe selecionada */}
       {equipe && (
-        <div style={{ background:"#f8fafc", borderRadius:10, padding:"14px 16px", marginBottom:16 }}>
+        <div style={{ background:grupo.bg, border:`1px solid ${grupo.border}`, borderRadius:10, padding:"14px 16px", marginBottom:16 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
             <div>
               <div style={{ fontSize:13, fontWeight:800, color:"#1e3a5f" }}>{equipe.equipe}</div>
@@ -831,36 +921,9 @@ function PainelIndPorEquipe({ equipes, indicadores, metas, pctTempo, corGap, bgG
               {LABEL_ST[equipe.status] ?? equipe.status} · {equipe.pts_q1} pts
             </span>
           </div>
-
           <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
-            {indicadores.map((ind: any, i: number) => {
-              const val  = (equipe.ind as any)[indKeys[i]] ?? 0;
-              const meta = metas[i];
-              const cor  = corGap(val, meta);
-              const gap  = meta - val;
-              const pj   = proj(val);
-              const pjCor = pj >= meta ? "#16a34a" : pj >= meta-10 ? "#d97706" : "#dc2626";
-              return (
-                <div key={ind.key} style={{ display:"grid", gridTemplateColumns:"12px 220px 1fr 58px 60px 60px 70px", gap:8, alignItems:"center" }}>
-                  <div style={{ width:9, height:9, borderRadius:"50%", background:cor, flexShrink:0 }} />
-                  <span style={{ fontSize:11, color:"#374151" }}>Ind.{i+1} — {ind.label}</span>
-                  <div style={{ position:"relative", height:8, background:"#e5e7eb", borderRadius:4, overflow:"visible" }}>
-                    <div style={{ position:"absolute", left:`${Math.min(meta,100)}%`, top:-2, width:2, height:12,
-                      background:"#9ca3af", zIndex:2, borderRadius:1 }} title={`Meta: ${meta}%`} />
-                    <div style={{ width:`${Math.min(val,100)}%`, height:"100%", background:cor, borderRadius:4 }} />
-                  </div>
-                  <span style={{ fontSize:13, fontWeight:800, color:cor, textAlign:"right" }}>{val}%</span>
-                  <span style={{ fontSize:10, color:"#9ca3af", textAlign:"center" }}>meta {meta}%</span>
-                  <span style={{ fontSize:11, fontWeight:700, textAlign:"center", color: gap>0?"#dc2626":"#16a34a" }}>
-                    {gap>0?`−${gap.toFixed(1)}`:`+${Math.abs(gap).toFixed(1)}`}p.p.
-                  </span>
-                  <span style={{ fontSize:10, fontWeight:700, background:pjCor+"18", color:pjCor,
-                    padding:"2px 6px", borderRadius:10, textAlign:"center" }}>proj {pj}%</span>
-                </div>
-              );
-            })}
+            {renderLinhasInd(equipe.ind)}
           </div>
-
           <div style={{ display:"flex", gap:16, marginTop:10, fontSize:10, color:"#9ca3af", borderTop:"1px solid #e5e7eb", paddingTop:8, flexWrap:"wrap" }}>
             <span>| = meta MS</span>
             <span style={{color:"#16a34a"}}>● acima da meta</span>
@@ -871,67 +934,45 @@ function PainelIndPorEquipe({ equipes, indicadores, metas, pctTempo, corGap, bgG
         </div>
       )}
 
-      {/* Accordion — todas as equipes expandíveis */}
+      {/* Accordion — todas as equipes */}
       <div style={{ borderTop:"1px solid #f1f5f9", paddingTop:12 }}>
         <div style={{ fontSize:12, fontWeight:600, color:"#6b7280", marginBottom:8 }}>
-          Todas as equipes — clique para expandir
+          Todas as equipes · {grupo.label} — clique para expandir
         </div>
         {equipes.map(e => {
           const aberta = expandidos.has(e.equipe);
           const cor = COR_ST[e.status] ?? "#6b7280";
-          // conta indicadores abaixo da meta
-          const criticos = indKeys.filter((k,i) => ((e.ind as any)[k] ?? 0) < metas[i]).length;
+          const criticos = indicesFiltrados.filter(i => ((e.ind as any)[indKeys[i]] ?? 0) < metas[i]).length;
+          const total    = indicesFiltrados.length;
           return (
-            <div key={e.equipe} style={{ border:`1px solid ${aberta?cor+"44":"#f1f5f9"}`,
-              borderLeft:`3px solid ${cor}`, borderRadius:8, marginBottom:6, overflow:"hidden" }}>
-              {/* Cabeçalho accordion */}
+            <div key={e.equipe} style={{ border:`1px solid ${aberta?grupo.cor+"44":"#f1f5f9"}`,
+              borderLeft:`3px solid ${aberta?grupo.cor:cor}`, borderRadius:8, marginBottom:6, overflow:"hidden" }}>
               <div onClick={() => toggle(e.equipe)}
                 style={{ display:"flex", alignItems:"center", gap:12, padding:"9px 14px",
-                  cursor:"pointer", background: aberta?"#fafbff":"#fff" }}>
-                <span style={{ fontSize:12, color:"#9ca3af" }}>{aberta?"▼":"▶"}</span>
+                  cursor:"pointer", background: aberta?grupo.bg:"#fff" }}>
+                <span style={{ fontSize:11, color:"#9ca3af" }}>{aberta?"▼":"▶"}</span>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:12, fontWeight:700 }}>{e.equipe}</div>
                   <div style={{ fontSize:10, color:"#9ca3af" }}>{e.ubs}</div>
                 </div>
-                {/* Dots dos 15 indicadores */}
+                {/* Dots apenas dos indicadores do grupo ativo */}
                 <div style={{ display:"flex", gap:3 }}>
-                  {indKeys.map((k,i) => {
-                    const val = (e.ind as any)[k] ?? 0;
-                    return <div key={k} style={{ width:7, height:7, borderRadius:"50%", background:corGap(val,metas[i]) }} title={`Ind.${i+1}: ${val}%`} />;
+                  {indicesFiltrados.map(i => {
+                    const val = (e.ind as any)[indKeys[i]] ?? 0;
+                    return <div key={i} style={{ width:7, height:7, borderRadius:"50%", background:corGap(val,metas[i]) }} title={`Ind.${i+1}: ${val}%`} />;
                   })}
                 </div>
-                <span style={{ fontSize:10, color:criticos>0?"#dc2626":"#16a34a", fontWeight:700, minWidth:60, textAlign:"right" }}>
-                  {criticos>0 ? `${criticos} abaixo` : "✓ Todas ok"}
+                <span style={{ fontSize:10, color:criticos>0?"#dc2626":"#16a34a", fontWeight:700, minWidth:70, textAlign:"right" }}>
+                  {criticos>0 ? `${criticos}/${total} abaixo` : `✓ ${total}/${total} ok`}
                 </span>
-                <span style={{ background:cor+"18", color:cor, fontWeight:700, fontSize:10,
-                  padding:"2px 8px", borderRadius:20 }}>{LABEL_ST[e.status]}</span>
+                <span style={{ background:cor+"18", color:cor, fontWeight:700, fontSize:10, padding:"2px 8px", borderRadius:20 }}>
+                  {LABEL_ST[e.status]}
+                </span>
               </div>
-
-              {/* Conteúdo expandido */}
               {aberta && (
-                <div style={{ padding:"10px 14px 14px", background:"#fafbff", borderTop:"1px solid #f1f5f9" }}>
+                <div style={{ padding:"10px 14px 14px", background:grupo.bg, borderTop:"1px solid #f1f5f9" }}>
                   <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                    {indicadores.map((ind: any, i: number) => {
-                      const val  = (e.ind as any)[indKeys[i]] ?? 0;
-                      const meta = metas[i];
-                      const cor2 = corGap(val, meta);
-                      const gap  = meta - val;
-                      return (
-                        <div key={ind.key} style={{ display:"grid", gridTemplateColumns:"10px 220px 1fr 55px 58px 58px", gap:8, alignItems:"center" }}>
-                          <div style={{ width:8, height:8, borderRadius:"50%", background:cor2 }} />
-                          <span style={{ fontSize:11 }}>Ind.{i+1} — {ind.label}</span>
-                          <div style={{ position:"relative", height:7, background:"#e5e7eb", borderRadius:3 }}>
-                            <div style={{ position:"absolute", left:`${Math.min(meta,100)}%`, top:-2, width:2, height:11, background:"#9ca3af", borderRadius:1 }} />
-                            <div style={{ width:`${Math.min(val,100)}%`, height:"100%", background:cor2, borderRadius:3 }} />
-                          </div>
-                          <span style={{ fontSize:12, fontWeight:800, color:cor2, textAlign:"right" }}>{val}%</span>
-                          <span style={{ fontSize:10, color:"#9ca3af", textAlign:"center" }}>meta {meta}%</span>
-                          <span style={{ fontSize:11, fontWeight:700, textAlign:"right", color:gap>0?"#dc2626":"#16a34a" }}>
-                            {gap>0?`−${gap.toFixed(1)}`:`+${Math.abs(gap).toFixed(1)}`}p.p.
-                          </span>
-                        </div>
-                      );
-                    })}
+                    {renderLinhasInd(e.ind, true)}
                   </div>
                 </div>
               )}
