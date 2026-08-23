@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, Legend,
@@ -776,6 +776,24 @@ function PainelGestorRT() {
   const metas = [55, 50, 90, 55, 45, 45, 45, 60, 55, 55, 50, 50, 50, 55, 55];
   const indKeys = ["ind1","ind2","ind3","ind4","ind5","ind6","ind7","ind8","ind9","ind10","ind11","ind12","ind13","ind14","ind15"] as const;
 
+  const [busca, setBusca] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState<"todos"|"bom"|"suficiente"|"regular">("todos");
+  const [filtroInd, setFiltroInd] = useState<string>("todos");
+
+  const equipesFiltradas = useMemo(() => {
+    return _Q2.equipes.filter(e => {
+      const texto = busca.toLowerCase();
+      const bateTexto = !busca || e.equipe.toLowerCase().includes(texto) || e.ubs.toLowerCase().includes(texto);
+      const bateStatus = filtroStatus === "todos" || e.status === filtroStatus;
+      const bateInd = filtroInd === "todos" || (() => {
+        const idx = parseInt(filtroInd) - 1;
+        const key = indKeys[idx];
+        return key ? (e.ind as any)[key] < metas[idx] : true;
+      })();
+      return bateTexto && bateStatus && bateInd;
+    });
+  }, [busca, filtroStatus, filtroInd]);
+
   const corGap = (atual: number, meta: number) => {
     const g = meta - atual;
     if (g <= 0)  return "#16a34a";
@@ -884,7 +902,69 @@ function PainelGestorRT() {
 
       {/* ── Matriz Equipe × Indicador ── */}
       <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18, overflow:"auto" }}>
-        <div style={{ fontSize:14, fontWeight:700, marginBottom:4 }}>Matriz por Equipe × Indicador — Q2/2026 (parcial)</div>
+        <div style={{ fontSize:14, fontWeight:700, marginBottom:10 }}>Matriz por Equipe × Indicador — Q2/2026 (parcial)</div>
+
+        {/* Filtros de busca */}
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:14, padding:"10px 12px", background:"#f8fafc", borderRadius:8, border:"1px solid #e5e7eb" }}>
+          {/* Campo texto */}
+          <div style={{ display:"flex", alignItems:"center", gap:6, background:"#fff", border:"1px solid #d1d5db", borderRadius:7, padding:"5px 10px", flex:1, minWidth:180 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="text"
+              placeholder="Buscar equipe ou UBS..."
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              style={{ border:"none", outline:"none", fontSize:12, flex:1, color:"#374151", background:"transparent" }}
+            />
+            {busca && (
+              <button onClick={() => setBusca("")} style={{ border:"none", background:"none", cursor:"pointer", color:"#9ca3af", fontSize:14, padding:0, lineHeight:1 }}>×</button>
+            )}
+          </div>
+
+          {/* Filtro por status */}
+          <div style={{ display:"flex", gap:3, alignItems:"center" }}>
+            <span style={{ fontSize:11, color:"#6b7280", marginRight:2 }}>Status:</span>
+            {([
+              { id:"todos",      label:"Todos" },
+              { id:"bom",        label:"Bom",       cor:"#16a34a" },
+              { id:"suficiente", label:"Suficiente", cor:"#d97706" },
+              { id:"regular",    label:"Regular",    cor:"#dc2626" },
+            ] as const).map(s => (
+              <button key={s.id} onClick={() => setFiltroStatus(s.id)}
+                style={{ padding:"4px 10px", border:`1px solid ${filtroStatus===s.id?(s as any).cor??"#1d4ed8":"#e5e7eb"}`, borderRadius:6, cursor:"pointer", fontSize:11, fontWeight:filtroStatus===s.id?700:400,
+                  background:filtroStatus===s.id?((s as any).cor??"#1d4ed8")+"18":"#fff",
+                  color:filtroStatus===s.id?((s as any).cor??"#1d4ed8"):"#6b7280" }}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Filtro por indicador abaixo da meta */}
+          <div style={{ display:"flex", gap:3, alignItems:"center" }}>
+            <span style={{ fontSize:11, color:"#6b7280", marginRight:2 }}>Abaixo da meta:</span>
+            <select value={filtroInd} onChange={e => setFiltroInd(e.target.value)}
+              style={{ border:"1px solid #d1d5db", borderRadius:6, padding:"4px 8px", fontSize:11, color:"#374151", background:"#fff", cursor:"pointer" }}>
+              <option value="todos">Todos</option>
+              {_Q2.indicadores.map((ind, i) => (
+                <option key={ind.key} value={String(i+1)}>Ind.{i+1} — {(ind as any).short}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Contador */}
+          <div style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:"#6b7280", marginLeft:"auto" }}>
+            <span style={{ background:"#eff6ff", color:"#1d4ed8", fontWeight:700, padding:"2px 8px", borderRadius:20 }}>
+              {equipesFiltradas.length}/{_Q2.equipes.length} equipes
+            </span>
+            {(busca || filtroStatus!=="todos" || filtroInd!=="todos") && (
+              <button onClick={() => { setBusca(""); setFiltroStatus("todos"); setFiltroInd("todos"); }}
+                style={{ border:"1px solid #d1d5db", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontSize:10, color:"#6b7280", background:"#fff" }}>
+                Limpar filtros
+              </button>
+            )}
+          </div>
+        </div>
+
         <div style={{ fontSize:11, color:"#6b7280", marginBottom:14 }}>
           Resultado acumulado até {hoje}.
           <span style={{ background:"#dcfce7", color:"#16a34a", fontWeight:700, padding:"1px 7px", borderRadius:4, marginLeft:8 }}>Verde ≥ meta</span>
@@ -907,7 +987,12 @@ function PainelGestorRT() {
             </tr>
           </thead>
           <tbody>
-            {_Q2.equipes.map((e, i) => (
+            {equipesFiltradas.length === 0 && (
+              <tr><td colSpan={18} style={{ padding:"24px", textAlign:"center", color:"#9ca3af", fontSize:13 }}>
+                Nenhuma equipe encontrada com os filtros aplicados.
+              </td></tr>
+            )}
+            {equipesFiltradas.map((e, i) => (
               <tr key={i} style={{ borderBottom:"1px solid #f1f5f9", background: i%2===0?"#fff":"#fafafa" }}>
                 <td style={{ padding:"7px 12px", fontWeight:600 }}>
                   <div style={{ fontSize:12 }}>{e.equipe}</div>
