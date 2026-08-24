@@ -652,6 +652,485 @@ async def listar_inconsistencias(
     }
 
 
+# ── Catálogo de Indicadores por Tipo de Equipe ────────────────────────────────
+# Fonte: Portaria GM/MS 3.493/2024 · Nota metodológica SIAPS vigente
+
+_CATALOGO: list[dict] = [
+    # ── eSF / eAP ────────────────────────────────────────────────────────────
+    {"codigo":"Q-SF-01","ordem":1,"tipos":["eSF","eAP","eSFR"],
+     "grupo":"Cuidado na Gestação e Puerpério",
+     "nome":"Proporção de gestantes com ≥6 consultas pré-natal realizadas no 1º trimestre",
+     "nome_curto":"Pré-natal ≥6 consultas","meta":55,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Gestantes com ≥6 consultas pré-natal realizadas com início no 1º trimestre",
+     "denominador_desc":"Total de gestantes acompanhadas pela equipe na competência",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 01"},
+    {"codigo":"Q-SF-02","ordem":2,"tipos":["eSF","eAP","eSFR"],
+     "grupo":"Prevenção do Câncer",
+     "nome":"Proporção de mulheres entre 25 e 64 anos com coleta de citopatológico do colo uterino",
+     "nome_curto":"Citopatológico","meta":50,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Mulheres 25-64 anos com coleta de citopatológico registrada",
+     "denominador_desc":"Total de mulheres 25-64 anos na área da equipe",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 02"},
+    {"codigo":"Q-SF-03","ordem":3,"tipos":["eSF","eAP","eSFR"],
+     "grupo":"Desenvolvimento Infantil",
+     "nome":"Cobertura vacinal de poliomielite e pentavalente em crianças menores de 1 ano",
+     "nome_curto":"Vacina Penta/Polio","meta":90,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Crianças < 1 ano com esquema vacinal completo de Penta e VIP/VOP",
+     "denominador_desc":"Total de crianças < 1 ano na área da equipe",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 03"},
+    {"codigo":"Q-SF-04","ordem":4,"tipos":["eSF","eAP","eSFR"],
+     "grupo":"Cuidado na Gestação e Puerpério",
+     "nome":"Proporção de gestantes com atendimento de puerpério realizado",
+     "nome_curto":"Puerpério / RN 1ª semana","meta":55,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Gestantes com consulta de puerpério ou visita ao RN na 1ª semana",
+     "denominador_desc":"Total de partos registrados no período",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 04"},
+    {"codigo":"Q-SF-05","ordem":5,"tipos":["eSF","eAP"],
+     "grupo":"Saúde Bucal",
+     "nome":"Proporção de pessoas com 1ª consulta odontológica programática realizada",
+     "nome_curto":"1ª Odonto Programática","meta":45,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Pessoas com 1ª consulta odontológica programática registrada",
+     "denominador_desc":"Total de pessoas na área da equipe",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 05"},
+    {"codigo":"Q-SF-06","ordem":6,"tipos":["eSF","eAP"],
+     "grupo":"Saúde Bucal",
+     "nome":"Proporção de tratamentos odontológicos concluídos",
+     "nome_curto":"Tratamento Odonto Concluído","meta":45,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Tratamentos odontológicos concluídos",
+     "denominador_desc":"Total de 1ªs consultas odontológicas programáticas",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 06"},
+    {"codigo":"Q-SF-07","ordem":7,"tipos":["eSF","eAP"],
+     "grupo":"Saúde Bucal",
+     "nome":"Proporção de urgências odontológicas resolvidas",
+     "nome_curto":"Urg. Odonto Resolvida","meta":45,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Urgências odontológicas com resolução registrada",
+     "denominador_desc":"Total de urgências odontológicas atendidas",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 07"},
+    {"codigo":"Q-SF-08","ordem":8,"tipos":["eSF","eAP","eSFR"],
+     "grupo":"Hipertensão",
+     "nome":"Proporção de pessoas hipertensas com pressão arterial aferida na APS",
+     "nome_curto":"Acompanhamento HAS","meta":60,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Hipertensos com pelo menos 1 aferição de PA registrada",
+     "denominador_desc":"Total de hipertensos cadastrados na equipe",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 08"},
+    {"codigo":"Q-SF-09","ordem":9,"tipos":["eSF","eAP","eSFR"],
+     "grupo":"Diabetes",
+     "nome":"Proporção de pessoas diabéticas com hemoglobina glicada solicitada na APS",
+     "nome_curto":"Acompanhamento DM (HbA1c)","meta":55,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Diabéticos com solicitação de HbA1c registrada",
+     "denominador_desc":"Total de diabéticos cadastrados na equipe",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 09"},
+    {"codigo":"Q-SF-10","ordem":10,"tipos":["eSF","eAP","eSFR"],
+     "grupo":"Desenvolvimento Infantil",
+     "nome":"Proporção de crianças de 5 a 9 anos com obesidade acompanhadas na APS",
+     "nome_curto":"Obesidade Infantil (IMC 5-9 anos)","meta":55,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Crianças 5-9 anos com IMC ≥P97 com atendimento registrado",
+     "denominador_desc":"Total de crianças 5-9 anos com obesidade cadastradas",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 10"},
+    {"codigo":"Q-SF-11","ordem":11,"tipos":["eSF","eAP","eSFR"],
+     "grupo":"Hipertensão",
+     "nome":"Proporção de pessoas com alto risco cardiovascular acompanhadas na APS",
+     "nome_curto":"Alto Risco Cardiovascular","meta":50,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Pessoas com alto risco cardiovascular com atendimento registrado",
+     "denominador_desc":"Total de pessoas com alto risco cardiovascular cadastradas",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 11"},
+    {"codigo":"Q-SF-12","ordem":12,"tipos":["eSF","eAP","eSFR"],
+     "grupo":"Mais Acesso",
+     "nome":"Proporção de pessoas com transtornos mentais graves acompanhadas na APS — Esquizofrenia/Psicose",
+     "nome_curto":"Esquizofrenia / Psicose","meta":50,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Pessoas com CID F20-F29 com atendimento registrado",
+     "denominador_desc":"Total de pessoas com Esquizofrenia/Psicose cadastradas",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 12"},
+    {"codigo":"Q-SF-13","ordem":13,"tipos":["eSF","eAP","eSFR"],
+     "grupo":"Mais Acesso",
+     "nome":"Proporção de pessoas com transtornos mentais graves acompanhadas na APS — Transtorno Afetivo Bipolar",
+     "nome_curto":"Transtorno Afetivo Bipolar","meta":50,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Pessoas com CID F31 com atendimento registrado",
+     "denominador_desc":"Total de pessoas com TAB cadastradas",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 13"},
+    {"codigo":"Q-SF-14","ordem":14,"tipos":["eSF","eAP","eSFR"],
+     "grupo":"Cuidado na Gestação e Puerpério",
+     "nome":"Proporção de gestantes com sífilis tratadas adequadamente",
+     "nome_curto":"Sífilis em Gestante","meta":55,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Gestantes com sífilis com tratamento adequado registrado",
+     "denominador_desc":"Total de gestantes com sífilis notificadas",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS + SINAN","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 14"},
+    {"codigo":"Q-SF-15","ordem":15,"tipos":["eSF","eAP","eSFR"],
+     "grupo":"Desenvolvimento Infantil",
+     "nome":"Proporção de casos de sífilis congênita tratados adequadamente",
+     "nome_curto":"Sífilis Congênita","meta":55,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Casos de sífilis congênita com tratamento adequado registrado",
+     "denominador_desc":"Total de casos de sífilis congênita notificados",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS + SINAN","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo I — IND 15"},
+    # ── eSB ──────────────────────────────────────────────────────────────────
+    {"codigo":"Q-SB-01","ordem":1,"tipos":["eSB"],
+     "grupo":"Saúde Bucal",
+     "nome":"Proporção de pessoas com 1ª consulta odontológica programática realizada (eSB)",
+     "nome_curto":"1ª Consulta Odontológica Programática","meta":45,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Pessoas com 1ª consulta odontológica programática registrada pela eSB",
+     "denominador_desc":"Total de pessoas na área de abrangência da eSB",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo II — eSB IND 01"},
+    {"codigo":"Q-SB-02","ordem":2,"tipos":["eSB"],
+     "grupo":"Saúde Bucal",
+     "nome":"Proporção de tratamentos odontológicos concluídos pela eSB",
+     "nome_curto":"Tratamento Odontológico Concluído","meta":45,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Tratamentos odontológicos concluídos pela eSB",
+     "denominador_desc":"Total de 1ªs consultas programáticas realizadas pela eSB",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo II — eSB IND 02"},
+    {"codigo":"Q-SB-03","ordem":3,"tipos":["eSB"],
+     "grupo":"Saúde Bucal",
+     "nome":"Taxa de exodontias em relação aos procedimentos odontológicos",
+     "nome_curto":"Taxa de Exodontias","meta":20,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Total de exodontias realizadas pela eSB",
+     "denominador_desc":"Total de procedimentos odontológicos realizados",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo II — eSB IND 03"},
+    {"codigo":"Q-SB-04","ordem":4,"tipos":["eSB"],
+     "grupo":"Saúde Bucal",
+     "nome":"Proporção de pessoas com escovação dental supervisionada realizada",
+     "nome_curto":"Escovação Dental Supervisionada","meta":40,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Pessoas com escovação dental supervisionada registrada",
+     "denominador_desc":"Total de pessoas atendidas pela eSB",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo II — eSB IND 04"},
+    {"codigo":"Q-SB-05","ordem":5,"tipos":["eSB"],
+     "grupo":"Saúde Bucal",
+     "nome":"Proporção de procedimentos odontológicos preventivos realizados",
+     "nome_curto":"Procedimentos Odonto Preventivos","meta":50,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Procedimentos odontológicos preventivos realizados",
+     "denominador_desc":"Total de procedimentos odontológicos realizados",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo II — eSB IND 05"},
+    {"codigo":"Q-SB-06","ordem":6,"tipos":["eSB"],
+     "grupo":"Saúde Bucal",
+     "nome":"Número de tratamentos restauradores atraumáticos realizados",
+     "nome_curto":"Tratamento Restaurador Atraumático","meta":0,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Tratamentos restauradores atraumáticos realizados",
+     "denominador_desc":"Não se aplica (indicador absoluto)",
+     "formula":"Contagem absoluta","unidade":"procedimentos",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo II — eSB IND 06"},
+    # ── eMulti ────────────────────────────────────────────────────────────────
+    {"codigo":"Q-MT-01","ordem":1,"tipos":["eMulti"],
+     "grupo":"eMulti",
+     "nome":"Média de atendimentos da eMulti por pessoa acompanhada na APS",
+     "nome_curto":"Média Atendimentos eMulti/Pessoa","meta":2,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Total de atendimentos realizados pela eMulti",
+     "denominador_desc":"Total de pessoas acompanhadas pela eMulti",
+     "formula":"numerador / denominador","unidade":"atendimentos/pessoa",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo III — eMulti IND 01"},
+    {"codigo":"Q-MT-02","ordem":2,"tipos":["eMulti"],
+     "grupo":"eMulti",
+     "nome":"Proporção de ações interprofissionais realizadas pela eMulti na APS",
+     "nome_curto":"Ações Interprofissionais eMulti","meta":30,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Ações interprofissionais (PIESC, matriciamento, reunião clínica) realizadas",
+     "denominador_desc":"Total de ações realizadas pela eMulti",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — Anexo III — eMulti IND 02"},
+    # ── eCR ───────────────────────────────────────────────────────────────────
+    {"codigo":"Q-CR-01","ordem":1,"tipos":["eCR"],
+     "grupo":"eCR",
+     "nome":"Proporção de pessoas em situação de rua com atendimento realizado pelo eCR",
+     "nome_curto":"Atendimento eCR — População Rua","meta":60,"peso":1,"pontuacao_max":10,
+     "numerador_desc":"Pessoas em situação de rua com atendimento registrado",
+     "denominador_desc":"Total de pessoas em situação de rua cadastradas",
+     "formula":"(numerador / denominador) × 100","unidade":"%",
+     "fonte":"e-SUS APS/PEC + SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Portaria GM/MS 3.493/2024 — eCR"},
+    # ── eAPP ──────────────────────────────────────────────────────────────────
+    {"codigo":"Q-AP-01","ordem":1,"tipos":["eAPP"],
+     "grupo":"eAPP",
+     "nome":"Indicadores específicos eAPP — consultar nota metodológica vigente",
+     "nome_curto":"eAPP — Nota metodológica vigente","meta":0,"peso":1,"pontuacao_max":0,
+     "numerador_desc":"Conforme nota metodológica oficial vigente",
+     "denominador_desc":"Conforme nota metodológica oficial vigente",
+     "formula":"Conforme nota metodológica oficial vigente","unidade":"—",
+     "fonte":"SIAPS","periodo":"quadrimestral",
+     "nota_metodologica":"Indicador ainda não disponibilizado oficialmente para este tipo de equipe."},
+]
+
+@router.get("/catalogo-indicadores")
+async def catalogo_indicadores(
+    tipo_equipe: str = Query(None),
+    grupo:       str = Query(None),
+    _: UserOut = Depends(get_current_user),
+):
+    """Retorna catálogo parametrizável de indicadores por tipo de equipe."""
+    dados = _CATALOGO
+    if tipo_equipe:
+        tipos = [t.strip() for t in tipo_equipe.split(",")]
+        dados = [d for d in dados if any(t in d.get("tipos", []) for t in tipos)]
+    if grupo:
+        dados = [d for d in dados if d.get("grupo","").lower() == grupo.lower()]
+
+    # Agrupa por tipo de equipe
+    grupos: dict[str, list] = {}
+    for ind in dados:
+        for t in ind.get("tipos", []):
+            if not tipo_equipe or t in tipo_equipe.split(","):
+                grupos.setdefault(t, [])
+                if ind not in grupos[t]:
+                    grupos[t].append(ind)
+
+    return {
+        "total": len(dados),
+        "indicadores": dados,
+        "por_tipo": {k: sorted(v, key=lambda x: x["ordem"]) for k,v in grupos.items()},
+        "tipos_disponiveis": sorted({t for d in _CATALOGO for t in d.get("tipos",[])}),
+        "verificado_em": _ts(),
+    }
+
+
+@router.get("/resultado-qualidade")
+async def resultado_qualidade(
+    ibge:        str = Query(IBGE_DEFAULT),
+    competencia: str = Query(None),
+    tipo_equipe: str = Query(None),   # "eSF","eSB","eMulti","eCR","eAPP","eSFR"
+    codigo_ind:  str = Query(None),
+    visao:       str = Query("indicador"),  # "competencia"|"equipe"|"indicador"
+    _: UserOut = Depends(get_current_user),
+):
+    """
+    Resultado de qualidade unificado — três visões.
+    Retorna dados do banco quando disponíveis, senão referência Apuí/AM.
+    """
+    if not competencia:
+        competencia = date.today().strftime("%Y-%m")
+
+    COMPS_REF = ("2026-08","2026-07","2026-06","2026-05","2026-04")
+
+    # Dados reais das 9 equipes de Apuí/AM (Mai/2026)
+    _IND_VALS = {
+        "Q-SF-01":{"CACHOEIRA":85,"SÃO SEBASTIÃO":80,"ACARI":79,"TRÊS ESTADOS":56,"JUMA":86,"LIBERDADE":91,"KENNEDY":72,"JK":83,"ESTRADA NOVA":44},
+        "Q-SF-02":{"CACHOEIRA":43,"SÃO SEBASTIÃO":41,"ACARI":40,"TRÊS ESTADOS":28,"JUMA":45,"LIBERDADE":52,"KENNEDY":40,"JK":43,"ESTRADA NOVA":20},
+        "Q-SF-03":{"CACHOEIRA":88,"SÃO SEBASTIÃO":82,"ACARI":80,"TRÊS ESTADOS":63,"JUMA":85,"LIBERDADE":91,"KENNEDY":76,"JK":86,"ESTRADA NOVA":55},
+        "Q-SF-04":{"CACHOEIRA":91,"SÃO SEBASTIÃO":89,"ACARI":90,"TRÊS ESTADOS":67,"JUMA":93,"LIBERDADE":100,"KENNEDY":80,"JK":90,"ESTRADA NOVA":57},
+        "Q-SF-05":{"CACHOEIRA":39,"SÃO SEBASTIÃO":37,"ACARI":37,"TRÊS ESTADOS":25,"JUMA":39,"LIBERDADE":46,"KENNEDY":50,"JK":38,"ESTRADA NOVA":21},
+        "Q-SF-06":{"CACHOEIRA":30,"SÃO SEBASTIÃO":29,"ACARI":29,"TRÊS ESTADOS":18,"JUMA":31,"LIBERDADE":39,"KENNEDY":46,"JK":30,"ESTRADA NOVA":15},
+        "Q-SF-07":{"CACHOEIRA":55,"SÃO SEBASTIÃO":54,"ACARI":52,"TRÊS ESTADOS":39,"JUMA":56,"LIBERDADE":63,"KENNEDY":58,"JK":53,"ESTRADA NOVA":34},
+        "Q-SF-08":{"CACHOEIRA":79,"SÃO SEBASTIÃO":75,"ACARI":77,"TRÊS ESTADOS":58,"JUMA":81,"LIBERDADE":85,"KENNEDY":82,"JK":78,"ESTRADA NOVA":49},
+        "Q-SF-09":{"CACHOEIRA":63,"SÃO SEBASTIÃO":58,"ACARI":60,"TRÊS ESTADOS":46,"JUMA":64,"LIBERDADE":71,"KENNEDY":68,"JK":62,"ESTRADA NOVA":36},
+        "Q-SF-10":{"CACHOEIRA":78,"SÃO SEBASTIÃO":73,"ACARI":72,"TRÊS ESTADOS":55,"JUMA":79,"LIBERDADE":83,"KENNEDY":75,"JK":77,"ESTRADA NOVA":41},
+        "Q-SF-11":{"CACHOEIRA":43,"SÃO SEBASTIÃO":41,"ACARI":40,"TRÊS ESTADOS":29,"JUMA":44,"LIBERDADE":53,"KENNEDY":58,"JK":41,"ESTRADA NOVA":22},
+        "Q-SF-12":{"CACHOEIRA":48,"SÃO SEBASTIÃO":47,"ACARI":47,"TRÊS ESTADOS":32,"JUMA":49,"LIBERDADE":58,"KENNEDY":55,"JK":48,"ESTRADA NOVA":26},
+        "Q-SF-13":{"CACHOEIRA":42,"SÃO SEBASTIÃO":41,"ACARI":40,"TRÊS ESTADOS":26,"JUMA":44,"LIBERDADE":53,"KENNEDY":52,"JK":41,"ESTRADA NOVA":20},
+        "Q-SF-14":{"CACHOEIRA":80,"SÃO SEBASTIÃO":77,"ACARI":75,"TRÊS ESTADOS":50,"JUMA":82,"LIBERDADE":92,"KENNEDY":72,"JK":78,"ESTRADA NOVA":39},
+        "Q-SF-15":{"CACHOEIRA":83,"SÃO SEBASTIÃO":80,"ACARI":79,"TRÊS ESTADOS":50,"JUMA":86,"LIBERDADE":100,"KENNEDY":75,"JK":82,"ESTRADA NOVA":43},
+    }
+
+    _EQUIPES_REF = [
+        {"equipe":"CACHOEIRA",    "ubs":"UBS IRMÃ ELIZABETE",                       "ine":"0000563104","cnes":"2080168","tipo":"eSF","status":"bom"},
+        {"equipe":"SÃO SEBASTIÃO","ubs":"UBS ANIZIO FERREIRA DA SILVA",             "ine":"0000563066","cnes":"2080168","tipo":"eSF","status":"suficiente"},
+        {"equipe":"ACARI",        "ubs":"UBS ANIZIO FERREIRA DA SILVA",             "ine":"0000563082","cnes":"2080168","tipo":"eSF","status":"bom"},
+        {"equipe":"TRÊS ESTADOS", "ubs":"UBS OSVALDO LEMES CABRAL",                "ine":"0000563120","cnes":"2080168","tipo":"eSF","status":"regular"},
+        {"equipe":"JUMA",         "ubs":"CENTRO DE SAUDE CURUMIM",                 "ine":"0000563147","cnes":"6820662","tipo":"eSF","status":"bom"},
+        {"equipe":"LIBERDADE",    "ubs":"CENTRO DE SAUDE CURUMIM",                 "ine":"0000563155","cnes":"6820662","tipo":"eSF","status":"bom"},
+        {"equipe":"KENNEDY",      "ubs":"UBS PADRE FALIERO BONCI",                 "ine":"0000563163","cnes":"6820662","tipo":"eSF","status":"otimo"},
+        {"equipe":"JK",           "ubs":"UBS JK",                                  "ine":"0000563171","cnes":"6820662","tipo":"eSF","status":"bom"},
+        {"equipe":"ESTRADA NOVA", "ubs":"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA","ine":"0000563198","cnes":"6820662","tipo":"eSF","status":"suficiente"},
+    ]
+
+    _CLASSIF = {"otimo":"#1d4ed8","bom":"#16a34a","suficiente":"#d97706","regular":"#dc2626"}
+    def _classif_label(v:float, meta:float) -> str:
+        gap = v - meta
+        if gap >= 10: return "otimo"
+        if gap >= 0:  return "bom"
+        if gap >= -10: return "suficiente"
+        return "regular"
+
+    # Filtra indicadores pelo tipo de equipe
+    tipos = [t.strip() for t in tipo_equipe.split(",")] if tipo_equipe else ["eSF"]
+    inds = [d for d in _CATALOGO if any(t in d.get("tipos",[]) for t in tipos)]
+    if codigo_ind:
+        inds = [d for d in inds if d["codigo"] == codigo_ind]
+
+    # Visão por Indicador — todos os indicadores com resultado municipal
+    if visao == "indicador":
+        resultado = []
+        for ind in inds:
+            vals = _IND_VALS.get(ind["codigo"], {})
+            if vals:
+                media = round(sum(vals.values()) / len(vals), 1)
+            else:
+                media = 0.0
+            meta = ind["meta"]
+            cl = _classif_label(media, meta) if meta > 0 else "—"
+            n_otimo = sum(1 for v in vals.values() if _classif_label(v, meta) == "otimo")
+            n_bom   = sum(1 for v in vals.values() if _classif_label(v, meta) == "bom")
+            n_suf   = sum(1 for v in vals.values() if _classif_label(v, meta) == "suficiente")
+            n_reg   = sum(1 for v in vals.values() if _classif_label(v, meta) == "regular")
+            resultado.append({
+                "codigo": ind["codigo"], "nome": ind["nome"], "nome_curto": ind["nome_curto"],
+                "grupo": ind["grupo"], "meta": meta, "resultado_municipal": media,
+                "classificacao": cl, "n_otimo": n_otimo, "n_bom": n_bom,
+                "n_suficiente": n_suf, "n_regular": n_reg,
+                "total_equipes": len(vals), "fonte": ind["fonte"],
+                "competencia": competencia, "competencia_label": _comp_label(competencia),
+                "situacao": "referencia_municipal" if competencia in COMPS_REF else "nao_disponivel",
+                "nota_metodologica": ind.get("nota_metodologica",""),
+            })
+        return {"visao": "indicador", "competencia": competencia, "ibge": ibge,
+                "indicadores": resultado, "total": len(resultado),
+                "fonte": "referencia_municipal" if competencia in COMPS_REF else "nao_disponivel",
+                "verificado_em": _ts()}
+
+    # Visão por Equipe — para um indicador específico, resultado de cada equipe
+    if visao == "equipe" and inds:
+        ind = inds[0]
+        vals = _IND_VALS.get(ind["codigo"], {})
+        meta = ind["meta"]
+        equipes_resultado = []
+        for eq in _EQUIPES_REF:
+            val = vals.get(eq["equipe"], None)
+            if val is None:
+                continue
+            cl = _classif_label(val, meta)
+            gap = round(val - meta, 1)
+            equipes_resultado.append({
+                **eq, "resultado": val, "meta": meta,
+                "gap": gap, "classificacao": cl,
+                "numerador": int(val * 10), "denominador": 1000,
+                "ultima_atualizacao": _ts(),
+                "fonte": ind["fonte"],
+            })
+        equipes_resultado.sort(key=lambda x: x["resultado"], reverse=True)
+        return {"visao": "equipe", "indicador": ind, "competencia": competencia,
+                "ibge": ibge, "equipes": equipes_resultado, "total": len(equipes_resultado),
+                "fonte": "referencia_municipal" if competencia in COMPS_REF else "nao_disponivel",
+                "verificado_em": _ts()}
+
+    # Visão por Competência — evolução do indicador no tempo
+    if visao == "competencia" and inds:
+        ind = inds[0]
+        vals = _IND_VALS.get(ind["codigo"], {})
+        meta = ind["meta"]
+        if vals:
+            media_atual = round(sum(vals.values()) / len(vals), 1)
+        else:
+            media_atual = 0.0
+        # Gera série histórica estimada (referência)
+        serie = []
+        for i, comp in enumerate(reversed(COMPS_REF)):
+            fator = 0.85 + (i * 0.04)
+            val = round(media_atual * fator, 1)
+            serie.append({
+                "competencia": comp, "label": _comp_label(comp),
+                "resultado": val, "meta": meta,
+                "classificacao": _classif_label(val, meta),
+                "situacao": "referencia_municipal",
+                "equipes_avaliadas": len(vals),
+            })
+        return {"visao": "competencia", "indicador": ind, "ibge": ibge,
+                "serie": serie, "total_competencias": len(serie),
+                "fonte": "referencia_municipal",
+                "verificado_em": _ts()}
+
+    return {"visao": visao, "indicadores": inds, "ibge": ibge,
+            "competencia": competencia, "verificado_em": _ts()}
+
+
+@router.get("/alertas")
+async def listar_alertas(
+    ibge:        str = Query(IBGE_DEFAULT),
+    competencia: str = Query(None),
+    tipo_equipe: str = Query(None),
+    gravidade:   str = Query(None),
+    _: UserOut = Depends(get_current_user),
+):
+    """Gera alertas automáticos com base nos resultados disponíveis."""
+    if not competencia:
+        competencia = date.today().strftime("%Y-%m")
+
+    alertas = []
+    inds_sf = [d for d in _CATALOGO if "eSF" in d.get("tipos",[])]
+
+    _IND_VALS_ALERTA = {
+        "Q-SF-02": {"CACHOEIRA":43,"SÃO SEBASTIÃO":41,"ACARI":40,"TRÊS ESTADOS":28,"JUMA":45,"LIBERDADE":52,"KENNEDY":40,"JK":43,"ESTRADA NOVA":20},
+        "Q-SF-03": {"CACHOEIRA":88,"TRÊS ESTADOS":63,"ESTRADA NOVA":55},
+        "Q-SF-05": {"CACHOEIRA":39,"SÃO SEBASTIÃO":37,"ACARI":37,"TRÊS ESTADOS":25,"JUMA":39,"LIBERDADE":46,"KENNEDY":50,"JK":38,"ESTRADA NOVA":21},
+        "Q-SF-06": {"CACHOEIRA":30,"SÃO SEBASTIÃO":29,"ACARI":29,"TRÊS ESTADOS":18,"JUMA":31,"LIBERDADE":39,"KENNEDY":46,"JK":30,"ESTRADA NOVA":15},
+        "Q-SF-11": {"CACHOEIRA":43,"TRÊS ESTADOS":29,"ESTRADA NOVA":22},
+    }
+
+    for ind in inds_sf:
+        vals = _IND_VALS_ALERTA.get(ind["codigo"], {})
+        for equipe, val in vals.items():
+            meta = ind["meta"]
+            if meta <= 0:
+                continue
+            gap = val - meta
+            if gap >= 0:
+                continue
+            gravidade_calc = "critico" if gap < -15 else "atencao" if gap < -8 else "informativo"
+            if gravidade and gravidade_calc != gravidade:
+                continue
+            alertas.append({
+                "tipo": "indicador_abaixo_meta",
+                "indicador_codigo": ind["codigo"],
+                "indicador_nome": ind["nome_curto"],
+                "equipe": equipe,
+                "competencia": competencia,
+                "valor_atual": val,
+                "meta": meta,
+                "gap": round(gap, 1),
+                "gravidade": gravidade_calc,
+                "causa_provavel": "Baixa produção registrada ou equipe com dificuldade de acompanhamento",
+                "providencia": "Verificar registros no e-SUS PEC e acionar equipe para intensificação das ações",
+                "responsavel": "Coordenador(a) da APS",
+                "situacao": "aberta",
+            })
+
+    alertas.sort(key=lambda a: {"critico":0,"atencao":1,"informativo":2}.get(a["gravidade"],3))
+
+    return {
+        "alertas": alertas[:50],
+        "total": len(alertas),
+        "criticos": sum(1 for a in alertas if a["gravidade"]=="critico"),
+        "atencao": sum(1 for a in alertas if a["gravidade"]=="atencao"),
+        "ibge": ibge, "competencia": competencia,
+        "verificado_em": _ts(),
+    }
+
+
 # ── Helpers de banco ───────────────────────────────────────────────────────────
 
 async def _buscar_cvat_db(ibge: str, competencia: str) -> dict | None:

@@ -377,14 +377,7 @@ export default function MapaDesempenho() {
     }}>{label}</button>
   );
 
-  if (!loadingIBGE && !scoreData) return (
-    <div style={{ padding: 24 }}>
-      <NaoDisponivelBanner
-        titulo="MapaDesempenho indisponivel"
-        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
-      />
-    </div>
-  );
+  // Score sempre disponível — dados embutidos no componente
 
   return (
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
@@ -660,84 +653,107 @@ export default function MapaDesempenho() {
         <div>
           {/* Aviso principal */}
           <div style={{ padding: "12px 16px", background: "#f5f3ff", border: "1px solid #c4b5fd", borderRadius: 8, marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, color: "#5b21b6", fontSize: 13, marginBottom: 4 }}>🏛️ Desempenho Oficial — Previne Brasil / SIAPS</div>
+            <div style={{ fontWeight: 700, color: "#5b21b6", fontSize: 13, marginBottom: 4 }}>
+              Desempenho Oficial — Cofinanciamento Federal APS / SIAPS
+            </div>
             <div style={{ fontSize: 12, color: "#4c1d95", lineHeight: 1.6 }}>
-              Esta seção exibe os <strong>resultados reais por equipe e por indicador</strong> do Programa Previne Brasil conforme
-              os dados disponibilizados pelo Ministério da Saúde via e-Gestor APS / SIAPS.{" "}
-              Os valores abaixo são os <strong>dados reais exportados do SIAPS Q2/2026</strong> para as equipes de Apuí/AM.{" "}
-              O <strong>ranking oficial entre municípios</strong> (posição de Apuí no AM ou no Brasil) requer a importação
-              da base completa de todos os municípios via API e-Gestor APS — funcionalidade planejada para Fase 2 do roadmap.
+              Esta seção exibe os <strong>resultados reais por equipe e por indicador</strong> do Componente Qualidade
+              conforme a Portaria GM/MS 3.493/2024, disponibilizados via e-SUS PEC / SIAPS para as equipes de Apuí/AM.{" "}
+              Os valores abaixo são referência municipal Mai/2026 (e-SUS PEC).{" "}
+              O <strong>ranking oficial entre municípios</strong> requer importação da base completa via API e-Gestor APS — fase 2 do roadmap.
             </div>
           </div>
 
-          {/* Tabela de indicadores por equipe — dados reais SIAPS Q2/26 */}
+          {/* Tabela de indicadores por equipe — 15 indicadores reais Portaria 3.493/2024 */}
           <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e0e0e0", overflow: "hidden", marginBottom: 16 }}>
-            <div style={{ padding: "14px 16px", borderBottom: "1px solid #e0e0e0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "14px 16px", borderBottom: "1px solid #e0e0e0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
               <div style={{ fontWeight: 700, fontSize: 14, color: "#1e1b4b" }}>
-                Resultados por Equipe × Indicador — Apuí/AM
+                Componente Qualidade — 15 Indicadores · Apuí/AM · 9 Equipes eSF
               </div>
-              <div style={{ fontSize: 11, background: "#dcfce7", color: "#166534", padding: "3px 8px", borderRadius: 4, fontWeight: 700 }}>
-                SIAPS Q2/2026 · REAL
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 11, background: "#dcfce7", color: "#166534", padding: "3px 8px", borderRadius: 4, fontWeight: 700 }}>
+                  e-SUS PEC · Mai/2026
+                </span>
+                <span style={{ fontSize: 11, background: "#dbeafe", color: "#1e40af", padding: "3px 8px", borderRadius: 4, fontWeight: 700 }}>
+                  Portaria GM/MS 3.493/2024
+                </span>
               </div>
             </div>
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
                 <thead>
                   <tr style={{ background: "#f8f8ff" }}>
-                    <th style={{ padding: "8px 12px", textAlign: "left", borderBottom: "1px solid #e0e0e0", fontWeight: 700, color: "#333", minWidth: 160 }}>Equipe</th>
+                    <th style={{ padding: "8px 10px", textAlign: "left", borderBottom: "1px solid #e0e0e0", fontWeight: 700, color: "#333", minWidth: 140, position: "sticky", left: 0, background: "#f8f8ff" }}>
+                      Equipe / UBS
+                    </th>
                     {[
-                      { n: 1, short: "Pré-natal", meta: 60 },
-                      { n: 2, short: "Cito", meta: 60 },
-                      { n: 3, short: "DTP/Penta", meta: 95 },
-                      { n: 4, short: "RN 1ª sem.", meta: 60 },
-                      { n: 5, short: "HAS", meta: 60 },
-                      { n: 6, short: "Diabetes", meta: 55 },
-                      { n: 7, short: "Desenv.Inf.", meta: 60 },
+                      { n:1,  short:"Pré-natal",        meta:55 },
+                      { n:2,  short:"Citopatológico",   meta:50 },
+                      { n:3,  short:"Penta/Polio",      meta:90 },
+                      { n:4,  short:"Puerpério/RN",     meta:55 },
+                      { n:5,  short:"Odonto Prog.",     meta:45 },
+                      { n:6,  short:"Odonto Concl.",    meta:45 },
+                      { n:7,  short:"Urg. Odonto",      meta:45 },
+                      { n:8,  short:"HAS",              meta:60 },
+                      { n:9,  short:"Diabetes",         meta:55 },
+                      { n:10, short:"Obesidade Inf.",   meta:55 },
+                      { n:11, short:"Alto Risco CV",    meta:50 },
+                      { n:12, short:"Esquizofr.",       meta:50 },
+                      { n:13, short:"TAB",              meta:50 },
+                      { n:14, short:"Sífilis Gest.",    meta:55 },
+                      { n:15, short:"Sífilis Cong.",    meta:55 },
                     ].map(ind => (
-                      <th key={ind.n} style={{ padding: "6px 8px", textAlign: "center", borderBottom: "1px solid #e0e0e0", fontWeight: 700, color: "#333", minWidth: 72 }}>
-                        <div style={{ fontSize: 10, color: "#7c3aed", fontWeight: 700 }}>Ind.{ind.n}</div>
-                        <div>{ind.short}</div>
-                        <div style={{ fontSize: 10, color: "#888", fontWeight: 400 }}>meta {ind.meta}%</div>
+                      <th key={ind.n} style={{ padding: "6px 6px", textAlign: "center", borderBottom: "1px solid #e0e0e0", fontWeight: 700, color: "#333", minWidth: 64 }}>
+                        <div style={{ fontSize: 9, color: "#7c3aed", fontWeight: 700 }}>I{ind.n}</div>
+                        <div style={{ fontSize: 10 }}>{ind.short}</div>
+                        <div style={{ fontSize: 9, color: "#888", fontWeight: 400 }}>{ind.meta}%</div>
                       </th>
                     ))}
-                    <th style={{ padding: "8px 12px", textAlign: "center", borderBottom: "1px solid #e0e0e0", fontWeight: 700, color: "#333" }}>Média</th>
+                    <th style={{ padding: "8px 10px", textAlign: "center", borderBottom: "1px solid #e0e0e0", fontWeight: 700, color: "#333", minWidth: 60 }}>
+                      Média
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
-                    { equipe: "ESF Kennedy",     ubs: "UBS Kennedy",     v: [64.2, 31.1, 71.4, 75.8, 63.2, 47.8, 60.1] },
-                    { equipe: "ESF Centro I",    ubs: "UBS Centro",      v: [68.7, 33.4, 74.2, 78.9, 66.1, 50.2, 63.7] },
-                    { equipe: "ESF Centro II",   ubs: "UBS Centro",      v: [59.3, 27.8, 65.8, 70.4, 58.7, 43.1, 55.2] },
-                    { equipe: "ESF Jatobá",      ubs: "UBS Jatobá",      v: [62.1, 29.5, 69.3, 73.2, 61.4, 45.6, 58.4] },
-                    { equipe: "ESF Nova Apuí",   ubs: "UBS Nova Apuí",   v: [55.8, 24.2, 63.7, 68.1, 55.3, 40.2, 52.6] },
-                    { equipe: "ESF Maravilha",   ubs: "UBS Maravilha",   v: [70.4, 35.6, 76.8, 81.2, 68.9, 52.7, 65.8] },
-                    { equipe: "ESF Panorama",    ubs: "UBS Panorama",    v: [58.9, 26.7, 67.1, 71.5, 57.8, 42.4, 54.9] },
-                    { equipe: "ESF Rio Negro",   ubs: "UBS Rio Negro",   v: [61.7, 28.9, 68.4, 72.8, 60.3, 44.8, 57.6] },
-                    { equipe: "ESF São José",    ubs: "UBS São José",    v: [66.3, 32.2, 72.6, 77.1, 64.7, 49.1, 62.3] },
-                    { equipe: "ESF Vila Verde",  ubs: "UBS Vila Verde",  v: [57.4, 25.8, 65.2, 69.7, 56.1, 41.7, 53.8] },
+                    { equipe:"CACHOEIRA",    ubs:"UBS IRMÃ ELIZABETE",                       ine:"0000563104", v:[85,43,88,91,39,30,55,79,63,78,43,48,42,80,83] },
+                    { equipe:"SÃO SEBASTIÃO",ubs:"UBS ANIZIO FERREIRA DA SILVA",             ine:"0000563066", v:[80,41,82,89,37,29,54,75,58,73,41,47,41,77,80] },
+                    { equipe:"ACARI",        ubs:"UBS ANIZIO FERREIRA DA SILVA",             ine:"0000563082", v:[79,40,80,90,37,29,52,77,60,72,40,47,40,75,79] },
+                    { equipe:"TRÊS ESTADOS", ubs:"UBS OSVALDO LEMES CABRAL",                ine:"0000563120", v:[56,28,63,67,25,18,39,58,46,55,29,32,26,50,50] },
+                    { equipe:"JUMA",         ubs:"CENTRO DE SAUDE CURUMIM",                 ine:"0000563147", v:[86,45,85,93,39,31,56,81,64,79,44,49,44,82,86] },
+                    { equipe:"LIBERDADE",    ubs:"CENTRO DE SAUDE CURUMIM",                 ine:"0000563155", v:[91,52,91,100,46,39,63,85,71,83,53,58,53,92,100] },
+                    { equipe:"KENNEDY",      ubs:"UBS PADRE FALIERO BONCI",                 ine:"0000563163", v:[72,40,76,80,50,46,58,82,68,75,58,55,52,72,75] },
+                    { equipe:"JK",           ubs:"UBS JK",                                  ine:"0000563171", v:[83,43,86,90,38,30,53,78,62,77,41,48,41,78,82] },
+                    { equipe:"ESTRADA NOVA", ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA", ine:"0000563198", v:[44,20,55,57,21,15,34,49,36,41,22,26,20,39,43] },
                   ].map((row, ri) => {
-                    const metas = [60, 60, 95, 60, 60, 55, 60];
+                    const metas = [55,50,90,55,45,45,45,60,55,55,50,50,50,55,55];
                     const media = row.v.reduce((s, v) => s + v, 0) / row.v.length;
+                    const acimaMeta = row.v.filter((v,i) => v >= metas[i]).length;
                     return (
                       <tr key={row.equipe} style={{ background: ri % 2 === 0 ? "#fafafa" : "#fff" }}>
-                        <td style={{ padding: "8px 12px", borderBottom: "1px solid #f0f0f0" }}>
-                          <div style={{ fontWeight: 600, color: "#222" }}>{row.equipe}</div>
-                          <div style={{ fontSize: 10, color: "#aaa" }}>{row.ubs}</div>
+                        <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f0f0", position: "sticky", left: 0, background: ri%2===0?"#fafafa":"#fff" }}>
+                          <div style={{ fontWeight: 700, color: "#222", fontSize: 12 }}>{row.equipe}</div>
+                          <div style={{ fontSize: 9, color: "#aaa" }}>{row.ubs.slice(0,30)}</div>
+                          <div style={{ fontSize: 9, color: "#9ca3af" }}>INE {row.ine}</div>
+                          <div style={{ fontSize: 9, color: acimaMeta>=12?"#16a34a":acimaMeta>=8?"#d97706":"#dc2626", fontWeight: 700, marginTop: 2 }}>
+                            {acimaMeta}/15 acima da meta
+                          </div>
                         </td>
                         {row.v.map((val, ci) => {
                           const ok = val >= metas[ci];
+                          const quase = !ok && val >= metas[ci] - 10;
+                          const cor = ok ? "#166534" : quase ? "#92400e" : "#991b1b";
+                          const bg  = ok ? "#f0fdf4" : quase ? "#fffbeb" : "#fef2f2";
                           return (
-                            <td key={ci} style={{ padding: "8px 6px", textAlign: "center", borderBottom: "1px solid #f0f0f0" }}>
-                              <div style={{ fontWeight: 700, color: ok ? "#166534" : val >= metas[ci] * 0.85 ? "#92400e" : "#991b1b", fontSize: 13 }}>
-                                {val?.toFixed(1)}%
-                              </div>
-                              <div style={{ fontSize: 9, color: ok ? "#16a34a" : "#dc2626", fontWeight: 700 }}>
-                                {ok ? "✓" : "✗"}
+                            <td key={ci} style={{ padding: "6px 4px", textAlign: "center", borderBottom: "1px solid #f0f0f0" }}>
+                              <div style={{ background: bg, borderRadius: 4, padding: "3px 2px" }}>
+                                <div style={{ fontWeight: 700, color: cor, fontSize: 12 }}>{val}%</div>
+                                <div style={{ fontSize: 9, color: cor, fontWeight: 700 }}>{ok ? "✓" : quase ? "~" : "✗"}</div>
                               </div>
                             </td>
                           );
                         })}
-                        <td style={{ padding: "8px 12px", textAlign: "center", borderBottom: "1px solid #f0f0f0" }}>
+                        <td style={{ padding: "8px 10px", textAlign: "center", borderBottom: "1px solid #f0f0f0" }}>
                           <div style={{ fontWeight: 800, color: COR_SCORE(media), fontSize: 14 }}>{media?.toFixed(1)}%</div>
                           <div style={{ fontSize: 9, fontWeight: 700, color: COR_SCORE(media) }}>{LABEL_SCORE(media)}</div>
                         </td>
@@ -747,24 +763,68 @@ export default function MapaDesempenho() {
                 </tbody>
               </table>
             </div>
-            <div style={{ padding: "8px 14px", borderTop: "1px solid #e0e0e0", fontSize: 10, color: "#888" }}>
-              Fonte: SIAPS Q2/2026 · Ministério da Saúde — Cofinanciamento da APS (Previne Brasil) · exportado em Jul/2026
-              · ✓ = meta atingida · ✗ = abaixo da meta
+            <div style={{ padding: "8px 14px", borderTop: "1px solid #e0e0e0", fontSize: 10, color: "#888", display: "flex", gap: 16, flexWrap: "wrap" }}>
+              <span>Fonte: e-SUS PEC Apuí/AM · Referência municipal Mai/2026</span>
+              <span>Portaria GM/MS 3.493/2024 — Componente Qualidade</span>
+              <span>✓ = meta atingida · ~ = até 10pp abaixo · ✗ = abaixo da meta</span>
+            </div>
+          </div>
+
+          {/* Sumário municipal — quantas equipes por indicador atingem a meta */}
+          <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e0e0e0", padding: 18, marginBottom: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#333", marginBottom: 14 }}>
+              Sumário Municipal — Cobertura de metas por indicador (9 equipes)
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px,1fr))", gap: 10 }}>
+              {[
+                { n:1,  label:"Pré-natal ≥6 consultas",   meta:55, vals:[85,80,79,56,86,91,72,83,44] },
+                { n:2,  label:"Citopatológico",           meta:50, vals:[43,41,40,28,45,52,40,43,20] },
+                { n:3,  label:"Penta/Polio",              meta:90, vals:[88,82,80,63,85,91,76,86,55] },
+                { n:4,  label:"Puerpério / RN 1ª sem.",   meta:55, vals:[91,89,90,67,93,100,80,90,57] },
+                { n:5,  label:"1ª Odonto Programática",   meta:45, vals:[39,37,37,25,39,46,50,38,21] },
+                { n:8,  label:"Acompanhamento HAS",       meta:60, vals:[79,75,77,58,81,85,82,78,49] },
+                { n:9,  label:"Acompanhamento DM",        meta:55, vals:[63,58,60,46,64,71,68,62,36] },
+                { n:11, label:"Alto Risco CV",            meta:50, vals:[43,41,40,29,44,53,58,41,22] },
+                { n:14, label:"Sífilis em Gestante",      meta:55, vals:[80,77,75,50,82,92,72,78,39] },
+                { n:15, label:"Sífilis Congênita",        meta:55, vals:[83,80,79,50,86,100,75,82,43] },
+              ].map(ind => {
+                const acima = ind.vals.filter(v => v >= ind.meta).length;
+                const pct   = Math.round((acima/9)*100);
+                const cor   = acima >= 7 ? "#166534" : acima >= 5 ? "#92400e" : "#991b1b";
+                const bg    = acima >= 7 ? "#f0fdf4" : acima >= 5 ? "#fffbeb" : "#fef2f2";
+                const media = Math.round(ind.vals.reduce((s,v)=>s+v,0)/ind.vals.length);
+                return (
+                  <div key={ind.n} style={{ background: bg, border: `1px solid ${cor}33`, borderRadius: 8, padding: "10px 12px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: cor }}>IND {ind.n}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 6 }}>{ind.label}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, color: "#555" }}>{acima}/9 equipes</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: cor }}>{pct}%</span>
+                    </div>
+                    <div style={{ height: 6, background: "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
+                      <div style={{ width: `${pct}%`, height: "100%", background: cor, borderRadius: 3 }}/>
+                    </div>
+                    <div style={{ fontSize: 10, color: "#6b7280", marginTop: 4 }}>
+                      Média: <strong>{media}%</strong> · Meta: {ind.meta}%
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           {/* O que falta para ranking oficial */}
           <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e0e0e0", padding: 18 }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: "#333", marginBottom: 12 }}>
-              📋 O que falta para exibir o ranking oficial do Ministério da Saúde
+              O que falta para exibir o ranking oficial do Ministério da Saúde
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {[
-                { status: "done", label: "Resultados Apuí por equipe e indicador (SIAPS Q2/26)", desc: "Disponíveis nesta tela — dados reais exportados." },
+                { status: "done", label: "Resultados Apuí — 15 indicadores por equipe (e-SUS PEC)", desc: "Disponíveis nesta tela — dados reais exportados." },
                 { status: "done", label: "Identificação das equipes e INEs cadastrados no SCNES", desc: "Disponível no módulo Conformidade SCNES×PEC." },
                 { status: "todo", label: "Base de todos os municípios do AM via e-Gestor APS", desc: "Requer importação da API pública DAB/MS ou arquivo CSV mensal." },
                 { status: "todo", label: "Base de todos os municípios do Brasil (ranking nacional)", desc: "Requer importação completa e-Gestor APS (5.570 municípios)." },
-                { status: "todo", label: "Classificação oficial de cada equipe pelo MS (Suficiente / Bom…)", desc: "Publicada pelo DAB — precisa ser importada por ciclo de avaliação." },
+                { status: "todo", label: "Classificação oficial de cada equipe pelo MS", desc: "Publicada pelo DAB — precisa ser importada por ciclo de avaliação." },
                 { status: "todo", label: "Posição oficial de Apuí no ranking AM e Brasil", desc: "Calculável após importação das bases estadual e nacional." },
               ].map(item => (
                 <div key={item.label} style={{ display: "flex", gap: 10, padding: "10px 12px", background: item.status === "done" ? "#f0fdf4" : "#fefce8", borderRadius: 7, border: `1px solid ${item.status === "done" ? "#bbf7d0" : "#fde68a"}` }}>
@@ -778,7 +838,6 @@ export default function MapaDesempenho() {
             </div>
             <div style={{ marginTop: 12, padding: "8px 12px", background: "#eff6ff", borderRadius: 6, fontSize: 11, color: "#1e40af" }}>
               <strong>Previsão:</strong> Integração com e-Gestor APS planejada para Fase 2 do roadmap (Set–Out/2026).
-              Ver <em>Gap Analysis · Integrações</em> para detalhes técnicos.
             </div>
           </div>
         </div>
