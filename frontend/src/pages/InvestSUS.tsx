@@ -1599,7 +1599,7 @@ function PainelPortalInvestSUS({ municipio_id }: { municipio_id: number }) {
 
   const rps: { rp: string; valor: number }[] = d.repasses_por_categoria ?? [];
 
-  const siops: { fonte: string; total: number; executado: number }[] = d.siops ?? [];
+  const siops: { fonte: string; total: number; executado: number; pct?: number }[] = d.siops ?? [];
   const siopsCorMap: Record<string,string> = {
     "Municipal": "#059669",
     "Estadual":  "#0284c7",
@@ -1724,7 +1724,7 @@ function PainelPortalInvestSUS({ municipio_id }: { municipio_id: number }) {
             <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
               {siops.map((s, i) => {
                 const cor = siopsCorMap[s.fonte] ?? "#6b7280";
-                const pct = s.total > 0 ? (s.executado / s.total) * 100 : 0;
+                const pct = s.pct != null ? s.pct : (s.total > 0 ? (s.executado / s.total) * 100 : 0);
                 return (
                   <div key={i} style={{ border: `1px solid ${cor}30`, borderLeft: `4px solid ${cor}`, borderRadius: 6, padding: "8px 12px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -2034,7 +2034,7 @@ function BookmarkletCaptura() {
 var TOKEN="${token}";
 var BASE="${backendBase}";
 if(!location.hostname.includes("investsus.saude.gov.br")){
-  alert("Execute este script NA PÁGINA do portal InvestSUS (investsus.saude.gov.br)");
+  alert("Execute este script NA P\\u00c1GINA do portal InvestSUS (investsus.saude.gov.br)");
   return;
 }
 
@@ -2043,7 +2043,6 @@ function parseReais(s){
   if(!s)return null;
   var c=s.replace(/[^\\d,.]/g,"");
   if(!c)return null;
-  // formato BR: pontos = milhares, vírgula = decimal
   c=c.replace(/\\./g,"").replace(",",".");
   var n=parseFloat(c);
   return isNaN(n)?null:n;
@@ -2054,14 +2053,17 @@ function parsePct(s){
   var n=parseFloat(c);
   return isNaN(n)?null:n;
 }
+function todos_reais(s){
+  var ms=s.match(/R\\$\\s*[\\d.,]+/g);
+  if(!ms)return [];
+  return ms.map(function(m){return parseReais(m.replace("R$","").trim());}).filter(function(n){return n!==null;});
+}
 
-// ─ Extração linha-a-linha ──────────────────────────────────────────────────
-// Divide o texto da página em linhas limpas
+// ─ Linhas limpas do innerText ──────────────────────────────────────────────
 var lines=document.body.innerText.split("\\n").map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
 
-// Encontra o valor monetário (R$...) nas próximas N linhas após um label
 function valorApos(label,janela){
-  janela=janela||5;
+  janela=janela||6;
   for(var i=0;i<lines.length;i++){
     if(lines[i].toLowerCase().indexOf(label.toLowerCase())>=0){
       for(var j=i;j<Math.min(i+janela,lines.length);j++){
@@ -2072,10 +2074,8 @@ function valorApos(label,janela){
   }
   return null;
 }
-
-// Encontra percentual nas próximas N linhas após um label
 function pctApos(label,janela){
-  janela=janela||5;
+  janela=janela||6;
   for(var i=0;i<lines.length;i++){
     if(lines[i].toLowerCase().indexOf(label.toLowerCase())>=0){
       for(var j=i;j<Math.min(i+janela,lines.length);j++){
@@ -2089,11 +2089,11 @@ function pctApos(label,janela){
 
 // ─ KPIs principais ─────────────────────────────────────────────────────────
 var dados={
-  saldo_conta:        valorApos("Saldo em Conta",4),
-  total_a_receber:    valorApos("Total a Receber",4),
-  repasses_exercicio: valorApos("Repasses no Exerc",6),
-  execucao_pct:       pctApos("Execu"),
-  execucao_geral_pct: pctApos("Execu\\u00e7\\u00e3o Geral",4)||pctApos("Execucao Geral",4),
+  saldo_conta:        valorApos("Saldo em Conta",5),
+  total_a_receber:    valorApos("Total a Receber",5),
+  repasses_exercicio: valorApos("Repasses no Exerc",7),
+  execucao_pct:       pctApos("Execu\\u00e7\\u00e3o",5)||pctApos("Execucao",5),
+  execucao_geral_pct: pctApos("Execu\\u00e7\\u00e3o Geral",5)||pctApos("Execucao Geral",5)||pctApos("Geral",4),
   blocos:[],
   repasses_por_categoria:[],
   siops:[],
@@ -2103,55 +2103,124 @@ var dados={
 };
 
 // ─ Repasses por Categoria (RP) ─────────────────────────────────────────────
-// Procura padrão: "Label (RPn)" seguido por "R$ valor" nas próximas linhas
+var rpVistos={};
 for(var i=0;i<lines.length;i++){
-  var rpM=lines[i].match(/\\(?(RP\\d+)\\)?/);
+  var rpM=lines[i].match(/\\b(RP\\d+)\\b/);
   if(rpM){
     var rp=rpM[1];
-    for(var j=i;j<Math.min(i+4,lines.length);j++){
+    if(rpVistos[rp]) continue;
+    for(var j=i;j<Math.min(i+5,lines.length);j++){
       var vm=lines[j].match(/R\\$\\s*([\\d.,]+)/);
       if(vm){
-        dados.repasses_por_categoria.push({rp:rp, valor:parseReais(vm[1])});
+        dados.repasses_por_categoria.push({rp:rp,valor:parseReais(vm[1])});
+        rpVistos[rp]=true;
         break;
       }
     }
   }
 }
 
-// ─ SIOPS ──────────────────────────────────────────────────────────────────
+// ─ SIOPS — captura total + executado + percentual ─────────────────────────
 ["Municipal","Estadual","Federal","Consolidado"].forEach(function(fonte){
-  var total=valorApos(fonte,6);
-  if(total!==null) dados.siops.push({fonte:fonte,total:total,executado:0});
-});
-
-// ─ Tabelas de blocos (se existirem) ────────────────────────────────────────
-document.querySelectorAll("table tr").forEach(function(tr){
-  var cells=Array.from(tr.querySelectorAll("td,th"));
-  if(cells.length>=3){
-    var nome=cells[0].textContent.trim();
-    var t=parseReais(cells[1].textContent);
-    var e=parseReais(cells[2].textContent);
-    if(nome&&t!==null&&nome.length>3&&nome.length<80){
-      dados.blocos.push({nome:nome,transferido:t,executado:e||0});
+  for(var i=0;i<lines.length;i++){
+    if(lines[i].toLowerCase().indexOf(fonte.toLowerCase())<0) continue;
+    var total=null,exec=null,pct=null;
+    for(var j=i;j<Math.min(i+10,lines.length);j++){
+      var reais=todos_reais(lines[j]);
+      reais.forEach(function(v){
+        if(total===null) total=v;
+        else if(exec===null && v!==total) exec=v;
+      });
+      if(pct===null){
+        var pm=lines[j].match(/([\\d.,]+)\\s*%/);
+        if(pm) pct=parsePct(pm[1]);
+      }
+      if(total!==null && exec!==null && pct!==null) break;
+    }
+    if(total!==null){
+      dados.siops.push({fonte:fonte,total:total,executado:exec||0,pct:pct||0});
+      break;
     }
   }
 });
 
-// ─ Copia JSON para clipboard ────────────────────────────────────────────────
+// ─ Blocos de Financiamento — estratégia 1: tabelas HTML ───────────────────
+var blocoMap={};
+document.querySelectorAll("table").forEach(function(tbl){
+  Array.from(tbl.querySelectorAll("tr")).forEach(function(tr){
+    var cells=Array.from(tr.querySelectorAll("td,th"));
+    if(cells.length>=2){
+      var nome=cells[0].textContent.trim();
+      var t=parseReais(cells[1]&&cells[1].textContent);
+      var e=cells[2]?parseReais(cells[2].textContent):null;
+      if(nome&&t!==null&&nome.length>3&&nome.length<100&&!/^R\\$/.test(nome)){
+        blocoMap[nome]={nome:nome,transferido:t,executado:e||0};
+      }
+    }
+  });
+});
+
+// ─ Blocos — estratégia 2: innerText por nomes oficiais dos blocos ─────────
+if(Object.keys(blocoMap).length===0){
+  var BLOCOS_DEF=[
+    {chave:"Aten\\u00e7\\u00e3o Prim\\u00e1ria",variantes:["aten\\u00e7\\u00e3o prim\\u00e1ria","atencao primaria","bloco i ","bloco 1 ","aps"]},
+    {chave:"M\\u00e9dia e Alta Complexidade",variantes:["m\\u00e9dia e alta","media e alta","mac","bloco ii ","bloco 2 "]},
+    {chave:"Vigil\\u00e2ncia em Sa\\u00fade",variantes:["vigil\\u00e2ncia","vigilancia","bloco iii","bloco 3 "]},
+    {chave:"Assist\\u00eancia Farmac\\u00eautica",variantes:["farmac\\u00eautica","farmaceutica","bloco iv","bloco 4 "]},
+    {chave:"Gest\\u00e3o e Investimentos",variantes:["gest\\u00e3o","gestao","bloco v ","bloco 5 "]}
+  ];
+  BLOCOS_DEF.forEach(function(bd){
+    for(var i=0;i<lines.length;i++){
+      var ll=lines[i].toLowerCase();
+      var achou=bd.variantes.some(function(v){return ll.indexOf(v)>=0;});
+      if(!achou) continue;
+      var transf=null,exec=null;
+      for(var j=i;j<Math.min(i+8,lines.length);j++){
+        var reais=todos_reais(lines[j]);
+        if(reais.length>=2){transf=reais[0];exec=reais[1];break;}
+        if(reais.length===1&&transf===null) transf=reais[0];
+      }
+      if(transf!==null){
+        blocoMap[bd.chave]={nome:bd.chave,transferido:transf,executado:exec||0};
+        break;
+      }
+    }
+  });
+}
+
+// ─ Blocos — estratégia 3: varredura DOM por elementos com texto de bloco ──
+if(Object.keys(blocoMap).length===0){
+  var elems=document.querySelectorAll("[class*='bloco'],[class*='Bloco'],[class*='block'],[class*='card'],[class*='row']");
+  elems.forEach(function(el){
+    var txt=el.textContent||"";
+    if(txt.length>200) return;
+    var reais=todos_reais(txt);
+    var nome=txt.replace(/R\\$[\\d.,\\s]*/g,"").replace(/[\\n\\r]+/g," ").trim().slice(0,60);
+    if(reais.length>=2&&nome.length>3){
+      blocoMap[nome]={nome:nome,transferido:reais[0],executado:reais[1]};
+    }
+  });
+}
+
+dados.blocos=Object.values(blocoMap);
+
+// ─ Resumo e envio ──────────────────────────────────────────────────────────
 var json=JSON.stringify(dados);
-var preview="Saldo em Conta: R$"+(dados.saldo_conta||"?")+
-  "\\nTotal a Receber: R$"+(dados.total_a_receber||"?")+
-  "\\nRepasses: R$"+(dados.repasses_exercicio||"?")+
-  "\\nExecu\\u00e7\\u00e3o: "+(dados.execucao_pct||"?")+"%"+
+var preview=
+  "Saldo em Conta: R$"+(dados.saldo_conta!=null?dados.saldo_conta.toLocaleString("pt-BR",{minimumFractionDigits:2}):"?")+
+  "\\nTotal a Receber: R$"+(dados.total_a_receber!=null?dados.total_a_receber.toLocaleString("pt-BR",{minimumFractionDigits:2}):"?")+
+  "\\nRepasses no Exerc\\u00edcio: R$"+(dados.repasses_exercicio!=null?dados.repasses_exercicio.toLocaleString("pt-BR",{minimumFractionDigits:2}):"?")+
+  "\\nExecu\\u00e7\\u00e3o: "+(dados.execucao_pct!=null?dados.execucao_pct:"?")+"%"+
+  "\\nExecu\\u00e7\\u00e3o Geral: "+(dados.execucao_geral_pct!=null?dados.execucao_geral_pct:"?")+"%"+
   "\\nRPs capturados: "+dados.repasses_por_categoria.length+
+  "\\nBlocos: "+dados.blocos.length+" ("+dados.blocos.map(function(b){return b.nome.split(" ")[0];}).join(", ")+(dados.blocos.length===0?" — nenhum encontrado":"")+")"+
   "\\nSIOPS: "+dados.siops.length+" fontes";
 
-if(!confirm("ERSUS360 \\u2014 Dados capturados:\\n\\n"+preview+"\\n\\nCopiar para o clipboard?\\n(depois cole no ERSUS360 \\u2192 InvestSUS \\u2192 Sincronizar)")){return;}
+if(!confirm("ERSUS360 \\u2014 Captura InvestSUS:\\n\\n"+preview+"\\n\\nCopiar JSON para o clipboard?\\n(cole no ERSUS360 \\u2192 InvestSUS \\u2192 Sincronizar)")){return;}
 
 navigator.clipboard.writeText(json).then(function(){
   alert("\\u2713 JSON copiado!\\n\\nAgora:\\n1. V\\u00e1 para o ERSUS360 \\u2192 InvestSUS \\u2192 Sincronizar\\n2. Role at\\u00e9 'Colar dados capturados'\\n3. Ctrl+V no campo e clique Salvar");
 }).catch(function(){
-  // fallback: mostra o JSON para copiar manualmente
   prompt("Copie o JSON abaixo (Ctrl+A, Ctrl+C):",json);
 });
 })();`;
