@@ -133,6 +133,15 @@ const _RIB_BY_COMP: Record<string, {pct:number; acumulado:number}[][]> = {
   "202506":[ [{pct:21.0,acumulado:79.1}],[{pct:3.4,acumulado:12.5}],[{pct:43.5,acumulado:164.0}],[{pct:37.2,acumulado:138.0}],[{pct:32.1,acumulado:121.2}],[{pct:50.2,acumulado:189.7}] ],
   "202507":[ [{pct:21.8,acumulado:100.9}],[{pct:3.5,acumulado:16.0}],[{pct:45.0,acumulado:209.0}],[{pct:38.6,acumulado:176.6}],[{pct:33.4,acumulado:154.6}],[{pct:51.8,acumulado:241.5}] ],
   "202508":[ [{pct:22.5,acumulado:123.4}],[{pct:3.7,acumulado:19.7}],[{pct:46.8,acumulado:255.8}],[{pct:40.0,acumulado:216.6}],[{pct:34.8,acumulado:189.4}],[{pct:53.2,acumulado:294.7}] ],
+  // 2026
+  "202601":[ [{pct:24.0,acumulado:24.0}],[{pct:4.0,acumulado:4.0}],[{pct:49.2,acumulado:49.2}],[{pct:42.5,acumulado:42.5}],[{pct:36.8,acumulado:36.8}],[{pct:56.0,acumulado:56.0}] ],
+  "202602":[ [{pct:25.2,acumulado:49.2}],[{pct:4.2,acumulado:8.2}],[{pct:51.0,acumulado:100.2}],[{pct:44.0,acumulado:86.5}],[{pct:38.2,acumulado:75.0}],[{pct:57.8,acumulado:113.8}] ],
+  "202603":[ [{pct:26.5,acumulado:75.7}],[{pct:4.5,acumulado:12.7}],[{pct:52.8,acumulado:153.0}],[{pct:45.6,acumulado:132.1}],[{pct:39.7,acumulado:114.7}],[{pct:59.5,acumulado:173.3}] ],
+  "202604":[ [{pct:27.8,acumulado:103.5}],[{pct:4.8,acumulado:17.5}],[{pct:54.5,acumulado:207.5}],[{pct:47.2,acumulado:179.3}],[{pct:41.2,acumulado:155.9}],[{pct:61.2,acumulado:234.5}] ],
+  "202605":[ [{pct:29.0,acumulado:132.5}],[{pct:5.0,acumulado:22.5}],[{pct:56.0,acumulado:263.5}],[{pct:48.8,acumulado:228.1}],[{pct:42.6,acumulado:198.5}],[{pct:62.8,acumulado:297.3}] ],
+  "202606":[ [{pct:30.2,acumulado:162.7}],[{pct:5.3,acumulado:27.8}],[{pct:57.5,acumulado:321.0}],[{pct:50.3,acumulado:278.4}],[{pct:44.0,acumulado:242.5}],[{pct:64.3,acumulado:361.6}] ],
+  "202607":[ [{pct:31.5,acumulado:194.2}],[{pct:5.6,acumulado:33.4}],[{pct:59.0,acumulado:380.0}],[{pct:51.8,acumulado:330.2}],[{pct:45.5,acumulado:288.0}],[{pct:65.8,acumulado:427.4}] ],
+  "202608":[ [{pct:32.8,acumulado:227.0}],[{pct:5.9,acumulado:39.3}],[{pct:60.5,acumulado:440.5}],[{pct:53.2,acumulado:383.4}],[{pct:46.9,acumulado:334.9}],[{pct:67.2,acumulado:494.6}] ],
 };
 
 const _RIB_DEF = [
@@ -169,7 +178,7 @@ const _RIB_DEF = [
 ];
 
 function _buildRibeirinha(comp: string): IndRib[] {
-  const dados = _RIB_BY_COMP[comp] ?? _RIB_BY_COMP["202508"];
+  const dados = _RIB_BY_COMP[comp] ?? _RIB_BY_COMP["202608"];
   return _RIB_DEF.map((def, i) => {
     const pct = dados[i]?.[0]?.pct ?? 0;
     const acum = dados[i]?.[0]?.acumulado ?? 0;
@@ -278,6 +287,87 @@ const _VALS_BY_COMP: Record<string, Record<string, number[]>> = {
     C13:[44,43,42,28,46,55,54,43,22], C14:[82,79,77,52,84,94,74,80,41],
     C15:[85,82,81,52,88,100,77,84,45],
   },
+  // 2026 — Novo Financiamento APS · Portaria GM/MS 3.493/2024 + 7.799/2025 · NT DEAPS/SAPS/MS 6/2025
+  "202601": {
+    C1:[90,86,85,62,91,96,78,88,50], C2:[47,45,44,32,49,56,44,47,24],
+    C3:[92,86,84,67,89,95,80,90,59], C4:[95,93,94,71,97,100,84,94,61],
+    C5:[43,41,41,29,43,50,54,42,25], C6:[34,33,33,22,35,43,50,34,19],
+    C7:[59,58,56,43,60,67,62,57,38], C8:[83,79,81,62,85,89,86,82,53],
+    C9:[67,62,64,50,68,75,72,66,40], C10:[82,77,76,59,83,87,79,81,45],
+    C11:[47,45,44,33,48,57,62,45,26], C12:[52,51,51,36,53,62,59,52,30],
+    C13:[46,45,44,30,48,57,56,45,24], C14:[84,81,79,54,86,96,76,82,43],
+    C15:[87,84,83,54,90,100,79,86,47],
+  },
+  "202602": {
+    C1:[91,88,87,64,93,98,80,90,52], C2:[49,47,46,34,51,58,46,49,26],
+    C3:[93,88,86,69,91,97,82,92,61], C4:[96,95,96,73,99,100,86,96,63],
+    C5:[45,43,43,31,45,52,56,44,27], C6:[36,35,35,24,37,45,52,36,21],
+    C7:[61,60,58,45,62,69,64,59,40], C8:[85,81,83,64,87,91,88,84,55],
+    C9:[69,64,66,52,70,77,74,68,42], C10:[84,79,78,61,85,89,81,83,47],
+    C11:[49,47,46,35,50,59,64,47,28], C12:[54,53,53,38,55,64,61,54,32],
+    C13:[48,47,46,32,50,59,58,47,26], C14:[86,83,81,56,88,98,78,84,45],
+    C15:[89,86,85,56,92,100,81,88,49],
+  },
+  "202603": {
+    C1:[93,90,89,66,95,100,82,92,54], C2:[51,49,48,36,53,60,48,51,28],
+    C3:[95,90,88,71,93,99,84,94,63], C4:[98,97,98,75,100,100,88,98,65],
+    C5:[47,45,45,33,47,54,58,46,29], C6:[38,37,37,26,39,47,54,38,23],
+    C7:[63,62,60,47,64,71,66,61,42], C8:[87,83,85,66,89,93,90,86,57],
+    C9:[71,66,68,54,72,79,76,70,44], C10:[86,81,80,63,87,91,83,85,49],
+    C11:[51,49,48,37,52,61,66,49,30], C12:[56,55,55,40,57,66,63,56,34],
+    C13:[50,49,48,34,52,61,60,49,28], C14:[88,85,83,58,90,100,80,86,47],
+    C15:[91,88,87,58,94,100,83,90,51],
+  },
+  "202604": {
+    C1:[94,91,90,67,96,100,83,93,55], C2:[52,50,49,37,54,61,49,52,29],
+    C3:[96,91,89,72,94,100,85,95,64], C4:[99,98,99,76,100,100,89,99,66],
+    C5:[48,46,46,34,48,55,59,47,30], C6:[39,38,38,27,40,48,55,39,24],
+    C7:[64,63,61,48,65,72,67,62,43], C8:[88,84,86,67,90,94,91,87,58],
+    C9:[72,67,69,55,73,80,77,71,45], C10:[87,82,81,64,88,92,84,86,50],
+    C11:[52,50,49,38,53,62,67,50,31], C12:[57,56,56,41,58,67,64,57,35],
+    C13:[51,50,49,35,53,62,61,50,29], C14:[89,86,84,59,91,100,81,87,48],
+    C15:[92,89,88,59,95,100,84,91,52],
+  },
+  "202605": {
+    C1:[95,92,91,68,97,100,84,94,56], C2:[53,51,50,38,55,62,50,53,30],
+    C3:[97,92,90,73,95,100,86,96,65], C4:[100,99,100,77,100,100,90,100,67],
+    C5:[49,47,47,35,49,56,60,48,31], C6:[40,39,39,28,41,49,56,40,25],
+    C7:[65,64,62,49,66,73,68,63,44], C8:[89,85,87,68,91,95,92,88,59],
+    C9:[73,68,70,56,74,81,78,72,46], C10:[88,83,82,65,89,93,85,87,51],
+    C11:[53,51,50,39,54,63,68,51,32], C12:[58,57,57,42,59,68,65,58,36],
+    C13:[52,51,50,36,54,63,62,51,30], C14:[90,87,85,60,92,100,82,88,49],
+    C15:[93,90,89,60,96,100,85,92,53],
+  },
+  "202606": {
+    C1:[96,93,92,69,98,100,85,95,57], C2:[54,52,51,39,56,63,51,54,31],
+    C3:[98,93,91,74,96,100,87,97,66], C4:[100,100,100,78,100,100,91,100,68],
+    C5:[50,48,48,36,50,57,61,49,32], C6:[41,40,40,29,42,50,57,41,26],
+    C7:[66,65,63,50,67,74,69,64,45], C8:[90,86,88,69,92,96,93,89,60],
+    C9:[74,69,71,57,75,82,79,73,47], C10:[89,84,83,66,90,94,86,88,52],
+    C11:[54,52,51,40,55,64,69,52,33], C12:[59,58,58,43,60,69,66,59,37],
+    C13:[53,52,51,37,55,64,63,52,31], C14:[91,88,86,61,93,100,83,89,50],
+    C15:[94,91,90,61,97,100,86,93,54],
+  },
+  "202607": {
+    C1:[97,94,93,70,99,100,86,96,58], C2:[55,53,52,40,57,64,52,55,32],
+    C3:[99,94,92,75,97,100,88,98,67], C4:[100,100,100,79,100,100,92,100,69],
+    C5:[51,49,49,37,51,58,62,50,33], C6:[42,41,41,30,43,51,58,42,27],
+    C7:[67,66,64,51,68,75,70,65,46], C8:[91,87,89,70,93,97,94,90,61],
+    C9:[75,70,72,58,76,83,80,74,48], C10:[90,85,84,67,91,95,87,89,53],
+    C11:[55,53,52,41,56,65,70,53,34], C12:[60,59,59,44,61,70,67,60,38],
+    C13:[54,53,52,38,56,65,64,53,32], C14:[92,89,87,62,94,100,84,90,51],
+    C15:[95,92,91,62,98,100,87,94,55],
+  },
+  "202608": {
+    C1:[98,95,94,71,100,100,87,97,59], C2:[56,54,53,41,58,65,53,56,33],
+    C3:[100,95,93,76,98,100,89,99,68], C4:[100,100,100,80,100,100,93,100,70],
+    C5:[52,50,50,38,52,59,63,51,34], C6:[43,42,42,31,44,52,59,43,28],
+    C7:[68,67,65,52,69,76,71,66,47], C8:[92,88,90,71,94,98,95,91,62],
+    C9:[76,71,73,59,77,84,81,75,49], C10:[91,86,85,68,92,96,88,90,54],
+    C11:[56,54,53,42,57,66,71,54,35], C12:[61,60,60,45,62,71,68,61,39],
+    C13:[55,54,53,39,57,66,65,54,33], C14:[93,90,88,63,95,100,85,91,52],
+    C15:[96,93,92,63,99,100,88,95,56],
+  },
 };
 
 const _METAS: Record<string,number> = {
@@ -309,7 +399,7 @@ const _PESOS: Record<string,number> = {
 };
 
 function _getVals(comp: string): Record<string, number[]> {
-  return _VALS_BY_COMP[comp] ?? _VALS_BY_COMP["202507"];
+  return _VALS_BY_COMP[comp] ?? _VALS_BY_COMP["202608"];
 }
 
 function _notaFromVals(vals: number[], meta: number): number {
@@ -415,7 +505,7 @@ function _buildGrupoParaEquipe(codigos: string[], sigla: string, descricao: stri
 // ── componente principal ──────────────────────────────────────────────────────
 export default function ComponenteQualidade() {
   const [tab, setTab] = useState<"consolidado" | "grupoC" | "grupoB" | "grupoM" | "ribeirinha">("consolidado");
-  const [competencia, setCompetencia] = useState("202507");
+  const [competencia, setCompetencia] = useState("202608");
   const [equipeFilter, setEquipeFilter] = useState<string>("Todas");
   const [conceitoFilter, setConceitoFilter] = useState<string>("Todos");
 
@@ -429,7 +519,10 @@ export default function ComponenteQualidade() {
     : _buildGrupo([...C_CODIGOS], "C", `eSF e eAP — 15 indicadores · ${label}`, competencia);
 
   // Grupo B — variação mensal leve baseada na competência
-  const _bOffset: Record<string,number> = { "202503":-1.5, "202504":-0.8, "202505":0, "202506":0.4, "202507":0.8, "202508":1.2 };
+  const _bOffset: Record<string,number> = {
+    "202503":-1.5,"202504":-0.8,"202505":0,"202506":0.4,"202507":0.8,"202508":1.2,
+    "202601":1.5,"202602":1.8,"202603":2.1,"202604":2.4,"202605":2.7,"202606":3.0,"202607":3.3,"202608":3.6,
+  };
   const bOff = _bOffset[competencia] ?? 0;
   const grupoB: GrupoQual = {
     sigla:"B", descricao:`eSB Modalidade I e II — 6 indicadores · ${label}`,
@@ -446,7 +539,10 @@ export default function ComponenteQualidade() {
     nota_media:parseFloat((5.6+bOff*0.8).toFixed(1)), conceito_medio:_conceito(5.6+bOff*0.8), pct_bom_otimo: (5.6+bOff*0.8)>=5?67:50,
   };
 
-  const _mOffset: Record<string,number> = { "202503":-1.2, "202504":-0.6, "202505":0, "202506":0.3, "202507":0.6, "202508":0.9 };
+  const _mOffset: Record<string,number> = {
+    "202503":-1.2,"202504":-0.6,"202505":0,"202506":0.3,"202507":0.6,"202508":0.9,
+    "202601":1.2,"202602":1.4,"202603":1.7,"202604":1.9,"202605":2.2,"202606":2.4,"202607":2.7,"202608":3.0,
+  };
   const mOff = _mOffset[competencia] ?? 0;
   const grupoM: GrupoQual = {
     sigla:"M", descricao:`eMulti — 2 indicadores · ${label}`,
@@ -497,17 +593,25 @@ export default function ComponenteQualidade() {
         <div style={{ display:"flex", flexDirection:"column", gap:6, alignItems:"flex-end" }}>
           <div style={{ display:"flex", gap:8, alignItems:"center" }}>
             <span style={{ fontSize:12, color:"#6b7280", fontWeight:600 }}>Competência:</span>
-            {["202503","202504","202505","202506","202507","202508"].map(c => (
-              <button key={c} onClick={() => setCompetencia(c)} style={{
-                padding:"5px 11px", borderRadius:6, border:"1px solid",
-                fontSize:12, fontWeight: competencia===c ? 800 : 500, cursor:"pointer",
-                borderColor: competencia===c ? "#1e40af" : "#cbd5e1",
-                background: competencia===c ? "#1e40af" : "#fff",
-                color: competencia===c ? "#fff" : "#475569",
-                transition:"all .15s",
-              }}>
-                {c.slice(4)}/{c.slice(0,4)}
-              </button>
+            {[
+              {grp:"2025", comps:["202503","202504","202505","202506","202507","202508"]},
+              {grp:"2026", comps:["202601","202602","202603","202604","202605","202606","202607","202608"]},
+            ].map(({grp,comps}) => (
+              <span key={grp} style={{ display:"flex", alignItems:"center", gap:4 }}>
+                <span style={{ fontSize:10, color:"#94a3b8", fontWeight:700, marginRight:2 }}>{grp}</span>
+                {comps.map(c => (
+                  <button key={c} onClick={() => setCompetencia(c)} style={{
+                    padding:"5px 9px", borderRadius:6, border:"1px solid",
+                    fontSize:11, fontWeight: competencia===c ? 800 : 500, cursor:"pointer",
+                    borderColor: competencia===c ? "#1e40af" : "#cbd5e1",
+                    background: competencia===c ? "#1e40af" : "#fff",
+                    color: competencia===c ? "#fff" : "#475569",
+                    transition:"all .15s",
+                  }}>
+                    {c.slice(4)}/{c.slice(0,4)}
+                  </button>
+                ))}
+              </span>
             ))}
           </div>
           <div style={{ fontSize:11, color:"#1e40af", fontWeight:700, background:"#eff6ff", padding:"2px 10px", borderRadius:8, border:"1px solid #bfdbfe" }}>
