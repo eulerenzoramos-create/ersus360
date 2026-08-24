@@ -39,26 +39,44 @@ const TIPOS_EQUIPE = [
 type TipoEquipe = typeof TIPOS_EQUIPE[number]["id"];
 type Visao = "competencia" | "equipe" | "indicador";
 
-// Mapeia grupo temático → lista de códigos de indicador
-const GRUPO_INDS: Record<string, string[]> = {
-  "Mais Acesso":                  ["Q-SF-12","Q-SF-13"],
-  "Desenvolvimento Infantil":     ["Q-SF-03","Q-SF-10","Q-SF-15"],
-  "Gestação e Puerpério":         ["Q-SF-01","Q-SF-04","Q-SF-14"],
-  "Cuidado na Gestação e Puerpério": ["Q-SF-01","Q-SF-04","Q-SF-14"],
-  "Diabetes":                     ["Q-SF-09"],
-  "Hipertensão":                  ["Q-SF-08","Q-SF-11"],
-  "Pessoa Idosa":                 ["Q-SF-11"],
-  "Prevenção do Câncer":          ["Q-SF-02"],
-  "1ª Consulta Odontológica":     ["Q-SB-01"],
-  "Tratamento Odontológico concluído": ["Q-SB-02"],
-  "Taxa de exodontias":           ["Q-SB-03"],
-  "Escovação Supervisionada":     ["Q-SB-04"],
-  "Procedimentos Odontológicos preventivos": ["Q-SB-05"],
-  "Tratamento Restaurador Atraumático": ["Q-SB-06"],
-  "Média de atendimentos da eMulti por pessoa": ["Q-MT-01"],
-  "Ações interprofissionais realizadas pela eMulti na APS": ["Q-MT-02"],
-  "Atendimento — População em Situação de Rua": ["Q-CR-01"],
-  "Indicadores eAPP":             ["Q-AP-01"],
+// Catálogo oficial por tipo de equipe — Portaria GM/MS 3.493/2024 + NT DEAPS/SAPS/MS 6/2025
+// Cada tipo tem seus próprios grupos temáticos mapeados para os códigos oficiais
+const GRUPO_INDS_POR_TIPO: Record<string, Record<string, string[]>> = {
+  eSF: {
+    "Mais Acesso":              ["C1"],
+    "Desenvolvimento Infantil": ["C2"],
+    "Gestação e Puerpério":     ["C3"],
+    "Diabetes":                 ["C4"],
+    "Hipertensão":              ["C5"],
+    "Pessoa Idosa":             ["C6"],
+    "Prevenção do Câncer":      ["C7"],
+  },
+  eSB: {
+    "1ª Consulta Odontológica":                        ["B1"],
+    "Tratamento Odontológico concluído":               ["B2"],
+    "Taxa de exodontias":                              ["B3"],
+    "Escovação Supervisionada":                        ["B4"],
+    "Procedimentos Odontológicos preventivos":         ["B5"],
+    "Tratamento Restaurador Atraumático":              ["B6"],
+  },
+  eMulti: {
+    "Média de atendimentos da eMulti por pessoa":             ["M1"],
+    "Ações interprofissionais realizadas pela eMulti na APS": ["M2"],
+  },
+  eCR: {
+    "Atendimento — População em Situação de Rua": ["CR1","CR2","CR3","CR4"],
+  },
+  eAPP: {
+    "Indicadores eAPP": ["P1","P2","P3","P4","P5"],
+  },
+  eSFR: {
+    "Mais Acesso":                     ["R1"],
+    "Desenvolvimento Infantil":        ["R2"],
+    "Cuidado na Gestação e Puerpério": ["R3"],
+    "Diabetes":                        ["R4"],
+    "Hipertensão":                     ["R5"],
+    "Prevenção do Câncer":             ["R6"],
+  },
 };
 
 // ── Utilitários ────────────────────────────────────────────────────────────────
@@ -300,55 +318,116 @@ function PainelFiltros({
   );
 }
 
-// ── Dados de referência inline (Apuí/AM) ──────────────────────────────────────
+// ── Equipes reais Apuí/AM — IBGE 1300144 ─────────────────────────────────────
 const EQUIPES_REF = [
-  { equipe:"CACHOEIRA",     ubs:"UBS IRMÃ ELIZABETE",                        ine:"0000563104", cnes:"2080168", tipo:"eSF" },
-  { equipe:"SÃO SEBASTIÃO", ubs:"UBS ANIZIO FERREIRA DA SILVA",              ine:"0000563066", cnes:"2080168", tipo:"eSF" },
-  { equipe:"ACARI",         ubs:"UBS ANIZIO FERREIRA DA SILVA",              ine:"0000563082", cnes:"2080168", tipo:"eSF" },
-  { equipe:"TRÊS ESTADOS",  ubs:"UBS OSVALDO LEMES CABRAL",                 ine:"0000563120", cnes:"2080168", tipo:"eSF" },
-  { equipe:"JUMA",          ubs:"CENTRO DE SAUDE CURUMIM",                  ine:"0000563147", cnes:"6820662", tipo:"eSF" },
-  { equipe:"LIBERDADE",     ubs:"CENTRO DE SAUDE CURUMIM",                  ine:"0000563155", cnes:"6820662", tipo:"eSF" },
-  { equipe:"KENNEDY",       ubs:"UBS PADRE FALIERO BONCI",                  ine:"0000563163", cnes:"6820662", tipo:"eSF" },
-  { equipe:"JK",            ubs:"UBS JK",                                   ine:"0000563171", cnes:"6820662", tipo:"eSF" },
-  { equipe:"ESTRADA NOVA",  ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA",  ine:"0000563198", cnes:"6820662", tipo:"eSF" },
+  { equipe:"CACHOEIRA",     ubs:"UBS IRMÃ ELIZABETE",                       ine:"0000563104", cnes:"2080168", tipo:"eSF" },
+  { equipe:"SÃO SEBASTIÃO", ubs:"UBS ANIZIO FERREIRA DA SILVA",             ine:"0000563066", cnes:"2080168", tipo:"eSF" },
+  { equipe:"ACARI",         ubs:"UBS ANIZIO FERREIRA DA SILVA",             ine:"0000563082", cnes:"2080168", tipo:"eSF" },
+  { equipe:"TRÊS ESTADOS",  ubs:"UBS OSVALDO LEMES CABRAL",                ine:"0000563120", cnes:"2080168", tipo:"eSF" },
+  { equipe:"JUMA",          ubs:"CENTRO DE SAUDE CURUMIM",                 ine:"0000563147", cnes:"6820662", tipo:"eSF" },
+  { equipe:"LIBERDADE",     ubs:"CENTRO DE SAUDE CURUMIM",                 ine:"0000563155", cnes:"6820662", tipo:"eSF" },
+  { equipe:"KENNEDY",       ubs:"UBS PADRE FALIERO BONCI",                 ine:"0000563163", cnes:"6820662", tipo:"eSF" },
+  { equipe:"JK",            ubs:"UBS JK",                                  ine:"0000563171", cnes:"6820662", tipo:"eSF" },
+  { equipe:"ESTRADA NOVA",  ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA", ine:"0000563198", cnes:"6820662", tipo:"eSF" },
 ];
 
-// Resultados reais Apuí/AM Mai/2026
-const VALS: Record<string,Record<string,number>> = {
-  "Q-SF-01":{"CACHOEIRA":85,"SÃO SEBASTIÃO":80,"ACARI":79,"TRÊS ESTADOS":56,"JUMA":86,"LIBERDADE":91,"KENNEDY":72,"JK":83,"ESTRADA NOVA":44},
-  "Q-SF-02":{"CACHOEIRA":43,"SÃO SEBASTIÃO":41,"ACARI":40,"TRÊS ESTADOS":28,"JUMA":45,"LIBERDADE":52,"KENNEDY":40,"JK":43,"ESTRADA NOVA":20},
-  "Q-SF-03":{"CACHOEIRA":88,"SÃO SEBASTIÃO":82,"ACARI":80,"TRÊS ESTADOS":63,"JUMA":85,"LIBERDADE":91,"KENNEDY":76,"JK":86,"ESTRADA NOVA":55},
-  "Q-SF-04":{"CACHOEIRA":91,"SÃO SEBASTIÃO":89,"ACARI":90,"TRÊS ESTADOS":67,"JUMA":93,"LIBERDADE":100,"KENNEDY":80,"JK":90,"ESTRADA NOVA":57},
-  "Q-SF-05":{"CACHOEIRA":39,"SÃO SEBASTIÃO":37,"ACARI":37,"TRÊS ESTADOS":25,"JUMA":39,"LIBERDADE":46,"KENNEDY":50,"JK":38,"ESTRADA NOVA":21},
-  "Q-SF-06":{"CACHOEIRA":30,"SÃO SEBASTIÃO":29,"ACARI":29,"TRÊS ESTADOS":18,"JUMA":31,"LIBERDADE":39,"KENNEDY":46,"JK":30,"ESTRADA NOVA":15},
-  "Q-SF-07":{"CACHOEIRA":55,"SÃO SEBASTIÃO":54,"ACARI":52,"TRÊS ESTADOS":39,"JUMA":56,"LIBERDADE":63,"KENNEDY":58,"JK":53,"ESTRADA NOVA":34},
-  "Q-SF-08":{"CACHOEIRA":79,"SÃO SEBASTIÃO":75,"ACARI":77,"TRÊS ESTADOS":58,"JUMA":81,"LIBERDADE":85,"KENNEDY":82,"JK":78,"ESTRADA NOVA":49},
-  "Q-SF-09":{"CACHOEIRA":63,"SÃO SEBASTIÃO":58,"ACARI":60,"TRÊS ESTADOS":46,"JUMA":64,"LIBERDADE":71,"KENNEDY":68,"JK":62,"ESTRADA NOVA":36},
-  "Q-SF-10":{"CACHOEIRA":78,"SÃO SEBASTIÃO":73,"ACARI":72,"TRÊS ESTADOS":55,"JUMA":79,"LIBERDADE":83,"KENNEDY":75,"JK":77,"ESTRADA NOVA":41},
-  "Q-SF-11":{"CACHOEIRA":43,"SÃO SEBASTIÃO":41,"ACARI":40,"TRÊS ESTADOS":29,"JUMA":44,"LIBERDADE":53,"KENNEDY":58,"JK":41,"ESTRADA NOVA":22},
-  "Q-SF-12":{"CACHOEIRA":48,"SÃO SEBASTIÃO":47,"ACARI":47,"TRÊS ESTADOS":32,"JUMA":49,"LIBERDADE":58,"KENNEDY":55,"JK":48,"ESTRADA NOVA":26},
-  "Q-SF-13":{"CACHOEIRA":42,"SÃO SEBASTIÃO":41,"ACARI":40,"TRÊS ESTADOS":26,"JUMA":44,"LIBERDADE":53,"KENNEDY":52,"JK":41,"ESTRADA NOVA":20},
-  "Q-SF-14":{"CACHOEIRA":80,"SÃO SEBASTIÃO":77,"ACARI":75,"TRÊS ESTADOS":50,"JUMA":82,"LIBERDADE":92,"KENNEDY":72,"JK":78,"ESTRADA NOVA":39},
-  "Q-SF-15":{"CACHOEIRA":83,"SÃO SEBASTIÃO":80,"ACARI":79,"TRÊS ESTADOS":50,"JUMA":86,"LIBERDADE":100,"KENNEDY":75,"JK":82,"ESTRADA NOVA":43},
-};
-
-const METAS: Record<string,number> = {
-  "Q-SF-01":55,"Q-SF-02":50,"Q-SF-03":90,"Q-SF-04":55,"Q-SF-05":45,
-  "Q-SF-06":45,"Q-SF-07":45,"Q-SF-08":60,"Q-SF-09":55,"Q-SF-10":55,
-  "Q-SF-11":50,"Q-SF-12":50,"Q-SF-13":50,"Q-SF-14":55,"Q-SF-15":55,
-  "Q-SB-01":45,"Q-SB-02":45,"Q-SB-03":20,"Q-SB-04":40,"Q-SB-05":50,
-  "Q-MT-01":2, "Q-MT-02":30,"Q-CR-01":60,
-};
-
+// ── NOMES oficiais — Portaria GM/MS 3.493/2024 + NT DEAPS/SAPS/MS 6/2025 ─────
 const NOMES: Record<string,string> = {
-  "Q-SF-01":"Pré-natal ≥6 consultas","Q-SF-02":"Citopatológico","Q-SF-03":"Vacina Penta/Polio",
-  "Q-SF-04":"Puerpério / RN 1ª semana","Q-SF-05":"1ª Odonto Programática",
-  "Q-SF-06":"Tratamento Odonto Concluído","Q-SF-07":"Urg. Odonto Resolvida",
-  "Q-SF-08":"Acompanhamento HAS","Q-SF-09":"Acompanhamento DM (HbA1c)",
-  "Q-SF-10":"Obesidade Infantil (IMC 5-9 anos)","Q-SF-11":"Alto Risco Cardiovascular",
-  "Q-SF-12":"Esquizofrenia / Psicose","Q-SF-13":"Transtorno Afetivo Bipolar",
-  "Q-SF-14":"Sífilis em Gestante","Q-SF-15":"Sífilis Congênita",
+  // eSF / eAP
+  "C1":"Mais Acesso à Atenção Primária à Saúde",
+  "C2":"Cuidado no Desenvolvimento Infantil",
+  "C3":"Cuidado na Gestação e Puerpério",
+  "C4":"Cuidado da Pessoa com Diabetes",
+  "C5":"Cuidado da Pessoa com Hipertensão",
+  "C6":"Cuidado da Pessoa Idosa",
+  "C7":"Cuidado da Mulher na Prevenção do Câncer",
+  // eSB
+  "B1":"Primeira Consulta Odontológica Programada",
+  "B2":"Tratamento Odontológico Concluído",
+  "B3":"Taxa de Exodontias",
+  "B4":"Escovação Dental Supervisionada",
+  "B5":"Procedimentos Odontológicos Preventivos",
+  "B6":"Tratamento Restaurador Atraumático",
+  // eMulti
+  "M1":"Média de Atendimentos por Pessoa pela eMulti na APS",
+  "M2":"Ações Interprofissionais Realizadas pela eMulti na APS",
+  // eAPP
+  "P1":"Mais Acesso à Atenção Primária Prisional",
+  "P2":"Cuidado na Gestação (eAPP)",
+  "P3":"Cuidado da Pessoa com Diabetes e/ou Hipertensão (eAPP)",
+  "P4":"Rastreio de Infecções Sexualmente Transmissíveis (eAPP)",
+  "P5":"Cuidado da Pessoa com Tuberculose (eAPP)",
+  // eCR
+  "CR1":"Mais Acesso à eCR",
+  "CR2":"Cuidado na Gestação (eCR)",
+  "CR3":"Rastreio de IST (eCR)",
+  "CR4":"Cuidado da Pessoa com Tuberculose (eCR)",
+  // eSFR
+  "R1":"Mais Acesso à eSFR",
+  "R2":"Cuidado no Desenvolvimento Infantil (eSFR)",
+  "R3":"Cuidado na Gestação e Puerpério (eSFR)",
+  "R4":"Cuidado da Pessoa com Diabetes (eSFR)",
+  "R5":"Cuidado da Pessoa com Hipertensão (eSFR)",
+  "R6":"Cuidado da Mulher na Prevenção do Câncer (eSFR)",
 };
+
+// ── Parâmetros de referência — Portaria GM/MS 3.493/2024 ─────────────────────
+const METAS: Record<string,number> = {
+  C1:75, C2:75, C3:70, C4:50, C5:50, C6:60, C7:40,
+  B1:45, B2:45, B3:20, B4:40, B5:50, B6:30,
+  M1:2,  M2:30,
+  P1:75, P2:70, P3:50, P4:60, P5:85,
+  CR1:75,CR2:70,CR3:60,CR4:85,
+  R1:75, R2:75, R3:70, R4:50, R5:50, R6:40,
+};
+
+// ── Boas práticas por indicador — fichas metodológicas vigentes ───────────────
+const BOAS_PRATICAS: Record<string,{cod:string;desc:string;campo:string}[]> = {
+  C1:[
+    {cod:"BP-C1-a",desc:"Cadastro Individual atualizado (últimos 12 meses)",campo:"Ficha de Cadastro Individual — CDS/e-SUS PEC"},
+    {cod:"BP-C1-b",desc:"Cadastro Domiciliar atualizado (últimos 12 meses)",campo:"Ficha de Cadastro Domiciliar — CDS/e-SUS PEC"},
+    {cod:"BP-C1-c",desc:"Ao menos 1 atendimento/consulta registrado no período",campo:"Atendimento Individual — CDS/PEC"},
+  ],
+  C2:[
+    {cod:"BP-C2-a",desc:"Criança <2 anos com peso registrado no período",campo:"Ficha de Atendimento Individual — antropometria"},
+    {cod:"BP-C2-b",desc:"Comprimento/altura registrado no período",campo:"Ficha de Atendimento Individual — PEC"},
+    {cod:"BP-C2-c",desc:"Avaliação de desenvolvimento neuropsicomotor (DNPM)",campo:"Ficha de Atendimento Individual — campo DNPM"},
+    {cod:"BP-C2-d",desc:"Vacinação em dia conforme calendário do MS",campo:"e-SUS PEC — módulo vacinação"},
+  ],
+  C3:[
+    {cod:"BP-C3-a",desc:"Gestante com ≥6 consultas de pré-natal realizadas",campo:"Ficha de Atendimento Individual — CIAP2: W78"},
+    {cod:"BP-C3-b",desc:"Consulta de puerpério realizada até 42 dias pós-parto",campo:"Ficha de Atendimento Individual — CIAP2: W90/W91"},
+    {cod:"BP-C3-c",desc:"Consulta do RN na 1ª semana de vida",campo:"Ficha de Atendimento Individual — CID-10: Z00.1"},
+    {cod:"BP-C3-d",desc:"Exames laboratoriais solicitados conforme protocolo",campo:"Ficha de Atendimento Individual — procedimentos"},
+  ],
+  C4:[
+    {cod:"BP-C4-a",desc:"Pessoa com DM2 cadastrada e ativa no território",campo:"Ficha de Cadastro Individual — condição: DM"},
+    {cod:"BP-C4-b",desc:"Hemoglobina glicada (HbA1c) solicitada no período",campo:"Ficha de Atendimento Individual — exame HbA1c"},
+    {cod:"BP-C4-c",desc:"Consulta médica ou de enfermagem registrada",campo:"Ficha de Atendimento Individual — CIAP2: T90"},
+    {cod:"BP-C4-d",desc:"Pressão arterial aferida e registrada",campo:"Ficha de Atendimento Individual — PA"},
+  ],
+  C5:[
+    {cod:"BP-C5-a",desc:"Pessoa com HAS cadastrada e ativa no território",campo:"Ficha de Cadastro Individual — condição: HAS"},
+    {cod:"BP-C5-b",desc:"Pressão arterial aferida e registrada no período",campo:"Ficha de Atendimento Individual — PA"},
+    {cod:"BP-C5-c",desc:"Consulta médica ou de enfermagem registrada",campo:"Ficha de Atendimento Individual — CIAP2: K86"},
+    {cod:"BP-C5-d",desc:"Estratificação de risco cardiovascular realizada",campo:"Ficha de Atendimento Individual — risco CV"},
+  ],
+  C6:[
+    {cod:"BP-C6-a",desc:"Pessoa ≥60 anos com Avaliação Multidimensional Rápida (AMR)",campo:"Ficha de Atendimento Individual — AMR"},
+    {cod:"BP-C6-b",desc:"Avaliação cognitiva (MEEM ou equivalente) registrada",campo:"Ficha de Atendimento Individual — campo cognitivo"},
+    {cod:"BP-C6-c",desc:"Consulta realizada no período (médico ou enfermeiro)",campo:"Ficha de Atendimento Individual"},
+    {cod:"BP-C6-d",desc:"Vacinação em dia (Influenza, Pneumocócica)",campo:"e-SUS PEC — módulo vacinação"},
+  ],
+  C7:[
+    {cod:"BP-C7-a",desc:"Mulher 25–64 anos com citopatológico realizado (últimos 3 anos)",campo:"Ficha de Atendimento Individual — CIAP2: X86 / CID: Z12.4"},
+    {cod:"BP-C7-b",desc:"Mulher 50–69 anos com mamografia realizada (últimos 2 anos)",campo:"Ficha de Atendimento Individual — CIAP2: X22 / CID: Z12.3"},
+  ],
+};
+
+// ── VALS: sem dados demonstrativos — aguardando importação do SIAPS ───────────
+// Quando dado real for disponibilizado via importação do SIAPS ou e-SUS PEC,
+// popular este objeto com: { "C1": { "CACHOEIRA": 82.4, ... }, ... }
+const VALS: Record<string,Record<string,number>> = {};
 
 function classifVal(v:number, cod:string): string {
   const meta = METAS[cod] ?? 50;
@@ -359,9 +438,9 @@ function classifVal(v:number, cod:string): string {
   return "regular";
 }
 
-function mediaVals(cod: string) {
+function mediaVals(cod: string): number | null {
   const v = VALS[cod];
-  if (!v) return 0;
+  if (!v || Object.keys(v).length === 0) return null;
   const arr = Object.values(v);
   return arr.reduce((s,x)=>s+x,0) / arr.length;
 }
@@ -371,11 +450,12 @@ function ViewPorIndicador({ codigos, cor }: { codigos:string[]; cor:string }) {
   const [expInd, setExpInd] = useState<string|null>(null);
 
   const inds = useMemo(() => codigos.map(cod => {
-    const v = VALS[cod] ?? {};
     const media = mediaVals(cod);
     const meta  = METAS[cod] ?? 50;
-    const cl    = classifVal(media, cod);
-    return { cod, nome: NOMES[cod] ?? cod, meta, media, cl,
+    const temDado = media !== null;
+    const cl    = temDado ? classifVal(media!, cod) : "regular";
+    const v     = VALS[cod] ?? {};
+    return { cod, nome: NOMES[cod] ?? cod, meta, media, cl, temDado,
       n_otimo:     Object.values(v).filter(x=>classifVal(x,cod)==="otimo").length,
       n_bom:       Object.values(v).filter(x=>classifVal(x,cod)==="bom").length,
       n_suficiente:Object.values(v).filter(x=>classifVal(x,cod)==="suficiente").length,
@@ -393,12 +473,14 @@ function ViewPorIndicador({ codigos, cor }: { codigos:string[]; cor:string }) {
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
       {inds.map(ind => {
-        const gap = ind.media - ind.meta;
+        const gap = ind.temDado ? ind.media! - ind.meta : null;
         const exp = expInd === ind.cod;
+        const bpList = BOAS_PRATICAS[ind.cod] ?? [];
+        const borderCor = ind.temDado ? corClassif(ind.cl) : "#d1d5db";
         return (
           <div key={ind.cod} style={{
-            border:`1px solid ${corClassif(ind.cl)}33`,
-            borderLeft:`4px solid ${corClassif(ind.cl)}`,
+            border:`1px solid ${borderCor}33`,
+            borderLeft:`4px solid ${borderCor}`,
             borderRadius:10, background:"#fff",
             boxShadow:"0 1px 4px #0001",
           }}>
@@ -412,40 +494,81 @@ function ViewPorIndicador({ codigos, cor }: { codigos:string[]; cor:string }) {
                 }}>{ind.cod}</span>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:13, fontWeight:600, color:"#111827" }}>{ind.nome}</div>
+                  <div style={{ fontSize:10, color:"#9ca3af", marginTop:2 }}>
+                    Portaria GM/MS 3.493/2024 · Meta de referência: {fmtPct(ind.meta)}
+                  </div>
                 </div>
-                <BadgeClassif c={ind.cl}/>
+                {ind.temDado && <BadgeClassif c={ind.cl}/>}
               </div>
 
-              {/* barra */}
-              <BarraProgress val={ind.media} meta={ind.meta} cor={corClassif(ind.cl)}/>
-
-              {/* números */}
-              <div style={{ display:"flex", justifyContent:"space-between", marginTop:10, flexWrap:"wrap", gap:8 }}>
-                <div style={{ display:"flex", gap:20 }}>
-                  {[
-                    { label:"Resultado", val: fmtPct(ind.media), cor:"#111827" },
-                    { label:"Meta",      val: fmtPct(ind.meta),  cor:"#374151" },
-                    { label:"GAP",       val: `${gap>=0?"+":""}${gap.toFixed(1)}pp`, cor: gap>=0?VERDE:VERM },
-                  ].map(x=>(
-                    <div key={x.label}>
-                      <div style={{ fontSize:10, color:"#9ca3af" }}>{x.label}</div>
-                      <div style={{ fontSize:18, fontWeight:800, color:x.cor }}>{x.val}</div>
+              {/* sem dado */}
+              {!ind.temDado ? (
+                <div style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 12px", background:"#f8fafc", border:"1px dashed #d1d5db", borderRadius:8, marginBottom:8 }}>
+                  <AlertCircle size={14} color="#9ca3af"/>
+                  <span style={{ fontSize:12, color:"#6b7280" }}>
+                    Dado ainda não disponível. Resultado será exibido após importação do SIAPS ou sincronização do e-SUS PEC.
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <BarraProgress val={ind.media!} meta={ind.meta} cor={corClassif(ind.cl)}/>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginTop:10, flexWrap:"wrap", gap:8 }}>
+                    <div style={{ display:"flex", gap:20 }}>
+                      {[
+                        { label:"Resultado", val: fmtPct(ind.media), cor:"#111827" },
+                        { label:"Meta",      val: fmtPct(ind.meta),  cor:"#374151" },
+                        { label:"GAP",       val: `${gap!>=0?"+":""}${gap!.toFixed(1)}pp`, cor: gap!>=0?VERDE:VERM },
+                      ].map(x=>(
+                        <div key={x.label}>
+                          <div style={{ fontSize:10, color:"#9ca3af" }}>{x.label}</div>
+                          <div style={{ fontSize:18, fontWeight:800, color:x.cor }}>{x.val}</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
-                  {[
-                    { k:"n_otimo", label:"Ótimo", cor:AZUL },
-                    { k:"n_bom", label:"Bom", cor:VERDE },
-                    { k:"n_suficiente", label:"Suf.", cor:AMBAR },
-                    { k:"n_regular", label:"Reg.", cor:VERM },
-                  ].map(item=>{
-                    const v = ind[item.k as keyof typeof ind] as number;
-                    if (!v) return null;
-                    return <span key={item.k} style={{ background:`${item.cor}15`, color:item.cor, borderRadius:99, padding:"2px 8px", fontSize:11, fontWeight:600 }}>{v} {item.label}</span>;
-                  })}
-                </div>
-              </div>
+                    <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
+                      {[
+                        { k:"n_otimo", label:"Ótimo", cor:AZUL },
+                        { k:"n_bom", label:"Bom", cor:VERDE },
+                        { k:"n_suficiente", label:"Suf.", cor:AMBAR },
+                        { k:"n_regular", label:"Reg.", cor:VERM },
+                      ].map(item=>{
+                        const v = ind[item.k as keyof typeof ind] as number;
+                        if (!v) return null;
+                        return <span key={item.k} style={{ background:`${item.cor}15`, color:item.cor, borderRadius:99, padding:"2px 8px", fontSize:11, fontWeight:600 }}>{v} {item.label}</span>;
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Boas práticas */}
+              {bpList.length > 0 && (
+                <details style={{ marginTop:10 }}>
+                  <summary style={{ fontSize:11, color:"#6b7280", cursor:"pointer", listStyle:"none", display:"flex", alignItems:"center", gap:4 }}>
+                    <Info size={11}/> Boas práticas — ficha metodológica vigente
+                  </summary>
+                  <div style={{ marginTop:8, border:"1px solid #e5e7eb", borderRadius:8, overflow:"hidden" }}>
+                    <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
+                      <thead>
+                        <tr style={{ background:"#f8fafc" }}>
+                          <th style={{ padding:"6px 10px", textAlign:"left", color:"#374151", fontWeight:700, width:80 }}>Código</th>
+                          <th style={{ padding:"6px 10px", textAlign:"left", color:"#374151", fontWeight:700 }}>Boa Prática</th>
+                          <th style={{ padding:"6px 10px", textAlign:"left", color:"#374151", fontWeight:700 }}>Campo no PEC</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bpList.map(bp=>(
+                          <tr key={bp.cod} style={{ borderTop:"1px solid #f3f4f6" }}>
+                            <td style={{ padding:"6px 10px", fontWeight:700, color:cor }}>{bp.cod}</td>
+                            <td style={{ padding:"6px 10px", color:"#374151" }}>{bp.desc}</td>
+                            <td style={{ padding:"6px 10px", color:"#6b7280" }}>{bp.campo}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              )}
 
               <button onClick={()=>setExpInd(exp?null:ind.cod)}
                 style={{ marginTop:10, fontSize:11, color:"#6b7280", background:"none", border:"1px solid #e5e7eb", borderRadius:6, padding:"4px 10px", cursor:"pointer" }}>
@@ -456,27 +579,33 @@ function ViewPorIndicador({ codigos, cor }: { codigos:string[]; cor:string }) {
             {/* detalhe por equipe */}
             {exp && (
               <div style={{ borderTop:"1px solid #f3f4f6", background:"#fafafa", padding:"12px 16px" }}>
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:8 }}>
-                  {EQUIPES_REF.map(eq=>{
-                    const val = VALS[ind.cod]?.[eq.equipe];
-                    if (val==null) return null;
-                    const cl = classifVal(val, ind.cod);
-                    return (
-                      <div key={eq.equipe} style={{
-                        background:"#fff", border:`1px solid ${corClassif(cl)}33`,
-                        borderRadius:8, padding:"8px 10px",
-                      }}>
-                        <div style={{ fontSize:11, fontWeight:700 }}>{eq.equipe}</div>
-                        <div style={{ fontSize:10, color:"#9ca3af", marginBottom:4 }}>{eq.ubs.slice(0,25)}…</div>
-                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                          <span style={{ fontSize:16, fontWeight:800, color:corClassif(cl) }}>{fmtPct(val)}</span>
-                          <BadgeClassif c={cl}/>
+                {!ind.temDado ? (
+                  <div style={{ fontSize:12, color:"#9ca3af", textAlign:"center", padding:"12px 0" }}>
+                    Resultado por equipe não disponível — dado ainda não importado do SIAPS.
+                  </div>
+                ) : (
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:8 }}>
+                    {EQUIPES_REF.map(eq=>{
+                      const val = VALS[ind.cod]?.[eq.equipe];
+                      if (val==null) return null;
+                      const cl = classifVal(val, ind.cod);
+                      return (
+                        <div key={eq.equipe} style={{
+                          background:"#fff", border:`1px solid ${corClassif(cl)}33`,
+                          borderRadius:8, padding:"8px 10px",
+                        }}>
+                          <div style={{ fontSize:11, fontWeight:700 }}>{eq.equipe}</div>
+                          <div style={{ fontSize:10, color:"#9ca3af", marginBottom:4 }}>{eq.ubs.slice(0,25)}…</div>
+                          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                            <span style={{ fontSize:16, fontWeight:800, color:corClassif(cl) }}>{fmtPct(val)}</span>
+                            <BadgeClassif c={cl}/>
+                          </div>
+                          <BarraProgress val={val} meta={ind.meta} cor={corClassif(cl)}/>
                         </div>
-                        <BarraProgress val={val} meta={ind.meta} cor={corClassif(cl)}/>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -533,16 +662,7 @@ function ViewPorCompetencia({ codigos, cor, filtros }: { codigos:string[]; cor:s
 
   const [codSel, setCodSel] = useState(codigos[0] ?? "");
 
-  const serie = useMemo(()=>{
-    const base = mediaVals(codSel);
-    return COMPS_REF.map((c,i)=>{
-      const fator = 0.85 + i*0.04;
-      const val = Math.round(base * fator * 10)/10;
-      return { comp:c, label:labelComp(c), val, meta: METAS[codSel]??50, cl:classifVal(val,codSel) };
-    });
-  }, [codSel]);
-
-  const maxH = Math.max(...serie.map(s=>s.val), METAS[codSel]??50) + 10;
+  const temDado = mediaVals(codSel) !== null;
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
@@ -559,39 +679,17 @@ function ViewPorCompetencia({ codigos, cor, filtros }: { codigos:string[]; cor:s
           <div style={{ fontSize:13, fontWeight:700, color:"#374151", marginBottom:16 }}>
             {NOMES[codSel] ?? codSel} — Evolução por competência
           </div>
-          {/* gráfico de barras vertical */}
-          <div style={{ display:"flex", alignItems:"flex-end", gap:12, height:160, padding:"0 8px" }}>
-            {serie.map(pt=>{
-              const h = (pt.val/maxH)*140;
-              const mH = (pt.meta/maxH)*140;
-              return (
-                <div key={pt.comp} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:corClassif(pt.cl) }}>{fmtPct(pt.val)}</div>
-                  <div style={{ position:"relative", width:"100%", display:"flex", justifyContent:"center" }}>
-                    <div style={{ width:"60%", height:h, background:corClassif(pt.cl), borderRadius:"4px 4px 0 0", transition:"height .4s" }}/>
-                    <div style={{ position:"absolute", left:0, right:0, bottom:mH, height:2, background:"#374151", borderRadius:2 }} title={`Meta: ${pt.meta}%`}/>
-                  </div>
-                  <div style={{ fontSize:10, color:"#9ca3af", whiteSpace:"nowrap" }}>{pt.label}</div>
+          {!temDado ? (
+            <div style={{ display:"flex", alignItems:"center", gap:10, padding:"20px", background:"#f8fafc", border:"1px dashed #d1d5db", borderRadius:8 }}>
+              <AlertCircle size={16} color="#9ca3af"/>
+              <div>
+                <div style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Dado ainda não disponível</div>
+                <div style={{ fontSize:12, color:"#6b7280", marginTop:2 }}>
+                  O histórico de competências será exibido após importação dos resultados oficiais do SIAPS · Meta de referência: {fmtPct(METAS[codSel]??50)}
                 </div>
-              );
-            })}
-          </div>
-          {/* legenda */}
-          <div style={{ display:"flex", gap:14, marginTop:12, flexWrap:"wrap", fontSize:11, color:"#6b7280" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-              <div style={{ width:14, height:3, background:"#374151", borderRadius:2 }}/>
-              Linha de meta ({fmtPct(METAS[codSel]??50)})
-            </div>
-            {(["otimo","bom","suficiente","regular"] as const).map(c=>(
-              <div key={c} style={{ display:"flex", alignItems:"center", gap:4 }}>
-                <div style={{ width:10, height:10, background:corClassif(c), borderRadius:2 }}/>
-                {labelClassif(c)}
               </div>
-            ))}
-          </div>
-          <div style={{ fontSize:11, color:"#9ca3af", marginTop:10 }}>
-            Estimativa baseada em referência municipal Apuí/AM · {labelComp(filtros.competencia)}
-          </div>
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -601,6 +699,7 @@ function ViewPorCompetencia({ codigos, cor, filtros }: { codigos:string[]; cor:s
         </div>
       )}
     </div>
+
   );
 }
 
@@ -673,10 +772,10 @@ export default function ComponenteQualidade() {
   const corAtivo = TIPOS_EQUIPE.find(t=>t.id===tipoEquipe)?.cor ?? AZUL;
 
   const codigosVisiveis = useMemo(()=>{
-    if (grupoSel && GRUPO_INDS[grupoSel]) return GRUPO_INDS[grupoSel];
-    // sem grupo: mostra todos do tipo de equipe
-    const prefixo = tipoEquipe === "eSF" ? "Q-SF-" : tipoEquipe === "eSB" ? "Q-SB-" : tipoEquipe === "eMulti" ? "Q-MT-" : tipoEquipe === "eCR" ? "Q-CR-" : "Q-AP-";
-    return Object.keys(NOMES).filter(k=>k.startsWith(prefixo)).sort();
+    const gruposDoTipo = GRUPO_INDS_POR_TIPO[tipoEquipe] ?? {};
+    if (grupoSel && gruposDoTipo[grupoSel]) return gruposDoTipo[grupoSel];
+    // sem grupo selecionado: exibe todos os indicadores do tipo
+    return Object.values(gruposDoTipo).flat();
   }, [tipoEquipe, grupoSel]);
 
   const handleTipoEquipe = useCallback((t:TipoEquipe)=>{
@@ -761,8 +860,8 @@ export default function ComponenteQualidade() {
         display:"flex", alignItems:"center", gap:8,
       }}>
         <Info size={12}/>
-        Dados referência municipal Apuí/AM (IBGE 1300144) · Portaria GM/MS 3.493/2024 ·
-        Isolamento de município ativo · Conforme LGPD · Sem scraping SIAPS — API oficial
+        Apuí/AM · IBGE 1300144 · Portaria GM/MS 3.493/2024 + NT DEAPS/SAPS/MS 6/2025 ·
+        Resultados exibidos após importação de arquivo oficial do SIAPS ou sincronização do e-SUS PEC · Conforme LGPD
       </div>
     </div>
   );

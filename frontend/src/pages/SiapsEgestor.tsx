@@ -553,11 +553,11 @@ function ViewMensal({ data }: { data: any }) {
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         {Object.entries(variacoes).map(([k, v]: [string, any]) => {
           const nomes: Record<string, string> = {
-            ind1_prenatal: "Pré-natal", ind2_cito: "Cito", ind3_vacina: "DTP/Penta",
-            ind4_rn: "Puerpério", ind5_odonto1: "1ª Odonto", ind6_odonto_comp: "Odonto Comp.",
-            ind7_urg_odonto: "Urg. Odonto", ind8_has: "HAS", ind9_dm: "DM HbA1c",
-            ind10_obesidade: "Obesidade", ind11_cv: "Risco CV", ind12_psicose: "Psicose",
-            ind13_tab: "TAB", ind14_sif_gest: "Síf. Gest.", ind15_sif_cong: "Síf. Cong.",
+            ind1_prenatal: "C1 Mais Acesso", ind2_cito: "C2 Desenv. Inf.", ind3_vacina: "C3 Gestação/Puerp.",
+            ind4_rn: "C4 Diabetes", ind5_odonto1: "C5 Hipertensão", ind6_odonto_comp: "C6 Pessoa Idosa",
+            ind7_urg_odonto: "C7 Prev. Câncer", ind8_has: "B1 1ª Odonto", ind9_dm: "B2 Trat. Odonto",
+            ind10_obesidade: "B3 Exodontias", ind11_cv: "B4 Escovação", ind12_psicose: "B5 Proc. Prev.",
+            ind13_tab: "B6 ART", ind14_sif_gest: "M1 eMulti Aten.", ind15_sif_cong: "M2 eMulti Ações",
           };
           return (
             <div key={k} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", textAlign: "center", minWidth: 90 }}>
@@ -582,16 +582,16 @@ function ViewMensal({ data }: { data: any }) {
       )}
 
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Evolução dos 15 Indicadores — últimos 6 meses</div>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Evolução dos Indicadores — últimos 6 meses (quando disponível)</div>
         <ResponsiveContainer width="100%" height={240}>
           <LineChart data={data.evolucao} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
             <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
             <YAxis domain={[25, 90]} tick={{ fontSize: 10 }} unit="%" />
             <Tooltip formatter={(v: number) => [`${v}%`]} contentStyle={TT} />
             <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
-            {["ind1","ind2","ind3","ind4","ind5","ind6","ind7","ind8","ind9","ind10","ind11","ind12","ind13","ind14","ind15"].map((k, i) => {
-              const nomes = ["Pré-natal","Cito","DTP/Penta","Puerpério","1ª Odonto","Odonto Comp.","Urg. Odonto","HAS","DM HbA1c","Obesidade","Risco CV","Psicose","TAB","Síf. Gest.","Síf. Cong."];
-              return <Line key={k} dataKey={k} name={nomes[i]} stroke={IND_CORES[k]} strokeWidth={2} dot={false} strokeDasharray={k === "ind2" ? "4 2" : undefined} />;
+            {["ind1","ind2","ind3","ind4","ind5","ind6","ind7"].map((k, i) => {
+              const nomes = ["C1 — Mais Acesso","C2 — Desenv. Infantil","C3 — Gestação/Puerpério","C4 — Diabetes","C5 — Hipertensão","C6 — Pessoa Idosa","C7 — Prev. Câncer"];
+              return <Line key={k} dataKey={k} name={nomes[i]} stroke={IND_CORES[k]} strokeWidth={2} dot={false} />;
             })}
           </LineChart>
         </ResponsiveContainer>
