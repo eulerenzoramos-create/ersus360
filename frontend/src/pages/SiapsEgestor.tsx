@@ -1041,7 +1041,7 @@ function PainelGestorRT() {
           <div>
             <div style={{ fontSize:10, opacity:.75, fontWeight:700, textTransform:"uppercase", letterSpacing:".05em" }}>Acompanhamento em Tempo Real · Apuí/AM</div>
             <div style={{ fontSize:18, fontWeight:800, marginTop:3 }}>{_Q2.label} — {_Q2.periodo}</div>
-            <div style={{ fontSize:12, opacity:.8, marginTop:3 }}>Novo Financiamento APS · Portaria GM/MS 3.493/2024 · 15 indicadores · {_Q2.equipes.length} equipes ESF/eSF</div>
+            <div style={{ fontSize:12, opacity:.8, marginTop:3 }}>Novo Financiamento APS · Portaria GM/MS 3.493/2024 · 7 indicadores (C1–C7) · {_Q2.equipes.length} equipes ESF/eSF</div>
           </div>
           <div style={{ display:"flex", gap:10 }}>
             {[
@@ -1463,9 +1463,9 @@ function AbaBoasPraticas({ data }: { data: any }) {
 
 // ── Aba: Avaliação Quadrimestral ──────────────────────────────────────────────
 
-const IND_LABELS = ["Pré-natal","Cito","DTP/Penta","Puerpério","1ª Odonto","Odonto Comp.","Urg. Odonto","HAS","DM HbA1c","Obesidade","Risco CV","Psicose","TAB","Síf. Gest.","Síf. Cong."];
-const IND_KEYS   = ["ind1","ind2","ind3","ind4","ind5","ind6","ind7","ind8","ind9","ind10","ind11","ind12","ind13","ind14","ind15"];
-const IND_METAS  = [55, 50, 90, 55, 45, 45, 45, 60, 55, 55, 50, 50, 50, 55, 55];
+const IND_LABELS = ["C1 — Mais Acesso","C2 — Desenv. Infantil","C3 — Gestação/Puerpério","C4 — Diabetes","C5 — Hipertensão","C6 — Pessoa Idosa","C7 — Prev. Câncer Colo"];
+const IND_KEYS   = ["C1","C2","C3","C4","C5","C6","C7"];
+const IND_METAS  = [75, 75, 70, 50, 50, 60, 40];
 
 function CardEquipe({ e, periodo }: { e: any; periodo: "mensal" | "quadrimestral" }) {
   const [open, setOpen] = useState(false);
@@ -1588,65 +1588,27 @@ const _CVAT_COMP: Record<string, Record<string,{A:number;B:number;C:number;D:num
   },
 };
 
-// Resultados Qualidade (15 ind) por competência e equipe
+// _QUAL_COMP: sem dados demonstrativos.
+// Resultados oficiais C1-C7 serão inseridos aqui após importação do SIAPS.
+// Formato: { "AAAA-MM": { "EQUIPE": { C1: pct, C2: pct, ... C7: pct } } }
 const _QUAL_COMP: Record<string, Record<string, Record<string,number>>> = {
-  "2026-05":{
-    "CACHOEIRA":    {ind1:85,ind2:43,ind3:88,ind4:91,ind5:39,ind6:30,ind7:55,ind8:79,ind9:63,ind10:78,ind11:43,ind12:48,ind13:42,ind14:80,ind15:83},
-    "SÃO SEBASTIÃO":{ind1:80,ind2:41,ind3:82,ind4:89,ind5:37,ind6:29,ind7:54,ind8:75,ind9:58,ind10:73,ind11:41,ind12:47,ind13:41,ind14:77,ind15:80},
-    "ACARI":        {ind1:79,ind2:40,ind3:80,ind4:90,ind5:37,ind6:29,ind7:52,ind8:77,ind9:60,ind10:72,ind11:40,ind12:47,ind13:40,ind14:75,ind15:79},
-    "TRÊS ESTADOS": {ind1:56,ind2:28,ind3:63,ind4:67,ind5:25,ind6:18,ind7:39,ind8:58,ind9:46,ind10:55,ind11:29,ind12:32,ind13:26,ind14:50,ind15:50},
-    "JUMA":         {ind1:86,ind2:45,ind3:85,ind4:93,ind5:39,ind6:31,ind7:56,ind8:81,ind9:64,ind10:79,ind11:44,ind12:49,ind13:44,ind14:82,ind15:86},
-    "LIBERDADE":    {ind1:91,ind2:52,ind3:91,ind4:100,ind5:46,ind6:39,ind7:63,ind8:85,ind9:71,ind10:83,ind11:53,ind12:58,ind13:53,ind14:92,ind15:100},
-    "KENNEDY":      {ind1:72,ind2:40,ind3:76,ind4:80,ind5:50,ind6:46,ind7:58,ind8:82,ind9:68,ind10:75,ind11:58,ind12:55,ind13:52,ind14:72,ind15:75},
-    "JK":           {ind1:83,ind2:43,ind3:86,ind4:90,ind5:38,ind6:30,ind7:53,ind8:78,ind9:62,ind10:77,ind11:41,ind12:48,ind13:41,ind14:78,ind15:82},
-    "ESTRADA NOVA": {ind1:44,ind2:20,ind3:55,ind4:57,ind5:21,ind6:15,ind7:34,ind8:49,ind9:36,ind10:41,ind11:22,ind12:26,ind13:20,ind14:39,ind15:43},
-  },
-  "2026-06":{
-    "CACHOEIRA":    {ind1:86,ind2:44,ind3:89,ind4:92,ind5:40,ind6:31,ind7:56,ind8:80,ind9:64,ind10:79,ind11:44,ind12:49,ind13:43,ind14:81,ind15:84},
-    "SÃO SEBASTIÃO":{ind1:81,ind2:42,ind3:83,ind4:90,ind5:38,ind6:30,ind7:55,ind8:76,ind9:59,ind10:74,ind11:42,ind12:48,ind13:42,ind14:78,ind15:81},
-    "ACARI":        {ind1:80,ind2:41,ind3:81,ind4:91,ind5:38,ind6:30,ind7:53,ind8:78,ind9:61,ind10:73,ind11:41,ind12:48,ind13:41,ind14:76,ind15:80},
-    "TRÊS ESTADOS": {ind1:58,ind2:30,ind3:65,ind4:69,ind5:27,ind6:20,ind7:41,ind8:60,ind9:48,ind10:57,ind11:31,ind12:34,ind13:28,ind14:52,ind15:52},
-    "JUMA":         {ind1:87,ind2:46,ind3:86,ind4:94,ind5:40,ind6:32,ind7:57,ind8:82,ind9:65,ind10:80,ind11:45,ind12:50,ind13:45,ind14:83,ind15:87},
-    "LIBERDADE":    {ind1:92,ind2:53,ind3:92,ind4:100,ind5:47,ind6:40,ind7:64,ind8:86,ind9:72,ind10:84,ind11:54,ind12:59,ind13:54,ind14:93,ind15:100},
-    "KENNEDY":      {ind1:74,ind2:41,ind3:78,ind4:82,ind5:51,ind6:47,ind7:59,ind8:83,ind9:69,ind10:76,ind11:59,ind12:56,ind13:53,ind14:73,ind15:76},
-    "JK":           {ind1:84,ind2:44,ind3:87,ind4:91,ind5:39,ind6:31,ind7:54,ind8:79,ind9:63,ind10:78,ind11:42,ind12:49,ind13:42,ind14:79,ind15:83},
-    "ESTRADA NOVA": {ind1:46,ind2:22,ind3:57,ind4:59,ind5:23,ind6:17,ind7:36,ind8:51,ind9:38,ind10:43,ind11:24,ind12:28,ind13:22,ind14:41,ind15:45},
-  },
-  "2026-07":{
-    "CACHOEIRA":    {ind1:87,ind2:44,ind3:90,ind4:93,ind5:40,ind6:32,ind7:57,ind8:81,ind9:65,ind10:80,ind11:45,ind12:50,ind13:44,ind14:82,ind15:85},
-    "SÃO SEBASTIÃO":{ind1:82,ind2:43,ind3:84,ind4:91,ind5:39,ind6:31,ind7:56,ind8:77,ind9:60,ind10:75,ind11:43,ind12:49,ind13:43,ind14:79,ind15:82},
-    "ACARI":        {ind1:81,ind2:42,ind3:82,ind4:92,ind5:39,ind6:31,ind7:54,ind8:79,ind9:62,ind10:74,ind11:42,ind12:49,ind13:42,ind14:77,ind15:81},
-    "TRÊS ESTADOS": {ind1:60,ind2:31,ind3:67,ind4:71,ind5:28,ind6:21,ind7:42,ind8:61,ind9:49,ind10:58,ind11:32,ind12:35,ind13:29,ind14:53,ind15:53},
-    "JUMA":         {ind1:88,ind2:47,ind3:87,ind4:95,ind5:41,ind6:33,ind7:58,ind8:83,ind9:66,ind10:81,ind11:46,ind12:51,ind13:46,ind14:84,ind15:88},
-    "LIBERDADE":    {ind1:93,ind2:54,ind3:93,ind4:100,ind5:48,ind6:41,ind7:65,ind8:87,ind9:73,ind10:85,ind11:55,ind12:60,ind13:55,ind14:94,ind15:100},
-    "KENNEDY":      {ind1:75,ind2:42,ind3:79,ind4:83,ind5:52,ind6:48,ind7:60,ind8:84,ind9:70,ind10:77,ind11:60,ind12:57,ind13:54,ind14:74,ind15:77},
-    "JK":           {ind1:85,ind2:45,ind3:88,ind4:92,ind5:40,ind6:32,ind7:55,ind8:80,ind9:64,ind10:79,ind11:43,ind12:50,ind13:43,ind14:80,ind15:84},
-    "ESTRADA NOVA": {ind1:48,ind2:23,ind3:59,ind4:61,ind5:24,ind6:18,ind7:37,ind8:52,ind9:39,ind10:44,ind11:25,ind12:29,ind13:23,ind14:42,ind15:46},
-  },
-  "2026-08":{
-    "CACHOEIRA":    {ind1:88,ind2:45,ind3:91,ind4:94,ind5:41,ind6:33,ind7:58,ind8:82,ind9:66,ind10:81,ind11:46,ind12:51,ind13:45,ind14:83,ind15:86},
-    "SÃO SEBASTIÃO":{ind1:83,ind2:44,ind3:85,ind4:92,ind5:40,ind6:32,ind7:57,ind8:78,ind9:61,ind10:76,ind11:44,ind12:50,ind13:44,ind14:80,ind15:83},
-    "ACARI":        {ind1:82,ind2:43,ind3:83,ind4:93,ind5:40,ind6:32,ind7:55,ind8:80,ind9:63,ind10:75,ind11:43,ind12:50,ind13:43,ind14:78,ind15:82},
-    "TRÊS ESTADOS": {ind1:62,ind2:32,ind3:68,ind4:72,ind5:29,ind6:22,ind7:43,ind8:62,ind9:50,ind10:59,ind11:33,ind12:36,ind13:30,ind14:54,ind15:54},
-    "JUMA":         {ind1:89,ind2:48,ind3:88,ind4:96,ind5:42,ind6:34,ind7:59,ind8:84,ind9:67,ind10:82,ind11:47,ind12:52,ind13:47,ind14:85,ind15:89},
-    "LIBERDADE":    {ind1:94,ind2:55,ind3:94,ind4:100,ind5:49,ind6:42,ind7:66,ind8:88,ind9:74,ind10:86,ind11:56,ind12:61,ind13:56,ind14:95,ind15:100},
-    "KENNEDY":      {ind1:76,ind2:43,ind3:80,ind4:84,ind5:53,ind6:49,ind7:61,ind8:85,ind9:71,ind10:78,ind11:61,ind12:58,ind13:55,ind14:75,ind15:78},
-    "JK":           {ind1:86,ind2:46,ind3:89,ind4:93,ind5:41,ind6:33,ind7:56,ind8:81,ind9:65,ind10:80,ind11:44,ind12:51,ind13:44,ind14:81,ind15:85},
-    "ESTRADA NOVA": {ind1:50,ind2:25,ind3:61,ind4:63,ind5:26,ind6:19,ind7:38,ind8:53,ind9:40,ind10:45,ind11:26,ind12:30,ind13:24,ind14:43,ind15:47},
-  },
+  "2026-05":{},
+  "2026-06":{},
+  "2026-07":{},
+  "2026-08":{},
 };
 
 const _METAS_IND: Record<string,number> = {
-  ind1:55,ind2:50,ind3:90,ind4:55,ind5:45,ind6:45,ind7:45,
-  ind8:60,ind9:55,ind10:55,ind11:50,ind12:50,ind13:50,ind14:55,ind15:55,
+  C1:75, C2:75, C3:70, C4:50, C5:50, C6:60, C7:40,
 };
 const _LABEL_IND: Record<string,string> = {
-  ind1:"Pré-natal ≥6 consultas",ind2:"Citopatológico",ind3:"Vacina Penta/Polio",
-  ind4:"Puerpério / RN 1ª semana",ind5:"1ª Odonto Programática",
-  ind6:"Tratamento Odonto Concluído",ind7:"Urg. Odonto Resolvida",
-  ind8:"Acompanhamento HAS",ind9:"Acompanhamento DM (HbA1c)",
-  ind10:"Obesidade Infantil",ind11:"Alto Risco CV",ind12:"Esquizofrenia/Psicose",
-  ind13:"TAB",ind14:"Sífilis em Gestante",ind15:"Sífilis Congênita",
+  C1:"Acesso e Qualidade — Hipertensão",
+  C2:"Desenvolvimento Infantil",
+  C3:"Gestação e Puerpério",
+  C4:"Controle do Diabetes",
+  C5:"Controle da Hipertensão",
+  C6:"Saúde da Pessoa Idosa",
+  C7:"Prevenção do Câncer de Colo do Útero",
 };
 
 const _COMP_OPTS = [
@@ -1694,23 +1656,20 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
       const pts  = gap>=10?10:gap>=0?7:gap>=-10?5:2;
       return s+pts;
     },0);
-    const pontMedia = parseFloat((pontTotal/15).toFixed(1));
+    const nInds = Object.keys(d).length || 7;
+    const pontMedia = parseFloat((pontTotal/nInds).toFixed(1));
     return { equipe:eq, ubs:_UBS_MAP[eq]??"", ine:_INE_MAP[eq]??"", pont:pontMedia, inds:d, classif:_pontClassif(pontMedia) };
   });
   const pontMedQual = parseFloat((qualEquipes.reduce((s,e)=>s+e.pont,0)/qualEquipes.length).toFixed(1));
 
-  // Pior indicador — citopatológico (ind2)
-  const citoPct     = parseFloat((Object.values(qualComp).map((d:any)=>d.ind2??0).reduce((s:number,v:number)=>s+v,0)/9).toFixed(1));
-  // Melhor — pré-natal (ind1) e consulta RN (ind4)
-  const preNatalPct = parseFloat((Object.values(qualComp).map((d:any)=>d.ind1??0).reduce((s:number,v:number)=>s+v,0)/9).toFixed(1));
+  const temDadosQual = Object.values(qualComp).some((d:any)=>Object.keys(d).length>0);
 
   // ── Radar ─────────────────────────────────────────────────────────────────
   const radarData = [
-    { indicador:"Vínculo",        valor: Math.min(100, pontMedCvat*10) },
-    { indicador:"Qualidade",      valor: Math.min(100, pontMedQual*10) },
-    { indicador:"Cobertura ESF",  valor: 82 },
-    { indicador:"Fin. APS (Cito)",valor: citoPct },
-    { indicador:"SISAB",          valor: 97 },
+    { indicador:"Vínculo",       valor: Math.min(100, pontMedCvat*10) },
+    { indicador:"Qualidade",     valor: Math.min(100, pontMedQual*10) },
+    { indicador:"Cobertura ESF", valor: 82 },
+    { indicador:"SISAB",         valor: 97 },
   ];
 
   const eqFiltradas = equipeFiltro==="TODAS" ? cvatEquipes : cvatEquipes.filter(e=>e.equipe===equipeFiltro);
@@ -1824,19 +1783,18 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:14 }}>
               <div>
                 <div style={{ fontSize:14, fontWeight:700, color:"#1d4ed8" }}>Componente Qualidade</div>
-                <div style={{ fontSize:12, color:"#6b7280" }}>Novo Financiamento APS — 15 indicadores · 9 equipes · Portaria 3.493/2024</div>
+                <div style={{ fontSize:12, color:"#6b7280" }}>Novo Financiamento APS — 7 indicadores (C1–C7) · 9 equipes · Portaria 3.493/2024</div>
               </div>
               <div style={{ textAlign:"right" }}>
-                <div style={{ fontSize:28, fontWeight:900, color:"#16a34a" }}>{pontMedQual.toFixed(1)}</div>
+                <div style={{ fontSize:28, fontWeight:900, color: temDadosQual?"#16a34a":"#9ca3af" }}>{temDadosQual?pontMedQual.toFixed(1):"—"}</div>
                 <div style={{ fontSize:11, color:"#9ca3af" }}>pts médios/equipe</div>
               </div>
             </div>
-            <div style={{ background:"#fff7f7", border:"1px solid #fca5a5", borderRadius:8, padding:"10px 14px", marginBottom:10, fontSize:12, color:"#dc2626" }}>
-              <strong>⚠ Citopatológico:</strong> {citoPct}% (meta 50%) — todas as equipes abaixo da meta.
-            </div>
-            <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#16a34a" }}>
-              <strong>✓ Pré-natal e Consulta RN</strong> — {preNatalPct.toFixed(1)}% média municipal, acima da meta. LIBERDADE: destaque positivo.
-            </div>
+            {!temDadosQual ? (
+              <div style={{ background:"#f8fafc", border:"1px solid #e2e8f0", borderRadius:8, padding:"12px 14px", fontSize:12, color:"#64748b", textAlign:"center" }}>
+                Dado ainda não disponível — resultados C1–C7 serão exibidos após importação oficial do SIAPS ou sincronização do e-SUS PEC.
+              </div>
+            ) : null}
             {/* mini-série de competências */}
             <div style={{ marginTop:12, display:"flex", gap:8, flexWrap:"wrap" }}>
               {_COMP_OPTS.map(o=>{
@@ -1847,7 +1805,7 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
                     const meta=_METAS_IND[k]??50; const gap=(v as number)-meta;
                     return s+(gap>=10?10:gap>=0?7:gap>=-10?5:2);
                   },0);
-                  return t/15;
+                  const nk = Object.keys(d).length || 7; return t/nk;
                 });
                 const med = parseFloat((pontArr.reduce((s,x)=>s+x,0)/pontArr.length).toFixed(1));
                 const ativ = o.val===competencia;
@@ -1902,7 +1860,7 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
               const pontArr=_EQUIPES_Q2.map(eq=>{
                 const d=qc[eq]??{};
                 const t=Object.entries(d).reduce((s,[k,v])=>{const meta=_METAS_IND[k]??50;const gap=(v as number)-meta;return s+(gap>=10?10:gap>=0?7:gap>=-10?5:2);},0);
-                return t/15;
+                const nk = Object.keys(d).length || 7; return t/nk;
               });
               const medQ=pontArr.reduce((s,x)=>s+x,0)/pontArr.length;
               const cc=_CVAT_COMP[o.val]??{};
@@ -1989,7 +1947,7 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
                         );
                       })}
                     </tr>
-                    {/* linha expandida: todos os 15 indicadores */}
+                    {/* linha expandida: indicadores C1–C7 */}
                     {isOpen && (
                       <tr key={e.equipe+"_exp"} style={{ background:"#f0f9ff" }}>
                         <td colSpan={10} style={{ padding:"10px 16px" }}>
@@ -2013,7 +1971,7 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
                       <td colSpan={10} style={{ padding:"2px 10px 4px" }}>
                         <button onClick={()=>setIndExp(indExp===e.equipe?null:e.equipe)}
                           style={{ fontSize:10, color:"#6b7280", background:"none", border:"none", cursor:"pointer" }}>
-                          {isOpen?"▲ Ocultar todos os indicadores":"▼ Ver todos os 15 indicadores"}
+                          {isOpen?"▲ Ocultar todos os indicadores":"▼ Ver indicadores C1–C7"}
                         </button>
                       </td>
                     </tr>
