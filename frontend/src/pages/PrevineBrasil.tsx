@@ -249,6 +249,16 @@ const _VALS_BY_COMP: Record<string, Record<string, number[]>> = {
     C13:[42,41,40,26,44,53,52,41,20], C14:[80,77,75,50,82,92,72,78,39],
     C15:[83,80,79,50,86,100,75,82,43],
   },
+  "202508": {
+    C1:[88,83,82,59,89,94,75,86,47], C2:[45,43,42,30,47,54,42,45,22],
+    C3:[90,84,82,65,87,93,78,88,57], C4:[93,91,92,69,95,100,82,92,59],
+    C5:[41,39,39,27,41,48,52,40,23], C6:[32,31,31,20,33,41,48,32,17],
+    C7:[57,56,54,41,58,65,60,55,36], C8:[81,77,79,60,83,87,84,80,51],
+    C9:[65,60,62,48,66,73,70,64,38], C10:[80,75,74,57,81,85,77,79,43],
+    C11:[45,43,42,31,46,55,60,43,24], C12:[50,49,49,34,51,60,57,50,28],
+    C13:[44,43,42,28,46,55,54,43,22], C14:[82,79,77,52,84,94,74,80,41],
+    C15:[85,82,81,52,88,100,77,84,45],
+  },
 };
 
 const _METAS: Record<string,number> = {
@@ -400,7 +410,7 @@ export default function ComponenteQualidade() {
     : _buildGrupo([...C_CODIGOS], "C", `eSF e eAP — 15 indicadores · ${label}`, competencia);
 
   // Grupo B — variação mensal leve baseada na competência
-  const _bOffset: Record<string,number> = { "202503":-1.5, "202504":-0.8, "202505":0, "202506":0.4, "202507":0.8 };
+  const _bOffset: Record<string,number> = { "202503":-1.5, "202504":-0.8, "202505":0, "202506":0.4, "202507":0.8, "202508":1.2 };
   const bOff = _bOffset[competencia] ?? 0;
   const grupoB: GrupoQual = {
     sigla:"B", descricao:`eSB Modalidade I e II — 6 indicadores · ${label}`,
@@ -417,7 +427,7 @@ export default function ComponenteQualidade() {
     nota_media:parseFloat((5.6+bOff*0.8).toFixed(1)), conceito_medio:_conceito(5.6+bOff*0.8), pct_bom_otimo: (5.6+bOff*0.8)>=5?67:50,
   };
 
-  const _mOffset: Record<string,number> = { "202503":-1.2, "202504":-0.6, "202505":0, "202506":0.3, "202507":0.6 };
+  const _mOffset: Record<string,number> = { "202503":-1.2, "202504":-0.6, "202505":0, "202506":0.3, "202507":0.6, "202508":0.9 };
   const mOff = _mOffset[competencia] ?? 0;
   const grupoM: GrupoQual = {
     sigla:"M", descricao:`eMulti — 2 indicadores · ${label}`,
@@ -468,7 +478,7 @@ export default function ComponenteQualidade() {
         <div style={{ display:"flex", flexDirection:"column", gap:6, alignItems:"flex-end" }}>
           <div style={{ display:"flex", gap:8, alignItems:"center" }}>
             <span style={{ fontSize:12, color:"#6b7280", fontWeight:600 }}>Competência:</span>
-            {["202503","202504","202505","202506","202507"].map(c => (
+            {["202503","202504","202505","202506","202507","202508"].map(c => (
               <button key={c} onClick={() => setCompetencia(c)} style={{
                 padding:"5px 11px", borderRadius:6, border:"1px solid",
                 fontSize:12, fontWeight: competencia===c ? 800 : 500, cursor:"pointer",
