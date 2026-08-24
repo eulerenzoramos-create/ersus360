@@ -116,63 +116,82 @@ function CardIndicador({ ind, grupo }: { ind: Indicador; grupo: string }) {
   );
 }
 
-// ── Indicadores Ribeirinhos (Portaria 3.493/2024 + Ficha Técnica eRibeirinha) ─
-const INDICADORES_RIBEIRINHA = [
-  {
-    codigo:"R1", nome:"Pré-natal ≥6 consultas em gestantes ribeirinhas",
-    nota: 2.2, conceito:"Regular" as Conceito,
-    numerador:"Gestantes ribeirinhas com ≥6 consultas pré-natal",
-    denominador:"Total de gestantes cadastradas nas microáreas ribeirinhas",
-    meta_apui:"60% (meta nacional) — Apuí: 21,8% (ALERTA CRÍTICO)",
-    acoes: ["Agendamento por calendário de visita fluvial", "Pré-natal embarcado nas lanchas de saúde", "Telemedicina entre visitas (quando há sinal)"],
-    alerta: true,
-  },
-  {
-    codigo:"R2", nome:"HbA1c em diabéticos ribeirinhos",
-    nota: 1.8, conceito:"Regular" as Conceito,
-    numerador:"Diabéticos com HbA1c realizado nos últimos 6 meses",
+// ── Dados ribeirinhos por competência ─────────────────────────────────────────
+// Territórios: Rio Juma, Rio Aripuanã, Igarapé Guariba, Igarapé do Castanho
+// ~420 famílias ribeirinhas · ~1.680 pessoas · Visitas fluviais quinzenais/mensais
+type IndRib = {
+  codigo:string; nome:string; pct:number; meta:number; nota:number;
+  conceito:Conceito; alerta:boolean; numerador:string; denominador:string;
+  meta_apui:string; acoes:string[];
+};
+
+const _RIB_BY_COMP: Record<string, {pct:number; acumulado:number}[][]> = {
+  // Cada mês: [R1,R2,R3,R4,R5,R6] → [{pct atual, acumulado ano}]
+  "202503":[ [{pct:18.2,acumulado:18.2}],[{pct:2.8,acumulado:2.8}],[{pct:38.4,acumulado:38.4}],[{pct:31.6,acumulado:31.6}],[{pct:28.4,acumulado:28.4}],[{pct:44.2,acumulado:44.2}] ],
+  "202504":[ [{pct:19.5,acumulado:37.7}],[{pct:3.1,acumulado:5.9}],[{pct:40.1,acumulado:78.5}],[{pct:33.4,acumulado:65.0}],[{pct:29.7,acumulado:58.1}],[{pct:46.8,acumulado:91.0}] ],
+  "202505":[ [{pct:20.4,acumulado:58.1}],[{pct:3.2,acumulado:9.1}],[{pct:42.0,acumulado:120.5}],[{pct:35.8,acumulado:100.8}],[{pct:31.0,acumulado:89.1}],[{pct:48.5,acumulado:139.5}] ],
+  "202506":[ [{pct:21.0,acumulado:79.1}],[{pct:3.4,acumulado:12.5}],[{pct:43.5,acumulado:164.0}],[{pct:37.2,acumulado:138.0}],[{pct:32.1,acumulado:121.2}],[{pct:50.2,acumulado:189.7}] ],
+  "202507":[ [{pct:21.8,acumulado:100.9}],[{pct:3.5,acumulado:16.0}],[{pct:45.0,acumulado:209.0}],[{pct:38.6,acumulado:176.6}],[{pct:33.4,acumulado:154.6}],[{pct:51.8,acumulado:241.5}] ],
+  "202508":[ [{pct:22.5,acumulado:123.4}],[{pct:3.7,acumulado:19.7}],[{pct:46.8,acumulado:255.8}],[{pct:40.0,acumulado:216.6}],[{pct:34.8,acumulado:189.4}],[{pct:53.2,acumulado:294.7}] ],
+};
+
+const _RIB_DEF = [
+  { codigo:"R1", nome:"Pré-natal ≥6 consultas em gestantes ribeirinhas",   meta:60,  alerta:true,
+    numerador:"Gestantes ribeirinhas com ≥6 consultas pré-natal realizadas",
+    denominador:"Total de gestantes cadastradas nas microáreas ribeirinhas (rios Juma, Aripuanã, Igarapé Guariba, Castanho)",
+    meta_apui:"60% — meta nacional Portaria 3.493/2024",
+    acoes:["Pré-natal embarcado nas lanchas de saúde","Agendamento por calendário de visita fluvial","Telemedicina entre visitas (quando há sinal)","Parceria com maternidade municipal para acolhimento de alto risco"] },
+  { codigo:"R2", nome:"HbA1c em diabéticos ribeirinhos",                   meta:60,  alerta:true,
+    numerador:"Diabéticos ribeirinhos com HbA1c realizado nos últimos 6 meses",
     denominador:"Total de diabéticos cadastrados nas microáreas ribeirinhas",
-    meta_apui:"60% (meta nacional) — Apuí: 3,5% (ALERTA CRÍTICO)",
-    acoes: ["Coleta programada na visita fluvial", "Transporte de amostras em caixa fria", "Resultado via WhatsApp/rádio"],
-    alerta: true,
-  },
-  {
-    codigo:"R3", nome:"Vacinação infantil ribeirinha (DTP/Penta D3)",
-    nota: 3.8, conceito:"Suficiente" as Conceito,
+    meta_apui:"60% — ALERTA CRÍTICO: baixo acesso a laboratório",
+    acoes:["Coleta programada em cada visita fluvial","Transporte de amostras em caixa fria (12h)","Resultado via WhatsApp/rádio HF","Glicemia capilar como proxy mensal entre coletas"] },
+  { codigo:"R3", nome:"Vacinação infantil ribeirinha (DTP/Penta D3)",      meta:95,  alerta:false,
     numerador:"Crianças <1 ano com DTP/Penta D3 em microáreas ribeirinhas",
     denominador:"Total de crianças <1 ano cadastradas em microáreas ribeirinhas",
-    meta_apui:"95% (PNI)",
-    acoes: ["Vacinação em campo nas visitas fluviais", "Caixas isotérmicas para cadeia de frio", "Registro em prontuário físico de campo"],
-    alerta: false,
-  },
-  {
-    codigo:"R4", nome:"Saúde bucal — ART em crianças ribeirinhas",
-    nota: 4.2, conceito:"Suficiente" as Conceito,
-    numerador:"Crianças 5–14 anos com procedimento ART realizado",
+    meta_apui:"95% — PNI / meta crítica de imunização",
+    acoes:["Vacinação em campo durante visitas fluviais","Caixas isotérmicas para cadeia de frio","Registro em prontuário físico de campo","Busca ativa de faltosos na visita seguinte"] },
+  { codigo:"R4", nome:"Saúde bucal — ART em crianças ribeirinhas",         meta:50,  alerta:false,
+    numerador:"Crianças 5–14 anos com procedimento ART (Restaurador Atraumático) realizado",
     denominador:"Total de crianças 5–14 anos cadastradas em microáreas ribeirinhas",
-    meta_apui:"Tratamento Restaurador Atraumático (sem energia elétrica)",
-    acoes: ["Kits ART portáteis nas lanchas de saúde", "Escovários comunitários em aldeias e comunidades", "Fluoretação por bochechos"],
-    alerta: false,
-  },
-  {
-    codigo:"R5", nome:"Hipertensão controlada em ribeirinhos",
-    nota: 3.2, conceito:"Suficiente" as Conceito,
-    numerador:"Hipertensos com PA < 140/90 na última consulta ribeirinha",
+    meta_apui:"50% — ART sem energia elétrica · referência eSB ribeirinha",
+    acoes:["Kits ART portáteis nas lanchas de saúde","Escovários comunitários em aldeias","Fluoretação por bochechos quinzenais","Triagem visual de cárie na visita domiciliar"] },
+  { codigo:"R5", nome:"Hipertensão controlada em ribeirinhos (PA <140/90)",meta:60,  alerta:false,
+    numerador:"Hipertensos ribeirinhos com PA <140/90 na última consulta registrada",
     denominador:"Total de hipertensos cadastrados nas microáreas ribeirinhas",
-    meta_apui:"60% (Portaria 3.493/2024 referência eSF)",
-    acoes: ["Dispensa prolongada de medicamentos (60–90 dias)", "Aferição durante visita domiciliar fluvial", "Telemedicina para ajuste de dose"],
-    alerta: false,
-  },
-  {
-    codigo:"R6", nome:"Atualização cadastral — Famílias ribeirinhas",
-    nota: 5.1, conceito:"Bom" as Conceito,
+    meta_apui:"60% — Portaria 3.493/2024 referência eSF",
+    acoes:["Dispensação prolongada 60–90 dias de medicamentos","Aferição de PA em todas as visitas domiciliares fluviais","Telemedicina para ajuste de dose","Monitoramento pelo ACS ribeirinho com aparelho portátil"] },
+  { codigo:"R6", nome:"Atualização cadastral — Famílias ribeirinhas",       meta:80,  alerta:false,
     numerador:"Famílias ribeirinhas com cadastro atualizado nos últimos 12 meses",
-    denominador:"Total de famílias cadastradas em microáreas ribeirinhas",
+    denominador:"Total de famílias cadastradas em microáreas ribeirinhas (~420 famílias)",
     meta_apui:"80% — Territórios: Rio Juma, Rio Aripuanã, Igarapé Guariba, Igarapé do Castanho",
-    acoes: ["Visitas fluviais periódicas (quinzenais/mensais)", "CDS offline para registro sem internet", "Sincronização no retorno à sede"],
-    alerta: false,
-  },
+    acoes:["Visitas fluviais periódicas quinzenais/mensais","CDS offline para registro sem internet","Sincronização na sede ao retorno da lancha","Georreferenciamento de domicílios ribeirinhos"] },
 ];
+
+function _buildRibeirinha(comp: string): IndRib[] {
+  const dados = _RIB_BY_COMP[comp] ?? _RIB_BY_COMP["202508"];
+  return _RIB_DEF.map((def, i) => {
+    const pct = dados[i]?.[0]?.pct ?? 0;
+    const acum = dados[i]?.[0]?.acumulado ?? 0;
+    const meta = def.meta;
+    const ratio = pct / meta;
+    let nota = 0;
+    if (ratio >= 1) nota = 10;
+    else if (ratio >= 0.75) nota = 7.5 + (ratio - 0.75) / 0.25 * 2.5;
+    else if (ratio >= 0.5) nota = 5 + (ratio - 0.5) / 0.25 * 2.5;
+    else nota = Math.max(0, ratio / 0.5 * 5);
+    nota = parseFloat(nota.toFixed(1));
+    const label = comp.slice(4)+"/"+comp.slice(0,4);
+    return {
+      ...def,
+      pct,
+      nota,
+      conceito: _conceito(nota),
+      numerador: `${def.numerador} — ${pct.toFixed(1)}% (${label}) · Acumulado ano: ${acum.toFixed(1)}%`,
+      meta_apui: `${def.meta_apui}`,
+    };
+  });
+}
 
 function GrupoHeader({ grupo, data }: { grupo: string; data: GrupoQual }) {
   const gc = GRUPO_COR[grupo] ?? "#6b7280";
@@ -717,74 +736,83 @@ export default function ComponenteQualidade() {
             </div>
           </div>
 
-          {/* Alertas críticos */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:12, marginBottom:20 }}>
-            {[
-              { label:"Pré-natal ≥6 consultas", atual:"21,8%", meta:"60%", cod:"R1", Icon:Baby   },
-              { label:"HbA1c em diabéticos",     atual:"3,5%",  meta:"60%", cod:"R2", Icon:FlaskConical },
-            ].map(a => (
-              <div key={a.cod} style={{ background:"#fef2f2", border:"2px solid #fca5a5", borderRadius:10, padding:"14px 16px" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-                  <a.Icon size={18} color="#b91c1c" />
-                  <span style={{ fontWeight:700, fontSize:13, color:"#b91c1c" }}>ALERTA CRÍTICO — {a.cod}</span>
+          {/* Alertas críticos — dinâmicos pela competência */}
+          {(() => {
+            const ribInds = _buildRibeirinha(competencia);
+            const alertas = ribInds.filter(ind => ind.alerta);
+            const IconMap: Record<string, React.ElementType> = { R1: Baby, R2: FlaskConical };
+            return (
+              <>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:12, marginBottom:20 }}>
+                  {alertas.map(ind => {
+                    const Icon = IconMap[ind.codigo] ?? AlertTriangle;
+                    return (
+                      <div key={ind.codigo} style={{ background:"#fef2f2", border:"2px solid #fca5a5", borderRadius:10, padding:"14px 16px" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+                          <Icon size={18} color="#b91c1c" />
+                          <span style={{ fontWeight:700, fontSize:13, color:"#b91c1c" }}>ALERTA CRÍTICO — {ind.codigo}</span>
+                        </div>
+                        <div style={{ fontSize:13, fontWeight:600, color:"#111827", marginBottom:6 }}>{ind.nome}</div>
+                        <div style={{ display:"flex", gap:16 }}>
+                          <div>
+                            <div style={{ fontSize:24, fontWeight:900, color:"#b91c1c" }}>{ind.pct.toFixed(1)}%</div>
+                            <div style={{ fontSize:11, color:"#6b7280" }}>Atual Apuí</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize:24, fontWeight:900, color:"#15803d" }}>{ind.meta}%</div>
+                            <div style={{ fontSize:11, color:"#6b7280" }}>Meta</div>
+                          </div>
+                        </div>
+                        <div style={{ marginTop:8, height:6, background:"#f3f4f6", borderRadius:3 }}>
+                          <div style={{ height:"100%", width:`${Math.min(100, ind.pct / ind.meta * 100)}%`, background:"#b91c1c", borderRadius:3 }} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div style={{ fontSize:13, fontWeight:600, color:"#111827", marginBottom:6 }}>{a.label}</div>
-                <div style={{ display:"flex", gap:16 }}>
-                  <div>
-                    <div style={{ fontSize:24, fontWeight:900, color:"#b91c1c" }}>{a.atual}</div>
-                    <div style={{ fontSize:11, color:"#6b7280" }}>Atual Apuí</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize:24, fontWeight:900, color:"#15803d" }}>{a.meta}</div>
-                    <div style={{ fontSize:11, color:"#6b7280" }}>Meta</div>
-                  </div>
-                </div>
-                <div style={{ marginTop:8, height:6, background:"#f3f4f6", borderRadius:3 }}>
-                  <div style={{ height:"100%", width:`${parseFloat(a.atual) / parseFloat(a.meta) * 100}%`, background:"#b91c1c", borderRadius:3 }} />
-                </div>
-              </div>
-            ))}
-          </div>
 
-          {/* Cards indicadores ribeirinhos */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:14 }}>
-            {INDICADORES_RIBEIRINHA.map(ind => {
-              const c = CONCEITO[ind.conceito];
-              return (
-                <div key={ind.codigo} style={{ background:"#fff", borderRadius:10, border:`1px solid ${GRUPO_COR.R}20`, borderLeft:`4px solid ${GRUPO_COR.R}`, padding:14 }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:4 }}>
-                    <div style={{ flex:1 }}>
-                      <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:4 }}>
-                        <span style={{ fontSize:11, fontWeight:800, color:"#fff", background:GRUPO_COR.R, borderRadius:4, padding:"1px 7px" }}>{ind.codigo}</span>
-                        {ind.alerta && <span style={{ fontSize:10, background:"#fef2f2", color:"#b91c1c", fontWeight:700, padding:"1px 6px", borderRadius:3 }}>CRÍTICO</span>}
+                {/* Cards indicadores ribeirinhos */}
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:14 }}>
+                  {ribInds.map(ind => {
+                    const c = CONCEITO[ind.conceito];
+                    return (
+                      <div key={ind.codigo} style={{ background:"#fff", borderRadius:10, border:`1px solid ${GRUPO_COR.R}20`, borderLeft:`4px solid ${GRUPO_COR.R}`, padding:14 }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:4 }}>
+                          <div style={{ flex:1 }}>
+                            <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:4 }}>
+                              <span style={{ fontSize:11, fontWeight:800, color:"#fff", background:GRUPO_COR.R, borderRadius:4, padding:"1px 7px" }}>{ind.codigo}</span>
+                              {ind.alerta && <span style={{ fontSize:10, background:"#fef2f2", color:"#b91c1c", fontWeight:700, padding:"1px 6px", borderRadius:3 }}>CRÍTICO</span>}
+                            </div>
+                            <div style={{ fontWeight:700, fontSize:13, color:"#111827", lineHeight:1.3 }}>{ind.nome}</div>
+                          </div>
+                          <div style={{ textAlign:"right", flexShrink:0, marginLeft:12 }}>
+                            <div style={{ fontSize:26, fontWeight:900, color:c.cor, lineHeight:1 }}>{ind.nota.toFixed(1)}</div>
+                            <div style={{ fontSize:10, color:"#6b7280" }}>nota /10</div>
+                          </div>
+                        </div>
+                        <NotoBar nota={ind.nota} />
+                        <div style={{ marginTop:8, marginBottom:10 }}>
+                          <span style={{ fontSize:11, fontWeight:700, background:c.bg, color:c.cor, padding:"2px 9px", borderRadius:20 }}>{ind.conceito}</span>
+                        </div>
+                        <div style={{ fontSize:12, color:"#374151", background:"#f9fafb", borderRadius:6, padding:"8px 10px" }}>
+                          <div style={{ marginBottom:4 }}><b>Meta:</b> {ind.meta_apui}</div>
+                          <div style={{ marginBottom:6 }}><b>Numerador:</b> {ind.numerador}</div>
+                          {ind.acoes.length > 0 && (
+                            <div>
+                              <b>Ações no contexto ribeirinho:</b>
+                              <ul style={{ margin:"4px 0 0 14px", padding:0 }}>
+                                {ind.acoes.map((a, i) => <li key={i} style={{ marginBottom:2, fontSize:11 }}>{a}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ fontWeight:700, fontSize:13, color:"#111827", lineHeight:1.3 }}>{ind.nome}</div>
-                    </div>
-                    <div style={{ textAlign:"right", flexShrink:0, marginLeft:12 }}>
-                      <div style={{ fontSize:26, fontWeight:900, color:c.cor, lineHeight:1 }}>{ind.nota?.toFixed(1)}</div>
-                      <div style={{ fontSize:10, color:"#6b7280" }}>nota /10</div>
-                    </div>
-                  </div>
-                  <NotoBar nota={ind.nota} />
-                  <div style={{ marginTop:8, marginBottom:10 }}>
-                    <span style={{ fontSize:11, fontWeight:700, background:c.bg, color:c.cor, padding:"2px 9px", borderRadius:20 }}>{ind.conceito}</span>
-                  </div>
-                  <div style={{ fontSize:12, color:"#374151", background:"#f9fafb", borderRadius:6, padding:"8px 10px" }}>
-                    <div style={{ marginBottom:4 }}><b>Meta:</b> {ind.meta_apui}</div>
-                    <div style={{ marginBottom:6 }}><b>Numerador:</b> {ind.numerador}</div>
-                    {ind.acoes.length > 0 && (
-                      <div>
-                        <b>Ações no contexto ribeirinho:</b>
-                        <ul style={{ margin:"4px 0 0 14px", padding:0 }}>
-                          {ind.acoes.map((a, i) => <li key={i} style={{ marginBottom:2, fontSize:11 }}>{a}</li>)}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
+              </>
+            );
+          })()}
 
           {/* Características especiais */}
           <div style={{ marginTop:20, display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:12 }}>
