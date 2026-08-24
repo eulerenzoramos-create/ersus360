@@ -36,12 +36,14 @@ class SyncPayload(BaseModel):
     competencia: str          # "YYYY-MM"
     ibge: str                 # "1300144"
     timestamp: str
-    equipes: Dict[str, Dict[str, float]]  # {"CACHOEIRA": {"C1": 78.5, ...}}
+    equipes: Dict[str, Dict[str, float]]        # {"CACHOEIRA": {"C1": 78.5, ...}}
+    tipos_equipe: Optional[Dict[str, str]] = {} # {"CACHOEIRA": "eSF", "RIO NEGRO": "eSFR"}
 
 
 class IndicadoresResponse(BaseModel):
     competencia: str
     equipes: Dict[str, Dict[str, float]]
+    tipos_equipe: Optional[Dict[str, str]] = {}
     ultima_atualizacao: Optional[str] = None
     fonte: str = "e-SUS PEC"
 
@@ -96,6 +98,7 @@ async def receber_sync(
     registro = {
         "competencia": payload.competencia,
         "equipes": payload.equipes,
+        "tipos_equipe": payload.tipos_equipe or {},
         "ultima_atualizacao": datetime.utcnow().isoformat(),
         "fonte": "e-SUS PEC",
     }

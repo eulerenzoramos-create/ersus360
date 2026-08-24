@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
 ERSUS360 Sync Agent — e-SUS PEC → ERSUS360
-Versão: 1.0.0 | Apuí/AM | IBGE 1300144
+Versão: 1.1.0 | Apuí/AM | IBGE 1300144
 
 Instalar no servidor onde o e-SUS PEC está rodando.
 Conecta ao banco PostgreSQL local do PEC (sem exposição à internet),
-calcula os indicadores C1–C7 por equipe e envia para o ERSUS360 na nuvem.
+busca TODAS as equipes ativas do município automaticamente (eSF, eSFR, eSB, eMulti...),
+calcula os indicadores C1–C7/R1–R6 por equipe e envia para o ERSUS360 na nuvem.
 """
 
 import os
@@ -35,18 +36,8 @@ ERSUS_URL   = "https://ersus360-production.up.railway.app"
 ERSUS_KEY   = os.getenv("ERSUS_SYNC_KEY", "")       # chave gerada pelo ERSUS360
 
 # Município
-IBGE        = "1300144"
-INE_EQUIPES = {
-    "0000407492": "CACHOEIRA",
-    "0000407506": "SÃO SEBASTIÃO",
-    "0000407514": "ACARI",
-    "0000407522": "TRÊS ESTADOS",
-    "0000407530": "JUMA",
-    "0000407549": "LIBERDADE",
-    "0000407557": "KENNEDY",
-    "0000407565": "JK",
-    "0000407573": "ESTRADA NOVA",
-}
+IBGE = "1300144"
+# INE_EQUIPES não é mais necessário — equipes são buscadas automaticamente do PEC
 
 # Intervalo de sincronização (horas)
 SYNC_INTERVAL_HOURS = 4
@@ -81,6 +72,69 @@ def competencia_atual() -> str:
     """Retorna competência no formato YYYY-MM (mês atual)."""
     hoje = date.today()
     return f"{hoje.year}-{hoje.month:02d}"
+
+
+def buscar_equipes(conn) -> list[dict]:
+    """
+    Busca TODAS as equipes ativas do município no banco do PEC.
+    Retorna lista de dicts: {ine, nome, tipo}
+    Tipos mapeados: eSF, eSFR, eSB, eMulti, eCR, eAPP
+    """
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        # Query padrão e-SUS PEC — tabela de equipes ativas
+        cur.execute("""
+            SELECT
+                e.nu_ine                           AS ine,
+                COALESCE(e.no_equipe, e.nu_ine)    AS nome,
+                COALESCE(e.tp_equipe, 'eSF')       AS tipo,
+                e.co_seq_equipe                    AS id
+            FROM tb_equipe e
+            WHERE e.co_municipio = %s
+              AND e.st_ativo = true
+              AND e.nu_ine IS NOT NULL
+            ORDER BY e.tp_equipe, e.no_equipe
+        """, (IBGE,))
+        rows = cur.fetchall()
+
+        if not rows:
+            # Fallback: tentar sem filtro de município (schema alternativo)
+            cur.execute("""
+                SELECT
+                    nu_ine        AS ine,
+                    COALESCE(no_equipe, nu_ine) AS nome,
+                    COALESCE(tp_equipe, 'eSF')  AS tipo,
+                    co_seq_equipe AS id
+                FROM tb_equipe
+                WHERE st_ativo = true
+                  AND nu_ine IS NOT NULL
+                ORDER BY tp_equipe, no_equipe
+            """)
+            rows = cur.fetchall()
+
+        equipes = [dict(r) for r in rows]
+        log.info("Equipes encontradas no PEC: %d", len(equipes))
+        for eq in equipes:
+            log.info("  [%s] %s — INE %s", eq["tipo"], eq["nome"], eq["ine"])
+        return equipes
+
+    except Exception as exc:
+        log.error("Erro ao buscar equipes: %s", exc)
+        # Fallback com as 9 equipes eSF conhecidas de Apuí/AM
+        log.warning("Usando lista de fallback das 9 equipes eSF de Apuí/AM")
+        return [
+            {"ine": "0000407492", "nome": "CACHOEIRA",     "tipo": "eSF"},
+            {"ine": "0000407506", "nome": "SÃO SEBASTIÃO", "tipo": "eSF"},
+            {"ine": "0000407514", "nome": "ACARI",         "tipo": "eSF"},
+            {"ine": "0000407522", "nome": "TRÊS ESTADOS",  "tipo": "eSF"},
+            {"ine": "0000407530", "nome": "JUMA",          "tipo": "eSF"},
+            {"ine": "0000407549", "nome": "LIBERDADE",     "tipo": "eSF"},
+            {"ine": "0000407557", "nome": "KENNEDY",       "tipo": "eSF"},
+            {"ine": "0000407565", "nome": "JK",            "tipo": "eSF"},
+            {"ine": "0000407573", "nome": "ESTRADA NOVA",  "tipo": "eSF"},
+        ]
+    finally:
+        cur.close()
 
 
 def calcular_indicadores(conn, competencia: str, ine: str) -> dict:
@@ -347,20 +401,27 @@ def sincronizar():
         log.error("✗ Falha ao conectar ao PEC: %s", exc)
         return
 
+    equipes = buscar_equipes(conn)
+
     payload = {
         "competencia": comp,
         "ibge": IBGE,
         "timestamp": datetime.utcnow().isoformat(),
-        "equipes": {},
+        "equipes": {},       # { nome: { C1: pct, ... } }
+        "tipos_equipe": {},  # { nome: "eSF" | "eSFR" | "eSB" | ... }
     }
 
-    for ine, nome in INE_EQUIPES.items():
+    for eq in equipes:
+        ine  = eq["ine"]
+        nome = eq["nome"]
+        tipo = eq.get("tipo", "eSF")
         inds = calcular_indicadores(conn, comp, ine)
         if inds:
-            payload["equipes"][nome] = inds
-            log.info("  %s → %s", nome, inds)
+            payload["equipes"][nome]      = inds
+            payload["tipos_equipe"][nome] = tipo
+            log.info("  [%s] %s → %s", tipo, nome, inds)
         else:
-            log.warning("  %s → sem dados calculados", nome)
+            log.warning("  [%s] %s → sem dados calculados", tipo, nome)
 
     conn.close()
 
