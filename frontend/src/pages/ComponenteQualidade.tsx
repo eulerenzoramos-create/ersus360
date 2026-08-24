@@ -713,7 +713,7 @@ function ViewPorCompetencia({ codigos, cor, filtros, vals }: { codigos:string[];
 }
 
 // ── Painel de Alertas ─────────────────────────────────────────────────────────
-function PainelAlertas({ codigos }: { codigos:string[] }) {
+function PainelAlertas({ codigos, vals }: { codigos:string[]; vals:Record<string,Record<string,number>> }) {
   const alertas = useMemo(()=>{
     const out: {cod:string;nome:string;equipe:string;val:number;meta:number;gap:number;grav:string}[] = [];
     for (const cod of codigos) {
@@ -876,7 +876,7 @@ export default function ComponenteQualidade() {
             <AlertTriangle size={15} color={AMBAR}/>
             Alertas automáticos
           </div>
-          <PainelAlertas codigos={codigosVisiveis}/>
+          <PainelAlertas codigos={codigosVisiveis} vals={vals}/>
         </div>
       )}
 
