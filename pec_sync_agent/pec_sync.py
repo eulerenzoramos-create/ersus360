@@ -29,7 +29,7 @@ if _env_file.exists():
         _line = _line.strip()
         if _line and not _line.startswith("#") and "=" in _line:
             _k, _, _v = _line.partition("=")
-            os.environ.setdefault(_k.strip(), _v.strip())
+            os.environ[_k.strip()] = _v.strip()
 
 import psycopg2
 import psycopg2.extras
@@ -103,32 +103,35 @@ def buscar_equipes(conn) -> list[dict]:
             SELECT
                 e.nu_ine                           AS ine,
                 COALESCE(e.no_equipe, e.nu_ine)    AS nome,
-                COALESCE(e.tp_equipe, 'eSF')       AS tipo,
+                COALESCE(e.tp_equipe::text, 'eSF')  AS tipo,
                 e.co_seq_equipe                    AS id
             FROM tb_equipe e
-            WHERE e.co_municipio = %s
-              AND e.st_ativo = true
+            WHERE e.st_ativo = 1
               AND e.nu_ine IS NOT NULL
             ORDER BY e.tp_equipe, e.no_equipe
-        """, (IBGE,))
+        """)
         rows = cur.fetchall()
 
         if not rows:
-            # Fallback: tentar sem filtro de município (schema alternativo)
+            # Fallback: tentar sem filtro (schema alternativo)
             cur.execute("""
                 SELECT
                     nu_ine        AS ine,
                     COALESCE(no_equipe, nu_ine) AS nome,
-                    COALESCE(tp_equipe, 'eSF')  AS tipo,
+                    COALESCE(tp_equipe::text, 'eSF')  AS tipo,
                     co_seq_equipe AS id
                 FROM tb_equipe
-                WHERE st_ativo = true
+                WHERE st_ativo = 1
                   AND nu_ine IS NOT NULL
                 ORDER BY tp_equipe, no_equipe
             """)
             rows = cur.fetchall()
 
         equipes = [dict(r) for r in rows]
+
+        if not equipes:
+            raise ValueError("tb_equipe vazia — PEC ainda não configurado com equipes")
+
         log.info("Equipes encontradas no PEC: %d", len(equipes))
         for eq in equipes:
             log.info("  [%s] %s — INE %s", eq["tipo"], eq["nome"], eq["ine"])
@@ -370,6 +373,7 @@ def calcular_indicadores(conn, competencia: str, ine: str) -> dict:
 
     except Exception as exc:
         log.warning("Erro ao calcular indicadores para INE %s: %s", ine, exc)
+        conn.rollback()
     finally:
         cur.close()
 
