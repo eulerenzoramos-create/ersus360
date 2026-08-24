@@ -325,14 +325,73 @@ const GRUPO_M_DATA: GrupoQual = {
   nota_media:6.0, conceito_medio:"Bom", pct_bom_otimo:100,
 };
 
+// ── helpers de filtro ─────────────────────────────────────────────────────────
+function _notaParaEquipe(codigo: string, equipeIdx: number): number {
+  const vals = _VALS[codigo];
+  if (!vals) return 0;
+  const meta = _METAS[codigo];
+  const val = vals[equipeIdx] ?? 0;
+  const pct = val / meta;
+  if (pct >= 1) return 10;
+  if (pct >= 0.75) return 7.5 + (pct - 0.75) / 0.25 * 2.5;
+  if (pct >= 0.5) return 5 + (pct - 0.5) / 0.25 * 2.5;
+  return Math.max(0, pct / 0.5 * 5);
+}
+
+function _buildGrupoParaEquipe(codigos: string[], sigla: string, descricao: string, equipeIdx: number): GrupoQual {
+  const equipe = _EQUIPES[equipeIdx];
+  const indicadores: Indicador[] = codigos.map(cod => {
+    const nota = parseFloat(_notaParaEquipe(cod, equipeIdx).toFixed(1));
+    const vals = _VALS[cod] ?? [];
+    const meta = _METAS[cod];
+    const val = vals[equipeIdx] ?? 0;
+    return {
+      codigo: cod,
+      nome: _NOMES[cod] ?? cod,
+      grupo: _GRUPOS[cod] ?? "",
+      nota,
+      conceito: _conceito(nota),
+      numerador: `${equipe}: ${val}% · Meta: ${meta}%`,
+      denominador: `e-SUS PEC Apuí/AM Jul/2026 · Equipe ${equipe}`,
+      classificacao: {},
+      meta_nacional: `${meta}%`,
+      meta_apui: `${meta}%`,
+      peso: _PESOS[cod] ?? 1,
+      acoes_melhoria: val < meta
+        ? [`Abaixo da meta em ${(meta - val).toFixed(0)}pp — equipe ${equipe}`]
+        : [`Meta atingida — ${val}% ≥ ${meta}%`],
+    };
+  });
+  const notaMedia = indicadores.reduce((s,i)=>s+i.nota,0)/indicadores.length;
+  const pctBomOtimo = Math.round(indicadores.filter(i=>i.nota>=5).length/indicadores.length*100);
+  return {
+    sigla, descricao,
+    equipes: [equipe],
+    total_indicadores: indicadores.length,
+    indicadores,
+    nota_media: parseFloat(notaMedia.toFixed(1)),
+    conceito_medio: _conceito(notaMedia),
+    pct_bom_otimo: pctBomOtimo,
+  };
+}
+
 // ── componente principal ──────────────────────────────────────────────────────
 export default function ComponenteQualidade() {
   const [tab, setTab] = useState<"consolidado" | "grupoC" | "grupoB" | "grupoM" | "ribeirinha">("consolidado");
   const [competencia, setCompetencia] = useState("202507");
+  const [equipeFilter, setEquipeFilter] = useState<string>("Todas");
+  const [conceitoFilter, setConceitoFilter] = useState<string>("Todos");
 
-  const grupoC: GrupoQual = GRUPO_C_DATA;
+  const equipeIdx = equipeFilter === "Todas" ? -1 : _EQUIPES.indexOf(equipeFilter);
+
+  const grupoC: GrupoQual = equipeIdx >= 0
+    ? _buildGrupoParaEquipe(["C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14","C15"], "C", `eSF e eAP — ${equipeFilter}`, equipeIdx)
+    : GRUPO_C_DATA;
   const grupoB: GrupoQual = GRUPO_B_DATA;
   const grupoM: GrupoQual = GRUPO_M_DATA;
+
+  const filterConceito = (inds: Indicador[]) =>
+    conceitoFilter === "Todos" ? inds : inds.filter(i => i.conceito === conceitoFilter);
 
   const totalBomOtimo = Math.round(
     (grupoC.pct_bom_otimo + grupoB.pct_bom_otimo + grupoM.pct_bom_otimo) / 3
@@ -372,6 +431,67 @@ export default function ComponenteQualidade() {
             <option key={c} value={c}>{c.slice(4)}/{c.slice(0,4)}</option>
           ))}
         </select>
+      </div>
+
+      {/* ── Painel de Filtros ── */}
+      <div style={{ background:"#f8fafc", border:"1px solid #e2e8f0", borderRadius:10, padding:"12px 16px", marginBottom:14, display:"flex", flexWrap:"wrap", gap:16, alignItems:"center" }}>
+        {/* Filtro Equipe */}
+        <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+          <span style={{ fontSize:11, fontWeight:700, color:"#64748b", textTransform:"uppercase", letterSpacing:.5 }}>Equipe</span>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
+            {["Todas", ..._EQUIPES].map(eq => (
+              <button key={eq} onClick={() => setEquipeFilter(eq)} style={{
+                padding:"4px 10px", borderRadius:16, border:"1px solid",
+                fontSize:11, fontWeight: equipeFilter===eq ? 700 : 500, cursor:"pointer",
+                borderColor: equipeFilter===eq ? "#1e40af" : "#cbd5e1",
+                background: equipeFilter===eq ? "#1e40af" : "#fff",
+                color: equipeFilter===eq ? "#fff" : "#475569",
+              }}>{eq === "Todas" ? "Todas as equipes" : eq}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Filtro Conceito */}
+        <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+          <span style={{ fontSize:11, fontWeight:700, color:"#64748b", textTransform:"uppercase", letterSpacing:.5 }}>Conceito</span>
+          <div style={{ display:"flex", gap:5 }}>
+            {(["Todos","Ótimo","Bom","Suficiente","Regular"] as const).map(c => {
+              const style = c === "Todos" ? { cor:"#64748b", bg:"#f1f5f9" }
+                : c === "Ótimo"      ? { cor:"#15803d", bg:"#dcfce7" }
+                : c === "Bom"        ? { cor:"#1d4ed8", bg:"#dbeafe" }
+                : c === "Suficiente" ? { cor:"#b45309", bg:"#fef3c7" }
+                :                      { cor:"#b91c1c", bg:"#fee2e2" };
+              return (
+                <button key={c} onClick={() => setConceitoFilter(c)} style={{
+                  padding:"4px 10px", borderRadius:16, border:`1px solid ${conceitoFilter===c ? style.cor : "#cbd5e1"}`,
+                  fontSize:11, fontWeight: conceitoFilter===c ? 700 : 500, cursor:"pointer",
+                  background: conceitoFilter===c ? style.cor : "#fff",
+                  color: conceitoFilter===c ? "#fff" : style.cor,
+                }}>{c}</button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Resumo do filtro */}
+        {(equipeFilter !== "Todas" || conceitoFilter !== "Todos") && (
+          <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8 }}>
+            {equipeFilter !== "Todas" && (
+              <span style={{ fontSize:11, background:"#eff6ff", color:"#1e40af", padding:"3px 9px", borderRadius:10, fontWeight:700 }}>
+                Equipe: {equipeFilter}
+              </span>
+            )}
+            {conceitoFilter !== "Todos" && (
+              <span style={{ fontSize:11, background:"#f5f3ff", color:"#7c3aed", padding:"3px 9px", borderRadius:10, fontWeight:700 }}>
+                Conceito: {conceitoFilter}
+              </span>
+            )}
+            <button onClick={() => { setEquipeFilter("Todas"); setConceitoFilter("Todos"); }} style={{
+              fontSize:11, color:"#64748b", background:"none", border:"1px solid #cbd5e1",
+              borderRadius:6, padding:"3px 8px", cursor:"pointer",
+            }}>Limpar filtros</button>
+          </div>
+        )}
       </div>
 
       {/* Banner extinção */}
@@ -439,9 +559,14 @@ export default function ComponenteQualidade() {
                   Equipes: {grupo.equipes.join(", ")} · {grupo.total_indicadores} indicadores
                 </div>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:12 }}>
-                  {grupo.indicadores.map(ind => (
+                  {filterConceito(grupo.indicadores).map(ind => (
                     <CardIndicador key={ind.codigo} ind={ind} grupo={key} />
                   ))}
+                  {filterConceito(grupo.indicadores).length === 0 && (
+                    <div style={{ gridColumn:"1/-1", padding:"20px", textAlign:"center", color:"#9ca3af", fontSize:13 }}>
+                      Nenhum indicador com conceito "{conceitoFilter}" neste grupo.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -456,7 +581,12 @@ export default function ComponenteQualidade() {
             <b>Grupo C — eSF e eAP</b> · 15 indicadores (C1–C15) · Portaria GM/MS 3.493/2024 + 7.799/2025 · Efeitos financeiros desde 05/2025
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:14 }}>
-            {grupoC.indicadores.map(ind => <CardIndicador key={ind.codigo} ind={ind} grupo="C" />)}
+            {filterConceito(grupoC.indicadores).map(ind => <CardIndicador key={ind.codigo} ind={ind} grupo="C" />)}
+            {filterConceito(grupoC.indicadores).length === 0 && (
+              <div style={{ gridColumn:"1/-1", padding:"20px", textAlign:"center", color:"#9ca3af", fontSize:13 }}>
+                Nenhum indicador com conceito "{conceitoFilter}".
+              </div>
+            )}
           </div>
           <div style={{ marginTop:16, background:"#fff", borderRadius:8, padding:"12px 16px", border:"1px solid #e5e7eb", fontSize:12, color:"#6b7280" }}>
             <b>Fonte:</b> e-SUS PEC Apuí/AM · Jul/2026 · <b>9 equipes eSF:</b> {_EQUIPES.join(", ")}
@@ -471,7 +601,12 @@ export default function ComponenteQualidade() {
             <b>Grupo B — eSB Modalidade I e II</b> · 6 indicadores (B1–B6) · Portaria GM/MS 3.493/2024 + 7.799/2025
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:14 }}>
-            {grupoB.indicadores.map(ind => <CardIndicador key={ind.codigo} ind={ind} grupo="B" />)}
+            {filterConceito(grupoB.indicadores).map(ind => <CardIndicador key={ind.codigo} ind={ind} grupo="B" />)}
+            {filterConceito(grupoB.indicadores).length === 0 && (
+              <div style={{ gridColumn:"1/-1", padding:"20px", textAlign:"center", color:"#9ca3af", fontSize:13 }}>
+                Nenhum indicador com conceito "{conceitoFilter}".
+              </div>
+            )}
           </div>
           <div style={{ marginTop:16, background:"#fff", borderRadius:8, padding:"12px 16px", border:"1px solid #e5e7eb", fontSize:12, color:"#6b7280" }}>
             <b>Fonte:</b> e-SUS PEC Apuí/AM · Jul/2026 · <b>Sistema:</b> SISAB (SIA/SUS para procedimentos odontológicos)
