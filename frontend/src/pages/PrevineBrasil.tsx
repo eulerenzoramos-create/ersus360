@@ -465,12 +465,26 @@ export default function ComponenteQualidade() {
             15 indicadores C/B/M · Apuí/AM · Portaria GM/MS 3.493/2024 + 7.799/2025 · NT DEAPS/SAPS/MS 6/2025
           </p>
         </div>
-        <select value={competencia} onChange={e => setCompetencia(e.target.value)}
-          style={{ padding:"7px 12px", borderRadius:6, border:"1px solid #e0e0e0", fontSize:13 }}>
-          {["202503","202504","202505","202506","202507"].map(c => (
-            <option key={c} value={c}>{c.slice(4)}/{c.slice(0,4)}</option>
-          ))}
-        </select>
+        <div style={{ display:"flex", flexDirection:"column", gap:6, alignItems:"flex-end" }}>
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            <span style={{ fontSize:12, color:"#6b7280", fontWeight:600 }}>Competência:</span>
+            {["202503","202504","202505","202506","202507"].map(c => (
+              <button key={c} onClick={() => setCompetencia(c)} style={{
+                padding:"5px 11px", borderRadius:6, border:"1px solid",
+                fontSize:12, fontWeight: competencia===c ? 800 : 500, cursor:"pointer",
+                borderColor: competencia===c ? "#1e40af" : "#cbd5e1",
+                background: competencia===c ? "#1e40af" : "#fff",
+                color: competencia===c ? "#fff" : "#475569",
+                transition:"all .15s",
+              }}>
+                {c.slice(4)}/{c.slice(0,4)}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize:11, color:"#1e40af", fontWeight:700, background:"#eff6ff", padding:"2px 10px", borderRadius:8, border:"1px solid #bfdbfe" }}>
+            Exibindo dados de: {competencia.slice(4)}/{competencia.slice(0,4)} · e-SUS PEC Apuí/AM
+          </div>
+        </div>
       </div>
 
       {/* ── Painel de Filtros ── */}
