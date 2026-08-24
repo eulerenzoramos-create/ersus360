@@ -7,7 +7,7 @@
  */
 import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "../api";
+import { apiGet } from "../lib/api";
 import {
   BarChart2, Users, TrendingUp, CheckCircle, XCircle,
   AlertCircle, AlertTriangle, Info, Loader2, RefreshCw,
@@ -424,10 +424,19 @@ const BOAS_PRATICAS: Record<string,{cod:string;desc:string;campo:string}[]> = {
   ],
 };
 
-// ── VALS: sem dados demonstrativos — aguardando importação do SIAPS ───────────
-// Quando dado real for disponibilizado via importação do SIAPS ou e-SUS PEC,
-// popular este objeto com: { "C1": { "CACHOEIRA": 82.4, ... }, ... }
-const VALS: Record<string,Record<string,number>> = {};
+// VALS é agora dinâmico — preenchido pela API /api/pec/indicadores/{competencia}
+// Formato: { "C1": { "CACHOEIRA": 82.4, ... }, ... }
+// Convertido de: { equipes: { "CACHOEIRA": { C1: 82.4, ... } } }
+function buildVals(equipes: Record<string,Record<string,number>>): Record<string,Record<string,number>> {
+  const result: Record<string,Record<string,number>> = {};
+  for (const [equipe, inds] of Object.entries(equipes)) {
+    for (const [cod, pct] of Object.entries(inds)) {
+      if (!result[cod]) result[cod] = {};
+      result[cod][equipe] = pct;
+    }
+  }
+  return result;
+}
 
 function classifVal(v:number, cod:string): string {
   const meta = METAS[cod] ?? 50;
@@ -438,23 +447,23 @@ function classifVal(v:number, cod:string): string {
   return "regular";
 }
 
-function mediaVals(cod: string): number | null {
-  const v = VALS[cod];
+function mediaVals(cod: string, vals: Record<string,Record<string,number>>): number | null {
+  const v = vals[cod];
   if (!v || Object.keys(v).length === 0) return null;
   const arr = Object.values(v);
   return arr.reduce((s,x)=>s+x,0) / arr.length;
 }
 
 // ── Visão por Indicador ───────────────────────────────────────────────────────
-function ViewPorIndicador({ codigos, cor }: { codigos:string[]; cor:string }) {
+function ViewPorIndicador({ codigos, cor, vals }: { codigos:string[]; cor:string; vals:Record<string,Record<string,number>> }) {
   const [expInd, setExpInd] = useState<string|null>(null);
 
   const inds = useMemo(() => codigos.map(cod => {
-    const media = mediaVals(cod);
+    const media = mediaVals(cod, vals);
     const meta  = METAS[cod] ?? 50;
     const temDado = media !== null;
     const cl    = temDado ? classifVal(media!, cod) : "regular";
-    const v     = VALS[cod] ?? {};
+    const v     = vals[cod] ?? {};
     return { cod, nome: NOMES[cod] ?? cod, meta, media, cl, temDado,
       n_otimo:     Object.values(v).filter(x=>classifVal(x,cod)==="otimo").length,
       n_bom:       Object.values(v).filter(x=>classifVal(x,cod)==="bom").length,
@@ -586,7 +595,7 @@ function ViewPorIndicador({ codigos, cor }: { codigos:string[]; cor:string }) {
                 ) : (
                   <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:8 }}>
                     {EQUIPES_REF.map(eq=>{
-                      const val = VALS[ind.cod]?.[eq.equipe];
+                      const val = vals[ind.cod]?.[eq.equipe];
                       if (val==null) return null;
                       const cl = classifVal(val, ind.cod);
                       return (
@@ -616,7 +625,7 @@ function ViewPorIndicador({ codigos, cor }: { codigos:string[]; cor:string }) {
 }
 
 // ── Visão por Equipe ──────────────────────────────────────────────────────────
-function ViewPorEquipe({ codigos, cor }: { codigos:string[]; cor:string }) {
+function ViewPorEquipe({ codigos, cor, vals }: { codigos:string[]; cor:string; vals:Record<string,Record<string,number>> }) {
   return (
     <div style={{ overflowX:"auto" }}>
       <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
@@ -638,7 +647,7 @@ function ViewPorEquipe({ codigos, cor }: { codigos:string[]; cor:string }) {
               <td style={{ padding:"8px 12px", fontWeight:700 }}>{eq.equipe}</td>
               <td style={{ padding:"8px 12px", color:"#6b7280", fontSize:11 }}>{eq.ubs.slice(0,28)}…</td>
               {codigos.map(cod=>{
-                const val = VALS[cod]?.[eq.equipe];
+                const val = vals[cod]?.[eq.equipe];
                 if (val==null) return <td key={cod} style={{ padding:"8px 12px", textAlign:"center", color:"#9ca3af" }}>—</td>;
                 const cl = classifVal(val, cod);
                 return (
@@ -657,12 +666,12 @@ function ViewPorEquipe({ codigos, cor }: { codigos:string[]; cor:string }) {
 }
 
 // ── Visão por Competência ─────────────────────────────────────────────────────
-function ViewPorCompetencia({ codigos, cor, filtros }: { codigos:string[]; cor:string; filtros:Filtros }) {
+function ViewPorCompetencia({ codigos, cor, filtros, vals }: { codigos:string[]; cor:string; filtros:Filtros; vals:Record<string,Record<string,number>> }) {
   const COMPS_REF = ["2026-04","2026-05","2026-06","2026-07","2026-08"];
 
   const [codSel, setCodSel] = useState(codigos[0] ?? "");
 
-  const temDado = mediaVals(codSel) !== null;
+  const temDado = mediaVals(codSel, vals) !== null;
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
@@ -710,7 +719,7 @@ function PainelAlertas({ codigos }: { codigos:string[] }) {
     for (const cod of codigos) {
       const meta = METAS[cod]??50;
       if (!meta) continue;
-      const v = VALS[cod]??{};
+      const v = vals[cod]??{};
       for (const [eq,val] of Object.entries(v)) {
         const gap = val - meta;
         if (gap >= 0) continue;
@@ -778,6 +787,18 @@ export default function ComponenteQualidade() {
     return Object.values(gruposDoTipo).flat();
   }, [tipoEquipe, grupoSel]);
 
+  // ── Busca dados C1–C7 da API (agente PEC) ───────────────────────────────
+  const compApi = filtrosAtivos.competencia; // "YYYY-MM"
+  const { data: pecData, isLoading: pecLoading } = useQuery({
+    queryKey: ["pec-indicadores", compApi],
+    queryFn:  () => apiGet(`/api/pec/indicadores/${compApi}`),
+    staleTime: 1000 * 60 * 15, // revalida a cada 15 min
+    retry: false,
+  });
+  const vals: Record<string,Record<string,number>> = pecData?.equipes
+    ? buildVals(pecData.equipes)
+    : {};
+
   const handleTipoEquipe = useCallback((t:TipoEquipe)=>{
     setTipoEquipe(t);
     setGrupoSel("");
@@ -838,9 +859,15 @@ export default function ComponenteQualidade() {
       />
 
       {/* ── 4. Conteúdo ──────────────────────────────── */}
-      {visao === "indicador"   && <ViewPorIndicador  codigos={codigosVisiveis} cor={corAtivo}/>}
-      {visao === "equipe"      && <ViewPorEquipe      codigos={codigosVisiveis} cor={corAtivo}/>}
-      {visao === "competencia" && <ViewPorCompetencia codigos={codigosVisiveis} cor={corAtivo} filtros={filtrosAtivos}/>}
+      {pecLoading && (
+        <div style={{ textAlign:"center", padding:24, color:"#6b7280", fontSize:13 }}>
+          <Loader2 size={18} style={{ display:"inline", animation:"spin 1s linear infinite", marginRight:6 }}/>
+          Buscando dados do e-SUS PEC…
+        </div>
+      )}
+      {!pecLoading && visao === "indicador"   && <ViewPorIndicador  codigos={codigosVisiveis} cor={corAtivo} vals={vals}/>}
+      {!pecLoading && visao === "equipe"      && <ViewPorEquipe      codigos={codigosVisiveis} cor={corAtivo} vals={vals}/>}
+      {!pecLoading && visao === "competencia" && <ViewPorCompetencia codigos={codigosVisiveis} cor={corAtivo} filtros={filtrosAtivos} vals={vals}/>}
 
       {/* ── Alertas ──────────────────────────────────── */}
       {codigosVisiveis.length > 0 && (

@@ -97,6 +97,7 @@ from routers.modulos import (
     transporte_router,
     regulacao_router,
 )
+from routers.pec_sync import router as pec_sync_router
 from routers.integracao import router as integracao_router
 from routers.auditoria import router as auditoria_router
 from routers.auditoria_aps import router as auditoria_aps_router
@@ -351,6 +352,7 @@ app.include_router(planejamento_router)
 app.include_router(ia_router)
 app.include_router(emendas_router)
 app.include_router(investsus_router)
+app.include_router(pec_sync_router)
 app.include_router(integracao_router)
 app.include_router(auditoria_router)
 app.include_router(auditoria_aps_router)
