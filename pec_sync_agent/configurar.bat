@@ -37,8 +37,8 @@ echo ================================================
 set /p PEC_DB_HOST=Host do PostgreSQL do PEC [localhost]:
 if "%PEC_DB_HOST%"=="" set PEC_DB_HOST=localhost
 
-set /p PEC_DB_PORT=Porta do PostgreSQL [5432]:
-if "%PEC_DB_PORT%"=="" set PEC_DB_PORT=5432
+set /p PEC_DB_PORT=Porta do PostgreSQL [5433 = padrao e-SUS PEC]:
+if "%PEC_DB_PORT%"=="" set PEC_DB_PORT=5433
 
 set /p PEC_DB_NAME=Nome do banco [esus]:
 if "%PEC_DB_NAME%"=="" set PEC_DB_NAME=esus
@@ -82,7 +82,15 @@ echo.
 echo ================================================
 echo  TESTANDO CONEXAO AGORA...
 echo ================================================
-python pec_sync.py
+python pec_sync.py --test
+echo.
+echo ================================================
+echo  Para sincronizar agora (uma vez):
+echo    python pec_sync.py --once
+echo.
+echo  Para rodar continuamente (a cada 4h):
+echo    python pec_sync.py
+echo ================================================
 echo.
 echo Instalacao concluida!
 pause

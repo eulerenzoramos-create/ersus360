@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 """
 ERSUS360 Sync Agent — e-SUS PEC → ERSUS360
-Versão: 1.1.0 | Apuí/AM | IBGE 1300144
+Versão: 1.2.0 | Apuí/AM | IBGE 1300144
 
 Instalar no servidor onde o e-SUS PEC está rodando.
 Conecta ao banco PostgreSQL local do PEC (sem exposição à internet),
 busca TODAS as equipes ativas do município automaticamente (eSF, eSFR, eSB, eMulti...),
 calcula os indicadores C1–C7/R1–R6 por equipe e envia para o ERSUS360 na nuvem.
+
+Uso:
+  python pec_sync.py            — modo contínuo (a cada 4h)
+  python pec_sync.py --once     — sincroniza uma vez e sai
+  python pec_sync.py --test     — testa conexão com o PEC sem enviar dados
 """
 
 import os
+import sys
 import json
 import logging
 import time
@@ -26,7 +32,7 @@ import schedule
 
 # Banco PostgreSQL do e-SUS PEC (rede local — sem firewall)
 PEC_DB_HOST = os.getenv("PEC_DB_HOST", "localhost")
-PEC_DB_PORT = int(os.getenv("PEC_DB_PORT", "5432"))
+PEC_DB_PORT = int(os.getenv("PEC_DB_PORT", "5433"))  # 5433 = PostgreSQL embutido do e-SUS PEC
 PEC_DB_NAME = os.getenv("PEC_DB_NAME", "esus")      # ajustar se diferente
 PEC_DB_USER = os.getenv("PEC_DB_USER", "esus")      # usuário PostgreSQL
 PEC_DB_PASS = os.getenv("PEC_DB_PASS", "")          # senha PostgreSQL
@@ -452,12 +458,71 @@ def sincronizar():
         log.error("✗ Falha ao enviar para ERSUS360: %s", exc)
 
 
-def main():
+def modo_teste():
+    """Verifica conexão e lista equipes sem enviar dados ao ERSUS360."""
     log.info("═" * 60)
-    log.info("ERSUS360 Sync Agent iniciado")
+    log.info("ERSUS360 Sync Agent — MODO TESTE")
+    log.info("PEC: %s:%d/%s  usuário=%s", PEC_DB_HOST, PEC_DB_PORT, PEC_DB_NAME, PEC_DB_USER)
+    log.info("═" * 60)
+
+    # 1. Testa conexão com o PEC
+    try:
+        conn = conectar_pec()
+        log.info("✓ Conexão com o PostgreSQL do PEC bem-sucedida!")
+    except Exception as exc:
+        log.error("✗ Falha ao conectar ao PEC: %s", exc)
+        log.error("")
+        log.error("Dicas:")
+        log.error("  • Verifique se o e-SUS PEC está rodando (http://localhost:8080/esus)")
+        log.error("  • Confira host/porta no .env (padrão: localhost:5433)")
+        log.error("  • Verifique usuário e senha do banco")
+        sys.exit(1)
+
+    # 2. Explora schema
+    explorar_schema(conn)
+    log.info("✓ Schema explorado — veja schema_pec.txt")
+
+    # 3. Lista equipes encontradas
+    equipes = buscar_equipes(conn)
+    if equipes:
+        log.info("✓ %d equipe(s) ativa(s) encontrada(s):", len(equipes))
+        for eq in equipes:
+            log.info("    [%s] %s — INE: %s", eq.get("tipo","?"), eq.get("nome","?"), eq.get("ine","?"))
+    else:
+        log.warning("⚠ Nenhuma equipe ativa encontrada para IBGE %s", IBGE)
+        log.warning("  Configure a UBS e equipes em http://localhost:8080/esus")
+
+    conn.close()
+
+    # 4. Testa conexão com ERSUS360
+    if ERSUS_KEY:
+        try:
+            resp = requests.get(f"{ERSUS_URL}/api/pec/status", timeout=10)
+            if resp.status_code == 200:
+                log.info("✓ ERSUS360 acessível: %s", resp.json().get("status","ok"))
+            else:
+                log.warning("⚠ ERSUS360 respondeu %d", resp.status_code)
+        except Exception as exc:
+            log.warning("⚠ Não foi possível alcançar ERSUS360: %s", exc)
+    else:
+        log.warning("⚠ ERSUS_SYNC_KEY não definida — dados não serão enviados ao ERSUS360")
+
+    log.info("")
+    log.info("Teste concluído. Para sincronizar: python pec_sync.py --once")
+
+
+def main():
+    args = sys.argv[1:]
+
+    log.info("═" * 60)
+    log.info("ERSUS360 Sync Agent v1.2.0")
     log.info("PEC: %s:%d/%s", PEC_DB_HOST, PEC_DB_PORT, PEC_DB_NAME)
     log.info("ERSUS360: %s", ERSUS_URL)
     log.info("═" * 60)
+
+    if "--test" in args:
+        modo_teste()
+        return
 
     # Exploração de schema na primeira execução
     try:
@@ -467,7 +532,13 @@ def main():
     except Exception as exc:
         log.error("Não foi possível explorar schema: %s", exc)
 
-    # Executa imediatamente e depois a cada N horas
+    if "--once" in args:
+        log.info("Modo --once: sincronizando uma vez e saindo...")
+        sincronizar()
+        log.info("Concluído.")
+        return
+
+    # Modo contínuo: executa imediatamente e depois a cada N horas
     sincronizar()
     schedule.every(SYNC_INTERVAL_HOURS).hours.do(sincronizar)
 
