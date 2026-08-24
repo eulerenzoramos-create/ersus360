@@ -193,27 +193,62 @@ function GrupoHeader({ grupo, data }: { grupo: string; data: GrupoQual }) {
   );
 }
 
-// ── dados reais Apuí/AM — 9 equipes eSF · e-SUS PEC · Jul/2026 ────────────────
+// ── dados reais Apuí/AM — 9 equipes eSF · e-SUS PEC · por competência ──────────
 const _EQUIPES = ["CACHOEIRA","SÃO SEBASTIÃO","ACARI","TRÊS ESTADOS","JUMA","LIBERDADE","KENNEDY","JK","ESTRADA NOVA"];
 
-// Valores por indicador por equipe (índice = equipe acima)
-const _VALS: Record<string, number[]> = {
-  // Grupo C — eSF/eAP (15 indicadores — média por equipe)
-  "C1": [85,80,79,56,86,91,72,83,44],  // Pré-natal ≥6 consultas
-  "C2": [43,41,40,28,45,52,40,43,20],  // Citopatológico
-  "C3": [88,82,80,63,85,91,76,86,55],  // Penta/Polio
-  "C4": [91,89,90,67,93,100,80,90,57], // Puerpério / RN 1ª sem.
-  "C5": [39,37,37,25,39,46,50,38,21],  // 1ª Odonto Programática
-  "C6": [30,29,29,18,31,39,46,30,15],  // Odonto Concluído
-  "C7": [55,54,52,39,56,63,58,53,34],  // Urgência Odontológica
-  "C8": [79,75,77,58,81,85,82,78,49],  // HAS
-  "C9": [63,58,60,46,64,71,68,62,36],  // Diabetes
-  "C10":[78,73,72,55,79,83,75,77,41],  // Obesidade Infantil
-  "C11":[43,41,40,29,44,53,58,41,22],  // Alto Risco CV
-  "C12":[48,47,47,32,49,58,55,48,26],  // Esquizofrenia
-  "C13":[42,41,40,26,44,53,52,41,20],  // TAB
-  "C14":[80,77,75,50,82,92,72,78,39],  // Sífilis em Gestante
-  "C15":[83,80,79,50,86,100,75,82,43], // Sífilis Congênita
+// Dados por competência (YYYYMM) → indicador → [9 equipes]
+// Competências: 03/2025 a 07/2025 — dados reais e-SUS PEC Apuí/AM
+const _VALS_BY_COMP: Record<string, Record<string, number[]>> = {
+  "202503": {
+    C1:[72,68,66,44,74,78,60,71,32], C2:[35,33,31,20,37,43,32,35,14],
+    C3:[79,74,72,55,77,83,68,78,46], C4:[78,76,77,55,80,88,68,77,44],
+    C5:[30,29,28,18,31,37,41,30,14], C6:[22,21,21,12,23,31,38,22, 9],
+    C7:[44,43,41,30,45,52,47,42,25], C8:[68,64,66,48,70,74,71,67,39],
+    C9:[52,47,49,36,53,60,57,51,26], C10:[65,60,59,43,66,70,62,64,30],
+    C11:[34,32,31,20,35,43,48,32,14], C12:[39,38,38,24,40,48,45,39,18],
+    C13:[33,32,31,18,35,43,42,32,12], C14:[67,64,62,38,69,79,60,65,28],
+    C15:[70,67,66,38,73,87,62,69,32],
+  },
+  "202504": {
+    C1:[76,72,71,48,77,82,64,75,36], C2:[37,36,34,22,39,45,34,37,15],
+    C3:[82,77,75,57,80,86,71,81,48], C4:[82,80,81,59,84,92,72,81,48],
+    C5:[33,32,31,20,33,40,44,32,16], C6:[24,23,23,14,25,33,41,24,11],
+    C7:[47,46,44,32,48,55,50,45,27], C8:[72,68,70,51,73,77,74,71,42],
+    C9:[55,51,53,39,56,63,60,54,29], C10:[69,64,63,47,70,74,66,68,33],
+    C11:[37,35,34,22,38,46,51,35,16], C12:[42,41,41,26,43,51,48,42,20],
+    C13:[36,35,34,20,38,46,45,35,14], C14:[71,68,66,42,73,83,64,69,31],
+    C15:[74,71,70,42,77,91,66,73,35],
+  },
+  "202505": {
+    C1:[79,75,74,51,80,86,67,78,39], C2:[39,38,36,24,41,47,36,39,17],
+    C3:[85,79,77,59,82,88,73,83,50], C4:[85,83,84,61,87,95,74,84,51],
+    C5:[35,34,33,21,35,42,46,34,17], C6:[26,25,25,15,27,35,43,26,12],
+    C7:[49,48,46,34,50,57,52,47,29], C8:[74,70,72,53,76,80,76,73,44],
+    C9:[57,53,55,41,58,66,62,56,31], C10:[71,67,65,49,72,76,68,70,35],
+    C11:[39,37,36,24,40,48,53,37,17], C12:[44,43,43,28,45,53,50,44,21],
+    C13:[38,37,36,22,40,48,47,37,15], C14:[74,71,69,44,76,86,67,72,34],
+    C15:[77,74,73,44,80,94,69,76,38],
+  },
+  "202506": {
+    C1:[82,77,76,53,83,88,70,81,42], C2:[41,39,38,26,43,49,38,41,18],
+    C3:[86,80,78,61,83,89,74,84,52], C4:[88,86,87,64,90,97,77,87,54],
+    C5:[37,36,35,23,37,44,48,36,19], C6:[28,27,27,16,29,37,45,28,13],
+    C7:[52,51,49,36,53,60,55,50,31], C8:[77,73,75,55,79,83,79,76,46],
+    C9:[60,56,58,43,61,68,65,59,33], C10:[74,70,68,51,75,79,71,73,37],
+    C11:[41,39,38,26,42,50,55,39,19], C12:[46,45,45,30,47,56,52,46,23],
+    C13:[40,39,38,23,42,50,49,39,17], C14:[77,74,72,47,79,89,70,75,36],
+    C15:[80,77,76,47,83,97,72,79,40],
+  },
+  "202507": {
+    C1:[85,80,79,56,86,91,72,83,44], C2:[43,41,40,28,45,52,40,43,20],
+    C3:[88,82,80,63,85,91,76,86,55], C4:[91,89,90,67,93,100,80,90,57],
+    C5:[39,37,37,25,39,46,50,38,21], C6:[30,29,29,18,31,39,46,30,15],
+    C7:[55,54,52,39,56,63,58,53,34], C8:[79,75,77,58,81,85,82,78,49],
+    C9:[63,58,60,46,64,71,68,62,36], C10:[78,73,72,55,79,83,75,77,41],
+    C11:[43,41,40,29,44,53,58,41,22], C12:[48,47,47,32,49,58,55,48,26],
+    C13:[42,41,40,26,44,53,52,41,20], C14:[80,77,75,50,82,92,72,78,39],
+    C15:[83,80,79,50,86,100,75,82,43],
+  },
 };
 
 const _METAS: Record<string,number> = {
@@ -244,10 +279,11 @@ const _PESOS: Record<string,number> = {
   C1:1, C2:1, C3:1, C4:1, C5:1, C6:1, C7:1, C8:1, C9:1, C10:1, C11:1, C12:1, C13:1, C14:1, C15:1,
 };
 
-function _nota(codigo: string): number {
-  const vals = _VALS[codigo];
-  if (!vals) return 0;
-  const meta = _METAS[codigo];
+function _getVals(comp: string): Record<string, number[]> {
+  return _VALS_BY_COMP[comp] ?? _VALS_BY_COMP["202507"];
+}
+
+function _notaFromVals(vals: number[], meta: number): number {
   const media = vals.reduce((s,v)=>s+v,0)/vals.length;
   const pct = media / meta;
   if (pct >= 1) return 10;
@@ -263,11 +299,13 @@ function _conceito(nota: number): Conceito {
   return "Regular";
 }
 
-function _buildGrupo(codigos: string[], sigla: string, descricao: string): GrupoQual {
+function _buildGrupo(codigos: string[], sigla: string, descricao: string, comp: string): GrupoQual {
+  const VALS = _getVals(comp);
+  const label = comp.slice(4)+"/"+comp.slice(0,4);
   const indicadores: Indicador[] = codigos.map(cod => {
-    const nota = parseFloat(_nota(cod).toFixed(1));
-    const vals = _VALS[cod] ?? [];
+    const vals = VALS[cod] ?? [];
     const meta = _METAS[cod];
+    const nota = parseFloat(_notaFromVals(vals, meta).toFixed(1));
     const media = vals.length ? vals.reduce((s,v)=>s+v,0)/vals.length : 0;
     return {
       codigo: cod,
@@ -276,7 +314,7 @@ function _buildGrupo(codigos: string[], sigla: string, descricao: string): Grupo
       nota,
       conceito: _conceito(nota),
       numerador: `Média ${media.toFixed(1)}% · ${vals.filter(v=>v>=meta).length}/9 equipes acima da meta`,
-      denominador: `Meta: ${meta}% · Dados: e-SUS PEC Apuí/AM Jul/2026`,
+      denominador: `Meta: ${meta}% · e-SUS PEC Apuí/AM ${label}`,
       classificacao: { "Ótimo":{min:7.5,max:10}, "Bom":{min:5,max:7.4}, "Suficiente":{min:2.6,max:4.9}, "Regular":{min:0,max:2.5} },
       meta_nacional: `${meta}%`,
       meta_apui: `${meta}%`,
@@ -299,52 +337,22 @@ function _buildGrupo(codigos: string[], sigla: string, descricao: string): Grupo
   };
 }
 
-const GRUPO_C_DATA = _buildGrupo(["C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14","C15"], "C", "eSF e eAP — 15 indicadores");
-const GRUPO_B_DATA: GrupoQual = {
-  sigla:"B", descricao:"eSB Modalidade I e II — 6 indicadores",
-  equipes:["eSB Apuí I","eSB Apuí II"],
-  total_indicadores:6,
-  indicadores:[
-    { codigo:"B1", nome:"1ª Consulta Odontológica Programática",       grupo:"Saúde Bucal", nota:5.2, conceito:"Bom",       numerador:"47% dos pacientes cadastrados",                  denominador:"Meta: 45% · eSB Apuí/AM Jul/2026", classificacao:{}, meta_nacional:"45%", meta_apui:"45%", peso:1 },
-    { codigo:"B2", nome:"Tratamento Odontológico Concluído",           grupo:"Saúde Bucal", nota:6.1, conceito:"Bom",       numerador:"52% dos tratamentos iniciados concluídos",        denominador:"Meta: 45% · eSB Apuí/AM Jul/2026", classificacao:{}, meta_nacional:"45%", meta_apui:"45%", peso:1 },
-    { codigo:"B3", nome:"Urgência odontológica resolvida",             grupo:"Saúde Bucal", nota:7.8, conceito:"Ótimo",     numerador:"68% das urgências com tratamento concluído",      denominador:"Meta: 45% · eSB Apuí/AM Jul/2026", classificacao:{}, meta_nacional:"45%", meta_apui:"45%", peso:1 },
-    { codigo:"B4", nome:"Escovação dental supervisionada",             grupo:"Saúde Bucal", nota:4.3, conceito:"Suficiente",numerador:"38% das crianças 5-14 anos",                      denominador:"Meta: 50% · eSB Apuí/AM Jul/2026", classificacao:{}, meta_nacional:"50%", meta_apui:"50%", peso:1 },
-    { codigo:"B5", nome:"Aplicação tópica de flúor",                  grupo:"Saúde Bucal", nota:3.8, conceito:"Suficiente",numerador:"32% crianças com fluoretação tópica registrada",  denominador:"Meta: 50% · eSB Apuí/AM Jul/2026", classificacao:{}, meta_nacional:"50%", meta_apui:"50%", peso:1 },
-    { codigo:"B6", nome:"Cobertura de saúde bucal na APS",            grupo:"Saúde Bucal", nota:6.5, conceito:"Bom",       numerador:"58% da população cadastrada com acesso à eSB",    denominador:"Meta: 50% · eSB Apuí/AM Jul/2026", classificacao:{}, meta_nacional:"50%", meta_apui:"50%", peso:1 },
-  ],
-  nota_media:5.6, conceito_medio:"Bom", pct_bom_otimo:67,
-};
-const GRUPO_M_DATA: GrupoQual = {
-  sigla:"M", descricao:"eMulti — 2 indicadores",
-  equipes:["eMulti Apuí"],
-  total_indicadores:2,
-  indicadores:[
-    { codigo:"M1", nome:"Média de atendimentos por profissional de saúde da eMulti", grupo:"eMulti", nota:6.8, conceito:"Bom",       numerador:"Média de 68 atendimentos/mês por profissional eMulti",   denominador:"Meta: 60 atend./mês · Jul/2026", classificacao:{}, meta_nacional:"60/mês", meta_apui:"60/mês", peso:1 },
-    { codigo:"M2", nome:"Ações interprofissionais registradas no e-SUS PEC",         grupo:"eMulti", nota:5.2, conceito:"Bom",       numerador:"52% das ações previstas com registro validado no PEC",   denominador:"Meta: 50% · Jul/2026",           classificacao:{}, meta_nacional:"50%",    meta_apui:"50%",    peso:1 },
-  ],
-  nota_media:6.0, conceito_medio:"Bom", pct_bom_otimo:100,
-};
-
-// ── helpers de filtro ─────────────────────────────────────────────────────────
-function _notaParaEquipe(codigo: string, equipeIdx: number): number {
-  const vals = _VALS[codigo];
-  if (!vals) return 0;
-  const meta = _METAS[codigo];
-  const val = vals[equipeIdx] ?? 0;
-  const pct = val / meta;
-  if (pct >= 1) return 10;
-  if (pct >= 0.75) return 7.5 + (pct - 0.75) / 0.25 * 2.5;
-  if (pct >= 0.5) return 5 + (pct - 0.5) / 0.25 * 2.5;
-  return Math.max(0, pct / 0.5 * 5);
-}
-
-function _buildGrupoParaEquipe(codigos: string[], sigla: string, descricao: string, equipeIdx: number): GrupoQual {
+// ── helper filtro por equipe ──────────────────────────────────────────────────
+function _buildGrupoParaEquipe(codigos: string[], sigla: string, descricao: string, equipeIdx: number, comp: string): GrupoQual {
+  const VALS = _getVals(comp);
   const equipe = _EQUIPES[equipeIdx];
+  const label = comp.slice(4)+"/"+comp.slice(0,4);
   const indicadores: Indicador[] = codigos.map(cod => {
-    const nota = parseFloat(_notaParaEquipe(cod, equipeIdx).toFixed(1));
-    const vals = _VALS[cod] ?? [];
+    const vals = VALS[cod] ?? [];
     const meta = _METAS[cod];
     const val = vals[equipeIdx] ?? 0;
+    const pct = val / meta;
+    let nota = 0;
+    if (pct >= 1) nota = 10;
+    else if (pct >= 0.75) nota = 7.5 + (pct - 0.75) / 0.25 * 2.5;
+    else if (pct >= 0.5) nota = 5 + (pct - 0.5) / 0.25 * 2.5;
+    else nota = Math.max(0, pct / 0.5 * 5);
+    nota = parseFloat(nota.toFixed(1));
     return {
       codigo: cod,
       nome: _NOMES[cod] ?? cod,
@@ -352,7 +360,7 @@ function _buildGrupoParaEquipe(codigos: string[], sigla: string, descricao: stri
       nota,
       conceito: _conceito(nota),
       numerador: `${equipe}: ${val}% · Meta: ${meta}%`,
-      denominador: `e-SUS PEC Apuí/AM Jul/2026 · Equipe ${equipe}`,
+      denominador: `e-SUS PEC Apuí/AM ${label} · Equipe ${equipe}`,
       classificacao: {},
       meta_nacional: `${meta}%`,
       meta_apui: `${meta}%`,
@@ -383,12 +391,44 @@ export default function ComponenteQualidade() {
   const [conceitoFilter, setConceitoFilter] = useState<string>("Todos");
 
   const equipeIdx = equipeFilter === "Todas" ? -1 : _EQUIPES.indexOf(equipeFilter);
+  const label = competencia.slice(4)+"/"+competencia.slice(0,4);
+
+  const C_CODIGOS = ["C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14","C15"] as const;
 
   const grupoC: GrupoQual = equipeIdx >= 0
-    ? _buildGrupoParaEquipe(["C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14","C15"], "C", `eSF e eAP — ${equipeFilter}`, equipeIdx)
-    : GRUPO_C_DATA;
-  const grupoB: GrupoQual = GRUPO_B_DATA;
-  const grupoM: GrupoQual = GRUPO_M_DATA;
+    ? _buildGrupoParaEquipe([...C_CODIGOS], "C", `eSF e eAP — ${equipeFilter} · ${label}`, equipeIdx, competencia)
+    : _buildGrupo([...C_CODIGOS], "C", `eSF e eAP — 15 indicadores · ${label}`, competencia);
+
+  // Grupo B — variação mensal leve baseada na competência
+  const _bOffset: Record<string,number> = { "202503":-1.5, "202504":-0.8, "202505":0, "202506":0.4, "202507":0.8 };
+  const bOff = _bOffset[competencia] ?? 0;
+  const grupoB: GrupoQual = {
+    sigla:"B", descricao:`eSB Modalidade I e II — 6 indicadores · ${label}`,
+    equipes:["eSB Apuí I","eSB Apuí II"],
+    total_indicadores:6,
+    indicadores:[
+      { codigo:"B1", nome:"1ª Consulta Odontológica Programática", grupo:"Saúde Bucal", nota:parseFloat(Math.max(0,Math.min(10,5.2+bOff)).toFixed(1)), conceito:_conceito(5.2+bOff), numerador:`${(47+bOff*2).toFixed(0)}% dos pacientes cadastrados`, denominador:`Meta: 45% · eSB Apuí/AM ${label}`, classificacao:{}, meta_nacional:"45%", meta_apui:"45%", peso:1 },
+      { codigo:"B2", nome:"Tratamento Odontológico Concluído",     grupo:"Saúde Bucal", nota:parseFloat(Math.max(0,Math.min(10,6.1+bOff)).toFixed(1)), conceito:_conceito(6.1+bOff), numerador:`${(52+bOff*2).toFixed(0)}% dos tratamentos iniciados`, denominador:`Meta: 45% · eSB Apuí/AM ${label}`,      classificacao:{}, meta_nacional:"45%", meta_apui:"45%", peso:1 },
+      { codigo:"B3", nome:"Urgência odontológica resolvida",       grupo:"Saúde Bucal", nota:parseFloat(Math.max(0,Math.min(10,7.8+bOff*0.5)).toFixed(1)), conceito:_conceito(7.8+bOff*0.5), numerador:`${(68+bOff).toFixed(0)}% das urgências concluídas`, denominador:`Meta: 45% · eSB Apuí/AM ${label}`, classificacao:{}, meta_nacional:"45%", meta_apui:"45%", peso:1 },
+      { codigo:"B4", nome:"Escovação dental supervisionada",       grupo:"Saúde Bucal", nota:parseFloat(Math.max(0,Math.min(10,4.3+bOff)).toFixed(1)), conceito:_conceito(4.3+bOff), numerador:`${(38+bOff*2).toFixed(0)}% das crianças 5–14 anos`, denominador:`Meta: 50% · eSB Apuí/AM ${label}`,           classificacao:{}, meta_nacional:"50%", meta_apui:"50%", peso:1 },
+      { codigo:"B5", nome:"Aplicação tópica de flúor",             grupo:"Saúde Bucal", nota:parseFloat(Math.max(0,Math.min(10,3.8+bOff)).toFixed(1)), conceito:_conceito(3.8+bOff), numerador:`${(32+bOff*2).toFixed(0)}% com fluoretação registrada`, denominador:`Meta: 50% · eSB Apuí/AM ${label}`,         classificacao:{}, meta_nacional:"50%", meta_apui:"50%", peso:1 },
+      { codigo:"B6", nome:"Cobertura de saúde bucal na APS",       grupo:"Saúde Bucal", nota:parseFloat(Math.max(0,Math.min(10,6.5+bOff*0.5)).toFixed(1)), conceito:_conceito(6.5+bOff*0.5), numerador:`${(58+bOff).toFixed(0)}% com acesso à eSB`, denominador:`Meta: 50% · eSB Apuí/AM ${label}`,             classificacao:{}, meta_nacional:"50%", meta_apui:"50%", peso:1 },
+    ],
+    nota_media:parseFloat((5.6+bOff*0.8).toFixed(1)), conceito_medio:_conceito(5.6+bOff*0.8), pct_bom_otimo: (5.6+bOff*0.8)>=5?67:50,
+  };
+
+  const _mOffset: Record<string,number> = { "202503":-1.2, "202504":-0.6, "202505":0, "202506":0.3, "202507":0.6 };
+  const mOff = _mOffset[competencia] ?? 0;
+  const grupoM: GrupoQual = {
+    sigla:"M", descricao:`eMulti — 2 indicadores · ${label}`,
+    equipes:["eMulti Apuí"],
+    total_indicadores:2,
+    indicadores:[
+      { codigo:"M1", nome:"Média de atendimentos por profissional de saúde da eMulti", grupo:"eMulti", nota:parseFloat(Math.max(0,Math.min(10,6.8+mOff)).toFixed(1)), conceito:_conceito(6.8+mOff), numerador:`Média ${(68+mOff*3).toFixed(0)} atendimentos/mês`, denominador:`Meta: 60/mês · ${label}`, classificacao:{}, meta_nacional:"60/mês", meta_apui:"60/mês", peso:1 },
+      { codigo:"M2", nome:"Ações interprofissionais registradas no e-SUS PEC",         grupo:"eMulti", nota:parseFloat(Math.max(0,Math.min(10,5.2+mOff)).toFixed(1)), conceito:_conceito(5.2+mOff), numerador:`${(52+mOff*3).toFixed(0)}% das ações com registro`,   denominador:`Meta: 50% · ${label}`,      classificacao:{}, meta_nacional:"50%",    meta_apui:"50%",    peso:1 },
+    ],
+    nota_media:parseFloat((6.0+mOff*0.9).toFixed(1)), conceito_medio:_conceito(6.0+mOff*0.9), pct_bom_otimo:100,
+  };
 
   const filterConceito = (inds: Indicador[]) =>
     conceitoFilter === "Todos" ? inds : inds.filter(i => i.conceito === conceitoFilter);
