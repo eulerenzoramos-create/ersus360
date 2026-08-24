@@ -19,13 +19,17 @@ interface Equipe {
 interface Municipio { codigo: string; nome: string; uf: string; }
 
 const ESTADOS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
-const PESO_C: Record<string,number> = { c1:10, c2:25, c3:10, c4:10, c5:15, c6:20, c7:10 };
+// Portaria GM/MS 3.493/2024 — Componente Qualidade C1–C7 (pesos iguais, soma 100)
+const PESO_C: Record<string,number> = { c1:15, c2:15, c3:14, c4:14, c5:14, c6:14, c7:14 };
 const PESO_B: Record<string,number> = { b1:20, b2:20, b3:15, b4:15, b5:15, b6:15 };
 const PESO_M: Record<string,number> = { m1:50, m2:50 };
 
+// Metas oficiais Portaria 3.493/2024
+const META_C: Record<string,number> = { c1:75, c2:75, c3:70, c4:50, c5:50, c6:60, c7:40 };
+
 const DESC_C: Record<string,string> = {
-  c1:"Acesso Avaliado", c2:"Pré-natal Adequado", c3:"Rastreio Colo Útero",
-  c4:"Rastreio Mama", c5:"HAS Controlada", c6:"Puericultura", c7:"Saúde Bucal Gestante"
+  c1:"Mais Acesso", c2:"Desenvolvimento Infantil", c3:"Gestação e Puerpério",
+  c4:"Diabetes Mellitus", c5:"Hipertensão Arterial", c6:"Pessoa Idosa", c7:"Prevenção Câncer Colo"
 };
 const DESC_B: Record<string,string> = {
   b1:"1ª Consulta Odontológica", b2:"Conclusão Tratamento", b3:"Urgência Odonto",
@@ -34,13 +38,20 @@ const DESC_B: Record<string,string> = {
 const DESC_M: Record<string,string> = { m1:"Saúde Mental", m2:"Reabilitação" };
 
 const ACOES_DIARIAS: Record<string,string> = {
-  C1: "Garantir tipo de atendimento correto (consulta + retorno em 30 dias) em TODAS as consultas hoje.",
-  C2: "Solicitar HbA1c + VDRL para cada gestante em 1ª consulta pré-natal hoje. Lançar no PEC.",
-  C3: "Identificar mulheres 25-64 anos na agenda de hoje sem citopatológico. Oferecer coleta.",
-  C4: "Verificar mamografia pendente para mulheres 50-69 anos na agenda. Solicitar e lançar.",
-  C5: "Técnico registra PA em TODA consulta de hipertenso hoje. Meta: PA < 140/90 documentada.",
-  C6: "Busca ativa de crianças < 2 anos sem consulta no mês. ACS deve visitar hoje.",
-  C7: "Agendar gestantes sem consulta odontológica ainda neste quadrimestre. Integrar agendas.",
+  // C1 — Mais Acesso: consultas realizadas no quadrimestre (meta 75%)
+  C1: "Registrar TODAS as consultas do dia no PEC com tipo 'Consulta agendada' ou 'Demanda espontânea'. Verificar se cadastro está vinculado à equipe.",
+  // C2 — Desenvolvimento Infantil: crianças 0–5 anos com consulta (meta 75%)
+  C2: "Identificar crianças < 5 anos na agenda de hoje. Lançar consulta como 'Puericultura' no PEC. ACS: busca ativa das que não vêm há > 3 meses.",
+  // C3 — Gestação e Puerpério: pré-natal adequado — ≥6 consultas + exames (meta 70%)
+  C3: "Em toda consulta de pré-natal hoje: verificar número de consultas e lançar exames obrigatórios (sífilis, HIV, hemograma, GJ, urina). Lançar no PEC.",
+  // C4 — Diabetes Mellitus: HbA1c solicitada nos últimos 12 meses (meta 50%)
+  C4: "Para cada diabético na agenda hoje: verificar se HbA1c foi solicitada nos últimos 12 meses. Se não, solicitar e lançar exame no PEC.",
+  // C5 — Hipertensão Arterial: PA aferida em consulta (meta 50%)
+  C5: "Técnico/enfermeiro registra PA em TODA consulta de hipertenso hoje no PEC. Meta: pelo menos 1 aferição documentada nos últimos 12 meses.",
+  // C6 — Pessoa Idosa: consulta realizada (meta 60%)
+  C6: "Identificar idosos (≥ 60 anos) na agenda. Lançar tipo de atendimento correto no PEC. ACS: busca ativa de idosos sem consulta no quadrimestre.",
+  // C7 — Prevenção Câncer Colo: citopatológico válido (meta 40%)
+  C7: "Identificar mulheres 25–64 anos na agenda sem citopatológico válido. Oferecer coleta hoje. Lançar resultado quando disponível no PEC.",
   B1: "Agendar pacientes sem 1ª consulta odonto. Busca ativa via ACS.",
   B2: "Revisar tratamentos em andamento no PEC e finalizar registros de conclusão.",
   B3: "Verificar protocolo de urgência odonto disponível. Registrar atendimentos do dia.",
@@ -52,13 +63,13 @@ const ACOES_DIARIAS: Record<string,string> = {
 };
 
 const ACOES_MENSAIS: Record<string,string> = {
-  C1: "Revisar todos os retornos do mês — tipo de atendimento correto. Meta: 80% com retorno em 30 dias.",
-  C2: "Auditar exames solicitados em pré-natais do mês. Toda gestante nova deve ter HbA1c + VDRL.",
-  C3: "Realizar Dia D de coleta citopatológica. Meta: 80% das mulheres 25-64 com exame válido.",
-  C4: "Mutirão de mamografia: identificar todas as pendentes de 50-69 anos e solicitar este mês.",
-  C5: "Reunião de equipe: revisar lista de hipertensos sem PA registrada nas últimas consultas.",
-  C6: "Auditoria de crianças < 2 anos: todas com consulta de puericultura no quadrimestre?",
-  C7: "Cruzar lista de gestantes com agenda odonto. Garantir 100% com consulta agendada.",
+  C1: "Auditar relatório do e-Gestor AB: quantas consultas foram computadas? Identificar equipes com baixo acesso e planejar mutirão de consultas no próximo mês.",
+  C2: "Revisar lista de crianças < 5 anos vinculadas: todas com consulta no quadrimestre? ACS: busca ativa dos faltosos. Planejar Dia D de puericultura se necessário.",
+  C3: "Auditar pré-natais do mês: todas com ≥ 6 consultas e exames obrigatórios lançados? Cruzar lista de gestantes ativas com resultados no PEC.",
+  C4: "Gerar relatório de diabéticos sem HbA1c nos últimos 12 meses. Agendar consultas prioritárias. Meta mensal: zerar fila de pendentes.",
+  C5: "Reunião de equipe: revisar lista de hipertensos sem PA documentada no quadrimestre. Planejar Dia D de aferição para os faltosos.",
+  C6: "Auditoria de idosos (≥ 60 anos): todos com consulta no quadrimestre? Cruzar com cadastro SISAB. ACS: visita domiciliar aos acamados.",
+  C7: "Realizar Dia D de citopatológico. Convocar mulheres 25–64 sem exame válido. Verificar envio de lâminas ao laboratório e lançamento de resultados no PEC.",
   B1: "Auditoria mensal: quantos pacientes sem 1ª consulta odonto? Busca ativa focada.",
   B2: "Fechar todos os tratamentos em andamento há mais de 30 dias. Registrar no PEC.",
   B3: "Revisar atendimentos de urgência odonto do mês — todos registrados corretamente?",
@@ -71,19 +82,20 @@ const ACOES_MENSAIS: Record<string,string> = {
 
 function calcScore(eq: Equipe) {
   let quali = 0;
-  const gaps: { ind: string; desc: string; atual: number; pts: number; peso: number }[] = [];
+  const gaps: { ind: string; desc: string; atual: number; pts: number; peso: number; meta: number }[] = [];
 
-  const calcGrupo = (keys: string[], pesos: Record<string,number>, descs: Record<string,string>) => {
+  const calcGrupo = (keys: string[], pesos: Record<string,number>, descs: Record<string,string>, metas?: Record<string,number>) => {
     keys.forEach(k => {
       const val = (eq as any)[k] as number;
       const peso = pesos[k];
+      const meta = metas?.[k] ?? 80;
       quali += (val / 100) * peso;
-      if (val < 80) gaps.push({ ind: k.toUpperCase(), desc: descs[k], atual: val, pts: Math.round((80 - val) / 100 * peso * 10) / 10, peso });
+      if (val < meta) gaps.push({ ind: k.toUpperCase(), desc: descs[k], atual: val, pts: Math.round((meta - val) / 100 * peso * 10) / 10, peso, meta });
     });
   };
 
   if (eq.tipo === "eSF" || eq.tipo === "eAP" || eq.tipo === "eRibeirinha")
-    calcGrupo(["c1","c2","c3","c4","c5","c6","c7"], PESO_C, DESC_C);
+    calcGrupo(["c1","c2","c3","c4","c5","c6","c7"], PESO_C, DESC_C, META_C);
   else if (eq.tipo === "eSB")
     calcGrupo(["b1","b2","b3","b4","b5","b6"], PESO_B, DESC_B);
   else if (eq.tipo === "eMulti")
@@ -181,8 +193,8 @@ function AnaliseDiaria({ equipes }: { equipes: Equipe[] }) {
                           <div style={{ fontSize: 11, color: "#6b7280" }}>{ACOES_DIARIAS[g.ind]}</div>
                           <div style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center" }}>
                             <span style={{ fontSize: 10, color: "#9ca3af" }}>Atual: {g.atual}%</span>
-                            <div style={{ flex: 1 }}><ProgressBar valor={g.atual} /></div>
-                            <span style={{ fontSize: 10, color: "#6b7280" }}>Meta: 80%</span>
+                            <div style={{ flex: 1 }}><ProgressBar valor={g.atual} meta={g.meta} /></div>
+                            <span style={{ fontSize: 10, color: "#6b7280" }}>Meta: {g.meta}%</span>
                           </div>
                         </div>
                       </div>
@@ -537,8 +549,8 @@ export default function AnaliseMunicipio() {
     w.document.close();
   }
 
-  function IndSlider({ id, campo, label, valor }: { id: string; campo: keyof Equipe; label: string; valor: number }) {
-    const cor = valor >= 80 ? "#16a34a" : valor >= 60 ? "#d97706" : "#dc2626";
+  function IndSlider({ id, campo, label, valor, meta = 80 }: { id: string; campo: keyof Equipe; label: string; valor: number; meta?: number }) {
+    const cor = valor >= meta ? "#16a34a" : valor >= meta * 0.75 ? "#d97706" : "#dc2626";
     return (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
@@ -548,6 +560,7 @@ export default function AnaliseMunicipio() {
         <input type="range" min={0} max={100} step={1} value={valor}
           onChange={e => updateEquipe(id, campo, Number(e.target.value))}
           style={{ width: "100%", accentColor: cor, height: 4 }} />
+        <div style={{ fontSize: 9, color: "#9ca3af", textAlign: "right" as const }}>meta: {meta}%</div>
       </div>
     );
   }
@@ -743,7 +756,7 @@ export default function AnaliseMunicipio() {
 
                       {(eq.tipo === "eSF" || eq.tipo === "eAP" || eq.tipo === "eRibeirinha") && (
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 14 }}>
-                          {indsC.map(k => <IndSlider key={k} id={eq.id} campo={k} label={`${k.toUpperCase()} — ${DESC_C[k]}`} valor={eq[k]} />)}
+                          {indsC.map(k => <IndSlider key={k} id={eq.id} campo={k} label={`${k.toUpperCase()} — ${DESC_C[k]}`} valor={eq[k]} meta={META_C[k]} />)}
                         </div>
                       )}
                       {eq.tipo === "eSB" && (
