@@ -53,6 +53,22 @@ class Settings(BaseSettings):
         """True somente se URL + credenciais estiverem presentes. Não indica conectividade real."""
         return bool(self.PEC_BASE_URL and self.PEC_CLIENT_ID and self.PEC_CLIENT_SECRET)
 
+    # RNDS — Rede Nacional de Dados em Saúde (mTLS + FHIR R4)
+    RNDS_AUTH_URL: str = "https://ehr-auth-hmg.saude.gov.br"
+    RNDS_SERVICES_URL: str = ""          # vazio = auto por UF (ex: am-ehr-services.saude.gov.br)
+    RNDS_CERT_PATH: str = ""             # Caminho do certificado ICP-Brasil PKCS12 (.pfx)
+    RNDS_CERT_KEY_PATH: str = ""         # Chave privada do certificado
+    RNDS_CNES: str = ""                  # CNES do estabelecimento de saúde
+    RNDS_UF: str = "am"                  # UF para selecionar endpoint de produção correto
+    RNDS_AMBIENTE: str = "homologacao"   # homologacao | producao
+    RNDS_CNS_PROFISSIONAL: str = ""      # CNS do profissional autorizado para requisições FHIR
+
+    # LEDI — e-SUS APS API LEDI v8.5.0 (fichas clínicas)
+    LEDI_PEC_URL: str = ""               # URL base do PEC com HTTPS (ex: https://pec.municipio.gov.br)
+    LEDI_USUARIO: str = ""               # Usuário gerado no PEC (Gestão → Integrações → Credenciais para API)
+    LEDI_SENHA: str = ""                 # Senha LEDI (exibida uma vez — armazenar imediatamente)
+    LEDI_AMBIENTE: str = "producao"      # homologacao | producao
+
     # SIAPS / gov.br — credenciais para busca de dados reais
     SIAPS_CPF: str = ""        # CPF sem pontos/traços (ex: 12345678901)
     SIAPS_SENHA: str = ""      # Senha gov.br
