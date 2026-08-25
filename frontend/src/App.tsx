@@ -452,6 +452,7 @@ import AbsenteismoApui              from "./pages/AbsenteismoApui";
 import PICSApui                     from "./pages/PICSApui";
 import SprintOtimo                  from "./pages/SprintOtimo";
 import AnaliseMunicipio             from "./pages/AnaliseMunicipio";
+import AnaliseBrasil360            from "./pages/AnaliseBrasil360";
 import CvatDashboard                from "./pages/CvatDashboard";
 import Inconsistencias              from "./pages/Inconsistencias";
 import RelatorioERSUS               from "./pages/RelatorioERSUS";
@@ -1098,7 +1099,8 @@ export default function App() {
             <Route path="/previne"                   element={<PrevineBrasil/>}/>
             <Route path="/previne/*"                 element={<PrevineBrasil/>}/>
             <Route path="/sprint-otimo"              element={<SprintOtimo/>}/>
-            <Route path="/analise-municipio"         element={<AnaliseMunicipio/>}/>
+            <Route path="/analise-municipio"         element={<AnaliseBrasil360/>}/>
+            <Route path="/analise-municipio-legado"  element={<AnaliseMunicipio/>}/>
             {/* Painel de Gestão */}
             <Route path="/gestao"                    element={<PainelGestaoAPS/>}/>
             <Route path="/gestao/*"                  element={<PainelGestaoAPS/>}/>
