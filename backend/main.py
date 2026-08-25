@@ -335,6 +335,7 @@ from routers.repasses_aps_apui import router as repasses_aps_apui_router
 from routers.investsus import router as investsus_router
 from routers.ledi_gateway import router as ledi_gateway_router
 from routers.gateway_controle import router as gateway_controle_router
+from routers.execucao_fns import router as execucao_fns_router
 
 app.include_router(auth_router)
 app.include_router(municipios_router)
@@ -356,6 +357,7 @@ app.include_router(emendas_router)
 app.include_router(investsus_router)
 app.include_router(ledi_gateway_router)
 app.include_router(gateway_controle_router)
+app.include_router(execucao_fns_router)
 app.include_router(pec_sync_router)
 app.include_router(integracao_router)
 app.include_router(auditoria_router)

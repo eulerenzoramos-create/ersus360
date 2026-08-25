@@ -18,7 +18,8 @@ const MatrizFnsLazy = () => (
     <MatrizFnsRaw />
   </Suspense>
 );
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { apiPost, apiPut } from "../lib/api";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine,
@@ -1048,11 +1049,26 @@ type ExecucaoItem = {
   situacao: string; percentual: number;
 };
 
+type ModalTipo = "empenho" | "liquidacao" | "pagamento" | "portaria" | null;
+
 function ExecucaoFinanceiraPanel() {
+  const qc = useQueryClient();
   const [filtroBloco, setFiltroBloco] = useState("Todos");
   const [filtroSit, setFiltroSit] = useState("Todos");
   const [busca, setBusca] = useState("");
   const [expandido, setExpandido] = useState<number | null>(null);
+  const [modal, setModal] = useState<ModalTipo>(null);
+  const [alvoId, setAlvoId] = useState<number | null>(null);
+
+  // Formulários
+  const [fEmpenho, setFEmpenho] = useState({
+    recurso: "", bloco: "", dotacao: "", numero_empenho: "", data_empenho: "",
+    empenhado: "", fornecedor: "", cnpj_fornecedor: "", contrato: "", conta_pagadora: "", portaria: "", observacao: "",
+  });
+  const [fLiq, setFLiq] = useState({ data_liquidacao: "", liquidado: "", nota_fiscal: "", observacao: "" });
+  const [fPag, setFPag] = useState({ data_pagamento: "", pago: "", numero_ob: "", observacao: "" });
+  const [fPort, setFPort] = useState({ portaria: "" });
+  const [erroForm, setErroForm] = useState("");
 
   const { data: itens = [], isLoading } = useQuery<ExecucaoItem[]>({
     queryKey: ["execucao-financeira-fns"],
@@ -1060,6 +1076,58 @@ function ExecucaoFinanceiraPanel() {
     staleTime: 300_000,
     retry: false,
   });
+
+  const mutEmpenho = useMutation({
+    mutationFn: (body: object) => apiPost("/api/execucao-fns/empenho", body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["execucao-financeira-fns"] }); setModal(null); setErroForm(""); },
+    onError: () => setErroForm("Erro ao salvar. Verifique os campos e tente novamente."),
+  });
+  const mutLiq = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: object }) => apiPut(`/api/execucao-fns/${id}/liquidacao`, body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["execucao-financeira-fns"] }); setModal(null); setErroForm(""); },
+    onError: () => setErroForm("Erro ao registrar liquidação."),
+  });
+  const mutPag = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: object }) => apiPut(`/api/execucao-fns/${id}/pagamento`, body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["execucao-financeira-fns"] }); setModal(null); setErroForm(""); },
+    onError: () => setErroForm("Erro ao registrar pagamento."),
+  });
+  const mutPort = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: object }) => apiPut(`/api/execucao-fns/${id}/portaria`, body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["execucao-financeira-fns"] }); setModal(null); setErroForm(""); },
+    onError: () => setErroForm("Erro ao vincular portaria."),
+  });
+
+  const abrirModal = (tipo: ModalTipo, id?: number) => {
+    setErroForm("");
+    setAlvoId(id ?? null);
+    setModal(tipo);
+  };
+
+  const submeterEmpenho = () => {
+    if (!fEmpenho.recurso.trim()) return setErroForm("Informe o recurso.");
+    if (!fEmpenho.dotacao) return setErroForm("Informe o valor da dotação.");
+    mutEmpenho.mutate({
+      ...fEmpenho,
+      dotacao: parseFloat(fEmpenho.dotacao),
+      empenhado: parseFloat(fEmpenho.empenhado || "0"),
+    });
+  };
+  const submeterLiq = () => {
+    if (!alvoId) return;
+    if (!fLiq.data_liquidacao || !fLiq.liquidado) return setErroForm("Informe data e valor.");
+    mutLiq.mutate({ id: alvoId, body: { ...fLiq, liquidado: parseFloat(fLiq.liquidado) } });
+  };
+  const submeterPag = () => {
+    if (!alvoId) return;
+    if (!fPag.data_pagamento || !fPag.pago) return setErroForm("Informe data e valor.");
+    mutPag.mutate({ id: alvoId, body: { ...fPag, pago: parseFloat(fPag.pago) } });
+  };
+  const submeterPort = () => {
+    if (!alvoId) return;
+    if (!fPort.portaria.trim()) return setErroForm("Informe a portaria.");
+    mutPort.mutate({ id: alvoId, body: fPort });
+  };
 
   const totalDot  = itens.reduce((s, i) => s + i.dotacao, 0);
   const totalEmp  = itens.reduce((s, i) => s + i.empenhado, 0);
@@ -1146,25 +1214,43 @@ function ExecucaoFinanceiraPanel() {
 
       {/* ── Barra de ações ── */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
-        {[
-          { label: "Cadastrar empenho", cor: C.blue },
-          { label: "Registrar liquidação", cor: C.blue },
-          { label: "Registrar pagamento", cor: C.blue },
-          { label: "Vincular portaria", cor: "#6b7280" },
-          { label: "Anexar documento", cor: "#6b7280" },
-        ].map(b => (
-          <button key={b.label} title="Em implantação — backend em desenvolvimento"
-            style={{ background: b.cor, color: "#fff", border: "none", borderRadius: 8,
-              padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", opacity: 0.6 }}>
-            {b.label}
-          </button>
-        ))}
+        <button onClick={() => abrirModal("empenho")}
+          style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 8,
+            padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          + Cadastrar empenho
+        </button>
+        <button onClick={() => itens.length > 0 ? abrirModal("liquidacao", itens[0].id) : setErroForm("Selecione um registro primeiro.")}
+          style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 8,
+            padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+            opacity: itens.length === 0 ? 0.5 : 1 }}>
+          Registrar liquidação
+        </button>
+        <button onClick={() => itens.length > 0 ? abrirModal("pagamento", itens[0].id) : setErroForm("Selecione um registro primeiro.")}
+          style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 8,
+            padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+            opacity: itens.length === 0 ? 0.5 : 1 }}>
+          Registrar pagamento
+        </button>
+        <button onClick={() => itens.length > 0 ? abrirModal("portaria", itens[0].id) : setErroForm("Selecione um registro primeiro.")}
+          style={{ background: "#6b7280", color: "#fff", border: "none", borderRadius: 8,
+            padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+            opacity: itens.length === 0 ? 0.5 : 1 }}>
+          Vincular portaria
+        </button>
+        <button title="Em breve" disabled
+          style={{ background: "#6b7280", color: "#fff", border: "none", borderRadius: 8,
+            padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", opacity: 0.5 }}>
+          Anexar documento
+        </button>
         <button onClick={() => {}} title="Exportar"
           style={{ display: "flex", alignItems: "center", gap: 6, background: C.white,
             border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "8px 14px",
             fontSize: 12, fontWeight: 600, color: C.textPri, cursor: "pointer" }}>
           <Download size={13} /> Exportar XLSX
         </button>
+        {erroForm && (
+          <span style={{ fontSize: 12, color: C.red, fontWeight: 600 }}>{erroForm}</span>
+        )}
       </div>
 
       {/* ── Filtros ── */}
@@ -1251,11 +1337,24 @@ function ExecucaoFinanceiraPanel() {
                     <td style={{ padding: "10px 14px", color: C.textSec }}>{it.fornecedor || "—"}</td>
                     <td style={{ padding: "10px 14px", color: C.textSec }}>{it.conta_pagadora || "—"}</td>
                     <td style={{ padding: "10px 14px" }}><BadgeSit sit={it.situacao} /></td>
-                    <td style={{ padding: "10px 14px" }}>
-                      <button style={{ background: "none", border: `1px solid ${C.grayBdr}`, borderRadius: 6,
-                        padding: "4px 10px", fontSize: 11, cursor: "pointer", color: C.blue }}>
-                        {expandido === it.id ? "Fechar" : "Fluxo"}
-                      </button>
+                    <td style={{ padding: "10px 8px" }}>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const }}>
+                        <button onClick={e => { e.stopPropagation(); abrirModal("liquidacao", it.id); }}
+                          style={{ background: "#1565c0", color: "#fff", border: "none", borderRadius: 6,
+                            padding: "4px 8px", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>
+                          Liquidar
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); abrirModal("pagamento", it.id); }}
+                          style={{ background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6,
+                            padding: "4px 8px", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>
+                          Pagar
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); setExpandido(expandido === it.id ? null : it.id); }}
+                          style={{ background: "none", border: `1px solid ${C.grayBdr}`, borderRadius: 6,
+                            padding: "4px 8px", fontSize: 10, cursor: "pointer", color: C.blue }}>
+                          {expandido === it.id ? "Fechar" : "Fluxo"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   {expandido === it.id && (
@@ -1300,6 +1399,187 @@ function ExecucaoFinanceiraPanel() {
           </div>
         )}
       </div>
+
+      {/* ── MODAIS ── */}
+      {modal && (
+        <div style={{ position: "fixed" as const, inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000,
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+          onClick={e => { if (e.target === e.currentTarget) setModal(null); }}>
+          <div style={{ background: C.white, borderRadius: 16, padding: "28px 28px 24px", width: "100%",
+            maxWidth: 540, boxShadow: "0 20px 60px rgba(0,0,0,.2)", maxHeight: "90vh", overflowY: "auto" as const }}>
+
+            {/* Cabeçalho do modal */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.textPri }}>
+                {modal === "empenho"   && "Cadastrar Empenho"}
+                {modal === "liquidacao" && "Registrar Liquidação"}
+                {modal === "pagamento" && "Registrar Pagamento"}
+                {modal === "portaria"  && "Vincular Portaria"}
+              </h2>
+              <button onClick={() => setModal(null)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: C.textSec }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {erroForm && (
+              <div style={{ background: C.redBg, border: `1px solid ${C.redBdr}`, borderRadius: 8,
+                padding: "10px 14px", marginBottom: 16, fontSize: 12, color: C.red, fontWeight: 600 }}>
+                {erroForm}
+              </div>
+            )}
+
+            {/* ── Modal: Empenho ── */}
+            {modal === "empenho" && (() => {
+              const inp = (label: string, key: keyof typeof fEmpenho, tipo = "text", placeholder = "") => (
+                <div key={key} style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>{label}</label>
+                  <input type={tipo} value={fEmpenho[key]} placeholder={placeholder}
+                    onChange={e => setFEmpenho(p => ({ ...p, [key]: e.target.value }))}
+                    style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                      padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+                </div>
+              );
+              return (
+                <div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+                    {inp("Recurso / Descrição *", "recurso")}
+                    {inp("Bloco", "bloco", "text", "Ex: Atenção Primária")}
+                    {inp("Dotação (R$) *", "dotacao", "number", "0,00")}
+                    {inp("Valor empenhado (R$)", "empenhado", "number", "0,00")}
+                    {inp("Nº do empenho", "numero_empenho")}
+                    {inp("Data do empenho", "data_empenho", "date")}
+                    {inp("Fornecedor", "fornecedor")}
+                    {inp("CNPJ do fornecedor", "cnpj_fornecedor")}
+                    {inp("Contrato / Instrumento", "contrato")}
+                    {inp("Conta pagadora", "conta_pagadora")}
+                    {inp("Portaria vinculada", "portaria")}
+                  </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Observação</label>
+                    <textarea value={fEmpenho.observacao} rows={2}
+                      onChange={e => setFEmpenho(p => ({ ...p, observacao: e.target.value }))}
+                      style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                        padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const, resize: "vertical" as const }} />
+                  </div>
+                  <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                    <button onClick={() => setModal(null)}
+                      style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                        padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                      Cancelar
+                    </button>
+                    <button onClick={submeterEmpenho} disabled={mutEmpenho.isPending}
+                      style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 8,
+                        padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                        opacity: mutEmpenho.isPending ? 0.6 : 1 }}>
+                      {mutEmpenho.isPending ? "Salvando…" : "Salvar empenho"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── Modal: Liquidação ── */}
+            {modal === "liquidacao" && (
+              <div>
+                <p style={{ fontSize: 12, color: C.textSec, marginBottom: 16 }}>
+                  Registro ID: <strong>{alvoId}</strong>{" "}
+                  — {itens.find(i => i.id === alvoId)?.recurso}
+                </p>
+                {[
+                  { label: "Data da liquidação *", key: "data_liquidacao", tipo: "date" },
+                  { label: "Valor liquidado (R$) *", key: "liquidado", tipo: "number" },
+                  { label: "Nº da nota fiscal", key: "nota_fiscal", tipo: "text" },
+                  { label: "Observação", key: "observacao", tipo: "text" },
+                ].map(f => (
+                  <div key={f.key} style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>{f.label}</label>
+                    <input type={f.tipo} value={(fLiq as Record<string, string>)[f.key]}
+                      onChange={e => setFLiq(p => ({ ...p, [f.key]: e.target.value }))}
+                      style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                        padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+                  </div>
+                ))}
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                  <button onClick={() => setModal(null)}
+                    style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                      padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+                  <button onClick={submeterLiq} disabled={mutLiq.isPending}
+                    style={{ background: "#1565c0", color: "#fff", border: "none", borderRadius: 8,
+                      padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                      opacity: mutLiq.isPending ? 0.6 : 1 }}>
+                    {mutLiq.isPending ? "Salvando…" : "Registrar liquidação"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Modal: Pagamento ── */}
+            {modal === "pagamento" && (
+              <div>
+                <p style={{ fontSize: 12, color: C.textSec, marginBottom: 16 }}>
+                  Registro ID: <strong>{alvoId}</strong>{" "}
+                  — {itens.find(i => i.id === alvoId)?.recurso}
+                </p>
+                {[
+                  { label: "Data do pagamento *", key: "data_pagamento", tipo: "date" },
+                  { label: "Valor pago (R$) *", key: "pago", tipo: "number" },
+                  { label: "Nº da Ordem Bancária (OB)", key: "numero_ob", tipo: "text" },
+                  { label: "Observação", key: "observacao", tipo: "text" },
+                ].map(f => (
+                  <div key={f.key} style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>{f.label}</label>
+                    <input type={f.tipo} value={(fPag as Record<string, string>)[f.key]}
+                      onChange={e => setFPag(p => ({ ...p, [f.key]: e.target.value }))}
+                      style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                        padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+                  </div>
+                ))}
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                  <button onClick={() => setModal(null)}
+                    style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                      padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+                  <button onClick={submeterPag} disabled={mutPag.isPending}
+                    style={{ background: "#7c3aed", color: "#fff", border: "none", borderRadius: 8,
+                      padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                      opacity: mutPag.isPending ? 0.6 : 1 }}>
+                    {mutPag.isPending ? "Salvando…" : "Registrar pagamento"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Modal: Portaria ── */}
+            {modal === "portaria" && (
+              <div>
+                <p style={{ fontSize: 12, color: C.textSec, marginBottom: 16 }}>
+                  Registro ID: <strong>{alvoId}</strong>{" "}
+                  — {itens.find(i => i.id === alvoId)?.recurso}
+                </p>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Portaria *</label>
+                  <input type="text" value={fPort.portaria} placeholder="Ex: Portaria GM/MS nº 3.493/2024"
+                    onChange={e => setFPort({ portaria: e.target.value })}
+                    style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                      padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+                </div>
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                  <button onClick={() => setModal(null)}
+                    style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                      padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+                  <button onClick={submeterPort} disabled={mutPort.isPending}
+                    style={{ background: "#6b7280", color: "#fff", border: "none", borderRadius: 8,
+                      padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                      opacity: mutPort.isPending ? 0.6 : 1 }}>
+                    {mutPort.isPending ? "Salvando…" : "Vincular portaria"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

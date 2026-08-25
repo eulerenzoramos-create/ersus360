@@ -49,6 +49,7 @@ async def init_db():
         )
         from models import indicadores_aps  # noqa — tabelas Indicadores APS (3 camadas)
         from models import integracao_gateway  # noqa — tabelas ERSUS Integration Gateway
+        from models import execucao_fns  # noqa — execução financeira FNS
         await conn.run_sync(Base.metadata.create_all)
         # Tabela de snapshot eSUS PEC (entrada manual ou bookmarklet)
         if _raw_url.startswith("sqlite"):
