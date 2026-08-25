@@ -1070,6 +1070,7 @@ function ExecucaoFinanceiraPanel() {
   const [fPort, setFPort] = useState({ portaria: "" });
   const [erroForm, setErroForm] = useState("");
   const [buscaBloco, setBuscaBloco] = useState("");
+  const [blocoAberto, setBlocoAberto] = useState(false);
 
   const { data: itens = [], isLoading } = useQuery<ExecucaoItem[]>({
     queryKey: ["execucao-financeira-fns"],
@@ -1466,20 +1467,40 @@ function ExecucaoFinanceiraPanel() {
                       <div style={{ position: "relative" as const }}>
                         <Search size={12} style={{ position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: C.textSec, pointerEvents: "none" as const }} />
                         <input
-                          value={buscaBloco || fEmpenho.bloco}
-                          placeholder="Buscar bloco…"
+                          value={blocoAberto ? buscaBloco : fEmpenho.bloco}
+                          placeholder="Clique ou digite para buscar…"
+                          onFocus={() => { setBlocoAberto(true); setBuscaBloco(""); }}
+                          onBlur={() => setTimeout(() => setBlocoAberto(false), 150)}
                           onChange={e => { setBuscaBloco(e.target.value); setFEmpenho(p => ({ ...p, bloco: e.target.value })); }}
                           style={{ width: "100%", paddingLeft: 30, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
-                            border: `1px solid ${C.grayBdr}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+                            border: `1px solid ${blocoAberto ? C.blue : C.grayBdr}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" as const,
+                            boxShadow: blocoAberto ? `0 0 0 3px ${C.blueLight}` : "none" }} />
+                        {fEmpenho.bloco && !blocoAberto && (
+                          <button onClick={() => { setFEmpenho(p => ({ ...p, bloco: "" })); setBuscaBloco(""); }}
+                            style={{ position: "absolute" as const, right: 8, top: "50%", transform: "translateY(-50%)",
+                              background: "none", border: "none", cursor: "pointer", color: C.textSec, display: "flex" }}>
+                            <X size={13} />
+                          </button>
+                        )}
                       </div>
-                      {buscaBloco && blocosFiltrados.length > 0 && (
+                      {blocoAberto && (
                         <div style={{ border: `1px solid ${C.grayBdr}`, borderRadius: 8, marginTop: 4, background: C.white,
-                          boxShadow: "0 4px 12px rgba(0,0,0,.1)", maxHeight: 180, overflowY: "auto" as const, zIndex: 10, position: "relative" as const }}>
-                          {blocosFiltrados.map(b => (
-                            <div key={b} onClick={() => { setFEmpenho(p => ({ ...p, bloco: b })); setBuscaBloco(""); }}
-                              style={{ padding: "9px 14px", fontSize: 13, cursor: "pointer", borderBottom: `1px solid ${C.grayLight}` }}
-                              onMouseEnter={e => (e.currentTarget.style.background = C.blueLight)}
-                              onMouseLeave={e => (e.currentTarget.style.background = C.white)}>
+                          boxShadow: "0 4px 16px rgba(0,0,0,.12)", maxHeight: 200, overflowY: "auto" as const,
+                          zIndex: 20, position: "relative" as const }}>
+                          {blocosFiltrados.length === 0 ? (
+                            <div style={{ padding: "10px 14px", fontSize: 12, color: C.textSec }}>
+                              Nenhum bloco encontrado
+                            </div>
+                          ) : blocosFiltrados.map(b => (
+                            <div key={b}
+                              onMouseDown={() => { setFEmpenho(p => ({ ...p, bloco: b })); setBuscaBloco(""); setBlocoAberto(false); }}
+                              style={{ padding: "10px 14px", fontSize: 13, cursor: "pointer",
+                                borderBottom: `1px solid ${C.grayLight}`,
+                                background: fEmpenho.bloco === b ? C.blueLight : C.white,
+                                color: fEmpenho.bloco === b ? C.blue : C.textPri,
+                                fontWeight: fEmpenho.bloco === b ? 700 : 400 }}
+                              onMouseEnter={e => { if (fEmpenho.bloco !== b) e.currentTarget.style.background = "#f8faff"; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = fEmpenho.bloco === b ? C.blueLight : C.white; }}>
                               {b}
                             </div>
                           ))}
