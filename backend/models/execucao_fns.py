@@ -51,6 +51,13 @@ class ExecucaoFns(Base):
     criado_em:        Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     atualizado_em:    Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Auditoria
+    criado_por:       Mapped[str | None] = mapped_column(String(100), nullable=True)
+    editado_por:      Mapped[str | None] = mapped_column(String(100), nullable=True)
+    editado_em:       Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    excluido_por:     Mapped[str | None] = mapped_column(String(100), nullable=True)
+    excluido_em:      Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
     @property
     def saldo(self) -> float:
         return self.dotacao - self.pago
@@ -90,6 +97,11 @@ class ExecucaoFns(Base):
             "observacao":      self.observacao,
             "saldo":           self.saldo,
             "percentual":      self.percentual,
+            "criado_por":      self.criado_por,
+            "editado_por":     self.editado_por,
+            "editado_em":      self.editado_em.isoformat() if self.editado_em else None,
+            "excluido_por":    self.excluido_por,
+            "excluido_em":     self.excluido_em.isoformat() if self.excluido_em else None,
         }
 
 

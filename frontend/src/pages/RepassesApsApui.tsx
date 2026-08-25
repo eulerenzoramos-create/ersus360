@@ -19,7 +19,7 @@ const MatrizFnsLazy = () => (
   </Suspense>
 );
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { apiPost, apiPut } from "../lib/api";
+import { apiPost, apiPut, api } from "../lib/api";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine,
@@ -1049,7 +1049,7 @@ type ExecucaoItem = {
   situacao: string; percentual: number;
 };
 
-type ModalTipo = "empenho" | "liquidacao" | "pagamento" | "portaria" | "documento" | null;
+type ModalTipo = "empenho" | "editar" | "liquidacao" | "pagamento" | "portaria" | "documento" | null;
 
 function ExecucaoFinanceiraPanel() {
   const qc = useQueryClient();
@@ -1074,6 +1074,7 @@ function ExecucaoFinanceiraPanel() {
   const [erroForm, setErroForm] = useState("");
   const [buscaBloco, setBuscaBloco] = useState("");
   const [blocoAberto, setBlocoAberto] = useState(false);
+  const [confirmExcluir, setConfirmExcluir] = useState<number | null>(null);
   const [buscaPort, setBuscaPort] = useState("");
   const [portAberto, setPortAberto] = useState(false);
   const [docArquivo, setDocArquivo] = useState<File | null>(null);
@@ -1111,6 +1112,16 @@ function ExecucaoFinanceiraPanel() {
     mutationFn: ({ id, body }: { id: number; body: object }) => apiPut(`/api/execucao-fns/${id}/portaria`, body),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["execucao-financeira-fns"] }); setModal(null); setErroForm(""); },
     onError: () => setErroForm("Erro ao vincular portaria."),
+  });
+  const mutEdit = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: object }) => apiPut(`/api/execucao-fns/${id}`, body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["execucao-financeira-fns"] }); setModal(null); setErroForm(""); },
+    onError: (err: any) => setErroForm(`Erro: ${err?.response?.data?.detail || err?.message}`),
+  });
+  const mutExcluir = useMutation({
+    mutationFn: (id: number) => api.delete(`/api/execucao-fns/${id}`).then(r => r.data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["execucao-financeira-fns"] }); setConfirmExcluir(null); },
+    onError: (err: any) => alert(`Erro ao excluir: ${err?.response?.data?.detail || err?.message}`),
   });
   const mutDoc = useMutation({
     mutationFn: ({ id, body }: { id: number; body: object }) => apiPost(`/api/execucao-fns/${id}/documentos`, body),
@@ -1205,6 +1216,49 @@ function ExecucaoFinanceiraPanel() {
       });
     };
     reader.readAsDataURL(docArquivo);
+  };
+
+  const abrirEditar = async (id: number) => {
+    setErroForm("");
+    setAlvoId(id);
+    try {
+      const rec = await apiGet<any>(`/api/execucao-fns/${id}`);
+      setFEmpenho({
+        recurso:          rec.recurso        ?? "",
+        bloco:            rec.bloco          ?? "",
+        dotacao:          String(rec.dotacao  ?? ""),
+        numero_empenho:   rec.numero_empenho ?? "",
+        data_empenho:     rec.data_empenho   ?? "",
+        empenhado:        String(rec.empenhado ?? ""),
+        fornecedor:       rec.fornecedor     ?? "",
+        cnpj_fornecedor:  rec.cnpj_fornecedor ?? "",
+        contrato:         rec.contrato       ?? "",
+        conta_pagadora:   rec.conta_pagadora ?? "",
+        portaria:         rec.portaria       ?? "",
+        observacao:       rec.observacao     ?? "",
+      });
+    } catch { setErroForm("Erro ao carregar registro."); }
+    setModal("editar");
+  };
+
+  const submeterEditar = () => {
+    if (!alvoId) return;
+    if (!fEmpenho.recurso.trim()) return setErroForm("Informe o recurso.");
+    const payload: Record<string, unknown> = {
+      recurso:          fEmpenho.recurso,
+      bloco:            fEmpenho.bloco,
+      dotacao:          parseFloat(fEmpenho.dotacao) || 0,
+      empenhado:        parseFloat(fEmpenho.empenhado || "0") || 0,
+      fornecedor:       fEmpenho.fornecedor,
+      numero_empenho:   fEmpenho.numero_empenho  || null,
+      data_empenho:     fEmpenho.data_empenho    || null,
+      cnpj_fornecedor:  fEmpenho.cnpj_fornecedor || null,
+      contrato:         fEmpenho.contrato         || null,
+      conta_pagadora:   fEmpenho.conta_pagadora   || null,
+      portaria:         fEmpenho.portaria          || null,
+      observacao:       fEmpenho.observacao        || null,
+    };
+    mutEdit.mutate({ id: alvoId, body: payload });
   };
 
   const abrirDocumentos = async (id: number) => {
@@ -1544,6 +1598,16 @@ function ExecucaoFinanceiraPanel() {
                             padding: "4px 8px", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>
                           Docs
                         </button>
+                        <button onClick={e => { e.stopPropagation(); abrirEditar(it.id); }}
+                          style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 6,
+                            padding: "4px 8px", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>
+                          Editar
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); setConfirmExcluir(it.id); }}
+                          style={{ background: "#dc2626", color: "#fff", border: "none", borderRadius: 6,
+                            padding: "4px 8px", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>
+                          Excluir
+                        </button>
                         <button onClick={e => { e.stopPropagation(); setExpandido(expandido === it.id ? null : it.id); }}
                           style={{ background: "none", border: `1px solid ${C.grayBdr}`, borderRadius: 6,
                             padding: "4px 8px", fontSize: 10, cursor: "pointer", color: C.blue }}>
@@ -1607,6 +1671,7 @@ function ExecucaoFinanceiraPanel() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.textPri }}>
                 {modal === "empenho"   && "Cadastrar Empenho"}
+                {modal === "editar"    && "Editar Empenho"}
                 {modal === "liquidacao" && "Registrar Liquidação"}
                 {modal === "pagamento" && "Registrar Pagamento"}
                 {modal === "portaria"  && "Vincular Portaria"}
@@ -1738,6 +1803,55 @@ function ExecucaoFinanceiraPanel() {
                         padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
                         opacity: mutEmpenho.isPending ? 0.6 : 1 }}>
                       {mutEmpenho.isPending ? "Salvando…" : "Salvar empenho"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── Modal: Editar Empenho ── */}
+            {modal === "editar" && (() => {
+              const inp = (label: string, key: keyof typeof fEmpenho, tipo = "text", placeholder = "") => (
+                <div key={key} style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>{label}</label>
+                  <input type={tipo} value={fEmpenho[key]} placeholder={placeholder}
+                    onChange={e => setFEmpenho(p => ({ ...p, [key]: e.target.value }))}
+                    style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                      padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+                </div>
+              );
+              return (
+                <div>
+                  <p style={{ fontSize: 12, color: C.textSec, marginBottom: 16 }}>
+                    Editando registro ID <strong>{alvoId}</strong> — alterações registradas com seu nome.
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+                    {inp("Recurso / Descrição *", "recurso")}
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Bloco</label>
+                      <input type="text" value={fEmpenho.bloco} onChange={e => setFEmpenho(p => ({ ...p, bloco: e.target.value }))}
+                        style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+                    </div>
+                    {inp("Dotação (R$) *", "dotacao", "number")}
+                    {inp("Valor Empenhado (R$)", "empenhado", "number")}
+                    {inp("Nº do Empenho", "numero_empenho")}
+                    {inp("Data do Empenho", "data_empenho", "date")}
+                    {inp("Fornecedor", "fornecedor")}
+                    {inp("CNPJ do Fornecedor", "cnpj_fornecedor")}
+                    {inp("Contrato / Instrumento", "contrato")}
+                    {inp("Conta Pagadora", "conta_pagadora")}
+                  </div>
+                  {inp("Observação", "observacao")}
+                  {erroForm && <p style={{ fontSize: 12, color: "#dc2626", marginBottom: 10 }}>{erroForm}</p>}
+                  <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                    <button onClick={() => setModal(null)}
+                      style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                        padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+                    <button onClick={submeterEditar} disabled={mutEdit.isPending}
+                      style={{ background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8,
+                        padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                        opacity: mutEdit.isPending ? 0.6 : 1 }}>
+                      {mutEdit.isPending ? "Salvando…" : "Salvar alterações"}
                     </button>
                   </div>
                 </div>
@@ -2073,6 +2187,41 @@ function ExecucaoFinanceiraPanel() {
               </div>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Confirmar Exclusão ── */}
+      {confirmExcluir !== null && (
+        <div style={{ position: "fixed" as const, inset: 0, background: "rgba(0,0,0,.55)", zIndex: 1100,
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 16, padding: 28, width: "100%", maxWidth: 420,
+            boxShadow: "0 8px 32px rgba(0,0,0,.2)" }}>
+            <h2 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 800, color: "#dc2626" }}>
+              Confirmar exclusão
+            </h2>
+            <p style={{ fontSize: 14, color: C.textSec, marginBottom: 8 }}>
+              Você está excluindo o registro ID <strong>{confirmExcluir}</strong>.
+            </p>
+            <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 10, padding: "12px 16px", marginBottom: 18 }}>
+              <p style={{ margin: 0, fontSize: 12, color: "#991b1b" }}>
+                ⚠ Esta ação é registrada no sistema com o seu nome, data e hora.
+                O registro não será apagado permanentemente — ficará no histórico de auditoria.
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button onClick={() => setConfirmExcluir(null)}
+                style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                  padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                Cancelar
+              </button>
+              <button onClick={() => mutExcluir.mutate(confirmExcluir!)} disabled={mutExcluir.isPending}
+                style={{ background: "#dc2626", color: "#fff", border: "none", borderRadius: 8,
+                  padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  opacity: mutExcluir.isPending ? 0.6 : 1 }}>
+                {mutExcluir.isPending ? "Excluindo…" : "Confirmar exclusão"}
+              </button>
+            </div>
           </div>
         </div>
       )}

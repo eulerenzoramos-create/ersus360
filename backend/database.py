@@ -88,6 +88,11 @@ async def init_db():
             ("banco_pagamento",   "VARCHAR(120)"),
             ("agencia_pagamento", "VARCHAR(30)"),
             ("numero_conta_pag",  "VARCHAR(40)"),
+            ("criado_por",        "VARCHAR(100)"),
+            ("editado_por",       "VARCHAR(100)"),
+            ("editado_em",        "TIMESTAMP"),
+            ("excluido_por",      "VARCHAR(100)"),
+            ("excluido_em",       "TIMESTAMP"),
         ]
         for col, typ in _exec_fns_colunas:
             try:

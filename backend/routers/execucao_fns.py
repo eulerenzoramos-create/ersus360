@@ -3,12 +3,13 @@ CRUD para empenhos, liquidações e pagamentos dos recursos FNS.
 """
 from datetime import date, datetime
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 from database import get_db
 from models.execucao_fns import ExecucaoFns, DocumentoExecucao
+from routers.auth import get_current_user, UserOut
 
 router = APIRouter(prefix="/api/execucao-fns", tags=["execucao-fns"])
 
@@ -200,14 +201,19 @@ async def enviar_relatorio_email(body: dict, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/empenho", status_code=201)
-async def cadastrar_empenho(body: EmpenhoIn, db: AsyncSession = Depends(get_db)):
+async def cadastrar_empenho(
+    body: EmpenhoIn,
+    db: AsyncSession = Depends(get_db),
+    usuario: UserOut = Depends(get_current_user),
+):
     import logging
     log = logging.getLogger(__name__)
     try:
         dados = body.model_dump()
         log.info("Cadastrar empenho payload: %s", dados)
         item = ExecucaoFns(**dados)
-        item.situacao = _calcular_situacao(item)
+        item.situacao  = _calcular_situacao(item)
+        item.criado_por = usuario.nome or usuario.username
         db.add(item)
         await db.commit()
         await db.refresh(item)
@@ -215,6 +221,27 @@ async def cadastrar_empenho(body: EmpenhoIn, db: AsyncSession = Depends(get_db))
     except Exception as exc:
         log.error("Erro ao cadastrar empenho: %s", exc, exc_info=True)
         raise HTTPException(500, f"Erro interno: {exc}")
+
+
+@router.put("/{item_id}")
+async def editar_empenho(
+    item_id: int,
+    body: EmpenhoIn,
+    db: AsyncSession = Depends(get_db),
+    usuario: UserOut = Depends(get_current_user),
+):
+    item = await db.get(ExecucaoFns, item_id)
+    if not item or not item.ativo:
+        raise HTTPException(404, "Registro não encontrado")
+    for field, value in body.model_dump().items():
+        setattr(item, field, value)
+    item.situacao    = _calcular_situacao(item)
+    item.editado_por = usuario.nome or usuario.username
+    item.editado_em  = datetime.utcnow()
+    item.atualizado_em = datetime.utcnow()
+    await db.commit()
+    await db.refresh(item)
+    return item.to_dict()
 
 
 @router.put("/{item_id}/liquidacao")
@@ -267,14 +294,20 @@ async def vincular_portaria(item_id: int, body: PortariaIn, db: AsyncSession = D
 
 
 @router.delete("/{item_id}")
-async def excluir(item_id: int, db: AsyncSession = Depends(get_db)):
+async def excluir(
+    item_id: int,
+    db: AsyncSession = Depends(get_db),
+    usuario: UserOut = Depends(get_current_user),
+):
     item = await db.get(ExecucaoFns, item_id)
     if not item or not item.ativo:
         raise HTTPException(404, "Registro não encontrado")
-    item.ativo = False
+    item.ativo        = False
+    item.excluido_por = usuario.nome or usuario.username
+    item.excluido_em  = datetime.utcnow()
     item.atualizado_em = datetime.utcnow()
     await db.commit()
-    return {"ok": True}
+    return {"ok": True, "excluido_por": item.excluido_por, "excluido_em": item.excluido_em.isoformat()}
 
 
 # ─── Documentos ──────────────────────────────────────────────────────────────
