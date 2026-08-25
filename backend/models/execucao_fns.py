@@ -85,3 +85,25 @@ class ExecucaoFns(Base):
             "saldo":           self.saldo,
             "percentual":      self.percentual,
         }
+
+
+class DocumentoExecucao(Base):
+    __tablename__ = "documentos_execucao"
+
+    id:          Mapped[int]  = mapped_column(Integer, primary_key=True, autoincrement=True)
+    execucao_id: Mapped[int]  = mapped_column(Integer, index=True)
+    nome:        Mapped[str]  = mapped_column(String(255))
+    tipo_mime:   Mapped[str]  = mapped_column(String(100), default="application/octet-stream")
+    tamanho_kb:  Mapped[int]  = mapped_column(Integer, default=0)
+    conteudo_b64: Mapped[str] = mapped_column(Text)
+    criado_em:   Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    def to_dict_meta(self) -> dict:
+        return {
+            "id":          self.id,
+            "execucao_id": self.execucao_id,
+            "nome":        self.nome,
+            "tipo_mime":   self.tipo_mime,
+            "tamanho_kb":  self.tamanho_kb,
+            "criado_em":   self.criado_em.isoformat(),
+        }

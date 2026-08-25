@@ -1049,7 +1049,7 @@ type ExecucaoItem = {
   situacao: string; percentual: number;
 };
 
-type ModalTipo = "empenho" | "liquidacao" | "pagamento" | "portaria" | null;
+type ModalTipo = "empenho" | "liquidacao" | "pagamento" | "portaria" | "documento" | null;
 
 function ExecucaoFinanceiraPanel() {
   const qc = useQueryClient();
@@ -1071,6 +1071,13 @@ function ExecucaoFinanceiraPanel() {
   const [erroForm, setErroForm] = useState("");
   const [buscaBloco, setBuscaBloco] = useState("");
   const [blocoAberto, setBlocoAberto] = useState(false);
+  const [buscaPort, setBuscaPort] = useState("");
+  const [portAberto, setPortAberto] = useState(false);
+  const [docArquivo, setDocArquivo] = useState<File | null>(null);
+  const [docsReg, setDocsReg] = useState<{id:number;nome:string;tipo_mime:string;tamanho_kb:number;criado_em:string}[]>([]);
+  const [modalEmail, setModalEmail] = useState(false);
+  const [emailDest, setEmailDest] = useState("");
+  const [emailMsg, setEmailMsg] = useState<"" | "ok" | "err">("");
 
   const { data: itens = [], isLoading } = useQuery<ExecucaoItem[]>({
     queryKey: ["execucao-financeira-fns"],
@@ -1098,6 +1105,21 @@ function ExecucaoFinanceiraPanel() {
     mutationFn: ({ id, body }: { id: number; body: object }) => apiPut(`/api/execucao-fns/${id}/portaria`, body),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["execucao-financeira-fns"] }); setModal(null); setErroForm(""); },
     onError: () => setErroForm("Erro ao vincular portaria."),
+  });
+  const mutDoc = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: object }) => apiPost(`/api/execucao-fns/${id}/documentos`, body),
+    onSuccess: (data) => {
+      setDocsReg(prev => [data as any, ...prev]);
+      setDocArquivo(null);
+      setErroForm("");
+    },
+    onError: () => setErroForm("Erro ao anexar documento."),
+  });
+
+  const { data: portariasDisp = [] } = useQuery<string[]>({
+    queryKey: ["portarias-fns"],
+    queryFn: () => apiGet("/api/execucao-fns/portarias"),
+    staleTime: 600_000,
   });
 
   const abrirModal = (tipo: ModalTipo, id?: number) => {
@@ -1129,6 +1151,128 @@ function ExecucaoFinanceiraPanel() {
     if (!alvoId) return;
     if (!fPort.portaria.trim()) return setErroForm("Informe a portaria.");
     mutPort.mutate({ id: alvoId, body: fPort });
+  };
+
+  const submeterDoc = async () => {
+    if (!alvoId || !docArquivo) return setErroForm("Selecione um arquivo.");
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const b64 = (ev.target?.result as string).split(",")[1] ?? "";
+      mutDoc.mutate({
+        id: alvoId,
+        body: {
+          nome:         docArquivo.name,
+          tipo_mime:    docArquivo.type || "application/octet-stream",
+          tamanho_kb:   Math.round(docArquivo.size / 1024),
+          conteudo_b64: b64,
+        },
+      });
+    };
+    reader.readAsDataURL(docArquivo);
+  };
+
+  const abrirDocumentos = async (id: number) => {
+    setAlvoId(id);
+    setModal("documento");
+    setErroForm("");
+    setDocArquivo(null);
+    try {
+      const res = await apiGet(`/api/execucao-fns/${id}/documentos`);
+      setDocsReg(res as any);
+    } catch { setDocsReg([]); }
+  };
+
+  const gerarPDF = () => {
+    const janela = window.open("", "_blank", "width=1100,height=800");
+    if (!janela) return;
+    const linhas = filtrados.map(it => `
+      <tr>
+        <td>${it.recurso}</td><td>${it.bloco || "—"}</td>
+        <td class="num">${BRL(it.dotacao)}</td>
+        <td class="num am">${BRL(it.empenhado)}</td>
+        <td class="num bl">${BRL(it.liquidado)}</td>
+        <td class="num vl">${BRL(it.pago)}</td>
+        <td class="num gn">${BRL(it.dotacao - it.pago)}</td>
+        <td class="num">${it.percentual.toFixed(1)}%</td>
+        <td>${it.fornecedor || "—"}</td>
+        <td>${it.situacao}</td>
+      </tr>`).join("");
+    janela.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
+      <title>Execução Financeira FNS — Apuí/AM</title>
+      <style>
+        @page { size: A4 landscape; margin: 1.2cm; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: Arial, sans-serif; font-size: 10px; color: #111; }
+        .cabecalho { border-bottom: 3px solid #1565c0; padding-bottom: 10px; margin-bottom: 14px; display:flex; justify-content:space-between; }
+        .titulo { font-size:16px; font-weight:800; color:#0f172a; }
+        .sub { font-size:9px; color:#6b7280; margin-top:3px; }
+        .cards { display:flex; gap:10px; margin-bottom:14px; }
+        .card { border:1px solid #e4e7ec; border-radius:8px; padding:8px 12px; flex:1; }
+        .card-label { font-size:8px; color:#6b7280; text-transform:uppercase; font-weight:700; }
+        .card-val { font-size:13px; font-weight:800; margin-top:2px; }
+        table { width:100%; border-collapse:collapse; }
+        thead { background:#f4f6f8; }
+        th { padding:6px 8px; text-align:left; font-size:9px; text-transform:uppercase; color:#6b7280; border-bottom:2px solid #e4e7ec; }
+        td { padding:6px 8px; border-bottom:1px solid #f0f0f0; font-size:9px; }
+        tr:nth-child(even) { background:#fafbfc; }
+        .num { text-align:right; font-variant-numeric:tabular-nums; }
+        .am { color:#d97706; } .bl { color:#1565c0; } .vl { color:#7c3aed; } .gn { color:#059669; }
+        .rodape { margin-top:14px; font-size:8px; color:#9ca3af; border-top:1px solid #e4e7ec; padding-top:8px; display:flex; justify-content:space-between; }
+        @media print { body{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
+      </style></head><body>
+      <div class="cabecalho">
+        <div>
+          <div class="titulo">CONTROLE FINANCEIRO FNS — APUÍ · Execução Financeira</div>
+          <div class="sub">Município Apuí/AM · FMS CNPJ 12.834.320/0001-26 · IBGE 130014 · Exercício ${new Date().getFullYear()}</div>
+        </div>
+        <div style="text-align:right;font-size:9px;color:#6b7280">
+          Gerado em: ${new Date().toLocaleString("pt-BR")}<br/>
+          ERSUS 360 — Sistema de Gestão em Saúde
+        </div>
+      </div>
+      <div class="cards">
+        <div class="card"><div class="card-label">Dotação / Recebido</div><div class="card-val" style="color:#059669">${BRL(totalDot)}</div></div>
+        <div class="card"><div class="card-label">Total empenhado</div><div class="card-val" style="color:#d97706">${BRL(totalEmp)}</div></div>
+        <div class="card"><div class="card-label">Total liquidado</div><div class="card-val" style="color:#1565c0">${BRL(totalLiq)}</div></div>
+        <div class="card"><div class="card-label">Total pago</div><div class="card-val" style="color:#7c3aed">${BRL(totalPago)}</div></div>
+        <div class="card"><div class="card-label">Saldo livre</div><div class="card-val">${BRL(saldo)}</div></div>
+        <div class="card"><div class="card-label">% Executado</div><div class="card-val">${pctExec}${pctExec !== "—" ? "%" : ""}</div></div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Recurso</th><th>Bloco</th><th>Dotação</th><th>Empenhado</th>
+          <th>Liquidado</th><th>Pago</th><th>Saldo</th><th>% Exec.</th>
+          <th>Fornecedor</th><th>Situação</th>
+        </tr></thead>
+        <tbody>${linhas || '<tr><td colspan="10" style="text-align:center;padding:20px;color:#6b7280">Nenhum registro cadastrado</td></tr>'}</tbody>
+      </table>
+      <div class="rodape">
+        <span>Fonte: ERSUS 360 / FMS Apuí/AM · Dados registrados pela equipe de gestão.</span>
+        <span>Página 1</span>
+      </div>
+    </body></html>`);
+    janela.document.close();
+    setTimeout(() => { janela.focus(); janela.print(); }, 400);
+  };
+
+  const enviarEmail = async () => {
+    if (!emailDest.trim() || !emailDest.includes("@")) {
+      setEmailMsg("err"); return;
+    }
+    try {
+      await apiPost("/api/execucao-fns/email", {
+        destinatario: emailDest,
+        exercicio: 2026,
+        total_dot: totalDot, total_emp: totalEmp,
+        total_liq: totalLiq, total_pago: totalPago,
+        saldo, pct_exec: pctExec,
+        registros: filtrados.length,
+      });
+      setEmailMsg("ok");
+      setTimeout(() => { setModalEmail(false); setEmailMsg(""); setEmailDest(""); }, 2000);
+    } catch {
+      setEmailMsg("err");
+    }
   };
 
   const totalDot  = itens.reduce((s, i) => s + i.dotacao, 0);
@@ -1221,34 +1365,37 @@ function ExecucaoFinanceiraPanel() {
             padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           + Cadastrar empenho
         </button>
-        <button onClick={() => itens.length > 0 ? abrirModal("liquidacao", itens[0].id) : setErroForm("Selecione um registro primeiro.")}
+        <button onClick={() => abrirModal("liquidacao", itens.length > 0 ? itens[0].id : undefined)}
           style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 8,
-            padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer",
-            opacity: itens.length === 0 ? 0.5 : 1 }}>
+            padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           Registrar liquidação
         </button>
-        <button onClick={() => itens.length > 0 ? abrirModal("pagamento", itens[0].id) : setErroForm("Selecione um registro primeiro.")}
+        <button onClick={() => abrirModal("pagamento", itens.length > 0 ? itens[0].id : undefined)}
           style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 8,
-            padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer",
-            opacity: itens.length === 0 ? 0.5 : 1 }}>
+            padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           Registrar pagamento
         </button>
-        <button onClick={() => itens.length > 0 ? abrirModal("portaria", itens[0].id) : setErroForm("Selecione um registro primeiro.")}
+        <button onClick={() => abrirModal("portaria", itens.length > 0 ? itens[0].id : undefined)}
           style={{ background: "#6b7280", color: "#fff", border: "none", borderRadius: 8,
-            padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer",
-            opacity: itens.length === 0 ? 0.5 : 1 }}>
+            padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           Vincular portaria
         </button>
-        <button title="Em breve" disabled
-          style={{ background: "#6b7280", color: "#fff", border: "none", borderRadius: 8,
-            padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", opacity: 0.5 }}>
+        <button onClick={() => itens.length > 0 ? abrirDocumentos(itens[0].id) : setErroForm("Cadastre um empenho primeiro.")}
+          style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 8,
+            padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           Anexar documento
         </button>
-        <button onClick={() => {}} title="Exportar"
+        <button onClick={gerarPDF}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "#dc2626", color: "#fff",
+            border: "none", borderRadius: 8, padding: "8px 14px",
+            fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          <FileText size={13} /> Gerar PDF
+        </button>
+        <button onClick={() => setModalEmail(true)}
           style={{ display: "flex", alignItems: "center", gap: 6, background: C.white,
             border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "8px 14px",
             fontSize: 12, fontWeight: 600, color: C.textPri, cursor: "pointer" }}>
-          <Download size={13} /> Exportar XLSX
+          <Download size={13} /> Enviar por e-mail
         </button>
         {erroForm && (
           <span style={{ fontSize: 12, color: C.red, fontWeight: 600 }}>{erroForm}</span>
@@ -1351,6 +1498,16 @@ function ExecucaoFinanceiraPanel() {
                             padding: "4px 8px", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>
                           Pagar
                         </button>
+                        <button onClick={e => { e.stopPropagation(); abrirModal("portaria", it.id); }}
+                          style={{ background: "#6b7280", color: "#fff", border: "none", borderRadius: 6,
+                            padding: "4px 8px", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>
+                          Portaria
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); abrirDocumentos(it.id); }}
+                          style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 6,
+                            padding: "4px 8px", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>
+                          Docs
+                        </button>
                         <button onClick={e => { e.stopPropagation(); setExpandido(expandido === it.id ? null : it.id); }}
                           style={{ background: "none", border: `1px solid ${C.grayBdr}`, borderRadius: 6,
                             padding: "4px 8px", fontSize: 10, cursor: "pointer", color: C.blue }}>
@@ -1417,6 +1574,7 @@ function ExecucaoFinanceiraPanel() {
                 {modal === "liquidacao" && "Registrar Liquidação"}
                 {modal === "pagamento" && "Registrar Pagamento"}
                 {modal === "portaria"  && "Vincular Portaria"}
+                {modal === "documento" && "Documentos Anexados"}
               </h2>
               <button onClick={() => setModal(null)}
                 style={{ background: "none", border: "none", cursor: "pointer", color: C.textSec }}>
@@ -1621,28 +1779,143 @@ function ExecucaoFinanceiraPanel() {
             )}
 
             {/* ── Modal: Portaria ── */}
-            {modal === "portaria" && (
+            {modal === "portaria" && (() => {
+              const portariasFiltradas = portariasDisp.filter(p =>
+                p.toLowerCase().includes(buscaPort.toLowerCase())
+              );
+              return (
+                <div>
+                  {/* Seletor de registro quando aberto sem row */}
+                  {alvoId === null ? (
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Empenho *</label>
+                      <select onChange={e => setAlvoId(Number(e.target.value))}
+                        style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                          padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }}>
+                        <option value="">Selecione o registro…</option>
+                        {itens.map(i => <option key={i.id} value={i.id}>#{i.id} — {i.recurso}</option>)}
+                      </select>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: 12, color: C.textSec, marginBottom: 16 }}>
+                      Registro ID: <strong>{alvoId}</strong>{" "}
+                      — {itens.find(i => i.id === alvoId)?.recurso}
+                    </p>
+                  )}
+                  {/* Campo portaria com autocomplete */}
+                  <div style={{ marginBottom: 14, position: "relative" as const }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Portaria *</label>
+                    <input
+                      type="text"
+                      value={fPort.portaria}
+                      placeholder="Buscar ou digitar portaria…"
+                      onFocus={() => setPortAberto(true)}
+                      onBlur={() => setTimeout(() => setPortAberto(false), 150)}
+                      onChange={e => { setFPort({ portaria: e.target.value }); setBuscaPort(e.target.value); setPortAberto(true); }}
+                      style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                        padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }}
+                    />
+                    {portAberto && portariasFiltradas.length > 0 && (
+                      <div style={{ position: "absolute" as const, top: "100%", left: 0, right: 0, background: C.white,
+                        border: `1px solid ${C.grayBdr}`, borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,.12)",
+                        zIndex: 100, maxHeight: 200, overflowY: "auto" as const }}>
+                        {portariasFiltradas.map(p => (
+                          <div key={p}
+                            onMouseDown={() => { setFPort({ portaria: p }); setBuscaPort(p); setPortAberto(false); }}
+                            style={{ padding: "10px 14px", fontSize: 13, cursor: "pointer", borderBottom: `1px solid ${C.grayBdr}` }}
+                            onMouseEnter={e => (e.currentTarget.style.background = C.grayLight)}
+                            onMouseLeave={e => (e.currentTarget.style.background = "")}>
+                            {p}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {portAberto && portariasFiltradas.length === 0 && buscaPort.length > 0 && (
+                      <div style={{ position: "absolute" as const, top: "100%", left: 0, right: 0, background: C.white,
+                        border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "10px 14px",
+                        fontSize: 12, color: C.textSec, zIndex: 100 }}>
+                        Nenhuma portaria cadastrada — será criada nova entrada.
+                      </div>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 11, color: C.textSec, marginBottom: 16 }}>
+                    Ex: Portaria GM/MS nº 3.493/2024 · Portaria Ministerial nº 718/2025
+                  </p>
+                  <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                    <button onClick={() => setModal(null)}
+                      style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                        padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+                    <button onClick={submeterPort} disabled={mutPort.isPending || !alvoId}
+                      style={{ background: "#6b7280", color: "#fff", border: "none", borderRadius: 8,
+                        padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                        opacity: (mutPort.isPending || !alvoId) ? 0.6 : 1 }}>
+                      {mutPort.isPending ? "Salvando…" : "Vincular portaria"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── Modal: Documentos ── */}
+            {modal === "documento" && (
               <div>
                 <p style={{ fontSize: 12, color: C.textSec, marginBottom: 16 }}>
                   Registro ID: <strong>{alvoId}</strong>{" "}
                   — {itens.find(i => i.id === alvoId)?.recurso}
                 </p>
+
+                {/* Lista de documentos existentes */}
+                {docsReg.length > 0 && (
+                  <div style={{ marginBottom: 18 }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: C.textSec, marginBottom: 8, textTransform: "uppercase" as const }}>
+                      Documentos anexados ({docsReg.length})
+                    </p>
+                    {docsReg.map(d => (
+                      <div key={d.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "8px 12px", background: C.grayLight, borderRadius: 8, marginBottom: 6,
+                        border: `1px solid ${C.grayBdr}` }}>
+                        <div>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: C.textPri }}>{d.nome}</span>
+                          <span style={{ fontSize: 11, color: C.textSec, marginLeft: 8 }}>{d.tamanho_kb} KB</span>
+                        </div>
+                        <a href={`/api/execucao-fns/documentos/${d.id}/download`} target="_blank" rel="noreferrer"
+                          style={{ fontSize: 11, color: C.blue, textDecoration: "none", fontWeight: 600 }}>
+                          Baixar
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload novo documento */}
                 <div style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Portaria *</label>
-                  <input type="text" value={fPort.portaria} placeholder="Ex: Portaria GM/MS nº 3.493/2024"
-                    onChange={e => setFPort({ portaria: e.target.value })}
-                    style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
-                      padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>
+                    Anexar novo arquivo (PDF, DOC, imagem — máx. 5 MB)
+                  </label>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
+                    onChange={e => setDocArquivo(e.target.files?.[0] ?? null)}
+                    style={{ fontSize: 13, width: "100%", padding: "8px 0" }}
+                  />
+                  {docArquivo && (
+                    <p style={{ fontSize: 11, color: C.textSec, marginTop: 4 }}>
+                      Selecionado: <strong>{docArquivo.name}</strong> — {Math.round(docArquivo.size / 1024)} KB
+                    </p>
+                  )}
                 </div>
+
+                {erroForm && <p style={{ fontSize: 12, color: "#dc2626", marginBottom: 10 }}>{erroForm}</p>}
+
                 <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                   <button onClick={() => setModal(null)}
                     style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
-                      padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-                  <button onClick={submeterPort} disabled={mutPort.isPending}
-                    style={{ background: "#6b7280", color: "#fff", border: "none", borderRadius: 8,
+                      padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Fechar</button>
+                  <button onClick={submeterDoc} disabled={!docArquivo || mutDoc.isPending}
+                    style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 8,
                       padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                      opacity: mutPort.isPending ? 0.6 : 1 }}>
-                    {mutPort.isPending ? "Salvando…" : "Vincular portaria"}
+                      opacity: (!docArquivo || mutDoc.isPending) ? 0.6 : 1 }}>
+                    {mutDoc.isPending ? "Enviando…" : "Anexar arquivo"}
                   </button>
                 </div>
               </div>

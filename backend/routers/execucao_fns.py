@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 from database import get_db
-from models.execucao_fns import ExecucaoFns
+from models.execucao_fns import ExecucaoFns, DocumentoExecucao
 
 router = APIRouter(prefix="/api/execucao-fns", tags=["execucao-fns"])
 
@@ -50,6 +50,13 @@ class PortariaIn(BaseModel):
     portaria: str
 
 
+class DocumentoIn(BaseModel):
+    nome:         str
+    tipo_mime:    str = "application/octet-stream"
+    tamanho_kb:   int = 0
+    conteudo_b64: str  # base64 do arquivo
+
+
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
 def _calcular_situacao(item: ExecucaoFns) -> str:
@@ -72,6 +79,44 @@ async def listar(exercicio: int = 2026, db: AsyncSession = Depends(get_db)):
         .order_by(ExecucaoFns.criado_em.desc())
     )
     return [i.to_dict() for i in result.scalars().all()]
+
+
+@router.get("/portarias")
+async def listar_portarias_inline(exercicio: int = 2026, db: AsyncSession = Depends(get_db)):
+    """Retorna portarias únicas (para autocomplete)."""
+    from sqlalchemy import distinct
+    result = await db.execute(
+        select(distinct(ExecucaoFns.portaria))
+        .where(ExecucaoFns.ativo == True, ExecucaoFns.exercicio == exercicio,
+               ExecucaoFns.portaria != None, ExecucaoFns.portaria != "")
+        .order_by(ExecucaoFns.portaria)
+    )
+    return [r for r in result.scalars().all() if r]
+
+
+@router.get("/documentos/{doc_id}/download")
+async def download_documento(doc_id: int, db: AsyncSession = Depends(get_db)):
+    import base64
+    from fastapi.responses import Response
+    doc = await db.get(DocumentoExecucao, doc_id)
+    if not doc:
+        raise HTTPException(404, "Documento não encontrado")
+    conteudo = base64.b64decode(doc.conteudo_b64)
+    return Response(
+        content=conteudo,
+        media_type=doc.tipo_mime,
+        headers={"Content-Disposition": f'attachment; filename="{doc.nome}"'},
+    )
+
+
+@router.delete("/documentos/{doc_id}")
+async def excluir_documento_inline(doc_id: int, db: AsyncSession = Depends(get_db)):
+    doc = await db.get(DocumentoExecucao, doc_id)
+    if not doc:
+        raise HTTPException(404, "Documento não encontrado")
+    await db.delete(doc)
+    await db.commit()
+    return {"ok": True}
 
 
 @router.get("/{item_id}")
@@ -147,3 +192,35 @@ async def excluir(item_id: int, db: AsyncSession = Depends(get_db)):
     item.atualizado_em = datetime.utcnow()
     await db.commit()
     return {"ok": True}
+
+
+# ─── Documentos ──────────────────────────────────────────────────────────────
+
+@router.get("/{item_id}/documentos")
+async def listar_documentos(item_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(DocumentoExecucao)
+        .where(DocumentoExecucao.execucao_id == item_id)
+        .order_by(DocumentoExecucao.criado_em.desc())
+    )
+    return [d.to_dict_meta() for d in result.scalars().all()]
+
+
+@router.post("/{item_id}/documentos", status_code=201)
+async def anexar_documento(item_id: int, body: DocumentoIn, db: AsyncSession = Depends(get_db)):
+    item = await db.get(ExecucaoFns, item_id)
+    if not item or not item.ativo:
+        raise HTTPException(404, "Registro não encontrado")
+    doc = DocumentoExecucao(
+        execucao_id=item_id,
+        nome=body.nome,
+        tipo_mime=body.tipo_mime,
+        tamanho_kb=body.tamanho_kb,
+        conteudo_b64=body.conteudo_b64,
+    )
+    db.add(doc)
+    await db.commit()
+    await db.refresh(doc)
+    return doc.to_dict_meta()
+
+
