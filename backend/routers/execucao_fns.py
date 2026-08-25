@@ -60,11 +60,14 @@ class DocumentoIn(BaseModel):
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
 def _calcular_situacao(item: ExecucaoFns) -> str:
-    if item.pago > 0 and item.pago >= item.empenhado:
+    pago      = item.pago      or 0.0
+    liquidado = item.liquidado or 0.0
+    empenhado = item.empenhado or 0.0
+    if pago > 0 and pago >= empenhado:
         return "Pago"
-    if item.liquidado > 0:
+    if liquidado > 0:
         return "Liquidado"
-    if item.empenhado > 0:
+    if empenhado > 0:
         return "Empenhado"
     return "Pendente"
 
