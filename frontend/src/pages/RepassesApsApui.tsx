@@ -1444,11 +1444,17 @@ function ExecucaoFinanceiraPanel() {
               );
               const BLOCOS_FNS = [
                 "Atenção Primária à Saúde",
+                "PAP — Piso da Atenção Primária",
                 "Vigilância em Saúde",
                 "Média e Alta Complexidade (MAC)",
                 "Assistência Farmacêutica",
                 "Gestão do SUS",
                 "Investimentos em Saúde",
+                "MS Programa — Ministério da Saúde",
+                "Emenda Individual — Parlamentar",
+                "Emenda de Comissão",
+                "Emenda de Bancada",
+                "Emenda de Relator",
                 "Saneamento",
                 "Saúde Indígena",
                 "Alimentação e Nutrição",
