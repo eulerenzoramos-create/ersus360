@@ -1265,7 +1265,7 @@ function ExecucaoFinanceiraPanel() {
         exercicio: 2026,
         total_dot: totalDot, total_emp: totalEmp,
         total_liq: totalLiq, total_pago: totalPago,
-        saldo, pct_exec: pctExec,
+        saldo, pct_exec: parseFloat(pctExec as string) || 0,
         registros: filtrados.length,
       });
       setEmailMsg("ok");
@@ -1984,6 +1984,88 @@ function ExecucaoFinanceiraPanel() {
               </div>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Enviar por e-mail ── */}
+      {modalEmail && (
+        <div style={{ position: "fixed" as const, inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000,
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 16, padding: 28, width: "100%", maxWidth: 480,
+            boxShadow: "0 8px 32px rgba(0,0,0,.18)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.textPri }}>Enviar Relatório por E-mail</h2>
+              <button onClick={() => { setModalEmail(false); setEmailMsg(""); setEmailDest(""); }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: C.textSec, fontSize: 18 }}>✕</button>
+            </div>
+
+            {emailMsg === "ok" ? (
+              <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 10,
+                padding: "16px 20px", textAlign: "center" as const }}>
+                <p style={{ margin: 0, fontSize: 14, color: "#166534", fontWeight: 700 }}>
+                  ✓ E-mail enviado com sucesso!
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Resumo */}
+                <div style={{ background: C.grayLight, borderRadius: 10, padding: "12px 16px", marginBottom: 18 }}>
+                  <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, color: C.textSec, textTransform: "uppercase" as const }}>
+                    Resumo que será enviado
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 16px", fontSize: 12 }}>
+                    <span style={{ color: C.textSec }}>Dotação</span>
+                    <span style={{ fontWeight: 600 }}>R$ {totalDot.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: C.textSec }}>Empenhado</span>
+                    <span style={{ fontWeight: 600, color: "#d97706" }}>R$ {totalEmp.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: C.textSec }}>Liquidado</span>
+                    <span style={{ fontWeight: 600, color: "#2563eb" }}>R$ {totalLiq.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: C.textSec }}>Pago</span>
+                    <span style={{ fontWeight: 600, color: "#7c3aed" }}>R$ {totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: C.textSec }}>% Executado</span>
+                    <span style={{ fontWeight: 700 }}>{pctExec}{pctExec !== "—" ? "%" : ""}</span>
+                  </div>
+                </div>
+
+                {/* Campo e-mail */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block",
+                    marginBottom: 4, textTransform: "uppercase" as const }}>Destinatário *</label>
+                  <input
+                    type="email"
+                    value={emailDest}
+                    placeholder="exemplo@email.com"
+                    onChange={e => { setEmailDest(e.target.value); setEmailMsg(""); }}
+                    style={{ width: "100%", border: `1px solid ${emailMsg === "err" ? "#dc2626" : C.grayBdr}`,
+                      borderRadius: 8, padding: "9px 12px", fontSize: 13, outline: "none",
+                      boxSizing: "border-box" as const }}
+                  />
+                  {emailMsg === "err" && (
+                    <p style={{ fontSize: 11, color: "#dc2626", marginTop: 4 }}>
+                      E-mail inválido ou falha no envio. Verifique o endereço ou a configuração SMTP.
+                    </p>
+                  )}
+                </div>
+
+                <p style={{ fontSize: 11, color: C.textSec, marginBottom: 18 }}>
+                  Requer configuração das variáveis <strong>SMTP_HOST</strong>, <strong>SMTP_USER</strong> e <strong>SMTP_PASS</strong> no Railway.
+                </p>
+
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                  <button onClick={() => { setModalEmail(false); setEmailMsg(""); setEmailDest(""); }}
+                    style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                      padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+                  <button onClick={enviarEmail}
+                    disabled={!emailDest.trim() || !emailDest.includes("@")}
+                    style={{ display: "flex", alignItems: "center", gap: 6, background: C.blue, color: "#fff",
+                      border: "none", borderRadius: 8, padding: "9px 24px", fontSize: 13, fontWeight: 700,
+                      cursor: "pointer", opacity: (!emailDest.trim() || !emailDest.includes("@")) ? 0.5 : 1 }}>
+                    Enviar relatório
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

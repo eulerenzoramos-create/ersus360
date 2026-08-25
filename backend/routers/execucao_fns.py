@@ -127,6 +127,72 @@ async def obter(item_id: int, db: AsyncSession = Depends(get_db)):
     return item.to_dict()
 
 
+@router.post("/email")
+async def enviar_relatorio_email(body: dict, db: AsyncSession = Depends(get_db)):
+    """Envia resumo da execução financeira por e-mail."""
+    import smtplib, os
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    destinatario = body.get("destinatario", "")
+    if not destinatario or "@" not in destinatario:
+        raise HTTPException(400, "E-mail inválido")
+
+    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER", "")
+    smtp_pass = os.getenv("SMTP_PASS", "")
+
+    if not smtp_user or not smtp_pass:
+        raise HTTPException(503, "Servidor de e-mail não configurado (SMTP_USER / SMTP_PASS ausentes)")
+
+    exercicio   = body.get("exercicio", 2026)
+    total_dot   = body.get("total_dot", 0)
+    total_emp   = body.get("total_emp", 0)
+    total_liq   = body.get("total_liq", 0)
+    total_pago  = body.get("total_pago", 0)
+    saldo       = body.get("saldo", 0)
+    pct_exec    = body.get("pct_exec", 0)
+    registros   = body.get("registros", 0)
+
+    def fmt(v): return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    html = f"""
+    <html><body style="font-family:sans-serif;color:#111827">
+    <h2 style="color:#1565c0">Execução Financeira FNS — Apuí/AM · Exercício {exercicio}</h2>
+    <table border="0" cellpadding="8" style="border-collapse:collapse;width:100%;max-width:540px">
+      <tr><td style="color:#6b7280">Dotação / Recebido</td><td><strong>{fmt(total_dot)}</strong></td></tr>
+      <tr style="background:#f4f6f8"><td style="color:#6b7280">Total Empenhado</td><td><strong style="color:#d97706">{fmt(total_emp)}</strong></td></tr>
+      <tr><td style="color:#6b7280">Total Liquidado</td><td><strong style="color:#2563eb">{fmt(total_liq)}</strong></td></tr>
+      <tr style="background:#f4f6f8"><td style="color:#6b7280">Total Pago</td><td><strong style="color:#7c3aed">{fmt(total_pago)}</strong></td></tr>
+      <tr><td style="color:#6b7280">Saldo a Pagar</td><td><strong>{fmt(saldo)}</strong></td></tr>
+      <tr style="background:#f4f6f8"><td style="color:#6b7280">% Executado</td><td><strong>{pct_exec:.1f}%</strong></td></tr>
+      <tr><td style="color:#6b7280">Registros</td><td>{registros}</td></tr>
+    </table>
+    <p style="font-size:12px;color:#6b7280;margin-top:24px">
+      Gerado pelo ERSUS 360 · FMS Apuí/AM · CNPJ 12.834.320/0001-26
+    </p>
+    </body></html>
+    """
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"Execução Financeira FNS — Apuí/AM · {exercicio}"
+    msg["From"]    = smtp_user
+    msg["To"]      = destinatario
+    msg.attach(MIMEText(html, "html"))
+
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as srv:
+            srv.ehlo()
+            srv.starttls()
+            srv.login(smtp_user, smtp_pass)
+            srv.sendmail(smtp_user, [destinatario], msg.as_string())
+    except Exception as e:
+        raise HTTPException(502, f"Falha ao enviar e-mail: {e}")
+
+    return {"ok": True}
+
+
 @router.post("/empenho", status_code=201)
 async def cadastrar_empenho(body: EmpenhoIn, db: AsyncSession = Depends(get_db)):
     item = ExecucaoFns(**body.model_dump())
