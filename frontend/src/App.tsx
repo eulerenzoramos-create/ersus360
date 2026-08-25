@@ -457,6 +457,7 @@ import CvatDashboard                from "./pages/CvatDashboard";
 import Inconsistencias              from "./pages/Inconsistencias";
 import RelatorioERSUS               from "./pages/RelatorioERSUS";
 import PainelIntegracoes            from "./pages/PainelIntegracoes";
+import GatewayIntegracao            from "./pages/GatewayIntegracao";
 import { SinoAlertas } from "./components/SinoAlertas";
 import ExportarRelatorio from "./components/ExportarRelatorio";
 
@@ -1126,6 +1127,7 @@ export default function App() {
             {/* Painel de Integrações */}
             <Route path="/integracoes"               element={<PainelIntegracoes/>}/>
             <Route path="/integracoes/*"             element={<PainelIntegracoes/>}/>
+            <Route path="/gateway-integracao"        element={<GatewayIntegracao/>}/>
             {/* POEPS */}
             <Route path="/poeps/*"                   element={<Indicadores/>}/>
             {/* PSE */}
