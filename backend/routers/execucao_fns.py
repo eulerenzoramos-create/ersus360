@@ -40,10 +40,13 @@ class LiquidacaoIn(BaseModel):
 
 
 class PagamentoIn(BaseModel):
-    data_pagamento:  date
-    pago:            float
-    numero_ob:       Optional[str] = None
-    observacao:      Optional[str] = None
+    data_pagamento:   date
+    pago:             float
+    numero_ob:        Optional[str] = None
+    banco_pagamento:  Optional[str] = None
+    agencia_pagamento: Optional[str] = None
+    numero_conta_pag: Optional[str] = None
+    observacao:       Optional[str] = None
 
 
 class PortariaIn(BaseModel):
@@ -236,9 +239,12 @@ async def registrar_pagamento(item_id: int, body: PagamentoIn, db: AsyncSession 
     item = await db.get(ExecucaoFns, item_id)
     if not item or not item.ativo:
         raise HTTPException(404, "Registro não encontrado")
-    item.data_pagamento = body.data_pagamento
-    item.pago           = body.pago
-    item.numero_ob      = body.numero_ob
+    item.data_pagamento    = body.data_pagamento
+    item.pago              = body.pago
+    item.numero_ob         = body.numero_ob
+    item.banco_pagamento   = body.banco_pagamento
+    item.agencia_pagamento = body.agencia_pagamento
+    item.numero_conta_pag  = body.numero_conta_pag
     if body.observacao:
         item.observacao = body.observacao
     item.situacao = _calcular_situacao(item)

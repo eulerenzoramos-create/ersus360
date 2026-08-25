@@ -82,3 +82,17 @@ async def init_db():
                 )
             except Exception:
                 pass  # SQLite dev local não suporta IF NOT EXISTS — ignora
+
+        # Colunas novas em execucao_fns (adicionadas incrementalmente)
+        _exec_fns_colunas = [
+            ("banco_pagamento",   "VARCHAR(120)"),
+            ("agencia_pagamento", "VARCHAR(30)"),
+            ("numero_conta_pag",  "VARCHAR(40)"),
+        ]
+        for col, typ in _exec_fns_colunas:
+            try:
+                await conn.execute(
+                    text(f"ALTER TABLE execucao_fns ADD COLUMN IF NOT EXISTS {col} {typ}")
+                )
+            except Exception:
+                pass

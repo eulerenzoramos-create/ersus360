@@ -33,6 +33,9 @@ class ExecucaoFns(Base):
     data_pagamento:   Mapped[date | None] = mapped_column(Date, nullable=True)
     pago:             Mapped[float] = mapped_column(Float, default=0.0)
     numero_ob:        Mapped[str | None] = mapped_column(String(50), nullable=True)
+    banco_pagamento:  Mapped[str | None] = mapped_column(String(120), nullable=True)
+    agencia_pagamento: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    numero_conta_pag: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     # Identificação
     fornecedor:       Mapped[str]   = mapped_column(String(200), default="")
@@ -74,7 +77,10 @@ class ExecucaoFns(Base):
             "nota_fiscal":     self.nota_fiscal,
             "data_pagamento":  self.data_pagamento.isoformat() if self.data_pagamento else None,
             "pago":            self.pago,
-            "numero_ob":       self.numero_ob,
+            "numero_ob":        self.numero_ob,
+            "banco_pagamento":  self.banco_pagamento,
+            "agencia_pagamento": self.agencia_pagamento,
+            "numero_conta_pag": self.numero_conta_pag,
             "fornecedor":      self.fornecedor,
             "cnpj_fornecedor": self.cnpj_fornecedor,
             "contrato":        self.contrato,

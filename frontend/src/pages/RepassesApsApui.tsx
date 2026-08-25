@@ -1066,7 +1066,10 @@ function ExecucaoFinanceiraPanel() {
     empenhado: "", fornecedor: "", cnpj_fornecedor: "", contrato: "", conta_pagadora: "", portaria: "", observacao: "",
   });
   const [fLiq, setFLiq] = useState({ data_liquidacao: "", liquidado: "", nota_fiscal: "", observacao: "" });
-  const [fPag, setFPag] = useState({ data_pagamento: "", pago: "", numero_ob: "", observacao: "" });
+  const [fPag, setFPag] = useState({
+    data_pagamento: "", pago: "", numero_ob: "",
+    banco_pagamento: "", agencia_pagamento: "", numero_conta_pag: "", observacao: "",
+  });
   const [fPort, setFPort] = useState({ portaria: "" });
   const [erroForm, setErroForm] = useState("");
   const [buscaBloco, setBuscaBloco] = useState("");
@@ -1125,6 +1128,15 @@ function ExecucaoFinanceiraPanel() {
     staleTime: 600_000,
   });
 
+  const { data: contasBancarias = [] } = useQuery<{
+    id: number; banco: string; agencia: string; conta: string;
+    digito: string | null; tipo: string; fonte_recurso: string | null;
+  }[]>({
+    queryKey: ["contas-bancarias-municipio"],
+    queryFn: () => apiGet("/api/municipio/1/contas"),
+    staleTime: 600_000,
+  });
+
   const abrirModal = (tipo: ModalTipo, id?: number) => {
     setErroForm("");
     setAlvoId(id ?? null);
@@ -1158,7 +1170,18 @@ function ExecucaoFinanceiraPanel() {
   const submeterPag = () => {
     if (!alvoId) return;
     if (!fPag.data_pagamento || !fPag.pago) return setErroForm("Informe data e valor.");
-    mutPag.mutate({ id: alvoId, body: { ...fPag, pago: parseFloat(fPag.pago) } });
+    mutPag.mutate({
+      id: alvoId,
+      body: {
+        data_pagamento:    fPag.data_pagamento,
+        pago:              parseFloat(fPag.pago),
+        numero_ob:         fPag.numero_ob         || null,
+        banco_pagamento:   fPag.banco_pagamento   || null,
+        agencia_pagamento: fPag.agencia_pagamento || null,
+        numero_conta_pag:  fPag.numero_conta_pag  || null,
+        observacao:        fPag.observacao         || null,
+      },
+    });
   };
   const submeterPort = () => {
     if (!alvoId) return;
@@ -1807,6 +1830,59 @@ function ExecucaoFinanceiraPanel() {
                     Registro ID: <strong>{alvoId}</strong> — {itens.find(i => i.id === alvoId)?.recurso}
                   </p>
                 )}
+                {/* ── Conta bancária ── */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>
+                    Conta bancária de pagamento
+                  </label>
+                  {contasBancarias.length > 0 ? (
+                    <select
+                      value={fPag.numero_conta_pag}
+                      onChange={e => {
+                        const sel = contasBancarias.find(c => c.conta === e.target.value);
+                        if (sel) {
+                          setFPag(p => ({
+                            ...p,
+                            banco_pagamento:   sel.banco,
+                            agencia_pagamento: sel.agencia,
+                            numero_conta_pag:  sel.conta + (sel.digito ? `-${sel.digito}` : ""),
+                          }));
+                        } else {
+                          setFPag(p => ({ ...p, banco_pagamento: "", agencia_pagamento: "", numero_conta_pag: "" }));
+                        }
+                      }}
+                      style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                        padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }}>
+                      <option value="">Selecione a conta…</option>
+                      {contasBancarias.map(c => (
+                        <option key={c.id} value={c.conta}>
+                          {c.banco} · Ag {c.agencia} · Cta {c.conta}{c.digito ? `-${c.digito}` : ""} — {c.tipo}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input type="text" value={fPag.numero_conta_pag} placeholder="Ex: Banco do Brasil · Ag 1234 · Cta 56789-0"
+                      onChange={e => setFPag(p => ({ ...p, numero_conta_pag: e.target.value }))}
+                      style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                        padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+                  )}
+                  {fPag.banco_pagamento && (
+                    <div style={{ marginTop: 6, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                      {[
+                        { label: "Banco", value: fPag.banco_pagamento },
+                        { label: "Agência", value: fPag.agencia_pagamento },
+                        { label: "Conta", value: fPag.numero_conta_pag },
+                      ].map(f => (
+                        <div key={f.label} style={{ background: C.grayLight, borderRadius: 8, padding: "6px 10px" }}>
+                          <div style={{ fontSize: 10, color: C.textSec, fontWeight: 700, textTransform: "uppercase" as const }}>{f.label}</div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: C.textPri }}>{f.value || "—"}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Outros campos ── */}
                 {[
                   { label: "Data do pagamento *", key: "data_pagamento", tipo: "date" },
                   { label: "Valor pago (R$) *", key: "pago", tipo: "number" },
