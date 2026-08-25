@@ -1074,6 +1074,8 @@ function ExecucaoFinanceiraPanel() {
   const [erroForm, setErroForm] = useState("");
   const [buscaBloco, setBuscaBloco] = useState("");
   const [blocoAberto, setBlocoAberto] = useState(false);
+  const [buscaRecurso, setBuscaRecurso] = useState("");
+  const [recursoAberto, setRecursoAberto] = useState(false);
   const [confirmExcluir, setConfirmExcluir] = useState<number | null>(null);
   const [buscaPort, setBuscaPort] = useState("");
   const [portAberto, setPortAberto] = useState(false);
@@ -1124,13 +1126,17 @@ function ExecucaoFinanceiraPanel() {
     onError: (err: any) => alert(`Erro ao excluir: ${err?.response?.data?.detail || err?.message}`),
   });
   const mutDoc = useMutation({
-    mutationFn: ({ id, body }: { id: number; body: object }) => apiPost(`/api/execucao-fns/${id}/documentos`, body),
+    mutationFn: ({ id, body }: { id: number; body: object }) =>
+      api.post(`/api/execucao-fns/${id}/documentos`, body, { timeout: 120_000 }).then(r => r.data),
     onSuccess: (data) => {
       setDocsReg(prev => [data as any, ...prev]);
       setDocArquivo(null);
       setErroForm("");
     },
-    onError: () => setErroForm("Erro ao anexar documento."),
+    onError: (err: any) => {
+      const det = err?.response?.data?.detail || err?.message || "Erro desconhecido";
+      setErroForm(`Erro ao anexar: ${typeof det === "object" ? JSON.stringify(det) : det}`);
+    },
   });
 
   const { data: portariasDisp = [] } = useQuery<string[]>({
@@ -1701,6 +1707,29 @@ function ExecucaoFinanceiraPanel() {
                       padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
                 </div>
               );
+              const RECURSOS_FNS = [
+                "PAP — Piso da Atenção Primária",
+                "MAC — Média e Alta Complexidade",
+                "Vigilância em Saúde",
+                "Assistência Farmacêutica",
+                "Gestão do SUS",
+                "MS Programa — Ministério da Saúde",
+                "Emenda Individual — Parlamentar",
+                "Emenda de Comissão",
+                "Emenda de Bancada",
+                "Emenda de Relator",
+                "Atenção Primária à Saúde",
+                "Custeio",
+                "Investimento",
+                "Pagamento de Pessoal",
+                "Saneamento",
+                "Saúde Indígena",
+                "Alimentação e Nutrição",
+                "Saúde da Mulher",
+                "Saúde do Idoso",
+                "Saúde Mental",
+                "Outro",
+              ];
               const BLOCOS_FNS = [
                 "Atenção Primária à Saúde",
                 "PAP — Piso da Atenção Primária",
@@ -1722,13 +1751,61 @@ function ExecucaoFinanceiraPanel() {
                 "Alimentação e Nutrição",
                 "Outro",
               ];
+              const recursosFiltrados = RECURSOS_FNS.filter(r =>
+                r.toLowerCase().includes(buscaRecurso.toLowerCase())
+              );
               const blocosFiltrados = BLOCOS_FNS.filter(b =>
                 b.toLowerCase().includes(buscaBloco.toLowerCase())
               );
               return (
                 <div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
-                    {inp("Recurso / Descrição *", "recurso")}
+                    {/* Recurso — select com busca */}
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Recurso / Descrição *</label>
+                      <div style={{ position: "relative" as const }}>
+                        <Search size={12} style={{ position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: C.textSec, pointerEvents: "none" as const }} />
+                        <input
+                          value={recursoAberto ? buscaRecurso : fEmpenho.recurso}
+                          placeholder="Clique ou digite para buscar…"
+                          onFocus={() => { setRecursoAberto(true); setBuscaRecurso(""); }}
+                          onBlur={() => setTimeout(() => setRecursoAberto(false), 150)}
+                          onChange={e => { setBuscaRecurso(e.target.value); setFEmpenho(p => ({ ...p, recurso: e.target.value })); }}
+                          style={{ width: "100%", paddingLeft: 30, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
+                            border: `1px solid ${recursoAberto ? C.blue : C.grayBdr}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" as const,
+                            boxShadow: recursoAberto ? `0 0 0 3px ${C.blueLight}` : "none" }} />
+                        {fEmpenho.recurso && !recursoAberto && (
+                          <button onClick={() => { setFEmpenho(p => ({ ...p, recurso: "" })); setBuscaRecurso(""); }}
+                            style={{ position: "absolute" as const, right: 8, top: "50%", transform: "translateY(-50%)",
+                              background: "none", border: "none", cursor: "pointer", color: C.textSec, display: "flex" }}>
+                            <X size={13} />
+                          </button>
+                        )}
+                      </div>
+                      {recursoAberto && (
+                        <div style={{ border: `1px solid ${C.grayBdr}`, borderRadius: 8, marginTop: 4, background: C.white,
+                          boxShadow: "0 4px 16px rgba(0,0,0,.12)", maxHeight: 200, overflowY: "auto" as const,
+                          zIndex: 20, position: "relative" as const }}>
+                          {recursosFiltrados.length === 0 ? (
+                            <div style={{ padding: "10px 14px", fontSize: 12, color: C.textSec }}>
+                              Nenhum recurso encontrado — será usado o texto digitado
+                            </div>
+                          ) : recursosFiltrados.map(r => (
+                            <div key={r}
+                              onMouseDown={() => { setFEmpenho(p => ({ ...p, recurso: r })); setBuscaRecurso(""); setRecursoAberto(false); }}
+                              style={{ padding: "10px 14px", fontSize: 13, cursor: "pointer",
+                                borderBottom: `1px solid ${C.grayLight}`,
+                                background: fEmpenho.recurso === r ? C.blueLight : C.white,
+                                color: fEmpenho.recurso === r ? C.blue : C.textPri,
+                                fontWeight: fEmpenho.recurso === r ? 700 : 400 }}
+                              onMouseEnter={e => { if (fEmpenho.recurso !== r) e.currentTarget.style.background = "#f8faff"; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = fEmpenho.recurso === r ? C.blueLight : C.white; }}>
+                              {r}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     {/* Bloco — select com busca */}
                     <div style={{ marginBottom: 14 }}>
                       <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Bloco</label>
@@ -1825,22 +1902,91 @@ function ExecucaoFinanceiraPanel() {
                   <p style={{ fontSize: 12, color: C.textSec, marginBottom: 16 }}>
                     Editando registro ID <strong>{alvoId}</strong> — alterações registradas com seu nome.
                   </p>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
-                    {inp("Recurso / Descrição *", "recurso")}
-                    <div style={{ marginBottom: 14 }}>
-                      <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Bloco</label>
-                      <input type="text" value={fEmpenho.bloco} onChange={e => setFEmpenho(p => ({ ...p, bloco: e.target.value }))}
-                        style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
-                    </div>
-                    {inp("Dotação (R$) *", "dotacao", "number")}
-                    {inp("Valor Empenhado (R$)", "empenhado", "number")}
-                    {inp("Nº do Empenho", "numero_empenho")}
-                    {inp("Data do Empenho", "data_empenho", "date")}
-                    {inp("Fornecedor", "fornecedor")}
-                    {inp("CNPJ do Fornecedor", "cnpj_fornecedor")}
-                    {inp("Contrato / Instrumento", "contrato")}
-                    {inp("Conta Pagadora", "conta_pagadora")}
-                  </div>
+                  {(() => {
+                    const RECURSOS_E = [
+                      "PAP — Piso da Atenção Primária","MAC — Média e Alta Complexidade","Vigilância em Saúde",
+                      "Assistência Farmacêutica","Gestão do SUS","MS Programa — Ministério da Saúde",
+                      "Emenda Individual — Parlamentar","Emenda de Comissão","Emenda de Bancada","Emenda de Relator",
+                      "Atenção Primária à Saúde","Custeio","Investimento","Pagamento de Pessoal",
+                      "Saneamento","Saúde Indígena","Alimentação e Nutrição","Saúde da Mulher","Saúde do Idoso","Saúde Mental","Outro",
+                    ];
+                    const BLOCOS_E = [
+                      "Atenção Primária à Saúde","PAP — Piso da Atenção Primária","Vigilância em Saúde",
+                      "Média e Alta Complexidade (MAC)","Assistência Farmacêutica","Gestão do SUS","Investimentos em Saúde",
+                      "MS Programa — Ministério da Saúde","Emenda Individual — Parlamentar","Emenda de Comissão",
+                      "Emenda de Bancada","Emenda de Relator","Custeio","Investimento","Pagamento de Pessoal","Outro",
+                    ];
+                    const rfilt = RECURSOS_E.filter(r => r.toLowerCase().includes(buscaRecurso.toLowerCase()));
+                    const bfilt = BLOCOS_E.filter(b => b.toLowerCase().includes(buscaBloco.toLowerCase()));
+                    return (
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+                        {/* Recurso */}
+                        <div style={{ marginBottom: 14 }}>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Recurso / Descrição *</label>
+                          <div style={{ position: "relative" as const }}>
+                            <Search size={12} style={{ position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: C.textSec, pointerEvents: "none" as const }} />
+                            <input value={recursoAberto ? buscaRecurso : fEmpenho.recurso} placeholder="Clique ou digite…"
+                              onFocus={() => { setRecursoAberto(true); setBuscaRecurso(""); }}
+                              onBlur={() => setTimeout(() => setRecursoAberto(false), 150)}
+                              onChange={e => { setBuscaRecurso(e.target.value); setFEmpenho(p => ({ ...p, recurso: e.target.value })); }}
+                              style={{ width: "100%", paddingLeft: 30, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
+                                border: `1px solid ${recursoAberto ? C.blue : C.grayBdr}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+                          </div>
+                          {recursoAberto && (
+                            <div style={{ border: `1px solid ${C.grayBdr}`, borderRadius: 8, marginTop: 4, background: C.white,
+                              boxShadow: "0 4px 16px rgba(0,0,0,.12)", maxHeight: 180, overflowY: "auto" as const, zIndex: 20, position: "relative" as const }}>
+                              {rfilt.map(r => (
+                                <div key={r} onMouseDown={() => { setFEmpenho(p => ({ ...p, recurso: r })); setRecursoAberto(false); }}
+                                  style={{ padding: "9px 14px", fontSize: 13, cursor: "pointer",
+                                    background: fEmpenho.recurso === r ? C.blueLight : C.white,
+                                    color: fEmpenho.recurso === r ? C.blue : C.textPri, fontWeight: fEmpenho.recurso === r ? 700 : 400 }}
+                                  onMouseEnter={e => { if (fEmpenho.recurso !== r) e.currentTarget.style.background = "#f8faff"; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = fEmpenho.recurso === r ? C.blueLight : C.white; }}>
+                                  {r}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {/* Bloco */}
+                        <div style={{ marginBottom: 14 }}>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Bloco</label>
+                          <div style={{ position: "relative" as const }}>
+                            <Search size={12} style={{ position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: C.textSec, pointerEvents: "none" as const }} />
+                            <input value={blocoAberto ? buscaBloco : fEmpenho.bloco} placeholder="Clique ou digite…"
+                              onFocus={() => { setBlocoAberto(true); setBuscaBloco(""); }}
+                              onBlur={() => setTimeout(() => setBlocoAberto(false), 150)}
+                              onChange={e => { setBuscaBloco(e.target.value); setFEmpenho(p => ({ ...p, bloco: e.target.value })); }}
+                              style={{ width: "100%", paddingLeft: 30, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
+                                border: `1px solid ${blocoAberto ? C.blue : C.grayBdr}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+                          </div>
+                          {blocoAberto && (
+                            <div style={{ border: `1px solid ${C.grayBdr}`, borderRadius: 8, marginTop: 4, background: C.white,
+                              boxShadow: "0 4px 16px rgba(0,0,0,.12)", maxHeight: 180, overflowY: "auto" as const, zIndex: 20, position: "relative" as const }}>
+                              {bfilt.map(b => (
+                                <div key={b} onMouseDown={() => { setFEmpenho(p => ({ ...p, bloco: b })); setBlocoAberto(false); }}
+                                  style={{ padding: "9px 14px", fontSize: 13, cursor: "pointer",
+                                    background: fEmpenho.bloco === b ? C.blueLight : C.white,
+                                    color: fEmpenho.bloco === b ? C.blue : C.textPri, fontWeight: fEmpenho.bloco === b ? 700 : 400 }}
+                                  onMouseEnter={e => { if (fEmpenho.bloco !== b) e.currentTarget.style.background = "#f8faff"; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = fEmpenho.bloco === b ? C.blueLight : C.white; }}>
+                                  {b}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {inp("Dotação (R$) *", "dotacao", "number")}
+                        {inp("Valor Empenhado (R$)", "empenhado", "number")}
+                        {inp("Nº do Empenho", "numero_empenho")}
+                        {inp("Data do Empenho", "data_empenho", "date")}
+                        {inp("Fornecedor", "fornecedor")}
+                        {inp("CNPJ do Fornecedor", "cnpj_fornecedor")}
+                        {inp("Contrato / Instrumento", "contrato")}
+                        {inp("Conta Pagadora", "conta_pagadora")}
+                      </div>
+                    );
+                  })()}
                   {inp("Observação", "observacao")}
                   {erroForm && <p style={{ fontSize: 12, color: "#dc2626", marginBottom: 10 }}>{erroForm}</p>}
                   <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
@@ -2144,7 +2290,7 @@ function ExecucaoFinanceiraPanel() {
                           <span style={{ fontSize: 13, fontWeight: 600, color: C.textPri }}>{d.nome}</span>
                           <span style={{ fontSize: 11, color: C.textSec, marginLeft: 8 }}>{d.tamanho_kb} KB</span>
                         </div>
-                        <a href={`/api/execucao-fns/documentos/${d.id}/download`} target="_blank" rel="noreferrer"
+                        <a href={`${import.meta.env.VITE_API_URL ?? ""}/api/execucao-fns/documentos/${d.id}/download`} target="_blank" rel="noreferrer"
                           style={{ fontSize: 11, color: C.blue, textDecoration: "none", fontWeight: 600 }}>
                           Baixar
                         </a>
