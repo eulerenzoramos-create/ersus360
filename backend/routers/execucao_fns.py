@@ -195,12 +195,20 @@ async def enviar_relatorio_email(body: dict, db: AsyncSession = Depends(get_db))
 
 @router.post("/empenho", status_code=201)
 async def cadastrar_empenho(body: EmpenhoIn, db: AsyncSession = Depends(get_db)):
-    item = ExecucaoFns(**body.model_dump())
-    item.situacao = _calcular_situacao(item)
-    db.add(item)
-    await db.commit()
-    await db.refresh(item)
-    return item.to_dict()
+    import logging
+    log = logging.getLogger(__name__)
+    try:
+        dados = body.model_dump()
+        log.info("Cadastrar empenho payload: %s", dados)
+        item = ExecucaoFns(**dados)
+        item.situacao = _calcular_situacao(item)
+        db.add(item)
+        await db.commit()
+        await db.refresh(item)
+        return item.to_dict()
+    except Exception as exc:
+        log.error("Erro ao cadastrar empenho: %s", exc, exc_info=True)
+        raise HTTPException(500, f"Erro interno: {exc}")
 
 
 @router.put("/{item_id}/liquidacao")

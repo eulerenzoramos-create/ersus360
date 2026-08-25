@@ -1089,7 +1089,10 @@ function ExecucaoFinanceiraPanel() {
   const mutEmpenho = useMutation({
     mutationFn: (body: object) => apiPost("/api/execucao-fns/empenho", body),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["execucao-financeira-fns"] }); setModal(null); setErroForm(""); },
-    onError: () => setErroForm("Erro ao salvar. Verifique os campos e tente novamente."),
+    onError: (err: any) => {
+      const detail = err?.response?.data?.detail || err?.message || "Erro desconhecido";
+      setErroForm(`Erro: ${typeof detail === "object" ? JSON.stringify(detail) : detail}`);
+    },
   });
   const mutLiq = useMutation({
     mutationFn: ({ id, body }: { id: number; body: object }) => apiPut(`/api/execucao-fns/${id}/liquidacao`, body),
