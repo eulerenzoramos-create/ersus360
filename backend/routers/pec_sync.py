@@ -133,18 +133,23 @@ def _listar_competencias() -> list[str]:
 
 
 # ── Referência municipal — Apuí/AM (derivado de scores SIAPS Q2/2026) ────────
-# C2=DTP(ind3), C3=avg(pré-natal ind1, puerpério ind4), C4=DM(ind9),
-# C5=HAS(ind8), C7=citopatológico(ind2). Fonte: SIAPS — competência Mai/2026.
+# eSF C2-C7: C2=DTP(ind3), C3=avg(ind1,ind4), C4=DM(ind9), C5=HAS(ind8), C7=cito(ind2)
+# eSB B1-B2: B1=1ªConsulta(ind5), B2=TratamentoComp(ind6)
+# eSFR R2-R6: mesmos critérios C2-C7 aplicados à equipe ribeirinha
+# Fonte: SIAPS — competência Mai/2026. C1/C6/B3/B4/M1/M2 indisponíveis sem agente PEC.
 _REF_INDICADORES: Dict[str, Dict[str, float]] = {
-    "CACHOEIRA":     {"C2": 88.0, "C3": 88.0, "C4": 63.0, "C5": 79.0, "C7": 43.0},
-    "SÃO SEBASTIÃO": {"C2": 82.0, "C3": 84.5, "C4": 58.0, "C5": 75.0, "C7": 41.0},
-    "ACARI":         {"C2": 80.0, "C3": 84.5, "C4": 60.0, "C5": 77.0, "C7": 40.0},
-    "TRÊS ESTADOS":  {"C2": 63.0, "C3": 61.5, "C4": 46.0, "C5": 58.0, "C7": 28.0},
-    "JUMA":          {"C2": 85.0, "C3": 89.5, "C4": 64.0, "C5": 81.0, "C7": 45.0},
-    "LIBERDADE":     {"C2": 91.0, "C3": 95.5, "C4": 71.0, "C5": 85.0, "C7": 52.0},
-    "KENNEDY":       {"C2": 76.0, "C3": 76.0, "C4": 68.0, "C5": 82.0, "C7": 40.0},
-    "JK":            {"C2": 86.0, "C3": 86.5, "C4": 62.0, "C5": 78.0, "C7": 43.0},
-    "ESTRADA NOVA":  {"C2": 55.0, "C3": 50.5, "C4": 36.0, "C5": 49.0, "C7": 20.0},
+    "CACHOEIRA":     {"C2":88.0,"C3":88.0,"C4":63.0,"C5":79.0,"C7":43.0, "B1":39.0,"B2":30.0},
+    "SÃO SEBASTIÃO": {"C2":82.0,"C3":84.5,"C4":58.0,"C5":75.0,"C7":41.0, "B1":37.0,"B2":29.0},
+    "ACARI":         {"C2":80.0,"C3":84.5,"C4":60.0,"C5":77.0,"C7":40.0, "B1":37.0,"B2":29.0},
+    "TRÊS ESTADOS":  {"C2":63.0,"C3":61.5,"C4":46.0,"C5":58.0,"C7":28.0, "B1":25.0,"B2":18.0},
+    "JUMA":          {"C2":85.0,"C3":89.5,"C4":64.0,"C5":81.0,"C7":45.0, "B1":39.0,"B2":31.0},
+    "LIBERDADE":     {"C2":91.0,"C3":95.5,"C4":71.0,"C5":85.0,"C7":52.0, "B1":46.0,"B2":39.0},
+    "KENNEDY":       {"C2":76.0,"C3":76.0,"C4":68.0,"C5":82.0,"C7":40.0, "B1":50.0,"B2":46.0},
+    "JK":            {"C2":86.0,"C3":86.5,"C4":62.0,"C5":78.0,"C7":43.0, "B1":38.0,"B2":30.0},
+    # ESTRADA NOVA = eSFR; R-codes espelham C-codes para equipes ribeirinhas
+    "ESTRADA NOVA":  {"C2":55.0,"C3":50.5,"C4":36.0,"C5":49.0,"C7":20.0,
+                      "R2":55.0,"R3":50.5,"R4":36.0,"R5":49.0,"R6":20.0,
+                      "B1":21.0,"B2":15.0},
 }
 _REF_TIPOS_EQUIPE: Dict[str, str] = {
     "CACHOEIRA": "eSF", "SÃO SEBASTIÃO": "eSF", "ACARI": "eSF",
