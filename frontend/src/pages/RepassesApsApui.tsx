@@ -1069,6 +1069,7 @@ function ExecucaoFinanceiraPanel() {
   const [fPag, setFPag] = useState({ data_pagamento: "", pago: "", numero_ob: "", observacao: "" });
   const [fPort, setFPort] = useState({ portaria: "" });
   const [erroForm, setErroForm] = useState("");
+  const [buscaBloco, setBuscaBloco] = useState("");
 
   const { data: itens = [], isLoading } = useQuery<ExecucaoItem[]>({
     queryKey: ["execucao-financeira-fns"],
@@ -1440,11 +1441,51 @@ function ExecucaoFinanceiraPanel() {
                       padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
                 </div>
               );
+              const BLOCOS_FNS = [
+                "Atenção Primária à Saúde",
+                "Vigilância em Saúde",
+                "Média e Alta Complexidade (MAC)",
+                "Assistência Farmacêutica",
+                "Gestão do SUS",
+                "Investimentos em Saúde",
+                "Saneamento",
+                "Saúde Indígena",
+                "Alimentação e Nutrição",
+                "Outro",
+              ];
+              const blocosFiltrados = BLOCOS_FNS.filter(b =>
+                b.toLowerCase().includes(buscaBloco.toLowerCase())
+              );
               return (
                 <div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
                     {inp("Recurso / Descrição *", "recurso")}
-                    {inp("Bloco", "bloco", "text", "Ex: Atenção Primária")}
+                    {/* Bloco — select com busca */}
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Bloco</label>
+                      <div style={{ position: "relative" as const }}>
+                        <Search size={12} style={{ position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: C.textSec, pointerEvents: "none" as const }} />
+                        <input
+                          value={buscaBloco || fEmpenho.bloco}
+                          placeholder="Buscar bloco…"
+                          onChange={e => { setBuscaBloco(e.target.value); setFEmpenho(p => ({ ...p, bloco: e.target.value })); }}
+                          style={{ width: "100%", paddingLeft: 30, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
+                            border: `1px solid ${C.grayBdr}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+                      </div>
+                      {buscaBloco && blocosFiltrados.length > 0 && (
+                        <div style={{ border: `1px solid ${C.grayBdr}`, borderRadius: 8, marginTop: 4, background: C.white,
+                          boxShadow: "0 4px 12px rgba(0,0,0,.1)", maxHeight: 180, overflowY: "auto" as const, zIndex: 10, position: "relative" as const }}>
+                          {blocosFiltrados.map(b => (
+                            <div key={b} onClick={() => { setFEmpenho(p => ({ ...p, bloco: b })); setBuscaBloco(""); }}
+                              style={{ padding: "9px 14px", fontSize: 13, cursor: "pointer", borderBottom: `1px solid ${C.grayLight}` }}
+                              onMouseEnter={e => (e.currentTarget.style.background = C.blueLight)}
+                              onMouseLeave={e => (e.currentTarget.style.background = C.white)}>
+                              {b}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     {inp("Dotação (R$) *", "dotacao", "number", "0,00")}
                     {inp("Valor empenhado (R$)", "empenhado", "number", "0,00")}
                     {inp("Nº do empenho", "numero_empenho")}
