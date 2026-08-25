@@ -1028,12 +1028,289 @@ function ApsPanel() {
   );
 }
 
-// ─── Container principal com 3 abas ──────────────────────────────────────────
+// ─── Execução Financeira ──────────────────────────────────────────────────────
+const SITUACAO_COR: Record<string, [string, string, string]> = {
+  "Pago":       ["#059669", "#f0fdf4", "#bbf7d0"],
+  "Liquidado":  ["#1565c0", "#e3f0ff", "#bfdbfe"],
+  "Empenhado":  ["#d97706", "#fffbeb", "#fde68a"],
+  "Pendente":   ["#dc2626", "#fef2f2", "#fecaca"],
+};
+
+function BadgeSit({ sit }: { sit: string }) {
+  const [cor, bg, bdr] = SITUACAO_COR[sit] ?? ["#6b7280", "#f4f6f8", "#e4e7ec"];
+  return <Badge cor={cor} bg={bg} bdr={bdr}>{sit}</Badge>;
+}
+
+type ExecucaoItem = {
+  id: number; recurso: string; bloco: string; dotacao: number;
+  empenhado: number; liquidado: number; pago: number;
+  fornecedor: string; contrato: string; conta_pagadora: string;
+  situacao: string; percentual: number;
+};
+
+function ExecucaoFinanceiraPanel() {
+  const [filtroBloco, setFiltroBloco] = useState("Todos");
+  const [filtroSit, setFiltroSit] = useState("Todos");
+  const [busca, setBusca] = useState("");
+  const [expandido, setExpandido] = useState<number | null>(null);
+
+  const { data: itens = [], isLoading } = useQuery<ExecucaoItem[]>({
+    queryKey: ["execucao-financeira-fns"],
+    queryFn: () => apiGet("/api/execucao-fns"),
+    staleTime: 300_000,
+    retry: false,
+  });
+
+  const totalDot  = itens.reduce((s, i) => s + i.dotacao, 0);
+  const totalEmp  = itens.reduce((s, i) => s + i.empenhado, 0);
+  const totalLiq  = itens.reduce((s, i) => s + i.liquidado, 0);
+  const totalPago = itens.reduce((s, i) => s + i.pago, 0);
+  const saldo     = totalDot - totalPago;
+  const pctExec   = totalDot > 0 ? ((totalPago / totalDot) * 100).toFixed(1) : "—";
+
+  const blocos  = ["Todos", ...Array.from(new Set(itens.map(i => i.bloco)))];
+  const sits    = ["Todos", "Empenhado", "Liquidado", "Pago", "Pendente"];
+
+  const filtrados = itens.filter(i => {
+    const mb = filtroBloco === "Todos" || i.bloco === filtroBloco;
+    const ms = filtroSit   === "Todos" || i.situacao === filtroSit;
+    const mq = busca === "" || i.recurso.toLowerCase().includes(busca.toLowerCase()) ||
+               i.fornecedor.toLowerCase().includes(busca.toLowerCase());
+    return mb && ms && mq;
+  });
+
+  const KD = { background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 12,
+    padding: "16px 18px", flex: "1 1 0", minWidth: 140 };
+  const KL = { fontSize: 11, fontWeight: 600 as const, color: C.textSec, textTransform: "uppercase" as const, letterSpacing: "0.04em", marginBottom: 6 };
+  const KV = { fontSize: 20, fontWeight: 800 as const, color: C.textPri, fontVariantNumeric: "tabular-nums" as const };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column" as const, gap: 20 }}>
+
+      {/* ── Aviso de não duplicar ── */}
+      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10,
+        padding: "10px 16px", display: "flex", gap: 10, alignItems: "flex-start", fontSize: 12, color: "#1e40af" }}>
+        <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+        <span>
+          Os valores registrados aqui referem-se à <strong>execução dos recursos FNS já recebidos</strong>.
+          Não somam automaticamente com os valores do e-Gestor APS ou do FNS. Somente valores conciliados participam do consolidado.
+        </span>
+      </div>
+
+      {/* ── Fluxo de execução ── */}
+      <div style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 12, padding: "16px 20px" }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.textSec, marginBottom: 12, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>
+          Fluxo de execução financeira
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 0, flexWrap: "wrap" as const }}>
+          {[
+            { label: "Repasse recebido", valor: BRL(totalDot), cor: "#059669", bg: "#f0fdf4" },
+            { label: "Empenho", valor: BRL(totalEmp), cor: "#d97706", bg: "#fffbeb" },
+            { label: "Liquidação", valor: BRL(totalLiq), cor: "#1565c0", bg: "#e3f0ff" },
+            { label: "Pagamento", valor: BRL(totalPago), cor: "#7c3aed", bg: "#f3e8ff" },
+            { label: "Saldo livre", valor: BRL(saldo), cor: "#059669", bg: "#f0fdf4" },
+          ].map((f, i, arr) => (
+            <div key={f.label} style={{ display: "flex", alignItems: "center" }}>
+              <div style={{ background: f.bg, border: `1px solid ${f.cor}22`, borderRadius: 10,
+                padding: "10px 16px", textAlign: "center" as const, minWidth: 110 }}>
+                <div style={{ fontSize: 10, color: f.cor, fontWeight: 700, textTransform: "uppercase" as const, marginBottom: 4 }}>{f.label}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: f.cor, fontVariantNumeric: "tabular-nums" as const }}>{f.valor}</div>
+              </div>
+              {i < arr.length - 1 && (
+                <ChevronRight size={18} color={C.grayBdr2} style={{ margin: "0 4px" }} />
+              )}
+            </div>
+          ))}
+          <div style={{ marginLeft: 16, background: C.grayLight, borderRadius: 10, padding: "10px 16px", textAlign: "center" as const }}>
+            <div style={{ fontSize: 10, color: C.textSec, fontWeight: 700, textTransform: "uppercase" as const, marginBottom: 4 }}>% Executado</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.textPri }}>{pctExec}{pctExec !== "—" ? "%" : ""}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Cards de resumo ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12 }}>
+        {[
+          { label: "Dotação / Recebido", valor: BRL(totalDot), cor: "#059669" },
+          { label: "Total empenhado",    valor: BRL(totalEmp), cor: "#d97706" },
+          { label: "Total liquidado",    valor: BRL(totalLiq), cor: "#1565c0" },
+          { label: "Total pago",         valor: BRL(totalPago), cor: "#7c3aed" },
+          { label: "Saldo a pagar",      valor: BRL(saldo), cor: C.textPri },
+        ].map(k => (
+          <div key={k.label} style={KD}>
+            <div style={KL}>{k.label}</div>
+            <div style={{ ...KV, color: k.cor }}>{k.valor}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Barra de ações ── */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
+        {[
+          { label: "Cadastrar empenho", cor: C.blue },
+          { label: "Registrar liquidação", cor: C.blue },
+          { label: "Registrar pagamento", cor: C.blue },
+          { label: "Vincular portaria", cor: "#6b7280" },
+          { label: "Anexar documento", cor: "#6b7280" },
+        ].map(b => (
+          <button key={b.label} title="Em implantação — backend em desenvolvimento"
+            style={{ background: b.cor, color: "#fff", border: "none", borderRadius: 8,
+              padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "not-allowed", opacity: 0.6 }}>
+            {b.label}
+          </button>
+        ))}
+        <button onClick={() => {}} title="Exportar"
+          style={{ display: "flex", alignItems: "center", gap: 6, background: C.white,
+            border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "8px 14px",
+            fontSize: 12, fontWeight: 600, color: C.textPri, cursor: "pointer" }}>
+          <Download size={13} /> Exportar XLSX
+        </button>
+      </div>
+
+      {/* ── Filtros ── */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
+        <div style={{ position: "relative" as const, flex: 1, minWidth: 200 }}>
+          <Search size={13} style={{ position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: C.textSec }} />
+          <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar recurso ou fornecedor…"
+            style={{ width: "100%", paddingLeft: 32, paddingRight: 12, paddingTop: 8, paddingBottom: 8,
+              border: `1px solid ${C.grayBdr}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+        </div>
+        <select value={filtroBloco} onChange={e => setFiltroBloco(e.target.value)}
+          style={{ border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "8px 12px", fontSize: 13, background: C.white }}>
+          {blocos.map(b => <option key={b}>{b}</option>)}
+        </select>
+        <select value={filtroSit} onChange={e => setFiltroSit(e.target.value)}
+          style={{ border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "8px 12px", fontSize: 13, background: C.white }}>
+          {sits.map(s => <option key={s}>{s}</option>)}
+        </select>
+        {(busca || filtroBloco !== "Todos" || filtroSit !== "Todos") && (
+          <button onClick={() => { setBusca(""); setFiltroBloco("Todos"); setFiltroSit("Todos"); }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: C.textSec, display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+            <X size={13} /> Limpar
+          </button>
+        )}
+      </div>
+
+      {/* ── Tabela ── */}
+      <div style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" as const }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: C.grayLight, borderBottom: `2px solid ${C.grayBdr}` }}>
+                {["Recurso / Bloco", "Dotação", "Empenhado", "Liquidado", "Pago", "Saldo", "% Exec.", "Fornecedor", "Conta", "Situação", ""].map(h => (
+                  <th key={h} style={{ padding: "10px 14px", textAlign: "left" as const, fontWeight: 700,
+                    color: C.textSec, fontSize: 11, textTransform: "uppercase" as const, whiteSpace: "nowrap" as const }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading && (
+                <tr><td colSpan={11} style={{ textAlign: "center" as const, padding: 40, color: C.textSec }}>
+                  <RefreshCw size={18} style={{ animation: "spin 1s linear infinite" }} />
+                </td></tr>
+              )}
+              {!isLoading && filtrados.length === 0 && (
+                <tr><td colSpan={11}>
+                  <div style={{ textAlign: "center" as const, padding: "48px 24px", color: C.textSec }}>
+                    <FileText size={36} color={C.grayBdr} style={{ marginBottom: 12 }} />
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6, color: C.textPri }}>
+                      Nenhum registro de execução cadastrado
+                    </div>
+                    <div style={{ fontSize: 12, maxWidth: 400, margin: "0 auto", lineHeight: 1.6 }}>
+                      Use os botões acima para cadastrar empenhos, liquidações e pagamentos
+                      vinculados aos recursos do Fundo Nacional de Saúde recebidos por Apuí/AM.
+                    </div>
+                    <div style={{ marginTop: 16, fontSize: 11, color: C.textMut }}>
+                      Colunas disponíveis: Recurso · Bloco · Dotação · Empenho · Liquidação · Pagamento · Fornecedor · Contrato · Nota Fiscal · Conta Pagadora · Saldo · % Execução · Documentos
+                    </div>
+                  </div>
+                </td></tr>
+              )}
+              {!isLoading && filtrados.map((it, idx) => (
+                <>
+                  <tr key={it.id} style={{ background: idx % 2 === 0 ? C.white : C.rowAlt,
+                    borderBottom: `1px solid ${C.grayBdr}`, cursor: "pointer" }}
+                    onClick={() => setExpandido(expandido === it.id ? null : it.id)}>
+                    <td style={{ padding: "10px 14px", fontWeight: 600, color: C.textPri }}>
+                      <div>{it.recurso}</div>
+                      <div style={{ fontSize: 10, color: C.textSec }}>{it.bloco}</div>
+                    </td>
+                    <td style={{ padding: "10px 14px", fontVariantNumeric: "tabular-nums" }}>{BRL(it.dotacao)}</td>
+                    <td style={{ padding: "10px 14px", fontVariantNumeric: "tabular-nums", color: "#d97706" }}>{BRL(it.empenhado)}</td>
+                    <td style={{ padding: "10px 14px", fontVariantNumeric: "tabular-nums", color: "#1565c0" }}>{BRL(it.liquidado)}</td>
+                    <td style={{ padding: "10px 14px", fontVariantNumeric: "tabular-nums", color: "#7c3aed" }}>{BRL(it.pago)}</td>
+                    <td style={{ padding: "10px 14px", fontVariantNumeric: "tabular-nums", color: "#059669" }}>{BRL(it.dotacao - it.pago)}</td>
+                    <td style={{ padding: "10px 14px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ width: 60, height: 6, background: C.grayBdr, borderRadius: 4, overflow: "hidden" }}>
+                          <div style={{ width: `${it.percentual}%`, height: "100%", background: "#059669", borderRadius: 4 }} />
+                        </div>
+                        <span style={{ fontSize: 11 }}>{it.percentual.toFixed(1)}%</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: "10px 14px", color: C.textSec }}>{it.fornecedor || "—"}</td>
+                    <td style={{ padding: "10px 14px", color: C.textSec }}>{it.conta_pagadora || "—"}</td>
+                    <td style={{ padding: "10px 14px" }}><BadgeSit sit={it.situacao} /></td>
+                    <td style={{ padding: "10px 14px" }}>
+                      <button style={{ background: "none", border: `1px solid ${C.grayBdr}`, borderRadius: 6,
+                        padding: "4px 10px", fontSize: 11, cursor: "pointer", color: C.blue }}>
+                        {expandido === it.id ? "Fechar" : "Fluxo"}
+                      </button>
+                    </td>
+                  </tr>
+                  {expandido === it.id && (
+                    <tr key={`${it.id}-det`}><td colSpan={11} style={{ background: "#f8faff", padding: "16px 20px", borderBottom: `1px solid ${C.grayBdr}` }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.textSec, marginBottom: 10 }}>
+                        FLUXO COMPLETO — {it.recurso}
+                      </div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+                        {[
+                          { label: "Repasse", valor: BRL(it.dotacao), ok: true },
+                          { label: "Empenho", valor: BRL(it.empenhado), ok: it.empenhado > 0 },
+                          { label: "Liquidação", valor: BRL(it.liquidado), ok: it.liquidado > 0 },
+                          { label: "Pagamento", valor: BRL(it.pago), ok: it.pago > 0 },
+                          { label: "Mov. Bancária", valor: "—", ok: false },
+                          { label: "Documentos", valor: it.contrato || "—", ok: !!it.contrato },
+                        ].map((f, fi, fa) => (
+                          <div key={f.label} style={{ display: "flex", alignItems: "center" }}>
+                            <div style={{ background: f.ok ? "#f0fdf4" : C.grayLight,
+                              border: `1px solid ${f.ok ? "#bbf7d0" : C.grayBdr}`, borderRadius: 8, padding: "8px 12px", minWidth: 100 }}>
+                              <div style={{ fontSize: 10, color: f.ok ? "#059669" : C.textSec, fontWeight: 700, marginBottom: 3 }}>{f.label}</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: f.ok ? "#059669" : C.textMut }}>{f.valor}</div>
+                            </div>
+                            {fi < fa.length - 1 && <ChevronRight size={14} color={C.grayBdr2} style={{ margin: "0 2px" }} />}
+                          </div>
+                        ))}
+                      </div>
+                    </td></tr>
+                  )}
+                </>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!isLoading && filtrados.length > 0 && (
+          <div style={{ padding: "12px 16px", background: "#f8faff", borderTop: `1px solid ${C.grayBdr}`,
+            display: "flex", gap: 24, fontSize: 12, color: C.textSec, flexWrap: "wrap" as const }}>
+            <span><strong style={{ color: C.textPri }}>{filtrados.length}</strong> registros</span>
+            <span>Dotação: <strong style={{ color: C.textPri }}>{BRL(totalDot)}</strong></span>
+            <span>Empenhado: <strong style={{ color: "#d97706" }}>{BRL(totalEmp)}</strong></span>
+            <span>Pago: <strong style={{ color: "#7c3aed" }}>{BRL(totalPago)}</strong></span>
+            <span>Saldo: <strong style={{ color: "#059669" }}>{BRL(saldo)}</strong></span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Container principal com abas ─────────────────────────────────────────────
 const ABAS = [
   { id: "aps",        label: "Atenção Primária — e-Gestor APS",  desc: "Competências, parcelas, componentes, equipes" },
   { id: "fns",        label: "Repasses do Fundo Nacional de Saúde", desc: "Transferências fundo a fundo por tipo" },
   { id: "matriz",     label: "Repasses Mensais — FNS",           desc: "Tabela matricial por grupo e mês" },
   { id: "conciliacao",label: "Conciliação e-Gestor APS × FNS",   desc: "Comparativo sem dupla contagem" },
+  { id: "execucao",   label: "Execução Financeira",              desc: "Empenho · Liquidação · Pagamento · Fluxo" },
 ] as const;
 
 const CB = {
@@ -1042,7 +1319,7 @@ const CB = {
 };
 
 export default function RepassesApsApui() {
-  const [aba, setAba] = useState<"aps" | "fns" | "matriz" | "conciliacao">("aps");
+  const [aba, setAba] = useState<"aps" | "fns" | "matriz" | "conciliacao" | "execucao">("aps");
 
   return (
     <div style={{ background: CB.grayLight, minHeight: "100vh", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -1091,6 +1368,7 @@ export default function RepassesApsApui() {
         {aba === "fns"         && <RepassesFnsPanel />}
         {aba === "matriz"      && <MatrizFnsLazy />}
         {aba === "conciliacao" && <ConciliacaoFnsPanel />}
+        {aba === "execucao"    && <ExecucaoFinanceiraPanel />}
       </div>
     </div>
   );
