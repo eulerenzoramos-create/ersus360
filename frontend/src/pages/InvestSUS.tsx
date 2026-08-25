@@ -227,6 +227,96 @@ function DashboardInvestSUS({ municipio_id }: { municipio_id: number }) {
         </div>
       </div>
 
+      {/* Componente + Tipo Emenda */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+        {/* Por componente — barras horizontais */}
+        {(data.por_componente ?? []).length > 0 && (
+          <div style={S.card}>
+            <div style={S.title}>Por Componente (PAP/MAC)</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[...(data.por_componente ?? [])]
+                .sort((a: any, b: any) => b.valor - a.valor)
+                .map((c: any, i: number) => {
+                  const total = (data.por_componente ?? []).reduce((s: number, x: any) => s + x.valor, 0);
+                  const pct = total > 0 ? (c.valor / total) * 100 : 0;
+                  const cores = ["#1e3a5f","#0284c7","#059669","#7c3aed","#d97706","#dc2626"];
+                  const cor = cores[i % cores.length];
+                  return (
+                    <div key={c.componente}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
+                        <span style={{ fontWeight: 600, color: "#374151" }}>{c.componente || "Não informado"}</span>
+                        <span style={{ color: cor, fontWeight: 700 }}>{fmt(c.valor)}</span>
+                      </div>
+                      <div style={{ height: 6, background: "#f3f4f6", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ width: `${pct}%`, height: "100%", background: cor, borderRadius: 3 }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 1 }}>{pct.toFixed(1)}% do total</div>
+                    </div>
+                  );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Por tipo de emenda — donut simples */}
+        {(data.por_tipo_emenda ?? []).length > 0 && (
+          <div style={S.card}>
+            <div style={S.title}>Por Tipo de Emenda</div>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={data.por_tipo_emenda}
+                  dataKey="valor"
+                  nameKey="tipo"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={3}>
+                  {(data.por_tipo_emenda ?? []).map((_: any, i: number) => (
+                    <Cell key={i} fill={["#1e3a5f","#0284c7","#059669","#d97706","#7c3aed"][i % 5]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v: number) => fmt(v)} />
+                <Legend
+                  formatter={(value: string) => ({
+                    individual: "Individual",
+                    bancada: "Bancada",
+                    comissao: "Comissão",
+                    relator: "Relator",
+                    outro: "Outro",
+                  }[value] ?? value)}
+                  wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      {/* Barra de execução consolidada */}
+      <div style={{ ...S.card, marginBottom: 14 }}>
+        <div style={S.title}>Execução Financeira Consolidada</div>
+        {[
+          { label: "Indicado → Aprovado", de: data.total_indicado, ate: data.total_aprovado, cor: "#0284c7" },
+          { label: "Indicado → Pago",     de: data.total_indicado, ate: data.total_pago,     cor: "#059669" },
+          { label: "Pago → Executado",    de: data.total_pago,     ate: data.total_executado, cor: "#16a34a" },
+          { label: "Saldo a Executar",    de: data.total_pago,     ate: data.saldo_executar,  cor: "#d97706" },
+        ].map(({ label, de, ate, cor }) => {
+          const pct = de > 0 ? Math.min((ate / de) * 100, 100) : 0;
+          return (
+            <div key={label} style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
+                <span style={{ fontWeight: 600, color: "#374151" }}>{label}</span>
+                <span style={{ fontWeight: 700, color: cor }}>{fmt(ate)} <span style={{ color: "#9ca3af" }}>({pct.toFixed(1)}%)</span></span>
+              </div>
+              <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ width: `${pct}%`, height: "100%", background: cor, borderRadius: 4, transition: "width .6s" }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Totais */}
       <div style={{ ...S.card, background: "#f9fafb" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
