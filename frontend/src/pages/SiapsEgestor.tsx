@@ -2573,15 +2573,14 @@ function AbaDiagnosticoCobertura() {
       {/* KPIs gerais */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
         {[
-          { label: "Teto eSF",       val: tetos.esf ?? 0,                   cor: "#1d4ed8", sub: "equipes" },
-          { label: "eSF Pagas",      val: esf.qt_pagas ?? 0,                cor: "#16a34a", sub: "equipes" },
-          { label: "ACS Teto",       val: acs.qt_teto ?? 0,                 cor: "#7c3aed", sub: "agentes" },
-          { label: "Total calculado",val: BRL_local(data.total_calculado),  cor: "#d97706", sub: "repasse" },
+          { label: "Teto",            val: tetos.esf ?? 0,                   cor: "#1d4ed8" },
+          { label: "eSF Pagas",      val: esf.qt_pagas ?? 0,                cor: "#16a34a" },
+          { label: "ACS Teto",       val: acs.qt_teto ?? 0,                 cor: "#7c3aed" },
+          { label: "Total calculado",val: BRL_local(data.total_calculado),  cor: "#d97706" },
         ].map(k => (
           <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: k.cor }}>{k.val}</div>
             <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{k.label}</div>
-            <div style={{ fontSize: 10, color: "#9ca3af" }}>{k.sub}</div>
           </div>
         ))}
       </div>
