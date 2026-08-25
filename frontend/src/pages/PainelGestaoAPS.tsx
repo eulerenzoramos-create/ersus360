@@ -434,12 +434,206 @@ function AbaEquipesESF() {
   );
 }
 
+// ── Aba: Indicadores C1–C7 (e-SUS PEC) ────────────────────────────────────────
+
+const _META_C: Record<string, number> = {
+  C1: 75, C2: 75, C3: 70, C4: 50, C5: 50, C6: 60, C7: 40,
+};
+const _DESC_C: Record<string, string> = {
+  C1: "Mais Acesso", C2: "Desenv. Infantil", C3: "Gestação/Puerpério",
+  C4: "Diabetes", C5: "Hipertensão", C6: "Pessoa Idosa", C7: "Prev. Câncer Colo",
+};
+
+function GaugeBar({ valor, meta, cor }: { valor: number; meta: number; cor: string }) {
+  const pct = Math.min((valor / meta) * 100, 100);
+  return (
+    <div style={{ height: 6, background: "#e5e7eb", borderRadius: 3, overflow: "hidden", position: "relative" }}>
+      <div style={{ width: `${pct}%`, height: "100%", background: cor, borderRadius: 3, transition: "width .5s" }} />
+      <div style={{ position: "absolute", top: -1, left: "100%", transform: "translateX(-1px)", height: 8, width: 2, background: "#9ca3af", borderRadius: 1 }} />
+    </div>
+  );
+}
+
+function AbaIndicadoresC1C7() {
+  const [indSel, setIndSel] = useState<string>("C1");
+
+  const { data: competencias } = useQuery({
+    queryKey: ["pec-competencias"],
+    queryFn: () => apiGet("/api/pec/competencias") as Promise<{ competencias: string[] }>,
+  });
+
+  const ultima = competencias?.competencias?.[0] ?? null;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["pec-indicadores", ultima],
+    queryFn: () => apiGet(`/api/pec/indicadores/${ultima}`) as Promise<{
+      competencia: string; equipes: Record<string, Record<string, number>>;
+      tipos_equipe: Record<string, string>; ultima_atualizacao: string;
+    }>,
+    enabled: !!ultima,
+  });
+
+  if (isLoading) return (
+    <div style={{ padding: 60, textAlign: "center", color: "#9ca3af" }}>
+      <RefreshCw size={24} style={{ animation: "spin 1s linear infinite", display: "block", margin: "0 auto 10px" }} />
+      Carregando indicadores do e-SUS PEC...
+    </div>
+  );
+
+  if (!data) return (
+    <NaoDisponivelBanner nota="Nenhuma sincronização PEC encontrada. Execute o agente pec_sync --once para enviar os dados ao ERSUS360." />
+  );
+
+  const equipes = Object.entries(data.equipes);
+  const indicadores = Object.keys(_META_C);
+
+  // Dados para o gráfico do indicador selecionado
+  const dadosGrafico = equipes.map(([nome, inds]) => ({
+    name: nome.length > 12 ? nome.slice(0, 12) + "…" : nome,
+    valor: inds[indSel] ?? 0,
+    meta: _META_C[indSel],
+  })).sort((a, b) => b.valor - a.valor);
+
+  // Resumo por indicador (média entre equipes)
+  const resumo = indicadores.map(ind => {
+    const vals = equipes.map(([, inds]) => inds[ind] ?? 0);
+    const media = vals.reduce((s, v) => s + v, 0) / (vals.length || 1);
+    const meta = _META_C[ind];
+    const abaixo = vals.filter(v => v < meta).length;
+    return { ind, media, meta, abaixo, total: vals.length };
+  });
+
+  return (
+    <div>
+      {/* Header info */}
+      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#1e40af", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <Activity size={14} />
+        <span><strong>Competência:</strong> {data.competencia}</span>
+        <span>·</span>
+        <span><strong>Fonte:</strong> e-SUS PEC local (sync {data.ultima_atualizacao?.slice(0, 16).replace("T", " ")} UTC)</span>
+        <span>·</span>
+        <span><strong>Portaria GM/MS 3.493/2024</strong></span>
+      </div>
+
+      {/* Cards resumo C1–C7 */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
+        {resumo.map(r => {
+          const ok = r.media >= r.meta;
+          const cor = r.media >= r.meta ? "#16a34a" : r.meta - r.media >= 20 ? "#dc2626" : "#d97706";
+          return (
+            <button key={r.ind} onClick={() => setIndSel(r.ind)}
+              style={{
+                background: indSel === r.ind ? (ok ? "#f0fdf4" : "#fff7f7") : "#fff",
+                border: `1px solid ${indSel === r.ind ? cor : "#e5e7eb"}`,
+                borderTop: `3px solid ${cor}`,
+                borderRadius: 8, padding: "10px 12px", cursor: "pointer", textAlign: "left",
+                transition: "box-shadow .15s",
+                boxShadow: indSel === r.ind ? `0 0 0 2px ${cor}33` : "none",
+              }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: cor }}>{r.ind}</span>
+                {r.abaixo > 0 && (
+                  <span style={{ fontSize: 9, background: "#fee2e2", color: "#dc2626", padding: "1px 5px", borderRadius: 4, fontWeight: 700 }}>
+                    {r.abaixo} ↓
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: cor, lineHeight: 1 }}>
+                {r.media.toFixed(1)}%
+              </div>
+              <div style={{ fontSize: 9, color: "#9ca3af", marginTop: 2 }}>
+                meta {r.meta}% · {_DESC_C[r.ind]}
+              </div>
+              <GaugeBar valor={r.media} meta={r.meta} cor={cor} />
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Gráfico de barras por equipe */}
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "16px 20px", marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>
+            {indSel} — {_DESC_C[indSel]} · por equipe
+          </h3>
+          <span style={{ fontSize: 11, color: "#9ca3af" }}>meta: {_META_C[indSel]}%</span>
+        </div>
+        <div style={{ height: 220 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={dadosGrafico} margin={{ left: 0, right: 10 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} tickFormatter={v => `${v}%`} />
+              <Tooltip contentStyle={TT}
+                formatter={(v: number) => [`${v.toFixed(1)}%`, indSel]}
+                labelStyle={{ fontWeight: 700 }} />
+              {/* Linha de referência da meta */}
+              <Bar dataKey="meta" name="Meta" fill="transparent" legendType="none" />
+              <Bar dataKey="valor" name="Realizado" radius={[4, 4, 0, 0]}>
+                {dadosGrafico.map((d, i) => (
+                  <Cell key={i} fill={d.valor >= d.meta ? "#16a34a" : d.meta - d.valor >= 20 ? "#dc2626" : "#d97706"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        {/* Linha da meta manual (referência visual) */}
+        <div style={{ fontSize: 11, color: "#6b7280", textAlign: "center", marginTop: 4 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 12, height: 3, background: "#16a34a", display: "inline-block", borderRadius: 2 }} /> ≥ meta
+            <span style={{ width: 12, height: 3, background: "#d97706", display: "inline-block", borderRadius: 2, marginLeft: 8 }} /> abaixo &lt; 20pp
+            <span style={{ width: 12, height: 3, background: "#dc2626", display: "inline-block", borderRadius: 2, marginLeft: 8 }} /> crítico ≥ 20pp
+          </span>
+        </div>
+      </div>
+
+      {/* Tabela completa por equipe × indicador */}
+      <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <thead>
+            <tr style={{ background: "#f3f4f6" }}>
+              <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 700, color: "#374151", minWidth: 140 }}>Equipe</th>
+              {indicadores.map(ind => (
+                <th key={ind} style={{ padding: "8px 10px", textAlign: "center", fontWeight: 700, color: "#374151", minWidth: 72 }}>
+                  {ind}<br/><span style={{ fontSize: 9, color: "#9ca3af", fontWeight: 400 }}>meta {_META_C[ind]}%</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {equipes.map(([nome, inds], i) => (
+              <tr key={nome} style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#f9fafb" }}>
+                <td style={{ padding: "8px 12px", fontWeight: 600, fontSize: 11 }}>
+                  {nome}
+                  {data.tipos_equipe?.[nome] && (
+                    <span style={{ fontSize: 9, color: "#9ca3af", marginLeft: 5 }}>{data.tipos_equipe[nome]}</span>
+                  )}
+                </td>
+                {indicadores.map(ind => {
+                  const v = inds[ind];
+                  const meta = _META_C[ind];
+                  if (v == null) return <td key={ind} style={{ padding: "8px 10px", textAlign: "center", color: "#d1d5db" }}>—</td>;
+                  const cor = v >= meta ? "#16a34a" : meta - v >= 20 ? "#dc2626" : "#d97706";
+                  return (
+                    <td key={ind} style={{ padding: "8px 10px", textAlign: "center" }}>
+                      <span style={{ fontWeight: 700, color: cor, fontSize: 12 }}>{v.toFixed(1)}%</span>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ── Página principal ───────────────────────────────────────────────────────────
 
-type Aba = "atendimentos" | "procedimentos" | "vacinas" | "visitas" | "sisab" | "equipes";
+type Aba = "atendimentos" | "procedimentos" | "vacinas" | "visitas" | "sisab" | "equipes" | "c1c7";
 
 export default function PainelGestaoAPS() {
-  const [aba, setAba] = useState<Aba>("atendimentos");
+  const [aba, setAba] = useState<Aba>("c1c7");
 
   const { data: painel } = useQuery({
     queryKey: ["gestao-painel"],
@@ -447,6 +641,7 @@ export default function PainelGestaoAPS() {
   });
 
   const ABAS: { id: Aba; label: string }[] = [
+    { id: "c1c7",          label: "⭐ Indicadores C1–C7" },
     { id: "atendimentos",  label: "Atendimentos" },
     { id: "procedimentos", label: "Procedimentos" },
     { id: "vacinas",       label: "Vacinas" },
@@ -496,6 +691,7 @@ export default function PainelGestaoAPS() {
         ))}
       </div>
 
+      {aba === "c1c7"          && <AbaIndicadoresC1C7 />}
       {aba === "atendimentos"  && <AbaAtendimentos />}
       {aba === "procedimentos" && <AbaProcedimentos />}
       {aba === "vacinas"       && <AbaVacinas />}
