@@ -1051,10 +1051,13 @@ export default function RepassesApsApui() {
         {/* Cabeçalho do módulo */}
         <div style={{ marginBottom: 20 }}>
           <h1 style={{ margin: "0 0 4px", fontSize: 22, fontWeight: 800, color: CB.textPri }}>
-            Módulo Financeiro — Repasses Federais
+            CONTROLE FINANCEIRO FNS — APUÍ
           </h1>
-          <p style={{ margin: 0, fontSize: 13, color: CB.textSec }}>
-            Apuí/AM · FMS CNPJ 12.834.320/0001-26 · IBGE 130014
+          <p style={{ margin: "0 0 2px", fontSize: 13, color: CB.textSec }}>
+            Gestão de repasses, contas bancárias, emendas, folha, obras e execução financeira do Fundo Municipal de Saúde.
+          </p>
+          <p style={{ margin: 0, fontSize: 12, color: CB.textSec }}>
+            Município Apuí/AM · FMS CNPJ 12.834.320/0001-26 · IBGE 130014
             {" "}· Fontes: e-Gestor APS + FNS/MS
           </p>
         </div>

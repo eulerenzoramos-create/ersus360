@@ -311,7 +311,7 @@ export const NAV_ITEMS: NavItem[] = [
     keywords:["financeiro","painel","recursos","receita","despesa","orçamento","FMS","fundo"] },
 
   { id:"repasses-aps",        category:"Financeiro e Gestão Fiscal", order:201, iconName:"TrendingUp", highlight:true,
-    title:"Repasses APS — Apuí/AM", shortTitle:"Repasses FNS", route:"/repasses-aps-apui", roles:ROLES_FIN,
+    title:"Controle Financeiro FNS", shortTitle:"Controle Financeiro FNS", route:"/repasses-aps-apui", roles:ROLES_FIN,
     description:"Transferências mensais do FNS para APS — Apuí/AM — OBs, portarias e contas bancárias",
     keywords:["repasse","fns","fundo nacional saúde","transferência","ordem bancária","ob","portaria","conta","agência","banco","fundo a fundo","apuí","recurso","parcela","mensal","aps","financeiro","cofinanciamento"] },
 
