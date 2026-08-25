@@ -768,6 +768,11 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Configuração da integração com o Prontuário Eletrônico do Cidadão — e-SUS PEC",
     keywords:["pec","esus","integração","prontuário","configuração","ledi","mivdt","graphql"] },
 
+  { id:"gateway-integracao",  category:"Administração do Sistema", order:1010, iconName:"Shield", highlight:true,
+    title:"Integration Gateway", route:"/gateway-integracao", roles:ROLES_AUD,
+    description:"Controle central do ERSUS Integration Gateway — RNDS FHIR R4 e LEDI e-SUS APS",
+    keywords:["gateway","integração","rnds","ledi","fhir","esus","pausa","diagnóstico","transmissão","certificado","mtls","icp","brasil"] },
+
   // ── Gestão Operacional ────────────────────────────────────
   { id:"patrimonio",          category:"Gestão Operacional", order:1100, iconName:"Truck",
     title:"Patrimônio", route:"/patrimonio",
