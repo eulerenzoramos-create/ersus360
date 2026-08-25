@@ -1338,7 +1338,96 @@ const IND_NOMES: Record<string, string> = {
 };
 
 function AbaQualidade({ data: _data }: { data: any }) {
-  return <ComponenteQualidade />;
+  const [extraindo, setExtraindo] = useState(false);
+  const [msgExtracao, setMsgExtracao] = useState<string | null>(null);
+
+  const { data: syncStatus } = useQuery({
+    queryKey: ["sync-status"],
+    queryFn: () => apiGet("/api/sync/status") as Promise<any>,
+    staleTime: 30_000,
+    refetchInterval: extraindo ? 5000 : false,
+  });
+
+  const handleExtrair = async () => {
+    setExtraindo(true);
+    setMsgExtracao("Iniciando extração SIAPS Jan–Ago/2026…");
+    try {
+      const r = await fetch("/api/sync/extrair-historico", {
+        method: "POST",
+        headers: { "Content-Type": "application/json",
+                   "Authorization": `Bearer ${localStorage.getItem("ersus_token") || ""}` },
+        body: JSON.stringify({}),
+      });
+      const d = await r.json();
+      setMsgExtracao(d.mensagem || "Extração iniciada em background.");
+    } catch {
+      setMsgExtracao("Erro ao iniciar extração. Verifique SIAPS_CPF/SIAPS_SENHA no Railway.");
+      setExtraindo(false);
+    }
+  };
+
+  const cache: any[] = syncStatus?.cache_disponivel ?? [];
+  const emAndamento: boolean = syncStatus?.extracao?.em_andamento ?? false;
+
+  return (
+    <div>
+      {/* Painel de extração */}
+      <div style={{
+        background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10,
+        padding: "12px 18px", marginBottom: 16, display: "flex",
+        alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10,
+      }}>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 2 }}>
+            Extração SIAPS · e-Gestor
+          </div>
+          <div style={{ fontSize: 11, color: "#475569" }}>
+            {cache.length > 0
+              ? `${cache.length} competências no cache · última via ${cache[cache.length-1]?.fonte ?? "?"}`
+              : "Nenhuma extração realizada. Clique em Extrair para buscar Jan–Ago/2026."}
+          </div>
+          {msgExtracao && (
+            <div style={{ fontSize: 11, color: emAndamento ? "#d97706" : "#16a34a", marginTop: 4 }}>
+              {emAndamento ? "⏳ " : "✓ "}{msgExtracao}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={handleExtrair}
+          disabled={emAndamento || extraindo}
+          style={{
+            background: emAndamento ? "#9ca3af" : "#0ea5e9",
+            color: "#fff", border: "none", borderRadius: 8,
+            padding: "7px 16px", fontSize: 12, fontWeight: 700,
+            cursor: emAndamento ? "not-allowed" : "pointer",
+            display: "flex", alignItems: "center", gap: 6,
+          }}
+        >
+          {emAndamento ? "⏳ Extraindo…" : "⬇ Extrair Histórico"}
+        </button>
+      </div>
+
+      {/* Status compacto por competência */}
+      {cache.length > 0 && (
+        <div style={{
+          display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12,
+        }}>
+          {cache.map((c: any) => (
+            <span key={c.competencia} style={{
+              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+              background: c.equipes >= 5 ? "#dcfce7" : "#fef9c3",
+              color: c.equipes >= 5 ? "#166534" : "#713f12", border: "1px solid",
+              borderColor: c.equipes >= 5 ? "#86efac" : "#fde68a",
+            }}>
+              {c.label} · {c.equipes}eq
+            </span>
+          ))}
+        </div>
+      )}
+
+      <ComponenteQualidade />
+    </div>
+  );
 }
 
 // ── Boas Práticas ─────────────────────────────────────────────────────────────
@@ -2042,13 +2131,26 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
 const COMPETENCIAS_2026 = ["Jan/26","Fev/26","Mar/26","Abr/26"];
 const COMPETENCIAS_2025 = ["Jan/25","Fev/25","Mar/25","Abr/25","Mai/25","Jun/25","Jul/25","Ago/25","Set/25","Out/25","Nov/25","Dez/25"];
 
+// Mapeamento: pill → indices 0-based em _Q2.indicadores e chaves ind1..ind15
+const _PILL_INDS: Record<string, {indices: number[]; keys: string[]}> = {
+  "Mais Acesso":             { indices:[7,8],      keys:["ind8","ind9"] },
+  "Desenvolvimento Infantil":{ indices:[2,3],      keys:["ind3","ind4"] },
+  "Gestação e Puerpério":    { indices:[0,3],      keys:["ind1","ind4"] },
+  "Diabetes":                { indices:[8],        keys:["ind9"] },
+  "Hipertensão":             { indices:[7],        keys:["ind8"] },
+  "Pessoa Idosa":            { indices:[7,8,9,10], keys:["ind8","ind9","ind10","ind11"] },
+  "Prevenção do Câncer":     { indices:[1],        keys:["ind2"] },
+};
+
 function AbaAnaliseIndicador() {
   const [ano, setAno] = useState<"2025"|"2026">("2026");
-  const [competencia, setCompetencia] = useState("Abr/26");
+  const [competencia, setCompetencia] = useState("Mai/26");
   const [condicao, setCondicao] = useState("homologadas");
   const [tipos, setTipos] = useState<string[]>(["eAP","eSF"]);
   const [visao, setVisao] = useState<"competencia"|"equipe"|"variavel">("competencia");
   const [showCal, setShowCal] = useState(false);
+  const [indicadorSel, setIndicadorSel] = useState<string | null>(null);
+  const [equipeSel, setEquipeSel] = useState<string>(_Q2.equipes[0]?.equipe ?? "");
 
   const toggleTipo = (t: string) =>
     setTipos(ts => ts.includes(t) ? ts.filter(x => x !== t) : [...ts, t]);
