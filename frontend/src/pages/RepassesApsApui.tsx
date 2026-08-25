@@ -1711,10 +1711,32 @@ function ExecucaoFinanceiraPanel() {
             {/* ── Modal: Liquidação ── */}
             {modal === "liquidacao" && (
               <div>
-                <p style={{ fontSize: 12, color: C.textSec, marginBottom: 16 }}>
-                  Registro ID: <strong>{alvoId}</strong>{" "}
-                  — {itens.find(i => i.id === alvoId)?.recurso}
-                </p>
+                {alvoId === null ? (
+                  <div style={{ marginBottom: 16 }}>
+                    {itens.length === 0 ? (
+                      <div style={{ background: "#fef9c3", border: "1px solid #fde047", borderRadius: 10, padding: "14px 16px" }}>
+                        <p style={{ margin: "0 0 10px", fontSize: 13, color: "#92400e", fontWeight: 600 }}>Nenhum empenho cadastrado.</p>
+                        <button onClick={() => setModal("empenho")}
+                          style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                          + Cadastrar empenho agora
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Empenho *</label>
+                        <select onChange={e => setAlvoId(Number(e.target.value))}
+                          style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }}>
+                          <option value="">Selecione o registro…</option>
+                          {itens.map(i => <option key={i.id} value={i.id}>#{i.id} — {i.recurso}</option>)}
+                        </select>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 12, color: C.textSec, marginBottom: 16 }}>
+                    Registro ID: <strong>{alvoId}</strong> — {itens.find(i => i.id === alvoId)?.recurso}
+                  </p>
+                )}
                 {[
                   { label: "Data da liquidação *", key: "data_liquidacao", tipo: "date" },
                   { label: "Valor liquidado (R$) *", key: "liquidado", tipo: "number" },
@@ -1733,10 +1755,10 @@ function ExecucaoFinanceiraPanel() {
                   <button onClick={() => setModal(null)}
                     style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
                       padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-                  <button onClick={submeterLiq} disabled={mutLiq.isPending}
+                  <button onClick={submeterLiq} disabled={mutLiq.isPending || !alvoId}
                     style={{ background: "#1565c0", color: "#fff", border: "none", borderRadius: 8,
                       padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                      opacity: mutLiq.isPending ? 0.6 : 1 }}>
+                      opacity: (mutLiq.isPending || !alvoId) ? 0.6 : 1 }}>
                     {mutLiq.isPending ? "Salvando…" : "Registrar liquidação"}
                   </button>
                 </div>
@@ -1746,10 +1768,32 @@ function ExecucaoFinanceiraPanel() {
             {/* ── Modal: Pagamento ── */}
             {modal === "pagamento" && (
               <div>
-                <p style={{ fontSize: 12, color: C.textSec, marginBottom: 16 }}>
-                  Registro ID: <strong>{alvoId}</strong>{" "}
-                  — {itens.find(i => i.id === alvoId)?.recurso}
-                </p>
+                {alvoId === null ? (
+                  <div style={{ marginBottom: 16 }}>
+                    {itens.length === 0 ? (
+                      <div style={{ background: "#fef9c3", border: "1px solid #fde047", borderRadius: 10, padding: "14px 16px" }}>
+                        <p style={{ margin: "0 0 10px", fontSize: 13, color: "#92400e", fontWeight: 600 }}>Nenhum empenho cadastrado.</p>
+                        <button onClick={() => setModal("empenho")}
+                          style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                          + Cadastrar empenho agora
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Empenho *</label>
+                        <select onChange={e => setAlvoId(Number(e.target.value))}
+                          style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }}>
+                          <option value="">Selecione o registro…</option>
+                          {itens.map(i => <option key={i.id} value={i.id}>#{i.id} — {i.recurso}</option>)}
+                        </select>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 12, color: C.textSec, marginBottom: 16 }}>
+                    Registro ID: <strong>{alvoId}</strong> — {itens.find(i => i.id === alvoId)?.recurso}
+                  </p>
+                )}
                 {[
                   { label: "Data do pagamento *", key: "data_pagamento", tipo: "date" },
                   { label: "Valor pago (R$) *", key: "pago", tipo: "number" },
@@ -1768,10 +1812,10 @@ function ExecucaoFinanceiraPanel() {
                   <button onClick={() => setModal(null)}
                     style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
                       padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-                  <button onClick={submeterPag} disabled={mutPag.isPending}
+                  <button onClick={submeterPag} disabled={mutPag.isPending || !alvoId}
                     style={{ background: "#7c3aed", color: "#fff", border: "none", borderRadius: 8,
                       padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                      opacity: mutPag.isPending ? 0.6 : 1 }}>
+                      opacity: (mutPag.isPending || !alvoId) ? 0.6 : 1 }}>
                     {mutPag.isPending ? "Salvando…" : "Registrar pagamento"}
                   </button>
                 </div>
@@ -1788,13 +1832,32 @@ function ExecucaoFinanceiraPanel() {
                   {/* Seletor de registro quando aberto sem row */}
                   {alvoId === null ? (
                     <div style={{ marginBottom: 16 }}>
-                      <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Empenho *</label>
-                      <select onChange={e => setAlvoId(Number(e.target.value))}
-                        style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
-                          padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }}>
-                        <option value="">Selecione o registro…</option>
-                        {itens.map(i => <option key={i.id} value={i.id}>#{i.id} — {i.recurso}</option>)}
-                      </select>
+                      {itens.length === 0 ? (
+                        <div style={{ background: "#fef9c3", border: "1px solid #fde047", borderRadius: 10,
+                          padding: "14px 16px", marginBottom: 8 }}>
+                          <p style={{ margin: "0 0 10px", fontSize: 13, color: "#92400e", fontWeight: 600 }}>
+                            Nenhum empenho cadastrado ainda.
+                          </p>
+                          <p style={{ margin: "0 0 12px", fontSize: 12, color: "#78350f" }}>
+                            Para vincular uma portaria, primeiro cadastre um empenho usando o botão abaixo.
+                          </p>
+                          <button onClick={() => { setModal("empenho"); }}
+                            style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 8,
+                              padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                            + Cadastrar empenho agora
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Empenho *</label>
+                          <select onChange={e => setAlvoId(Number(e.target.value))}
+                            style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                              padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }}>
+                            <option value="">Selecione o registro…</option>
+                            {itens.map(i => <option key={i.id} value={i.id}>#{i.id} — {i.recurso}</option>)}
+                          </select>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <p style={{ fontSize: 12, color: C.textSec, marginBottom: 16 }}>
