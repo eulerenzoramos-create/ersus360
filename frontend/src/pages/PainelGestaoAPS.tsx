@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import {
   Activity, Users, Home, Syringe, CheckCircle, AlertTriangle,
-  RefreshCw, ChevronDown, ChevronRight, Send,
+  RefreshCw, ChevronDown, ChevronRight, Send, Download, FileText,
 } from "lucide-react";
 import { apiGet } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
@@ -454,6 +454,155 @@ function GaugeBar({ valor, meta, cor }: { valor: number; meta: number; cor: stri
   );
 }
 
+// ── Helpers de exportação ──────────────────────────────────────────────────────
+
+function exportarCSV(data: {
+  competencia: string;
+  equipes: Record<string, Record<string, number>>;
+  tipos_equipe: Record<string, string>;
+}) {
+  const inds = ["C1","C2","C3","C4","C5","C6","C7"];
+  const metas = { C1:75, C2:75, C3:70, C4:50, C5:50, C6:60, C7:40 };
+  const descs = {
+    C1:"Mais Acesso", C2:"Desenv. Infantil", C3:"Gestacao/Puerperio",
+    C4:"Diabetes", C5:"Hipertensao", C6:"Pessoa Idosa", C7:"Prev. Cancer Colo",
+  };
+
+  const linhas: string[][] = [];
+  // Cabeçalho
+  linhas.push([
+    "Equipe", "Tipo",
+    ...inds.flatMap(i => [`${i} - ${descs[i as keyof typeof descs]} (%)`, `${i} Meta (%)`, `${i} Gap (pp)`, `${i} Status`]),
+  ]);
+  // Dados
+  Object.entries(data.equipes).forEach(([nome, indsEquipe]) => {
+    const tipo = data.tipos_equipe?.[nome] ?? "";
+    const cols = inds.flatMap(ind => {
+      const v = indsEquipe[ind];
+      const meta = metas[ind as keyof typeof metas];
+      if (v == null) return ["", String(meta), "", "sem dado"];
+      const gap = meta - v;
+      const status = gap <= 0 ? "OK" : gap >= 20 ? "Critico" : "Aviso";
+      return [v.toFixed(1), String(meta), gap.toFixed(1), status];
+    });
+    linhas.push([nome, tipo, ...cols]);
+  });
+  // Linha de médias
+  const medias = inds.map(ind => {
+    const vals = Object.values(data.equipes).map(e => e[ind]).filter(v => v != null);
+    const media = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+    const meta = metas[ind as keyof typeof metas];
+    const gap = meta - media;
+    return [media.toFixed(1), String(meta), gap.toFixed(1), gap <= 0 ? "OK" : gap >= 20 ? "Critico" : "Aviso"];
+  });
+  linhas.push(["MEDIA GERAL", "", ...medias.flat()]);
+
+  const csv = linhas.map(l => l.map(c => `"${c}"`).join(";")).join("\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `indicadores_C1C7_${data.competencia}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportarPDF(data: {
+  competencia: string;
+  equipes: Record<string, Record<string, number>>;
+  tipos_equipe: Record<string, string>;
+}) {
+  const inds = ["C1","C2","C3","C4","C5","C6","C7"];
+  const metas: Record<string, number> = { C1:75, C2:75, C3:70, C4:50, C5:50, C6:60, C7:40 };
+  const descs: Record<string, string> = {
+    C1:"Mais Acesso", C2:"Desenv. Infantil", C3:"Gestação/Puerpério",
+    C4:"Diabetes", C5:"Hipertensão", C6:"Pessoa Idosa", C7:"Prev. Câncer Colo",
+  };
+
+  const corCelula = (v: number | undefined, meta: number) => {
+    if (v == null) return "#f9fafb";
+    const gap = meta - v;
+    if (gap <= 0)  return "#dcfce7";
+    if (gap >= 20) return "#fee2e2";
+    return "#fef3c7";
+  };
+  const corTexto = (v: number | undefined, meta: number) => {
+    if (v == null) return "#9ca3af";
+    return meta - v <= 0 ? "#16a34a" : meta - v >= 20 ? "#dc2626" : "#d97706";
+  };
+
+  const equipes = Object.entries(data.equipes);
+  const medias = inds.map(ind => {
+    const vals = equipes.map(([, e]) => e[ind]).filter(v => v != null);
+    return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+  });
+
+  const thStyle = `padding:6px 8px;background:#1e3a5f;color:#fff;font-size:10px;text-align:center;border:1px solid #1e3a5f;white-space:nowrap`;
+  const tdBase = `padding:5px 7px;border:1px solid #e5e7eb;font-size:10px;text-align:center`;
+
+  const thLinhas = `
+    <tr>
+      <th style="${thStyle};text-align:left">Equipe</th>
+      <th style="${thStyle}">Tipo</th>
+      ${inds.map(i => `<th style="${thStyle}">${i}<br/><span style="font-weight:400;font-size:9px">${descs[i]}</span><br/><span style="font-size:9px">meta ${metas[i]}%</span></th>`).join("")}
+    </tr>`;
+
+  const trEquipes = equipes.map(([nome, e]) => `
+    <tr>
+      <td style="${tdBase};text-align:left;font-weight:600">${nome}</td>
+      <td style="${tdBase};color:#6b7280">${data.tipos_equipe?.[nome] ?? ""}</td>
+      ${inds.map((ind, idx) => {
+        const v = e[ind];
+        const meta = metas[ind];
+        return `<td style="${tdBase};background:${corCelula(v, meta)};color:${corTexto(v, meta)};font-weight:700">${v != null ? v.toFixed(1) + "%" : "—"}</td>`;
+      }).join("")}
+    </tr>`).join("");
+
+  const trMedias = `
+    <tr style="background:#f0f4ff">
+      <td style="${tdBase};text-align:left;font-weight:800;color:#1e3a5f">MÉDIA GERAL</td>
+      <td style="${tdBase}"></td>
+      ${inds.map((ind, idx) => {
+        const v = medias[idx];
+        const meta = metas[ind];
+        return `<td style="${tdBase};background:${corCelula(v ?? undefined, meta)};color:${corTexto(v ?? undefined, meta)};font-weight:800">${v != null ? v.toFixed(1) + "%" : "—"}</td>`;
+      }).join("")}
+    </tr>`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>Indicadores C1–C7 — ${data.competencia}</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; color: #111; }
+      h1 { font-size: 16px; color: #1e3a5f; margin-bottom: 4px; }
+      .sub { font-size: 11px; color: #6b7280; margin-bottom: 16px; }
+      table { border-collapse: collapse; width: 100%; }
+      @media print { @page { size: landscape; margin: 10mm; } }
+      .legenda { display: flex; gap: 16px; font-size: 10px; margin-top: 12px; }
+      .dot { width: 12px; height: 12px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+    </style>
+  </head><body>
+    <h1>Indicadores de Qualidade APS — C1 a C7</h1>
+    <div class="sub">
+      Competência: <strong>${data.competencia}</strong> &nbsp;·&nbsp;
+      Portaria GM/MS nº 3.493/2024 &nbsp;·&nbsp;
+      Fonte: e-SUS PEC · ERSUS360 &nbsp;·&nbsp;
+      Gerado em: ${new Date().toLocaleString("pt-BR")}
+    </div>
+    <table>${thLinhas}${trEquipes}${trMedias}</table>
+    <div class="legenda">
+      <span><span class="dot" style="background:#dcfce7"></span>≥ meta (OK)</span>
+      <span><span class="dot" style="background:#fef3c7"></span>Abaixo &lt; 20pp (Aviso)</span>
+      <span><span class="dot" style="background:#fee2e2"></span>Abaixo ≥ 20pp (Crítico)</span>
+    </div>
+  </body></html>`;
+
+  const win = window.open("", "_blank");
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => win.print();
+}
+
 function AbaIndicadoresC1C7() {
   const [indSel, setIndSel] = useState<string>("C1");
 
@@ -584,6 +733,30 @@ function AbaIndicadoresC1C7() {
             <span style={{ width: 12, height: 3, background: "#dc2626", display: "inline-block", borderRadius: 2, marginLeft: 8 }} /> crítico ≥ 20pp
           </span>
         </div>
+      </div>
+
+      {/* Botões de exportação */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <button
+          onClick={() => exportarCSV(data)}
+          style={{
+            display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
+            background: "#16a34a", color: "#fff", border: "none", borderRadius: 6,
+            fontSize: 12, fontWeight: 700, cursor: "pointer",
+          }}
+        >
+          <Download size={13} /> Exportar CSV
+        </button>
+        <button
+          onClick={() => exportarPDF(data)}
+          style={{
+            display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
+            background: "#1e3a5f", color: "#fff", border: "none", borderRadius: 6,
+            fontSize: 12, fontWeight: 700, cursor: "pointer",
+          }}
+        >
+          <FileText size={13} /> Exportar PDF
+        </button>
       </div>
 
       {/* Tabela completa por equipe × indicador */}
