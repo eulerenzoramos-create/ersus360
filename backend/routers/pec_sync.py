@@ -8,7 +8,7 @@ import secrets
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Header, HTTPException, Depends
 from pydantic import BaseModel
@@ -19,6 +19,57 @@ from database import AsyncSessionLocal
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/pec", tags=["pec-sync"])
+
+# Metas oficiais Portaria GM/MS 3.493/2024
+_META: Dict[str, float] = {
+    "C1": 75.0, "C2": 75.0, "C3": 70.0,
+    "C4": 50.0, "C5": 50.0, "C6": 60.0, "C7": 40.0,
+}
+_DESC: Dict[str, str] = {
+    "C1": "Mais Acesso", "C2": "Desenvolvimento Infantil", "C3": "Gestação e Puerpério",
+    "C4": "Diabetes Mellitus", "C5": "Hipertensão Arterial",
+    "C6": "Pessoa Idosa", "C7": "Prevenção Câncer Colo",
+}
+_ALERTAS_PATH = Path("/tmp/ersus_pec_cache/alertas_aps.json")
+
+
+def _gerar_alertas_aps(equipes: Dict[str, Dict[str, float]], competencia: str) -> List[dict]:
+    alertas = []
+    for equipe, inds in equipes.items():
+        for ind, valor in inds.items():
+            meta = _META.get(ind)
+            if meta is None:
+                continue
+            gap = meta - valor
+            if gap <= 0:
+                continue
+            nivel = "CRITICO" if gap >= 20 else "AVISO"
+            alertas.append({
+                "id": f"pec_{competencia}_{equipe}_{ind}",
+                "nivel": nivel,
+                "modulo": "APS",
+                "categoria": f"{ind} — {_DESC.get(ind, ind)}",
+                "titulo": f"{ind} abaixo da meta — Equipe {equipe}",
+                "mensagem": (
+                    f"Equipe {equipe}: {ind} ({_DESC.get(ind,'')}) atingiu "
+                    f"{valor:.1f}% contra meta de {meta:.0f}% "
+                    f"(gap {gap:.1f}pp). Competência {competencia}."
+                ),
+                "ts": datetime.utcnow().isoformat(),
+                "lido": False,
+            })
+    # Persiste alertas
+    existentes = []
+    if _ALERTAS_PATH.exists():
+        try:
+            existentes = json.loads(_ALERTAS_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            existentes = []
+    ids_novos = {a["id"] for a in alertas}
+    mantidos = [a for a in existentes if a["id"] not in ids_novos]
+    todos = (alertas + mantidos)[:200]
+    _ALERTAS_PATH.write_text(json.dumps(todos, ensure_ascii=False), encoding="utf-8")
+    return alertas
 
 # Chave de autenticação — gerada e armazenada como env var ERSUS_SYNC_KEY
 def _get_sync_key() -> str:
@@ -81,6 +132,27 @@ def _listar_competencias() -> list[str]:
     return sorted(comps, reverse=True)
 
 
+# ── Referência municipal — Apuí/AM (derivado de scores SIAPS Q2/2026) ────────
+# C2=DTP(ind3), C3=avg(pré-natal ind1, puerpério ind4), C4=DM(ind9),
+# C5=HAS(ind8), C7=citopatológico(ind2). Fonte: SIAPS — competência Mai/2026.
+_REF_INDICADORES: Dict[str, Dict[str, float]] = {
+    "CACHOEIRA":     {"C2": 88.0, "C3": 88.0, "C4": 63.0, "C5": 79.0, "C7": 43.0},
+    "SÃO SEBASTIÃO": {"C2": 82.0, "C3": 84.5, "C4": 58.0, "C5": 75.0, "C7": 41.0},
+    "ACARI":         {"C2": 80.0, "C3": 84.5, "C4": 60.0, "C5": 77.0, "C7": 40.0},
+    "TRÊS ESTADOS":  {"C2": 63.0, "C3": 61.5, "C4": 46.0, "C5": 58.0, "C7": 28.0},
+    "JUMA":          {"C2": 85.0, "C3": 89.5, "C4": 64.0, "C5": 81.0, "C7": 45.0},
+    "LIBERDADE":     {"C2": 91.0, "C3": 95.5, "C4": 71.0, "C5": 85.0, "C7": 52.0},
+    "KENNEDY":       {"C2": 76.0, "C3": 76.0, "C4": 68.0, "C5": 82.0, "C7": 40.0},
+    "JK":            {"C2": 86.0, "C3": 86.5, "C4": 62.0, "C5": 78.0, "C7": 43.0},
+    "ESTRADA NOVA":  {"C2": 55.0, "C3": 50.5, "C4": 36.0, "C5": 49.0, "C7": 20.0},
+}
+_REF_TIPOS_EQUIPE: Dict[str, str] = {
+    "CACHOEIRA": "eSF", "SÃO SEBASTIÃO": "eSF", "ACARI": "eSF",
+    "TRÊS ESTADOS": "eSF", "JUMA": "eSF", "LIBERDADE": "eSF",
+    "KENNEDY": "eSF", "JK": "eSF", "ESTRADA NOVA": "eSFR",
+}
+
+
 # ── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.post("/sync")
@@ -103,35 +175,70 @@ async def receber_sync(
         "fonte": "e-SUS PEC",
     }
     _salvar_cache(payload.competencia, registro)
+    alertas = _gerar_alertas_aps(payload.equipes, payload.competencia)
     log.info(
-        "Sync recebido: competencia=%s equipes=%d",
-        payload.competencia,
-        len(payload.equipes),
+        "Sync recebido: competencia=%s equipes=%d alertas_gerados=%d",
+        payload.competencia, len(payload.equipes), len(alertas),
     )
     return {
         "status": "ok",
         "competencia": payload.competencia,
         "equipes_recebidas": len(payload.equipes),
+        "alertas_gerados": len(alertas),
     }
 
 
 @router.get("/indicadores/{competencia}", response_model=IndicadoresResponse)
 async def get_indicadores(competencia: str):
-    """Retorna indicadores C1–C7 por equipe para a competência solicitada."""
+    """Retorna indicadores C1–C7 por equipe para a competência solicitada.
+    Quando não há dados do agente PEC, retorna referência SIAPS municipal."""
     data = _ler_cache(competencia)
-    if not data:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Dados não disponíveis para {competencia}. "
-                   "Aguarde próxima sincronização do agente PEC.",
-        )
-    return IndicadoresResponse(**data)
+    if data:
+        return IndicadoresResponse(**data)
+    # Fallback: referência derivada de scores SIAPS — C1 e C6 indisponíveis sem PEC
+    return IndicadoresResponse(
+        competencia=competencia,
+        equipes=_REF_INDICADORES,
+        tipos_equipe=_REF_TIPOS_EQUIPE,
+        ultima_atualizacao=None,
+        fonte="SIAPS — Referência municipal (C1/C6 indisponíveis sem agente PEC)",
+    )
 
 
 @router.get("/competencias")
 async def listar_competencias():
     """Lista as competências com dados disponíveis."""
     return {"competencias": _listar_competencias()}
+
+
+@router.get("/alertas")
+async def listar_alertas_aps(apenas_nao_lidos: bool = False):
+    """Retorna alertas APS gerados na última sincronização PEC."""
+    alertas = []
+    if _ALERTAS_PATH.exists():
+        try:
+            alertas = json.loads(_ALERTAS_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            alertas = []
+    if apenas_nao_lidos:
+        alertas = [a for a in alertas if not a.get("lido")]
+    return {"total": len(alertas), "alertas": alertas}
+
+
+@router.post("/alertas/{alerta_id}/lido")
+async def marcar_alerta_lido(alerta_id: str):
+    """Marca um alerta APS como lido."""
+    alertas = []
+    if _ALERTAS_PATH.exists():
+        try:
+            alertas = json.loads(_ALERTAS_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            alertas = []
+    for a in alertas:
+        if a["id"] == alerta_id:
+            a["lido"] = True
+    _ALERTAS_PATH.write_text(json.dumps(alertas, ensure_ascii=False), encoding="utf-8")
+    return {"status": "ok"}
 
 
 @router.get("/status")
