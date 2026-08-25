@@ -524,6 +524,164 @@ async def refresh_cache(_: UserOut = Depends(get_current_user)):
     }
 
 
+@router.get("/diagnostico-cobertura")
+async def diagnostico_cobertura(
+    parcela: str = Query(default="202608", description="Código da parcela, ex: 202608"),
+):
+    """
+    Diagnóstico e Cobertura da Atenção Básica — Apuí/AM.
+    Busca dados reais via API pública do e-Gestor APS (sem autenticação necessária).
+    Endpoint: /financiamento/pagamento?tipoRelatorio=COMPLETO
+    """
+    from services.egestor_aps import buscar_completo, EGestorAPIError
+
+    cache_key = f"siaps_diag_cobertura_{parcela}"
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+
+    try:
+        raw = await buscar_completo(
+            co_municipio="130014",
+            co_uf="13",
+            parcela_inicio=parcela,
+            parcela_fim=parcela,
+        )
+    except EGestorAPIError as exc:
+        logger.warning("diagnostico-cobertura: %s", exc)
+        return {
+            "situacao_dado": "nao_disponivel",
+            "dados": None,
+            "nota": f"API e-Gestor APS indisponível: {exc}",
+            "verificado_em": _ts(),
+        }
+    except Exception as exc:
+        logger.error("diagnostico-cobertura inesperado: %s", exc, exc_info=True)
+        return {
+            "situacao_dado": "nao_disponivel",
+            "dados": None,
+            "nota": f"Erro interno: {exc}",
+            "verificado_em": _ts(),
+        }
+
+    det = raw.get("detalhado", {})
+
+    # ── Geração automática de diagnósticos ────────────────────────────────────
+    diagnosticos: list[dict] = []
+
+    def _diag(tipo: str, titulo: str, texto: str, severidade: str = "info"):
+        diagnosticos.append({"tipo": tipo, "titulo": titulo, "texto": texto, "severidade": severidade})
+
+    # eSF
+    esf = det.get("esf", {})
+    esf_cred = esf.get("qt_credenciadas", 0)
+    esf_hom  = esf.get("qt_homologadas", 0)
+    esf_pago = esf.get("qt_pagas", 0)
+    teto_esf = det.get("tetos", {}).get("esf", 0)
+    if esf_cred and teto_esf and esf_cred < teto_esf:
+        _diag("esf", "Teto eSF não atingido",
+              f"Credenciadas {esf_cred} de {teto_esf} no teto. Solicitar credenciamento ao MS.", "alerta")
+    if esf_hom < esf_cred:
+        _diag("esf", "eSF credenciadas > homologadas",
+              f"{esf_cred - esf_hom} equipe(s) credenciada(s) ainda não homologada(s) no CNES. Verificar vínculo.", "alerta")
+    if esf_pago < esf_hom:
+        _diag("esf", "eSF homologadas > pagas",
+              f"{esf_hom - esf_pago} equipe(s) homologada(s) não receberam pagamento nesta parcela. Verificar pendências.", "critico")
+
+    # eMulti
+    emulti = det.get("emulti", {})
+    emulti_cred = emulti.get("qt_credenciadas", 0)
+    emulti_pago = emulti.get("qt_pagas", 0)
+    if emulti_cred > 0 and emulti_pago == 0:
+        _diag("emulti", "eMulti credenciada sem pagamento",
+              f"{emulti_cred} eMulti credenciada(s) mas nenhum pagamento registrado nesta parcela.", "critico")
+    if emulti_cred == 0:
+        _diag("emulti", "Sem eMulti credenciada",
+              "Nenhuma Equipe Multiprofissional credenciada. Avaliar proposta de credenciamento.", "info")
+
+    # eSB
+    esb = det.get("esb", {})
+    esb_cred = esb.get("qt_40h_credenciadas", 0)
+    esb_hom  = esb.get("qt_40h_homologadas", 0)
+    esb_pago_i  = esb.get("qt_40h_pagas_modal_i", 0)
+    esb_pago_ii = esb.get("qt_40h_pagas_modal_ii", 0)
+    esb_pago = esb_pago_i + esb_pago_ii
+    if esb_hom > esb_pago:
+        _diag("esb", "eSB homologadas > pagas",
+              f"{esb_hom - esb_pago} equipe(s) de saúde bucal homologada(s) sem pagamento. Verificar pendências.", "alerta")
+
+    # ACS
+    acs = det.get("acs", {})
+    acs_teto = acs.get("qt_teto", 0)
+    acs_dir_cred = acs.get("qt_direto_credenciado", 0)
+    acs_dir_pago = acs.get("qt_direto_pago", 0)
+    if acs_teto and acs_dir_cred < acs_teto:
+        _diag("acs", "ACS abaixo do teto",
+              f"Credenciados {acs_dir_cred} de {acs_teto} no teto ACS. Verificar recrutamento.", "alerta")
+    if acs_dir_pago < acs_dir_cred:
+        _diag("acs", "ACS credenciados > pagos",
+              f"{acs_dir_cred - acs_dir_pago} ACS credenciado(s) sem pagamento nesta parcela.", "alerta")
+
+    # per capita
+    per_capita = det.get("per_capita", {})
+    if per_capita.get("vl_pagamento", 0) == 0:
+        _diag("per_capita", "Sem repasse per capita",
+              "Incentivo por componente per capita de base populacional = R$ 0. Verificar população IBGE cadastrada.", "alerta")
+
+    # UOM / LRPD
+    if esb.get("qt_uom", 0) == 0 and esb.get("vl_uom", 0) == 0:
+        _diag("uom", "Sem UOM cadastrada",
+              "Nenhuma Unidade Odontológica Móvel registrada. Avaliar necessidade para população ribeirinha.", "info")
+
+    # Conciliação valores
+    total_esf  = esf.get("vl_total_bruto", 0)
+    total_eap  = det.get("eap", {}).get("vl_total_bruto", 0)
+    total_emulti = emulti.get("vl_total", 0)
+    total_esb_calc = esb.get("vl_total_sb_calculado", 0)
+    total_acs  = acs.get("vl_total", 0)
+    total_pc   = per_capita.get("vl_pagamento", 0)
+    total_esfrb = det.get("esfrb", {}).get("vl_total", 0)
+    total_calc = total_esf + total_eap + total_emulti + total_esb_calc + total_acs + total_pc + total_esfrb
+
+    if not diagnosticos:
+        _diag("geral", "Sem pendências identificadas",
+              "Todos os indicadores de cobertura analisados estão dentro do esperado para esta parcela.", "ok")
+
+    resultado = {
+        "situacao_dado": "oficial_confirmado",
+        "fonte": "e-Gestor APS — API /financiamento/pagamento?tipoRelatorio=COMPLETO",
+        "coletado_em": raw.get("coletado_em", _ts()),
+        "data_consulta": raw.get("data_consulta", ""),
+        "competencia": det.get("competencia", ""),
+        "parcela": det.get("parcela", ""),
+        "nu_parcela": det.get("nu_parcela", parcela),
+        "nu_comp_cnes": det.get("nu_comp_cnes", ""),
+        "municipio": det.get("municipio", "Apuí"),
+        "uf": det.get("uf", "AM"),
+        "ibge": det.get("ibge", "130014"),
+        "populacao": det.get("populacao", 0),
+        "faixa_equidade_esf": det.get("faixa_equidade_esf", ""),
+        "classificacao_vinculo_esf": det.get("classificacao_vinculo_esf", ""),
+        "classificacao_qualidade_esf": det.get("classificacao_qualidade_esf", ""),
+        "tetos": det.get("tetos", {}),
+        "esf": esf,
+        "eap": det.get("eap", {}),
+        "emulti": emulti,
+        "esb": esb,
+        "acs": acs,
+        "esfrb": det.get("esfrb", {}),
+        "per_capita": per_capita,
+        "pse": det.get("pse", {}),
+        "microscopistas": det.get("microscopistas", {}),
+        "total_calculado": round(total_calc, 2),
+        "diagnosticos": diagnosticos,
+        "verificado_em": _ts(),
+    }
+
+    cache_set(cache_key, resultado, ttl=900)
+    return resultado
+
+
 @router.get("/diagnostico-api")
 async def diagnostico_api():
     """Testa conectividade com o e-Gestor APS e retorna diagnóstico."""

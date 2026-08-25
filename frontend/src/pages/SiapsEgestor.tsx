@@ -2332,9 +2332,285 @@ function AbaRelatorioPagamento() {
   );
 }
 
+// ── Aba: Diagnóstico / Cobertura da Atenção Básica ───────────────────────────
+
+function AbaDiagnosticoCobertura() {
+  const PARCELAS = [
+    { val: "202608", label: "JUN/2026 (8ª parcela)" },
+    { val: "202607", label: "MAI/2026 (7ª parcela)" },
+    { val: "202606", label: "ABR/2026 (6ª parcela)" },
+    { val: "202605", label: "MAR/2026 (5ª parcela)" },
+    { val: "202604", label: "FEV/2026 (4ª parcela)" },
+    { val: "202603", label: "JAN/2026 (3ª parcela)" },
+  ];
+  const [parcela, setParcela] = useState("202608");
+
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
+    queryKey: ["siaps-diag-cobertura", parcela],
+    queryFn: () => apiGet(`/api/siaps/diagnostico-cobertura?parcela=${parcela}`) as Promise<any>,
+    staleTime: 300_000,
+  });
+
+  const BRL_local = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
+
+  function CardPrograma({ titulo, cor, items }: {
+    titulo: string; cor: string;
+    items: { label: string; val: string | number; destaque?: boolean }[];
+  }) {
+    return (
+      <div style={{ border: `1px solid ${cor}33`, borderTop: `3px solid ${cor}`, borderRadius: 10, padding: "14px 18px", background: "#fff" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: cor, marginBottom: 12 }}>{titulo}</div>
+        {items.map((it, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: i < items.length - 1 ? "1px solid #f3f4f6" : "none" }}>
+            <span style={{ fontSize: 12, color: "#6b7280" }}>{it.label}</span>
+            <span style={{ fontSize: it.destaque ? 16 : 13, fontWeight: it.destaque ? 800 : 600, color: it.destaque ? cor : "#1e293b", fontVariantNumeric: "tabular-nums" }}>{it.val}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function BadgeDiag({ sev }: { sev: string }) {
+    const map: Record<string, { bg: string; cor: string; label: string }> = {
+      ok:      { bg: "#f0fdf4", cor: "#16a34a", label: "✓ OK" },
+      info:    { bg: "#eff6ff", cor: "#1d4ed8", label: "ℹ Info" },
+      alerta:  { bg: "#fffbeb", cor: "#d97706", label: "⚠ Alerta" },
+      critico: { bg: "#fff7f7", cor: "#dc2626", label: "✗ Crítico" },
+    };
+    const s = map[sev] ?? map.info;
+    return (
+      <span style={{ background: s.bg, color: s.cor, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10, flexShrink: 0 }}>{s.label}</span>
+    );
+  }
+
+  const plLabel = PARCELAS.find(p => p.val === parcela)?.label ?? parcela;
+
+  if (isLoading || isFetching) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 16 }}>
+        <RefreshCw size={28} color="#1d4ed8" style={{ animation: "spin 1s linear infinite" }} />
+        <div style={{ fontSize: 14, color: "#6b7280" }}>Consultando API e-Gestor APS…</div>
+        <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+      </div>
+    );
+  }
+
+  if (isError || data?.situacao_dado === "nao_disponivel") {
+    const nota = data?.nota ?? (error as any)?.message ?? "Erro desconhecido";
+    return (
+      <div>
+        <div style={{ background: "#fff7f7", border: "1px solid #fca5a5", borderRadius: 10, padding: "20px 24px", marginBottom: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#dc2626", marginBottom: 8 }}>⚠ API e-Gestor APS indisponível</div>
+          <div style={{ fontSize: 13, color: "#374151", marginBottom: 12 }}>{nota}</div>
+          <button onClick={() => refetch()} style={{ background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, padding: "8px 18px", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+            <RefreshCw size={13} /> Tentar novamente
+          </button>
+        </div>
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "12px 16px", fontSize: 12, color: "#1e40af" }}>
+          <strong>Nota:</strong> Esta aba consulta diretamente a API pública do e-Gestor APS (relatorioaps-prd.saude.gov.br), sem necessidade de autenticação. A indisponibilidade pode ser temporária na API do Ministério da Saúde.
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const esf    = data.esf    ?? {};
+  const eap    = data.eap    ?? {};
+  const emulti = data.emulti ?? {};
+  const esb    = data.esb    ?? {};
+  const acs    = data.acs    ?? {};
+  const esfrb  = data.esfrb  ?? {};
+  const perCap = data.per_capita ?? {};
+  const tetos  = data.tetos  ?? {};
+  const diags: any[] = data.diagnosticos ?? [];
+
+  const sevOrder: Record<string, number> = { critico: 0, alerta: 1, info: 2, ok: 3 };
+  const diagsOrdenados = [...diags].sort((a, b) => (sevOrder[a.severidade] ?? 9) - (sevOrder[b.severidade] ?? 9));
+
+  const criticos = diags.filter(d => d.severidade === "critico").length;
+  const alertas  = diags.filter(d => d.severidade === "alerta").length;
+
+  return (
+    <div>
+      {/* Cabeçalho */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>
+            Diagnóstico / Cobertura da Atenção Básica
+          </h2>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ background: "#e0f2fe", color: "#0369a1", fontWeight: 700, padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>
+              {data.municipio}/{data.uf} · IBGE {data.ibge}
+            </span>
+            <span style={{ background: "#fef3c7", color: "#92400e", fontWeight: 700, padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>
+              {data.competencia} · {data.parcela}ª parcela
+            </span>
+            {data.nu_comp_cnes && (
+              <span style={{ background: "#f3f4f6", color: "#6b7280", padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>
+                Comp. CNES: {data.nu_comp_cnes}
+              </span>
+            )}
+            <span style={{ background: "#f0fdf4", color: "#15803d", padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>
+              Fonte: e-Gestor APS (dados oficiais)
+            </span>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <select value={parcela} onChange={e => setParcela(e.target.value)}
+            style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "7px 10px", fontSize: 12, background: "#fff", cursor: "pointer" }}>
+            {PARCELAS.map(p => <option key={p.val} value={p.val}>{p.label}</option>)}
+          </select>
+          <button onClick={() => refetch()} style={{ display: "flex", alignItems: "center", gap: 5, background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontSize: 12 }}>
+            <RefreshCw size={13} /> Atualizar
+          </button>
+        </div>
+      </div>
+
+      {/* KPIs gerais */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+        {[
+          { label: "Teto eSF",       val: tetos.esf ?? 0,                   cor: "#1d4ed8", sub: "equipes" },
+          { label: "eSF Pagas",      val: esf.qt_pagas ?? 0,                cor: "#16a34a", sub: "equipes" },
+          { label: "ACS Teto",       val: acs.qt_teto ?? 0,                 cor: "#7c3aed", sub: "agentes" },
+          { label: "Total calculado",val: BRL_local(data.total_calculado),  cor: "#d97706", sub: "repasse" },
+        ].map(k => (
+          <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: k.cor }}>{k.val}</div>
+            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{k.label}</div>
+            <div style={{ fontSize: 10, color: "#9ca3af" }}>{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Diagnósticos */}
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "16px 18px", marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Diagnóstico Automático — {plLabel}</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {criticos > 0 && <span style={{ background: "#fff7f7", color: "#dc2626", fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 10 }}>{criticos} crítico{criticos > 1 ? "s" : ""}</span>}
+            {alertas  > 0 && <span style={{ background: "#fffbeb", color: "#d97706", fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 10 }}>{alertas} alerta{alertas > 1 ? "s" : ""}</span>}
+            {criticos === 0 && alertas === 0 && <span style={{ background: "#f0fdf4", color: "#16a34a", fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 10 }}>✓ Sem pendências</span>}
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {diagsOrdenados.map((d, i) => (
+            <div key={i} style={{
+              display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 14px",
+              borderRadius: 8, border: "1px solid #f3f4f6",
+              background: d.severidade === "critico" ? "#fff7f7" : d.severidade === "alerta" ? "#fffbeb" : d.severidade === "ok" ? "#f0fdf4" : "#f8fafc",
+            }}>
+              <BadgeDiag sev={d.severidade} />
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 2 }}>{d.titulo}</div>
+                <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.5 }}>{d.texto}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Cards por programa */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 20 }}>
+        <CardPrograma titulo="eSF — Equipes de Saúde da Família" cor="#1d4ed8" items={[
+          { label: "Teto credenciamento",   val: tetos.esf ?? 0 },
+          { label: "Credenciadas",          val: esf.qt_credenciadas ?? 0 },
+          { label: "Homologadas",           val: esf.qt_homologadas ?? 0 },
+          { label: "Pagas (total)",         val: esf.qt_pagas ?? 0 },
+          { label: "100% (comp. qualidade)",val: esf.qt_100pct ?? 0 },
+          { label: "75%",                   val: esf.qt_75pct ?? 0 },
+          { label: "50%",                   val: esf.qt_50pct ?? 0 },
+          { label: "25%",                   val: esf.qt_25pct ?? 0 },
+          { label: "Vl. Fixo",             val: BRL_local(esf.vl_fixo ?? 0) },
+          { label: "Vl. Vínculo",          val: BRL_local(esf.vl_vinculo ?? 0) },
+          { label: "Vl. Qualidade",        val: BRL_local(esf.vl_qualidade ?? 0) },
+          { label: "Total eSF",            val: BRL_local(esf.vl_total_bruto ?? 0), destaque: true },
+        ]} />
+
+        <CardPrograma titulo="eMulti — Equipes Multiprofissionais" cor="#0891b2" items={[
+          { label: "Credenciadas",         val: emulti.qt_credenciadas ?? 0 },
+          { label: "Homologadas",          val: emulti.qt_homologadas ?? 0 },
+          { label: "Pagas",                val: emulti.qt_pagas ?? 0 },
+          { label: "Modalidade Ampliada",  val: emulti.qt_ampliada ?? 0 },
+          { label: "Modalidade Estratégica",val: emulti.qt_estrategica ?? 0 },
+          { label: "Modalidade Complementar",val: emulti.qt_complementar ?? 0 },
+          { label: "Vl. Custeio",          val: BRL_local(emulti.vl_custeio ?? 0) },
+          { label: "Vl. Qualidade",        val: BRL_local(emulti.vl_qualidade ?? 0) },
+          { label: "Total eMulti",         val: BRL_local(emulti.vl_total ?? 0), destaque: true },
+        ]} />
+
+        <CardPrograma titulo="eSB — Saúde Bucal 40h · UOM · LRPD" cor="#7c3aed" items={[
+          { label: "Credenciadas 40h",     val: esb.qt_40h_credenciadas ?? 0 },
+          { label: "Homologadas 40h",      val: esb.qt_40h_homologadas ?? 0 },
+          { label: "Pagas (Modal. I)",     val: esb.qt_40h_pagas_modal_i ?? 0 },
+          { label: "Pagas (Modal. II)",    val: esb.qt_40h_pagas_modal_ii ?? 0 },
+          { label: "Vl. eSB 40h",         val: BRL_local(esb.vl_esb_40h ?? 0) },
+          { label: "Vl. Qualidade 40h",   val: BRL_local(esb.vl_qualidade_40h ?? 0) },
+          { label: "UOM (qtd paga)",       val: esb.qt_uom ?? 0 },
+          { label: "Vl. UOM",             val: BRL_local(esb.vl_uom ?? 0) },
+          { label: "Vl. LRPD Municipal",  val: BRL_local(esb.vl_lrpd_municipal ?? 0) },
+          { label: "Total eSB calc.",     val: BRL_local(esb.vl_total_sb_calculado ?? 0), destaque: true },
+        ]} />
+
+        <CardPrograma titulo="ACS — Agentes Comunitários de Saúde" cor="#16a34a" items={[
+          { label: "Teto ACS",             val: acs.qt_teto ?? 0 },
+          { label: "Direto credenciado",   val: acs.qt_direto_credenciado ?? 0 },
+          { label: "Direto pago",          val: acs.qt_direto_pago ?? 0 },
+          { label: "Vl. Direto",          val: BRL_local(acs.vl_direto ?? 0) },
+          { label: "Vl. Parcela Extra",   val: BRL_local(acs.vl_parcela_extra_direto ?? 0) },
+          { label: "Indireto pago",        val: acs.qt_indireto_pago ?? 0 },
+          { label: "Vl. Indireto",        val: BRL_local(acs.vl_indireto ?? 0) },
+          { label: "Total ACS",           val: BRL_local(acs.vl_total ?? 0), destaque: true },
+        ]} />
+
+        {(esfrb.qt_credenciadas ?? 0) > 0 && (
+          <CardPrograma titulo="eSFRB — Saúde da Família Ribeirinha" cor="#d97706" items={[
+            { label: "Credenciadas",       val: esfrb.qt_credenciadas ?? 0 },
+            { label: "Homologadas",        val: esfrb.qt_homologadas ?? 0 },
+            { label: "Pagas",              val: esfrb.qt_pagas ?? 0 },
+            { label: "Embarcações",        val: esfrb.qt_embarcacoes ?? 0 },
+            { label: "Vl. Custeio",       val: BRL_local(esfrb.vl_custeio ?? 0) },
+            { label: "Vl. Qualidade",     val: BRL_local(esfrb.vl_qualidade ?? 0) },
+            { label: "Total eSFRB",       val: BRL_local(esfrb.vl_total ?? 0), destaque: true },
+          ]} />
+        )}
+
+        <CardPrograma titulo="eAP · Per Capita · PSE" cor="#6b7280" items={[
+          { label: "eAP credenciadas",     val: eap.qt_credenciadas ?? 0 },
+          { label: "eAP pagas",            val: eap.qt_pagas ?? 0 },
+          { label: "Total eAP",           val: BRL_local(eap.vl_total_bruto ?? 0) },
+          { label: "Teto eAP",            val: tetos.eap ?? 0 },
+          { label: "Per capita (pop.)",   val: (data.populacao ?? 0).toLocaleString("pt-BR") },
+          { label: "Vl. Per capita",      val: BRL_local(perCap.vl_pagamento ?? 0) },
+          { label: "Faixa equidade eSF",  val: data.faixa_equidade_esf ?? "—" },
+          { label: "Classif. vínculo eSF",val: data.classificacao_vinculo_esf ?? "—" },
+          { label: "Classif. qualidade",  val: data.classificacao_qualidade_esf ?? "—" },
+          { label: "Total calculado",     val: BRL_local(data.total_calculado), destaque: true },
+        ]} />
+      </div>
+
+      {/* Cruzamento SIAPS × Pagamento */}
+      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "14px 18px", fontSize: 12, color: "#1e40af", marginBottom: 16 }}>
+        <strong>Cruzamento SIAPS × e-Gestor:</strong> Os dados de equipes credenciadas e homologadas nesta aba provêm do relatório de pagamento do e-Gestor APS. Compare os totais com a aba "Abrangência Municipal" (SIAPS autenticado) para identificar divergências entre a base de cálculo do pagamento e o registro no CNES.
+      </div>
+
+      {/* Rodapé fonte */}
+      <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 14px", fontSize: 11, color: "#6b7280", display: "flex", gap: 8, alignItems: "center" }}>
+        <Info size={13} />
+        <span>
+          Fonte: <strong>e-Gestor APS</strong> — relatorioaps-prd.saude.gov.br/financiamento/pagamento · tipoRelatorio=COMPLETO ·
+          Coletado em {data.coletado_em ? new Date(data.coletado_em).toLocaleString("pt-BR") : "—"} ·
+          Competência {data.competencia} · {data.parcela}ª parcela · IBGE {data.ibge}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ── Página principal ───────────────────────────────────────────────────────────
 
-type Aba = "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento";
+type Aba = "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento" | "diag_cobertura";
 
 export default function SiapsEgestor() {
   const [aba, setAba] = useState<Aba>("vinculo");
@@ -2353,6 +2629,7 @@ export default function SiapsEgestor() {
     { id: "quadrimestre",       label: "Avaliação Quadrimestre" },
     { id: "analise_indicador",  label: "📊 Análise do Indicador" },
     { id: "rel_pagamento",      label: "💳 Relatório de Pagamento" },
+    { id: "diag_cobertura",    label: "🩺 Diagnóstico / Cobertura" },
   ];
 
   return (
@@ -2398,6 +2675,7 @@ export default function SiapsEgestor() {
         {aba === "quadrimestre"      && <AbaQuadrimestre dashData={dashData} />}
         {aba === "analise_indicador" && <AbaAnaliseIndicador />}
         {aba === "rel_pagamento"     && <AbaRelatorioPagamento />}
+        {aba === "diag_cobertura"   && <AbaDiagnosticoCobertura />}
       </div>
 
       {/* Footer */}
