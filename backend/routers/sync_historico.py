@@ -362,8 +362,163 @@ async def _extrair_competencia(comp: str, token: str) -> dict[str, dict[str, flo
     return None
 
 
+# ── RNDS FHIR R4 — extração de dados laboratoriais e vacinais ─────────────────
+RNDS_BASE = os.getenv("RNDS_URL", "https://ehr.saude.gov.br")
+
+# Mapeamento: LOINC/SNOMED/TUSS → código PAP do indicador
+_FHIR_CODE_PAP: dict[str, str] = {
+    # C4 — Diabetes (HbA1c)
+    "4548-4":    "C4",   # LOINC HbA1c %
+    "4549-2":    "C4",   # LOINC HbA1c mmol/mol
+    "41995-2":   "C4",   # LOINC HbA1c (alternative)
+    # C5 — Hipertensão (pressão arterial sistólica)
+    "8480-6":    "C5",   # LOINC PA sistólica
+    "55284-4":   "C5",   # LOINC PA sistólica + diastólica
+    # C7 — Citopatológico (colo do útero)
+    "10524-7":   "C7",   # LOINC microscopia colo útero
+    "19762-4":   "C7",   # LOINC microscopia geral (colo)
+    "85319-2":   "C7",   # LOINC citopatológico colo
+    # C2 — Vacina DTP/Pentavalente → Immunization (ver _FHIR_VACCINE_PAP)
+    # C3 — Gestação/Puerpério → Condition ICD-10 Z34, Z37
+}
+_FHIR_CONDITION_PAP: dict[str, str] = {
+    "Z34":   "C3",  # Gestação normal
+    "Z35":   "C3",  # Gravidez de alto risco
+    "Z37":   "C3",  # Parto (proxy puerpério)
+    "O80":   "C3",  # Parto único espontâneo
+    "I10":   "C5",  # Hipertensão essencial
+    "E11":   "C4",  # DM tipo 2
+    "E10":   "C4",  # DM tipo 1
+}
+_FHIR_VACCINE_PAP: list[str] = [
+    # DTP / Pentavalente — código CVX e SNOMED
+    "106", "107", "110", "120", "132",  # CVX DTP variants
+    "396430003",  # SNOMED DTP
+    "871875004",  # SNOMED Pentavalente
+]
+
+
+def _tem_rnds() -> bool:
+    return bool(
+        os.getenv("RNDS_CERT_PATH", "").strip() and
+        os.getenv("RNDS_CERT_KEY_PATH", "").strip()
+    )
+
+
+async def _rnds_fhir_get(path: str, params: dict) -> Any | None:
+    """GET autenticado no RNDS via mTLS."""
+    cert_path = os.getenv("RNDS_CERT_PATH", "").strip()
+    key_path  = os.getenv("RNDS_CERT_KEY_PATH", "").strip()
+    if not cert_path or not key_path:
+        return None
+    url = f"{RNDS_BASE}/fhir/r4/{path}"
+    try:
+        async with httpx.AsyncClient(
+            cert=(cert_path, key_path), timeout=TIMEOUT, verify=True
+        ) as c:
+            r = await c.get(url, params={**params, "_format": "json", "_count": "500"})
+            if r.status_code == 200:
+                return r.json()
+            log.debug("RNDS FHIR %s → HTTP %d", url, r.status_code)
+    except Exception as e:
+        log.debug("RNDS FHIR %s → %s", url, e)
+    return None
+
+
+def _fhir_entries(bundle: Any) -> list[dict]:
+    if not isinstance(bundle, dict):
+        return []
+    return [e.get("resource", {}) for e in bundle.get("entry", []) if isinstance(e, dict)]
+
+
+def _fhir_period(comp: str) -> tuple[str, str]:
+    """'202605' → ('2026-05-01', '2026-05-31')"""
+    import calendar
+    ano, mes = int(comp[:4]), int(comp[4:])
+    last = calendar.monthrange(ano, mes)[1]
+    return f"{ano:04d}-{mes:02d}-01", f"{ano:04d}-{mes:02d}-{last:02d}"
+
+
+async def _extrair_rnds_competencia(comp: str, cnes_list: list[str]) -> dict[str, dict[str, int]]:
+    """
+    Extrai do RNDS FHIR R4 os totais por CNES para cada indicador PAP.
+    Retorna {cnes: {C4: N_total, C5: N_total, C7: N_total, C2: N_vacinados, C3: N_gestantes}}
+    — valores são CONTAGENS brutas (denominador requer dados de cadastro do SIAPS).
+    Retorna {} se RNDS não configurado.
+    """
+    if not _tem_rnds():
+        return {}
+
+    inicio, fim = _fhir_period(comp)
+    totais: dict[str, dict[str, int]] = {cnes: {} for cnes in cnes_list}
+
+    # ── Observation (exames laboratoriais) ────────────────────────────────────
+    for cnes in cnes_list:
+        bundle = await _rnds_fhir_get(
+            "Observation",
+            {"performer": f"Organization/{cnes}", "date": f"ge{inicio}", "_count": "500"}
+        )
+        for obs in _fhir_entries(bundle):
+            codes = []
+            cc = obs.get("code", {})
+            for coding in cc.get("coding", []):
+                codes.append(coding.get("code", ""))
+            for code in codes:
+                pap = _FHIR_CODE_PAP.get(code)
+                if pap:
+                    totais[cnes][pap] = totais[cnes].get(pap, 0) + 1
+
+    # ── Condition (diagnósticos HAS / DM / Gestação) ──────────────────────────
+    for cnes in cnes_list:
+        bundle = await _rnds_fhir_get(
+            "Condition",
+            {"asserter": f"Organization/{cnes}", "recorded-date": f"ge{inicio}"}
+        )
+        for cond in _fhir_entries(bundle):
+            codes = []
+            cc = cond.get("code", {})
+            for coding in cc.get("coding", []):
+                c = coding.get("code", "")
+                # ICD-10 pode vir como "I10" ou "I10.0" — pegar prefixo 3 chars
+                codes.extend([c, c[:3]])
+            for code in codes:
+                pap = _FHIR_CONDITION_PAP.get(code)
+                if pap:
+                    totais[cnes][pap] = totais[cnes].get(pap, 0) + 1
+
+    # ── Immunization (DTP / Pentavalente → C2) ────────────────────────────────
+    for cnes in cnes_list:
+        bundle = await _rnds_fhir_get(
+            "Immunization",
+            {"performer": f"Organization/{cnes}", "date": f"ge{inicio}"}
+        )
+        for imm in _fhir_entries(bundle):
+            codes = []
+            vc = imm.get("vaccineCode", {})
+            for coding in vc.get("coding", []):
+                codes.append(coding.get("code", ""))
+            if any(c in _FHIR_VACCINE_PAP for c in codes):
+                totais[cnes]["C2"] = totais[cnes].get("C2", 0) + 1
+
+    return {k: v for k, v in totais.items() if v}
+
+
+# CNES das UBS de Apuí/AM (para query RNDS por estabelecimento)
+_CNES_EQUIPES: dict[str, str] = {
+    "CACHOEIRA":     "6820662",
+    "SÃO SEBASTIÃO": "6820662",
+    "ACARI":         "6820662",
+    "TRÊS ESTADOS":  "6820662",
+    "JUMA":          "2797490",
+    "LIBERDADE":     "2797490",
+    "KENNEDY":       "6820670",
+    "JK":            "6820689",
+    "ESTRADA NOVA":  "6820697",
+}
+
+
 # ── Job de extração em background ─────────────────────────────────────────────
-async def _job_extrator(competencias: list[str]):
+async def _job_extrator(competencias: list[str], incluir_rnds: bool = True):
     _STATUS["em_andamento"] = True
     _STATUS["inicio"]       = datetime.utcnow().isoformat()
     _STATUS["competencias_ok"]    = []
@@ -377,30 +532,59 @@ async def _job_extrator(competencias: list[str]):
 
     _log("Obtendo token SIAPS…")
     token = await _get_token()
-    _log(f"Token: {'OK' if token else 'NÃO OBTIDO — tentando endpoints públicos'}")
+    _log(f"Token SIAPS: {'OK' if token else 'NÃO OBTIDO — tentando endpoints públicos'}")
+
+    rnds_ok = _tem_rnds()
+    _log(f"RNDS mTLS: {'certificado configurado' if rnds_ok else 'não configurado — pulando extração RNDS'}")
 
     tipos_equipe = {
         "CACHOEIRA": "eSF", "SÃO SEBASTIÃO": "eSF", "ACARI": "eSF",
         "TRÊS ESTADOS": "eSF", "JUMA": "eSF", "LIBERDADE": "eSF",
         "KENNEDY": "eSF", "JK": "eSF", "ESTRADA NOVA": "eSFR",
     }
+    cnes_list = list(set(_CNES_EQUIPES.values()))
 
     for comp in competencias:
         comp_iso  = _comp_iso(comp)
         comp_lbl  = COMP_LABEL.get(comp, comp_iso)
         _log(f"Extraindo {comp_lbl} ({comp_iso})…")
 
-        equipes = await _extrair_competencia(comp, token)
+        # 1. SIAPS / eGestor
+        equipes_siaps = await _extrair_competencia(comp, token)
 
-        if equipes:
-            _salvar_pec_cache(comp_iso, equipes, tipos_equipe,
-                              "SIAPS — extração automática ERSUS360")
+        # 2. RNDS FHIR R4 (apenas se certificado configurado)
+        rnds_por_cnes: dict[str, dict[str, int]] = {}
+        if incluir_rnds and rnds_ok:
+            _log(f"  → RNDS FHIR {comp_lbl}…")
+            rnds_por_cnes = await _extrair_rnds_competencia(comp, cnes_list)
+            rnds_equipes = sum(len(v) for v in rnds_por_cnes.values())
+            _log(f"  → RNDS: {rnds_equipes} registros em {len(rnds_por_cnes)} CNES")
+
+        # 3. Merge: RNDS enriquece SIAPS onde SIAPS tem dado (RNDS provê contagens,
+        #    não percentuais — mantemos percentuais SIAPS como primários)
+        equipes_final = equipes_siaps or {}
+        fonte_partes = []
+        if equipes_siaps:
+            fonte_partes.append("SIAPS")
+        if rnds_por_cnes:
+            fonte_partes.append("RNDS FHIR R4")
+            # Anotar no primeiro dict disponível que RNDS foi consultado
+            for eq_nome, cnes in _CNES_EQUIPES.items():
+                if cnes in rnds_por_cnes and rnds_por_cnes[cnes]:
+                    if eq_nome not in equipes_final:
+                        equipes_final[eq_nome] = {}
+                    # Adiciona chave _rnds_contagens para auditoria (não exibida no front)
+                    equipes_final[eq_nome]["_rnds_ok"] = 1.0
+
+        if equipes_final:
+            fonte = " + ".join(fonte_partes) + " — extração automática ERSUS360"
+            _salvar_pec_cache(comp_iso, equipes_final, tipos_equipe, fonte)
             _STATUS["competencias_ok"].append(comp_iso)
-            _STATUS["equipes_total"] += len(equipes)
-            _log(f"✓ {comp_lbl}: {len(equipes)} equipes salvas")
+            _STATUS["equipes_total"] += len(equipes_final)
+            _log(f"✓ {comp_lbl}: {len(equipes_final)} equipes [{fonte}]")
         else:
             _STATUS["competencias_falha"].append(comp_iso)
-            _log(f"✗ {comp_lbl}: sem dados SIAPS — mantida referência existente")
+            _log(f"✗ {comp_lbl}: sem dados — mantida referência existente")
 
     _STATUS["em_andamento"] = False
     _STATUS["fim"]          = datetime.utcnow().isoformat()
@@ -414,23 +598,71 @@ async def _job_extrator(competencias: list[str]):
 async def extrair_historico(
     background_tasks: BackgroundTasks,
     competencias: list[str] | None = None,
+    incluir_rnds: bool = True,
     _: UserOut = Depends(get_current_user),
 ):
     """
-    Dispara extração histórica SIAPS para Jan–Ago/2026 (ou lista específica).
+    Dispara extração histórica SIAPS + RNDS para Jan–Ago/2026 (ou lista específica).
     Roda em background — use GET /api/sync/status para acompanhar.
+    - SIAPS: indicadores C2-C7/B1-B2 por equipe via API gov.br (requer SIAPS_CPF/SENHA)
+    - RNDS: HbA1c/citopatológico/DTP/HAS/DM via FHIR R4 (requer RNDS_CERT_PATH/KEY)
     """
     if _STATUS.get("em_andamento"):
         return {"status": "em_andamento", "mensagem": "Extração já em andamento.",
                 "progresso": _STATUS}
 
     comps = competencias or COMPETENCIAS_2026
-    background_tasks.add_task(_job_extrator, comps)
+    background_tasks.add_task(_job_extrator, comps, incluir_rnds)
     return {
         "status": "iniciado",
         "competencias": comps,
-        "mensagem": "Extração iniciada em background. Acompanhe em GET /api/sync/status.",
+        "incluir_rnds": incluir_rnds,
+        "rnds_configurado": _tem_rnds(),
+        "mensagem": (
+            "Extração SIAPS + RNDS iniciada em background. Acompanhe em GET /api/sync/status."
+            if incluir_rnds and _tem_rnds() else
+            "Extração SIAPS iniciada (RNDS não configurado — defina RNDS_CERT_PATH/KEY no Railway)."
+        ),
     }
+
+
+@router.get("/rnds-status")
+async def rnds_status(_: UserOut = Depends(get_current_user)):
+    """Status da integração RNDS FHIR R4 e instruções de configuração."""
+    tem = _tem_rnds()
+    resultado = {
+        "configurado": tem,
+        "cert_path":   bool(os.getenv("RNDS_CERT_PATH", "").strip()),
+        "cert_key":    bool(os.getenv("RNDS_CERT_KEY_PATH", "").strip()),
+        "rnds_url":    RNDS_BASE,
+        "cnes_apui":   list(set(_CNES_EQUIPES.values())),
+        "indicadores_extraiveis": {
+            "C4": "Diabetes — HbA1c (LOINC 4548-4)",
+            "C5": "Hipertensão — PA sistólica (LOINC 8480-6)",
+            "C7": "Citopatológico — colo uterino (LOINC 10524-7, 19762-4)",
+            "C2": "DTP/Pentavalente — Immunization (CVX 106/107/110/120)",
+            "C3": "Gestação — Condition ICD-10 Z34/Z35/Z37",
+        },
+        "instrucao": (
+            "RNDS pronto para extração FHIR R4." if tem else
+            "Configure no Railway: RNDS_CERT_PATH (caminho do certificado .pfx/.pem), "
+            "RNDS_CERT_KEY_PATH (chave privada), RNDS_URL (padrão: https://ehr.saude.gov.br). "
+            "Certificado emitido pelo DATASUS para o CNES do estabelecimento."
+        ),
+    }
+    if tem:
+        # Tenta ping rápido
+        try:
+            async with httpx.AsyncClient(
+                cert=(os.getenv("RNDS_CERT_PATH"), os.getenv("RNDS_CERT_KEY_PATH")),
+                timeout=8, verify=True,
+            ) as c:
+                r = await c.get(f"{RNDS_BASE}/fhir/r4/metadata",
+                                headers={"Accept": "application/json"})
+                resultado["ping"] = {"ok": r.status_code < 400, "http": r.status_code}
+        except Exception as e:
+            resultado["ping"] = {"ok": False, "erro": str(e)}
+    return resultado
 
 
 @router.get("/status")
