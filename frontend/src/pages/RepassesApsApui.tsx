@@ -1131,11 +1131,21 @@ function ExecucaoFinanceiraPanel() {
   const submeterEmpenho = () => {
     if (!fEmpenho.recurso.trim()) return setErroForm("Informe o recurso.");
     if (!fEmpenho.dotacao) return setErroForm("Informe o valor da dotação.");
-    mutEmpenho.mutate({
-      ...fEmpenho,
-      dotacao: parseFloat(fEmpenho.dotacao),
-      empenhado: parseFloat(fEmpenho.empenhado || "0"),
-    });
+    const payload: Record<string, unknown> = {
+      recurso:          fEmpenho.recurso,
+      bloco:            fEmpenho.bloco,
+      dotacao:          parseFloat(fEmpenho.dotacao) || 0,
+      empenhado:        parseFloat(fEmpenho.empenhado || "0") || 0,
+      fornecedor:       fEmpenho.fornecedor,
+      numero_empenho:   fEmpenho.numero_empenho  || null,
+      data_empenho:     fEmpenho.data_empenho    || null,
+      cnpj_fornecedor:  fEmpenho.cnpj_fornecedor || null,
+      contrato:         fEmpenho.contrato         || null,
+      conta_pagadora:   fEmpenho.conta_pagadora   || null,
+      portaria:         fEmpenho.portaria          || null,
+      observacao:       fEmpenho.observacao        || null,
+    };
+    mutEmpenho.mutate(payload);
   };
   const submeterLiq = () => {
     if (!alvoId) return;
