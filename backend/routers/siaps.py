@@ -146,7 +146,7 @@ def _nao_disp(motivo: str = ""):
 
 
 # ---------------------------------------------------------------------------
-# Dados de referencia municipal — Apui/AM (IBGE 1300144) — competencia 202605
+# Dados de referencia municipal — Apui/AM (IBGE 1300144) — competencia 202608
 # Estrutura compativel com SiapsEgestor.tsx.
 # ---------------------------------------------------------------------------
 _REF_APUI: dict = {
@@ -154,7 +154,7 @@ _REF_APUI: dict = {
         "uf": "AM",
         "municipio": "APUI",
         "ied": "II",
-        "competencia": "Mai/2026",
+        "competencia": "Jun/2026",
         "vinculo": {
             "pontuacao_media": 8.1,
             "otimo": 3,
@@ -506,7 +506,59 @@ async def boas_praticas(_: UserOut = Depends(get_current_user)):
 
 @router.get("/dashboard")
 async def dashboard_siaps(_: UserOut = Depends(get_current_user)):
-    """Dashboard consolidado — retorna referencia municipal enquanto API indisponivel."""
+    """Dashboard consolidado — busca dados reais do e-Gestor APS para competência atual."""
+    from services.egestor_aps import buscar_completo, EGestorAPIError
+
+    # Tenta parcela mais recente (202608 = JUN/2026) depois fallback para anterior
+    for parcela in ("202608", "202607", "202606"):
+        cache_key = f"siaps_dash_egestor_{parcela}"
+        cached = cache_get(cache_key)
+        if cached:
+            return cached
+        try:
+            raw = await buscar_completo(co_municipio="130014", co_uf="13",
+                                        parcela_inicio=parcela, parcela_fim=parcela)
+            det = raw.get("detalhado", {})
+            esf = det.get("esf", {})
+            emulti = det.get("emulti", {})
+            esb    = det.get("esb", {})
+            acs    = det.get("acs", {})
+            resultado = {
+                "situacao_dado": "oficial_confirmado",
+                "fonte": "e-Gestor APS",
+                "uf": det.get("uf", "AM"),
+                "municipio": det.get("municipio", "APUI"),
+                "ibge": det.get("ibge", "130014"),
+                "ied": _REF_APUI["siaps_dashboard"]["ied"],
+                "competencia": det.get("competencia", ""),
+                "parcela": det.get("parcela", ""),
+                "nu_comp_cnes": det.get("nu_comp_cnes", ""),
+                "faixa_equidade_esf": det.get("faixa_equidade_esf", ""),
+                "classificacao_vinculo_esf": det.get("classificacao_vinculo_esf", ""),
+                "classificacao_qualidade_esf": det.get("classificacao_qualidade_esf", ""),
+                "equipes": {
+                    "esf_credenciadas":  esf.get("qt_credenciadas", 0),
+                    "esf_homologadas":   esf.get("qt_homologadas", 0),
+                    "esf_pagas":         esf.get("qt_pagas", 0),
+                    "emulti_credenciadas": emulti.get("qt_credenciadas", 0),
+                    "emulti_pagas":      emulti.get("qt_pagas", 0),
+                    "esb_credenciadas":  esb.get("qt_40h_credenciadas", 0),
+                    "esb_homologadas":   esb.get("qt_40h_homologadas", 0),
+                    "acs_teto":          acs.get("qt_teto", 0),
+                    "acs_credenciados":  acs.get("qt_direto_credenciado", 0),
+                    "acs_pagos":         acs.get("qt_direto_pago", 0),
+                },
+                "coletado_em": raw.get("coletado_em", _ts()),
+                "verificado_em": _ts(),
+            }
+            cache_set(cache_key, resultado, ttl=1800)
+            return resultado
+        except EGestorAPIError:
+            continue
+        except Exception as exc:
+            logger.warning("dashboard_siaps: %s", exc)
+            continue
+
     return _ref_municipal("siaps_dashboard")
 
 
