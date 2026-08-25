@@ -234,7 +234,7 @@ function ModalRelatorio({ repasses, mes, onFechar }: { repasses: Repasse[]; mes:
     const janela = window.open("", "_blank", "width=1000,height=800");
     if (!janela) return;
     janela.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-      <title>Relatório de Repasses FNS — ${mes}</title>
+      <title>Controle Financeiro FNS — Apuí · Relatório ${mes}</title>
       <style>
         @page {
           size: A4 portrait;
@@ -313,7 +313,7 @@ function ModalRelatorio({ repasses, mes, onFechar }: { repasses: Repasse[]; mes:
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
                   <h1 style={{ fontSize: 18, fontWeight: 800, color: "#065f46", marginBottom: 3 }}>
-                    Relatório de Repasses FNS — Competência {mes}
+                    Controle Financeiro FNS — Apuí · Competência {mes}
                   </h1>
                   <div style={{ fontSize: 11, color: "#6b7280" }}>
                     Fundo Nacional de Saúde → Fundo Municipal de Saúde · Apuí / AM · Blocos de Financiamento

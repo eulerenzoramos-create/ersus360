@@ -25,7 +25,7 @@ const MODULOS = [
   { label: "IA Gestora",           desc: "Assistente inteligente para gestão",       Icon: Brain,       path: "/ia",                             cor: BLUE },
   { label: "Mapa de Desempenho",   desc: "Ranking municipal AM e nacional",          Icon: Map,         path: "/mapa-desempenho",                cor: BLUE },
   { label: "Sprint ÓTIMO",         desc: "Monitoramento SIAPS Q2/2026",              Icon: TrendingUp,  path: "/sprint-otimo",                   cor: BLUE },
-  { label: "Repasses FNS",         desc: "Controle de repasses e execução",          Icon: DollarSign,  path: "/repasses",                       cor: BLUE },
+  { label: "Controle Financeiro FNS", desc: "Controle de repasses e execução",       Icon: DollarSign,  path: "/repasses",                       cor: BLUE },
   { label: "Documentos",           desc: "Portarias, ofícios e termos",              Icon: FileText,    path: "/documentos",                     cor: BLUE },
 ];
 

@@ -836,7 +836,7 @@ export default function MatrizFns() {
       {/* ── Cabeçalho ── */}
       <div style={{ marginBottom: 14 }}>
         <h2 style={{ fontSize: 20, fontWeight: 700, color: C.blue, margin: 0 }}>
-          Módulo Financeiro — Repasses Federais FNS
+          CONTROLE FINANCEIRO FNS — APUÍ
         </h2>
         <p style={{ fontSize: 13, color: C.textSec, marginTop: 4, marginBottom: 0 }}>
           Apuí/AM · FMS CNPJ 12.834.320/0001-26 · IBGE 130014 ·{" "}

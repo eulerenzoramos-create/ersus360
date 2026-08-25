@@ -451,7 +451,7 @@ export default function EvolucaoFnsGrafico({ data, exercicio, onVoltar, onSincro
       <div style="font-family:system-ui,sans-serif;color:#111827">
         <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #1d4ed8;padding-bottom:10px;margin-bottom:14px">
           <div>
-            <div style="font-size:18px;font-weight:800;color:#0f172a">ERSUS 360 — Evolução dos Repasses FNS</div>
+            <div style="font-size:18px;font-weight:800;color:#0f172a">CONTROLE FINANCEIRO FNS — APUÍ · Evolução por Grupo</div>
             <div style="font-size:10px;color:#6b7280">FMS Apuí/AM · CNPJ 12.834.320/0001-26 · IBGE 1300144 · Exercício ${exercicio}</div>
           </div>
           <div style="text-align:right;font-size:10px;color:#6b7280">
