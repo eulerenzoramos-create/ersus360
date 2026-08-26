@@ -600,19 +600,36 @@ export default function SprintOtimo() {
         </div>
       </div>
 
+      {/* ── Barra município (gov.br style) ── */}
+      <div style={{ background: "#1d4ed8", padding: "7px 28px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>Secretaria Municipal de Saúde</span>
+        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 14 }}>·</span>
+        <span style={{ color: "#fff", fontWeight: 700, fontSize: 12 }}>{municipioNome} / {municipioUF}</span>
+        {municipioIBGE && <><span style={{ color: "rgba(255,255,255,0.3)", fontSize: 14 }}>·</span><span style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>IBGE {municipioIBGE}</span></>}
+        <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.65)", fontSize: 11 }}>{periodoAtual.desc}</span>
+      </div>
+
       {/* ── Stats bar ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 0, background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
         {[
-          { label: "Meta sprint", value: "≥ 75 pts", sub: "Componente Qualidade", color: "#1d4ed8", bg: "#eff6ff" },
-          { label: "Equipes ÓTIMO", value: `${EQUIPES.filter(e => e.pts >= 75).length} / ${EQUIPES.filter(e => e.risco !== "apurar").length}`, sub: "meta atingida", color: "#16a34a", bg: "#f0fdf4" },
-          { label: "Em risco crítico", value: String(EQUIPES.filter(e => e.risco === "critico").length), sub: "precisam ação imediata", color: "#dc2626", bg: "#fff7f7" },
-          { label: "Checklist", value: `${feitos} / ${totalChecks}`, sub: `${pct}% concluído`, color: "#7c3aed", bg: "#f5f3ff" },
-          { label: "Sprint encerra", value: `${diasRestantes}d ${horasRestantes}h`, sub: periodoAtual.desc, color: "#1d4ed8", bg: "#eff6ff" },
+          { icon: "🎯", label: "Meta do Sprint", value: "≥ 75 pts", sub: "Componente Qualidade", color: "#1d4ed8", border: "#3b82f6" },
+          { icon: "✅", label: "Equipes ÓTIMO", value: `${EQUIPES.filter(e => e.pts >= 75).length} / ${EQUIPES.filter(e => e.risco !== "apurar").length}`, sub: "atingiram a meta", color: "#16a34a", border: "#22c55e" },
+          { icon: "⚠️", label: "Risco Crítico", value: String(EQUIPES.filter(e => e.risco === "critico").length), sub: "ação imediata", color: "#dc2626", border: "#ef4444" },
+          { icon: "📋", label: "Checklist", value: `${feitos} / ${totalChecks}`, sub: `${pct}% concluído`, color: "#7c3aed", border: "#a855f7" },
+          { icon: "⏳", label: "Sprint encerra em", value: `${diasRestantes}d ${horasRestantes}h`, sub: periodoAtual.desc, color: "#0369a1", border: "#38bdf8" },
         ].map((s, i, arr) => (
-          <div key={s.label} style={{ padding: "12px 20px", borderRight: i < arr.length - 1 ? "1px solid #e5e7eb" : "none", background: s.bg }}>
-            <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase" as const, letterSpacing: 0.8, marginBottom: 4 }}>{s.label}</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: s.color, fontVariantNumeric: "tabular-nums" }}>{s.value}</div>
-            <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{s.sub}</div>
+          <div key={s.label} style={{
+            padding: "14px 20px 12px",
+            borderRight: i < arr.length - 1 ? "1px solid #e5e7eb" : "none",
+            borderLeft: `3px solid ${s.border}`,
+            display: "flex", flexDirection: "column" as const, gap: 2,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
+              <span style={{ fontSize: 12 }}>{s.icon}</span>
+              <span style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase" as const, letterSpacing: 0.8, fontWeight: 600 }}>{s.label}</span>
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}>{s.value}</div>
+            <div style={{ fontSize: 10, color: "#9ca3af" }}>{s.sub}</div>
           </div>
         ))}
       </div>
@@ -1115,48 +1132,81 @@ export default function SprintOtimo() {
               </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12, marginBottom: 28 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14, marginBottom: 28 }}>
               {EQUIPES.map(eq => {
                 const isApurar = eq.risco === "apurar";
-                const pctBar = isApurar ? 0 : Math.min(100, (eq.pts / 75) * 100);
+                const pctBar = isApurar ? 0 : Math.min(100, (eq.pts / 100) * 100);
+                const pctMeta = isApurar ? 0 : Math.min(100, (eq.pts / 75) * 100);
                 const label = isApurar ? "A APURAR" : eq.pts >= 75 ? "ÓTIMO" : eq.pts >= 60 ? "BOM" : "RISCO";
-                const labelCor = isApurar ? "#6b7280" : eq.pts >= 75 ? "#22c55e" : eq.pts >= 60 ? "#f59e0b" : "#ef4444";
+                const labelCor = isApurar ? "#6b7280" : eq.pts >= 75 ? "#16a34a" : eq.pts >= 60 ? "#d97706" : "#dc2626";
                 const barCor = isApurar ? "#e5e7eb" : eq.pts >= 75 ? "#22c55e" : eq.pts >= 60 ? "#f59e0b" : "#ef4444";
-                const accentCor = isApurar ? "#e5e7eb" : eq.pts >= 75 ? "#16a34a" : eq.pts >= 60 ? "#d97706" : "#dc2626";
+                const accentCor = isApurar ? "#e2e8f0" : eq.pts >= 75 ? "#16a34a" : eq.pts >= 60 ? "#d97706" : "#dc2626";
+                const bgCard = isApurar ? "#f9fafb" : eq.pts >= 75 ? "#f0fdf4" : eq.pts >= 60 ? "#fffbeb" : "#fff7f7";
                 return (
                   <div key={eq.nome} style={{
-                    background: "#fff",
-                    borderRadius: 12, padding: 0, overflow: "hidden",
-                    border: `1px solid ${isApurar ? "#e5e7eb" : accentCor + "40"}`,
-                    boxShadow: isApurar ? "none" : "0 1px 4px rgba(0,0,0,0.06)",
+                    background: bgCard,
+                    borderRadius: 14, padding: 0, overflow: "hidden",
+                    border: `1px solid ${accentCor}30`,
+                    boxShadow: isApurar ? "none" : `0 2px 8px ${accentCor}18`,
                   }}>
-                    {/* Accent bar top */}
-                    <div style={{ height: 3, background: accentCor, borderRadius: "0" }} />
-                    <div style={{ padding: 16 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                        <span style={{ fontWeight: 700, fontSize: 13, color: isApurar ? "#64748b" : "#1e293b", letterSpacing: 0.2 }}>{eq.nome}</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: labelCor, background: labelCor + "20", border: `1px solid ${labelCor}40`, padding: "2px 9px", borderRadius: 20 }}>{label}</span>
+                    {/* Accent bar top — mais grossa */}
+                    <div style={{ height: 5, background: accentCor }} />
+                    <div style={{ padding: "14px 16px 16px" }}>
+                      {/* Nome + badge */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: isApurar ? "#64748b" : "#1e293b", lineHeight: 1.3, maxWidth: "65%" }}>{eq.nome}</span>
+                        <span style={{
+                          fontSize: 10, fontWeight: 800, color: "#fff",
+                          background: accentCor,
+                          padding: "3px 10px", borderRadius: 20, letterSpacing: 0.5,
+                          whiteSpace: "nowrap" as const,
+                        }}>{label}</span>
                       </div>
                       {isApurar ? (
-                        <div style={{ fontSize: 11, color: "#475569", fontStyle: "italic", marginBottom: 10 }}>🔍 Verificar no e-Gestor/SIAPS</div>
+                        <div style={{ fontSize: 11, color: "#64748b", fontStyle: "italic", marginBottom: 14, background: "#f1f5f9", padding: "8px 12px", borderRadius: 8 }}>
+                          🔍 Verificar no e-Gestor/SIAPS
+                        </div>
                       ) : (
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-                          <div>
-                            <span style={{ fontSize: 28, fontWeight: 800, color: labelCor, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{eq.pts}</span>
-                            <span style={{ fontSize: 11, color: "#475569", marginLeft: 4 }}>pts</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                          {/* Score grande */}
+                          <div style={{
+                            width: 64, height: 64, borderRadius: "50%",
+                            border: `3px solid ${accentCor}`,
+                            display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center",
+                            background: "#fff", flexShrink: 0,
+                          }}>
+                            <span style={{ fontSize: 22, fontWeight: 900, color: labelCor, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{eq.pts}</span>
+                            <span style={{ fontSize: 9, color: "#9ca3af", fontWeight: 600 }}>pts</span>
                           </div>
-                          <div style={{ textAlign: "right" }}>
-                            <div style={{ fontSize: 11, color: eq.ganho <= 3 ? "#22c55e" : eq.ganho <= 15 ? "#f59e0b" : "#ef4444", fontWeight: 700 }}>+{eq.ganho} necessários</div>
-                            <div style={{ fontSize: 10, color: "#9ca3af" }}>para ÓTIMO</div>
+                          {/* Info direita */}
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 3 }}>Meta: <strong>75 pts</strong></div>
+                            {eq.ganho > 0 ? (
+                              <div style={{ fontSize: 12, color: eq.ganho <= 3 ? "#16a34a" : eq.ganho <= 15 ? "#d97706" : "#dc2626", fontWeight: 700 }}>
+                                +{eq.ganho} pts para ÓTIMO
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: 12, color: "#16a34a", fontWeight: 700 }}>✓ Meta atingida</div>
+                            )}
+                            <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{Math.round(pctMeta)}% da meta</div>
                           </div>
                         </div>
                       )}
-                      <div style={{ height: 6, background: "#f1f5f9", borderRadius: 3, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${pctBar}%`, background: barCor, borderRadius: 3, transition: "width 0.5s ease" }} />
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#6b7280", marginTop: 5 }}>
-                        <span>0</span><span style={{ color: "#2563eb" }}>75 · meta</span><span>100</span>
-                      </div>
+                      {/* Barra de progresso dupla */}
+                      {!isApurar && (
+                        <div>
+                          <div style={{ position: "relative", height: 8, background: "#e2e8f0", borderRadius: 4, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${pctBar}%`, background: barCor, borderRadius: 4, transition: "width 0.6s ease" }} />
+                            {/* Marcador de meta 75 */}
+                            <div style={{ position: "absolute", left: "75%", top: 0, bottom: 0, width: 2, background: "#1d4ed8", opacity: 0.6 }} />
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#94a3b8", marginTop: 4 }}>
+                            <span>0</span>
+                            <span style={{ color: "#1d4ed8", fontWeight: 600 }}>▲ 75</span>
+                            <span>100</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
