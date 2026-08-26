@@ -503,6 +503,37 @@ export default function SprintOtimo() {
 
   const ESTADOS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
+  // ── DESIGN SYSTEM ─────────────────────────────────────────────────────────
+  const ds = {
+    primary:"#1d4ed8", pLight:"#eff6ff", pBorder:"#bfdbfe",
+    heading:"#1e293b", body:"#475569", muted:"#94a3b8",
+    border:"#e5e7eb", bg:"#f8fafc", white:"#fff",
+    otimo:  {text:"#15803d", bg:"#f0fdf4", border:"#bbf7d0", pill:"#16a34a"},
+    bom:    {text:"#92400e", bg:"#fffbeb", border:"#fde68a", pill:"#d97706"},
+    risco:  {text:"#991b1b", bg:"#fef2f2", border:"#fca5a5", pill:"#dc2626"},
+    apurar: {text:"#6b7280", bg:"#f9fafb", border:"#e5e7eb", pill:"#9ca3af"},
+  };
+
+  // ── SORT + FILTER STATE ───────────────────────────────────────────────────
+  const [visaoSort, setVisaoSort] = useState<"prioridade"|"score"|"nome">("prioridade");
+  const [incFiltro, setIncFiltro] = useState<"todas"|"critico"|"medio"|"atencao">("todas");
+
+  // ── HELPERS ───────────────────────────────────────────────────────────────
+  const eqSt = (eq: typeof EQUIPES[0]) =>
+    eq.risco==="apurar" ? "apurar" as const
+    : eq.pts>=75 ? "otimo" as const
+    : eq.pts>=60 ? "bom" as const
+    : "risco" as const;
+
+  const equipesSorted = [...EQUIPES].sort((a,b) => {
+    if (visaoSort==="prioridade") {
+      const ord: Record<string,number> = {risco:0, apurar:1, bom:2, otimo:3};
+      return ord[eqSt(a)] - ord[eqSt(b)];
+    }
+    if (visaoSort==="score") return a.pts - b.pts;
+    return a.nome.localeCompare(b.nome);
+  });
+
   return (
     <div style={{ padding: "0 0 60px 0", fontFamily: "system-ui, sans-serif", background: "#f8fafc", minHeight: "100vh", color: "#1e293b" }}>
 
@@ -1132,8 +1163,30 @@ export default function SprintOtimo() {
               </div>
             )}
 
+            {/* Controle de ordenação */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 600, letterSpacing: 0.3 }}>Ordenar por:</span>
+              {([
+                { key:"prioridade", label:"🎯 Prioridade" },
+                { key:"score",      label:"📊 Score" },
+                { key:"nome",       label:"🔤 Nome" },
+              ] as {key:"prioridade"|"score"|"nome"; label:string}[]).map(opt => (
+                <button key={opt.key} onClick={() => setVisaoSort(opt.key)} style={{
+                  padding:"4px 12px", borderRadius:20, fontSize:11, cursor:"pointer",
+                  fontWeight:visaoSort===opt.key ? 700 : 400,
+                  border:`1px solid ${visaoSort===opt.key ? "#3b82f6" : "#e5e7eb"}`,
+                  background:visaoSort===opt.key ? "#dbeafe" : "transparent",
+                  color:visaoSort===opt.key ? "#1d4ed8" : "#6b7280",
+                  fontFamily:"inherit", transition:"all 0.15s",
+                }}>{opt.label}</button>
+              ))}
+              <span style={{ marginLeft: "auto", fontSize: 11, color: "#94a3b8" }}>
+                {EQUIPES.filter(e => e.pts >= 75).length}/{EQUIPES.filter(e => e.risco !== "apurar").length} equipes na meta
+              </span>
+            </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14, marginBottom: 28 }}>
-              {EQUIPES.map(eq => {
+              {equipesSorted.map(eq => {
                 const isApurar = eq.risco === "apurar";
                 const pctBar = isApurar ? 0 : Math.min(100, (eq.pts / 100) * 100);
                 const pctMeta = isApurar ? 0 : Math.min(100, (eq.pts / 75) * 100);
@@ -1395,9 +1448,15 @@ export default function SprintOtimo() {
                         )}
                         <div style={{ fontSize: 13, color: "#6b7280" }}>Score atual: <strong style={{ color: eq.cor }}>{eq.pts} pts</strong> → Meta: <strong style={{ color: "#22c55e" }}>75 pts (ÓTIMO)</strong></div>
                       </div>
-                      <div style={{ textAlign: "center", background: "#fff", borderRadius: 10, padding: "12px 20px", flexShrink: 0 }}>
-                        <div style={{ fontSize: 28, fontWeight: 800, color: eq.cor }}>+{eq.ganho}</div>
-                        <div style={{ fontSize: 11, color: "#64748b" }}>pontos necessários</div>
+                      <div style={{ textAlign: "center", borderRadius: 10, padding: "12px 20px", flexShrink: 0, background: eq.ganho === 0 ? "#f0fdf4" : "#fff", border: `1px solid ${eq.ganho === 0 ? "#bbf7d0" : "#e5e7eb"}` }}>
+                        {eq.ganho === 0 ? (
+                          <div style={{ fontSize: 13, fontWeight: 800, color: "#16a34a", whiteSpace: "nowrap" as const }}>✓ Meta<br/>atingida</div>
+                        ) : (
+                          <>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: eq.cor }}>+{eq.ganho}</div>
+                            <div style={{ fontSize: 11, color: "#64748b" }}>pts necessários</div>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>Pontos disponíveis nos indicadores abaixo: <strong style={{ color: "#22c55e" }}>+{totalPtsDisp} pts estimados</strong></div>
@@ -1673,6 +1732,10 @@ export default function SprintOtimo() {
           const criticos = INCONSISTENCIAS.filter(i => i.gravidade === "critico");
           const medios = INCONSISTENCIAS.filter(i => i.gravidade === "medio");
           const atencao = INCONSISTENCIAS.filter(i => i.gravidade === "atencao");
+          const incFiltradas = incFiltro === "todas" ? INCONSISTENCIAS
+            : incFiltro === "critico" ? criticos
+            : incFiltro === "medio" ? medios
+            : atencao;
 
           const CardInc = ({ inc }: { inc: typeof INCONSISTENCIAS[0] }) => (
             <div style={{ background: "#fff", border: `1px solid ${inc.borda}`, borderLeft: `4px solid ${inc.cor}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
@@ -1772,6 +1835,29 @@ export default function SprintOtimo() {
                 )}
               </div>
 
+              {/* ── Filtro por gravidade ── */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Filtrar:</span>
+                {([
+                  { key:"todas",   label:"Todas",    count: INCONSISTENCIAS.length, color: "#6b7280", bg: "#f1f5f9", activeBg: "#e2e8f0" },
+                  { key:"critico", label:"Críticos",  count: criticos.length,        color: "#dc2626", bg: "rgba(239,68,68,0.08)", activeBg: "rgba(239,68,68,0.15)" },
+                  { key:"medio",   label:"Médios",    count: medios.length,          color: "#d97706", bg: "rgba(245,158,11,0.08)", activeBg: "rgba(245,158,11,0.15)" },
+                  { key:"atencao", label:"Atenção",   count: atencao.length,         color: "#0ea5e9", bg: "rgba(56,189,248,0.07)", activeBg: "rgba(56,189,248,0.15)" },
+                ] as {key:"todas"|"critico"|"medio"|"atencao"; label:string; count:number; color:string; bg:string; activeBg:string}[]).map(f => (
+                  <button key={f.key} onClick={() => setIncFiltro(f.key)} style={{
+                    display: "flex", alignItems: "center", gap: 5, padding: "4px 12px", borderRadius: 20, fontSize: 11,
+                    fontWeight: incFiltro === f.key ? 700 : 400, cursor: "pointer", fontFamily: "inherit",
+                    border: `1px solid ${incFiltro === f.key ? f.color : "#e5e7eb"}`,
+                    background: incFiltro === f.key ? f.activeBg : "transparent",
+                    color: incFiltro === f.key ? f.color : "#6b7280",
+                    transition: "all 0.15s",
+                  }}>
+                    {f.label}
+                    <span style={{ fontWeight: 800, fontSize: 10, background: incFiltro === f.key ? f.color : "#e5e7eb", color: incFiltro === f.key ? "#fff" : "#6b7280", borderRadius: 10, padding: "0 5px", lineHeight: "16px", minWidth: 18, textAlign: "center" }}>{f.count}</span>
+                  </button>
+                ))}
+              </div>
+
               {/* Resumo */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 20 }}>
                 {[
@@ -1792,22 +1878,34 @@ export default function SprintOtimo() {
                 Varredura: SCNES 07/2026 · SIAPS Q1/2026 · Competência gerada 22/07/2026
               </div>
 
-              {criticos.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#ef4444", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>🚨 Críticos — risco de impacto no financiamento</div>
-                  {criticos.map((inc, i) => <CardInc key={i} inc={inc} />)}
-                </div>
-              )}
-              {medios.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>⚠ Médios — regularizar no SCNES</div>
-                  {medios.map((inc, i) => <CardInc key={i} inc={inc} />)}
-                </div>
-              )}
-              {atencao.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#38bdf8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>⚡ Atenção — monitorar</div>
-                  {atencao.map((inc, i) => <CardInc key={i} inc={inc} />)}
+              {/* Cards filtrados */}
+              {incFiltro === "todas" ? (
+                <>
+                  {criticos.length > 0 && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#ef4444", textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 8 }}>🚨 Críticos — risco de impacto no financiamento</div>
+                      {criticos.map((inc, i) => <CardInc key={i} inc={inc} />)}
+                    </div>
+                  )}
+                  {medios.length > 0 && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b", textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 8 }}>⚠ Médios — regularizar no SCNES</div>
+                      {medios.map((inc, i) => <CardInc key={i} inc={inc} />)}
+                    </div>
+                  )}
+                  {atencao.length > 0 && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#38bdf8", textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 8 }}>⚡ Atenção — monitorar</div>
+                      {atencao.map((inc, i) => <CardInc key={i} inc={inc} />)}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div>
+                  {incFiltradas.length === 0
+                    ? <div style={{ textAlign: "center", padding: "24px 0", color: "#94a3b8", fontSize: 13 }}>Nenhuma inconsistência nesta categoria.</div>
+                    : incFiltradas.map((inc, i) => <CardInc key={i} inc={inc} />)
+                  }
                 </div>
               )}
             </div>
