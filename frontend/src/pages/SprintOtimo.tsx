@@ -720,9 +720,11 @@ export default function SprintOtimo() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 2 }}>
                       🗂️ CVAT — Componente Vínculo e Acompanhamento Territorial
                     </div>
-                    <div style={{ fontSize: 11, color: "#64748b" }}>
-                      Fonte: SIAPS · siaps.saude.gov.br/componentes/cvat · UF: AM · Município: APUÍ · IED: 2 · eAP + eSF
-                    </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                    {["⬡ SIAPS", "⬡ siaps.saude.gov.br/cvat", "⬡ Apuí/AM", "⬡ eAP + eSF"].map(lbl => (
+                      <span key={lbl} style={{ fontSize: 10, fontFamily: "monospace", color: "#475569", background: "#f8fafc", border: "1px solid #e5e7eb", padding: "1px 7px", borderRadius: 4 }}>{lbl}</span>
+                    ))}
+                  </div>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <div style={{ background: "#f1f5f9", border: "1px solid #e5e7eb", borderRadius: 8, padding: "6px 14px", fontSize: 11, color: "#1d4ed8" }}>
@@ -905,8 +907,10 @@ export default function SprintOtimo() {
                       <span style={{ fontSize: 11, color: "#6b7280" }}>— Sem dados disponíveis</span>
                       <span style={{ fontSize: 11, color: "#ef4444" }}>0 ⚠ Zero por bloqueio CNES, não ausência de produção</span>
                     </div>
-                    <div style={{ fontSize: 11, color: "#475569", textAlign: "right" }}>
-                      * Dados estimados com base no cadastro PEC e-SUS APS e SIAPS CVAT — Apuí/AM · IED 2 · Abr/2026
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      {["⬡ PEC e-SUS APS","⬡ SIAPS CVAT","⬡ IED 2 · Abr/2026"].map(t => (
+                        <span key={t} style={{ fontSize: 10, fontFamily: "monospace", color: "#475569", background: "#f8fafc", border: "1px solid #e5e7eb", padding: "1px 7px", borderRadius: 4 }}>{t}</span>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -975,7 +979,7 @@ export default function SprintOtimo() {
                 </div>
               )}
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 16 }}>
 
                 {/* Card composição mínima */}
                 <div style={{ background: "#fff", borderRadius: 12, padding: 18, border: "1px solid #e5e7eb", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
@@ -1095,6 +1099,13 @@ export default function SprintOtimo() {
                   <span style={{ fontWeight: 700, fontSize: 12, color: "#1d4ed8" }}>Observação Técnica</span>
                 </div>
                 <p style={{ fontSize: 13, color: "#475569", margin: 0, lineHeight: 1.6 }}>{d.obs}</p>
+              </div>
+
+              {/* SourceBadges diagnóstico */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+                {["⬡ SCNES 07/2026","⬡ e-Gestor APS","⬡ DATASUS","⬡ Competência 07/2026"].map(t => (
+                  <span key={t} style={{ fontSize: 10, fontFamily: "monospace", color: "#475569", background: "#f8fafc", border: "1px solid #e5e7eb", padding: "2px 8px", borderRadius: 4 }}>{t}</span>
+                ))}
               </div>
 
               {/* Fundamentação legal */}
@@ -1397,9 +1408,12 @@ export default function SprintOtimo() {
                   <div style={{ fontSize:15, fontWeight:700, color:"#1e293b" }}>📈 Indicadores-Chave do Sprint</div>
                   <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>Ordenados por potencial de impacto no score — Q2 Mai–Ago/2026</div>
                 </div>
-                <div style={{ display:"flex", gap:8, fontSize:11, color:"#94a3b8", flexWrap:"wrap" }}>
-                  <span style={{ background:"#f1f5f9", border:"1px solid #e5e7eb", padding:"2px 10px", borderRadius:20 }}>Resultado atual (%)</span>
-                  <span style={{ background:"#dcfce7", border:"1px solid #bbf7d0", color:"#16a34a", padding:"2px 10px", borderRadius:20 }}>Meta Q2</span>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+                  <span style={{ background:"#f1f5f9", border:"1px solid #e5e7eb", padding:"2px 10px", borderRadius:20, fontSize:11, color:"#94a3b8" }}>Resultado atual (%)</span>
+                  <span style={{ background:"#dcfce7", border:"1px solid #bbf7d0", color:"#16a34a", padding:"2px 10px", borderRadius:20, fontSize:11 }}>Meta Q2</span>
+                  {["⬡ e-Gestor APS","⬡ SIAPS Q1/2026"].map(t => (
+                    <span key={t} style={{ fontSize:10, fontFamily:"monospace", color:"#475569", background:"#f8fafc", border:"1px solid #e5e7eb", padding:"2px 8px", borderRadius:4 }}>{t}</span>
+                  ))}
                 </div>
               </div>
 
@@ -1874,7 +1888,9 @@ export default function SprintOtimo() {
                     <span style={{ fontSize: 11, fontWeight: 700, color: "#1e293b", textTransform: "uppercase", letterSpacing: 0.5 }}>Ação: </span>
                     <span style={{ fontSize: 12, color: "#475569" }}>{inc.acao}</span>
                   </div>
-                  <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>Fonte: {inc.fonte}</div>
+                  <div style={{ marginTop: 8 }}>
+                    <span style={{ fontSize: 10, fontFamily: "monospace", color: "#475569", background: "#f8fafc", border: "1px solid #e5e7eb", padding: "2px 8px", borderRadius: 4 }}>⬡ {inc.fonte}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1994,9 +2010,11 @@ export default function SprintOtimo() {
                 ))}
               </div>
 
-              {/* Fonte */}
-              <div style={{ fontSize: 11, color: "#475569", marginBottom: 16 }}>
-                Varredura: SCNES 07/2026 · SIAPS Q1/2026 · Competência gerada 22/07/2026
+              {/* SourceBadges */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+                {["⬡ SCNES 07/2026","⬡ SIAPS Q1/2026","⬡ Gerado 22/07/2026"].map(t => (
+                  <span key={t} style={{ fontSize: 10, fontFamily: "monospace", color: "#475569", background: "#f8fafc", border: "1px solid #e5e7eb", padding: "2px 8px", borderRadius: 4 }}>{t}</span>
+                ))}
               </div>
 
               {/* Cards filtrados */}
