@@ -1493,7 +1493,7 @@ export default function SprintOtimo() {
 
                       {/* Observação */}
                       {diag.obs && (
-                        <div style={{ background: "#fff", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#64748b", borderLeft: "3px solid #334155", fontStyle: "italic" }}>
+                        <div style={{ background: "#f8fafc", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#64748b", borderLeft: "3px solid #bfdbfe", fontStyle: "italic" }}>
                           {diag.obs}
                         </div>
                       )}
@@ -1531,54 +1531,77 @@ export default function SprintOtimo() {
         {/* ── ABA: Checklist ── */}
         {aba === "checklist" && (
           <div>
-            {/* Barra progresso */}
-            <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: 16, marginBottom: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>Progresso Total do Sprint</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#22c55e" }}>{feitos}/{totalChecks} ({pct}%)</span>
+            {/* Card progresso */}
+            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 0, marginBottom: 20, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+              <div style={{ height: 4, background: pct >= 80 ? "#22c55e" : pct >= 40 ? "#f59e0b" : "#e5e7eb" }} />
+              <div style={{ padding: "16px 20px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <div>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Progresso Total do Sprint</span>
+                    <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: 8 }}>Meta: {totalChecks}/{totalChecks} até 20/agosto</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                    <span style={{ fontSize: 28, fontWeight: 900, color: pct >= 80 ? "#16a34a" : pct >= 40 ? "#d97706" : "#1d4ed8", fontVariantNumeric: "tabular-nums" }}>{feitos}</span>
+                    <span style={{ fontSize: 14, color: "#94a3b8", fontWeight: 600 }}>/ {totalChecks}</span>
+                    <span style={{ fontSize: 12, color: "#94a3b8", marginLeft: 4 }}>({pct}%)</span>
+                  </div>
+                </div>
+                <div style={{ height: 10, background: "#f1f5f9", borderRadius: 5, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: pct >= 80 ? "linear-gradient(90deg,#22c55e,#16a34a)" : pct >= 40 ? "linear-gradient(90deg,#f59e0b,#d97706)" : "#3b82f6", borderRadius: 5, transition: "width 0.5s ease" }} />
+                </div>
               </div>
-              <div style={{ height: 12, background: "#e5e7eb", borderRadius: 6, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${pct}%`, background: "linear-gradient(90deg, #22c55e, #16a34a)", borderRadius: 6, transition: "width 0.4s" }} />
-              </div>
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 6 }}>Meta: {totalChecks}/{totalChecks} até 20/agosto</div>
             </div>
 
             {FRENTES.map(frente => {
               const itens = CHECKLIST.filter(c => c.frente === frente);
               const cor = FRENTE_COR[frente] || "#94a3b8";
+              const feitosFrente = itens.filter(i => checks[i.id]).length;
               return (
-                <div key={frente} style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: 16, marginBottom: 14 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: cor, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: cor, display: "inline-block" }} />
-                    Frente {frente}
-                  </div>
-                  {itens.map(item => (
-                    <div key={item.id} onClick={() => toggle(item.id)} style={{
-                      display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0",
-                      borderBottom: "1px solid #e5e7eb", cursor: "pointer",
-                      opacity: checks[item.id] ? 0.6 : 1
-                    }}>
-                      <div style={{ marginTop: 1, flexShrink: 0 }}>
-                        {checks[item.id]
-                          ? <CheckSquare size={16} color="#22c55e" />
-                          : <Square size={16} color="#64748b" />
-                        }
+                <div key={frente} style={{ background: "#fff", borderRadius: 14, border: `1px solid ${cor}30`, marginBottom: 14, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                  {/* Accent bar */}
+                  <div style={{ height: 4, background: cor }} />
+                  <div style={{ padding: "14px 16px 16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontWeight: 800, fontSize: 13, color: cor }}>Frente {frente}</span>
                       </div>
-                      <span style={{ fontSize: 13, color: checks[item.id] ? "#94a3b8" : "#374151", textDecoration: checks[item.id] ? "line-through" : "none" }}>
-                        {item.texto}
+                      <span style={{ fontSize: 11, color: feitosFrente === itens.length ? "#16a34a" : "#94a3b8", fontWeight: 700, background: feitosFrente === itens.length ? "#f0fdf4" : "#f8fafc", border: `1px solid ${feitosFrente === itens.length ? "#bbf7d0" : "#e5e7eb"}`, padding: "2px 10px", borderRadius: 20 }}>
+                        {feitosFrente}/{itens.length} {feitosFrente === itens.length ? "✓ concluído" : "pendentes"}
                       </span>
                     </div>
-                  ))}
+                    {itens.map((item, idx) => (
+                      <div key={item.id} onClick={() => toggle(item.id)} style={{
+                        display: "flex", gap: 10, alignItems: "flex-start",
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        marginBottom: idx < itens.length - 1 ? 4 : 0,
+                        background: checks[item.id] ? "#f8fafc" : "#fff",
+                        border: `1px solid ${checks[item.id] ? "#e5e7eb" : "#f1f5f9"}`,
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}>
+                        <div style={{ marginTop: 1, flexShrink: 0 }}>
+                          {checks[item.id]
+                            ? <CheckSquare size={16} color="#22c55e" />
+                            : <Square size={16} color={cor} />
+                          }
+                        </div>
+                        <span style={{ fontSize: 13, color: checks[item.id] ? "#94a3b8" : "#1e293b", textDecoration: checks[item.id] ? "line-through" : "none", lineHeight: 1.5 }}>
+                          {item.texto}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               );
             })}
 
-            <div style={{ background: "#dbeafe", borderRadius: 10, padding: 16, border: "1px solid #1e40af" }}>
+            <div style={{ background: "#eff6ff", borderRadius: 12, padding: 16, border: "1px solid #bfdbfe" }}>
               <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                <Clock size={14} color="#3b82f6" />
+                <Clock size={14} color="#1d4ed8" />
                 <span style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8" }}>Prazo crítico</span>
               </div>
-              <p style={{ fontSize: 12, color: "#1d4ed8", margin: 0 }}>
+              <p style={{ fontSize: 12, color: "#1d4ed8", margin: 0, lineHeight: 1.6 }}>
                 O e-Gestor fecha competências por volta do dia 20 do mês seguinte. Para garantir que agosto/2026 seja contabilizado no Q2,
                 confirme todos os registros no PEC até <strong>20/agosto</strong>. Monitoramento semanal toda segunda-feira.
               </p>
