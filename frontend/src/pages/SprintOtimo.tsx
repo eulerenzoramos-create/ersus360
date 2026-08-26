@@ -1059,21 +1059,32 @@ export default function SprintOtimo() {
                 </div>
               </div>
 
-              {/* Pendências */}
+              {/* Pendências — cards individuais por severidade */}
               {d.pendencias.length > 0 && (
-                <div style={{ background: "#fffbeb", borderRadius: 12, padding: 16, marginBottom: 14, border: "1px solid #fde68a" }}>
+                <div style={{ marginBottom: 14 }}>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
                     <AlertTriangle size={15} color="#d97706" />
-                    <span style={{ fontWeight: 700, fontSize: 13, color: "#92400e" }}>Pendências Identificadas</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#d97706", background: "#fef3c7", border: "1px solid #fde68a", padding: "1px 8px", borderRadius: 10, marginLeft: 4 }}>
-                      Equipe {d.nome} · {d.ubs}
+                    <span style={{ fontWeight: 700, fontSize: 13, color: "#1e293b" }}>Pendências Identificadas</span>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: d.pendencias.some(p=>p.startsWith("🚨")) ? "#dc2626" : "#d97706", padding: "2px 9px", borderRadius: 20, marginLeft: 4 }}>
+                      {d.pendencias.length} {d.pendencias.length === 1 ? "item" : "itens"}
                     </span>
                   </div>
-                  {d.pendencias.map((p, i) => (
-                    <div key={i} style={{ fontSize: 13, color: "#78350f", padding: "5px 0", borderBottom: i < d.pendencias.length - 1 ? "1px solid #fde68a" : "none" }}>
-                      • {p}
-                    </div>
-                  ))}
+                  <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
+                    {d.pendencias.map((p, i) => {
+                      const isCrit = p.startsWith("🚨");
+                      const isWarn = p.startsWith("⚠");
+                      const cor = isCrit ? "#dc2626" : isWarn ? "#d97706" : "#2563eb";
+                      const bg  = isCrit ? "#fef2f2"  : isWarn ? "#fffbeb"  : "#eff6ff";
+                      const brd = isCrit ? "#fca5a5"  : isWarn ? "#fde68a"  : "#bfdbfe";
+                      const lbl = isCrit ? "CRÍTICO"  : isWarn ? "ATENÇÃO"  : "INFO";
+                      return (
+                        <div key={i} style={{ background: bg, border: `1px solid ${brd}`, borderLeft: `3px solid ${cor}`, borderRadius: 8, padding: "10px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
+                          <span style={{ fontSize: 9, fontWeight: 800, color: "#fff", background: cor, padding: "2px 7px", borderRadius: 20, flexShrink: 0, marginTop: 2, letterSpacing: 0.5 }}>{lbl}</span>
+                          <div style={{ fontSize: 12, color: cor === "#dc2626" ? "#991b1b" : cor === "#d97706" ? "#92400e" : "#1e3a5f", lineHeight: 1.6, flex: 1 }}>{p}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -1474,66 +1485,83 @@ export default function SprintOtimo() {
               const diag = DIAGNOSTICO.find(d => d.nome === equipeAtiva);
               const inds = INDICADORES[equipeAtiva] || [];
               const totalPtsDisp = inds.reduce((a,i) => a + i.pts, 0);
+              const eqStat = eqSt(eq);
+              const eqLbl = {otimo:"ÓTIMO", bom:"BOM", risco:"RISCO", apurar:"A APURAR"}[eqStat];
+              const pctScore = Math.min(100, (eq.pts / 100) * 100);
               return (
                 <div>
-                  <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: 20, marginBottom: 16 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                      <div>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: "#1e293b", marginBottom: 4 }}>{eq.nome}</div>
-                        {diag && (
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                            <span style={{ background: "#fff", border: "1px solid #e5e7eb", color: "#6b7280", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace" }}>
-                              🏥 {diag.ubs}
-                            </span>
-                            <span style={{ background: "#dbeafe", border: "1px solid #1d4ed8", color: "#1d4ed8", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace", fontWeight: 700 }}>
-                              CNES {diag.cnesUbs}
-                            </span>
-                            <span style={{ background: "#f5f3ff", border: "1px solid #c4b5fd", color: "#4338ca", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace" }}>
-                              Equipe {diag.cnesCodEquipe}
-                            </span>
-                            {diag.ine && (
-                              <span style={{ background: "#f8fafc", border: "1px solid #e5e7eb", color: "#475569", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace" }} title="Identificador Nacional de Equipes — e-Gestor APS">
-                                INE {diag.ine}
-                              </span>
-                            )}
-                            <span style={{ background: "#dcfce7", border: "1px solid #bbf7d0", color: "#15803d", fontSize: 11, padding: "2px 8px", borderRadius: 6 }}>
-                              {diag.tipo}
-                            </span>
-                            {diag.esb && (
-                              <span style={{ background: "#dbeafe", border: "1px solid #93c5fd", color: "#1d4ed8", fontSize: 11, padding: "2px 8px", borderRadius: 6 }}>
-                                + ESB
-                              </span>
-                            )}
-                            {diag.cnesStatus === "expirado" && (
-                              <span style={{ background: "#fef2f2", border: "1px solid #fca5a5", color: "#991b1b", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontWeight: 700 }}>
-                                🚨 CNES EXPIRADO
-                              </span>
-                            )}
-                            {diag.cnesStatus === "apurar" && (
-                              <span style={{ background: "#f1f5f9", border: "1px solid #6b7280", color: "#9ca3af", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontWeight: 700 }}>
-                                🔍 A APURAR
-                              </span>
-                            )}
+                  {/* ── HERO CARD — story layout ── */}
+                  <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${ds[eqStat].border}`, overflow: "hidden", marginBottom: 16, boxShadow: `0 2px 8px ${ds[eqStat].pill}18` }}>
+                    <div style={{ height: 5, background: ds[eqStat].pill }} />
+                    <div style={{ padding: "20px 24px" }}>
+
+                      {/* Linha 1: Score + nome + gap */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 16, flexWrap: "wrap" }}>
+                        {/* Score círculo */}
+                        <div style={{ width: 80, height: 80, borderRadius: "50%", border: `4px solid ${ds[eqStat].pill}`, display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", background: ds[eqStat].bg, flexShrink: 0 }}>
+                          <span style={{ fontSize: 26, fontWeight: 900, color: ds[eqStat].text, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{eq.pts}</span>
+                          <span style={{ fontSize: 9, color: "#94a3b8", fontWeight: 600 }}>pts</span>
+                        </div>
+
+                        {/* Nome + contexto */}
+                        <div style={{ flex: 1, minWidth: 180 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 20, fontWeight: 800, color: "#1e293b" }}>{eq.nome}</span>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: ds[eqStat].pill, padding: "3px 10px", borderRadius: 20, letterSpacing: 0.5 }}>{eqLbl}</span>
+                            {diag?.cnesStatus === "expirado" && <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: "#dc2626", padding: "3px 10px", borderRadius: 20 }}>🚨 CNES EXPIRADO</span>}
                           </div>
-                        )}
-                        <div style={{ fontSize: 13, color: "#6b7280" }}>Score atual: <strong style={{ color: eq.cor }}>{eq.pts} pts</strong> → Meta: <strong style={{ color: "#22c55e" }}>75 pts (ÓTIMO)</strong></div>
+                          {diag && (
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                              {[
+                                { label: `🏥 ${diag.ubs}`,            bg:"#f8fafc", bd:"#e5e7eb", tx:"#475569" },
+                                { label: `CNES ${diag.cnesUbs}`,      bg:"#eff6ff", bd:"#bfdbfe", tx:"#1d4ed8" },
+                                { label: `Eq. ${diag.cnesCodEquipe}`, bg:"#f5f3ff", bd:"#c4b5fd", tx:"#6d28d9" },
+                                ...(diag.ine ? [{ label:`INE ${diag.ine}`, bg:"#f8fafc", bd:"#e5e7eb", tx:"#475569" }] : []),
+                                { label: diag.tipo,                    bg:"#f0fdf4", bd:"#bbf7d0", tx:"#15803d" },
+                                ...(diag.esb ? [{ label:"+ ESB",       bg:"#eff6ff", bd:"#bfdbfe", tx:"#1d4ed8" }] : []),
+                              ].map(chip => (
+                                <span key={chip.label} style={{ fontSize: 10, color: chip.tx, background: chip.bg, border: `1px solid ${chip.bd}`, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace", whiteSpace: "nowrap" as const }}>{chip.label}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Gap box */}
+                        <div style={{ textAlign: "center", borderRadius: 10, padding: "12px 18px", flexShrink: 0, background: eq.ganho === 0 ? "#f0fdf4" : "#fffbeb", border: `1px solid ${eq.ganho === 0 ? "#bbf7d0" : "#fde68a"}` }}>
+                          {eq.ganho === 0 ? (
+                            <div style={{ fontSize: 13, fontWeight: 800, color: "#16a34a" }}>✓ Meta<br/>atingida</div>
+                          ) : (
+                            <>
+                              <div style={{ fontSize: 28, fontWeight: 900, color: "#d97706", fontVariantNumeric: "tabular-nums" }}>+{eq.ganho}</div>
+                              <div style={{ fontSize: 10, color: "#94a3b8" }}>pts p/ ÓTIMO</div>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ textAlign: "center", borderRadius: 10, padding: "12px 20px", flexShrink: 0, background: eq.ganho === 0 ? "#f0fdf4" : "#fff", border: `1px solid ${eq.ganho === 0 ? "#bbf7d0" : "#e5e7eb"}` }}>
-                        {eq.ganho === 0 ? (
-                          <div style={{ fontSize: 13, fontWeight: 800, color: "#16a34a", whiteSpace: "nowrap" as const }}>✓ Meta<br/>atingida</div>
-                        ) : (
-                          <>
-                            <div style={{ fontSize: 28, fontWeight: 800, color: eq.cor }}>+{eq.ganho}</div>
-                            <div style={{ fontSize: 11, color: "#64748b" }}>pts necessários</div>
-                          </>
-                        )}
+
+                      {/* Barra de progresso com marcador de meta */}
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginBottom: 4 }}>
+                          <span>Score atual: <strong style={{ color: ds[eqStat].text }}>{eq.pts} pts</strong></span>
+                          <span style={{ color: "#1d4ed8", fontWeight: 600 }}>▲ Meta: 75 pts</span>
+                          <span>100 pts</span>
+                        </div>
+                        <div style={{ height: 10, background: "#f1f5f9", borderRadius: 5, position: "relative" as const, overflow: "hidden" as const }}>
+                          <div style={{ height: "100%", width: `${pctScore}%`, background: ds[eqStat].pill, borderRadius: 5, transition: "width 0.5s" }} />
+                          <div style={{ position: "absolute" as const, top: 0, bottom: 0, left: "75%", width: 2, background: "#1d4ed8", opacity: 0.7 }} />
+                        </div>
+                      </div>
+
+                      {/* Viabilidade */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, padding: "8px 12px", borderRadius: 8, background: totalPtsDisp >= eq.ganho ? "#f0fdf4" : "#fef2f2", border: `1px solid ${totalPtsDisp >= eq.ganho ? "#bbf7d0" : "#fca5a5"}` }}>
+                        <span style={{ fontSize: 14 }}>{totalPtsDisp >= eq.ganho ? "✅" : "⚠️"}</span>
+                        <span style={{ color: totalPtsDisp >= eq.ganho ? "#15803d" : "#991b1b", fontWeight: 600 }}>
+                          {totalPtsDisp >= eq.ganho
+                            ? `Viável atingir ÓTIMO — ${totalPtsDisp} pts estimados disponíveis nas ações abaixo`
+                            : `Requer intervenção extraordinária — apenas ${totalPtsDisp} pts mapeados vs ${eq.ganho} necessários`}
+                        </span>
                       </div>
                     </div>
-                    <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>Pontos disponíveis nos indicadores abaixo: <strong style={{ color: "#22c55e" }}>+{totalPtsDisp} pts estimados</strong></div>
-                    {totalPtsDisp >= eq.ganho
-                      ? <div style={{ fontSize: 12, color: "#22c55e", fontWeight: 600 }}>✅ Viável atingir ÓTIMO com as ações listadas</div>
-                      : <div style={{ fontSize: 12, color: "#ef4444", fontWeight: 600 }}>⚠️ Requer intervenção extraordinária além dos indicadores listados</div>
-                    }
                   </div>
 
                   {/* Alerta CNES expirado */}
