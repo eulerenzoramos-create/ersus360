@@ -832,13 +832,7 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
               <L2 to="/simulador-cenarios" label="Simulador de Cenários"   Icon={Calculator}/>
             </Acc1>
 
-            <Acc1 label="Busca Ativa">
-              <L2 to="/busca-ativa"          label="Painel Geral"     Icon={Search}/>
-              <L2 to="/busca-ativa/gestante" label="Gestante"         Icon={Baby}/>
-              <L2 to="/busca-ativa/vacinas"  label="Vacinas"          Icon={Syringe}/>
-              <L2 to="/busca-ativa/cito"     label="Citopatológico"   Icon={Activity}/>
-              <L2 to="/busca-ativa-ia"       label="Busca Ativa · IA" Icon={Brain}/>
-            </Acc1>
+            <L2 to="/busca-ativa-ia"       label="Busca Ativa · IA" Icon={Brain}/>
 
             <Acc1 label="ACS">
               <L2 to="/acs/painel"           label="Painel do ACS"         Icon={BarChart3}/>

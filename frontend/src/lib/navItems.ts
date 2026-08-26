@@ -222,26 +222,6 @@ export const NAV_ITEMS: NavItem[] = [
     keywords:["simulador","cenários","meta","projeção","forecast","estimativa","indicador"] },
 
   // Busca Ativa
-  { id:"busca-ativa",         category:"Atenção Primária", subcategory:"Busca Ativa", order:150, iconName:"Search",
-    title:"Painel Geral — Busca Ativa", shortTitle:"Busca Ativa", route:"/busca-ativa",
-    description:"Painel geral de busca ativa de usuários faltosos ao serviço de saúde",
-    keywords:["busca ativa","faltoso","ausente","convocação","agenda","chamada"] },
-
-  { id:"busca-gestante",      category:"Atenção Primária", subcategory:"Busca Ativa", order:151, iconName:"Baby",
-    title:"Busca Ativa — Gestante", route:"/busca-ativa/gestante",
-    description:"Busca ativa de gestantes sem acompanhamento de pré-natal",
-    keywords:["busca ativa","gestante","pré-natal","gravidez","ativa","convocação"] },
-
-  { id:"busca-vacinas",       category:"Atenção Primária", subcategory:"Busca Ativa", order:152, iconName:"Syringe",
-    title:"Busca Ativa — Vacinas", route:"/busca-ativa/vacinas",
-    description:"Busca ativa de crianças e adultos com vacinas em atraso",
-    keywords:["busca ativa","vacinas","vacinação","imunização","sipni","atraso","faltoso"] },
-
-  { id:"busca-cito",          category:"Atenção Primária", subcategory:"Busca Ativa", order:153, iconName:"Activity",
-    title:"Busca Ativa — Citopatológico", route:"/busca-ativa/cito",
-    description:"Busca ativa de mulheres com citopatológico em atraso",
-    keywords:["busca ativa","citopatológico","colo","útero","papanicolau","rastreio","câncer"] },
-
   { id:"busca-ia",            category:"Atenção Primária", subcategory:"Busca Ativa", order:154, iconName:"Brain", isNew:true,
     title:"Busca Ativa · IA", route:"/busca-ativa-ia",
     description:"Busca ativa com inteligência artificial para priorização de usuários",
