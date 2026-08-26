@@ -2636,8 +2636,10 @@ function AbaDiagnosticoCobertura() {
           { label: "Modalidade Ampliada",  val: emulti.qt_ampliada ?? 0 },
           { label: "Modalidade Estratégica",val: emulti.qt_estrategica ?? 0 },
           { label: "Modalidade Complementar",val: emulti.qt_complementar ?? 0 },
+          { label: "Atendimento Remoto",   val: emulti.qt_atend_remoto ?? 0 },
           { label: "Vl. Custeio",          val: BRL_local(emulti.vl_custeio ?? 0) },
           { label: "Vl. Qualidade",        val: BRL_local(emulti.vl_qualidade ?? 0) },
+          { label: "Vl. Atend. Remoto",    val: BRL_local(emulti.vl_atend_remoto ?? 0) },
           { label: "Total eMulti",         val: BRL_local(emulti.vl_total ?? 0), destaque: true },
         ]} />
 
