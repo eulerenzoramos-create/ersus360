@@ -753,20 +753,21 @@ export default function SprintOtimo() {
               {/* VISÃO POR VARIÁVEL */}
               {cvatVizualiz === "variavel" && (
                 <div>
-                  {/* Seletor de variável */}
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
-                    {CVAT_VARIAVEIS.map(v => (
-                      <button key={v.key} onClick={() => setCvatVariavel(v.key)} style={{
-                        padding: "4px 12px", borderRadius: 20, fontSize: 11, cursor: "pointer",
-                        fontWeight: cvatVariavel === v.key ? 700 : 400,
-                        border: `1px solid ${cvatVariavel === v.key ? "#2563eb" : "#e5e7eb"}`,
-                        background: cvatVariavel === v.key ? "#dbeafe" : "#f1f5f9",
-                        color: cvatVariavel === v.key ? "#1d4ed8" : "#475569",
-                        whiteSpace: "nowrap",
-                      }}>
-                        {v.label}
-                      </button>
-                    ))}
+                  {/* Seletor de variável — dropdown compacto */}
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16, flexWrap:"wrap" }}>
+                    <span style={{ fontSize:11, color:"#6b7280", fontWeight:600, whiteSpace:"nowrap" as const }}>Variável:</span>
+                    <select value={cvatVariavel} onChange={e => setCvatVariavel(e.target.value)} style={{
+                      flex:1, maxWidth:480, border:"1px solid #bfdbfe", borderRadius:8, padding:"7px 12px",
+                      fontSize:12, color:"#1e293b", background:"#fff", outline:"none",
+                      fontFamily:"inherit", cursor:"pointer", boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
+                    }}>
+                      {CVAT_VARIAVEIS.map(v => (
+                        <option key={v.key} value={v.key}>{v.label}</option>
+                      ))}
+                    </select>
+                    <div style={{ fontSize:11, color:"#64748b", background:"#f1f5f9", border:"1px solid #e5e7eb", borderRadius:6, padding:"4px 10px", whiteSpace:"nowrap" as const }}>
+                      {CVAT_VARIAVEIS.findIndex(v=>v.key===cvatVariavel)+1}/{CVAT_VARIAVEIS.length}
+                    </div>
                   </div>
 
                   {/* Card da variável selecionada */}
@@ -1354,34 +1355,103 @@ export default function SprintOtimo() {
         )}
 
         {/* ── ABA: Indicadores-Chave ── */}
-        {aba === "indicadores" && (
-          <div>
-            {[
-              { ind:"C2", desc:"Pré-natal Adequado (29%)", peso:"MAIOR ALAVANCA", cor:"#ef4444",
-                texto:"HbA1c + VDRL na 1ª consulta. Resultado lançado no PEC com tipo correto (pré-natal). Busca ativa de gestantes sem exames.", impacto:"Pode mover 6 equipes de REGULAR para BOM ou ÓTIMO" },
-              { ind:"C6", desc:"Puericultura (48%)", peso:"ALTO IMPACTO", cor:"#f59e0b",
-                texto:"Consulta de criança <2 anos com peso + altura registrado no PEC. Agenda dedicada 2x/semana. Busca ativa via ACS.", impacto:"Ganho médio estimado +4 pts por equipe" },
-              { ind:"C5", desc:"HAS Controlada (66%)", peso:"GANHO RÁPIDO", cor:"#22c55e",
-                texto:"Técnico de enfermagem lança PA em TODA consulta de hipertenso. PEC atualizado. PA controlada = PA <140/90 mmHg.", impacto:"Sem custo adicional — só protocolo" },
-              { ind:"C1", desc:"Acesso Avaliado (55%)", peso:"MÉDIO IMPACTO", cor:"#3b82f6",
-                texto:"Retorno de 30 dias agendado no PEC após cada consulta. Tipo de atendimento correto. Fila zerada de retroativos.", impacto:"+2 pts por equipe com correção de registro" },
-              { ind:"B1/B2", desc:"Saúde Bucal (35%)", peso:"SUBESPECIALIDADE", cor:"#8b5cf6",
-                texto:"eOE integrada nas expedições. Finalizar tratamentos em andamento no PEC. Dia D de citopatológico + odonto.", impacto:"Maior gap nas equipes ribeirinhas" },
-            ].map(item => (
-              <div key={item.ind} style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: 16, marginBottom: 12, borderLeft: `4px solid ${item.cor}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                  <div>
-                    <span style={{ fontWeight: 800, fontSize: 16, color: item.cor }}>{item.ind}</span>
-                    <span style={{ fontWeight: 600, fontSize: 13, color: "#1e293b", marginLeft: 8 }}>{item.desc}</span>
-                  </div>
-                  <span style={{ background: item.cor + "22", color: item.cor, padding: "2px 10px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>{item.peso}</span>
+        {aba === "indicadores" && (() => {
+          const INDS = [
+            { ind:"C2",   rank:1, desc:"Pré-natal Adequado",  atual:29, meta:60, peso:"MAIOR ALAVANCA", cor:"#dc2626", bgCor:"#fef2f2",
+              texto:"HbA1c + VDRL na 1ª consulta. Resultado lançado no PEC com tipo correto (pré-natal). Busca ativa de gestantes sem exames.",
+              acao: "Confirmar resultado laboratorial → lançar no PEC → verificar tipo 'pré-natal'",
+              impacto:"Pode mover 6 equipes de BOM para ÓTIMO", pts:"+12 pts est." },
+            { ind:"C6",   rank:2, desc:"Puericultura",         atual:48, meta:70, peso:"ALTO IMPACTO",   cor:"#d97706", bgCor:"#fffbeb",
+              texto:"Consulta de criança <2 anos com peso + altura no PEC. Agenda dedicada 2×/semana. Busca ativa via ACS.",
+              acao: "Agenda bloqueada toda terça e quinta → ACS com lista de crianças → técnico afere peso/altura",
+              impacto:"Ganho médio estimado +4 pts por equipe", pts:"+4 pts est." },
+            { ind:"C5",   rank:3, desc:"HAS Controlada",       atual:66, meta:75, peso:"GANHO RÁPIDO",   cor:"#16a34a", bgCor:"#f0fdf4",
+              texto:"Técnico de enfermagem lança PA em TODA consulta de hipertenso. PEC atualizado. PA controlada = PA <140/90 mmHg.",
+              acao: "Protocolo: técnico afere PA → lança no PEC antes de sair do consultório → revisar retroativos",
+              impacto:"Sem custo adicional — só protocolo de registro", pts:"+3 pts est." },
+            { ind:"C1",   rank:4, desc:"Acesso Avaliado",      atual:55, meta:70, peso:"MÉDIO IMPACTO",  cor:"#2563eb", bgCor:"#eff6ff",
+              texto:"Retorno de 30 dias agendado no PEC após cada consulta. Tipo de atendimento correto. Fila zerada de retroativos.",
+              acao: "Ao fim de cada consulta: agendar retorno → registrar tipo correto no PEC → limpar retroativos de gaveta",
+              impacto:"+2 pts por equipe com correção de registro", pts:"+2 pts est." },
+            { ind:"B1/B2", rank:5, desc:"Saúde Bucal",          atual:35, meta:60, peso:"SUBESPECIALIDADE", cor:"#7c3aed", bgCor:"#f5f3ff",
+              texto:"eOE integrada nas expedições. Finalizar tratamentos em andamento no PEC. Dia D de citopatológico + odonto.",
+              acao: "Escalar Dia D mensal → eOE participa de todas as expedições → cirurgiã-dentista registra no PEC",
+              impacto:"Maior gap nas equipes ribeirinhas", pts:"+8 pts est." },
+          ];
+          return (
+            <div>
+              {/* Cabeçalho */}
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:8 }}>
+                <div>
+                  <div style={{ fontSize:15, fontWeight:700, color:"#1e293b" }}>📈 Indicadores-Chave do Sprint</div>
+                  <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>Ordenados por potencial de impacto no score — Q2 Mai–Ago/2026</div>
                 </div>
-                <p style={{ fontSize: 13, color: "#475569", marginBottom: 8 }}>{item.texto}</p>
-                <div style={{ fontSize: 12, color: "#22c55e", fontWeight: 600 }}>→ {item.impacto}</div>
+                <div style={{ display:"flex", gap:8, fontSize:11, color:"#94a3b8", flexWrap:"wrap" }}>
+                  <span style={{ background:"#f1f5f9", border:"1px solid #e5e7eb", padding:"2px 10px", borderRadius:20 }}>Resultado atual (%)</span>
+                  <span style={{ background:"#dcfce7", border:"1px solid #bbf7d0", color:"#16a34a", padding:"2px 10px", borderRadius:20 }}>Meta Q2</span>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+
+              <div style={{ display:"flex", flexDirection:"column" as const, gap:12 }}>
+                {INDS.map(item => {
+                  const gapPts = item.meta - item.atual;
+                  const pctAtual = Math.min(100, item.atual);
+                  const pctMeta = Math.min(100, item.meta);
+                  return (
+                    <div key={item.ind} style={{ background:"#fff", borderRadius:14, border:`1px solid ${item.cor}22`, boxShadow:`0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px ${item.cor}10`, overflow:"hidden" }}>
+                      {/* Barra de acento top */}
+                      <div style={{ height:4, background:item.cor }} />
+                      <div style={{ padding:"16px 20px 18px" }}>
+                        <div style={{ display:"flex", gap:16, alignItems:"flex-start" }}>
+
+                          {/* Código + rank */}
+                          <div style={{ flexShrink:0, textAlign:"center", minWidth:64 }}>
+                            <div style={{ width:56, height:56, borderRadius:"50%", border:`3px solid ${item.cor}`, display:"flex", flexDirection:"column" as const, alignItems:"center", justifyContent:"center", background:`${item.cor}0f`, margin:"0 auto 6px" }}>
+                              <span style={{ fontSize:item.ind.length>2?11:16, fontWeight:900, color:item.cor, lineHeight:1 }}>{item.ind}</span>
+                            </div>
+                            <span style={{ fontSize:9, color:"#94a3b8", textTransform:"uppercase" as const, letterSpacing:0.5, fontWeight:600 }}>prioridade {item.rank}</span>
+                          </div>
+
+                          {/* Conteúdo central */}
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8, flexWrap:"wrap", gap:6 }}>
+                              <div>
+                                <span style={{ fontWeight:800, fontSize:14, color:"#1e293b" }}>{item.desc}</span>
+                                <span style={{ marginLeft:8, fontSize:10, fontWeight:800, color:"#fff", background:item.cor, padding:"2px 9px", borderRadius:20 }}>{item.peso}</span>
+                              </div>
+                              <span style={{ fontSize:12, fontWeight:800, color:"#22c55e", background:"#dcfce7", border:"1px solid #bbf7d0", padding:"2px 10px", borderRadius:20, whiteSpace:"nowrap" as const }}>{item.pts}</span>
+                            </div>
+
+                            {/* Barra de progresso com marcador de meta */}
+                            <div style={{ marginBottom:6 }}>
+                              <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color:"#94a3b8", marginBottom:4 }}>
+                                <span>Resultado atual</span>
+                                <span style={{ color: gapPts > 0 ? "#d97706" : "#16a34a", fontWeight:700 }}>
+                                  {item.atual}% → meta {item.meta}% {gapPts > 0 ? `(gap: ${gapPts}pp)` : "✓ acima da meta"}
+                                </span>
+                              </div>
+                              <div style={{ height:10, background:"#f1f5f9", borderRadius:5, position:"relative" as const, overflow:"hidden" as const }}>
+                                <div style={{ height:"100%", width:`${pctAtual}%`, background:item.cor, borderRadius:5, transition:"width 0.5s" }} />
+                                <div style={{ position:"absolute" as const, top:0, bottom:0, left:`${pctMeta}%`, width:2, background:"#1d4ed8", opacity:0.7 }} />
+                              </div>
+                            </div>
+
+                            {/* Ação */}
+                            <div style={{ background:"#f8fafc", border:"1px solid #e5e7eb", borderRadius:8, padding:"8px 12px", marginTop:8 }}>
+                              <span style={{ fontSize:10, fontWeight:700, color:"#475569", textTransform:"uppercase" as const, letterSpacing:0.5 }}>Ação: </span>
+                              <span style={{ fontSize:12, color:"#475569" }}>{item.acao}</span>
+                            </div>
+                            <div style={{ fontSize:11, color:"#16a34a", fontWeight:600, marginTop:8 }}>→ {item.impacto}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── ABA: Por Equipe ── */}
         {aba === "equipe" && (
@@ -1559,28 +1629,51 @@ export default function SprintOtimo() {
                     </div>
                   )}
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {inds.map(ind => (
-                      <div key={ind.ind} style={{ background: "#f1f5f9", borderRadius: 8, padding: 14, display: "flex", gap: 14, alignItems: "flex-start" }}>
-                        <div style={{ minWidth: 48, textAlign: "center" }}>
-                          <div style={{ fontWeight: 800, fontSize: 15, color: "#f59e0b" }}>{ind.ind}</div>
-                          <div style={{ fontSize: 10, color: "#64748b" }}>{ind.atual}%</div>
-                          <div style={{ fontSize: 10, color: "#22c55e" }}>meta {ind.meta}%</div>
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13, color: "#1e293b", marginBottom: 4 }}>{ind.desc}</div>
-                          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>{ind.acao}</div>
-                          <div style={{ height: 6, background: "#e5e7eb", borderRadius: 3, overflow: "hidden" }}>
-                            <div style={{ height: "100%", width: `${ind.atual}%`, background: ind.atual >= ind.meta ? "#22c55e" : ind.atual >= 50 ? "#f59e0b" : "#ef4444", borderRadius: 3 }} />
+                  {inds.length === 0 ? (
+                    <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:12, padding:"24px 20px", textAlign:"center" }}>
+                      <div style={{ fontSize:32, marginBottom:8 }}>✅</div>
+                      <div style={{ fontWeight:700, color:"#16a34a", fontSize:14, marginBottom:4 }}>Sem pendências de indicadores</div>
+                      <div style={{ fontSize:12, color:"#6b7280" }}>Esta equipe já atingiu todas as metas disponíveis nos indicadores mapeados.</div>
+                    </div>
+                  ) : (
+                    <div style={{ display:"flex", flexDirection:"column" as const, gap:10 }}>
+                      {inds.map(ind => {
+                        const indCor = ind.atual >= ind.meta ? "#22c55e" : ind.atual >= 50 ? "#f59e0b" : "#ef4444";
+                        return (
+                          <div key={ind.ind} style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, overflow:"hidden", boxShadow:"0 1px 3px rgba(0,0,0,0.06)" }}>
+                            <div style={{ height:3, background:indCor }} />
+                            <div style={{ padding:"14px 16px", display:"flex", gap:14, alignItems:"flex-start" }}>
+                              {/* Badge indicador */}
+                              <div style={{ flexShrink:0, width:52, height:52, borderRadius:"50%", border:`2px solid ${indCor}`, display:"flex", flexDirection:"column" as const, alignItems:"center", justifyContent:"center", background:`${indCor}0f` }}>
+                                <span style={{ fontWeight:900, fontSize:ind.ind.length>2?10:13, color:indCor, lineHeight:1 }}>{ind.ind}</span>
+                                <span style={{ fontSize:9, color:"#94a3b8", marginTop:1 }}>{ind.atual}%</span>
+                              </div>
+                              {/* Conteúdo */}
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:4 }}>
+                                  <div style={{ fontWeight:700, fontSize:13, color:"#1e293b" }}>{ind.desc}</div>
+                                  <div style={{ flexShrink:0, marginLeft:8, background:"#dcfce7", border:"1px solid #bbf7d0", borderRadius:20, padding:"2px 10px", fontSize:11, fontWeight:800, color:"#16a34a", whiteSpace:"nowrap" as const }}>+{ind.pts} pts</div>
+                                </div>
+                                {/* Barra de progresso */}
+                                <div style={{ marginBottom:6, position:"relative" as const, height:8, background:"#f1f5f9", borderRadius:4, overflow:"hidden" as const }}>
+                                  <div style={{ height:"100%", width:`${Math.min(100,ind.atual)}%`, background:indCor, borderRadius:4, transition:"width 0.5s" }} />
+                                  <div style={{ position:"absolute" as const, top:0, bottom:0, left:`${Math.min(100,ind.meta)}%`, width:2, background:"#1d4ed8", opacity:0.6 }} />
+                                </div>
+                                <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color:"#94a3b8", marginBottom:8 }}>
+                                  <span>Atual: <strong style={{ color:indCor }}>{ind.atual}%</strong></span>
+                                  <span>Meta: <strong style={{ color:"#1d4ed8" }}>{ind.meta}%</strong></span>
+                                  <span>Gap: <strong style={{ color:indCor }}>{Math.max(0,ind.meta-ind.atual)}pp</strong></span>
+                                </div>
+                                <div style={{ fontSize:11, color:"#475569", background:"#f8fafc", border:"1px solid #e5e7eb", borderRadius:6, padding:"6px 10px" }}>
+                                  <span style={{ fontWeight:700, color:"#1e293b" }}>Ação: </span>{ind.acao}
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div style={{ minWidth: 36, textAlign: "center", background: "#22c55e22", borderRadius: 6, padding: "4px 8px" }}>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: "#22c55e" }}>+{ind.pts}</div>
-                          <div style={{ fontSize: 9, color: "#64748b" }}>pts est.</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })()}
