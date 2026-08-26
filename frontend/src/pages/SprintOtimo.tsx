@@ -777,7 +777,7 @@ export default function SprintOtimo() {
                           const isApurar = diag?.cnesStatus === "apurar";
                           return (
                             <tr key={eq} style={{ borderBottom: "1px solid #e5e7eb", background: isCritico ? "#fff7f7" : isApurar ? "#f9fafb" : i % 2 === 0 ? "transparent" : "#f8fafc" }}>
-                              <td style={{ padding: "10px 14px", color: isCritico ? "#ef4444" : isApurar ? "#6b7280" : "#f1f5f9", fontWeight: 700 }}>
+                              <td style={{ padding: "10px 14px", color: isCritico ? "#ef4444" : isApurar ? "#6b7280" : "#1e293b", fontWeight: 700 }}>
                                 {isCritico ? "🚨 " : isApurar ? "🔍 " : ""}{eq}
                               </td>
                               <td style={{ padding: "10px 14px" }}>
@@ -788,7 +788,7 @@ export default function SprintOtimo() {
                               <td style={{ padding: "10px 14px", textAlign: "right", color: isApurar ? "#6b7280" : "#94a3b8", fontVariantNumeric: "tabular-nums", fontStyle: isApurar ? "italic" : "normal" }}>
                                 {isApurar ? "—" : pop?.toLocaleString("pt-BR")}
                               </td>
-                              <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: isCritico ? "#ef4444" : isApurar ? "#6b7280" : "#f1f5f9", fontVariantNumeric: "tabular-nums", fontStyle: isApurar ? "italic" : "normal" }}>
+                              <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: isCritico ? "#ef4444" : isApurar ? "#6b7280" : "#1e293b", fontVariantNumeric: "tabular-nums", fontStyle: isApurar ? "italic" : "normal" }}>
                                 {isApurar ? "—" : isCritico && val === 0 ? <span title="Produção descartada pelo e-Gestor — CNES expirado">0 ⚠</span> : val?.toLocaleString("pt-BR")}
                               </td>
                               {cvatVariavel !== "semCriterio" && (
@@ -853,7 +853,7 @@ export default function SprintOtimo() {
                               const isCritico = st === "expirado";
                               const isApurar = st === "apurar";
                               return (
-                                <td key={eq} style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isApurar ? "#6b7280" : isCritico ? "#ef4444" : "#f1f5f9", fontWeight: 400, fontStyle: isApurar ? "italic" : "normal" }}>
+                                <td key={eq} style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isApurar ? "#6b7280" : isCritico ? "#ef4444" : "#1e293b", fontWeight: 400, fontStyle: isApurar ? "italic" : "normal" }}>
                                   {isApurar ? "—" : val === 0 && isCritico ? <span title="CNES expirado — produção descartada">0 ⚠</span> : val?.toLocaleString("pt-BR")}
                                 </td>
                               );
@@ -1029,16 +1029,16 @@ export default function SprintOtimo() {
 
               {/* Pendências */}
               {d.pendencias.length > 0 && (
-                <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: 16, marginBottom: 14, border: "1px solid #b45309" }}>
+                <div style={{ background: "#fffbeb", borderRadius: 12, padding: 16, marginBottom: 14, border: "1px solid #fde68a" }}>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
-                    <AlertTriangle size={15} color="#f59e0b" />
-                    <span style={{ fontWeight: 700, fontSize: 13, color: "#f59e0b" }}>Pendências Identificadas</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b", background: "#78350f", padding: "1px 8px", borderRadius: 10, marginLeft: 4 }}>
+                    <AlertTriangle size={15} color="#d97706" />
+                    <span style={{ fontWeight: 700, fontSize: 13, color: "#92400e" }}>Pendências Identificadas</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#d97706", background: "#fef3c7", border: "1px solid #fde68a", padding: "1px 8px", borderRadius: 10, marginLeft: 4 }}>
                       Equipe {d.nome} · {d.ubs}
                     </span>
                   </div>
                   {d.pendencias.map((p, i) => (
-                    <div key={i} style={{ fontSize: 13, color: "#fbbf24", padding: "5px 0", borderBottom: i < d.pendencias.length - 1 ? "1px solid #292524" : "none" }}>
+                    <div key={i} style={{ fontSize: 13, color: "#78350f", padding: "5px 0", borderBottom: i < d.pendencias.length - 1 ? "1px solid #fde68a" : "none" }}>
                       • {p}
                     </div>
                   ))}
@@ -1051,7 +1051,7 @@ export default function SprintOtimo() {
                   <FileText size={14} color="#3b82f6" />
                   <span style={{ fontWeight: 700, fontSize: 12, color: "#1d4ed8" }}>Observação Técnica</span>
                 </div>
-                <p style={{ fontSize: 13, color: "#cbd5e1", margin: 0 }}>{d.obs}</p>
+                <p style={{ fontSize: 13, color: "#475569", margin: 0, lineHeight: 1.6 }}>{d.obs}</p>
               </div>
 
               {/* Fundamentação legal */}
@@ -1078,14 +1078,14 @@ export default function SprintOtimo() {
 
             {/* Banner de contexto por período */}
             {periodo === "diaria" && (
-              <div style={{ background: "#2e1065", border: "1px solid #7c3aed", borderRadius: 10, padding: 14, marginBottom: 16, display: "flex", gap: 14, alignItems: "flex-start" }}>
+              <div style={{ background: "#f5f3ff", border: "1px solid #c4b5fd", borderRadius: 10, padding: 14, marginBottom: 16, display: "flex", gap: 14, alignItems: "flex-start" }}>
                 <span style={{ fontSize: 22 }}>📅</span>
                 <div>
-                  <div style={{ fontWeight: 700, color: "#c4b5fd", marginBottom: 4 }}>Análise Diária — {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</div>
-                  <div style={{ fontSize: 12, color: "#a78bfa" }}>Foco de hoje: verificar no PEC se há produção sem INE vinculado, confirmar lançamentos do dia anterior e garantir que ACS realizaram visitas programadas. Toda produção de hoje conta para o fechamento de agosto.</div>
+                  <div style={{ fontWeight: 700, color: "#6d28d9", marginBottom: 4 }}>Análise Diária — {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</div>
+                  <div style={{ fontSize: 12, color: "#7c3aed" }}>Foco de hoje: verificar no PEC se há produção sem INE vinculado, confirmar lançamentos do dia anterior e garantir que ACS realizaram visitas programadas. Toda produção de hoje conta para o fechamento de agosto.</div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                     {["✓ Verificar produção sem equipe no e-Gestor","✓ PA de hipertensos lançada?","✓ Puericultura do dia agendada?","✓ ACS com lista de busca ativa?"].map(t => (
-                      <span key={t} style={{ background: "#3b0764", color: "#c4b5fd", padding: "3px 10px", borderRadius: 12, fontSize: 11 }}>{t}</span>
+                      <span key={t} style={{ background: "#ede9fe", color: "#6d28d9", border: "1px solid #c4b5fd", padding: "3px 10px", borderRadius: 12, fontSize: 11 }}>{t}</span>
                     ))}
                   </div>
                 </div>
@@ -1117,7 +1117,7 @@ export default function SprintOtimo() {
                     <span style={{ fontWeight: 800, color: "#1d4ed8", fontSize: 14 }}>Q2 Mai–Ago/2026</span>
                     <span style={{ fontSize: 11, color: "#1d4ed8", background: "#dbeafe", border: "1px solid #93c5fd", padding: "1px 8px", borderRadius: 20 }}>Fechamento 31/Agosto</span>
                   </div>
-                  <div style={{ fontSize: 12, color: "#bfdbfe", marginBottom: 10, lineHeight: 1.6 }}>Scores acumulados de maio a agosto. Toda produção lançada até 31/ago contabiliza. Foco em <strong>C2</strong> (pré-natal) e <strong>C6</strong> (puericultura).</div>
+                  <div style={{ fontSize: 12, color: "#1d4ed8", marginBottom: 10, lineHeight: 1.6 }}>Scores acumulados de maio a agosto. Toda produção lançada até 31/ago contabiliza. Foco em <strong>C2</strong> (pré-natal) e <strong>C6</strong> (puericultura).</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {[
                       { t: `${diasRestantes} dias restantes`, cor: "#3b82f6" },
@@ -1323,7 +1323,7 @@ export default function SprintOtimo() {
                   </div>
                   <span style={{ background: item.cor + "22", color: item.cor, padding: "2px 10px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>{item.peso}</span>
                 </div>
-                <p style={{ fontSize: 13, color: "#cbd5e1", marginBottom: 8 }}>{item.texto}</p>
+                <p style={{ fontSize: 13, color: "#475569", marginBottom: 8 }}>{item.texto}</p>
                 <div style={{ fontSize: 12, color: "#22c55e", fontWeight: 600 }}>→ {item.impacto}</div>
               </div>
             ))}
@@ -1365,15 +1365,15 @@ export default function SprintOtimo() {
                             <span style={{ background: "#dbeafe", border: "1px solid #1d4ed8", color: "#1d4ed8", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace", fontWeight: 700 }}>
                               CNES {diag.cnesUbs}
                             </span>
-                            <span style={{ background: "#1a1a3e", border: "1px solid #4338ca", color: "#a5b4fc", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace" }}>
+                            <span style={{ background: "#f5f3ff", border: "1px solid #c4b5fd", color: "#4338ca", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace" }}>
                               Equipe {diag.cnesCodEquipe}
                             </span>
                             {diag.ine && (
-                              <span style={{ background: "#1c1917", border: "1px solid #78716c", color: "#d6d3d1", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace" }} title="Identificador Nacional de Equipes — e-Gestor APS">
+                              <span style={{ background: "#f8fafc", border: "1px solid #e5e7eb", color: "#475569", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontFamily: "monospace" }} title="Identificador Nacional de Equipes — e-Gestor APS">
                                 INE {diag.ine}
                               </span>
                             )}
-                            <span style={{ background: "#dcfce7", border: "1px solid #bbf7d0", color: "#86efac", fontSize: 11, padding: "2px 8px", borderRadius: 6 }}>
+                            <span style={{ background: "#dcfce7", border: "1px solid #bbf7d0", color: "#15803d", fontSize: 11, padding: "2px 8px", borderRadius: 6 }}>
                               {diag.tipo}
                             </span>
                             {diag.esb && (
@@ -1437,21 +1437,21 @@ export default function SprintOtimo() {
                             { label: "Enfermeiro", dados: diag.enfermeiro },
                             { label: "Téc. Enfermagem", dados: diag.tecEnf },
                           ].map(({ label, dados }) => (
-                            <div key={label} style={{ background: "#fff", borderRadius: 8, padding: "10px 12px", border: `1px solid ${dados.cnes === "EXPIRADO" ? "#7f1d1d" : dados.cnes === "A APURAR" ? "#374151" : "#1e3a5f"}` }}>
+                            <div key={label} style={{ background: "#fff", borderRadius: 8, padding: "10px 12px", border: `1px solid ${dados.cnes === "EXPIRADO" ? "#fca5a5" : dados.cnes === "A APURAR" ? "#e5e7eb" : "#bfdbfe"}` }}>
                               <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>{label}</div>
-                              <div style={{ fontSize: 12, fontWeight: 600, color: dados.cnes === "EXPIRADO" ? "#fca5a5" : dados.cnes === "A APURAR" ? "#9ca3af" : "#f1f5f9" }}>{dados.nome}</div>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: dados.cnes === "EXPIRADO" ? "#dc2626" : dados.cnes === "A APURAR" ? "#9ca3af" : "#1e293b" }}>{dados.nome}</div>
                               <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
                                 <span style={{ fontSize: 10, color: "#64748b" }}>CBO {dados.cbo}</span>
-                                <span style={{ fontSize: 10, color: dados.vinculo === "Desatualizado" ? "#ef4444" : dados.vinculo === "A apurar" ? "#9ca3af" : "#22c55e" }}>• {dados.vinculo}</span>
+                                <span style={{ fontSize: 10, color: dados.vinculo === "Desatualizado" ? "#ef4444" : dados.vinculo === "A apurar" ? "#9ca3af" : "#16a34a" }}>• {dados.vinculo}</span>
                               </div>
                             </div>
                           ))}
                           <div style={{ background: "#fff", borderRadius: 8, padding: "10px 12px", border: "1px solid #bfdbfe" }}>
                             <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>ACS</div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: diag.acs >= diag.acsMin ? "#f1f5f9" : "#fca5a5" }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: diag.acs >= diag.acsMin ? "#1e293b" : "#dc2626" }}>
                               {diag.acs} agentes {diag.acs < diag.acsMin && <span style={{ color: "#ef4444" }}>(mín. {diag.acsMin})</span>}
                             </div>
-                            <div style={{ fontSize: 10, color: diag.acs >= diag.acsMin ? "#22c55e" : "#ef4444", marginTop: 4 }}>
+                            <div style={{ fontSize: 10, color: diag.acs >= diag.acsMin ? "#16a34a" : "#ef4444", marginTop: 4 }}>
                               {diag.acs >= diag.acsMin ? "✓ Mínimo atendido" : "⚠ Abaixo do mínimo"}
                             </div>
                           </div>
@@ -1564,7 +1564,7 @@ export default function SprintOtimo() {
                           : <Square size={16} color="#64748b" />
                         }
                       </div>
-                      <span style={{ fontSize: 13, color: checks[item.id] ? "#64748b" : "#cbd5e1", textDecoration: checks[item.id] ? "line-through" : "none" }}>
+                      <span style={{ fontSize: 13, color: checks[item.id] ? "#94a3b8" : "#374151", textDecoration: checks[item.id] ? "line-through" : "none" }}>
                         {item.texto}
                       </span>
                     </div>
@@ -1578,7 +1578,7 @@ export default function SprintOtimo() {
                 <Clock size={14} color="#3b82f6" />
                 <span style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8" }}>Prazo crítico</span>
               </div>
-              <p style={{ fontSize: 12, color: "#bfdbfe", margin: 0 }}>
+              <p style={{ fontSize: 12, color: "#1d4ed8", margin: 0 }}>
                 O e-Gestor fecha competências por volta do dia 20 do mês seguinte. Para garantir que agosto/2026 seja contabilizado no Q2,
                 confirme todos os registros no PEC até <strong>20/agosto</strong>. Monitoramento semanal toda segunda-feira.
               </p>
@@ -1652,22 +1652,22 @@ export default function SprintOtimo() {
           const atencao = INCONSISTENCIAS.filter(i => i.gravidade === "atencao");
 
           const CardInc = ({ inc }: { inc: typeof INCONSISTENCIAS[0] }) => (
-            <div style={{ background: inc.bg, border: `1px solid ${inc.borda}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10 }}>
+            <div style={{ background: "#fff", border: `1px solid ${inc.borda}`, borderLeft: `4px solid ${inc.cor}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
               <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                 <div style={{ flexShrink: 0, marginTop: 2 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: inc.cor, background: `rgba(0,0,0,0.25)`, padding: "2px 8px", borderRadius: 20, border: `1px solid ${inc.borda}` }}>{inc.label}</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: "#fff", background: inc.cor, padding: "2px 10px", borderRadius: 20 }}>{inc.label}</span>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap", marginBottom: 4 }}>
                     <span style={{ fontWeight: 800, fontSize: 13, color: "#1e293b" }}>{inc.equipe}</span>
                     <span style={{ fontSize: 12, color: "#6b7280" }}>— {inc.tipo}</span>
                   </div>
-                  <p style={{ fontSize: 12.5, color: "#cbd5e1", margin: "0 0 8px 0", lineHeight: 1.6 }}>{inc.descricao}</p>
-                  <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 6, padding: "8px 10px" }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>Ação: </span>
-                    <span style={{ fontSize: 12, color: "#6b7280" }}>{inc.acao}</span>
+                  <p style={{ fontSize: 12.5, color: "#475569", margin: "0 0 8px 0", lineHeight: 1.6 }}>{inc.descricao}</p>
+                  <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 6, padding: "8px 10px" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#1e293b", textTransform: "uppercase", letterSpacing: 0.5 }}>Ação: </span>
+                    <span style={{ fontSize: 12, color: "#475569" }}>{inc.acao}</span>
                   </div>
-                  <div style={{ marginTop: 6, fontSize: 11, color: "#475569" }}>Fonte: {inc.fonte}</div>
+                  <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>Fonte: {inc.fonte}</div>
                 </div>
               </div>
             </div>
@@ -1691,21 +1691,21 @@ export default function SprintOtimo() {
           return (
             <div>
               {/* ── Painel ao vivo: Ausências SIAPS (e-Gestor APS) ── */}
-              <div style={{ background: "rgba(15,23,42,0.8)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: 12, padding: "14px 16px", marginBottom: 20 }}>
+              <div style={{ background: "#fff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "14px 16px", marginBottom: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 11, fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: 1 }}>
                       📡 Ausências de Envio SIAPS — e-Gestor APS (ao vivo)
                     </span>
-                    {siapsData && <span style={{ fontSize: 10, color: "#475569" }}>gerado {siapsData.dataGeracao}</span>}
+                    {siapsData && <span style={{ fontSize: 10, color: "#64748b" }}>gerado {siapsData.dataGeracao}</span>}
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
                     {SIAPS_COMPS.map(c => (
                       <button key={c} onClick={() => setSiapsComp(c)} style={{
                         fontSize: 10, padding: "2px 8px", borderRadius: 5, border: "1px solid",
-                        borderColor: siapsComp === c ? "#3b82f6" : "rgba(71,85,105,0.4)",
-                        background: siapsComp === c ? "#1e3a5f" : "transparent",
-                        color: siapsComp === c ? "#93c5fd" : "#64748b", cursor: "pointer", fontWeight: siapsComp === c ? 700 : 400,
+                        borderColor: siapsComp === c ? "#3b82f6" : "#e5e7eb",
+                        background: siapsComp === c ? "#dbeafe" : "transparent",
+                        color: siapsComp === c ? "#1d4ed8" : "#64748b", cursor: "pointer", fontWeight: siapsComp === c ? 700 : 400,
                       }}>{compLabel(c)}</button>
                     ))}
                   </div>
