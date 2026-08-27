@@ -96,6 +96,102 @@ function NovaPortariaModal({ onClose }: { onClose: () => void }) {
 
 // ── Painel Envios Diários ─────────────────────────────────────────────────────
 
+function BuscaRetroativa() {
+  const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
+  const [resultado, setResultado] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+
+  const buscar = async () => {
+    setLoading(true); setErro(null); setResultado(null);
+    try {
+      const r = await apiGet(`/api/email-diario/buscar-dou?data=${data}`);
+      setResultado(r);
+    } catch (e: any) {
+      setErro(e?.message || "Erro ao consultar o DOU.");
+    } finally { setLoading(false); }
+  };
+
+  const enviar = async () => {
+    setEnviando(true); setErro(null);
+    try {
+      await apiGet(`/api/email-diario/buscar-dou?data=${data}&enviar=true`);
+      setResultado((prev: any) => ({ ...prev, enviado: true }));
+    } catch (e: any) {
+      setErro(e?.message || "Erro ao enviar e-mail.");
+    } finally { setEnviando(false); }
+  };
+
+  const COR: Record<string, string> = { apui: "#059669", amazonas: "#7c3aed", federal: "#0284c7", outros: "#6b7280" };
+  const LABEL: Record<string, string> = { apui: "Apuí/AM", amazonas: "Estado AM", federal: "Federal", outros: "Outros" };
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 20, marginBottom: 20 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+        <Search size={14} /> Busca Retroativa no DOU
+      </div>
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" as const, marginBottom: 14 }}>
+        <div>
+          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>Data de referência</div>
+          <input type="date" value={data} onChange={e => setData(e.target.value)} max={new Date().toISOString().slice(0, 10)}
+            style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "7px 10px", fontSize: 13 }} />
+        </div>
+        <button onClick={buscar} disabled={loading}
+          style={{ padding: "8px 18px", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <Search size={13} />{loading ? "Buscando…" : "Buscar no DOU"}
+        </button>
+        {resultado && !resultado.enviado && (
+          <button onClick={enviar} disabled={enviando}
+            style={{ padding: "8px 18px", background: "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <Mail size={13} />{enviando ? "Enviando…" : "Enviar e-mail desta data"}
+          </button>
+        )}
+        {resultado?.enviado && (
+          <span style={{ fontSize: 12, color: "#059669", fontWeight: 600 }}>✓ E-mail enviado</span>
+        )}
+      </div>
+
+      {erro && <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#991b1b", marginBottom: 12 }}>{erro}</div>}
+
+      {resultado && (
+        <div>
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 10 }}>
+            <strong>{resultado.total}</strong> portaria(s) encontrada(s) no DOU de {new Date(resultado.data + "T12:00:00").toLocaleDateString("pt-BR")}
+          </div>
+          {(["apui", "amazonas", "federal", "outros"] as const).map(grupo => {
+            const items = resultado[grupo] as any[];
+            if (!items?.length) return null;
+            return (
+              <div key={grupo} style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: COR[grupo], textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 6 }}>
+                  ● {LABEL[grupo]} ({items.length})
+                </div>
+                {items.map((p: any, i: number) => (
+                  <div key={i} style={{ background: "#f8fafc", borderRadius: 6, padding: "8px 12px", marginBottom: 6, borderLeft: `3px solid ${COR[grupo]}` }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>{p._titulo}</div>
+                    {p._numero && <div style={{ fontSize: 11, color: "#64748b" }}>{p._numero}</div>}
+                    {p._resumo && p._resumo !== "(sem texto disponível)" && (
+                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.4 }}>{p._resumo.slice(0, 200)}{p._resumo.length > 200 ? "…" : ""}</div>
+                    )}
+                    <a href={p._link} target="_blank" rel="noopener noreferrer"
+                      style={{ fontSize: 11, color: "#1d4ed8", display: "inline-flex", alignItems: "center", gap: 3, marginTop: 4 }}>
+                      <ExternalLink size={10} /> Ver no DOU
+                    </a>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+          {resultado.total === 0 && (
+            <div style={{ textAlign: "center", padding: "20px 0", color: "#94a3b8", fontSize: 13 }}>Nenhuma portaria do MS encontrada para esta data.</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PainelEnviosDiarios() {
   const qc = useQueryClient();
 
@@ -311,7 +407,10 @@ export default function Portarias() {
       </div>
 
       {/* Aba: Envios Diários */}
-      {aba === "envios" && <PainelEnviosDiarios />}
+      {aba === "envios" && <>
+        <PainelEnviosDiarios />
+        <BuscaRetroativa />
+      </>}
 
       {/* Aba: Banco de Portarias */}
       {aba === "banco" && <>

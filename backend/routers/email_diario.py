@@ -160,6 +160,43 @@ async def retomar_envios(
     return {"ok": True, "pausado": False}
 
 
+@router.get("/buscar-dou")
+async def buscar_dou_retroativo(
+    data: str = Query(..., description="YYYY-MM-DD"),
+    enviar: bool = Query(False, description="Se True, envia o e-mail após buscar"),
+    _: UserOut = Depends(get_current_user),
+):
+    """Busca portarias no DOU para uma data específica (sem enviar e-mail por padrão)."""
+    from services.portarias_dou_service import _buscar_portarias_ms, _classificar
+    from datetime import date as _date
+    try:
+        data_ref = _date.fromisoformat(data)
+    except ValueError:
+        from fastapi import HTTPException
+        raise HTTPException(400, "Data inválida. Use YYYY-MM-DD.")
+
+    brutos = await _buscar_portarias_ms(data_ref)
+    portarias = [_classificar(p) for p in brutos]
+
+    resultado = {
+        "data": data,
+        "total": len(portarias),
+        "apui":     [p for p in portarias if p["_relevancia"] == "apui"],
+        "amazonas": [p for p in portarias if p["_relevancia"] == "amazonas"],
+        "federal":  [p for p in portarias if p["_relevancia"] == "federal"],
+        "outros":   [p for p in portarias if p["_relevancia"] == "outros"],
+        "enviado": False,
+    }
+
+    if enviar:
+        from services.portarias_dou_service import executar_envio_diario
+        env = await executar_envio_diario(data_ref=data_ref, forcar=True)
+        resultado["enviado"] = env.get("ok", False)
+        resultado["envio_detalhe"] = env
+
+    return resultado
+
+
 @router.get("/historico", response_model=list[LogOut])
 async def historico(
     limit: int = Query(30, le=90),
