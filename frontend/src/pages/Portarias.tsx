@@ -165,10 +165,16 @@ function InformeCard({ inf, idx, selecionado, onToggle }: { inf: any; idx: numbe
           </div>
 
           {/* Link DOU */}
-          <a href={inf.link} target="_blank" rel="noopener noreferrer"
-            style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#1d4ed8", fontWeight: 600, textDecoration: "none" }}>
-            <ExternalLink size={12} /> Acessar portaria completa no DOU
-          </a>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+            <a href={inf.link} target="_blank" rel="noopener noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#fff", fontWeight: 600, textDecoration: "none", background: "#1d4ed8", padding: "6px 14px", borderRadius: 6 }}>
+              <ExternalLink size={12} /> Abrir Portaria no DOU
+            </a>
+            <a href="https://www.in.gov.br/leiturajornal" target="_blank" rel="noopener noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#475569", fontWeight: 600, textDecoration: "none", background: "#f1f5f9", border: "1px solid #e2e8f0", padding: "6px 14px", borderRadius: 6 }}>
+              <ExternalLink size={12} /> Leitura do Jornal DOU
+            </a>
+          </div>
         </div>
       )}
     </div>
