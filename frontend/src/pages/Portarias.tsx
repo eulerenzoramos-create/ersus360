@@ -934,12 +934,25 @@ const COR_PRIO_DOU: Record<string, string> = {
   normativo: "#2563eb", sem_impacto: "#6b7280",
 };
 
+async function _atualizarStatusPortaria(id: number, status: string, motivo?: string) {
+  const token = localStorage.getItem("token") || "";
+  const r = await fetch(`/api/email-diario/portarias/${id}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+    body: JSON.stringify({ status, motivo }),
+  });
+  if (!r.ok) throw new Error(`Erro ${r.status}`);
+  return r.json();
+}
+
 function PainelPortariasDOU() {
   const [filtroData, setFiltroData] = useState("");
   const [filtroRel, setFiltroRel] = useState("");
   const [filtroPrio, setFiltroPrio] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
   const [expandido, setExpandido] = useState<number | null>(null);
+  const [atualizando, setAtualizando] = useState<number | null>(null);
+  const qc = useQueryClient();
 
   const params = new URLSearchParams();
   if (filtroData) params.set("data", filtroData);
@@ -954,6 +967,16 @@ function PainelPortariasDOU() {
     staleTime: 60_000,
     retry: false,
   });
+
+  const mudarStatus = async (id: number, status: string) => {
+    setAtualizando(id);
+    try {
+      await _atualizarStatusPortaria(id, status);
+      qc.invalidateQueries({ queryKey: ["portarias-dou"] });
+    } finally {
+      setAtualizando(null);
+    }
+  };
 
   const { data: execucoes } = useQuery({
     queryKey: ["portarias-execucoes"],
@@ -1067,6 +1090,16 @@ function PainelPortariasDOU() {
               )}
               <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", flex: 1 }}>{p.titulo}</span>
               {p.numero && <span style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap" as const }}>{p.numero}</span>}
+              {p.status === "revisao_manual" && (
+                <span style={{ fontSize: 9, fontWeight: 800, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", padding: "1px 7px", borderRadius: 20, whiteSpace: "nowrap" as const }}>
+                  ⚠ REVISÃO
+                </span>
+              )}
+              {p.status === "descartado" && (
+                <span style={{ fontSize: 9, fontWeight: 800, color: "#7f1d1d", background: "#fee2e2", border: "1px solid #fca5a5", padding: "1px 7px", borderRadius: 20, whiteSpace: "nowrap" as const }}>
+                  🗑 DESCARTADO
+                </span>
+              )}
               <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" as const }}>{p.data_publicacao}</span>
               <span style={{ fontSize: 11, color: "#94a3b8" }}>{isOpen ? "▲" : "▼"}</span>
             </div>
@@ -1074,7 +1107,6 @@ function PainelPortariasDOU() {
               <div style={{ padding: "12px 14px", borderTop: "1px solid #f1f5f9" }}>
                 <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8 }}>
                   <strong>Órgão:</strong> {p.orgao || "—"} &nbsp;|&nbsp;
-                  <strong>Status:</strong> {p.status} &nbsp;|&nbsp;
                   <strong>Capturado:</strong> {p.capturado_em ? new Date(p.capturado_em).toLocaleString("pt-BR") : "—"}
                 </div>
                 {p.resumo && (
@@ -1087,12 +1119,39 @@ function PainelPortariasDOU() {
                     💰 Valores: {p.valores_identificados.join(" · ")}
                   </div>
                 )}
-                {p.url_oficial && (
-                  <a href={p.url_oficial} target="_blank" rel="noopener noreferrer"
-                    style={{ fontSize: 12, color: "#1d4ed8", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    <ExternalLink size={11} /> Abrir portaria no DOU
-                  </a>
-                )}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center", marginTop: 8 }}>
+                  {p.url_oficial && (
+                    <a href={p.url_oficial} target="_blank" rel="noopener noreferrer"
+                      style={{ fontSize: 12, color: "#1d4ed8", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <ExternalLink size={11} /> Abrir no DOU
+                    </a>
+                  )}
+                  <span style={{ fontSize: 10, color: "#94a3b8" }}>|</span>
+                  {p.status !== "processado" && (
+                    <button disabled={atualizando === p.id}
+                      onClick={() => mudarStatus(p.id, "processado")}
+                      style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, border: "1px solid #bbf7d0", background: "#f0fdf4", color: "#15803d", cursor: "pointer" }}>
+                      ✓ Processado
+                    </button>
+                  )}
+                  {p.status !== "revisao_manual" && (
+                    <button disabled={atualizando === p.id}
+                      onClick={() => mudarStatus(p.id, "revisao_manual")}
+                      style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, border: "1px solid #fde68a", background: "#fffbeb", color: "#92400e", cursor: "pointer" }}>
+                      ⚠ Revisão manual
+                    </button>
+                  )}
+                  {p.status !== "descartado" && (
+                    <button disabled={atualizando === p.id}
+                      onClick={() => { if (window.confirm("Descartar esta portaria?")) mudarStatus(p.id, "descartado"); }}
+                      style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, border: "1px solid #fca5a5", background: "#fef2f2", color: "#dc2626", cursor: "pointer" }}>
+                      🗑 Descartar
+                    </button>
+                  )}
+                  <span style={{ fontSize: 10, fontWeight: 700, marginLeft: 4, color: ({"processado":"#15803d","revisao_manual":"#92400e","descartado":"#dc2626","retificado":"#7c3aed"} as Record<string,string>)[p.status] || "#6b7280" }}>
+                    ● {p.status}
+                  </span>
+                </div>
               </div>
             )}
           </div>

@@ -96,6 +96,38 @@ Link oficial: {link}
 """
 
 
+async def _buscar_texto_integral(url: str, timeout: int = 10) -> str:
+    """
+    Tenta obter o texto integral da portaria pelo link oficial do DOU.
+    Retorna string vazia se falhar (não bloqueia a geração).
+    """
+    if not url or "in.gov.br" not in url:
+        return ""
+    try:
+        import httpx
+        from bs4 import BeautifulSoup
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True,
+                                     headers={"User-Agent": "ERSUS360/1.0"}) as client:
+            r = await client.get(url)
+            if r.status_code != 200:
+                return ""
+            soup = BeautifulSoup(r.text, "html.parser")
+            # Seletores específicos do DOU para o corpo do ato
+            for sel in [
+                ".texto-dou", ".dou-paragraph", "[class*='dou-body']",
+                "article", ".corpo-texto", ".materia-dou",
+            ]:
+                el = soup.select_one(sel)
+                if el:
+                    return el.get_text(" ", strip=True)[:4000]
+            # Fallback: body inteiro
+            body = soup.body
+            return body.get_text(" ", strip=True)[:4000] if body else ""
+    except Exception as exc:
+        logger.warning("[InformeIA] Falha ao buscar texto integral: %s", exc)
+        return ""
+
+
 async def gerar_informe_ia(
     portaria: dict,
     data_hoje: date | None = None,
@@ -120,6 +152,21 @@ async def gerar_informe_ia(
     if data_hoje is None:
         data_hoje = date.today()
 
+    # Tenta obter texto integral do DOU (melhora muito a análise da IA)
+    link = portaria.get("_link") or portaria.get("url_oficial") or ""
+    resumo_curto = portaria.get("_resumo") or portaria.get("resumo") or portaria.get("corpo_completo") or ""
+    texto_integral = ""
+    if link and "in.gov.br/web/dou" in link:
+        texto_integral = await _buscar_texto_integral(link)
+        if texto_integral:
+            logger.info("[InformeIA] Texto integral obtido: %d chars", len(texto_integral))
+
+    conteudo_para_ia = texto_integral or resumo_curto or "(conteúdo não disponível — verificar link oficial)"
+    if texto_integral:
+        conteudo_para_ia = f"[TEXTO INTEGRAL OBTIDO DO DOU — {len(texto_integral)} caracteres]\n\n{texto_integral}"
+    elif resumo_curto:
+        conteudo_para_ia = f"[RESUMO TRUNCADO — texto completo disponível no link]\n\n{resumo_curto}"
+
     # Monta o prompt com os dados da portaria
     prompt = _TEMPLATE_INSTRUCOES.format(
         numero=portaria.get("_numero") or portaria.get("numero") or "Não identificado",
@@ -132,8 +179,8 @@ async def gerar_informe_ia(
         relevancia=portaria.get("_relevancia") or portaria.get("relevancia") or "federal",
         prioridade=portaria.get("_prioridade") or portaria.get("prioridade") or "normativo",
         valores=", ".join(portaria.get("_valores") or portaria.get("valores_identificados") or []) or "Nenhum valor monetário identificado automaticamente",
-        resumo=portaria.get("_resumo") or portaria.get("resumo") or portaria.get("corpo_completo") or "(conteúdo não disponível — verificar link oficial)",
-        link=portaria.get("_link") or portaria.get("url_oficial") or "https://www.in.gov.br/leiturajornal",
+        resumo=conteudo_para_ia,
+        link=link or "https://www.in.gov.br/leiturajornal",
     )
 
     try:

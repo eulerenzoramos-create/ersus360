@@ -234,23 +234,24 @@ async def buscar_dou_retroativo(
         "log":        log_exec,     # transparência: fontes, descartes, falhas
     }
 
-    # Persiste no banco (busca manual retroativa)
-    from services.portarias_dou_service import _salvar_portarias_db
-    try:
-        await _salvar_portarias_db(
-            portarias, data_ref, log_exec,
-            resultado_email={"ok": False},
-            modo="manual_retroativo",
-            usuario=None,
-        )
-    except Exception as exc:
-        resultado["aviso_db"] = f"Dados não persistidos: {exc}"
-
     if enviar:
+        # executar_envio_diario já persiste — não duplicar
         from services.portarias_dou_service import executar_envio_diario
         env = await executar_envio_diario(data_ref=data_ref, forcar=True, modo="manual")
         resultado["enviado"]        = env.get("ok", False)
         resultado["envio_detalhe"]  = env
+    else:
+        # Busca sem envio — persiste como retroativo
+        from services.portarias_dou_service import _salvar_portarias_db
+        try:
+            await _salvar_portarias_db(
+                portarias, data_ref, log_exec,
+                resultado_email={"ok": False},
+                modo="manual_retroativo",
+                usuario=None,
+            )
+        except Exception as exc:
+            resultado["aviso_db"] = f"Dados não persistidos: {exc}"
 
     return resultado
 
@@ -519,6 +520,38 @@ async def gerar_informe_ia(
 
     html = formatar_informe_html(texto, portaria, _date.today())
     return HTMLResponse(content=html)
+
+
+@router.patch("/portarias/{portaria_id}/status")
+async def atualizar_status_portaria(
+    portaria_id: int,
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserOut = Depends(get_current_user),
+):
+    """
+    Atualiza o status de uma portaria (processado | revisao_manual | descartado | retificado).
+    Usado pelo painel de revisão manual.
+    Payload: { "status": "...", "motivo": "..." (opcional) }
+    """
+    from models.portaria_dou import PortariaDOU
+    from fastapi import HTTPException
+
+    STATUS_VALIDOS = {"processado", "revisao_manual", "descartado", "retificado"}
+    novo_status = payload.get("status", "")
+    if novo_status not in STATUS_VALIDOS:
+        raise HTTPException(400, f"Status inválido. Use: {', '.join(STATUS_VALIDOS)}")
+
+    res = await db.execute(select(PortariaDOU).where(PortariaDOU.id == portaria_id))
+    p = res.scalar_one_or_none()
+    if not p:
+        raise HTTPException(404, "Portaria não encontrada")
+
+    p.status = novo_status
+    if payload.get("motivo"):
+        p.motivo_descarte = payload["motivo"]
+    await db.commit()
+    return {"ok": True, "id": portaria_id, "status": novo_status}
 
 
 @router.get("/execucoes")
