@@ -27,6 +27,7 @@ from models.inconsistencia import (
     Inconsistencia, GravidadeInconsistencia, SituacaoInconsistencia,
 )
 from models.credencial_municipio import CredencialMunicipio
+from models.email_diario import EmailDiarioLog, StatusEnvio
 
 __all__ = [
     # Municipio

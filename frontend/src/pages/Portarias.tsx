@@ -1,8 +1,8 @@
 // Módulo 6 — Banco de Portarias
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiPortarias, type Portaria } from "../lib/api";
-import { Search, Plus, FileText, Trash2, ExternalLink } from "lucide-react";
+import { apiPortarias, type Portaria, apiGet, apiPost } from "../lib/api";
+import { Search, Plus, FileText, Trash2, ExternalLink, Mail, Play, RotateCcw, Eye, Pause, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const S = {
@@ -94,11 +94,176 @@ function NovaPortariaModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ── Painel Envios Diários ─────────────────────────────────────────────────────
+
+function PainelEnviosDiarios() {
+  const qc = useQueryClient();
+
+  const { data: status, isLoading: loadingStatus, refetch } = useQuery({
+    queryKey: ["email-diario-status"],
+    queryFn: () => apiGet("/api/email-diario/status"),
+    staleTime: 30_000,
+    retry: false,
+  });
+
+  const enviarAgora = useMutation({
+    mutationFn: () => apiPost("/api/email-diario/enviar-agora", {}),
+    onSuccess: () => { refetch(); },
+  });
+
+  const pausar = useMutation({
+    mutationFn: () => apiPost("/api/email-diario/pausar", {}),
+    onSuccess: () => { refetch(); },
+  });
+
+  const retomar = useMutation({
+    mutationFn: () => apiPost("/api/email-diario/retomar", {}),
+    onSuccess: () => { refetch(); },
+  });
+
+  const statusIcon = (s: string) => {
+    if (s === "enviado" || s === "reenviado") return <CheckCircle size={13} color="#16a34a" />;
+    if (s === "falha") return <XCircle size={13} color="#dc2626" />;
+    if (s === "pendente") return <Clock size={13} color="#d97706" />;
+    if (s === "pausado") return <Pause size={13} color="#6b7280" />;
+    return <AlertCircle size={13} color="#94a3b8" />;
+  };
+
+  const statusCor = (s: string) => ({
+    enviado: "#16a34a", reenviado: "#16a34a", falha: "#dc2626",
+    pendente: "#d97706", pausado: "#6b7280",
+  }[s] || "#94a3b8");
+
+  if (loadingStatus) return (
+    <div style={{ textAlign: "center", padding: 24, color: "#94a3b8", fontSize: 13 }}>
+      Carregando painel de envios…
+    </div>
+  );
+
+  const st = status as any;
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #bfdbfe", overflow: "hidden", marginBottom: 20 }}>
+      {/* Header */}
+      <div style={{ background: "#1d4ed8", padding: "14px 20px", display: "flex", alignItems: "center", gap: 10 }}>
+        <Mail size={16} color="#fff" />
+        <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Envios Diários — Agente de Portarias MS</span>
+        {st?.pausado && (
+          <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 800, color: "#fbbf24", background: "rgba(251,191,36,0.2)", border: "1px solid #fbbf24", padding: "2px 10px", borderRadius: 20 }}>⏸ PAUSADO</span>
+        )}
+      </div>
+
+      <div style={{ padding: "20px 24px" }}>
+        {/* KPIs */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px,1fr))", gap: 12, marginBottom: 20 }}>
+          {[
+            { label: "Próximo envio",       val: st?.proximo_envio || "—",         cor: "#1d4ed8", bg: "#eff6ff", bd: "#bfdbfe" },
+            { label: "Último envio",        val: st?.ultimo_envio || "Nenhum",      cor: "#15803d", bg: "#f0fdf4", bd: "#bbf7d0" },
+            { label: "Destinatário",        val: st?.destinatario || "—",          cor: "#475569", bg: "#f8fafc", bd: "#e5e7eb" },
+            { label: "Portarias (último)",  val: String(st?.qtd_portarias_ultimo ?? 0), cor: "#d97706", bg: "#fffbeb", bd: "#fde68a" },
+            { label: "Informes (último)",   val: String(st?.qtd_informes_ultimo ?? 0),  cor: "#7c3aed", bg: "#f5f3ff", bd: "#c4b5fd" },
+          ].map(k => (
+            <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.bd}`, borderRadius: 8, padding: "10px 14px" }}>
+              <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>{k.label}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: k.cor, marginTop: 4, wordBreak: "break-all" as const }}>{k.val}</div>
+            </div>
+          ))}
+          <div style={{ background: st?.status_atual === "falha" ? "#fef2f2" : "#f8fafc", border: `1px solid ${st?.status_atual === "falha" ? "#fca5a5" : "#e5e7eb"}`, borderRadius: 8, padding: "10px 14px" }}>
+            <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>Status</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
+              {statusIcon(st?.status_atual || "")}
+              <span style={{ fontSize: 13, fontWeight: 700, color: statusCor(st?.status_atual || "") }}>{st?.status_atual || "nenhum"}</span>
+            </div>
+            {st?.erro_ultimo && <div style={{ fontSize: 10, color: "#dc2626", marginTop: 4 }}>{st.erro_ultimo.slice(0, 80)}</div>}
+          </div>
+        </div>
+
+        {/* Tentativas */}
+        {st?.tentativas_ultimo > 0 && (
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
+            Tentativas realizadas: <strong>{st.tentativas_ultimo}</strong> / 3
+          </div>
+        )}
+
+        {/* Botões de ação */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, marginBottom: 20 }}>
+          <button
+            onClick={() => enviarAgora.mutate()}
+            disabled={enviarAgora.isPending}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "none", background: "#1d4ed8", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+          >
+            <Play size={13} />{enviarAgora.isPending ? "Enviando…" : "Enviar agora"}
+          </button>
+          <button
+            onClick={() => enviarAgora.mutate()}
+            disabled={enviarAgora.isPending}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#f8fafc", color: "#475569", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+          >
+            <RotateCcw size={13} /> Reenviar
+          </button>
+          {!st?.pausado ? (
+            <button
+              onClick={() => pausar.mutate()}
+              disabled={pausar.isPending}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1px solid #fde68a", background: "#fffbeb", color: "#d97706", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            >
+              <Pause size={13} /> Pausar envio
+            </button>
+          ) : (
+            <button
+              onClick={() => retomar.mutate()}
+              disabled={retomar.isPending}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1px solid #bbf7d0", background: "#f0fdf4", color: "#15803d", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            >
+              <Play size={13} /> Retomar envio
+            </button>
+          )}
+        </div>
+
+        {/* Alerta de falha */}
+        {st?.status_atual === "falha" && (
+          <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#991b1b" }}>
+            <strong>⚠ Último envio falhou.</strong> Verifique as variáveis de ambiente <code>SMTP_USER</code>, <code>SMTP_PASS</code> e <code>EMAIL_RECIPIENT</code> no Railway. Erro: {st?.erro_ultimo}
+          </div>
+        )}
+
+        {/* Histórico de envios */}
+        {st?.historico?.length > 0 && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 8 }}>Histórico de envios</div>
+            <div style={{ display: "flex", flexDirection: "column" as const, gap: 6 }}>
+              {st.historico.filter((h: any) => h.data_referencia !== "pausa").slice(0, 10).map((h: any) => (
+                <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#f8fafc", borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>
+                  {statusIcon(h.status)}
+                  <span style={{ color: "#1e293b", fontWeight: 600, minWidth: 90 }}>{h.data_referencia}</span>
+                  <span style={{ color: statusCor(h.status), flex: 1 }}>{h.status}</span>
+                  <span style={{ color: "#64748b" }}>{h.qtd_portarias} portaria(s)</span>
+                  <span style={{ color: "#64748b" }}>{h.tentativas} tent.</span>
+                  <a
+                    href={`/api/email-diario/visualizar/${h.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: "flex", alignItems: "center", gap: 4, color: "#1d4ed8", fontSize: 11 }}
+                  >
+                    <Eye size={12} /> ver
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 export default function Portarias() {
   const [q, setQ] = useState("");
   const [bloco, setBloco] = useState("");
   const [ano, setAno] = useState<number | undefined>();
   const [modal, setModal] = useState(false);
+  const [aba, setAba] = useState<"banco" | "envios">("banco");
   const qc = useQueryClient();
 
   const { data: portarias = [], isLoading } = useQuery({
@@ -126,6 +291,30 @@ export default function Portarias() {
   return (
     <div style={S.page}>
       {modal && <NovaPortariaModal onClose={() => setModal(false)} />}
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 2, borderBottom: "2px solid #e5e7eb", marginBottom: 20 }}>
+        {([
+          { key: "banco",  label: "Banco de Portarias", icon: <FileText size={13} /> },
+          { key: "envios", label: "Envios Diários",      icon: <Mail size={13} /> },
+        ] as const).map(t => (
+          <button key={t.key} onClick={() => setAba(t.key)} style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "8px 16px", borderRadius: 0, border: "none",
+            borderBottom: aba === t.key ? "2px solid #1d4ed8" : "2px solid transparent",
+            background: "none", fontSize: 13, fontWeight: aba === t.key ? 700 : 400,
+            color: aba === t.key ? "#1d4ed8" : "#6b7280", cursor: "pointer", marginBottom: -2,
+          }}>
+            {t.icon}{t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Aba: Envios Diários */}
+      {aba === "envios" && <PainelEnviosDiarios />}
+
+      {/* Aba: Banco de Portarias */}
+      {aba === "banco" && <>
 
       <div style={S.header}>
         <div style={S.title}>
@@ -211,6 +400,8 @@ export default function Portarias() {
           <div style={{ fontSize: 12, marginTop: 4 }}>Cadastre portarias ou ajuste os filtros de busca.</div>
         </div>
       )}
+
+      </>}
     </div>
   );
 }

@@ -103,6 +103,20 @@ async def _job_sync_consultafns() -> None:
             logger.error("[Scheduler] Erro sync consultafns: %s", exc, exc_info=True)
 
 
+async def _job_portarias_ms() -> None:
+    """Job: busca portarias MS no DOU e envia e-mail diário."""
+    logger.info("[Scheduler] Iniciando agente de portarias MS — DOU...")
+    try:
+        from services.portarias_dou_service import executar_envio_diario
+        resultado = await executar_envio_diario()
+        if resultado.get("ok"):
+            logger.info("[Scheduler] Portarias MS enviadas — %d portarias", resultado.get("qtd_portarias", 0))
+        else:
+            logger.warning("[Scheduler] Portarias MS — falha: %s", resultado.get("erro") or resultado.get("motivo"))
+    except Exception as exc:
+        logger.error("[Scheduler] Erro no agente portarias MS: %s", exc, exc_info=True)
+
+
 async def _job_alertas_automaticos() -> None:
     """Job: gera alertas WebSocket a partir de prazos urgentes da Agenda e outras fontes."""
     logger.info("[Scheduler] Verificando alertas automáticos...")
@@ -188,10 +202,25 @@ def start_scheduler() -> None:
             misfire_grace_time=3600,
         )
 
+    # Job 5: Agente de Portarias MS — envio diário 06:00 (America/Manaus)
+    import os as _os
+    _email_hora = _os.getenv("EMAIL_SEND_HOUR", "06:00")
+    try:
+        _eh, _em = map(int, _email_hora.split(":"))
+    except ValueError:
+        _eh, _em = 6, 0
+    scheduler.add_job(
+        _job_portarias_ms,
+        CronTrigger(hour=_eh, minute=_em, timezone="America/Manaus"),
+        id="portarias_ms_email",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
     scheduler.start()
     logger.info(
-        "[Scheduler] 3 jobs agendados — FNS %s, Score 01:00, Alertas 07:00 (America/Manaus)",
-        hora_str,
+        "[Scheduler] 5 jobs agendados — FNS %s, Score 01:00, Alertas 07:00, Portarias MS %s (America/Manaus)",
+        hora_str, _email_hora,
     )
 
 
