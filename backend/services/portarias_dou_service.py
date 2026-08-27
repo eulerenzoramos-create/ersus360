@@ -729,9 +729,15 @@ def _classificar(p: dict, data_ref: date | None = None) -> dict:
     if data_ref is None:
         data_ref = date.today()
 
-    titulo = (p.get("title") or p.get("titulo") or "").lower()
-    corpo  = (p.get("content") or p.get("conteudo") or p.get("texto") or "").lower()
-    numero = (p.get("identifica") or p.get("numero") or "").lower()
+    titulo_orig = (p.get("title") or p.get("titulo") or "Sem título")
+    corpo_orig  = (p.get("content") or p.get("conteudo") or p.get("texto") or "")
+    numero_orig = (p.get("identifica") or p.get("numero") or p.get("numberSection") or "")
+    orgao_orig  = (p.get("orgaoName") or p.get("orgao") or "Ministério da Saúde")
+
+    # Cópias lowercased apenas para classificação — nunca armazenadas como _resumo
+    titulo = titulo_orig.lower()
+    corpo  = corpo_orig.lower()
+    numero = numero_orig.lower()
     texto  = f"{titulo} {corpo} {numero}"
 
     if any(t in texto for t in TERMOS_APUI):
@@ -746,18 +752,15 @@ def _classificar(p: dict, data_ref: date | None = None) -> dict:
     prioridade = _classificar_prioridade(titulo, corpo, relevancia)
     valores    = _extrair_valores(texto)
 
-    titulo_orig = (p.get("title") or p.get("titulo") or "Sem título")
-    orgao_orig  = (p.get("orgaoName") or p.get("orgao") or "Ministério da Saúde")
-
     return {
         **p,
         "_relevancia": relevancia,
         "_prioridade": prioridade,
         "_titulo":     titulo_orig,
-        "_numero":     (p.get("identifica") or p.get("numero") or p.get("numberSection") or ""),
+        "_numero":     numero_orig,
         "_link":       _resolver_link(p, data_ref),
         "_data":       (p.get("pubDate") or p.get("dataPublicacao") or ""),
-        "_resumo":     corpo[:600] if corpo else "(Acesse o link para ver o conteúdo completo)",
+        "_resumo":     corpo_orig[:600] if corpo_orig else "(Acesse o link para ver o conteúdo completo)",
         "_orgao":      orgao_orig,
         "_valores":    valores,
     }
