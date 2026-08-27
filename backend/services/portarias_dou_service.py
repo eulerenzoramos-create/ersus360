@@ -1274,16 +1274,121 @@ async def _enviar_resend(assunto: str, html: str) -> dict:
         return {"ok": False, "erro": str(e)}
 
 
+# ── Persistência no banco ─────────────────────────────────────────────────────
+
+async def _salvar_portarias_db(
+    portarias: list[dict],
+    data_ref: date,
+    log_exec: dict,
+    resultado_email: dict,
+    modo: str = "auto",
+    usuario: str | None = None,
+) -> None:
+    """
+    Salva portarias classificadas e log de execução no banco de dados.
+    Usa a chave_dedup para evitar inserções duplicadas (INSERT OR IGNORE).
+    """
+    try:
+        from database import AsyncSessionLocal
+        from models.portaria_dou import PortariaDOU, ExecucaoPortarias
+        from sqlalchemy import select
+        import json as _json
+
+        agora = datetime.utcnow()
+        sem_impacto = [p for p in portarias if p["_relevancia"] == "sem_impacto"]
+
+        async with AsyncSessionLocal() as db:
+            # ── Salva portarias ───────────────────────────────────────────────
+            inseridos = duplicatas = 0
+            for p in portarias:
+                chave = p.get("_chave_dedup") or _gerar_chave_dedup(p)
+                # Verifica duplicata
+                ex = await db.execute(
+                    select(PortariaDOU).where(PortariaDOU.chave_dedup == chave)
+                )
+                if ex.scalar_one_or_none():
+                    duplicatas += 1
+                    continue
+
+                impacto = _analisar_impacto(
+                    p.get("_titulo", ""), p.get("_resumo", "")
+                )
+                row = PortariaDOU(
+                    titulo=p.get("_titulo", "")[:1000],
+                    numero=p.get("_numero", "")[:100],
+                    tipo_ato="Portaria",
+                    data_publicacao=p.get("_data", "")[:10],
+                    secao_dou="DO1",
+                    orgao=p.get("_orgao", "")[:200],
+                    resumo=(p.get("_resumo") or "")[:600],
+                    url_oficial=(p.get("_link") or "")[:1000],
+                    id_dou=(p.get("id_dou") or p.get("urlAddress") or "")[:200],
+                    relevancia=p.get("_relevancia", "sem_impacto"),
+                    prioridade=p.get("_prioridade", "normativo"),
+                    valores_identificados=_json.dumps(p.get("_valores", []), ensure_ascii=False),
+                    impacto_financeiro=_json.dumps(impacto["financeiro"], ensure_ascii=False),
+                    impacto_assistencial=_json.dumps(impacto["assistencial"], ensure_ascii=False),
+                    impacto_administrativo=_json.dumps(impacto["administrativo"], ensure_ascii=False),
+                    providencias=_json.dumps(impacto["providencias"], ensure_ascii=False),
+                    chave_dedup=chave,
+                    status="processado",
+                    capturado_em=agora,
+                    processado_em=agora,
+                )
+                db.add(row)
+                inseridos += 1
+
+            # ── Salva log de execução ─────────────────────────────────────────
+            apui    = [p for p in portarias if p["_relevancia"] == "apui"]
+            am      = [p for p in portarias if p["_relevancia"] == "amazonas"]
+            federal = [p for p in portarias if p["_relevancia"] == "federal"]
+
+            exec_log = ExecucaoPortarias(
+                data_referencia=data_ref.isoformat(),
+                iniciado_em=agora,
+                concluido_em=datetime.utcnow(),
+                estrategia_usada=log_exec.get("estrategia_usada", ""),
+                fontes_tentadas=_json.dumps(log_exec.get("fontes_tentadas", []), ensure_ascii=False),
+                total_bruto=log_exec.get("total_bruto", 0),
+                total_descartados=len(log_exec.get("descartados", [])),
+                total_aceitos=log_exec.get("aceitos", 0),
+                total_apui=len(apui),
+                total_amazonas=len(am),
+                total_federal=len(federal),
+                total_sem_impacto=len(sem_impacto),
+                total_duplicatas=duplicatas,
+                descartados_json=_json.dumps(
+                    log_exec.get("descartados", [])[:50], ensure_ascii=False
+                ),
+                falhas_json=_json.dumps(log_exec.get("falhas", []), ensure_ascii=False),
+                email_enviado=resultado_email.get("ok", False),
+                email_erro=resultado_email.get("erro"),
+                modo=modo,
+                usuario=usuario,
+            )
+            db.add(exec_log)
+            await db.commit()
+
+            logger.info(
+                "[DB] %s — %d inseridas, %d duplicatas ignoradas",
+                data_ref, inseridos, duplicatas
+            )
+    except Exception as exc:
+        logger.error("[DB] Falha ao salvar portarias no banco: %s", exc, exc_info=True)
+
+
 # ── Execução diária ───────────────────────────────────────────────────────────
 
 async def executar_envio_diario(
     data_ref: date | None = None,
     forcar: bool = False,
+    modo: str = "auto",
+    usuario: str | None = None,
 ) -> dict:
     if data_ref is None:
         data_ref = date.today()
 
-    logger.info("[Portarias] Iniciando execução — %s", data_ref)
+    logger.info("[Portarias] Iniciando execução — %s (modo=%s)", data_ref, modo)
 
     try:
         portarias_brutas, log_exec = await _buscar_portarias_ms(data_ref)
@@ -1313,6 +1418,14 @@ async def executar_envio_diario(
         "qtd_federal":       len(federal),
         "log":               log_exec,
     })
+
+    # Persiste no banco (não bloqueia retorno se falhar)
+    try:
+        await _salvar_portarias_db(portarias, data_ref, log_exec, resultado, modo, usuario)
+    except Exception as exc:
+        logger.error("[Portarias] Falha ao persistir no banco: %s", exc)
+        resultado["aviso_db"] = f"Dados não persistidos no banco: {exc}"
+
     logger.info(
         "[Portarias] %s — %d portarias MS (%d Apuí, %d AM, %d Federal) — email: %s",
         data_ref, len(portarias), len(apui), len(am), len(federal),

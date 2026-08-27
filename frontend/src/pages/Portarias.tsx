@@ -696,15 +696,18 @@ function BuscaRetroativa() {
             </div>
           )}
 
-          {/* Outros — colapsados */}
-          {outros.length > 0 && (
+          {/* Sem impacto — colapsados */}
+          {(resultado.sem_impacto || []).length > 0 && (
             <details style={{ marginBottom: 8 }}>
               <summary style={{ fontSize: 12, color: "#6b7280", cursor: "pointer", fontWeight: 600 }}>
-                📄 Outros atos MS ({outros.length}) — sem classificação direta para Apuí
+                📄 Sem impacto direto ({(resultado.sem_impacto || []).length}) — atos MS sem relação com Apuí/AM
               </summary>
               <div style={{ marginTop: 8 }}>
-                {outros.map((p: any, i: number) => (
-                  <InformeCard key={i} inf={p} idx={i} selecionado={false} onToggle={() => {}} />
+                {(resultado.sem_impacto || []).map((p: any, i: number) => (
+                  <InformeCard key={i} inf={p} idx={i} selecionado={false}
+                    onToggle={() => {}}
+                    onEditar={() => {}}
+                    onDeletar={() => {}} />
                 ))}
               </div>
             </details>
@@ -883,12 +886,187 @@ function PainelEnviosDiarios() {
 }
 
 
+// ── Painel Portarias DOU (banco) ─────────────────────────────────────────────
+
+const COR_PRIO_DOU: Record<string, string> = {
+  urgente: "#dc2626", prazo: "#ea580c", financeiro: "#059669",
+  normativo: "#2563eb", sem_impacto: "#6b7280",
+};
+
+function PainelPortariasDOU() {
+  const [filtroData, setFiltroData] = useState("");
+  const [filtroRel, setFiltroRel] = useState("");
+  const [filtroPrio, setFiltroPrio] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("");
+  const [expandido, setExpandido] = useState<number | null>(null);
+
+  const params = new URLSearchParams();
+  if (filtroData) params.set("data", filtroData);
+  if (filtroRel) params.set("relevancia", filtroRel);
+  if (filtroPrio) params.set("prioridade", filtroPrio);
+  if (filtroStatus) params.set("status", filtroStatus);
+  params.set("limit", "100");
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["portarias-dou", filtroData, filtroRel, filtroPrio, filtroStatus],
+    queryFn: () => apiGet(`/api/email-diario/portarias?${params.toString()}`),
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  const { data: execucoes } = useQuery({
+    queryKey: ["portarias-execucoes"],
+    queryFn: () => apiGet("/api/email-diario/execucoes?limit=10"),
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  const portarias: any[] = (data as any)?.portarias || [];
+  const total: number = (data as any)?.total || 0;
+
+  const COR_REL_DOU: Record<string, string> = {
+    apui: "#059669", amazonas: "#7c3aed", federal: "#0284c7", sem_impacto: "#6b7280",
+  };
+  const LABEL_REL_DOU: Record<string, string> = {
+    apui: "📍 Apuí/AM", amazonas: "🏛 Amazonas", federal: "🇧🇷 Federal", sem_impacto: "⚪ Sem impacto",
+  };
+  const LABEL_PRIO_DOU: Record<string, string> = {
+    urgente: "🔴 Urgente", prazo: "🟠 Prazo", financeiro: "🟢 Financeiro",
+    normativo: "🔵 Normativo", sem_impacto: "⚪ Sem impacto",
+  };
+
+  return (
+    <div>
+      {/* Execuções recentes */}
+      {(execucoes as any)?.execucoes?.length > 0 && (
+        <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>
+            Últimas Execuções do Agente
+          </div>
+          <div style={{ display: "flex", flexDirection: "column" as const, gap: 6 }}>
+            {((execucoes as any).execucoes as any[]).map((e: any) => (
+              <div key={e.id} style={{ display: "flex", gap: 12, fontSize: 11, background: "#f8fafc", borderRadius: 6, padding: "6px 12px", alignItems: "center", flexWrap: "wrap" as const }}>
+                <span style={{ fontWeight: 700, color: "#1e293b", minWidth: 90 }}>{e.data_referencia}</span>
+                <span style={{ color: "#64748b" }}>bruto: <strong>{e.total_bruto}</strong></span>
+                <span style={{ color: "#059669" }}>aceitos: <strong>{e.total_aceitos}</strong></span>
+                <span style={{ color: "#dc2626" }}>descartados: <strong>{e.total_descartados}</strong></span>
+                <span style={{ color: "#d97706" }}>duplicatas: <strong>{e.total_duplicatas}</strong></span>
+                <span style={{ color: e.email_enviado ? "#059669" : "#94a3b8" }}>{e.email_enviado ? "✓ e-mail" : "sem e-mail"}</span>
+                <span style={{ marginLeft: "auto", fontSize: 10, color: "#94a3b8" }}>{e.modo}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Filtros */}
+      <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 16, marginBottom: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>
+          Portarias salvas no banco — {total} registro(s)
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+          <input type="date" value={filtroData} onChange={e => setFiltroData(e.target.value)}
+            style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 12 }} />
+          <select value={filtroRel} onChange={e => setFiltroRel(e.target.value)}
+            style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 12 }}>
+            <option value="">Toda relevância</option>
+            <option value="apui">Apuí/AM</option>
+            <option value="amazonas">Amazonas</option>
+            <option value="federal">Federal</option>
+            <option value="sem_impacto">Sem impacto</option>
+          </select>
+          <select value={filtroPrio} onChange={e => setFiltroPrio(e.target.value)}
+            style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 12 }}>
+            <option value="">Toda prioridade</option>
+            <option value="urgente">Urgente</option>
+            <option value="prazo">Prazo/Providência</option>
+            <option value="financeiro">Recurso Financeiro</option>
+            <option value="normativo">Normativo</option>
+            <option value="sem_impacto">Sem impacto</option>
+          </select>
+          <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}
+            style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 12 }}>
+            <option value="">Todo status</option>
+            <option value="processado">Processado</option>
+            <option value="revisao_manual">Revisão manual</option>
+            <option value="descartado">Descartado</option>
+          </select>
+          <button onClick={() => refetch()}
+            style={{ padding: "6px 14px", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+            Atualizar
+          </button>
+        </div>
+      </div>
+
+      {isLoading && <div style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>Carregando portarias…</div>}
+
+      {!isLoading && portarias.length === 0 && (
+        <div style={{ textAlign: "center", padding: 40, color: "#94a3b8", fontSize: 13 }}>
+          <FileText size={28} style={{ marginBottom: 8, opacity: 0.4 }} />
+          <div>Nenhuma portaria encontrada com estes filtros.</div>
+          <div style={{ fontSize: 12, marginTop: 4 }}>Use "Buscar e Gerar Informes" na aba Envios Diários para capturar portarias.</div>
+        </div>
+      )}
+
+      {portarias.map((p: any) => {
+        const cor = COR_REL_DOU[p.relevancia] || "#6b7280";
+        const isOpen = expandido === p.id;
+        return (
+          <div key={p.id} style={{ background: "#fff", borderRadius: 8, border: `1px solid ${cor}30`, marginBottom: 8, overflow: "hidden" }}>
+            <div
+              onClick={() => setExpandido(isOpen ? null : p.id)}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", cursor: "pointer", background: `${cor}08` }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: cor, background: `${cor}18`, border: `1px solid ${cor}40`, padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" as const }}>
+                {LABEL_REL_DOU[p.relevancia]}
+              </span>
+              {p.prioridade && p.prioridade !== "sem_impacto" && (
+                <span style={{ fontSize: 10, fontWeight: 700, color: COR_PRIO_DOU[p.prioridade], background: `${COR_PRIO_DOU[p.prioridade]}12`, border: `1px solid ${COR_PRIO_DOU[p.prioridade]}40`, padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" as const }}>
+                  {LABEL_PRIO_DOU[p.prioridade]}
+                </span>
+              )}
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", flex: 1 }}>{p.titulo}</span>
+              {p.numero && <span style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap" as const }}>{p.numero}</span>}
+              <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" as const }}>{p.data_publicacao}</span>
+              <span style={{ fontSize: 11, color: "#94a3b8" }}>{isOpen ? "▲" : "▼"}</span>
+            </div>
+            {isOpen && (
+              <div style={{ padding: "12px 14px", borderTop: "1px solid #f1f5f9" }}>
+                <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8 }}>
+                  <strong>Órgão:</strong> {p.orgao || "—"} &nbsp;|&nbsp;
+                  <strong>Status:</strong> {p.status} &nbsp;|&nbsp;
+                  <strong>Capturado:</strong> {p.capturado_em ? new Date(p.capturado_em).toLocaleString("pt-BR") : "—"}
+                </div>
+                {p.resumo && (
+                  <div style={{ fontSize: 12, color: "#374151", background: "#f8fafc", borderRadius: 6, padding: "8px 10px", marginBottom: 8, lineHeight: 1.6 }}>
+                    {p.resumo}
+                  </div>
+                )}
+                {(p.valores_identificados?.length > 0) && (
+                  <div style={{ fontSize: 11, color: "#059669", fontWeight: 700, marginBottom: 6 }}>
+                    💰 Valores: {p.valores_identificados.join(" · ")}
+                  </div>
+                )}
+                {p.url_oficial && (
+                  <a href={p.url_oficial} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 12, color: "#1d4ed8", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <ExternalLink size={11} /> Abrir portaria no DOU
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Portarias() {
   const [q, setQ] = useState("");
   const [bloco, setBloco] = useState("");
   const [ano, setAno] = useState<number | undefined>();
   const [modal, setModal] = useState(false);
-  const [aba, setAba] = useState<"banco" | "envios">("banco");
+  const [aba, setAba] = useState<"banco" | "envios" | "dou">("envios");
   const qc = useQueryClient();
 
   const { data: portarias = [], isLoading } = useQuery({
@@ -920,8 +1098,9 @@ export default function Portarias() {
       {/* Tabs */}
       <div style={{ display: "flex", gap: 2, borderBottom: "2px solid #e5e7eb", marginBottom: 20 }}>
         {([
-          { key: "banco",  label: "Banco de Portarias", icon: <FileText size={13} /> },
-          { key: "envios", label: "Envios Diários",      icon: <Mail size={13} /> },
+          { key: "envios", label: "Envios Diários",    icon: <Mail size={13} /> },
+          { key: "dou",    label: "Portarias DOU",     icon: <Search size={13} /> },
+          { key: "banco",  label: "Banco de Portarias",icon: <FileText size={13} /> },
         ] as const).map(t => (
           <button key={t.key} onClick={() => setAba(t.key)} style={{
             display: "flex", alignItems: "center", gap: 6,
@@ -940,6 +1119,9 @@ export default function Portarias() {
         <PainelEnviosDiarios />
         <BuscaRetroativa />
       </>}
+
+      {/* Aba: Portarias DOU (banco agente) */}
+      {aba === "dou" && <PainelPortariasDOU />}
 
       {/* Aba: Banco de Portarias */}
       {aba === "banco" && <>

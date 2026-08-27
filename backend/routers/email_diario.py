@@ -100,12 +100,15 @@ async def status_painel(
 @router.post("/enviar-agora")
 async def enviar_agora(
     data: Optional[str] = Query(None, description="YYYY-MM-DD — padrão: hoje"),
-    _: UserOut = Depends(get_current_user),
+    current_user: UserOut = Depends(get_current_user),
 ):
     """Dispara o envio imediatamente (botão 'Enviar agora' ou 'Reenviar')."""
     from services.portarias_dou_service import executar_envio_diario
     data_ref = date.fromisoformat(data) if data else date.today()
-    resultado = await executar_envio_diario(data_ref=data_ref, forcar=True)
+    resultado = await executar_envio_diario(
+        data_ref=data_ref, forcar=True,
+        modo="manual", usuario=getattr(current_user, "email", None),
+    )
     return resultado
 
 
@@ -231,9 +234,21 @@ async def buscar_dou_retroativo(
         "log":        log_exec,     # transparência: fontes, descartes, falhas
     }
 
+    # Persiste no banco (busca manual retroativa)
+    from services.portarias_dou_service import _salvar_portarias_db
+    try:
+        await _salvar_portarias_db(
+            portarias, data_ref, log_exec,
+            resultado_email={"ok": False},
+            modo="manual_retroativo",
+            usuario=None,
+        )
+    except Exception as exc:
+        resultado["aviso_db"] = f"Dados não persistidos: {exc}"
+
     if enviar:
         from services.portarias_dou_service import executar_envio_diario
-        env = await executar_envio_diario(data_ref=data_ref, forcar=True)
+        env = await executar_envio_diario(data_ref=data_ref, forcar=True, modo="manual")
         resultado["enviado"]        = env.get("ok", False)
         resultado["envio_detalhe"]  = env
 
@@ -369,3 +384,150 @@ async def historico(
         .limit(limit)
     )
     return res.scalars().all()
+
+
+# ── Portarias DB ──────────────────────────────────────────────────────────────
+
+@router.get("/portarias")
+async def listar_portarias(
+    data: Optional[str] = Query(None, description="YYYY-MM-DD"),
+    relevancia: Optional[str] = Query(None, description="apui|amazonas|federal|sem_impacto"),
+    prioridade: Optional[str] = Query(None, description="urgente|prazo|financeiro|normativo|sem_impacto"),
+    status: Optional[str] = Query(None, description="processado|revisao_manual|descartado"),
+    limit: int = Query(50, le=200),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+    _: UserOut = Depends(get_current_user),
+):
+    """Lista portarias persistidas no banco com filtros opcionais."""
+    from models.portaria_dou import PortariaDOU
+    from sqlalchemy import and_
+
+    conditions = []
+    if data:
+        conditions.append(PortariaDOU.data_publicacao == data)
+    if relevancia:
+        conditions.append(PortariaDOU.relevancia == relevancia)
+    if prioridade:
+        conditions.append(PortariaDOU.prioridade == prioridade)
+    if status:
+        conditions.append(PortariaDOU.status == status)
+
+    q = select(PortariaDOU)
+    if conditions:
+        q = q.where(and_(*conditions))
+    q = q.order_by(desc(PortariaDOU.capturado_em)).limit(limit).offset(offset)
+
+    res = await db.execute(q)
+    rows = res.scalars().all()
+
+    def _row(p: PortariaDOU) -> dict:
+        import json as _json
+        return {
+            "id": p.id,
+            "titulo": p.titulo,
+            "numero": p.numero,
+            "tipo_ato": p.tipo_ato,
+            "data_publicacao": p.data_publicacao,
+            "orgao": p.orgao,
+            "resumo": p.resumo,
+            "url_oficial": p.url_oficial,
+            "relevancia": p.relevancia,
+            "prioridade": p.prioridade,
+            "valores_identificados": _json.loads(p.valores_identificados or "[]"),
+            "status": p.status,
+            "chave_dedup": p.chave_dedup,
+            "capturado_em": p.capturado_em.isoformat() if p.capturado_em else None,
+        }
+
+    return {"total": len(rows), "portarias": [_row(p) for p in rows]}
+
+
+@router.get("/portarias/{portaria_id}")
+async def detalhe_portaria(
+    portaria_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: UserOut = Depends(get_current_user),
+):
+    """Retorna uma portaria completa pelo ID."""
+    from models.portaria_dou import PortariaDOU
+    import json as _json
+    from fastapi import HTTPException
+
+    res = await db.execute(select(PortariaDOU).where(PortariaDOU.id == portaria_id))
+    p = res.scalar_one_or_none()
+    if not p:
+        raise HTTPException(404, "Portaria não encontrada")
+
+    return {
+        "id": p.id,
+        "titulo": p.titulo,
+        "numero": p.numero,
+        "tipo_ato": p.tipo_ato,
+        "data_assinatura": p.data_assinatura,
+        "data_publicacao": p.data_publicacao,
+        "edicao_dou": p.edicao_dou,
+        "secao_dou": p.secao_dou,
+        "pagina_dou": p.pagina_dou,
+        "orgao": p.orgao,
+        "unidade_responsavel": p.unidade_responsavel,
+        "ementa": p.ementa,
+        "corpo_completo": p.corpo_completo,
+        "resumo": p.resumo,
+        "url_oficial": p.url_oficial,
+        "id_dou": p.id_dou,
+        "relevancia": p.relevancia,
+        "prioridade": p.prioridade,
+        "valores_identificados": _json.loads(p.valores_identificados or "[]"),
+        "impacto_financeiro": _json.loads(p.impacto_financeiro or "[]"),
+        "impacto_assistencial": _json.loads(p.impacto_assistencial or "[]"),
+        "impacto_administrativo": _json.loads(p.impacto_administrativo or "[]"),
+        "providencias": _json.loads(p.providencias or "[]"),
+        "chave_dedup": p.chave_dedup,
+        "status": p.status,
+        "motivo_descarte": p.motivo_descarte,
+        "portaria_original_id": p.portaria_original_id,
+        "capturado_em": p.capturado_em.isoformat() if p.capturado_em else None,
+        "processado_em": p.processado_em.isoformat() if p.processado_em else None,
+    }
+
+
+@router.get("/execucoes")
+async def listar_execucoes(
+    limit: int = Query(30, le=90),
+    db: AsyncSession = Depends(get_db),
+    _: UserOut = Depends(get_current_user),
+):
+    """Lista histórico de execuções do agente de portarias."""
+    from models.portaria_dou import ExecucaoPortarias
+    import json as _json
+
+    res = await db.execute(
+        select(ExecucaoPortarias)
+        .order_by(desc(ExecucaoPortarias.iniciado_em))
+        .limit(limit)
+    )
+    rows = res.scalars().all()
+
+    def _row(e: ExecucaoPortarias) -> dict:
+        return {
+            "id": e.id,
+            "data_referencia": e.data_referencia,
+            "iniciado_em": e.iniciado_em.isoformat() if e.iniciado_em else None,
+            "concluido_em": e.concluido_em.isoformat() if e.concluido_em else None,
+            "estrategia_usada": e.estrategia_usada,
+            "total_bruto": e.total_bruto,
+            "total_descartados": e.total_descartados,
+            "total_aceitos": e.total_aceitos,
+            "total_apui": e.total_apui,
+            "total_amazonas": e.total_amazonas,
+            "total_federal": e.total_federal,
+            "total_sem_impacto": e.total_sem_impacto,
+            "total_duplicatas": e.total_duplicatas,
+            "email_enviado": e.email_enviado,
+            "email_erro": e.email_erro,
+            "modo": e.modo,
+            "usuario": e.usuario,
+        }
+
+    return {"total": len(rows), "execucoes": [_row(e) for e in rows]}
