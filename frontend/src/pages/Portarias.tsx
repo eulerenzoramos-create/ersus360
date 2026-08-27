@@ -175,7 +175,7 @@ function InformeCard({ inf, idx, selecionado, onToggle }: { inf: any; idx: numbe
                 </a>
                 {!isDireto && (
                   <span style={{ fontSize: 11, color: "#94a3b8" }}>
-                    (link direto não disponível — abrirá busca específica)
+                    (abre o DOU na data da portaria — localize pelo número)
                   </span>
                 )}
               </div>

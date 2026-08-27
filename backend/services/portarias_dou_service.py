@@ -314,18 +314,27 @@ def _classificar(p: dict) -> dict:
     titulo_orig = (p.get("title") or p.get("titulo") or "Sem título")
     link_direto = (p.get("urlAddress") or p.get("link") or p.get("url") or "").strip()
 
-    # Se não há link direto ou é genérico, usa busca pública no Google filtrada ao in.gov.br
+    # Se não há link direto ou é genérico, aponta para o leiturajornal na data da portaria
     LINKS_GENERICOS = {"", "https://www.in.gov.br", "https://www.in.gov.br/leiturajornal",
                        "http://www.in.gov.br", "https://in.gov.br"}
     if link_direto in LINKS_GENERICOS:
-        import urllib.parse
-        termo = titulo_orig[:100]
-        link_direto = (
-            "https://www.google.com/search?"
-            + urllib.parse.urlencode({
-                "q": f'site:in.gov.br "Ministério da Saúde" {termo}',
-            })
-        )
+        # Tenta extrair a data da portaria para montar link do leiturajornal
+        data_pub = (p.get("pubDate") or p.get("_data") or "").strip()
+        # data_pub pode vir como DD/MM/YYYY ou YYYY-MM-DD ou DD-MM-YYYY
+        data_fmt = ""
+        for fmt_in, sep_out in [
+            (r"(\d{2})/(\d{2})/(\d{4})", r"\1-\2-\3"),
+            (r"(\d{4})-(\d{2})-(\d{2})", r"\3-\2-\1"),
+            (r"(\d{2})-(\d{2})-(\d{4})", r"\1-\2-\3"),
+        ]:
+            m = re.match(fmt_in, data_pub)
+            if m:
+                data_fmt = re.sub(fmt_in, sep_out, data_pub)
+                break
+        if data_fmt:
+            link_direto = f"https://www.in.gov.br/leiturajornal?data={data_fmt}&secao=do1"
+        else:
+            link_direto = "https://www.in.gov.br/leiturajornal"
 
     return {
         **p,
