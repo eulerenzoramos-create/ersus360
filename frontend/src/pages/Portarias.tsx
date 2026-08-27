@@ -268,88 +268,30 @@ function BuscaRetroativa() {
         )}
         {resultado?.informes?.length > 0 && (
           <button
-            onClick={() => {
-              const COR_D: Record<string,string> = { apui:"#059669", amazonas:"#7c3aed", federal:"#0284c7", sem_impacto:"#6b7280", outros:"#6b7280" };
-              const LBL_D: Record<string,string> = { apui:"📍 Apuí/AM", amazonas:"🏛 Estado AM", federal:"🇧🇷 Federal Municipal", sem_impacto:"📄 Sem impacto direto", outros:"📄 Outros" };
-              const dt = new Date(resultado.data + "T12:00:00").toLocaleDateString("pt-BR");
+            onClick={async () => {
               const lista = selecionados.size > 0
                 ? (resultado.informes as any[]).filter((_: any, i: number) => selecionados.has(i))
                 : (resultado.informes as any[]);
-              const itens = lista.map((inf: any, i: number) => {
-                const cor = COR_D[inf.relevancia] || "#0284c7";
-                const lbl = LBL_D[inf.relevancia] || "Federal MS";
-                const temResumo = inf.resumo && inf.resumo !== "(Acesse o link para ver o conteúdo completo)";
-                const textoTecnico = (() => {
-                  const t = ((inf.resumo || "") + " " + (inf.titulo || "")).toLowerCase();
-                  const partes: string[] = [];
-                  if (/financiamento|repasse|transfer|recurso|fundo/.test(t))
-                    partes.push("Esta portaria tem implicações financeiras diretas para o município. Recomenda-se verificar competência, valor e prazo de execução.");
-                  if (/aten.o prim|aten.o b.sica|aps|esf|acs|agente comunit/.test(t))
-                    partes.push("Trata de Atenção Primária à Saúde. Avaliar impacto nas equipes de ESF/ACS e nos indicadores de cobertura.");
-                  if (/meta|indicador|avalia.o|desempenho|score/.test(t))
-                    partes.push("Envolve metas e indicadores de desempenho. Verificar cumprimento e registros no sistema de monitoramento.");
-                  if (/prazo|habilita.o|credenciamento|ades.o|inscri.o/.test(t))
-                    partes.push("Contém prazo para habilitação, adesão ou credenciamento. Verificar data limite e providenciar documentação.");
-                  if (/apuí|apui|1300144/.test(t))
-                    partes.push("Portaria com referência direta ao município de Apuí/AM. Ação imediata recomendada pela gestão.");
-                  if (/vigilância|epidemiol|notifica|surto|emergência/.test(t))
-                    partes.push("Relacionada à Vigilância em Saúde. Verificar obrigações de notificação e protocolos vigentes.");
-                  if (partes.length === 0)
-                    partes.push("Recomenda-se leitura integral da portaria para verificar aplicabilidade ao município e possíveis obrigações administrativas.");
-                  return partes.join(" ");
-                })();
-                return `
-                  <div style="border-left:4px solid ${cor};margin-bottom:32px;padding:0 0 20px 18px;page-break-inside:avoid;">
-                    <div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;">
-                      <span style="font-size:10px;font-weight:700;color:${cor};background:${cor}18;border:1px solid ${cor}40;padding:2px 10px;border-radius:20px;">${lbl}</span>
-                      <span style="font-size:11px;color:#94a3b8;">#${i+1}</span>
-                    </div>
-                    <div style="font-size:15px;font-weight:700;color:#1e293b;margin-bottom:10px;line-height:1.4;">${inf.titulo || "(sem título)"}</div>
-                    <table style="font-size:11px;color:#64748b;border-collapse:collapse;margin-bottom:12px;background:#f8fafc;padding:8px;border-radius:6px;width:100%;">
-                      ${inf.numero ? `<tr><td style="padding:3px 20px 3px 0;font-weight:700;color:#374151;white-space:nowrap;">Número</td><td>${inf.numero}</td></tr>` : ""}
-                      ${inf.data_pub ? `<tr><td style="padding:3px 20px 3px 0;font-weight:700;color:#374151;white-space:nowrap;">Publicação DOU</td><td>${inf.data_pub}</td></tr>` : ""}
-                      <tr><td style="padding:3px 20px 3px 0;font-weight:700;color:#374151;white-space:nowrap;">Órgão Emissor</td><td>${inf.orgao || "Ministério da Saúde"}</td></tr>
-                    </table>
-                    ${temResumo ? `
-                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:6px;">Ementa / Resumo</div>
-                    <div style="font-size:12px;color:#374151;line-height:1.8;background:#f8fafc;padding:12px;border-radius:6px;margin-bottom:12px;border-left:2px solid #e2e8f0;">
-                      ${inf.resumo}
-                    </div>` : ""}
-                    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:12px;margin-bottom:12px;">
-                      <div style="font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">⚡ Análise para o Gestor — Apuí/AM</div>
-                      <div style="font-size:12px;color:#78350f;line-height:1.7;">${textoTecnico}</div>
-                    </div>
-                    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px;">
-                      <div style="font-size:10px;font-weight:700;color:#1e40af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">🔗 Portaria Completa no DOU</div>
-                      <a href="${inf.link}" style="font-size:12px;color:#1d4ed8;word-break:break-all;">${inf.link}</a>
-                    </div>
-                  </div>`;
-              }).join("");
-              const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-                <title>Informe Portarias MS — ${dt}</title>
-                <style>
-                  body{font-family:Arial,sans-serif;margin:40px;color:#1e293b;font-size:13px;}
-                  @media print{.no-print{display:none}body{margin:20px}}
-                  h1{font-size:18px;color:#1d4ed8;margin-bottom:4px;}
-                  .meta{font-size:12px;color:#64748b;margin-bottom:24px;border-bottom:2px solid #e2e8f0;padding-bottom:12px;}
-                </style></head><body>
-                <div class="no-print" style="margin-bottom:16px;">
-                  <button onclick="window.print()" style="padding:8px 20px;background:#1d4ed8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">🖨 Imprimir / Salvar PDF</button>
-                </div>
-                <h1>📋 Informe de Portarias — Ministério da Saúde</h1>
-                <div class="meta">
-                  <strong>Município:</strong> Apuí/AM — IBGE 1300144 &nbsp;|&nbsp;
-                  <strong>Data DOU:</strong> ${dt} &nbsp;|&nbsp;
-                  <strong>Total de informes:</strong> ${lista.length} &nbsp;|&nbsp;
-                  <strong>Gerado pelo ERSUS 360</strong>
-                </div>
-                ${itens}
-              </body></html>`;
-              const w = window.open("", "_blank");
-              if (w) { w.document.write(html); w.document.close(); }
+              const token = localStorage.getItem("ersus_token") || "";
+              try {
+                const resp = await fetch("/api/email-diario/informe-html", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                  },
+                  body: JSON.stringify({ informes: lista, data: resultado.data }),
+                });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const html = await resp.text();
+                const w = window.open("", "_blank");
+                if (w) { w.document.write(html); w.document.close(); }
+              } catch (e: any) {
+                alert("Erro ao gerar documento: " + (e?.message || e));
+              }
             }}
             style={{ padding: "9px 20px", background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-            <FileText size={13} /> Gerar Documento
+            <FileText size={13} /> Gerar Documento (8 seções)
           </button>
         )}
         {resultado?.enviado && <span style={{ fontSize: 12, color: "#059669", fontWeight: 700 }}>✓ E-mail enviado</span>}
