@@ -307,14 +307,19 @@ function InformeCard({ inf, idx, selecionado, onToggle, onEditar, onDeletar }: {
               </div>
             </div>
 
-            {inf.resumo && inf.resumo !== "(Acesse o link para ver o conteúdo completo)" && (
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 3 }}>Resumo</div>
-                <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6, background: "#f8fafc", borderRadius: 6, padding: "8px 10px" }}>
-                  {inf.resumo}
+            {inf.resumo && inf.resumo !== "(Acesse o link para ver o conteúdo completo)" && (() => {
+              const capResumo = (t: string) => !t ? t :
+                t.replace(/^([a-záàâãéêíóôõúüç])/i, (_m, c) => c.toUpperCase())
+                 .replace(/([.!?]\s+)([a-záàâãéêíóôõúüç])/gi, (_m, p, c) => p + c.toUpperCase());
+              return (
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 3 }}>Resumo</div>
+                  <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6, background: "#f8fafc", borderRadius: 6, padding: "8px 10px" }}>
+                    {capResumo(inf.resumo)}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: "8px 10px" }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 3 }}>⚡ Impacto para Apuí/AM</div>
@@ -441,6 +446,13 @@ function BuscaRetroativa() {
               const dt = new Date(resultado.data + "T12:00:00").toLocaleDateString("pt-BR");
               const ano = new Date(resultado.data + "T12:00:00").getFullYear();
 
+              // Capitaliza primeira letra e após pontuação (DOU search API retorna content em minúsculas)
+              const cap = (t: string) => {
+                if (!t) return t;
+                return t.replace(/^([a-záàâãéêíóôõúüç])/i, (_m, c) => c.toUpperCase())
+                         .replace(/([.!?]\s+)([a-záàâãéêíóôõúüç])/gi, (_m, p, c) => p + c.toUpperCase());
+              };
+
               const COR: Record<string,string> = {
                 apui:"#059669", amazonas:"#7c3aed",
                 federal:"#0284c7", sem_impacto:"#6b7280",
@@ -486,7 +498,8 @@ function BuscaRetroativa() {
                 const rel  = inf.relevancia || "federal";
                 const cor  = COR[rel] || "#0284c7";
                 const abr  = LABEL_ABRANG[rel] || "Federal";
-                const imp  = analisarImpacto(inf.titulo || "", inf.resumo || "");
+                const resumoCap = cap(inf.resumo || "");
+                const imp  = analisarImpacto(inf.titulo || "", resumoCap);
                 const link = inf.link || "https://www.in.gov.br/leiturajornal";
                 const linkLabel = link.includes("in.gov.br/web/dou") ? "Abrir portaria completa" : "Ver DOU na data de publicação";
 
@@ -533,7 +546,7 @@ function BuscaRetroativa() {
                       </div>
                       <div style="font-size:12px;color:#374151;line-height:1.7;background:#f8fafc;
                                   padding:12px;border-radius:6px">
-                        ${inf.resumo || "(Acesse o link para ver o conteúdo completo)"}
+                        ${resumoCap || "(Acesse o link para ver o conteúdo completo)"}
                       </div>
                     </div>
 
