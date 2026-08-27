@@ -165,16 +165,22 @@ function InformeCard({ inf, idx, selecionado, onToggle }: { inf: any; idx: numbe
           </div>
 
           {/* Link DOU */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
-            <a href={inf.link} target="_blank" rel="noopener noreferrer"
-              style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#fff", fontWeight: 600, textDecoration: "none", background: "#1d4ed8", padding: "6px 14px", borderRadius: 6 }}>
-              <ExternalLink size={12} /> Abrir Portaria no DOU
-            </a>
-            <a href="https://www.in.gov.br/leiturajornal" target="_blank" rel="noopener noreferrer"
-              style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#475569", fontWeight: 600, textDecoration: "none", background: "#f1f5f9", border: "1px solid #e2e8f0", padding: "6px 14px", borderRadius: 6 }}>
-              <ExternalLink size={12} /> Leitura do Jornal DOU
-            </a>
-          </div>
+          {(() => {
+            const isDireto = inf.link && inf.link.includes("/web/dou/-/");
+            return (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
+                <a href={inf.link} target="_blank" rel="noopener noreferrer"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#fff", fontWeight: 600, textDecoration: "none", background: "#1d4ed8", padding: "7px 16px", borderRadius: 6 }}>
+                  <ExternalLink size={12} /> {isDireto ? "Abrir Portaria no DOU" : "Buscar Portaria no DOU"}
+                </a>
+                {!isDireto && (
+                  <span style={{ fontSize: 11, color: "#94a3b8" }}>
+                    (link direto não disponível — abrirá busca específica)
+                  </span>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

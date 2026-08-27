@@ -311,12 +311,30 @@ def _classificar(p: dict) -> dict:
     else:
         relevancia = "outros"
 
+    titulo_orig = (p.get("title") or p.get("titulo") or "Sem título")
+    link_direto = (p.get("urlAddress") or p.get("link") or p.get("url") or "").strip()
+
+    # Se não há link direto ou é genérico, constrói URL de busca específica no DOU
+    LINKS_GENERICOS = {"", "https://www.in.gov.br", "https://www.in.gov.br/leiturajornal",
+                       "http://www.in.gov.br", "https://in.gov.br"}
+    if link_direto in LINKS_GENERICOS:
+        import urllib.parse
+        termo = titulo_orig[:80]  # usa o título como termo de busca
+        link_direto = (
+            "https://www.in.gov.br/consulta/-/buscar-conteudo?"
+            + urllib.parse.urlencode({
+                "q": termo,
+                "orgaoPesquisa": "Ministério da Saúde",
+                "tipoDeAto": "Portaria",
+            })
+        )
+
     return {
         **p,
         "_relevancia": relevancia,
-        "_titulo":   (p.get("title") or p.get("titulo") or "Sem título"),
+        "_titulo":   titulo_orig,
         "_numero":   (p.get("identifica") or p.get("numero") or ""),
-        "_link":     (p.get("urlAddress") or p.get("link") or p.get("url") or "https://www.in.gov.br"),
+        "_link":     link_direto,
         "_data":     (p.get("pubDate") or p.get("dataPublicacao") or ""),
         "_resumo":   corpo[:500] if corpo else "(sem texto disponível)",
     }
