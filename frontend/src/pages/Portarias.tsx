@@ -96,9 +96,18 @@ function NovaPortariaModal({ onClose }: { onClose: () => void }) {
 
 // ── Painel Envios Diários ─────────────────────────────────────────────────────
 
-const COR_REL: Record<string, string> = { apui: "#059669", amazonas: "#7c3aed", federal: "#0284c7", outros: "#6b7280" };
-const BG_REL:  Record<string, string> = { apui: "#f0fdf4", amazonas: "#faf5ff", federal: "#eff6ff", outros: "#f8fafc" };
-const LABEL_REL: Record<string, string> = { apui: "📍 Apuí/AM", amazonas: "🏛 Estado AM", federal: "🇧🇷 Federal MS", outros: "📄 Outros" };
+const COR_REL: Record<string, string> = {
+  apui: "#059669", amazonas: "#7c3aed", federal: "#0284c7",
+  sem_impacto: "#6b7280", outros: "#6b7280",
+};
+const BG_REL: Record<string, string> = {
+  apui: "#f0fdf4", amazonas: "#faf5ff", federal: "#eff6ff",
+  sem_impacto: "#f8fafc", outros: "#f8fafc",
+};
+const LABEL_REL: Record<string, string> = {
+  apui: "📍 Apuí/AM", amazonas: "🏛 Estado AM",
+  federal: "🇧🇷 Federal Municipal", sem_impacto: "📄 Sem impacto direto", outros: "📄 Outros",
+};
 
 function InformeCard({ inf, idx, selecionado, onToggle }: { inf: any; idx: number; selecionado: boolean; onToggle: () => void }) {
   const [aberto, setAberto] = useState(false);
@@ -260,8 +269,8 @@ function BuscaRetroativa() {
         {resultado?.informes?.length > 0 && (
           <button
             onClick={() => {
-              const COR_D: Record<string,string> = { apui:"#059669", amazonas:"#7c3aed", federal:"#0284c7", outros:"#6b7280" };
-              const LBL_D: Record<string,string> = { apui:"📍 Apuí/AM", amazonas:"🏛 Estado AM", federal:"🇧🇷 Federal MS", outros:"📄 Outros" };
+              const COR_D: Record<string,string> = { apui:"#059669", amazonas:"#7c3aed", federal:"#0284c7", sem_impacto:"#6b7280", outros:"#6b7280" };
+              const LBL_D: Record<string,string> = { apui:"📍 Apuí/AM", amazonas:"🏛 Estado AM", federal:"🇧🇷 Federal Municipal", sem_impacto:"📄 Sem impacto direto", outros:"📄 Outros" };
               const dt = new Date(resultado.data + "T12:00:00").toLocaleDateString("pt-BR");
               const lista = selecionados.size > 0
                 ? (resultado.informes as any[]).filter((_: any, i: number) => selecionados.has(i))
@@ -359,27 +368,47 @@ function BuscaRetroativa() {
       {resultado && (
         <div>
           {/* Resumo KPIs */}
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const, marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const, marginBottom: 12 }}>
             {[
-              { label: "Total DOU",    val: resultado.total,    cor: "#1d4ed8", bg: "#eff6ff" },
-              { label: "Apuí/AM",      val: apui.length,        cor: "#059669", bg: "#f0fdf4" },
-              { label: "Federal MS",   val: federal.length,     cor: "#0284c7", bg: "#f0f9ff" },
-              { label: "Estado AM",    val: amazonas.length,    cor: "#7c3aed", bg: "#faf5ff" },
-              { label: "Outros",       val: outros.length,      cor: "#6b7280", bg: "#f8fafc" },
+              { label: "MS validados",   val: resultado.total,                cor: "#1d4ed8", bg: "#eff6ff" },
+              { label: "Apuí/AM",        val: (resultado.apui||[]).length,    cor: "#059669", bg: "#f0fdf4" },
+              { label: "Federal Munic.", val: (resultado.federal||[]).length,  cor: "#0284c7", bg: "#f0f9ff" },
+              { label: "Estado AM",      val: (resultado.amazonas||[]).length, cor: "#7c3aed", bg: "#faf5ff" },
+              { label: "Sem impacto",    val: (resultado.sem_impacto||[]).length, cor: "#6b7280", bg: "#f8fafc" },
             ].map(k => (
-              <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.cor}30`, borderRadius: 8, padding: "8px 14px", minWidth: 80, textAlign: "center" as const }}>
+              <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.cor}30`, borderRadius: 8, padding: "8px 14px", minWidth: 90, textAlign: "center" as const }}>
                 <div style={{ fontSize: 20, fontWeight: 800, color: k.cor }}>{k.val}</div>
                 <div style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>{k.label}</div>
               </div>
             ))}
           </div>
+          {/* Log de execução */}
+          {resultado.log && (
+            <details style={{ marginBottom: 14, fontSize: 11, color: "#64748b", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 12px" }}>
+              <summary style={{ cursor: "pointer", fontWeight: 700, color: "#475569" }}>
+                Log de execução — {(resultado.log.descartados||[]).length} descartados por órgão inválido
+              </summary>
+              <div style={{ marginTop: 8 }}>
+                {(resultado.log.descartados||[]).slice(0,10).map((d: any, i: number) => (
+                  <div key={i} style={{ borderBottom: "1px solid #e2e8f0", padding: "4px 0" }}>
+                    <strong>{d.titulo}</strong> — {d.motivo}
+                  </div>
+                ))}
+                {(resultado.log.falhas||[]).length > 0 && (
+                  <div style={{ color: "#dc2626", marginTop: 6 }}>
+                    Falhas: {resultado.log.falhas.join("; ")}
+                  </div>
+                )}
+              </div>
+            </details>
+          )}
 
           {/* Informes — Apuí + Federal */}
           {informes.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" as const }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b" }}>
-                  📋 Informes Gerados ({informes.length}) — Apuí/AM e Federal MS
+                  📋 Informes Gerados ({informes.length}) — Apuí/AM, Amazonas e Federal Municipal
                 </div>
                 <button onClick={toggleTodos} style={{ fontSize: 11, padding: "3px 10px", border: "1px solid #e2e8f0", borderRadius: 6, background: "#f8fafc", cursor: "pointer", color: "#475569" }}>
                   {selecionados.size === informes.length ? "Desmarcar todos" : "Selecionar todos"}

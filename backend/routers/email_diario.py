@@ -166,8 +166,10 @@ async def buscar_dou_retroativo(
     enviar: bool = Query(False, description="Se True, envia o e-mail após buscar"),
     _: UserOut = Depends(get_current_user),
 ):
-    """Busca portarias no DOU para uma data específica (sem enviar e-mail por padrão)."""
-    from services.portarias_dou_service import _buscar_portarias_ms, _classificar
+    """Busca portarias do MS no DOU (sem e-mail por padrão). Valida órgão via allowlist."""
+    from services.portarias_dou_service import (
+        _buscar_portarias_ms, _classificar, _analisar_impacto
+    )
     from datetime import date as _date
     try:
         data_ref = _date.fromisoformat(data)
@@ -175,34 +177,31 @@ async def buscar_dou_retroativo(
         from fastapi import HTTPException
         raise HTTPException(400, "Data inválida. Use YYYY-MM-DD.")
 
-    brutos = await _buscar_portarias_ms(data_ref)
-    portarias = [_classificar(p) for p in brutos]
+    brutos, log_exec = await _buscar_portarias_ms(data_ref)
+    portarias = [_classificar(p, data_ref) for p in brutos]
 
     def _gerar_informe(p: dict) -> dict:
-        """Gera informe estruturado de uma portaria para o município de Apuí/AM."""
-        titulo   = p.get("_titulo", p.get("title", "Sem título"))
-        numero   = p.get("_numero", p.get("identifica", ""))
-        link     = p.get("_link", p.get("urlAddress", "https://www.in.gov.br"))
-        data_pub = p.get("_data", p.get("pubDate", data))
-        resumo   = p.get("_resumo", p.get("content", p.get("conteudo", "")))[:600]
-        orgao    = p.get("orgaoName", p.get("orgao", "Ministério da Saúde"))
+        titulo    = p.get("_titulo",  "Sem título")
+        numero    = p.get("_numero",  "")
+        link      = p.get("_link",    "https://www.in.gov.br/leiturajornal")
+        data_pub  = p.get("_data",    data)
+        resumo    = p.get("_resumo",  "")[:600]
+        orgao     = p.get("_orgao",   p.get("orgaoName", "Ministério da Saúde"))
         relevancia = p.get("_relevancia", "federal")
+        impacto   = _analisar_impacto(titulo, resumo)
 
-        # Impacto para Apuí baseado em palavras-chave do conteúdo
-        texto = (titulo + " " + resumo).lower()
-        impactos = []
-        if any(t in texto for t in ["financiamento", "repasse", "transferência", "recurso", "fundo"]):
-            impactos.append("Pode afetar repasses financeiros ao município.")
-        if any(t in texto for t in ["atenção básica", "atenção primária", "aps", "esf", "acs"]):
-            impactos.append("Impacta a Atenção Primária à Saúde de Apuí.")
-        if any(t in texto for t in ["meta", "indicador", "avaliação", "desempenho"]):
-            impactos.append("Exige acompanhamento de metas e indicadores.")
-        if any(t in texto for t in ["prazo", "habilitação", "credenciamento", "adesão"]):
-            impactos.append("Verificar prazo de habilitação ou adesão.")
-        if any(t in texto for t in ["apuí", "apui", "1300144"]):
-            impactos.append("Portaria com referência direta ao município de Apuí/AM.")
-        if not impactos:
-            impactos.append("Monitorar aplicabilidade para o município conforme conteúdo completo.")
+        # Impacto resumido para o card
+        itens: list[str] = (
+            impacto["providencias"] +
+            impacto["financeiro"] +
+            impacto["assistencial"] +
+            impacto["administrativo"]
+        )
+        impacto_texto = (
+            " ".join(itens[:3])
+            if itens else
+            "Não foi identificado impacto direto para Apuí/AM após análise do texto."
+        )
 
         return {
             "titulo":     titulo,
@@ -211,29 +210,30 @@ async def buscar_dou_retroativo(
             "orgao":      orgao,
             "relevancia": relevancia,
             "resumo":     resumo or "(Acesse o link para ver o conteúdo completo)",
-            "impacto":    " ".join(impactos),
+            "impacto":    impacto_texto,
             "link":       link,
         }
 
-    relevantes = [p for p in portarias if p["_relevancia"] in ("apui", "federal")]
+    relevantes = [p for p in portarias if p["_relevancia"] in ("apui", "amazonas", "federal")]
     informes   = [_gerar_informe(p) for p in relevantes]
 
     resultado = {
-        "data":     data,
-        "total":    len(portarias),
-        "apui":     [_gerar_informe(p) for p in portarias if p["_relevancia"] == "apui"],
-        "amazonas": [_gerar_informe(p) for p in portarias if p["_relevancia"] == "amazonas"],
-        "federal":  [_gerar_informe(p) for p in portarias if p["_relevancia"] == "federal"],
-        "outros":   [_gerar_informe(p) for p in portarias if p["_relevancia"] == "outros"],
-        "informes": informes,   # apui + federal com informe estruturado
-        "enviado":  False,
+        "data":       data,
+        "total":      len(portarias),
+        "apui":       [_gerar_informe(p) for p in portarias if p["_relevancia"] == "apui"],
+        "amazonas":   [_gerar_informe(p) for p in portarias if p["_relevancia"] == "amazonas"],
+        "federal":    [_gerar_informe(p) for p in portarias if p["_relevancia"] == "federal"],
+        "sem_impacto":[_gerar_informe(p) for p in portarias if p["_relevancia"] == "sem_impacto"],
+        "informes":   informes,
+        "enviado":    False,
+        "log":        log_exec,     # transparência: fontes, descartes, falhas
     }
 
     if enviar:
         from services.portarias_dou_service import executar_envio_diario
         env = await executar_envio_diario(data_ref=data_ref, forcar=True)
-        resultado["enviado"] = env.get("ok", False)
-        resultado["envio_detalhe"] = env
+        resultado["enviado"]        = env.get("ok", False)
+        resultado["envio_detalhe"]  = env
 
     return resultado
 
