@@ -109,6 +109,23 @@ const LABEL_REL: Record<string, string> = {
   federal: "🇧🇷 Federal Municipal", sem_impacto: "📄 Sem impacto direto", outros: "📄 Outros",
 };
 
+// Etiquetas de prioridade (spec: vermelho urgente, laranja prazo, verde financeiro,
+//   azul normativo, cinza sem_impacto, roxo referência federal)
+const COR_PRIO: Record<string, string> = {
+  urgente:    "#dc2626",
+  prazo:      "#ea580c",
+  financeiro: "#059669",
+  normativo:  "#2563eb",
+  sem_impacto:"#6b7280",
+};
+const LABEL_PRIO: Record<string, string> = {
+  urgente:    "🔴 Urgente",
+  prazo:      "🟠 Prazo/Providência",
+  financeiro: "🟢 Recurso Financeiro",
+  normativo:  "🔵 Orientação Normativa",
+  sem_impacto:"⚪ Sem impacto direto",
+};
+
 // Modal de edição de informe
 function ModalEditarInforme({ inf, onSalvar, onFechar }: {
   inf: any; onSalvar: (novoInf: any) => void; onFechar: () => void;
@@ -195,6 +212,17 @@ function InformeCard({ inf, idx, selecionado, onToggle, onEditar, onDeletar }: {
           <span style={{ fontSize: 10, fontWeight: 700, color: cor, background: `${cor}18`, border: `1px solid ${cor}40`, padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" as const }}>
             {LABEL_REL[inf.relevancia]}
           </span>
+          {inf.prioridade && inf.prioridade !== "sem_impacto" && (
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              color: COR_PRIO[inf.prioridade] || "#2563eb",
+              background: `${COR_PRIO[inf.prioridade] || "#2563eb"}12`,
+              border: `1px solid ${COR_PRIO[inf.prioridade] || "#2563eb"}40`,
+              padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" as const,
+            }}>
+              {LABEL_PRIO[inf.prioridade] || inf.prioridade}
+            </span>
+          )}
           <span onClick={() => setAberto(a => !a)}
             style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", flex: 1, cursor: "pointer" }}>
             {inf.titulo}

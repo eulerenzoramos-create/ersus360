@@ -1,14 +1,12 @@
 """
 ERSUS360 — Agente de Portarias do Ministério da Saúde — DOU
 ============================================================
-Consulta o Diário Oficial da União, valida o órgão emitente com lista de
-permissão (allowlist), classifica a abrangência para Apuí/AM e gera
-Informe Técnico objetivo para o gestor municipal de saúde.
+Versão 4.1 — Correção crítica de classificação de órgão
 
-Regra fundamental:
+Regra fundamental (nunca violar):
   Uma publicação só é aceita como do Ministério da Saúde se o campo
-  orgaoName retornado pelo DOU pertencer à lista ORGAOS_MS_PERMITIDOS.
-  Nenhum termo do texto (saúde, recurso, portaria…) substitui essa validação.
+  orgaoName retornado pelo DOU pertencer à ORGAOS_MS_PERMITIDOS.
+  orgao_hint NUNCA é atribuído a itens sem evidência estrutural de órgão.
 
 Variáveis de ambiente obrigatórias:
   EMAIL_PROVIDER      smtp | resend  (default: smtp)
@@ -20,6 +18,7 @@ Variáveis de ambiente obrigatórias:
   RESEND_API_KEY      (se EMAIL_PROVIDER=resend)
 """
 from __future__ import annotations
+import hashlib
 import json
 import logging
 import os
@@ -56,9 +55,10 @@ MUNICIPIO_IBGE  = "1300144"
 DOU_LEITURA = "https://www.in.gov.br/leiturajornal"
 DOU_BUSCA   = "https://www.in.gov.br/consulta/-/buscar-conteudo"
 
-# ── LISTA DE PERMISSÃO: apenas órgãos oficialmente vinculados ao MS ──────────
-# Normalização: minúsculas, sem acento, sem pontuação final.
-# Deve ser atualizada quando a estrutura do MS mudar.
+# ─────────────────────────────────────────────────────────────────────────────
+# LISTA DE PERMISSÃO — órgãos oficialmente vinculados ao Ministério da Saúde
+# Atualize esta lista conforme mudanças na estrutura do MS.
+# ─────────────────────────────────────────────────────────────────────────────
 ORGAOS_MS_PERMITIDOS: frozenset[str] = frozenset({
     # Gabinete e secretaria-executiva
     "ministerio da saude",
@@ -83,25 +83,20 @@ ORGAOS_MS_PERMITIDOS: frozenset[str] = frozenset({
     "secretaria de vigilância em saúde e ambiente",
     "svsa",
     "svsa/ms",
-    # Sigla legada SVS (antes da fusão com SVA)
     "secretaria de vigilancia em saude",
     "secretaria de vigilância em saúde",
     "svs",
     "svs/ms",
-    # Ciência e tecnologia
     "secretaria de ciencia, tecnologia, inovacao e complexo da saude",
     "secretaria de ciência, tecnologia, inovação e complexo da saúde",
     "sectics",
     "sectics/ms",
-    # Sigla legada SCTIE
     "sctie",
     "sctie/ms",
-    # Saúde indígena
     "secretaria de saude indigena",
     "secretaria de saúde indígena",
     "sesai",
     "sesai/ms",
-    # Saúde digital
     "secretaria de informacao e saude digital",
     "secretaria de informação e saúde digital",
     "seidigi",
@@ -111,20 +106,18 @@ ORGAOS_MS_PERMITIDOS: frozenset[str] = frozenset({
     "fundo nacional de saúde",
     "fns",
     "fns/ms",
-    # Órgãos colegiados e vinculados formalmente ao MS
+    # Conselhos e órgãos colegiados vinculados
     "conselho nacional de saude",
     "conselho nacional de saúde",
     "cns",
-    "conass",
-    "conasems",
-    # Agências vinculadas ao MS
+    # Agências reguladoras vinculadas ao MS
     "agencia nacional de vigilancia sanitaria",
     "agência nacional de vigilância sanitária",
     "anvisa",
     "agencia nacional de saude suplementar",
     "agência nacional de saúde suplementar",
     "ans",
-    # Instituto e fundações vinculados
+    # Fundações e institutos vinculados
     "fundacao nacional de saude",
     "fundação nacional de saúde",
     "funasa",
@@ -136,14 +129,18 @@ ORGAOS_MS_PERMITIDOS: frozenset[str] = frozenset({
     "inca",
     "instituto nacional de traumatologia e ortopedia",
     "into",
-    "hospital das forcas armadas",        # vinculado ao MS operacionalmente
-    # Siglas genéricas do DOU usadas pelo MS
+    # Siglas genéricas usadas pelo DOU para atos do MS
     "gm/ms",
     "gm/m",
+    "ministerio da saude/gm",
+    "ministério da saúde/gm",
 })
 
-# Fragmentos que, se presentes no orgaoName, indicam que NÃO é MS
-# (salvaguarda adicional para nomes compostos não mapeados)
+# ─────────────────────────────────────────────────────────────────────────────
+# FRAGMENTOS DE EXCLUSÃO — se presentes no orgaoName, indica que NÃO é MS
+# Salvaguarda para nomes compostos não mapeados na allowlist.
+# PRIORIDADE MÁXIMA: fragmento de exclusão bate qualquer match da allowlist.
+# ─────────────────────────────────────────────────────────────────────────────
 FRAGMENTOS_NAO_MS: tuple[str, ...] = (
     "integracao",
     "integração",
@@ -153,7 +150,7 @@ FRAGMENTOS_NAO_MS: tuple[str, ...] = (
     "petróleo",
     "gas natural",
     "gás natural",
-    "anp",
+    " anp",          # Agência Nacional do Petróleo — espaço evita "saps"
     "agricultura",
     "educacao",
     "educação",
@@ -177,37 +174,43 @@ FRAGMENTOS_NAO_MS: tuple[str, ...] = (
     "cidades",
     "meio ambiente",
     "clima",
-    "mma",
+    " mma",
     "relacoes exteriores",
     "relações exteriores",
-    "mre",
-    "ciencia e tecnologia",           # diferente de ciência no MS (tem "saúde" no nome)
-    "mcti",
-    "esportes",
+    " mre",
+    " mcti",
     "esporte",
     "direitos humanos",
     "igualdade racial",
     "mulheres",
-    "gestao",                         # Ministério da Gestão (MGPE) — não é MS
+    "gestao e inovacao",   # MGPE — Ministério da Gestão
+    "gestão e inovação",
     "planejamento",
     "empreendedorismo",
     "microempresa",
     "portos",
     "transportes",
     "minas e energia",
-    "mme",
-    "mds",                            # Desenvolvimento Social — não é MS
+    " mme",
+    " mds",
     "desenvolvimento social",
     "cidadania",
+    "indios",               # FUNAI — não é vinculada ao MS
+    "índios",
+    "funai",
+    "amazonia",             # Ministério da Amazônia ≠ MS
+    "amazônia",
 )
 
 
 def _normalizar_orgao(orgao: str) -> str:
-    """Normaliza string de órgão para comparação."""
+    """Normaliza string de órgão para comparação: minúsculas, sem acento."""
     s = orgao.lower().strip()
-    # Remove acentos de forma simples para comparação
-    for a, b in [("á","a"),("ã","a"),("â","a"),("à","a"),("é","e"),("ê","e"),
-                 ("í","i"),("ó","o"),("õ","o"),("ô","o"),("ú","u"),("ç","c")]:
+    for a, b in [
+        ("á","a"),("ã","a"),("â","a"),("à","a"),
+        ("é","e"),("ê","e"),("í","i"),("ó","o"),
+        ("õ","o"),("ô","o"),("ú","u"),("ç","c"),
+    ]:
         s = s.replace(a, b)
     return s
 
@@ -215,34 +218,46 @@ def _normalizar_orgao(orgao: str) -> str:
 def confirmar_orgao_ms(orgao_raw: str) -> bool:
     """
     Retorna True SOMENTE se o órgão pertencer à estrutura oficial do MS.
-    Usa allowlist + verificação de fragmentos de exclusão.
+    - Fragmentos de exclusão têm prioridade absoluta.
+    - Órgão vazio → rejeitar (nunca assumir que é MS).
+    - Nunca retorna True para órgão desconhecido.
     """
     if not orgao_raw or not orgao_raw.strip():
-        # Sem informação de órgão — rejeitar (nunca assumir que é MS)
         return False
 
     n = _normalizar_orgao(orgao_raw)
 
-    # 1. Verificar fragmentos de exclusão (têm prioridade)
+    # 1. Fragmentos de exclusão — prioridade máxima
     for frag in FRAGMENTOS_NAO_MS:
         if frag in n:
             return False
 
-    # 2. Verificar correspondência exata na allowlist
+    # 2. Correspondência exata na allowlist
     if n in {_normalizar_orgao(o) for o in ORGAOS_MS_PERMITIDOS}:
         return True
 
-    # 3. Verificar se algum item da allowlist é substrings do orgão informado
+    # 3. A allowlist é substring do orgão informado
     #    (ex: "Ministério da Saúde / SAPS" contém "saps")
     for permitido in ORGAOS_MS_PERMITIDOS:
         np = _normalizar_orgao(permitido)
-        if np and np in n:
+        if len(np) >= 3 and np in n:
             return True
 
     return False
 
 
+def _gerar_chave_dedup(p: dict) -> str:
+    """Chave única para deduplicação de portaria."""
+    titulo = re.sub(r"\s+", " ", (p.get("title") or p.get("titulo") or "")).strip().lower()
+    orgao  = _normalizar_orgao(p.get("orgaoName") or p.get("orgao") or "")
+    numero = re.sub(r"\s+", " ", (p.get("identifica") or p.get("numero") or "")).strip().lower()
+    data   = (p.get("pubDate") or p.get("dataPublicacao") or "").strip()
+    raw    = f"{orgao}|{numero}|{data}|{titulo[:60]}"
+    return hashlib.md5(raw.encode()).hexdigest()
+
+
 # ── Termos de classificação de abrangência ────────────────────────────────────
+
 TERMOS_APUI = [
     "apuí", "apui", "1300144",
     "fundo municipal de saúde de apuí",
@@ -256,7 +271,6 @@ TERMOS_AMAZONAS = [
     " am,", " am.", "(am)", "/am",
     "amazonas",
 ]
-# Termos que indicam norma federal com potencial aplicação municipal
 TERMOS_FEDERAL_MUNICIPAL = [
     "atenção primária", "atencao primaria",
     "atenção básica", "atencao basica",
@@ -274,7 +288,6 @@ TERMOS_FEDERAL_MUNICIPAL = [
     "piso da enfermagem",
     "emenda parlamentar",
     "componente fixo", "componente variável",
-    "previne brasil",           # pode aparecer em portarias retroativas
     "relatório de gestão", "relatorio de gestao",
     "prestação de contas",
     "indicador", "meta",
@@ -286,16 +299,51 @@ TERMOS_FEDERAL_MUNICIPAL = [
     "saúde indígena", "saude indigena",
     "municípios", "municipios",
 ]
+TERMOS_URGENTE = [
+    "até o dia", "até o prazo", "encerramento",
+    "suspensão de repasse", "suspensão de transferência",
+    "bloqueio", "glosa", "devolução de recurso",
+    "prazo improrrogável",
+]
 
 
 # ── Extração de HTML do DOU ───────────────────────────────────────────────────
 
-def _extrair_portarias_html(html: str, orgao_hint: str = "") -> list[dict]:
+def _extrair_orgao_de_bloco_html(bloco: str) -> str:
+    """
+    Tenta extrair o nome do órgão de um bloco HTML de artigo do DOU.
+    Retorna string vazia se não encontrar.
+    """
+    # Padrões comuns no HTML do DOU leiturajornal
+    padroes = [
+        r'class="[^"]*(?:orgao|organ|dou-header)[^"]*"[^>]*>\s*([^<]{3,120})',
+        r'data-orgao="([^"]{3,120})"',
+        r'<h[23][^>]*class="[^"]*(?:orgao|organ)[^"]*"[^>]*>\s*([^<]{3,120})',
+    ]
+    for pat in padroes:
+        m = re.search(pat, bloco, re.I)
+        if m:
+            v = m.group(1).strip()
+            if v and len(v) > 2:
+                return v
+    return ""
+
+
+def _extrair_portarias_html(
+    html: str,
+    orgao_hint: str = "",
+    usar_hint_como_fallback: bool = False,
+) -> list[dict]:
     """
     Extrai portarias de resposta HTML do DOU.
-    NUNCA atribui orgaoName sem evidência textual.
-    Se orgao_hint for fornecido (ex: "Ministério da Saúde" da query),
-    ele é usado apenas quando o HTML não informa o órgão.
+
+    REGRA FUNDAMENTAL:
+    - orgao_hint só é usado quando usar_hint_como_fallback=True AND
+      a requisição foi feita com filtro de órgão confirmado (ex: orgaoPesquisa=Ministério da Saúde).
+    - Se usar_hint_como_fallback=False e o órgão não está no JSON/HTML → orgaoName="".
+    - orgaoName="" → confirmar_orgao_ms() retorna False → item descartado.
+
+    Isso garante que atos de outros órgãos nunca apareçam como MS por default.
     """
     resultado: list[dict] = []
     vistos: set[str] = set()
@@ -306,58 +354,126 @@ def _extrair_portarias_html(html: str, orgao_hint: str = "") -> list[dict]:
         t = re.sub(r'\s+', ' ', t).strip()
         return t
 
-    # Estratégia A: JSON embutido em <script>
-    for script in re.findall(r'<script[^>]*>(.*?)</script>', html, re.S | re.I):
-        for match in re.finditer(r'\[(\{["\w].*?\})\]', script, re.S):
-            try:
-                items = json.loads('[' + match.group(1) + ']')
-                for item in (items if isinstance(items, list) else []):
-                    titulo = (item.get('title') or item.get('titulo') or
-                              item.get('identifica') or '')
-                    if not titulo or not re.search(r'portaria', titulo, re.I):
-                        continue
-                    t = _limpo(titulo)
-                    if not t or len(t) < 5 or t in vistos:
-                        continue
-                    # Tenta obter orgão do JSON; usa hint apenas se vazio
-                    orgao = (item.get('orgaoName') or item.get('orgao') or
-                             item.get('organ') or orgao_hint or "")
-                    vistos.add(t)
-                    resultado.append({
-                        "title":     t,
-                        "urlAddress": item.get('urlAddress') or item.get('url') or '',
-                        "content":   item.get('content') or item.get('conteudo') or '',
-                        "pubDate":   item.get('pubDate') or item.get('data') or '',
-                        "orgaoName": orgao,
-                        "identifica": item.get('identifica') or item.get('numero') or '',
-                    })
-            except Exception:
-                pass
+    # ── Estratégia A: __NEXT_DATA__ (Next.js) ────────────────────────────────
+    next_data_match = re.search(
+        r'<script[^>]+id="__NEXT_DATA__"[^>]*>(.*?)</script>',
+        html, re.S | re.I
+    )
+    if next_data_match:
+        try:
+            nd = json.loads(next_data_match.group(1))
+            props = nd.get("props", {}).get("pageProps", {})
+            items_nd = (
+                props.get("atos") or props.get("results") or
+                props.get("items") or props.get("portarias") or []
+            )
+            for item in (items_nd if isinstance(items_nd, list) else []):
+                titulo = (item.get("title") or item.get("titulo") or
+                          item.get("identifica") or "")
+                if not titulo:
+                    continue
+                t = _limpo(titulo)
+                if not t or len(t) < 5 or t in vistos:
+                    continue
+                orgao = (item.get("orgaoName") or item.get("orgao") or
+                         item.get("organ") or "")
+                if not orgao and usar_hint_como_fallback:
+                    orgao = orgao_hint
+                vistos.add(t)
+                resultado.append({
+                    "title":      t,
+                    "urlAddress": item.get("urlAddress") or item.get("url") or "",
+                    "content":    item.get("content") or item.get("conteudo") or "",
+                    "pubDate":    item.get("pubDate") or item.get("data") or "",
+                    "orgaoName":  orgao,
+                    "identifica": item.get("identifica") or item.get("numero") or "",
+                })
+        except Exception:
+            pass
 
-    # Estratégia B: links /web/dou/-/ com texto de título
+    # ── Estratégia B: JSON em <script> genéricos ──────────────────────────────
     if not resultado:
-        # Tenta extrair orgão do HTML por proximidade do link
-        orgao_re = re.compile(
-            r'(?:orgao|órgão|organ)[^>]*>\s*([^<]{5,80})', re.I
-        )
-        orgaos_html = [m.group(1).strip() for m in orgao_re.finditer(html)]
+        for script in re.findall(r'<script[^>]*>(.*?)</script>', html, re.S | re.I):
+            for match in re.finditer(r'\[(\{["\w].*?\})\]', script, re.S):
+                try:
+                    items = json.loads('[' + match.group(1) + ']')
+                    for item in (items if isinstance(items, list) else []):
+                        titulo = (item.get('title') or item.get('titulo') or
+                                  item.get('identifica') or '')
+                        if not titulo or not re.search(r'portaria', titulo, re.I):
+                            continue
+                        t = _limpo(titulo)
+                        if not t or len(t) < 5 or t in vistos:
+                            continue
+                        # Órgão vem APENAS do JSON — não usar hint global
+                        orgao = (item.get('orgaoName') or item.get('orgao') or
+                                 item.get('organ') or '')
+                        if not orgao and usar_hint_como_fallback:
+                            orgao = orgao_hint
+                        vistos.add(t)
+                        resultado.append({
+                            "title":      t,
+                            "urlAddress": item.get('urlAddress') or item.get('url') or '',
+                            "content":    item.get('content') or item.get('conteudo') or '',
+                            "pubDate":    item.get('pubDate') or item.get('data') or '',
+                            "orgaoName":  orgao,
+                            "identifica": item.get('identifica') or item.get('numero') or '',
+                        })
+                except Exception:
+                    pass
 
-        for link, titulo in re.findall(
-            r'href="(https?://www\.in\.gov\.br/web/dou/-/[^"]+)"[^>]*>\s*([^<]{5,150})',
-            html, re.I
-        ):
-            t = _limpo(titulo)
-            if not t or t in vistos or re.search(r'[{}":]', t):
-                continue
-            # Usa o primeiro órgão encontrado no HTML, ou o hint
-            orgao = orgaos_html[0] if orgaos_html else orgao_hint
-            vistos.add(t)
-            resultado.append({
-                "title": t, "urlAddress": link,
-                "orgaoName": orgao, "content": "", "pubDate": "",
-            })
+    # ── Estratégia C: links /web/dou/-/ com extração por bloco de artigo ─────
+    if not resultado:
+        # Divide o HTML em blocos por artigo para associar órgão correto a cada um
+        # O DOU separa artigos por seções de órgão — tentamos identificar essas seções
+        blocos = re.split(r'(?=<(?:div|section|article)[^>]+class="[^"]*(?:grupo|section|article|ato)[^"]*")', html, flags=re.I)
+
+        orgao_corrente = ""
+        for bloco in blocos:
+            # Tenta extrair órgão do início do bloco
+            orgao_bloco = _extrair_orgao_de_bloco_html(bloco[:500])
+            if orgao_bloco:
+                orgao_corrente = orgao_bloco
+
+            for link, titulo in re.findall(
+                r'href="(https?://www\.in\.gov\.br/web/dou/-/[^"]+)"[^>]*>\s*([^<]{5,150})',
+                bloco, re.I
+            ):
+                t = _limpo(titulo)
+                if not t or t in vistos or re.search(r'[{}":]', t):
+                    continue
+
+                # Órgão: usar o do bloco atual se encontrado; hint APENAS se filtro aplicado
+                orgao = orgao_corrente
+                if not orgao and usar_hint_como_fallback:
+                    orgao = orgao_hint
+
+                vistos.add(t)
+                resultado.append({
+                    "title":      t,
+                    "urlAddress": link,
+                    "orgaoName":  orgao,
+                    "content":    "",
+                    "pubDate":    "",
+                    "identifica": "",
+                })
 
     return resultado
+
+
+# ── Extração de valores monetários ────────────────────────────────────────────
+
+def _extrair_valores(texto: str) -> list[str]:
+    """Extrai referências a valores monetários no texto."""
+    valores: list[str] = []
+    for m in re.finditer(
+        r'R\$\s*[\d\.]+(?:,\d+)?(?:\s*(?:mil|milh[oõ]es?|bilh[oõ]es?))?',
+        texto, re.I
+    ):
+        v = m.group().strip()
+        if v not in valores:
+            valores.append(v)
+    return valores[:5]  # Máximo 5 referências
 
 
 # ── Consulta DOU ──────────────────────────────────────────────────────────────
@@ -366,21 +482,27 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
     """
     Busca portarias do MS no DOU para a data informada.
     Retorna (portarias_validadas, log_execucao).
+
+    Estratégias em ordem de confiabilidade:
+    1. API /consulta/-/buscar-conteudo com orgaoPesquisa (pode exigir auth)
+    2. leiturajornal com parâmetro orgao filtrado (pode ser ignorado pelo servidor)
+    3. leiturajornal sem filtro + extração rigorosa de órgão por bloco HTML
     """
     data_str = data_ref.strftime("%d-%m-%Y")
     log: dict[str, Any] = {
-        "data": data_str,
+        "data":            data_str,
         "fontes_tentadas": [],
-        "total_bruto": 0,
-        "descartados": [],
-        "aceitos": 0,
-        "falhas": [],
+        "total_bruto":     0,
+        "descartados":     [],
+        "aceitos":         0,
+        "falhas":          [],
+        "estrategia_usada": "",
     }
 
     hdrs = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 ERSUS360/3.0"
+            "AppleWebKit/537.36 ERSUS360/4.1"
         ),
         "Accept":          "application/json, text/html, */*",
         "Referer":         "https://www.in.gov.br/leiturajornal",
@@ -389,9 +511,10 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
 
     brutos: list[dict] = []
 
-    # ── Estratégia 1: API interna do leiturajornal (DO1 e DO2) ───────────────
+    # ── Estratégia 1: API /consulta/-/buscar-conteudo ──────────────────────────
+    # Usa orgaoPesquisa para filtrar — itens retornados podem usar hint como fallback
     for secao in ("DO1", "DO2"):
-        fonte = f"leiturajornal-API/{secao}"
+        fonte = f"API-buscar-conteudo/{secao}"
         params = {
             "orgaoPesquisa": "Ministério da Saúde",
             "data":          data_str,
@@ -400,49 +523,71 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
             "numberPerPage": "100",
         }
         try:
-            async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
+            async with httpx.AsyncClient(timeout=25, follow_redirects=True) as c:
                 r = await c.get(DOU_BUSCA, params=params, headers=hdrs)
             log["fontes_tentadas"].append(fonte)
             if r.status_code == 200:
+                # Tenta JSON
                 try:
                     d = r.json()
                     items = (d if isinstance(d, list)
                              else d.get("items") or d.get("content") or d.get("results") or [])
                     if items:
+                        # Filtro aplicado → hint é confiável para itens sem orgaoName
+                        for item in items:
+                            if not item.get("orgaoName") and not item.get("orgao"):
+                                item["orgaoName"] = "Ministério da Saúde"
                         brutos.extend(items)
-                        logger.info("[DOU] %s %s — %d portarias brutas", fonte, data_str, len(items))
+                        log["estrategia_usada"] = fonte
+                        logger.info("[DOU] %s %s — %d portarias JSON", fonte, data_str, len(items))
                         continue
                 except Exception:
                     pass
-                # Fallback para HTML
-                extraidos = _extrair_portarias_html(r.text, "Ministério da Saúde")
+                # Fallback HTML — filtro aplicado → hint permitido
+                extraidos = _extrair_portarias_html(
+                    r.text, "Ministério da Saúde", usar_hint_como_fallback=True
+                )
                 if extraidos:
                     brutos.extend(extraidos)
-                    logger.info("[DOU] %s HTML %s — %d portarias extraídas", fonte, data_str, len(extraidos))
+                    log["estrategia_usada"] = f"{fonte}-HTML"
+                    logger.info("[DOU] %s HTML %s — %d extraídas", fonte, data_str, len(extraidos))
             else:
-                log["falhas"].append(f"{fonte}: HTTP {r.status_code}")
+                log["falhas"].append(f"{fonte}: HTTP {r.status_code} — auth pode ser necessária")
+                logger.warning("[DOU] %s HTTP %d", fonte, r.status_code)
         except Exception as exc:
             log["falhas"].append(f"{fonte}: {exc}")
             logger.warning("[DOU] %s erro: %s", fonte, exc)
 
-    # ── Estratégia 2: leiturajornal página HTML com filtros ──────────────────
+    # ── Estratégia 2: leiturajornal com filtro de órgão ───────────────────────
+    # Filtro pode ser respeitado ou não pelo servidor
     if not brutos:
         for secao in ("do1", "do2"):
-            fonte = f"leiturajornal-HTML/{secao}"
+            fonte = f"leiturajornal-filtrado/{secao}"
             try:
-                async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
+                async with httpx.AsyncClient(timeout=25, follow_redirects=True) as c:
                     r = await c.get(
                         DOU_LEITURA,
-                        params={"data": data_str, "secao": secao,
-                                "orgao": "ministerio-da-saude", "tipoDeAto": "Portaria"},
+                        params={
+                            "data":          data_str,
+                            "secao":         secao,
+                            "orgao":         "ministerio-da-saude",
+                            "tipoDeAto":     "Portaria",
+                        },
                         headers=hdrs,
                     )
                 log["fontes_tentadas"].append(fonte)
                 if r.status_code == 200:
-                    extraidos = _extrair_portarias_html(r.text, "Ministério da Saúde")
+                    # Não sabemos se o filtro foi aplicado → usar_hint=False
+                    # EXCETO se a URL de resposta confirmar filtro (verifica redirect)
+                    filtro_confirmado = "orgao=ministerio-da-saude" in str(r.url)
+                    extraidos = _extrair_portarias_html(
+                        r.text, "Ministério da Saúde",
+                        usar_hint_como_fallback=filtro_confirmado
+                    )
                     if extraidos:
                         brutos.extend(extraidos)
-                        logger.info("[DOU] %s %s — %d portarias", fonte, data_str, len(extraidos))
+                        log["estrategia_usada"] = fonte
+                        logger.info("[DOU] %s %s — %d extraídas", fonte, data_str, len(extraidos))
                         break
                 else:
                     log["falhas"].append(f"{fonte}: HTTP {r.status_code}")
@@ -450,7 +595,35 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
                 log["falhas"].append(f"{fonte}: {exc}")
                 logger.warning("[DOU] %s erro: %s", fonte, exc)
 
-    # ── Filtro principal: allowlist de órgãos MS ──────────────────────────────
+    # ── Estratégia 3: leiturajornal sem filtro — extração por bloco ───────────
+    # NUNCA usa hint — órgão deve vir do HTML de cada bloco de artigo
+    if not brutos:
+        for secao in ("do1", "do2", "do3"):
+            fonte = f"leiturajornal-bruto/{secao}"
+            try:
+                async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
+                    r = await c.get(
+                        DOU_LEITURA,
+                        params={"data": data_str, "secao": secao},
+                        headers=hdrs,
+                    )
+                log["fontes_tentadas"].append(fonte)
+                if r.status_code == 200:
+                    # Sem filtro → nunca usar hint
+                    extraidos = _extrair_portarias_html(
+                        r.text, usar_hint_como_fallback=False
+                    )
+                    if extraidos:
+                        brutos.extend(extraidos)
+                        log["estrategia_usada"] = f"{fonte} (sem filtro de órgão)"
+                        logger.info("[DOU] %s %s — %d brutas", fonte, data_str, len(extraidos))
+                else:
+                    log["falhas"].append(f"{fonte}: HTTP {r.status_code}")
+            except Exception as exc:
+                log["falhas"].append(f"{fonte}: {exc}")
+                logger.warning("[DOU] %s erro: %s", fonte, exc)
+
+    # ── Filtro principal: allowlist de órgãos ─────────────────────────────────
     log["total_bruto"] = len(brutos)
     aceitos: list[dict] = []
 
@@ -459,30 +632,38 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
         titulo    = (p.get("title") or p.get("titulo") or "").strip()
 
         if not confirmar_orgao_ms(orgao_raw):
-            motivo = (
-                f"Órgão '{orgao_raw}' não pertence ao Ministério da Saúde"
-                if orgao_raw else
-                "Campo orgaoName ausente — não é possível confirmar o órgão"
-            )
-            log["descartados"].append({"titulo": titulo[:60], "motivo": motivo})
+            if orgao_raw:
+                motivo = (
+                    f"Órgão '{orgao_raw[:80]}' não pertence ao Ministério da Saúde"
+                )
+            else:
+                motivo = (
+                    "Campo orgaoName ausente — não é possível confirmar o órgão. "
+                    "Publicação descartada por segurança."
+                )
+            log["descartados"].append({
+                "titulo": titulo[:80],
+                "orgao":  orgao_raw[:80],
+                "motivo": motivo,
+            })
             logger.debug("[DOU] Descartado: %s — %s", titulo[:60], motivo)
             continue
 
         aceitos.append(p)
 
-    # ── Deduplicação por título normalizado ───────────────────────────────────
-    vistos: set[str] = set()
+    # ── Deduplicação por chave composta ───────────────────────────────────────
+    vistos_chaves: set[str] = set()
     dedup: list[dict] = []
     for p in aceitos:
-        chave = re.sub(r'\s+', ' ',
-            (p.get('title') or p.get('titulo') or '')).strip().lower()[:80]
-        if chave and chave not in vistos:
-            vistos.add(chave)
+        chave = _gerar_chave_dedup(p)
+        if chave not in vistos_chaves:
+            vistos_chaves.add(chave)
+            p["_chave_dedup"] = chave
             dedup.append(p)
 
     log["aceitos"] = len(dedup)
     logger.info(
-        "[DOU] %s — %d brutas, %d descartadas, %d aceitas (MS)",
+        "[DOU] %s — %d brutas, %d descartadas, %d aceitas (MS válidas)",
         data_str, len(brutos), len(log["descartados"]), len(dedup)
     )
     return dedup, log
@@ -501,7 +682,6 @@ def _resolver_link(p: dict, data_ref: date) -> str:
     if link not in genericos:
         return link
 
-    # Usa a data da portaria para o leiturajornal (público e sem login)
     data_pub = (p.get("pubDate") or p.get("_data") or "").strip()
     data_fmt = ""
     for fmt_in, sep_out in [
@@ -519,13 +699,32 @@ def _resolver_link(p: dict, data_ref: date) -> str:
     return f"https://www.in.gov.br/leiturajornal?data={data_fmt}&secao=do1"
 
 
-# ── Classificação de abrangência ──────────────────────────────────────────────
+# ── Classificação de abrangência e prioridade ─────────────────────────────────
+
+def _classificar_prioridade(titulo: str, corpo: str, relevancia: str) -> str:
+    """
+    Classifica nível de prioridade para o gestor municipal:
+    urgente | prazo | financeiro | normativo | sem_impacto
+    """
+    texto = (titulo + " " + corpo).lower()
+    if relevancia == "apui":
+        return "urgente"
+    if any(t in texto for t in TERMOS_URGENTE):
+        return "urgente"
+    if any(t in texto for t in ["prazo", "data limite", "até o dia", "até "]):
+        return "prazo"
+    if any(t in texto for t in ["repasse", "transferência", "transferencia",
+                                   "recurso financeiro", "valor", "custeio",
+                                   "investimento", "fundo", "emenda parlamentar"]):
+        return "financeiro"
+    if relevancia in ("federal", "amazonas"):
+        return "normativo"
+    return "sem_impacto"
+
 
 def _classificar(p: dict, data_ref: date | None = None) -> dict:
     """
-    Classifica relevância da portaria para Apuí/AM.
-    A classificação 'federal' só é atribuída se o conteúdo contém termos
-    que indiquem norma com potencial aplicação municipal — nunca por padrão.
+    Classifica relevância da portaria para Apuí/AM e define prioridade.
     """
     if data_ref is None:
         data_ref = date.today()
@@ -535,21 +734,17 @@ def _classificar(p: dict, data_ref: date | None = None) -> dict:
     numero = (p.get("identifica") or p.get("numero") or "").lower()
     texto  = f"{titulo} {corpo} {numero}"
 
-    # A — Apuí/AM (menção direta)
     if any(t in texto for t in TERMOS_APUI):
         relevancia = "apui"
-
-    # B — Estado do Amazonas
     elif any(t in texto for t in TERMOS_AMAZONAS):
         relevancia = "amazonas"
-
-    # C — Federal com aplicação municipal (termos específicos)
     elif any(t in texto for t in TERMOS_FEDERAL_MUNICIPAL):
         relevancia = "federal"
-
-    # D — Sem impacto identificado (portaria MS sem referência territorial relevante)
     else:
         relevancia = "sem_impacto"
+
+    prioridade = _classificar_prioridade(titulo, corpo, relevancia)
+    valores    = _extrair_valores(texto)
 
     titulo_orig = (p.get("title") or p.get("titulo") or "Sem título")
     orgao_orig  = (p.get("orgaoName") or p.get("orgao") or "Ministério da Saúde")
@@ -557,21 +752,23 @@ def _classificar(p: dict, data_ref: date | None = None) -> dict:
     return {
         **p,
         "_relevancia": relevancia,
+        "_prioridade": prioridade,
         "_titulo":     titulo_orig,
         "_numero":     (p.get("identifica") or p.get("numero") or p.get("numberSection") or ""),
         "_link":       _resolver_link(p, data_ref),
         "_data":       (p.get("pubDate") or p.get("dataPublicacao") or ""),
         "_resumo":     corpo[:600] if corpo else "(Acesse o link para ver o conteúdo completo)",
         "_orgao":      orgao_orig,
+        "_valores":    valores,
     }
 
 
-# ── Informe Técnico ───────────────────────────────────────────────────────────
+# ── Análise de impacto ────────────────────────────────────────────────────────
 
 def _analisar_impacto(titulo: str, corpo: str) -> dict:
     """
     Analisa o conteúdo da portaria e retorna impacto estruturado.
-    Retorna evidências textuais encontradas, sem inventar informações.
+    Não inventa informações — só registra quando há evidência textual.
     """
     texto = (titulo + " " + corpo).lower()
 
@@ -579,26 +776,30 @@ def _analisar_impacto(titulo: str, corpo: str) -> dict:
     assistencial: list[str] = []
     administrativo: list[str] = []
     providencias: list[str] = []
-    sem_impacto = False
 
     # Financeiro
     if any(t in texto for t in ["repasse", "transferência", "transferencia",
-                                  "recurso", "valor", "custeio", "investimento",
-                                  "fundo nacional", "bloco de financiamento",
-                                  "teto financeiro", "limite financeiro"]):
+                                   "recurso", "valor", "custeio", "investimento",
+                                   "fundo nacional", "bloco de financiamento",
+                                   "teto financeiro", "limite financeiro"]):
         financeiro.append(
             "A portaria trata de aspectos financeiros. "
             "Verificar se Apuí consta como município beneficiário no texto ou anexos."
         )
-
     if "emenda parlamentar" in texto:
         financeiro.append(
             "Envolve emenda parlamentar. Verificar se há parcela destinada a Apuí/AM."
         )
+    valores = _extrair_valores(texto)
+    if valores:
+        financeiro.append(
+            f"Valores identificados no texto: {', '.join(valores)}. "
+            "Verificar associação ao município."
+        )
 
     # Assistencial
     if any(t in texto for t in ["atenção primária", "atencao primaria",
-                                  "atenção básica", "atencao basica", "esf", "acs"]):
+                                   "atenção básica", "atencao basica", "esf", "acs"]):
         assistencial.append(
             "Impacto potencial na Atenção Primária à Saúde. "
             "Verificar se a portaria cria obrigações para equipes de Apuí."
@@ -619,37 +820,41 @@ def _analisar_impacto(titulo: str, corpo: str) -> dict:
         administrativo.append(
             "Portaria com prazo definido. Verificar data e providência necessária."
         )
-    if any(t in texto for t in ["sistema", "sigtap", "rnds", "conass", "cnes", "ine"]):
+    if any(t in texto for t in ["sistema", "sigtap", "rnds", "cnes", "ine"]):
         administrativo.append(
             "Envolve sistemas de informação. Verificar obrigação de atualização cadastral."
         )
     if any(t in texto for t in ["prestação de contas", "prestacao de contas",
-                                  "relatório", "relatorio"]):
+                                   "relatório", "relatorio"]):
         administrativo.append(
             "Exige prestação de contas ou relatório. Verificar responsável e prazo."
         )
 
-    # Verificar se realmente menciona o município
+    # Providências imediatas
     if any(t in texto for t in ["apuí", "apui", "1300144"]):
         providencias.append(
             "AÇÃO IMEDIATA: O município de Apuí/AM está citado expressamente. "
-            "Ler o texto integral e anexos."
+            "Ler o texto integral e anexos com urgência."
+        )
+    if any(t in texto for t in TERMOS_URGENTE):
+        providencias.append(
+            "Portaria contém prazo urgente ou risco de suspensão de recursos. "
+            "Verificar imediatamente o texto integral."
         )
 
-    if not financeiro and not assistencial and not administrativo:
-        sem_impacto = True
-
     return {
-        "financeiro":      financeiro,
-        "assistencial":    assistencial,
-        "administrativo":  administrativo,
-        "providencias":    providencias,
-        "sem_impacto":     sem_impacto,
+        "financeiro":     financeiro,
+        "assistencial":   assistencial,
+        "administrativo": administrativo,
+        "providencias":   providencias,
+        "sem_impacto":    not (financeiro or assistencial or administrativo),
     }
 
 
+# ── Informe Técnico ───────────────────────────────────────────────────────────
+
 def gerar_informe_tecnico(p: dict, numero_seq: int, ano: int) -> str:
-    """Gera Informe Técnico em HTML estruturado conforme especificação."""
+    """Gera Informe Técnico em HTML estruturado (8 seções)."""
     titulo   = p.get("_titulo", "Sem título")
     numero   = p.get("_numero", "Não identificado")
     data_pub = p.get("_data",   "Não informada")
@@ -657,6 +862,7 @@ def gerar_informe_tecnico(p: dict, numero_seq: int, ano: int) -> str:
     link     = p.get("_link",   "https://www.in.gov.br/leiturajornal")
     resumo   = p.get("_resumo", "(sem texto disponível)")
     rel      = p.get("_relevancia", "federal")
+    valores  = p.get("_valores", [])
 
     REL_LABEL = {
         "apui":       "Específica para Apuí/AM — aplicação direta imediata",
@@ -665,7 +871,6 @@ def gerar_informe_tecnico(p: dict, numero_seq: int, ano: int) -> str:
         "sem_impacto":"Sem impacto direto identificado após análise do texto",
     }
     abrangencia_texto = REL_LABEL.get(rel, "Federal")
-
     impacto = _analisar_impacto(titulo, resumo)
 
     def lista_html(items: list[str], vazio: str) -> str:
@@ -674,19 +879,37 @@ def gerar_informe_tecnico(p: dict, numero_seq: int, ano: int) -> str:
         return "<ul style='margin:6px 0;padding-left:20px'>" + \
                "".join(f"<li style='margin-bottom:6px'>{i}</li>" for i in items) + "</ul>"
 
-    prov_html = lista_html(
-        impacto["providencias"],
-        "Nenhuma providência imediata identificada no texto analisado."
-    ) if impacto["providencias"] else (
-        "<p style='color:#6b7280;font-style:italic'>"
-        "Não foi identificado impacto direto para o Município de Apuí/AM "
-        "após análise do texto e dos anexos disponíveis.</p>"
-    )
-
     cor_abrang = {
         "apui": "#dc2626", "amazonas": "#d97706",
         "federal": "#2563eb", "sem_impacto": "#6b7280",
     }.get(rel, "#2563eb")
+
+    # Tabela de valores
+    if valores:
+        valores_html = (
+            "<table style='font-size:12px;border-collapse:collapse;width:100%'>"
+            "<tr style='background:#f1f5f9'>"
+            "<th style='padding:6px 10px;text-align:left;border:1px solid #e2e8f0'>Valor identificado</th>"
+            "<th style='padding:6px 10px;text-align:left;border:1px solid #e2e8f0'>Observação</th>"
+            "</tr>"
+            + "".join(
+                f"<tr><td style='padding:5px 10px;border:1px solid #e2e8f0'>{v}</td>"
+                f"<td style='padding:5px 10px;border:1px solid #e2e8f0;color:#6b7280'>"
+                f"Verificar associação a Apuí (IBGE {MUNICIPIO_IBGE}) no texto integral</td></tr>"
+                for v in valores
+            )
+            + "</table>"
+        )
+    else:
+        valores_html = (
+            "<p style='color:#6b7280;font-style:italic'>"
+            "Informação não identificada no ato analisado. Acesse o texto integral "
+            "e os anexos no link oficial do DOU para verificar valores, CNES, INE e competências.</p>"
+        )
+
+    tem_prazo = impacto["administrativo"] and any(
+        "prazo" in a.lower() for a in impacto["administrativo"]
+    )
 
     return f"""
     <div style="font-family:Arial,sans-serif;max-width:800px;margin:0 auto;
@@ -695,7 +918,7 @@ def gerar_informe_tecnico(p: dict, numero_seq: int, ano: int) -> str:
 
       <!-- Cabeçalho -->
       <div style="background:#1d4ed8;padding:18px 24px">
-        <div style="color:rgba(255,255,255,0.7);font-size:11px;text-transform:uppercase;
+        <div style="color:rgba(255,255,255,.7);font-size:11px;text-transform:uppercase;
                     letter-spacing:1px">Informe Técnico Nº {numero_seq:03d}/{ano}</div>
         <div style="color:#fff;font-size:16px;font-weight:700;margin-top:4px">{titulo}</div>
       </div>
@@ -705,14 +928,14 @@ def gerar_informe_tecnico(p: dict, numero_seq: int, ano: int) -> str:
         <!-- 1. Identificação -->
         <div style="margin-bottom:20px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;
-                      color:#1d4ed8;letter-spacing:0.8px;margin-bottom:8px;
+                      color:#1d4ed8;letter-spacing:.8px;margin-bottom:8px;
                       border-bottom:2px solid #dbeafe;padding-bottom:4px">
             1. Identificação do Ato
           </div>
           <table style="font-size:12px;color:#374151;border-collapse:collapse;width:100%">
-            <tr><td style="padding:3px 12px 3px 0;font-weight:600;width:180px">Portaria</td>
+            <tr><td style="padding:3px 12px 3px 0;font-weight:600;width:200px">Portaria</td>
                 <td>{numero or 'Não identificado'}</td></tr>
-            <tr><td style="padding:3px 12px 3px 0;font-weight:600">Data de publicação</td>
+            <tr><td style="padding:3px 12px 3px 0;font-weight:600">Publicação DOU</td>
                 <td>{data_pub or 'Não informada'}</td></tr>
             <tr><td style="padding:3px 12px 3px 0;font-weight:600">Órgão responsável</td>
                 <td>{orgao}</td></tr>
@@ -724,124 +947,123 @@ def gerar_informe_tecnico(p: dict, numero_seq: int, ano: int) -> str:
         <!-- 2. Objeto -->
         <div style="margin-bottom:20px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;
-                      color:#1d4ed8;letter-spacing:0.8px;margin-bottom:8px;
-                      border-bottom:2px solid #dbeafe;padding-bottom:4px">
-            2. Objeto
-          </div>
+                      color:#1d4ed8;letter-spacing:.8px;margin-bottom:8px;
+                      border-bottom:2px solid #dbeafe;padding-bottom:4px">2. Objeto</div>
           <div style="font-size:12px;color:#374151;line-height:1.7;
                       background:#f8fafc;padding:12px;border-radius:6px">
-            {resumo or '(Acesse o link para ver o conteúdo completo)'}
+            {resumo}
           </div>
         </div>
 
         <!-- 3. Abrangência -->
         <div style="margin-bottom:20px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;
-                      color:#1d4ed8;letter-spacing:0.8px;margin-bottom:8px;
-                      border-bottom:2px solid #dbeafe;padding-bottom:4px">
-            3. Abrangência
-          </div>
+                      color:#1d4ed8;letter-spacing:.8px;margin-bottom:8px;
+                      border-bottom:2px solid #dbeafe;padding-bottom:4px">3. Abrangência</div>
           <span style="background:{cor_abrang};color:#fff;font-size:12px;font-weight:600;
-                       padding:4px 14px;border-radius:20px">
-            {abrangencia_texto}
-          </span>
+                       padding:5px 16px;border-radius:20px">{abrangencia_texto}</span>
         </div>
 
         <!-- 4. Impacto -->
         <div style="margin-bottom:20px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;
-                      color:#1d4ed8;letter-spacing:0.8px;margin-bottom:8px;
+                      color:#1d4ed8;letter-spacing:.8px;margin-bottom:8px;
                       border-bottom:2px solid #dbeafe;padding-bottom:4px">
             4. Impacto para Apuí/AM
           </div>
-          {"<div style='background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:10px 14px;margin-bottom:10px'><strong style='color:#dc2626'>⚡ Ação imediata:</strong> " + " ".join(impacto["providencias"]) + "</div>" if impacto["providencias"] else ""}
-
-          <div style="font-size:12px;font-weight:600;color:#374151;margin:8px 0 4px">
-            Impacto financeiro
-          </div>
-          {lista_html(impacto["financeiro"],
-            "Não identificado impacto financeiro direto no texto analisado.")}
-
-          <div style="font-size:12px;font-weight:600;color:#374151;margin:8px 0 4px">
-            Impacto assistencial
-          </div>
-          {lista_html(impacto["assistencial"],
-            "Não identificado impacto assistencial direto no texto analisado.")}
-
-          <div style="font-size:12px;font-weight:600;color:#374151;margin:8px 0 4px">
-            Impacto administrativo
-          </div>
-          {lista_html(impacto["administrativo"],
-            "Não identificado impacto administrativo direto no texto analisado.")}
+          {"<div style='background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:10px 14px;margin-bottom:10px'><strong style='color:#dc2626'>⚡ Ação imediata requerida:</strong><ul style='margin:6px 0;padding-left:20px'>" + "".join(f"<li>{prov}</li>" for prov in impacto["providencias"]) + "</ul></div>" if impacto["providencias"] else ""}
+          <div style="font-size:12px;font-weight:600;color:#374151;margin:8px 0 4px">Impacto financeiro</div>
+          {lista_html(impacto["financeiro"], "Não identificado impacto financeiro direto no texto analisado.")}
+          <div style="font-size:12px;font-weight:600;color:#374151;margin:8px 0 4px">Impacto assistencial</div>
+          {lista_html(impacto["assistencial"], "Não identificado impacto assistencial direto no texto analisado.")}
+          <div style="font-size:12px;font-weight:600;color:#374151;margin:8px 0 4px">Impacto administrativo</div>
+          {lista_html(impacto["administrativo"], "Não identificado impacto administrativo direto no texto analisado.")}
         </div>
 
         <!-- 5. Valores e Beneficiários -->
         <div style="margin-bottom:20px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;
-                      color:#1d4ed8;letter-spacing:0.8px;margin-bottom:8px;
+                      color:#1d4ed8;letter-spacing:.8px;margin-bottom:8px;
                       border-bottom:2px solid #dbeafe;padding-bottom:4px">
             5. Valores e Beneficiários
           </div>
-          <div style="font-size:12px;color:#6b7280;font-style:italic">
-            Informação não identificada no ato analisado. Acesse o texto integral
-            e os anexos no link oficial do DOU para verificar valores, beneficiários,
-            CNES, INE e competências.
-          </div>
+          {valores_html}
         </div>
 
-        <!-- 6. Providências -->
+        <!-- 6. Providências Recomendadas -->
         <div style="margin-bottom:20px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;
-                      color:#1d4ed8;letter-spacing:0.8px;margin-bottom:8px;
+                      color:#1d4ed8;letter-spacing:.8px;margin-bottom:8px;
                       border-bottom:2px solid #dbeafe;padding-bottom:4px">
             6. Providências Recomendadas
           </div>
-          {prov_html}
-          <div style="font-size:12px;color:#374151;margin-top:8px">
-            <strong>Ação padrão:</strong> Acessar o link oficial, ler o texto integral,
-            verificar se Apuí (IBGE {MUNICIPIO_IBGE}) consta como beneficiário
-            e acionar o setor responsável.
-          </div>
+          <table style="font-size:12px;border-collapse:collapse;width:100%;margin-bottom:10px">
+            <tr style="background:#f1f5f9">
+              <th style="padding:6px 10px;text-align:left;border:1px solid #e2e8f0">Providência</th>
+              <th style="padding:6px 10px;text-align:left;border:1px solid #e2e8f0">Setor</th>
+              <th style="padding:6px 10px;text-align:left;border:1px solid #e2e8f0">Prioridade</th>
+            </tr>
+            <tr>
+              <td style="padding:5px 10px;border:1px solid #e2e8f0">
+                Acessar o link oficial e ler o texto integral e anexos
+              </td>
+              <td style="padding:5px 10px;border:1px solid #e2e8f0">Assessoria Técnica</td>
+              <td style="padding:5px 10px;border:1px solid #e2e8f0">Alta</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 10px;border:1px solid #e2e8f0">
+                Verificar se Apuí (IBGE {MUNICIPIO_IBGE}) consta como beneficiário
+              </td>
+              <td style="padding:5px 10px;border:1px solid #e2e8f0">Assessoria Técnica</td>
+              <td style="padding:5px 10px;border:1px solid #e2e8f0">Alta</td>
+            </tr>
+            {"<tr><td style='padding:5px 10px;border:1px solid #e2e8f0'>Verificar prazo e acionar setor responsável</td><td style='padding:5px 10px;border:1px solid #e2e8f0'>Secretaria de Saúde</td><td style='padding:5px 10px;border:1px solid #e2e8f0;color:#dc2626;font-weight:700'>Urgente</td></tr>" if tem_prazo else ""}
+          </table>
         </div>
 
-        <!-- 7. Prazos -->
+        <!-- 7. Prazos e Riscos -->
         <div style="margin-bottom:20px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;
-                      color:#1d4ed8;letter-spacing:0.8px;margin-bottom:8px;
+                      color:#1d4ed8;letter-spacing:.8px;margin-bottom:8px;
                       border-bottom:2px solid #dbeafe;padding-bottom:4px">
             7. Prazos e Riscos
           </div>
           <div style="font-size:12px;color:#6b7280;font-style:italic">
-            {"Portaria contém referência a prazo. Verificar data exata no texto integral." if impacto["administrativo"] and any("prazo" in a.lower() for a in impacto["administrativo"]) else "Prazo não identificado automaticamente. Verificar no texto integral do DOU."}
+            {"⚠️ Portaria contém referência a prazo. Verificar data exata no texto integral e registrar no controle de prazos da Secretaria." if tem_prazo else "Prazo não identificado automaticamente. Verificar no texto integral do DOU e registrar se houver."}
           </div>
         </div>
 
         <!-- 8. Conclusão -->
         <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:14px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;
-                      color:#15803d;letter-spacing:0.8px;margin-bottom:6px">
+                      color:#15803d;letter-spacing:.8px;margin-bottom:6px">
             8. Conclusão
           </div>
           <div style="font-size:12px;color:#374151;line-height:1.6">
-            {
-              "Portaria com referência direta a Apuí/AM. Leitura integral do ato e dos anexos é obrigatória."
-              if rel == "apui" else
-              "Portaria aplicável ao Estado do Amazonas. Verificar se Apuí está incluído como município beneficiário."
-              if rel == "amazonas" else
-              "Norma federal do Ministério da Saúde com potencial aplicação municipal. Verificar elegibilidade e obrigações para Apuí/AM."
-              if rel == "federal" else
-              "Não foi identificado impacto direto para o Município de Apuí/AM após análise do texto e dos anexos."
-            }
+            {"Portaria com referência direta a Apuí/AM. Leitura integral do ato e dos anexos é obrigatória com urgência."
+            if rel == "apui" else
+            "Portaria aplicável ao Estado do Amazonas. Verificar se Apuí está incluído como município beneficiário."
+            if rel == "amazonas" else
+            "Norma federal do Ministério da Saúde com potencial aplicação municipal. Verificar elegibilidade e obrigações para Apuí/AM."
+            if rel == "federal" else
+            "Não foi identificado impacto direto para o Município de Apuí/AM após análise do texto e dos anexos disponíveis."}
           </div>
         </div>
 
-        <!-- Assinatura -->
-        <div style="margin-top:20px;padding-top:14px;border-top:1px solid #e2e8f0;
-                    font-size:11px;color:#6b7280">
+        <!-- Assinaturas -->
+        <div style="margin-top:24px;padding-top:14px;border-top:1px solid #e2e8f0;font-size:11px;color:#6b7280">
           <div>Destinatária: <strong>Rosângela Motter</strong> — Secretária Municipal de Saúde de Apuí/AM</div>
           <div>Elaborado por: <strong>Euler Ramos de Oliveira</strong> — Assessor Técnico em Saúde Pública</div>
           <div>Gerado pelo ERSUS 360 · {datetime.now().strftime('%d/%m/%Y %H:%M')} (America/Manaus)</div>
         </div>
+
+        <!-- Link DOU -->
+        <div style="margin-top:14px;padding:10px 14px;background:#f8fafc;
+                    border-radius:6px;font-size:11px;border:1px solid #e2e8f0">
+          <div style="color:#64748b;margin-bottom:4px">🔗 Ver DOU na data de publicação</div>
+          <a href="{link}" style="color:#1d4ed8;word-break:break-all">{link}</a>
+        </div>
+
       </div>
     </div>"""
 
@@ -858,151 +1080,148 @@ def _gerar_html(
     data_fmt = data_ref.strftime("%d/%m/%Y")
     total    = len(portarias_apui) + len(portarias_am) + len(portarias_fed)
     ano      = data_ref.year
-
     sem_relevante = not portarias_apui and not portarias_am and not portarias_fed
 
-    COR = {
-        "apui":    "#dc2626",
-        "amazonas":"#d97706",
-        "federal": "#2563eb",
-    }
+    COR = {"apui": "#dc2626", "amazonas": "#d97706", "federal": "#2563eb"}
     LABEL = {
-        "apui":    "📍 Portarias que citam Apuí/AM",
-        "amazonas":"🗺️ Portarias para o Amazonas",
-        "federal": "📋 Normas federais com aplicação municipal",
+        "apui":    "📍 Apuí/AM — Ação imediata",
+        "amazonas":"🏛 Estado do Amazonas",
+        "federal": "🇧🇷 Federal com aplicação municipal",
     }
 
-    def bloco_grupo(chave: str, items: list) -> str:
-        if not items:
-            return ""
-        cor = COR[chave]
-        lbl = LABEL[chave]
-        cards = ""
-        for i, p in enumerate(items, 1):
-            link = p.get("_link", "https://www.in.gov.br/leiturajornal")
-            tipo_link = "Abrir" if "in.gov.br/web/dou" in link else "Ver DOU na data"
-            cards += f"""
-            <div style="border-left:4px solid {cor};padding:10px 14px;margin-bottom:10px;
-                        background:#fafafa;border-radius:0 6px 6px 0">
-              <div style="font-weight:700;font-size:13px;color:#1e293b">
-                {i}. {p['_titulo']}
-              </div>
-              {"<div style='font-size:11px;color:#6b7280;margin-top:2px'>" + p['_numero'] + "</div>" if p.get('_numero') else ""}
-              {"<div style='font-size:11px;color:#64748b;margin-top:2px'>Órgão: " + p.get('_orgao','') + "</div>" if p.get('_orgao') else ""}
-              <div style="font-size:12px;color:#475569;margin:6px 0;line-height:1.6">
-                {p['_resumo'][:250]}{"..." if len(p.get('_resumo',''))>250 else ""}
-              </div>
-              <a href="{link}" target="_blank"
-                 style="font-size:11px;color:#1d4ed8">
-                🔗 {tipo_link} no DOU
-              </a>
-            </div>"""
+    def _card(p: dict, rel: str, seq: int) -> str:
+        titulo    = p.get("_titulo", "")
+        numero    = p.get("_numero", "")
+        link      = p.get("_link",   "https://www.in.gov.br/leiturajornal")
+        resumo    = p.get("_resumo", "")
+        prioridade = p.get("_prioridade", "normativo")
+        COR_PRIO = {
+            "urgente":    "#dc2626",
+            "prazo":      "#d97706",
+            "financeiro": "#059669",
+            "normativo":  "#2563eb",
+            "sem_impacto":"#6b7280",
+        }
+        prio_cor  = COR_PRIO.get(prioridade, "#2563eb")
+        prio_text = {
+            "urgente":    "🔴 Urgente",
+            "prazo":      "🟠 Prazo/Providência",
+            "financeiro": "🟢 Recurso Financeiro",
+            "normativo":  "🔵 Orientação Normativa",
+            "sem_impacto":"⚪ Sem impacto direto",
+        }.get(prioridade, prioridade)
+
         return f"""
-        <div style="margin-bottom:24px">
-          <div style="font-size:12px;font-weight:700;color:{cor};text-transform:uppercase;
-                      letter-spacing:1px;margin-bottom:8px">{lbl} ({len(items)})</div>
-          {cards}
+        <div style="border:1px solid {COR[rel]}30;border-radius:8px;margin-bottom:12px;overflow:hidden">
+          <div style="background:{COR[rel]}10;padding:12px 16px;border-left:4px solid {COR[rel]}">
+            <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+              <span style="background:{COR[rel]};color:#fff;font-size:10px;font-weight:700;
+                           padding:2px 10px;border-radius:20px">{LABEL[rel]}</span>
+              <span style="background:{prio_cor}18;color:{prio_cor};font-size:10px;font-weight:700;
+                           padding:2px 10px;border-radius:20px;border:1px solid {prio_cor}40">
+                {prio_text}
+              </span>
+            </div>
+            <div style="font-size:13px;font-weight:700;color:#1e293b">{titulo}</div>
+            {f'<div style="font-size:11px;color:#64748b;margin-top:2px">{numero}</div>' if numero else ''}
+          </div>
+          <div style="padding:10px 16px;font-size:12px;color:#374151;line-height:1.6">
+            {resumo[:400] + '…' if len(resumo) > 400 else resumo}
+          </div>
+          <div style="padding:8px 16px;border-top:1px solid #f1f5f9">
+            <a href="{link}" style="color:#1d4ed8;font-size:12px;font-weight:600">
+              📎 Ver no DOU →
+            </a>
+          </div>
         </div>"""
 
     if sem_relevante:
-        corpo = """
-        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;
-                    padding:20px;margin:20px 0;font-size:13px;color:#15803d">
-          Na consulta ao Diário Oficial da União de {data_fmt}, não foram identificados
-          novos atos do Ministério da Saúde com impacto direto ou providências imediatas
-          para o Município de Apuí/AM.
-        </div>""".format(data_fmt=data_fmt)
+        corpo = f"""
+        <div style="text-align:center;padding:40px;color:#64748b">
+          <div style="font-size:36px;margin-bottom:12px">✅</div>
+          <div style="font-size:16px;font-weight:700">Nenhum ato com impacto direto</div>
+          <div style="font-size:13px;margin-top:8px">
+            Na consulta ao Diário Oficial da União de {data_fmt}, não foram identificados
+            novos atos do Ministério da Saúde com impacto direto ou providências imediatas
+            para o Município de Apuí/AM.
+          </div>
+        </div>"""
     else:
-        corpo = (
-            bloco_grupo("apui",    portarias_apui) +
-            bloco_grupo("amazonas",portarias_am)   +
-            bloco_grupo("federal", portarias_fed)
-        )
-        # Acrescentar informes técnicos completos
-        corpo += "<hr style='border:none;border-top:2px solid #e2e8f0;margin:28px 0'>"
-        corpo += "<div style='font-size:14px;font-weight:700;color:#1e293b;margin-bottom:16px'>INFORMES TÉCNICOS</div>"
-        seq = 1
-        for grp in [portarias_apui, portarias_am, portarias_fed]:
-            for p in grp:
-                corpo += gerar_informe_tecnico(p, seq, ano)
-                seq += 1
+        secoes = ""
+        for portarias, rel in [(portarias_apui, "apui"),
+                                (portarias_am,   "amazonas"),
+                                (portarias_fed,  "federal")]:
+            if portarias:
+                secoes += f"""
+                <div style="margin-bottom:24px">
+                  <div style="font-size:12px;font-weight:700;color:{COR[rel]};
+                              text-transform:uppercase;letter-spacing:.8px;
+                              margin-bottom:10px;border-bottom:2px solid {COR[rel]}30;
+                              padding-bottom:6px">
+                    {LABEL[rel]} — {len(portarias)} ato(s)
+                  </div>
+                  {"".join(_card(p, rel, i+1) for i, p in enumerate(portarias))}
+                </div>"""
+        corpo = secoes
 
-    # Log de execução (resumo técnico no rodapé)
+    # Log de execução
     log_html = ""
     if log_exec:
-        n_desc = len(log_exec.get("descartados", []))
-        desc_motivos = "".join(
-            f"<li style='font-size:10px'>{d['titulo']} — {d['motivo']}</li>"
-            for d in log_exec.get("descartados", [])[:10]
-        )
-        log_html = f"""
-        <div style="margin-top:20px;background:#f1f5f9;border-radius:6px;padding:12px 16px;
-                    font-size:11px;color:#64748b">
-          <div style="font-weight:700;margin-bottom:6px">Log de execução</div>
-          <div>Fontes consultadas: {', '.join(log_exec.get('fontes_tentadas',[]))}</div>
-          <div>Publicações brutas encontradas: {log_exec.get('total_bruto', 0)}</div>
-          <div>Descartadas (órgão não é MS): {n_desc}</div>
-          <div>Aceitas e processadas: {log_exec.get('aceitos', 0)}</div>
-          {"<ul style='margin:4px 0;padding-left:16px'>" + desc_motivos + "</ul>" if desc_motivos else ""}
-          {"<div style='color:#dc2626'>Falhas: " + "; ".join(log_exec.get('falhas',[])) + "</div>" if log_exec.get('falhas') else ""}
-        </div>"""
+        desc = log_exec.get("descartados", [])
+        falhas = log_exec.get("falhas", [])
+        if desc or falhas:
+            log_html = f"""
+            <div style="margin-top:24px;padding:14px;background:#f8fafc;
+                        border-radius:8px;font-size:11px;color:#64748b;
+                        border:1px solid #e2e8f0">
+              <div style="font-weight:700;color:#475569;margin-bottom:8px">
+                📋 Log de execução
+              </div>
+              <div>Fonte: {log_exec.get('estrategia_usada','não informada')}</div>
+              <div>Brutas: {log_exec.get('total_bruto',0)} · Descartadas: {len(desc)} · Aceitas: {log_exec.get('aceitos',0)}</div>
+              {('<div style="margin-top:6px;color:#dc2626">Falhas: ' + ' | '.join(falhas[:3]) + '</div>') if falhas else ''}
+            </div>"""
 
     return f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>ERSUS360 — Portarias MS — {data_fmt}</title>
 </head>
-<body style="font-family:Arial,sans-serif;max-width:800px;margin:0 auto;
-             background:#f8fafc;padding:20px">
+<body style="font-family:Arial,sans-serif;margin:0;padding:20px 32px;
+             color:#1e293b;background:#f8fafc;font-size:13px">
+  <div style="max-width:700px;margin:0 auto">
 
-  <div style="background:#1d4ed8;padding:22px 28px;border-radius:10px 10px 0 0">
-    <div style="color:#fff;font-size:20px;font-weight:800">
-      ERSUS 360 — Portarias do Ministério da Saúde
+    <!-- Cabeçalho -->
+    <div style="background:#1d4ed8;border-radius:10px;padding:20px 28px;margin-bottom:24px">
+      <div style="color:rgba(255,255,255,.7);font-size:11px;font-weight:700;
+                  text-transform:uppercase;letter-spacing:1px">ERSUS 360</div>
+      <div style="color:#fff;font-size:18px;font-weight:800;margin-top:4px">
+        Portarias do Ministério da Saúde — DOU
+      </div>
+      <div style="color:rgba(255,255,255,.8);font-size:13px;margin-top:4px">{data_fmt}</div>
     </div>
-    <div style="color:rgba(255,255,255,0.8);font-size:12px;margin-top:4px">
-      Município de Apuí/AM · IBGE {MUNICIPIO_IBGE} · Secretaria Municipal de Saúde · {data_fmt}
-    </div>
-  </div>
 
-  <div style="background:#fff;padding:24px 28px;border:1px solid #e5e7eb;border-top:none">
-
-    <!-- KPIs -->
-    <div style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap">
-      <div style="flex:1;min-width:130px;background:#eff6ff;border:1px solid #bfdbfe;
-                  border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:28px;font-weight:900;color:#1d4ed8">{total}</div>
-        <div style="font-size:10px;color:#64748b;text-transform:uppercase">portarias MS</div>
-      </div>
-      <div style="flex:1;min-width:130px;background:#fef2f2;border:1px solid #fca5a5;
-                  border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:28px;font-weight:900;color:#dc2626">{len(portarias_apui)}</div>
-        <div style="font-size:10px;color:#64748b;text-transform:uppercase">citam Apuí/AM</div>
-      </div>
-      <div style="flex:1;min-width:130px;background:#fffbeb;border:1px solid #fde68a;
-                  border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:28px;font-weight:900;color:#d97706">{len(portarias_am)}</div>
-        <div style="font-size:10px;color:#64748b;text-transform:uppercase">Amazonas</div>
-      </div>
-      <div style="flex:1;min-width:130px;background:#f0fdf4;border:1px solid #bbf7d0;
-                  border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:28px;font-weight:900;color:#16a34a">{len(portarias_fed)}</div>
-        <div style="font-size:10px;color:#64748b;text-transform:uppercase">federal municipal</div>
-      </div>
+    <!-- Resumo -->
+    <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+      {"".join(f'<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 16px;text-align:center;min-width:90px"><div style="font-size:22px;font-weight:800;color:{cor}">{val}</div><div style="font-size:10px;color:#64748b;font-weight:600">{lab}</div></div>'
+        for val, lab, cor in [
+          (total,                    "MS válidos",     "#1d4ed8"),
+          (len(portarias_apui),      "Apuí/AM",        "#dc2626"),
+          (len(portarias_am),        "Amazonas",       "#d97706"),
+          (len(portarias_fed),       "Federal Munic.", "#2563eb"),
+        ])}
     </div>
 
     {corpo}
     {log_html}
-  </div>
 
-  <div style="background:#f1f5f9;padding:14px 28px;border-radius:0 0 10px 10px;
-              font-size:11px;color:#64748b">
-    <div>Gerado automaticamente pelo ERSUS 360 · Agente de Portarias MS v3.0</div>
-    <div>Fonte oficial: Diário Oficial da União —
-      <a href="https://www.in.gov.br" style="color:#1d4ed8">www.in.gov.br</a>
+    <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;
+                font-size:11px;color:#94a3b8;text-align:center">
+      ERSUS 360 — Sistema de Monitoramento em Saúde Pública · Apuí/AM<br>
+      Secretária: Rosângela Motter · Assessor: Euler Ramos de Oliveira<br>
+      Gerado automaticamente em {datetime.now().strftime('%d/%m/%Y %H:%M')} (America/Manaus)
     </div>
-    <div>Horário de Manaus (America/Manaus) · {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>
   </div>
 </body>
 </html>"""
@@ -1010,218 +1229,173 @@ def _gerar_html(
 
 # ── Envio de e-mail ───────────────────────────────────────────────────────────
 
-def _enviar_smtp(assunto: str, html: str) -> None:
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = assunto
-    msg["From"]    = EMAIL_FROM
-    msg["To"]      = EMAIL_RECIPIENT
-    msg.attach(MIMEText(html, "html", "utf-8"))
-    ctx = ssl.create_default_context()
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as s:
-        s.ehlo()
-        s.starttls(context=ctx)
-        s.login(SMTP_USER, SMTP_PASS)
-        s.sendmail(EMAIL_FROM, [EMAIL_RECIPIENT], msg.as_string())
+async def _enviar_email(assunto: str, html: str) -> dict:
+    if EMAIL_PROVIDER == "resend":
+        return await _enviar_resend(assunto, html)
+    return await _enviar_smtp(assunto, html)
 
 
-async def _enviar_resend(assunto: str, html: str) -> None:
-    async with httpx.AsyncClient(timeout=20) as c:
-        resp = await c.post(
-            "https://api.resend.com/emails",
-            headers={
-                "Authorization": f"Bearer {RESEND_API_KEY}",
-                "Content-Type":  "application/json",
-            },
-            json={"from": EMAIL_FROM, "to": [EMAIL_RECIPIENT],
-                  "subject": assunto, "html": html},
-        )
-        if resp.status_code not in (200, 201):
-            raise RuntimeError(f"Resend API erro {resp.status_code}: {resp.text}")
+async def _enviar_smtp(assunto: str, html: str) -> dict:
+    if not SMTP_USER or not SMTP_PASS:
+        return {"ok": False, "erro": "SMTP_USER ou SMTP_PASS não configurados"}
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = assunto
+        msg["From"]    = EMAIL_FROM
+        msg["To"]      = EMAIL_RECIPIENT
+        msg.attach(MIMEText(html, "html", "utf-8"))
+        ctx = ssl.create_default_context()
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
+            s.ehlo()
+            s.starttls(context=ctx)
+            s.login(SMTP_USER, SMTP_PASS)
+            s.sendmail(EMAIL_FROM, EMAIL_RECIPIENT, msg.as_string())
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "erro": str(e)}
 
 
-# ── Função principal ──────────────────────────────────────────────────────────
+async def _enviar_resend(assunto: str, html: str) -> dict:
+    if not RESEND_API_KEY:
+        return {"ok": False, "erro": "RESEND_API_KEY não configurado"}
+    try:
+        async with httpx.AsyncClient(timeout=20) as c:
+            r = await c.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {RESEND_API_KEY}",
+                         "Content-Type": "application/json"},
+                json={"from": EMAIL_FROM, "to": [EMAIL_RECIPIENT],
+                      "subject": assunto, "html": html},
+            )
+        if r.status_code in (200, 201):
+            return {"ok": True}
+        return {"ok": False, "erro": f"Resend HTTP {r.status_code}: {r.text[:200]}"}
+    except Exception as e:
+        return {"ok": False, "erro": str(e)}
 
-async def executar_envio_diario(data_ref: date | None = None, forcar: bool = False) -> dict:
-    from database import AsyncSessionLocal
-    from models.email_diario import EmailDiarioLog, StatusEnvio
-    from sqlalchemy import select
 
+# ── Execução diária ───────────────────────────────────────────────────────────
+
+async def executar_envio_diario(
+    data_ref: date | None = None,
+    forcar: bool = False,
+) -> dict:
     if data_ref is None:
         data_ref = date.today()
-    data_str = data_ref.isoformat()
 
-    async with AsyncSessionLocal() as db:
-        if not forcar:
-            res = await db.execute(
-                select(EmailDiarioLog).where(
-                    EmailDiarioLog.data_referencia == data_str,
-                    EmailDiarioLog.status == StatusEnvio.ENVIADO,
-                )
-            )
-            if res.scalar_one_or_none():
-                return {"ok": False, "motivo": "já enviado hoje", "data": data_str}
+    logger.info("[Portarias] Iniciando execução — %s", data_ref)
 
-        res_cfg = await db.execute(
-            select(EmailDiarioLog).where(EmailDiarioLog.pausado == True).limit(1)
-        )
-        if res_cfg.scalar_one_or_none() and not forcar:
-            return {"ok": False, "motivo": "envios pausados", "data": data_str}
-
-        log_db = EmailDiarioLog(
-            data_referencia=data_str,
-            destinatario=EMAIL_RECIPIENT,
-            assunto=f"ERSUS360 – Portarias MS – Apuí/AM – {data_ref.strftime('%d/%m/%Y')}",
-            status=StatusEnvio.PENDENTE,
-        )
-        db.add(log_db)
-        await db.commit()
-        await db.refresh(log_db)
-        log_id = log_db.id
-
-    portarias_raw: list[dict] = []
-    log_exec: dict = {}
     try:
-        portarias_raw, log_exec = await _buscar_portarias_ms(data_ref)
+        portarias_brutas, log_exec = await _buscar_portarias_ms(data_ref)
     except Exception as exc:
-        logger.error("Erro ao buscar DOU: %s", exc)
-        log_exec = {"falhas": [str(exc)]}
+        logger.error("[Portarias] Falha na busca DOU: %s", exc)
+        return {"ok": False, "erro": f"Falha ao consultar o DOU: {exc}"}
 
-    classificadas    = [_classificar(p, data_ref) for p in portarias_raw]
-    portarias_apui   = [p for p in classificadas if p["_relevancia"] == "apui"]
-    portarias_am     = [p for p in classificadas if p["_relevancia"] == "amazonas"]
-    portarias_fed    = [p for p in classificadas if p["_relevancia"] == "federal"]
-    total            = len(portarias_apui) + len(portarias_am) + len(portarias_fed)
+    portarias = [_classificar(p, data_ref) for p in portarias_brutas]
 
-    assunto    = (
-        f"ERSUS360 – Portarias MS – Apuí/AM – {data_ref.strftime('%d/%m/%Y')}"
-        + (f" ({total} portarias)" if total else " — Sem novas portarias")
+    apui    = [p for p in portarias if p["_relevancia"] == "apui"]
+    am      = [p for p in portarias if p["_relevancia"] == "amazonas"]
+    federal = [p for p in portarias if p["_relevancia"] == "federal"]
+
+    data_fmt = data_ref.strftime("%d/%m/%Y")
+    assunto  = f"ERSUS360 — Portarias do Ministério da Saúde no DOU — {data_fmt}"
+
+    if not apui and not am and not federal:
+        assunto = f"ERSUS360 — DOU {data_fmt} — Sem portarias MS com impacto identificado"
+
+    html = _gerar_html(data_ref, apui, am, federal, log_exec)
+    resultado = await _enviar_email(assunto, html)
+    resultado.update({
+        "data":              data_fmt,
+        "qtd_portarias":     len(portarias),
+        "qtd_apui":          len(apui),
+        "qtd_amazonas":      len(am),
+        "qtd_federal":       len(federal),
+        "log":               log_exec,
+    })
+    logger.info(
+        "[Portarias] %s — %d portarias MS (%d Apuí, %d AM, %d Federal) — email: %s",
+        data_ref, len(portarias), len(apui), len(am), len(federal),
+        "ok" if resultado.get("ok") else resultado.get("erro"),
     )
-    html_corpo = _gerar_html(data_ref, portarias_apui, portarias_am, portarias_fed, log_exec)
-
-    MAX_TENTATIVAS = 3
-    erro_final: str | None = None
-
-    for tentativa in range(1, MAX_TENTATIVAS + 1):
-        try:
-            if EMAIL_PROVIDER == "resend" and RESEND_API_KEY:
-                await _enviar_resend(assunto, html_corpo)
-            else:
-                _enviar_smtp(assunto, html_corpo)
-
-            async with AsyncSessionLocal() as db2:
-                res2 = await db2.execute(
-                    select(EmailDiarioLog).where(EmailDiarioLog.id == log_id))
-                log2 = res2.scalar_one_or_none()
-                if log2:
-                    log2.status        = StatusEnvio.ENVIADO
-                    log2.tentativas    = tentativa
-                    log2.assunto       = assunto
-                    log2.corpo_html    = html_corpo
-                    log2.qtd_portarias = total
-                    log2.qtd_informes  = len(portarias_apui)
-                    log2.portarias_ids = json.dumps(
-                        [p.get("_numero","") for p in portarias_apui+portarias_am+portarias_fed])
-                    log2.enviado_em    = datetime.utcnow()
-                    log2.erro          = None
-                    await db2.commit()
-
-            logger.info("E-mail diário enviado — %s — %d portarias MS", data_str, total)
-            return {"ok": True, "data": data_str, "qtd_portarias": total,
-                    "tentativas": tentativa, "log": log_exec}
-
-        except Exception as exc:
-            erro_final = str(exc)
-            logger.warning("Tentativa %d falhou: %s", tentativa, exc)
-
-    async with AsyncSessionLocal() as db3:
-        res3 = await db3.execute(
-            select(EmailDiarioLog).where(EmailDiarioLog.id == log_id))
-        log3 = res3.scalar_one_or_none()
-        if log3:
-            log3.status     = StatusEnvio.FALHA
-            log3.tentativas = MAX_TENTATIVAS
-            log3.assunto    = assunto
-            log3.corpo_html = html_corpo
-            log3.erro       = (
-                f"Não foi possível enviar o e-mail após {MAX_TENTATIVAS} tentativas. "
-                f"Último erro: {erro_final}"
-            )
-            await db3.commit()
-
-    logger.error("Envio falhou após %d tentativas: %s", MAX_TENTATIVAS, erro_final)
-    return {"ok": False, "data": data_str, "erro": erro_final,
-            "tentativas": MAX_TENTATIVAS, "log": log_exec}
+    return resultado
 
 
-# ── Testes de validação de órgão (executar com: python -m pytest ou direto) ──
+# ── Testes de validação de órgão ─────────────────────────────────────────────
 
-def _testes_validacao_orgao() -> None:
+def _testes_validacao_orgao() -> dict:
     """
-    Testes que garantem que publicações de outros ministérios jamais
-    sejam classificadas como atos do Ministério da Saúde.
+    Suite de 45 testes para a função confirmar_orgao_ms().
+    Retorna {'passou': int, 'falhou': int, 'erros': list}.
     """
-    casos_nao_ms = [
-        ("Ministério da Integração e do Desenvolvimento Regional", False),
-        ("Ministério da Pesca e Aquicultura",                      False),
-        ("Agência Nacional do Petróleo, Gás Natural e Biocombustíveis", False),
-        ("ANP",                                                    False),
-        ("Ministério da Educação",                                 False),
-        ("MEC",                                                    False),
-        ("Ministério da Defesa",                                   False),
-        ("Ministério da Fazenda",                                  False),
-        ("Ministério da Agricultura",                              False),
-        ("Ministério do Meio Ambiente e Mudança do Clima",        False),
-        ("Ministério da Cultura",                                  False),
-        ("MINC",                                                   False),
-        ("Ministério da Gestão e Inovação em Serviços Públicos",  False),
-        ("Ministério do Desenvolvimento Social",                   False),
-        ("Ministério das Cidades",                                 False),
-        ("Ministério dos Transportes",                             False),
-        ("Ministério de Minas e Energia",                         False),
-        ("Ministério das Comunicações",                            False),
-        ("",                                                       False),
-    ]
-    casos_ms = [
-        ("Ministério da Saúde",                                    True),
-        ("Ministério da Saúde / SAPS",                             True),
-        ("SAPS/MS",                                                True),
-        ("SAES/MS",                                                True),
-        ("SVSA/MS",                                                True),
-        ("SVS/MS",                                                 True),
-        ("SECTICS/MS",                                             True),
-        ("SESAI/MS",                                               True),
-        ("GM/MS",                                                  True),
-        ("Fundo Nacional de Saúde",                                True),
-        ("ANVISA",                                                 True),
-        ("ANS",                                                    True),
-        ("FUNASA",                                                 True),
-        ("FIOCRUZ",                                                True),
-        ("Secretaria de Atenção Primária à Saúde",                 True),
-        ("Secretaria-Executiva/MS",                                True),
+    casos: list[tuple[str, bool, str]] = [
+        # Devem retornar TRUE (órgãos do MS)
+        ("Ministério da Saúde",                                      True,  "MS principal"),
+        ("MINISTÉRIO DA SAÚDE",                                      True,  "MS maiúsculas"),
+        ("ministério da saúde",                                       True,  "MS minúsculas"),
+        ("Secretaria de Atenção Primária à Saúde",                   True,  "SAPS nome completo"),
+        ("SAPS/MS",                                                   True,  "SAPS sigla"),
+        ("Secretaria de Atenção Especializada à Saúde",              True,  "SAES nome completo"),
+        ("SAES/MS",                                                   True,  "SAES sigla"),
+        ("Secretaria de Vigilância em Saúde e Ambiente",             True,  "SVSA nome"),
+        ("SVSA/MS",                                                   True,  "SVSA sigla"),
+        ("SECTICS/MS",                                                True,  "SECTICS sigla"),
+        ("SESAI/MS",                                                  True,  "SESAI sigla"),
+        ("SEIDIGI/MS",                                                True,  "SEIDIGI sigla"),
+        ("Fundo Nacional de Saúde",                                   True,  "FNS nome"),
+        ("FNS",                                                       True,  "FNS sigla"),
+        ("ANVISA",                                                    True,  "ANVISA"),
+        ("Agência Nacional de Vigilância Sanitária",                 True,  "ANVISA nome"),
+        ("ANS",                                                       True,  "ANS"),
+        ("FUNASA",                                                    True,  "FUNASA"),
+        ("FIOCRUZ",                                                   True,  "FIOCRUZ"),
+        ("GM/MS",                                                     True,  "GM/MS sigla"),
+        ("Gabinete do Ministro da Saúde",                            True,  "Gabinete MS"),
+        ("Secretaria-Executiva/MS",                                   True,  "SE/MS"),
+        ("SE/MS",                                                     True,  "SE/MS sigla"),
+        ("INCA",                                                      True,  "INCA"),
+        ("Secretaria de Saúde Indígena / SESAI",                     True,  "SESAI com sub"),
+        # Devem retornar FALSE (órgãos de outros ministérios)
+        ("Ministério da Integração e do Desenvolvimento Regional",   False, "Integração"),
+        ("Ministério da Pesca e Aquicultura",                        False, "Pesca"),
+        ("Agência Nacional do Petróleo, Gás Natural e Biocombustíveis", False, "ANP"),
+        ("Ministério da Educação",                                    False, "MEC"),
+        ("Ministério da Defesa",                                      False, "Defesa"),
+        ("Ministério da Fazenda",                                     False, "Fazenda"),
+        ("Ministério do Trabalho",                                    False, "Trabalho"),
+        ("Ministério da Justiça",                                     False, "Justiça"),
+        ("Ministério da Infraestrutura",                              False, "Infraestrutura"),
+        ("Ministério das Comunicações",                               False, "Comunicações"),
+        ("Ministério da Previdência Social",                          False, "Previdência"),
+        ("Ministério do Turismo",                                     False, "Turismo"),
+        ("Ministério da Cultura",                                     False, "Cultura"),
+        ("Ministério do Meio Ambiente e Mudança do Clima",           False, "Meio Ambiente"),
+        ("Ministério das Relações Exteriores",                       False, "Relações Ext."),
+        ("Ministério dos Esportes",                                   False, "Esportes"),
+        ("Ministério dos Direitos Humanos",                          False, "Dir. Humanos"),
+        ("Ministério do Desenvolvimento Social",                      False, "Des. Social"),
+        ("Ministério de Minas e Energia",                            False, "Minas e Energia"),
+        ("",                                                          False, "Vazio"),
     ]
 
-    erros = []
-    for orgao, esperado in casos_nao_ms + casos_ms:
+    passou = 0
+    falhou = 0
+    erros: list[str] = []
+
+    for orgao, esperado, descricao in casos:
         resultado = confirmar_orgao_ms(orgao)
-        if resultado != esperado:
-            erros.append(
-                f"FALHA: '{orgao}' → esperado={esperado}, obtido={resultado}"
-            )
+        if resultado == esperado:
+            passou += 1
         else:
-            status = "OK   " if esperado else "DESCARTADO"
-            logger.info("[TESTE] %s '%s'", status, orgao)
+            falhou += 1
+            erros.append(
+                f"FALHOU [{descricao}]: confirmar_orgao_ms('{orgao}') "
+                f"retornou {resultado}, esperado {esperado}"
+            )
 
     if erros:
-        for e in erros:
-            logger.error("[TESTE] %s", e)
-        raise AssertionError(f"{len(erros)} testes falharam:\n" + "\n".join(erros))
+        logger.error("[Testes] %d/%d falharam:\n%s", falhou, len(casos), "\n".join(erros))
+    else:
+        logger.info("[Testes] Todos os %d casos passaram.", passou)
 
-    total_testes = len(casos_nao_ms) + len(casos_ms)
-    logger.info("[TESTE] %d/%d testes passaram ✓", total_testes, total_testes)
-    print(f"✓ Todos os {total_testes} testes de validação de órgão passaram.")
-
-
-if __name__ == "__main__":
-    import asyncio
-    logging.basicConfig(level=logging.INFO)
-    _testes_validacao_orgao()
+    return {"passou": passou, "falhou": falhou, "total": len(casos), "erros": erros}

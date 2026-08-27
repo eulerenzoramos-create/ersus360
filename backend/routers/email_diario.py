@@ -204,14 +204,16 @@ async def buscar_dou_retroativo(
         )
 
         return {
-            "titulo":     titulo,
-            "numero":     numero,
-            "data_pub":   data_pub,
-            "orgao":      orgao,
-            "relevancia": relevancia,
-            "resumo":     resumo or "(Acesse o link para ver o conteúdo completo)",
-            "impacto":    impacto_texto,
-            "link":       link,
+            "titulo":      titulo,
+            "numero":      numero,
+            "data_pub":    data_pub,
+            "orgao":       orgao,
+            "relevancia":  relevancia,
+            "prioridade":  p.get("_prioridade", "normativo"),
+            "resumo":      resumo or "(Acesse o link para ver o conteúdo completo)",
+            "impacto":     impacto_texto,
+            "link":        link,
+            "valores":     p.get("_valores", []),
         }
 
     relevantes = [p for p in portarias if p["_relevancia"] in ("apui", "amazonas", "federal")]
@@ -236,6 +238,15 @@ async def buscar_dou_retroativo(
         resultado["envio_detalhe"]  = env
 
     return resultado
+
+
+@router.get("/testes-validacao")
+async def testes_validacao(
+    _: UserOut = Depends(get_current_user),
+):
+    """Executa suite de testes de validação de órgão e retorna resultado."""
+    from services.portarias_dou_service import _testes_validacao_orgao
+    return _testes_validacao_orgao()
 
 
 @router.post("/informe-html")
