@@ -188,6 +188,34 @@ function InformeCard({ inf, idx, selecionado, onToggle, onEditar, onDeletar }: {
 }) {
   const [aberto, setAberto] = useState(false);
   const [editando, setEditando] = useState(false);
+  const [gerandoIA, setGerandoIA] = useState(false);
+  const [erroIA, setErroIA] = useState<string | null>(null);
+
+  const gerarInformeIA = async () => {
+    setGerandoIA(true);
+    setErroIA(null);
+    try {
+      const resp = await fetch("/api/email-diario/informe-ia", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+        body: JSON.stringify({ portaria: inf }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || `Erro ${resp.status}`);
+      }
+      const html = await resp.text();
+      const w = window.open("", "_blank");
+      if (w) { w.document.write(html); w.document.close(); }
+    } catch (e: any) {
+      setErroIA(e?.message || "Erro ao gerar informe via IA.");
+    } finally {
+      setGerandoIA(false);
+    }
+  };
   const cor = COR_REL[inf.relevancia] || "#6b7280";
   const bg  = selecionado ? `${cor}10` : (BG_REL[inf.relevancia] || "#f8fafc");
   return (
@@ -227,7 +255,14 @@ function InformeCard({ inf, idx, selecionado, onToggle, onEditar, onDeletar }: {
             style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", flex: 1, cursor: "pointer" }}>
             {inf.titulo}
           </span>
-          {/* Botões editar / deletar */}
+          {/* Botões */}
+          <button
+            onClick={e => { e.stopPropagation(); gerarInformeIA(); }}
+            disabled={gerandoIA}
+            title="Gerar Informe Técnico formal via IA"
+            style={{ background: gerandoIA ? "#e0e7ff" : "#ede9fe", border: "1px solid #c4b5fd", borderRadius: 5, padding: "3px 10px", fontSize: 11, cursor: "pointer", color: "#7c3aed", fontWeight: 700, flexShrink: 0 }}>
+            {gerandoIA ? "⏳ Gerando…" : "✨ Informe IA"}
+          </button>
           <button
             onClick={e => { e.stopPropagation(); setEditando(true); }}
             title="Editar informe"
@@ -244,6 +279,12 @@ function InformeCard({ inf, idx, selecionado, onToggle, onEditar, onDeletar }: {
             {aberto ? "▲" : "▼"}
           </span>
         </div>
+
+        {erroIA && (
+          <div style={{ padding: "6px 14px", background: "#fef2f2", borderTop: "1px solid #fca5a5", fontSize: 11, color: "#991b1b" }}>
+            ⚠ {erroIA}
+          </div>
+        )}
 
         {aberto && (
           <div style={{ padding: "12px 14px", background: "#fff", display: "flex", flexDirection: "column" as const, gap: 8 }}>

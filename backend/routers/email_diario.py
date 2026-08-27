@@ -492,6 +492,35 @@ async def detalhe_portaria(
     }
 
 
+@router.post("/informe-ia")
+async def gerar_informe_ia(
+    payload: dict,
+    _: UserOut = Depends(get_current_user),
+):
+    """
+    Gera Informe Técnico formal via IA (Claude API) a partir dos dados
+    de uma portaria. Retorna HTML imprimível pronto para window.open().
+
+    Payload: { "portaria": { _titulo, _numero, _resumo, _link, ... } }
+    """
+    from fastapi.responses import HTMLResponse
+    from fastapi import HTTPException
+    from services.informe_ia_service import gerar_informe_ia, formatar_informe_html
+    from datetime import date as _date
+
+    portaria = payload.get("portaria")
+    if not portaria:
+        raise HTTPException(400, "Campo 'portaria' ausente no payload.")
+
+    try:
+        texto = await gerar_informe_ia(portaria)
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc))
+
+    html = formatar_informe_html(texto, portaria, _date.today())
+    return HTMLResponse(content=html)
+
+
 @router.get("/execucoes")
 async def listar_execucoes(
     limit: int = Query(30, le=90),
