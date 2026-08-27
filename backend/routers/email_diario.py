@@ -178,14 +178,55 @@ async def buscar_dou_retroativo(
     brutos = await _buscar_portarias_ms(data_ref)
     portarias = [_classificar(p) for p in brutos]
 
+    def _gerar_informe(p: dict) -> dict:
+        """Gera informe estruturado de uma portaria para o município de Apuí/AM."""
+        titulo   = p.get("_titulo", p.get("title", "Sem título"))
+        numero   = p.get("_numero", p.get("identifica", ""))
+        link     = p.get("_link", p.get("urlAddress", "https://www.in.gov.br"))
+        data_pub = p.get("_data", p.get("pubDate", data))
+        resumo   = p.get("_resumo", p.get("content", p.get("conteudo", "")))[:600]
+        orgao    = p.get("orgaoName", p.get("orgao", "Ministério da Saúde"))
+        relevancia = p.get("_relevancia", "federal")
+
+        # Impacto para Apuí baseado em palavras-chave do conteúdo
+        texto = (titulo + " " + resumo).lower()
+        impactos = []
+        if any(t in texto for t in ["financiamento", "repasse", "transferência", "recurso", "fundo"]):
+            impactos.append("Pode afetar repasses financeiros ao município.")
+        if any(t in texto for t in ["atenção básica", "atenção primária", "aps", "esf", "acs"]):
+            impactos.append("Impacta a Atenção Primária à Saúde de Apuí.")
+        if any(t in texto for t in ["meta", "indicador", "avaliação", "desempenho"]):
+            impactos.append("Exige acompanhamento de metas e indicadores.")
+        if any(t in texto for t in ["prazo", "habilitação", "credenciamento", "adesão"]):
+            impactos.append("Verificar prazo de habilitação ou adesão.")
+        if any(t in texto for t in ["apuí", "apui", "1300144"]):
+            impactos.append("Portaria com referência direta ao município de Apuí/AM.")
+        if not impactos:
+            impactos.append("Monitorar aplicabilidade para o município conforme conteúdo completo.")
+
+        return {
+            "titulo":     titulo,
+            "numero":     numero,
+            "data_pub":   data_pub,
+            "orgao":      orgao,
+            "relevancia": relevancia,
+            "resumo":     resumo or "(Acesse o link para ver o conteúdo completo)",
+            "impacto":    " ".join(impactos),
+            "link":       link,
+        }
+
+    relevantes = [p for p in portarias if p["_relevancia"] in ("apui", "federal")]
+    informes   = [_gerar_informe(p) for p in relevantes]
+
     resultado = {
-        "data": data,
-        "total": len(portarias),
-        "apui":     [p for p in portarias if p["_relevancia"] == "apui"],
-        "amazonas": [p for p in portarias if p["_relevancia"] == "amazonas"],
-        "federal":  [p for p in portarias if p["_relevancia"] == "federal"],
-        "outros":   [p for p in portarias if p["_relevancia"] == "outros"],
-        "enviado": False,
+        "data":     data,
+        "total":    len(portarias),
+        "apui":     [_gerar_informe(p) for p in portarias if p["_relevancia"] == "apui"],
+        "amazonas": [_gerar_informe(p) for p in portarias if p["_relevancia"] == "amazonas"],
+        "federal":  [_gerar_informe(p) for p in portarias if p["_relevancia"] == "federal"],
+        "outros":   [_gerar_informe(p) for p in portarias if p["_relevancia"] == "outros"],
+        "informes": informes,   # apui + federal com informe estruturado
+        "enviado":  False,
     }
 
     if enviar:

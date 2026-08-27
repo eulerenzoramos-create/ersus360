@@ -96,6 +96,77 @@ function NovaPortariaModal({ onClose }: { onClose: () => void }) {
 
 // ── Painel Envios Diários ─────────────────────────────────────────────────────
 
+const COR_REL: Record<string, string> = { apui: "#059669", amazonas: "#7c3aed", federal: "#0284c7", outros: "#6b7280" };
+const BG_REL:  Record<string, string> = { apui: "#f0fdf4", amazonas: "#faf5ff", federal: "#eff6ff", outros: "#f8fafc" };
+const LABEL_REL: Record<string, string> = { apui: "📍 Apuí/AM", amazonas: "🏛 Estado AM", federal: "🇧🇷 Federal MS", outros: "📄 Outros" };
+
+function InformeCard({ inf, idx }: { inf: any; idx: number }) {
+  const [aberto, setAberto] = useState(idx < 3);
+  const cor = COR_REL[inf.relevancia] || "#6b7280";
+  const bg  = BG_REL[inf.relevancia]  || "#f8fafc";
+  return (
+    <div style={{ border: `1px solid ${cor}30`, borderRadius: 8, marginBottom: 10, overflow: "hidden" }}>
+      {/* Cabeçalho clicável */}
+      <div
+        onClick={() => setAberto(a => !a)}
+        style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: bg, cursor: "pointer" }}
+      >
+        <span style={{ fontSize: 10, fontWeight: 700, color: cor, background: `${cor}18`, border: `1px solid ${cor}40`, padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" as const }}>
+          {LABEL_REL[inf.relevancia]}
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", flex: 1 }}>{inf.titulo}</span>
+        <span style={{ fontSize: 11, color: "#94a3b8" }}>{aberto ? "▲" : "▼"}</span>
+      </div>
+
+      {aberto && (
+        <div style={{ padding: "12px 14px", background: "#fff", display: "flex", flexDirection: "column" as const, gap: 8 }}>
+          {/* Metadados */}
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" as const }}>
+            {inf.numero && (
+              <div style={{ fontSize: 11 }}>
+                <span style={{ color: "#94a3b8" }}>Número </span>
+                <span style={{ color: "#1e293b", fontWeight: 600 }}>{inf.numero}</span>
+              </div>
+            )}
+            {inf.data_pub && (
+              <div style={{ fontSize: 11 }}>
+                <span style={{ color: "#94a3b8" }}>Publicação </span>
+                <span style={{ color: "#1e293b", fontWeight: 600 }}>{inf.data_pub}</span>
+              </div>
+            )}
+            <div style={{ fontSize: 11 }}>
+              <span style={{ color: "#94a3b8" }}>Órgão </span>
+              <span style={{ color: "#1e293b", fontWeight: 600 }}>{inf.orgao || "Ministério da Saúde"}</span>
+            </div>
+          </div>
+
+          {/* Resumo */}
+          {inf.resumo && inf.resumo !== "(Acesse o link para ver o conteúdo completo)" && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 3 }}>Resumo</div>
+              <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6, background: "#f8fafc", borderRadius: 6, padding: "8px 10px" }}>
+                {inf.resumo}
+              </div>
+            </div>
+          )}
+
+          {/* Impacto para Apuí */}
+          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: "8px 10px" }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 3 }}>⚡ Impacto para Apuí/AM</div>
+            <div style={{ fontSize: 12, color: "#78350f", lineHeight: 1.5 }}>{inf.impacto}</div>
+          </div>
+
+          {/* Link DOU */}
+          <a href={inf.link} target="_blank" rel="noopener noreferrer"
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#1d4ed8", fontWeight: 600, textDecoration: "none" }}>
+            <ExternalLink size={12} /> Acessar portaria completa no DOU
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BuscaRetroativa() {
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
   const [resultado, setResultado] = useState<any>(null);
@@ -123,68 +194,101 @@ function BuscaRetroativa() {
     } finally { setEnviando(false); }
   };
 
-  const COR: Record<string, string> = { apui: "#059669", amazonas: "#7c3aed", federal: "#0284c7", outros: "#6b7280" };
-  const LABEL: Record<string, string> = { apui: "Apuí/AM", amazonas: "Estado AM", federal: "Federal", outros: "Outros" };
+  const informes: any[] = resultado?.informes || [];
+  const apui    = resultado?.apui    || [];
+  const federal = resultado?.federal || [];
+  const amazonas= resultado?.amazonas|| [];
+  const outros  = resultado?.outros  || [];
 
   return (
     <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 20, marginBottom: 20 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-        <Search size={14} /> Busca Retroativa no DOU
+      {/* Título */}
+      <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+        <Search size={14} /> Agente de Busca — Portarias MS no DOU
       </div>
+      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14 }}>
+        Selecione a data e o agente busca, classifica e gera informes automáticos para Apuí/AM e portarias federais do MS.
+      </div>
+
+      {/* Controles */}
       <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" as const, marginBottom: 14 }}>
         <div>
           <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>Data de referência</div>
-          <input type="date" value={data} onChange={e => setData(e.target.value)} max={new Date().toISOString().slice(0, 10)}
+          <input type="date" value={data} onChange={e => setData(e.target.value)}
+            max={new Date().toISOString().slice(0, 10)}
             style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "7px 10px", fontSize: 13 }} />
         </div>
         <button onClick={buscar} disabled={loading}
-          style={{ padding: "8px 18px", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-          <Search size={13} />{loading ? "Buscando…" : "Buscar no DOU"}
+          style={{ padding: "9px 20px", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <Search size={13} />{loading ? "Buscando no DOU…" : "Buscar e Gerar Informes"}
         </button>
         {resultado && !resultado.enviado && (
           <button onClick={enviar} disabled={enviando}
-            style={{ padding: "8px 18px", background: "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-            <Mail size={13} />{enviando ? "Enviando…" : "Enviar e-mail desta data"}
+            style={{ padding: "9px 20px", background: "#059669", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <Mail size={13} />{enviando ? "Enviando…" : "Enviar e-mail"}
           </button>
         )}
-        {resultado?.enviado && (
-          <span style={{ fontSize: 12, color: "#059669", fontWeight: 600 }}>✓ E-mail enviado</span>
-        )}
+        {resultado?.enviado && <span style={{ fontSize: 12, color: "#059669", fontWeight: 700 }}>✓ E-mail enviado</span>}
       </div>
 
-      {erro && <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#991b1b", marginBottom: 12 }}>{erro}</div>}
+      {erro && (
+        <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#991b1b", marginBottom: 12 }}>{erro}</div>
+      )}
+
+      {loading && (
+        <div style={{ textAlign: "center", padding: 24, color: "#1d4ed8", fontSize: 13 }}>
+          ⏳ Consultando o Diário Oficial da União…
+        </div>
+      )}
 
       {resultado && (
         <div>
-          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 10 }}>
-            <strong>{resultado.total}</strong> portaria(s) encontrada(s) no DOU de {new Date(resultado.data + "T12:00:00").toLocaleDateString("pt-BR")}
+          {/* Resumo KPIs */}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const, marginBottom: 16 }}>
+            {[
+              { label: "Total DOU",    val: resultado.total,    cor: "#1d4ed8", bg: "#eff6ff" },
+              { label: "Apuí/AM",      val: apui.length,        cor: "#059669", bg: "#f0fdf4" },
+              { label: "Federal MS",   val: federal.length,     cor: "#0284c7", bg: "#f0f9ff" },
+              { label: "Estado AM",    val: amazonas.length,    cor: "#7c3aed", bg: "#faf5ff" },
+              { label: "Outros",       val: outros.length,      cor: "#6b7280", bg: "#f8fafc" },
+            ].map(k => (
+              <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.cor}30`, borderRadius: 8, padding: "8px 14px", minWidth: 80, textAlign: "center" as const }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: k.cor }}>{k.val}</div>
+                <div style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>{k.label}</div>
+              </div>
+            ))}
           </div>
-          {(["apui", "amazonas", "federal", "outros"] as const).map(grupo => {
-            const items = resultado[grupo] as any[];
-            if (!items?.length) return null;
-            return (
-              <div key={grupo} style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: COR[grupo], textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 6 }}>
-                  ● {LABEL[grupo]} ({items.length})
-                </div>
-                {items.map((p: any, i: number) => (
-                  <div key={i} style={{ background: "#f8fafc", borderRadius: 6, padding: "8px 12px", marginBottom: 6, borderLeft: `3px solid ${COR[grupo]}` }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>{p._titulo}</div>
-                    {p._numero && <div style={{ fontSize: 11, color: "#64748b" }}>{p._numero}</div>}
-                    {p._resumo && p._resumo !== "(sem texto disponível)" && (
-                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.4 }}>{p._resumo.slice(0, 200)}{p._resumo.length > 200 ? "…" : ""}</div>
-                    )}
-                    <a href={p._link} target="_blank" rel="noopener noreferrer"
-                      style={{ fontSize: 11, color: "#1d4ed8", display: "inline-flex", alignItems: "center", gap: 3, marginTop: 4 }}>
-                      <ExternalLink size={10} /> Ver no DOU
-                    </a>
-                  </div>
+
+          {/* Informes — Apuí + Federal */}
+          {informes.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                📋 Informes Gerados ({informes.length}) — Apuí/AM e Federal MS
+              </div>
+              {informes.map((inf: any, i: number) => (
+                <InformeCard key={i} inf={inf} idx={i} />
+              ))}
+            </div>
+          )}
+
+          {/* Outros — colapsados */}
+          {outros.length > 0 && (
+            <details style={{ marginBottom: 8 }}>
+              <summary style={{ fontSize: 12, color: "#6b7280", cursor: "pointer", fontWeight: 600 }}>
+                📄 Outros atos MS ({outros.length}) — sem classificação direta para Apuí
+              </summary>
+              <div style={{ marginTop: 8 }}>
+                {outros.map((p: any, i: number) => (
+                  <InformeCard key={i} inf={p} idx={i} />
                 ))}
               </div>
-            );
-          })}
+            </details>
+          )}
+
           {resultado.total === 0 && (
-            <div style={{ textAlign: "center", padding: "20px 0", color: "#94a3b8", fontSize: 13 }}>Nenhuma portaria do MS encontrada para esta data.</div>
+            <div style={{ textAlign: "center", padding: "24px 0", color: "#94a3b8", fontSize: 13 }}>
+              Nenhuma portaria do Ministério da Saúde encontrada para esta data no DOU.
+            </div>
           )}
         </div>
       )}
