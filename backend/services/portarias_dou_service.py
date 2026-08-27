@@ -248,16 +248,46 @@ async def _buscar_portarias_ms(data_ref: date) -> list[dict[str, Any]]:
         except Exception as exc3:
             logger.warning("pesquisa-de-materia erro: %s", exc3)
 
+    # ── Filtro estrito: apenas Ministério da Saúde ───────────────────────────
+    SIGLAS_MS = {"gm/ms", "gm/m", "se/ms", "svs/ms", "saes/ms", "saps/ms", "sas/ms",
+                 "sctie/ms", "sgtes/ms", "ses/ms", "ms nº", "ms n°", "/ms nº", "/ms n°"}
+    ORGAOS_EXCLUIR = {"minc", "cultura", "educação", "mec", "defesa", "fazenda",
+                      "planejamento", "trabalho", "justiça", "agricultura", "meio ambiente",
+                      "infraestrutura", "comunicações", "previdência", "turismo",
+                      "desenvolvimento agrário", "pesca", "sefic", "secom"}
+
+    def _é_portaria_ms(p: dict) -> bool:
+        titulo = (p.get('title') or p.get('titulo') or '').lower()
+        orgao  = (p.get('orgaoName') or p.get('orgao') or '').lower()
+        # Excluir se órgão contém outro ministério
+        if any(ex in orgao for ex in ORGAOS_EXCLUIR):
+            return False
+        if any(ex in titulo for ex in ORGAOS_EXCLUIR):
+            return False
+        # Aceitar se título ou órgão referencia MS
+        if any(s in titulo for s in SIGLAS_MS):
+            return True
+        if "saúde" in orgao or "saude" in orgao:
+            return True
+        if "saúde" in titulo or "saude" in titulo:
+            return True
+        # Se órgão não diz nada útil mas veio da busca por MS, aceitar
+        if not orgao or orgao in ("ministério da saúde", "ministerio da saude"):
+            return True
+        return False
+
+    filtradas = [p for p in portarias if _é_portaria_ms(p)]
+
     # Deduplicação por título normalizado
     vistos: set[str] = set()
     dedup: list[dict] = []
-    for p in portarias:
+    for p in filtradas:
         chave = re.sub(r'\s+', ' ', (p.get('title') or p.get('titulo') or '')).strip().lower()[:80]
         if chave and chave not in vistos:
             vistos.add(chave)
             dedup.append(p)
 
-    logger.info("DOU %s — %d portarias MS (após dedup)", data_str, len(dedup))
+    logger.info("DOU %s — %d portarias MS (após filtro e dedup, de %d brutas)", data_str, len(dedup), len(portarias))
     return dedup
 
 
