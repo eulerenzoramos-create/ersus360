@@ -230,13 +230,56 @@ function BuscaRetroativa() {
         )}
         {resultado?.informes?.length > 0 && (
           <button
-            onClick={async () => {
-              const resp = await fetch("/api/email-diario/informe-html", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
-                body: JSON.stringify({ informes: resultado.informes, data: resultado.data }),
-              });
-              const html = await resp.text();
+            onClick={() => {
+              const COR_D: Record<string,string> = { apui:"#059669", amazonas:"#7c3aed", federal:"#0284c7", outros:"#6b7280" };
+              const LBL_D: Record<string,string> = { apui:"📍 Apuí/AM", amazonas:"🏛 Estado AM", federal:"🇧🇷 Federal MS", outros:"📄 Outros" };
+              const dt = new Date(resultado.data + "T12:00:00").toLocaleDateString("pt-BR");
+              const itens = (resultado.informes as any[]).map((inf: any, i: number) => {
+                const cor = COR_D[inf.relevancia] || "#0284c7";
+                const lbl = LBL_D[inf.relevancia] || "Federal MS";
+                return `
+                  <div style="border-left:4px solid ${cor};margin-bottom:24px;padding:0 0 16px 16px;page-break-inside:avoid;">
+                    <div style="margin-bottom:6px;">
+                      <span style="font-size:10px;font-weight:700;color:${cor};background:${cor}18;border:1px solid ${cor}40;padding:2px 10px;border-radius:20px;">${lbl}</span>
+                      <span style="font-size:11px;color:#64748b;margin-left:8px;">#${i+1}</span>
+                    </div>
+                    <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:8px;">${inf.titulo || "(sem título)"}</div>
+                    <table style="font-size:11px;color:#64748b;border-collapse:collapse;margin-bottom:10px;">
+                      ${inf.numero ? `<tr><td style="padding-right:16px;font-weight:600;color:#374151;">Número</td><td>${inf.numero}</td></tr>` : ""}
+                      ${inf.data_pub ? `<tr><td style="padding-right:16px;font-weight:600;color:#374151;">Publicação</td><td>${inf.data_pub}</td></tr>` : ""}
+                      <tr><td style="padding-right:16px;font-weight:600;color:#374151;">Órgão</td><td>${inf.orgao || "Ministério da Saúde"}</td></tr>
+                    </table>
+                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:4px;">Resumo</div>
+                    <div style="font-size:12px;color:#374151;line-height:1.7;background:#f8fafc;padding:10px;border-radius:6px;margin-bottom:10px;">
+                      ${inf.resumo && inf.resumo !== "(Acesse o link para ver o conteúdo completo)" ? inf.resumo : "<em style='color:#94a3b8'>Acesse o link abaixo para ver o conteúdo completo da portaria.</em>"}
+                    </div>
+                    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px;margin-bottom:10px;">
+                      <div style="font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase;margin-bottom:4px;">⚡ Impacto para Apuí/AM</div>
+                      <div style="font-size:12px;color:#78350f;">${inf.impacto}</div>
+                    </div>
+                    <div style="font-size:11px;">🔗 <a href="${inf.link}" style="color:#1d4ed8;">${inf.link}</a></div>
+                  </div>`;
+              }).join("");
+              const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+                <title>Informe Portarias MS — ${dt}</title>
+                <style>
+                  body{font-family:Arial,sans-serif;margin:40px;color:#1e293b;font-size:13px;}
+                  @media print{.no-print{display:none}body{margin:20px}}
+                  h1{font-size:18px;color:#1d4ed8;margin-bottom:4px;}
+                  .meta{font-size:12px;color:#64748b;margin-bottom:24px;border-bottom:2px solid #e2e8f0;padding-bottom:12px;}
+                </style></head><body>
+                <div class="no-print" style="margin-bottom:16px;">
+                  <button onclick="window.print()" style="padding:8px 20px;background:#1d4ed8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">🖨 Imprimir / Salvar PDF</button>
+                </div>
+                <h1>📋 Informe de Portarias — Ministério da Saúde</h1>
+                <div class="meta">
+                  <strong>Município:</strong> Apuí/AM — IBGE 1300144 &nbsp;|&nbsp;
+                  <strong>Data DOU:</strong> ${dt} &nbsp;|&nbsp;
+                  <strong>Total de informes:</strong> ${resultado.informes.length} &nbsp;|&nbsp;
+                  <strong>Gerado pelo ERSUS 360</strong>
+                </div>
+                ${itens}
+              </body></html>`;
               const w = window.open("", "_blank");
               if (w) { w.document.write(html); w.document.close(); }
             }}
