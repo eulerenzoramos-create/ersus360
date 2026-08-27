@@ -109,96 +109,177 @@ const LABEL_REL: Record<string, string> = {
   federal: "🇧🇷 Federal Municipal", sem_impacto: "📄 Sem impacto direto", outros: "📄 Outros",
 };
 
-function InformeCard({ inf, idx, selecionado, onToggle }: { inf: any; idx: number; selecionado: boolean; onToggle: () => void }) {
+// Modal de edição de informe
+function ModalEditarInforme({ inf, onSalvar, onFechar }: {
+  inf: any; onSalvar: (novoInf: any) => void; onFechar: () => void;
+}) {
+  const [form, setForm] = useState({ ...inf });
+  const campo = (label: string, campo: string, textarea = false) => (
+    <div style={{ marginBottom: 12 }}>
+      <label style={{ fontSize: 11, fontWeight: 700, color: "#475569", display: "block", marginBottom: 4 }}>{label}</label>
+      {textarea ? (
+        <textarea
+          value={form[campo] || ""}
+          onChange={e => setForm((f: any) => ({ ...f, [campo]: e.target.value }))}
+          rows={4}
+          style={{ width: "100%", fontSize: 12, border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", resize: "vertical" as const, boxSizing: "border-box" as const }}
+        />
+      ) : (
+        <input
+          value={form[campo] || ""}
+          onChange={e => setForm((f: any) => ({ ...f, [campo]: e.target.value }))}
+          style={{ width: "100%", fontSize: 12, border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", boxSizing: "border-box" as const }}
+        />
+      )}
+    </div>
+  );
+  return (
+    <div style={{ position: "fixed" as const, inset: 0, background: "rgba(0,0,0,.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: "#fff", borderRadius: 12, width: "100%", maxWidth: 600, maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,.3)" }}>
+        <div style={{ background: "#1d4ed8", padding: "16px 20px", borderRadius: "12px 12px 0 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>✏️ Editar Informe</span>
+          <button onClick={onFechar} style={{ background: "none", border: "none", color: "#fff", fontSize: 18, cursor: "pointer", lineHeight: 1 }}>✕</button>
+        </div>
+        <div style={{ padding: 20 }}>
+          {campo("Título", "titulo")}
+          {campo("Número", "numero")}
+          {campo("Data de Publicação", "data_pub")}
+          {campo("Órgão Emissor", "orgao")}
+          {campo("Relevância (apui / amazonas / federal / sem_impacto)", "relevancia")}
+          {campo("Resumo / Ementa", "resumo", true)}
+          {campo("Impacto para Apuí/AM", "impacto", true)}
+          {campo("Link oficial DOU", "link")}
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
+            <button onClick={onFechar}
+              style={{ padding: "8px 18px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 13, cursor: "pointer", color: "#475569" }}>
+              Cancelar
+            </button>
+            <button onClick={() => { onSalvar(form); onFechar(); }}
+              style={{ padding: "8px 18px", background: "#1d4ed8", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", color: "#fff" }}>
+              Salvar alterações
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InformeCard({ inf, idx, selecionado, onToggle, onEditar, onDeletar }: {
+  inf: any; idx: number; selecionado: boolean;
+  onToggle: () => void; onEditar: (novoInf: any) => void; onDeletar: () => void;
+}) {
   const [aberto, setAberto] = useState(false);
+  const [editando, setEditando] = useState(false);
   const cor = COR_REL[inf.relevancia] || "#6b7280";
   const bg  = selecionado ? `${cor}10` : (BG_REL[inf.relevancia] || "#f8fafc");
   return (
-    <div style={{ border: `1px solid ${selecionado ? cor : cor+"30"}`, borderRadius: 8, marginBottom: 8, overflow: "hidden" }}>
-      {/* Cabeçalho */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: bg }}>
-        {/* Checkbox de seleção */}
-        <input
-          type="checkbox"
-          checked={selecionado}
-          onChange={onToggle}
-          onClick={e => e.stopPropagation()}
-          style={{ width: 16, height: 16, cursor: "pointer", accentColor: cor, flexShrink: 0 }}
+    <>
+      {editando && (
+        <ModalEditarInforme
+          inf={inf}
+          onSalvar={onEditar}
+          onFechar={() => setEditando(false)}
         />
-        <span style={{ fontSize: 10, fontWeight: 700, color: cor, background: `${cor}18`, border: `1px solid ${cor}40`, padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" as const }}>
-          {LABEL_REL[inf.relevancia]}
-        </span>
-        <span
-          onClick={() => setAberto(a => !a)}
-          style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", flex: 1, cursor: "pointer" }}
-        >{inf.titulo}</span>
-        <span onClick={() => setAberto(a => !a)} style={{ fontSize: 11, color: "#94a3b8", cursor: "pointer" }}>{aberto ? "▲" : "▼"}</span>
-      </div>
-
-      {aberto && (
-        <div style={{ padding: "12px 14px", background: "#fff", display: "flex", flexDirection: "column" as const, gap: 8 }}>
-          {/* Metadados */}
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" as const }}>
-            {inf.numero && (
-              <div style={{ fontSize: 11 }}>
-                <span style={{ color: "#94a3b8" }}>Número </span>
-                <span style={{ color: "#1e293b", fontWeight: 600 }}>{inf.numero}</span>
-              </div>
-            )}
-            {inf.data_pub && (
-              <div style={{ fontSize: 11 }}>
-                <span style={{ color: "#94a3b8" }}>Publicação </span>
-                <span style={{ color: "#1e293b", fontWeight: 600 }}>{inf.data_pub}</span>
-              </div>
-            )}
-            <div style={{ fontSize: 11 }}>
-              <span style={{ color: "#94a3b8" }}>Órgão </span>
-              <span style={{ color: "#1e293b", fontWeight: 600 }}>{inf.orgao || "Ministério da Saúde"}</span>
-            </div>
-          </div>
-
-          {/* Resumo */}
-          {inf.resumo && inf.resumo !== "(Acesse o link para ver o conteúdo completo)" && (
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 3 }}>Resumo</div>
-              <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6, background: "#f8fafc", borderRadius: 6, padding: "8px 10px" }}>
-                {inf.resumo}
-              </div>
-            </div>
-          )}
-
-          {/* Impacto para Apuí */}
-          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: "8px 10px" }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 3 }}>⚡ Impacto para Apuí/AM</div>
-            <div style={{ fontSize: 12, color: "#78350f", lineHeight: 1.5 }}>{inf.impacto}</div>
-          </div>
-
-          {/* Link DOU */}
-          {(() => {
-            const isDireto = inf.link && inf.link.includes("in.gov.br/web/dou");
-            return (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
-                <a href={inf.link} target="_blank" rel="noopener noreferrer"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#fff", fontWeight: 600, textDecoration: "none", background: "#1d4ed8", padding: "7px 16px", borderRadius: 6 }}>
-                  <ExternalLink size={12} /> {isDireto ? "Abrir Portaria no DOU" : "Buscar Portaria no DOU"}
-                </a>
-                {!isDireto && (
-                  <span style={{ fontSize: 11, color: "#94a3b8" }}>
-                    (abre o DOU na data da portaria — localize pelo número)
-                  </span>
-                )}
-              </div>
-            );
-          })()}
-        </div>
       )}
-    </div>
+      <div style={{ border: `1px solid ${selecionado ? cor : cor+"30"}`, borderRadius: 8, marginBottom: 8, overflow: "hidden" }}>
+        {/* Cabeçalho */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: bg }}>
+          <input
+            type="checkbox"
+            checked={selecionado}
+            onChange={onToggle}
+            onClick={e => e.stopPropagation()}
+            style={{ width: 16, height: 16, cursor: "pointer", accentColor: cor, flexShrink: 0 }}
+          />
+          <span style={{ fontSize: 10, fontWeight: 700, color: cor, background: `${cor}18`, border: `1px solid ${cor}40`, padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap" as const }}>
+            {LABEL_REL[inf.relevancia]}
+          </span>
+          <span onClick={() => setAberto(a => !a)}
+            style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", flex: 1, cursor: "pointer" }}>
+            {inf.titulo}
+          </span>
+          {/* Botões editar / deletar */}
+          <button
+            onClick={e => { e.stopPropagation(); setEditando(true); }}
+            title="Editar informe"
+            style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 5, padding: "3px 10px", fontSize: 11, cursor: "pointer", color: "#1d4ed8", fontWeight: 700, flexShrink: 0 }}>
+            ✏️ Editar
+          </button>
+          <button
+            onClick={e => { e.stopPropagation(); if (window.confirm("Remover este informe da lista?")) onDeletar(); }}
+            title="Remover informe"
+            style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 5, padding: "3px 10px", fontSize: 11, cursor: "pointer", color: "#dc2626", fontWeight: 700, flexShrink: 0 }}>
+            🗑 Remover
+          </button>
+          <span onClick={() => setAberto(a => !a)} style={{ fontSize: 11, color: "#94a3b8", cursor: "pointer", flexShrink: 0 }}>
+            {aberto ? "▲" : "▼"}
+          </span>
+        </div>
+
+        {aberto && (
+          <div style={{ padding: "12px 14px", background: "#fff", display: "flex", flexDirection: "column" as const, gap: 8 }}>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" as const }}>
+              {inf.numero && (
+                <div style={{ fontSize: 11 }}>
+                  <span style={{ color: "#94a3b8" }}>Número </span>
+                  <span style={{ color: "#1e293b", fontWeight: 600 }}>{inf.numero}</span>
+                </div>
+              )}
+              {inf.data_pub && (
+                <div style={{ fontSize: 11 }}>
+                  <span style={{ color: "#94a3b8" }}>Publicação </span>
+                  <span style={{ color: "#1e293b", fontWeight: 600 }}>{inf.data_pub}</span>
+                </div>
+              )}
+              <div style={{ fontSize: 11 }}>
+                <span style={{ color: "#94a3b8" }}>Órgão </span>
+                <span style={{ color: "#1e293b", fontWeight: 600 }}>{inf.orgao || "Ministério da Saúde"}</span>
+              </div>
+            </div>
+
+            {inf.resumo && inf.resumo !== "(Acesse o link para ver o conteúdo completo)" && (
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 3 }}>Resumo</div>
+                <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6, background: "#f8fafc", borderRadius: 6, padding: "8px 10px" }}>
+                  {inf.resumo}
+                </div>
+              </div>
+            )}
+
+            <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: "8px 10px" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 3 }}>⚡ Impacto para Apuí/AM</div>
+              <div style={{ fontSize: 12, color: "#78350f", lineHeight: 1.5 }}>{inf.impacto}</div>
+            </div>
+
+            {(() => {
+              const isDireto = inf.link && inf.link.includes("in.gov.br/web/dou");
+              return (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
+                  <a href={inf.link} target="_blank" rel="noopener noreferrer"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#fff", fontWeight: 600, textDecoration: "none", background: "#1d4ed8", padding: "7px 16px", borderRadius: 6 }}>
+                    <ExternalLink size={12} /> {isDireto ? "Abrir Portaria no DOU" : "Buscar Portaria no DOU"}
+                  </a>
+                  {!isDireto && (
+                    <span style={{ fontSize: 11, color: "#94a3b8" }}>
+                      (abre o DOU na data da portaria — localize pelo número)
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
 function BuscaRetroativa() {
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
   const [resultado, setResultado] = useState<any>(null);
+  // Cópia editável dos informes (permite editar/deletar sem refazer busca)
+  const [informesEditaveis, setInformesEditaveis] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -207,16 +288,33 @@ function BuscaRetroativa() {
   const toggleSelecao = (idx: number) =>
     setSelecionados(prev => { const s = new Set(prev); s.has(idx) ? s.delete(idx) : s.add(idx); return s; });
 
-  const toggleTodos = () => {
-    const informes: any[] = resultado?.informes || [];
-    setSelecionados(prev => prev.size === informes.length ? new Set() : new Set(informes.map((_: any, i: number) => i)));
+  const toggleTodos = () =>
+    setSelecionados(prev => prev.size === informesEditaveis.length
+      ? new Set()
+      : new Set(informesEditaveis.map((_: any, i: number) => i)));
+
+  const editarInforme = (idx: number, novoInf: any) => {
+    setInformesEditaveis(prev => prev.map((inf, i) => i === idx ? novoInf : inf));
+    // Remove da seleção se existia, mantém o índice
+    setSelecionados(prev => { const s = new Set(prev); return s; });
+  };
+
+  const deletarInforme = (idx: number) => {
+    setInformesEditaveis(prev => prev.filter((_, i) => i !== idx));
+    setSelecionados(prev => {
+      const s = new Set<number>();
+      prev.forEach(i => { if (i < idx) s.add(i); else if (i > idx) s.add(i - 1); });
+      return s;
+    });
   };
 
   const buscar = async () => {
-    setLoading(true); setErro(null); setResultado(null); setSelecionados(new Set());
+    setLoading(true); setErro(null); setResultado(null);
+    setInformesEditaveis([]); setSelecionados(new Set());
     try {
       const r = await apiGet(`/api/email-diario/buscar-dou?data=${data}`);
       setResultado(r);
+      setInformesEditaveis(r?.informes || []);
     } catch (e: any) {
       setErro(e?.message || "Erro ao consultar o DOU.");
     } finally { setLoading(false); }
@@ -232,7 +330,6 @@ function BuscaRetroativa() {
     } finally { setEnviando(false); }
   };
 
-  const informes: any[] = resultado?.informes || [];
   const apui    = resultado?.apui    || [];
   const federal = resultado?.federal || [];
   const amazonas= resultado?.amazonas|| [];
@@ -266,32 +363,233 @@ function BuscaRetroativa() {
             <Mail size={13} />{enviando ? "Enviando…" : "Enviar e-mail"}
           </button>
         )}
-        {resultado?.informes?.length > 0 && (
+        {informesEditaveis.length > 0 && (
           <button
-            onClick={async () => {
-              const lista = selecionados.size > 0
-                ? (resultado.informes as any[]).filter((_: any, i: number) => selecionados.has(i))
-                : (resultado.informes as any[]);
-              const token = localStorage.getItem("ersus_token") || "";
-              try {
-                const resp = await fetch("/api/email-diario/informe-html", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                  },
-                  body: JSON.stringify({ informes: lista, data: resultado.data }),
-                });
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const html = await resp.text();
-                const w = window.open("", "_blank");
-                if (w) { w.document.write(html); w.document.close(); }
-              } catch (e: any) {
-                alert("Erro ao gerar documento: " + (e?.message || e));
+            onClick={() => {
+              const lista: any[] = selecionados.size > 0
+                ? informesEditaveis.filter((_: any, i: number) => selecionados.has(i))
+                : informesEditaveis;
+              const dt = new Date(resultado.data + "T12:00:00").toLocaleDateString("pt-BR");
+              const ano = new Date(resultado.data + "T12:00:00").getFullYear();
+
+              const COR: Record<string,string> = {
+                apui:"#059669", amazonas:"#7c3aed",
+                federal:"#0284c7", sem_impacto:"#6b7280",
+              };
+              const LABEL_ABRANG: Record<string,string> = {
+                apui:       "Específica para Apuí/AM — aplicação direta imediata",
+                amazonas:   "Direcionada ao Estado do Amazonas",
+                federal:    "Federal com aplicação municipal — verificar elegibilidade",
+                sem_impacto:"Sem impacto direto identificado após análise do texto",
+              };
+
+              function analisarImpacto(titulo: string, resumo: string) {
+                const t = (titulo + " " + resumo).toLowerCase();
+                const fin: string[] = [], ass: string[] = [], adm: string[] = [], prov: string[] = [];
+                if (/repasse|transferência|transferencia|recurso|valor|custeio|investimento|fundo nacional|bloco de financ|teto financ/.test(t))
+                  fin.push("A portaria trata de aspectos financeiros. Verificar se Apuí consta como beneficiário no texto ou anexos.");
+                if (/emenda parlamentar/.test(t))
+                  fin.push("Envolve emenda parlamentar. Verificar se há parcela destinada a Apuí/AM.");
+                if (/aten.o prim|aten.o b.sica|esf|acs|agente comunit/.test(t))
+                  ass.push("Impacto potencial na Atenção Primária à Saúde. Verificar se a portaria cria obrigações para equipes de Apuí.");
+                if (/habilita|credenciamento/.test(t))
+                  ass.push("Portaria de habilitação/credenciamento. Verificar elegibilidade de Apuí e prazo de adesão.");
+                if (/vigilância|vigilancia/.test(t))
+                  ass.push("Relacionada à vigilância em saúde. Verificar obrigações de notificação.");
+                if (/prazo|data limite/.test(t))
+                  adm.push("Portaria com prazo definido. Verificar data e providência necessária.");
+                if (/sistema|sigtap|cnes|ine|rnds/.test(t))
+                  adm.push("Envolve sistemas de informação. Verificar obrigação de atualização cadastral.");
+                if (/presta.o de contas|relat.rio/.test(t))
+                  adm.push("Exige prestação de contas ou relatório. Verificar responsável e prazo.");
+                if (/apuí|apui|1300144/.test(t))
+                  prov.push("AÇÃO IMEDIATA: O município de Apuí/AM está citado expressamente. Ler o texto integral e anexos.");
+                return { fin, ass, adm, prov };
               }
+
+              function lista_ul(items: string[], vazio: string): string {
+                if (!items.length) return `<p style="color:#6b7280;font-style:italic">${vazio}</p>`;
+                return "<ul style='margin:6px 0;padding-left:20px'>" +
+                  items.map(i => `<li style="margin-bottom:6px">${i}</li>`).join("") + "</ul>";
+              }
+
+              const informes_html = lista.map((inf: any, i: number) => {
+                const rel  = inf.relevancia || "federal";
+                const cor  = COR[rel] || "#0284c7";
+                const abr  = LABEL_ABRANG[rel] || "Federal";
+                const imp  = analisarImpacto(inf.titulo || "", inf.resumo || "");
+                const link = inf.link || "https://www.in.gov.br/leiturajornal";
+                const linkLabel = link.includes("in.gov.br/web/dou") ? "Abrir portaria completa" : "Ver DOU na data de publicação";
+
+                const conclusao = rel === "apui"
+                  ? "Portaria com referência direta a Apuí/AM. Leitura integral do ato e dos anexos é obrigatória."
+                  : rel === "amazonas"
+                  ? "Portaria aplicável ao Estado do Amazonas. Verificar se Apuí está incluído como município beneficiário."
+                  : rel === "federal"
+                  ? "Norma federal do Ministério da Saúde com potencial aplicação municipal. Verificar elegibilidade e obrigações para Apuí/AM."
+                  : "Não foi identificado impacto direto para o Município de Apuí/AM após análise do texto e dos anexos.";
+
+                return `
+                <div style="border:1px solid #e2e8f0;border-radius:10px;margin-bottom:32px;
+                            overflow:hidden;page-break-inside:avoid;font-family:Arial,sans-serif">
+                  <div style="background:#1d4ed8;padding:16px 22px">
+                    <div style="color:rgba(255,255,255,.7);font-size:10px;text-transform:uppercase;
+                                letter-spacing:1px">Informe Técnico Nº ${String(i+1).padStart(3,"0")}/${ano}</div>
+                    <div style="color:#fff;font-size:15px;font-weight:700;margin-top:4px;line-height:1.4">
+                      ${inf.titulo || "Sem título"}
+                    </div>
+                  </div>
+                  <div style="padding:18px 22px;background:#fff">
+
+                    <!-- 1. Identificação -->
+                    <div style="margin-bottom:18px">
+                      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1d4ed8;
+                                  letter-spacing:.8px;border-bottom:2px solid #dbeafe;padding-bottom:4px;margin-bottom:8px">
+                        1. Identificação do Ato
+                      </div>
+                      <table style="font-size:12px;color:#374151;border-collapse:collapse;width:100%">
+                        ${inf.numero ? `<tr><td style="padding:3px 16px 3px 0;font-weight:600;width:160px">Portaria</td><td>${inf.numero}</td></tr>` : ""}
+                        ${inf.data_pub ? `<tr><td style="padding:3px 16px 3px 0;font-weight:600">Publicação DOU</td><td>${inf.data_pub}</td></tr>` : ""}
+                        <tr><td style="padding:3px 16px 3px 0;font-weight:600">Órgão responsável</td><td>${inf.orgao || "Ministério da Saúde"}</td></tr>
+                        <tr><td style="padding:3px 16px 3px 0;font-weight:600">Link oficial DOU</td>
+                            <td><a href="${link}" style="color:#1d4ed8">${link.length>80?link.slice(0,80)+"...":link}</a></td></tr>
+                      </table>
+                    </div>
+
+                    <!-- 2. Objeto -->
+                    <div style="margin-bottom:18px">
+                      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1d4ed8;
+                                  letter-spacing:.8px;border-bottom:2px solid #dbeafe;padding-bottom:4px;margin-bottom:8px">
+                        2. Objeto
+                      </div>
+                      <div style="font-size:12px;color:#374151;line-height:1.7;background:#f8fafc;
+                                  padding:12px;border-radius:6px">
+                        ${inf.resumo || "(Acesse o link para ver o conteúdo completo)"}
+                      </div>
+                    </div>
+
+                    <!-- 3. Abrangência -->
+                    <div style="margin-bottom:18px">
+                      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1d4ed8;
+                                  letter-spacing:.8px;border-bottom:2px solid #dbeafe;padding-bottom:4px;margin-bottom:8px">
+                        3. Abrangência
+                      </div>
+                      <span style="background:${cor};color:#fff;font-size:12px;font-weight:600;
+                                   padding:4px 14px;border-radius:20px">${abr}</span>
+                    </div>
+
+                    <!-- 4. Impacto -->
+                    <div style="margin-bottom:18px">
+                      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1d4ed8;
+                                  letter-spacing:.8px;border-bottom:2px solid #dbeafe;padding-bottom:4px;margin-bottom:8px">
+                        4. Impacto para Apuí/AM
+                      </div>
+                      ${imp.prov.length ? `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:10px 14px;margin-bottom:10px"><strong style="color:#dc2626">⚡ Ação imediata:</strong> ${imp.prov.join(" ")}</div>` : ""}
+                      <div style="font-size:12px;font-weight:600;color:#374151;margin:8px 0 4px">Impacto financeiro</div>
+                      ${lista_ul(imp.fin, "Não identificado impacto financeiro direto.")}
+                      <div style="font-size:12px;font-weight:600;color:#374151;margin:8px 0 4px">Impacto assistencial</div>
+                      ${lista_ul(imp.ass, "Não identificado impacto assistencial direto.")}
+                      <div style="font-size:12px;font-weight:600;color:#374151;margin:8px 0 4px">Impacto administrativo</div>
+                      ${lista_ul(imp.adm, "Não identificado impacto administrativo direto.")}
+                    </div>
+
+                    <!-- 5. Valores -->
+                    <div style="margin-bottom:18px">
+                      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1d4ed8;
+                                  letter-spacing:.8px;border-bottom:2px solid #dbeafe;padding-bottom:4px;margin-bottom:8px">
+                        5. Valores e Beneficiários
+                      </div>
+                      <div style="font-size:12px;color:#6b7280;font-style:italic">
+                        Verificar valores, CNES, INE, competências e beneficiários no texto integral e anexos do DOU.
+                      </div>
+                    </div>
+
+                    <!-- 6. Providências -->
+                    <div style="margin-bottom:18px">
+                      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1d4ed8;
+                                  letter-spacing:.8px;border-bottom:2px solid #dbeafe;padding-bottom:4px;margin-bottom:8px">
+                        6. Providências Recomendadas
+                      </div>
+                      ${imp.prov.length ? lista_ul(imp.prov, "") : "<p style='font-size:12px;color:#374151'>Acessar o link oficial, ler o texto integral e verificar se Apuí (IBGE 1300144) consta como beneficiário.</p>"}
+                    </div>
+
+                    <!-- 7. Prazos -->
+                    <div style="margin-bottom:18px">
+                      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1d4ed8;
+                                  letter-spacing:.8px;border-bottom:2px solid #dbeafe;padding-bottom:4px;margin-bottom:8px">
+                        7. Prazos e Riscos
+                      </div>
+                      <div style="font-size:12px;color:#6b7280;font-style:italic">
+                        ${imp.adm.some(a => /prazo/.test(a.toLowerCase()))
+                          ? "Portaria contém referência a prazo. Verificar data exata no texto integral."
+                          : "Prazo não identificado automaticamente. Verificar no texto integral do DOU."}
+                      </div>
+                    </div>
+
+                    <!-- 8. Conclusão -->
+                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:14px;margin-bottom:16px">
+                      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#15803d;
+                                  letter-spacing:.8px;margin-bottom:6px">8. Conclusão</div>
+                      <div style="font-size:12px;color:#374151;line-height:1.6">${conclusao}</div>
+                    </div>
+
+                    <!-- Link DOU -->
+                    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 14px">
+                      <div style="font-size:10px;font-weight:700;color:#1e40af;text-transform:uppercase;
+                                  letter-spacing:.5px;margin-bottom:4px">🔗 ${linkLabel}</div>
+                      <a href="${link}" style="font-size:12px;color:#1d4ed8;word-break:break-all">${link}</a>
+                    </div>
+
+                    <!-- Assinatura -->
+                    <div style="margin-top:16px;padding-top:12px;border-top:1px solid #e2e8f0;
+                                font-size:11px;color:#6b7280">
+                      <div>Destinatária: <strong>Rosângela Motter</strong> — Secretária Municipal de Saúde de Apuí/AM</div>
+                      <div>Elaborado por: <strong>Euler Ramos de Oliveira</strong> — Assessor Técnico em Saúde Pública</div>
+                    </div>
+                  </div>
+                </div>`;
+              }).join("");
+
+              const html = `<!DOCTYPE html><html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Informes Técnicos — Portarias MS — ${dt}</title>
+  <style>
+    body{font-family:Arial,sans-serif;margin:40px;color:#1e293b;background:#f8fafc;font-size:13px;}
+    @media print{.no-print{display:none!important}body{margin:20px;background:#fff}}
+  </style>
+</head>
+<body>
+  <div class="no-print" style="position:sticky;top:0;background:#fff;border-bottom:1px solid #e2e8f0;
+       padding:10px 20px;margin:-40px -40px 32px;display:flex;gap:12px;align-items:center;z-index:100">
+    <button onclick="window.print()" style="padding:8px 20px;background:#1d4ed8;color:#fff;border:none;
+            border-radius:6px;cursor:pointer;font-size:13px;font-weight:700">🖨 Imprimir / Salvar PDF</button>
+    <div style="font-size:12px;color:#64748b">
+      <strong>ERSUS 360</strong> · Informes Técnicos · Portarias MS · ${dt} · ${lista.length} informe(s)
+    </div>
+  </div>
+  <div style="border:2px solid #1d4ed8;border-radius:10px;padding:20px 28px;margin-bottom:32px;background:#fff">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+                color:#1d4ed8;margin-bottom:4px">ERSUS 360 — Sistema de Monitoramento em Saúde Pública</div>
+    <div style="font-size:18px;font-weight:800;color:#1e293b;margin-bottom:8px">
+      Informes Técnicos — Portarias do Ministério da Saúde
+    </div>
+    <table style="font-size:12px;color:#374151;border-collapse:collapse">
+      <tr><td style="padding-right:20px;font-weight:600">Município</td><td>Apuí/AM — IBGE 1300144</td></tr>
+      <tr><td style="padding-right:20px;font-weight:600">Secretária de Saúde</td><td>Rosângela Motter</td></tr>
+      <tr><td style="padding-right:20px;font-weight:600">Assessor Técnico</td><td>Euler Ramos de Oliveira</td></tr>
+      <tr><td style="padding-right:20px;font-weight:600">Data DOU consultada</td><td>${dt}</td></tr>
+      <tr><td style="padding-right:20px;font-weight:600">Total de informes</td><td>${lista.length}</td></tr>
+      <tr><td style="padding-right:20px;font-weight:600">Fonte</td><td>Diário Oficial da União — www.in.gov.br</td></tr>
+    </table>
+  </div>
+  ${informes_html || "<p style='color:#94a3b8;text-align:center;padding:40px'>Nenhum informe disponível.</p>"}
+</body></html>`;
+              const w = window.open("", "_blank");
+              if (w) { w.document.write(html); w.document.close(); }
             }}
             style={{ padding: "9px 20px", background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-            <FileText size={13} /> Gerar Documento (8 seções)
+            <FileText size={13} /> Gerar Documento
           </button>
         )}
         {resultado?.enviado && <span style={{ fontSize: 12, color: "#059669", fontWeight: 700 }}>✓ E-mail enviado</span>}
@@ -346,14 +644,14 @@ function BuscaRetroativa() {
           )}
 
           {/* Informes — Apuí + Federal */}
-          {informes.length > 0 && (
+          {informesEditaveis.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" as const }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b" }}>
-                  📋 Informes Gerados ({informes.length}) — Apuí/AM, Amazonas e Federal Municipal
+                  📋 Informes Gerados ({informesEditaveis.length}) — Apuí/AM, Amazonas e Federal Municipal
                 </div>
                 <button onClick={toggleTodos} style={{ fontSize: 11, padding: "3px 10px", border: "1px solid #e2e8f0", borderRadius: 6, background: "#f8fafc", cursor: "pointer", color: "#475569" }}>
-                  {selecionados.size === informes.length ? "Desmarcar todos" : "Selecionar todos"}
+                  {selecionados.size === informesEditaveis.length ? "Desmarcar todos" : "Selecionar todos"}
                 </button>
                 {selecionados.size > 0 && (
                   <span style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 600 }}>
@@ -361,8 +659,11 @@ function BuscaRetroativa() {
                   </span>
                 )}
               </div>
-              {informes.map((inf: any, i: number) => (
-                <InformeCard key={i} inf={inf} idx={i} selecionado={selecionados.has(i)} onToggle={() => toggleSelecao(i)} />
+              {informesEditaveis.map((inf: any, i: number) => (
+                <InformeCard key={i} inf={inf} idx={i} selecionado={selecionados.has(i)}
+                  onToggle={() => toggleSelecao(i)}
+                  onEditar={(novoInf) => editarInforme(i, novoInf)}
+                  onDeletar={() => deletarInforme(i)} />
               ))}
             </div>
           )}
