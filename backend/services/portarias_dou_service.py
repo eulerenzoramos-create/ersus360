@@ -64,24 +64,44 @@ DOU_API_SECAO = "https://www.in.gov.br/consulta/-/buscar-conteudo"
 # ── Consulta DOU ─────────────────────────────────────────────────────────────
 
 def _extrair_portarias_html(html: str) -> list[dict]:
-    """Extrai portarias de uma resposta HTML do DOU."""
-    resultado = []
-    # links de portaria no padrão /web/dou/-/portaria-...
-    matches = re.findall(
-        r'href="(https?://www\.in\.gov\.br/web/dou/-/[^"]+)"[^>]*>\s*([^<]+)',
+    """
+    Extrai portarias de uma resposta HTML do leiturajornal/DOU.
+    Captura títulos no formato: 'Portaria GM/M Nº 12.126, DE 26 DE agosto DE 2026'
+    """
+    resultado: list[dict] = []
+    vistos: set[str] = set()
+
+    # Padrão 1: <a href="/web/dou/-/...">Título Portaria</a>
+    for link, titulo in re.findall(
+        r'href="(https?://www\.in\.gov\.br/web/dou/-/[^"]+)"[^>]*>\s*([^<]{5,})',
         html, re.I
-    )
-    for link, titulo in matches:
-        if re.search(r'portaria', link, re.I) or re.search(r'portaria', titulo, re.I):
-            resultado.append({"urlAddress": link, "title": titulo.strip()})
-    # fallback: qualquer título com a palavra portaria no texto da página
-    if not resultado:
-        blocos = re.findall(
-            r'<[^>]+class="[^"]*titulo[^"]*"[^>]*>([^<]*portaria[^<]*)<',
-            html, re.I
-        )
-        for titulo in blocos:
-            resultado.append({"title": titulo.strip()})
+    ):
+        t = titulo.strip()
+        if t and t not in vistos:
+            vistos.add(t)
+            resultado.append({"urlAddress": link, "title": t,
+                               "orgaoName": "Ministério da Saúde"})
+
+    # Padrão 2: class com "titulo" contendo texto de portaria
+    for titulo in re.findall(
+        r'class="[^"]*(?:titulo|title|dou-title)[^"]*"[^>]*>\s*([^<]{5,})',
+        html, re.I
+    ):
+        t = titulo.strip()
+        if re.search(r'portaria', t, re.I) and t not in vistos:
+            vistos.add(t)
+            resultado.append({"title": t, "orgaoName": "Ministério da Saúde"})
+
+    # Padrão 3: texto bruto "Portaria XX/MS Nº XXXX, DE …"
+    for titulo in re.findall(
+        r'(Portaria\s+(?:GM|SE|SVS|SAES|SAPS|SAS|SES)?[^\n<]{10,80})',
+        html, re.I
+    ):
+        t = re.sub(r'\s+', ' ', titulo).strip()
+        if t not in vistos:
+            vistos.add(t)
+            resultado.append({"title": t, "orgaoName": "Ministério da Saúde"})
+
     return resultado
 
 
@@ -108,47 +128,59 @@ async def _buscar_portarias_ms(data_ref: date) -> list[dict[str, Any]]:
         "Accept-Language": "pt-BR,pt;q=0.9",
     }
 
-    # ── Estratégia 1: leiturajornal — busca via API interna por seção + data ──
-    for secao in ("do1", "do2"):
+    # ── Estratégia 1: leiturajornal — API interna que alimenta os dropdowns ────
+    # Replica exatamente: Data → Ministério da Saúde → Portaria (como na tela)
+    # O leiturajornal chama internamente:
+    #   GET /consulta/-/buscar-conteudo?orgaoPesquisa=...&data=DD-MM-YYYY&tipoDeAto=Portaria&secao=DO1
+    for secao in ("DO1", "DO2"):
         if portarias:
             break
-        # O leiturajornal chama a mesma API buscar-conteudo com parâmetros de seção
         params_lj = {
-            "q": "portaria",
-            "exactDate": data_str,
-            "orgaoPesquisa": DOU_ORGAO,
-            "tipoDe": "Portaria",
-            "secao": secao.upper(),
+            "orgaoPesquisa": "Ministério da Saúde",
+            "data":          data_str,          # DD-MM-YYYY
+            "tipoDeAto":     "Portaria",
+            "secao":         secao,
             "numberPerPage": "100",
         }
         try:
             async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
-                # Também tenta a URL leiturajornal com parâmetros de data/seção para HTML
-                r_lj = await c.get(
-                    DOU_LEITURA,
-                    params={"data": data_str, "secao": secao},
-                    headers=hdrs,
-                )
+                r_lj = await c.get(DOU_BUSCA, params=params_lj, headers=hdrs)
             if r_lj.status_code == 200:
                 try:
                     d = r_lj.json()
                     items = (d if isinstance(d, list)
                              else d.get("items") or d.get("content") or d.get("results") or [])
-                    # filtra apenas Ministério da Saúde
-                    ms = [i for i in items
-                          if "saúde" in (i.get("orgaoName") or i.get("orgao") or "").lower()
-                          or "saúde" in (i.get("title") or i.get("titulo") or "").lower()]
-                    if ms:
-                        portarias.extend(ms)
-                        logger.info("leiturajornal %s seção %s — %d portarias MS", data_str, secao, len(ms))
+                    if items:
+                        portarias.extend(items)
+                        logger.info("leiturajornal API %s %s — %d portarias MS", data_str, secao, len(items))
                 except Exception:
-                    # resposta HTML — extrai links de portaria
                     extraidos = _extrair_portarias_html(r_lj.text)
                     if extraidos:
                         portarias.extend(extraidos)
-                        logger.info("leiturajornal HTML %s seção %s — %d portarias", data_str, secao, len(extraidos))
+                        logger.info("leiturajornal HTML %s %s — %d portarias", data_str, secao, len(extraidos))
         except Exception as exc:
-            logger.warning("leiturajornal seção %s erro: %s", secao, exc)
+            logger.warning("leiturajornal %s erro: %s", secao, exc)
+
+    # ── Estratégia 1b: leiturajornal página HTML com filtros na URL ───────────
+    # URL do tipo: /leiturajornal?data=27-08-2026&secao=do1&orgao=ministério-da-saude&tipoDeAto=Portaria
+    if not portarias:
+        for secao in ("do1", "do2"):
+            try:
+                async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
+                    r_html = await c.get(
+                        DOU_LEITURA,
+                        params={"data": data_str, "secao": secao,
+                                "orgao": "ministerio-da-saude", "tipoDeAto": "Portaria"},
+                        headers=hdrs,
+                    )
+                if r_html.status_code == 200:
+                    extraidos = _extrair_portarias_html(r_html.text)
+                    if extraidos:
+                        portarias.extend(extraidos)
+                        logger.info("leiturajornal HTML2 %s %s — %d portarias", data_str, secao, len(extraidos))
+                        break
+            except Exception as exc2:
+                logger.warning("leiturajornal HTML2 %s erro: %s", secao, exc2)
 
     # ── Estratégia 2: buscar-conteudo (API principal de busca) ────────────────
     if not portarias:
