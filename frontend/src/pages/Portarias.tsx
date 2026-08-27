@@ -166,7 +166,7 @@ function InformeCard({ inf, idx, selecionado, onToggle }: { inf: any; idx: numbe
 
           {/* Link DOU */}
           {(() => {
-            const isDireto = inf.link && inf.link.includes("/web/dou/-/");
+            const isDireto = inf.link && inf.link.includes("in.gov.br/web/dou");
             return (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
                 <a href={inf.link} target="_blank" rel="noopener noreferrer"

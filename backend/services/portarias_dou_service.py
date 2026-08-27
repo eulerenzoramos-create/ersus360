@@ -314,18 +314,16 @@ def _classificar(p: dict) -> dict:
     titulo_orig = (p.get("title") or p.get("titulo") or "Sem título")
     link_direto = (p.get("urlAddress") or p.get("link") or p.get("url") or "").strip()
 
-    # Se não há link direto ou é genérico, constrói URL de busca específica no DOU
+    # Se não há link direto ou é genérico, usa busca pública no Google filtrada ao in.gov.br
     LINKS_GENERICOS = {"", "https://www.in.gov.br", "https://www.in.gov.br/leiturajornal",
                        "http://www.in.gov.br", "https://in.gov.br"}
     if link_direto in LINKS_GENERICOS:
         import urllib.parse
-        termo = titulo_orig[:80]  # usa o título como termo de busca
+        termo = titulo_orig[:100]
         link_direto = (
-            "https://www.in.gov.br/consulta/-/buscar-conteudo?"
+            "https://www.google.com/search?"
             + urllib.parse.urlencode({
-                "q": termo,
-                "orgaoPesquisa": "Ministério da Saúde",
-                "tipoDeAto": "Portaria",
+                "q": f'site:in.gov.br "Ministério da Saúde" {termo}',
             })
         )
 
