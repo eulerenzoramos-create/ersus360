@@ -65,42 +65,67 @@ DOU_API_SECAO = "https://www.in.gov.br/consulta/-/buscar-conteudo"
 
 def _extrair_portarias_html(html: str) -> list[dict]:
     """
-    Extrai portarias de uma resposta HTML do leiturajornal/DOU.
-    Captura títulos no formato: 'Portaria GM/M Nº 12.126, DE 26 DE agosto DE 2026'
+    Extrai portarias de resposta HTML do DOU.
+    Prioriza JSON embutido em <script> tags (padrão do leiturajornal),
+    depois links <a>, e evita fragmentos JSON como títulos.
     """
     resultado: list[dict] = []
     vistos: set[str] = set()
 
-    # Padrão 1: <a href="/web/dou/-/...">Título Portaria</a>
-    for link, titulo in re.findall(
-        r'href="(https?://www\.in\.gov\.br/web/dou/-/[^"]+)"[^>]*>\s*([^<]{5,})',
-        html, re.I
-    ):
-        t = titulo.strip()
-        if t and t not in vistos:
-            vistos.add(t)
-            resultado.append({"urlAddress": link, "title": t,
-                               "orgaoName": "Ministério da Saúde"})
+    def _limpo(t: str) -> str:
+        """Remove fragmentos JSON, espaços extras e caracteres indesejados."""
+        t = re.sub(r'"[a-zA-Z]+"\s*:\s*"[^"]*"', '', t)  # remove "key":"value"
+        t = re.sub(r'[{}\[\]]', '', t)
+        t = re.sub(r'\s+', ' ', t).strip()
+        return t
 
-    # Padrão 2: class com "titulo" contendo texto de portaria
-    for titulo in re.findall(
-        r'class="[^"]*(?:titulo|title|dou-title)[^"]*"[^>]*>\s*([^<]{5,})',
-        html, re.I
-    ):
-        t = titulo.strip()
-        if re.search(r'portaria', t, re.I) and t not in vistos:
-            vistos.add(t)
-            resultado.append({"title": t, "orgaoName": "Ministério da Saúde"})
+    # Estratégia A: extrair objetos JSON de <script> tags (leiturajornal embute dados assim)
+    for script in re.findall(r'<script[^>]*>(.*?)</script>', html, re.S | re.I):
+        try:
+            # Procura arrays JSON com portarias
+            for match in re.finditer(r'\[(\{["\w].*?\})\]', script, re.S):
+                try:
+                    items = json.loads('[' + match.group(1) + ']')
+                    for item in (items if isinstance(items, list) else []):
+                        titulo = (item.get('title') or item.get('titulo') or
+                                  item.get('identifica') or item.get('name') or '')
+                        if re.search(r'portaria', titulo, re.I):
+                            t = _limpo(titulo)
+                            if t and t not in vistos and len(t) > 5:
+                                vistos.add(t)
+                                resultado.append({
+                                    "title": t,
+                                    "urlAddress": item.get('urlAddress') or item.get('url') or '',
+                                    "content": item.get('content') or item.get('conteudo') or '',
+                                    "pubDate": item.get('pubDate') or item.get('data') or '',
+                                    "orgaoName": "Ministério da Saúde",
+                                })
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
-    # Padrão 3: texto bruto "Portaria XX/MS Nº XXXX, DE …"
-    for titulo in re.findall(
-        r'(Portaria\s+(?:GM|SE|SVS|SAES|SAPS|SAS|SES)?[^\n<]{10,80})',
-        html, re.I
-    ):
-        t = re.sub(r'\s+', ' ', titulo).strip()
-        if t not in vistos:
-            vistos.add(t)
-            resultado.append({"title": t, "orgaoName": "Ministério da Saúde"})
+    # Estratégia B: links <a href="/web/dou/-/..."> com texto limpo
+    if not resultado:
+        for link, titulo in re.findall(
+            r'href="(https?://www\.in\.gov\.br/web/dou/-/[^"]+)"[^>]*>\s*([^<]{5,150})',
+            html, re.I
+        ):
+            t = _limpo(titulo)
+            if t and t not in vistos and not re.search(r'[{}":]', t):
+                vistos.add(t)
+                resultado.append({"urlAddress": link, "title": t, "orgaoName": "Ministério da Saúde"})
+
+    # Estratégia C: títulos em tags semânticas — apenas se limpas (sem JSON)
+    if not resultado:
+        for titulo in re.findall(
+            r'<(?:h[1-4]|span|div)[^>]*class="[^"]*(?:titulo|title|dou)[^"]*"[^>]*>\s*([^<]{10,200})',
+            html, re.I
+        ):
+            t = _limpo(titulo)
+            if re.search(r'portaria', t, re.I) and t not in vistos and not re.search(r'[{}":]', t):
+                vistos.add(t)
+                resultado.append({"title": t, "orgaoName": "Ministério da Saúde"})
 
     return resultado
 
@@ -223,8 +248,17 @@ async def _buscar_portarias_ms(data_ref: date) -> list[dict[str, Any]]:
         except Exception as exc3:
             logger.warning("pesquisa-de-materia erro: %s", exc3)
 
-    logger.info("DOU %s — total %d portarias MS encontradas", data_str, len(portarias))
-    return portarias
+    # Deduplicação por título normalizado
+    vistos: set[str] = set()
+    dedup: list[dict] = []
+    for p in portarias:
+        chave = re.sub(r'\s+', ' ', (p.get('title') or p.get('titulo') or '')).strip().lower()[:80]
+        if chave and chave not in vistos:
+            vistos.add(chave)
+            dedup.append(p)
+
+    logger.info("DOU %s — %d portarias MS (após dedup)", data_str, len(dedup))
+    return dedup
 
 
 def _classificar(p: dict) -> dict:

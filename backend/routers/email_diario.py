@@ -238,6 +238,81 @@ async def buscar_dou_retroativo(
     return resultado
 
 
+@router.post("/informe-html")
+async def gerar_informe_html(
+    payload: dict,
+    _: UserOut = Depends(get_current_user),
+):
+    """Recebe lista de informes e devolve HTML imprimível do documento oficial."""
+    from fastapi.responses import HTMLResponse
+    informes = payload.get("informes", [])
+    data_ref = payload.get("data", "")
+    municipio = "Apuí/AM — IBGE 1300144"
+
+    COR = {"apui": "#059669", "amazonas": "#7c3aed", "federal": "#0284c7", "outros": "#6b7280"}
+    LABEL = {"apui": "📍 Apuí/AM", "amazonas": "🏛 Estado AM", "federal": "🇧🇷 Federal MS", "outros": "📄 Outros"}
+
+    itens_html = ""
+    for i, inf in enumerate(informes, 1):
+        cor = COR.get(inf.get("relevancia", "federal"), "#0284c7")
+        lbl = LABEL.get(inf.get("relevancia", "federal"), "Federal MS")
+        resumo = inf.get("resumo", "(sem texto disponível)")
+        impacto = inf.get("impacto", "")
+        link = inf.get("link", "#")
+        numero = inf.get("numero", "")
+        data_pub = inf.get("data_pub", "")
+        orgao = inf.get("orgao", "Ministério da Saúde")
+        itens_html += f"""
+        <div class="informe" style="border-left:4px solid {cor}; margin-bottom:24px; padding:0 0 16px 16px; page-break-inside:avoid;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <span style="font-size:10px;font-weight:700;color:{cor};background:{cor}18;border:1px solid {cor}40;padding:2px 10px;border-radius:20px;">{lbl}</span>
+            <span style="font-size:11px;color:#64748b;">#{i}</span>
+          </div>
+          <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:6px;">{inf.get('titulo','')}</div>
+          <table style="font-size:11px;color:#64748b;border-collapse:collapse;margin-bottom:10px;">
+            {"<tr><td style='padding-right:16px;font-weight:600;'>Número</td><td>" + numero + "</td></tr>" if numero else ""}
+            {"<tr><td style='padding-right:16px;font-weight:600;'>Publicação</td><td>" + data_pub + "</td></tr>" if data_pub else ""}
+            <tr><td style='padding-right:16px;font-weight:600;'>Órgão</td><td>{orgao}</td></tr>
+          </table>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748b;margin-bottom:4px;">Resumo</div>
+          <div style="font-size:12px;color:#374151;line-height:1.7;background:#f8fafc;padding:10px;border-radius:6px;margin-bottom:10px;">{resumo}</div>
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px;margin-bottom:10px;">
+            <div style="font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase;margin-bottom:4px;">⚡ Impacto para Apuí/AM</div>
+            <div style="font-size:12px;color:#78350f;">{impacto}</div>
+          </div>
+          <div style="font-size:11px;color:#1d4ed8;">🔗 <a href="{link}" style="color:#1d4ed8;">{link}</a></div>
+        </div>"""
+
+    html = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Informe de Portarias MS — {data_ref}</title>
+<style>
+  body {{ font-family: Arial, sans-serif; margin: 40px; color: #1e293b; }}
+  @media print {{ body {{ margin: 20px; }} .no-print {{ display:none; }} }}
+  h1 {{ font-size: 18px; color: #1d4ed8; margin-bottom: 4px; }}
+  .meta {{ font-size: 12px; color: #64748b; margin-bottom: 24px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; }}
+  .informe {{ border-left: 4px solid #0284c7; }}
+</style>
+</head>
+<body>
+  <div class="no-print" style="margin-bottom:16px;">
+    <button onclick="window.print()" style="padding:8px 20px;background:#1d4ed8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">🖨 Imprimir / Salvar PDF</button>
+  </div>
+  <h1>📋 Informe de Portarias — Ministério da Saúde</h1>
+  <div class="meta">
+    <strong>Município:</strong> {municipio} &nbsp;|&nbsp;
+    <strong>Data DOU:</strong> {data_ref} &nbsp;|&nbsp;
+    <strong>Total de informes:</strong> {len(informes)} &nbsp;|&nbsp;
+    <strong>Gerado pelo ERSUS 360</strong>
+  </div>
+  {itens_html if itens_html else "<p style='color:#94a3b8;'>Nenhum informe disponível.</p>"}
+</body>
+</html>"""
+    return HTMLResponse(content=html)
+
+
 @router.get("/historico", response_model=list[LogOut])
 async def historico(
     limit: int = Query(30, le=90),

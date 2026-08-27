@@ -228,6 +228,22 @@ function BuscaRetroativa() {
             <Mail size={13} />{enviando ? "Enviando…" : "Enviar e-mail"}
           </button>
         )}
+        {resultado?.informes?.length > 0 && (
+          <button
+            onClick={async () => {
+              const resp = await fetch("/api/email-diario/informe-html", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
+                body: JSON.stringify({ informes: resultado.informes, data: resultado.data }),
+              });
+              const html = await resp.text();
+              const w = window.open("", "_blank");
+              if (w) { w.document.write(html); w.document.close(); }
+            }}
+            style={{ padding: "9px 20px", background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <FileText size={13} /> Gerar Documento
+          </button>
+        )}
         {resultado?.enviado && <span style={{ fontSize: 12, color: "#059669", fontWeight: 700 }}>✓ E-mail enviado</span>}
       </div>
 
