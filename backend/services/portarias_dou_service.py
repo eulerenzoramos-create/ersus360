@@ -246,6 +246,24 @@ def confirmar_orgao_ms(orgao_raw: str) -> bool:
     return False
 
 
+def _capitalizar_sentencas(texto: str) -> str:
+    """
+    Capitaliza a primeira letra de cada sentença.
+    A API de busca do DOU retorna o campo 'content' em minúsculas.
+    """
+    if not texto:
+        return texto
+    # Capitaliza o primeiro caractere
+    resultado = texto[:1].upper() + texto[1:]
+    # Capitaliza após . ! ? seguido de espaço(s)
+    resultado = re.sub(
+        r'([.!?]\s+)([a-záàâãéêíóôõúüçñ])',
+        lambda m: m.group(1) + m.group(2).upper(),
+        resultado,
+    )
+    return resultado
+
+
 def _gerar_chave_dedup(p: dict) -> str:
     """Chave única para deduplicação de portaria."""
     titulo = re.sub(r"\s+", " ", (p.get("title") or p.get("titulo") or "")).strip().lower()
@@ -760,7 +778,7 @@ def _classificar(p: dict, data_ref: date | None = None) -> dict:
         "_numero":     numero_orig,
         "_link":       _resolver_link(p, data_ref),
         "_data":       (p.get("pubDate") or p.get("dataPublicacao") or ""),
-        "_resumo":     corpo_orig[:600] if corpo_orig else "(Acesse o link para ver o conteúdo completo)",
+        "_resumo":     _capitalizar_sentencas(corpo_orig[:600]) if corpo_orig else "(Acesse o link para ver o conteúdo completo)",
         "_orgao":      orgao_orig,
         "_valores":    valores,
     }
