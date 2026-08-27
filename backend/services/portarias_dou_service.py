@@ -52,75 +52,146 @@ TERMOS_SAUDE = ["ministério da saúde", "saúde", "atenção básica", "atenç�
                 "financiamento", "portaria", "sus", "fundo nacional"]
 ORGAO_MS     = "Ministério da Saúde"
 
-# DOU: endpoint de busca confirmado via inspeção do site in.gov.br
+# DOU — URLs base
+DOU_LEITURA  = "https://www.in.gov.br/leiturajornal"          # leitura por seção e data
 DOU_BUSCA    = "https://www.in.gov.br/consulta/-/buscar-conteudo"
-# Parâmetros: q=portaria, exactDate=DD-MM-YYYY, orgaoPesquisa=..., tipoDe=Portaria
 DOU_ORGAO    = "Ministério da Saúde"
+
+# API interna usada pelo leiturajornal (seções DOU1/DOU2/DOU3)
+DOU_API_SECAO = "https://www.in.gov.br/consulta/-/buscar-conteudo"
 
 
 # ── Consulta DOU ─────────────────────────────────────────────────────────────
 
+def _extrair_portarias_html(html: str) -> list[dict]:
+    """Extrai portarias de uma resposta HTML do DOU."""
+    resultado = []
+    # links de portaria no padrão /web/dou/-/portaria-...
+    matches = re.findall(
+        r'href="(https?://www\.in\.gov\.br/web/dou/-/[^"]+)"[^>]*>\s*([^<]+)',
+        html, re.I
+    )
+    for link, titulo in matches:
+        if re.search(r'portaria', link, re.I) or re.search(r'portaria', titulo, re.I):
+            resultado.append({"urlAddress": link, "title": titulo.strip()})
+    # fallback: qualquer título com a palavra portaria no texto da página
+    if not resultado:
+        blocos = re.findall(
+            r'<[^>]+class="[^"]*titulo[^"]*"[^>]*>([^<]*portaria[^<]*)<',
+            html, re.I
+        )
+        for titulo in blocos:
+            resultado.append({"title": titulo.strip()})
+    return resultado
+
+
 async def _buscar_portarias_ms(data_ref: date) -> list[dict[str, Any]]:
     """
     Busca portarias do MS no DOU para a data informada.
-    Usa o endpoint de busca do in.gov.br — o mesmo usado pelo filtro
-    Ministério da Saúde > Portaria visível na tela do sistema.
+    Estratégias em cascata:
+      1. leiturajornal (interface de leitura oficial) — secoes DO1/DO2
+      2. buscar-conteudo (API de busca do in.gov.br)
+      3. pesquisa-de-materia (endpoint legado)
     """
-    data_str = data_ref.strftime("%d-%m-%Y")   # formato DOU: DD-MM-YYYY
+    data_str   = data_ref.strftime("%d-%m-%Y")   # DD-MM-YYYY (padrão DOU)
+    data_iso   = data_ref.strftime("%Y-%m-%d")   # YYYY-MM-DD (usado internamente)
     portarias: list[dict] = []
+
     hdrs = {
-        "User-Agent": "ERSUS360/1.0 (gestor@apui.am.gov.br)",
-        "Accept": "application/json, text/javascript, */*",
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0 Safari/537.36 ERSUS360/2.0"
+        ),
+        "Accept": "application/json, text/html, */*",
+        "Referer": "https://www.in.gov.br/leiturajornal",
+        "Accept-Language": "pt-BR,pt;q=0.9",
     }
 
-    # Estratégia 1: endpoint de busca principal do DOU
-    params = {
-        "q": "portaria",
-        "exactDate": data_str,
-        "orgaoPesquisa": DOU_ORGAO,
-        "tipoDe": "Portaria",
-        "numberPerPage": "100",
-    }
-    try:
-        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
-            r = await c.get(DOU_BUSCA, params=params, headers=hdrs)
-        if r.status_code == 200:
-            try:
-                d = r.json()
-                if isinstance(d, list):
-                    portarias = d
-                elif isinstance(d, dict):
-                    portarias = d.get("items") or d.get("results") or d.get("content") or []
-            except Exception:
-                # HTML retornado — extrai links via regex simples
-                texto = r.text
-                matches = re.findall(
-                    r'href="(https://www\.in\.gov\.br/web/dou/-/portaria[^"]+)"[^>]*>([^<]+)<',
-                    texto, re.I
-                )
-                portarias = [{"urlAddress": m[0], "title": m[1].strip()} for m in matches]
-    except Exception as exc:
-        logger.warning("DOU busca erro: %s", exc)
-
-    # Estratégia 2: endpoint legado de pesquisa por data
-    if not portarias:
-        url_legacy = (
-            "https://www.in.gov.br/servicos/pesquisa-de-materia"
-            f"?tipoPesquisa=TIPO_DATA&data={data_str}&orgao=MINISTERIO+DA+SAUDE&tipoDeAto=Portaria"
-        )
+    # ── Estratégia 1: leiturajornal — busca via API interna por seção + data ──
+    for secao in ("do1", "do2"):
+        if portarias:
+            break
+        # O leiturajornal chama a mesma API buscar-conteudo com parâmetros de seção
+        params_lj = {
+            "q": "portaria",
+            "exactDate": data_str,
+            "orgaoPesquisa": DOU_ORGAO,
+            "tipoDe": "Portaria",
+            "secao": secao.upper(),
+            "numberPerPage": "100",
+        }
         try:
             async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
-                r2 = await c.get(url_legacy, headers=hdrs)
+                # Também tenta a URL leiturajornal com parâmetros de data/seção para HTML
+                r_lj = await c.get(
+                    DOU_LEITURA,
+                    params={"data": data_str, "secao": secao},
+                    headers=hdrs,
+                )
+            if r_lj.status_code == 200:
+                try:
+                    d = r_lj.json()
+                    items = (d if isinstance(d, list)
+                             else d.get("items") or d.get("content") or d.get("results") or [])
+                    # filtra apenas Ministério da Saúde
+                    ms = [i for i in items
+                          if "saúde" in (i.get("orgaoName") or i.get("orgao") or "").lower()
+                          or "saúde" in (i.get("title") or i.get("titulo") or "").lower()]
+                    if ms:
+                        portarias.extend(ms)
+                        logger.info("leiturajornal %s seção %s — %d portarias MS", data_str, secao, len(ms))
+                except Exception:
+                    # resposta HTML — extrai links de portaria
+                    extraidos = _extrair_portarias_html(r_lj.text)
+                    if extraidos:
+                        portarias.extend(extraidos)
+                        logger.info("leiturajornal HTML %s seção %s — %d portarias", data_str, secao, len(extraidos))
+        except Exception as exc:
+            logger.warning("leiturajornal seção %s erro: %s", secao, exc)
+
+    # ── Estratégia 2: buscar-conteudo (API principal de busca) ────────────────
+    if not portarias:
+        params_b = {
+            "q": "portaria",
+            "exactDate": data_str,
+            "orgaoPesquisa": DOU_ORGAO,
+            "tipoDe": "Portaria",
+            "numberPerPage": "100",
+        }
+        try:
+            async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
+                r2 = await c.get(DOU_BUSCA, params=params_b, headers=hdrs)
             if r2.status_code == 200:
                 try:
                     d2 = r2.json()
-                    portarias = d2 if isinstance(d2, list) else d2.get("items", [])
+                    portarias = (d2 if isinstance(d2, list)
+                                 else d2.get("items") or d2.get("results") or d2.get("content") or [])
                 except Exception:
-                    pass
+                    portarias = _extrair_portarias_html(r2.text)
         except Exception as exc2:
-            logger.warning("DOU legado erro: %s", exc2)
+            logger.warning("buscar-conteudo erro: %s", exc2)
 
-    logger.info("DOU %s — %d portarias MS encontradas", data_str, len(portarias))
+    # ── Estratégia 3: pesquisa-de-materia (endpoint legado) ───────────────────
+    if not portarias:
+        url_leg = (
+            "https://www.in.gov.br/servicos/pesquisa-de-materia"
+            f"?tipoPesquisa=TIPO_DATA&data={data_str}"
+            "&orgao=MINISTERIO+DA+SAUDE&tipoDeAto=Portaria"
+        )
+        try:
+            async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
+                r3 = await c.get(url_leg, headers=hdrs)
+            if r3.status_code == 200:
+                try:
+                    d3 = r3.json()
+                    portarias = d3 if isinstance(d3, list) else d3.get("items", [])
+                except Exception:
+                    portarias = _extrair_portarias_html(r3.text)
+        except Exception as exc3:
+            logger.warning("pesquisa-de-materia erro: %s", exc3)
+
+    logger.info("DOU %s — total %d portarias MS encontradas", data_str, len(portarias))
     return portarias
 
 
