@@ -33,6 +33,27 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.error("Erro na inicialização do banco: %s", exc, exc_info=True)
 
+    # Migração: corrige data_publicacao de DD/MM/YYYY → YYYY-MM-DD (idempotente)
+    try:
+        import re as _re
+        from database import AsyncSessionLocal
+        from models.portaria_dou import PortariaDOU
+        from sqlalchemy import select as _sel
+        async with AsyncSessionLocal() as _db:
+            _res = await _db.execute(_sel(PortariaDOU))
+            _rows = _res.scalars().all()
+            _fix = 0
+            for _p in _rows:
+                if _p.data_publicacao and _re.match(r"^\d{2}/\d{2}/\d{4}$", _p.data_publicacao):
+                    _d, _m, _a = _p.data_publicacao.split("/")
+                    _p.data_publicacao = f"{_a}-{_m}-{_d}"
+                    _fix += 1
+            if _fix:
+                await _db.commit()
+                logger.info("Migração data_publicacao: %d registros corrigidos (DD/MM/YYYY → YYYY-MM-DD)", _fix)
+    except Exception as exc:
+        logger.warning("Migração data_publicacao falhou (ignorando): %s", exc)
+
 
     try:
         from scheduler import start_scheduler

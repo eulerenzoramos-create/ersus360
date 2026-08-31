@@ -256,6 +256,34 @@ async def buscar_dou_retroativo(
     return resultado
 
 
+@router.post("/corrigir-datas")
+async def corrigir_datas_portarias(
+    db: AsyncSession = Depends(get_db),
+    _: UserOut = Depends(get_current_user),
+):
+    """
+    Migração única: converte data_publicacao de DD/MM/YYYY → YYYY-MM-DD
+    nos registros já salvos. Seguro executar múltiplas vezes (idempotente).
+    """
+    from models.portaria_dou import PortariaDOU
+    import re as _re
+
+    res = await db.execute(select(PortariaDOU))
+    rows = res.scalars().all()
+
+    corrigidos = 0
+    for p in rows:
+        if p.data_publicacao and _re.match(r"^\d{2}/\d{2}/\d{4}$", p.data_publicacao):
+            d, m, a = p.data_publicacao.split("/")
+            p.data_publicacao = f"{a}-{m}-{d}"
+            corrigidos += 1
+
+    if corrigidos:
+        await db.commit()
+
+    return {"corrigidos": corrigidos, "total": len(rows)}
+
+
 @router.get("/testes-validacao")
 async def testes_validacao(
     _: UserOut = Depends(get_current_user),
