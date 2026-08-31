@@ -959,12 +959,16 @@ async function _atualizarStatusPortaria(id: number, status: string, motivo?: str
 }
 
 function PainelPortariasDOU() {
-  const [filtroData, setFiltroData] = useState("");
+  const hoje = new Date().toISOString().slice(0, 10);
+  const [filtroData, setFiltroData] = useState(hoje);
   const [filtroRel, setFiltroRel] = useState("");
   const [filtroPrio, setFiltroPrio] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
   const [expandido, setExpandido] = useState<number | null>(null);
   const [atualizando, setAtualizando] = useState<number | null>(null);
+  const [buscando, setBuscando] = useState(false);
+  const [resultadoBusca, setResultadoBusca] = useState<string | null>(null);
+  const [erroBusca, setErroBusca] = useState<string | null>(null);
   const qc = useQueryClient();
 
   const params = new URLSearchParams();
@@ -980,6 +984,24 @@ function PainelPortariasDOU() {
     staleTime: 60_000,
     retry: false,
   });
+
+  const buscarDOU = async () => {
+    if (!filtroData) return;
+    setBuscando(true);
+    setResultadoBusca(null);
+    setErroBusca(null);
+    try {
+      const r = await apiGet(`/api/email-diario/buscar-dou?data=${filtroData}`);
+      const total = (r as any)?.total ?? 0;
+      setResultadoBusca(`${total} portaria(s) do MS capturada(s) e salvas no banco.`);
+      qc.invalidateQueries({ queryKey: ["portarias-dou"] });
+      qc.invalidateQueries({ queryKey: ["portarias-execucoes"] });
+    } catch (e: any) {
+      setErroBusca(e?.message || "Erro ao buscar no DOU.");
+    } finally {
+      setBuscando(false);
+    }
+  };
 
   const mudarStatus = async (id: number, status: string) => {
     setAtualizando(id);
@@ -1036,13 +1058,14 @@ function PainelPortariasDOU() {
         </div>
       )}
 
-      {/* Filtros */}
+      {/* Filtros + Busca */}
       <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>
           Portarias salvas no banco — {total} registro(s)
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
           <input type="date" value={filtroData} onChange={e => setFiltroData(e.target.value)}
+            max={hoje}
             style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 12 }} />
           <select value={filtroRel} onChange={e => setFiltroRel(e.target.value)}
             style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 12 }}>
@@ -1068,11 +1091,28 @@ function PainelPortariasDOU() {
             <option value="revisao_manual">Revisão manual</option>
             <option value="descartado">Descartado</option>
           </select>
+          {/* Buscar no DOU — captura e salva portarias da data selecionada */}
+          <button onClick={buscarDOU} disabled={buscando || !filtroData}
+            style={{ padding: "6px 16px", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+            <Search size={12} />{buscando ? "Buscando no DOU…" : "Buscar no DOU"}
+          </button>
+          {/* Atualizar lista do banco */}
           <button onClick={() => refetch()}
-            style={{ padding: "6px 14px", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+            style={{ padding: "6px 14px", background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
             Atualizar
           </button>
         </div>
+        {/* Feedback da busca */}
+        {resultadoBusca && (
+          <div style={{ marginTop: 10, padding: "8px 12px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, fontSize: 12, color: "#15803d", fontWeight: 600 }}>
+            ✓ {resultadoBusca}
+          </div>
+        )}
+        {erroBusca && (
+          <div style={{ marginTop: 10, padding: "8px 12px", background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 6, fontSize: 12, color: "#991b1b" }}>
+            ⚠ {erroBusca}
+          </div>
+        )}
       </div>
 
       {isLoading && <div style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>Carregando portarias…</div>}
@@ -1081,7 +1121,7 @@ function PainelPortariasDOU() {
         <div style={{ textAlign: "center", padding: 40, color: "#94a3b8", fontSize: 13 }}>
           <FileText size={28} style={{ marginBottom: 8, opacity: 0.4 }} />
           <div>Nenhuma portaria encontrada com estes filtros.</div>
-          <div style={{ fontSize: 12, marginTop: 4 }}>Use "Buscar e Gerar Informes" na aba Envios Diários para capturar portarias.</div>
+          <div style={{ fontSize: 12, marginTop: 4 }}>Clique em <strong>Buscar no DOU</strong> para capturar portarias do MS da data selecionada.</div>
         </div>
       )}
 
