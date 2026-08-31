@@ -1527,7 +1527,7 @@ async def _salvar_portarias_db(
                     titulo=p.get("_titulo", "")[:1000],
                     numero=p.get("_numero", "")[:100],
                     tipo_ato=(p.get("_tipo_ato") or "Portaria")[:50],
-                    data_publicacao=p.get("_data", "")[:10],
+                    data_publicacao=data_ref.strftime("%Y-%m-%d"),
                     secao_dou="DO1",
                     orgao=p.get("_orgao", "")[:200],
                     resumo=(p.get("_resumo") or "")[:600],

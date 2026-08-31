@@ -404,11 +404,24 @@ async def listar_portarias(
 ):
     """Lista portarias persistidas no banco com filtros opcionais."""
     from models.portaria_dou import PortariaDOU
-    from sqlalchemy import and_
+    from sqlalchemy import and_, or_
+
+    def _dmy(iso: str) -> str:
+        """Converte YYYY-MM-DD → DD/MM/YYYY para compatibilidade com registros antigos."""
+        try:
+            parts = iso.split("-")
+            if len(parts) == 3:
+                return f"{parts[2]}/{parts[1]}/{parts[0]}"
+        except Exception:
+            pass
+        return iso
 
     conditions = []
     if data:
-        conditions.append(PortariaDOU.data_publicacao == data)
+        # Aceita tanto o formato novo (YYYY-MM-DD) quanto o legado (DD/MM/YYYY)
+        conditions.append(
+            or_(PortariaDOU.data_publicacao == data, PortariaDOU.data_publicacao == _dmy(data))
+        )
     elif data_inicio and data_fim:
         conditions.append(PortariaDOU.data_publicacao >= data_inicio)
         conditions.append(PortariaDOU.data_publicacao <= data_fim)
