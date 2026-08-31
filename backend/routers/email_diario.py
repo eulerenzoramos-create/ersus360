@@ -391,11 +391,13 @@ async def historico(
 
 @router.get("/portarias")
 async def listar_portarias(
-    data: Optional[str] = Query(None, description="YYYY-MM-DD"),
+    data: Optional[str] = Query(None, description="YYYY-MM-DD — filtra por dia exato"),
+    data_inicio: Optional[str] = Query(None, description="YYYY-MM-DD — início do intervalo (para busca por mês)"),
+    data_fim: Optional[str] = Query(None, description="YYYY-MM-DD — fim do intervalo (para busca por mês)"),
     relevancia: Optional[str] = Query(None, description="apui|amazonas|federal|sem_impacto"),
     prioridade: Optional[str] = Query(None, description="urgente|prazo|financeiro|normativo|sem_impacto"),
     status: Optional[str] = Query(None, description="processado|revisao_manual|descartado"),
-    limit: int = Query(50, le=200),
+    limit: int = Query(200, le=500),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
     _: UserOut = Depends(get_current_user),
@@ -407,6 +409,11 @@ async def listar_portarias(
     conditions = []
     if data:
         conditions.append(PortariaDOU.data_publicacao == data)
+    elif data_inicio and data_fim:
+        conditions.append(PortariaDOU.data_publicacao >= data_inicio)
+        conditions.append(PortariaDOU.data_publicacao <= data_fim)
+    elif data_inicio:
+        conditions.append(PortariaDOU.data_publicacao >= data_inicio)
     if relevancia:
         conditions.append(PortariaDOU.relevancia == relevancia)
     if prioridade:

@@ -960,7 +960,13 @@ async function _atualizarStatusPortaria(id: number, status: string, motivo?: str
 
 function PainelPortariasDOU() {
   const hoje = new Date().toISOString().slice(0, 10);
-  const [filtroData, setFiltroData] = useState(hoje);
+  const hojeAnoMes = hoje.slice(0, 7); // "YYYY-MM"
+
+  // Modo de filtro de data: "dia" ou "mes"
+  const [modoData, setModoData] = useState<"dia" | "mes">("dia");
+  const [filtroData, setFiltroData] = useState(hoje);       // "YYYY-MM-DD"
+  const [filtroMes, setFiltroMes] = useState(hojeAnoMes);  // "YYYY-MM"
+
   const [filtroRel, setFiltroRel] = useState("");
   const [filtroPrio, setFiltroPrio] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
@@ -971,29 +977,80 @@ function PainelPortariasDOU() {
   const [erroBusca, setErroBusca] = useState<string | null>(null);
   const qc = useQueryClient();
 
+  // Navegação dia a dia
+  const navDia = (delta: number) => {
+    const d = new Date(filtroData + "T12:00:00");
+    d.setDate(d.getDate() + delta);
+    const nova = d.toISOString().slice(0, 10);
+    if (nova <= hoje) setFiltroData(nova);
+  };
+
+  // Navegação mês a mês
+  const navMes = (delta: number) => {
+    const [ano, mes] = filtroMes.split("-").map(Number);
+    const d = new Date(ano, mes - 1 + delta, 1);
+    const nova = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (nova <= hojeAnoMes) setFiltroMes(nova);
+  };
+
+  // Monta params de query
   const params = new URLSearchParams();
-  if (filtroData) params.set("data", filtroData);
+  if (modoData === "dia" && filtroData) {
+    params.set("data", filtroData);
+  } else if (modoData === "mes" && filtroMes) {
+    // Passa mês como data_inicio + data_fim
+    const [ano, mes] = filtroMes.split("-").map(Number);
+    const inicio = `${filtroMes}-01`;
+    const fimDate = new Date(ano, mes, 0); // último dia do mês
+    const fim = `${filtroMes}-${String(fimDate.getDate()).padStart(2, "0")}`;
+    params.set("data_inicio", inicio);
+    params.set("data_fim", fim);
+  }
   if (filtroRel) params.set("relevancia", filtroRel);
   if (filtroPrio) params.set("prioridade", filtroPrio);
   if (filtroStatus) params.set("status", filtroStatus);
-  params.set("limit", "100");
+  params.set("limit", "200");
+
+  const queryKey = ["portarias-dou", modoData, filtroData, filtroMes, filtroRel, filtroPrio, filtroStatus];
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["portarias-dou", filtroData, filtroRel, filtroPrio, filtroStatus],
+    queryKey,
     queryFn: () => apiGet(`/api/email-diario/portarias?${params.toString()}`),
     staleTime: 60_000,
     retry: false,
   });
 
   const buscarDOU = async () => {
-    if (!filtroData) return;
+    if (modoData === "dia" && !filtroData) return;
+    if (modoData === "mes" && !filtroMes) return;
     setBuscando(true);
     setResultadoBusca(null);
     setErroBusca(null);
     try {
-      const r = await apiGet(`/api/email-diario/buscar-dou?data=${filtroData}`);
-      const total = (r as any)?.total ?? 0;
-      setResultadoBusca(`${total} portaria(s) do MS capturada(s) e salvas no banco.`);
+      if (modoData === "dia") {
+        // Busca 1 dia
+        const r = await apiGet(`/api/email-diario/buscar-dou?data=${filtroData}`);
+        const total = (r as any)?.total ?? 0;
+        setResultadoBusca(`${total} portaria(s) do MS capturada(s) e salvas no banco (${filtroData}).`);
+      } else {
+        // Busca todos os dias úteis do mês
+        const [ano, mes] = filtroMes.split("-").map(Number);
+        const diasNoMes = new Date(ano, mes, 0).getDate();
+        let totalAcum = 0;
+        for (let d = 1; d <= diasNoMes; d++) {
+          const dataStr = `${filtroMes}-${String(d).padStart(2, "0")}`;
+          if (dataStr > hoje) break;
+          const diaSemana = new Date(dataStr + "T12:00:00").getDay();
+          if (diaSemana === 0 || diaSemana === 6) continue; // pula fins de semana
+          try {
+            const r = await apiGet(`/api/email-diario/buscar-dou?data=${dataStr}`);
+            totalAcum += (r as any)?.total ?? 0;
+          } catch {
+            // ignora dias sem publicação
+          }
+        }
+        setResultadoBusca(`${totalAcum} portaria(s) do MS capturada(s) no mês ${filtroMes}.`);
+      }
       qc.invalidateQueries({ queryKey: ["portarias-dou"] });
       qc.invalidateQueries({ queryKey: ["portarias-execucoes"] });
     } catch (e: any) {
@@ -1060,29 +1117,84 @@ function PainelPortariasDOU() {
 
       {/* Filtros + Busca */}
       <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 16, marginBottom: 16 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>
-          Portarias salvas no banco — {total} registro(s)
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap" as const, gap: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase" as const, letterSpacing: 0.5 }}>
+            Portarias salvas no banco — {total} registro(s)
+          </div>
+          {/* Toggle Dia / Mês */}
+          <div style={{ display: "flex", border: "1px solid #e2e8f0", borderRadius: 6, overflow: "hidden" }}>
+            {(["dia", "mes"] as const).map(m => (
+              <button key={m} onClick={() => setModoData(m)}
+                style={{ padding: "4px 14px", fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer",
+                  background: modoData === m ? "#1d4ed8" : "#f8fafc",
+                  color: modoData === m ? "#fff" : "#475569" }}>
+                {m === "dia" ? "Por dia" : "Por mês"}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Linha 1: seletor de data com navegação */}
+        <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 10, flexWrap: "wrap" as const }}>
+          {/* Botão anterior */}
+          <button onClick={() => modoData === "dia" ? navDia(-1) : navMes(-1)}
+            title={modoData === "dia" ? "Dia anterior" : "Mês anterior"}
+            style={{ padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 6, background: "#f8fafc", cursor: "pointer", fontSize: 14, fontWeight: 700, color: "#475569" }}>
+            ←
+          </button>
+
+          {modoData === "dia" ? (
+            <input type="date" value={filtroData} onChange={e => setFiltroData(e.target.value)}
+              max={hoje}
+              style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 13, fontWeight: 600 }} />
+          ) : (
+            <input type="month" value={filtroMes} onChange={e => setFiltroMes(e.target.value)}
+              max={hojeAnoMes}
+              style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 13, fontWeight: 600 }} />
+          )}
+
+          {/* Botão próximo */}
+          <button
+            onClick={() => modoData === "dia" ? navDia(1) : navMes(1)}
+            disabled={modoData === "dia" ? filtroData >= hoje : filtroMes >= hojeAnoMes}
+            title={modoData === "dia" ? "Próximo dia" : "Próximo mês"}
+            style={{ padding: "6px 10px", border: "1px solid #e2e8f0", borderRadius: 6, background: "#f8fafc", cursor: "pointer", fontSize: 14, fontWeight: 700, color: "#475569",
+              opacity: (modoData === "dia" ? filtroData >= hoje : filtroMes >= hojeAnoMes) ? 0.4 : 1 }}>
+            →
+          </button>
+
+          {/* Atalho: Hoje / Mês atual */}
+          <button onClick={() => modoData === "dia" ? setFiltroData(hoje) : setFiltroMes(hojeAnoMes)}
+            style={{ padding: "5px 12px", border: "1px solid #bfdbfe", borderRadius: 6, background: "#eff6ff", cursor: "pointer", fontSize: 11, fontWeight: 700, color: "#1d4ed8" }}>
+            {modoData === "dia" ? "Hoje" : "Mês atual"}
+          </button>
+
+          {/* Label informativo */}
+          {modoData === "mes" && (
+            <span style={{ fontSize: 11, color: "#64748b" }}>
+              Busca todos os dias úteis do mês (segunda a sexta)
+            </span>
+          )}
+        </div>
+
+        {/* Linha 2: filtros + botões */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
-          <input type="date" value={filtroData} onChange={e => setFiltroData(e.target.value)}
-            max={hoje}
-            style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 12 }} />
           <select value={filtroRel} onChange={e => setFiltroRel(e.target.value)}
             style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 12 }}>
             <option value="">Toda relevância</option>
-            <option value="apui">Apuí/AM</option>
-            <option value="amazonas">Amazonas</option>
-            <option value="federal">Federal</option>
-            <option value="sem_impacto">Sem impacto</option>
+            <option value="apui">📍 Apuí/AM</option>
+            <option value="amazonas">🏛 Amazonas</option>
+            <option value="federal">🇧🇷 Federal</option>
+            <option value="sem_impacto">⚪ Sem impacto</option>
           </select>
           <select value={filtroPrio} onChange={e => setFiltroPrio(e.target.value)}
             style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 12 }}>
             <option value="">Toda prioridade</option>
-            <option value="urgente">Urgente</option>
-            <option value="prazo">Prazo/Providência</option>
-            <option value="financeiro">Recurso Financeiro</option>
-            <option value="normativo">Normativo</option>
-            <option value="sem_impacto">Sem impacto</option>
+            <option value="urgente">🔴 Urgente</option>
+            <option value="prazo">🟠 Prazo/Providência</option>
+            <option value="financeiro">🟢 Recurso Financeiro</option>
+            <option value="normativo">🔵 Normativo</option>
+            <option value="sem_impacto">⚪ Sem impacto</option>
           </select>
           <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}
             style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 12 }}>
@@ -1091,18 +1203,27 @@ function PainelPortariasDOU() {
             <option value="revisao_manual">Revisão manual</option>
             <option value="descartado">Descartado</option>
           </select>
-          {/* Buscar no DOU — captura e salva portarias da data selecionada */}
-          <button onClick={buscarDOU} disabled={buscando || !filtroData}
+
+          <button onClick={buscarDOU} disabled={buscando}
             style={{ padding: "6px 16px", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-            <Search size={12} />{buscando ? "Buscando no DOU…" : "Buscar no DOU"}
+            <Search size={12} />
+            {buscando
+              ? (modoData === "mes" ? "Buscando mês…" : "Buscando…")
+              : (modoData === "mes" ? "Buscar mês no DOU" : "Buscar no DOU")}
           </button>
-          {/* Atualizar lista do banco */}
+
           <button onClick={() => refetch()}
-            style={{ padding: "6px 14px", background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-            Atualizar
+            style={{ padding: "6px 12px", background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+            Atualizar lista
           </button>
         </div>
-        {/* Feedback da busca */}
+
+        {/* Feedback */}
+        {buscando && modoData === "mes" && (
+          <div style={{ marginTop: 10, padding: "8px 12px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, fontSize: 12, color: "#1d4ed8" }}>
+            ⏳ Buscando portarias de cada dia útil do mês {filtroMes}… Isso pode levar alguns segundos.
+          </div>
+        )}
         {resultadoBusca && (
           <div style={{ marginTop: 10, padding: "8px 12px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, fontSize: 12, color: "#15803d", fontWeight: 600 }}>
             ✓ {resultadoBusca}
