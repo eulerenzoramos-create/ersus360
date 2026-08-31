@@ -576,8 +576,8 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
             log["falhas"].append(f"{fonte}: {exc}")
             logger.warning("[DOU] %s erro: %s", fonte, exc)
 
-    # ── Estratégia 2: leiturajornal com filtro de órgão ───────────────────────
-    # Filtro pode ser respeitado ou não pelo servidor
+    # ── Estratégia 2: leiturajornal com filtros reais do site DOU ────────────────
+    # Parâmetros confirmados pela URL do portal: org= e ato=
     if not brutos:
         for secao in ("do1", "do2"):
             fonte = f"leiturajornal-filtrado/{secao}"
@@ -586,18 +586,23 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
                     r = await c.get(
                         DOU_LEITURA,
                         params={
-                            "data":          data_str,
-                            "secao":         secao,
-                            "orgao":         "ministerio-da-saude",
-                            "tipoDeAto":     "Portaria",
+                            "data":   data_str,
+                            "secao":  secao,
+                            "org":    "Ministério da Saúde",
+                            "ato":    "Portaria",
                         },
                         headers=hdrs,
                     )
                 log["fontes_tentadas"].append(fonte)
                 if r.status_code == 200:
-                    # Não sabemos se o filtro foi aplicado → usar_hint=False
-                    # EXCETO se a URL de resposta confirmar filtro (verifica redirect)
-                    filtro_confirmado = "orgao=ministerio-da-saude" in str(r.url)
+                    url_resp = str(r.url)
+                    # Filtro confirmado se URL de resposta mantém org= ou ato=
+                    filtro_confirmado = (
+                        "Minist%C3%A9rio+da+Sa%C3%BAde" in url_resp
+                        or "Ministerio+da+Saude" in url_resp
+                        or "org=Minist" in url_resp
+                        or "ato=Portaria" in url_resp
+                    )
                     extraidos = _extrair_portarias_html(
                         r.text, "Ministério da Saúde",
                         usar_hint_como_fallback=filtro_confirmado
@@ -605,7 +610,10 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
                     if extraidos:
                         brutos.extend(extraidos)
                         log["estrategia_usada"] = fonte
-                        logger.info("[DOU] %s %s — %d extraídas", fonte, data_str, len(extraidos))
+                        logger.info(
+                            "[DOU] %s %s — %d extraídas (filtro_confirmado=%s)",
+                            fonte, data_str, len(extraidos), filtro_confirmado,
+                        )
                         break
                 else:
                     log["falhas"].append(f"{fonte}: HTTP {r.status_code}")
@@ -714,7 +722,15 @@ def _resolver_link(p: dict, data_ref: date) -> str:
     if not data_fmt:
         data_fmt = data_ref.strftime("%d-%m-%Y")
 
-    return f"https://www.in.gov.br/leiturajornal?data={data_fmt}&secao=do1"
+    # Filtros reais confirmados pelo portal DOU: org= e ato=
+    from urllib.parse import urlencode
+    qs = urlencode({
+        "data":   data_fmt,
+        "secao":  "do1",
+        "org":    "Ministério da Saúde",
+        "ato":    "Portaria",
+    })
+    return f"https://www.in.gov.br/leiturajornal?{qs}"
 
 
 # ── Classificação de abrangência e prioridade ─────────────────────────────────
