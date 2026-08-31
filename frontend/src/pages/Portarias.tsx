@@ -1028,29 +1028,29 @@ function PainelPortariasDOU() {
     setErroBusca(null);
     try {
       if (modoData === "dia") {
-        // Busca 1 dia
         const r = await apiGet(`/api/email-diario/buscar-dou?data=${filtroData}`);
-        const total = (r as any)?.total ?? 0;
-        setResultadoBusca(`${total} portaria(s) do MS capturada(s) e salvas no banco (${filtroData}).`);
+        const tot = (r as any)?.total ?? 0;
+        setResultadoBusca(`${tot} portaria(s) do MS salvas (${filtroData}).`);
       } else {
         // Busca todos os dias úteis do mês
         const [ano, mes] = filtroMes.split("-").map(Number);
         const diasNoMes = new Date(ano, mes, 0).getDate();
         let totalAcum = 0;
+        let diasBuscados = 0;
         for (let d = 1; d <= diasNoMes; d++) {
           const dataStr = `${filtroMes}-${String(d).padStart(2, "0")}`;
           if (dataStr > hoje) break;
           const diaSemana = new Date(dataStr + "T12:00:00").getDay();
-          if (diaSemana === 0 || diaSemana === 6) continue; // pula fins de semana
+          if (diaSemana === 0 || diaSemana === 6) continue;
+          diasBuscados++;
           try {
-            const r = await apiGet(`/api/email-diario/buscar-dou?data=${dataStr}`);
-            totalAcum += (r as any)?.total ?? 0;
-          } catch {
-            // ignora dias sem publicação
-          }
+            const r2 = await apiGet(`/api/email-diario/buscar-dou?data=${dataStr}`);
+            totalAcum += (r2 as any)?.total ?? 0;
+          } catch { /* dia sem publicação */ }
         }
-        setResultadoBusca(`${totalAcum} portaria(s) do MS capturada(s) no mês ${filtroMes}.`);
+        setResultadoBusca(`${totalAcum} portaria(s) capturadas em ${diasBuscados} dias úteis de ${filtroMes}.`);
       }
+      setFiltroRel(""); // reseta para mostrar todas as portarias
       qc.invalidateQueries({ queryKey: ["portarias-dou"] });
       qc.invalidateQueries({ queryKey: ["portarias-execucoes"] });
     } catch (e: any) {
@@ -1181,11 +1181,11 @@ function PainelPortariasDOU() {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
           <select value={filtroRel} onChange={e => setFiltroRel(e.target.value)}
             style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 12 }}>
-            <option value="">Toda relevância</option>
-            <option value="apui">📍 Apuí/AM</option>
-            <option value="amazonas">🏛 Amazonas</option>
-            <option value="federal">🇧🇷 Federal</option>
-            <option value="sem_impacto">⚪ Sem impacto</option>
+            <option value="">Todas as portarias MS</option>
+            <option value="apui">📍 Relevante para Apuí/AM</option>
+            <option value="amazonas">🏛 Somente Amazonas</option>
+            <option value="federal">🇧🇷 Somente Federal</option>
+            <option value="sem_impacto">⚪ Sem impacto direto</option>
           </select>
           <select value={filtroPrio} onChange={e => setFiltroPrio(e.target.value)}
             style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 12 }}>

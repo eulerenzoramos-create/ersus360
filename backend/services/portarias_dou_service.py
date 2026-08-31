@@ -406,32 +406,50 @@ TERMOS_AMAZONAS = [
     "amazonas",
 ]
 TERMOS_FEDERAL_MUNICIPAL = [
+    # Atenção Primária
     "atenção primária", "atencao primaria",
     "atenção básica", "atencao basica",
-    "estratégia saúde da família", "esf",
+    "estratégia saúde da família", "saúde da família", "esf",
     "agente comunitário", "acs",
     "núcleo ampliado", "nasf",
+    "equipe de saúde", "equipes de saúde",
+    "unidade básica", "ubs",
+    # Financeiro
     "custeio", "investimento",
     "fundo nacional de saúde", "fns",
-    "repasse federal", "transferência fundo a fundo",
-    "bloco de financiamento",
-    "habilitação", "habilitacao",
-    "credenciamento",
+    "fundo municipal", "fundo estadual",
+    "repasse federal", "repasse financeiro",
+    "transferência fundo a fundo", "transferencia fundo",
+    "bloco de financiamento", "bloco de custeio",
     "teto financeiro", "limite financeiro",
-    "programa nacional",
-    "piso da enfermagem",
     "emenda parlamentar",
     "componente fixo", "componente variável",
+    "recurso federal", "recursos federais",
+    "piso da atenção", "piso da enfermagem",
+    # Programas nacionais
+    "programa nacional", "política nacional",
+    "habilitação", "habilitacao",
+    "credenciamento",
     "relatório de gestão", "relatorio de gestao",
     "prestação de contas",
     "indicador", "meta",
+    # Vigilância
     "vigilância epidemiológica", "vigilancia epidemiologica",
     "vigilância sanitária", "vigilancia sanitaria",
+    "vigilância em saúde",
+    # Especialidades
     "assistência farmacêutica", "assistencia farmaceutica",
     "média complexidade", "alta complexidade",
     "urgência e emergência",
     "saúde indígena", "saude indigena",
+    "saúde mental", "saude mental",
+    "saúde bucal",
+    "rede de atenção",
+    # Abrangência
     "municípios", "municipios",
+    "gestores municipais", "secretarias municipais",
+    "municípios habilitados", "municípios beneficiários",
+    "todos os municípios",
 ]
 TERMOS_URGENTE = [
     "até o dia", "até o prazo", "encerramento",
@@ -929,7 +947,13 @@ def _classificar(p: dict, data_ref: date | None = None) -> dict:
     elif any(t in texto for t in TERMOS_FEDERAL_MUNICIPAL):
         relevancia = "federal"
     else:
-        relevancia = "sem_impacto"
+        # Portaria MS validada → padrão "federal": toda portaria MS afeta municípios
+        # Só marca "sem_impacto" se for claramente um ato interno (despacho sem conteúdo)
+        tipo_lower = tipo_ato.lower()
+        if tipo_lower in ("despacho",) and not corpo.strip():
+            relevancia = "sem_impacto"
+        else:
+            relevancia = "federal"
 
     prioridade = _classificar_prioridade(titulo, corpo, relevancia)
     valores    = _extrair_valores(texto)

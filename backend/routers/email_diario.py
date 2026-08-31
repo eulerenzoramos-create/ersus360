@@ -415,7 +415,18 @@ async def listar_portarias(
     elif data_inicio:
         conditions.append(PortariaDOU.data_publicacao >= data_inicio)
     if relevancia:
-        conditions.append(PortariaDOU.relevancia == relevancia)
+        # "apui" → mostra apui + federal + amazonas (todas afetam o município)
+        if relevancia == "apui":
+            conditions.append(
+                PortariaDOU.relevancia.in_(["apui", "federal", "amazonas"])
+            )
+        # "federal" → mostra federal + apui
+        elif relevancia == "federal":
+            conditions.append(
+                PortariaDOU.relevancia.in_(["federal", "apui"])
+            )
+        else:
+            conditions.append(PortariaDOU.relevancia == relevancia)
     if prioridade:
         conditions.append(PortariaDOU.prioridade == prioridade)
     if status:
