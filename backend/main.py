@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.error("Erro na inicialização do banco: %s", exc, exc_info=True)
 
-    # Migração: corrige data_publicacao de DD/MM/YYYY → YYYY-MM-DD (idempotente)
+    # Migração: corrige data_publicacao nos registros existentes (idempotente)
     try:
         import re as _re
         from database import AsyncSessionLocal
@@ -44,13 +44,20 @@ async def lifespan(app: FastAPI):
             _rows = _res.scalars().all()
             _fix = 0
             for _p in _rows:
-                if _p.data_publicacao and _re.match(r"^\d{2}/\d{2}/\d{4}$", _p.data_publicacao):
-                    _d, _m, _a = _p.data_publicacao.split("/")
+                dp = (_p.data_publicacao or "").strip()
+                if _re.match(r"^\d{2}/\d{2}/\d{4}$", dp):
+                    # Formato legado DD/MM/YYYY → YYYY-MM-DD
+                    _d, _m, _a = dp.split("/")
                     _p.data_publicacao = f"{_a}-{_m}-{_d}"
                     _fix += 1
+                elif not dp or not _re.match(r"^\d{4}-\d{2}-\d{2}$", dp):
+                    # Vazio ou formato desconhecido → usa data de captura
+                    if _p.capturado_em:
+                        _p.data_publicacao = _p.capturado_em.strftime("%Y-%m-%d")
+                        _fix += 1
             if _fix:
                 await _db.commit()
-                logger.info("Migração data_publicacao: %d registros corrigidos (DD/MM/YYYY → YYYY-MM-DD)", _fix)
+                logger.info("Migração data_publicacao: %d registros corrigidos", _fix)
     except Exception as exc:
         logger.warning("Migração data_publicacao falhou (ignorando): %s", exc)
 

@@ -273,10 +273,15 @@ async def corrigir_datas_portarias(
 
     corrigidos = 0
     for p in rows:
-        if p.data_publicacao and _re.match(r"^\d{2}/\d{2}/\d{4}$", p.data_publicacao):
-            d, m, a = p.data_publicacao.split("/")
+        dp = (p.data_publicacao or "").strip()
+        if _re.match(r"^\d{2}/\d{2}/\d{4}$", dp):
+            d, m, a = dp.split("/")
             p.data_publicacao = f"{a}-{m}-{d}"
             corrigidos += 1
+        elif not dp or not _re.match(r"^\d{4}-\d{2}-\d{2}$", dp):
+            if p.capturado_em:
+                p.data_publicacao = p.capturado_em.strftime("%Y-%m-%d")
+                corrigidos += 1
 
     if corrigidos:
         await db.commit()
