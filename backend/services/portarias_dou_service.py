@@ -1,7 +1,7 @@
 """
 ERSUS360 — Agente de Portarias do Ministério da Saúde — DOU
 ============================================================
-Versão 4.1 — Correção crítica de classificação de órgão
+Versão 5.0 — Validação por título + captura ampliada de todos os atos MS
 
 Regra fundamental (nunca violar):
   Uma publicação só é aceita como do Ministério da Saúde se o campo
@@ -150,7 +150,10 @@ FRAGMENTOS_NAO_MS: tuple[str, ...] = (
     "petróleo",
     "gas natural",
     "gás natural",
-    " anp",          # Agência Nacional do Petróleo — espaço evita "saps"
+    "/anp",          # Agência Nacional do Petróleo
+    "setad",         # Secretaria de Estado — não MS
+    "/mcti",         # Ministério de Ciência, Tecnologia e Inovação
+    "mcti/",
     "agricultura",
     "educacao",
     "educação",
@@ -174,11 +177,10 @@ FRAGMENTOS_NAO_MS: tuple[str, ...] = (
     "cidades",
     "meio ambiente",
     "clima",
-    " mma",
+    "/mma",
     "relacoes exteriores",
     "relações exteriores",
-    " mre",
-    " mcti",
+    "/mre",
     "esporte",
     "direitos humanos",
     "igualdade racial",
@@ -191,8 +193,8 @@ FRAGMENTOS_NAO_MS: tuple[str, ...] = (
     "portos",
     "transportes",
     "minas e energia",
-    " mme",
-    " mds",
+    "/mme",
+    "/mds",
     "desenvolvimento social",
     "cidadania",
     "indios",               # FUNAI — não é vinculada ao MS
@@ -200,7 +202,55 @@ FRAGMENTOS_NAO_MS: tuple[str, ...] = (
     "funai",
     "amazonia",             # Ministério da Amazônia ≠ MS
     "amazônia",
+    "susep",               # Seguros Privados — não é MS
+    "fcrb",                # Fundação Casa de Rui Barbosa — Cultura
+    "cgccr",               # Conselho de Controle de Atividades Financeiras
+    "coaf",
+    "/igi",                # Instituto de Gestão — não MS
+    "alf/",                # Alfândega — Fazenda
+    "dnit",                # Transportes
+    "anac",                # Aviação Civil
+    "anatel",              # Comunicações
+    "aneel",               # Energia Elétrica
+    "/ana ",               # Agência Nacional de Águas — evita "analise"
+    "anm/",                # Mineração
+    "antaq",               # Transportes Aquaviários
+    "antt",                # Transportes Terrestres
+    "ancine",              # Cinema — Cultura
+    "cvm/",                # Valores Mobiliários — Fazenda
+    "ibama",               # Meio Ambiente
+    "ibge",                # IBGE não é MS
+    "iphan",               # Cultura
+    "incra",               # Agricultura
+    "dpf",                 # Polícia Federal — Justiça
+    "inmetro",             # Indústria
+    "inpi",                # Propriedade Industrial
+    "inss",                # Previdência
+    "bcb/",                # Banco Central
+    "bacen",
 )
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SIGLAS MS NO TÍTULO — se o título da portaria contém uma dessas siglas
+# precedida de "PORTARIA", é definitivamente do Ministério da Saúde.
+# ─────────────────────────────────────────────────────────────────────────────
+SIGLAS_MS_NO_TITULO: frozenset[str] = frozenset({
+    "gm/ms", "gm/m", "saps/ms", "saes/ms", "svsa/ms", "svs/ms",
+    "sectics/ms", "sctie/ms", "sesai/ms", "seidigi/ms", "se/ms",
+    "fns/ms", "fns", "anvisa", "ans/ms",
+    "ministerio da saude", "ministério da saúde",
+})
+
+# Siglas de outros órgãos que aparecem no padrão "PORTARIA [SIGLA] Nº X"
+SIGLAS_NAO_MS_NO_TITULO: frozenset[str] = frozenset({
+    "setad/mcti", "mcti", "fcrb", "susep", "cgccr/susep", "alf/igi",
+    "dnit", "anac", "anatel", "aneel", "anm", "antaq", "antt", "ancine",
+    "cvm", "ibama", "ibge", "iphan", "incra", "dpf", "inmetro", "inpi",
+    "inss", "bcb", "bacen", "secom", "sefic", "minc", "mapa", "mre",
+    "mds", "mcidades", "minfra", "mtur", "mec", "md", "mmfdh", "mj",
+    "ms/me", "mp", "mpog", "sef", "stn", "srf", "receita federal",
+    "cgccr", "coaf", "igi", "alf",
+})
 
 
 def _normalizar_orgao(orgao: str) -> str:
@@ -215,28 +265,94 @@ def _normalizar_orgao(orgao: str) -> str:
     return s
 
 
-def confirmar_orgao_ms(orgao_raw: str) -> bool:
+def _orgao_do_titulo(titulo: str) -> str:
+    """
+    Extrai a sigla do órgão do título de portaria no formato DOU.
+    Ex: "PORTARIA GM/MS Nº 12.129, DE 26 DE AGOSTO" → "gm/ms"
+        "PORTARIA SETAD/MCTI Nº 10.316, DE 28 ..." → "setad/mcti"
+    Retorna string vazia se não conseguir extrair.
+    """
+    t = titulo.strip()
+    # Padrão: PORTARIA [SIGLA] Nº/N.º X ou PORTARIA [SIGLA], DE
+    m = re.match(
+        r'^portaria\s+([A-Za-záàâãéêíóôõúüç/\-]+)\s+n[º°\.º]?\s',
+        t, re.I
+    )
+    if m:
+        return m.group(1).lower().strip()
+    # Tenta sem "Nº" — ex: "PORTARIA GM/MS, DE 26..."
+    m2 = re.match(r'^portaria\s+([A-Za-záàâãéêíóôõúüç/\-]{2,30})\s*,', t, re.I)
+    if m2:
+        return m2.group(1).lower().strip()
+    return ""
+
+
+def _titulo_confirma_ms(titulo: str) -> bool | None:
+    """
+    Analisa o título da portaria para confirmar ou negar se é do MS.
+    Retorna True se confirmar MS, False se negar, None se indeterminado.
+    """
+    sigla = _orgao_do_titulo(titulo)
+    if not sigla:
+        return None
+
+    # Normaliza para comparação
+    sigla_n = _normalizar_orgao(sigla)
+
+    # Confirma explicitamente como MS
+    for ms_sig in SIGLAS_MS_NO_TITULO:
+        ms_n = _normalizar_orgao(ms_sig)
+        if ms_n == sigla_n or ms_n in sigla_n:
+            return True
+
+    # Rejeita explicitamente como não-MS
+    for nao_ms in SIGLAS_NAO_MS_NO_TITULO:
+        nao_ms_n = _normalizar_orgao(nao_ms)
+        if nao_ms_n == sigla_n or nao_ms_n in sigla_n:
+            return False
+
+    # Verifica fragmentos de exclusão na sigla
+    for frag in FRAGMENTOS_NAO_MS:
+        if frag in sigla_n:
+            return False
+
+    return None  # Indeterminado — deixa confirmar_orgao_ms decidir
+
+
+def confirmar_orgao_ms(orgao_raw: str, titulo: str = "") -> bool:
     """
     Retorna True SOMENTE se o órgão pertencer à estrutura oficial do MS.
-    - Fragmentos de exclusão têm prioridade absoluta.
-    - Órgão vazio → rejeitar (nunca assumir que é MS).
-    - Nunca retorna True para órgão desconhecido.
+
+    Ordem de verificação:
+    1. Análise do título (mais confiável que orgaoName quando disponível)
+    2. Fragmentos de exclusão no orgaoName — prioridade máxima
+    3. Correspondência na allowlist
+    4. Órgão vazio E título indeterminado → rejeitar por segurança
     """
+    # 1. Título como fonte primária de confirmação/rejeição
+    if titulo:
+        resultado_titulo = _titulo_confirma_ms(titulo)
+        if resultado_titulo is True:
+            return True
+        if resultado_titulo is False:
+            return False
+        # resultado_titulo is None → continua com orgaoName
+
     if not orgao_raw or not orgao_raw.strip():
         return False
 
     n = _normalizar_orgao(orgao_raw)
 
-    # 1. Fragmentos de exclusão — prioridade máxima
+    # 2. Fragmentos de exclusão — prioridade máxima
     for frag in FRAGMENTOS_NAO_MS:
         if frag in n:
             return False
 
-    # 2. Correspondência exata na allowlist
+    # 3. Correspondência exata na allowlist
     if n in {_normalizar_orgao(o) for o in ORGAOS_MS_PERMITIDOS}:
         return True
 
-    # 3. A allowlist é substring do orgão informado
+    # 4. A allowlist é substring do orgão informado
     #    (ex: "Ministério da Saúde / SAPS" contém "saps")
     for permitido in ORGAOS_MS_PERMITIDOS:
         np = _normalizar_orgao(permitido)
@@ -529,49 +645,85 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
 
     brutos: list[dict] = []
 
-    # ── Estratégia 1: API /consulta/-/buscar-conteudo ──────────────────────────
-    # Usa orgaoPesquisa para filtrar — itens retornados podem usar hint como fallback
-    for secao in ("DO1", "DO2"):
-        fonte = f"API-buscar-conteudo/{secao}"
-        params = {
-            "orgaoPesquisa": "Ministério da Saúde",
-            "data":          data_str,
-            "tipoDeAto":     "Portaria",
-            "secao":         secao,
-            "numberPerPage": "100",
-        }
+    # ── Estratégia 1: API /consulta/-/buscar-conteudo — todos os tipos de ato MS ─
+    # Captura TODOS os atos do MS: Portaria, Portaria Normativa, Portaria Conjunta,
+    # Instrução Normativa, Resolução — validação de órgão pelo título (mais segura)
+    TIPOS_ATO_MS = [
+        "Portaria",
+        "Portaria Normativa",
+        "Portaria Conjunta",
+        "Instrução Normativa",
+        "Resolução",
+        "Despacho",
+    ]
+    for secao in ("DO1", "DO2", "DO3"):
+        for tipo_ato in TIPOS_ATO_MS:
+            fonte = f"API/{secao}/{tipo_ato.replace(' ', '_')}"
+            params = {
+                "orgaoPesquisa": "Ministério da Saúde",
+                "data":          data_str,
+                "tipoDeAto":     tipo_ato,
+                "secao":         secao,
+                "numberPerPage": "100",
+            }
+            try:
+                async with httpx.AsyncClient(timeout=25, follow_redirects=True) as c:
+                    r = await c.get(DOU_BUSCA, params=params, headers=hdrs)
+                log["fontes_tentadas"].append(fonte)
+                if r.status_code == 200:
+                    try:
+                        d = r.json()
+                        items = (d if isinstance(d, list)
+                                 else d.get("items") or d.get("content") or d.get("results") or [])
+                        if items:
+                            # NÃO atribuímos hint automático — deixamos a validação por título decidir
+                            brutos.extend(items)
+                            log["estrategia_usada"] = fonte
+                            logger.info("[DOU] %s %s — %d atos JSON", fonte, data_str, len(items))
+                            continue
+                    except Exception:
+                        pass
+                    # Fallback HTML — NÃO usa hint (validação por título cuida do filtro)
+                    extraidos = _extrair_portarias_html(
+                        r.text, "Ministério da Saúde", usar_hint_como_fallback=False
+                    )
+                    if extraidos:
+                        brutos.extend(extraidos)
+                        log["estrategia_usada"] = f"{fonte}-HTML"
+                        logger.info("[DOU] %s HTML %s — %d extraídas", fonte, data_str, len(extraidos))
+                elif r.status_code != 404:
+                    log["falhas"].append(f"{fonte}: HTTP {r.status_code}")
+                    logger.warning("[DOU] %s HTTP %d", fonte, r.status_code)
+            except Exception as exc:
+                log["falhas"].append(f"{fonte}: {exc}")
+                logger.warning("[DOU] %s erro: %s", fonte, exc)
+
+    # ── Estratégia 1b: leiturajornal filtrado por org — complementa Estrat. 1 ──
+    # Captura portarias que a API /buscar-conteudo pode ter perdido.
+    # Usa org="Ministério da Saúde" + ato="Portaria" (parâmetros confirmados).
+    # Validação por título cuida dos falsos positivos — hint desabilitado.
+    for secao in ("do1", "do2"):
+        fonte = f"leiturajornal-org/{secao}"
         try:
             async with httpx.AsyncClient(timeout=25, follow_redirects=True) as c:
-                r = await c.get(DOU_BUSCA, params=params, headers=hdrs)
+                r = await c.get(
+                    DOU_LEITURA,
+                    params={
+                        "data":  data_str,
+                        "secao": secao,
+                        "org":   "Ministério da Saúde",
+                        "ato":   "Portaria",
+                    },
+                    headers=hdrs,
+                )
             log["fontes_tentadas"].append(fonte)
             if r.status_code == 200:
-                # Tenta JSON
-                try:
-                    d = r.json()
-                    items = (d if isinstance(d, list)
-                             else d.get("items") or d.get("content") or d.get("results") or [])
-                    if items:
-                        # Filtro aplicado → hint é confiável para itens sem orgaoName
-                        for item in items:
-                            if not item.get("orgaoName") and not item.get("orgao"):
-                                item["orgaoName"] = "Ministério da Saúde"
-                        brutos.extend(items)
-                        log["estrategia_usada"] = fonte
-                        logger.info("[DOU] %s %s — %d portarias JSON", fonte, data_str, len(items))
-                        continue
-                except Exception:
-                    pass
-                # Fallback HTML — filtro aplicado → hint permitido
                 extraidos = _extrair_portarias_html(
-                    r.text, "Ministério da Saúde", usar_hint_como_fallback=True
+                    r.text, "Ministério da Saúde", usar_hint_como_fallback=False
                 )
                 if extraidos:
                     brutos.extend(extraidos)
-                    log["estrategia_usada"] = f"{fonte}-HTML"
-                    logger.info("[DOU] %s HTML %s — %d extraídas", fonte, data_str, len(extraidos))
-            else:
-                log["falhas"].append(f"{fonte}: HTTP {r.status_code} — auth pode ser necessária")
-                logger.warning("[DOU] %s HTTP %d", fonte, r.status_code)
+                    logger.info("[DOU] %s %s — %d complementares", fonte, data_str, len(extraidos))
         except Exception as exc:
             log["falhas"].append(f"{fonte}: {exc}")
             logger.warning("[DOU] %s erro: %s", fonte, exc)
@@ -649,23 +801,26 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
                 log["falhas"].append(f"{fonte}: {exc}")
                 logger.warning("[DOU] %s erro: %s", fonte, exc)
 
-    # ── Filtro principal: allowlist de órgãos ─────────────────────────────────
+    # ── Filtro principal: orgão + validação por título ────────────────────────
     log["total_bruto"] = len(brutos)
     aceitos: list[dict] = []
 
     for p in brutos:
         orgao_raw = (p.get("orgaoName") or p.get("orgao") or "").strip()
-        titulo    = (p.get("title") or p.get("titulo") or "").strip()
+        titulo    = (p.get("title") or p.get("titulo") or p.get("identifica") or "").strip()
 
-        if not confirmar_orgao_ms(orgao_raw):
-            if orgao_raw:
-                motivo = (
-                    f"Órgão '{orgao_raw[:80]}' não pertence ao Ministério da Saúde"
-                )
+        # Passa o título para que confirmar_orgao_ms use a sigla extraída do título
+        # como camada primária de validação (mais confiável que orgaoName do DOU)
+        if not confirmar_orgao_ms(orgao_raw, titulo):
+            resultado_titulo = _titulo_confirma_ms(titulo)
+            if resultado_titulo is False:
+                motivo = f"Título indica órgão não-MS: '{titulo[:80]}'"
+            elif orgao_raw:
+                motivo = f"Órgão '{orgao_raw[:80]}' não pertence ao Ministério da Saúde"
             else:
                 motivo = (
-                    "Campo orgaoName ausente — não é possível confirmar o órgão. "
-                    "Publicação descartada por segurança."
+                    "Campo orgaoName ausente e título não confirma órgão MS. "
+                    "Descartado por segurança."
                 )
             log["descartados"].append({
                 "titulo": titulo[:80],
@@ -768,6 +923,23 @@ def _classificar(p: dict, data_ref: date | None = None) -> dict:
     numero_orig = (p.get("identifica") or p.get("numero") or p.get("numberSection") or "")
     orgao_orig  = (p.get("orgaoName") or p.get("orgao") or "Ministério da Saúde")
 
+    # Tipo do ato inferido do título quando não disponível na estrutura
+    tipo_ato = p.get("tipoDeAto") or p.get("tipo_ato") or "Portaria"
+    if not p.get("tipoDeAto"):
+        t_lower = titulo_orig.lower()
+        if "portaria normativa" in t_lower:
+            tipo_ato = "Portaria Normativa"
+        elif "portaria conjunta" in t_lower:
+            tipo_ato = "Portaria Conjunta"
+        elif "instrução normativa" in t_lower or "instrucao normativa" in t_lower:
+            tipo_ato = "Instrução Normativa"
+        elif "resolução" in t_lower or "resolucao" in t_lower:
+            tipo_ato = "Resolução"
+        elif "despacho" in t_lower:
+            tipo_ato = "Despacho"
+        else:
+            tipo_ato = "Portaria"
+
     # Cópias lowercased apenas para classificação — nunca armazenadas como _resumo
     titulo = titulo_orig.lower()
     corpo  = corpo_orig.lower()
@@ -790,6 +962,7 @@ def _classificar(p: dict, data_ref: date | None = None) -> dict:
         **p,
         "_relevancia": relevancia,
         "_prioridade": prioridade,
+        "_tipo_ato":   tipo_ato,
         "_titulo":     titulo_orig,
         "_numero":     numero_orig,
         "_link":       _resolver_link(p, data_ref),
@@ -1353,7 +1526,7 @@ async def _salvar_portarias_db(
                 row = PortariaDOU(
                     titulo=p.get("_titulo", "")[:1000],
                     numero=p.get("_numero", "")[:100],
-                    tipo_ato="Portaria",
+                    tipo_ato=(p.get("_tipo_ato") or "Portaria")[:50],
                     data_publicacao=p.get("_data", "")[:10],
                     secao_dou="DO1",
                     orgao=p.get("_orgao", "")[:200],
@@ -1475,71 +1648,81 @@ async def executar_envio_diario(
 
 def _testes_validacao_orgao() -> dict:
     """
-    Suite de 45 testes para a função confirmar_orgao_ms().
+    Suite de testes para confirmar_orgao_ms() com validação por título.
     Retorna {'passou': int, 'falhou': int, 'erros': list}.
     """
-    casos: list[tuple[str, bool, str]] = [
-        # Devem retornar TRUE (órgãos do MS)
-        ("Ministério da Saúde",                                      True,  "MS principal"),
-        ("MINISTÉRIO DA SAÚDE",                                      True,  "MS maiúsculas"),
-        ("ministério da saúde",                                       True,  "MS minúsculas"),
-        ("Secretaria de Atenção Primária à Saúde",                   True,  "SAPS nome completo"),
-        ("SAPS/MS",                                                   True,  "SAPS sigla"),
-        ("Secretaria de Atenção Especializada à Saúde",              True,  "SAES nome completo"),
-        ("SAES/MS",                                                   True,  "SAES sigla"),
-        ("Secretaria de Vigilância em Saúde e Ambiente",             True,  "SVSA nome"),
-        ("SVSA/MS",                                                   True,  "SVSA sigla"),
-        ("SECTICS/MS",                                                True,  "SECTICS sigla"),
-        ("SESAI/MS",                                                  True,  "SESAI sigla"),
-        ("SEIDIGI/MS",                                                True,  "SEIDIGI sigla"),
-        ("Fundo Nacional de Saúde",                                   True,  "FNS nome"),
-        ("FNS",                                                       True,  "FNS sigla"),
-        ("ANVISA",                                                    True,  "ANVISA"),
-        ("Agência Nacional de Vigilância Sanitária",                 True,  "ANVISA nome"),
-        ("ANS",                                                       True,  "ANS"),
-        ("FUNASA",                                                    True,  "FUNASA"),
-        ("FIOCRUZ",                                                   True,  "FIOCRUZ"),
-        ("GM/MS",                                                     True,  "GM/MS sigla"),
-        ("Gabinete do Ministro da Saúde",                            True,  "Gabinete MS"),
-        ("Secretaria-Executiva/MS",                                   True,  "SE/MS"),
-        ("SE/MS",                                                     True,  "SE/MS sigla"),
-        ("INCA",                                                      True,  "INCA"),
-        ("Secretaria de Saúde Indígena / SESAI",                     True,  "SESAI com sub"),
-        # Devem retornar FALSE (órgãos de outros ministérios)
-        ("Ministério da Integração e do Desenvolvimento Regional",   False, "Integração"),
-        ("Ministério da Pesca e Aquicultura",                        False, "Pesca"),
-        ("Agência Nacional do Petróleo, Gás Natural e Biocombustíveis", False, "ANP"),
-        ("Ministério da Educação",                                    False, "MEC"),
-        ("Ministério da Defesa",                                      False, "Defesa"),
-        ("Ministério da Fazenda",                                     False, "Fazenda"),
-        ("Ministério do Trabalho",                                    False, "Trabalho"),
-        ("Ministério da Justiça",                                     False, "Justiça"),
-        ("Ministério da Infraestrutura",                              False, "Infraestrutura"),
-        ("Ministério das Comunicações",                               False, "Comunicações"),
-        ("Ministério da Previdência Social",                          False, "Previdência"),
-        ("Ministério do Turismo",                                     False, "Turismo"),
-        ("Ministério da Cultura",                                     False, "Cultura"),
-        ("Ministério do Meio Ambiente e Mudança do Clima",           False, "Meio Ambiente"),
-        ("Ministério das Relações Exteriores",                       False, "Relações Ext."),
-        ("Ministério dos Esportes",                                   False, "Esportes"),
-        ("Ministério dos Direitos Humanos",                          False, "Dir. Humanos"),
-        ("Ministério do Desenvolvimento Social",                      False, "Des. Social"),
-        ("Ministério de Minas e Energia",                            False, "Minas e Energia"),
-        ("",                                                          False, "Vazio"),
+    # (orgao, titulo, esperado, descricao)
+    casos: list[tuple[str, str, bool, str]] = [
+        # ── Validação por TÍTULO (GM/MS, SAPS/MS, etc.) ──────────────────────
+        ("",             "PORTARIA GM/MS Nº 12.129, DE 26 DE AGOSTO DE 2026",      True,  "GM/MS pelo título"),
+        ("",             "PORTARIA SAPS/MS Nº 1.234, DE 01 DE SETEMBRO DE 2026",  True,  "SAPS pelo título"),
+        ("",             "Portaria GM/MS Nº 12.132, de 26 de agosto de 2026",     True,  "GM/MS minúsculas"),
+        ("",             "PORTARIA SETAD/MCTI Nº 10.316, DE 28 DE AGOSTO",        False, "SETAD/MCTI pelo título"),
+        ("",             "PORTARIA FCRB Nº 85, DE 28 DE AGOSTO DE 2026",          False, "FCRB pelo título"),
+        ("",             "PORTARIA CGCCR/SUSEP Nº 30, de 28 de agosto de 2026",   False, "SUSEP pelo título"),
+        ("",             "PORTARIA ALF/IGI Nº 60, DE 28 DE AGOSTO DE 2026",       False, "ALF/IGI pelo título"),
+        ("",             "PORTARIA MCTI Nº 10.308, DE 28 DE AGOSTO DE 2026",      False, "MCTI pelo título"),
+        # ── Validação por ORGAO (fallback quando título não define) ───────────
+        ("Ministério da Saúde",                                      "", True,  "MS principal"),
+        ("MINISTÉRIO DA SAÚDE",                                      "", True,  "MS maiúsculas"),
+        ("ministério da saúde",                                      "", True,  "MS minúsculas"),
+        ("Secretaria de Atenção Primária à Saúde",                   "", True,  "SAPS nome completo"),
+        ("SAPS/MS",                                                  "", True,  "SAPS sigla"),
+        ("Secretaria de Atenção Especializada à Saúde",             "", True,  "SAES nome completo"),
+        ("SAES/MS",                                                  "", True,  "SAES sigla"),
+        ("Secretaria de Vigilância em Saúde e Ambiente",            "", True,  "SVSA nome"),
+        ("SVSA/MS",                                                  "", True,  "SVSA sigla"),
+        ("SECTICS/MS",                                               "", True,  "SECTICS sigla"),
+        ("SESAI/MS",                                                 "", True,  "SESAI sigla"),
+        ("SEIDIGI/MS",                                               "", True,  "SEIDIGI sigla"),
+        ("Fundo Nacional de Saúde",                                  "", True,  "FNS nome"),
+        ("FNS",                                                      "", True,  "FNS sigla"),
+        ("ANVISA",                                                   "", True,  "ANVISA"),
+        ("Agência Nacional de Vigilância Sanitária",                "", True,  "ANVISA nome"),
+        ("ANS",                                                      "", True,  "ANS"),
+        ("FUNASA",                                                   "", True,  "FUNASA"),
+        ("FIOCRUZ",                                                  "", True,  "FIOCRUZ"),
+        ("GM/MS",                                                    "", True,  "GM/MS sigla"),
+        ("Gabinete do Ministro da Saúde",                           "", True,  "Gabinete MS"),
+        ("Secretaria-Executiva/MS",                                  "", True,  "SE/MS"),
+        ("SE/MS",                                                    "", True,  "SE/MS sigla"),
+        ("INCA",                                                     "", True,  "INCA"),
+        ("Secretaria de Saúde Indígena / SESAI",                    "", True,  "SESAI com sub"),
+        # ── Não-MS por orgao ──────────────────────────────────────────────────
+        ("Ministério da Integração e do Desenvolvimento Regional",  "", False, "Integração"),
+        ("Ministério da Pesca e Aquicultura",                       "", False, "Pesca"),
+        ("Agência Nacional do Petróleo, Gás Natural e Biocombustíveis", "", False, "ANP"),
+        ("Ministério da Educação",                                  "", False, "MEC"),
+        ("Ministério da Defesa",                                    "", False, "Defesa"),
+        ("Ministério da Fazenda",                                   "", False, "Fazenda"),
+        ("Ministério do Trabalho",                                  "", False, "Trabalho"),
+        ("Ministério da Justiça",                                   "", False, "Justiça"),
+        ("Ministério da Infraestrutura",                            "", False, "Infraestrutura"),
+        ("Ministério das Comunicações",                             "", False, "Comunicações"),
+        ("Ministério da Previdência Social",                        "", False, "Previdência"),
+        ("Ministério do Turismo",                                   "", False, "Turismo"),
+        ("Ministério da Cultura",                                   "", False, "Cultura"),
+        ("Ministério do Meio Ambiente e Mudança do Clima",          "", False, "Meio Ambiente"),
+        ("Ministério das Relações Exteriores",                      "", False, "Relações Ext."),
+        ("Ministério dos Esportes",                                 "", False, "Esportes"),
+        ("Ministério dos Direitos Humanos",                         "", False, "Dir. Humanos"),
+        ("Ministério do Desenvolvimento Social",                    "", False, "Des. Social"),
+        ("Ministério de Minas e Energia",                           "", False, "Minas e Energia"),
+        ("",                                                         "", False, "Vazio"),
     ]
 
     passou = 0
     falhou = 0
     erros: list[str] = []
 
-    for orgao, esperado, descricao in casos:
-        resultado = confirmar_orgao_ms(orgao)
+    for orgao, titulo, esperado, descricao in casos:
+        resultado = confirmar_orgao_ms(orgao, titulo)
         if resultado == esperado:
             passou += 1
         else:
             falhou += 1
             erros.append(
-                f"FALHOU [{descricao}]: confirmar_orgao_ms('{orgao}') "
+                f"FALHOU [{descricao}]: confirmar_orgao_ms('{orgao}', '{titulo[:40]}') "
                 f"retornou {resultado}, esperado {esperado}"
             )
 
