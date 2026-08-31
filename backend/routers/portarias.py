@@ -157,6 +157,103 @@ async def upload_pdf(
     return {"ok": True, "arquivo": caminho, "tamanho_kb": len(conteudo) // 1024}
 
 
+@router.get("/pendentes-dou")
+async def portarias_dou_pendentes(
+    db: AsyncSession = Depends(get_db),
+    _: UserOut = Depends(get_current_user),
+):
+    """
+    Retorna portarias capturadas pelo agente DOU que ainda não foram importadas
+    para o Banco de Portarias (status != 'importado').
+    """
+    from models.portaria_dou import PortariaDOU
+    res = await db.execute(
+        select(PortariaDOU)
+        .where(PortariaDOU.status != "importado")
+        .where(PortariaDOU.relevancia.in_(["apui", "amazonas", "federal"]))
+        .order_by(PortariaDOU.capturado_em.desc())
+        .limit(200)
+    )
+    rows = res.scalars().all()
+    return [
+        {
+            "id":             r.id,
+            "titulo":         r.titulo,
+            "numero":         r.numero,
+            "orgao":          r.orgao,
+            "data_publicacao":r.data_publicacao,
+            "relevancia":     r.relevancia,
+            "prioridade":     r.prioridade,
+            "url_oficial":    r.url_oficial,
+        }
+        for r in rows
+    ]
+
+
+@router.post("/importar-dou")
+async def importar_portarias_dou(
+    ids: list[int],
+    db: AsyncSession = Depends(get_db),
+    _: UserOut = Depends(get_current_user),
+):
+    """
+    Importa portarias selecionadas do agente DOU para o Banco de Portarias.
+    Converte PortariaDOU → Portaria e marca a origem como 'importado'.
+    """
+    from models.portaria_dou import PortariaDOU
+
+    importadas = 0
+    erros: list[str] = []
+
+    for pid in ids:
+        try:
+            res = await db.execute(select(PortariaDOU).where(PortariaDOU.id == pid))
+            dou = res.scalar_one_or_none()
+            if not dou:
+                erros.append(f"ID {pid} não encontrado")
+                continue
+
+            # Extrai ano da data de publicação
+            try:
+                ano = int((dou.data_publicacao or "")[:4]) or 2026
+            except Exception:
+                ano = 2026
+
+            # Mapa de relevância → bloco aproximado
+            bloco_map = {
+                "apui":     "Atenção Primária",
+                "amazonas": "Atenção Primária",
+                "federal":  "Atenção Primária",
+            }
+
+            nova = Portaria(
+                numero=dou.numero or dou.titulo[:50],
+                ano=ano,
+                orgao_emissor=dou.orgao or "GM/MS",
+                programa=None,
+                bloco=bloco_map.get(dou.relevancia),
+                grupo=dou.relevancia,
+                acao=None,
+                natureza="Normativa",
+                objeto=(dou.resumo or dou.titulo)[:2000],
+                data_publicacao=None,
+                link_diario=dou.url_oficial,
+                valor_total=0.0,
+            )
+            db.add(nova)
+            dou.status = "importado"
+            importadas += 1
+        except Exception as exc:
+            erros.append(f"ID {pid}: {exc}")
+
+    await db.commit()
+    return {
+        "ok":        True,
+        "importadas": importadas,
+        "erros":     erros,
+    }
+
+
 @router.delete("/{portaria_id}")
 async def remover_portaria(
     portaria_id: int,

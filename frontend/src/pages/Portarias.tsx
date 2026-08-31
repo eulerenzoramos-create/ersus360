@@ -1193,6 +1193,34 @@ export default function Portarias() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["portarias"] }),
   });
 
+  // Portarias capturadas pelo agente DOU ainda não importadas para o banco
+  const { data: pendenteDOU = [] } = useQuery<{ id: number; titulo: string; numero: string; orgao: string; relevancia: string; prioridade: string; }[]>({
+    queryKey: ["portarias-pendentes-dou"],
+    queryFn: () => apiGet("/api/portarias/pendentes-dou"),
+    staleTime: 60_000,
+    enabled: aba === "banco",
+  });
+
+  const [importandoDOU, setImportandoDOU] = useState(false);
+  const [importadosOk, setImportadosOk] = useState<number | null>(null);
+
+  const importarTodosDOU = async () => {
+    if (!pendenteDOU.length) return;
+    setImportandoDOU(true);
+    setImportadosOk(null);
+    try {
+      const ids = pendenteDOU.map((p) => p.id);
+      const res = await apiPost("/api/portarias/importar-dou", ids);
+      setImportadosOk(res.importadas ?? 0);
+      qc.invalidateQueries({ queryKey: ["portarias"] });
+      qc.invalidateQueries({ queryKey: ["portarias-pendentes-dou"] });
+    } catch {
+      // erro silencioso — o banner ainda mostra
+    } finally {
+      setImportandoDOU(false);
+    }
+  };
+
   const fmt = (v: number) => v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   if (!isLoading && !portarias) return (
@@ -1248,6 +1276,40 @@ export default function Portarias() {
           <Plus size={14} /> Nova Portaria
         </button>
       </div>
+
+      {/* Banner: importar do agente DOU */}
+      {pendenteDOU.length > 0 && importadosOk === null && (
+        <div style={{
+          background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8,
+          padding: "12px 16px", marginBottom: 14,
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+        }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#1d4ed8" }}>
+              🤖 {pendenteDOU.length} portaria{pendenteDOU.length > 1 ? "s" : ""} capturada{pendenteDOU.length > 1 ? "s" : ""} pelo agente DOU disponível{pendenteDOU.length > 1 ? "is" : ""} para importar
+            </div>
+            <div style={{ fontSize: 12, color: "#3b82f6", marginTop: 2 }}>
+              Apenas portarias com relevância Apuí/AM, Amazonas ou Federal Municipal
+            </div>
+          </div>
+          <button
+            onClick={importarTodosDOU}
+            disabled={importandoDOU}
+            style={{ ...S.btn, background: "#1d4ed8", color: "#fff", whiteSpace: "nowrap" }}
+          >
+            {importandoDOU ? <RotateCcw size={13} style={{ animation: "spin 1s linear infinite" }} /> : <Plus size={13} />}
+            {importandoDOU ? "Importando…" : "Importar todas"}
+          </button>
+        </div>
+      )}
+      {importadosOk !== null && (
+        <div style={{
+          background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8,
+          padding: "10px 16px", marginBottom: 14, fontSize: 13, color: "#15803d", fontWeight: 600,
+        }}>
+          ✓ {importadosOk} portaria{importadosOk !== 1 ? "s" : ""} importada{importadosOk !== 1 ? "s" : ""} com sucesso do agente DOU.
+        </div>
+      )}
 
       {/* Filtros */}
       <div style={S.row}>
