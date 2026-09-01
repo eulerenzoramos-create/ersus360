@@ -370,7 +370,7 @@ function LimparNaoMsBtn({ onDone }: { onDone: () => void }) {
       </button>
       {resultado && (
         <span style={{ fontSize: 11, color: "#059669", fontWeight: 600 }}>
-          ✓ {resultado.removidos} removida(s)
+          ✓ {resultado.total_removidos} removida(s) · {resultado.restantes} restante(s)
         </span>
       )}
     </span>

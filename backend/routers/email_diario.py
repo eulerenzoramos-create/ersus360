@@ -349,21 +349,55 @@ async def limpar_portarias_nao_ms(
     def _tem_sigla_ms(titulo: str) -> bool:
         return bool(_SIGLAS_MS_REGEX.search(titulo))
 
-    res = await db.execute(select(PortariaDOU))
+    res = await db.execute(select(PortariaDOU).order_by(PortariaDOU.id.asc()))
     rows = res.scalars().all()
-    ids_deletar = []
-    for p in rows:
-        titulo_n = (p.titulo or "").lower()
-        if not _tem_sigla_ms(titulo_n):
-            ids_deletar.append(p.id)
+    ids_deletar: list[int] = []
 
-    if ids_deletar:
+    # 1. Remove não-MS (sem sigla MS no título)
+    ids_nao_ms = {p.id for p in rows if not _tem_sigla_ms(p.titulo or "")}
+    ids_deletar.extend(ids_nao_ms)
+
+    # 2. Deduplica: agrupa por título normalizado, mantém o de maior id (mais recente)
+    import unicodedata as _ud
+    def _normalizar_titulo(t: str) -> str:
+        t = t.upper().strip()
+        t = _ud.normalize("NFKD", t)
+        t = "".join(c for c in t if not _ud.combining(c))
+        # Remove variações de espaço e pontuação irrelevante
+        import re as _re2
+        t = _re2.sub(r'\s+', ' ', t)
+        return t
+
+    visto: dict[str, int] = {}  # titulo_norm → id do registro a manter
+    for p in rows:
+        if p.id in ids_nao_ms:
+            continue
+        chave = _normalizar_titulo(p.titulo or "")
+        if chave in visto:
+            # Manter o de maior id (mais recente), deletar o anterior
+            if p.id > visto[chave]:
+                ids_deletar.append(visto[chave])
+                visto[chave] = p.id
+            else:
+                ids_deletar.append(p.id)
+        else:
+            visto[chave] = p.id
+
+    ids_deletar_uniq = list(set(ids_deletar))
+    if ids_deletar_uniq:
         await db.execute(
-            _delete(PortariaDOU).where(PortariaDOU.id.in_(ids_deletar))
+            _delete(PortariaDOU).where(PortariaDOU.id.in_(ids_deletar_uniq))
         )
         await db.commit()
 
-    return {"ok": True, "removidos": len(ids_deletar), "total_verificado": len(rows)}
+    return {
+        "ok": True,
+        "removidos_nao_ms": len(ids_nao_ms),
+        "removidos_duplicatas": len(ids_deletar_uniq) - len(ids_nao_ms),
+        "total_removidos": len(ids_deletar_uniq),
+        "total_verificado": len(rows),
+        "restantes": len(rows) - len(ids_deletar_uniq),
+    }
 
 
 @router.post("/corrigir-datas")
