@@ -632,17 +632,17 @@ def _extrair_valores(texto: str) -> list[str]:
 
 async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], dict]:
     """
-    Busca portarias do MS no DOU para a data informada.
-    Retorna (portarias_validadas, log_execucao).
+    Busca SOMENTE portarias do Ministério da Saúde no DOU.
 
-    Ordem de estratégias (da mais confiável para fallback):
-    1. leiturajornal?org=Ministério da Saúde&ato=Portaria — MESMO filtro do site DOU
-       confirmado pelo usuário. Retorna apenas atos MS reais. Sem hint.
-    2. leiturajornal?org=Ministério da Saúde SEM ato= — captura Portaria Normativa,
-       Portaria Conjunta, Instrução Normativa, Resolução etc.
-    3. API /buscar-conteudo — complemento apenas se 1+2 retornarem menos de 3 itens
-       (pode devolver atos de outros ministérios — validação por título filtra).
-    4. leiturajornal sem filtro — fallback emergencial, validação rigorosa por título.
+    Regra fundamental: só aceitar item se o TÍTULO contiver sigla MS explícita
+    (GM/MS, SAPS/MS, SAES/MS etc.) OU orgaoName for comprovadamente do MS.
+    usar_hint_como_fallback=False em todas as estratégias para não contaminar
+    resultados de outros órgãos.
+
+    Estratégias (ordem de confiabilidade):
+    1. leiturajornal org="Ministério da Saúde" + ato="Portaria" — DO1 e DO2
+    2. leiturajornal org="Ministério da Saúde" + ato="Portaria Normativa"
+    3. API buscar-conteudo só se 1+2 retornaram 0 resultados
     """
     data_str = data_ref.strftime("%d-%m-%Y")
     log: dict[str, Any] = {
@@ -667,135 +667,101 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
 
     brutos: list[dict] = []
 
-    # ── Estratégia 1: leiturajornal filtrado — idêntico ao filtro do site DOU ──
-    # Parâmetros confirmados pelo usuário: org="Ministério da Saúde" + ato="Portaria"
-    # Este é o ÚNICO filtro que o portal DOU aplica ao exibir só atos MS.
-    # Hint permitido pois org= já garante que só MS retorna.
-    for secao in ("do1", "do2"):
-        fonte = f"leiturajornal-ms/{secao}"
-        try:
-            async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
-                r = await c.get(
-                    DOU_LEITURA,
-                    params={
-                        "data":  data_str,
-                        "secao": secao,
-                        "org":   "Ministério da Saúde",
-                        "ato":   "Portaria",
-                    },
-                    headers=hdrs,
-                )
-            log["fontes_tentadas"].append(fonte)
-            if r.status_code == 200:
-                # Filtro aplicado → hint é confiável (site retornou só MS)
-                extraidos = _extrair_portarias_html(
-                    r.text, "Ministério da Saúde", usar_hint_como_fallback=True
-                )
-                if extraidos:
-                    brutos.extend(extraidos)
-                    log["estrategia_usada"] = fonte
-                    logger.info("[DOU] %s %s — %d portarias", fonte, data_str, len(extraidos))
-            else:
-                log["falhas"].append(f"{fonte}: HTTP {r.status_code}")
-        except Exception as exc:
-            log["falhas"].append(f"{fonte}: {exc}")
-            logger.warning("[DOU] %s erro: %s", fonte, exc)
-
-    # ── Estratégia 2: leiturajornal sem ato= — captura outros tipos de ato MS ──
-    # Portaria Normativa, Portaria Conjunta, Instrução Normativa, Resolução etc.
-    # Hint permitido pela mesma razão (org= já filtra por MS).
-    for secao in ("do1", "do2"):
-        fonte = f"leiturajornal-ms-todos/{secao}"
-        try:
-            async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
-                r = await c.get(
-                    DOU_LEITURA,
-                    params={
-                        "data":  data_str,
-                        "secao": secao,
-                        "org":   "Ministério da Saúde",
-                    },
-                    headers=hdrs,
-                )
-            log["fontes_tentadas"].append(fonte)
-            if r.status_code == 200:
-                extraidos = _extrair_portarias_html(
-                    r.text, "Ministério da Saúde", usar_hint_como_fallback=True
-                )
-                if extraidos:
-                    brutos.extend(extraidos)
-                    logger.info("[DOU] %s %s — %d atos (todos tipos)", fonte, data_str, len(extraidos))
-        except Exception as exc:
-            log["falhas"].append(f"{fonte}: {exc}")
-            logger.warning("[DOU] %s erro: %s", fonte, exc)
-
-    # ── Estratégia 3: API /buscar-conteudo — só se estratégias 1+2 não retornaram ─
-    # A API pode ignorar orgaoPesquisa e devolver atos de outros ministérios.
-    # Validação por título filtra os falsos positivos.
-    if len(brutos) < 3:
-        TIPOS_ATO_MS = ["Portaria", "Portaria Normativa", "Instrução Normativa", "Resolução"]
-        for secao in ("DO1", "DO2"):
-            for tipo_ato in TIPOS_ATO_MS:
-                fonte = f"API/{secao}/{tipo_ato.replace(' ', '_')}"
-                try:
-                    async with httpx.AsyncClient(timeout=20, follow_redirects=True) as c:
-                        r = await c.get(
-                            DOU_BUSCA,
-                            params={
-                                "orgaoPesquisa": "Ministério da Saúde",
-                                "data":          data_str,
-                                "tipoDeAto":     tipo_ato,
-                                "secao":         secao,
-                                "numberPerPage": "100",
-                            },
-                            headers={**hdrs, "Accept": "application/json, */*"},
-                        )
-                    log["fontes_tentadas"].append(fonte)
-                    if r.status_code == 200:
-                        try:
-                            d = r.json()
-                            items = (d if isinstance(d, list)
-                                     else d.get("items") or d.get("content") or d.get("results") or [])
-                            if items:
-                                # Sem hint — validação por título decide
-                                brutos.extend(items)
-                                logger.info("[DOU] %s %s — %d JSON", fonte, data_str, len(items))
-                                continue
-                        except Exception:
-                            pass
-                        extraidos = _extrair_portarias_html(
-                            r.text, usar_hint_como_fallback=False
-                        )
-                        if extraidos:
-                            brutos.extend(extraidos)
-                except Exception as exc:
-                    log["falhas"].append(f"{fonte}: {exc}")
-
-    # ── Estratégia 4: leiturajornal sem filtro — fallback emergencial ────────
-    if not brutos:
+    # ── Estratégia 1 e 2: leiturajornal com filtro duplo org + ato ───────────
+    # NUNCA usar hint como fallback — se o órgão não vier no item, ele é descartado.
+    # O DOU às vezes não retorna orgaoName nos itens mesmo com org= na URL.
+    # Por isso validamos OBRIGATORIAMENTE pelo título.
+    TIPOS_PORTARIA = ["Portaria", "Portaria Normativa"]
+    for tipo_ato in TIPOS_PORTARIA:
         for secao in ("do1", "do2"):
-            fonte = f"leiturajornal-bruto/{secao}"
+            fonte = f"leiturajornal/{tipo_ato.replace(' ','_')}/{secao}"
             try:
                 async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
                     r = await c.get(
                         DOU_LEITURA,
-                        params={"data": data_str, "secao": secao},
+                        params={
+                            "data":  data_str,
+                            "secao": secao,
+                            "org":   "Ministério da Saúde",
+                            "ato":   tipo_ato,
+                        },
                         headers=hdrs,
                     )
                 log["fontes_tentadas"].append(fonte)
                 if r.status_code == 200:
+                    # usar_hint_como_fallback=False — validação apenas por título
                     extraidos = _extrair_portarias_html(
                         r.text, usar_hint_como_fallback=False
                     )
-                    if extraidos:
-                        brutos.extend(extraidos)
-                        log["estrategia_usada"] = f"{fonte} (sem filtro)"
-                        logger.info("[DOU] %s %s — %d brutas", fonte, data_str, len(extraidos))
+                    # Filtra imediatamente: só PORTARIA com sigla MS no título
+                    validos = [
+                        p for p in extraidos
+                        if re.search(r'\bportaria\b', p.get("title", ""), re.I)
+                        and _titulo_confirma_ms(p.get("title", "")) is not False
+                    ]
+                    if validos:
+                        brutos.extend(validos)
+                        log["estrategia_usada"] = fonte
+                        logger.info(
+                            "[DOU] %s %s — %d brutos, %d válidos (título MS)",
+                            fonte, data_str, len(extraidos), len(validos)
+                        )
+                    else:
+                        logger.info("[DOU] %s %s — 0 portarias MS pelo título", fonte, data_str)
+                else:
+                    log["falhas"].append(f"{fonte}: HTTP {r.status_code}")
             except Exception as exc:
                 log["falhas"].append(f"{fonte}: {exc}")
                 logger.warning("[DOU] %s erro: %s", fonte, exc)
 
-    # ── Filtro principal: orgão + validação por título ────────────────────────
+    # ── Estratégia 3: API /buscar-conteudo — só se nenhum resultado ──────────
+    if not brutos:
+        for secao in ("DO1", "DO2"):
+            fonte = f"API/{secao}/Portaria"
+            try:
+                async with httpx.AsyncClient(timeout=20, follow_redirects=True) as c:
+                    r = await c.get(
+                        DOU_BUSCA,
+                        params={
+                            "orgaoPesquisa": "Ministério da Saúde",
+                            "data":          data_str,
+                            "tipoDeAto":     "Portaria",
+                            "secao":         secao,
+                            "numberPerPage": "100",
+                        },
+                        headers={**hdrs, "Accept": "application/json, */*"},
+                    )
+                log["fontes_tentadas"].append(fonte)
+                if r.status_code == 200:
+                    try:
+                        d = r.json()
+                        items = (d if isinstance(d, list)
+                                 else d.get("items") or d.get("content") or d.get("results") or [])
+                        if items:
+                            # Sem hint — validação obrigatória por título
+                            validos = [
+                                p for p in items
+                                if isinstance(p, dict)
+                                and re.search(r'\bportaria\b', p.get("title", "") or p.get("identifica", ""), re.I)
+                                and confirmar_orgao_ms(
+                                    p.get("orgaoName", ""),
+                                    p.get("title", "") or p.get("identifica", "")
+                                )
+                            ]
+                            brutos.extend(validos)
+                            logger.info("[DOU] %s %s — %d JSON, %d MS válidos", fonte, data_str, len(items), len(validos))
+                    except Exception:
+                        extraidos = _extrair_portarias_html(r.text, usar_hint_como_fallback=False)
+                        validos = [
+                            p for p in extraidos
+                            if re.search(r'\bportaria\b', p.get("title", ""), re.I)
+                            and confirmar_orgao_ms(p.get("orgaoName", ""), p.get("title", ""))
+                        ]
+                        brutos.extend(validos)
+            except Exception as exc:
+                log["falhas"].append(f"{fonte}: {exc}")
+
+    # ── Filtro principal: PORTARIA + órgão MS ────────────────────────────────
     log["total_bruto"] = len(brutos)
     aceitos: list[dict] = []
 
@@ -803,8 +769,16 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
         orgao_raw = (p.get("orgaoName") or p.get("orgao") or "").strip()
         titulo    = (p.get("title") or p.get("titulo") or p.get("identifica") or "").strip()
 
-        # Passa o título para que confirmar_orgao_ms use a sigla extraída do título
-        # como camada primária de validação (mais confiável que orgaoName do DOU)
+        # Filtro 1: título deve começar com PORTARIA (obrigatório)
+        if not re.search(r'^\s*portaria\b', titulo, re.I):
+            log["descartados"].append({
+                "titulo": titulo[:80],
+                "orgao":  orgao_raw[:80],
+                "motivo": "Tipo de ato inválido — não é portaria",
+            })
+            continue
+
+        # Filtro 2: órgão MS confirmado pelo título ou orgaoName
         if not confirmar_orgao_ms(orgao_raw, titulo):
             resultado_titulo = _titulo_confirma_ms(titulo)
             if resultado_titulo is False:
