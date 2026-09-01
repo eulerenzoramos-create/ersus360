@@ -337,14 +337,25 @@ async def limpar_portarias_nao_ms(
     import re as _re
 
     # Fragmentos no título que indicam órgão não-MS
+    # Regra principal: só é MS se tiver sigla MS explícita (GM/MS, SAPS/MS etc.)
+    _SIGLAS_MS = (
+        "gm/ms", "gm/m", "saps/ms", "saes/ms", "svsa/ms", "svs/ms",
+        "sectics/ms", "sctie/ms", "sesai/ms", "seidigi/ms", "se/ms",
+        "fns/ms", "fns", "anvisa", "ans/ms",
+    )
+
+    # Padrões de título que indicam órgão não-MS
     _TITULOS_NAO_MS = [
-        r'\bde pessoal\b(?!.*\bse/ms\b)(?!.*\bgm/ms\b)',  # PORTARIA DE PESSOAL sem sigla MS
+        r'\bde pessoal\b',          # PORTARIA DE PESSOAL (exceto SE/MS)
         r'\brfb\b', r'\bsucor\b', r'\bsrrf\b',
         r'\bse/mapa\b', r'\bmapa\b',
+        r'\bmidr\b',                # Ministério da Integração e Desenvolvimento Regional
+        r'\biti\b',                 # Instituto Nacional de Tecnologia da Informação
+        r'\bdg/pf\b', r'\bpr/rs\b', r'\bprpf\b',
         r'\bcom8\b', r'\bcomgex\b', r'\bcomaer\b',
         r'\bfcrb\b', r'\bcoaf\b', r'\bcgu\b',
         r'\bprogepe\b', r'\bprodegesp\b', r'\bprogesp\b',
-        r'\bufjf\b', r'\buffpa\b', r'\bufam\b', r'\bufba\b',
+        r'\bufjf\b', r'\bufpa\b', r'\bufam\b', r'\bufba\b',
         r'\bufpr\b', r'\bufsc\b', r'\bufmg\b', r'\bufrj\b',
         r'\bufrgs\b', r'\bufpe\b', r'\bufc\b', r'\bufg\b',
         r'\bunifesp\b',
@@ -358,17 +369,50 @@ async def limpar_portarias_nao_ms(
         r'\bse/mec\b', r'\bse/mj\b', r'\bse/md\b',
         r'\bexercito\b', r'\bmarinha\b', r'\baeronaut',
         r'\bdiger\b', r'\bdgp\b', r'\bdirens\b', r'\bdeaer\b',
+        r'\binterministerial\s+mdic\b',  # Portaria Interministerial MDIC/MCTI etc.
     ]
+
+    # Regra primária: se o título tem sigla MS explícita → manter sempre
+    def _tem_sigla_ms(titulo: str) -> bool:
+        t = titulo.lower()
+        return any(s in t for s in _SIGLAS_MS)
+
+    # Órgãos MS no campo orgao da portaria
+    _ORGAOS_MS_VALIDOS = (
+        "ministério da saúde", "ministerio da saude",
+        "ms/gm", "gm/ms", "anvisa", "ans", "fns",
+        "saps/ms", "saes/ms", "svsa/ms", "svs/ms",
+        "sesai/ms", "sctie/ms", "sectics/ms",
+    )
+
+    def _orgao_e_ms(orgao: str) -> bool:
+        o = orgao.lower().strip()
+        return any(ms in o for ms in _ORGAOS_MS_VALIDOS)
 
     res = await db.execute(select(PortariaDOU))
     rows = res.scalars().all()
     ids_deletar = []
     for p in rows:
         titulo_n = (p.titulo or "").lower()
+        orgao_n  = (p.orgao  or "").lower().strip()
+
+        # Manter se tem sigla MS explícita no título
+        if _tem_sigla_ms(titulo_n):
+            continue
+
+        # Rejeitar se o título contém fragmento de órgão não-MS
         for pat in _TITULOS_NAO_MS:
             if _re.search(pat, titulo_n, _re.I):
+                # Excepção: "de pessoal se/ms" ainda é MS
+                if "de pessoal" in titulo_n and any(s in titulo_n for s in _SIGLAS_MS):
+                    break
                 ids_deletar.append(p.id)
                 break
+        else:
+            # Título genérico (sem sigla MS e sem padrão de exclusão):
+            # manter apenas se orgao registrado é comprovadamente MS
+            if not orgao_n or not _orgao_e_ms(orgao_n):
+                ids_deletar.append(p.id)
 
     if ids_deletar:
         await db.execute(

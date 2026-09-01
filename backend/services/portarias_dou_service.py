@@ -257,6 +257,18 @@ FRAGMENTOS_NAO_MS: tuple[str, ...] = (
     "se/mec",
     "se/mj",
     "se/md",
+    # Ministério da Integração e Desenvolvimento Regional
+    "midr",
+    # Instituto Nacional de Tecnologia da Informação
+    "iti",
+    # Polícia Rodoviária / Polícia Federal / Procuradoria
+    "pr/rs",
+    "dg/pf",
+    "prpf",
+    # DG genérico de outros órgãos
+    "dg/anatel",
+    "dg/anac",
+    "dg/anvisa" ,   # nota: DG da ANVISA É do MS — cuidado, não adicionar apenas "dg"
     # Universidades e institutos federais
     "progepe",
     "prodegesp",
@@ -289,6 +301,12 @@ SIGLAS_NAO_MS_NO_TITULO: frozenset[str] = frozenset({
     "mds", "mcidades", "minfra", "mtur", "mec", "md", "mmfdh", "mj",
     "ms/me", "mp", "mpog", "sef", "stn", "srf", "receita federal",
     "cgccr", "coaf", "igi", "alf",
+    # Ministério da Integração e Desenvolvimento Regional
+    "midr",
+    # Instituto Nacional de Tecnologia da Informação
+    "iti",
+    # Polícia / PF
+    "dg/pf", "pr/rs", "prpf",
     # Secretarias Executivas de outros ministérios
     "se/mapa", "se/mcti", "se/mec", "se/mj", "se/md", "se/mtur",
     "se/minfra", "se/mre", "se/mds", "se/mmfdh", "se/me",
@@ -763,24 +781,21 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
                         if not re.search(r'^\s*portaria\b', titulo_p, re.I):
                             continue
                         resultado_titulo = _titulo_confirma_ms(titulo_p)
-                        sigla = _orgao_do_titulo(titulo_p)
-                        if resultado_titulo is False:
+
+                        if resultado_titulo is True:
+                            # Sigla MS explícita no título → aceitar
+                            validos.append(p)
+                        elif resultado_titulo is False:
                             # Sigla de outro órgão explícita → rejeitar
                             continue
-                        if resultado_titulo is True:
-                            # Sigla MS explícita → aceitar
-                            validos.append(p)
-                        elif not sigla:
-                            # Título genérico "PORTARIA Nº X" sem sigla:
-                            # verificar se o orgaoName original indica órgão não-MS
-                            orgao_orig_p = (p.get("orgaoName") or "").strip().lower()
-                            if orgao_orig_p and not confirmar_orgao_ms(orgao_orig_p, titulo_p):
-                                # orgaoName da API aponta para outro órgão → rejeitar
-                                continue
-                            # Aplicar hint: DOU filtrou por org=MS e título é genérico
-                            p["orgaoName"] = "Ministério da Saúde"
-                            validos.append(p)
-                        # resultado_titulo is None E tem sigla desconhecida → rejeitar
+                        else:
+                            # resultado_titulo is None: título sem sigla identificável
+                            # Só aceita se o orgaoName da API (sem hint) for definitivamente MS
+                            orgao_api = (p.get("orgaoName") or "").strip()
+                            if orgao_api and confirmar_orgao_ms(orgao_api.lower(), titulo_p):
+                                validos.append(p)
+                            # Sem sigla MS no título E orgaoName vazio/não-MS → REJEITAR
+                            # (evita falsos positivos de outros órgãos com título genérico)
                     if validos:
                         brutos.extend(validos)
                         log["estrategia_usada"] = fonte
