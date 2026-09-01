@@ -185,7 +185,10 @@ async def gerar_informe_ia(
 
     try:
         import anthropic
-        client = anthropic.AsyncAnthropic(api_key=api_key)
+        # Chaves Personal (identity-linked) exigem anthropic-workspace-id
+        workspace_id = os.getenv("ANTHROPIC_WORKSPACE_ID", "")
+        extra_headers = {"anthropic-workspace-id": workspace_id} if workspace_id else {}
+        client = anthropic.AsyncAnthropic(api_key=api_key, default_headers=extra_headers)
         message = await client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=2048,
