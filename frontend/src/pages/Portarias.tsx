@@ -796,10 +796,32 @@ function BuscaRetroativa() {
                   {selecionados.size === informesEditaveis.length ? "Desmarcar todos" : "Selecionar todos"}
                 </button>
                 {selecionados.size > 0 && (
-                  <span style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 600 }}>
-                    {selecionados.size} selecionada(s) — clique em "Gerar Documento" para gerar apenas estas
-                  </span>
+                  <>
+                    <span style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 600 }}>
+                      {selecionados.size} selecionada(s)
+                    </span>
+                    <button
+                      onClick={() => {
+                        const qtd = selecionados.size;
+                        if (!window.confirm(`Remover ${qtd} informe(s) selecionado(s)?`)) return;
+                        const novaLista = informesEditaveis.filter((_: any, i: number) => !selecionados.has(i));
+                        setInformesEditaveis(novaLista);
+                        setSelecionados(new Set());
+                      }}
+                      style={{ fontSize: 11, padding: "3px 10px", border: "1px solid #fca5a5", borderRadius: 6, background: "#fef2f2", cursor: "pointer", color: "#b91c1c", fontWeight: 600 }}>
+                      🗑 Remover selecionadas
+                    </button>
+                  </>
                 )}
+                <button
+                  onClick={() => {
+                    if (!window.confirm(`Remover todos os ${informesEditaveis.length} informes da lista?`)) return;
+                    setInformesEditaveis([]);
+                    setSelecionados(new Set());
+                  }}
+                  style={{ fontSize: 11, padding: "3px 10px", border: "1px solid #fca5a5", borderRadius: 6, background: "#fef2f2", cursor: "pointer", color: "#b91c1c", fontWeight: 600, marginLeft: "auto" }}>
+                  🗑 Remover todos
+                </button>
               </div>
               {informesEditaveis.map((inf: any, i: number) => (
                 <InformeCard key={i} inf={inf} idx={i} selecionado={selecionados.has(i)}
