@@ -322,6 +322,63 @@ async def portarias_salvas_por_data(
     }
 
 
+@router.post("/limpar-nao-ms")
+async def limpar_portarias_nao_ms(
+    db: AsyncSession = Depends(get_db),
+    _: UserOut = Depends(get_current_user),
+):
+    """
+    Remove do banco todas as portarias cujo título indica que NÃO são do MS.
+    Usa os mesmos critérios do filtro de busca DOU.
+    Idempotente: pode ser executado múltiplas vezes com segurança.
+    """
+    from models.portaria_dou import PortariaDOU
+    from sqlalchemy import delete as _delete
+    import re as _re
+
+    # Fragmentos no título que indicam órgão não-MS
+    _TITULOS_NAO_MS = [
+        r'\bde pessoal\b(?!.*\bse/ms\b)(?!.*\bgm/ms\b)',  # PORTARIA DE PESSOAL sem sigla MS
+        r'\brfb\b', r'\bsucor\b', r'\bsrrf\b',
+        r'\bse/mapa\b', r'\bmapa\b',
+        r'\bcom8\b', r'\bcomgex\b', r'\bcomaer\b',
+        r'\bfcrb\b', r'\bcoaf\b', r'\bcgu\b',
+        r'\bprogepe\b', r'\bprodegesp\b', r'\bprogesp\b',
+        r'\bufjf\b', r'\buffpa\b', r'\bufam\b', r'\bufba\b',
+        r'\bufpr\b', r'\bufsc\b', r'\bufmg\b', r'\bufrj\b',
+        r'\bufrgs\b', r'\bufpe\b', r'\bufc\b', r'\bufg\b',
+        r'\bunifesp\b',
+        r'\bincra\b', r'\bibama\b', r'\bibge\b', r'\biphan\b',
+        r'\banac\b', r'\banatel\b', r'\baneel\b', r'\bantaq\b',
+        r'\bantt\b', r'\bancine\b', r'\bdnit\b',
+        r'\binss\b', r'\bbacen\b', r'\bbcb\b', r'\bsusep\b',
+        r'\bsecom\b', r'\bsefic\b', r'\bminc\b',
+        r'\bmcti\b', r'\bsetad\b',
+        r'\bdpf\b', r'\binmetro\b', r'\binpi\b',
+        r'\bse/mec\b', r'\bse/mj\b', r'\bse/md\b',
+        r'\bexercito\b', r'\bmarinha\b', r'\baeronaut',
+        r'\bdiger\b', r'\bdgp\b', r'\bdirens\b', r'\bdeaer\b',
+    ]
+
+    res = await db.execute(select(PortariaDOU))
+    rows = res.scalars().all()
+    ids_deletar = []
+    for p in rows:
+        titulo_n = (p.titulo or "").lower()
+        for pat in _TITULOS_NAO_MS:
+            if _re.search(pat, titulo_n, _re.I):
+                ids_deletar.append(p.id)
+                break
+
+    if ids_deletar:
+        await db.execute(
+            _delete(PortariaDOU).where(PortariaDOU.id.in_(ids_deletar))
+        )
+        await db.commit()
+
+    return {"ok": True, "removidos": len(ids_deletar), "total_verificado": len(rows)}
+
+
 @router.post("/corrigir-datas")
 async def corrigir_datas_portarias(
     db: AsyncSession = Depends(get_db),

@@ -251,6 +251,22 @@ FRAGMENTOS_NAO_MS: tuple[str, ...] = (
     "direns",
     "deaer",
     "comrj",
+    # Secretarias executivas de outros ministérios
+    "se/mapa",
+    "se/mcti",
+    "se/mec",
+    "se/mj",
+    "se/md",
+    # Universidades e institutos federais
+    "progepe",
+    "prodegesp",
+    "progesp",
+    "ufjf",
+    "ufpa/",
+    "ufam/",
+    # COAF / CGU
+    "coaf",
+    "cgu/",
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -273,6 +289,18 @@ SIGLAS_NAO_MS_NO_TITULO: frozenset[str] = frozenset({
     "mds", "mcidades", "minfra", "mtur", "mec", "md", "mmfdh", "mj",
     "ms/me", "mp", "mpog", "sef", "stn", "srf", "receita federal",
     "cgccr", "coaf", "igi", "alf",
+    # Secretarias Executivas de outros ministérios
+    "se/mapa", "se/mcti", "se/mec", "se/mj", "se/md", "se/mtur",
+    "se/minfra", "se/mre", "se/mds", "se/mmfdh", "se/me",
+    # RFB / Receita Federal
+    "rfb", "rfb/sucor", "rfb/srrf", "sucor", "srrf",
+    # Forças Armadas
+    "com8dn", "com8°dn", "com8", "comgex", "comaer", "colog",
+    # Universidades / institutos federais (PROGEPE, PRODEGESP etc.)
+    "progepe", "prodegesp", "progesp", "ufjf", "ufpa", "ufam", "ufba",
+    "ufpr", "ufsc", "ufmg", "ufrj", "ufrgs", "ufpe", "ufc", "ufg",
+    "unifesp", "fiocruz/ms",   # fiocruz/ms é do MS — mantém só fiocruz isolado
+    "fcrb", "coaf", "cgu",
 })
 
 
@@ -315,6 +343,17 @@ def _titulo_confirma_ms(titulo: str) -> bool | None:
     Analisa o título da portaria para confirmar ou negar se é do MS.
     Retorna True se confirmar MS, False se negar, None se indeterminado.
     """
+    t_lower = titulo.lower()
+
+    # "PORTARIA DE PESSOAL" → é portaria de RH de qualquer órgão.
+    # Só aceita se vier acompanhada de sigla MS explícita (ex: SE/MS, GM/MS).
+    if "de pessoal" in t_lower:
+        has_ms_sigla = any(s in t_lower for s in (
+            "se/ms", "gm/ms", "saps/ms", "saes/ms", "svsa/ms", "svs/ms",
+            "sectics/ms", "sctie/ms", "sesai/ms", "seidigi/ms", "fns/ms",
+        ))
+        return True if has_ms_sigla else False
+
     sigla = _orgao_do_titulo(titulo)
     if not sigla:
         return None

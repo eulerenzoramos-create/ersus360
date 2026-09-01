@@ -345,6 +345,38 @@ function InformeCard({ inf, idx, selecionado, onToggle, onEditar, onDeletar }: {
   );
 }
 
+function LimparNaoMsBtn({ onDone }: { onDone: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [resultado, setResultado] = useState<{ removidos: number } | null>(null);
+
+  const limpar = async () => {
+    if (!window.confirm("Isso vai remover do banco todas as portarias que não são do Ministério da Saúde. Confirma?")) return;
+    setLoading(true); setResultado(null);
+    try {
+      const r = await apiPost("/api/email-diario/limpar-nao-ms");
+      setResultado(r);
+      onDone();
+    } catch {
+      alert("Erro ao executar limpeza.");
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <button onClick={limpar} disabled={loading}
+        title="Remove do banco portarias de outros órgãos (RFB, MAPA, Forças Armadas, universidades etc.)"
+        style={{ padding: "6px 12px", background: "#fef2f2", color: "#b91c1c", border: "1px solid #fca5a5", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+        {loading ? "Limpando…" : "🗑 Excluir não-MS"}
+      </button>
+      {resultado && (
+        <span style={{ fontSize: 11, color: "#059669", fontWeight: 600 }}>
+          ✓ {resultado.removidos} removida(s)
+        </span>
+      )}
+    </span>
+  );
+}
+
 function BuscaRetroativa() {
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
   const [resultado, setResultado] = useState<any>(null);
@@ -1238,6 +1270,8 @@ function PainelPortariasDOU() {
             style={{ padding: "6px 12px", background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
             Atualizar lista
           </button>
+
+          <LimparNaoMsBtn onDone={() => refetch()} />
         </div>
 
         {/* Feedback */}
