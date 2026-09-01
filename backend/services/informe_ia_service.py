@@ -17,66 +17,90 @@ from datetime import date
 logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = """\
-Você é um assessor técnico em saúde pública que elabora Informes Técnicos \
-formais para a Secretaria Municipal de Saúde de Apuí/AM (IBGE 1300144). \
+Você é o Agente de Portarias do Ministério da Saúde do sistema ERSUS360. \
+Sua função é elaborar Informes Técnicos formais, resumidos e objetivos \
+sobre portarias do Ministério da Saúde publicadas no Diário Oficial da União. \
 Seus documentos seguem o padrão da administração pública brasileira: \
-linguagem formal, precisa, sem palavras desnecessárias. \
-Você analisa portarias do Ministério da Saúde e extrai: valores financeiros, \
-habilitações, prazos, obrigações, recomendações práticas — sempre com foco \
-em impacto direto para o Município de Apuí/AM.\
+linguagem formal, clara para gestores públicos de saúde, sem termos \
+excessivamente jurídicos e sem palavras desnecessárias.
+
+RESTRIÇÕES ABSOLUTAS — NUNCA VIOLAR:
+- Não analisar impacto nacional, estadual ou municipal específico.
+- Não identificar impacto para nenhum município em particular.
+- Não consultar, interpretar ou mencionar anexos, tabelas ou arquivos complementares.
+- Não realizar análise territorial de nenhuma espécie.
+- Não pesquisar valores destinados a municípios ou estados específicos.
+- Não criar providências que não estejam no texto principal da portaria.
+- Não inventar valores, prazos, obrigações ou qualquer informação.
+- Não apresentar conclusões sem fundamento no texto oficial.
+- Usar SOMENTE o texto principal da portaria fornecido.
+- Quando uma informação não estiver no texto principal, escrever exatamente:
+  "Informação não identificada no texto principal da portaria."\
 """
 
 _TEMPLATE_INSTRUCOES = """\
-Com base nos dados da portaria abaixo, redija um Informe Técnico completo \
-seguindo EXATAMENTE esta estrutura:
+Com base nos dados da portaria abaixo, elabore um Informe Técnico seguindo \
+EXATAMENTE esta estrutura e este modelo. Não altere a estrutura, não adicione \
+seções e não omita seções.
 
 ---
-À Senhora [Nome da Secretária]
-[Cargo]
+INFORME TÉCNICO – ERSUS360
+PORTARIA {orgao} Nº {numero}, DE {data_pub}
+Assunto: {assunto_placeholder}
+Publicação: {data_pub}
+Órgão responsável: {orgao}
+Área: {area_placeholder}
+Vigência: {vigencia_placeholder}
 
-Assunto: [Portaria + ementa resumida em uma linha]
+RESUMO DA PORTARIA
+[Escrever no máximo dois parágrafos curtos explicando: (1) o que a portaria \
+estabelece e qual é seu objetivo; (2) qual programa, política, recurso ou serviço \
+está sendo tratado e quem é alcançado pela medida, quando essa informação constar \
+no texto principal. Não analisar impacto territorial. Não mencionar municípios \
+específicos. Usar somente o texto fornecido.]
 
-Senhora Secretária,
+PRINCIPAIS DISPOSIÇÕES
+[Listar de três a cinco tópicos objetivos com as principais determinações \
+da portaria, extraídos exclusivamente do texto principal. \
+Formato: — [disposição]. Não inventar disposições.]
 
-[Parágrafo 1 — O que a portaria faz: objeto, programa, finalidade]
+PRAZOS
+[Informar somente os prazos expressamente previstos no texto principal. \
+Se não houver prazo, escrever exatamente: \
+"A portaria não estabelece prazo específico em seu texto principal."]
 
-[Parágrafo 2 — Impacto direto em Apuí: se o município consta, valor recebido,
-percentuais, IBGE 1300144. Se não constar nominalmente, informe que a portaria
-é de abrangência federal/estadual e que deve ser verificada a elegibilidade.]
+ORIENTAÇÃO AO GESTOR
+[Escrever uma orientação breve e diretamente relacionada ao conteúdo da portaria. \
+Não criar obrigação, procedimento ou providência que não esteja fundamentada \
+no texto oficial. Máximo três linhas.]
 
-[Parágrafo 3 — Detalhes financeiros: valor, forma de repasse, FNS, FMS.
-Se não houver valor, omita este parágrafo.]
+FONTE OFICIAL
+{link}
 
-[Parágrafo 4 — Recomendações operacionais: o que a secretaria deve fazer
-(acompanhar OB, registrar no SIOPS, atualizar cadastro, prestar contas etc.)]
-
-[Parágrafo 5 — Documentação e controle: quais documentos manter organizados
-para prestação de contas e fiscalização.]
-
-[Parágrafo de conclusão — Síntese em 2-3 linhas.]
-
-Atenciosamente,
-
-[Cidade/UF], [data por extenso].
-
-EULER RAMOS DE OLIVEIRA
-Assessor Técnico em Saúde Pública
-
-Fonte: Diário Oficial da União[, Edição nº X, Seção Y, página Z], publicado em [data].
+Elaborado automaticamente pelo Agente de Portarias do Ministério da Saúde – ERSUS360.
 ---
 
-REGRAS OBRIGATÓRIAS:
-- Use APENAS informações presentes no texto da portaria. NUNCA invente valores,
-  percentuais, CNES, INE ou nomes de municípios que não estejam no texto.
-- Se o texto estiver truncado (termina em "..."), indique que o texto integral
-  deve ser verificado no link oficial.
-- Valores financeiros: sempre por extenso após o numeral (ex: R$ 25.938,23
-  (vinte e cinco mil, novecentos e trinta e oito reais e vinte e três centavos)).
-- Código IBGE correto de Apuí: 1300144.
-- Secretária: Rosângela Motter.
-- Não use markdown, negrito, itálico nem bullets — somente texto corrido.
-- Extensão: entre 400 e 700 palavras.
-- Retorne APENAS o texto do informe, sem comentários adicionais.
+REGRAS OBRIGATÓRIAS DE REDAÇÃO:
+- Preencher os campos {assunto_placeholder}, {area_placeholder} e \
+  {vigencia_placeholder} com base no texto da portaria.
+- Para {assunto_placeholder}: extrair o assunto principal em uma linha.
+- Para {area_placeholder}: classificar em uma das categorias: \
+  Atenção Primária à Saúde | Atenção Especializada | Vigilância em Saúde | \
+  Assistência Farmacêutica | Saúde Indígena | Saúde Digital | \
+  Gestão do Trabalho | Piso da Enfermagem | Infraestrutura e obras | \
+  Financiamento do SUS | Habilitação ou credenciamento | \
+  Programas e políticas de saúde | Alteração normativa | \
+  Outros assuntos do Ministério da Saúde.
+- Para {vigencia_placeholder}: informar a data de vigência do texto ou \
+  "Informação não identificada no texto principal da portaria."
+- Usar somente informações presentes no texto da portaria.
+- Não copiar integralmente a portaria.
+- Não usar markdown, negrito, itálico nem bullets com * — usar somente — (travessão).
+- Não emitir opinião pessoal.
+- Não analisar anexos ou tabelas.
+- Não apresentar valores que estejam somente em anexos.
+- Texto de no máximo uma página (300 a 500 palavras no total).
+- Retornar APENAS o informe, sem comentários adicionais.
 
 DADOS DA PORTARIA:
 Número: {numero}
@@ -86,10 +110,7 @@ Data de publicação: {data_pub}
 Edição DOU: {edicao}
 Seção DOU: {secao}
 Página DOU: {pagina}
-Relevância: {relevancia}
-Prioridade: {prioridade}
-Valores identificados: {valores}
-Resumo/Conteúdo disponível:
+Texto principal disponível:
 {resumo}
 
 Link oficial: {link}
@@ -176,11 +197,12 @@ async def gerar_informe_ia(
         edicao=portaria.get("edicao_dou") or portaria.get("edicao") or "—",
         secao=portaria.get("secao_dou") or portaria.get("secao") or "DO1",
         pagina=portaria.get("pagina_dou") or portaria.get("pagina") or "—",
-        relevancia=portaria.get("_relevancia") or portaria.get("relevancia") or "federal",
-        prioridade=portaria.get("_prioridade") or portaria.get("prioridade") or "normativo",
-        valores=", ".join(portaria.get("_valores") or portaria.get("valores_identificados") or []) or "Nenhum valor monetário identificado automaticamente",
         resumo=conteudo_para_ia,
         link=link or "https://www.in.gov.br/leiturajornal",
+        # Placeholders preenchidos pela IA com base no conteúdo
+        assunto_placeholder="[preencher com o assunto principal da portaria]",
+        area_placeholder="[classificar por área temática]",
+        vigencia_placeholder="[informar vigência ou 'Informação não identificada no texto principal da portaria.']",
     )
 
     try:
@@ -218,12 +240,45 @@ def formatar_informe_html(texto: str, portaria: dict, data_hoje: date | None = N
     numero = portaria.get("_numero") or portaria.get("numero") or ""
     link   = portaria.get("_link") or portaria.get("url_oficial") or "https://www.in.gov.br/leiturajornal"
 
-    # Converte parágrafos em HTML (preserva quebras de parágrafo)
-    paragrafos = [p.strip() for p in texto.split("\n") if p.strip()]
-    corpo_html = "".join(
-        f'<p style="margin:0 0 14px;line-height:1.8;text-align:justify">{p}</p>'
-        for p in paragrafos
-    )
+    # Converte o texto estruturado em HTML com seções destacadas
+    SECOES = {
+        "RESUMO DA PORTARIA",
+        "PRINCIPAIS DISPOSIÇÕES",
+        "PRAZOS",
+        "ORIENTAÇÃO AO GESTOR",
+        "FONTE OFICIAL",
+    }
+    linhas = texto.split("\n")
+    blocos_html = []
+    for linha in linhas:
+        l = linha.strip()
+        if not l:
+            continue
+        if l in SECOES:
+            blocos_html.append(
+                f'<p style="margin:18px 0 6px;font-weight:700;font-size:12px;'
+                f'text-transform:uppercase;letter-spacing:.5px;color:#1d4ed8;'
+                f'border-bottom:1px solid #e2e8f0;padding-bottom:4px">{l}</p>'
+            )
+        elif l.startswith("INFORME TÉCNICO") or l.startswith("PORTARIA "):
+            blocos_html.append(
+                f'<p style="margin:0 0 4px;font-weight:700;font-size:13px;color:#1e293b">{l}</p>'
+            )
+        elif l.startswith("Assunto:") or l.startswith("Publicação:") or \
+             l.startswith("Órgão") or l.startswith("Área:") or l.startswith("Vigência:"):
+            blocos_html.append(
+                f'<p style="margin:0 0 3px;font-size:12px;color:#374151">{l}</p>'
+            )
+        elif l.startswith("—") or l.startswith("-"):
+            blocos_html.append(
+                f'<p style="margin:0 0 6px;padding-left:12px;line-height:1.7;'
+                f'text-align:justify;border-left:2px solid #e2e8f0">{l}</p>'
+            )
+        else:
+            blocos_html.append(
+                f'<p style="margin:0 0 12px;line-height:1.8;text-align:justify">{l}</p>'
+            )
+    corpo_html = "\n".join(blocos_html)
 
     return f"""<!DOCTYPE html>
 <html lang="pt-BR">
