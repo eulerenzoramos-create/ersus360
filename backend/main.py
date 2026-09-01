@@ -62,6 +62,46 @@ async def lifespan(app: FastAPI):
         logger.warning("Migração data_publicacao falhou (ignorando): %s", exc)
 
 
+    # Limpeza: remove portarias salvas que não são do Ministério da Saúde
+    try:
+        import re as _re2
+        from database import AsyncSessionLocal
+        from models.portaria_dou import PortariaDOU
+        from sqlalchemy import select as _sel2, delete as _del2
+        # Fragmentos que indicam órgão NÃO-MS no título
+        _NAOOMS = (
+            "rfb/", "rfb ", "sucor", "srrf", "receita federal",
+            "com8", "comgex", "exercito", "marinha", "aeronautica",
+            "de pessoal", "diger", "dgp/", "setad", "mcti",
+            "anac", "anatel", "aneel", "anm/", "antaq", "antt",
+            "ibama", "ibge", "iphan", "incra", "dpf", "inss",
+            "bcb/", "bacen", "susep", "fcrb", "cgccr", "coaf",
+            "mapa", "mre", "mec/", "md/", "secom", "sefic",
+        )
+        async with AsyncSessionLocal() as _db:
+            _res2 = await _db.execute(_sel2(PortariaDOU))
+            _rows2 = _res2.scalars().all()
+            _ids_excluir = []
+            for _p in _rows2:
+                t = (_p.titulo or "").lower()
+                o = (_p.orgao or "").lower()
+                # Rejeita se título contém fragmento não-MS
+                if any(f in t for f in _NAOOMS):
+                    _ids_excluir.append(_p.id)
+                    continue
+                # Rejeita se orgao contém fragmento não-MS (exceto se título tem sigla MS)
+                elif o and not any(ms in o for ms in ("saude", "saúde", "ms", "anvisa", "ans", "fiocruz", "fns", "inca", "into", "funasa", "sesai", "saps", "saes", "svsa", "seidigi", "sectics")):
+                    if not any(ms in t for ms in ("gm/ms", "saps/ms", "saes/ms", "svsa/ms", "sesai/ms", "seidigi/ms", "sectics/ms", "fns/ms", "ministerio da saude", "ministério da saúde")):
+                        _ids_excluir.append(_p.id)
+            if _ids_excluir:
+                await _db.execute(
+                    _del2(PortariaDOU).where(PortariaDOU.id.in_(_ids_excluir))
+                )
+                await _db.commit()
+                logger.info("Limpeza portarias não-MS: %d registros removidos", len(_ids_excluir))
+    except Exception as exc:
+        logger.warning("Limpeza portarias não-MS falhou (ignorando): %s", exc)
+
     try:
         from scheduler import start_scheduler
         start_scheduler()

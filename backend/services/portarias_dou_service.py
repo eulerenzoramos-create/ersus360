@@ -228,6 +228,29 @@ FRAGMENTOS_NAO_MS: tuple[str, ...] = (
     "inss",                # Previdência
     "bcb/",                # Banco Central
     "bacen",
+    # Receita Federal / Fazenda
+    "rfb",
+    "sucor",
+    "srrf",
+    "receita federal",
+    # Forças Armadas / Defesa
+    "com8",
+    "comgex",
+    "comando",
+    "exercito",
+    "exército",
+    "marinha",
+    "aeronautica",
+    "aeronáutica",
+    "depto de pessoal",
+    "dep pessoal",
+    "de pessoal",
+    # Outros não-MS
+    "diger",
+    "dgp/",
+    "direns",
+    "deaer",
+    "comrj",
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -668,9 +691,11 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
     brutos: list[dict] = []
 
     # ── Estratégia 1 e 2: leiturajornal com filtro duplo org + ato ───────────
-    # NUNCA usar hint como fallback — se o órgão não vier no item, ele é descartado.
-    # O DOU às vezes não retorna orgaoName nos itens mesmo com org= na URL.
-    # Por isso validamos OBRIGATORIAMENTE pelo título.
+    # Regra de hint seletivo:
+    # - Items com sigla explícita no título (GM/MS, SAPS/MS etc.) → validar pelo título
+    # - Items sem sigla no título (PORTARIA Nº X) → aplicar hint "Ministério da Saúde"
+    #   pois o DOU filtrou por org=MS e o formato genérico não tem sigla
+    # - Items com sigla de outro órgão no título → rejeitar sempre
     TIPOS_PORTARIA = ["Portaria", "Portaria Normativa"]
     for tipo_ato in TIPOS_PORTARIA:
         for secao in ("do1", "do2"):
@@ -689,25 +714,38 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
                     )
                 log["fontes_tentadas"].append(fonte)
                 if r.status_code == 200:
-                    # usar_hint_como_fallback=False — validação apenas por título
                     extraidos = _extrair_portarias_html(
                         r.text, usar_hint_como_fallback=False
                     )
-                    # Filtra imediatamente: só PORTARIA com sigla MS no título
-                    validos = [
-                        p for p in extraidos
-                        if re.search(r'\bportaria\b', p.get("title", ""), re.I)
-                        and _titulo_confirma_ms(p.get("title", "")) is not False
-                    ]
+                    validos = []
+                    for p in extraidos:
+                        titulo_p = p.get("title", "")
+                        # Exige que seja portaria
+                        if not re.search(r'^\s*portaria\b', titulo_p, re.I):
+                            continue
+                        resultado_titulo = _titulo_confirma_ms(titulo_p)
+                        sigla = _orgao_do_titulo(titulo_p)
+                        if resultado_titulo is False:
+                            # Sigla de outro órgão explícita → rejeitar
+                            continue
+                        if resultado_titulo is True:
+                            # Sigla MS explícita → aceitar
+                            validos.append(p)
+                        elif not sigla:
+                            # Título genérico "PORTARIA Nº X" sem sigla:
+                            # aplicar hint pois DOU filtrou por org=MS
+                            p["orgaoName"] = "Ministério da Saúde"
+                            validos.append(p)
+                        # resultado_titulo is None E tem sigla desconhecida → rejeitar
                     if validos:
                         brutos.extend(validos)
                         log["estrategia_usada"] = fonte
                         logger.info(
-                            "[DOU] %s %s — %d brutos, %d válidos (título MS)",
+                            "[DOU] %s %s — %d brutos, %d válidos",
                             fonte, data_str, len(extraidos), len(validos)
                         )
                     else:
-                        logger.info("[DOU] %s %s — 0 portarias MS pelo título", fonte, data_str)
+                        logger.info("[DOU] %s %s — 0 portarias MS", fonte, data_str)
                 else:
                     log["falhas"].append(f"{fonte}: HTTP {r.status_code}")
             except Exception as exc:
