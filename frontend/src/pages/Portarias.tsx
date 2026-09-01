@@ -351,6 +351,7 @@ function BuscaRetroativa() {
   // Cópia editável dos informes (permite editar/deletar sem refazer busca)
   const [informesEditaveis, setInformesEditaveis] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingBanco, setLoadingBanco] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set());
@@ -390,6 +391,18 @@ function BuscaRetroativa() {
     } finally { setLoading(false); }
   };
 
+  const carregarBanco = async () => {
+    setLoadingBanco(true); setErro(null); setResultado(null);
+    setInformesEditaveis([]); setSelecionados(new Set());
+    try {
+      const r = await apiGet(`/api/email-diario/portarias-salvas?data=${data}`);
+      setResultado(r);
+      setInformesEditaveis(r?.informes || []);
+    } catch (e: any) {
+      setErro(e?.message || "Erro ao carregar do banco.");
+    } finally { setLoadingBanco(false); }
+  };
+
   const enviar = async () => {
     setEnviando(true); setErro(null);
     try {
@@ -423,9 +436,14 @@ function BuscaRetroativa() {
             max={new Date().toISOString().slice(0, 10)}
             style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: "7px 10px", fontSize: 13 }} />
         </div>
-        <button onClick={buscar} disabled={loading}
+        <button onClick={buscar} disabled={loading || loadingBanco}
           style={{ padding: "9px 20px", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
           <Search size={13} />{loading ? "Buscando no DOU…" : "Buscar e Gerar Informes"}
+        </button>
+        <button onClick={carregarBanco} disabled={loading || loadingBanco}
+          title="Carrega portarias já salvas no banco para esta data, sem buscar no DOU"
+          style={{ padding: "9px 16px", background: "#f1f5f9", color: "#334155", border: "1px solid #cbd5e1", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          {loadingBanco ? "Carregando…" : "↻ Carregar do Banco"}
         </button>
         {resultado && !resultado.enviado && (
           <button onClick={enviar} disabled={enviando}
@@ -682,9 +700,23 @@ function BuscaRetroativa() {
           ⏳ Consultando o Diário Oficial da União…
         </div>
       )}
+      {loadingBanco && (
+        <div style={{ textAlign: "center", padding: 24, color: "#92400e", fontSize: 13 }}>
+          🗄️ Carregando portarias salvas no banco…
+        </div>
+      )}
 
       {resultado && (
         <div>
+          {/* Badge de origem */}
+          {resultado.fonte === "banco" && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#fefce8", border: "1px solid #fde68a", borderRadius: 6, padding: "4px 12px", fontSize: 11, color: "#92400e", marginBottom: 10 }}>
+              🗄️ <strong>Dados carregados do banco</strong> — {resultado.total} portaria(s) salva(s) para {new Date(resultado.data + "T12:00:00").toLocaleDateString("pt-BR")}
+              <button onClick={buscar} disabled={loading} style={{ marginLeft: 8, fontSize: 11, padding: "2px 8px", border: "1px solid #d97706", borderRadius: 4, background: "#fffbeb", color: "#b45309", cursor: "pointer", fontWeight: 600 }}>
+                {loading ? "…" : "🔄 Rebuscar no DOU"}
+              </button>
+            </div>
+          )}
           {/* Resumo KPIs */}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const, marginBottom: 12 }}>
             {[

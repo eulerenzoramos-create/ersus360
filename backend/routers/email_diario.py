@@ -256,6 +256,72 @@ async def buscar_dou_retroativo(
     return resultado
 
 
+@router.get("/portarias-salvas")
+async def portarias_salvas_por_data(
+    data: str = Query(..., description="YYYY-MM-DD"),
+    db: AsyncSession = Depends(get_db),
+    _: UserOut = Depends(get_current_user),
+):
+    """Retorna portarias já salvas no banco para a data indicada, sem buscar no DOU."""
+    from models.portaria_dou import PortariaDOU
+    from fastapi import HTTPException
+    try:
+        data_ref = date.fromisoformat(data)
+    except ValueError:
+        raise HTTPException(400, "Data inválida. Use YYYY-MM-DD.")
+
+    res = await db.execute(
+        select(PortariaDOU)
+        .where(PortariaDOU.data_publicacao == data)
+        .order_by(PortariaDOU.capturado_em.desc())
+    )
+    rows = res.scalars().all()
+
+    import json as _json
+
+    def _row_to_informe(p: PortariaDOU) -> dict:
+        titulo  = p.titulo or "Sem título"
+        resumo  = p.resumo or p.ementa or ""
+        # Usa os campos de impacto já salvos, ou monta texto simples
+        try:
+            prov = _json.loads(p.providencias or "[]")
+            fin  = _json.loads(p.impacto_financeiro or "[]")
+            ass  = _json.loads(p.impacto_assistencial or "[]")
+            adm  = _json.loads(p.impacto_administrativo or "[]")
+            itens = prov + fin + ass + adm
+        except Exception:
+            itens = []
+        impacto_texto = " ".join(itens[:3]) if itens else "Não foi identificado impacto direto para Apuí/AM após análise do texto."
+        return {
+            "titulo":     titulo,
+            "numero":     p.numero or "",
+            "data_pub":   p.data_publicacao or data,
+            "orgao":      p.orgao or "Ministério da Saúde",
+            "relevancia": p.relevancia or "federal",
+            "prioridade": p.prioridade or "normativo",
+            "resumo":     resumo[:600] or "(Acesse o link para ver o conteúdo completo)",
+            "impacto":    impacto_texto,
+            "link":       p.url_oficial or "https://www.in.gov.br/leiturajornal",
+            "valores":    [],
+        }
+
+    relevantes = [r for r in rows if (r.relevancia or "federal") in ("apui", "amazonas", "federal")]
+    informes   = [_row_to_informe(r) for r in relevantes]
+
+    return {
+        "data":        data,
+        "total":       len(rows),
+        "fonte":       "banco",
+        "apui":        [_row_to_informe(r) for r in rows if r.relevancia == "apui"],
+        "amazonas":    [_row_to_informe(r) for r in rows if r.relevancia == "amazonas"],
+        "federal":     [_row_to_informe(r) for r in rows if (r.relevancia or "federal") == "federal"],
+        "sem_impacto": [_row_to_informe(r) for r in rows if r.relevancia == "sem_impacto"],
+        "informes":    informes,
+        "enviado":     False,
+        "log":         {"fonte": "banco_de_dados", "total_registros": len(rows)},
+    }
+
+
 @router.post("/corrigir-datas")
 async def corrigir_datas_portarias(
     db: AsyncSession = Depends(get_db),
