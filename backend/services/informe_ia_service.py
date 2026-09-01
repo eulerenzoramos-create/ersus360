@@ -39,68 +39,41 @@ RESTRIÇÕES ABSOLUTAS — NUNCA VIOLAR:
 """
 
 _TEMPLATE_INSTRUCOES = """\
-Com base nos dados da portaria abaixo, elabore um Informe Técnico seguindo \
-EXATAMENTE esta estrutura e este modelo. Não altere a estrutura, não adicione \
-seções e não omita seções.
+Com base nos dados da portaria abaixo, redija um Informe Técnico formal \
+em texto corrido (prosa contínua), SEM títulos de seção, SEM bullets, \
+SEM marcadores. O informe deve ser um documento único em parágrafos.
 
----
-INFORME TÉCNICO – ERSUS360
-PORTARIA {orgao} Nº {numero}, DE {data_pub}
-Assunto: {assunto_placeholder}
-Publicação: {data_pub}
-Órgão responsável: {orgao}
-Área: {area_placeholder}
-Vigência: {vigencia_placeholder}
+Estrutura obrigatória em prosa — cada item vira um parágrafo:
 
-RESUMO DA PORTARIA
-[Escrever no máximo dois parágrafos curtos explicando: (1) o que a portaria \
-estabelece e qual é seu objetivo; (2) qual programa, política, recurso ou serviço \
-está sendo tratado e quem é alcançado pela medida, quando essa informação constar \
-no texto principal. Não analisar impacto territorial. Não mencionar municípios \
-específicos. Usar somente o texto fornecido.]
+Parágrafo 1 — Identificação: mencione o número da portaria, o órgão emissor, \
+a data de publicação e o assunto principal extraído do texto.
 
-PRINCIPAIS DISPOSIÇÕES
-[Listar de três a cinco tópicos objetivos com as principais determinações \
-da portaria, extraídos exclusivamente do texto principal. \
-Formato: — [disposição]. Não inventar disposições.]
+Parágrafo 2 — Objeto e objetivo: explique o que a portaria estabelece, \
+qual programa ou política está sendo tratado e qual é sua finalidade.
 
-PRAZOS
-[Informar somente os prazos expressamente previstos no texto principal. \
-Se não houver prazo, escrever exatamente: \
-"A portaria não estabelece prazo específico em seu texto principal."]
+Parágrafo 3 — Principais determinações: descreva em texto corrido as \
+principais disposições do ato, extraídas exclusivamente do texto principal. \
+Se o texto estiver truncado, informe que o texto completo deve ser \
+verificado no link oficial.
 
-ORIENTAÇÃO AO GESTOR
-[Escrever uma orientação breve e diretamente relacionada ao conteúdo da portaria. \
-Não criar obrigação, procedimento ou providência que não esteja fundamentada \
-no texto oficial. Máximo três linhas.]
+Parágrafo 4 — Prazos e vigência: mencione os prazos expressamente previstos \
+no texto principal. Se não houver, escreva que a portaria não estabelece \
+prazo específico em seu texto principal.
 
-FONTE OFICIAL
-{link}
+Parágrafo 5 — Orientação ao gestor: uma recomendação objetiva e diretamente \
+fundamentada no conteúdo oficial do ato normativo.
 
-Elaborado automaticamente pelo Agente de Portarias do Ministério da Saúde – ERSUS360.
----
+Ao final, uma linha com:
+Fonte: Diário Oficial da União, publicado em {data_pub}. Disponível em: {link}
 
-REGRAS OBRIGATÓRIAS DE REDAÇÃO:
-- Preencher os campos {assunto_placeholder}, {area_placeholder} e \
-  {vigencia_placeholder} com base no texto da portaria.
-- Para {assunto_placeholder}: extrair o assunto principal em uma linha.
-- Para {area_placeholder}: classificar em uma das categorias: \
-  Atenção Primária à Saúde | Atenção Especializada | Vigilância em Saúde | \
-  Assistência Farmacêutica | Saúde Indígena | Saúde Digital | \
-  Gestão do Trabalho | Piso da Enfermagem | Infraestrutura e obras | \
-  Financiamento do SUS | Habilitação ou credenciamento | \
-  Programas e políticas de saúde | Alteração normativa | \
-  Outros assuntos do Ministério da Saúde.
-- Para {vigencia_placeholder}: informar a data de vigência do texto ou \
-  "Informação não identificada no texto principal da portaria."
-- Usar somente informações presentes no texto da portaria.
-- Não copiar integralmente a portaria.
-- Não usar markdown, negrito, itálico nem bullets com * — usar somente — (travessão).
-- Não emitir opinião pessoal.
-- Não analisar anexos ou tabelas.
-- Não apresentar valores que estejam somente em anexos.
-- Texto de no máximo uma página (300 a 500 palavras no total).
-- Retornar APENAS o informe, sem comentários adicionais.
+REGRAS ABSOLUTAS:
+- Texto corrido, sem títulos de seção, sem bullets, sem numeração.
+- Usar apenas informações do texto principal fornecido. NUNCA inventar.
+- Não analisar impacto territorial, estadual ou municipal.
+- Não mencionar municípios específicos.
+- Não consultar ou mencionar anexos.
+- Entre 250 e 450 palavras no total.
+- Retornar APENAS o texto do informe, sem comentários adicionais.
 
 DADOS DA PORTARIA:
 Número: {numero}
@@ -109,7 +82,6 @@ Data de publicação: {data_pub}
 Órgão: {orgao}
 Edição DOU: {edicao}
 Seção DOU: {secao}
-Página DOU: {pagina}
 Texto principal disponível:
 {resumo}
 
@@ -196,13 +168,8 @@ async def gerar_informe_ia(
         orgao=portaria.get("_orgao") or portaria.get("orgao") or "Ministério da Saúde",
         edicao=portaria.get("edicao_dou") or portaria.get("edicao") or "—",
         secao=portaria.get("secao_dou") or portaria.get("secao") or "DO1",
-        pagina=portaria.get("pagina_dou") or portaria.get("pagina") or "—",
         resumo=conteudo_para_ia,
         link=link or "https://www.in.gov.br/leiturajornal",
-        # Placeholders preenchidos pela IA com base no conteúdo
-        assunto_placeholder="[preencher com o assunto principal da portaria]",
-        area_placeholder="[classificar por área temática]",
-        vigencia_placeholder="[informar vigência ou 'Informação não identificada no texto principal da portaria.']",
     )
 
     try:
@@ -240,43 +207,18 @@ def formatar_informe_html(texto: str, portaria: dict, data_hoje: date | None = N
     numero = portaria.get("_numero") or portaria.get("numero") or ""
     link   = portaria.get("_link") or portaria.get("url_oficial") or "https://www.in.gov.br/leiturajornal"
 
-    # Converte o texto estruturado em HTML com seções destacadas
-    SECOES = {
-        "RESUMO DA PORTARIA",
-        "PRINCIPAIS DISPOSIÇÕES",
-        "PRAZOS",
-        "ORIENTAÇÃO AO GESTOR",
-        "FONTE OFICIAL",
-    }
-    linhas = texto.split("\n")
+    # Renderiza parágrafos em prosa simples
+    paragrafos = [p.strip() for p in texto.split("\n") if p.strip()]
     blocos_html = []
-    for linha in linhas:
-        l = linha.strip()
-        if not l:
-            continue
-        if l in SECOES:
+    for p in paragrafos:
+        if p.lower().startswith("fonte:"):
             blocos_html.append(
-                f'<p style="margin:18px 0 6px;font-weight:700;font-size:12px;'
-                f'text-transform:uppercase;letter-spacing:.5px;color:#1d4ed8;'
-                f'border-bottom:1px solid #e2e8f0;padding-bottom:4px">{l}</p>'
-            )
-        elif l.startswith("INFORME TÉCNICO") or l.startswith("PORTARIA "):
-            blocos_html.append(
-                f'<p style="margin:0 0 4px;font-weight:700;font-size:13px;color:#1e293b">{l}</p>'
-            )
-        elif l.startswith("Assunto:") or l.startswith("Publicação:") or \
-             l.startswith("Órgão") or l.startswith("Área:") or l.startswith("Vigência:"):
-            blocos_html.append(
-                f'<p style="margin:0 0 3px;font-size:12px;color:#374151">{l}</p>'
-            )
-        elif l.startswith("—") or l.startswith("-"):
-            blocos_html.append(
-                f'<p style="margin:0 0 6px;padding-left:12px;line-height:1.7;'
-                f'text-align:justify;border-left:2px solid #e2e8f0">{l}</p>'
+                f'<p style="margin:20px 0 0;font-size:11px;color:#64748b;'
+                f'border-top:1px solid #e2e8f0;padding-top:12px">{p}</p>'
             )
         else:
             blocos_html.append(
-                f'<p style="margin:0 0 12px;line-height:1.8;text-align:justify">{l}</p>'
+                f'<p style="margin:0 0 14px;line-height:1.85;text-align:justify">{p}</p>'
             )
     corpo_html = "\n".join(blocos_html)
 
