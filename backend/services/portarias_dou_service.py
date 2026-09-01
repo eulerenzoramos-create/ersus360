@@ -363,14 +363,11 @@ def _titulo_confirma_ms(titulo: str) -> bool | None:
     """
     t_lower = titulo.lower()
 
-    # "PORTARIA DE PESSOAL" → é portaria de RH de qualquer órgão.
-    # Só aceita se vier acompanhada de sigla MS explícita (ex: SE/MS, GM/MS).
+    # "PORTARIA DE PESSOAL" → portaria de RH interno (nomeações, remoções,
+    # exonerações de servidores). Irrelevante para gestão de saúde pública.
+    # Rejeitar sempre, mesmo quando a sigla do órgão é do MS.
     if "de pessoal" in t_lower:
-        has_ms_sigla = any(s in t_lower for s in (
-            "se/ms", "gm/ms", "saps/ms", "saes/ms", "svsa/ms", "svs/ms",
-            "sectics/ms", "sctie/ms", "sesai/ms", "seidigi/ms", "fns/ms",
-        ))
-        return True if has_ms_sigla else False
+        return False
 
     sigla = _orgao_do_titulo(titulo)
     if not sigla:

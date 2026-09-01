@@ -349,12 +349,16 @@ async def limpar_portarias_nao_ms(
     def _tem_sigla_ms(titulo: str) -> bool:
         return bool(_SIGLAS_MS_REGEX.search(titulo))
 
+    def _e_pessoal(titulo: str) -> bool:
+        # Portarias de RH interno (nomeações, exonerações) — irrelevantes para gestão
+        return "de pessoal" in titulo.lower()
+
     res = await db.execute(select(PortariaDOU).order_by(PortariaDOU.id.asc()))
     rows = res.scalars().all()
     ids_deletar: list[int] = []
 
-    # 1. Remove não-MS (sem sigla MS no título)
-    ids_nao_ms = {p.id for p in rows if not _tem_sigla_ms(p.titulo or "")}
+    # 1. Remove não-MS (sem sigla MS no título) OU portaria de pessoal (RH interno)
+    ids_nao_ms = {p.id for p in rows if not _tem_sigla_ms(p.titulo or "") or _e_pessoal(p.titulo or "")}
     ids_deletar.extend(ids_nao_ms)
 
     # 2. Deduplica: agrupa por título normalizado, mantém o de maior id (mais recente)
