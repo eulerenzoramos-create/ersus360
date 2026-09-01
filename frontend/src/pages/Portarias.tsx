@@ -201,7 +201,13 @@ function InformeCard({ inf, idx, selecionado, onToggle, onEditar, onDeletar }: {
       const w = window.open("", "_blank");
       if (w) { w.document.write(html); w.document.close(); }
     } catch (e: any) {
-      setErroIA(e?.message || "Erro ao gerar informe via IA.");
+      // Extrai mensagem real do backend (axios encapsula em e.response)
+      const detalhe = e?.response?.data
+        ? (typeof e.response.data === "string"
+            ? e.response.data.slice(0, 300)
+            : e.response.data?.detail || JSON.stringify(e.response.data).slice(0, 300))
+        : e?.message || "Erro desconhecido";
+      setErroIA(`Erro ${e?.response?.status ?? ""}: ${detalhe}`);
     } finally {
       setGerandoIA(false);
     }
