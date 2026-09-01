@@ -1,7 +1,7 @@
 // Módulo 6 — Banco de Portarias
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiPortarias, type Portaria, apiGet, apiPost } from "../lib/api";
+import { apiPortarias, type Portaria, apiGet, apiPost, api } from "../lib/api";
 import { Search, Plus, FileText, Trash2, ExternalLink, Mail, Play, RotateCcw, Eye, Pause, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
@@ -195,19 +195,9 @@ function InformeCard({ inf, idx, selecionado, onToggle, onEditar, onDeletar }: {
     setGerandoIA(true);
     setErroIA(null);
     try {
-      const resp = await fetch("/api/email-diario/informe-ia", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token") || ""}`,
-        },
-        body: JSON.stringify({ portaria: inf }),
-      });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.detail || `Erro ${resp.status}`);
-      }
-      const html = await resp.text();
+      // Usa o cliente axios (BASE_URL do Railway) para evitar o rewrite do Vercel
+      const resp = await api.post("/api/email-diario/informe-ia", { portaria: inf }, { responseType: "text" });
+      const html = resp.data as string;
       const w = window.open("", "_blank");
       if (w) { w.document.write(html); w.document.close(); }
     } catch (e: any) {
@@ -948,14 +938,8 @@ const COR_PRIO_DOU: Record<string, string> = {
 };
 
 async function _atualizarStatusPortaria(id: number, status: string, motivo?: string) {
-  const token = localStorage.getItem("token") || "";
-  const r = await fetch(`/api/email-diario/portarias/${id}/status`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-    body: JSON.stringify({ status, motivo }),
-  });
-  if (!r.ok) throw new Error(`Erro ${r.status}`);
-  return r.json();
+  const resp = await api.patch(`/api/email-diario/portarias/${id}/status`, { status, motivo });
+  return resp.data;
 }
 
 function PainelPortariasDOU() {
