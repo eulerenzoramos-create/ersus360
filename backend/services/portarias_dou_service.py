@@ -733,7 +733,12 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
                             validos.append(p)
                         elif not sigla:
                             # Título genérico "PORTARIA Nº X" sem sigla:
-                            # aplicar hint pois DOU filtrou por org=MS
+                            # verificar se o orgaoName original indica órgão não-MS
+                            orgao_orig_p = (p.get("orgaoName") or "").strip().lower()
+                            if orgao_orig_p and not confirmar_orgao_ms(orgao_orig_p, titulo_p):
+                                # orgaoName da API aponta para outro órgão → rejeitar
+                                continue
+                            # Aplicar hint: DOU filtrou por org=MS e título é genérico
                             p["orgaoName"] = "Ministério da Saúde"
                             validos.append(p)
                         # resultado_titulo is None E tem sigla desconhecida → rejeitar

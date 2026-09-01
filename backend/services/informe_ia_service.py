@@ -41,7 +41,9 @@ RESTRIÇÕES ABSOLUTAS — NUNCA VIOLAR:
 _TEMPLATE_INSTRUCOES = """\
 Com base nos dados da portaria abaixo, redija um Informe Técnico formal \
 em texto corrido (prosa contínua), SEM títulos de seção, SEM bullets, \
-SEM marcadores. O informe deve ser um documento único em parágrafos.
+SEM marcadores. O informe é dirigido à Secretária Municipal de Saúde \
+de Apuí/AM e deve conter apenas informações extraídas diretamente do texto \
+principal — nenhuma informação inventada ou deduzida.
 
 Estrutura obrigatória em prosa — cada item vira um parágrafo:
 
@@ -194,7 +196,16 @@ async def gerar_informe_ia(
         raise RuntimeError(f"Falha ao gerar informe via IA: {exc}") from exc
 
 
-def formatar_informe_html(texto: str, portaria: dict, data_hoje: date | None = None) -> str:
+def formatar_informe_html(
+    texto: str,
+    portaria: dict,
+    data_hoje: date | None = None,
+    destinatario_nome: str = "Rosangela Montter",
+    destinatario_cargo: str = "Secretária Municipal de Saúde",
+    destinatario_local: str = "Apuí/AM",
+    elaborador_nome: str = "Euler Ramos de Oliveira",
+    elaborador_cargo: str = "Assessor Técnico em Saúde Pública",
+) -> str:
     """
     Converte o texto gerado pela IA em HTML imprimível no mesmo
     estilo do documento atual do ERSUS360.
@@ -339,6 +350,26 @@ def formatar_informe_html(texto: str, portaria: dict, data_hoje: date | None = N
   </div>
 
   <div class="corpo">
+
+    <!-- Identificação formal do documento -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:22px;font-size:12px;color:#334155">
+      <tr>
+        <td style="width:50%;vertical-align:top;padding:0 12px 0 0;border-right:1px solid #e2e8f0">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-bottom:4px">Para</div>
+          <div style="font-weight:700;color:#1e293b;font-size:13px">{destinatario_nome}</div>
+          <div style="color:#475569">{destinatario_cargo}</div>
+          <div style="color:#475569">Secretaria Municipal de Saúde — {destinatario_local}</div>
+        </td>
+        <td style="width:50%;vertical-align:top;padding:0 0 0 12px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-bottom:4px">Elaborado por</div>
+          <div style="font-weight:700;color:#1e293b;font-size:13px">{elaborador_nome}</div>
+          <div style="color:#475569">{elaborador_cargo}</div>
+          <div style="color:#475569">Data: {data_br}</div>
+        </td>
+      </tr>
+    </table>
+    <div style="border-top:2px solid #1d4ed8;margin-bottom:22px"></div>
+
     <div class="texto-informe">
       {corpo_html}
     </div>
@@ -346,6 +377,18 @@ def formatar_informe_html(texto: str, portaria: dict, data_hoje: date | None = N
     <div class="fonte">
       🔗 <strong>Fonte oficial:</strong>&nbsp;
       <a href="{link}" target="_blank" rel="noopener noreferrer">{link}</a>
+    </div>
+
+    <!-- Assinatura -->
+    <div style="margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;font-size:12px;color:#374151">
+      <div style="margin-bottom:32px">Apuí/AM, {data_br}</div>
+      <div style="display:inline-block;text-align:center;min-width:260px">
+        <div style="border-top:1px solid #334155;padding-top:6px;margin-top:0">
+          <div style="font-weight:700;font-size:12px;text-transform:uppercase;color:#1e293b;letter-spacing:.5px">{elaborador_nome}</div>
+          <div style="color:#475569;font-size:11px">{elaborador_cargo}</div>
+          <div style="color:#475569;font-size:11px">Secretaria Municipal de Saúde — {destinatario_local}</div>
+        </div>
+      </div>
     </div>
   </div>
 
