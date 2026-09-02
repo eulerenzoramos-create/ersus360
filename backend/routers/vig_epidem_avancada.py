@@ -1,73 +1,16 @@
-"""
-Router: /api/vig-epidem-avancada — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
-"""
+"""Router: /api/vig-epidem-avancada — ERSUS 360 — SINAN avançado"""
 from __future__ import annotations
-from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
-from routers.auth import get_current_user, UserOut
-
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.sinan_service import buscar_agravos_resumo, buscar_malaria, buscar_dengue, buscar_tuberculose, buscar_hanseniase
 router = APIRouter(prefix="/api/vig-epidem-avancada", tags=["vig_epidem_avancada"])
-
-
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
 @router.get("/dashboard")
-async def dashboard():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/surtos")
-async def surtos():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/boletim-semanal")
-async def boletim_semanal():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/sinan-agravos")
-async def sinan_agravos():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/historico")
-async def historico():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
+async def dashboard(ano: int = Query(0)):
+    if not ano: ano = _ANO()
+    mal = await buscar_malaria(ano); den = await buscar_dengue(ano)
+    tb = await buscar_tuberculose(ano); hans = await buscar_hanseniase(ano)
+    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [mal, den, tb, hans])
+    return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "malaria": mal, "dengue": den, "tuberculose": tb, "hanseniase": hans, "fonte": "SINAN — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
-async def indicadores():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
+async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
