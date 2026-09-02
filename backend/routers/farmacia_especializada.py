@@ -1,53 +1,15 @@
-"""
-Router: /api/farmacia-especializada — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
-"""
+"""Router: /api/farmacia-especializada — ERSUS 360 (genérico) — SIA dados abertos"""
 from __future__ import annotations
-from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
-from routers.auth import get_current_user, UserOut
-
-router = APIRouter(prefix="/api/farmacia-especializada", tags=["Farmácia Especializada"])
-
-
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.sia_service import buscar_producao
+router = APIRouter(prefix="/api/farmacia-especializada", tags=["farmacia_especializada"])
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
+_NOTA = "Dispensação individual CEAF requer HÓRUS/REME (pendente)."
 @router.get("/dashboard")
-async def dashboard():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/medicamentos")
-async def medicamentos():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/judicializacoes")
-async def judicializacoes():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/renovacoes")
-async def renovacoes():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
+async def dashboard(ano: int = Query(0)):
+    if not ano: ano = _ANO()
+    sia = await buscar_producao(ano)
+    return {"situacao_dado": sia.get("situacao_dado"), "ano": ano, "producao_alto_custo": sia.get("total_procedimentos"), "nota": _NOTA, "fonte": "SIA — DATASUS dados abertos", "verificado_em": _TS()}
+@router.get("/indicadores")
+async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
