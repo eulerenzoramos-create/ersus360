@@ -1,63 +1,47 @@
 """
 Router: /api/doencas-negligenciadas-apui — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
+Doenças negligenciadas via SINAN + SIH — DATASUS dados abertos.
+(Leishmaniose, Chagas, Esquistossomose, Hanseníase — endêmicas na Amazônia)
 """
 from __future__ import annotations
-from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
-from routers.auth import get_current_user, UserOut
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.sinan_service import buscar_agravos_resumo, buscar_hanseniase
+from services.sih_service import buscar_internacoes
 
 router = APIRouter(prefix="/api/doencas-negligenciadas-apui", tags=["doencas_negligenciadas_apui"])
+_TS  = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+_ANO = lambda: date.today().year - 1
 
 
 @router.get("/dashboard")
-async def dashboard():
+async def dashboard(ano: int = Query(0)):
+    if not ano:
+        ano = _ANO()
+    agravos    = await buscar_agravos_resumo(ano)
+    hanseniase = await buscar_hanseniase(ano)
+    sih        = await buscar_internacoes(ano)
     return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "situacao_dado": agravos.get("situacao_dado"),
+        "ano": ano,
+        "agravos_sinan": agravos,
+        "hanseniase": hanseniase,
+        "internacoes": sih.get("total_internacoes"),
+        "nota": "Leishmaniose, Chagas, Esquistossomose requerem endpoints SINAN específicos (pendente disponibilização API pública).",
+        "fonte": "SINAN + SIH — DATASUS dados abertos",
+        "verificado_em": _TS(),
     }
 
 
-@router.get("/doencas")
-async def doencas():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/controle")
-async def controle():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/historico")
-async def historico():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
+@router.get("/hanseniase")
+async def hanseniase(ano: int = Query(0)):
+    if not ano:
+        ano = _ANO()
+    result = await buscar_hanseniase(ano)
+    result["verificado_em"] = _TS()
+    return result
 
 
 @router.get("/indicadores")
-async def indicadores():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
+async def indicadores(ano: int = Query(0)):
+    return await dashboard(ano=ano)

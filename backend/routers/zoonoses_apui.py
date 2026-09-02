@@ -1,63 +1,34 @@
 """
 Router: /api/zoonoses-apui — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
+Zoonoses via SINAN — DATASUS dados abertos.
+(Raiva, leptospirose, febre amarela — Amazônia)
 """
 from __future__ import annotations
-from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
-from routers.auth import get_current_user, UserOut
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.sinan_service import buscar_agravos_resumo
 
 router = APIRouter(prefix="/api/zoonoses-apui", tags=["zoonoses_apui"])
+_TS  = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+_ANO = lambda: date.today().year - 1
+_NOTA = "Dados específicos de raiva/leptospirose requerem endpoint SINAN /zoonoses (pendente disponibilização API pública)."
 
 
 @router.get("/dashboard")
-async def dashboard():
+async def dashboard(ano: int = Query(0)):
+    if not ano:
+        ano = _ANO()
+    agravos = await buscar_agravos_resumo(ano)
     return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/doencas")
-async def doencas():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/acoes")
-async def acoes():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/historico")
-async def historico():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "situacao_dado": agravos.get("situacao_dado"),
+        "ano": ano,
+        "agravos_sinan": agravos,
+        "nota": _NOTA,
+        "fonte": "SINAN — DATASUS dados abertos",
+        "verificado_em": _TS(),
     }
 
 
 @router.get("/indicadores")
-async def indicadores():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
+async def indicadores(ano: int = Query(0)):
+    return await dashboard(ano=ano)
