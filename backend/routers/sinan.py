@@ -1,53 +1,26 @@
 """
-Router: /api/sinan — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
+Router: /api/sinan — ERSUS 360 (genérico)
+Agravos SINAN — DATASUS dados abertos.
 """
 from __future__ import annotations
-from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
-from routers.auth import get_current_user, UserOut
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.sinan_service import buscar_agravos_resumo
 
-router = APIRouter(prefix="/api/sinan", tags=["SINAN"])
+router = APIRouter(prefix="/api/sinan", tags=["sinan"])
+_TS  = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+_ANO = lambda: date.today().year - 1
 
 
 @router.get("/dashboard")
-async def dashboard():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
+async def dashboard(ano: int = Query(0)):
+    if not ano:
+        ano = _ANO()
+    result = await buscar_agravos_resumo(ano)
+    result["verificado_em"] = _TS()
+    return result
 
 
-@router.get("/notificacoes")
-async def notificacoes():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/alertas")
-async def alertas():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/por-agravo")
-async def por_agravo():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
+@router.get("/indicadores")
+async def indicadores(ano: int = Query(0)):
+    return await dashboard(ano=ano)
