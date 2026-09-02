@@ -1,63 +1,15 @@
-"""
-Router: /api/judicializacao-saude — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
-"""
+"""Router: /api/judicializacao-saude — ERSUS 360 — SIH dados abertos"""
 from __future__ import annotations
-from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
-from routers.auth import get_current_user, UserOut
-
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.sih_service import buscar_internacoes
 router = APIRouter(prefix="/api/judicializacao-saude", tags=["judicializacao_saude"])
-
-
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
+_NOTA = "Processos judiciais individuais requerem sistema local CNJ/SENAD (pendente). SIH como proxy de demanda hospitalar."
 @router.get("/dashboard")
-async def dashboard():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/processos")
-async def processos():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/por-objeto")
-async def por_objeto():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/historico")
-async def historico():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
+async def dashboard(ano: int = Query(0)):
+    if not ano: ano = _ANO()
+    sih = await buscar_internacoes(ano)
+    return {"situacao_dado": sih.get("situacao_dado"), "ano": ano, "internacoes": sih.get("total_internacoes"), "valor_total": sih.get("valor_total_reais"), "nota": _NOTA, "fonte": "SIH — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
-async def indicadores():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
+async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
