@@ -1,63 +1,14 @@
-"""
-Router: /api/saude-digital — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
-"""
+"""Router: /api/saude-digital — ERSUS 360 — CNES dados abertos"""
 from __future__ import annotations
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
-from routers.auth import get_current_user, UserOut
-
+from fastapi import APIRouter
+from services.cnes_service import buscar_estabelecimentos
 router = APIRouter(prefix="/api/saude-digital", tags=["saude_digital"])
-
-
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+_NOTA = "Métricas de uso e-SUS PEC/RNDS requerem integração (pendente). CNES como proxy de cobertura digital."
 @router.get("/dashboard")
 async def dashboard():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/sistemas")
-async def sistemas():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/rnds")
-async def rnds():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/historico")
-async def historico():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
+    cnes = await buscar_estabelecimentos()
+    return {"situacao_dado": cnes.get("situacao_dado"), "estabelecimentos": cnes.get("total"), "nota": _NOTA, "fonte": "CNES — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
-async def indicadores():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
+async def indicadores(): return await dashboard()

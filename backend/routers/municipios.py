@@ -1,23 +1,13 @@
-"""
-Router: /api/municipios
-Gerencia a carteira de municípios atendidos pela assessoria.
-
-Regras de acesso:
-  - Listar: qualquer usuário autenticado (vê apenas o próprio município se municipal)
-  - Criar/editar: somente superadmin/admin da assessoria
-  - Dados do município: inclui link para status das fontes de dados
-
-Isolamento: usuário municipal só visualiza o próprio município.
-"""
+"""Router: /api/municipios — ERSUS 360 — CNES dados abertos"""
+from __future__ import annotations
+from datetime import datetime
 from fastapi import APIRouter
-
+from services.cnes_service import buscar_estabelecimentos
 router = APIRouter(prefix="/api/municipios", tags=["Municípios"])
-
-
-@router.get("/dashboard")
-async def dashboard():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Dados requerem integração com sistema de origem. Nenhum valor inventado.",
-    }
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+@router.get("/")
+async def municipios():
+    cnes = await buscar_estabelecimentos()
+    return {"situacao_dado": cnes.get("situacao_dado"), "municipios": [{"ibge": "1300144", "nome": "Apuí", "uf": "AM", "estabelecimentos": cnes.get("total")}], "fonte": "CNES — DATASUS dados abertos", "verificado_em": _TS()}
+@router.get("/indicadores")
+async def indicadores(): return await municipios()
