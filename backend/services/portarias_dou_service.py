@@ -9,13 +9,13 @@ Regra fundamental (nunca violar):
   orgao_hint NUNCA é atribuído a itens sem evidência estrutural de órgão.
 
 Variáveis de ambiente obrigatórias:
-  EMAIL_PROVIDER      smtp | resend  (default: smtp)
-  EMAIL_FROM          remetente
+  EMAIL_PROVIDER      smtp | resend  (default: resend — Railway bloqueia SMTP)
+  EMAIL_FROM          remetente verificado no Resend (ex: noreply@seudominio.com.br)
   EMAIL_RECIPIENT     destinatário (default: eulerenzoramos@gmail.com)
   EMAIL_TIMEZONE      America/Manaus
   EMAIL_SEND_HOUR     06:00
-  SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS
-  RESEND_API_KEY      (se EMAIL_PROVIDER=resend)
+  RESEND_API_KEY      chave Resend (obrigatório com EMAIL_PROVIDER=resend)
+  SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS  (apenas se EMAIL_PROVIDER=smtp)
 """
 from __future__ import annotations
 import hashlib
@@ -35,8 +35,8 @@ import httpx
 logger = logging.getLogger(__name__)
 
 # ── Configurações via env ─────────────────────────────────────────────────────
-EMAIL_PROVIDER  = os.getenv("EMAIL_PROVIDER",  "smtp").lower()
-EMAIL_FROM      = os.getenv("EMAIL_FROM",      "noreply@ersus360.local")
+EMAIL_PROVIDER  = os.getenv("EMAIL_PROVIDER",  "resend").lower()  # Railway bloqueia SMTP; use resend (HTTPS)
+EMAIL_FROM      = os.getenv("EMAIL_FROM",      "onboarding@resend.dev")  # Resend exige domínio verificado; configure EMAIL_FROM no Railway
 EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT", "eulerenzoramos@gmail.com")
 EMAIL_TIMEZONE  = os.getenv("EMAIL_TIMEZONE",  "America/Manaus")
 EMAIL_SEND_HOUR = os.getenv("EMAIL_SEND_HOUR", "06:00")
@@ -286,7 +286,8 @@ FRAGMENTOS_NAO_MS: tuple[str, ...] = (
 # precedida de "PORTARIA", é definitivamente do Ministério da Saúde.
 # ─────────────────────────────────────────────────────────────────────────────
 SIGLAS_MS_NO_TITULO: frozenset[str] = frozenset({
-    "gm/ms", "gm/m", "saps/ms", "saes/ms", "svsa/ms", "svs/ms",
+    # Apenas "gm/ms" — "gm/m" era broad demais e capturava gm/mpo, gm/mpi, gm/mme
+    "gm/ms", "saps/ms", "saes/ms", "svsa/ms", "svs/ms",
     "sectics/ms", "sctie/ms", "sesai/ms", "seidigi/ms", "se/ms",
     "fns/ms", "fns", "anvisa", "ans/ms",
     "ministerio da saude", "ministério da saúde",
@@ -299,7 +300,7 @@ SIGLAS_NAO_MS_NO_TITULO: frozenset[str] = frozenset({
     "cvm", "ibama", "ibge", "iphan", "incra", "dpf", "inmetro", "inpi",
     "inss", "bcb", "bacen", "secom", "sefic", "minc", "mapa", "mre",
     "mds", "mcidades", "minfra", "mtur", "mec", "md", "mmfdh", "mj",
-    "ms/me", "mp", "mpog", "sef", "stn", "srf", "receita federal",
+    "ms/me", "mp", "mpog", "mpo", "mpi", "mme", "sef", "stn", "srf", "receita federal",
     "cgccr", "coaf", "igi", "alf",
     # Ministério da Integração e Desenvolvimento Regional
     "midr",
@@ -376,16 +377,20 @@ def _titulo_confirma_ms(titulo: str) -> bool | None:
     # Normaliza para comparação
     sigla_n = _normalizar_orgao(sigla)
 
-    # Confirma explicitamente como MS
+    # Confirma explicitamente como MS — usa igualdade exata para evitar
+    # falsos positivos por substring (ex: "gm/m" não deve casar "gm/mpo")
     for ms_sig in SIGLAS_MS_NO_TITULO:
         ms_n = _normalizar_orgao(ms_sig)
-        if ms_n == sigla_n or ms_n in sigla_n:
+        if ms_n == sigla_n:
+            return True
+        # Permite prefixo com "/" (ex: "gm/ms" casa "gm/ms/detalhe")
+        if sigla_n.startswith(ms_n + "/"):
             return True
 
     # Rejeita explicitamente como não-MS
     for nao_ms in SIGLAS_NAO_MS_NO_TITULO:
         nao_ms_n = _normalizar_orgao(nao_ms)
-        if nao_ms_n == sigla_n or nao_ms_n in sigla_n:
+        if nao_ms_n == sigla_n or sigla_n.startswith(nao_ms_n + "/"):
             return False
 
     # Verifica fragmentos de exclusão na sigla
@@ -1515,7 +1520,7 @@ async def _enviar_email(assunto: str, html: str) -> dict:
 
 async def _enviar_smtp(assunto: str, html: str) -> dict:
     if not SMTP_USER or not SMTP_PASS:
-        return {"ok": False, "erro": "SMTP_USER ou SMTP_PASS não configurados"}
+        return {"ok": False, "erro": "SMTP_USER ou SMTP_PASS não configurados. Railway bloqueia SMTP — configure EMAIL_PROVIDER=resend e RESEND_API_KEY no Railway."}
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = assunto
@@ -1529,6 +1534,9 @@ async def _enviar_smtp(assunto: str, html: str) -> dict:
             s.login(SMTP_USER, SMTP_PASS)
             s.sendmail(EMAIL_FROM, EMAIL_RECIPIENT, msg.as_string())
         return {"ok": True}
+    except OSError as e:
+        # Railway bloqueia portas SMTP (25/465/587). Solução: usar Resend (HTTPS).
+        return {"ok": False, "erro": f"SMTP bloqueado pelo Railway (porta {SMTP_PORT}): {e}. Configure EMAIL_PROVIDER=resend e RESEND_API_KEY no Railway."}
     except Exception as e:
         return {"ok": False, "erro": str(e)}
 

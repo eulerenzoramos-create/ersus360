@@ -55,55 +55,86 @@ def _pec_pronto() -> bool:
     return bool(ESUS_URL and ESUS_USUARIO and ESUS_SENHA)
 
 
-# ── Autenticação na instância local do PEC ───────────────────────────────────
+# ── GraphQL — e-SUS PEC usa /graphql (não REST) ──────────────────────────────
 
-async def _pec_autenticar() -> str | None:
-    """Autentica na API local do PEC e retorna o token JWT."""
-    global _pec_token, _pec_token_exp
-    if _pec_token and time.time() < _pec_token_exp:
-        return _pec_token
-    if not _pec_pronto():
-        return None
+_GQL_LOGIN = """
+mutation Login($login: String!, $senha: String!) {
+  autenticar(input: { login: $login, senha: $senha }) {
+    sessionToken
+  }
+}
+"""
+
+_GQL_EQUIPES = """
+query Equipes($municipio: String!) {
+  equipesSaude(filter: { municipio: { codigoIbge: $municipio } }) {
+    id ine nome
+    tipoEquipe { descricao }
+    unidadeSaude { cnes }
+    ativa
+  }
+}
+"""
+
+_GQL_PROFISSIONAIS = """
+query Profissionais($municipio: String!) {
+  profissionaisDeSaude(filter: { municipio: { codigoIbge: $municipio } }) {
+    id nome
+    cbo { codigo descricao }
+    ativo
+    lotacoes { unidadeSaude { cnes } equipe { ine } }
+  }
+}
+"""
+
+_GQL_FICHAS_RESUMO = """
+query FichasResumo($municipio: String!) {
+  relatorioSinteticoFichas(filter: { municipio: { codigoIbge: $municipio } }) {
+    totalAtendimentoIndividual
+    totalAtendimentoOdontologico
+    totalVisitaDomiciliar
+    totalCadastroIndividual
+    totalCadastroDomiciliar
+    totalAtividadeColetiva
+  }
+}
+"""
+
+
+async def _pec_gql(query: str, variables: dict, token: str | None = None) -> dict | None:
+    """Executa uma query GraphQL no e-SUS PEC local."""
+    headers: dict = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT, verify=False) as client:
-            # A API do e-SUS PEC usa /api/session ou /api/login dependendo da versão
-            for path in ["/api/session", "/api/login", "/api/auth/token"]:
-                try:
-                    r = await client.post(
-                        f"{ESUS_URL}{path}",
-                        json={"username": ESUS_USUARIO, "password": ESUS_SENHA},
-                        headers={"Content-Type": "application/json", "Accept": "application/json"},
-                    )
-                    if r.status_code == 200:
-                        j = r.json()
-                        token = j.get("token") or j.get("access_token") or j.get("accessToken")
-                        if token:
-                            _pec_token = token
-                            expires_in = j.get("expiresIn", j.get("expires_in", 3600))
-                            _pec_token_exp = time.time() + int(expires_in) - 60
-                            return token
-                except Exception:
-                    continue
+            r = await client.post(
+                f"{ESUS_URL}/graphql",
+                json={"query": query, "variables": variables},
+                headers=headers,
+            )
+            if r.status_code == 200:
+                body = r.json()
+                if "errors" not in body:
+                    return body.get("data")
     except Exception:
         pass
     return None
 
 
-async def _pec_get(path: str) -> dict | None:
-    """GET autenticado na API local do PEC."""
-    token = await _pec_autenticar()
-    if not token:
+async def _pec_autenticar() -> str | None:
+    """Autentica via GraphQL mutation e retorna o sessionToken."""
+    global _pec_token, _pec_token_exp
+    if _pec_token and time.time() < _pec_token_exp:
+        return _pec_token
+    if not _pec_pronto():
         return None
-    try:
-        async with httpx.AsyncClient(timeout=TIMEOUT, verify=False) as client:
-            r = await client.get(
-                f"{ESUS_URL}{path}",
-                headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
-            )
-            if r.status_code == 200:
-                return r.json()
-    except Exception:
-        pass
+    data = await _pec_gql(_GQL_LOGIN, {"login": ESUS_USUARIO, "senha": ESUS_SENHA})
+    token = (data or {}).get("autenticar", {}).get("sessionToken")
+    if token:
+        _pec_token = token
+        _pec_token_exp = time.time() + 3540  # ~1h
+        return token
     return None
 
 
@@ -318,24 +349,21 @@ async def consultar_situacao():
     if _pec_pronto():
         token = await _pec_autenticar()
         if token:
-            # Tenta buscar estatísticas do PEC local
-            fichas = await _pec_get("/api/cds/fichas/count") or await _pec_get("/api/producao/resumo")
-            equipes = await _pec_get("/api/equipes")
+            # Busca equipes via GraphQL como sonda de produção
+            data_eq = await _pec_gql(_GQL_EQUIPES, {"municipio": IBGE}, token=token)
+            equipes_raw = (data_eq or {}).get("equipesSaude") or []
 
-            if fichas or equipes:
+            if equipes_raw is not None:
                 situacao_pec = {
                     "situacao_dado": "oficial_validado",
-                    "fonte": "api",
-                    "dados": {
-                        "fichas": fichas,
-                        "equipes": equipes,
-                    },
+                    "fonte": "graphql",
+                    "dados": {"equipes": len(equipes_raw)},
                     "ultima_consulta": _now_iso(),
                 }
             else:
                 situacao_pec = {
                     "situacao_dado": "nao_disponivel",
-                    "nota": "PEC conectado mas endpoints de produção não responderam.",
+                    "nota": "PEC conectado mas GraphQL não retornou dados de equipes.",
                     "ultima_consulta": _now_iso(),
                 }
         else:
@@ -380,34 +408,35 @@ async def sincronizar_cadastros():
     if not token:
         return {
             "sucesso": False,
-            "mensagem": f"Falha na autenticação em {ESUS_URL}.",
+            "mensagem": f"Falha na autenticação em {ESUS_URL}. Verifique ESUS_USUARIO e ESUS_SENHA no Railway.",
             "verificado_em": _now_iso(),
         }
 
-    # Tenta buscar equipes e profissionais
-    equipes   = await _pec_get("/api/equipes")
-    profiss   = await _pec_get("/api/profissional")
-    microareas = await _pec_get("/api/microarea")
+    # Busca equipes e profissionais via GraphQL
+    IBGE_MUNICIPIO = "1300144"
+    data_eq = await _pec_gql(_GQL_EQUIPES, {"municipio": IBGE_MUNICIPIO}, token=token)
+    data_pr = await _pec_gql(_GQL_PROFISSIONAIS, {"municipio": IBGE_MUNICIPIO}, token=token)
+    data_fi = await _pec_gql(_GQL_FICHAS_RESUMO, {"municipio": IBGE_MUNICIPIO}, token=token)
 
-    contagens: dict[str, int | str] = {}
-    if equipes is not None:
-        contagens["equipes"] = len(equipes) if isinstance(equipes, list) else "dados_recebidos"
-    if profiss is not None:
-        contagens["profissionais"] = len(profiss) if isinstance(profiss, list) else "dados_recebidos"
-    if microareas is not None:
-        contagens["microareas"] = len(microareas) if isinstance(microareas, list) else "dados_recebidos"
+    equipes    = (data_eq or {}).get("equipesSaude") or []
+    profiss    = (data_pr or {}).get("profissionaisDeSaude") or []
+    fichas_res = (data_fi or {}).get("relatorioSinteticoFichas") or {}
 
-    if contagens:
+    if not (equipes or profiss):
         return {
-            "sucesso": True,
-            "mensagem": "Sincronização realizada.",
-            "contagens": contagens,
+            "sucesso": False,
+            "mensagem": "PEC conectado mas nenhum dado de cadastro retornado pelo GraphQL. Verifique a versão do PEC e as permissões do usuário.",
             "verificado_em": _now_iso(),
         }
 
     return {
-        "sucesso": False,
-        "mensagem": "PEC conectado mas nenhum dado de cadastro foi retornado. Verifique a versão da API do PEC.",
+        "sucesso": True,
+        "mensagem": "Dados obtidos via GraphQL do e-SUS PEC.",
+        "contagens": {
+            "equipes":      len(equipes),
+            "profissionais": len(profiss),
+        },
+        "fichas_resumo": fichas_res or None,
         "verificado_em": _now_iso(),
     }
 
@@ -426,3 +455,67 @@ async def reprocessar_pendencias():
 async def sync_esus():
     """Alias para sincronizar-cadastros."""
     return await sincronizar_cadastros()
+
+
+@router.get("/fichas-cds")
+async def fichas_cds():
+    """
+    Resumo de fichas CDS transmitidas pelo PEC — via GraphQL.
+    Requer ESUS_PEC_URL, ESUS_USUARIO, ESUS_SENHA configurados no Railway.
+    """
+    if not _pec_pronto():
+        return {
+            "situacao_dado": "nao_disponivel",
+            "dados": None,
+            "nota": "Configure ESUS_PEC_URL, ESUS_USUARIO e ESUS_SENHA no Railway.",
+            "verificado_em": _now_iso(),
+        }
+
+    token = await _pec_autenticar()
+    if not token:
+        return {
+            "situacao_dado": "nao_disponivel",
+            "dados": None,
+            "nota": f"Falha na autenticação em {ESUS_URL}.",
+            "verificado_em": _now_iso(),
+        }
+
+    data = await _pec_gql(_GQL_FICHAS_RESUMO, {"municipio": IBGE}, token=token)
+    resumo = (data or {}).get("relatorioSinteticoFichas")
+
+    if not resumo:
+        return {
+            "situacao_dado": "nao_disponivel",
+            "dados": None,
+            "nota": "PEC conectado mas relatorioSinteticoFichas não retornou dados.",
+            "verificado_em": _now_iso(),
+        }
+
+    return {
+        "situacao_dado": "oficial_validado",
+        "fonte": f"e-SUS PEC GraphQL — {ESUS_URL}/graphql",
+        "dados": resumo,
+        "verificado_em": _now_iso(),
+    }
+
+
+@router.get("/equipes")
+async def equipes_pec():
+    """Lista equipes cadastradas no PEC local via GraphQL."""
+    if not _pec_pronto():
+        return {"situacao_dado": "nao_disponivel", "dados": None, "nota": "PEC não configurado.", "verificado_em": _now_iso()}
+
+    token = await _pec_autenticar()
+    if not token:
+        return {"situacao_dado": "nao_disponivel", "dados": None, "nota": "Falha na autenticação.", "verificado_em": _now_iso()}
+
+    data = await _pec_gql(_GQL_EQUIPES, {"municipio": IBGE}, token=token)
+    equipes = (data or {}).get("equipesSaude") or []
+
+    return {
+        "situacao_dado": "oficial_validado" if equipes else "nao_disponivel",
+        "total": len(equipes),
+        "dados": equipes,
+        "fonte": f"e-SUS PEC GraphQL — {ESUS_URL}/graphql",
+        "verificado_em": _now_iso(),
+    }

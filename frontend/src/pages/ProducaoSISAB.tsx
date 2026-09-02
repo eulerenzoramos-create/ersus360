@@ -202,20 +202,182 @@ function AbaCiclos({ ciclos }: { ciclos: any[] | undefined }) {
   );
 }
 
-type Aba = "dashboard" | "equipe" | "procedimentos" | "ciclos";
+// ── Aba Qualidade de Equipes (dados reais e-Gestor APS) ───────────────────────
+
+const COR_CLASSIF: Record<string, string> = {
+  "Ótima":  "#059669", "Boa": "#16a34a", "Regular": "#d97706",
+  "Baixa":  "#dc2626", "Alta": "#059669", "Média": "#d97706",
+};
+
+function badgeCls(val: string | null | undefined) {
+  if (!val) return null;
+  const cor = COR_CLASSIF[val] ?? "#6b7280";
+  return (
+    <span style={{ background: cor + "18", color: cor, border: `1px solid ${cor}44`, borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>{val}</span>
+  );
+}
+
+function BarraQualidade({ qt100, qt75, qt50, qt25, qtAbaixo, total }: { qt100:number; qt75:number; qt50:number; qt25:number; qtAbaixo:number; total:number }) {
+  if (!total) return <span style={{ fontSize: 11, color: "#9ca3af" }}>—</span>;
+  const seg = [
+    { v: qt100, cor: "#059669", label: "100%" },
+    { v: qt75,  cor: "#16a34a", label: "75%" },
+    { v: qt50,  cor: "#d97706", label: "50%" },
+    { v: qt25,  cor: "#f59e0b", label: "25%" },
+    { v: qtAbaixo, cor: "#dc2626", label: "<25%" },
+  ].filter(s => s.v > 0);
+  return (
+    <div>
+      <div style={{ display: "flex", height: 10, borderRadius: 4, overflow: "hidden", width: "100%", gap: 1 }}>
+        {seg.map((s, i) => (
+          <div key={i} style={{ flex: s.v / total, background: s.cor }} title={`${s.label}: ${s.v} equipe(s)`}/>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
+        {seg.map((s, i) => (
+          <span key={i} style={{ fontSize: 10, color: s.cor, fontWeight: 600 }}>{s.v}×{s.label}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AbaQualidadeEquipes({ parcela, setParcela }: { parcela: string; setParcela: (v: string) => void }) {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["sisab-qualidade", parcela],
+    queryFn: () => apiGet("/api/sisab/qualidade-equipes", { parcela }) as Promise<any>,
+  });
+
+  const PARCELAS = [
+    { v: "202601", l: "Nov/2025" }, { v: "202602", l: "Dez/2025" },
+    { v: "202603", l: "Jan/2026" }, { v: "202604", l: "Fev/2026" },
+    { v: "202605", l: "Mar/2026" }, { v: "202606", l: "Abr/2026" },
+    { v: "202607", l: "Mai/2026" }, { v: "202608", l: "Jun/2026" },
+  ];
+
+  const esf    = data?.equipes?.esf;
+  const eap    = data?.equipes?.eap;
+  const emulti = data?.equipes?.emulti;
+  const esb    = data?.equipes?.esb;
+  const acs    = data?.equipes?.acs;
+  const esfrb  = data?.equipes?.esfrb;
+  const cls    = data?.classificacoes;
+
+  return (
+    <div>
+      {/* Seletor de parcela + botão atualizar */}
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 18, flexWrap: "wrap" }}>
+        <label style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}>Competência (parcela):</label>
+        <select value={parcela} onChange={e => setParcela(e.target.value)}
+          style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "5px 10px", fontSize: 12, cursor: "pointer" }}>
+          {PARCELAS.map(p => <option key={p.v} value={p.v}>{p.l}</option>)}
+        </select>
+        <button onClick={() => refetch()} style={{ display: "flex", alignItems: "center", gap: 5, background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", borderRadius: 6, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+          ↻ Atualizar
+        </button>
+        {data?.situacao_dado === "oficial_confirmado" && (
+          <span style={{ fontSize: 11, color: "#059669", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 4, padding: "3px 8px" }}>
+            ✓ Dados oficiais — e-Gestor APS
+          </span>
+        )}
+        {data?.situacao_dado === "erro_api" && (
+          <span style={{ fontSize: 11, color: "#dc2626" }}>⚠ API indisponível</span>
+        )}
+      </div>
+
+      {isLoading && <div style={{ textAlign: "center", padding: 40, color: "#6b7280" }}>Consultando e-Gestor APS…</div>}
+
+      {data && data.situacao_dado === "oficial_confirmado" && (
+        <>
+          {/* Cabeçalho competência + classificações */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10, marginBottom: 20 }}>
+            {[
+              { label: "Competência", val: data.competencia },
+              { label: "Município", val: data.municipio },
+              { label: "População (ref. IBGE)", val: data.populacao?.toLocaleString("pt-BR") },
+              { label: "Classificação Vínculo eSF", val: cls?.vinculo_esf, badge: true },
+              { label: "Classificação Qualidade eSF", val: cls?.qualidade_esf, badge: true },
+              { label: "Classificação Qualidade eMulti", val: cls?.qualidade_emulti, badge: true },
+              { label: "Faixa Equidade eSF", val: cls?.equidade_esf },
+            ].map((item, i) => (
+              <div key={i} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 14px" }}>
+                <div style={{ fontSize: 10, color: "#9ca3af", marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>{item.label}</div>
+                {item.badge ? badgeCls(item.val as string) : <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{item.val ?? "—"}</div>}
+              </div>
+            ))}
+          </div>
+
+          {/* Tabela de equipes */}
+          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid #f3f4f6", fontSize: 13, fontWeight: 700 }}>Equipes por tipo</div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: "#f8fafc" }}>
+                    {["Tipo", "Teto", "Credenciadas", "Homologadas", "Pagas", "Distribuição Qualidade eSF", "Vl. Total (R$)"].map(h => (
+                      <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "#6b7280", fontWeight: 600, fontSize: 11, borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { nome: "eSF", teto: esf?.teto, cred: esf?.credenciadas, hom: esf?.homologadas, pago: esf?.pagas,
+                      barra: esf ? { qt100: esf.distribuicao_qualidade?.["100pct"], qt75: esf.distribuicao_qualidade?.["75pct"], qt50: esf.distribuicao_qualidade?.["50pct"], qt25: esf.distribuicao_qualidade?.["25pct"], qtAbaixo: esf.distribuicao_qualidade?.abaixo_25pct, total: esf.pagas } : null,
+                      vl: esf?.vl_total },
+                    { nome: "eAP", teto: eap?.teto, cred: eap?.credenciadas, hom: eap?.homologadas, pago: eap?.pagas, barra: null, vl: eap?.vl_total },
+                    { nome: "eMulti", teto: (emulti?.teto_estrategica ?? 0) + (emulti?.teto_complementar ?? 0) + (emulti?.teto_ampliada ?? 0), cred: emulti?.credenciadas, hom: emulti?.homologadas, pago: emulti?.pagas, barra: null, vl: emulti?.vl_total },
+                    { nome: "eSB", teto: esb?.teto, cred: esb?.credenciadas, hom: esb?.homologadas, pago: null, barra: null, vl: esb?.vl_total },
+                    { nome: "ACS", teto: acs?.teto, cred: acs?.credenciados, hom: null, pago: acs?.pagos, barra: null, vl: acs?.vl_total },
+                    { nome: "eSFRB", teto: null, cred: esfrb?.credenciadas, hom: null, pago: esfrb?.pagas, barra: null, vl: esfrb?.vl_total },
+                  ].map((row, i) => (
+                    <tr key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                      <td style={{ padding: "10px 12px", fontWeight: 700, color: "#1d4ed8" }}>{row.nome}</td>
+                      <td style={{ padding: "10px 12px", color: "#374151" }}>{row.teto ?? "—"}</td>
+                      <td style={{ padding: "10px 12px" }}>{row.cred ?? "—"}</td>
+                      <td style={{ padding: "10px 12px" }}>{row.hom ?? "—"}</td>
+                      <td style={{ padding: "10px 12px", fontWeight: 600 }}>{row.pago ?? "—"}</td>
+                      <td style={{ padding: "10px 12px", minWidth: 160 }}>
+                        {row.barra
+                          ? <BarraQualidade {...row.barra} />
+                          : <span style={{ fontSize: 11, color: "#9ca3af" }}>—</span>}
+                      </td>
+                      <td style={{ padding: "10px 12px", fontWeight: 700, color: "#16a34a" }}>
+                        {row.vl ? `R$ ${row.vl.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 12, fontSize: 11, color: "#9ca3af" }}>
+            Fonte: {data.fonte} · Coletado em: {data.verificado_em?.slice(0, 16).replace("T", " ")} UTC
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Componente principal ───────────────────────────────────────────────────────
+
+type Aba = "qualidade" | "dashboard" | "equipe" | "procedimentos" | "ciclos";
 
 export default function ProducaoSISAB() {
-  const [aba, setAba] = useState<Aba>("dashboard");
-  const { data: dash }   = useQuery({ queryKey: ["sisab-dash"],  queryFn: () => apiGet("/api/sisab/dashboard") as Promise<any> });
+  const [aba, setAba] = useState<Aba>("qualidade");
+  const [parcela, setParcela] = useState("202608");
+  const { data: dash }   = useQuery({ queryKey: ["sisab-dash"],  queryFn: () => apiGet("/api/sisab/dashboard") as Promise<any>, enabled: aba === "dashboard" });
   const { data: equipes = []}= useQuery({ queryKey: ["sisab-equip"], queryFn: () => apiGet("/api/sisab/por-equipe") as Promise<any[]>,    enabled: aba === "equipe" });
   const { data: procs = []}  = useQuery({ queryKey: ["sisab-proc"],  queryFn: () => apiGet("/api/sisab/procedimentos") as Promise<any[]>, enabled: aba === "procedimentos" });
   const { data: ciclos = []} = useQuery({ queryKey: ["sisab-cicl"],  queryFn: () => apiGet("/api/sisab/ciclos") as Promise<any[]>,        enabled: aba === "ciclos" });
 
-  const ABAS: { id: Aba; label: string }[] = [
-    { id: "dashboard",    label: "Dashboard" },
-    { id: "equipe",       label: "Por Equipe ESF" },
-    { id: "procedimentos",label: "Procedimentos" },
-    { id: "ciclos",       label: "Envios SISAB" },
+  const ABAS: { id: Aba; label: string; real?: boolean }[] = [
+    { id: "qualidade",     label: "Qualidade das Equipes", real: true },
+    { id: "dashboard",     label: "Dashboard Produção" },
+    { id: "equipe",        label: "Por Equipe ESF" },
+    { id: "procedimentos", label: "Procedimentos" },
+    { id: "ciclos",        label: "Envios SISAB" },
   ];
 
   return (
@@ -235,11 +397,15 @@ export default function ProducaoSISAB() {
         </div>
       </div>
       <div style={{ padding: "0 24px" }}>
-        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #e4e7ec" }}>
+        <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "2px solid #e4e7ec", flexWrap: "wrap" }}>
           {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba === a.id ? "2px solid #1d4ed8" : "2px solid transparent", color: aba === a.id ? "#1d4ed8" : "#6b7280", fontWeight: aba === a.id ? 700 : 400, marginBottom: -2 }}>{a.label}</button>
+            <button key={a.id} onClick={() => setAba(a.id)} style={{ padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, borderBottom: aba === a.id ? "2px solid #1d4ed8" : "2px solid transparent", color: aba === a.id ? "#1d4ed8" : "#6b7280", fontWeight: aba === a.id ? 700 : 400, marginBottom: -2, display: "flex", alignItems: "center", gap: 5 }}>
+              {a.label}
+              {a.real && <span style={{ fontSize: 9, background: "#f0fdf4", color: "#059669", border: "1px solid #bbf7d0", borderRadius: 3, padding: "1px 5px", fontWeight: 700 }}>REAL</span>}
+            </button>
           ))}
         </div>
+        {aba === "qualidade"    && <AbaQualidadeEquipes parcela={parcela} setParcela={setParcela}/>}
         {aba === "dashboard" && !dash && <NaoDisponivelBanner nota="Integração com sistema externo ainda não configurada no Railway. Nenhum valor foi inventado." />}
         {aba === "dashboard"     && <AbaDashboard dash={dash}/>}
         {aba === "equipe"        && <AbaPorEquipe equipes={equipes}/>}
