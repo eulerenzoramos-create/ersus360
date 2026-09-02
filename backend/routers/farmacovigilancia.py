@@ -1,130 +1,16 @@
-"""
-Router: /api/farmacovigilancia — RAM · Queixas Técnicas · NOTIVISA — FMS Apuí/AM
-Dados de referência municipal. situacao_dado = referencia_municipal.
-"""
+"""Router: /api/farmacovigilancia — ERSUS 360 — SINAN+SIA dados abertos"""
 from __future__ import annotations
-from fastapi import APIRouter, Depends
-from routers.auth import get_current_user, UserOut
-
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.sinan_service import buscar_agravos_resumo
+from services.sia_service import buscar_producao
 router = APIRouter(prefix="/api/farmacovigilancia", tags=["farmacovigilancia"])
-
-
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
 @router.get("/dashboard")
-async def dashboard():
-    return {
-        "situacao_dado": "referencia_municipal",
-        "municipio": "Apuí/AM",
-        "periodo": "Jul/2026",
-        "notificacoes_mes": 7,
-        "ram_mes": 4,
-        "queixas_tecnicas_mes": 3,
-        "notificacoes_graves_mes": 1,
-        "notificadas_notivisa_pct": 86,
-        "meta_notivisa_pct": 98,
-        "taxa_subnotificacao_estimada_pct": 62,
-        "medicamentos_alerta_mes": 2,
-        "medicamentos_retirados": 0,
-        "fonte": "Referência municipal FMS Apuí/AM",
-    }
-
-
-@router.get("/historico")
-async def historico():
-    return [
-        {"mes": "Fev", "ram": 3, "queixas": 2, "notivisa_pct": 80},
-        {"mes": "Mar", "ram": 4, "queixas": 3, "notivisa_pct": 83},
-        {"mes": "Abr", "ram": 5, "queixas": 2, "notivisa_pct": 85},
-        {"mes": "Mai", "ram": 3, "queixas": 4, "notivisa_pct": 84},
-        {"mes": "Jun", "ram": 4, "queixas": 2, "notivisa_pct": 86},
-        {"mes": "Jul", "ram": 4, "queixas": 3, "notivisa_pct": 86},
-    ]
-
-
-@router.get("/notificacoes")
-async def notificacoes():
-    return [
-        {
-            "id": "FVG2026041",
-            "tipo": "RAM",
-            "gravidade": "grave",
-            "medicamento": "Artemetér + Lumefantrina",
-            "reacao": "Prolongamento QT · palpitações",
-            "causalidade": "Provável",
-            "desfecho": "Recuperado com sequela mínima",
-            "profissional": "Enf. Marcos Lima",
-            "notivisa": False,
-            "alerta": "Notificação ao NOTIVISA pendente. Prazo: 72h.",
-        },
-        {
-            "id": "FVG2026040",
-            "tipo": "RAM",
-            "gravidade": "moderada",
-            "medicamento": "Primaquina",
-            "reacao": "Hemólise em paciente G6PD",
-            "causalidade": "Definitiva",
-            "desfecho": "Recuperado",
-            "profissional": "Méd. Ana Costa",
-            "notivisa": True,
-            "alerta": None,
-        },
-        {
-            "id": "FVG2026039",
-            "tipo": "QT",
-            "gravidade": "leve",
-            "medicamento": "Amoxicilina 500mg",
-            "reacao": "Comprimido com aspecto diferente — suspeita de falsificação",
-            "causalidade": "A investigar",
-            "desfecho": "Em investigação",
-            "profissional": "Farm. Carla Mota",
-            "notivisa": True,
-            "alerta": None,
-        },
-        {
-            "id": "FVG2026038",
-            "tipo": "RAM",
-            "gravidade": "moderada",
-            "medicamento": "Doxiciclina",
-            "reacao": "Fotossensibilidade intensa",
-            "causalidade": "Possível",
-            "desfecho": "Recuperado",
-            "profissional": "Méd. Pedro Souza",
-            "notivisa": True,
-            "alerta": None,
-        },
-        {
-            "id": "FVG2026037",
-            "tipo": "QT",
-            "gravidade": "leve",
-            "medicamento": "Metronidazol suspensão",
-            "reacao": "Embalagem com vazamento",
-            "causalidade": "Problema de qualidade",
-            "desfecho": "Lote retido",
-            "profissional": "Farm. Carla Mota",
-            "notivisa": True,
-            "alerta": None,
-        },
-    ]
-
-
-@router.get("/alertas")
-async def alertas():
-    return [
-        {
-            "id": "ALT2026001",
-            "status": "em_andamento",
-            "medicamento": "Artemetér + Lumefantrina (coartem)",
-            "tipo_alerta": "Interação QT prolongado",
-            "data_alerta": "2026-07-08",
-            "descricao": "ANVISA alerta sobre risco de prolongamento QT em doses altas. Verificar triagem eletrocardiográfica prévia.",
-            "conduta": "Protocolo de triagem ECG antes de nova prescrição.",
-        },
-        {
-            "id": "ALT2026002",
-            "status": "em_andamento",
-            "medicamento": "Ivermectina 6mg",
-            "tipo_alerta": "Uso off-label — desinformação",
-            "data_alerta": "2026-06-20",
-            "descricao": "Demanda aumentada sem indicação clínica validada. Orientação à equipe sobre uso racional.",
-            "conduta": "Informe técnico distribuído nas UBS.",
-        },
-    ]
+async def dashboard(ano: int = Query(0)):
+    if not ano: ano = _ANO()
+    sinan = await buscar_agravos_resumo(ano); sia = await buscar_producao(ano)
+    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [sinan, sia])
+    return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "agravos_notificados": sinan.get("total_agravos"), "producao": sia.get("total_procedimentos"), "fonte": "SINAN + SIA — DATASUS dados abertos", "verificado_em": _TS()}
+@router.get("/indicadores")
+async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
