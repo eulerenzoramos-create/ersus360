@@ -102,8 +102,76 @@ async def buscar_dengue(ano: int) -> dict:
     return _sem_dado(ano, "dengue")
 
 
+async def buscar_tuberculose(ano: int) -> dict:
+    """Casos de tuberculose via SINAN/DATASUS."""
+    for path, mun_f, ano_f in [
+        ("/tuberculose", "co_municipio_residencia", "ano_notificacao"),
+        ("/tb",          "municipio",               "ano"),
+    ]:
+        data = await _get(f"{_BASE}{path}", {mun_f: _IBGE6, ano_f: ano, "limit": 500})
+        casos: list = []
+        if isinstance(data, list):
+            casos = data
+        elif isinstance(data, dict):
+            casos = data.get("items") or data.get("data") or []
+        if casos:
+            total     = len(casos)
+            curados   = sum(1 for c in casos if str(c.get("cs_evolucao") or c.get("resultado") or "").lower() in ("1", "cura", "curado"))
+            obitos    = sum(1 for c in casos if str(c.get("cs_evolucao") or "").lower() in ("2", "obito"))
+            incid     = round(total / 25_000 * 100_000, 1)
+            taxa_cura = round(curados / total * 100, 1) if total else 0
+            return {
+                "ano":              ano,
+                "agravo":           "tuberculose",
+                "total_casos":      total,
+                "curados":          curados,
+                "obitos":           obitos,
+                "incidencia_100k":  incid,
+                "taxa_cura_pct":    taxa_cura,
+                "meta_cura_pct":    85.0,
+                "status_cura":      "ok" if taxa_cura >= 85 else "atencao" if taxa_cura >= 70 else "critico",
+                "situacao_dado":    "oficial_validado",
+                "fonte":            "sinan_datasus",
+            }
+    return _sem_dado(ano, "tuberculose")
+
+
+async def buscar_hanseniase(ano: int) -> dict:
+    """Casos de hanseníase via SINAN/DATASUS."""
+    for path, mun_f, ano_f in [
+        ("/hanseniase", "co_municipio_residencia", "ano_notificacao"),
+        ("/hanseniasis", "municipio",              "ano"),
+    ]:
+        data = await _get(f"{_BASE}{path}", {mun_f: _IBGE6, ano_f: ano, "limit": 500})
+        casos: list = []
+        if isinstance(data, list):
+            casos = data
+        elif isinstance(data, dict):
+            casos = data.get("items") or data.get("data") or []
+        if casos:
+            total    = len(casos)
+            mb       = sum(1 for c in casos if str(c.get("classif_ope") or c.get("forma") or "").upper() in ("MB", "MULTIBACILAR"))
+            pb       = total - mb
+            incid    = round(total / 25_000 * 100_000, 1)
+            grau2    = sum(1 for c in casos if str(c.get("grau_inc") or c.get("grau_incapacidade") or "0") in ("2", "II"))
+            return {
+                "ano":              ano,
+                "agravo":           "hanseniase",
+                "total_casos":      total,
+                "multibacilar":     mb,
+                "paucibacilar":     pb,
+                "grau2_incap":      grau2,
+                "incidencia_100k":  incid,
+                "situacao_dado":    "oficial_validado",
+                "fonte":            "sinan_datasus",
+            }
+    return _sem_dado(ano, "hanseniase")
+
+
 async def buscar_agravos_resumo(ano: int) -> list[dict]:
-    """Resumo de agravos — malaria e dengue via SINAN."""
-    malaria = await buscar_malaria(ano)
-    dengue  = await buscar_dengue(ano)
-    return [malaria, dengue]
+    """Resumo de agravos — malaria, dengue, tuberculose e hanseniase via SINAN."""
+    malaria    = await buscar_malaria(ano)
+    dengue     = await buscar_dengue(ano)
+    tb         = await buscar_tuberculose(ano)
+    hanseniase = await buscar_hanseniase(ano)
+    return [malaria, dengue, tb, hanseniase]
