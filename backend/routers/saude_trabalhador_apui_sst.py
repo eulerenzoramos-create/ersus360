@@ -11,7 +11,7 @@ _NOTA = "SINAN-NET acidente trabalho + internações SIH como proxy SST. SISCAT/
 async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()
     sinan = await buscar_agravos_resumo(ano); sih = await buscar_internacoes(ano)
-    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [sinan, sih])
+    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [*sinan, sih])
     return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "agravos_trabalho": sinan, "internacoes": sih.get("total_internacoes"), "nota": _NOTA, "fonte": "SINAN + SIH — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
 async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
@@ -19,4 +19,4 @@ async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
 async def agravos(ano: int = Query(0)):
     if not ano: ano = _ANO()
     sinan = await buscar_agravos_resumo(ano)
-    return {"situacao_dado": sinan.get("situacao_dado"), "ano": ano, "agravos": sinan, "nota": _NOTA, "verificado_em": _TS()}
+    return {"situacao_dado": ("oficial_validado" if any(d.get("situacao_dado") == "oficial_validado" for d in sinan) else "nao_disponivel"), "ano": ano, "agravos": sinan, "nota": _NOTA, "verificado_em": _TS()}

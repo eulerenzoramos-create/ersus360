@@ -21,7 +21,7 @@ async def dashboard(ano: int = Query(0)):
     agravos = await buscar_agravos_resumo(ano)
     sih     = await buscar_internacoes(ano)
     return {
-        "situacao_dado": agravos.get("situacao_dado"),
+        "situacao_dado": ("oficial_validado" if any(d.get("situacao_dado") == "oficial_validado" for d in agravos) else "nao_disponivel"),
         "ano": ano,
         "agravos_sinan": agravos,
         "internacoes": sih.get("total_internacoes"),

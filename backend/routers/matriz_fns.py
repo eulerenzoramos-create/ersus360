@@ -9,7 +9,7 @@ _NOTA = "Detalhamento por bloco FNS requer portal FNS/FMS (pendente). SIOPS como
 @router.get("/dashboard")
 async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()
-    siops = await buscar_apuracao(ano); hist = await buscar_historico(5)
-    return {"situacao_dado": siops.get("situacao_dado"), "ano": ano, "despesa_total_saude": siops.get("despesa_total_saude"), "historico": hist.get("historico"), "nota": _NOTA, "fonte": "SIOPS — DATASUS dados abertos", "verificado_em": _TS()}
+    siops = await buscar_apuracao(ano); hist = await buscar_historico()
+    return {"situacao_dado": siops.get("situacao_dado"), "ano": ano, "despesa_total_saude": siops.get("despesa_total_saude"), "historico": hist, "nota": _NOTA, "fonte": "SIOPS — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
 async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)

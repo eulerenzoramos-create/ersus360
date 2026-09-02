@@ -21,5 +21,5 @@ async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
 async def resumo(ano: int = Query(0)): return await dashboard(ano=ano)
 @router.get("/historico")
 async def historico():
-    hist = await buscar_historico(5)
-    return {"situacao_dado": hist.get("situacao_dado"), "historico": hist.get("historico"), "nota": _NOTA, "verificado_em": _TS()}
+    hist = await buscar_historico()
+    return {"situacao_dado": hist.get("situacao_dado"), "historico": hist, "nota": _NOTA, "verificado_em": _TS()}

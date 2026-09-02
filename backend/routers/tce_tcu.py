@@ -9,11 +9,11 @@ _NOTA = "Dados TCE/TCU requerem acesso direto ao tribunal (pendente). SIOPS como
 @router.get("/dashboard")
 async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()
-    siops = await buscar_apuracao(ano); hist = await buscar_historico(5)
+    siops = await buscar_apuracao(ano); hist = await buscar_historico()
     pct = siops.get("percentual_saude_receita")
     alertas = []
     if pct is not None and pct < 15:
         alertas.append({"nivel": "critico", "mensagem": f"EC-29: {pct:.1f}% — abaixo de 15%"})
-    return {"situacao_dado": siops.get("situacao_dado"), "ano": ano, "despesa_total_saude": siops.get("despesa_total_saude"), "percentual_saude_receita": pct, "historico": hist.get("historico"), "alertas": alertas, "nota": _NOTA, "fonte": "SIOPS — DATASUS dados abertos", "verificado_em": _TS()}
+    return {"situacao_dado": siops.get("situacao_dado"), "ano": ano, "despesa_total_saude": siops.get("despesa_total_saude"), "percentual_saude_receita": pct, "historico": hist, "alertas": alertas, "nota": _NOTA, "fonte": "SIOPS — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
 async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)

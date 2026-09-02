@@ -11,7 +11,7 @@ _NOTA = "SISÁGUA/SNIS dados abertos pendentes. SINAN como proxy de doenças de 
 async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()
     sinan = await buscar_agravos_resumo(ano); cnes = await buscar_estabelecimentos()
-    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [sinan, cnes])
+    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [*sinan, cnes])
     return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "agravos_hidricos": sinan, "estabelecimentos": cnes.get("total"), "nota": _NOTA, "fonte": "SINAN + CNES — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
 async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)

@@ -9,6 +9,6 @@ _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: d
 async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()
     sinan = await buscar_agravos_resumo(ano)
-    return {"situacao_dado": sinan.get("situacao_dado"), "ano": ano, "agravos_notificados": sinan.get("total_agravos"), "fonte": "SINAN — DATASUS dados abertos", "verificado_em": _TS()}
+    return {"situacao_dado": ("oficial_validado" if any(d.get("situacao_dado") == "oficial_validado" for d in sinan) else "nao_disponivel"), "ano": ano, "agravos_notificados": sum(d.get("total_casos", 0) or 0 for d in sinan), "fonte": "SINAN — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
 async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)

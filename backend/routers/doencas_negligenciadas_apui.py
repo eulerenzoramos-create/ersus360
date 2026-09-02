@@ -22,7 +22,7 @@ async def dashboard(ano: int = Query(0)):
     hanseniase = await buscar_hanseniase(ano)
     sih        = await buscar_internacoes(ano)
     return {
-        "situacao_dado": agravos.get("situacao_dado"),
+        "situacao_dado": ("oficial_validado" if any(d.get("situacao_dado") == "oficial_validado" for d in agravos) else "nao_disponivel"),
         "ano": ano,
         "agravos_sinan": agravos,
         "hanseniase": hanseniase,

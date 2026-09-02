@@ -10,7 +10,7 @@ _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: d
 async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()
     sinan = await buscar_agravos_resumo(ano); mal = await buscar_malaria(ano); sih = await buscar_internacoes(ano)
-    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [sinan, mal, sih])
+    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [*sinan, mal, sih])
     alertas = []
     if mal.get("situacao_dado") == "oficial_validado" and (mal.get("total_casos") or 0) > 200:
         alertas.append({"nivel": "critico", "mensagem": f"Risco malária: {mal.get('total_casos')} casos"})

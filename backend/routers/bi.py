@@ -13,7 +13,7 @@ async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()
     sih = await buscar_internacoes(ano); sia = await buscar_producao(ano)
     siops = await buscar_apuracao(ano); sinan = await buscar_agravos_resumo(ano)
-    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [sih, sia, siops, sinan])
-    return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "internacoes": sih.get("total_internacoes"), "producao_ambulatorial": sia.get("total_procedimentos"), "despesa_saude": siops.get("despesa_total_saude"), "agravos": sinan.get("total_agravos"), "fonte": "SIH + SIA + SIOPS + SINAN — DATASUS dados abertos", "verificado_em": _TS()}
+    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [sih, sia, siops, *sinan])
+    return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "internacoes": sih.get("total_internacoes"), "producao_ambulatorial": sia.get("total_procedimentos"), "despesa_saude": siops.get("despesa_total_saude"), "agravos": sum(d.get("total_casos", 0) or 0 for d in sinan), "fonte": "SIH + SIA + SIOPS + SINAN — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
 async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)

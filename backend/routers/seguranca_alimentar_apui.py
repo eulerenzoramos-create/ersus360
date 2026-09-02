@@ -10,6 +10,6 @@ _NOTA = "SISAN/SISVAN avançado pendentes. SINAN como proxy de agravos nutricion
 async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()
     sinan = await buscar_agravos_resumo(ano)
-    return {"situacao_dado": sinan.get("situacao_dado"), "ano": ano, "agravos": sinan, "nota": _NOTA, "fonte": "SINAN — DATASUS dados abertos", "verificado_em": _TS()}
+    return {"situacao_dado": ("oficial_validado" if any(d.get("situacao_dado") == "oficial_validado" for d in sinan) else "nao_disponivel"), "ano": ano, "agravos": sinan, "nota": _NOTA, "fonte": "SINAN — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
 async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)

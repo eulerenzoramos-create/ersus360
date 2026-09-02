@@ -32,7 +32,7 @@ async def dashboard(ano: int = Query(0)):
 
 @router.get("/historico")
 async def historico():
-    items = await buscar_historico(5)
+    items = await buscar_historico()
     any_real = any(i.get("situacao_dado") == "oficial_validado" for i in items)
     return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "fonte": "SIOPS — DATASUS dados abertos", "verificado_em": _TS(), "anos": items}
 

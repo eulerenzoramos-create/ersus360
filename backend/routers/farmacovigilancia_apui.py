@@ -11,7 +11,7 @@ _NOTA = "Notificações NOTIVISA/ANVISA requerem integração (pendente). SINAN/
 async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()
     sinan = await buscar_agravos_resumo(ano); sia = await buscar_producao(ano)
-    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [sinan, sia])
+    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [*sinan, sia])
     return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "agravos": sinan, "producao": sia.get("total_procedimentos"), "nota": _NOTA, "fonte": "SINAN + SIA — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
 async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
