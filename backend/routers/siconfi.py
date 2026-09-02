@@ -1,53 +1,15 @@
-"""
-Router: /api/siconfi — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
-"""
+"""Router: /api/siconfi — ERSUS 360 — SIOPS dados abertos"""
 from __future__ import annotations
-from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
-from routers.auth import get_current_user, UserOut
-
-router = APIRouter(prefix="/api/siconfi", tags=["siconfi"])
-
-
-@router.get("/status")
-async def status():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/rreo")
-async def rreo():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/rgf")
-async def rgf():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/rreo/bimestres")
-async def rreo_bimestres():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.siops_service import buscar_apuracao
+router = APIRouter(prefix="/api/siconfi", tags=["SICONFI"])
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
+_NOTA = "SICONFI requer acesso STN (pendente). SIOPS como proxy de execução financeira pública."
+@router.get("/dashboard")
+async def dashboard(ano: int = Query(0)):
+    if not ano: ano = _ANO()
+    siops = await buscar_apuracao(ano)
+    return {"situacao_dado": siops.get("situacao_dado"), "ano": ano, "despesa_total_saude": siops.get("despesa_total_saude"), "percentual_saude_receita": siops.get("percentual_saude_receita"), "nota": _NOTA, "fonte": "SIOPS — DATASUS dados abertos", "verificado_em": _TS()}
+@router.get("/indicadores")
+async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)

@@ -1,73 +1,17 @@
-"""
-Router: /api/suas-sus-apui — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
-"""
+"""Router: /api/suas-sus-apui — ERSUS 360 — SIA+CNES dados abertos"""
 from __future__ import annotations
-from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
-from routers.auth import get_current_user, UserOut
-
-router = APIRouter(prefix="/api/suas-sus-apui", tags=["Interface SUAS/SUS Apuí"])
-
-
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.sia_service import buscar_producao
+from services.cnes_service import buscar_estabelecimentos
+router = APIRouter(prefix="/api/suas-sus-apui", tags=["SUAS-SUS Apuí"])
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
+_NOTA = "Dados SUAS individuais requerem SAGI/MDS (pendente). SIA/CNES como proxy de ações socioassistenciais."
 @router.get("/dashboard")
-async def dashboard():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/condicionalidades")
-async def condicionalidades():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/bpc-saude")
-async def bpc_saude():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/casos-interface")
-async def casos_interface():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/historico")
-async def historico():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
+async def dashboard(ano: int = Query(0)):
+    if not ano: ano = _ANO()
+    sia = await buscar_producao(ano); cnes = await buscar_estabelecimentos()
+    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [sia, cnes])
+    return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "producao_ambulatorial": sia.get("total_procedimentos"), "estabelecimentos": cnes.get("total"), "nota": _NOTA, "fonte": "SIA + CNES — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
-async def indicadores():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
+async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
