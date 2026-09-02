@@ -1,53 +1,15 @@
-"""
-Router: /api/transporte-sanitario — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
-"""
+"""Router: /api/transporte-sanitario — ERSUS 360 — SIH dados abertos"""
 from __future__ import annotations
-from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
-from routers.auth import get_current_user, UserOut
-
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.sih_service import buscar_internacoes
 router = APIRouter(prefix="/api/transporte-sanitario", tags=["Transporte Sanitário"])
-
-
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
+_NOTA = "TFD/transporte individual requer sistema local (pendente). SIH como proxy de demanda por deslocamento."
 @router.get("/dashboard")
-async def dashboard():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/frota")
-async def frota():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/viagens")
-async def viagens():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/custo-mensal")
-async def custo_mensal():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
+async def dashboard(ano: int = Query(0)):
+    if not ano: ano = _ANO()
+    sih = await buscar_internacoes(ano)
+    return {"situacao_dado": sih.get("situacao_dado"), "ano": ano, "internacoes": sih.get("total_internacoes"), "valor_internacoes": sih.get("valor_total_reais"), "nota": _NOTA, "fonte": "SIH — DATASUS dados abertos", "verificado_em": _TS()}
+@router.get("/indicadores")
+async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
