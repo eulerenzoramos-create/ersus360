@@ -1,84 +1,19 @@
-"""Router: /api/auditoria — Logs de auditoria do sistema"""
+"""Router: /api/auditoria — ERSUS 360 — SIH+SIOPS dados abertos"""
 from __future__ import annotations
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, desc
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
-from datetime import datetime
-from pydantic import BaseModel
-
-from database import get_db
-from models.usuario import AuditLog
-from routers.auth import get_current_user, UserOut
-
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.sih_service import buscar_internacoes
+from services.siops_service import buscar_apuracao
 router = APIRouter(prefix="/api/auditoria", tags=["Auditoria"])
-
-
-class LogOut(BaseModel):
-    id: int
-    usuario_id: Optional[int]
-    usuario_nome: Optional[str] = "Sistema"
-    ip_address: Optional[str] = None
-    acao: str
-    modulo: Optional[str] = None
-    descricao: Optional[str] = None
-    nivel: Optional[str] = "INFO"
-    criado_em: datetime
-
-    class Config:
-        from_attributes = True
-
-    @classmethod
-    def from_audit(cls, a: AuditLog) -> "LogOut":
-        return cls(
-            id=a.id,
-            usuario_id=a.usuario_id,
-            usuario_nome=str(a.usuario_id) if a.usuario_id else "Sistema",
-            ip_address=a.ip_origem,
-            acao=a.acao,
-            modulo=a.tabela,
-            descricao=a.detalhe,
-            nivel="AUDIT" if a.acao in ("CREATE", "UPDATE", "DELETE") else "INFO",
-            criado_em=a.criado_em,
-        )
-
-
-def _somente_admin(current: UserOut):
-    from fastapi import HTTPException
-    if current.role not in ("admin", "superadmin"):
-        raise HTTPException(403, "Acesso restrito ao administrador")
-
-
-@router.get("/logs", response_model=list[LogOut])
-async def listar_logs(
-    db: AsyncSession = Depends(get_db),
-    current: UserOut = Depends(get_current_user),
-    limite: int = Query(100, le=500),
-    nivel: Optional[str] = Query(None),
-    modulo: Optional[str] = Query(None),
-):
-    _somente_admin(current)
-    q = select(AuditLog).order_by(desc(AuditLog.criado_em)).limit(limite)
-    res = await db.execute(q)
-    logs = res.scalars().all()
-    resultado = [LogOut.from_audit(l) for l in logs]
-    if nivel:
-        resultado = [l for l in resultado if l.nivel == nivel]
-    if modulo:
-        resultado = [l for l in resultado if l.modulo == modulo]
-    return resultado
-
-
-@router.get("/logs/{log_id}", response_model=LogOut)
-async def detalhar_log(
-    log_id: int,
-    db: AsyncSession = Depends(get_db),
-    current: UserOut = Depends(get_current_user),
-):
-    _somente_admin(current)
-    res = await db.execute(select(AuditLog).where(AuditLog.id == log_id))
-    log = res.scalar_one_or_none()
-    if not log:
-        from fastapi import HTTPException
-        raise HTTPException(404, "Log não encontrado")
-    return LogOut.from_audit(log)
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
+_NOTA = "Logs de auditoria internos requerem sistema local. SIH/SIOPS como proxy de auditoria financeira pública."
+@router.get("/dashboard")
+async def dashboard(ano: int = Query(0)):
+    if not ano: ano = _ANO()
+    sih = await buscar_internacoes(ano); siops = await buscar_apuracao(ano)
+    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [sih, siops])
+    return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "internacoes": sih.get("total_internacoes"), "despesa_saude": siops.get("despesa_total_saude"), "nota": _NOTA, "fonte": "SIH + SIOPS — DATASUS dados abertos", "verificado_em": _TS()}
+@router.get("/indicadores")
+async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
+@router.get("/logs")
+async def logs(ano: int = Query(0)): return await dashboard(ano=ano)
