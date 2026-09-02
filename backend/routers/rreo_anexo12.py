@@ -1,33 +1,19 @@
-"""
-Router: /api/rreo-anexo12 — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
-"""
+"""Router: /api/rreo-anexo12 — ERSUS 360 — SIOPS dados abertos"""
 from __future__ import annotations
-from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
-from routers.auth import get_current_user, UserOut
-
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.siops_service import buscar_apuracao
 router = APIRouter(prefix="/api/rreo-anexo12", tags=["RREO Anexo 12"])
-
-
-@router.get("/dados")
-async def dados():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.get("/exportar-pdf")
-async def exportar_pdf():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
+_NOTA = "RREO Anexo 12 detalhado requer SICONFI (pendente). SIOPS como proxy EC-29."
+@router.get("/dashboard")
+async def dashboard(ano: int = Query(0)):
+    if not ano: ano = _ANO()
+    siops = await buscar_apuracao(ano)
+    alertas = []
+    pct = siops.get("percentual_saude_receita")
+    if pct is not None and pct < 15:
+        alertas.append({"nivel": "critico", "mensagem": f"EC-29: {pct:.1f}% — abaixo do mínimo 15%"})
+    return {"situacao_dado": siops.get("situacao_dado"), "ano": ano, "financeiro": siops, "alertas": alertas, "nota": _NOTA, "fonte": "SIOPS — DATASUS dados abertos", "verificado_em": _TS()}
+@router.get("/indicadores")
+async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
