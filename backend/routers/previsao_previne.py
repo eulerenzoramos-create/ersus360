@@ -1,43 +1,16 @@
-"""
-Router: /api/previsao-previne — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
-"""
+"""Router: /api/previsao-previne — ERSUS 360 — e-Gestor APS dados abertos"""
 from __future__ import annotations
-from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
-from routers.auth import get_current_user, UserOut
-
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.fns_api_service import buscar_indicadores_previne
 router = APIRouter(prefix="/api/previsao-previne", tags=["previsao-previne"])
-
-
-@router.get("/resumo")
-async def resumo():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
+@router.get("/dashboard")
+async def dashboard(ano: int = Query(0)):
+    if not ano: ano = _ANO()
+    previne = await buscar_indicadores_previne(ano)
+    return {"situacao_dado": previne.get("situacao_dado"), "ano": ano, "indicadores": previne, "nota": "Previsão de desempenho baseada em indicadores Previne Brasil (e-Gestor APS).", "fonte": "e-Gestor APS — dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
-async def listar_indicadores():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
-
-@router.post("/retreinar")
-async def retreinar():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
+async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
+@router.get("/projecao")
+async def projecao(ano: int = Query(0)): return await dashboard(ano=ano)

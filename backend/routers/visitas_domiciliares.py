@@ -1,23 +1,19 @@
-"""
-Router: /api/visitas-domiciliares — ERSUS 360
-Dados reais pendentes de integração — situacao_dado = nao_disponivel.
-Nenhum valor é simulado ou estimado.
-"""
+"""Router: /api/visitas-domiciliares — ERSUS 360 — e-Gestor APS dados abertos"""
 from __future__ import annotations
-from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from typing import Optional
-from routers.auth import get_current_user, UserOut
-
+from datetime import date, datetime
+from fastapi import APIRouter, Query
+from services.fns_api_service import buscar_indicadores_previne
+from services.sia_service import buscar_producao_aps
 router = APIRouter(prefix="/api/visitas-domiciliares", tags=["Visitas Domiciliares"])
-
-
-@router.get("/opcoes")
-async def opcoes_formulario():
-    return {
-        "situacao_dado": "nao_disponivel",
-        "dados": None,
-        "nota": "Integração pendente. Configure no Railway.",
-        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
+_NOTA = "Contagem individual de visitas requer e-SUS PEC (pendente). Indicadores Previne como proxy de cobertura ACS."
+@router.get("/dashboard")
+async def dashboard(ano: int = Query(0)):
+    if not ano: ano = _ANO()
+    previne = await buscar_indicadores_previne(ano); sia = await buscar_producao_aps(ano)
+    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [previne, sia])
+    return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "indicadores_previne": previne, "producao_aps": sia, "nota": _NOTA, "fonte": "e-Gestor APS + SIA — dados abertos", "verificado_em": _TS()}
+@router.get("/indicadores")
+async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
+@router.get("/resumo")
+async def resumo(ano: int = Query(0)): return await dashboard(ano=ano)
