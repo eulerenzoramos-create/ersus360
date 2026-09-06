@@ -751,21 +751,17 @@ async def diagnostico_cobertura(
     _: UserOut = Depends(get_current_user),
 ):
     """
-    Retorna dados de diagnóstico/cobertura por parcela.
-    Sem EGESTOR_TOKEN configurado devolve situacao_dado='nao_disponivel'
-    para o frontend exibir estado informativo sem erro vermelho.
+    Retorna estado informativo enquanto a integração em tempo real com
+    o e-Gestor APS não está implementada. Retorna 200 com situacao_dado
+    para o frontend exibir o banner azul sem caixa de erro.
     """
-    import os
-    egestor_token = os.getenv("EGESTOR_TOKEN", "")
-    if not egestor_token:
-        return {
-            "situacao_dado": "nao_disponivel",
-            "parcela": parcela,
-            "nota": (
-                "Integração com e-Gestor APS não configurada. "
-                "Adicione EGESTOR_TOKEN nas variáveis de ambiente do Railway "
-                "para ativar a consulta em tempo real ao relatorioaps-prd.saude.gov.br."
-            ),
-            "fonte": "sem_integracao",
-        }
-    return await siaps_service.buscar_diagnostico_cobertura(parcela)
+    return {
+        "situacao_dado": "nao_disponivel",
+        "parcela": parcela,
+        "nota": (
+            "Os dados de Diagnóstico/Cobertura são consultados diretamente "
+            "na API pública do e-Gestor APS (relatorioaps-prd.saude.gov.br). "
+            "A integração em tempo real estará disponível em breve."
+        ),
+        "fonte": "sem_integracao",
+    }
