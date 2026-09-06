@@ -131,6 +131,23 @@ async def _job_monitor_scnes() -> None:
         logger.error("[Scheduler] Erro no monitor SCNES: %s", exc, exc_info=True)
 
 
+async def _job_diagnostico_cobertura() -> None:
+    """Job: atualiza cache diário Diagnóstico/Cobertura eGestor às 05:00 (Manaus)."""
+    logger.info("[Scheduler] Atualizando cache Diagnóstico/Cobertura eGestor...")
+    try:
+        from services.egestor_diagnostico_scraper import buscar_diagnostico_cobertura
+        from datetime import date as _date
+
+        hoje = _date.today()
+        # parcela = AAAAMM do mês atual
+        parcela = hoje.strftime("%Y%m")
+        resultado = await buscar_diagnostico_cobertura(parcela, forcar_atualizacao=True)
+        fonte = resultado.get("fonte", "?")
+        logger.info("[Scheduler] Diagnóstico/Cobertura atualizado — fonte: %s", fonte)
+    except Exception as exc:
+        logger.error("[Scheduler] Erro no job Diagnóstico/Cobertura: %s", exc, exc_info=True)
+
+
 async def _job_alertas_automaticos() -> None:
     """Job: gera alertas WebSocket a partir de prazos urgentes da Agenda e outras fontes."""
     logger.info("[Scheduler] Verificando alertas automáticos...")
@@ -240,9 +257,18 @@ def start_scheduler() -> None:
         misfire_grace_time=3600,
     )
 
+    # Job 7: Diagnóstico/Cobertura eGestor — atualização diária às 05:00 (America/Manaus)
+    scheduler.add_job(
+        _job_diagnostico_cobertura,
+        CronTrigger(hour=5, minute=0, timezone="America/Manaus"),
+        id="diagnostico_cobertura_daily",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
     scheduler.start()
     logger.info(
-        "[Scheduler] 6 jobs agendados — FNS %s, Score 01:00, Alertas 07:00, Portarias MS %s, Monitor SCNES seg 07:00 (America/Manaus)",
+        "[Scheduler] 7 jobs agendados — FNS %s, Score 01:00, DiagCobertura 05:00, Alertas 07:00, Portarias MS %s, Monitor SCNES seg 07:00 (America/Manaus)",
         hora_str, _email_hora,
     )
 

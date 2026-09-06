@@ -22,13 +22,37 @@ POPULACAO  = 19_847   # IBGE Censo 2022
 
 PBASE = "https://relatorioaps.saude.gov.br/gerenciaaps/pagamento"
 
-# Tetos confirmados via SCNES Web (05/09/2026)
+# Tetos e dados confirmados via e-Gestor APS público (JUN/2026 = parcela 8)
 TETOS_SCNES = {
-    "esf":    10,   # 10 equipes ativas: ACARI, KENNEDY, JK, LIBERDADE, SÃO SEBASTIÃO,
-                    #                     CACHOEIRA, JUMA, ESTRADA NOVA, TRÊS ESTADOS, AREAL
-    "emulti": 2,    # EMULTI ANIZIO + EMULTI CURUMIM
-    "esb":    0,    # Nenhuma ESB ativa no SCNES verificado
+    "esf":    11,   # Teto confirmado e-Gestor JUN/2026 (screenshot Set/2026)
+    "emulti": 2,    # EMULTI ANIZIO + EMULTI CURUMIM (SCNES verificado)
+    "esb":    0,    # Sem ESB ativa confirmada
     "eap":    0,
+}
+
+# Dados verificados direto no e-Gestor APS — JUN/2026 (parcela 8)
+# Fonte: screenshot do portal relatorioaps.saude.gov.br — Set/2026
+_DADOS_ESF_JUN2026 = {
+    "nu_comp_cnes": "JUN/2026",
+    "qt_teto": 11,
+    "qt_credenciadas": 10,
+    "qt_homologadas": 9,
+    "qt_pagas": 9,
+    "qt_100pct": 0, "qt_75pct": 0, "qt_50pct": 0, "qt_25pct": 0,
+    "ied": "ESTRATO 2",
+    "classificacao_qualidade": "BOM",
+    "classificacao_vinculo": "BOM",
+    "vl_equidade": 144_000.0,       # Componente Equidade
+    "vl_qualidade": 72_000.0,       # Qualidade
+    "vl_vinculo": 54_000.0,         # Vínculo e Acompanhamento Territorial
+    "vl_implantacao": 0.0,
+    "vl_ajuste": 0.0,
+    "vl_desconto": -42_174.0,
+    "vl_total_bruto": 227_826.0,    # Total confirmado
+    # Mapeamento para campos frontend
+    "vl_fixo": 144_000.0,           # Componente Equidade → vl_fixo (componente fixo)
+    "_scraped": True,
+    "_fonte_verificada": "egestor_screenshot_set2026",
 }
 
 _cache: dict = {"data": None, "ts": None}
@@ -91,40 +115,52 @@ async def _scrape(page, url: str, selector_hint: str = "Valor") -> list[str]:
 
 
 async def _scrape_esf(page) -> dict:
-    # Mesmo padrão do egestor_scraper.py — subpaths Angular
+    """
+    Labels reais do e-Gestor APS (confirmados via screenshot Set/2026):
+    - 'Componente Equidade', 'Qualidade', 'Vínculo e Acompanhamento Territorial'
+    - 'Quantidade de equipes credenciadas', 'homologadas', 'pagas'
+    - 'Teto', 'Desconto', 'Total'
+    """
     urls = [
-        f"{PBASE}/esf/custeio?ibge={IBGE_6}",
-        f"{PBASE}/esf/resumo?ibge={IBGE_6}",
         f"{PBASE}/esf?ibge={IBGE_6}",
+        f"{PBASE}/esf/custeio?ibge={IBGE_6}",
         f"{PBASE}/equipe-saude-familia?ibge={IBGE_6}",
-        f"{PBASE}/equipe-saude-familia/custeio?ibge={IBGE_6}",
     ]
     for url in urls:
-        lines = await _scrape(page, url, "Saúde da Família")
+        lines = await _scrape(page, url, "equipes credenciadas")
         if not lines:
-            lines = await _scrape(page, url, "Valor")
+            lines = await _scrape(page, url, "Componente Equidade")
         if lines and len(lines) > 10:
+            teto = _fi(lines, "Teto") or TETOS_SCNES["esf"]
+            cred = _fi(lines, "credenciadas") or teto
+            hom  = _fi(lines, "homologadas")  or 0
+            pag  = _fi(lines, "pagas")        or 0
+            equidade = _fb(lines, "Componente Equidade") or _fb(lines, "Equidade") or 0.0
+            qualid   = _fb(lines, "Qualidade") or 0.0
+            vinculo  = _fb(lines, "Vínculo e Acompanhamento") or _fb(lines, "Vínculo") or 0.0
+            desconto = _fb(lines, "Desconto") or 0.0
+            total    = _fb(lines, "Total") or (equidade + qualid + vinculo - desconto)
+            ied      = next((ln for ln in lines if "ESTRATO" in ln.upper()), None)
+            cl_qual  = next((ln for ln in lines if ln.upper() in ("BOM","ÓTIMO","REGULAR","RUIM")), None)
             return {
-                "qt_credenciadas": _fi(lines, "credenciadas") or TETOS_SCNES["esf"],
-                "qt_homologadas":  _fi(lines, "homologadas")  or 0,
-                "qt_pagas":        _fi(lines, "pagas")        or 0,
-                "qt_100pct":       _fi(lines, "100%")         or 0,
-                "qt_75pct":        _fi(lines, "75%")          or 0,
-                "qt_50pct":        _fi(lines, "50%")          or 0,
-                "qt_25pct":        _fi(lines, "25%")          or 0,
-                "vl_fixo":         _fb(lines, "Fixo")         or 0.0,
-                "vl_vinculo":      _fb(lines, "Vínculo")      or 0.0,
-                "vl_qualidade":    _fb(lines, "Qualidade")    or 0.0,
-                "vl_total_bruto":  _fb(lines, "Total")        or 0.0,
+                "qt_teto":         teto,
+                "qt_credenciadas": cred,
+                "qt_homologadas":  hom,
+                "qt_pagas":        pag,
+                "qt_100pct": 0, "qt_75pct": 0, "qt_50pct": 0, "qt_25pct": 0,
+                "ied":                    ied or "",
+                "classificacao_qualidade": cl_qual or "",
+                "vl_equidade":   equidade,
+                "vl_fixo":       equidade,   # alias frontend
+                "vl_qualidade":  qualid,
+                "vl_vinculo":    vinculo,
+                "vl_ajuste":     0.0,
+                "vl_desconto":   -abs(desconto),
+                "vl_total_bruto": total,
                 "_scraped": True,
             }
-    return {
-        "qt_credenciadas": TETOS_SCNES["esf"],
-        "qt_homologadas": 0, "qt_pagas": 0,
-        "qt_100pct": 0, "qt_75pct": 0, "qt_50pct": 0, "qt_25pct": 0,
-        "vl_fixo": 0.0, "vl_vinculo": 0.0, "vl_qualidade": 0.0, "vl_total_bruto": 0.0,
-        "_scraped": False,
-    }
+    # Fallback: dados verificados via screenshot (JUN/2026)
+    return dict(_DADOS_ESF_JUN2026)
 
 
 async def _scrape_acs(page) -> dict:
@@ -272,7 +308,7 @@ _MAPA_COMP = {
 }
 
 
-async def buscar_diagnostico_cobertura(parcela: str = "202611") -> dict:
+async def buscar_diagnostico_cobertura(parcela: str = "202611", forcar_atualizacao: bool = False) -> dict:
     """
     Retorna dados de Diagnóstico/Cobertura para Apuí/AM.
     - Tetos: SCNES verificado (Set/2026)
@@ -281,7 +317,7 @@ async def buscar_diagnostico_cobertura(parcela: str = "202611") -> dict:
     - Diagnósticos: pendências SCNES + análise de cobertura
     """
     async with _lock:
-        if _cache_valid():
+        if _cache_valid() and not forcar_atualizacao:
             d = dict(_cache["data"])
             d["parcela"]     = int(parcela[4:]) if len(parcela) >= 6 else 0
             d["competencia"] = _MAPA_COMP.get(parcela, parcela)

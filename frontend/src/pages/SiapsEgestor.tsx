@@ -2653,18 +2653,19 @@ function AbaDiagnosticoCobertura() {
       {/* Cards por programa */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 20 }}>
         <CardPrograma titulo="eSF — Equipes de Saúde da Família" cor="#1d4ed8" items={[
-          { label: "Teto credenciamento",   val: tetos.esf ?? 0 },
-          { label: "Credenciadas",          val: esf.qt_credenciadas ?? 0 },
-          { label: "Homologadas",           val: esf.qt_homologadas ?? 0 },
-          { label: "Pagas (total)",         val: esf.qt_pagas ?? 0 },
-          { label: "100% (comp. qualidade)",val: esf.qt_100pct ?? 0 },
-          { label: "75%",                   val: esf.qt_75pct ?? 0 },
-          { label: "50%",                   val: esf.qt_50pct ?? 0 },
-          { label: "25%",                   val: esf.qt_25pct ?? 0 },
-          { label: "Vl. Fixo",             val: BRL_local(esf.vl_fixo ?? 0) },
-          { label: "Vl. Vínculo",          val: BRL_local(esf.vl_vinculo ?? 0) },
-          { label: "Vl. Qualidade",        val: BRL_local(esf.vl_qualidade ?? 0) },
-          { label: "Total eSF",            val: BRL_local(esf.vl_total_bruto ?? 0), destaque: true },
+          { label: "Teto",                        val: (esf as any).qt_teto ?? tetos.esf ?? 0 },
+          { label: "Credenciadas",                val: esf.qt_credenciadas ?? 0 },
+          { label: "Homologadas",                 val: esf.qt_homologadas ?? 0 },
+          { label: "Pagas",                       val: esf.qt_pagas ?? 0 },
+          { label: "IED",                         val: (esf as any).ied || data.faixa_equidade_esf || "—" },
+          { label: "Class. Qualidade",            val: (esf as any).classificacao_qualidade || data.classificacao_qualidade_esf || "—" },
+          { label: "Class. Vínculo",              val: (esf as any).classificacao_vinculo || data.classificacao_vinculo_esf || "—" },
+          { label: "Componente Equidade",         val: BRL_local((esf as any).vl_equidade ?? esf.vl_fixo ?? 0) },
+          { label: "Qualidade",                   val: BRL_local(esf.vl_qualidade ?? 0) },
+          { label: "Vínculo e Acompanhamento",    val: BRL_local(esf.vl_vinculo ?? 0) },
+          { label: "Ajuste",                      val: BRL_local((esf as any).vl_ajuste ?? 0) },
+          { label: "Desconto",                    val: BRL_local((esf as any).vl_desconto ?? 0) },
+          { label: "Total eSF",                   val: BRL_local(esf.vl_total_bruto ?? 0), destaque: true },
         ]} />
 
         <CardPrograma titulo="eMulti — Equipes Multiprofissionais" cor="#0891b2" items={[
