@@ -322,17 +322,17 @@ function CardEsus({ d }: { d: EsusStatus }) {
         ]}/>
       )}>
       <div style={{ fontSize:12, fontWeight:700, color:"#374151", marginBottom:8 }}>PEC Local</div>
-      <Row label="URL configurada">{d.pec_local.url || "—"}</Row>
-      <Row label="Credenciais configuradas"><Bool v={d.pec_local.credenciais_configuradas}/></Row>
-      <Row label="Conectado"><Bool v={d.pec_local.conectado}/></Row>
-      <Row label="Autenticado"><Bool v={d.pec_local.autenticado}/></Row>
-      {d.pec_local.versao && <Row label="Versão PEC">{d.pec_local.versao}</Row>}
+      <Row label="URL configurada">{d.pec_local?.url || "—"}</Row>
+      <Row label="Credenciais configuradas"><Bool v={d.pec_local?.credenciais_configuradas}/></Row>
+      <Row label="Conectado"><Bool v={d.pec_local?.conectado}/></Row>
+      <Row label="Autenticado"><Bool v={d.pec_local?.autenticado}/></Row>
+      {d.pec_local?.versao && <Row label="Versão PEC">{d.pec_local.versao}</Row>}
       <div style={{ fontSize:12, fontWeight:700, color:"#374151", margin:"12px 0 8px" }}>RNDS / FHIR R4</div>
-      <Row label="Credenciais configuradas"><Bool v={d.rnds.credenciais_configuradas}/></Row>
-      <Row label="Token obtido"><Bool v={d.rnds.alcancavel}/></Row>
+      <Row label="Credenciais configuradas"><Bool v={d.rnds?.credenciais_configuradas}/></Row>
+      <Row label="Token obtido"><Bool v={d.rnds?.alcancavel}/></Row>
       <div style={{ marginTop:10, padding:"8px 12px", background: nivel === "ok" ? "#f0fdf4" : "#f0f9ff",
         borderRadius:8, fontSize:12, color: nivel === "ok" ? "#166534" : "#1d4ed8" }}>
-        {d.pec_local.nota}
+        {d.pec_local?.nota}
       </div>
     </CardIntegracao>
   );

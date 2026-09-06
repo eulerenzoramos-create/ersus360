@@ -259,21 +259,21 @@ function AbaStatus({ status, sit, testar, sinc }: {
           <>
             <LinhaInfo
               label="PEC local"
-              valor={sit.pec_local.situacao_dado === "oficial_validado" ? "Sincronizado" : "Não sincronizado"}
-              destaque={sit.pec_local.situacao_dado === "oficial_validado" ? "#16a34a" : "#9ca3af"}
+              valor={sit.pec_local?.situacao_dado === "oficial_validado" ? "Sincronizado" : "Não sincronizado"}
+              destaque={sit.pec_local?.situacao_dado === "oficial_validado" ? "#16a34a" : "#9ca3af"}
             />
             <LinhaInfo
               label="Parcelas e-Gestor 2026"
-              valor={`${sit.egestor_aps.parcelas_ciclo_2026} de 12 disponíveis`}
+              valor={`${sit.egestor_aps?.parcelas_ciclo_2026 ?? "—"} de 12 disponíveis`}
             />
-            {sit.pec_local.nota && (
+            {sit.pec_local?.nota && (
               <div style={{
                 marginTop: 10, padding: "8px 10px", borderRadius: 8,
                 background: "#fffbeb", border: "1px solid #fde68a",
                 fontSize: 11, color: "#92400e",
               }}>
                 <AlertTriangle size={11} style={{ marginRight: 4, verticalAlign: "middle" }} />
-                {sit.pec_local.nota}
+                {sit.pec_local?.nota}
               </div>
             )}
           </>
@@ -435,7 +435,7 @@ function AbaQualidade({ data, isLoading }: { data: IndicadoresQualidade | undefi
 // ─── Sub-tela: Produção APS ───────────────────────────────────────────────────
 
 function AbaProducao({ statusPec }: { statusPec: StatusPEC | undefined }) {
-  const pecOnline = statusPec?.pec_local.online === true;
+  const pecOnline = statusPec?.pec_local?.online === true;
 
   if (!pecOnline) {
     return (
@@ -594,7 +594,7 @@ export default function IntegracaoPEC() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["integracao-pec-situacao-v2"] }),
   });
 
-  const pecOnline = statusData?.pec_local.online === true;
+  const pecOnline = statusData?.pec_local?.online === true;
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>
