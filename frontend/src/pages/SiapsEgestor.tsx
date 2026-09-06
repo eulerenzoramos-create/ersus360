@@ -2438,14 +2438,17 @@ function AbaRelatorioPagamento() {
 
 function AbaDiagnosticoCobertura() {
   const PARCELAS = [
-    { val: "202608", label: "JUN/2026 (8ª parcela)" },
-    { val: "202607", label: "MAI/2026 (7ª parcela)" },
-    { val: "202606", label: "ABR/2026 (6ª parcela)" },
-    { val: "202605", label: "MAR/2026 (5ª parcela)" },
-    { val: "202604", label: "FEV/2026 (4ª parcela)" },
-    { val: "202603", label: "JAN/2026 (3ª parcela)" },
+    { val: "202611", label: "SET/2026 (11ª parcela)" },
+    { val: "202610", label: "AGO/2026 (10ª parcela)" },
+    { val: "202609", label: "JUL/2026 (9ª parcela)"  },
+    { val: "202608", label: "JUN/2026 (8ª parcela)"  },
+    { val: "202607", label: "MAI/2026 (7ª parcela)"  },
+    { val: "202606", label: "ABR/2026 (6ª parcela)"  },
+    { val: "202605", label: "MAR/2026 (5ª parcela)"  },
+    { val: "202604", label: "FEV/2026 (4ª parcela)"  },
+    { val: "202603", label: "JAN/2026 (3ª parcela)"  },
   ];
-  const [parcela, setParcela] = useState("202608");
+  const [parcela, setParcela] = useState("202611");
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["siaps-diag-cobertura", parcela],

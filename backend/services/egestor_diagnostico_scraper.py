@@ -17,13 +17,20 @@ POPULACAO = 19_847  # IBGE Censo 2022
 
 
 def _competencia_from_parcela(parcela: str) -> str:
+    """
+    Mapeamento NFAPS: parcela 3 = JAN/2026, parcela 11 = SET/2026.
+    Parcelas 1-2 = NOV-DEZ/2025 (fase de implantação).
+    """
     meses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN",
              "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
-    try:
-        n = int(parcela[4:])
-        return f"{meses[(n - 1) % 12]}/{parcela[:4]}"
-    except Exception:
-        return parcela
+    _mapa = {
+        "202601": "NOV/2025", "202602": "DEZ/2025",
+        "202603": "JAN/2026", "202604": "FEV/2026", "202605": "MAR/2026",
+        "202606": "ABR/2026", "202607": "MAI/2026", "202608": "JUN/2026",
+        "202609": "JUL/2026", "202610": "AGO/2026", "202611": "SET/2026",
+        "202612": "OUT/2026", "202613": "NOV/2026", "202614": "DEZ/2026",
+    }
+    return _mapa.get(parcela, parcela)
 
 
 async def buscar_diagnostico_cobertura(parcela: str = "202608") -> dict:
