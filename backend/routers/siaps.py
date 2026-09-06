@@ -747,14 +747,10 @@ async def diagnostico_live(_: UserOut = Depends(get_current_user)):
 
 @router.get("/diagnostico-cobertura")
 async def diagnostico_cobertura(
-    parcela: str = Query("202608"),
+    parcela: str = Query("202610"),
     _: UserOut = Depends(get_current_user),
 ):
-    """
-    Retorna dados de Diagnóstico/Cobertura da AB via scraper do e-Gestor APS.
-    Usa Playwright para renderizar as páginas Angular públicas.
-    Em caso de falha retorna diagnóstico automático baseado em dados locais.
-    """
+    """Diagnóstico/Cobertura via scraper e-Gestor APS + dados SCNES verificados."""
     try:
         from services.egestor_diagnostico_scraper import buscar_diagnostico_cobertura
         dados = await buscar_diagnostico_cobertura(parcela)
@@ -765,6 +761,48 @@ async def diagnostico_cobertura(
         return {
             "situacao_dado": "nao_disponivel",
             "parcela": parcela,
-            "nota": "Serviço de scraping temporariamente indisponível. Tente novamente em instantes.",
+            "nota": "Scraping temporariamente indisponível.",
             "fonte": "erro_temporario",
         }
+
+
+@router.get("/probe-egestor")
+async def probe_egestor_urls(_: UserOut = Depends(get_current_user)):
+    """
+    Testa quais URLs públicas do e-Gestor APS respondem com conteúdo útil.
+    Útil para descobrir os paths corretos das páginas Angular.
+    """
+    import httpx, asyncio
+    IBGE6 = "130014"
+    BASE  = "https://relatorioaps.saude.gov.br/gerenciaaps/pagamento"
+    urls = [
+        f"{BASE}/esf/custeio?ibge={IBGE6}",
+        f"{BASE}/esf/resumo?ibge={IBGE6}",
+        f"{BASE}/esf?ibge={IBGE6}",
+        f"{BASE}/equipe-saude-familia?ibge={IBGE6}",
+        f"{BASE}/equipe-saude-familia/custeio?ibge={IBGE6}",
+        f"{BASE}/acs/custeio?ibge={IBGE6}",
+        f"{BASE}/acs?ibge={IBGE6}",
+        f"{BASE}/agente-comunitario-saude?ibge={IBGE6}",
+        f"{BASE}/esb?ibge={IBGE6}",
+        f"{BASE}/esb/custeio?ibge={IBGE6}",
+        f"{BASE}/saude-bucal?ibge={IBGE6}",
+        f"{BASE}/emulti/custeio?ibge={IBGE6}",  # referência — sabemos que funciona
+        f"{BASE}?ibge={IBGE6}",
+    ]
+    results = []
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0"}
+    async with httpx.AsyncClient(timeout=10, verify=False, follow_redirects=True) as c:
+        for url in urls:
+            try:
+                r = await c.get(url, headers=headers)
+                results.append({
+                    "url": url,
+                    "status": r.status_code,
+                    "content_type": r.headers.get("content-type", ""),
+                    "body_len": len(r.text),
+                    "snippet": r.text[:200].replace("\n", " "),
+                })
+            except Exception as e:
+                results.append({"url": url, "status": "ERR", "erro": str(e)})
+    return {"probe_ts": __import__("datetime").datetime.utcnow().isoformat(), "urls": results}

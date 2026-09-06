@@ -91,14 +91,19 @@ async def _scrape(page, url: str, selector_hint: str = "Valor") -> list[str]:
 
 
 async def _scrape_esf(page) -> dict:
+    # Mesmo padrão do egestor_scraper.py — subpaths Angular
     urls = [
+        f"{PBASE}/esf/custeio?ibge={IBGE_6}",
+        f"{PBASE}/esf/resumo?ibge={IBGE_6}",
         f"{PBASE}/esf?ibge={IBGE_6}",
-        f"{PBASE}/esf?ibge={IBGE_7}",
-        f"{PBASE}/saude-familia?ibge={IBGE_6}",
+        f"{PBASE}/equipe-saude-familia?ibge={IBGE_6}",
+        f"{PBASE}/equipe-saude-familia/custeio?ibge={IBGE_6}",
     ]
     for url in urls:
         lines = await _scrape(page, url, "Saúde da Família")
-        if lines:
+        if not lines:
+            lines = await _scrape(page, url, "Valor")
+        if lines and len(lines) > 10:
             return {
                 "qt_credenciadas": _fi(lines, "credenciadas") or TETOS_SCNES["esf"],
                 "qt_homologadas":  _fi(lines, "homologadas")  or 0,
@@ -113,9 +118,8 @@ async def _scrape_esf(page) -> dict:
                 "vl_total_bruto":  _fb(lines, "Total")        or 0.0,
                 "_scraped": True,
             }
-    # Scraping falhou — usa teto SCNES, valores indisponíveis
     return {
-        "qt_credenciadas": TETOS_SCNES["esf"],  # confirmado SCNES
+        "qt_credenciadas": TETOS_SCNES["esf"],
         "qt_homologadas": 0, "qt_pagas": 0,
         "qt_100pct": 0, "qt_75pct": 0, "qt_50pct": 0, "qt_25pct": 0,
         "vl_fixo": 0.0, "vl_vinculo": 0.0, "vl_qualidade": 0.0, "vl_total_bruto": 0.0,
@@ -125,22 +129,25 @@ async def _scrape_esf(page) -> dict:
 
 async def _scrape_acs(page) -> dict:
     urls = [
+        f"{PBASE}/acs/custeio?ibge={IBGE_6}",
         f"{PBASE}/acs?ibge={IBGE_6}",
-        f"{PBASE}/acs?ibge={IBGE_7}",
-        f"{PBASE}/agente-comunitario?ibge={IBGE_6}",
+        f"{PBASE}/agente-comunitario-saude?ibge={IBGE_6}",
+        f"{PBASE}/agente-comunitario-saude/custeio?ibge={IBGE_6}",
     ]
     for url in urls:
         lines = await _scrape(page, url, "Agente")
-        if lines:
+        if not lines:
+            lines = await _scrape(page, url, "Valor")
+        if lines and len(lines) > 10:
             return {
-                "qt_teto":                _fi(lines, "Teto")              or 0,
-                "qt_direto_credenciado":  _fi(lines, "Direto credenciado") or 0,
-                "qt_direto_pago":         _fi(lines, "Direto pago")        or 0,
-                "vl_direto":              _fb(lines, "Direto")             or 0.0,
-                "vl_parcela_extra_direto":_fb(lines, "Parcela Extra")      or 0.0,
-                "qt_indireto_pago":       _fi(lines, "Indireto pago")      or 0,
-                "vl_indireto":            _fb(lines, "Indireto")           or 0.0,
-                "vl_total":               _fb(lines, "Total ACS")          or 0.0,
+                "qt_teto":                _fi(lines, "Teto")               or 0,
+                "qt_direto_credenciado":  _fi(lines, "Direto credenciado")  or 0,
+                "qt_direto_pago":         _fi(lines, "Direto pago")         or 0,
+                "vl_direto":              _fb(lines, "Direto")              or 0.0,
+                "vl_parcela_extra_direto":_fb(lines, "Parcela Extra")       or 0.0,
+                "qt_indireto_pago":       _fi(lines, "Indireto pago")       or 0,
+                "vl_indireto":            _fb(lines, "Indireto")            or 0.0,
+                "vl_total":               _fb(lines, "Total ACS")           or 0.0,
                 "_scraped": True,
             }
     return {
@@ -153,24 +160,27 @@ async def _scrape_acs(page) -> dict:
 
 async def _scrape_esb(page) -> dict:
     urls = [
+        f"{PBASE}/esb/custeio?ibge={IBGE_6}",
         f"{PBASE}/esb?ibge={IBGE_6}",
         f"{PBASE}/saude-bucal?ibge={IBGE_6}",
-        f"{PBASE}/esb?ibge={IBGE_7}",
+        f"{PBASE}/saude-bucal/custeio?ibge={IBGE_6}",
     ]
     for url in urls:
         lines = await _scrape(page, url, "Bucal")
-        if lines:
+        if not lines:
+            lines = await _scrape(page, url, "Valor")
+        if lines and len(lines) > 10:
             return {
-                "qt_40h_credenciadas":    _fi(lines, "credenciadas") or 0,
-                "qt_40h_homologadas":     _fi(lines, "homologadas")  or 0,
-                "qt_40h_pagas_modal_i":   _fi(lines, "Modal. I")     or 0,
-                "qt_40h_pagas_modal_ii":  _fi(lines, "Modal. II")    or 0,
-                "vl_esb_40h":             _fb(lines, "eSB 40h")      or 0.0,
-                "vl_qualidade_40h":       _fb(lines, "Qualidade")    or 0.0,
-                "qt_uom":                 _fi(lines, "UOM")          or 0,
-                "vl_uom":                 _fb(lines, "UOM")          or 0.0,
-                "vl_lrpd_municipal":      _fb(lines, "LRPD")         or 0.0,
-                "vl_total_sb_calculado":  _fb(lines, "Total")        or 0.0,
+                "qt_40h_credenciadas":   _fi(lines, "credenciadas") or 0,
+                "qt_40h_homologadas":    _fi(lines, "homologadas")  or 0,
+                "qt_40h_pagas_modal_i":  _fi(lines, "Modal. I")     or 0,
+                "qt_40h_pagas_modal_ii": _fi(lines, "Modal. II")    or 0,
+                "vl_esb_40h":            _fb(lines, "eSB 40h")      or 0.0,
+                "vl_qualidade_40h":      _fb(lines, "Qualidade")    or 0.0,
+                "qt_uom":                _fi(lines, "UOM")          or 0,
+                "vl_uom":                _fb(lines, "UOM")          or 0.0,
+                "vl_lrpd_municipal":     _fb(lines, "LRPD")         or 0.0,
+                "vl_total_sb_calculado": _fb(lines, "Total")        or 0.0,
                 "_scraped": True,
             }
     return {
