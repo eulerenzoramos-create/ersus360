@@ -2459,13 +2459,26 @@ function AbaDiagnosticoCobertura() {
   const BRL_local = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 
-  function CardPrograma({ titulo, cor, items }: {
+  function CardPrograma({ titulo, cor, items, scraped, fonteLabel }: {
     titulo: string; cor: string;
     items: { label: string; val: string | number; destaque?: boolean }[];
+    scraped?: boolean;
+    fonteLabel?: string;
   }) {
     return (
       <div style={{ border: `1px solid ${cor}33`, borderTop: `3px solid ${cor}`, borderRadius: 10, padding: "14px 18px", background: "#fff" }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: cor, marginBottom: 12 }}>{titulo}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: cor }}>{titulo}</div>
+          {scraped !== undefined && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 8,
+              background: scraped ? "#f0fdf4" : "#fffbeb",
+              color: scraped ? "#16a34a" : "#d97706",
+            }}>
+              {scraped ? (fonteLabel || "✓ e-Gestor") : "⏳ Aguard. e-Gestor"}
+            </span>
+          )}
+        </div>
         {items.map((it, i) => (
           <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: i < items.length - 1 ? "1px solid #f3f4f6" : "none" }}>
             <span style={{ fontSize: 12, color: "#6b7280" }}>{it.label}</span>
@@ -2652,7 +2665,7 @@ function AbaDiagnosticoCobertura() {
 
       {/* Cards por programa */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 20 }}>
-        <CardPrograma titulo="eSF — Equipes de Saúde da Família" cor="#1d4ed8" items={[
+        <CardPrograma titulo="eSF — Equipes de Saúde da Família" cor="#1d4ed8" scraped={(esf as any)._scraped} fonteLabel="✓ Verificado JUN/2026" items={[
           { label: "Teto",                        val: (esf as any).qt_teto ?? tetos.esf ?? 0 },
           { label: "Credenciadas",                val: esf.qt_credenciadas ?? 0 },
           { label: "Homologadas",                 val: esf.qt_homologadas ?? 0 },
@@ -2668,42 +2681,39 @@ function AbaDiagnosticoCobertura() {
           { label: "Total eSF",                   val: BRL_local(esf.vl_total_bruto ?? 0), destaque: true },
         ]} />
 
-        <CardPrograma titulo="eMulti — Equipes Multiprofissionais" cor="#0891b2" items={[
-          { label: "Credenciadas",         val: emulti.qt_credenciadas ?? 0 },
+        <CardPrograma titulo="eMulti — Equipes Multiprofissionais" cor="#0891b2" scraped={(emulti as any)._scraped} items={[
+          { label: "Teto (SCNES)",         val: 2 },
+          { label: "Credenciadas",         val: emulti.qt_credenciadas ?? 2 },
           { label: "Homologadas",          val: emulti.qt_homologadas ?? 0 },
           { label: "Pagas",                val: emulti.qt_pagas ?? 0 },
-          { label: "Modalidade Ampliada",  val: emulti.qt_ampliada ?? 0 },
-          { label: "Modalidade Estratégica",val: emulti.qt_estrategica ?? 0 },
-          { label: "Modalidade Complementar",val: emulti.qt_complementar ?? 0 },
           { label: "Atendimento Remoto",   val: emulti.qt_atend_remoto ?? 0 },
-          { label: "Vl. Custeio",          val: BRL_local(emulti.vl_custeio ?? 0) },
-          { label: "Vl. Qualidade",        val: BRL_local(emulti.vl_qualidade ?? 0) },
-          { label: "Vl. Atend. Remoto",    val: BRL_local(emulti.vl_atend_remoto ?? 0) },
-          { label: "Total eMulti",         val: BRL_local(emulti.vl_total ?? 0), destaque: true },
+          { label: "Vl. Custeio",          val: (emulti as any)._scraped ? BRL_local(emulti.vl_custeio ?? 0) : "Aguard. scraping" },
+          { label: "Vl. Qualidade",        val: (emulti as any)._scraped ? BRL_local(emulti.vl_qualidade ?? 0) : "Aguard. scraping" },
+          { label: "Vl. Atend. Remoto",    val: (emulti as any)._scraped ? BRL_local(emulti.vl_atend_remoto ?? 0) : "Aguard. scraping" },
+          { label: "Total eMulti",         val: (emulti as any)._scraped ? BRL_local(emulti.vl_total ?? 0) : "Aguard. scraping", destaque: true },
         ]} />
 
-        <CardPrograma titulo="eSB — Saúde Bucal 40h · UOM · LRPD" cor="#7c3aed" items={[
+        <CardPrograma titulo="eSB — Saúde Bucal 40h · UOM · LRPD" cor="#7c3aed" scraped={(esb as any)._scraped} items={[
+          { label: "Teto (SCNES)",         val: "0 — sem eSB ativa" },
           { label: "Credenciadas 40h",     val: esb.qt_40h_credenciadas ?? 0 },
           { label: "Homologadas 40h",      val: esb.qt_40h_homologadas ?? 0 },
           { label: "Pagas (Modal. I)",     val: esb.qt_40h_pagas_modal_i ?? 0 },
           { label: "Pagas (Modal. II)",    val: esb.qt_40h_pagas_modal_ii ?? 0 },
-          { label: "Vl. eSB 40h",         val: BRL_local(esb.vl_esb_40h ?? 0) },
-          { label: "Vl. Qualidade 40h",   val: BRL_local(esb.vl_qualidade_40h ?? 0) },
-          { label: "UOM (qtd paga)",       val: esb.qt_uom ?? 0 },
-          { label: "Vl. UOM",             val: BRL_local(esb.vl_uom ?? 0) },
-          { label: "Vl. LRPD Municipal",  val: BRL_local(esb.vl_lrpd_municipal ?? 0) },
-          { label: "Total eSB calc.",     val: BRL_local(esb.vl_total_sb_calculado ?? 0), destaque: true },
+          { label: "Vl. eSB 40h",         val: (esb as any)._scraped ? BRL_local(esb.vl_esb_40h ?? 0) : "Aguard. scraping" },
+          { label: "Vl. Qualidade 40h",   val: (esb as any)._scraped ? BRL_local(esb.vl_qualidade_40h ?? 0) : "Aguard. scraping" },
+          { label: "UOM / LRPD",          val: (esb as any)._scraped ? BRL_local((esb.vl_uom ?? 0) + (esb.vl_lrpd_municipal ?? 0)) : "Aguard. scraping" },
+          { label: "Total eSB",           val: (esb as any)._scraped ? BRL_local(esb.vl_total_sb_calculado ?? 0) : "Aguard. scraping", destaque: true },
         ]} />
 
-        <CardPrograma titulo="ACS — Agentes Comunitários de Saúde" cor="#16a34a" items={[
-          { label: "Teto ACS",             val: acs.qt_teto ?? 0 },
-          { label: "Direto credenciado",   val: acs.qt_direto_credenciado ?? 0 },
-          { label: "Direto pago",          val: acs.qt_direto_pago ?? 0 },
-          { label: "Vl. Direto",          val: BRL_local(acs.vl_direto ?? 0) },
-          { label: "Vl. Parcela Extra",   val: BRL_local(acs.vl_parcela_extra_direto ?? 0) },
-          { label: "Indireto pago",        val: acs.qt_indireto_pago ?? 0 },
-          { label: "Vl. Indireto",        val: BRL_local(acs.vl_indireto ?? 0) },
-          { label: "Total ACS",           val: BRL_local(acs.vl_total ?? 0), destaque: true },
+        <CardPrograma titulo="ACS — Agentes Comunitários de Saúde" cor="#16a34a" scraped={(acs as any)._scraped} items={[
+          { label: "Teto ACS",             val: (acs as any)._scraped ? (acs.qt_teto ?? 0) : "Aguard. e-Gestor" },
+          { label: "Direto credenciado",   val: (acs as any)._scraped ? (acs.qt_direto_credenciado ?? 0) : "—" },
+          { label: "Direto pago",          val: (acs as any)._scraped ? (acs.qt_direto_pago ?? 0) : "—" },
+          { label: "Vl. Direto",          val: (acs as any)._scraped ? BRL_local(acs.vl_direto ?? 0) : "Aguard. scraping" },
+          { label: "Vl. Parcela Extra",   val: (acs as any)._scraped ? BRL_local(acs.vl_parcela_extra_direto ?? 0) : "Aguard. scraping" },
+          { label: "Indireto pago",        val: (acs as any)._scraped ? (acs.qt_indireto_pago ?? 0) : "—" },
+          { label: "Vl. Indireto",        val: (acs as any)._scraped ? BRL_local(acs.vl_indireto ?? 0) : "Aguard. scraping" },
+          { label: "Total ACS",           val: (acs as any)._scraped ? BRL_local(acs.vl_total ?? 0) : "Aguard. scraping", destaque: true },
         ]} />
 
         {(esfrb.qt_credenciadas ?? 0) > 0 && (
