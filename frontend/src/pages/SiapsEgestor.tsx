@@ -2578,7 +2578,7 @@ function AbaDiagnosticoCobertura() {
               </span>
             )}
             <span style={{ background: "#f0fdf4", color: "#15803d", padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>
-              Fonte: e-Gestor APS (dados oficiais)
+              {data.fonte === "scnes_verificado" ? "Fonte: SCNES/DATASUS (verificado)" : "Fonte: e-Gestor APS (dados oficiais)"}
             </span>
           </div>
         </div>
@@ -2596,13 +2596,13 @@ function AbaDiagnosticoCobertura() {
       {/* KPIs gerais */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
         {[
-          { label: "Teto",            val: tetos.esf ?? 0,                   cor: "#1d4ed8" },
-          { label: "eSF Pagas",      val: esf.qt_pagas ?? 0,                cor: "#16a34a" },
-          { label: "ACS Teto",       val: acs.qt_teto ?? 0,                 cor: "#7c3aed" },
-          { label: "Total calculado",val: BRL_local(data.total_calculado),  cor: "#d97706" },
+          { label: "Equipes SCNES",    val: data.total_equipes_scnes ?? (tetos.esf || "—"),  cor: "#1d4ed8" },
+          { label: "Score médio",      val: data.score_medio_scnes != null ? `${data.score_medio_scnes}` : (esf.qt_pagas ?? "—"), cor: "#16a34a" },
+          { label: "Vinculadas CVAT",  val: data.total_vinculadas_cvat != null ? (data.total_vinculadas_cvat as number).toLocaleString("pt-BR") : (acs.qt_teto ?? "—"), cor: "#7c3aed" },
+          { label: "Pendências SCNES", val: data.pendencias_total != null ? `${data.pendencias_criticas} críticas / ${data.pendencias_total}` : BRL_local(data.total_calculado), cor: "#d97706" },
         ].map(k => (
           <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: k.cor }}>{k.val}</div>
+            <div style={{ fontSize: data.pendencias_total != null && k.label === "Pendências SCNES" ? 15 : 22, fontWeight: 800, color: k.cor }}>{k.val}</div>
             <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{k.label}</div>
           </div>
         ))}
@@ -2725,9 +2725,10 @@ function AbaDiagnosticoCobertura() {
       <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 14px", fontSize: 11, color: "#6b7280", display: "flex", gap: 8, alignItems: "center" }}>
         <Info size={13} />
         <span>
-          Fonte: <strong>e-Gestor APS</strong> — relatorioaps-prd.saude.gov.br/financiamento/pagamento · tipoRelatorio=COMPLETO ·
-          Coletado em {data.coletado_em ? new Date(data.coletado_em).toLocaleString("pt-BR") : "—"} ·
-          Competência {data.competencia} · {data.parcela}ª parcela · IBGE {data.ibge}
+          {data.fonte === "scnes_verificado"
+            ? <>Fonte: <strong>SCNES/DATASUS</strong> — varredura {data._meta?.scnes_varredura ?? "Set/2026"} · {data._meta?.nota ?? ""}</>
+            : <>Fonte: <strong>e-Gestor APS</strong> — relatorioaps-prd.saude.gov.br · tipoRelatorio=COMPLETO</>
+          } · Coletado em {data.coletado_em ? new Date(data.coletado_em).toLocaleString("pt-BR") : "—"} · Competência {data.competencia} · IBGE {data.ibge}
         </span>
       </div>
     </div>
