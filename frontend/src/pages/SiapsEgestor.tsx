@@ -2599,17 +2599,29 @@ function AbaDiagnosticoCobertura() {
       {/* KPIs gerais */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
         {[
-          { label: "Equipes SCNES",    val: data.total_equipes_scnes ?? (tetos.esf || "—"),  cor: "#1d4ed8" },
-          { label: "Score médio",      val: data.score_medio_scnes != null ? `${data.score_medio_scnes}` : (esf.qt_pagas ?? "—"), cor: "#16a34a" },
-          { label: "Vinculadas CVAT",  val: data.total_vinculadas_cvat != null ? (data.total_vinculadas_cvat as number).toLocaleString("pt-BR") : (acs.qt_teto ?? "—"), cor: "#7c3aed" },
-          { label: "Pendências SCNES", val: data.pendencias_total != null ? `${data.pendencias_criticas} críticas / ${data.pendencias_total}` : BRL_local(data.total_calculado), cor: "#d97706" },
+          { label: "eSF credenciadas",  val: esf.qt_credenciadas ?? tetos.esf ?? 0,                                         cor: "#1d4ed8" },
+          { label: "Score médio SCNES", val: data.score_medio_scnes != null ? `${data.score_medio_scnes} pts` : "—",          cor: "#16a34a" },
+          { label: "Vinculadas CVAT",   val: data.total_vinculadas_cvat != null ? (data.total_vinculadas_cvat as number).toLocaleString("pt-BR") : "—", cor: "#7c3aed" },
+          { label: "Pendências SCNES",  val: data.pendencias_total != null ? `${data.pendencias_criticas} críticas / ${data.pendencias_total}` : "—",   cor: "#dc2626" },
         ].map(k => (
           <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: data.pendencias_total != null && k.label === "Pendências SCNES" ? 15 : 22, fontWeight: 800, color: k.cor }}>{k.val}</div>
+            <div style={{ fontSize: typeof k.val === "string" && k.val.includes("/") ? 15 : 22, fontWeight: 800, color: k.cor }}>{k.val}</div>
             <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{k.label}</div>
           </div>
         ))}
       </div>
+      {/* Aviso quando pagamento não foi scrapeado */}
+      {!(esf as any)?._scraped && (
+        <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "10px 16px", fontSize: 12, color: "#92400e", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
+          <span style={{ fontSize: 18 }}>⚠</span>
+          <span>
+            <strong>Valores de pagamento indisponíveis:</strong> a página pública do e-Gestor APS não retornou dados nesta consulta.
+            Os tetos de credenciamento exibidos nos cards são confirmados via SCNES (Set/2026).
+            <a href="https://relatorioaps.saude.gov.br/gerenciaaps/pagamento" target="_blank" rel="noreferrer"
+               style={{ marginLeft: 8, color: "#1d4ed8", fontWeight: 600 }}>Acessar e-Gestor APS ↗</a>
+          </span>
+        </div>
+      )}
 
       {/* Diagnósticos */}
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "16px 18px", marginBottom: 20 }}>
