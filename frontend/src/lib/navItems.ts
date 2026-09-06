@@ -72,26 +72,11 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Inteligência artificial para apoio à decisão em gestão de saúde",
     keywords:["ia","inteligência artificial","ai","machine learning","decisão","algoritmo"] },
 
-  { id:"okr",                 category:"Visão Executiva", order:17, iconName:"Target",
-    title:"OKRs Estratégicos", route:"/okr",
-    description:"Objetivos e resultados-chave da gestão municipal de saúde",
-    keywords:["okr","objetivos","resultados","metas","estratégia","chave"] },
-
-  { id:"bi",                  category:"Visão Executiva", order:18, iconName:"TrendingUp",
-    title:"Business Intelligence", shortTitle:"BI", route:"/bi",
-    description:"Análise avançada de dados e painéis de inteligência em saúde",
-    keywords:["bi","business intelligence","análise","dados","relatórios","painéis","power bi"] },
-
   // ── Atenção Primária → Painel ────────────────────────────
   { id:"aps",                 category:"Atenção Primária", order:100, iconName:"Stethoscope",
     title:"Painel APS", route:"/aps",
     description:"Painel de atenção primária à saúde — indicadores e equipes",
     keywords:["aps","atenção primária","painel","saúde","equipes","esf","eap"] },
-
-  { id:"essenciais",          category:"Atenção Primária", order:101, iconName:"Star", highlight:true,
-    title:"Módulos Essenciais Apuí", shortTitle:"Essenciais", route:"/essenciais-apui",
-    description:"Conjunto de módulos essenciais configurados para o município de Apuí/AM",
-    keywords:["essenciais","apuí","municipais","módulos","apui"] },
 
   // Cofinanciamento APS
   { id:"previne",             category:"Atenção Primária", subcategory:"Cofinanciamento APS (P. 3.493)", order:110, iconName:"PieChart",
@@ -264,11 +249,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Matriz de normativas e portarias da Atenção Primária à Saúde",
     keywords:["matriz","normativa","portaria","aps","legislação","norma","regulação"] },
 
-  { id:"nasf",                category:"Atenção Primária", order:172, iconName:"Users",
-    title:"NASF / eMulti", route:"/nasf",
-    description:"Núcleo Ampliado de Saúde da Família e Atenção Básica / Equipe Multiprofissional",
-    keywords:["nasf","emulti","multiprofissional","nucleo","saúde família","equipe multi","nas","nasfab"] },
-
   { id:"academia-saude",      category:"Atenção Primária", order:173, iconName:"Activity",
     title:"Academia da Saúde", route:"/academia-saude",
     description:"Programa Academia da Saúde — atividade física e promoção da saúde",
@@ -370,11 +350,6 @@ export const NAV_ITEMS: NavItem[] = [
     title:"Plano Municipal de Saúde", shortTitle:"Plano Municipal", route:"/plano-municipal-saude",
     description:"Plano Municipal de Saúde — PMS — instrumento de planejamento quadrienal",
     keywords:["plano municipal","saúde","pms","planejamento","quadrienal","metas","objetivos"] },
-
-  { id:"planejamento",        category:"Planejamento e Prestação de Contas", order:301, iconName:"ClipboardList",
-    title:"Planejamento em Saúde", route:"/planejamento",
-    description:"Módulo de planejamento estratégico em saúde pública municipal",
-    keywords:["planejamento","estratégico","saúde","metas","objetivos","programa"] },
 
   { id:"rdqa",                category:"Planejamento e Prestação de Contas", order:302, iconName:"Calendar",
     title:"RDQA — Relatório Quadrimestral", shortTitle:"RDQA", route:"/rdqa",
@@ -672,30 +647,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Central de relatórios consolidados do sistema de saúde municipal",
     keywords:["relatório","central","consolidado","saúde","dados","exportar","impressão","pdf"] },
 
-  { id:"exportador",          category:"Central de Relatórios", order:901, iconName:"Download",
-    title:"Exportador de Relatórios", route:"/exportador-relatorios",
-    description:"Exportação de dados e relatórios em múltiplos formatos",
-    keywords:["exportar","relatório","excel","csv","pdf","download","dados","geração"] },
-
-  { id:"relatorio-ersus",     category:"Central de Relatórios", order:902, iconName:"FileText",
-    title:"Relatório ERSUS 360", route:"/relatorio-ersus",
-    description:"Relatório completo de desempenho gerado pelo ERSUS 360",
-    keywords:["relatório","ersus","360","desempenho","completo","municipal","gestão"] },
-
-  { id:"mapa-sanitario",      category:"Central de Relatórios", order:903, iconName:"MapPin",
-    title:"Mapa Sanitário", route:"/mapa-sanitario",
-    description:"Mapa sanitário com distribuição de serviços e indicadores por território",
-    keywords:["mapa","sanitário","território","serviço","distribuição","geográfico","indicadores"] },
-
-  { id:"linha-tempo",         category:"Central de Relatórios", order:904, iconName:"Clock",
-    title:"Linha do Tempo do Cidadão", route:"/linha-tempo-cidadao",
-    description:"Linha do tempo com histórico de atendimentos do cidadão",
-    keywords:["linha do tempo","cidadão","histórico","atendimento","prontuário","longitudinal","e-SUS"] },
-
-  { id:"saude-digital",       category:"Central de Relatórios", order:905, iconName:"Network",
-    title:"Saúde Digital e-SUS", route:"/saude-digital-esus",
-    description:"Painel de saúde digital e integrações com o e-SUS PEC",
-    keywords:["saúde digital","esus","pec","digital","integração","tecnologia","prontuário eletrônico"] },
 
   // ── Administração do Sistema ──────────────────────────────
   { id:"rh",                  category:"Administração do Sistema", order:1000, iconName:"UserCog",
@@ -748,10 +699,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Configuração da integração com o Prontuário Eletrônico do Cidadão — e-SUS PEC",
     keywords:["pec","esus","integração","prontuário","configuração","ledi","mivdt","graphql"] },
 
-  { id:"gateway-integracao",  category:"Administração do Sistema", order:1010, iconName:"Shield", highlight:true,
-    title:"Integration Gateway", route:"/gateway-integracao", roles:ROLES_AUD,
-    description:"Controle central do ERSUS Integration Gateway — RNDS FHIR R4 e LEDI e-SUS APS",
-    keywords:["gateway","integração","rnds","ledi","fhir","esus","pausa","diagnóstico","transmissão","certificado","mtls","icp","brasil"] },
 
   // ── Gestão Operacional ────────────────────────────────────
   { id:"patrimonio",          category:"Gestão Operacional", order:1100, iconName:"Truck",
@@ -804,10 +751,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Central de alertas operacionais e críticos do sistema",
     keywords:["alerta","crítico","operacional","notificação","urgente","central","monitoramento"] },
 
-  { id:"notificacoes",        category:"Gestão Operacional", order:1110, iconName:"Bell",
-    title:"Centro de Notificações", route:"/notificacoes",
-    description:"Central de notificações e avisos do sistema para usuários",
-    keywords:["notificação","aviso","mensagem","central","alerta","comunicado","sistema"] },
 ];
 
 // ── Utilitários de busca ──────────────────────────────────────────────────────
