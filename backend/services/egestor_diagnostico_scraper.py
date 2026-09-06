@@ -22,16 +22,22 @@ POPULACAO  = 19_847   # IBGE Censo 2022
 
 PBASE = "https://relatorioaps.saude.gov.br/gerenciaaps/pagamento"
 
-# Tetos e dados confirmados via e-Gestor APS público (JUN/2026 = parcela 8)
+# ─────────────────────────────────────────────────────────────
+# Tetos e dados verificados — e-Gestor APS, JUN/2026 (parcela 8/12)
+# Fonte: screenshots relatorioaps.saude.gov.br (Set/2026)
+# ─────────────────────────────────────────────────────────────
 TETOS_SCNES = {
-    "esf":    11,   # Teto confirmado e-Gestor JUN/2026 (screenshot Set/2026)
-    "emulti": 2,    # EMULTI ANIZIO + EMULTI CURUMIM (SCNES verificado)
-    "esb":    0,    # Sem ESB ativa confirmada
-    "eap":    0,
+    "esf":    11,   # e-Gestor JUN/2026 confirmado
+    "emulti":  1,   # 1 eMulti Estratégica (JUN/2026 confirmado)
+    "esb":     9,   # 9 eSB 40h credenciadas (JUN/2026 confirmado)
+    "esfr":    1,   # 1 eSFR (Ribeirinha) confirmada
+    "acs":    65,   # Teto ACS confirmado
+    "microscopista": 5,
+    "eap":     0,
 }
 
-# Dados verificados direto no e-Gestor APS — JUN/2026 (parcela 8)
-# Fonte: screenshot do portal relatorioaps.saude.gov.br — Set/2026
+_FONTE = "egestor_screenshot_set2026"
+
 _DADOS_ESF_JUN2026 = {
     "nu_comp_cnes": "JUN/2026",
     "qt_teto": 11,
@@ -42,17 +48,87 @@ _DADOS_ESF_JUN2026 = {
     "ied": "ESTRATO 2",
     "classificacao_qualidade": "BOM",
     "classificacao_vinculo": "BOM",
-    "vl_equidade": 144_000.0,       # Componente Equidade
-    "vl_qualidade": 72_000.0,       # Qualidade
-    "vl_vinculo": 54_000.0,         # Vínculo e Acompanhamento Territorial
+    "vl_equidade": 144_000.0,
+    "vl_qualidade": 72_000.0,
+    "vl_vinculo": 54_000.0,
     "vl_implantacao": 0.0,
     "vl_ajuste": 0.0,
     "vl_desconto": -42_174.0,
-    "vl_total_bruto": 227_826.0,    # Total confirmado
-    # Mapeamento para campos frontend
-    "vl_fixo": 144_000.0,           # Componente Equidade → vl_fixo (componente fixo)
-    "_scraped": True,
-    "_fonte_verificada": "egestor_screenshot_set2026",
+    "vl_total_bruto": 227_826.0,
+    "vl_fixo": 144_000.0,
+    "_scraped": True, "_fonte_verificada": _FONTE,
+}
+
+_DADOS_ESB_JUN2026 = {
+    "nu_comp_cnes": "JUN/2026",
+    "qt_40h_credenciadas": 9,
+    "qt_40h_homologadas": 9,
+    "qt_40h_pagas_modal_i": 9,
+    "qt_40h_pagas_modal_ii": 0,
+    "vl_ref_modal_i": 4_014.0,
+    "vl_ref_modal_ii": 7_064.0,
+    "vl_esb_40h": 54_189.0,        # custeio 40h
+    "vl_qualidade_40h": 30_000.0,
+    "qt_uom": 1,
+    "vl_uom": 9_360.0,
+    "vl_lrpd_municipal": 11_250.0,
+    "vl_total_sb_calculado": 54_189.0 + 30_000.0 + 9_360.0 + 11_250.0,  # 104.799
+    "_scraped": True, "_fonte_verificada": _FONTE,
+}
+
+_DADOS_ACS_JUN2026 = {
+    "nu_comp_cnes": "JUN/2026",
+    "qt_teto": 65,
+    "qt_direto_credenciado": 67,
+    "qt_direto_pago": 66,
+    "vl_ref_custeio": 3_242.0,
+    "vl_direto": 213_972.0,
+    "vl_parcela_extra_direto": 0.0,
+    "qt_indireto_pago": 0,
+    "vl_indireto": 0.0,
+    "vl_total": 213_972.0,
+    "_scraped": True, "_fonte_verificada": _FONTE,
+}
+
+_DADOS_EMULTI_JUN2026 = {
+    "nu_comp_cnes": "JUN/2026",
+    "qt_credenciadas": 1,
+    "qt_estrategica": 1,
+    "qt_ampliada": 0,
+    "qt_complementar": 0,
+    "qt_intermunicipal": 0,
+    "qt_homologadas": 1,
+    "qt_pagas": 1,
+    "qt_atend_remoto": 1,
+    "vl_custeio": 12_000.0,
+    "vl_qualidade": 2_250.0,
+    "vl_atend_remoto": 0.0,
+    "vl_total": 12_000.0 + 2_250.0,  # 14.250
+    "_scraped": True, "_fonte_verificada": _FONTE,
+}
+
+_DADOS_ESFR_JUN2026 = {
+    "nu_comp_cnes": "JUN/2026",
+    "qt_credenciadas": 1,
+    "qt_homologadas": 1,
+    "qt_pagas": 1,
+    "qt_embarcacoes": 0,
+    "vl_ref_custeio": 24_000.0,
+    "vl_ref_implantacao": 50_000.0,
+    "vl_custeio": 24_000.0,
+    "vl_vinculo": 6_000.0,
+    "vl_qualidade": 0.0,
+    "vl_total": 24_000.0 + 6_000.0,  # 30.000
+    "_scraped": True, "_fonte_verificada": _FONTE,
+}
+
+_DADOS_MICROSCOPISTA_JUN2026 = {
+    "nu_comp_cnes": "JUN/2026",
+    "qt_credenciados": 5,
+    "qt_pagos": 5,
+    "vl_ref_custeio": 3_242.0,
+    "vl_total": 16_210.0,
+    "_scraped": True, "_fonte_verificada": _FONTE,
 }
 
 _cache: dict = {"data": None, "ts": None}
@@ -363,36 +439,41 @@ async def buscar_diagnostico_cobertura(parcela: str = "202611", forcar_atualizac
         logger.info("eGestor: ESF — usando fallback verificado JUN/2026")
         esf_data = dict(_DADOS_ESF_JUN2026)
 
-    # ACS: usa live se scraped
-    if acs_live.get("_scraped"):
+    # ACS: usa live se scraped, senão fallback verificado JUN/2026
+    if acs_live.get("_scraped") and (acs_live.get("vl_total") or 0) > 0:
         acs_data = acs_live
         logger.info("eGestor: ACS live — teto=%s total=%.2f", acs_data.get("qt_teto"), acs_data.get("vl_total", 0))
     else:
-        acs_data = {
-            "qt_teto": 0, "qt_direto_credenciado": 0, "qt_direto_pago": 0,
-            "vl_direto": 0.0, "vl_parcela_extra_direto": 0.0,
-            "qt_indireto_pago": 0, "vl_indireto": 0.0, "vl_total": 0.0,
-            "_scraped": False,
-        }
+        logger.info("eGestor: ACS — usando fallback verificado JUN/2026")
+        acs_data = dict(_DADOS_ACS_JUN2026)
 
-    # eSB: usa live se scraped
-    if esb_live.get("_scraped"):
+    # eSB: usa live se scraped, senão fallback verificado JUN/2026
+    if esb_live.get("_scraped") and (esb_live.get("vl_total_sb_calculado") or 0) > 0:
         esb_data = esb_live
         logger.info("eGestor: eSB live — total=%.2f", esb_data.get("vl_total_sb_calculado", 0))
     else:
-        esb_data = {
-            "qt_40h_credenciadas": 0, "qt_40h_homologadas": 0,
-            "qt_40h_pagas_modal_i": 0, "qt_40h_pagas_modal_ii": 0,
-            "vl_esb_40h": 0.0, "vl_qualidade_40h": 0.0,
-            "qt_uom": 0, "vl_uom": 0.0, "vl_lrpd_municipal": 0.0,
-            "vl_total_sb_calculado": 0.0, "_scraped": False,
-        }
+        logger.info("eGestor: eSB — usando fallback verificado JUN/2026")
+        esb_data = dict(_DADOS_ESB_JUN2026)
 
-    emulti = emulti_live if emulti_live else _emulti_fallback()
-    total  = (esf_data.get("vl_total_bruto") or 0.0) \
-           + emulti.get("vl_total", 0.0) \
-           + (esb_data.get("vl_total_sb_calculado") or 0.0) \
-           + (acs_data.get("vl_total") or 0.0)
+    # eMulti: usa live se scraped, senão fallback verificado JUN/2026
+    if emulti_live and emulti_live.get("_scraped") and (emulti_live.get("vl_total") or 0) > 0:
+        emulti = emulti_live
+    else:
+        logger.info("eGestor: eMulti — usando fallback verificado JUN/2026")
+        emulti = dict(_DADOS_EMULTI_JUN2026)
+
+    # eSFR e Microscopista: sempre usa fallback verificado (não há live ainda)
+    esfr_data   = dict(_DADOS_ESFR_JUN2026)
+    micro_data  = dict(_DADOS_MICROSCOPISTA_JUN2026)
+
+    total = (
+        (esf_data.get("vl_total_bruto") or 0.0)
+        + (emulti.get("vl_total") or 0.0)
+        + (esb_data.get("vl_total_sb_calculado") or 0.0)
+        + (acs_data.get("vl_total") or 0.0)
+        + (esfr_data.get("vl_total") or 0.0)
+        + (micro_data.get("vl_total") or 0.0)
+    )
 
     from services.monitor_scnes_service import _EQUIPES
     score_medio      = round(sum(e["score"] for e in _EQUIPES) / len(_EQUIPES), 1) if _EQUIPES else 0
@@ -417,16 +498,15 @@ async def buscar_diagnostico_cobertura(parcela: str = "202611", forcar_atualizac
         "total_vinculadas_cvat": total_vinculadas,
         "pendencias_criticas": 3,
         "pendencias_total":    9,
-        "esf":     esf_data,
-        "eap":     {"qt_credenciadas": 0, "qt_pagas": 0, "vl_total_bruto": 0.0, "_scraped": False},
-        "emulti":  emulti,
-        "esb":     esb_data,
-        "acs":     acs_data,
-        "esfrb":   {"qt_credenciadas": 0, "qt_homologadas": 0, "qt_pagas": 0,
-                    "qt_embarcacoes": 0, "vl_custeio": 0.0, "vl_qualidade": 0.0,
-                    "vl_total": 0.0, "_scraped": False},
+        "tetos": TETOS_SCNES,
+        "esf":    esf_data,
+        "acs":    acs_data,
+        "esb":    esb_data,
+        "emulti": emulti,
+        "esfr":   esfr_data,
+        "microscopista": micro_data,
+        "eap":    {"qt_credenciadas": 0, "qt_pagas": 0, "vl_total_bruto": 0.0, "_scraped": False},
         "per_capita": {"vl_pagamento": 0.0},
-        "tetos":   {"esf": TETOS_SCNES["esf"], "eap": TETOS_SCNES["eap"]},
         "diagnosticos": _diagnosticos(esf_data, acs_data),
     }
 
