@@ -1,25 +1,37 @@
 """
-Scraper do e-Gestor APS — busca dados públicos de pagamento eMulti para Apuí/AM.
+Scraper do e-Gestor APS — busca dados públicos de pagamento para Apuí/AM.
+Cobre: eSF, ACS, eSB, eMulti (Custeio, Qualidade, Atend. Remoto).
 Usa Playwright (Chromium headless) para renderizar as páginas Angular.
 Cache em memória com TTL de 6 horas.
 """
 import asyncio
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 IBGE = "130014"
-BASE_URL = "https://relatorioaps.saude.gov.br/gerenciaaps/pagamento/emulti"
+BASE = "https://relatorioaps.saude.gov.br/gerenciaaps/pagamento"
 
 URLS = {
-    "custeio":    f"{BASE_URL}/custeio?ibge={IBGE}",
-    "qualidade":  f"{BASE_URL}/componente-qualidade?ibge={IBGE}",
-    "remoto":     f"{BASE_URL}/atendimento-remoto?ibge={IBGE}",
+    # eMulti — 3 sub-componentes (funcionam sem autenticação)
+    "emulti_custeio":   f"{BASE}/emulti/custeio?ibge={IBGE}",
+    "emulti_qualidade": f"{BASE}/emulti/componente-qualidade?ibge={IBGE}",
+    "emulti_remoto":    f"{BASE}/emulti/atendimento-remoto?ibge={IBGE}",
+    # eSF — componentes de pagamento
+    "esf_custeio":      f"{BASE}/esf/custeio?ibge={IBGE}",
+    "esf_qualidade":    f"{BASE}/esf/componente-qualidade?ibge={IBGE}",
+    "esf_vinculo":      f"{BASE}/esf/vinculo?ibge={IBGE}",
+    # ACS
+    "acs_custeio":      f"{BASE}/acs/custeio?ibge={IBGE}",
+    # eSB
+    "esb_custeio":      f"{BASE}/esb/custeio?ibge={IBGE}",
+    "esb_qualidade":    f"{BASE}/esb/componente-qualidade?ibge={IBGE}",
 }
 
-# Cache global { "data": {...}, "ts": datetime }
+# Cache global
 _cache: dict = {"data": None, "ts": None}
 _TTL = timedelta(hours=6)
 _lock = asyncio.Lock()
@@ -33,102 +45,165 @@ def _cache_valid() -> bool:
     )
 
 
-async def _scrape_page(page, url: str, key: str) -> dict:
-    """Abre URL no Playwright e extrai os valores financeiros da página."""
-    await page.goto(url, wait_until="networkidle", timeout=30_000)
-
-    # Aguarda o card de valores aparecer
+def _parse_brl(text: str) -> Optional[float]:
+    m = re.search(r"R\$\s*([\d.,]+)", text.replace("\xa0", " "))
+    if not m:
+        return None
     try:
-        await page.wait_for_selector("text=Valor do Pagamento", timeout=15_000)
-    except Exception:
-        logger.warning("Timeout aguardando conteúdo em %s", url)
-        return {}
-
-    result = {}
-
-    # Extrai todos os textos de valor (padrão: "R$ X.XXX,XX")
-    cells = await page.locator(".card-body .row, .info-row, dl, dt, dd, table td, .value, [class*='value']").all_text_contents()
-
-    # Estratégia: pegar o texto completo da página e fazer parsing
-    content = await page.inner_text("body")
-    lines = [l.strip() for l in content.splitlines() if l.strip()]
-
-    def parse_brl(text: str) -> Optional[float]:
-        import re
-        m = re.search(r"R\$\s*([\d.,]+)", text.replace("\xa0", " "))
-        if not m:
-            return None
-        s = m.group(1).replace(".", "").replace(",", ".")
-        try:
-            return float(s)
-        except ValueError:
-            return None
-
-    def find_value_after(keyword: str) -> Optional[float]:
-        for i, line in enumerate(lines):
-            if keyword.lower() in line.lower():
-                # Procura nas próximas 3 linhas
-                for j in range(i, min(i + 4, len(lines))):
-                    v = parse_brl(lines[j])
-                    if v is not None:
-                        return v
+        return float(m.group(1).replace(".", "").replace(",", "."))
+    except ValueError:
         return None
 
-    competencia = None
-    parcela = None
-    for line in lines:
-        if "JAN/" in line.upper() or "FEV/" in line.upper() or "MAR/" in line.upper() \
-                or "ABR/" in line.upper() or "MAI/" in line.upper() or "JUN/" in line.upper() \
-                or "JUL/" in line.upper() or "AGO/" in line.upper() or "SET/" in line.upper() \
-                or "OUT/" in line.upper() or "NOV/" in line.upper() or "DEZ/" in line.upper():
-            import re
-            m = re.search(r"([A-Z]{3}/\d{4})", line.upper())
-            if m:
-                competencia = m.group(1)
-        if "/" in line and len(line) <= 6:
-            import re
-            if re.match(r"^\d+/\d+$", line):
-                parcela = line
 
-    result["competencia_cnes"] = competencia or "—"
-    result["parcela"] = parcela or "—"
-    result["pagamento"] = find_value_after("Valor do Pagamento") or 0.0
-    result["ajuste"] = find_value_after("Ajuste") or 0.0
-    result["desconto"] = find_value_after("Desconto") or 0.0
-    result["total"] = find_value_after("Total") or 0.0
-
-    # Indicadores específicos do Custeio
-    if key == "custeio":
-        def find_int_after(keyword: str) -> Optional[int]:
-            for i, line in enumerate(lines):
-                if keyword.lower() in line.lower():
-                    for j in range(i, min(i + 4, len(lines))):
-                        import re
-                        m = re.search(r"\b(\d+)\b", lines[j])
-                        if m:
-                            return int(m.group(1))
-            return None
-
-        result["equipes_credenciadas"] = find_int_after("equipes credenciadas") or 0
-        result["equipes_adesao_remoto_tic"] = find_int_after("adesão ao atendimento remoto") or 0
-        result["equipes_homologadas"] = find_int_after("homologadas") or 0
-        result["equipes_pagas"] = find_int_after("equipes pagas") or 0
-        result["equipes_atendimento_remoto_pagas"] = find_int_after("atendimento remoto pagas") or 0
-
-    return result
+def _find_value_after(lines: list, keyword: str) -> Optional[float]:
+    kl = keyword.lower()
+    for i, line in enumerate(lines):
+        if kl in line.lower():
+            for j in range(i, min(i + 5, len(lines))):
+                v = _parse_brl(lines[j])
+                if v is not None:
+                    return v
+    return None
 
 
-async def fetch_egestor_emulti() -> dict:
+def _find_int_after(lines: list, keyword: str) -> Optional[int]:
+    kl = keyword.lower()
+    for i, line in enumerate(lines):
+        if kl in line.lower():
+            for j in range(i, min(i + 5, len(lines))):
+                m = re.search(r"\b(\d+)\b", lines[j])
+                if m:
+                    return int(m.group(1))
+    return None
+
+
+def _find_str_after(lines: list, keyword: str, options: list) -> Optional[str]:
+    kl = keyword.lower()
+    for i, line in enumerate(lines):
+        if kl in line.lower():
+            for j in range(i, min(i + 5, len(lines))):
+                for opt in options:
+                    if opt.upper() in lines[j].upper():
+                        return opt
+    return None
+
+
+async def _scrape_page(page, url: str, hint: str = "Valor") -> list:
+    """Abre URL no Playwright e retorna linhas do body. Retorna [] se falhar."""
+    try:
+        await page.goto(url, wait_until="networkidle", timeout=35_000)
+        try:
+            await page.wait_for_selector(f"text={hint}", timeout=15_000)
+        except Exception:
+            pass
+        body = await page.inner_text("body")
+        if len(body) > 200:
+            logger.info("eGestor scrape: %d chars em %s", len(body), url.split("?")[0])
+            return [ln.strip() for ln in body.splitlines() if ln.strip()]
+    except Exception as e:
+        logger.warning("eGestor: falha %s — %s", url.split("?")[0], e)
+    return []
+
+
+def _parse_emulti_custeio(lines: list) -> dict:
+    return {
+        "equipes_credenciadas":              _find_int_after(lines, "equipes credenciadas") or 0,
+        "equipes_homologadas":               _find_int_after(lines, "homologadas") or 0,
+        "equipes_pagas":                     _find_int_after(lines, "equipes pagas") or 0,
+        "equipes_atendimento_remoto_pagas":  _find_int_after(lines, "atendimento remoto pagas") or 0,
+        "pagamento":                         _find_value_after(lines, "Valor do Pagamento") or 0.0,
+        "ajuste":                            _find_value_after(lines, "Ajuste") or 0.0,
+        "desconto":                          _find_value_after(lines, "Desconto") or 0.0,
+        "total":                             _find_value_after(lines, "Total") or 0.0,
+    }
+
+
+def _parse_emulti_qualidade(lines: list) -> dict:
+    return {
+        "pagamento": _find_value_after(lines, "Valor do Pagamento") or 0.0,
+        "total":     _find_value_after(lines, "Total") or 0.0,
+    }
+
+
+def _parse_emulti_remoto(lines: list) -> dict:
+    return {
+        "pagamento": _find_value_after(lines, "Valor do Pagamento") or 0.0,
+        "total":     _find_value_after(lines, "Total") or 0.0,
+    }
+
+
+def _parse_esf_custeio(lines: list) -> dict:
+    if not lines:
+        return {}
+    return {
+        "qt_teto":             _find_int_after(lines, "Teto") or 0,
+        "qt_credenciadas":     _find_int_after(lines, "credenciadas") or 0,
+        "qt_homologadas":      _find_int_after(lines, "homologadas") or 0,
+        "qt_pagas":            _find_int_after(lines, "pagas") or 0,
+        "qt_100pct":           _find_int_after(lines, "100%") or 0,
+        "qt_75pct":            _find_int_after(lines, "75%") or 0,
+        "qt_50pct":            _find_int_after(lines, "50%") or 0,
+        "qt_25pct":            _find_int_after(lines, "25%") or 0,
+        "ied":                 _find_str_after(lines, "ESTRATO", ["ESTRATO 1","ESTRATO 2","ESTRATO 3","ESTRATO 4","ESTRATO 5"])
+                               or next((ln for ln in lines if "ESTRATO" in ln.upper()), ""),
+        "classificacao_qualidade": _find_str_after(lines, "Qualidade", ["ÓTIMO","BOM","REGULAR","RUIM","INSUFICIENTE"]) or "",
+        "classificacao_vinculo":   _find_str_after(lines, "Vínculo",   ["ÓTIMO","BOM","REGULAR","RUIM","INSUFICIENTE"]) or "",
+        "vl_equidade":         _find_value_after(lines, "Componente Equidade") or _find_value_after(lines, "Equidade") or 0.0,
+        "vl_qualidade":        _find_value_after(lines, "Qualidade") or 0.0,
+        "vl_vinculo":          _find_value_after(lines, "Vínculo e Acompanhamento") or _find_value_after(lines, "Vínculo") or 0.0,
+        "vl_implantacao":      _find_value_after(lines, "Implantação") or 0.0,
+        "vl_ajuste":           _find_value_after(lines, "Ajuste") or 0.0,
+        "vl_desconto":         -abs(_find_value_after(lines, "Desconto") or 0.0),
+        "vl_total_bruto":      _find_value_after(lines, "Total") or 0.0,
+        "_scraped": True,
+    }
+
+
+def _parse_acs_custeio(lines: list) -> dict:
+    if not lines:
+        return {}
+    return {
+        "qt_teto":                _find_int_after(lines, "Teto") or 0,
+        "qt_direto_credenciado":  _find_int_after(lines, "Direto credenciado") or _find_int_after(lines, "credenciado") or 0,
+        "qt_direto_pago":         _find_int_after(lines, "Direto pago") or _find_int_after(lines, "direto pag") or 0,
+        "vl_direto":              _find_value_after(lines, "Direto") or 0.0,
+        "vl_parcela_extra_direto":_find_value_after(lines, "Parcela Extra") or 0.0,
+        "qt_indireto_pago":       _find_int_after(lines, "Indireto pago") or _find_int_after(lines, "indireto") or 0,
+        "vl_indireto":            _find_value_after(lines, "Indireto") or 0.0,
+        "vl_total":               _find_value_after(lines, "Total ACS") or _find_value_after(lines, "Total") or 0.0,
+        "_scraped": True,
+    }
+
+
+def _parse_esb_custeio(lines: list) -> dict:
+    if not lines:
+        return {}
+    return {
+        "qt_40h_credenciadas":   _find_int_after(lines, "credenciadas") or 0,
+        "qt_40h_homologadas":    _find_int_after(lines, "homologadas") or 0,
+        "qt_40h_pagas_modal_i":  _find_int_after(lines, "Modal. I") or _find_int_after(lines, "Modalidade I") or 0,
+        "qt_40h_pagas_modal_ii": _find_int_after(lines, "Modal. II") or _find_int_after(lines, "Modalidade II") or 0,
+        "vl_esb_40h":            _find_value_after(lines, "eSB 40h") or _find_value_after(lines, "40 horas") or 0.0,
+        "vl_qualidade_40h":      _find_value_after(lines, "Qualidade") or 0.0,
+        "qt_uom":                _find_int_after(lines, "UOM") or 0,
+        "vl_uom":                _find_value_after(lines, "UOM") or 0.0,
+        "vl_lrpd_municipal":     _find_value_after(lines, "LRPD") or 0.0,
+        "vl_total_sb_calculado": _find_value_after(lines, "Total") or 0.0,
+        "_scraped": True,
+    }
+
+
+async def fetch_egestor_all() -> dict:
     """
-    Retorna dados ao vivo do e-Gestor para os 3 sub-componentes eMulti.
-    Usa cache de 6h. Em caso de falha retorna None para o frontend usar fallback.
+    Retorna dados ao vivo do e-Gestor para TODOS os componentes APS.
+    Usa cache de 6h. Em caso de falha parcial retorna o que foi obtido.
     """
     async with _lock:
         if _cache_valid():
             logger.info("eGestor cache hit (idade: %s)", datetime.utcnow() - _cache["ts"])
             return _cache["data"]
 
-        logger.info("Iniciando scraping do e-Gestor APS...")
+        logger.info("Iniciando scraping do e-Gestor APS — todos os componentes...")
         try:
             from playwright.async_api import async_playwright
 
@@ -147,33 +222,74 @@ async def fetch_egestor_emulti() -> dict:
                 )
                 page = await context.new_page()
 
-                results = {}
+                raw: dict = {}
                 for key, url in URLS.items():
                     try:
-                        results[key] = await _scrape_page(page, url, key)
-                        logger.info("eGestor %s: %s", key, results[key])
+                        raw[key] = await _scrape_page(page, url, "Valor")
+                        logger.info("eGestor %s: %d linhas", key, len(raw[key]))
                     except Exception as e:
                         logger.error("Erro scraping eGestor %s: %s", key, e)
-                        results[key] = {}
+                        raw[key] = []
 
                 await browser.close()
+
+            # Parseia cada componente
+            emulti_custeio = _parse_emulti_custeio(raw.get("emulti_custeio", []))
+            emulti_qual    = _parse_emulti_qualidade(raw.get("emulti_qualidade", []))
+            emulti_remoto  = _parse_emulti_remoto(raw.get("emulti_remoto", []))
+
+            esf_c  = _parse_esf_custeio(raw.get("esf_custeio", []))
+            esf_q  = raw.get("esf_qualidade", [])
+            esf_v  = raw.get("esf_vinculo", [])
+
+            # Mescla qualidade/vínculo no esf se scraped
+            if esf_c and esf_c.get("_scraped"):
+                if esf_q:
+                    v = _find_value_after(esf_q, "Qualidade") or _find_value_after(esf_q, "Valor")
+                    if v:
+                        esf_c["vl_qualidade"] = v
+                if esf_v:
+                    v = _find_value_after(esf_v, "Vínculo") or _find_value_after(esf_v, "Valor")
+                    if v:
+                        esf_c["vl_vinculo"] = v
+
+            acs = _parse_acs_custeio(raw.get("acs_custeio", []))
+            esb = _parse_esb_custeio(raw.get("esb_custeio", []))
+            if raw.get("esb_qualidade"):
+                v = _find_value_after(raw["esb_qualidade"], "Qualidade") or _find_value_after(raw["esb_qualidade"], "Valor")
+                if v and esb.get("_scraped"):
+                    esb["vl_qualidade_40h"] = v
 
             data = {
                 "fonte": "egestor_live",
                 "ultima_sincronizacao": datetime.utcnow().isoformat() + "Z",
-                "custeio": results.get("custeio", {}),
-                "qualidade": results.get("qualidade", {}),
-                "remoto": results.get("remoto", {}),
+                # Mantém estrutura legada para eMulti (compat. com código existente)
+                "custeio":   emulti_custeio,
+                "qualidade": emulti_qual,
+                "remoto":    emulti_remoto,
+                # Novos componentes
+                "esf":  esf_c,
+                "acs":  acs,
+                "esb":  esb,
             }
 
             _cache["data"] = data
             _cache["ts"] = datetime.utcnow()
-            logger.info("eGestor scraping concluído com sucesso.")
+            logger.info(
+                "eGestor scraping concluído — ESF=%s ACS=%s eSB=%s eMulti=%d linhas",
+                esf_c.get("_scraped"), acs.get("_scraped"), esb.get("_scraped"),
+                len(raw.get("emulti_custeio", [])),
+            )
             return data
 
         except Exception as e:
             logger.error("Falha geral no scraping do eGestor: %s", e)
             return None
+
+
+# Mantém alias para compatibilidade com código que chama fetch_egestor_emulti
+async def fetch_egestor_emulti() -> dict:
+    return await fetch_egestor_all()
 
 
 def get_cached_or_none() -> Optional[dict]:

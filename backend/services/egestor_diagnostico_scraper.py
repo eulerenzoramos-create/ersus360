@@ -229,29 +229,43 @@ async def _scrape_esb(page) -> dict:
     }
 
 
-def _emulti_do_cache() -> dict:
-    """Pega dados eMulti já scrapeados pelo egestor_scraper existente."""
+def _do_cache_all() -> dict:
+    """
+    Lê o cache unificado do egestor_scraper (ESF, ACS, eSB, eMulti).
+    Retorna dict com chaves: esf, acs, esb, emulti — ou None em cada se não disponível.
+    """
     try:
         from services.egestor_scraper import get_cached_or_none
         cached = get_cached_or_none()
-        if cached:
-            c = cached.get("custeio", {})
-            return {
-                "qt_credenciadas": c.get("equipes_credenciadas") or TETOS_SCNES["emulti"],
-                "qt_homologadas":  c.get("equipes_homologadas")  or 0,
-                "qt_pagas":        c.get("equipes_pagas")        or 0,
-                "qt_ampliada": 0, "qt_estrategica": 0, "qt_complementar": 0,
-                "qt_atend_remoto": c.get("equipes_atendimento_remoto_pagas") or 0,
-                "vl_custeio":      c.get("pagamento") or 0.0,
-                "vl_qualidade":    cached.get("qualidade", {}).get("pagamento") or 0.0,
-                "vl_atend_remoto": cached.get("remoto",   {}).get("pagamento") or 0.0,
-                "vl_total": (c.get("pagamento") or 0.0)
-                            + (cached.get("qualidade", {}).get("pagamento") or 0.0)
-                            + (cached.get("remoto",    {}).get("pagamento") or 0.0),
-                "_scraped": True,
-            }
-    except Exception:
-        pass
+        if not cached:
+            return {}
+        c = cached.get("custeio", {})
+        emulti = {
+            "qt_credenciadas": c.get("equipes_credenciadas") or TETOS_SCNES["emulti"],
+            "qt_homologadas":  c.get("equipes_homologadas")  or 0,
+            "qt_pagas":        c.get("equipes_pagas")        or 0,
+            "qt_ampliada": 0, "qt_estrategica": 0, "qt_complementar": 0,
+            "qt_atend_remoto": c.get("equipes_atendimento_remoto_pagas") or 0,
+            "vl_custeio":      c.get("pagamento") or 0.0,
+            "vl_qualidade":    cached.get("qualidade", {}).get("pagamento") or 0.0,
+            "vl_atend_remoto": cached.get("remoto",   {}).get("pagamento") or 0.0,
+            "vl_total": (c.get("pagamento") or 0.0)
+                        + (cached.get("qualidade", {}).get("pagamento") or 0.0)
+                        + (cached.get("remoto",    {}).get("pagamento") or 0.0),
+            "_scraped": bool(c),
+        }
+        return {
+            "emulti": emulti,
+            "esf":    cached.get("esf") or {},
+            "acs":    cached.get("acs") or {},
+            "esb":    cached.get("esb") or {},
+        }
+    except Exception as e:
+        logger.debug("_do_cache_all: %s", e)
+        return {}
+
+
+def _emulti_fallback() -> dict:
     return {
         "qt_credenciadas": TETOS_SCNES["emulti"],
         "qt_homologadas": 0, "qt_pagas": 0,
@@ -324,57 +338,57 @@ async def buscar_diagnostico_cobertura(parcela: str = "202611", forcar_atualizac
             d["diagnosticos"] = _diagnosticos(d.get("esf", {}), d.get("acs", {}))
             return d
 
-    logger.info("eGestor Diagnóstico: scraping — parcela %s", parcela)
+    logger.info("eGestor Diagnóstico: acionando scraping completo — parcela %s", parcela)
 
-    esf_data    = {"qt_credenciadas": TETOS_SCNES["esf"], "qt_homologadas": 0, "qt_pagas": 0,
-                   "qt_100pct": 0, "qt_75pct": 0, "qt_50pct": 0, "qt_25pct": 0,
-                   "vl_fixo": 0.0, "vl_vinculo": 0.0, "vl_qualidade": 0.0,
-                   "vl_total_bruto": 0.0, "_scraped": False}
-    acs_data    = {"qt_teto": 0, "qt_direto_credenciado": 0, "qt_direto_pago": 0,
-                   "vl_direto": 0.0, "vl_parcela_extra_direto": 0.0,
-                   "qt_indireto_pago": 0, "vl_indireto": 0.0, "vl_total": 0.0,
-                   "_scraped": False}
-    esb_data    = {"qt_40h_credenciadas": 0, "qt_40h_homologadas": 0,
-                   "qt_40h_pagas_modal_i": 0, "qt_40h_pagas_modal_ii": 0,
-                   "vl_esb_40h": 0.0, "vl_qualidade_40h": 0.0,
-                   "qt_uom": 0, "vl_uom": 0.0, "vl_lrpd_municipal": 0.0,
-                   "vl_total_sb_calculado": 0.0, "_scraped": False}
-
+    # Aciona scraping unificado (ESF + ACS + eSB + eMulti na mesma sessão)
     try:
-        from playwright.async_api import async_playwright
-        async with async_playwright() as pw:
-            browser = await pw.chromium.launch(
-                headless=True,
-                args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
-            )
-            ctx = await browser.new_context(
-                locale="pt-BR",
-                user_agent=(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/124.0.0.0 Safari/537.36"
-                ),
-            )
-            page = await ctx.new_page()
-            esf_data = await _scrape_esf(page)
-            acs_data = await _scrape_acs(page)
-            esb_data = await _scrape_esb(page)
-            await browser.close()
-        logger.info(
-            "eGestor Diagnóstico: ESF scraped=%s ACS scraped=%s eSB scraped=%s",
-            esf_data.get("_scraped"), acs_data.get("_scraped"), esb_data.get("_scraped"),
-        )
-    except ImportError:
-        logger.warning("eGestor Diagnóstico: Playwright não instalado")
+        from services.egestor_scraper import fetch_egestor_all
+        await fetch_egestor_all()
     except Exception as e:
-        logger.error("eGestor Diagnóstico: erro scraping — %s", e)
+        logger.warning("eGestor Diagnóstico: fetch_egestor_all falhou — %s", e)
 
-    # Se o scraping do ESF não retornou dados reais, usa dados verificados via screenshot
-    if not esf_data.get("_scraped"):
-        logger.info("eGestor Diagnóstico: ESF — usando fallback verificado JUN/2026")
+    # Lê resultados do cache unificado
+    cache_all = _do_cache_all()
+    esf_live   = cache_all.get("esf")   or {}
+    acs_live   = cache_all.get("acs")   or {}
+    esb_live   = cache_all.get("esb")   or {}
+    emulti_live = cache_all.get("emulti")
+
+    # ESF: usa live se scraped, senão fallback verificado JUN/2026
+    if esf_live.get("_scraped") and esf_live.get("vl_total_bruto", 0) > 0:
+        esf_data = esf_live
+        esf_data.setdefault("vl_equidade", esf_data.get("vl_equidade") or esf_data.get("vl_fixo") or 0.0)
+        logger.info("eGestor: ESF live — total=%.2f", esf_data["vl_total_bruto"])
+    else:
+        logger.info("eGestor: ESF — usando fallback verificado JUN/2026")
         esf_data = dict(_DADOS_ESF_JUN2026)
 
-    emulti = _emulti_do_cache()
+    # ACS: usa live se scraped
+    if acs_live.get("_scraped"):
+        acs_data = acs_live
+        logger.info("eGestor: ACS live — teto=%s total=%.2f", acs_data.get("qt_teto"), acs_data.get("vl_total", 0))
+    else:
+        acs_data = {
+            "qt_teto": 0, "qt_direto_credenciado": 0, "qt_direto_pago": 0,
+            "vl_direto": 0.0, "vl_parcela_extra_direto": 0.0,
+            "qt_indireto_pago": 0, "vl_indireto": 0.0, "vl_total": 0.0,
+            "_scraped": False,
+        }
+
+    # eSB: usa live se scraped
+    if esb_live.get("_scraped"):
+        esb_data = esb_live
+        logger.info("eGestor: eSB live — total=%.2f", esb_data.get("vl_total_sb_calculado", 0))
+    else:
+        esb_data = {
+            "qt_40h_credenciadas": 0, "qt_40h_homologadas": 0,
+            "qt_40h_pagas_modal_i": 0, "qt_40h_pagas_modal_ii": 0,
+            "vl_esb_40h": 0.0, "vl_qualidade_40h": 0.0,
+            "qt_uom": 0, "vl_uom": 0.0, "vl_lrpd_municipal": 0.0,
+            "vl_total_sb_calculado": 0.0, "_scraped": False,
+        }
+
+    emulti = emulti_live if emulti_live else _emulti_fallback()
     total  = (esf_data.get("vl_total_bruto") or 0.0) \
            + emulti.get("vl_total", 0.0) \
            + (esb_data.get("vl_total_sb_calculado") or 0.0) \
