@@ -611,15 +611,15 @@ function AbaIndicadoresC1C7() {
     queryFn: () => apiGet("/api/pec/competencias") as Promise<{ competencias: string[] }>,
   });
 
-  const ultima = competencias?.competencias?.[0] ?? null;
+  // Usa competência disponível ou fallback para competência atual (SIAPS)
+  const ultima = competencias?.competencias?.[0] ?? "2026-05";
 
   const { data, isLoading } = useQuery({
     queryKey: ["pec-indicadores", ultima],
     queryFn: () => apiGet(`/api/pec/indicadores/${ultima}`) as Promise<{
       competencia: string; equipes: Record<string, Record<string, number>>;
-      tipos_equipe: Record<string, string>; ultima_atualizacao: string;
+      tipos_equipe: Record<string, string>; ultima_atualizacao: string; fonte?: string;
     }>,
-    enabled: !!ultima,
   });
 
   if (isLoading) return (
@@ -630,7 +630,7 @@ function AbaIndicadoresC1C7() {
   );
 
   if (!data) return (
-    <NaoDisponivelBanner nota="Nenhuma sincronização PEC encontrada. Execute o agente pec_sync --once para enviar os dados ao ERSUS360." />
+    <NaoDisponivelBanner nota="Não foi possível carregar indicadores. Verifique a conexão com o servidor." />
   );
 
   const equipes = Object.entries(data.equipes);
@@ -659,7 +659,7 @@ function AbaIndicadoresC1C7() {
         <Activity size={14} />
         <span><strong>Competência:</strong> {data.competencia}</span>
         <span>·</span>
-        <span><strong>Fonte:</strong> e-SUS PEC local (sync {data.ultima_atualizacao?.slice(0, 16).replace("T", " ")} UTC)</span>
+        <span><strong>Fonte:</strong> {data.fonte ?? (data.ultima_atualizacao ? `e-SUS PEC local (sync ${data.ultima_atualizacao.slice(0,16).replace("T"," ")} UTC)` : "SIAPS — Referência municipal")}</span>
         <span>·</span>
         <span><strong>Portaria GM/MS 3.493/2024</strong></span>
       </div>
