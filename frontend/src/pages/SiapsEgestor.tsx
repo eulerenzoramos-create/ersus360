@@ -2557,6 +2557,12 @@ function AbaDiagnosticoCobertura() {
 
   if (!data) return null;
 
+  const _MAPA_PARCELA: Record<string, string> = {
+    "202601":"NOV/2025","202602":"DEZ/2025","202603":"JAN/2026","202604":"FEV/2026",
+    "202605":"MAR/2026","202606":"ABR/2026","202607":"MAI/2026","202608":"JUN/2026",
+    "202609":"JUL/2026","202610":"AGO/2026","202611":"SET/2026","202612":"OUT/2026",
+  };
+
   const esf    = data.esf    ?? {};
   const eap    = data.eap    ?? {};
   const emulti = data.emulti ?? {};
@@ -2664,6 +2670,56 @@ function AbaDiagnosticoCobertura() {
           ))}
         </div>
       </div>
+
+      {/* Histórico de Incentivos */}
+      {data.historico_incentivos?.length > 0 && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "16px 18px", marginBottom: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 12 }}>
+            Histórico de Incentivos Totais — Apuí/AM
+            <span style={{ fontSize: 11, fontWeight: 400, color: "#6b7280", marginLeft: 8 }}>Fonte: e-Gestor APS · Todas as parcelas disponíveis</span>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "#f8fafc" }}>
+                  <th style={{ padding: "8px 12px", textAlign: "left", color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Competência</th>
+                  <th style={{ padding: "8px 12px", textAlign: "center", color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Parcela</th>
+                  <th style={{ padding: "8px 12px", textAlign: "right", color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Incentivo Total</th>
+                  <th style={{ padding: "8px 12px", textAlign: "right", color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Var. Mês Anterior</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...data.historico_incentivos].reverse().map((h: any, i: number, arr: any[]) => {
+                  const prev = arr[i + 1];
+                  const diff = prev ? h.total - prev.total : null;
+                  const isSelected = _MAPA_PARCELA[parcela] === h.competencia;
+                  return (
+                    <tr key={h.parcela_code} style={{ background: isSelected ? "#eff6ff" : i % 2 === 0 ? "#fff" : "#f9fafb", borderLeft: isSelected ? "3px solid #1d4ed8" : "3px solid transparent" }}>
+                      <td style={{ padding: "8px 12px", fontWeight: isSelected ? 700 : 500, color: isSelected ? "#1d4ed8" : "#1e293b" }}>{h.competencia}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center", color: "#6b7280" }}>{h.parcela}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: "#1e293b" }}>
+                        {h.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: diff === null ? "#9ca3af" : diff >= 0 ? "#16a34a" : "#dc2626", fontWeight: 600 }}>
+                        {diff === null ? "—" : `${diff >= 0 ? "▲" : "▼"} ${Math.abs(diff).toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 })}`}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: "#f0f9ff", borderTop: "2px solid #bae6fd" }}>
+                  <td colSpan={2} style={{ padding: "8px 12px", fontWeight: 700, color: "#0369a1" }}>Acumulado {data.historico_incentivos.length} parcelas</td>
+                  <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 800, color: "#0369a1", fontVariantNumeric: "tabular-nums" }}>
+                    {data.historico_incentivos.reduce((s: number, h: any) => s + h.total, 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 })}
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Cards por programa */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 20 }}>

@@ -397,6 +397,21 @@ _MAPA_COMP = {
     "202612": "OUT/2026",
 }
 
+# Série histórica de incentivos totais confirmados no e-Gestor APS
+# Fonte: tela consolidada relatorioaps.saude.gov.br/gerenciaaps/pagamento — Set/2026
+# Colunas: parcela_code → {"competencia", "parcela", "total"}
+HISTORICO_INCENTIVOS: list[dict] = [
+    {"parcela_code": "202601", "competencia": "NOV/2025", "parcela": "1/12",  "total": 618_703.11},
+    {"parcela_code": "202602", "competencia": "DEZ/2025", "parcela": "2/12",  "total": 589_588.00},
+    {"parcela_code": "202603", "competencia": "JAN/2026", "parcela": "3/12",  "total": 606_004.75},
+    {"parcela_code": "202604", "competencia": "FEV/2026", "parcela": "4/12",  "total": 606_871.75},
+    {"parcela_code": "202605", "competencia": "MAR/2026", "parcela": "5/12",  "total": 609_710.75},
+    {"parcela_code": "202606", "competencia": "ABR/2026", "parcela": "6/12",  "total": 595_996.75},
+    {"parcela_code": "202607", "competencia": "MAI/2026", "parcela": "7/12",  "total": 630_371.75},
+    {"parcela_code": "202608", "competencia": "JUN/2026", "parcela": "8/12",  "total": 637_231.75},
+    # JUL–SET/2026: aguardando publicação MS
+]
+
 
 async def buscar_diagnostico_cobertura(parcela: str = "202611", forcar_atualizacao: bool = False) -> dict:
     """
@@ -507,6 +522,7 @@ async def buscar_diagnostico_cobertura(parcela: str = "202611", forcar_atualizac
         "microscopista": micro_data,
         "eap":    {"qt_credenciadas": 0, "qt_pagas": 0, "vl_total_bruto": 0.0, "_scraped": False},
         "per_capita": {"vl_pagamento": 0.0},
+        "historico_incentivos": HISTORICO_INCENTIVOS,
         "diagnosticos": _diagnosticos(esf_data, acs_data),
     }
 
