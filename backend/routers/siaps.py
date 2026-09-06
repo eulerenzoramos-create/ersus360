@@ -751,17 +751,20 @@ async def diagnostico_cobertura(
     _: UserOut = Depends(get_current_user),
 ):
     """
-    Retorna estado informativo enquanto a integração em tempo real com
-    o e-Gestor APS não está implementada. Retorna 200 com situacao_dado
-    para o frontend exibir o banner azul sem caixa de erro.
+    Retorna dados de Diagnóstico/Cobertura da AB via scraper do e-Gestor APS.
+    Usa Playwright para renderizar as páginas Angular públicas.
+    Em caso de falha retorna diagnóstico automático baseado em dados locais.
     """
-    return {
-        "situacao_dado": "nao_disponivel",
-        "parcela": parcela,
-        "nota": (
-            "Os dados de Diagnóstico/Cobertura são consultados diretamente "
-            "na API pública do e-Gestor APS (relatorioaps-prd.saude.gov.br). "
-            "A integração em tempo real estará disponível em breve."
-        ),
-        "fonte": "sem_integracao",
-    }
+    try:
+        from services.egestor_diagnostico_scraper import buscar_diagnostico_cobertura
+        dados = await buscar_diagnostico_cobertura(parcela)
+        return dados
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("diagnostico_cobertura: %s", exc)
+        return {
+            "situacao_dado": "nao_disponivel",
+            "parcela": parcela,
+            "nota": "Serviço de scraping temporariamente indisponível. Tente novamente em instantes.",
+            "fonte": "erro_temporario",
+        }
