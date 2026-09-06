@@ -369,6 +369,11 @@ async def buscar_diagnostico_cobertura(parcela: str = "202611", forcar_atualizac
     except Exception as e:
         logger.error("eGestor Diagnóstico: erro scraping — %s", e)
 
+    # Se o scraping do ESF não retornou dados reais, usa dados verificados via screenshot
+    if not esf_data.get("_scraped"):
+        logger.info("eGestor Diagnóstico: ESF — usando fallback verificado JUN/2026")
+        esf_data = dict(_DADOS_ESF_JUN2026)
+
     emulti = _emulti_do_cache()
     total  = (esf_data.get("vl_total_bruto") or 0.0) \
            + emulti.get("vl_total", 0.0) \
