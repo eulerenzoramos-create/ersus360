@@ -407,6 +407,7 @@ from routers.execucao_fns import router as execucao_fns_router
 from routers.sync_historico import router as sync_historico_router
 from routers.email_diario import router as email_diario_router
 from routers.cnes_apui import router as cnes_apui_router
+from routers.monitor_scnes import router as monitor_scnes_router
 
 app.include_router(auth_router)
 app.include_router(municipios_router)
@@ -432,6 +433,7 @@ app.include_router(execucao_fns_router)
 app.include_router(sync_historico_router)
 app.include_router(email_diario_router)
 app.include_router(cnes_apui_router)
+app.include_router(monitor_scnes_router)
 app.include_router(pec_sync_router)
 app.include_router(integracao_router)
 app.include_router(auditoria_router)

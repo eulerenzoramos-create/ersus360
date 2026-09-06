@@ -117,6 +117,20 @@ async def _job_portarias_ms() -> None:
         logger.error("[Scheduler] Erro no agente portarias MS: %s", exc, exc_info=True)
 
 
+async def _job_monitor_scnes() -> None:
+    """Job: envia relatório semanal SCNES/Sprint toda segunda às 07:00 (Manaus)."""
+    logger.info("[Scheduler] Enviando relatório semanal SCNES/Sprint...")
+    try:
+        from services.monitor_scnes_service import enviar_relatorio_semanal
+        resultado = await enviar_relatorio_semanal()
+        if resultado.get("ok"):
+            logger.info("[Scheduler] Monitor SCNES enviado para %s", resultado.get("destinatario"))
+        else:
+            logger.warning("[Scheduler] Monitor SCNES — falha: %s", resultado.get("erro") or resultado.get("motivo"))
+    except Exception as exc:
+        logger.error("[Scheduler] Erro no monitor SCNES: %s", exc, exc_info=True)
+
+
 async def _job_alertas_automaticos() -> None:
     """Job: gera alertas WebSocket a partir de prazos urgentes da Agenda e outras fontes."""
     logger.info("[Scheduler] Verificando alertas automáticos...")
@@ -217,9 +231,18 @@ def start_scheduler() -> None:
         misfire_grace_time=3600,
     )
 
+    # Job 6: Monitor SCNES/Sprint — toda segunda-feira às 07:00 (America/Manaus)
+    scheduler.add_job(
+        _job_monitor_scnes,
+        CronTrigger(day_of_week="mon", hour=7, minute=0, timezone="America/Manaus"),
+        id="monitor_scnes_semanal",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
     scheduler.start()
     logger.info(
-        "[Scheduler] 5 jobs agendados — FNS %s, Score 01:00, Alertas 07:00, Portarias MS %s (America/Manaus)",
+        "[Scheduler] 6 jobs agendados — FNS %s, Score 01:00, Alertas 07:00, Portarias MS %s, Monitor SCNES seg 07:00 (America/Manaus)",
         hora_str, _email_hora,
     )
 
