@@ -10,7 +10,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-IBGE = "1300144"
+IBGE = "130014"
 BASE_URL = "https://relatorioaps.saude.gov.br/gerenciaaps/pagamento/emulti"
 
 URLS = {
