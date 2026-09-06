@@ -286,12 +286,12 @@ function AbaStatus({ status, sit, testar, sinc }: {
           {[
             {
               nome: "e-Gestor APS (relatorioaps-prd.saude.gov.br)",
-              status: s?.egestor_aps.disponivel ?? false,
+              status: s?.egestor_aps?.disponivel ?? false,
               descricao: "Financiamento + Indicadores de Qualidade APS (Portaria 3.493/2024)",
             },
             {
-              nome: `PEC Local (${s?.pec_local.url || "não configurado"})`,
-              status: s?.pec_local.online === true,
+              nome: `PEC Local (${s?.pec_local?.url || "não configurado"})`,
+              status: s?.pec_local?.online === true,
               descricao: "Fichas CDS, atendimentos, cadastros",
             },
           ].map((f) => (
