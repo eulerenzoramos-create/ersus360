@@ -50,7 +50,9 @@ function AbaAtendimentos() {
     queryKey: ["gestao-atendimentos"],
     queryFn: () => apiGet("/api/gestao/atendimentos") as Promise<any>,
   });
-  if (!data) return <NaoDisponivelBanner nota="Integração com sistema de gestão APS ainda não configurada no Railway. Nenhum dado foi inventado." />;
+  if (!data || data.situacao_dado === "sem_integracao") return (
+    <NaoDisponivelBanner nota="Dados de atendimentos disponíveis no SISAB (sisab.saude.gov.br) e no e-SUS PEC local. Nenhum dado estimado é exibido." />
+  );
 
   return (
     <div>
@@ -116,7 +118,9 @@ function AbaProcedimentos() {
     queryKey: ["gestao-procedimentos"],
     queryFn: () => apiGet("/api/gestao/procedimentos") as Promise<any>,
   });
-  if (!data) return <NaoDisponivelBanner nota="Integração com sistema de gestão APS ainda não configurada no Railway. Nenhum dado foi inventado." />;
+  if (!data || data.situacao_dado === "sem_integracao") return (
+    <NaoDisponivelBanner nota="Dados de procedimentos disponíveis no SIGTAP/SIA (sia.datasus.gov.br). Nenhum dado estimado é exibido." />
+  );
 
   return (
     <div>
@@ -170,7 +174,9 @@ function AbaVacinas() {
     queryKey: ["gestao-vacinas"],
     queryFn: () => apiGet("/api/gestao/vacinas") as Promise<any>,
   });
-  if (!data) return <NaoDisponivelBanner nota="Integração com sistema de gestão APS ainda não configurada no Railway. Nenhum dado foi inventado." />;
+  if (!data || data.situacao_dado === "sem_integracao") return (
+    <NaoDisponivelBanner nota="Coberturas vacinais disponíveis no SI-PNI (pni.datasus.gov.br) e no SISAB. Nenhum dado estimado é exibido." />
+  );
 
   return (
     <div>
@@ -216,7 +222,9 @@ function AbaVisitas() {
     queryKey: ["gestao-visitas"],
     queryFn: () => apiGet("/api/gestao/visitas") as Promise<any>,
   });
-  if (!data) return <NaoDisponivelBanner nota="Integração com sistema de gestão APS ainda não configurada no Railway. Nenhum dado foi inventado." />;
+  if (!data || data.situacao_dado === "sem_integracao") return (
+    <NaoDisponivelBanner nota="Visitas domiciliares disponíveis no SISAB (relatório de visitas ACS). Nenhum dado estimado é exibido." />
+  );
 
   return (
     <div>
@@ -255,7 +263,9 @@ function AbaSISAB() {
     queryKey: ["gestao-sisab"],
     queryFn: () => apiGet("/api/gestao/sisab") as Promise<any>,
   });
-  if (!data) return <NaoDisponivelBanner nota="Integração com sistema de gestão APS ainda não configurada no Railway. Nenhum dado foi inventado." />;
+  if (!data || data.situacao_dado === "sem_integracao") return (
+    <NaoDisponivelBanner nota="Situação de envio SISAB disponível em sisab.saude.gov.br → Relatórios → Envio de dados. Nenhum dado estimado é exibido." />
+  );
 
   const emDia = data.status_envio === "em_dia";
 
@@ -336,7 +346,9 @@ function AbaEquipesESF() {
     queryKey: ["gestao-equipes-esf"],
     queryFn: () => apiGet("/api/gestao/equipes-esf") as Promise<any>,
   });
-  if (!data) return <NaoDisponivelBanner nota="Integração com sistema de gestão APS ainda não configurada no Railway. Nenhum dado foi inventado." />;
+  if (!data || data.situacao_dado === "sem_integracao") return (
+    <NaoDisponivelBanner nota="Composição das equipes disponível no SCNES (cnes.datasus.gov.br) filtrando por Apuí/AM — IBGE 1300144. Nenhum dado estimado é exibido." />
+  );
 
   return (
     <div>
