@@ -2498,19 +2498,42 @@ function AbaDiagnosticoCobertura() {
     );
   }
 
-  if (isError || data?.situacao_dado === "nao_disponivel") {
-    const nota = data?.nota ?? (error as any)?.message ?? "Erro desconhecido";
+  if (data?.situacao_dado === "nao_disponivel") {
     return (
       <div>
-        <div style={{ background: "#fff7f7", border: "1px solid #fca5a5", borderRadius: 10, padding: "20px 24px", marginBottom: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#dc2626", marginBottom: 8 }}>⚠ API e-Gestor APS indisponível</div>
-          <div style={{ fontSize: 13, color: "#374151", marginBottom: 12 }}>{nota}</div>
-          <button onClick={() => refetch()} style={{ background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, padding: "8px 18px", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "28px 32px", textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
+            Diagnóstico / Cobertura
+          </div>
+          <div style={{ fontSize: 13, color: "#374151", maxWidth: 480, margin: "0 auto 20px" }}>
+            {data.nota ?? "Integração com e-Gestor APS ainda não configurada."}
+          </div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+            <button onClick={() => refetch()} style={{ background: "#0369a1", color: "#fff", border: "none", borderRadius: 6, padding: "8px 18px", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+              <RefreshCw size={13} /> Atualizar
+            </button>
+          </div>
+        </div>
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "12px 16px", fontSize: 12, color: "#1e40af", marginTop: 12 }}>
+          <strong>Nota:</strong> Esta aba consulta a API pública do e-Gestor APS (relatorioaps-prd.saude.gov.br). Configure <code>EGESTOR_TOKEN</code> no Railway para ativar a integração em tempo real.
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div>
+        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "28px 32px", textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>Diagnóstico / Cobertura</div>
+          <div style={{ fontSize: 13, color: "#374151", maxWidth: 480, margin: "0 auto 20px" }}>
+            Dados não disponíveis no momento. A API do Ministério da Saúde pode estar temporariamente indisponível.
+          </div>
+          <button onClick={() => refetch()} style={{ background: "#0369a1", color: "#fff", border: "none", borderRadius: 6, padding: "8px 18px", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, margin: "0 auto" }}>
             <RefreshCw size={13} /> Tentar novamente
           </button>
-        </div>
-        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "12px 16px", fontSize: 12, color: "#1e40af" }}>
-          <strong>Nota:</strong> Esta aba consulta diretamente a API pública do e-Gestor APS (relatorioaps-prd.saude.gov.br), sem necessidade de autenticação. A indisponibilidade pode ser temporária na API do Ministério da Saúde.
         </div>
       </div>
     );

@@ -741,3 +741,31 @@ async def diagnostico_live(_: UserOut = Depends(get_current_user)):
             "pontuacao_media_qualidade": round(sum(e["pontuacao_qualidade"] for e in _QUALIDADE_EQUIPES) / len(_QUALIDADE_EQUIPES), 2),
         },
     }
+
+
+# ── Diagnóstico / Cobertura da Atenção Básica ─────────────────────────────────
+
+@router.get("/diagnostico-cobertura")
+async def diagnostico_cobertura(
+    parcela: str = Query("202608"),
+    _: UserOut = Depends(get_current_user),
+):
+    """
+    Retorna dados de diagnóstico/cobertura por parcela.
+    Sem EGESTOR_TOKEN configurado devolve situacao_dado='nao_disponivel'
+    para o frontend exibir estado informativo sem erro vermelho.
+    """
+    import os
+    egestor_token = os.getenv("EGESTOR_TOKEN", "")
+    if not egestor_token:
+        return {
+            "situacao_dado": "nao_disponivel",
+            "parcela": parcela,
+            "nota": (
+                "Integração com e-Gestor APS não configurada. "
+                "Adicione EGESTOR_TOKEN nas variáveis de ambiente do Railway "
+                "para ativar a consulta em tempo real ao relatorioaps-prd.saude.gov.br."
+            ),
+            "fonte": "sem_integracao",
+        }
+    return await siaps_service.buscar_diagnostico_cobertura(parcela)
