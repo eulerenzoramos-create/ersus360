@@ -16,19 +16,28 @@ IBGE = "130014"
 BASE = "https://relatorioaps.saude.gov.br/gerenciaaps/pagamento"
 
 URLS = {
-    # eMulti — 3 sub-componentes (funcionam sem autenticação)
+    # eMulti — confirmados funcionando
     "emulti_custeio":   f"{BASE}/emulti/custeio?ibge={IBGE}",
     "emulti_qualidade": f"{BASE}/emulti/componente-qualidade?ibge={IBGE}",
     "emulti_remoto":    f"{BASE}/emulti/atendimento-remoto?ibge={IBGE}",
-    # eSF — componentes de pagamento
+    # eSF
     "esf_custeio":      f"{BASE}/esf/custeio?ibge={IBGE}",
     "esf_qualidade":    f"{BASE}/esf/componente-qualidade?ibge={IBGE}",
-    "esf_vinculo":      f"{BASE}/esf/vinculo?ibge={IBGE}",
-    # ACS
-    "acs_custeio":      f"{BASE}/acs/custeio?ibge={IBGE}",
-    # eSB
-    "esb_custeio":      f"{BASE}/esb/custeio?ibge={IBGE}",
-    "esb_qualidade":    f"{BASE}/esb/componente-qualidade?ibge={IBGE}",
+    "esf_vinculo":      f"{BASE}/esf/vinculo-acompanhamento-territorial?ibge={IBGE}",
+    # ACS — "Agente Comunitário de Saúde (AFC - 95% e IFP - 5%)"
+    "acs_custeio":      f"{BASE}/agente-comunitario-saude?ibge={IBGE}",
+    # eSB — "Equipes de Saúde Bucal - 40 Horas"
+    "esb_custeio":      f"{BASE}/equipe-saude-bucal/custeio?ibge={IBGE}",
+    "esb_qualidade":    f"{BASE}/equipe-saude-bucal/componente-qualidade?ibge={IBGE}",
+    # UOM — "Unidade Odontológica Móvel"
+    "uom":              f"{BASE}/unidade-odontologica-movel?ibge={IBGE}",
+    # LRPD — "Laboratórios Regionais de Prótese Dentária"
+    "lrpd":             f"{BASE}/lrpd?ibge={IBGE}",
+    # eSFR — "Equipes de Saúde da Família Ribeirinhas - eSFR"
+    "esfr_custeio":     f"{BASE}/esf-ribeirinha/custeio?ibge={IBGE}",
+    "esfr_vinculo":     f"{BASE}/esf-ribeirinha/vinculo-acompanhamento-territorial?ibge={IBGE}",
+    # Microscopista
+    "microscopista":    f"{BASE}/microscopista?ibge={IBGE}",
 }
 
 # Cache global
@@ -181,14 +190,65 @@ def _parse_esb_custeio(lines: list) -> dict:
     return {
         "qt_40h_credenciadas":   _find_int_after(lines, "credenciadas") or 0,
         "qt_40h_homologadas":    _find_int_after(lines, "homologadas") or 0,
-        "qt_40h_pagas_modal_i":  _find_int_after(lines, "Modal. I") or _find_int_after(lines, "Modalidade I") or 0,
-        "qt_40h_pagas_modal_ii": _find_int_after(lines, "Modal. II") or _find_int_after(lines, "Modalidade II") or 0,
-        "vl_esb_40h":            _find_value_after(lines, "eSB 40h") or _find_value_after(lines, "40 horas") or 0.0,
-        "vl_qualidade_40h":      _find_value_after(lines, "Qualidade") or 0.0,
-        "qt_uom":                _find_int_after(lines, "UOM") or 0,
-        "vl_uom":                _find_value_after(lines, "UOM") or 0.0,
-        "vl_lrpd_municipal":     _find_value_after(lines, "LRPD") or 0.0,
+        "qt_40h_pagas_modal_i":  _find_int_after(lines, "Modalidade I pagas") or _find_int_after(lines, "Modal. I") or 0,
+        "qt_40h_pagas_modal_ii": _find_int_after(lines, "Modalidade II pagas") or _find_int_after(lines, "Modal. II") or 0,
+        "vl_ref_modal_i":        _find_value_after(lines, "referência de custeio de modalidade I") or 0.0,
+        "vl_ref_modal_ii":       _find_value_after(lines, "referência de custeio de modalidade II") or 0.0,
+        "vl_esb_40h":            _find_value_after(lines, "Valor do Pagamento") or _find_value_after(lines, "Pagamento") or 0.0,
+        "vl_qualidade_40h":      0.0,
+        "qt_uom": 0, "vl_uom": 0.0,
+        "vl_lrpd_municipal": 0.0,
         "vl_total_sb_calculado": _find_value_after(lines, "Total") or 0.0,
+        "_scraped": True,
+    }
+
+
+def _parse_uom(lines: list) -> dict:
+    if not lines:
+        return {}
+    return {
+        "qt_credenciados": _find_int_after(lines, "credenciados") or 0,
+        "qt_homologados":  _find_int_after(lines, "homologados") or 0,
+        "qt_pagos":        _find_int_after(lines, "pagos") or 0,
+        "vl_ref_custeio":  _find_value_after(lines, "referência de custeio") or 0.0,
+        "vl_total":        _find_value_after(lines, "Total") or _find_value_after(lines, "Valor do Pagamento") or 0.0,
+        "_scraped": True,
+    }
+
+
+def _parse_lrpd(lines: list) -> dict:
+    if not lines:
+        return {}
+    return {
+        "vl_total": _find_value_after(lines, "Total") or _find_value_after(lines, "Valor do Pagamento") or 0.0,
+        "_scraped": True,
+    }
+
+
+def _parse_esfr_custeio(lines: list) -> dict:
+    if not lines:
+        return {}
+    return {
+        "qt_credenciadas": _find_int_after(lines, "credenciadas") or 0,
+        "qt_homologadas":  _find_int_after(lines, "homologadas") or 0,
+        "qt_pagas":        _find_int_after(lines, "pagas") or 0,
+        "qt_embarcacoes":  _find_int_after(lines, "embarcações") or 0,
+        "vl_ref_custeio":  _find_value_after(lines, "referência de custeio") or 0.0,
+        "vl_custeio":      _find_value_after(lines, "Valor do Pagamento") or _find_value_after(lines, "Pagamento") or 0.0,
+        "vl_vinculo":      0.0,
+        "vl_total":        _find_value_after(lines, "Total") or 0.0,
+        "_scraped": True,
+    }
+
+
+def _parse_microscopista(lines: list) -> dict:
+    if not lines:
+        return {}
+    return {
+        "qt_credenciados": _find_int_after(lines, "credenciados") or 0,
+        "qt_pagos":        _find_int_after(lines, "pagos") or 0,
+        "vl_ref_custeio":  _find_value_after(lines, "referência de custeio") or 0.0,
+        "vl_total":        _find_value_after(lines, "Total") or _find_value_after(lines, "Valor do Pagamento") or 0.0,
         "_scraped": True,
     }
 
@@ -254,30 +314,58 @@ async def fetch_egestor_all() -> dict:
                         esf_c["vl_vinculo"] = v
 
             acs = _parse_acs_custeio(raw.get("acs_custeio", []))
+
             esb = _parse_esb_custeio(raw.get("esb_custeio", []))
-            if raw.get("esb_qualidade"):
-                v = _find_value_after(raw["esb_qualidade"], "Qualidade") or _find_value_after(raw["esb_qualidade"], "Valor")
-                if v and esb.get("_scraped"):
+            if raw.get("esb_qualidade") and esb.get("_scraped"):
+                v = _find_value_after(raw["esb_qualidade"], "Valor do Pagamento") or _find_value_after(raw["esb_qualidade"], "Total")
+                if v:
                     esb["vl_qualidade_40h"] = v
+
+            uom   = _parse_uom(raw.get("uom", []))
+            lrpd  = _parse_lrpd(raw.get("lrpd", []))
+
+            # Agrega UOM + LRPD no eSB
+            if esb.get("_scraped"):
+                esb["qt_uom"]            = uom.get("qt_pagos", 0)
+                esb["vl_uom"]            = uom.get("vl_total", 0.0)
+                esb["vl_lrpd_municipal"] = lrpd.get("vl_total", 0.0)
+                esb["vl_total_sb_calculado"] = (
+                    (esb.get("vl_esb_40h") or 0)
+                    + (esb.get("vl_qualidade_40h") or 0)
+                    + (uom.get("vl_total") or 0)
+                    + (lrpd.get("vl_total") or 0)
+                )
+
+            esfr = _parse_esfr_custeio(raw.get("esfr_custeio", []))
+            if raw.get("esfr_vinculo") and esfr.get("_scraped"):
+                v = _find_value_after(raw["esfr_vinculo"], "Valor do Pagamento") or _find_value_after(raw["esfr_vinculo"], "Total")
+                if v:
+                    esfr["vl_vinculo"] = v
+                    esfr["vl_total"] = (esfr.get("vl_custeio") or 0) + v
+
+            micro = _parse_microscopista(raw.get("microscopista", []))
 
             data = {
                 "fonte": "egestor_live",
                 "ultima_sincronizacao": datetime.utcnow().isoformat() + "Z",
-                # Mantém estrutura legada para eMulti (compat. com código existente)
+                # Estrutura legada eMulti (compat.)
                 "custeio":   emulti_custeio,
                 "qualidade": emulti_qual,
                 "remoto":    emulti_remoto,
-                # Novos componentes
-                "esf":  esf_c,
-                "acs":  acs,
-                "esb":  esb,
+                # Todos os componentes
+                "esf":          esf_c,
+                "acs":          acs,
+                "esb":          esb,
+                "esfr":         esfr,
+                "microscopista": micro,
             }
 
             _cache["data"] = data
             _cache["ts"] = datetime.utcnow()
             logger.info(
-                "eGestor scraping concluído — ESF=%s ACS=%s eSB=%s eMulti=%d linhas",
+                "eGestor OK — ESF=%s ACS=%s eSB=%s eSFR=%s Micro=%s eMulti=%d ln",
                 esf_c.get("_scraped"), acs.get("_scraped"), esb.get("_scraped"),
+                esfr.get("_scraped"), micro.get("_scraped"),
                 len(raw.get("emulti_custeio", [])),
             )
             return data
