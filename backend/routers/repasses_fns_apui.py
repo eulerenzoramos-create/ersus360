@@ -1100,6 +1100,97 @@ class DetalhesTransferenciaIn(BaseModel):
     data_ob: Optional[str] = None          # ISO date "YYYY-MM-DD"
 
 
+@router.get("/debug-detalhe-pagamento")
+async def debug_detalhe_pagamento(
+    exercicio: int = Query(2026),
+    mes: int = Query(9),
+):
+    """
+    Descobre os campos e endpoint correto do 'Detalhar Pagamento' do consultafns.
+    Retorna:
+    1. Campos disponíveis no primeiro item do /detalhe-acao (para ver se há `id`)
+    2. Tentativa de chamar /detalhe-pagamento com os parâmetros do primeiro item
+    """
+    _BASE = "https://consultafns.saude.gov.br/recursos"
+    CNPJ = "12834320000126"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; ERSUS360/1.0)",
+        "Accept": "application/json",
+        "Origin": "https://consultafns.saude.gov.br",
+        "Referer": "https://consultafns.saude.gov.br/",
+    }
+    resultado: dict = {}
+    try:
+        async with _httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            # 1. Busca lista e extrai primeiro item com valor
+            r = await client.get(f"{_BASE}/consulta-detalhada/detalhe-acao",
+                headers=headers,
+                params={"ano": exercicio, "count": 10, "cpfCnpjUg": CNPJ,
+                        "estado": "AM", "municipio": "130014",
+                        "page": 1, "tipoConsulta": 2, "mes": mes})
+            dados = r.json().get("resultado", {}).get("dados", [])
+            # Filtra itens com valor (tem repasse)
+            itens_com_valor = [d for d in dados if d.get("valorLiquido") or d.get("valorTotal")]
+            primeiro = itens_com_valor[0] if itens_com_valor else (dados[0] if dados else {})
+            resultado["campos_lista"] = list(primeiro.keys())
+            resultado["primeiro_item"] = primeiro
+
+            # 2. Tenta chamar detalhe-pagamento com vários padrões
+            # Padrão A: passando o id do item
+            id_acao = primeiro.get("id") or primeiro.get("idAcao") or primeiro.get("codigo") or primeiro.get("codigoAcao")
+            resultado["id_encontrado"] = id_acao
+
+            tentativas = []
+            endpoints_tentar = [
+                "detalhe-pagamento",
+                "detalhepagamento",
+                "pagamentos",
+                "detalhe-ob",
+            ]
+            params_base = {
+                "ano": exercicio, "mes": mes, "count": 25,
+                "cpfCnpjUg": CNPJ, "estado": "AM", "municipio": "130014",
+                "tipoConsulta": 2, "page": 1,
+            }
+            if id_acao:
+                params_base["id"] = id_acao
+                params_base["idAcao"] = id_acao
+
+            # Adiciona campos do item que podem ser identificadores
+            for campo in ["idGrupoAcao", "idComponenteBloco", "idBlocoPacto", "grupoAcaoId",
+                          "componenteBlocoId", "blocoPactoId"]:
+                val = primeiro.get(campo)
+                if val:
+                    params_base[campo] = val
+                    # tenta também com nome sem "id" no começo
+                    params_base[campo.replace("id", "").replace("Id", "")] = val
+
+            for ep in endpoints_tentar:
+                try:
+                    rd = await client.get(f"{_BASE}/consulta-detalhada/{ep}",
+                                          headers=headers, params=params_base)
+                    tentativas.append({
+                        "endpoint": ep,
+                        "status": rd.status_code,
+                        "primeiros_100_chars": rd.text[:200],
+                    })
+                    if rd.status_code == 200:
+                        dados_det = rd.json().get("resultado", {}).get("dados", [])
+                        tentativas[-1]["qtd_registros"] = len(dados_det)
+                        if dados_det:
+                            tentativas[-1]["campos"] = list(dados_det[0].keys())
+                            tentativas[-1]["primeiro"] = dados_det[0]
+                except Exception as ex:
+                    tentativas.append({"endpoint": ep, "erro": str(ex)})
+
+            resultado["tentativas_detalhe"] = tentativas
+
+    except Exception as e:
+        resultado["erro_geral"] = str(e)
+
+    return resultado
+
+
 @router.patch("/transferencia/{transferencia_id}/detalhes")
 async def atualizar_detalhes_transferencia(
     transferencia_id: int,
@@ -1134,3 +1225,149 @@ async def atualizar_detalhes_transferencia(
     return {"ok": True, "id": t.id, "banco_ob": t.banco_ob, "agencia_ob": t.agencia_ob,
             "numero_conta_ob": t.numero_conta_ob, "numero_portaria": t.numero_portaria,
             "numero_ob": t.numero_ob}
+
+
+@router.post("/enriquecer-detalhes")
+async def enriquecer_detalhes(
+    exercicio: int = Query(2026),
+    mes: int = Query(...),
+    endpoint_detalhe: str = Query("detalhe-pagamento"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Busca os dados bancários (Banco OB, Agência, Conta, Nº OB, Portaria, Data OB)
+    diretamente do consultafns e atualiza os registros no banco.
+
+    Parâmetros:
+    - exercicio, mes: período
+    - endpoint_detalhe: nome do endpoint de detalhamento (ex: "detalhe-pagamento")
+    """
+    _BASE = "https://consultafns.saude.gov.br/recursos"
+    CNPJ = "12834320000126"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; ERSUS360/1.0)",
+        "Accept": "application/json",
+        "Origin": "https://consultafns.saude.gov.br",
+        "Referer": "https://consultafns.saude.gov.br/",
+    }
+
+    # Busca registros do período sem banco_ob
+    stmt = select(TransferenciaFns).where(
+        TransferenciaFns.municipio_ibge == IBGE_APUI,
+        TransferenciaFns.exercicio == exercicio,
+        TransferenciaFns.mes == mes,
+        TransferenciaFns.ativo == True,
+    )
+    result = await db.execute(stmt)
+    registros = result.scalars().all()
+
+    atualizados = 0
+    erros = []
+
+    async with _httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+        # Busca lista completa do consultafns para este mês
+        page = 1
+        itens_detalhe: list[dict] = []
+        while page <= 10:
+            try:
+                r = await client.get(f"{_BASE}/consulta-detalhada/{endpoint_detalhe}",
+                    headers=headers,
+                    params={"ano": exercicio, "mes": mes, "count": 50,
+                            "cpfCnpjUg": CNPJ, "estado": "AM", "municipio": "130014",
+                            "tipoConsulta": 2, "page": page})
+                if r.status_code != 200:
+                    erros.append(f"HTTP {r.status_code} na página {page}")
+                    break
+                dados = r.json().get("resultado", {}).get("dados", [])
+                if not dados:
+                    break
+                itens_detalhe.extend(dados)
+                if len(dados) < 50:
+                    break
+                page += 1
+            except Exception as ex:
+                erros.append(str(ex))
+                break
+
+    if not itens_detalhe:
+        return {"ok": False, "erro": "Nenhum dado retornado do consultafns", "detalhes": erros,
+                "dica": f"Verifique o endpoint: GET /api/repasses-fns/debug-detalhe-pagamento?exercicio={exercicio}&mes={mes}"}
+
+    # Função para extrair valor de campo com múltiplos nomes possíveis
+    def _s(d: dict, *keys: str) -> Optional[str]:
+        for k in keys:
+            v = d.get(k)
+            if v is not None and str(v).strip():
+                return str(v).strip()
+        return None
+
+    def _parse_d(v: Optional[str]) -> Optional[date]:
+        if not v:
+            return None
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y"):
+            try:
+                return datetime.strptime(v, fmt).date()
+            except Exception:
+                pass
+        return None
+
+    # Para cada item do detalhe, tenta encontrar o registro correspondente no BD
+    for item in itens_detalhe:
+        banco  = _s(item, "codigoBanco", "cdBanco", "banco", "bancoOB", "Banco OB", "numeroBanco")
+        agencia= _s(item, "codigoAgencia", "cdAgencia", "agencia", "agenciaOB", "Agência OB")
+        conta  = _s(item, "numeroConta", "nuContaCorrente", "contaCorrente", "contaOB", "Conta OB")
+        ob     = _s(item, "nuOB", "nuOb", "numeroOB", "nrOB", "ordemBancaria", "Nº OB")
+        portaria = _s(item, "numeroPortaria", "nuPortaria", "nrPortaria", "numPortaria", "Nº Portaria")
+        data_ob  = _parse_d(_s(item, "dataOB", "dtOB", "Data OB", "dataOrdemBancaria"))
+        data_pag = _parse_d(_s(item, "dataPagamento", "dtPagamento", "dataCredito"))
+        processo = _s(item, "numeroProcesso", "nuProcesso", "processo")
+        vl_liq   = _s(item, "valorLiquido", "vlLiquido")
+
+        if not banco and not ob and not portaria:
+            continue
+
+        # Tenta casar pelo valor líquido + grupo/ação
+        grupo_item = _s(item, "grupoAcao", "grupo", "dsGrupo")
+        acao_item  = _s(item, "componenteBloco", "acao", "dsAcao")
+
+        for reg in registros:
+            # Critério de match: valor líquido igual e sem banco já preenchido
+            vl_reg = float(reg.valor_liquido or 0)
+            vl_item_f = float(vl_liq or 0) if vl_liq else None
+            if vl_item_f and abs(vl_reg - vl_item_f) > 0.01:
+                continue
+            if reg.banco_ob and reg.numero_ob:  # já preenchido
+                continue
+            # Match por nº OB se existir
+            if ob and reg.numero_ob and reg.numero_ob != ob:
+                continue
+
+            if banco:
+                reg.banco_ob = banco
+            if agencia:
+                reg.agencia_ob = agencia
+            if conta:
+                reg.numero_conta_ob = conta
+            if ob:
+                reg.numero_ob = ob
+            if portaria:
+                reg.numero_portaria = portaria
+            if data_ob:
+                reg.data_ob = data_ob
+            if data_pag:
+                reg.data_pagamento = data_pag
+            if processo:
+                reg.numero_processo = processo
+            atualizados += 1
+            break
+
+    await db.commit()
+    return {
+        "ok": True,
+        "exercicio": exercicio,
+        "mes": mes,
+        "registros_no_bd": len(registros),
+        "itens_consultafns": len(itens_detalhe),
+        "atualizados": atualizados,
+        "erros": erros,
+    }

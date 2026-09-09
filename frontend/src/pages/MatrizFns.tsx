@@ -275,6 +275,27 @@ function AbaContas({ exercicio }: { exercicio: number }) {
   const [filtroTexto, setFiltroTexto] = useState("");
   const [editando, setEditando] = useState<EditTransfState | null>(null);
 
+  const [sincronizando, setSincronizando] = useState(false);
+  const [msgSync, setMsgSync] = useState<{ ok: boolean; texto: string } | null>(null);
+
+  const sincronizarMes = async (mes: number) => {
+    setSincronizando(true); setMsgSync(null);
+    try {
+      const r = await api.post(`/api/repasses-fns/enriquecer-detalhes?exercicio=${exercicio}&mes=${mes}`);
+      const d = r.data;
+      if (d.ok) {
+        setMsgSync({ ok: true, texto: `✅ ${d.atualizados} registro(s) atualizado(s) de ${d.itens_consultafns} retornados pelo FNS.` });
+        qc.invalidateQueries({ queryKey: ["fns-contas-repasse", exercicio] });
+      } else {
+        setMsgSync({ ok: false, texto: d.erro || "Erro desconhecido" });
+      }
+    } catch (e: any) {
+      setMsgSync({ ok: false, texto: e?.response?.data?.detail || "Erro ao sincronizar" });
+    } finally {
+      setSincronizando(false);
+    }
+  };
+
   const abrirEditar = (t: any, c: any) => setEditando({
     id: t.id, acao: t.acao, mes: t.mes,
     banco_ob: c.banco !== "—" ? c.banco : "",
@@ -347,6 +368,19 @@ function AbaContas({ exercicio }: { exercicio: number }) {
             </button>
           </div>
         )}
+        <div style={{ display:"flex", flexDirection:"column" as const, gap:4, alignItems:"flex-end", justifyContent:"flex-end" }}>
+          <label style={{ fontSize:10, color:C.textSec, fontWeight:600 }}>DADOS BANCÁRIOS FNS</label>
+          <button
+            disabled={sincronizando || filtroMes === 0}
+            onClick={() => filtroMes > 0 && sincronizarMes(filtroMes)}
+            title={filtroMes === 0 ? "Selecione um mês para sincronizar" : `Buscar dados bancários de ${MESES_NOMES[filtroMes-1]} no FNS`}
+            style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700, cursor: filtroMes === 0 || sincronizando ? "not-allowed" : "pointer",
+              border:"none", background: filtroMes === 0 ? C.grayBdr : C.blue, color: filtroMes === 0 ? C.textSec : "#fff",
+              display:"flex", alignItems:"center", gap:6 }}>
+            <RefreshCw size={12} style={{ animation: sincronizando ? "spin 1s linear infinite" : "none" }}/>
+            {sincronizando ? "Sincronizando…" : "Sincronizar FNS"}
+          </button>
+        </div>
       </div>
 
       {/* Resumo */}
@@ -371,6 +405,17 @@ function AbaContas({ exercicio }: { exercicio: number }) {
       {temFiltro && contasFiltradas.length === 0 && (
         <div style={{ padding:32, textAlign:"center", color:C.textSec, fontSize:13 }}>
           Nenhuma transferência encontrada para o filtro selecionado.
+        </div>
+      )}
+
+      {msgSync && (
+        <div style={{ marginBottom:12, padding:"10px 16px", borderRadius:8,
+          background: msgSync.ok ? "#f0fdf4" : "#fef2f2",
+          border: `1px solid ${msgSync.ok ? "#bbf7d0" : "#fecaca"}`,
+          color: msgSync.ok ? C.green : C.red, fontSize:13 }}>
+          {msgSync.texto}
+          <button onClick={() => setMsgSync(null)}
+            style={{ marginLeft:10, background:"none", border:"none", cursor:"pointer", color:"inherit", fontSize:16 }}>×</button>
         </div>
       )}
 
