@@ -12,3 +12,18 @@ async def dashboard():
     return {"situacao_dado": cnes.get("situacao_dado"), "total_estabelecimentos": cnes.get("total"), "nota": _NOTA, "fonte": "CNES — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
 async def indicadores(): return await dashboard()
+
+@router.get("/folha")
+async def folha(competencia: str = "2026-07"):
+    """Endpoint da folha individual. Requer integração com sistema de RH municipal."""
+    return {
+        "situacao_dado": "nao_disponivel",
+        "competencia": competencia,
+        "nota": (
+            "Folha de pagamento requer integração com o sistema de RH municipal "
+            "(Betha, Governa, SIAPE ou equivalente). "
+            "Nenhum dado de servidor foi inventado ou estimado."
+        ),
+        "fonte": "Pendente — sistema RH municipal",
+        "verificado_em": _TS(),
+    }

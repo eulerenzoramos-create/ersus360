@@ -262,11 +262,29 @@ export default function FolhaPagamento() {
   };
 
   if (!isLoading && !data) return (
-    <div style={{ padding: 24 }}>
-      <NaoDisponivelBanner
-        titulo="FolhaPagamento indisponivel"
-        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
-      />
+    <div style={{ padding: 32, maxWidth: 720, margin: "0 auto" }}>
+      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "36px 32px", textAlign: "center" }}>
+        <FileText size={48} color="#1a6baa" style={{ marginBottom: 16, opacity: 0.7 }} />
+        <div style={{ fontSize: 20, fontWeight: 800, color: "#0d2137", marginBottom: 10 }}>
+          Folha de Pagamento — SMS Apuí/AM
+        </div>
+        <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.7, marginBottom: 20, maxWidth: 520, margin: "0 auto 24px" }}>
+          Este módulo exibe a folha de pagamento processada pela Secretaria Municipal de Saúde.
+          Para habilitar, é necessário importar os dados do sistema de RH municipal ou SIAPE.
+        </div>
+        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "16px 20px", textAlign: "left", marginBottom: 24 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>Como habilitar esta integração:</div>
+          <ol style={{ fontSize: 12, color: "#334155", lineHeight: 2, paddingLeft: 18, margin: 0 }}>
+            <li>Exporte a folha do sistema de RH municipal (Betha, Governa, SIAPE ou similar)</li>
+            <li>Converta para o formato JSON compatível com ERSUS 360</li>
+            <li>Configure o endpoint <code style={{ background: "#e0f2fe", padding: "1px 5px", borderRadius: 3 }}>/api/folha/folha</code> no Railway</li>
+            <li>Os dados serão exibidos automaticamente nesta tela</li>
+          </ol>
+        </div>
+        <div style={{ fontSize: 11, color: "#94a3b8" }}>
+          Nenhum dado de servidor foi inventado ou estimado neste módulo.
+        </div>
+      </div>
     </div>
   );
 
