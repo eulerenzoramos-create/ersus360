@@ -987,7 +987,13 @@ function PainelEnviosDiarios() {
         {/* Alerta de falha */}
         {st?.status_atual === "falha" && (
           <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#991b1b" }}>
-            <strong>⚠ Último envio falhou.</strong> Verifique as variáveis de ambiente <code>SMTP_USER</code>, <code>SMTP_PASS</code> e <code>EMAIL_RECIPIENT</code> no Railway. Erro: {st?.erro_ultimo}
+            <strong>⚠ Último envio falhou.</strong>{" "}
+            {st?.erro_ultimo?.includes("101") || st?.erro_ultimo?.includes("SMTP") || st?.erro_ultimo?.includes("smtp")
+              ? <>Railway bloqueia SMTP (porta 587). Solução: configure <code>EMAIL_PROVIDER=resend</code> e <code>RESEND_API_KEY=re_...</code> no Railway (resend.com — gratuito). Erro: {st?.erro_ultimo}</>
+              : st?.erro_ultimo?.includes("RESEND_API_KEY")
+              ? <>Configure <code>RESEND_API_KEY</code> no Railway. Acesse resend.com → API Keys → criar chave → colar no Railway como variável de ambiente.</>
+              : <>Erro: {st?.erro_ultimo}</>
+            }
           </div>
         )}
 
