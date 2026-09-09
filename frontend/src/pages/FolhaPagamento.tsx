@@ -215,6 +215,8 @@ export default function FolhaPagamento() {
   const [filtroVinculo, setFiltroVinculo] = useState("");
   const [filtroNome, setFiltroNome] = useState("");
   const [filtroGrupo, setFiltroGrupo] = useState("");
+  const [uploadando, setUploadando] = useState(false);
+  const [uploadMsg, setUploadMsg]   = useState<{ok: boolean; msg: string} | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["folha", competencia],
@@ -261,28 +263,92 @@ export default function FolhaPagamento() {
     padding:"8px 12px", fontSize:12, borderBottom:"1px solid #e8edf4", verticalAlign:"middle",
   };
 
-  if (!isLoading && !data) return (
-    <div style={{ padding: 32, maxWidth: 720, margin: "0 auto" }}>
+  async function handleUploadFiorele(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+    setUploadando(true);
+    setUploadMsg(null);
+    try {
+      const form = new FormData();
+      form.append("arquivo", arquivo);
+      const res = await fetch(`/api/folha/importar?competencia=${competencia}`, {
+        method: "POST", body: form,
+        headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+      });
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        setUploadMsg({ ok: true, msg: `✓ ${json.mensagem}` });
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        setUploadMsg({ ok: false, msg: json.detail || "Erro ao importar arquivo." });
+      }
+    } catch {
+      setUploadMsg({ ok: false, msg: "Erro de conexão com o servidor." });
+    } finally {
+      setUploadando(false);
+      e.target.value = "";
+    }
+  }
+
+  if (!isLoading && (!data || (data as any).situacao_dado === "nao_disponivel")) return (
+    <div style={{ padding: 32, maxWidth: 680, margin: "0 auto" }}>
       <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "36px 32px", textAlign: "center" }}>
         <FileText size={48} color="#1a6baa" style={{ marginBottom: 16, opacity: 0.7 }} />
-        <div style={{ fontSize: 20, fontWeight: 800, color: "#0d2137", marginBottom: 10 }}>
+        <div style={{ fontSize: 20, fontWeight: 800, color: "#0d2137", marginBottom: 8 }}>
           Folha de Pagamento — SMS Apuí/AM
         </div>
-        <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.7, marginBottom: 20, maxWidth: 520, margin: "0 auto 24px" }}>
-          Este módulo exibe a folha de pagamento processada pela Secretaria Municipal de Saúde.
-          Para habilitar, é necessário importar os dados do sistema de RH municipal ou SIAPE.
+        <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.7, marginBottom: 24 }}>
+          Integrado com o <strong>Sistema Fiorele</strong>. Exporte o arquivo CSV/TXT da folha
+          e faça o upload abaixo para visualizar os dados no ERSUS 360.
         </div>
+
+        {/* Passo a passo */}
         <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "16px 20px", textAlign: "left", marginBottom: 24 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>Como habilitar esta integração:</div>
-          <ol style={{ fontSize: 12, color: "#334155", lineHeight: 2, paddingLeft: 18, margin: 0 }}>
-            <li>Exporte a folha do sistema de RH municipal (Betha, Governa, SIAPE ou similar)</li>
-            <li>Converta para o formato JSON compatível com ERSUS 360</li>
-            <li>Configure o endpoint <code style={{ background: "#e0f2fe", padding: "1px 5px", borderRadius: 3 }}>/api/folha/folha</code> no Railway</li>
-            <li>Os dados serão exibidos automaticamente nesta tela</li>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>Como exportar do Fiorele:</div>
+          <ol style={{ fontSize: 12, color: "#334155", lineHeight: 2.2, paddingLeft: 18, margin: 0 }}>
+            <li>Abra o Fiorele → módulo <strong>Folha de Pagamento</strong></li>
+            <li>Selecione a competência desejada</li>
+            <li>Menu <strong>Relatórios → Exportar → CSV</strong> (separador ponto-e-vírgula)</li>
+            <li>Salve o arquivo e faça upload aqui abaixo</li>
           </ol>
         </div>
+
+        {/* Seletor competência */}
+        <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+          <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>Competência:</span>
+          <select value={competencia} onChange={e => setCompetencia(e.target.value)}
+            style={{ padding: "7px 12px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13 }}>
+            {Object.entries(COMP_LABEL).map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </div>
+
+        {/* Botão upload */}
+        <label style={{
+          display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer",
+          background: uploadando ? "#9ca3af" : "#1a6baa", color: "#fff",
+          padding: "10px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700,
+          marginBottom: 16, transition: "background .2s",
+        }}>
+          <Download size={16} />
+          {uploadando ? "Importando..." : "Selecionar arquivo Fiorele (CSV/TXT)"}
+          <input type="file" accept=".csv,.txt,.tsv" style={{ display: "none" }}
+            disabled={uploadando} onChange={handleUploadFiorele} />
+        </label>
+
+        {uploadMsg && (
+          <div style={{
+            padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+            background: uploadMsg.ok ? "#f0fdf4" : "#fff7f7",
+            border: `1px solid ${uploadMsg.ok ? "#bbf7d0" : "#fca5a5"}`,
+            color: uploadMsg.ok ? "#16a34a" : "#dc2626",
+            marginBottom: 16,
+          }}>
+            {uploadMsg.msg}
+          </div>
+        )}
+
         <div style={{ fontSize: 11, color: "#94a3b8" }}>
-          Nenhum dado de servidor foi inventado ou estimado neste módulo.
+          Nenhum dado de servidor é inventado — apenas o arquivo exportado do Fiorele é exibido.
         </div>
       </div>
     </div>
