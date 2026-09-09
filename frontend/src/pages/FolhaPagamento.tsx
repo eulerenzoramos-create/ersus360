@@ -407,6 +407,11 @@ export default function FolhaPagamento() {
     return Array.from(new Set(folha.verbas.map((v: any) => v.lotacao || v.setor || ""))).filter(Boolean).sort() as string[];
   }, [folha]);
 
+  const ubsNomes = useMemo(() => {
+    if (!folha?.verbas) return [];
+    return Array.from(new Set(folha.verbas.map((v: any) => v.ubs_nome || ""))).filter(Boolean).sort() as string[];
+  }, [folha]);
+
   const verbasFiltradas = useMemo(() => {
     if (!folha?.verbas) return [];
     return folha.verbas.filter((v: any) =>
@@ -414,7 +419,8 @@ export default function FolhaPagamento() {
       (!filtroVinculo || v.vinculo === filtroVinculo) &&
       (!filtroGrupo   || v.fonte_grupo === filtroGrupo) &&
       (!filtroStatus  || (v.status||"ativo") === filtroStatus) &&
-      (!filtroLotacao || (v.lotacao||v.setor||"") === filtroLotacao) &&
+      (!filtroLotacao || (v.lotacao||v.setor||"") === filtroLotacao ||
+                         (v.ubs_nome||"") === filtroLotacao) &&
       (!filtroNome    || v.nome.toLowerCase().includes(filtroNome.toLowerCase()) || v.matricula.includes(filtroNome))
     );
   }, [folha, filtroFonte, filtroVinculo, filtroGrupo, filtroStatus, filtroLotacao, filtroNome]);
@@ -721,8 +727,16 @@ export default function FolhaPagamento() {
                 </select>
                 <select value={filtroLotacao} onChange={e => setFiltroLotacao(e.target.value)}
                   style={{ padding:"6px 10px", border:"1px solid #dde4ee", borderRadius:6, fontSize:12 }}>
-                  <option value="">Todas as lotações</option>
-                  {lotacoes.map(l => <option key={l} value={l}>{l}</option>)}
+                  <option value="">Todas as UBS / Setores</option>
+                  <optgroup label="── UBS ──">
+                    {ubsNomes.filter(u => u.startsWith("UBS") || u.startsWith("Centro")).map(u => <option key={u} value={u}>{u}</option>)}
+                  </optgroup>
+                  <optgroup label="── Unidades especializadas ──">
+                    {ubsNomes.filter(u => !u.startsWith("UBS") && !u.startsWith("Centro")).map(u => <option key={u} value={u}>{u}</option>)}
+                  </optgroup>
+                  <optgroup label="── Setor ──">
+                    {lotacoes.map(l => <option key={`lot-${l}`} value={l}>{l}</option>)}
+                  </optgroup>
                 </select>
                 <select value={filtroFonte} onChange={e => setFiltroFonte(e.target.value)}
                   style={{ padding:"6px 10px", border:"1px solid #dde4ee", borderRadius:6, fontSize:12 }}>
@@ -751,7 +765,7 @@ export default function FolhaPagamento() {
                 <table style={{ width:"100%", borderCollapse:"collapse" }}>
                   <thead>
                     <tr>
-                      {["#","Mat.","Nome","Cargo","Lotação","Vínculo","Status","Bruto","INSS","IRRF","Líquido","Custo Total","Ações"].map(h=>(
+                      {["#","Mat.","Nome","Cargo","UBS / Unidade","Setor","Vínculo","Status","Bruto","INSS","IRRF","Líquido","Custo Total","Ações"].map(h=>(
                         <th key={h} style={thSt}>{h}</th>))}
                     </tr>
                   </thead>
@@ -765,11 +779,13 @@ export default function FolhaPagamento() {
                         <td style={{ ...tdSt, fontFamily:"monospace", color:"#1a6baa", fontSize:10 }}>{v.matricula}</td>
                         <td style={{ ...tdSt, fontWeight:600, maxWidth:200 }}>{v.nome}</td>
                         <td style={{ ...tdSt, color:"#6b7280", fontSize:11, maxWidth:160 }}>{v.cargo}</td>
-                        <td style={{ ...tdSt, fontSize:11 }}>
-                          <span style={{ display:"inline-flex", alignItems:"center", gap:3, color:"#475569" }}>
-                            <MapPin size={10}/> {v.lotacao||v.setor||"—"}
+                        <td style={{ ...tdSt, fontSize:10, maxWidth:180 }}>
+                          <span style={{ display:"inline-flex", alignItems:"center", gap:3, color:"#1a3356", fontWeight:600 }}>
+                            🏥 {v.ubs_nome || v.lotacao || "—"}
                           </span>
+                          {v.equipe && <div style={{ fontSize:9, color:"#6b7280" }}>Equipe: {v.equipe}</div>}
                         </td>
+                        <td style={{ ...tdSt, fontSize:10, color:"#475569" }}>{v.lotacao||v.setor||"—"}</td>
                         <td style={tdSt}><Badge label={LABEL_VINCULO[v.vinculo]||v.vinculo} cor={COR_VINCULO[v.vinculo]||"#555"}/></td>
                         <td style={tdSt}><StatusBadge status={v.status||"ativo"}/></td>
                         <td style={{ ...tdSt, fontWeight:700 }}>{BRL(v.bruto)}</td>
@@ -798,7 +814,7 @@ export default function FolhaPagamento() {
                   </tbody>
                   <tfoot>
                     <tr style={{ background:"#0d2137", color:"#fff" }}>
-                      <td style={{ ...tdSt, color:"#fff" }} colSpan={7}><strong>TOTAL ({verbasFiltradas.length} serv.)</strong></td>
+                      <td style={{ ...tdSt, color:"#fff" }} colSpan={9}><strong>TOTAL ({verbasFiltradas.length} serv.)</strong></td>
                       <td style={{ ...tdSt, fontWeight:800, color:"#fff" }}>{BRL(verbasFiltradas.reduce((a:number,v:any)=>a+v.bruto,0))}</td>
                       <td style={{ ...tdSt, color:"#fbbf24" }}>({BRL(verbasFiltradas.reduce((a:number,v:any)=>a+v.desc_inss,0))})</td>
                       <td style={{ ...tdSt, color:"#fca5a5" }}>({BRL(verbasFiltradas.reduce((a:number,v:any)=>a+v.desc_irrf,0))})</td>
@@ -813,87 +829,158 @@ export default function FolhaPagamento() {
           )}
 
           {/* ── LOTAÇÃO / SETORES ── */}
-          {aba === "lotacao" && (
-            <div style={{ background:"#fff", border:"1px solid #dde4ee", borderRadius:"0 0 10px 10px", padding:20 }}>
-              <div style={{ fontWeight:700, fontSize:14, color:"#0d2137", marginBottom:16,
-                borderBottom:"1px solid #dde4ee", paddingBottom:10 }}>
-                📍 Lotação por Setor / Unidade de Saúde
-              </div>
+          {aba === "lotacao" && (() => {
+            // Agrupa por ubs_nome (UBS real)
+            const ubsMap = new Map<string, any[]>();
+            for (const v of folha.verbas) {
+              const key = v.ubs_nome || v.lotacao || "Sem UBS";
+              if (!ubsMap.has(key)) ubsMap.set(key, []);
+              ubsMap.get(key)!.push(v);
+            }
+            // Ordena: UBS primeiro, depois Sede/Hospital/Vig
+            const ubsOrdem = [
+              "UBS Irmã Elizabete",
+              "UBS Anizio Ferreira da Silva",
+              "UBS Osvaldo Lemes Cabral",
+              "Centro de Saúde Curumim",
+              "UBS Padre Faliero Bonci",
+              "UBS JK",
+              "UBS Cláudia Pereira dos Santos Damacena",
+              "CAPS AD — Centro de Atenção Psicossocial",
+              "Hospital Municipal de Apuí",
+              "Vigilância em Saúde — SEMSA",
+              "Vigilância Sanitária — SEMSA",
+              "Sede SEMSA — Secretaria Municipal de Saúde",
+            ];
+            const ubsKeys = [
+              ...ubsOrdem.filter(k => ubsMap.has(k)),
+              ...[...ubsMap.keys()].filter(k => !ubsOrdem.includes(k)).sort(),
+            ];
+            const COR_UBS: Record<string,string> = {
+              "UBS Irmã Elizabete":"#1a6baa",
+              "UBS Anizio Ferreira da Silva":"#0e7a5a",
+              "UBS Osvaldo Lemes Cabral":"#7c3aed",
+              "Centro de Saúde Curumim":"#d97706",
+              "UBS Padre Faliero Bonci":"#0284c7",
+              "UBS JK":"#059669",
+              "UBS Cláudia Pereira dos Santos Damacena":"#db2777",
+              "CAPS AD — Centro de Atenção Psicossocial":"#6366f1",
+              "Hospital Municipal de Apuí":"#b83232",
+              "Vigilância em Saúde — SEMSA":"#92400e",
+              "Vigilância Sanitária — SEMSA":"#854d0e",
+              "Sede SEMSA — Secretaria Municipal de Saúde":"#374151",
+            };
+            const ICONE_UBS: Record<string,string> = {
+              "UBS Irmã Elizabete":"🏥",
+              "UBS Anizio Ferreira da Silva":"🏥",
+              "UBS Osvaldo Lemes Cabral":"🏥",
+              "Centro de Saúde Curumim":"🏥",
+              "UBS Padre Faliero Bonci":"🏥",
+              "UBS JK":"🏥",
+              "UBS Cláudia Pereira dos Santos Damacena":"🏥",
+              "CAPS AD — Centro de Atenção Psicossocial":"🧠",
+              "Hospital Municipal de Apuí":"🏨",
+              "Vigilância em Saúde — SEMSA":"🔬",
+              "Vigilância Sanitária — SEMSA":"🛡️",
+              "Sede SEMSA — Secretaria Municipal de Saúde":"🏛️",
+            };
+            return (
+              <div style={{ background:"#fff", border:"1px solid #dde4ee", borderRadius:"0 0 10px 10px", padding:20 }}>
+                <div style={{ fontWeight:700, fontSize:14, color:"#0d2137", marginBottom:16,
+                  borderBottom:"1px solid #dde4ee", paddingBottom:10 }}>
+                  📍 Lotação por UBS / Unidade de Saúde — Apuí/AM
+                </div>
 
-              {/* Grid de cards por lotação */}
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))", gap:14, marginBottom:24 }}>
-                {lotacoes.map(lot => {
-                  const servs = folha.verbas.filter((v:any) => (v.lotacao||v.setor||"") === lot);
-                  const ativos = servs.filter((v:any) => (v.status||"ativo")==="ativo").length;
-                  const afastados = servs.length - ativos;
-                  const cargos = Array.from(new Set(servs.map((v:any)=>v.cargo))).slice(0,5);
-                  return (
-                    <div key={lot} style={{ border:"1px solid #dde4ee", borderRadius:10, overflow:"hidden",
-                      cursor:"pointer" }} onClick={() => { setFiltroLotacao(lot); setAba("detalhada"); }}>
-                      <div style={{ background:"#1a3356", color:"#fff", padding:"10px 14px",
-                        display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                        <div style={{ fontWeight:700, fontSize:13 }}>
-                          <MapPin size={12} style={{ marginRight:5, verticalAlign:"middle" }}/>{lot}
+                {/* Cards por UBS */}
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))", gap:12, marginBottom:28 }}>
+                  {ubsKeys.map(ubs => {
+                    const servs = ubsMap.get(ubs)!;
+                    const ativos = servs.filter((v:any) => (v.status||"ativo")==="ativo").length;
+                    const afastados = servs.length - ativos;
+                    const cor = COR_UBS[ubs] || "#374151";
+                    const icon = ICONE_UBS[ubs] || "📍";
+                    const equipes = Array.from(new Set(servs.map((v:any)=>v.equipe).filter(Boolean)));
+                    const cargos = Array.from(new Set(servs.map((v:any)=>v.cargo))).slice(0,4);
+                    const setores = Array.from(new Set(servs.map((v:any)=>v.lotacao)));
+                    return (
+                      <div key={ubs} onClick={() => { setFiltroLotacao(setores[0]||""); setAba("detalhada"); }}
+                        style={{ border:`1px solid ${cor}30`, borderRadius:10, overflow:"hidden",
+                          cursor:"pointer", transition:"box-shadow .15s" }}
+                        onMouseEnter={e=>(e.currentTarget.style.boxShadow=`0 4px 16px ${cor}25`)}
+                        onMouseLeave={e=>(e.currentTarget.style.boxShadow="")}>
+                        <div style={{ background:cor, color:"#fff", padding:"11px 14px" }}>
+                          <div style={{ fontWeight:800, fontSize:13 }}>{icon} {ubs}</div>
+                          {equipes.length > 0 && (
+                            <div style={{ fontSize:10, color:"#ffffff99", marginTop:3 }}>
+                              Equipes: {equipes.join(" · ")}
+                            </div>
+                          )}
                         </div>
-                        <div style={{ fontSize:12, fontWeight:700 }}>{servs.length} serv.</div>
+                        <div style={{ padding:"12px 14px" }}>
+                          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
+                            <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                              <span style={{ fontSize:20, fontWeight:800, color:cor }}>{servs.length}</span>
+                              <span style={{ fontSize:11, color:"#6b7280" }}>servidores</span>
+                            </div>
+                            <div style={{ textAlign:"right", fontSize:11 }}>
+                              <div style={{ color:"#059669", fontWeight:700 }}>{ativos} ativos</div>
+                              {afastados>0 && <div style={{ color:"#d97706" }}>{afastados} afastado(s)</div>}
+                            </div>
+                          </div>
+                          <div style={{ fontSize:11, color:"#6b7280", marginBottom:8 }}>
+                            💰 {BRL(servs.reduce((a:number,v:any)=>a+v.liquido,0))} líquido/mês
+                          </div>
+                          <div style={{ display:"flex", flexWrap:"wrap", gap:3 }}>
+                            {cargos.map((c:any) => <Badge key={c} label={c} cor={cor}/>)}
+                            {Array.from(new Set(servs.map((v:any)=>v.cargo))).length > 4 &&
+                              <Badge label={`+${Array.from(new Set(servs.map((v:any)=>v.cargo))).length-4}`} cor="#9ca3af"/>}
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ padding:"12px 14px" }}>
-                        <div style={{ display:"flex", gap:8, marginBottom:10 }}>
-                          <StatusBadge status="ativo"/><span style={{ fontSize:12 }}>{ativos}</span>
-                          {afastados > 0 && <>
-                            <span style={{ fontSize:11, color:"#6b7280" }}>·</span>
-                            <span style={{ fontSize:11, color:"#d97706" }}>{afastados} afastado(s)</span>
-                          </>}
-                        </div>
-                        <div style={{ fontSize:11, color:"#6b7280", marginBottom:8 }}>
-                          <strong>Bruto:</strong> {BRL(servs.reduce((a:number,v:any)=>a+v.bruto,0))} &nbsp;·&nbsp;
-                          <strong>Líquido:</strong> {BRL(servs.reduce((a:number,v:any)=>a+v.liquido,0))}
-                        </div>
-                        <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
-                          {cargos.map(c => <Badge key={c as string} label={c as string} cor="#475569"/>)}
-                          {Array.from(new Set(servs.map((v:any)=>v.cargo))).length > 5 &&
-                            <Badge label={`+${Array.from(new Set(servs.map((v:any)=>v.cargo))).length-5} cargos`} cor="#9ca3af"/>}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
 
-              {/* Tabela por setores */}
-              <div style={{ fontWeight:700, fontSize:13, marginBottom:10, color:"#0d2137" }}>Resumo por Lotação</div>
-              <div style={{ overflowX:"auto" }}>
-                <table style={{ width:"100%", borderCollapse:"collapse" }}>
-                  <thead><tr>
-                    {["Lotação / Setor","Servidores","Ativos","Afastados","Total Bruto","Total Líquido","Cargos presentes"].map(h=>(
-                      <th key={h} style={thSt}>{h}</th>))}
-                  </tr></thead>
-                  <tbody>
-                    {lotacoes.map(lot => {
-                      const servs = folha.verbas.filter((v:any) => (v.lotacao||v.setor||"") === lot);
-                      const ativos = servs.filter((v:any) => (v.status||"ativo")==="ativo").length;
-                      const cargos = Array.from(new Set(servs.map((v:any)=>v.cargo))).join(", ");
-                      return (
-                        <tr key={lot}>
-                          <td style={{ ...tdSt, fontWeight:600 }}>
-                            <MapPin size={11} style={{ marginRight:4, color:"#6b7280", verticalAlign:"middle" }}/>{lot}
-                          </td>
-                          <td style={{ ...tdSt, textAlign:"center", fontWeight:700 }}>{servs.length}</td>
-                          <td style={{ ...tdSt, textAlign:"center", color:"#059669", fontWeight:600 }}>{ativos}</td>
-                          <td style={{ ...tdSt, textAlign:"center", color: servs.length-ativos>0?"#d97706":"#9ca3af" }}>
-                            {servs.length-ativos}
-                          </td>
-                          <td style={tdSt}>{BRL(servs.reduce((a:number,v:any)=>a+v.bruto,0))}</td>
-                          <td style={{ ...tdSt, color:"#14864e" }}>{BRL(servs.reduce((a:number,v:any)=>a+v.liquido,0))}</td>
-                          <td style={{ ...tdSt, fontSize:10, color:"#6b7280", maxWidth:240 }}>{cargos}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                {/* Tabela resumo */}
+                <div style={{ fontWeight:700, fontSize:13, marginBottom:10, color:"#0d2137" }}>
+                  Resumo por UBS / Unidade
+                </div>
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                    <thead><tr>
+                      {["UBS / Unidade","Equipes","Setor(es)","Total","Ativos","Afastados","Bruto","Líquido"].map(h=>(
+                        <th key={h} style={thSt}>{h}</th>))}
+                    </tr></thead>
+                    <tbody>
+                      {ubsKeys.map(ubs => {
+                        const servs = ubsMap.get(ubs)!;
+                        const ativos = servs.filter((v:any)=>(v.status||"ativo")==="ativo").length;
+                        const equipes = Array.from(new Set(servs.map((v:any)=>v.equipe).filter(Boolean))).join(", ");
+                        const setores = Array.from(new Set(servs.map((v:any)=>v.lotacao))).join(", ");
+                        const cor = COR_UBS[ubs] || "#374151";
+                        return (
+                          <tr key={ubs} style={{ borderLeft:`3px solid ${cor}` }}>
+                            <td style={{ ...tdSt, fontWeight:700, color:cor }}>
+                              {ICONE_UBS[ubs]||"📍"} {ubs}
+                            </td>
+                            <td style={{ ...tdSt, fontSize:10, color:"#6b7280" }}>{equipes||"—"}</td>
+                            <td style={{ ...tdSt, fontSize:10, color:"#374151" }}>{setores}</td>
+                            <td style={{ ...tdSt, textAlign:"center", fontWeight:800, color:cor }}>{servs.length}</td>
+                            <td style={{ ...tdSt, textAlign:"center", color:"#059669", fontWeight:600 }}>{ativos}</td>
+                            <td style={{ ...tdSt, textAlign:"center", color:servs.length-ativos>0?"#d97706":"#9ca3af" }}>
+                              {servs.length-ativos||"—"}
+                            </td>
+                            <td style={tdSt}>{BRL(servs.reduce((a:number,v:any)=>a+v.bruto,0))}</td>
+                            <td style={{ ...tdSt, color:"#14864e", fontWeight:600 }}>{BRL(servs.reduce((a:number,v:any)=>a+v.liquido,0))}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ── FOLHA DE PRESENÇA ── */}
           {aba === "presenca" && (
