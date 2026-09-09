@@ -1,7 +1,7 @@
 // src/pages/FolhaPagamento.tsx — Folha de Pagamento SMS Apuí/AM — v4 completo
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiGetRaw } from "../lib/api";
+import { apiGetRaw, api } from "../lib/api";
 import {
   FileText, Download, Printer, Filter, Users, MapPin, Calendar,
   Settings, Plus, Trash2, RefreshCw, AlertTriangle, CheckCircle,
@@ -229,21 +229,16 @@ function ModalNovoFuncionario({ onClose, onSalvo }: { onClose: ()=>void; onSalvo
     setSalvando(true);
     try {
       const bruto = parseFloat(form.bruto.replace(",","."));
-      const res = await fetch("/api/folha/funcionario", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json", Authorization:`Bearer ${localStorage.getItem("token")||""}` },
-        body: JSON.stringify({
-          ...form, bruto, carga_horaria: parseInt(form.carga_horaria)||40,
-          salario_base: round2(bruto*0.80), adicional_interioridade: round2(bruto*0.08),
-          desc_inss: round2(bruto*0.12), desc_irrf: 0, liquido: round2(bruto*0.88),
-          custo_total_empregador: round2(bruto*1.20),
-          enc_inss_patronal: round2(bruto*0.20), enc_fgts:0,
-          enc_ferias_prop: round2(bruto/12*1.333), enc_decimo_terceiro: round2(bruto/12),
-          setor: form.lotacao,
-        }),
+      await api.post("/api/folha/funcionario", {
+        ...form, bruto, carga_horaria: parseInt(form.carga_horaria)||40,
+        salario_base: round2(bruto*0.80), adicional_interioridade: round2(bruto*0.08),
+        desc_inss: round2(bruto*0.12), desc_irrf: 0, liquido: round2(bruto*0.88),
+        custo_total_empregador: round2(bruto*1.20),
+        enc_inss_patronal: round2(bruto*0.20), enc_fgts:0,
+        enc_ferias_prop: round2(bruto/12*1.333), enc_decimo_terceiro: round2(bruto/12),
+        setor: form.lotacao,
       });
-      if (res.ok) { onSalvo(); onClose(); }
-      else { const j = await res.json(); setErro(j.detail||"Erro ao salvar."); }
+      onSalvo(); onClose();
     } catch { setErro("Erro de conexão."); }
     finally { setSalvando(false); }
   }
@@ -319,18 +314,17 @@ function ModalNovoFuncionario({ onClose, onSalvo }: { onClose: ()=>void; onSalvo
 function ModalStatus({ servidor, onClose, onSalvo }: { servidor: Servidor; onClose:()=>void; onSalvo:()=>void }) {
   const [status, setStatus] = useState<Status>(servidor.status || "ativo");
   const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
 
   async function salvar() {
     setSalvando(true);
+    setErro("");
     try {
-      const res = await fetch(`/api/folha/funcionario/${servidor.matricula}/status`, {
-        method:"PATCH",
-        headers:{ "Content-Type":"application/json", Authorization:`Bearer ${localStorage.getItem("token")||""}` },
-        body: JSON.stringify({ status }),
-      });
-      if (res.ok) { onSalvo(); onClose(); }
-    } catch {}
-    finally { setSalvando(false); }
+      await api.patch(`/api/folha/funcionario/${servidor.matricula}/status`, { status });
+      onSalvo(); onClose();
+    } catch (e: any) {
+      setErro(e?.response?.data?.detail || "Erro ao salvar status.");
+    } finally { setSalvando(false); }
   }
 
   return (
@@ -357,6 +351,7 @@ function ModalStatus({ servidor, onClose, onSalvo }: { servidor: Servidor; onClo
             </button>
           ))}
         </div>
+        {erro && <div style={{ color:"#dc2626", fontSize:12, marginBottom:10, textAlign:"center" }}>{erro}</div>}
         <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
           <button onClick={onClose} style={{ padding:"8px 16px", border:"1px solid #d1d5db",
             borderRadius:6, background:"#fff", cursor:"pointer", fontSize:13 }}>Cancelar</button>
@@ -441,10 +436,7 @@ export default function FolhaPagamento() {
     if (!confirm(`Remover ${nome} da folha ativa?\n\nO servidor ficará inativo (reversível pelo administrador).`)) return;
     setExcluindo(matricula);
     try {
-      await fetch(`/api/folha/funcionario/${matricula}`, {
-        method:"DELETE",
-        headers:{ Authorization:`Bearer ${localStorage.getItem("token")||""}` },
-      });
+      await api.delete(`/api/folha/funcionario/${matricula}`);
       refetch();
     } finally { setExcluindo(null); }
   }
