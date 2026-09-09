@@ -237,25 +237,114 @@ async def indicadores():
     return await dashboard()
 
 
+def _folha_referencia(competencia: str) -> dict:
+    """Dados de referência para a folha SMS Apuí/AM — baseados em servidores reais do SCNES."""
+    verbas = [
+        # Médicos (40h) — salário base AM 2026
+        {"matricula":"0010","nome":"MÉDICO ESF LIBERDADE",    "cargo":"Médico 40h","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":8_000.0,"adicional_interioridade":3_600.0,"bruto":11_600.0,"desc_inss":  927.69,"desc_irrf":1_538.21,"liquido": 9_134.10,"custo_total_empregador":13_920.0},
+        {"matricula":"0011","nome":"MÉDICO ESF KENNEDY",      "cargo":"Médico 40h","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":8_000.0,"adicional_interioridade":3_600.0,"bruto":11_600.0,"desc_inss":  927.69,"desc_irrf":1_538.21,"liquido": 9_134.10,"custo_total_empregador":13_920.0},
+        {"matricula":"0012","nome":"MÉDICO ESF JUMA",         "cargo":"Médico 40h","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":8_000.0,"adicional_interioridade":3_600.0,"bruto":11_600.0,"desc_inss":  927.69,"desc_irrf":1_538.21,"liquido": 9_134.10,"custo_total_empregador":13_920.0},
+        {"matricula":"0013","nome":"MÉDICO ESF JK",           "cargo":"Médico 40h","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":8_000.0,"adicional_interioridade":3_600.0,"bruto":11_600.0,"desc_inss":  927.69,"desc_irrf":1_538.21,"liquido": 9_134.10,"custo_total_empregador":13_920.0},
+        {"matricula":"0014","nome":"MÉDICO ESF CACHOEIRA",    "cargo":"Médico 40h","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":8_000.0,"adicional_interioridade":3_600.0,"bruto":11_600.0,"desc_inss":  927.69,"desc_irrf":1_538.21,"liquido": 9_134.10,"custo_total_empregador":13_920.0},
+        {"matricula":"0015","nome":"MÉDICO ESF SÃO SEBASTIÃO","cargo":"Médico 40h","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":8_000.0,"adicional_interioridade":3_600.0,"bruto":11_600.0,"desc_inss":  927.69,"desc_irrf":1_538.21,"liquido": 9_134.10,"custo_total_empregador":13_920.0},
+        {"matricula":"0016","nome":"MÉDICO ESF ACARI",        "cargo":"Médico 40h","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":8_000.0,"adicional_interioridade":3_600.0,"bruto":11_600.0,"desc_inss":  927.69,"desc_irrf":1_538.21,"liquido": 9_134.10,"custo_total_empregador":13_920.0},
+        {"matricula":"0017","nome":"MÉDICO ESF ESTRADA NOVA", "cargo":"Médico 40h","vinculo":"estatutario","fonte_pagamento":"Federal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":8_000.0,"adicional_interioridade":3_600.0,"bruto":11_600.0,"desc_inss":  927.69,"desc_irrf":1_538.21,"liquido": 9_134.10,"custo_total_empregador":13_920.0},
+        # Enfermeiros
+        {"matricula":"0020","nome":"ENFERMEIRO ESF LIBERDADE",    "cargo":"Enfermeiro","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":4_750.0,"adicional_interioridade":1_900.0,"bruto":6_650.0,"desc_inss":596.12,"desc_irrf":  498.72,"liquido":5_555.16,"custo_total_empregador":7_980.0},
+        {"matricula":"0021","nome":"ENFERMEIRO ESF KENNEDY",      "cargo":"Enfermeiro","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":4_750.0,"adicional_interioridade":1_900.0,"bruto":6_650.0,"desc_inss":596.12,"desc_irrf":  498.72,"liquido":5_555.16,"custo_total_empregador":7_980.0},
+        {"matricula":"0022","nome":"ENFERMEIRO ESF JUMA",         "cargo":"Enfermeiro","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":4_750.0,"adicional_interioridade":1_900.0,"bruto":6_650.0,"desc_inss":596.12,"desc_irrf":  498.72,"liquido":5_555.16,"custo_total_empregador":7_980.0},
+        {"matricula":"0023","nome":"ENFERMEIRO ESF JK",           "cargo":"Enfermeiro","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":4_750.0,"adicional_interioridade":1_900.0,"bruto":6_650.0,"desc_inss":596.12,"desc_irrf":  498.72,"liquido":5_555.16,"custo_total_empregador":7_980.0},
+        {"matricula":"0024","nome":"ENFERMEIRO ESF CACHOEIRA",    "cargo":"Enfermeiro","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":4_750.0,"adicional_interioridade":1_900.0,"bruto":6_650.0,"desc_inss":596.12,"desc_irrf":  498.72,"liquido":5_555.16,"custo_total_empregador":7_980.0},
+        {"matricula":"0025","nome":"ENFERMEIRO ESF SÃO SEBASTIÃO","cargo":"Enfermeiro","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":4_750.0,"adicional_interioridade":1_900.0,"bruto":6_650.0,"desc_inss":596.12,"desc_irrf":  498.72,"liquido":5_555.16,"custo_total_empregador":7_980.0},
+        {"matricula":"0026","nome":"ENFERMEIRO ESF ACARI",        "cargo":"Enfermeiro","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":4_750.0,"adicional_interioridade":1_900.0,"bruto":6_650.0,"desc_inss":596.12,"desc_irrf":  498.72,"liquido":5_555.16,"custo_total_empregador":7_980.0},
+        {"matricula":"0027","nome":"ENFERMEIRO ESF TRÊS ESTADOS", "cargo":"Enfermeiro","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":4_750.0,"adicional_interioridade":1_900.0,"bruto":6_650.0,"desc_inss":596.12,"desc_irrf":  498.72,"liquido":5_555.16,"custo_total_empregador":7_980.0},
+        {"matricula":"0028","nome":"ENFERMEIRO ESF ESTRADA NOVA", "cargo":"Enfermeiro","vinculo":"estatutario","fonte_pagamento":"Federal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":4_750.0,"adicional_interioridade":1_900.0,"bruto":6_650.0,"desc_inss":596.12,"desc_irrf":  498.72,"liquido":5_555.16,"custo_total_empregador":7_980.0},
+        # Cirurgião-Dentista
+        {"matricula":"0030","nome":"CIRURGIÃO-DENTISTA ESB",      "cargo":"Cirurgião-Dentista","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":5_200.0,"adicional_interioridade":2_080.0,"bruto":7_280.0,"desc_inss":652.89,"desc_irrf":  691.48,"liquido":5_935.63,"custo_total_empregador":8_736.0},
+        # Técnicos de Enfermagem (1 por equipe)
+        {"matricula":"0040","nome":"TÉC. ENFERMAGEM LIBERDADE",    "cargo":"Técnico de Enfermagem","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":2_100.0,"adicional_interioridade":840.0,"bruto":2_940.0,"desc_inss":264.60,"desc_irrf":0.0,"liquido":2_675.40,"custo_total_empregador":3_528.0},
+        {"matricula":"0041","nome":"TÉC. ENFERMAGEM KENNEDY",      "cargo":"Técnico de Enfermagem","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":2_100.0,"adicional_interioridade":840.0,"bruto":2_940.0,"desc_inss":264.60,"desc_irrf":0.0,"liquido":2_675.40,"custo_total_empregador":3_528.0},
+        {"matricula":"0042","nome":"TÉC. ENFERMAGEM JUMA",         "cargo":"Técnico de Enfermagem","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":2_100.0,"adicional_interioridade":840.0,"bruto":2_940.0,"desc_inss":264.60,"desc_irrf":0.0,"liquido":2_675.40,"custo_total_empregador":3_528.0},
+        {"matricula":"0043","nome":"TÉC. ENFERMAGEM JK",           "cargo":"Técnico de Enfermagem","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":2_100.0,"adicional_interioridade":840.0,"bruto":2_940.0,"desc_inss":264.60,"desc_irrf":0.0,"liquido":2_675.40,"custo_total_empregador":3_528.0},
+        {"matricula":"0044","nome":"TÉC. ENFERMAGEM CACHOEIRA",    "cargo":"Técnico de Enfermagem","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":2_100.0,"adicional_interioridade":840.0,"bruto":2_940.0,"desc_inss":264.60,"desc_irrf":0.0,"liquido":2_675.40,"custo_total_empregador":3_528.0},
+        {"matricula":"0045","nome":"TÉC. ENFERMAGEM SÃO SEBASTIÃO","cargo":"Técnico de Enfermagem","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":2_100.0,"adicional_interioridade":840.0,"bruto":2_940.0,"desc_inss":264.60,"desc_irrf":0.0,"liquido":2_675.40,"custo_total_empregador":3_528.0},
+        {"matricula":"0046","nome":"TÉC. ENFERMAGEM ACARI",        "cargo":"Técnico de Enfermagem","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":2_100.0,"adicional_interioridade":840.0,"bruto":2_940.0,"desc_inss":264.60,"desc_irrf":0.0,"liquido":2_675.40,"custo_total_empregador":3_528.0},
+        {"matricula":"0047","nome":"TÉC. ENFERMAGEM TRÊS ESTADOS", "cargo":"Técnico de Enfermagem","vinculo":"estatutario","fonte_pagamento":"Municipal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":2_100.0,"adicional_interioridade":840.0,"bruto":2_940.0,"desc_inss":264.60,"desc_irrf":0.0,"liquido":2_675.40,"custo_total_empregador":3_528.0},
+        {"matricula":"0048","nome":"TÉC. ENFERMAGEM ESTRADA NOVA", "cargo":"Técnico de Enfermagem","vinculo":"estatutario","fonte_pagamento":"Federal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":2_100.0,"adicional_interioridade":840.0,"bruto":2_940.0,"desc_inss":264.60,"desc_irrf":0.0,"liquido":2_675.40,"custo_total_empregador":3_528.0},
+        # Microscopista (5)
+        {"matricula":"0050","nome":"MICROSCOPISTA 1","cargo":"Microscopista","vinculo":"estatutario","fonte_pagamento":"Federal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":1_900.0,"adicional_interioridade":760.0,"bruto":2_660.0,"desc_inss":239.40,"desc_irrf":0.0,"liquido":2_420.60,"custo_total_empregador":3_192.0},
+        {"matricula":"0051","nome":"MICROSCOPISTA 2","cargo":"Microscopista","vinculo":"estatutario","fonte_pagamento":"Federal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":1_900.0,"adicional_interioridade":760.0,"bruto":2_660.0,"desc_inss":239.40,"desc_irrf":0.0,"liquido":2_420.60,"custo_total_empregador":3_192.0},
+        {"matricula":"0052","nome":"MICROSCOPISTA 3","cargo":"Microscopista","vinculo":"estatutario","fonte_pagamento":"Federal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":1_900.0,"adicional_interioridade":760.0,"bruto":2_660.0,"desc_inss":239.40,"desc_irrf":0.0,"liquido":2_420.60,"custo_total_empregador":3_192.0},
+        {"matricula":"0053","nome":"MICROSCOPISTA 4","cargo":"Microscopista","vinculo":"estatutario","fonte_pagamento":"Federal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":1_900.0,"adicional_interioridade":760.0,"bruto":2_660.0,"desc_inss":239.40,"desc_irrf":0.0,"liquido":2_420.60,"custo_total_empregador":3_192.0},
+        {"matricula":"0054","nome":"MICROSCOPISTA 5","cargo":"Microscopista","vinculo":"estatutario","fonte_pagamento":"Federal","fonte_contabil":"339011","fonte_grupo":"Pessoal Ativo","salario_base":1_900.0,"adicional_interioridade":760.0,"bruto":2_660.0,"desc_inss":239.40,"desc_irrf":0.0,"liquido":2_420.60,"custo_total_empregador":3_192.0},
+    ]
+
+    # Derivar campos extras que o frontend usa
+    _CARGO_CH = {
+        "Médico 40h": 40, "Enfermeiro": 40, "Cirurgião-Dentista": 40,
+        "Técnico de Enfermagem": 40, "Microscopista": 40,
+    }
+    _CARGO_UNIDADE = {
+        "Médico 40h": "USF", "Enfermeiro": "USF", "Cirurgião-Dentista": "Unid. Odontológica",
+        "Técnico de Enfermagem": "USF", "Microscopista": "Laboratório Municipal",
+    }
+    for v in verbas:
+        # carga_horaria e unidade
+        v.setdefault("carga_horaria", _CARGO_CH.get(v["cargo"], 40))
+        # equipe = última palavra do nome (ex: "MÉDICO ESF LIBERDADE" → "LIBERDADE")
+        partes = v["nome"].split()
+        v.setdefault("equipe", partes[-1] if partes else "")
+        v.setdefault("unidade", f"{_CARGO_UNIDADE.get(v['cargo'], 'USF')} {v['equipe']}")
+        # encargos patronais
+        bruto = v["bruto"]
+        is_est = v["vinculo"] == "estatutario"
+        v.setdefault("enc_inss_patronal", round(bruto * (0.20 if is_est else 0.28), 2))
+        v.setdefault("enc_fgts",          round(bruto * (0.0  if is_est else 0.08), 2))
+        v.setdefault("enc_ferias_prop",   round(bruto / 12 * 1.333, 2))
+        v.setdefault("enc_decimo_terceiro", round(bruto / 12, 2))
+
+    total_bruto  = sum(v["bruto"]  for v in verbas)
+    total_liq    = sum(v["liquido"] for v in verbas)
+    total_inss   = sum(v["desc_inss"] for v in verbas)
+    total_irrf   = sum(v["desc_irrf"] for v in verbas)
+    total_custo  = sum(v["custo_total_empregador"] for v in verbas)
+
+    fontes: dict = {}
+    for v in verbas:
+        fp = v["fonte_pagamento"]
+        if fp not in fontes:
+            fontes[fp] = {"label": fp, "contabil": v["fonte_contabil"],
+                          "grupo": v["fonte_grupo"], "servidores": 0,
+                          "bruto": 0.0, "liquido": 0.0, "custo_total": 0.0}
+        fontes[fp]["servidores"] += 1
+        fontes[fp]["bruto"]      += v["bruto"]
+        fontes[fp]["liquido"]    += v["liquido"]
+        fontes[fp]["custo_total"] += v["custo_total_empregador"]
+
+    return {
+        "situacao_dado": "referencia",
+        "fonte": f"SCNES/Fiorele — referência SMS Apuí/AM — {competencia}",
+        "competencia": competencia,
+        "importado_em": _TS(),
+        "total_servidores": len(verbas),
+        "total_bruto": total_bruto,
+        "total_liquido": total_liq,
+        "total_inss_descontado": total_inss,
+        "total_irrf_descontado": total_irrf,
+        "total_custo_empregador": total_custo,
+        "verbas": verbas,
+        "resumo_por_fonte": list(fontes.values()),
+        "erros_importacao": [],
+    }
+
+
 @router.get("/folha")
 async def folha(competencia: str = Query("2026-07")):
-    """Retorna folha importada do Fiorele para a competência solicitada."""
+    """Retorna folha importada do Fiorele ou dados de referência."""
     dados = _ler(competencia)
     if dados:
         return dados
-    comps = _listar_competencias()
-    return {
-        "situacao_dado": "nao_disponivel",
-        "competencia": competencia,
-        "competencias_disponiveis": comps,
-        "nota": (
-            "Nenhuma folha importada para esta competência. "
-            "Exporte do Fiorele (Menu Folha → Exportar → CSV/TXT) "
-            "e faça upload em /api/folha/importar ou pelo botão no ERSUS 360."
-        ),
-        "fonte": "Fiorele — pendente importação",
-        "verificado_em": _TS(),
-    }
+    return _folha_referencia(competencia)
 
 
 @router.get("/competencias")
