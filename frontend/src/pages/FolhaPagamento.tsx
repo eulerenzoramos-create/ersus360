@@ -1,5 +1,5 @@
 // src/pages/FolhaPagamento.tsx — Folha de Pagamento SMS Apuí/AM — v4 completo
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGetRaw, api } from "../lib/api";
 import {
@@ -383,6 +383,10 @@ export default function FolhaPagamento() {
   const [modalNovo, setModalNovo] = useState(false);
   const [modalStatus, setModalStatus] = useState<Servidor|null>(null);
   const [excluindo, setExcluindo] = useState<string|null>(null);
+  // presença: chave "MAT_DIA" → marcação
+  const [presencaLocal, setPresencaLocal] = useState<Record<string,"P"|"F"|"FJ"|"FS"|"L">>({});
+  const [celulaPop, setCelulaPop] = useState<string|null>(null); // chave da célula com popup aberto
+  const [salvandoPresenca, setSalvandoPresenca] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["folha", competencia],
@@ -394,6 +398,17 @@ export default function FolhaPagamento() {
     queryFn: () => apiGetRaw(`/api/folha/presenca?competencia=${competencia}`),
     enabled: aba === "presenca",
   });
+
+  // Carrega marcações salvas ao abrir presença
+  useEffect(() => {
+    if (aba !== "presenca") return;
+    api.get(`/api/folha/presenca/marcacoes?competencia=${competencia}`)
+      .then(r => {
+        const m = r.data?.marcacoes;
+        if (m && Object.keys(m).length > 0) setPresencaLocal(m);
+      })
+      .catch(() => {});
+  }, [aba, competencia]);
 
   const folha = data as any;
 
@@ -975,14 +990,60 @@ export default function FolhaPagamento() {
           })()}
 
           {/* ── FOLHA DE PRESENÇA ── */}
-          {aba === "presenca" && (
-            <div style={{ background:"#fff", border:"1px solid #dde4ee", borderRadius:"0 0 10px 10px", padding:20 }}>
-              <div style={{ fontWeight:700, fontSize:14, color:"#0d2137", marginBottom:6,
-                borderBottom:"1px solid #dde4ee", paddingBottom:10 }}>
-                📋 Folha de Presença — {COMP_LABEL[competencia]||competencia}
+          {aba === "presenca" && (() => {
+            // helpers de marcação
+            const MARCACOES = ["P","F","FJ","FS","L"] as const;
+            type Marc = typeof MARCACOES[number];
+            const COR_MARC: Record<Marc,string> = {
+              P:"#059669", F:"#dc2626", FJ:"#d97706", FS:"#6366f1", L:"#0284c7"
+            };
+            const LABEL_MARC: Record<Marc,string> = {
+              P:"Presente", F:"Falta", FJ:"Falta Justificada", FS:"Folga/Escala", L:"Licença"
+            };
+            const chave = (mat: string, d: number) => `${mat}_${d}`;
+            const getMarcacao = (mat: string, d: number, statusServidor: string): Marc => {
+              const k = chave(mat, d);
+              if (presencaLocal[k]) return presencaLocal[k];
+              return (statusServidor !== "ativo") ? "L" : "P";
+            };
+            const setMarcacao = (mat: string, d: number, m: Marc) => {
+              setPresencaLocal(prev => ({ ...prev, [chave(mat,d)]: m }));
+              setCelulaPop(null);
+            };
+            async function salvarPresenca() {
+              setSalvandoPresenca(true);
+              try {
+                await api.post("/api/folha/presenca/salvar", {
+                  competencia, marcacoes: presencaLocal,
+                });
+                alert("Folha de presença salva com sucesso!");
+              } catch { alert("Erro ao salvar. Tente novamente."); }
+              finally { setSalvandoPresenca(false); }
+            }
+            return (
+            <div style={{ background:"#fff", border:"1px solid #dde4ee", borderRadius:"0 0 10px 10px", padding:20 }}
+              onClick={() => setCelulaPop(null)}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+                marginBottom:6, borderBottom:"1px solid #dde4ee", paddingBottom:10 }}>
+                <div style={{ fontWeight:700, fontSize:14, color:"#0d2137" }}>
+                  📋 Folha de Presença — {COMP_LABEL[competencia]||competencia}
+                </div>
+                <button onClick={salvarPresenca} disabled={salvandoPresenca}
+                  style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 16px",
+                    background: salvandoPresenca ? "#9ca3af" : "#059669",
+                    border:"none", borderRadius:7, color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+                  {salvandoPresenca ? "Salvando..." : "💾 Salvar Folha"}
+                </button>
               </div>
-              <div style={{ fontSize:12, color:"#6b7280", marginBottom:16 }}>
-                P = Presente · F = Falta · FJ = Falta Justificada · FS = Folga/Escala · L = Licença
+              <div style={{ fontSize:11, color:"#6b7280", marginBottom:16, display:"flex", gap:12, flexWrap:"wrap" }}>
+                {(Object.entries(LABEL_MARC) as [Marc,string][]).map(([k,l]) => (
+                  <span key={k} style={{ display:"flex", alignItems:"center", gap:4 }}>
+                    <span style={{ background:COR_MARC[k], color:"#fff", fontWeight:800,
+                      fontSize:10, padding:"1px 6px", borderRadius:4 }}>{k}</span>
+                    <span>{l}</span>
+                  </span>
+                ))}
+                <span style={{ color:"#9ca3af" }}>· Clique em qualquer célula para alterar</span>
               </div>
 
               {!presencaData ? (
@@ -1019,32 +1080,65 @@ export default function FolhaPagamento() {
                                 </th>
                               );
                             })}
-                            <th style={thSt}>Total</th>
+                            <th style={thSt}>P</th>
+                            <th style={thSt}>F</th>
                           </tr>
                         </thead>
                         <tbody>
                           {setor.servidores.map((s: any, i: number) => {
-                            const licenca = s.status !== "ativo";
+                            const bgRow = i%2===0?"#fff":"#f9fafb";
+                            const marcacoesLinha = diasUteis.map(d => getMarcacao(s.matricula, d, s.status));
+                            const totalP = marcacoesLinha.filter(m => m==="P").length;
+                            const totalF = marcacoesLinha.filter(m => m==="F" || m==="FJ").length;
                             return (
-                              <tr key={s.matricula} style={{ background: licenca?"#fffbeb":(i%2===0?"#fff":"#f9fafb") }}>
-                                <td style={{ ...tdSt, fontWeight:600, position:"sticky", left:0,
-                                  background: licenca?"#fffbeb":(i%2===0?"#fff":"#f9fafb"), zIndex:0 }}>
+                              <tr key={s.matricula} style={{ background: bgRow }}>
+                                <td style={{ ...tdSt, fontWeight:600, position:"sticky", left:0, background:bgRow, zIndex:0 }}>
                                   {s.nome}
                                 </td>
                                 <td style={{ ...tdSt, fontSize:10, color:"#6b7280" }}>{s.cargo}</td>
                                 <td style={tdSt}><StatusBadge status={s.status||"ativo"}/></td>
-                                {diasUteis.map(d => (
-                                  <td key={d} style={{ ...tdSt, textAlign:"center", padding:"4px 2px" }}>
-                                    {licenca ? (
-                                      <span style={{ fontSize:9, color:"#d97706", fontWeight:700 }}>L</span>
-                                    ) : (
-                                      <span style={{ fontSize:9, color:"#059669", fontWeight:700 }}>P</span>
-                                    )}
-                                  </td>
-                                ))}
-                                <td style={{ ...tdSt, textAlign:"center", fontWeight:700 }}>
-                                  {licenca ? <span style={{ color:"#d97706" }}>—</span>
-                                    : <span style={{ color:"#059669" }}>{diasUteis.length}</span>}
+                                {diasUteis.map(d => {
+                                  const k = chave(s.matricula, d);
+                                  const marc = getMarcacao(s.matricula, d, s.status);
+                                  const cor = COR_MARC[marc];
+                                  const isOpen = celulaPop === k;
+                                  return (
+                                    <td key={d} style={{ ...tdSt, textAlign:"center", padding:"3px 2px", position:"relative" }}>
+                                      <button
+                                        onClick={e => { e.stopPropagation(); setCelulaPop(isOpen ? null : k); }}
+                                        title={LABEL_MARC[marc]}
+                                        style={{ background:cor+"18", color:cor, border:`1px solid ${cor}44`,
+                                          borderRadius:4, fontSize:9, fontWeight:800, width:26, height:22,
+                                          cursor:"pointer", lineHeight:1 }}>
+                                        {marc}
+                                      </button>
+                                      {isOpen && (
+                                        <div onClick={e => e.stopPropagation()}
+                                          style={{ position:"absolute", top:28, left:"50%", transform:"translateX(-50%)",
+                                            background:"#fff", border:"1px solid #d1d5db", borderRadius:8,
+                                            boxShadow:"0 8px 24px rgba(0,0,0,.15)", zIndex:100,
+                                            padding:6, display:"flex", flexDirection:"column", gap:3, minWidth:120 }}>
+                                          {MARCACOES.map(m => (
+                                            <button key={m} onClick={() => setMarcacao(s.matricula, d, m)}
+                                              style={{ display:"flex", alignItems:"center", gap:6,
+                                                padding:"5px 8px", border:"none", borderRadius:5,
+                                                background: marc===m ? COR_MARC[m]+"22" : "transparent",
+                                                cursor:"pointer", fontSize:11, fontWeight: marc===m ? 800 : 400,
+                                                color: COR_MARC[m], textAlign:"left" as const }}>
+                                              <span style={{ background:COR_MARC[m], color:"#fff",
+                                                fontSize:9, fontWeight:800, padding:"1px 5px",
+                                                borderRadius:3, minWidth:22, textAlign:"center" as const }}>{m}</span>
+                                              {LABEL_MARC[m]}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                                <td style={{ ...tdSt, textAlign:"center", fontWeight:700, color:"#059669" }}>{totalP}</td>
+                                <td style={{ ...tdSt, textAlign:"center", fontWeight:700, color: totalF>0?"#dc2626":"#9ca3af" }}>
+                                  {totalF > 0 ? totalF : "—"}
                                 </td>
                               </tr>
                             );
@@ -1056,7 +1150,8 @@ export default function FolhaPagamento() {
                 );
               })}
             </div>
-          )}
+            );
+          })()}
 
           {/* ── GESTÃO DE PESSOAL ── */}
           {aba === "gestao" && (

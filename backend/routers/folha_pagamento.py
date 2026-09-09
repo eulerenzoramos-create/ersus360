@@ -434,6 +434,40 @@ async def folha_presenca(competencia: str = Query("2026-07"), setor: str = Query
     }
 
 
+_PRESENCA_PATH = Path("/tmp/ersus_folha_presenca.json")
+
+@router.post("/presenca/salvar")
+async def salvar_presenca(payload: dict):
+    """Persiste as marcações de presença/falta da folha mensal."""
+    competencia = payload.get("competencia", "")
+    marcacoes = payload.get("marcacoes", {})
+    if not competencia:
+        raise HTTPException(400, "competencia obrigatória")
+    dados: dict = {}
+    if _PRESENCA_PATH.exists():
+        try:
+            dados = json.loads(_PRESENCA_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            dados = {}
+    dados[competencia] = marcacoes
+    _PRESENCA_PATH.write_text(json.dumps(dados, ensure_ascii=False), encoding="utf-8")
+    total = len(marcacoes)
+    faltas = sum(1 for v in marcacoes.values() if v in ("F", "FJ"))
+    return {"ok": True, "competencia": competencia, "total_registros": total, "faltas": faltas}
+
+
+@router.get("/presenca/marcacoes")
+async def ler_marcacoes(competencia: str = Query("2026-07")):
+    """Retorna marcações salvas para uma competência."""
+    if not _PRESENCA_PATH.exists():
+        return {"competencia": competencia, "marcacoes": {}}
+    try:
+        dados = json.loads(_PRESENCA_PATH.read_text(encoding="utf-8"))
+        return {"competencia": competencia, "marcacoes": dados.get(competencia, {})}
+    except Exception:
+        return {"competencia": competencia, "marcacoes": {}}
+
+
 @router.post("/importar")
 async def importar_fiorele(
     arquivo: UploadFile = File(...),
