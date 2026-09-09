@@ -285,18 +285,153 @@ def _folha_referencia(competencia: str) -> dict:
 
 
 
+_PATCHES_PATH = Path("/tmp/ersus_folha_patches.json")
+
+
+def _ler_patches() -> dict:
+    """Lê patches locais: adições, exclusões e atualizações de status."""
+    if _PATCHES_PATH.exists():
+        try:
+            return json.loads(_PATCHES_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {"adicionados": [], "excluidos": [], "status_overrides": {}}
+
+
+def _salvar_patches(patches: dict):
+    with open(_PATCHES_PATH, "w", encoding="utf-8") as f:
+        json.dump(patches, f, ensure_ascii=False, indent=2)
+
+
+def _aplicar_patches(verbas: list) -> list:
+    """Aplica patches (adições/exclusões/status) sobre a lista base."""
+    p = _ler_patches()
+    mat_excluidas = set(p.get("excluidos", []))
+    status_ov = p.get("status_overrides", {})
+    result = []
+    for v in verbas:
+        if v["matricula"] in mat_excluidas:
+            continue
+        if v["matricula"] in status_ov:
+            v = dict(v, status=status_ov[v["matricula"]])
+        result.append(v)
+    for extra in p.get("adicionados", []):
+        if extra["matricula"] not in mat_excluidas:
+            result.append(extra)
+    return result
+
+
+def _folha_com_patches(competencia: str) -> dict:
+    base = _folha_referencia(competencia)
+    verbas_p = _aplicar_patches(base["verbas"])
+    fontes: dict = {}
+    for v in verbas_p:
+        fp = v["fonte_pagamento"]
+        if fp not in fontes:
+            fontes[fp] = {"label": fp, "contabil": v["fonte_contabil"],
+                          "grupo": v["fonte_grupo"], "servidores": 0,
+                          "bruto": 0.0, "liquido": 0.0, "custo_total": 0.0}
+        fontes[fp]["servidores"] += 1
+        fontes[fp]["bruto"]       = round(fontes[fp]["bruto"] + v["bruto"], 2)
+        fontes[fp]["liquido"]     = round(fontes[fp]["liquido"] + v["liquido"], 2)
+        fontes[fp]["custo_total"] = round(fontes[fp]["custo_total"] + v["custo_total_empregador"], 2)
+    return {
+        **base,
+        "total_servidores": len(verbas_p),
+        "total_bruto": round(sum(v["bruto"] for v in verbas_p), 2),
+        "total_liquido": round(sum(v["liquido"] for v in verbas_p), 2),
+        "total_inss_descontado": round(sum(v["desc_inss"] for v in verbas_p), 2),
+        "total_irrf_descontado": round(sum(v["desc_irrf"] for v in verbas_p), 2),
+        "total_custo_empregador": round(sum(v["custo_total_empregador"] for v in verbas_p), 2),
+        "verbas": verbas_p,
+        "resumo_por_fonte": list(fontes.values()),
+    }
+
+
 @router.get("/folha")
 async def folha(competencia: str = Query("2026-07")):
-    """Retorna folha importada do Fiorele ou dados de referência."""
     dados = _ler(competencia)
     if dados:
         return dados
-    return _folha_referencia(competencia)
+    return _folha_com_patches(competencia)
 
 
 @router.get("/competencias")
 async def listar_competencias():
     return {"competencias": _listar_competencias()}
+
+
+# ── Gestão de pessoal ─────────────────────────────────────────────────────────
+
+@router.post("/funcionario")
+async def adicionar_funcionario(payload: dict):
+    """Adiciona novo servidor à folha (persiste em /tmp)."""
+    p = _ler_patches()
+    mat = payload.get("matricula", f"NOVO{len(p['adicionados'])+1:04d}")
+    payload["matricula"] = str(mat)
+    payload.setdefault("status", "ativo")
+    payload.setdefault("fonte_grupo", "MUNICIPAL")
+    payload.setdefault("fonte_pagamento", "Municipal")
+    payload.setdefault("fonte_contabil", "319011")
+    payload.setdefault("vinculo", "estatutario")
+    p["adicionados"].append(payload)
+    _salvar_patches(p)
+    return {"ok": True, "matricula": payload["matricula"], "mensagem": "Servidor adicionado com sucesso."}
+
+
+@router.delete("/funcionario/{matricula}")
+async def excluir_funcionario(matricula: str):
+    """Marca servidor como excluído da folha (reversível)."""
+    p = _ler_patches()
+    if matricula not in p["excluidos"]:
+        p["excluidos"].append(matricula)
+    _salvar_patches(p)
+    return {"ok": True, "matricula": matricula, "mensagem": "Servidor removido da folha ativa."}
+
+
+@router.patch("/funcionario/{matricula}/status")
+async def atualizar_status(matricula: str, payload: dict):
+    """Atualiza status funcional (ativo/licenca/licenca_maternidade/afastado/cedido)."""
+    novo_status = payload.get("status", "ativo")
+    VALIDOS = {"ativo", "licenca", "licenca_maternidade", "afastado", "cedido", "ferias"}
+    if novo_status not in VALIDOS:
+        raise HTTPException(400, f"Status inválido. Use: {', '.join(VALIDOS)}")
+    p = _ler_patches()
+    p["status_overrides"][matricula] = novo_status
+    _salvar_patches(p)
+    return {"ok": True, "matricula": matricula, "status": novo_status}
+
+
+@router.get("/presenca")
+async def folha_presenca(competencia: str = Query("2026-07"), setor: str = Query("")):
+    """Retorna estrutura para folha de presença mensal por setor."""
+    from calendar import monthrange
+    ano, mes = [int(x) for x in competencia.split("-")]
+    _, dias_mes = monthrange(ano, mes)
+    dados = _folha_com_patches(competencia)
+    verbas = dados["verbas"]
+    if setor:
+        verbas = [v for v in verbas if v.get("lotacao","") == setor or v.get("setor","") == setor]
+    setores: dict = {}
+    for v in verbas:
+        s = v.get("lotacao") or v.get("setor") or "Sem Setor"
+        if s not in setores:
+            setores[s] = []
+        setores[s].append({
+            "matricula": v["matricula"],
+            "nome": v["nome"],
+            "cargo": v["cargo"],
+            "vinculo": v["vinculo"],
+            "status": v.get("status", "ativo"),
+            "carga_horaria": v.get("carga_horaria", 40),
+        })
+    return {
+        "competencia": competencia,
+        "ano": ano,
+        "mes": mes,
+        "dias_mes": dias_mes,
+        "setores": [{"nome": k, "servidores": v} for k,v in sorted(setores.items())],
+    }
 
 
 @router.post("/importar")
