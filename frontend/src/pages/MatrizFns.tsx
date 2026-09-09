@@ -153,6 +153,9 @@ const BANCOS: Record<string, string> = {
 const _nomeBanco = (cod: string) => BANCOS[cod] ? `${cod} — ${BANCOS[cod]}` : cod;
 
 // ─── Aba: Contas de Repasse ───────────────────────────────────────────────────
+const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
 function AbaContas({ exercicio }: { exercicio: number }) {
   const { data, isLoading } = useQuery<{ exercicio: number; total_contas: number; total_geral: number; contas: ContaRepasse[] }>({
     queryKey: ["fns-contas-repasse", exercicio],
@@ -160,17 +163,80 @@ function AbaContas({ exercicio }: { exercicio: number }) {
     staleTime: 300_000,
   });
   const [expandido, setExpandido] = useState<string | null>(null);
+  const [filtroMes, setFiltroMes] = useState<number>(0);       // 0 = todos
+  const [filtroGrupo, setFiltroGrupo] = useState("");
+  const [filtroTexto, setFiltroTexto] = useState("");
 
   if (isLoading) return <div style={{ padding: 40, textAlign: "center", color: C.gray }}>Carregando contas…</div>;
   if (!data) return <div style={{ padding: 40, textAlign: "center", color: C.red }}>Erro ao carregar contas de repasse.</div>;
 
+  // Filtra transferências dentro de cada conta
+  const contasFiltradas = data.contas.map(c => {
+    const transfs = c.transferencias.filter(t => {
+      if (filtroMes && t.mes !== filtroMes) return false;
+      if (filtroGrupo && t.grupo !== filtroGrupo) return false;
+      if (filtroTexto) {
+        const q = filtroTexto.toLowerCase();
+        return (t.acao||"").toLowerCase().includes(q)
+          || (t.numero_portaria||"").toLowerCase().includes(q)
+          || (t.numero_ob||"").toLowerCase().includes(q);
+      }
+      return true;
+    });
+    return { ...c, transferencias: transfs,
+      total_filtrado: transfs.reduce((s,t) => s + (t.valor_liquido||0), 0) };
+  }).filter(c => c.transferencias.length > 0);
+
+  // Grupos disponíveis para filtro
+  const gruposDisp = Array.from(new Set(data.contas.flatMap(c => c.transferencias.map(t => t.grupo||"")))).filter(Boolean).sort();
+  const totalFiltrado = contasFiltradas.reduce((s,c) => s + c.total_filtrado, 0);
+  const temFiltro = filtroMes > 0 || filtroGrupo || filtroTexto;
+
   return (
     <div>
+      {/* Filtros */}
+      <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16,
+        background:C.grayL, border:`1px solid ${C.grayBdr}`, borderRadius:10, padding:"12px 16px" }}>
+        <div style={{ display:"flex", flexDirection:"column" as const, gap:4, flex:"1 1 140px" }}>
+          <label style={{ fontSize:10, color:C.textSec, fontWeight:600 }}>MÊS DE REFERÊNCIA</label>
+          <select value={filtroMes} onChange={e => setFiltroMes(Number(e.target.value))}
+            style={{ border:`1px solid ${C.grayBdr}`, borderRadius:6, padding:"6px 10px", fontSize:12, background:"#fff" }}>
+            <option value={0}>Todos os meses</option>
+            {MESES_NOMES.map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
+          </select>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column" as const, gap:4, flex:"1 1 180px" }}>
+          <label style={{ fontSize:10, color:C.textSec, fontWeight:600 }}>GRUPO</label>
+          <select value={filtroGrupo} onChange={e => setFiltroGrupo(e.target.value)}
+            style={{ border:`1px solid ${C.grayBdr}`, borderRadius:6, padding:"6px 10px", fontSize:12, background:"#fff" }}>
+            <option value="">Todos os grupos</option>
+            {gruposDisp.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column" as const, gap:4, flex:"2 1 220px" }}>
+          <label style={{ fontSize:10, color:C.textSec, fontWeight:600 }}>BUSCAR (ação, portaria, nº OB)</label>
+          <input value={filtroTexto} onChange={e => setFiltroTexto(e.target.value)}
+            placeholder="Ex: saúde bucal, portaria 3493..."
+            style={{ border:`1px solid ${C.grayBdr}`, borderRadius:6, padding:"6px 10px", fontSize:12 }}/>
+        </div>
+        {temFiltro && (
+          <div style={{ display:"flex", alignItems:"flex-end" }}>
+            <button onClick={() => { setFiltroMes(0); setFiltroGrupo(""); setFiltroTexto(""); }}
+              style={{ padding:"6px 14px", border:`1px solid ${C.grayBdr}`, borderRadius:6,
+                background:"#fff", cursor:"pointer", fontSize:12, color:C.red }}>
+              ✕ Limpar
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Resumo */}
       <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" as const }}>
         {[
-          { label: "Contas identificadas", val: data.total_contas, brl: false, cor: C.blue },
-          { label: "Total geral", val: data.total_geral, brl: true, cor: C.green },
+          { label: temFiltro ? "Contas com resultado" : "Contas identificadas",
+            val: temFiltro ? contasFiltradas.length : data.total_contas, brl: false, cor: C.blue },
+          { label: temFiltro ? `Total filtrado (${filtroMes ? MESES_NOMES[filtroMes-1] : "todos"})` : "Total geral",
+            val: temFiltro ? totalFiltrado : data.total_geral, brl: true, cor: C.green },
         ].map(k => (
           <div key={k.label} style={{ flex: "1 1 180px", background: C.grayL, borderRadius: 10,
             padding: "12px 16px", border: `1px solid ${C.grayBdr}` }}>
@@ -182,11 +248,20 @@ function AbaContas({ exercicio }: { exercicio: number }) {
         ))}
       </div>
 
+      {/* Mensagem sem resultado */}
+      {temFiltro && contasFiltradas.length === 0 && (
+        <div style={{ padding:32, textAlign:"center", color:C.textSec, fontSize:13 }}>
+          Nenhuma transferência encontrada para o filtro selecionado.
+        </div>
+      )}
+
       {/* Lista de contas */}
       <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
-        {data.contas.map((c, i) => {
+        {(temFiltro ? contasFiltradas : data.contas).map((c: any, i: number) => {
           const chave = `${c.banco}/${c.agencia}/${c.conta}`;
           const aberto = expandido === chave;
+          const totalExib = temFiltro ? c.total_filtrado : c.total_liquido;
+          const temConta = c.agencia !== "—" || c.conta !== "—";
           return (
             <div key={i} style={{ border: `1px solid ${C.grayBdr}`, borderRadius: 10, overflow: "hidden" }}>
               <div
@@ -195,7 +270,7 @@ function AbaContas({ exercicio }: { exercicio: number }) {
                   background: aberto ? C.blueL : C.white, cursor: "pointer" }}>
                 {/* Banco badge */}
                 <div style={{ background: C.blue, color: C.white, borderRadius: 8,
-                  padding: "6px 10px", textAlign: "center", minWidth: 60 }}>
+                  padding: "6px 10px", textAlign: "center" as const, minWidth: 60 }}>
                   <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.8 }}>BANCO</div>
                   <div style={{ fontSize: 16, fontWeight: 800 }}>{c.banco === "—" ? "?" : c.banco}</div>
                 </div>
@@ -204,11 +279,17 @@ function AbaContas({ exercicio }: { exercicio: number }) {
                   <div style={{ fontWeight: 700, fontSize: 14, color: C.textPri }}>
                     {c.banco !== "—" ? _nomeBanco(c.banco) : "Banco não identificado"}
                   </div>
-                  <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>
-                    Ag. {c.agencia} · Conta {c.conta}
-                  </div>
+                  {temConta ? (
+                    <div style={{ fontSize: 12, color: C.blue, marginTop: 2, fontWeight: 600 }}>
+                      🏦 Ag. {c.agencia} · Conta {c.conta}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 11, color: "#f59e0b", marginTop: 2 }}>
+                      ⚠️ Dados bancários não informados pelo FNS
+                    </div>
+                  )}
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, marginTop: 4 }}>
-                    {c.grupos.map(g => {
+                    {c.grupos.map((g: string) => {
                       const gc = _grupoCor(g);
                       return (
                         <span key={g} style={{ background: gc.bg, color: gc.txt, borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 600 }}>
@@ -219,12 +300,13 @@ function AbaContas({ exercicio }: { exercicio: number }) {
                   </div>
                 </div>
                 {/* Totais */}
-                <div style={{ textAlign: "right" }}>
+                <div style={{ textAlign: "right" as const }}>
                   <div style={{ fontWeight: 800, fontSize: 16, color: C.green }}>
-                    {BRL_ZERO(c.total_liquido)}
+                    {BRL_ZERO(totalExib)}
                   </div>
                   <div style={{ fontSize: 11, color: C.textSec }}>
-                    {c.qtd_transferencias} transf. · {c.meses.length} {c.meses.length === 1 ? "mês" : "meses"}
+                    {c.transferencias.length} transf.
+                    {temFiltro && filtroMes ? ` · ${MESES_NOMES[filtroMes-1]}` : ` · ${c.meses.length} ${c.meses.length === 1 ? "mês" : "meses"}`}
                   </div>
                 </div>
                 <ChevronDown size={16} style={{ color: C.gray, transform: aberto ? "rotate(180deg)" : "none", transition: "0.2s" }} />
@@ -235,24 +317,42 @@ function AbaContas({ exercicio }: { exercicio: number }) {
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                     <thead>
                       <tr style={{ background: C.grayL }}>
-                        {["Mês","Ação / Componente","Grupo","Nº OB","Portaria","Data Pgto","Valor Líquido"].map(h => (
+                        {["Mês Ref.","Ação / Componente","Grupo","Nº OB","Portaria","Data Pagto","Conta Bancária","Valor Líquido"].map(h => (
                           <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600,
                             color: C.textSec, whiteSpace: "nowrap", borderBottom: `1px solid ${C.grayBdr}` }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {c.transferencias.map((t, j) => (
+                      {c.transferencias.map((t: any, j: number) => (
                         <tr key={j} style={{ background: j % 2 === 0 ? C.white : C.rowAlt }}>
-                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap" }}>
-                            {t.mes ? MESES_ABREV[t.mes - 1] : "—"}
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap", fontWeight: 600, color: C.blue }}>
+                            {t.mes ? MESES_NOMES[t.mes - 1] : "—"}
                           </td>
-                          <td style={{ padding: "5px 10px", maxWidth: 200, wordBreak: "break-word" }}>{t.acao || "—"}</td>
+                          <td style={{ padding: "5px 10px", maxWidth: 220, wordBreak: "break-word" }}>{t.acao || "—"}</td>
                           <td style={{ padding: "5px 10px", whiteSpace: "nowrap", fontSize: 11 }}>{t.grupo || "—"}</td>
-                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap", fontWeight: 600, color: C.blue }}>{t.numero_ob || "—"}</td>
-                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap" }}>{t.numero_portaria || "—"}</td>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap", fontWeight: 600, color: C.blue }}>
+                            {t.numero_ob || <span style={{ color: "#9ca3af" }}>—</span>}
+                          </td>
                           <td style={{ padding: "5px 10px", whiteSpace: "nowrap" }}>
-                            {t.data_pagamento ? new Date(t.data_pagamento + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
+                            {t.numero_portaria
+                              ? <span style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe",
+                                  padding: "2px 7px", borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
+                                  {t.numero_portaria}
+                                </span>
+                              : <span style={{ color: "#9ca3af" }}>—</span>}
+                          </td>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap" }}>
+                            {t.data_pagamento
+                              ? <span style={{ color: "#059669", fontWeight: 600 }}>
+                                  {new Date(t.data_pagamento + "T12:00:00").toLocaleDateString("pt-BR")}
+                                </span>
+                              : <span style={{ color: "#9ca3af" }}>—</span>}
+                          </td>
+                          <td style={{ padding: "5px 10px", whiteSpace: "nowrap", fontSize: 11 }}>
+                            {(c.agencia !== "—" || c.conta !== "—")
+                              ? <span style={{ color: C.blue }}>Ag.{c.agencia} / {c.conta}</span>
+                              : <span style={{ color: "#9ca3af" }}>Não informado</span>}
                           </td>
                           <td style={{ padding: "5px 10px", textAlign: "right", fontWeight: 700, color: C.green, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
                             {BRL_ZERO(t.valor_liquido)}
@@ -260,6 +360,16 @@ function AbaContas({ exercicio }: { exercicio: number }) {
                         </tr>
                       ))}
                     </tbody>
+                    <tfoot>
+                      <tr style={{ background: C.grayL, borderTop: `2px solid ${C.grayBdr}` }}>
+                        <td colSpan={7} style={{ padding: "6px 10px", fontWeight: 700, fontSize: 12 }}>
+                          Subtotal {temFiltro && filtroMes ? MESES_NOMES[filtroMes-1] : ""}
+                        </td>
+                        <td style={{ padding: "6px 10px", textAlign: "right", fontWeight: 800, color: C.green, fontVariantNumeric: "tabular-nums" }}>
+                          {BRL_ZERO(c.transferencias.reduce((s: number, t: any) => s + (t.valor_liquido||0), 0))}
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               )}
