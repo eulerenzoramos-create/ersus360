@@ -13,9 +13,9 @@ import {
 import {
   RefreshCw, Download, X, ChevronDown, ChevronRight,
   AlertTriangle, Info, Search, Filter, ExternalLink,
-  CheckCircle, XCircle, Layers, FileSpreadsheet,
+  CheckCircle, XCircle, Layers, FileSpreadsheet, Pencil,
 } from "lucide-react";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGet, apiPost, api } from "../lib/api";
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
 const C = {
@@ -152,11 +152,118 @@ const BANCOS: Record<string, string> = {
 };
 const _nomeBanco = (cod: string) => BANCOS[cod] ? `${cod} — ${BANCOS[cod]}` : cod;
 
+// ─── Modal: Editar detalhes bancários de uma transferência ───────────────────
+
+interface EditTransfState {
+  id: number; acao: string | null; mes: number;
+  banco_ob: string; agencia_ob: string; numero_conta_ob: string;
+  numero_portaria: string; numero_ob: string;
+  data_pagamento: string; data_ob: string;
+}
+
+function ModalEditarTransferencia({
+  t, onClose, onSaved,
+}: {
+  t: EditTransfState;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState({ ...t });
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const set = (k: keyof EditTransfState, v: string) =>
+    setForm(f => ({ ...f, [k]: v }));
+
+  const salvar = async () => {
+    setSalvando(true); setErro(null);
+    try {
+      await api.patch(`/api/repasses-fns/transferencia/${t.id}/detalhes`, {
+        banco_ob: form.banco_ob || null,
+        agencia_ob: form.agencia_ob || null,
+        numero_conta_ob: form.numero_conta_ob || null,
+        numero_portaria: form.numero_portaria || null,
+        numero_ob: form.numero_ob || null,
+        data_pagamento: form.data_pagamento || null,
+        data_ob: form.data_ob || null,
+      });
+      onSaved();
+    } catch (e: any) {
+      setErro(e?.response?.data?.detail || "Erro ao salvar");
+      setSalvando(false);
+    }
+  };
+
+  const inp = (label: string, key: keyof EditTransfState, placeholder?: string) => (
+    <div style={{ display:"flex", flexDirection:"column" as const, gap:4 }}>
+      <label style={{ fontSize:10, fontWeight:700, color:C.textSec, textTransform:"uppercase" as const }}>{label}</label>
+      <input
+        value={(form[key] as string) || ""}
+        onChange={e => set(key, e.target.value)}
+        placeholder={placeholder || ""}
+        style={{ border:`1px solid ${C.grayBdr}`, borderRadius:6, padding:"7px 10px", fontSize:13 }}
+      />
+    </div>
+  );
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", zIndex:9999,
+      display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ background:"#fff", borderRadius:14, padding:28, width:460, maxWidth:"95vw",
+        boxShadow:"0 8px 40px rgba(0,0,0,0.18)" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
+          <div>
+            <div style={{ fontWeight:800, fontSize:16, color:C.textPri }}>Editar detalhes bancários</div>
+            <div style={{ fontSize:11, color:C.textSec, marginTop:2 }}>
+              {MESES_NOMES[(t.mes||1)-1]} · {t.acao || "Transferência"}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:C.gray }}>
+            <X size={20}/>
+          </button>
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+          {inp("Banco OB (código)", "banco_ob", "Ex: 001")}
+          {inp("Agência OB", "agencia_ob", "Ex: 009261")}
+          {inp("Conta OB", "numero_conta_ob", "Ex: 0000266221")}
+          {inp("Nº OB", "numero_ob", "Ex: 070192")}
+          {inp("Nº Portaria", "numero_portaria", "Ex: 10146")}
+          {inp("Data Pagamento", "data_pagamento", "AAAA-MM-DD")}
+          <div style={{ gridColumn:"1 / -1" }}>
+            {inp("Data OB", "data_ob", "AAAA-MM-DD")}
+          </div>
+        </div>
+
+        {erro && (
+          <div style={{ marginTop:12, background:"#fef2f2", border:"1px solid #fecaca",
+            borderRadius:6, padding:"8px 12px", color:C.red, fontSize:12 }}>{erro}</div>
+        )}
+
+        <div style={{ display:"flex", gap:10, marginTop:20, justifyContent:"flex-end" }}>
+          <button onClick={onClose}
+            style={{ padding:"8px 18px", border:`1px solid ${C.grayBdr}`, borderRadius:8,
+              background:"#fff", cursor:"pointer", fontSize:13 }}>
+            Cancelar
+          </button>
+          <button onClick={salvar} disabled={salvando}
+            style={{ padding:"8px 20px", border:"none", borderRadius:8,
+              background: salvando ? C.grayBdr : C.blue, color:"#fff",
+              cursor: salvando ? "default" : "pointer", fontSize:13, fontWeight:700 }}>
+            {salvando ? "Salvando…" : "Salvar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Aba: Contas de Repasse ───────────────────────────────────────────────────
 const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
   "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 function AbaContas({ exercicio }: { exercicio: number }) {
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery<{ exercicio: number; total_contas: number; total_geral: number; contas: ContaRepasse[] }>({
     queryKey: ["fns-contas-repasse", exercicio],
     queryFn: () => apiGet(`/api/repasses-fns/contas-repasse?exercicio=${exercicio}`),
@@ -166,6 +273,18 @@ function AbaContas({ exercicio }: { exercicio: number }) {
   const [filtroMes, setFiltroMes] = useState<number>(0);       // 0 = todos
   const [filtroGrupo, setFiltroGrupo] = useState("");
   const [filtroTexto, setFiltroTexto] = useState("");
+  const [editando, setEditando] = useState<EditTransfState | null>(null);
+
+  const abrirEditar = (t: any, c: any) => setEditando({
+    id: t.id, acao: t.acao, mes: t.mes,
+    banco_ob: c.banco !== "—" ? c.banco : "",
+    agencia_ob: c.agencia !== "—" ? c.agencia : "",
+    numero_conta_ob: c.conta !== "—" ? c.conta : "",
+    numero_portaria: t.numero_portaria || "",
+    numero_ob: t.numero_ob || "",
+    data_pagamento: t.data_pagamento ? t.data_pagamento.slice(0, 10) : "",
+    data_ob: "",
+  });
 
   if (isLoading) return <div style={{ padding: 40, textAlign: "center", color: C.gray }}>Carregando contas…</div>;
   if (!data) return <div style={{ padding: 40, textAlign: "center", color: C.red }}>Erro ao carregar contas de repasse.</div>;
@@ -255,6 +374,17 @@ function AbaContas({ exercicio }: { exercicio: number }) {
         </div>
       )}
 
+      {editando && (
+        <ModalEditarTransferencia
+          t={editando}
+          onClose={() => setEditando(null)}
+          onSaved={() => {
+            setEditando(null);
+            qc.invalidateQueries({ queryKey: ["fns-contas-repasse", exercicio] });
+          }}
+        />
+      )}
+
       {/* Lista de contas */}
       <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
         {(temFiltro ? contasFiltradas : data.contas).map((c: any, i: number) => {
@@ -317,7 +447,7 @@ function AbaContas({ exercicio }: { exercicio: number }) {
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                     <thead>
                       <tr style={{ background: C.grayL }}>
-                        {["Mês Ref.","Ação / Componente","Grupo","Nº OB","Portaria","Data Pagto","Conta Bancária","Valor Líquido"].map(h => (
+                        {["Mês Ref.","Ação / Componente","Grupo","Nº OB","Portaria","Data Pagto","Conta Bancária","Valor Líquido",""].map(h => (
                           <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600,
                             color: C.textSec, whiteSpace: "nowrap", borderBottom: `1px solid ${C.grayBdr}` }}>{h}</th>
                         ))}
@@ -357,12 +487,22 @@ function AbaContas({ exercicio }: { exercicio: number }) {
                           <td style={{ padding: "5px 10px", textAlign: "right", fontWeight: 700, color: C.green, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
                             {BRL_ZERO(t.valor_liquido)}
                           </td>
+                          <td style={{ padding: "5px 6px" }}>
+                            <button
+                              title="Editar dados bancários"
+                              onClick={() => abrirEditar(t, c)}
+                              style={{ background:"none", border:`1px solid ${C.grayBdr}`, borderRadius:5,
+                                cursor:"pointer", padding:"3px 6px", color:C.gray, display:"flex",
+                                alignItems:"center" }}>
+                              <Pencil size={12}/>
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr style={{ background: C.grayL, borderTop: `2px solid ${C.grayBdr}` }}>
-                        <td colSpan={7} style={{ padding: "6px 10px", fontWeight: 700, fontSize: 12 }}>
+                        <td colSpan={8} style={{ padding: "6px 10px", fontWeight: 700, fontSize: 12 }}>
                           Subtotal {temFiltro && filtroMes ? MESES_NOMES[filtroMes-1] : ""}
                         </td>
                         <td style={{ padding: "6px 10px", textAlign: "right", fontWeight: 800, color: C.green, fontVariantNumeric: "tabular-nums" }}>

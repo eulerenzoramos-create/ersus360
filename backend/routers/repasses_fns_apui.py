@@ -11,8 +11,9 @@ import logging
 from datetime import datetime, date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from decimal import Decimal
@@ -1085,3 +1086,51 @@ async def portarias_repasse(
         "total_geral": round(sum(p["total_liquido"] for p in lista), 2),
         "portarias": lista,
     }
+
+
+# ─── Edição manual dos detalhes bancários de uma transferência ────────────────
+
+class DetalhesTransferenciaIn(BaseModel):
+    banco_ob: Optional[str] = None
+    agencia_ob: Optional[str] = None
+    numero_conta_ob: Optional[str] = None
+    numero_portaria: Optional[str] = None
+    numero_ob: Optional[str] = None
+    data_pagamento: Optional[str] = None   # ISO date "YYYY-MM-DD"
+    data_ob: Optional[str] = None          # ISO date "YYYY-MM-DD"
+
+
+@router.patch("/transferencia/{transferencia_id}/detalhes")
+async def atualizar_detalhes_transferencia(
+    transferencia_id: int,
+    body: DetalhesTransferenciaIn,
+    db: AsyncSession = Depends(get_db),
+):
+    """Atualiza manualmente os campos bancários/portaria de uma transferência."""
+    result = await db.execute(
+        select(TransferenciaFns).where(TransferenciaFns.id == transferencia_id)
+    )
+    t = result.scalar_one_or_none()
+    if not t:
+        raise HTTPException(404, "Transferência não encontrada")
+
+    if body.banco_ob is not None:
+        t.banco_ob = body.banco_ob or None
+    if body.agencia_ob is not None:
+        t.agencia_ob = body.agencia_ob or None
+    if body.numero_conta_ob is not None:
+        t.numero_conta_ob = body.numero_conta_ob or None
+    if body.numero_portaria is not None:
+        t.numero_portaria = body.numero_portaria or None
+    if body.numero_ob is not None:
+        t.numero_ob = body.numero_ob or None
+    if body.data_pagamento is not None:
+        t.data_pagamento = date.fromisoformat(body.data_pagamento) if body.data_pagamento else None
+    if body.data_ob is not None:
+        t.data_ob = date.fromisoformat(body.data_ob) if body.data_ob else None
+
+    await db.commit()
+    await db.refresh(t)
+    return {"ok": True, "id": t.id, "banco_ob": t.banco_ob, "agencia_ob": t.agencia_ob,
+            "numero_conta_ob": t.numero_conta_ob, "numero_portaria": t.numero_portaria,
+            "numero_ob": t.numero_ob}
