@@ -726,42 +726,148 @@ function ViewPorIndicador({ codigos, cor, vals }: { codigos:string[]; cor:string
 }
 
 // ── Visão por Equipe ──────────────────────────────────────────────────────────
-function ViewPorEquipe({ codigos, cor, vals }: { codigos:string[]; cor:string; vals:Record<string,Record<string,number>> }) {
+const _BADGE: Record<string,{bg:string;color:string;label:string}> = {
+  otimo:      { bg:"#dbeafe", color:"#1d4ed8", label:"Ótimo"      },
+  bom:        { bg:"#dcfce7", color:"#16a34a", label:"Bom"        },
+  suficiente: { bg:"#fef9c3", color:"#92400e", label:"Suf."       },
+  regular:    { bg:"#fee2e2", color:"#dc2626", label:"Regular"    },
+};
+
+function CelulaEquipe({ val, cod }: { val:number|undefined; cod:string }) {
+  if (val == null) return (
+    <td style={{ padding:"10px 8px", textAlign:"center", verticalAlign:"middle" }}>
+      <span style={{ fontSize:11, color:"#d1d5db", fontStyle:"italic" }}>—</span>
+    </td>
+  );
+  const meta = METAS[cod] ?? 50;
+  const cl   = classifVal(val, cod);
+  const bd   = _BADGE[cl] ?? _BADGE.regular;
+  const pct  = Math.min(100, (val / (meta * 1.4)) * 100);
+  const mpct = Math.min(100, (meta / (meta * 1.4)) * 100);
   return (
-    <div style={{ overflowX:"auto" }}>
-      <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
-        <thead>
-          <tr style={{ background:"#f3f4f6" }}>
-            <th style={{ padding:"8px 12px", textAlign:"left", fontWeight:700, whiteSpace:"nowrap" }}>Equipe</th>
-            <th style={{ padding:"8px 12px", textAlign:"left", fontWeight:700 }}>UBS</th>
-            {codigos.map(cod=>(
-              <th key={cod} style={{ padding:"8px 12px", textAlign:"center", fontWeight:700, whiteSpace:"nowrap", maxWidth:80 }}>
-                <div style={{ fontSize:9, color:"#9ca3af" }}>{cod}</div>
-                <div style={{ fontSize:10 }}>{NOMES[cod]?.slice(0,16) ?? cod}</div>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {EQUIPES_REF.map((eq,i)=>(
-            <tr key={eq.equipe} style={{ background:i%2===0?"#fff":"#f9fafb", borderBottom:"1px solid #f3f4f6" }}>
-              <td style={{ padding:"8px 12px", fontWeight:700 }}>{eq.equipe}</td>
-              <td style={{ padding:"8px 12px", color:"#6b7280", fontSize:11 }}>{eq.ubs.slice(0,28)}…</td>
-              {codigos.map(cod=>{
-                const val = vals[cod]?.[eq.equipe];
-                if (val==null) return <td key={cod} style={{ padding:"8px 12px", textAlign:"center", color:"#9ca3af" }}>—</td>;
-                const cl = classifVal(val, cod);
-                return (
-                  <td key={cod} style={{ padding:"8px 12px", textAlign:"center" }}>
-                    <div style={{ fontSize:14, fontWeight:800, color:corClassif(cl) }}>{fmtPct(val)}</div>
-                    <BarraProgress val={val} meta={METAS[cod]??50} cor={corClassif(cl)}/>
-                  </td>
-                );
-              })}
+    <td style={{ padding:"10px 8px", textAlign:"center", verticalAlign:"middle" }}>
+      {/* valor + badge */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:4, marginBottom:5 }}>
+        <span style={{ fontSize:13, fontWeight:800, color:bd.color, fontVariantNumeric:"tabular-nums" }}>
+          {fmtPct(val)}
+        </span>
+        <span style={{
+          fontSize:9, fontWeight:700, padding:"1px 5px", borderRadius:99,
+          background:bd.bg, color:bd.color, letterSpacing:.3,
+        }}>{bd.label}</span>
+      </div>
+      {/* barra com marcador de meta */}
+      <div style={{ position:"relative", height:6, background:"#f3f4f6", borderRadius:99, overflow:"hidden" }}>
+        <div style={{
+          position:"absolute", left:0, top:0, bottom:0,
+          width:`${pct}%`, borderRadius:99,
+          background: cl==="otimo"?"#3b82f6": cl==="bom"?"#22c55e": cl==="suficiente"?"#f59e0b":"#ef4444",
+          transition:"width .3s",
+        }}/>
+      </div>
+      {/* linha de meta */}
+      <div style={{ position:"relative", height:3 }}>
+        <div style={{
+          position:"absolute", top:0, bottom:0,
+          left:`calc(${mpct}% - 1px)`,
+          width:2, background:"#6b7280", borderRadius:1,
+        }}/>
+      </div>
+      <div style={{ fontSize:9, color:"#9ca3af", marginTop:1, fontVariantNumeric:"tabular-nums" }}>
+        meta {fmtPct(meta)}
+      </div>
+    </td>
+  );
+}
+
+function ViewPorEquipe({ codigos, cor, vals }: { codigos:string[]; cor:string; vals:Record<string,Record<string,number>> }) {
+  // score global por equipe (média dos indicadores disponíveis)
+  const scores = useMemo(()=> EQUIPES_REF.map(eq=>{
+    const disponíveis = codigos.filter(c=> vals[c]?.[eq.equipe] != null);
+    const soma = disponíveis.reduce((s,c)=> s + (vals[c]?.[eq.equipe]??0), 0);
+    return { equipe:eq.equipe, media: disponíveis.length ? soma/disponíveis.length : null };
+  }), [codigos, vals]);
+
+  return (
+    <div>
+      {/* legenda */}
+      <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:12, fontSize:11, color:"#6b7280" }}>
+        {Object.entries(_BADGE).map(([k,b])=>(
+          <span key={k} style={{ display:"flex", alignItems:"center", gap:4 }}>
+            <span style={{ width:10, height:10, borderRadius:3, background:b.bg, border:`1px solid ${b.color}`, display:"inline-block" }}/>
+            {b.label}
+          </span>
+        ))}
+        <span style={{ marginLeft:8 }}>
+          <span style={{ display:"inline-block", width:2, height:10, background:"#6b7280", marginRight:3, verticalAlign:"middle" }}/>
+          linha = meta
+        </span>
+      </div>
+
+      <div style={{ overflowX:"auto" }}>
+        <table style={{ width:"100%", borderCollapse:"separate", borderSpacing:0, fontSize:12 }}>
+          <thead>
+            <tr>
+              <th style={{
+                padding:"10px 14px", textAlign:"left", fontWeight:700, whiteSpace:"nowrap",
+                background:"#1e3a5f", color:"#fff", borderRadius:"8px 0 0 0", position:"sticky", left:0, zIndex:2,
+              }}>Equipe</th>
+              <th style={{
+                padding:"10px 14px", textAlign:"left", fontWeight:600, color:"#fff",
+                background:"#1e3a5f", whiteSpace:"nowrap",
+              }}>UBS</th>
+              <th style={{
+                padding:"10px 14px", textAlign:"center", fontWeight:700, color:"#fff",
+                background:"#1e3a5f", whiteSpace:"nowrap",
+              }}>Média geral</th>
+              {codigos.map(cod=>(
+                <th key={cod} style={{
+                  padding:"10px 8px", textAlign:"center", fontWeight:700,
+                  background:"#1e3a5f", color:"#fff", whiteSpace:"nowrap", minWidth:110,
+                }}>
+                  <div style={{ fontSize:10, color:"#93c5fd", letterSpacing:.5, marginBottom:1 }}>{cod}</div>
+                  <div style={{ fontSize:10, fontWeight:500, lineHeight:1.3 }}>
+                    {NOMES[cod]?.split(" ").slice(0,3).join(" ") ?? cod}
+                  </div>
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {EQUIPES_REF.map((eq,i)=>{
+              const sc = scores.find(s=>s.equipe===eq.equipe);
+              const scCl = sc?.media != null ? classifVal(sc.media, "C1") : "regular";
+              const bg = i%2===0 ? "#fff" : "#f8fafc";
+              return (
+                <tr key={eq.equipe} style={{ background:bg }}>
+                  <td style={{
+                    padding:"10px 14px", fontWeight:800, fontSize:13,
+                    borderBottom:"1px solid #e5e7eb", whiteSpace:"nowrap",
+                    position:"sticky", left:0, background:bg, zIndex:1,
+                  }}>{eq.equipe}</td>
+                  <td style={{
+                    padding:"10px 14px", color:"#6b7280", fontSize:11,
+                    borderBottom:"1px solid #e5e7eb", whiteSpace:"nowrap",
+                  }}>{eq.ubs.length>26 ? eq.ubs.slice(0,26)+"…" : eq.ubs}</td>
+                  {/* Média geral */}
+                  <td style={{ padding:"10px 8px", textAlign:"center", borderBottom:"1px solid #e5e7eb" }}>
+                    {sc?.media != null ? (
+                      <span style={{
+                        display:"inline-block", padding:"3px 10px", borderRadius:99,
+                        background:_BADGE[scCl]?.bg, color:_BADGE[scCl]?.color,
+                        fontWeight:800, fontSize:13, fontVariantNumeric:"tabular-nums",
+                      }}>{sc.media.toFixed(1)}%</span>
+                    ) : <span style={{ color:"#d1d5db", fontSize:11 }}>—</span>}
+                  </td>
+                  {codigos.map(cod=>(
+                    <CelulaEquipe key={cod} val={vals[cod]?.[eq.equipe]} cod={cod}/>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
