@@ -29,51 +29,51 @@ const INDICADORES: Record<string, {ind: string; desc: string; atual: number; met
     { ind:"C5", desc:"HAS controlada", atual:66, meta:70, pts:1, acao:"Lançar PA na próxima consulta" },
   ],
   "JK": [
-    { ind:"C2", desc:"Pré-natal adequado", atual:30, meta:60, pts:5, acao:"HbA1c+VDRL na 1ª consulta; registrar no PEC" },
-    { ind:"C6", desc:"Puericultura", atual:50, meta:70, pts:3, acao:"Agenda de puericultura 2x/semana" },
+    { ind:"C3", desc:"Pré-natal/Gestação", atual:30, meta:75, pts:5, acao:"HbA1c+VDRL na 1ª consulta; registrar no PEC" },
+    { ind:"C2", desc:"Desenvolvimento infantil", atual:50, meta:75, pts:3, acao:"Agenda de puericultura 2x/semana" },
     { ind:"C1", desc:"Acesso avaliado", atual:55, meta:70, pts:1, acao:"Retorno 30 dias no PEC" },
   ],
   "ACARI": [
-    { ind:"C2", desc:"Pré-natal adequado", atual:28, meta:60, pts:5, acao:"HbA1c+VDRL na 1ª consulta; corrigir tipo atendimento PEC" },
-    { ind:"C6", desc:"Puericultura", atual:45, meta:70, pts:3, acao:"Busca ativa crianças <2 anos — lista ao ACS" },
+    { ind:"C3", desc:"Pré-natal/Gestação", atual:28, meta:75, pts:5, acao:"HbA1c+VDRL na 1ª consulta; corrigir tipo atendimento PEC" },
+    { ind:"C2", desc:"Desenvolvimento infantil", atual:45, meta:75, pts:3, acao:"Busca ativa crianças <2 anos — lista ao ACS" },
     { ind:"B1", desc:"Primeira consulta odont.", atual:40, meta:60, pts:2, acao:"Dia D citopatológico + odonto integrado" },
   ],
   "JUMA": [
-    { ind:"C2", desc:"Pré-natal adequado", atual:20, meta:60, pts:7, acao:"INE JUMA separado do LIBERDADE — corrigir CNES" },
-    { ind:"C6", desc:"Puericultura", atual:40, meta:70, pts:4, acao:"Busca ativa ACS — caderneta vacinal" },
+    { ind:"C3", desc:"Pré-natal/Gestação", atual:20, meta:75, pts:7, acao:"INE JUMA separado do LIBERDADE — corrigir CNES" },
+    { ind:"C2", desc:"Desenvolvimento infantil", atual:40, meta:75, pts:4, acao:"Busca ativa ACS — caderneta vacinal" },
     { ind:"C5", desc:"HAS controlada", atual:60, meta:70, pts:2, acao:"Técnico lança PA em todo atendimento" },
     { ind:"C1", desc:"Acesso avaliado", atual:50, meta:70, pts:2, acao:"Retorno agendado no PEC após cada consulta" },
   ],
   "ESTRADA NOVA": [
-    { ind:"C2", desc:"Pré-natal adequado", atual:18, meta:60, pts:7, acao:"Digitalizar fichas CDS + corrigir tipo atendimento" },
-    { ind:"C6", desc:"Puericultura", atual:38, meta:70, pts:4, acao:"Agenda puericultura semanal + busca ativa ACS" },
+    { ind:"C3", desc:"Pré-natal/Gestação", atual:18, meta:75, pts:7, acao:"Digitalizar fichas CDS + corrigir tipo atendimento" },
+    { ind:"C2", desc:"Desenvolvimento infantil", atual:38, meta:75, pts:4, acao:"Agenda puericultura semanal + busca ativa ACS" },
     { ind:"C5", desc:"HAS controlada", atual:58, meta:70, pts:2, acao:"Técnico lança PA sistematicamente" },
     { ind:"B2", desc:"Conclusão trat. odont.", atual:35, meta:55, pts:3, acao:"Finalizar tratamentos em andamento no PEC" },
   ],
   "LIBERDADE": [
-    { ind:"C2", desc:"Pré-natal adequado", atual:22, meta:60, pts:7, acao:"INE LIBERDADE separado do JUMA — corrigir CNES urgente" },
-    { ind:"C6", desc:"Puericultura", atual:35, meta:70, pts:4, acao:"Busca ativa + consultas 2x/semana" },
+    { ind:"C3", desc:"Pré-natal/Gestação", atual:22, meta:75, pts:7, acao:"INE LIBERDADE separado do JUMA — corrigir CNES urgente" },
+    { ind:"C2", desc:"Desenvolvimento infantil", atual:35, meta:75, pts:4, acao:"Busca ativa + consultas 2x/semana" },
     { ind:"C5", desc:"HAS controlada", atual:62, meta:70, pts:2, acao:"Protocolo PA em todas as consultas" },
     { ind:"C1", desc:"Acesso avaliado", atual:48, meta:70, pts:2, acao:"Classificar retorno no PEC corretamente" },
   ],
   "SÃO SEBASTIÃO": [
-    { ind:"C2", desc:"Pré-natal adequado", atual:25, meta:60, pts:7, acao:"INE SÃO SEBASTIÃO separado do ACARI — corrigir CNES" },
-    { ind:"C6", desc:"Puericultura", atual:38, meta:70, pts:4, acao:"Criar agenda dedicada puericultura" },
+    { ind:"C3", desc:"Pré-natal/Gestação", atual:25, meta:75, pts:7, acao:"INE SÃO SEBASTIÃO separado do ACARI — corrigir CNES" },
+    { ind:"C2", desc:"Desenvolvimento infantil", atual:38, meta:75, pts:4, acao:"Criar agenda dedicada puericultura" },
     { ind:"C5", desc:"HAS controlada", atual:60, meta:70, pts:2, acao:"Lançar PA de todos os hipertensos cadastrados" },
     { ind:"B1", desc:"Primeira consulta odont.", atual:30, meta:60, pts:3, acao:"Agenda odonto + busca ativa" },
     { ind:"C1", desc:"Acesso avaliado", atual:45, meta:70, pts:3, acao:"Retorno 30 dias registrado no PEC" },
   ],
   "CACHOEIRA": [
-    { ind:"C2", desc:"Pré-natal adequado", atual:15, meta:60, pts:8, acao:"Digitalizar fichas CDS das expedições ribeirinhas" },
-    { ind:"C6", desc:"Puericultura", atual:30, meta:70, pts:5, acao:"Puericultura em todas as expedições + busca ativa" },
+    { ind:"C3", desc:"Pré-natal/Gestação", atual:15, meta:75, pts:8, acao:"Digitalizar fichas CDS das expedições ribeirinhas" },
+    { ind:"C2", desc:"Desenvolvimento infantil", atual:30, meta:75, pts:5, acao:"Puericultura em todas as expedições + busca ativa" },
     { ind:"C5", desc:"HAS controlada", atual:55, meta:70, pts:3, acao:"Técnico lança PA; revisar cadastros HAS no PEC" },
     { ind:"C1", desc:"Acesso avaliado", atual:42, meta:70, pts:3, acao:"Retorno registrado mesmo em expedições" },
     { ind:"B1", desc:"Primeira consulta odont.", atual:25, meta:60, pts:3, acao:"eOE integrada nas expedições" },
   ],
   "TRÊS ESTADOS": [
     { ind:"CNES", desc:"CNES expirado — BLOQUEIO TOTAL", atual:0, meta:100, pts:15, acao:"🚨 RH/SMS: reativar vínculos médico + ACS no SCNES HOJE" },
-    { ind:"C2", desc:"Pré-natal adequado", atual:10, meta:60, pts:8, acao:"Após CNES corrigido: HbA1c+VDRL retroativos" },
-    { ind:"C6", desc:"Puericultura", atual:25, meta:70, pts:4, acao:"Retomar agenda após reativação do CNES" },
+    { ind:"C3", desc:"Pré-natal/Gestação", atual:10, meta:75, pts:8, acao:"Após CNES corrigido: HbA1c+VDRL retroativos" },
+    { ind:"C2", desc:"Desenvolvimento infantil", atual:25, meta:75, pts:4, acao:"Retomar agenda após reativação do CNES" },
     { ind:"C5", desc:"HAS controlada", atual:50, meta:70, pts:3, acao:"Técnico lança PA em todos os atendimentos" },
     { ind:"C1", desc:"Acesso avaliado", atual:40, meta:70, pts:1, acao:"Registrar retorno no PEC" },
   ],
@@ -1171,7 +1171,7 @@ export default function SprintOtimo() {
                     <span style={{ fontWeight: 800, color: "#1d4ed8", fontSize: 14 }}>Q2 Mai–Ago/2026</span>
                     <span style={{ fontSize: 11, color: "#1d4ed8", background: "#dbeafe", border: "1px solid #93c5fd", padding: "1px 8px", borderRadius: 20 }}>Fechamento 31/Agosto</span>
                   </div>
-                  <div style={{ fontSize: 12, color: "#1d4ed8", marginBottom: 10, lineHeight: 1.6 }}>Scores acumulados de maio a agosto. Toda produção lançada até 31/ago contabiliza. Foco em <strong>C2</strong> (pré-natal) e <strong>C6</strong> (puericultura).</div>
+                  <div style={{ fontSize: 12, color: "#1d4ed8", marginBottom: 10, lineHeight: 1.6 }}>Scores acumulados de maio a agosto. Toda produção lançada até 31/ago contabiliza. Foco em <strong>C3</strong> (pré-natal) e <strong>C2</strong> (desenvolvimento infantil).</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {[
                       { t: `${diasRestantes} dias restantes`, cor: "#3b82f6" },
@@ -1379,11 +1379,11 @@ export default function SprintOtimo() {
         {/* ── ABA: Indicadores-Chave ── */}
         {aba === "indicadores" && (() => {
           const INDS = [
-            { ind:"C2",   rank:1, desc:"Pré-natal Adequado",  atual:29, meta:60, peso:"MAIOR ALAVANCA", cor:"#dc2626", bgCor:"#fef2f2",
+            { ind:"C3",   rank:1, desc:"Pré-natal/Gestação",  atual:29, meta:75, peso:"MAIOR ALAVANCA", cor:"#dc2626", bgCor:"#fef2f2",
               texto:"HbA1c + VDRL na 1ª consulta. Resultado lançado no PEC com tipo correto (pré-natal). Busca ativa de gestantes sem exames.",
               acao: "Confirmar resultado laboratorial → lançar no PEC → verificar tipo 'pré-natal'",
               impacto:"Pode mover 6 equipes de BOM para ÓTIMO", pts:"+12 pts est." },
-            { ind:"C6",   rank:2, desc:"Puericultura",         atual:48, meta:70, peso:"ALTO IMPACTO",   cor:"#d97706", bgCor:"#fffbeb",
+            { ind:"C2",   rank:2, desc:"Desenvolvimento infantil", atual:48, meta:75, peso:"ALTO IMPACTO",   cor:"#d97706", bgCor:"#fffbeb",
               texto:"Consulta de criança <2 anos com peso + altura no PEC. Agenda dedicada 2×/semana. Busca ativa via ACS.",
               acao: "Agenda bloqueada toda terça e quinta → ACS com lista de crianças → técnico afere peso/altura",
               impacto:"Ganho médio estimado +4 pts por equipe", pts:"+4 pts est." },

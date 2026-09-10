@@ -1554,7 +1554,7 @@ function AbaBoasPraticas({ data }: { data: any }) {
 
 const IND_LABELS = ["C1 — Mais Acesso","C2 — Desenv. Infantil","C3 — Gestação/Puerpério","C4 — Diabetes","C5 — Hipertensão","C6 — Pessoa Idosa","C7 — Prev. Câncer Colo"];
 const IND_KEYS   = ["C1","C2","C3","C4","C5","C6","C7"];
-const IND_METAS  = [75, 75, 70, 50, 50, 60, 40];
+const IND_METAS  = [50, 75, 75, 75, 75, 75, 75];
 
 function CardEquipe({ e, periodo }: { e: any; periodo: "mensal" | "quadrimestral" }) {
   const [open, setOpen] = useState(false);
@@ -1688,7 +1688,7 @@ const _QUAL_COMP: Record<string, Record<string, Record<string,number>>> = {
 };
 
 const _METAS_IND: Record<string,number> = {
-  C1:75, C2:75, C3:70, C4:50, C5:50, C6:60, C7:40,
+  C1:50, C2:75, C3:75, C4:75, C5:75, C6:75, C7:75,
 };
 const _LABEL_IND: Record<string,string> = {
   C1:"Acesso e Qualidade — Hipertensão",

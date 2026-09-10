@@ -371,56 +371,157 @@ const NOMES: Record<string,string> = {
   "R6":"Cuidado da Mulher na Prevenção do Câncer (eSFR)",
 };
 
-// ── Parâmetros de referência — Portaria GM/MS 3.493/2024 ─────────────────────
+// ── Parâmetros de referência — Guia de Bolso CONASEMS/MS · Atualização Julho 2026 ─
+// Limiar "Ótimo" de cada indicador (usado para classificar resultado)
 const METAS: Record<string,number> = {
-  C1:75, C2:75, C3:70, C4:50, C5:50, C6:60, C7:40,
-  B1:45, B2:45, B3:20, B4:40, B5:50, B6:30,
-  M1:2,  M2:30,
+  // eSF/eAP — C1: Ótimo > 50 (limite sup. 70); C2–C7: Ótimo > 75
+  C1:50, C2:75, C3:75, C4:75, C5:75, C6:75, C7:75,
+  // eSB — B1: Ótimo > 1,25; B2: Ótimo > 75; B3: Ótimo ≥ 3 (inverted); B4: Ótimo > 1; B5: Ótimo ≥ 65; B6: Ótimo > 8
+  B1:1.25, B2:75, B3:3, B4:1, B5:65, B6:8,
+  // eMulti — M1: Ótimo > 3; M2: Ótimo > 5
+  M1:3, M2:5,
+  // eAPP / eCR (mantidos)
   P1:75, P2:70, P3:50, P4:60, P5:85,
   CR1:75,CR2:70,CR3:60,CR4:85,
-  R1:75, R2:75, R3:70, R4:50, R5:50, R6:40,
+  // eSFR — R1: Ótimo > 50; R2–R6: Ótimo > 75
+  R1:50, R2:75, R3:75, R4:75, R5:75, R6:75,
 };
 
-// ── Boas práticas por indicador — fichas metodológicas vigentes ───────────────
+// ── Boas práticas por indicador — Guia de Bolso CONASEMS/MS · Julho 2026 ────────
+// Fonte: Portaria GM/MS 3.493/2024 atualizada + NT DEAPS/SAPS/MS 6/2025
 const BOAS_PRATICAS: Record<string,{cod:string;desc:string;campo:string}[]> = {
-  C1:[
-    {cod:"BP-C1-a",desc:"Cadastro Individual atualizado (últimos 12 meses)",campo:"Ficha de Cadastro Individual — CDS/e-SUS PEC"},
-    {cod:"BP-C1-b",desc:"Cadastro Domiciliar atualizado (últimos 12 meses)",campo:"Ficha de Cadastro Domiciliar — CDS/e-SUS PEC"},
-    {cod:"BP-C1-c",desc:"Ao menos 1 atendimento/consulta registrado no período",campo:"Atendimento Individual — CDS/PEC"},
-  ],
+  // C1 — Mais Acesso: indicador de razão (sem boas práticas pontuadas)
+  C1:[],
+
+  // C2 — Desenvolvimento Infantil (crianças até 2 anos) — 5 boas práticas · 20 pts cada
   C2:[
-    {cod:"BP-C2-a",desc:"Criança <2 anos com peso registrado no período",campo:"Ficha de Atendimento Individual — antropometria"},
-    {cod:"BP-C2-b",desc:"Comprimento/altura registrado no período",campo:"Ficha de Atendimento Individual — PEC"},
-    {cod:"BP-C2-c",desc:"Avaliação de desenvolvimento neuropsicomotor (DNPM)",campo:"Ficha de Atendimento Individual — campo DNPM"},
-    {cod:"BP-C2-d",desc:"Vacinação em dia conforme calendário do MS",campo:"e-SUS PEC — módulo vacinação"},
+    {cod:"A",desc:"1ª consulta presencial por médico(a) ou enfermeiro(a) até o 30º dia de vida (20 pts)",campo:"Atendimento Individual — CBO: 2235/2251/2252 · proc. 03.01.01.006-4"},
+    {cod:"B",desc:"≥9 consultas presenciais ou remotas por médico(a) ou enfermeiro(a) até 2 anos (20 pts)",campo:"Atendimento Individual — teleconsulta 03.01.01.025-0"},
+    {cod:"C",desc:"≥9 registros simultâneos de peso e altura até 2 anos (20 pts)",campo:"Proc. 01.01.04.002-4 / 01.01.04.008-3 / 01.01.04.007-5 · avaliação crescimento 03.01.01.026-9"},
+    {cod:"D",desc:"≥2 visitas domiciliares por ACS/TACS — 1ª até 30 dias de vida, 2ª até 6 meses (20 pts)",campo:"Atendimento Individual — CBO: 5151-05 / 3222-55"},
+    {cod:"E",desc:"Vacinas DTPa/Penta, Polio (VIP), SCR/SCRV, Pneumocócica — todas as doses recomendadas (20 pts)",campo:"e-SUS PEC Vacinação — cód. 09/17/29/39/42/43/46/47/58/22/24/56/26/59/106/107"},
   ],
+
+  // C3 — Gestação e Puerpério — 11 boas práticas (A=10 pts; B-K=9 pts cada)
   C3:[
-    {cod:"BP-C3-a",desc:"Gestante com ≥6 consultas de pré-natal realizadas",campo:"Ficha de Atendimento Individual — CIAP2: W78"},
-    {cod:"BP-C3-b",desc:"Consulta de puerpério realizada até 42 dias pós-parto",campo:"Ficha de Atendimento Individual — CIAP2: W90/W91"},
-    {cod:"BP-C3-c",desc:"Consulta do RN na 1ª semana de vida",campo:"Ficha de Atendimento Individual — CID-10: Z00.1"},
-    {cod:"BP-C3-d",desc:"Exames laboratoriais solicitados conforme protocolo",campo:"Ficha de Atendimento Individual — procedimentos"},
+    {cod:"A",desc:"1ª consulta presencial ou remota por médico(a)/enfermeiro(a) até a 12ª semana de gestação (10 pts)",campo:"Atendimento Individual — CIAP2: W78/W79/W81/W84/W85 · CID: O10–O99 / Z32–Z36"},
+    {cod:"B",desc:"≥7 consultas presenciais ou remotas por médico(a)/enfermeiro(a) durante a gestação (9 pts)",campo:"Proc. 03.01.01.006-4 / 03.01.01.003-0 / 03.01.01.011-0 / 03.01.01.025-0"},
+    {cod:"C",desc:"≥7 registros de aferição de pressão arterial durante a gestação (9 pts)",campo:"Proc. 03.01.10.003-9"},
+    {cod:"D",desc:"≥7 registros simultâneos de peso e altura durante a gestação (9 pts)",campo:"Proc. 01.01.04.002-4 / 01.01.04.008-3 / 01.01.04.007-5"},
+    {cod:"E",desc:"≥3 visitas domiciliares por ACS/TACS após a 1ª consulta de pré-natal (9 pts)",campo:"Atendimento Individual — CBO: 5151-05 / 3222-55"},
+    {cod:"F",desc:"Vacina dTpa (acelular) registrada a partir da 20ª semana de cada gestação (9 pts)",campo:"e-SUS PEC Vacinação — cód. 57 (Vacina dTpa adulto)"},
+    {cod:"G",desc:"Testes rápidos ou exames avaliados para sífilis, HIV e hepatites B e C no 1º trimestre (9 pts)",campo:"Proc. 02.14.01.004-0 / 02.14.01.007-4 / 02.14.01.010-4 / 02.14.01.023-6 / 02.14.01.025-2"},
+    {cod:"H",desc:"Testes rápidos ou exames avaliados para sífilis e HIV no 3º trimestre (9 pts)",campo:"Proc. 02.14.01.007-4 / 02.14.01.025-2 / 02.14.01.004-0 / 02.14.01.027-9"},
+    {cod:"I",desc:"≥1 consulta presencial ou remota por médico(a)/enfermeiro(a) durante o puerpério (9 pts)",campo:"Proc. 03.01.01.012-9 / 03.01.01.006-4 / 03.01.01.025-0 · CIAP2: W90–W96"},
+    {cod:"J",desc:"≥1 visita domiciliar por ACS/TACS durante o puerpério (9 pts)",campo:"Atendimento Individual — CBO: 5151-05 / 3222-55 · proc. 03.01.01.013-7"},
+    {cod:"K",desc:"≥1 atividade em saúde bucal por cirurgião-dentista ou TSB durante a gestação (9 pts)",campo:"Atendimento Individual — CBO: 2232 / 3224"},
   ],
+
+  // C4 — Diabetes — 6 boas práticas (A/D=20 pts; B/C/E/F=15 pts)
   C4:[
-    {cod:"BP-C4-a",desc:"Pessoa com DM2 cadastrada e ativa no território",campo:"Ficha de Cadastro Individual — condição: DM"},
-    {cod:"BP-C4-b",desc:"Hemoglobina glicada (HbA1c) solicitada no período",campo:"Ficha de Atendimento Individual — exame HbA1c"},
-    {cod:"BP-C4-c",desc:"Consulta médica ou de enfermagem registrada",campo:"Ficha de Atendimento Individual — CIAP2: T90"},
-    {cod:"BP-C4-d",desc:"Pressão arterial aferida e registrada",campo:"Ficha de Atendimento Individual — PA"},
+    {cod:"A",desc:"≥1 consulta presencial ou remota por médico(a)/enfermeiro(a) nos últimos 6 meses (20 pts)",campo:"CID: E10/E11/E14 · CIAP2: T89/T90 · proc. 03.01.01.006-4 / 03.01.01.003-0"},
+    {cod:"B",desc:"≥1 aferição de pressão arterial registrada nos últimos 6 meses (15 pts)",campo:"Proc. 03.01.10.003-9"},
+    {cod:"C",desc:"≥1 registro simultâneo de peso e altura nos últimos 12 meses (15 pts)",campo:"Proc. 01.01.04.002-4 / 01.01.04.008-3 / 01.01.04.007-5"},
+    {cod:"D",desc:"≥2 visitas domiciliares por ACS/TACS com intervalo ≥30 dias nos últimos 12 meses (20 pts)",campo:"Atendimento Individual — CBO: 5151-05 / 3222-55"},
+    {cod:"E",desc:"≥1 solicitação ou avaliação de hemoglobina glicada (HbA1c) nos últimos 12 meses (15 pts)",campo:"Proc. 02.02.01.050-3 · SIGTAP ABEX008"},
+    {cod:"F",desc:"≥1 avaliação dos pés realizada nos últimos 12 meses (15 pts)",campo:"Proc. 03.01.04.009-5 (Exame do pé diabético)"},
   ],
+
+  // C5 — Hipertensão — 4 boas práticas · 25 pts cada
   C5:[
-    {cod:"BP-C5-a",desc:"Pessoa com HAS cadastrada e ativa no território",campo:"Ficha de Cadastro Individual — condição: HAS"},
-    {cod:"BP-C5-b",desc:"Pressão arterial aferida e registrada no período",campo:"Ficha de Atendimento Individual — PA"},
-    {cod:"BP-C5-c",desc:"Consulta médica ou de enfermagem registrada",campo:"Ficha de Atendimento Individual — CIAP2: K86"},
-    {cod:"BP-C5-d",desc:"Estratificação de risco cardiovascular realizada",campo:"Ficha de Atendimento Individual — risco CV"},
+    {cod:"A",desc:"≥1 consulta presencial ou remota por médico(a)/enfermeiro(a) nos últimos 6 meses (25 pts)",campo:"CID: I10–I15/O10–O11 · CIAP2: K86/K87 · proc. 03.01.01.006-4 / 03.01.01.003-0"},
+    {cod:"B",desc:"≥1 aferição de pressão arterial registrada nos últimos 6 meses (25 pts)",campo:"Proc. 03.01.10.003-9"},
+    {cod:"C",desc:"≥1 registro simultâneo de peso e altura nos últimos 12 meses (25 pts)",campo:"Proc. 01.01.04.002-4 / 01.01.04.008-3 / 01.01.04.007-5"},
+    {cod:"D",desc:"≥2 visitas domiciliares por ACS/TACS com intervalo ≥30 dias nos últimos 12 meses (25 pts)",campo:"Atendimento Individual — CBO: 5151-05 / 3222-55"},
   ],
+
+  // C6 — Pessoa Idosa (≥60 anos) — 4 boas práticas · 25 pts cada
   C6:[
-    {cod:"BP-C6-a",desc:"Pessoa ≥60 anos com Avaliação Multidimensional Rápida (AMR)",campo:"Ficha de Atendimento Individual — AMR"},
-    {cod:"BP-C6-b",desc:"Avaliação cognitiva (MEEM ou equivalente) registrada",campo:"Ficha de Atendimento Individual — campo cognitivo"},
-    {cod:"BP-C6-c",desc:"Consulta realizada no período (médico ou enfermeiro)",campo:"Ficha de Atendimento Individual"},
-    {cod:"BP-C6-d",desc:"Vacinação em dia (Influenza, Pneumocócica)",campo:"e-SUS PEC — módulo vacinação"},
+    {cod:"A",desc:"≥1 consulta presencial ou remota por médico(a)/enfermeiro(a) nos últimos 12 meses (25 pts)",campo:"Proc. 03.01.01.006-4 / 03.01.01.003-0 / 03.01.01.025-0"},
+    {cod:"B",desc:"≥1 registro simultâneo de peso e altura (avaliação antropométrica) nos últimos 12 meses (25 pts)",campo:"Proc. 01.01.04.002-4 / 01.01.04.008-3 / 01.01.04.007-5"},
+    {cod:"C",desc:"≥2 visitas domiciliares por ACS/TACS com intervalo ≥30 dias nos últimos 12 meses (25 pts)",campo:"Atendimento Individual — CBO: 5151-05 / 3222-55"},
+    {cod:"D",desc:"≥1 dose da vacina contra influenza nos últimos 12 meses (25 pts)",campo:"e-SUS PEC Vacinação — cód. 33 (trivalente) / 77 (tetravalente)"},
   ],
+
+  // C7 — Prevenção do Câncer — 4 boas práticas (A/D=20 pts; B/C=30 pts)
   C7:[
-    {cod:"BP-C7-a",desc:"Mulher 25–64 anos com citopatológico realizado (últimos 3 anos)",campo:"Ficha de Atendimento Individual — CIAP2: X86 / CID: Z12.4"},
-    {cod:"BP-C7-b",desc:"Mulher 50–69 anos com mamografia realizada (últimos 2 anos)",campo:"Ficha de Atendimento Individual — CIAP2: X22 / CID: Z12.3"},
+    {cod:"A",desc:"≥1 exame rastreamento câncer colo útero em mulheres/homens trans 25–64 anos (últimos 36 meses; 60 meses se HPV molecular) (20 pts)",campo:"Proc. 02.01.02.003-3 / 02.03.01.008-6 / 02.03.01.001-9 / 02.01.02.007-6 / 02.02.10.025-1"},
+    {cod:"B",desc:"≥1 dose vacina HPV para crianças/adolescentes do sexo feminino 9–14 anos (30 pts)",campo:"e-SUS PEC Vacinação — cód. 67 (HPV quadrivalente) / 93 (HPV nonavalente)"},
+    {cod:"C",desc:"≥1 atendimento presencial/remoto sobre saúde sexual e reprodutiva para adolescentes/mulheres/homens trans 14–69 anos (últimos 12 meses) (30 pts)",campo:"Proc. 03.01.01.003-0 / 03.01.01.006-4 / 03.01.01.025-0 · CID: Z30/Z70 · CIAP2: X01–X13"},
+    {cod:"D",desc:"≥1 exame rastreamento câncer mama em mulheres/homens trans 50–69 anos (últimos 24 meses) (20 pts)",campo:"Proc. 02.04.03.003-0 / 02.04.03.018-8"},
+  ],
+
+  // eSB — B1: Primeira Consulta Programada (razão por pessoa; sem boas práticas)
+  B1:[],
+  // B2 — Tratamento Concluído
+  B2:[
+    {cod:"—",desc:"Nº pessoas com tratamento odontológico concluído ÷ Nº pessoas com 1ª consulta odontológica programada no período (resultado em %)",campo:"Proc. 03.01.01.015-3 (conclusão registrada pelo CD) — CBO: 2232-08/93/72"},
+  ],
+  // B3 — Taxa de Exodontia (Ótimo: ≥3% e <10%; resultado invertido)
+  B3:[
+    {cod:"—",desc:"Nº exodontias ÷ Total de procedimentos individuais preventivos, curativos e exodontias (%). Ótimo: ≥3% e <10%",campo:"Numerador: proc. 04.14.02.013-8 / 04.14.02.014-6 · Denominador: procedimentos clínicos eSB"},
+  ],
+  // B4 — Escovação Supervisionada (razão; sem boas práticas)
+  B4:[],
+  // B5 — Procedimentos Odontológicos Preventivos (Ótimo: ≥65% e ≤85%)
+  B5:[
+    {cod:"—",desc:"Nº procedimentos preventivos individuais ÷ Total de procedimentos individuais (%). Ótimo: ≥65% e ≤85%",campo:"Numerador: cariostático/selante/flúor/higiene/profilaxia · proc. 01.01.02.005-8 a 01.01.02.012-0 / 03.07.03.004-0"},
+  ],
+  // B6 — Tratamento Restaurador Atraumático (Ótimo: >8%)
+  B6:[
+    {cod:"—",desc:"Nº procedimentos ART ÷ Total de procedimentos restauradores (%). Ótimo: >8%",campo:"Numerador: proc. 03.07.01.007-4 · Denominador: restaurações 03.07.01.003-1/008-2/010-4/011-2/012-0 + ART"},
+  ],
+
+  // eMulti — M1: Média de atendimentos por pessoa (Ótimo: >3)
+  M1:[
+    {cod:"—",desc:"Nº total de atendimentos individuais e coletivos da eMulti ÷ Nº pessoas com ≥1 atendimento individual ou participação em atividade coletiva no período",campo:"Atendimento Individual/Coletivo — CBOs eMulti (assistente social, farmacêutico, fisioterapeuta, fono, nutricionista, psicólogo, terapeuta ocupacional, educador físico, geriatra, pediatra, etc.)"},
+  ],
+  // M2 — Ações Interprofissionais (Ótimo: >5%)
+  M2:[
+    {cod:"—",desc:"Ações compartilhadas entre eMulti e outras equipes ÷ Total de ações da eMulti (%). Inclui atendimentos individuais compartilhados, atividades coletivas compartilhadas e Módulo Compartilhamento do Cuidado do PEC",campo:"PEC — ações com ≥1 CNS de CBO eMulti como profissional principal ou secundário em ação compartilhada com eSF/eAP/eSB/eCR/eSFR/UBSF"},
+  ],
+
+  // eSFR — R1: Acesso (sem boas práticas, mesmo parâmetro do C1)
+  R1:[],
+  // R2 — Desenvolvimento Infantil (eSFR) — 4 boas práticas · 25 pts cada
+  R2:[
+    {cod:"A",desc:"≥6 consultas presenciais ou remotas por médico(a)/enfermeiro(a) até 2 anos de vida (25 pts)",campo:"Atendimento Individual — CBO: 2235/2251/2252 · proc. 03.01.01.006-4 / 03.01.01.025-0"},
+    {cod:"B",desc:"≥6 registros simultâneos de peso e altura até 2 anos de vida (25 pts)",campo:"Proc. 01.01.04.002-4 / 01.01.04.008-3 / 01.01.04.007-5"},
+    {cod:"C",desc:"≥6 visitas domiciliares por ACS/TACS — 1ª até 30 dias de vida, 2ª até 6 meses (25 pts)",campo:"Atendimento Individual — CBO: 5151-05 / 3222-55"},
+    {cod:"D",desc:"Vacinas DTPa/Penta, Polio, SCR/SCRV, Pneumocócica — todas as doses recomendadas (25 pts)",campo:"e-SUS PEC Vacinação — cód. 09/17/29/39/42/43/46/47/58/22/24/56/26/59/106/107"},
+  ],
+  // R3 — Gestação e Puerpério (eSFR) — 9 boas práticas (A/I=15 pts; B–H=10 pts)
+  R3:[
+    {cod:"A",desc:"≥5 consultas presenciais ou remotas por médico(a)/enfermeiro(a) durante a gestação (15 pts)",campo:"Proc. 03.01.01.006-4 / 03.01.01.003-0 / 03.01.01.011-0 / 03.01.01.025-0"},
+    {cod:"B",desc:"≥5 registros de aferição de pressão arterial durante a gestação (10 pts)",campo:"Proc. 03.01.10.003-9"},
+    {cod:"C",desc:"≥5 registros simultâneos de peso e altura durante a gestação (10 pts)",campo:"Proc. 01.01.04.002-4 / 01.01.04.008-3 / 01.01.04.007-5"},
+    {cod:"D",desc:"≥3 visitas domiciliares por ACS/TACS com intervalo ≥30 dias após 1ª consulta (10 pts)",campo:"Atendimento Individual — CBO: 5151-05 / 3222-55"},
+    {cod:"E",desc:"Testes rápidos ou exames para sífilis, HIV e hepatites B e C no 1º trimestre (10 pts)",campo:"Proc. 02.14.01.004-0 / 02.14.01.007-4 / 02.14.01.010-4 / 02.14.01.023-6 / 02.14.01.025-2"},
+    {cod:"F",desc:"Testes rápidos ou exames para sífilis e HIV no 3º trimestre (10 pts)",campo:"Proc. 02.14.01.007-4 / 02.14.01.025-2 / 02.14.01.004-0 / 02.14.01.027-9"},
+    {cod:"G",desc:"≥1 consulta presencial ou remota por médico(a)/enfermeiro(a) durante o puerpério (10 pts)",campo:"Proc. 03.01.01.012-9 / 03.01.01.006-4 / 03.01.01.025-0"},
+    {cod:"H",desc:"≥1 visita domiciliar por ACS/TACS durante o puerpério (10 pts)",campo:"Atendimento Individual — CBO: 5151-05 / 3222-55 · proc. 03.01.01.013-7"},
+    {cod:"I",desc:"≥1 atividade em saúde bucal por cirurgião-dentista ou TSB durante a gestação (15 pts)",campo:"Atendimento Individual — CBO: 2232 / 3224"},
+  ],
+  // R4 — Diabetes (eSFR) — 6 boas práticas (A/D=20 pts; B/C/E/F=15 pts — D=25 pts)
+  R4:[
+    {cod:"A",desc:"≥1 consulta presencial ou remota por médico(a)/enfermeiro(a) nos últimos 6 meses (20 pts)",campo:"CID: E10/E11/E14 · CIAP2: T89/T90 · proc. 03.01.01.006-4 / 03.01.01.003-0"},
+    {cod:"B",desc:"≥1 aferição de pressão arterial registrada nos últimos 6 meses (15 pts)",campo:"Proc. 03.01.10.003-9"},
+    {cod:"C",desc:"≥1 registro de peso e altura nos últimos 12 meses (15 pts)",campo:"Proc. 01.01.04.002-4 / 01.01.04.008-3 / 01.01.04.007-5"},
+    {cod:"D",desc:"≥2 visitas domiciliares por ACS/TACS com intervalo ≥30 dias nos últimos 12 meses (25 pts)",campo:"Atendimento Individual — CBO: 5151-05 / 3222-55"},
+    {cod:"E",desc:"≥1 registro de Hemoglobina Glicada solicitada ou avaliada nos últimos 12 meses (15 pts)",campo:"Proc. 02.02.01.050-3 · SIGTAP ABEX008"},
+    {cod:"F",desc:"≥1 registro de avaliação dos pés nos últimos 12 meses (15 pts)",campo:"Proc. 03.01.04.009-5 (Exame do pé diabético)"},
+  ],
+  // R5 — Hipertensão (eSFR) — 4 boas práticas · 25 pts cada (igual ao C5)
+  R5:[
+    {cod:"A",desc:"≥1 consulta presencial ou remota por médico(a)/enfermeiro(a) nos últimos 6 meses (25 pts)",campo:"CID: I10–I15/O10–O11 · CIAP2: K86/K87"},
+    {cod:"B",desc:"≥1 aferição de pressão arterial registrada nos últimos 6 meses (25 pts)",campo:"Proc. 03.01.10.003-9"},
+    {cod:"C",desc:"≥1 registro simultâneo de peso e altura nos últimos 12 meses (25 pts)",campo:"Proc. 01.01.04.002-4 / 01.01.04.008-3 / 01.01.04.007-5"},
+    {cod:"D",desc:"≥2 visitas domiciliares por ACS/TACS com intervalo ≥30 dias nos últimos 12 meses (25 pts)",campo:"Atendimento Individual — CBO: 5151-05 / 3222-55"},
+  ],
+  // R6 — Prevenção do Câncer (eSFR) — 2 boas práticas · 50 pts cada
+  R6:[
+    {cod:"A",desc:"≥1 exame rastreamento câncer colo útero em mulheres/homens trans 25–64 anos (últimos 36 meses) (50 pts)",campo:"Proc. 02.01.02.003-3 / 02.03.01.008-6 / 02.03.01.001-9 / 02.01.02.007-6 / ABEX001 / ABP022"},
+    {cod:"B",desc:"≥1 dose vacina HPV para crianças/adolescentes do sexo feminino 9–14 anos (50 pts)",campo:"e-SUS PEC Vacinação — cód. 67 (HPV quadrivalente) / 93 (HPV nonavalente)"},
   ],
 };
 
