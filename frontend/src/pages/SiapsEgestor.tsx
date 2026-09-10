@@ -1355,13 +1355,20 @@ function AbaQualidade({ data: _data }: { data: any }) {
       const d = await apiPost("/api/sync/extrair-historico", {}) as any;
       setMsgExtracao((d as any)?.mensagem || "Extração iniciada em background.");
     } catch (err: any) {
-      const detalhe = err?.response?.data?.detail ?? err?.message ?? "";
-      if (detalhe.includes("credenciais") || detalhe.includes("CPF") || detalhe.includes("SENHA")) {
+      console.error("[extrair-historico] erro:", err);
+      const status = err?.response?.status;
+      const raw    = err?.response?.data;
+      const detalhe: string =
+        typeof raw?.detail === "string" ? raw.detail :
+        typeof raw?.mensagem === "string" ? raw.mensagem :
+        raw ? JSON.stringify(raw) :
+        typeof err?.message === "string" ? err.message : "erro desconhecido";
+      if (status === 401 || status === 403) {
+        setMsgExtracao("Sessão expirada — faça login novamente.");
+      } else if (detalhe.toLowerCase().includes("credencial") || detalhe.toLowerCase().includes("cpf") || detalhe.toLowerCase().includes("senha")) {
         setMsgExtracao("Credenciais SIAPS inválidas — verifique SIAPS_CPF/SIAPS_SENHA no Railway.");
-      } else if (detalhe.includes("401") || detalhe.includes("403")) {
-        setMsgExtracao("Autenticação rejeitada pelo SIAPS — senha incorreta ou conta bloqueada.");
       } else {
-        setMsgExtracao(`Erro na extração: ${detalhe || "verifique os logs do Railway."}`);
+        setMsgExtracao(`Erro na extração (HTTP ${status ?? "?"}): ${detalhe}`);
       }
       setExtraindo(false);
     }
