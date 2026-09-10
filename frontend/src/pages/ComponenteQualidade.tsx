@@ -332,6 +332,19 @@ const EQUIPES_REF = [
 ];
 
 // ── NOMES oficiais — Portaria GM/MS 3.493/2024 + NT DEAPS/SAPS/MS 6/2025 ─────
+// Nomes curtos para cabeçalhos de tabela (sem truncar automaticamente)
+const NOMES_CURTOS: Record<string,string> = {
+  C1:"Mais Acesso", C2:"Desenv. Infantil", C3:"Gestação/Puerpério",
+  C4:"Diabetes", C5:"Hipertensão", C6:"Pessoa Idosa", C7:"Prev. Câncer",
+  B1:"1ª Consulta", B2:"Trat. Concluído", B3:"Taxa Exodontias",
+  B4:"Escovação Sup.", B5:"Prev. Odonto", B6:"ART",
+  M1:"Média Atend.", M2:"Ações Interprofis.",
+  R1:"Mais Acesso (R)", R2:"Desenv. Infantil (R)", R3:"Gestação (R)",
+  R4:"Diabetes (R)", R5:"Hipertensão (R)", R6:"Prev. Câncer (R)",
+  CR1:"Acesso eCR", CR2:"Gestação eCR", CR3:"IST eCR", CR4:"TB eCR",
+  P1:"Acesso eAPP", P2:"Gestação eAPP", P3:"DM/HAS eAPP", P4:"IST eAPP", P5:"TB eAPP",
+};
+
 const NOMES: Record<string,string> = {
   // eSF / eAP
   "C1":"Mais Acesso à Atenção Primária à Saúde",
@@ -804,30 +817,38 @@ function ViewPorEquipe({ codigos, cor, vals }: { codigos:string[]; cor:string; v
         </span>
       </div>
 
-      <div style={{ overflowX:"auto" }}>
-        <table style={{ width:"100%", borderCollapse:"separate", borderSpacing:0, fontSize:12 }}>
+      <div style={{ overflowX:"auto", borderRadius:10, border:"1px solid #e5e7eb" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
           <thead>
             <tr>
+              {/* Equipe — sticky */}
               <th style={{
-                padding:"10px 14px", textAlign:"left", fontWeight:700, whiteSpace:"nowrap",
-                background:"#1e3a5f", color:"#fff", borderRadius:"8px 0 0 0", position:"sticky", left:0, zIndex:2,
+                padding:"12px 16px", textAlign:"left", fontWeight:700, whiteSpace:"nowrap",
+                background:"#1e3a5f", color:"#fff", position:"sticky", left:0, zIndex:3,
+                borderRight:"2px solid #2d5491",
               }}>Equipe</th>
-              <th style={{
-                padding:"10px 14px", textAlign:"left", fontWeight:600, color:"#fff",
-                background:"#1e3a5f", whiteSpace:"nowrap",
-              }}>UBS</th>
-              <th style={{
-                padding:"10px 14px", textAlign:"center", fontWeight:700, color:"#fff",
-                background:"#1e3a5f", whiteSpace:"nowrap",
-              }}>Média geral</th>
+              {/* UBS */}
+              <th style={{ padding:"12px 14px", textAlign:"left", fontWeight:600,
+                background:"#1e3a5f", color:"#93c5fd", whiteSpace:"nowrap", fontSize:11 }}>
+                UBS
+              </th>
+              {/* Média geral */}
+              <th style={{ padding:"12px 10px", textAlign:"center", fontWeight:700,
+                background:"#1e3a5f", color:"#fff", whiteSpace:"nowrap", borderRight:"2px solid #2d5491" }}>
+                Média
+              </th>
+              {/* Indicadores */}
               {codigos.map(cod=>(
                 <th key={cod} style={{
-                  padding:"10px 8px", textAlign:"center", fontWeight:700,
-                  background:"#1e3a5f", color:"#fff", whiteSpace:"nowrap", minWidth:110,
+                  padding:"10px 6px", textAlign:"center", background:"#1e3a5f",
+                  color:"#fff", minWidth:120,
                 }}>
-                  <div style={{ fontSize:10, color:"#93c5fd", letterSpacing:.5, marginBottom:1 }}>{cod}</div>
-                  <div style={{ fontSize:10, fontWeight:500, lineHeight:1.3 }}>
-                    {NOMES[cod]?.split(" ").slice(0,3).join(" ") ?? cod}
+                  <div style={{ fontSize:10, color:"#93c5fd", letterSpacing:.5, fontWeight:600 }}>{cod}</div>
+                  <div style={{ fontSize:11, fontWeight:600, marginTop:2, lineHeight:1.2 }}>
+                    {NOMES_CURTOS[cod] ?? cod}
+                  </div>
+                  <div style={{ fontSize:9, color:"#64748b", marginTop:2 }}>
+                    meta {METAS[cod] != null ? `${METAS[cod]}%` : "—"}
                   </div>
                 </th>
               ))}
@@ -835,30 +856,36 @@ function ViewPorEquipe({ codigos, cor, vals }: { codigos:string[]; cor:string; v
           </thead>
           <tbody>
             {EQUIPES_REF.map((eq,i)=>{
-              const sc = scores.find(s=>s.equipe===eq.equipe);
-              const scCl = sc?.media != null ? classifVal(sc.media, "C1") : "regular";
-              const bg = i%2===0 ? "#fff" : "#f8fafc";
+              const sc    = scores.find(s=>s.equipe===eq.equipe);
+              const scCl  = sc?.media != null ? classifVal(sc.media, "C2") : "regular";
+              const bd    = _BADGE[scCl] ?? _BADGE.regular;
+              const bgRow = i%2===0 ? "#fff" : "#f8fafc";
               return (
-                <tr key={eq.equipe} style={{ background:bg }}>
+                <tr key={eq.equipe} style={{ background:bgRow }}>
+                  {/* Equipe — sticky */}
                   <td style={{
-                    padding:"10px 14px", fontWeight:800, fontSize:13,
-                    borderBottom:"1px solid #e5e7eb", whiteSpace:"nowrap",
-                    position:"sticky", left:0, background:bg, zIndex:1,
+                    padding:"10px 16px", fontWeight:800, fontSize:13, whiteSpace:"nowrap",
+                    borderBottom:"1px solid #e5e7eb", position:"sticky", left:0,
+                    background:bgRow, zIndex:1, borderRight:"2px solid #e5e7eb",
                   }}>{eq.equipe}</td>
+                  {/* UBS */}
                   <td style={{
-                    padding:"10px 14px", color:"#6b7280", fontSize:11,
+                    padding:"10px 14px", color:"#6b7280", fontSize:10,
                     borderBottom:"1px solid #e5e7eb", whiteSpace:"nowrap",
-                  }}>{eq.ubs.length>26 ? eq.ubs.slice(0,26)+"…" : eq.ubs}</td>
-                  {/* Média geral */}
-                  <td style={{ padding:"10px 8px", textAlign:"center", borderBottom:"1px solid #e5e7eb" }}>
+                  }}>{eq.ubs.length>30 ? eq.ubs.slice(0,30)+"…" : eq.ubs}</td>
+                  {/* Média */}
+                  <td style={{ padding:"10px 8px", textAlign:"center",
+                    borderBottom:"1px solid #e5e7eb", borderRight:"2px solid #e5e7eb" }}>
                     {sc?.media != null ? (
                       <span style={{
-                        display:"inline-block", padding:"3px 10px", borderRadius:99,
-                        background:_BADGE[scCl]?.bg, color:_BADGE[scCl]?.color,
+                        display:"inline-block", padding:"4px 12px", borderRadius:99,
+                        background:bd.bg, color:bd.color,
                         fontWeight:800, fontSize:13, fontVariantNumeric:"tabular-nums",
+                        border:`1px solid ${bd.color}40`,
                       }}>{sc.media.toFixed(1)}%</span>
                     ) : <span style={{ color:"#d1d5db", fontSize:11 }}>—</span>}
                   </td>
+                  {/* Células por indicador */}
                   {codigos.map(cod=>(
                     <CelulaEquipe key={cod} val={vals[cod]?.[eq.equipe]} cod={cod}/>
                   ))}
