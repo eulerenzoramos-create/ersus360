@@ -957,7 +957,7 @@ function Celula({
 export default function MatrizFns() {
   const [exercicio, setExercicio] = useState(new Date().getFullYear());
   const [mesInicio, setMesInicio] = useState(1);
-  const [mesFim, setMesFim]       = useState(12);
+  const [mesFim, setMesFim]       = useState(new Date().getMonth() + 1); // mês atual, não dezembro
   const [filtroGrupo,     setFiltroGrupo]     = useState("");
   const [filtroAcao,      setFiltroAcao]      = useState("");
   const [filtroComp,      setFiltroComp]      = useState("");
@@ -1119,7 +1119,7 @@ export default function MatrizFns() {
   const limparFiltros = () => {
     setFiltroGrupo(""); setFiltroAcao(""); setFiltroComp("");
     setFiltroTipo(""); setFiltroBusca("");
-    setMesInicio(1); setMesFim(12);
+    setMesInicio(1); setMesFim(new Date().getMonth() + 1);
   };
 
   const temFiltro = filtroGrupo || filtroAcao || filtroComp || filtroTipo || filtroBusca;
@@ -1432,10 +1432,21 @@ export default function MatrizFns() {
         )}
 
         {data && data.total_linhas === 0 && !isLoading && (
-          <div style={{ padding: 60, textAlign: "center", color: C.gray }}>
+          <div style={{ padding: 40, textAlign: "center", color: C.gray }}>
             <Info size={32} style={{ marginBottom: 12 }} />
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Nenhum repasse encontrado para os filtros aplicados</div>
-            <div style={{ fontSize: 13 }}>Use o botão "Sincronizar com FNS" para importar os dados oficiais.</div>
+            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 15 }}>Nenhum repasse encontrado</div>
+            <div style={{ fontSize: 13, marginBottom: 16, maxWidth: 440, margin: "0 auto 16px" }}>
+              {mesInicio > mesAtualNum
+                ? `Os meses selecionados (${MESES_ABREV[mesInicio - 1]}–${MESES_ABREV[mesFim - 1]}/${exercicio}) ainda não tiveram repasses — selecione Jan até ${MESES_ABREV[mesAtualNum - 1]} e clique em Sincronizar.`
+                : `Use o botão "Sincronizar com FNS" para importar os dados oficiais dos meses de Jan a ${MESES_ABREV[mesAtualNum - 1]}/${exercicio}.`}
+            </div>
+            <button onClick={sincronizar} disabled={sincronizando}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 20px",
+                background: C.blue, color: C.white, border: "none", borderRadius: 8,
+                fontSize: 13, fontWeight: 600, cursor: sincronizando ? "wait" : "pointer" }}>
+              <RefreshCw size={14} style={sincronizando ? { animation: "spin 1s linear infinite" } : {}} />
+              {sincronizando ? "Sincronizando…" : `Sincronizar Jan–${MESES_ABREV[mesAtualNum - 1]}/${exercicio}`}
+            </button>
           </div>
         )}
 

@@ -275,9 +275,17 @@ async def _fetch_consultafns(exercicio: int, mes: int) -> tuple[list[dict], Deci
                     logger.info(f"FNS detalhe-acao página {page}: HTTP {r.status_code}")
                     break
 
-                payload = r.json().get("resultado", {})
+                try:
+                    payload = r.json().get("resultado", {})
+                except Exception:
+                    payload = {}
                 dados = payload.get("dados", [])
                 if not dados:
+                    logger.info(
+                        f"FNS consultafns p{page} sem dados: status={r.status_code} "
+                        f"exercicio={exercicio} mes={mes} "
+                        f"keys={list(payload.keys())[:10] if payload else '[]'}"
+                    )
                     break
 
                 # Soma total oficial da fonte (campo totalValor/totalDesconto)
@@ -431,17 +439,30 @@ async def _fetch_transparencia(exercicio: int, mes: int) -> tuple[list[dict], De
                 data = resp.json()
                 items = data if isinstance(data, list) else (data.get("data") or data.get("content") or [])
                 for item in items:
-                    # Mapeia campos do Portal da Transparência para schema interno
+                    # Tenta todos os campos de valor conhecidos na API do Portal da Transparência
+                    vl = (item.get("valor")
+                          or item.get("valorTotal")
+                          or item.get("valorTransferido")
+                          or item.get("valorRepasse")
+                          or item.get("valorRecebido")
+                          or item.get("valorPago")
+                          or item.get("valorEmpenhado")
+                          or 0)
                     raw = {
-                        "bloco":          item.get("descricaoProgramatica") or item.get("funcaoPrograma"),
-                        "grupo":          item.get("programa") or item.get("funcao"),
-                        "acao":           item.get("acao") or item.get("acaoProgramatica"),
-                        "acaoDetalhada":  item.get("naturezaDespesa"),
-                        "valorTotal":     item.get("valorTotal") or item.get("valor"),
+                        "bloco":          (item.get("descricaoProgramatica")
+                                           or item.get("programaOrcamentario") or item.get("funcaoPrograma")),
+                        "grupo":          item.get("programa") or item.get("funcao") or item.get("subfuncao"),
+                        "acao":           (item.get("acao") or item.get("acaoProgramatica")
+                                           or item.get("acaoOrcamentaria")),
+                        "acaoDetalhada":  item.get("naturezaDespesa") or item.get("elementoDespesa"),
+                        "valorTotal":     vl,
                         "valorDesconto":  0,
-                        "valorLiquido":   item.get("valorTotal") or item.get("valor"),
-                        "dataPagamento":  item.get("dataTransferencia") or item.get("dataPagamento"),
+                        "valorLiquido":   vl,
+                        "dataPagamento":  (item.get("dataTransferencia") or item.get("dataPagamento")
+                                           or item.get("dataCredito")),
                         "situacao":       item.get("situacao") or "Transferido",
+                        "numeroProposta": item.get("numeroProposta") or item.get("nrProposta"),
+                        "numeroPortaria": item.get("portaria") or item.get("numeroPortaria"),
                     }
                     registros.append(_normalizar(raw, exercicio, mes, "transparencia", 0))
                 if registros:

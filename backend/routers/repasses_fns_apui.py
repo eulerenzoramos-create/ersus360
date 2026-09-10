@@ -136,6 +136,77 @@ async def sincronizar_periodo(
     }
 
 
+# ── Diagnóstico da API consultafns ────────────────────────────────────────────
+
+@router.get("/diagnostico-api")
+async def diagnostico_api(
+    exercicio: int = Query(2026),
+    mes:       int = Query(1, ge=1, le=12),
+):
+    """
+    Testa diretamente a API consultafns.saude.gov.br e retorna o payload bruto.
+    Útil para diagnosticar por que a coleta primária retorna vazio.
+    """
+    import os
+    _BASE = "https://consultafns.saude.gov.br/recursos"
+    CNPJ_FIXO = "12834320000126"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; ERSUS360/1.0)",
+        "Accept": "application/json",
+        "Origin": "https://consultafns.saude.gov.br",
+        "Referer": "https://consultafns.saude.gov.br/",
+    }
+
+    result: dict = {
+        "exercicio": exercicio, "mes": mes,
+        "ibge": IBGE_APUI, "cnpj_usado": CNPJ_FIXO,
+        "entidades": None, "detalhe_acao_p1": None, "erro": None,
+    }
+
+    async with _httpx.AsyncClient(timeout=20.0, follow_redirects=True) as c:
+        # 1. entidades
+        try:
+            r1 = await c.get(f"{_BASE}/consulta-detalhada/entidades", headers=headers, params={
+                "ano": exercicio, "count": 5, "estado": "AM",
+                "municipio": IBGE_APUI, "page": 1, "tipoConsulta": 2, "mes": mes,
+            })
+            result["entidades"] = {
+                "status": r1.status_code,
+                "dados": r1.json() if r1.status_code == 200 else r1.text[:300],
+            }
+            if r1.status_code == 200:
+                dados = r1.json().get("resultado", {}).get("dados", [])
+                if dados:
+                    raw_cnpj = dados[0].get("cpfCnpj") or dados[0].get("cpfCnpjFormatado", "")
+                    cnpj = raw_cnpj.replace(".", "").replace("/", "").replace("-", "") or CNPJ_FIXO
+                    result["cnpj_usado"] = cnpj
+        except Exception as e:
+            result["entidades"] = {"erro": str(e)}
+
+        # 2. detalhe-acao página 1
+        try:
+            r2 = await c.get(f"{_BASE}/consulta-detalhada/detalhe-acao", headers=headers, params={
+                "ano": exercicio, "count": 10,
+                "cpfCnpjUg": result["cnpj_usado"],
+                "estado": "AM", "municipio": IBGE_APUI,
+                "page": 1, "tipoConsulta": 2, "mes": mes,
+            })
+            payload = r2.json() if r2.status_code == 200 else {}
+            result["detalhe_acao_p1"] = {
+                "status": r2.status_code,
+                "keys_resultado": list(payload.get("resultado", {}).keys()) if payload else [],
+                "total_registros": payload.get("resultado", {}).get("totalRegistros"),
+                "total_registros2": payload.get("resultado", {}).get("total"),
+                "n_dados": len(payload.get("resultado", {}).get("dados", [])),
+                "primeiro_registro": payload.get("resultado", {}).get("dados", [None])[0] if payload.get("resultado", {}).get("dados") else None,
+                "raw_text_preview": r2.text[:500] if r2.status_code != 200 else None,
+            }
+        except Exception as e:
+            result["detalhe_acao_p1"] = {"erro": str(e)}
+
+    return result
+
+
 # ── Listagem e filtros ─────────────────────────────────────────────────────────
 
 @router.get("/transferencias")
