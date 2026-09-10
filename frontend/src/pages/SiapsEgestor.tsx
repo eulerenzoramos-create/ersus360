@@ -1352,7 +1352,7 @@ function AbaQualidade({ data: _data }: { data: any }) {
     setExtraindo(true);
     setMsgExtracao("Iniciando extração SIAPS Jan–Ago/2026…");
     try {
-      const d = await apiPost("/api/sync/extrair-historico", {}) as any;
+      const d = await apiPost("/api/sync/extrair-historico") as any;
       setMsgExtracao((d as any)?.mensagem || "Extração iniciada em background.");
     } catch (err: any) {
       console.error("[extrair-historico] erro:", err);
