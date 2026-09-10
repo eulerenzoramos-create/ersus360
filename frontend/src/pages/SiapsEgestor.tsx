@@ -9,7 +9,7 @@ import {
   Users, Star, TrendingUp, AlertTriangle, CheckCircle,
   ChevronDown, ChevronRight, RefreshCw, Download, Info,
 } from "lucide-react";
-import { apiGet } from "../lib/api";
+import { apiGet, apiPost } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
@@ -1352,16 +1352,17 @@ function AbaQualidade({ data: _data }: { data: any }) {
     setExtraindo(true);
     setMsgExtracao("Iniciando extração SIAPS Jan–Ago/2026…");
     try {
-      const r = await fetch("/api/sync/extrair-historico", {
-        method: "POST",
-        headers: { "Content-Type": "application/json",
-                   "Authorization": `Bearer ${localStorage.getItem("ersus_token") || ""}` },
-        body: JSON.stringify({}),
-      });
-      const d = await r.json();
-      setMsgExtracao(d.mensagem || "Extração iniciada em background.");
-    } catch {
-      setMsgExtracao("Erro ao iniciar extração. Verifique SIAPS_CPF/SIAPS_SENHA no Railway.");
+      const d = await apiPost("/api/sync/extrair-historico", {}) as any;
+      setMsgExtracao((d as any)?.mensagem || "Extração iniciada em background.");
+    } catch (err: any) {
+      const detalhe = err?.response?.data?.detail ?? err?.message ?? "";
+      if (detalhe.includes("credenciais") || detalhe.includes("CPF") || detalhe.includes("SENHA")) {
+        setMsgExtracao("Credenciais SIAPS inválidas — verifique SIAPS_CPF/SIAPS_SENHA no Railway.");
+      } else if (detalhe.includes("401") || detalhe.includes("403")) {
+        setMsgExtracao("Autenticação rejeitada pelo SIAPS — senha incorreta ou conta bloqueada.");
+      } else {
+        setMsgExtracao(`Erro na extração: ${detalhe || "verifique os logs do Railway."}`);
+      }
       setExtraindo(false);
     }
   };
