@@ -328,7 +328,7 @@ const EQUIPES_REF = [
   { equipe:"LIBERDADE",     ubs:"CENTRO DE SAUDE CURUMIM",                 ine:"0000563155", cnes:"6820662", tipo:"eSF" },
   { equipe:"KENNEDY",       ubs:"UBS PADRE FALIERO BONCI",                 ine:"0000563163", cnes:"6820662", tipo:"eSF" },
   { equipe:"JK",            ubs:"UBS JK",                                  ine:"0000563171", cnes:"6820662", tipo:"eSF" },
-  { equipe:"ESTRADA NOVA",  ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA", ine:"0000563198", cnes:"6820662", tipo:"eSF" },
+  { equipe:"ESTRADA NOVA",  ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA", ine:"0000563198", cnes:"6820662", tipo:"eSFR" },
 ];
 
 // ── NOMES oficiais — Portaria GM/MS 3.493/2024 + NT DEAPS/SAPS/MS 6/2025 ─────
@@ -793,13 +793,41 @@ function CelulaEquipe({ val, cod }: { val:number|undefined; cod:string }) {
   );
 }
 
-function ViewPorEquipe({ codigos, cor, vals }: { codigos:string[]; cor:string; vals:Record<string,Record<string,number>> }) {
+// mapa: qual tipoEquipe da aba aceita quais tipo de EQUIPES_REF
+const TIPOS_ABA_PARA_EQUIPE: Record<string, string[]> = {
+  eSF:    ["eSF"],
+  eAP:    ["eAP","eSF"],
+  eSB:    ["eSF","eSFR"],  // eSB indica por equipe principal (eSF/eSFR que tem ESB vinculada)
+  eMulti: ["eSF","eSFR"],  // eMulti idem
+  eCR:    ["eCR"],
+  eAPP:   ["eAPP"],
+  eSFR:   ["eSFR"],
+};
+
+function ViewPorEquipe({ codigos, cor, vals, filtros }: {
+  codigos:string[]; cor:string;
+  vals:Record<string,Record<string,number>>;
+  filtros: Filtros;
+}) {
+  // filtra equipes pelos tipos de equipe selecionados nos filtros
+  const equipesVisiveis = useMemo(() => {
+    const tiposAceitos = new Set(
+      filtros.tiposEquipe.flatMap(t => TIPOS_ABA_PARA_EQUIPE[t] ?? [t])
+    );
+    const filtradas = EQUIPES_REF.filter(eq => tiposAceitos.has(eq.tipo));
+    // fallback: se nenhuma equipe bate o filtro, mostra todas com dado disponível
+    if (filtradas.length === 0) {
+      return EQUIPES_REF.filter(eq => codigos.some(c => vals[c]?.[eq.equipe] != null));
+    }
+    return filtradas;
+  }, [filtros.tiposEquipe, codigos, vals]);
+
   // score global por equipe (média dos indicadores disponíveis)
-  const scores = useMemo(()=> EQUIPES_REF.map(eq=>{
+  const scores = useMemo(()=> equipesVisiveis.map(eq=>{
     const disponíveis = codigos.filter(c=> vals[c]?.[eq.equipe] != null);
     const soma = disponíveis.reduce((s,c)=> s + (vals[c]?.[eq.equipe]??0), 0);
     return { equipe:eq.equipe, media: disponíveis.length ? soma/disponíveis.length : null };
-  }), [codigos, vals]);
+  }), [codigos, vals, equipesVisiveis]);
 
   return (
     <div>
@@ -855,7 +883,7 @@ function ViewPorEquipe({ codigos, cor, vals }: { codigos:string[]; cor:string; v
             </tr>
           </thead>
           <tbody>
-            {EQUIPES_REF.map((eq,i)=>{
+            {equipesVisiveis.map((eq,i)=>{
               const sc    = scores.find(s=>s.equipe===eq.equipe);
               const scCl  = sc?.media != null ? classifVal(sc.media, "C2") : "regular";
               const bd    = _BADGE[scCl] ?? _BADGE.regular;
@@ -1100,7 +1128,7 @@ export default function ComponenteQualidade() {
         </div>
       )}
       {!pecLoading && visao === "indicador"   && <ViewPorIndicador  codigos={codigosVisiveis} cor={corAtivo} vals={vals}/>}
-      {!pecLoading && visao === "equipe"      && <ViewPorEquipe      codigos={codigosVisiveis} cor={corAtivo} vals={vals}/>}
+      {!pecLoading && visao === "equipe"      && <ViewPorEquipe      codigos={codigosVisiveis} cor={corAtivo} vals={vals} filtros={filtrosAtivos}/>}
       {!pecLoading && visao === "competencia" && <ViewPorCompetencia codigos={codigosVisiveis} cor={corAtivo} filtros={filtrosAtivos} vals={vals}/>}
 
       {/* ── Alertas ──────────────────────────────────── */}
