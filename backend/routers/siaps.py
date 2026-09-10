@@ -7,6 +7,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
 from services import siaps_service
+from services import siaps_municipio
 
 router = APIRouter(prefix="/api/siaps", tags=["SIAPS / eGestor APS"])
 
@@ -327,6 +328,37 @@ async def vinculo_acompanhamento(
     tipo_equipe: str = Query("eAP,eSF"),
     _: UserOut = Depends(get_current_user),
 ):
+    """Retorna CVAT por equipe. Tenta SIAPS ao vivo; fallback para referência Abr/2026."""
+    # Tenta dados ao vivo do SIAPS (requer credenciais configuradas no Railway)
+    ibge = "1300144"
+    try:
+        live = await siaps_municipio.buscar_vinculo(ibge, competencia.replace("-", ""))
+        if live and live.get("situacao_dado") == "oficial_validado":
+            equipes_live = live.get("equipes") or []
+            if equipes_live:
+                total_vinculadas = sum(e.get("K", 0) for e in equipes_live)
+                total_acompanhadas = sum(e.get("H", 0) for e in equipes_live)
+                pontuacao_media = round(sum(e.get("pontuacao", 0) for e in equipes_live) / len(equipes_live), 2)
+                por_status = {
+                    "otimo":      sum(1 for e in equipes_live if (e.get("pontuacao") or 0) > 8.5),
+                    "bom":        sum(1 for e in equipes_live if 7.0 <= (e.get("pontuacao") or 0) <= 8.5),
+                    "suficiente": sum(1 for e in equipes_live if 5.0 <= (e.get("pontuacao") or 0) < 7.0),
+                    "regular":    sum(1 for e in equipes_live if (e.get("pontuacao") or 0) < 5.0),
+                }
+                return {
+                    "competencia": competencia, "tipo_equipe": tipo_equipe,
+                    "dado_preliminar": False, "municipio": "APUÍ", "uf": "AM", "ied": 2,
+                    "total_equipes": len(equipes_live),
+                    "total_pessoas_vinculadas": total_vinculadas,
+                    "total_pessoas_acompanhadas": total_acompanhadas,
+                    "pontuacao_media": pontuacao_media, "por_status": por_status,
+                    "equipes": equipes_live,
+                    "fonte": "siaps_live",
+                }
+    except Exception:
+        pass
+
+    # Fallback: referência Abr/2026 (verificada no e-Gestor em 06/09/2026)
     equipes = _VINCULO_EQUIPES
     total_vinculadas = sum(e["K"] for e in equipes)
     total_acompanhadas = sum(e["H"] for e in equipes)
@@ -353,6 +385,7 @@ async def vinculo_acompanhamento(
         "por_status": por_status,
         "equipes": equipes,
         "fonte": "siaps_referencia",
+        "nota": f"Referência Abr/2026 — configure SIAPS_CPF_1300144 e SIAPS_SENHA_1300144 no Railway para dados de {competencia}.",
     }
 
 

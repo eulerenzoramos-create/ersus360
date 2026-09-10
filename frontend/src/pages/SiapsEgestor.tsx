@@ -1630,52 +1630,6 @@ const _INE_MAP: Record<string,string> = {
 };
 
 // Resultados CVAT (variáveis A-K) por competência
-const _CVAT_COMP: Record<string, Record<string,{A:number;B:number;C:number;D:number;E:number;F:number;G:number;H:number;I:number;J:number;K:number;pont:number}>> = {
-  "2026-05":{
-    "CACHOEIRA":     {A:95,B:82,C:90,D:78,E:74,F:85,G:88,H:91,I:79,J:84,K:80,pont:9.2},
-    "SÃO SEBASTIÃO": {A:88,B:76,C:85,D:72,E:68,F:79,G:82,H:86,I:73,J:78,K:75,pont:8.5},
-    "ACARI":         {A:90,B:79,C:87,D:75,E:70,F:81,G:84,H:88,I:76,J:80,K:77,pont:8.7},
-    "TRÊS ESTADOS":  {A:62,B:55,C:60,D:51,E:49,F:57,G:59,H:62,I:54,J:57,K:55,pont:5.9},
-    "JUMA":          {A:93,B:84,C:91,D:80,E:76,F:87,G:90,H:93,I:81,J:86,K:82,pont:9.4},
-    "LIBERDADE":     {A:97,B:89,C:95,D:84,E:80,F:91,G:94,H:97,I:85,J:90,K:86,pont:9.8},
-    "KENNEDY":       {A:85,B:74,C:82,D:70,E:65,F:76,G:79,H:83,I:71,J:75,K:72,pont:8.1},
-    "JK":            {A:91,B:82,C:89,D:78,E:73,F:84,G:87,H:90,I:79,J:83,K:79,pont:9.0},
-    "ESTRADA NOVA":  {A:55,B:49,C:54,D:45,E:43,F:50,G:52,H:55,I:47,J:51,K:48,pont:5.1},
-  },
-  "2026-06":{
-    "CACHOEIRA":     {A:96,B:83,C:91,D:79,E:75,F:86,G:89,H:92,I:80,J:85,K:81,pont:9.3},
-    "SÃO SEBASTIÃO": {A:89,B:77,C:86,D:73,E:69,F:80,G:83,H:87,I:74,J:79,K:76,pont:8.6},
-    "ACARI":         {A:91,B:80,C:88,D:76,E:71,F:82,G:85,H:89,I:77,J:81,K:78,pont:8.8},
-    "TRÊS ESTADOS":  {A:64,B:57,C:62,D:53,E:51,F:59,G:61,H:64,I:56,J:59,K:57,pont:6.1},
-    "JUMA":          {A:94,B:85,C:92,D:81,E:77,F:88,G:91,H:94,I:82,J:87,K:83,pont:9.5},
-    "LIBERDADE":     {A:98,B:90,C:96,D:85,E:81,F:92,G:95,H:98,I:86,J:91,K:87,pont:9.9},
-    "KENNEDY":       {A:86,B:75,C:83,D:71,E:66,F:77,G:80,H:84,I:72,J:76,K:73,pont:8.2},
-    "JK":            {A:92,B:83,C:90,D:79,E:74,F:85,G:88,H:91,I:80,J:84,K:80,pont:9.1},
-    "ESTRADA NOVA":  {A:57,B:51,C:56,D:47,E:45,F:52,G:54,H:57,I:49,J:53,K:50,pont:5.3},
-  },
-  "2026-07":{
-    "CACHOEIRA":     {A:97,B:84,C:92,D:80,E:76,F:87,G:90,H:93,I:81,J:86,K:82,pont:9.4},
-    "SÃO SEBASTIÃO": {A:90,B:78,C:87,D:74,E:70,F:81,G:84,H:88,I:75,J:80,K:77,pont:8.7},
-    "ACARI":         {A:92,B:81,C:89,D:77,E:72,F:83,G:86,H:90,I:78,J:82,K:79,pont:8.9},
-    "TRÊS ESTADOS":  {A:65,B:58,C:63,D:54,E:52,F:60,G:62,H:65,I:57,J:60,K:58,pont:6.2},
-    "JUMA":          {A:95,B:86,C:93,D:82,E:78,F:89,G:92,H:95,I:83,J:88,K:84,pont:9.6},
-    "LIBERDADE":     {A:99,B:91,C:97,D:86,E:82,F:93,G:96,H:99,I:87,J:92,K:88,pont:10.0},
-    "KENNEDY":       {A:87,B:76,C:84,D:72,E:67,F:78,G:81,H:85,I:73,J:77,K:74,pont:8.3},
-    "JK":            {A:93,B:84,C:91,D:80,E:75,F:86,G:89,H:92,I:81,J:85,K:81,pont:9.2},
-    "ESTRADA NOVA":  {A:59,B:53,C:58,D:49,E:47,F:54,G:56,H:59,I:51,J:55,K:52,pont:5.5},
-  },
-  "2026-08":{
-    "CACHOEIRA":     {A:97,B:85,C:93,D:81,E:77,F:88,G:91,H:94,I:82,J:87,K:83,pont:9.4},
-    "SÃO SEBASTIÃO": {A:91,B:79,C:88,D:75,E:71,F:82,G:85,H:89,I:76,J:81,K:78,pont:8.8},
-    "ACARI":         {A:93,B:82,C:90,D:78,E:73,F:84,G:87,H:91,I:79,J:83,K:80,pont:9.0},
-    "TRÊS ESTADOS":  {A:67,B:60,C:65,D:56,E:54,F:62,G:64,H:67,I:59,J:62,K:60,pont:6.4},
-    "JUMA":          {A:96,B:87,C:94,D:83,E:79,F:90,G:93,H:96,I:84,J:89,K:85,pont:9.7},
-    "LIBERDADE":     {A:100,B:92,C:98,D:87,E:83,F:94,G:97,H:100,I:88,J:93,K:89,pont:10.0},
-    "KENNEDY":       {A:88,B:77,C:85,D:73,E:68,F:79,G:82,H:86,I:74,J:78,K:75,pont:8.4},
-    "JK":            {A:94,B:85,C:92,D:81,E:76,F:87,G:90,H:93,I:82,J:86,K:82,pont:9.3},
-    "ESTRADA NOVA":  {A:61,B:55,C:60,D:51,E:49,F:56,G:58,H:61,I:53,J:57,K:54,pont:5.7},
-  },
-};
 
 // _QUAL_COMP: sem dados demonstrativos.
 // Resultados oficiais C1-C7 serão inseridos aqui após importação do SIAPS.
@@ -1720,21 +1674,29 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
   const [indExp, setIndExp]             = useState<string|null>(null);
 
   const compLabel = _COMP_OPTS.find(c=>c.val===competencia)?.label ?? competencia;
-  const cvatComp  = _CVAT_COMP[competencia] ?? {};
   const qualComp  = _QUAL_COMP[competencia] ?? {};
 
-  // ── Cálculos CVAT (Vínculo) ───────────────────────────────────────────────
-  const cvatEquipes = _EQUIPES_Q2.map(eq => {
-    const d = cvatComp[eq] ?? { A:0,B:0,C:0,D:0,E:0,F:0,G:0,H:0,I:0,J:0,K:0,pont:0 };
-    return { equipe:eq, ubs:_UBS_MAP[eq]??"", ine:_INE_MAP[eq]??"", ...d, classif:_pontClassif(d.pont) };
+  // ── CVAT via API real (/api/siaps/vinculo-acompanhamento) ────────────────
+  const { data: cvatApiData, isLoading: cvatLoading } = useQuery({
+    queryKey: ["siaps-vinculo-quad", competencia],
+    queryFn: () => apiGet(`/api/siaps/vinculo-acompanhamento?competencia=${competencia}`) as Promise<any>,
+    staleTime: 5 * 60 * 1000,
   });
-  const pontMedCvat  = parseFloat((cvatEquipes.reduce((s,e)=>s+e.pont,0)/cvatEquipes.length).toFixed(2));
-  const cvatOtimo    = cvatEquipes.filter(e=>e.pont>=9).length;
-  const cvatBom      = cvatEquipes.filter(e=>e.pont>=7&&e.pont<9).length;
-  const cvatSuf      = cvatEquipes.filter(e=>e.pont>=5&&e.pont<7).length;
-  const cvatReg      = cvatEquipes.filter(e=>e.pont<5).length;
-  const totalVinc    = 21834; // ref e-SUS PEC Mai/2026
-  const totalAcomp   = 18940;
+
+  const cvatEquipes = (cvatApiData?.equipes ?? []).map((e: any) => ({
+    equipe: e.equipe, ubs: e.ubs, ine: _INE_MAP[e.equipe] ?? "",
+    A: e.A??0, B: e.B??0, C: e.C??0, D: e.D??0, E: e.E??0,
+    F: e.F??0, G: e.G??0, H: e.H??0, I: e.I??0, J: e.J??0, K: e.K??0,
+    pont: e.pontuacao??0, classif: _pontClassif(e.pontuacao??0),
+  }));
+
+  const pontMedCvat = cvatApiData?.pontuacao_media ?? 0;
+  const cvatOtimo   = cvatApiData?.por_status?.otimo ?? 0;
+  const cvatBom     = cvatApiData?.por_status?.bom ?? 0;
+  const cvatSuf     = cvatApiData?.por_status?.suficiente ?? 0;
+  const cvatReg     = cvatApiData?.por_status?.regular ?? 0;
+  const totalVinc   = cvatApiData?.total_pessoas_vinculadas ?? 0;
+  const totalAcomp  = cvatApiData?.total_pessoas_acompanhadas ?? 0;
 
   // ── Cálculos Qualidade ────────────────────────────────────────────────────
   const qualEquipes = _EQUIPES_Q2.map(eq => {
@@ -1808,6 +1770,14 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
         <div style={{ fontSize:12, color:"#6b7280" }}>
           Cálculo dos Componentes de Cofinanciamento Federal da APS — Competência {compLabel}
         </div>
+        {cvatLoading && <div style={{ fontSize:11, color:"#6b7280" }}>⏳ Carregando dados do e-Gestor…</div>}
+        {cvatApiData?.fonte && (
+          <div style={{ fontSize:11, color: cvatApiData.fonte==="siaps_referencia"?"#d97706":"#16a34a",
+            background: cvatApiData.fonte==="siaps_referencia"?"#fffbeb":"#f0fdf4",
+            padding:"2px 8px", borderRadius:4 }}>
+            {cvatApiData.fonte==="siaps_referencia" ? "Referência SIAPS Abr/2026" : "e-Gestor ao vivo"}
+          </div>
+        )}
         <div style={{ marginLeft:"auto", display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
           {/* Seletor de competência */}
           <div style={{ display:"flex", background:"#f3f4f6", borderRadius:8, padding:3, gap:2 }}>
@@ -1952,8 +1922,7 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
                 const nk = Object.keys(d).length || 7; return t/nk;
               });
               const medQ=pontArr.reduce((s,x)=>s+x,0)/pontArr.length;
-              const cc=_CVAT_COMP[o.val]??{};
-              const medV=_EQUIPES_Q2.reduce((s,eq)=>s+(cc[eq]?.pont??0),0)/_EQUIPES_Q2.length;
+              const medV = pontMedCvat; // pontuação media real da API
               const ativ=o.val===competencia;
               return (
                 <div key={o.val} onClick={()=>setCompetencia(o.val)}
