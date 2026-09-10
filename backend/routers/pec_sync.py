@@ -20,15 +20,37 @@ from database import AsyncSessionLocal
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/pec", tags=["pec-sync"])
 
-# Metas oficiais Portaria GM/MS 3.493/2024
+# Metas — Guia de Bolso CONASEMS/MS Jul/2026
 _META: Dict[str, float] = {
-    "C1": 75.0, "C2": 75.0, "C3": 70.0,
-    "C4": 50.0, "C5": 50.0, "C6": 60.0, "C7": 40.0,
+    # eSF / eAP
+    "C1": 50.0, "C2": 75.0, "C3": 75.0, "C4": 75.0,
+    "C5": 75.0, "C6": 75.0, "C7": 75.0,
+    # eSB
+    "B1": 1.25, "B2": 75.0, "B3": 3.0, "B4": 1.0, "B5": 65.0, "B6": 8.0,
+    # eMulti
+    "M1": 3.0, "M2": 5.0,
+    # eSFR (mesmos critérios C)
+    "R1": 50.0, "R2": 75.0, "R3": 75.0, "R4": 75.0, "R5": 75.0, "R6": 75.0,
+    # eCR
+    "CR1": 75.0, "CR2": 70.0, "CR3": 60.0, "CR4": 85.0,
+    # eAPP
+    "P1": 75.0, "P2": 70.0, "P3": 50.0, "P4": 60.0, "P5": 85.0,
 }
 _DESC: Dict[str, str] = {
     "C1": "Mais Acesso", "C2": "Desenvolvimento Infantil", "C3": "Gestação e Puerpério",
     "C4": "Diabetes Mellitus", "C5": "Hipertensão Arterial",
     "C6": "Pessoa Idosa", "C7": "Prevenção Câncer Colo",
+    "B1": "1ª Consulta Odontológica", "B2": "Tratamento Odontológico Concluído",
+    "B3": "Taxa de Exodontias", "B4": "Escovação Supervisionada",
+    "B5": "Procedimentos Preventivos Odontológicos", "B6": "Tratamento Restaurador Atraumático",
+    "M1": "Média Atend/Pessoa eMulti", "M2": "Ações Interprofissionais eMulti",
+    "R1": "Mais Acesso Ribeirinha", "R2": "Desenvolvimento Infantil Rib.",
+    "R3": "Gestação Ribeirinha", "R4": "Diabetes Ribeirinha",
+    "R5": "Hipertensão Ribeirinha", "R6": "Câncer Colo Ribeirinha",
+    "CR1": "Acesso Pop. Rua", "CR2": "Saúde Mental Pop. Rua",
+    "CR3": "Álcool/Drogas c/ CAPS", "CR4": "Média Atend. Pop. Rua",
+    "P1": "Acesso Prisional", "P2": "Saúde Mental Prisional",
+    "P3": "Diabetes Prisional", "P4": "Hipertensão Prisional", "P5": "Câncer Colo Prisional",
 }
 _ALERTAS_PATH = Path("/tmp/ersus_pec_cache/alertas_aps.json")
 
