@@ -1674,7 +1674,6 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
   const [indExp, setIndExp]             = useState<string|null>(null);
 
   const compLabel = _COMP_OPTS.find(c=>c.val===competencia)?.label ?? competencia;
-  const qualComp  = _QUAL_COMP[competencia] ?? {};
 
   // ── CVAT via API real (/api/siaps/vinculo-acompanhamento) ────────────────
   const { data: cvatApiData, isLoading: cvatLoading } = useQuery({
@@ -1682,6 +1681,16 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
     queryFn: () => apiGet(`/api/siaps/vinculo-acompanhamento?competencia=${competencia}`) as Promise<any>,
     staleTime: 5 * 60 * 1000,
   });
+
+  // ── Qualidade via API PEC (/api/pec/indicadores/{competencia}) ─────────────
+  const { data: pecIndData } = useQuery({
+    queryKey: ["pec-indicadores-quad", competencia],
+    queryFn: () => apiGet(`/api/pec/indicadores/${competencia}`) as Promise<any>,
+    staleTime: 15 * 60 * 1000,
+  });
+  // pecIndData.equipes = { "CACHOEIRA": { C2: 88, C3: 88, ... }, ... }
+  const qualComp: Record<string,Record<string,number>> =
+    (pecIndData as any)?.equipes ?? _QUAL_COMP[competencia] ?? {};
 
   const cvatEquipes = (cvatApiData?.equipes ?? []).map((e: any) => ({
     equipe: e.equipe, ubs: e.ubs, ine: _INE_MAP[e.equipe] ?? "",
@@ -1714,6 +1723,7 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
   const pontMedQual = parseFloat((qualEquipes.reduce((s,e)=>s+e.pont,0)/qualEquipes.length).toFixed(1));
 
   const temDadosQual = Object.values(qualComp).some((d:any)=>Object.keys(d).length>0);
+  const fonteQual: string = (pecIndData as any)?.fonte ?? "SIAPS — Referência municipal";
 
   // ── Radar ─────────────────────────────────────────────────────────────────
   const radarData = [
@@ -1842,22 +1852,25 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:14 }}>
               <div>
                 <div style={{ fontSize:14, fontWeight:700, color:"#1d4ed8" }}>Componente Qualidade</div>
-                <div style={{ fontSize:12, color:"#6b7280" }}>Novo Financiamento APS — 7 indicadores (C1–C7) · 9 equipes · Portaria 3.493/2024</div>
+                <div style={{ fontSize:12, color:"#6b7280" }}>Novo Financiamento APS — indicadores C1–C7 · 9 equipes · Portaria 3.493/2024</div>
+                <div style={{ marginTop:4, fontSize:10, color: fonteQual.includes("e-SUS PEC")?"#16a34a":"#d97706",
+                  background: fonteQual.includes("e-SUS PEC")?"#f0fdf4":"#fffbeb",
+                  border:`1px solid ${fonteQual.includes("e-SUS PEC")?"#bbf7d0":"#fde68a"}`,
+                  borderRadius:4, padding:"2px 8px", display:"inline-block" }}>
+                  {fonteQual.includes("e-SUS PEC") ? "✓ e-SUS PEC" : "⚠ Referência SIAPS (instalar agente PEC para dados reais)"}
+                </div>
               </div>
               <div style={{ textAlign:"right" }}>
                 <div style={{ fontSize:28, fontWeight:900, color: temDadosQual?"#16a34a":"#9ca3af" }}>{temDadosQual?pontMedQual.toFixed(1):"—"}</div>
                 <div style={{ fontSize:11, color:"#9ca3af" }}>pts médios/equipe</div>
               </div>
             </div>
-            {!temDadosQual ? (
-              <div style={{ background:"#f8fafc", border:"1px solid #e2e8f0", borderRadius:8, padding:"12px 14px", fontSize:12, color:"#64748b", textAlign:"center" }}>
-                Dado ainda não disponível — resultados C1–C7 serão exibidos após importação oficial do SIAPS ou sincronização do e-SUS PEC.
-              </div>
-            ) : null}
             {/* mini-série de competências */}
             <div style={{ marginTop:12, display:"flex", gap:8, flexWrap:"wrap" }}>
               {_COMP_OPTS.map(o=>{
-                const qc = _QUAL_COMP[o.val] ?? {};
+                // usa dados da API para a competência selecionada, fallback vazio para as demais
+                const qc = o.val===competencia ? qualComp : (_QUAL_COMP[o.val] ?? {});
+                const temDados = Object.values(qc).some((d:any)=>Object.keys(d).length>0);
                 const pontArr = _EQUIPES_Q2.map(eq=>{
                   const d = qc[eq]??{};
                   const t = Object.entries(d).reduce((s,[k,v])=>{
@@ -1874,7 +1887,9 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
                     borderRadius:8, padding:"8px 4px", cursor:"pointer",
                     border:`1px solid ${ativ?"#1d4ed8":"#e5e7eb"}`,
                   }}>
-                    <div style={{ fontSize:15, fontWeight:800, color:ativ?"#fff":"#16a34a" }}>{med.toFixed(1)}</div>
+                    <div style={{ fontSize:15, fontWeight:800, color:ativ?"#fff":"#16a34a" }}>
+                      {temDados ? med.toFixed(1) : "—"}
+                    </div>
                     <div style={{ fontSize:10, color:ativ?"#93c5fd":"#9ca3af" }}>{o.label}</div>
                   </div>
                 );
