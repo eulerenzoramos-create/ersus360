@@ -364,9 +364,20 @@ def _diagnosticos(esf: dict, acs: dict) -> list[dict]:
     qt_pagas = esf.get("qt_pagas", 0)
     qt_cred  = esf.get("qt_credenciadas", TETOS_SCNES["esf"])
     if qt_pagas and qt_pagas < qt_cred:
+        # Tenta identificar a(s) equipe(s) não paga(s) pelo menor nº de vinculadas no SIAPS
+        n_faltantes = qt_cred - qt_pagas
+        suspeitas = sorted(
+            [e for e in _EQUIPES],
+            key=lambda e: (e.get("vinculadas", 9999), e["score"])
+        )[:n_faltantes]
+        nomes = " · ".join(e["nome"] for e in suspeitas)
         diags.append({"severidade": "alerta",
-                       "titulo": f"eSF: {qt_cred - qt_pagas} equipe(s) não pagas",
-                       "texto": f"Credenciadas: {qt_cred} · Pagas: {qt_pagas}."})
+                       "titulo": f"eSF: {n_faltantes} equipe(s) não paga(s)",
+                       "texto": (
+                           f"Credenciadas: {qt_cred} · Pagas: {qt_pagas}. "
+                           f"Provável equipe não paga: {nomes} "
+                           f"(menor nº de vínculos no SIAPS — confirmar no e-Gestor)."
+                       )})
     elif qt_pagas and qt_pagas >= qt_cred:
         diags.append({"severidade": "ok",
                        "titulo": f"eSF: {qt_pagas} equipes pagas — situação regular",
