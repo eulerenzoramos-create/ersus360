@@ -361,6 +361,65 @@ async def listar_competencias():
     return {"competencias": _listar_competencias()}
 
 
+@router.get("/exportar-csv")
+async def exportar_csv(competencia: str = Query("2026-07")):
+    """Gera arquivo CSV da folha de pagamento para download."""
+    from fastapi.responses import StreamingResponse
+    import io
+
+    dados = _ler(competencia)
+    if not dados:
+        dados = _folha_com_patches(competencia)
+
+    def _fmt(v: float) -> str:
+        return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    linhas = [
+        "Matrícula;Nome;Cargo;Vínculo;Status;Lotação;Fonte Pagamento;Grupo;"
+        "Carga Horária;Salário Base;Adicional Interioridade;Total Bruto;"
+        "INSS Descontado;IRRF Descontado;Total Líquido;Custo Empregador"
+    ]
+    for v in dados.get("verbas", []):
+        linhas.append(";".join([
+            str(v.get("matricula", "")),
+            f'"{v.get("nome","")}"',
+            f'"{v.get("cargo","")}"',
+            str(v.get("vinculo", "")),
+            str(v.get("status", "ativo")),
+            f'"{v.get("lotacao") or v.get("setor") or ""}"',
+            str(v.get("fonte_pagamento", "")),
+            str(v.get("fonte_grupo", "")),
+            str(v.get("carga_horaria", 40)),
+            _fmt(v.get("salario_base", 0)),
+            _fmt(v.get("adicional_interioridade", 0)),
+            _fmt(v.get("bruto", 0)),
+            _fmt(v.get("desc_inss", 0)),
+            _fmt(v.get("desc_irrf", 0)),
+            _fmt(v.get("liquido", 0)),
+            _fmt(v.get("custo_total_empregador", 0)),
+        ]))
+    linhas.append("")
+    linhas.append(";".join([
+        "", f'"TOTAIS ({dados.get("total_servidores",0)} servidores)"',
+        "", "", "", "", "", "", "",
+        "", "",
+        _fmt(dados.get("total_bruto", 0)),
+        _fmt(dados.get("total_inss_descontado", 0)),
+        _fmt(dados.get("total_irrf_descontado", 0)),
+        _fmt(dados.get("total_liquido", 0)),
+        _fmt(dados.get("total_custo_empregador", 0)),
+    ]))
+
+    conteudo = "﻿" + "\r\n".join(linhas)
+    nome_arquivo = f"folha_apui_{competencia.replace('-','_')}.csv"
+
+    return StreamingResponse(
+        io.StringIO(conteudo),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename={nome_arquivo}"},
+    )
+
+
 # ── Gestão de pessoal ─────────────────────────────────────────────────────────
 
 @router.post("/funcionario")

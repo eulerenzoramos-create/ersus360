@@ -104,6 +104,60 @@ const tdSt: React.CSSProperties = {
   padding:"7px 10px", fontSize:12, borderBottom:"1px solid #e8edf4", verticalAlign:"middle",
 };
 
+// ── Exportação CSV ────────────────────────────────────────────────────────────
+function exportarCSV(folha: any, competencia: string) {
+  const BRL_STR = (v: number) =>
+    (v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const cabecalho = [
+    "Matrícula", "Nome", "Cargo", "Vínculo", "Status", "Lotação",
+    "Fonte Pagamento", "Grupo", "Carga Horária",
+    "Salário Base", "Adicional Interioridade", "Total Bruto",
+    "INSS Descontado", "IRRF Descontado", "Total Líquido",
+    "Custo Empregador",
+  ].join(";");
+
+  const linhas = (folha.verbas as any[]).map((v) =>
+    [
+      v.matricula,
+      `"${v.nome}"`,
+      `"${v.cargo}"`,
+      LABEL_VINCULO[v.vinculo] ?? v.vinculo,
+      LABEL_STATUS[v.status ?? "ativo"] ?? v.status ?? "Ativo",
+      `"${v.lotacao || v.setor || "—"}"`,
+      v.fonte_pagamento,
+      v.fonte_grupo,
+      v.carga_horaria ?? 40,
+      BRL_STR(v.salario_base),
+      BRL_STR(v.adicional_interioridade),
+      BRL_STR(v.bruto),
+      BRL_STR(v.desc_inss),
+      BRL_STR(v.desc_irrf),
+      BRL_STR(v.liquido),
+      BRL_STR(v.custo_total_empregador),
+    ].join(";")
+  );
+
+  const rodape = [
+    "", `"TOTAIS (${folha.total_servidores} servidores)"`, "", "", "", "", "", "", "",
+    "", "",
+    BRL_STR(folha.total_bruto),
+    BRL_STR(folha.total_inss_descontado),
+    BRL_STR(folha.total_irrf_descontado ?? 0),
+    BRL_STR(folha.total_liquido),
+    BRL_STR(folha.total_custo_empregador),
+  ].join(";");
+
+  const conteudo = "﻿" + [cabecalho, ...linhas, "", rodape].join("\r\n");
+  const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8;" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `folha_apui_${competencia.replace("-", "_")}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ── Geração de impressão ──────────────────────────────────────────────────────
 function imprimirFolha(folha: any, competencia: string, compLabel: string) {
   const rows = folha.verbas.map((v: any, i: number) => `
@@ -531,8 +585,10 @@ export default function FolhaPagamento() {
           <button
             style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 14px",
               background:"#374151", border:"none", borderRadius:6, color:"#fff", fontSize:12,
-              cursor:"pointer", fontWeight:600 }}>
-            <Download size={14}/> Exportar
+              cursor: folha ? "pointer" : "not-allowed", fontWeight:600, opacity: folha ? 1 : 0.5 }}
+            onClick={() => folha && exportarCSV(folha, competencia)}
+            title="Exportar folha em CSV (abre no Excel)">
+            <Download size={14}/> Exportar CSV
           </button>
         </div>
       </div>
