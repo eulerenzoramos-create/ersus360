@@ -25,7 +25,7 @@ import {
   ResponsiveContainer, Cell, ReferenceLine,
 } from "recharts";
 import {
-  ChevronDown, ChevronRight, CheckCircle, AlertTriangle,
+  ChevronDown, ChevronRight, CheckCircle, CheckCircle2, AlertTriangle,
   XCircle, ExternalLink, RefreshCw, TrendingUp, TrendingDown,
   DollarSign, Calendar, BarChart2, FileText, Download,
   Search, Filter, X,
@@ -292,9 +292,138 @@ function PainelEquipes({ nuParcela }: { nuParcela: string }) {
           </tbody>
         </table>
       </div>
+      {/* Diagnóstico de inconsistências */}
+      <DiagnosticoInconsistencias data={data} />
+
       <p style={{ fontSize: 11, color: C.textMut }}>
         Fonte: e-Gestor APS (tipoRelatorio=COMPLETO) · {data.coletado_em ? new Date(data.coletado_em).toLocaleString("pt-BR") : ""}
       </p>
+    </div>
+  );
+}
+
+// ─── Diagnóstico de inconsistências financeiras ──────────────────────────────
+function DiagnosticoInconsistencias({ data }: { data: DetalhadoData }) {
+  const { emulti, esf, tetos } = data;
+
+  type Issue = {
+    codigo: string;
+    titulo: string;
+    descricao: string;
+    impacto: string;
+    requisitos: string[];
+  };
+
+  const issues: Issue[] = [];
+
+  // 1. eMulti: AR ausente
+  if (emulti.qt_pagas > 0 && emulti.vl_atend_remoto === 0) {
+    issues.push({
+      codigo: "EMULTI_AR_AUSENTE",
+      titulo: "eMulti: Atendimento Remoto (AR) não recebido",
+      descricao:
+        "A equipe eMulti recebe Custeio (C) e Qualidade (Q), mas o componente AR — Atendimento Remoto / Telessaúde — não está sendo pago pelo e-Gestor. " +
+        "Isso indica ausência de produção de teleconsultas registrada na RNDS ou modalidade não habilitada no e-Gestor.",
+      impacto: "Perda de R$ 5.000,00/mês por modalidade habilitada.",
+      requisitos: [
+        "A equipe eMulti deve estar cadastrada com modalidade habilitada para teleassistência no e-Gestor",
+        'Registrar atividades de teleconsulta ou telediagnóstico no e-SUS PEC (ficha de atendimento com tipo "Telessaúde")',
+        "Produção mínima de 20 teleconsultas/mês deve constar na RNDS",
+        "Verificar habilitação da modalidade junto ao DAB/MS — pode ser necessário enviar ofício ao COSEMS",
+      ],
+    });
+  }
+
+  // 2. eMulti: capacidade ociosa
+  const mTeto = tetos.emulti_estrategica ?? 0;
+  const mPagas = emulti.qt_pagas ?? 0;
+  if (mTeto > 0 && mPagas > 0 && mTeto - mPagas >= 2) {
+    const ociosas = mTeto - mPagas;
+    issues.push({
+      codigo: "EMULTI_CAPACIDADE_OCIOSA",
+      titulo: `eMulti: ${mPagas} equipe(s) paga(s) de ${mTeto} no teto — ${ociosas} vaga(s) ociosa(s)`,
+      descricao: `O município tem teto para ${mTeto} equipes eMulti mas somente ${mPagas} está(ão) credenciada(s) e recebendo custeio.`,
+      impacto: `Capacidade ociosa de ${ociosas} equipe(s) — potencial adicional de ${BRL(ociosas * 14250)}/mês.`,
+      requisitos: [
+        "Avaliar ampliação das equipes eMulti junto à Secretaria Municipal de Saúde",
+        "Verificar disponibilidade orçamentária para contratação de novos profissionais",
+        "Solicitar credenciamento das equipes adicionais ao DAB/MS via COSEMS/AM",
+        "Profissionais elegíveis: psicólogo, fisioterapeuta, fonoaudiólogo, assistente social, entre outros",
+      ],
+    });
+  }
+
+  // 3. eSF: capacidade ociosa
+  const sfTeto = tetos.esf ?? 0;
+  const sfPagas = esf.qt_pagas ?? 0;
+  if (sfTeto > 0 && sfPagas > 0 && sfTeto - sfPagas >= 2) {
+    const ociosas = sfTeto - sfPagas;
+    issues.push({
+      codigo: "ESF_CAPACIDADE_OCIOSA",
+      titulo: `eSF: ${sfPagas} de ${sfTeto} equipes pagas — ${ociosas} vaga(s) ociosa(s)`,
+      descricao: `O município tem teto para ${sfTeto} equipes eSF mas somente ${sfPagas} estão sendo financiadas.`,
+      impacto: `Perda de ${BRL(ociosas * 30000)}/mês por equipe não credenciada.`,
+      requisitos: [
+        "Verificar cadastro das equipes eSF no SCNES com composição mínima obrigatória",
+        "Confirmar implantação das equipes nas UBS correspondentes",
+        "Avaliar contratação de médico/enfermeiro para equipes incompletas",
+      ],
+    });
+  }
+
+  if (issues.length === 0) {
+    return (
+      <div style={{
+        marginTop: 14, display: "flex", alignItems: "center", gap: 8,
+        background: C.greenBg, border: `1px solid ${C.greenBdr}`,
+        borderRadius: 8, padding: "10px 14px",
+      }}>
+        <CheckCircle2 size={14} color={C.green} style={{ flexShrink: 0 }} />
+        <span style={{ fontSize: 12, color: C.green, fontWeight: 600 }}>
+          Nenhuma inconsistência financeira identificada nesta competência.
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 14, display: "flex", flexDirection: "column" as const, gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <AlertTriangle size={14} color={C.amber} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.textPri }}>
+          {issues.length} inconsistência{issues.length > 1 ? "s" : ""} identificada{issues.length > 1 ? "s" : ""}
+        </span>
+      </div>
+      {issues.map(issue => (
+        <div key={issue.codigo} style={{
+          borderLeft: `4px solid ${C.amber}`,
+          background: C.amberBg,
+          borderRadius: "0 8px 8px 0",
+          padding: "12px 14px",
+        }}>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 5, color: C.textPri }}>
+            ⚠️ {issue.titulo}
+          </div>
+          <p style={{ fontSize: 12, margin: "0 0 6px", color: C.textSec }}>{issue.descricao}</p>
+          <p style={{ fontSize: 11, color: C.textMut, margin: "0 0 8px" }}>
+            <strong>Impacto financeiro:</strong> {issue.impacto}
+          </p>
+          <ol style={{ fontSize: 12, margin: "0 0 8px", paddingLeft: 18, lineHeight: 1.8, color: C.textSec }}>
+            {issue.requisitos.map((r, i) => <li key={i}>{r}</li>)}
+          </ol>
+          <a
+            href="https://egestorab.saude.gov.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: 11, color: C.blue, textDecoration: "none",
+              display: "inline-flex", alignItems: "center", gap: 4,
+            }}
+          >
+            <ExternalLink size={11} /> Verificar no e-Gestor APS
+          </a>
+        </div>
+      ))}
     </div>
   );
 }
