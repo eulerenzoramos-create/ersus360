@@ -104,58 +104,137 @@ const tdSt: React.CSSProperties = {
   padding:"7px 10px", fontSize:12, borderBottom:"1px solid #e8edf4", verticalAlign:"middle",
 };
 
-// ── Exportação CSV ────────────────────────────────────────────────────────────
-function exportarCSV(folha: any, competencia: string) {
-  const BRL_STR = (v: number) =>
-    (v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  const cabecalho = [
-    "Matrícula", "Nome", "Cargo", "Vínculo", "Status", "Lotação",
-    "Fonte Pagamento", "Grupo", "Carga Horária",
-    "Salário Base", "Adicional Interioridade", "Total Bruto",
-    "INSS Descontado", "IRRF Descontado", "Total Líquido",
-    "Custo Empregador",
-  ].join(";");
-
-  const linhas = (folha.verbas as any[]).map((v) =>
-    [
-      v.matricula,
-      `"${v.nome}"`,
-      `"${v.cargo}"`,
-      LABEL_VINCULO[v.vinculo] ?? v.vinculo,
-      LABEL_STATUS[v.status ?? "ativo"] ?? v.status ?? "Ativo",
-      `"${v.lotacao || v.setor || "—"}"`,
-      v.fonte_pagamento,
-      v.fonte_grupo,
-      v.carga_horaria ?? 40,
-      BRL_STR(v.salario_base),
-      BRL_STR(v.adicional_interioridade),
-      BRL_STR(v.bruto),
-      BRL_STR(v.desc_inss),
-      BRL_STR(v.desc_irrf),
-      BRL_STR(v.liquido),
-      BRL_STR(v.custo_total_empregador),
-    ].join(";")
-  );
-
-  const rodape = [
-    "", `"TOTAIS (${folha.total_servidores} servidores)"`, "", "", "", "", "", "", "",
-    "", "",
-    BRL_STR(folha.total_bruto),
-    BRL_STR(folha.total_inss_descontado),
-    BRL_STR(folha.total_irrf_descontado ?? 0),
-    BRL_STR(folha.total_liquido),
-    BRL_STR(folha.total_custo_empregador),
-  ].join(";");
-
-  const conteudo = "﻿" + [cabecalho, ...linhas, "", rodape].join("\r\n");
-  const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8;" });
+// ── Exportação CSV — contextual por aba ───────────────────────────────────────
+function _download(conteudo: string, nome: string) {
+  const blob = new Blob(["﻿" + conteudo], { type: "text/csv;charset=utf-8;" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  a.href     = url;
-  a.download = `folha_apui_${competencia.replace("-", "_")}.csv`;
-  a.click();
+  a.href = url; a.download = nome; a.click();
   URL.revokeObjectURL(url);
+}
+const N = (v: number) =>
+  (v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const Q = (s: string) => `"${(s ?? "").replace(/"/g, '""')}"`;
+
+function exportarAba(aba: Aba, folha: any, competencia: string, verbasFiltradas: any[]) {
+  const comp = competencia.replace("-", "_");
+
+  if (aba === "resumo") {
+    const cab = "Grupo;Fonte;Código Contábil;Servidores;Bruto;Líquido;Custo Total";
+    const linhas = (folha.resumo_por_fonte as any[]).map(r =>
+      [r.grupo, Q(r.label), r.contabil, r.servidores,
+       N(r.bruto), N(r.liquido), N(r.custo_total)].join(";"));
+    linhas.push(["TOTAL","","",folha.total_servidores,
+      N(folha.total_bruto), N(folha.total_liquido), N(folha.total_custo_empregador)].join(";"));
+    _download([cab, ...linhas].join("\r\n"), `resumo_folha_${comp}.csv`);
+    return;
+  }
+
+  if (aba === "por_fonte") {
+    const cab = "Fonte;Matrícula;Nome;Cargo;Lotação;Vínculo;Status;Bruto;INSS;IRRF;Líquido";
+    const linhas: string[] = [];
+    for (const r of folha.resumo_por_fonte as any[]) {
+      const servs = (folha.verbas as any[]).filter((v: any) => v.fonte_pagamento === r.label);
+      for (const v of servs) {
+        linhas.push([Q(r.label), v.matricula, Q(v.nome), Q(v.cargo),
+          Q(v.lotacao || v.setor || ""),
+          LABEL_VINCULO[v.vinculo] ?? v.vinculo,
+          LABEL_STATUS[v.status ?? "ativo"] ?? "Ativo",
+          N(v.bruto), N(v.desc_inss), N(v.desc_irrf), N(v.liquido)].join(";"));
+      }
+      linhas.push([Q(`SUBTOTAL ${r.label}`),"","","","","","",
+        N(servs.reduce((a:number,v:any)=>a+v.bruto,0)), "", "",
+        N(servs.reduce((a:number,v:any)=>a+v.liquido,0))].join(";"));
+      linhas.push("");
+    }
+    _download([cab, ...linhas].join("\r\n"), `por_fonte_folha_${comp}.csv`);
+    return;
+  }
+
+  if (aba === "detalhada") {
+    const cab = "Matrícula;Nome;Cargo;UBS / Unidade;Setor;Vínculo;Status;Fonte;C.H.;Bruto;INSS;IRRF;Líquido;Custo Total";
+    const linhas = verbasFiltradas.map((v: any) =>
+      [v.matricula, Q(v.nome), Q(v.cargo),
+       Q(v.ubs_nome || v.lotacao || ""), Q(v.lotacao || v.setor || ""),
+       LABEL_VINCULO[v.vinculo] ?? v.vinculo,
+       LABEL_STATUS[v.status ?? "ativo"] ?? "Ativo",
+       v.fonte_pagamento, v.carga_horaria ?? 40,
+       N(v.bruto), N(v.desc_inss), N(v.desc_irrf), N(v.liquido), N(v.custo_total_empregador)].join(";"));
+    linhas.push([`TOTAL (${verbasFiltradas.length} serv.)`,
+      "","","","","","","","",
+      N(verbasFiltradas.reduce((a:number,v:any)=>a+v.bruto,0)), "",
+      "", N(verbasFiltradas.reduce((a:number,v:any)=>a+v.liquido,0)),
+      N(verbasFiltradas.reduce((a:number,v:any)=>a+v.custo_total_empregador,0))].join(";"));
+    _download([cab, ...linhas].join("\r\n"), `folha_detalhada_${comp}.csv`);
+    return;
+  }
+
+  if (aba === "lotacao") {
+    const ubsMap = new Map<string, any[]>();
+    for (const v of folha.verbas as any[]) {
+      const key = v.ubs_nome || v.lotacao || "Sem UBS";
+      if (!ubsMap.has(key)) ubsMap.set(key, []);
+      ubsMap.get(key)!.push(v);
+    }
+    const cab = "UBS / Unidade;Equipes;Setores;Total Servidores;Ativos;Afastados;Bruto;Líquido";
+    const linhas = [...ubsMap.entries()].map(([ubs, servs]) => {
+      const ativos = servs.filter((v:any)=>(v.status||"ativo")==="ativo").length;
+      const equipes = [...new Set(servs.map((v:any)=>v.equipe).filter(Boolean))].join(" / ");
+      const setores = [...new Set(servs.map((v:any)=>v.lotacao))].join(" / ");
+      return [Q(ubs), Q(equipes), Q(setores), servs.length, ativos, servs.length-ativos,
+        N(servs.reduce((a:number,v:any)=>a+v.bruto,0)),
+        N(servs.reduce((a:number,v:any)=>a+v.liquido,0))].join(";");
+    });
+    linhas.push(["TOTAL","","",folha.total_servidores,"","",
+      N(folha.total_bruto), N(folha.total_liquido)].join(";"));
+    _download([cab, ...linhas].join("\r\n"), `lotacao_${comp}.csv`);
+    return;
+  }
+
+  if (aba === "gestao") {
+    const cab = "Matrícula;Nome;Cargo;Lotação;Vínculo;Status;Fonte Pagamento;Carga Horária";
+    const linhas = (folha.verbas as any[]).map((v: any) =>
+      [v.matricula, Q(v.nome), Q(v.cargo), Q(v.lotacao || v.setor || ""),
+       LABEL_VINCULO[v.vinculo] ?? v.vinculo,
+       LABEL_STATUS[v.status ?? "ativo"] ?? "Ativo",
+       v.fonte_pagamento, v.carga_horaria ?? 40].join(";"));
+    _download([cab, ...linhas].join("\r\n"), `quadro_funcional_${comp}.csv`);
+    return;
+  }
+
+  if (aba === "encargos") {
+    const cab = "Nome;Cargo;Vínculo;Bruto;INSS Patronal;FGTS;Férias Prop.;13º Prop.;Custo Total";
+    const linhas = (folha.verbas as any[]).map((v: any) =>
+      [Q(v.nome), Q(v.cargo), LABEL_VINCULO[v.vinculo] ?? v.vinculo,
+       N(v.bruto), N(v.enc_inss_patronal||0), N(v.enc_fgts||0),
+       N(v.enc_ferias_prop||0), N(v.enc_decimo_terceiro||0),
+       N(v.custo_total_empregador)].join(";"));
+    linhas.push(["TOTAL","","",N(folha.total_bruto),
+      N((folha.verbas||[]).reduce((a:number,v:any)=>a+(v.enc_inss_patronal||0),0)),
+      N((folha.verbas||[]).reduce((a:number,v:any)=>a+(v.enc_fgts||0),0)),
+      N((folha.verbas||[]).reduce((a:number,v:any)=>a+(v.enc_ferias_prop||0),0)),
+      N((folha.verbas||[]).reduce((a:number,v:any)=>a+(v.enc_decimo_terceiro||0),0)),
+      N(folha.total_custo_empregador)].join(";"));
+    _download([cab, ...linhas].join("\r\n"), `encargos_${comp}.csv`);
+    return;
+  }
+
+  // presenca e qualquer outra: exporta verbas completas
+  const cab = "Matrícula;Nome;Cargo;Vínculo;Status;Lotação;Fonte Pagamento;Grupo;Carga Horária;Salário Base;Adicional Interioridade;Total Bruto;INSS Descontado;IRRF Descontado;Total Líquido;Custo Empregador";
+  const linhas = (folha.verbas as any[]).map((v: any) =>
+    [v.matricula, Q(v.nome), Q(v.cargo),
+     LABEL_VINCULO[v.vinculo] ?? v.vinculo,
+     LABEL_STATUS[v.status ?? "ativo"] ?? "Ativo",
+     Q(v.lotacao || v.setor || ""),
+     v.fonte_pagamento, v.fonte_grupo, v.carga_horaria ?? 40,
+     N(v.salario_base), N(v.adicional_interioridade), N(v.bruto),
+     N(v.desc_inss), N(v.desc_irrf), N(v.liquido), N(v.custo_total_empregador)].join(";"));
+  linhas.push(["",`TOTAIS (${folha.total_servidores} servidores)`,
+    "","","","","","","","","",
+    N(folha.total_bruto), N(folha.total_inss_descontado),
+    N(folha.total_irrf_descontado ?? 0), N(folha.total_liquido),
+    N(folha.total_custo_empregador)].join(";"));
+  _download([cab, ...linhas].join("\r\n"), `folha_apui_${comp}.csv`);
 }
 
 // ── Geração de impressão ──────────────────────────────────────────────────────
@@ -586,9 +665,17 @@ export default function FolhaPagamento() {
             style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 14px",
               background:"#374151", border:"none", borderRadius:6, color:"#fff", fontSize:12,
               cursor: folha ? "pointer" : "not-allowed", fontWeight:600, opacity: folha ? 1 : 0.5 }}
-            onClick={() => folha && exportarCSV(folha, competencia)}
-            title="Exportar folha em CSV (abre no Excel)">
-            <Download size={14}/> Exportar CSV
+            onClick={() => folha && exportarAba(aba, folha, competencia, verbasFiltradas)}
+            title="Exportar a aba atual em CSV (abre no Excel)">
+            <Download size={14}/> {
+              aba === "resumo" ? "Exportar Resumo" :
+              aba === "por_fonte" ? "Exportar Por Fonte" :
+              aba === "detalhada" ? "Exportar Detalhada" :
+              aba === "lotacao" ? "Exportar Lotação" :
+              aba === "presenca" ? "Exportar Folha Completa" :
+              aba === "gestao" ? "Exportar Quadro Funcional" :
+              aba === "encargos" ? "Exportar Encargos" : "Exportar CSV"
+            }
           </button>
         </div>
       </div>
