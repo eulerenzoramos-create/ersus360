@@ -353,7 +353,29 @@ function DiagnosticoInconsistencias({ data }: { data: DetalhadoData }) {
     });
   }
 
-  // 3. eSF: capacidade ociosa
+  // 3. eAP: nenhuma equipe paga com teto disponível
+  const eapTeto = tetos.eap ?? 0;
+  const eapPagas = eap.qt_pagas ?? 0;
+  if (eapTeto >= 5 && eapPagas === 0) {
+    issues.push({
+      codigo: "EAP_AUSENTE",
+      titulo: `eAP: 0 equipes pagas — teto de ${eapTeto} vagas completamente ocioso`,
+      descricao:
+        `O município possui teto de ${eapTeto} equipes de Atenção Primária Especializada (eAP), ` +
+        "mas nenhuma está credenciada ou recebendo custeio federal. " +
+        "eAP é composta por médicos especialistas (ex.: ginecologista, pediatra, clínico) vinculados às UBS.",
+      impacto: `Teto de ${eapTeto} equipes sem aproveitamento — potencial de ${BRL(eapTeto * 30000)}/mês não recebido.`,
+      requisitos: [
+        "Verificar com a Secretaria Municipal de Saúde a viabilidade de implantar equipes eAP nas UBS",
+        "Avaliar quais especialidades são mais demandadas (ginecologia, pediatria, saúde mental) para priorização",
+        "Cadastrar as equipes no SCNES com os profissionais vinculados antes de solicitar credenciamento",
+        "Solicitar credenciamento das equipes eAP ao DAB/MS via COSEMS/AM com documentação da implantação",
+        "O credenciamento exige comprovação de vínculo com eSF e produção regular no e-SUS PEC",
+      ],
+    });
+  }
+
+  // 4. eSF: capacidade ociosa
   const sfTeto = tetos.esf ?? 0;
   const sfPagas = esf.qt_pagas ?? 0;
   if (sfTeto > 0 && sfPagas > 0 && sfTeto - sfPagas >= 2) {
