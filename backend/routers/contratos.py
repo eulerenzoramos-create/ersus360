@@ -167,6 +167,11 @@ async def resumo():
     return _RESUMO
 
 
+@router.get("/dashboard")
+async def dashboard():
+    return _RESUMO
+
+
 @router.get("/lista")
 async def lista(status: Optional[str] = Query(None)):
     if status:
@@ -174,3 +179,27 @@ async def lista(status: Optional[str] = Query(None)):
     else:
         result = _CONTRATOS
     return result
+
+
+@router.get("/alertas")
+async def alertas():
+    hoje = _ts()
+    criticos = [
+        {
+            "id": c["id"],
+            "numero": c["numero"],
+            "objeto": c["objeto"],
+            "fornecedor": c["fornecedor"],
+            "nivel": "critico" if c.get("dias_vencimento", 999) <= 30 else "alerta",
+            "mensagem": f"Vence em {c.get('dias_vencimento', '?')} dias" if c.get("dias_vencimento") is not None else "Sem data de vencimento",
+        }
+        for c in _CONTRATOS
+        if c.get("dias_vencimento") is not None and c["dias_vencimento"] <= 60
+    ]
+    return {
+        "situacao_dado": "oficial_aguardando",
+        "total_alertas": len(criticos),
+        "criticos": [a for a in criticos if a["nivel"] == "critico"],
+        "alertas": [a for a in criticos if a["nivel"] == "alerta"],
+        "verificado_em": hoje,
+    }
