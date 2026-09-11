@@ -304,7 +304,7 @@ function PainelEquipes({ nuParcela }: { nuParcela: string }) {
 
 // ─── Diagnóstico de inconsistências financeiras ──────────────────────────────
 function DiagnosticoInconsistencias({ data }: { data: DetalhadoData }) {
-  const { emulti, esf, tetos } = data;
+  const { emulti, esf, eap, tetos } = data;
 
   type Issue = {
     codigo: string;
