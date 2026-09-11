@@ -745,6 +745,30 @@ from routers.indicadores_aps import router as indicadores_aps_router
 app.include_router(indicadores_aps_router)
 
 
+# ── Catch-all: responde /api/* não cobertos por nenhum router ─────────────────
+# Deve vir DEPOIS de todos os include_router para não interceptar rotas reais.
+from fastapi import Request
+from fastapi.responses import JSONResponse as _JSON
+from datetime import datetime as _dt
+
+@app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+async def api_catchall(path: str, request: Request):
+    """Retorna nao_disponivel para endpoints ainda não implementados."""
+    # Extrai o prefixo /api/modulo para usar como nome do módulo
+    segmentos = path.split("/")
+    modulo = segmentos[0].replace("-", " ").title() if segmentos else path
+    return _JSON({
+        "situacao_dado": "nao_disponivel",
+        "modulo": modulo,
+        "endpoint": f"/api/{path}",
+        "mensagem": (
+            f"Módulo '{modulo}' ainda não possui integração ativa com fontes de dados públicas. "
+            "Os dados serão exibidos quando a integração for implementada."
+        ),
+        "verificado_em": _dt.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }, status_code=200)
+
+
 @app.get("/health")
 async def health():
     from datetime import datetime
