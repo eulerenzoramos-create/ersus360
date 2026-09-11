@@ -545,6 +545,16 @@ export default function FolhaPagamento() {
 
   const folha = data as any;
 
+  // Registra override do botão PDF global (ExportarRelatorio) para usar imprimirFolha
+  useEffect(() => {
+    (window as any).__ersus_print_override = () => {
+      if (folha) {
+        imprimirFolha(folha, competencia, COMP_LABEL[competencia] || competencia);
+      }
+    };
+    return () => { delete (window as any).__ersus_print_override; };
+  }, [folha, competencia]);
+
   const lotacoes = useMemo(() => {
     if (!folha?.verbas) return [];
     return Array.from(new Set(folha.verbas.map((v: any) => v.lotacao || v.setor || ""))).filter(Boolean).sort() as string[];
@@ -683,7 +693,7 @@ export default function FolhaPagamento() {
       {isLoading && <div style={{ padding:48, textAlign:"center", color:"#6b7280" }}>Carregando folha...</div>}
 
       {folha && folha.situacao_dado !== "nao_disponivel" && (
-        <div style={{ maxWidth:1400, margin:"0 auto", padding:"20px 20px 48px" }}>
+        <div id="page-content" style={{ maxWidth:1400, margin:"0 auto", padding:"20px 20px 48px" }}>
 
           {/* KPIs */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))", gap:10, marginBottom:16 }}>

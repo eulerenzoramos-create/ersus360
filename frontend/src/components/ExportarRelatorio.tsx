@@ -69,6 +69,14 @@ export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nome
   }, []);
 
   function gerarPDF() {
+    // Verifica se a página atual registrou um handler customizado
+    // (ex: FolhaPagamento usa window.__ersus_print_override para impressão própria)
+    const override = (window as any).__ersus_print_override;
+    if (typeof override === "function") {
+      override();
+      return;
+    }
+
     setImp(true);
 
     const periodoStr = retroativo
