@@ -521,6 +521,16 @@ export default function FolhaPagamento() {
   const [celulaPop, setCelulaPop] = useState<string|null>(null); // chave da célula com popup aberto
   const [salvandoPresenca, setSalvandoPresenca] = useState(false);
 
+  // Competências com dados reais no servidor
+  const { data: competenciasDisp } = useQuery({
+    queryKey: ["folha-competencias"],
+    queryFn: () => apiGetRaw(`/api/folha/competencias`),
+    staleTime: 60_000,
+  });
+  const compDispSet: Set<string> = new Set(
+    (competenciasDisp as any)?.competencias ?? ["2026-07"]
+  );
+
   const { data, isLoading } = useQuery({
     queryKey: ["folha", competencia],
     queryFn: () => apiGetRaw(`/api/folha/folha?competencia=${competencia}`),
@@ -656,7 +666,11 @@ export default function FolhaPagamento() {
           <select value={competencia} onChange={e => setCompetencia(e.target.value)}
             style={{ padding:"7px 12px", border:"1px solid #2d4a6e", background:"#1a3356",
               color:"#fff", borderRadius:6, fontSize:12 }}>
-            {Object.entries(COMP_LABEL).map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+            {Object.entries(COMP_LABEL).map(([v,l]) => (
+              <option key={v} value={v}>
+                {l}{compDispSet.has(v) ? " ✓" : " (sem dados)"}
+              </option>
+            ))}
           </select>
           <button onClick={() => setModalNovo(true)}
             style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 14px",
@@ -709,6 +723,17 @@ export default function FolhaPagamento() {
             <KPICard label="Custo Empregador" value={BRL(folha.total_custo_empregador)} cor="#b83232"
               sub="incl. encargos patronais"/>
           </div>
+
+          {/* Aviso quando competência selecionada não tem dados importados */}
+          {!compDispSet.has(competencia) && (
+            <div style={{ background:"#fffbeb", border:"1px solid #f59e0b", borderRadius:8,
+              padding:"10px 16px", marginBottom:14, fontSize:12, color:"#92400e",
+              display:"flex", alignItems:"center", gap:8 }}>
+              ⚠️ <strong>{COMP_LABEL[competencia]||competencia}</strong> ainda não tem folha importada.
+              Exibindo dados de referência (Jul/2026) como modelo.
+              Para importar a folha real, use o botão "Importar Folha" ou envie o arquivo Fiorele.
+            </div>
+          )}
 
           {/* Badges de status */}
           <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap" }}>
