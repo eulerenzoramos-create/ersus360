@@ -1239,6 +1239,7 @@ function ExecucaoFinanceiraPanel() {
   const { data: itens = [], isLoading } = useQuery<ExecucaoItem[]>({
     queryKey: ["execucao-financeira-fns"],
     queryFn: () => apiGet("/api/execucao-fns"),
+    select: (d: any) => (Array.isArray(d) ? d : []),
     staleTime: 300_000,
     retry: false,
   });

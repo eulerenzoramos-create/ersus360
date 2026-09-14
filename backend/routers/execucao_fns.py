@@ -5,6 +5,10 @@ from fastapi import APIRouter, Query
 from services.siops_service import buscar_apuracao, buscar_historico
 router = APIRouter(prefix="/api/execucao-fns", tags=["execucao-fns"])
 _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
+@router.get("")
+async def listar():
+    return []
+
 @router.get("/dashboard")
 async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()
