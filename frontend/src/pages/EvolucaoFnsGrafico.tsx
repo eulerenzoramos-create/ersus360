@@ -332,51 +332,180 @@ function LabelMedia({ viewBox, mediaM }: any) {
 }
 
 // ─── Gráfico de evolução de um grupo ─────────────────────────────────────────
-function CardGrupo({ nome, dados, cor }: { nome: string; dados: PontoMensal[]; cor: string }) {
+const COR_EMENDA = "#7c4f1a";
+
+function CardGrupo({ nome, dados, cor, emendas }: {
+  nome: string; dados: PontoMensal[]; cor: string; emendas?: PontoMensal[];
+}) {
   const validos = dados.filter(p => p.valido && p.valor != null);
   if (validos.length === 0) return null;
   const total = validos.reduce((s, p) => s + (p.valor ?? 0), 0);
   const media = total / validos.length;
   const max = validos.reduce((a, b) => (b.valor ?? 0) > (a.valor ?? 0) ? b : a);
   const min = validos.reduce((a, b) => (b.valor ?? 0) < (a.valor ?? 0) ? b : a);
-  const chartData = dados.map(p => ({ ...p, valorChart: p.valido ? p.valor : undefined }));
+
+  // Emendas válidas para este período
+  const emValidAs = emendas?.filter(p => p.valido && (p.valor ?? 0) > 0) ?? [];
+  const totalEmendas = emValidAs.reduce((s, p) => s + (p.valor ?? 0), 0);
+  const maxEmenda = emValidAs.length > 0
+    ? emValidAs.reduce((a, b) => (b.valor ?? 0) > (a.valor ?? 0) ? b : a)
+    : null;
+
+  // Juntar dados: valorChart (grupo) + emendaChart
+  const chartData = dados.map(p => {
+    const em = emendas?.find(e => e.mes === p.mes);
+    return {
+      ...p,
+      valorChart:  p.valido && p.valor != null ? p.valor : undefined,
+      emendaChart: em?.valido && (em.valor ?? 0) > 0 ? em.valor : undefined,
+      emendaValor: em?.valido ? (em.valor ?? 0) : 0,
+    };
+  });
+
+  // Tooltip enriquecido com emendas
+  function TooltipGrupo({ active, payload }: any) {
+    if (!active || !payload?.length) return null;
+    const p = payload[0]?.payload;
+    const em = p?.emendaValor ?? 0;
+    const pct = p?.valorChart && p.valorChart > 0 && em > 0
+      ? ((em / p.valorChart) * 100).toFixed(1) : null;
+    return (
+      <div style={{ background: T.white, border: `1px solid ${T.grayBdr}`, borderRadius: 10,
+        padding: "12px 16px", boxShadow: "0 6px 20px rgba(0,0,0,.12)", fontSize: 12, minWidth: 210 }}>
+        <div style={{ fontWeight: 800, color: cor, fontSize: 13, marginBottom: 8,
+          paddingBottom: 6, borderBottom: `2px solid ${cor}` }}>
+          {p?.labelFull?.toUpperCase()}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+          <span style={{ color: T.textSec }}>Total recebido</span>
+          <span style={{ fontWeight: 800, color: T.green }}>{fmtBRL(p?.valorChart)}</span>
+        </div>
+        {em > 0 && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+              <span style={{ color: T.textSec }}>Emendas Parlamentares</span>
+              <span style={{ fontWeight: 700, color: COR_EMENDA }}>{fmtBRL(em)}</span>
+            </div>
+            {pct && (
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <span style={{ color: T.textSec }}>% do total</span>
+                <span style={{ fontWeight: 700, color: COR_EMENDA }}>{pct}%</span>
+              </div>
+            )}
+            {p?.valorChart && em > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <span style={{ color: T.textSec }}>Sem emendas</span>
+                <span style={{ fontWeight: 600, color: T.textSec }}>{fmtBRL(p.valorChart - em)}</span>
+              </div>
+            )}
+          </>
+        )}
+        {p?.variacao && (
+          <div style={{ paddingTop: 6, borderTop: `1px solid ${T.grayBdr}`, marginTop: 4 }}>
+            <SetaVar v={p.variacao} size="sm" />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: T.white, border: `1px solid ${T.grayBdr}`, borderRadius: 12,
       borderLeft: `4px solid ${cor}`, padding: "16px 20px", marginBottom: 14 }}>
-      <div style={{ fontWeight: 800, fontSize: 13, color: cor, marginBottom: 12,
-        letterSpacing: "-0.01em" }}>
+      <div style={{ fontWeight: 800, fontSize: 13, color: cor, marginBottom: 12, letterSpacing: "-0.01em" }}>
         {nome}
       </div>
+
+      {/* KPIs */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
         {[
-          { label: "Total", val: fmtBRL(total) },
-          { label: "Média", val: fmtAbrev(media) },
-          { label: "Maior", val: `${fmtAbrev(max.valor)} (${max.label})` },
-          { label: "Menor", val: `${fmtAbrev(min.valor)} (${min.label})` },
+          { label: "Total",  val: fmtBRL(total) },
+          { label: "Média",  val: fmtAbrev(media) },
+          { label: "Maior",  val: `${fmtAbrev(max.valor)} (${max.label})` },
+          { label: "Menor",  val: `${fmtAbrev(min.valor)} (${min.label})` },
         ].map(k => (
           <div key={k.label} style={{ flex: "1 1 120px", background: T.grayL, borderRadius: 8,
             padding: "8px 12px", border: `1px solid ${T.grayBdr}` }}>
-            <div style={{ fontSize: 10, color: T.textSec, fontWeight: 600, textTransform: "uppercase",
-              letterSpacing: "0.05em" }}>{k.label}</div>
+            <div style={{ fontSize: 10, color: T.textSec, fontWeight: 600,
+              textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.label}</div>
             <div style={{ fontWeight: 700, fontSize: 12, color: T.text, marginTop: 2 }}>{k.val}</div>
           </div>
         ))}
+        {totalEmendas > 0 && (
+          <div style={{ flex: "1 1 140px", background: "#fdf3e7", borderRadius: 8,
+            padding: "8px 12px", border: `1px solid ${COR_EMENDA}30` }}>
+            <div style={{ fontSize: 10, color: COR_EMENDA, fontWeight: 700,
+              textTransform: "uppercase", letterSpacing: "0.05em" }}>Emendas Parl.</div>
+            <div style={{ fontWeight: 700, fontSize: 12, color: COR_EMENDA, marginTop: 2 }}>
+              {fmtBRL(totalEmendas)}
+            </div>
+            {maxEmenda && (
+              <div style={{ fontSize: 10, color: COR_EMENDA, opacity: 0.8 }}>
+                Pico: {fmtAbrev(maxEmenda.valor)} ({maxEmenda.label})
+              </div>
+            )}
+          </div>
+        )}
       </div>
-      <ResponsiveContainer width="100%" height={160}>
-        <LineChart data={chartData} margin={{ top: 16, right: 20, left: 10, bottom: 4 }}>
+
+      {/* Legenda do gráfico */}
+      {totalEmendas > 0 && (
+        <div style={{ display: "flex", gap: 16, fontSize: 11, marginBottom: 8, flexWrap: "wrap" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ width: 20, height: 3, background: cor, display: "inline-block", borderRadius: 2 }}/>
+            <span style={{ color: T.textSec }}>Total do grupo</span>
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ width: 20, height: 0, display: "inline-block",
+              borderTop: `2px dashed ${COR_EMENDA}` }}/>
+            <span style={{ color: COR_EMENDA, fontWeight: 600 }}>Emendas Parlamentares</span>
+          </span>
+        </div>
+      )}
+
+      <ResponsiveContainer width="100%" height={totalEmendas > 0 ? 200 : 160}>
+        <LineChart data={chartData} margin={{ top: 20, right: 24, left: 10, bottom: 4 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f4f8" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontSize: 11, fill: T.textSec }} />
-          <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmtAbrev(v).replace("R$ ","")} width={65} />
-          <Tooltip content={<TooltipTotal />} />
-          <Line type="monotone" dataKey="valorChart" stroke={cor} strokeWidth={2.5}
+          <XAxis dataKey="label" tick={{ fontSize: 11, fill: T.textSec }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmtAbrev(v).replace("R$ ","")} width={65}
+            axisLine={false} tickLine={false} />
+          <Tooltip content={<TooltipGrupo />} />
+
+          {/* Anotação no pico de emendas */}
+          {maxEmenda && totalEmendas > 0 && (
+            <ReferenceLine x={maxEmenda.label} stroke={COR_EMENDA} strokeDasharray="4 3"
+              label={{
+                value: `Emenda: ${fmtAbrev(maxEmenda.valor)}`,
+                position: "top", fontSize: 10, fill: COR_EMENDA, fontWeight: 700,
+              }}
+            />
+          )}
+
+          {/* Linha principal do grupo */}
+          <Line type="monotone" dataKey="valorChart" stroke={cor} strokeWidth={2.5} name="Total"
             dot={(props: any) => {
               const { cx, cy, payload } = props;
               if (!payload?.valido || payload.valor == null) return <g key={`d-${props.index}`}/>;
-              return <circle key={`d-${props.index}`} cx={cx} cy={cy} r={4} fill={cor} stroke={T.white} strokeWidth={2}/>;
+              return <circle key={`d-${props.index}`} cx={cx} cy={cy} r={4}
+                fill={cor} stroke={T.white} strokeWidth={2}/>;
             }}
             connectNulls={false}
           />
+
+          {/* Linha de emendas (tracejada) */}
+          {totalEmendas > 0 && (
+            <Line
+              type="monotone" dataKey="emendaChart" stroke={COR_EMENDA}
+              strokeWidth={2} strokeDasharray="6 4" name="Emendas Parlamentares"
+              dot={(props: any) => {
+                const { cx, cy, payload } = props;
+                if (!payload?.emendaChart) return <g key={`em-${props.index}`}/>;
+                return <circle key={`em-${props.index}`} cx={cx} cy={cy} r={4}
+                  fill={COR_EMENDA} stroke={T.white} strokeWidth={2}/>;
+              }}
+              connectNulls={false}
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -893,7 +1022,13 @@ export default function EvolucaoFnsGrafico({ data, exercicio, onVoltar, onSincro
         Evolução Detalhada por Grupo
       </div>
       {gruposAtivos.map(g => (
-        <CardGrupo key={g} nome={g} dados={pontosPorGrupo[g] ?? []} cor={GRUPO_PALETA[g] ?? T.gray} />
+        <CardGrupo
+          key={g}
+          nome={g}
+          dados={pontosPorGrupo[g] ?? []}
+          cor={GRUPO_PALETA[g] ?? T.gray}
+          emendas={pontosPorGrupo["Emendas Parlamentares"]}
+        />
       ))}
 
       {/* ── Análise automática ── */}
