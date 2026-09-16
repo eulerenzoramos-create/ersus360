@@ -795,7 +795,7 @@ function ApsPanel() {
               <div style={{ background: C.blue, borderRadius: 8, padding: "6px 8px", display: "flex" }}>
                 <DollarSign size={18} color="#fff" />
               </div>
-              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: C.textPri }}>
+              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#0f172a", fontFamily: "Inter, system-ui, sans-serif", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
                 Repasses Federais da Atenção Primária à Saúde
               </h1>
             </div>
