@@ -264,7 +264,7 @@ function PainelEquipes({ nuParcela }: { nuParcela: string }) {
       <div style={{ overflowX: "auto" as const, borderRadius: 10, border: `1px solid ${C.grayBdr}`, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 13 }}>
           <thead>
-            <tr style={{ background: "#f1f5f9" }}>
+            <tr style={{ background: "linear-gradient(90deg,#1351b4 0%,#0c3d8a 100%)" }}>
               {[
                 { label: "Componente",  align: "left"   },
                 { label: "Qtd Pagas",   align: "center" },
@@ -275,10 +275,10 @@ function PainelEquipes({ nuParcela }: { nuParcela: string }) {
                 <th key={h.label} style={{
                   padding: "11px 14px",
                   textAlign: h.align as "left" | "center" | "right",
-                  fontWeight: 700, color: "#0f172a",
-                  borderBottom: `2px solid ${C.grayBdr}`,
+                  fontWeight: 700, color: "#ffffff",
+                  borderBottom: "none",
                   whiteSpace: "nowrap" as const,
-                  fontSize: 11, letterSpacing: "0.03em", textTransform: "uppercase" as const,
+                  fontSize: 11, letterSpacing: "0.05em", textTransform: "uppercase" as const,
                 }}>{h.label}</th>
               ))}
             </tr>
@@ -286,7 +286,7 @@ function PainelEquipes({ nuParcela }: { nuParcela: string }) {
           <tbody>
             {equipes.map((eq, i) => (
               <tr key={i} style={{ opacity: (eq as { dim?: boolean }).dim ? 0.45 : 1, borderTop: `1px solid ${C.grayBdr}`, background: i % 2 === 0 ? "#fff" : "#fafbfc" }}>
-                <td style={{ padding: "11px 14px", color: "#0f172a", fontWeight: 600 }}>
+                <td style={{ padding: "11px 14px", color: "#1351b4", fontWeight: 700 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
                     <span style={{ width: 11, height: 11, borderRadius: "50%", background: eq.cor, flexShrink: 0, boxShadow: `0 0 0 2px ${eq.cor}30` }} />
                     {eq.nome}
@@ -294,7 +294,7 @@ function PainelEquipes({ nuParcela }: { nuParcela: string }) {
                 </td>
                 <td style={{ padding: "11px 14px", textAlign: "center", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#334155" }}>{eq.qtd}</td>
                 <td style={{ padding: "11px 14px", textAlign: "center", color: "#64748b", fontVariantNumeric: "tabular-nums" }}>{eq.teto ?? "—"}</td>
-                <td style={{ padding: "11px 14px", textAlign: "right", fontWeight: 800, color: C.money, fontVariantNumeric: "tabular-nums", fontSize: 14 }}>{eq.vl > 0 ? BRL(eq.vl) : "—"}</td>
+                <td style={{ padding: "11px 14px", textAlign: "right", fontWeight: 800, color: "#16a34a", fontVariantNumeric: "tabular-nums", fontSize: 14 }}>{eq.vl > 0 ? BRL(eq.vl) : "—"}</td>
                 <td style={{ padding: "11px 14px", textAlign: "right", color: "#64748b", fontSize: 11.5 }}>{eq.det}</td>
               </tr>
             ))}
