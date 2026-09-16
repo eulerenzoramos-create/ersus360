@@ -251,42 +251,51 @@ function PainelEquipes({ nuParcela }: { nuParcela: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column" as const, gap: 14 }}>
       {/* Indicadores de qualidade */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
         {indicadores.map(it => (
-          <div key={it.label} style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "10px 14px" }}>
-            <div style={{ fontSize: 10, color: C.textSec, marginBottom: 6, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.04em" }}>{it.label}</div>
+          <div key={it.label} style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 10, padding: "12px 16px", boxShadow: "0 1px 3px rgba(0,0,0,.04)" }}>
+            <div style={{ fontSize: 10, color: "#64748b", marginBottom: 8, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>{it.label}</div>
             <BadgeClass val={it.val} />
           </div>
         ))}
       </div>
 
       {/* Tabela de equipes */}
-      <div style={{ overflowX: "auto" as const, borderRadius: 8, border: `1px solid ${C.grayBdr}` }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+      <div style={{ overflowX: "auto" as const, borderRadius: 10, border: `1px solid ${C.grayBdr}`, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 13 }}>
           <thead>
-            <tr style={{ background: "#f8fafc" }}>
-              {["Componente", "Qtd Pagas", "Teto", "Valor Total", "Detalhes"].map((h, i) => (
-                <th key={h} style={{
-                  padding: "9px 12px", textAlign: (i >= 1 && i <= 2 ? "center" : i === 3 ? "right" : "left") as "center" | "right" | "left",
-                  fontWeight: 700, color: C.textSec, borderBottom: `1px solid ${C.grayBdr}`,
-                  whiteSpace: "nowrap" as const, fontSize: 11,
-                }}>{h}</th>
+            <tr style={{ background: "#f1f5f9" }}>
+              {[
+                { label: "Componente",  align: "left"   },
+                { label: "Qtd Pagas",   align: "center" },
+                { label: "Teto",        align: "center" },
+                { label: "Valor Total", align: "right"  },
+                { label: "Detalhes",    align: "right"  },
+              ].map(h => (
+                <th key={h.label} style={{
+                  padding: "11px 14px",
+                  textAlign: h.align as "left" | "center" | "right",
+                  fontWeight: 700, color: "#0f172a",
+                  borderBottom: `2px solid ${C.grayBdr}`,
+                  whiteSpace: "nowrap" as const,
+                  fontSize: 11, letterSpacing: "0.03em", textTransform: "uppercase" as const,
+                }}>{h.label}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {equipes.map((eq, i) => (
-              <tr key={i} style={{ opacity: (eq as { dim?: boolean }).dim ? 0.5 : 1, borderTop: `1px solid ${C.grayBdr}` }}>
-                <td style={{ padding: "9px 12px", color: C.textPri }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: eq.cor, flexShrink: 0 }} />
+              <tr key={i} style={{ opacity: (eq as { dim?: boolean }).dim ? 0.45 : 1, borderTop: `1px solid ${C.grayBdr}`, background: i % 2 === 0 ? "#fff" : "#fafbfc" }}>
+                <td style={{ padding: "11px 14px", color: "#0f172a", fontWeight: 600 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
+                    <span style={{ width: 11, height: 11, borderRadius: "50%", background: eq.cor, flexShrink: 0, boxShadow: `0 0 0 2px ${eq.cor}30` }} />
                     {eq.nome}
                   </span>
                 </td>
-                <td style={{ padding: "9px 12px", textAlign: "center", fontVariantNumeric: "tabular-nums" }}>{eq.qtd}</td>
-                <td style={{ padding: "9px 12px", textAlign: "center", color: C.textSec, fontVariantNumeric: "tabular-nums" }}>{eq.teto ?? "—"}</td>
-                <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 700, color: C.money, fontVariantNumeric: "tabular-nums" }}>{eq.vl > 0 ? BRL(eq.vl) : "—"}</td>
-                <td style={{ padding: "9px 12px", textAlign: "right", color: C.textSec, fontSize: 11 }}>{eq.det}</td>
+                <td style={{ padding: "11px 14px", textAlign: "center", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#334155" }}>{eq.qtd}</td>
+                <td style={{ padding: "11px 14px", textAlign: "center", color: "#64748b", fontVariantNumeric: "tabular-nums" }}>{eq.teto ?? "—"}</td>
+                <td style={{ padding: "11px 14px", textAlign: "right", fontWeight: 800, color: C.money, fontVariantNumeric: "tabular-nums", fontSize: 14 }}>{eq.vl > 0 ? BRL(eq.vl) : "—"}</td>
+                <td style={{ padding: "11px 14px", textAlign: "right", color: "#64748b", fontSize: 11.5 }}>{eq.det}</td>
               </tr>
             ))}
           </tbody>
