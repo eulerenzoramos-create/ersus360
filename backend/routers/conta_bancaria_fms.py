@@ -1,9 +1,12 @@
 """Router: /api/contas-fms — Contas Bancárias do Fundo Municipal de Saúde."""
 from __future__ import annotations
+import csv
+import io
 import logging
+import re
 from datetime import date, datetime
 from typing import Annotated, Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -209,3 +212,175 @@ async def excluir_movimentacao(db: DbDep, conta_id: int, mov_id: int):
     await db.delete(mov)
     await db.commit()
     return {"ok": True}
+
+
+# ── Importação de Extrato OFX / CSV ──────────────────────────────────────────
+
+def _parse_ofx(content: str) -> list[dict]:
+    """Lê OFX SGML (padrão BB, Caixa, Bradesco, Itaú) e retorna lista de transações."""
+    transactions = []
+    blocks = re.findall(r"<STMTTRN>(.*?)</STMTTRN>", content, re.DOTALL | re.IGNORECASE)
+    for block in blocks:
+        def gv(tag: str) -> str:
+            m = re.search(rf"<{tag}>\s*([^\n<]+)", block, re.IGNORECASE)
+            return m.group(1).strip() if m else ""
+
+        trnamt_raw = gv("TRNAMT").replace(",", ".")
+        try:
+            valor_num = float(trnamt_raw)
+        except ValueError:
+            continue
+
+        dtposted = gv("DTPOSTED")
+        if len(dtposted) >= 8:
+            data_iso = f"{dtposted[:4]}-{dtposted[4:6]}-{dtposted[6:8]}"
+        else:
+            data_iso = None
+
+        memo = gv("MEMO") or gv("NAME") or ""
+        fitid = gv("FITID")
+        tipo = "entrada" if valor_num > 0 else "saida"
+
+        transactions.append({
+            "fitid":    fitid,
+            "tipo":     tipo,
+            "valor":    abs(valor_num),
+            "data":     data_iso,
+            "descricao": memo[:280],
+            "origem":   "ofx",
+        })
+    return transactions
+
+
+def _parse_csv(content: str) -> list[dict]:
+    """
+    Tenta detectar e ler CSV de extratos bancários brasileiros.
+    Suporta: BB, Caixa, Bradesco, Sicoob, Sicredi e genérico.
+    """
+    # Normaliza separador: ponto-e-vírgula → vírgula
+    sample = content[:2000]
+    sep = ";" if sample.count(";") > sample.count(",") else ","
+
+    lines = [l for l in content.splitlines() if l.strip()]
+    # Detecta linha de cabeçalho (busca por palavras-chave)
+    header_idx = 0
+    for i, line in enumerate(lines):
+        low = line.lower()
+        if any(k in low for k in ["data", "histórico", "historico", "valor", "lançamento", "lancamento"]):
+            header_idx = i
+            break
+
+    reader = csv.DictReader(lines[header_idx:], delimiter=sep)
+    transactions = []
+
+    for row in reader:
+        keys = {k.strip().lower().replace(" ", "_"): v.strip() for k, v in row.items() if k}
+
+        # Data
+        data_raw = (keys.get("data") or keys.get("data_lançamento") or keys.get("data_lancamento") or "").strip()
+        data_iso = None
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%d/%m/%y"):
+            try:
+                data_iso = datetime.strptime(data_raw, fmt).date().isoformat()
+                break
+            except ValueError:
+                pass
+
+        # Descrição
+        descricao = (
+            keys.get("histórico") or keys.get("historico") or
+            keys.get("descrição") or keys.get("descricao") or
+            keys.get("memo") or keys.get("lançamento") or ""
+        )[:280]
+
+        # Valor e tipo — tenta crédito/débito separados primeiro
+        def to_float(s: str) -> float:
+            s = s.strip().replace(".", "").replace(",", ".").replace("R$", "").strip()
+            try:
+                return float(s)
+            except ValueError:
+                return 0.0
+
+        credito = to_float(keys.get("crédito") or keys.get("credito") or keys.get("entrada") or "0")
+        debito  = to_float(keys.get("débito")  or keys.get("debito")  or keys.get("saída")   or keys.get("saida") or "0")
+
+        if credito == 0 and debito == 0:
+            # Coluna única "valor"
+            val_raw = keys.get("valor") or keys.get("montante") or "0"
+            val = to_float(val_raw)
+            if val > 0:
+                credito = val
+            elif val < 0:
+                debito = abs(val)
+
+        if credito > 0:
+            transactions.append({"tipo": "entrada", "valor": credito, "data": data_iso, "descricao": descricao, "origem": "csv", "fitid": ""})
+        if debito > 0:
+            transactions.append({"tipo": "saida",   "valor": debito,  "data": data_iso, "descricao": descricao, "origem": "csv", "fitid": ""})
+
+    return [t for t in transactions if t["valor"] > 0]
+
+
+class ImportConfirm(BaseModel):
+    transacoes: list[dict]
+    criado_por: Optional[str] = None
+
+
+@router.post("/{id}/importar-extrato")
+async def importar_extrato_preview(id: int, file: UploadFile = File(...)):
+    """Recebe arquivo OFX ou CSV e retorna preview das transações (sem gravar)."""
+    await _get_or_404.__wrapped__ if hasattr(_get_or_404, "__wrapped__") else None
+    raw = await file.read()
+    try:
+        content = raw.decode("latin-1")
+    except Exception:
+        content = raw.decode("utf-8", errors="replace")
+
+    fname = (file.filename or "").lower()
+    if fname.endswith(".ofx") or fname.endswith(".ofc") or "<OFX>" in content.upper():
+        transacoes = _parse_ofx(content)
+        formato = "OFX"
+    else:
+        transacoes = _parse_csv(content)
+        formato = "CSV"
+
+    if not transacoes:
+        raise HTTPException(status_code=422, detail="Nenhuma transação encontrada no arquivo. Verifique o formato.")
+
+    return {
+        "formato": formato,
+        "total": len(transacoes),
+        "total_entradas": sum(t["valor"] for t in transacoes if t["tipo"] == "entrada"),
+        "total_saidas":   sum(t["valor"] for t in transacoes if t["tipo"] == "saida"),
+        "transacoes": transacoes,
+    }
+
+
+@router.post("/{id}/confirmar-importacao", status_code=201)
+async def confirmar_importacao(db: DbDep, id: int, body: ImportConfirm):
+    """Grava as transações confirmadas pelo usuário."""
+    await _get_or_404(db, id)
+    salvos = 0
+    for t in body.transacoes:
+        data_val = None
+        if t.get("data"):
+            try:
+                data_val = date.fromisoformat(t["data"])
+            except ValueError:
+                pass
+        if not data_val or not t.get("valor"):
+            continue
+        mov = MovimentacaoContaFMS(
+            conta_id  = id,
+            tipo      = t.get("tipo", "entrada"),
+            valor     = float(t["valor"]),
+            data      = data_val,
+            descricao = t.get("descricao", ""),
+            origem    = t.get("origem", "importado"),
+            criado_por= body.criado_por,
+        )
+        db.add(mov)
+        salvos += 1
+    await db.commit()
+    logger.info("Importação conta %s: %d movimentações gravadas", id, salvos)
+    return {"ok": True, "salvos": salvos}

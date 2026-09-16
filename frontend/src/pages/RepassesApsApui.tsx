@@ -2939,8 +2939,12 @@ function ContasBancariasPanel() {
   const qc = useQueryClient();
   const [contaSel, setContaSel] = useState<ContaFMS | null>(null);
   const [modalNova, setModalNova] = useState(false);
-  const [modalMov, setModalMov]   = useState(false);
-  const [filtroDe, setFiltroDe]   = useState("");
+  const [modalMov, setModalMov]     = useState(false);
+  const [modalImport, setModalImport] = useState(false);
+  const [importPreview, setImportPreview] = useState<{formato:string;total:number;total_entradas:number;total_saidas:number;transacoes:any[]} | null>(null);
+  const [importSel, setImportSel]   = useState<Set<number>>(new Set());
+  const [importLoading, setImportLoading] = useState(false);
+  const [filtroDe, setFiltroDe]     = useState("");
   const [filtroAte, setFiltroAte] = useState("");
   const [extratoData, setExtratoData] = useState<{ linhas: (MovFMS & { saldo_apos: number })[]; saldo_final: number; total_entradas: number; total_saidas: number } | null>(null);
 
@@ -3004,6 +3008,48 @@ function ContasBancariasPanel() {
       setExtratoData(r);
       setModalMov(false);
       setMValor(""); setMDesc("");
+    } finally { setSaving(false); }
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !contaSel) return;
+    setImportLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/contas-fms/${contaSel.id}/importar-extrato`, { method: "POST", body: fd });
+      if (!res.ok) { const d = await res.json(); alert(d.detail || "Erro ao ler arquivo"); return; }
+      const data = await res.json();
+      setImportPreview(data);
+      setImportSel(new Set(data.transacoes.map((_: any, i: number) => i)));
+      setModalImport(true);
+    } catch (err) {
+      alert("Erro ao processar arquivo. Verifique o formato.");
+    } finally {
+      setImportLoading(false);
+      e.target.value = "";
+    }
+  }
+
+  async function confirmarImportacao() {
+    if (!contaSel || !importPreview) return;
+    setSaving(true);
+    try {
+      const transacoes = importPreview.transacoes.filter((_: any, i: number) => importSel.has(i));
+      const res = await fetch(`/api/contas-fms/${contaSel.id}/confirmar-importacao`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transacoes, criado_por: "FMS Apuí" }),
+      });
+      if (!res.ok) { alert("Erro ao gravar importação"); return; }
+      const d = await res.json();
+      qc.invalidateQueries({ queryKey: ["contas-fms"] });
+      const r = await apiConta.extrato(contaSel.id);
+      setExtratoData(r);
+      setModalImport(false);
+      setImportPreview(null);
+      alert(`✓ ${d.salvos} movimentações importadas com sucesso.`);
     } finally { setSaving(false); }
   }
 
@@ -3110,6 +3156,10 @@ function ContasBancariasPanel() {
                 style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                 + Movimentação
               </button>
+              <label style={{ background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                {importLoading ? "Lendo..." : "⬆ Importar OFX/CSV"}
+                <input type="file" accept=".ofx,.ofc,.csv,.txt" style={{ display: "none" }} onChange={handleImportFile} disabled={importLoading} />
+              </label>
             </div>
           </div>
 
@@ -3246,6 +3296,94 @@ function ContasBancariasPanel() {
               <button onClick={salvarConta} disabled={saving || !fBanco}
                 style={{ background: "#1565c0", color: "#fff", border: "none", borderRadius: 8, padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
                 {saving ? "Salvando..." : "Cadastrar Conta"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal preview importação OFX/CSV */}
+      {modalImport && importPreview && contaSel && (
+        <div style={{ position: "fixed" as const, inset: 0, background: "rgba(0,0,0,.55)", zIndex: 9100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "#fff", borderRadius: 14, padding: "24px 28px", width: 760, maxWidth: "98vw", maxHeight: "90vh", display: "flex", flexDirection: "column" as const, boxShadow: "0 12px 50px rgba(0,0,0,.22)" }}>
+            <div style={{ fontWeight: 700, fontSize: 16, color: "#111827", marginBottom: 4 }}>
+              Preview — Importação de Extrato ({importPreview.formato})
+            </div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14 }}>{contaSel.banco}</div>
+
+            {/* Resumo */}
+            <div style={{ display: "flex", gap: 14, marginBottom: 16, flexWrap: "wrap" as const }}>
+              <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "8px 14px" }}>
+                <div style={{ fontSize: 10, color: "#059669", fontWeight: 600 }}>ENTRADAS</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#059669" }}>{importPreview.total_entradas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+              </div>
+              <div style={{ background: "#fff5f5", borderRadius: 8, padding: "8px 14px" }}>
+                <div style={{ fontSize: 10, color: "#dc2626", fontWeight: 600 }}>SAÍDAS</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#dc2626" }}>{importPreview.total_saidas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+              </div>
+              <div style={{ background: "#eff6ff", borderRadius: 8, padding: "8px 14px" }}>
+                <div style={{ fontSize: 10, color: "#1565c0", fontWeight: 600 }}>SELECIONADAS</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#1565c0" }}>{importSel.size} de {importPreview.total}</div>
+              </div>
+              <button onClick={() => {
+                if (importSel.size === importPreview.total) setImportSel(new Set());
+                else setImportSel(new Set(importPreview.transacoes.map((_: any, i: number) => i)));
+              }} style={{ border: "1px solid #e4e7ec", borderRadius: 7, padding: "6px 12px", fontSize: 12, cursor: "pointer", background: "#f8fafc", alignSelf: "center" }}>
+                {importSel.size === importPreview.total ? "Desmarcar tudo" : "Marcar tudo"}
+              </button>
+            </div>
+
+            {/* Tabela */}
+            <div style={{ flex: 1, overflowY: "auto" as const, border: "1px solid #e4e7ec", borderRadius: 8 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+                <thead style={{ position: "sticky" as const, top: 0, background: "#f8fafc", zIndex: 1 }}>
+                  <tr>
+                    <th style={{ padding: "8px 10px", textAlign: "center" as const, width: 36 }}></th>
+                    <th style={{ padding: "8px 10px", textAlign: "left" as const, fontWeight: 600, color: "#374151" }}>Data</th>
+                    <th style={{ padding: "8px 10px", textAlign: "left" as const, fontWeight: 600, color: "#374151" }}>Descrição</th>
+                    <th style={{ padding: "8px 10px", textAlign: "center" as const, fontWeight: 600, color: "#374151" }}>Tipo</th>
+                    <th style={{ padding: "8px 10px", textAlign: "right" as const, fontWeight: 600, color: "#374151" }}>Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importPreview.transacoes.map((t: any, i: number) => (
+                    <tr key={i} onClick={() => {
+                      const s = new Set(importSel);
+                      s.has(i) ? s.delete(i) : s.add(i);
+                      setImportSel(s);
+                    }} style={{ borderBottom: "1px solid #f1f5f9", cursor: "pointer", background: importSel.has(i) ? (i % 2 === 0 ? "#fff" : "#fafafa") : "#fef2f2", opacity: importSel.has(i) ? 1 : 0.5 }}>
+                      <td style={{ padding: "7px 10px", textAlign: "center" as const }}>
+                        <input type="checkbox" readOnly checked={importSel.has(i)} style={{ cursor: "pointer" }} />
+                      </td>
+                      <td style={{ padding: "7px 10px", whiteSpace: "nowrap" as const }}>
+                        {t.data ? new Date(t.data + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
+                      </td>
+                      <td style={{ padding: "7px 10px", color: "#374151", maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }} title={t.descricao}>{t.descricao || "—"}</td>
+                      <td style={{ padding: "7px 10px", textAlign: "center" as const }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 5,
+                          background: t.tipo === "entrada" ? "#f0fdf4" : "#fff5f5",
+                          color: t.tipo === "entrada" ? "#059669" : "#dc2626" }}>
+                          {t.tipo === "entrada" ? "↑ Entrada" : "↓ Saída"}
+                        </span>
+                      </td>
+                      <td style={{ padding: "7px 10px", textAlign: "right" as const, fontWeight: 600,
+                        color: t.tipo === "entrada" ? "#059669" : "#dc2626" }}>
+                        {Number(t.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 18, justifyContent: "flex-end" }}>
+              <button onClick={() => { setModalImport(false); setImportPreview(null); }}
+                style={{ border: "1px solid #e4e7ec", borderRadius: 8, padding: "9px 20px", fontSize: 13, cursor: "pointer", background: "#fff" }}>
+                Cancelar
+              </button>
+              <button onClick={confirmarImportacao} disabled={saving || importSel.size === 0}
+                style={{ background: "#7c3aed", color: "#fff", border: "none", borderRadius: 8, padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: (saving || importSel.size === 0) ? 0.6 : 1 }}>
+                {saving ? "Importando..." : `Importar ${importSel.size} movimentações`}
               </button>
             </div>
           </div>
