@@ -195,7 +195,13 @@ function AbaVisitas({ fonte, periodTipo, competencia: compProp, dataFiltro, anoF
   if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando visitas...</div>;
 
   const prod = data?.dados;
-  if (!prod) return null;
+  if (!prod) return (
+    <div style={{ padding: 32, textAlign: "center" as const, color: "#6b7280", background: "#f8fafc", borderRadius: 10, border: "1px solid #e4e7ec" }}>
+      <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
+      <div style={{ fontWeight: 700, fontSize: 14, color: "#374151", marginBottom: 4 }}>Dados de visitas não disponíveis</div>
+      <div style={{ fontSize: 12 }}>Conecte o e-SUS PEC para visualizar os dados de produção em tempo real.</div>
+    </div>
+  );
 
   const isPec    = prod.fonte === "esus_pec";
   const isRef    = prod.fonte === "referencia_municipal";
