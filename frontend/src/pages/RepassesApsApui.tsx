@@ -419,27 +419,36 @@ function DiagnosticoInconsistencias({ data }: { data: DetalhadoData }) {
 
   return (
     <div style={{ marginTop: 14, display: "flex", flexDirection: "column" as const, gap: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <AlertTriangle size={14} color={C.amber} />
-        <span style={{ fontSize: 12, fontWeight: 700, color: C.textPri }}>
+      {/* Cabeçalho do bloco */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 8,
+        background: "linear-gradient(90deg,#1351b4 0%,#0c3d8a 100%)",
+        borderRadius: 8, padding: "10px 16px",
+      }}>
+        <AlertTriangle size={15} color="#fbbf24" style={{ flexShrink: 0 }} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#ffffff", letterSpacing: "0.01em" }}>
           {issues.length} inconsistência{issues.length > 1 ? "s" : ""} identificada{issues.length > 1 ? "s" : ""}
         </span>
       </div>
+
       {issues.map(issue => (
         <div key={issue.codigo} style={{
-          borderLeft: `4px solid ${C.amber}`,
-          background: C.amberBg,
-          borderRadius: "0 8px 8px 0",
-          padding: "12px 14px",
+          borderLeft: "4px solid #d97706",
+          background: "#fffbeb",
+          border: "1px solid #fde68a",
+          borderLeftColor: "#d97706",
+          borderRadius: "0 10px 10px 0",
+          padding: "14px 18px",
         }}>
-          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 5, color: C.textPri }}>
-            ⚠️ {issue.titulo}
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: "#92400e", display: "flex", alignItems: "center", gap: 6 }}>
+            <AlertTriangle size={14} color="#d97706" style={{ flexShrink: 0 }} />
+            {issue.titulo}
           </div>
-          <p style={{ fontSize: 12, margin: "0 0 6px", color: C.textSec }}>{issue.descricao}</p>
-          <p style={{ fontSize: 11, color: C.textMut, margin: "0 0 8px" }}>
-            <strong>Impacto financeiro:</strong> {issue.impacto}
+          <p style={{ fontSize: 12, margin: "0 0 6px", color: "#78350f", lineHeight: 1.6 }}>{issue.descricao}</p>
+          <p style={{ fontSize: 11.5, color: "#92400e", margin: "0 0 8px", fontWeight: 600 }}>
+            Impacto financeiro: <span style={{ color: "#dc2626" }}>{issue.impacto}</span>
           </p>
-          <ol style={{ fontSize: 12, margin: "0 0 8px", paddingLeft: 18, lineHeight: 1.8, color: C.textSec }}>
+          <ol style={{ fontSize: 12, margin: "0 0 10px", paddingLeft: 18, lineHeight: 1.9, color: "#78350f" }}>
             {issue.requisitos.map((r, i) => <li key={i}>{r}</li>)}
           </ol>
           <a
@@ -447,7 +456,7 @@ function DiagnosticoInconsistencias({ data }: { data: DetalhadoData }) {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              fontSize: 11, color: C.blue, textDecoration: "none",
+              fontSize: 11.5, color: "#1351b4", textDecoration: "none", fontWeight: 600,
               display: "inline-flex", alignItems: "center", gap: 4,
             }}
           >
