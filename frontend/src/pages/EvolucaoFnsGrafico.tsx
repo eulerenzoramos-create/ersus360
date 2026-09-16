@@ -218,6 +218,8 @@ function SetaVar({ v, size = "md" }: { v: Variacao | null; size?: "sm" | "md" })
   );
 }
 
+const COR_EMENDA_GLOBAL = "#7c4f1a";
+
 // ─── Tooltip profissional ─────────────────────────────────────────────────────
 function TooltipTotal({ active, payload, mediaM, onClickMes }: any) {
   if (!active || !payload?.length) return null;
@@ -246,6 +248,31 @@ function TooltipTotal({ active, payload, mediaM, onClickMes }: any) {
             <span style={{ color: T.textSec }}>Total recebido</span>
             <span style={{ fontWeight: 800, color: T.green, fontSize: 14 }}>{fmtBRL(p.valor)}</span>
           </div>
+          {/* Decomposição de emendas quando presente */}
+          {(payload[0]?.payload as any)?.emendaChart > 0 && (() => {
+            const em: number = (payload[0]?.payload as any).emendaChart;
+            const semEm = (p.valor ?? 0) - em;
+            const pct = p.valor ? ((em / p.valor) * 100).toFixed(1) : "0";
+            return (
+              <>
+                <div style={{ background: "#fdf3e7", borderRadius: 6, padding: "8px 10px",
+                  marginBottom: 6, border: `1px solid ${COR_EMENDA_GLOBAL}22` }}>
+                  <div style={{ fontWeight: 700, color: COR_EMENDA_GLOBAL, fontSize: 11,
+                    marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    📋 Emendas Parlamentares — {pct}% do total
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                    <span style={{ color: T.textSec }}>Valor emendas</span>
+                    <span style={{ fontWeight: 800, color: COR_EMENDA_GLOBAL }}>{fmtBRL(em)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: T.textSec }}>Repasse regular</span>
+                    <span style={{ fontWeight: 600, color: T.textSec }}>{fmtBRL(semEm)}</span>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
           {p.variacao && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <span style={{ color: T.textSec }}>Variação</span>
@@ -576,6 +603,9 @@ export default function EvolucaoFnsGrafico({ data, exercicio, onVoltar, onSincro
       const pt = pontosPorGrupo[g]?.find(p => p.mes === m);
       row[g] = pt?.valido ? pt.valor : undefined;
     }
+    // Emendas Parlamentares como série separada no gráfico de grupos
+    const emPt = (pontosPorGrupo["Emendas Parlamentares"] ?? []).find(e => e.mes === m);
+    row["__emendas__"] = emPt?.valido && (emPt.valor ?? 0) > 0 ? emPt.valor : undefined;
     return row;
   }), [mesesVisiveis, gruposAtivos, pontosPorGrupo]);
 
@@ -586,9 +616,19 @@ export default function EvolucaoFnsGrafico({ data, exercicio, onVoltar, onSincro
   }, [pontos, filtroVariacao]);
 
   // Dados chart: meses incompletos sem valor = undefined (não conecta)
-  const chartTotalData = pontos.map(p => ({
-    ...p, valorChart: (p.valido && p.valor != null) ? p.valor : undefined,
-  }));
+  const emPts = pontosPorGrupo["Emendas Parlamentares"] ?? [];
+  const chartTotalData = pontos.map(p => {
+    const em = emPts.find(e => e.mes === p.mes);
+    return {
+      ...p,
+      valorChart:  (p.valido && p.valor != null) ? p.valor : undefined,
+      emendaChart: (em?.valido && (em.valor ?? 0) > 0) ? em.valor : undefined,
+    };
+  });
+  const totalEmendas = emPts.filter(e => e.valido && (e.valor ?? 0) > 0).reduce((s, e) => s + (e.valor ?? 0), 0);
+  const maxEmendaPonto = emPts.filter(e => e.valido && (e.valor ?? 0) > 0).length > 0
+    ? emPts.filter(e => e.valido && (e.valor ?? 0) > 0).reduce((a, b) => (b.valor ?? 0) > (a.valor ?? 0) ? b : a)
+    : null;
 
   const toggleGrupo = useCallback((g: string) => {
     setGruposSelecionados(prev => {
@@ -843,6 +883,41 @@ export default function EvolucaoFnsGrafico({ data, exercicio, onVoltar, onSincro
               label={mostrarRotulos ? <LabelPonto /> : undefined}
               connectNulls={false}
             />
+            {/* ── Linha de Emendas Parlamentares ── */}
+            {totalEmendas > 0 && (
+              <Line
+                type="monotone"
+                dataKey="emendaChart"
+                stroke={COR_EMENDA}
+                strokeWidth={2}
+                strokeDasharray="8 4"
+                dot={(props: any) => {
+                  const { cx, cy, payload } = props;
+                  if (!payload?.emendaChart) return <g key={`em-${props.index}`}/>;
+                  return <circle key={`em-${props.index}`} cx={cx} cy={cy} r={5}
+                    fill={COR_EMENDA} stroke={T.white} strokeWidth={2}/>;
+                }}
+                connectNulls={false}
+                name="Emendas Parlamentares"
+              />
+            )}
+            {/* Anotação no pico de emendas */}
+            {maxEmendaPonto && totalEmendas > 0 && (
+              <ReferenceLine
+                x={maxEmendaPonto.label}
+                stroke={COR_EMENDA}
+                strokeDasharray="4 3"
+                strokeWidth={1.5}
+                label={{
+                  value: `Emenda: ${fmtAbrev(maxEmendaPonto.valor)}`,
+                  position: "insideTopLeft",
+                  fontSize: 10.5,
+                  fill: COR_EMENDA,
+                  fontWeight: 700,
+                  dy: -14,
+                }}
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
 
@@ -878,6 +953,17 @@ export default function EvolucaoFnsGrafico({ data, exercicio, onVoltar, onSincro
               {l.label}
             </span>
           ))}
+          {totalEmendas > 0 && (
+            <span style={{ display: "flex", alignItems: "center", gap: 6,
+              background: "#fdf3e7", borderRadius: 6, padding: "3px 10px",
+              border: `1px solid ${COR_EMENDA}30` }}>
+              <span style={{ width: 18, height: 0, display: "inline-block",
+                borderTop: `2.5px dashed ${COR_EMENDA}` }} />
+              <span style={{ color: COR_EMENDA, fontWeight: 700 }}>
+                Emendas Parlamentares · {fmtBRL(totalEmendas)}
+              </span>
+            </span>
+          )}
         </div>
       </div>
 
@@ -992,26 +1078,124 @@ export default function EvolucaoFnsGrafico({ data, exercicio, onVoltar, onSincro
           })}
         </div>
 
-        <ResponsiveContainer width="100%" height={320}>
-          <LineChart data={dataMultiLinha} margin={{ top: 20, right: 30, left: 20, bottom: 10 }}>
+        {totalEmendas > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14,
+            background: "#fdf3e7", borderRadius: 8, padding: "8px 14px",
+            border: `1px solid ${COR_EMENDA}30`, fontSize: 12 }}>
+            <span style={{ width: 20, height: 0, display: "inline-block",
+              borderTop: `2.5px dashed ${COR_EMENDA}`, flexShrink: 0 }} />
+            <span style={{ fontWeight: 700, color: COR_EMENDA }}>Emendas Parlamentares</span>
+            <span style={{ color: T.textSec }}>— exibidas em destaque no gráfico ·</span>
+            <span style={{ fontWeight: 700, color: COR_EMENDA }}>{fmtBRL(totalEmendas)} no período</span>
+          </div>
+        )}
+
+        <ResponsiveContainer width="100%" height={totalEmendas > 0 ? 360 : 320}>
+          <LineChart data={dataMultiLinha} margin={{ top: 24, right: 30, left: 20, bottom: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f4f8" vertical={false} />
             <XAxis dataKey="label" tick={{ fontSize: 12, fill: T.textSec }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmtAbrev(v).replace("R$ ","")} width={75}
               axisLine={false} tickLine={false} />
             <Tooltip
-              formatter={(value: number, name: string) => [fmtBRL(value), name]}
-              labelFormatter={l => `${l} / ${exercicio}`}
-              contentStyle={{ borderRadius: 10, border: `1px solid ${T.grayBdr}`,
-                boxShadow: "0 4px 16px rgba(0,0,0,.1)", fontSize: 12 }}
+              content={({ active, payload, label }: any) => {
+                if (!active || !payload?.length) return null;
+                const emItem = payload.find((p: any) => p.dataKey === "__emendas__");
+                const grupos = payload.filter((p: any) => p.dataKey !== "__emendas__");
+                const emVal: number = emItem?.value ?? 0;
+                return (
+                  <div style={{ background: T.white, border: `1px solid ${T.grayBdr}`, borderRadius: 10,
+                    padding: "12px 16px", boxShadow: "0 6px 20px rgba(0,0,0,.12)", fontSize: 12, minWidth: 240 }}>
+                    <div style={{ fontWeight: 800, color: T.blue, fontSize: 13, marginBottom: 8,
+                      paddingBottom: 6, borderBottom: `2px solid ${T.blue}`, textTransform: "uppercase" }}>
+                      {label} / {exercicio}
+                    </div>
+                    {grupos.map((item: any) => (
+                      <div key={item.dataKey} style={{ display: "flex", justifyContent: "space-between",
+                        alignItems: "center", marginBottom: 5 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ width: 8, height: 8, background: item.color,
+                            borderRadius: "50%", display: "inline-block" }} />
+                          <span style={{ color: T.textSec }}>{item.name}</span>
+                        </span>
+                        <span style={{ fontWeight: 700, color: item.color }}>{fmtBRL(item.value)}</span>
+                      </div>
+                    ))}
+                    {emVal > 0 && (
+                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.grayBdr}`,
+                        background: "#fdf3e7", borderRadius: 6, padding: "8px 10px", marginBottom: -4 }}>
+                        <div style={{ fontWeight: 700, color: COR_EMENDA, fontSize: 11,
+                          marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                          📋 Emendas Parlamentares
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ color: T.textSec }}>Total emendas no mês</span>
+                          <span style={{ fontWeight: 800, color: COR_EMENDA }}>{fmtBRL(emVal)}</span>
+                        </div>
+                        {grupos.reduce((s: number, g: any) => s + (g.value ?? 0), 0) > 0 && (
+                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
+                            <span style={{ color: T.textSec }}>% sobre total grupos</span>
+                            <span style={{ fontWeight: 600, color: COR_EMENDA }}>
+                              {((emVal / grupos.reduce((s: number, g: any) => s + (g.value ?? 0), 0)) * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              }}
             />
-            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+            <Legend
+              formatter={(value: string) =>
+                value === "__emendas__"
+                  ? <span style={{ color: COR_EMENDA, fontWeight: 700 }}>Emendas Parlamentares</span>
+                  : value
+              }
+              wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+            />
+            {/* Linhas por grupo */}
             {gruposAtivos.map(g => (
               <Line key={g} type="monotone" dataKey={g}
-                stroke={GRUPO_PALETA[g] ?? T.gray} strokeWidth={2}
+                stroke={GRUPO_PALETA[g] ?? T.gray} strokeWidth={2} name={g}
                 dot={{ r: 4, fill: GRUPO_PALETA[g] ?? T.gray, stroke: T.white, strokeWidth: 2 }}
                 connectNulls={false}
               />
             ))}
+            {/* Linha de Emendas Parlamentares */}
+            {totalEmendas > 0 && (
+              <>
+                <Line
+                  type="monotone"
+                  dataKey="__emendas__"
+                  stroke={COR_EMENDA}
+                  strokeWidth={2.5}
+                  strokeDasharray="8 4"
+                  name="__emendas__"
+                  dot={(props: any) => {
+                    const { cx, cy, payload } = props;
+                    if (!payload?.__emendas__) return <g key={`eme-${props.index}`}/>;
+                    return <circle key={`eme-${props.index}`} cx={cx} cy={cy} r={5}
+                      fill={COR_EMENDA} stroke={T.white} strokeWidth={2}/>;
+                  }}
+                  connectNulls={false}
+                />
+                {maxEmendaPonto && (
+                  <ReferenceLine
+                    x={maxEmendaPonto.label}
+                    stroke={COR_EMENDA}
+                    strokeDasharray="4 3"
+                    strokeWidth={1.5}
+                    label={{
+                      value: `Emenda: ${fmtAbrev(maxEmendaPonto.valor)}`,
+                      position: "top",
+                      fontSize: 10,
+                      fill: COR_EMENDA,
+                      fontWeight: 700,
+                    }}
+                  />
+                )}
+              </>
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>
