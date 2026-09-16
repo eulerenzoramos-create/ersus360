@@ -1,0 +1,1 @@
+const n=t=>t==null||typeof t=="number"&&isNaN(t)?"—":new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:2,maximumFractionDigits:2}).format(t),e=t=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:0}).format(t),i=(t,r=2)=>t==null||typeof t=="number"&&isNaN(t)?"—":`${t.toFixed(r).replace(".",",")}%`;export{n as B,i as P,e as a};
