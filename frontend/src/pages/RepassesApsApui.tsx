@@ -1224,6 +1224,9 @@ function ExecucaoFinanceiraPanel() {
   const qc = useQueryClient();
   const [filtroBloco, setFiltroBloco] = useState("Todos");
   const [filtroSit, setFiltroSit] = useState("Todos");
+  const [filtroFornecedor, setFiltroFornecedor] = useState("Todos");
+  const [filtroPeriodo, setFiltroPeriodo] = useState("Todos");
+  const [filtroPendencia, setFiltroPendencia] = useState("Todos");
   const [busca, setBusca] = useState("");
   const [expandido, setExpandido] = useState<number | null>(null);
   const [modal, setModal] = useState<ModalTipo>(null);
@@ -1548,16 +1551,60 @@ function ExecucaoFinanceiraPanel() {
   const saldo     = totalDot - totalPago;
   const pctExec   = totalDot > 0 ? ((totalPago / totalDot) * 100).toFixed(1) : "—";
 
-  const blocos  = ["Todos", ...Array.from(new Set(itens.map(i => i.bloco)))];
-  const sits    = ["Todos", "Empenhado", "Liquidado", "Pago", "Pendente"];
+  const blocos      = ["Todos", ...Array.from(new Set(itens.map(i => i.bloco).filter(Boolean)))];
+  const sits        = ["Todos", "Empenhado", "Liquidado", "Pago", "Pendente"];
+  const fornecedores = ["Todos", ...Array.from(new Set(itens.map(i => i.fornecedor).filter(Boolean))).sort()];
+
+  // Períodos disponíveis a partir das datas de empenho
+  const periodos = useMemo(() => {
+    const meses = new Set<string>();
+    itens.forEach(i => {
+      if (i.data_empenho) {
+        const d = new Date(i.data_empenho);
+        if (!isNaN(d.getTime())) {
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          meses.add(key);
+        }
+      }
+    });
+    return ["Todos", ...Array.from(meses).sort().reverse()];
+  }, [itens]);
+
+  const filtroPendenciaOpts = [
+    { v: "Todos",           l: "Todas" },
+    { v: "com_saldo",       l: "Com saldo pendente" },
+    { v: "nao_liquidado",   l: "Não liquidado" },
+    { v: "nao_pago",        l: "Não pago" },
+    { v: "pago_completo",   l: "Totalmente pago" },
+  ];
 
   const filtrados = itens.filter(i => {
     const mb = filtroBloco === "Todos" || i.bloco === filtroBloco;
     const ms = filtroSit   === "Todos" || i.situacao === filtroSit;
+    const mf = filtroFornecedor === "Todos" || i.fornecedor === filtroFornecedor;
+    const mp = filtroPeriodo === "Todos" || (() => {
+      if (!i.data_empenho) return false;
+      const d = new Date(i.data_empenho);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      return key === filtroPeriodo;
+    })();
+    const mpend = filtroPendencia === "Todos" || (() => {
+      const saldo = (i.dotacao ?? 0) - (i.pago ?? 0);
+      if (filtroPendencia === "com_saldo")     return saldo > 0;
+      if (filtroPendencia === "nao_liquidado") return (i.liquidado ?? 0) === 0;
+      if (filtroPendencia === "nao_pago")      return (i.pago ?? 0) === 0;
+      if (filtroPendencia === "pago_completo") return (i.pago ?? 0) > 0 && (i.pago ?? 0) >= (i.empenhado ?? 0);
+      return true;
+    })();
     const mq = busca === "" || i.recurso.toLowerCase().includes(busca.toLowerCase()) ||
                i.fornecedor.toLowerCase().includes(busca.toLowerCase());
-    return mb && ms && mq;
+    return mb && ms && mf && mp && mpend && mq;
   });
+
+  // Totais de pendência para badge
+  const qtdPendentes = itens.filter(i => (i.pago ?? 0) === 0 && (i.empenhado ?? 0) > 0).length;
+  const vlPendente   = itens.filter(i => (i.pago ?? 0) < (i.empenhado ?? 0))
+                            .reduce((s, i) => s + ((i.empenhado ?? 0) - (i.pago ?? 0)), 0);
 
   const KD = { background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 12,
     padding: "16px 18px", flex: "1 1 0", minWidth: 140 };
@@ -1669,26 +1716,115 @@ function ExecucaoFinanceiraPanel() {
       </div>
 
       {/* ── Filtros ── */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
-        <div style={{ position: "relative" as const, flex: 1, minWidth: 200 }}>
-          <Search size={13} style={{ position: "absolute" as const, left: 10, top: "50%", transform: "translateY(-50%)", color: C.textSec }} />
-          <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar recurso ou fornecedor…"
-            style={{ width: "100%", paddingLeft: 32, paddingRight: 12, paddingTop: 8, paddingBottom: 8,
-              border: `1px solid ${C.grayBdr}`, borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" as const }} />
+      <div style={{ background: "#f8fafc", border: `1px solid ${C.grayBdr}`, borderRadius: 12, padding: "14px 16px" }}>
+        {/* Badge de pendências */}
+        {qtdPendentes > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
+            background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8,
+            padding: "7px 12px", fontSize: 12 }}>
+            <AlertTriangle size={13} color="#dc2626" />
+            <span style={{ fontWeight: 700, color: "#dc2626" }}>
+              {qtdPendentes} empenho{qtdPendentes > 1 ? "s" : ""} sem pagamento
+            </span>
+            <span style={{ color: "#991b1b" }}>·</span>
+            <span style={{ color: "#991b1b", fontWeight: 600 }}>{BRL(vlPendente)} a pagar</span>
+            <button onClick={() => setFiltroPendencia("nao_pago")}
+              style={{ marginLeft: "auto", fontSize: 11, color: "#dc2626", background: "none",
+                border: "1px solid #fecaca", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontWeight: 600 }}>
+              Ver pendências
+            </button>
+          </div>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+          {/* Tipo de empenho / Bloco */}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.textSec, textTransform: "uppercase" as const,
+              letterSpacing: "0.06em", marginBottom: 4 }}>Tipo de empenho</div>
+            <select value={filtroBloco} onChange={e => setFiltroBloco(e.target.value)}
+              style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                padding: "7px 10px", fontSize: 12, background: C.white, cursor: "pointer" }}>
+              {blocos.map(b => <option key={b} value={b}>{b === "Todos" ? "Todos os tipos" : b}</option>)}
+            </select>
+          </div>
+
+          {/* Empresa / Fornecedor */}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.textSec, textTransform: "uppercase" as const,
+              letterSpacing: "0.06em", marginBottom: 4 }}>Empresa / Fornecedor</div>
+            <select value={filtroFornecedor} onChange={e => setFiltroFornecedor(e.target.value)}
+              style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                padding: "7px 10px", fontSize: 12, background: C.white, cursor: "pointer" }}>
+              {fornecedores.map(f => <option key={f} value={f}>{f === "Todos" ? "Todos os fornecedores" : f}</option>)}
+            </select>
+          </div>
+
+          {/* Período / Data do empenho */}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.textSec, textTransform: "uppercase" as const,
+              letterSpacing: "0.06em", marginBottom: 4 }}>Período (data empenho)</div>
+            <select value={filtroPeriodo} onChange={e => setFiltroPeriodo(e.target.value)}
+              style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                padding: "7px 10px", fontSize: 12, background: C.white, cursor: "pointer" }}>
+              {periodos.map(p => {
+                if (p === "Todos") return <option key="Todos" value="Todos">Todo o período</option>;
+                const [ano, mes] = p.split("-");
+                const nomeMes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][parseInt(mes)-1];
+                return <option key={p} value={p}>{nomeMes}/{ano}</option>;
+              })}
+            </select>
+          </div>
+
+          {/* Pendência de pagamento */}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#dc2626", textTransform: "uppercase" as const,
+              letterSpacing: "0.06em", marginBottom: 4 }}>Pendência de pagamento</div>
+            <select value={filtroPendencia} onChange={e => setFiltroPendencia(e.target.value)}
+              style={{ width: "100%", border: `1px solid ${filtroPendencia !== "Todos" ? "#fca5a5" : C.grayBdr}`,
+                borderRadius: 8, padding: "7px 10px", fontSize: 12,
+                background: filtroPendencia !== "Todos" ? "#fef2f2" : C.white, cursor: "pointer",
+                color: filtroPendencia !== "Todos" ? "#dc2626" : "inherit",
+                fontWeight: filtroPendencia !== "Todos" ? 700 : 400 }}>
+              {filtroPendenciaOpts.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
+          </div>
         </div>
-        <select value={filtroBloco} onChange={e => setFiltroBloco(e.target.value)}
-          style={{ border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "8px 12px", fontSize: 13, background: C.white }}>
-          {blocos.map(b => <option key={b}>{b}</option>)}
-        </select>
-        <select value={filtroSit} onChange={e => setFiltroSit(e.target.value)}
-          style={{ border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "8px 12px", fontSize: 13, background: C.white }}>
-          {sits.map(s => <option key={s}>{s}</option>)}
-        </select>
-        {(busca || filtroBloco !== "Todos" || filtroSit !== "Todos") && (
-          <button onClick={() => { setBusca(""); setFiltroBloco("Todos"); setFiltroSit("Todos"); }}
-            style={{ background: "none", border: "none", cursor: "pointer", color: C.textSec, display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
-            <X size={13} /> Limpar
-          </button>
+
+        {/* Barra de busca + situação + limpar */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ position: "relative" as const, flex: 1 }}>
+            <Search size={13} style={{ position: "absolute" as const, left: 10, top: "50%",
+              transform: "translateY(-50%)", color: C.textSec }} />
+            <input value={busca} onChange={e => setBusca(e.target.value)}
+              placeholder="Buscar recurso ou fornecedor…"
+              style={{ width: "100%", paddingLeft: 32, paddingRight: 12, paddingTop: 7, paddingBottom: 7,
+                border: `1px solid ${C.grayBdr}`, borderRadius: 8, fontSize: 13,
+                outline: "none", boxSizing: "border-box" as const }} />
+          </div>
+          <select value={filtroSit} onChange={e => setFiltroSit(e.target.value)}
+            style={{ border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "7px 12px", fontSize: 13, background: C.white }}>
+            {sits.map(s => <option key={s}>{s === "Todos" ? "Todas as situações" : s}</option>)}
+          </select>
+          {(busca || filtroBloco !== "Todos" || filtroSit !== "Todos" ||
+            filtroFornecedor !== "Todos" || filtroPeriodo !== "Todos" || filtroPendencia !== "Todos") && (
+            <button onClick={() => {
+              setBusca(""); setFiltroBloco("Todos"); setFiltroSit("Todos");
+              setFiltroFornecedor("Todos"); setFiltroPeriodo("Todos"); setFiltroPendencia("Todos");
+            }}
+              style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8,
+                cursor: "pointer", color: "#dc2626", display: "flex", alignItems: "center",
+                gap: 4, fontSize: 12, padding: "7px 12px", fontWeight: 600, whiteSpace: "nowrap" as const }}>
+              <X size={13} /> Limpar filtros
+            </button>
+          )}
+        </div>
+
+        {/* Contador de resultados */}
+        {filtrados.length !== itens.length && (
+          <div style={{ marginTop: 8, fontSize: 11, color: C.textSec }}>
+            Mostrando <strong>{filtrados.length}</strong> de <strong>{itens.length}</strong> registros
+            {filtrados.length === 0 && <span style={{ color: "#dc2626", fontWeight: 600 }}> — nenhum resultado</span>}
+          </div>
         )}
       </div>
 
