@@ -51,6 +51,7 @@ async def init_db():
         from models import integracao_gateway  # noqa — tabelas ERSUS Integration Gateway
         from models import execucao_fns  # noqa — execução financeira FNS
         from models import portaria_dou   # noqa — portarias DOU + log execução agente
+        from models import conta_bancaria_fms  # noqa — contas bancárias FMS
         await conn.run_sync(Base.metadata.create_all)
         # Tabela de snapshot eSUS PEC (entrada manual ou bookmarklet)
         if _raw_url.startswith("sqlite"):

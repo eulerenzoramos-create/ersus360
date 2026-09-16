@@ -2903,6 +2903,414 @@ function ExecucaoFinanceiraPanel() {
   );
 }
 
+// ─── Contas Bancárias FMS ─────────────────────────────────────────────────────
+
+interface ContaFMS {
+  id: number; banco: string; codigo_banco?: string; agencia?: string;
+  numero_conta?: string; digito?: string; tipo: string; descricao?: string;
+  saldo_inicial: number; saldo_atual: number; total_entradas: number;
+  total_saidas: number; qtd_movimentacoes: number; criado_por?: string;
+}
+interface MovFMS {
+  id: number; conta_id: number; tipo: "entrada" | "saida"; valor: number;
+  data: string; descricao?: string; origem: string; saldo_apos?: number;
+}
+
+const apiConta = {
+  listar: () => fetch("/api/contas-fms").then(r => r.json()) as Promise<ContaFMS[]>,
+  criar: (b: object) => fetch("/api/contas-fms", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }).then(r => r.json()),
+  excluir: (id: number) => fetch(`/api/contas-fms/${id}`, { method: "DELETE" }).then(r => r.json()),
+  extrato: (id: number, de?: string, ate?: string) => {
+    const p = new URLSearchParams();
+    if (de) p.set("de", de); if (ate) p.set("ate", ate);
+    return fetch(`/api/contas-fms/${id}/extrato?${p}`).then(r => r.json()) as Promise<{ linhas: (MovFMS & { saldo_apos: number })[]; saldo_final: number; total_entradas: number; total_saidas: number }>;
+  },
+  addMov: (id: number, b: object) => fetch(`/api/contas-fms/${id}/movimentacao`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }).then(r => r.json()),
+  delMov: (cid: number, mid: number) => fetch(`/api/contas-fms/${cid}/movimentacao/${mid}`, { method: "DELETE" }).then(r => r.json()),
+};
+
+const BANCOS_BR = [
+  "Banco do Brasil (001)", "Bradesco (237)", "Caixa Econômica Federal (104)",
+  "Itaú (341)", "Santander (033)", "Sicoob (756)", "Sicredi (748)",
+  "BNB (004)", "Banco da Amazônia (003)", "Nubank (260)", "Outro",
+];
+
+function ContasBancariasPanel() {
+  const qc = useQueryClient();
+  const [contaSel, setContaSel] = useState<ContaFMS | null>(null);
+  const [modalNova, setModalNova] = useState(false);
+  const [modalMov, setModalMov]   = useState(false);
+  const [filtroDe, setFiltroDe]   = useState("");
+  const [filtroAte, setFiltroAte] = useState("");
+  const [extratoData, setExtratoData] = useState<{ linhas: (MovFMS & { saldo_apos: number })[]; saldo_final: number; total_entradas: number; total_saidas: number } | null>(null);
+
+  // form nova conta
+  const [fBanco, setFBanco]  = useState(BANCOS_BR[0]);
+  const [fAg, setFAg]        = useState("");
+  const [fNum, setFNum]      = useState("");
+  const [fDig, setFDig]      = useState("");
+  const [fTipo, setFTipo]    = useState("Corrente");
+  const [fDesc, setFDesc]    = useState("");
+  const [fSaldoIni, setFSaldoIni] = useState("");
+  const [fDataIni, setFDataIni]   = useState("");
+
+  // form nova movimentação
+  const [mTipo, setMTipo]   = useState<"entrada" | "saida">("entrada");
+  const [mValor, setMValor] = useState("");
+  const [mData, setMData]   = useState(new Date().toISOString().slice(0, 10));
+  const [mDesc, setMDesc]   = useState("");
+  const [mOrig, setMOrig]   = useState("manual");
+  const [saving, setSaving] = useState(false);
+
+  const { data: contas = [], isLoading } = useQuery({
+    queryKey: ["contas-fms"],
+    queryFn: apiConta.listar,
+  });
+
+  const saldoTotal = contas.reduce((s, c) => s + c.saldo_atual, 0);
+
+  async function carregarExtrato(c: ContaFMS) {
+    setContaSel(c);
+    const r = await apiConta.extrato(c.id, filtroDe || undefined, filtroAte || undefined);
+    setExtratoData(r);
+  }
+
+  async function salvarConta() {
+    setSaving(true);
+    try {
+      const banco = fBanco === "Outro" ? fDesc || "Banco" : fBanco;
+      await apiConta.criar({
+        banco, agencia: fAg, numero_conta: fNum, digito: fDig,
+        tipo: fTipo, descricao: fDesc,
+        saldo_inicial: parseFloat(fSaldoIni.replace(",", ".")) || 0,
+        data_saldo_ini: fDataIni || undefined,
+        criado_por: "FMS Apuí",
+      });
+      qc.invalidateQueries({ queryKey: ["contas-fms"] });
+      setModalNova(false);
+    } finally { setSaving(false); }
+  }
+
+  async function salvarMov() {
+    if (!contaSel) return;
+    setSaving(true);
+    try {
+      await apiConta.addMov(contaSel.id, {
+        tipo: mTipo, valor: parseFloat(mValor.replace(",", ".")) || 0,
+        data: mData, descricao: mDesc, origem: mOrig, criado_por: "FMS Apuí",
+      });
+      qc.invalidateQueries({ queryKey: ["contas-fms"] });
+      const r = await apiConta.extrato(contaSel.id);
+      setExtratoData(r);
+      setModalMov(false);
+      setMValor(""); setMDesc("");
+    } finally { setSaving(false); }
+  }
+
+  async function excluirMov(mid: number) {
+    if (!contaSel) return;
+    await apiConta.delMov(contaSel.id, mid);
+    const r = await apiConta.extrato(contaSel.id);
+    setExtratoData(r);
+    qc.invalidateQueries({ queryKey: ["contas-fms"] });
+  }
+
+  const BRL2 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const corSaldo = (v: number) => v >= 0 ? "#059669" : "#dc2626";
+
+  // ── render ──
+  if (isLoading) return <div style={{ padding: 32, textAlign: "center", color: "#6b7280", fontSize: 13 }}>Carregando contas...</div>;
+
+  return (
+    <div style={{ padding: "0 0 40px" }}>
+      {/* Resumo geral */}
+      <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 14, marginBottom: 22 }}>
+        <div style={{ flex: "1 1 220px", background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, padding: "16px 20px" }}>
+          <div style={{ fontSize: 11, color: "#6b7280", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>Saldo Consolidado</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: corSaldo(saldoTotal), marginTop: 4 }}>{BRL2(saldoTotal)}</div>
+          <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{contas.length} conta{contas.length !== 1 ? "s" : ""} cadastrada{contas.length !== 1 ? "s" : ""}</div>
+        </div>
+        <div style={{ flex: "1 1 160px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "16px 20px" }}>
+          <div style={{ fontSize: 11, color: "#059669", fontWeight: 600, textTransform: "uppercase" as const }}>Total Entradas</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#059669", marginTop: 4 }}>{BRL2(contas.reduce((s, c) => s + c.total_entradas, 0))}</div>
+        </div>
+        <div style={{ flex: "1 1 160px", background: "#fff5f5", border: "1px solid #fecaca", borderRadius: 10, padding: "16px 20px" }}>
+          <div style={{ fontSize: 11, color: "#dc2626", fontWeight: 600, textTransform: "uppercase" as const }}>Total Saídas</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#dc2626", marginTop: 4 }}>{BRL2(contas.reduce((s, c) => s + c.total_saidas, 0))}</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <button onClick={() => setModalNova(true)}
+            style={{ background: "#1565c0", color: "#fff", border: "none", borderRadius: 8,
+              padding: "12px 22px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+            + Nova Conta
+          </button>
+        </div>
+      </div>
+
+      {/* Lista de contas */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14, marginBottom: 28 }}>
+        {contas.length === 0 && (
+          <div style={{ gridColumn: "1/-1", padding: "32px", textAlign: "center" as const, color: "#6b7280", fontSize: 13,
+            background: "#fff", border: "1px dashed #e4e7ec", borderRadius: 10 }}>
+            Nenhuma conta cadastrada. Clique em "Nova Conta" para começar.
+          </div>
+        )}
+        {contas.map(c => (
+          <div key={c.id} onClick={() => carregarExtrato(c)}
+            style={{ background: contaSel?.id === c.id ? "#eff6ff" : "#fff",
+              border: `1.5px solid ${contaSel?.id === c.id ? "#1565c0" : "#e4e7ec"}`,
+              borderRadius: 10, padding: "16px 18px", cursor: "pointer",
+              transition: "all .15s",
+            }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "#111827" }}>{c.banco}</div>
+                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
+                  {c.tipo}{c.agencia ? ` · Ag. ${c.agencia}` : ""}{c.numero_conta ? ` · Cc. ${c.numero_conta}${c.digito ? `-${c.digito}` : ""}` : ""}
+                </div>
+              </div>
+              <span style={{ fontSize: 10, background: "#f1f5f9", borderRadius: 6, padding: "2px 8px", color: "#475569" }}>{c.tipo}</span>
+            </div>
+            <div style={{ marginTop: 12, borderTop: "1px solid #f1f5f9", paddingTop: 10, display: "flex", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: 10, color: "#6b7280" }}>Saldo atual</div>
+                <div style={{ fontWeight: 800, fontSize: 18, color: corSaldo(c.saldo_atual) }}>{BRL2(c.saldo_atual)}</div>
+              </div>
+              <div style={{ textAlign: "right" as const }}>
+                <div style={{ fontSize: 10, color: "#059669" }}>↑ {BRL2(c.total_entradas)}</div>
+                <div style={{ fontSize: 10, color: "#dc2626" }}>↓ {BRL2(c.total_saidas)}</div>
+                <div style={{ fontSize: 10, color: "#6b7280" }}>{c.qtd_movimentacoes} mov.</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Extrato da conta selecionada */}
+      {contaSel && extratoData && (
+        <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px 24px" }}>
+          <div style={{ display: "flex", flexWrap: "wrap" as const, justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#111827" }}>Extrato — {contaSel.banco}</div>
+              <div style={{ fontSize: 11, color: "#6b7280" }}>
+                {contaSel.agencia && `Ag. ${contaSel.agencia}`}{contaSel.numero_conta && ` · Cc. ${contaSel.numero_conta}${contaSel.digito ? `-${contaSel.digito}` : ""}`}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, alignItems: "center" }}>
+              <input type="date" value={filtroDe} onChange={e => setFiltroDe(e.target.value)}
+                style={{ border: "1px solid #e4e7ec", borderRadius: 6, padding: "5px 10px", fontSize: 12 }} />
+              <span style={{ fontSize: 12, color: "#6b7280" }}>até</span>
+              <input type="date" value={filtroAte} onChange={e => setFiltroAte(e.target.value)}
+                style={{ border: "1px solid #e4e7ec", borderRadius: 6, padding: "5px 10px", fontSize: 12 }} />
+              <button onClick={() => carregarExtrato(contaSel)}
+                style={{ background: "#f1f5f9", border: "1px solid #e4e7ec", borderRadius: 6, padding: "5px 12px", fontSize: 12, cursor: "pointer" }}>
+                Filtrar
+              </button>
+              <button onClick={() => setModalMov(true)}
+                style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                + Movimentação
+              </button>
+            </div>
+          </div>
+
+          {/* Totais do período */}
+          <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" as const }}>
+            <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "10px 16px", flex: 1 }}>
+              <div style={{ fontSize: 10, color: "#059669", fontWeight: 600 }}>ENTRADAS NO PERÍODO</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#059669" }}>{BRL2(extratoData.total_entradas)}</div>
+            </div>
+            <div style={{ background: "#fff5f5", borderRadius: 8, padding: "10px 16px", flex: 1 }}>
+              <div style={{ fontSize: 10, color: "#dc2626", fontWeight: 600 }}>SAÍDAS NO PERÍODO</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#dc2626" }}>{BRL2(extratoData.total_saidas)}</div>
+            </div>
+            <div style={{ background: "#eff6ff", borderRadius: 8, padding: "10px 16px", flex: 1 }}>
+              <div style={{ fontSize: 10, color: "#1565c0", fontWeight: 600 }}>SALDO FINAL</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: corSaldo(extratoData.saldo_final) }}>{BRL2(extratoData.saldo_final)}</div>
+            </div>
+          </div>
+
+          {/* Tabela extrato */}
+          {extratoData.linhas.length === 0 ? (
+            <div style={{ textAlign: "center" as const, color: "#6b7280", padding: "24px", fontSize: 13 }}>
+              Nenhuma movimentação no período.
+            </div>
+          ) : (
+            <div style={{ overflowX: "auto" as const }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e4e7ec" }}>
+                    <th style={{ padding: "8px 12px", textAlign: "left" as const, fontWeight: 600, color: "#374151" }}>Data</th>
+                    <th style={{ padding: "8px 12px", textAlign: "left" as const, fontWeight: 600, color: "#374151" }}>Descrição</th>
+                    <th style={{ padding: "8px 12px", textAlign: "left" as const, fontWeight: 600, color: "#374151" }}>Origem</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" as const, fontWeight: 600, color: "#374151" }}>Entrada</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" as const, fontWeight: 600, color: "#374151" }}>Saída</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right" as const, fontWeight: 600, color: "#374151" }}>Saldo</th>
+                    <th style={{ padding: "8px 4px" }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {extratoData.linhas.map((m, i) => (
+                    <tr key={m.id} style={{ borderBottom: "1px solid #f1f5f9", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                      <td style={{ padding: "8px 12px", color: "#374151", whiteSpace: "nowrap" as const }}>
+                        {m.data ? new Date(m.data + "T00:00:00").toLocaleDateString("pt-BR") : "-"}
+                      </td>
+                      <td style={{ padding: "8px 12px", color: "#374151" }}>{m.descricao || "—"}</td>
+                      <td style={{ padding: "8px 12px" }}>
+                        <span style={{ fontSize: 10, background: "#f1f5f9", borderRadius: 5, padding: "2px 7px", color: "#475569" }}>
+                          {m.origem}
+                        </span>
+                      </td>
+                      <td style={{ padding: "8px 12px", textAlign: "right" as const, color: "#059669", fontWeight: m.tipo === "entrada" ? 700 : 400 }}>
+                        {m.tipo === "entrada" ? BRL2(m.valor) : ""}
+                      </td>
+                      <td style={{ padding: "8px 12px", textAlign: "right" as const, color: "#dc2626", fontWeight: m.tipo === "saida" ? 700 : 400 }}>
+                        {m.tipo === "saida" ? BRL2(m.valor) : ""}
+                      </td>
+                      <td style={{ padding: "8px 12px", textAlign: "right" as const, fontWeight: 600, color: corSaldo(m.saldo_apos ?? 0) }}>
+                        {BRL2(m.saldo_apos ?? 0)}
+                      </td>
+                      <td style={{ padding: "8px 4px", textAlign: "center" as const }}>
+                        <button onClick={() => excluirMov(m.id)}
+                          style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 11, padding: "2px 6px" }}
+                          title="Excluir movimentação">✕</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal nova conta */}
+      {modalNova && (
+        <div style={{ position: "fixed" as const, inset: 0, background: "rgba(0,0,0,.45)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#fff", borderRadius: 14, padding: "28px 32px", width: 480, maxWidth: "95vw", boxShadow: "0 8px 40px rgba(0,0,0,.18)" }}>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 20, color: "#111827" }}>Nova Conta Bancária — FMS</div>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Banco *</label>
+                <select value={fBanco} onChange={e => setFBanco(e.target.value)}
+                  style={{ width: "100%", border: "1px solid #e4e7ec", borderRadius: 7, padding: "8px 10px", fontSize: 13 }}>
+                  {BANCOS_BR.map(b => <option key={b}>{b}</option>)}
+                </select>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px", gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Agência</label>
+                  <input value={fAg} onChange={e => setFAg(e.target.value)} placeholder="0001"
+                    style={{ width: "100%", border: "1px solid #e4e7ec", borderRadius: 7, padding: "8px 10px", fontSize: 13, boxSizing: "border-box" as const }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Nº Conta</label>
+                  <input value={fNum} onChange={e => setFNum(e.target.value)} placeholder="00000-0"
+                    style={{ width: "100%", border: "1px solid #e4e7ec", borderRadius: 7, padding: "8px 10px", fontSize: 13, boxSizing: "border-box" as const }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Dígito</label>
+                  <input value={fDig} onChange={e => setFDig(e.target.value)} placeholder="0"
+                    style={{ width: "100%", border: "1px solid #e4e7ec", borderRadius: 7, padding: "8px 10px", fontSize: 13, boxSizing: "border-box" as const }} />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Tipo</label>
+                  <select value={fTipo} onChange={e => setFTipo(e.target.value)}
+                    style={{ width: "100%", border: "1px solid #e4e7ec", borderRadius: 7, padding: "8px 10px", fontSize: 13 }}>
+                    {["Corrente", "Poupança", "Aplicação", "Especial"].map(t => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Saldo inicial (R$)</label>
+                  <input value={fSaldoIni} onChange={e => setFSaldoIni(e.target.value)} placeholder="0,00"
+                    style={{ width: "100%", border: "1px solid #e4e7ec", borderRadius: 7, padding: "8px 10px", fontSize: 13, boxSizing: "border-box" as const }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Data do saldo inicial</label>
+                <input type="date" value={fDataIni} onChange={e => setFDataIni(e.target.value)}
+                  style={{ border: "1px solid #e4e7ec", borderRadius: 7, padding: "8px 10px", fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Descrição / Finalidade</label>
+                <input value={fDesc} onChange={e => setFDesc(e.target.value)} placeholder="ex: Conta FNS / PAP / Emendas"
+                  style={{ width: "100%", border: "1px solid #e4e7ec", borderRadius: 7, padding: "8px 10px", fontSize: 13, boxSizing: "border-box" as const }} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 22, justifyContent: "flex-end" }}>
+              <button onClick={() => setModalNova(false)}
+                style={{ border: "1px solid #e4e7ec", borderRadius: 8, padding: "9px 20px", fontSize: 13, cursor: "pointer", background: "#fff" }}>
+                Cancelar
+              </button>
+              <button onClick={salvarConta} disabled={saving || !fBanco}
+                style={{ background: "#1565c0", color: "#fff", border: "none", borderRadius: 8, padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
+                {saving ? "Salvando..." : "Cadastrar Conta"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal nova movimentação */}
+      {modalMov && contaSel && (
+        <div style={{ position: "fixed" as const, inset: 0, background: "rgba(0,0,0,.45)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#fff", borderRadius: 14, padding: "28px 32px", width: 420, maxWidth: "95vw", boxShadow: "0 8px 40px rgba(0,0,0,.18)" }}>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: "#111827" }}>Nova Movimentação</div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 20 }}>{contaSel.banco}</div>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {(["entrada", "saida"] as const).map(t => (
+                  <button key={t} onClick={() => setMTipo(t)}
+                    style={{ border: `2px solid ${mTipo === t ? (t === "entrada" ? "#059669" : "#dc2626") : "#e4e7ec"}`,
+                      borderRadius: 8, padding: "10px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                      background: mTipo === t ? (t === "entrada" ? "#f0fdf4" : "#fff5f5") : "#fff",
+                      color: mTipo === t ? (t === "entrada" ? "#059669" : "#dc2626") : "#6b7280" }}>
+                    {t === "entrada" ? "↑ Entrada" : "↓ Saída"}
+                  </button>
+                ))}
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Valor (R$) *</label>
+                <input value={mValor} onChange={e => setMValor(e.target.value)} placeholder="0,00"
+                  style={{ width: "100%", border: "1px solid #e4e7ec", borderRadius: 7, padding: "8px 10px", fontSize: 13, boxSizing: "border-box" as const }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Data *</label>
+                <input type="date" value={mData} onChange={e => setMData(e.target.value)}
+                  style={{ border: "1px solid #e4e7ec", borderRadius: 7, padding: "8px 10px", fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Descrição</label>
+                <input value={mDesc} onChange={e => setMDesc(e.target.value)} placeholder="ex: Repasse FNS jan/2026, Pagamento NF 123..."
+                  style={{ width: "100%", border: "1px solid #e4e7ec", borderRadius: 7, padding: "8px 10px", fontSize: 13, boxSizing: "border-box" as const }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Origem</label>
+                <select value={mOrig} onChange={e => setMOrig(e.target.value)}
+                  style={{ width: "100%", border: "1px solid #e4e7ec", borderRadius: 7, padding: "8px 10px", fontSize: 13 }}>
+                  {["manual", "repasse", "pagamento", "aplicação", "resgate", "transferência"].map(o => <option key={o}>{o}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 22, justifyContent: "flex-end" }}>
+              <button onClick={() => setModalMov(false)}
+                style={{ border: "1px solid #e4e7ec", borderRadius: 8, padding: "9px 20px", fontSize: 13, cursor: "pointer", background: "#fff" }}>
+                Cancelar
+              </button>
+              <button onClick={salvarMov} disabled={saving || !mValor || !mData}
+                style={{ background: mTipo === "entrada" ? "#059669" : "#dc2626", color: "#fff", border: "none",
+                  borderRadius: 8, padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
+                {saving ? "Salvando..." : "Registrar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Container principal com abas ─────────────────────────────────────────────
 const ABAS = [
   { id: "aps",        label: "Atenção Primária — e-Gestor APS",  desc: "Competências, parcelas, componentes, equipes" },
@@ -2910,6 +3318,7 @@ const ABAS = [
   { id: "matriz",     label: "Repasses Mensais — FNS",           desc: "Tabela matricial por grupo e mês" },
   { id: "conciliacao",label: "Conciliação e-Gestor APS × FNS",   desc: "Comparativo sem dupla contagem" },
   { id: "execucao",   label: "Execução Financeira",              desc: "Empenho · Liquidação · Pagamento · Fluxo" },
+  { id: "contas",     label: "Contas Bancárias — FMS",           desc: "Saldo · Extrato · Movimentações" },
 ] as const;
 
 const CB = {
@@ -2918,7 +3327,7 @@ const CB = {
 };
 
 export default function RepassesApsApui() {
-  const [aba, setAba] = useState<"aps" | "fns" | "matriz" | "conciliacao" | "execucao">("aps");
+  const [aba, setAba] = useState<"aps" | "fns" | "matriz" | "conciliacao" | "execucao" | "contas">("aps");
 
   return (
     <div style={{ background: CB.grayLight, minHeight: "100vh", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -2975,6 +3384,7 @@ export default function RepassesApsApui() {
         {aba === "matriz"      && <MatrizFnsLazy />}
         {aba === "conciliacao" && <ConciliacaoFnsPanel />}
         {aba === "execucao"    && <ExecucaoFinanceiraPanel />}
+        {aba === "contas"      && <ContasBancariasPanel />}
       </div>
     </div>
   );
