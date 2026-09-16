@@ -2631,69 +2631,49 @@ export default function RepassesApsApui() {
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 20px 60px" }}>
 
         {/* Cabeçalho do módulo */}
-        <div style={{
-          background: "#ffffff",
-          border: "1px solid #e4e7ec",
-          borderRadius: 12,
-          padding: "20px 24px 0",
-          marginBottom: 24,
-          boxShadow: "0 1px 4px rgba(0,0,0,.06)",
-        }}>
-          {/* Eyebrow */}
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#1565c0", letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 6 }}>
-            Fundo Municipal de Saúde · Apuí/AM
-          </div>
-
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 4 }}>
+        <div style={{ background: "linear-gradient(135deg,#1351b4 0%,#0c3d8a 100%)", padding: "18px 24px 0", borderRadius: "12px 12px 0 0", marginBottom: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
             <div>
-              <h1 style={{
-                margin: "0 0 4px",
-                fontSize: 24,
-                fontWeight: 800,
-                color: "#0f172a",
-                fontFamily: "Syne, system-ui, sans-serif",
-                letterSpacing: "-0.03em",
-                lineHeight: 1.15,
-              }}>
-                Controle Financeiro FNS
-              </h1>
-              <p style={{ margin: 0, fontSize: 13, color: "#475569", lineHeight: 1.5 }}>
-                Repasses, contas bancárias, emendas, folha, obras e execução do Fundo Municipal de Saúde.
-              </p>
-              <div style={{ display: "flex", gap: 16, marginTop: 6, fontSize: 11, color: "#94a3b8" }}>
-                <span>CNPJ 12.834.320/0001-26</span>
-                <span>·</span>
-                <span>IBGE 130014</span>
-                <span>·</span>
-                <span>e-Gestor APS + FNS/MS</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
+                <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: 6 }}>
+                  <span style={{ fontSize: 16 }}>💰</span>
+                </div>
+                <span style={{ fontWeight: 800, fontSize: 20, color: "#fff", fontFamily: "Inter, system-ui, sans-serif" }}>
+                  Controle Financeiro FNS
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: "#bfdbfe" }}>
+                Fundo Municipal de Saúde · Apuí/AM · CNPJ 12.834.320/0001-26 · Fontes: e-Gestor APS + FNS/MS
               </div>
             </div>
           </div>
 
-          {/* Abas — integradas ao card */}
-          <div style={{ display: "flex", borderTop: "1px solid #f1f5f9", marginTop: 16, gap: 0, overflowX: "auto" as const }}>
+          {/* Abas */}
+          <div style={{ display: "flex", gap: 0, overflowX: "auto" as const }}>
             {ABAS.map(a => {
               const ativo = aba === a.id;
               return (
                 <button key={a.id} onClick={() => setAba(a.id)}
                   style={{
-                    padding: "11px 18px", fontSize: 12.5, fontWeight: ativo ? 700 : 500,
-                    color: ativo ? CB.blue : "#64748b",
+                    padding: "10px 18px", border: "none",
+                    borderBottom: ativo ? "3px solid #fff" : "3px solid transparent",
                     background: "transparent",
-                    border: "none",
-                    borderBottom: ativo ? `2px solid ${CB.blue}` : "2px solid transparent",
-                    cursor: "pointer", whiteSpace: "nowrap" as const, transition: "color .15s, border-color .15s",
-                    fontFamily: "inherit",
+                    color: ativo ? "#fff" : "rgba(255,255,255,0.6)",
+                    fontWeight: ativo ? 700 : 400,
+                    cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" as const,
+                    marginBottom: -1, fontFamily: "inherit",
+                    transition: "color .15s, border-color .15s",
                   }}>
                   <div>{a.label}</div>
-                  <div style={{ fontSize: 9.5, fontWeight: 400, color: ativo ? CB.blue : "#94a3b8", marginTop: 1 }}>
-                    {a.desc}
-                  </div>
+                  <div style={{ fontSize: 9.5, fontWeight: 400, opacity: 0.7, marginTop: 1 }}>{a.desc}</div>
                 </button>
               );
             })}
           </div>
         </div>
+
+        {/* Separador entre header e conteúdo */}
+        <div style={{ marginBottom: 24 }} />
 
         {/* Conteúdo da aba ativa */}
         {aba === "aps"         && <ApsPanel />}
