@@ -2935,6 +2935,127 @@ const BANCOS_BR = [
   "BNB (004)", "Banco da Amazônia (003)", "Nubank (260)", "Outro",
 ];
 
+function gerarRelatorioContas(
+  contas: ContaFMS[],
+  contaSel: ContaFMS | null,
+  extratoData: { linhas: (MovFMS & { saldo_apos: number })[]; saldo_final: number; total_entradas: number; total_saidas: number } | null,
+) {
+  const BRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const hoje = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+  const saldoTotal = contas.reduce((s, c) => s + c.saldo_atual, 0);
+
+  const tabelaContas = contas.map(c => `
+    <tr>
+      <td>${c.banco}</td>
+      <td>${c.tipo}</td>
+      <td>${c.agencia || "—"}</td>
+      <td>${c.numero_conta ? `${c.numero_conta}${c.digito ? `-${c.digito}` : ""}` : "—"}</td>
+      <td style="color:#059669;font-weight:700">${BRL(c.total_entradas)}</td>
+      <td style="color:#dc2626;font-weight:700">${BRL(c.total_saidas)}</td>
+      <td style="font-weight:800;color:${c.saldo_atual >= 0 ? "#059669" : "#dc2626"}">${BRL(c.saldo_atual)}</td>
+    </tr>`).join("");
+
+  const tabelaExtrato = contaSel && extratoData ? `
+    <div class="section">
+      <h2>Extrato — ${contaSel.banco}${contaSel.agencia ? ` · Ag. ${contaSel.agencia}` : ""}${contaSel.numero_conta ? ` · Cc. ${contaSel.numero_conta}` : ""}</h2>
+      <div class="resumo-row">
+        <div class="kpi green"><div class="kpi-label">Entradas</div><div class="kpi-val">${BRL(extratoData.total_entradas)}</div></div>
+        <div class="kpi red"><div class="kpi-label">Saídas</div><div class="kpi-val">${BRL(extratoData.total_saidas)}</div></div>
+        <div class="kpi blue"><div class="kpi-label">Saldo Final</div><div class="kpi-val">${BRL(extratoData.saldo_final)}</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Data</th><th>Descrição</th><th>Origem</th><th>Entrada</th><th>Saída</th><th>Saldo</th></tr></thead>
+        <tbody>
+          ${extratoData.linhas.map(m => `
+          <tr>
+            <td style="white-space:nowrap">${m.data ? new Date(m.data + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
+            <td>${m.descricao || "—"}</td>
+            <td><span class="badge">${m.origem}</span></td>
+            <td style="color:#059669;font-weight:${m.tipo === "entrada" ? 700 : 400}">${m.tipo === "entrada" ? BRL(m.valor) : ""}</td>
+            <td style="color:#dc2626;font-weight:${m.tipo === "saida" ? 700 : 400}">${m.tipo === "saida" ? BRL(m.valor) : ""}</td>
+            <td style="font-weight:600;color:${(m.saldo_apos ?? 0) >= 0 ? "#059669" : "#dc2626"}">${BRL(m.saldo_apos ?? 0)}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>` : "";
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório Contas Bancárias — FMS Apuí/AM</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 12px; color: #111827; background: #fff; padding: 28px 36px; }
+  .header { background: #1565c0; color: #fff; padding: 20px 24px; border-radius: 10px; margin-bottom: 24px; }
+  .header h1 { font-size: 20px; font-weight: 800; }
+  .header p { font-size: 11px; opacity: .8; margin-top: 4px; }
+  .header .data { font-size: 11px; opacity: .7; margin-top: 8px; }
+  .kpi-row { display: flex; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
+  .kpi { flex: 1; min-width: 140px; border-radius: 8px; padding: 12px 16px; }
+  .kpi.green { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .kpi.red   { background: #fff5f5; border: 1px solid #fecaca; }
+  .kpi.blue  { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .kpi-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .kpi.green .kpi-label { color: #059669; }
+  .kpi.red   .kpi-label { color: #dc2626; }
+  .kpi.blue  .kpi-label { color: #1565c0; }
+  .kpi-val { font-size: 17px; font-weight: 800; margin-top: 3px; }
+  .kpi.green .kpi-val { color: #059669; }
+  .kpi.red   .kpi-val { color: #dc2626; }
+  .kpi.blue  .kpi-val { color: #1565c0; }
+  .section { margin-bottom: 28px; }
+  .section h2 { font-size: 13px; font-weight: 700; color: #1565c0; border-bottom: 2px solid #1565c0; padding-bottom: 6px; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th { background: #f1f5f9; padding: 7px 10px; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e4e7ec; }
+  td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .badge { background: #f1f5f9; border-radius: 4px; padding: 1px 6px; font-size: 10px; color: #475569; }
+  .resumo-row { display: flex; gap: 12px; margin-bottom: 14px; }
+  .saldo-total { font-size: 22px; font-weight: 800; color: #059669; }
+  .rodape { border-top: 1px solid #e4e7ec; padding-top: 12px; margin-top: 28px; font-size: 10px; color: #9ca3af; text-align: center; }
+  @media print { body { padding: 12px 20px; } .header { border-radius: 0; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>💰 Relatório — Contas Bancárias do FMS</h1>
+    <p>Fundo Municipal de Saúde · Apuí/AM · CNPJ 12.834.320/0001-26</p>
+    <div class="data">Emitido em ${hoje} · ERSUS 360</div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi blue"><div class="kpi-label">Contas Cadastradas</div><div class="kpi-val">${contas.length}</div></div>
+    <div class="kpi green"><div class="kpi-label">Total Entradas</div><div class="kpi-val">${BRL(contas.reduce((s, c) => s + c.total_entradas, 0))}</div></div>
+    <div class="kpi red"><div class="kpi-label">Total Saídas</div><div class="kpi-val">${BRL(contas.reduce((s, c) => s + c.total_saidas, 0))}</div></div>
+    <div class="kpi ${saldoTotal >= 0 ? "green" : "red"}"><div class="kpi-label">Saldo Consolidado</div><div class="kpi-val">${BRL(saldoTotal)}</div></div>
+  </div>
+
+  <div class="section">
+    <h2>Contas Bancárias</h2>
+    <table>
+      <thead>
+        <tr><th>Banco</th><th>Tipo</th><th>Agência</th><th>Conta</th><th>Entradas</th><th>Saídas</th><th>Saldo Atual</th></tr>
+      </thead>
+      <tbody>${tabelaContas || "<tr><td colspan='7' style='text-align:center;color:#6b7280;padding:20px'>Nenhuma conta cadastrada</td></tr>"}</tbody>
+    </table>
+  </div>
+
+  ${tabelaExtrato}
+
+  <div class="rodape">
+    Documento gerado automaticamente pelo ERSUS 360 · Prefeitura Municipal de Apuí/AM · Secretaria Municipal de Saúde
+  </div>
+</body>
+</html>`;
+
+  const w = window.open("", "_blank");
+  if (!w) { alert("Permita pop-ups para gerar o relatório."); return; }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 600);
+}
+
 function ContasBancariasPanel() {
   const qc = useQueryClient();
   const [contaSel, setContaSel] = useState<ContaFMS | null>(null);
@@ -3084,7 +3205,12 @@ function ContasBancariasPanel() {
           <div style={{ fontSize: 11, color: "#dc2626", fontWeight: 600, textTransform: "uppercase" as const }}>Total Saídas</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: "#dc2626", marginTop: 4 }}>{BRL2(contas.reduce((s, c) => s + c.total_saidas, 0))}</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <button onClick={() => gerarRelatorioContas(contas, contaSel, extratoData)}
+            style={{ background: "#fff", color: "#1565c0", border: "1.5px solid #1565c0", borderRadius: 8,
+              padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+            📄 Gerar Relatório
+          </button>
           <button onClick={() => setModalNova(true)}
             style={{ background: "#1565c0", color: "#fff", border: "none", borderRadius: 8,
               padding: "12px 22px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
