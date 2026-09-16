@@ -2631,41 +2631,68 @@ export default function RepassesApsApui() {
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 20px 60px" }}>
 
         {/* Cabeçalho do módulo */}
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{ margin: "0 0 4px", fontSize: 22, fontWeight: 800, color: CB.textPri }}>
-            CONTROLE FINANCEIRO FNS — APUÍ
-          </h1>
-          <p style={{ margin: "0 0 2px", fontSize: 13, color: CB.textSec }}>
-            Gestão de repasses, contas bancárias, emendas, folha, obras e execução financeira do Fundo Municipal de Saúde.
-          </p>
-          <p style={{ margin: 0, fontSize: 12, color: CB.textSec }}>
-            Município Apuí/AM · FMS CNPJ 12.834.320/0001-26 · IBGE 130014
-            {" "}· Fontes: e-Gestor APS + FNS/MS
-          </p>
-        </div>
+        <div style={{
+          background: "#ffffff",
+          border: "1px solid #e4e7ec",
+          borderRadius: 12,
+          padding: "20px 24px 0",
+          marginBottom: 24,
+          boxShadow: "0 1px 4px rgba(0,0,0,.06)",
+        }}>
+          {/* Eyebrow */}
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#1565c0", letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 6 }}>
+            Fundo Municipal de Saúde · Apuí/AM
+          </div>
 
-        {/* Abas */}
-        <div style={{ display: "flex", borderBottom: `2px solid ${CB.grayBdr}`, marginBottom: 24, gap: 0,
-          overflowX: "auto" as const }}>
-          {ABAS.map(a => {
-            const ativo = aba === a.id;
-            return (
-              <button key={a.id} onClick={() => setAba(a.id)}
-                style={{
-                  padding: "12px 20px", fontSize: 13, fontWeight: ativo ? 700 : 500,
-                  color: ativo ? CB.blue : CB.textSec,
-                  background: ativo ? CB.blueLight : "transparent",
-                  border: "none", borderBottom: ativo ? `3px solid ${CB.blue}` : "3px solid transparent",
-                  cursor: "pointer", whiteSpace: "nowrap" as const, transition: "all .15s",
-                  borderRadius: "8px 8px 0 0",
-                }}>
-                <div>{a.label}</div>
-                <div style={{ fontSize: 10, fontWeight: 400, color: ativo ? CB.blue : CB.textSec, opacity: 0.7 }}>
-                  {a.desc}
-                </div>
-              </button>
-            );
-          })}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 4 }}>
+            <div>
+              <h1 style={{
+                margin: "0 0 4px",
+                fontSize: 24,
+                fontWeight: 800,
+                color: "#0f172a",
+                fontFamily: "Syne, system-ui, sans-serif",
+                letterSpacing: "-0.03em",
+                lineHeight: 1.15,
+              }}>
+                Controle Financeiro FNS
+              </h1>
+              <p style={{ margin: 0, fontSize: 13, color: "#475569", lineHeight: 1.5 }}>
+                Repasses, contas bancárias, emendas, folha, obras e execução do Fundo Municipal de Saúde.
+              </p>
+              <div style={{ display: "flex", gap: 16, marginTop: 6, fontSize: 11, color: "#94a3b8" }}>
+                <span>CNPJ 12.834.320/0001-26</span>
+                <span>·</span>
+                <span>IBGE 130014</span>
+                <span>·</span>
+                <span>e-Gestor APS + FNS/MS</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Abas — integradas ao card */}
+          <div style={{ display: "flex", borderTop: "1px solid #f1f5f9", marginTop: 16, gap: 0, overflowX: "auto" as const }}>
+            {ABAS.map(a => {
+              const ativo = aba === a.id;
+              return (
+                <button key={a.id} onClick={() => setAba(a.id)}
+                  style={{
+                    padding: "11px 18px", fontSize: 12.5, fontWeight: ativo ? 700 : 500,
+                    color: ativo ? CB.blue : "#64748b",
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: ativo ? `2px solid ${CB.blue}` : "2px solid transparent",
+                    cursor: "pointer", whiteSpace: "nowrap" as const, transition: "color .15s, border-color .15s",
+                    fontFamily: "inherit",
+                  }}>
+                  <div>{a.label}</div>
+                  <div style={{ fontSize: 9.5, fontWeight: 400, color: ativo ? CB.blue : "#94a3b8", marginTop: 1 }}>
+                    {a.desc}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Conteúdo da aba ativa */}
