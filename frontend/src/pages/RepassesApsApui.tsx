@@ -1251,6 +1251,7 @@ function ExecucaoFinanceiraPanel() {
   const [confirmExcluir, setConfirmExcluir] = useState<number | null>(null);
   const [buscaPort, setBuscaPort] = useState("");
   const [portAberto, setPortAberto] = useState(false);
+  const [catPortSelecionada, setCatPortSelecionada] = useState<string | null>(null);
   const [docArquivo, setDocArquivo] = useState<File | null>(null);
   const [docsReg, setDocsReg] = useState<{id:number;nome:string;tipo_mime:string;tamanho_kb:number;criado_em:string}[]>([]);
   const [modalEmail, setModalEmail] = useState(false);
@@ -2541,7 +2542,8 @@ function ExecucaoFinanceiraPanel() {
                 },
               ];
 
-              const [catSelecionada, setCatSelecionada] = useState<string | null>(null);
+              const catSelecionada = catPortSelecionada;
+              const setCatSelecionada = setCatPortSelecionada;
 
               return (
                 <div>
