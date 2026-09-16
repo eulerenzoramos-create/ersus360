@@ -2482,9 +2482,70 @@ function ExecucaoFinanceiraPanel() {
               const portariasFiltradas = portariasDisp.filter(p =>
                 p.toLowerCase().includes(buscaPort.toLowerCase())
               );
+
+              // Portarias pré-configuradas por categoria de recurso
+              const CATS_PORTARIA = [
+                {
+                  cat: "Atenção Primária à Saúde",
+                  cor: "#1351b4", bg: "#e8f0fe",
+                  portarias: [
+                    "Portaria GM/MS nº 3.493/2024 — Piso da Atenção Primária (PAP)",
+                    "Portaria GM/MS nº 2.979/2019 — PREVINE Brasil (APS)",
+                    "Portaria GM/MS nº 635/2023 — Programa Mais Médicos",
+                    "Portaria GM/MS nº 1.434/2020 — eMulti — Equipes Multiprofissionais",
+                    "Portaria GM/MS nº 2.436/2017 — Política Nacional APS",
+                    "Portaria GM/MS nº 825/2016 — Atenção Domiciliar (AD)",
+                  ],
+                },
+                {
+                  cat: "MAC — Média e Alta Complexidade",
+                  cor: "#7c3aed", bg: "#f5f3ff",
+                  portarias: [
+                    "Portaria GM/MS nº 3.947/2024 — Teto MAC Apuí/AM",
+                    "Portaria GM/MS nº 1.631/2015 — Critérios e parâmetros MAC",
+                    "Portaria GM/MS nº 3.992/2017 — Financiamento e transferência MAC",
+                    "Portaria GM/MS nº 2.551/2018 — Qualificação dos serviços MAC",
+                    "Portaria GM/MS nº 664/2012 — Atenção Hospitalar",
+                  ],
+                },
+                {
+                  cat: "Vigilância em Saúde",
+                  cor: "#d97706", bg: "#fffbeb",
+                  portarias: [
+                    "Portaria GM/MS nº 1.378/2013 — Vigilância em Saúde (PVVS)",
+                    "Portaria GM/MS nº 3.479/2024 — Incentivo Vigilância Sanitária",
+                    "Portaria GM/MS nº 264/2020 — Doenças compulsórias",
+                    "Portaria GM/MS nº 4.229/2010 — Vigilância Ambiental",
+                    "Portaria GM/MS nº 1.061/2020 — ACE — Agentes de Combate às Endemias",
+                  ],
+                },
+                {
+                  cat: "Emendas Parlamentares",
+                  cor: "#7c4f1a", bg: "#fdf3e7",
+                  portarias: [
+                    "Portaria GM/MS nº 3.625/2024 — Emenda Impositiva MAC Apuí/AM",
+                    "Portaria GM/MS nº 3.626/2024 — Emenda Impositiva APS Apuí/AM",
+                    "Portaria GM/MS nº 718/2025 — Emenda Parlamentar Saúde AM",
+                    "Portaria GM/MS nº 2.100/2025 — Incremento temporário Emenda MAC",
+                    "Portaria GM/MS nº 2.101/2025 — Incremento temporário Emenda APS",
+                  ],
+                },
+                {
+                  cat: "Assistência Farmacêutica",
+                  cor: "#059669", bg: "#f0fdf4",
+                  portarias: [
+                    "Portaria GM/MS nº 3.916/1998 — Política Nacional Medicamentos",
+                    "Portaria GM/MS nº 1.555/2013 — CBAF — Componente Básico Assistência Farmacêutica",
+                    "Portaria GM/MS nº 2.981/2009 — Componente Especializado Farmacêutica",
+                  ],
+                },
+              ];
+
+              const [catSelecionada, setCatSelecionada] = useState<string | null>(null);
+
               return (
                 <div>
-                  {/* Seletor de registro quando aberto sem row */}
+                  {/* Seletor de empenho */}
                   {alvoId === null ? (
                     <div style={{ marginBottom: 16 }}>
                       {itens.length === 0 ? (
@@ -2493,10 +2554,7 @@ function ExecucaoFinanceiraPanel() {
                           <p style={{ margin: "0 0 10px", fontSize: 13, color: "#92400e", fontWeight: 600 }}>
                             Nenhum empenho cadastrado ainda.
                           </p>
-                          <p style={{ margin: "0 0 12px", fontSize: 12, color: "#78350f" }}>
-                            Para vincular uma portaria, primeiro cadastre um empenho usando o botão abaixo.
-                          </p>
-                          <button onClick={() => { setModal("empenho"); }}
+                          <button onClick={() => setModal("empenho")}
                             style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 8,
                               padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                             + Cadastrar empenho agora
@@ -2504,43 +2562,114 @@ function ExecucaoFinanceiraPanel() {
                         </div>
                       ) : (
                         <>
-                          <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Empenho *</label>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block",
+                            marginBottom: 4, textTransform: "uppercase" as const }}>Empenho *</label>
                           <select onChange={e => setAlvoId(Number(e.target.value))}
                             style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
                               padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }}>
                             <option value="">Selecione o registro…</option>
-                            {itens.map(i => <option key={i.id} value={i.id}>#{i.id} — {i.recurso}</option>)}
+                            {itens.map(i => <option key={i.id} value={i.id}>#{i.id} — {i.recurso} {i.fornecedor ? `· ${i.fornecedor}` : ""}</option>)}
                           </select>
                         </>
                       )}
                     </div>
                   ) : (
-                    <p style={{ fontSize: 12, color: C.textSec, marginBottom: 16 }}>
-                      Registro ID: <strong>{alvoId}</strong>{" "}
-                      — {itens.find(i => i.id === alvoId)?.recurso}
-                    </p>
+                    <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8,
+                      padding: "8px 12px", marginBottom: 16, fontSize: 12, color: "#1e40af" }}>
+                      <strong>Registro #{alvoId}</strong>
+                      {" — "}{itens.find(i => i.id === alvoId)?.recurso}
+                      {itens.find(i => i.id === alvoId)?.fornecedor
+                        ? ` · ${itens.find(i => i.id === alvoId)?.fornecedor}` : ""}
+                    </div>
                   )}
-                  {/* Campo portaria com autocomplete */}
+
+                  {/* Categorias de recurso */}
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block",
+                      marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
+                      Selecione o tipo de recurso / portaria
+                    </label>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, marginBottom: 12 }}>
+                      {CATS_PORTARIA.map(cat => (
+                        <button key={cat.cat}
+                          onClick={() => setCatSelecionada(catSelecionada === cat.cat ? null : cat.cat)}
+                          style={{
+                            padding: "5px 12px", fontSize: 11, borderRadius: 20, cursor: "pointer",
+                            border: `2px solid ${catSelecionada === cat.cat ? cat.cor : C.grayBdr}`,
+                            background: catSelecionada === cat.cat ? cat.bg : C.white,
+                            color: catSelecionada === cat.cat ? cat.cor : C.textSec,
+                            fontWeight: catSelecionada === cat.cat ? 700 : 400,
+                            transition: "all .15s",
+                          }}>
+                          {cat.cat}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Portarias da categoria selecionada */}
+                    {catSelecionada && (() => {
+                      const cat = CATS_PORTARIA.find(c => c.cat === catSelecionada)!;
+                      return (
+                        <div style={{ border: `1px solid ${cat.cor}40`, borderRadius: 10,
+                          overflow: "hidden", marginBottom: 12 }}>
+                          <div style={{ background: cat.bg, padding: "8px 14px", fontSize: 11,
+                            fontWeight: 700, color: cat.cor, textTransform: "uppercase" as const,
+                            letterSpacing: "0.06em", borderBottom: `1px solid ${cat.cor}30` }}>
+                            {cat.cat} — clique para selecionar
+                          </div>
+                          {cat.portarias.map(p => (
+                            <div key={p}
+                              onMouseDown={() => { setFPort({ portaria: p }); setBuscaPort(p); }}
+                              style={{
+                                padding: "9px 14px", fontSize: 12, cursor: "pointer",
+                                borderBottom: `1px solid ${C.grayBdr}`,
+                                background: fPort.portaria === p ? cat.bg : C.white,
+                                color: fPort.portaria === p ? cat.cor : C.textPri,
+                                fontWeight: fPort.portaria === p ? 700 : 400,
+                                display: "flex", alignItems: "center", gap: 8,
+                              }}
+                              onMouseEnter={e => { if (fPort.portaria !== p) e.currentTarget.style.background = "#f8fafc"; }}
+                              onMouseLeave={e => { if (fPort.portaria !== p) e.currentTarget.style.background = C.white; }}>
+                              <span style={{ width: 14, height: 14, borderRadius: "50%", flexShrink: 0,
+                                border: `2px solid ${cat.cor}`,
+                                background: fPort.portaria === p ? cat.cor : "transparent",
+                                display: "inline-block" }} />
+                              {p}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Campo livre com autocomplete */}
                   <div style={{ marginBottom: 14, position: "relative" as const }}>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block", marginBottom: 4, textTransform: "uppercase" as const }}>Portaria *</label>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.textSec, display: "block",
+                      marginBottom: 4, textTransform: "uppercase" as const }}>
+                      Portaria selecionada / digitar outra *
+                    </label>
                     <input
                       type="text"
                       value={fPort.portaria}
-                      placeholder="Buscar ou digitar portaria…"
+                      placeholder="Buscar nas já cadastradas ou digitar número…"
                       onFocus={() => setPortAberto(true)}
                       onBlur={() => setTimeout(() => setPortAberto(false), 150)}
                       onChange={e => { setFPort({ portaria: e.target.value }); setBuscaPort(e.target.value); setPortAberto(true); }}
-                      style={{ width: "100%", border: `1px solid ${C.grayBdr}`, borderRadius: 8,
-                        padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" as const }}
+                      style={{ width: "100%", border: `1px solid ${fPort.portaria ? C.blue : C.grayBdr}`,
+                        borderRadius: 8, padding: "9px 12px", fontSize: 13, outline: "none",
+                        boxSizing: "border-box" as const,
+                        background: fPort.portaria ? "#eff6ff" : C.white }}
                     />
                     {portAberto && portariasFiltradas.length > 0 && (
-                      <div style={{ position: "absolute" as const, top: "100%", left: 0, right: 0, background: C.white,
-                        border: `1px solid ${C.grayBdr}`, borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,.12)",
-                        zIndex: 100, maxHeight: 200, overflowY: "auto" as const }}>
+                      <div style={{ position: "absolute" as const, top: "100%", left: 0, right: 0,
+                        background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                        boxShadow: "0 4px 16px rgba(0,0,0,.12)", zIndex: 100,
+                        maxHeight: 180, overflowY: "auto" as const }}>
                         {portariasFiltradas.map(p => (
                           <div key={p}
                             onMouseDown={() => { setFPort({ portaria: p }); setBuscaPort(p); setPortAberto(false); }}
-                            style={{ padding: "10px 14px", fontSize: 13, cursor: "pointer", borderBottom: `1px solid ${C.grayBdr}` }}
+                            style={{ padding: "9px 14px", fontSize: 12, cursor: "pointer",
+                              borderBottom: `1px solid ${C.grayBdr}` }}
                             onMouseEnter={e => (e.currentTarget.style.background = C.grayLight)}
                             onMouseLeave={e => (e.currentTarget.style.background = "")}>
                             {p}
@@ -2549,24 +2678,33 @@ function ExecucaoFinanceiraPanel() {
                       </div>
                     )}
                     {portAberto && portariasFiltradas.length === 0 && buscaPort.length > 0 && (
-                      <div style={{ position: "absolute" as const, top: "100%", left: 0, right: 0, background: C.white,
-                        border: `1px solid ${C.grayBdr}`, borderRadius: 8, padding: "10px 14px",
-                        fontSize: 12, color: C.textSec, zIndex: 100 }}>
-                        Nenhuma portaria cadastrada — será criada nova entrada.
+                      <div style={{ position: "absolute" as const, top: "100%", left: 0, right: 0,
+                        background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
+                        padding: "10px 14px", fontSize: 12, color: C.textSec, zIndex: 100 }}>
+                        Nova portaria — será registrada ao vincular.
                       </div>
                     )}
                   </div>
-                  <p style={{ fontSize: 11, color: C.textSec, marginBottom: 16 }}>
-                    Ex: Portaria GM/MS nº 3.493/2024 · Portaria Ministerial nº 718/2025
-                  </p>
+
+                  {fPort.portaria && (
+                    <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8,
+                      padding: "8px 12px", marginBottom: 14, fontSize: 12, color: "#15803d",
+                      display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 14 }}>✓</span>
+                      <span><strong>Portaria selecionada:</strong> {fPort.portaria}</span>
+                    </div>
+                  )}
+
                   <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                     <button onClick={() => setModal(null)}
                       style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 8,
-                        padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-                    <button onClick={submeterPort} disabled={mutPort.isPending || !alvoId}
-                      style={{ background: "#6b7280", color: "#fff", border: "none", borderRadius: 8,
+                        padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                      Cancelar
+                    </button>
+                    <button onClick={submeterPort} disabled={mutPort.isPending || !alvoId || !fPort.portaria.trim()}
+                      style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 8,
                         padding: "9px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                        opacity: (mutPort.isPending || !alvoId) ? 0.6 : 1 }}>
+                        opacity: (mutPort.isPending || !alvoId || !fPort.portaria.trim()) ? 0.5 : 1 }}>
                       {mutPort.isPending ? "Salvando…" : "Vincular portaria"}
                     </button>
                   </div>
