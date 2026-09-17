@@ -461,6 +461,101 @@ async def buscar_classificacao_quadrimestre(
     return resultado
 
 
+_IND_NOMES: dict[int, dict] = {
+    104: {"chave": "ind5_has",     "nome": "Cuidado da Pessoa com Hipertensão",       "tab": "Hipertensão"},
+    105: {"chave": "ind6_dm",      "nome": "Cuidado da Pessoa com Diabetes Mellitus", "tab": "Diabetes"},
+    106: {"chave": "ind_idosa",    "nome": "Cuidado da Pessoa Idosa",                 "tab": "Pessoa Idosa"},
+    107: {"chave": "ind1_prenatal","nome": "Cuidado da Gestante e da Puérpera",       "tab": "Gestação e Puerpério"},
+    108: {"chave": "ind7_infantil","nome": "Cuidado no Desenvolvimento Infantil",     "tab": "Desenvolvimento Infantil"},
+    109: {"chave": "ind2_cito",    "nome": "Cuidado Integral à Saúde da Mulher",      "tab": "Prevenção do Câncer"},
+    110: {"chave": "ind_acesso",   "nome": "Mais Acesso à Atenção Primária à Saúde", "tab": "Mais Acesso"},
+}
+
+
+async def buscar_qualidade_quadrimestre(
+    ibge6: str = "130014",
+    quadrimestre: str | None = None,
+) -> dict | None:
+    """
+    Busca indicadores de Qualidade por quadrimestre via API pública do SIAPS.
+    Retorna indicadores_resumo, por_status_qualidade, quadrimestre, fonte.
+    """
+    quad = quadrimestre or _quad_atual()
+    cache_key = f"qual_{ibge6}_{quad}"
+    cached = _QUAD_CACHE.get(cache_key)
+    if cached and (_time.time() - cached[1]) < _QUAD_TTL:
+        return cached[0]
+
+    body = {"coMunicipioIbge": [ibge6], "nuQuadrimestre": [quad]}
+    try:
+        async with httpx.AsyncClient(headers=_SIAPS_HDRS, timeout=15) as client:
+            resp = await client.post(
+                f"{_SIAPS_PUBLIC}/api/public/componente/indicador-quadrimestre/filtro",
+                json=body,
+            )
+        if resp.status_code != 200:
+            return None
+        raw = resp.json()
+    except Exception:
+        return None
+
+    indicadores_pub = raw.get("conceitoPorIndicadorQualidade", [])
+    if not indicadores_pub:
+        return None
+
+    # Filtra eSF
+    esf = [i for i in indicadores_pub if i.get("sgEquipe") == "eSF"]
+    if not esf:
+        return None
+
+    indicadores_resumo = {}
+    for item in esf:
+        co = item.get("coTipoIndicador")
+        meta = _IND_NOMES.get(co)
+        if not meta:
+            continue
+        total = (item.get("qtdClassificacaoOtimo", 0) + item.get("qtdClassificacaoBom", 0) +
+                 item.get("qtdClassificacaoSuficiente", 0) + item.get("qtdClassificacaoRegular", 0))
+        indicadores_resumo[meta["chave"]] = {
+            "co_tipo_indicador": co,
+            "nome": meta["nome"],
+            "tab": meta["tab"],
+            "total_equipes": total,
+            "otimo":      item.get("qtdClassificacaoOtimo", 0),
+            "bom":        item.get("qtdClassificacaoBom", 0),
+            "suficiente": item.get("qtdClassificacaoSuficiente", 0),
+            "regular":    item.get("qtdClassificacaoRegular", 0),
+        }
+
+    # Classificação final qualidade eSF
+    qual_final = next(
+        (i for i in raw.get("classificacaoFinalComponente", [])
+         if i.get("tipoOrigem") == "QUALIDADE" and i.get("sgEquipe") == "eSF"),
+        None
+    )
+    por_status_qualidade = {}
+    total_equipes_qual = 0
+    if qual_final:
+        total_equipes_qual = qual_final.get("totalEquipesValidasParaComponente", 0)
+        por_status_qualidade = {
+            "otimo":      qual_final.get("qtdClassificacaoOtimo", 0),
+            "bom":        qual_final.get("qtdClassificacaoBom", 0),
+            "suficiente": qual_final.get("qtdClassificacaoSuficiente", 0),
+            "regular":    qual_final.get("qtdClassificacaoRegular", 0),
+        }
+
+    resultado = {
+        "quadrimestre": quad,
+        "total_equipes": total_equipes_qual,
+        "por_status_qualidade": por_status_qualidade,
+        "indicadores_resumo": indicadores_resumo,
+        "fonte": "apisiaps.saude.gov.br (público)",
+        "situacao_dado": "oficial_validado",
+    }
+    _QUAD_CACHE[cache_key] = (resultado, _time.time())
+    return resultado
+
+
 async def buscar_vinculo_dadosabertos(
     ibge: str = "1300144",
     competencia: str = "202604",

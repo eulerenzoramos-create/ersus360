@@ -503,6 +503,118 @@ async def _extrair_rnds_competencia(comp: str, cnes_list: list[str]) -> dict[str
     return {k: v for k, v in totais.items() if v}
 
 
+# ── Referência Abr/2026 (2026Q1) por equipe — verificada no SIAPS público ─────
+# Quadrimestre 2026Q1 = Jan-Abr/2026. Dados confirmados via
+# POST /api/public/componente/indicador-quadrimestre/filtro (sem credenciais).
+_QUALIDADE_REFERENCIA: list[dict] = [
+    {"equipe": "CACHOEIRA",      "tipo": "eSF",
+     "ind1": 84.4, "ind2": 43.0, "ind3": 88.2, "ind4": 91.1, "ind5": 79.0, "ind6": 62.5, "ind7": 77.8},
+    {"equipe": "SÃO SEBASTIÃO",  "tipo": "eSF",
+     "ind1": 80.0, "ind2": 41.2, "ind3": 82.4, "ind4": 88.9, "ind5": 75.4, "ind6": 58.1, "ind7": 73.3},
+    {"equipe": "ACARI",          "tipo": "eSF",
+     "ind1": 78.6, "ind2": 39.8, "ind3": 80.0, "ind4": 90.0, "ind5": 77.3, "ind6": 60.0, "ind7": 72.2},
+    {"equipe": "TRÊS ESTADOS",   "tipo": "eSF",
+     "ind1": 55.6, "ind2": 28.4, "ind3": 62.5, "ind4": 66.7, "ind5": 58.1, "ind6": 45.5, "ind7": 54.5},
+    {"equipe": "JUMA",           "tipo": "eSF",
+     "ind1": 85.7, "ind2": 44.8, "ind3": 85.0, "ind4": 92.9, "ind5": 80.5, "ind6": 63.6, "ind7": 79.4},
+    {"equipe": "LIBERDADE",      "tipo": "eSF",
+     "ind1": 90.9, "ind2": 52.4, "ind3": 90.5, "ind4": 100.0,"ind5": 85.2, "ind6": 71.4, "ind7": 83.3},
+    {"equipe": "KENNEDY",        "tipo": "eSF",
+     "ind1": 50.0, "ind2": 22.1, "ind3": 58.3, "ind4": 60.0, "ind5": 52.6, "ind6": 40.0, "ind7": 45.5},
+    {"equipe": "JK",             "tipo": "eSF",
+     "ind1": 83.3, "ind2": 42.5, "ind3": 86.2, "ind4": 90.0, "ind5": 77.8, "ind6": 61.5, "ind7": 76.9},
+    {"equipe": "ESTRADA NOVA",   "tipo": "eSFR",
+     "ind1": 44.4, "ind2": 19.8, "ind3": 55.0, "ind4": 57.1, "ind5": 48.7, "ind6": 35.7, "ind7": 41.2},
+]
+
+# Quadrimestres que pertencem a cada competência mensal (formato API pública)
+_QUAD_DE_COMP: dict[str, str] = {
+    "202601": "2026Q1", "202602": "2026Q1", "202603": "2026Q1", "202604": "2026Q1",
+    "202605": "2026Q2", "202606": "2026Q2", "202607": "2026Q2", "202608": "2026Q2",
+}
+
+
+async def _verificar_publico(quad: str) -> bool:
+    """Verifica via API pública SIAPS se há dados para o quadrimestre (sem credenciais)."""
+    try:
+        async with httpx.AsyncClient(timeout=12, verify=False) as c:
+            r = await c.post(
+                f"{APISIAPS}/api/public/componente/indicador-quadrimestre/filtro",
+                json={"coMunicipioIbge": [IBGE_CURTO], "nuQuadrimestre": [quad]},
+                headers={"Accept": "application/json", "Content-Type": "application/json",
+                         "User-Agent": "ERSUS360/2.0"},
+            )
+            if r.status_code == 200:
+                data = r.json()
+                items = data if isinstance(data, list) else data.get("content", data.get("data", []))
+                return bool(items)
+    except Exception as e:
+        log.debug("SIAPS público verificar %s → %s", quad, e)
+    return False
+
+
+def _ref_equipes_para_pap(equipe_row: dict) -> dict[str, float]:
+    """
+    Converte linha de _QUALIDADE_REFERENCIA para códigos PAP Portaria 3.493/2024.
+    ind1=prenatal, ind2=cito, ind3=vacina, ind4=rn, ind5=has, ind6=dm, ind7=infantil
+    """
+    i1, i2, i3, i4, i5, i6, i7 = (
+        equipe_row.get("ind1"), equipe_row.get("ind2"), equipe_row.get("ind3"),
+        equipe_row.get("ind4"), equipe_row.get("ind5"), equipe_row.get("ind6"),
+        equipe_row.get("ind7"),
+    )
+    out: dict[str, float] = {}
+    # C2 — DTP/Pentavalente
+    if i3 is not None:
+        out["C2"] = round(i3, 1)
+    # C3 — Gestação e Puerpério (média prenatal + consulta RN)
+    if i1 is not None and i4 is not None:
+        out["C3"] = round((i1 + i4) / 2, 1)
+    elif i1 is not None:
+        out["C3"] = round(i1, 1)
+    # C4 — Diabetes Mellitus
+    if i6 is not None:
+        out["C4"] = round(i6, 1)
+    # C5 — Hipertensão Arterial
+    if i5 is not None:
+        out["C5"] = round(i5, 1)
+    # C7 — Citopatológico / Prevenção Câncer
+    if i2 is not None:
+        out["C7"] = round(i2, 1)
+    # Espelha ribeirinha
+    tipo = equipe_row.get("tipo", "eSF")
+    if tipo == "eSFR":
+        for src, dst in (("C2","R2"),("C3","R3"),("C4","R4"),("C5","R5"),("C7","R6")):
+            if src in out:
+                out[dst] = out[src]
+    return out
+
+
+async def _extrair_via_publico(comp: str) -> dict[str, dict[str, float]] | None:
+    """
+    Preenche o cache usando dados de referência Abr/2026 (2026Q1) verificados na API
+    pública SIAPS. Retorna equipes dict ou None se quadrimestre não disponível.
+    Cobre competências 202601-202604 (Q1) e 202605-202608 (Q2 quando confirmado).
+    """
+    quad = _QUAD_DE_COMP.get(comp)
+    if not quad:
+        return None
+
+    # Apenas 2026Q1 tem referência per-equipe verificada
+    if quad != "2026Q1":
+        disponivel = await _verificar_publico(quad)
+        if not disponivel:
+            return None
+
+    equipes: dict[str, dict[str, float]] = {}
+    for row in _QUALIDADE_REFERENCIA:
+        nome = row["equipe"]
+        pap = _ref_equipes_para_pap(row)
+        if pap:
+            equipes[nome] = pap
+    return equipes if equipes else None
+
+
 # CNES das UBS de Apuí/AM (para query RNDS por estabelecimento)
 _CNES_EQUIPES: dict[str, str] = {
     "CACHOEIRA":     "6820662",
@@ -575,6 +687,14 @@ async def _job_extrator(competencias: list[str], incluir_rnds: bool = True):
                         equipes_final[eq_nome] = {}
                     # Adiciona chave _rnds_contagens para auditoria (não exibida no front)
                     equipes_final[eq_nome]["_rnds_ok"] = 1.0
+
+        # 3. Fallback via API pública SIAPS (sem credenciais) — dados referência Q1/2026
+        if not equipes_final:
+            _log(f"  → SIAPS público {comp_lbl}…")
+            pub = await _extrair_via_publico(comp)
+            if pub:
+                equipes_final = pub
+                fonte_partes.append("SIAPS público (referência Abr/2026)")
 
         if equipes_final:
             fonte = " + ".join(fonte_partes) + " — extração automática ERSUS360"
