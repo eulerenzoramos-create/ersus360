@@ -2668,6 +2668,79 @@ function AbaDiagnosticoCobertura() {
         </div>
       </div>
 
+      {/* Score por Equipe — tabela por equipe SCNES */}
+      {data.equipes_scnes?.length > 0 && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "16px 18px", marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>
+              Score por Equipe — {data._meta?.scnes_varredura ?? "Set/2026"}
+            </div>
+            <span style={{ fontSize: 11, color: "#6b7280" }}>Fonte: SCNES/DATASUS · Portaria GM/MS 3.493/2024</span>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: "#f8fafc" }}>
+                  <th style={{ padding: "7px 10px", textAlign: "left",   color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Equipe</th>
+                  <th style={{ padding: "7px 10px", textAlign: "center", color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Score / Nível</th>
+                  <th style={{ padding: "7px 10px", textAlign: "right",  color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Vinculadas CVAT</th>
+                  <th style={{ padding: "7px 10px", textAlign: "left",   color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Pendências SCNES</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data.equipes_scnes as any[]).map((eq: any, i: number) => {
+                  const criticos = eq.pendencias?.filter((p: any) => p.sev === "critico") ?? [];
+                  const alertas  = eq.pendencias?.filter((p: any) => p.sev === "alerta")  ?? [];
+                  const scoreOk  = eq.score >= 90;
+                  const scoreWarn = eq.score >= 70 && eq.score < 90;
+                  const scoreCrit = eq.score < 70;
+                  const scoreBg  = scoreOk ? "#f0fdf4" : scoreWarn ? "#fffbeb" : "#fff7f7";
+                  const scoreCor = scoreOk ? "#15803d" : scoreWarn ? "#b45309" : "#dc2626";
+                  return (
+                    <tr key={eq.nome} style={{ background: i % 2 === 0 ? "#fff" : "#f9fafb" }}>
+                      <td style={{ padding: "8px 10px", fontWeight: 600, color: "#1e293b", borderBottom: "1px solid #f3f4f6" }}>{eq.nome}</td>
+                      <td style={{ padding: "8px 10px", textAlign: "center", borderBottom: "1px solid #f3f4f6" }}>
+                        <span style={{ background: scoreBg, color: scoreCor, fontWeight: 700, padding: "2px 10px", borderRadius: 12, fontSize: 11, display: "inline-block", minWidth: 90, fontVariantNumeric: "tabular-nums" }}>
+                          {eq.score} pts — {eq.nivel}
+                        </span>
+                      </td>
+                      <td style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: eq.vinculadas > 0 ? "#1e293b" : "#dc2626", borderBottom: "1px solid #f3f4f6" }}>
+                        {eq.vinculadas > 0 ? eq.vinculadas.toLocaleString("pt-BR") : "0 — sem vínculo"}
+                      </td>
+                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #f3f4f6" }}>
+                        {eq.pendencias?.length === 0
+                          ? <span style={{ color: "#16a34a", fontSize: 11 }}>✓ OK</span>
+                          : <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                              {criticos.map((p: any, j: number) => (
+                                <span key={j} style={{ background: "#fff7f7", color: "#dc2626", fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 6, display: "inline-block" }}>✗ {p.desc}</span>
+                              ))}
+                              {alertas.map((p: any, j: number) => (
+                                <span key={j} style={{ background: "#fffbeb", color: "#d97706", fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 6, display: "inline-block" }}>⚠ {p.desc}</span>
+                              ))}
+                            </div>
+                        }
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: "#f0f9ff", borderTop: "2px solid #bae6fd" }}>
+                  <td style={{ padding: "8px 10px", fontWeight: 700, color: "#0369a1" }}>{(data.equipes_scnes as any[]).length} equipes</td>
+                  <td style={{ padding: "8px 10px", textAlign: "center", fontWeight: 700, color: "#0369a1" }}>Média: {data.score_medio_scnes} pts</td>
+                  <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 700, color: "#0369a1", fontVariantNumeric: "tabular-nums" }}>
+                    {data.total_vinculadas_cvat?.toLocaleString("pt-BR")} total
+                  </td>
+                  <td style={{ padding: "8px 10px", fontSize: 11, color: "#6b7280" }}>
+                    {(data.equipes_scnes as any[]).reduce((s: number, e: any) => s + (e.pendencias?.length ?? 0), 0)} pendência(s) ativas
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Histórico de Incentivos */}
       {data.historico_incentivos?.length > 0 && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "16px 18px", marginBottom: 20 }}>

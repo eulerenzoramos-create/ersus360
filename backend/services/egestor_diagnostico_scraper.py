@@ -501,9 +501,31 @@ async def buscar_diagnostico_cobertura(parcela: str = "202611", forcar_atualizac
         + (micro_data.get("vl_total") or 0.0)
     )
 
-    from services.monitor_scnes_service import _EQUIPES
+    from services.monitor_scnes_service import _EQUIPES, _PENDENCIAS
     score_medio      = round(sum(e["score"] for e in _EQUIPES) / len(_EQUIPES), 1) if _EQUIPES else 0
     total_vinculadas = sum(e["vinculadas"] for e in _EQUIPES)
+
+    # Mapa pendências por equipe para exibição na tabela
+    pend_por_equipe: dict[str, list[dict]] = {}
+    for p in _PENDENCIAS:
+        eq = p["equipe"]
+        if eq not in pend_por_equipe:
+            pend_por_equipe[eq] = []
+        pend_por_equipe[eq].append({
+            "sev": "critico" if "CRÍTICO" in p["sev"] else "alerta" if "MÉDIO" in p["sev"] else "info",
+            "desc": p["desc"],
+        })
+
+    equipes_scnes = [
+        {
+            "nome": e["nome"],
+            "score": e["score"],
+            "nivel": e["nivel"],
+            "vinculadas": e["vinculadas"],
+            "pendencias": pend_por_equipe.get(e["nome"], []),
+        }
+        for e in _EQUIPES
+    ]
 
     dados = {
         "fonte":         "egestor_publico_scnes",
@@ -535,6 +557,8 @@ async def buscar_diagnostico_cobertura(parcela: str = "202611", forcar_atualizac
         "per_capita": {"vl_pagamento": 0.0},
         "historico_incentivos": HISTORICO_INCENTIVOS,
         "diagnosticos": _diagnosticos(esf_data, acs_data),
+        "equipes_scnes": equipes_scnes,
+        "_meta": {"scnes_varredura": "Set/2026", "nota": "Varredura SCNES 06/09/2026"},
     }
 
     async with _lock:
