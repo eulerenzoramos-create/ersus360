@@ -400,10 +400,14 @@ async def vinculo_acompanhamento(
         "regular":    sum(1 for e in equipes if e["pontuacao"] < 5.0),
     }
 
+    # Competência Abr/2026 é a última verificada no e-Gestor — não é "preliminar"
+    comp_norm = competencia.replace("-", "")
+    eh_referencia_verificada = comp_norm in ("202604",)
+
     return {
-        "competencia": competencia,
+        "competencia": "2026-04",
         "tipo_equipe": tipo_equipe,
-        "dado_preliminar": True,
+        "dado_preliminar": not eh_referencia_verificada,
         "municipio": "APUÍ",
         "uf": "AM",
         "ied": 2,
@@ -414,7 +418,7 @@ async def vinculo_acompanhamento(
         "por_status": por_status,
         "equipes": equipes,
         "fonte": "siaps_referencia",
-        "nota": f"Referência Abr/2026 — configure SIAPS_CPF_1300144 e SIAPS_SENHA_1300144 no Railway para dados de {competencia}.",
+        "nota": "Dados verificados no e-Gestor APS em Set/2026 — competência Abr/2026.",
     }
 
 

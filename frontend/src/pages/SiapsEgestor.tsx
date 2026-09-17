@@ -159,7 +159,12 @@ function AbaVinculo({ data }: { data: any }) {
             Componente Vínculo e Acompanhamento Territorial
           </h2>
           <div style={{ display: "flex", gap: 8 }}>
-            <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>Dado preliminar</span>
+            {data?.dado_preliminar !== false && (
+              <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>Dado preliminar</span>
+            )}
+            {data?.dado_preliminar === false && (
+              <span style={{ background: "#dcfce7", color: "#166534", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>Verificado e-Gestor</span>
+            )}
             <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: 11, padding: "2px 8px", borderRadius: 4 }}>Competência: {data?.competencia ?? "—"}</span>
             <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: 11, padding: "2px 8px", borderRadius: 4 }}>Tipo: eAP, eSF</span>
           </div>
