@@ -372,6 +372,95 @@ async def buscar_completo(
     }
 
 
+_SIAPS_PUBLIC = "https://apisiaps.saude.gov.br"
+_SIAPS_HDRS = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0 Safari/537.36",
+    "Origin": "https://siaps.saude.gov.br",
+    "Referer": "https://siaps.saude.gov.br/",
+}
+
+# Cache simples: (ibge, quad) → (data, timestamp)
+import time as _time
+_QUAD_CACHE: dict = {}
+_QUAD_TTL = 3600  # 1h
+
+
+def _quad_atual() -> str:
+    """Retorna o quadrimestre mais recente disponível no formato YYYYQn."""
+    from datetime import datetime
+    now = datetime.utcnow()
+    # Q1=Jan-Abr, Q2=Mai-Ago, Q3=Set-Dez
+    # Dados ficam disponíveis ~1 mês após o fechamento do quadrimestre
+    q = (now.month - 1) // 4 + 1  # quadrimestre atual do calendário
+    # Se estamos no 1º mês de um quadrimestre, dados podem ainda não estar disponíveis
+    q_disponivel = q - 1 if q > 1 else 3
+    ano = now.year if q > 1 else now.year - 1
+    return f"{ano}Q{q_disponivel}"
+
+
+async def buscar_classificacao_quadrimestre(
+    ibge6: str = "130014",
+    quadrimestre: str | None = None,
+) -> dict | None:
+    """
+    Busca classificação CVAT/Qualidade por quadrimestre via API PÚBLICA do SIAPS.
+    Não requer autenticação. IBGE deve ter 6 dígitos (ex: '130014').
+    Retorna dict com por_status, total_equipes, quadrimestre, fonte.
+    """
+    quad = quadrimestre or _quad_atual()
+    cache_key = f"{ibge6}_{quad}"
+    cached = _QUAD_CACHE.get(cache_key)
+    if cached and (_time.time() - cached[1]) < _QUAD_TTL:
+        return cached[0]
+
+    body = {"coMunicipioIbge": [ibge6], "nuQuadrimestre": [quad]}
+    try:
+        async with httpx.AsyncClient(headers=_SIAPS_HDRS, timeout=15) as client:
+            resp = await client.post(
+                f"{_SIAPS_PUBLIC}/api/public/componente/indicador-quadrimestre/filtro",
+                json=body,
+            )
+        if resp.status_code != 200:
+            return None
+        raw = resp.json()
+    except Exception:
+        return None
+
+    # Extrai dados CVAT (vínculo) para eSF
+    cvat_esf = None
+    for item in raw.get("classificacaoFinalComponente", []):
+        if item.get("tipoOrigem") == "CVAT" and item.get("sgEquipe") == "eSF":
+            cvat_esf = item
+            break
+
+    if not cvat_esf:
+        _QUAD_CACHE[cache_key] = (None, _time.time())
+        return None
+
+    resultado = {
+        "quadrimestre": quad,
+        "total_equipes": cvat_esf.get("totalEquipesValidasParaComponente", 0),
+        "por_status": {
+            "otimo":      cvat_esf.get("qtdClassificacaoOtimo", 0),
+            "bom":        cvat_esf.get("qtdClassificacaoBom", 0),
+            "suficiente": cvat_esf.get("qtdClassificacaoSuficiente", 0),
+            "regular":    cvat_esf.get("qtdClassificacaoRegular", 0),
+        },
+        "pct_status": {
+            "otimo":      cvat_esf.get("percentualClassificacaoOtimo", 0),
+            "bom":        cvat_esf.get("percentualClassificacaoBom", 0),
+            "suficiente": cvat_esf.get("percentualClassificacaoSuficiente", 0),
+            "regular":    cvat_esf.get("percentualClassificacaoRegular", 0),
+        },
+        "fonte": "apisiaps.saude.gov.br (público)",
+        "situacao_dado": "oficial_validado",
+    }
+    _QUAD_CACHE[cache_key] = (resultado, _time.time())
+    return resultado
+
+
 async def buscar_vinculo_dadosabertos(
     ibge: str = "1300144",
     competencia: str = "202604",

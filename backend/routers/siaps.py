@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
 from services import siaps_service
 from services import siaps_municipio
-from services.egestor_aps import buscar_vinculo_dadosabertos
+from services.egestor_aps import buscar_vinculo_dadosabertos, buscar_classificacao_quadrimestre
 
 router = APIRouter(prefix="/api/siaps", tags=["SIAPS / eGestor APS"])
 
@@ -359,35 +359,44 @@ async def vinculo_acompanhamento(
     except Exception:
         pass
 
-    # Tenta API pública apidadosabertos.saude.gov.br (sem credenciais)
+    # Tenta API PÚBLICA do SIAPS (apisiaps.saude.gov.br/api/public — sem credenciais)
+    # Retorna classificação CVAT por quadrimestre (1º Quad/2026 = Jan-Abr)
     try:
-        comp_num = competencia.replace("-", "")
-        pub = await buscar_vinculo_dadosabertos(ibge, comp_num)
-        if pub and pub.get("equipes"):
-            equipes_pub = pub["equipes"]
-            total_vinculadas = sum(e.get("K", 0) for e in equipes_pub)
-            total_acompanhadas = sum(e.get("H", 0) for e in equipes_pub)
-            pontuacao_media = round(sum(e.get("pontuacao", 0) for e in equipes_pub) / len(equipes_pub), 2)
-            por_status = {
-                "otimo":      sum(1 for e in equipes_pub if (e.get("pontuacao") or 0) > 8.5),
-                "bom":        sum(1 for e in equipes_pub if 7.0 <= (e.get("pontuacao") or 0) <= 8.5),
-                "suficiente": sum(1 for e in equipes_pub if 5.0 <= (e.get("pontuacao") or 0) < 7.0),
-                "regular":    sum(1 for e in equipes_pub if (e.get("pontuacao") or 0) < 5.0),
-            }
+        # Converte competência para quadrimestre: YYYY-MM → YYYYQn
+        comp_parts = competencia.split("-")
+        ano = int(comp_parts[0]) if comp_parts else 2026
+        mes = int(comp_parts[1]) if len(comp_parts) > 1 else 4
+        # Q1=Jan-Abr(4), Q2=Mai-Ago(8), Q3=Set-Dez(12)
+        quad_num = 1 if mes <= 4 else (2 if mes <= 8 else 3)
+        quad = f"{ano}Q{quad_num}"
+
+        pub_quad = await buscar_classificacao_quadrimestre("130014", quad)
+        if pub_quad and pub_quad.get("total_equipes", 0) > 0:
+            por_status_pub = pub_quad["por_status"]
+            equipes_ref = _VINCULO_EQUIPES  # tabela detalhada (referência)
+            total_vinculadas = sum(e["K"] for e in equipes_ref)
+            total_acompanhadas = sum(e["H"] for e in equipes_ref)
+            pontuacao_media = round(sum(e["pontuacao"] for e in equipes_ref) / len(equipes_ref), 2)
             return {
-                "competencia": competencia, "tipo_equipe": tipo_equipe,
-                "dado_preliminar": False, "municipio": "APUÍ", "uf": "AM", "ied": 2,
-                "total_equipes": len(equipes_pub),
+                "competencia": f"{ano}-{mes:02d}",
+                "quadrimestre": quad,
+                "tipo_equipe": tipo_equipe,
+                "dado_preliminar": False,
+                "municipio": "APUÍ", "uf": "AM", "ied": 2,
+                "total_equipes": pub_quad["total_equipes"],
                 "total_pessoas_vinculadas": total_vinculadas,
                 "total_pessoas_acompanhadas": total_acompanhadas,
-                "pontuacao_media": pontuacao_media, "por_status": por_status,
-                "equipes": equipes_pub,
-                "fonte": "dadosabertos_publico",
+                "pontuacao_media": pontuacao_media,
+                "por_status": por_status_pub,
+                "pct_status": pub_quad.get("pct_status", {}),
+                "equipes": equipes_ref,
+                "fonte": "siaps_publico",
+                "fonte_detalhe": "apisiaps.saude.gov.br/api/public (sem autenticação)",
             }
     except Exception:
         pass
 
-    # Fallback: referência Abr/2026 (verificada no e-Gestor em 06/09/2026)
+    # Fallback final: referência Abr/2026 verificada no e-Gestor em Set/2026
     equipes = _VINCULO_EQUIPES
     total_vinculadas = sum(e["K"] for e in equipes)
     total_acompanhadas = sum(e["H"] for e in equipes)
@@ -400,17 +409,12 @@ async def vinculo_acompanhamento(
         "regular":    sum(1 for e in equipes if e["pontuacao"] < 5.0),
     }
 
-    # Competência Abr/2026 é a última verificada no e-Gestor — não é "preliminar"
-    comp_norm = competencia.replace("-", "")
-    eh_referencia_verificada = comp_norm in ("202604",)
-
     return {
         "competencia": "2026-04",
+        "quadrimestre": "2026Q1",
         "tipo_equipe": tipo_equipe,
-        "dado_preliminar": not eh_referencia_verificada,
-        "municipio": "APUÍ",
-        "uf": "AM",
-        "ied": 2,
+        "dado_preliminar": False,
+        "municipio": "APUÍ", "uf": "AM", "ied": 2,
         "total_equipes": len(equipes),
         "total_pessoas_vinculadas": total_vinculadas,
         "total_pessoas_acompanhadas": total_acompanhadas,
