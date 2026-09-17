@@ -135,11 +135,8 @@ async def _job_diagnostico_cobertura() -> None:
     """Job: atualiza cache diário Diagnóstico/Cobertura eGestor às 05:00 (Manaus)."""
     logger.info("[Scheduler] Atualizando cache Diagnóstico/Cobertura eGestor...")
     try:
-        from services.egestor_diagnostico_scraper import buscar_diagnostico_cobertura
-        from datetime import date as _date
-
-        hoje = _date.today()
-        parcela = hoje.strftime("%Y%m")
+        from services.egestor_diagnostico_scraper import buscar_diagnostico_cobertura, _parcela_atual
+        parcela = _parcela_atual()
         resultado = await buscar_diagnostico_cobertura(parcela, forcar_atualizacao=True)
         fonte = resultado.get("fonte", "?")
         logger.info("[Scheduler] Diagnóstico/Cobertura atualizado — fonte: %s", fonte)

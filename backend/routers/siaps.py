@@ -852,12 +852,13 @@ async def diagnostico_live(_: UserOut = Depends(get_current_user)):
 
 @router.get("/diagnostico-cobertura")
 async def diagnostico_cobertura(
-    parcela: str = Query("202610"),
+    parcela: str | None = Query(None),
     _: UserOut = Depends(get_current_user),
 ):
-    """Diagnóstico/Cobertura via scraper e-Gestor APS + dados SCNES verificados."""
+    """Diagnóstico/Cobertura via API REST e-Gestor APS (sem Playwright). Detecta parcela atual automaticamente."""
     try:
-        from services.egestor_diagnostico_scraper import buscar_diagnostico_cobertura
+        from services.egestor_diagnostico_scraper import buscar_diagnostico_cobertura, _parcela_atual
+        parcela = parcela or _parcela_atual()
         dados = await buscar_diagnostico_cobertura(parcela)
         return dados
     except Exception as exc:

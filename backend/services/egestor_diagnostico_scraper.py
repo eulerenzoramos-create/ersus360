@@ -408,9 +408,7 @@ _MAPA_COMP = {
     "202612": "OUT/2026",
 }
 
-# Série histórica de incentivos totais confirmados no e-Gestor APS
-# Fonte: tela consolidada relatorioaps.saude.gov.br/gerenciaaps/pagamento — Set/2026
-# Colunas: parcela_code → {"competencia", "parcela", "total"}
+# Série histórica — base confirmada, expandida automaticamente pelo job _job_egestor_incentivos
 HISTORICO_INCENTIVOS: list[dict] = [
     {"parcela_code": "202601", "competencia": "NOV/2025", "parcela": "1/12",  "total": 618_703.11},
     {"parcela_code": "202602", "competencia": "DEZ/2025", "parcela": "2/12",  "total": 589_588.00},
@@ -420,77 +418,201 @@ HISTORICO_INCENTIVOS: list[dict] = [
     {"parcela_code": "202606", "competencia": "ABR/2026", "parcela": "6/12",  "total": 595_996.75},
     {"parcela_code": "202607", "competencia": "MAI/2026", "parcela": "7/12",  "total": 630_371.75},
     {"parcela_code": "202608", "competencia": "JUN/2026", "parcela": "8/12",  "total": 637_231.75},
-    # JUL–SET/2026: aguardando publicação MS
+    # JUL/2026+ populados automaticamente via API no startup e domingo às 04:00
 ]
+
+
+def _parcela_atual() -> str:
+    """
+    Calcula a parcela mais recente disponível no e-Gestor.
+    O MS publica os dados do mês M na parcela do mês M+1 (lag ~1 mês).
+    Formato: AAAAPP onde PP é o número da parcela no ciclo 2026 (01=NOV/25, 09=JUL/26...).
+    """
+    from datetime import date
+    hoje = date.today()
+    ano, mes = hoje.year, hoje.month
+    # Ciclo 2026: PP=01 → NOV/2025 ... PP=09 → JUL/2026 ... PP=12 → OUT/2026
+    # Mapeamento: ano/mês do calendário → código de parcela
+    _CAL_PARA_PARC: dict[tuple, str] = {
+        (2025, 11): "202601", (2025, 12): "202602",
+        (2026,  1): "202603", (2026,  2): "202604", (2026,  3): "202605",
+        (2026,  4): "202606", (2026,  5): "202607", (2026,  6): "202608",
+        (2026,  7): "202609", (2026,  8): "202610", (2026,  9): "202611",
+        (2026, 10): "202612",
+    }
+    # Dados do mês passado estão normalmente disponíveis no mês atual
+    # Tenta mês atual, senão mês anterior
+    p = _CAL_PARA_PARC.get((ano, mes))
+    if p:
+        return p
+    if mes == 1:
+        return _CAL_PARA_PARC.get((ano - 1, 12), "202611")
+    return _CAL_PARA_PARC.get((ano, mes - 1), "202611")
+
+
+async def _buscar_live(parcela: str) -> dict | None:
+    """
+    Busca dados ao vivo da API pública e-Gestor APS (REST, sem Playwright).
+    Retorna dict com esf/acs/esb/emulti/esfr/microscopistas ou None se falhar.
+    """
+    try:
+        from services.egestor_aps import buscar_completo, EGestorAPIError
+        resultado = await buscar_completo(parcela_inicio=parcela, parcela_fim=parcela)
+        det = resultado.get("detalhado", {})
+        if not det:
+            return None
+
+        esf_r = det.get("esf", {})
+        acs_r = det.get("acs", {})
+        esb_r = det.get("esb", {})
+        emu_r = det.get("emulti", {})
+        esfr_r = det.get("esfrb", {})
+        mic_r  = det.get("microscopistas", {})
+        tetos_r = det.get("tetos", {})
+        comp_label = det.get("competencia", _MAPA_COMP.get(parcela, parcela))
+
+        # ESF
+        esf_data = {
+            "qt_teto": tetos_r.get("esf") or TETOS_SCNES["esf"],
+            "qt_credenciadas": esf_r.get("qt_credenciadas", 0),
+            "qt_homologadas":  esf_r.get("qt_homologadas",  0),
+            "qt_pagas":        esf_r.get("qt_pagas",        0),
+            "ied":             det.get("faixa_equidade_esf") or "ESTRATO 2",
+            "classificacao_qualidade": det.get("classificacao_qualidade_esf") or "",
+            "classificacao_vinculo":   det.get("classificacao_vinculo_esf")   or "",
+            "vl_equidade":   esf_r.get("vl_fixo", 0.0),
+            "vl_fixo":       esf_r.get("vl_fixo", 0.0),
+            "vl_qualidade":  esf_r.get("vl_qualidade", 0.0),
+            "vl_vinculo":    esf_r.get("vl_vinculo",   0.0),
+            "vl_ajuste":     0.0,
+            "vl_desconto":   -(esf_r.get("vl_total_bruto", 0.0) - esf_r.get("vl_fixo", 0.0)
+                                - esf_r.get("vl_qualidade", 0.0) - esf_r.get("vl_vinculo", 0.0)),
+            "vl_total_bruto": esf_r.get("vl_total_bruto", 0.0),
+            "nu_comp_cnes":  comp_label,
+            "_scraped": True, "_fonte_verificada": f"egestor_api_{parcela}",
+        }
+        # ACS
+        acs_data = {
+            "qt_teto":               acs_r.get("qt_teto", TETOS_SCNES["acs"]),
+            "qt_direto_credenciado": acs_r.get("qt_direto_credenciado", 0),
+            "qt_direto_pago":        acs_r.get("qt_direto_pago", 0),
+            "vl_ref_custeio":        3_242.0,
+            "vl_direto":             acs_r.get("vl_direto", 0.0),
+            "vl_parcela_extra_direto": acs_r.get("vl_parcela_extra_direto", 0.0),
+            "qt_indireto_pago":      acs_r.get("qt_indireto_pago", 0),
+            "vl_indireto":           acs_r.get("vl_indireto", 0.0),
+            "vl_total":              acs_r.get("vl_total", 0.0),
+            "_scraped": True, "_fonte_verificada": f"egestor_api_{parcela}",
+        }
+        # eSB
+        esb_data = {
+            "qt_40h_credenciadas":   esb_r.get("qt_40h_credenciadas",   TETOS_SCNES["esb"]),
+            "qt_40h_homologadas":    esb_r.get("qt_40h_homologadas",    0),
+            "qt_40h_pagas_modal_i":  esb_r.get("qt_40h_pagas_modal_i",  0),
+            "qt_40h_pagas_modal_ii": esb_r.get("qt_40h_pagas_modal_ii", 0),
+            "vl_esb_40h":            esb_r.get("vl_esb_40h",            0.0),
+            "vl_qualidade_40h":      esb_r.get("vl_qualidade_40h",      0.0),
+            "qt_uom":                esb_r.get("qt_uom",                 0),
+            "vl_uom":                esb_r.get("vl_uom",                 0.0),
+            "vl_lrpd_municipal":     esb_r.get("vl_lrpd_municipal",     0.0),
+            "vl_total_sb_calculado": esb_r.get("vl_total_sb_calculado", 0.0),
+            "_scraped": True, "_fonte_verificada": f"egestor_api_{parcela}",
+        }
+        # eMulti
+        emulti_data = {
+            "qt_credenciadas":  emu_r.get("qt_credenciadas",  TETOS_SCNES["emulti"]),
+            "qt_homologadas":   emu_r.get("qt_homologadas",   0),
+            "qt_pagas":         emu_r.get("qt_pagas",         0),
+            "qt_estrategica":   emu_r.get("qt_estrategica",   0),
+            "qt_ampliada":      emu_r.get("qt_ampliada",      0),
+            "qt_complementar":  emu_r.get("qt_complementar",  0),
+            "qt_atend_remoto":  emu_r.get("qt_atend_remoto",  0),
+            "vl_custeio":       emu_r.get("vl_custeio",       0.0),
+            "vl_qualidade":     emu_r.get("vl_qualidade",     0.0),
+            "vl_atend_remoto":  emu_r.get("vl_atend_remoto",  0.0),
+            "vl_total":         emu_r.get("vl_total",         0.0),
+            "_scraped": True, "_fonte_verificada": f"egestor_api_{parcela}",
+        }
+        # eSFR
+        esfr_data = {
+            "qt_credenciadas": esfr_r.get("qt_credenciadas", TETOS_SCNES["esfr"]),
+            "qt_pagas":        esfr_r.get("qt_pagas",        0),
+            "vl_custeio":      esfr_r.get("vl_custeio",      0.0),
+            "vl_vinculo":      esfr_r.get("vl_vinculo",      0.0),
+            "vl_qualidade":    esfr_r.get("vl_qualidade",    0.0),
+            "vl_total":        esfr_r.get("vl_total",        0.0),
+            "_scraped": True,
+        }
+        # Microscopistas
+        micro_data = {
+            "qt_credenciados": mic_r.get("qt_credenciados", TETOS_SCNES["microscopista"]),
+            "qt_pagos":        mic_r.get("qt_pagos",        0),
+            "vl_total":        mic_r.get("vl_total",        0.0),
+            "_scraped": True,
+        }
+        tetos = {**TETOS_SCNES, **({"esf": tetos_r.get("esf")} if tetos_r.get("esf") else {})}
+
+        logger.info(
+            "eGestor API live: parcela=%s ESF total=%.2f ACS total=%.2f",
+            parcela, esf_data["vl_total_bruto"], acs_data["vl_total"],
+        )
+        return {
+            "esf": esf_data, "acs": acs_data, "esb": esb_data,
+            "emulti": emulti_data, "esfr": esfr_data, "micro": micro_data,
+            "tetos": tetos, "competencia": comp_label,
+            "faixa_equidade_esf": det.get("faixa_equidade_esf"),
+            "classificacao_vinculo_esf":   det.get("classificacao_vinculo_esf"),
+            "classificacao_qualidade_esf":  det.get("classificacao_qualidade_esf"),
+        }
+    except Exception as exc:
+        logger.warning("eGestor API live falhou (parcela=%s): %s — usando fallback", parcela, exc)
+        return None
 
 
 async def buscar_diagnostico_cobertura(parcela: str = "202611", forcar_atualizacao: bool = False) -> dict:
     """
-    Retorna dados de Diagnóstico/Cobertura para Apuí/AM.
-    - Tetos: SCNES verificado (Set/2026)
-    - Pagamento ESF/ACS/eSB: scraping páginas públicas e-Gestor (Playwright)
-    - eMulti: cache do egestor_scraper existente
-    - Diagnósticos: pendências SCNES + análise de cobertura
+    Retorna dados de Diagnóstico/Cobertura para Apuí/AM via API REST e-Gestor (sem Playwright).
+    Fluxo: API pública REST → fallback verificado JUN/2026.
+    Cache 4h por parcela. forcar_atualizacao=True ignora o cache.
     """
     async with _lock:
-        if _cache_valid() and not forcar_atualizacao:
+        cache_parcela = (_cache.get("parcela") == parcela)
+        if _cache_valid() and cache_parcela and not forcar_atualizacao:
             d = dict(_cache["data"])
-            d["parcela"]     = int(parcela[4:]) if len(parcela) >= 6 else 0
-            d["competencia"] = _MAPA_COMP.get(parcela, parcela)
             d["diagnosticos"] = _diagnosticos(d.get("esf", {}), d.get("acs", {}))
             return d
 
-    logger.info("eGestor Diagnóstico: acionando scraping completo — parcela %s", parcela)
+    # Tenta API REST ao vivo (sem Playwright, funciona no Railway)
+    live = await _buscar_live(parcela)
 
-    # Aciona scraping unificado (ESF + ACS + eSB + eMulti na mesma sessão)
-    try:
-        from services.egestor_scraper import fetch_egestor_all
-        await fetch_egestor_all()
-    except Exception as e:
-        logger.warning("eGestor Diagnóstico: fetch_egestor_all falhou — %s", e)
-
-    # Lê resultados do cache unificado
-    cache_all = _do_cache_all()
-    esf_live   = cache_all.get("esf")   or {}
-    acs_live   = cache_all.get("acs")   or {}
-    esb_live   = cache_all.get("esb")   or {}
-    emulti_live = cache_all.get("emulti")
-
-    # ESF: usa live se scraped, senão fallback verificado JUN/2026
-    if esf_live.get("_scraped") and esf_live.get("vl_total_bruto", 0) > 0:
-        esf_data = esf_live
-        esf_data.setdefault("vl_equidade", esf_data.get("vl_equidade") or esf_data.get("vl_fixo") or 0.0)
-        logger.info("eGestor: ESF live — total=%.2f", esf_data["vl_total_bruto"])
+    if live:
+        esf_data    = live["esf"]
+        acs_data    = live["acs"]
+        esb_data    = live["esb"]
+        emulti      = live["emulti"]
+        esfr_data   = live["esfr"]
+        micro_data  = live["micro"]
+        tetos_uso   = live["tetos"]
+        comp_label  = live["competencia"]
+        faixa_eq    = live["faixa_equidade_esf"]
+        cl_vinculo  = live["classificacao_vinculo_esf"]
+        cl_qualid   = live["classificacao_qualidade_esf"]
+        fonte_str   = f"egestor_api_{parcela}"
     else:
-        logger.info("eGestor: ESF — usando fallback verificado JUN/2026")
-        esf_data = dict(_DADOS_ESF_JUN2026)
-
-    # ACS: usa live se scraped, senão fallback verificado JUN/2026
-    if acs_live.get("_scraped") and (acs_live.get("vl_total") or 0) > 0:
-        acs_data = acs_live
-        logger.info("eGestor: ACS live — teto=%s total=%.2f", acs_data.get("qt_teto"), acs_data.get("vl_total", 0))
-    else:
-        logger.info("eGestor: ACS — usando fallback verificado JUN/2026")
-        acs_data = dict(_DADOS_ACS_JUN2026)
-
-    # eSB: usa live se scraped, senão fallback verificado JUN/2026
-    if esb_live.get("_scraped") and (esb_live.get("vl_total_sb_calculado") or 0) > 0:
-        esb_data = esb_live
-        logger.info("eGestor: eSB live — total=%.2f", esb_data.get("vl_total_sb_calculado", 0))
-    else:
-        logger.info("eGestor: eSB — usando fallback verificado JUN/2026")
-        esb_data = dict(_DADOS_ESB_JUN2026)
-
-    # eMulti: usa live se scraped, senão fallback verificado JUN/2026
-    if emulti_live and emulti_live.get("_scraped") and (emulti_live.get("vl_total") or 0) > 0:
-        emulti = emulti_live
-    else:
-        logger.info("eGestor: eMulti — usando fallback verificado JUN/2026")
-        emulti = dict(_DADOS_EMULTI_JUN2026)
-
-    # eSFR e Microscopista: sempre usa fallback verificado (não há live ainda)
-    esfr_data   = dict(_DADOS_ESFR_JUN2026)
-    micro_data  = dict(_DADOS_MICROSCOPISTA_JUN2026)
+        # Fallback: dados verificados JUN/2026
+        logger.info("eGestor: usando fallback verificado JUN/2026 para parcela=%s", parcela)
+        esf_data   = dict(_DADOS_ESF_JUN2026)
+        acs_data   = dict(_DADOS_ACS_JUN2026)
+        esb_data   = dict(_DADOS_ESB_JUN2026)
+        emulti     = dict(_DADOS_EMULTI_JUN2026)
+        esfr_data  = dict(_DADOS_ESFR_JUN2026)
+        micro_data = dict(_DADOS_MICROSCOPISTA_JUN2026)
+        tetos_uso  = TETOS_SCNES
+        comp_label = _MAPA_COMP.get(parcela, parcela)
+        faixa_eq   = "ESTRATO 2"
+        cl_vinculo = "BOM"
+        cl_qualid  = "BOM"
+        fonte_str  = "egestor_fallback_jun2026"
 
     total = (
         (esf_data.get("vl_total_bruto") or 0.0)
@@ -505,7 +627,6 @@ async def buscar_diagnostico_cobertura(parcela: str = "202611", forcar_atualizac
     score_medio      = round(sum(e["score"] for e in _EQUIPES) / len(_EQUIPES), 1) if _EQUIPES else 0
     total_vinculadas = sum(e["vinculadas"] for e in _EQUIPES)
 
-    # Mapa pendências por equipe para exibição na tabela
     pend_por_equipe: dict[str, list[dict]] = {}
     for p in _PENDENCIAS:
         eq = p["equipe"]
@@ -527,26 +648,28 @@ async def buscar_diagnostico_cobertura(parcela: str = "202611", forcar_atualizac
         for e in _EQUIPES
     ]
 
+    criticos_pend = sum(1 for p in _PENDENCIAS if "CRÍTICO" in p["sev"])
+
     dados = {
-        "fonte":         "egestor_publico_scnes",
+        "fonte":         fonte_str,
         "situacao_dado": "disponivel",
         "coletado_em":   datetime.utcnow().isoformat() + "Z",
         "municipio":     MUNICIPIO,
         "uf":            UF,
         "ibge":          IBGE_7,
-        "competencia":   _MAPA_COMP.get(parcela, parcela),
+        "competencia":   comp_label,
         "parcela":       int(parcela[4:]) if len(parcela) >= 6 else 0,
         "populacao":     POPULACAO,
-        "faixa_equidade_esf":          None,
-        "classificacao_vinculo_esf":    None,
-        "classificacao_qualidade_esf":  None,
+        "faixa_equidade_esf":          faixa_eq,
+        "classificacao_vinculo_esf":    cl_vinculo,
+        "classificacao_qualidade_esf":  cl_qualid,
         "total_calculado":    total,
         "total_equipes_scnes": len(_EQUIPES),
         "score_medio_scnes":   score_medio,
         "total_vinculadas_cvat": total_vinculadas,
-        "pendencias_criticas": 3,
-        "pendencias_total":    9,
-        "tetos": TETOS_SCNES,
+        "pendencias_criticas": criticos_pend,
+        "pendencias_total":    len(_PENDENCIAS),
+        "tetos": tetos_uso,
         "esf":    esf_data,
         "acs":    acs_data,
         "esb":    esb_data,

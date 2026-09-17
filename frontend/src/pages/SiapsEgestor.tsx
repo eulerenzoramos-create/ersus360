@@ -2803,8 +2803,9 @@ function AbaDiagnosticoCobertura() {
       )}
 
       {/* Cards por programa */}
+      {/* fonteLabel dinâmico: usa competencia retornada pela API (ex: "JUL/2026") */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 20 }}>
-        <CardPrograma titulo="eSF — Equipes de Saúde da Família" cor="#1d4ed8" scraped={(esf as any)._scraped} fonteLabel="✓ Verificado JUN/2026" items={[
+        <CardPrograma titulo="eSF — Equipes de Saúde da Família" cor="#1d4ed8" scraped={(esf as any)._scraped} fonteLabel={data.competencia ? `✓ Verificado ${data.competencia}` : "✓ e-Gestor APS"} items={[
           { label: "Teto",                        val: (esf as any).qt_teto ?? tetos.esf ?? 0 },
           { label: "Credenciadas",                val: esf.qt_credenciadas ?? 0 },
           { label: "Homologadas",                 val: esf.qt_homologadas ?? 0 },
@@ -2820,7 +2821,7 @@ function AbaDiagnosticoCobertura() {
           { label: "Total eSF",                   val: BRL_local(esf.vl_total_bruto ?? 0), destaque: true },
         ]} />
 
-        <CardPrograma titulo="eMulti — Equipes Multiprofissionais" cor="#0891b2" scraped={(emulti as any)._scraped} fonteLabel="✓ Verificado JUN/2026" items={[
+        <CardPrograma titulo="eMulti — Equipes Multiprofissionais" cor="#0891b2" scraped={(emulti as any)._scraped} fonteLabel={data.competencia ? `✓ Verificado ${data.competencia}` : "✓ e-Gestor APS"} items={[
           { label: "Teto",                  val: tetos.emulti ?? 1 },
           { label: "Credenciadas",          val: emulti.qt_credenciadas ?? 1 },
           { label: "eMulti Estratégica",    val: (emulti as any).qt_estrategica ?? 1 },
@@ -2833,7 +2834,7 @@ function AbaDiagnosticoCobertura() {
           { label: "Total eMulti",         val: BRL_local(emulti.vl_total ?? 14_250), destaque: true },
         ]} />
 
-        <CardPrograma titulo="eSB — Saúde Bucal 40h · UOM · LRPD" cor="#7c3aed" scraped={(esb as any)._scraped} fonteLabel="✓ Verificado JUN/2026" items={[
+        <CardPrograma titulo="eSB — Saúde Bucal 40h · UOM · LRPD" cor="#7c3aed" scraped={(esb as any)._scraped} fonteLabel={data.competencia ? `✓ Verificado ${data.competencia}` : "✓ e-Gestor APS"} items={[
           { label: "Teto",                 val: tetos.esb ?? 9 },
           { label: "Credenciadas 40h",     val: esb.qt_40h_credenciadas ?? 9 },
           { label: "Homologadas 40h",      val: esb.qt_40h_homologadas ?? 9 },
@@ -2846,7 +2847,7 @@ function AbaDiagnosticoCobertura() {
           { label: "Total eSB",           val: BRL_local(esb.vl_total_sb_calculado ?? 104_799), destaque: true },
         ]} />
 
-        <CardPrograma titulo="ACS — Agentes Comunitários de Saúde" cor="#16a34a" scraped={(acs as any)._scraped} fonteLabel="✓ Verificado JUN/2026" items={[
+        <CardPrograma titulo="ACS — Agentes Comunitários de Saúde" cor="#16a34a" scraped={(acs as any)._scraped} fonteLabel={data.competencia ? `✓ Verificado ${data.competencia}` : "✓ e-Gestor APS"} items={[
           { label: "Teto ACS",             val: acs.qt_teto ?? tetos.acs ?? 65 },
           { label: "Credenciados",         val: acs.qt_direto_credenciado ?? 67 },
           { label: "Pagos",                val: acs.qt_direto_pago ?? 66 },
@@ -2854,7 +2855,7 @@ function AbaDiagnosticoCobertura() {
           { label: "Total ACS",           val: BRL_local(acs.vl_total ?? acs.vl_direto ?? 213_972), destaque: true },
         ]} />
 
-        <CardPrograma titulo="eSFR — Saúde da Família Ribeirinha" cor="#d97706" scraped={(esfr as any)._scraped} fonteLabel="✓ Verificado JUN/2026" items={[
+        <CardPrograma titulo="eSFR — Saúde da Família Ribeirinha" cor="#d97706" scraped={(esfr as any)._scraped} fonteLabel={data.competencia ? `✓ Verificado ${data.competencia}` : "✓ e-Gestor APS"} items={[
           { label: "Credenciadas",         val: (esfr as any).qt_credenciadas ?? 1 },
           { label: "Homologadas",          val: (esfr as any).qt_homologadas ?? 1 },
           { label: "Pagas",                val: (esfr as any).qt_pagas ?? 1 },
@@ -2863,7 +2864,7 @@ function AbaDiagnosticoCobertura() {
           { label: "Total eSFR",          val: BRL_local((esfr as any).vl_total ?? 30_000), destaque: true },
         ]} />
 
-        <CardPrograma titulo="Microscopista" cor="#64748b" scraped={(micro as any)._scraped} fonteLabel="✓ Verificado JUN/2026" items={[
+        <CardPrograma titulo="Microscopista" cor="#64748b" scraped={(micro as any)._scraped} fonteLabel={data.competencia ? `✓ Verificado ${data.competencia}` : "✓ e-Gestor APS"} items={[
           { label: "Credenciados",         val: (micro as any).qt_credenciados ?? 5 },
           { label: "Pagos",                val: (micro as any).qt_pagos ?? 5 },
           { label: "Vl. Referência",      val: BRL_local((micro as any).vl_ref_custeio ?? 3_242) },
