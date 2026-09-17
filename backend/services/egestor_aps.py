@@ -372,6 +372,74 @@ async def buscar_completo(
     }
 
 
+async def buscar_vinculo_dadosabertos(
+    ibge: str = "1300144",
+    competencia: str = "202604",
+) -> dict | None:
+    """
+    Busca dados de Vínculo e Acompanhamento Territorial via API pública
+    apidadosabertos.saude.gov.br — sem autenticação.
+    Retorna dict com 'equipes' e 'competencia', ou None se indisponível.
+    """
+    url = "https://apidadosabertos.saude.gov.br/siaps/componentes/vinculo"
+    hdrs = {"Accept": "application/json", "User-Agent": "ERSUS360/2.0"}
+    params = {"ibge": ibge, "competencia": competencia}
+    try:
+        async with httpx.AsyncClient(headers=hdrs, timeout=20, follow_redirects=True) as client:
+            resp = await client.get(url, params=params)
+        if resp.status_code != 200:
+            return None
+        raw = resp.json()
+    except Exception:
+        return None
+
+    # Normaliza estrutura: lista direta ou dentro de chave
+    items: list = []
+    if isinstance(raw, list):
+        items = raw
+    elif isinstance(raw, dict):
+        for k in ("equipes", "data", "items", "results", "content"):
+            if isinstance(raw.get(k), list):
+                items = raw[k]
+                break
+
+    if not items:
+        return None
+
+    equipes = []
+    for e in items:
+        if not isinstance(e, dict):
+            continue
+        equipes.append({
+            "equipe":    (e.get("nomeEquipe") or e.get("nome") or e.get("equipe") or "").upper(),
+            "ubs":       (e.get("nomeUbs") or e.get("ubs") or e.get("estabelecimento") or "").upper(),
+            "ine":       str(e.get("ine") or e.get("co_equipe") or ""),
+            "cnes":      str(e.get("cnes") or e.get("co_unidade") or ""),
+            "tipo":      e.get("tipo") or e.get("tipoEquipe") or "eSF",
+            "parametro": int(e.get("parametro") or e.get("param") or 2500),
+            "K": int(e.get("pessoasVinculadas") or e.get("K") or e.get("vinculadas") or 0),
+            "H": int(e.get("pessoasAcompanhadas") or e.get("H") or e.get("acompanhadas") or 0),
+            "A": int(e.get("A") or 0), "B": int(e.get("B") or 0),
+            "C": int(e.get("C") or 0), "D": int(e.get("D") or 0),
+            "E": int(e.get("E") or 0), "F": int(e.get("F") or 0),
+            "G": int(e.get("G") or 0), "I": int(e.get("I") or 0),
+            "J": int(e.get("J") or 0),
+            "pontuacao": round(float(e.get("pontuacao") or e.get("nota") or e.get("score") or 0), 2),
+            "situacao_dado": "oficial_validado",
+            "fonte": "dadosabertos_publico",
+        })
+
+    if not equipes:
+        return None
+
+    return {
+        "equipes": equipes,
+        "competencia": competencia,
+        "fonte": "apidadosabertos.saude.gov.br",
+        "situacao_dado": "oficial_validado",
+    }
+
+
 async def listar_parcelas(ano: int = 2026, co_uf: str = "13") -> list[str]:
     """Retorna lista de códigos de parcelas disponíveis para o ano."""
     url = f"{API_BASE}/data/parcelas"

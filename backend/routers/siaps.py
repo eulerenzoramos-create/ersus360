@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
 from services import siaps_service
 from services import siaps_municipio
+from services.egestor_aps import buscar_vinculo_dadosabertos
 
 router = APIRouter(prefix="/api/siaps", tags=["SIAPS / eGestor APS"])
 
@@ -355,6 +356,34 @@ async def vinculo_acompanhamento(
                     "equipes": equipes_live,
                     "fonte": "siaps_live",
                 }
+    except Exception:
+        pass
+
+    # Tenta API pública apidadosabertos.saude.gov.br (sem credenciais)
+    try:
+        comp_num = competencia.replace("-", "")
+        pub = await buscar_vinculo_dadosabertos(ibge, comp_num)
+        if pub and pub.get("equipes"):
+            equipes_pub = pub["equipes"]
+            total_vinculadas = sum(e.get("K", 0) for e in equipes_pub)
+            total_acompanhadas = sum(e.get("H", 0) for e in equipes_pub)
+            pontuacao_media = round(sum(e.get("pontuacao", 0) for e in equipes_pub) / len(equipes_pub), 2)
+            por_status = {
+                "otimo":      sum(1 for e in equipes_pub if (e.get("pontuacao") or 0) > 8.5),
+                "bom":        sum(1 for e in equipes_pub if 7.0 <= (e.get("pontuacao") or 0) <= 8.5),
+                "suficiente": sum(1 for e in equipes_pub if 5.0 <= (e.get("pontuacao") or 0) < 7.0),
+                "regular":    sum(1 for e in equipes_pub if (e.get("pontuacao") or 0) < 5.0),
+            }
+            return {
+                "competencia": competencia, "tipo_equipe": tipo_equipe,
+                "dado_preliminar": False, "municipio": "APUÍ", "uf": "AM", "ied": 2,
+                "total_equipes": len(equipes_pub),
+                "total_pessoas_vinculadas": total_vinculadas,
+                "total_pessoas_acompanhadas": total_acompanhadas,
+                "pontuacao_media": pontuacao_media, "por_status": por_status,
+                "equipes": equipes_pub,
+                "fonte": "dadosabertos_publico",
+            }
     except Exception:
         pass
 
