@@ -811,3 +811,48 @@ async def status_extracao():
         "cache_disponivel": disponiveis,
         "total_competencias_cache": len(disponiveis),
     }
+
+
+@router.post("/atualizar-tudo")
+async def atualizar_tudo(
+    background_tasks: BackgroundTasks,
+    _: UserOut = Depends(get_current_user),
+):
+    """
+    Dispara atualização completa de todos os módulos ERSUS360:
+    - SIAPS público: cache qualidade/vínculo Jan-Ago/2026
+    - e-Gestor: histórico de incentivos (parcelas 1-11/2026)
+    - CVAT: vinculadas por equipe (quadrimestre atual)
+    - Diagnóstico/Cobertura: cache eGestor
+
+    Todos rodam em background. Acompanhe via GET /api/sync/status.
+    """
+    if _STATUS.get("em_andamento"):
+        return {"status": "em_andamento", "mensagem": "Extração já em andamento — aguarde."}
+
+    async def _atualizar_tudo_job():
+        from scheduler import (
+            _job_siaps_publico,
+            _job_egestor_incentivos,
+            _job_cvat_equipes,
+            _job_diagnostico_cobertura,
+        )
+        log.info("[atualizar-tudo] Iniciando atualização completa ERSUS360...")
+        await _job_egestor_incentivos()
+        await _job_cvat_equipes()
+        await _job_siaps_publico()
+        await _job_diagnostico_cobertura()
+        log.info("[atualizar-tudo] Atualização completa concluída.")
+
+    background_tasks.add_task(_atualizar_tudo_job)
+    return {
+        "status": "iniciado",
+        "mensagem": "Atualização completa ERSUS360 iniciada em background.",
+        "modulos": [
+            "e-Gestor incentivos (histórico parcelas)",
+            "CVAT vinculadas por equipe (SIAPS público)",
+            "SIAPS qualidade/vínculo Jan-Ago/2026 (cache)",
+            "Diagnóstico/Cobertura (eGestor scraping)",
+        ],
+        "acompanhar": "GET /api/sync/status",
+    }

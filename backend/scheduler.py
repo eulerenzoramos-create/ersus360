@@ -139,13 +139,170 @@ async def _job_diagnostico_cobertura() -> None:
         from datetime import date as _date
 
         hoje = _date.today()
-        # parcela = AAAAMM do mês atual
         parcela = hoje.strftime("%Y%m")
         resultado = await buscar_diagnostico_cobertura(parcela, forcar_atualizacao=True)
         fonte = resultado.get("fonte", "?")
         logger.info("[Scheduler] Diagnóstico/Cobertura atualizado — fonte: %s", fonte)
     except Exception as exc:
         logger.error("[Scheduler] Erro no job Diagnóstico/Cobertura: %s", exc, exc_info=True)
+
+
+async def _job_siaps_publico() -> None:
+    """
+    Job: atualiza o cache SIAPS (qualidade + vínculo) via API pública — sem credenciais.
+    Roda dia 1 de cada mês às 03:00 e também sob demanda via /api/sync/extrair-historico.
+    Popula /tmp/ersus_pec_cache/ com dados 2026Q1 e 2026Q2 (quando disponível).
+    """
+    logger.info("[Scheduler] Iniciando extração automática SIAPS público...")
+    try:
+        from routers.sync_historico import _job_extrator, COMPETENCIAS_2026
+        await _job_extrator(COMPETENCIAS_2026, incluir_rnds=False)
+        logger.info("[Scheduler] SIAPS público: extração automática concluída")
+    except Exception as exc:
+        logger.error("[Scheduler] Erro na extração SIAPS público: %s", exc, exc_info=True)
+
+
+async def _job_egestor_incentivos() -> None:
+    """
+    Job: atualiza histórico de incentivos e-Gestor via API pública — toda domingo às 04:00.
+    Consulta relatorioaps-prd.saude.gov.br e atualiza HISTORICO_INCENTIVOS em memória.
+    """
+    logger.info("[Scheduler] Atualizando histórico e-Gestor incentivos...")
+    try:
+        import httpx
+        from services.egestor_diagnostico_scraper import HISTORICO_INCENTIVOS, IBGE_6, _MAPA_COMP
+
+        url = "https://relatorioaps-prd.saude.gov.br/financiamento/pagamento"
+        hdrs = {"Accept": "application/json", "Content-Type": "application/json",
+                "User-Agent": "ERSUS360/2.0 FMS-Apui-AM"}
+        async with httpx.AsyncClient(timeout=25, verify=False) as c:
+            r = await c.get(url, params={"ibge": IBGE_6, "tipoRelatorio": "COMPLETO"}, headers=hdrs)
+        if r.status_code != 200:
+            logger.warning("[Scheduler] e-Gestor incentivos HTTP %d", r.status_code)
+            return
+        data = r.json()
+        itens = data if isinstance(data, list) else data.get("content") or data.get("data") or []
+        if not itens:
+            logger.warning("[Scheduler] e-Gestor incentivos: resposta vazia")
+            return
+
+        # Mapeia parcelas recebidas → atualiza ou insere no HISTORICO_INCENTIVOS
+        codigos_existentes = {h["parcela_code"] for h in HISTORICO_INCENTIVOS}
+        atualizados = inseridos = 0
+        for item in itens:
+            # Formato API: {"nuCompetencia": "202609", "vlTotalCalculado": 641500.00, ...}
+            comp = str(item.get("nuCompetencia") or item.get("competencia") or "")
+            total_raw = item.get("vlTotalCalculado") or item.get("vlTotal") or item.get("total")
+            if not comp or total_raw is None:
+                continue
+            try:
+                total = float(total_raw)
+            except (TypeError, ValueError):
+                continue
+            parcela_num = int(comp[4:]) if len(comp) >= 6 else 0
+            parcela_str = f"{parcela_num}/12" if parcela_num else "?"
+            competencia_label = _MAPA_COMP.get(comp, comp)
+            if comp in codigos_existentes:
+                for h in HISTORICO_INCENTIVOS:
+                    if h["parcela_code"] == comp:
+                        h["total"] = total
+                        h["competencia"] = competencia_label
+                        atualizados += 1
+                        break
+            else:
+                HISTORICO_INCENTIVOS.append({
+                    "parcela_code": comp,
+                    "competencia": competencia_label,
+                    "parcela": parcela_str,
+                    "total": total,
+                })
+                inseridos += 1
+        # Ordena por parcela_code
+        HISTORICO_INCENTIVOS.sort(key=lambda h: h["parcela_code"])
+        logger.info(
+            "[Scheduler] e-Gestor incentivos: %d atualizados, %d inseridos — total %d parcelas",
+            atualizados, inseridos, len(HISTORICO_INCENTIVOS),
+        )
+    except Exception as exc:
+        logger.error("[Scheduler] Erro no job e-Gestor incentivos: %s", exc, exc_info=True)
+
+
+async def _job_cvat_equipes() -> None:
+    """
+    Job: atualiza vinculadas CVAT por equipe via API pública SIAPS — toda segunda às 04:30.
+    Atualiza _EQUIPES.vinculadas em monitor_scnes_service sem alterar scores (SCNES autenticado).
+    """
+    logger.info("[Scheduler] Atualizando vinculadas CVAT por equipe (SIAPS público)...")
+    try:
+        import httpx
+        from services.monitor_scnes_service import _EQUIPES
+
+        url = "https://apisiaps.saude.gov.br/api/public/componente/indicador-quadrimestre/filtro"
+        hdrs = {"Accept": "application/json", "Content-Type": "application/json",
+                "User-Agent": "ERSUS360/2.0"}
+
+        # Quadrimestre atual (2026Q1=Jan-Abr, 2026Q2=Mai-Ago, 2026Q3=Set-Dez)
+        from datetime import date as _d
+        mes = _d.today().month
+        quad = f"2026Q{(mes - 1) // 4 + 1}"
+
+        async with httpx.AsyncClient(timeout=20, verify=False) as c:
+            r = await c.post(url,
+                             json={"coMunicipioIbge": ["130014"], "nuQuadrimestre": [quad]},
+                             headers=hdrs)
+        if r.status_code != 200:
+            logger.warning("[Scheduler] CVAT SIAPS HTTP %d", r.status_code)
+            return
+        data = r.json()
+        items = data if isinstance(data, list) else data.get("content") or []
+        if not items:
+            logger.info("[Scheduler] CVAT: sem dados para %s", quad)
+            return
+
+        # Tenta extrair total de vinculadas por nome de equipe
+        total_novo = 0
+        for item in items:
+            nome_raw = (
+                item.get("nomeEquipe") or item.get("nome") or
+                item.get("ds_equipe") or item.get("nmEquipe") or ""
+            ).upper().strip()
+            vinc = item.get("qtVinculadas") or item.get("vinculadas") or item.get("qt_vinculadas")
+            if nome_raw and vinc is not None:
+                try:
+                    v = int(vinc)
+                except (TypeError, ValueError):
+                    continue
+                for eq in _EQUIPES:
+                    if eq["nome"] in nome_raw or nome_raw in eq["nome"]:
+                        eq["vinculadas"] = v
+                        total_novo += v
+                        break
+        if total_novo:
+            logger.info("[Scheduler] CVAT atualizado: total %d vinculadas (%s)", total_novo, quad)
+        else:
+            logger.info("[Scheduler] CVAT: estrutura de resposta sem campo vinculadas — mantidos valores anteriores")
+    except Exception as exc:
+        logger.error("[Scheduler] Erro no job CVAT equipes: %s", exc, exc_info=True)
+
+
+async def seed_siaps_cache_se_vazio() -> None:
+    """
+    Chamado no startup do FastAPI: popula cache SIAPS imediatamente se estiver vazio.
+    Usa a API pública SIAPS (sem credenciais). Roda uma única vez em background.
+    """
+    try:
+        from pathlib import Path as _P
+        cache_dir = _P("/tmp/ersus_pec_cache")
+        arquivos = list(cache_dir.glob("indicadores_*.json")) if cache_dir.exists() else []
+        if arquivos:
+            logger.info("[Startup] SIAPS cache já tem %d arquivo(s) — seed ignorado", len(arquivos))
+            return
+        logger.info("[Startup] SIAPS cache vazio — iniciando seed automático via API pública...")
+        from routers.sync_historico import _job_extrator, COMPETENCIAS_2026
+        await _job_extrator(COMPETENCIAS_2026, incluir_rnds=False)
+        logger.info("[Startup] SIAPS cache seed concluído")
+    except Exception as exc:
+        logger.error("[Startup] Erro no seed SIAPS cache: %s", exc, exc_info=True)
 
 
 async def _job_alertas_automaticos() -> None:
@@ -266,9 +423,39 @@ def start_scheduler() -> None:
         misfire_grace_time=3600,
     )
 
+    # Job 8: SIAPS público — extração mensal (dia 1 às 03:00) e também no 16 (quinzenal)
+    for dia in [1, 16]:
+        scheduler.add_job(
+            _job_siaps_publico,
+            CronTrigger(day=dia, hour=3, minute=0, timezone="America/Manaus"),
+            id=f"siaps_publico_mensal_{dia}",
+            replace_existing=True,
+            misfire_grace_time=7200,
+        )
+
+    # Job 9: e-Gestor histórico de incentivos — toda domingo às 04:00
+    scheduler.add_job(
+        _job_egestor_incentivos,
+        CronTrigger(day_of_week="sun", hour=4, minute=0, timezone="America/Manaus"),
+        id="egestor_incentivos_semanal",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
+    # Job 10: CVAT vinculadas por equipe — toda segunda às 04:30 (junto com Monitor SCNES)
+    scheduler.add_job(
+        _job_cvat_equipes,
+        CronTrigger(day_of_week="mon", hour=4, minute=30, timezone="America/Manaus"),
+        id="cvat_equipes_semanal",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
     scheduler.start()
     logger.info(
-        "[Scheduler] 7 jobs agendados — FNS %s, Score 01:00, DiagCobertura 05:00, Alertas 07:00, Portarias MS %s, Monitor SCNES seg 07:00 (America/Manaus)",
+        "[Scheduler] 10 jobs agendados — FNS %s, Score 01:00, DiagCobertura 05:00, Alertas 07:00, "
+        "Portarias MS %s, Monitor SCNES seg 07:00, SIAPS público dia 1+16 às 03:00, "
+        "e-Gestor incentivos dom 04:00, CVAT equipes seg 04:30 (America/Manaus)",
         hora_str, _email_hora,
     )
 

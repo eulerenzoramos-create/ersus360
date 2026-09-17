@@ -108,6 +108,16 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.error("Erro ao iniciar scheduler: %s", exc, exc_info=True)
 
+    # Seed automático: SIAPS cache + e-Gestor incentivos (background, não bloqueia startup)
+    try:
+        import asyncio as _aio
+        from scheduler import seed_siaps_cache_se_vazio, _job_egestor_incentivos
+        _aio.ensure_future(seed_siaps_cache_se_vazio())
+        _aio.ensure_future(_job_egestor_incentivos())
+        logger.info("[Startup] Seeds automáticos agendados em background (SIAPS + e-Gestor)")
+    except Exception as exc:
+        logger.warning("[Startup] Seed automático falhou (não crítico): %s", exc)
+
     # Libera memória dos módulos carregados que não estão mais em uso
     import gc
     gc.collect()

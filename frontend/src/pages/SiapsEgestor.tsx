@@ -2611,6 +2611,17 @@ function AbaDiagnosticoCobertura() {
           <button onClick={() => refetch()} style={{ display: "flex", alignItems: "center", gap: 5, background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontSize: 12 }}>
             <RefreshCw size={13} /> Atualizar
           </button>
+          <button
+            onClick={async () => {
+              try {
+                await apiGet("/api/sync/atualizar-tudo", { method: "POST" } as any);
+                setTimeout(() => refetch(), 3000);
+              } catch { /* ignore */ }
+            }}
+            title="Atualiza SIAPS, e-Gestor, CVAT e Diagnóstico automaticamente"
+            style={{ display: "flex", alignItems: "center", gap: 5, background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontSize: 12 }}>
+            ⚡ Atualizar Tudo
+          </button>
         </div>
       </div>
 
