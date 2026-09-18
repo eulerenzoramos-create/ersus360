@@ -1,0 +1,13 @@
+# Nao copiar dependencias locais para dentro da imagem Docker - o Dockerfile
+# ja roda "npm ci"/"pip install" dentro do build, entao copiar o node_modules
+# do host por cima anula a instalacao limpa e pode fazer o deploy rodar
+# versoes desatualizadas das dependencias.
+**/node_modules/
+**/__pycache__/
+**/*.pyc
+.venv/
+venv/
+frontend/dist/
+.git/
+.env
+*.log
