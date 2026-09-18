@@ -512,13 +512,16 @@ function AbaCadastrosIndividuais() {
   const [pagina, setPagina] = useState(0);
   const [busca,  setBusca]  = useState("");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["acs-cad-ind", pagina],
     queryFn: () => apiGet("/api/acs/esus/cadastros-individuais", { pagina, tamanho: 50 }) as Promise<any>,
     staleTime: 120_000,
   });
 
   if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando cadastros do e-SUS PEC...</div>;
+
+  if (isError) return <OfflineBanner emoji="⚠️" titulo="Não foi possível conectar ao servidor"
+    nota="Verifique a conexão com a API ou tente novamente em instantes." />;
 
   const cad = data?.dados;
   const conectado = data?.fonte === "esus_pec";
@@ -574,7 +577,7 @@ function AbaCadastrosIndividuais() {
     );
   }
 
-  return <OfflineBanner emoji="📋" titulo="e-SUS PEC Offline" nota={cad?.nota} />;
+  return <OfflineBanner emoji="📋" titulo="Dados individuais indisponíveis no momento" nota={data?.nota} />;
 }
 
 
@@ -584,13 +587,16 @@ function AbaCadastrosDomiciliares() {
   const [pagina, setPagina] = useState(0);
   const [busca,  setBusca]  = useState("");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["acs-cad-dom", pagina],
     queryFn: () => apiGet("/api/acs/esus/cadastros-domiciliares", { pagina, tamanho: 50 }) as Promise<any>,
     staleTime: 120_000,
   });
 
   if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando domicílios do e-SUS PEC...</div>;
+
+  if (isError) return <OfflineBanner emoji="⚠️" titulo="Não foi possível conectar ao servidor"
+    nota="Verifique a conexão com a API ou tente novamente em instantes." />;
 
   const cad = data?.dados;
   const conectado = data?.fonte === "esus_pec";
@@ -645,7 +651,7 @@ function AbaCadastrosDomiciliares() {
     );
   }
 
-  return <OfflineBanner emoji="🏠" titulo="e-SUS PEC Offline" nota={cad?.nota} />;
+  return <OfflineBanner emoji="🏠" titulo="Dados de domicílios indisponíveis no momento" nota={data?.nota} />;
 }
 
 // ── Aba Lista ACS com dados eSUS PEC ─────────────────────────────────────────
