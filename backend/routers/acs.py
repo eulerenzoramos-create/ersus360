@@ -242,7 +242,7 @@ async def esus_calendario():
 async def esus_cadastros_individuais(pagina: int = Query(1), tamanho: int = Query(50)):
     return {
         "dados": [], "total": 0, "pagina": pagina, "tamanho": tamanho,
-        "fonte": "referencia_municipal", "nota": "Dados individuais disponíveis via e-SUS PEC.",
+        "fonte": "referencia_municipal", "nota": "Conecte o e-SUS PEC para ver os cadastros individuais reais.",
         "verificado_em": _TS(),
     }
 
@@ -251,7 +251,7 @@ async def esus_cadastros_domiciliares(pagina: int = Query(1), tamanho: int = Que
     total_dom = sum(a["familias_cadastradas"] for a in _acs_ativos())
     return {
         "dados": [], "total": total_dom, "pagina": pagina, "tamanho": tamanho,
-        "fonte": "referencia_municipal", "nota": "Dados individuais disponíveis via e-SUS PEC.",
+        "fonte": "referencia_municipal", "nota": "Conecte o e-SUS PEC para ver os cadastros de domicílios reais.",
         "verificado_em": _TS(),
     }
 
