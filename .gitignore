@@ -55,3 +55,10 @@ logs/
 .railway/
 .vercel/
 .env.prod
+
+# ── pec_sync_agent: artefatos gerados localmente (dependem do banco
+#    conectado no momento, nunca devem ir para o repositório) ──────
+pec_sync_agent/schema_pec.txt
+pec_sync_agent/colunas_tabelas.txt
+pec_sync_agent/check_dim_equipe.txt
+pec_sync_agent/sync_backup_*.json
