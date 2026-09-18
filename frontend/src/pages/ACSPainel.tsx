@@ -186,13 +186,16 @@ function AbaVisitas({ fonte, periodTipo, competencia: compProp, dataFiltro, anoF
     return { periodo: "mensal", competencia: compProp };
   }, [periodTipo, compProp, dataFiltro, anoFiltro]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["acs-visitas", params],
     queryFn: () => apiGet("/api/acs/esus/visitas", params) as Promise<any>,
     staleTime: 120_000,
   });
 
   if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando visitas...</div>;
+
+  if (isError) return <OfflineBanner emoji="⚠️" titulo="Não foi possível conectar ao servidor"
+    nota="Verifique a conexão com a API ou tente novamente em instantes." />;
 
   const prod = data?.dados;
   if (!prod) return (
@@ -815,7 +818,7 @@ function AbaMicroareas({ maRef }: { maRef: any[] }) {
 // ── Aba Tempo Real ────────────────────────────────────────────────────────────
 
 function AbaTempoReal() {
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["esus-tempo-real"],
     queryFn: () => apiGet("/api/acs/esus/tempo-real") as Promise<any>,
     staleTime: 60_000,
@@ -830,6 +833,9 @@ function AbaTempoReal() {
   const tsLabel   = ts ? new Date(ts).toLocaleTimeString("pt-BR") : "—";
 
   if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Consultando e-SUS PEC em tempo real...</div>;
+
+  if (isError) return <OfflineBanner emoji="⚠️" titulo="Não foi possível conectar ao servidor"
+    nota="Verifique a conexão com a API ou tente novamente em instantes." />;
 
   if (!conectado) {
     return (
