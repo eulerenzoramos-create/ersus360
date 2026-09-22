@@ -1,7 +1,8 @@
 // src/App.tsx — ERSUS 360
 import { useState, createContext, useContext, Component, useEffect, lazy, Suspense } from "react";
 import { Sidebar } from "./components/Sidebar";
-import SeletorMunicipio, { ListaMunicipios } from "./components/SeletorMunicipio";
+import { ListaMunicipios } from "./components/SeletorMunicipio";
+import AdminGeral from "./pages/AdminGeral";
 import { lerSessao, limparSessao, sairDoSuporte, SessaoUsuario } from "./lib/sessao";
 import { paginaDisponivel } from "./lib/municipio";
 
@@ -741,7 +742,7 @@ function Layout({ children, sessao, onLogout }: {
             <button onClick={()=>{ sairDoSuporte().catch(()=>onLogout()); }} style={{
               background:"none",border:"1px solid rgba(251,191,36,.4)",borderRadius:6,color:"#fbbf24",
               fontSize:11,padding:"2px 8px",cursor:"pointer",
-            }}>Sair do suporte</button>
+            }}>Voltar à administração geral</button>
           )}
         </div>
 
@@ -1108,10 +1109,10 @@ export default function App() {
     return <AppErrorBoundary><QueryClientProvider client={qc}><Login onLogin={handleLogin}/></QueryClientProvider></AppErrorBoundary>;
   }
 
-  // Administrador-geral fora de um município: escolhe o ambiente antes de ver dados
+  // Administrador-geral fora de um município: painel da administração geral
   if (!sessao.municipio_id) {
     return <AppErrorBoundary><QueryClientProvider client={qc}>
-      <SeletorMunicipio nome={sessao.nome} onLogout={handleLogout}/>
+      <AdminGeral nome={sessao.nome} onLogout={handleLogout}/>
     </QueryClientProvider></AppErrorBoundary>;
   }
 

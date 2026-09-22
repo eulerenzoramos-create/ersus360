@@ -29,7 +29,12 @@ Stack: FastAPI (backend Railway) + React/Vite/TypeScript (frontend Vercel).
 - Único perfil global: `administrador_geral` (conta bootstrap `euler`, senha só via `EULER_SENHA`).
   Entra num município por `/api/tenant/selecionar` (SUPORTE_INICIO/FIM auditados).
 - Cadastro/situação de municípios, usuários e autorizações: `/api/admin-geral/*`.
-- Testes obrigatórios: `tests/test_isolamento_tenant.py` e `tests/test_varredura_tenant.py` (todas as rotas GET
+- Arquivos: sempre via `tenancy.arquivos` (`pasta_municipio("documentos")` etc.) em
+  `ARMAZENAMENTO_DIR/municipios/{uuid}/...`; nunca `/tmp` fixo nem servir arquivo sem checar o município.
+- Backups (`tenancy/backup.py`): geral + por município, criptografados (`BACKUP_CHAVE`, chave Fernet),
+  em `BACKUP_DIR`, rotina diária 02:30 com teste de restauração, retenção `BACKUP_RETENCAO_DIAS` (30).
+  Restauração só de município, pelo painel do administrador-geral; não sobrescreve usuários/auditoria.
+- Testes obrigatórios: `tests/test_isolamento_tenant.py`, `tests/test_varredura_tenant.py` e `tests/test_backup_tenant.py` (todas as rotas GET
   como outro município, internet simulada) — nenhum deploy se falharem.
 
 ## Credenciais sensíveis

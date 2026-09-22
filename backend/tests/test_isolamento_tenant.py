@@ -25,7 +25,6 @@ from models.documento import Documento
 from models.municipio import Municipio
 from models.usuario import AuditLog, Perfil, Usuario, UsuarioMunicipio
 from routers import auth as auth_mod
-from routers import documentos as documentos_mod
 from tenancy.migracoes import migrar_multitenant
 
 SENHA = "senha-forte-123"
@@ -86,7 +85,7 @@ async def ambiente(tmp_path, monkeypatch):
 
     monkeypatch.setitem(auth_mod.USERS_BOOTSTRAP["euler"], "hashed_password",
                         auth_mod.pwd_ctx.hash(SENHA_ADMIN))
-    monkeypatch.setattr(documentos_mod, "UPLOAD_DIR", str(tmp_path / "uploads"))
+    monkeypatch.setenv("ARMAZENAMENTO_DIR", str(tmp_path / "uploads"))
     main.app.dependency_overrides[get_db] = _get_db
     client = AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test")
     yield {"client": client, "Session": Session, "ids": ids, "tmp": tmp_path}

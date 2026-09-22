@@ -342,6 +342,30 @@ async def _job_alertas_automaticos() -> None:
         logger.error("[Scheduler] Erro nos alertas automáticos: %s", exc, exc_info=True)
 
 
+async def _job_backup_diario() -> None:
+    from database import AsyncSessionLocal, engine
+    from tenancy.backup import rotina_diaria
+    try:
+        await rotina_diaria(AsyncSessionLocal, engine)
+    except Exception as exc:
+        logger.error("[Scheduler] Rotina de backup falhou: %s", exc, exc_info=True)
+
+
+async def _job_reverificar_backups() -> None:
+    """Teste periódico de restauração dos backups guardados."""
+    from sqlalchemy import select
+    from database import AsyncSessionLocal
+    from models.backup import BackupExecucao
+    from tenancy.backup import verificar_registro
+    try:
+        async with AsyncSessionLocal() as db:
+            regs = (await db.execute(select(BackupExecucao).where(BackupExecucao.status == "ok"))).scalars().all()
+            for reg in regs:
+                await verificar_registro(db, reg)
+    except Exception as exc:
+        logger.error("[Scheduler] Reverificação de backups falhou: %s", exc, exc_info=True)
+
+
 def start_scheduler() -> None:
     """Registra e inicia o scheduler."""
     hora_str = settings.FNS_SYNC_HORA  # "06:00"
@@ -349,6 +373,24 @@ def start_scheduler() -> None:
         hora, minuto = hora_str.split(":")
     except ValueError:
         hora, minuto = "6", "0"
+
+    # Backup geral + por município, com teste de restauração (02:30)
+    scheduler.add_job(
+        _job_backup_diario,
+        CronTrigger(hour=2, minute=30, timezone="America/Manaus"),
+        id="backup_diario",
+        replace_existing=True,
+        misfire_grace_time=6 * 3600,
+    )
+
+    # Reverificação semanal dos backups ainda guardados (domingo 04:00)
+    scheduler.add_job(
+        _job_reverificar_backups,
+        CronTrigger(day_of_week="sun", hour=4, minute=0, timezone="America/Manaus"),
+        id="backup_reverificacao",
+        replace_existing=True,
+        misfire_grace_time=6 * 3600,
+    )
 
     # Job 1: Sync FNS diário (06:00)
     scheduler.add_job(

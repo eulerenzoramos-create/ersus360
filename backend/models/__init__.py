@@ -74,3 +74,4 @@ from models.investsus import (
     Parecer, PagamentoInvestSUS, AlertaInvestSUS, DocumentoInvestSUS,
     AtualizacaoManual, SnapshotInvestSUS,
 )
+from models.backup import BackupExecucao  # noqa: E402

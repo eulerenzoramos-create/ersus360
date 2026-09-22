@@ -13,13 +13,12 @@ import uuid, os
 from database import get_db
 from models import Portaria, Municipio, PortariaMunicipio
 from routers.auth import get_current_user, UserOut, exigir_admin_geral
+from tenancy.arquivos import pasta_global
 from tenancy.escopo import MunicipioDaSessao
 
 router = APIRouter(prefix="/api/portarias", tags=["Portarias"])
 
 # Diretório local para armazenar PDFs (substitua por MinIO em produção)
-UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "/tmp/ersus360/portarias")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -150,7 +149,7 @@ async def upload_pdf(
 
     ext = os.path.splitext(arquivo.filename or "arquivo.pdf")[1]
     nome_arquivo = f"{uuid.uuid4()}{ext}"
-    caminho = os.path.join(UPLOAD_DIR, nome_arquivo)
+    caminho = os.path.join(pasta_global("portarias"), nome_arquivo)
 
     conteudo = await arquivo.read()
     with open(caminho, "wb") as f:

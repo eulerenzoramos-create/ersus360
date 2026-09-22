@@ -1,12 +1,12 @@
 /**
- * Seleção de município — ERSUS 360 (multi-tenant)
+ * Lista de municípios autorizados — ERSUS 360 (multi-tenant)
  *
  * Lista SOMENTE os municípios que o backend autoriza para o usuário
  * (/api/tenant/municipios). A escolha gera um novo token no backend, com
  * registro na auditoria, e recarrega toda a aplicação no novo contexto.
  */
 import { useEffect, useState } from "react";
-import { MapPin, LogOut, Search } from "lucide-react";
+import { MapPin, Search } from "lucide-react";
 import { api } from "../lib/api";
 import { selecionarMunicipio } from "../lib/sessao";
 
@@ -87,29 +87,6 @@ export function ListaMunicipios({ atualUuid }: { atualUuid?: string | null }) {
         {lista !== null && visiveis.length === 0 && (
           <div style={{ color: "#64748b", fontSize: 13 }}>Nenhum município encontrado.</div>
         )}
-      </div>
-    </div>
-  );
-}
-
-/** Tela cheia exibida ao administrador-geral enquanto nenhum município está selecionado. */
-export default function SeletorMunicipio({ nome, onLogout }: { nome: string; onLogout: () => void }) {
-  return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%)",
-                  display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ background: "#fff", borderRadius: 14, padding: 28, width: "100%", maxWidth: 480 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#1d4ed8", letterSpacing: ".06em",
-                      textTransform: "uppercase" }}>Administração geral</div>
-        <h1 style={{ fontSize: 20, margin: "4px 0 4px", color: "#0f172a" }}>Selecione o município</h1>
-        <p style={{ fontSize: 13, color: "#475569", margin: "0 0 16px" }}>
-          {nome}, escolha o ambiente municipal. O início e o fim do acesso e todas as
-          alterações feitas ficam registrados na auditoria.
-        </p>
-        <ListaMunicipios />
-        <button onClick={onLogout} style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 6,
-                  background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 13 }}>
-          <LogOut size={14} /> Sair
-        </button>
       </div>
     </div>
   );

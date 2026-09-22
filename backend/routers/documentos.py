@@ -1,7 +1,7 @@
 """
 Router: /api/documentos — Módulo 9: Gestão de Documentos (multi-tenant)
 
-Arquivos ficam em UPLOAD_DIR/municipios/{municipio_uuid}/documentos/{tipo}/ e
+Arquivos ficam em ARMAZENAMENTO_DIR/municipios/{municipio_uuid}/documentos/{tipo}/ e
 só são servidos por este router, após conferir que o documento pertence ao
 município da sessão. Exclusão é lógica (arquivo e registro preservados).
 """
@@ -19,11 +19,11 @@ from database import get_db
 from models.documento import Documento
 from routers.auth import UserOut
 from tenancy.auditoria import registrar_auditoria
+from tenancy.arquivos import pasta_municipio
 from tenancy.escopo import SessaoMunicipal, garantir_do_municipio
 
 router = APIRouter(prefix="/api/documentos", tags=["Documentos"])
 
-UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "/tmp/ersus360")
 
 TIPOS_VALIDOS = {
     "Portaria", "Ofício", "Nota Técnica", "Parecer",
@@ -55,8 +55,7 @@ class DocumentoOut(BaseModel):
 
 def _pasta_municipio(current: UserOut, tipo: str) -> str:
     subpasta = re.sub(r"[^a-z0-9_]", "_", tipo.lower()) or "outro"
-    return os.path.join(UPLOAD_DIR, "municipios", current.municipio_uuid or str(current.municipio_id),
-                        "documentos", subpasta)
+    return str(pasta_municipio("documentos", subpasta))
 
 
 async def _documento(db: AsyncSession, current: UserOut, doc_id: int) -> Documento:

@@ -6,6 +6,7 @@ autorizações multi-município e auditoria. Exclusivo do ADMINISTRADOR_GERAL
 from __future__ import annotations
 
 import json
+import os
 from datetime import date, datetime
 from typing import Optional
 
@@ -434,3 +435,125 @@ async def auditoria(
          "detalhe": a.detalhe, "ip_origem": a.ip_origem}
         for a in (await db.execute(stmt)).scalars().all()
     ]
+
+
+# ── Backups ───────────────────────────────────────────────────────────────────
+
+class BackupIn(BaseModel):
+    municipio_uuid: Optional[str] = None   # None = backup geral de todo o banco
+
+
+class RestaurarIn(BaseModel):
+    confirmacao: str   # nome do município, digitado para confirmar
+
+
+def _backup_dict(r, municipios: dict[int, Municipio]) -> dict:
+    m = municipios.get(r.municipio_id) if r.municipio_id else None
+    return {
+        "id": r.id, "tipo": r.tipo, "origem": r.origem, "status": r.status,
+        "municipio_uuid": m.uuid if m else None, "municipio": f"{m.nome}/{m.uf}" if m else None,
+        "tamanho_bytes": r.tamanho_bytes, "total_registros": r.total_registros,
+        "total_arquivos": r.total_arquivos, "sha256": r.sha256, "erro": r.erro,
+        "solicitado_por": r.solicitado_por, "iniciado_em": r.iniciado_em, "concluido_em": r.concluido_em,
+        "verificado_em": r.verificado_em, "verificacao_ok": r.verificacao_ok,
+        "verificacao_detalhe": r.verificacao_detalhe,
+        "restaurado_em": r.restaurado_em, "restaurado_por": r.restaurado_por,
+    }
+
+
+@router.get("/backups")
+async def listar_backups(
+    municipio_uuid: Optional[str] = None, limite: int = Query(100, le=500),
+    db: AsyncSession = Depends(get_db), _: UserOut = AdminDep,
+):
+    from models.backup import BackupExecucao
+    from tenancy.arquivos import armazenamento_persistente
+    from tenancy.backup import dias_retencao
+
+    stmt = select(BackupExecucao).order_by(BackupExecucao.iniciado_em.desc(), BackupExecucao.id.desc()).limit(limite)
+    if municipio_uuid:
+        stmt = stmt.where(BackupExecucao.municipio_id == (await _municipio(db, municipio_uuid)).id)
+    regs = (await db.execute(stmt)).scalars().all()
+    muns = {m.id: m for m in (await db.execute(select(Municipio))).scalars().all()}
+    return {
+        "retencao_dias": dias_retencao(),
+        "armazenamento_persistente": armazenamento_persistente(),
+        "chave_dedicada": bool(os.getenv("BACKUP_CHAVE")),
+        "backups": [_backup_dict(r, muns) for r in regs],
+    }
+
+
+@router.post("/backups", status_code=201)
+async def criar_backup(
+    body: BackupIn, request: Request,
+    db: AsyncSession = Depends(get_db), admin: UserOut = AdminDep,
+):
+    from tenancy.backup import executar_backup
+
+    mun = await _municipio(db, body.municipio_uuid) if body.municipio_uuid else None
+    reg = await executar_backup(db, db.bind, mun, origem="manual", solicitado_por=admin.username)
+    await registrar_auditoria(db, "BACKUP_GERADO", usuario=admin, municipio_id=mun.id if mun else None,
+                              ip=ip_de(request), tabela="backup_execucoes", registro_id=reg.id,
+                              detalhe=f"{reg.tipo} status={reg.status} verificado={reg.verificacao_ok}")
+    return _backup_dict(reg, {mun.id: mun} if mun else {})
+
+
+async def _backup(db: AsyncSession, backup_id: int):
+    from models.backup import BackupExecucao
+    reg = await db.get(BackupExecucao, backup_id)
+    if not reg or reg.status != "ok":
+        raise HTTPException(404, "Backup não encontrado ou indisponível")
+    return reg
+
+
+@router.post("/backups/{backup_id}/verificar")
+async def verificar_backup_manual(
+    backup_id: int, request: Request,
+    db: AsyncSession = Depends(get_db), admin: UserOut = AdminDep,
+):
+    from tenancy.backup import verificar_registro
+
+    reg = await _backup(db, backup_id)
+    await verificar_registro(db, reg)
+    await registrar_auditoria(db, "BACKUP_VERIFICADO", usuario=admin, municipio_id=reg.municipio_id,
+                              ip=ip_de(request), tabela="backup_execucoes", registro_id=reg.id,
+                              detalhe=f"ok={reg.verificacao_ok} {reg.verificacao_detalhe or ''}")
+    return {"verificacao_ok": reg.verificacao_ok, "detalhe": reg.verificacao_detalhe}
+
+
+@router.post("/backups/{backup_id}/restaurar")
+async def restaurar_backup(
+    backup_id: int, body: RestaurarIn, request: Request,
+    db: AsyncSession = Depends(get_db), admin: UserOut = AdminDep,
+):
+    """Restaura UM município a partir de um backup dele mesmo. Antes, grava um
+    backup de segurança do estado atual. Outros municípios não são tocados."""
+    from pathlib import Path
+    from tenancy.backup import ErroBackup, alvo_de, executar_backup, restaurar_municipio
+
+    reg = await _backup(db, backup_id)
+    if reg.tipo != "municipio" or not reg.municipio_id:
+        raise HTTPException(422, "Somente backups de município podem ser restaurados pelo sistema")
+    mun = await db.get(Municipio, reg.municipio_id)
+    if not mun or body.confirmacao.strip().lower() != mun.nome.strip().lower():
+        raise HTTPException(422, "Confirmação inválida: digite exatamente o nome do município")
+    if reg.verificacao_ok is not True:
+        raise HTTPException(409, "Backup sem teste de restauração aprovado — verifique antes de restaurar")
+
+    seguranca = await executar_backup(db, db.bind, mun, origem="pre-restauracao", solicitado_por=admin.username)
+    if seguranca.status != "ok":
+        raise HTTPException(500, "Não foi possível gravar o backup de segurança — restauração cancelada")
+
+    ip = ip_de(request)
+    try:
+        resumo = await restaurar_municipio(db.bind, Path(reg.arquivo), reg.sha256, alvo_de(mun))
+    except ErroBackup as exc:
+        await registrar_auditoria(db, "RESTAURACAO_FALHOU", usuario=admin, municipio_id=mun.id, ip=ip,
+                                  tabela="backup_execucoes", registro_id=reg.id, detalhe=str(exc))
+        raise HTTPException(422, str(exc))
+    reg.restaurado_em, reg.restaurado_por = datetime.utcnow(), admin.username
+    await db.commit()
+    await registrar_auditoria(db, "RESTAURACAO_MUNICIPIO", usuario=admin, municipio_id=mun.id, ip=ip,
+                              tabela="backup_execucoes", registro_id=reg.id,
+                              detalhe=f"backup de {reg.iniciado_em:%Y-%m-%d %H:%M}; segurança id={seguranca.id}")
+    return {"ok": True, "backup_seguranca_id": seguranca.id, **resumo}
