@@ -21,6 +21,7 @@ from datetime import datetime
 from typing import Any
 
 import httpx
+from tenancy.contexto import ibge7
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +161,7 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
         # ── 3. Transferências recebidas pelo município ──────────────────────
         try:
             dados = await _get(client, "transferencias/municipios", {
-                "codigoMunicipio": "1300144",   # IBGE Apuí
+                "codigoMunicipio": ibge7(),     # município da sessão
                 "ano": ano,
                 "pagina": 1,
                 "tamanhoPagina": 20,

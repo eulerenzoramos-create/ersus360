@@ -5,6 +5,7 @@ API indisponivel / dados nao coletados → nao_disponivel. Nunca dados ficticios
 from __future__ import annotations
 from fastapi import APIRouter, Query
 from datetime import datetime
+from tenancy.contexto import ibge7
 
 router = APIRouter(prefix="/api/auditoria", tags=["Auditoria APS"])
 
@@ -152,12 +153,19 @@ REGRAS_BASE = [
 # ── Plano de acao (em memoria — sem contagens ficticias de saude) ─────────────
 # Tarefas descrevem gaps tecnicos do sistema ERSUS 360, nao dados de pacientes.
 
-_tarefas: list[dict] = [
+# Tarefas iniciais (gaps técnicos registrados para Apuí/AM, município piloto)
+_TAREFAS_APUI: list[dict] = [
     {"id":1,"titulo":"Renovar certificado mTLS RNDS","descricao":"Solicitar novo certificado ICP-Brasil ao DATASUS para autenticacao na RNDS.","sistema":"RNDS","categoria":"Certificado Digital","responsavel":"TI Municipal","prazo":"2026-08-01","prioridade":"critica","status":"em_andamento","criado_em":"01/07/2026","atualizado_em":"10/07/2026","evidencia":None,"comentarios":0,"origem_alerta":"RNDS — gateway mTLS ausente"},
     {"id":2,"titulo":"Implementar gateway RNDS no backend","descricao":"Criar services/rnds_gateway.py com autenticacao mTLS e endpoints FHIR R4 para Immunization e MedicationRequest.","sistema":"RNDS","categoria":"Desenvolvimento","responsavel":"TI Municipal","prazo":"2026-09-30","prioridade":"critica","status":"aberto","criado_em":"23/07/2026","atualizado_em":"23/07/2026","evidencia":None,"comentarios":0,"origem_alerta":"Nenhum endpoint FHIR R4 implementado"},
     {"id":3,"titulo":"Ativar sincronizacao automatica SCNES","descricao":"Configurar cron diario no Railway para sincronizar profissionais e equipes via API SCNES.","sistema":"SCNES/CNES","categoria":"Integracao","responsavel":"TI Municipal","prazo":"2026-08-30","prioridade":"alta","status":"aberto","criado_em":"15/07/2026","atualizado_em":"22/07/2026","evidencia":None,"comentarios":0,"origem_alerta":None},
 ]
+# Plano de ação por município (IBGE → tarefas). Nenhum município vê o de outro.
+_tarefas_por_municipio: dict[str, list[dict]] = {"1300144": _TAREFAS_APUI}
 _prox_id = 4
+
+
+def _tarefas() -> list[dict]:
+    return _tarefas_por_municipio.setdefault(ibge7(), [])
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -171,7 +179,7 @@ async def dashboard_auditoria():
         "sistemas":           sistemas,
         "alertas_ativos":     {"situacao_dado": "nao_disponivel", "dados": None, "nota": "Alertas operacionais requerem integracao com banco de inconsistencias."},
         "regras":             REGRAS_BASE,
-        "tarefas_abertas":    sum(1 for t in _tarefas if t["status"] in ("aberto","em_andamento")),
+        "tarefas_abertas":    sum(1 for t in _tarefas() if t["status"] in ("aberto","em_andamento")),
         "nota":               "Score calculado a partir do checklist de funcionalidades implementadas no ERSUS 360.",
     }
 
@@ -204,7 +212,7 @@ async def executar_regra(regra_id: int):
 
 @router.get("/plano-acao")
 async def listar_plano_acao():
-    return _tarefas
+    return _tarefas()
 
 
 @router.post("/plano-acao")
@@ -226,14 +234,14 @@ async def criar_tarefa(body: dict):
         "comentarios":  0,
         "origem_alerta": body.get("origem_alerta"),
     }
-    _tarefas.append(nova)
+    _tarefas().append(nova)
     _prox_id += 1
     return nova
 
 
 @router.put("/plano-acao/{tarefa_id}")
 async def atualizar_tarefa(tarefa_id: int, body: dict):
-    tarefa = next((t for t in _tarefas if t["id"] == tarefa_id), None)
+    tarefa = next((t for t in _tarefas() if t["id"] == tarefa_id), None)
     if not tarefa:
         return {"erro": "Tarefa nao encontrada"}
     tarefa.update({k: v for k, v in body.items() if k in tarefa})

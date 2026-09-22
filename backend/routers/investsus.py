@@ -170,12 +170,11 @@ class AlertaResolverBody(BaseModel):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _municipio_id(user: UserOut) -> int:
-    """Retorna municipio_id do usuário; superadmin usa municipio_id=1 como padrão."""
+    """Município da sessão — nunca um valor padrão nem vindo do cliente."""
     mid = getattr(user, "municipio_id", None)
-    if mid:
-        return mid
-    # assessoria/superadmin: permite filtrar depois
-    return 1
+    if not mid:
+        raise HTTPException(409, "MUNICIPIO_NAO_SELECIONADO: selecione um município para continuar")
+    return mid
 
 
 def _prop_dict(p: PropostaInvestSUS) -> dict:
@@ -259,10 +258,9 @@ def _prop_dict(p: PropostaInvestSUS) -> dict:
 async def dashboard(
     db: DbDep,
     user: UserDep,
-    municipio_id: int = Query(None),
     exercicio: int = Query(None),
 ):
-    mid = municipio_id or _municipio_id(user)
+    mid = _municipio_id(user)
     stmt = select(PropostaInvestSUS).where(PropostaInvestSUS.municipio_id == mid)
     if exercicio:
         stmt = stmt.where(PropostaInvestSUS.exercicio == exercicio)
@@ -341,14 +339,13 @@ async def dashboard(
 async def listar_propostas(
     db: DbDep,
     user: UserDep,
-    municipio_id: int = Query(None),
     situacao: str = Query(None),
     exercicio: int = Query(None),
     busca: str = Query(None),
     pagina: int = Query(1, ge=1),
     tamanho: int = Query(50, ge=1, le=200),
 ):
-    mid = municipio_id or _municipio_id(user)
+    mid = _municipio_id(user)
     stmt = (
         select(PropostaInvestSUS)
         .options(
@@ -804,11 +801,10 @@ async def adicionar_natureza(proposta_id: int, body: NaturezaCreate, db: DbDep, 
 async def listar_alertas(
     db: DbDep,
     user: UserDep,
-    municipio_id: int = Query(None),
     apenas_abertos: bool = Query(True),
     nivel: str = Query(None),
 ):
-    mid = municipio_id or _municipio_id(user)
+    mid = _municipio_id(user)
     stmt = (
         select(AlertaInvestSUS)
         .where(AlertaInvestSUS.municipio_id == mid)
@@ -837,7 +833,8 @@ async def listar_alertas(
 
 @router.post("/alertas/{alerta_id}/resolver")
 async def resolver_alerta(alerta_id: int, body: AlertaResolverBody, db: DbDep, user: UserDep):
-    r = await db.execute(select(AlertaInvestSUS).where(AlertaInvestSUS.id == alerta_id))
+    r = await db.execute(select(AlertaInvestSUS).where(
+        and_(AlertaInvestSUS.id == alerta_id, AlertaInvestSUS.municipio_id == _municipio_id(user))))
     al = r.scalar_one_or_none()
     if not al:
         raise HTTPException(404)
@@ -1032,7 +1029,11 @@ async def adicionar_plano(proposta_id: int, body: PlanoCreate, db: DbDep, user: 
 
 @router.post("/planos/{plano_id}/acoes", status_code=201)
 async def adicionar_acao(plano_id: int, body: AcaoCreate, db: DbDep, user: UserDep):
-    r = await db.execute(select(PlanoTrabalho).where(PlanoTrabalho.id == plano_id))
+    r = await db.execute(
+        select(PlanoTrabalho)
+        .join(PropostaInvestSUS, PlanoTrabalho.proposta_id == PropostaInvestSUS.id)
+        .where(and_(PlanoTrabalho.id == plano_id, PropostaInvestSUS.municipio_id == _municipio_id(user)))
+    )
     if not r.scalar_one_or_none():
         raise HTTPException(404)
     ac = AcaoServico(plano_id=plano_id, **body.model_dump())
@@ -1047,12 +1048,11 @@ async def adicionar_acao(plano_id: int, body: AcaoCreate, db: DbDep, user: UserD
 async def relatorio_acompanhamento(
     db: DbDep,
     user: UserDep,
-    municipio_id: int = Query(None),
     exercicio: int = Query(None),
     situacao: str = Query(None),
 ):
     """Retorna dados estruturados para exportação (relatório consolidado)."""
-    mid = municipio_id or _municipio_id(user)
+    mid = _municipio_id(user)
     stmt = (
         select(PropostaInvestSUS)
         .options(
@@ -1144,8 +1144,11 @@ async def seed_exemplo_apui(db: DbDep, user: UserDep):
     Insere o exemplo real de Apuí para validação.
     Endpoint restrito — apenas superadmin.
     """
-    if user.role not in ("superadmin", "admin"):
+    if not user.administrador_geral and user.role != "admin":
         raise HTTPException(403, "Acesso restrito")
+    if user.municipio_ibge != "1300144":
+        # o exemplo contém dados reais de Apuí: nunca gravar em outro município
+        raise HTTPException(403, "Exemplo disponível somente para Apuí/AM")
 
     mid = _municipio_id(user)
 
@@ -1394,7 +1397,7 @@ async def sincronizar_com_investsus(user: UserDep):
     Inicia sincronização em background e retorna job_id imediatamente.
     Use GET /api/investsus/sincronizar/{job_id} para verificar o status.
     """
-    if user.role not in ("superadmin", "admin", "gestor", "financeiro"):
+    if not user.administrador_geral and user.role not in ("admin", "gestor", "financeiro"):
         raise HTTPException(403, "Acesso restrito")
 
     import os
@@ -1406,7 +1409,7 @@ async def sincronizar_com_investsus(user: UserDep):
 
     mid = _municipio_id(user)
     job_id = str(_uuid.uuid4())
-    _sync_jobs[job_id] = {"status": "iniciado", "resultado": None, "erro": None}
+    _sync_jobs[job_id] = {"status": "iniciado", "resultado": None, "erro": None, "municipio_id": mid}
     _asyncio.create_task(_executar_sync_job(job_id, mid))
     return {"job_id": job_id, "status": "iniciado"}
 
@@ -1414,10 +1417,10 @@ async def sincronizar_com_investsus(user: UserDep):
 @router.get("/sincronizar/{job_id}")
 async def status_sync_job(job_id: str, user: UserDep):
     """Retorna status do job de sincronização."""
-    if user.role not in ("superadmin", "admin", "gestor", "financeiro"):
+    if not user.administrador_geral and user.role not in ("admin", "gestor", "financeiro"):
         raise HTTPException(403, "Acesso restrito")
     job = _sync_jobs.get(job_id)
-    if not job:
+    if not job or job.get("municipio_id") != _municipio_id(user):
         raise HTTPException(404, "Job não encontrado")
     return job
 
@@ -1425,7 +1428,7 @@ async def status_sync_job(job_id: str, user: UserDep):
 @router.get("/config-chave")
 async def get_transparencia_key(user: UserDep):
     """Retorna a chave da API do Portal da Transparência para uso no browser."""
-    if user.role not in ("superadmin", "admin", "gestor", "financeiro"):
+    if not user.administrador_geral and user.role not in ("admin", "gestor", "financeiro"):
         raise HTTPException(403, "Acesso restrito")
     import os
     key = os.getenv("TRANSPARENCIA_API_KEY", "")
@@ -1441,7 +1444,7 @@ async def salvar_dados_sincronizados(payload: dict, db: DbDep, user: UserDep):
     e os salva no banco. Usado quando o Railway não consegue alcançar .gov.br.
     payload: { propostas: [...], repasses: [...], sincronizado_em: str }
     """
-    if user.role not in ("superadmin", "admin", "gestor", "financeiro"):
+    if not user.administrador_geral and user.role not in ("admin", "gestor", "financeiro"):
         raise HTTPException(403, "Acesso restrito")
 
     mid = _municipio_id(user)

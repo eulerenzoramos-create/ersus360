@@ -12,11 +12,32 @@ Stack: FastAPI (backend Railway) + React/Vite/TypeScript (frontend Vercel).
 - **API Docs:** https://ersus360-production.up.railway.app/docs
 - **GitHub:** eulerenzoramos-create/ersus360
 
-## Usuários de teste
-| Usuário | Senha | Papel |
-|---|---|---|
-| gestor | ersus2026 | gestor |
-| admin | admin2026 | admin |
+## Multi-tenant (um município = um ambiente isolado)
+- `backend/tenancy/guard.py` é dependência GLOBAL do app: toda rota `/api/*` e `/ws/*` exige token,
+  exceto `ROTAS_PUBLICAS`. O município da sessão vem do claim `mid` do token e é revalidado no banco
+  a cada requisição (usuário ativo, município `ativo`, autorização vigente).
+- Parâmetros de município (`municipio_id`, `ibge`, `ibge6`, `coMunicipio`...) em query/path/corpo JSON
+  que divergirem da sessão → 403 + auditoria.
+- O guard grava o município em `tenancy.contexto` (ContextVar). Serviços usam `ibge7()`, `ibge6()`,
+  `populacao()`, `municipio_atual()` — NUNCA constantes de IBGE/população. `cache_service` já separa por município.
+- Routers com banco: filtrar SEMPRE pelo município da sessão (`tenancy.escopo.MunicipioDaSessao`,
+  `SessaoMunicipal`, `garantir_do_municipio`); nunca `municipio_id: int = Query(1)`.
+- `ROTAS_SO_APUI` (guard): módulos com dados de referência de Apuí no código — só respondem a Apuí.
+  Ao generalizar um módulo, removê-lo dessa lista e rodar `tests/test_varredura_tenant.py`.
+- Frontend: telas liberadas para outros municípios em `PAGINAS_MULTIMUNICIPIO` (`lib/municipio.ts`).
+- Credenciais de integração: só em env vars, nunca no banco. Por município: `{VARIAVEL}_{IBGE7}`
+  (ex.: `SIAPS_CPF_1399991`); sem sufixo = Apuí (legado). Ler SEMPRE via `tenancy.credenciais.credencial()`/
+  `configurado()`; tokens em cache por IBGE. Situação por município: `/api/admin-geral/municipios/{uuid}/credenciais`.
+- Único perfil global: `administrador_geral` (conta bootstrap `euler`, senha só via `EULER_SENHA`).
+  Entra num município por `/api/tenant/selecionar` (SUPORTE_INICIO/FIM auditados).
+- Cadastro/situação de municípios, usuários e autorizações: `/api/admin-geral/*`.
+- Arquivos: sempre via `tenancy.arquivos` (`pasta_municipio("documentos")` etc.) em
+  `ARMAZENAMENTO_DIR/municipios/{uuid}/...`; nunca `/tmp` fixo nem servir arquivo sem checar o município.
+- Backups (`tenancy/backup.py`): geral + por município, criptografados (`BACKUP_CHAVE`, chave Fernet),
+  em `BACKUP_DIR`, rotina diária 02:30 com teste de restauração, retenção `BACKUP_RETENCAO_DIAS` (30).
+  Restauração só de município, pelo painel do administrador-geral; não sobrescreve usuários/auditoria.
+- Testes obrigatórios: `tests/test_isolamento_tenant.py`, `tests/test_varredura_tenant.py` e `tests/test_backup_tenant.py` (todas as rotas GET
+  como outro município, internet simulada) — nenhum deploy se falharem.
 
 ## Credenciais sensíveis
 NUNCA no código — apenas como variáveis de ambiente no Railway:

@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, BackgroundTasks
 
 from routers.auth import get_current_user, UserOut
 from services.cache_service import cache_get, cache_set
+from tenancy.arquivos import pasta_municipio
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/sync", tags=["sync-historico"])
@@ -28,8 +29,8 @@ EGESTOR    = "https://egestorab.saude.gov.br/api/v1"
 DADOSAB    = "https://apidadosabertos.saude.gov.br"
 TIMEOUT    = 20.0
 
-_CACHE_DIR = Path("/tmp/ersus_pec_cache")
-_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+def _cache_dir() -> Path:
+    return pasta_municipio("cache", "pec")
 
 # Competências do exercício 2026 a extrair
 COMPETENCIAS_2026 = [
@@ -60,7 +61,7 @@ def _comp_iso(c: str) -> str:
 
 
 def _cache_path(competencia_iso: str) -> Path:
-    return _CACHE_DIR / f"indicadores_{competencia_iso.replace('-','')}.json"
+    return _cache_dir() / f"indicadores_{competencia_iso.replace('-','')}.json"
 
 
 def _salvar_pec_cache(competencia_iso: str, equipes: dict[str, dict[str, float]],

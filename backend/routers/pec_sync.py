@@ -16,6 +16,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import AsyncSessionLocal
+from tenancy.arquivos import pasta_municipio
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/pec", tags=["pec-sync"])
@@ -52,7 +53,8 @@ _DESC: Dict[str, str] = {
     "P1": "Acesso Prisional", "P2": "Saúde Mental Prisional",
     "P3": "Diabetes Prisional", "P4": "Hipertensão Prisional", "P5": "Câncer Colo Prisional",
 }
-_ALERTAS_PATH = Path("/tmp/ersus_pec_cache/alertas_aps.json")
+def _alertas_path() -> Path:
+    return pasta_municipio("cache", "pec") / "alertas_aps.json"
 
 
 def _gerar_alertas_aps(equipes: Dict[str, Dict[str, float]], competencia: str) -> List[dict]:
@@ -82,15 +84,15 @@ def _gerar_alertas_aps(equipes: Dict[str, Dict[str, float]], competencia: str) -
             })
     # Persiste alertas
     existentes = []
-    if _ALERTAS_PATH.exists():
+    if _alertas_path().exists():
         try:
-            existentes = json.loads(_ALERTAS_PATH.read_text(encoding="utf-8"))
+            existentes = json.loads(_alertas_path().read_text(encoding="utf-8"))
         except Exception:
             existentes = []
     ids_novos = {a["id"] for a in alertas}
     mantidos = [a for a in existentes if a["id"] not in ids_novos]
     todos = (alertas + mantidos)[:200]
-    _ALERTAS_PATH.write_text(json.dumps(todos, ensure_ascii=False), encoding="utf-8")
+    _alertas_path().write_text(json.dumps(todos, ensure_ascii=False), encoding="utf-8")
     return alertas
 
 # Chave de autenticação — gerada e armazenada como env var ERSUS_SYNC_KEY
@@ -124,12 +126,12 @@ class IndicadoresResponse(BaseModel):
 # ── Armazenamento em arquivo JSON (cache local no Railway) ───────────────────
 # Railway não tem disco persistente entre deploys, mas dados são recebidos
 # periodicamente do agente — aceitável para uso intraday.
-_CACHE_DIR = Path("/tmp/ersus_pec_cache")
-_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+def _cache_dir() -> Path:
+    return pasta_municipio("cache", "pec")
 
 
 def _cache_path(competencia: str) -> Path:
-    return _CACHE_DIR / f"indicadores_{competencia.replace('-','')}.json"
+    return _cache_dir() / f"indicadores_{competencia.replace('-','')}.json"
 
 
 def _salvar_cache(competencia: str, data: dict):
@@ -147,7 +149,7 @@ def _ler_cache(competencia: str) -> Optional[dict]:
 
 def _listar_competencias() -> list[str]:
     comps = []
-    for f in _CACHE_DIR.glob("indicadores_*.json"):
+    for f in _cache_dir().glob("indicadores_*.json"):
         name = f.stem.replace("indicadores_", "")
         if len(name) == 6:
             comps.append(f"{name[:4]}-{name[4:]}")
@@ -242,9 +244,9 @@ async def listar_competencias():
 async def listar_alertas_aps(apenas_nao_lidos: bool = False):
     """Retorna alertas APS gerados na última sincronização PEC."""
     alertas = []
-    if _ALERTAS_PATH.exists():
+    if _alertas_path().exists():
         try:
-            alertas = json.loads(_ALERTAS_PATH.read_text(encoding="utf-8"))
+            alertas = json.loads(_alertas_path().read_text(encoding="utf-8"))
         except Exception:
             alertas = []
     if apenas_nao_lidos:
@@ -256,15 +258,15 @@ async def listar_alertas_aps(apenas_nao_lidos: bool = False):
 async def marcar_alerta_lido(alerta_id: str):
     """Marca um alerta APS como lido."""
     alertas = []
-    if _ALERTAS_PATH.exists():
+    if _alertas_path().exists():
         try:
-            alertas = json.loads(_ALERTAS_PATH.read_text(encoding="utf-8"))
+            alertas = json.loads(_alertas_path().read_text(encoding="utf-8"))
         except Exception:
             alertas = []
     for a in alertas:
         if a["id"] == alerta_id:
             a["lido"] = True
-    _ALERTAS_PATH.write_text(json.dumps(alertas, ensure_ascii=False), encoding="utf-8")
+    _alertas_path().write_text(json.dumps(alertas, ensure_ascii=False), encoding="utf-8")
     return {"status": "ok"}
 
 

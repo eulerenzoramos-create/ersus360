@@ -10,12 +10,12 @@ from typing import Optional
 
 import httpx
 from config import settings
+from tenancy.contexto import ibge7, municipio_atual
 
 logger = logging.getLogger(__name__)
 
 _BASE    = "https://apidadosabertos.saude.gov.br/siops"
 _TIMEOUT = 15
-_IBGE    = settings.FNS_MUNICIPIO_IBGE
 
 
 async def _get(path: str, params: dict) -> Optional[dict | list]:
@@ -31,9 +31,9 @@ async def _get(path: str, params: dict) -> Optional[dict | list]:
 
 def _sem_dado(ano: int) -> dict:
     return {
-        "municipio":      getattr(settings, "MUNICIPIO_NOME", "Apui"),
-        "uf":             getattr(settings, "MUNICIPIO_UF", "AM"),
-        "ibge":           _IBGE,
+        "municipio":      municipio_atual().nome,
+        "uf":             municipio_atual().uf,
+        "ibge":           ibge7(),
         "ano":            ano,
         "situacao_dado":  "nao_disponivel",
         "fonte":          "nao_disponivel",
@@ -45,7 +45,7 @@ async def buscar_apuracao(ano: int) -> dict:
     """Indicadores SIOPS anuais para o municipio."""
     data = await _get(
         "/indicadores/indicadoressiops",
-        {"ano": ano, "codIbge": _IBGE, "offset": 0, "limit": 1},
+        {"ano": ano, "codIbge": ibge7(), "offset": 0, "limit": 1},
     )
     items = None
     if isinstance(data, list) and data:
@@ -64,9 +64,9 @@ async def buscar_apuracao(ano: int) -> dict:
                 pct = round(gps / rec * 100, 2)
             meta = float(items.get("percentualMinimo") or 15.0)
             return {
-                "municipio":   getattr(settings, "MUNICIPIO_NOME", "Apui"),
-                "uf":          getattr(settings, "MUNICIPIO_UF", "AM"),
-                "ibge":        _IBGE,
+                "municipio":   municipio_atual().nome,
+                "uf":          municipio_atual().uf,
+                "ibge":        ibge7(),
                 "ano":         ano,
                 "receita_impostos": rec,
                 "minimo_constitucional_pct_obrigatorio":    meta,
@@ -93,7 +93,7 @@ async def buscar_historico() -> list[dict]:
     for ano in range(ano_atual - 4, ano_atual + 1):
         d = await _get(
             "/indicadores/indicadoressiops",
-            {"ano": ano, "codIbge": _IBGE, "offset": 0, "limit": 1},
+            {"ano": ano, "codIbge": ibge7(), "offset": 0, "limit": 1},
         )
         pct: Optional[float] = None
         if isinstance(d, list) and d:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from fastapi import APIRouter, Query
 from services.siops_service import buscar_apuracao, buscar_historico
+from services.resumo import como_resumo
 router = APIRouter(prefix="/api/repasses", tags=["Repasses"])
 _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
 _NOTA = "Repasses FNS detalhados por bloco requerem e-Gestor/FNS (pendente). SIOPS como proxy financeiro."
@@ -15,7 +16,7 @@ async def dashboard(ano: int = Query(0)):
 async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
 @router.get("/historico")
 async def historico():
-    hist = await buscar_historico()
+    hist = como_resumo(await buscar_historico(), "historico")
     return {"situacao_dado": hist.get("situacao_dado"), "historico": hist, "nota": _NOTA, "verificado_em": _TS()}
 @router.get("/totais")
 async def totais(ano: int = Query(0)): return await dashboard(ano=ano)

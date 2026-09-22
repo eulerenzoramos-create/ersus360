@@ -6,20 +6,20 @@ Populações ribeirinhas do Amazonas — contexto específico.
 from __future__ import annotations
 from datetime import date, datetime
 from fastapi import APIRouter, Query
-from services.cnes_service import buscar_estabelecimentos
+from services.cnes_service import resumo_estabelecimentos
 from services.sia_service import buscar_producao
 
 router = APIRouter(prefix="/api/saude-ribeirinha-apui", tags=["saude_ribeirinha_apui"])
 _TS  = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 _ANO = lambda: date.today().year - 1
-_NOTA = "Dados específicos de populações ribeirinhas (SESAI/FUNAI não incidência em Apuí) requerem registro municipal (pendente)."
+_NOTA = "Dados específicos de populações ribeirinhas (SESAI/FUNAI sem incidência no município) requerem registro municipal (pendente)."
 
 
 @router.get("/dashboard")
 async def dashboard(ano: int = Query(0)):
     if not ano:
         ano = _ANO()
-    cnes = await buscar_estabelecimentos()
+    cnes = await resumo_estabelecimentos()
     sia  = await buscar_producao(ano)
     return {
         "situacao_dado": cnes.get("situacao_dado"),

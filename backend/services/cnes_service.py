@@ -9,10 +9,10 @@ from datetime import datetime, timedelta
 from typing import Optional
 import httpx
 from config import settings
+from tenancy.contexto import eh_legado, ibge7
 
 logger = logging.getLogger(__name__)
 
-IBGE = settings.FNS_MUNICIPIO_IBGE  # 1300144
 CNES_BASE = "https://cnes.datasus.gov.br"
 TIMEOUT = 20
 
@@ -60,11 +60,14 @@ async def _buscar_equipes_ubs(co_unidade: str) -> list[dict]:
     return []
 
 
-async def buscar_equipes_saude(ibge: str = IBGE) -> list[dict]:
+async def buscar_equipes_saude(ibge: str | None = None) -> list[dict]:
     """
     Retorna todas as equipes ESF/ESB/eMulti de Apuí/AM em tempo real via CNES.
     Cache TTL: 6 horas.
     """
+    if not eh_legado():
+        # Lista verificada de UBS/equipes existe só para Apuí/AM — sem dado para outros municípios
+        return []
     global _cache_equipes, _cache_equipes_exp
     if _cache_equipes and _cache_equipes_exp and datetime.now() < _cache_equipes_exp:
         logger.debug("CNES equipes: retornando do cache")
@@ -86,7 +89,7 @@ async def buscar_equipes_saude(ibge: str = IBGE) -> list[dict]:
                     "ds_area": eq.get("dsArea", ""),
                     "cnes_ubs": ubs["cnes"],
                     "nome_ubs": ubs["nome"],
-                    "co_municipio": eq.get("coMunicipio", IBGE),
+                    "co_municipio": eq.get("coMunicipio", ibge7()),
                     "ribeirinha": eq.get("ribeirinha") == "1",
                     "quilombola": eq.get("quilombola") == "1",
                     "indigena": eq.get("indigena") == "1",
@@ -114,6 +117,9 @@ async def buscar_estabelecimentos() -> list[dict]:
     Retorna estabelecimentos de saúde de Apuí/AM com equipes em tempo real.
     Cache TTL: 6 horas.
     """
+    if not eh_legado():
+        # Lista verificada de UBS/equipes existe só para Apuí/AM — sem dado para outros municípios
+        return []
     global _cache_estab, _cache_estab_exp
     if _cache_estab and _cache_estab_exp and datetime.now() < _cache_estab_exp:
         return _cache_estab
@@ -131,7 +137,7 @@ async def buscar_estabelecimentos() -> list[dict]:
             "tipo": "CENTRO DE SAUDE/UNIDADE BASICA",
             "municipio": "Apuí",
             "uf": "AM",
-            "ibge": IBGE,
+            "ibge": ibge7(),
             "bairro": ubs.get("bairro", ""),
             "telefone": ubs.get("telefone", ""),
             "latitude": ubs.get("latitude"),
@@ -153,8 +159,26 @@ async def buscar_estabelecimentos() -> list[dict]:
     return result
 
 
+async def resumo_estabelecimentos() -> dict:
+    """Resumo {total, situacao_dado} dos estabelecimentos do município da sessão.
+    Só o dado ao vivo do CNES conta como oficial; a lista verificada embutida no
+    código (Apuí) é referência municipal; sem lista → não disponível."""
+    lista = await buscar_estabelecimentos()
+    if not lista:
+        return {"situacao_dado": "nao_disponivel", "total": None, "fonte": "nao_disponivel"}
+    ao_vivo = any(e.get("fonte") == "cnes_live" for e in lista)
+    return {
+        "situacao_dado": "oficial_validado" if ao_vivo else "referencia_municipal",
+        "total": len(lista),
+        "fonte": "CNES — DATASUS" if ao_vivo else "CNES verificado (referência municipal)",
+    }
+
+
 async def buscar_status() -> dict:
     """Verifica conectividade com a API do CNES."""
+    if not eh_legado():
+        return {"situacao_dado": "nao_disponivel", "ibge": ibge7(),
+                "nota": "Monitoramento CNES ainda não configurado para este município."}
     url = f"{CNES_BASE}/services/estabelecimentos/1300142013312"
     try:
         async with httpx.AsyncClient(timeout=10, verify=False) as client:
@@ -167,7 +191,7 @@ async def buscar_status() -> dict:
         "cnes_api_disponivel": conectado,
         "endpoint": f"{CNES_BASE}/services/estabelecimentos-equipes/{{co_unidade}}",
         "municipio": "Apuí/AM",
-        "ibge": IBGE,
+        "ibge": ibge7(),
         "total_ubs_monitoradas": len(_UBS_APUI),
         "cache_equipes_ativo": _cache_equipes is not None,
         "cache_expira_em": _cache_equipes_exp.isoformat() if _cache_equipes_exp else None,

@@ -1,6 +1,6 @@
 """
 SIAPS Service — Integração com siaps.saude.gov.br
-Busca dados de cofinanciamento APS em tempo real para Apuí/AM (IBGE 1300144).
+Busca dados de cofinanciamento APS do município da sessão (credenciais próprias).
 """
 from __future__ import annotations
 import logging
@@ -9,27 +9,37 @@ from typing import Optional
 
 import httpx
 from config import settings
+from tenancy.contexto import ibge7
+from tenancy.credenciais import credencial, configurado
 
 logger = logging.getLogger(__name__)
 
-IBGE = settings.FNS_MUNICIPIO_IBGE
 TIMEOUT = 30
 
-_token_cache: Optional[str] = None
-_token_expira: Optional[datetime] = None
+# Token por município (IBGE) — nunca reaproveitado entre municípios
+_tokens: dict[str, tuple[Optional[str], datetime]] = {}
+
+
+def _token_em_cache() -> Optional[str]:
+    item = _tokens.get(ibge7())
+    return item[0] if item and item[0] and datetime.now() < item[1] else None
+
+
+def _guardar(token: Optional[str], horas: int) -> Optional[str]:
+    _tokens[ibge7()] = (token, datetime.now() + timedelta(hours=horas))
+    return token
 
 
 async def _autenticar() -> Optional[str]:
-    global _token_cache, _token_expira
+    em_cache = _token_em_cache()
+    if em_cache:
+        return em_cache
 
-    if _token_cache and _token_expira and datetime.now() < _token_expira:
-        return _token_cache
-
-    if not settings.SIAPS_CPF or not settings.SIAPS_SENHA:
-        logger.warning("SIAPS: credenciais não configuradas")
+    if not (credencial("SIAPS", "CPF") and credencial("SIAPS", "SENHA")):
+        logger.info("SIAPS: credenciais do município %s não configuradas", ibge7())
         return None
 
-    cpf = settings.SIAPS_CPF.replace(".", "").replace("-", "").strip()
+    cpf = credencial("SIAPS", "CPF").replace(".", "").replace("-", "").strip()
 
     endpoints = [
         f"{settings.SIAPS_API_BASE}/api/auth/login",
@@ -40,33 +50,31 @@ async def _autenticar() -> Optional[str]:
     for url in endpoints:
         try:
             async with httpx.AsyncClient(timeout=TIMEOUT, verify=False) as client:
-                r = await client.post(url, json={"cpf": cpf, "senha": settings.SIAPS_SENHA})
+                r = await client.post(url, json={"cpf": cpf, "senha": credencial("SIAPS", "SENHA")})
                 if r.status_code in (200, 201):
                     data = r.json()
                     tok = data.get("access_token") or data.get("token") or data.get("accessToken")
                     if tok:
-                        _token_cache = tok
-                        _token_expira = datetime.now() + timedelta(hours=6)
+                        _guardar(tok, 6)
                         logger.info("SIAPS: autenticado com sucesso")
-                        return _token_cache
+                        return _token_em_cache()
         except Exception as e:
             logger.debug("SIAPS auth tentativa %s: %s", url, e)
 
     # Tenta com refresh token se disponível
-    if settings.SIAPS_REFRESH_TOKEN:
+    if credencial("SIAPS", "REFRESH_TOKEN"):
         try:
             async with httpx.AsyncClient(timeout=TIMEOUT, verify=False) as client:
                 r = await client.post(
                     f"{settings.SIAPS_API_BASE}/api/auth/refresh",
-                    json={"refresh_token": settings.SIAPS_REFRESH_TOKEN},
+                    json={"refresh_token": credencial("SIAPS", "REFRESH_TOKEN")},
                 )
                 if r.status_code in (200, 201):
                     data = r.json()
                     tok = data.get("access_token") or data.get("token")
                     if tok:
-                        _token_cache = tok
-                        _token_expira = datetime.now() + timedelta(hours=6)
-                        return _token_cache
+                        _guardar(tok, 6)
+                        return _token_em_cache()
         except Exception as e:
             logger.debug("SIAPS refresh token: %s", e)
 
@@ -79,9 +87,9 @@ async def buscar_componente_qualidade(quadrimestre: str = "Q1/26") -> dict:
     token = await _autenticar()
 
     endpoints = [
-        f"{settings.SIAPS_API_BASE}/api/municipios/{IBGE}/qualidade",
-        f"{settings.SIAPS_API_BASE}/api/cofinanciamento/qualidade?ibge={IBGE}&quadrimestre={quadrimestre}",
-        f"https://egestorab.saude.gov.br/gestaoaps/api/municipios/{IBGE}/qualidade",
+        f"{settings.SIAPS_API_BASE}/api/municipios/{ibge7()}/qualidade",
+        f"{settings.SIAPS_API_BASE}/api/cofinanciamento/qualidade?ibge={ibge7()}&quadrimestre={quadrimestre}",
+        f"https://egestorab.saude.gov.br/gestaoaps/api/municipios/{ibge7()}/qualidade",
     ]
 
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"} if token else {}
@@ -106,9 +114,9 @@ async def buscar_componente_vinculo(quadrimestre: str = "Q1/26") -> dict:
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"} if token else {}
 
     endpoints = [
-        f"{settings.SIAPS_API_BASE}/api/municipios/{IBGE}/vinculo",
-        f"{settings.SIAPS_API_BASE}/api/cofinanciamento/vinculo?ibge={IBGE}&quadrimestre={quadrimestre}",
-        f"https://egestorab.saude.gov.br/gestaoaps/api/municipios/{IBGE}/vinculo",
+        f"{settings.SIAPS_API_BASE}/api/municipios/{ibge7()}/vinculo",
+        f"{settings.SIAPS_API_BASE}/api/cofinanciamento/vinculo?ibge={ibge7()}&quadrimestre={quadrimestre}",
+        f"https://egestorab.saude.gov.br/gestaoaps/api/municipios/{ibge7()}/vinculo",
     ]
 
     for url in endpoints:
@@ -129,13 +137,13 @@ async def buscar_equipes_municipio() -> dict:
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"} if token else {}
 
     # Tenta também via eGestor token direto
-    if settings.EGESTOR_TOKEN:
-        headers["Authorization"] = f"Bearer {settings.EGESTOR_TOKEN}"
+    if credencial("EGESTOR", "TOKEN"):
+        headers["Authorization"] = f"Bearer {credencial("EGESTOR", "TOKEN")}"
 
     endpoints = [
-        f"https://egestorab.saude.gov.br/gestaoaps/api/municipios/{IBGE}/equipes",
-        f"{settings.SIAPS_API_BASE}/api/municipios/{IBGE}/equipes",
-        f"https://apidadosabertos.saude.gov.br/cnes/estabelecimentos?municipio_codigo={IBGE}&limit=100",
+        f"https://egestorab.saude.gov.br/gestaoaps/api/municipios/{ibge7()}/equipes",
+        f"{settings.SIAPS_API_BASE}/api/municipios/{ibge7()}/equipes",
+        f"https://apidadosabertos.saude.gov.br/cnes/estabelecimentos?municipio_codigo={ibge7()}&limit=100",
     ]
 
     for url in endpoints:
@@ -156,7 +164,7 @@ async def buscar_status_integracao() -> dict:
     token = await _autenticar()
     return {
         "siaps_autenticado": token is not None,
-        "egestor_token_configurado": bool(settings.EGESTOR_TOKEN),
-        "siaps_credenciais_configuradas": bool(settings.SIAPS_CPF and settings.SIAPS_SENHA),
+        "egestor_token_configurado": bool(credencial("EGESTOR", "TOKEN")),
+        "siaps_credenciais_configuradas": bool(credencial("SIAPS", "CPF") and credencial("SIAPS", "SENHA")),
         "timestamp": datetime.now().isoformat(),
     }

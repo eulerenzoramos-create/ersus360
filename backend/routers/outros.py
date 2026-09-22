@@ -10,6 +10,7 @@ from database import get_db
 from models import Cronograma, Indicador, Alerta, Convenio, Repasse
 from schemas.convenio import CronogramaCreate, CronogramaUpdate, CronogramaOut
 from schemas.fns import IndicadorCreate, IndicadorUpdate, IndicadorOut, AlertaOut, DashboardStats
+from tenancy.escopo import MunicipioDaSessao, SessaoMunicipal, garantir_do_municipio
 
 DbDep = Annotated[AsyncSession, Depends(get_db)]
 
@@ -18,12 +19,32 @@ DbDep = Annotated[AsyncSession, Depends(get_db)]
 cronogramas_router = APIRouter(prefix="/api/cronogramas", tags=["Cronogramas"])
 
 
+async def _cronograma_da_sessao(db, current, id: int) -> Cronograma:
+    result = await db.execute(
+        select(Cronograma, Convenio.municipio_id)
+        .join(Convenio, Cronograma.convenio_id == Convenio.id)
+        .where(Cronograma.id == id)
+    )
+    row = result.first()
+    if row is None:
+        raise HTTPException(404, "Cronograma não encontrado")
+    cron, dono = row
+    cron.municipio_id = dono  # atributo transitório p/ checagem de propriedade
+    return await garantir_do_municipio(db, current, cron, "cronogramas", id)
+
+
 @cronogramas_router.get("", response_model=list[CronogramaOut])
 async def listar_cronogramas(
     db: DbDep,
+    municipio_id: MunicipioDaSessao,
     convenio_id: int | None = Query(None),
 ):
-    stmt = select(Cronograma).order_by(Cronograma.id)
+    stmt = (
+        select(Cronograma)
+        .join(Convenio, Cronograma.convenio_id == Convenio.id)
+        .where(Convenio.municipio_id == municipio_id)
+        .order_by(Cronograma.id)
+    )
     if convenio_id:
         stmt = stmt.where(Cronograma.convenio_id == convenio_id)
     result = await db.execute(stmt)
@@ -31,7 +52,9 @@ async def listar_cronogramas(
 
 
 @cronogramas_router.post("", response_model=CronogramaOut, status_code=201)
-async def criar_cronograma(body: CronogramaCreate, db: DbDep):
+async def criar_cronograma(body: CronogramaCreate, db: DbDep, current: SessaoMunicipal):
+    conv = await db.get(Convenio, body.convenio_id)
+    await garantir_do_municipio(db, current, conv, "convenios", body.convenio_id)
     cron = Cronograma(**body.model_dump())
     db.add(cron)
     await db.commit()
@@ -40,11 +63,8 @@ async def criar_cronograma(body: CronogramaCreate, db: DbDep):
 
 
 @cronogramas_router.put("/{id}", response_model=CronogramaOut)
-async def atualizar_cronograma(id: int, body: CronogramaUpdate, db: DbDep):
-    result = await db.execute(select(Cronograma).where(Cronograma.id == id))
-    cron = result.scalar_one_or_none()
-    if not cron:
-        raise HTTPException(404, "Cronograma não encontrado")
+async def atualizar_cronograma(id: int, body: CronogramaUpdate, db: DbDep, current: SessaoMunicipal):
+    cron = await _cronograma_da_sessao(db, current, id)
     for k, v in body.model_dump(exclude_unset=True).items():
         setattr(cron, k, v)
     await db.commit()
@@ -53,11 +73,8 @@ async def atualizar_cronograma(id: int, body: CronogramaUpdate, db: DbDep):
 
 
 @cronogramas_router.delete("/{id}", status_code=204)
-async def deletar_cronograma(id: int, db: DbDep):
-    result = await db.execute(select(Cronograma).where(Cronograma.id == id))
-    cron = result.scalar_one_or_none()
-    if not cron:
-        raise HTTPException(404)
+async def deletar_cronograma(id: int, db: DbDep, current: SessaoMunicipal):
+    cron = await _cronograma_da_sessao(db, current, id)
     await db.delete(cron)
     await db.commit()
 
@@ -70,7 +87,7 @@ indicadores_router = APIRouter(prefix="/api/indicadores", tags=["Indicadores"])
 @indicadores_router.get("", response_model=list[IndicadorOut])
 async def listar_indicadores(
     db: DbDep,
-    municipio_id: int = Query(1),
+    municipio_id: MunicipioDaSessao,
     competencia: str | None = Query(None),
 ):
     stmt = (
@@ -85,8 +102,8 @@ async def listar_indicadores(
 
 
 @indicadores_router.post("", response_model=IndicadorOut, status_code=201)
-async def criar_indicador(body: IndicadorCreate, db: DbDep):
-    ind = Indicador(**body.model_dump())
+async def criar_indicador(body: IndicadorCreate, db: DbDep, municipio_id: MunicipioDaSessao):
+    ind = Indicador(**body.model_dump(), municipio_id=municipio_id)
     db.add(ind)
     await db.commit()
     await db.refresh(ind)
@@ -94,11 +111,8 @@ async def criar_indicador(body: IndicadorCreate, db: DbDep):
 
 
 @indicadores_router.put("/{id}", response_model=IndicadorOut)
-async def atualizar_indicador(id: int, body: IndicadorUpdate, db: DbDep):
-    result = await db.execute(select(Indicador).where(Indicador.id == id))
-    ind = result.scalar_one_or_none()
-    if not ind:
-        raise HTTPException(404, "Indicador não encontrado")
+async def atualizar_indicador(id: int, body: IndicadorUpdate, db: DbDep, current: SessaoMunicipal):
+    ind = await garantir_do_municipio(db, current, await db.get(Indicador, id), "indicadores", id)
     for k, v in body.model_dump(exclude_unset=True).items():
         setattr(ind, k, v)
     await db.commit()
@@ -107,11 +121,8 @@ async def atualizar_indicador(id: int, body: IndicadorUpdate, db: DbDep):
 
 
 @indicadores_router.delete("/{id}", status_code=204)
-async def deletar_indicador(id: int, db: DbDep):
-    result = await db.execute(select(Indicador).where(Indicador.id == id))
-    ind = result.scalar_one_or_none()
-    if not ind:
-        raise HTTPException(404)
+async def deletar_indicador(id: int, db: DbDep, current: SessaoMunicipal):
+    ind = await garantir_do_municipio(db, current, await db.get(Indicador, id), "indicadores", id)
     await db.delete(ind)
     await db.commit()
 
@@ -124,7 +135,7 @@ alertas_router = APIRouter(prefix="/api/alertas", tags=["Alertas"])
 @alertas_router.get("", response_model=list[AlertaOut])
 async def listar_alertas(
     db: DbDep,
-    municipio_id: int = Query(1),
+    municipio_id: MunicipioDaSessao,
     resolvido: bool = Query(False),
 ):
     stmt = (
@@ -140,11 +151,8 @@ async def listar_alertas(
 
 
 @alertas_router.post("/{id}/resolver", response_model=AlertaOut)
-async def resolver_alerta(id: int, db: DbDep):
-    result = await db.execute(select(Alerta).where(Alerta.id == id))
-    alerta = result.scalar_one_or_none()
-    if not alerta:
-        raise HTTPException(404, "Alerta não encontrado")
+async def resolver_alerta(id: int, db: DbDep, current: SessaoMunicipal):
+    alerta = await garantir_do_municipio(db, current, await db.get(Alerta, id), "alertas", id)
     alerta.resolvido = True
     alerta.resolvido_em = datetime.utcnow()
     await db.commit()
@@ -153,11 +161,8 @@ async def resolver_alerta(id: int, db: DbDep):
 
 
 @alertas_router.delete("/{id}", status_code=204)
-async def deletar_alerta(id: int, db: DbDep):
-    result = await db.execute(select(Alerta).where(Alerta.id == id))
-    alerta = result.scalar_one_or_none()
-    if not alerta:
-        raise HTTPException(404)
+async def deletar_alerta(id: int, db: DbDep, current: SessaoMunicipal):
+    alerta = await garantir_do_municipio(db, current, await db.get(Alerta, id), "alertas", id)
     await db.delete(alerta)
     await db.commit()
 
@@ -170,12 +175,11 @@ dashboard_router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 @dashboard_router.get("/stats", response_model=DashboardStats)
 async def get_dashboard_stats(
     db: DbDep,
-    municipio_id: int = Query(1),
+    municipio_id: MunicipioDaSessao,
 ):
     from models import Municipio
-    mun_res = await db.execute(select(Municipio).where(Municipio.id == municipio_id))
-    mun = mun_res.scalar_one_or_none()
-    nome = mun.nome if mun else "Apuí"
+    mun = await db.get(Municipio, municipio_id)
+    nome = mun.nome if mun else ""
 
     # Indicadores
     ind_res = await db.execute(

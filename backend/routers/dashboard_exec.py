@@ -6,7 +6,8 @@ from services.siops_service import buscar_apuracao
 from services.sih_service import buscar_internacoes
 from services.sinan_service import buscar_malaria, buscar_dengue, buscar_agravos_resumo
 from services.fns_api_service import buscar_indicadores_previne
-from services.cnes_service import buscar_equipes_saude, buscar_estabelecimentos, IBGE
+from services.cnes_service import buscar_equipes_saude, buscar_estabelecimentos
+from tenancy.contexto import ibge7
 
 router = APIRouter(prefix="/api/dashboard-exec", tags=["Dashboard Executivo"])
 _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -61,7 +62,8 @@ async def resumo(ano: int = Query(0)):
 # ── Novos endpoints ────────────────────────────────────────────────────────────
 
 @router.get("/blocos")
-async def blocos(ibge: str = IBGE, ano: int = Query(0)):
+async def blocos(ibge: str | None = None, ano: int = Query(0)):
+    ibge = ibge7()  # sempre o município da sessão
     if not ano:
         ano = _ANO()
 
@@ -194,7 +196,8 @@ async def blocos(ibge: str = IBGE, ano: int = Query(0)):
 
 
 @router.get("/alertas")
-async def alertas(ibge: str = IBGE, ano: int = Query(0)):
+async def alertas(ibge: str | None = None, ano: int = Query(0)):
+    ibge = ibge7()  # sempre o município da sessão
     if not ano:
         ano = _ANO()
 

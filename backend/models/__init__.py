@@ -1,5 +1,5 @@
 # Importar na ordem correta para evitar dependências circulares
-from models.municipio import Municipio, ContaBancaria
+from models.municipio import Municipio, ContaBancaria, SituacaoMunicipio
 from models.convenio import Convenio, BlocoPacto, SituacaoConvenio
 from models.repasse import Repasse, TipoRepasse
 from models.cronograma import Cronograma, SituacaoCronograma
@@ -11,7 +11,7 @@ from models.execucao import (
     SituacaoEmpenho, SituacaoResto,
 )
 from models.obra import Obra, ObraFoto, ObraCronograma, TipoEstabelecimento, TipoObra, StatusObra
-from models.usuario import Usuario, AuditLog, Perfil, PERMISSOES
+from models.usuario import Usuario, UsuarioMunicipio, AuditLog, Perfil, PERMISSOES
 from models.documento import Documento
 from models.emenda import Emenda, TipoEmenda, FaseEmenda, QuadrimestreEmenda
 from models.pec_cadastro import (
@@ -50,7 +50,7 @@ __all__ = [
     # Obras
     "Obra", "ObraFoto", "ObraCronograma", "TipoEstabelecimento", "TipoObra", "StatusObra",
     # Usuários
-    "Usuario", "AuditLog", "Perfil", "PERMISSOES",
+    "Usuario", "UsuarioMunicipio", "AuditLog", "Perfil", "PERMISSOES",
     # Documentos
     "Documento",
     # Emendas
@@ -74,3 +74,4 @@ from models.investsus import (
     Parecer, PagamentoInvestSUS, AlertaInvestSUS, DocumentoInvestSUS,
     AtualizacaoManual, SnapshotInvestSUS,
 )
+from models.backup import BackupExecucao  # noqa: E402

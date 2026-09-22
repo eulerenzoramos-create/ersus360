@@ -12,11 +12,10 @@ from typing import Optional
 
 import httpx
 from config import settings
+from tenancy.contexto import ibge6, ibge7
 
 logger = logging.getLogger(__name__)
 
-_IBGE7   = settings.FNS_MUNICIPIO_IBGE
-_IBGE6   = settings.FNS_MUNICIPIO_IBGE[:6]
 _TIMEOUT = 15
 
 _VACINAS_META = {
@@ -63,9 +62,9 @@ async def buscar_cobertura(ano: int = 0) -> dict:
         ano = date.today().year - 1
 
     for url, params in [
-        (f"https://egestorab.saude.gov.br/api/v1/vacinas/municipio/{_IBGE7}/cobertura", {"ano": ano}),
-        ("https://apidadosabertos.saude.gov.br/pni/cobertura", {"co_municipio": _IBGE6, "ano": ano}),
-        ("https://apidadosabertos.saude.gov.br/pni/cobertura", {"municipio": _IBGE7, "ano": ano}),
+        (f"https://egestorab.saude.gov.br/api/v1/vacinas/municipio/{ibge7()}/cobertura", {"ano": ano}),
+        ("https://apidadosabertos.saude.gov.br/pni/cobertura", {"co_municipio": ibge6(), "ano": ano}),
+        ("https://apidadosabertos.saude.gov.br/pni/cobertura", {"municipio": ibge7(), "ano": ano}),
     ]:
         data = await _get(url, params)
         if data:

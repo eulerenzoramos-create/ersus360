@@ -13,19 +13,20 @@ from typing import Optional
 
 from fastapi import APIRouter, Query, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
-from services.cnes_service import buscar_estabelecimentos
+from services.cnes_service import resumo_estabelecimentos
+from tenancy.arquivos import pasta_municipio
 
 router = APIRouter(prefix="/api/folha", tags=["Folha de Pagamento"])
 logger = logging.getLogger(__name__)
 _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 # Cache em arquivo para sobreviver a reinicializações dentro do mesmo deploy
-_CACHE_DIR = Path("/tmp/ersus_folha_cache")
-_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+def _cache_dir() -> Path:
+    return pasta_municipio("cache", "folha")
 
 
 def _cache_path(competencia: str) -> Path:
-    return _CACHE_DIR / f"folha_{competencia.replace('-', '')}.json"
+    return _cache_dir() / f"folha_{competencia.replace('-', '')}.json"
 
 
 def _salvar(competencia: str, data: dict):
@@ -40,7 +41,7 @@ def _ler(competencia: str) -> Optional[dict]:
 
 def _listar_competencias() -> list[str]:
     comps = []
-    for f in _CACHE_DIR.glob("folha_*.json"):
+    for f in _cache_dir().glob("folha_*.json"):
         name = f.stem.replace("folha_", "")
         if len(name) == 6:
             comps.append(f"{name[:4]}-{name[4:]}")
@@ -222,7 +223,7 @@ def _parsear_fiorele(conteudo: str, competencia: str) -> dict:
 
 @router.get("/dashboard")
 async def dashboard():
-    cnes = await buscar_estabelecimentos()
+    cnes = await resumo_estabelecimentos()
     return {
         "situacao_dado": cnes.get("situacao_dado"),
         "total_estabelecimentos": cnes.get("total"),
@@ -285,21 +286,22 @@ def _folha_referencia(competencia: str) -> dict:
 
 
 
-_PATCHES_PATH = Path("/tmp/ersus_folha_patches.json")
+def _patches_path() -> Path:
+    return pasta_municipio("cache", "folha") / "patches.json"
 
 
 def _ler_patches() -> dict:
     """Lê patches locais: adições, exclusões e atualizações de status."""
-    if _PATCHES_PATH.exists():
+    if _patches_path().exists():
         try:
-            return json.loads(_PATCHES_PATH.read_text(encoding="utf-8"))
+            return json.loads(_patches_path().read_text(encoding="utf-8"))
         except Exception:
             pass
     return {"adicionados": [], "excluidos": [], "status_overrides": {}}
 
 
 def _salvar_patches(patches: dict):
-    with open(_PATCHES_PATH, "w", encoding="utf-8") as f:
+    with open(_patches_path(), "w", encoding="utf-8") as f:
         json.dump(patches, f, ensure_ascii=False, indent=2)
 
 
@@ -424,7 +426,7 @@ async def exportar_csv(competencia: str = Query("2026-07")):
 
 @router.post("/funcionario")
 async def adicionar_funcionario(payload: dict):
-    """Adiciona novo servidor à folha (persiste em /tmp)."""
+    """Adiciona novo servidor à folha (persiste na área do município)."""
     p = _ler_patches()
     mat = payload.get("matricula", f"NOVO{len(p['adicionados'])+1:04d}")
     payload["matricula"] = str(mat)
@@ -493,7 +495,8 @@ async def folha_presenca(competencia: str = Query("2026-07"), setor: str = Query
     }
 
 
-_PRESENCA_PATH = Path("/tmp/ersus_folha_presenca.json")
+def _presenca_path() -> Path:
+    return pasta_municipio("cache", "folha") / "presenca.json"
 
 @router.post("/presenca/salvar")
 async def salvar_presenca(payload: dict):
@@ -503,13 +506,13 @@ async def salvar_presenca(payload: dict):
     if not competencia:
         raise HTTPException(400, "competencia obrigatória")
     dados: dict = {}
-    if _PRESENCA_PATH.exists():
+    if _presenca_path().exists():
         try:
-            dados = json.loads(_PRESENCA_PATH.read_text(encoding="utf-8"))
+            dados = json.loads(_presenca_path().read_text(encoding="utf-8"))
         except Exception:
             dados = {}
     dados[competencia] = marcacoes
-    _PRESENCA_PATH.write_text(json.dumps(dados, ensure_ascii=False), encoding="utf-8")
+    _presenca_path().write_text(json.dumps(dados, ensure_ascii=False), encoding="utf-8")
     total = len(marcacoes)
     faltas = sum(1 for v in marcacoes.values() if v in ("F", "FJ"))
     return {"ok": True, "competencia": competencia, "total_registros": total, "faltas": faltas}
@@ -518,10 +521,10 @@ async def salvar_presenca(payload: dict):
 @router.get("/presenca/marcacoes")
 async def ler_marcacoes(competencia: str = Query("2026-07")):
     """Retorna marcações salvas para uma competência."""
-    if not _PRESENCA_PATH.exists():
+    if not _presenca_path().exists():
         return {"competencia": competencia, "marcacoes": {}}
     try:
-        dados = json.loads(_PRESENCA_PATH.read_text(encoding="utf-8"))
+        dados = json.loads(_presenca_path().read_text(encoding="utf-8"))
         return {"competencia": competencia, "marcacoes": dados.get(competencia, {})}
     except Exception:
         return {"competencia": competencia, "marcacoes": {}}

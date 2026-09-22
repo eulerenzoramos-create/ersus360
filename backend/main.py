@@ -30,6 +30,7 @@ async def lifespan(app: FastAPI):
     try:
         await init_db()
         await _seed_dados_iniciais()
+        await _configurar_municipio_padrao()
     except Exception as exc:
         logger.error("Erro na inicialização do banco: %s", exc, exc_info=True)
 
@@ -131,11 +132,22 @@ async def lifespan(app: FastAPI):
     logger.info("ERSUS 360 encerrado.")
 
 
+if settings.SECRET_KEY == "dev-secret-key-change-in-production" and not (
+    settings.DEBUG or settings.DATABASE_URL.startswith("sqlite")
+):
+    # Com a chave padrão qualquer pessoa forjaria tokens de qualquer município.
+    raise RuntimeError("SECRET_KEY não configurada — defina a variável de ambiente antes de iniciar.")
+
+from fastapi import Depends
+from tenancy.guard import tenant_guard
+
 app = FastAPI(
     title="ERSUS 360 API",
-    description="Gestão Inteligente do SUS — FMS Apuí/AM",
+    description="Gestão Inteligente do SUS — multi-município",
     version="1.0.0",
     lifespan=lifespan,
+    # Autenticação + isolamento por município em TODAS as rotas /api e /ws
+    dependencies=[Depends(tenant_guard)],
 )
 
 app.add_middleware(
@@ -421,6 +433,10 @@ from routers.cnes_apui import router as cnes_apui_router
 from routers.monitor_scnes import router as monitor_scnes_router
 
 app.include_router(auth_router)
+from routers.tenant import router as tenant_router
+from routers.admin_geral import router as admin_geral_router
+app.include_router(tenant_router)
+app.include_router(admin_geral_router)
 app.include_router(municipios_router)
 app.include_router(municipio_router)
 app.include_router(fns_router)
@@ -849,13 +865,15 @@ else:
 
 @app.get("/api/sistema/info")
 async def sistema_info():
-    """Informações públicas do sistema para o frontend."""
+    """Informações do sistema e do município da sessão."""
+    from tenancy.contexto import municipio_atual
+    mun = municipio_atual()
     return {
         "app": "ERSUS 360",
         "versao": "1.0.0",
-        "municipio": settings.MUNICIPIO_NOME,
-        "uf": settings.MUNICIPIO_UF,
-        "ibge": settings.FNS_MUNICIPIO_IBGE,
+        "municipio": mun.nome,
+        "uf": mun.uf,
+        "ibge": mun.ibge,
         "modulos": [
             "FNS/Convênios", "Novo Financiamento APS", "APS", "Farmácia",
             "Vigilância", "RH", "Obras", "Patrimônio",
@@ -863,6 +881,24 @@ async def sistema_info():
         ],
         "fns_sync_hora": settings.FNS_SYNC_HORA,
     }
+
+
+# ── Município dos jobs sem sessão (scheduler/seeds) ─────────────────────────
+
+async def _configurar_municipio_padrao():
+    """Jobs agendados e seeds rodam fora de requisições: operam sobre Apuí/AM,
+    como antes do multi-tenant, agora com o id real do banco (registros novos
+    recebem municipio_id)."""
+    from database import AsyncSessionLocal
+    from sqlalchemy import select
+    from models import Municipio
+    from tenancy.contexto import IBGE_LEGADO, MunicipioContexto, configurar_municipio_padrao
+
+    async with AsyncSessionLocal() as db:
+        mun = (await db.execute(select(Municipio).where(Municipio.codigo_ibge == IBGE_LEGADO))).scalar_one_or_none()
+    if mun:
+        configurar_municipio_padrao(MunicipioContexto(
+            id=mun.id, uuid=mun.uuid, ibge=mun.codigo_ibge, nome=mun.nome, uf=mun.uf, populacao=mun.populacao))
 
 
 # ── Seed de dados iniciais ───────────────────────────────────────────────────

@@ -479,7 +479,7 @@ export default function SprintOtimo() {
     setSiapsLoading(true);
     setSiapsError(false);
     const base = (import.meta as any).env?.VITE_API_URL ?? "http://localhost:8000";
-    fetch(`${base}/api/aps/siaps-ausencias?comp=${siapsComp}&ibge6=130014`)
+    fetch(`${base}/api/aps/siaps-ausencias?comp=${siapsComp}&ibge6=${(localStorage.getItem("ersus_municipio_ibge") ?? "").slice(0, 6)}`)
       .then(r => { if (!r.ok) throw new Error(r.status.toString()); return r.json(); })
       .then((data: any) => {
         if (data.error) throw new Error(data.error);

@@ -6,7 +6,7 @@ Dados operacionais BLH requerem sistema REDEBLH (pendente).
 from __future__ import annotations
 from datetime import date, datetime
 from fastapi import APIRouter, Query
-from services.cnes_service import buscar_estabelecimentos
+from services.cnes_service import resumo_estabelecimentos
 from services.sim_sinasc_service import buscar_nascidos_vivos
 
 router = APIRouter(prefix="/api/banco-leite-apui", tags=["banco_leite_apui"])
@@ -19,7 +19,7 @@ _NOTA = "Volume coletado e distribuído requerem REDEBLH (pendente integração)
 async def dashboard(ano: int = Query(0)):
     if not ano:
         ano = _ANO()
-    cnes = await buscar_estabelecimentos()
+    cnes = await resumo_estabelecimentos()
     nasc = await buscar_nascidos_vivos(ano)
     return {
         "situacao_dado": cnes.get("situacao_dado"),

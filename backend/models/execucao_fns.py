@@ -2,15 +2,18 @@
 Registra empenhos, liquidações e pagamentos vinculados a recursos FNS.
 """
 from datetime import date, datetime
-from sqlalchemy import String, Integer, Float, DateTime, Date, Text, Boolean
+from sqlalchemy import String, Integer, Float, DateTime, Date, Text, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from database import Base
+from tenancy.contexto import municipio_id_atual
 
 
 class ExecucaoFns(Base):
     __tablename__ = "execucao_fns"
 
     id:               Mapped[int]   = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int | None] = mapped_column(
+        ForeignKey("municipios.id"), index=True, nullable=True, default=municipio_id_atual)
     exercicio:        Mapped[int]   = mapped_column(Integer, default=2026, index=True)
     recurso:          Mapped[str]   = mapped_column(String(200))
     bloco:            Mapped[str]   = mapped_column(String(100), default="")
@@ -109,6 +112,8 @@ class DocumentoExecucao(Base):
     __tablename__ = "documentos_execucao"
 
     id:          Mapped[int]  = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int | None] = mapped_column(
+        ForeignKey("municipios.id"), index=True, nullable=True, default=municipio_id_atual)
     execucao_id: Mapped[int]  = mapped_column(Integer, index=True)
     nome:        Mapped[str]  = mapped_column(String(255))
     tipo_mime:   Mapped[str]  = mapped_column(String(100), default="application/octet-stream")

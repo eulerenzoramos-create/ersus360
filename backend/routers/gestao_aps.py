@@ -4,7 +4,7 @@ Dados de referência derivados do SIGTAP/SIA/SISAB/SCNES — competência 2026.
 from __future__ import annotations
 from datetime import date, datetime
 from fastapi import APIRouter, Query
-from services.fns_api_service import buscar_indicadores_previne
+from services.fns_api_service import resumo_indicadores_aps
 from services.sia_service import buscar_producao_aps
 
 router = APIRouter(prefix="/api/gestao", tags=["gestao_aps"])
@@ -16,7 +16,7 @@ _ANO = lambda: date.today().year - 1
 async def dashboard(ano: int = Query(0)):
     if not ano:
         ano = _ANO()
-    previne = await buscar_indicadores_previne(ano)
+    previne = await resumo_indicadores_aps(ano)
     sia = await buscar_producao_aps(ano)
     any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [previne, sia])
     return {

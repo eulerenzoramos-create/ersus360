@@ -11,6 +11,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
+from tenancy.contexto import eh_legado
+from tenancy.credenciais import configurado, credencial
 
 logger = logging.getLogger(__name__)
 
@@ -51,15 +53,10 @@ async def status_gateway(current_user: UserOut = Depends(get_current_user)):
     municipio_id = getattr(current_user, "municipio_id", 1)
     cfg = await _get_ou_criar_config(municipio_id)
 
-    rnds_cert = bool(
-        os.getenv("RNDS_CERT_PATH", "").strip() and
-        os.getenv("RNDS_CERT_KEY_PATH", "").strip()
-    )
-    ledi_conf = bool(
-        os.getenv("LEDI_PEC_URL", "").strip() and
-        os.getenv("LEDI_USUARIO", "").strip() and
-        os.getenv("LEDI_SENHA", "").strip()
-    )
+    # Configuração do PRÓPRIO município (variáveis com sufixo do IBGE; sem sufixo = Apuí)
+    rnds_cert = configurado("RNDS") or (eh_legado() and bool(
+        os.getenv("RNDS_CERT_PATH", "").strip() and os.getenv("RNDS_CERT_KEY_PATH", "").strip()))
+    ledi_conf = configurado("LEDI")
 
     sistemas = [
         {
@@ -78,7 +75,7 @@ async def status_gateway(current_user: UserOut = Depends(get_current_user)):
             "configurado": ledi_conf,
             "ativo": cfg["ledi_ativo"],
             "ambiente": os.getenv("LEDI_AMBIENTE", "producao"),
-            "endpoint": os.getenv("LEDI_PEC_URL", ""),
+            "endpoint": credencial("LEDI", "PEC_URL"),
             "autenticacao": "Usuário/Senha PEC → Cookie JSESSIONID",
             "status": "disponivel" if ledi_conf else "nao_configurado",
         },

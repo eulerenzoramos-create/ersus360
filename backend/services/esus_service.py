@@ -12,6 +12,7 @@ from typing import Optional
 
 import httpx
 from config import settings
+from tenancy.contexto import eh_legado
 
 logger = logging.getLogger(__name__)
 
@@ -226,6 +227,8 @@ async def _autenticar() -> Optional[str]:
     """Autentica no e-SUS PEC e devolve token (com cache de 4h)."""
     global _token_cache, _token_exp, _instancia
 
+    if not eh_legado():
+        return None  # credenciais do Railway pertencem a Apuí/AM — outro município precisa das próprias
     if _token_cache and _token_exp and datetime.now() < _token_exp:
         return _token_cache
 

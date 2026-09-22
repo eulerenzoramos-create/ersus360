@@ -11,13 +11,13 @@ from typing import Optional
 
 import httpx
 from config import settings
+from tenancy.contexto import ibge6
 
 logger = logging.getLogger(__name__)
 
 _BASE_SIM    = "https://apidadosabertos.saude.gov.br/sim"
 _BASE_SINASC = "https://apidadosabertos.saude.gov.br/sinasc"
 _TIMEOUT     = 15
-_IBGE6       = settings.FNS_MUNICIPIO_IBGE[:6]
 
 
 async def _get(url: str, params: dict) -> Optional[dict | list]:
@@ -54,7 +54,7 @@ def _sem_dado_nasc(ano: int) -> dict:
 async def buscar_obitos(ano: int) -> dict:
     """Obitos gerais do municipio via SIM/DATASUS."""
     data = await _get(f"{_BASE_SIM}/causas-obito", {
-        "co_municipio_ocor": _IBGE6,
+        "co_municipio_ocor": ibge6(),
         "ano_obito":         ano,
         "offset":            0,
         "limit":             200,
@@ -88,7 +88,7 @@ async def buscar_obitos(ano: int) -> dict:
 async def buscar_nascidos_vivos(ano: int) -> dict:
     """Nascidos vivos do municipio via SINASC/DATASUS."""
     data = await _get(f"{_BASE_SINASC}/nascimento", {
-        "co_municipio_nasc": _IBGE6,
+        "co_municipio_nasc": ibge6(),
         "ano_nasc":          ano,
         "offset":            0,
         "limit":             500,
@@ -125,7 +125,7 @@ async def buscar_historico_mortalidade() -> list[dict]:
     resultado = []
     for ano in range(ano_atual - 4, ano_atual):
         data = await _get(f"{_BASE_SIM}/causas-obito", {
-            "co_municipio_ocor": _IBGE6,
+            "co_municipio_ocor": ibge6(),
             "ano_obito":         ano,
             "offset":            0,
             "limit":             1,

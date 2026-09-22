@@ -6,6 +6,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from fastapi import APIRouter, Query
 from services.sinan_service import buscar_agravos_resumo
+from services.resumo import como_resumo
 
 router = APIRouter(prefix="/api/sinan", tags=["sinan"])
 _TS  = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -16,7 +17,7 @@ _ANO = lambda: date.today().year - 1
 async def dashboard(ano: int = Query(0)):
     if not ano:
         ano = _ANO()
-    result = await buscar_agravos_resumo(ano)
+    result = como_resumo(await buscar_agravos_resumo(ano), "agravos")
     result["verificado_em"] = _TS()
     return result
 

@@ -4,6 +4,7 @@ from httpx import AsyncClient, ASGITransport
 import main
 from database import get_db
 from routers.auth import get_current_user, UserOut
+from tenancy.guard import tenant_guard
 
 ADMIN_USER = UserOut(
     username="admin-teste", nome="Admin Teste", cargo="Administrador", municipio="Apuí/AM", role="admin",
@@ -27,6 +28,7 @@ def _como(app, usuario):
     async def _override():
         return usuario
     app.dependency_overrides[get_current_user] = _override
+    app.dependency_overrides[tenant_guard] = lambda: None  # guard testado em test_isolamento_tenant
 
 
 async def test_status_nao_expoe_client_secret_nem_senha(app_com_overrides, monkeypatch):

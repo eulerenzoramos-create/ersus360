@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from config import settings
+from tenancy.contexto import ibge7
 from models import Convenio, Repasse, Alerta, SeveridadeAlerta
 from schemas.fns import FnsRepasseItem, FnsSyncResult
 
@@ -174,7 +175,7 @@ async def _fetch_transparencia(mes: int, ano: int) -> list[FnsRepasseItem]:
     # Transferências voluntárias (convênios)
     url_vol = f"{TRANSP_BASE}/transferencias-voluntarias-municipio-estado"
     params_vol = {
-        "codigoMunicipio": settings.FNS_MUNICIPIO_IBGE,
+        "codigoMunicipio": ibge7(),
         "dataInicio": f"{ano}-{mes:02d}-01",
         "dataFim":   f"{ano}-{mes:02d}-28",
         "pagina": 1,
@@ -205,7 +206,7 @@ async def _fetch_transparencia(mes: int, ano: int) -> list[FnsRepasseItem]:
     # Transferências fundo a fundo (repasses bloco FNS)
     url_faf = f"{TRANSP_BASE}/transferencias/municipios"
     params_faf = {
-        "municipiosCodigo": settings.FNS_MUNICIPIO_IBGE,
+        "municipiosCodigo": ibge7(),
         "dataInicio": f"{ano}-{mes:02d}-01",
         "dataFim":   f"{ano}-{mes:02d}-28",
         "pagina": 1,
@@ -244,7 +245,7 @@ async def fns_preview(mes: int, ano: int) -> list[FnsRepasseItem]:
     Ordem: consultafns REST → Portal Transparência → consultafns HTML.
     """
     # 1. Tenta API REST do consultafns
-    html = await _fetch_fns_page(mes, ano, settings.FNS_MUNICIPIO_IBGE)
+    html = await _fetch_fns_page(mes, ano, ibge7())
     if html:
         itens = _parse_html(html, mes, ano)
         if itens:
@@ -280,7 +281,7 @@ async def fns_sync(
     if not itens:
         return FnsSyncResult(
             status="sem_dados",
-            municipio_ibge=settings.FNS_MUNICIPIO_IBGE,
+            municipio_ibge=ibge7(),
             competencia=competencia,
             total_encontrados=0,
             novos_inseridos=0,
@@ -388,7 +389,7 @@ async def fns_sync(
 
     return FnsSyncResult(
         status="ok",
-        municipio_ibge=settings.FNS_MUNICIPIO_IBGE,
+        municipio_ibge=ibge7(),
         competencia=competencia,
         total_encontrados=len(itens),
         novos_inseridos=novos,

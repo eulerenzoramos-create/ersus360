@@ -1,9 +1,10 @@
 """Model: EmailDiarioLog — histórico de envios do agente de portarias MS"""
 from datetime import datetime
 from enum import Enum as PyEnum
-from sqlalchemy import String, Integer, DateTime, Text, Boolean, Enum
+from sqlalchemy import String, Integer, DateTime, Text, Boolean, Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from database import Base
+from tenancy.contexto import municipio_id_atual
 
 
 class StatusEnvio(str, PyEnum):
@@ -18,6 +19,8 @@ class EmailDiarioLog(Base):
     __tablename__ = "email_diario_log"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int | None] = mapped_column(
+        ForeignKey("municipios.id"), index=True, nullable=True, default=municipio_id_atual)
     data_referencia: Mapped[str] = mapped_column(String(10), index=True)          # "2026-08-27"
     destinatario: Mapped[str] = mapped_column(String(200))
     assunto: Mapped[str] = mapped_column(String(500))

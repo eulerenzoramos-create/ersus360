@@ -4,6 +4,7 @@ from httpx import AsyncClient, ASGITransport
 import main
 from database import get_db
 from routers.auth import get_current_user, UserOut
+from tenancy.guard import tenant_guard
 from models.pec_cadastro import EquipeSaude, ProfissionalSaude, Microarea, Domicilio, Cidadao
 
 ACS_USER = UserOut(username="acs-teste", nome="ACS Teste", cargo="Agente Comunitário", municipio="Apuí/AM", role="acs")
@@ -24,6 +25,7 @@ def _como(app, usuario):
     async def _override():
         return usuario
     app.dependency_overrides[get_current_user] = _override
+    app.dependency_overrides[tenant_guard] = lambda: None  # guard testado em test_isolamento_tenant
 
 
 @pytest.fixture

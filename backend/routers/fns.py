@@ -16,6 +16,8 @@ from models import Convenio, Repasse, Municipio
 from schemas.fns import FnsSyncRequest, FnsSyncResult, FnsStatusOut
 from services.fns_service import fns_sync, fns_preview
 from routers.auth import get_current_user, UserOut
+from tenancy.contexto import ibge7
+from tenancy.escopo import MunicipioDaSessao
 import httpx
 
 router = APIRouter(prefix="/api/fns", tags=["FNS"])
@@ -24,21 +26,23 @@ DbDep = Annotated[AsyncSession, Depends(get_db)]
 CurrentUser = Annotated[UserOut, Depends(get_current_user)]
 
 TRANSP_KEY  = os.getenv("TRANSPARENCIA_API_KEY", "")
-IBGE_APUI   = "1300144"
 TRANSP_BASE = "https://api.portaldatransparencia.gov.br/api-de-dados"
 
 
 @router.get("/status")
-async def status_fns(db: DbDep, _: CurrentUser):
-    """Retorna contagem real de repasses e convênios no banco."""
-    total_rep = await db.execute(select(func.count(Repasse.id)))
+async def status_fns(db: DbDep, _: CurrentUser, municipio_id: MunicipioDaSessao):
+    """Retorna contagem real de repasses e convênios do município no banco."""
+    do_municipio = (select(Repasse).join(Convenio, Repasse.convenio_id == Convenio.id)
+                    .where(Convenio.municipio_id == municipio_id))
+    total_rep = await db.execute(select(func.count()).select_from(do_municipio.subquery()))
     n_rep = total_rep.scalar() or 0
 
-    total_conv = await db.execute(select(func.count(Convenio.id)))
+    total_conv = await db.execute(
+        select(func.count(Convenio.id)).where(Convenio.municipio_id == municipio_id))
     n_conv = total_conv.scalar() or 0
 
     # Último repasse inserido
-    stmt = select(Repasse).order_by(Repasse.criado_em.desc()).limit(1)
+    stmt = do_municipio.order_by(Repasse.criado_em.desc()).limit(1)
     res = await db.execute(stmt)
     ultimo = res.scalar_one_or_none()
 
@@ -59,8 +63,8 @@ async def status_fns(db: DbDep, _: CurrentUser):
 
 
 @router.get("/historico")
-async def historico(db: DbDep, _: CurrentUser):
-    """Lista repasses agrupados por competência."""
+async def historico(db: DbDep, _: CurrentUser, municipio_id: MunicipioDaSessao):
+    """Lista repasses do município agrupados por competência."""
     stmt = (
         select(
             Repasse.competencia,
@@ -68,6 +72,8 @@ async def historico(db: DbDep, _: CurrentUser):
             func.sum(Repasse.valor_realizado).label("valor_total"),
             func.max(Repasse.criado_em).label("ultima_atualizacao"),
         )
+        .join(Convenio, Repasse.convenio_id == Convenio.id)
+        .where(Convenio.municipio_id == municipio_id)
         .group_by(Repasse.competencia)
         .order_by(Repasse.competencia.desc())
         .limit(24)
@@ -90,7 +96,7 @@ async def historico(db: DbDep, _: CurrentUser):
 
 
 @router.post("/sync")
-async def sync_fns(body: FnsSyncRequest, db: DbDep, _: CurrentUser):
+async def sync_fns(body: FnsSyncRequest, db: DbDep, _: CurrentUser, municipio_id: MunicipioDaSessao):
     """
     Preview (modo='preview'): busca do FNS sem gravar.
     Sync   (modo='sync'):    busca e grava no banco.
@@ -99,7 +105,7 @@ async def sync_fns(body: FnsSyncRequest, db: DbDep, _: CurrentUser):
         itens = await fns_preview(body.mes, body.ano)
         return FnsSyncResult(
             status="ok" if itens else "sem_dados",
-            municipio_ibge=IBGE_APUI,
+            municipio_ibge=ibge7(),
             competencia=f"{body.ano}-{body.mes:02d}",
             total_encontrados=len(itens),
             novos_inseridos=0,
@@ -110,13 +116,8 @@ async def sync_fns(body: FnsSyncRequest, db: DbDep, _: CurrentUser):
             executado_em=datetime.utcnow(),
         )
 
-    # modo sync — precisa do município no banco
-    res_mun = await db.execute(select(Municipio).where(Municipio.codigo_ibge == IBGE_APUI))
-    mun = res_mun.scalar_one_or_none()
-    if not mun:
-        raise HTTPException(400, f"Município IBGE {IBGE_APUI} não encontrado no banco.")
-
-    result = await fns_sync(mes=body.mes, ano=body.ano, municipio_id=mun.id, db=db)
+    # modo sync — grava sempre no município da sessão
+    result = await fns_sync(mes=body.mes, ano=body.ano, municipio_id=municipio_id, db=db)
     return result
 
 
@@ -124,20 +125,15 @@ async def sync_fns(body: FnsSyncRequest, db: DbDep, _: CurrentUser):
 async def sync_todos(
     db: DbDep,
     _: CurrentUser,
-    municipio_id: int = Query(1),
+    municipio_id: MunicipioDaSessao,
     ultimos_meses: int = Query(3, ge=1, le=12),
 ):
-    """Sincroniza os últimos N meses do FNS."""
-    res_mun = await db.execute(select(Municipio).where(Municipio.codigo_ibge == IBGE_APUI))
-    mun = res_mun.scalar_one_or_none()
-    if not mun:
-        raise HTTPException(400, f"Município IBGE {IBGE_APUI} não encontrado no banco.")
-
+    """Sincroniza os últimos N meses do FNS para o município da sessão."""
     hoje = datetime.utcnow()
     resultados = []
     for i in range(ultimos_meses):
         data = hoje - timedelta(days=30 * i)
-        res = await fns_sync(mes=data.month, ano=data.year, municipio_id=mun.id, db=db)
+        res = await fns_sync(mes=data.month, ano=data.year, municipio_id=municipio_id, db=db)
         resultados.append(res)
 
     return resultados
@@ -162,7 +158,7 @@ async def transferencias_transparencia(
     headers = {"chave-api": TRANSP_KEY, "Accept": "application/json"}
     url = f"{TRANSP_BASE}/transferencias-voluntarias-municipio-estado"
     params = {
-        "codigoMunicipio": IBGE_APUI,
+        "codigoMunicipio": ibge7(),
         "dataInicio": f"{ano}-01-01",
         "dataFim": f"{ano}-12-31",
         "pagina": 1,
