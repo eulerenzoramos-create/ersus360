@@ -1,6 +1,6 @@
 """
 SIAPS Service — Integração com siaps.saude.gov.br
-Busca dados de cofinanciamento APS em tempo real para Apuí/AM (IBGE 1300144).
+Busca dados de cofinanciamento APS em tempo real para Apuí/AM (ibge7() 1300144).
 """
 from __future__ import annotations
 import logging
@@ -9,10 +9,11 @@ from typing import Optional
 
 import httpx
 from config import settings
+from tenancy.contexto import ibge7
+from tenancy.contexto import eh_legado, ibge7
 
 logger = logging.getLogger(__name__)
 
-IBGE = settings.FNS_MUNICIPIO_IBGE
 TIMEOUT = 30
 
 _token_cache: Optional[str] = None
@@ -22,6 +23,8 @@ _token_expira: Optional[datetime] = None
 async def _autenticar() -> Optional[str]:
     global _token_cache, _token_expira
 
+    if not eh_legado():
+        return None  # credenciais do Railway pertencem a Apuí/AM — outro município precisa das próprias
     if _token_cache and _token_expira and datetime.now() < _token_expira:
         return _token_cache
 
@@ -79,9 +82,9 @@ async def buscar_componente_qualidade(quadrimestre: str = "Q1/26") -> dict:
     token = await _autenticar()
 
     endpoints = [
-        f"{settings.SIAPS_API_BASE}/api/municipios/{IBGE}/qualidade",
-        f"{settings.SIAPS_API_BASE}/api/cofinanciamento/qualidade?ibge={IBGE}&quadrimestre={quadrimestre}",
-        f"https://egestorab.saude.gov.br/gestaoaps/api/municipios/{IBGE}/qualidade",
+        f"{settings.SIAPS_API_BASE}/api/municipios/{ibge7()}/qualidade",
+        f"{settings.SIAPS_API_BASE}/api/cofinanciamento/qualidade?ibge={ibge7()}&quadrimestre={quadrimestre}",
+        f"https://egestorab.saude.gov.br/gestaoaps/api/municipios/{ibge7()}/qualidade",
     ]
 
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"} if token else {}
@@ -106,9 +109,9 @@ async def buscar_componente_vinculo(quadrimestre: str = "Q1/26") -> dict:
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"} if token else {}
 
     endpoints = [
-        f"{settings.SIAPS_API_BASE}/api/municipios/{IBGE}/vinculo",
-        f"{settings.SIAPS_API_BASE}/api/cofinanciamento/vinculo?ibge={IBGE}&quadrimestre={quadrimestre}",
-        f"https://egestorab.saude.gov.br/gestaoaps/api/municipios/{IBGE}/vinculo",
+        f"{settings.SIAPS_API_BASE}/api/municipios/{ibge7()}/vinculo",
+        f"{settings.SIAPS_API_BASE}/api/cofinanciamento/vinculo?ibge={ibge7()}&quadrimestre={quadrimestre}",
+        f"https://egestorab.saude.gov.br/gestaoaps/api/municipios/{ibge7()}/vinculo",
     ]
 
     for url in endpoints:
@@ -133,9 +136,9 @@ async def buscar_equipes_municipio() -> dict:
         headers["Authorization"] = f"Bearer {settings.EGESTOR_TOKEN}"
 
     endpoints = [
-        f"https://egestorab.saude.gov.br/gestaoaps/api/municipios/{IBGE}/equipes",
-        f"{settings.SIAPS_API_BASE}/api/municipios/{IBGE}/equipes",
-        f"https://apidadosabertos.saude.gov.br/cnes/estabelecimentos?municipio_codigo={IBGE}&limit=100",
+        f"https://egestorab.saude.gov.br/gestaoaps/api/municipios/{ibge7()}/equipes",
+        f"{settings.SIAPS_API_BASE}/api/municipios/{ibge7()}/equipes",
+        f"https://apidadosabertos.saude.gov.br/cnes/estabelecimentos?municipio_codigo={ibge7()}&limit=100",
     ]
 
     for url in endpoints:

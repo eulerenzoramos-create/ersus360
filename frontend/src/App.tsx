@@ -3,6 +3,7 @@ import { useState, createContext, useContext, Component, useEffect, lazy, Suspen
 import { Sidebar } from "./components/Sidebar";
 import SeletorMunicipio, { ListaMunicipios } from "./components/SeletorMunicipio";
 import { lerSessao, limparSessao, sairDoSuporte, SessaoUsuario } from "./lib/sessao";
+import { paginaDisponivel } from "./lib/municipio";
 
 // ── Error Boundary global — evita tela branca em crashes de componentes ───────
 class AppErrorBoundary extends Component<
@@ -91,11 +92,12 @@ export interface AuthUser {
   municipio_ibge: string;   // IBGE do município da sessão (definido pelo backend)
   municipio: string;
   municipio_uuid: string;
+  municipio_uf: string;
   perfis_assessoria: boolean;  // pode trocar de município (troca auditada)
   administrador_geral: boolean;
 }
 export const AuthContext = createContext<AuthUser>({
-  nome: "", perfil: "", municipio_ibge: "", municipio: "", municipio_uuid: "",
+  nome: "", perfil: "", municipio_ibge: "", municipio: "", municipio_uuid: "", municipio_uf: "",
   perfis_assessoria: false, administrador_geral: false,
 });
 export const useAuth = () => useContext(AuthContext);
@@ -632,6 +634,23 @@ const CARGO_LABEL: Record<string,string> = {
   prefeito:"Prefeito(a)", conselho:"Conselho de Saúde", consulta:"Consulta",
 };
 
+// ── Telas por município ─────────────────────────────────────────────────────
+// Muitas telas ainda trazem dados de referência de Apuí/AM no próprio código.
+// Para outros municípios só abrem as telas já verificadas como multi-município.
+function GuardaPaginaMunicipio({ ibge, children }: { ibge: string; children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  if (paginaDisponivel(pathname, ibge)) return <>{children}</>;
+  return (
+    <div role="status" style={{maxWidth:560,margin:"64px auto",padding:24,textAlign:"center",color:"#334155"}}>
+      <div style={{fontSize:18,fontWeight:800,color:"#0f172a",marginBottom:8}}>Módulo em implantação para este município</div>
+      <div style={{fontSize:14,lineHeight:1.5}}>
+        Este módulo ainda não foi liberado para o seu município. Os dados de cada município
+        ficam isolados e só aparecem quando o módulo estiver configurado para ele.
+      </div>
+    </div>
+  );
+}
+
 // ── Layout ───────────────────────────────────────────────────────────────────
 function Layout({ children, sessao, onLogout }: {
   children: React.ReactNode;
@@ -656,6 +675,7 @@ function Layout({ children, sessao, onLogout }: {
       municipio_ibge: sessao.municipio_ibge ?? "",
       municipio: sessao.municipio,
       municipio_uuid: sessao.municipio_uuid ?? "",
+      municipio_uf: sessao.municipio_uf ?? "",
       perfis_assessoria: perfisAssessoria,
       administrador_geral: sessao.administrador_geral,
     }}>
@@ -1053,7 +1073,7 @@ function Layout({ children, sessao, onLogout }: {
 
         {/* Main */}
         <main id="ersus-main" style={{flex:1,overflow:"auto",background:"#f1f5f9"}}>
-          <PageErrorBoundary>{children}</PageErrorBoundary>
+          <PageErrorBoundary><GuardaPaginaMunicipio ibge={sessao.municipio_ibge ?? ""}>{children}</GuardaPaginaMunicipio></PageErrorBoundary>
         </main>
       </div>
     </div>

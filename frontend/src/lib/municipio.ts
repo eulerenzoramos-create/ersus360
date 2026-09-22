@@ -9,6 +9,14 @@ import { useAuth } from "../App";
 
 export const IBGE_PILOTO = "1300144";
 
+/** Telas verificadas como multi-município (sem dados de Apuí embutidos). */
+export const PAGINAS_MULTIMUNICIPIO = ["/", "/usuarios", "/documentos", "/alertas"];
+
+export function paginaDisponivel(pathname: string, ibge: string): boolean {
+  if (ibge === IBGE_PILOTO) return true;
+  return PAGINAS_MULTIMUNICIPIO.some(p => pathname === p || (p !== "/" && pathname.startsWith(p + "/")));
+}
+
 /** Retorna o IBGE do município da sessão para as chamadas de API. */
 export function useMunicipioAtivo() {
   const auth = useAuth();

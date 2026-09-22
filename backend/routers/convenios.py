@@ -1,4 +1,4 @@
-"""Router: /api/convenios — CRUD completo"""
+"""Router: /api/convenios — CRUD completo (sempre do município da sessão)"""
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, delete
@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from models import Convenio, Repasse, Cronograma, Alerta
 from schemas.convenio import ConvenioCreate, ConvenioUpdate, ConvenioOut
+from tenancy.escopo import MunicipioDaSessao, SessaoMunicipal, garantir_do_municipio
 
 router = APIRouter(prefix="/api/convenios", tags=["Convênios"])
 DbDep = Annotated[AsyncSession, Depends(get_db)]
@@ -16,7 +17,7 @@ DbDep = Annotated[AsyncSession, Depends(get_db)]
 @router.get("", response_model=list[ConvenioOut])
 async def listar_convenios(
     db: DbDep,
-    municipio_id: int = Query(1),
+    municipio_id: MunicipioDaSessao,
     situacao: str | None = Query(None),
 ):
     stmt = (
@@ -31,22 +32,23 @@ async def listar_convenios(
     return result.scalars().all()
 
 
-@router.get("/{id}", response_model=ConvenioOut)
-async def get_convenio(id: int, db: DbDep):
+async def convenio_da_sessao(db: AsyncSession, current, id: int) -> Convenio:
     result = await db.execute(
         select(Convenio)
         .where(Convenio.id == id)
         .options(selectinload(Convenio.bloco_pacto))
     )
-    conv = result.scalar_one_or_none()
-    if not conv:
-        raise HTTPException(404, "Convênio não encontrado")
-    return conv
+    return await garantir_do_municipio(db, current, result.scalar_one_or_none(), "convenios", id)
+
+
+@router.get("/{id}", response_model=ConvenioOut)
+async def get_convenio(id: int, db: DbDep, current: SessaoMunicipal):
+    return await convenio_da_sessao(db, current, id)
 
 
 @router.post("", response_model=ConvenioOut, status_code=201)
-async def criar_convenio(body: ConvenioCreate, db: DbDep):
-    conv = Convenio(**body.model_dump())
+async def criar_convenio(body: ConvenioCreate, db: DbDep, municipio_id: MunicipioDaSessao):
+    conv = Convenio(**body.model_dump(), municipio_id=municipio_id)
     db.add(conv)
     await db.commit()
     await db.refresh(conv)
@@ -54,11 +56,8 @@ async def criar_convenio(body: ConvenioCreate, db: DbDep):
 
 
 @router.put("/{id}", response_model=ConvenioOut)
-async def atualizar_convenio(id: int, body: ConvenioUpdate, db: DbDep):
-    result = await db.execute(select(Convenio).where(Convenio.id == id))
-    conv = result.scalar_one_or_none()
-    if not conv:
-        raise HTTPException(404, "Convênio não encontrado")
+async def atualizar_convenio(id: int, body: ConvenioUpdate, db: DbDep, current: SessaoMunicipal):
+    conv = await convenio_da_sessao(db, current, id)
     for k, v in body.model_dump(exclude_unset=True).items():
         setattr(conv, k, v)
     await db.commit()
@@ -67,11 +66,8 @@ async def atualizar_convenio(id: int, body: ConvenioUpdate, db: DbDep):
 
 
 @router.delete("/{id}", status_code=204)
-async def deletar_convenio(id: int, db: DbDep):
-    result = await db.execute(select(Convenio).where(Convenio.id == id))
-    conv = result.scalar_one_or_none()
-    if not conv:
-        raise HTTPException(404, "Convênio não encontrado")
+async def deletar_convenio(id: int, db: DbDep, current: SessaoMunicipal):
+    conv = await convenio_da_sessao(db, current, id)
     # Cascade deleta repasses, cronogramas e alertas via ORM
     await db.delete(conv)
     await db.commit()

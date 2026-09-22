@@ -10,13 +10,14 @@ from typing import Optional
 
 import httpx
 from config import settings
+from tenancy.contexto import ibge7
+from tenancy.contexto import eh_legado, ibge7
 
 logger = logging.getLogger(__name__)
 
 _token_cache:  Optional[str]      = None
 _token_expira: Optional[datetime] = None
 
-IBGE    = settings.FNS_MUNICIPIO_IBGE
 BASE    = settings.FNS_API_BASE
 TIMEOUT = 30
 
@@ -25,6 +26,8 @@ async def _autenticar() -> Optional[str]:
     """Obtem token JWT do apifns.saude.gov.br via credenciais do Railway."""
     global _token_cache, _token_expira
 
+    if not eh_legado():
+        return None  # credenciais do Railway pertencem a Apuí/AM — outro município precisa das próprias
     if _token_cache and _token_expira and datetime.now() < _token_expira:
         return _token_cache
 
@@ -82,9 +85,9 @@ async def buscar_repasses(ano: int, mes: int) -> list[dict]:
 
     competencia = f"{ano}{mes:02d}"
     endpoints = [
-        f"{BASE}/api/repasse/municipio/{IBGE}/competencia/{competencia}",
-        f"{BASE}/api/transferencias?municipio={IBGE}&competencia={competencia}",
-        f"{BASE}/repasses?ibge={IBGE}&ano={ano}&mes={mes}",
+        f"{BASE}/api/repasse/municipio/{ibge7()}/competencia/{competencia}",
+        f"{BASE}/api/transferencias?municipio={ibge7()}&competencia={competencia}",
+        f"{BASE}/repasses?ibge={ibge7()}&ano={ano}&mes={mes}",
     ]
 
     for url in endpoints:
@@ -109,8 +112,8 @@ async def buscar_convenios() -> list[dict]:
         return []
 
     endpoints = [
-        f"{BASE}/api/convenio/municipio/{IBGE}",
-        f"{BASE}/api/convenios?municipio={IBGE}&situacao=VIGENTE",
+        f"{BASE}/api/convenio/municipio/{ibge7()}",
+        f"{BASE}/api/convenios?municipio={ibge7()}&situacao=VIGENTE",
     ]
 
     for url in endpoints:
@@ -135,7 +138,7 @@ async def buscar_indicadores_previne() -> list[dict]:
         return []
 
     try:
-        url = f"{BASE}/api/previne/indicadores?ibge={IBGE}"
+        url = f"{BASE}/api/previne/indicadores?ibge={ibge7()}"
         async with httpx.AsyncClient(timeout=TIMEOUT, verify=False) as client:
             r = await client.get(url, headers=_headers(token))
             if r.status_code == 200:

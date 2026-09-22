@@ -1,9 +1,10 @@
 // src/pages/PainelGestor.tsx — ERSUS 360 · Home estilo InvestSUS
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiDashboard, apiAlertas, apiSistema, apiGet, apiConformidade } from "../lib/api";
+import { apiDashboard, apiAlertas, apiGet, apiConformidade } from "../lib/api";
 import { BRL, BRL_AXIS } from "../lib/fmt";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
+import { useAuth } from "../App";
 import {
   Heart, Target, BarChart2, Users, Pill, Syringe, Brain, Map,
   TrendingUp, DollarSign, FileText, Activity, Eye, EyeOff,
@@ -41,12 +42,12 @@ export default function PainelGestor() {
   const { data: alertas = [] }        = useQuery({ queryKey: ["alertas"],            queryFn: () => apiAlertas.list() });
   const { data: scoreData }           = useQuery({ queryKey: ["score-resumo-home"],  queryFn: () => apiGet("/api/score/resumo") as Promise<any> });
   const { data: conformidadeData }    = useQuery({ queryKey: ["conformidade-dash"],  queryFn: () => apiConformidade.dashboard() as Promise<any>, staleTime: 120_000 });
-  const { data: sysInfo }             = useQuery({ queryKey: ["sistema-info"],       queryFn: apiSistema.info, staleTime: 60_000 });
+  const auth                         = useAuth();
 
   const alertasAtivos  = (alertas as any[]).filter((a: any) => !a.resolvido);
-  const municipio      = sysInfo?.municipio ?? "APUÍ";
-  const uf             = sysInfo?.uf        ?? "AM";
-  const ibge           = sysInfo?.ibge      ?? "1300144";
+  const municipio      = auth.municipio;
+  const uf             = auth.municipio_uf;
+  const ibge           = auth.municipio_ibge;
   const scoreTotal     = scoreData?.score_total ?? null;
   const scoreNivel     = scoreData?.nivel       ?? null;
   const confPct        = conformidadeData?.pct_conformidade ?? null;
@@ -58,7 +59,7 @@ export default function PainelGestor() {
   const base = (import.meta as any).env?.VITE_API_URL ?? "http://localhost:8000";
   const { data: siaps } = useQuery({
     queryKey: ["siaps-mini"],
-    queryFn:  () => fetch(`${base}/api/aps/siaps-ausencias?comp=202605&ibge6=130014`).then(r => r.json()),
+    queryFn:  () => fetch(`${base}/api/aps/siaps-ausencias?comp=202605&ibge6=${ibge.slice(0, 6)}`).then(r => r.json()),
     staleTime: 300_000,
   });
   const siapsAus = siaps?.equipes?.length ?? 0;
@@ -95,7 +96,7 @@ export default function PainelGestor() {
             <div style={{ background: "rgba(255,255,255,0.18)", borderRadius: 8, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>⚕</div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 0.2, lineHeight: 1.3 }}>
-                SECRETARIA MUNICIPAL<br />DE SAÚDE DE APUÍ
+                SECRETARIA MUNICIPAL<br />DE SAÚDE DE {municipio.toUpperCase()}
               </div>
             </div>
           </div>

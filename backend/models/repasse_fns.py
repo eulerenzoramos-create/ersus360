@@ -1,14 +1,17 @@
 """Model: Repasse FNS Fundo a Fundo — Apuí/AM"""
 from datetime import datetime
-from sqlalchemy import String, Float, DateTime, Boolean, Text
+from sqlalchemy import String, Float, DateTime, Boolean, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from database import Base
+from tenancy.contexto import municipio_id_atual
 
 
 class RepasseFNS(Base):
     __tablename__ = "repasses_fns"
 
     id:               Mapped[str]   = mapped_column(String(40), primary_key=True)
+    municipio_id: Mapped[int | None] = mapped_column(
+        ForeignKey("municipios.id"), index=True, nullable=True, default=municipio_id_atual)
     competencia:      Mapped[str]   = mapped_column(String(10), index=True)   # "Jul/2026"
     bloco:            Mapped[str]   = mapped_column(String(80))
     programa:         Mapped[str]   = mapped_column(Text)

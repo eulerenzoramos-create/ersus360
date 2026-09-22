@@ -4,12 +4,15 @@ from datetime import datetime, date
 from sqlalchemy import Column, Integer, String, Numeric, Date, DateTime, Boolean, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from database import Base
+from tenancy.contexto import municipio_id_atual
 
 
 class ContaBancariaFMS(Base):
     __tablename__ = "conta_bancaria_fms"
 
     id              = Column(Integer, primary_key=True, index=True)
+    municipio_id    = Column(Integer, ForeignKey("municipios.id"), index=True, nullable=True,
+                             default=municipio_id_atual)
     banco           = Column(String(100), nullable=False)
     codigo_banco    = Column(String(10))
     agencia         = Column(String(20))

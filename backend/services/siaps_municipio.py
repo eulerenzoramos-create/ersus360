@@ -53,10 +53,12 @@ def _cache_set(key: str, data: Any) -> Any:
 
 
 def _credenciais(ibge: str) -> tuple[str, str, str]:
-    """Retorna (cpf, senha, token) para o município. Busca env vars específicas primeiro."""
-    cpf   = os.getenv(f"SIAPS_CPF_{ibge}",   os.getenv("SIAPS_CPF",   "")).strip().replace(".", "").replace("-", "")
-    senha = os.getenv(f"SIAPS_SENHA_{ibge}",  os.getenv("SIAPS_SENHA", "")).strip()
-    token = os.getenv(f"SIAPS_TOKEN_{ibge}",  os.getenv("SIAPS_TOKEN", "")).strip()
+    """Retorna (cpf, senha, token) do município. As variáveis genéricas (sem sufixo)
+    são as credenciais legadas de Apuí/AM e nunca servem a outro município."""
+    legado = ibge in ("1300144", "130014")
+    cpf   = os.getenv(f"SIAPS_CPF_{ibge}",   os.getenv("SIAPS_CPF",   "") if legado else "").strip().replace(".", "").replace("-", "")
+    senha = os.getenv(f"SIAPS_SENHA_{ibge}",  os.getenv("SIAPS_SENHA", "") if legado else "").strip()
+    token = os.getenv(f"SIAPS_TOKEN_{ibge}",  os.getenv("SIAPS_TOKEN", "") if legado else "").strip()
     return cpf, senha, token
 
 

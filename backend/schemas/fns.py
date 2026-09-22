@@ -11,8 +11,7 @@ from models.alerta import SeveridadeAlerta
 class FnsSyncRequest(BaseModel):
     mes: int
     ano: int
-    municipio_id: int = 1
-    modo: str = "preview"   # "preview" | "sync"
+    modo: str = "preview"   # município = sessão (definido no router)   # "preview" | "sync"
 
 
 class FnsRepasseItem(BaseModel):
@@ -101,7 +100,7 @@ class IndicadorBase(BaseModel):
 
 
 class IndicadorCreate(IndicadorBase):
-    municipio_id: int = 1
+    pass  # município definido pela sessão no router
 
 
 class IndicadorUpdate(IndicadorBase):

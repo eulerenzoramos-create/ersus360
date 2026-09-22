@@ -34,7 +34,7 @@ class ConvenioBase(BaseModel):
 
 
 class ConvenioCreate(ConvenioBase):
-    municipio_id: int = 1
+    pass  # município definido pela sessão no router
 
 
 class ConvenioUpdate(ConvenioBase):

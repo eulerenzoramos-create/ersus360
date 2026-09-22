@@ -10,11 +10,11 @@ from typing import Optional
 
 import httpx
 from config import settings
+from tenancy.contexto import ibge6, populacao
 
 logger = logging.getLogger(__name__)
 
 _BASE    = "https://apidadosabertos.saude.gov.br/sih"
-_IBGE6   = settings.FNS_MUNICIPIO_IBGE[:6]
 _TIMEOUT = 15
 
 _ICSAP_PREFIXOS = (
@@ -61,7 +61,7 @@ def _sem_dado(ano: int) -> dict:
 async def buscar_internacoes(ano: int) -> dict:
     """Internacoes hospitalares do municipio no ano."""
     data = await _get(f"{_BASE}/autorizacao-internacao-hospitalar", {
-        "co_municipio_internacao": _IBGE6,
+        "co_municipio_internacao": ibge6(),
         "ano_internacao":          ano,
         "offset":                  0,
         "limit":                   500,
@@ -77,7 +77,7 @@ async def buscar_internacoes(ano: int) -> dict:
         total     = len(aih)
         icsap     = sum(1 for a in aih if _is_icsap(str(a.get("diag_princ") or a.get("cid_principal") or "")))
         obitos    = sum(1 for a in aih if str(a.get("morte") or a.get("obito") or "0") in ("1", "S", True))
-        taxa_100k = round(total / 25_000 * 100_000, 1)
+        taxa_100k = round(total / populacao() * 100_000, 1)
         icsap_pct = round(icsap / total * 100, 1) if total else 0
         return {
             "ano":                 ano,

@@ -5,7 +5,7 @@ from fastapi import APIRouter
 from services.cnes_service import buscar_estabelecimentos
 router = APIRouter(prefix="/api/saude-digital-apui", tags=["saude_digital_apui"])
 _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-_NOTA = "e-SUS PEC/RNDS Apuí requerem integração (pendente). CNES como proxy."
+_NOTA = "e-SUS PEC/RNDS do município requerem integração (pendente). CNES como proxy."
 @router.get("/dashboard")
 async def dashboard():
     cnes = await buscar_estabelecimentos()

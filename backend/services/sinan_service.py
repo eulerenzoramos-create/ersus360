@@ -9,12 +9,12 @@ from typing import Optional
 
 import httpx
 from config import settings
+from tenancy.contexto import ibge6, populacao
 
 logger = logging.getLogger(__name__)
 
 _BASE    = "https://apidadosabertos.saude.gov.br/sinan"
 _TIMEOUT = 15
-_IBGE6   = settings.FNS_MUNICIPIO_IBGE[:6]
 
 
 async def _get(url: str, params: dict) -> Optional[dict | list]:
@@ -45,7 +45,7 @@ async def buscar_malaria(ano: int) -> dict:
         ("/malaria",       "co_municipio_infec"),
         ("/sivep-malaria", "municipio"),
     ]:
-        data = await _get(f"{_BASE}{path}", {mun_field: _IBGE6, "ano": ano, "limit": 500})
+        data = await _get(f"{_BASE}{path}", {mun_field: ibge6(), "ano": ano, "limit": 500})
         casos: list = []
         if isinstance(data, list):
             casos = data
@@ -55,7 +55,7 @@ async def buscar_malaria(ano: int) -> dict:
             vf  = sum(1 for c in casos if str(c.get("id_lamina") or c.get("especie", "")).startswith("F"))
             vv  = sum(1 for c in casos if str(c.get("id_lamina") or c.get("especie", "")).startswith("V"))
             total = len(casos)
-            pop   = 25_000
+            pop   = populacao()
             ipa   = round(total / pop * 1000, 2)
             return {
                 "ano":              ano,
@@ -74,7 +74,7 @@ async def buscar_malaria(ano: int) -> dict:
 async def buscar_dengue(ano: int) -> dict:
     """Casos de dengue via SINAN/DATASUS."""
     data = await _get(f"{_BASE}/dengue", {
-        "co_municipio_not": _IBGE6,
+        "co_municipio_not": ibge6(),
         "ano_not":          ano,
         "limit":            500,
     })
@@ -88,7 +88,7 @@ async def buscar_dengue(ano: int) -> dict:
         total      = len(casos)
         graves     = sum(1 for c in casos if c.get("cs_evoluca") in ("2", "3", 2, 3))
         obitos     = sum(1 for c in casos if c.get("cs_evoluca") in ("2", 2))
-        incidencia = round(total / 25_000 * 100_000, 1)
+        incidencia = round(total / populacao() * 100_000, 1)
         return {
             "ano":            ano,
             "total_casos":    total,
@@ -108,7 +108,7 @@ async def buscar_tuberculose(ano: int) -> dict:
         ("/tuberculose", "co_municipio_residencia", "ano_notificacao"),
         ("/tb",          "municipio",               "ano"),
     ]:
-        data = await _get(f"{_BASE}{path}", {mun_f: _IBGE6, ano_f: ano, "limit": 500})
+        data = await _get(f"{_BASE}{path}", {mun_f: ibge6(), ano_f: ano, "limit": 500})
         casos: list = []
         if isinstance(data, list):
             casos = data
@@ -118,7 +118,7 @@ async def buscar_tuberculose(ano: int) -> dict:
             total     = len(casos)
             curados   = sum(1 for c in casos if str(c.get("cs_evolucao") or c.get("resultado") or "").lower() in ("1", "cura", "curado"))
             obitos    = sum(1 for c in casos if str(c.get("cs_evolucao") or "").lower() in ("2", "obito"))
-            incid     = round(total / 25_000 * 100_000, 1)
+            incid     = round(total / populacao() * 100_000, 1)
             taxa_cura = round(curados / total * 100, 1) if total else 0
             return {
                 "ano":              ano,
@@ -142,7 +142,7 @@ async def buscar_hanseniase(ano: int) -> dict:
         ("/hanseniase", "co_municipio_residencia", "ano_notificacao"),
         ("/hanseniasis", "municipio",              "ano"),
     ]:
-        data = await _get(f"{_BASE}{path}", {mun_f: _IBGE6, ano_f: ano, "limit": 500})
+        data = await _get(f"{_BASE}{path}", {mun_f: ibge6(), ano_f: ano, "limit": 500})
         casos: list = []
         if isinstance(data, list):
             casos = data
@@ -152,7 +152,7 @@ async def buscar_hanseniase(ano: int) -> dict:
             total    = len(casos)
             mb       = sum(1 for c in casos if str(c.get("classif_ope") or c.get("forma") or "").upper() in ("MB", "MULTIBACILAR"))
             pb       = total - mb
-            incid    = round(total / 25_000 * 100_000, 1)
+            incid    = round(total / populacao() * 100_000, 1)
             grau2    = sum(1 for c in casos if str(c.get("grau_inc") or c.get("grau_incapacidade") or "0") in ("2", "II"))
             return {
                 "ano":              ano,

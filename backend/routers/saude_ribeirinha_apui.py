@@ -12,7 +12,7 @@ from services.sia_service import buscar_producao
 router = APIRouter(prefix="/api/saude-ribeirinha-apui", tags=["saude_ribeirinha_apui"])
 _TS  = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 _ANO = lambda: date.today().year - 1
-_NOTA = "Dados específicos de populações ribeirinhas (SESAI/FUNAI não incidência em Apuí) requerem registro municipal (pendente)."
+_NOTA = "Dados específicos de populações ribeirinhas (SESAI/FUNAI sem incidência no município) requerem registro municipal (pendente)."
 
 
 @router.get("/dashboard")

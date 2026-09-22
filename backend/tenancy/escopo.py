@@ -20,6 +20,14 @@ def exigir_municipio(current_user: Annotated[UserOut, Depends(get_current_user)]
 SessaoMunicipal = Annotated[UserOut, Depends(exigir_municipio)]
 
 
+def municipio_id_sessao(current: SessaoMunicipal) -> int:
+    """Substitui parâmetros `municipio_id` vindos do cliente: sempre o da sessão."""
+    return current.municipio_id
+
+
+MunicipioDaSessao = Annotated[int, Depends(municipio_id_sessao)]
+
+
 async def garantir_do_municipio(
     db: AsyncSession, usuario: UserOut, registro, tabela: str, registro_id: int,
 ):

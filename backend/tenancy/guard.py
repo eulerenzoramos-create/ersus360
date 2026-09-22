@@ -15,8 +15,8 @@ Regras (em ordem):
   5. Rotas de dados exigem um município ativo na sessão.
   6. Parâmetros de município enviados pelo cliente (query, path, corpo JSON) que
      divergirem do município da sessão bloqueiam a requisição (403 + auditoria).
-  7. Módulos ainda não migrados para multi-tenant contêm dados fixos de Apuí/AM:
-     só respondem a sessões de Apuí. Os demais municípios recebem 403.
+  7. Módulos com dados de Apuí/AM fixos no código (ROTAS_SO_APUI) só respondem
+     a sessões de Apuí. Os demais municípios recebem 403.
   8. Toda ação de escrita é registrada na auditoria com o município.
 """
 from __future__ import annotations
@@ -31,6 +31,7 @@ from starlette.requests import HTTPConnection
 from database import get_db
 from routers.auth import AcessoNegado, UserOut, decodificar_token, ip_de, resolver_sessao
 from tenancy.auditoria import registrar_auditoria
+from tenancy.contexto import MunicipioContexto, definir_municipio
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,6 @@ IBGE_LEGADO = "1300144"
 ROTAS_PUBLICAS = {
     "/api/auth/login",
     "/api/auth/logout",
-    "/api/sistema/info",
     "/api/pec/sync",        # agente PEC — autenticado pela X-Sync-Key do próprio endpoint
 }
 
@@ -54,18 +54,33 @@ PREFIXOS_SEM_MUNICIPIO = (
 # Rotas exclusivas do administrador-geral (operam sobre vários municípios por definição).
 PREFIXOS_ADMIN_GERAL = (
     "/api/admin-geral/",
+    "/api/ws/broadcast",   # envia a TODOS os conectados, de qualquer município
     "/api/auth/usuarios",
     "/api/auth/registrar",
 )
 
-# Módulos já adaptados ao multi-tenant: filtram tudo pelo município da sessão.
-# Qualquer rota fora desta lista é tratada como legada (dados fixos de Apuí).
-PREFIXOS_MULTITENANT = (
-    "/api/auth/",
-    "/api/tenant/",
-    "/api/admin-geral/",
-    "/api/usuarios",
-    "/api/documentos",
+# Módulos com dados de Apuí/AM fixos no código (listas verificadas, séries
+# históricas, rotas "-apui"). Respondem SOMENTE a sessões de Apuí; qualquer
+# outro município recebe 403. Todas as demais rotas operam sobre o município da
+# sessão (tenancy.contexto) — verificado por tests/test_varredura_tenant.py.
+ROTAS_SO_APUI: tuple[str, ...] = (
+    # referência municipal / planilhas oficiais de Apuí embutidas no código
+    "/api/absenteismo/", "/api/acs/", "/api/auditoria-dados/", "/api/cms/", "/api/contratos/",
+    "/api/exportador/", "/api/folha/", "/api/frota/", "/api/gestao/", "/api/linha-tempo/",
+    "/api/okr/", "/api/ouvidoria/", "/api/patrimonio/", "/api/relatorios/", "/api/sync/",
+    "/api/siaps/", "/api/telessaude-apui/", "/api/indicadores-aps/",
+    # lista verificada de UBS/equipes CNES de Apuí
+    "/api/cnes/", "/api/equipamentos/", "/api/scnes-conformidade/", "/api/siaps-monitor/",
+    "/api/dashboard-exec/", "/api/sisab/",
+    # integrações configuradas só para Apuí (credenciais, CNES, agente PEC)
+    "/api/integracao/", "/api/integracao-egestor-apui/", "/api/integracao-esuspec-apui/",
+    "/api/integracao-fns-apui/", "/api/integracao-siaps-apui/", "/api/integracao-pec/",
+    "/api/pec/", "/api/ledi/", "/api/mapa-visitas-domiciliares/", "/api/auditoria-auto/",
+    # financeiro FMS Apuí (tabelas ainda sem filtro por município nos routers)
+    "/api/repasses-aps/", "/api/repasses-fns/", "/api/execucao-fns/", "/api/contas-fms/",
+    "/api/email-diario/",
+    "/api/rnds/", "/api/gateway/diagnostico",  # certificado ICP-Brasil/CNES de Apuí
+    "/ws/",  # alertas/ACS em tempo real: canal único, sem separação por município
 )
 
 # Nomes de parâmetro que identificam município. Valor divergente da sessão = bloqueio.
@@ -152,6 +167,12 @@ async def tenant_guard(conn: HTTPConnection, db: AsyncSession = Depends(get_db))
         raise _erro(conn, exc.status_code, exc.detail)
 
     conn.state.usuario = usuario
+    if usuario.municipio_id is not None:
+        # Serviços e cache passam a operar sobre o município da sessão
+        definir_municipio(MunicipioContexto(
+            id=usuario.municipio_id, uuid=usuario.municipio_uuid, ibge=usuario.municipio_ibge or "",
+            nome=usuario.municipio, uf=usuario.municipio_uf or "", populacao=usuario.municipio_populacao,
+        ))
 
     async def negar(motivo: str, detail: str, codigo: int = status.HTTP_403_FORBIDDEN):
         await registrar_auditoria(db, "ACESSO_NEGADO", usuario=usuario, ip=ip,
@@ -175,7 +196,7 @@ async def tenant_guard(conn: HTTPConnection, db: AsyncSession = Depends(get_db))
             await negar("PARAMETRO_MUNICIPIO_DIVERGENTE",
                         f"Acesso negado: o parâmetro '{chave}' não corresponde ao município da sessão")
 
-    if not _comeca(path, PREFIXOS_MULTITENANT) and usuario.municipio_ibge != IBGE_LEGADO:
+    if _comeca(path, ROTAS_SO_APUI) and usuario.municipio_ibge != IBGE_LEGADO:
         await negar("MODULO_NAO_MIGRADO",
                     "Módulo ainda não disponível para este município")
 

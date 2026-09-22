@@ -30,6 +30,7 @@ async def lifespan(app: FastAPI):
     try:
         await init_db()
         await _seed_dados_iniciais()
+        await _configurar_municipio_padrao()
     except Exception as exc:
         logger.error("Erro na inicialização do banco: %s", exc, exc_info=True)
 
@@ -864,13 +865,15 @@ else:
 
 @app.get("/api/sistema/info")
 async def sistema_info():
-    """Informações públicas do sistema para o frontend."""
+    """Informações do sistema e do município da sessão."""
+    from tenancy.contexto import municipio_atual
+    mun = municipio_atual()
     return {
         "app": "ERSUS 360",
         "versao": "1.0.0",
-        "municipio": settings.MUNICIPIO_NOME,
-        "uf": settings.MUNICIPIO_UF,
-        "ibge": settings.FNS_MUNICIPIO_IBGE,
+        "municipio": mun.nome,
+        "uf": mun.uf,
+        "ibge": mun.ibge,
         "modulos": [
             "FNS/Convênios", "Novo Financiamento APS", "APS", "Farmácia",
             "Vigilância", "RH", "Obras", "Patrimônio",
@@ -878,6 +881,24 @@ async def sistema_info():
         ],
         "fns_sync_hora": settings.FNS_SYNC_HORA,
     }
+
+
+# ── Município dos jobs sem sessão (scheduler/seeds) ─────────────────────────
+
+async def _configurar_municipio_padrao():
+    """Jobs agendados e seeds rodam fora de requisições: operam sobre Apuí/AM,
+    como antes do multi-tenant, agora com o id real do banco (registros novos
+    recebem municipio_id)."""
+    from database import AsyncSessionLocal
+    from sqlalchemy import select
+    from models import Municipio
+    from tenancy.contexto import IBGE_LEGADO, MunicipioContexto, configurar_municipio_padrao
+
+    async with AsyncSessionLocal() as db:
+        mun = (await db.execute(select(Municipio).where(Municipio.codigo_ibge == IBGE_LEGADO))).scalar_one_or_none()
+    if mun:
+        configurar_municipio_padrao(MunicipioContexto(
+            id=mun.id, uuid=mun.uuid, ibge=mun.codigo_ibge, nome=mun.nome, uf=mun.uf, populacao=mun.populacao))
 
 
 # ── Seed de dados iniciais ───────────────────────────────────────────────────

@@ -13,12 +13,12 @@ from datetime import date
 
 import httpx
 from config import settings
+from tenancy.contexto import ibge7
 
 logger = logging.getLogger(__name__)
 
 _EGESTOR = "https://egestorab.saude.gov.br/api/v1"
 _TIMEOUT = 15
-_IBGE    = getattr(settings, "FNS_MUNICIPIO_IBGE", "1300144")
 
 _META_POR_IND = {
     1: 60.0, 2: 60.0, 3: 95.0, 4: 60.0,
@@ -83,7 +83,7 @@ def _sem_dado(competencia: str, nota: str = "") -> dict:
     return {
         "municipio":             getattr(settings, "MUNICIPIO_NOME", "Apuí"),
         "uf":                    getattr(settings, "MUNICIPIO_UF",   "AM"),
-        "ibge":                  _IBGE,
+        "ibge":                  ibge7(),
         "competencia":           competencia,
         "situacao_dado":         "nao_disponivel",
         "total_pontos":          None,
@@ -107,9 +107,9 @@ async def buscar_indicadores(competencia: str) -> dict:
     Retorna nao_disponivel quando API indisponível — sem fallback fictício.
     """
     urls = [
-        (f"{_EGESTOR}/previne/municipio/{_IBGE}/indicadores", {"competencia": competencia}),
-        (f"{_EGESTOR}/relatorio/municipio/indicadoresPrevine", {"codIbge": _IBGE, "competencia": competencia}),
-        (f"https://apidadosabertos.saude.gov.br/indicadores/previne/municipio/{_IBGE}", {"competencia": competencia}),
+        (f"{_EGESTOR}/previne/municipio/{ibge7()}/indicadores", {"competencia": competencia}),
+        (f"{_EGESTOR}/relatorio/municipio/indicadoresPrevine", {"codIbge": ibge7(), "competencia": competencia}),
+        (f"https://apidadosabertos.saude.gov.br/indicadores/previne/municipio/{ibge7()}", {"competencia": competencia}),
     ]
 
     for url, params in urls:
@@ -132,7 +132,7 @@ async def buscar_indicadores(competencia: str) -> dict:
             return {
                 "municipio":             getattr(settings, "MUNICIPIO_NOME", "Apuí"),
                 "uf":                    getattr(settings, "MUNICIPIO_UF", "AM"),
-                "ibge":                  _IBGE,
+                "ibge":                  ibge7(),
                 "competencia":           competencia,
                 "situacao_dado":         "oficial_validado",
                 "total_pontos":          total_pontos,
@@ -148,8 +148,9 @@ async def buscar_indicadores(competencia: str) -> dict:
     return _sem_dado(competencia)
 
 
-async def buscar_historico(ibge: str = _IBGE, meses: int = 6) -> dict:
+async def buscar_historico(ibge: str | None = None, meses: int = 6) -> dict:
     """Histórico mensal dos indicadores via e-Gestor APS. Sem dado = lista vazia."""
+    ibge = ibge7()  # sempre o município da sessão
     hoje = date.today()
     ano, mes = hoje.year, hoje.month
 

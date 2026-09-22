@@ -5,7 +5,7 @@ from fastapi import APIRouter, Query
 from services.siops_service import buscar_apuracao, buscar_historico
 router = APIRouter(prefix="/api/fundo-municipal-saude-apui", tags=["fundo_municipal_saude_apui"])
 _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
-_NOTA = "FMS Apuí detalhado requer SICONFI (pendente). SIOPS como proxy EC-29."
+_NOTA = "FMS detalhado requer SICONFI (pendente). SIOPS como proxy EC-29."
 @router.get("/dashboard")
 async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()

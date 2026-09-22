@@ -3,8 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from fastapi import APIRouter
 from services.cnes_service import (
-    buscar_estabelecimentos, buscar_equipes_saude, buscar_status, IBGE
+    buscar_estabelecimentos, buscar_equipes_saude, buscar_status,
 )
+from tenancy.contexto import ibge7
 
 router = APIRouter(prefix="/api/scnes-conformidade", tags=["Conformidade SCNES"])
 _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -44,7 +45,8 @@ async def conformidade():
 # ── Novos endpoints ────────────────────────────────────────────────────────────
 
 @router.get("/resumo")
-async def resumo(ibge: str = IBGE):
+async def resumo(ibge: str | None = None):
+    ibge = ibge7()  # sempre o município da sessão
     estabs = await buscar_estabelecimentos()
     equipes = await buscar_equipes_saude(ibge)
 
@@ -83,7 +85,8 @@ async def resumo(ibge: str = IBGE):
 
 
 @router.get("/equipes")
-async def equipes(ibge: str = IBGE):
+async def equipes(ibge: str | None = None):
+    ibge = ibge7()  # sempre o município da sessão
     equipes_raw = await buscar_equipes_saude(ibge)
     result = []
     for eq in equipes_raw:
@@ -150,7 +153,8 @@ async def equipes(ibge: str = IBGE):
 
 
 @router.get("/alertas-cnes")
-async def alertas_cnes(ibge: str = IBGE):
+async def alertas_cnes(ibge: str | None = None):
+    ibge = ibge7()  # sempre o município da sessão
     equipes_raw = await buscar_equipes_saude(ibge)
 
     alertas = []

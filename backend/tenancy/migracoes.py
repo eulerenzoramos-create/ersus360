@@ -41,6 +41,22 @@ _COLUNAS_AUDIT = [
 ]
 
 
+# Tabelas municipais que não tinham identificador do município. Todo o conteúdo
+# anterior ao multi-tenant pertence a Apuí/AM (único município em uso).
+TABELAS_COM_NOVO_MUNICIPIO_ID = [
+    "execucao_fns", "documentos_execucao", "conta_bancaria_fms", "repasses_fns", "email_diario_log",
+]
+
+
+async def _tabelas_existentes(conn) -> list[str]:
+    if conn.dialect.name == "sqlite":
+        rows = (await conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))).all()
+    else:
+        rows = (await conn.execute(text(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema()"))).all()
+    return [r[0] for r in rows]
+
+
 async def _colunas_existentes(conn, tabela: str) -> set[str]:
     if conn.dialect.name == "sqlite":
         rows = (await conn.execute(text(f"PRAGMA table_info({tabela})"))).all()
@@ -75,6 +91,24 @@ async def migrar_multitenant(engine: AsyncEngine) -> None:
         await _adicionar_colunas(conn, "municipios", _COLUNAS_MUNICIPIOS)
         await _adicionar_colunas(conn, "audit_log", _COLUNAS_AUDIT)
         await _adicionar_colunas(conn, "documentos", [("excluido_em", "TIMESTAMP")])
+        existentes = set(await _tabelas_existentes(conn))
+        for tabela in TABELAS_COM_NOVO_MUNICIPIO_ID:
+            if tabela in existentes:
+                await _adicionar_colunas(conn, tabela, [("municipio_id", "INTEGER")])
+                await conn.execute(text(
+                    f"CREATE INDEX IF NOT EXISTS ix_{tabela}_municipio_id ON {tabela} (municipio_id)"))
+                await conn.execute(text(
+                    f"UPDATE {tabela} SET municipio_id = (SELECT id FROM municipios WHERE codigo_ibge = '1300144') "
+                    f"WHERE municipio_id IS NULL"))
+                if conn.dialect.name == "postgresql":
+                    fk = f"fk_{tabela}_municipio"
+                    await conn.execute(text(f"""
+                        DO $$ BEGIN
+                          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = '{fk}') THEN
+                            ALTER TABLE {tabela} ADD CONSTRAINT {fk}
+                              FOREIGN KEY (municipio_id) REFERENCES municipios(id);
+                          END IF;
+                        END $$;"""))
 
         # 3. Situação dos municípios pré-existentes:
         #    com usuários cadastrados → ativo (preserva o acesso atual de Apuí);

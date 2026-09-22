@@ -18,13 +18,19 @@ Stack: FastAPI (backend Railway) + React/Vite/TypeScript (frontend Vercel).
   a cada requisição (usuário ativo, município `ativo`, autorização vigente).
 - Parâmetros de município (`municipio_id`, `ibge`, `ibge6`, `coMunicipio`...) em query/path/corpo JSON
   que divergirem da sessão → 403 + auditoria.
-- Routers novos: filtrar SEMPRE por `current.municipio_id` (use `tenancy.escopo.SessaoMunicipal` e
-  `garantir_do_municipio`) e adicionar o prefixo em `PREFIXOS_MULTITENANT`. Rotas fora dessa lista são
-  "legadas" (dados fixos de Apuí) e só respondem a sessões de Apuí.
+- O guard grava o município em `tenancy.contexto` (ContextVar). Serviços usam `ibge7()`, `ibge6()`,
+  `populacao()`, `municipio_atual()` — NUNCA constantes de IBGE/população. `cache_service` já separa por município.
+- Routers com banco: filtrar SEMPRE pelo município da sessão (`tenancy.escopo.MunicipioDaSessao`,
+  `SessaoMunicipal`, `garantir_do_municipio`); nunca `municipio_id: int = Query(1)`.
+- `ROTAS_SO_APUI` (guard): módulos com dados de referência de Apuí no código — só respondem a Apuí.
+  Ao generalizar um módulo, removê-lo dessa lista e rodar `tests/test_varredura_tenant.py`.
+- Frontend: telas liberadas para outros municípios em `PAGINAS_MULTIMUNICIPIO` (`lib/municipio.ts`).
+- Credenciais do Railway (FNS/SIAPS/e-SUS/LEDI/RNDS) são de Apuí: serviços não as usam para outro município.
 - Único perfil global: `administrador_geral` (conta bootstrap `euler`, senha só via `EULER_SENHA`).
   Entra num município por `/api/tenant/selecionar` (SUPORTE_INICIO/FIM auditados).
 - Cadastro/situação de municípios, usuários e autorizações: `/api/admin-geral/*`.
-- Testes obrigatórios: `backend/tests/test_isolamento_tenant.py` — nenhum deploy se falhar.
+- Testes obrigatórios: `tests/test_isolamento_tenant.py` e `tests/test_varredura_tenant.py` (todas as rotas GET
+  como outro município, internet simulada) — nenhum deploy se falharem.
 
 ## Credenciais sensíveis
 NUNCA no código — apenas como variáveis de ambiente no Railway:

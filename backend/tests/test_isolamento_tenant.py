@@ -160,9 +160,10 @@ async def test_2_usuario_de_outro_municipio_nao_acessa_apui(ambiente):
     assert (await c.get(f"/api/documentos/{ids['doc_apui']}/download", headers=_h(tok))).status_code == 404
     r = await c.post("/api/tenant/selecionar", json={"municipio_uuid": ids["apui_uuid"]}, headers=_h(tok))
     assert r.status_code == 403
-    # Módulos legados (dados fixos de Apuí) não respondem a outro município
-    r = await c.get("/api/qualquer-modulo-legado", headers=_h(tok))
-    assert r.status_code == 403
+    # Módulos com dados de referência de Apuí no código não respondem a outro município
+    for rota in ("/api/frota/dashboard", "/api/folha/folha", "/api/repasses-aps/resumo-executivo"):
+        r = await c.get(rota, headers=_h(tok))
+        assert r.status_code == 403, rota
 
 
 # ── 3. Alterar município na URL ───────────────────────────────────────────────
@@ -225,7 +226,8 @@ async def test_6_exportacoes_somente_do_municipio_autorizado(ambiente):
     r = await c.get(f"/api/documentos/{ids['doc_b']}/download", headers=_h(tok))
     assert r.status_code == 200 and r.content == b"%PDF b"
     assert (await c.get(f"/api/documentos/{ids['doc_apui']}/download", headers=_h(tok))).status_code == 404
-    for path in ("/api/rreo-anexo12/exportar-pdf", "/api/export/qualquer"):
+    # exportadores com dados de referência de Apuí embutidos: bloqueados para B
+    for path in ("/api/exportador/lista", "/api/relatorios/exportar-pdf"):
         assert (await c.get(path, headers=_h(tok))).status_code == 403, path
 
 
@@ -402,6 +404,9 @@ async def test_migracao_preserva_dados_de_apui():
             (2, 'SEM CONTRATO', 'AM', '1300000', NULL, NULL)"""))
         await conn.execute(text("INSERT INTO usuarios VALUES (10, 1, 'gestor@apui')"))
         await conn.execute(text("INSERT INTO documentos VALUES (5, 1, 'Portaria')"))
+        # tabela municipal que não tinha identificador do município
+        await conn.execute(text("CREATE TABLE execucao_fns (id INTEGER PRIMARY KEY, descricao VARCHAR(100))"))
+        await conn.execute(text("INSERT INTO execucao_fns VALUES (7, 'Pagamento FMS')"))
 
     await migrar_multitenant(engine)
     await migrar_multitenant(engine)  # idempotente
@@ -412,12 +417,14 @@ async def test_migracao_preserva_dados_de_apui():
         outro = (await conn.execute(text("SELECT situacao FROM municipios WHERE id = 2"))).scalar_one()
         doc = (await conn.execute(text("SELECT titulo, municipio_id, excluido_em FROM documentos"))).one()
         usu = (await conn.execute(text("SELECT municipio_id FROM usuarios WHERE id = 10"))).scalar_one()
+        exec_fns = (await conn.execute(text("SELECT descricao, municipio_id FROM execucao_fns"))).one()
     await engine.dispose()
 
     assert apui[:3] == ("APUÍ", "12.834.320/0001-26", 20647)
     assert apui.situacao == "ativo" and len(apui.uuid) == 36
     assert outro == "disponivel"
     assert tuple(doc) == ("Portaria", 1, None) and usu == 1
+    assert tuple(exec_fns) == ("Pagamento FMS", 1)  # registro antigo atribuído a Apuí
 
 
 # ── WebSockets também exigem token ────────────────────────────────────────────
@@ -432,3 +439,92 @@ def test_websocket_sem_token_recusado():
             with cliente.websocket_connect(path) as ws:
                 ws.receive_text()
         assert exc.value.code == 1008, path
+
+
+# ── Fase 2: CRUD legado, cache e estado em memória ────────────────────────────
+
+async def test_crud_convenios_indicadores_alertas_isolados(ambiente):
+    from models.alerta import Alerta
+    from models.convenio import Convenio
+    c, ids, Session = ambiente["client"], ambiente["ids"], ambiente["Session"]
+    async with Session() as db:
+        conv = Convenio(municipio_id=ids["apui"], numero="APUI-1", objeto="Convênio Apuí")
+        db.add(conv)
+        await db.flush()
+        alerta = Alerta(municipio_id=ids["apui"], titulo="Alerta Apuí", descricao="x", modulo="APS")
+        db.add(alerta)
+        await db.commit()
+        conv_id, alerta_id = conv.id, alerta.id
+
+    tok_b = await _token(c, "gestor.b@teste.gov.br")
+    # sem municipio_id na URL, o padrão antigo (id=1 = Apuí) não vale mais
+    assert (await c.get("/api/convenios", headers=_h(tok_b))).json() == []
+    assert (await c.get("/api/alertas", headers=_h(tok_b))).json() == []
+    assert (await c.get(f"/api/convenios/{conv_id}", headers=_h(tok_b))).status_code == 404
+    assert (await c.put(f"/api/convenios/{conv_id}", json={"numero": "x", "objeto": "x"},
+                        headers=_h(tok_b))).status_code == 404
+    assert (await c.delete(f"/api/convenios/{conv_id}", headers=_h(tok_b))).status_code == 404
+    assert (await c.post(f"/api/alertas/{alerta_id}/resolver", headers=_h(tok_b))).status_code == 404
+    stats = (await c.get("/api/dashboard/stats", headers=_h(tok_b))).json()
+    assert stats["municipio_id"] == ids["b"] and stats["total_convenios"] == 0
+
+    r = await c.post("/api/convenios", json={"numero": "B-1", "objeto": "Convênio B"}, headers=_h(tok_b))
+    assert r.status_code == 201 and r.json()["municipio_id"] == ids["b"]
+    r = await c.post("/api/convenios", json={"numero": "B-2", "objeto": "x", "municipio_id": ids["apui"]},
+                     headers=_h(tok_b))
+    assert r.status_code == 403
+
+    tok_a = await _token(c, "gestor.apui@teste.gov.br")
+    numeros = {x["numero"] for x in (await c.get("/api/convenios", headers=_h(tok_a))).json()}
+    assert numeros == {"APUI-1"}
+
+
+def test_cache_separado_por_municipio():
+    from services.cache_service import cache_get, cache_set
+    from tenancy.contexto import MunicipioContexto, contexto_municipio
+
+    a = MunicipioContexto(id=1, uuid="a", ibge="1300144", nome="APUÍ", uf="AM")
+    b = MunicipioContexto(id=2, uuid="b", ibge="1399991", nome="B", uf="AM")
+    with contexto_municipio(a):
+        cache_set("sia:2025", {"total": 123})
+    with contexto_municipio(b):
+        assert cache_get("sia:2025") is None
+    with contexto_municipio(a):
+        assert cache_get("sia:2025") == {"total": 123}
+
+
+async def test_servicos_consultam_o_ibge_da_sessao(ambiente, monkeypatch):
+    import httpx
+    c = ambiente["client"]
+    enviados: list[str] = []
+    original = httpx.AsyncClient.send
+
+    async def falso(self, request, *a, **k):
+        if request.url.host == "test":
+            return await original(self, request, *a, **k)
+        enviados.append(str(request.url))
+        return httpx.Response(404, request=request, json={})
+
+    monkeypatch.setattr(httpx.AsyncClient, "send", falso)
+    tok_b = await _token(c, "gestor.b@teste.gov.br")
+    r = await c.get("/api/saude-idoso-apui/dashboard?ano=2025", headers=_h(tok_b))
+    assert r.status_code == 200
+    assert enviados and all("130014" not in u for u in enviados)
+    assert any("139999" in u for u in enviados)
+
+
+async def test_plano_de_acao_da_auditoria_separado(ambiente):
+    c = ambiente["client"]
+    tok_b = await _token(c, "gestor.b@teste.gov.br")
+    assert (await c.get("/api/auditoria/plano-acao", headers=_h(tok_b))).json() == []
+    await c.post("/api/auditoria/plano-acao", json={"titulo": "Tarefa B"}, headers=_h(tok_b))
+    tok_a = await _token(c, "gestor.apui@teste.gov.br")
+    titulos = [x["titulo"] for x in (await c.get("/api/auditoria/plano-acao", headers=_h(tok_a))).json()]
+    assert "Tarefa B" not in titulos
+
+
+async def test_catalogo_nacional_de_portarias_so_admin_geral_edita(ambiente):
+    c = ambiente["client"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    r = await c.post("/api/portarias", json={"numero": "1", "ano": 2026, "bloco": "APS"}, headers=_h(tok))
+    assert r.status_code == 403

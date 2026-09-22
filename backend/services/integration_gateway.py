@@ -18,6 +18,7 @@ import logging
 import os
 import time
 from typing import Optional
+from tenancy.contexto import eh_legado
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,8 @@ def _cert_configurado() -> bool:
 
 
 def _ledi_configurado() -> bool:
+    if not eh_legado():
+        return False  # LEDI/PEC configurado só para Apuí/AM
     return bool(
         os.getenv("LEDI_PEC_URL", "").strip() and
         os.getenv("LEDI_USUARIO", "").strip() and

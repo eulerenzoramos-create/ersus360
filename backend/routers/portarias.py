@@ -12,7 +12,8 @@ import uuid, os
 
 from database import get_db
 from models import Portaria, Municipio, PortariaMunicipio
-from routers.auth import get_current_user, UserOut
+from routers.auth import get_current_user, UserOut, exigir_admin_geral
+from tenancy.escopo import MunicipioDaSessao
 
 router = APIRouter(prefix="/api/portarias", tags=["Portarias"])
 
@@ -105,8 +106,9 @@ async def get_portaria(
 async def criar_portaria(
     dados: PortariaIn,
     db: AsyncSession = Depends(get_db),
-    _: UserOut = Depends(get_current_user),
+    current: UserOut = Depends(get_current_user),
 ):
+    exigir_admin_geral(current)  # catálogo nacional compartilhado por todos os municípios
     portaria = Portaria(**dados.model_dump())
     db.add(portaria)
     await db.commit()
@@ -119,8 +121,9 @@ async def atualizar_portaria(
     portaria_id: int,
     dados: PortariaIn,
     db: AsyncSession = Depends(get_db),
-    _: UserOut = Depends(get_current_user),
+    current: UserOut = Depends(get_current_user),
 ):
+    exigir_admin_geral(current)  # catálogo nacional compartilhado por todos os municípios
     res = await db.execute(select(Portaria).where(Portaria.id == portaria_id))
     p = res.scalar_one_or_none()
     if not p:
@@ -137,8 +140,9 @@ async def upload_pdf(
     portaria_id: int,
     arquivo: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    _: UserOut = Depends(get_current_user),
+    current: UserOut = Depends(get_current_user),
 ):
+    exigir_admin_geral(current)  # catálogo nacional compartilhado por todos os municípios
     res = await db.execute(select(Portaria).where(Portaria.id == portaria_id))
     p = res.scalar_one_or_none()
     if not p:
@@ -194,12 +198,13 @@ async def portarias_dou_pendentes(
 async def importar_portarias_dou(
     ids: list[int],
     db: AsyncSession = Depends(get_db),
-    _: UserOut = Depends(get_current_user),
+    current: UserOut = Depends(get_current_user),
 ):
     """
     Importa portarias selecionadas do agente DOU para o Banco de Portarias.
     Converte PortariaDOU → Portaria e marca a origem como 'importado'.
     """
+    exigir_admin_geral(current)  # catálogo nacional compartilhado por todos os municípios
     from models.portaria_dou import PortariaDOU
 
     importadas = 0
@@ -258,8 +263,9 @@ async def importar_portarias_dou(
 async def remover_portaria(
     portaria_id: int,
     db: AsyncSession = Depends(get_db),
-    _: UserOut = Depends(get_current_user),
+    current: UserOut = Depends(get_current_user),
 ):
+    exigir_admin_geral(current)  # catálogo nacional compartilhado por todos os municípios
     res = await db.execute(select(Portaria).where(Portaria.id == portaria_id))
     p = res.scalar_one_or_none()
     if not p:
@@ -272,17 +278,13 @@ async def remover_portaria(
 @router.post("/vincular-municipio", status_code=201)
 async def vincular_municipio(
     dados: PortariaMunicipioIn,
+    municipio_id: MunicipioDaSessao,
     db: AsyncSession = Depends(get_db),
     _: UserOut = Depends(get_current_user),
 ):
-    res_mun = await db.execute(select(Municipio).limit(1))
-    mun = res_mun.scalar_one_or_none()
-    if not mun:
-        raise HTTPException(404, "Município não encontrado")
-
     vinculo = PortariaMunicipio(
         portaria_id=dados.portaria_id,
-        municipio_id=mun.id,
+        municipio_id=municipio_id,
         valor_municipio=dados.valor_municipio,
         competencia=dados.competencia,
         observacoes=dados.observacoes,

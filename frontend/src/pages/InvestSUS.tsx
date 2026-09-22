@@ -1842,7 +1842,8 @@ function PainelPortalInvestSUS({ municipio_id }: { municipio_id: number }) {
 // ── Sincronizar via browser (browser busca .gov.br, envia ao backend) ─────────
 const _CNPJ_FMS  = "12834320000126";   // FMS Apuí
 const _CNPJ_PREF = "04105419000151";   // Prefeitura Municipal de Apuí
-const _IBGE = "1300144";
+// IBGE do município da sessão (gravado no login / troca de município)
+const _ibge = () => localStorage.getItem("ersus_municipio_ibge") ?? "";
 const _API_TRANSP = "https://api.portaltransparencia.gov.br/api-de-dados";
 
 async function _fetchRaw(url: string, h: Record<string,string>): Promise<{ ok: boolean; status: number; body: any; count: number }> {
@@ -1870,13 +1871,13 @@ async function _buscarTransparencia(chave: string): Promise<{ propostas: any[]; 
     `${_API_TRANSP}/emendas?cnpjBeneficiario=${_CNPJ_FMS}&ano=${ano}&pagina=1`,
     `${_API_TRANSP}/emendas?cnpjBeneficiario=${_CNPJ_FMS}&ano=${ano - 1}&pagina=1`,
     // Emendas por código IBGE do município
-    `${_API_TRANSP}/emendas?codigoMunicipio=${_IBGE}&ano=${ano}&pagina=1`,
-    `${_API_TRANSP}/emendas?codigoMunicipio=${_IBGE}&ano=${ano - 1}&pagina=1`,
+    `${_API_TRANSP}/emendas?codigoMunicipio=${_ibge()}&ano=${ano}&pagina=1`,
+    `${_API_TRANSP}/emendas?codigoMunicipio=${_ibge()}&ano=${ano - 1}&pagina=1`,
     // Convênios FMS
     `${_API_TRANSP}/convenios?cnpjConvenente=${_CNPJ_FMS}&pagina=1&tamanhoPagina=50`,
     // Transferências municipais (vários formatos)
-    `${_API_TRANSP}/transferencias/municipios?codigoMunicipio=${_IBGE}&ano=${ano}&pagina=1&tamanhoPagina=20`,
-    `${_API_TRANSP}/transferencias/municipios?codigoIbge=${_IBGE}&ano=${ano}&pagina=1`,
+    `${_API_TRANSP}/transferencias/municipios?codigoMunicipio=${_ibge()}&ano=${ano}&pagina=1&tamanhoPagina=20`,
+    `${_API_TRANSP}/transferencias/municipios?codigoIbge=${_ibge()}&ano=${ano}&pagina=1`,
   ];
 
   for (const url of tentativas) {

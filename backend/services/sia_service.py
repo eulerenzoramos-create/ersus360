@@ -10,13 +10,12 @@ from typing import Optional
 
 import httpx
 from config import settings
+from tenancy.contexto import ibge6, populacao
 
 logger = logging.getLogger(__name__)
 
 _BASE    = "https://apidadosabertos.saude.gov.br/sia"
-_IBGE6   = settings.FNS_MUNICIPIO_IBGE[:6]
 _TIMEOUT = 15
-_POP     = 25_000
 
 
 async def _get(url: str, params: dict) -> Optional[dict | list]:
@@ -46,7 +45,7 @@ async def buscar_producao(ano: int, mes: int = 0) -> dict:
     if not ano:
         ano = date.today().year - 1
 
-    params: dict = {"co_municipio_estabelecimento": _IBGE6, "ano": ano, "limit": 500}
+    params: dict = {"co_municipio_estabelecimento": ibge6(), "ano": ano, "limit": 500}
     if mes:
         params["mes"] = mes
 
@@ -60,7 +59,7 @@ async def buscar_producao(ano: int, mes: int = 0) -> dict:
 
         if procs:
             total = sum(int(p.get("qt_apresentada") or p.get("quantidade") or 1) for p in procs)
-            per_capita = round(total / _POP, 2)
+            per_capita = round(total / populacao(), 2)
             return {
                 "ano":                 ano,
                 "total_procedimentos": total,
@@ -80,7 +79,7 @@ async def buscar_producao_aps(ano: int) -> dict:
         ano = date.today().year - 1
 
     data = await _get(f"{_BASE}/producao-ambulatorial-bpa", {
-        "co_municipio_estabelecimento": _IBGE6,
+        "co_municipio_estabelecimento": ibge6(),
         "ano":                          ano,
         "co_grupo_procedimento":        "01",
         "limit":                        500,
@@ -96,7 +95,7 @@ async def buscar_producao_aps(ano: int) -> dict:
         return {
             "ano":           ano,
             "total_aps":     total,
-            "per_capita":    round(total / _POP, 2),
+            "per_capita":    round(total / populacao(), 2),
             "situacao_dado": "oficial_validado",
             "fonte":         "sia_datasus",
         }
