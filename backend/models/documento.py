@@ -19,6 +19,7 @@ class Documento(Base):
     descricao: Mapped[str | None] = mapped_column(Text, nullable=True)
     uploader_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    excluido_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # exclusão lógica
 
     municipio: Mapped["Municipio"] = relationship(back_populates="documentos")  # type: ignore
     convenio: Mapped["Convenio | None"] = relationship(back_populates="documentos")  # type: ignore

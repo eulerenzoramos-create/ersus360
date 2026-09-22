@@ -1,5 +1,6 @@
 // src/lib/api.ts — Cliente HTTP centralizado
 import axios from "axios";
+import { limparSessao } from "./sessao";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -20,10 +21,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (r) => r,
   (err) => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem("ersus_token");
-      localStorage.removeItem("ersus_perfil");
-      localStorage.removeItem("ersus_nome");
+    if (err.response?.status === 401 && !String(err.config?.url ?? "").includes("/api/auth/login")) {
+      limparSessao();
       window.location.href = "/";
     }
     return Promise.reject(err);

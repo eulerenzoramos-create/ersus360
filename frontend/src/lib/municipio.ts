@@ -1,56 +1,30 @@
 /**
- * Utilitários de município ativo — ERSUS 360
+ * Utilitários de município ativo — ERSUS 360 (multi-tenant)
  *
- * Hierarquia de resolução do IBGE ativo:
- *   1. Estado local do seletor (assessoria escolheu um município específico)
- *   2. municipio_ibge do usuário logado (perfil municipal)
- *   3. Fallback "1300144" (Apuí/AM — município piloto)
+ * O município ativo é SEMPRE o da sessão, definido pelo backend no login ou na
+ * troca auditada (cabeçalho → "Trocar município"). Seletores dentro das telas
+ * não trocam mais o município: parâmetros divergentes são recusados pela API.
  */
-import { useState, useCallback } from "react";
 import { useAuth } from "../App";
 
 export const IBGE_PILOTO = "1300144";
-const LS_KEY = "ersus_municipio_ativo";
 
-/** Retorna o IBGE do município que deve ser usado nas chamadas de API. */
+/** Retorna o IBGE do município da sessão para as chamadas de API. */
 export function useMunicipioAtivo() {
   const auth = useAuth();
-
-  // Usuário municipal: sempre o próprio município, sem opção de trocar
-  if (!auth.perfis_assessoria && auth.municipio_ibge) {
-    return {
-      ibge: auth.municipio_ibge,
-      municipio: auth.municipio,
-      podeSelecionar: false,
-    };
-  }
-
-  // Assessoria: usa o seletor ou o piloto como padrão
-  const ibgeSelecionado = localStorage.getItem(LS_KEY) || IBGE_PILOTO;
   return {
-    ibge: ibgeSelecionado,
-    municipio: ibgeSelecionado === IBGE_PILOTO ? "Apuí / AM" : ibgeSelecionado,
-    podeSelecionar: true,
+    ibge: auth.municipio_ibge,
+    municipio: auth.municipio,
+    podeSelecionar: false,
   };
 }
 
-/** Hook com estado reativo para assessoria trocar de município. */
+/** Mantido por compatibilidade com as telas: sem troca local de município. */
 export function useMunicipioSeletor() {
   const auth = useAuth();
-  const [ibge, setIbgeState] = useState<string>(
-    !auth.perfis_assessoria && auth.municipio_ibge
-      ? auth.municipio_ibge
-      : (localStorage.getItem(LS_KEY) || IBGE_PILOTO)
-  );
-
-  const setIbge = useCallback((novoIbge: string) => {
-    localStorage.setItem(LS_KEY, novoIbge);
-    setIbgeState(novoIbge);
-  }, []);
-
   return {
-    ibge,
-    setIbge,
-    podeSelecionar: auth.perfis_assessoria,
+    ibge: auth.municipio_ibge,
+    setIbge: (_novoIbge: string) => { /* troca só pelo cabeçalho (auditada) */ },
+    podeSelecionar: false,
   };
 }

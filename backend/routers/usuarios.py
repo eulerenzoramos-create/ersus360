@@ -1,10 +1,11 @@
 """
-Router: /api/usuarios — Módulo 13: Perfis de Acesso
-Substitui o USERS_DB hardcoded do auth.py por usuários reais no banco.
+Router: /api/usuarios — Módulo 13: Perfis de Acesso (multi-tenant)
+Gestão dos usuários DO MUNICÍPIO DA SESSÃO. Cadastro entre municípios e
+autorizações multi-município ficam em /api/admin-geral.
 """
 from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,9 +13,10 @@ from typing import Optional
 from datetime import datetime
 
 from database import get_db
-from models import Municipio
 from models.usuario import Usuario, Perfil
-from routers.auth import get_current_user, UserOut
+from routers.auth import UserOut, PERFIS_ADMIN_MUNICIPAL
+from tenancy.auditoria import registrar_auditoria
+from tenancy.escopo import SessaoMunicipal, garantir_do_municipio
 
 router = APIRouter(prefix="/api/usuarios", tags=["Usuários"])
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -25,7 +27,7 @@ pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 class UsuarioIn(BaseModel):
     nome: str
     email: str
-    senha: str
+    senha: str = Field(min_length=8)
     perfil: Perfil = Perfil.CONSULTA
     ativo: bool = True
 
@@ -38,7 +40,7 @@ class UsuarioUpdate(BaseModel):
 
 
 class SenhaUpdate(BaseModel):
-    senha_nova: str
+    senha_nova: str = Field(min_length=8)
 
 
 class UsuarioOut(BaseModel):
@@ -57,66 +59,69 @@ class UsuarioOut(BaseModel):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+_PERFIS_GLOBAIS = {Perfil.ADMINISTRADOR_GERAL, Perfil.SUPERADMIN}
+
+
 def _somente_admin(current: UserOut):
-    if current.role != "admin":
+    if not (current.administrador_geral or current.role in PERFIS_ADMIN_MUNICIPAL):
         raise HTTPException(403, "Acesso restrito ao administrador")
+
+
+def _sem_perfil_global(perfil: Optional[Perfil]):
+    if perfil in _PERFIS_GLOBAIS:
+        raise HTTPException(422, "Perfil global só pode ser definido pelo administrador-geral")
+
+
+async def _usuario_do_municipio(db: AsyncSession, current: UserOut, usuario_id: int) -> Usuario:
+    u = await db.get(Usuario, usuario_id)
+    return await garantir_do_municipio(db, current, u, "usuarios", usuario_id)
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("", response_model=list[UsuarioOut])
 async def listar_usuarios(
+    current: SessaoMunicipal,
+    q: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current: UserOut = Depends(get_current_user),
 ):
     _somente_admin(current)
-    res_mun = await db.execute(select(Municipio).limit(1))
-    mun = res_mun.scalar_one_or_none()
-    if not mun:
-        return []
-    res = await db.execute(
-        select(Usuario)
-        .where(Usuario.municipio_id == mun.id)
-        .order_by(Usuario.nome)
-    )
+    stmt = select(Usuario).where(Usuario.municipio_id == current.municipio_id).order_by(Usuario.nome)
+    if q:
+        stmt = stmt.where(Usuario.nome.ilike(f"%{q}%") | Usuario.email.ilike(f"%{q}%"))
+    res = await db.execute(stmt)
     return res.scalars().all()
 
 
 @router.get("/{usuario_id}", response_model=UsuarioOut)
 async def get_usuario(
     usuario_id: int,
+    current: SessaoMunicipal,
     db: AsyncSession = Depends(get_db),
-    current: UserOut = Depends(get_current_user),
 ):
     _somente_admin(current)
-    res = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
-    u = res.scalar_one_or_none()
-    if not u:
-        raise HTTPException(404, "Usuário não encontrado")
-    return u
+    return await _usuario_do_municipio(db, current, usuario_id)
 
 
 @router.post("", response_model=UsuarioOut, status_code=201)
 async def criar_usuario(
     dados: UsuarioIn,
+    current: SessaoMunicipal,
     db: AsyncSession = Depends(get_db),
-    current: UserOut = Depends(get_current_user),
 ):
     _somente_admin(current)
-    res_mun = await db.execute(select(Municipio).limit(1))
-    mun = res_mun.scalar_one_or_none()
-    if not mun:
-        raise HTTPException(404, "Município não cadastrado")
+    _sem_perfil_global(dados.perfil)
+    email = dados.email.strip().lower()
 
-    # verificar duplicidade
-    res_dup = await db.execute(select(Usuario).where(Usuario.email == dados.email))
+    # verificar duplicidade (e-mail é login único em todo o sistema)
+    res_dup = await db.execute(select(Usuario).where(Usuario.email == email))
     if res_dup.scalar_one_or_none():
         raise HTTPException(400, "E-mail já cadastrado")
 
     usuario = Usuario(
-        municipio_id=mun.id,
+        municipio_id=current.municipio_id,
         nome=dados.nome,
-        email=dados.email,
+        email=email,
         senha_hash=pwd_ctx.hash(dados.senha),
         perfil=dados.perfil,
         ativo=dados.ativo,
@@ -124,6 +129,8 @@ async def criar_usuario(
     db.add(usuario)
     await db.commit()
     await db.refresh(usuario)
+    await registrar_auditoria(db, "USUARIO_CRIADO", usuario=current, tabela="usuarios",
+                              registro_id=usuario.id, detalhe=f"{email} perfil={usuario.perfil.value}")
     return usuario
 
 
@@ -131,18 +138,19 @@ async def criar_usuario(
 async def atualizar_usuario(
     usuario_id: int,
     dados: UsuarioUpdate,
+    current: SessaoMunicipal,
     db: AsyncSession = Depends(get_db),
-    current: UserOut = Depends(get_current_user),
 ):
     _somente_admin(current)
-    res = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
-    u = res.scalar_one_or_none()
-    if not u:
-        raise HTTPException(404, "Usuário não encontrado")
-    for campo, valor in dados.model_dump(exclude_none=True).items():
+    _sem_perfil_global(dados.perfil)
+    u = await _usuario_do_municipio(db, current, usuario_id)
+    alteracoes = dados.model_dump(exclude_none=True)
+    for campo, valor in alteracoes.items():
         setattr(u, campo, valor)
     await db.commit()
     await db.refresh(u)
+    await registrar_auditoria(db, "USUARIO_ATUALIZADO", usuario=current, tabela="usuarios",
+                              registro_id=u.id, detalhe=", ".join(sorted(alteracoes)))
     return u
 
 
@@ -150,30 +158,26 @@ async def atualizar_usuario(
 async def alterar_senha(
     usuario_id: int,
     dados: SenhaUpdate,
+    current: SessaoMunicipal,
     db: AsyncSession = Depends(get_db),
-    current: UserOut = Depends(get_current_user),
 ):
     _somente_admin(current)
-    res = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
-    u = res.scalar_one_or_none()
-    if not u:
-        raise HTTPException(404, "Usuário não encontrado")
+    u = await _usuario_do_municipio(db, current, usuario_id)
     u.senha_hash = pwd_ctx.hash(dados.senha_nova)
     await db.commit()
+    await registrar_auditoria(db, "USUARIO_SENHA", usuario=current, tabela="usuarios", registro_id=u.id)
     return {"ok": True}
 
 
 @router.delete("/{usuario_id}")
 async def desativar_usuario(
     usuario_id: int,
+    current: SessaoMunicipal,
     db: AsyncSession = Depends(get_db),
-    current: UserOut = Depends(get_current_user),
 ):
     _somente_admin(current)
-    res = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
-    u = res.scalar_one_or_none()
-    if not u:
-        raise HTTPException(404, "Usuário não encontrado")
+    u = await _usuario_do_municipio(db, current, usuario_id)
     u.ativo = False
     await db.commit()
+    await registrar_auditoria(db, "USUARIO_DESATIVADO", usuario=current, tabela="usuarios", registro_id=u.id)
     return {"ok": True, "mensagem": "Usuário desativado (não excluído para preservar auditoria)"}

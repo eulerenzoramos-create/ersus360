@@ -1,6 +1,8 @@
 // src/App.tsx — ERSUS 360
 import { useState, createContext, useContext, Component, useEffect, lazy, Suspense } from "react";
 import { Sidebar } from "./components/Sidebar";
+import SeletorMunicipio, { ListaMunicipios } from "./components/SeletorMunicipio";
+import { lerSessao, limparSessao, sairDoSuporte, SessaoUsuario } from "./lib/sessao";
 
 // ── Error Boundary global — evita tela branca em crashes de componentes ───────
 class AppErrorBoundary extends Component<
@@ -86,12 +88,15 @@ class PageErrorBoundary extends Component<
 export interface AuthUser {
   nome: string;
   perfil: string;
-  municipio_ibge: string;   // "" = assessoria (acesso total)
+  municipio_ibge: string;   // IBGE do município da sessão (definido pelo backend)
   municipio: string;
-  perfis_assessoria: boolean;
+  municipio_uuid: string;
+  perfis_assessoria: boolean;  // pode trocar de município (troca auditada)
+  administrador_geral: boolean;
 }
 export const AuthContext = createContext<AuthUser>({
-  nome: "", perfil: "", municipio_ibge: "", municipio: "", perfis_assessoria: false,
+  nome: "", perfil: "", municipio_ibge: "", municipio: "", municipio_uuid: "",
+  perfis_assessoria: false, administrador_geral: false,
 });
 export const useAuth = () => useContext(AuthContext);
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -610,13 +615,14 @@ function QuickCard({ to, label, Icon, cor }: { to:string; label:string; Icon:Rea
 }
 
 // ── Permissões por perfil ─────────────────────────────────────────────────────
-const PODE_FIN  = new Set(["superadmin","admin","gestor","financeiro","contabilidade","prefeito"]);
-const PODE_USR  = new Set(["superadmin","admin"]);
-const PODE_RH   = new Set(["superadmin","admin","gestor"]);
-const PODE_AUD  = new Set(["superadmin","admin","gestor","auditoria"]);
+const PODE_FIN  = new Set(["administrador_geral","superadmin","admin","gestor","financeiro","contabilidade","prefeito"]);
+const PODE_USR  = new Set(["administrador_geral","superadmin","admin"]);
+const PODE_RH   = new Set(["administrador_geral","superadmin","admin","gestor"]);
+const PODE_AUD  = new Set(["administrador_geral","superadmin","admin","gestor","auditoria"]);
 
 const CARGO_LABEL: Record<string,string> = {
-  superadmin:"Administrador Geral", admin:"Administrador do Sistema",
+  administrador_geral:"Administrador Geral",
+  superadmin:"Administrador Geral", admin:"Administrador Municipal",
   gestor:"Gestor Municipal de Saúde", coordenador:"Coordenador de APS",
   enfermeiro:"Enfermeiro(a)", medico:"Médico(a)", tecnico_aps:"Técnico(a) de APS",
   acs:"Agente Comunitário de Saúde", odontologia:"Odontólogo(a)",
@@ -627,15 +633,16 @@ const CARGO_LABEL: Record<string,string> = {
 };
 
 // ── Layout ───────────────────────────────────────────────────────────────────
-function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipioNome, perfisAssessoria, onLogout }: {
+function Layout({ children, sessao, onLogout }: {
   children: React.ReactNode;
-  nomeUsuario: string;
-  perfilUsuario: string;
-  municipioIbge: string;
-  municipioNome: string;
-  perfisAssessoria: boolean;
+  sessao: SessaoUsuario;
   onLogout: () => void;
 }) {
+  const nomeUsuario = sessao.nome;
+  const perfilUsuario = sessao.role;
+  const perfisAssessoria = sessao.perfis_assessoria;
+  const [trocando, setTrocando] = useState(false);
+  const emSuporte = sessao.administrador_geral && !!sessao.municipio_id;
   const ini = (nomeUsuario||"G").split(" ").map((w:string)=>w[0]).join("").slice(0,2).toUpperCase();
   const podeFin = PODE_FIN.has(perfilUsuario);
   const podeUsr = PODE_USR.has(perfilUsuario);
@@ -646,9 +653,11 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
     <AuthContext.Provider value={{
       nome: nomeUsuario,
       perfil: perfilUsuario,
-      municipio_ibge: municipioIbge,
-      municipio: municipioNome,
+      municipio_ibge: sessao.municipio_ibge ?? "",
+      municipio: sessao.municipio,
+      municipio_uuid: sessao.municipio_uuid ?? "",
       perfis_assessoria: perfisAssessoria,
+      administrador_geral: sessao.administrador_geral,
     }}>
     <div style={{display:"flex",flexDirection:"column",height:"100vh",fontFamily:"system-ui,-apple-system,sans-serif"}}>
 
@@ -688,16 +697,48 @@ function Layout({ children, nomeUsuario, perfilUsuario, municipioIbge, municipio
         {/* Divider */}
         <div style={{width:1,height:30,background:"#1e3a5f",margin:"0 4px"}}/>
 
-        {/* Breadcrumb / Município */}
-        <div style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.06)",borderRadius:8,padding:"6px 12px",border:"1px solid rgba(255,255,255,.1)"}}>
-          <MapPin size={13} color="#38bdf8"/>
+        {/* Município da sessão (sempre visível) */}
+        <div aria-label="Município atual" style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.06)",borderRadius:8,padding:"6px 12px",border:"1px solid rgba(255,255,255,.1)"}}>
+          {sessao.municipio_brasao
+            ? <img src={sessao.municipio_brasao} alt={`Brasão de ${sessao.municipio}`} width={20} height={20} style={{objectFit:"contain"}}/>
+            : <MapPin size={13} color="#38bdf8"/>}
           <span style={{color:"#e2e8f0",fontSize:13,fontWeight:700}}>
-            {perfisAssessoria ? "Assessoria" : (municipioNome || "Apuí / AM")}
+            {sessao.municipio}{sessao.municipio_uf ? ` / ${sessao.municipio_uf}` : ""}
           </span>
-          {!perfisAssessoria && (
-            <span style={{color:"#475569",fontSize:11}}>· IBGE {municipioIbge || "1300144"}</span>
+          <span style={{color:"#94a3b8",fontSize:11}}>· IBGE {sessao.municipio_ibge}</span>
+          <span style={{
+            fontSize:10,fontWeight:700,borderRadius:4,padding:"2px 6px",
+            background: emSuporte ? "rgba(251,191,36,.18)" : "rgba(56,189,248,.15)",
+            color: emSuporte ? "#fbbf24" : "#7dd3fc",
+          }}>{emSuporte ? "SUPORTE · ADMIN. GERAL" : "AMBIENTE MUNICIPAL"}</span>
+          {perfisAssessoria && (
+            <button onClick={()=>setTrocando(true)} style={{
+              background:"none",border:"1px solid rgba(255,255,255,.2)",borderRadius:6,color:"#e2e8f0",
+              fontSize:11,padding:"2px 8px",cursor:"pointer",
+            }}>Trocar município</button>
+          )}
+          {emSuporte && (
+            <button onClick={()=>{ sairDoSuporte().catch(()=>onLogout()); }} style={{
+              background:"none",border:"1px solid rgba(251,191,36,.4)",borderRadius:6,color:"#fbbf24",
+              fontSize:11,padding:"2px 8px",cursor:"pointer",
+            }}>Sair do suporte</button>
           )}
         </div>
+
+        {trocando && (
+          <div role="dialog" aria-modal="true" aria-label="Trocar município" onClick={()=>setTrocando(false)} style={{
+            position:"fixed",inset:0,background:"rgba(15,23,42,.6)",zIndex:1000,
+            display:"flex",alignItems:"center",justifyContent:"center",padding:16,
+          }}>
+            <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:12,padding:22,width:"100%",maxWidth:460}}>
+              <div style={{fontSize:16,fontWeight:800,color:"#0f172a",marginBottom:4}}>Trocar município</div>
+              <div style={{fontSize:12,color:"#475569",marginBottom:14}}>
+                Você trabalha em um município por vez. A troca fica registrada na auditoria.
+              </div>
+              <ListaMunicipios atualUuid={sessao.municipio_uuid}/>
+            </div>
+          </div>
+        )}
 
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
           {/* Status Online */}
@@ -1028,54 +1069,37 @@ export default function App() {
     fetch(`${base}/health`, { method: "GET" }).catch(() => {});
   }, []);
 
-  const [autenticado, setAutenticado]         = useState(!!localStorage.getItem("ersus_token"));
-  const [nomeUsuario, setNomeUsuario]         = useState(localStorage.getItem("ersus_nome") ?? "");
-  const [perfilUsuario, setPerfilUsuario]     = useState(localStorage.getItem("ersus_perfil") ?? "");
-  const [municipioIbge, setMunicipioIbge]     = useState(localStorage.getItem("ersus_municipio_ibge") ?? "");
-  const [municipioNome, setMunicipioNome]     = useState(localStorage.getItem("ersus_municipio") ?? "");
-  const [perfisAssessoria, setPerfisAssessoria] = useState(
-    localStorage.getItem("ersus_perfis_assessoria") === "true"
-  );
+  // Sessões antigas (sem contexto de município) exigem novo login
+  const [sessao, setSessao] = useState<SessaoUsuario | null>(() => {
+    const s = lerSessao();
+    if (!s) limparSessao();
+    return s;
+  });
 
-  const handleLogin = (
-    _token: string,
-    perfil: string,
-    nome: string,
-    ibge: string | null,
-    municipio: string,
-    assessoria: boolean,
-  ) => {
-    setNomeUsuario(nome);
-    setPerfilUsuario(perfil);
-    setMunicipioIbge(ibge ?? "");
-    setMunicipioNome(municipio);
-    setPerfisAssessoria(assessoria);
-    setAutenticado(true);
-  };
+  const handleLogin = (nova: SessaoUsuario) => setSessao(nova);
 
   const handleLogout = () => {
-    ["ersus_token","ersus_perfil","ersus_nome",
-     "ersus_municipio_ibge","ersus_municipio","ersus_perfis_assessoria"]
-      .forEach(k => localStorage.removeItem(k));
-    setAutenticado(false);
+    limparSessao();
+    qc.clear();
+    setSessao(null);
   };
 
-  if (!autenticado) {
+  if (!sessao) {
     return <AppErrorBoundary><QueryClientProvider client={qc}><Login onLogin={handleLogin}/></QueryClientProvider></AppErrorBoundary>;
+  }
+
+  // Administrador-geral fora de um município: escolhe o ambiente antes de ver dados
+  if (!sessao.municipio_id) {
+    return <AppErrorBoundary><QueryClientProvider client={qc}>
+      <SeletorMunicipio nome={sessao.nome} onLogout={handleLogout}/>
+    </QueryClientProvider></AppErrorBoundary>;
   }
 
   return (
     <AppErrorBoundary>
     <QueryClientProvider client={qc}>
       <BrowserRouter>
-        <Layout
-          nomeUsuario={nomeUsuario}
-          perfilUsuario={perfilUsuario}
-          municipioIbge={municipioIbge}
-          municipioNome={municipioNome}
-          perfisAssessoria={perfisAssessoria}
-          onLogout={handleLogout}
-        >
+        <Layout sessao={sessao} onLogout={handleLogout}>
           <Suspense fallback={
             <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
               height:"100%", color:"#64748b", fontSize:13 }}>

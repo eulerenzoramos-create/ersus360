@@ -2,16 +2,10 @@
 import { useState, FormEvent } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { api } from "../lib/api";
+import { salvarSessao, SessaoUsuario } from "../lib/sessao";
 
 interface Props {
-  onLogin: (
-    token: string,
-    perfil: string,
-    nome: string,
-    municipio_ibge: string | null,
-    municipio: string,
-    perfis_assessoria: boolean,
-  ) => void
+  onLogin: (sessao: SessaoUsuario) => void
 }
 
 export default function Login({ onLogin }: Props) {
@@ -32,20 +26,13 @@ export default function Login({ onLogin }: Props) {
       const { data } = await api.post("/api/auth/login", params, {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
-      const perfil             = data.user?.role ?? "financeiro";
-      const nome               = data.user?.nome ?? email;
-      const municipio_ibge     = data.user?.municipio_ibge ?? null;
-      const municipio          = data.user?.municipio ?? "";
-      const perfis_assessoria  = data.user?.perfis_assessoria ?? false;
-      localStorage.setItem("ersus_token",             data.access_token);
-      localStorage.setItem("ersus_perfil",            perfil);
-      localStorage.setItem("ersus_nome",              nome);
-      localStorage.setItem("ersus_municipio_ibge",    municipio_ibge ?? "");
-      localStorage.setItem("ersus_municipio",         municipio);
-      localStorage.setItem("ersus_perfis_assessoria", String(perfis_assessoria));
-      onLogin(data.access_token, perfil, nome, municipio_ibge, municipio, perfis_assessoria);
-    } catch {
-      setErro("Usuário ou senha inválidos.");
+      salvarSessao(data);
+      onLogin(data.user);
+    } catch (e: any) {
+      // 403 = usuário suspenso ou município sem acesso (mensagem vem do backend)
+      setErro(e?.response?.status === 403
+        ? (e.response.data?.detail ?? "Acesso não autorizado.")
+        : "Usuário ou senha inválidos.");
     } finally {
       setLoading(false);
     }

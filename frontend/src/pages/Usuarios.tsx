@@ -69,7 +69,7 @@ export default function Usuarios() {
   const [perfilSelecionado, setPerfilSelecionado] = useState("");
 
   const perfilAtual = localStorage.getItem("ersus_perfil") ?? "";
-  const podeGerenciar = ["superadmin", "admin"].includes(perfilAtual);
+  const podeGerenciar = ["administrador_geral", "superadmin", "admin"].includes(perfilAtual);
 
   if (!podeGerenciar) {
   if (!usuarios) return (

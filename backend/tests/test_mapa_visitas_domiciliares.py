@@ -6,6 +6,7 @@ from httpx import AsyncClient, ASGITransport
 import main
 from database import get_db
 from routers.auth import get_current_user, UserOut
+from tenancy.guard import tenant_guard
 from models.pec_cadastro import EquipeSaude, ProfissionalSaude, Microarea, Domicilio, Cidadao
 from models.visita_domiciliar import VisitaDomiciliar, StatusFilaVisita
 
@@ -22,6 +23,7 @@ def app_com_overrides(db_session, municipio):
 
     main.app.dependency_overrides[get_db] = _get_db_override
     main.app.dependency_overrides[get_current_user] = _get_current_user_override
+    main.app.dependency_overrides[tenant_guard] = lambda: None  # guard testado em test_isolamento_tenant
     yield main.app
     main.app.dependency_overrides.clear()
 

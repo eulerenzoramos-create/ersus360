@@ -12,11 +12,19 @@ Stack: FastAPI (backend Railway) + React/Vite/TypeScript (frontend Vercel).
 - **API Docs:** https://ersus360-production.up.railway.app/docs
 - **GitHub:** eulerenzoramos-create/ersus360
 
-## Usuários de teste
-| Usuário | Senha | Papel |
-|---|---|---|
-| gestor | ersus2026 | gestor |
-| admin | admin2026 | admin |
+## Multi-tenant (um município = um ambiente isolado)
+- `backend/tenancy/guard.py` é dependência GLOBAL do app: toda rota `/api/*` e `/ws/*` exige token,
+  exceto `ROTAS_PUBLICAS`. O município da sessão vem do claim `mid` do token e é revalidado no banco
+  a cada requisição (usuário ativo, município `ativo`, autorização vigente).
+- Parâmetros de município (`municipio_id`, `ibge`, `ibge6`, `coMunicipio`...) em query/path/corpo JSON
+  que divergirem da sessão → 403 + auditoria.
+- Routers novos: filtrar SEMPRE por `current.municipio_id` (use `tenancy.escopo.SessaoMunicipal` e
+  `garantir_do_municipio`) e adicionar o prefixo em `PREFIXOS_MULTITENANT`. Rotas fora dessa lista são
+  "legadas" (dados fixos de Apuí) e só respondem a sessões de Apuí.
+- Único perfil global: `administrador_geral` (conta bootstrap `euler`, senha só via `EULER_SENHA`).
+  Entra num município por `/api/tenant/selecionar` (SUPORTE_INICIO/FIM auditados).
+- Cadastro/situação de municípios, usuários e autorizações: `/api/admin-geral/*`.
+- Testes obrigatórios: `backend/tests/test_isolamento_tenant.py` — nenhum deploy se falhar.
 
 ## Credenciais sensíveis
 NUNCA no código — apenas como variáveis de ambiente no Railway:

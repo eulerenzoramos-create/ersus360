@@ -131,11 +131,22 @@ async def lifespan(app: FastAPI):
     logger.info("ERSUS 360 encerrado.")
 
 
+if settings.SECRET_KEY == "dev-secret-key-change-in-production" and not (
+    settings.DEBUG or settings.DATABASE_URL.startswith("sqlite")
+):
+    # Com a chave padrão qualquer pessoa forjaria tokens de qualquer município.
+    raise RuntimeError("SECRET_KEY não configurada — defina a variável de ambiente antes de iniciar.")
+
+from fastapi import Depends
+from tenancy.guard import tenant_guard
+
 app = FastAPI(
     title="ERSUS 360 API",
-    description="Gestão Inteligente do SUS — FMS Apuí/AM",
+    description="Gestão Inteligente do SUS — multi-município",
     version="1.0.0",
     lifespan=lifespan,
+    # Autenticação + isolamento por município em TODAS as rotas /api e /ws
+    dependencies=[Depends(tenant_guard)],
 )
 
 app.add_middleware(
@@ -421,6 +432,10 @@ from routers.cnes_apui import router as cnes_apui_router
 from routers.monitor_scnes import router as monitor_scnes_router
 
 app.include_router(auth_router)
+from routers.tenant import router as tenant_router
+from routers.admin_geral import router as admin_geral_router
+app.include_router(tenant_router)
+app.include_router(admin_geral_router)
 app.include_router(municipios_router)
 app.include_router(municipio_router)
 app.include_router(fns_router)

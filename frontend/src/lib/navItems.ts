@@ -6,10 +6,10 @@
 import type { LucideIcon } from "lucide-react";
 
 // ── Perfis que podem acessar módulos financeiros
-export const ROLES_FIN  = ["superadmin","admin","gestor","financeiro","contabilidade","prefeito"];
-export const ROLES_RH   = ["superadmin","admin","gestor"];
-export const ROLES_USR  = ["superadmin","admin"];
-export const ROLES_AUD  = ["superadmin","admin","gestor","auditoria"];
+export const ROLES_FIN  = ["administrador_geral","superadmin","admin","gestor","financeiro","contabilidade","prefeito"];
+export const ROLES_RH   = ["administrador_geral","superadmin","admin","gestor"];
+export const ROLES_USR  = ["administrador_geral","superadmin","admin"];
+export const ROLES_AUD  = ["administrador_geral","superadmin","admin","gestor","auditoria"];
 
 export interface NavItem {
   id: string;

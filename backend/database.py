@@ -103,3 +103,7 @@ async def init_db():
                 )
             except Exception:
                 pass
+
+    # Multi-tenant: colunas de credenciamento, auditoria por município, perfil ADMINISTRADOR_GERAL
+    from tenancy.migracoes import migrar_multitenant
+    await migrar_multitenant(engine)
