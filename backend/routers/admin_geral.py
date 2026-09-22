@@ -557,3 +557,35 @@ async def restaurar_backup(
                               tabela="backup_execucoes", registro_id=reg.id,
                               detalhe=f"backup de {reg.iniciado_em:%Y-%m-%d %H:%M}; segurança id={seguranca.id}")
     return {"ok": True, "backup_seguranca_id": seguranca.id, **resumo}
+
+
+# ── Credenciais de integração (somente situação — nunca valores) ─────────────
+
+@router.get("/municipios/{uuid}/credenciais")
+async def credenciais_municipio(uuid: str, db: AsyncSession = Depends(get_db), _: UserOut = AdminDep):
+    """Quais variáveis de ambiente o município precisa/tem para cada integração.
+    Atualiza o registro em credenciais_municipio (preparação das integrações)."""
+    from models.credencial_municipio import CredencialMunicipio
+    from tenancy.contexto import MunicipioContexto
+    from tenancy.credenciais import status_municipio
+
+    m = await _municipio(db, uuid)
+    ctx = MunicipioContexto(id=m.id, uuid=m.uuid, ibge=m.codigo_ibge, nome=m.nome, uf=m.uf)
+    status = status_municipio(ctx)
+    agora = datetime.utcnow()
+    existentes = {c.fonte_sistema: c for c in (await db.execute(
+        select(CredencialMunicipio).where(CredencialMunicipio.municipio_ibge == m.codigo_ibge)
+    )).scalars().all()}
+    for s in status:
+        reg = existentes.get(s["sistema"]) or CredencialMunicipio(
+            municipio_ibge=m.codigo_ibge, municipio_nome=m.nome, fonte_sistema=s["sistema"])
+        campos = s["campos"]
+        reg.env_var_cpf = (campos.get("CPF") or campos.get("USUARIO") or campos.get("CLIENT_ID") or {}).get("variavel")
+        reg.env_var_senha = (campos.get("SENHA") or campos.get("CERT_PASSWORD") or {}).get("variavel")
+        reg.env_var_token = (campos.get("TOKEN") or campos.get("CERT_B64") or {}).get("variavel")
+        reg.configurada = s["configurado"]
+        reg.ultima_verificacao = agora
+        db.add(reg)
+    await db.commit()
+    return {"municipio": f"{m.nome}/{m.uf}", "ibge": m.codigo_ibge, "sistemas": status,
+            "nota": "Valores nunca são exibidos. Configure as variáveis no servidor (Railway)."}

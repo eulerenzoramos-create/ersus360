@@ -18,7 +18,7 @@ import logging
 import os
 import time
 from typing import Optional
-from tenancy.contexto import eh_legado
+from tenancy.credenciais import configurado, credencial
 
 logger = logging.getLogger(__name__)
 
@@ -52,13 +52,7 @@ def _cert_configurado() -> bool:
 
 
 def _ledi_configurado() -> bool:
-    if not eh_legado():
-        return False  # LEDI/PEC configurado só para Apuí/AM
-    return bool(
-        os.getenv("LEDI_PEC_URL", "").strip() and
-        os.getenv("LEDI_USUARIO", "").strip() and
-        os.getenv("LEDI_SENHA", "").strip()
-    )
+    return configurado("LEDI")  # credenciais do próprio município
 
 
 def payload_hash(dados: bytes) -> str:
@@ -251,10 +245,10 @@ async def obter_sessao_ledi() -> dict:
             "nota": "LEDI não configurado. Defina LEDI_PEC_URL, LEDI_USUARIO e LEDI_SENHA no Railway.",
         }
 
-    url = os.getenv("LEDI_PEC_URL", "").rstrip("/") + "/api/recebimento/login"
+    url = credencial("LEDI", "PEC_URL").rstrip("/") + "/api/recebimento/login"
     # Credenciais lidas de env vars — nunca hardcoded
-    usuario = os.getenv("LEDI_USUARIO", "")
-    senha = os.getenv("LEDI_SENHA", "")
+    usuario = credencial("LEDI", "USUARIO")
+    senha = credencial("LEDI", "SENHA")
 
     try:
         async with httpx.AsyncClient(timeout=15, verify=True) as c:
@@ -282,7 +276,7 @@ async def enviar_ficha_ledi(ficha_bytes: bytes, uuid_ficha: str, jsessionid: str
     if not _ledi_configurado():
         return {"ok": False, "nota": "LEDI não configurado."}
 
-    url = os.getenv("LEDI_PEC_URL", "").rstrip("/") + "/api/v1/recebimento/ficha"
+    url = credencial("LEDI", "PEC_URL").rstrip("/") + "/api/v1/recebimento/ficha"
     h = payload_hash(ficha_bytes)
     try:
         async with httpx.AsyncClient(timeout=30, verify=True) as c:

@@ -48,12 +48,60 @@ function Aviso({ msg, erro }: { msg: string; erro?: boolean }) {
     color: erro ? "#b91c1c" : "#15803d" }}>{msg}</div>;
 }
 
+// ── Credenciais (somente situação; valores nunca saem do servidor) ────────────
+function Credenciais({ municipio, onFechar }: { municipio: any; onFechar: () => void }) {
+  const [dados, setDados] = useState<any>(null);
+  const [erro, setErro] = useState("");
+  useEffect(() => {
+    api.get(`/api/admin-geral/municipios/${municipio.uuid}/credenciais`)
+      .then(r => setDados(r.data)).catch(e => setErro(erroDe(e)));
+  }, [municipio.uuid]);
+  return (
+    <div style={{ ...S.card, marginTop: 12, borderColor: "#93c5fd" }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+        <b style={{ fontSize: 13 }}>Credenciais de integração — {municipio.nome}/{municipio.uf}</b>
+        <button style={{ ...S.btn, marginLeft: "auto" }} onClick={onFechar}>Fechar</button>
+      </div>
+      <Aviso msg={erro} erro />
+      {dados && <>
+        <p style={{ fontSize: 12, color: "#475569", margin: "0 0 8px" }}>
+          As senhas ficam só nas variáveis de ambiente do servidor (Railway). Cada município usa as
+          variáveis com o próprio código IBGE; nenhum usa a credencial de outro.
+        </p>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><th style={S.th}>Integração</th><th style={S.th}>Situação</th><th style={S.th}>Variáveis</th></tr></thead>
+            <tbody>
+              {dados.sistemas.map((s: any) => (
+                <tr key={s.sistema}>
+                  <td style={S.td}><b>{s.sistema}</b><div style={{ fontSize: 11, color: "#64748b" }}>{s.descricao}</div></td>
+                  <td style={{ ...S.td, color: s.configurado ? "#15803d" : "#64748b", fontWeight: 700 }}>
+                    {s.configurado ? "Configurada" : "Não configurada"}</td>
+                  <td style={S.td}>
+                    {Object.entries(s.campos).map(([campo, c]: [string, any]) => (
+                      <div key={campo} style={{ fontSize: 11.5, fontFamily: "ui-monospace,monospace" }}>
+                        {c.configurada ? "✓" : "·"} {c.variavel}
+                        {c.origem === "legado_apui" && <span style={{ color: "#b45309" }}> (variável histórica sem sufixo)</span>}
+                      </div>
+                    ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>}
+    </div>
+  );
+}
+
 // ── Municípios ────────────────────────────────────────────────────────────────
 function Municipios() {
   const [lista, setLista] = useState<any[]>([]);
   const [filtro, setFiltro] = useState("contratados");
   const [msg, setMsg] = useState(""); const [erro, setErro] = useState(false);
   const [novo, setNovo] = useState({ nome: "", uf: "AM", codigo_ibge: "", situacao: "implantacao" });
+  const [credenciais, setCredenciais] = useState<any>(null);
 
   const carregar = useCallback(async () => {
     const r = await api.get("/api/admin-geral/municipios", { params: filtro === "todos" || filtro === "contratados" ? {} : { situacao: filtro } });
@@ -95,10 +143,13 @@ function Municipios() {
                 <td style={S.td}><Situacao s={m.situacao} /></td>
                 <td style={S.td}>{m.plano ?? "—"}</td>
                 <td style={S.td}>
-                  <select aria-label={`Mudar situação de ${m.nome}`} value="" onChange={e => e.target.value && mudarSituacao(m, e.target.value)} style={S.input}>
-                    <option value="">Mudar situação…</option>
-                    {Object.entries(SITUACOES).filter(([k]) => k !== m.situacao).map(([k, v]) => <option key={k} value={k}>{v.rotulo}</option>)}
-                  </select>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    <select aria-label={`Mudar situação de ${m.nome}`} value="" onChange={e => e.target.value && mudarSituacao(m, e.target.value)} style={S.input}>
+                      <option value="">Mudar situação…</option>
+                      {Object.entries(SITUACOES).filter(([k]) => k !== m.situacao).map(([k, v]) => <option key={k} value={k}>{v.rotulo}</option>)}
+                    </select>
+                    <button style={S.btn} onClick={() => setCredenciais(m)}>Credenciais</button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -106,6 +157,7 @@ function Municipios() {
           </tbody>
         </table>
       </div>
+      {credenciais && <Credenciais municipio={credenciais} onFechar={() => setCredenciais(null)} />}
       <h3 style={{ fontSize: 13, margin: "16px 0 8px" }}>Cadastrar município</h3>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         <input aria-label="Nome" placeholder="Nome" value={novo.nome} onChange={e => setNovo({ ...novo, nome: e.target.value })} style={S.input} />

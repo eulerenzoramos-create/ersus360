@@ -25,7 +25,9 @@ Stack: FastAPI (backend Railway) + React/Vite/TypeScript (frontend Vercel).
 - `ROTAS_SO_APUI` (guard): módulos com dados de referência de Apuí no código — só respondem a Apuí.
   Ao generalizar um módulo, removê-lo dessa lista e rodar `tests/test_varredura_tenant.py`.
 - Frontend: telas liberadas para outros municípios em `PAGINAS_MULTIMUNICIPIO` (`lib/municipio.ts`).
-- Credenciais do Railway (FNS/SIAPS/e-SUS/LEDI/RNDS) são de Apuí: serviços não as usam para outro município.
+- Credenciais de integração: só em env vars, nunca no banco. Por município: `{VARIAVEL}_{IBGE7}`
+  (ex.: `SIAPS_CPF_1399991`); sem sufixo = Apuí (legado). Ler SEMPRE via `tenancy.credenciais.credencial()`/
+  `configurado()`; tokens em cache por IBGE. Situação por município: `/api/admin-geral/municipios/{uuid}/credenciais`.
 - Único perfil global: `administrador_geral` (conta bootstrap `euler`, senha só via `EULER_SENHA`).
   Entra num município por `/api/tenant/selecionar` (SUPORTE_INICIO/FIM auditados).
 - Cadastro/situação de municípios, usuários e autorizações: `/api/admin-geral/*`.

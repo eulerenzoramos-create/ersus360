@@ -11,12 +11,22 @@ from typing import Optional
 import httpx
 from config import settings
 from tenancy.contexto import ibge7
-from tenancy.contexto import eh_legado, ibge7
+from tenancy.credenciais import credencial, configurado
 
 logger = logging.getLogger(__name__)
 
-_token_cache:  Optional[str]      = None
-_token_expira: Optional[datetime] = None
+# Token por município (IBGE) — nunca reaproveitado entre municípios
+_tokens: dict[str, tuple[Optional[str], datetime]] = {}
+
+
+def _token_em_cache() -> Optional[str]:
+    item = _tokens.get(ibge7())
+    return item[0] if item and item[0] and datetime.now() < item[1] else None
+
+
+def _guardar(token: Optional[str], horas: int) -> Optional[str]:
+    _tokens[ibge7()] = (token, datetime.now() + timedelta(hours=horas))
+    return token
 
 BASE    = settings.FNS_API_BASE
 TIMEOUT = 30
@@ -24,43 +34,38 @@ TIMEOUT = 30
 
 async def _autenticar() -> Optional[str]:
     """Obtem token JWT do apifns.saude.gov.br via credenciais do Railway."""
-    global _token_cache, _token_expira
+    em_cache = _token_em_cache()
+    if em_cache:
+        return em_cache
 
-    if not eh_legado():
-        return None  # credenciais do Railway pertencem a Apuí/AM — outro município precisa das próprias
-    if _token_cache and _token_expira and datetime.now() < _token_expira:
-        return _token_cache
-
-    if not settings.FNS_API_CPF or not settings.FNS_API_SENHA:
-        logger.warning("FNS API: credenciais nao configuradas (FNS_API_CPF / FNS_API_SENHA)")
+    if not configurado("FNS"):
+        logger.info("FNS API: credenciais do município %s não configuradas", ibge7())
         return None
 
-    cpf = settings.FNS_API_CPF.replace(".", "").replace("-", "").strip()
+    cpf = credencial("FNS", "CPF").replace(".", "").replace("-", "").strip()
 
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT, verify=False) as client:
             r = await client.post(
                 f"{BASE}/api/auth/login",
-                json={"cpf": cpf, "senha": settings.FNS_API_SENHA},
+                json={"cpf": cpf, "senha": credencial("FNS", "SENHA")},
                 headers={"Content-Type": "application/json"},
             )
             if r.status_code in (200, 201):
                 data = r.json()
-                _token_cache  = data.get("access_token") or data.get("token") or data.get("jwt")
-                _token_expira = datetime.now() + timedelta(hours=8)
+                _guardar(data.get("access_token") or data.get("token") or data.get("jwt"), 8)
                 logger.info("FNS API: autenticado (CPF %s***)", cpf[:3])
-                return _token_cache
+                return _token_em_cache()
 
             r2 = await client.post(
                 f"{BASE}/auth/token",
-                data={"username": cpf, "password": settings.FNS_API_SENHA},
+                data={"username": cpf, "password": credencial("FNS", "SENHA")},
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
             if r2.status_code in (200, 201):
                 data = r2.json()
-                _token_cache  = data.get("access_token") or data.get("token")
-                _token_expira = datetime.now() + timedelta(hours=8)
-                return _token_cache
+                _guardar(data.get("access_token") or data.get("token"), 8)
+                return _token_em_cache()
 
             logger.warning("FNS API auth falhou: status %d", r.status_code)
     except Exception as exc:
