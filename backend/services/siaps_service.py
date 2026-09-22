@@ -138,7 +138,7 @@ async def buscar_equipes_municipio() -> dict:
 
     # Tenta também via eGestor token direto
     if credencial("EGESTOR", "TOKEN"):
-        headers["Authorization"] = f"Bearer {credencial("EGESTOR", "TOKEN")}"
+        headers["Authorization"] = f"Bearer {credencial('EGESTOR', 'TOKEN')}"
 
     endpoints = [
         f"https://egestorab.saude.gov.br/gestaoaps/api/municipios/{ibge7()}/equipes",
