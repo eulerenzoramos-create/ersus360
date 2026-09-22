@@ -151,3 +151,14 @@ async def buscar_indicadores_previne() -> list[dict]:
     except Exception as exc:
         logger.warning("FNS API Previne: %s", exc)
     return []
+
+
+async def resumo_indicadores_aps(ano: int | None = None) -> dict:
+    """Resumo dos indicadores do financiamento APS para os painéis:
+    {situacao_dado, indicadores, ano}. Sem dado da API = não disponível."""
+    lista = await buscar_indicadores_previne()
+    return {
+        "situacao_dado": "oficial_validado" if lista else "nao_disponivel",
+        "indicadores": lista or None,
+        "ano": ano,
+    }

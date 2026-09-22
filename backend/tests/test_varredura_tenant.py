@@ -13,3 +13,15 @@ async def test_nenhuma_rota_get_vaza_dados_de_apui():
     assert not rel.vazamentos, f"{len(rel.vazamentos)} rota(s) com vazamento:\n{detalhes}"
     # rotas só-Apuí foram de fato bloqueadas para o outro município
     assert len(rel.bloqueadas) > 50
+
+
+# Rotas que abrem sessão própria no banco (fora de get_db) e por isso não
+# enxergam o banco de teste — não são erro do código.
+_SESSAO_PROPRIA = {"/api/gateway/status", "/api/gateway/transmissoes"}
+
+
+async def test_nenhuma_rota_get_quebra_para_outro_municipio():
+    rel = await executar()
+    erros = [e for e in rel.erros if e.rota not in _SESSAO_PROPRIA]
+    detalhes = "\n".join(f"{e.rota} [{e.status}] {e.motivo}: {e.trecho}" for e in erros)
+    assert not erros, f"{len(erros)} rota(s) com erro:\n{detalhes}"

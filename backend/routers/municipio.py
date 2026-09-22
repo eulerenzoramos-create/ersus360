@@ -2,7 +2,7 @@
 from __future__ import annotations
 from datetime import date, datetime
 from fastapi import APIRouter, Query
-from services.cnes_service import buscar_estabelecimentos
+from services.cnes_service import resumo_estabelecimentos
 from services.sia_service import buscar_producao
 from tenancy.contexto import municipio_atual
 router = APIRouter(prefix="/api/municipio", tags=["Município"])
@@ -10,7 +10,7 @@ _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: d
 @router.get("/dashboard")
 async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()
-    cnes = await buscar_estabelecimentos(); sia = await buscar_producao(ano)
+    cnes = await resumo_estabelecimentos(); sia = await buscar_producao(ano)
     cnes = cnes if isinstance(cnes, dict) else {"total": len(cnes), "situacao_dado": "oficial_validado" if cnes else "nao_disponivel"}
     any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [cnes, sia])
     mun = municipio_atual()

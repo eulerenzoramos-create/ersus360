@@ -5,6 +5,7 @@ from fastapi import APIRouter, Query
 from services.siops_service import buscar_apuracao, buscar_historico
 from services.cnes_service import buscar_equipes_saude
 from tenancy.contexto import ibge7
+from services.resumo import como_resumo
 
 router = APIRouter(prefix="/api/siaps-monitor", tags=["Monitor SIAPS"])
 _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -34,7 +35,7 @@ async def indicadores(ano: int = Query(0)):
 
 @router.get("/historico")
 async def historico():
-    hist = await buscar_historico()
+    hist = como_resumo(await buscar_historico(), "historico")
     return {"situacao_dado": hist.get("situacao_dado") if isinstance(hist, dict) else "nao_disponivel",
             "historico": hist, "verificado_em": _TS()}
 
@@ -71,7 +72,7 @@ async def resumo(ibge: str | None = None):
 @router.get("/competencias")
 async def competencias(ibge: str | None = None):
     ibge = ibge7()  # sempre o município da sessão
-    hist = await buscar_historico()
+    hist = como_resumo(await buscar_historico(), "historico")
     equipes = await buscar_equipes_saude(ibge)
     total_equipes = len([e for e in equipes if e.get("tp_equipe") == "70" and e.get("ativo")])
 

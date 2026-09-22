@@ -189,7 +189,7 @@ async def alertas():
             "id": c["id"],
             "numero": c["numero"],
             "objeto": c["objeto"],
-            "fornecedor": c["fornecedor"],
+            "fornecedor": c.get("contratado"),
             "nivel": "critico" if c.get("dias_vencimento", 999) <= 30 else "alerta",
             "mensagem": f"Vence em {c.get('dias_vencimento', '?')} dias" if c.get("dias_vencimento") is not None else "Sem data de vencimento",
         }

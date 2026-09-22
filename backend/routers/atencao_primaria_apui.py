@@ -7,7 +7,7 @@ from datetime import date, datetime
 from fastapi import APIRouter, Query
 from services.fns_api_service import buscar_indicadores_previne
 from services.sia_service import buscar_producao_aps, buscar_producao
-from services.cnes_service import buscar_estabelecimentos
+from services.cnes_service import resumo_estabelecimentos
 
 router = APIRouter(prefix="/api/atencao-primaria-apui", tags=["atencao_primaria_apui"])
 _TS  = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -20,7 +20,7 @@ async def dashboard(ano: int = Query(0)):
         ano = _ANO()
     indicadores = await buscar_indicadores_previne()
     sia_aps     = await buscar_producao_aps(ano)
-    cnes        = await buscar_estabelecimentos()
+    cnes        = await resumo_estabelecimentos()
     any_real = sia_aps.get("situacao_dado") == "oficial_validado" or len(indicadores) > 0
     return {
         "situacao_dado": "oficial_validado" if any_real else "nao_disponivel",

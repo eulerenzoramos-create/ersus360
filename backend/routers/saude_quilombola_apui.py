@@ -6,7 +6,7 @@ Registro de territórios quilombolas requer SEPPIR/INCRA (pendente).
 from __future__ import annotations
 from datetime import date, datetime
 from fastapi import APIRouter, Query
-from services.cnes_service import buscar_estabelecimentos
+from services.cnes_service import resumo_estabelecimentos
 from services.sia_service import buscar_producao
 
 router = APIRouter(prefix="/api/saude-quilombola-apui", tags=["saude_quilombola_apui"])
@@ -19,7 +19,7 @@ _NOTA = "Identificação de usuários quilombolas requer e-SUS PEC com campo ra�
 async def dashboard(ano: int = Query(0)):
     if not ano:
         ano = _ANO()
-    cnes = await buscar_estabelecimentos()
+    cnes = await resumo_estabelecimentos()
     sia  = await buscar_producao(ano)
     return {
         "situacao_dado": cnes.get("situacao_dado"),

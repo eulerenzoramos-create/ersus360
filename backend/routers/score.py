@@ -5,14 +5,15 @@ from fastapi import APIRouter, Query
 from services.sih_service import buscar_internacoes
 from services.sinan_service import buscar_agravos_resumo, buscar_malaria
 from services.siops_service import buscar_apuracao
-from services.fns_api_service import buscar_indicadores_previne
+from services.fns_api_service import resumo_indicadores_aps
+from services.resumo import como_resumo
 router = APIRouter(prefix="/api/score", tags=["Score ERSUS 360"])
 _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
 @router.get("/dashboard")
 async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()
-    sih = await buscar_internacoes(ano); sinan = await buscar_agravos_resumo(ano)
-    siops = await buscar_apuracao(ano); previne = await buscar_indicadores_previne(ano)
+    sih = await buscar_internacoes(ano); sinan = como_resumo(await buscar_agravos_resumo(ano), "agravos")
+    siops = await buscar_apuracao(ano); previne = await resumo_indicadores_aps(ano)
     any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [sih, sinan, siops, previne])
     return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "internacoes": sih.get("total_internacoes"), "agravos": sinan, "financeiro": siops, "previne": previne, "nota": "Score composto ERSUS 360: efetividade + acesso + eficiência + financeiro.", "fonte": "SIH + SINAN + SIOPS + e-Gestor APS — dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")

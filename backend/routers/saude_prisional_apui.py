@@ -4,6 +4,7 @@ from datetime import date, datetime
 from fastapi import APIRouter, Query
 from services.sia_service import buscar_producao
 from services.sih_service import buscar_internacoes, buscar_historico
+from services.resumo import como_resumo
 router = APIRouter(prefix="/api/saude-prisional-apui", tags=["saude_prisional_apui"])
 _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
 _NOTA = "PNAISP/SISDEPEN requerem integração (pendente). SIA/SIH como proxy."
@@ -23,7 +24,7 @@ async def servicos(ano: int = Query(0)):
 @router.get("/historico")
 async def historico(ano: int = Query(0)):
     if not ano: ano = _ANO()
-    hist = await buscar_historico(5)
+    hist = como_resumo(await buscar_historico(5), "historico")
     return {"situacao_dado": hist.get("situacao_dado"), "historico": hist.get("historico"), "nota": _NOTA, "verificado_em": _TS()}
 @router.get("/indicadores")
 async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)

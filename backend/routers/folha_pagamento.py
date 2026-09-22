@@ -13,7 +13,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Query, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
-from services.cnes_service import buscar_estabelecimentos
+from services.cnes_service import resumo_estabelecimentos
 from tenancy.arquivos import pasta_municipio
 
 router = APIRouter(prefix="/api/folha", tags=["Folha de Pagamento"])
@@ -223,7 +223,7 @@ def _parsear_fiorele(conteudo: str, competencia: str) -> dict:
 
 @router.get("/dashboard")
 async def dashboard():
-    cnes = await buscar_estabelecimentos()
+    cnes = await resumo_estabelecimentos()
     return {
         "situacao_dado": cnes.get("situacao_dado"),
         "total_estabelecimentos": cnes.get("total"),

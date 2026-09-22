@@ -159,6 +159,21 @@ async def buscar_estabelecimentos() -> list[dict]:
     return result
 
 
+async def resumo_estabelecimentos() -> dict:
+    """Resumo {total, situacao_dado} dos estabelecimentos do município da sessão.
+    Só o dado ao vivo do CNES conta como oficial; a lista verificada embutida no
+    código (Apuí) é referência municipal; sem lista → não disponível."""
+    lista = await buscar_estabelecimentos()
+    if not lista:
+        return {"situacao_dado": "nao_disponivel", "total": None, "fonte": "nao_disponivel"}
+    ao_vivo = any(e.get("fonte") == "cnes_live" for e in lista)
+    return {
+        "situacao_dado": "oficial_validado" if ao_vivo else "referencia_municipal",
+        "total": len(lista),
+        "fonte": "CNES — DATASUS" if ao_vivo else "CNES verificado (referência municipal)",
+    }
+
+
 async def buscar_status() -> dict:
     """Verifica conectividade com a API do CNES."""
     if not eh_legado():
