@@ -557,7 +557,10 @@ export default function RelatorioProducao() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
-      if (!resp.ok) throw new Error(`Erro ${resp.status}`);
+      if (!resp.ok) {
+        const corpo = await resp.json().catch(() => null);
+        throw new Error(corpo?.detail ?? `Erro ${resp.status}`);
+      }
 
       const blob = await resp.blob();
       const url  = URL.createObjectURL(blob);
