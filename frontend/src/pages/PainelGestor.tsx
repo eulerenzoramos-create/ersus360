@@ -51,7 +51,10 @@ export default function PainelGestor() {
   const scoreTotal     = scoreData?.score_total ?? null;
   const scoreNivel     = scoreData?.nivel       ?? null;
   const confPct        = conformidadeData?.pct_conformidade ?? null;
-  const repasses       = stats?.total_repasses  ?? 0;
+  // Repasses APS do ciclo (e-Gestor APS, fonte oficial); null = indisponível
+  const repassesAps    = (stats as any)?.repasses_aps_total as number | null | undefined;
+  const parcelasAps    = (stats as any)?.repasses_aps_parcelas as number | null | undefined;
+  const cicloAps       = (stats as any)?.repasses_aps_ciclo as number | undefined;
   const execucao       = stats?.execucao_pas    ?? null;
   const metasOk        = stats?.indicadores_atingidos ?? null;
   const metasTotal     = stats?.total_indicadores     ?? null;
@@ -116,16 +119,23 @@ export default function PainelGestor() {
             </div>
           </div>
 
-          {/* Repasses FNS */}
+          {/* Repasses APS (FNS fundo a fundo) — e-Gestor APS */}
           <div style={{ marginBottom: 18 }}>
             <div style={{ fontSize: 11, opacity: 0.75, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 6 }}>
-              Repasses FNS recebidos
+              Repasses APS recebidos (FNS)
               <button onClick={() => setShowSaldo(s => !s)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.7)", padding: 0, display: "flex" }}>
                 {showSaldo ? <Eye size={13}/> : <EyeOff size={13}/>}
               </button>
             </div>
             <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1 }}>
-              {showSaldo ? (isLoading ? "—" : fmt(repasses)) : "R$ •••••••••"}
+              {showSaldo
+                ? (isLoading ? "—" : repassesAps != null ? fmt(repassesAps) : "Não disponível")
+                : "R$ •••••••••"}
+            </div>
+            <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>
+              {repassesAps != null
+                ? `Ciclo ${cicloAps} · ${parcelasAps} parcela${parcelasAps === 1 ? "" : "s"} · e-Gestor APS`
+                : "e-Gestor APS sem resposta no momento"}
             </div>
           </div>
 

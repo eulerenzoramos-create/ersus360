@@ -995,8 +995,11 @@ async def _seed_dados_iniciais():
             mun2 = res_mun.scalar_one_or_none()
             if mun2:
                 try:
-                    await fns_sync(mes=6, ano=2026, municipio_id=mun2.id, db=db2)
-                    logger.info("Repasses FNS 2026/06 inseridos via seed automático.")
+                    res = await fns_sync(mes=6, ano=2026, municipio_id=mun2.id, db=db2)
+                    logger.info(
+                        "Seed repasses FNS 2026/06: %s encontrados, %s novos, %s atualizados (%s).",
+                        res.total_encontrados, res.novos_inseridos, res.atualizados, res.status,
+                    )
                 except Exception as exc:
                     logger.error("Erro ao seed repasses FNS: %s", exc, exc_info=True)
 

@@ -169,6 +169,44 @@ async def deletar_alerta(id: int, db: DbDep, current: SessaoMunicipal):
 
 # ─── Dashboard ───────────────────────────────────────────────────────────────
 
+async def _repasses_aps_ciclo() -> dict:
+    """Total pago no ciclo corrente do financiamento APS ao município da sessão,
+    direto da API pública do e-Gestor APS (mesma fonte do módulo Repasses APS).
+    Cache de 1h por município; se a API não responder a tempo → indisponível."""
+    import asyncio
+    from services.cache_service import cache_get, cache_set
+    from services.egestor_aps import buscar_pagamentos
+    from tenancy.contexto import ibge6
+
+    ano = datetime.utcnow().year
+    chave = f"dashboard:repasses_aps:{ano}"
+    em_cache = cache_get(chave)
+    if em_cache is not None:
+        return em_cache
+    vazio = {"repasses_aps_total": None, "repasses_aps_parcelas": None,
+             "repasses_aps_ciclo": ano, "repasses_aps_situacao": "nao_disponivel"}
+    try:
+        res = await asyncio.wait_for(
+            buscar_pagamentos(co_municipio=ibge6(), co_uf=ibge6()[:2],
+                              parcela_inicio=f"{ano}01", parcela_fim=f"{ano}12"),
+            timeout=8,
+        )
+    except Exception:
+        return vazio  # não guarda em cache: tenta de novo na próxima abertura
+    comps = res.get("competencias") or []
+    if not comps:
+        cache_set(chave, vazio, ttl=3600)
+        return vazio
+    dados = {
+        "repasses_aps_total": round(sum(c.get("total_oficial") or 0 for c in comps), 2),
+        "repasses_aps_parcelas": len(comps),
+        "repasses_aps_ciclo": ano,
+        "repasses_aps_situacao": "oficial_validado",
+    }
+    cache_set(chave, dados, ttl=3600)
+    return dados
+
+
 dashboard_router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
 
@@ -231,4 +269,5 @@ async def get_dashboard_stats(
         alertas_ativos=len(alertas),
         alertas_criticos=criticos,
         atualizado_em=datetime.utcnow(),
+        **(await _repasses_aps_ciclo()),
     )
