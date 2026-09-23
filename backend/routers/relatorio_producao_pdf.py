@@ -6,7 +6,7 @@ from __future__ import annotations
 import io
 from datetime import date, datetime
 from fastapi import APIRouter, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from typing import Optional
 
 from reportlab.lib.pagesizes import A4
@@ -536,7 +536,20 @@ async def gerar_pdf_endpoint(
     tipo_equipe:     Optional[str] = Query(default=None),
     profissional_id: Optional[str] = Query(default=None),
 ):
-    from routers.relatorio_producao import gerar_relatorio
+    # O gerador com dados de produção foi retirado junto com os dados fictícios
+    # (commit e43357fd). Sem dado real do e-SUS PEC, o PDF não é emitido: nunca
+    # imprimir relatório com números inventados.
+    try:
+        from routers.relatorio_producao import gerar_relatorio
+    except ImportError:
+        gerar_relatorio = None
+    nao_disponivel = JSONResponse(status_code=503, content={
+        "situacao_dado": "nao_disponivel",
+        "detail": "Relatório de produção indisponível: requer a integração com o e-SUS PEC "
+                  "do município (dados reais de atendimento).",
+    })
+    if gerar_relatorio is None:
+        return nao_disponivel
 
     hoje = date.today()
     if not mes: mes = hoje.month
@@ -547,6 +560,8 @@ async def gerar_pdf_endpoint(
         tipo=tipo, dia=dia, mes=mes, ano=ano,
         equipe=equipe, tipo_equipe=tipo_equipe, profissional_id=profissional_id,
     )
+    if not isinstance(dados, dict) or dados.get("situacao_dado") == "nao_disponivel":
+        return nao_disponivel
 
     gerado_em = _gerado_em_pt()
     pdf_bytes = gerar_pdf_producao(dados, gerado_em)
