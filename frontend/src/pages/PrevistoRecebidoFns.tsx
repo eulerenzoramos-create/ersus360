@@ -218,7 +218,7 @@ export default function PrevistoRecebidoFns({ filtros }: { filtros: FiltrosFns }
   };
   const acao = async (fn: () => Promise<any>, ok: string) => {
     setOcupado(true); setMsg(null);
-    try { await fn(); setMsg({ ok: true, t: ok }); await recarregar(); }
+    try { const r = await fn(); setMsg({ ok: true, t: typeof r === "string" ? r : ok }); await recarregar(); }
     catch (e) { setMsg({ ok: false, t: erroDe(e) }); }
     finally { setOcupado(false); }
   };
@@ -268,9 +268,25 @@ export default function PrevistoRecebidoFns({ filtros }: { filtros: FiltrosFns }
             borderRadius: 7, border: "none", background: C.green, color: C.white, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
             <Plus size={13} /> Nova previsão
           </button>
+          <button disabled={ocupado} title="Cria as previsões com a Portaria e a Comp./Parcela que o FNS informa em cada pagamento"
+            onClick={() => {
+              if (!window.confirm(`Gerar as previsões de ${filtros.exercicio} a partir das Portarias e parcelas informadas pelo FNS?
+
+` +
+                "Previsões já cadastradas não são alteradas. Confira depois valor e ano de cada Portaria.")) return;
+              acao(async () => {
+                const r = await api.post(`/api/fns-previsao/previsoes/gerar-do-fns?exercicio=${filtros.exercicio}`);
+                return r.data.criadas
+                  ? `${r.data.criadas} previsão(ões) gerada(s) do FNS · ${r.data.conciliacao?.vinculados ?? 0} pagamento(s) conciliado(s).`
+                  : "Nenhuma previsão nova: os pagamentos ainda sem Comp./Parcela precisam de “Sincronizar com FNS”, ou já existem previsões para eles.";
+              }, "Previsões geradas.");
+            }} style={{ display: "flex", gap: 5, alignItems: "center", padding: "6px 12px",
+            borderRadius: 7, border: `1px solid ${C.blue}`, background: C.white, color: C.blue, fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+            <RefreshCw size={13} /> Gerar previsões do FNS
+          </button>
           <button disabled={ocupado} onClick={() => acao(async () => {
             const r = await api.post("/api/fns-previsao/conciliar");
-            setMsg({ ok: true, t: `${r.data.vinculados} pagamento(s) conciliado(s) automaticamente.` });
+            return `${r.data.vinculados} pagamento(s) conciliado(s) automaticamente.`;
           }, "Conciliação executada.")} style={{ display: "flex", gap: 5, alignItems: "center", padding: "6px 12px",
             borderRadius: 7, border: `1px solid ${C.grayBdr}`, background: C.white, fontSize: 12.5, cursor: "pointer" }}>
             <RefreshCw size={13} /> Conciliar agora
@@ -301,7 +317,7 @@ export default function PrevistoRecebidoFns({ filtros }: { filtros: FiltrosFns }
             <tbody>
               {data.linhas.length === 0 && (
                 <tr><td colSpan={8} style={{ padding: 18, color: C.gray, textAlign: "center" }}>
-                  Nenhuma previsão para os filtros atuais.{podeEditar && " Cadastre a previsão da Portaria em “Nova previsão”."}
+                  Nenhuma previsão para os filtros atuais.{podeEditar && " Clique em “Gerar previsões do FNS” (usa a Portaria e a Comp./Parcela de cada pagamento) ou cadastre em “Nova previsão”."}
                 </td></tr>
               )}
               {data.linhas.map((l: any) => (

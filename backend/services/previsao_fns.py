@@ -457,3 +457,57 @@ async def resumo_alertas(db: AsyncSession, municipio_id: int, exercicio: int) ->
     """Alertas da conciliação para o sistema de validações já existente."""
     dados = await painel(db, municipio_id, Filtros(exercicio=exercicio))
     return dados["alertas"] if dados["total_previsoes"] else []
+
+
+# ── Previsões a partir da referência oficial do FNS ──────────────────────────
+
+PERIODICIDADE_POR_TOTAL = {1: "unica", 2: "semestral", 3: "quadrimestral", 4: "trimestral",
+                           6: "bimestral", 12: "mensal"}
+
+
+def _moda(valores: list):
+    cont: dict = {}
+    for v in valores:
+        if v is not None:
+            cont[v] = cont.get(v, 0) + 1
+    return max(cont, key=lambda v: (cont[v], v)) if cont else None
+
+
+async def propostas_do_fns(db: AsyncSession, municipio_id: int, exercicio: int) -> list[dict]:
+    """Monta previsões a partir do que o próprio FNS informa em cada pagamento:
+    nº da Portaria + "Comp./Parcela" (ex. 09/12 em 2026) + valor da parcela.
+    Só entra o que tem Portaria e parcela oficiais; a parcela N ocupa a
+    competência N do exercício (a mesma numeração do FNS). Grupos já cobertos
+    por uma previsão existente, ou com quantidade de parcelas irregular, ficam de fora."""
+    prevs = [p for p in await carregar_previsoes(db, municipio_id) if p.exercicio == exercicio]
+    transfs = [t for t in await carregar_transferencias(db, {exercicio, exercicio + 1})
+               if t.parcela_ano == exercicio and t.parcela_total and t.numero_portaria
+               and (t.acao_detalhada or t.acao)]
+    grupos: dict[tuple, list[TransferenciaFns]] = {}
+    for t in transfs:
+        dp = _digitos_portaria(t.numero_portaria)
+        grupos.setdefault((dp[0] if dp else t.numero_portaria, norm(t.acao_detalhada or t.acao)), []).append(t)
+
+    propostas = []
+    for (numero, _), ts in sorted(grupos.items()):
+        total = _moda([t.parcela_total for t in ts])
+        per = PERIODICIDADE_POR_TOTAL.get(total)
+        if not per or any(identidade_confere(p, ts[0]) for p in prevs):
+            continue
+        valor = _moda([Decimal(str(t.valor_total if t.valor_total is not None else t.valor_liquido))
+                       for t in ts if (t.valor_total if t.valor_total is not None else t.valor_liquido) is not None])
+        if valor is None:
+            continue
+        t0 = ts[0]
+        if per == "unica":
+            mp = mes_pagamento(t0)
+            inicio = comp_fmt(exercicio, mp[1] if mp and mp[0] == exercicio else 12)
+        else:
+            inicio = comp_fmt(exercicio, 1)
+        propostas.append({
+            "numero_portaria": numero, "exercicio": exercicio, "grupo": t0.grupo, "acao": t0.acao,
+            "componente": t0.acao_detalhada or t0.acao, "periodicidade": per, "qtd_parcelas": total,
+            "valor_parcela": valor, "valor_previsto": valor * total, "competencia_inicial": inicio,
+            "parcelas_fns": sorted({t.parcela_fns for t in ts if t.parcela_fns}),
+        })
+    return propostas

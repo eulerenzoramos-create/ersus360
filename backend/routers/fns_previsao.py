@@ -221,6 +221,48 @@ async def excluir_previsao(previsao_id: int, request: Request, current: SessaoMu
     return {"ok": True, "vinculos_desfeitos": removidos}
 
 
+@router.post("/previsoes/gerar-do-fns")
+async def gerar_previsoes_do_fns(request: Request, current: SessaoMunicipal,
+                                 exercicio: int = Query(..., ge=2000, le=2100),
+                                 db: AsyncSession = Depends(get_db)):
+    """Cria as previsões a partir da Portaria e da "Comp./Parcela" informadas pelo
+    FNS em cada pagamento já coletado (nenhum registro financeiro é criado).
+    Não sobrescreve previsão existente; cada criação fica na auditoria."""
+    _pode_editar(current)
+    propostas = await pf.propostas_do_fns(db, current.municipio_id, exercicio)
+    criadas = []
+    for pr in propostas:
+        port = (await db.execute(
+            select(Portaria).where(Portaria.numero == pr["numero_portaria"])
+            .where(Portaria.ano.in_([exercicio, exercicio - 1])).order_by(Portaria.ano.desc())
+        )).scalars().first()
+        if not port:
+            port = Portaria(numero=pr["numero_portaria"], ano=exercicio, orgao_emissor="GM/MS",
+                            grupo=(pr["grupo"] or None) and pr["grupo"][:100],
+                            acao=(pr["acao"] or None) and pr["acao"][:200])
+            db.add(port)
+            await db.flush()
+        p = PortariaMunicipio(
+            portaria_id=port.id, municipio_id=current.municipio_id, criado_por=current.username,
+            exercicio=exercicio, grupo=pr["grupo"], acao=pr["acao"], componente=pr["componente"],
+            valor_municipio=pr["valor_previsto"], periodicidade=pr["periodicidade"],
+            competencia=pr["competencia_inicial"], qtd_parcelas=pr["qtd_parcelas"],
+            valor_parcela=pr["valor_parcela"],
+            fundamento=f"Gerada a partir do FNS (Portaria nº {pr['numero_portaria']}, "
+                       f"parcelas {', '.join(pr['parcelas_fns'])}). Conferir valor e ano com a Portaria publicada.")
+        db.add(p)
+        await db.flush()
+        criadas.append((p.id, pr))
+    await db.commit()
+    for pid, pr in criadas:
+        await registrar_auditoria(db, "PREVISAO_FNS_CRIADA", usuario=current, ip=ip_de(request),
+                                  tabela="portarias_municipio", registro_id=pid,
+                                  detalhe=f"gerada do FNS: Portaria {pr['numero_portaria']} "
+                                          f"{pr['qtd_parcelas']}x R$ {pr['valor_parcela']}")
+    conc = await pf.conciliar(db, current.municipio_id, current.username) if criadas else {"vinculados": 0}
+    return {"criadas": len(criadas), "conciliacao": conc}
+
+
 # ── Conciliação ──────────────────────────────────────────────────────────────
 
 @router.post("/conciliar")
