@@ -102,6 +102,7 @@ interface TabelaFns {
 interface Transferencia {
   id: number; exercicio: number; mes: number;
   competencia: string | null; data_pagamento: string | null;
+  parcela_fns?: string | null;   // referência oficial do FNS, ex.: "09/12 em 2026"
   grupo: string | null; acao: string | null; acao_detalhada: string | null;
   tipo_incentivo: string | null; bloco: string | null;
   numero_portaria: string | null; numero_ob: string | null;
@@ -493,7 +494,7 @@ function AbaContas({ exercicio }: { exercicio: number }) {
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                     <thead>
                       <tr style={{ background: C.grayL }}>
-                        {["Mês Ref.","Ação / Componente","Grupo","Nº OB","Portaria","Data Pagto","Conta Bancária","Valor Líquido",""].map(h => (
+                        {["Comp./Parcela","Ação / Componente","Grupo","Nº OB","Portaria","Data Pagto","Conta Bancária","Valor Líquido",""].map(h => (
                           <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600,
                             color: C.textSec, whiteSpace: "nowrap", borderBottom: `1px solid ${C.grayBdr}` }}>{h}</th>
                         ))}
@@ -503,7 +504,8 @@ function AbaContas({ exercicio }: { exercicio: number }) {
                       {c.transferencias.map((t: any, j: number) => (
                         <tr key={j} style={{ background: j % 2 === 0 ? C.white : C.rowAlt }}>
                           <td style={{ padding: "5px 10px", whiteSpace: "nowrap", fontWeight: 600, color: C.blue }}>
-                            {t.mes ? MESES_NOMES[t.mes - 1] : "—"}
+                            {t.parcela_fns || <span style={{ color: "#9ca3af" }}>—</span>}
+                            {t.mes && <div style={{ fontSize: 10, fontWeight: 400, color: C.textSec }}>pago em {MESES_NOMES[t.mes - 1]}</div>}
                           </td>
                           <td style={{ padding: "5px 10px", maxWidth: 220, wordBreak: "break-word" }}>{t.acao || "—"}</td>
                           <td style={{ padding: "5px 10px", whiteSpace: "nowrap", fontSize: 11 }}>{t.grupo || "—"}</td>
@@ -801,12 +803,14 @@ function ModalDetalhe({
                 const temPortaria = ts.some(t => t.numero_portaria);
                 const temBanco    = ts.some(t => t.banco_ob || t.agencia_ob || t.numero_conta_ob || t.conta_bancaria);
                 const temData     = ts.some(t => t.data_ob || t.data_pagamento);
+                const temParcela  = ts.some(t => t.parcela_fns);
 
                 return (
                   <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                       <thead>
                         <tr style={{ background: C.blue, color: C.white }}>
+                          {temParcela  && <th style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap" }} title="Referência oficial informada pelo FNS (parcela da Portaria)">Comp./Parcela</th>}
                           {temData     && <th style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap" }}>Data Pgto</th>}
                           {temOb       && <th style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap" }}>Nº OB</th>}
                           {temBanco    && <th style={{ padding: "7px 10px", textAlign: "left", fontWeight: 600, whiteSpace: "nowrap" }}>Banco</th>}
@@ -825,6 +829,11 @@ function ModalDetalhe({
                           const dt = t.data_ob || t.data_pagamento;
                           return (
                             <tr key={t.id} style={{ background: i % 2 === 0 ? C.white : C.rowAlt }}>
+                              {temParcela && (
+                                <td style={{ padding: "6px 10px", whiteSpace: "nowrap", fontWeight: 700, color: C.blue }}>
+                                  {t.parcela_fns || "—"}
+                                </td>
+                              )}
                               {temData && (
                                 <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
                                   {dt ? new Date(dt + "T12:00:00").toLocaleDateString("pt-BR") : "—"}

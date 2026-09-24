@@ -104,6 +104,8 @@ async def migrar_multitenant(engine: AsyncEngine) -> None:
             await _adicionar_colunas(conn, "transferencias_fns", [
                 ("previsao_id", "INTEGER"), ("competencia_referencia", "VARCHAR(7)"),
                 ("vinculo_tipo", "VARCHAR(12)"), ("vinculo_por", "VARCHAR(200)"), ("vinculo_em", "TIMESTAMP"),
+                ("parcela_fns", "VARCHAR(40)"), ("parcela_numero", "INTEGER"),
+                ("parcela_total", "INTEGER"), ("parcela_ano", "INTEGER"),
             ])
             await conn.execute(text(
                 "CREATE INDEX IF NOT EXISTS ix_transferencias_fns_previsao_id ON transferencias_fns (previsao_id)"))

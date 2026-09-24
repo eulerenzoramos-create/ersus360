@@ -136,4 +136,8 @@ DOC-001 a DOC-027 — ver índice em `docs/README.md` (se existir) ou listar com
 - Conciliação automática só sem ambiguidade (identidade Portaria/componente + janela de 3 meses); valor igual
   não basta. Caso ambíguo = CONCILIAÇÃO PENDENTE, com vínculo manual auditado (`/api/fns-previsao/vinculos`).
 - Registros sem valor líquido nunca confirmam pagamento. Router multi-município: `/api/fns-previsao`.
+- Parcela oficial do FNS ("Comp./Parcela", ex. "09/12 em 2026" / "Única em 2025") vem do endpoint público
+  `consulta-detalhada/detalhe-pagamento` (campo `competencia`) e é gravada em `parcela_fns/_numero/_total/_ano`
+  (`services/fns_parcelas.py`) na sincronização. É a parcela da Portaria, NÃO o mês de calendário (APS 09/12 = jul).
+  Na conciliação, a parcela oficial decide antes da janela de meses.
 

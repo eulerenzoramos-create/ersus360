@@ -113,6 +113,7 @@ async def sincronizar(
     Percorre todas as páginas. Valida total coletado vs total oficial.
     """
     resultado = await coletar_transferencias(exercicio, mes, db)
+    resultado["parcelas_fns"] = await _parcelas_apos_sync(db, exercicio, mes)
     resultado["conciliacao_previsao"] = await _conciliar_apos_sync(db)
     return resultado
 
@@ -128,6 +129,7 @@ async def sincronizar_periodo(
     resultados = []
     for mes in range(mes_inicio, mes_fim + 1):
         r = await coletar_transferencias(exercicio, mes, db)
+        r["parcelas_fns"] = await _parcelas_apos_sync(db, exercicio, mes)
         resultados.append({"mes": mes, **r})
     return {
         "exercicio": exercicio,
@@ -136,6 +138,19 @@ async def sincronizar_periodo(
         "total_inseridos": sum(r.get("registros_inseridos", 0) for r in resultados),
         "conciliacao_previsao": await _conciliar_apos_sync(db),
     }
+
+
+async def _parcelas_apos_sync(db: AsyncSession, exercicio: int, mes: int) -> dict | None:
+    """Grava a parcela oficial ("Comp./Parcela") informada pelo FNS em cada
+    pagamento do mês. Falha aqui nunca derruba a sincronização."""
+    from services.fns_parcelas import atualizar_parcelas
+    try:
+        return await atualizar_parcelas(db, exercicio, mes)
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger(__name__).warning("Parcela FNS %s/%s não atualizada: %s", mes, exercicio, exc)
+        await db.rollback()
+        return {"ok": False, "erro": str(exc)[:200]}
 
 
 async def _conciliar_apos_sync(db: AsyncSession) -> dict | None:
@@ -870,6 +885,7 @@ async def matriz_detalhe(
             {
                 "id": r.id, "exercicio": r.exercicio, "mes": r.mes,
                 "competencia": r.competencia,
+                "parcela_fns": r.parcela_fns,
                 "data_pagamento": r.data_pagamento.isoformat() if r.data_pagamento else None,
                 "grupo": r.grupo, "acao": r.acao, "acao_detalhada": r.acao_detalhada,
                 "tipo_incentivo": r.tipo_incentivo, "bloco": r.bloco,
@@ -1089,7 +1105,8 @@ async def contas_repasse(
         if r.mes:
             c["meses"].add(r.mes)
         c["transferencias"].append({
-            "id": r.id, "mes": r.mes, "grupo": r.grupo, "acao": r.acao_detalhada or r.acao,
+            "id": r.id, "mes": r.mes, "parcela_fns": r.parcela_fns,
+            "grupo": r.grupo, "acao": r.acao_detalhada or r.acao,
             "numero_ob": r.numero_ob, "numero_portaria": r.numero_portaria,
             "data_pagamento": r.data_pagamento.isoformat() if r.data_pagamento else None,
             "valor_liquido": float(r.valor_liquido or 0),
@@ -1461,10 +1478,12 @@ async def enriquecer_detalhes(
             break
 
     await db.commit()
+    parcelas = await _parcelas_apos_sync(db, exercicio, mes)   # referência oficial "Comp./Parcela"
     return {
         "ok": True,
         "exercicio": exercicio,
         "mes": mes,
+        "parcelas_fns": parcelas,
         "registros_no_bd": len(registros),
         "itens_consultafns": len(itens_detalhe),
         "atualizados": atualizados,
