@@ -12,6 +12,7 @@ import {
   AlertTriangle, Info, CheckCircle, RefreshCw,
   DollarSign, BarChart2, Calendar, Activity,
 } from "lucide-react";
+import OrigemRecursosFns, { useOrigemRecursos, COR_ORIGEM } from "./OrigemRecursosFns";
 
 // ─── Tipos compartilhados ─────────────────────────────────────────────────────
 export interface CelulaMes {
@@ -597,6 +598,8 @@ export default function EvolucaoFnsGrafico({ data, exercicio, onVoltar, onSincro
 
   const analise = useMemo(() => gerarAnalise(pontos, data.subtotais_grupo), [pontos, data]);
 
+  const { data: origem } = useOrigemRecursos(exercicio);
+
   const dataMultiLinha = useMemo(() => mesesVisiveis.map(m => {
     const row: Record<string, any> = { mes: m, label: MESES_ABREV[m-1] };
     for (const g of gruposAtivos) {
@@ -1120,6 +1123,37 @@ export default function EvolucaoFnsGrafico({ data, exercicio, onVoltar, onSincro
                         <span style={{ fontWeight: 700, color: item.color }}>{fmtBRL(item.value)}</span>
                       </div>
                     ))}
+                    {(() => {
+                      const mesNum = payload[0]?.payload?.mes;
+                      const og = origem?.meses?.[mesNum] ?? {};
+                      const comEmenda = grupos.filter((it: any) => (og[it.dataKey]?.emendas ?? 0) > 0);
+                      if (!comEmenda.length) return null;
+                      return (
+                        <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.grayBdr}` }}>
+                          <div style={{ fontWeight: 700, color: COR_ORIGEM.individual, fontSize: 11, marginBottom: 4,
+                            textTransform: "uppercase" }}>Dos quais — emendas parlamentares</div>
+                          {comEmenda.map((it: any) => {
+                            const o = og[it.dataKey];
+                            return (
+                              <div key={it.dataKey} style={{ marginBottom: 4 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                                  <span style={{ color: T.textSec }}>{it.name}</span>
+                                  <span style={{ fontWeight: 700, color: COR_ORIGEM.individual }}>{fmtBRL(o.emendas)} ({o.pct_emendas}%)</span>
+                                </div>
+                                <div style={{ fontSize: 10.5, color: T.textMut }}>
+                                  Ministério {fmtBRL(o.ministerio)}
+                                  {o.individual > 0 && ` · individual ${fmtBRL(o.individual)}`}
+                                  {o.bancada > 0 && ` · bancada ${fmtBRL(o.bancada)}`}
+                                  {o.comissao > 0 && ` · comissão ${fmtBRL(o.comissao)}`}
+                                  {o.emenda_nao_classificada > 0 && ` · a classificar ${fmtBRL(o.emenda_nao_classificada)}`}
+                                  {o.proposta_nao_identificada > 0 && ` · proposta a confirmar ${fmtBRL(o.proposta_nao_identificada)}`}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                     {emVal > 0 && (
                       <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.grayBdr}`,
                         background: "#fdf3e7", borderRadius: 6, padding: "8px 10px", marginBottom: -4 }}>
@@ -1199,6 +1233,8 @@ export default function EvolucaoFnsGrafico({ data, exercicio, onVoltar, onSincro
           </LineChart>
         </ResponsiveContainer>
       </div>
+
+      <OrigemRecursosFns exercicio={exercicio} mesesVisiveis={mesesVisiveis} />
 
       {/* ── Cards individuais por grupo ── */}
       <div style={{ fontWeight: 800, fontSize: 14, color: T.text, marginBottom: 14,

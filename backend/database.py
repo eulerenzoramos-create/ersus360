@@ -53,6 +53,7 @@ async def init_db():
         from models import portaria_dou   # noqa — portarias DOU + log execução agente
         from models import conta_bancaria_fms  # noqa — contas bancárias FMS
         from models import backup  # noqa — registro de backups
+        from models import fns_origem  # noqa — origem dos recursos FNS (Ministério × emendas)
         await conn.run_sync(Base.metadata.create_all)
         # Tabela de snapshot eSUS PEC (entrada manual ou bookmarklet)
         if _raw_url.startswith("sqlite"):
