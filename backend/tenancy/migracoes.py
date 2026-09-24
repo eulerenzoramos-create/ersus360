@@ -91,6 +91,22 @@ async def migrar_multitenant(engine: AsyncEngine) -> None:
         await _adicionar_colunas(conn, "municipios", _COLUNAS_MUNICIPIOS)
         await _adicionar_colunas(conn, "audit_log", _COLUNAS_AUDIT)
         await _adicionar_colunas(conn, "documentos", [("excluido_em", "TIMESTAMP")])
+        # Previsão Portaria × Recebimento FNS (colunas novas, nada é removido)
+        tabelas_existentes = set(await _tabelas_existentes(conn))
+        if "portarias_municipio" in tabelas_existentes:
+            await _adicionar_colunas(conn, "portarias_municipio", [
+                ("exercicio", "INTEGER"), ("grupo", "VARCHAR(200)"), ("acao", "VARCHAR(400)"),
+                ("componente", "VARCHAR(500)"), ("periodicidade", "VARCHAR(20)"),
+                ("qtd_parcelas", "INTEGER"), ("valor_parcela", "FLOAT"), ("fundamento", "TEXT"),
+                ("criado_por", "VARCHAR(200)"), ("atualizado_em", "TIMESTAMP"), ("excluido_em", "TIMESTAMP"),
+            ])
+        if "transferencias_fns" in tabelas_existentes:
+            await _adicionar_colunas(conn, "transferencias_fns", [
+                ("previsao_id", "INTEGER"), ("competencia_referencia", "VARCHAR(7)"),
+                ("vinculo_tipo", "VARCHAR(12)"), ("vinculo_por", "VARCHAR(200)"), ("vinculo_em", "TIMESTAMP"),
+            ])
+            await conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_transferencias_fns_previsao_id ON transferencias_fns (previsao_id)"))
         existentes = set(await _tabelas_existentes(conn))
         for tabela in TABELAS_COM_NOVO_MUNICIPIO_ID:
             if tabela in existentes:

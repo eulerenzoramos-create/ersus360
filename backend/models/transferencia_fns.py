@@ -12,6 +12,7 @@ Princípios:
 from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import (
+    ForeignKey,
     Column, String, Integer, Numeric, Date, DateTime, Boolean,
     Text, JSON, UniqueConstraint, Index,
 )
@@ -76,6 +77,13 @@ class TransferenciaFns(Base):
 
     # ── Conciliação com e-Gestor APS ──────────────────────────────────────────
     nu_parcela_egestor    = Column(String(10), nullable=True, index=True)
+    # Conciliação com a previsão da Portaria (portarias_municipio). A competência
+    # de referência vem da previsão — nunca só da data do crédito.
+    previsao_id            = Column(Integer, ForeignKey("portarias_municipio.id"), nullable=True, index=True)
+    competencia_referencia = Column(String(7), nullable=True)      # "AAAA-MM"
+    vinculo_tipo           = Column(String(12), nullable=True)     # automatico | manual
+    vinculo_por            = Column(String(200), nullable=True)
+    vinculo_em             = Column(DateTime, nullable=True)
     status_conciliacao    = Column(String(40), nullable=True)
     diferenca_valor       = Column(Numeric(14, 2), nullable=True)
     nota_conciliacao      = Column(Text, nullable=True)

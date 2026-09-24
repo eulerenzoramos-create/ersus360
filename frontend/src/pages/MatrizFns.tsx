@@ -6,6 +6,7 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import EvolucaoFnsGrafico from "./EvolucaoFnsGrafico";
+import PrevistoRecebidoFns, { ResumoPrevistoRelatorio } from "./PrevistoRecebidoFns";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, LineChart, Line, Legend,
@@ -970,7 +971,7 @@ export default function MatrizFns() {
   const [graficoAtivo, setGraficoAtivo] = useState<"barras" | "empilhado" | "linha">("barras");
   const [sincronizando, setSincronizando] = useState(false);
   const [sincMsg, setSincMsg] = useState("");
-  const [viewMode, setViewMode] = useState<"tabela" | "evolucao" | "contas" | "portarias">("tabela");
+  const [viewMode, setViewMode] = useState<"tabela" | "evolucao" | "contas" | "portarias" | "previsto">("tabela");
 
   const qc = useQueryClient();
   const tabelaRef = useRef<HTMLDivElement>(null);
@@ -987,6 +988,9 @@ export default function MatrizFns() {
   if (filtroComp)  params.set("componente", filtroComp);
   if (filtroTipo)  params.set("tipo_incentivo", filtroTipo);
   if (filtroBusca) params.set("busca", filtroBusca);
+
+  // Mesmos filtros da tela, repassados à visão Previsto × Recebido
+  const filtrosFns = { exercicio, mesInicio, mesFim, grupo: filtroGrupo, tipo: filtroTipo, busca: filtroBusca };
 
   const { data, isLoading, error } = useQuery<TabelaFns>({
     queryKey: ["fns-matriz", params.toString()],
@@ -1081,6 +1085,9 @@ export default function MatrizFns() {
     await qc.invalidateQueries({ queryKey: ["fns-validacoes"] });
     await qc.invalidateQueries({ queryKey: ["fns-contas-repasse"] });
     await qc.invalidateQueries({ queryKey: ["fns-portarias-repasse"] });
+    // a sincronização concilia com as previsões no servidor; atualiza a visão
+    await qc.invalidateQueries({ queryKey: ["fns-previsto"] });
+    await qc.invalidateQueries({ queryKey: ["fns-previsoes"] });
     setSincronizando(false);
     setSincMsg(erros === 0
       ? `✓ Sincronização concluída — ${totalIns} registros importados.`
@@ -1150,6 +1157,7 @@ export default function MatrizFns() {
           { key: "evolucao",  label: "📈 Evolução Gráfica" },
           { key: "contas",    label: "🏦 Contas de Repasse" },
           { key: "portarias", label: "📜 Portarias" },
+          { key: "previsto",  label: "⚖️ Previsto × Recebido" },
         ] as const).map(v => (
           <button key={v.key} onClick={() => setViewMode(v.key)} style={{
             padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer",
@@ -1202,10 +1210,10 @@ export default function MatrizFns() {
       )}
 
       {/* ── Visão: Tabela (original intacta) ── */}
-      {viewMode === "tabela" && (<>
+      {(viewMode === "tabela" || viewMode === "previsto") && (<>
 
       {/* ── Alertas de validação ── */}
-      {validacoes?.alertas?.length > 0 && (
+      {viewMode === "tabela" && validacoes?.alertas?.length > 0 && (
         <div style={{ background: "#fff8e1", border: "1px solid #ffe082", borderRadius: 8,
           padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>
           <div style={{ fontWeight: 700, color: C.amber, display: "flex", gap: 8, alignItems: "center" }}>
@@ -1325,6 +1333,18 @@ export default function MatrizFns() {
         </div>
       </div>
 
+      {/* ── Visão: Previsto (Portarias) × Recebido (FNS) — mesmos filtros ── */}
+      {viewMode === "previsto" && <>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <PrevistoRecebidoFns filtros={filtrosFns} />
+      </>}
+
+      {/* ── Relatório Mensal: resumo da previsão, quando houver ── */}
+      {viewMode === "tabela" && (
+        <ResumoPrevistoRelatorio filtros={filtrosFns} onAbrir={() => setViewMode("previsto")} />
+      )}
+
+      {viewMode === "tabela" && (<>
       {/* ── KPIs de topo ── */}
       {data && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 16 }}>
@@ -1710,6 +1730,7 @@ export default function MatrizFns() {
           table { font-size: 11px; }
         }
       `}</style>
+      </>)}
       </>)}
     </div>
   );

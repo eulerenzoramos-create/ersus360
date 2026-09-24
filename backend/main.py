@@ -435,6 +435,8 @@ from routers.monitor_scnes import router as monitor_scnes_router
 app.include_router(auth_router)
 from routers.tenant import router as tenant_router
 from routers.admin_geral import router as admin_geral_router
+from routers.fns_previsao import router as fns_previsao_router
+app.include_router(fns_previsao_router)
 app.include_router(tenant_router)
 app.include_router(admin_geral_router)
 app.include_router(municipios_router)

@@ -127,3 +127,13 @@ JWT — 8h expiry. Header: `Authorization: Bearer <token>`. Dependency: `get_cur
 
 ## Documentação (docs/)
 DOC-001 a DOC-027 — ver índice em `docs/README.md` (se existir) ou listar com `ls docs/`.
+
+## Controle Financeiro FNS — Previsto × Recebido
+- Recebido = `transferencias_fns` (coletadas do FNS). Previsto = `portarias_municipio` (previsão da Portaria,
+  expandida em parcelas por periodicidade). Previsão NUNCA é somada como receita.
+- `transferencias_fns.competencia` é o mês do pagamento (não mudar: a matriz depende dele); a competência de
+  referência fica em `competencia_referencia`, preenchida pela conciliação (`services/previsao_fns.py`).
+- Conciliação automática só sem ambiguidade (identidade Portaria/componente + janela de 3 meses); valor igual
+  não basta. Caso ambíguo = CONCILIAÇÃO PENDENTE, com vínculo manual auditado (`/api/fns-previsao/vinculos`).
+- Registros sem valor líquido nunca confirmam pagamento. Router multi-município: `/api/fns-previsao`.
+
