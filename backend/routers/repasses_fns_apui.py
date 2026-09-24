@@ -113,6 +113,7 @@ async def sincronizar(
     Percorre todas as páginas. Valida total coletado vs total oficial.
     """
     resultado = await coletar_transferencias(exercicio, mes, db)
+    resultado["conciliacao_previsao"] = await _conciliar_apos_sync(db)
     return resultado
 
 
@@ -133,7 +134,25 @@ async def sincronizar_periodo(
         "periodo": f"{mes_inicio:02d}–{mes_fim:02d}",
         "resultados": resultados,
         "total_inseridos": sum(r.get("registros_inseridos", 0) for r in resultados),
+        "conciliacao_previsao": await _conciliar_apos_sync(db),
     }
+
+
+async def _conciliar_apos_sync(db: AsyncSession) -> dict | None:
+    """Após atualizar os pagamentos do FNS, concilia com as previsões das Portarias
+    do município da sessão. Falha aqui nunca derruba a sincronização."""
+    from services.previsao_fns import conciliar
+    from tenancy.contexto import municipio_atual
+    mid = municipio_atual().id
+    if not mid:
+        return None
+    try:
+        return await conciliar(db, mid, "sincronizacao_fns")
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger(__name__).error("Conciliação pós-sincronização falhou: %s", exc)
+        await db.rollback()
+        return {"erro": str(exc)[:200]}
 
 
 # ── Diagnóstico da API consultafns ────────────────────────────────────────────
@@ -964,6 +983,15 @@ async def matriz_validacoes(
             "mensagem": f"{sem_valor} registros sem valor líquido (fonte: Transparência API legada)",
             "providencia": "Esses registros são agrupados em 'Outros incentivos'. Sincronize para obter valores via consultafns.",
         })
+
+    # Alertas da conciliação Previsto (Portaria) × Recebido (FNS), quando houver previsão
+    try:
+        from services.previsao_fns import resumo_alertas
+        from tenancy.contexto import municipio_atual
+        if municipio_atual().id:
+            alertas.extend(await resumo_alertas(db, municipio_atual().id, exercicio))
+    except Exception:  # noqa: BLE001 — validação auxiliar nunca derruba a matriz
+        pass
 
     return {
         "exercicio": exercicio, "total_registros": total_r,
