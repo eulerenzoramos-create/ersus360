@@ -125,3 +125,27 @@ async def test_parcela_unica_de_2025_paga_em_2026(ambiente):
     async with S() as db:
         assert (await db.get(TransferenciaFns, tid)).competencia_referencia == "2025-12"
         assert (await db.get(TransferenciaFns, outra)).previsao_id is None     # parcela de 2026: não é esta
+
+
+async def test_gerar_previsoes_a_partir_do_fns(ambiente):
+    """Sem previsão cadastrada, o FNS já informa Portaria + parcela: gera e concilia."""
+    c, S = ambiente["client"], ambiente["Session"]
+    ids = []
+    for n, mes in ((7, 8), (8, 9), (9, 9)):
+        ids.append(await _transf(S, MAC, "312343.90", mes=mes, numero_portaria="10146", valor_total=Decimal("312343.90"),
+                                 parcela_numero=n, parcela_total=12, parcela_ano=2026, parcela_fns=f"{n:02d}/12 em 2026"))
+    sem_parcela = await _transf(S, CBAF, "15486.20")                    # ainda sem Comp./Parcela: fica de fora
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    r = (await c.post("/api/fns-previsao/previsoes/gerar-do-fns?exercicio=2026", headers=_h(tok))).json()
+    assert r["criadas"] == 1 and r["conciliacao"]["vinculados"] == 3
+    prev = (await c.get("/api/fns-previsao/previsoes?exercicio=2026", headers=_h(tok))).json()
+    assert len(prev) == 1 and prev[0]["numero_portaria"] == "10146" and prev[0]["qtd_parcelas"] == 12
+    painel = (await c.get("/api/fns-previsao/painel?exercicio=2026&mes_inicio=7&mes_fim=9", headers=_h(tok))).json()
+    assert [(l["competencia"], l["situacao"]) for l in painel["linhas"]] == [
+        ("2026-07", "PAGO"), ("2026-08", "PAGO"), ("2026-09", "PAGO")]
+    async with S() as db:
+        assert (await db.get(TransferenciaFns, sem_parcela)).previsao_id is None
+        assert len((await db.execute(select(TransferenciaFns))).scalars().all()) == 4   # nada duplicado
+    # segunda execução não duplica
+    r2 = (await c.post("/api/fns-previsao/previsoes/gerar-do-fns?exercicio=2026", headers=_h(tok))).json()
+    assert r2["criadas"] == 0
