@@ -160,6 +160,30 @@ def identidade_confere(p: PortariaMunicipio, t: TransferenciaFns) -> bool:
     return False
 
 
+def parcela_decide(pa: Parcela, t: TransferenciaFns, qtd: int) -> bool | None:
+    """Usa a referência oficial do FNS ("09/12 em 2026"). True/False quando ela
+    decide; None quando não há informação suficiente (usa-se a janela de meses)."""
+    if t.parcela_ano is None:
+        return None
+    p = pa.previsao
+    if p.exercicio and t.parcela_ano != p.exercicio:
+        return False
+    if qtd == 1 and t.parcela_total == 1:
+        return True
+    if t.parcela_total and qtd == t.parcela_total and t.parcela_numero:
+        return pa.numero == t.parcela_numero
+    return None
+
+
+def candidato(pa: Parcela, t: TransferenciaFns, qtd: int) -> bool:
+    if not identidade_confere(pa.previsao, t):
+        return False
+    decide = parcela_decide(pa, t, qtd)
+    if decide is not None:
+        return decide          # referência oficial vale mais que a data do crédito
+    return na_janela(pa, t)
+
+
 def na_janela(parcela: Parcela, t: TransferenciaFns) -> bool:
     mp = mes_pagamento(t)
     if not mp:
@@ -217,13 +241,14 @@ async def conciliar(db: AsyncSession, municipio_id: int, usuario: str = "sistema
     atendidas = {(t.previsao_id, t.competencia_referencia) for t in transfs if t.previsao_id}
     livres = [t for t in transfs if not t.previsao_id and t.valor_liquido is not None]
 
-    todas = [pa for p in prevs for pa in parcelas(p)]
     candidatos: dict[tuple[int, str], list[TransferenciaFns]] = {}
-    for pa in todas:
-        chave = (pa.previsao.id, pa.competencia)
-        if chave in atendidas:
-            continue
-        candidatos[chave] = [t for t in livres if identidade_confere(pa.previsao, t) and na_janela(pa, t)]
+    for p in prevs:
+        pars = parcelas(p)
+        for pa in pars:
+            chave = (p.id, pa.competencia)
+            if chave in atendidas:
+                continue
+            candidatos[chave] = [t for t in livres if candidato(pa, t, len(pars))]
 
     vinculados = 0
     mudou = True
@@ -303,7 +328,7 @@ async def painel(db: AsyncSession, municipio_id: int, f: Filtros) -> dict:
             if a != f.exercicio or not (f.mes_inicio <= m <= f.mes_fim):
                 continue
             vinc = vinculadas_por.get((p.id, pa.competencia), [])
-            cands = [] if vinc else [t for t in livres if identidade_confere(p, t) and na_janela(pa, t)]
+            cands = [] if vinc else [t for t in livres if candidato(pa, t, len(pars))]
             relacionados = vinc or cands
             if f.grupo and norm(f.grupo) not in norm(p.grupo) and not any(
                     norm(f.grupo) in norm(t.grupo) for t in relacionados):
@@ -319,23 +344,25 @@ async def painel(db: AsyncSession, municipio_id: int, f: Filtros) -> dict:
             situacao = _situacao(pa.valor, recebido, vinc, sem_valor, cands, pa.idx > idx_hoje)
             datas = sorted({t.data_pagamento.isoformat() for t in vinc if t.data_pagamento})
             fora_do_mes = any((mp := mes_pagamento(t)) and comp_idx(*mp) != pa.idx for t in vinc)
+            parcelas_fns = sorted({t.parcela_fns for t in vinc if t.parcela_fns})
             linha = {
                 "previsao_id": p.id, "parcela": pa.numero, "qtd_parcelas": len(pars),
                 "competencia": pa.competencia, "portaria": portaria_rotulo(p),
                 "grupo": p.grupo, "acao": p.acao, "componente": p.componente,
                 "previsto": _f(pa.valor), "recebido": _f(recebido) if vinc else 0.0,
                 "diferenca": _f(recebido - pa.valor) if vinc else _f(-pa.valor),
-                "datas_credito": datas, "situacao": situacao,
+                "datas_credito": datas, "situacao": situacao, "parcela_fns": parcelas_fns,
                 "vinculo_tipo": vinc[0].vinculo_tipo if vinc else None,
                 "transferencias": [
                     {"id": t.id, "valor_liquido": _f(t.valor_liquido) if t.valor_liquido is not None else None,
                      "data_pagamento": t.data_pagamento.isoformat() if t.data_pagamento else None,
-                     "numero_ob": t.numero_ob, "vinculo_tipo": t.vinculo_tipo}
+                     "numero_ob": t.numero_ob, "vinculo_tipo": t.vinculo_tipo, "parcela_fns": t.parcela_fns}
                     for t in vinc],
                 "candidatos": [
                     {"id": t.id, "valor_liquido": _f(t.valor_liquido) if t.valor_liquido is not None else None,
                      "data_pagamento": t.data_pagamento.isoformat() if t.data_pagamento else None,
-                     "componente": t.acao_detalhada, "numero_portaria": t.numero_portaria}
+                     "componente": t.acao_detalhada, "numero_portaria": t.numero_portaria,
+                     "parcela_fns": t.parcela_fns}
                     for t in cands],
                 "sugestao_transferencia_id": None,
                 "pago_em_mes_diferente": bool(fora_do_mes),

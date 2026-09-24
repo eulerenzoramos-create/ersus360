@@ -84,6 +84,13 @@ class TransferenciaFns(Base):
     vinculo_tipo           = Column(String(12), nullable=True)     # automatico | manual
     vinculo_por            = Column(String(200), nullable=True)
     vinculo_em             = Column(DateTime, nullable=True)
+    # Referência oficial informada pelo FNS no detalhamento do pagamento
+    # ("Comp./Parcela"), ex.: "09/12 em 2026" ou "Única em 2025". É a parcela da
+    # Portaria — não necessariamente o mês de calendário.
+    parcela_fns            = Column(String(40), nullable=True)
+    parcela_numero         = Column(Integer, nullable=True)
+    parcela_total          = Column(Integer, nullable=True)
+    parcela_ano            = Column(Integer, nullable=True)
     status_conciliacao    = Column(String(40), nullable=True)
     diferenca_valor       = Column(Numeric(14, 2), nullable=True)
     nota_conciliacao      = Column(Text, nullable=True)

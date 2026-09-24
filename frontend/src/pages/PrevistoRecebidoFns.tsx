@@ -323,6 +323,8 @@ export default function PrevistoRecebidoFns({ filtros }: { filtros: FiltrosFns }
                     color: l.diferenca < 0 ? C.red : l.diferenca > 0 ? C.blue : C.green }}>{brl(l.diferenca)}</td>
                   <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
                     {l.datas_credito.length ? l.datas_credito.map(dataBR).join(", ") : "—"}
+                    {l.parcela_fns?.length > 0 && <div title="Referência oficial informada pelo FNS"
+                      style={{ fontSize: 10.5, color: C.text, fontWeight: 600 }}>FNS: parcela {l.parcela_fns.join(", ")}</div>}
                     {l.pago_em_mes_diferente && <div title="Crédito em mês diferente da competência de referência"
                       style={{ fontSize: 10.5, color: C.blue }}>ℹ pago em outro mês</div>}
                   </td>
@@ -420,6 +422,7 @@ export default function PrevistoRecebidoFns({ filtros }: { filtros: FiltrosFns }
                   padding: "8px 10px", marginBottom: 6, background: c.id === vinculando.sugestao_transferencia_id ? C.orangeL : C.white, cursor: "pointer" }}>
                 <b>{c.valor_liquido == null ? "sem valor líquido (coleta incompleta)" : brl(c.valor_liquido)}</b>
                 {" · crédito em "}{c.data_pagamento ? dataBR(c.data_pagamento) : "—"}
+                {c.parcela_fns && <> · <b>parcela {c.parcela_fns}</b></>}
                 {c.id === vinculando.sugestao_transferencia_id && <span style={{ color: C.orange, fontWeight: 700 }}> · sugestão</span>}
                 <div style={{ fontSize: 11, color: C.gray }}>{c.componente}{c.numero_portaria ? ` · Portaria ${c.numero_portaria}` : ""}</div>
               </button>
