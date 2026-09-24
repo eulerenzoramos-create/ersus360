@@ -106,6 +106,9 @@ async def atualizar_parcelas(db: AsyncSession, exercicio: int, mes: int) -> dict
         return {"ok": False, "motivo": "CNPJ do fundo municipal não cadastrado"}
 
     itens = await _buscar(exercicio, mes, cnpj, ctx.uf or "", ibge6())
+    # mesmo detalhamento alimenta a origem dos recursos (Ministério × emendas)
+    from services.fns_origem import gravar_detalhes
+    await gravar_detalhes(db, exercicio, mes, itens)
     registros = list((await db.execute(
         select(TransferenciaFns)
         .where(TransferenciaFns.municipio_ibge.in_([ibge6(), ibge7()]))
