@@ -73,6 +73,11 @@ class DashboardStats(BaseModel):
     total_repasses: float
     convenios_vigentes: int
     total_convenios: int
+    # Repasses APS do ciclo (e-Gestor APS, fonte oficial) — None = indisponível
+    repasses_aps_total: float | None = None
+    repasses_aps_parcelas: int | None = None
+    repasses_aps_ciclo: int | None = None
+    repasses_aps_situacao: str = "nao_disponivel"
 
     # PAS
     execucao_pas: float
