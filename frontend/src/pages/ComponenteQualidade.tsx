@@ -319,16 +319,20 @@ function PainelFiltros({
 }
 
 // ── Equipes reais Apuí/AM — IBGE 1300144 ─────────────────────────────────────
-const EQUIPES_REF = [
-  { equipe:"CACHOEIRA",     ubs:"UBS IRMÃ ELIZABETE",                       ine:"0000563104", cnes:"2080168", tipo:"eSF" },
-  { equipe:"SÃO SEBASTIÃO", ubs:"UBS ANIZIO FERREIRA DA SILVA",             ine:"0000563066", cnes:"2080168", tipo:"eSF" },
-  { equipe:"ACARI",         ubs:"UBS ANIZIO FERREIRA DA SILVA",             ine:"0000563082", cnes:"2080168", tipo:"eSF" },
-  { equipe:"TRÊS ESTADOS",  ubs:"UBS OSVALDO LEMES CABRAL",                ine:"0000563120", cnes:"2080168", tipo:"eSF" },
-  { equipe:"JUMA",          ubs:"CENTRO DE SAUDE CURUMIM",                 ine:"0000563147", cnes:"6820662", tipo:"eSF" },
-  { equipe:"LIBERDADE",     ubs:"CENTRO DE SAUDE CURUMIM",                 ine:"0000563155", cnes:"6820662", tipo:"eSF" },
-  { equipe:"KENNEDY",       ubs:"UBS PADRE FALIERO BONCI",                 ine:"0000563163", cnes:"6820662", tipo:"eSF" },
-  { equipe:"JK",            ubs:"UBS JK",                                  ine:"0000563171", cnes:"6820662", tipo:"eSF" },
-  { equipe:"ESTRADA NOVA",  ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA", ine:"0000563198", cnes:"6820662", tipo:"eSFR" },
+type EquipeRef = { equipe:string; ubs:string; ine:string; cnes:string; tipo:string };
+// Referência verificada no CNES (XML SISAB 28/09/2026) — usada só enquanto o município não
+// importou relatórios do SIAPS; com importação, a lista vem da API (equipes_lista).
+const EQUIPES_REF: EquipeRef[] = [
+  { equipe:"ACARI",         ubs:"UBS ANIZIO FERREIRA DA SILVA",            ine:"0000007064", cnes:"2013312", tipo:"eSF" },
+  { equipe:"CACHOEIRA",     ubs:"UBS IRMA ELIZABETE",                      ine:"0000007072", cnes:"3320138", tipo:"eSF" },
+  { equipe:"ESTRADA NOVA",  ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA", ine:"0001690426", cnes:"9942122", tipo:"eSF" },
+  { equipe:"JK",            ubs:"UBS PEDRO ALEXANDRE SANTOS DA SILVA",     ine:"0002323613", cnes:"4184688", tipo:"eSF" },
+  { equipe:"JUMA",          ubs:"CENTRO DE SAUDE CURUMIM",                 ine:"0000007080", cnes:"3697983", tipo:"eSF" },
+  { equipe:"KENNEDY",       ubs:"UBS PADRE FALIERO BONCI",                 ine:"0000007056", cnes:"2013304", tipo:"eSF" },
+  { equipe:"LIBERDADE",     ubs:"CENTRO DE SAUDE CURUMIM",                 ine:"0000007099", cnes:"3697983", tipo:"eSF" },
+  { equipe:"SÃO SEBASTIÃO", ubs:"UBS ANIZIO FERREIRA DA SILVA",            ine:"0001536974", cnes:"2013312", tipo:"eSF" },
+  { equipe:"TRÊS ESTADOS",  ubs:"UBS OSVALDO LEMES CABRAL",                ine:"0001690442", cnes:"9934448", tipo:"eSF" },
+  { equipe:"AREAL",         ubs:"UBS EDUARDO BIAZIN",                      ine:"0000007048", cnes:"2013290", tipo:"eSFR" },
 ];
 
 // ── NOMES oficiais — Portaria GM/MS 3.493/2024 + NT DEAPS/SAPS/MS 6/2025 ─────
@@ -569,7 +573,7 @@ function mediaVals(cod: string, vals: Record<string,Record<string,number>>): num
 }
 
 // ── Visão por Indicador ───────────────────────────────────────────────────────
-function ViewPorIndicador({ codigos, cor, vals }: { codigos:string[]; cor:string; vals:Record<string,Record<string,number>> }) {
+function ViewPorIndicador({ codigos, cor, vals, equipes = EQUIPES_REF }: { codigos:string[]; cor:string; vals:Record<string,Record<string,number>>; equipes?: EquipeRef[] }) {
   const [expInd, setExpInd] = useState<string|null>(null);
 
   const inds = useMemo(() => codigos.map(cod => {
@@ -584,7 +588,7 @@ function ViewPorIndicador({ codigos, cor, vals }: { codigos:string[]; cor:string
       n_suficiente:Object.values(v).filter(x=>classifVal(x,cod)==="suficiente").length,
       n_regular:   Object.values(v).filter(x=>classifVal(x,cod)==="regular").length,
     };
-  }), [codigos]);
+  }), [codigos, vals]);
 
   if (!inds.length) return (
     <div style={{ textAlign:"center", padding:"32px 0", color:"#9ca3af" }}>
@@ -708,7 +712,7 @@ function ViewPorIndicador({ codigos, cor, vals }: { codigos:string[]; cor:string
                   </div>
                 ) : (
                   <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:8 }}>
-                    {EQUIPES_REF.map(eq=>{
+                    {equipes.map(eq=>{
                       const val = vals[ind.cod]?.[eq.equipe];
                       if (val==null) return null;
                       const cl = classifVal(val, ind.cod);
@@ -795,7 +799,7 @@ function CelulaEquipe({ val, cod }: { val:number|undefined; cod:string }) {
 
 // mapa: qual tipoEquipe da aba aceita quais tipo de EQUIPES_REF
 const TIPOS_ABA_PARA_EQUIPE: Record<string, string[]> = {
-  eSF:    ["eSF"],
+  eSF:    ["eSF","eAP"],
   eAP:    ["eAP","eSF"],
   eSB:    ["eSF","eSFR"],  // eSB indica por equipe principal (eSF/eSFR que tem ESB vinculada)
   eMulti: ["eSF","eSFR"],  // eMulti idem
@@ -804,23 +808,24 @@ const TIPOS_ABA_PARA_EQUIPE: Record<string, string[]> = {
   eSFR:   ["eSFR"],
 };
 
-function ViewPorEquipe({ codigos, cor, vals, filtros }: {
+function ViewPorEquipe({ codigos, cor, vals, filtros, equipes = EQUIPES_REF }: {
   codigos:string[]; cor:string;
   vals:Record<string,Record<string,number>>;
   filtros: Filtros;
+  equipes?: EquipeRef[];
 }) {
   // filtra equipes pelos tipos de equipe selecionados nos filtros
   const equipesVisiveis = useMemo(() => {
     const tiposAceitos = new Set(
       filtros.tiposEquipe.flatMap(t => TIPOS_ABA_PARA_EQUIPE[t] ?? [t])
     );
-    const filtradas = EQUIPES_REF.filter(eq => tiposAceitos.has(eq.tipo));
+    const filtradas = equipes.filter(eq => tiposAceitos.has(eq.tipo));
     // fallback: se nenhuma equipe bate o filtro, mostra todas com dado disponível
     if (filtradas.length === 0) {
-      return EQUIPES_REF.filter(eq => codigos.some(c => vals[c]?.[eq.equipe] != null));
+      return equipes.filter(eq => codigos.some(c => vals[c]?.[eq.equipe] != null));
     }
     return filtradas;
-  }, [filtros.tiposEquipe, codigos, vals]);
+  }, [filtros.tiposEquipe, codigos, vals, equipes]);
 
   // score global por equipe (média dos indicadores disponíveis)
   const scores = useMemo(()=> equipesVisiveis.map(eq=>{
@@ -1060,6 +1065,8 @@ export default function ComponenteQualidade() {
   const vals: Record<string,Record<string,number>> = pecData?.equipes
     ? buildVals(pecData.equipes)
     : {};
+  const equipesLista: EquipeRef[] = (pecData as any)?.equipes_lista?.length ? (pecData as any).equipes_lista : EQUIPES_REF;
+  const fonteDados: string = (pecData as any)?.fonte ?? "SIAPS · Ref. municipal";
 
   const handleTipoEquipe = useCallback((t:TipoEquipe)=>{
     setTipoEquipe(t);
@@ -1099,7 +1106,7 @@ export default function ComponenteQualidade() {
           </div>
           <div style={{ textAlign:"right" }}>
             <div style={{ fontSize:11, color:"#93c5fd" }}>Fonte</div>
-            <div style={{ fontSize:12, color:"#fff" }}>SIAPS · Ref. municipal</div>
+            <div style={{ fontSize:12, color:"#fff", maxWidth:260 }}>{fonteDados}</div>
           </div>
         </div>
       </div>
@@ -1124,11 +1131,11 @@ export default function ComponenteQualidade() {
       {pecLoading && (
         <div style={{ textAlign:"center", padding:24, color:"#6b7280", fontSize:13 }}>
           <Loader2 size={18} style={{ display:"inline", animation:"spin 1s linear infinite", marginRight:6 }}/>
-          Buscando dados do e-SUS PEC…
+          Buscando dados (SIAPS importado / e-SUS PEC)…
         </div>
       )}
-      {!pecLoading && visao === "indicador"   && <ViewPorIndicador  codigos={codigosVisiveis} cor={corAtivo} vals={vals}/>}
-      {!pecLoading && visao === "equipe"      && <ViewPorEquipe      codigos={codigosVisiveis} cor={corAtivo} vals={vals} filtros={filtrosAtivos}/>}
+      {!pecLoading && visao === "indicador"   && <ViewPorIndicador  codigos={codigosVisiveis} cor={corAtivo} vals={vals} equipes={equipesLista}/>}
+      {!pecLoading && visao === "equipe"      && <ViewPorEquipe      codigos={codigosVisiveis} cor={corAtivo} vals={vals} filtros={filtrosAtivos} equipes={equipesLista}/>}
       {!pecLoading && visao === "competencia" && <ViewPorCompetencia codigos={codigosVisiveis} cor={corAtivo} filtros={filtrosAtivos} vals={vals}/>}
 
       {/* ── Alertas ──────────────────────────────────── */}

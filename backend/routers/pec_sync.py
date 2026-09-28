@@ -8,14 +8,15 @@ import secrets
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Header, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database import AsyncSessionLocal
+from database import AsyncSessionLocal, get_db
+from tenancy.escopo import SessaoMunicipal
 from tenancy.arquivos import pasta_municipio
 
 log = logging.getLogger(__name__)
@@ -121,6 +122,7 @@ class IndicadoresResponse(BaseModel):
     tipos_equipe: Optional[Dict[str, str]] = {}
     ultima_atualizacao: Optional[str] = None
     fonte: str = "e-SUS PEC"
+    equipes_lista: Optional[List[Dict[str, Any]]] = None   # equipes do município (relatórios SIAPS/CNES)
 
 
 # ── Armazenamento em arquivo JSON (cache local no Railway) ───────────────────
@@ -218,10 +220,17 @@ async def receber_sync(
 
 
 @router.get("/indicadores/{competencia}", response_model=IndicadoresResponse)
-async def get_indicadores(competencia: str):
-    """Retorna indicadores C1–C7 por equipe para a competência solicitada.
-    Quando não há dados do agente PEC, retorna referência SIAPS municipal."""
+async def get_indicadores(competencia: str, current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    """Indicadores do Componente Qualidade por equipe. Ordem: 1) relatórios oficiais do SIAPS
+    importados pelo município para a competência; 2) agente e-SUS PEC; 3) referência municipal."""
     data = _ler_cache(competencia)
+    importado = await _indicadores_importados(db, current.municipio_id, competencia)
+    if importado:
+        if data:   # completa com o PEC só os indicadores que o SIAPS importado não trouxe
+            for equipe, inds in (data.get("equipes") or {}).items():
+                for cod, v in inds.items():
+                    importado["equipes"].setdefault(equipe, {}).setdefault(cod, v)
+        return IndicadoresResponse(**importado)
     if data:
         return IndicadoresResponse(**data)
     # Fallback: referência derivada de scores SIAPS — C1 e C6 indisponíveis sem PEC
@@ -290,3 +299,42 @@ async def status_sync():
         "sync_key_info": chave_info,
         "agente_url": "https://github.com/eulerenzoramos-create/ersus360 — pasta pec_sync_agent/",
     }
+
+
+async def _indicadores_importados(db: AsyncSession, municipio_id: int, competencia: str) -> dict | None:
+    """Monta {equipe: {código: pontuação}} a partir dos relatórios de Qualidade do SIAPS
+    importados (Relatórios do SIAPS) e a lista de equipes do município (SIAPS + CNES)."""
+    from routers.cnes_xml import _marcacoes, ultima_importacao
+    from routers.siaps_relatorios import relatorios_do_municipio
+    from services.siaps_relatorio import codigo_indicador
+
+    rels = await relatorios_do_municipio(db, municipio_id, competencia=competencia)
+    qual = [r for r in rels if r.componente == "qualidade" and codigo_indicador(r.indicador)]
+    if not qual:
+        return None
+    equipes: Dict[str, Dict[str, float]] = {}
+    lista: Dict[str, Dict[str, Any]] = {}
+    for r in rels:
+        cod = codigo_indicador(r.indicador) if r.componente == "qualidade" else None
+        for l in json.loads(r.linhas):
+            lista.setdefault(l["ine"], {"equipe": l["equipe"], "ubs": l["ubs"], "ine": l["ine"],
+                                        "cnes": l["cnes"], "tipo": l["sigla"]})
+            if cod and l.get("pontuacao") is not None:
+                equipes.setdefault(l["equipe"], {})[cod] = l["pontuacao"]
+    # equipes do CNES que ainda não têm relatório (aparecem sem valor, com o tipo correto)
+    cnes = await ultima_importacao(db, municipio_id)
+    if cnes:
+        marc = _marcacoes()
+        estab = {e["cnes"]: e["nome"] for e in cnes["estabelecimentos"]}
+        for e in cnes["equipes"]:
+            if e["desativada_em"] or e["ine"] in lista or e["tp_equipe"] not in ("70", "76"):
+                continue
+            tipo = "eSFR" if marc.get(e["ine"], {}).get("ribeirinha") else ("eAP" if e["tp_equipe"] == "76" else "eSF")
+            c0 = (e["estabelecimentos"] or [""])[0]
+            lista[e["ine"]] = {"equipe": e["nome"], "ubs": estab.get(c0, ""), "ine": e["ine"], "cnes": c0, "tipo": tipo}
+    ult = max(qual, key=lambda r: r.importado_em)
+    return {"competencia": competencia, "equipes": equipes,
+            "tipos_equipe": {v["equipe"]: v["tipo"] for v in lista.values()},
+            "ultima_atualizacao": ult.importado_em.isoformat() if ult.importado_em else None,
+            "fonte": "SIAPS — relatórios oficiais importados" + (" · dado preliminar" if any(r.dado_preliminar for r in qual) else ""),
+            "equipes_lista": sorted(lista.values(), key=lambda x: (x["tipo"], x["equipe"]))}
