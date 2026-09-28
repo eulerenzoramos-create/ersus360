@@ -636,6 +636,16 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Alertas de divergências, erros, riscos e pendências que podem causar perda de recursos",
     keywords:["inconsistência","erro","divergência","alerta","pendência","risco","perda recurso","rejeição","auditoria","divergência","validação","conformidade","irregularidade"] },
 
+  { id:"siaps-relatorios",    category:"Central de Inconsistências", order:803, iconName:"BarChart3", isNew:true,
+    title:"Relatórios do SIAPS (importação)", shortTitle:"Relatórios SIAPS", route:"/siaps-relatorios",
+    description:"Importa os relatórios de Vínculo (CVAT) e Qualidade baixados no SIAPS, incluindo eSFR",
+    keywords:["siaps","cvat","vínculo","qualidade","mais acesso","esfr","ribeirinha","relatório","importar","csv","pontuação"] },
+
+  { id:"cnes-xml",            category:"Central de Inconsistências", order:802, iconName:"ClipboardCheck", isNew:true,
+    title:"Equipes do CNES (XML SISAB)", shortTitle:"Equipes CNES", route:"/cnes-xml",
+    description:"Importa o XML-CNES do SISAB e confere a composição mínima das equipes (eSF, eSB, eMulti)",
+    keywords:["cnes","xml","sisab","equipe","ine","lotação","composição","acs","esf","esb","emulti","ribeirinha","scnes","importar"] },
+
   { id:"score-risco-esf",     category:"Central de Inconsistências", order:801, iconName:"ShieldAlert",
     title:"Score de Risco ESF", route:"/score-risco-esf",
     description:"Score de risco por Equipe de Saúde da Família — priorização de correções",
