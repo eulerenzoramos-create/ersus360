@@ -20,7 +20,7 @@ interface Painel {
 }
 interface Resultado { arquivo: string; ok: boolean; erro?: string; substituiu?: boolean; componente?: string; indicador?: string; tipo_equipe?: string; competencia?: string }
 
-const card: React.CSSProperties = { background: "#fff", borderRadius: 8, border: "1px solid #e5e5e3", padding: 16, marginBottom: 12 };
+const card: React.CSSProperties = { background: "#fff", color: "#1f2937", borderRadius: 8, border: "1px solid #e5e5e3", padding: 16, marginBottom: 12 };
 const th: React.CSSProperties = { padding: "6px 8px", whiteSpace: "nowrap", textAlign: "left" };
 const td: React.CSSProperties = { padding: "6px 8px", borderTop: "1px solid #eee", fontVariantNumeric: "tabular-nums" };
 const COR_STATUS: Record<string, string> = { otimo: "#1d4ed8", bom: "#16a34a", suficiente: "#d97706", regular: "#dc2626" };
@@ -78,8 +78,8 @@ export default function RelatoriosSiaps() {
   const indicadores = Array.from(new Set((data?.qualidade ?? []).map(q => q.indicador)));
 
   return (
-    <div style={{ padding: 20, maxWidth: 1300 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px", display: "flex", alignItems: "center", gap: 8 }}>
+    <div style={{ padding: 20, maxWidth: 1300, color: "#1f2937" }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px", color: "#111827", display: "flex", alignItems: "center", gap: 8 }}>
         <FileSpreadsheet size={20} /> Relatórios do SIAPS — Vínculo e Qualidade
       </h1>
       <p style={{ fontSize: 13, color: "#525252", margin: "0 0 14px" }}>
