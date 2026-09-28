@@ -6,6 +6,13 @@ Dados reais competência Abr/2026
 from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from routers.auth import get_current_user, UserOut
+import json
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from database import get_db
+from routers.siaps_relatorios import AVISO_ESFR, relatorios_do_municipio, resumo_cvat
+from services.siaps_relatorio import CVAT_CHAVES, status_cvat
 from services import siaps_service
 from services import siaps_municipio
 from services.egestor_aps import (
@@ -331,9 +338,32 @@ async def abrangencia(_: UserOut = Depends(get_current_user)):
 async def vinculo_acompanhamento(
     competencia: str = Query("2026-04"),
     tipo_equipe: str = Query("eAP,eSF"),
-    _: UserOut = Depends(get_current_user),
+    current: UserOut = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    """Retorna CVAT por equipe. Tenta SIAPS ao vivo; fallback para referência Abr/2026."""
+    """Retorna CVAT por equipe. 1º o relatório do SIAPS importado pelo município
+    (/api/siaps-relatorios); depois SIAPS ao vivo; fallback para referência Abr/2026."""
+    if current.municipio_id is not None:
+        importados = await relatorios_do_municipio(db, current.municipio_id, "cvat")
+        if importados:
+            rel = next((r for r in importados if r.competencia == competencia), importados[0])
+            linhas = json.loads(rel.linhas)
+            resumo = resumo_cvat(linhas)
+            return {
+                "competencia": rel.competencia, "tipo_equipe": rel.tipo_equipe,
+                "dado_preliminar": rel.dado_preliminar, "municipio": current.municipio, "uf": "AM", "ied": 2,
+                "total_equipes": resumo["equipes"],
+                "total_pessoas_vinculadas": resumo["pessoas_vinculadas"],
+                "total_pessoas_acompanhadas": resumo["pessoas_acompanhadas"],
+                "pontuacao_media": resumo["pontuacao_media"], "por_status": resumo["por_status"],
+                "equipes": [{"ubs": l["ubs"], "equipe": l["equipe"], "tipo": l["sigla"],
+                             **{k: (l.get(k) or 0) for k in CVAT_CHAVES},
+                             "pontuacao": l["pontuacao"] or 0, "status": status_cvat(l["pontuacao"])}
+                            for l in linhas],
+                "fonte": "siaps_relatorio_importado",
+                "fonte_detalhe": f"Relatório SIAPS importado ({rel.gerado_em or rel.competencia})",
+                "aviso": AVISO_ESFR,
+            }
     # Tenta dados ao vivo do SIAPS (requer credenciais configuradas no Railway)
     ibge = "1300144"
     try:

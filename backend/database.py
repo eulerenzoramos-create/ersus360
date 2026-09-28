@@ -55,6 +55,7 @@ async def init_db():
         from models import backup  # noqa — registro de backups
         from models import fns_origem  # noqa — origem dos recursos FNS (Ministério × emendas)
         from models import cnes_xml  # noqa — importações do XML-CNES do SISAB
+        from models import siaps_relatorio  # noqa — relatórios exportados do SIAPS
         await conn.run_sync(Base.metadata.create_all)
         # Tabela de snapshot eSUS PEC (entrada manual ou bookmarklet)
         if _raw_url.startswith("sqlite"):
