@@ -303,41 +303,39 @@ async def seed_siaps_cache_se_vazio() -> None:
 
 
 async def _job_alertas_automaticos() -> None:
-    """Job: gera alertas WebSocket a partir de prazos urgentes da Agenda e outras fontes."""
-    logger.info("[Scheduler] Verificando alertas automáticos...")
+    """Job: alertas do calendário oficial do SIAPS (prazo de envio 7/3/1/0 dias antes e dia de
+    extrair os relatórios = dia seguinte ao prazo). Grava na tabela de alertas de cada município
+    ativo (página Alertas) sem duplicar, e avisa quem estiver conectado (sino)."""
+    logger.info("[Scheduler] Verificando alertas automáticos (calendário SIAPS)...")
     try:
-        from datetime import timedelta
-        from routers.agenda import _OBRIGACOES
+        from sqlalchemy import select
+        from models.alerta import Alerta, SeveridadeAlerta
+        from database import AsyncSessionLocal
+        from models.municipio import Municipio
         from routers.ws_alertas import manager
+        from services.siaps_calendario import alertas_do_dia
 
-        hoje = date.today()
-        alertas: list[dict] = []
-
-        for ev in _OBRIGACOES:
-            if ev["status"] == "concluido":
-                continue
-            d = date.fromisoformat(ev["data"])
-            delta = (d - hoje).days
-            if delta < 0:
-                alertas.append({
-                    "nivel": "CRITICO",
-                    "titulo": f"Prazo VENCIDO: {ev['titulo']}",
-                    "mensagem": f"Venceu há {abs(delta)} dia(s). Responsável: {ev['responsavel']}.",
-                    "modulo": "Agenda",
-                })
-            elif delta <= 7 and ev["prioridade"] == "alta":
-                alertas.append({
-                    "nivel": "AVISO",
-                    "titulo": f"Prazo urgente: {ev['titulo']}",
-                    "mensagem": f"Vence em {delta} dia(s). Responsável: {ev['responsavel']}.",
-                    "modulo": "Agenda",
-                })
-
-        for alerta in alertas:
-            await manager.broadcast(alerta)
-            logger.info("[Scheduler] Alerta agenda enviado: %s", alerta["titulo"])
-
-        logger.info("[Scheduler] %s alertas de agenda gerados.", len(alertas))
+        alertas = alertas_do_dia(date.today())
+        if not alertas:
+            logger.info("[Scheduler] Nenhum prazo do SIAPS hoje.")
+            return
+        async with AsyncSessionLocal() as db:
+            municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
+            criados = 0
+            for mun in municipios:
+                for a in alertas:
+                    ja = (await db.execute(select(Alerta.id).where(Alerta.municipio_id == mun.id,
+                                                                 Alerta.titulo == a["titulo"]))).first()
+                    if ja:
+                        continue
+                    db.add(Alerta(municipio_id=mun.id, titulo=a["titulo"], descricao=a["descricao"],
+                                  modulo="SIAPS", severidade=SeveridadeAlerta(a["severidade"])))
+                    criados += 1
+            await db.commit()
+        for a in alertas:
+            await manager.broadcast({"nivel": {"critico": "CRITICO", "atencao": "AVISO"}.get(a["severidade"], "INFO"),
+                                     "titulo": a["titulo"], "mensagem": a["descricao"], "modulo": "SIAPS"})
+        logger.info("[Scheduler] %s alerta(s) do SIAPS gravados em %s município(s).", criados, len(municipios))
     except Exception as exc:
         logger.error("[Scheduler] Erro nos alertas automáticos: %s", exc, exc_info=True)
 

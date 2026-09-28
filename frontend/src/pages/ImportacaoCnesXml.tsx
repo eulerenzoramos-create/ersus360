@@ -22,7 +22,7 @@ interface Painel {
 
 const COR = { critica: "#dc2626", alerta: "#d97706", info: "#2563eb" } as const;
 const ROTULO = { critica: "Crítica", alerta: "Alerta", info: "Informação" } as const;
-const card: React.CSSProperties = { background: "#fff", borderRadius: 8, border: "1px solid #e5e5e3", padding: 16, marginBottom: 12 };
+const card: React.CSSProperties = { background: "#fff", color: "#1f2937", borderRadius: 8, border: "1px solid #e5e5e3", padding: 16, marginBottom: 12 };
 const dataBr = (d?: string | null) => (d ? d.split("T")[0].split("-").reverse().join("/") : "—");
 
 function Envio() {
@@ -74,8 +74,8 @@ export default function ImportacaoCnesXml() {
   const ativas = (data?.equipes ?? []).filter(e => !e.desativada_em);
 
   return (
-    <div style={{ padding: 20, maxWidth: 1200 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px", display: "flex", alignItems: "center", gap: 8 }}>
+    <div style={{ padding: 20, maxWidth: 1200, color: "#1f2937" }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px", color: "#111827", display: "flex", alignItems: "center", gap: 8 }}>
         <Users size={20} /> Equipes do CNES — importação do XML do SISAB
       </h1>
       <p style={{ fontSize: 13, color: "#525252", margin: "0 0 14px" }}>
