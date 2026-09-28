@@ -137,3 +137,20 @@ async def painel(current: SessaoMunicipal, competencia: Optional[str] = Query(No
             "competencias": competencias, "competencia": comp, "cvat": cvat, "qualidade": qualidade,
             "equipes": sorted(equipes.values(), key=lambda e: (e["sigla"], e["equipe"])),
             "relatorios": [_meta(r) for r in todos], "avisos": avisos}
+
+
+@router.get("/calendario")
+async def calendario(current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    """Calendário oficial de envio ao SIAPS + relatórios que já deviam ter sido importados."""
+    from datetime import date
+    from services import siaps_calendario as cal
+    hoje = date.today()
+    itens = cal.calendario(hoje)
+    importadas = {r.competencia for r in await relatorios_do_municipio(db, current.municipio_id, "cvat")}
+    vencidos = [i for i in itens if i["data_relatorio"] <= hoje.isoformat()]
+    for i in itens:
+        i["relatorio_importado"] = i["competencia"] in importadas
+    return {"hoje": hoje.isoformat(), "fonte": cal.FONTE, "calendario": itens,
+            "proximo_prazo": cal.proximo_prazo(hoje),
+            # só as 3 últimas competências fechadas — o histórico antigo não gera cobrança
+            "relatorios_pendentes": [i for i in vencidos[-3:] if i["competencia"] not in importadas]}

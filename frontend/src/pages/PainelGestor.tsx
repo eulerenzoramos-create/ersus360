@@ -1,3 +1,4 @@
+import PrazoSiapsBanner from "../components/PrazoSiapsBanner";
 // src/pages/PainelGestor.tsx — ERSUS 360 · Home estilo InvestSUS
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -81,6 +82,7 @@ export default function PainelGestor() {
 
       {/* ── Título da página ── */}
       <div style={{ fontSize: 15, fontWeight: 600, color: "#323232", marginBottom: 20 }}>Início</div>
+      <PrazoSiapsBanner />
 
       {/* ── Layout principal: card azul + serviços ── */}
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>

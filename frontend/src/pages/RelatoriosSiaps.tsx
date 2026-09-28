@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileSpreadsheet, Info, Upload } from "lucide-react";
 import { api } from "../lib/api";
+import PrazoSiapsBanner, { dataBr, useCalendarioSiaps } from "../components/PrazoSiapsBanner";
 
 interface Meta { id: number; componente: "cvat" | "qualidade"; indicador: string; competencia: string; tipo_equipe: string;
   dado_preliminar: boolean; gerado_em: string | null; importado_por: string | null; equipes: number }
@@ -85,6 +86,7 @@ export default function RelatoriosSiaps() {
       <p style={{ fontSize: 13, color: "#525252", margin: "0 0 14px" }}>
         O SIAPS só libera os dados por equipe com o login gov.br de quem opera o sistema; por isso a integração é pelo arquivo oficial baixado no próprio SIAPS.
       </p>
+      <PrazoSiapsBanner linkRelatorios={false} />
       <Envio />
 
       {isLoading && <div style={card}>Carregando…</div>}
@@ -162,6 +164,47 @@ export default function RelatoriosSiaps() {
           ))}
         </>
       )}
+      <CalendarioSiaps />
+    </div>
+  );
+}
+
+const SIT: Record<string, [string, string]> = {
+  envio_encerrado: ["Envio encerrado", "#525252"], prazo_de_envio: ["Prazo de envio aberto", "#b45309"],
+  em_producao: ["Em produção", "#1d4ed8"], futura: ["Futura", "#737373"],
+};
+
+function CalendarioSiaps() {
+  const { data } = useCalendarioSiaps();
+  if (!data) return null;
+  return (
+    <div style={{ ...card, overflowX: "auto" }}>
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>Calendário SIAPS 2026 — envio até o 10º dia útil</div>
+      <div style={{ fontSize: 12, color: "#525252", marginBottom: 8 }}>
+        Relatório extraído no dia seguinte à data limite. Alertas automáticos às 7h: 7, 3 e 1 dia antes, no dia do prazo e no dia do relatório.
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <thead><tr style={{ background: "#f5f5f3" }}>
+          {["Competência", "Período", "Data limite de envio", "Extrair relatório em", "Situação", "Relatório no ERSUS360"].map(h => <th key={h} style={th}>{h}</th>)}
+        </tr></thead>
+        <tbody>{data.calendario.map(i => {
+          const proximo = data.proximo_prazo?.competencia === i.competencia;
+          const [rot, cor] = SIT[i.situacao] ?? [i.situacao, "#525252"];
+          const deveria = i.data_relatorio <= data.hoje;
+          return (
+            <tr key={i.competencia} style={{ background: proximo ? "#fffbeb" : undefined }}>
+              <td style={{ ...td, fontWeight: 600 }}>{i.nome}</td>
+              <td style={td}>{dataBr(i.inicio)} a {dataBr(i.fim)}</td>
+              <td style={{ ...td, fontWeight: 700 }}>{dataBr(i.data_limite)}{proximo && <span style={{ color: "#b45309", fontWeight: 600 }}> · faltam {i.dias_para_limite} dia(s)</span>}</td>
+              <td style={td}>{dataBr(i.data_relatorio)}</td>
+              <td style={{ ...td, color: cor }}>{rot}</td>
+              <td style={td}>{i.relatorio_importado ? <span style={{ color: "#059669", fontWeight: 600 }}>Importado</span>
+                : deveria ? <span style={{ color: "#b45309" }}>Pendente</span> : <span style={{ color: "#a3a3a3" }}>—</span>}</td>
+            </tr>
+          );
+        })}</tbody>
+      </table>
+      <div style={{ fontSize: 11, color: "#737373", marginTop: 6 }}>Fonte: {data.fonte}</div>
     </div>
   );
 }
