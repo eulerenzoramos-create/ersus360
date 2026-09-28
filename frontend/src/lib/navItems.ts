@@ -636,6 +636,11 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Alertas de divergências, erros, riscos e pendências que podem causar perda de recursos",
     keywords:["inconsistência","erro","divergência","alerta","pendência","risco","perda recurso","rejeição","auditoria","divergência","validação","conformidade","irregularidade"] },
 
+  { id:"cnes-xml",            category:"Central de Inconsistências", order:802, iconName:"ClipboardCheck", isNew:true,
+    title:"Equipes do CNES (XML SISAB)", shortTitle:"Equipes CNES", route:"/cnes-xml",
+    description:"Importa o XML-CNES do SISAB e confere a composição mínima das equipes (eSF, eSB, eMulti)",
+    keywords:["cnes","xml","sisab","equipe","ine","lotação","composição","acs","esf","esb","emulti","ribeirinha","scnes","importar"] },
+
   { id:"score-risco-esf",     category:"Central de Inconsistências", order:801, iconName:"ShieldAlert",
     title:"Score de Risco ESF", route:"/score-risco-esf",
     description:"Score de risco por Equipe de Saúde da Família — priorização de correções",
