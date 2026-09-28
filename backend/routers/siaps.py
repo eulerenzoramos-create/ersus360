@@ -329,8 +329,37 @@ _BOAS_PRATICAS = [
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
+_MESES_ABREV = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+
+
+def _mes_ano(comp: str) -> str:
+    ano, mes = comp.split("-")[:2]
+    return f"{_MESES_ABREV[int(mes) - 1]}/{ano}"
+
+
+async def _cvat_importado(db: AsyncSession, current: UserOut):
+    if current.municipio_id is None:
+        return None
+    rels = await relatorios_do_municipio(db, current.municipio_id, "cvat")
+    return rels[0] if rels else None
+
+
 @router.get("/abrangencia")
-async def abrangencia(_: UserOut = Depends(get_current_user)):
+async def abrangencia(current: UserOut = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Total de equipes por tipo: do XML do CNES importado pelo município (AREAL e demais eSF
+    ribeirinhas contam como eSFR). Homologadas/válidas vêm do SIAPS (referência de Apuí)."""
+    from routers.cnes_xml import _marcacoes, equipes_por_tipo, ultima_importacao
+    base = dict(_ABRANGENCIA) if current.municipio_ibge == "1300144" else {
+        "uf": "", "municipio": current.municipio, "ibge": current.municipio_ibge, "ied": None,
+        "equipes_homologadas": None, "equipes_validas_componentes": None}
+    cnes = await ultima_importacao(db, current.municipio_id) if current.municipio_id is not None else None
+    if cnes:
+        return {**base, "total_equipes": equipes_por_tipo(cnes, _marcacoes()),
+                "competencia": cnes.get("data_arquivo") and "/".join(reversed(cnes["data_arquivo"].split("-"))),
+                "fonte": "cnes_xml_importado",
+                "fonte_detalhe": "Total de equipes: XML do CNES importado (SISAB). Homologadas e válidas: SIAPS."}
+    if current.municipio_ibge != "1300144":
+        return {"situacao_dado": "nao_disponivel"}
     return {**_ABRANGENCIA, "competencia": "Abr/2026", "fonte": "siaps_referencia"}
 
 
@@ -773,7 +802,24 @@ async def diagnostico_live(_: UserOut = Depends(get_current_user)):
 
 
 @router.get("/dashboard")
-async def dashboard_siaps(_: UserOut = Depends(get_current_user)):
+async def dashboard_siaps(current: UserOut = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Cabeçalho do eGestor. Competência e vínculo vêm do relatório do SIAPS importado, quando houver."""
+    base = await _dashboard_referencia()
+    rel = await _cvat_importado(db, current)
+    if rel:
+        linhas = json.loads(rel.linhas)
+        r = resumo_cvat(linhas)
+        base.update(competencia=_mes_ano(rel.competencia), competencia_iso=rel.competencia,
+                     dado_preliminar=rel.dado_preliminar, fonte="siaps_relatorio_importado",
+                     municipio=current.municipio or base["municipio"])
+        base["vinculo"] = {**base["vinculo"], "pontuacao_media": r["pontuacao_media"],
+                           "otimo": r["por_status"]["otimo"], "bom": r["por_status"]["bom"],
+                           "suficiente": r["por_status"]["suficiente"], "regular": r["por_status"]["regular"],
+                           "total_vinculadas": r["pessoas_vinculadas"], "total_acompanhadas": r["pessoas_acompanhadas"]}
+    return base
+
+
+async def _dashboard_referencia() -> dict:
     equipes_vinculo = _VINCULO_EQUIPES
     pontuacao_media_vinculo = round(sum(e["pontuacao"] for e in equipes_vinculo) / len(equipes_vinculo), 2)
     equipes_qualidade = _QUALIDADE_EQUIPES

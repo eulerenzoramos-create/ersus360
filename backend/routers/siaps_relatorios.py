@@ -128,7 +128,22 @@ async def painel(current: SessaoMunicipal, competencia: Optional[str] = Query(No
         else:
             qualidade.append({**_meta(r), "colunas": json.loads(r.colunas), "linhas": linhas})
 
+    # Cruzamento com o XML do CNES: equipe ativa no CNES (eSF/eSFR/eAP) sem linha no SIAPS
+    from routers.cnes_xml import ultima_importacao
+    cnes = await ultima_importacao(db, current.municipio_id)
+    fora_do_siaps = []
+    if cnes:
+        for e in cnes["equipes"]:
+            if not e["desativada_em"] and e["tp_equipe"] in ("70", "76") and e["ine"] not in equipes:
+                fora_do_siaps.append({"ine": e["ine"], "equipe": e["nome"], "sigla": e["sigla"]})
+        for e in equipes.values():
+            e["no_cnes"] = any(c["ine"] == e["ine"] for c in cnes["equipes"])
+
     avisos = []
+    if fora_do_siaps:
+        avisos.append("Equipe(s) ativa(s) no CNES sem nenhum relatório do SIAPS importado nesta competência: "
+                      + ", ".join(f"{x['equipe']} (INE {x['ine']})" for x in fora_do_siaps)
+                      + ". Baixe também a aba do tipo dessa equipe no SIAPS (ex.: eSFR).")
     if any(e["sigla"].upper() == "ESFR" for e in equipes.values()):
         avisos.append(AVISO_ESFR)
     if any(r.dado_preliminar for r in do_mes):
@@ -136,7 +151,9 @@ async def painel(current: SessaoMunicipal, competencia: Optional[str] = Query(No
     return {"situacao_dado": "oficial_validado", "fonte": "SIAPS — relatório exportado pelo município",
             "competencias": competencias, "competencia": comp, "cvat": cvat, "qualidade": qualidade,
             "equipes": sorted(equipes.values(), key=lambda e: (e["sigla"], e["equipe"])),
-            "relatorios": [_meta(r) for r in todos], "avisos": avisos}
+            "relatorios": [_meta(r) for r in todos], "avisos": avisos,
+            "cnes": {"importado": bool(cnes), "data_arquivo": cnes.get("data_arquivo") if cnes else None,
+                     "equipes_sem_relatorio_siaps": fora_do_siaps}}
 
 
 @router.get("/calendario")

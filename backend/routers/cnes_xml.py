@@ -93,3 +93,25 @@ async def painel(current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
 @router.get("/historico")
 async def historico(current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
     return [_resumo(r) for r in await _ultimas(db, current.municipio_id, 24)]
+
+
+SIGLA_TIPO = {"ESF": "eSF", "ESB": "eSB", "EMULTI": "eMulti", "EAP": "eAP", "ECR": "eCR", "EAPP": "eAPP", "ESFR": "eSFR"}
+
+
+async def ultima_importacao(db: AsyncSession, municipio_id: int) -> dict | None:
+    """Retrato mais recente do CNES do município (dados minimizados) ou None."""
+    ult = await _ultimas(db, municipio_id, 1)
+    return {**json.loads(ult[0].dados), "importado_em": ult[0].importado_em} if ult else None
+
+
+def equipes_por_tipo(dados: dict, marcacoes: dict[str, dict]) -> dict[str, int]:
+    """Equipes ativas por tipo do SIAPS; eSF marcada como ribeirinha conta como eSFR."""
+    tot = {t: 0 for t in ("eAP", "eAPP", "eCR", "eMulti", "eSB", "eSF", "eSFR")}
+    for e in dados["equipes"]:
+        if e["desativada_em"]:
+            continue
+        tipo = SIGLA_TIPO.get((e["sigla"] or "").upper(), cx.TIPOS_EQUIPE.get(e["tp_equipe"], e["sigla"]))
+        if tipo == "eSF" and marcacoes.get(e["ine"], {}).get("ribeirinha"):
+            tipo = "eSFR"
+        tot[tipo] = tot.get(tipo, 0) + 1
+    return tot
