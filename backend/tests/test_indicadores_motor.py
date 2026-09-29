@@ -112,3 +112,15 @@ async def test_historico_da_equipe_e_isolamento(ambiente):
     assert [p["competencia"] for p in h["series"]["CVAT"]] == ["2026-06", "2026-07"]
     tok_b = await _token(c, "gestor.b@teste.gov.br")
     assert (await c.get("/api/siaps-relatorios/resultados/historico?ine=7099", headers=_h(tok_b))).json()["series"] == {}
+
+
+async def test_serie_por_competencia(ambiente):
+    c = ambiente["client"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    await _importar(c, tok, ("jul.csv", _cvat()), ("jun.csv", _cvat(comp="JUN/26")), ("esf.xlsx", _qualidade_esf_xlsx()))
+    s = (await c.get("/api/siaps-relatorios/resultados/serie?indicador=CVAT", headers=_h(tok))).json()["serie"]
+    assert [p["competencia"] for p in s] == ["2026-06", "2026-07"] and s[1]["media"] == 9.12
+    s = (await c.get("/api/siaps-relatorios/resultados/serie?indicador=c1", headers=_h(tok))).json()["serie"]
+    assert s == [{"competencia": "2026-07", "equipes": {"CACHOEIRA": 46.14}, "preliminar": True, "media": 46.14}]
+    tok_b = await _token(c, "gestor.b@teste.gov.br")
+    assert (await c.get("/api/siaps-relatorios/resultados/serie?indicador=CVAT", headers=_h(tok_b))).json()["serie"] == []
