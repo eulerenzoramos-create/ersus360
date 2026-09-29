@@ -348,3 +348,29 @@ async def historico_equipe(current: SessaoMunicipal, ine: str = Query(..., patte
                                              "numerador": r.var_K, "denominador": r.populacao_parametro,
                                              "situacao": r.situacao})
     return {"ine": ine, "series": serie}
+
+
+@router.get("/resultados/serie")
+async def serie_indicador(current: SessaoMunicipal, indicador: str = Query(..., max_length=10),
+                          db: AsyncSession = Depends(get_db)):
+    """Evolução de um indicador por competência: média municipal e valor de cada equipe
+    (só equipes do município da sessão)."""
+    from models.indicadores_aps import ResultadoCvatMensal, ResultadoMensalSiaps
+    ibge, cod = current.municipio_ibge, indicador.upper()
+    pontos: dict[str, dict] = {}
+    if cod == "CVAT":
+        rows = [(r.competencia, r.equipe_nome, r.pontuacao, r.situacao) for r in (await db.execute(
+            select(ResultadoCvatMensal).where(ResultadoCvatMensal.municipio_ibge == ibge))).scalars()]
+    else:
+        rows = [(r.competencia, r.equipe_nome, r.resultado_pct, r.situacao) for r in (await db.execute(
+            select(ResultadoMensalSiaps).where(ResultadoMensalSiaps.municipio_ibge == ibge,
+                                               ResultadoMensalSiaps.indicador_codigo == cod))).scalars()]
+    for comp, equipe, valor, situacao in rows:
+        p = pontos.setdefault(comp, {"competencia": comp, "equipes": {}, "preliminar": False})
+        if valor is not None:
+            p["equipes"][equipe] = valor
+        p["preliminar"] = p["preliminar"] or situacao == "preliminar"
+    for p in pontos.values():
+        v = list(p["equipes"].values())
+        p["media"] = round(sum(v) / len(v), 2) if v else None
+    return {"indicador": cod, "serie": [pontos[c] for c in sorted(pontos)]}

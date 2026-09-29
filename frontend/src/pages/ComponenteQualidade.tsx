@@ -5,7 +5,7 @@
  * 3. Filtros (Competência, Condições de Equipe, Tipo de Equipe, Aplicar)
  * 4. Conteúdo da visão selecionada
  */
-import { useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../lib/api";
 import {
@@ -933,12 +933,18 @@ function ViewPorEquipe({ codigos, cor, vals, filtros, equipes = EQUIPES_REF }: {
 }
 
 // ── Visão por Competência ─────────────────────────────────────────────────────
-function ViewPorCompetencia({ codigos, cor, filtros, vals }: { codigos:string[]; cor:string; filtros:Filtros; vals:Record<string,Record<string,number>> }) {
-  const COMPS_REF = ["2026-04","2026-05","2026-06","2026-07","2026-08"];
-
+function ViewPorCompetencia({ codigos, cor, filtros: _filtros, vals: _vals }: { codigos:string[]; cor:string; filtros:Filtros; vals:Record<string,Record<string,number>> }) {
   const [codSel, setCodSel] = useState(codigos[0] ?? "");
-
-  const temDado = mediaVals(codSel, vals) !== null;
+  useEffect(() => { if (!codigos.includes(codSel)) setCodSel(codigos[0] ?? ""); }, [codigos, codSel]);
+  const { data, isLoading } = useQuery({
+    queryKey: ["qualidade-serie", codSel],
+    queryFn: () => apiGet(`/api/siaps-relatorios/resultados/serie?indicador=${codSel}`) as Promise<any>,
+    enabled: !!codSel,
+  });
+  const serie: { competencia:string; media:number|null; equipes:Record<string,number>; preliminar:boolean }[] = data?.serie ?? [];
+  const equipes = Array.from(new Set(serie.flatMap(p => Object.keys(p.equipes)))).sort();
+  const meta = METAS[codSel];
+  const max = Math.max(meta ?? 0, ...serie.map(p => p.media ?? 0), 1);
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
@@ -951,31 +957,61 @@ function ViewPorCompetencia({ codigos, cor, filtros, vals }: { codigos:string[];
       </div>
 
       {codSel && (
-        <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:20 }}>
+        <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:20, color:"#1f2937" }}>
           <div style={{ fontSize:13, fontWeight:700, color:"#374151", marginBottom:16 }}>
             {NOMES[codSel] ?? codSel} — Evolução por competência
           </div>
-          {!temDado ? (
+          {isLoading ? <div style={{ fontSize:13, color:"#6b7280" }}>Carregando…</div>
+          : serie.length === 0 ? (
             <div style={{ display:"flex", alignItems:"center", gap:10, padding:"20px", background:"#f8fafc", border:"1px dashed #d1d5db", borderRadius:8 }}>
               <AlertCircle size={16} color="#9ca3af"/>
               <div>
-                <div style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Dado ainda não disponível</div>
+                <div style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Nenhum resultado oficial deste indicador ainda</div>
                 <div style={{ fontSize:12, color:"#6b7280", marginTop:2 }}>
-                  O histórico de competências será exibido após importação dos resultados oficiais do SIAPS · Meta de referência: {fmtPct(METAS[codSel]??50)}
+                  A evolução aparece conforme os relatórios do SIAPS de cada competência são coletados.
                 </div>
               </div>
             </div>
-          ) : null}
-        </div>
-      )}
-
-      {!codSel && (
-        <div style={{ padding:"24px 0", textAlign:"center", color:"#9ca3af", fontSize:13 }}>
-          Selecione um indicador acima para ver a evolução temporal.
+          ) : (
+            <>
+              {/* média municipal por competência */}
+              <div style={{ display:"flex", alignItems:"flex-end", gap:14, height:150, borderBottom:"1px solid #e5e7eb", padding:"0 4px", position:"relative" }}>
+                {meta != null && (
+                  <div title={`Meta de referência ${fmtPct(meta)}`} style={{ position:"absolute", left:0, right:0, bottom:`${(meta/max)*140}px`, borderTop:"2px dashed #9ca3af" }}/>
+                )}
+                {serie.map(p => (
+                  <div key={p.competencia} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, flex:"0 0 64px" }}>
+                    <div style={{ fontSize:12, fontWeight:700 }}>{p.media == null ? "—" : fmtPct(p.media)}</div>
+                    <div style={{ width:36, height:`${((p.media ?? 0)/max)*140}px`, background:cor, borderRadius:"4px 4px 0 0", opacity:p.preliminar ? .7 : 1 }}/>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display:"flex", gap:14, padding:"4px 4px 12px" }}>
+                {serie.map(p => <div key={p.competencia} style={{ flex:"0 0 64px", textAlign:"center", fontSize:11, color:"#6b7280" }}>{labelComp(p.competencia)}{p.preliminar ? "*" : ""}</div>)}
+              </div>
+              {/* equipe × competência */}
+              <div style={{ overflowX:"auto" }}>
+                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
+                  <thead><tr style={{ background:"#f5f5f3", textAlign:"left" }}>
+                    <th style={{ padding:"6px 8px" }}>Equipe</th>
+                    {serie.map(p => <th key={p.competencia} style={{ padding:"6px 8px" }}>{labelComp(p.competencia)}</th>)}
+                  </tr></thead>
+                  <tbody>{equipes.map(eq => (
+                    <tr key={eq} style={{ borderTop:"1px solid #eee" }}>
+                      <td style={{ padding:"6px 8px", fontWeight:600 }}>{eq}</td>
+                      {serie.map(p => <td key={p.competencia} style={{ padding:"6px 8px" }}>{p.equipes[eq] == null ? "—" : fmtPct(p.equipes[eq])}</td>)}
+                    </tr>))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ fontSize:11, color:"#6b7280", marginTop:8 }}>
+                Resultado oficial do SIAPS. * dado preliminar.{meta != null ? ` Linha tracejada: meta de referência ${fmtPct(meta)}.` : ""}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
-
   );
 }
 
@@ -1044,6 +1080,21 @@ export default function ComponenteQualidade() {
     tiposEquipe: ["eAP","eSF"],
   });
   const [filtrosAtivos, setFiltrosAtivos] = useState<Filtros>(filtros);
+  // abre na última competência com resultado oficial importado (em vez de uma data fixa)
+  const { data: compsOficiais } = useQuery({
+    queryKey: ["qualidade-competencias-oficiais"],
+    queryFn: () => apiGet("/api/siaps-relatorios/resultados") as Promise<any>,
+    staleTime: 5 * 60_000,
+  });
+  const [compAjustada, setCompAjustada] = useState(false);
+  useEffect(() => {
+    const ult = compsOficiais?.competencias?.[0];
+    if (!compAjustada && ult) {
+      setFiltros(f => ({ ...f, competencia: ult }));
+      setFiltrosAtivos(f => ({ ...f, competencia: ult }));
+      setCompAjustada(true);
+    }
+  }, [compsOficiais, compAjustada]);
 
   const corAtivo = TIPOS_EQUIPE.find(t=>t.id===tipoEquipe)?.cor ?? AZUL;
 
