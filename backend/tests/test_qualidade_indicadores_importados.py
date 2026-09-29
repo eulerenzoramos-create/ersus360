@@ -21,7 +21,7 @@ async def test_sem_importacao_mantem_referencia(ambiente):
     c = ambiente["client"]
     tok = await _token(c, "gestor.apui@teste.gov.br")
     d = (await c.get("/api/pec/indicadores/2026-07", headers=_h(tok))).json()
-    assert "Referência" in d["fonte"] and not d.get("equipes_lista")
+    assert "REFERÊNCIA" in d["fonte"] and not d.get("equipes_lista")
 
 
 async def test_indicadores_vem_dos_relatorios_importados(ambiente):

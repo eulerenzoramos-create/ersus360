@@ -350,7 +350,14 @@ async def _job_equipes_siaps() -> None:
         from services import siaps_equipes as se
         async with AsyncSessionLocal() as db:
             municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
+            from services.indicadores_motor import reprocessar_municipio
             for mun in municipios:
+                try:
+                    n = await reprocessar_municipio(db, mun.id)      # relatórios já importados → motor
+                    if n:
+                        logger.info("[Scheduler] Motor de indicadores %s: %s relatório(s)", mun.codigo_ibge, n)
+                except Exception as exc:                            # não impede a sincronização de equipes
+                    logger.error("[Scheduler] Motor de indicadores %s: %s", mun.codigo_ibge, exc, exc_info=True)
                 try:
                     r = await se.sincronizar(db, mun.id, mun.codigo_ibge)
                     logger.info("[Scheduler] Equipes SIAPS %s: %s", mun.codigo_ibge, r)

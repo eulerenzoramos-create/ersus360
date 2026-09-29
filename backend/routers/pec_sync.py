@@ -239,7 +239,7 @@ async def get_indicadores(competencia: str, current: SessaoMunicipal, db: AsyncS
         equipes=_REF_INDICADORES,
         tipos_equipe=_REF_TIPOS_EQUIPE,
         ultima_atualizacao=None,
-        fonte="SIAPS — Referência municipal (C1/C6 indisponíveis sem agente PEC)",
+        fonte="REFERÊNCIA MUNICIPAL (Abr/2026) — não é a competência selecionada; importe o relatório do SIAPS desta competência",
     )
 
 

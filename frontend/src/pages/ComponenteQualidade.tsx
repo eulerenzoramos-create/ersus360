@@ -1111,6 +1111,14 @@ export default function ComponenteQualidade() {
         </div>
       </div>
 
+      {fonteDados.startsWith("REFERÊNCIA") && (
+        <div style={{ background:"#fffbeb", border:"1px solid #fcd34d", color:"#92400e", borderRadius:10,
+                      padding:"10px 14px", marginBottom:16, fontSize:13, fontWeight:600 }}>
+          ⚠ Os valores abaixo são uma REFERÊNCIA MUNICIPAL de Abr/2026 e não pertencem à competência {labelComp(filtrosAtivos.competencia)}.
+          <span style={{ fontWeight:400 }}> Importe os relatórios do SIAPS desta competência em Relatórios do SIAPS para ver o resultado oficial.</span>
+        </div>
+      )}
+
       {/* ── 1. Selecione um Indicador ────────────────── */}
       <SeletorIndicador
         tipoEquipe={tipoEquipe} onTipoEquipe={handleTipoEquipe}
