@@ -352,6 +352,13 @@ async def abrangencia(current: UserOut = Depends(get_current_user), db: AsyncSes
     base = dict(_ABRANGENCIA) if current.municipio_ibge == "1300144" else {
         "uf": "", "municipio": current.municipio, "ibge": current.municipio_ibge, "ied": None,
         "equipes_homologadas": None, "equipes_validas_componentes": None}
+    from services.siaps_equipes import equipes_do_municipio, por_tipo
+    oficiais = await equipes_do_municipio(db, current.municipio_id) if current.municipio_id is not None else []
+    if oficiais:
+        return {**base, "total_equipes": por_tipo(oficiais),
+                "competencia": max(e.atualizado_em for e in oficiais).strftime("%d/%m/%Y"),
+                "fonte": "siaps_publico_equipes",
+                "fonte_detalhe": "Total de equipes: SIAPS (API pública, atualização automática semanal). Homologadas e válidas: SIAPS."}
     cnes = await ultima_importacao(db, current.municipio_id) if current.municipio_id is not None else None
     if cnes:
         return {**base, "total_equipes": equipes_por_tipo(cnes, _marcacoes()),

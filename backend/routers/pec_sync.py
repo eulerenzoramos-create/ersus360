@@ -321,8 +321,15 @@ async def _indicadores_importados(db: AsyncSession, municipio_id: int, competenc
                                         "cnes": l["cnes"], "tipo": l["sigla"]})
             if cod and l.get("pontuacao") is not None:
                 equipes.setdefault(l["equipe"], {})[cod] = l["pontuacao"]
-    # equipes do CNES que ainda não têm relatório (aparecem sem valor, com o tipo correto)
-    cnes = await ultima_importacao(db, municipio_id)
+    # equipes oficiais (SIAPS público; senão XML do CNES) ainda sem relatório: aparecem sem valor
+    from services.siaps_equipes import equipes_do_municipio
+    oficiais = await equipes_do_municipio(db, municipio_id)
+    for o in oficiais:
+        if o.ine in lista:
+            lista[o.ine]["tipo"] = o.tipo
+        elif o.tipo in ("eSF", "eAP", "eSFR"):
+            lista[o.ine] = {"equipe": o.nome, "ubs": "", "ine": o.ine, "cnes": "", "tipo": o.tipo}
+    cnes = None if oficiais else await ultima_importacao(db, municipio_id)
     if cnes:
         marc = _marcacoes()
         estab = {e["cnes"]: e["nome"] for e in cnes["estabelecimentos"]}

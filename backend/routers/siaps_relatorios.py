@@ -128,11 +128,19 @@ async def painel(current: SessaoMunicipal, competencia: Optional[str] = Query(No
         else:
             qualidade.append({**_meta(r), "colunas": json.loads(r.colunas), "linhas": linhas})
 
-    # Cruzamento com o XML do CNES: equipe ativa no CNES (eSF/eSFR/eAP) sem linha no SIAPS
+    # Cruzamento: equipe ativa (SIAPS público; senão XML do CNES) sem relatório na competência
     from routers.cnes_xml import ultima_importacao
+    from services.siaps_equipes import equipes_do_municipio
     cnes = await ultima_importacao(db, current.municipio_id)
+    oficiais = await equipes_do_municipio(db, current.municipio_id)
     fora_do_siaps = []
-    if cnes:
+    if oficiais:
+        for e in oficiais:
+            if e.tipo in ("eSF", "eAP", "eSFR") and e.ine not in equipes:
+                fora_do_siaps.append({"ine": e.ine, "equipe": e.nome, "sigla": e.tipo})
+        for e in equipes.values():
+            e["no_cnes"] = any(o.ine == e["ine"] for o in oficiais)
+    elif cnes:
         for e in cnes["equipes"]:
             if not e["desativada_em"] and e["tp_equipe"] in ("70", "76") and e["ine"] not in equipes:
                 fora_do_siaps.append({"ine": e["ine"], "equipe": e["nome"], "sigla": e["sigla"]})
@@ -171,3 +179,29 @@ async def calendario(current: SessaoMunicipal, db: AsyncSession = Depends(get_db
             "proximo_prazo": cal.proximo_prazo(hoje),
             # só as 3 últimas competências fechadas — o histórico antigo não gera cobrança
             "relatorios_pendentes": [i for i in vencidos[-3:] if i["competencia"] not in importadas]}
+
+
+@router.get("/equipes")
+async def equipes_oficiais(current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    """Equipes do município pela API pública do SIAPS (atualizadas automaticamente toda semana)."""
+    from services import siaps_equipes as se
+    eqs = await se.equipes_do_municipio(db, current.municipio_id)
+    return {"situacao_dado": "oficial_validado" if eqs else "nao_disponivel",
+            "fonte": "SIAPS — API pública (apisiaps.saude.gov.br)",
+            "atualizado_em": max((e.atualizado_em for e in eqs), default=None),
+            "por_tipo": se.por_tipo(eqs),
+            "equipes": [{"ine": e.ine, "nome": e.nome, "tipo": e.tipo} for e in eqs]}
+
+
+@router.post("/equipes/sincronizar")
+async def sincronizar_equipes(request: Request, current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    """Atualiza agora (além da rotina semanal automática)."""
+    from services import siaps_equipes as se
+    _pode_editar(current)
+    try:
+        r = await se.sincronizar(db, current.municipio_id, current.municipio_ibge)
+    except se.SiapsIndisponivel as e:
+        raise HTTPException(503, str(e))
+    await registrar_auditoria(db, "SIAPS_EQUIPES_SINCRONIZADAS", usuario=current, ip=ip_de(request),
+                              tabela="equipes_siaps", detalhe=f"{r.get('equipes')} equipes {r.get('por_tipo')}")
+    return r

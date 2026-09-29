@@ -87,6 +87,7 @@ export default function RelatoriosSiaps() {
         O SIAPS só libera os dados por equipe com o login gov.br de quem opera o sistema; por isso a integração é pelo arquivo oficial baixado no próprio SIAPS.
       </p>
       <PrazoSiapsBanner linkRelatorios={false} />
+      <EquipesOficiais />
       <Envio />
 
       {isLoading && <div style={card}>Carregando…</div>}
@@ -205,6 +206,39 @@ function CalendarioSiaps() {
         })}</tbody>
       </table>
       <div style={{ fontSize: 11, color: "#737373", marginTop: 6 }}>Fonte: {data.fonte}</div>
+    </div>
+  );
+}
+
+function EquipesOficiais() {
+  const qc = useQueryClient();
+  const { data } = useQuery<{ situacao_dado: string; atualizado_em: string | null; por_tipo: Record<string, number>;
+                              equipes: { ine: string; nome: string; tipo: string }[] }>({
+    queryKey: ["siaps-equipes"],
+    queryFn: () => api.get("/api/siaps-relatorios/equipes").then(r => r.data),
+  });
+  const m = useMutation({
+    mutationFn: () => api.post("/api/siaps-relatorios/equipes/sincronizar").then(r => r.data),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+  const erro = (m.error as { response?: { data?: { detail?: string } } } | null)?.response?.data?.detail;
+  const tipos = Object.entries(data?.por_tipo ?? {}).filter(([, v]) => v > 0);
+  return (
+    <div style={{ ...card, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", fontSize: 13 }}>
+      <div style={{ flex: 1, minWidth: 260 }}>
+        <b>Equipes oficiais do município (SIAPS)</b> — atualização automática toda segunda-feira, sem login.
+        <div style={{ color: "#525252", marginTop: 2 }}>
+          {data?.equipes.length
+            ? <>{data.equipes.length} equipes · {tipos.map(([k, v]) => `${v} ${k}`).join(" · ")}
+                {data.atualizado_em && <> · atualizado em {dataBr(data.atualizado_em.slice(0, 10))}</>}</>
+            : "Ainda não sincronizado — a primeira atualização roda automaticamente alguns minutos após a publicação."}
+        </div>
+        {erro && <div style={{ color: "#dc2626", marginTop: 2 }}>{erro}</div>}
+      </div>
+      <button type="button" onClick={() => m.mutate()} disabled={m.isPending}
+              style={{ padding: "7px 14px", borderRadius: 6, border: "1px solid #1d4ed8", background: "#fff", color: "#1d4ed8", cursor: "pointer", fontWeight: 600 }}>
+        {m.isPending ? "Atualizando…" : "Atualizar agora"}
+      </button>
     </div>
   );
 }
