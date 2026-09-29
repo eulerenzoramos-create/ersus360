@@ -458,6 +458,7 @@ const CvatDashboard = lazy(() => import("./pages/CvatDashboard"));
 const Inconsistencias = lazy(() => import("./pages/Inconsistencias"));
 const ImportacaoCnesXml = lazy(() => import("./pages/ImportacaoCnesXml"));
 const RelatoriosSiaps = lazy(() => import("./pages/RelatoriosSiaps"));
+const IndicadoresPorEquipe = lazy(() => import("./pages/IndicadoresPorEquipe"));
 const RelatorioERSUS = lazy(() => import("./pages/RelatorioERSUS"));
 const PainelIntegracoes = lazy(() => import("./pages/PainelIntegracoes"));
 const GatewayIntegracao = lazy(() => import("./pages/GatewayIntegracao"));
@@ -1162,6 +1163,7 @@ export default function App() {
             <Route path="/inconsistencias"           element={<Inconsistencias/>}/>
             <Route path="/cnes-xml"                  element={<ImportacaoCnesXml/>}/>
             <Route path="/siaps-relatorios"          element={<RelatoriosSiaps/>}/>
+            <Route path="/indicadores-equipe"        element={<IndicadoresPorEquipe/>}/>
             <Route path="/inconsistencias/*"         element={<Inconsistencias/>}/>
             {/* Relatórios ERSUS 360 */}
             <Route path="/relatorio-ersus"           element={<RelatorioERSUS/>}/>

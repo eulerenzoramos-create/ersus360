@@ -636,6 +636,11 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Alertas de divergências, erros, riscos e pendências que podem causar perda de recursos",
     keywords:["inconsistência","erro","divergência","alerta","pendência","risco","perda recurso","rejeição","auditoria","divergência","validação","conformidade","irregularidade"] },
 
+  { id:"indicadores-equipe",  category:"Central de Inconsistências", order:801, iconName:"Users", isNew:true, highlight:true,
+    title:"Indicadores por Equipe", shortTitle:"Indicadores por Equipe", route:"/indicadores-equipe",
+    description:"Resultado oficial de cada equipe (INE) por indicador, meta, GAP, evolução e atenção necessária",
+    keywords:["indicador","equipe","ine","meta","gap","esf","esfr","esb","emulti","qualidade","vínculo","resultado","atenção"] },
+
   { id:"siaps-relatorios",    category:"Central de Inconsistências", order:803, iconName:"BarChart3", isNew:true,
     title:"Relatórios do SIAPS (importação)", shortTitle:"Relatórios SIAPS", route:"/siaps-relatorios",
     description:"Importa os relatórios de Vínculo (CVAT) e Qualidade baixados no SIAPS, incluindo eSFR",

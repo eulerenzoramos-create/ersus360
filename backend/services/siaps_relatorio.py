@@ -172,3 +172,36 @@ def status_cvat(p: float | None) -> str:
     if p is None:
         return "sem_dado"
     return "otimo" if p > 8.5 else "bom" if p >= 7 else "suficiente" if p >= 5 else "regular"
+
+
+# Nomes oficiais dos indicadores do Componente Qualidade → código usado nas telas.
+# Fonte: apisiaps.saude.gov.br/api/public/filtros/componentes (conferido em 28/09/2026).
+INDICADORES_QUALIDADE = {
+    "C1": "Mais Acesso à APS", "C2": "Cuidado no desenvolvimento infantil",
+    "C3": "Cuidado na Gestação e Puerpério", "C4": "Cuidado da pessoa com Diabetes",
+    "C5": "Cuidado da pessoa com Hipertensão", "C6": "Cuidado da pessoa idosa",
+    "C7": "Cuidado da mulher na prevenção do câncer",
+    "B1": "Primeira consulta odontológica programada", "B2": "Tratamento Odontológico Concluído",
+    "B3": "Taxa de exodontias", "B4": "Escovação supervisionada",
+    "B5": "Procedimentos odontológicos individuais preventivos", "B6": "Tratamento Restaurador Atraumático",
+    "M1": "Média de atendimentos da eMulti por pessoa", "M2": "Ações interprofissionais realizadas pela eMulti",
+    "R1": "Mais acesso à eSFR", "R2": "Cuidado no desenvolvimento infantil realizado pela eSFR",
+    "R3": "Cuidado na Gestação e Puerpério realizados pela eSFR",
+    "R4": "Cuidado da pessoa com diabetes realizado pela eSFR",
+    "R5": "Cuidado da pessoa com hipertensão realizado pela eSFR",
+    "R6": "Cuidado da mulher na prevenção do câncer realizado pela eSFR",
+    "CR1": "Mais Acesso à eCR", "CR2": "Cuidado das pessoas gestantes pela eCR",
+    "CR3": "Rastreio de Infecções Sexualmente Transmissíveis pela eCR",
+    "CR4": "Cuidado da pessoa com Tuberculose pela eCR",
+    "P1": "Mais Acesso à eAPP", "P2": "Cuidado na Gestação pela eAPP",
+    "P3": "Cuidado da pessoa com diabetes e/ou hipertensão pela eAPP",
+    "P4": "Rastreio de Infecções Sexualmente Transmissíveis pela eAPP",
+    "P5": "Cuidado da pessoa com tuberculose pela eAPP",
+    "P6": "Cuidado da mulher na prevenção do câncer pelas eAPP",
+}
+_POR_NOME = {re.sub(r"\s+", " ", _sem_acento(v)).strip(): k for k, v in INDICADORES_QUALIDADE.items()}
+
+
+def codigo_indicador(nome: str) -> str | None:
+    """'Mais acesso à eSFR' → 'R1'. Ignora acentos, maiúsculas e espaços duplicados."""
+    return _POR_NOME.get(re.sub(r"\s+", " ", _sem_acento(nome or "")).strip())

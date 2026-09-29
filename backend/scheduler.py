@@ -340,6 +340,33 @@ async def _job_alertas_automaticos() -> None:
         logger.error("[Scheduler] Erro nos alertas automáticos: %s", exc, exc_info=True)
 
 
+async def _job_equipes_siaps() -> None:
+    """Job: equipes de cada município ativo pela API pública do SIAPS (sem login)."""
+    logger.info("[Scheduler] Sincronizando equipes pela API pública do SIAPS...")
+    try:
+        from sqlalchemy import select
+        from database import AsyncSessionLocal
+        from models.municipio import Municipio
+        from services import siaps_equipes as se
+        async with AsyncSessionLocal() as db:
+            municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
+            from services.indicadores_motor import reprocessar_municipio
+            for mun in municipios:
+                try:
+                    n = await reprocessar_municipio(db, mun.id)      # relatórios já importados → motor
+                    if n:
+                        logger.info("[Scheduler] Motor de indicadores %s: %s relatório(s)", mun.codigo_ibge, n)
+                except Exception as exc:                            # não impede a sincronização de equipes
+                    logger.error("[Scheduler] Motor de indicadores %s: %s", mun.codigo_ibge, exc, exc_info=True)
+                try:
+                    r = await se.sincronizar(db, mun.id, mun.codigo_ibge)
+                    logger.info("[Scheduler] Equipes SIAPS %s: %s", mun.codigo_ibge, r)
+                except se.SiapsIndisponivel as exc:
+                    logger.warning("[Scheduler] Equipes SIAPS %s: %s", mun.codigo_ibge, exc)
+    except Exception as exc:
+        logger.error("[Scheduler] Erro na sincronização de equipes SIAPS: %s", exc, exc_info=True)
+
+
 async def _job_backup_diario() -> None:
     from database import AsyncSessionLocal, engine
     from tenancy.backup import rotina_diaria
@@ -487,6 +514,18 @@ def start_scheduler() -> None:
         replace_existing=True,
         misfire_grace_time=3600,
     )
+
+    # Job 11: equipes pela API pública do SIAPS — toda segunda 04:45 e 3 min após subir o servidor
+    scheduler.add_job(
+        _job_equipes_siaps,
+        CronTrigger(day_of_week="mon", hour=4, minute=45, timezone="America/Manaus"),
+        id="equipes_siaps_semanal",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+    from datetime import datetime as _dt, timedelta as _td
+    scheduler.add_job(_job_equipes_siaps, "date", run_date=_dt.now() + _td(minutes=3),
+                      id="equipes_siaps_inicial", replace_existing=True)
 
     scheduler.start()
     logger.info(
