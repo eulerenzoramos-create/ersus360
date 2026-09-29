@@ -367,6 +367,26 @@ async def _job_equipes_siaps() -> None:
         logger.error("[Scheduler] Erro na sincronização de equipes SIAPS: %s", exc, exc_info=True)
 
 
+async def _job_egestor_pagamento() -> None:
+    """Job: pagamento por componente e validação por equipe no e-Gestor (API pública, sem login)."""
+    logger.info("[Scheduler] Sincronizando pagamento/validação por equipe do e-Gestor...")
+    try:
+        from sqlalchemy import select
+        from database import AsyncSessionLocal
+        from models.municipio import Municipio
+        from services import egestor_pagamento as ep
+        async with AsyncSessionLocal() as db:
+            municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
+            for mun in municipios:
+                try:
+                    r = await ep.sincronizar(db, mun.id, mun.codigo_ibge)
+                    logger.info("[Scheduler] e-Gestor pagamento %s: %s", mun.codigo_ibge, r)
+                except ep.EgestorIndisponivel as exc:
+                    logger.warning("[Scheduler] e-Gestor pagamento %s: %s", mun.codigo_ibge, exc)
+    except Exception as exc:
+        logger.error("[Scheduler] Erro na sincronização do e-Gestor: %s", exc, exc_info=True)
+
+
 async def _job_backup_diario() -> None:
     from database import AsyncSessionLocal, engine
     from tenancy.backup import rotina_diaria
@@ -527,6 +547,11 @@ def start_scheduler() -> None:
     # data com fuso: datetime ingênuo seria lido no fuso do agendador (Manaus) e atrasaria 4 h
     scheduler.add_job(_job_equipes_siaps, "date", run_date=_dt.now(_tz.utc) + _td(minutes=3),
                       id="equipes_siaps_inicial", replace_existing=True)
+    # e-Gestor publica as parcelas ao longo do mês: confere todo dia às 05:15 e logo após o deploy
+    scheduler.add_job(_job_egestor_pagamento, CronTrigger(hour=5, minute=15, timezone="America/Manaus"),
+                      id="egestor_pagamento_diario", replace_existing=True, misfire_grace_time=3600)
+    scheduler.add_job(_job_egestor_pagamento, "date", run_date=_dt.now(_tz.utc) + _td(minutes=6),
+                      id="egestor_pagamento_inicial", replace_existing=True)
 
     scheduler.start()
     logger.info(

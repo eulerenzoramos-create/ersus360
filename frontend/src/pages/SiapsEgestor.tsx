@@ -9,7 +9,7 @@ import {
   Users, Star, TrendingUp, AlertTriangle, CheckCircle,
   ChevronDown, ChevronRight, RefreshCw, Download, Info,
 } from "lucide-react";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGet, apiGetRaw, apiPost } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
@@ -2341,138 +2341,166 @@ function AbaAnaliseIndicador() {
 
 // ── Aba: Relatório de Pagamento (e-Gestor APS) ────────────────────────────────
 
+// Dados lidos automaticamente do e-Gestor (relatório público de pagamento, sem login) — /api/egestor-pagamento
+interface PgtoEquipe {
+  ine: string; equipe: string | null; tipo: string | null; componente: string | null; co_componente: number;
+  cnes: string | null; ine_vinculada: string | null; equipe_vinculada: string | null; st_pagamento: string | null;
+  pendencias: { campo: string; rotulo: string; situacao: string }[]; ok: boolean; detalhe: Record<string, string>;
+}
+interface PgtoComponente {
+  co_plano: number; plano: string; co_componente: number; componente: string; vl_total: number | null;
+  vl_desconto: number | null; vl_ajuste: number | null; classificacao_qualidade: string | null;
+  classificacao_vinculo: string | null; resumo: Record<string, number | string | null>;
+}
+interface PgtoPainel {
+  situacao_dado: string; fonte: string; parcelas: { nu_parcela: string; rotulo: string }[]; parcela?: string;
+  parcela_rotulo?: string; competencia_cnes_rotulo?: string; coletado_em?: string; classificacao_qualidade?: string | null;
+  classificacao_vinculo?: string | null; total?: number; descontos?: number; componentes?: PgtoComponente[];
+  equipes?: PgtoEquipe[]; equipes_com_pendencia?: number;
+}
+
+const PLANOS: { id: number; label: string }[] = [
+  { id: 8, label: "eSF e eAP" }, { id: 10, label: "Saúde Bucal" }, { id: 9, label: "eMulti" },
+  { id: 2, label: "ACS" }, { id: 11, label: "Demais programas" }, { id: 12, label: "Per capita" }, { id: 16, label: "Promoção à saúde" },
+];
+const COR_CLASSIF: Record<string, string> = { "ÓTIMO": "#1d4ed8", "BOM": "#16a34a", "SUFICIENTE": "#d97706", "REGULAR": "#dc2626" };
+const ROTULO_RESUMO: Record<string, string> = {
+  qtTeto: "Teto", qtCredenciado: "Credenciadas", qtHomologado: "Homologadas", qtPagamento: "Pagas",
+  vlPagamentoFixo: "Componente fixo", vlPagamentoQualidade: "Componente qualidade", vlPagamentoVinculo: "Componente vínculo",
+  vlPagamentoImplantacao: "Implantação", vlPagamento: "Pagamento", vlAjuste: "Ajuste", vlDesconto: "Desconto",
+  dsFaixaIndiceEquidade: "Faixa do índice de equidade", dsClassificacaoQualidade: "Classificação Qualidade",
+  dsClassificacaoVinculo: "Classificação Vínculo", qtPagamentoModalidadeI: "Pagas modalidade I", qtPagamentoModalidadeII: "Pagas modalidade II",
+};
+const pgCard: React.CSSProperties = { background: "#fff", color: "#1f2937", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 16 };
+const pgTh: React.CSSProperties = { padding: "7px 10px", textAlign: "left", fontSize: 12, color: "#374151", background: "#f3f4f6", whiteSpace: "nowrap" };
+const pgTd: React.CSSProperties = { padding: "7px 10px", fontSize: 12, borderTop: "1px solid #eef0f3", color: "#1f2937" };
+const valorResumo = (k: string, v: unknown) =>
+  typeof v === "number" ? (k.startsWith("vl") ? BRL(v) : v.toLocaleString("pt-BR")) : String(v ?? "—");
+
 function AbaRelatorioPagamento() {
-  const [tipoUnidade, setTipoUnidade] = useState("Município");
-  const [estado]     = useState("AMAZONAS");
-  const [municipio]  = useState("APUÍ");
-  const [ano, setAno] = useState("2026");
-  const [inicio, setInicio] = useState("1/12");
-  const [fim, setFim]       = useState("6/12");
-
-  const ANOS    = ["2026","2025","2024","2023","2022"];
-  const PARCELAS = Array.from({length:12},(_,i)=>`${i+1}/12`);
-
-  const abrirEgestor = (modo: "tela"|"download") => {
-    const url = "https://relatorioaps.saude.gov.br/gerenciaaps/pagamento";
-    window.open(url, "_blank");
+  const [parcela, setParcela] = useState<string | undefined>();
+  const [plano, setPlano] = useState(8);
+  const [atualizando, setAtualizando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const { data, refetch, isLoading } = useQuery<PgtoPainel>({
+    queryKey: ["egestor-pagamento", parcela],
+    queryFn: () => apiGetRaw<PgtoPainel>("/api/egestor-pagamento", parcela ? { parcela } : undefined),
+  });
+  const atualizar = async () => {
+    setAtualizando(true); setErro(null);
+    try { await apiPost("/api/egestor-pagamento/sincronizar"); await refetch(); }
+    catch (e: any) { setErro(e?.response?.data?.detail ?? "e-Gestor indisponível no momento — tente mais tarde."); }
+    finally { setAtualizando(false); }
   };
+  const comps = (data?.componentes ?? []).filter(c => c.co_plano === plano);
+  const equipes = (data?.equipes ?? []).filter(e => comps.some(c => c.co_componente === e.co_componente));
+  const totalPlano = comps.reduce((s, c) => s + (c.vl_total ?? 0), 0);
+  const planosComDados = PLANOS.filter(p => (data?.componentes ?? []).some(c => c.co_plano === p.id));
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
-        <div style={{ background: "#1a56db", color: "#fff", padding: "10px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ ...pgCard, padding: 0, overflow: "hidden" }}>
+        <div style={{ background: "#1a56db", color: "#fff", padding: "10px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>e-Gestor Atenção Primária à Saúde</div>
-            <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>Relatórios Públicos › Pagamento</div>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>e-Gestor Atenção Primária à Saúde — Relatório de Pagamento</div>
+            <div style={{ fontSize: 11, opacity: 0.85, marginTop: 2 }}>
+              Atualizado automaticamente todo dia pelo ERSUS360 · {data?.coletado_em ? `última leitura ${new Date(data.coletado_em + "Z").toLocaleString("pt-BR")}` : "aguardando a primeira leitura"}
+            </div>
           </div>
-          <button onClick={() => abrirEgestor("tela")} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.18)", color: "#fff", border: "1px solid rgba(255,255,255,.4)", borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-            <span>↗</span> Abrir no e-Gestor
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={atualizar} disabled={atualizando} style={{ background: "#fff", color: "#1a56db", border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
+              {atualizando ? "Atualizando…" : "↻ Atualizar agora"}
+            </button>
+            <button onClick={() => window.open("https://relatorioaps.saude.gov.br/gerenciaaps/pagamento", "_blank")} style={{ background: "rgba(255,255,255,.18)", color: "#fff", border: "1px solid rgba(255,255,255,.4)", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+              ↗ Abrir no e-Gestor
+            </button>
+          </div>
         </div>
-
-        <div style={{ padding: "20px 24px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", margin: "0 0 10px" }}>Relatório de Pagamento</h2>
-          <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6, margin: "0 0 14px" }}>
-            Informamos que os valores apresentados neste relatório são referentes ao que o município faz jus a cada competência financeira. A partir de agora os valores serão disponibilizados nos relatórios do e-Gestor antes de serem apresentados no site do Fundo Nacional de Saúde – FNS.
-          </p>
-
-          {/* Links períodos anteriores */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, color: "#6b7280" }}>Relatórios de períodos anteriores:</span>
-            {["01/2022 - 04/2024","2020 - 2021","2017 - 2019"].map(p => (
-              <span key={p} style={{ border: "1px solid #cbd5e1", borderRadius: 20, padding: "3px 12px", fontSize: 12, color: "#1a56db", cursor: "pointer" }} onClick={() => abrirEgestor("tela")}>
-                ({p}) ↗
+        {erro && <div style={{ padding: "8px 18px", background: "#fef2f2", color: "#b91c1c", fontSize: 12 }}>{erro}</div>}
+        {isLoading ? <div style={{ padding: 18, fontSize: 13, color: "#6b7280" }}>Carregando…</div>
+          : data?.situacao_dado !== "oficial_validado" ? (
+            <div style={{ padding: 18, fontSize: 13, color: "#374151" }}>
+              Ainda não há leitura do e-Gestor para este município. Clique em <strong>Atualizar agora</strong> — a leitura é automática e não precisa baixar arquivo.
+            </div>
+          ) : (
+            <div style={{ padding: "14px 18px", display: "flex", gap: 24, flexWrap: "wrap", alignItems: "center", fontSize: 13 }}>
+              <label style={{ color: "#374151" }}>Parcela{" "}
+                <select value={data.parcela} onChange={e => setParcela(e.target.value)} style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "5px 8px", fontSize: 13, background: "#fff", color: "#1f2937" }}>
+                  {data.parcelas.map(p => <option key={p.nu_parcela} value={p.nu_parcela}>{p.rotulo}</option>)}
+                </select>
+              </label>
+              <span style={{ color: "#374151" }}>Competência CNES: <strong>{data.competencia_cnes_rotulo}</strong></span>
+              <span style={{ color: "#374151" }}>Total da parcela: <strong>{BRL(data.total ?? 0)}</strong></span>
+              {!!data.descontos && <span style={{ color: "#b91c1c" }}>Descontos: <strong>{BRL(data.descontos)}</strong></span>}
+              <span style={{ color: "#374151" }}>Qualidade: <strong style={{ color: COR_CLASSIF[data.classificacao_qualidade ?? ""] }}>{data.classificacao_qualidade ?? "—"}</strong></span>
+              <span style={{ color: "#374151" }}>Vínculo: <strong style={{ color: COR_CLASSIF[data.classificacao_vinculo ?? ""] }}>{data.classificacao_vinculo ?? "—"}</strong></span>
+              <span style={{ color: data.equipes_com_pendencia ? "#b91c1c" : "#15803d", fontWeight: 600 }}>
+                {data.equipes_com_pendencia ? `⚠ ${data.equipes_com_pendencia} equipe(s) com pendência` : "✓ Nenhuma equipe com pendência"}
               </span>
+            </div>
+          )}
+      </div>
+
+      {data?.situacao_dado === "oficial_validado" && (
+        <>
+          <div role="tablist" style={{ display: "flex", gap: 2, borderBottom: "2px solid #e4e7ec", marginBottom: 16, flexWrap: "wrap" }}>
+            {planosComDados.map(p => (
+              <button key={p.id} role="tab" aria-selected={plano === p.id} onClick={() => setPlano(p.id)} style={{
+                padding: "9px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13,
+                borderBottom: plano === p.id ? "3px solid #1d4ed8" : "3px solid transparent", marginBottom: -2,
+                color: plano === p.id ? "#1d4ed8" : "#6b7280", fontWeight: plano === p.id ? 700 : 500,
+              }}>{p.label}</button>
             ))}
           </div>
 
-          <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 18 }}>Selecione as opções para gerar o relatório</div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40 }}>
-            {/* Unidade Geográfica */}
-            <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", marginBottom: 16 }}>Unidade Geográfica</h3>
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Tipo de unidade:</label>
-                <select value={tipoUnidade} onChange={e => setTipoUnidade(e.target.value)} style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 6, padding: "9px 12px", fontSize: 13, background: "#fff", cursor: "pointer" }}>
-                  {["Estado","Município","Região de Saúde"].map(t => <option key={t}>{t}</option>)}
-                </select>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: tipoUnidade === "Município" ? "1fr 1fr" : "1fr", gap: 12 }}>
-                <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Estados:</label>
-                  <div style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "8px 12px", fontSize: 13, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span>{estado}</span>
-                    <span style={{ color: "#6b7280" }}>✕ ∨</span>
-                  </div>
+          <div style={pgCard}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{comps[0]?.plano ?? PLANOS.find(p => p.id === plano)?.label}</div>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>Total: {BRL(totalPlano)}</div>
+            </div>
+            {comps.length === 0 ? <div style={{ fontSize: 13, color: "#6b7280" }}>Sem pagamento nesta parcela.</div> : comps.map(c => (
+              <div key={c.co_componente} style={{ border: "1px solid #eef0f3", borderRadius: 8, marginBottom: 10, overflow: "hidden" }}>
+                <div style={{ background: "#f8fafc", padding: "8px 12px", display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600 }}>
+                  <span>{c.componente}</span><span>{BRL(c.vl_total ?? 0)}</span>
                 </div>
-                {tipoUnidade === "Município" && (
-                  <div>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Municípios</label>
-                    <div style={{ border: "2px solid #f59e0b", borderRadius: 6, padding: "8px 12px", fontSize: 13, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span>{municipio}</span>
-                      <span style={{ color: "#6b7280" }}>✕ ∨</span>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8, padding: "10px 12px" }}>
+                  {Object.entries(c.resumo).filter(([k, v]) => v !== null && v !== "" && k !== "vlTotal" && (ROTULO_RESUMO[k] || k.startsWith("vl"))).map(([k, v]) => (
+                    <div key={k} style={{ fontSize: 12 }}>
+                      <div style={{ color: "#6b7280" }}>{ROTULO_RESUMO[k] ?? k}</div>
+                      <div style={{ fontWeight: 600, color: k === "vlDesconto" && Number(v) < 0 ? "#b91c1c" : "#1f2937" }}>{valorResumo(k, v)}</div>
                     </div>
-                  </div>
-                )}
-              </div>
-              {tipoUnidade === "Município" && (
-                <div style={{ marginTop: 10, fontSize: 11, color: "#6b7280", fontStyle: "italic" }}>
-                  A opção "TODOS" não permite a visualização em tela, apenas o download do arquivo.
-                </div>
-              )}
-            </div>
-
-            {/* Período */}
-            <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", marginBottom: 16 }}>Período</h3>
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Selecione o ano:</label>
-                <select value={ano} onChange={e => setAno(e.target.value)} style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 6, padding: "9px 12px", fontSize: 13, background: "#fff", cursor: "pointer" }}>
-                  {ANOS.map(a => <option key={a}>{a}</option>)}
-                </select>
-              </div>
-              <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "14px" }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 10 }}>Selecione a(s) parcela(s):</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div>
-                    <label style={{ fontSize: 12, color: "#6b7280", display: "block", marginBottom: 5 }}>Início</label>
-                    <select value={inicio} onChange={e => setInicio(e.target.value)} style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 6, padding: "8px 10px", fontSize: 13, background: "#fff", cursor: "pointer" }}>
-                      {PARCELAS.map(p => <option key={p}>{p}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 12, color: "#6b7280", display: "block", marginBottom: 5 }}>Fim</label>
-                    <select value={fim} onChange={e => setFim(e.target.value)} style={{ border: "2px solid #f59e0b", borderRadius: 6, padding: "8px 10px", fontSize: 13, background: "#fff", cursor: "pointer", width: "100%" }}>
-                      {PARCELAS.map(p => <option key={p}>{p}</option>)}
-                    </select>
-                  </div>
+                  ))}
                 </div>
               </div>
+            ))}
+          </div>
+
+          {equipes.length > 0 && (
+            <div style={pgCard}>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>Validação por equipe — {data.parcela_rotulo}</div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr>{["Equipe", "INE", "CNES", "Tipo", plano === 10 ? "eSF/eAP vinculada" : "Composição", "Pagamento", "Situação"].map(h => <th key={h} style={pgTh}>{h}</th>)}</tr></thead>
+                  <tbody>{equipes.map(e => (
+                    <tr key={`${e.co_componente}-${e.ine}`}>
+                      <td style={{ ...pgTd, fontWeight: 600 }}>{e.equipe ?? "—"}</td>
+                      <td style={pgTd}>{e.ine}</td>
+                      <td style={pgTd}>{e.cnes ?? "—"}</td>
+                      <td style={pgTd}>{e.tipo ?? "—"}{e.detalhe.dsSubTipoEquipe ? ` · ${e.detalhe.dsSubTipoEquipe}` : ""}{e.detalhe.modalidade ? ` · modalidade ${e.detalhe.modalidade}` : ""}</td>
+                      <td style={pgTd}>{plano === 10 ? (e.equipe_vinculada ?? e.ine_vinculada ?? "—") : (e.detalhe.composicao ?? "—")}</td>
+                      <td style={pgTd}>{e.st_pagamento ?? "—"}</td>
+                      <td style={{ ...pgTd, color: e.ok ? "#15803d" : "#b91c1c", fontWeight: 600 }}>
+                        {e.ok ? "✓ Sem pendência" : e.pendencias.map(p => `${p.rotulo}: ${p.situacao}`).join(" · ")}
+                      </td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
             </div>
-          </div>
-
-          {/* Botões */}
-          <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 28 }}>
-            <button onClick={() => abrirEgestor("download")} style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid #d1d5db", borderRadius: 8, padding: "10px 22px", cursor: "pointer", fontSize: 13, background: "#fff", color: "#374151", fontWeight: 600 }}>
-              ⬇ Download
-            </button>
-            <button onClick={() => abrirEgestor("tela")} style={{ display: "flex", alignItems: "center", gap: 8, border: "none", borderRadius: 8, padding: "10px 22px", cursor: "pointer", fontSize: 13, background: "#1a56db", color: "#fff", fontWeight: 700 }}>
-              🖥 Ver em tela ↗
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Info */}
-      <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "14px 18px", fontSize: 13, color: "#15803d", display: "flex", gap: 12, alignItems: "flex-start" }}>
-        <span style={{ fontSize: 20 }}>ℹ️</span>
-        <div>
-          <strong>Configuração pré-selecionada para Apuí/AM:</strong> Estado AMAZONAS · Município APUÍ · Ano {ano} · Parcelas {inicio} a {fim}.
-          Clique em "Ver em tela" para abrir o relatório completo no portal e-Gestor APS.
-        </div>
-      </div>
+          )}
+          <div style={{ fontSize: 11, color: "#6b7280" }}>Fonte: {data.fonte}. Valores e situações exatamente como publicados pelo Ministério da Saúde — o ERSUS360 não recalcula.</div>
+        </>
+      )}
     </div>
   );
 }
@@ -2970,7 +2998,7 @@ export default function SiapsEgestor() {
     { id: "boas_praticas",      label: "Boas Práticas" },
     { id: "quadrimestre",       label: "Avaliação Quadrimestre" },
     { id: "analise_indicador",  label: "📊 Análise do Indicador" },
-    { id: "rel_pagamento",      label: "💳 Relatório de Pagamento" },
+    { id: "rel_pagamento",      label: "💳 Relatório de Pagamento (e-Gestor)" },
     { id: "diag_cobertura",    label: "🩺 Diagnóstico / Cobertura" },
   ];
 
