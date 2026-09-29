@@ -324,3 +324,25 @@ async def resultados(current: SessaoMunicipal,
         "nota": "Resultados oficiais publicados pelo SIAPS (não recalculados pelo ERSUS360). "
                 "Meta/faixa exibida só quando confirmada na fonte oficial.",
     }
+
+
+@router.get("/resultados/historico")
+async def historico_equipe(current: SessaoMunicipal, ine: str = Query(..., pattern=r"^\d{1,10}$"),
+                           db: AsyncSession = Depends(get_db)):
+    """Evolução de uma equipe (dela mesma no tempo) em todos os indicadores coletados."""
+    from models.indicadores_aps import ResultadoCvatMensal, ResultadoMensalSiaps
+    ibge, ine = current.municipio_ibge, ine.zfill(10)
+    serie: dict[str, list] = {}
+    for r in (await db.execute(select(ResultadoMensalSiaps).where(
+            ResultadoMensalSiaps.municipio_ibge == ibge, ResultadoMensalSiaps.equipe_ine == ine)
+            .order_by(ResultadoMensalSiaps.competencia))).scalars():
+        serie.setdefault(r.indicador_codigo, []).append({"competencia": r.competencia, "resultado": r.resultado_pct,
+                                                          "numerador": r.numerador, "denominador": r.denominador,
+                                                          "situacao": r.situacao})
+    for r in (await db.execute(select(ResultadoCvatMensal).where(
+            ResultadoCvatMensal.municipio_ibge == ibge, ResultadoCvatMensal.equipe_ine == ine)
+            .order_by(ResultadoCvatMensal.competencia))).scalars():
+        serie.setdefault("CVAT", []).append({"competencia": r.competencia, "resultado": r.pontuacao,
+                                             "numerador": r.var_K, "denominador": r.populacao_parametro,
+                                             "situacao": r.situacao})
+    return {"ine": ine, "series": serie}

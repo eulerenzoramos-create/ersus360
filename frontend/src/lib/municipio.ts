@@ -10,7 +10,7 @@ import { useAuth } from "../App";
 export const IBGE_PILOTO = "1300144";
 
 /** Telas verificadas como multi-município (sem dados de Apuí embutidos). */
-export const PAGINAS_MULTIMUNICIPIO = ["/", "/usuarios", "/documentos", "/alertas", "/cnes-xml", "/siaps-relatorios"];
+export const PAGINAS_MULTIMUNICIPIO = ["/", "/usuarios", "/documentos", "/alertas", "/cnes-xml", "/siaps-relatorios", "/indicadores-equipe"];
 
 export function paginaDisponivel(pathname: string, ibge: string): boolean {
   if (ibge === IBGE_PILOTO) return true;

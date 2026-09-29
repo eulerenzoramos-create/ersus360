@@ -102,3 +102,13 @@ async def test_referencia_antiga_identificada(ambiente):
     tok = await _token(c, "gestor.apui@teste.gov.br")
     d = (await c.get("/api/pec/indicadores/2026-07", headers=_h(tok))).json()
     assert d["fonte"].startswith("REFERÊNCIA MUNICIPAL (Abr/2026) — não é a competência selecionada")
+
+
+async def test_historico_da_equipe_e_isolamento(ambiente):
+    c = ambiente["client"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    await _importar(c, tok, ("jul.csv", _cvat()), ("jun.csv", _cvat(comp="JUN/26")))
+    h = (await c.get("/api/siaps-relatorios/resultados/historico?ine=7099", headers=_h(tok))).json()
+    assert [p["competencia"] for p in h["series"]["CVAT"]] == ["2026-06", "2026-07"]
+    tok_b = await _token(c, "gestor.b@teste.gov.br")
+    assert (await c.get("/api/siaps-relatorios/resultados/historico?ine=7099", headers=_h(tok_b))).json()["series"] == {}
