@@ -15,7 +15,7 @@ from tests.test_siaps_relatorios import _cvat, _importar, _qualidade_esf_xlsx, _
 def test_faixa_c1_confirmada_e_demais_pendentes():
     assert [motor.classificar("C1", v) for v in (5, 20, 46.14, 51.65, 70, 70.01)] == \
         ["regular", "suficiente", "bom", "otimo", "otimo", "regular"]
-    assert motor.classificar("C2", 90) is None                     # sem faixa confirmada → não inventa
+    assert motor.classificar("C5", 90) is None                     # sem faixa confirmada → não inventa
     assert motor.tipo_equipe("R1") == "eSFR" and motor.tipo_equipe("CR2") == "eCR" and motor.tipo_equipe("B3") == "eSB"
 
 
@@ -124,3 +124,25 @@ async def test_serie_por_competencia(ambiente):
     assert s == [{"competencia": "2026-07", "equipes": {"CACHOEIRA": 46.14}, "preliminar": True, "media": 46.14}]
     tok_b = await _token(c, "gestor.b@teste.gov.br")
     assert (await c.get("/api/siaps-relatorios/resultados/serie?indicador=CVAT", headers=_h(tok_b))).json()["serie"] == []
+
+
+def test_classificar_quartis_c2_c3_e_sem_faixa_c4():
+    from services.indicadores_motor import classificar
+    assert classificar("C2", 25) == "regular"
+    assert classificar("C2", 43.72) == "suficiente"
+    assert classificar("C3", 60) == "bom"
+    assert classificar("C3", 75.01) == "otimo"
+    assert classificar("C4", 90) is None  # legenda ainda não conferida
+
+
+def test_relatorio_c7_somatorio_e_r6_sem_nm_dn():
+    import glob
+    from services.siaps_relatorio import ler_relatorio
+    arquivos = {p.split("\\")[-1].split("/")[-1][:2]: p for p in glob.glob("C:/Users/Usuario/Downloads/siaps-jul26/*.csv")}
+    if not {"C7", "R6"} <= set(arquivos):
+        import pytest
+        pytest.skip("relatórios reais Jul/26 ausentes nesta máquina")
+    c7 = ler_relatorio(open(arquivos["C7"], "rb").read(), arquivos["C7"])
+    assert {l["equipe"]: l["pontuacao"] for l in c7["linhas"]}["CACHOEIRA"] == 84.68
+    r6 = ler_relatorio(open(arquivos["R6"], "rb").read(), arquivos["R6"])
+    assert r6["linhas"][0]["pontuacao"] == 89.09

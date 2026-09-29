@@ -130,8 +130,13 @@ def ler_relatorio(conteudo: bytes, nome: str = "") -> dict:
         else:
             cab.append(c)
     colunas_valor = cab[6:]
-    if not colunas_valor or _sem_acento(colunas_valor[-1]) != "PONTUACAO":
-        raise RelatorioInvalido("Última coluna esperada: PONTUAÇÃO")
+    # A última coluna é o resultado do indicador; o SIAPS a nomeia "PONTUAÇÃO" ou, em parte dos
+    # indicadores, "RAZÃO ENTRE O NUMERADOR E DENOMINADOR [MULTIPLICADA POR 100]".
+    # C7 (Prevenção do Câncer) sai do SIAPS com o título da última coluna deslocado ("SOMATÓRIO DA
+    # BOA PRÁTICA…"), mas o valor dessa coluna é o resultado final do indicador (conferido em Jul/26).
+    ultima = _sem_acento(colunas_valor[-1]) if colunas_valor else ""
+    if not (ultima == "PONTUACAO" or ultima.startswith("RAZAO ENTRE O NUMERADOR") or ultima.startswith("SOMATORIO")):
+        raise RelatorioInvalido("Última coluna esperada: PONTUAÇÃO ou RAZÃO ENTRE O NUMERADOR E DENOMINADOR")
     if componente == "cvat" and len(colunas_valor) != len(CVAT_CHAVES) + 1:
         raise RelatorioInvalido(f"Relatório CVAT com {len(colunas_valor)} colunas de valor; esperado "
                                 f"{len(CVAT_CHAVES) + 1} (parâmetro, A…K e pontuação)")

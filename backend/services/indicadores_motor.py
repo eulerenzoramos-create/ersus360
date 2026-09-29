@@ -36,6 +36,12 @@ TIPO_POR_PREFIXO = {"C": "eSF,eAP", "R": "eSFR", "B": "eSB", "M": "eMulti", "CR"
 FAIXAS_CONFIRMADAS = {
     "C1": {"fonte": "SIAPS — legenda da Visão por Competência (Mais Acesso à APS), 28/09/2026",
            "meta_referencia": 50.0},
+    # Legenda exibida nas telas do SIAPS (Visão por Competência, Jul/26): Regular 0–25, Suficiente >25–50,
+    # Bom >50–75, Ótimo >75–100. Só entram indicadores cuja legenda foi conferida na tela oficial.
+    "C2": {"fonte": "SIAPS — legenda da Visão por Competência (Desenvolvimento Infantil), 29/09/2026",
+           "meta_referencia": None, "quartis": True},
+    "C3": {"fonte": "SIAPS — legenda da Visão por Competência (Gestação e Puerpério), 29/09/2026",
+           "meta_referencia": None, "quartis": True},
 }
 
 
@@ -51,6 +57,8 @@ def classificar(codigo: str, valor: float | None) -> str | None:
         if valor <= 10 or valor > 70:
             return "regular"
         return "suficiente" if valor <= 30 else "bom" if valor <= 50 else "otimo"
+    if FAIXAS_CONFIRMADAS[codigo].get("quartis"):
+        return "regular" if valor <= 25 else "suficiente" if valor <= 50 else "bom" if valor <= 75 else "otimo"
     return None
 
 
@@ -128,8 +136,13 @@ async def normalizar_relatorio(db: AsyncSession, rel, usuario: str | None = None
                 ResultadoMensalSiaps.indicador_codigo == codigo))).scalars()}
             faixa = FAIXAS_CONFIRMADAS.get(codigo)
             for l in linhas:
+                # Relatório de Qualidade: [boas práticas A, B, …], NM, DN, RESULTADO — numerador e
+                # denominador são sempre as duas colunas antes do resultado.
                 valores = [l.get("valores", {}).get(c) for c in colunas[:-1]]
-                num, den = (_num(valores[0]), _num(valores[1])) if len(valores) == 2 else (None, None)
+                num, den = (_num(valores[-2]), _num(valores[-1])) if len(valores) >= 2 else (None, None)
+                if colunas and colunas[-1].upper().startswith("SOMAT"):
+                    # C7: 4 razões por boa prática (NM.x/DN.x), sem NM/DN únicos no relatório oficial
+                    num = den = None
                 if num is not None and den is not None and num > den:
                     avisos.append(f"{l['equipe']} ({codigo}): numerador {num:g} maior que denominador {den:g}")
                 reg = atuais.get(l["ine"])
