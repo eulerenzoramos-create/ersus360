@@ -523,8 +523,9 @@ def start_scheduler() -> None:
         replace_existing=True,
         misfire_grace_time=3600,
     )
-    from datetime import datetime as _dt, timedelta as _td
-    scheduler.add_job(_job_equipes_siaps, "date", run_date=_dt.now() + _td(minutes=3),
+    from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+    # data com fuso: datetime ingênuo seria lido no fuso do agendador (Manaus) e atrasaria 4 h
+    scheduler.add_job(_job_equipes_siaps, "date", run_date=_dt.now(_tz.utc) + _td(minutes=3),
                       id="equipes_siaps_inicial", replace_existing=True)
 
     scheduler.start()

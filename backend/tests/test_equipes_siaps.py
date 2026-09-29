@@ -110,3 +110,23 @@ async def test_job_semanal_sincroniza_municipios_ativos(ambiente, monkeypatch):
 async def test_aceita_ibge_de_6_ou_7_digitos(monkeypatch, ibge):
     _siaps_falso(monkeypatch)
     assert len(await se.buscar_equipes(ibge)) == 5
+
+
+def test_job_inicial_agendado_com_fuso(monkeypatch):
+    """Regressão: datetime sem fuso era lido como horário de Manaus → 1ª execução 4 h atrasada."""
+    from datetime import datetime, timezone
+    import scheduler
+    capturado = {}
+    monkeypatch.setattr(scheduler.scheduler, "start", lambda: None)
+    orig = scheduler.scheduler.add_job
+
+    def add_job(func, trigger=None, **kw):
+        if kw.get("id") == "equipes_siaps_inicial":
+            capturado.update(kw)
+        return orig(func, trigger, **kw)
+    monkeypatch.setattr(scheduler.scheduler, "add_job", add_job)
+    scheduler.start_scheduler()
+    atraso = (capturado["run_date"] - datetime.now(timezone.utc)).total_seconds()
+    assert capturado["run_date"].tzinfo is not None and 0 < atraso <= 200
+    for job in scheduler.scheduler.get_jobs():
+        scheduler.scheduler.remove_job(job.id)
