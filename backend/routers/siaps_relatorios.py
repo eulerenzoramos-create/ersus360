@@ -207,6 +207,8 @@ async def sincronizar_equipes(request: Request, current: SessaoMunicipal, db: As
         r = await se.sincronizar(db, current.municipio_id, current.municipio_ibge)
     except se.SiapsIndisponivel as e:
         raise HTTPException(503, str(e))
+    from services.indicadores_motor import reprocessar_municipio
+    r["relatorios_reprocessados"] = await reprocessar_municipio(db, current.municipio_id)
     await registrar_auditoria(db, "SIAPS_EQUIPES_SINCRONIZADAS", usuario=current, ip=ip_de(request),
                               tabela="equipes_siaps", detalhe=f"{r.get('equipes')} equipes {r.get('por_tipo')}")
     return r
