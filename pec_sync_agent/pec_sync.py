@@ -22,8 +22,12 @@ import time
 from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
 
+# Pasta do agente: log, schema e backups ficam aqui, nunca no diretorio atual
+# (a tarefa agendada roda como SYSTEM com cwd = C:\Windows\System32).
+AQUI = Path(__file__).resolve().parent
+
 # Carrega .env se existir (sem depender de python-dotenv)
-_env_file = Path(__file__).parent / ".env"
+_env_file = AQUI / ".env"
 if _env_file.exists():
     for _line in _env_file.read_text(encoding="utf-8").splitlines():
         _line = _line.strip()
@@ -65,15 +69,15 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler("pec_sync.log", encoding="utf-8"),
+        logging.FileHandler(AQUI / "pec_sync.log", encoding="utf-8"),
     ],
 )
 log = logging.getLogger("pec_sync")
 
 
 def conectar_pec():
-    """Abre conexão com o PostgreSQL local do PEC."""
-    return psycopg2.connect(
+    """Abre conexão SOMENTE LEITURA com o PostgreSQL local do PEC."""
+    conn = psycopg2.connect(
         host=PEC_DB_HOST,
         port=PEC_DB_PORT,
         dbname=PEC_DB_NAME,
@@ -82,6 +86,10 @@ def conectar_pec():
         connect_timeout=10,
         options="-c client_encoding=UTF8",
     )
+    # Defesa em profundidade: mesmo que o usuario do banco tenha permissao de
+    # escrita, esta sessao nao consegue alterar nada no PEC.
+    conn.set_session(readonly=True)
+    return conn
 
 
 def competencia_atual() -> str:
@@ -451,7 +459,7 @@ def explorar_schema(conn):
     """)
     rows = cur.fetchall()
     cur.close()
-    with open("schema_pec.txt", "w", encoding="utf-8") as f:
+    with open(AQUI / "schema_pec.txt", "w", encoding="utf-8") as f:
         f.write("TABELAS RELEVANTES ENCONTRADAS NO BANCO DO PEC\n")
         f.write("=" * 60 + "\n")
         for schema, table in rows:
@@ -508,7 +516,7 @@ def sincronizar():
         return
 
     # Salva cópia local como backup
-    with open(f"sync_backup_{comp.replace('-','')}.json", "w", encoding="utf-8") as f:
+    with open(AQUI / f"sync_backup_{comp.replace('-','')}.json", "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
     # Envia para ERSUS360

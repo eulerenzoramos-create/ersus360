@@ -64,13 +64,25 @@ echo PEC_DB_PASS=%PEC_DB_PASS%>> .env
 echo ERSUS_SYNC_KEY=%ERSUS_SYNC_KEY%>> .env
 
 echo.
+:: Restringe o .env (senha do banco + chave) a Administradores e SYSTEM.
+:: Usa SIDs conhecidos (S-1-5-32-544 = Administradores, S-1-5-18 = SYSTEM),
+:: que funcionam em qualquer idioma do Windows.
+icacls .env /inheritance:r /grant:r *S-1-5-32-544:F *S-1-5-18:F >nul
+if errorlevel 1 (
+    echo [AVISO] Nao foi possivel restringir a permissao do .env. Restrinja manualmente.
+) else (
+    echo [OK] Permissao do .env restrita a Administradores e SYSTEM.
+)
+
 echo [OK] Configuracao salva em .env
 echo.
 echo ================================================
 echo  CRIANDO TAREFA AGENDADA (a cada 4 horas)
 echo ================================================
 set SCRIPT_DIR=%~dp0
-schtasks /create /tn "ERSUS360_PEC_Sync" /tr "python \"%SCRIPT_DIR%pec_sync.py\"" /sc hourly /mo 4 /ru SYSTEM /f
+:: --once: sincroniza e ENCERRA. Sem isso o agente fica em loop e cada execucao
+:: da tarefa (a cada 4 h) deixaria mais um processo aberto.
+schtasks /create /tn "ERSUS360_PEC_Sync" /tr "python \"%SCRIPT_DIR%pec_sync.py\" --once" /sc hourly /mo 4 /ru SYSTEM /f
 if errorlevel 1 (
     echo [AVISO] Nao foi possivel criar tarefa agendada automaticamente.
     echo Execute manualmente: python pec_sync.py
