@@ -98,12 +98,9 @@ def _gerar_alertas_aps(equipes: Dict[str, Dict[str, float]], competencia: str) -
 
 # Chave de autenticação — gerada e armazenada como env var ERSUS_SYNC_KEY
 def _get_sync_key() -> str:
-    key = os.getenv("ERSUS_SYNC_KEY", "")
-    if not key:
-        # Gera uma chave padrão na primeira execução e loga para o admin copiar
-        key = "ersus-" + secrets.token_hex(16)
-        log.warning("ERSUS_SYNC_KEY não definida. Use esta chave: %s", key)
-    return key
+    """Chave do agente, só da variável de ambiente. Sem ela a sincronização fica DESATIVADA
+    (nunca se gera nem se registra em log uma chave de reserva)."""
+    return os.getenv("ERSUS_SYNC_KEY", "")
 
 
 # ── Modelos ──────────────────────────────────────────────────────────────────
@@ -214,7 +211,10 @@ async def receber_sync(
     x_sync_key: str = Header(..., alias="X-Sync-Key"),
 ):
     """Recebe dados do agente local do PEC e armazena em cache."""
-    if x_sync_key != _get_sync_key():
+    chave = _get_sync_key()
+    if not chave:
+        raise HTTPException(status_code=503, detail="Sincronização desativada: ERSUS_SYNC_KEY não definida no servidor.")
+    if not secrets.compare_digest(x_sync_key.encode("utf-8"), chave.encode("utf-8")):
         raise HTTPException(status_code=401, detail="Chave de sincronização inválida.")
 
     if payload.ibge != "1300144":
@@ -318,8 +318,11 @@ async def status_sync():
         if data:
             ultima = data.get("ultima_atualizacao")
 
-    # Exibe a chave para o admin configurar no agente (apenas se não estiver definida)
-    chave_info = "Definida via env var ERSUS_SYNC_KEY" if os.getenv("ERSUS_SYNC_KEY") else _get_sync_key()
+    # Rota pública: informa só se a chave existe, nunca o valor.
+    chave_info = (
+        "Definida via env var ERSUS_SYNC_KEY" if _get_sync_key()
+        else "NÃO definida — a sincronização do agente está desativada até configurar ERSUS_SYNC_KEY no servidor"
+    )
 
     return {
         "status": "ativo",
