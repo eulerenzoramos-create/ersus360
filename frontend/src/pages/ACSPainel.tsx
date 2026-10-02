@@ -824,6 +824,12 @@ function AbaTempoReal() {
     staleTime: 60_000,
     refetchInterval: 120_000, // atualiza a cada 2 min
   });
+  const { data: sync } = useQuery({
+    queryKey: ["pec-sync-status"],
+    queryFn: () => apiGet("/api/pec/status") as Promise<any>,
+    staleTime: 60_000,
+    retry: false,
+  });
 
   const conectado = data?.fonte === "esus_pec";
   const d         = data?.dados;
@@ -838,16 +844,33 @@ function AbaTempoReal() {
     nota="Verifique a conexão com a API ou tente novamente em instantes." />;
 
   if (!conectado) {
+    const ult: string | null = sync?.ultima_atualizacao ?? null;
+    const ultLabel = ult
+      ? new Date(/[zZ]|[+-]\d\d:\d\d$/.test(ult) ? ult : `${ult}Z`)
+          .toLocaleString("pt-BR", { timeZone: "America/Manaus", dateStyle: "short", timeStyle: "short" })
+      : null;
     return (
       <div>
-        <OfflineBanner emoji="📡" titulo="e-SUS PEC Offline" nota={d?.nota} />
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "18px 22px" }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#1e3a8a", marginBottom: 4 }}>
+            📡 Conexão direta com o e-SUS PEC não está ativa
+          </div>
+          <div style={{ fontSize: 13, color: "#374151" }}>
+            O servidor do e-SUS PEC não aceita conexão direta pela internet. A atualização é feita por um agente
+            instalado dentro do servidor do PEC, somente leitura, depois da autorização da Secretaria de Saúde.
+          </div>
+          <div style={{ fontSize: 12, color: "#4b5563", marginTop: 8 }}>
+            <strong>Agente PEC:</strong>{" "}
+            {ultLabel ? `última sincronização em ${ultLabel}` : "aguardando instalação — nenhuma sincronização recebida"}
+          </div>
+        </div>
         <div style={{ marginTop: 16, background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px 24px" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Como ativar o Tempo Real</div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Como ativar a sincronização</div>
           {[
-            { step: "1", desc: "Acesse Railway → seu projeto → Variables" },
-            { step: "2", desc: "Adicione ESUS_USUARIO com seu login do e-SUS PEC" },
-            { step: "3", desc: "Adicione ESUS_SENHA com sua senha" },
-            { step: "4", desc: "O Railway redeploy automaticamente em ~2 min" },
+            { step: "1", desc: "A Secretária Municipal de Saúde assina a autorização técnica" },
+            { step: "2", desc: "A TI instala o agente no servidor do e-SUS PEC (usuário de banco somente leitura)" },
+            { step: "3", desc: "Piloto: conferir os resultados com os relatórios oficiais do PEC/SIAPS" },
+            { step: "4", desc: "O agente sincroniza a cada 4 horas; os valores aparecem como prévia, não oficial" },
           ].map(s => (
             <div key={s.step} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 10 }}>
               <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#1351b4", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, flexShrink: 0 }}>{s.step}</div>
