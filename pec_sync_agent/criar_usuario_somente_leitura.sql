@@ -23,7 +23,8 @@ GRANT USAGE ON SCHEMA public TO ersus_sync;
 -- Tabelas de referencia (sem dados de paciente): leitura completa.
 GRANT SELECT ON
     tb_dim_cbo, tb_dim_ciap, tb_dim_equipe, tb_dim_procedimento, tb_dim_sexo,
-    tb_dim_situacao_problema, tb_dim_tempo, tb_dim_tipo_atendimento
+    tb_dim_situacao_problema, tb_dim_tempo, tb_dim_tipo_atendimento,
+    tb_dim_imunobiologico, tb_dim_dose_imunobiologico
 TO ersus_sync;
 
 -- Equipes.
@@ -43,6 +44,11 @@ GRANT SELECT (nu_cns, co_dim_ciap, co_dim_situacao_problema, co_dim_equipe_1, co
 GRANT SELECT (nu_cns, co_dim_procedimento_solicitado, co_dim_procedimento_avaliado, dt_inicial_atendimento)
     ON tb_fat_atd_ind_procedimentos TO ersus_sync;
 GRANT SELECT (nu_cns, co_dim_cbo, co_dim_tempo) ON tb_fat_visita_domiciliar TO ersus_sync;
+
+-- Vacinacao (C2, boa pratica E): so cartao SNS, data e imunobiologico/dose aplicados.
+GRANT SELECT (nu_cns, dt_inicial_atendimento) ON tb_fat_vacinacao TO ersus_sync;
+GRANT SELECT (co_fat_vacinacao, co_dim_imunobiologico, co_dim_dose_imunobiologico)
+    ON tb_fat_vacinacao_vacina TO ersus_sync;
 
 -- Pre-natal e exames.
 GRANT SELECT (co_prontuario, dt_ultima_menstruacao) ON tb_pre_natal TO ersus_sync;

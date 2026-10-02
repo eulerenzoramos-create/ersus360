@@ -218,6 +218,19 @@ def _pct(cur, sql: str, params: tuple, chave: str, result: dict) -> None:
 PROCED_HBA1C = ("ABEX008", "0202010503")
 PROCED_CITOPATOLOGICO = ("ABEX001", "0203010019", "ABPG010", "0201020033")
 
+# Vacinas da boa pratica E do C2 (co_imunobiologico = codigos do guia oficial).
+# Combinadas contam em cada componente (ex.: Hexa acelular = Penta + Polio).
+VAC_PENTA  = ("29", "39", "42", "43", "46", "47", "58")
+VAC_POLIO  = ("22", "29", "43", "58")
+VAC_SCR    = ("24", "56", "73")
+VAC_PNEUMO = ("26", "59", "106", "107")
+# Esquema MINIMO adotado na previa (doses distintas ate 2 anos). Premissa a conferir no piloto.
+MIN_DOSES = {"penta": 3, "polio": 3, "scr": 2, "pneumo": 2}
+
+
+def _lista_sql(codigos) -> str:
+    return ", ".join(f"'{c}'" for c in codigos)
+
 
 def calcular_indicadores(conn, competencia: str, ine: str) -> dict:
     """
@@ -227,8 +240,7 @@ def calcular_indicadores(conn, competencia: str, ine: str) -> dict:
     02/10/2026 por introspeccao somente-leitura).
 
     TODOS os valores sao PREVIAS LOCAIS do e-SUS PEC, nao a pontuacao
-    oficial do Ministerio (que vem do SIAPS). Calculados: C2 (previa parcial
-    A-D, sem vacinas), C3 (pre-natal), C4 (diabetes/HbA1c), C5 (hipertensao)
+    oficial do Ministerio (que vem do SIAPS). Calculados: C2 (previa A-E), C3 (pre-natal), C4 (diabetes/HbA1c), C5 (hipertensao)
     e C7 (citopatologico).
     NAO calculados, de proposito: C1 (Mais Acesso, razao oficial ponderada)
     e C6 (avaliacao multidimensional do idoso) — sem equivalente neste PEC;
@@ -268,12 +280,12 @@ def calcular_indicadores(conn, competencia: str, ine: str) -> dict:
         # C1 (Mais Acesso) nao e calculado: o C1 oficial e uma razao de acesso
         # ponderada pelo Ministerio, sem equivalente simples no PEC.
 
-        # C2 (previa parcial A-D, max. 80 pts): criancas < 2 anos da equipe.
+        # C2 (previa A-E, max. 100 pts): criancas < 2 anos da equipe.
         #   A: consulta de medico/enfermeiro ate o 30o dia de vida        (20)
         #   B: >= 9 consultas de medico/enfermeiro ate 2 anos             (20)
         #   C: >= 9 dias com peso e altura registrados ate 2 anos         (20)
         #   D: >= 2 visitas de ACS/TACS (1a ate 30 dias, 2a ate 6 meses)  (20)
-        #   E (vacinas) fora da previa: exige regras de dose por imunobiologico.
+        #   E: vacinas Penta/Polio/SCR/Pneumo com o esquema minimo (MIN_DOSES)   (20)
         _pct(cur, f"""
             WITH criancas AS (
                 SELECT nu_cns, dt_nasc FROM ({_cte_cidadaos_equipe()}) b
@@ -316,16 +328,39 @@ def calcular_indicadores(conn, competencia: str, ine: str) -> dict:
                 SELECT nu_cns FROM vis GROUP BY nu_cns
                 HAVING COUNT(DISTINCT dt) >= 2 AND MIN(dt) <= MIN(dt_nasc) + 30
             ),
+            vac AS (
+                SELECT c.nu_cns, im.nu_identificador AS imu, vv.co_dim_dose_imunobiologico AS dose
+                FROM criancas c
+                JOIN tb_fat_vacinacao fv ON fv.nu_cns::text = c.nu_cns
+                JOIN tb_fat_vacinacao_vacina vv ON vv.co_fat_vacinacao = fv.co_seq_fat_vacinacao
+                JOIN tb_dim_imunobiologico im ON im.co_seq_dim_imunobiologico = vv.co_dim_imunobiologico
+                WHERE fv.dt_inicial_atendimento::date BETWEEN c.dt_nasc
+                      AND LEAST((c.dt_nasc + INTERVAL '2 years')::date, %s::date)
+            ),
+            grp AS (
+                SELECT nu_cns,
+                  COUNT(DISTINCT dose) FILTER (WHERE imu IN ({_lista_sql(VAC_PENTA)}))  AS penta,
+                  COUNT(DISTINCT dose) FILTER (WHERE imu IN ({_lista_sql(VAC_POLIO)}))  AS polio,
+                  COUNT(DISTINCT dose) FILTER (WHERE imu IN ({_lista_sql(VAC_SCR)}))    AS scr,
+                  COUNT(DISTINCT dose) FILTER (WHERE imu IN ({_lista_sql(VAC_PNEUMO)})) AS pneumo
+                FROM vac GROUP BY nu_cns
+            ),
+            ok_e AS (
+                SELECT nu_cns FROM grp
+                WHERE penta >= {MIN_DOSES['penta']} AND polio >= {MIN_DOSES['polio']}
+                  AND scr >= {MIN_DOSES['scr']} AND pneumo >= {MIN_DOSES['pneumo']}
+            ),
             pontos AS (
                 SELECT 20 * ( (c.nu_cns IN (SELECT nu_cns FROM ok_a))::int
                             + (c.nu_cns IN (SELECT nu_cns FROM ok_b))::int
                             + (c.nu_cns IN (SELECT nu_cns FROM ok_c))::int
-                            + (c.nu_cns IN (SELECT nu_cns FROM ok_d))::int ) AS pts
+                            + (c.nu_cns IN (SELECT nu_cns FROM ok_d))::int
+                            + (c.nu_cns IN (SELECT nu_cns FROM ok_e))::int ) AS pts
                 FROM criancas c
             )
-            SELECT (SELECT COUNT(*) FROM pontos) * 80 AS den,
+            SELECT (SELECT COUNT(*) FROM pontos) * 100 AS den,
                    (SELECT COALESCE(SUM(pts), 0) FROM pontos) AS num
-        """, (eq, fim, fim, fim, fim, fim), "C2", result)
+        """, (eq, fim, fim, fim, fim, fim, fim), "C2", result)
 
         # C5: HAS com PA aferida nos ultimos 6 meses
         _pct(cur, f"""
@@ -489,7 +524,7 @@ def sincronizar():
         "tipos_equipe": {},  # { nome: "eSF" | "eSFR" | "eSB" | ... }
         "origem": "previa_pec",  # nunca e o resultado oficial do SIAPS
         "observacoes": {
-            "C2": "Prévia parcial: boas práticas A–D (máx. 80 pts, sem vacinas), normalizada para 0–100",
+            "C2": "Prévia: boas práticas A–E (máx. 100 pts); vacinas pelo esquema mínimo adotado (3 Penta, 3 Polio, 2 SCR, 2 Pneumo), a conferir no piloto",
             "C3": "Prévia: gestantes com ≥6 consultas desde a DUM",
             "C4": "Prévia: diabéticos com HbA1c solicitada/realizada em 12 meses",
             "C5": "Prévia: hipertensos com PA aferida em 6 meses",
