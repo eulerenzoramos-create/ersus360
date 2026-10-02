@@ -218,11 +218,13 @@ def calcular_indicadores(conn, competencia: str, ine: str) -> dict:
     (esquema de fatos/dimensoes tb_fat_*/tb_dim_*, confirmado em 18/09 e
     02/10/2026 por introspeccao somente-leitura).
 
-    Calculados: C1, C5 (hipertensao), C4 (diabetes/HbA1c), C3 (pre-natal),
-    C7 (citopatologico).
-    NAO calculados, de proposito: C2 (desenvolvimento infantil) e C6
-    (avaliacao multidimensional do idoso) — este PEC nao tem procedimento,
-    coluna ou tabela correspondente; nada e estimado.
+    TODOS os valores sao PREVIAS LOCAIS do e-SUS PEC, nao a pontuacao
+    oficial do Ministerio (que vem do SIAPS). Calculados: C2 (previa parcial
+    A-D, sem vacinas), C3 (pre-natal), C4 (diabetes/HbA1c), C5 (hipertensao)
+    e C7 (citopatologico).
+    NAO calculados, de proposito: C1 (Mais Acesso, razao oficial ponderada)
+    e C6 (avaliacao multidimensional do idoso) — sem equivalente neste PEC;
+    nada e estimado.
 
     Premissas a conferir na rodada piloto contra os relatorios oficiais:
       - vinculo do cidadao a equipe = tb_fat_cidadao_pec.co_dim_equipe_vinc;
@@ -255,17 +257,67 @@ def calcular_indicadores(conn, competencia: str, ine: str) -> dict:
         has = _cte_pacientes_condicao(("K86", "K87", "K85"))
         dm  = _cte_pacientes_condicao(("T89", "T90"))
 
-        # C1: HAS com >= 1 atendimento nos ultimos 12 meses
+        # C1 (Mais Acesso) nao e calculado: o C1 oficial e uma razao de acesso
+        # ponderada pelo Ministerio, sem equivalente simples no PEC.
+
+        # C2 (previa parcial A-D, max. 80 pts): criancas < 2 anos da equipe.
+        #   A: consulta de medico/enfermeiro ate o 30o dia de vida        (20)
+        #   B: >= 9 consultas de medico/enfermeiro ate 2 anos             (20)
+        #   C: >= 9 dias com peso e altura registrados ate 2 anos         (20)
+        #   D: >= 2 visitas de ACS/TACS (1a ate 30 dias, 2a ate 6 meses)  (20)
+        #   E (vacinas) fora da previa: exige regras de dose por imunobiologico.
         _pct(cur, f"""
-            WITH base AS ({has}),
-            com AS (
-                SELECT DISTINCT a.nu_cns::text AS nu_cns
-                FROM tb_fat_atendimento_individual a
-                WHERE a.dt_inicial_atendimento BETWEEN %s AND %s
+            WITH criancas AS (
+                SELECT nu_cns, dt_nasc FROM ({_cte_cidadaos_equipe()}) b
+                WHERE b.dt_nasc IS NOT NULL
+                  AND b.dt_nasc <= %s::date
+                  AND b.dt_nasc > (%s::date - INTERVAL '2 years')::date
+            ),
+            cons AS (
+                SELECT c.nu_cns, c.dt_nasc, a.dt_inicial_atendimento::date AS dt
+                FROM criancas c
+                JOIN tb_fat_atendimento_individual a ON a.nu_cns::text = c.nu_cns
+                JOIN tb_dim_cbo cb ON cb.co_seq_dim_cbo IN (a.co_dim_cbo_1, a.co_dim_cbo_2)
+                WHERE cb.nu_cbo ~ '^(2235|2251|2252)'
+                  AND a.dt_inicial_atendimento::date BETWEEN c.dt_nasc
+                      AND LEAST((c.dt_nasc + INTERVAL '2 years')::date, %s::date)
+            ),
+            ok_a AS (SELECT DISTINCT nu_cns FROM cons WHERE dt <= dt_nasc + 30),
+            ok_b AS (SELECT nu_cns FROM cons GROUP BY nu_cns HAVING COUNT(DISTINCT dt) >= 9),
+            ok_c AS (
+                SELECT c.nu_cns
+                FROM criancas c
+                JOIN tb_fat_atendimento_individual a ON a.nu_cns::text = c.nu_cns
+                WHERE a.nu_peso IS NOT NULL AND a.nu_altura IS NOT NULL
+                  AND a.dt_inicial_atendimento::date BETWEEN c.dt_nasc
+                      AND LEAST((c.dt_nasc + INTERVAL '2 years')::date, %s::date)
+                GROUP BY c.nu_cns
+                HAVING COUNT(DISTINCT a.dt_inicial_atendimento::date) >= 9
+            ),
+            vis AS (
+                SELECT c.nu_cns, c.dt_nasc, t.dt_registro AS dt
+                FROM criancas c
+                JOIN tb_fat_visita_domiciliar v ON v.nu_cns::text = c.nu_cns
+                JOIN tb_dim_cbo cb ON cb.co_seq_dim_cbo = v.co_dim_cbo
+                JOIN tb_dim_tempo t ON t.co_seq_dim_tempo = v.co_dim_tempo
+                WHERE cb.nu_cbo IN ('515105', '322255')
+                  AND t.dt_registro BETWEEN c.dt_nasc
+                      AND LEAST((c.dt_nasc + INTERVAL '6 months')::date, %s::date)
+            ),
+            ok_d AS (
+                SELECT nu_cns FROM vis GROUP BY nu_cns
+                HAVING COUNT(DISTINCT dt) >= 2 AND MIN(dt) <= MIN(dt_nasc) + 30
+            ),
+            pontos AS (
+                SELECT 20 * ( (c.nu_cns IN (SELECT nu_cns FROM ok_a))::int
+                            + (c.nu_cns IN (SELECT nu_cns FROM ok_b))::int
+                            + (c.nu_cns IN (SELECT nu_cns FROM ok_c))::int
+                            + (c.nu_cns IN (SELECT nu_cns FROM ok_d))::int ) AS pts
+                FROM criancas c
             )
-            SELECT (SELECT COUNT(*) FROM base) AS den,
-                   (SELECT COUNT(*) FROM base WHERE nu_cns IN (SELECT nu_cns FROM com)) AS num
-        """, (ATIVO, eq, eq, ini12, fim), "C1", result)
+            SELECT (SELECT COUNT(*) FROM pontos) * 80 AS den,
+                   (SELECT COALESCE(SUM(pts), 0) FROM pontos) AS num
+        """, (eq, fim, fim, fim, fim, fim), "C2", result)
 
         # C5: HAS com PA aferida nos ultimos 6 meses
         _pct(cur, f"""
@@ -427,6 +479,14 @@ def sincronizar():
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "equipes": {},       # { nome: { C1: pct, ... } }
         "tipos_equipe": {},  # { nome: "eSF" | "eSFR" | "eSB" | ... }
+        "origem": "previa_pec",  # nunca e o resultado oficial do SIAPS
+        "observacoes": {
+            "C2": "Prévia parcial: boas práticas A–D (máx. 80 pts, sem vacinas), normalizada para 0–100",
+            "C3": "Prévia: gestantes com ≥6 consultas desde a DUM",
+            "C4": "Prévia: diabéticos com HbA1c solicitada/realizada em 12 meses",
+            "C5": "Prévia: hipertensos com PA aferida em 6 meses",
+            "C7": "Prévia: mulheres 25–64 anos com citopatológico em 3 anos",
+        },
     }
 
     for eq in equipes:

@@ -62,4 +62,5 @@ pec_sync_agent/schema_pec.txt
 pec_sync_agent/colunas_tabelas.txt
 pec_sync_agent/check_dim_equipe.txt
 pec_sync_agent/explorar_indicadores.txt
+pec_sync_agent/explorar_c2.txt
 pec_sync_agent/sync_backup_*.json
