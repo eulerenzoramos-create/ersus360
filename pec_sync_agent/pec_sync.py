@@ -19,7 +19,7 @@ import sys
 import json
 import logging
 import time
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
 
 # Carrega .env se existir (sem depender de python-dotenv)
@@ -156,22 +156,81 @@ def buscar_equipes(conn) -> list[dict]:
         cur.close()
 
 
+def _cte_pacientes_condicao(ciaps: tuple[str, ...]) -> str:
+    """
+    CTE com os cidadaos da equipe que tem problema ATIVO com algum dos CIAP
+    informados (identificados por nu_cns). Parametros (nesta ordem):
+    padrao de situacao ('%ativo%'), co_dim_equipe, co_dim_equipe.
+    """
+    lista = ", ".join(f"'{c}'" for c in ciaps)
+    return f"""
+        SELECT DISTINCT p.nu_cns::text AS nu_cns
+        FROM tb_fat_atd_ind_problemas p
+        JOIN tb_dim_ciap c ON c.co_seq_dim_ciap = p.co_dim_ciap
+        LEFT JOIN tb_dim_situacao_problema sp
+               ON sp.co_seq_dim_situacao = p.co_dim_situacao_problema
+        WHERE c.nu_ciap IN ({lista})
+          AND (sp.ds_situacao_problema ILIKE %s OR p.co_dim_situacao_problema IS NULL)
+          AND (p.co_dim_equipe_1 = %s OR p.co_dim_equipe_2 = %s)
+          AND p.nu_cns IS NOT NULL
+    """
+
+
+def _cte_cidadaos_equipe() -> str:
+    """CTE base: cidadaos vivos vinculados a equipe (1 parametro: co_dim_equipe)."""
+    return """
+        SELECT fc.co_cidadao, fc.nu_cns::text AS nu_cns,
+               t.dt_registro AS dt_nasc, sx.ds_sexo
+        FROM tb_fat_cidadao_pec fc
+        LEFT JOIN tb_dim_tempo t ON t.co_seq_dim_tempo = fc.co_dim_tempo_nascimento
+        LEFT JOIN tb_dim_sexo sx ON sx.co_seq_dim_sexo = fc.co_dim_sexo
+        WHERE fc.co_dim_equipe_vinc = %s
+          AND fc.nu_cns IS NOT NULL
+          AND COALESCE(fc.st_faleceu, 0) = 0
+          AND COALESCE(fc.st_deletar, 0) = 0
+    """
+
+
+def _pct(cur, sql: str, params: tuple, chave: str, result: dict) -> None:
+    """
+    Executa uma consulta den/num e grava o percentual so se den > 0.
+    Uma falha isola apenas este indicador (rollback + aviso), sem perder os demais.
+    """
+    try:
+        cur.execute(sql, params)
+        row = cur.fetchone()
+        if row and row["den"]:
+            result[chave] = round(row["num"] / row["den"] * 100, 1)
+    except Exception as exc:
+        cur.connection.rollback()
+        log.warning("Indicador %s nao calculado: %s", chave, exc)
+
+
+# Codigos de procedimento (tb_dim_procedimento.co_proced) confirmados no schema real.
+PROCED_HBA1C = ("ABEX008", "0202010503")
+PROCED_CITOPATOLOGICO = ("ABEX001", "0203010019", "ABPG010", "0201020033")
+
+
 def calcular_indicadores(conn, competencia: str, ine: str) -> dict:
     """
-    Calcula indicadores C1-C7 para uma equipe numa competencia.
+    Calcula indicadores por equipe numa competencia e devolve so o que foi
+    possivel calcular com confianca no schema real do e-SUS PEC 5.x
+    (esquema de fatos/dimensoes tb_fat_*/tb_dim_*, confirmado em 18/09 e
+    02/10/2026 por introspeccao somente-leitura).
 
-    Retorna dicionario {C1: pct, ...} apenas com o que foi possivel calcular
-    com confianca no schema real (confirmado em colunas_tabelas.txt de
-    18/09/2026). Este banco usa o esquema de FATOS/dimensoes do e-SUS PEC 5.x
-    (tabelas tb_fat_*/tb_dim_*), diferente do esquema OLTP simples assumido
-    na versao anterior deste arquivo.
+    TODOS os valores sao PREVIAS LOCAIS do e-SUS PEC, nao a pontuacao
+    oficial do Ministerio (que vem do SIAPS). Calculados: C2 (previa parcial
+    A-D, sem vacinas), C3 (pre-natal), C4 (diabetes/HbA1c), C5 (hipertensao)
+    e C7 (citopatologico).
+    NAO calculados, de proposito: C1 (Mais Acesso, razao oficial ponderada)
+    e C6 (avaliacao multidimensional do idoso) — sem equivalente neste PEC;
+    nada e estimado.
 
-    C1 e C5 (hipertensao/CIAP) estao mapeados e confirmados.
-    C2, C3, C4, C6, C7 ainda NAO estao mapeados neste schema (pre-natal,
-    exames e avaliacao do idoso usam tabelas tb_prontuario/tb_mchat/
-    tb_requisicao_exame cujo caminho de juncao ate cidadao/equipe ainda
-    nao foi confirmado) — propositalmente omitidos em vez de arriscar um
-    numero errado. Ver ARQUITETURA.md / pedir ao DBA a juncao correta.
+    Premissas a conferir na rodada piloto contra os relatorios oficiais:
+      - vinculo do cidadao a equipe = tb_fat_cidadao_pec.co_dim_equipe_vinc;
+      - cidadao identificado por CNS (necessario para juntar as tabelas fato);
+      - "consulta" = tipo de atendimento 1 ou 2 (consulta agendada);
+      - exame realizado = dt_realizacao, senao dt_resultado, senao dt_solicitacao.
     """
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -179,11 +238,12 @@ def calcular_indicadores(conn, competencia: str, ine: str) -> dict:
     fim   = date(ano, mes, 28)
     ini6  = fim - timedelta(days=182)
     ini12 = fim - timedelta(days=365)
+    ini36 = fim - timedelta(days=1095)
 
-    result = {}
+    result: dict = {}
+    ATIVO = "%ativo%"
 
     try:
-        # Resolve o id interno (dimensao) da equipe a partir do INE
         cur.execute("""
             SELECT co_seq_dim_equipe FROM tb_dim_equipe
             WHERE nu_ine = %s AND st_registro_valido = 1
@@ -192,75 +252,174 @@ def calcular_indicadores(conn, competencia: str, ine: str) -> dict:
         if not row:
             log.warning("INE %s nao encontrado em tb_dim_equipe", ine)
             return {}
-        co_equipe = row["co_seq_dim_equipe"]
+        eq = row["co_seq_dim_equipe"]
 
-        # ── C1: HAS (CIAP K86/K87/K85) com >= 1 consulta nos ultimos 12 meses ──
-        cur.execute("""
-            WITH has_equipe AS (
-                SELECT DISTINCT p.nu_cns
-                FROM tb_fat_atd_ind_problemas p
-                JOIN tb_dim_ciap c ON c.co_seq_dim_ciap = p.co_dim_ciap
-                LEFT JOIN tb_dim_situacao_problema sp
-                       ON sp.co_seq_dim_situacao = p.co_dim_situacao_problema
-                WHERE c.nu_ciap IN ('K86','K87','K85')
-                  AND (sp.ds_situacao_problema ILIKE %s OR p.co_dim_situacao_problema IS NULL)
-                  AND (p.co_dim_equipe_1 = %s OR p.co_dim_equipe_2 = %s)
-                  AND p.nu_cns IS NOT NULL
+        has = _cte_pacientes_condicao(("K86", "K87", "K85"))
+        dm  = _cte_pacientes_condicao(("T89", "T90"))
+
+        # C1 (Mais Acesso) nao e calculado: o C1 oficial e uma razao de acesso
+        # ponderada pelo Ministerio, sem equivalente simples no PEC.
+
+        # C2 (previa parcial A-D, max. 80 pts): criancas < 2 anos da equipe.
+        #   A: consulta de medico/enfermeiro ate o 30o dia de vida        (20)
+        #   B: >= 9 consultas de medico/enfermeiro ate 2 anos             (20)
+        #   C: >= 9 dias com peso e altura registrados ate 2 anos         (20)
+        #   D: >= 2 visitas de ACS/TACS (1a ate 30 dias, 2a ate 6 meses)  (20)
+        #   E (vacinas) fora da previa: exige regras de dose por imunobiologico.
+        _pct(cur, f"""
+            WITH criancas AS (
+                SELECT nu_cns, dt_nasc FROM ({_cte_cidadaos_equipe()}) b
+                WHERE b.dt_nasc IS NOT NULL
+                  AND b.dt_nasc <= %s::date
+                  AND b.dt_nasc > (%s::date - INTERVAL '2 years')::date
             ),
-            com_consulta AS (
-                SELECT DISTINCT a.nu_cns
-                FROM tb_fat_atendimento_individual a
-                JOIN has_equipe h ON h.nu_cns = a.nu_cns
-                WHERE a.dt_inicial_atendimento BETWEEN %s AND %s
+            cons AS (
+                SELECT c.nu_cns, c.dt_nasc, a.dt_inicial_atendimento::date AS dt
+                FROM criancas c
+                JOIN tb_fat_atendimento_individual a ON a.nu_cns::text = c.nu_cns
+                JOIN tb_dim_cbo cb ON cb.co_seq_dim_cbo IN (a.co_dim_cbo_1, a.co_dim_cbo_2)
+                WHERE cb.nu_cbo ~ '^(2235|2251|2252)'
+                  AND a.dt_inicial_atendimento::date BETWEEN c.dt_nasc
+                      AND LEAST((c.dt_nasc + INTERVAL '2 years')::date, %s::date)
+            ),
+            ok_a AS (SELECT DISTINCT nu_cns FROM cons WHERE dt <= dt_nasc + 30),
+            ok_b AS (SELECT nu_cns FROM cons GROUP BY nu_cns HAVING COUNT(DISTINCT dt) >= 9),
+            ok_c AS (
+                SELECT c.nu_cns
+                FROM criancas c
+                JOIN tb_fat_atendimento_individual a ON a.nu_cns::text = c.nu_cns
+                WHERE a.nu_peso IS NOT NULL AND a.nu_altura IS NOT NULL
+                  AND a.dt_inicial_atendimento::date BETWEEN c.dt_nasc
+                      AND LEAST((c.dt_nasc + INTERVAL '2 years')::date, %s::date)
+                GROUP BY c.nu_cns
+                HAVING COUNT(DISTINCT a.dt_inicial_atendimento::date) >= 9
+            ),
+            vis AS (
+                SELECT c.nu_cns, c.dt_nasc, t.dt_registro AS dt
+                FROM criancas c
+                JOIN tb_fat_visita_domiciliar v ON v.nu_cns::text = c.nu_cns
+                JOIN tb_dim_cbo cb ON cb.co_seq_dim_cbo = v.co_dim_cbo
+                JOIN tb_dim_tempo t ON t.co_seq_dim_tempo = v.co_dim_tempo
+                WHERE cb.nu_cbo IN ('515105', '322255')
+                  AND t.dt_registro BETWEEN c.dt_nasc
+                      AND LEAST((c.dt_nasc + INTERVAL '6 months')::date, %s::date)
+            ),
+            ok_d AS (
+                SELECT nu_cns FROM vis GROUP BY nu_cns
+                HAVING COUNT(DISTINCT dt) >= 2 AND MIN(dt) <= MIN(dt_nasc) + 30
+            ),
+            pontos AS (
+                SELECT 20 * ( (c.nu_cns IN (SELECT nu_cns FROM ok_a))::int
+                            + (c.nu_cns IN (SELECT nu_cns FROM ok_b))::int
+                            + (c.nu_cns IN (SELECT nu_cns FROM ok_c))::int
+                            + (c.nu_cns IN (SELECT nu_cns FROM ok_d))::int ) AS pts
+                FROM criancas c
             )
-            SELECT
-                (SELECT COUNT(*) FROM has_equipe)   AS den,
-                (SELECT COUNT(*) FROM com_consulta) AS num
-        """, ("%ativo%", co_equipe, co_equipe, ini12, fim))
-        row = cur.fetchone()
-        if row and row["den"]:
-            result["C1"] = round(row["num"] / row["den"] * 100, 1)
+            SELECT (SELECT COUNT(*) FROM pontos) * 80 AS den,
+                   (SELECT COALESCE(SUM(pts), 0) FROM pontos) AS num
+        """, (eq, fim, fim, fim, fim, fim), "C2", result)
 
-        # ── C5: HAS com PA aferida nos ultimos 6 meses ──────────────────────
-        cur.execute("""
-            WITH has_equipe AS (
-                SELECT DISTINCT p.nu_cns
-                FROM tb_fat_atd_ind_problemas p
-                JOIN tb_dim_ciap c ON c.co_seq_dim_ciap = p.co_dim_ciap
-                LEFT JOIN tb_dim_situacao_problema sp
-                       ON sp.co_seq_dim_situacao = p.co_dim_situacao_problema
-                WHERE c.nu_ciap IN ('K86','K87','K85')
-                  AND (sp.ds_situacao_problema ILIKE %s OR p.co_dim_situacao_problema IS NULL)
-                  AND (p.co_dim_equipe_1 = %s OR p.co_dim_equipe_2 = %s)
-                  AND p.nu_cns IS NOT NULL
-            ),
-            com_pa AS (
-                SELECT DISTINCT a.nu_cns
+        # C5: HAS com PA aferida nos ultimos 6 meses
+        _pct(cur, f"""
+            WITH base AS ({has}),
+            com AS (
+                SELECT DISTINCT a.nu_cns::text AS nu_cns
                 FROM tb_fat_atendimento_individual a
-                JOIN has_equipe h ON h.nu_cns = a.nu_cns
                 WHERE a.dt_inicial_atendimento BETWEEN %s AND %s
                   AND a.nu_pressao_sistolica IS NOT NULL
             )
-            SELECT
-                (SELECT COUNT(*) FROM has_equipe) AS den,
-                (SELECT COUNT(*) FROM com_pa)     AS num
-        """, ("%ativo%", co_equipe, co_equipe, ini6, fim))
-        row = cur.fetchone()
-        if row and row["den"]:
-            result["C5"] = round(row["num"] / row["den"] * 100, 1)
+            SELECT (SELECT COUNT(*) FROM base) AS den,
+                   (SELECT COUNT(*) FROM base WHERE nu_cns IN (SELECT nu_cns FROM com)) AS num
+        """, (ATIVO, eq, eq, ini6, fim), "C5", result)
 
-        # ── C2, C3, C4, C6, C7: schema ainda nao mapeado neste PEC ──────────
-        # C2 (desenvolvimento infantil), C6 (avaliacao multidimensional idoso):
-        #   as colunas assumidas (st_avaliacao_desenvolvimento,
-        #   st_avaliacao_multidimensional) nao existem em
-        #   tb_fat_atendimento_individual neste banco.
-        # C3 (pre-natal): tb_pre_natal/tb_atend_prof_pre_natal nao tem link
-        #   direto e confirmado ate cidadao/equipe neste schema.
-        # C4 (HbA1c): tb_requisicao_exame/tb_exame_requisitado ligam ao
-        #   atendimento profissional (co_atend_prof), nao diretamente ao
-        #   cidadao/CPF/CNS — falta confirmar essa tabela intermediaria.
-        for c in ("C2", "C3", "C4", "C6", "C7"):
-            log.debug("  %s nao calculado — schema pendente de mapeamento", c)
+        # C4: DM com HbA1c solicitada/realizada nos ultimos 12 meses
+        _pct(cur, f"""
+            WITH base AS ({dm}),
+            por_proced AS (
+                SELECT DISTINCT pr.nu_cns::text AS nu_cns
+                FROM tb_fat_atd_ind_procedimentos pr
+                JOIN tb_dim_procedimento dp
+                  ON dp.co_seq_dim_procedimento IN
+                     (pr.co_dim_procedimento_solicitado, pr.co_dim_procedimento_avaliado)
+                WHERE dp.co_proced = ANY(%s)
+                  AND pr.dt_inicial_atendimento BETWEEN %s AND %s
+            ),
+            por_exame AS (
+                SELECT DISTINCT fc.nu_cns::text AS nu_cns
+                FROM tb_exame_hemoglobina_glicada hg
+                JOIN tb_exame_requisitado er ON er.co_seq_exame_requisitado = hg.co_exame_requisitado
+                JOIN tb_prontuario pt ON pt.co_seq_prontuario = er.co_prontuario
+                JOIN tb_fat_cidadao_pec fc ON fc.co_cidadao = pt.co_cidadao
+                WHERE COALESCE(er.dt_realizacao, er.dt_resultado, er.dt_solicitacao)
+                      BETWEEN %s AND %s
+            ),
+            com AS (SELECT nu_cns FROM por_proced UNION SELECT nu_cns FROM por_exame)
+            SELECT (SELECT COUNT(*) FROM base) AS den,
+                   (SELECT COUNT(*) FROM base WHERE nu_cns IN (SELECT nu_cns FROM com)) AS num
+        """, (ATIVO, eq, eq, list(PROCED_HBA1C), ini12, fim, ini12, fim), "C4", result)
+
+        # C3: gestantes (DUM nos ultimos 12 meses) com >= 6 consultas desde a DUM
+        _pct(cur, """
+            WITH gest AS (
+                SELECT fc.nu_cns::text AS nu_cns,
+                       MAX(pn.dt_ultima_menstruacao)::date AS dum
+                FROM tb_pre_natal pn
+                JOIN tb_prontuario pt ON pt.co_seq_prontuario = pn.co_prontuario
+                JOIN tb_fat_cidadao_pec fc ON fc.co_cidadao = pt.co_cidadao
+                WHERE fc.co_dim_equipe_vinc = %s
+                  AND fc.nu_cns IS NOT NULL
+                  AND COALESCE(fc.st_faleceu, 0) = 0
+                  AND COALESCE(fc.st_deletar, 0) = 0
+                  AND pn.dt_ultima_menstruacao BETWEEN %s AND %s
+                GROUP BY fc.nu_cns
+            ),
+            com6 AS (
+                SELECT g.nu_cns
+                FROM gest g
+                JOIN tb_fat_atendimento_individual a ON a.nu_cns::text = g.nu_cns
+                JOIN tb_dim_tipo_atendimento ta
+                  ON ta.co_seq_dim_tipo_atendimento = a.co_dim_tipo_atendimento
+                WHERE ta.nu_identificador IN ('1', '2')
+                  AND a.dt_inicial_atendimento >= g.dum
+                  AND a.dt_inicial_atendimento < %s::date + 1
+                GROUP BY g.nu_cns
+                HAVING COUNT(*) >= 6
+            )
+            SELECT (SELECT COUNT(*) FROM gest) AS den,
+                   (SELECT COUNT(*) FROM com6) AS num
+        """, (eq, ini12, fim, fim), "C3", result)
+
+        # C7: mulheres 25-64 anos com citopatologico nos ultimos 3 anos
+        _pct(cur, f"""
+            WITH mulheres AS (
+                SELECT DISTINCT nu_cns FROM ({_cte_cidadaos_equipe()}) b
+                WHERE b.ds_sexo ILIKE %s
+                  AND DATE_PART('year', AGE(%s::date, b.dt_nasc)) BETWEEN 25 AND 64
+            ),
+            por_proced AS (
+                SELECT DISTINCT pr.nu_cns::text AS nu_cns
+                FROM tb_fat_atd_ind_procedimentos pr
+                JOIN tb_dim_procedimento dp
+                  ON dp.co_seq_dim_procedimento IN
+                     (pr.co_dim_procedimento_solicitado, pr.co_dim_procedimento_avaliado)
+                WHERE dp.co_proced = ANY(%s)
+                  AND pr.dt_inicial_atendimento BETWEEN %s AND %s
+            ),
+            por_exame AS (
+                SELECT DISTINCT fc.nu_cns::text AS nu_cns
+                FROM tb_sol_exame_citopatologico s
+                JOIN tb_exame_requisitado er ON er.co_requisicao_exame = s.co_requisicao_exame
+                JOIN tb_prontuario pt ON pt.co_seq_prontuario = er.co_prontuario
+                JOIN tb_fat_cidadao_pec fc ON fc.co_cidadao = pt.co_cidadao
+                WHERE COALESCE(er.dt_realizacao, er.dt_resultado, er.dt_solicitacao)
+                      BETWEEN %s AND %s
+            ),
+            com AS (SELECT nu_cns FROM por_proced UNION SELECT nu_cns FROM por_exame)
+            SELECT (SELECT COUNT(*) FROM mulheres) AS den,
+                   (SELECT COUNT(*) FROM mulheres WHERE nu_cns IN (SELECT nu_cns FROM com)) AS num
+        """, (eq, "fem%", fim, list(PROCED_CITOPATOLOGICO), ini36, fim, ini36, fim), "C7", result)
+
+        # C2 e C6: sem mapeamento neste PEC (ver docstring) — nao calculados.
 
     except Exception as exc:
         log.warning("Erro ao calcular indicadores para INE %s: %s", ine, exc)
@@ -317,9 +476,17 @@ def sincronizar():
     payload = {
         "competencia": comp,
         "ibge": IBGE,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "equipes": {},       # { nome: { C1: pct, ... } }
         "tipos_equipe": {},  # { nome: "eSF" | "eSFR" | "eSB" | ... }
+        "origem": "previa_pec",  # nunca e o resultado oficial do SIAPS
+        "observacoes": {
+            "C2": "Prévia parcial: boas práticas A–D (máx. 80 pts, sem vacinas), normalizada para 0–100",
+            "C3": "Prévia: gestantes com ≥6 consultas desde a DUM",
+            "C4": "Prévia: diabéticos com HbA1c solicitada/realizada em 12 meses",
+            "C5": "Prévia: hipertensos com PA aferida em 6 meses",
+            "C7": "Prévia: mulheres 25–64 anos com citopatológico em 3 anos",
+        },
     }
 
     for eq in equipes:

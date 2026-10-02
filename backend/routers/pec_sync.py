@@ -114,6 +114,8 @@ class SyncPayload(BaseModel):
     timestamp: str
     equipes: Dict[str, Dict[str, float]]        # {"CACHOEIRA": {"C1": 78.5, ...}}
     tipos_equipe: Optional[Dict[str, str]] = {} # {"CACHOEIRA": "eSF", "RIO NEGRO": "eSFR"}
+    origem: Optional[str] = None                # "previa_pec": nunca é resultado oficial
+    observacoes: Optional[Dict[str, str]] = {}  # {"C2": "Prévia parcial A–D ..."}
 
 
 class IndicadoresResponse(BaseModel):
@@ -123,6 +125,26 @@ class IndicadoresResponse(BaseModel):
     ultima_atualizacao: Optional[str] = None
     fonte: str = "e-SUS PEC"
     equipes_lista: Optional[List[Dict[str, Any]]] = None   # equipes do município (relatórios SIAPS/CNES)
+    # equipe -> {indicador: descrição} só para valores que são PRÉVIA local do e-SUS PEC (não oficiais)
+    previa: Optional[Dict[str, Dict[str, str]]] = None
+
+
+PREVIA_PADRAO = "Prévia e-SUS PEC (não oficial)"
+
+
+def marcar_previa(
+    equipes_pec: Optional[Dict[str, Dict[str, float]]],
+    observacoes: Optional[Dict[str, str]],
+    oficial: Optional[Dict[str, Dict[str, float]]] = None,
+) -> Dict[str, Dict[str, str]]:
+    """Valores do agente PEC que NÃO têm resultado oficial correspondente = prévia."""
+    out: Dict[str, Dict[str, str]] = {}
+    for equipe, inds in (equipes_pec or {}).items():
+        for cod in inds:
+            if cod in ((oficial or {}).get(equipe) or {}):
+                continue
+            out.setdefault(equipe, {})[cod] = (observacoes or {}).get(cod, PREVIA_PADRAO)
+    return out
 
 
 # ── Armazenamento em arquivo JSON (cache local no Railway) ───────────────────
@@ -203,7 +225,9 @@ async def receber_sync(
         "equipes": payload.equipes,
         "tipos_equipe": payload.tipos_equipe or {},
         "ultima_atualizacao": datetime.utcnow().isoformat(),
-        "fonte": "e-SUS PEC",
+        "fonte": "e-SUS PEC — prévia local (não oficial)",
+        "origem": payload.origem or "previa_pec",
+        "observacoes": payload.observacoes or {},
     }
     _salvar_cache(payload.competencia, registro)
     alertas = _gerar_alertas_aps(payload.equipes, payload.competencia)
@@ -227,11 +251,16 @@ async def get_indicadores(competencia: str, current: SessaoMunicipal, db: AsyncS
     importado = await _indicadores_importados(db, current.municipio_id, competencia)
     if importado:
         if data:   # completa com o PEC só os indicadores que o SIAPS importado não trouxe
+            previa = marcar_previa(data.get("equipes"), data.get("observacoes"), importado["equipes"])
             for equipe, inds in (data.get("equipes") or {}).items():
                 for cod, v in inds.items():
                     importado["equipes"].setdefault(equipe, {}).setdefault(cod, v)
+            if previa:
+                importado["previa"] = previa
+                importado["fonte"] += " · complementado com prévia e-SUS PEC (não oficial)"
         return IndicadoresResponse(**importado)
     if data:
+        data = {**data, "previa": marcar_previa(data.get("equipes"), data.get("observacoes"))}
         return IndicadoresResponse(**data)
     # Fallback: referência derivada de scores SIAPS — C1 e C6 indisponíveis sem PEC
     return IndicadoresResponse(

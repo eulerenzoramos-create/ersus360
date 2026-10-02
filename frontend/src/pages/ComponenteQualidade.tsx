@@ -1170,6 +1170,25 @@ export default function ComponenteQualidade() {
         </div>
       )}
 
+      {(() => {
+        const prev = (pecData as any)?.previa as Record<string, Record<string, string>> | undefined;
+        const desc: Record<string, string> = {};
+        Object.values(prev ?? {}).forEach(o => Object.entries(o).forEach(([cod, d]) => { desc[cod] ??= d; }));
+        const cods = Object.keys(desc).sort();
+        if (!cods.length) return null;
+        return (
+          <div style={{ background:"#eff6ff", border:"1px solid #93c5fd", color:"#1e3a8a", borderRadius:10,
+                        padding:"10px 14px", marginBottom:16, fontSize:13 }}>
+            <strong>◐ Prévia do e-SUS PEC (não oficial): {cods.join(", ")}.</strong>
+            <span style={{ fontWeight:400 }}> Calculada localmente a partir do prontuário, sem a pontuação do Ministério;
+              o resultado oficial do SIAPS substitui a prévia quando importado.</span>
+            <ul style={{ margin:"6px 0 0 18px", padding:0, fontSize:12 }}>
+              {cods.map(c => <li key={c}><strong>{c}</strong> — {desc[c]}</li>)}
+            </ul>
+          </div>
+        );
+      })()}
+
       {/* ── 1. Selecione um Indicador ────────────────── */}
       <SeletorIndicador
         tipoEquipe={tipoEquipe} onTipoEquipe={handleTipoEquipe}
