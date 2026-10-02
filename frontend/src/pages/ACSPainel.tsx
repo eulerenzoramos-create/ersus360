@@ -214,7 +214,7 @@ function AbaVisitas({ fonte, periodTipo, competencia: compProp, dataFiltro, anoF
   const bannerBd    = isPec ? "#bbf7d0" : "#bfdbfe";
   const bannerTxt   = isPec ? "#15803d" : "#1d4ed8";
   const bannerEmoji = isPec ? "✅" : "📋";
-  const bannerMsg   = isPec ? "e-SUS PEC · Dados em tempo real" : "Dados de referência CNES · Apuí/AM";
+  const bannerMsg   = isPec ? "e-SUS PEC · Dados em tempo real" : "Fonte não informada";
 
   const cardsTop = isPec ? [
     { label: "Visitas Domiciliares",    val: prod.visitas_domiciliares ?? 0,       cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
@@ -686,7 +686,7 @@ function AbaListaAcs({ acsRef }: { acsRef: AcsItem[] }) {
       {conectado && <ConectadoBanner texto={`${esusAcs?.dados?.total ?? 0} ACS no e-SUS PEC · CBO 515140`} />}
       {!conectado && (
         <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#92400e" }}>
-          ⚠ Dados de referência CNES — configure ESUS_USUARIO e ESUS_SENHA no Railway para dados reais do e-SUS PEC.
+          ⚠ Dado não disponível: a lista de ACS virá do CNES importado e, depois da autorização da Secretaria, do e-SUS PEC (agente local). Nenhum nome ou número é estimado.
         </div>
       )}
       <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" as const, alignItems: "center" }}>
@@ -756,7 +756,7 @@ function AbaMicroareas({ maRef }: { maRef: any[] }) {
       {conectado && <ConectadoBanner texto={`${terr?.dados?.total ?? 0} territórios no e-SUS PEC`} />}
       {!conectado && (
         <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#92400e" }}>
-          ⚠ Dados de referência — configure credenciais no Railway para territórios reais do e-SUS PEC.
+          ⚠ Dado não disponível: as microáreas virão do e-SUS PEC (agente local, após autorização da Secretaria). Nenhum valor é estimado.
         </div>
       )}
 
@@ -1069,7 +1069,7 @@ export default function ACSPainel() {
               )}
             </div>
             <div style={{ fontSize: 12, color: "#bfdbfe" }}>
-              Agentes Comunitários de Saúde · Apuí/AM · 65 ACS · 65 Microáreas
+              Agentes Comunitários de Saúde · Apuí/AM
             </div>
           </div>
 
@@ -1079,10 +1079,10 @@ export default function ACSPainel() {
               {esusStatus?.conectado ? <Wifi size={14} color={corPec} /> : <WifiOff size={14} color={corPec} />}
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: corPec }}>
-                  eSUS PEC · {esusStatus?.conectado ? (esusStatus.autenticado ? "Conectado ✓" : "Sem credenciais") : "Offline"}
+                  eSUS PEC · {esusStatus?.conectado ? (esusStatus.autenticado ? "Conectado ✓" : "Sem credenciais") : "Sem conexão direta"}
                 </div>
                 <div style={{ fontSize: 9, color: "#6b7280" }}>
-                  {esusStatus?.autenticado ? `v${esusStatus.versao || "—"} · ${esusStatus.instancia || ""}` : esusStatus?.conectado ? "Adicione ESUS_USUARIO e ESUS_SENHA no Railway" : "Servidor inacessível"}
+                  {esusStatus?.autenticado ? `v${esusStatus.versao || "—"} · ${esusStatus.instancia || ""}` : esusStatus?.conectado ? "Adicione ESUS_USUARIO e ESUS_SENHA no Railway" : "Atualização via agente local"}
                 </div>
               </div>
             </div>
@@ -1113,7 +1113,7 @@ export default function ACSPainel() {
 
         {/* ── Dashboard ── */}
         {aba === "dashboard" && !k && !isLoading && (
-          <NaoDisponivelBanner nota="Dados de referência CNES não carregados. Tente recarregar a página." />
+          <NaoDisponivelBanner nota="Os dados do Painel ACS dependem do e-SUS PEC (agente local, após autorização da Secretaria) e do CNES importado. Nenhum valor é estimado." />
         )}
 
         {aba === "dashboard" && k && (
