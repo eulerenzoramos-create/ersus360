@@ -465,20 +465,20 @@ async def atualizar_status(matricula: str, payload: dict):
 
 @router.get("/presenca")
 async def folha_presenca(competencia: str = Query("2026-07"), setor: str = Query("")):
-    """Retorna estrutura para folha de presença mensal por setor."""
+    """Retorna estrutura para folha de presença mensal, agrupada por UBS / unidade e, dentro dela, por setor."""
     from calendar import monthrange
     ano, mes = [int(x) for x in competencia.split("-")]
     _, dias_mes = monthrange(ano, mes)
     dados = _folha_com_patches(competencia)
     verbas = dados["verbas"]
     if setor:
-        verbas = [v for v in verbas if v.get("lotacao","") == setor or v.get("setor","") == setor]
-    setores: dict = {}
+        verbas = [v for v in verbas if v.get("lotacao","") == setor or v.get("setor","") == setor
+                  or v.get("ubs_nome","") == setor]
+    unidades: dict = {}
     for v in verbas:
-        s = v.get("lotacao") or v.get("setor") or "Sem Setor"
-        if s not in setores:
-            setores[s] = []
-        setores[s].append({
+        ubs = v.get("ubs_nome") or v.get("lotacao") or v.get("setor") or "Sem UBS"
+        st = v.get("lotacao") or v.get("setor") or "Sem Setor"
+        unidades.setdefault(ubs, {}).setdefault(st, []).append({
             "matricula": v["matricula"],
             "nome": v["nome"],
             "cargo": v["cargo"],
@@ -486,12 +486,17 @@ async def folha_presenca(competencia: str = Query("2026-07"), setor: str = Query
             "status": v.get("status", "ativo"),
             "carga_horaria": v.get("carga_horaria", 40),
         })
+    unidades_lista = []
+    for ubs, setores in sorted(unidades.items()):
+        setores_lista = [{"nome": s, "servidores": servs} for s, servs in sorted(setores.items())]
+        total = sum(len(s["servidores"]) for s in setores_lista)
+        unidades_lista.append({"ubs_nome": ubs, "total_servidores": total, "setores": setores_lista})
     return {
         "competencia": competencia,
         "ano": ano,
         "mes": mes,
         "dias_mes": dias_mes,
-        "setores": [{"nome": k, "servidores": v} for k,v in sorted(setores.items())],
+        "unidades": unidades_lista,
     }
 
 
