@@ -63,6 +63,56 @@ const COMP_LABEL: Record<string,string> = {
   "2026-09":"Set/2026","2026-10":"Out/2026","2026-11":"Nov/2026","2026-12":"Dez/2026",
 };
 
+// ── UBS / Unidades de Saúde — ordem, cor e ícone (compartilhado entre abas Lotação e Presença) ──
+const UBS_ORDEM = [
+  "UBS Irmã Elizabete",
+  "UBS Anizio Ferreira da Silva",
+  "UBS Osvaldo Lemes Cabral",
+  "Centro de Saúde Curumim",
+  "UBS Padre Faliero Bonci",
+  "UBS JK",
+  "UBS Cláudia Pereira dos Santos Damacena",
+  "CAPS AD — Centro de Atenção Psicossocial",
+  "Hospital Municipal de Apuí",
+  "Vigilância em Saúde — SEMSA",
+  "Vigilância Sanitária — SEMSA",
+  "Sede SEMSA — Secretaria Municipal de Saúde",
+];
+const COR_UBS: Record<string,string> = {
+  "UBS Irmã Elizabete":"#1a6baa",
+  "UBS Anizio Ferreira da Silva":"#0e7a5a",
+  "UBS Osvaldo Lemes Cabral":"#7c3aed",
+  "Centro de Saúde Curumim":"#d97706",
+  "UBS Padre Faliero Bonci":"#0284c7",
+  "UBS JK":"#059669",
+  "UBS Cláudia Pereira dos Santos Damacena":"#db2777",
+  "CAPS AD — Centro de Atenção Psicossocial":"#6366f1",
+  "Hospital Municipal de Apuí":"#b83232",
+  "Vigilância em Saúde — SEMSA":"#92400e",
+  "Vigilância Sanitária — SEMSA":"#854d0e",
+  "Sede SEMSA — Secretaria Municipal de Saúde":"#374151",
+};
+const ICONE_UBS: Record<string,string> = {
+  "UBS Irmã Elizabete":"🏥",
+  "UBS Anizio Ferreira da Silva":"🏥",
+  "UBS Osvaldo Lemes Cabral":"🏥",
+  "Centro de Saúde Curumim":"🏥",
+  "UBS Padre Faliero Bonci":"🏥",
+  "UBS JK":"🏥",
+  "UBS Cláudia Pereira dos Santos Damacena":"🏥",
+  "CAPS AD — Centro de Atenção Psicossocial":"🧠",
+  "Hospital Municipal de Apuí":"🏨",
+  "Vigilância em Saúde — SEMSA":"🔬",
+  "Vigilância Sanitária — SEMSA":"🛡️",
+  "Sede SEMSA — Secretaria Municipal de Saúde":"🏛️",
+};
+function ordenarUbsKeys(keys: string[]): string[] {
+  return [
+    ...UBS_ORDEM.filter(k => keys.includes(k)),
+    ...keys.filter(k => !UBS_ORDEM.includes(k)).sort(),
+  ];
+}
+
 function StatusBadge({ status }: { status: string }) {
   const cor = COR_STATUS[status] || "#6b7280";
   return (
@@ -1022,53 +1072,8 @@ export default function FolhaPagamento() {
               if (!ubsMap.has(key)) ubsMap.set(key, []);
               ubsMap.get(key)!.push(v);
             }
-            // Ordena: UBS primeiro, depois Sede/Hospital/Vig
-            const ubsOrdem = [
-              "UBS Irmã Elizabete",
-              "UBS Anizio Ferreira da Silva",
-              "UBS Osvaldo Lemes Cabral",
-              "Centro de Saúde Curumim",
-              "UBS Padre Faliero Bonci",
-              "UBS JK",
-              "UBS Cláudia Pereira dos Santos Damacena",
-              "CAPS AD — Centro de Atenção Psicossocial",
-              "Hospital Municipal de Apuí",
-              "Vigilância em Saúde — SEMSA",
-              "Vigilância Sanitária — SEMSA",
-              "Sede SEMSA — Secretaria Municipal de Saúde",
-            ];
-            const ubsKeys = [
-              ...ubsOrdem.filter(k => ubsMap.has(k)),
-              ...[...ubsMap.keys()].filter(k => !ubsOrdem.includes(k)).sort(),
-            ];
-            const COR_UBS: Record<string,string> = {
-              "UBS Irmã Elizabete":"#1a6baa",
-              "UBS Anizio Ferreira da Silva":"#0e7a5a",
-              "UBS Osvaldo Lemes Cabral":"#7c3aed",
-              "Centro de Saúde Curumim":"#d97706",
-              "UBS Padre Faliero Bonci":"#0284c7",
-              "UBS JK":"#059669",
-              "UBS Cláudia Pereira dos Santos Damacena":"#db2777",
-              "CAPS AD — Centro de Atenção Psicossocial":"#6366f1",
-              "Hospital Municipal de Apuí":"#b83232",
-              "Vigilância em Saúde — SEMSA":"#92400e",
-              "Vigilância Sanitária — SEMSA":"#854d0e",
-              "Sede SEMSA — Secretaria Municipal de Saúde":"#374151",
-            };
-            const ICONE_UBS: Record<string,string> = {
-              "UBS Irmã Elizabete":"🏥",
-              "UBS Anizio Ferreira da Silva":"🏥",
-              "UBS Osvaldo Lemes Cabral":"🏥",
-              "Centro de Saúde Curumim":"🏥",
-              "UBS Padre Faliero Bonci":"🏥",
-              "UBS JK":"🏥",
-              "UBS Cláudia Pereira dos Santos Damacena":"🏥",
-              "CAPS AD — Centro de Atenção Psicossocial":"🧠",
-              "Hospital Municipal de Apuí":"🏨",
-              "Vigilância em Saúde — SEMSA":"🔬",
-              "Vigilância Sanitária — SEMSA":"🛡️",
-              "Sede SEMSA — Secretaria Municipal de Saúde":"🏛️",
-            };
+            // Ordena: UBS primeiro, depois Sede/Hospital/Vig (constantes compartilhadas no topo do arquivo)
+            const ubsKeys = ordenarUbsKeys([...ubsMap.keys()]);
             return (
               <div style={{ background:"#fff", border:"1px solid #dde4ee", borderRadius:"0 0 10px 10px", padding:20 }}>
                 <div style={{ fontWeight:700, fontSize:14, color:"#0d2137", marginBottom:16,
@@ -1226,107 +1231,125 @@ export default function FolhaPagamento() {
 
               {!presencaData ? (
                 <div style={{ padding:24, textAlign:"center", color:"#9ca3af" }}>Carregando...</div>
-              ) : (presencaData as any)?.setores?.map((setor: any) => {
+              ) : (() => {
                 const dias = Array.from({length:(presencaData as any).dias_mes},(_,i)=>i+1);
                 const diasUteis = dias.filter(d => {
                   const dt = new Date((presencaData as any).ano, (presencaData as any).mes-1, d);
                   return dt.getDay() !== 0 && dt.getDay() !== 6;
                 });
-                return (
-                  <div key={setor.nome} style={{ marginBottom:28 }}>
-                    <div style={{ background:"#1a3356", color:"#fff", padding:"8px 14px",
-                      borderRadius:"8px 8px 0 0", fontWeight:700, fontSize:12,
-                      display:"flex", justifyContent:"space-between" }}>
-                      <span><MapPin size={12} style={{ marginRight:5, verticalAlign:"middle" }}/>{setor.nome}</span>
-                      <span>{setor.servidores.length} servidores · {diasUteis.length} dias úteis</span>
+                const unidades: any[] = (presencaData as any)?.unidades || [];
+                return unidades.map((unidade: any) => {
+                  const corUbs = COR_UBS[unidade.ubs_nome] || "#374151";
+                  const iconeUbs = ICONE_UBS[unidade.ubs_nome] || "📍";
+                  return (
+                    <div key={unidade.ubs_nome} style={{ marginBottom:32 }}>
+                      <div style={{ background:corUbs, color:"#fff", padding:"10px 14px",
+                        borderRadius:"8px 8px 0 0", fontWeight:800, fontSize:13,
+                        display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                        <span>{iconeUbs} {unidade.ubs_nome}</span>
+                        <span style={{ fontWeight:600, fontSize:11 }}>{unidade.total_servidores} servidores</span>
+                      </div>
+                      <div style={{ border:`1px solid ${corUbs}30`, borderTop:"none", borderRadius:"0 0 8px 8px",
+                        padding:"12px 14px 2px" }}>
+                        {unidade.setores.map((setor: any) => (
+                          <div key={setor.nome} style={{ marginBottom:20 }}>
+                            <div style={{ background:"#1a3356", color:"#fff", padding:"7px 14px",
+                              borderRadius:"6px 6px 0 0", fontWeight:700, fontSize:11,
+                              display:"flex", justifyContent:"space-between" }}>
+                              <span><MapPin size={11} style={{ marginRight:5, verticalAlign:"middle" }}/>{setor.nome}</span>
+                              <span>{setor.servidores.length} servidores · {diasUteis.length} dias úteis</span>
+                            </div>
+                            <div style={{ overflowX:"auto", border:"1px solid #dde4ee", borderTop:"none" }}>
+                              <table style={{ width:"100%", borderCollapse:"collapse", minWidth:900 }}>
+                                <thead>
+                                  <tr>
+                                    <th style={{ ...thSt, position:"sticky", left:0, zIndex:1, minWidth:200, background:"#e8f1fa" }}>Servidor</th>
+                                    <th style={{ ...thSt, minWidth:120 }}>Cargo</th>
+                                    <th style={{ ...thSt, minWidth:80 }}>Situação</th>
+                                    {diasUteis.map(d => {
+                                      const dt = new Date((presencaData as any).ano, (presencaData as any).mes-1, d);
+                                      return (
+                                        <th key={d} style={{ ...thSt, textAlign:"center", minWidth:34, padding:"6px 4px" }}>
+                                          <div>{d}</div>
+                                          <div style={{ fontWeight:400, fontSize:8, color:"#6b7280" }}>
+                                            {["D","S","T","Q","Q","S","S"][dt.getDay()]}
+                                          </div>
+                                        </th>
+                                      );
+                                    })}
+                                    <th style={thSt}>P</th>
+                                    <th style={thSt}>F</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {setor.servidores.map((s: any, i: number) => {
+                                    const bgRow = i%2===0?"#fff":"#f9fafb";
+                                    const marcacoesLinha = diasUteis.map(d => getMarcacao(s.matricula, d, s.status));
+                                    const totalP = marcacoesLinha.filter(m => m==="P").length;
+                                    const totalF = marcacoesLinha.filter(m => m==="F" || m==="FJ").length;
+                                    return (
+                                      <tr key={s.matricula} style={{ background: bgRow }}>
+                                        <td style={{ ...tdSt, fontWeight:600, position:"sticky", left:0, background:bgRow, zIndex:0 }}>
+                                          {s.nome}
+                                        </td>
+                                        <td style={{ ...tdSt, fontSize:10, color:"#6b7280" }}>{s.cargo}</td>
+                                        <td style={tdSt}><StatusBadge status={s.status||"ativo"}/></td>
+                                        {diasUteis.map(d => {
+                                          const k = chave(s.matricula, d);
+                                          const marc = getMarcacao(s.matricula, d, s.status);
+                                          const cor = COR_MARC[marc];
+                                          const isOpen = celulaPop === k;
+                                          return (
+                                            <td key={d} style={{ ...tdSt, textAlign:"center", padding:"3px 2px", position:"relative" }}>
+                                              <button
+                                                onClick={e => { e.stopPropagation(); setCelulaPop(isOpen ? null : k); }}
+                                                title={LABEL_MARC[marc]}
+                                                style={{ background:cor+"18", color:cor, border:`1px solid ${cor}44`,
+                                                  borderRadius:4, fontSize:9, fontWeight:800, width:26, height:22,
+                                                  cursor:"pointer", lineHeight:1 }}>
+                                                {marc}
+                                              </button>
+                                              {isOpen && (
+                                                <div onClick={e => e.stopPropagation()}
+                                                  style={{ position:"absolute", top:28, left:"50%", transform:"translateX(-50%)",
+                                                    background:"#fff", border:"1px solid #d1d5db", borderRadius:8,
+                                                    boxShadow:"0 8px 24px rgba(0,0,0,.15)", zIndex:100,
+                                                    padding:6, display:"flex", flexDirection:"column", gap:3, minWidth:120 }}>
+                                                  {MARCACOES.map(m => (
+                                                    <button key={m} onClick={() => setMarcacao(s.matricula, d, m)}
+                                                      style={{ display:"flex", alignItems:"center", gap:6,
+                                                        padding:"5px 8px", border:"none", borderRadius:5,
+                                                        background: marc===m ? COR_MARC[m]+"22" : "transparent",
+                                                        cursor:"pointer", fontSize:11, fontWeight: marc===m ? 800 : 400,
+                                                        color: COR_MARC[m], textAlign:"left" as const }}>
+                                                      <span style={{ background:COR_MARC[m], color:"#fff",
+                                                        fontSize:9, fontWeight:800, padding:"1px 5px",
+                                                        borderRadius:3, minWidth:22, textAlign:"center" as const }}>{m}</span>
+                                                      {LABEL_MARC[m]}
+                                                    </button>
+                                                  ))}
+                                                </div>
+                                              )}
+                                            </td>
+                                          );
+                                        })}
+                                        <td style={{ ...tdSt, textAlign:"center", fontWeight:700, color:"#059669" }}>{totalP}</td>
+                                        <td style={{ ...tdSt, textAlign:"center", fontWeight:700, color: totalF>0?"#dc2626":"#9ca3af" }}>
+                                          {totalF > 0 ? totalF : "—"}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div style={{ overflowX:"auto", border:"1px solid #dde4ee", borderTop:"none" }}>
-                      <table style={{ width:"100%", borderCollapse:"collapse", minWidth:900 }}>
-                        <thead>
-                          <tr>
-                            <th style={{ ...thSt, position:"sticky", left:0, zIndex:1, minWidth:200, background:"#e8f1fa" }}>Servidor</th>
-                            <th style={{ ...thSt, minWidth:120 }}>Cargo</th>
-                            <th style={{ ...thSt, minWidth:80 }}>Situação</th>
-                            {diasUteis.map(d => {
-                              const dt = new Date((presencaData as any).ano, (presencaData as any).mes-1, d);
-                              return (
-                                <th key={d} style={{ ...thSt, textAlign:"center", minWidth:34, padding:"6px 4px" }}>
-                                  <div>{d}</div>
-                                  <div style={{ fontWeight:400, fontSize:8, color:"#6b7280" }}>
-                                    {["D","S","T","Q","Q","S","S"][dt.getDay()]}
-                                  </div>
-                                </th>
-                              );
-                            })}
-                            <th style={thSt}>P</th>
-                            <th style={thSt}>F</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {setor.servidores.map((s: any, i: number) => {
-                            const bgRow = i%2===0?"#fff":"#f9fafb";
-                            const marcacoesLinha = diasUteis.map(d => getMarcacao(s.matricula, d, s.status));
-                            const totalP = marcacoesLinha.filter(m => m==="P").length;
-                            const totalF = marcacoesLinha.filter(m => m==="F" || m==="FJ").length;
-                            return (
-                              <tr key={s.matricula} style={{ background: bgRow }}>
-                                <td style={{ ...tdSt, fontWeight:600, position:"sticky", left:0, background:bgRow, zIndex:0 }}>
-                                  {s.nome}
-                                </td>
-                                <td style={{ ...tdSt, fontSize:10, color:"#6b7280" }}>{s.cargo}</td>
-                                <td style={tdSt}><StatusBadge status={s.status||"ativo"}/></td>
-                                {diasUteis.map(d => {
-                                  const k = chave(s.matricula, d);
-                                  const marc = getMarcacao(s.matricula, d, s.status);
-                                  const cor = COR_MARC[marc];
-                                  const isOpen = celulaPop === k;
-                                  return (
-                                    <td key={d} style={{ ...tdSt, textAlign:"center", padding:"3px 2px", position:"relative" }}>
-                                      <button
-                                        onClick={e => { e.stopPropagation(); setCelulaPop(isOpen ? null : k); }}
-                                        title={LABEL_MARC[marc]}
-                                        style={{ background:cor+"18", color:cor, border:`1px solid ${cor}44`,
-                                          borderRadius:4, fontSize:9, fontWeight:800, width:26, height:22,
-                                          cursor:"pointer", lineHeight:1 }}>
-                                        {marc}
-                                      </button>
-                                      {isOpen && (
-                                        <div onClick={e => e.stopPropagation()}
-                                          style={{ position:"absolute", top:28, left:"50%", transform:"translateX(-50%)",
-                                            background:"#fff", border:"1px solid #d1d5db", borderRadius:8,
-                                            boxShadow:"0 8px 24px rgba(0,0,0,.15)", zIndex:100,
-                                            padding:6, display:"flex", flexDirection:"column", gap:3, minWidth:120 }}>
-                                          {MARCACOES.map(m => (
-                                            <button key={m} onClick={() => setMarcacao(s.matricula, d, m)}
-                                              style={{ display:"flex", alignItems:"center", gap:6,
-                                                padding:"5px 8px", border:"none", borderRadius:5,
-                                                background: marc===m ? COR_MARC[m]+"22" : "transparent",
-                                                cursor:"pointer", fontSize:11, fontWeight: marc===m ? 800 : 400,
-                                                color: COR_MARC[m], textAlign:"left" as const }}>
-                                              <span style={{ background:COR_MARC[m], color:"#fff",
-                                                fontSize:9, fontWeight:800, padding:"1px 5px",
-                                                borderRadius:3, minWidth:22, textAlign:"center" as const }}>{m}</span>
-                                              {LABEL_MARC[m]}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </td>
-                                  );
-                                })}
-                                <td style={{ ...tdSt, textAlign:"center", fontWeight:700, color:"#059669" }}>{totalP}</td>
-                                <td style={{ ...tdSt, textAlign:"center", fontWeight:700, color: totalF>0?"#dc2626":"#9ca3af" }}>
-                                  {totalF > 0 ? totalF : "—"}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
             );
           })()}
