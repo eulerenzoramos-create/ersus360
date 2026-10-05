@@ -112,6 +112,11 @@ function ordenarUbsKeys(keys: string[]): string[] {
     ...keys.filter(k => !UBS_ORDEM.includes(k)).sort(),
   ];
 }
+// UBS básica (Atenção Primária) × unidade especializada (Hospital, CAPS, Vigilância, Sede) —
+// mesmo critério já usado no filtro da aba "Folha Detalhada".
+function isUbsBasica(nome: string): boolean {
+  return nome.startsWith("UBS") || nome.startsWith("Centro");
+}
 
 function StatusBadge({ status }: { status: string }) {
   const cor = COR_STATUS[status] || "#6b7280";
@@ -1238,7 +1243,16 @@ export default function FolhaPagamento() {
                   return dt.getDay() !== 0 && dt.getDay() !== 6;
                 });
                 const unidades: any[] = (presencaData as any)?.unidades || [];
-                return unidades.map((unidade: any) => {
+                const unidadesUbs = ordenarUbsKeys(unidades.map(u => u.ubs_nome))
+                  .filter(isUbsBasica)
+                  .map(nome => unidades.find(u => u.ubs_nome === nome))
+                  .filter(Boolean);
+                const unidadesEspecializadas = ordenarUbsKeys(unidades.map(u => u.ubs_nome))
+                  .filter(nome => !isUbsBasica(nome))
+                  .map(nome => unidades.find(u => u.ubs_nome === nome))
+                  .filter(Boolean);
+
+                const renderUnidade = (unidade: any) => {
                   const corUbs = COR_UBS[unidade.ubs_nome] || "#374151";
                   const iconeUbs = ICONE_UBS[unidade.ubs_nome] || "📍";
                   return (
@@ -1348,7 +1362,39 @@ export default function FolhaPagamento() {
                       </div>
                     </div>
                   );
-                });
+                };
+
+                const CORES_CATEGORIA: Record<string,string> = { ubs:"#1a3356", esp:"#6b2d8c" };
+                const categoriaHeader = (titulo: string, cor: string, qtdUnidades: number, qtdServidores: number) => (
+                  <div style={{ background:cor, color:"#fff", padding:"10px 16px", borderRadius:8,
+                    fontWeight:800, fontSize:13, marginBottom:14, display:"flex",
+                    justifyContent:"space-between", alignItems:"center" }}>
+                    <span>{titulo}</span>
+                    <span style={{ fontWeight:600, fontSize:11 }}>
+                      {qtdUnidades} unidade{qtdUnidades!==1?"s":""} · {qtdServidores} servidores
+                    </span>
+                  </div>
+                );
+                const totalServ = (lista: any[]) => lista.reduce((a,u)=>a+u.total_servidores,0);
+
+                return (
+                  <>
+                    {unidadesUbs.length > 0 && (
+                      <div style={{ marginBottom:24 }}>
+                        {categoriaHeader("🏥 UBS / Unidades Básicas de Saúde", CORES_CATEGORIA.ubs,
+                          unidadesUbs.length, totalServ(unidadesUbs))}
+                        {unidadesUbs.map(renderUnidade)}
+                      </div>
+                    )}
+                    {unidadesEspecializadas.length > 0 && (
+                      <div>
+                        {categoriaHeader("🏛️ Unidades Especializadas", CORES_CATEGORIA.esp,
+                          unidadesEspecializadas.length, totalServ(unidadesEspecializadas))}
+                        {unidadesEspecializadas.map(renderUnidade)}
+                      </div>
+                    )}
+                  </>
+                );
               })()}
             </div>
             );
