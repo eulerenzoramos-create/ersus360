@@ -337,6 +337,31 @@ function DashboardInvestSUS({ municipio_id }: { municipio_id: number }) {
   );
 }
 
+// ── Botão de seed Apuí (só aparece quando lista vazia) ───────────────────────
+function SeedApuiBtn() {
+  const qc = useQueryClient();
+  const mut = useMutation({
+    mutationFn: () => api.post("/api/investsus/seed-exemplo-apui").then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["investsus"] }),
+  });
+  return (
+    <div style={{ marginTop: 20 }}>
+      <button
+        onClick={() => mut.mutate()}
+        disabled={mut.isPending || mut.isSuccess}
+        style={{ background: "#1e3a5f", color: "#fff", border: "none", borderRadius: 6,
+                 padding: "8px 18px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+        {mut.isPending ? "Carregando…" : mut.isSuccess ? "✓ Carregado — atualize a página" : "⚡ Carregar proposta real de Apuí (36000820396202600)"}
+      </button>
+      {mut.isError && (
+        <div style={{ marginTop: 6, fontSize: 11, color: "#dc2626" }}>
+          Erro ao carregar. Tente novamente ou use "Nova Proposta".
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Lista de Propostas ────────────────────────────────────────────────────────
 function ListaPropostas({ municipio_id, onSelect }: { municipio_id: number; onSelect: (p: any) => void }) {
   const [busca, setBusca] = useState("");
@@ -468,6 +493,7 @@ function ListaPropostas({ municipio_id, onSelect }: { municipio_id: number; onSe
           <Landmark size={32} style={{ marginBottom: 10 }} />
           <div>Nenhuma proposta encontrada.</div>
           <div style={{ fontSize: 12, marginTop: 4 }}>Clique em "Nova Proposta" ou use a importação para cadastrar.</div>
+          <SeedApuiBtn />
         </div>
       ) : (
         <div style={S.card}>
