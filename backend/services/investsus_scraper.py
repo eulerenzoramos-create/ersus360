@@ -252,6 +252,10 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
 
     base_headers: dict = {**_CZ_HEADERS, "Content-Type": "application/json"}
     if cookie_str:
+        # Remove cookies que causam conflito (scpa é do portal gov.br, não do InvestSUS)
+        _excluir = {"scpa"}
+        partes = [p for p in cookie_str.split(";") if not any(p.strip().lower().startswith(ex + "=") for ex in _excluir)]
+        cookie_str = "; ".join(p.strip() for p in partes if p.strip())
         base_headers["Cookie"] = cookie_str
         logger.info("InvestSUS: usando INVESTSUS_COOKIE (sessao do browser)")
     elif token_fixo:
