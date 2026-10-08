@@ -1941,38 +1941,9 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
   const sincronizar = async () => {
     setLoading(true); setErroMsg(null); setResultado(null);
     try {
-      // 1. Busca a chave no backend
-      setProgresso("Obtendo credenciais…");
-      const cfgResp = await api.get("/api/investsus/config-chave");
-      const chave: string = cfgResp?.data?.chave || cfgResp?.chave;
-      if (!chave) throw new Error("Chave da API não retornada pelo servidor");
-
-      // 2. Busca dados diretamente do Portal da Transparência (browser → gov.br)
-      setProgresso("Consultando Portal da Transparência…");
-      const { propostas, repasses, erros, debug } = await _buscarTransparencia(chave);
-
-      // 3. Envia para o backend salvar
-      setProgresso("Salvando no banco…");
-      const ts = new Date().toISOString();
-      const saveResp = await api.post("/api/investsus/sincronizar-dados", {
-        _debug: debug,
-        propostas: propostas.map((p: any) => ({
-          numero_proposta:    String(p.codigoEmenda || p.numero || ""),
-          numero_instrumento: String(p.codigoSubEmenda || ""),
-          objeto:             p.descricao || p.objeto || p.tipoEmenda || "",
-          tipo_emenda:        p.tipoEmenda || "",
-          parlamentar:        p.nomeAutor || "",
-          valor_global:       Number(p.valorEmpenhado || p.valor || 0),
-          valor_repassado:    Number(p.valorPago || 0),
-          valor_executado:    Number(p.valorPago || 0),
-          situacao_raw:       p.situacao || p.fase || "",
-          exercicio:          Number(p.ano || new Date().getFullYear()),
-        })),
-        repasses,
-        sincronizado_em: ts,
-      });
-
-      const res = saveResp?.data || saveResp;
+      setProgresso("Autenticando no InvestSUS (SCPA)…");
+      const resp = await api.post("/api/investsus/sincronizar", {});
+      const res = resp?.data || resp;
       setResultado(res);
       qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
       qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
@@ -2004,8 +1975,8 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
       <div style={cor.card}>
         <div style={cor.titulo}>Sincronização com InvestSUS</div>
         <div style={cor.sub}>
-          Busca <strong>emendas parlamentares, convênios e transferências</strong> do FMS Apuí
-          diretamente no Portal da Transparência e salva no banco automaticamente.
+          Autentica no portal <strong>InvestSUS</strong> via SCPA/gov.br e importa todas as
+          propostas do FMS Apuí (CNPJ 12.834.320/0001-26) diretamente na API oficial.
         </div>
 
         <button style={cor.btn(loading)} onClick={sincronizar} disabled={loading}>
@@ -2065,15 +2036,15 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
         <div style={cor.titulo}>Fonte dos dados</div>
         <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.8 }}>
           <div style={{ marginBottom: 8 }}>
-            Dados obtidos via <strong>Portal da Transparência</strong> (API pública):
+            Dados obtidos via <strong>Portal InvestSUS</strong> (API oficial do Ministério da Saúde):
           </div>
           <ul style={{ margin: "0 0 8px 16px", padding: 0, fontSize: 12, color: "#374151" }}>
-            <li>Emendas parlamentares — FMS (12.834.320/0001-26) e Prefeitura (04.105.419/0001-51)</li>
-            <li>Convênios e transferências voluntárias</li>
-            <li>Transferências municipais — IBGE 1300144</li>
+            <li>Propostas de emendas parlamentares e incrementos (MAC, PAP e outros)</li>
+            <li>Situação atualizada de cada proposta (fase, instrumento, valores)</li>
+            <li>Autenticação via SCPA (acesso.saude.gov.br) com credenciais configuradas no servidor</li>
           </ul>
           <div style={{ fontSize: 12, color: "#6b7280" }}>
-            A busca é feita pelo seu browser, que acessa api.portaltransparencia.gov.br diretamente.
+            As credenciais (INVESTSUS_CPF / INVESTSUS_SENHA) ficam apenas no Railway — nunca no código.
           </div>
         </div>
       </div>
