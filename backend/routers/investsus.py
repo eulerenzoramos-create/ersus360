@@ -1401,10 +1401,10 @@ async def sincronizar_com_investsus(user: UserDep):
         raise HTTPException(403, "Acesso restrito")
 
     import os
-    if not os.getenv("TRANSPARENCIA_API_KEY"):
+    if not os.getenv("INVESTSUS_CPF") or not os.getenv("INVESTSUS_SENHA"):
         raise HTTPException(400, detail={
-            "erro": "TRANSPARENCIA_API_KEY não configurada",
-            "instrucao": "Adicione TRANSPARENCIA_API_KEY nas variáveis de ambiente do Railway.",
+            "erro": "Credenciais InvestSUS não configuradas",
+            "instrucao": "Adicione INVESTSUS_CPF e INVESTSUS_SENHA nas variáveis de ambiente do Railway.",
         })
 
     mid = _municipio_id(user)
@@ -1424,17 +1424,6 @@ async def status_sync_job(job_id: str, user: UserDep):
         raise HTTPException(404, "Job não encontrado")
     return job
 
-
-@router.get("/config-chave")
-async def get_transparencia_key(user: UserDep):
-    """Retorna a chave da API do Portal da Transparência para uso no browser."""
-    if not user.administrador_geral and user.role not in ("admin", "gestor", "financeiro"):
-        raise HTTPException(403, "Acesso restrito")
-    import os
-    key = os.getenv("TRANSPARENCIA_API_KEY", "")
-    if not key:
-        raise HTTPException(400, detail={"erro": "TRANSPARENCIA_API_KEY não configurada no Railway."})
-    return {"chave": key}
 
 
 @router.post("/sincronizar-dados")
