@@ -101,54 +101,51 @@ async def _autenticar(client: httpx.AsyncClient, cpf: str, senha: str) -> str:
 
 
 def _normalizar_proposta(raw: dict) -> dict:
-    """Mapeia campos da API real do InvestSUS para o formato ERSUS360."""
-    numero = str(
-        raw.get("numeroProposta")
-        or raw.get("numero_proposta")
-        or raw.get("numero")
-        or raw.get("id")
-        or ""
-    )
-    situacao = (
-        raw.get("descricaoSituacao")
-        or raw.get("situacao")
-        or raw.get("situacaoProposta")
-        or raw.get("fase")
-        or ""
-    )
-    tipo_recurso  = raw.get("tipoRecurso") or raw.get("tipo_recurso") or ""
-    tipo_proposta = (
-        raw.get("tipoProposta")
-        or raw.get("tipo")
-        or raw.get("descricaoTipoProposta")
-        or tipo_recurso
-        or ""
-    )
-    valor = float(
-        raw.get("valor")
-        or raw.get("valorProposta")
-        or raw.get("valorGlobal")
-        or raw.get("valorIndicado")
-        or 0
-    )
+    """
+    Mapeia campos da API real do InvestSUS (formato confirmado 08/10/2026).
+    Campos reais: numero, valor, anoExercicio, situacao{descricao},
+    descricaoInstrumento, tipoProposta{descricao}, tipoRecurso{descricao},
+    objeto{descricao}, cnpj, coProposta.
+    """
+    # numero da proposta
+    numero = str(raw.get("numero") or raw.get("numeroProposta") or raw.get("id") or "")
+
+    # situacao
+    sit = raw.get("situacao") or {}
+    situacao = sit.get("descricao") if isinstance(sit, dict) else str(sit or "")
+
+    # tipo de recurso (EMENDA / PROGRAMA)
+    tr = raw.get("tipoRecurso") or {}
+    tipo_recurso = (tr.get("descricao") if isinstance(tr, dict) else str(tr or "")).lower()
+
+    # tipo de proposta (INCREMENTO MAC, INCREMENTO PAP, CUSTEIO PAP, etc.)
+    tp = raw.get("tipoProposta") or {}
+    tipo_proposta = tp.get("descricao") if isinstance(tp, dict) else str(tp or "")
+
+    # objeto
+    obj = raw.get("objeto") or {}
+    objeto_desc = (obj.get("descricao") if isinstance(obj, dict) else str(obj or "")) or tipo_proposta
+
+    valor = float(raw.get("valor") or 0)
+
     return {
         "numero_proposta":    numero,
-        "numero_instrumento": str(raw.get("numeroInstrumento") or raw.get("instrumento") or ""),
-        "objeto":             raw.get("objeto") or raw.get("descricao") or tipo_proposta or "",
-        "tipo_emenda":        tipo_recurso.lower() if tipo_recurso else "individual",
+        "numero_instrumento": str(raw.get("descricaoInstrumento") or raw.get("numeroInstrumento") or ""),
+        "objeto":             objeto_desc,
+        "tipo_emenda":        tipo_recurso or "emenda",
         "programa":           tipo_proposta,
         "parlamentar":        raw.get("parlamentar") or raw.get("nomeParlamentar") or "",
         "valor_global":       valor,
         "valor_aprovado":     float(raw.get("valorAprovado") or valor or 0),
         "valor_repassado":    float(raw.get("valorRepassado") or raw.get("valorPago") or 0),
         "valor_executado":    float(raw.get("valorExecutado") or 0),
-        "situacao_raw":       situacao,
-        "data_proposta":      raw.get("dataCadastro") or raw.get("dataInicio"),
+        "situacao_raw":       situacao or "",
+        "data_proposta":      (sit.get("data") if isinstance(sit, dict) else None),
         "data_aprovacao":     raw.get("dataAprovacao"),
         "data_inicio":        raw.get("dataInicio") or raw.get("dataVigenciaInicio"),
         "data_fim":           raw.get("dataFim") or raw.get("dataVigenciaFim"),
         "cnpj_proponente":    _CNPJ_APUI,
-        "exercicio":          int(raw.get("exercicio") or raw.get("ano") or datetime.now().year),
+        "exercicio":          int(raw.get("anoExercicio") or raw.get("exercicio") or datetime.now().year),
         "fonte":              "investsus",
         "raw":                raw,
     }
@@ -192,14 +189,14 @@ async def _buscar_propostas_paginado(
             data = resp.json()
 
             items = (
-                data.get("content")
+                data.get("items")
+                or data.get("content")
                 or data.get("propostas")
-                or data.get("items")
                 or (data if isinstance(data, list) else [])
             )
             all_items.extend(items)
 
-            total = data.get("totalElements") or data.get("total") or len(items)
+            total = data.get("total") or data.get("totalElements") or len(items)
             logger.info("InvestSUS propostas %d: %d/%d", ano, len(all_items), total)
 
             if len(all_items) >= int(total) or len(items) < 100:
