@@ -194,14 +194,31 @@ function InformeCard({ inf, idx, selecionado, onToggle, onEditar, onDeletar }: {
   const gerarInformeIA = async () => {
     setGerandoIA(true);
     setErroIA(null);
+    // Abre a janela ANTES do await para não ser bloqueada pelo popup blocker
+    const w = window.open("", "_blank");
+    if (w) {
+      w.document.write('<html><head><meta charset="UTF-8"><title>Gerando…</title></head>'
+        + '<body style="font-family:Arial,sans-serif;padding:60px;color:#334155;background:#f8fafc">'
+        + '<p style="font-size:16px">⏳ Gerando Informe Técnico via IA…</p>'
+        + '<p style="font-size:13px;color:#64748b">Aguarde alguns segundos.</p>'
+        + '</body></html>');
+      w.document.close();
+    }
     try {
-      // Usa o cliente axios (BASE_URL do Railway) para evitar o rewrite do Vercel
       const resp = await api.post("/api/email-diario/informe-ia", { portaria: inf }, { responseType: "text" });
       const html = resp.data as string;
-      const w = window.open("", "_blank");
-      if (w) { w.document.write(html); w.document.close(); }
+      if (w && !w.closed) {
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      } else {
+        // fallback: blob URL (caso janela tenha sido fechada)
+        const blob = new Blob([html], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+      }
     } catch (e: any) {
-      // Extrai mensagem real do backend (axios encapsula em e.response)
+      if (w && !w.closed) w.close();
       const detalhe = e?.response?.data
         ? (typeof e.response.data === "string"
             ? e.response.data.slice(0, 300)
