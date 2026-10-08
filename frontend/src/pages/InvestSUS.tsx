@@ -1943,10 +1943,25 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
     try {
       setProgresso("Autenticando no InvestSUS (SCPA)…");
       const resp = await api.post("/api/investsus/sincronizar", {});
-      const res = resp?.data || resp;
-      setResultado(res);
-      qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
-      qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
+      const { job_id } = resp?.data || resp;
+
+      // Polling até concluir (máx 120s)
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        setProgresso(`Buscando propostas… (${(i + 1) * 2}s)`);
+        const statusResp = await api.get(`/api/investsus/sincronizar/${job_id}`);
+        const job = statusResp?.data || statusResp;
+        if (job.status === "concluido") {
+          setResultado(job.resultado);
+          qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
+          qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
+          return;
+        }
+        if (job.status === "erro") {
+          throw new Error(job.erro || "Erro na sincronização");
+        }
+      }
+      throw new Error("Timeout: sincronização demorou mais de 2 minutos");
     } catch (e: any) {
       const d = e?.response?.data;
       setErroMsg(d?.erro || d?.detail || e?.message || "Erro desconhecido");
