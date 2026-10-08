@@ -1,6 +1,6 @@
 // InvestSUS — Emendas, Propostas e Execução
 // ERSUS 360 · FMS Apuí/AM
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import {
@@ -362,7 +362,305 @@ function SeedApuiBtn() {
   );
 }
 
-// ── Lista de Propostas ────────────────────────────────────────────────────────
+// ── Mapa: tipo_emenda raw → grupo canônico ─────────────────────────────────────
+const TIPO_EMENDA_GRUPO: Record<string, string> = {
+  // Emenda Individual
+  individual: "individual",
+  "emenda individual": "individual",
+  "incremento individual": "individual",
+  ei: "individual",
+  // Emenda de Bancada
+  bancada: "bancada",
+  "emenda de bancada": "bancada",
+  "emenda bancada": "bancada",
+  eb: "bancada",
+  "incremento bancada": "bancada",
+  // Emenda de Comissão
+  comissao: "comissao",
+  "emenda de comissao": "comissao",
+  "emenda comissão": "comissao",
+  ec: "comissao",
+  // Programas / Transferência Especial
+  programa: "programa",
+  "transferência especial": "programa",
+  "transferencia especial": "programa",
+  te: "programa",
+  "emenda de relator": "programa",
+  "recurso programado": "programa",
+};
+
+function normalizarGrupoEmenda(raw: string): string {
+  if (!raw) return "individual";
+  const key = raw.toLowerCase().trim().replace(/[çã]/g, c => c === "ç" ? "c" : "a");
+  return TIPO_EMENDA_GRUPO[key] ?? "individual";
+}
+
+const GRUPO_CONFIG: Record<string, { label: string; cor: string; bg: string; icone: string }> = {
+  individual: { label: "Emenda Individual",    cor: "#7c3aed", bg: "#f5f3ff", icone: "👤" },
+  bancada:    { label: "Emenda de Bancada",     cor: "#0284c7", bg: "#eff6ff", icone: "🏛️" },
+  comissao:   { label: "Emenda de Comissão",    cor: "#059669", bg: "#f0fdf4", icone: "⚖️" },
+  programa:   { label: "Programas / Transferência Especial", cor: "#d97706", bg: "#fffbeb", icone: "📋" },
+};
+
+// Bloco de financiamento (componente)
+const BLOCO_CONFIG: Record<string, { label: string; cor: string }> = {
+  PAP:  { label: "Atenção Primária (PAP/APS)",     cor: "#059669" },
+  MAC:  { label: "Média e Alta Complexidade (MAC)", cor: "#0284c7" },
+  "Vigilância em Saúde": { label: "Vigilância em Saúde",    cor: "#d97706" },
+  "Assistência Farmacêutica": { label: "Assistência Farmacêutica", cor: "#7c3aed" },
+  Gestão: { label: "Gestão em Saúde",              cor: "#6b7280" },
+  Outro:  { label: "Outros",                        cor: "#9ca3af" },
+};
+
+function normalizarBloco(comp: string): string {
+  if (!comp) return "Outro";
+  const c = comp.toUpperCase();
+  if (c.includes("PAP") || c.includes("APS") || c.includes("ATEN") || c.includes("PRIMA")) return "PAP";
+  if (c.includes("MAC") || c.includes("MEDIA") || c.includes("MÉDIA") || c.includes("ALTA")) return "MAC";
+  if (c.includes("VIGIL")) return "Vigilância em Saúde";
+  if (c.includes("FARM")) return "Assistência Farmacêutica";
+  if (c.includes("GEST")) return "Gestão";
+  return comp in BLOCO_CONFIG ? comp : "Outro";
+}
+
+// ── Propostas detalhadas (visão InvestSUS real) ────────────────────────────────
+function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number; onSelect: (p: any) => void }) {
+  const [busca, setBusca] = useState("");
+  const [grupoAberto, setGrupoAberto] = useState<Record<string, boolean>>({
+    individual: true, bancada: true, comissao: true, programa: true,
+  });
+  const [blocoAberto, setBlocoAberto] = useState<Record<string, boolean>>({});
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["investsus-propostas", municipio_id, "todas"],
+    queryFn: () => api.get(`/api/investsus/propostas?municipio_id=${municipio_id}&limit=500`).then(r => r.data),
+    placeholderData: { total: 0, propostas: [] },
+  });
+
+  const todas: any[] = data?.propostas ?? [];
+
+  // Agrupa: grupo → bloco → propostas
+  const agrupado = useMemo(() => {
+    const filtradas = busca
+      ? todas.filter(p =>
+          [p.numero_proposta, p.objeto, p.parlamentar?.nome, p.entidade_nome, p.programa]
+            .join(" ").toLowerCase().includes(busca.toLowerCase()))
+      : todas;
+
+    const grupos: Record<string, Record<string, any[]>> = {
+      individual: {}, bancada: {}, comissao: {}, programa: {},
+    };
+    for (const p of filtradas) {
+      const g = normalizarGrupoEmenda(p.tipo_emenda ?? "");
+      const b = normalizarBloco(p.componente ?? p.programa ?? "");
+      if (!grupos[g][b]) grupos[g][b] = [];
+      grupos[g][b].push(p);
+    }
+    return grupos;
+  }, [todas, busca]);
+
+  const totalGrupo = (g: string) =>
+    Object.values(agrupado[g] ?? {}).flat().length;
+
+  const somaGrupo = (g: string, campo: string) =>
+    Object.values(agrupado[g] ?? {}).flat()
+      .reduce((acc, p) => acc + (Number(p[campo]) || 0), 0);
+
+  const toggleGrupo = (g: string) =>
+    setGrupoAberto(prev => ({ ...prev, [g]: !prev[g] }));
+
+  const toggleBloco = (key: string) =>
+    setBlocoAberto(prev => ({ ...prev, [key]: prev[key] === false ? true : false }));
+
+  if (isLoading) return <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>Carregando propostas…</div>;
+
+  return (
+    <div>
+      {/* Busca global */}
+      <div style={{ position: "relative" as const, marginBottom: 16 }}>
+        <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }} />
+        <input style={{ ...S.input, paddingLeft: 32, fontSize: 13 }}
+          placeholder="Buscar por número, objeto, parlamentar, entidade…"
+          value={busca} onChange={e => setBusca(e.target.value)} />
+      </div>
+
+      {/* Totalizador geral */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 18 }}>
+        {Object.entries(GRUPO_CONFIG).map(([g, cfg]) => (
+          <div key={g} style={{ background: cfg.bg, borderRadius: 8, padding: "12px 14px", borderLeft: `3px solid ${cfg.cor}` }}>
+            <div style={{ fontSize: 10, color: cfg.cor, fontWeight: 700, marginBottom: 4 }}>{cfg.icone} {cfg.label.toUpperCase()}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#111827" }}>{totalGrupo(g)}</div>
+            <div style={{ fontSize: 11, color: "#6b7280" }}>propostas</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: cfg.cor, marginTop: 4 }}>{fmt(somaGrupo(g, "valor_global"))}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Grupos por tipo de emenda */}
+      {Object.entries(GRUPO_CONFIG).map(([grupo, gcfg]) => {
+        const blocos = agrupado[grupo];
+        const total = totalGrupo(grupo);
+        if (total === 0 && !busca) return null;
+        const aberto = grupoAberto[grupo] !== false;
+
+        return (
+          <div key={grupo} style={{ marginBottom: 16 }}>
+            {/* Header do grupo */}
+            <button
+              onClick={() => toggleGrupo(grupo)}
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                background: gcfg.bg, border: `1px solid ${gcfg.cor}33`, borderRadius: aberto ? "8px 8px 0 0" : 8,
+                padding: "12px 16px", cursor: "pointer", textAlign: "left" as const }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 16 }}>{gcfg.icone}</span>
+                <span style={{ fontWeight: 700, color: gcfg.cor, fontSize: 14 }}>{gcfg.label}</span>
+                <span style={{ background: gcfg.cor, color: "#fff", borderRadius: 10, padding: "1px 8px", fontSize: 11, fontWeight: 700 }}>
+                  {total} proposta{total !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: gcfg.cor }}>{fmt(somaGrupo(grupo, "valor_global"))}</span>
+                {aberto ? <ChevronDown size={16} color={gcfg.cor} /> : <ChevronRight size={16} color={gcfg.cor} />}
+              </div>
+            </button>
+
+            {aberto && (
+              <div style={{ border: `1px solid ${gcfg.cor}33`, borderTop: "none", borderRadius: "0 0 8px 8px", overflow: "hidden" }}>
+                {Object.keys(blocos).length === 0 && (
+                  <div style={{ padding: "20px 16px", color: "#9ca3af", fontSize: 12, textAlign: "center" }}>
+                    Nenhuma proposta{busca ? " encontrada" : ""} neste tipo de emenda.
+                  </div>
+                )}
+
+                {/* Sub-grupos por bloco de financiamento */}
+                {Object.entries(blocos).map(([bloco, props]) => {
+                  const bkey = `${grupo}__${bloco}`;
+                  const bAberto = blocoAberto[bkey] !== false;
+                  const bcfg = BLOCO_CONFIG[bloco] ?? BLOCO_CONFIG.Outro;
+                  const somaBloco = props.reduce((a, p) => a + (Number(p.valor_global) || 0), 0);
+
+                  return (
+                    <div key={bloco}>
+                      {/* Sub-header bloco */}
+                      <button
+                        onClick={() => toggleBloco(bkey)}
+                        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                          background: "#f8fafc", border: "none", borderBottom: "1px solid #e5e7eb",
+                          padding: "9px 20px", cursor: "pointer", textAlign: "left" as const }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: bcfg.cor, flexShrink: 0 }} />
+                          <span style={{ fontWeight: 600, color: "#374151", fontSize: 12 }}>{bcfg.label}</span>
+                          <span style={{ fontSize: 11, color: "#6b7280" }}>({props.length})</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: bcfg.cor }}>{fmt(somaBloco)}</span>
+                          {bAberto ? <ChevronDown size={13} color="#9ca3af" /> : <ChevronRight size={13} color="#9ca3af" />}
+                        </div>
+                      </button>
+
+                      {/* Tabela de propostas do bloco */}
+                      {bAberto && (
+                        <div style={{ overflowX: "auto" as const }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                            <thead>
+                              <tr style={{ background: "#f1f5f9" }}>
+                                <th style={TH}>Nº Proposta</th>
+                                <th style={TH}>Parlamentar / Autoria</th>
+                                <th style={TH}>Partido/UF</th>
+                                <th style={TH}>Objeto / Programa</th>
+                                <th style={TH}>Situação</th>
+                                <th style={{ ...TH, textAlign: "right" as const }}>Valor Global</th>
+                                <th style={{ ...TH, textAlign: "right" as const }}>Repassado</th>
+                                <th style={{ ...TH, textAlign: "center" as const }}>Ano</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {props.map((p: any, i: number) => {
+                                const perc = p.valor_global > 0 ? (p.valor_repassado / p.valor_global) * 100 : 0;
+                                const pcor = perc >= 75 ? "#059669" : perc >= 30 ? "#d97706" : "#6b7280";
+                                return (
+                                  <tr key={p.id ?? i}
+                                    onClick={() => onSelect(p)}
+                                    onMouseEnter={e => (e.currentTarget.style.background = "#f0f9ff")}
+                                    onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa")}
+                                    style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", cursor: "pointer" }}>
+                                    <td style={TD}>
+                                      <span style={{ fontFamily: "monospace", fontSize: 11, background: "#f3f4f6",
+                                        borderRadius: 3, padding: "1px 6px", fontWeight: 700, whiteSpace: "nowrap" as const }}>
+                                        {p.numero_proposta || "—"}
+                                      </span>
+                                    </td>
+                                    <td style={TD}>
+                                      <div style={{ fontWeight: 600, color: "#111827" }}>
+                                        {p.parlamentar?.nome || p.parlamentar || "—"}
+                                      </div>
+                                      {p.numero_instrumento && (
+                                        <div style={{ fontSize: 10, color: "#9ca3af" }}>Instr.: {p.numero_instrumento}</div>
+                                      )}
+                                    </td>
+                                    <td style={{ ...TD, whiteSpace: "nowrap" as const }}>
+                                      <span style={{ fontSize: 11, color: "#6b7280" }}>
+                                        {p.parlamentar?.partido ?? ""}
+                                        {p.parlamentar?.uf ? `/${p.parlamentar.uf}` : ""}
+                                      </span>
+                                    </td>
+                                    <td style={{ ...TD, maxWidth: 260 }}>
+                                      <div style={{ color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
+                                        {p.objeto || p.programa || "—"}
+                                      </div>
+                                    </td>
+                                    <td style={TD}><SituacaoBadge situacao={p.situacao_normalizada ?? ""} /></td>
+                                    <td style={{ ...TD, textAlign: "right" as const, fontWeight: 700, whiteSpace: "nowrap" as const }}>
+                                      {fmt(p.valor_global)}
+                                    </td>
+                                    <td style={{ ...TD, textAlign: "right" as const, whiteSpace: "nowrap" as const }}>
+                                      <span style={{ color: pcor, fontWeight: 600 }}>{fmt(p.valor_repassado)}</span>
+                                      <div style={{ fontSize: 9, color: "#9ca3af" }}>{perc.toFixed(0)}%</div>
+                                    </td>
+                                    <td style={{ ...TD, textAlign: "center" as const, color: "#9ca3af" }}>
+                                      {p.exercicio}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                            <tfoot>
+                              <tr style={{ background: "#f1f5f9", fontWeight: 700 }}>
+                                <td style={TD} colSpan={5}>Total {bcfg.label} — {grupo && GRUPO_CONFIG[grupo]?.label}</td>
+                                <td style={{ ...TD, textAlign: "right" as const }}>{fmt(somaBloco)}</td>
+                                <td style={{ ...TD, textAlign: "right" as const }}>
+                                  {fmt(props.reduce((a, p) => a + (Number(p.valor_repassado) || 0), 0))}
+                                </td>
+                                <td style={TD} />
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {todas.length === 0 && (
+        <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>
+          <Landmark size={36} style={{ marginBottom: 12 }} />
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Nenhuma proposta no banco</div>
+          <div style={{ fontSize: 12 }}>Use a aba <strong>Sincronizar</strong> para importar do portal InvestSUS.</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const TH: React.CSSProperties = { padding: "8px 12px", textAlign: "left", fontWeight: 600, color: "#374151", fontSize: 11, whiteSpace: "nowrap" };
+const TD: React.CSSProperties = { padding: "8px 12px", borderBottom: "1px solid #f3f4f6", verticalAlign: "middle" };
+
+// ── Lista de Propostas (legado — mantida para compatibilidade) ─────────────────
 function ListaPropostas({ municipio_id, onSelect }: { municipio_id: number; onSelect: (p: any) => void }) {
   const [busca, setBusca] = useState("");
   const [situacaoFiltro, setSituacaoFiltro] = useState("");
@@ -2478,7 +2776,7 @@ export default function InvestSUS() {
       ) : aba === "dashboard" ? (
         <DashboardInvestSUS municipio_id={municipio_id} />
       ) : aba === "propostas" ? (
-        <ListaPropostas municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
+        <PropostasDetalhadas municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
       ) : aba === "alertas" ? (
         <AlertasGlobais municipio_id={municipio_id} />
       ) : aba === "sincronizar" ? (
