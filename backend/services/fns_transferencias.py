@@ -38,7 +38,7 @@ TRANSP_KEY      = os.getenv("TRANSPARENCIA_API_KEY", "")
 FNS_CPF         = os.getenv("FNS_API_CPF", "")
 FNS_SENHA       = os.getenv("FNS_API_SENHA", "")
 
-TIMEOUT         = 30.0
+TIMEOUT         = 45.0  # aumentado: consultafns pode ser lento em meses recentes
 PAGE_SIZE       = 100   # registros por página
 MAX_PAGES       = 200   # limite de segurança (evita loop infinito)
 
@@ -399,6 +399,130 @@ def _normalizar_detalhe(raw: dict, exercicio: int, mes: int, pagina: int) -> dic
     }
 
 
+async def _fetch_detalhe_pagamento(exercicio: int, mes: int) -> tuple[list[dict], Decimal | None, int | None]:
+    """
+    2º fallback: /consulta-detalhada/detalhe-pagamento do consultafns.
+    Funciona quando /detalhe-acao falha ou dá timeout (ex.: Jul e Out/2026).
+    Retorna registros com valor_liquido real por pagamento individual.
+    """
+    _BASE = "https://consultafns.saude.gov.br/recursos"
+    CNPJ_FIXO = "12834320000126"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; ERSUS360/1.0; +https://ersus360.vercel.app)",
+        "Accept": "application/json",
+        "Origin": "https://consultafns.saude.gov.br",
+        "Referer": "https://consultafns.saude.gov.br/",
+    }
+
+    # Resolve CNPJ via entidades (mesmo padrão do _fetch_consultafns)
+    cnpj = CNPJ_FIXO
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True, headers=headers) as client:
+            re2 = await client.get(
+                f"{_BASE}/consulta-detalhada/entidades",
+                params={"ano": exercicio, "count": 1, "estado": "AM",
+                        "municipio": IBGE_APUI_7, "page": 1, "tipoConsulta": 2, "mes": mes},
+            )
+            if re2.status_code == 200:
+                dados_ent = re2.json().get("resultado", {}).get("dados", [])
+                if dados_ent:
+                    raw_cnpj = dados_ent[0].get("cpfCnpj") or dados_ent[0].get("cpfCnpjFormatado", "")
+                    cnpj = raw_cnpj.replace(".", "").replace("/", "").replace("-", "") or CNPJ_FIXO
+    except Exception as e:
+        logger.info(f"FNS detalhe-pagamento entidades: {e}")
+
+    registros: list[dict] = []
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True, headers=headers) as client:
+            for page in range(1, MAX_PAGES + 1):
+                r = await client.get(
+                    f"{_BASE}/consulta-detalhada/detalhe-pagamento",
+                    params={"page": page, "count": PAGE_SIZE, "ano": exercicio, "mes": mes,
+                            "tipoConsulta": 2, "estado": "AM",
+                            "municipio": IBGE_APUI_7, "cpfCnpjUg": cnpj},
+                )
+                if r.status_code != 200:
+                    logger.info(f"FNS detalhe-pagamento p{page}: HTTP {r.status_code}")
+                    break
+                dados = (r.json().get("resultado") or {}).get("dados") or []
+                if not dados:
+                    break
+                for item in dados:
+                    registros.append(_normalizar_pagamento(item, exercicio, mes, page))
+                if len(dados) < PAGE_SIZE:
+                    break
+    except Exception as e:
+        logger.warning(f"FNS detalhe-pagamento: {e}")
+
+    total = sum(r["valor_liquido"] for r in registros if r.get("valor_liquido") is not None)
+    if registros:
+        logger.info(f"FNS detalhe-pagamento: {len(registros)} registros coletados, total={total}")
+    return registros, (_dec(total) if registros else None), (len(registros) if registros else None)
+
+
+def _normalizar_pagamento(raw: dict, exercicio: int, mes: int, pagina: int) -> dict:
+    """
+    Normaliza registro de /consulta-detalhada/detalhe-pagamento.
+    Estrutura real (observada via fns_parcelas.py):
+      id.programaFundo.descricao / nomeComponente → acao_detalhada
+      valorLiquido → valor_liquido
+      numeroDocumentoSiafi → numero_ob
+      nuPortaria → numero_portaria
+      codigoBanco/codigoAgencia/contaCorrente → dados bancários
+      dataCriacaoSiafi → data_ob
+    """
+    pf = ((raw.get("id") or {}).get("programaFundo") or {})
+    componente = pf.get("descricao") or raw.get("nomeComponente") or ""
+
+    bloco    = componente
+    grupo    = componente
+    acao     = componente
+    acao_det = componente
+
+    vl_liq   = _dec(raw.get("valorLiquido") or raw.get("vlLiquido"))
+    vl_total = _dec(raw.get("valorTotal") or raw.get("vlTotal")) or vl_liq
+    vl_desc  = _dec(raw.get("valorDesconto") or raw.get("vlDesconto")) or Decimal("0.00")
+
+    chave    = _chave(IBGE_APUI_7, exercicio, mes,
+                      bloco or "", grupo or "", acao or "", acao_det or "",
+                      str(vl_liq) if vl_liq is not None else "0")
+    numero_ob = str(raw.get("numeroDocumentoSiafi") or "").strip() or None
+    data_ob   = _parse_date(raw.get("dataCriacaoSiafi"))
+
+    return {
+        "chave_unica":       chave,
+        "municipio_ibge":    IBGE_APUI_7,
+        "municipio_nome":    "Apuí",
+        "uf":                "AM",
+        "cnpj_fundo":        "12.834.320/0001-26",
+        "exercicio":         exercicio,
+        "mes":               mes,
+        "data_pagamento":    data_ob,
+        "competencia":       _competencia_str(exercicio, mes),
+        "bloco":             bloco,
+        "grupo":             grupo,
+        "acao":              acao,
+        "acao_detalhada":    acao_det,
+        "tipo_incentivo":    classificar_tipo(bloco, grupo, acao, acao_det),
+        "numero_proposta":   None,
+        "numero_processo":   (raw.get("id") or {}).get("processoFormatado"),
+        "numero_portaria":   str(raw.get("nuPortaria") or "").strip() or None,
+        "numero_ob":         numero_ob,
+        "conta_bancaria":    raw.get("contaCorrente"),
+        "banco_ob":          raw.get("codigoBanco"),
+        "agencia_ob":        raw.get("codigoAgencia"),
+        "numero_conta_ob":   raw.get("contaCorrente"),
+        "data_ob":           data_ob,
+        "valor_total":       vl_total,
+        "valor_desconto":    vl_desc,
+        "valor_liquido":     vl_liq,
+        "situacao":          "Pago",
+        "fonte":             "consultafns_pagamento",
+        "pagina_coleta":     pagina,
+        "data_coleta":       datetime.utcnow(),
+    }
+
+
 async def _fetch_transparencia(exercicio: int, mes: int) -> tuple[list[dict], Decimal | None, int | None]:
     """
     Fallback: Portal da Transparência — transferências fundo a fundo do FNS.
@@ -568,11 +692,18 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
     await db.refresh(coleta)
 
     try:
-        # Tenta fonte primária
+        # 1ª tentativa: detalhe-acao (dados completos por ação orçamentária)
         registros, total_oficial, total_fonte = await _fetch_consultafns(exercicio, mes)
 
         if not registros:
-            # Tenta fallback
+            # 2ª tentativa: detalhe-pagamento (funciona quando detalhe-acao dá timeout)
+            logger.info(f"FNS: detalhe-acao sem dados para {exercicio}/{mes} — tentando detalhe-pagamento")
+            registros, total_oficial, total_fonte = await _fetch_detalhe_pagamento(exercicio, mes)
+            if registros:
+                coleta.fonte = "consultafns_pagamento"
+
+        if not registros:
+            # 3ª tentativa: Portal da Transparência (requer TRANSPARENCIA_API_KEY)
             registros, total_oficial, total_fonte = await _fetch_transparencia(exercicio, mes)
             if registros:
                 coleta.fonte = "transparencia"
