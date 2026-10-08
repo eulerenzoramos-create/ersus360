@@ -1,177 +1,107 @@
 """
-InvestSUS Scraper — autenticação via SCPA (acesso.saude.gov.br / Keycloak)
+InvestSUS Scraper - API real do portal investsus.saude.gov.br
 
-O portal InvestSUS usa o SSO SCPA do DATASUS. O fluxo de autenticação é:
-  1. GET investsus.saude.gov.br → redireciona para acesso.saude.gov.br/login
-  2. Extrai client_id e auth URL do redirect OAuth/Keycloak
-  3. POST credenciais ao Keycloak token endpoint (password grant)
-  4. Usa o access_token para chamar a API do InvestSUS
+Endpoints confirmados em 08/10/2026:
+  Auth:      POST https://acesso.saude.gov.br/realms/saude/protocol/openid-connect/token
+             client_id=INVESTSUS  (Keycloak v18+, sem prefixo /auth)
+  Propostas: POST https://investsus-backend-prd.saude.gov.br/api/propostas/paginado
+             body: {"filter": {"ano": "<ANO>", "cnpj": "<CNPJ>"}, "pageNumber": 1, "pageSize": 100}
+  Tipos:     GET  https://investsus-backend-prd.saude.gov.br/api/geral/propostas/tipos-propostas/valores
 
 Env vars (Railway):
-  INVESTSUS_CPF   — CPF do responsável (sem pontos/traços)
-  INVESTSUS_SENHA — senha do portal InvestSUS (SCPA / gov.br)
+  INVESTSUS_CPF   - CPF do responsavel (so digitos, sem pontos/tracas)
+  INVESTSUS_SENHA - senha do portal InvestSUS / gov.br
 """
 
 from __future__ import annotations
 
 import logging
 import os
-import re
 from datetime import datetime
 from typing import Any
-from urllib.parse import parse_qs, urlparse
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
-_BASE      = "https://investsus.saude.gov.br"
-_SCPA_BASE = "https://acesso.saude.gov.br"
+_BACKEND   = "https://investsus-backend-prd.saude.gov.br/api"
 _CNPJ_APUI = "12834320000126"
+_CLIENT_ID = "INVESTSUS"
 _TIMEOUT   = 45.0
 
-# Keycloak realm do DATASUS (valor padrão; sobrescrito se descoberto no redirect)
-_KEYCLOAK_REALM    = "saude"
-_KEYCLOAK_CLIENT   = "investsus"   # client_id padrão
-_KEYCLOAK_TOKEN_URL = (
-    f"{_SCPA_BASE}/auth/realms/{_KEYCLOAK_REALM}"
-    "/protocol/openid-connect/token"
-)
+_TOKEN_URL_PRINCIPAL = "https://acesso.saude.gov.br/realms/saude/protocol/openid-connect/token"
+_TOKEN_URL_FALLBACK  = "https://acesso.saude.gov.br/auth/realms/saude/protocol/openid-connect/token"
 
 
 def _credenciais() -> tuple[str, str]:
-    cpf   = os.getenv("INVESTSUS_CPF", "").strip()
+    cpf   = os.getenv("INVESTSUS_CPF", "").strip().replace(".", "").replace("-", "")
     senha = os.getenv("INVESTSUS_SENHA", "").strip()
     if not cpf or not senha:
         raise RuntimeError(
-            "INVESTSUS_CPF e INVESTSUS_SENHA não configurados. "
-            "Adicione as variáveis de ambiente no Railway."
+            "INVESTSUS_CPF e INVESTSUS_SENHA nao configurados. "
+            "Adicione as variaveis de ambiente no Railway."
         )
     return cpf, senha
 
 
-async def _descobrir_oauth_params(client: httpx.AsyncClient) -> dict:
-    """
-    Faz GET no InvestSUS para descobrir o client_id e token_url reais
-    a partir do redirect OAuth/Keycloak.
-    Retorna dict com 'token_url' e 'client_id'.
-    """
-    params = {"token_url": _KEYCLOAK_TOKEN_URL, "client_id": _KEYCLOAK_CLIENT}
-    try:
-        resp = await client.get(f"{_BASE}/", follow_redirects=False, timeout=15.0)
-        location = resp.headers.get("location", "")
-        if not location:
-            return params
-
-        parsed = urlparse(location)
-        qs = parse_qs(parsed.query)
-
-        # Extrai client_id do redirect URL
-        client_id = (qs.get("client_id") or [""])[0]
-        if client_id:
-            params["client_id"] = client_id
-            logger.debug("OAuth client_id descoberto: %s", client_id)
-
-        # Extrai realm e monta token_url
-        # Padrão: /auth/realms/{realm}/protocol/openid-connect/auth
-        m = re.search(r"/auth/realms/([^/]+)/protocol", location)
-        if m:
-            realm = m.group(1)
-            base_url = f"{parsed.scheme}://{parsed.netloc}"
-            params["token_url"] = (
-                f"{base_url}/auth/realms/{realm}"
-                "/protocol/openid-connect/token"
-            )
-            logger.debug("Keycloak token_url descoberto: %s", params["token_url"])
-
-    except Exception as e:
-        logger.debug("Não foi possível descobrir OAuth params: %s — usando defaults", e)
-
-    return params
-
-
 async def _autenticar(client: httpx.AsyncClient, cpf: str, senha: str) -> str:
     """
-    Autentica via SCPA/Keycloak (password grant) e retorna o access_token.
+    Obtem Bearer token via Keycloak password grant (SCPA/acesso.saude.gov.br).
+    clientId INVESTSUS, realm 'saude'.
     """
-    oauth = await _descobrir_oauth_params(client)
-    token_url = oauth["token_url"]
-    client_id = oauth["client_id"]
+    payload = {
+        "grant_type": "password",
+        "client_id":  _CLIENT_ID,
+        "username":   cpf,
+        "password":   senha,
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
-    # Tenta password grant (Resource Owner Password Credentials)
-    tentativas = [
-        # SCPA Keycloak — formato padrão
-        {
-            "url": token_url,
-            "data": {
-                "grant_type": "password",
-                "client_id": client_id,
-                "username": cpf,
-                "password": senha,
-            },
-        },
-        # Fallback: client_id alternativo
-        {
-            "url": token_url,
-            "data": {
-                "grant_type": "password",
-                "client_id": "investsus-web",
-                "username": cpf,
-                "password": senha,
-            },
-        },
-        # Fallback: URL alternativa SCPA
-        {
-            "url": f"{_SCPA_BASE}/auth/realms/master/protocol/openid-connect/token",
-            "data": {
-                "grant_type": "password",
-                "client_id": client_id,
-                "username": cpf,
-                "password": senha,
-            },
-        },
-    ]
-
-    ultimo_erro = "nenhuma tentativa executada"
-    for t in tentativas:
+    for url in [_TOKEN_URL_PRINCIPAL, _TOKEN_URL_FALLBACK]:
         try:
-            resp = await client.post(
-                t["url"],
-                data=t["data"],
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=_TIMEOUT,
-            )
+            resp = await client.post(url, data=payload, headers=headers, timeout=_TIMEOUT)
             if resp.status_code == 404:
                 continue
-            if resp.status_code in (401, 400):
-                body = resp.text[:300]
-                # 400 com "invalid_grant" = credenciais erradas
-                if "invalid_grant" in body or "Invalid user" in body:
+
+            body = resp.json()
+
+            if resp.status_code == 400:
+                err  = body.get("error", "")
+                desc = body.get("error_description", "")
+                if "invalid_grant" in err or "Invalid user" in desc:
                     raise RuntimeError(
-                        "Credenciais SCPA rejeitadas. "
+                        f"Credenciais SCPA rejeitadas: {desc}. "
                         "Verifique INVESTSUS_CPF e INVESTSUS_SENHA no Railway."
                     )
-                ultimo_erro = f"HTTP {resp.status_code}: {body}"
+                logger.debug("Token %s: %s %s", url, err, desc)
                 continue
+
+            if resp.status_code == 401:
+                raise RuntimeError("Credenciais SCPA rejeitadas (401). Verifique INVESTSUS_CPF/SENHA.")
+
             resp.raise_for_status()
-            data = resp.json()
-            token = data.get("access_token") or data.get("token")
+
+            token = body.get("access_token")
             if token:
-                logger.info("InvestSUS/SCPA: autenticado com sucesso")
+                logger.info("InvestSUS: autenticado (SCPA realm=saude, client=%s)", _CLIENT_ID)
                 return str(token)
-            ultimo_erro = f"access_token ausente na resposta: {list(data.keys())}"
+
+            logger.debug("access_token ausente em %s: %s", url, list(body.keys()))
+
         except RuntimeError:
             raise
         except Exception as e:
-            ultimo_erro = str(e)
+            logger.debug("Auth %s: %s", url, e)
             continue
 
     raise RuntimeError(
-        f"Falha na autenticação SCPA/InvestSUS. Último erro: {ultimo_erro}"
+        "Nao foi possivel autenticar no SCPA/InvestSUS. "
+        "Verifique se INVESTSUS_CPF e INVESTSUS_SENHA estao corretos no Railway."
     )
 
 
 def _normalizar_proposta(raw: dict) -> dict:
+    """Mapeia campos da API real do InvestSUS para o formato ERSUS360."""
     numero = str(
         raw.get("numeroProposta")
         or raw.get("numero_proposta")
@@ -179,82 +109,118 @@ def _normalizar_proposta(raw: dict) -> dict:
         or raw.get("id")
         or ""
     )
+    situacao = (
+        raw.get("descricaoSituacao")
+        or raw.get("situacao")
+        or raw.get("situacaoProposta")
+        or raw.get("fase")
+        or ""
+    )
+    tipo_recurso  = raw.get("tipoRecurso") or raw.get("tipo_recurso") or ""
+    tipo_proposta = (
+        raw.get("tipoProposta")
+        or raw.get("tipo")
+        or raw.get("descricaoTipoProposta")
+        or tipo_recurso
+        or ""
+    )
+    valor = float(
+        raw.get("valor")
+        or raw.get("valorProposta")
+        or raw.get("valorGlobal")
+        or raw.get("valorIndicado")
+        or 0
+    )
     return {
         "numero_proposta":    numero,
-        "numero_instrumento": str(raw.get("numeroInstrumento") or raw.get("numero_instrumento") or ""),
-        "objeto":             raw.get("objeto") or raw.get("descricaoObjeto") or raw.get("descricao") or "",
-        "tipo_emenda":        raw.get("tipoEmenda") or raw.get("tipo_emenda") or raw.get("modalidade") or "individual",
-        "programa":           raw.get("programa") or raw.get("nomePrograma") or raw.get("acaoOrcamentaria") or "",
-        "parlamentar":        raw.get("parlamentar") or raw.get("nomeParlamentar") or raw.get("nomeAutor") or "",
-        "valor_global":       float(raw.get("valorGlobal") or raw.get("valor_global") or raw.get("valorIndicado") or raw.get("valor") or 0),
-        "valor_aprovado":     float(raw.get("valorAprovado") or raw.get("valor_aprovado") or raw.get("valorEmpenhado") or 0),
-        "valor_repassado":    float(raw.get("valorRepassado") or raw.get("valor_repassado") or raw.get("valorPago") or 0),
-        "valor_executado":    float(raw.get("valorExecutado") or raw.get("valor_executado") or 0),
-        "situacao_raw":       raw.get("situacao") or raw.get("situacaoProposta") or raw.get("descricaoSituacao") or raw.get("fase") or "",
+        "numero_instrumento": str(raw.get("numeroInstrumento") or raw.get("instrumento") or ""),
+        "objeto":             raw.get("objeto") or raw.get("descricao") or tipo_proposta or "",
+        "tipo_emenda":        tipo_recurso.lower() if tipo_recurso else "individual",
+        "programa":           tipo_proposta,
+        "parlamentar":        raw.get("parlamentar") or raw.get("nomeParlamentar") or "",
+        "valor_global":       valor,
+        "valor_aprovado":     float(raw.get("valorAprovado") or valor or 0),
+        "valor_repassado":    float(raw.get("valorRepassado") or raw.get("valorPago") or 0),
+        "valor_executado":    float(raw.get("valorExecutado") or 0),
+        "situacao_raw":       situacao,
         "data_proposta":      raw.get("dataCadastro") or raw.get("dataInicio"),
-        "data_aprovacao":     raw.get("dataAprovacao") or raw.get("dataPublicacao"),
+        "data_aprovacao":     raw.get("dataAprovacao"),
         "data_inicio":        raw.get("dataInicio") or raw.get("dataVigenciaInicio"),
         "data_fim":           raw.get("dataFim") or raw.get("dataVigenciaFim"),
         "cnpj_proponente":    _CNPJ_APUI,
-        "exercicio":          int(raw.get("exercicio") or raw.get("anoExercicio") or raw.get("ano") or datetime.now().year),
+        "exercicio":          int(raw.get("exercicio") or raw.get("ano") or datetime.now().year),
         "fonte":              "investsus",
         "raw":                raw,
     }
 
 
-async def _buscar_propostas(
+async def _buscar_propostas_paginado(
     client: httpx.AsyncClient,
     token: str,
     cnpj: str,
+    ano: int,
 ) -> list[dict]:
-    headers = {"Authorization": f"Bearer {token}"}
-    candidatos = [
-        f"{_BASE}/api/proposta?cnpjProponente={cnpj}",
-        f"{_BASE}/api/propostas?cnpj={cnpj}",
-        f"{_BASE}/api/proposta/listar?cnpj={cnpj}",
-        f"{_BASE}/api/proposta/proponente/{cnpj}",
-        f"{_BASE}/api/propostas/proponente?cnpj={cnpj}",
-        f"{_BASE}/api/proposta/buscar?cnpjProponente={cnpj}",
-    ]
-    for url in candidatos:
+    """
+    POST /api/propostas/paginado - endpoint confirmado pelo portal.
+    Pagina ate buscar todos os registros.
+    """
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    all_items: list[dict] = []
+    page = 1
+
+    while True:
+        body = {
+            "filter": {
+                "ano":  str(ano),
+                "cnpj": cnpj,
+                "idAgrupadorTipoProposta": None,
+            },
+            "pageNumber": page,
+            "pageSize":   100,
+        }
         try:
-            resp = await client.get(url, headers=headers, timeout=_TIMEOUT)
-            if resp.status_code == 404:
-                continue
+            resp = await client.post(
+                f"{_BACKEND}/propostas/paginado",
+                json=body,
+                headers=headers,
+                timeout=_TIMEOUT,
+            )
             if resp.status_code in (401, 403):
-                logger.warning("InvestSUS propostas: sem autorização em %s", url)
-                continue
+                logger.warning("InvestSUS propostas: nao autorizado (token expirado?)")
+                break
             resp.raise_for_status()
             data = resp.json()
-            if isinstance(data, list):
-                logger.info("InvestSUS: %d propostas via %s", len(data), url)
-                return data
-            if isinstance(data, dict):
-                items = (
-                    data.get("propostas")
-                    or data.get("content")
-                    or data.get("data")
-                    or data.get("items")
-                    or []
-                )
-                if isinstance(items, list):
-                    logger.info("InvestSUS: %d propostas via %s", len(items), url)
-                    return items
-        except Exception as e:
-            logger.debug("InvestSUS endpoint %s: %s", url, e)
-            continue
 
-    logger.warning("InvestSUS: nenhum endpoint retornou propostas para CNPJ %s", cnpj)
-    return []
+            items = (
+                data.get("content")
+                or data.get("propostas")
+                or data.get("items")
+                or (data if isinstance(data, list) else [])
+            )
+            all_items.extend(items)
+
+            total = data.get("totalElements") or data.get("total") or len(items)
+            logger.info("InvestSUS propostas %d: %d/%d", ano, len(all_items), total)
+
+            if len(all_items) >= int(total) or len(items) < 100:
+                break
+            page += 1
+
+        except Exception as e:
+            logger.error("InvestSUS paginado p%d: %s", page, e)
+            break
+
+    return all_items
 
 
 async def sincronizar_investsus(cnpj: str | None = None) -> dict:
     """
-    Autentica no portal InvestSUS com INVESTSUS_CPF/INVESTSUS_SENHA e
-    busca propostas do FMS Apuí (ou do CNPJ fornecido).
+    Autentica no portal InvestSUS via SCPA e busca todas as propostas
+    do FMS Apui (ou do CNPJ fornecido).
     """
     cpf, senha = _credenciais()
     cnpj = (cnpj or _CNPJ_APUI).replace(".", "").replace("/", "").replace("-", "")
+    ano  = datetime.now().year
 
     resultado: dict[str, Any] = {
         "propostas":       [],
@@ -265,22 +231,31 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
     }
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
+        # 1. Autenticar
         try:
             token = await _autenticar(client, cpf, senha)
         except Exception as exc:
-            logger.error("InvestSUS autenticação falhou: %s", exc)
+            logger.error("InvestSUS auth falhou: %s", exc)
             resultado["erros"].append({"endpoint": "auth", "erro": str(exc)})
             return resultado
 
+        # 2. Propostas do ano atual
         try:
-            raws = await _buscar_propostas(client, token, cnpj)
+            raws = await _buscar_propostas_paginado(client, token, cnpj, ano)
             resultado["propostas"] = [_normalizar_proposta(r) for r in raws]
         except Exception as exc:
-            logger.error("InvestSUS busca propostas falhou: %s", exc)
+            logger.error("InvestSUS propostas %d: %s", ano, exc)
             resultado["erros"].append({"endpoint": "propostas", "erro": str(exc)})
 
+        # 3. Propostas do ano anterior (vigentes)
+        try:
+            raws_prev = await _buscar_propostas_paginado(client, token, cnpj, ano - 1)
+            resultado["propostas"].extend(_normalizar_proposta(r) for r in raws_prev)
+        except Exception as exc:
+            logger.debug("InvestSUS propostas %d: %s", ano - 1, exc)
+
     logger.info(
-        "InvestSUS sincronização: %d propostas, %d erros",
+        "InvestSUS: %d propostas sincronizadas, %d erros",
         len(resultado["propostas"]), len(resultado["erros"]),
     )
     return resultado
