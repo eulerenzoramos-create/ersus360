@@ -1,28 +1,42 @@
 """
-InvestSUS Scraper — autenticação via portal investsus.saude.gov.br
+InvestSUS Scraper — autenticação via SCPA (acesso.saude.gov.br / Keycloak)
 
-Usa INVESTSUS_CPF e INVESTSUS_SENHA (Railway) para buscar propostas do
-Fundo Municipal de Saúde de Apuí (CNPJ 12.834.320/0001-26).
+O portal InvestSUS usa o SSO SCPA do DATASUS. O fluxo de autenticação é:
+  1. GET investsus.saude.gov.br → redireciona para acesso.saude.gov.br/login
+  2. Extrai client_id e auth URL do redirect OAuth/Keycloak
+  3. POST credenciais ao Keycloak token endpoint (password grant)
+  4. Usa o access_token para chamar a API do InvestSUS
 
 Env vars (Railway):
   INVESTSUS_CPF   — CPF do responsável (sem pontos/traços)
-  INVESTSUS_SENHA — senha do portal InvestSUS
+  INVESTSUS_SENHA — senha do portal InvestSUS (SCPA / gov.br)
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import re
 from datetime import datetime
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
 _BASE      = "https://investsus.saude.gov.br"
+_SCPA_BASE = "https://acesso.saude.gov.br"
 _CNPJ_APUI = "12834320000126"
 _TIMEOUT   = 45.0
+
+# Keycloak realm do DATASUS (valor padrão; sobrescrito se descoberto no redirect)
+_KEYCLOAK_REALM    = "saude"
+_KEYCLOAK_CLIENT   = "investsus"   # client_id padrão
+_KEYCLOAK_TOKEN_URL = (
+    f"{_SCPA_BASE}/auth/realms/{_KEYCLOAK_REALM}"
+    "/protocol/openid-connect/token"
+)
 
 
 def _credenciais() -> tuple[str, str]:
@@ -36,45 +50,125 @@ def _credenciais() -> tuple[str, str]:
     return cpf, senha
 
 
+async def _descobrir_oauth_params(client: httpx.AsyncClient) -> dict:
+    """
+    Faz GET no InvestSUS para descobrir o client_id e token_url reais
+    a partir do redirect OAuth/Keycloak.
+    Retorna dict com 'token_url' e 'client_id'.
+    """
+    params = {"token_url": _KEYCLOAK_TOKEN_URL, "client_id": _KEYCLOAK_CLIENT}
+    try:
+        resp = await client.get(f"{_BASE}/", follow_redirects=False, timeout=15.0)
+        location = resp.headers.get("location", "")
+        if not location:
+            return params
+
+        parsed = urlparse(location)
+        qs = parse_qs(parsed.query)
+
+        # Extrai client_id do redirect URL
+        client_id = (qs.get("client_id") or [""])[0]
+        if client_id:
+            params["client_id"] = client_id
+            logger.debug("OAuth client_id descoberto: %s", client_id)
+
+        # Extrai realm e monta token_url
+        # Padrão: /auth/realms/{realm}/protocol/openid-connect/auth
+        m = re.search(r"/auth/realms/([^/]+)/protocol", location)
+        if m:
+            realm = m.group(1)
+            base_url = f"{parsed.scheme}://{parsed.netloc}"
+            params["token_url"] = (
+                f"{base_url}/auth/realms/{realm}"
+                "/protocol/openid-connect/token"
+            )
+            logger.debug("Keycloak token_url descoberto: %s", params["token_url"])
+
+    except Exception as e:
+        logger.debug("Não foi possível descobrir OAuth params: %s — usando defaults", e)
+
+    return params
+
+
 async def _autenticar(client: httpx.AsyncClient, cpf: str, senha: str) -> str:
-    """Autentica no portal InvestSUS e retorna o Bearer token."""
-    candidatos = [
-        (f"{_BASE}/api/autenticacao/login",   {"login": cpf, "senha": senha}),
-        (f"{_BASE}/api/auth/login",           {"cpf": cpf, "senha": senha}),
-        (f"{_BASE}/api/usuario/autenticar",   {"login": cpf, "senha": senha}),
-        (f"{_BASE}/api/login",                {"cpf": cpf, "password": senha}),
+    """
+    Autentica via SCPA/Keycloak (password grant) e retorna o access_token.
+    """
+    oauth = await _descobrir_oauth_params(client)
+    token_url = oauth["token_url"]
+    client_id = oauth["client_id"]
+
+    # Tenta password grant (Resource Owner Password Credentials)
+    tentativas = [
+        # SCPA Keycloak — formato padrão
+        {
+            "url": token_url,
+            "data": {
+                "grant_type": "password",
+                "client_id": client_id,
+                "username": cpf,
+                "password": senha,
+            },
+        },
+        # Fallback: client_id alternativo
+        {
+            "url": token_url,
+            "data": {
+                "grant_type": "password",
+                "client_id": "investsus-web",
+                "username": cpf,
+                "password": senha,
+            },
+        },
+        # Fallback: URL alternativa SCPA
+        {
+            "url": f"{_SCPA_BASE}/auth/realms/master/protocol/openid-connect/token",
+            "data": {
+                "grant_type": "password",
+                "client_id": client_id,
+                "username": cpf,
+                "password": senha,
+            },
+        },
     ]
-    ultimo_erro = "nenhum endpoint tentado"
-    for url, payload in candidatos:
+
+    ultimo_erro = "nenhuma tentativa executada"
+    for t in tentativas:
         try:
-            resp = await client.post(url, json=payload, timeout=_TIMEOUT)
+            resp = await client.post(
+                t["url"],
+                data=t["data"],
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                timeout=_TIMEOUT,
+            )
             if resp.status_code == 404:
                 continue
-            if resp.status_code in (401, 403):
-                raise RuntimeError(
-                    "Credenciais InvestSUS rejeitadas (401/403). "
-                    "Verifique INVESTSUS_CPF e INVESTSUS_SENHA no Railway."
-                )
+            if resp.status_code in (401, 400):
+                body = resp.text[:300]
+                # 400 com "invalid_grant" = credenciais erradas
+                if "invalid_grant" in body or "Invalid user" in body:
+                    raise RuntimeError(
+                        "Credenciais SCPA rejeitadas. "
+                        "Verifique INVESTSUS_CPF e INVESTSUS_SENHA no Railway."
+                    )
+                ultimo_erro = f"HTTP {resp.status_code}: {body}"
+                continue
             resp.raise_for_status()
             data = resp.json()
-            token = (
-                data.get("token")
-                or data.get("accessToken")
-                or data.get("access_token")
-                or (data.get("data") or {}).get("token")
-                or (data.get("data") or {}).get("access_token")
-            )
+            token = data.get("access_token") or data.get("token")
             if token:
-                logger.info("InvestSUS: autenticado via %s", url)
+                logger.info("InvestSUS/SCPA: autenticado com sucesso")
                 return str(token)
-            ultimo_erro = f"Token ausente na resposta de {url}: {list(data.keys())}"
+            ultimo_erro = f"access_token ausente na resposta: {list(data.keys())}"
         except RuntimeError:
             raise
         except Exception as e:
             ultimo_erro = str(e)
             continue
 
-    raise RuntimeError(f"Falha na autenticação InvestSUS. Último erro: {ultimo_erro}")
+    raise RuntimeError(
+        f"Falha na autenticação SCPA/InvestSUS. Último erro: {ultimo_erro}"
+    )
 
 
 def _normalizar_proposta(raw: dict) -> dict:
