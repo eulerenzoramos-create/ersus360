@@ -2345,19 +2345,25 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
         )}
       </div>
 
+      {/* Instruções MFA */}
       <div style={cor.card}>
-        <div style={cor.titulo}>Fonte dos dados</div>
-        <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.8 }}>
-          <div style={{ marginBottom: 8 }}>
-            Dados obtidos via <strong>Portal InvestSUS</strong> (API oficial do Ministério da Saúde):
-          </div>
-          <ul style={{ margin: "0 0 8px 16px", padding: 0, fontSize: 12, color: "#374151" }}>
-            <li>Propostas de emendas parlamentares e incrementos (MAC, PAP e outros)</li>
-            <li>Situação atualizada de cada proposta (fase, instrumento, valores)</li>
-            <li>Autenticação via SCPA (acesso.saude.gov.br) com credenciais configuradas no servidor</li>
-          </ul>
-          <div style={{ fontSize: 12, color: "#6b7280" }}>
-            As credenciais (INVESTSUS_CPF / INVESTSUS_SENHA) ficam apenas no Railway — nunca no código.
+        <div style={cor.titulo}>⚠️ gov.br com verificação em 2 etapas (MFA)?</div>
+        <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.8 }}>
+          <p style={{ margin: "0 0 10px" }}>
+            Se o seu login no gov.br pede código SMS/app além da senha, o login automático não funciona.
+            Siga os passos abaixo para extrair o token da sua sessão ativa:
+          </p>
+          <ol style={{ margin: "0 0 12px 16px", padding: 0, color: "#374151" }}>
+            <li>Acesse <strong>investsus.saude.gov.br</strong> e faça login normalmente (com o código MFA)</li>
+            <li>Pressione <strong>F12</strong> para abrir o DevTools</li>
+            <li>Vá em <strong>Application → Local Storage → investsus.saude.gov.br</strong></li>
+            <li>Procure a chave <code style={{ background: "#f3f4f6", padding: "1px 5px", borderRadius: 3 }}>token</code> ou <code style={{ background: "#f3f4f6", padding: "1px 5px", borderRadius: 3 }}>access_token</code></li>
+            <li>Copie o valor completo (começa com <code style={{ background: "#f3f4f6", padding: "1px 5px", borderRadius: 3 }}>eyJ...</code>)</li>
+            <li>No <strong>Railway → Variables</strong>, adicione: <code style={{ background: "#f3f4f6", padding: "1px 5px", borderRadius: 3 }}>INVESTSUS_TOKEN = (valor copiado)</code></li>
+            <li>Clique <strong>Deploy</strong> no Railway e depois <strong>Sincronizar Agora</strong> aqui</li>
+          </ol>
+          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: "8px 12px", fontSize: 11, color: "#92400e" }}>
+            ⏱️ O token expira em ~5 horas. Quando parar de funcionar, repita o processo para renovar.
           </div>
         </div>
       </div>

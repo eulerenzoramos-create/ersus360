@@ -215,10 +215,12 @@ async def _buscar_propostas_paginado(
 
 async def sincronizar_investsus(cnpj: str | None = None) -> dict:
     """
-    Autentica no portal InvestSUS via SCPA e busca todas as propostas
-    do FMS Apui (ou do CNPJ fornecido).
+    Busca propostas do InvestSUS.
+
+    Estratégia de autenticação (em ordem):
+      1. INVESTSUS_TOKEN  — token JWT extraído do browser (contorna MFA gov.br)
+      2. INVESTSUS_CPF + INVESTSUS_SENHA — password grant SCPA (só funciona sem MFA)
     """
-    cpf, senha = _credenciais()
     cnpj = (cnpj or _CNPJ_APUI).replace(".", "").replace("/", "").replace("-", "")
     ano  = datetime.now().year
 
@@ -231,13 +233,19 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
     }
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
-        # 1. Autenticar
-        try:
-            token = await _autenticar(client, cpf, senha)
-        except Exception as exc:
-            logger.error("InvestSUS auth falhou: %s", exc)
-            resultado["erros"].append({"endpoint": "auth", "erro": str(exc)})
-            return resultado
+        # 1. Obter token
+        token_fixo = os.getenv("INVESTSUS_TOKEN", "").strip()
+        if token_fixo:
+            token = token_fixo
+            logger.info("InvestSUS: usando INVESTSUS_TOKEN configurado (bypass MFA)")
+        else:
+            try:
+                cpf, senha = _credenciais()
+                token = await _autenticar(client, cpf, senha)
+            except Exception as exc:
+                logger.error("InvestSUS auth falhou: %s", exc)
+                resultado["erros"].append({"endpoint": "auth", "erro": str(exc)})
+                return resultado
 
         # 2. Propostas do ano atual
         try:
