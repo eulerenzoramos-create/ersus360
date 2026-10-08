@@ -32,6 +32,15 @@ _TIMEOUT   = 45.0
 _TOKEN_URL_PRINCIPAL = "https://acesso.saude.gov.br/realms/saude/protocol/openid-connect/token"
 _TOKEN_URL_FALLBACK  = "https://acesso.saude.gov.br/auth/realms/saude/protocol/openid-connect/token"
 
+# Headers de contexto do usuário (adicionados pelo proxy F5/SCPA)
+_CZ_HEADERS = {
+    "cz-aphrodite-de-peixes": "DIREME",
+    "cz-milo-de-escopiao":    "ENTPUBLICAFNS",
+    "cz-mu-de-aries":         "13/130014/12834320000126",
+    "Origin":                 "https://investsus.saude.gov.br",
+    "Referer":                "https://investsus.saude.gov.br/",
+}
+
 
 def _credenciais() -> tuple[str, str]:
     cpf   = os.getenv("INVESTSUS_CPF", "").strip().replace(".", "").replace("-", "")
@@ -153,15 +162,17 @@ def _normalizar_proposta(raw: dict) -> dict:
 
 async def _buscar_propostas_paginado(
     client: httpx.AsyncClient,
-    token: str,
+    token: str | None,
     cnpj: str,
     ano: int,
 ) -> list[dict]:
     """
     POST /api/propostas/paginado - endpoint confirmado pelo portal.
-    Pagina ate buscar todos os registros.
+    Auth via cookie (INVESTSUS_COOKIE) ou bearer token nos headers do client.
     """
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    headers: dict = {}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     all_items: list[dict] = []
     page = 1
 
@@ -229,16 +240,25 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
         "sincronizado_em": datetime.utcnow().isoformat() + "Z",
     }
 
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        # 1. Obter token
-        token_fixo = os.getenv("INVESTSUS_TOKEN", "").strip()
-        if token_fixo:
-            token = token_fixo
-            logger.info("InvestSUS: usando INVESTSUS_TOKEN configurado (bypass MFA)")
-        else:
+    # Monta headers base (cookie ou bearer)
+    cookie_str = os.getenv("INVESTSUS_COOKIE", "").strip()
+    token_fixo = os.getenv("INVESTSUS_TOKEN", "").strip()
+
+    base_headers: dict = {**_CZ_HEADERS, "Content-Type": "application/json"}
+    if cookie_str:
+        base_headers["Cookie"] = cookie_str
+        logger.info("InvestSUS: usando INVESTSUS_COOKIE (sessao do browser)")
+    elif token_fixo:
+        base_headers["Authorization"] = f"Bearer {token_fixo}"
+        logger.info("InvestSUS: usando INVESTSUS_TOKEN")
+
+    async with httpx.AsyncClient(follow_redirects=True, headers=base_headers) as client:
+        # 1. Autenticar (só se não tiver cookie nem token fixo)
+        if not cookie_str and not token_fixo:
             try:
                 cpf, senha = _credenciais()
                 token = await _autenticar(client, cpf, senha)
+                client.headers["Authorization"] = f"Bearer {token}"
             except Exception as exc:
                 logger.error("InvestSUS auth falhou: %s", exc)
                 resultado["erros"].append({"endpoint": "auth", "erro": str(exc)})
@@ -246,7 +266,7 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
 
         # 2. Propostas do ano atual
         try:
-            raws = await _buscar_propostas_paginado(client, token, cnpj, ano)
+            raws = await _buscar_propostas_paginado(client, None, cnpj, ano)
             resultado["propostas"] = [_normalizar_proposta(r) for r in raws]
         except Exception as exc:
             logger.error("InvestSUS propostas %d: %s", ano, exc)
@@ -254,7 +274,7 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
 
         # 3. Propostas do ano anterior (vigentes)
         try:
-            raws_prev = await _buscar_propostas_paginado(client, token, cnpj, ano - 1)
+            raws_prev = await _buscar_propostas_paginado(client, None, cnpj, ano - 1)
             resultado["propostas"].extend(_normalizar_proposta(r) for r in raws_prev)
         except Exception as exc:
             logger.debug("InvestSUS propostas %d: %s", ano - 1, exc)
