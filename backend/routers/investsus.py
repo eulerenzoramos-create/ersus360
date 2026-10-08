@@ -1401,10 +1401,17 @@ async def sincronizar_com_investsus(user: UserDep):
         raise HTTPException(403, "Acesso restrito")
 
     import os
-    if not os.getenv("INVESTSUS_CPF") or not os.getenv("INVESTSUS_SENHA"):
+    tem_cookie = bool(os.getenv("INVESTSUS_COOKIE", "").strip())
+    tem_token  = bool(os.getenv("INVESTSUS_TOKEN", "").strip())
+    tem_cpf    = bool(os.getenv("INVESTSUS_CPF", "").strip())
+    tem_senha  = bool(os.getenv("INVESTSUS_SENHA", "").strip())
+    if not tem_cookie and not tem_token and not (tem_cpf and tem_senha):
         raise HTTPException(400, detail={
             "erro": "Credenciais InvestSUS não configuradas",
-            "instrucao": "Adicione INVESTSUS_CPF e INVESTSUS_SENHA nas variáveis de ambiente do Railway.",
+            "instrucao": (
+                "Configure INVESTSUS_COOKIE (cookie de sessão do browser) "
+                "ou INVESTSUS_CPF + INVESTSUS_SENHA nas variáveis do Railway."
+            ),
         })
 
     mid = _municipio_id(user)

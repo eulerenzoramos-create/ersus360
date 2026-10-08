@@ -194,8 +194,14 @@ async def _buscar_propostas_paginado(
                 timeout=_TIMEOUT,
             )
             if resp.status_code in (401, 403):
-                logger.warning("InvestSUS propostas: nao autorizado (token expirado?)")
-                break
+                cookie_ativo = bool(os.getenv("INVESTSUS_COOKIE", "").strip())
+                msg = (
+                    "Cookie de sessão expirou (InvestSUS desconecta após ~5h). "
+                    "Faça login novamente no portal, copie os cookies via DevTools e atualize INVESTSUS_COOKIE no Railway."
+                    if cookie_ativo else
+                    "Token/credenciais rejeitados (401/403)."
+                )
+                raise RuntimeError(msg)
             resp.raise_for_status()
             data = resp.json()
 
