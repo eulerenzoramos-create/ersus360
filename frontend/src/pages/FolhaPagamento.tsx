@@ -575,6 +575,10 @@ export default function FolhaPagamento() {
   const [presencaLocal, setPresencaLocal] = useState<Record<string,"P"|"F"|"FJ"|"FS"|"L">>({});
   const [celulaPop, setCelulaPop] = useState<string|null>(null); // chave da célula com popup aberto
   const [salvandoPresenca, setSalvandoPresenca] = useState(false);
+  const [gerandoPdf, setGerandoPdf] = useState<string|null>(null);   // categoria/unidade sendo gerada em PDF
+  const [enviandoEmail, setEnviandoEmail] = useState<string|null>(null); // categoria/unidade sendo enviada por e-mail
+  const [filtroPresencaBusca, setFiltroPresencaBusca] = useState("");    // busca nome/matrícula na Folha de Presença
+  const [filtroPresencaUnidade, setFiltroPresencaUnidade] = useState(""); // UBS ou setor selecionado na Folha de Presença
 
   // Competências com dados reais no servidor
   const { data: competenciasDisp } = useQuery({
@@ -1208,20 +1212,69 @@ export default function FolhaPagamento() {
               } catch { alert("Erro ao salvar. Tente novamente."); }
               finally { setSalvandoPresenca(false); }
             }
+            async function baixarPresencaPdf(categoria: string, unidade: string = "") {
+              const chave = unidade || categoria;
+              setGerandoPdf(chave);
+              try {
+                const resp = await api.get("/api/folha/presenca/pdf", {
+                  params: { competencia, categoria, unidade }, responseType: "blob",
+                });
+                const blobUrl = window.URL.createObjectURL(new Blob([resp.data], { type:"application/pdf" }));
+                const a = document.createElement("a");
+                a.href = blobUrl;
+                a.download = `ERSUS360_FolhaPresenca_${competencia}_${(unidade||categoria).replace(/\s+/g,"_")}.pdf`;
+                document.body.appendChild(a); a.click(); a.remove();
+                window.URL.revokeObjectURL(blobUrl);
+              } catch { alert("Erro ao gerar o PDF. Tente novamente."); }
+              finally { setGerandoPdf(null); }
+            }
+            async function enviarPresencaEmail(categoria: string, rotulo: string, unidade: string = "") {
+              const chave = unidade || categoria;
+              if (!confirm(`Enviar a Folha de Presença — ${rotulo} — por e-mail?`)) return;
+              setEnviandoEmail(chave);
+              try {
+                const r = await api.post("/api/folha/presenca/email", { competencia, categoria, unidade });
+                alert(`E-mail enviado com sucesso para ${r.data?.destinatario || "o destinatário configurado"}!`);
+              } catch (e: any) {
+                alert("Erro ao enviar e-mail: " + (e?.response?.data?.detail || "tente novamente."));
+              } finally { setEnviandoEmail(null); }
+            }
             return (
             <div style={{ background:"#fff", border:"1px solid #dde4ee", borderRadius:"0 0 10px 10px", padding:20 }}
               onClick={() => setCelulaPop(null)}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
-                marginBottom:6, borderBottom:"1px solid #dde4ee", paddingBottom:10 }}>
+                marginBottom:6, borderBottom:"1px solid #dde4ee", paddingBottom:10, flexWrap:"wrap", gap:8 }}>
                 <div style={{ fontWeight:700, fontSize:14, color:"#0d2137" }}>
                   📋 Folha de Presença — {COMP_LABEL[competencia]||competencia}
                 </div>
-                <button onClick={salvarPresenca} disabled={salvandoPresenca}
-                  style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 16px",
-                    background: salvandoPresenca ? "#9ca3af" : "#059669",
-                    border:"none", borderRadius:7, color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer" }}>
-                  {salvandoPresenca ? "Salvando..." : "💾 Salvar Folha"}
-                </button>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                  {(() => {
+                    const chave = filtroPresencaUnidade || "todas";
+                    const rotulo = filtroPresencaUnidade || "Todas as Unidades";
+                    const rotuloBotao = filtroPresencaUnidade ? `PDF — ${filtroPresencaUnidade}` : "PDF — Tudo";
+                    const rotuloBotaoEmail = filtroPresencaUnidade ? `E-mail — ${filtroPresencaUnidade}` : "E-mail — Tudo";
+                    return (<>
+                      <button onClick={() => baixarPresencaPdf("todas", filtroPresencaUnidade)} disabled={gerandoPdf===chave}
+                        style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 14px",
+                          background:"#fff", border:"1px solid #1a6baa", borderRadius:7, color:"#1a6baa",
+                          fontSize:12, fontWeight:700, cursor:"pointer" }}>
+                        📄 {gerandoPdf===chave ? "Gerando..." : rotuloBotao}
+                      </button>
+                      <button onClick={() => enviarPresencaEmail("todas", rotulo, filtroPresencaUnidade)} disabled={enviandoEmail===chave}
+                        style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 14px",
+                          background:"#fff", border:"1px solid #6b7280", borderRadius:7, color:"#374151",
+                          fontSize:12, fontWeight:700, cursor:"pointer" }}>
+                        ✉️ {enviandoEmail===chave ? "Enviando..." : rotuloBotaoEmail}
+                      </button>
+                    </>);
+                  })()}
+                  <button onClick={salvarPresenca} disabled={salvandoPresenca}
+                    style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 16px",
+                      background: salvandoPresenca ? "#9ca3af" : "#059669",
+                      border:"none", borderRadius:7, color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+                    {salvandoPresenca ? "Salvando..." : "💾 Salvar Folha"}
+                  </button>
+                </div>
               </div>
               <div style={{ fontSize:11, color:"#6b7280", marginBottom:16, display:"flex", gap:12, flexWrap:"wrap" }}>
                 {(Object.entries(LABEL_MARC) as [Marc,string][]).map(([k,l]) => (
@@ -1234,6 +1287,33 @@ export default function FolhaPagamento() {
                 <span style={{ color:"#9ca3af" }}>· Clique em qualquer célula para alterar</span>
               </div>
 
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }} onClick={e => e.stopPropagation()}>
+                <input value={filtroPresencaBusca} onChange={e => setFiltroPresencaBusca(e.target.value)}
+                  placeholder="Buscar nome / matrícula..."
+                  style={{ padding:"6px 10px", border:"1px solid #dde4ee", borderRadius:6, fontSize:12,
+                    flex:"1 1 220px", minWidth:180 }}/>
+                <select value={filtroPresencaUnidade} onChange={e => setFiltroPresencaUnidade(e.target.value)}
+                  style={{ padding:"6px 10px", border:"1px solid #dde4ee", borderRadius:6, fontSize:12 }}>
+                  <option value="">Todas as UBS / Setores</option>
+                  <optgroup label="── UBS ──">
+                    {ubsNomes.filter(isUbsBasica).map(u => <option key={u} value={u}>{u}</option>)}
+                  </optgroup>
+                  <optgroup label="── Unidades especializadas ──">
+                    {ubsNomes.filter(u => !isUbsBasica(u)).map(u => <option key={u} value={u}>{u}</option>)}
+                  </optgroup>
+                  <optgroup label="── Setor ──">
+                    {lotacoes.map(l => <option key={`lot-presenca-${l}`} value={l}>{l}</option>)}
+                  </optgroup>
+                </select>
+                {(filtroPresencaBusca || filtroPresencaUnidade) && (
+                  <button onClick={() => { setFiltroPresencaBusca(""); setFiltroPresencaUnidade(""); }}
+                    style={{ padding:"6px 12px", background:"#fff", border:"1px solid #dde4ee",
+                      borderRadius:6, fontSize:12, color:"#6b7280", cursor:"pointer" }}>
+                    Limpar filtros
+                  </button>
+                )}
+              </div>
+
               {!presencaData ? (
                 <div style={{ padding:24, textAlign:"center", color:"#9ca3af" }}>Carregando...</div>
               ) : (() => {
@@ -1242,7 +1322,29 @@ export default function FolhaPagamento() {
                   const dt = new Date((presencaData as any).ano, (presencaData as any).mes-1, d);
                   return dt.getDay() !== 0 && dt.getDay() !== 6;
                 });
-                const unidades: any[] = (presencaData as any)?.unidades || [];
+                const buscaLower = filtroPresencaBusca.trim().toLowerCase();
+                const unidadesBrutas: any[] = (presencaData as any)?.unidades || [];
+                const unidades: any[] = unidadesBrutas
+                  .filter(u => !filtroPresencaUnidade
+                    || u.ubs_nome === filtroPresencaUnidade
+                    || u.setores.some((s: any) => s.nome === filtroPresencaUnidade))
+                  .map(u => ({
+                    ...u,
+                    setores: u.setores
+                      .filter((s: any) => !filtroPresencaUnidade
+                        || u.ubs_nome === filtroPresencaUnidade
+                        || s.nome === filtroPresencaUnidade)
+                      .map((s: any) => ({
+                        ...s,
+                        servidores: s.servidores.filter((sv: any) =>
+                          !buscaLower
+                          || sv.nome.toLowerCase().includes(buscaLower)
+                          || sv.matricula.toLowerCase().includes(buscaLower)),
+                      }))
+                      .filter((s: any) => s.servidores.length > 0),
+                  }))
+                  .filter(u => u.setores.length > 0)
+                  .map(u => ({ ...u, total_servidores: u.setores.reduce((a: number, s: any) => a + s.servidores.length, 0) }));
                 const unidadesUbs = ordenarUbsKeys(unidades.map(u => u.ubs_nome))
                   .filter(isUbsBasica)
                   .map(nome => unidades.find(u => u.ubs_nome === nome))
@@ -1365,14 +1467,29 @@ export default function FolhaPagamento() {
                 };
 
                 const CORES_CATEGORIA: Record<string,string> = { ubs:"#1a3356", esp:"#6b2d8c" };
-                const categoriaHeader = (titulo: string, cor: string, qtdUnidades: number, qtdServidores: number) => (
+                const categoriaHeader = (titulo: string, cor: string, categoria: string, rotulo: string,
+                                         qtdUnidades: number, qtdServidores: number) => (
                   <div style={{ background:cor, color:"#fff", padding:"10px 16px", borderRadius:8,
                     fontWeight:800, fontSize:13, marginBottom:14, display:"flex",
-                    justifyContent:"space-between", alignItems:"center" }}>
+                    justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8 }}>
                     <span>{titulo}</span>
-                    <span style={{ fontWeight:600, fontSize:11 }}>
-                      {qtdUnidades} unidade{qtdUnidades!==1?"s":""} · {qtdServidores} servidores
-                    </span>
+                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                      <span style={{ fontWeight:600, fontSize:11 }}>
+                        {qtdUnidades} unidade{qtdUnidades!==1?"s":""} · {qtdServidores} servidores
+                      </span>
+                      <button onClick={() => baixarPresencaPdf(categoria)} disabled={gerandoPdf===categoria}
+                        style={{ display:"flex", alignItems:"center", gap:4, padding:"4px 9px",
+                          background:"#ffffff22", border:"1px solid #ffffff55", borderRadius:5,
+                          color:"#fff", fontSize:10.5, fontWeight:700, cursor:"pointer" }}>
+                        📄 {gerandoPdf===categoria ? "Gerando..." : "PDF"}
+                      </button>
+                      <button onClick={() => enviarPresencaEmail(categoria, rotulo)} disabled={enviandoEmail===categoria}
+                        style={{ display:"flex", alignItems:"center", gap:4, padding:"4px 9px",
+                          background:"#ffffff22", border:"1px solid #ffffff55", borderRadius:5,
+                          color:"#fff", fontSize:10.5, fontWeight:700, cursor:"pointer" }}>
+                        ✉️ {enviandoEmail===categoria ? "Enviando..." : "E-mail"}
+                      </button>
+                    </div>
                   </div>
                 );
                 const totalServ = (lista: any[]) => lista.reduce((a,u)=>a+u.total_servidores,0);
@@ -1382,13 +1499,14 @@ export default function FolhaPagamento() {
                     {unidadesUbs.length > 0 && (
                       <div style={{ marginBottom:24 }}>
                         {categoriaHeader("🏥 UBS / Unidades Básicas de Saúde", CORES_CATEGORIA.ubs,
-                          unidadesUbs.length, totalServ(unidadesUbs))}
+                          "ubs", "UBS / Unidades Básicas de Saúde", unidadesUbs.length, totalServ(unidadesUbs))}
                         {unidadesUbs.map(renderUnidade)}
                       </div>
                     )}
                     {unidadesEspecializadas.length > 0 && (
                       <div>
                         {categoriaHeader("🏛️ Unidades Especializadas", CORES_CATEGORIA.esp,
+                          "especializada", "Unidades Especializadas",
                           unidadesEspecializadas.length, totalServ(unidadesEspecializadas))}
                         {unidadesEspecializadas.map(renderUnidade)}
                       </div>

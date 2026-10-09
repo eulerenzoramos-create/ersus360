@@ -7,6 +7,7 @@ import csv
 import io
 import json
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -463,17 +464,16 @@ async def atualizar_status(matricula: str, payload: dict):
     return {"ok": True, "matricula": matricula, "status": novo_status}
 
 
-@router.get("/presenca")
-async def folha_presenca(competencia: str = Query("2026-07"), setor: str = Query("")):
-    """Retorna estrutura para folha de presença mensal, agrupada por UBS / unidade e, dentro dela, por setor."""
+def _presenca_estrutura(competencia: str, filtro: str = "") -> dict:
+    """Monta a estrutura da folha de presença mensal, agrupada por UBS / unidade e, dentro dela, por setor."""
     from calendar import monthrange
     ano, mes = [int(x) for x in competencia.split("-")]
     _, dias_mes = monthrange(ano, mes)
     dados = _folha_com_patches(competencia)
     verbas = dados["verbas"]
-    if setor:
-        verbas = [v for v in verbas if v.get("lotacao","") == setor or v.get("setor","") == setor
-                  or v.get("ubs_nome","") == setor]
+    if filtro:
+        verbas = [v for v in verbas if v.get("lotacao","") == filtro or v.get("setor","") == filtro
+                  or v.get("ubs_nome","") == filtro]
     unidades: dict = {}
     for v in verbas:
         ubs = v.get("ubs_nome") or v.get("lotacao") or v.get("setor") or "Sem UBS"
@@ -498,6 +498,30 @@ async def folha_presenca(competencia: str = Query("2026-07"), setor: str = Query
         "dias_mes": dias_mes,
         "unidades": unidades_lista,
     }
+
+
+# UBS básica (Atenção Primária) × unidade especializada (Hospital, CAPS, Vigilância, Sede) —
+# mesmo critério usado no frontend (filtro da Folha Detalhada / categorias da Folha de Presença).
+def _categoria_ubs(nome: str) -> str:
+    return "ubs" if (nome.startswith("UBS") or nome.startswith("Centro")) else "especializada"
+
+
+def _dias_uteis_mes(ano: int, mes: int, dias_mes: int) -> list[int]:
+    from datetime import date as _date
+    return [d for d in range(1, dias_mes + 1) if _date(ano, mes, d).weekday() < 5]
+
+
+def _marcacao_presenca(matricula: str, dia: int, status: str, marcacoes: dict) -> str:
+    chave = f"{matricula}_{dia}"
+    if chave in marcacoes:
+        return marcacoes[chave]
+    return "L" if status != "ativo" else "P"
+
+
+@router.get("/presenca")
+async def folha_presenca(competencia: str = Query("2026-07"), setor: str = Query("")):
+    """Retorna estrutura para folha de presença mensal, agrupada por UBS / unidade e, dentro dela, por setor."""
+    return _presenca_estrutura(competencia, setor)
 
 
 def _presenca_path() -> Path:
@@ -533,6 +557,262 @@ async def ler_marcacoes(competencia: str = Query("2026-07")):
         return {"competencia": competencia, "marcacoes": dados.get(competencia, {})}
     except Exception:
         return {"competencia": competencia, "marcacoes": {}}
+
+
+def _marcacoes_salvas(competencia: str) -> dict:
+    if not _presenca_path().exists():
+        return {}
+    try:
+        dados = json.loads(_presenca_path().read_text(encoding="utf-8"))
+        return dados.get(competencia, {})
+    except Exception:
+        return {}
+
+
+def _gerado_em_pt() -> str:
+    from datetime import datetime as _dt
+    meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+             "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+    agora = _dt.now()
+    return f"{agora.day:02d} de {meses[agora.month-1]} de {agora.year} às {agora.hour:02d}:{agora.minute:02d}"
+
+
+_COMP_LABEL_PT = {
+    "2026-01":"Jan/2026","2026-02":"Fev/2026","2026-03":"Mar/2026","2026-04":"Abr/2026",
+    "2026-05":"Mai/2026","2026-06":"Jun/2026","2026-07":"Jul/2026","2026-08":"Ago/2026",
+    "2026-09":"Set/2026","2026-10":"Out/2026","2026-11":"Nov/2026","2026-12":"Dez/2026",
+}
+_LABEL_STATUS_PT = {
+    "ativo":"Ativo", "licenca":"Lic. Saúde", "licenca_maternidade":"Lic. Maternidade",
+    "afastado":"Afastado", "cedido":"Cedido", "ferias":"Férias",
+}
+_LABEL_CATEGORIA_PT = {
+    "ubs": "UBS / Unidades Básicas de Saúde",
+    "especializada": "Unidades Especializadas",
+    "todas": "Todas as Unidades",
+}
+
+
+def gerar_pdf_presenca(estrutura: dict, marcacoes: dict, categoria: str, gerado_em: str) -> bytes:
+    """Gera a Folha de Presença em PDF (A4 paisagem), agrupada por UBS/unidade e setor,
+    opcionalmente restrita a uma categoria (ubs | especializada)."""
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_RIGHT
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+
+    buf = io.BytesIO()
+    ano, mes, dias_mes = estrutura["ano"], estrutura["mes"], estrutura["dias_mes"]
+    dias_uteis = _dias_uteis_mes(ano, mes, dias_mes)
+
+    unidades = estrutura["unidades"]
+    if categoria in ("ubs", "especializada"):
+        unidades = [u for u in unidades if _categoria_ubs(u["ubs_nome"]) == categoria]
+
+    AZUL   = colors.HexColor("#1a3356")
+    ROXO   = colors.HexColor("#6b2d8c")
+    CINZA  = colors.HexColor("#6b7280")
+    BORDA  = colors.HexColor("#dde4ee")
+    COR_MARC = {
+        "P": colors.HexColor("#059669"), "F": colors.HexColor("#dc2626"),
+        "FJ": colors.HexColor("#d97706"), "FS": colors.HexColor("#6366f1"),
+        "L": colors.HexColor("#0284c7"),
+    }
+    COR_CATEGORIA = {"ubs": AZUL, "especializada": ROXO}
+
+    def _footer(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 7)
+        canvas.setFillColor(CINZA)
+        w, _h = landscape(A4)
+        y = 0.8 * cm
+        canvas.drawString(doc.leftMargin, y,
+                           f"ERSUS 360 · SMS Apuí/AM · IBGE 1300144 · Gerado em {gerado_em}")
+        canvas.drawRightString(w - doc.rightMargin, y, f"Página {canvas.getPageNumber()}")
+        canvas.restoreState()
+
+    doc = SimpleDocTemplate(
+        buf, pagesize=landscape(A4),
+        leftMargin=1*cm, rightMargin=1*cm, topMargin=1*cm, bottomMargin=1.3*cm,
+        title=f"Folha de Presença {estrutura['competencia']}",
+        author="ERSUS 360 · SMS Apuí/AM",
+    )
+    W = doc.width
+    story = []
+
+    comp_label = _COMP_LABEL_PT.get(estrutura["competencia"], estrutura["competencia"])
+    titulo_cat = _LABEL_CATEGORIA_PT.get(categoria, "Todas as Unidades")
+    story.append(Paragraph(f"<b>ERSUS 360</b> — Folha de Presença — {comp_label}",
+                            ParagraphStyle("t", fontName="Helvetica-Bold", fontSize=14, textColor=AZUL)))
+    story.append(Paragraph(f"SMS Apuí/AM · IBGE 1300144 · {titulo_cat}",
+                            ParagraphStyle("s", fontName="Helvetica", fontSize=9, textColor=CINZA, spaceAfter=6)))
+    story.append(Paragraph(
+        "P Presente · F Falta · FJ Falta Justificada · FS Folga/Escala · L Licença",
+        ParagraphStyle("l", fontName="Helvetica", fontSize=7.5, textColor=CINZA, spaceAfter=10)))
+
+    if not unidades:
+        story.append(Paragraph("Nenhum servidor encontrado para os filtros informados.",
+                                ParagraphStyle("e", fontName="Helvetica", fontSize=10, textColor=colors.red)))
+
+    for u in unidades:
+        cor_u = COR_CATEGORIA.get(_categoria_ubs(u["ubs_nome"]), AZUL)
+        t_u = Table([[
+            Paragraph(f"<b>{u['ubs_nome']}</b>",
+                      ParagraphStyle("u", fontName="Helvetica-Bold", fontSize=10, textColor=colors.white)),
+            Paragraph(f"{u['total_servidores']} servidores",
+                      ParagraphStyle("ur", fontName="Helvetica", fontSize=8, textColor=colors.white, alignment=TA_RIGHT)),
+        ]], colWidths=[W*0.75, W*0.25])
+        t_u.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,-1), cor_u),
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+            ("LEFTPADDING", (0,0), (-1,-1), 8), ("RIGHTPADDING", (0,0), (-1,-1), 8),
+            ("TOPPADDING", (0,0), (-1,-1), 5), ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+        ]))
+        story.append(Spacer(1, 0.3*cm))
+        story.append(t_u)
+
+        for setor in u["setores"]:
+            story.append(Spacer(1, 0.12*cm))
+            story.append(Paragraph(
+                f"<b>{setor['nome']}</b> — {len(setor['servidores'])} servidores",
+                ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=8, textColor=AZUL, spaceAfter=3)))
+
+            n_dias = len(dias_uteis)
+            col_nome, col_cargo, col_sit, col_pf = 3.6*cm, 2.6*cm, 1.4*cm, 0.65*cm
+            resto = W - (col_nome + col_cargo + col_sit + 2*col_pf)
+            col_dia = max(resto / n_dias, 0.4*cm) if n_dias else 0.4*cm
+            colw = [col_nome, col_cargo, col_sit] + [col_dia]*n_dias + [col_pf, col_pf]
+
+            style_nome  = ParagraphStyle("nm", fontName="Helvetica-Bold", fontSize=6.5, leading=7.5)
+            style_cargo = ParagraphStyle("cg", fontName="Helvetica", fontSize=6, leading=7, textColor=CINZA)
+            style_sit   = ParagraphStyle("si", fontName="Helvetica", fontSize=6, leading=7)
+
+            header = ["Servidor", "Cargo", "Situação"] + [str(d) for d in dias_uteis] + ["P", "F"]
+            rows = [header]
+            cor_extra = []
+            for i, s in enumerate(setor["servidores"], start=1):
+                marc_linha = [_marcacao_presenca(s["matricula"], d, s["status"], marcacoes) for d in dias_uteis]
+                total_p = marc_linha.count("P")
+                total_f = sum(1 for m in marc_linha if m in ("F", "FJ"))
+                rows.append(
+                    [Paragraph(s["nome"], style_nome),
+                     Paragraph(s["cargo"], style_cargo),
+                     Paragraph(_LABEL_STATUS_PT.get(s["status"], "Ativo"), style_sit)]
+                    + marc_linha
+                    + [str(total_p), str(total_f) if total_f else "—"]
+                )
+                for j, m in enumerate(marc_linha):
+                    cor_extra.append(("TEXTCOLOR", (3+j, i), (3+j, i), COR_MARC.get(m, colors.black)))
+
+            t = Table(rows, colWidths=colw, repeatRows=1)
+            t.setStyle(TableStyle([
+                ("FONTSIZE", (0,0), (-1,-1), 6),
+                ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+                ("FONTNAME", (-2,1), (-1,-1), "Helvetica-Bold"),
+                ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#e8f1fa")),
+                ("ALIGN", (3,0), (-1,-1), "CENTER"),
+                ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+                ("GRID", (0,0), (-1,-1), 0.3, BORDA),
+                ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, colors.HexColor("#f9fafb")]),
+                ("LEFTPADDING", (0,0), (-1,-1), 2), ("RIGHTPADDING", (0,0), (-1,-1), 2),
+                ("TOPPADDING", (0,0), (-1,-1), 2), ("BOTTOMPADDING", (0,0), (-1,-1), 2),
+            ] + cor_extra))
+            story.append(t)
+        story.append(Spacer(1, 0.3*cm))
+
+    doc.build(story, onFirstPage=_footer, onLaterPages=_footer)
+    buf.seek(0)
+    return buf.read()
+
+
+@router.get("/presenca/pdf")
+async def presenca_pdf(
+    competencia: str = Query("2026-07"),
+    categoria: str = Query("todas", description="todas | ubs | especializada"),
+    unidade: str = Query("", description="Nome exato de uma UBS/unidade específica (opcional)"),
+):
+    """Gera a Folha de Presença em PDF — todas as unidades, só UBS básica, só unidades
+    especializadas, ou uma unidade específica (parâmetro `unidade`)."""
+    from fastapi.responses import StreamingResponse
+
+    estrutura = _presenca_estrutura(competencia, unidade)
+    if not estrutura["unidades"]:
+        raise HTTPException(404, "Nenhum servidor encontrado para os filtros informados.")
+    marcacoes = _marcacoes_salvas(competencia)
+    gerado_em = _gerado_em_pt()
+    pdf_bytes = gerar_pdf_presenca(estrutura, marcacoes, categoria, gerado_em)
+
+    sufixo = f"_{unidade}" if unidade else (f"_{categoria}" if categoria in ("ubs", "especializada") else "")
+    fname = f"ERSUS360_FolhaPresenca_{competencia}{sufixo}.pdf".replace(" ", "_").replace("/", "-")
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes), media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+    )
+
+
+RESEND_API_KEY        = os.getenv("RESEND_API_KEY", "")
+EMAIL_FROM_PRESENCA   = os.getenv("EMAIL_FROM", "onboarding@resend.dev")
+EMAIL_RECIPIENT_PADRAO = os.getenv("EMAIL_RECIPIENT", "eulerenzoramos@gmail.com")
+
+
+async def _enviar_email_com_anexo(destinatario: str, assunto: str, html: str,
+                                   pdf_bytes: bytes, filename: str) -> dict:
+    """Envia e-mail com PDF anexado via Resend (HTTPS — Railway bloqueia SMTP)."""
+    if not RESEND_API_KEY:
+        return {"ok": False, "erro": "RESEND_API_KEY não configurado no Railway. "
+                                      "Configure essa variável para habilitar envio de e-mail."}
+    import httpx, base64
+    try:
+        anexo_b64 = base64.b64encode(pdf_bytes).decode("ascii")
+        async with httpx.AsyncClient(timeout=30) as c:
+            r = await c.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "from": EMAIL_FROM_PRESENCA, "to": [destinatario],
+                    "subject": assunto, "html": html,
+                    "attachments": [{"filename": filename, "content": anexo_b64}],
+                },
+            )
+        if r.status_code in (200, 201):
+            return {"ok": True}
+        return {"ok": False, "erro": f"Resend HTTP {r.status_code}: {r.text[:300]}"}
+    except Exception as e:
+        return {"ok": False, "erro": str(e)}
+
+
+@router.post("/presenca/email")
+async def presenca_email(payload: dict):
+    """Gera a Folha de Presença em PDF (todas, UBS básica, unidades especializadas ou uma
+    unidade específica) e envia por e-mail como anexo."""
+    competencia = payload.get("competencia", "2026-07")
+    categoria   = payload.get("categoria", "todas")
+    unidade     = payload.get("unidade", "")
+    destinatario = payload.get("destinatario") or EMAIL_RECIPIENT_PADRAO
+
+    estrutura = _presenca_estrutura(competencia, unidade)
+    if not estrutura["unidades"]:
+        raise HTTPException(404, "Nenhum servidor encontrado para os filtros informados.")
+    marcacoes = _marcacoes_salvas(competencia)
+    gerado_em = _gerado_em_pt()
+    pdf_bytes = gerar_pdf_presenca(estrutura, marcacoes, categoria, gerado_em)
+
+    alvo = unidade or _LABEL_CATEGORIA_PT.get(categoria, "Todas as Unidades")
+    comp_label = _COMP_LABEL_PT.get(competencia, competencia)
+    assunto = f"ERSUS 360 — Folha de Presença {comp_label} — {alvo}"
+    html_corpo = (
+        f'<div style="font-family:Arial,sans-serif;font-size:14px;color:#1e293b">'
+        f"<p>Segue em anexo a <b>Folha de Presença</b> — competência <b>{comp_label}</b> — {alvo}.</p>"
+        f'<p style="color:#64748b;font-size:12px">Gerado automaticamente pelo ERSUS 360 em {gerado_em}.</p>'
+        f"</div>"
+    )
+    fname = f"ERSUS360_FolhaPresenca_{competencia}.pdf"
+    resultado = await _enviar_email_com_anexo(destinatario, assunto, html_corpo, pdf_bytes, fname)
+    if not resultado.get("ok"):
+        raise HTTPException(502, resultado.get("erro", "Falha ao enviar e-mail."))
+    return {"ok": True, "destinatario": destinatario, "assunto": assunto}
 
 
 @router.post("/importar")
