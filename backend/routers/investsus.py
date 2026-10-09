@@ -1403,14 +1403,12 @@ async def sincronizar_com_investsus(user: UserDep):
     import os
     tem_cookie = bool(os.getenv("INVESTSUS_COOKIE", "").strip())
     tem_token  = bool(os.getenv("INVESTSUS_TOKEN", "").strip())
-    tem_cpf    = bool(os.getenv("INVESTSUS_CPF", "").strip())
-    tem_senha  = bool(os.getenv("INVESTSUS_SENHA", "").strip())
-    if not tem_cookie and not tem_token and not (tem_cpf and tem_senha):
+    if not tem_cookie and not tem_token:
         raise HTTPException(400, detail={
-            "erro": "Credenciais InvestSUS não configuradas",
+            "erro": "Cookie InvestSUS não configurado",
             "instrucao": (
-                "Configure INVESTSUS_COOKIE (cookie de sessão do browser) "
-                "ou INVESTSUS_CPF + INVESTSUS_SENHA nas variáveis do Railway."
+                "Faça login no portal InvestSUS via gov.br, capture o cookie via DevTools "
+                "e configure INVESTSUS_COOKIE nas variáveis do Railway."
             ),
         })
 

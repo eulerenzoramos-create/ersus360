@@ -1,16 +1,15 @@
 """
 InvestSUS Scraper - API real do portal investsus.saude.gov.br
 
-Endpoints confirmados em 08/10/2026:
-  Auth:      POST https://acesso.saude.gov.br/realms/saude/protocol/openid-connect/token
-             client_id=INVESTSUS  (Keycloak v18+, sem prefixo /auth)
+Autenticação: login via gov.br no portal investsus.saude.gov.br.
+  O cookie de sessão resultante é capturado via DevTools e armazenado em INVESTSUS_COOKIE.
+
+Endpoints:
   Propostas: POST https://investsus-backend-prd.saude.gov.br/api/propostas/paginado
-             body: {"filter": {"ano": "<ANO>", "cnpj": "<CNPJ>"}, "pageNumber": 1, "pageSize": 100}
-  Tipos:     GET  https://investsus-backend-prd.saude.gov.br/api/geral/propostas/tipos-propostas/valores
 
 Env vars (Railway):
-  INVESTSUS_CPF   - CPF do responsavel (so digitos, sem pontos/tracas)
-  INVESTSUS_SENHA - senha do portal InvestSUS / gov.br
+  INVESTSUS_COOKIE - cookie de sessao capturado apos login via gov.br no portal InvestSUS
+                     (expira em ~5h; renovar via DevTools apos novo login)
 """
 
 from __future__ import annotations
@@ -32,7 +31,7 @@ _TIMEOUT   = 45.0
 _TOKEN_URL_PRINCIPAL = "https://acesso.saude.gov.br/realms/saude/protocol/openid-connect/token"
 _TOKEN_URL_FALLBACK  = "https://acesso.saude.gov.br/auth/realms/saude/protocol/openid-connect/token"
 
-# Headers de contexto do usuário (adicionados pelo proxy F5/SCPA)
+# Headers de contexto do usuário (adicionados pelo proxy F5 do portal InvestSUS)
 _CZ_HEADERS = {
     "cz-aphrodite-de-peixes": "DIREME",
     "cz-milo-de-escopiao":    "ENTPUBLICAFNS",
@@ -55,7 +54,7 @@ def _credenciais() -> tuple[str, str]:
 
 async def _autenticar(client: httpx.AsyncClient, cpf: str, senha: str) -> str:
     """
-    Obtem Bearer token via Keycloak password grant (SCPA/acesso.saude.gov.br).
+    Obtem Bearer token via Keycloak password grant (acesso.saude.gov.br/gov.br).
     clientId INVESTSUS, realm 'saude'.
     """
     payload = {
@@ -79,20 +78,20 @@ async def _autenticar(client: httpx.AsyncClient, cpf: str, senha: str) -> str:
                 desc = body.get("error_description", "")
                 if "invalid_grant" in err or "Invalid user" in desc:
                     raise RuntimeError(
-                        f"Credenciais SCPA rejeitadas: {desc}. "
+                        f"Credenciais rejeitadas: {desc}. "
                         "Verifique INVESTSUS_CPF e INVESTSUS_SENHA no Railway."
                     )
                 logger.debug("Token %s: %s %s", url, err, desc)
                 continue
 
             if resp.status_code == 401:
-                raise RuntimeError("Credenciais SCPA rejeitadas (401). Verifique INVESTSUS_CPF/SENHA.")
+                raise RuntimeError("Credenciais rejeitadas (401). Verifique INVESTSUS_CPF/SENHA.")
 
             resp.raise_for_status()
 
             token = body.get("access_token")
             if token:
-                logger.info("InvestSUS: autenticado (SCPA realm=saude, client=%s)", _CLIENT_ID)
+                logger.info("InvestSUS: autenticado (gov.br realm=saude, client=%s)", _CLIENT_ID)
                 return str(token)
 
             logger.debug("access_token ausente em %s: %s", url, list(body.keys()))
@@ -104,7 +103,7 @@ async def _autenticar(client: httpx.AsyncClient, cpf: str, senha: str) -> str:
             continue
 
     raise RuntimeError(
-        "Nao foi possivel autenticar no SCPA/InvestSUS. "
+        "Nao foi possivel autenticar no InvestSUS via gov.br. "
         "Verifique se INVESTSUS_CPF e INVESTSUS_SENHA estao corretos no Railway."
     )
 
@@ -232,8 +231,9 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
     Busca propostas do InvestSUS.
 
     Estratégia de autenticação (em ordem):
-      1. INVESTSUS_TOKEN  — token JWT extraído do browser (contorna MFA gov.br)
-      2. INVESTSUS_CPF + INVESTSUS_SENHA — password grant SCPA (só funciona sem MFA)
+      1. INVESTSUS_COOKIE — cookie de sessão capturado após login via gov.br no portal
+      2. INVESTSUS_TOKEN  — token JWT extraído do browser
+      3. INVESTSUS_CPF + INVESTSUS_SENHA — password grant direto (fallback)
     """
     cnpj = (cnpj or _CNPJ_APUI).replace(".", "").replace("/", "").replace("-", "")
     ano  = datetime.now().year

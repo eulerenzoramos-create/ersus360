@@ -2239,7 +2239,7 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
   const sincronizar = async () => {
     setLoading(true); setErroMsg(null); setResultado(null);
     try {
-      setProgresso("Autenticando no InvestSUS (SCPA)…");
+      setProgresso("Autenticando no InvestSUS via gov.br…");
       const resp = await api.post("/api/investsus/sincronizar", {});
       const { job_id } = resp?.data || resp;
 
@@ -2288,7 +2288,7 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
       <div style={cor.card}>
         <div style={cor.titulo}>Sincronização com InvestSUS</div>
         <div style={cor.sub}>
-          Autentica no portal <strong>InvestSUS</strong> via SCPA/gov.br e importa todas as
+          Autentica no portal <strong>InvestSUS</strong> via gov.br e importa todas as
           propostas do FMS Apuí (CNPJ 12.834.320/0001-26) diretamente na API oficial.
         </div>
 
