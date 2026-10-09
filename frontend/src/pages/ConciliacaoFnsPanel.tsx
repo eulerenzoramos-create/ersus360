@@ -56,6 +56,7 @@ const STATUS_CONFIG: Record<string, { cor: string; bg: string; bdr: string; labe
   valor_fns_maior_exige_analise: { cor: C.purple, bg: C.purpleBg, bdr: "#c4b5fd", label: "FNS > e-Gestor (analisar)", Icon: AlertTriangle },
   valor_divergente: { cor: C.red, bg: C.redBg, bdr: C.redBdr, label: "Valor divergente", Icon: XCircle },
   transferencia_retroativa_ou_competencia_nao_processada: { cor: C.amber, bg: C.amberBg, bdr: C.amberBdr, label: "Retroativo / Não processado", Icon: AlertTriangle },
+  aguardando_publicacao_egestor: { cor: C.gray, bg: C.grayLight, bdr: C.grayBdr, label: "Aguardando publicação", Icon: Info },
 };
 
 function BadgeStatus({ status }: { status: string }) {

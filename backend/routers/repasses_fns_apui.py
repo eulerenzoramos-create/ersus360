@@ -543,6 +543,40 @@ async def conciliacao(
             "conciliado":           status in ("conciliado", "conciliado_com_diferenca_de_agrupamento"),
         })
 
+    # Parcelas do ciclo ainda não publicadas pelo e-Gestor → mostra como "Aguardando"
+    # Ciclo 2026: parcelas 202601 (NOV/2025) a 202612 (OUT/2026)
+    from services.egestor_aps import _PARCELA_LABELS as _PL
+    parcelas_ciclo = [f"{exercicio}{i:02d}" for i in range(1, 13)]
+    nu_parcelas_ja_exibidas = {l["nu_parcela"] for l in linhas}
+    for cod in parcelas_ciclo:
+        if cod in nu_parcelas_ja_exibidas:
+            continue
+        info_parcela = _PL.get(cod)
+        if not info_parcela:
+            continue
+        comp_label, mes_iso, parcela_label = info_parcela
+        # Extrai mês calendário do mes_iso (ex: "2026-08" → 8)
+        try:
+            mes_cal = int(mes_iso.split("-")[1]) if mes_iso else None
+        except Exception:
+            mes_cal = None
+        linhas.append({
+            "competencia_egestor":  comp_label,
+            "parcela":              parcela_label,
+            "nu_parcela":           cod,
+            "mes_calendario":       mes_cal,
+            "mes_nome":             MESES_NOMES.get(mes_cal, "?") if mes_cal else "?",
+            "total_egestor":        0.0,
+            "total_fns":            0.0,
+            "diferenca":            0.0,
+            "status_conciliacao":   "aguardando_publicacao_egestor",
+            "transferencias_fns":   [],
+            "conciliado":           False,
+        })
+
+    # Ordena por nu_parcela para manter ordem cronológica
+    linhas.sort(key=lambda x: x.get("nu_parcela", ""))
+
     # Meses com transferências FNS sem competência e-Gestor correspondente
     fns_sem_egestor = [
         {
