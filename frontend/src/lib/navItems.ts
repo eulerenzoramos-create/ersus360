@@ -117,27 +117,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Formulário de registro de visita domiciliar pelo ACS",
     keywords:["acs","registrar","visita","formulário","domiciliar","novo registro"] },
 
-  // Outros da APS
-  { id:"acolhimento",         category:"Atenção Primária", order:170, iconName:"Clock",
-    title:"Acolhimento / Classificação de Risco", shortTitle:"Acolhimento", route:"/acolhimento",
-    description:"Acolhimento e classificação de risco na atenção primária",
-    keywords:["acolhimento","classificação","risco","manchester","triagem","urgência","recepção"] },
-
-  { id:"matriz-normativa",    category:"Atenção Primária", order:171, iconName:"BookOpen",
-    title:"Matriz Normativa APS", route:"/matriz-normativa-aps",
-    description:"Matriz de normativas e portarias da Atenção Primária à Saúde",
-    keywords:["matriz","normativa","portaria","aps","legislação","norma","regulação"] },
-
-  { id:"pics",                category:"Atenção Primária", order:174, iconName:"Sparkles",
-    title:"PICS", route:"/pics-apui",
-    description:"Práticas Integrativas e Complementares em Saúde",
-    keywords:["pics","práticas integrativas","complementares","acupuntura","homeopatia","fitoterapia","meditação"] },
-
-  { id:"pse",                 category:"Atenção Primária", order:175, iconName:"School",
-    title:"Saúde na Escola (PSE)", shortTitle:"PSE", route:"/saude-escolar-pse-apui",
-    description:"Programa Saúde na Escola — ações de saúde em ambiente escolar",
-    keywords:["pse","saúde escola","escolar","criança","adolescente","programa","educação"] },
-
   // ── Financeiro ───────────────────────────────────────────
   { id:"financeiro",          category:"Financeiro e Gestão Fiscal", order:200, iconName:"DollarSign",
     title:"Painel Financeiro", route:"/financeiro", roles:ROLES_FIN,
