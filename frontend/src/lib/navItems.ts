@@ -393,21 +393,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Atenção à saúde do adolescente — 10 a 19 anos",
     keywords:["adolescente","juventude","adolescência","sexual","reprodutiva","drogas","violência"] },
 
-  { id:"saude-mental",        category:"Saúde do Cidadão", subcategory:"Saúde Mental", order:720, iconName:"HeartPulse",
-    title:"Saúde Mental", route:"/saude-mental",
-    description:"Atenção psicossocial — CAPS, RAPS e saúde mental comunitária",
-    keywords:["saúde mental","psicossocial","caps","raps","transtorno","depressão","ansiedade","psiquiatria","psicologia"] },
-
-  { id:"raps",                category:"Saúde do Cidadão", subcategory:"Saúde Mental", order:721, iconName:"Network",
-    title:"RAPS", route:"/raps",
-    description:"Rede de Atenção Psicossocial — fluxo e pontos de atenção",
-    keywords:["raps","rede","psicossocial","caps","ubs","hospital","leitos","mental","álcool","drogas"] },
-
-  { id:"caps-ad",             category:"Saúde do Cidadão", subcategory:"Saúde Mental", order:722, iconName:"Activity",
-    title:"CAPS AD", route:"/caps-ad",
-    description:"Centro de Atenção Psicossocial Álcool e Drogas — CAPS AD",
-    keywords:["caps","ad","álcool","drogas","dependência","química","psicossocial","substância"] },
-
   { id:"saude-idoso",         category:"Saúde do Cidadão", order:730, iconName:"UserCheck",
     title:"Saúde do Idoso", route:"/saude-idoso",
     description:"Atenção integral à pessoa idosa — 60 anos ou mais",
