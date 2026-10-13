@@ -128,11 +128,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Matriz de normativas e portarias da Atenção Primária à Saúde",
     keywords:["matriz","normativa","portaria","aps","legislação","norma","regulação"] },
 
-  { id:"academia-saude",      category:"Atenção Primária", order:173, iconName:"Activity",
-    title:"Academia da Saúde", route:"/academia-saude",
-    description:"Programa Academia da Saúde — atividade física e promoção da saúde",
-    keywords:["academia","saúde","atividade física","promoção","exercício","polo"] },
-
   { id:"pics",                category:"Atenção Primária", order:174, iconName:"Sparkles",
     title:"PICS", route:"/pics-apui",
     description:"Práticas Integrativas e Complementares em Saúde",
