@@ -527,58 +527,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Configuração da integração com o Prontuário Eletrônico do Cidadão — e-SUS PEC",
     keywords:["pec","esus","integração","prontuário","configuração","ledi","mivdt","graphql"] },
 
-
-  // ── Gestão Operacional ────────────────────────────────────
-  { id:"patrimonio",          category:"Gestão Operacional", order:1100, iconName:"Truck",
-    title:"Patrimônio", route:"/patrimonio",
-    description:"Gestão de patrimônio e bens móveis e imóveis da saúde",
-    keywords:["patrimônio","bem","equipamento","tombamento","inventário","ativo","gestão"] },
-
-  { id:"frota",               category:"Gestão Operacional", order:1101, iconName:"Truck",
-    title:"Frota", route:"/frota",
-    description:"Gestão da frota de veículos da secretaria de saúde",
-    keywords:["frota","veículo","carro","ambulância","manutenção","abastecimento","km","motorista"] },
-
-  { id:"obras",               category:"Gestão Operacional", order:1102, iconName:"Building2",
-    title:"Obras e Infraestrutura", route:"/obras",
-    description:"Gestão de obras de infraestrutura de saúde em andamento",
-    keywords:["obras","infraestrutura","construção","reforma","instalação","predial","saúde"] },
-
-  { id:"equipamentos",        category:"Gestão Operacional", order:1103, iconName:"Wrench",
-    title:"Equipamentos", route:"/gestao-equipamentos",
-    description:"Gestão de equipamentos médicos e hospitalares",
-    keywords:["equipamento","médico","hospitalar","manutenção","calibração","registro","anvisa"] },
-
-  { id:"manutencao",          category:"Gestão Operacional", order:1104, iconName:"Wrench",
-    title:"Manutenção", route:"/manutencao",
-    description:"Ordens de serviço e controle de manutenção predial e de equipamentos",
-    keywords:["manutenção","ordem de serviço","reparo","conserto","preventiva","corretiva"] },
-
-  { id:"agenda",              category:"Gestão Operacional", order:1105, iconName:"Calendar",
-    title:"Agenda de Gestão", route:"/agenda",
-    description:"Agenda de gestão e compromissos da secretaria municipal de saúde",
-    keywords:["agenda","compromisso","reunião","calendário","gestão","secretaria"] },
-
-  { id:"documentos",          category:"Gestão Operacional", order:1106, iconName:"FileText",
-    title:"Documentos", route:"/documentos",
-    description:"Gestão eletrônica de documentos oficiais e administrativos",
-    keywords:["documento","arquivo","ofício","memorando","circular","gestão","ged","digital"] },
-
-  { id:"cme",                 category:"Gestão Operacional", order:1107, iconName:"Thermometer",
-    title:"CME", route:"/cme",
-    description:"Central de Material e Esterilização — controle de materiais esterilizados",
-    keywords:["cme","esterilização","material","central","autoclave","biossegurança","hospital"] },
-
-  { id:"pgrss",               category:"Gestão Operacional", order:1108, iconName:"Trash2",
-    title:"PGRSS", route:"/pgrss",
-    description:"Plano de Gerenciamento de Resíduos de Serviços de Saúde",
-    keywords:["pgrss","resíduo","lixo","descarte","infectante","perfuro-cortante","ambiental","biológico"] },
-
-  { id:"alertas",             category:"Gestão Operacional", order:1109, iconName:"AlertTriangle",
-    title:"Central de Alertas", route:"/alertas",
-    description:"Central de alertas operacionais e críticos do sistema",
-    keywords:["alerta","crítico","operacional","notificação","urgente","central","monitoramento"] },
-
 ];
 
 // ── Utilitários de busca ──────────────────────────────────────────────────────
