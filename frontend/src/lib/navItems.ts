@@ -42,26 +42,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Painel principal com resumo geral da gestão municipal de saúde",
     keywords:["home","painel","início","dashboard","principal","gestor","resumo"] },
 
-  { id:"dashboard-executivo", category:"Visão Executiva", order:11, iconName:"Monitor",
-    title:"Dashboard Executivo 360°", route:"/dashboard-executivo",
-    description:"Visão estratégica 360° de todos os indicadores do município",
-    keywords:["dashboard","executivo","360","indicadores","gestão","estratégico"] },
-
-  { id:"mapa-desempenho",     category:"Visão Executiva", order:13, iconName:"Map",
-    title:"Mapa de Desempenho", route:"/mapa",
-    description:"Mapa geográfico de desempenho por indicadores e territórios",
-    keywords:["mapa","desempenho","geográfico","território","espacial"] },
-
-  { id:"ranking",             category:"Visão Executiva", order:14, iconName:"BarChart2",
-    title:"Ranking Municipal", route:"/ranking",
-    description:"Ranking comparativo entre municípios por indicadores de saúde",
-    keywords:["ranking","comparativo","municípios","classificação","posição"] },
-
-  { id:"idsus",               category:"Visão Executiva", order:15, iconName:"Award",
-    title:"IDSUS Municipal", route:"/idsus-municipal",
-    description:"Índice de Desempenho do SUS a nível municipal",
-    keywords:["idsus","índice","sus","desempenho","datasus","monitoramento"] },
-
   // ── Atenção Primária → Painel ────────────────────────────
   // Cofinanciamento APS
   { id:"previne",             category:"Atenção Primária", subcategory:"Cofinanciamento APS (P. 3.493)", order:110, iconName:"PieChart",
