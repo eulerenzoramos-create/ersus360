@@ -47,11 +47,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Visão estratégica 360° de todos os indicadores do município",
     keywords:["dashboard","executivo","360","indicadores","gestão","estratégico"] },
 
-  { id:"score",               category:"Visão Executiva", order:12, iconName:"Star",
-    title:"Score ERSUS 360", route:"/score",
-    description:"Pontuação integrada de desempenho do sistema de saúde municipal",
-    keywords:["score","pontuação","desempenho","nota","avaliação","ersus"] },
-
   { id:"mapa-desempenho",     category:"Visão Executiva", order:13, iconName:"Map",
     title:"Mapa de Desempenho", route:"/mapa",
     description:"Mapa geográfico de desempenho por indicadores e territórios",
@@ -67,17 +62,7 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Índice de Desempenho do SUS a nível municipal",
     keywords:["idsus","índice","sus","desempenho","datasus","monitoramento"] },
 
-  { id:"ia-gestora",          category:"Visão Executiva", order:16, iconName:"Bot", isNew:true,
-    title:"IA Gestora", route:"/ia",
-    description:"Inteligência artificial para apoio à decisão em gestão de saúde",
-    keywords:["ia","inteligência artificial","ai","machine learning","decisão","algoritmo"] },
-
   // ── Atenção Primária → Painel ────────────────────────────
-  { id:"aps",                 category:"Atenção Primária", order:100, iconName:"Stethoscope",
-    title:"Painel APS", route:"/aps",
-    description:"Painel de atenção primária à saúde — indicadores e equipes",
-    keywords:["aps","atenção primária","painel","saúde","equipes","esf","eap"] },
-
   // Cofinanciamento APS
   { id:"previne",             category:"Atenção Primária", subcategory:"Cofinanciamento APS (P. 3.493)", order:110, iconName:"PieChart",
     title:"Consolidado C/B/M", route:"/previne",
@@ -94,97 +79,16 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Equipes de Saúde Bucal — cofinanciamento Grupo B",
     keywords:["grupo b","esb","saúde bucal","odontologia","equipe","cofinanciamento"] },
 
-  { id:"grupo-m",             category:"Atenção Primária", subcategory:"Cofinanciamento APS (P. 3.493)", order:113, iconName:"Activity",
-    title:"Grupo M — eMulti", route:"/previne/grupoM",
-    description:"Equipes Multiprofissionais — NASF/eMulti — cofinanciamento Grupo M",
-    keywords:["grupo m","emulti","nasf","multiprofissional","equipe","cofinanciamento","multi"] },
-
-  { id:"ribeirinha",          category:"Atenção Primária", subcategory:"Cofinanciamento APS (P. 3.493)", order:114, iconName:"Ship",
-    title:"eRibeirinha", route:"/previne/ribeirinha",
-    description:"Equipes Ribeirinhas e comunidades de difícil acesso",
-    keywords:["ribeirinha","eSF ribeirinha","comunidade","difícil acesso","barco","fluvial"] },
-
   { id:"sprint-otimo",        category:"Atenção Primária", subcategory:"Cofinanciamento APS (P. 3.493)", order:115, iconName:"Star",
     title:"Sprint ÓTIMO", route:"/sprint-otimo",
     description:"Painel do Sprint ÓTIMO — desempenho de indicadores APS no mês",
     keywords:["sprint","ótimo","meta","indicadores","mensal","performance"] },
 
-  // Saúde Brasil 360
-  { id:"cvat",                category:"Atenção Primária", subcategory:"Saúde Brasil 360", order:120, iconName:"Users",
-    title:"CVAT — Multimunicípio", route:"/cvat",
-    description:"Comparativo de desempenho entre municípios — CVAT",
-    keywords:["cvat","comparativo","municípios","multimunicípio","saúde brasil"] },
-
-  { id:"sb360-territorial",   category:"Atenção Primária", subcategory:"Saúde Brasil 360", order:121, iconName:"PieChart",
-    title:"Consolidado Territorial", route:"/sb360/consolidado-territorial",
-    description:"Visão consolidada territorial — Saúde Brasil 360",
-    keywords:["territorial","consolidado","saúde brasil","360","mapa","região"] },
-
-  { id:"sb360-acomp",         category:"Atenção Primária", subcategory:"Saúde Brasil 360", order:122, iconName:"MapPin",
-    title:"Acompanhamento Territorial", route:"/sb360/acompanhamento-territorial",
-    description:"Acompanhamento de indicadores por território",
-    keywords:["acompanhamento","territorial","indicadores","monitoramento","território"] },
-
-  { id:"sb360-acesso",        category:"Atenção Primária", subcategory:"Saúde Brasil 360", order:123, iconName:"Heart",
-    title:"Mais Acesso à APS", route:"/sb360/mais-acesso-aps",
-    description:"Expansão do acesso à Atenção Primária à Saúde",
-    keywords:["acesso","aps","expansão","cobertura","população"] },
-
-  { id:"sb360-infantil",      category:"Atenção Primária", subcategory:"Saúde Brasil 360", order:124, iconName:"Baby",
-    title:"Desenvolvimento Infantil", route:"/sb360/desenvolvimento-infantil",
-    description:"Indicadores de desenvolvimento infantil na APS",
-    keywords:["desenvolvimento","infantil","criança","bebê","puericultura"] },
-
-  { id:"sb360-gestante",      category:"Atenção Primária", subcategory:"Saúde Brasil 360", order:125, iconName:"Baby",
-    title:"Gestante e Puérpera", route:"/sb360/gestante-puerpera",
-    description:"Acompanhamento de gestantes e puérperas na APS",
-    keywords:["gestante","puérpera","pré-natal","gravidez","parto","maternidade"] },
-
-  { id:"sb360-diabetes",      category:"Atenção Primária", subcategory:"Saúde Brasil 360", order:126, iconName:"FlaskConical",
-    title:"Pessoa com Diabetes", route:"/sb360/pessoa-diabetes",
-    description:"Monitoramento de pessoas com diabetes mellitus na APS",
-    keywords:["diabetes","dm","glicemia","insulina","hiperdia","crônico"] },
-
-  { id:"sb360-hipertensao",   category:"Atenção Primária", subcategory:"Saúde Brasil 360", order:127, iconName:"Activity",
-    title:"Pessoa com Hipertensão", route:"/sb360/pessoa-hipertensao",
-    description:"Monitoramento de pessoas com hipertensão arterial na APS",
-    keywords:["hipertensão","has","pressão","arterial","crônico","hiperdia"] },
-
-  { id:"sb360-idoso",         category:"Atenção Primária", subcategory:"Saúde Brasil 360", order:128, iconName:"UserCheck",
-    title:"Pessoa Idosa", route:"/sb360/pessoa-idosa",
-    description:"Acompanhamento de pessoas idosas na Atenção Primária",
-    keywords:["idoso","idosa","terceira idade","envelhecimento","velhice","60 anos"] },
-
-  { id:"sb360-cancer",        category:"Atenção Primária", subcategory:"Saúde Brasil 360", order:129, iconName:"ShieldCheck",
-    title:"Mulher — Prevenção Câncer", route:"/sb360/mulher-cancer",
-    description:"Rastreio e prevenção de câncer de mama e colo do útero na APS",
-    keywords:["câncer","mama","colo","útero","rastreio","prevenção","mulher","citopatológico"] },
-
-  { id:"sb360-multi",         category:"Atenção Primária", subcategory:"Saúde Brasil 360", order:130, iconName:"Users",
-    title:"Equipes Multiprofissionais", route:"/sb360/equipes-multiprofissionais",
-    description:"Monitoramento das equipes multiprofissionais — eMulti/NASF",
-    keywords:["emulti","nasf","multiprofissional","equipe","multi","nasf-ab"] },
-
   // Produção e Monitoramento
-  { id:"producao-sisab",      category:"Atenção Primária", subcategory:"Produção e Monitoramento", order:140, iconName:"BarChart2",
-    title:"Produção APS · SISAB", shortTitle:"Produção SISAB", route:"/producao-sisab",
-    description:"Produção ambulatorial de APS registrada no SISAB/e-SUS",
-    keywords:["produção","sisab","esus","ambulatorial","aps","atendimento","ficha","cds","pec"] },
-
-  { id:"relatorio-producao",  category:"Atenção Primária", subcategory:"Produção e Monitoramento", order:141, iconName:"FileText",
-    title:"Relatório de Produção", route:"/relatorio-producao",
-    description:"Relatório consolidado de produção de saúde da APS",
-    keywords:["relatório","produção","consolidado","aps","dados"] },
-
   { id:"gestao-aps",          category:"Atenção Primária", subcategory:"Produção e Monitoramento", order:142, iconName:"PieChart",
     title:"Painel de Gestão APS", route:"/gestao",
     description:"Painel gerencial de indicadores de gestão na Atenção Primária",
     keywords:["gestão","painel","aps","gerencial","indicadores"] },
-
-  { id:"analise-brasil",      category:"Atenção Primária", subcategory:"Produção e Monitoramento", order:143, iconName:"PieChart",
-    title:"Análise Brasil 360", route:"/analise-municipio",
-    description:"Análise comparativa de indicadores do município com o Brasil",
-    keywords:["análise","brasil","360","comparativo","município","nacional"] },
 
   { id:"parametros-ms",       category:"Atenção Primária", subcategory:"Produção e Monitoramento", order:144, iconName:"BookOpen",
     title:"Parâmetros MS", route:"/parametros-ms",
@@ -195,11 +99,6 @@ export const NAV_ITEMS: NavItem[] = [
     title:"Fichas Técnicas", route:"/fichas-tecnicas",
     description:"Fichas técnicas dos indicadores de saúde",
     keywords:["ficha","técnica","indicadores","metodologia","cálculo","definição"] },
-
-  { id:"score-municipal",     category:"Atenção Primária", subcategory:"Produção e Monitoramento", order:146, iconName:"Star",
-    title:"Score Municipal", route:"/score-municipal",
-    description:"Score de desempenho municipal em saúde pública",
-    keywords:["score","municipal","desempenho","nota","pontuação","ranking"] },
 
   { id:"simulador",           category:"Atenção Primária", subcategory:"Produção e Monitoramento", order:147, iconName:"Calculator",
     title:"Simulador de Cenários", route:"/simulador-cenarios",
@@ -545,11 +444,6 @@ export const NAV_ITEMS: NavItem[] = [
     keywords:["tfd","tratamento fora","domicílio","deslocamento","diária","regulação","alta complexidade"] },
 
   // ── Saúde do Cidadão ─────────────────────────────────────
-  { id:"saude-mulher",        category:"Saúde do Cidadão", subcategory:"Saúde da Mulher", order:700, iconName:"Heart",
-    title:"Saúde da Mulher", route:"/saude-mulher",
-    description:"Atenção integral à saúde da mulher — indicadores e programas",
-    keywords:["saúde mulher","feminina","gênero","maternal","reprodutiva","ginecologia","prenatal"] },
-
   { id:"rede-cegonha",        category:"Saúde do Cidadão", subcategory:"Saúde da Mulher", order:701, iconName:"Baby",
     title:"Rede Cegonha", route:"/rede-cegonha",
     description:"Rede Cegonha — pré-natal, parto e puerpério de qualidade",
@@ -599,11 +493,6 @@ export const NAV_ITEMS: NavItem[] = [
     title:"Saúde Bucal / CEO", route:"/saude-bucal",
     description:"Atenção em saúde bucal — ESB e Centro de Especialidades Odontológicas",
     keywords:["saúde bucal","odontologia","ceo","esb","dentista","fluorose","cárie","periodontal"] },
-
-  { id:"saude-homem",         category:"Saúde do Cidadão", order:732, iconName:"UserCheck",
-    title:"Saúde do Homem", route:"/saude-homem",
-    description:"Atenção integral à saúde do homem — prevenção e rastreio",
-    keywords:["saúde homem","masculina","próstata","testicular","prevenção","rastreio","câncer"] },
 
   { id:"saude-trabalhador",   category:"Saúde do Cidadão", order:733, iconName:"Wrench",
     title:"Saúde do Trabalhador", route:"/saude-trabalhador-apui",
