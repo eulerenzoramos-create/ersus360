@@ -36,12 +36,6 @@ export type NavItemWithIcon = NavItem & { Icon: LucideIcon };
 // ============================================================
 export const NAV_ITEMS: NavItem[] = [
 
-  // ── Visão Executiva ──────────────────────────────────────
-  { id:"home",                category:"Visão Executiva", order:10, iconName:"Home",
-    title:"Painel do Gestor", shortTitle:"Home", route:"/",
-    description:"Painel principal com resumo geral da gestão municipal de saúde",
-    keywords:["home","painel","início","dashboard","principal","gestor","resumo"] },
-
   // ── Atenção Primária → Painel ────────────────────────────
   // Cofinanciamento APS
   { id:"previne",             category:"Atenção Primária", subcategory:"Cofinanciamento APS (P. 3.493)", order:110, iconName:"PieChart",
@@ -65,25 +59,10 @@ export const NAV_ITEMS: NavItem[] = [
     keywords:["sprint","ótimo","meta","indicadores","mensal","performance"] },
 
   // Produção e Monitoramento
-  { id:"gestao-aps",          category:"Atenção Primária", subcategory:"Produção e Monitoramento", order:142, iconName:"PieChart",
-    title:"Painel de Gestão APS", route:"/gestao",
-    description:"Painel gerencial de indicadores de gestão na Atenção Primária",
-    keywords:["gestão","painel","aps","gerencial","indicadores"] },
-
   { id:"parametros-ms",       category:"Atenção Primária", subcategory:"Produção e Monitoramento", order:144, iconName:"BookOpen",
     title:"Parâmetros MS", route:"/parametros-ms",
     description:"Parâmetros assistenciais do Ministério da Saúde",
     keywords:["parâmetros","ms","ministério","saúde","assistencial","referência","normativas"] },
-
-  { id:"fichas-tecnicas",     category:"Atenção Primária", subcategory:"Produção e Monitoramento", order:145, iconName:"Clipboard",
-    title:"Fichas Técnicas", route:"/fichas-tecnicas",
-    description:"Fichas técnicas dos indicadores de saúde",
-    keywords:["ficha","técnica","indicadores","metodologia","cálculo","definição"] },
-
-  { id:"simulador",           category:"Atenção Primária", subcategory:"Produção e Monitoramento", order:147, iconName:"Calculator",
-    title:"Simulador de Cenários", route:"/simulador-cenarios",
-    description:"Simulador de cenários para metas e indicadores de saúde",
-    keywords:["simulador","cenários","meta","projeção","forecast","estimativa","indicador"] },
 
   // Busca Ativa
   { id:"busca-ia",            category:"Atenção Primária", subcategory:"Busca Ativa", order:154, iconName:"Brain", isNew:true,
