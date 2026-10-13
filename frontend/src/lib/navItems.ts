@@ -59,11 +59,6 @@ export const NAV_ITEMS: NavItem[] = [
     keywords:["sprint","ótimo","meta","indicadores","mensal","performance"] },
 
   // Produção e Monitoramento
-  { id:"parametros-ms",       category:"Atenção Primária", subcategory:"Produção e Monitoramento", order:144, iconName:"BookOpen",
-    title:"Parâmetros MS", route:"/parametros-ms",
-    description:"Parâmetros assistenciais do Ministério da Saúde",
-    keywords:["parâmetros","ms","ministério","saúde","assistencial","referência","normativas"] },
-
   // Busca Ativa
   { id:"busca-ia",            category:"Atenção Primária", subcategory:"Busca Ativa", order:154, iconName:"Brain", isNew:true,
     title:"Busca Ativa · IA", route:"/busca-ativa-ia",
