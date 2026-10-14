@@ -43,15 +43,15 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Consolidado do cofinanciamento federal APS — Grupos C, B e M — Portaria 3.493",
     keywords:["previne","cofinanciamento","aps","portaria 3493","grupo c","grupo b","grupo m","consolidado","financiamento","federal","bloco","atenção básica","ab"] },
 
-  { id:"grupo-c",             category:"Atenção Primária", subcategory:"Cofinanciamento APS (P. 3.493)", order:111, iconName:"Users",
-    title:"Grupo C — eSF/eAP", route:"/previne/grupoC",
-    description:"Equipes de Saúde da Família e Atenção Primária — cofinanciamento Grupo C",
-    keywords:["grupo c","esf","eap","saúde família","atenção primária","equipe","cofinanciamento"] },
-
   { id:"grupo-b",             category:"Atenção Primária", subcategory:"Cofinanciamento APS (P. 3.493)", order:112, iconName:"Stethoscope",
     title:"Grupo B — eSB", route:"/previne/grupoB",
     description:"Equipes de Saúde Bucal — cofinanciamento Grupo B",
     keywords:["grupo b","esb","saúde bucal","odontologia","equipe","cofinanciamento"] },
+
+  { id:"grupo-c",             category:"Atenção Primária", subcategory:"Cofinanciamento APS (P. 3.493)", order:111, iconName:"Users",
+    title:"Grupo C — eSF/eAP", route:"/previne/grupoC",
+    description:"Equipes de Saúde da Família e Atenção Primária — cofinanciamento Grupo C",
+    keywords:["grupo c","esf","eap","saúde família","atenção primária","equipe","cofinanciamento"] },
 
   { id:"sprint-otimo",        category:"Atenção Primária", subcategory:"Cofinanciamento APS (P. 3.493)", order:115, iconName:"Star",
     title:"Sprint ÓTIMO", route:"/sprint-otimo",
@@ -66,41 +66,36 @@ export const NAV_ITEMS: NavItem[] = [
     keywords:["busca ativa","ia","inteligência artificial","priorização","algoritmo","machine learning"] },
 
   // ACS
-  { id:"acs-painel",          category:"Atenção Primária", subcategory:"ACS", order:160, iconName:"BarChart3",
-    title:"Painel do ACS", route:"/acs/painel",
-    description:"Painel de monitoramento dos Agentes Comunitários de Saúde em tempo real",
-    keywords:["acs","agente comunitário","saúde","painel","monitoramento","visita","esus pec","microárea"] },
-
   { id:"acs-cadastros",       category:"Atenção Primária", subcategory:"ACS", order:161, iconName:"Users",
     title:"Cadastros do Cidadão", route:"/acs/cadastros-cid",
     description:"Fichas de cadastro individual dos cidadãos cadastrados pelos ACS",
     keywords:["acs","cadastro","cidadão","individual","ficha","esus","cns","cpf"] },
-
-  { id:"acs-visitas",         category:"Atenção Primária", subcategory:"ACS", order:162, iconName:"MapPin",
-    title:"Visitas Domiciliares", route:"/acs/visitas-cidadao",
-    description:"Registro e acompanhamento de visitas domiciliares dos ACS",
-    keywords:["acs","visita","domiciliar","domicílio","registro","esus","agente"] },
 
   { id:"acs-mapa",            category:"Atenção Primária", subcategory:"ACS", order:163, iconName:"Map",
     title:"Mapa de Visitas ACS", route:"/acs/mapa-visitas",
     description:"Mapa georreferenciado de visitas domiciliares dos ACS",
     keywords:["acs","mapa","visita","georreferenciado","microárea","território"] },
 
+  { id:"acs-painel",          category:"Atenção Primária", subcategory:"ACS", order:160, iconName:"BarChart3",
+    title:"Painel do ACS", route:"/acs/painel",
+    description:"Painel de monitoramento dos Agentes Comunitários de Saúde em tempo real",
+    keywords:["acs","agente comunitário","saúde","painel","monitoramento","visita","esus pec","microárea"] },
+
   { id:"acs-registrar",       category:"Atenção Primária", subcategory:"ACS", order:164, iconName:"ClipboardCheck",
     title:"Registrar Visita ACS", route:"/acs/registrar-visita",
     description:"Formulário de registro de visita domiciliar pelo ACS",
     keywords:["acs","registrar","visita","formulário","domiciliar","novo registro"] },
+
+  { id:"acs-visitas",         category:"Atenção Primária", subcategory:"ACS", order:162, iconName:"MapPin",
+    title:"Visitas Domiciliares", route:"/acs/visitas-cidadao",
+    description:"Registro e acompanhamento de visitas domiciliares dos ACS",
+    keywords:["acs","visita","domiciliar","domicílio","registro","esus","agente"] },
 
   // ── Financeiro ───────────────────────────────────────────
   { id:"repasses-aps",        category:"Financeiro e Gestão Fiscal", order:201, iconName:"TrendingUp", highlight:true,
     title:"Controle Financeiro FNS", shortTitle:"Controle Financeiro FNS", route:"/repasses-aps-apui", roles:ROLES_FIN,
     description:"Transferências mensais do FNS para APS — Apuí/AM — OBs, portarias e contas bancárias",
     keywords:["repasse","fns","fundo nacional saúde","transferência","ordem bancária","ob","portaria","conta","agência","banco","fundo a fundo","apuí","recurso","parcela","mensal","aps","financeiro","cofinanciamento"] },
-
-  { id:"portarias-fns",       category:"Financeiro e Gestão Fiscal", subcategory:"FNS / Convênios", order:211, iconName:"FileText",
-    title:"Portarias FNS", route:"/portarias", roles:ROLES_FIN,
-    description:"Portarias ministeriais que regulamentam transferências do FNS",
-    keywords:["portaria","fns","ministerial","regulamentação","norma","legislação","número portaria"] },
 
   { id:"emendas",             category:"Financeiro e Gestão Fiscal", subcategory:"FNS / Convênios", order:213, iconName:"Landmark",
     title:"Emendas Parlamentares", route:"/emendas", roles:ROLES_FIN,
@@ -112,38 +107,48 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Propostas, emendas e execução financeira via InvestSUS (Ministério da Saúde)",
     keywords:["investsus","proposta","emenda","execução","ministério saúde","ms","convênio","instrumento","parlamentar","recurso","indicado","aprovado","pago"] },
 
+  { id:"portarias-fns",       category:"Financeiro e Gestão Fiscal", subcategory:"FNS / Convênios", order:211, iconName:"FileText",
+    title:"Portarias FNS", route:"/portarias", roles:ROLES_FIN,
+    description:"Portarias ministeriais que regulamentam transferências do FNS",
+    keywords:["portaria","fns","ministerial","regulamentação","norma","legislação","número portaria"] },
+
   // ── Planejamento ─────────────────────────────────────────
-  { id:"plano-municipal",     category:"Planejamento e Prestação de Contas", order:300, iconName:"ClipboardList",
-    title:"Plano Municipal de Saúde", shortTitle:"Plano Municipal", route:"/plano-municipal-saude",
-    description:"Plano Municipal de Saúde — PMS — instrumento de planejamento quadrienal",
-    keywords:["plano municipal","saúde","pms","planejamento","quadrienal","metas","objetivos"] },
-
-  { id:"plano-acao",          category:"Planejamento e Prestação de Contas", order:303, iconName:"ClipboardList",
-    title:"Plano de Ação", route:"/plano-acao",
-    description:"Plano de ação municipal para cumprimento de metas de saúde",
-    keywords:["plano","ação","meta","cumprimento","prazo","responsável","monitoramento"] },
-
-  { id:"contratos",           category:"Planejamento e Prestação de Contas", order:305, iconName:"FileText",
-    title:"Contratos e Licitações", shortTitle:"Contratos", route:"/gestao-contratos",
-    description:"Gestão de contratos, licitações e compras públicas de saúde",
-    keywords:["contratos","licitação","compras","pregão","dispensa","fornecedor","fiscal","prestação"] },
+  { id:"conformidade",        category:"Planejamento e Prestação de Contas", order:308, iconName:"Shield",
+    title:"Conformidade Legal", route:"/conformidade",
+    description:"Monitoramento de conformidade legal e regulatória da saúde municipal",
+    keywords:["conformidade","legal","normativa","regulatória","compliance","legislação","obrigação"] },
 
   { id:"conselho-saude",      category:"Planejamento e Prestação de Contas", order:306, iconName:"Users",
     title:"Conselho Municipal de Saúde", shortTitle:"Conselho de Saúde", route:"/conselho-saude-apui",
     description:"Conselho Municipal de Saúde — CMS — controle social e deliberação",
     keywords:["conselho","municipal","saúde","cms","controle social","deliberação","ata","reunião"] },
 
+  { id:"contratos",           category:"Planejamento e Prestação de Contas", order:305, iconName:"FileText",
+    title:"Contratos e Licitações", shortTitle:"Contratos", route:"/gestao-contratos",
+    description:"Gestão de contratos, licitações e compras públicas de saúde",
+    keywords:["contratos","licitação","compras","pregão","dispensa","fornecedor","fiscal","prestação"] },
+
   { id:"ouvidoria",           category:"Planejamento e Prestação de Contas", order:307, iconName:"MessageSquare",
     title:"Ouvidoria Municipal", route:"/ouvidoria-apui",
     description:"Ouvidoria municipal de saúde — reclamações, sugestões e manifestações",
     keywords:["ouvidoria","reclamação","sugestão","manifestação","cidadão","atendimento","demanda"] },
 
-  { id:"conformidade",        category:"Planejamento e Prestação de Contas", order:308, iconName:"Shield",
-    title:"Conformidade Legal", route:"/conformidade",
-    description:"Monitoramento de conformidade legal e regulatória da saúde municipal",
-    keywords:["conformidade","legal","normativa","regulatória","compliance","legislação","obrigação"] },
+  { id:"plano-acao",          category:"Planejamento e Prestação de Contas", order:303, iconName:"ClipboardList",
+    title:"Plano de Ação", route:"/plano-acao",
+    description:"Plano de ação municipal para cumprimento de metas de saúde",
+    keywords:["plano","ação","meta","cumprimento","prazo","responsável","monitoramento"] },
+
+  { id:"plano-municipal",     category:"Planejamento e Prestação de Contas", order:300, iconName:"ClipboardList",
+    title:"Plano Municipal de Saúde", shortTitle:"Plano Municipal", route:"/plano-municipal-saude",
+    description:"Plano Municipal de Saúde — PMS — instrumento de planejamento quadrienal",
+    keywords:["plano municipal","saúde","pms","planejamento","quadrienal","metas","objetivos"] },
 
   // ── Assistência Farmacêutica ──────────────────────────────
+  { id:"almoxarifado",        category:"Assistência Farmacêutica", order:503, iconName:"Package",
+    title:"Almoxarifado", route:"/almoxarifado",
+    description:"Gestão de estoque do almoxarifado de saúde — insumos e medicamentos",
+    keywords:["almoxarifado","estoque","insumo","material","farmácia","dispensação","requisição","saldo"] },
+
   { id:"farmacia-basica",     category:"Assistência Farmacêutica", order:500, iconName:"Pill",
     title:"Farmácia Básica", route:"/farmacia",
     description:"Gestão da Assistência Farmacêutica Básica — componente básico — CBAF",
@@ -159,16 +164,21 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Vigilância de reações adversas e segurança de medicamentos",
     keywords:["farmacovigilância","reação adversa","medicamento","segurança","notificação","queixa técnica","anvisa"] },
 
-  { id:"almoxarifado",        category:"Assistência Farmacêutica", order:503, iconName:"Package",
-    title:"Almoxarifado", route:"/almoxarifado",
-    description:"Gestão de estoque do almoxarifado de saúde — insumos e medicamentos",
-    keywords:["almoxarifado","estoque","insumo","material","farmácia","dispensação","requisição","saldo"] },
-
   // ── Atenção Especializada ─────────────────────────────────
   { id:"especializada",       category:"Atenção Especializada e Regulação", order:600, iconName:"Stethoscope",
     title:"Atenção Especializada", route:"/atencao-especializada",
     description:"Atenção ambulatorial especializada — consultas e procedimentos especializados",
     keywords:["especializada","ambulatorial","consulta","especialidade","referência","encaminhamento","mac"] },
+
+  { id:"hemoterapia",         category:"Atenção Especializada e Regulação", order:609, iconName:"Droplets",
+    title:"Hemoterapia / BLH", route:"/hemoterapia",
+    description:"Serviços de hemoterapia e Banco de Leite Humano",
+    keywords:["hemoterapia","sangue","transfusão","banco","leite","humano","blh","hemocentro","doação"] },
+
+  { id:"reabilitacao",        category:"Atenção Especializada e Regulação", order:608, iconName:"Activity",
+    title:"Reabilitação", route:"/reabilitacao-apui",
+    description:"Serviço de reabilitação física, auditiva, intelectual e visual",
+    keywords:["reabilitação","fisioterapia","fonoaudiologia","terapia ocupacional","deficiência","cir","caps"] },
 
   { id:"regulacao-acesso",    category:"Atenção Especializada e Regulação", order:604, iconName:"Network",
     title:"Regulação e Acesso", route:"/regulacao-acesso-apui",
@@ -180,36 +190,26 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Teleconsultas e telediagnóstico — TeleSaúde Brasil Redes",
     keywords:["telessaúde","teleconsulta","telediagnóstico","telecardio","telepatologia","digital","remoto"] },
 
-  { id:"reabilitacao",        category:"Atenção Especializada e Regulação", order:608, iconName:"Activity",
-    title:"Reabilitação", route:"/reabilitacao-apui",
-    description:"Serviço de reabilitação física, auditiva, intelectual e visual",
-    keywords:["reabilitação","fisioterapia","fonoaudiologia","terapia ocupacional","deficiência","cir","caps"] },
-
-  { id:"hemoterapia",         category:"Atenção Especializada e Regulação", order:609, iconName:"Droplets",
-    title:"Hemoterapia / BLH", route:"/hemoterapia",
-    description:"Serviços de hemoterapia e Banco de Leite Humano",
-    keywords:["hemoterapia","sangue","transfusão","banco","leite","humano","blh","hemocentro","doação"] },
+  { id:"tfd",                 category:"Atenção Especializada e Regulação", order:611, iconName:"ArrowLeftRight",
+    title:"TFD — Tratamento Fora do Dom.", shortTitle:"TFD", route:"/tfd-especialidades-apui",
+    description:"Tratamento Fora do Domicílio — TFD — para procedimentos de alta complexidade",
+    keywords:["tfd","tratamento fora","domicílio","deslocamento","diária","regulação","alta complexidade"] },
 
   { id:"transporte-sanitario",category:"Atenção Especializada e Regulação", order:610, iconName:"Truck",
     title:"Transporte Sanitário", route:"/transporte-sanitario",
     description:"Transporte sanitário de pacientes para serviços de saúde",
     keywords:["transporte","sanitário","paciente","ambulância","veículo","deslocamento","tfd","remoção"] },
 
-  { id:"tfd",                 category:"Atenção Especializada e Regulação", order:611, iconName:"ArrowLeftRight",
-    title:"TFD — Tratamento Fora do Dom.", shortTitle:"TFD", route:"/tfd-especialidades-apui",
-    description:"Tratamento Fora do Domicílio — TFD — para procedimentos de alta complexidade",
-    keywords:["tfd","tratamento fora","domicílio","deslocamento","diária","regulação","alta complexidade"] },
-
   // ── Saúde do Cidadão ─────────────────────────────────────
-  { id:"rede-cegonha",        category:"Saúde do Cidadão", subcategory:"Saúde da Mulher", order:701, iconName:"Baby",
-    title:"Rede Cegonha", route:"/rede-cegonha",
-    description:"Rede Cegonha — pré-natal, parto e puerpério de qualidade",
-    keywords:["rede cegonha","pré-natal","parto","puerpério","maternidade","neonatal","gravidez"] },
-
   { id:"planejamento-familiar",category:"Saúde do Cidadão", subcategory:"Saúde da Mulher", order:702, iconName:"Users",
     title:"Planejamento Familiar", route:"/planejamento-familiar-apui",
     description:"Ações de planejamento familiar e saúde reprodutiva",
     keywords:["planejamento familiar","reprodutivo","contracepção","laqueadura","vasectomia","gravidez"] },
+
+  { id:"rede-cegonha",        category:"Saúde do Cidadão", subcategory:"Saúde da Mulher", order:701, iconName:"Baby",
+    title:"Rede Cegonha", route:"/rede-cegonha",
+    description:"Rede Cegonha — pré-natal, parto e puerpério de qualidade",
+    keywords:["rede cegonha","pré-natal","parto","puerpério","maternidade","neonatal","gravidez"] },
 
   { id:"saude-crianca",       category:"Saúde do Cidadão", subcategory:"Saúde da Criança", order:710, iconName:"Baby",
     title:"Saúde da Criança", route:"/saude-crianca",
@@ -221,21 +221,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Atenção à saúde do adolescente — 10 a 19 anos",
     keywords:["adolescente","juventude","adolescência","sexual","reprodutiva","drogas","violência"] },
 
-  { id:"saude-idoso",         category:"Saúde do Cidadão", order:730, iconName:"UserCheck",
-    title:"Saúde do Idoso", route:"/saude-idoso",
-    description:"Atenção integral à pessoa idosa — 60 anos ou mais",
-    keywords:["idoso","envelhecimento","60 anos","terceira idade","caderneta","geriátrico","fragilidade"] },
-
-  { id:"saude-bucal",         category:"Saúde do Cidadão", order:731, iconName:"Stethoscope",
-    title:"Saúde Bucal / CEO", route:"/saude-bucal",
-    description:"Atenção em saúde bucal — ESB e Centro de Especialidades Odontológicas",
-    keywords:["saúde bucal","odontologia","ceo","esb","dentista","fluorose","cárie","periodontal"] },
-
-  { id:"saude-lgbtqia",       category:"Saúde do Cidadão", order:734, iconName:"Smile",
-    title:"Saúde LGBTQIA+", route:"/saude-lgbtqia-apui",
-    description:"Atenção à saúde da população LGBTQIA+ e diversidade sexual",
-    keywords:["lgbtqia","diversidade","sexual","trans","gay","lésbica","bissexual","identidade","gênero"] },
-
   { id:"hiperdia",            category:"Saúde do Cidadão", order:735, iconName:"Activity",
     title:"HiperDia", route:"/hiperdia-apui",
     description:"HiperDia — controle e acompanhamento de hipertensos e diabéticos",
@@ -246,16 +231,36 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Vigilância e controle de Leishmaniose Visceral e Tegumentar",
     keywords:["leishmaniose","visceral","tegumentar","calazar","lv","lt","vetor","flebótomo","apuí"] },
 
+  { id:"saude-bucal",         category:"Saúde do Cidadão", order:731, iconName:"Stethoscope",
+    title:"Saúde Bucal / CEO", route:"/saude-bucal",
+    description:"Atenção em saúde bucal — ESB e Centro de Especialidades Odontológicas",
+    keywords:["saúde bucal","odontologia","ceo","esb","dentista","fluorose","cárie","periodontal"] },
+
+  { id:"saude-idoso",         category:"Saúde do Cidadão", order:730, iconName:"UserCheck",
+    title:"Saúde do Idoso", route:"/saude-idoso",
+    description:"Atenção integral à pessoa idosa — 60 anos ou mais",
+    keywords:["idoso","envelhecimento","60 anos","terceira idade","caderneta","geriátrico","fragilidade"] },
+
   { id:"saude-indigena",      category:"Saúde do Cidadão", order:737, iconName:"MapPin",
     title:"Saúde Indígena e Ribeirinha", route:"/saude-indigena-apui",
     description:"Atenção à saúde de populações indígenas e ribeirinhas de Apuí",
     keywords:["indígena","ribeirinha","sesai","dsei","povo","comunidade","floresta","rio","aldeia","apuí"] },
+
+  { id:"saude-lgbtqia",       category:"Saúde do Cidadão", order:734, iconName:"Smile",
+    title:"Saúde LGBTQIA+", route:"/saude-lgbtqia-apui",
+    description:"Atenção à saúde da população LGBTQIA+ e diversidade sexual",
+    keywords:["lgbtqia","diversidade","sexual","trans","gay","lésbica","bissexual","identidade","gênero"] },
 
   // ── Central de Inconsistências ────────────────────────────
   { id:"inconsistencias",     category:"Central de Inconsistências", order:800, iconName:"AlertTriangle", highlight:true,
     title:"Central de Inconsistências", route:"/inconsistencias",
     description:"Alertas de divergências, erros, riscos e pendências que podem causar perda de recursos",
     keywords:["inconsistência","erro","divergência","alerta","pendência","risco","perda recurso","rejeição","auditoria","divergência","validação","conformidade","irregularidade"] },
+
+  { id:"cnes-xml",            category:"Central de Inconsistências", order:802, iconName:"ClipboardCheck", isNew:true,
+    title:"Equipes do CNES (XML SISAB)", shortTitle:"Equipes CNES", route:"/cnes-xml",
+    description:"Importa o XML-CNES do SISAB e confere a composição mínima das equipes (eSF, eSB, eMulti)",
+    keywords:["cnes","xml","sisab","equipe","ine","lotação","composição","acs","esf","esb","emulti","ribeirinha","scnes","importar"] },
 
   { id:"indicadores-equipe",  category:"Central de Inconsistências", order:801, iconName:"Users", isNew:true, highlight:true,
     title:"Indicadores por Equipe", shortTitle:"Indicadores por Equipe", route:"/indicadores-equipe",
@@ -266,11 +271,6 @@ export const NAV_ITEMS: NavItem[] = [
     title:"Relatórios do SIAPS (importação)", shortTitle:"Relatórios SIAPS", route:"/siaps-relatorios",
     description:"Importa os relatórios de Vínculo (CVAT) e Qualidade baixados no SIAPS, incluindo eSFR",
     keywords:["siaps","cvat","vínculo","qualidade","mais acesso","esfr","ribeirinha","relatório","importar","csv","pontuação"] },
-
-  { id:"cnes-xml",            category:"Central de Inconsistências", order:802, iconName:"ClipboardCheck", isNew:true,
-    title:"Equipes do CNES (XML SISAB)", shortTitle:"Equipes CNES", route:"/cnes-xml",
-    description:"Importa o XML-CNES do SISAB e confere a composição mínima das equipes (eSF, eSB, eMulti)",
-    keywords:["cnes","xml","sisab","equipe","ine","lotação","composição","acs","esf","esb","emulti","ribeirinha","scnes","importar"] },
 
   { id:"score-risco-esf",     category:"Central de Inconsistências", order:801, iconName:"ShieldAlert",
     title:"Score de Risco ESF", route:"/score-risco-esf",
@@ -285,35 +285,35 @@ export const NAV_ITEMS: NavItem[] = [
 
 
   // ── Administração do Sistema ──────────────────────────────
-  { id:"folha-pagamento",     category:"Administração do Sistema", order:1001, iconName:"DollarSign",
-    title:"Folha de Pagamento", route:"/folha-pagamento", roles:ROLES_RH,
-    description:"Gestão da folha de pagamento do setor saúde",
-    keywords:["folha","pagamento","salário","remuneração","proventos","desconto","contracheque"] },
+  { id:"auditoria",           category:"Administração do Sistema", order:1007, iconName:"Shield",
+    title:"Auditoria e Controle", shortTitle:"Auditoria", route:"/auditoria", roles:ROLES_AUD,
+    description:"Auditoria de acessos, alterações e controle interno do sistema",
+    keywords:["auditoria","controle","log","acesso","alteração","rastreabilidade","trilha","interno"] },
 
   { id:"cadastros-mestres",   category:"Administração do Sistema", order:1003, iconName:"Layers",
     title:"Cadastros Mestres", route:"/cadastros", roles:ROLES_RH,
     description:"Gestão de cadastros mestres — unidades, profissionais e serviços",
     keywords:["cadastro","mestre","unidade","estabelecimento","cnes","profissional","serviço","configuração"] },
 
-  { id:"usuarios",            category:"Administração do Sistema", order:1004, iconName:"Users",
-    title:"Gestão de Usuários", shortTitle:"Usuários", route:"/usuarios", roles:ROLES_USR,
-    description:"Criação, edição e controle de acesso de usuários do sistema",
-    keywords:["usuário","gestão","acesso","perfil","permissão","criação","senha","autenticação","login"] },
-
   { id:"siaps",               category:"Administração do Sistema", order:1005, iconName:"Globe",
     title:"eGestor / SIAPS", shortTitle:"eGestor", route:"/siaps",
     description:"eGestor APS — SIAPS — financiamento federal da Atenção Primária por competência",
     keywords:["egestor","siaps","aps","financiamento","competência","parcela","equipe","esf","eap","saúde bucal","nasf","emulti","acs","cofinanciamento","federal"] },
 
-  { id:"auditoria",           category:"Administração do Sistema", order:1007, iconName:"Shield",
-    title:"Auditoria e Controle", shortTitle:"Auditoria", route:"/auditoria", roles:ROLES_AUD,
-    description:"Auditoria de acessos, alterações e controle interno do sistema",
-    keywords:["auditoria","controle","log","acesso","alteração","rastreabilidade","trilha","interno"] },
+  { id:"folha-pagamento",     category:"Administração do Sistema", order:1001, iconName:"DollarSign",
+    title:"Folha de Pagamento", route:"/folha-pagamento", roles:ROLES_RH,
+    description:"Gestão da folha de pagamento do setor saúde",
+    keywords:["folha","pagamento","salário","remuneração","proventos","desconto","contracheque"] },
 
   { id:"gateway-rnds",        category:"Administração do Sistema", order:1008, iconName:"Network",
     title:"Gateway RNDS · FHIR R4", route:"/gateway-rnds", roles:ROLES_AUD,
     description:"Gateway de integração com a Rede Nacional de Dados em Saúde — FHIR R4",
     keywords:["rnds","rede nacional","dados","saúde","fhir","r4","gateway","prontuário","interoperabilidade"] },
+
+  { id:"usuarios",            category:"Administração do Sistema", order:1004, iconName:"Users",
+    title:"Gestão de Usuários", shortTitle:"Usuários", route:"/usuarios", roles:ROLES_USR,
+    description:"Criação, edição e controle de acesso de usuários do sistema",
+    keywords:["usuário","gestão","acesso","perfil","permissão","criação","senha","autenticação","login"] },
 
   { id:"integracao-pec",      category:"Administração do Sistema", order:1009, iconName:"Plug",
     title:"Integração PEC e-SUS", route:"/integracao-pec", roles:ROLES_AUD,
