@@ -1299,24 +1299,23 @@ _sync_jobs: dict = {}   # job_id → {status, resultado, erro}
 
 async def _executar_sync_job(job_id: str, mid: int, fonte: str = "investsus") -> None:
     """Roda sincronização em background e armazena resultado em _sync_jobs."""
-    from services.investsus_scraper import sincronizar_investsus, sincronizar_transparencia
-    from database import AsyncSessionLocal
-
     _sync_jobs[job_id]["status"] = "rodando"
     try:
-        dados = await _asyncio.wait_for(
-            sincronizar_transparencia() if fonte == "transparencia" else sincronizar_investsus(),
-            timeout=90,
-        )
+        await _asyncio.wait_for(_corpo_sync_job(job_id, mid, fonte), timeout=60)
     except _asyncio.TimeoutError:
         _sync_jobs[job_id].update({
             "status": "erro",
-            "erro": "Tempo limite excedido (90s) ao consultar a fonte externa — tente novamente.",
+            "erro": "Tempo limite excedido (60s) — a fonte externa ou a gravação no banco demorou demais. Tente novamente.",
         })
-        return
     except Exception as exc:
         _sync_jobs[job_id].update({"status": "erro", "erro": str(exc)})
-        return
+
+
+async def _corpo_sync_job(job_id: str, mid: int, fonte: str) -> None:
+    from services.investsus_scraper import sincronizar_investsus, sincronizar_transparencia
+    from database import AsyncSessionLocal
+
+    dados = await (sincronizar_transparencia() if fonte == "transparencia" else sincronizar_investsus())
 
     if not dados.get("propostas") and dados.get("erros"):
         _sync_jobs[job_id].update({

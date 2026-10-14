@@ -381,7 +381,7 @@ async def sincronizar_transparencia(cnpj: str | None = None) -> dict:
         {"cnpjBeneficiario": cnpj, "ano": ano_atual - 1},
     ]
 
-    async with httpx.AsyncClient(timeout=20.0, headers=headers) as client:
+    async with httpx.AsyncClient(timeout=12.0, headers=headers) as client:
         for params in tentativas:
             try:
                 resp = await client.get(f"{_API_TRANSP}/emendas", params={**params, "pagina": 1})
