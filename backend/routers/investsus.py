@@ -249,6 +249,7 @@ def _prop_dict(p: PropostaInvestSUS) -> dict:
         "criado_em": p.criado_em.isoformat() if p.criado_em else None,
         "atualizado_em": p.atualizado_em.isoformat() if p.atualizado_em else None,
         "total_alertas_abertos": sum(1 for a in p.alertas_investsus if not a.resolvido) if p.alertas_investsus else 0,
+        "payload_original": p.payload_original,
     }
 
 
@@ -1339,10 +1340,11 @@ async def _corpo_sync_job(job_id: str, mid: int, fonte: str) -> None:
             existing = res.scalar_one_or_none()
             situacao_raw = prop_raw.get("situacao_raw", "")
             situacao_norm = None
-            for s in SituacaoNormalizada:
-                if s.value.lower() in situacao_raw.lower() or situacao_raw.lower() in s.value.lower():
-                    situacao_norm = s
-                    break
+            if situacao_raw.strip():
+                for s in SituacaoNormalizada:
+                    if s.value.lower() in situacao_raw.lower() or situacao_raw.lower() in s.value.lower():
+                        situacao_norm = s
+                        break
 
             if existing:
                 old_sit = existing.situacao_normalizada
@@ -1376,16 +1378,18 @@ async def _corpo_sync_job(job_id: str, mid: int, fonte: str) -> None:
                     valor_pago=prop_raw.get("valor_repassado", 0),
                     valor_executado=prop_raw.get("valor_executado", 0),
                     situacao_original=prop_raw.get("situacao_raw") or "",
-                    situacao_normalizada=situacao_norm or SituacaoNormalizada.PROPOSTA_EM_ANALISE,
+                    situacao_normalizada=situacao_norm or SituacaoNormalizada.EM_ANALISE,
                     exercicio=prop_raw.get("exercicio", 2024),
                     entidade_cnpj=prop_raw.get("cnpj_proponente") or "12.834.320/0001-26",
+                    fonte_dado=prop_raw.get("fonte"),
+                    payload_original=prop_raw.get("raw"),
                 )
                 db.add(nova)
                 await db.flush()
                 db.add(HistoricoSituacao(
                     proposta_id=nova.id,
                     situacao_anterior=None,
-                    situacao_nova=(situacao_norm or SituacaoNormalizada.PROPOSTA_EM_ANALISE).value,
+                    situacao_nova=(situacao_norm or SituacaoNormalizada.EM_ANALISE).value,
                     origem="sincronizacao_automatica",
                     observacao=f"Importado via sincronização em {dados['sincronizado_em']}",
                 ))
@@ -1492,10 +1496,11 @@ async def salvar_dados_sincronizados(payload: dict, db: DbDep, user: UserDep):
         existing = res.scalar_one_or_none()
         situacao_raw = str(prop_raw.get("situacao_raw") or prop_raw.get("situacao") or prop_raw.get("fase") or "")
         situacao_norm = None
-        for s in SituacaoNormalizada:
-            if s.value.lower() in situacao_raw.lower() or situacao_raw.lower() in s.value.lower():
-                situacao_norm = s
-                break
+        if situacao_raw.strip():
+            for s in SituacaoNormalizada:
+                if s.value.lower() in situacao_raw.lower() or situacao_raw.lower() in s.value.lower():
+                    situacao_norm = s
+                    break
 
         valor_global = float(prop_raw.get("valor_global") or prop_raw.get("valorEmpenhado") or prop_raw.get("valor") or 0)
         valor_pago   = float(prop_raw.get("valor_repassado") or prop_raw.get("valorPago") or 0)
@@ -1531,16 +1536,18 @@ async def salvar_dados_sincronizados(payload: dict, db: DbDep, user: UserDep):
                 valor_pago=valor_pago,
                 valor_executado=float(prop_raw.get("valor_executado") or prop_raw.get("valorPago") or 0),
                 situacao_original=situacao_raw,
-                situacao_normalizada=situacao_norm or SituacaoNormalizada.PROPOSTA_EM_ANALISE,
+                situacao_normalizada=situacao_norm or SituacaoNormalizada.EM_ANALISE,
                 exercicio=exercicio,
                 entidade_cnpj="12.834.320/0001-26",
+                fonte_dado="sincronizacao_browser",
+                payload_original=prop_raw,
             )
             db.add(nova)
             await db.flush()
             db.add(HistoricoSituacao(
                 proposta_id=nova.id,
                 situacao_anterior=None,
-                situacao_nova=(situacao_norm or SituacaoNormalizada.PROPOSTA_EM_ANALISE).value,
+                situacao_nova=(situacao_norm or SituacaoNormalizada.EM_ANALISE).value,
                 origem="sincronizacao_browser",
                 observacao=f"Importado via browser em {ts}",
             ))

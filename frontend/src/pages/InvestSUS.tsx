@@ -934,6 +934,7 @@ function DetalheProposta({ id, municipio_id, onVoltar }: { id: number; municipio
     { key: "alertas",     label: `Alertas (${(p.alertas ?? []).filter((a: any) => !a.resolvido).length} abertos)` },
     { key: "historico",   label: "Linha do Tempo" },
     { key: "atualizacoes", label: `Atualizações Manuais (${p.atualizacoes?.length ?? 0})` },
+    ...(p.payload_original ? [{ key: "dados_brutos", label: "Dados Brutos da Fonte (depuração)" }] : []),
   ];
 
   return (
@@ -1143,6 +1144,11 @@ function DetalheProposta({ id, municipio_id, onVoltar }: { id: number; municipio
               {key === "alertas" && <SecaoAlertas p={p} proposta_id={id} />}
               {key === "historico" && <SecaoHistorico p={p} />}
               {key === "atualizacoes" && <SecaoAtualizacoes p={p} />}
+              {key === "dados_brutos" && (
+                <pre style={{ fontSize: 11, background: "#111827", color: "#d1fae5", padding: 12, borderRadius: 8, overflowX: "auto" as const, maxHeight: 400 }}>
+                  {JSON.stringify(p.payload_original, null, 2)}
+                </pre>
+              )}
             </div>
           )}
         </div>
