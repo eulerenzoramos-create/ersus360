@@ -1297,16 +1297,23 @@ import uuid as _uuid
 _sync_jobs: dict = {}   # job_id → {status, resultado, erro}
 
 
-async def _executar_sync_job(job_id: str, mid: int) -> None:
+async def _executar_sync_job(job_id: str, mid: int, fonte: str = "investsus") -> None:
     """Roda sincronização em background e armazena resultado em _sync_jobs."""
-    from services.investsus_scraper import sincronizar_investsus
+    from services.investsus_scraper import sincronizar_investsus, sincronizar_transparencia
     from database import AsyncSessionLocal
 
     _sync_jobs[job_id]["status"] = "rodando"
     try:
-        dados = await sincronizar_investsus()
+        dados = await (sincronizar_transparencia() if fonte == "transparencia" else sincronizar_investsus())
     except Exception as exc:
         _sync_jobs[job_id].update({"status": "erro", "erro": str(exc)})
+        return
+
+    if not dados.get("propostas") and dados.get("erros"):
+        _sync_jobs[job_id].update({
+            "status": "erro",
+            "erro": "; ".join(e.get("erro", str(e)) for e in dados["erros"]),
+        })
         return
 
     criadas = atualizadas = 0
@@ -1392,30 +1399,50 @@ async def _executar_sync_job(job_id: str, mid: int) -> None:
 
 
 @router.post("/sincronizar")
-async def sincronizar_com_investsus(user: UserDep):
+async def sincronizar_com_investsus(user: UserDep, fonte: str = Query("investsus")):
     """
     Inicia sincronização em background e retorna job_id imediatamente.
     Use GET /api/investsus/sincronizar/{job_id} para verificar o status.
+
+    fonte="investsus" (padrão): login direto no portal InvestSUS via gov.br
+      (cookie, token ou CPF+senha) — pode falhar se o Railway não alcançar
+      investsus.saude.gov.br.
+    fonte="transparencia": busca emendas via Portal da Transparência CGU
+      (TRANSPARENCIA_API_KEY) — não depende de login no InvestSUS.
     """
     if not user.administrador_geral and user.role not in ("admin", "gestor", "financeiro"):
         raise HTTPException(403, "Acesso restrito")
 
     import os
-    tem_cookie = bool(os.getenv("INVESTSUS_COOKIE", "").strip())
-    tem_token  = bool(os.getenv("INVESTSUS_TOKEN", "").strip())
-    if not tem_cookie and not tem_token:
-        raise HTTPException(400, detail={
-            "erro": "Cookie InvestSUS não configurado",
-            "instrucao": (
-                "Faça login no portal InvestSUS via gov.br, capture o cookie via DevTools "
-                "e configure INVESTSUS_COOKIE nas variáveis do Railway."
-            ),
-        })
+    if fonte == "transparencia":
+        if not os.getenv("TRANSPARENCIA_API_KEY", "").strip():
+            raise HTTPException(400, detail={
+                "erro": "TRANSPARENCIA_API_KEY não configurada",
+                "instrucao": (
+                    "Obtenha uma chave gratuita em "
+                    "portaldatransparencia.gov.br/api-de-dados/swagger-ui.html "
+                    "e configure TRANSPARENCIA_API_KEY nas variáveis do Railway."
+                ),
+            })
+    else:
+        tem_credencial = any(
+            os.getenv(v, "").strip()
+            for v in ("INVESTSUS_COOKIE", "INVESTSUS_TOKEN", "INVESTSUS_CPF")
+        )
+        if not tem_credencial:
+            raise HTTPException(400, detail={
+                "erro": "Credenciais do InvestSUS não configuradas",
+                "instrucao": (
+                    "Faça login no portal InvestSUS via gov.br, capture o cookie via DevTools "
+                    "e configure INVESTSUS_COOKIE (ou INVESTSUS_CPF + INVESTSUS_SENHA) nas "
+                    "variáveis do Railway — ou use fonte=\"transparencia\"."
+                ),
+            })
 
     mid = _municipio_id(user)
     job_id = str(_uuid.uuid4())
     _sync_jobs[job_id] = {"status": "iniciado", "resultado": None, "erro": None, "municipio_id": mid}
-    _asyncio.create_task(_executar_sync_job(job_id, mid))
+    _asyncio.create_task(_executar_sync_job(job_id, mid, fonte))
     return {"job_id": job_id, "status": "iniciado"}
 
 

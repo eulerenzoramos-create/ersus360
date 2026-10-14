@@ -2243,14 +2243,14 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
   const qc = useQueryClient();
   const [resultado, setResultado] = useState<any>(null);
   const [erroMsg, setErroMsg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<"" | "investsus" | "transparencia">("");
   const [progresso, setProgresso] = useState("");
 
-  const sincronizar = async () => {
-    setLoading(true); setErroMsg(null); setResultado(null);
+  const sincronizar = async (fonte: "investsus" | "transparencia") => {
+    setLoading(fonte); setErroMsg(null); setResultado(null);
     try {
-      setProgresso("Autenticando no InvestSUS via gov.br…");
-      const resp = await api.post("/api/investsus/sincronizar", {});
+      setProgresso(fonte === "transparencia" ? "Consultando Portal da Transparência (CGU)…" : "Autenticando no InvestSUS via gov.br…");
+      const resp = await api.post(`/api/investsus/sincronizar?fonte=${fonte}`, {});
       const { job_id } = resp?.data || resp;
 
       // Polling até concluir (máx 120s)
@@ -2274,7 +2274,7 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
       const d = e?.response?.data;
       setErroMsg(d?.erro || d?.detail || e?.message || "Erro desconhecido");
     } finally {
-      setLoading(false); setProgresso("");
+      setLoading(""); setProgresso("");
     }
   };
 
@@ -2302,10 +2302,21 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
           propostas do FMS Apuí (CNPJ 12.834.320/0001-26) diretamente na API oficial.
         </div>
 
-        <button style={cor.btn(loading)} onClick={sincronizar} disabled={loading}>
-          <RefreshCw size={16} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
-          {loading ? (progresso || "Sincronizando…") : "Sincronizar Agora"}
-        </button>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
+          <button style={cor.btn(!!loading)} onClick={() => sincronizar("investsus")} disabled={!!loading}>
+            <RefreshCw size={16} style={{ animation: loading === "investsus" ? "spin 1s linear infinite" : "none" }} />
+            {loading === "investsus" ? (progresso || "Sincronizando…") : "Sincronizar com InvestSUS"}
+          </button>
+          <button style={{ ...cor.btn(!!loading), background: loading ? "#9ca3af" : "#0284c7" }} onClick={() => sincronizar("transparencia")} disabled={!!loading}>
+            <RefreshCw size={16} style={{ animation: loading === "transparencia" ? "spin 1s linear infinite" : "none" }} />
+            {loading === "transparencia" ? (progresso || "Buscando…") : "Buscar no Portal da Transparência (CGU)"}
+          </button>
+        </div>
+        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 8, lineHeight: 1.5 }}>
+          O Portal da Transparência é uma alternativa que roda inteiramente no servidor (requer
+          apenas a chave <code>TRANSPARENCIA_API_KEY</code> no Railway) — útil quando o login
+          direto no InvestSUS não está disponível.
+        </div>
 
         {erroMsg && <div style={cor.err}><strong>Erro:</strong> {erroMsg}</div>}
 

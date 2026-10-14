@@ -294,3 +294,93 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
         len(resultado["propostas"]), len(resultado["erros"]),
     )
     return resultado
+
+
+# ── Portal da Transparência CGU — fallback sem login no InvestSUS ─────────────
+# Mesma TRANSPARENCIA_API_KEY já usada por services/fns_portal_service.py.
+# Não depende de cookie/sessão do InvestSUS: roda inteiramente no servidor.
+
+_API_TRANSP = "https://api.portaldatransparencia.gov.br/api-de-dados"
+
+
+def _normalizar_emenda_transparencia(raw: dict, cnpj: str) -> dict:
+    numero = str(
+        raw.get("codigoEmenda") or raw.get("numero") or raw.get("numeroEmenda") or ""
+    )
+    autor = raw.get("nomeAutor") or raw.get("autor") or raw.get("parlamentar") or ""
+    if isinstance(autor, dict):
+        autor = autor.get("nome", "")
+    valor = float(raw.get("valorEmpenhado") or raw.get("valor") or 0)
+    valor_pago = float(raw.get("valorPago") or raw.get("valorLiquidado") or 0)
+    return {
+        "numero_proposta":    numero,
+        "numero_instrumento": str(raw.get("codigoSubEmenda") or raw.get("numeroInstrumento") or ""),
+        "objeto":             str(raw.get("tipoEmenda") or raw.get("descricao") or raw.get("objeto") or "Emenda parlamentar"),
+        "tipo_emenda":        str(raw.get("tipoEmenda") or "individual").lower(),
+        "programa":           str(raw.get("funcao") or raw.get("subfuncao") or ""),
+        "parlamentar":        autor,
+        "valor_global":       valor,
+        "valor_aprovado":     valor,
+        "valor_repassado":    valor_pago,
+        "valor_executado":    0.0,
+        "situacao_raw":       str(raw.get("situacao") or ""),
+        "exercicio":          int(raw.get("ano") or datetime.now().year),
+        "cnpj_proponente":    cnpj,
+        "fonte":              "portal_transparencia",
+        "raw":                raw,
+    }
+
+
+async def sincronizar_transparencia(cnpj: str | None = None) -> dict:
+    """
+    Busca emendas parlamentares/convênios para o FMS via Portal da Transparência
+    CGU — alternativa que NÃO depende de login/cookie no InvestSUS, usada quando
+    o Railway não consegue alcançar investsus.saude.gov.br diretamente.
+
+    Requer env var TRANSPARENCIA_API_KEY (a mesma já usada por fns_portal_service.py;
+    obter em portaldatransparencia.gov.br/api-de-dados/swagger-ui.html).
+    """
+    chave = os.getenv("TRANSPARENCIA_API_KEY", "").strip()
+    cnpj = (cnpj or _CNPJ_APUI).replace(".", "").replace("/", "").replace("-", "")
+    resultado: dict[str, Any] = {
+        "propostas": [], "repasses": [], "erros": [],
+        "sincronizado_em": datetime.utcnow().isoformat() + "Z",
+    }
+
+    if not chave:
+        resultado["erros"].append({
+            "endpoint": "auth",
+            "erro": "TRANSPARENCIA_API_KEY não configurada. Adicione a chave no Railway "
+                    "(obtenha em portaldatransparencia.gov.br/api-de-dados/swagger-ui.html).",
+        })
+        return resultado
+
+    headers = {"chave-api-dados": chave, "Accept": "application/json"}
+    ano_atual = datetime.now().year
+
+    tentativas = [
+        {"cnpjBeneficiario": cnpj, "ano": ano_atual},
+        {"cnpjBeneficiario": cnpj, "ano": ano_atual - 1},
+    ]
+
+    async with httpx.AsyncClient(timeout=_TIMEOUT, headers=headers) as client:
+        for params in tentativas:
+            try:
+                resp = await client.get(f"{_API_TRANSP}/emendas", params={**params, "pagina": 1})
+                if resp.status_code == 401:
+                    resultado["erros"].append({"endpoint": "emendas", "erro": "Chave TRANSPARENCIA_API_KEY inválida ou expirada (401)."})
+                    break
+                if resp.status_code != 200:
+                    resultado["erros"].append({"endpoint": "emendas", "erro": f"HTTP {resp.status_code} para {params}"})
+                    continue
+                body = resp.json()
+                itens = body if isinstance(body, list) else (body.get("data") or body.get("content") or [])
+                resultado["propostas"].extend(_normalizar_emenda_transparencia(it, cnpj) for it in itens)
+            except Exception as exc:
+                resultado["erros"].append({"endpoint": "emendas", "erro": str(exc)[:160]})
+
+    logger.info(
+        "InvestSUS (Transparência CGU): %d propostas, %d erros",
+        len(resultado["propostas"]), len(resultado["erros"]),
+    )
+    return resultado
