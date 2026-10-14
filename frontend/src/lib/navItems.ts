@@ -380,96 +380,6 @@ export const NAV_ITEMS: NavItem[] = [
     title:"Relatórios", route:"/relatorios",
     description:"Central de relatórios consolidados do sistema de saúde municipal",
     keywords:["relatório","central","consolidado","saúde","dados","exportar","impressão","pdf"] },
-
-
-  // ══════════ Administração ══════════
-
-  { id:"absenteismo",         category:"Administração", order:1002, iconName:"UserCog",
-    title:"Absenteísmo / RHS", route:"/absenteismo-apui", roles:ROLES_RH,
-    description:"Monitoramento de absenteísmo e gestão da força de trabalho em saúde",
-    keywords:["absenteísmo","falta","ausência","licença","atestado","workforce","rhs","força trabalho"] },
-
-  { id:"auditoria",           category:"Administração", order:1007, iconName:"Shield",
-    title:"Auditoria e Controle", shortTitle:"Auditoria", route:"/auditoria", roles:ROLES_AUD,
-    description:"Auditoria de acessos, alterações e controle interno do sistema",
-    keywords:["auditoria","controle","log","acesso","alteração","rastreabilidade","trilha","interno"] },
-
-  { id:"cadastros-mestres",   category:"Administração", order:1003, iconName:"Layers",
-    title:"Cadastros Mestres", route:"/cadastros", roles:ROLES_RH,
-    description:"Gestão de cadastros mestres — unidades, profissionais e serviços",
-    keywords:["cadastro","mestre","unidade","estabelecimento","cnes","profissional","serviço","configuração"] },
-
-  { id:"contratos",           category:"Administração", order:305, iconName:"FileText",
-    title:"Contratos e Licitações", shortTitle:"Contratos", route:"/gestao-contratos",
-    description:"Gestão de contratos, licitações e compras públicas de saúde",
-    keywords:["contratos","licitação","compras","pregão","dispensa","fornecedor","fiscal","prestação"] },
-
-  { id:"folha-pagamento",     category:"Administração", order:1001, iconName:"DollarSign",
-    title:"Folha de Pagamento", route:"/folha-pagamento", roles:ROLES_RH,
-    description:"Gestão da folha de pagamento do setor saúde",
-    keywords:["folha","pagamento","salário","remuneração","proventos","desconto","contracheque"] },
-
-  { id:"usuarios",            category:"Administração", order:1004, iconName:"Users",
-    title:"Gestão de Usuários", shortTitle:"Usuários", route:"/usuarios", roles:ROLES_USR,
-    description:"Criação, edição e controle de acesso de usuários do sistema",
-    keywords:["usuário","gestão","acesso","perfil","permissão","criação","senha","autenticação","login"] },
-
-  { id:"rh",                  category:"Administração", order:1000, iconName:"UserCog",
-    title:"Recursos Humanos", shortTitle:"RH", route:"/rh", roles:ROLES_RH,
-    description:"Gestão de recursos humanos — equipes e servidores da saúde municipal",
-    keywords:["rh","recursos humanos","servidores","funcionários","equipes","carga horária","escalas"] },
-
-  // Gestão Operacional
-
-  { id:"agenda",              category:"Administração", subcategory:"Gestão Operacional", order:1105, iconName:"Calendar",
-    title:"Agenda de Gestão", route:"/agenda",
-    description:"Agenda de gestão e compromissos da secretaria municipal de saúde",
-    keywords:["agenda","compromisso","reunião","calendário","gestão","secretaria"] },
-
-  { id:"alertas",             category:"Administração", subcategory:"Gestão Operacional", order:1109, iconName:"AlertTriangle",
-    title:"Central de Alertas", route:"/alertas",
-    description:"Central de alertas operacionais e críticos do sistema",
-    keywords:["alerta","crítico","operacional","notificação","urgente","central","monitoramento"] },
-
-  { id:"cme",                 category:"Administração", subcategory:"Gestão Operacional", order:1107, iconName:"Thermometer",
-    title:"CME", route:"/cme",
-    description:"Central de Material e Esterilização — controle de materiais esterilizados",
-    keywords:["cme","esterilização","material","central","autoclave","biossegurança","hospital"] },
-
-  { id:"documentos",          category:"Administração", subcategory:"Gestão Operacional", order:1106, iconName:"FileText",
-    title:"Documentos", route:"/documentos",
-    description:"Gestão eletrônica de documentos oficiais e administrativos",
-    keywords:["documento","arquivo","ofício","memorando","circular","gestão","ged","digital"] },
-
-  { id:"equipamentos",        category:"Administração", subcategory:"Gestão Operacional", order:1103, iconName:"Wrench",
-    title:"Equipamentos", route:"/gestao-equipamentos",
-    description:"Gestão de equipamentos médicos e hospitalares",
-    keywords:["equipamento","médico","hospitalar","manutenção","calibração","registro","anvisa"] },
-
-  { id:"frota",               category:"Administração", subcategory:"Gestão Operacional", order:1101, iconName:"Truck",
-    title:"Frota", route:"/frota",
-    description:"Gestão da frota de veículos da secretaria de saúde",
-    keywords:["frota","veículo","carro","ambulância","manutenção","abastecimento","km","motorista"] },
-
-  { id:"manutencao",          category:"Administração", subcategory:"Gestão Operacional", order:1104, iconName:"Wrench",
-    title:"Manutenção", route:"/manutencao",
-    description:"Ordens de serviço e controle de manutenção predial e de equipamentos",
-    keywords:["manutenção","ordem de serviço","reparo","conserto","preventiva","corretiva"] },
-
-  { id:"obras",               category:"Administração", subcategory:"Gestão Operacional", order:1102, iconName:"Building2",
-    title:"Obras e Infraestrutura", route:"/obras",
-    description:"Gestão de obras de infraestrutura de saúde em andamento",
-    keywords:["obras","infraestrutura","construção","reforma","instalação","predial","saúde"] },
-
-  { id:"patrimonio",          category:"Administração", subcategory:"Gestão Operacional", order:1100, iconName:"Truck",
-    title:"Patrimônio", route:"/patrimonio",
-    description:"Gestão de patrimônio e bens móveis e imóveis da saúde",
-    keywords:["patrimônio","bem","equipamento","tombamento","inventário","ativo","gestão"] },
-
-  { id:"pgrss",               category:"Administração", subcategory:"Gestão Operacional", order:1108, iconName:"Trash2",
-    title:"PGRSS", route:"/pgrss",
-    description:"Plano de Gerenciamento de Resíduos de Serviços de Saúde",
-    keywords:["pgrss","resíduo","lixo","descarte","infectante","perfuro-cortante","ambiental","biológico"] },
 ];
 
 // ── Utilitários de busca ──────────────────────────────────────────────────────
@@ -518,7 +428,6 @@ export const CATEGORIES = [
   "Financiamento e Recursos",
   "Sistemas e Integrações",
   "Relatórios e Indicadores",
-  "Administração",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
