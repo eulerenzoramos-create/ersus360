@@ -92,11 +92,6 @@ export const NAV_ITEMS: NavItem[] = [
     keywords:["acs","registrar","visita","formulário","domiciliar","novo registro"] },
 
   // ── Financeiro ───────────────────────────────────────────
-  { id:"financeiro",          category:"Financeiro e Gestão Fiscal", order:200, iconName:"DollarSign",
-    title:"Painel Financeiro", route:"/financeiro", roles:ROLES_FIN,
-    description:"Painel consolidado de recursos financeiros da saúde municipal",
-    keywords:["financeiro","painel","recursos","receita","despesa","orçamento","FMS","fundo"] },
-
   { id:"repasses-aps",        category:"Financeiro e Gestão Fiscal", order:201, iconName:"TrendingUp", highlight:true,
     title:"Controle Financeiro FNS", shortTitle:"Controle Financeiro FNS", route:"/repasses-aps-apui", roles:ROLES_FIN,
     description:"Transferências mensais do FNS para APS — Apuí/AM — OBs, portarias e contas bancárias",
