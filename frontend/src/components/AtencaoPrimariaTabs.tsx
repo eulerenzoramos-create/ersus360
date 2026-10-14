@@ -8,7 +8,7 @@ import { Link, useLocation } from "react-router-dom";
 import { NAV_ITEMS } from "../lib/navItems";
 import { getIcon } from "./Sidebar";
 
-const CATEGORIA = "Atenção Primária";
+const CATEGORIA = "Atenção Primária à Saúde";
 
 const ITENS = NAV_ITEMS.filter(i => i.category === CATEGORIA);
 
