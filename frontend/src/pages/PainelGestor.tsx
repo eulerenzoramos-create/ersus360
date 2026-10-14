@@ -24,8 +24,6 @@ const MODULOS = [
   { label: "Busca Ativa · IA",        desc: "Gestantes e crianças sem acompanhamento",  Icon: Brain,         path: "/busca-ativa-ia",     cor: BLUE },
   { label: "Sprint ÓTIMO",            desc: "Monitoramento SIAPS Q2/2026",              Icon: TrendingUp,    path: "/sprint-otimo",       cor: BLUE },
   { label: "Plano Municipal de Saúde",desc: "Planejamento quadrienal de saúde",         Icon: ClipboardList, path: "/plano-municipal-saude", cor: BLUE },
-  { label: "eGestor / SIAPS",         desc: "Integração com e-Gestor AB / SIAPS",       Icon: Wifi,          path: "/siaps",              cor: BLUE },
-  { label: "Relatórios",              desc: "Relatórios consolidados de gestão",        Icon: FileText,      path: "/relatorios",         cor: BLUE },
   { label: "Folha de Pagamento",      desc: "Folha de pagamento dos profissionais",     Icon: Banknote,      path: "/folha-pagamento",    cor: BLUE },
 ];
 
