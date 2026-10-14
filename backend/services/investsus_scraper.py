@@ -304,6 +304,23 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
 _API_TRANSP = "https://api.portaldatransparencia.gov.br/api-de-dados"
 
 
+def _parse_valor_br(v: Any) -> float:
+    """Converte valores do Portal da Transparência (string pt-BR, ex. '- 35.865,08') para float."""
+    if v is None or v == "":
+        return 0.0
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip().replace("R$", "").strip()
+    negativo = s.startswith("-")
+    s = s.lstrip("-").strip()
+    s = s.replace(".", "").replace(",", ".")
+    try:
+        n = float(s)
+    except ValueError:
+        return 0.0
+    return -n if negativo else n
+
+
 def _normalizar_emenda_transparencia(raw: dict, cnpj: str) -> dict:
     numero = str(
         raw.get("codigoEmenda") or raw.get("numero") or raw.get("numeroEmenda") or ""
@@ -311,8 +328,8 @@ def _normalizar_emenda_transparencia(raw: dict, cnpj: str) -> dict:
     autor = raw.get("nomeAutor") or raw.get("autor") or raw.get("parlamentar") or ""
     if isinstance(autor, dict):
         autor = autor.get("nome", "")
-    valor = float(raw.get("valorEmpenhado") or raw.get("valor") or 0)
-    valor_pago = float(raw.get("valorPago") or raw.get("valorLiquidado") or 0)
+    valor = _parse_valor_br(raw.get("valorEmpenhado") or raw.get("valor"))
+    valor_pago = _parse_valor_br(raw.get("valorPago") or raw.get("valorLiquidado"))
     return {
         "numero_proposta":    numero,
         "numero_instrumento": str(raw.get("codigoSubEmenda") or raw.get("numeroInstrumento") or ""),
