@@ -177,6 +177,66 @@ def _municipio_id(user: UserOut) -> int:
     return mid
 
 
+def _sem_acentos(t: str) -> str:
+    import unicodedata
+    return unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode().lower()
+
+
+def _classificar_situacao_investsus(texto: str) -> "SituacaoNormalizada | None":
+    """Classifica o texto real de situação do InvestSUS (não o Enum genérico)."""
+    if not texto or not texto.strip():
+        return None
+    t = _sem_acentos(texto)
+    checks = [
+        (["cancelada"], SituacaoNormalizada.CANCELADA),
+        (["rejeitada"], SituacaoNormalizada.REJEITADA),
+        (["empenhada", "formaliza"], SituacaoNormalizada.EMPENHADA_AGUARDANDO_FORMALIZACAO),
+        (["empenhada"], SituacaoNormalizada.EMPENHADA),
+        (["parcialmente", "paga"], SituacaoNormalizada.PARCIALMENTE_PAGA),
+        (["paga"], SituacaoNormalizada.TOTALMENTE_PAGA),
+        (["adequacao", "tecnica"], SituacaoNormalizada.AGUARDANDO_COMPLEMENTACAO),
+        (["diligencia"], SituacaoNormalizada.EM_DILIGENCIA),
+        (["complementacao"], SituacaoNormalizada.AGUARDANDO_COMPLEMENTACAO),
+        (["analise"], SituacaoNormalizada.EM_ANALISE),
+        (["rascunho"], SituacaoNormalizada.PROPOSTA_ELABORACAO),
+        (["elaboracao"], SituacaoNormalizada.PROPOSTA_ELABORACAO),
+        (["cadastrada"], SituacaoNormalizada.PROPOSTA_CADASTRADA),
+        (["enviada"], SituacaoNormalizada.PROPOSTA_ENVIADA),
+        (["disponivel"], SituacaoNormalizada.RECURSO_DISPONIVEL),
+        (["aprovada"], SituacaoNormalizada.APROVADA),
+        (["formalizada"], SituacaoNormalizada.FORMALIZADA),
+        (["portaria"], SituacaoNormalizada.PORTARIA_PUBLICADA),
+        (["aguardando", "pagamento"], SituacaoNormalizada.AGUARDANDO_PAGAMENTO),
+        (["execucao", "atrasada"], SituacaoNormalizada.EXECUCAO_ATRASADA),
+        (["execucao", "paralisada"], SituacaoNormalizada.EXECUCAO_PARALISADA),
+        (["execucao", "fisica", "concluida"], SituacaoNormalizada.EXECUCAO_FISICA_CONCLUIDA),
+        (["execucao"], SituacaoNormalizada.EM_EXECUCAO),
+        (["prestacao", "contas"], SituacaoNormalizada.PRESTACAO_CONTAS_PENDENTE),
+        (["instrumento", "concluido"], SituacaoNormalizada.INSTRUMENTO_CONCLUIDO),
+    ]
+    for kws, situacao in checks:
+        if all(kw in t for kw in kws):
+            return situacao
+    return None
+
+
+def _parse_tipo_recurso_investsus(tipo_recurso_raw: str, tipo_raw: str) -> dict:
+    """Deriva tipo_emenda/componente/tipo_financiamento/objeto a partir das colunas
+    reais 'Tipo de Recurso' (EMENDA/PROGRAMA) e 'Tipo' (INCREMENTO MAC, CUSTEIO PAP...)."""
+    tr = (tipo_recurso_raw or "").upper()
+    tp = (tipo_raw or "").upper()
+    tipo_emenda = "programa" if "PROGRAMA" in tr else "individual"
+    componente = "MAC" if "MAC" in tp else "PAP" if "PAP" in tp else None
+    tipo_financiamento = "incremento" if "INCREMENTO" in tp else "custeio" if "CUSTEIO" in tp else None
+    objeto = " - ".join(p for p in [tipo_recurso_raw, tipo_raw] if p and p != "-")
+    return {
+        "tipo_emenda": tipo_emenda,
+        "componente": componente,
+        "tipo_financiamento": tipo_financiamento,
+        "objeto": objeto,
+    }
+
+
 def _prop_dict(p: PropostaInvestSUS) -> dict:
     parl = None
     if p.parlamentar:
@@ -1489,8 +1549,10 @@ async def status_sync_job(job_id: str, user: UserDep):
 @router.post("/sincronizar-dados")
 async def salvar_dados_sincronizados(payload: dict, db: DbDep, user: UserDep):
     """
-    Recebe dados já buscados pelo browser diretamente no Portal da Transparência
-    e os salva no banco. Usado quando o Railway não consegue alcançar .gov.br.
+    Recebe dados já buscados pelo browser — seja da tela real de Propostas do
+    InvestSUS (numero_proposta/tipo_recurso_raw/tipo_raw/situacao_raw/valor_global),
+    seja do Portal da Transparência (campos legados valorEmpenhado/valorPago/etc.).
+    Usado quando o Railway não consegue alcançar .gov.br diretamente.
     payload: { propostas: [...], repasses: [...], sincronizado_em: str }
     """
     if not user.administrador_geral and user.role not in ("admin", "gestor", "financeiro"):
@@ -1501,7 +1563,7 @@ async def salvar_dados_sincronizados(payload: dict, db: DbDep, user: UserDep):
 
     for prop_raw in payload.get("propostas", []):
         numero = str(prop_raw.get("numero_proposta") or prop_raw.get("codigoEmenda") or prop_raw.get("numero") or "")
-        if not numero:
+        if not numero or numero == "-":
             continue
         res = await db.execute(
             select(PropostaInvestSUS).where(
@@ -1511,23 +1573,37 @@ async def salvar_dados_sincronizados(payload: dict, db: DbDep, user: UserDep):
         )
         existing = res.scalar_one_or_none()
         situacao_raw = str(prop_raw.get("situacao_raw") or prop_raw.get("situacao") or prop_raw.get("fase") or "")
-        situacao_norm = None
-        if situacao_raw.strip():
-            for s in SituacaoNormalizada:
-                if s.value.lower() in situacao_raw.lower() or situacao_raw.lower() in s.value.lower():
-                    situacao_norm = s
-                    break
+        situacao_norm = _classificar_situacao_investsus(situacao_raw)
+
+        tipo_recurso_raw = str(prop_raw.get("tipo_recurso_raw") or "")
+        tipo_raw = str(prop_raw.get("tipo_raw") or "")
+        derivado = _parse_tipo_recurso_investsus(tipo_recurso_raw, tipo_raw)
 
         valor_global = float(prop_raw.get("valor_global") or prop_raw.get("valorEmpenhado") or prop_raw.get("valor") or 0)
-        valor_pago   = float(prop_raw.get("valor_repassado") or prop_raw.get("valorPago") or 0)
-        objeto       = str(prop_raw.get("objeto") or prop_raw.get("descricao") or prop_raw.get("tipoEmenda") or "")
+        valor_pago_direto = prop_raw.get("valor_repassado") or prop_raw.get("valorPago")
+        # Sem coluna própria de "repassado" na tela real do InvestSUS: se a situação
+        # indica que já foi paga, o valor mostrado É o valor pago.
+        paga = situacao_norm in (SituacaoNormalizada.TOTALMENTE_PAGA, SituacaoNormalizada.PARCIALMENTE_PAGA)
+        valor_pago = float(valor_pago_direto) if valor_pago_direto else (valor_global if paga else 0.0)
+        objeto       = str(prop_raw.get("objeto") or prop_raw.get("descricao") or derivado["objeto"] or prop_raw.get("tipoEmenda") or "")
         parlamentar  = str(prop_raw.get("parlamentar") or prop_raw.get("nomeAutor") or "")
         exercicio    = int(prop_raw.get("exercicio") or prop_raw.get("ano") or 2024)
         ts           = payload.get("sincronizado_em", "")
 
         if existing:
-            if valor_global:    existing.valor_aprovado = valor_global
+            if valor_global:
+                existing.valor_indicado = valor_global
+                existing.valor_proposta = valor_global
+                existing.valor_aprovado = valor_global
             if valor_pago:      existing.valor_pago = valor_pago
+            if objeto:          existing.objeto = objeto
+            if derivado["componente"]:         existing.componente = derivado["componente"]
+            if derivado["tipo_financiamento"]:  existing.tipo_financiamento = derivado["tipo_financiamento"]
+            try:
+                existing.tipo_emenda = TipoEmenda(derivado["tipo_emenda"]).value
+            except ValueError:
+                pass
+            existing.payload_original = prop_raw
             existing.situacao_original = situacao_raw or existing.situacao_original
             if situacao_norm and situacao_norm != existing.situacao_normalizada:
                 db.add(HistoricoSituacao(
@@ -1540,17 +1616,23 @@ async def salvar_dados_sincronizados(payload: dict, db: DbDep, user: UserDep):
                 existing.situacao_normalizada = situacao_norm
             atualizadas += 1
         else:
+            try:
+                tipo_emenda_val = TipoEmenda(derivado["tipo_emenda"]).value
+            except ValueError:
+                tipo_emenda_val = TipoEmenda.INDIVIDUAL.value
             nova = PropostaInvestSUS(
                 municipio_id=mid,
                 numero_proposta=numero,
                 numero_instrumento=str(prop_raw.get("numero_instrumento") or prop_raw.get("codigoSubEmenda") or ""),
                 objeto=objeto,
-                tipo_emenda=TipoEmenda.INDIVIDUAL.value,
+                tipo_emenda=tipo_emenda_val,
+                componente=derivado["componente"],
+                tipo_financiamento=derivado["tipo_financiamento"],
                 valor_indicado=valor_global,
                 valor_proposta=valor_global,
                 valor_aprovado=valor_global,
                 valor_pago=valor_pago,
-                valor_executado=float(prop_raw.get("valor_executado") or prop_raw.get("valorPago") or 0),
+                valor_executado=float(prop_raw.get("valor_executado") or 0),
                 situacao_original=situacao_raw,
                 situacao_normalizada=situacao_norm or SituacaoNormalizada.EM_ANALISE,
                 exercicio=exercicio,

@@ -2756,14 +2756,18 @@ function parseReais(s){
   return neg?-n:n;
 }
 
+// Cabeçalhos confirmados na tela real de Propostas do InvestSUS:
+// N. Proposta | Tipo de Recurso | Tipo | Situação | Instrumento | Valor
+// "exato" tem prioridade sobre "contém", para não confundir "Tipo" com "Tipo de Recurso".
 var MAPA=[
-  {campo:"numero_proposta", chaves:["proposta","codigo","nº","numero"]},
-  {campo:"parlamentar",     chaves:["parlamentar","autor","autoria"]},
-  {campo:"objeto",          chaves:["objeto","programa","finalidade","descricao"]},
-  {campo:"situacao",        chaves:["situacao","status","fase"]},
-  {campo:"valor_global",    chaves:["valor global","valor indicado","valor emenda","valor"]},
-  {campo:"valor_repassado", chaves:["repassado","pago","valor pago"]},
-  {campo:"exercicio",       chaves:["ano","exercicio"]},
+  {campo:"numero_proposta", exatos:["n proposta","no proposta","numero proposta"], chaves:["proposta","codigo"]},
+  {campo:"tipo_recurso",    exatos:["tipo de recurso"], chaves:["tipo de recurso","recurso"]},
+  {campo:"tipo",            exatos:["tipo"], chaves:[]},
+  {campo:"situacao",        exatos:["situacao"], chaves:["situacao","status","fase"]},
+  {campo:"instrumento",     exatos:["instrumento"], chaves:["instrumento"]},
+  {campo:"parlamentar",     exatos:[], chaves:["parlamentar","autor","autoria"]},
+  {campo:"valor",           exatos:["valor"], chaves:["valor"]},
+  {campo:"exercicio",       exatos:[], chaves:["ano","exercicio"]},
 ];
 
 var propostas=[];
@@ -2776,13 +2780,20 @@ document.querySelectorAll("table").forEach(function(tbl){
   if(headerCells.length<2) return;
 
   var colunaPorCampo={};
+  var usadas={};
   MAPA.forEach(function(m){
+    var idx=-1;
     for(var i=0;i<headerCells.length;i++){
-      if(m.chaves.some(function(k){return headerCells[i].indexOf(k)>=0;})){
-        colunaPorCampo[m.campo]=i;
-        break;
+      if(usadas[i]) continue;
+      if(m.exatos.indexOf(headerCells[i])>=0){ idx=i; break; }
+    }
+    if(idx<0){
+      for(var i=0;i<headerCells.length;i++){
+        if(usadas[i]) continue;
+        if(m.chaves.some(function(k){return headerCells[i].indexOf(k)>=0;})){ idx=i; break; }
       }
     }
+    if(idx>=0){ colunaPorCampo[m.campo]=idx; usadas[idx]=true; }
   });
   if(colunaPorCampo.numero_proposta===undefined && colunaPorCampo.situacao===undefined) return;
   tabelasLidas++;
@@ -2795,15 +2806,16 @@ document.querySelectorAll("table").forEach(function(tbl){
       return i!==undefined && cells[i] ? cells[i].textContent.trim() : "";
     };
     var numero=texto("numero_proposta");
-    if(!numero) return;
+    if(!numero || numero==="-") return;
     propostas.push({
-      numero_proposta: numero,
-      parlamentar:     texto("parlamentar"),
-      objeto:          texto("objeto"),
-      situacao_raw:    texto("situacao"),
-      valor_global:    parseReais(texto("valor_global")) || 0,
-      valor_repassado: parseReais(texto("valor_repassado")) || 0,
-      exercicio:       parseInt(texto("exercicio"),10) || new Date().getFullYear(),
+      numero_proposta:      numero,
+      numero_instrumento:   texto("instrumento"),
+      parlamentar:          texto("parlamentar"),
+      tipo_recurso_raw:     texto("tipo_recurso"),
+      tipo_raw:             texto("tipo"),
+      situacao_raw:         texto("situacao"),
+      valor_global:         parseReais(texto("valor")) || 0,
+      exercicio:            parseInt(texto("exercicio"),10) || new Date().getFullYear(),
     });
   });
 });
