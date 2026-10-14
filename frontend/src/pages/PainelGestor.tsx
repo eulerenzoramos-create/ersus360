@@ -7,9 +7,9 @@ import { BRL, BRL_AXIS } from "../lib/fmt";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { useAuth } from "../App";
 import {
-  Target, Brain, TrendingUp, DollarSign, FileText, Activity,
+  Target, Brain, DollarSign, FileText, Activity,
   Eye, EyeOff, CheckCircle, AlertTriangle, Wifi,
-  ClipboardList, Banknote,
+  Banknote,
 } from "lucide-react";
 
 const BLUE   = "#0078d4";
@@ -22,8 +22,6 @@ const MODULOS = [
   { label: "Portarias FNS",           desc: "Portarias ministeriais de transferências", Icon: FileText,      path: "/portarias",          cor: BLUE },
   { label: "Painel do ACS",           desc: "Cadastros, visitas e calendário",          Icon: Activity,      path: "/acs/painel",         cor: BLUE },
   { label: "Busca Ativa · IA",        desc: "Gestantes e crianças sem acompanhamento",  Icon: Brain,         path: "/busca-ativa-ia",     cor: BLUE },
-  { label: "Sprint ÓTIMO",            desc: "Monitoramento SIAPS Q2/2026",              Icon: TrendingUp,    path: "/sprint-otimo",       cor: BLUE },
-  { label: "Plano Municipal de Saúde",desc: "Planejamento quadrienal de saúde",         Icon: ClipboardList, path: "/plano-municipal-saude", cor: BLUE },
   { label: "Folha de Pagamento",      desc: "Folha de pagamento dos profissionais",     Icon: Banknote,      path: "/folha-pagamento",    cor: BLUE },
 ];
 
