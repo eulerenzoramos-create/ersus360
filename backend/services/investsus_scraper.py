@@ -164,10 +164,12 @@ async def _buscar_propostas_paginado(
     token: str | None,
     cnpj: str,
     ano: int,
-) -> list[dict]:
+) -> tuple[list[dict], str | None]:
     """
     POST /api/propostas/paginado - endpoint confirmado pelo portal.
     Auth via cookie (INVESTSUS_COOKIE) ou bearer token nos headers do client.
+    Retorna (itens, mensagem_de_erro) — erro nunca é descartado em silêncio,
+    mesmo quando alguma página já trouxe resultados.
     """
     headers: dict = {}
     if token:
@@ -200,7 +202,8 @@ async def _buscar_propostas_paginado(
                     if cookie_ativo else
                     "Token/credenciais rejeitados (401/403)."
                 )
-                raise RuntimeError(msg)
+                logger.error("InvestSUS paginado p%d: %s", page, msg)
+                return all_items, msg
             resp.raise_for_status()
             data = resp.json()
 
@@ -220,10 +223,11 @@ async def _buscar_propostas_paginado(
             page += 1
 
         except Exception as e:
+            msg = f"Falha ao buscar página {page}: {e}"
             logger.error("InvestSUS paginado p%d: %s", page, e)
-            break
+            return all_items, msg
 
-    return all_items
+    return all_items, None
 
 
 async def sincronizar_investsus(cnpj: str | None = None) -> dict:
@@ -275,19 +279,16 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
                 return resultado
 
         # 2. Propostas do ano atual
-        try:
-            raws = await _buscar_propostas_paginado(client, None, cnpj, ano)
-            resultado["propostas"] = [_normalizar_proposta(r) for r in raws]
-        except Exception as exc:
-            logger.error("InvestSUS propostas %d: %s", ano, exc)
-            resultado["erros"].append({"endpoint": "propostas", "erro": str(exc)})
+        raws, erro = await _buscar_propostas_paginado(client, None, cnpj, ano)
+        resultado["propostas"] = [_normalizar_proposta(r) for r in raws]
+        if erro:
+            resultado["erros"].append({"endpoint": f"propostas/{ano}", "erro": erro})
 
         # 3. Propostas do ano anterior (vigentes)
-        try:
-            raws_prev = await _buscar_propostas_paginado(client, None, cnpj, ano - 1)
-            resultado["propostas"].extend(_normalizar_proposta(r) for r in raws_prev)
-        except Exception as exc:
-            logger.debug("InvestSUS propostas %d: %s", ano - 1, exc)
+        raws_prev, erro_prev = await _buscar_propostas_paginado(client, None, cnpj, ano - 1)
+        resultado["propostas"].extend(_normalizar_proposta(r) for r in raws_prev)
+        if erro_prev:
+            resultado["erros"].append({"endpoint": f"propostas/{ano - 1}", "erro": erro_prev})
 
     logger.info(
         "InvestSUS: %d propostas sincronizadas, %d erros",
