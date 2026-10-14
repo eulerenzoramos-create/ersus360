@@ -97,20 +97,10 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Transferências mensais do FNS para APS — Apuí/AM — OBs, portarias e contas bancárias",
     keywords:["repasse","fns","fundo nacional saúde","transferência","ordem bancária","ob","portaria","conta","agência","banco","fundo a fundo","apuí","recurso","parcela","mensal","aps","financeiro","cofinanciamento"] },
 
-  { id:"fns",                 category:"Financeiro e Gestão Fiscal", subcategory:"FNS / Convênios", order:210, iconName:"Clipboard",
-    title:"Consolidado de Convênios FNS", shortTitle:"Convênios FNS", route:"/fns", roles:ROLES_FIN,
-    description:"Consolidado de convênios e transferências do Fundo Nacional de Saúde",
-    keywords:["fns","convênio","consolidado","transferência","federal","saúde","fundo nacional","recurso","consultafns"] },
-
   { id:"portarias-fns",       category:"Financeiro e Gestão Fiscal", subcategory:"FNS / Convênios", order:211, iconName:"FileText",
     title:"Portarias FNS", route:"/portarias", roles:ROLES_FIN,
     description:"Portarias ministeriais que regulamentam transferências do FNS",
     keywords:["portaria","fns","ministerial","regulamentação","norma","legislação","número portaria"] },
-
-  { id:"execucao-bloco",      category:"Financeiro e Gestão Fiscal", subcategory:"FNS / Convênios", order:212, iconName:"DollarSign",
-    title:"Execução por Bloco", route:"/execucao", roles:ROLES_FIN,
-    description:"Execução financeira por bloco de financiamento do SUS",
-    keywords:["execução","bloco","financiamento","sus","atenção básica","média","alta","vigilância","assistência"] },
 
   { id:"emendas",             category:"Financeiro e Gestão Fiscal", subcategory:"FNS / Convênios", order:213, iconName:"Landmark",
     title:"Emendas Parlamentares", route:"/emendas", roles:ROLES_FIN,
