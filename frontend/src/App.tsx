@@ -1,6 +1,7 @@
 // src/App.tsx — ERSUS 360
 import { useState, createContext, useContext, Component, useEffect, lazy, Suspense } from "react";
 import { Sidebar } from "./components/Sidebar";
+import PageNavBar from "./components/PageNavBar";
 import { ListaMunicipios } from "./components/SeletorMunicipio";
 import AdminGeral from "./pages/AdminGeral";
 import { lerSessao, limparSessao, sairDoSuporte, SessaoUsuario } from "./lib/sessao";
@@ -1162,6 +1163,7 @@ function Layout({ children, sessao, onLogout }: {
 
         {/* Main */}
         <main id="ersus-main" style={{flex:1,overflow:"auto",background:"#f1f5f9"}}>
+          <PageNavBar/>
           <PageErrorBoundary><GuardaPaginaMunicipio ibge={sessao.municipio_ibge ?? ""}>{children}</GuardaPaginaMunicipio></PageErrorBoundary>
         </main>
       </div>
