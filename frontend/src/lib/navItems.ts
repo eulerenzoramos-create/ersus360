@@ -142,29 +142,6 @@ export const NAV_ITEMS: NavItem[] = [
     keywords:["zoonose","animal","raiva","leptospirose","brucelose","leishmaniose","transmissível"] },
 
 
-  // ══════════ Assistência Farmacêutica ══════════
-
-  { id:"almoxarifado",        category:"Assistência Farmacêutica", order:503, iconName:"Package",
-    title:"Almoxarifado", route:"/almoxarifado",
-    description:"Gestão de estoque do almoxarifado de saúde — insumos e medicamentos",
-    keywords:["almoxarifado","estoque","insumo","material","farmácia","dispensação","requisição","saldo"] },
-
-  { id:"farmacia-basica",     category:"Assistência Farmacêutica", order:500, iconName:"Pill",
-    title:"Farmácia Básica", route:"/farmacia",
-    description:"Gestão da Assistência Farmacêutica Básica — componente básico — CBAF",
-    keywords:["farmácia","básica","cbaf","componente básico","medicamento","dispensação","estoque","farmacia"] },
-
-  { id:"farmacia-especializada", category:"Assistência Farmacêutica", order:501, iconName:"Pill",
-    title:"Farmácia Especializada", route:"/farmacia-especializada-apui",
-    description:"Componente Especializado da Assistência Farmacêutica — medicamentos de alto custo",
-    keywords:["farmácia especializada","ceaf","alto custo","componente especializado","autorização","laudo","protocolo"] },
-
-  { id:"farmacovigilancia",   category:"Assistência Farmacêutica", order:502, iconName:"ShieldCheck",
-    title:"Farmacovigilância", route:"/farmacovigilancia-apui",
-    description:"Vigilância de reações adversas e segurança de medicamentos",
-    keywords:["farmacovigilância","reação adversa","medicamento","segurança","notificação","queixa técnica","anvisa"] },
-
-
   // ══════════ Atenção Especializada e Regulação ══════════
 
   { id:"sad",                 category:"Atenção Especializada e Regulação", order:603, iconName:"Home",
@@ -537,7 +514,6 @@ export function scoreItem(item: NavItem, normQuery: string): number {
 export const CATEGORIES = [
   "Agentes Comunitários de Saúde",
   "Vigilância em Saúde",
-  "Assistência Farmacêutica",
   "Atenção Especializada e Regulação",
   "Financiamento e Recursos",
   "Sistemas e Integrações",
