@@ -118,20 +118,10 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Plano Municipal de Saúde — PMS — instrumento de planejamento quadrienal",
     keywords:["plano municipal","saúde","pms","planejamento","quadrienal","metas","objetivos"] },
 
-  { id:"rdqa",                category:"Planejamento e Prestação de Contas", order:302, iconName:"Calendar",
-    title:"RDQA — Relatório Quadrimestral", shortTitle:"RDQA", route:"/rdqa",
-    description:"Relatório Detalhado do Quadrimestre Anterior — prestação de contas ao Conselho",
-    keywords:["rdqa","quadrimestre","relatório","prestação de contas","conselho","saúde","audiência","detalhado","anterior"] },
-
   { id:"plano-acao",          category:"Planejamento e Prestação de Contas", order:303, iconName:"ClipboardList",
     title:"Plano de Ação", route:"/plano-acao",
     description:"Plano de ação municipal para cumprimento de metas de saúde",
     keywords:["plano","ação","meta","cumprimento","prazo","responsável","monitoramento"] },
-
-  { id:"relatorio-gestao",    category:"Planejamento e Prestação de Contas", order:304, iconName:"FileText",
-    title:"Relatório Anual de Gestão", shortTitle:"RAG", route:"/relatorio-gestao",
-    description:"Relatório Anual de Gestão — RAG — prestação de contas anual ao Conselho de Saúde",
-    keywords:["rag","relatório","anual","gestão","prestação de contas","conselho","digisus","digiSUS","siops"] },
 
   { id:"contratos",           category:"Planejamento e Prestação de Contas", order:305, iconName:"FileText",
     title:"Contratos e Licitações", shortTitle:"Contratos", route:"/gestao-contratos",
@@ -180,40 +170,15 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Atenção ambulatorial especializada — consultas e procedimentos especializados",
     keywords:["especializada","ambulatorial","consulta","especialidade","referência","encaminhamento","mac"] },
 
-  { id:"urgencia",            category:"Atenção Especializada e Regulação", order:601, iconName:"Activity",
-    title:"Urgência / Emergência", route:"/urgencia-emergencia-apui",
-    description:"Serviço de Urgência e Emergência — UPA e pronto-atendimento",
-    keywords:["urgência","emergência","upa","pronto atendimento","pa","hospital","plantão","samu"] },
-
-  { id:"samu",                category:"Atenção Especializada e Regulação", order:602, iconName:"Radio",
-    title:"SAMU 192", route:"/samu",
-    description:"Serviço de Atendimento Móvel de Urgência — SAMU 192",
-    keywords:["samu","192","móvel","urgência","ambulância","remoção","atendimento","pré-hospitalar"] },
-
-  { id:"sad",                 category:"Atenção Especializada e Regulação", order:603, iconName:"Home",
-    title:"Atenção Domiciliar (SAD)", shortTitle:"SAD", route:"/atencao-domiciliar",
-    description:"Serviço de Atenção Domiciliar — SAD — cuidados em domicílio",
-    keywords:["sad","domiciliar","atenção domiciliar","home care","internação domiciliar","cuidado","equipe"] },
-
   { id:"regulacao-acesso",    category:"Atenção Especializada e Regulação", order:604, iconName:"Network",
     title:"Regulação e Acesso", route:"/regulacao-acesso-apui",
     description:"Regulação do acesso a serviços especializados — central de regulação",
     keywords:["regulação","acesso","central","fila","espera","especialidade","consulta","encaminhamento"] },
 
-  { id:"leitos",              category:"Atenção Especializada e Regulação", order:605, iconName:"Building2",
-    title:"Gestão de Leitos", route:"/gestao-leitos-apui",
-    description:"Monitoramento e gestão de leitos hospitalares SUS",
-    keywords:["leitos","hospitalar","internação","ocupação","disponibilidade","UTI","enfermaria","regulação"] },
-
   { id:"telessaude",          category:"Atenção Especializada e Regulação", order:606, iconName:"Monitor",
     title:"TeleSaúde", route:"/telessaude-apui",
     description:"Teleconsultas e telediagnóstico — TeleSaúde Brasil Redes",
     keywords:["telessaúde","teleconsulta","telediagnóstico","telecardio","telepatologia","digital","remoto"] },
-
-  { id:"seguranca-paciente",  category:"Atenção Especializada e Regulação", order:607, iconName:"Shield",
-    title:"Segurança do Paciente", route:"/seguranca-paciente-apui",
-    description:"Programa de Segurança do Paciente — notificações e incidentes hospitalares",
-    keywords:["segurança","paciente","incidente","notificação","evento adverso","hospital","psp","vigipós"] },
 
   { id:"reabilitacao",        category:"Atenção Especializada e Regulação", order:608, iconName:"Activity",
     title:"Reabilitação", route:"/reabilitacao-apui",
@@ -251,11 +216,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Atenção integral à saúde da criança — puericultura e vigilância",
     keywords:["saúde criança","puericultura","crescimento","desenvolvimento","pediatria","infantil","caderneta"] },
 
-  { id:"triagem-neonatal",    category:"Saúde do Cidadão", subcategory:"Saúde da Criança", order:711, iconName:"Baby",
-    title:"Triagem Neonatal", route:"/triagem-neonatal-apui",
-    description:"Triagem neonatal — Teste do Pezinho e outros testes do recém-nascido",
-    keywords:["triagem","neonatal","pezinho","recém-nascido","teste","orelhinha","olhinho","coraçãozinho"] },
-
   { id:"saude-adolescente",   category:"Saúde do Cidadão", subcategory:"Saúde da Criança", order:712, iconName:"Users",
     title:"Saúde do Adolescente", route:"/saude-adolescente-apui",
     description:"Atenção à saúde do adolescente — 10 a 19 anos",
@@ -270,11 +230,6 @@ export const NAV_ITEMS: NavItem[] = [
     title:"Saúde Bucal / CEO", route:"/saude-bucal",
     description:"Atenção em saúde bucal — ESB e Centro de Especialidades Odontológicas",
     keywords:["saúde bucal","odontologia","ceo","esb","dentista","fluorose","cárie","periodontal"] },
-
-  { id:"saude-trabalhador",   category:"Saúde do Cidadão", order:733, iconName:"Wrench",
-    title:"Saúde do Trabalhador", route:"/saude-trabalhador-apui",
-    description:"Saúde do trabalhador — CEREST e vigilância de ambientes de trabalho",
-    keywords:["trabalhador","saúde","cerest","trabalho","ocupacional","acidente","doença ocupacional"] },
 
   { id:"saude-lgbtqia",       category:"Saúde do Cidadão", order:734, iconName:"Smile",
     title:"Saúde LGBTQIA+", route:"/saude-lgbtqia-apui",
@@ -330,20 +285,10 @@ export const NAV_ITEMS: NavItem[] = [
 
 
   // ── Administração do Sistema ──────────────────────────────
-  { id:"rh",                  category:"Administração do Sistema", order:1000, iconName:"UserCog",
-    title:"Recursos Humanos", shortTitle:"RH", route:"/rh", roles:ROLES_RH,
-    description:"Gestão de recursos humanos — equipes e servidores da saúde municipal",
-    keywords:["rh","recursos humanos","servidores","funcionários","equipes","carga horária","escalas"] },
-
   { id:"folha-pagamento",     category:"Administração do Sistema", order:1001, iconName:"DollarSign",
     title:"Folha de Pagamento", route:"/folha-pagamento", roles:ROLES_RH,
     description:"Gestão da folha de pagamento do setor saúde",
     keywords:["folha","pagamento","salário","remuneração","proventos","desconto","contracheque"] },
-
-  { id:"absenteismo",         category:"Administração do Sistema", order:1002, iconName:"UserCog",
-    title:"Absenteísmo / RHS", route:"/absenteismo-apui", roles:ROLES_RH,
-    description:"Monitoramento de absenteísmo e gestão da força de trabalho em saúde",
-    keywords:["absenteísmo","falta","ausência","licença","atestado","workforce","rhs","força trabalho"] },
 
   { id:"cadastros-mestres",   category:"Administração do Sistema", order:1003, iconName:"Layers",
     title:"Cadastros Mestres", route:"/cadastros", roles:ROLES_RH,
@@ -359,11 +304,6 @@ export const NAV_ITEMS: NavItem[] = [
     title:"eGestor / SIAPS", shortTitle:"eGestor", route:"/siaps",
     description:"eGestor APS — SIAPS — financiamento federal da Atenção Primária por competência",
     keywords:["egestor","siaps","aps","financiamento","competência","parcela","equipe","esf","eap","saúde bucal","nasf","emulti","acs","cofinanciamento","federal"] },
-
-  { id:"integracoes",         category:"Administração do Sistema", order:1006, iconName:"Plug", highlight:true,
-    title:"Painel de Integrações", shortTitle:"Integrações", route:"/integracoes",
-    description:"Painel de status e configuração de integrações com sistemas externos",
-    keywords:["integração","api","webhook","sistema","externo","rnds","esus","sisab","sinan","conectividade"] },
 
   { id:"auditoria",           category:"Administração do Sistema", order:1007, iconName:"Shield",
     title:"Auditoria e Controle", shortTitle:"Auditoria", route:"/auditoria", roles:ROLES_AUD,
