@@ -198,10 +198,12 @@ class PropostaInvestSUS(Base):
     # Situações
     situacao_original: Mapped[str | None] = mapped_column(String(300), nullable=True)
     situacao_normalizada: Mapped[SituacaoNormalizada] = mapped_column(
-        SAEnum(SituacaoNormalizada), default=SituacaoNormalizada.RECURSO_DISPONIVEL, index=True
+        SAEnum(SituacaoNormalizada, values_callable=lambda obj: [e.value for e in obj]),
+        default=SituacaoNormalizada.RECURSO_DISPONIVEL, index=True
     )
     tipo_emenda: Mapped[TipoEmenda] = mapped_column(
-        SAEnum(TipoEmenda), default=TipoEmenda.INDIVIDUAL
+        SAEnum(TipoEmenda, values_callable=lambda obj: [e.value for e in obj]),
+        default=TipoEmenda.INDIVIDUAL
     )
 
     # DigiSUS / PAS
@@ -374,8 +376,12 @@ class Parecer(Base):
     area_responsavel: Mapped[str | None] = mapped_column(String(200), nullable=True)
     sigla_area: Mapped[str | None] = mapped_column(String(50), nullable=True)
     data_parecer: Mapped[date | None] = mapped_column(Date, nullable=True)
-    tipo: Mapped[TipoParecer] = mapped_column(SAEnum(TipoParecer), default=TipoParecer.MERITO)
-    resultado: Mapped[ResultadoParecer] = mapped_column(SAEnum(ResultadoParecer), default=ResultadoParecer.PENDENTE)
+    tipo: Mapped[TipoParecer] = mapped_column(
+        SAEnum(TipoParecer, values_callable=lambda obj: [e.value for e in obj]), default=TipoParecer.MERITO
+    )
+    resultado: Mapped[ResultadoParecer] = mapped_column(
+        SAEnum(ResultadoParecer, values_callable=lambda obj: [e.value for e in obj]), default=ResultadoParecer.PENDENTE
+    )
     texto: Mapped[str | None] = mapped_column(Text, nullable=True)
     numero_parecer: Mapped[str | None] = mapped_column(String(100), nullable=True)
     responsavel: Mapped[str | None] = mapped_column(String(200), nullable=True)
@@ -418,7 +424,9 @@ class AlertaInvestSUS(Base):
     proposta_id: Mapped[int] = mapped_column(ForeignKey("is_propostas.id"), index=True)
     municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
     tipo_alerta: Mapped[str] = mapped_column(String(100))
-    nivel: Mapped[NivelAlertaInvest] = mapped_column(SAEnum(NivelAlertaInvest), default=NivelAlertaInvest.ATENCAO)
+    nivel: Mapped[NivelAlertaInvest] = mapped_column(
+        SAEnum(NivelAlertaInvest, values_callable=lambda obj: [e.value for e in obj]), default=NivelAlertaInvest.ATENCAO
+    )
     titulo: Mapped[str] = mapped_column(String(300))
     descricao: Mapped[str | None] = mapped_column(Text, nullable=True)
     providencia: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -463,7 +471,9 @@ class AtualizacaoManual(Base):
     situacao_anterior: Mapped[str | None] = mapped_column(String(300), nullable=True)
     observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
     responsavel: Mapped[str] = mapped_column(String(100))
-    origem: Mapped[OrigemAtualizacao] = mapped_column(SAEnum(OrigemAtualizacao), default=OrigemAtualizacao.MANUAL)
+    origem: Mapped[OrigemAtualizacao] = mapped_column(
+        SAEnum(OrigemAtualizacao, values_callable=lambda obj: [e.value for e in obj]), default=OrigemAtualizacao.MANUAL
+    )
     arquivo_anexo: Mapped[str | None] = mapped_column(String(500), nullable=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
