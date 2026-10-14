@@ -73,11 +73,18 @@ class PageErrorBoundary extends Component<
             <div style={{ fontSize:32, marginBottom:8 }}>⚠️</div>
             <h3 style={{ color:"#92400e", marginBottom:8, fontSize:16 }}>Erro nesta página</h3>
             <p style={{ color:"#78350f", fontSize:12, marginBottom:16 }}>{this.state.message}</p>
-            <button onClick={() => this.setState({ hasError:false, message:"" })}
-              style={{ background:"#1e3a5f", color:"#fff", border:"none", borderRadius:8,
-                padding:"8px 20px", cursor:"pointer", fontSize:13 }}>
-              Tentar novamente
-            </button>
+            <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
+              <button onClick={() => this.setState({ hasError:false, message:"" })}
+                style={{ background:"#1e3a5f", color:"#fff", border:"none", borderRadius:8,
+                  padding:"8px 20px", cursor:"pointer", fontSize:13 }}>
+                Tentar novamente
+              </button>
+              <button onClick={() => { window.location.href = "/"; }}
+                style={{ background:"#fff", color:"#1e3a5f", border:"1px solid #1e3a5f", borderRadius:8,
+                  padding:"8px 20px", cursor:"pointer", fontSize:13 }}>
+                Voltar à tela principal
+              </button>
+            </div>
           </div>
         </div>
       );
