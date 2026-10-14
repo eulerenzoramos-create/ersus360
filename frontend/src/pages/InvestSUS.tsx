@@ -86,6 +86,27 @@ const NIVEL_ALERTA: Record<string, { label: string; cor: string; icone: React.Re
 const fmt = (v: number) => v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtPct = (v: number) => `${(v ?? 0).toFixed(1)}%`;
 
+// Identificador de Resultado Primário (RP) — classificação padrão do orçamento
+// federal (MTO/LOA). Fonte: referência — confirme contra o MTO vigente se precisar
+// de valor oficial para auditoria.
+const RP_LABELS: Record<string, string> = {
+  RP0: "Não se aplica",
+  RP1: "Pessoal e Encargos Sociais",
+  RP2: "Juros e Encargos da Dívida",
+  RP3: "Outras despesas correntes e de capital obrigatórias de caráter continuado",
+  RP4: "Demais despesas correntes e de capital discricionárias",
+  RP5: "Despesas discricionárias custeadas com recursos de operações de crédito",
+  RP6: "Emendas Individuais (impositivas)",
+  RP7: "Emendas de Bancada Estadual (impositivas)",
+  RP8: "Emendas de Comissão / Transferências Especiais",
+  RP9: "Emendas de Relator-Geral",
+};
+const rpTooltip = (rp: string) => {
+  const chave = (rp || "").toUpperCase().replace(/\s+/g, "");
+  const label = RP_LABELS[chave];
+  return label ? `${chave} — ${label} (referência MTO/LOA)` : rp;
+};
+
 // ── Styles ────────────────────────────────────────────────────────────────────
 const S = {
   page:  { padding: 20, fontFamily: "system-ui, -apple-system, sans-serif" } as React.CSSProperties,
@@ -2129,9 +2150,9 @@ function PainelPortalInvestSUS({ municipio_id }: { municipio_id: number }) {
                   const total = rps.reduce((s, x) => s + (x.valor || 0), 0);
                   const pct = total > 0 ? (r.valor / total) * 100 : 0;
                   return (
-                    <tr key={i} style={{ borderTop: "1px solid #f3f4f6" }}>
-                      <td style={{ padding: "5px 8px", fontWeight: 600, color: CORES_BLOCOS[i % CORES_BLOCOS.length] }}>{r.rp}</td>
-                      <td style={{ padding: "5px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmt(r.valor)}</td>
+                    <tr key={i} style={{ borderTop: "1px solid #f3f4f6" }} title={rpTooltip(r.rp)}>
+                      <td style={{ padding: "5px 8px", fontWeight: 600, color: CORES_BLOCOS[i % CORES_BLOCOS.length], cursor: "help" }}>{r.rp}</td>
+                      <td style={{ padding: "5px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums", cursor: "help" }}>{fmt(r.valor)}</td>
                       <td style={{ padding: "5px 8px" }}>
                         <div style={{ background: "#e5e7eb", borderRadius: 3, height: 6 }}>
                           <div style={{ background: CORES_BLOCOS[i % CORES_BLOCOS.length], height: 6, borderRadius: 3, width: `${pct}%` }} />
