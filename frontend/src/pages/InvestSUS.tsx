@@ -2372,6 +2372,15 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
         )}
       </div>
 
+      <div style={{ marginTop: 20, marginBottom: 8, fontSize: 13, fontWeight: 700, color: "#1e3a5f", borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
+        Lista real de Propostas (recomendado — alimenta o Painel de Propostas e a aba Propostas)
+      </div>
+      <BookmarkletCapturaPropostas />
+      <ColarPropostasInvestSUS municipio_id={municipio_id} />
+
+      <div style={{ marginTop: 20, marginBottom: 8, fontSize: 13, fontWeight: 700, color: "#1e3a5f", borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
+        Dados agregados do Painel MS (saldo, repasses e execução — tela inicial do InvestSUS)
+      </div>
       <ColarDadosInvestSUS municipio_id={municipio_id} />
       <BookmarkletCaptura />
     </div>
@@ -2695,6 +2704,211 @@ navigator.clipboard.writeText(json).then(function(){
               ⚠️ Token de sessão não encontrado. Certifique-se de estar logado no ERSUS360 ao gerar o script.
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Captura da lista REAL de Propostas (tela /proposta do InvestSUS) ─────────
+// Lê a(s) tabela(s) HTML da página, mapeando colunas pelo texto do cabeçalho
+// (não depende de posição fixa) — mais confiável que o KPI-scan do Painel MS.
+function BookmarkletCapturaPropostas() {
+  const [gerado, setGerado] = useState(false);
+  const [copiado, setCop] = useState(false);
+
+  const bmScript = `(function(){
+if(!location.hostname.includes("investsus.saude.gov.br")){
+  alert("Execute este script NA P\\u00e1gina de PROPOSTAS do InvestSUS (investsus.saude.gov.br/proposta)");
+  return;
+}
+
+function norm(s){return (s||"").toString().trim().toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");}
+function parseReais(s){
+  if(s==null)return null;
+  var c=s.toString().replace(/[^\\d,.\\-]/g,"");
+  if(!c)return null;
+  var neg=c.indexOf("-")>=0; c=c.replace("-","");
+  c=c.replace(/\\./g,"").replace(",",".");
+  var n=parseFloat(c);
+  if(isNaN(n))return null;
+  return neg?-n:n;
+}
+
+var MAPA=[
+  {campo:"numero_proposta", chaves:["proposta","codigo","nº","numero"]},
+  {campo:"parlamentar",     chaves:["parlamentar","autor","autoria"]},
+  {campo:"objeto",          chaves:["objeto","programa","finalidade","descricao"]},
+  {campo:"situacao",        chaves:["situacao","status","fase"]},
+  {campo:"valor_global",    chaves:["valor global","valor indicado","valor emenda","valor"]},
+  {campo:"valor_repassado", chaves:["repassado","pago","valor pago"]},
+  {campo:"exercicio",       chaves:["ano","exercicio"]},
+];
+
+var propostas=[];
+var tabelasLidas=0;
+
+document.querySelectorAll("table").forEach(function(tbl){
+  var linhas=Array.from(tbl.querySelectorAll("tr"));
+  if(linhas.length<2) return;
+  var headerCells=Array.from(linhas[0].querySelectorAll("th,td")).map(function(c){return norm(c.textContent);});
+  if(headerCells.length<2) return;
+
+  var colunaPorCampo={};
+  MAPA.forEach(function(m){
+    for(var i=0;i<headerCells.length;i++){
+      if(m.chaves.some(function(k){return headerCells[i].indexOf(k)>=0;})){
+        colunaPorCampo[m.campo]=i;
+        break;
+      }
+    }
+  });
+  if(colunaPorCampo.numero_proposta===undefined && colunaPorCampo.situacao===undefined) return;
+  tabelasLidas++;
+
+  linhas.slice(1).forEach(function(tr){
+    var cells=Array.from(tr.querySelectorAll("td"));
+    if(cells.length<2) return;
+    var texto=function(campo){
+      var i=colunaPorCampo[campo];
+      return i!==undefined && cells[i] ? cells[i].textContent.trim() : "";
+    };
+    var numero=texto("numero_proposta");
+    if(!numero) return;
+    propostas.push({
+      numero_proposta: numero,
+      parlamentar:     texto("parlamentar"),
+      objeto:          texto("objeto"),
+      situacao_raw:    texto("situacao"),
+      valor_global:    parseReais(texto("valor_global")) || 0,
+      valor_repassado: parseReais(texto("valor_repassado")) || 0,
+      exercicio:       parseInt(texto("exercicio"),10) || new Date().getFullYear(),
+    });
+  });
+});
+
+if(propostas.length===0){
+  alert("Nenhuma tabela de propostas reconhecida nesta p\\u00e1gina.\\nAbra investsus.saude.gov.br/proposta (lista completa) e tente de novo.\\nTabelas encontradas na p\\u00e1gina: "+document.querySelectorAll("table").length);
+  return;
+}
+
+var payload={propostas:propostas, repasses:[], sincronizado_em:new Date().toISOString()};
+var json=JSON.stringify(payload,null,0);
+
+if(!confirm("ERSUS360 \\u2014 Captura de Propostas InvestSUS:\\n\\n"+propostas.length+" propostas encontradas em "+tabelasLidas+" tabela(s).\\n\\nCopiar JSON para o clipboard?\\n(cole no ERSUS360 \\u2192 InvestSUS \\u2192 Sincronizar \\u2192 'Colar propostas capturadas')")){return;}
+
+navigator.clipboard.writeText(json).then(function(){
+  alert("\\u2713 JSON copiado! ("+propostas.length+" propostas)\\n\\nAgora:\\n1. V\\u00e1 para o ERSUS360 \\u2192 InvestSUS \\u2192 Sincronizar\\n2. Role at\\u00e9 'Colar propostas capturadas'\\n3. Ctrl+V no campo e clique Salvar");
+}).catch(function(){
+  prompt("Copie o JSON abaixo (Ctrl+A, Ctrl+C):",json);
+});
+})();`;
+
+  const bmUrl = "javascript:" + encodeURIComponent(bmScript);
+
+  const copiar = () => {
+    navigator.clipboard.writeText(bmScript).then(() => { setCop(true); setTimeout(() => setCop(false), 2000); });
+  };
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <FileText size={18} color="#7c3aed" />
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#1e3a5f" }}>Capturar a lista REAL de Propostas (InvestSUS)</span>
+      </div>
+      <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, marginBottom: 16 }}>
+        Lê a tabela de propostas da tela <code>investsus.saude.gov.br/proposta</code> enquanto você
+        está logado — captura número, situação, objeto e valores diretamente do que está na tela,
+        sem depender do Railway alcançar o portal.
+      </div>
+
+      {!gerado ? (
+        <button style={{ background: "#7c3aed", color: "#fff", border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+          onClick={() => setGerado(true)}>
+          Gerar Bookmarklet / Script de Captura
+        </button>
+      ) : (
+        <div>
+          <ol style={{ fontSize: 13, color: "#374151", lineHeight: 2, margin: "0 0 16px 16px", padding: 0 }}>
+            <li>Abra <strong>investsus.saude.gov.br/proposta</strong> (lista completa de propostas)</li>
+            <li>Copie o código abaixo e cole no <strong>Console do navegador</strong> (F12 → Console)</li>
+            <li>Confirme o envio no diálogo que aparecer</li>
+            <li>Volte para o ERSUS360 e cole em <strong>"Colar propostas capturadas"</strong>, logo abaixo</li>
+          </ol>
+
+          <div style={{ position: "relative" }}>
+            <pre style={{ background: "#1e293b", color: "#e2e8f0", borderRadius: 8, padding: 16, fontSize: 11, lineHeight: 1.5, overflow: "auto", maxHeight: 200, margin: 0, whiteSpace: "pre-wrap" as const, wordBreak: "break-all" as const }}>
+              {bmScript}
+            </pre>
+            <button
+              onClick={copiar}
+              style={{ position: "absolute", top: 8, right: 8, background: copiado ? "#059669" : "#334155", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+              {copiado ? "✓ Copiado!" : "Copiar código"}
+            </button>
+          </div>
+
+          <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 12, color: "#64748b" }}>Ou arraste para a barra de favoritos:</span>
+            <a
+              href={bmUrl}
+              onClick={e => { e.preventDefault(); alert("Arraste este link para sua barra de favoritos, depois clique nele quando estiver na página de Propostas do InvestSUS."); }}
+              style={{ background: "#7c3aed", color: "#fff", borderRadius: 6, padding: "5px 14px", fontSize: 12, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>
+              📋 ERSUS360 Captura Propostas
+            </a>
+            <span style={{ fontSize: 11, color: "#94a3b8" }}>(arraste para favoritos)</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Colar propostas capturadas (JSON do bookmarklet de Propostas) ────────────
+function ColarPropostasInvestSUS({ municipio_id }: { municipio_id: number }) {
+  const qc = useQueryClient();
+  const [json, setJson] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [resultado, setResultado] = useState<any>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const salvar = async () => {
+    if (!json.trim()) return;
+    setSalvando(true); setErro(null); setResultado(null);
+    try {
+      const dados = JSON.parse(json.trim());
+      const resp = await api.post("/api/investsus/sincronizar-dados", dados);
+      setResultado(resp?.data || resp);
+      setJson("");
+      qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
+      qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
+    } catch (e: any) {
+      setErro(e?.response?.data?.detail || e?.message || "JSON inválido ou erro ao salvar.");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 24, marginTop: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <Upload size={18} color="#7c3aed" />
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#1e3a5f" }}>Colar propostas capturadas</span>
+      </div>
+      <div style={{ fontSize: 13, color: "#374151", marginBottom: 12 }}>
+        Após rodar o script de captura de Propostas no InvestSUS, cole o JSON copiado abaixo e clique em Salvar.
+      </div>
+      <textarea
+        style={{ ...S.input, minHeight: 100, resize: "vertical" as const, fontFamily: "monospace", fontSize: 11 }}
+        placeholder='Cole aqui o JSON copiado (começa com {"propostas":[...]})'
+        value={json} onChange={e => setJson(e.target.value)}
+      />
+      <button style={{ ...S.btn("#7c3aed"), marginTop: 10 }} disabled={salvando || !json.trim()} onClick={salvar}>
+        {salvando ? "Salvando..." : "Salvar Propostas"}
+      </button>
+      {erro && <div style={{ marginTop: 10, color: "#b91c1c", fontSize: 12 }}>{erro}</div>}
+      {resultado && (
+        <div style={{ marginTop: 10, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 10, fontSize: 12, color: "#166534" }}>
+          ✓ {resultado.propostas_encontradas} propostas processadas — {resultado.criadas} novas, {resultado.atualizadas} atualizadas.
         </div>
       )}
     </div>
