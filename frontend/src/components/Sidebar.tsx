@@ -334,7 +334,7 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
           display: "flex", gap: 4, padding: "4px 10px 8px", flexWrap: "nowrap",
           overflowX: "auto", flexShrink: 0,
         }}>
-          {["Todos","Atenção Primária","Financeiro e Gestão Fiscal","Vigilância em Saúde","Saúde do Cidadão","Administração do Sistema"].map(a => (
+          {areas.map(a => (
             <button
               key={a}
               onClick={() => setArea(a === area ? AREA_ALL : a)}
