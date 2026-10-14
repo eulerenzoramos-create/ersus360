@@ -110,7 +110,7 @@ export const AuthContext = createContext<AuthUser>({
 });
 export const useAuth = () => useContext(AuthContext);
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Home, BarChart2, Map, ChevronDown, ChevronRight,
   ArrowLeftRight, Target, Building2, Bot, LogOut, GitBranch,
@@ -672,6 +672,9 @@ function Layout({ children, sessao, onLogout }: {
   const perfilUsuario = sessao.role;
   const perfisAssessoria = sessao.perfis_assessoria;
   const [trocando, setTrocando] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const navigate = useNavigate();
   const emSuporte = sessao.administrador_geral && !!sessao.municipio_id;
   const ini = (nomeUsuario||"G").split(" ").map((w:string)=>w[0]).join("").slice(0,2).toUpperCase();
   const podeFin = PODE_FIN.has(perfilUsuario);
@@ -783,25 +786,100 @@ function Layout({ children, sessao, onLogout }: {
           <ExportarRelatorio nomeUsuario={nomeUsuario} perfilUsuario={perfilUsuario} />
 
           {/* User */}
-          <div style={{
-            display:"flex", alignItems:"center", gap:8, cursor:"pointer",
-            background:"rgba(255,255,255,.08)", border:"1px solid rgba(255,255,255,.15)",
-            borderRadius:8, padding:"5px 10px", transition:"background .15s",
-          }} onClick={onLogout} title="Clique para sair" aria-label={`Sair — ${nomeUsuario}`} role="button">
+          <div style={{ position:"relative" }}>
             <div style={{
-              width:30, height:30, borderRadius:8,
-              background:"linear-gradient(135deg,#1d4ed8,#7c3aed)",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              color:"#fff", fontSize:12, fontWeight:800,
-            }}>{ini}</div>
-            <div>
-              <div style={{color:"#f1f5f9",fontSize:12,fontWeight:700,lineHeight:1}}>{(nomeUsuario||"GESTOR").toUpperCase()}</div>
-              <div style={{color:"#64748b",fontSize:10}}>{cargoExib}</div>
+              display:"flex", alignItems:"center", gap:8, cursor:"pointer",
+              background:"rgba(255,255,255,.08)", border:"1px solid rgba(255,255,255,.15)",
+              borderRadius:8, padding:"5px 10px", transition:"background .15s",
+            }} onClick={()=>setUserMenuOpen(o=>!o)} title="Menu do usuário" aria-label={`Menu do usuário — ${nomeUsuario}`} aria-expanded={userMenuOpen} role="button">
+              <div style={{
+                width:30, height:30, borderRadius:8,
+                background:"linear-gradient(135deg,#1d4ed8,#7c3aed)",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                color:"#fff", fontSize:12, fontWeight:800,
+              }}>{ini}</div>
+              <div>
+                <div style={{color:"#f1f5f9",fontSize:12,fontWeight:700,lineHeight:1}}>{(nomeUsuario||"GESTOR").toUpperCase()}</div>
+                <div style={{color:"#64748b",fontSize:10}}>{cargoExib}</div>
+              </div>
+              <ChevronDown size={12} color="#64748b" style={{transform: userMenuOpen ? "rotate(180deg)" : "none", transition:"transform .15s"}}/>
             </div>
-            <ChevronDown size={12} color="#64748b"/>
+
+            {userMenuOpen && (<>
+              <div onClick={()=>setUserMenuOpen(false)} style={{position:"fixed", inset:0, zIndex:300}}/>
+              <div role="menu" aria-label="Menu do usuário" style={{
+                position:"absolute", top:"calc(100% + 6px)", right:0, zIndex:301,
+                background:"#fff", borderRadius:10, minWidth:240, boxShadow:"0 8px 28px rgba(0,0,0,.25)",
+                border:"1px solid #e2e8f0", overflow:"hidden", padding:"6px 0",
+              }}>
+                <div style={{padding:"10px 14px", borderBottom:"1px solid #f1f5f9"}}>
+                  <div style={{fontSize:13,fontWeight:700,color:"#0f172a"}}>{nomeUsuario}</div>
+                  <div style={{fontSize:11,color:"#64748b"}}>{cargoExib}</div>
+                </div>
+                <div style={{padding:"8px 14px", display:"flex", alignItems:"center", gap:8, borderBottom:"1px solid #f1f5f9"}}>
+                  <MapPin size={13} color="#64748b"/>
+                  <div style={{fontSize:12,color:"#334155"}}>
+                    {sessao.municipio}{sessao.municipio_uf ? ` / ${sessao.municipio_uf}` : ""}
+                    <div style={{fontSize:10,color:"#94a3b8"}}>IBGE {sessao.municipio_ibge}</div>
+                  </div>
+                </div>
+                {perfisAssessoria && (
+                  <button role="menuitem" onClick={()=>{ setUserMenuOpen(false); setTrocando(true); }} style={{
+                    width:"100%", textAlign:"left", background:"none", border:"none", cursor:"pointer",
+                    padding:"9px 14px", fontSize:12.5, color:"#1e293b", display:"flex", alignItems:"center", gap:8,
+                  }}>
+                    <ArrowLeftRight size={14} color="#64748b"/> Trocar município
+                  </button>
+                )}
+                {emSuporte && (
+                  <button role="menuitem" onClick={()=>{ setUserMenuOpen(false); sairDoSuporte().catch(()=>onLogout()); }} style={{
+                    width:"100%", textAlign:"left", background:"none", border:"none", cursor:"pointer",
+                    padding:"9px 14px", fontSize:12.5, color:"#1e293b", display:"flex", alignItems:"center", gap:8,
+                  }}>
+                    <Building2 size={14} color="#64748b"/> Voltar à administração geral
+                  </button>
+                )}
+                <button role="menuitem" onClick={()=>{ setUserMenuOpen(false); navigate("/"); }} style={{
+                  width:"100%", textAlign:"left", background:"none", border:"none", cursor:"pointer",
+                  padding:"9px 14px", fontSize:12.5, color:"#1e293b", display:"flex", alignItems:"center", gap:8,
+                }}>
+                  <Home size={14} color="#64748b"/> Voltar ao início
+                </button>
+                <div style={{borderTop:"1px solid #f1f5f9", margin:"4px 0"}}/>
+                <button role="menuitem" onClick={()=>{ setUserMenuOpen(false); setConfirmLogout(true); }} style={{
+                  width:"100%", textAlign:"left", background:"none", border:"none", cursor:"pointer",
+                  padding:"9px 14px", fontSize:12.5, color:"#b91c1c", display:"flex", alignItems:"center", gap:8, fontWeight:600,
+                }}>
+                  <LogOut size={14} color="#b91c1c"/> Sair do sistema
+                </button>
+              </div>
+            </>)}
           </div>
         </div>
       </header>
+
+      {confirmLogout && (
+        <div role="dialog" aria-modal="true" aria-label="Confirmar saída" onClick={()=>setConfirmLogout(false)} style={{
+          position:"fixed", inset:0, background:"rgba(15,23,42,.6)", zIndex:1000,
+          display:"flex", alignItems:"center", justifyContent:"center", padding:16,
+        }}>
+          <div onClick={e=>e.stopPropagation()} style={{background:"#fff", borderRadius:12, padding:24, width:"100%", maxWidth:360, textAlign:"center"}}>
+            <div style={{fontSize:16, fontWeight:800, color:"#0f172a", marginBottom:18}}>
+              Deseja realmente sair do ERSUS360?
+            </div>
+            <div style={{display:"flex", gap:10, justifyContent:"center"}}>
+              <button onClick={()=>setConfirmLogout(false)} style={{
+                background:"#f1f5f9", color:"#334155", border:"none", borderRadius:8,
+                padding:"9px 22px", cursor:"pointer", fontSize:13, fontWeight:600,
+              }}>Cancelar</button>
+              <button onClick={()=>{ setConfirmLogout(false); onLogout(); }} style={{
+                background:"#b91c1c", color:"#fff", border:"none", borderRadius:8,
+                padding:"9px 22px", cursor:"pointer", fontSize:13, fontWeight:600,
+              }}>Sair</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Body */}
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
