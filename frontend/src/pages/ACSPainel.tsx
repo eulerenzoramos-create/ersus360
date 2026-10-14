@@ -1,7 +1,6 @@
 // src/pages/ACSPainel.tsx — Painel ACS · eSUS PEC integrado
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import AtencaoPrimariaTabs from "../components/AtencaoPrimariaTabs";
 import { useQuery } from "@tanstack/react-query";
 import {
   Users, MapPin, Home, CheckCircle, Activity, Baby, Heart,
@@ -1033,7 +1032,6 @@ export default function ACSPainel() {
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>
 
-      <div style={{ padding: "16px 28px 0" }}><AtencaoPrimariaTabs/></div>
 
       {/* Header InvestSUS */}
       <div style={{ background: "linear-gradient(135deg,#1351b4 0%,#0c3d8a 100%)", padding: "18px 28px 0" }}>

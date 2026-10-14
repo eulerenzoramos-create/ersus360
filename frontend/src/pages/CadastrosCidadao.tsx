@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Users, Search, Info } from "lucide-react";
 import { apiGet } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
-import AtencaoPrimariaTabs from "../components/AtencaoPrimariaTabs";
 
 interface CidadaoItem {
   id: number;
@@ -53,7 +52,6 @@ export default function CadastrosCidadao() {
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>
-      <div style={{ padding: "16px 28px 0" }}><AtencaoPrimariaTabs/></div>
       <div style={{ background: "linear-gradient(135deg,#0c4a6e 0%,#075985 100%)", padding: "18px 28px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
           <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: 6 }}>

@@ -5,7 +5,6 @@ import { Map, Info } from "lucide-react";
 import { apiGet } from "../lib/api";
 import { useAcsGeo } from "../hooks/useAcsGeo";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
-import AtencaoPrimariaTabs from "../components/AtencaoPrimariaTabs";
 
 const APUI_CENTER: [number, number] = [-7.1972, -59.8878];
 
@@ -198,7 +197,6 @@ export default function MapaVisitasDomiciliares() {
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>
-      <div style={{ padding: "16px 28px 0" }}><AtencaoPrimariaTabs/></div>
       <div style={{ background: "linear-gradient(135deg,#0c4a6e 0%,#075985 100%)", padding: "18px 28px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
           <div style={{ background: "rgba(255,255,255,.15)", borderRadius: 8, padding: 6 }}>

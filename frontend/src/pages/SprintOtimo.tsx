@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { Trophy, Target, Zap, CheckSquare, Square, TrendingUp, AlertTriangle, Clock, Users, UserCheck, ShieldAlert, FileText } from "lucide-react";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
-import AtencaoPrimariaTabs from "../components/AtencaoPrimariaTabs";
 
 // ── Dados das equipes ──────────────────────────────────────────────────────
 // Fonte: SIAPS · Nota Final Componente de Qualidade · Q1/2026 (dados preliminares)
@@ -538,7 +537,6 @@ export default function SprintOtimo() {
   return (
     <div style={{ padding: "0 0 60px 0", fontFamily: "system-ui, sans-serif", background: "#f8fafc", minHeight: "100vh", color: "#1e293b" }}>
 
-      <div style={{ padding: "16px 28px 0" }}><AtencaoPrimariaTabs/></div>
 
       {/* ── Header ── */}
       <div style={{ background: "#fff", borderBottom: "1px solid #e5e7eb", padding: "16px 28px" }}>

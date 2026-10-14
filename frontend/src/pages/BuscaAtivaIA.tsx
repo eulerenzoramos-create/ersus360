@@ -6,7 +6,6 @@ import {
   Phone, RefreshCw, ChevronDown, ChevronRight, Zap,
 } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
-import AtencaoPrimariaTabs from "../components/AtencaoPrimariaTabs";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -173,7 +172,6 @@ export default function BuscaAtivaIA() {
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>
-      <div style={{ padding: "16px 28px 0" }}><AtencaoPrimariaTabs/></div>
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg,#312e81 0%,#6d28d9 100%)", padding: "18px 28px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>

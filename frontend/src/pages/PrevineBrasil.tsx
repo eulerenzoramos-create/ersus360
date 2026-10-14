@@ -2,7 +2,6 @@
 // Substituiu o Novo Financiamento APS (extinto em abril/2024)
 import { useState } from "react";
 import { Activity, Target, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, AlertTriangle, Ship, Users, Stethoscope, Baby, Heart, FlaskConical, Eye, Pill } from "lucide-react";
-import AtencaoPrimariaTabs from "../components/AtencaoPrimariaTabs";
 
 // ── tipos ─────────────────────────────────────────────────────────────────────
 type Conceito = "Ótimo" | "Bom" | "Suficiente" | "Regular";
@@ -581,7 +580,6 @@ export default function ComponenteQualidade() {
         :root[data-theme="light"]{--card:#fff;--border:#e5e7eb;--fg:#111827;--muted:#6b7280;}
       `}</style>
 
-      <AtencaoPrimariaTabs/>
 
       {/* Header */}
       <div style={{ marginBottom:20, display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
