@@ -1372,6 +1372,107 @@ async def _executar_sync_job(job_id: str, mid: int, fonte: str = "investsus") ->
         _sync_jobs[job_id].update({"status": "erro", "erro": str(exc)})
 
 
+async def _salvar_propostas_normalizadas(dados: dict, mid: int, db) -> tuple[int, int]:
+    """Upsert de uma lista de propostas já normalizadas (shape de _normalizar_proposta
+    em services/investsus_scraper.py) — compartilhado entre o job de sincronização e
+    o relay do bookmarklet (fetch direto feito pelo navegador do usuário)."""
+    criadas = atualizadas = 0
+    for prop_raw in dados.get("propostas", []):
+        numero = prop_raw.get("numero_proposta", "")
+        if not numero:
+            continue
+        res = await db.execute(
+            select(PropostaInvestSUS).where(
+                PropostaInvestSUS.municipio_id == mid,
+                PropostaInvestSUS.numero_proposta == numero,
+            )
+        )
+        existing = res.scalar_one_or_none()
+        situacao_raw = prop_raw.get("situacao_raw", "")
+        situacao_norm = _classificar_situacao_investsus(situacao_raw)
+        if situacao_norm is None and situacao_raw.strip():
+            for s in SituacaoNormalizada:
+                if s.value.lower() in situacao_raw.lower() or situacao_raw.lower() in s.value.lower():
+                    situacao_norm = s
+                    break
+
+        # A API do InvestSUS só devolve um único campo "valor" (sem "repassado"
+        # separado) — se a situação indica pagamento, o valor pago é o próprio valor.
+        if not prop_raw.get("valor_repassado") and situacao_norm in (
+            SituacaoNormalizada.TOTALMENTE_PAGA, SituacaoNormalizada.PARCIALMENTE_PAGA,
+        ):
+            prop_raw["valor_repassado"] = prop_raw.get("valor_global", 0)
+
+        if existing:
+            old_sit = existing.situacao_normalizada
+            if prop_raw.get("valor_global"):
+                existing.valor_indicado = prop_raw["valor_global"]
+                existing.valor_proposta = prop_raw["valor_global"]
+            if prop_raw.get("valor_aprovado"):
+                existing.valor_aprovado = prop_raw["valor_aprovado"]
+            if prop_raw.get("valor_repassado"):
+                existing.valor_pago = prop_raw["valor_repassado"]
+            if prop_raw.get("valor_executado"):
+                existing.valor_executado = prop_raw["valor_executado"]
+            if prop_raw.get("objeto"):
+                existing.objeto = prop_raw["objeto"]
+            if prop_raw.get("numero_instrumento"):
+                existing.numero_instrumento = prop_raw["numero_instrumento"]
+            if prop_raw.get("raw"):
+                existing.payload_original = prop_raw["raw"]
+            if prop_raw.get("tipo_emenda"):
+                try:
+                    existing.tipo_emenda = TipoEmenda(prop_raw["tipo_emenda"]).value
+                except ValueError:
+                    pass
+            existing.situacao_original = prop_raw.get("situacao_raw") or existing.situacao_original
+            if situacao_norm and situacao_norm != old_sit:
+                existing.situacao_normalizada = situacao_norm
+                db.add(HistoricoSituacao(
+                    proposta_id=existing.id,
+                    situacao_anterior=old_sit.value if old_sit else None,
+                    situacao_nova=situacao_norm.value,
+                    origem="sincronizacao_automatica",
+                    observacao=f"Atualizado via sincronização em {dados['sincronizado_em']}",
+                ))
+            atualizadas += 1
+        else:
+            try:
+                tipo_emenda_val = TipoEmenda(prop_raw.get("tipo_emenda", "individual")).value
+            except ValueError:
+                tipo_emenda_val = TipoEmenda.INDIVIDUAL.value
+            nova = PropostaInvestSUS(
+                municipio_id=mid,
+                numero_proposta=numero,
+                numero_instrumento=prop_raw.get("numero_instrumento") or "",
+                objeto=prop_raw.get("objeto") or "",
+                tipo_emenda=tipo_emenda_val,
+                valor_indicado=prop_raw.get("valor_global", 0),
+                valor_proposta=prop_raw.get("valor_global", 0),
+                valor_aprovado=prop_raw.get("valor_aprovado", 0),
+                valor_pago=prop_raw.get("valor_repassado", 0),
+                valor_executado=prop_raw.get("valor_executado", 0),
+                situacao_original=prop_raw.get("situacao_raw") or "",
+                situacao_normalizada=situacao_norm or SituacaoNormalizada.EM_ANALISE,
+                exercicio=prop_raw.get("exercicio", 2024),
+                entidade_cnpj=prop_raw.get("cnpj_proponente") or "12.834.320/0001-26",
+                fonte_dado=prop_raw.get("fonte"),
+                payload_original=prop_raw.get("raw"),
+            )
+            db.add(nova)
+            await db.flush()
+            db.add(HistoricoSituacao(
+                proposta_id=nova.id,
+                situacao_anterior=None,
+                situacao_nova=(situacao_norm or SituacaoNormalizada.EM_ANALISE).value,
+                origem="sincronizacao_automatica",
+                observacao=f"Importado via sincronização em {dados['sincronizado_em']}",
+            ))
+            criadas += 1
+    await db.commit()
+    return criadas, atualizadas
+
+
 async def _corpo_sync_job(job_id: str, mid: int, fonte: str) -> None:
     from services.investsus_scraper import sincronizar_investsus, sincronizar_transparencia
     from database import AsyncSessionLocal
@@ -1385,92 +1486,8 @@ async def _corpo_sync_job(job_id: str, mid: int, fonte: str) -> None:
         })
         return
 
-    criadas = atualizadas = 0
     async with AsyncSessionLocal() as db:
-        for prop_raw in dados.get("propostas", []):
-            numero = prop_raw.get("numero_proposta", "")
-            if not numero:
-                continue
-            res = await db.execute(
-                select(PropostaInvestSUS).where(
-                    PropostaInvestSUS.municipio_id == mid,
-                    PropostaInvestSUS.numero_proposta == numero,
-                )
-            )
-            existing = res.scalar_one_or_none()
-            situacao_raw = prop_raw.get("situacao_raw", "")
-            situacao_norm = None
-            if situacao_raw.strip():
-                for s in SituacaoNormalizada:
-                    if s.value.lower() in situacao_raw.lower() or situacao_raw.lower() in s.value.lower():
-                        situacao_norm = s
-                        break
-
-            if existing:
-                old_sit = existing.situacao_normalizada
-                if prop_raw.get("valor_global"):
-                    existing.valor_indicado = prop_raw["valor_global"]
-                    existing.valor_proposta = prop_raw["valor_global"]
-                if prop_raw.get("valor_aprovado"):
-                    existing.valor_aprovado = prop_raw["valor_aprovado"]
-                if prop_raw.get("valor_repassado"):
-                    existing.valor_pago = prop_raw["valor_repassado"]
-                if prop_raw.get("valor_executado"):
-                    existing.valor_executado = prop_raw["valor_executado"]
-                if prop_raw.get("objeto"):
-                    existing.objeto = prop_raw["objeto"]
-                if prop_raw.get("raw"):
-                    existing.payload_original = prop_raw["raw"]
-                if prop_raw.get("tipo_emenda"):
-                    try:
-                        existing.tipo_emenda = TipoEmenda(prop_raw["tipo_emenda"]).value
-                    except ValueError:
-                        pass
-                existing.situacao_original = prop_raw.get("situacao_raw") or existing.situacao_original
-                if situacao_norm and situacao_norm != old_sit:
-                    existing.situacao_normalizada = situacao_norm
-                    db.add(HistoricoSituacao(
-                        proposta_id=existing.id,
-                        situacao_anterior=old_sit.value if old_sit else None,
-                        situacao_nova=situacao_norm.value,
-                        origem="sincronizacao_automatica",
-                        observacao=f"Atualizado via sincronização em {dados['sincronizado_em']}",
-                    ))
-                atualizadas += 1
-            else:
-                try:
-                    tipo_emenda_val = TipoEmenda(prop_raw.get("tipo_emenda", "individual")).value
-                except ValueError:
-                    tipo_emenda_val = TipoEmenda.INDIVIDUAL.value
-                nova = PropostaInvestSUS(
-                    municipio_id=mid,
-                    numero_proposta=numero,
-                    numero_instrumento=prop_raw.get("numero_instrumento") or "",
-                    objeto=prop_raw.get("objeto") or "",
-                    tipo_emenda=tipo_emenda_val,
-                    valor_indicado=prop_raw.get("valor_global", 0),
-                    valor_proposta=prop_raw.get("valor_global", 0),
-                    valor_aprovado=prop_raw.get("valor_aprovado", 0),
-                    valor_pago=prop_raw.get("valor_repassado", 0),
-                    valor_executado=prop_raw.get("valor_executado", 0),
-                    situacao_original=prop_raw.get("situacao_raw") or "",
-                    situacao_normalizada=situacao_norm or SituacaoNormalizada.EM_ANALISE,
-                    exercicio=prop_raw.get("exercicio", 2024),
-                    entidade_cnpj=prop_raw.get("cnpj_proponente") or "12.834.320/0001-26",
-                    fonte_dado=prop_raw.get("fonte"),
-                    payload_original=prop_raw.get("raw"),
-                )
-                db.add(nova)
-                await db.flush()
-                db.add(HistoricoSituacao(
-                    proposta_id=nova.id,
-                    situacao_anterior=None,
-                    situacao_nova=(situacao_norm or SituacaoNormalizada.EM_ANALISE).value,
-                    origem="sincronizacao_automatica",
-                    observacao=f"Importado via sincronização em {dados['sincronizado_em']}",
-                ))
-                criadas += 1
-        await db.commit()
+        criadas, atualizadas = await _salvar_propostas_normalizadas(dados, mid, db)
 
     _sync_jobs[job_id].update({
         "status": "concluido",
@@ -1660,6 +1677,38 @@ async def salvar_dados_sincronizados(payload: dict, db: DbDep, user: UserDep):
         "atualizadas": atualizadas,
         "repasses": len(payload.get("repasses", [])),
         "erros": [],
+    }
+
+
+@router.post("/sincronizar-relay")
+async def sincronizar_relay(payload: dict, db: DbDep, user: UserDep):
+    """
+    Recebe os itens BRUTOS que o navegador do usuário buscou direto na API real
+    do InvestSUS (POST .../api/propostas/paginado, mesmo formato exato devolvido
+    por aquele endpoint) e os normaliza/grava com o mesmo código usado na
+    sincronização por cookie — só que sem o Railway precisar alcançar o host.
+    payload: { items: [...itens brutos da API do InvestSUS...] }
+    """
+    if not user.administrador_geral and user.role not in ("admin", "gestor", "financeiro"):
+        raise HTTPException(403, "Acesso restrito")
+
+    from services.investsus_scraper import sincronizar_investsus_relay
+
+    mid = _municipio_id(user)
+    items = payload.get("items", [])
+    if not items:
+        raise HTTPException(400, "Nenhum item recebido.")
+
+    dados = await sincronizar_investsus_relay(items)
+    criadas, atualizadas = await _salvar_propostas_normalizadas(dados, mid, db)
+
+    return {
+        "ok": True,
+        "sincronizado_em": dados["sincronizado_em"],
+        "propostas_encontradas": len(dados["propostas"]),
+        "criadas": criadas,
+        "atualizadas": atualizadas,
+        "erros": dados.get("erros", []),
     }
 
 

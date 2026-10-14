@@ -297,6 +297,24 @@ async def sincronizar_investsus(cnpj: str | None = None) -> dict:
     return resultado
 
 
+async def sincronizar_investsus_relay(items: list[dict], cnpj: str | None = None) -> dict:
+    """
+    Normaliza itens JÁ BUSCADOS pelo navegador do usuário diretamente na API real
+    do InvestSUS (investsus-backend-prd.saude.gov.br/api/propostas/paginado) —
+    usado quando o Railway não alcança esse host, mas o navegador do usuário sim
+    (via bookmarklet com fetch(), reaproveitando a sessão/cookie já logada).
+    Mesmo formato de item bruto confirmado em 14/10/2026 (campos aninhados
+    objeto/situacao/tipoProposta/tipoRecurso com sub-propriedade "descricao").
+    """
+    cnpj = (cnpj or _CNPJ_APUI).replace(".", "").replace("/", "").replace("-", "")
+    return {
+        "propostas": [_normalizar_proposta(r) for r in items],
+        "repasses": [],
+        "erros": [],
+        "sincronizado_em": datetime.utcnow().isoformat() + "Z",
+    }
+
+
 # ── Portal da Transparência CGU — fallback sem login no InvestSUS ─────────────
 # Mesma TRANSPARENCIA_API_KEY já usada por services/fns_portal_service.py.
 # Não depende de cookie/sessão do InvestSUS: roda inteiramente no servidor.

@@ -2394,10 +2394,18 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
       </div>
 
       <div style={{ marginTop: 20, marginBottom: 8, fontSize: 13, fontWeight: 700, color: "#1e3a5f", borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
-        Lista real de Propostas (recomendado — alimenta o Painel de Propostas e a aba Propostas)
+        Lista real de Propostas (alimenta o Painel de Propostas e a aba Propostas)
       </div>
-      <BookmarkletCapturaPropostas />
-      <ColarPropostasInvestSUS municipio_id={municipio_id} />
+      <BookmarkletFetchDireto />
+      <ColarItensBrutosInvestSUS municipio_id={municipio_id} />
+
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", marginBottom: 8 }}>
+          Alternativa (se a captura direta da API não funcionar): ler a tabela visível na tela
+        </div>
+        <BookmarkletCapturaPropostas />
+        <ColarPropostasInvestSUS municipio_id={municipio_id} />
+      </div>
 
       <div style={{ marginTop: 20, marginBottom: 8, fontSize: 13, fontWeight: 700, color: "#1e3a5f", borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
         Dados agregados do Painel MS (saldo, repasses e execução — tela inicial do InvestSUS)
@@ -2725,6 +2733,181 @@ navigator.clipboard.writeText(json).then(function(){
               ⚠️ Token de sessão não encontrado. Certifique-se de estar logado no ERSUS360 ao gerar o script.
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Captura via fetch() direto na API real do InvestSUS (recomendado) ────────
+// Chama POST .../api/propostas/paginado com os mesmos headers/corpo confirmados
+// via DevTools em 14/10/2026 — reaproveita a sessão/cookie já logada no
+// navegador (credentials:"include"), sem precisar copiar cookie nem ler tabela.
+function BookmarkletFetchDireto() {
+  const [gerado, setGerado] = useState(false);
+  const [copiado, setCop] = useState(false);
+
+  const bmScript = `(function(){
+if(!location.hostname.includes("investsus.saude.gov.br")){
+  alert("Execute este script NA P\\u00e1gina do InvestSUS (investsus.saude.gov.br)");
+  return;
+}
+
+var CNPJ="12834320000126";
+var ANO_ATUAL=new Date().getFullYear();
+var BACKEND="https://investsus-backend-prd.saude.gov.br/api";
+var HEADERS={
+  "content-type":"application/json",
+  "accept":"application/json, text/plain, */*",
+  "cz-aphrodite-de-peixes":"DIREME",
+  "cz-milo-de-escopiao":"ENTPUBLICAFNS",
+  "cz-mu-de-aries":"13/130014/"+CNPJ,
+};
+
+function buscarPagina(ano,pageNumber){
+  return fetch(BACKEND+"/propostas/paginado",{
+    method:"POST", credentials:"include", headers:HEADERS,
+    body:JSON.stringify({filter:{ano:String(ano),cnpj:CNPJ},pageNumber:pageNumber,pageSize:100}),
+  }).then(function(resp){
+    if(!resp.ok) throw new Error("HTTP "+resp.status+" (ano "+ano+", p\\u00e1gina "+pageNumber+")");
+    return resp.json();
+  });
+}
+
+function buscarAno(ano){
+  var todos=[];
+  function pagina(n){
+    return buscarPagina(ano,n).then(function(data){
+      var itens=data.items||[];
+      todos=todos.concat(itens);
+      var total=data.total||itens.length;
+      if(todos.length>=total||itens.length===0||n>20) return todos;
+      return pagina(n+1);
+    });
+  }
+  return pagina(1);
+}
+
+Promise.all([buscarAno(ANO_ATUAL),buscarAno(ANO_ATUAL-1)]).then(function(res){
+  var todos=res[0].concat(res[1]);
+  if(todos.length===0){ alert("Nenhuma proposta encontrada via API."); return; }
+  var json=JSON.stringify({items:todos});
+  if(!confirm("ERSUS360 \\u2014 Captura direta da API InvestSUS:\\n\\n"+todos.length+" propostas encontradas ("+ANO_ATUAL+" e "+(ANO_ATUAL-1)+").\\n\\nCopiar JSON para o clipboard?\\n(cole no ERSUS360 \\u2192 InvestSUS \\u2192 Sincronizar \\u2192 'Colar itens brutos da API')")){return;}
+  navigator.clipboard.writeText(json).then(function(){
+    alert("\\u2713 JSON copiado! ("+todos.length+" propostas)\\n\\nVolte ao ERSUS360 e cole em 'Colar itens brutos da API'.");
+  }).catch(function(){
+    prompt("Copie o JSON abaixo (Ctrl+A, Ctrl+C):",json);
+  });
+}).catch(function(e){
+  alert("Erro ao buscar via API: "+e.message+"\\n\\nTente o outro bookmarklet (leitura da tabela da tela) como alternativa.");
+});
+})();`;
+
+  const bmUrl = "javascript:" + encodeURIComponent(bmScript);
+
+  const copiar = () => {
+    navigator.clipboard.writeText(bmScript).then(() => { setCop(true); setTimeout(() => setCop(false), 2000); });
+  };
+
+  return (
+    <div style={{ background: "#fff", border: "2px solid #059669", borderRadius: 10, padding: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <RefreshCw size={18} color="#059669" />
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#1e3a5f" }}>Captura direta da API (recomendado)</span>
+      </div>
+      <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, marginBottom: 16 }}>
+        Chama a mesma API que o próprio portal InvestSUS usa, direto do seu navegador —
+        reaproveita a sessão em que você já está logado, sem precisar copiar cookie
+        nem ler a tela. Traz os dados exatamente como a API do InvestSUS os retorna.
+      </div>
+
+      {!gerado ? (
+        <button style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+          onClick={() => setGerado(true)}>
+          Gerar Bookmarklet / Script de Captura
+        </button>
+      ) : (
+        <div>
+          <ol style={{ fontSize: 13, color: "#374151", lineHeight: 2, margin: "0 0 16px 16px", padding: 0 }}>
+            <li>Esteja logado em <strong>investsus.saude.gov.br</strong> (qualquer página do portal)</li>
+            <li>Copie o código abaixo e cole no <strong>Console do navegador</strong> (F12 → Console)</li>
+            <li>Confirme o envio no diálogo que aparecer</li>
+            <li>Volte para o ERSUS360 e cole em <strong>"Colar itens brutos da API"</strong>, logo abaixo</li>
+          </ol>
+
+          <div style={{ position: "relative" }}>
+            <pre style={{ background: "#1e293b", color: "#e2e8f0", borderRadius: 8, padding: 16, fontSize: 11, lineHeight: 1.5, overflow: "auto", maxHeight: 200, margin: 0, whiteSpace: "pre-wrap" as const, wordBreak: "break-all" as const }}>
+              {bmScript}
+            </pre>
+            <button
+              onClick={copiar}
+              style={{ position: "absolute", top: 8, right: 8, background: copiado ? "#059669" : "#334155", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+              {copiado ? "✓ Copiado!" : "Copiar código"}
+            </button>
+          </div>
+
+          <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 12, color: "#64748b" }}>Ou arraste para a barra de favoritos:</span>
+            <a
+              href={bmUrl}
+              onClick={e => { e.preventDefault(); alert("Arraste este link para sua barra de favoritos, depois clique nele quando estiver no portal InvestSUS."); }}
+              style={{ background: "#059669", color: "#fff", borderRadius: 6, padding: "5px 14px", fontSize: 12, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>
+              ⚡ ERSUS360 Captura API Direta
+            </a>
+            <span style={{ fontSize: 11, color: "#94a3b8" }}>(arraste para favoritos)</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Colar itens brutos capturados direto da API do InvestSUS ─────────────────
+function ColarItensBrutosInvestSUS({ municipio_id }: { municipio_id: number }) {
+  const qc = useQueryClient();
+  const [json, setJson] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [resultado, setResultado] = useState<any>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const salvar = async () => {
+    if (!json.trim()) return;
+    setSalvando(true); setErro(null); setResultado(null);
+    try {
+      const dados = JSON.parse(json.trim());
+      const resp = await api.post("/api/investsus/sincronizar-relay", dados);
+      setResultado(resp?.data || resp);
+      setJson("");
+      qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
+      qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
+    } catch (e: any) {
+      setErro(e?.response?.data?.detail || e?.message || "JSON inválido ou erro ao salvar.");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div style={{ background: "#fff", border: "2px solid #059669", borderRadius: 10, padding: 24, marginTop: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <Upload size={18} color="#059669" />
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#1e3a5f" }}>Colar itens brutos da API</span>
+      </div>
+      <div style={{ fontSize: 13, color: "#374151", marginBottom: 12 }}>
+        Após rodar o script de "Captura direta da API" no InvestSUS, cole o JSON copiado abaixo e clique em Salvar.
+      </div>
+      <textarea
+        style={{ ...S.input, minHeight: 100, resize: "vertical" as const, fontFamily: "monospace", fontSize: 11 }}
+        placeholder='Cole aqui o JSON copiado (começa com {"items":[...]})'
+        value={json} onChange={e => setJson(e.target.value)}
+      />
+      <button style={{ ...S.btn("#059669"), marginTop: 10 }} disabled={salvando || !json.trim()} onClick={salvar}>
+        {salvando ? "Salvando..." : "Salvar Propostas"}
+      </button>
+      {erro && <div style={{ marginTop: 10, color: "#b91c1c", fontSize: 12 }}>{erro}</div>}
+      {resultado && (
+        <div style={{ marginTop: 10, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 10, fontSize: 12, color: "#166534" }}>
+          ✓ {resultado.propostas_encontradas} propostas processadas — {resultado.criadas} novas, {resultado.atualizadas} atualizadas.
         </div>
       )}
     </div>
