@@ -264,38 +264,6 @@ export const NAV_ITEMS: NavItem[] = [
 
   // ══════════ Relatórios e Indicadores ══════════
 
-  // Visão Executiva
-
-  { id:"dashboard-executivo", category:"Relatórios e Indicadores", subcategory:"Visão Executiva", order:11, iconName:"Monitor",
-    title:"Dashboard Executivo 360°", route:"/dashboard-executivo",
-    description:"Visão estratégica 360° de todos os indicadores do município",
-    keywords:["dashboard","executivo","360","indicadores","gestão","estratégico"] },
-
-  { id:"ia-gestora",          category:"Relatórios e Indicadores", subcategory:"Visão Executiva", order:16, iconName:"Bot", isNew:true,
-    title:"IA Gestora", route:"/ia",
-    description:"Inteligência artificial para apoio à decisão em gestão de saúde",
-    keywords:["ia","inteligência artificial","ai","machine learning","decisão","algoritmo"] },
-
-  { id:"idsus",               category:"Relatórios e Indicadores", subcategory:"Visão Executiva", order:15, iconName:"Award",
-    title:"IDSUS Municipal", route:"/idsus-municipal",
-    description:"Índice de Desempenho do SUS a nível municipal",
-    keywords:["idsus","índice","sus","desempenho","datasus","monitoramento"] },
-
-  { id:"mapa-desempenho",     category:"Relatórios e Indicadores", subcategory:"Visão Executiva", order:13, iconName:"Map",
-    title:"Mapa de Desempenho", route:"/mapa",
-    description:"Mapa geográfico de desempenho por indicadores e territórios",
-    keywords:["mapa","desempenho","geográfico","território","espacial"] },
-
-  { id:"ranking",             category:"Relatórios e Indicadores", subcategory:"Visão Executiva", order:14, iconName:"BarChart2",
-    title:"Ranking Municipal", route:"/ranking",
-    description:"Ranking comparativo entre municípios por indicadores de saúde",
-    keywords:["ranking","comparativo","municípios","classificação","posição"] },
-
-  { id:"score",               category:"Relatórios e Indicadores", subcategory:"Visão Executiva", order:12, iconName:"Star",
-    title:"Score ERSUS 360", route:"/score",
-    description:"Pontuação integrada de desempenho do sistema de saúde municipal",
-    keywords:["score","pontuação","desempenho","nota","avaliação","ersus"] },
-
   // Inconsistências e Qualidade
 
   { id:"inconsistencias",     category:"Relatórios e Indicadores", subcategory:"Inconsistências e Qualidade", order:800, iconName:"AlertTriangle", highlight:true,
