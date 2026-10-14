@@ -212,11 +212,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Transferências mensais do FNS para APS — Apuí/AM — OBs, portarias e contas bancárias",
     keywords:["repasse","fns","fundo nacional saúde","transferência","ordem bancária","ob","portaria","conta","agência","banco","fundo a fundo","apuí","recurso","parcela","mensal","aps","financeiro","cofinanciamento"] },
 
-  { id:"financeiro",          category:"Financiamento e Recursos", order:200, iconName:"DollarSign",
-    title:"Painel Financeiro", route:"/financeiro", roles:ROLES_FIN,
-    description:"Painel consolidado de recursos financeiros da saúde municipal",
-    keywords:["financeiro","painel","recursos","receita","despesa","orçamento","FMS","fundo"] },
-
   // FNS / Convênios
 
   { id:"fns",                 category:"Financiamento e Recursos", subcategory:"FNS / Convênios", order:210, iconName:"Clipboard",
@@ -243,52 +238,6 @@ export const NAV_ITEMS: NavItem[] = [
     title:"Portarias FNS", route:"/portarias", roles:ROLES_FIN,
     description:"Portarias ministeriais que regulamentam transferências do FNS",
     keywords:["portaria","fns","ministerial","regulamentação","norma","legislação","número portaria"] },
-
-  { id:"caf-fin",             category:"Financiamento e Recursos", order:225, iconName:"TrendingUp",
-    title:"CAF — Cofinanciamento", shortTitle:"CAF", route:"/caf", roles:ROLES_FIN,
-    description:"Cofinanciamento Estadual e Federal de Ações de Saúde — CAF",
-    keywords:["caf","cofinanciamento","estadual","federal","recurso","assistência farmacêutica","cbaf","componente básico"] },
-
-  { id:"fundo-municipal",     category:"Financiamento e Recursos", order:228, iconName:"Landmark",
-    title:"Fundo Municipal de Saúde", shortTitle:"Fundo Municipal", route:"/fundo-municipal-saude-apui", roles:ROLES_FIN,
-    description:"Gestão do Fundo Municipal de Saúde de Apuí — FMS",
-    keywords:["fundo","municipal","saúde","fms","conta bancária","recurso","apuí","financiamento"] },
-
-  { id:"ppa-loa",             category:"Financiamento e Recursos", order:223, iconName:"ClipboardList",
-    title:"PPA / LOA", route:"/ppa-loa", roles:ROLES_FIN,
-    description:"Plano Plurianual e Lei Orçamentária Anual de saúde",
-    keywords:["ppa","loa","plano plurianual","orçamento","anual","lei","previsão","receita","despesa"] },
-
-  { id:"regulacao-mac",       category:"Financiamento e Recursos", order:224, iconName:"ArrowLeftRight",
-    title:"Regulação MAC", route:"/regulacao-mac", roles:ROLES_FIN,
-    description:"Regulação de teto de Média e Alta Complexidade — MAC",
-    keywords:["mac","média","alta complexidade","regulação","teto","recurso","ambulatorial","hospitalar"] },
-
-  { id:"tce-tcu",             category:"Financiamento e Recursos", order:227, iconName:"Shield",
-    title:"Relatório TCE / TCU", route:"/relatorio-tce-tcu", roles:ROLES_FIN,
-    description:"Relatórios de prestação de contas para TCE e TCU",
-    keywords:["tce","tcu","tribunal","contas","prestação","relatório","auditoria","controle externo"] },
-
-  { id:"rreo",                category:"Financiamento e Recursos", order:222, iconName:"FileText",
-    title:"RREO Anexo 12", route:"/rreo-anexo12", roles:ROLES_FIN,
-    description:"Relatório Resumido da Execução Orçamentária — Anexo 12 de Saúde",
-    keywords:["rreo","anexo 12","execução","orçamentária","relatório","siops","lrf","responsabilidade fiscal"] },
-
-  { id:"siconfi",             category:"Financiamento e Recursos", order:221, iconName:"Building2",
-    title:"SICONFI", route:"/siconfi", roles:ROLES_FIN,
-    description:"Sistema de Informações Contábeis e Fiscais do Setor Público Brasileiro",
-    keywords:["siconfi","contabilidade","fiscal","prestação de contas","tesouro","secretaria","rreo","rgf","dfato"] },
-
-  { id:"siops",               category:"Financiamento e Recursos", order:220, iconName:"Target",
-    title:"SIOPS / Mínimo Constitucional", shortTitle:"SIOPS", route:"/siops", roles:ROLES_FIN,
-    description:"Sistema de Informações sobre Orçamentos Públicos em Saúde — mínimo constitucional 15%",
-    keywords:["siops","mínimo constitucional","15%","orçamento","saúde","aplicação","comprovação","receita","lcms"] },
-
-  { id:"transparencia",       category:"Financiamento e Recursos", order:226, iconName:"Globe",
-    title:"Transparência LAI", route:"/painel-transparencia", roles:ROLES_FIN,
-    description:"Painel de transparência — Lei de Acesso à Informação",
-    keywords:["transparência","lai","acesso informação","portal","público","divulgação","dados abertos"] },
-
 
   // ══════════ Sistemas e Integrações ══════════
 
