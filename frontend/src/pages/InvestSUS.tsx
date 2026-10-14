@@ -7,7 +7,7 @@ import {
   Landmark, Plus, RefreshCw, AlertTriangle, CheckCircle2, Clock,
   ChevronDown, ChevronRight, FileText, Upload, Search, X, Check,
   TrendingUp, DollarSign, BarChart3, Bell, Info, Eye, Calendar,
-  Building2, ClipboardList, Activity, Filter, Download,
+  Building2, ClipboardList, Activity, Filter, Download, Users, Wrench,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -64,6 +64,17 @@ const SITUACAO_MAP: Record<string, { label: string; cor: string; bg: string }> =
   devolucao_saldo_pendente:         { label: "Devolução de Saldo Pendente",    cor: "#dc2626", bg: "#fef2f2" },
   instrumento_concluido:            { label: "Instrumento Concluído",          cor: "#059669", bg: "#f0fdf4" },
 };
+
+// Situações a partir da formalização — usadas na aba "Execução das Propostas"
+const EXECUCAO_SITUACOES = [
+  "empenhada_aguardando_formalizacao", "formalizada", "portaria_publicada",
+  "aguardando_pagamento", "parcialmente_paga", "totalmente_paga",
+  "execucao_nao_iniciada", "em_execucao", "execucao_atrasada", "execucao_paralisada",
+  "execucao_fisica_concluida", "execucao_financeira_concluida",
+  "monitoramento_pendente", "monitoramento_preenchido",
+  "prestacao_contas_pendente", "prestacao_contas_enviada",
+  "devolucao_saldo_pendente", "instrumento_concluido",
+];
 
 const NIVEL_ALERTA: Record<string, { label: string; cor: string; icone: React.ReactNode }> = {
   informativo: { label: "Informativo", cor: "#6366f1", icone: <Info size={14} /> },
@@ -433,17 +444,24 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
 
   const { data, isLoading } = useQuery({
     queryKey: ["investsus-propostas", municipio_id, "todas"],
-    queryFn: () => api.get(`/api/investsus/propostas?municipio_id=${municipio_id}&limit=500`).then(r => r.data),
+    queryFn: () => api.get(`/api/investsus/propostas?municipio_id=${municipio_id}&tamanho=200`).then(r => r.data),
     placeholderData: { total: 0, propostas: [] },
   });
 
-  const todas: any[] = data?.propostas ?? [];
+  // normaliza nomes usados nesta tela a partir dos campos reais da API
+  // (a API retorna valor_aprovado/valor_pago/programa{nome}, não valor_global/valor_repassado/programa string)
+  const todas: any[] = (data?.propostas ?? []).map((p: any) => ({
+    ...p,
+    valor_global: p.valor_aprovado || p.valor_proposta || p.valor_indicado || 0,
+    valor_repassado: p.valor_pago || 0,
+    programa_nome: p.programa?.nome ?? "",
+  }));
 
   // Agrupa: grupo → bloco → propostas
   const agrupado = useMemo(() => {
     const filtradas = busca
       ? todas.filter(p =>
-          [p.numero_proposta, p.objeto, p.parlamentar?.nome, p.entidade_nome, p.programa]
+          [p.numero_proposta, p.objeto, p.parlamentar?.nome, p.entidade_nome, p.programa_nome]
             .join(" ").toLowerCase().includes(busca.toLowerCase()))
       : todas;
 
@@ -452,7 +470,7 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
     };
     for (const p of filtradas) {
       const g = normalizarGrupoEmenda(p.tipo_emenda ?? "");
-      const b = normalizarBloco(p.componente ?? p.programa ?? "");
+      const b = normalizarBloco(p.componente ?? p.programa_nome ?? "");
       if (!grupos[g][b]) grupos[g][b] = [];
       grupos[g][b].push(p);
     }
@@ -606,7 +624,7 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
                                     </td>
                                     <td style={{ ...TD, maxWidth: 260 }}>
                                       <div style={{ color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
-                                        {p.objeto || p.programa || "—"}
+                                        {p.objeto || p.programa_nome || "—"}
                                       </div>
                                     </td>
                                     <td style={TD}><SituacaoBadge situacao={p.situacao_normalizada ?? ""} /></td>
@@ -650,7 +668,7 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
         <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>
           <Landmark size={36} style={{ marginBottom: 12 }} />
           <div style={{ fontWeight: 600, marginBottom: 4 }}>Nenhuma proposta no banco</div>
-          <div style={{ fontSize: 12 }}>Use a aba <strong>Sincronizar</strong> para importar do portal InvestSUS.</div>
+          <div style={{ fontSize: 12 }}>Use o botão <strong>Sincronizar</strong> no cabeçalho para importar do portal InvestSUS.</div>
         </div>
       )}
     </div>
@@ -660,201 +678,195 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
 const TH: React.CSSProperties = { padding: "8px 12px", textAlign: "left", fontWeight: 600, color: "#374151", fontSize: 11, whiteSpace: "nowrap" };
 const TD: React.CSSProperties = { padding: "8px 12px", borderBottom: "1px solid #f3f4f6", verticalAlign: "middle" };
 
-// ── Lista de Propostas (legado — mantida para compatibilidade) ─────────────────
-function ListaPropostas({ municipio_id, onSelect }: { municipio_id: number; onSelect: (p: any) => void }) {
+// ── Execução das Propostas — acompanhamento físico-financeiro pós-formalização ─
+function ExecucaoPropostas({ municipio_id, onSelect }: { municipio_id: number; onSelect: (p: any) => void }) {
   const [busca, setBusca] = useState("");
-  const [situacaoFiltro, setSituacaoFiltro] = useState("");
-  const [criando, setCriando] = useState(false);
-  const [form, setForm] = useState({
-    numero_proposta: "", numero_emenda: "", exercicio: new Date().getFullYear(),
-    objeto: "", entidade_nome: "", entidade_cnpj: "", valor_indicado: 0,
-    situacao_original: "", situacao_normalizada: "recurso_disponivel",
-    componente: "MAC", tipo_financiamento: "custeio", tipo_emenda: "individual",
-    responsavel_interno: "", fonte_dado: "manual",
-  });
-  const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["investsus-propostas", municipio_id, busca, situacaoFiltro],
-    queryFn: () => {
-      const params = new URLSearchParams({ municipio_id: String(municipio_id) });
-      if (busca) params.set("busca", busca);
-      if (situacaoFiltro) params.set("situacao", situacaoFiltro);
-      return api.get(`/api/investsus/propostas?${params}`).then(r => r.data);
-    },
+    queryKey: ["investsus-propostas", municipio_id, "execucao"],
+    queryFn: () => api.get(`/api/investsus/propostas?municipio_id=${municipio_id}&tamanho=200`).then(r => r.data),
     placeholderData: { total: 0, propostas: [] },
   });
 
-  const criar = useMutation({
-    mutationFn: (body: typeof form) => api.post("/api/investsus/propostas", body).then(r => r.data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["investsus"] });
-      setCriando(false);
-      setForm({ ...form, numero_proposta: "", numero_emenda: "", objeto: "", valor_indicado: 0, situacao_original: "" });
-    },
-  });
+  const emExecucao: any[] = (data?.propostas ?? [])
+    .filter((p: any) => EXECUCAO_SITUACOES.includes(p.situacao_normalizada))
+    .filter((p: any) => !busca ||
+      [p.numero_proposta, p.objeto, p.entidade_nome].join(" ").toLowerCase().includes(busca.toLowerCase()));
 
-  const f = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
+  if (isLoading) return <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>Carregando…</div>;
 
   return (
     <div>
-      {/* Filtros */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" as const }}>
-        <div style={{ position: "relative" as const, flex: 1, minWidth: 200 }}>
-          <Search size={13} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }} />
-          <input style={{ ...S.input, paddingLeft: 28 }} placeholder="Buscar por número, objeto, entidade..."
-            value={busca} onChange={e => setBusca(e.target.value)} />
-        </div>
-        <select style={{ ...S.input, width: "auto", flex: "none" }} value={situacaoFiltro} onChange={e => setSituacaoFiltro(e.target.value)}>
-          <option value="">Todas situações</option>
-          {Object.entries(SITUACAO_MAP).map(([k, v]) => (
-            <option key={k} value={k}>{v.label}</option>
-          ))}
-        </select>
-        <button style={S.btn("#1e3a5f")} onClick={() => setCriando(true)}>
-          <Plus size={13} /> Nova Proposta
-        </button>
+      <div style={{ position: "relative" as const, marginBottom: 16 }}>
+        <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }} />
+        <input style={{ ...S.input, paddingLeft: 32, fontSize: 13 }}
+          placeholder="Buscar por número, objeto, entidade…"
+          value={busca} onChange={e => setBusca(e.target.value)} />
       </div>
 
-      {/* Form nova proposta */}
-      {criando && (
-        <div style={{ ...S.card, background: "#f9fafb", borderLeft: "3px solid #1e3a5f" }}>
-          <div style={{ ...S.title, marginBottom: 14 }}>Nova Proposta InvestSUS</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 10 }}>
-            {([
-              ["numero_proposta", "Nº da Proposta *", "text"],
-              ["numero_emenda", "Nº da Emenda", "text"],
-              ["exercicio", "Exercício", "number"],
-              ["entidade_nome", "Entidade Beneficiária", "text"],
-              ["entidade_cnpj", "CNPJ", "text"],
-              ["valor_indicado", "Valor Indicado (R$)", "number"],
-            ] as [string, string, string][]).map(([k, lbl, t]) => (
-              <div key={k}>
-                <label style={S.label}>{lbl}</label>
-                <input type={t} style={S.input} value={(form as any)[k]}
-                  onChange={e => f(k, t === "number" ? Number(e.target.value) : e.target.value)} />
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
-            <div>
-              <label style={S.label}>Situação Normalizada</label>
-              <select style={S.input} value={form.situacao_normalizada} onChange={e => f("situacao_normalizada", e.target.value)}>
-                {Object.entries(SITUACAO_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={S.label}>Componente</label>
-              <select style={S.input} value={form.componente} onChange={e => f("componente", e.target.value)}>
-                <option value="PAP">PAP - Atenção Primária</option>
-                <option value="MAC">MAC - Média e Alta Complexidade</option>
-                <option value="Vigilância">Vigilância em Saúde</option>
-                <option value="Assistência Farmacêutica">Assistência Farmacêutica</option>
-                <option value="Gestão">Gestão em Saúde</option>
-                <option value="Outro">Outro</option>
-              </select>
-            </div>
-            <div>
-              <label style={S.label}>Tipo de Financiamento</label>
-              <select style={S.input} value={form.tipo_financiamento} onChange={e => f("tipo_financiamento", e.target.value)}>
-                <option value="custeio">Custeio</option>
-                <option value="investimento">Investimento (Equipamentos/Obras)</option>
-                <option value="estruturacao">Estruturação</option>
-              </select>
-            </div>
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={S.label}>Objeto / Descrição</label>
-            <textarea style={{ ...S.input, minHeight: 60, resize: "vertical" as const }}
-              value={form.objeto} onChange={e => f("objeto", e.target.value)} />
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={S.label}>Situação Original (InvestSUS)</label>
-            <input style={S.input} value={form.situacao_original} onChange={e => f("situacao_original", e.target.value)}
-              placeholder="Cole aqui o texto exato do InvestSUS" />
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button style={S.btn("#059669")} onClick={() => criar.mutate(form)}>
-              {criar.isPending ? "Salvando..." : <><Check size={13} /> Salvar Proposta</>}
-            </button>
-            <button style={S.btn()} onClick={() => setCriando(false)}><X size={13} /> Cancelar</button>
-          </div>
-          {criar.isError && <div style={{ marginTop: 8, color: "#dc2626", fontSize: 12 }}>Erro ao salvar. Verifique se o número da proposta já existe.</div>}
-        </div>
-      )}
-
-      {/* Lista */}
-      {isLoading ? (
-        <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>Carregando propostas...</div>
-      ) : (data?.propostas ?? []).length === 0 ? (
-        <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>
-          <Landmark size={32} style={{ marginBottom: 10 }} />
-          <div>Nenhuma proposta encontrada.</div>
-          <div style={{ fontSize: 12, marginTop: 4 }}>Clique em "Nova Proposta" ou use a importação para cadastrar.</div>
-          <SeedApuiBtn />
+      {emExecucao.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>
+          <Wrench size={36} style={{ marginBottom: 12 }} />
+          <div style={{ fontWeight: 600 }}>Nenhuma proposta em execução no momento</div>
+          <div style={{ fontSize: 12, marginTop: 4 }}>Propostas aparecem aqui após a formalização do instrumento.</div>
         </div>
       ) : (
-        <div style={S.card}>
-          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>
-            {data?.total ?? 0} proposta{(data?.total ?? 0) !== 1 ? "s" : ""} encontrada{(data?.total ?? 0) !== 1 ? "s" : ""}
-          </div>
-          {(data?.propostas ?? []).map((p: any) => (
-            <PropostaRow key={p.id} proposta={p} onClick={() => onSelect(p)} />
-          ))}
+        <div style={{ overflowX: "auto" as const, border: "1px solid #e5e7eb", borderRadius: 8 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: "#f1f5f9" }}>
+                <th style={TH}>Nº Proposta</th>
+                <th style={TH}>Objeto</th>
+                <th style={TH}>Situação</th>
+                <th style={{ ...TH, textAlign: "right" as const }}>% Físico</th>
+                <th style={{ ...TH, textAlign: "right" as const }}>% Financeiro</th>
+                <th style={{ ...TH, textAlign: "right" as const }}>Saldo a Executar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {emExecucao.map((p: any, i: number) => (
+                <tr key={p.id ?? i}
+                  onClick={() => onSelect(p)}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#f0f9ff")}
+                  onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa")}
+                  style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", cursor: "pointer" }}>
+                  <td style={TD}>
+                    <span style={{ fontFamily: "monospace", fontSize: 11, background: "#f3f4f6", borderRadius: 3, padding: "1px 6px", fontWeight: 700, whiteSpace: "nowrap" as const }}>
+                      {p.numero_proposta || "—"}
+                    </span>
+                  </td>
+                  <td style={{ ...TD, maxWidth: 300 }}>
+                    <div style={{ color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
+                      {p.objeto || p.programa?.nome || "—"}
+                    </div>
+                  </td>
+                  <td style={TD}><SituacaoBadge situacao={p.situacao_normalizada ?? ""} /></td>
+                  <td style={{ ...TD, textAlign: "right" as const, fontWeight: 600 }}>{fmtPct(p.perc_fisico ?? 0)}</td>
+                  <td style={{ ...TD, textAlign: "right" as const, fontWeight: 600 }}>{fmtPct(p.perc_financeiro ?? 0)}</td>
+                  <td style={{ ...TD, textAlign: "right" as const, fontWeight: 700, color: (p.saldo_executar ?? 0) > 0 ? "#d97706" : "#059669" }}>
+                    {fmt(p.saldo_executar ?? 0)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
   );
 }
 
-function PropostaRow({ proposta: p, onClick }: { proposta: any; onClick: () => void }) {
-  const perc_pago = p.valor_indicado > 0 ? (p.valor_pago / p.valor_indicado) * 100 : 0;
-  const cor = perc_pago >= 75 ? "#059669" : perc_pago >= 40 ? "#d97706" : "#6b7280";
+// ── Recursos Disponíveis — parlamentares e programas para novas propostas ─────
+function RecursosDisponiveis({ municipio_id }: { municipio_id: number }) {
+  const qc = useQueryClient();
+  const [novoParlamentar, setNovoParlamentar] = useState({ nome: "", partido: "", uf: "", cargo: "" });
+  const [novoPrograma, setNovoPrograma] = useState({ nome: "", codigo: "", bloco: "" });
+  const [addParl, setAddParl] = useState(false);
+  const [addProg, setAddProg] = useState(false);
+
+  const { data: parlamentares = [], isLoading: lParl } = useQuery({
+    queryKey: ["investsus-parlamentares"],
+    queryFn: () => api.get("/api/investsus/parlamentares").then(r => r.data),
+  });
+  const { data: programas = [], isLoading: lProg } = useQuery({
+    queryKey: ["investsus-programas"],
+    queryFn: () => api.get("/api/investsus/programas").then(r => r.data),
+  });
+
+  const mutParl = useMutation({
+    mutationFn: () => api.post("/api/investsus/parlamentares", novoParlamentar).then(r => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["investsus-parlamentares"] });
+      setNovoParlamentar({ nome: "", partido: "", uf: "", cargo: "" });
+      setAddParl(false);
+    },
+  });
+  const mutProg = useMutation({
+    mutationFn: () => api.post("/api/investsus/programas", novoPrograma).then(r => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["investsus-programas"] });
+      setNovoPrograma({ nome: "", codigo: "", bloco: "" });
+      setAddProg(false);
+    },
+  });
+
   return (
-    <div onClick={onClick} style={{ padding: "14px 0", borderBottom: "1px solid #f3f4f6", cursor: "pointer" }}
-      onMouseEnter={e => (e.currentTarget.style.background = "#f9fafb")}
-      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" as const }}>
-            <span style={{ fontFamily: "monospace", fontSize: 11, background: "#f3f4f6", borderRadius: 4, padding: "1px 7px", color: "#374151", fontWeight: 700 }}>
-              {p.numero_proposta}
-            </span>
-            <SituacaoBadge situacao={p.situacao_normalizada ?? ""} />
-            {p.componente && (
-              <span style={{ fontSize: 10, background: "#eff6ff", color: "#1d4ed8", borderRadius: 4, padding: "1px 6px", fontWeight: 600 }}>
-                {p.componente}
-              </span>
-            )}
-            {p.exercicio && (
-              <span style={{ fontSize: 10, color: "#9ca3af" }}>{p.exercicio}</span>
-            )}
-            {p.total_alertas_abertos > 0 && (
-              <span style={{ fontSize: 10, background: "#fef2f2", color: "#dc2626", borderRadius: 4, padding: "1px 6px", fontWeight: 700 }}>
-                <Bell size={9} /> {p.total_alertas_abertos}
-              </span>
-            )}
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      {/* Parlamentares */}
+      <div style={S.card}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ ...S.title, display: "flex", alignItems: "center", gap: 6 }}>
+            <Users size={14} /> Parlamentares ({parlamentares.length})
           </div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 2 }}>
-            {p.entidade_nome || "Entidade não informada"}
-          </div>
-          <div style={{ fontSize: 12, color: "#6b7280" }}>{p.objeto ?? "—"}</div>
-          {p.parlamentar && (
-            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
-              {p.parlamentar.nome} · {p.parlamentar.partido}/{p.parlamentar.uf}
+          <button style={{ ...S.btn(), padding: "4px 10px", fontSize: 11 }} onClick={() => setAddParl(v => !v)}>
+            <Plus size={12} /> Novo
+          </button>
+        </div>
+        {addParl && (
+          <div style={{ display: "flex", flexDirection: "column" as const, gap: 6, marginBottom: 10, padding: 10, background: "#f8fafc", borderRadius: 6 }}>
+            <input style={S.input} placeholder="Nome" value={novoParlamentar.nome} onChange={e => setNovoParlamentar(v => ({ ...v, nome: e.target.value }))} />
+            <div style={{ display: "flex", gap: 6 }}>
+              <input style={S.input} placeholder="Partido" value={novoParlamentar.partido} onChange={e => setNovoParlamentar(v => ({ ...v, partido: e.target.value }))} />
+              <input style={{ ...S.input, width: 70 }} placeholder="UF" value={novoParlamentar.uf} onChange={e => setNovoParlamentar(v => ({ ...v, uf: e.target.value }))} />
             </div>
-          )}
-        </div>
-        <div style={{ textAlign: "right" as const, marginLeft: 16, flexShrink: 0, minWidth: 110 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "#111827" }}>{fmt(p.valor_indicado)}</div>
-          <div style={{ fontSize: 10, color: "#9ca3af" }}>indicado</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: cor, marginTop: 4 }}>{fmtPct(perc_pago)} pago</div>
-        </div>
+            <input style={S.input} placeholder="Cargo (Deputado Federal, Senador...)" value={novoParlamentar.cargo} onChange={e => setNovoParlamentar(v => ({ ...v, cargo: e.target.value }))} />
+            <button style={S.btn("#1e3a5f")} disabled={!novoParlamentar.nome || mutParl.isPending} onClick={() => mutParl.mutate()}>
+              {mutParl.isPending ? "Salvando..." : "Salvar"}
+            </button>
+          </div>
+        )}
+        {lParl ? <div style={{ color: "#9ca3af", fontSize: 12 }}>Carregando...</div> : parlamentares.length === 0 ? (
+          <div style={{ color: "#9ca3af", fontSize: 12, textAlign: "center" as const, padding: 16 }}>Nenhum parlamentar cadastrado.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column" as const, gap: 6, maxHeight: 360, overflowY: "auto" as const }}>
+            {parlamentares.map((p: any) => (
+              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "#f9fafb", borderRadius: 6 }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 12.5, color: "#111827" }}>{p.nome}</div>
+                  <div style={{ fontSize: 11, color: "#6b7280" }}>{p.cargo || "—"} {p.partido ? `· ${p.partido}` : ""}{p.uf ? `/${p.uf}` : ""}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-      <div style={{ marginTop: 8 }}>
-        <div style={{ height: 4, background: "#f3f4f6", borderRadius: 2, overflow: "hidden" }}>
-          <div style={{ width: `${Math.min(perc_pago, 100)}%`, height: "100%", background: cor, borderRadius: 2 }} />
+
+      {/* Programas */}
+      <div style={S.card}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ ...S.title, display: "flex", alignItems: "center", gap: 6 }}>
+            <ClipboardList size={14} /> Programas / Modalidades ({programas.length})
+          </div>
+          <button style={{ ...S.btn(), padding: "4px 10px", fontSize: 11 }} onClick={() => setAddProg(v => !v)}>
+            <Plus size={12} /> Novo
+          </button>
         </div>
+        {addProg && (
+          <div style={{ display: "flex", flexDirection: "column" as const, gap: 6, marginBottom: 10, padding: 10, background: "#f8fafc", borderRadius: 6 }}>
+            <input style={S.input} placeholder="Nome do programa" value={novoPrograma.nome} onChange={e => setNovoPrograma(v => ({ ...v, nome: e.target.value }))} />
+            <div style={{ display: "flex", gap: 6 }}>
+              <input style={S.input} placeholder="Código" value={novoPrograma.codigo} onChange={e => setNovoPrograma(v => ({ ...v, codigo: e.target.value }))} />
+              <input style={S.input} placeholder="Bloco (PAP, MAC...)" value={novoPrograma.bloco} onChange={e => setNovoPrograma(v => ({ ...v, bloco: e.target.value }))} />
+            </div>
+            <button style={S.btn("#1e3a5f")} disabled={!novoPrograma.nome || mutProg.isPending} onClick={() => mutProg.mutate()}>
+              {mutProg.isPending ? "Salvando..." : "Salvar"}
+            </button>
+          </div>
+        )}
+        {lProg ? <div style={{ color: "#9ca3af", fontSize: 12 }}>Carregando...</div> : programas.length === 0 ? (
+          <div style={{ color: "#9ca3af", fontSize: 12, textAlign: "center" as const, padding: 16 }}>Nenhum programa cadastrado.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column" as const, gap: 6, maxHeight: 360, overflowY: "auto" as const }}>
+            {programas.map((p: any) => (
+              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "#f9fafb", borderRadius: 6 }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 12.5, color: "#111827" }}>{p.nome}</div>
+                  <div style={{ fontSize: 11, color: "#6b7280" }}>{p.bloco || "—"} {p.codigo ? `· ${p.codigo}` : ""}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1986,12 +1998,10 @@ function PainelPortalInvestSUS({ municipio_id }: { municipio_id: number }) {
           <span style={{ fontWeight: 700, color: "#1e40af" }}>Nenhum snapshot capturado ainda</span>
         </div>
         <p style={{ fontSize: 13, color: "#1e3a8a", lineHeight: 1.6 }}>
-          Use o <strong>Bookmarklet do InvestSUS</strong> na aba Sincronizar para capturar os dados
-          diretamente do portal, enquanto você está logado em investsus.saude.gov.br.
+          Use o <strong>Bookmarklet do InvestSUS</strong>, disponível no botão <strong>Sincronizar</strong>
+          no cabeçalho, para capturar os dados diretamente do portal, enquanto você está logado em
+          investsus.saude.gov.br.
         </p>
-        <button style={S.btn("#0284c7")} onClick={() => {}}>
-          <RefreshCw size={13} /> Ir para Sincronizar
-        </button>
       </div>
     );
   }
@@ -2675,9 +2685,11 @@ navigator.clipboard.writeText(json).then(function(){
 }
 
 export default function InvestSUS() {
-  const [aba, setAba] = useState<"painel" | "dashboard" | "propostas" | "alertas" | "importar" | "relatorio" | "sincronizar">("painel");
+  const [aba, setAba] = useState<"painel" | "recursos" | "propostas" | "execucao" | "alertas" | "relatorio">("painel");
   const [propostaSelecionada, setPropostaSelecionada] = useState<any>(null);
   const [snapMsg, setSnapMsg] = useState<string | null>(null);
+  const [mostrarPortalMS, setMostrarPortalMS] = useState(false);
+  const [sincAberto, setSincAberto] = useState(false);
   const municipio_id = 1; // TODO: pegar do contexto de autenticação
   const qc = useQueryClient();
 
@@ -2702,18 +2714,18 @@ export default function InvestSUS() {
   }, []);
 
   const abas = [
-    { key: "painel",     label: "Painel MS",   icone: <Activity size={13} /> },
-    { key: "dashboard",  label: "Dashboard",   icone: <BarChart3 size={13} /> },
-    { key: "propostas",  label: "Propostas",   icone: <FileText size={13} /> },
-    { key: "alertas",    label: "Alertas",     icone: <Bell size={13} /> },
-    { key: "sincronizar",label: "Sincronizar", icone: <RefreshCw size={13} /> },
-    { key: "relatorio",  label: "Relatório",   icone: <Download size={13} /> },
+    { key: "painel",    label: "Painel de Propostas",      icone: <BarChart3 size={13} /> },
+    { key: "recursos",  label: "Recursos Disponíveis",     icone: <Users size={13} /> },
+    { key: "propostas", label: "Propostas",                icone: <FileText size={13} /> },
+    { key: "execucao",  label: "Execução das Propostas",   icone: <Wrench size={13} /> },
+    { key: "alertas",   label: "Pendências e Alertas",     icone: <Bell size={13} /> },
+    { key: "relatorio", label: "Relatórios",               icone: <Download size={13} /> },
   ] as const;
 
   return (
     <div style={S.page}>
       {/* Cabeçalho */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap" as const, gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Landmark size={20} color="#1e3a5f" />
           <div>
@@ -2721,9 +2733,14 @@ export default function InvestSUS() {
             <div style={{ fontSize: 11, color: "#6b7280" }}>Emendas, Propostas e Execução · FMS Apuí/AM</div>
           </div>
         </div>
-        <div style={{ fontSize: 11, color: "#9ca3af", textAlign: "right" as const }}>
-          <div>Fonte: InvestSUS / MS</div>
-          <div>Atualização: manual auditável</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ fontSize: 11, color: "#9ca3af", textAlign: "right" as const }}>
+            <div>Fonte: InvestSUS / MS</div>
+            <div>Atualização: manual auditável</div>
+          </div>
+          <button style={{ ...S.btn("#1e3a5f"), padding: "7px 14px" }} onClick={() => setSincAberto(true)}>
+            <RefreshCw size={13} /> Sincronizar
+          </button>
         </div>
       </div>
 
@@ -2737,7 +2754,7 @@ export default function InvestSUS() {
 
       {/* Abas */}
       {!propostaSelecionada && (
-        <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" as const }}>
           {abas.map(({ key, label, icone }) => (
             <button key={key} style={{ ...S.tab(aba === key), display: "flex", alignItems: "center", gap: 5 }}
               onClick={() => setAba(key as typeof aba)}>
@@ -2755,17 +2772,50 @@ export default function InvestSUS() {
           onVoltar={() => setPropostaSelecionada(null)}
         />
       ) : aba === "painel" ? (
-        <PainelPortalInvestSUS municipio_id={municipio_id} />
-      ) : aba === "dashboard" ? (
-        <DashboardInvestSUS municipio_id={municipio_id} />
+        <div>
+          <DashboardInvestSUS municipio_id={municipio_id} />
+          <div style={{ marginTop: 14 }}>
+            <button
+              style={{ ...S.btn(), display: "flex", alignItems: "center", gap: 6, marginBottom: mostrarPortalMS ? 12 : 0 }}
+              onClick={() => setMostrarPortalMS(v => !v)}>
+              {mostrarPortalMS ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+              Dados do Portal InvestSUS (MS)
+            </button>
+            {mostrarPortalMS && <PainelPortalInvestSUS municipio_id={municipio_id} />}
+          </div>
+        </div>
+      ) : aba === "recursos" ? (
+        <RecursosDisponiveis municipio_id={municipio_id} />
       ) : aba === "propostas" ? (
         <PropostasDetalhadas municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
+      ) : aba === "execucao" ? (
+        <ExecucaoPropostas municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
       ) : aba === "alertas" ? (
         <AlertasGlobais municipio_id={municipio_id} />
-      ) : aba === "sincronizar" ? (
-        <SincronizarInvestSUS municipio_id={municipio_id} />
       ) : (
         <RelatorioAcompanhamento municipio_id={municipio_id} />
+      )}
+
+      {/* Painel de Sincronização — modal acionado pelo botão do cabeçalho */}
+      {sincAberto && (
+        <div role="dialog" aria-modal="true" onClick={() => setSincAberto(false)} style={{
+          position: "fixed", inset: 0, background: "rgba(15,23,42,.55)", zIndex: 1000,
+          display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" as const,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#f8fafc", borderRadius: 12, width: "100%", maxWidth: 720, padding: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#1e3a5f" }}>Sincronização e Importação</div>
+              <button onClick={() => setSincAberto(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280" }}>
+                <X size={18} />
+              </button>
+            </div>
+            <SincronizarInvestSUS municipio_id={municipio_id} />
+            <div style={{ marginTop: 16, borderTop: "1px solid #e2e8f0", paddingTop: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 }}>Importação manual via CSV</div>
+              <ImportacaoAssistida municipio_id={municipio_id} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
