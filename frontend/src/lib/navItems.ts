@@ -278,100 +278,6 @@ export const NAV_ITEMS: NavItem[] = [
     keywords:["acs","visita","domiciliar","domicílio","registro","esus","agente"] },
 
 
-  // ══════════ Saúde do Cidadão ══════════
-
-  // Saúde da Mulher
-
-  { id:"planejamento-familiar",category:"Saúde do Cidadão", subcategory:"Saúde da Mulher", order:702, iconName:"Users",
-    title:"Planejamento Familiar", route:"/planejamento-familiar-apui",
-    description:"Ações de planejamento familiar e saúde reprodutiva",
-    keywords:["planejamento familiar","reprodutivo","contracepção","laqueadura","vasectomia","gravidez"] },
-
-  { id:"rede-cegonha",        category:"Saúde do Cidadão", subcategory:"Saúde da Mulher", order:701, iconName:"Baby",
-    title:"Rede Cegonha", route:"/rede-cegonha",
-    description:"Rede Cegonha — pré-natal, parto e puerpério de qualidade",
-    keywords:["rede cegonha","pré-natal","parto","puerpério","maternidade","neonatal","gravidez"] },
-
-  { id:"saude-mulher",        category:"Saúde do Cidadão", subcategory:"Saúde da Mulher", order:700, iconName:"Heart",
-    title:"Saúde da Mulher", route:"/saude-mulher",
-    description:"Atenção integral à saúde da mulher — indicadores e programas",
-    keywords:["saúde mulher","feminina","gênero","maternal","reprodutiva","ginecologia","prenatal"] },
-
-  // Saúde da Criança
-
-  { id:"saude-crianca",       category:"Saúde do Cidadão", subcategory:"Saúde da Criança", order:710, iconName:"Baby",
-    title:"Saúde da Criança", route:"/saude-crianca",
-    description:"Atenção integral à saúde da criança — puericultura e vigilância",
-    keywords:["saúde criança","puericultura","crescimento","desenvolvimento","pediatria","infantil","caderneta"] },
-
-  { id:"saude-adolescente",   category:"Saúde do Cidadão", subcategory:"Saúde da Criança", order:712, iconName:"Users",
-    title:"Saúde do Adolescente", route:"/saude-adolescente-apui",
-    description:"Atenção à saúde do adolescente — 10 a 19 anos",
-    keywords:["adolescente","juventude","adolescência","sexual","reprodutiva","drogas","violência"] },
-
-  { id:"triagem-neonatal",    category:"Saúde do Cidadão", subcategory:"Saúde da Criança", order:711, iconName:"Baby",
-    title:"Triagem Neonatal", route:"/triagem-neonatal-apui",
-    description:"Triagem neonatal — Teste do Pezinho e outros testes do recém-nascido",
-    keywords:["triagem","neonatal","pezinho","recém-nascido","teste","orelhinha","olhinho","coraçãozinho"] },
-
-  // Saúde Mental
-
-  { id:"caps-ad",             category:"Saúde do Cidadão", subcategory:"Saúde Mental", order:722, iconName:"Activity",
-    title:"CAPS AD", route:"/caps-ad",
-    description:"Centro de Atenção Psicossocial Álcool e Drogas — CAPS AD",
-    keywords:["caps","ad","álcool","drogas","dependência","química","psicossocial","substância"] },
-
-  { id:"raps",                category:"Saúde do Cidadão", subcategory:"Saúde Mental", order:721, iconName:"Network",
-    title:"RAPS", route:"/raps",
-    description:"Rede de Atenção Psicossocial — fluxo e pontos de atenção",
-    keywords:["raps","rede","psicossocial","caps","ubs","hospital","leitos","mental","álcool","drogas"] },
-
-  { id:"saude-mental",        category:"Saúde do Cidadão", subcategory:"Saúde Mental", order:720, iconName:"HeartPulse",
-    title:"Saúde Mental", route:"/saude-mental",
-    description:"Atenção psicossocial — CAPS, RAPS e saúde mental comunitária",
-    keywords:["saúde mental","psicossocial","caps","raps","transtorno","depressão","ansiedade","psiquiatria","psicologia"] },
-
-  { id:"hiperdia",            category:"Saúde do Cidadão", order:735, iconName:"Activity",
-    title:"HiperDia", route:"/hiperdia-apui",
-    description:"HiperDia — controle e acompanhamento de hipertensos e diabéticos",
-    keywords:["hiperdia","hipertensão","diabetes","crônico","pressão","glicemia","has","dm","acompanhamento"] },
-
-  { id:"leishmaniose",        category:"Saúde do Cidadão", order:736, iconName:"Bug",
-    title:"Leishmaniose", route:"/leishmaniose",
-    description:"Vigilância e controle de Leishmaniose Visceral e Tegumentar",
-    keywords:["leishmaniose","visceral","tegumentar","calazar","lv","lt","vetor","flebótomo","apuí"] },
-
-  { id:"saude-bucal",         category:"Saúde do Cidadão", order:731, iconName:"Stethoscope",
-    title:"Saúde Bucal / CEO", route:"/saude-bucal",
-    description:"Atenção em saúde bucal — ESB e Centro de Especialidades Odontológicas",
-    keywords:["saúde bucal","odontologia","ceo","esb","dentista","fluorose","cárie","periodontal"] },
-
-  { id:"saude-homem",         category:"Saúde do Cidadão", order:732, iconName:"UserCheck",
-    title:"Saúde do Homem", route:"/saude-homem",
-    description:"Atenção integral à saúde do homem — prevenção e rastreio",
-    keywords:["saúde homem","masculina","próstata","testicular","prevenção","rastreio","câncer"] },
-
-  { id:"saude-idoso",         category:"Saúde do Cidadão", order:730, iconName:"UserCheck",
-    title:"Saúde do Idoso", route:"/saude-idoso",
-    description:"Atenção integral à pessoa idosa — 60 anos ou mais",
-    keywords:["idoso","envelhecimento","60 anos","terceira idade","caderneta","geriátrico","fragilidade"] },
-
-  { id:"saude-trabalhador",   category:"Saúde do Cidadão", order:733, iconName:"Wrench",
-    title:"Saúde do Trabalhador", route:"/saude-trabalhador-apui",
-    description:"Saúde do trabalhador — CEREST e vigilância de ambientes de trabalho",
-    keywords:["trabalhador","saúde","cerest","trabalho","ocupacional","acidente","doença ocupacional"] },
-
-  { id:"saude-indigena",      category:"Saúde do Cidadão", order:737, iconName:"MapPin",
-    title:"Saúde Indígena e Ribeirinha", route:"/saude-indigena-apui",
-    description:"Atenção à saúde de populações indígenas e ribeirinhas de Apuí",
-    keywords:["indígena","ribeirinha","sesai","dsei","povo","comunidade","floresta","rio","aldeia","apuí"] },
-
-  { id:"saude-lgbtqia",       category:"Saúde do Cidadão", order:734, iconName:"Smile",
-    title:"Saúde LGBTQIA+", route:"/saude-lgbtqia-apui",
-    description:"Atenção à saúde da população LGBTQIA+ e diversidade sexual",
-    keywords:["lgbtqia","diversidade","sexual","trans","gay","lésbica","bissexual","identidade","gênero"] },
-
-
   // ══════════ Vigilância em Saúde ══════════
 
   { id:"arboviroses",         category:"Vigilância em Saúde", order:406, iconName:"Bug",
@@ -841,7 +747,6 @@ export const CATEGORIES = [
   "Gestão e Planejamento",
   "Atenção Primária à Saúde",
   "Agentes Comunitários de Saúde",
-  "Saúde do Cidadão",
   "Vigilância em Saúde",
   "Assistência Farmacêutica",
   "Atenção Especializada e Regulação",
