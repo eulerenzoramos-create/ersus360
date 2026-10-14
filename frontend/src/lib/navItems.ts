@@ -36,49 +36,6 @@ export type NavItemWithIcon = NavItem & { Icon: LucideIcon };
 // ============================================================
 export const NAV_ITEMS: NavItem[] = [
 
-  // ══════════ Gestão e Planejamento ══════════
-
-  { id:"conformidade",        category:"Gestão e Planejamento", order:308, iconName:"Shield",
-    title:"Conformidade Legal", route:"/conformidade",
-    description:"Monitoramento de conformidade legal e regulatória da saúde municipal",
-    keywords:["conformidade","legal","normativa","regulatória","compliance","legislação","obrigação"] },
-
-  { id:"conselho-saude",      category:"Gestão e Planejamento", order:306, iconName:"Users",
-    title:"Conselho Municipal de Saúde", shortTitle:"Conselho de Saúde", route:"/conselho-saude-apui",
-    description:"Conselho Municipal de Saúde — CMS — controle social e deliberação",
-    keywords:["conselho","municipal","saúde","cms","controle social","deliberação","ata","reunião"] },
-
-  { id:"contratos",           category:"Gestão e Planejamento", order:305, iconName:"FileText",
-    title:"Contratos e Licitações", shortTitle:"Contratos", route:"/gestao-contratos",
-    description:"Gestão de contratos, licitações e compras públicas de saúde",
-    keywords:["contratos","licitação","compras","pregão","dispensa","fornecedor","fiscal","prestação"] },
-
-  { id:"ouvidoria",           category:"Gestão e Planejamento", order:307, iconName:"MessageSquare",
-    title:"Ouvidoria Municipal", route:"/ouvidoria-apui",
-    description:"Ouvidoria municipal de saúde — reclamações, sugestões e manifestações",
-    keywords:["ouvidoria","reclamação","sugestão","manifestação","cidadão","atendimento","demanda"] },
-
-  { id:"plano-acao",          category:"Gestão e Planejamento", order:303, iconName:"ClipboardList",
-    title:"Plano de Ação", route:"/plano-acao",
-    description:"Plano de ação municipal para cumprimento de metas de saúde",
-    keywords:["plano","ação","meta","cumprimento","prazo","responsável","monitoramento"] },
-
-  { id:"plano-municipal",     category:"Gestão e Planejamento", order:300, iconName:"ClipboardList",
-    title:"Plano Municipal de Saúde", shortTitle:"Plano Municipal", route:"/plano-municipal-saude",
-    description:"Plano Municipal de Saúde — PMS — instrumento de planejamento quadrienal",
-    keywords:["plano municipal","saúde","pms","planejamento","quadrienal","metas","objetivos"] },
-
-  { id:"rdqa",                category:"Gestão e Planejamento", order:302, iconName:"Calendar",
-    title:"RDQA — Relatório Quadrimestral", shortTitle:"RDQA", route:"/rdqa",
-    description:"Relatório Detalhado do Quadrimestre Anterior — prestação de contas ao Conselho",
-    keywords:["rdqa","quadrimestre","relatório","prestação de contas","conselho","saúde","audiência","detalhado","anterior"] },
-
-  { id:"relatorio-gestao",    category:"Gestão e Planejamento", order:304, iconName:"FileText",
-    title:"Relatório Anual de Gestão", shortTitle:"RAG", route:"/relatorio-gestao",
-    description:"Relatório Anual de Gestão — RAG — prestação de contas anual ao Conselho de Saúde",
-    keywords:["rag","relatório","anual","gestão","prestação de contas","conselho","digisus","digiSUS","siops"] },
-
-
   // ══════════ Atenção Primária à Saúde ══════════
 
   { id:"aps",                 category:"Atenção Primária à Saúde", order:100, iconName:"Stethoscope",
@@ -636,6 +593,11 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Gestão de cadastros mestres — unidades, profissionais e serviços",
     keywords:["cadastro","mestre","unidade","estabelecimento","cnes","profissional","serviço","configuração"] },
 
+  { id:"contratos",           category:"Administração", order:305, iconName:"FileText",
+    title:"Contratos e Licitações", shortTitle:"Contratos", route:"/gestao-contratos",
+    description:"Gestão de contratos, licitações e compras públicas de saúde",
+    keywords:["contratos","licitação","compras","pregão","dispensa","fornecedor","fiscal","prestação"] },
+
   { id:"folha-pagamento",     category:"Administração", order:1001, iconName:"DollarSign",
     title:"Folha de Pagamento", route:"/folha-pagamento", roles:ROLES_RH,
     description:"Gestão da folha de pagamento do setor saúde",
@@ -744,7 +706,6 @@ export function scoreItem(item: NavItem, normQuery: string): number {
 
 /** Lista de categorias únicas na ordem de exibição */
 export const CATEGORIES = [
-  "Gestão e Planejamento",
   "Atenção Primária à Saúde",
   "Agentes Comunitários de Saúde",
   "Vigilância em Saúde",
