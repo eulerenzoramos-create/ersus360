@@ -7,28 +7,28 @@ import { BRL, BRL_AXIS } from "../lib/fmt";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { useAuth } from "../App";
 import {
-  Heart, Target, BarChart2, Users, Pill, Syringe, Brain, Map,
-  TrendingUp, DollarSign, FileText, Activity, Eye, EyeOff,
-  CheckCircle, AlertTriangle, Wifi,
+  Target, Brain, Pill, TrendingUp, DollarSign, FileText, Activity,
+  Eye, EyeOff, CheckCircle, AlertTriangle, Wifi,
+  ClipboardList, Banknote, Database,
 } from "lucide-react";
 
 const BLUE   = "#0078d4";
 const BLUE2  = "#005a9e";
 
-// ── Módulos / Serviços ────────────────────────────────────────────────────────
+// ── Módulos / Serviços — principais acessos ainda disponíveis no menu ─────────
 const MODULOS = [
-  { label: "Saúde Brasil 360",     desc: "Vínculo e qualidade das equipes APS",     Icon: Heart,       path: "/sb360/consolidado-territorial",  cor: BLUE },
-  { label: "Componente Qualidade", desc: "15 indicadores — Portaria 3.493/2024",    Icon: Target,      path: "/previne",                        cor: BLUE },
-  { label: "Painel de Gestão",     desc: "Atendimentos, procedimentos e vacinas",   Icon: BarChart2,   path: "/gestao",                         cor: BLUE },
-  { label: "Busca Ativa",          desc: "Gestantes e crianças sem acompanhamento", Icon: Users,       path: "/busca-ativa/gestante",           cor: BLUE },
-  { label: "ACS",                  desc: "Cadastros, visitas e calendário",          Icon: Activity,    path: "/acs/painel",                     cor: BLUE },
-  { label: "Assist. Farmacêutica", desc: "Dispensação, estoque e medicamentos",     Icon: Pill,        path: "/farmacia",                       cor: BLUE },
-  { label: "Vigilância em Saúde",  desc: "Epidemiológica, sanitária, imunização",   Icon: Syringe,     path: "/vigilancia",                     cor: BLUE },
-  { label: "IA Gestora",           desc: "Assistente inteligente para gestão",       Icon: Brain,       path: "/ia",                             cor: BLUE },
-  { label: "Mapa de Desempenho",   desc: "Ranking municipal AM e nacional",          Icon: Map,         path: "/mapa-desempenho",                cor: BLUE },
-  { label: "Sprint ÓTIMO",         desc: "Monitoramento SIAPS Q2/2026",              Icon: TrendingUp,  path: "/sprint-otimo",                   cor: BLUE },
-  { label: "Controle Financeiro FNS", desc: "Controle de repasses e execução",       Icon: DollarSign,  path: "/repasses",                       cor: BLUE },
-  { label: "Documentos",           desc: "Portarias, ofícios e termos",              Icon: FileText,    path: "/documentos",                     cor: BLUE },
+  { label: "Componente Qualidade",    desc: "15 indicadores — Portaria 3.493/2024",     Icon: Target,        path: "/previne",            cor: BLUE },
+  { label: "Controle Financeiro FNS", desc: "Controle de repasses e execução",          Icon: DollarSign,    path: "/repasses-aps-apui",  cor: BLUE },
+  { label: "Portarias FNS",           desc: "Portarias ministeriais de transferências", Icon: FileText,      path: "/portarias",          cor: BLUE },
+  { label: "Painel do ACS",           desc: "Cadastros, visitas e calendário",          Icon: Activity,      path: "/acs/painel",         cor: BLUE },
+  { label: "Busca Ativa · IA",        desc: "Gestantes e crianças sem acompanhamento",  Icon: Brain,         path: "/busca-ativa-ia",     cor: BLUE },
+  { label: "Assist. Farmacêutica",    desc: "Dispensação, estoque e medicamentos",      Icon: Pill,          path: "/farmacia",           cor: BLUE },
+  { label: "Sprint ÓTIMO",            desc: "Monitoramento SIAPS Q2/2026",              Icon: TrendingUp,    path: "/sprint-otimo",       cor: BLUE },
+  { label: "Plano Municipal de Saúde",desc: "Planejamento quadrienal de saúde",         Icon: ClipboardList, path: "/plano-municipal-saude", cor: BLUE },
+  { label: "eGestor / SIAPS",         desc: "Integração com e-Gestor AB / SIAPS",       Icon: Wifi,          path: "/siaps",              cor: BLUE },
+  { label: "Relatórios",              desc: "Relatórios consolidados de gestão",        Icon: FileText,      path: "/relatorios",         cor: BLUE },
+  { label: "Folha de Pagamento",      desc: "Folha de pagamento dos profissionais",     Icon: Banknote,      path: "/folha-pagamento",    cor: BLUE },
+  { label: "Cadastros Mestres",       desc: "Cadastros base do sistema",                Icon: Database,      path: "/cadastros",          cor: BLUE },
 ];
 
 const fmt = (v: number) =>
