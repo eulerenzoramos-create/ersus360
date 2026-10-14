@@ -1304,7 +1304,16 @@ async def _executar_sync_job(job_id: str, mid: int, fonte: str = "investsus") ->
 
     _sync_jobs[job_id]["status"] = "rodando"
     try:
-        dados = await (sincronizar_transparencia() if fonte == "transparencia" else sincronizar_investsus())
+        dados = await _asyncio.wait_for(
+            sincronizar_transparencia() if fonte == "transparencia" else sincronizar_investsus(),
+            timeout=90,
+        )
+    except _asyncio.TimeoutError:
+        _sync_jobs[job_id].update({
+            "status": "erro",
+            "erro": "Tempo limite excedido (90s) ao consultar a fonte externa — tente novamente.",
+        })
+        return
     except Exception as exc:
         _sync_jobs[job_id].update({"status": "erro", "erro": str(exc)})
         return

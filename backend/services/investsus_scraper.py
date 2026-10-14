@@ -381,7 +381,7 @@ async def sincronizar_transparencia(cnpj: str | None = None) -> dict:
         {"cnpjBeneficiario": cnpj, "ano": ano_atual - 1},
     ]
 
-    async with httpx.AsyncClient(timeout=_TIMEOUT, headers=headers) as client:
+    async with httpx.AsyncClient(timeout=20.0, headers=headers) as client:
         for params in tentativas:
             try:
                 resp = await client.get(f"{_API_TRANSP}/emendas", params={**params, "pagina": 1})
@@ -393,6 +393,11 @@ async def sincronizar_transparencia(cnpj: str | None = None) -> dict:
                     continue
                 body = resp.json()
                 itens = body if isinstance(body, list) else (body.get("data") or body.get("content") or [])
+                if len(itens) > 200:
+                    # a API pode ter ignorado o filtro por CNPJ e devolvido a lista inteira —
+                    # processa só os primeiros 200 para não travar a sincronização.
+                    logger.warning("InvestSUS (Transparência): %d itens para %s — provável filtro ignorado, processando 200", len(itens), params)
+                    itens = itens[:200]
                 resultado["propostas"].extend(_normalizar_emenda_transparencia(it, cnpj) for it in itens)
             except Exception as exc:
                 resultado["erros"].append({"endpoint": "emendas", "erro": str(exc)[:160]})
