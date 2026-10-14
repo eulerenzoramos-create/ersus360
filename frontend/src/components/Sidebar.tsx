@@ -38,7 +38,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Bell, Thermometer, Trash2, FlaskConical, Heart, ShieldAlert,
 };
 
-function getIcon(name: string): React.ElementType {
+export function getIcon(name: string): React.ElementType {
   return ICON_MAP[name] ?? Activity;
 }
 
