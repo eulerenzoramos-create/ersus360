@@ -321,6 +321,24 @@ def _parse_valor_br(v: Any) -> float:
     return -n if negativo else n
 
 
+def _classificar_tipo_emenda(texto: str) -> str:
+    """Mapeia o texto livre de tipoEmenda para um membro válido de TipoEmenda."""
+    t = texto.lower()
+    if "bancada" in t:
+        return "bancada"
+    if "comiss" in t:
+        return "comissao"
+    if "individual" in t:
+        return "individual"
+    if "coletiv" in t:
+        return "coletiva"
+    if "programac" in t or "programaç" in t:
+        return "programacao"
+    if "programa" in t:
+        return "programa"
+    return "outro"
+
+
 def _normalizar_emenda_transparencia(raw: dict, cnpj: str) -> dict:
     numero = str(
         raw.get("codigoEmenda") or raw.get("numero") or raw.get("numeroEmenda") or ""
@@ -330,11 +348,12 @@ def _normalizar_emenda_transparencia(raw: dict, cnpj: str) -> dict:
         autor = autor.get("nome", "")
     valor = _parse_valor_br(raw.get("valorEmpenhado") or raw.get("valor"))
     valor_pago = _parse_valor_br(raw.get("valorPago") or raw.get("valorLiquidado"))
+    tipo_emenda_txt = str(raw.get("tipoEmenda") or "individual")
     return {
         "numero_proposta":    numero,
         "numero_instrumento": str(raw.get("codigoSubEmenda") or raw.get("numeroInstrumento") or ""),
-        "objeto":             str(raw.get("tipoEmenda") or raw.get("descricao") or raw.get("objeto") or "Emenda parlamentar"),
-        "tipo_emenda":        str(raw.get("tipoEmenda") or "individual").lower(),
+        "objeto":             str(raw.get("descricao") or raw.get("objeto") or tipo_emenda_txt),
+        "tipo_emenda":        _classificar_tipo_emenda(tipo_emenda_txt),
         "programa":           str(raw.get("funcao") or raw.get("subfuncao") or ""),
         "parlamentar":        autor,
         "valor_global":       valor,

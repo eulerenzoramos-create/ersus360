@@ -1361,6 +1361,11 @@ async def _corpo_sync_job(job_id: str, mid: int, fonte: str) -> None:
                     existing.objeto = prop_raw["objeto"]
                 if prop_raw.get("raw"):
                     existing.payload_original = prop_raw["raw"]
+                if prop_raw.get("tipo_emenda"):
+                    try:
+                        existing.tipo_emenda = TipoEmenda(prop_raw["tipo_emenda"]).value
+                    except ValueError:
+                        pass
                 existing.situacao_original = prop_raw.get("situacao_raw") or existing.situacao_original
                 if situacao_norm and situacao_norm != old_sit:
                     existing.situacao_normalizada = situacao_norm
@@ -1373,12 +1378,16 @@ async def _corpo_sync_job(job_id: str, mid: int, fonte: str) -> None:
                     ))
                 atualizadas += 1
             else:
+                try:
+                    tipo_emenda_val = TipoEmenda(prop_raw.get("tipo_emenda", "individual")).value
+                except ValueError:
+                    tipo_emenda_val = TipoEmenda.INDIVIDUAL.value
                 nova = PropostaInvestSUS(
                     municipio_id=mid,
                     numero_proposta=numero,
                     numero_instrumento=prop_raw.get("numero_instrumento") or "",
                     objeto=prop_raw.get("objeto") or "",
-                    tipo_emenda=TipoEmenda.INDIVIDUAL.value,
+                    tipo_emenda=tipo_emenda_val,
                     valor_indicado=prop_raw.get("valor_global", 0),
                     valor_proposta=prop_raw.get("valor_global", 0),
                     valor_aprovado=prop_raw.get("valor_aprovado", 0),
