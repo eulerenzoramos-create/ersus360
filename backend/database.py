@@ -110,6 +110,32 @@ async def init_db():
             except Exception:
                 pass
 
+        # Enums do InvestSUS: o tipo já existe no Postgres com os valores de quando
+        # a tabela foi criada pela primeira vez — create_all() não adiciona valores
+        # novos a um ENUM já existente. Sincroniza aqui, derivando do Enum Python
+        # (fonte única da verdade) para não duplicar a lista manualmente.
+        if not _raw_url.startswith("sqlite"):
+            from models.investsus import (
+                TipoEmenda, SituacaoNormalizada, NivelAlertaInvest,
+                TipoParecer, ResultadoParecer, OrigemAtualizacao,
+            )
+            _enums_investsus = [
+                ("tipoemenda", TipoEmenda),
+                ("situacaonormalizada", SituacaoNormalizada),
+                ("nivelalertainvest", NivelAlertaInvest),
+                ("tipoparecer", TipoParecer),
+                ("resultadoparecer", ResultadoParecer),
+                ("origematualizacao", OrigemAtualizacao),
+            ]
+            for nome_tipo, enum_cls in _enums_investsus:
+                for membro in enum_cls:
+                    try:
+                        await conn.execute(
+                            text(f"ALTER TYPE {nome_tipo} ADD VALUE IF NOT EXISTS '{membro.value}'")
+                        )
+                    except Exception:
+                        pass  # tipo ainda não existe (primeira execução) — create_all já cria com todos os valores
+
     # Multi-tenant: colunas de credenciamento, auditoria por município, perfil ADMINISTRADOR_GERAL
     from tenancy.migracoes import migrar_multitenant
     await migrar_multitenant(engine)
