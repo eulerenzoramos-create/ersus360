@@ -1348,12 +1348,19 @@ async def _corpo_sync_job(job_id: str, mid: int, fonte: str) -> None:
 
             if existing:
                 old_sit = existing.situacao_normalizada
+                if prop_raw.get("valor_global"):
+                    existing.valor_indicado = prop_raw["valor_global"]
+                    existing.valor_proposta = prop_raw["valor_global"]
                 if prop_raw.get("valor_aprovado"):
                     existing.valor_aprovado = prop_raw["valor_aprovado"]
                 if prop_raw.get("valor_repassado"):
                     existing.valor_pago = prop_raw["valor_repassado"]
                 if prop_raw.get("valor_executado"):
                     existing.valor_executado = prop_raw["valor_executado"]
+                if prop_raw.get("objeto"):
+                    existing.objeto = prop_raw["objeto"]
+                if prop_raw.get("raw"):
+                    existing.payload_original = prop_raw["raw"]
                 existing.situacao_original = prop_raw.get("situacao_raw") or existing.situacao_original
                 if situacao_norm and situacao_norm != old_sit:
                     existing.situacao_normalizada = situacao_norm
