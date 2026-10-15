@@ -44,32 +44,3 @@ jobs:
         run: |
           echo "::notice title=essenciais-resumo::$(tail -1 ../essenciais.log)"
           grep -E '^(FAILED|ERROR) ' ../essenciais.log | head -8 | sed 's/^/::error title=essenciais::/' || true
-
-  # Referência temporária: a mesma suíte na main, para separar falhas antigas das novas.
-  pytest-main-referencia:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    continue-on-error: true
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
-      - run: pip install -r requirements.txt pytest pytest-asyncio
-      - name: pytest (main)
-        run: |
-          set -o pipefail
-          pytest -q -rfE --tb=no 2>&1 | tee ../pytest.log
-      - name: Resumo das falhas (main)
-        if: failure()
-        run: |
-          echo "::error title=main-resumo::$(tail -1 ../pytest.log)"
-          echo "::error title=main-lista::$(grep -E '^(FAILED|ERROR) ' ../pytest.log | sed -E 's/^(FAILED|ERROR) //; s/ - .*//' | tr '\n' ' ')"
