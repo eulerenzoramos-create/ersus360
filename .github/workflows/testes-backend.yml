@@ -1,5 +1,6 @@
 # Testes do backend (inclui os obrigatórios de isolamento entre municípios).
 # Roda em todo pull request e em push na main — nenhum deploy se falharem.
+# Falhas viram anotações no PR (pytest-github-actions-annotate-failures).
 name: Testes backend
 
 on:
@@ -20,5 +21,37 @@ jobs:
           python-version: "3.11"   # mesma versão do runtime.txt / Dockerfile
           cache: pip
           cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt pytest pytest-asyncio pytest-github-actions-annotate-failures
+      - name: pytest
+        run: |
+          set -o pipefail
+          pytest -q -rfE --tb=short 2>&1 | tee ../pytest.log
+      - name: Resumo das falhas
+        if: failure()
+        run: grep -E "^(FAILED|ERROR) " ../pytest.log | head -40 | sed 's/^/::error title=pytest::/' || true
+
+  # Referência temporária: a mesma suíte na main, para separar falhas antigas das novas.
+  pytest-main-referencia:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
       - run: pip install -r requirements.txt pytest pytest-asyncio
-      - run: pytest -q
+      - name: pytest (main)
+        run: |
+          set -o pipefail
+          pytest -q -rfE --tb=no 2>&1 | tee ../pytest.log
+      - name: Resumo das falhas (main)
+        if: failure()
+        run: grep -E "^(FAILED|ERROR) " ../pytest.log | head -40 | sed 's/^/::error title=main::/' || true
