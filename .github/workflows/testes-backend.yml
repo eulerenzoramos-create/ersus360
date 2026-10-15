@@ -11,6 +11,7 @@ on:
 jobs:
   pytest:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: backend
@@ -28,12 +29,27 @@ jobs:
           pytest -q -rfE --tb=short 2>&1 | tee ../pytest.log
       - name: Resumo das falhas
         if: failure()
-        run: grep -E "^(FAILED|ERROR) " ../pytest.log | head -40 | sed 's/^/::error title=pytest::/' || true
+        run: |
+          echo "::error title=pytest-resumo::$(tail -1 ../pytest.log)"
+          echo "::error title=pytest-lista::$(grep -E '^(FAILED|ERROR) ' ../pytest.log | sed -E 's/^(FAILED|ERROR) //; s/ - .*//' | tr '\n' ' ')"
+      - name: InvestSUS + isolamento entre municípios (obrigatórios)
+        if: always()
+        run: |
+          set -o pipefail
+          pytest -q -rfE --tb=short tests/test_investsus_federal.py tests/test_investsus_sincronizacao.py \
+            tests/test_isolamento_tenant.py tests/test_varredura_tenant.py tests/test_backup_tenant.py \
+            tests/test_credenciais_tenant.py 2>&1 | tee ../essenciais.log
+      - name: Resumo essenciais
+        if: always()
+        run: |
+          echo "::notice title=essenciais-resumo::$(tail -1 ../essenciais.log)"
+          grep -E '^(FAILED|ERROR) ' ../essenciais.log | head -8 | sed 's/^/::error title=essenciais::/' || true
 
   # Referência temporária: a mesma suíte na main, para separar falhas antigas das novas.
   pytest-main-referencia:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     continue-on-error: true
     defaults:
       run:
@@ -54,4 +70,6 @@ jobs:
           pytest -q -rfE --tb=no 2>&1 | tee ../pytest.log
       - name: Resumo das falhas (main)
         if: failure()
-        run: grep -E "^(FAILED|ERROR) " ../pytest.log | head -40 | sed 's/^/::error title=main::/' || true
+        run: |
+          echo "::error title=main-resumo::$(tail -1 ../pytest.log)"
+          echo "::error title=main-lista::$(grep -E '^(FAILED|ERROR) ' ../pytest.log | sed -E 's/^(FAILED|ERROR) //; s/ - .*//' | tr '\n' ' ')"
