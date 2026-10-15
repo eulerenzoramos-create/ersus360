@@ -1,8 +1,12 @@
 """
-Router: /api/investsus — InvestSUS Emendas, Propostas e Execução
-ERSUS 360 — Fundo Municipal de Saúde Apuí/AM
+Router: /api/investsus — INVESTSUS 360: propostas FEDERAIS do Fundo Municipal de Saúde
 
-Sem API pública disponível: importação assistida + cadastro manual auditável.
+Escopo desta etapa (services/investsus_federal.py): somente recursos do Governo Federal
+— Emendas RP 6 (individual), RP 7 (bancada), RP 8 (comissão) e Recursos de Programa
+(Outros) do Ministério da Saúde. Emendas estaduais não são captadas nem exibidas.
+
+Captação: sincronização com o InvestSUS (acesso gov.br do município), relay pelo
+navegador, Portal da Transparência (complemento) e cadastro/importação manual auditável.
 """
 from __future__ import annotations
 import logging
@@ -23,6 +27,8 @@ from models.investsus import (
     AtualizacaoManual, SituacaoNormalizada, TipoEmenda,
     NivelAlertaInvest, TipoParecer, ResultadoParecer, OrigemAtualizacao,
 )
+from services import investsus_federal as fed
+from tenancy.contexto import IBGE_LEGADO, MunicipioContexto, municipio_atual
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +48,10 @@ class PropostaCreate(BaseModel):
     parlamentar_id: int | None = None
     programa_id: int | None = None
     tipo_emenda: str = "individual"
+    modalidade: str | None = None          # rp6 | rp7 | rp8 | programa (padrão: derivado de tipo_emenda)
+    esfera: str = fed.ESFERA_FEDERAL       # somente "federal" nesta etapa
+    observacoes_internas: str | None = None
+    prioridade: str | None = None
     objeto: str | None = None
     finalidade: str | None = None
     tipo_objeto: str | None = None
@@ -112,6 +122,16 @@ class PropostaUpdate(BaseModel):
     fonte_dado: str | None = None
     numero_instrumento: str | None = None
     numero_processo: str | None = None
+    # informações internas (não vêm da fonte oficial; a sincronização não sobrescreve)
+    modalidade: str | None = None
+    observacoes_internas: str | None = None
+    prioridade: str | None = None
+
+
+class RespostaDiligencia(BaseModel):
+    data_resposta: str
+    resposta_texto: str | None = None
+    situacao_resposta: str = "respondida"
 
 
 class PareceCreate(BaseModel):
@@ -177,67 +197,38 @@ def _municipio_id(user: UserOut) -> int:
     return mid
 
 
-def _sem_acentos(t: str) -> str:
-    import unicodedata
-    return unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode().lower()
+# Classificação de situação e modalidade: services/investsus_federal.py (fonte única das regras).
 
 
-def _classificar_situacao_investsus(texto: str) -> "SituacaoNormalizada | None":
-    """Classifica o texto real de situação do InvestSUS (não o Enum genérico)."""
-    if not texto or not texto.strip():
-        return None
-    t = _sem_acentos(texto)
-    checks = [
-        (["cancelada"], SituacaoNormalizada.CANCELADA),
-        (["rejeitada"], SituacaoNormalizada.REJEITADA),
-        (["empenhada", "formaliza"], SituacaoNormalizada.EMPENHADA_AGUARDANDO_FORMALIZACAO),
-        (["empenhada"], SituacaoNormalizada.EMPENHADA),
-        (["parcialmente", "paga"], SituacaoNormalizada.PARCIALMENTE_PAGA),
-        (["paga"], SituacaoNormalizada.TOTALMENTE_PAGA),
-        (["adequacao", "tecnica"], SituacaoNormalizada.AGUARDANDO_COMPLEMENTACAO),
-        (["diligencia"], SituacaoNormalizada.EM_DILIGENCIA),
-        (["complementacao"], SituacaoNormalizada.AGUARDANDO_COMPLEMENTACAO),
-        (["analise"], SituacaoNormalizada.EM_ANALISE),
-        (["rascunho"], SituacaoNormalizada.PROPOSTA_ELABORACAO),
-        (["elaboracao"], SituacaoNormalizada.PROPOSTA_ELABORACAO),
-        (["cadastrada"], SituacaoNormalizada.PROPOSTA_CADASTRADA),
-        (["enviada"], SituacaoNormalizada.PROPOSTA_ENVIADA),
-        (["disponivel"], SituacaoNormalizada.RECURSO_DISPONIVEL),
-        (["aprovada"], SituacaoNormalizada.APROVADA),
-        (["formalizada"], SituacaoNormalizada.FORMALIZADA),
-        (["portaria"], SituacaoNormalizada.PORTARIA_PUBLICADA),
-        (["aguardando", "pagamento"], SituacaoNormalizada.AGUARDANDO_PAGAMENTO),
-        (["execucao", "atrasada"], SituacaoNormalizada.EXECUCAO_ATRASADA),
-        (["execucao", "paralisada"], SituacaoNormalizada.EXECUCAO_PARALISADA),
-        (["execucao", "fisica", "concluida"], SituacaoNormalizada.EXECUCAO_FISICA_CONCLUIDA),
-        (["execucao"], SituacaoNormalizada.EM_EXECUCAO),
-        (["prestacao", "contas"], SituacaoNormalizada.PRESTACAO_CONTAS_PENDENTE),
-        (["instrumento", "concluido"], SituacaoNormalizada.INSTRUMENTO_CONCLUIDO),
-    ]
-    for kws, situacao in checks:
-        if all(kw in t for kw in kws):
-            return situacao
-    return None
+def _modalidade_de(p: PropostaInvestSUS) -> str:
+    """Modalidade gravada; registros anteriores à coluna derivam do tipo legado."""
+    if p.modalidade:
+        return p.modalidade
+    tipo = p.tipo_emenda.value if p.tipo_emenda else None
+    return fed.modalidade_de_tipo_emenda(tipo) or fed.MODALIDADE_A_CLASSIFICAR
 
 
-def _parse_tipo_recurso_investsus(tipo_recurso_raw: str, tipo_raw: str) -> dict:
-    """Deriva tipo_emenda/componente/tipo_financiamento/objeto a partir das colunas
-    reais 'Tipo de Recurso' (EMENDA/PROGRAMA) e 'Tipo' (INCREMENTO MAC, CUSTEIO PAP...)."""
-    tr = (tipo_recurso_raw or "").upper()
-    tp = (tipo_raw or "").upper()
-    tipo_emenda = "programa" if "PROGRAMA" in tr else "individual"
-    componente = "MAC" if "MAC" in tp else "PAP" if "PAP" in tp else None
-    tipo_financiamento = "incremento" if "INCREMENTO" in tp else "custeio" if "CUSTEIO" in tp else None
-    objeto = " - ".join(p for p in [tipo_recurso_raw, tipo_raw] if p and p != "-")
-    return {
-        "tipo_emenda": tipo_emenda,
-        "componente": componente,
-        "tipo_financiamento": tipo_financiamento,
-        "objeto": objeto,
-    }
+def _filtro_escopo():
+    """Somente propostas de esfera habilitada (federal). Linhas antigas sem esfera = federal."""
+    return or_(PropostaInvestSUS.esfera.is_(None), PropostaInvestSUS.esfera.in_(sorted(fed.ESFERAS_HABILITADAS)))
+
+
+def _filtrar_modalidade_fase(stmt, modalidade: str | None, fase: str | None):
+    if modalidade:
+        _modalidade_valida(modalidade)
+        stmt = stmt.where(PropostaInvestSUS.modalidade == modalidade)
+    if fase:
+        if fase not in fed.FASES:
+            raise HTTPException(422, f"Fase inválida: {fase}")
+        stmt = stmt.where(PropostaInvestSUS.situacao_normalizada.in_(
+            [SituacaoNormalizada(s) for s in fed.situacoes_da_fase(fase)]))
+    return stmt
 
 
 def _prop_dict(p: PropostaInvestSUS) -> dict:
+    modalidade = _modalidade_de(p)
+    sit = p.situacao_normalizada.value if p.situacao_normalizada else None
+    fase = fed.fase_de(sit)
     parl = None
     if p.parlamentar:
         parl = {"id": p.parlamentar.id, "nome": p.parlamentar.nome, "partido": p.parlamentar.partido, "uf": p.parlamentar.uf}
@@ -253,6 +244,13 @@ def _prop_dict(p: PropostaInvestSUS) -> dict:
         "numero_processo": p.numero_processo,
         "exercicio": p.exercicio,
         "tipo_emenda": p.tipo_emenda.value if p.tipo_emenda else None,
+        "esfera": p.esfera or fed.ESFERA_FEDERAL,
+        "modalidade": modalidade,
+        "modalidade_rotulo": fed.MODALIDADES.get(modalidade, {}).get("rotulo", "A classificar"),
+        "fase": fase,
+        "fase_rotulo": fed.FASES.get(fase or "", "Não identificada"),
+        "observacoes_internas": p.observacoes_internas,
+        "prioridade": p.prioridade,
         "parlamentar": parl,
         "programa": prog,
         "entidade_nome": p.entidade_nome,
@@ -315,16 +313,31 @@ def _prop_dict(p: PropostaInvestSUS) -> dict:
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
+def _resumo_modalidades(acumulado: dict[str, dict]) -> list[dict]:
+    """As quatro modalidades sempre aparecem (mesmo zeradas); "a classificar" só se houver."""
+    saida = []
+    for chave, info in fed.MODALIDADES.items():
+        v = acumulado.get(chave) or {"qtd": 0, "valor_indicado": 0.0, "valor_pago": 0.0}
+        saida.append({"modalidade": chave, "rotulo": info["rotulo"], **v})
+    pend = acumulado.get(fed.MODALIDADE_A_CLASSIFICAR)
+    if pend:
+        saida.append({"modalidade": fed.MODALIDADE_A_CLASSIFICAR, "rotulo": "A classificar", **pend})
+    return saida
+
+
 @router.get("/dashboard")
 async def dashboard(
     db: DbDep,
     user: UserDep,
     exercicio: int = Query(None),
+    modalidade: str = Query(None),
 ):
     mid = _municipio_id(user)
-    stmt = select(PropostaInvestSUS).where(PropostaInvestSUS.municipio_id == mid)
+    stmt = (select(PropostaInvestSUS).options(selectinload(PropostaInvestSUS.programa))
+            .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo()))
     if exercicio:
         stmt = stmt.where(PropostaInvestSUS.exercicio == exercicio)
+    stmt = _filtrar_modalidade_fase(stmt, modalidade, None)
 
     result = await db.execute(stmt)
     props = result.scalars().all()
@@ -340,6 +353,8 @@ async def dashboard(
     por_programa: dict[str, float] = {}
     por_componente: dict[str, float] = {}
     por_tipo: dict[str, float] = {}
+    por_modalidade: dict[str, dict] = {}
+    por_fase: dict[str, int] = {}
 
     # Alertas
     stmt_alertas = select(func.count(AlertaInvestSUS.id)).where(
@@ -371,6 +386,15 @@ async def dashboard(
         te = p.tipo_emenda.value if p.tipo_emenda else "outro"
         por_tipo[te] = por_tipo.get(te, 0) + p.valor_indicado
 
+        md = _modalidade_de(p)
+        acc = por_modalidade.setdefault(md, {"qtd": 0, "valor_indicado": 0.0, "valor_pago": 0.0})
+        acc["qtd"] += 1
+        acc["valor_indicado"] += p.valor_indicado
+        acc["valor_pago"] += p.valor_pago
+
+        fs = fed.fase_de(sn) or "nao_identificada"
+        por_fase[fs] = por_fase.get(fs, 0) + 1
+
     return {
         "municipio_id": mid,
         "total_propostas": len(props),
@@ -388,6 +412,12 @@ async def dashboard(
         "por_programa": [{"programa": k, "valor": v} for k, v in sorted(por_programa.items(), key=lambda x: -x[1])[:10]],
         "por_componente": [{"componente": k, "valor": v} for k, v in por_componente.items()],
         "por_tipo_emenda": [{"tipo": k, "valor": v} for k, v in por_tipo.items()],
+        "esfera": fed.ESFERA_FEDERAL,
+        "por_modalidade": _resumo_modalidades(por_modalidade),
+        "por_fase": [
+            {"fase": k, "rotulo": r, "qtd": por_fase.get(k, 0)} for k, r in fed.FASES.items()
+        ] + ([{"fase": "nao_identificada", "rotulo": "Não identificada", "qtd": por_fase["nao_identificada"]}]
+             if por_fase.get("nao_identificada") else []),
         "alertas_abertos": alertas_abertos,
         "alertas_criticos": alertas_criticos,
         "atualizado_em": datetime.utcnow().isoformat(),
@@ -403,6 +433,9 @@ async def listar_propostas(
     situacao: str = Query(None),
     exercicio: int = Query(None),
     busca: str = Query(None),
+    modalidade: str = Query(None, description="rp6 | rp7 | rp8 | programa | a_classificar"),
+    fase: str = Query(None, description="cadastrada, enviada, em_analise, em_diligencia, em_reanalise, "
+                                        "aprovada, rejeitada, empenhada, paga, em_execucao, concluida…"),
     pagina: int = Query(1, ge=1),
     tamanho: int = Query(50, ge=1, le=200),
 ):
@@ -414,8 +447,9 @@ async def listar_propostas(
             selectinload(PropostaInvestSUS.programa),
             selectinload(PropostaInvestSUS.alertas_investsus),
         )
-        .where(PropostaInvestSUS.municipio_id == mid)
+        .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo())
     )
+    stmt = _filtrar_modalidade_fase(stmt, modalidade, fase)
     if situacao:
         stmt = stmt.where(PropostaInvestSUS.situacao_normalizada == situacao)
     if exercicio:
@@ -462,8 +496,25 @@ async def criar_proposta(body: PropostaCreate, db: DbDep, user: UserDep):
     )
     if existe.scalar_one_or_none():
         raise HTTPException(409, f"Proposta {body.numero_proposta} já cadastrada para este município.")
+    if not fed.esfera_habilitada(body.esfera):
+        raise HTTPException(422, "Somente recursos federais nesta etapa — emendas estaduais estão fora do escopo.")
+    if body.prioridade not in (None, "", "baixa", "media", "alta"):
+        raise HTTPException(422, "Prioridade inválida (use baixa, media ou alta).")
 
     data = body.model_dump()
+    modalidade = _modalidade_valida(body.modalidade) or fed.modalidade_de_tipo_emenda(body.tipo_emenda) \
+        or fed.MODALIDADE_A_CLASSIFICAR
+    data["modalidade"] = modalidade
+    data["esfera"] = fed.ESFERA_FEDERAL
+    try:
+        data["tipo_emenda"] = TipoEmenda(fed.tipo_emenda_de_modalidade(modalidade)
+                                         if modalidade in fed.MODALIDADES else body.tipo_emenda)
+    except ValueError:
+        data["tipo_emenda"] = TipoEmenda.OUTRO
+    try:
+        data["situacao_normalizada"] = SituacaoNormalizada(body.situacao_normalizada)
+    except ValueError:
+        raise HTTPException(422, f"Situação inválida: {body.situacao_normalizada}")
     for campo_data in ("portaria_data", "empenho_data", "prazo_vigencia"):
         val = data.get(campo_data)
         if val:
@@ -585,6 +636,8 @@ async def detalhe_proposta(proposta_id: int, db: DbDep, user: UserDep):
             "prazo_resposta": str(pa.prazo_resposta) if pa.prazo_resposta else None,
             "data_resposta": str(pa.data_resposta) if pa.data_resposta else None,
             "situacao_resposta": pa.situacao_resposta,
+            "resposta_texto": pa.resposta_texto,
+            "respondido_por": pa.respondido_por,
             "criado_em": pa.criado_em.isoformat(),
         }
         for pa in prop.pareceres
@@ -677,6 +730,18 @@ async def atualizar_proposta(proposta_id: int, body: PropostaUpdate, db: DbDep, 
                 dados[campo_data] = None
 
     sit_nova = dados.get("situacao_normalizada")
+    if sit_nova:
+        try:
+            dados["situacao_normalizada"] = SituacaoNormalizada(sit_nova)
+        except ValueError:
+            raise HTTPException(422, f"Situação inválida: {sit_nova}")
+    if "modalidade" in dados:
+        modalidade = _modalidade_valida(dados["modalidade"]) or fed.MODALIDADE_A_CLASSIFICAR
+        dados["modalidade"] = modalidade
+        if modalidade in fed.MODALIDADES:
+            prop.tipo_emenda = TipoEmenda(fed.tipo_emenda_de_modalidade(modalidade))
+    if dados.get("prioridade") not in (None, "", "baixa", "media", "alta"):
+        raise HTTPException(422, "Prioridade inválida (use baixa, media ou alta).")
     for k, v in dados.items():
         setattr(prop, k, v)
     prop.atualizado_por = user.nome
@@ -743,6 +808,62 @@ async def adicionar_parecer(proposta_id: int, body: PareceCreate, db: DbDep, use
 
     await db.commit()
     return {"id": pa.id}
+
+
+@router.post("/propostas/{proposta_id}/pareceres/{parecer_id}/resposta")
+async def responder_diligencia(proposta_id: int, parecer_id: int, body: RespostaDiligencia,
+                               db: DbDep, user: UserDep):
+    """Registra a resposta do município a uma diligência (registro interno). A situação
+    OFICIAL não é alterada aqui — ela muda quando a fonte federal registrar a reanálise."""
+    mid = _municipio_id(user)
+    pa = (await db.execute(
+        select(Parecer).join(PropostaInvestSUS, Parecer.proposta_id == PropostaInvestSUS.id).where(
+            Parecer.id == parecer_id, Parecer.proposta_id == proposta_id, PropostaInvestSUS.municipio_id == mid,
+        )
+    )).scalar_one_or_none()
+    if not pa:
+        raise HTTPException(404, "Parecer não encontrado")
+    if not pa.eh_diligencia:
+        raise HTTPException(422, "Este parecer não é uma diligência.")
+    try:
+        pa.data_resposta = date.fromisoformat(body.data_resposta)
+    except ValueError:
+        raise HTTPException(422, "data_resposta inválida (use AAAA-MM-DD).")
+    pa.resposta_texto = body.resposta_texto
+    pa.situacao_resposta = body.situacao_resposta
+    pa.respondido_por = user.nome
+    db.add(HistoricoSituacao(
+        proposta_id=proposta_id,
+        situacao_nova="Resposta à diligência registrada",
+        usuario=user.nome, origem="manual",
+        observacao=(body.resposta_texto or "")[:2000] or None,
+    ))
+    # alertas de diligência desta proposta deixam de estar pendentes
+    abertos = (await db.execute(select(AlertaInvestSUS).where(
+        AlertaInvestSUS.proposta_id == proposta_id,
+        AlertaInvestSUS.resolvido == False,  # noqa: E712
+        AlertaInvestSUS.tipo_alerta.in_(["mudanca_fase_em_diligencia", "prazo_diligencia"]),
+    ))).scalars().all()
+    for al in abertos:
+        al.resolvido, al.resolvido_em, al.resolvido_por = True, datetime.utcnow(), user.nome
+    await db.commit()
+    return {"ok": True, "alertas_resolvidos": len(abertos)}
+
+
+@router.get("/escopo")
+async def escopo_investsus(user: UserDep):
+    """Escopo vigente do INVESTSUS 360: esfera, modalidades, fases e fontes habilitadas."""
+    from tenancy.credenciais import configurado
+    return {
+        "esferas_habilitadas": sorted(fed.ESFERAS_HABILITADAS),
+        "modalidades": [{"codigo": k, **v} for k, v in fed.MODALIDADES.items()],
+        "fases": [{"codigo": k, "rotulo": v} for k, v in fed.FASES.items()],
+        "fontes": [{"codigo": f.codigo, "nome": f.nome, "esfera": f.esfera, "descricao": f.descricao}
+                   for f in fed.fontes_habilitadas()],
+        "investsus_configurado": configurado("INVESTSUS"),
+        "fora_do_escopo": "Emendas parlamentares estaduais e recursos do orçamento estadual "
+                          "não são captados nesta etapa.",
+    }
 
 
 # ── Pagamentos ────────────────────────────────────────────────────────────────
@@ -1004,6 +1125,17 @@ async def importar_confirmar(
             if prop and not row.get("sobrescrever", False):
                 continue  # pula se já existe e não foi marcado para sobrescrever
 
+            textos = [row.get("modalidade"), row.get("tipo_emenda"), row.get("tipo_recurso"),
+                      row.get("objeto"), row.get("parlamentar")]
+            if fed.classificar_esfera(*textos) != fed.ESFERA_FEDERAL:
+                erros.append({"numero": numero, "erro": "Fora do escopo: recurso estadual não é importado nesta etapa."})
+                continue
+            modalidade = (row.get("modalidade") if row.get("modalidade") in fed.MODALIDADES_VALIDAS
+                          else fed.classificar_modalidade(*textos[:3]))
+            if not modalidade and prop:
+                modalidade = prop.modalidade
+            modalidade = modalidade or fed.MODALIDADE_A_CLASSIFICAR
+
             campos = {
                 "numero_proposta": numero,
                 "objeto": row.get("objeto") or "",
@@ -1016,7 +1148,13 @@ async def importar_confirmar(
                 "exercicio": _parse_int(row.get("exercicio")),
                 "numero_emenda": row.get("numero_emenda"),
                 "fonte_dado": "importacao_csv",
+                "esfera": fed.ESFERA_FEDERAL,
+                "modalidade": modalidade,
+                "tipo_emenda": TipoEmenda(fed.tipo_emenda_de_modalidade(modalidade)),
             }
+            sit_val = fed.classificar_situacao(campos["situacao_original"])
+            if sit_val:
+                campos["situacao_normalizada"] = SituacaoNormalizada(sit_val)
 
             if prop:
                 for k, v in campos.items():
@@ -1111,8 +1249,10 @@ async def relatorio_acompanhamento(
     user: UserDep,
     exercicio: int = Query(None),
     situacao: str = Query(None),
+    modalidade: str = Query(None),
+    fase: str = Query(None),
 ):
-    """Retorna dados estruturados para exportação (relatório consolidado)."""
+    """Retorna dados estruturados para exportação (relatório consolidado, escopo federal)."""
     mid = _municipio_id(user)
     stmt = (
         select(PropostaInvestSUS)
@@ -1124,12 +1264,13 @@ async def relatorio_acompanhamento(
             selectinload(PropostaInvestSUS.pagamentos_investsus),
             selectinload(PropostaInvestSUS.alertas_investsus),
         )
-        .where(PropostaInvestSUS.municipio_id == mid)
+        .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo())
     )
     if exercicio:
         stmt = stmt.where(PropostaInvestSUS.exercicio == exercicio)
     if situacao:
         stmt = stmt.where(PropostaInvestSUS.situacao_normalizada == situacao)
+    stmt = _filtrar_modalidade_fase(stmt, modalidade, fase)
 
     result = await db.execute(stmt)
     props = result.scalars().all()
@@ -1140,6 +1281,9 @@ async def relatorio_acompanhamento(
             "numero_proposta": p.numero_proposta,
             "numero_emenda": p.numero_emenda,
             "exercicio": p.exercicio,
+            "esfera": p.esfera or fed.ESFERA_FEDERAL,
+            "modalidade": fed.MODALIDADES.get(_modalidade_de(p), {}).get("rotulo", "A classificar"),
+            "fase": fed.FASES.get(fed.fase_de(p.situacao_normalizada.value if p.situacao_normalizada else None) or "", ""),
             "parlamentar": p.parlamentar.nome if p.parlamentar else "",
             "partido_uf": f"{p.parlamentar.partido}/{p.parlamentar.uf}" if p.parlamentar else "",
             "programa": p.programa.nome if p.programa else "",
@@ -1165,6 +1309,8 @@ async def relatorio_acompanhamento(
             "total_pareceres": len(p.pareceres),
             "alertas_abertos": sum(1 for a in p.alertas_investsus if not a.resolvido),
             "responsavel_interno": p.responsavel_interno or "",
+            "prioridade": p.prioridade or "",
+            "observacoes_internas": p.observacoes_internas or "",
         })
 
     totais = {
@@ -1245,7 +1391,9 @@ async def seed_exemplo_apui(db: DbDep, user: UserDep):
         numero_proposta="36000820396202600",
         exercicio=2026,
         programa_id=prog.id,
-        tipo_emenda=TipoEmenda.INDIVIDUAL.value,
+        tipo_emenda=TipoEmenda.INDIVIDUAL,
+        modalidade="rp6",
+        esfera=fed.ESFERA_FEDERAL,
         entidade_nome="Secretaria Municipal de Saúde de Apuí",
         entidade_municipio="Apuí",
         entidade_uf="AM",
@@ -1351,330 +1499,388 @@ async def seed_exemplo_apui(db: DbDep, user: UserDep):
     return {"ok": True, "proposta_id": prop.id, "numero": "36000820396202600"}
 
 
-# ── Sincronização real com InvestSUS ──────────────────────────────────────────
-# ── Job store em memória para sincronização assíncrona ────────────────────────
+# ── Sincronização federal com o InvestSUS ─────────────────────────────────────
+# Escopo: services/investsus_federal.py — só itens de esfera habilitada (federal).
+# Regras da movimentação:
+#   • o status OFICIAL (situacao_original) é preservado como veio da fonte;
+#   • qualquer mudança no texto oficial OU na situação normalizada gera uma linha no
+#     histórico e, conforme a nova fase, um alerta (diligência = urgente, rejeição = crítico);
+#   • campos internos dos técnicos (responsável, observações, prioridade, DigiSUS…) nunca
+#     são sobrescritos pela sincronização.
 import asyncio as _asyncio
 import uuid as _uuid
-_sync_jobs: dict = {}   # job_id → {status, resultado, erro}
+_sync_jobs: dict = {}   # job_id → {status, resultado, erro, municipio_id}
+
+# CNPJ do Fundo de Apuí/AM — era fixo no código; mantido só como fallback do município
+# legado enquanto Municipio.cnpj_fundo não estiver preenchido no cadastro.
+_CNPJ_FUNDO_LEGADO_APUI = "12834320000126"
+
+_ROTULO_NIVEL_GERAL = {"critico": "critico", "urgente": "critico", "atencao": "atencao", "informativo": "info"}
 
 
-async def _executar_sync_job(job_id: str, mid: int, fonte: str = "investsus") -> None:
-    """Roda sincronização em background e armazena resultado em _sync_jobs."""
+def _pode_sincronizar(user: UserOut) -> None:
+    if not user.administrador_geral and user.role not in ("admin", "gestor", "financeiro"):
+        raise HTTPException(403, "Acesso restrito")
+
+
+async def _dados_fundo(db, mid: int) -> dict:
+    """CNPJ do Fundo, nome e UF do município — o CNPJ consultado é sempre o do município da sessão."""
+    from models.municipio import Municipio
+    m = (await db.execute(select(Municipio).where(Municipio.id == mid))).scalar_one_or_none()
+    if not m:
+        raise HTTPException(404, "Município não encontrado")
+    from services.investsus_scraper import somente_digitos
+    cnpj = somente_digitos(m.cnpj_fundo)
+    if len(cnpj) != 14 and m.codigo_ibge == IBGE_LEGADO:
+        cnpj = _CNPJ_FUNDO_LEGADO_APUI
+    return {"cnpj": cnpj, "nome": m.nome, "uf": m.uf, "ibge": m.codigo_ibge}
+
+
+def _formatar_cnpj(d: str) -> str:
+    return f"{d[:2]}.{d[2:5]}.{d[5:8]}/{d[8:12]}-{d[12:]}" if len(d) == 14 else d
+
+
+def _credenciais_investsus(ctx: MunicipioContexto | None = None) -> dict[str, str]:
+    from tenancy.credenciais import SISTEMAS, credencial
+    ctx = ctx or municipio_atual()
+    return {campo: credencial("INVESTSUS", campo, ctx) for campo in SISTEMAS["INVESTSUS"]["campos"]}
+
+
+async def _registrar_alertas(db, prop: PropostaInvestSUS, mid: int, alertas: list[dict]) -> int:
+    """Grava alertas da proposta sem duplicar um alerta aberto do mesmo tipo; os urgentes e
+    críticos também vão para a central de Alertas do ERSUS360 (sino / página Alertas)."""
+    from models.alerta import Alerta, SeveridadeAlerta
+    gravados = 0
+    for a in alertas:
+        ja = (await db.execute(select(AlertaInvestSUS.id).where(
+            AlertaInvestSUS.proposta_id == prop.id,
+            AlertaInvestSUS.tipo_alerta == a["tipo_alerta"],
+            AlertaInvestSUS.resolvido == False,  # noqa: E712
+        ))).first()
+        if ja:
+            continue
+        db.add(AlertaInvestSUS(
+            proposta_id=prop.id, municipio_id=mid, tipo_alerta=a["tipo_alerta"],
+            nivel=NivelAlertaInvest(a["nivel"]), titulo=a["titulo"][:300],
+            descricao=a.get("descricao"), providencia=a.get("providencia"),
+            prazo=a.get("prazo"), responsavel=prop.responsavel_interno,
+        ))
+        if a["nivel"] in ("urgente", "critico"):
+            db.add(Alerta(
+                municipio_id=mid, titulo=a["titulo"][:200], descricao=a.get("descricao") or "",
+                modulo="InvestSUS", severidade=SeveridadeAlerta(_ROTULO_NIVEL_GERAL[a["nivel"]]),
+            ))
+        gravados += 1
+    return gravados
+
+
+def _modalidade_valida(valor: str | None) -> str | None:
+    if valor is None:
+        return None
+    if valor not in fed.MODALIDADES_VALIDAS:
+        raise HTTPException(422, f"Modalidade inválida: {valor}. Use rp6, rp7, rp8 ou programa.")
+    return valor
+
+
+async def aplicar_propostas_federais(dados: dict, mid: int, db, origem: str) -> dict:
+    """Upsert das propostas normalizadas (formato de services/investsus_scraper) com
+    detecção de mudança de situação, histórico e alertas. Compartilhado pela sincronização
+    do servidor, pelo relay do bookmarklet, pela leitura da tela e pelo job diário."""
+    cont = {"criadas": 0, "atualizadas": 0, "movimentacoes": 0, "alertas": 0,
+            "fora_escopo": int(dados.get("fora_escopo") or 0)}
+    ts = dados.get("sincronizado_em") or datetime.utcnow().isoformat() + "Z"
+    hoje = date.today()
+    vistos: set[str] = set()
+
+    for item in dados.get("propostas", []):
+        numero = str(item.get("numero_proposta") or "").strip()
+        if not numero or numero == "-" or numero in vistos:
+            continue
+        vistos.add(numero)
+        if not fed.esfera_habilitada(item.get("esfera")):
+            cont["fora_escopo"] += 1  # escopo federal: item estadual não é captado
+            continue
+
+        sit_txt = str(item.get("situacao_raw") or "").strip()
+        sit_val = fed.classificar_situacao(sit_txt)
+        sit_norm = SituacaoNormalizada(sit_val) if sit_val else None
+        valor_global = float(item.get("valor_global") or 0)
+        valor_pago = float(item.get("valor_repassado") or 0)
+        if not valor_pago and sit_val == "totalmente_paga":
+            valor_pago = valor_global  # a lista do InvestSUS só traz "valor"; paga = valor integral
+        modalidade = item.get("modalidade")
+        if modalidade not in fed.MODALIDADES_VALIDAS:
+            modalidade = fed.MODALIDADE_A_CLASSIFICAR
+
+        prop = (await db.execute(select(PropostaInvestSUS).where(
+            PropostaInvestSUS.municipio_id == mid, PropostaInvestSUS.numero_proposta == numero,
+        ))).scalar_one_or_none()
+
+        if prop:
+            txt_ant = prop.situacao_original
+            norm_ant = prop.situacao_normalizada.value if prop.situacao_normalizada else None
+            # campos oficiais (vindos da fonte)
+            if valor_global:
+                prop.valor_indicado = valor_global
+                prop.valor_proposta = valor_global
+            if item.get("valor_aprovado"):
+                prop.valor_aprovado = float(item["valor_aprovado"])
+            if valor_pago:
+                prop.valor_pago = valor_pago
+            if item.get("valor_executado"):
+                prop.valor_executado = float(item["valor_executado"])
+            for campo in ("objeto", "numero_instrumento", "numero_emenda", "componente", "tipo_financiamento"):
+                if item.get(campo):
+                    setattr(prop, campo, item[campo])
+            if item.get("raw") is not None:
+                prop.payload_original = item["raw"]
+            prop.esfera = item.get("esfera") or fed.ESFERA_FEDERAL
+            # modalidade: o dado oficial prevalece; sem informação na fonte, mantém a
+            # classificação feita pelo técnico
+            if modalidade != fed.MODALIDADE_A_CLASSIFICAR or not prop.modalidade:
+                prop.modalidade = modalidade
+                prop.tipo_emenda = TipoEmenda(fed.tipo_emenda_de_modalidade(modalidade))
+            if sit_txt:
+                prop.situacao_original = sit_txt
+            if sit_norm:
+                prop.situacao_normalizada = sit_norm
+            prop.ultima_consulta_investsus = hoje
+            prop.atualizado_por = f"sincronizacao:{origem}"
+
+            norm_nova = prop.situacao_normalizada.value if prop.situacao_normalizada else None
+            texto_mudou = bool(sit_txt) and fed._norm(sit_txt) != fed._norm(txt_ant)
+            if texto_mudou or norm_nova != norm_ant:
+                db.add(HistoricoSituacao(
+                    proposta_id=prop.id,
+                    situacao_anterior=txt_ant or norm_ant,
+                    situacao_nova=sit_txt or norm_nova or "",
+                    situacao_norm_anterior=norm_ant,
+                    situacao_norm_nova=norm_nova,
+                    usuario="sincronizacao",
+                    origem=origem,
+                    observacao=f"Mudança detectada na sincronização ({origem}) em {ts}",
+                ))
+                cont["movimentacoes"] += 1
+                cont["alertas"] += await _registrar_alertas(db, prop, mid, fed.alertas_de_movimento(
+                    nova=False, fase_anterior=fed.fase_de(norm_ant), fase_nova=fed.fase_de(norm_nova),
+                    situacao_anterior=txt_ant, situacao_nova=sit_txt or norm_nova, numero=numero,
+                ))
+            cont["atualizadas"] += 1
+        else:
+            situacao = sit_norm or SituacaoNormalizada.EM_ANALISE
+            prop = PropostaInvestSUS(
+                municipio_id=mid,
+                numero_proposta=numero,
+                numero_emenda=item.get("numero_emenda"),
+                numero_instrumento=item.get("numero_instrumento") or "",
+                objeto=item.get("objeto") or "",
+                esfera=item.get("esfera") or fed.ESFERA_FEDERAL,
+                modalidade=modalidade,
+                tipo_emenda=TipoEmenda(fed.tipo_emenda_de_modalidade(modalidade)),
+                componente=item.get("componente"),
+                tipo_financiamento=item.get("tipo_financiamento"),
+                valor_indicado=valor_global,
+                valor_proposta=valor_global,
+                valor_aprovado=float(item.get("valor_aprovado") or 0),
+                valor_pago=valor_pago,
+                valor_executado=float(item.get("valor_executado") or 0),
+                situacao_original=sit_txt,
+                situacao_normalizada=situacao,
+                exercicio=item.get("exercicio") or hoje.year,
+                entidade_cnpj=_formatar_cnpj(item.get("cnpj_proponente") or ""),
+                fonte_dado=item.get("fonte") or origem,
+                payload_original=item.get("raw"),
+                ultima_consulta_investsus=hoje,
+                criado_por=f"sincronizacao:{origem}",
+                atualizado_por=f"sincronizacao:{origem}",
+            )
+            db.add(prop)
+            await db.flush()
+            db.add(HistoricoSituacao(
+                proposta_id=prop.id,
+                situacao_nova=sit_txt or situacao.value,
+                situacao_norm_nova=situacao.value,
+                usuario="sincronizacao",
+                origem=origem,
+                observacao=f"Proposta captada na sincronização ({origem}) em {ts}",
+            ))
+            cont["alertas"] += await _registrar_alertas(db, prop, mid, fed.alertas_de_movimento(
+                nova=True, fase_anterior=None, fase_nova=fed.fase_de(situacao.value),
+                situacao_anterior=None, situacao_nova=sit_txt or situacao.value, numero=numero,
+            ))
+            cont["criadas"] += 1
+
+    await db.commit()
+    return cont
+
+
+async def executar_sincronizacao(mid: int, fonte: str, cred: dict[str, str]) -> dict:
+    """Busca na fonte federal e aplica no município `mid`. Usado pelo job de background
+    (botão Sincronizar) e pelo job diário do scheduler."""
+    from services.investsus_scraper import sincronizar_investsus, sincronizar_transparencia
+    from database import AsyncSessionLocal
+
+    if not fed.fonte_permitida(fonte):
+        raise ValueError(f"Fonte fora do escopo habilitado: {fonte}")
+    async with AsyncSessionLocal() as db:
+        fundo = await _dados_fundo(db, mid)
+    if fonte == "transparencia":
+        dados = await sincronizar_transparencia(fundo["cnpj"], fundo["nome"], fundo["uf"])
+    else:
+        dados = await sincronizar_investsus(fundo["cnpj"], fundo["ibge"], cred)
+
+    if not dados.get("propostas") and dados.get("erros"):
+        raise RuntimeError("; ".join(e.get("erro", str(e)) for e in dados["erros"]))
+
+    async with AsyncSessionLocal() as db:
+        cont = await aplicar_propostas_federais(dados, mid, db, origem=f"sincronizacao_{fonte}")
+    return {
+        "ok": True,
+        "fonte": fonte,
+        "sincronizado_em": dados["sincronizado_em"],
+        "propostas_encontradas": len(dados["propostas"]),
+        **cont,
+        "descartadas_outra_localidade": dados.get("descartadas_outra_localidade", 0),
+        "erros": dados.get("erros", []),
+    }
+
+
+async def _executar_sync_job(job_id: str, mid: int, fonte: str, cred: dict[str, str]) -> None:
+    """Roda a sincronização em background e guarda o resultado em _sync_jobs."""
     _sync_jobs[job_id]["status"] = "rodando"
     try:
-        await _asyncio.wait_for(_corpo_sync_job(job_id, mid, fonte), timeout=60)
+        resultado = await _asyncio.wait_for(executar_sincronizacao(mid, fonte, cred), timeout=90)
+        _sync_jobs[job_id].update({"status": "concluido", "resultado": resultado})
     except _asyncio.TimeoutError:
         _sync_jobs[job_id].update({
             "status": "erro",
-            "erro": "Tempo limite excedido (60s) — a fonte externa ou a gravação no banco demorou demais. Tente novamente.",
+            "erro": "Tempo limite excedido (90s) — a fonte externa ou a gravação no banco demorou demais. Tente novamente.",
         })
     except Exception as exc:
         _sync_jobs[job_id].update({"status": "erro", "erro": str(exc)})
 
 
-async def _salvar_propostas_normalizadas(dados: dict, mid: int, db) -> tuple[int, int]:
-    """Upsert de uma lista de propostas já normalizadas (shape de _normalizar_proposta
-    em services/investsus_scraper.py) — compartilhado entre o job de sincronização e
-    o relay do bookmarklet (fetch direto feito pelo navegador do usuário)."""
-    criadas = atualizadas = 0
-    for prop_raw in dados.get("propostas", []):
-        numero = prop_raw.get("numero_proposta", "")
-        if not numero:
-            continue
-        res = await db.execute(
-            select(PropostaInvestSUS).where(
-                PropostaInvestSUS.municipio_id == mid,
-                PropostaInvestSUS.numero_proposta == numero,
-            )
-        )
-        existing = res.scalar_one_or_none()
-        situacao_raw = prop_raw.get("situacao_raw", "")
-        situacao_norm = _classificar_situacao_investsus(situacao_raw)
-        if situacao_norm is None and situacao_raw.strip():
-            for s in SituacaoNormalizada:
-                if s.value.lower() in situacao_raw.lower() or situacao_raw.lower() in s.value.lower():
-                    situacao_norm = s
-                    break
-
-        # A API do InvestSUS só devolve um único campo "valor" (sem "repassado"
-        # separado) — se a situação indica pagamento, o valor pago é o próprio valor.
-        if not prop_raw.get("valor_repassado") and situacao_norm in (
-            SituacaoNormalizada.TOTALMENTE_PAGA, SituacaoNormalizada.PARCIALMENTE_PAGA,
-        ):
-            prop_raw["valor_repassado"] = prop_raw.get("valor_global", 0)
-
-        if existing:
-            old_sit = existing.situacao_normalizada
-            if prop_raw.get("valor_global"):
-                existing.valor_indicado = prop_raw["valor_global"]
-                existing.valor_proposta = prop_raw["valor_global"]
-            if prop_raw.get("valor_aprovado"):
-                existing.valor_aprovado = prop_raw["valor_aprovado"]
-            if prop_raw.get("valor_repassado"):
-                existing.valor_pago = prop_raw["valor_repassado"]
-            if prop_raw.get("valor_executado"):
-                existing.valor_executado = prop_raw["valor_executado"]
-            if prop_raw.get("objeto"):
-                existing.objeto = prop_raw["objeto"]
-            if prop_raw.get("numero_instrumento"):
-                existing.numero_instrumento = prop_raw["numero_instrumento"]
-            if prop_raw.get("raw"):
-                existing.payload_original = prop_raw["raw"]
-            if prop_raw.get("tipo_emenda"):
-                try:
-                    existing.tipo_emenda = TipoEmenda(prop_raw["tipo_emenda"]).value
-                except ValueError:
-                    pass
-            existing.situacao_original = prop_raw.get("situacao_raw") or existing.situacao_original
-            if situacao_norm and situacao_norm != old_sit:
-                existing.situacao_normalizada = situacao_norm
-                db.add(HistoricoSituacao(
-                    proposta_id=existing.id,
-                    situacao_anterior=old_sit.value if old_sit else None,
-                    situacao_nova=situacao_norm.value,
-                    origem="sincronizacao_automatica",
-                    observacao=f"Atualizado via sincronização em {dados['sincronizado_em']}",
-                ))
-            atualizadas += 1
-        else:
-            try:
-                tipo_emenda_val = TipoEmenda(prop_raw.get("tipo_emenda", "individual")).value
-            except ValueError:
-                tipo_emenda_val = TipoEmenda.INDIVIDUAL.value
-            nova = PropostaInvestSUS(
-                municipio_id=mid,
-                numero_proposta=numero,
-                numero_instrumento=prop_raw.get("numero_instrumento") or "",
-                objeto=prop_raw.get("objeto") or "",
-                tipo_emenda=tipo_emenda_val,
-                valor_indicado=prop_raw.get("valor_global", 0),
-                valor_proposta=prop_raw.get("valor_global", 0),
-                valor_aprovado=prop_raw.get("valor_aprovado", 0),
-                valor_pago=prop_raw.get("valor_repassado", 0),
-                valor_executado=prop_raw.get("valor_executado", 0),
-                situacao_original=prop_raw.get("situacao_raw") or "",
-                situacao_normalizada=situacao_norm or SituacaoNormalizada.EM_ANALISE,
-                exercicio=prop_raw.get("exercicio", 2024),
-                entidade_cnpj=prop_raw.get("cnpj_proponente") or "12.834.320/0001-26",
-                fonte_dado=prop_raw.get("fonte"),
-                payload_original=prop_raw.get("raw"),
-            )
-            db.add(nova)
-            await db.flush()
-            db.add(HistoricoSituacao(
-                proposta_id=nova.id,
-                situacao_anterior=None,
-                situacao_nova=(situacao_norm or SituacaoNormalizada.EM_ANALISE).value,
-                origem="sincronizacao_automatica",
-                observacao=f"Importado via sincronização em {dados['sincronizado_em']}",
-            ))
-            criadas += 1
-    await db.commit()
-    return criadas, atualizadas
-
-
-async def _corpo_sync_job(job_id: str, mid: int, fonte: str) -> None:
-    from services.investsus_scraper import sincronizar_investsus, sincronizar_transparencia
-    from database import AsyncSessionLocal
-
-    dados = await (sincronizar_transparencia() if fonte == "transparencia" else sincronizar_investsus())
-
-    if not dados.get("propostas") and dados.get("erros"):
-        _sync_jobs[job_id].update({
-            "status": "erro",
-            "erro": "; ".join(e.get("erro", str(e)) for e in dados["erros"]),
-        })
-        return
-
-    async with AsyncSessionLocal() as db:
-        criadas, atualizadas = await _salvar_propostas_normalizadas(dados, mid, db)
-
-    _sync_jobs[job_id].update({
-        "status": "concluido",
-        "resultado": {
-            "ok": True,
-            "sincronizado_em": dados["sincronizado_em"],
-            "propostas_encontradas": len(dados["propostas"]),
-            "criadas": criadas,
-            "atualizadas": atualizadas,
-            "repasses": len(dados.get("repasses", [])),
-            "erros": dados.get("erros", []),
-        },
-    })
-
-
 @router.post("/sincronizar")
 async def sincronizar_com_investsus(user: UserDep, fonte: str = Query("investsus")):
     """
-    Inicia sincronização em background e retorna job_id imediatamente.
-    Use GET /api/investsus/sincronizar/{job_id} para verificar o status.
+    Inicia a sincronização das propostas FEDERAIS do Fundo do município da sessão e
+    retorna job_id; consulte GET /api/investsus/sincronizar/{job_id}.
 
-    fonte="investsus" (padrão): login direto no portal InvestSUS via gov.br
-      (cookie, token ou CPF+senha) — pode falhar se o Railway não alcançar
-      investsus.saude.gov.br.
-    fonte="transparencia": busca emendas via Portal da Transparência CGU
-      (TRANSPARENCIA_API_KEY) — não depende de login no InvestSUS.
+    fonte="investsus" (padrão): portal InvestSUS com o acesso gov.br do município
+      (INVESTSUS_COOKIE/TOKEN/CPF+SENHA com sufixo _{IBGE7}).
+    fonte="transparencia": emendas federais via Portal da Transparência CGU.
     """
-    if not user.administrador_geral and user.role not in ("admin", "gestor", "financeiro"):
-        raise HTTPException(403, "Acesso restrito")
-
+    _pode_sincronizar(user)
     import os
+    if not fed.fonte_permitida(fonte):
+        raise HTTPException(400, f"Fonte '{fonte}' fora do escopo habilitado (somente fontes federais).")
+    ctx = municipio_atual()
+    cred: dict[str, str] = {}
     if fonte == "transparencia":
         if not os.getenv("TRANSPARENCIA_API_KEY", "").strip():
             raise HTTPException(400, detail={
                 "erro": "TRANSPARENCIA_API_KEY não configurada",
-                "instrucao": (
-                    "Obtenha uma chave gratuita em "
-                    "portaldatransparencia.gov.br/api-de-dados/swagger-ui.html "
-                    "e configure TRANSPARENCIA_API_KEY nas variáveis do Railway."
-                ),
+                "instrucao": "Obtenha uma chave gratuita em portaldatransparencia.gov.br/api-de-dados "
+                             "e configure TRANSPARENCIA_API_KEY nas variáveis do servidor.",
             })
     else:
-        tem_credencial = any(
-            os.getenv(v, "").strip()
-            for v in ("INVESTSUS_COOKIE", "INVESTSUS_TOKEN", "INVESTSUS_CPF")
-        )
-        if not tem_credencial:
+        from tenancy.credenciais import configurado
+        if not configurado("INVESTSUS", ctx):
             raise HTTPException(400, detail={
-                "erro": "Credenciais do InvestSUS não configuradas",
+                "erro": "Credenciais do InvestSUS não configuradas para este município",
                 "instrucao": (
-                    "Faça login no portal InvestSUS via gov.br, capture o cookie via DevTools "
-                    "e configure INVESTSUS_COOKIE (ou INVESTSUS_CPF + INVESTSUS_SENHA) nas "
-                    "variáveis do Railway — ou use fonte=\"transparencia\"."
+                    f"Configure INVESTSUS_COOKIE_{ctx.ibge} (sessão do portal após login gov.br) ou "
+                    f"INVESTSUS_CPF_{ctx.ibge} + INVESTSUS_SENHA_{ctx.ibge} nas variáveis do servidor — "
+                    "ou use fonte=\"transparencia\"."
                 ),
             })
+        cred = _credenciais_investsus(ctx)
 
     mid = _municipio_id(user)
     job_id = str(_uuid.uuid4())
     _sync_jobs[job_id] = {"status": "iniciado", "resultado": None, "erro": None, "municipio_id": mid}
-    _asyncio.create_task(_executar_sync_job(job_id, mid, fonte))
+    _asyncio.create_task(_executar_sync_job(job_id, mid, fonte, cred))
     return {"job_id": job_id, "status": "iniciado"}
+
+
+async def verificar_prazos_diligencia(db, mid: int, hoje: date | None = None) -> int:
+    """Alertas de prazo de resposta a diligências sem resposta registrada: 7 dias (atenção),
+    3 dias (urgente), vencido (crítico). Um único alerta aberto por proposta, que escala de
+    nível conforme o prazo se aproxima. Retorna quantos alertas foram criados/escalados."""
+    hoje = hoje or date.today()
+    pendentes = (await db.execute(
+        select(Parecer, PropostaInvestSUS)
+        .join(PropostaInvestSUS, Parecer.proposta_id == PropostaInvestSUS.id)
+        .where(
+            PropostaInvestSUS.municipio_id == mid, _filtro_escopo(),
+            Parecer.eh_diligencia == True,  # noqa: E712
+            Parecer.prazo_resposta.is_not(None), Parecer.data_resposta.is_(None),
+        )
+    )).all()
+    ordem = ["informativo", "atencao", "urgente", "critico"]
+    alterados = 0
+    for parecer, prop in pendentes:
+        dias = (parecer.prazo_resposta - hoje).days
+        nivel = fed.nivel_prazo_diligencia(dias)
+        if not nivel:
+            continue
+        quando = "venceu" if dias < 0 else ("vence hoje" if dias == 0 else f"vence em {dias} dia(s)")
+        titulo = f"Prazo de diligência {quando} — {prop.numero_proposta}"
+        descricao = (f"Diligência de {parecer.sigla_area or parecer.area_responsavel or 'área técnica do MS'}"
+                     f" com prazo de resposta em {parecer.prazo_resposta.strftime('%d/%m/%Y')}.")
+        aberto = (await db.execute(select(AlertaInvestSUS).where(
+            AlertaInvestSUS.proposta_id == prop.id, AlertaInvestSUS.tipo_alerta == "prazo_diligencia",
+            AlertaInvestSUS.resolvido == False,  # noqa: E712
+        ))).scalar_one_or_none()
+        if aberto:
+            if ordem.index(nivel) > ordem.index(aberto.nivel.value):
+                aberto.nivel, aberto.titulo, aberto.descricao = NivelAlertaInvest(nivel), titulo, descricao
+                if nivel in ("urgente", "critico"):
+                    from models.alerta import Alerta, SeveridadeAlerta
+                    db.add(Alerta(municipio_id=mid, titulo=titulo[:200], descricao=descricao, modulo="InvestSUS",
+                                  severidade=SeveridadeAlerta(_ROTULO_NIVEL_GERAL[nivel])))
+                alterados += 1
+            continue
+        alterados += await _registrar_alertas(db, prop, mid, [{
+            "tipo_alerta": "prazo_diligencia", "nivel": nivel, "titulo": titulo, "descricao": descricao,
+            "providencia": "Responder à diligência no InvestSUS e registrar a resposta no ERSUS360.",
+            "prazo": parecer.prazo_resposta,
+        }])
+    await db.commit()
+    return alterados
 
 
 @router.get("/sincronizar/{job_id}")
 async def status_sync_job(job_id: str, user: UserDep):
     """Retorna status do job de sincronização."""
-    if not user.administrador_geral and user.role not in ("admin", "gestor", "financeiro"):
-        raise HTTPException(403, "Acesso restrito")
+    _pode_sincronizar(user)
     job = _sync_jobs.get(job_id)
     if not job or job.get("municipio_id") != _municipio_id(user):
         raise HTTPException(404, "Job não encontrado")
     return job
 
 
-
 @router.post("/sincronizar-dados")
 async def salvar_dados_sincronizados(payload: dict, db: DbDep, user: UserDep):
     """
-    Recebe dados já buscados pelo browser — seja da tela real de Propostas do
-    InvestSUS (numero_proposta/tipo_recurso_raw/tipo_raw/situacao_raw/valor_global),
-    seja do Portal da Transparência (campos legados valorEmpenhado/valorPago/etc.).
-    Usado quando o Railway não consegue alcançar .gov.br diretamente.
-    payload: { propostas: [...], repasses: [...], sincronizado_em: str }
+    Recebe linhas lidas pelo navegador na TELA de Propostas do InvestSUS
+    (numero_proposta, tipo_recurso_raw, tipo_raw, situacao_raw, valor_global) — usado
+    quando o servidor não alcança .gov.br. payload: { propostas: [...], sincronizado_em }
     """
-    if not user.administrador_geral and user.role not in ("admin", "gestor", "financeiro"):
-        raise HTTPException(403, "Acesso restrito")
-
+    _pode_sincronizar(user)
+    from services.investsus_scraper import normalizar_item_tela
     mid = _municipio_id(user)
-    criadas = atualizadas = 0
-
-    for prop_raw in payload.get("propostas", []):
-        numero = str(prop_raw.get("numero_proposta") or prop_raw.get("codigoEmenda") or prop_raw.get("numero") or "")
-        if not numero or numero == "-":
-            continue
-        res = await db.execute(
-            select(PropostaInvestSUS).where(
-                PropostaInvestSUS.municipio_id == mid,
-                PropostaInvestSUS.numero_proposta == numero,
-            )
-        )
-        existing = res.scalar_one_or_none()
-        situacao_raw = str(prop_raw.get("situacao_raw") or prop_raw.get("situacao") or prop_raw.get("fase") or "")
-        situacao_norm = _classificar_situacao_investsus(situacao_raw)
-
-        tipo_recurso_raw = str(prop_raw.get("tipo_recurso_raw") or "")
-        tipo_raw = str(prop_raw.get("tipo_raw") or "")
-        derivado = _parse_tipo_recurso_investsus(tipo_recurso_raw, tipo_raw)
-
-        valor_global = float(prop_raw.get("valor_global") or prop_raw.get("valorEmpenhado") or prop_raw.get("valor") or 0)
-        valor_pago_direto = prop_raw.get("valor_repassado") or prop_raw.get("valorPago")
-        # Sem coluna própria de "repassado" na tela real do InvestSUS: se a situação
-        # indica que já foi paga, o valor mostrado É o valor pago.
-        paga = situacao_norm in (SituacaoNormalizada.TOTALMENTE_PAGA, SituacaoNormalizada.PARCIALMENTE_PAGA)
-        valor_pago = float(valor_pago_direto) if valor_pago_direto else (valor_global if paga else 0.0)
-        objeto       = str(prop_raw.get("objeto") or prop_raw.get("descricao") or derivado["objeto"] or prop_raw.get("tipoEmenda") or "")
-        parlamentar  = str(prop_raw.get("parlamentar") or prop_raw.get("nomeAutor") or "")
-        exercicio    = int(prop_raw.get("exercicio") or prop_raw.get("ano") or 2024)
-        ts           = payload.get("sincronizado_em", "")
-
-        if existing:
-            if valor_global:
-                existing.valor_indicado = valor_global
-                existing.valor_proposta = valor_global
-                existing.valor_aprovado = valor_global
-            if valor_pago:      existing.valor_pago = valor_pago
-            if objeto:          existing.objeto = objeto
-            if derivado["componente"]:         existing.componente = derivado["componente"]
-            if derivado["tipo_financiamento"]:  existing.tipo_financiamento = derivado["tipo_financiamento"]
-            try:
-                existing.tipo_emenda = TipoEmenda(derivado["tipo_emenda"]).value
-            except ValueError:
-                pass
-            existing.payload_original = prop_raw
-            existing.situacao_original = situacao_raw or existing.situacao_original
-            if situacao_norm and situacao_norm != existing.situacao_normalizada:
-                db.add(HistoricoSituacao(
-                    proposta_id=existing.id,
-                    situacao_anterior=existing.situacao_normalizada.value if existing.situacao_normalizada else None,
-                    situacao_nova=situacao_norm.value,
-                    origem="sincronizacao_browser",
-                    observacao=f"Atualizado via browser em {ts}",
-                ))
-                existing.situacao_normalizada = situacao_norm
-            atualizadas += 1
-        else:
-            try:
-                tipo_emenda_val = TipoEmenda(derivado["tipo_emenda"]).value
-            except ValueError:
-                tipo_emenda_val = TipoEmenda.INDIVIDUAL.value
-            nova = PropostaInvestSUS(
-                municipio_id=mid,
-                numero_proposta=numero,
-                numero_instrumento=str(prop_raw.get("numero_instrumento") or prop_raw.get("codigoSubEmenda") or ""),
-                objeto=objeto,
-                tipo_emenda=tipo_emenda_val,
-                componente=derivado["componente"],
-                tipo_financiamento=derivado["tipo_financiamento"],
-                valor_indicado=valor_global,
-                valor_proposta=valor_global,
-                valor_aprovado=valor_global,
-                valor_pago=valor_pago,
-                valor_executado=float(prop_raw.get("valor_executado") or 0),
-                situacao_original=situacao_raw,
-                situacao_normalizada=situacao_norm or SituacaoNormalizada.EM_ANALISE,
-                exercicio=exercicio,
-                entidade_cnpj="12.834.320/0001-26",
-                fonte_dado="sincronizacao_browser",
-                payload_original=prop_raw,
-            )
-            db.add(nova)
-            await db.flush()
-            db.add(HistoricoSituacao(
-                proposta_id=nova.id,
-                situacao_anterior=None,
-                situacao_nova=(situacao_norm or SituacaoNormalizada.EM_ANALISE).value,
-                origem="sincronizacao_browser",
-                observacao=f"Importado via browser em {ts}",
-            ))
-            criadas += 1
-
-    await db.commit()
+    fundo = await _dados_fundo(db, mid)
+    dados = {
+        "propostas": [normalizar_item_tela(it, fundo["cnpj"]) for it in payload.get("propostas", [])],
+        "sincronizado_em": payload.get("sincronizado_em") or datetime.utcnow().isoformat() + "Z",
+    }
+    cont = await aplicar_propostas_federais(dados, mid, db, origem="sincronizacao_browser")
     return {
         "ok": True,
-        "sincronizado_em": payload.get("sincronizado_em", ""),
-        "propostas_encontradas": len(payload.get("propostas", [])),
-        "criadas": criadas,
-        "atualizadas": atualizadas,
+        "sincronizado_em": dados["sincronizado_em"],
+        "propostas_encontradas": len(dados["propostas"]),
+        **cont,
         "repasses": len(payload.get("repasses", [])),
         "erros": [],
     }
@@ -1683,31 +1889,25 @@ async def salvar_dados_sincronizados(payload: dict, db: DbDep, user: UserDep):
 @router.post("/sincronizar-relay")
 async def sincronizar_relay(payload: dict, db: DbDep, user: UserDep):
     """
-    Recebe os itens BRUTOS que o navegador do usuário buscou direto na API real
-    do InvestSUS (POST .../api/propostas/paginado, mesmo formato exato devolvido
-    por aquele endpoint) e os normaliza/grava com o mesmo código usado na
-    sincronização por cookie — só que sem o Railway precisar alcançar o host.
-    payload: { items: [...itens brutos da API do InvestSUS...] }
+    Recebe os itens BRUTOS que o navegador do usuário buscou na API real do InvestSUS
+    (POST .../api/propostas/paginado) e os grava com a mesma regra da sincronização
+    do servidor. payload: { items: [...] }
     """
-    if not user.administrador_geral and user.role not in ("admin", "gestor", "financeiro"):
-        raise HTTPException(403, "Acesso restrito")
-
+    _pode_sincronizar(user)
     from services.investsus_scraper import sincronizar_investsus_relay
 
     mid = _municipio_id(user)
     items = payload.get("items", [])
     if not items:
         raise HTTPException(400, "Nenhum item recebido.")
-
-    dados = await sincronizar_investsus_relay(items)
-    criadas, atualizadas = await _salvar_propostas_normalizadas(dados, mid, db)
-
+    fundo = await _dados_fundo(db, mid)
+    dados = await sincronizar_investsus_relay(items, fundo["cnpj"])
+    cont = await aplicar_propostas_federais(dados, mid, db, origem="sincronizacao_relay")
     return {
         "ok": True,
         "sincronizado_em": dados["sincronizado_em"],
         "propostas_encontradas": len(dados["propostas"]),
-        "criadas": criadas,
-        "atualizadas": atualizadas,
+        **cont,
         "erros": dados.get("erros", []),
     }
 

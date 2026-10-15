@@ -75,6 +75,27 @@ Cole o resultado em `RNDS_CERT_B64` e a senha do .pfx em `RNDS_CERT_PASSWORD`
 
 ---
 
+## 5. InvestSUS — propostas federais do Fundo (INVESTSUS 360)
+
+**Escopo:** somente recursos federais — Emendas RP 6, RP 7, RP 8 e Recursos de Programa do
+Ministério da Saúde. Emendas estaduais não são captadas nesta etapa.
+
+**Variáveis (por município, sufixo = IBGE de 7 dígitos):**
+`INVESTSUS_COOKIE_{IBGE7}` **ou** `INVESTSUS_TOKEN_{IBGE7}` **ou** `INVESTSUS_CPF_{IBGE7}` + `INVESTSUS_SENHA_{IBGE7}`
+(Apuí/AM continua aceitando as variáveis sem sufixo: `INVESTSUS_COOKIE`, `INVESTSUS_CPF`…)
+
+**Como obter (acesso autorizado do gestor do Fundo):**
+1. Acesse https://investsus.saude.gov.br e entre com a conta **gov.br** vinculada ao Fundo Municipal de Saúde
+2. Opção recomendada: configure `INVESTSUS_CPF_{IBGE7}` e `INVESTSUS_SENHA_{IBGE7}` (login automático)
+3. Alternativa: copie o cookie da sessão (DevTools → Rede → cabeçalho `Cookie`) para `INVESTSUS_COOKIE_{IBGE7}` —
+   **expira em cerca de 5 horas**, servindo apenas para sincronizações pontuais
+
+**Pré-requisitos:** CNPJ do Fundo Municipal de Saúde preenchido no cadastro do município (Administrador-Geral).
+A sincronização automática roda todo dia às 06:40 e 13:40 (horário de Manaus); sem acesso configurado,
+use o botão de sincronização pelo navegador na tela InvestSUS.
+
+---
+
 ## Resumo — ordem recomendada de configuração
 
 | Prioridade | Sistema | Variável | Dificuldade |
@@ -83,6 +104,7 @@ Cole o resultado em `RNDS_CERT_B64` e a senha do .pfx em `RNDS_CERT_PASSWORD`
 | 2º | e-Gestor AB | `EGESTOR_TOKEN` | ⭐⭐ Médio — gov.br |
 | 3º | SIAPS/HORUS | `SIAPS_TOKEN` | ⭐⭐ Médio — DATASUS |
 | 4º | RNDS/e-SUS PEC | 4 variáveis | ⭐⭐⭐ Complexo — certificado ICP |
+| — | InvestSUS (federal) | `INVESTSUS_CPF_{IBGE7}` + `INVESTSUS_SENHA_{IBGE7}` | ⭐⭐ Médio — gov.br do Fundo |
 
 **Enquanto não configuradas:** O sistema opera normalmente com dados estáticos reais de Apuí/AM (fallback).
 
