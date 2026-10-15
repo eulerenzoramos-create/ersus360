@@ -1,0 +1,24 @@
+# Testes do backend (inclui os obrigatórios de isolamento entre municípios).
+# Roda em todo pull request e em push na main — nenhum deploy se falharem.
+name: Testes backend
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"   # mesma versão do runtime.txt / Dockerfile
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt pytest pytest-asyncio
+      - run: pytest -q
