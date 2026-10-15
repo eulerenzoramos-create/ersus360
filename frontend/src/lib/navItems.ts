@@ -212,6 +212,11 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Transferências mensais do FNS para APS — Apuí/AM — OBs, portarias e contas bancárias",
     keywords:["repasse","fns","fundo nacional saúde","transferência","ordem bancária","ob","portaria","conta","agência","banco","fundo a fundo","apuí","recurso","parcela","mensal","aps","financeiro","cofinanciamento"] },
 
+  { id:"folha-pagamento",     category:"Financiamento e Recursos", order:229, iconName:"DollarSign",
+    title:"Folha de Pagamento", route:"/folha-pagamento", roles:ROLES_FIN,
+    description:"Gestão da folha de pagamento do setor saúde",
+    keywords:["folha","pagamento","salário","remuneração","proventos","desconto","contracheque"] },
+
   // FNS / Convênios
 
   { id:"fns",                 category:"Financiamento e Recursos", subcategory:"FNS / Convênios", order:210, iconName:"Clipboard",
