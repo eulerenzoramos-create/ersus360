@@ -95,6 +95,70 @@ function Credenciais({ municipio, onFechar }: { municipio: any; onFechar: () => 
   );
 }
 
+// ── Dados cadastrais (CNPJ do Fundo usado pelo InvestSUS, etc.) ───────────────
+const CAMPOS_DADOS: { key: string; rotulo: string; dica?: string }[] = [
+  { key: "cnpj_fundo", rotulo: "CNPJ do Fundo Municipal de Saúde", dica: "Usado na sincronização do InvestSUS e do FNS." },
+  { key: "cnpj_prefeitura", rotulo: "CNPJ da Prefeitura" },
+  { key: "cnpj_secretaria", rotulo: "CNPJ da Secretaria de Saúde" },
+  { key: "cnes_secretaria", rotulo: "CNES da Secretaria" },
+  { key: "secretario", rotulo: "Secretário(a) de Saúde" },
+  { key: "prefeito", rotulo: "Prefeito(a)" },
+  { key: "telefone", rotulo: "Telefone" },
+  { key: "email", rotulo: "E-mail" },
+];
+
+function mascaraCnpj(v: string): string {
+  const d = v.replace(/\D/g, "").slice(0, 14);
+  return d.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
+}
+
+function DadosMunicipio({ municipio, onFechar, onSalvo }: { municipio: any; onFechar: () => void; onSalvo: () => void }) {
+  const [form, setForm] = useState<Record<string, string>>(
+    Object.fromEntries(CAMPOS_DADOS.map(c => [c.key, municipio[c.key] ?? ""])));
+  const [msg, setMsg] = useState(""); const [erro, setErro] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+
+  const salvar = async () => {
+    for (const c of CAMPOS_DADOS.filter(c => c.key.startsWith("cnpj_"))) {
+      const d = (form[c.key] || "").replace(/\D/g, "");
+      if (d && d.length !== 14) { setErro(true); setMsg(`${c.rotulo}: o CNPJ deve ter 14 dígitos.`); return; }
+    }
+    setSalvando(true); setMsg(""); setErro(false);
+    try {
+      const corpo = Object.fromEntries(CAMPOS_DADOS.map(c => [c.key, form[c.key].trim() || null]));
+      await api.patch(`/api/admin-geral/municipios/${municipio.uuid}`, corpo);
+      setMsg("Dados salvos."); onSalvo();
+    } catch (e) { setErro(true); setMsg(erroDe(e)); }
+    finally { setSalvando(false); }
+  };
+
+  return (
+    <div style={{ ...S.card, marginTop: 12, borderColor: "#86efac" }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+        <b style={{ fontSize: 13 }}>Dados cadastrais — {municipio.nome}/{municipio.uf}</b>
+        <button style={{ ...S.btn, marginLeft: "auto" }} onClick={onFechar}>Fechar</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10 }}>
+        {CAMPOS_DADOS.map(c => (
+          <label key={c.key} style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11.5, color: "#475569" }}>
+            {c.rotulo}
+            <input value={form[c.key]} style={S.input}
+              inputMode={c.key.startsWith("cnpj_") || c.key === "cnes_secretaria" ? "numeric" : undefined}
+              placeholder={c.key.startsWith("cnpj_") ? "00.000.000/0000-00" : ""}
+              onChange={e => setForm({ ...form, [c.key]: c.key.startsWith("cnpj_") ? mascaraCnpj(e.target.value) : e.target.value })} />
+            {c.dica && <span style={{ fontSize: 10.5, color: "#64748b" }}>{c.dica}</span>}
+          </label>
+        ))}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+        <button style={S.btnP} onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</button>
+        <Aviso msg={msg} erro={erro} />
+      </div>
+    </div>
+  );
+}
+
 // ── Municípios ────────────────────────────────────────────────────────────────
 function Municipios() {
   const [lista, setLista] = useState<any[]>([]);
@@ -102,6 +166,7 @@ function Municipios() {
   const [msg, setMsg] = useState(""); const [erro, setErro] = useState(false);
   const [novo, setNovo] = useState({ nome: "", uf: "AM", codigo_ibge: "", situacao: "implantacao" });
   const [credenciais, setCredenciais] = useState<any>(null);
+  const [dados, setDados] = useState<any>(null);
 
   const carregar = useCallback(async () => {
     const r = await api.get("/api/admin-geral/municipios", { params: filtro === "todos" || filtro === "contratados" ? {} : { situacao: filtro } });
@@ -134,13 +199,14 @@ function Municipios() {
       <Aviso msg={msg} erro={erro} />
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><th style={S.th}>Município</th><th style={S.th}>IBGE</th><th style={S.th}>Situação</th><th style={S.th}>Plano</th><th style={S.th}>Ações</th></tr></thead>
+          <thead><tr><th style={S.th}>Município</th><th style={S.th}>IBGE</th><th style={S.th}>Situação</th><th style={S.th}>CNPJ do Fundo</th><th style={S.th}>Plano</th><th style={S.th}>Ações</th></tr></thead>
           <tbody>
             {lista.map(m => (
               <tr key={m.uuid}>
                 <td style={S.td}>{m.nome}/{m.uf}</td>
                 <td style={S.td}>{m.codigo_ibge}</td>
                 <td style={S.td}><Situacao s={m.situacao} /></td>
+                <td style={S.td}>{m.cnpj_fundo || <span style={{ color: "#b45309" }}>não informado</span>}</td>
                 <td style={S.td}>{m.plano ?? "—"}</td>
                 <td style={S.td}>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
@@ -148,15 +214,18 @@ function Municipios() {
                       <option value="">Mudar situação…</option>
                       {Object.entries(SITUACOES).filter(([k]) => k !== m.situacao).map(([k, v]) => <option key={k} value={k}>{v.rotulo}</option>)}
                     </select>
-                    <button style={S.btn} onClick={() => setCredenciais(m)}>Credenciais</button>
+                    <button style={S.btn} onClick={() => { setCredenciais(null); setDados(m); }}>Dados / CNPJ</button>
+                    <button style={S.btn} onClick={() => { setDados(null); setCredenciais(m); }}>Credenciais</button>
                   </div>
                 </td>
               </tr>
             ))}
-            {lista.length === 0 && <tr><td style={S.td} colSpan={5}>Nenhum município neste filtro.</td></tr>}
+            {lista.length === 0 && <tr><td style={S.td} colSpan={6}>Nenhum município neste filtro.</td></tr>}
           </tbody>
         </table>
       </div>
+      {dados && <DadosMunicipio key={dados.uuid} municipio={dados} onFechar={() => setDados(null)}
+        onSalvo={() => carregar().catch(() => {})} />}
       {credenciais && <Credenciais municipio={credenciais} onFechar={() => setCredenciais(null)} />}
       <h3 style={{ fontSize: 13, margin: "16px 0 8px" }}>Cadastrar município</h3>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
