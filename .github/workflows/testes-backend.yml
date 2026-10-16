@@ -38,7 +38,7 @@ jobs:
           set -o pipefail
           pytest -q -rfE --tb=short tests/test_investsus_federal.py tests/test_investsus_sincronizacao.py \
             tests/test_isolamento_tenant.py tests/test_varredura_tenant.py tests/test_backup_tenant.py \
-            tests/test_credenciais_tenant.py tests/test_admin_cnpj.py 2>&1 | tee ../essenciais.log
+            tests/test_credenciais_tenant.py tests/test_admin_cnpj.py tests/test_investsus_auth.py 2>&1 | tee ../essenciais.log
       - name: Resumo essenciais
         if: always()
         run: |

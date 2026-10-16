@@ -201,25 +201,34 @@ async def sincronizar_investsus(cnpj: str, ibge7: str, cred: dict[str, str]) -> 
     headers: dict = {**_cabecalhos_contexto(ibge7, cnpj), "Content-Type": "application/json"}
     cookie = (cred.get("COOKIE") or "").strip()
     token = (cred.get("TOKEN") or "").strip()
-    if cookie:
-        # 'scpa' é cookie do portal gov.br e conflita com a sessão do InvestSUS
-        partes = [p.strip() for p in cookie.split(";") if p.strip() and not p.strip().lower().startswith("scpa=")]
-        headers["Cookie"] = "; ".join(partes)
-    elif token:
-        headers["Authorization"] = f"Bearer {token}"
+    cpf, senha = somente_digitos(cred.get("CPF")), (cred.get("SENHA") or "").strip()
+    if not (cpf and senha) and not cookie and not token:
+        resultado["erros"].append({"endpoint": "auth", "erro": "Credenciais do InvestSUS não configuradas para o município."})
+        return resultado
 
     async with httpx.AsyncClient(follow_redirects=True, headers=headers) as client:
-        if not cookie and not token:
-            cpf, senha = somente_digitos(cred.get("CPF")), (cred.get("SENHA") or "").strip()
-            if not cpf or not senha:
-                resultado["erros"].append({"endpoint": "auth", "erro": "Credenciais do InvestSUS não configuradas para o município."})
-                return resultado
+        # Ordem: CPF/senha (token novo a cada sincronização) → token fixo → cookie de sessão.
+        # Cookie e token copiados do navegador expiram; só são usados se não houver CPF/senha
+        # ou se o login por CPF/senha falhar.
+        erro_login = None
+        if cpf and senha:
             try:
                 client.headers["Authorization"] = f"Bearer {await _autenticar(client, cpf, senha)}"
             except Exception as exc:
                 logger.error("InvestSUS auth falhou: %s", exc)
-                resultado["erros"].append({"endpoint": "auth", "erro": str(exc)})
+                erro_login = str(exc)
+        if not cpf or not senha or erro_login:
+            if token:
+                client.headers["Authorization"] = f"Bearer {token}"
+            elif cookie:
+                # 'scpa' é cookie do portal gov.br e conflita com a sessão do InvestSUS
+                partes = [p.strip() for p in cookie.split(";") if p.strip() and not p.strip().lower().startswith("scpa=")]
+                client.headers["Cookie"] = "; ".join(partes)
+            elif erro_login:
+                resultado["erros"].append({"endpoint": "auth", "erro": erro_login})
                 return resultado
+            if erro_login:
+                resultado["erros"].append({"endpoint": "auth", "erro": f"{erro_login} — usado o acesso alternativo (token/cookie)."})
 
         for exercicio in (ano, ano - 1):
             raws, erro = await _buscar_propostas_paginado(client, cnpj, exercicio)
