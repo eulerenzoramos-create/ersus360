@@ -22,11 +22,11 @@ jobs:
           python-version: "3.11"   # mesma versão do runtime.txt / Dockerfile
           cache: pip
           cache-dependency-path: backend/requirements.txt
-      - run: pip install -r requirements.txt pytest pytest-asyncio pytest-github-actions-annotate-failures
+      - run: pip install -r requirements.txt pytest pytest-asyncio pytest-github-actions-annotate-failures pytest-timeout
       - name: pytest
         run: |
           set -o pipefail
-          pytest -q -rfE --tb=short 2>&1 | tee ../pytest.log
+          pytest -q -rfE --tb=short --timeout=90 2>&1 | tee ../pytest.log
       - name: Resumo das falhas
         if: failure()
         run: |
@@ -36,7 +36,7 @@ jobs:
         if: always()
         run: |
           set -o pipefail
-          pytest -q -rfE --tb=short tests/test_investsus_federal.py tests/test_investsus_sincronizacao.py \
+          pytest -q -rfE --tb=short --timeout=90 tests/test_investsus_federal.py tests/test_investsus_sincronizacao.py \
             tests/test_isolamento_tenant.py tests/test_varredura_tenant.py tests/test_backup_tenant.py \
             tests/test_credenciais_tenant.py tests/test_admin_cnpj.py tests/test_investsus_auth.py tests/test_investsus_detalhe.py 2>&1 | tee ../essenciais.log
       - name: Resumo essenciais
