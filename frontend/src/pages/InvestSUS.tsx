@@ -2400,14 +2400,52 @@ function PainelPortalInvestSUS({ municipio_id }: { municipio_id: number }) {
 // ERSUS360 (/sincronizar-relay), que aplica as regras federais do município da sessão.
 const _INVESTSUS_API = "https://investsus-backend-prd.saude.gov.br/api";
 
-async function _capturarInvestSUS(cnpj: string, contexto: string, onProgresso: (m: string) => void): Promise<any[]> {
-  const headers = {
+function _cabecalhosInvestSUS(contexto: string): Record<string, string> {
+  return {
     "content-type": "application/json",
     "accept": "application/json, text/plain, */*",
     "cz-aphrodite-de-peixes": "DIREME",
     "cz-milo-de-escopiao": "ENTPUBLICAFNS",
     "cz-mu-de-aries": contexto,
   };
+}
+
+// Detalhe de cada proposta (tela "Visualizar"): cadastro, pareceres, repasses, anexos e
+// planos de trabalho. Proposta cancelada/rejeitada não tem cadastro (a API responde erro).
+async function _capturarDetalhes(itens: any[], contexto: string, onProgresso: (m: string) => void): Promise<any[]> {
+  const headers = _cabecalhosInvestSUS(contexto);
+  const get = async (caminho: string) => {
+    try {
+      const r = await fetch(`${_INVESTSUS_API}${caminho}`, { credentials: "include", headers });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch { return null; }
+  };
+  const detalhes: any[] = [];
+  let feitos = 0;
+  const fila = itens.filter(i => i?.numero);
+  const trabalhar = async () => {
+    while (fila.length) {
+      const it = fila.shift();
+      const [cadastro, pareceres, repasses, anexos] = await Promise.all([
+        it.coProposta ? get(`/indicacao-objeto/proposta/${it.coProposta}/cadastro`) : null,
+        get(`/propostas/${it.numero}/pareceres`),
+        get(`/propostas/${it.numero}/repasses`),
+        get(`/propostas/${it.numero}/anexos`),
+      ]);
+      const idsPlano = Array.from(new Set(((cadastro?.indicacoes ?? []) as any[]).map(e => e?.idPlanoTrabalho).filter(Boolean)));
+      const planos = (await Promise.all(idsPlano.map(id => get(`/indicacao-objeto/plano-trabalho/${id}`)))).filter(Boolean);
+      detalhes.push({ numero: it.numero, cadastro, pareceres: pareceres ?? [], repasses: repasses ?? [], anexos: anexos ?? [], planos });
+      feitos++;
+      onProgresso(`Lendo o detalhe das propostas… ${feitos}/${itens.length}`);
+    }
+  };
+  await Promise.all([trabalhar(), trabalhar(), trabalhar(), trabalhar()]);
+  return detalhes;
+}
+
+async function _capturarInvestSUS(cnpj: string, contexto: string, onProgresso: (m: string) => void): Promise<any[]> {
+  const headers = _cabecalhosInvestSUS(contexto);
   const anoAtual = new Date().getFullYear();
   const todos: any[] = [];
   for (const ano of [anoAtual, anoAtual - 1]) {
@@ -2457,7 +2495,17 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
       if (!itens.length) throw new Error("Nenhuma proposta encontrada no InvestSUS para este Fundo.");
       setProgresso(`Gravando ${itens.length} propostas no ERSUS360…`);
       const resp = await api.post("/api/investsus/sincronizar-relay", { items: itens });
-      setResultado(resp.data);
+      const lista = resp.data;
+
+      // Detalhe de cada proposta → seções da proposta no ERSUS360
+      const detalhes = await _capturarDetalhes(itens, fundo.contexto_investsus, setProgresso);
+      const soma: Record<string, number> = {};
+      for (let i = 0; i < detalhes.length; i += 25) {
+        setProgresso(`Gravando os detalhes no ERSUS360… ${Math.min(i + 25, detalhes.length)}/${detalhes.length}`);
+        const r = await api.post("/api/investsus/sincronizar-detalhes", { detalhes: detalhes.slice(i, i + 25) });
+        for (const [k, v] of Object.entries(r.data || {})) if (typeof v === "number") soma[k] = (soma[k] || 0) + v;
+      }
+      setResultado({ ...lista, detalhe: soma, alertas: (lista.alertas || 0) + (soma.alertas || 0) });
       setEstado("");
       qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
       qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
@@ -2481,7 +2529,8 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
         <div><strong>1.</strong> Entre no InvestSUS com o seu login gov.br, em outra aba deste navegador.{" "}
           <a href="https://investsus.saude.gov.br" target="_blank" rel="noreferrer" style={{ color: "#1d4ed8", fontWeight: 600 }}>
             Abrir o InvestSUS ↗</a></div>
-        <div><strong>2.</strong> Volte aqui e clique no botão abaixo.</div>
+        <div><strong>2.</strong> Volte aqui e clique no botão abaixo. Ele traz a lista e o detalhe de cada proposta
+          (estabelecimentos/CNES, plano de trabalho, metas, naturezas de despesa, pareceres e diligências, repasses e anexos).</div>
         {fundo?.cnpj_formatado && (
           <div style={{ fontSize: 12, color: "#6b7280" }}>
             Busca as propostas de {new Date().getFullYear() - 1} e {new Date().getFullYear()} do Fundo {fundo.nome}/{fundo.uf} (CNPJ {fundo.cnpj_formatado}).
@@ -2526,6 +2575,14 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
             {resultado.criadas} novas · {resultado.atualizadas} atualizadas · {resultado.movimentacoes} mudança(s) de situação · {resultado.alertas} alerta(s)
             {resultado.fora_escopo > 0 && <> · {resultado.fora_escopo} fora do escopo federal (ignoradas)</>}
           </div>
+          {resultado.detalhe && (
+            <div style={{ color: "#374151", marginTop: 6 }}>
+              <strong>Detalhes:</strong> {resultado.detalhe.propostas ?? 0} propostas detalhadas ·{" "}
+              {resultado.detalhe.classificadas ?? 0} classificadas em RP 6/7/8 · {resultado.detalhe.pareceres_novos ?? 0} pareceres novos ·{" "}
+              {resultado.detalhe.repasses_novos ?? 0} repasses novos · {resultado.detalhe.planos ?? 0} planos de trabalho ·{" "}
+              {resultado.detalhe.anexos_novos ?? 0} anexos novos
+            </div>
+          )}
           {resultado.erros?.length > 0 && (
             <div style={{ marginTop: 6, color: "#92400e" }}>{resultado.erros.map((x: any) => x.erro).join(" · ")}</div>
           )}

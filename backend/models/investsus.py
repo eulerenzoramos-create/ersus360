@@ -306,6 +306,7 @@ class PlanoTrabalho(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     proposta_id: Mapped[int] = mapped_column(ForeignKey("is_propostas.id"), index=True)
     unidade_id: Mapped[int | None] = mapped_column(ForeignKey("is_unidades_beneficiadas.id"), nullable=True)
+    id_externo: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)  # id do InvestSUS
     versao: Mapped[int] = mapped_column(Integer, default=1)
     valor_indicado: Mapped[float] = mapped_column(Float, default=0.0)
     objeto: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -330,6 +331,7 @@ class AcaoServico(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     plano_id: Mapped[int] = mapped_column(ForeignKey("is_planos_trabalho.id"), index=True)
+    id_externo: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)  # id da meta no plano (InvestSUS)
     categoria: Mapped[str | None] = mapped_column(String(100), nullable=True)
     descricao: Mapped[str] = mapped_column(Text)
     tipo: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -458,6 +460,7 @@ class DocumentoInvestSUS(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     proposta_id: Mapped[int] = mapped_column(ForeignKey("is_propostas.id"), index=True)
+    id_externo: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)  # código do anexo no InvestSUS
     nome: Mapped[str] = mapped_column(String(300))
     tipo: Mapped[str | None] = mapped_column(String(100), nullable=True)
     caminho: Mapped[str | None] = mapped_column(String(500), nullable=True)

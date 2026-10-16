@@ -1632,7 +1632,11 @@ async def aplicar_propostas_federais(dados: dict, mid: int, db, origem: str) -> 
                 prop.valor_proposta = valor_global
             if item.get("valor_aprovado"):
                 prop.valor_aprovado = float(item["valor_aprovado"])
-            if valor_pago:
+            # Com os repasses oficiais já importados (detalhe da proposta), o valor pago é a
+            # soma deles — a lista não deve sobrescrevê-lo com o valor integral estimado.
+            if valor_pago and not (await db.execute(select(func.count(PagamentoInvestSUS.id)).where(
+                    PagamentoInvestSUS.proposta_id == prop.id,
+                    PagamentoInvestSUS.fonte_oficial == _FONTE_REPASSE))).scalar():
                 prop.valor_pago = valor_pago
             if item.get("valor_executado"):
                 prop.valor_executado = float(item["valor_executado"])
@@ -1919,6 +1923,230 @@ async def sincronizar_relay(payload: dict, db: DbDep, user: UserDep):
         **cont,
         "erros": dados.get("erros", []),
     }
+
+
+# ── Detalhe da proposta (tela "Visualizar" do InvestSUS) ──────────────────────
+# O navegador do usuário (sessão gov.br) busca cadastro, pareceres, repasses, anexos e
+# planos de trabalho de cada proposta e envia aqui. Grava nas seções da proposta do
+# município da sessão, sem duplicar (chaves oficiais) e sem tocar nos campos internos
+# (resposta de diligência, execução municipal, DigiSUS já preenchido, prioridade...).
+
+_FONTE_REPASSE = "InvestSUS"
+
+
+async def _parlamentar(db, nome: str | None, tipo: str | None) -> Parlamentar | None:
+    if not nome:
+        return None
+    p = (await db.execute(select(Parlamentar).where(Parlamentar.nome == nome[:200]))).scalars().first()
+    if not p:
+        cargo = "Bancada" if "BANCADA" in nome.upper() else ("Comissão" if "COMISS" in nome.upper() else None)
+        p = Parlamentar(nome=nome[:200], cargo=cargo, identificacao_rp=(tipo or None) and tipo[:30])
+        db.add(p)
+        await db.flush()
+    return p
+
+
+async def aplicar_detalhes(db, mid: int, cnpj_fundo: str, detalhes: list[dict], usuario: str) -> dict:
+    from services.investsus_detalhe import normalizar_detalhe
+
+    cont = {"propostas": 0, "nao_encontradas": 0, "outro_cnpj": 0, "classificadas": 0,
+            "pareceres_novos": 0, "repasses_novos": 0, "unidades": 0, "planos": 0,
+            "metas": 0, "naturezas": 0, "anexos_novos": 0, "alertas": 0}
+    for det in detalhes:
+        d = normalizar_detalhe(det, cnpj_fundo)
+        if not d["numero"]:
+            continue
+        if not d["cnpj_ok"]:
+            cont["outro_cnpj"] += 1
+            continue
+        prop = (await db.execute(select(PropostaInvestSUS).where(
+            PropostaInvestSUS.municipio_id == mid, PropostaInvestSUS.numero_proposta == d["numero"],
+        ))).scalar_one_or_none()
+        if not prop:
+            cont["nao_encontradas"] += 1
+            continue
+        cont["propostas"] += 1
+
+        # Dados da proposta (oficiais)
+        for campo, valor in d["proposta"].items():
+            if campo in ("programa_trabalho", "situacao_interna_ms") or valor in (None, "", 0, 0.0):
+                continue
+            setattr(prop, campo, valor)
+        if d["tem_cadastro"] and not prop.entidade_cnpj:
+            prop.entidade_cnpj = _formatar_cnpj(somente_14(cnpj_fundo))
+
+        # Modalidade federal: o tipo da emenda informado pelo InvestSUS prevalece
+        if d["modalidade"] in fed.MODALIDADES_VALIDAS and d["modalidade"] != fed.MODALIDADE_A_CLASSIFICAR:
+            if prop.modalidade != d["modalidade"]:
+                cont["classificadas"] += 1
+            prop.modalidade = d["modalidade"]
+            prop.tipo_emenda = TipoEmenda(fed.tipo_emenda_de_modalidade(d["modalidade"]))
+        emendas = [e for e in d["emendas"] if e["numero_emenda"]]
+        if emendas:
+            prop.numero_emenda = ", ".join(dict.fromkeys(e["numero_emenda"] for e in emendas))[:100]
+            parl = await _parlamentar(db, emendas[0]["parlamentar"], emendas[0]["tipo_emenda"])
+            if parl:
+                prop.parlamentar_id = parl.id
+
+        # DigiSUS / PAS — só preenche o que estiver vazio (campo de acompanhamento interno)
+        for campo, valor in d["digisus"].items():
+            if valor and not getattr(prop, campo):
+                setattr(prop, campo, valor)
+
+        # Estabelecimentos (CNES)
+        unidades_por_cnes: dict[str, UnidadeBeneficiada] = {}
+        existentes = (await db.execute(select(UnidadeBeneficiada).where(
+            UnidadeBeneficiada.proposta_id == prop.id))).scalars().all()
+        for u in existentes:
+            if u.cnes:
+                unidades_por_cnes[u.cnes] = u
+        for u in d["unidades"]:
+            if not u["cnes"]:
+                continue
+            reg = unidades_por_cnes.get(u["cnes"])
+            if not reg:
+                reg = UnidadeBeneficiada(proposta_id=prop.id, cnes=u["cnes"][:10])
+                db.add(reg)
+                unidades_por_cnes[u["cnes"]] = reg
+            reg.nome_estabelecimento = u["nome"] or reg.nome_estabelecimento
+            reg.valor_destinado = u["valor"]
+            reg.objeto_destinado = reg.objeto_destinado or prop.objeto
+            cont["unidades"] += 1
+        await db.flush()
+
+        # Planos de trabalho, metas (ações/serviços) e naturezas de despesa
+        for pl in d["planos"]:
+            plano = (await db.execute(select(PlanoTrabalho).where(
+                PlanoTrabalho.proposta_id == prop.id, PlanoTrabalho.id_externo == pl["id_externo"]))).scalar_one_or_none()
+            if not plano:
+                plano = PlanoTrabalho(proposta_id=prop.id, id_externo=pl["id_externo"], responsavel="InvestSUS")
+                db.add(plano)
+            unidade = unidades_por_cnes.get(pl["cnes"] or "")
+            plano.unidade_id = unidade.id if unidade else plano.unidade_id
+            plano.valor_indicado = pl["valor"]
+            plano.objeto = prop.objeto
+            plano.justificativa = pl["justificativa"]
+            plano.situacao = prop.situacao_original
+            await db.flush()
+            cont["planos"] += 1
+            for m in pl["metas"]:
+                acao = (await db.execute(select(AcaoServico).where(
+                    AcaoServico.plano_id == plano.id, AcaoServico.id_externo == m["id_externo"]))).scalar_one_or_none()
+                if not acao:
+                    acao = AcaoServico(plano_id=plano.id, id_externo=m["id_externo"], descricao=m["descricao"])
+                    db.add(acao)
+                # só os campos oficiais; execução/resultado ficam com o município
+                acao.descricao = m["descricao"]
+                acao.categoria = (m["categoria"] or "")[:100] or None
+                acao.meta_qualitativa = m["caminho"]
+                acao.valor = m["valor"]
+                cont["metas"] += 1
+            for n in pl["naturezas"]:
+                nat = (await db.execute(select(NaturezaDespesa).where(
+                    NaturezaDespesa.proposta_id == prop.id, NaturezaDespesa.codigo == n["codigo"]))).scalars().first()
+                if not nat:
+                    nat = NaturezaDespesa(proposta_id=prop.id, codigo=n["codigo"][:20])
+                    db.add(nat)
+                nat.descricao = n["descricao"] or nat.descricao
+                nat.valor_previsto = n["valor"]
+                cont["naturezas"] += 1
+
+        # Pareceres e diligências (chave: idParecer do InvestSUS)
+        novos_dilig = []
+        for p in d["pareceres"]:
+            reg = None
+            if p["numero_parecer"]:
+                reg = (await db.execute(select(Parecer).where(
+                    Parecer.proposta_id == prop.id, Parecer.numero_parecer == p["numero_parecer"]))).scalar_one_or_none()
+            if not reg:
+                reg = Parecer(proposta_id=prop.id, numero_parecer=p["numero_parecer"])
+                db.add(reg)
+                cont["pareceres_novos"] += 1
+                if p["eh_diligencia"]:
+                    novos_dilig.append(p)
+            reg.area_responsavel = p["area_responsavel"]
+            reg.sigla_area = p["sigla_area"]
+            reg.data_parecer = p["data_parecer"]
+            reg.tipo = TipoParecer(p["tipo"])
+            reg.resultado = ResultadoParecer(p["resultado"])
+            reg.eh_diligencia = p["eh_diligencia"]
+            reg.texto = p["texto"]
+
+        # Diligência em aberto = a diligência é o parecer mais recente da proposta
+        datas = [p["data_parecer"] for p in d["pareceres"] if p["data_parecer"]]
+        mais_recente = max(datas) if datas else None
+        for p in novos_dilig:
+            if p["data_parecer"] and p["data_parecer"] == mais_recente:
+                cont["alertas"] += await _registrar_alertas(db, prop, mid, [{
+                    "tipo_alerta": "nova_diligencia", "nivel": "urgente",
+                    "titulo": f"Nova diligência na proposta {prop.numero_proposta}",
+                    "descricao": f"{p['area_responsavel'] or 'Ministério da Saúde'} emitiu diligência em "
+                                 f"{p['data_parecer'].strftime('%d/%m/%Y')}. Responder no InvestSUS e registrar a resposta aqui.",
+                }])
+
+        # Repasses (chave: ordem bancária)
+        if d["repasses"]:
+            for r in d["repasses"]:
+                reg = None
+                if r["ordem_bancaria"]:
+                    reg = (await db.execute(select(PagamentoInvestSUS).where(
+                        PagamentoInvestSUS.proposta_id == prop.id,
+                        PagamentoInvestSUS.ordem_bancaria == r["ordem_bancaria"]))).scalar_one_or_none()
+                if not reg:
+                    reg = PagamentoInvestSUS(proposta_id=prop.id, ordem_bancaria=r["ordem_bancaria"])
+                    db.add(reg)
+                    cont["repasses_novos"] += 1
+                reg.data_pagamento = r["data_pagamento"]
+                reg.valor = r["valor"]
+                reg.fonte_oficial = _FONTE_REPASSE
+                reg.situacao = r["situacao"]
+                if r["numero_processo"]:
+                    prop.numero_processo = r["numero_processo"]
+            await db.flush()
+            total = (await db.execute(select(func.coalesce(func.sum(PagamentoInvestSUS.valor), 0.0)).where(
+                PagamentoInvestSUS.proposta_id == prop.id,
+                PagamentoInvestSUS.fonte_oficial == _FONTE_REPASSE))).scalar()
+            prop.valor_pago = float(total or 0)
+
+        # Anexos (registro do documento; o arquivo continua no InvestSUS)
+        for a in d["anexos"]:
+            reg = (await db.execute(select(DocumentoInvestSUS).where(
+                DocumentoInvestSUS.proposta_id == prop.id,
+                DocumentoInvestSUS.id_externo == a["id_externo"]))).scalar_one_or_none()
+            if not reg:
+                db.add(DocumentoInvestSUS(proposta_id=prop.id, id_externo=a["id_externo"], nome=a["nome"],
+                                          tipo=a["tipo"], caminho=None, enviado_por="InvestSUS"))
+                cont["anexos_novos"] += 1
+
+        prop.ultima_consulta_investsus = date.today()
+        prop.atualizado_por = f"detalhe_investsus:{usuario}"[:100]
+        await db.flush()
+
+    await db.commit()
+    return cont
+
+
+def somente_14(cnpj: str) -> str:
+    return "".join(c for c in str(cnpj or "") if c.isdigit())
+
+
+@router.post("/sincronizar-detalhes")
+async def sincronizar_detalhes(payload: dict, db: DbDep, user: UserDep):
+    """
+    Recebe o detalhe BRUTO de propostas buscado pelo navegador na API do InvestSUS:
+    { detalhes: [{numero, cadastro, pareceres, repasses, anexos, planos}] } (até 30 por envio).
+    """
+    _pode_sincronizar(user)
+    mid = _municipio_id(user)
+    detalhes = payload.get("detalhes") or []
+    if not isinstance(detalhes, list) or not detalhes:
+        raise HTTPException(400, "Nenhum detalhe recebido.")
+    if len(detalhes) > 30:
+        raise HTTPException(413, "Envie no máximo 30 propostas por vez.")
+    fundo = await _dados_fundo(db, mid)
+    if len(fundo["cnpj"]) != 14:
+        raise HTTPException(422, "CNPJ do Fundo Municipal de Saúde não cadastrado para o município.")
+    return {"ok": True, **await aplicar_detalhes(db, mid, fundo["cnpj"], detalhes, user.nome or "usuario")}
 
 
 # ── Snapshot do portal InvestSUS (capturado via bookmarklet) ──────────────────
