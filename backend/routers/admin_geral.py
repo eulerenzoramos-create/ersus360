@@ -152,8 +152,23 @@ async def _municipio(db: AsyncSession, uuid: str) -> Municipio:
     return m
 
 
+_CAMPOS_CNPJ = ("cnpj_prefeitura", "cnpj_secretaria", "cnpj_fundo")
+
+
+def _cnpj_formatado(campo: str, valor: str | None) -> str | None:
+    """CNPJ com 14 dígitos gravado como 00.000.000/0000-00; vazio limpa o campo."""
+    digitos = "".join(c for c in (valor or "") if c.isdigit())
+    if not digitos:
+        return None
+    if len(digitos) != 14:
+        raise HTTPException(422, f"{campo}: o CNPJ deve ter 14 dígitos.")
+    return f"{digitos[:2]}.{digitos[2:5]}.{digitos[5:8]}/{digitos[8:12]}-{digitos[12:]}"
+
+
 def _aplicar(m: Municipio, dados: dict) -> None:
     for campo, valor in dados.items():
+        if campo in _CAMPOS_CNPJ:
+            valor = _cnpj_formatado(campo, valor)
         if campo == "modulos_contratados":
             valor = json.dumps(valor) if valor is not None else None
         setattr(m, campo, valor)
