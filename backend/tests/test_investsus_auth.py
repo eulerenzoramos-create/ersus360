@@ -45,3 +45,12 @@ async def test_sem_credencial_nenhuma(monkeypatch):
     vistos = _instalar(monkeypatch)
     r = await sc.sincronizar_investsus(CNPJ, "1300144", {})
     assert vistos == [] and "não configuradas" in r["erros"][0]["erro"]
+
+
+async def test_relay_descarta_proposta_de_outro_cnpj():
+    proprio = {"numero": "36000802654202600", "cnpj": CNPJ, "valor": 1, "anoExercicio": "2026",
+               "situacao": {"descricao": "Proposta Paga"}, "tipoRecurso": {"descricao": "PROGRAMA"}}
+    alheio = {**proprio, "numero": "99999999999999999", "cnpj": "11111111000111"}
+    r = await sc.sincronizar_investsus_relay([proprio, alheio], CNPJ)
+    assert [p["numero_proposta"] for p in r["propostas"]] == ["36000802654202600"]
+    assert r["erros"][0]["endpoint"] == "cnpj"

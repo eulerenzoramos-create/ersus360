@@ -851,10 +851,17 @@ async def responder_diligencia(proposta_id: int, parecer_id: int, body: Resposta
 
 
 @router.get("/escopo")
-async def escopo_investsus(user: UserDep):
-    """Escopo vigente do INVESTSUS 360: esfera, modalidades, fases e fontes habilitadas."""
+async def escopo_investsus(db: DbDep, user: UserDep):
+    """Escopo vigente do INVESTSUS 360: esfera, modalidades, fases e fontes habilitadas,
+    e os dados do Fundo do município da sessão usados na captura pelo navegador."""
     from tenancy.credenciais import configurado
+    fundo = await _dados_fundo(db, _municipio_id(user))
+    ibge = fundo["ibge"] or ""
     return {
+        "fundo": {"cnpj": fundo["cnpj"], "cnpj_formatado": _formatar_cnpj(fundo["cnpj"]) if len(fundo["cnpj"]) == 14 else None,
+                  "nome": fundo["nome"], "uf": fundo["uf"], "ibge": ibge,
+                  # cabeçalho de contexto do InvestSUS: código UF / IBGE 6 dígitos / CNPJ
+                  "contexto_investsus": f"{ibge[:2]}/{ibge[:6]}/{fundo['cnpj']}" if len(ibge) == 7 else None},
         "esferas_habilitadas": sorted(fed.ESFERAS_HABILITADAS),
         "modalidades": [{"codigo": k, **v} for k, v in fed.MODALIDADES.items()],
         "fases": [{"codigo": k, "rotulo": v} for k, v in fed.FASES.items()],
@@ -1901,6 +1908,8 @@ async def sincronizar_relay(payload: dict, db: DbDep, user: UserDep):
     if not items:
         raise HTTPException(400, "Nenhum item recebido.")
     fundo = await _dados_fundo(db, mid)
+    if len(fundo["cnpj"]) != 14:
+        raise HTTPException(422, "CNPJ do Fundo Municipal de Saúde não cadastrado para o município.")
     dados = await sincronizar_investsus_relay(items, fundo["cnpj"])
     cont = await aplicar_propostas_federais(dados, mid, db, origem="sincronizacao_relay")
     return {

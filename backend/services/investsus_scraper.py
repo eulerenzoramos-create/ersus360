@@ -248,7 +248,13 @@ async def sincronizar_investsus_relay(items: list[dict], cnpj: str) -> dict:
     não alcança o host. Mesmo formato bruto de /api/propostas/paginado."""
     cnpj = somente_digitos(cnpj)
     resultado = _resultado_vazio()
-    resultado["propostas"] = _separar_escopo([_normalizar_proposta(r, cnpj) for r in items], resultado)
+    # Só entram propostas do Fundo do município da sessão: item de outro CNPJ é descartado
+    proprios = [r for r in items if isinstance(r, dict)
+                and somente_digitos(r.get("cnpj") or r.get("cnpjProponente") or cnpj) == cnpj]
+    if len(proprios) != len(items):
+        resultado["erros"].append({"endpoint": "cnpj",
+                                   "erro": f"{len(items) - len(proprios)} item(ns) de outro CNPJ descartado(s)."})
+    resultado["propostas"] = _separar_escopo([_normalizar_proposta(r, cnpj) for r in proprios], resultado)
     return resultado
 
 
