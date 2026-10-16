@@ -158,6 +158,10 @@ async def _migrar_investsus_federal() -> None:
             ("resposta_texto", "TEXT"),
             ("respondido_por", "VARCHAR(100)"),
         ],
+        # detalhe da proposta importado do InvestSUS (chave para não duplicar)
+        "is_planos_trabalho": [("id_externo", "VARCHAR(50)")],
+        "is_acoes_servicos": [("id_externo", "VARCHAR(50)")],
+        "is_documentos": [("id_externo", "VARCHAR(50)")],
     }
     sqlite = _raw_url.startswith("sqlite")
     async with engine.begin() as conn:
