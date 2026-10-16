@@ -2658,6 +2658,11 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
   return (
     <div>
       <AtualizarPeloNavegador municipio_id={municipio_id} />
+      <details style={{ marginBottom: 16 }}>
+        <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#475569", padding: "8px 0" }}>
+          Outras formas de importar (avançado) — use só se o botão verde acima não funcionar
+        </summary>
+        <div style={{ marginTop: 12 }}>
       <div style={cor.card}>
         <div style={cor.titulo}>Sincronização automática pelo servidor</div>
         <div style={cor.sub}>
@@ -2752,6 +2757,8 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
       </div>
       <ColarDadosInvestSUS municipio_id={municipio_id} />
       <BookmarkletCaptura />
+        </div>
+      </details>
     </div>
   );
 }
