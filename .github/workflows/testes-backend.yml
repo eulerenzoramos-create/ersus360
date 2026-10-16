@@ -1,0 +1,46 @@
+# Testes do backend (inclui os obrigatórios de isolamento entre municípios).
+# Roda em todo pull request e em push na main — nenhum deploy se falharem.
+# Falhas viram anotações no PR (pytest-github-actions-annotate-failures).
+name: Testes backend
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"   # mesma versão do runtime.txt / Dockerfile
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt pytest pytest-asyncio pytest-github-actions-annotate-failures
+      - name: pytest
+        run: |
+          set -o pipefail
+          pytest -q -rfE --tb=short 2>&1 | tee ../pytest.log
+      - name: Resumo das falhas
+        if: failure()
+        run: |
+          echo "::error title=pytest-resumo::$(tail -1 ../pytest.log)"
+          echo "::error title=pytest-lista::$(grep -E '^(FAILED|ERROR) ' ../pytest.log | sed -E 's/^(FAILED|ERROR) //; s/ - .*//' | tr '\n' ' ')"
+      - name: InvestSUS + isolamento entre municípios (obrigatórios)
+        if: always()
+        run: |
+          set -o pipefail
+          pytest -q -rfE --tb=short tests/test_investsus_federal.py tests/test_investsus_sincronizacao.py \
+            tests/test_isolamento_tenant.py tests/test_varredura_tenant.py tests/test_backup_tenant.py \
+            tests/test_credenciais_tenant.py 2>&1 | tee ../essenciais.log
+      - name: Resumo essenciais
+        if: always()
+        run: |
+          echo "::notice title=essenciais-resumo::$(tail -1 ../essenciais.log)"
+          grep -E '^(FAILED|ERROR) ' ../essenciais.log | head -8 | sed 's/^/::error title=essenciais::/' || true

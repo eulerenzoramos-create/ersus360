@@ -141,3 +141,21 @@ DOC-001 a DOC-027 — ver índice em `docs/README.md` (se existir) ou listar com
   (`services/fns_parcelas.py`) na sincronização. É a parcela da Portaria, NÃO o mês de calendário (APS 09/12 = jul).
   Na conciliação, a parcela oficial decide antes da janela de meses.
 
+## INVESTSUS 360 — escopo FEDERAL (determinação vigente)
+- Captação e acompanhamento SOMENTE de recursos federais (Ministério da Saúde / InvestSUS), em 4 modalidades:
+  `rp6` Emenda Individual · `rp7` Emenda de Bancada · `rp8` Emenda de Comissão · `programa` Recurso de Programa (Outros).
+  Emenda cuja fonte não informa o tipo fica `a_classificar` — NUNCA classificar como individual por omissão.
+- Regras em `services/investsus_federal.py` (sem dependências; testes em `tests/test_investsus_federal.py`):
+  esfera, modalidades, classificação do status oficial, 13 fases e alertas de movimentação.
+- **NÃO implementar emendas estaduais** (Assembleia Legislativa / orçamento estadual) sem nova autorização.
+  A arquitetura já está preparada: `PropostaInvestSUS.esfera` + `FONTES` com esfera; um módulo estadual entra como
+  nova fonte e só vale se "estadual" for incluída em `ESFERAS_HABILITADAS`. Listagens, painel e relatório filtram por esfera.
+- Status oficial (`situacao_original`) é preservado como veio da fonte; `situacao_normalizada` → `fase` serve aos painéis.
+- Toda captação passa por `routers/investsus.aplicar_propostas_federais`: registra movimentação quando muda o texto
+  oficial OU a situação normalizada, e emite alertas (diligência = urgente, rejeição/cancelamento = crítico; urgentes e
+  críticos também vão para a central `alertas`, módulo "InvestSUS").
+- Campos internos dos técnicos (`responsavel_interno`, `observacoes_internas`, `prioridade`, DigiSUS, modalidade
+  classificada manualmente) nunca são sobrescritos pela sincronização.
+- O CNPJ consultado é sempre `Municipio.cnpj_fundo` do município da sessão; credenciais `INVESTSUS_*_{IBGE7}`
+  via `tenancy.credenciais` (sistema "INVESTSUS"). Job diário `investsus_federal` (06:40 e 13:40, Manaus):
+  sincroniza quem tem acesso configurado e escala prazos de diligência (7 dias atenção, 3 urgente, vencido crítico).

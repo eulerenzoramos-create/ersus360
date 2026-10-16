@@ -136,6 +136,55 @@ async def init_db():
                     except Exception:
                         pass  # tipo ainda não existe (primeira execução) — create_all já cria com todos os valores
 
+    await _migrar_investsus_federal()
+
     # Multi-tenant: colunas de credenciamento, auditoria por município, perfil ADMINISTRADOR_GERAL
     from tenancy.migracoes import migrar_multitenant
     await migrar_multitenant(engine)
+
+
+async def _migrar_investsus_federal() -> None:
+    """INVESTSUS 360 — escopo federal: colunas novas em is_propostas / is_pareceres e
+    preenchimento inicial de esfera e modalidade. Idempotente; transação própria para
+    que uma falha aqui não aborte as demais migrações."""
+    colunas = {
+        "is_propostas": [
+            ("esfera", "VARCHAR(20) DEFAULT 'federal'"),
+            ("modalidade", "VARCHAR(20)"),
+            ("observacoes_internas", "TEXT"),
+            ("prioridade", "VARCHAR(20)"),
+        ],
+        "is_pareceres": [
+            ("resposta_texto", "TEXT"),
+            ("respondido_por", "VARCHAR(100)"),
+        ],
+    }
+    sqlite = _raw_url.startswith("sqlite")
+    async with engine.begin() as conn:
+        for tabela, cols in colunas.items():
+            existentes: set[str] = set()
+            if sqlite:
+                existentes = {r[1] for r in (await conn.execute(text(f"PRAGMA table_info({tabela})"))).all()}
+            for col, typ in cols:
+                if sqlite:
+                    if col not in existentes:
+                        await conn.execute(text(f"ALTER TABLE {tabela} ADD COLUMN {col} {typ}"))
+                else:
+                    await conn.execute(text(f"ALTER TABLE {tabela} ADD COLUMN IF NOT EXISTS {col} {typ}"))
+
+        await conn.execute(text("UPDATE is_propostas SET esfera = 'federal' WHERE esfera IS NULL"))
+        # Modalidade a partir do tipo legado. "individual" só é confiável em cadastro manual:
+        # a sincronização antiga gravava TODA emenda como individual — esses registros ficam
+        # "a_classificar" até a próxima sincronização reclassificá-los pelo dado oficial.
+        await conn.execute(text("""
+            UPDATE is_propostas SET modalidade = CASE CAST(tipo_emenda AS TEXT)
+                WHEN 'bancada' THEN 'rp7'
+                WHEN 'coletiva' THEN 'rp7'
+                WHEN 'comissao' THEN 'rp8'
+                WHEN 'programa' THEN 'programa'
+                WHEN 'individual' THEN CASE
+                    WHEN fonte_dado IN ('investsus', 'portal_transparencia', 'sincronizacao_browser')
+                    THEN 'a_classificar' ELSE 'rp6' END
+                ELSE 'a_classificar' END
+            WHERE modalidade IS NULL
+        """))

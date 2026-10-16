@@ -205,6 +205,12 @@ class PropostaInvestSUS(Base):
         SAEnum(TipoEmenda, values_callable=lambda obj: [e.value for e in obj]),
         default=TipoEmenda.INDIVIDUAL
     )
+    # Escopo INVESTSUS 360 (services/investsus_federal.py): esfera do recurso — nesta
+    # etapa sempre "federal" — e modalidade federal: rp6 | rp7 | rp8 | programa |
+    # a_classificar (emenda cuja fonte não informou o tipo). Texto, não ENUM, para que
+    # um módulo estadual futuro não exija migração de tipo no Postgres.
+    esfera: Mapped[str] = mapped_column(String(20), default="federal", index=True)
+    modalidade: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
 
     # DigiSUS / PAS
     digisus_exercicio: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -218,8 +224,10 @@ class PropostaInvestSUS(Base):
     digisus_verificado_em: Mapped[date | None] = mapped_column(Date, nullable=True)
     digisus_verificado_por: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
-    # Gestão
+    # Gestão (informações internas dos técnicos — a sincronização nunca sobrescreve)
     responsavel_interno: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    observacoes_internas: Mapped[str | None] = mapped_column(Text, nullable=True)
+    prioridade: Mapped[str | None] = mapped_column(String(20), nullable=True)  # baixa | media | alta
     prazo_vigencia: Mapped[date | None] = mapped_column(Date, nullable=True)
     fonte_dado: Mapped[str | None] = mapped_column(String(100), nullable=True)
     payload_original: Mapped[dict | None] = mapped_column(JSON, nullable=True)
@@ -390,6 +398,8 @@ class Parecer(Base):
     prazo_resposta: Mapped[date | None] = mapped_column(Date, nullable=True)
     data_resposta: Mapped[date | None] = mapped_column(Date, nullable=True)
     situacao_resposta: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    resposta_texto: Mapped[str | None] = mapped_column(Text, nullable=True)
+    respondido_por: Mapped[str | None] = mapped_column(String(100), nullable=True)
     data_reanalize: Mapped[date | None] = mapped_column(Date, nullable=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

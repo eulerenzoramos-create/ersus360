@@ -1,5 +1,6 @@
-// InvestSUS — Emendas, Propostas e Execução
-// ERSUS 360 · FMS Apuí/AM
+// INVESTSUS 360 — propostas FEDERAIS do Fundo Municipal de Saúde
+// Escopo: Emendas RP 6 (individual), RP 7 (bancada), RP 8 (comissão) e Recursos de
+// Programa (Outros) do Ministério da Saúde. Emendas estaduais estão fora do escopo.
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
@@ -188,6 +189,7 @@ function DashboardInvestSUS({ municipio_id }: { municipio_id: number }) {
 
   return (
     <div>
+      <EscopoFederalAviso />
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
         <KPICard label="Total Indicado"  valor={fmt(data.total_indicado)}  cor={CORES.indicado} />
@@ -229,6 +231,22 @@ function DashboardInvestSUS({ municipio_id }: { municipio_id: number }) {
           ))}
         </div>
       </div>
+
+      {/* Fases de acompanhamento (todas, inclusive as vazias) */}
+      {(data.por_fase ?? []).length > 0 && (
+        <div style={S.card}>
+          <div style={S.title}>Propostas por Fase</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 6 }}>
+            {(data.por_fase ?? []).map((f: any) => (
+              <div key={f.fase} style={{ borderRadius: 6, padding: "8px 10px", textAlign: "center" as const,
+                background: f.qtd > 0 ? "#eff6ff" : "#f9fafb", border: `1px solid ${f.qtd > 0 ? "#bfdbfe" : "#f3f4f6"}` }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: f.qtd > 0 ? "#1e3a5f" : "#d1d5db" }}>{f.qtd}</div>
+                <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600 }}>{f.rotulo}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Gráficos */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
@@ -291,34 +309,26 @@ function DashboardInvestSUS({ municipio_id }: { municipio_id: number }) {
         )}
 
         {/* Por tipo de emenda — donut simples */}
-        {(data.por_tipo_emenda ?? []).length > 0 && (
+        {(data.por_modalidade ?? []).some((m: any) => m.qtd > 0) && (
           <div style={S.card}>
-            <div style={S.title}>Por Tipo de Emenda</div>
+            <div style={S.title}>Por Modalidade Federal (valor indicado)</div>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
-                  data={data.por_tipo_emenda}
-                  dataKey="valor"
-                  nameKey="tipo"
+                  data={(data.por_modalidade ?? []).filter((m: any) => m.qtd > 0)}
+                  dataKey="valor_indicado"
+                  nameKey="rotulo"
                   cx="50%"
                   cy="50%"
                   innerRadius={50}
                   outerRadius={80}
                   paddingAngle={3}>
-                  {(data.por_tipo_emenda ?? []).map((_: any, i: number) => (
-                    <Cell key={i} fill={["#1e3a5f","#0284c7","#059669","#d97706","#7c3aed"][i % 5]} />
+                  {(data.por_modalidade ?? []).filter((m: any) => m.qtd > 0).map((m: any) => (
+                    <Cell key={m.modalidade} fill={GRUPO_CONFIG[m.modalidade]?.cor ?? "#9ca3af"} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(v: number) => fmt(v)} />
-                <Legend
-                  formatter={(value: string) => ({
-                    individual: "Individual",
-                    bancada: "Bancada",
-                    comissao: "Comissão",
-                    relator: "Relator",
-                    outro: "Outro",
-                  }[value] ?? value)}
-                  wrapperStyle={{ fontSize: 11 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -427,12 +437,45 @@ function normalizarGrupoEmenda(raw: string): string {
   return TIPO_EMENDA_GRUPO[key] ?? "individual";
 }
 
+// Modalidades federais (campo `modalidade` da API — services/investsus_federal.py)
 const GRUPO_CONFIG: Record<string, { label: string; cor: string; bg: string; icone: string }> = {
-  individual: { label: "Emenda Individual",    cor: "#7c3aed", bg: "#f5f3ff", icone: "👤" },
-  bancada:    { label: "Emenda de Bancada",     cor: "#0284c7", bg: "#eff6ff", icone: "🏛️" },
-  comissao:   { label: "Emenda de Comissão",    cor: "#059669", bg: "#f0fdf4", icone: "⚖️" },
-  programa:   { label: "Programas / Transferência Especial", cor: "#d97706", bg: "#fffbeb", icone: "📋" },
+  rp6:           { label: "Emenda Individual (RP 6)",     cor: "#7c3aed", bg: "#f5f3ff", icone: "👤" },
+  rp7:           { label: "Emenda de Bancada (RP 7)",     cor: "#0284c7", bg: "#eff6ff", icone: "🏛️" },
+  rp8:           { label: "Emenda de Comissão (RP 8)",    cor: "#059669", bg: "#f0fdf4", icone: "⚖️" },
+  programa:      { label: "Recurso de Programa (Outros)", cor: "#d97706", bg: "#fffbeb", icone: "📋" },
+  a_classificar: { label: "Emenda federal a classificar", cor: "#6b7280", bg: "#f9fafb", icone: "❔" },
 };
+const MODALIDADES_FEDERAIS = ["rp6", "rp7", "rp8", "programa"];
+
+// Fases de acompanhamento (campo `fase` da API) — o status oficial é sempre exibido junto
+const FASES: Record<string, string> = {
+  a_cadastrar: "Disponível / a cadastrar", cadastrada: "Cadastrada", enviada: "Enviada",
+  em_analise: "Em análise", em_diligencia: "Em diligência", em_reanalise: "Em reanálise",
+  aprovada: "Aprovada", rejeitada: "Rejeitada", cancelada: "Cancelada", empenhada: "Empenhada",
+  paga: "Paga", em_execucao: "Em execução", concluida: "Concluída",
+};
+
+// Registros anteriores ao campo `modalidade` derivam do tipo legado
+const LEGADO_PARA_MODALIDADE: Record<string, string> = {
+  individual: "rp6", bancada: "rp7", comissao: "rp8", programa: "programa",
+};
+function modalidadeDe(p: any): string {
+  if (p.modalidade && GRUPO_CONFIG[p.modalidade]) return p.modalidade;
+  return LEGADO_PARA_MODALIDADE[normalizarGrupoEmenda(p.tipo_emenda ?? "")] ?? "a_classificar";
+}
+
+function EscopoFederalAviso() {
+  return (
+    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#eff6ff", border: "1px solid #bfdbfe",
+      borderRadius: 8, padding: "9px 12px", marginBottom: 14, fontSize: 12, color: "#1e3a8a" }}>
+      <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+      <span>
+        <strong>Escopo federal.</strong> São acompanhadas emendas parlamentares federais RP 6, RP 7 e RP 8 e
+        Recursos de Programa do Ministério da Saúde (InvestSUS). Emendas estaduais não são captadas nesta etapa.
+      </span>
+    </div>
+  );
+}
 
 // Bloco de financiamento (componente)
 const BLOCO_CONFIG: Record<string, { label: string; cor: string }> = {
@@ -458,8 +501,9 @@ function normalizarBloco(comp: string): string {
 // ── Propostas detalhadas (visão InvestSUS real) ────────────────────────────────
 function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number; onSelect: (p: any) => void }) {
   const [busca, setBusca] = useState("");
+  const [faseFiltro, setFaseFiltro] = useState("");
   const [grupoAberto, setGrupoAberto] = useState<Record<string, boolean>>({
-    individual: true, bancada: true, comissao: true, programa: true,
+    rp6: true, rp7: true, rp8: true, programa: true, a_classificar: true,
   });
   const [blocoAberto, setBlocoAberto] = useState<Record<string, boolean>>({});
 
@@ -480,23 +524,23 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
 
   // Agrupa: grupo → bloco → propostas
   const agrupado = useMemo(() => {
-    const filtradas = busca
-      ? todas.filter(p =>
-          [p.numero_proposta, p.objeto, p.parlamentar?.nome, p.entidade_nome, p.programa_nome]
-            .join(" ").toLowerCase().includes(busca.toLowerCase()))
-      : todas;
+    const filtradas = todas
+      .filter(p => !faseFiltro || p.fase === faseFiltro)
+      .filter(p => !busca ||
+          [p.numero_proposta, p.objeto, p.parlamentar?.nome, p.entidade_nome, p.programa_nome, p.situacao_original]
+            .join(" ").toLowerCase().includes(busca.toLowerCase()));
 
     const grupos: Record<string, Record<string, any[]>> = {
-      individual: {}, bancada: {}, comissao: {}, programa: {},
+      rp6: {}, rp7: {}, rp8: {}, programa: {}, a_classificar: {},
     };
     for (const p of filtradas) {
-      const g = normalizarGrupoEmenda(p.tipo_emenda ?? "");
+      const g = modalidadeDe(p);
       const b = normalizarBloco(p.componente ?? p.programa_nome ?? "");
       if (!grupos[g][b]) grupos[g][b] = [];
       grupos[g][b].push(p);
     }
     return grupos;
-  }, [todas, busca]);
+  }, [todas, busca, faseFiltro]);
 
   const totalGrupo = (g: string) =>
     Object.values(agrupado[g] ?? {}).flat().length;
@@ -515,17 +559,28 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
 
   return (
     <div>
-      {/* Busca global */}
-      <div style={{ position: "relative" as const, marginBottom: 16 }}>
-        <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }} />
-        <input style={{ ...S.input, paddingLeft: 32, fontSize: 13 }}
-          placeholder="Buscar por número, objeto, parlamentar, entidade…"
-          value={busca} onChange={e => setBusca(e.target.value)} />
+      <EscopoFederalAviso />
+
+      {/* Busca global + filtro de fase */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" as const }}>
+        <div style={{ position: "relative" as const, flex: "1 1 260px" }}>
+          <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }} />
+          <input style={{ ...S.input, paddingLeft: 32, fontSize: 13 }}
+            placeholder="Buscar por número, objeto, parlamentar, entidade, situação…"
+            value={busca} onChange={e => setBusca(e.target.value)} />
+        </div>
+        <select style={{ ...S.input, width: 220 }} value={faseFiltro} onChange={e => setFaseFiltro(e.target.value)}
+          aria-label="Filtrar por fase">
+          <option value="">Todas as fases</option>
+          {Object.entries(FASES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
       </div>
 
       {/* Totalizador geral */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 18 }}>
-        {Object.entries(GRUPO_CONFIG).map(([g, cfg]) => (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10, marginBottom: 18 }}>
+        {Object.entries(GRUPO_CONFIG)
+          .filter(([g]) => MODALIDADES_FEDERAIS.includes(g) || totalGrupo(g) > 0)
+          .map(([g, cfg]) => (
           <div key={g} style={{ background: cfg.bg, borderRadius: 8, padding: "12px 14px", borderLeft: `3px solid ${cfg.cor}` }}>
             <div style={{ fontSize: 10, color: cfg.cor, fontWeight: 700, marginBottom: 4 }}>{cfg.icone} {cfg.label.toUpperCase()}</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#111827" }}>{totalGrupo(g)}</div>
@@ -539,7 +594,7 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
       {Object.entries(GRUPO_CONFIG).map(([grupo, gcfg]) => {
         const blocos = agrupado[grupo];
         const total = totalGrupo(grupo);
-        if (total === 0 && !busca) return null;
+        if (total === 0 && (!(busca || faseFiltro) || !MODALIDADES_FEDERAIS.includes(grupo))) return null;
         const aberto = grupoAberto[grupo] !== false;
 
         return (
@@ -567,7 +622,7 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
               <div style={{ border: `1px solid ${gcfg.cor}33`, borderTop: "none", borderRadius: "0 0 8px 8px", overflow: "hidden" }}>
                 {Object.keys(blocos).length === 0 && (
                   <div style={{ padding: "20px 16px", color: "#9ca3af", fontSize: 12, textAlign: "center" }}>
-                    Nenhuma proposta{busca ? " encontrada" : ""} neste tipo de emenda.
+                    Nenhuma proposta{busca || faseFiltro ? " encontrada" : ""} nesta modalidade.
                   </div>
                 )}
 
@@ -648,7 +703,14 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
                                         {p.objeto || p.programa_nome || "—"}
                                       </div>
                                     </td>
-                                    <td style={TD}><SituacaoBadge situacao={p.situacao_normalizada ?? ""} /></td>
+                                    <td style={TD}>
+                                      <SituacaoBadge situacao={p.situacao_normalizada ?? ""} />
+                                      {p.situacao_original && (
+                                        <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }} title="Status oficial na fonte">
+                                          Oficial: {p.situacao_original}
+                                        </div>
+                                      )}
+                                    </td>
                                     <td style={{ ...TD, textAlign: "right" as const, fontWeight: 700, whiteSpace: "nowrap" as const }}>
                                       {fmt(p.valor_global)}
                                     </td>
@@ -896,7 +958,7 @@ function RecursosDisponiveis({ municipio_id }: { municipio_id: number }) {
 // ── Detalhe da Proposta ───────────────────────────────────────────────────────
 function DetalheProposta({ id, municipio_id, onVoltar }: { id: number; municipio_id: number; onSelect?: any; onVoltar: () => void }) {
   const [secoes, setSecoes] = useState<Record<string, boolean>>({
-    execucao: true, objeto: false, entidade: false, digisus: false, unidades: false,
+    interno: true, execucao: true, objeto: false, entidade: false, digisus: false, unidades: false,
     naturezas: false, planos: false, pareceres: true, pagamentos: false, alertas: true,
     historico: true, atualizacoes: false,
   });
@@ -943,6 +1005,7 @@ function DetalheProposta({ id, municipio_id, onVoltar }: { id: number; municipio
   if (isLoading || !p) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
 
   const secoesConfig = [
+    { key: "interno",     label: `Informações Internas — ${p.modalidade_rotulo ?? "modalidade"} · ${p.fase_rotulo ?? "fase"}` },
     { key: "execucao",    label: "Execução Física e Financeira" },
     { key: "objeto",      label: "Objeto e Finalidade" },
     { key: "entidade",    label: "Entidade Beneficiária" },
@@ -1070,6 +1133,7 @@ function DetalheProposta({ id, municipio_id, onVoltar }: { id: number; municipio
           </div>
           {secoes[key] && (
             <div style={{ marginTop: 14 }}>
+              {key === "interno" && <SecaoInterna p={p} proposta_id={id} />}
               {key === "execucao" && <SecaoExecucao p={p} proposta_id={id} />}
               {key === "objeto" && <SecaoObjeto p={p} />}
               {key === "entidade" && <SecaoEntidade p={p} />}
@@ -1079,7 +1143,7 @@ function DetalheProposta({ id, municipio_id, onVoltar }: { id: number; municipio
               {key === "planos" && <SecaoPlanos p={p} proposta_id={id} />}
               {key === "pareceres" && (
                 <>
-                  <SecaoPareceres p={p} />
+                  <SecaoPareceres p={p} proposta_id={id} />
                   <button style={{ ...S.btn("#7c3aed"), marginTop: 10 }} onClick={() => setAddParecer(v => !v)}>
                     <Plus size={12} /> Adicionar Parecer / Diligência
                   </button>
@@ -1540,7 +1604,130 @@ function SecaoNaturezas({ p }: { p: any }) {
   );
 }
 
-function SecaoPareceres({ p }: { p: any }) {
+// ── Informações internas (editáveis pelos técnicos; a sincronização não sobrescreve) ──
+function SecaoInterna({ p, proposta_id }: { p: any; proposta_id: number }) {
+  const qc = useQueryClient();
+  const [editando, setEditando] = useState(false);
+  const [form, setForm] = useState({
+    modalidade: p.modalidade ?? "a_classificar",
+    prioridade: p.prioridade ?? "",
+    responsavel_interno: p.responsavel_interno ?? "",
+    observacoes_internas: p.observacoes_internas ?? "",
+  });
+  const mut = useMutation({
+    mutationFn: (body: typeof form) => api.put(`/api/investsus/propostas/${proposta_id}`, body).then(r => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["investsus-proposta", proposta_id] });
+      qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
+      setEditando(false);
+    },
+  });
+  const prioridadeLabel: Record<string, string> = { baixa: "Baixa", media: "Média", alta: "Alta" };
+
+  if (!editando) {
+    return (
+      <div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+          <Campo label="Esfera" valor="Federal" />
+          <Campo label="Modalidade" valor={p.modalidade_rotulo} />
+          <Campo label="Fase de acompanhamento" valor={p.fase_rotulo} />
+          <Campo label="Status oficial (fonte)" valor={p.situacao_original} />
+          <Campo label="Prioridade" valor={prioridadeLabel[p.prioridade] ?? p.prioridade} />
+          <Campo label="Responsável interno" valor={p.responsavel_interno} />
+        </div>
+        {p.observacoes_internas && (
+          <div style={{ marginTop: 10, fontSize: 12, color: "#374151", whiteSpace: "pre-wrap" as const }}>
+            <span style={S.label}>Observações internas</span>{p.observacoes_internas}
+          </div>
+        )}
+        {p.modalidade === "a_classificar" && (
+          <div style={{ marginTop: 10, fontSize: 12, color: "#92400e", background: "#fffbeb", borderRadius: 6, padding: "6px 10px" }}>
+            A fonte oficial não informou se esta emenda é RP 6, RP 7 ou RP 8. Classifique-a para que entre nos painéis por modalidade.
+          </div>
+        )}
+        <button style={{ ...S.btn("#1e3a5f"), marginTop: 12 }} onClick={() => setEditando(true)}>
+          <Wrench size={13} /> Editar informações internas
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+      <div>
+        <label style={S.label}>Modalidade</label>
+        <select style={S.input} value={form.modalidade} onChange={e => setForm(f => ({ ...f, modalidade: e.target.value }))}>
+          {Object.entries(GRUPO_CONFIG).map(([k, cfg]) => <option key={k} value={k}>{cfg.label}</option>)}
+        </select>
+      </div>
+      <div>
+        <label style={S.label}>Prioridade</label>
+        <select style={S.input} value={form.prioridade} onChange={e => setForm(f => ({ ...f, prioridade: e.target.value }))}>
+          <option value="">—</option>
+          <option value="baixa">Baixa</option>
+          <option value="media">Média</option>
+          <option value="alta">Alta</option>
+        </select>
+      </div>
+      <div>
+        <label style={S.label}>Responsável interno</label>
+        <input style={S.input} value={form.responsavel_interno}
+          onChange={e => setForm(f => ({ ...f, responsavel_interno: e.target.value }))} />
+      </div>
+      <div style={{ gridColumn: "1 / -1" }}>
+        <label style={S.label}>Observações internas</label>
+        <textarea style={{ ...S.input, minHeight: 70 }} value={form.observacoes_internas}
+          onChange={e => setForm(f => ({ ...f, observacoes_internas: e.target.value }))} />
+      </div>
+      <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8 }}>
+        <button style={S.btn("#059669")} disabled={mut.isPending} onClick={() => mut.mutate(form)}>
+          <Check size={13} /> {mut.isPending ? "Salvando…" : "Salvar"}
+        </button>
+        <button style={S.btn()} onClick={() => setEditando(false)}><X size={13} /> Cancelar</button>
+        {mut.isError && <span style={{ fontSize: 12, color: "#dc2626", alignSelf: "center" }}>Não foi possível salvar.</span>}
+      </div>
+    </div>
+  );
+}
+
+function RespostaDiligenciaForm({ proposta_id, parecer_id }: { proposta_id: number; parecer_id: number }) {
+  const qc = useQueryClient();
+  const [aberto, setAberto] = useState(false);
+  const [form, setForm] = useState({ data_resposta: new Date().toISOString().slice(0, 10), resposta_texto: "" });
+  const mut = useMutation({
+    mutationFn: () => api.post(`/api/investsus/propostas/${proposta_id}/pareceres/${parecer_id}/resposta`, form).then(r => r.data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["investsus-proposta", proposta_id] }); setAberto(false); },
+  });
+  if (!aberto) {
+    return (
+      <button style={{ ...S.btn("#d97706"), marginTop: 8 }} onClick={() => setAberto(true)}>
+        <CheckCircle2 size={13} /> Registrar resposta à diligência
+      </button>
+    );
+  }
+  return (
+    <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+      <div>
+        <label style={S.label}>Data da resposta (enviada no InvestSUS)</label>
+        <input type="date" style={{ ...S.input, width: 180 }} value={form.data_resposta}
+          onChange={e => setForm(f => ({ ...f, data_resposta: e.target.value }))} />
+      </div>
+      <textarea style={{ ...S.input, minHeight: 60 }} placeholder="Resumo da resposta / documentos enviados"
+        value={form.resposta_texto} onChange={e => setForm(f => ({ ...f, resposta_texto: e.target.value }))} />
+      <div style={{ display: "flex", gap: 8 }}>
+        <button style={S.btn("#059669")} disabled={mut.isPending || !form.data_resposta} onClick={() => mut.mutate()}>
+          <Check size={13} /> {mut.isPending ? "Salvando…" : "Salvar resposta"}
+        </button>
+        <button style={S.btn()} onClick={() => setAberto(false)}><X size={13} /> Cancelar</button>
+      </div>
+      <div style={{ fontSize: 11, color: "#6b7280" }}>
+        Registro interno: o status oficial muda quando o Ministério da Saúde registrar a reanálise.
+      </div>
+    </div>
+  );
+}
+
+function SecaoPareceres({ p, proposta_id }: { p: any; proposta_id: number }) {
   if (!(p.pareceres ?? []).length) return <div style={{ color: "#9ca3af", fontSize: 13 }}>Nenhum parecer registrado.</div>;
   return (
     <div>
@@ -1559,6 +1746,13 @@ function SecaoPareceres({ p }: { p: any }) {
             </div>
             {pa.texto && <div style={{ fontSize: 12, color: "#374151" }}>{pa.texto}</div>}
             {pa.prazo_resposta && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>Prazo resposta: {pa.prazo_resposta}</div>}
+            {pa.eh_diligencia && pa.data_resposta && (
+              <div style={{ fontSize: 11, color: "#059669", marginTop: 4 }}>
+                Respondida em {pa.data_resposta}{pa.respondido_por ? ` por ${pa.respondido_por}` : ""}
+                {pa.resposta_texto ? ` — ${pa.resposta_texto}` : ""}
+              </div>
+            )}
+            {pa.eh_diligencia && !pa.data_resposta && <RespostaDiligenciaForm proposta_id={proposta_id} parecer_id={pa.id} />}
           </div>
         );
       })}
@@ -1885,13 +2079,13 @@ function RelatorioAcompanhamento({ municipio_id }: { municipio_id: number }) {
   const exportarCSV = () => {
     if (!data?.linhas?.length) return;
     const cols = [
-      "numero_proposta", "numero_emenda", "exercicio", "parlamentar", "partido_uf",
+      "numero_proposta", "numero_emenda", "exercicio", "esfera", "modalidade", "fase", "parlamentar", "partido_uf",
       "programa", "componente", "tipo_financiamento", "entidade", "cnpj", "objeto",
       "situacao_original", "situacao_normalizada",
       "valor_indicado", "valor_aprovado", "valor_empenhado", "valor_pago", "valor_executado",
       "saldo_bancario", "perc_fisico", "perc_financeiro",
       "portaria_numero", "empenho_numero", "prazo_vigencia", "ultima_consulta",
-      "total_pareceres", "alertas_abertos", "responsavel_interno",
+      "total_pareceres", "alertas_abertos", "responsavel_interno", "prioridade", "observacoes_internas",
     ];
     const header = cols.join(";");
     const rows = data.linhas.map((r: any) =>
@@ -2356,6 +2550,9 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
               <span style={cor.tag("#1e3a5f")}>{resultado.propostas_encontradas} registros</span>
               <span style={cor.tag("#065f46")}>{resultado.criadas} novas</span>
               <span style={cor.tag("#92400e")}>{resultado.atualizadas} atualizadas</span>
+              {resultado.movimentacoes > 0 && <span style={cor.tag("#1e40af")}>{resultado.movimentacoes} mudança(s) de situação</span>}
+              {resultado.alertas > 0 && <span style={cor.tag("#b91c1c")}>{resultado.alertas} alerta(s) emitido(s)</span>}
+              {resultado.fora_escopo > 0 && <span style={cor.tag("#6b7280")}>{resultado.fora_escopo} fora do escopo federal (ignoradas)</span>}
               {resultado.repasses > 0 && <span style={cor.tag("#4c1d95")}>{resultado.repasses} repasses</span>}
             </div>
             {resultado.erros?.length > 0 && (
@@ -2907,7 +3104,9 @@ function ColarItensBrutosInvestSUS({ municipio_id }: { municipio_id: number }) {
       {erro && <div style={{ marginTop: 10, color: "#b91c1c", fontSize: 12 }}>{erro}</div>}
       {resultado && (
         <div style={{ marginTop: 10, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 10, fontSize: 12, color: "#166534" }}>
-          ✓ {resultado.propostas_encontradas} propostas processadas — {resultado.criadas} novas, {resultado.atualizadas} atualizadas.
+          ✓ {resultado.propostas_encontradas} propostas processadas — {resultado.criadas} novas, {resultado.atualizadas} atualizadas
+          {resultado.movimentacoes ? `, ${resultado.movimentacoes} mudança(s) de situação` : ""}
+          {resultado.alertas ? `, ${resultado.alertas} alerta(s)` : ""}.
         </div>
       )}
     </div>
@@ -3124,7 +3323,9 @@ function ColarPropostasInvestSUS({ municipio_id }: { municipio_id: number }) {
       {erro && <div style={{ marginTop: 10, color: "#b91c1c", fontSize: 12 }}>{erro}</div>}
       {resultado && (
         <div style={{ marginTop: 10, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 10, fontSize: 12, color: "#166534" }}>
-          ✓ {resultado.propostas_encontradas} propostas processadas — {resultado.criadas} novas, {resultado.atualizadas} atualizadas.
+          ✓ {resultado.propostas_encontradas} propostas processadas — {resultado.criadas} novas, {resultado.atualizadas} atualizadas
+          {resultado.movimentacoes ? `, ${resultado.movimentacoes} mudança(s) de situação` : ""}
+          {resultado.alertas ? `, ${resultado.alertas} alerta(s)` : ""}.
         </div>
       )}
     </div>

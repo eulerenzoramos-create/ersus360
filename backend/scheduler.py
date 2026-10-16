@@ -411,6 +411,43 @@ async def _job_reverificar_backups() -> None:
         logger.error("[Scheduler] Reverificação de backups falhou: %s", exc, exc_info=True)
 
 
+async def _job_investsus_federal() -> None:
+    """Job INVESTSUS 360 (escopo federal): para cada município ativo, sincroniza as propostas
+    federais do InvestSUS quando o município tem acesso configurado (INVESTSUS_*_{IBGE7}) e
+    o CNPJ do Fundo cadastrado, e escala os alertas de prazo de diligência."""
+    logger.info("[Scheduler] INVESTSUS 360: sincronização federal e prazos de diligência...")
+    try:
+        from sqlalchemy import select
+        from database import AsyncSessionLocal
+        from models.municipio import Municipio
+        from tenancy.contexto import MunicipioContexto, contexto_municipio
+        from tenancy.credenciais import configurado
+        from routers.investsus import (
+            _credenciais_investsus, executar_sincronizacao, verificar_prazos_diligencia,
+        )
+        async with AsyncSessionLocal() as db:
+            municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
+        for mun in municipios:
+            ctx = MunicipioContexto(id=mun.id, uuid=mun.uuid, ibge=mun.codigo_ibge, nome=mun.nome, uf=mun.uf)
+            with contexto_municipio(ctx):
+                if configurado("INVESTSUS", ctx):
+                    try:
+                        r = await executar_sincronizacao(mun.id, "investsus", _credenciais_investsus(ctx))
+                        logger.info("[Scheduler] InvestSUS %s: %s criadas, %s atualizadas, %s movimentações, %s alertas",
+                                    mun.codigo_ibge, r["criadas"], r["atualizadas"], r["movimentacoes"], r["alertas"])
+                    except Exception as exc:  # sessão expirada, portal fora do ar etc. — não para o job
+                        logger.warning("[Scheduler] InvestSUS %s: %s", mun.codigo_ibge, exc)
+                try:
+                    async with AsyncSessionLocal() as db:
+                        n = await verificar_prazos_diligencia(db, mun.id)
+                    if n:
+                        logger.info("[Scheduler] InvestSUS %s: %s alerta(s) de prazo de diligência", mun.codigo_ibge, n)
+                except Exception as exc:
+                    logger.error("[Scheduler] Prazos de diligência %s: %s", mun.codigo_ibge, exc, exc_info=True)
+    except Exception as exc:
+        logger.error("[Scheduler] Erro no job INVESTSUS 360: %s", exc, exc_info=True)
+
+
 def start_scheduler() -> None:
     """Registra e inicia o scheduler."""
     hora_str = settings.FNS_SYNC_HORA  # "06:00"
@@ -552,6 +589,11 @@ def start_scheduler() -> None:
                       id="egestor_pagamento_diario", replace_existing=True, misfire_grace_time=3600)
     scheduler.add_job(_job_egestor_pagamento, "date", run_date=_dt.now(_tz.utc) + _td(minutes=6),
                       id="egestor_pagamento_inicial", replace_existing=True)
+
+    # INVESTSUS 360 (federal): duas passagens por dia — início da manhã e início da tarde
+    scheduler.add_job(_job_investsus_federal,
+                      CronTrigger(hour="6,13", minute=40, timezone="America/Manaus"),
+                      id="investsus_federal", replace_existing=True, misfire_grace_time=3600)
 
     scheduler.start()
     logger.info(
