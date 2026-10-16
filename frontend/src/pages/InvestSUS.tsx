@@ -2394,6 +2394,147 @@ function PainelPortalInvestSUS({ municipio_id }: { municipio_id: number }) {
   );
 }
 
+// ── Atualizar do InvestSUS pelo navegador (sessão gov.br do próprio usuário) ──
+// O gov.br não permite login automático pelo servidor. Aqui o navegador do usuário,
+// já logado no InvestSUS em outra aba, consulta a API oficial e envia os itens ao
+// ERSUS360 (/sincronizar-relay), que aplica as regras federais do município da sessão.
+const _INVESTSUS_API = "https://investsus-backend-prd.saude.gov.br/api";
+
+async function _capturarInvestSUS(cnpj: string, contexto: string, onProgresso: (m: string) => void): Promise<any[]> {
+  const headers = {
+    "content-type": "application/json",
+    "accept": "application/json, text/plain, */*",
+    "cz-aphrodite-de-peixes": "DIREME",
+    "cz-milo-de-escopiao": "ENTPUBLICAFNS",
+    "cz-mu-de-aries": contexto,
+  };
+  const anoAtual = new Date().getFullYear();
+  const todos: any[] = [];
+  for (const ano of [anoAtual, anoAtual - 1]) {
+    for (let pagina = 1; pagina <= 20; pagina++) {
+      onProgresso(`Buscando propostas de ${ano} no InvestSUS…`);
+      let resp: Response;
+      try {
+        resp = await fetch(`${_INVESTSUS_API}/propostas/paginado`, {
+          method: "POST", credentials: "include", headers,
+          body: JSON.stringify({ filter: { ano: String(ano), cnpj }, pageNumber: pagina, pageSize: 100 }),
+        });
+      } catch {
+        throw new Error("SEM_SESSAO");
+      }
+      if (resp.status === 401 || resp.status === 403) throw new Error("SEM_SESSAO");
+      if (!resp.ok) throw new Error(`O InvestSUS respondeu com erro ${resp.status}. Tente de novo em alguns minutos.`);
+      let dados: any;
+      try { dados = await resp.json(); } catch { throw new Error("SEM_SESSAO"); }
+      const itens: any[] = Array.isArray(dados) ? dados : (dados?.items ?? []);
+      todos.push(...itens);
+      const total = Array.isArray(dados) ? itens.length : Number(dados?.total ?? itens.length);
+      if (!itens.length || itens.length < 100 || todos.filter(i => String(i.anoExercicio) === String(ano)).length >= total) break;
+    }
+  }
+  return todos;
+}
+
+function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
+  const qc = useQueryClient();
+  const { data: escopo } = useQuery({
+    queryKey: ["investsus-escopo", municipio_id],
+    queryFn: () => api.get("/api/investsus/escopo").then(r => r.data),
+  });
+  const [estado, setEstado] = useState<"" | "rodando" | "sem_sessao">("");
+  const [progresso, setProgresso] = useState("");
+  const [resultado, setResultado] = useState<any>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const fundo = escopo?.fundo;
+  const pronto = !!(fundo?.cnpj && fundo?.contexto_investsus);
+
+  const atualizar = async () => {
+    if (!pronto) return;
+    setEstado("rodando"); setErro(null); setResultado(null);
+    try {
+      const itens = await _capturarInvestSUS(fundo.cnpj, fundo.contexto_investsus, setProgresso);
+      if (!itens.length) throw new Error("Nenhuma proposta encontrada no InvestSUS para este Fundo.");
+      setProgresso(`Gravando ${itens.length} propostas no ERSUS360…`);
+      const resp = await api.post("/api/investsus/sincronizar-relay", { items: itens });
+      setResultado(resp.data);
+      setEstado("");
+      qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
+      qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
+    } catch (e: any) {
+      if (e?.message === "SEM_SESSAO") { setEstado("sem_sessao"); return; }
+      const d = e?.response?.data;
+      setErro(d?.detail || e?.message || "Não foi possível atualizar.");
+      setEstado("");
+    } finally {
+      setProgresso("");
+    }
+  };
+
+  const verde = "#047857";
+  return (
+    <div style={{ background: "#fff", border: `2px solid ${verde}`, borderRadius: 10, padding: 24, marginBottom: 16 }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 }}>
+        Atualizar do InvestSUS (recomendado)
+      </div>
+      <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, marginBottom: 14 }}>
+        <div><strong>1.</strong> Entre no InvestSUS com o seu login gov.br, em outra aba deste navegador.{" "}
+          <a href="https://investsus.saude.gov.br" target="_blank" rel="noreferrer" style={{ color: "#1d4ed8", fontWeight: 600 }}>
+            Abrir o InvestSUS ↗</a></div>
+        <div><strong>2.</strong> Volte aqui e clique no botão abaixo.</div>
+        {fundo?.cnpj_formatado && (
+          <div style={{ fontSize: 12, color: "#6b7280" }}>
+            Busca as propostas de {new Date().getFullYear() - 1} e {new Date().getFullYear()} do Fundo {fundo.nome}/{fundo.uf} (CNPJ {fundo.cnpj_formatado}).
+          </div>
+        )}
+      </div>
+
+      {!pronto && escopo && (
+        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 12, fontSize: 13, marginBottom: 12 }}>
+          O CNPJ do Fundo Municipal de Saúde não está cadastrado. O administrador-geral cadastra em
+          Municípios → <strong>Dados / CNPJ</strong>.
+        </div>
+      )}
+
+      <button
+        onClick={atualizar} disabled={!pronto || estado === "rodando"}
+        style={{ background: !pronto || estado === "rodando" ? "#9ca3af" : verde, color: "#fff", border: "none", borderRadius: 8,
+          padding: "12px 28px", fontSize: 14, fontWeight: 700, cursor: !pronto || estado === "rodando" ? "not-allowed" : "pointer",
+          display: "flex", alignItems: "center", gap: 8 }}>
+        <RefreshCw size={16} style={{ animation: estado === "rodando" ? "spin 1s linear infinite" : "none" }} />
+        {estado === "rodando" ? (progresso || "Atualizando…") : "Atualizar do InvestSUS"}
+      </button>
+
+      {estado === "sem_sessao" && (
+        <div role="alert" style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 14, marginTop: 14, fontSize: 13, lineHeight: 1.6 }}>
+          <strong>Você não está logado no InvestSUS neste navegador.</strong><br />
+          Clique em <a href="https://investsus.saude.gov.br" target="_blank" rel="noreferrer" style={{ color: "#1d4ed8", fontWeight: 600 }}>Abrir o InvestSUS ↗</a>,
+          entre com o gov.br, volte para esta aba e clique de novo em <strong>Atualizar do InvestSUS</strong>.
+        </div>
+      )}
+      {erro && (
+        <div role="alert" style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 14, marginTop: 14, fontSize: 13 }}>
+          <strong>Erro:</strong> {erro}
+        </div>
+      )}
+      {resultado && (
+        <div role="status" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 14, marginTop: 14, fontSize: 13 }}>
+          <div style={{ fontWeight: 700, color: "#166534", marginBottom: 6 }}>
+            ✓ Atualizado: {resultado.propostas_encontradas} propostas lidas do InvestSUS
+          </div>
+          <div style={{ color: "#374151" }}>
+            {resultado.criadas} novas · {resultado.atualizadas} atualizadas · {resultado.movimentacoes} mudança(s) de situação · {resultado.alertas} alerta(s)
+            {resultado.fora_escopo > 0 && <> · {resultado.fora_escopo} fora do escopo federal (ignoradas)</>}
+          </div>
+          {resultado.erros?.length > 0 && (
+            <div style={{ marginTop: 6, color: "#92400e" }}>{resultado.erros.map((x: any) => x.erro).join(" · ")}</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Sincronizar via browser (browser busca .gov.br, envia ao backend) ─────────
 const _CNPJ_FMS  = "12834320000126";   // FMS Apuí
 const _CNPJ_PREF = "04105419000151";   // Prefeitura Municipal de Apuí
@@ -2516,11 +2657,13 @@ function SincronizarInvestSUS({ municipio_id }: { municipio_id: number }) {
 
   return (
     <div>
+      <AtualizarPeloNavegador municipio_id={municipio_id} />
       <div style={cor.card}>
-        <div style={cor.titulo}>Sincronização com InvestSUS</div>
+        <div style={cor.titulo}>Sincronização automática pelo servidor</div>
         <div style={cor.sub}>
-          Autentica no portal <strong>InvestSUS</strong> via gov.br e importa todas as
-          propostas do FMS Apuí (CNPJ 12.834.320/0001-26) diretamente na API oficial.
+          Tenta entrar no InvestSUS pelo servidor, com as credenciais do município no Railway.
+          O gov.br costuma exigir login no navegador; se der erro aqui, use o
+          <strong> Atualizar do InvestSUS</strong> acima.
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
