@@ -153,3 +153,17 @@ def test_niveis_de_prazo_de_diligencia():
     assert fed.nivel_prazo_diligencia(3) == "urgente"
     assert fed.nivel_prazo_diligencia(0) == "urgente"
     assert fed.nivel_prazo_diligencia(-1) == "critico"
+
+
+def test_situacoes_reais_do_investsus_apui():
+    """Textos oficiais vistos na API do InvestSUS (Apuí, out/2026)."""
+    casos = {
+        "Proposta enviada para Análise Técnica de Mérito": "em_analise",
+        "Proposta Favorável aguardando Classificação Orçamentária": "aprovada",
+        "Proposta Empenhada aguardando Formalização": "empenhada",
+        "Proposta Paga": "paga",
+        "Proposta Rejeitada": "rejeitada",
+        "Proposta Cancelada": "cancelada",
+    }
+    for texto, fase in casos.items():
+        assert fed.fase_de(fed.classificar_situacao(texto)) == fase, texto

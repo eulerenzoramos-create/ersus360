@@ -197,7 +197,7 @@ _REGRAS_SITUACAO: list[tuple[str, str]] = [
     (r"(diligencia|complementacao|adequacao).*(respondid|enviad|atendid)", "complementacao_enviada"),
     (r"diligencia", "em_diligencia"),
     (r"complementacao|adequacao|ajuste", "aguardando_complementacao"),
-    (r"aprovad|habilitad|deferid", "aprovada"),
+    (r"aprovad|habilitad|deferid|favoravel", "aprovada"),
     (r"analise", "em_analise"),
     (r"enviad", "proposta_enviada"),
     (r"cadastrad", "proposta_cadastrada"),
