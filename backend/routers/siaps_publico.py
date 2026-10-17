@@ -57,6 +57,31 @@ async def captura_resultados(current: SessaoMunicipal, competencia: Optional[str
     return await siaps_captura.tabela_por_equipe(db, current.municipio_ibge, competencia)
 
 
+@router.get("/painel-geral")
+async def painel_geral(current: SessaoMunicipal, modalidade: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+    """Painel geral da APS: mensal (monitoramento) e quadrimestral (avaliação) separados, com defasagem."""
+    from services import siaps_painel_geral
+    return await siaps_painel_geral.montar(db, current.municipio_id, current.municipio_ibge, current.municipio, modalidade)
+
+
+@router.get("/catalogo")
+async def catalogo(current: SessaoMunicipal):
+    """Indicadores oficiais por modalidade, peso das Notas Técnicas e link da ficha técnica."""
+    from services.siaps_catalogo import URL_NOTAS, catalogo as _catalogo
+    return {"indicadores": _catalogo(), "fonte": URL_NOTAS}
+
+
+@router.get("/captura/indicadores")
+async def captura_indicadores(current: SessaoMunicipal, competencia: Optional[str] = None,
+                              db: AsyncSession = Depends(get_db)):
+    return await siaps_captura.por_indicador(db, current.municipio_ibge, competencia)
+
+
+@router.get("/captura/serie")
+async def captura_serie(current: SessaoMunicipal, codigo: str, db: AsyncSession = Depends(get_db)):
+    return await siaps_captura.serie_indicador(db, current.municipio_ibge, codigo[:6])
+
+
 @router.get("/quadrimestral")
 async def quadrimestral(current: SessaoMunicipal, quadrimestre: Optional[str] = None,
                         db: AsyncSession = Depends(get_db)):

@@ -472,3 +472,90 @@ def test_faixas_e_pesos_das_notas_tecnicas():
     for grupo in (["C1", "C2", "C3", "C4", "C5", "C6", "C7"], ["B1", "B2", "B3", "B4", "B5", "B6"], ["M1", "M2"],
                   ["R1", "R2", "R3", "R4", "R5", "R6"], ["CR1", "CR2", "CR3", "CR4"], ["P1", "P2", "P3", "P4", "P5", "P6"]):
         assert sum(sq.PESOS_NT[k] for k in grupo) == 10
+
+
+# ── Painel geral, catálogo, visão por indicador, abrangência (eGestor — outubro/2026) ────────────────────
+
+def test_catalogo_oficial_tem_todas_as_modalidades_e_pesos_das_nts():
+    from services.siaps_catalogo import catalogo
+    cat = {c["codigo"]: c for c in catalogo()}
+    assert len(cat) == 31 and {c["modalidades"] for c in cat.values()} >= {"eSF, eAP", "eSB", "eMulti", "eSFR", "eCR", "eAPP"}
+    assert cat["R4"]["peso_quadrimestral"] == 1.5 and cat["R4"]["nota_tecnica"].startswith("Nota Técnica nº 12/2026")
+    assert cat["B4"]["nota_tecnica"].startswith("Nota Técnica nº 8/2026") and "6-a-12-anos" in cat["B4"]["ficha_tecnica"]
+    assert all(c["ficha_tecnica"].startswith("https://www.gov.br/saude/") for c in cat.values())
+
+
+def test_defasagem_da_competencia():
+    from datetime import date
+    from services.siaps_painel_geral import defasagem_meses
+    assert defasagem_meses("2026-07", date(2026, 10, 17)) == 3          # jul/26 publicado; outubro em andamento
+    assert defasagem_meses(None) is None
+
+
+async def test_painel_geral_separa_mensal_de_quadrimestral(ambiente, monkeypatch):
+    from datetime import date
+    from services import siaps_painel_geral
+    c = ambiente["client"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    _siaps_falso(monkeypatch)
+    await c.post("/api/siaps-publico/sincronizar", headers=_h(tok))
+    await c.post("/api/siaps-publico/captura", headers=_h(tok), json=_captura(quadrimestral=[AREAL_Q1, EMULTI_Q1]))
+
+    original = siaps_painel_geral.montar
+    monkeypatch.setattr(siaps_painel_geral, "montar",
+                        lambda *a, **k: original(*a, **{**k, "hoje": date(2026, 10, 17)}))
+    p = (await c.get("/api/siaps-publico/painel-geral", headers=_h(tok))).json()
+    m = p["monitoramento_mensal"]
+    assert m["competencia"] == "2026-07" and m["defasagem_meses"] == 3 and m["situacao"].startswith("preliminar")
+    assert p["mes_corrente"] == "outubro/2026 (em andamento)"
+    assert any(i["codigo"] == "B4" and i["equipes"] == ["0010 CACHOEIRA"] for i in m["indicadores_com_regular"])
+    q = p["avaliacao_quadrimestral"]
+    assert q["publicado"] == "2026Q1" and q["por_equipe_mais_recente"] == "2026Q1" and q["por_equipe_situacao"] == "publicado"
+    assert [h["quadrimestre"] for h in q["historico"]] == ["2025Q3", "2026Q1"]
+    assert {i["codigo"] for i in p["indisponiveis"]} >= {"C2", "C3"}       # eSF sem C2/C3 na captura de teste
+    assert p["conferencia"]["confere"] >= 1
+    so_esb = (await c.get("/api/siaps-publico/painel-geral", params={"modalidade": "eSB"}, headers=_h(tok))).json()
+    assert {i["sg_equipe"] for i in so_esb["monitoramento_mensal"]["indicadores_com_regular"]} == {"eSB"}
+
+
+async def test_visao_por_indicador_e_serie(ambiente):
+    c = ambiente["client"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    await c.post("/api/siaps-publico/captura", json=_captura(), headers=_h(tok))
+    v = (await c.get("/api/siaps-publico/captura/indicadores", headers=_h(tok))).json()
+    c1 = next(b for b in v["indicadores"] if b["codigo"] == "C1")
+    assert c1["catalogo"]["nome"] == "Mais acesso à APS" and c1["contagem"]["otimo"] == 1 and c1["contagem"]["bom"] == 1
+    assert {e["ine"] for e in c1["equipes"]} == {"0000007072", "0000007056"}
+    s = (await c.get("/api/siaps-publico/captura/serie", params={"codigo": "C1"}, headers=_h(tok))).json()
+    assert s["competencias"] == ["2026-05", "2026-07"]
+    kennedy = next(e for e in s["equipes"] if e["equipe"] == "KENNEDY")
+    assert kennedy["valores"]["2026-05"]["classificacao"] == "regular" and kennedy["valores"]["2026-07"]["classificacao"] == "otimo"
+
+
+async def test_correcao_do_ms_guarda_valor_anterior(ambiente):
+    c = ambiente["client"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    await c.post("/api/siaps-publico/captura", json=_captura(), headers=_h(tok))
+    corrigida = _captura()
+    corrigida["linhas"][4] = ["202607", "3320138", "UBS IRMA ELIZABETE", "0001773925", "0010 CACHOEIRA", "eSB",
+                              "Escovação Supervisionada na APS", 4.5, 9, 199, "SUFICIENTE"]        # B4 corrigido (SIAPS 2.1.2)
+    r = (await c.post("/api/siaps-publico/captura", json=corrigida, headers=_h(tok))).json()
+    assert r["corrigidos_pelo_ms"] == ["2026-07 0010 CACHOEIRA B4: 0→4.5 (regular→suficiente)"]
+    s = (await c.get("/api/siaps-publico/captura/serie", params={"codigo": "B4"}, headers=_h(tok))).json()
+    assert next(e for e in s["equipes"] if e["equipe"] == "0010 CACHOEIRA")["valores"]["2026-07"]["corrigido_pelo_ms"] is True
+
+
+async def test_abrangencia_usa_homologadas_validas_oficiais(ambiente):
+    c = ambiente["client"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    await c.post("/api/siaps-publico/captura", headers=_h(tok), json=_captura([], quadrimestral=[AREAL_Q1, EMULTI_Q1]))
+    a = (await c.get("/api/siaps/abrangencia", headers=_h(tok))).json()
+    assert a["equipes_homologadas"]["eSFR"] == 1 and a["equipes_validas_componentes"]["eMulti"] == 1
+    assert a["equipes_validas_componentes"]["eSF"] == 0                 # sem eSF na captura de teste: não usa a referência fixa
+    assert a.get("homologadas_fonte", "").endswith("2026Q1")
+
+
+def test_rotas_live_nao_duplicadas():
+    from main import app
+    caminhos = [r.path for r in app.routes if getattr(r, "path", "").startswith("/api/siaps/live/")]
+    assert len(caminhos) == len(set(caminhos))

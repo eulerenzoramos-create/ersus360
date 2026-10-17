@@ -144,7 +144,7 @@ async def importar(db: AsyncSession, ibge: str, pacote: dict, usuario: str | Non
                 hist.append({"resultado": antes[0], "numerador": antes[1], "denominador": antes[2],
                              "classificacao": antes[3], "substituido_em": inicio.isoformat()})
                 reg.payload_original = {**(reg.payload_original or {}), "historico": hist}
-                corrigidos.append(f"{l['competencia']} {l['equipe']} {l['codigo']}: {antes[0]}→{l['score']} "
+                corrigidos.append(f"{l['competencia']} {l['equipe']} {l['codigo']}: {sq._fmt(antes[0])}→{sq._fmt(l['score'])} "
                                   f"({antes[3]}→{l['classe']})")
         reg.equipe_nome, reg.equipe_tipo, reg.cnes = str(l["equipe"])[:100], str(l["sg_equipe"])[:20], str(l["cnes"])[:10]
         reg.indicador_nome = str(l["indicador"])[:200] or INDICADORES_QUALIDADE.get(l["codigo"])
@@ -236,3 +236,44 @@ async def tabela_por_equipe(db: AsyncSession, ibge: str, competencia: str | None
     return {"situacao_dado": "oficial", "fonte": FONTE_CAPTURA, "situacao": "preliminar",
             "competencia": competencia, "competencias": comps, "tipos": saida,
             "ultima_captura": st["ultima_captura"]}
+
+
+async def por_indicador(db: AsyncSession, ibge: str, competencia: str | None = None) -> dict:
+    """Visão consolidada da aba Componente Qualidade: um bloco por indicador (catálogo oficial + contagem por
+    classificação) com o detalhe de cada equipe (INE, resultado, NM, DN, classificação oficial)."""
+    from services.siaps_catalogo import do_codigo
+    tab = await tabela_por_equipe(db, ibge, competencia)
+    if tab["situacao_dado"] == "nao_disponivel":
+        return {**tab, "indicadores": []}
+    blocos = []
+    for t in tab["tipos"]:
+        for ind in t["indicadores"]:
+            equipes = []
+            for e in t["equipes"]:
+                v = e["valores"].get(ind["codigo"])
+                if v:
+                    equipes.append({"ine": e["ine"], "equipe": e["equipe"], "ubs": e["ubs"], **v})
+            ordem = {"regular": 0, "suficiente": 1, "bom": 2, "otimo": 3}
+            equipes.sort(key=lambda x: (ordem.get(x["classificacao"], 9), x["equipe"] or ""))
+            blocos.append({"codigo": ind["codigo"], "nome_publicado": ind["nome"], "sg_equipe": t["tipo_equipe"],
+                           "catalogo": do_codigo(ind["codigo"]),
+                           "contagem": {c: sum(1 for x in equipes if x["classificacao"] == c) for c in CLASSES.values()},
+                           "equipes": equipes})
+    return {**{k: v for k, v in tab.items() if k != "tipos"}, "indicadores": blocos}
+
+
+async def serie_indicador(db: AsyncSession, ibge: str, codigo: str) -> dict:
+    """Histórico mensal capturado de um indicador, por equipe (para o gráfico da visão por indicador)."""
+    linhas = (await db.execute(select(ResultadoMensalSiaps)
+                               .where(ResultadoMensalSiaps.municipio_ibge == ibge,
+                                      ResultadoMensalSiaps.fonte == FONTE_CAPTURA,
+                                      ResultadoMensalSiaps.indicador_codigo == codigo)
+                               .order_by(ResultadoMensalSiaps.competencia))).scalars().all()
+    comps = sorted({r.competencia for r in linhas})
+    equipes: dict[str, dict] = {}
+    for r in linhas:
+        e = equipes.setdefault(r.equipe_ine, {"ine": r.equipe_ine, "equipe": r.equipe_nome, "valores": {}})
+        e["valores"][r.competencia] = {"resultado": r.resultado_pct, "classificacao": r.classificacao,
+                                       "corrigido_pelo_ms": bool((r.payload_original or {}).get("historico"))}
+    return {"codigo": codigo, "competencias": comps,
+            "equipes": sorted(equipes.values(), key=lambda e: e["equipe"] or "")}

@@ -288,3 +288,17 @@ def problemas_integridade(r) -> list[dict]:
         if i.get("conceito") is not None and i.get("nota") is not None and abs(i["conceito"] * i["peso"] - i["nota"]) > 0.011:
             p(f"{cod}: nota {i['nota']:g} ≠ conceito {i['conceito']:g} × peso {i['peso']:g}.")
     return out
+
+
+async def homologadas_e_validas(db: AsyncSession, municipio_id: int) -> dict | None:
+    """Equipes homologadas e válidas por modalidade no quadrimestre mais recente capturado (Componente III,
+    que cobre todas as modalidades). None quando não há captura."""
+    regs = [r for r in await _ativos(db, municipio_id) if r.componente == "QUALIDADE"]
+    if not regs:
+        return None
+    q = max(r.quadrimestre for r in regs)
+    doq = [r for r in regs if r.quadrimestre == q]
+    sgs = sorted({r.sg_equipe for r in doq}, key=lambda s: ORDEM_SG.get(s, 9))
+    return {"quadrimestre": q,
+            "homologadas": {s: sum(1 for r in doq if r.sg_equipe == s and r.homologada) for s in sgs},
+            "validas": {s: sum(1 for r in doq if r.sg_equipe == s and r.equipe_valida) for s in sgs}}
