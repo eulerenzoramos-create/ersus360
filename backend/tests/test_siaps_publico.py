@@ -228,3 +228,37 @@ async def test_ia_pergunta_vazia_recusa_e_sem_chave(ambiente, monkeypatch):
     _ia_falsa(monkeypatch, {}, stop="refusal")
     r = await c.post("/api/siaps-ia/analisar", json={"modo": "pergunta", "pergunta": "Como estamos?"}, headers=_h(tok))
     assert r.status_code == 503 and "não pôde responder" in r.json()["detail"]
+
+
+# ── Boas Práticas (aba existente, sem lista fixa) ─────────────────────────────
+
+async def test_boas_praticas_vem_dos_resultados_oficiais(ambiente, monkeypatch):
+    from models.siaps_relatorio import SiapsRelatorio
+    c, S = ambiente["client"], ambiente["Session"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    vazio = (await c.get("/api/siaps/boas-praticas", headers=_h(tok))).json()
+    assert vazio["situacao_dado"] == "nao_disponivel" and vazio["boas_praticas"] == []
+    assert "LIBERDADE" not in str(vazio) and "Previne" not in str(vazio)      # lista fixa antiga não volta
+
+    _siaps_falso(monkeypatch)
+    await c.post("/api/siaps-publico/sincronizar", headers=_h(tok))
+    async with S() as db:
+        db.add(SiapsRelatorio(
+            municipio_id=ambiente["ids"]["apui"], municipio_ibge="1300144", componente="cvat", indicador="",
+            competencia="2026-07", tipo_equipe="eAP, eSF", dado_preliminar=True, colunas="[]",
+            linhas=json.dumps([{"ubs": "UBS A", "equipe": "EQUIPE OTIMA", "pontuacao": 9.4},
+                               {"ubs": "UBS B", "equipe": "EQUIPE MEDIA", "pontuacao": 7.2},
+                               {"ubs": "UBS C", "equipe": "EQUIPE BAIXA", "pontuacao": 3.1}])))
+        await db.commit()
+
+    bp = (await c.get("/api/siaps/boas-praticas", headers=_h(tok))).json()
+    titulos = [b["titulo"] for b in bp["boas_praticas"]]
+    assert "Equipe EQUIPE OTIMA — Vínculo Ótimo (9,40)" in titulos
+    assert "Equipe EQUIPE BAIXA — Vínculo Regular (3,10)" in titulos
+    assert not any("EQUIPE MEDIA" in t for t in titulos)
+    assert "Cuidado da Pessoa com Hipertensão — todas as 9 equipes eSF Ótimo" in titulos
+    assert "Taxa de exodontias na APS — 4 equipe(s) eSB em Regular" in titulos
+    assert any(t.startswith("Escovação Supervisionada na APS — 2 equipe(s)") for t in titulos)
+    assert bp["destaques"] == sum(b["destaque"] for b in bp["boas_praticas"])
+    assert all(b["fonte"] for b in bp["boas_praticas"])
+    assert bp["boas_praticas"][0]["destaque"] is True                       # destaques primeiro

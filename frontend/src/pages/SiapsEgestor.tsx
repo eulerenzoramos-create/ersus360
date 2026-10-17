@@ -1492,7 +1492,7 @@ function QualidadeImportada() {
 // ── Boas Práticas ─────────────────────────────────────────────────────────────
 
 function AbaBoasPraticas({ data }: { data: any }) {
-  if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum dado de boas práticas foi inventado." />;
+  if (!data || !data.boas_praticas?.length) return <NaoDisponivelBanner nota="Ainda não há resultado oficial captado: importe o relatório CVAT do SIAPS ou atualize a Avaliação Quadrimestre. Nenhum dado de boas práticas é inventado." />;
   const COR_TIPO: Record<string, string> = {
     vinculo: "#1d4ed8", qualidade: "#16a34a",
     alerta_critico: "#dc2626", plano_melhoria: "#d97706",
@@ -1510,7 +1510,7 @@ function AbaBoasPraticas({ data }: { data: any }) {
     <div>
       <div style={{ marginBottom: 18 }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>Boas Práticas e Alertas</h2>
-        <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Destaques e recomendações para Apuí/AM</p>
+        <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Gerados dos resultados oficiais: {data.fontes?.join(" · ")}</p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
@@ -1596,11 +1596,11 @@ function AbaBoasPraticas({ data }: { data: any }) {
                 </div>
               )}
 
-              {bp.ubs !== "TODAS" && bp.ubs !== "VER DETALHES" && (
-                <div style={{ fontSize: 11, color: "#9ca3af" }}>
-                  UBS: {bp.ubs} · Equipe: {bp.equipe}
-                </div>
-              )}
+              {bp.descricao && <div style={{ fontSize: 12.5, color: "#374151", marginBottom: 6 }}>{bp.descricao}</div>}
+              <div style={{ fontSize: 11, color: "#9ca3af" }}>
+                {bp.ubs !== "TODAS" && bp.ubs !== "VER DETALHES" && <>UBS: {bp.ubs} · Equipe: {bp.equipe} · </>}
+                Fonte: {bp.fonte}
+              </div>
             </div>
           );
         })}
