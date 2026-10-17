@@ -379,3 +379,96 @@ async def test_tabela_por_equipe_da_aba_componente_qualidade(ambiente):
     assert cach["valores"]["C1"] == {"resultado": 46.14, "numerador": 299, "denominador": 648, "classificacao": "bom"}
     maio = (await c.get("/api/siaps-publico/captura/resultados", params={"competencia": "2026-05"}, headers=_h(tok))).json()
     assert maio["tipos"][0]["equipes"][0]["valores"]["C1"]["classificacao"] == "regular"     # KENNEDY 70,89
+
+
+# ── Avaliação quadrimestral oficial por equipe (área logada) — itens reais de Apuí, 17/10/2026 ──────────
+
+AREAL_Q1 = {"quadrimestre": "2026Q1", "componente": 120, "sg_equipe": "eSFR", "ine": "0000007048", "equipe": "AREAL",
+            "cnes": "2013290", "ubs": "UBS EDUARDO BIAZIN", "nota_final": 8, "classificacao": "ÓTIMO",
+            "equipe_valida": "S", "homologada": "S", "indicadores": json.dumps({
+                "131": {"SG": "R1", "NOTA": 0.5, "PESO": 1, "CONCEITO": 0.5, "CLASSIFICACAO": "SUFICIENTE", "SCORE": 26.34,
+                        "DN": 1845, "NM": 486, "LSDN": {"MES1": 26, "MES2": 229, "MES3": 1085, "MES4": 505}},
+                "132": {"SG": "R2", "NOTA": 1, "PESO": 2, "CONCEITO": 0.5, "CLASSIFICACAO": "SUFICIENTE", "SCORE": 45},
+                "133": {"SG": "R3", "NOTA": 2, "PESO": 2, "CONCEITO": 1, "CLASSIFICACAO": "ÓTIMO", "SCORE": 79.17},
+                "134": {"SG": "R4", "NOTA": 1.5, "PESO": 1.5, "CONCEITO": 1, "CLASSIFICACAO": "ÓTIMO", "SCORE": 85.96},
+                "135": {"SG": "R5", "NOTA": 1.5, "PESO": 1.5, "CONCEITO": 1, "CLASSIFICACAO": "ÓTIMO", "SCORE": 90.14},
+                "136": {"SG": "R6", "NOTA": 1.5, "PESO": 2, "CONCEITO": 0.75, "CLASSIFICACAO": "BOM", "SCORE": 68.17,
+                        "LSDN": {"BPA": {"MES1": 293, "MES2": 292}, "BPB": {"MES1": 73}}},
+                "NTFINAL": 8, "CLASSIFICACAO": "ÓTIMO"})}
+EMULTI_Q1 = {"quadrimestre": "2026Q1", "componente": 120, "sg_equipe": "eMulti", "ine": "0002449927",
+             "equipe": "EMULTI ANIZIO", "cnes": "2013312", "ubs": "UBS ANIZIO FERREIRA DA SILVA", "nota_final": 7,
+             "classificacao": "BOM", "equipe_valida": "S", "homologada": "S", "indicadores": json.dumps({
+                 "117": {"SG": "M1", "NOTA": 3, "PESO": 6, "CONCEITO": 0.5, "CLASSIFICACAO": "SUFICIENTE", "SCORE": 1.65},
+                 "118": {"SG": "M2", "NOTA": 4, "PESO": 4, "CONCEITO": 1, "CLASSIFICACAO": "ÓTIMO", "SCORE": 5.9}})}
+ACARI_CVAT_Q2 = {"quadrimestre": "2026Q2", "componente": 119, "sg_equipe": "eSF", "ine": "0000007064", "equipe": "ACARI",
+                 "cnes": "2013312", "ubs": "UBS ANIZIO FERREIRA DA SILVA", "nota_final": 8.25, "classificacao": "BOM",
+                 "equipe_valida": "S", "homologada": "S", "indicadores": json.dumps({
+                     "101": {"LSSCORE": {"MES1": 3, "MES2": 3, "MES3": 3}, "SCORE": 3, "CLASSIFICACAO": "ÓTIMO"},
+                     "102": {"LSSCORE": {"MES1": 5.25}, "SCORE": 5.25, "NPS": 0, "CLASSIFICACAO": "BOM"},
+                     "NTFINAL": 8.25, "CLASSIFICACAO": "BOM"})}
+
+
+async def test_quadrimestral_oficial_por_equipe_todas_modalidades(ambiente, monkeypatch):
+    c, S = ambiente["client"], ambiente["Session"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    assert (await c.get("/api/siaps-publico/quadrimestral", headers=_h(tok))).json()["situacao_dado"] == "nao_disponivel"
+    _siaps_falso(monkeypatch)
+    await c.post("/api/siaps-publico/sincronizar", headers=_h(tok))          # área pública: 2026Q1 e 2025Q3
+
+    r = (await c.post("/api/siaps-publico/captura", headers=_h(tok),
+                      json=_captura([], quadrimestral=[AREAL_Q1, EMULTI_Q1, ACARI_CVAT_Q2]))).json()
+    assert r["quadrimestral"] == {"novos": 3, "revisados": [], "sem_mudanca": 0}
+
+    q = (await c.get("/api/siaps-publico/quadrimestral", headers=_h(tok))).json()
+    assert q["quadrimestre"] == "2026Q2" and q["situacao"] == "preliminar"          # Q2 ainda não publicado
+    q1 = (await c.get("/api/siaps-publico/quadrimestral", params={"quadrimestre": "2026Q1"}, headers=_h(tok))).json()
+    assert q1["situacao"] == "publicado"
+    areal = next(g for g in q1["grupos"] if g["sg_equipe"] == "eSFR")["equipes"][0]
+    assert (areal["nota_final"], areal["classificacao"]) == (8, "otimo")
+    r1 = next(i for i in areal["indicadores"] if i["codigo"] == "R1")
+    assert (r1["peso"], r1["conceito"], r1["classificacao"], r1["score"]) == (1, 0.5, "suficiente", 26.34)
+    r6 = next(i for i in areal["indicadores"] if i["codigo"] == "R6")
+    assert r6["mensal_dn"] == {"BPA": {"MES1": 293, "MES2": 292}, "BPB": {"MES1": 73}}
+
+    # recaptura igual não duplica; MS revisando a nota cria versão nova e guarda a anterior
+    r = (await c.post("/api/siaps-publico/captura", headers=_h(tok), json=_captura([], quadrimestral=[AREAL_Q1]))).json()
+    assert r["quadrimestral"]["sem_mudanca"] == 1
+    revisado = {**AREAL_Q1, "nota_final": 7.5, "classificacao": "BOM"}
+    r = (await c.post("/api/siaps-publico/captura", headers=_h(tok), json=_captura([], quadrimestral=[revisado]))).json()
+    assert r["quadrimestral"]["revisados"] == ["2026Q1 QUALIDADE AREAL: 8→7.5 (otimo→bom)"]
+    from sqlalchemy import func, select
+    from models.siaps_publico import SiapsQuadrimestreEquipe
+    async with S() as db:
+        assert (await db.execute(select(func.count()).select_from(SiapsQuadrimestreEquipe)
+                                 .where(SiapsQuadrimestreEquipe.equipe == "AREAL"))).scalar_one() == 2
+
+
+async def test_conferencia_entre_fontes_e_integridade_pela_nota_tecnica(ambiente, monkeypatch):
+    c = ambiente["client"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    _siaps_falso(monkeypatch)
+    await c.post("/api/siaps-publico/sincronizar", headers=_h(tok))
+    await c.post("/api/siaps-publico/captura", headers=_h(tok), json=_captura([], quadrimestral=[AREAL_Q1, EMULTI_Q1]))
+    conf = (await c.get("/api/siaps-publico/conferencia", headers=_h(tok))).json()
+    por = {(i["quadrimestre"], i["componente"], i["sg_equipe"]): i for i in conf["itens"]}
+    # área pública Q1/26: eMulti Qualidade = 0/1/0/0 (Bom) e a captura tem EMULTI ANIZIO Bom → confere
+    assert por[("2026Q1", "QUALIDADE", "eMulti")]["situacao"] == "confere"
+    # eSF só existe na área pública (não capturado aqui) → sem comparação, nunca "validado"
+    assert por[("2026Q1", "QUALIDADE", "eSF")]["situacao"] == "sem_comparacao"
+    assert conf["integridade"] == []                                   # AREAL e EMULTI fecham com NT 8 e 12/2026
+
+    errado = {**EMULTI_Q1, "nota_final": 9}                            # soma 7 ≠ 9 e faixa ótimo ≠ bom
+    await c.post("/api/siaps-publico/captura", headers=_h(tok), json=_captura([], quadrimestral=[errado]))
+    conf = (await c.get("/api/siaps-publico/conferencia", headers=_h(tok))).json()
+    textos = " | ".join(p["problema"] for p in conf["integridade"])
+    assert "Soma das notas dos indicadores = 7, nota final publicada = 9" in textos
+    assert "faixa da Nota Técnica é otimo" in textos
+
+
+def test_faixas_e_pesos_das_notas_tecnicas():
+    from services import siaps_quadrimestral as sq
+    assert [sq.faixa_componente_iii(n) for n in (7.6, 7.5, 5, 4.9, 2.5)] == ["otimo", "bom", "bom", "suficiente", "regular"]
+    assert [sq.faixa_componente_ii(n) for n in (8.6, 8.5, 7, 6.9, 4.9)] == ["otimo", "bom", "bom", "suficiente", "regular"]
+    for grupo in (["C1", "C2", "C3", "C4", "C5", "C6", "C7"], ["B1", "B2", "B3", "B4", "B5", "B6"], ["M1", "M2"],
+                  ["R1", "R2", "R3", "R4", "R5", "R6"], ["CR1", "CR2", "CR3", "CR4"], ["P1", "P2", "P3", "P4", "P5", "P6"]):
+        assert sum(sq.PESOS_NT[k] for k in grupo) == 10

@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from routers.auth import ip_de
 from routers.fns_previsao import _pode_editar
-from services import siaps_captura, siaps_ia
+from services import siaps_captura, siaps_ia, siaps_quadrimestral
 from services import siaps_publico as sp
 from tenancy.auditoria import registrar_auditoria
 from tenancy.escopo import SessaoMunicipal
@@ -57,13 +57,26 @@ async def captura_resultados(current: SessaoMunicipal, competencia: Optional[str
     return await siaps_captura.tabela_por_equipe(db, current.municipio_ibge, competencia)
 
 
+@router.get("/quadrimestral")
+async def quadrimestral(current: SessaoMunicipal, quadrimestre: Optional[str] = None,
+                        db: AsyncSession = Depends(get_db)):
+    """Avaliação quadrimestral OFICIAL por equipe (todas as modalidades), da área logada do SIAPS."""
+    return await siaps_quadrimestral.por_equipe(db, current.municipio_id, quadrimestre)
+
+
+@router.get("/conferencia")
+async def conferencia(current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    """Confronto área pública × área logada do SIAPS (contagens por classificação e tipo de equipe)."""
+    return await siaps_quadrimestral.conferencia(db, current.municipio_id)
+
+
 @router.post("/captura")
 async def captura_importar(request: Request, current: SessaoMunicipal, pacote: dict = Body(...),
                            db: AsyncSession = Depends(get_db)):
     """Recebe o resultado lido da área logada do SIAPS no navegador do gestor (captura assistida)."""
     _pode_editar(current)
     try:
-        r = await siaps_captura.importar(db, current.municipio_ibge, pacote, current.username)
+        r = await siaps_captura.importar(db, current.municipio_ibge, pacote, current.username, current.municipio_id)
     except siaps_captura.CapturaInvalida as e:
         raise HTTPException(422, str(e))
     await registrar_auditoria(db, "SIAPS_CAPTURA_IMPORTADA", usuario=current, ip=ip_de(request),

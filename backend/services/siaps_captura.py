@@ -26,6 +26,7 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.indicadores_aps import ResultadoMensalSiaps, SincronizacaoLog
+from services import siaps_quadrimestral as sq
 from services.siaps_relatorio import INDICADORES_QUALIDADE, codigo_indicador
 
 FORMATO = "ersus360-siaps-captura-v1"
@@ -83,7 +84,7 @@ def validar(pacote: dict, ibge: str) -> list[dict]:
     if pacote.get("colunas") != COLUNAS:
         raise CapturaInvalida("Colunas diferentes do formato esperado.")
     linhas = pacote.get("linhas")
-    if not isinstance(linhas, list) or not linhas:
+    if not isinstance(linhas, list) or (not linhas and not pacote.get("quadrimestral")):
         raise CapturaInvalida("Captura sem linhas.")
     if len(linhas) > MAX_LINHAS:
         raise CapturaInvalida(f"Captura grande demais ({len(linhas)} linhas).")
@@ -106,14 +107,22 @@ def validar(pacote: dict, ibge: str) -> list[dict]:
     return saida
 
 
-async def importar(db: AsyncSession, ibge: str, pacote: dict, usuario: str | None) -> dict:
+async def importar(db: AsyncSession, ibge: str, pacote: dict, usuario: str | None,
+                   municipio_id: int | None = None) -> dict:
     linhas = validar(pacote, ibge)
+    try:
+        quad = sq.validar(pacote.get("quadrimestral") or [])
+    except sq.QuadrimestralInvalido as e:
+        raise CapturaInvalida(str(e)) from e
+    if quad and municipio_id is None:
+        raise CapturaInvalida("Município não informado para a avaliação quadrimestral.")
     inicio = datetime.utcnow()
     comps = sorted({l["competencia"] for l in linhas})
     atuais = {(r.competencia, r.equipe_ine, r.indicador_codigo): r for r in (await db.execute(
         select(ResultadoMensalSiaps).where(ResultadoMensalSiaps.municipio_ibge == ibge,
                                            ResultadoMensalSiaps.competencia.in_(comps)))).scalars()}
     ins = atu = 0
+    corrigidos: list[str] = []
     sem_codigo = sorted({f"{l['sg_equipe']}: {l['indicador']}" for l in linhas if not l["codigo"]})
     for l in linhas:
         if not l["codigo"]:
@@ -128,6 +137,15 @@ async def importar(db: AsyncSession, ibge: str, pacote: dict, usuario: str | Non
             ins += 1
         else:
             atu += 1
+            antes = (reg.resultado_pct, reg.numerador, reg.denominador, reg.classificacao)
+            if reg.fonte == FONTE_CAPTURA and antes != (l["score"], l["numerador"], l["denominador"], l["classe"]):
+                # o MS republicou outro valor (ex.: correção B1/B4 da eSB diferenciada, SIAPS 2.1.2): guarda o anterior
+                hist = list((reg.payload_original or {}).get("historico", []))
+                hist.append({"resultado": antes[0], "numerador": antes[1], "denominador": antes[2],
+                             "classificacao": antes[3], "substituido_em": inicio.isoformat()})
+                reg.payload_original = {**(reg.payload_original or {}), "historico": hist}
+                corrigidos.append(f"{l['competencia']} {l['equipe']} {l['codigo']}: {antes[0]}→{l['score']} "
+                                  f"({antes[3]}→{l['classe']})")
         reg.equipe_nome, reg.equipe_tipo, reg.cnes = str(l["equipe"])[:100], str(l["sg_equipe"])[:20], str(l["cnes"])[:10]
         reg.indicador_nome = str(l["indicador"])[:200] or INDICADORES_QUALIDADE.get(l["codigo"])
         reg.numerador, reg.denominador = l["numerador"], l["denominador"]
@@ -136,19 +154,26 @@ async def importar(db: AsyncSession, ibge: str, pacote: dict, usuario: str | Non
         reg.classificacao = l["classe"]
         reg.situacao, reg.fonte = "preliminar", FONTE_CAPTURA
         reg.data_extracao = inicio
-        reg.payload_original = {"captura": {k: l[k] for k in COLUNAS}, "ubs": l["ubs"],
+        reg.payload_original = {**{k: v for k, v in (reg.payload_original or {}).items() if k == "historico"},
+                                "captura": {k: l[k] for k in COLUNAS}, "ubs": l["ubs"],
                                 "capturado_em": pacote.get("capturado_em")}
+    q_res = (await sq.gravar(db, municipio_id, quad, inicio)) if quad else {"novos": 0, "revisados": [], "sem_mudanca": 0}
+    obs = [("Indicadores sem código: " + "; ".join(sem_codigo)) if sem_codigo else None,
+           ("Valores mensais alterados pelo MS: " + "; ".join(corrigidos[:50])) if corrigidos else None,
+           ("Avaliação quadrimestral revisada pelo MS: " + "; ".join(q_res["revisados"][:50])) if q_res["revisados"] else None]
     log = SincronizacaoLog(municipio_ibge=ibge, fonte=FONTE_LOG, metodo="captura_assistida", usuario=usuario,
-                           competencia=comps[-1], iniciado_em=inicio, concluido_em=datetime.utcnow(), sucesso=True,
-                           registros_lidos=len(linhas), registros_inseridos=ins, registros_atualizados=atu,
-                           registros_rejeitados=len(linhas) - ins - atu,
+                           competencia=comps[-1] if comps else None, iniciado_em=inicio, concluido_em=datetime.utcnow(),
+                           sucesso=True, registros_lidos=len(linhas) + len(quad), registros_inseridos=ins + q_res["novos"],
+                           registros_atualizados=atu, registros_rejeitados=len(linhas) - ins - atu,
                            payload_resumo={"competencias": comps, "capturado_em": pacote.get("capturado_em"),
-                                           "sem_codigo": sem_codigo},
-                           observacao=("Indicadores sem código: " + "; ".join(sem_codigo)) if sem_codigo else None)
+                                           "sem_codigo": sem_codigo, "corrigidos_pelo_ms": corrigidos,
+                                           "quadrimestral": q_res},
+                           observacao=("; ".join(o for o in obs if o)[:4000]) or None)
     db.add(log)
     await db.commit()
     return {"ok": True, "competencias": comps, "inseridos": ins, "atualizados": atu,
-            "equipes": len({l["ine"] for l in linhas}), "sem_codigo": sem_codigo}
+            "equipes": len({l["ine"] for l in linhas}), "sem_codigo": sem_codigo,
+            "corrigidos_pelo_ms": corrigidos, "quadrimestral": q_res}
 
 
 async def situacao(db: AsyncSession, ibge: str) -> dict:
