@@ -363,3 +363,19 @@ async def test_motor_nao_sobrescreve_classificacao_capturada(ambiente):
         k = (await db.execute(select(ResultadoMensalSiaps).where(
             ResultadoMensalSiaps.equipe_ine == "0000007056", ResultadoMensalSiaps.competencia == "2026-05"))).scalar_one()
     assert k.classificacao == "regular" and "captura" in k.fonte
+
+
+async def test_tabela_por_equipe_da_aba_componente_qualidade(ambiente):
+    c = ambiente["client"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    assert (await c.get("/api/siaps-publico/captura/resultados", headers=_h(tok))).json()["situacao_dado"] == "nao_disponivel"
+    await c.post("/api/siaps-publico/captura", json=_captura(), headers=_h(tok))
+    t = (await c.get("/api/siaps-publico/captura/resultados", headers=_h(tok))).json()
+    assert t["competencia"] == "2026-07" and t["competencias"] == ["2026-07", "2026-05"]
+    assert [x["tipo_equipe"] for x in t["tipos"]] == ["eSF", "eSFR", "eSB", "eMulti"]
+    esf = t["tipos"][0]
+    assert [i["codigo"] for i in esf["indicadores"]] == ["C1", "C7"]
+    cach = next(e for e in esf["equipes"] if e["equipe"] == "CACHOEIRA")
+    assert cach["valores"]["C1"] == {"resultado": 46.14, "numerador": 299, "denominador": 648, "classificacao": "bom"}
+    maio = (await c.get("/api/siaps-publico/captura/resultados", params={"competencia": "2026-05"}, headers=_h(tok))).json()
+    assert maio["tipos"][0]["equipes"][0]["valores"]["C1"]["classificacao"] == "regular"     # KENNEDY 70,89

@@ -180,3 +180,34 @@ async def resultados_da_competencia(db: AsyncSession, ibge: str, competencia: st
                                       ResultadoMensalSiaps.competencia == competencia)
                                .order_by(ResultadoMensalSiaps.indicador_codigo, ResultadoMensalSiaps.equipe_nome))).scalars().all()
     return competencia, list(linhas)
+
+
+async def tabela_por_equipe(db: AsyncSession, ibge: str, competencia: str | None = None) -> dict:
+    """Tabela da tela eGestor: por tipo de equipe, cada equipe × indicador com o resultado e a
+    classificação oficial capturados da área logada do SIAPS."""
+    comps = [c for (c,) in (await db.execute(
+        select(ResultadoMensalSiaps.competencia).where(ResultadoMensalSiaps.municipio_ibge == ibge,
+                                                      ResultadoMensalSiaps.fonte == FONTE_CAPTURA)
+        .distinct().order_by(desc(ResultadoMensalSiaps.competencia)))).all()]
+    if not comps:
+        return {"situacao_dado": "nao_disponivel", "competencias": [], "tipos": []}
+    competencia = competencia if competencia in comps else comps[0]
+    _, linhas = await resultados_da_competencia(db, ibge, competencia)
+    tipos: dict[str, dict] = {}
+    for r in linhas:
+        t = tipos.setdefault(r.equipe_tipo, {"tipo_equipe": r.equipe_tipo, "indicadores": {}, "equipes": {}})
+        t["indicadores"].setdefault(r.indicador_codigo, r.indicador_nome)
+        e = t["equipes"].setdefault(r.equipe_ine, {"ine": r.equipe_ine, "equipe": r.equipe_nome,
+                                                   "ubs": (r.payload_original or {}).get("ubs") or "", "valores": {}})
+        e["valores"][r.indicador_codigo] = {"resultado": r.resultado_pct, "numerador": r.numerador,
+                                            "denominador": r.denominador, "classificacao": r.classificacao}
+    ordem = {"eSF": 0, "eAP": 1, "eSFR": 2, "eSB": 3, "eMulti": 4}
+    saida = []
+    for t in sorted(tipos.values(), key=lambda t: ordem.get(t["tipo_equipe"], 9)):
+        saida.append({"tipo_equipe": t["tipo_equipe"],
+                      "indicadores": [{"codigo": c, "nome": n} for c, n in sorted(t["indicadores"].items())],
+                      "equipes": sorted(t["equipes"].values(), key=lambda e: e["equipe"] or "")})
+    st = await situacao(db, ibge)
+    return {"situacao_dado": "oficial", "fonte": FONTE_CAPTURA, "situacao": "preliminar",
+            "competencia": competencia, "competencias": comps, "tipos": saida,
+            "ultima_captura": st["ultima_captura"]}

@@ -50,6 +50,13 @@ async def captura_situacao(current: SessaoMunicipal, db: AsyncSession = Depends(
     return await siaps_captura.situacao(db, current.municipio_ibge)
 
 
+@router.get("/captura/resultados")
+async def captura_resultados(current: SessaoMunicipal, competencia: Optional[str] = None,
+                             db: AsyncSession = Depends(get_db)):
+    """Qualidade por equipe (classificação oficial) para a aba Componente Qualidade do eGestor."""
+    return await siaps_captura.tabela_por_equipe(db, current.municipio_ibge, competencia)
+
+
 @router.post("/captura")
 async def captura_importar(request: Request, current: SessaoMunicipal, pacote: dict = Body(...),
                            db: AsyncSession = Depends(get_db)):

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import ComponenteQualidade from "./ComponenteQualidade";
+import QualidadeOficialPorEquipe, { capturaNoEndereco } from "../components/QualidadeOficialPorEquipe";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, Legend,
@@ -1440,6 +1441,7 @@ function AbaQualidade({ data: _data }: { data: any }) {
         </div>
       )}
 
+      <QualidadeOficialPorEquipe />
       <QualidadeImportada />
       <ComponenteQualidade />
     </div>
@@ -2819,7 +2821,8 @@ function AbaDiagnosticoCobertura() {
 type Aba = "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento" | "diag_cobertura";
 
 export default function SiapsEgestor() {
-  const [aba, setAba] = useState<Aba>("vinculo");
+  // a captura assistida do SIAPS chega pelo endereço (#captura-siaps=…) e abre direto na aba Qualidade
+  const [aba, setAba] = useState<Aba>(() => (capturaNoEndereco() ? "qualidade" : "vinculo"));
 
   const { data: dashData }  = useQuery({ queryKey: ["siaps-dashboard"],  queryFn: () => apiGet("/api/siaps/dashboard") as Promise<any> });
   const { data: abrangData } = useQuery({ queryKey: ["siaps-abrang"],    queryFn: () => apiGet("/api/siaps/abrangencia") as Promise<any> });

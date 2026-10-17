@@ -3,11 +3,12 @@
 Resultados oficiais **por equipe** do Componente Qualidade (pontuação, NM, DN e a classificação
 do Ministério) só existem na área logada do SIAPS (gov.br). O ERSUS360 **não** guarda nem usa o
 login/token do gestor: a leitura é feita no navegador onde o gestor já está logado (navegador do
-app Claude), e só o resultado é entregue ao ERSUS360 em **Relatórios do SIAPS → Captura assistida**.
+app Claude), e só o resultado é entregue ao ERSUS360 na tela **eGestor / SIAPS → aba Componente Qualidade**
+(quadro "Resultado oficial por equipe — SIAPS" → "Captura assistida do SIAPS").
 
 - Tarefa agendada no app Claude: "Captura SIAPS mensal" (dia 20, 08:00).
 - Formato: `ersus360-siaps-captura-v1` — ver `backend/services/siaps_captura.py`.
-- Endpoint: `POST /api/siaps-publico/captura` (perfil com edição; auditado `SIAPS_CAPTURA_IMPORTADA`).
+- Endpoints: `GET /api/siaps-publico/captura/resultados` (tabela equipe × indicador da aba) e `POST /api/siaps-publico/captura` (perfil com edição; auditado `SIAPS_CAPTURA_IMPORTADA`).
 - A classificação gravada é a oficial; o motor de indicadores não sobrescreve essas linhas.
 
 ## Passo a passo (o que a tarefa faz)
@@ -17,8 +18,8 @@ app Claude), e só o resultado é entregue ao ERSUS360 em **Relatórios do SIAPS
 2. Rodar o **Script 1** na página (prepara a leitura das 4 últimas competências ativas).
 3. Clicar **4 vezes** em "Aplicar filtro" (aguardar ~5 s entre os cliques). Cada clique é uma
    consulta normal da própria tela do SIAPS, feita com a sessão do gestor.
-4. Rodar o **Script 2** com o endereço do ERSUS360: a página "Relatórios do SIAPS" abre com o
-   resultado preenchido (vai depois do `#`, não passa por servidor).
+4. Rodar o **Script 2** com o endereço do ERSUS360: a tela eGestor abre na aba Componente Qualidade
+   com o resultado preenchido (vai depois do `#`, não passa por servidor).
 5. Conferir a mensagem "Recebido do SIAPS: N linhas" e clicar **Importar captura**.
 
 ### Script 1 — preparar a leitura (página do SIAPS)
@@ -75,7 +76,7 @@ Trocar `ERSUS` pelo endereço do ERSUS360 (produção: `https://ersus360.vercel.
     municipio_ibge: "130014", capturado_em: new Date().toISOString(),
     colunas: ["competencia", "cnes", "ubs", "ine", "equipe", "sg_equipe", "indicador", "score",
               "numerador", "denominador", "classificacao"], linhas };
-  location.href = ERSUS + "/siaps-relatorios#captura-siaps=" + encodeURIComponent(JSON.stringify(pacote));
+  location.href = ERSUS + "/siaps#captura-siaps=" + encodeURIComponent(JSON.stringify(pacote));
   return linhas.length + " linhas";
 })()
 ```
