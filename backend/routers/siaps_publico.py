@@ -3,20 +3,22 @@ Router: resultados oficiais da área pública do SIAPS e o ERSUS IA — Analista
 
   GET  /api/siaps-publico               Avaliação do Quadrimestre, IED, alertas e última sincronização
   POST /api/siaps-publico/sincronizar   consulta o SIAPS agora (além da rotina diária)
+  GET  /api/siaps-publico/captura       última captura assistida da área logada (resultados por equipe)
+  POST /api/siaps-publico/captura       importa a captura (só resultados oficiais; nenhuma credencial)
   POST /api/siaps-ia/analisar           pergunta / análise / plano de ação / relatório da IA
 """
 from __future__ import annotations
 
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from routers.auth import ip_de
 from routers.fns_previsao import _pode_editar
-from services import siaps_ia
+from services import siaps_captura, siaps_ia
 from services import siaps_publico as sp
 from tenancy.auditoria import registrar_auditoria
 from tenancy.escopo import SessaoMunicipal
@@ -40,6 +42,26 @@ async def sincronizar(request: Request, current: SessaoMunicipal, db: AsyncSessi
     await registrar_auditoria(db, "SIAPS_PUBLICO_SINCRONIZADO", usuario=current, ip=ip_de(request),
                               tabela="siaps_publico_coleta",
                               detalhe=f"novos {r['novo']} revisados {r['revisado']}")
+    return r
+
+
+@router.get("/captura")
+async def captura_situacao(current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    return await siaps_captura.situacao(db, current.municipio_ibge)
+
+
+@router.post("/captura")
+async def captura_importar(request: Request, current: SessaoMunicipal, pacote: dict = Body(...),
+                           db: AsyncSession = Depends(get_db)):
+    """Recebe o resultado lido da área logada do SIAPS no navegador do gestor (captura assistida)."""
+    _pode_editar(current)
+    try:
+        r = await siaps_captura.importar(db, current.municipio_ibge, pacote, current.username)
+    except siaps_captura.CapturaInvalida as e:
+        raise HTTPException(422, str(e))
+    await registrar_auditoria(db, "SIAPS_CAPTURA_IMPORTADA", usuario=current, ip=ip_de(request),
+                              tabela="resultado_mensal_siaps",
+                              detalhe=f"competencias {r['competencias']} inseridos {r['inseridos']} atualizados {r['atualizados']}")
     return r
 
 

@@ -262,3 +262,104 @@ async def test_boas_praticas_vem_dos_resultados_oficiais(ambiente, monkeypatch):
     assert bp["destaques"] == sum(b["destaque"] for b in bp["boas_praticas"])
     assert all(b["fonte"] for b in bp["boas_praticas"])
     assert bp["boas_praticas"][0]["destaque"] is True                       # destaques primeiro
+
+
+# ── Captura assistida da área logada (linhas reais de Apuí, Jul/26, capturadas em 17/10/2026) ──
+
+def _captura(linhas=None, **extra):
+    from services import siaps_captura as sc
+    return {"formato": sc.FORMATO, "municipio_ibge": "130014", "capturado_em": "2026-10-17T20:29:00Z",
+            "colunas": sc.COLUNAS, **extra, "linhas": linhas if linhas is not None else [
+        ["202607", "3320138", "UBS IRMA ELIZABETE", "0000007072", "CACHOEIRA", "eSF", "Mais Acesso à Atenção Primária à Saúde", 46.14, 299, 648, "BOM"],
+        ["202607", "2013304", "UBS PADRE FALIERO BONCI", "0000007056", "KENNEDY", "eSF", "Mais Acesso à Atenção Primária à Saúde", 60.75, 226, 372, "ÓTIMO"],
+        ["202605", "2013304", "UBS PADRE FALIERO BONCI", "0000007056", "KENNEDY", "eSF", "Mais Acesso à Atenção Primária à Saúde", 70.89, 224, 316, "REGULAR"],
+        ["202607", "3320138", "UBS IRMA ELIZABETE", "0000007072", "CACHOEIRA", "eSF", "Cuidado Integral à Saúde da Mulher", 84.68, None, None, "ÓTIMO"],
+        ["202607", "3320138", "UBS IRMA ELIZABETE", "0001773925", "0010 CACHOEIRA", "eSB", "Escovação Supervisionada na APS", 0, 0, 199, "REGULAR"],
+        ["202607", "9942122", "UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA", "0001774042", "0009 ESTRADA NOVA", "eSB", "Escovação Supervisionada na APS", 83.87, 78, 93, "ÓTIMO"],
+        ["202607", "2013290", "UBS EDUARDO BIAZIN", "0000007048", "AREAL", "eSFR", "Mais Acesso à  equipe de Saúde da Família Ribeirinha (eSFR)", 38.62, 314, 813, "BOM"],
+        ["202607", "2013312", "UBS ANIZIO FERREIRA DA SILVA", "0002449927", "EMULTI ANIZIO", "eMulti", "Média de atendimentos da eMulti por pessoa", 2.16, 1768, 817, "BOM"],
+    ]}
+
+
+def test_codigo_do_indicador_por_tipo_de_equipe():
+    from services.siaps_captura import codigo_do_indicador as c
+    assert c("Mais Acesso à Atenção Primária à Saúde", "eSF") == "C1"
+    assert c("Cuidado da Gestante e da Puérpera", "eSF") == "C3"
+    assert c("Cuidado Integral à Saúde da Mulher", "eSF") == "C7"
+    assert c("Cuidado da mulher na prevenção do câncer realizado pela equipe de Saúde da Família Ribeirinha (eSFR)", "eSFR") == "R6"
+    assert c("Cuidado na Gestação e Puerpério realizado pela equipe de Saúde da Família Ribeirinha (eSFR)", "eSFR") == "R3"
+    assert c("1ª Consulta Odontológica programada na APS", "eSB") == "B1"
+    assert c("Tratamento Odontológico concluído na APS", "eSB") == "B2"
+    assert c("Tratamento Restaurador Atraumático na APS", "eSB") == "B6"
+    assert c("Procedimentos Odontológicos preventivos na APS", "eSB") == "B5"
+    assert c("Ações interprofissionais realizadas pela eMulti na APS", "eMulti") == "M2"
+
+
+async def test_captura_grava_classificacao_oficial_e_alimenta_boas_praticas(ambiente):
+    c, S = ambiente["client"], ambiente["Session"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    r = (await c.post("/api/siaps-publico/captura", json=_captura(), headers=_h(tok))).json()
+    assert r["competencias"] == ["2026-05", "2026-07"] and r["inseridos"] == 8 and r["sem_codigo"] == []
+    assert await _auditoria(S, "SIAPS_CAPTURA_IMPORTADA")
+    st = (await c.get("/api/siaps-publico/captura", headers=_h(tok))).json()
+    assert [x["competencia"] for x in st["competencias"]] == ["2026-05", "2026-07"]
+
+    from sqlalchemy import select
+    from models.indicadores_aps import ResultadoMensalSiaps
+    async with S() as db:
+        k = (await db.execute(select(ResultadoMensalSiaps).where(
+            ResultadoMensalSiaps.equipe_ine == "0000007056", ResultadoMensalSiaps.competencia == "2026-05"))).scalar_one()
+    # 70,89 em Mais Acesso é REGULAR para o SIAPS (passou do limite) — vale a classificação oficial
+    assert (k.indicador_codigo, k.resultado_pct, k.classificacao, k.numerador, k.denominador) == ("C1", 70.89, "regular", 224, 316)
+
+    # reimportar a mesma captura atualiza, não duplica
+    r = (await c.post("/api/siaps-publico/captura", json=_captura(), headers=_h(tok))).json()
+    assert r["inseridos"] == 0 and r["atualizados"] == 8
+
+    bp = (await c.get("/api/siaps/boas-praticas", headers=_h(tok))).json()
+    tit = {b["titulo"]: b for b in bp["boas_praticas"]}
+    esc = tit["Escovação Supervisionada na APS — 1 de 2 equipe(s) eSB em Regular"]
+    assert esc["tipo"] == "alerta_critico" and "0010 CACHOEIRA" in esc["descricao"]
+    assert [x["classificacao"] for x in esc["por_equipe"]] == ["otimo", "regular"]
+    assert "Mais Acesso à Atenção Primária à Saúde — 1 de 2 equipe(s) eSF Ótimo" in tit   # Jul/26: nenhuma em Regular
+    assert any("Qualidade por equipe Jul/2026" in f for f in bp["fontes"])
+
+
+async def test_captura_recusa_formato_errado_outro_municipio_e_perfil(ambiente):
+    c = ambiente["client"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    assert (await c.post("/api/siaps-publico/captura", json={"linhas": []}, headers=_h(tok))).status_code == 422
+    # captura de outro município: a guarda multi-município já barra (403) antes da validação (422)
+    assert (await c.post("/api/siaps-publico/captura", json=_captura(municipio_ibge="139999"), headers=_h(tok))).status_code in (403, 422)
+    ruim = _captura([["202607", "1", "U", "7072", "X", "eSF", "Mais Acesso", 1, 1, 1, "EXCELENTE"]])
+    assert (await c.post("/api/siaps-publico/captura", json=ruim, headers=_h(tok))).status_code == 422
+    extra = _captura([["202607", "1", "U", "7072", "X", "eSF", "Mais Acesso", 1, 1, 1, "BOM", "CPF 123"]])
+    assert (await c.post("/api/siaps-publico/captura", json=extra, headers=_h(tok))).status_code == 422
+    consulta = await _token(c, "ana.consulta@apui.gov.br")
+    assert (await c.post("/api/siaps-publico/captura", json=_captura(), headers=_h(consulta))).status_code == 403
+    tok_b = await _token(c, "gestor.b@teste.gov.br")
+    await c.post("/api/siaps-publico/captura", json=_captura(), headers=_h(tok))
+    assert (await c.get("/api/siaps-publico/captura", headers=_h(tok_b))).json()["competencias"] == []
+
+
+async def test_motor_nao_sobrescreve_classificacao_capturada(ambiente):
+    from models.indicadores_aps import ResultadoMensalSiaps
+    from models.siaps_relatorio import SiapsRelatorio
+    from services.indicadores_motor import normalizar_relatorio
+    from sqlalchemy import select
+    c, S = ambiente["client"], ambiente["Session"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    await c.post("/api/siaps-publico/captura", json=_captura(), headers=_h(tok))
+    async with S() as db:
+        rel = SiapsRelatorio(municipio_id=ambiente["ids"]["apui"], municipio_ibge="1300144", componente="qualidade",
+                             indicador="Mais Acesso à APS", competencia="2026-05", tipo_equipe="eAP, eSF",
+                             dado_preliminar=True, colunas=json.dumps(["NM", "DN", "PONTUAÇÃO"]),
+                             linhas=json.dumps([{"ine": "0000007056", "equipe": "KENNEDY", "sigla": "eSF", "cnes": "2013304",
+                                                 "ubs": "U", "valores": {"NM": 224, "DN": 316}, "pontuacao": 70.89}]))
+        db.add(rel)
+        await db.commit()
+        await normalizar_relatorio(db, rel)
+        await db.commit()
+        k = (await db.execute(select(ResultadoMensalSiaps).where(
+            ResultadoMensalSiaps.equipe_ine == "0000007056", ResultadoMensalSiaps.competencia == "2026-05"))).scalar_one()
+    assert k.classificacao == "regular" and "captura" in k.fonte

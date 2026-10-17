@@ -1570,22 +1570,27 @@ function AbaBoasPraticas({ data }: { data: any }) {
                     </thead>
                     <tbody>
                       {ranking.map((r: any, j: number) => {
-                        const sCor = r.status === "verde" ? "#16a34a" : r.status === "amarelo" ? "#d97706" : "#dc2626";
-                        const sBg  = r.status === "verde" ? "#f0fdf4" : r.status === "amarelo" ? "#fffbeb" : "#fff7f7";
+                        const cls = r.classificacao as string | undefined;
+                        const CLS_COR: Record<string, [string, string, string]> = {
+                          otimo: ["#1d4ed8", "#eff6ff", "Ótimo"], bom: ["#16a34a", "#f0fdf4", "Bom"],
+                          suficiente: ["#d97706", "#fffbeb", "Suficiente"], regular: ["#dc2626", "#fff7f7", "Regular"],
+                        };
+                        const sCor = cls ? CLS_COR[cls]?.[0] ?? "#6b7280" : r.status === "verde" ? "#16a34a" : r.status === "amarelo" ? "#d97706" : "#dc2626";
+                        const sBg  = cls ? CLS_COR[cls]?.[1] ?? "#f9fafb" : r.status === "verde" ? "#f0fdf4" : r.status === "amarelo" ? "#fffbeb" : "#fff7f7";
                         return (
                           <tr key={j} style={{ borderBottom: "1px solid #f1f5f9", background: j % 2 === 0 ? "#fff" : "#fafafa" }}>
                             <td style={{ padding: "4px 8px", color: "#9ca3af", fontWeight: 700 }}>{j + 1}º</td>
                             <td style={{ padding: "4px 8px", fontWeight: 700, color: "#1e293b" }}>{r.equipe}</td>
                             <td style={{ padding: "4px 8px", color: "#64748b", fontSize: 10 }}>{r.ubs}</td>
                             <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 800, color: sCor }}>
-                              {r.resultado}%
+                              {typeof r.resultado === "number" ? r.resultado.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : r.resultado}{cls ? "" : "%"}
                               {meta && (
                                 <span style={{ color: "#9ca3af", fontWeight: 400, marginLeft: 4 }}>/ {meta}%</span>
                               )}
                             </td>
                             <td style={{ padding: "4px 8px", textAlign: "center" }}>
                               <span style={{ background: sBg, color: sCor, fontWeight: 700, fontSize: 10, padding: "2px 7px", borderRadius: 10 }}>
-                                {r.status === "verde" ? "✓ Meta" : r.status === "amarelo" ? "~ Alerta" : "✗ Crítico"}
+                                {cls ? CLS_COR[cls]?.[2] ?? cls : r.status === "verde" ? "✓ Meta" : r.status === "amarelo" ? "~ Alerta" : "✗ Crítico"}
                               </span>
                             </td>
                           </tr>

@@ -7,6 +7,9 @@ Boas Práticas e Alertas do eGestor/SIAPS, geradas a partir dos resultados ofici
   • Qualidade por indicador — Avaliação do Quadrimestre publicada no SIAPS (services/siaps_publico):
     indicador com todas as equipes Ótimo ou com melhora = destaque; indicador com equipes em
     Regular = alerta crítico. Só contagens publicadas: nenhuma nota é recalculada.
+  • Qualidade por equipe — captura assistida da área logada do SIAPS (services/siaps_captura): por
+    indicador, equipes em Regular = alerta; sem Regular e com equipes Ótimo = destaque. A classificação
+    é a do Ministério (não há régua do ERSUS360).
 """
 from __future__ import annotations
 
@@ -14,6 +17,7 @@ import json
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from services import siaps_captura
 from services import siaps_publico as sp
 from services.siaps_relatorio import status_cvat
 
@@ -81,6 +85,36 @@ def itens_quadrimestre(atual: dict, anterior: dict | None) -> list[dict]:
     return itens
 
 
+_ROTULO = {"otimo": "Ótimo", "bom": "Bom", "suficiente": "Suficiente", "regular": "Regular"}
+_ORDEM_CLASSE = {"otimo": 0, "bom": 1, "suficiente": 2, "regular": 3}
+
+
+def itens_qualidade_por_equipe(competencia: str, linhas: list) -> list[dict]:
+    """Resultados capturados da área logada (uma competência) → um item por indicador e tipo de equipe."""
+    comp = _comp_rotulo(competencia)
+    fonte = f"SIAPS área logada — Componente Qualidade, {comp} (dado preliminar)"
+    grupos: dict[tuple, list] = {}
+    for r in linhas:
+        grupos.setdefault((r.equipe_tipo, r.indicador_codigo, r.indicador_nome), []).append(r)
+    itens = []
+    for (sg, _cod, nome), rs in sorted(grupos.items(), key=lambda x: (x[0][0] or "", x[0][1] or "")):
+        rs = sorted(rs, key=lambda r: (_ORDEM_CLASSE.get(r.classificacao, 9), -(r.resultado_pct or 0)))
+        ranking = [{"equipe": r.equipe_nome, "ubs": (r.payload_original or {}).get("ubs") or "",
+                    "resultado": r.resultado_pct, "classificacao": r.classificacao} for r in rs]
+        reg = [r.equipe_nome for r in rs if r.classificacao == "regular"]
+        oti = [r.equipe_nome for r in rs if r.classificacao == "otimo"]
+        base = {"ubs": "TODAS", "equipe": sg, "fonte": fonte, "periodo": competencia, "por_equipe": ranking}
+        if reg:
+            itens.append({**base, "tipo": "alerta_critico", "destaque": False,
+                          "titulo": f"{nome} — {len(reg)} de {len(rs)} equipe(s) {sg} em Regular",
+                          "descricao": f"Em Regular em {comp}: {', '.join(reg)}."})
+        elif oti:
+            itens.append({**base, "tipo": "qualidade", "destaque": True,
+                          "titulo": f"{nome} — {len(oti)} de {len(rs)} equipe(s) {sg} Ótimo",
+                          "descricao": f"Nenhuma equipe em Regular em {comp}. Ótimo: {', '.join(oti)}."})
+    return itens
+
+
 async def montar(db: AsyncSession, municipio_id: int, ibge: str, municipio: str | None) -> dict:
     from routers.siaps_relatorios import relatorios_do_municipio
 
@@ -91,10 +125,17 @@ async def montar(db: AsyncSession, municipio_id: int, ibge: str, municipio: str 
         v = itens_vinculo(rel)
         itens += v
         fontes.append(f"Relatório SIAPS importado — CVAT {_comp_rotulo(rel.competencia)}")
+    comp_cap, cap = await siaps_captura.resultados_da_competencia(db, ibge)
+    if cap:
+        itens += itens_qualidade_por_equipe(comp_cap, cap)
+        fontes.append(f"SIAPS área logada — Qualidade por equipe {_comp_rotulo(comp_cap)}")
     painel = await sp.painel(db, municipio_id, ibge)
     quads = painel["quadrimestres"]
     if quads:
-        itens += itens_quadrimestre(quads[0], quads[1] if len(quads) > 1 else None)
+        q = itens_quadrimestre(quads[0], quads[1] if len(quads) > 1 else None)
+        if cap:   # a captura por equipe já cobre a Qualidade; do quadrimestre ficam as dimensões do Vínculo
+            q = [i for i in q if i["tipo"] == "vinculo" or i["titulo"].startswith("CVAT")]
+        itens += q
         fontes.append(f"SIAPS — Avaliação do Quadrimestre, {quads[0]['rotulo']}")
 
     ordem = {"vinculo": 0, "qualidade": 1, "alerta_critico": 2, "plano_melhoria": 3}

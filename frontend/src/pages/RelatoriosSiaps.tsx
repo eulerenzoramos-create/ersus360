@@ -1,5 +1,5 @@
 // Relatórios do SIAPS importados pelo município ("Baixar dados": CVAT e Qualidade)
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileSpreadsheet, Info, Upload } from "lucide-react";
 import { api } from "../lib/api";
@@ -70,6 +70,68 @@ function Envio() {
   );
 }
 
+function CapturaAssistida() {
+  // Resultados por equipe lidos da área logada do SIAPS no navegador do gestor (tarefa mensal do Claude).
+  // Só chegam aqui os resultados oficiais; senha e token gov.br nunca saem do navegador.
+  const qc = useQueryClient();
+  const [texto, setTexto] = useState("");
+  const { data } = useQuery<{ ultima_captura: string | null; capturado_no_siaps_em: string | null;
+                              competencias: { competencia: string; linhas: number }[] }>({
+    queryKey: ["siaps-captura"], queryFn: () => api.get("/api/siaps-publico/captura").then(r => r.data),
+  });
+  const m = useMutation<{ competencias: string[]; inseridos: number; atualizados: number; equipes: number; sem_codigo: string[] }, any, string>({
+    mutationFn: (t) => api.post("/api/siaps-publico/captura", JSON.parse(t)).then(r => r.data),
+    onSuccess: () => { setTexto(""); ["siaps-captura", "siaps-boas", "siaps-relatorios"].forEach(k => qc.invalidateQueries({ queryKey: [k] })); },
+  });
+  const [recebido, setRecebido] = useState<string | null>(null);
+  useEffect(() => {
+    // A tarefa de captura, na página do SIAPS (gestor logado no gov.br), abre esta página levando o
+    // resultado depois do "#" (fragmento: fica no navegador, não vai a nenhum servidor). Só resultados
+    // agregados por equipe; a importação continua dependendo do clique em "Importar captura".
+    const PREFIXO = "#captura-siaps=";
+    if (!window.location.hash.startsWith(PREFIXO)) return;
+    try {
+      const pacote = JSON.parse(decodeURIComponent(window.location.hash.slice(PREFIXO.length)));
+      if (pacote?.formato === "ersus360-siaps-captura-v1") {
+        setTexto(JSON.stringify(pacote));
+        setRecebido(`Recebido do SIAPS: ${pacote.linhas?.length ?? 0} linhas — confira e clique em Importar captura.`);
+      }
+    } catch { setRecebido("O resultado recebido do SIAPS está incompleto. Refaça a captura."); }
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  }, []);
+  let jsonOk = true;
+  try { if (texto.trim()) JSON.parse(texto); } catch { jsonOk = false; }
+  return (
+    <div id="captura-siaps" style={card}>
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>Captura assistida — Qualidade por equipe (área logada do SIAPS)</div>
+      <div style={{ fontSize: 12.5, color: "#525252", marginBottom: 8 }}>
+        Uma vez por mês, com o gestor logado no gov.br no navegador do app Claude, a tarefa "Captura SIAPS" lê no próprio SIAPS
+        a pontuação, o numerador/denominador e a classificação oficial de cada equipe em cada indicador e cola o resultado abaixo.
+        Nenhuma senha ou token é enviado.
+      </div>
+      <div style={{ fontSize: 12.5, marginBottom: 8 }}>
+        Última captura: <b>{data?.ultima_captura ? new Date(data.ultima_captura + (data.ultima_captura.endsWith("Z") ? "" : "Z")).toLocaleString("pt-BR") : "nenhuma"}</b>
+        {data?.competencias?.length ? <> · competências: {data.competencias.map(c => `${mesAno(c.competencia)} (${c.linhas})`).join(", ")}</> : null}
+      </div>
+      <textarea id="captura-siaps-json" aria-label="Resultado da captura do SIAPS (JSON)" value={texto}
+                onChange={e => setTexto(e.target.value)} rows={3} placeholder='{"formato": "ersus360-siaps-captura-v1", ...}'
+                style={{ width: "100%", fontFamily: "monospace", fontSize: 11.5, padding: 8, borderRadius: 6, border: "1px solid #d4d4d0", boxSizing: "border-box" }} />
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 6, flexWrap: "wrap" }}>
+        <button onClick={() => m.mutate(texto)} disabled={!texto.trim() || !jsonOk || m.isPending}
+                style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: "#1D9E75", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          {m.isPending ? "Importando…" : "Importar captura"}
+        </button>
+        {recebido && !m.isSuccess && <span style={{ fontSize: 12.5, color: "#1d4ed8" }}>{recebido}</span>}
+        {!jsonOk && <span style={{ fontSize: 12, color: "#dc2626" }}>Conteúdo não é um JSON válido.</span>}
+        {m.isSuccess && <span id="captura-siaps-resultado" style={{ fontSize: 12.5, color: "#059669" }}>
+          Importado: {m.data.competencias.map(mesAno).join(", ")} · {m.data.equipes} equipes · {m.data.inseridos} novos, {m.data.atualizados} atualizados
+          {m.data.sem_codigo.length ? ` · sem código: ${m.data.sem_codigo.join("; ")}` : ""}</span>}
+        {m.isError && <span id="captura-siaps-resultado" style={{ fontSize: 12.5, color: "#dc2626" }}>{m.error?.response?.data?.detail ?? "Falha ao importar."}</span>}
+      </div>
+    </div>
+  );
+}
+
 export default function RelatoriosSiaps() {
   const [comp, setComp] = useState<string | undefined>();
   const { data, isLoading } = useQuery<Painel>({
@@ -89,6 +151,7 @@ export default function RelatoriosSiaps() {
       <PrazoSiapsBanner linkRelatorios={false} />
       <EquipesOficiais />
       <Envio />
+      <CapturaAssistida />
 
       {isLoading && <div style={card}>Carregando…</div>}
       {data?.situacao_dado === "nao_disponivel" && <div style={{ ...card, fontSize: 14, color: "#525252" }}>Nenhum relatório importado ainda para este município.</div>}
