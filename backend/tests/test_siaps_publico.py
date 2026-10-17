@@ -559,3 +559,21 @@ def test_rotas_live_nao_duplicadas():
     from main import app
     caminhos = [r.path for r in app.routes if getattr(r, "path", "").startswith("/api/siaps/live/")]
     assert len(caminhos) == len(set(caminhos))
+
+
+async def test_conferencia_explica_equipe_nao_valida_contada_na_area_publica(ambiente, monkeypatch):
+    # caso real Apuí Q1/2025 eSB: área pública 1/6/1/1; 0008 TRES ESTADOS Regular, homologada e NÃO válida
+    c = ambiente["client"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    dados = copy.deepcopy(REAL)
+    dados["2026Q1"]["classificacaoFinalComponente"] = [
+        {**i, "qtdClassificacaoOtimo": 0, "qtdClassificacaoBom": 1, "qtdClassificacaoSuficiente": 0, "qtdClassificacaoRegular": 1}
+        if i["sgEquipe"] == "eMulti" else i for i in dados["2026Q1"]["classificacaoFinalComponente"]]
+    _siaps_falso(monkeypatch, dados)
+    await c.post("/api/siaps-publico/sincronizar", headers=_h(tok))
+    nao_valida = {**EMULTI_Q1, "ine": "0009999999", "equipe": "EMULTI TESTE", "nota_final": 2.5, "classificacao": "REGULAR",
+                  "equipe_valida": "N", "indicadores": json.dumps({})}
+    await c.post("/api/siaps-publico/captura", headers=_h(tok), json=_captura([], quadrimestral=[EMULTI_Q1, nao_valida]))
+    conf = (await c.get("/api/siaps-publico/conferencia", headers=_h(tok))).json()
+    item = next(i for i in conf["itens"] if (i["quadrimestre"], i["componente"], i["sg_equipe"]) == ("2026Q1", "QUALIDADE", "eMulti"))
+    assert item["situacao"] == "confere" and "EMULTI TESTE (regular)" in item["nota"]

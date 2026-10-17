@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import ComponenteQualidade from "./ComponenteQualidade";
 import QualidadeOficialPorEquipe, { capturaNoEndereco } from "../components/QualidadeOficialPorEquipe";
 import QuadrimestralEquipes, { ConferenciaFontes } from "../components/QuadrimestralEquipes";
+import PainelGeralAps from "../components/PainelGeralAps";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, Legend,
@@ -1662,11 +1663,11 @@ function AbaDiagnosticoCobertura() {
 
 // ── Página principal ───────────────────────────────────────────────────────────
 
-type Aba = "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento" | "diag_cobertura";
+type Aba = "painel" | "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento" | "diag_cobertura";
 
 export default function SiapsEgestor() {
   // a captura assistida do SIAPS chega pelo endereço (#captura-siaps=…) e abre direto na aba Qualidade
-  const [aba, setAba] = useState<Aba>(() => (capturaNoEndereco() ? "qualidade" : "vinculo"));
+  const [aba, setAba] = useState<Aba>(() => (capturaNoEndereco() ? "qualidade" : "painel"));
 
   const { data: dashData }  = useQuery({ queryKey: ["siaps-dashboard"],  queryFn: () => apiGet("/api/siaps/dashboard") as Promise<any> });
   const { data: abrangData } = useQuery({ queryKey: ["siaps-abrang"],    queryFn: () => apiGet("/api/siaps/abrangencia") as Promise<any> });
@@ -1675,6 +1676,7 @@ export default function SiapsEgestor() {
   const { data: boas }       = useQuery({ queryKey: ["siaps-boas"],      queryFn: () => apiGet("/api/siaps/boas-praticas") as Promise<any>, enabled: aba === "boas_praticas" });
 
   const ABAS: { id: Aba; label: string }[] = [
+    { id: "painel",             label: "Painel Geral" },
     { id: "abrangencia",        label: "Abrangência Municipal" },
     { id: "vinculo",            label: "Vínculo e Acompanhamento" },
     { id: "qualidade",          label: "Componente Qualidade" },
@@ -1723,6 +1725,7 @@ export default function SiapsEgestor() {
           ))}
         </div>
 
+        {aba === "painel"            && <PainelGeralAps irPara={(a) => setAba(a as Aba)} />}
         {aba === "abrangencia"       && <AbaAbrangencia data={abrangData} />}
         {aba === "vinculo"           && <AbaVinculo data={vinculo} />}
         {aba === "qualidade"         && <AbaQualidade data={qualidade} />}

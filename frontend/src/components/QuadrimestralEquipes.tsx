@@ -13,7 +13,7 @@ type Equipe = { ine: string; equipe: string; ubs: string; nota_final: number | n
 type Grupo = { componente: string; sg_equipe: string; contagem_validas: Record<string, number>; equipes: Equipe[] };
 type Resp = { situacao_dado: string; quadrimestre?: string; quadrimestres: string[]; situacao?: string; nota_situacao?: string; grupos: Grupo[] };
 type Conf = { itens: { quadrimestre: string; componente: string; sg_equipe: string; publico: Record<string, number> | null;
-                       capturado: Record<string, number> | null; situacao: string }[];
+                       capturado: Record<string, number> | null; situacao: string; nota?: string | null }[];
               integridade: { quadrimestre: string; componente: string; equipe: string; sg_equipe: string; problema: string }[];
               resumo: Record<string, number>; regra: string };
 
@@ -86,7 +86,8 @@ export function ConferenciaFontes() {
               <td style={{ padding: "4px 8px" }}>{i.quadrimestre}</td><td style={{ padding: "4px 8px" }}>{i.componente}</td>
               <td style={{ padding: "4px 8px" }}>{i.sg_equipe}</td><td style={{ padding: "4px 8px", fontFamily: "monospace" }}>{fmt(i.publico)}</td>
               <td style={{ padding: "4px 8px", fontFamily: "monospace" }}>{fmt(i.capturado)}</td>
-              <td style={{ padding: "4px 8px", color: cor[i.situacao], fontWeight: 700 }}>{rot[i.situacao]}</td>
+              <td style={{ padding: "4px 8px", color: cor[i.situacao], fontWeight: 700 }}>{rot[i.situacao]}
+                {i.nota && <div style={{ fontWeight: 400, fontSize: 10.5, color: "#64748b" }}>{i.nota}</div>}</td>
             </tr>))}</tbody>
         </table>
       </div>

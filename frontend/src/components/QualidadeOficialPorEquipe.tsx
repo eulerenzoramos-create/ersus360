@@ -28,11 +28,12 @@ function CapturaAssistida() {
   const [texto, setTexto] = useState("");
   const [recebido, setRecebido] = useState<string | null>(null);
   const [aberto, setAberto] = useState(false);
-  const m = useMutation<{ competencias: string[]; inseridos: number; atualizados: number; equipes: number; sem_codigo: string[] }, any, string>({
+  const m = useMutation<{ competencias: string[]; inseridos: number; atualizados: number; equipes: number; sem_codigo: string[];
+                          corrigidos_pelo_ms?: string[]; quadrimestral?: { novos: number; revisados: string[]; sem_mudanca: number } }, any, string>({
     mutationFn: (t) => api.post("/api/siaps-publico/captura", JSON.parse(t)).then(r => r.data),
     onSuccess: () => {
       setTexto(""); setRecebido(null);
-      ["siaps-captura-tabela", "siaps-boas"].forEach(k => qc.invalidateQueries({ queryKey: [k] }));
+      ["siaps-captura-tabela", "siaps-boas", "siaps-quadrimestral", "siaps-conferencia", "siaps-painel-geral"].forEach(k => qc.invalidateQueries({ queryKey: [k] }));
     },
   });
   useEffect(() => {
@@ -44,7 +45,9 @@ function CapturaAssistida() {
       const pacote = JSON.parse(decodeURIComponent(window.location.hash.slice(PREFIXO.length)));
       if (pacote?.formato === "ersus360-siaps-captura-v1") {
         setTexto(JSON.stringify(pacote));
-        setRecebido(`Recebido do SIAPS: ${pacote.linhas?.length ?? 0} linhas — confira e clique em Importar captura.`);
+        setRecebido(`Recebido do SIAPS: ${pacote.linhas?.length ?? 0} linhas mensais` +
+                    (pacote.quadrimestral?.length ? ` + ${pacote.quadrimestral.length} avaliações quadrimestrais` : "") +
+                    " — confira e clique em Importar captura.");
       }
     } catch { setRecebido("O resultado recebido do SIAPS está incompleto. Refaça a captura."); }
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
@@ -77,6 +80,8 @@ function CapturaAssistida() {
             {!jsonOk && <span style={{ fontSize: 12, color: "#dc2626" }}>Conteúdo não é um JSON válido.</span>}
             {m.isSuccess && <span id="captura-siaps-resultado" style={{ fontSize: 12, color: "#059669" }}>
               Importado: {m.data.competencias.map(mesAno).join(", ")} · {m.data.equipes} equipes · {m.data.inseridos} novos, {m.data.atualizados} atualizados
+              {m.data.quadrimestral && ` · quadrimestral: ${m.data.quadrimestral.novos} novas, ${m.data.quadrimestral.revisados.length} revisadas pelo MS, ${m.data.quadrimestral.sem_mudanca} sem mudança`}
+              {m.data.corrigidos_pelo_ms?.length ? ` · ${m.data.corrigidos_pelo_ms.length} valor(es) mensal(is) corrigido(s) pelo MS` : ""}
               {m.data.sem_codigo.length ? ` · sem código: ${m.data.sem_codigo.join("; ")}` : ""}</span>}
             {m.isError && <span id="captura-siaps-resultado" style={{ fontSize: 12, color: "#dc2626" }}>{m.error?.response?.data?.detail ?? "Falha ao importar."}</span>}
           </div>

@@ -206,13 +206,19 @@ async def conferencia(db: AsyncSession, municipio_id: int) -> dict:
     ultimo: dict[str, SiapsPublicoColeta] = {}
     for c in publicos:
         ultimo.setdefault(c.chave, c)
-    capturado: dict[tuple, dict] = {}
+    capturado: dict[tuple, dict] = {}        # só equipes válidas
+    todas: dict[tuple, dict] = {}            # válidas + homologadas não válidas
+    nao_validas: dict[tuple, list] = {}
     for r in await _ativos(db, municipio_id):
+        k = (r.quadrimestre, r.componente, r.sg_equipe)
+        alvo = [todas] + ([capturado] if r.equipe_valida else [])
+        for d in alvo:
+            cont = d.setdefault(k, {c: 0 for c in CLASSES.values()})
+            if r.classificacao in cont:
+                cont[r.classificacao] += 1
         if not r.equipe_valida:
-            continue
-        cont = capturado.setdefault((r.quadrimestre, r.componente, r.sg_equipe), {c: 0 for c in CLASSES.values()})
-        if r.classificacao in cont:
-            cont[r.classificacao] += 1
+            capturado.setdefault(k, {c: 0 for c in CLASSES.values()})
+            nao_validas.setdefault(k, []).append(f"{r.equipe} ({r.classificacao or '—'})")
     publico: dict[tuple, dict] = {}
     for q, col in ultimo.items():
         for i in (col.payload or {}).get("classificacaoFinalComponente", []):
@@ -222,15 +228,27 @@ async def conferencia(db: AsyncSession, municipio_id: int) -> dict:
     itens = []
     for chave in sorted(set(publico) | set(capturado), key=lambda k: (k[0], k[1] or "", ORDEM_SG.get(k[2], 9)), reverse=True):
         pub, cap = publico.get(chave), capturado.get(chave)
-        situacao = "sem_comparacao" if pub is None or cap is None else ("confere" if pub == cap else "diverge")
+        nota = None
+        if pub is None or cap is None:
+            situacao = "sem_comparacao"
+        elif pub == cap:
+            situacao = "confere"
+        elif pub == todas.get(chave):
+            # a área pública contou também equipe(s) homologada(s) não válida(s) para o componente
+            situacao = "confere"
+            nota = "Área pública inclui equipe(s) não válida(s): " + ", ".join(nao_validas.get(chave, []))
+        else:
+            situacao = "diverge"
         itens.append({"quadrimestre": chave[0], "componente": chave[1], "sg_equipe": chave[2],
-                      "publico": pub, "capturado": cap, "situacao": situacao})
+                      "publico": pub, "capturado": cap, "situacao": situacao, "nota": nota,
+                      "nao_validas": nao_validas.get(chave, [])})
     integridade = [p for r in await _ativos(db, municipio_id) for p in problemas_integridade(r)]
     return {"itens": itens, "integridade": integridade,
             "resumo": {**{s: sum(1 for i in itens if i["situacao"] == s) for s in ("confere", "diverge", "sem_comparacao")},
                        "equipes_conferidas": len(await _ativos(db, municipio_id)), "problemas_integridade": len(integridade)},
             "regra": "Compara as contagens Ótimo/Bom/Suficiente/Regular publicadas na área pública do SIAPS com as "
-                     "equipes válidas capturadas da área logada. 'Sem comparação' quando falta uma das fontes."}
+                     "equipes da área logada (válidas; se a área pública também contou equipes homologadas não "
+                     "válidas, isso é indicado). 'Sem comparação' quando falta uma das fontes."}
 
 
 # ── Conferência de integridade contra as Notas Técnicas nº 8/2026 e nº 12/2026-DEAPS/SAPS/MS ──────────
