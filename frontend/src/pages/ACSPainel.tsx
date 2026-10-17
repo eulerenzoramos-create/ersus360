@@ -503,7 +503,7 @@ function TabelaCadastros({ titulo, rota, colunas }: { titulo: string; rota: stri
   if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
   if (isError) return <OfflineBanner emoji="⚠️" titulo="Não foi possível conectar ao servidor"
     nota="Verifique a conexão com a API ou tente novamente em instantes." />;
-  if (data?.fonte !== "esus_pec") return <NaoDisponivelBanner nota={data?.nota ?? "Aguardando os dados do e-SUS PEC pelo agente local."} />;
+  if (data?.fonte !== "esus_pec") return <NaoDisponivelBanner titulo="Aguardando dados do e-SUS PEC" rodape={null} nota={data?.nota ?? "Aguardando os dados do e-SUS PEC pelo agente local."} />;
   const linhas: any[] = data?.por_microarea ?? [];
   return (
     <div>
@@ -880,8 +880,6 @@ export default function ACSPainel() {
     { id: "capturar" as Aba,       label: "📋 Capturar PEC",      icon: null },
   ];
 
-  const corPec = esusStatus?.conectado ? (esusStatus.autenticado ? "#16a34a" : "#d97706") : "#dc2626";
-  const bgPec  = esusStatus?.conectado ? (esusStatus.autenticado ? "#f0fdf4" : "#fef3c7") : "#fef2f2";
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", background: "#f4f6f8", minHeight: "100vh" }}>
@@ -929,18 +927,22 @@ export default function ACSPainel() {
           </div>
 
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            {/* Status eSUS PEC */}
-            <div style={{ background: bgPec, border: `1px solid ${corPec}40`, borderRadius: 8, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
-              {esusStatus?.conectado ? <Wifi size={14} color={corPec} /> : <WifiOff size={14} color={corPec} />}
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: corPec }}>
-                  eSUS PEC · {esusStatus?.conectado ? (esusStatus.autenticado ? "Conectado ✓" : "Sem credenciais") : "Offline"}
+            {/* Status do agente local do e-SUS PEC */}
+            {(() => {
+              const ag = (esusStatus as any)?.agente;
+              const e = ESTADOS_AGENTE[ag?.estado] ?? ESTADOS_AGENTE.sem_agente;
+              return (
+                <div style={{ background: e.bg, border: `1px solid ${e.cor}40`, borderRadius: 8, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                  {["atualizado", "conectado", "desatualizado"].includes(ag?.estado) ? <Wifi size={14} color={e.cor} /> : <WifiOff size={14} color={e.cor} />}
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: e.cor }}>e-SUS PEC · {e.rotulo}</div>
+                    <div style={{ fontSize: 9, color: "#6b7280" }}>
+                      {ag?.ultima_sincronizacao_acs ? `última sincronização ${dataHora(ag.ultima_sincronizacao_acs)}` : "agente local ainda não enviou os dados dos ACS"}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: 9, color: "#6b7280" }}>
-                  {esusStatus?.autenticado ? `v${esusStatus.versao || "—"} · ${esusStatus.instancia || ""}` : esusStatus?.conectado ? "Adicione ESUS_USUARIO e ESUS_SENHA no Railway" : "Servidor inacessível"}
-                </div>
-              </div>
-            </div>
+              );
+            })()}
             <button onClick={() => refetch()}
               style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
               <RefreshCw size={13} /> Atualizar
@@ -968,7 +970,7 @@ export default function ACSPainel() {
 
         {/* ── Dashboard ── */}
         {aba === "dashboard" && !k && !isLoading && (
-          <NaoDisponivelBanner nota={(dash as any)?.nota ?? "Aguardando os dados do e-SUS PEC pelo agente local — veja a aba Capturar PEC."} />
+          <NaoDisponivelBanner titulo="Aguardando dados do e-SUS PEC" rodape={null} nota={(dash as any)?.nota ?? "Aguardando os dados do e-SUS PEC pelo agente local — veja a aba Capturar PEC."} />
         )}
 
         {aba === "dashboard" && k && (
