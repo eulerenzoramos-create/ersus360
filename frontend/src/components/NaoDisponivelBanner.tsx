@@ -5,6 +5,8 @@ interface Props {
   nota?: string;
   /** Variante compacta para uso dentro de cards/seções */
   compact?: boolean;
+  /** Texto do rodapé; null oculta (padrão: orientação sobre credenciais no Railway) */
+  rodape?: string | null;
 }
 
 /**
@@ -16,6 +18,7 @@ export default function NaoDisponivelBanner({
   titulo = "Dados indisponíveis",
   nota = "Integração com sistema externo ainda não configurada. Nenhum valor foi inventado.",
   compact = false,
+  rodape = "Configure as credenciais no Railway para habilitar esta integração.",
 }: Props) {
   const pad = compact ? "20px 20px" : "48px 24px";
   const iconSz = compact ? 28 : 40;
@@ -62,17 +65,19 @@ export default function NaoDisponivelBanner({
         </div>
       </div>
 
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        fontSize: 11,
-        color: "#94a3b8",
-        marginTop: compact ? 0 : 4,
-      }}>
-        <Plug size={12} />
-        Configure as credenciais no Railway para habilitar esta integração.
-      </div>
+      {rodape && (
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 11,
+          color: "#94a3b8",
+          marginTop: compact ? 0 : 4,
+        }}>
+          <Plug size={12} />
+          {rodape}
+        </div>
+      )}
     </div>
   );
 }
