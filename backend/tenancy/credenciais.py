@@ -37,6 +37,8 @@ SISTEMAS: dict[str, dict] = {
     "INVESTSUS": {"descricao": "InvestSUS — propostas federais do Fundo de Saúde (acesso gov.br)",
                   "campos": {"COOKIE": "INVESTSUS_COOKIE", "TOKEN": "INVESTSUS_TOKEN",
                              "CPF": "INVESTSUS_CPF", "SENHA": "INVESTSUS_SENHA"}},
+    "PEC_AGENTE": {"descricao": "Agente local do e-SUS PEC (chave de sincronização do PEC_SYNC_AGENT)",
+                   "campos": {"SYNC_KEY": "ERSUS_SYNC_KEY"}},
     "RNDS": {"descricao": "RNDS / Conecte SUS (certificado ICP-Brasil do estabelecimento)",
              "campos": {"CNES": "RNDS_CNES", "CLIENT_ID": "RNDS_CLIENT_ID", "CLIENT_SECRET": "RNDS_CLIENT_SECRET",
                         "CERT_B64": "RNDS_CERT_B64", "CERT_PASSWORD": "RNDS_CERT_PASSWORD"}},
@@ -50,6 +52,7 @@ MINIMOS: dict[str, list[list[str]]] = {
     "ESUS": [["URL", "USUARIO", "SENHA"], ["PEC_URL", "USUARIO", "SENHA"]],
     "LEDI": [["PEC_URL", "USUARIO", "SENHA"]],
     "INVESTSUS": [["COOKIE"], ["TOKEN"], ["CPF", "SENHA"]],
+    "PEC_AGENTE": [["SYNC_KEY"]],
     "RNDS": [["CNES", "CLIENT_ID", "CERT_B64", "CERT_PASSWORD"]],
 }
 

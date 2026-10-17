@@ -8,7 +8,7 @@ import {
   User, FileText, Search, Filter, Calendar, Wifi, WifiOff,
   BarChart2, Navigation, ClipboardList, Building2, TrendingUp,
 } from "lucide-react";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGet } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import ACSGeoPage from "./ACSGeoPage";
 
@@ -54,9 +54,9 @@ type Aba = "dashboard" | "visitas" | "calendario" | "cadastros_ind" | "cadastros
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const STATUS_COR: Record<string, string> = { destaque:"#16a34a", regular:"#1351b4", critico:"#dc2626", afastado:"#9ca3af" };
-const STATUS_LABEL: Record<string, string> = { destaque:"Destaque", regular:"Regular", critico:"Atenção", afastado:"Afastado" };
-const SEM_COR: Record<string, string> = { verde:"#16a34a", amarelo:"#d97706", vermelho:"#dc2626" };
+const STATUS_COR: Record<string, string> = { destaque:"#16a34a", regular:"#1351b4", critico:"#dc2626", afastado:"#9ca3af", ativo:"#1351b4", inativo:"#9ca3af" };
+const STATUS_LABEL: Record<string, string> = { destaque:"Destaque", regular:"Regular", critico:"Atenção", afastado:"Afastado", ativo:"Ativo", inativo:"Sem lotação ativa" };
+const SEM_COR: Record<string, string> = { verde:"#16a34a", amarelo:"#d97706", vermelho:"#dc2626", sem_dado:"#94a3b8" };
 const EQUIPE_COR: Record<string, string> = {
   "KENNEDY":"#0891b2","JK":"#7c3aed","ACARI":"#059669","JUMA":"#d97706",
   "ESTRADA NOVA":"#dc2626","LIBERDADE":"#db2777","SÃO SEBASTIÃO":"#2563eb",
@@ -69,7 +69,7 @@ const ESF_COR = EQUIPE_COR;
 function Bar({ pct, cor, height = 6 }: { pct: number; cor: string; height?: number }) {
   return (
     <div style={{ height, background: "#e5e7eb", borderRadius: 4, overflow: "hidden" }}>
-      <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: cor, borderRadius: 4, transition: "width .4s" }} />
+      <div style={{ width: `${Math.min(pct ?? 0, 100)}%`, height: "100%", background: cor, borderRadius: 4, transition: "width .4s" }} />
     </div>
   );
 }
@@ -102,9 +102,9 @@ function KpiCard({ icon, label, val, sub, cor, bg, border }: {
 
 function AcsCard({ a }: { a: AcsItem }) {
   const [open, setOpen] = useState(false);
-  const cor = STATUS_COR[a.status];
-  const corVis = a.pct_visitas >= 90 ? "#16a34a" : a.pct_visitas >= 70 ? "#d97706" : "#dc2626";
-  const corCad = a.pct_cadastro >= 90 ? "#16a34a" : "#d97706";
+  const cor = STATUS_COR[a.status] ?? "#1351b4";
+  const corVis = a.pct_visitas == null ? "#94a3b8" : a.pct_visitas >= 90 ? "#16a34a" : a.pct_visitas >= 70 ? "#d97706" : "#dc2626";
+  const corCad = a.pct_cadastro == null ? "#94a3b8" : a.pct_cadastro >= 90 ? "#16a34a" : "#d97706";
 
   return (
     <div style={{ border: `1px solid ${cor}30`, borderLeft: `4px solid ${cor}`, borderRadius: 10, background: "#fff", overflow: "hidden" }}>
@@ -118,16 +118,16 @@ function AcsCard({ a }: { a: AcsItem }) {
             {a.nome}
             <Badge label={STATUS_LABEL[a.status]} cor={cor} bg={`${cor}15`} border={`${cor}40`} />
           </div>
-          <div style={{ fontSize: 11, color: "#9ca3af" }}>{a.microarea} · {a.equipe} · {a.familias_cadastradas} famílias</div>
+          <div style={{ fontSize: 11, color: "#9ca3af" }}>{a.microarea} · {a.equipe} · {fmtN(a.familias_cadastradas)} famílias</div>
         </div>
         <div style={{ display: "flex", gap: 18, alignItems: "center", flexShrink: 0 }}>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: corVis }}>{a.pct_visitas}%</div>
-            <div style={{ fontSize: 10, color: "#9ca3af" }}>visitas</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: corVis }}>{a.pct_visitas == null ? "—" : `${a.pct_visitas}%`}</div>
+            <div style={{ fontSize: 10, color: "#9ca3af" }}>famílias visitadas</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: corCad }}>{a.pct_cadastro}%</div>
-            <div style={{ fontSize: 10, color: "#9ca3af" }}>cadastro</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: corCad }}>{fmtN(a.visitas?.realizadas)}</div>
+            <div style={{ fontSize: 10, color: "#9ca3af" }}>visitas realizadas</div>
           </div>
           {open ? <ChevronDown size={14} color="#9ca3af" /> : <ChevronRight size={14} color="#9ca3af" />}
         </div>
@@ -138,20 +138,16 @@ function AcsCard({ a }: { a: AcsItem }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
             <div>
               <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 5 }}>
-                Visitas — {a.visitas.realizadas}/{a.visitas.programadas} programadas · {a.pct_visitas}%
+                Visitas realizadas — {fmtN(a.visitas.realizadas)} · famílias visitadas {a.pct_visitas == null ? "—" : `${a.pct_visitas}%`}
               </div>
               <Bar pct={a.pct_visitas} cor={corVis} height={8} />
               <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 4 }}>
-                {a.visitas.nao_encontradas} não encontradas · {a.visitas.recusas} recusas
+                {fmtN(a.visitas.nao_encontradas)} ausentes · {fmtN(a.visitas.recusas)} recusas
               </div>
             </div>
             <div>
               <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 5 }}>
-                Famílias — {a.familias_cadastradas}/{a.familias_meta} · {a.pct_cadastro}%
-              </div>
-              <Bar pct={a.pct_cadastro} cor={corCad} height={8} />
-              <div style={{ fontSize: 10, color: a.pct_cadastro < 80 ? "#dc2626" : "#9ca3af", marginTop: 4 }}>
-                {a.pct_cadastro < 80 ? `⚠ ${a.familias_meta - a.familias_cadastradas} cadastros pendentes` : "✓ Meta atingida"}
+                Famílias cadastradas — {fmtN(a.familias_cadastradas)} · visitadas no período {fmtN((a as any).familias_visitadas)}
               </div>
             </div>
           </div>
@@ -164,7 +160,7 @@ function AcsCard({ a }: { a: AcsItem }) {
               { label: "Idosos",    val: a.indicadores.idosos,           cor: "#6b7280" },
             ].map(k => (
               <div key={k.label} style={{ textAlign: "center", padding: "7px 12px", background: `${k.cor}10`, borderRadius: 8, minWidth: 56 }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: k.cor }}>{k.val}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: k.cor }}>{fmtN(k.val)}</div>
                 <div style={{ fontSize: 10, color: "#9ca3af" }}>{k.label}</div>
               </div>
             ))}
@@ -207,29 +203,20 @@ function AbaVisitas({ fonte, periodTipo, competencia: compProp, dataFiltro, anoF
   );
 
   const isPec    = prod.fonte === "esus_pec";
-  const isRef    = prod.fonte === "referencia_municipal";
   const compLabel = prod.periodo_label ?? prod.competencia ?? "—";
 
   const bannerBg    = isPec ? "#f0fdf4" : "#eff6ff";
   const bannerBd    = isPec ? "#bbf7d0" : "#bfdbfe";
   const bannerTxt   = isPec ? "#15803d" : "#1d4ed8";
   const bannerEmoji = isPec ? "✅" : "📋";
-  const bannerMsg   = isPec ? "e-SUS PEC · Dados em tempo real" : "Dados de referência CNES · Apuí/AM";
+  const bannerMsg   = isPec ? `e-SUS PEC · agente local · competência ${prod.competencia ?? "—"}` : "Aguardando dados do e-SUS PEC";
 
-  const cardsTop = isPec ? [
-    { label: "Visitas Domiciliares",    val: prod.visitas_domiciliares ?? 0,       cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
-    { label: "Atend. Individuais",      val: prod.atendimentos_individuais ?? 0,    cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-    { label: "Atend. Odontológicos",    val: prod.atendimentos_odontologicos ?? 0,  cor: "#7c3aed", bg: "#faf5ff", border: "#e9d5ff" },
-    { label: "Procedimentos",           val: prod.procedimentos ?? 0,              cor: "#d97706", bg: "#fef3c7", border: "#fde68a" },
-    { label: "Ativ. Coletivas",         val: prod.atividades_coletivas ?? 0,       cor: "#0891b2", bg: "#f0f9ff", border: "#bae6fd" },
-    { label: "Encaminhamentos",         val: prod.encaminhamentos ?? 0,            cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-  ] : [
-    { label: "Visitas Realizadas",   val: prod.visitas_domiciliares ?? 0,  cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
-    { label: "Visitas Programadas",  val: prod.visitas_programadas ?? 0,   cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-    { label: "% Realizadas",         val: `${prod.pct_realizadas ?? 0}%`,  cor: "#7c3aed", bg: "#faf5ff", border: "#e9d5ff" },
-    { label: "Não Encontradas",      val: prod.nao_encontradas ?? 0,       cor: "#d97706", bg: "#fef3c7", border: "#fde68a" },
-    { label: "Recusas",              val: prod.recusas ?? 0,               cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-    { label: "ACS Ativos",           val: 65,                              cor: "#0891b2", bg: "#f0f9ff", border: "#bae6fd" },
+  const cardsTop = [
+    { label: "Visitas realizadas",          val: prod.visitas_domiciliares ?? null,  cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
+    { label: "Fichas de visita registradas", val: prod.visitas_registradas ?? null, cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+    { label: "Ausentes / não encontrados",  val: prod.nao_encontradas ?? null,       cor: "#d97706", bg: "#fef3c7", border: "#fde68a" },
+    { label: "Recusas",                     val: prod.recusas ?? null,               cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+    { label: "ACS ativos",                  val: prod.acs_ativos ?? null,            cor: "#0891b2", bg: "#f0f9ff", border: "#bae6fd" },
   ];
 
   return (
@@ -239,7 +226,7 @@ function AbaVisitas({ fonte, periodTipo, competencia: compProp, dataFiltro, anoF
         <span style={{ fontSize: 16 }}>{bannerEmoji}</span>
         <span style={{ fontSize: 13, fontWeight: 700, color: bannerTxt }}>{bannerMsg}</span>
         <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 8 }}>Período: {compLabel}</span>
-        {isRef && <span style={{ marginLeft: "auto", fontSize: 11, color: "#9ca3af" }}>⚡ Conecte o e-SUS PEC para dados em tempo real</span>}
+
       </div>
 
       {/* KPI cards */}
@@ -247,44 +234,40 @@ function AbaVisitas({ fonte, periodTipo, competencia: compProp, dataFiltro, anoF
         {cardsTop.map(c => (
           <div key={c.label} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10, padding: "18px 16px", textAlign: "center" }}>
             <div style={{ fontSize: 36, fontWeight: 800, color: c.cor, fontVariantNumeric: "tabular-nums" }}>
-              {typeof c.val === "number" ? c.val.toLocaleString("pt-BR") : c.val}
+              {typeof c.val === "number" ? c.val.toLocaleString("pt-BR") : (c.val ?? "—")}
             </div>
             <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{c.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Tabela por equipe (dados de referência) */}
-      {isRef && Array.isArray(prod.por_equipe) && prod.por_equipe.length > 0 && (
+      {/* Visitas por equipe (e-SUS PEC, via agente) */}
+      {Array.isArray(prod.por_equipe) && prod.por_equipe.length > 0 && (
         <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid #f3f4f6", fontWeight: 700, fontSize: 13 }}>Visitas por Equipe ESF</div>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid #f3f4f6", fontWeight: 700, fontSize: 13 }}>Visitas por equipe</div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#f9fafb" }}>
-                {["Equipe","Realizadas","Programadas","% Meta"].map(h => (
+                {["Equipe","Realizadas","Fichas registradas"].map(h => (
                   <th key={h} style={{ padding: "8px 14px", fontSize: 11, fontWeight: 600, color: "#6b7280", textAlign: h === "Equipe" ? "left" : "right" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {prod.por_equipe.map((eq: any) => {
-                const cor = eq.pct >= 90 ? "#16a34a" : eq.pct >= 75 ? "#d97706" : "#dc2626";
-                return (
-                  <tr key={eq.equipe} style={{ borderTop: "1px solid #f3f4f6" }}>
-                    <td style={{ padding: "8px 14px", fontSize: 12, fontWeight: 600 }}>{eq.equipe}</td>
-                    <td style={{ padding: "8px 14px", fontSize: 12, textAlign: "right", color: "#1351b4", fontWeight: 700 }}>{eq.realizadas.toLocaleString("pt-BR")}</td>
-                    <td style={{ padding: "8px 14px", fontSize: 12, textAlign: "right", color: "#6b7280" }}>{eq.programadas.toLocaleString("pt-BR")}</td>
-                    <td style={{ padding: "8px 14px", fontSize: 12, textAlign: "right", fontWeight: 700, color: cor }}>{eq.pct}%</td>
-                  </tr>
-                );
-              })}
+              {prod.por_equipe.map((eq: any) => (
+                <tr key={eq.equipe} style={{ borderTop: "1px solid #f3f4f6" }}>
+                  <td style={{ padding: "8px 14px", fontSize: 12, fontWeight: 600 }}>{eq.equipe}</td>
+                  <td style={{ padding: "8px 14px", fontSize: 12, textAlign: "right", color: "#1351b4", fontWeight: 700 }}>{fmtN(eq.realizadas)}</td>
+                  <td style={{ padding: "8px 14px", fontSize: 12, textAlign: "right", color: "#6b7280" }}>{fmtN(eq.registradas)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       )}
 
       <div style={{ marginTop: 12, fontSize: 11, color: "#9ca3af" }}>
-        Fonte: {isPec ? "e-SUS PEC" : "CNES Apuí/AM"} · IBGE 1300144 · Período: {compLabel}
+        Fonte: {isPec ? "e-SUS PEC (agente local, dados agregados)" : "aguardando integração"} · Período: {compLabel}
       </div>
     </div>
   );
@@ -511,150 +494,62 @@ function ConectadoBanner({ texto }: { texto: string }) {
 
 // ── Aba Cadastros Individuais ─────────────────────────────────────────────────
 
-function AbaCadastrosIndividuais() {
-  const [pagina, setPagina] = useState(0);
-  const [busca,  setBusca]  = useState("");
-
+function TabelaCadastros({ titulo, rota, colunas }: { titulo: string; rota: string; colunas: [string, string][] }) {
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["acs-cad-ind", pagina],
-    queryFn: () => apiGet("/api/acs/esus/cadastros-individuais", { pagina, tamanho: 50 }) as Promise<any>,
+    queryKey: ["acs-cad", rota],
+    queryFn: () => apiGet(rota) as Promise<any>,
     staleTime: 120_000,
   });
-
-  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando cadastros do e-SUS PEC...</div>;
-
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
   if (isError) return <OfflineBanner emoji="⚠️" titulo="Não foi possível conectar ao servidor"
     nota="Verifique a conexão com a API ou tente novamente em instantes." />;
-
-  const cad = data?.dados;
-  const conectado = data?.fonte === "esus_pec";
-
-  if (conectado) {
-    const cidadaos: any[] = cad?.cidadaos ?? [];
-    const filtrado = busca
-      ? cidadaos.filter(c => (c.nome ?? "").toLowerCase().includes(busca.toLowerCase()) || (c.cns ?? "").includes(busca) || (c.cpf ?? "").includes(busca))
-      : cidadaos;
-    return (
-      <div>
-        <ConectadoBanner texto={`${(cad?.total ?? 0).toLocaleString("pt-BR")} cidadãos cadastrados · Apuí/AM`} />
-        <div style={{ display: "flex", gap: 12, marginBottom: 14, alignItems: "center" }}>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px" }}>
-            <Search size={14} color="#9ca3af" />
-            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por nome, CNS ou CPF..."
-              style={{ border: "none", outline: "none", fontSize: 13, flex: 1, background: "transparent" }} />
-          </div>
-          <div style={{ fontSize: 12, color: "#9ca3af" }}>Pág. {pagina + 1}/{cad?.total_paginas ?? 1} · {(cad?.total ?? 0).toLocaleString("pt-BR")} total</div>
-          <button onClick={() => setPagina(p => Math.max(0, p - 1))} disabled={pagina === 0}
-            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", background: pagina === 0 ? "#f9fafb" : "#fff", cursor: pagina === 0 ? "not-allowed" : "pointer", fontSize: 12 }}>← Ant.</button>
-          <button onClick={() => setPagina(p => p + 1)} disabled={!cad?.tem_proxima}
-            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", background: !cad?.tem_proxima ? "#f9fafb" : "#fff", cursor: !cad?.tem_proxima ? "not-allowed" : "pointer", fontSize: 12 }}>Próx. →</button>
-        </div>
-        <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e4e7ec", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
-            <thead>
-              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
-                {["Nome","CNS","CPF","Dt. Nasc.","Sexo","Equipe","Microárea"].map(h => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: "left" as const, fontWeight: 700, color: "#374151", whiteSpace: "nowrap" as const }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtrado.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>Nenhum registro encontrado</td></tr>
-              ) : filtrado.map((c: any, i: number) => (
-                <tr key={c.id ?? i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
-                  <td style={{ padding: "9px 14px", fontWeight: 500 }}>{c.nome ?? "—"}</td>
-                  <td style={{ padding: "9px 14px", fontFamily: "monospace", color: "#6b7280" }}>{c.cns ?? "—"}</td>
-                  <td style={{ padding: "9px 14px", fontFamily: "monospace", color: "#6b7280" }}>{c.cpf ?? "—"}</td>
-                  <td style={{ padding: "9px 14px", color: "#6b7280" }}>{c.data_nascimento ?? "—"}</td>
-                  <td style={{ padding: "9px 14px", color: "#6b7280" }}>{c.sexo ?? "—"}</td>
-                  <td style={{ padding: "9px 14px", color: "#1351b4", fontWeight: 600 }}>{c.equipe ?? "—"}</td>
-                  <td style={{ padding: "9px 14px", color: "#6b7280" }}>{c.microarea ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 10 }}>Fonte: e-SUS PEC · Apuí/AM · IBGE 1300144</div>
+  if (data?.fonte !== "esus_pec") return <NaoDisponivelBanner nota={data?.nota ?? "Aguardando os dados do e-SUS PEC pelo agente local."} />;
+  const linhas: any[] = data?.por_microarea ?? [];
+  return (
+    <div>
+      <ConectadoBanner texto={`${titulo}: ${fmtN(data?.total)} · competência ${data?.competencia ?? "—"}`} />
+      <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>
+        Por minimização de dados (LGPD), o ERSUS360 recebe só contagens por equipe e microárea. A ficha de cada
+        cidadão continua no e-SUS PEC, acessível a quem tem perfil para isso.
       </div>
-    );
-  }
-
-  return <OfflineBanner emoji="📋" titulo="Dados individuais indisponíveis no momento" nota={data?.nota} />;
+      <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e4e7ec", overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
+          <thead>
+            <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+              {["Equipe", "Microárea", ...colunas.map(c => c[1])].map(h => (
+                <th key={h} style={{ padding: "10px 14px", textAlign: "left" as const, fontWeight: 700, color: "#374151" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.length === 0 ? (
+              <tr><td colSpan={2 + colunas.length} style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>Sem detalhamento por microárea neste envio</td></tr>
+            ) : linhas.map((l: any, i: number) => (
+              <tr key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                <td style={{ padding: "9px 14px", color: "#1351b4", fontWeight: 600 }}>{l.equipe ?? "—"}</td>
+                <td style={{ padding: "9px 14px" }}>{l.microarea ?? "—"}</td>
+                {colunas.map(([k]) => <td key={k} style={{ padding: "9px 14px" }}>{k.startsWith("pct") ? (l[k] == null ? "—" : `${l[k]}%`) : fmtN(l[k])}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
 
+// ── Aba Cadastros Individuais ─────────────────────────────────────────────────
+
+function AbaCadastrosIndividuais() {
+  return <TabelaCadastros titulo="Cadastros individuais" rota="/api/acs/esus/cadastros-individuais"
+    colunas={[["individuos", "Indivíduos cadastrados"]]} />;
+}
 
 // ── Aba Cadastros Domiciliares ────────────────────────────────────────────────
 
 function AbaCadastrosDomiciliares() {
-  const [pagina, setPagina] = useState(0);
-  const [busca,  setBusca]  = useState("");
-
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["acs-cad-dom", pagina],
-    queryFn: () => apiGet("/api/acs/esus/cadastros-domiciliares", { pagina, tamanho: 50 }) as Promise<any>,
-    staleTime: 120_000,
-  });
-
-  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando domicílios do e-SUS PEC...</div>;
-
-  if (isError) return <OfflineBanner emoji="⚠️" titulo="Não foi possível conectar ao servidor"
-    nota="Verifique a conexão com a API ou tente novamente em instantes." />;
-
-  const cad = data?.dados;
-  const conectado = data?.fonte === "esus_pec";
-
-  if (conectado) {
-    const domicilios: any[] = cad?.domicilios ?? [];
-    const filtrado = busca
-      ? domicilios.filter(d => (d.logradouro ?? "").toLowerCase().includes(busca.toLowerCase()) || (d.bairro ?? "").toLowerCase().includes(busca.toLowerCase()) || (d.microarea ?? "").includes(busca))
-      : domicilios;
-    return (
-      <div>
-        <ConectadoBanner texto={`${(cad?.total ?? 0).toLocaleString("pt-BR")} domicílios · Apuí/AM`} />
-        <div style={{ display: "flex", gap: 12, marginBottom: 14, alignItems: "center" }}>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px" }}>
-            <Search size={14} color="#9ca3af" />
-            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar por logradouro, bairro ou microárea..."
-              style={{ border: "none", outline: "none", fontSize: 13, flex: 1, background: "transparent" }} />
-          </div>
-          <div style={{ fontSize: 12, color: "#9ca3af" }}>Pág. {pagina + 1}/{cad?.total_paginas ?? 1}</div>
-          <button onClick={() => setPagina(p => Math.max(0, p - 1))} disabled={pagina === 0}
-            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", cursor: pagina === 0 ? "not-allowed" : "pointer", fontSize: 12 }}>← Ant.</button>
-          <button onClick={() => setPagina(p => p + 1)} disabled={!cad?.tem_proxima}
-            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", cursor: !cad?.tem_proxima ? "not-allowed" : "pointer", fontSize: 12 }}>Próx. →</button>
-        </div>
-        <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e4e7ec", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
-            <thead>
-              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
-                {["Logradouro","Nº","Bairro","CEP","Microárea","Famílias"].map(h => (
-                  <th key={h} style={{ padding: "10px 14px", textAlign: "left" as const, fontWeight: 700, color: "#374151" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtrado.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>Nenhum registro encontrado</td></tr>
-              ) : filtrado.map((d: any, i: number) => (
-                <tr key={d.id ?? i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
-                  <td style={{ padding: "9px 14px", fontWeight: 500 }}>{d.logradouro || "—"}</td>
-                  <td style={{ padding: "9px 14px", color: "#6b7280" }}>{d.numero ?? "s/n"}</td>
-                  <td style={{ padding: "9px 14px", color: "#6b7280" }}>{d.bairro ?? "—"}</td>
-                  <td style={{ padding: "9px 14px", color: "#6b7280", fontFamily: "monospace" }}>{d.cep ?? "—"}</td>
-                  <td style={{ padding: "9px 14px", color: "#1351b4", fontWeight: 600 }}>{d.microarea ?? "—"}</td>
-                  <td style={{ padding: "9px 14px", color: "#16a34a", fontWeight: 700 }}>{d.familias ?? 0}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 10 }}>Fonte: e-SUS PEC · Apuí/AM · IBGE 1300144</div>
-      </div>
-    );
-  }
-
-  return <OfflineBanner emoji="🏠" titulo="Dados de domicílios indisponíveis no momento" nota={data?.nota} />;
+  return <TabelaCadastros titulo="Domicílios cadastrados" rota="/api/acs/esus/cadastros-domiciliares"
+    colunas={[["domicilios", "Domicílios"], ["familias", "Famílias"], ["pct_familias_visitadas", "Famílias visitadas no período"]]} />;
 }
 
 // ── Aba Lista ACS com dados eSUS PEC ─────────────────────────────────────────
@@ -671,7 +566,7 @@ function AbaListaAcs({ acsRef }: { acsRef: AcsItem[] }) {
   });
 
   const conectado = esusAcs?.fonte === "esus_pec";
-  const acsList: any[] = conectado ? (esusAcs?.dados?.acs ?? []) : acsRef;
+  const acsList: any[] = acsRef;
 
   const equipes = ["Todas", ...Array.from(new Set(acsList.map((a: any) => a.equipe ?? a.equipe).filter(Boolean))) as string[]];
 
@@ -683,10 +578,10 @@ function AbaListaAcs({ acsRef }: { acsRef: AcsItem[] }) {
 
   return (
     <div>
-      {conectado && <ConectadoBanner texto={`${esusAcs?.dados?.total ?? 0} ACS no e-SUS PEC · CBO 515140`} />}
+      {conectado && <ConectadoBanner texto={`${esusAcs?.total ?? 0} ACS no e-SUS PEC · CBO 515105`} />}
       {!conectado && (
         <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#92400e" }}>
-          ⚠ Dados de referência CNES — configure ESUS_USUARIO e ESUS_SENHA no Railway para dados reais do e-SUS PEC.
+          Aguardando os dados do e-SUS PEC pelo agente local — veja a aba Capturar PEC.
         </div>
       )}
       <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" as const, alignItems: "center" }}>
@@ -732,7 +627,7 @@ function AbaListaAcs({ acsRef }: { acsRef: AcsItem[] }) {
         </table>
       </div>
       <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 10 }}>
-        Fonte: {conectado ? "e-SUS PEC · Apuí/AM · IBGE 1300144" : "CNES / Referência Municipal"}
+        Fonte: {conectado ? "e-SUS PEC (agente local, dados agregados)" : "aguardando integração"}
       </div>
     </div>
   );
@@ -749,14 +644,14 @@ function AbaMicroareas({ maRef }: { maRef: any[] }) {
   });
 
   const conectado = terr?.fonte === "esus_pec";
-  const microareas = maRef; // sempre mostra referência; enriquece com eSUS se disponível
+  const microareas = maRef; // microáreas do último lote do agente (vazio até o primeiro envio)
 
   return (
     <div>
       {conectado && <ConectadoBanner texto={`${terr?.dados?.total ?? 0} territórios no e-SUS PEC`} />}
       {!conectado && (
         <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#92400e" }}>
-          ⚠ Dados de referência — configure credenciais no Railway para territórios reais do e-SUS PEC.
+          Aguardando os dados do e-SUS PEC pelo agente local — veja a aba Capturar PEC.
         </div>
       )}
 
@@ -782,24 +677,24 @@ function AbaMicroareas({ maRef }: { maRef: any[] }) {
         </div>
       )}
 
-      {/* Sempre mostra microáreas de referência */}
-      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Microáreas — Dados CNES de Referência</div>
+      {/* Microáreas do último lote do agente */}
+      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Microáreas — e-SUS PEC (agente local)</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 12 }}>
         {microareas.map((ma: any) => {
-          const cor = SEM_COR[ma.semaforo];
+          const cor = SEM_COR[ma.semaforo ?? "sem_dado"] ?? SEM_COR.sem_dado;
           return (
             <div key={ma.codigo} style={{ background: "#fff", border: `1px solid ${cor}30`, borderTop: `4px solid ${cor}`, borderRadius: 10, padding: "14px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{ma.codigo}</div>
                   <div style={{ fontSize: 12, color: "#6b7280" }}>{ma.nome}</div>
-                  <div style={{ fontSize: 10, color: "#9ca3af" }}>{ma.zona === "urbana" ? "🏙 Urbana" : "🌲 Rural"} · {ma.equipe}</div>
+                  <div style={{ fontSize: 10, color: "#9ca3af" }}>{ma.equipe}{ma.acs ? ` · ${ma.acs}` : ""}</div>
                 </div>
-                <div style={{ background: `${cor}18`, color: cor, fontSize: 14, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{ma.pct_cobertura}%</div>
+                <div style={{ background: `${cor}18`, color: cor, fontSize: 14, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{ma.pct_visitas == null ? "—" : `${ma.pct_visitas}%`}</div>
               </div>
-              <Bar pct={ma.pct_cobertura} cor={cor} height={8} />
+              <Bar pct={ma.pct_visitas} cor={cor} height={8} />
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9ca3af", marginTop: 6 }}>
-                <span>{ma.familias_cadastradas}/{ma.familias_meta} fam. · {ma.pct_visitas}% vis.</span>
+                <span>{fmtN(ma.familias_cadastradas)} fam. · {fmtN(ma.domicilios)} dom.</span>
                 {ma.gestantes_ativas > 0 && <span style={{ color: "#7c3aed" }}>♀ {ma.gestantes_ativas}</span>}
               </div>
             </div>
@@ -808,7 +703,7 @@ function AbaMicroareas({ maRef }: { maRef: any[] }) {
       </div>
       <div style={{ display: "flex", gap: 16, marginTop: 16, fontSize: 11, color: "#9ca3af" }}>
         {[{cor:"#16a34a",l:"≥90%"},{cor:"#d97706",l:"70-89%"},{cor:"#dc2626",l:"<70%"}].map(x => (
-          <span key={x.l} style={{ display:"flex",alignItems:"center",gap:4 }}><span style={{ width:10,height:10,borderRadius:2,background:x.cor,display:"inline-block" }}/>{x.l} cobertura</span>
+          <span key={x.l} style={{ display:"flex",alignItems:"center",gap:4 }}><span style={{ width:10,height:10,borderRadius:2,background:x.cor,display:"inline-block" }}/>{x.l} das famílias visitadas no período</span>
         ))}
       </div>
     </div>
@@ -817,131 +712,90 @@ function AbaMicroareas({ maRef }: { maRef: any[] }) {
 
 // ── Aba Tempo Real ────────────────────────────────────────────────────────────
 
-function AbaTempoReal() {
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["esus-tempo-real"],
-    queryFn: () => apiGet("/api/acs/esus/tempo-real") as Promise<any>,
-    staleTime: 60_000,
-    refetchInterval: 120_000, // atualiza a cada 2 min
-  });
-  const { data: sync } = useQuery({
-    queryKey: ["pec-sync-status"],
-    queryFn: () => apiGet("/api/pec/status") as Promise<any>,
-    staleTime: 60_000,
-    retry: false,
-  });
+// ── Situação do PEC_SYNC_AGENT (agente local somente leitura) ──────────────────
+function fmtN(v: any) { return v === null || v === undefined ? "—" : Number(v).toLocaleString("pt-BR"); }
 
-  const conectado = data?.fonte === "esus_pec";
-  const d         = data?.dados;
-  const prod      = d?.producao;
-  const cad       = d?.cadastros;
-  const ts        = d?.ts_verificacao ?? data?.dados?.ts_verificacao;
-  const tsLabel   = ts ? new Date(ts).toLocaleTimeString("pt-BR") : "—";
+const ESTADOS_AGENTE: Record<string, { rotulo: string; cor: string; bg: string; emoji: string }> = {
+  atualizado:    { rotulo: "Atualizado",         cor: "#15803d", bg: "#f0fdf4", emoji: "🟢" },
+  conectado:     { rotulo: "Conectado",          cor: "#1d4ed8", bg: "#eff6ff", emoji: "🔵" },
+  sincronizando: { rotulo: "Sincronizando",      cor: "#1d4ed8", bg: "#eff6ff", emoji: "🔄" },
+  desatualizado: { rotulo: "Desatualizado",      cor: "#b45309", bg: "#fffbeb", emoji: "🟡" },
+  offline:       { rotulo: "Offline",            cor: "#b91c1c", bg: "#fef2f2", emoji: "🔴" },
+  erro:          { rotulo: "Erro de integração", cor: "#b91c1c", bg: "#fef2f2", emoji: "⛔" },
+  sem_agente:    { rotulo: "Aguardando agente",  cor: "#475569", bg: "#f8fafc", emoji: "⚪" },
+};
 
-  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Consultando e-SUS PEC em tempo real...</div>;
+function dataHora(iso?: string | null) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Manaus", dateStyle: "short", timeStyle: "short" });
+}
 
-  if (isError) return <OfflineBanner emoji="⚠️" titulo="Não foi possível conectar ao servidor"
-    nota="Verifique a conexão com a API ou tente novamente em instantes." />;
+function n(v: any) { return v === null || v === undefined ? "—" : Number(v).toLocaleString("pt-BR"); }
 
-  if (!conectado) {
-    const ult: string | null = sync?.ultima_atualizacao ?? null;
-    const ultLabel = ult
-      ? new Date(/[zZ]|[+-]\d\d:\d\d$/.test(ult) ? ult : `${ult}Z`)
-          .toLocaleString("pt-BR", { timeZone: "America/Manaus", dateStyle: "short", timeStyle: "short" })
-      : null;
-    return (
-      <div>
-        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "18px 22px" }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#1e3a8a", marginBottom: 4 }}>
-            📡 Conexão direta com o e-SUS PEC não está ativa
-          </div>
-          <div style={{ fontSize: 13, color: "#374151" }}>
-            O servidor do e-SUS PEC não aceita conexão direta pela internet. A atualização é feita por um agente
-            instalado dentro do servidor do PEC, somente leitura, depois da autorização da Secretaria de Saúde.
-          </div>
-          <div style={{ fontSize: 12, color: "#4b5563", marginTop: 8 }}>
-            <strong>Agente PEC:</strong>{" "}
-            {ultLabel ? `última sincronização em ${ultLabel}` : "aguardando instalação — nenhuma sincronização recebida"}
-          </div>
-        </div>
-        <div style={{ marginTop: 16, background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px 24px" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Como ativar a sincronização</div>
-          {[
-            { step: "1", desc: "A Secretária Municipal de Saúde assina a autorização técnica" },
-            { step: "2", desc: "A TI instala o agente no servidor do e-SUS PEC (usuário de banco somente leitura)" },
-            { step: "3", desc: "Piloto: conferir os resultados com os relatórios oficiais do PEC/SIAPS" },
-            { step: "4", desc: "O agente sincroniza a cada 4 horas; os valores aparecem como prévia, não oficial" },
-          ].map(s => (
-            <div key={s.step} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 10 }}>
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#1351b4", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, flexShrink: 0 }}>{s.step}</div>
-              <div style={{ fontSize: 13, color: "#374151", paddingTop: 4 }}>{s.desc}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
+function CartaoSituacaoAgente({ s }: { s: any }) {
+  const e = ESTADOS_AGENTE[s?.estado] ?? ESTADOS_AGENTE.sem_agente;
   return (
-    <div>
-      <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" as const }}>
-        <span style={{ fontSize: 16 }}>🟢</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>e-SUS PEC · Tempo Real</span>
-        <span style={{ fontSize: 11, color: "#6b7280" }}>Última atualização: {tsLabel}</span>
-        <span style={{ fontSize: 11, color: "#6b7280" }}>Competência: {d?.competencia}</span>
-        <button onClick={() => refetch()}
-          style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, background: "#1351b4", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12 }}>
-          <RefreshCw size={12} /> Atualizar agora
-        </button>
+    <div style={{ background: e.bg, border: `1px solid ${e.cor}40`, borderRadius: 12, padding: "16px 20px", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" as const }}>
+        <span style={{ fontSize: 18 }}>{e.emoji}</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: e.cor }}>e-SUS PEC · {e.rotulo}</span>
+        <span style={{ fontSize: 12, color: "#475569" }}>{s?.texto}</span>
       </div>
-
-      {/* Produção em tempo real */}
-      {prod && (
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>📊 Produção — {d?.competencia}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
-            {[
-              { label: "Visitas Domiciliares",     val: prod.visitas_domiciliares,        cor: "#1351b4", bg: "#eff6ff", border: "#bfdbfe" },
-              { label: "Atendimentos Individuais", val: prod.atendimentos_individuais,    cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-              { label: "Atend. Odontológicos",     val: prod.atendimentos_odontologicos,  cor: "#7c3aed", bg: "#faf5ff", border: "#e9d5ff" },
-              { label: "Procedimentos",             val: prod.procedimentos,               cor: "#d97706", bg: "#fef3c7", border: "#fde68a" },
-              { label: "Atividades Coletivas",      val: prod.atividades_coletivas,        cor: "#0891b2", bg: "#f0f9ff", border: "#bae6fd" },
-              { label: "Encaminhamentos",           val: prod.encaminhamentos,             cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-            ].map(c => (
-              <div key={c.label} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10, padding: "18px 16px", textAlign: "center" }}>
-                <div style={{ fontSize: 36, fontWeight: 800, color: c.cor }}>{(c.val ?? 0).toLocaleString("pt-BR")}</div>
-                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{c.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Cadastros */}
-      {cad && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
-          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "22px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: 40, fontWeight: 800, color: "#1351b4" }}>{(cad.individuais ?? 0).toLocaleString("pt-BR")}</div>
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>Cidadãos Cadastrados</div>
-          </div>
-          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "22px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: 40, fontWeight: 800, color: "#16a34a" }}>{d?.total_acs_esus ?? "—"}</div>
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>ACS Cadastrados no e-SUS</div>
-          </div>
-          <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "22px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#374151" }}>Apuí/AM</div>
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>IBGE 1300144</div>
-            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{d?.competencia}</div>
-          </div>
-        </div>
-      )}
-
-      <div style={{ fontSize: 11, color: "#9ca3af" }}>Fonte: e-SUS PEC · {BASE_URL} · Atualização automática a cada 2 min</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 10, marginTop: 12, fontSize: 12, color: "#374151" }}>
+        <div><strong>Modo:</strong> {s?.modo ?? "—"}</div>
+        <div><strong>Último contato do agente:</strong> {dataHora(s?.ultimo_contato)}</div>
+        <div><strong>Última sincronização ACS:</strong> {dataHora(s?.ultima_sincronizacao_acs)}</div>
+        <div><strong>Lido no PEC em:</strong> {dataHora(s?.ultimo_lote?.lido_no_pec_em)}</div>
+        <div><strong>Competência:</strong> {s?.ultimo_lote?.competencia ?? "—"}</div>
+        <div><strong>Versão do PEC:</strong> {s?.pec_versao ?? "—"} · <strong>agente</strong> {s?.agente_versao ?? "—"}</div>
+        {s?.rejeicoes_24h > 0 && <div style={{ color: "#b91c1c" }}><strong>Envios rejeitados (24 h):</strong> {s.rejeicoes_24h}</div>}
+      </div>
     </div>
   );
 }
 
-const BASE_URL = "esus.apui.am.gov.br";
+function AbaTempoReal() {
+  const { data: s, refetch } = useQuery({
+    queryKey: ["pec-agente-situacao"],
+    queryFn: () => apiGet("/api/pec-agente/situacao") as Promise<any>,
+    refetchInterval: 120_000,
+  });
+  const { data: tr } = useQuery({
+    queryKey: ["esus-tempo-real"],
+    queryFn: () => apiGet("/api/acs/esus/tempo-real") as Promise<any>,
+    refetchInterval: 120_000,
+  });
+  const k = tr?.dados?.kpis_mes;
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>
+        Visão operacional da integração. Os dados vêm do agente instalado no servidor do PEC por consulta
+        periódica — por isso a tela mostra <strong>atualização automática</strong> e a periodicidade, não “tempo real”.
+        <button onClick={() => refetch()} style={{ marginLeft: 10, background: "none", border: "1px solid #cbd5e1", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>
+          <RefreshCw size={11} /> Verificar agora
+        </button>
+      </div>
+      <CartaoSituacaoAgente s={s} />
+      {k && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: 12 }}>
+          {[
+            { label: "ACS ativos", val: `${n(k.acs_ativos)} / ${n(k.total_acs)}` },
+            { label: "Visitas realizadas", val: n(k.visitas_realizadas) },
+            { label: "Fichas de visita registradas", val: n(k.visitas_registradas) },
+            { label: "Famílias cadastradas", val: n(k.familias_cadastradas) },
+            { label: "% famílias visitadas", val: k.pct_familias_visitadas == null ? "—" : `${k.pct_familias_visitadas}%` },
+          ].map(c => (
+            <div key={c.label} style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, padding: "14px 16px", textAlign: "center" }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#1351b4" }}>{c.val}</div>
+              <div style={{ fontSize: 11, color: "#6b7280" }}>{c.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // ── Componente Principal ──────────────────────────────────────────────────────
 
@@ -1070,7 +924,7 @@ export default function ACSPainel() {
               )}
             </div>
             <div style={{ fontSize: 12, color: "#bfdbfe" }}>
-              Agentes Comunitários de Saúde · Apuí/AM · 65 ACS · 65 Microáreas
+              Agentes Comunitários de Saúde · {dash?.kpis ? `${dash.kpis.total_acs} ACS · ${dash.kpis.total_microareas} microáreas · competência ${dash.competencia ?? "—"}` : "aguardando dados do e-SUS PEC"}
             </div>
           </div>
 
@@ -1114,7 +968,7 @@ export default function ACSPainel() {
 
         {/* ── Dashboard ── */}
         {aba === "dashboard" && !k && !isLoading && (
-          <NaoDisponivelBanner nota="Dados de referência CNES não carregados. Tente recarregar a página." />
+          <NaoDisponivelBanner nota={(dash as any)?.nota ?? "Aguardando os dados do e-SUS PEC pelo agente local — veja a aba Capturar PEC."} />
         )}
 
         {aba === "dashboard" && k && (
@@ -1139,9 +993,9 @@ export default function ACSPainel() {
             {/* KPIs */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
               <KpiCard icon={<Users size={18}/>}       label="ACS Ativos"           val={`${k.acs_ativos}/${k.total_acs}`} sub={`${k.total_microareas} microáreas`}          cor="#1351b4" bg="#eff6ff" border="#bfdbfe" />
-              <KpiCard icon={<Home size={18}/>}         label="Cobertura Familiar"   val={`${k.pct_cobertura}%`}             sub={`${k.familias_cadastradas?.toLocaleString("pt-BR")} famílias`} cor="#16a34a" bg="#f0fdf4" border="#bbf7d0" />
-              <KpiCard icon={<CheckCircle size={18}/>} label="Visitas Realizadas"   val={`${k.pct_visitas}%`}               sub={`${k.visitas_realizadas}/${k.visitas_programadas} programadas`} cor={k.pct_visitas>=90?"#16a34a":k.pct_visitas>=70?"#d97706":"#dc2626"} bg={k.pct_visitas>=90?"#f0fdf4":k.pct_visitas>=70?"#fef3c7":"#fef2f2"} border={k.pct_visitas>=90?"#bbf7d0":k.pct_visitas>=70?"#fde68a":"#fecaca"} />
-              <KpiCard icon={<Activity size={18}/>}    label="Grupos Prioritários"  val={k.gestantes_ativas + k.criancas_lt2} sub={`${k.gestantes_ativas} gest. · ${k.criancas_lt2} <2a`} cor="#7c3aed" bg="#faf5ff" border="#e9d5ff" />
+              <KpiCard icon={<Home size={18}/>}         label="Famílias cadastradas" val={fmtN(k.familias_cadastradas)}   sub={`${fmtN(k.domicilios_cadastrados)} domicílios`} cor="#16a34a" bg="#f0fdf4" border="#bbf7d0" />
+              <KpiCard icon={<CheckCircle size={18}/>} label="Famílias visitadas"   val={k.pct_familias_visitadas == null ? "—" : `${k.pct_familias_visitadas}%`} sub={`${fmtN(k.visitas_realizadas)} visitas realizadas no período`} cor="#1351b4" bg="#eff6ff" border="#bfdbfe" />
+              <KpiCard icon={<Activity size={18}/>}    label="Grupos Prioritários"  val={k.gestantes_ativas == null && k.criancas_lt2 == null ? "—" : (k.gestantes_ativas ?? 0) + (k.criancas_lt2 ?? 0)} sub={`${fmtN(k.gestantes_ativas)} gest. · ${fmtN(k.criancas_lt2)} <2a`} cor="#7c3aed" bg="#faf5ff" border="#e9d5ff" />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 22 }}>
@@ -1182,7 +1036,7 @@ export default function ACSPainel() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0" }}>
                   <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>Total grupos</span>
                   <span style={{ fontSize: 20, fontWeight: 800, color: "#1351b4" }}>
-                    {k.gestantes_ativas + k.criancas_lt2 + k.has_acompanhados + k.dm_acompanhados}
+                    {[k.gestantes_ativas, k.criancas_lt2, k.has_acompanhados, k.dm_acompanhados].every(v => v == null) ? "—" : [k.gestantes_ativas, k.criancas_lt2, k.has_acompanhados, k.dm_acompanhados].reduce((a: number, v) => a + (v ?? 0), 0)}
                   </span>
                 </div>
               </div>
@@ -1203,7 +1057,7 @@ export default function ACSPainel() {
                           <div style={{ fontSize: 11, color: "#6b7280" }}>{a.microarea} · {a.equipe}</div>
                         </div>
                         <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: "#16a34a" }}>{a.pct_visitas}% visitas</div>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: "#16a34a" }}>{a.pct_visitas}% fam. visitadas</div>
                           <div style={{ fontSize: 11, color: "#9ca3af" }}>{a.familias_cadastradas} fam.</div>
                         </div>
                       </div>
@@ -1224,8 +1078,8 @@ export default function ACSPainel() {
                           <div style={{ fontSize: 11, color: "#6b7280" }}>{a.microarea} · {a.equipe}</div>
                         </div>
                         <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: "#dc2626" }}>{a.pct_visitas}% visitas</div>
-                          <div style={{ fontSize: 11, color: "#9ca3af" }}>{a.pct_cadastro}% cad.</div>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: "#dc2626" }}>{a.pct_visitas}% fam. visitadas</div>
+                          <div style={{ fontSize: 11, color: "#9ca3af" }}>{fmtN(a.familias_cadastradas)} fam.</div>
                         </div>
                       </div>
                     ))}
@@ -1265,214 +1119,84 @@ export default function ACSPainel() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Aba Capturar PEC — bookmarklet + colar dados
+// Aba Capturar PEC — central de administração da integração (PEC_SYNC_AGENT)
 // ─────────────────────────────────────────────────────────────────────────────
+const TIPO_EXEC: Record<string, string> = { acs: "Dados ACS", esquema: "Diagnóstico de esquema", heartbeat: "Verificação do agente" };
+const STATUS_EXEC: Record<string, { rotulo: string; cor: string }> = {
+  aceito: { rotulo: "Aceito", cor: "#15803d" },
+  sem_alteracao: { rotulo: "Sem alteração", cor: "#475569" },
+  rejeitado: { rotulo: "Rejeitado", cor: "#b91c1c" },
+  erro_origem: { rotulo: "Erro no PEC", cor: "#b91c1c" },
+};
+
 function AbaCapturarPEC() {
-  const [json, setJson] = React.useState("");
-  const [salvando, setSalvando] = React.useState(false);
-  const [ok, setOk] = React.useState(false);
-  const [erro, setErro] = React.useState("");
-  const [abaEntrada, setAbaEntrada] = React.useState<"manual"|"json">("manual");
-  const [form, setForm] = React.useState({ competencia: new Date().toISOString().slice(0,7), visitas: "", atendimentos: "", cadastros: "", acs: "" });
-  const [salvandoManual, setSalvandoManual] = React.useState(false);
-  const [okManual, setOkManual] = React.useState(false);
-  const [erroManual, setErroManual] = React.useState("");
-  const BASE_URL = window.location.origin;
-
-  const bookmarkletCode = `javascript:(function(){
-var ERSUS='${BASE_URL}';
-var IBGE='1300144';
-var comp=new Date().toISOString().slice(0,7).replace('-','');
-
-function gql(q,v){
-  return fetch('/graphql',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({query:q,variables:v})}).then(r=>r.json()).catch(()=>null);
-}
-
-var Q_PROD=\`query P($m:String!,$c:String!){relatorioAtendimentos(filter:{municipio:{codigoIbge:$m}competencia:$c}){totalAtendimentosIndividuais totalAtendimentosOdontologicos totalVisitasDomiciliares totalProcedimentos totalAtividadesColetivas totalEncaminhamentos}}\`;
-var Q_CAD=\`query C($m:String!){cidadaos(filter:{municipio:{codigoIbge:$m}},page:0,size:1){totalElements}}\`;
-var Q_ACS=\`query A($m:String!){profissionaisDeSaude(filter:{municipio:{codigoIbge:$m}}){nome cns cbo{codigo descricao}lotacoes{unidadeSaude{nome}equipe{ine nome}}}}\`;
-var Q_VIS=\`query V($m:String!,$c:String!){visitasDomiciliares(filter:{municipio:{codigoIbge:$m}competencia:$c},page:0,size:999){totalElements content{dataVisita microArea profissional{nome cbo{codigo}}desfecho{descricao}turno}}}\`;
-
-Promise.all([
-  gql(Q_PROD,{m:IBGE,c:comp}),
-  gql(Q_CAD,{m:IBGE}),
-  gql(Q_ACS,{m:IBGE}),
-  gql(Q_VIS,{m:IBGE,c:comp}),
-]).then(function(rs){
-  var prod=rs[0]&&rs[0].data&&rs[0].data.relatorioAtendimentos;
-  var cad=rs[1]&&rs[1].data&&rs[1].data.cidadaos;
-  var profs=rs[2]&&rs[2].data&&rs[2].data.profissionaisDeSaude;
-  var vis=rs[3]&&rs[3].data&&rs[3].data.visitasDomiciliares;
-
-  var acs=(profs||[]).filter(function(p){return p.cbo&&(p.cbo.codigo||'').indexOf('515140')>=0;});
-  var por_dia={};
-  var por_acs={};
-  (vis&&vis.content||[]).forEach(function(v){
-    var d=(v.dataVisita||'').split('-')[2]||'0';
-    por_dia[d]=(por_dia[d]||0)+1;
-    var n=(v.profissional&&v.profissional.nome)||'—';
-    por_acs[n]=(por_acs[n]||0)+1;
-  });
-
-  var dados={
-    origem:'bookmarklet_pec',
-    competencia:comp.slice(0,4)+'-'+comp.slice(4),
-    capturado_em:new Date().toISOString(),
-    producao:prod?{
-      visitas_domiciliares:prod.totalVisitasDomiciliares,
-      atendimentos_individuais:prod.totalAtendimentosIndividuais,
-      atendimentos_odontologicos:prod.totalAtendimentosOdontologicos,
-      procedimentos:prod.totalProcedimentos,
-      atividades_coletivas:prod.totalAtividadesColetivas,
-      encaminhamentos:prod.totalEncaminhamentos
-    }:null,
-    cadastros:cad?{total_cidadaos:cad.totalElements}:null,
-    total_acs:acs.length,
-    acs:acs.slice(0,10).map(function(p){return{nome:p.nome,cns:p.cns,cbo:(p.cbo||{}).descricao,equipe:(((p.lotacoes||[])[0]||{}).equipe||{}).nome};}),
-    visitas:{
-      total:vis?vis.totalElements:0,
-      por_dia:Object.keys(por_dia).sort().map(function(d){return{dia:parseInt(d),total:por_dia[d]};}),
-      por_acs:Object.keys(por_acs).sort(function(a,b){return por_acs[b]-por_acs[a];}).slice(0,10).map(function(n){return{nome:n,total:por_acs[n]};})
-    }
-  };
-
-  var json=JSON.stringify(dados);
-  navigator.clipboard.writeText(json).then(function(){
-    alert('✓ Dados do e-SUS PEC copiados!\\nAgora vá ao ERSUS360 → Painel ACS → Capturar PEC → cole e salve.');
-  }).catch(function(){
-    prompt('Copie o JSON abaixo (Ctrl+A, Ctrl+C):',json);
-  });
-}).catch(function(e){alert('Erro: '+e.message);});
-})();`;
-
-  async function salvar() {
-    if (!json.trim()) { setErro("Cole o JSON antes de salvar."); return; }
-    setSalvando(true); setErro(""); setOk(false);
-    try {
-      let dados = JSON.parse(json);
-      if (Array.isArray(dados)) dados = { origem: "bookmarklet_pec", graphql_responses: dados };
-      await apiPost("/api/acs/esus/snapshot", dados);
-      setOk(true); setJson("");
-    } catch (e: any) {
-      setErro("JSON inválido ou erro ao salvar: " + e.message);
-    } finally { setSalvando(false); }
-  }
-
-  async function salvarManual() {
-    if (!form.visitas && !form.atendimentos && !form.cadastros) { setErroManual("Preencha ao menos um campo."); return; }
-    setSalvandoManual(true); setErroManual(""); setOkManual(false);
-    try {
-      const payload = {
-        origem: "entrada_manual",
-        competencia: form.competencia,
-        producao: {
-          totalVisitasDomiciliares: Number(form.visitas) || 0,
-          totalAtendimentosIndividuais: Number(form.atendimentos) || 0,
-        },
-        cadastros: { totalElements: Number(form.cadastros) || 0 },
-        total_acs: Number(form.acs) || 0,
-      };
-      await apiPost("/api/acs/esus/snapshot", payload);
-      setOkManual(true);
-    } catch (e: any) {
-      setErroManual("Erro ao salvar: " + e.message);
-    } finally { setSalvandoManual(false); }
-  }
-
-  const inp = (label: string, key: keyof typeof form, placeholder: string) => (
-    <div style={{ marginBottom: 14 }}>
-      <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>{label}</label>
-      <input type={key === "competencia" ? "month" : "number"} value={form[key]}
-        onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-        placeholder={placeholder}
-        style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: 8, padding: "8px 12px", fontSize: 14, boxSizing: "border-box" as const }} />
-    </div>
-  );
-
+  const { data: s } = useQuery({ queryKey: ["pec-agente-situacao"], queryFn: () => apiGet("/api/pec-agente/situacao") as Promise<any> });
+  const { data: ex } = useQuery({ queryKey: ["pec-agente-execucoes"], queryFn: () => apiGet("/api/pec-agente/execucoes", { limite: 50 }) as Promise<any> });
+  const { data: esq } = useQuery({ queryKey: ["pec-agente-esquema"], queryFn: () => apiGet("/api/pec-agente/esquema") as Promise<any>, retry: false });
+  const tabelas = Object.entries((esq?.tabelas ?? {}) as Record<string, any>);
+  const semLeitura = tabelas.filter(([, t]) => t.select_permitido === false).map(([nome]) => nome);
+  const card = { background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "18px 22px", marginBottom: 16 } as const;
   return (
-    <div style={{ maxWidth: 720 }}>
-      {/* Seletor de modo */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        {(["manual","json"] as const).map(m => (
-          <button key={m} onClick={() => setAbaEntrada(m)}
-            style={{ padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13,
-              background: abaEntrada === m ? "#1351b4" : "#e5e7eb", color: abaEntrada === m ? "#fff" : "#374151" }}>
-            {m === "manual" ? "✏️ Entrada Manual" : "📋 Colar JSON (avançado)"}
-          </button>
-        ))}
-      </div>
+    <div>
+      <CartaoSituacaoAgente s={s} />
 
-      {/* FORMULÁRIO MANUAL */}
-      {abaEntrada === "manual" && (
-        <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Inserir dados do e-SUS PEC manualmente</div>
-          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 20 }}>Consulte os relatórios do e-SUS PEC e preencha os campos abaixo.</div>
-          {inp("Competência (mês/ano)", "competencia", "")}
-          {inp("Total de Visitas Domiciliares", "visitas", "Ex: 1248")}
-          {inp("Total de Atendimentos Individuais", "atendimentos", "Ex: 320")}
-          {inp("Total de Cadastros Individuais", "cadastros", "Ex: 8500")}
-          {inp("Número de ACS ativos", "acs", "Ex: 65")}
-          {erroManual && <div style={{ color: "#dc2626", fontSize: 12, marginBottom: 8 }}>{erroManual}</div>}
-          {okManual && <div style={{ color: "#16a34a", fontSize: 12, marginBottom: 8 }}>✓ Dados salvos! Acesse as outras abas para ver.</div>}
-          <button onClick={salvarManual} disabled={salvandoManual}
-            style={{ background: salvandoManual ? "#9ca3af" : "#1351b4", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", cursor: "pointer", fontWeight: 700, fontSize: 14 }}>
-            {salvandoManual ? "Salvando..." : "💾 Salvar dados"}
-          </button>
+      <div style={card}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Como a integração funciona</div>
+        <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.7 }}>
+          e-SUS PEC (banco do servidor municipal) → <strong>agente local somente leitura</strong> (pasta <code>pec_sync_agent</code>)
+          → HTTPS com chave do município → ERSUS360 → Painel ACS.<br />
+          O banco do PEC nunca fica exposto à internet e o ERSUS360 recebe só <strong>contagens agregadas</strong>
+          (por equipe, ACS e microárea) — nenhum nome, CPF, CNS ou dado clínico de cidadão.
+          Nada é gravado no PEC.
         </div>
-      )}
+      </div>
 
-      {/* MODO JSON */}
-      {abaEntrada === "json" && (<div>
-      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Como capturar dados do e-SUS PEC</div>
-        {[
-          { n: "1", t: "Abra o e-SUS PEC no Chrome", d: "esus.apui.am.gov.br — faça login normalmente e entre como APUÍ / Gestor municipal" },
-          { n: "2", t: "Pressione F12 no teclado", d: "Abre o DevTools. Clique na aba Console (parte superior do painel que abriu)" },
-          { n: "3", t: "Copie o script abaixo e cole no Console", d: "Clique no botão azul, volte ao Chrome com o e-SUS PEC aberto, clique no Console e pressione Ctrl+V depois Enter" },
-          { n: "4", t: "Aguarde o alerta de confirmação", d: "Aparece: ✓ Dados do e-SUS PEC copiados! Então volte aqui e cole na caixa abaixo" },
-        ].map(s => (
-          <div key={s.n} style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 14 }}>
-            <div style={{ minWidth: 28, height: 28, borderRadius: "50%", background: "#1351b4", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13 }}>{s.n}</div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>{s.t}</div>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>{s.d}</div>
-            </div>
+      <div style={card}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Diagnóstico do banco do PEC (para os dados dos ACS)</div>
+        {!esq?.recebido_em ? (
+          <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.7 }}>
+            Ainda não recebido. No servidor do PEC, na pasta do agente, a TI executa:
+            <pre style={{ background: "#0f172a", color: "#e2e8f0", borderRadius: 8, padding: 12, fontSize: 12, marginTop: 8 }}>python diagnostico_acs.py --pec-versao 5.5.28</pre>
+            O comando só lê o catálogo do banco (nomes de tabelas e colunas e as permissões do usuário do agente)
+            — nenhuma linha de dados — e envia o resultado para cá.
           </div>
-        ))}
-
-        {/* Script para Console — sem o prefixo javascript: */}
-        <button
-          onClick={() => {
-            const consoleScript = bookmarkletCode.replace(/^javascript:/, "");
-            navigator.clipboard.writeText(consoleScript)
-              .then(() => alert("✓ Script copiado!\n\nAgora:\n1. Vá para a aba do e-SUS PEC no Chrome\n2. Pressione F12\n3. Clique na aba Console\n4. Cole (Ctrl+V) e pressione Enter"))
-              .catch(() => prompt("Copie o script abaixo e cole no Console do Chrome (F12):", consoleScript));
-          }}
-          style={{ display: "flex", alignItems: "center", gap: 8, background: "#1351b4", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", cursor: "pointer", fontSize: 13, fontWeight: 700, marginTop: 8 }}>
-          📋 Copiar script para o Console (F12)
-        </button>
+        ) : (
+          <div style={{ fontSize: 13, color: "#374151" }}>
+            Recebido em {dataHora(esq.recebido_em)} · PEC {esq.pec_versao ?? "—"} · {tabelas.length} tabelas descritas.
+            {semLeitura.length > 0 && (
+              <div style={{ marginTop: 8, color: "#b45309" }}>
+                Sem permissão de leitura para o agente: {semLeitura.join(", ")}.
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Área de colar */}
-      <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "20px 24px" }}>
-        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Colar dados capturados do e-SUS PEC</div>
-        <textarea
-          value={json}
-          onChange={e => { setJson(e.target.value); setErro(""); setOk(false); }}
-          placeholder='Cole aqui o JSON copiado do e-SUS PEC (começa com {"origem":"bookmarklet_pec"...)'
-          style={{ width: "100%", height: 120, fontFamily: "monospace", fontSize: 11, border: "1px solid #d1d5db", borderRadius: 8, padding: 10, resize: "vertical", boxSizing: "border-box" as const }}
-        />
-        {erro && <div style={{ color: "#dc2626", fontSize: 12, marginTop: 6 }}>{erro}</div>}
-        {ok && <div style={{ color: "#16a34a", fontSize: 12, marginTop: 6 }}>✓ Dados salvos com sucesso! Acesse as outras abas para ver.</div>}
-        <button
-          onClick={salvar}
-          disabled={salvando || !json.trim()}
-          style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, background: salvando ? "#9ca3af" : "#16a34a", color: "#fff", border: "none", borderRadius: 8, padding: "10px 22px", cursor: salvando ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 700 }}>
-          {salvando ? "Salvando..." : "💾 Salvar no Painel ACS"}
-        </button>
+      <div style={card}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Histórico de execuções</div>
+        {(ex?.execucoes ?? []).length === 0 ? (
+          <div style={{ fontSize: 13, color: "#6b7280" }}>Nenhum envio do agente ainda.</div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead><tr>{["Recebido", "Tipo", "Situação", "Competência", "Registros", "Detalhe"].map(h =>
+                <th key={h} style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e4e7ec", color: "#64748b" }}>{h}</th>)}</tr></thead>
+              <tbody>
+                {(ex?.execucoes ?? []).map((e: any) => (
+                  <tr key={e.id}>
+                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9", whiteSpace: "nowrap" as const }}>{dataHora(e.recebido_em)}</td>
+                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{TIPO_EXEC[e.tipo] ?? e.tipo}</td>
+                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9", color: STATUS_EXEC[e.status]?.cor, fontWeight: 700 }}>{STATUS_EXEC[e.status]?.rotulo ?? e.status}</td>
+                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{e.competencia ?? "—"}</td>
+                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{n(e.registros)}</td>
+                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9", color: "#475569" }}>{e.mensagem ?? ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
-      </div>)}
     </div>
   );
 }

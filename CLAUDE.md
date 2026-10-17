@@ -159,3 +159,13 @@ DOC-001 a DOC-027 — ver índice em `docs/README.md` (se existir) ou listar com
 - O CNPJ consultado é sempre `Municipio.cnpj_fundo` do município da sessão; credenciais `INVESTSUS_*_{IBGE7}`
   via `tenancy.credenciais` (sistema "INVESTSUS"). Job diário `investsus_federal` (06:40 e 13:40, Manaus):
   sincroniza quem tem acesso configurado e escala prazos de diligência (7 dias atenção, 3 urgente, vencido crítico).
+
+## Painel ACS — PEC_SYNC_AGENT (e-SUS PEC → ERSUS360)
+- Fonte ÚNICA do Painel ACS (`/api/acs/*`): lote AGREGADO enviado pelo agente local `pec_sync_agent/`
+  (servidor do PEC, usuário PostgreSQL somente leitura) para `/api/pec-agente/acs`. Sem lote = "aguardando
+  integração" (None/[]): NUNCA voltar a exibir números/nomes de referência como reais.
+- Chave do agente por município: `ERSUS_SYNC_KEY_{IBGE7}` (sistema "PEC_AGENTE" em tenancy.credenciais;
+  sem sufixo = Apuí). Contrato com `extra="forbid"`: nenhum nome/CPF/CNS/dado clínico de cidadão; ACS
+  identificado por hash. Cálculos em `services/pec_acs.py`; cobertura familiar = None até fórmula validada.
+- Não usar login GraphQL do PEC pelo servidor nem bookmarklet para ler o PEC; nada é gravado no PEC.
+  ACS = CBO 515105 (515140 é ACE). Ver docs/DOC-PEC-ACS-INTEGRACAO.md.

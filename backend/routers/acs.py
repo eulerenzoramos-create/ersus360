@@ -1,300 +1,241 @@
-"""Router: /api/acs — ERSUS 360 — Painel ACS Apuí/AM
-Dados de referência CNES/SISAB quando eSUS PEC offline.
+"""Router: /api/acs — ERSUS 360 — Painel ACS.
+
+Fonte ÚNICA: lote agregado enviado pelo PEC_SYNC_AGENT (agente local somente leitura no
+servidor do e-SUS PEC do município) — ver routers/pec_agente.py e services/pec_acs.py.
+
+Sem lote recebido, as rotas respondem "aguardando_integracao_pec" com valores vazios
+(None/[]): o painel NÃO exibe números de referência nem nomes ilustrativos como se fossem
+dados reais. (A versão anterior trazia 65 ACS e indicadores fixos no código — removidos.)
 """
 from __future__ import annotations
+
+import calendar
 import logging
 from datetime import date, datetime
-from typing import Optional
-from fastapi import APIRouter, Query, HTTPException, Request
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from database import get_db
+from routers.pec_agente import lote_mais_recente, situacao_agente
+from services import pec_acs
+from tenancy.escopo import SessaoMunicipal
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/acs", tags=["ACS"])
+DbDep = Annotated[AsyncSession, Depends(get_db)]
 
-_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
 
-# ── Dados de referência Apuí/AM ───────────────────────────────────────────────
-# Fonte: CNES + SISAB competência 09/2026 · IBGE 1300144
+AGUARDANDO = "aguardando_integracao_pec"
+NOTA_AGUARDANDO = ("Aguardando os dados do e-SUS PEC pelo agente local (PEC_SYNC_AGENT). "
+                   "Nenhum número é exibido antes disso — veja a aba Capturar PEC.")
 
-_EQUIPES = [
-    {"esf": "KENNEDY",       "acs": 7, "familias": 475, "meta": 511},
-    {"esf": "JK",            "acs": 7, "familias": 408, "meta": 511},
-    {"esf": "ACARI",         "acs": 7, "familias": 476, "meta": 511},
-    {"esf": "JUMA",          "acs": 7, "familias": 402, "meta": 511},
-    {"esf": "ESTRADA NOVA",  "acs": 7, "familias": 476, "meta": 511},
-    {"esf": "LIBERDADE",     "acs": 7, "familias": 403, "meta": 511},
-    {"esf": "SÃO SEBASTIÃO", "acs": 7, "familias": 469, "meta": 511},
-    {"esf": "CACHOEIRA",     "acs": 7, "familias": 403, "meta": 511},
-    {"esf": "TRÊS ESTADOS",  "acs": 7, "familias": 474, "meta": 511},
-    {"esf": "AREAL",         "acs": 2, "familias": 65,  "meta": 146},
-]
 
-_ACS_BASE = [
-    # KENNEDY
-    {"id":1,  "nome":"Ana Carla Souza",        "microarea":"01","equipe":"KENNEDY",  "tipo":"ACS","ativo":True,"familias_cadastradas":68,"familias_meta":73,"pct_visitas":94,"pct_cadastro":93,"status":"destaque","visitas":{"programadas":68,"realizadas":64,"nao_encontradas":3,"recusas":1},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":12,"dm":7,"idosos":11}},
-    {"id":2,  "nome":"Carlos Mendes",           "microarea":"02","equipe":"KENNEDY",  "tipo":"ACS","ativo":True,"familias_cadastradas":70,"familias_meta":73,"pct_visitas":88,"pct_cadastro":96,"status":"regular","visitas":{"programadas":70,"realizadas":62,"nao_encontradas":5,"recusas":3},"indicadores":{"gestantes_ativas":2,"criancas_lt2":4,"has":9,"dm":5,"idosos":8}},
-    {"id":3,  "nome":"Deise Rodrigues",         "microarea":"03","equipe":"KENNEDY",  "tipo":"ACS","ativo":True,"familias_cadastradas":67,"familias_meta":73,"pct_visitas":92,"pct_cadastro":92,"status":"regular","visitas":{"programadas":67,"realizadas":62,"nao_encontradas":3,"recusas":2},"indicadores":{"gestantes_ativas":4,"criancas_lt2":6,"has":11,"dm":6,"idosos":9}},
-    {"id":4,  "nome":"Evanildo Costa",          "microarea":"04","equipe":"KENNEDY",  "tipo":"ACS","ativo":True,"familias_cadastradas":72,"familias_meta":73,"pct_visitas":97,"pct_cadastro":99,"status":"destaque","visitas":{"programadas":72,"realizadas":70,"nao_encontradas":1,"recusas":1},"indicadores":{"gestantes_ativas":5,"criancas_lt2":7,"has":14,"dm":9,"idosos":13}},
-    {"id":5,  "nome":"Fabiane Lima",            "microarea":"05","equipe":"KENNEDY",  "tipo":"ACS","ativo":True,"familias_cadastradas":65,"familias_meta":73,"pct_visitas":72,"pct_cadastro":89,"status":"regular","visitas":{"programadas":65,"realizadas":47,"nao_encontradas":10,"recusas":8},"indicadores":{"gestantes_ativas":2,"criancas_lt2":3,"has":8,"dm":4,"idosos":7}},
-    {"id":6,  "nome":"Gilmar Ferreira",         "microarea":"06","equipe":"KENNEDY",  "tipo":"ACS","ativo":True,"familias_cadastradas":64,"familias_meta":73,"pct_visitas":60,"pct_cadastro":88,"status":"critico","visitas":{"programadas":64,"realizadas":38,"nao_encontradas":15,"recusas":11},"indicadores":{"gestantes_ativas":1,"criancas_lt2":2,"has":7,"dm":3,"idosos":5}},
-    {"id":7,  "nome":"Helena Pires",            "microarea":"07","equipe":"KENNEDY",  "tipo":"ACS","ativo":True,"familias_cadastradas":69,"familias_meta":73,"pct_visitas":85,"pct_cadastro":95,"status":"regular","visitas":{"programadas":69,"realizadas":59,"nao_encontradas":6,"recusas":4},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":10,"dm":6,"idosos":10}},
-    # JK
-    {"id":8,  "nome":"Ilza Nascimento",         "microarea":"08","equipe":"JK",  "tipo":"ACS","ativo":True,"familias_cadastradas":66,"familias_meta":73,"pct_visitas":91,"pct_cadastro":90,"status":"regular","visitas":{"programadas":66,"realizadas":60,"nao_encontradas":4,"recusas":2},"indicadores":{"gestantes_ativas":2,"criancas_lt2":4,"has":9,"dm":5,"idosos":8}},
-    {"id":9,  "nome":"José Raimundo",           "microarea":"09","equipe":"JK",  "tipo":"ACS","ativo":True,"familias_cadastradas":71,"familias_meta":73,"pct_visitas":96,"pct_cadastro":97,"status":"destaque","visitas":{"programadas":71,"realizadas":68,"nao_encontradas":2,"recusas":1},"indicadores":{"gestantes_ativas":4,"criancas_lt2":6,"has":13,"dm":8,"idosos":12}},
-    {"id":10, "nome":"Kátia Sousa",             "microarea":"10","equipe":"JK",  "tipo":"ACS","ativo":True,"familias_cadastradas":68,"familias_meta":73,"pct_visitas":87,"pct_cadastro":93,"status":"regular","visitas":{"programadas":68,"realizadas":59,"nao_encontradas":6,"recusas":3},"indicadores":{"gestantes_ativas":3,"criancas_lt2":4,"has":10,"dm":6,"idosos":9}},
-    {"id":11, "nome":"Luiz Carlos Braga",       "microarea":"11","equipe":"JK",  "tipo":"ACS","ativo":True,"familias_cadastradas":65,"familias_meta":73,"pct_visitas":78,"pct_cadastro":89,"status":"regular","visitas":{"programadas":65,"realizadas":51,"nao_encontradas":9,"recusas":5},"indicadores":{"gestantes_ativas":2,"criancas_lt2":3,"has":8,"dm":4,"idosos":7}},
-    {"id":12, "nome":"Maria das Graças",        "microarea":"12","equipe":"JK",  "tipo":"ACS","ativo":True,"familias_cadastradas":70,"familias_meta":73,"pct_visitas":93,"pct_cadastro":96,"status":"destaque","visitas":{"programadas":70,"realizadas":65,"nao_encontradas":3,"recusas":2},"indicadores":{"gestantes_ativas":4,"criancas_lt2":5,"has":12,"dm":7,"idosos":11}},
-    {"id":13, "nome":"Nelson Andrade",          "microarea":"13","equipe":"JK",  "tipo":"ACS","ativo":False,"familias_cadastradas":0,"familias_meta":73,"pct_visitas":0,"pct_cadastro":0,"status":"afastado","visitas":{"programadas":0,"realizadas":0,"nao_encontradas":0,"recusas":0},"indicadores":{"gestantes_ativas":0,"criancas_lt2":0,"has":0,"dm":0,"idosos":0}},
-    {"id":14, "nome":"Odete Cavalcante",        "microarea":"14","equipe":"JK", "tipo":"ACS","ativo":True,"familias_cadastradas":68,"familias_meta":73,"pct_visitas":90,"pct_cadastro":93,"status":"regular","visitas":{"programadas":68,"realizadas":61,"nao_encontradas":4,"recusas":3},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":11,"dm":6,"idosos":10}},
-    # ACARI
-    {"id":15, "nome":"Pedro Henrique Farias",   "microarea":"15","equipe":"ACARI", "tipo":"ACS","ativo":True,"familias_cadastradas":67,"familias_meta":73,"pct_visitas":82,"pct_cadastro":92,"status":"regular","visitas":{"programadas":67,"realizadas":55,"nao_encontradas":8,"recusas":4},"indicadores":{"gestantes_ativas":2,"criancas_lt2":4,"has":9,"dm":5,"idosos":8}},
-    {"id":16, "nome":"Quézia Monteiro",         "microarea":"16","equipe":"ACARI", "tipo":"ACS","ativo":True,"familias_cadastradas":70,"familias_meta":73,"pct_visitas":95,"pct_cadastro":96,"status":"destaque","visitas":{"programadas":70,"realizadas":67,"nao_encontradas":2,"recusas":1},"indicadores":{"gestantes_ativas":4,"criancas_lt2":6,"has":12,"dm":7,"idosos":11}},
-    {"id":17, "nome":"Rosângela Pereira",       "microarea":"17","equipe":"ACARI", "tipo":"ACS","ativo":True,"familias_cadastradas":66,"familias_meta":73,"pct_visitas":88,"pct_cadastro":90,"status":"regular","visitas":{"programadas":66,"realizadas":58,"nao_encontradas":5,"recusas":3},"indicadores":{"gestantes_ativas":3,"criancas_lt2":4,"has":10,"dm":6,"idosos":9}},
-    {"id":18, "nome":"Sônia Regina",            "microarea":"18","equipe":"ACARI", "tipo":"ACS","ativo":True,"familias_cadastradas":65,"familias_meta":73,"pct_visitas":58,"pct_cadastro":89,"status":"critico","visitas":{"programadas":65,"realizadas":38,"nao_encontradas":16,"recusas":11},"indicadores":{"gestantes_ativas":1,"criancas_lt2":2,"has":7,"dm":3,"idosos":5}},
-    {"id":19, "nome":"Tânia Oliveira",          "microarea":"19","equipe":"ACARI", "tipo":"ACS","ativo":True,"familias_cadastradas":69,"familias_meta":73,"pct_visitas":84,"pct_cadastro":95,"status":"regular","visitas":{"programadas":69,"realizadas":58,"nao_encontradas":7,"recusas":4},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":11,"dm":6,"idosos":10}},
-    {"id":20, "nome":"Ubiratan Santos",         "microarea":"20","equipe":"ACARI", "tipo":"ACS","ativo":True,"familias_cadastradas":71,"familias_meta":73,"pct_visitas":97,"pct_cadastro":97,"status":"destaque","visitas":{"programadas":71,"realizadas":69,"nao_encontradas":1,"recusas":1},"indicadores":{"gestantes_ativas":5,"criancas_lt2":7,"has":14,"dm":9,"idosos":13}},
-    {"id":21, "nome":"Valdemar Cruz",           "microarea":"21","equipe":"ACARI", "tipo":"ACS","ativo":True,"familias_cadastradas":68,"familias_meta":73,"pct_visitas":86,"pct_cadastro":93,"status":"regular","visitas":{"programadas":68,"realizadas":58,"nao_encontradas":6,"recusas":4},"indicadores":{"gestantes_ativas":2,"criancas_lt2":4,"has":9,"dm":5,"idosos":8}},
-    # JUMA
-    {"id":22, "nome":"Wanda Bastos",            "microarea":"22","equipe":"JUMA", "tipo":"ACS","ativo":True,"familias_cadastradas":67,"familias_meta":73,"pct_visitas":91,"pct_cadastro":92,"status":"regular","visitas":{"programadas":67,"realizadas":61,"nao_encontradas":4,"recusas":2},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":10,"dm":6,"idosos":9}},
-    {"id":23, "nome":"Xavier Nogueira",         "microarea":"23","equipe":"JUMA", "tipo":"ACS","ativo":True,"familias_cadastradas":64,"familias_meta":73,"pct_visitas":75,"pct_cadastro":88,"status":"regular","visitas":{"programadas":64,"realizadas":48,"nao_encontradas":10,"recusas":6},"indicadores":{"gestantes_ativas":2,"criancas_lt2":3,"has":8,"dm":4,"idosos":7}},
-    {"id":24, "nome":"Yara Almeida",            "microarea":"24","equipe":"JUMA", "tipo":"ACS","ativo":True,"familias_cadastradas":70,"familias_meta":73,"pct_visitas":93,"pct_cadastro":96,"status":"destaque","visitas":{"programadas":70,"realizadas":65,"nao_encontradas":3,"recusas":2},"indicadores":{"gestantes_ativas":4,"criancas_lt2":6,"has":12,"dm":7,"idosos":11}},
-    {"id":25, "nome":"Zélia Barbosa",           "microarea":"25","equipe":"JUMA", "tipo":"ACS","ativo":True,"familias_cadastradas":66,"familias_meta":73,"pct_visitas":89,"pct_cadastro":90,"status":"regular","visitas":{"programadas":66,"realizadas":59,"nao_encontradas":5,"recusas":2},"indicadores":{"gestantes_ativas":3,"criancas_lt2":4,"has":10,"dm":5,"idosos":9}},
-    {"id":26, "nome":"Antônia Figueiredo",      "microarea":"26","equipe":"JUMA", "tipo":"ACS","ativo":False,"familias_cadastradas":0,"familias_meta":73,"pct_visitas":0,"pct_cadastro":0,"status":"afastado","visitas":{"programadas":0,"realizadas":0,"nao_encontradas":0,"recusas":0},"indicadores":{"gestantes_ativas":0,"criancas_lt2":0,"has":0,"dm":0,"idosos":0}},
-    {"id":27, "nome":"Benedito Cunha",          "microarea":"27","equipe":"JUMA","tipo":"ACS","ativo":True,"familias_cadastradas":67,"familias_meta":73,"pct_visitas":90,"pct_cadastro":92,"status":"regular","visitas":{"programadas":67,"realizadas":60,"nao_encontradas":4,"recusas":3},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":11,"dm":6,"idosos":10}},
-    {"id":28, "nome":"Camila Teixeira",         "microarea":"28","equipe":"JUMA","tipo":"ACS","ativo":True,"familias_cadastradas":68,"familias_meta":73,"pct_visitas":83,"pct_cadastro":93,"status":"regular","visitas":{"programadas":68,"realizadas":56,"nao_encontradas":7,"recusas":5},"indicadores":{"gestantes_ativas":2,"criancas_lt2":4,"has":9,"dm":5,"idosos":8}},
-    # ESTRADA NOVA
-    {"id":29, "nome":"Damião Lopes",            "microarea":"29","equipe":"ESTRADA NOVA","tipo":"ACS","ativo":True,"familias_cadastradas":70,"familias_meta":73,"pct_visitas":96,"pct_cadastro":96,"status":"destaque","visitas":{"programadas":70,"realizadas":67,"nao_encontradas":2,"recusas":1},"indicadores":{"gestantes_ativas":4,"criancas_lt2":6,"has":12,"dm":7,"idosos":11}},
-    {"id":30, "nome":"Edilson Matos",           "microarea":"30","equipe":"ESTRADA NOVA","tipo":"ACS","ativo":True,"familias_cadastradas":66,"familias_meta":73,"pct_visitas":85,"pct_cadastro":90,"status":"regular","visitas":{"programadas":66,"realizadas":56,"nao_encontradas":6,"recusas":4},"indicadores":{"gestantes_ativas":3,"criancas_lt2":4,"has":10,"dm":6,"idosos":9}},
-    {"id":31, "nome":"Francisca Gomes",         "microarea":"31","equipe":"ESTRADA NOVA","tipo":"ACS","ativo":True,"familias_cadastradas":65,"familias_meta":73,"pct_visitas":55,"pct_cadastro":89,"status":"critico","visitas":{"programadas":65,"realizadas":36,"nao_encontradas":17,"recusas":12},"indicadores":{"gestantes_ativas":1,"criancas_lt2":2,"has":7,"dm":3,"idosos":5}},
-    {"id":32, "nome":"Geovane Rocha",           "microarea":"32","equipe":"ESTRADA NOVA","tipo":"ACS","ativo":True,"familias_cadastradas":69,"familias_meta":73,"pct_visitas":87,"pct_cadastro":95,"status":"regular","visitas":{"programadas":69,"realizadas":60,"nao_encontradas":6,"recusas":3},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":11,"dm":6,"idosos":10}},
-    {"id":33, "nome":"Hildete Araújo",          "microarea":"33","equipe":"ESTRADA NOVA","tipo":"ACS","ativo":True,"familias_cadastradas":71,"familias_meta":73,"pct_visitas":98,"pct_cadastro":97,"status":"destaque","visitas":{"programadas":71,"realizadas":70,"nao_encontradas":1,"recusas":0},"indicadores":{"gestantes_ativas":5,"criancas_lt2":7,"has":14,"dm":9,"idosos":13}},
-    {"id":34, "nome":"Iraides Vasconcelos",     "microarea":"34","equipe":"ESTRADA NOVA","tipo":"ACS","ativo":True,"familias_cadastradas":68,"familias_meta":73,"pct_visitas":86,"pct_cadastro":93,"status":"regular","visitas":{"programadas":68,"realizadas":58,"nao_encontradas":6,"recusas":4},"indicadores":{"gestantes_ativas":2,"criancas_lt2":4,"has":9,"dm":5,"idosos":8}},
-    {"id":35, "nome":"Jaqueline Freitas",       "microarea":"35","equipe":"ESTRADA NOVA","tipo":"ACS","ativo":True,"familias_cadastradas":67,"familias_meta":73,"pct_visitas":92,"pct_cadastro":92,"status":"regular","visitas":{"programadas":67,"realizadas":62,"nao_encontradas":3,"recusas":2},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":10,"dm":6,"idosos":9}},
-    # LIBERDADE
-    {"id":36, "nome":"Karla Duarte",            "microarea":"36","equipe":"LIBERDADE","tipo":"ACS","ativo":True,"familias_cadastradas":64,"familias_meta":73,"pct_visitas":79,"pct_cadastro":88,"status":"regular","visitas":{"programadas":64,"realizadas":51,"nao_encontradas":9,"recusas":4},"indicadores":{"gestantes_ativas":2,"criancas_lt2":3,"has":8,"dm":4,"idosos":7}},
-    {"id":37, "nome":"Laudenir Oliveira",       "microarea":"37","equipe":"LIBERDADE","tipo":"ACS","ativo":True,"familias_cadastradas":70,"familias_meta":73,"pct_visitas":94,"pct_cadastro":96,"status":"destaque","visitas":{"programadas":70,"realizadas":66,"nao_encontradas":3,"recusas":1},"indicadores":{"gestantes_ativas":4,"criancas_lt2":6,"has":12,"dm":7,"idosos":11}},
-    {"id":38, "nome":"Marlene Silva",           "microarea":"38","equipe":"LIBERDADE","tipo":"ACS","ativo":True,"familias_cadastradas":65,"familias_meta":73,"pct_visitas":88,"pct_cadastro":89,"status":"regular","visitas":{"programadas":65,"realizadas":57,"nao_encontradas":5,"recusas":3},"indicadores":{"gestantes_ativas":3,"criancas_lt2":4,"has":10,"dm":5,"idosos":9}},
-    {"id":39, "nome":"Nilton Batista",          "microarea":"39","equipe":"LIBERDADE","tipo":"ACS","ativo":False,"familias_cadastradas":0,"familias_meta":73,"pct_visitas":0,"pct_cadastro":0,"status":"afastado","visitas":{"programadas":0,"realizadas":0,"nao_encontradas":0,"recusas":0},"indicadores":{"gestantes_ativas":0,"criancas_lt2":0,"has":0,"dm":0,"idosos":0}},
-    {"id":40, "nome":"Otávio Neto",             "microarea":"40","equipe":"LIBERDADE", "tipo":"ACS","ativo":True,"familias_cadastradas":66,"familias_meta":73,"pct_visitas":89,"pct_cadastro":90,"status":"regular","visitas":{"programadas":66,"realizadas":59,"nao_encontradas":5,"recusas":2},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":11,"dm":6,"idosos":10}},
-    {"id":41, "nome":"Patrícia Morais",         "microarea":"41","equipe":"LIBERDADE", "tipo":"ACS","ativo":True,"familias_cadastradas":68,"familias_meta":73,"pct_visitas":81,"pct_cadastro":93,"status":"regular","visitas":{"programadas":68,"realizadas":55,"nao_encontradas":8,"recusas":5},"indicadores":{"gestantes_ativas":2,"criancas_lt2":4,"has":9,"dm":5,"idosos":8}},
-    {"id":42, "nome":"Quirino Bentes",          "microarea":"42","equipe":"LIBERDADE", "tipo":"ACS","ativo":True,"familias_cadastradas":70,"familias_meta":73,"pct_visitas":96,"pct_cadastro":96,"status":"destaque","visitas":{"programadas":70,"realizadas":67,"nao_encontradas":2,"recusas":1},"indicadores":{"gestantes_ativas":4,"criancas_lt2":6,"has":12,"dm":7,"idosos":11}},
-    # SÃO SEBASTIÃO
-    {"id":43, "nome":"Raimunda Correia",        "microarea":"43","equipe":"SÃO SEBASTIÃO", "tipo":"ACS","ativo":True,"familias_cadastradas":65,"familias_meta":73,"pct_visitas":85,"pct_cadastro":89,"status":"regular","visitas":{"programadas":65,"realizadas":55,"nao_encontradas":6,"recusas":4},"indicadores":{"gestantes_ativas":3,"criancas_lt2":4,"has":10,"dm":6,"idosos":9}},
-    {"id":44, "nome":"Sebastiana Lima",         "microarea":"44","equipe":"SÃO SEBASTIÃO", "tipo":"ACS","ativo":True,"familias_cadastradas":64,"familias_meta":73,"pct_visitas":57,"pct_cadastro":88,"status":"critico","visitas":{"programadas":64,"realizadas":36,"nao_encontradas":17,"recusas":11},"indicadores":{"gestantes_ativas":1,"criancas_lt2":2,"has":7,"dm":3,"idosos":5}},
-    {"id":45, "nome":"Terezinha Aguiar",        "microarea":"45","equipe":"SÃO SEBASTIÃO", "tipo":"ACS","ativo":True,"familias_cadastradas":69,"familias_meta":73,"pct_visitas":88,"pct_cadastro":95,"status":"regular","visitas":{"programadas":69,"realizadas":61,"nao_encontradas":5,"recusas":3},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":11,"dm":6,"idosos":10}},
-    {"id":46, "nome":"Uelton Carvalho",         "microarea":"46","equipe":"SÃO SEBASTIÃO", "tipo":"ACS","ativo":True,"familias_cadastradas":71,"familias_meta":73,"pct_visitas":97,"pct_cadastro":97,"status":"destaque","visitas":{"programadas":71,"realizadas":69,"nao_encontradas":1,"recusas":1},"indicadores":{"gestantes_ativas":5,"criancas_lt2":7,"has":14,"dm":9,"idosos":13}},
-    {"id":47, "nome":"Vera Lucia",              "microarea":"47","equipe":"SÃO SEBASTIÃO", "tipo":"ACS","ativo":True,"familias_cadastradas":67,"familias_meta":73,"pct_visitas":84,"pct_cadastro":92,"status":"regular","visitas":{"programadas":67,"realizadas":56,"nao_encontradas":7,"recusas":4},"indicadores":{"gestantes_ativas":2,"criancas_lt2":4,"has":9,"dm":5,"idosos":8}},
-    {"id":48, "nome":"Washington Reis",         "microarea":"48","equipe":"SÃO SEBASTIÃO", "tipo":"ACS","ativo":True,"familias_cadastradas":68,"familias_meta":73,"pct_visitas":91,"pct_cadastro":93,"status":"regular","visitas":{"programadas":68,"realizadas":62,"nao_encontradas":4,"recusas":2},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":10,"dm":6,"idosos":9}},
-    {"id":49, "nome":"Xênia Brandão",           "microarea":"49","equipe":"SÃO SEBASTIÃO", "tipo":"ACS","ativo":True,"familias_cadastradas":65,"familias_meta":73,"pct_visitas":77,"pct_cadastro":89,"status":"regular","visitas":{"programadas":65,"realizadas":50,"nao_encontradas":10,"recusas":5},"indicadores":{"gestantes_ativas":2,"criancas_lt2":3,"has":8,"dm":4,"idosos":7}},
-    # CACHOEIRA
-    {"id":50, "nome":"Yolanda Ramos",           "microarea":"50","equipe":"CACHOEIRA", "tipo":"ACS","ativo":True,"familias_cadastradas":70,"familias_meta":73,"pct_visitas":93,"pct_cadastro":96,"status":"destaque","visitas":{"programadas":70,"realizadas":65,"nao_encontradas":3,"recusas":2},"indicadores":{"gestantes_ativas":4,"criancas_lt2":6,"has":12,"dm":7,"idosos":11}},
-    {"id":51, "nome":"Zilda Pinheiro",          "microarea":"51","equipe":"CACHOEIRA", "tipo":"ACS","ativo":True,"familias_cadastradas":66,"familias_meta":73,"pct_visitas":87,"pct_cadastro":90,"status":"regular","visitas":{"programadas":66,"realizadas":57,"nao_encontradas":6,"recusas":3},"indicadores":{"gestantes_ativas":3,"criancas_lt2":4,"has":10,"dm":5,"idosos":9}},
-    {"id":52, "nome":"André Tavares",           "microarea":"52","equipe":"CACHOEIRA", "tipo":"ACS","ativo":False,"familias_cadastradas":0,"familias_meta":73,"pct_visitas":0,"pct_cadastro":0,"status":"afastado","visitas":{"programadas":0,"realizadas":0,"nao_encontradas":0,"recusas":0},"indicadores":{"gestantes_ativas":0,"criancas_lt2":0,"has":0,"dm":0,"idosos":0}},
-    {"id":53, "nome":"Beatriz Mendonça",        "microarea":"53","equipe":"CACHOEIRA",  "tipo":"ACS","ativo":True,"familias_cadastradas":66,"familias_meta":73,"pct_visitas":90,"pct_cadastro":90,"status":"regular","visitas":{"programadas":66,"realizadas":59,"nao_encontradas":4,"recusas":3},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":11,"dm":6,"idosos":10}},
-    {"id":54, "nome":"Cícero Ventura",          "microarea":"54","equipe":"CACHOEIRA",  "tipo":"ACS","ativo":True,"familias_cadastradas":64,"familias_meta":73,"pct_visitas":80,"pct_cadastro":88,"status":"regular","visitas":{"programadas":64,"realizadas":51,"nao_encontradas":8,"recusas":5},"indicadores":{"gestantes_ativas":2,"criancas_lt2":4,"has":9,"dm":5,"idosos":8}},
-    {"id":55, "nome":"Denise Azevedo",          "microarea":"55","equipe":"CACHOEIRA",  "tipo":"ACS","ativo":True,"familias_cadastradas":70,"familias_meta":73,"pct_visitas":95,"pct_cadastro":96,"status":"destaque","visitas":{"programadas":70,"realizadas":67,"nao_encontradas":2,"recusas":1},"indicadores":{"gestantes_ativas":4,"criancas_lt2":6,"has":12,"dm":7,"idosos":11}},
-    {"id":56, "nome":"Elza Cardoso",            "microarea":"56","equipe":"CACHOEIRA",  "tipo":"ACS","ativo":True,"familias_cadastradas":67,"familias_meta":73,"pct_visitas":84,"pct_cadastro":92,"status":"regular","visitas":{"programadas":67,"realizadas":56,"nao_encontradas":7,"recusas":4},"indicadores":{"gestantes_ativas":3,"criancas_lt2":4,"has":10,"dm":6,"idosos":9}},
-    # TRÊS ESTADOS
-    {"id":57, "nome":"Flaviano Costa",          "microarea":"57","equipe":"TRÊS ESTADOS",  "tipo":"ACS","ativo":True,"familias_cadastradas":65,"familias_meta":73,"pct_visitas":56,"pct_cadastro":89,"status":"critico","visitas":{"programadas":65,"realizadas":36,"nao_encontradas":17,"recusas":12},"indicadores":{"gestantes_ativas":1,"criancas_lt2":2,"has":7,"dm":3,"idosos":5}},
-    {"id":58, "nome":"Gilda Meneses",           "microarea":"58","equipe":"TRÊS ESTADOS",  "tipo":"ACS","ativo":True,"familias_cadastradas":69,"familias_meta":73,"pct_visitas":88,"pct_cadastro":95,"status":"regular","visitas":{"programadas":69,"realizadas":61,"nao_encontradas":5,"recusas":3},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":11,"dm":6,"idosos":10}},
-    {"id":59, "nome":"Herculano Dias",          "microarea":"59","equipe":"TRÊS ESTADOS",  "tipo":"ACS","ativo":True,"familias_cadastradas":71,"familias_meta":73,"pct_visitas":97,"pct_cadastro":97,"status":"destaque","visitas":{"programadas":71,"realizadas":69,"nao_encontradas":1,"recusas":1},"indicadores":{"gestantes_ativas":5,"criancas_lt2":7,"has":14,"dm":9,"idosos":13}},
-    {"id":60, "nome":"Inês Batista",            "microarea":"60","equipe":"TRÊS ESTADOS",  "tipo":"ACS","ativo":True,"familias_cadastradas":68,"familias_meta":73,"pct_visitas":86,"pct_cadastro":93,"status":"regular","visitas":{"programadas":68,"realizadas":58,"nao_encontradas":6,"recusas":4},"indicadores":{"gestantes_ativas":2,"criancas_lt2":4,"has":9,"dm":5,"idosos":8}},
-    {"id":61, "nome":"João Batista Souza",      "microarea":"61","equipe":"TRÊS ESTADOS",  "tipo":"ACS","ativo":True,"familias_cadastradas":67,"familias_meta":73,"pct_visitas":92,"pct_cadastro":92,"status":"regular","visitas":{"programadas":67,"realizadas":62,"nao_encontradas":3,"recusas":2},"indicadores":{"gestantes_ativas":3,"criancas_lt2":5,"has":10,"dm":6,"idosos":9}},
-    {"id":62, "nome":"Luciana Fonseca",         "microarea":"62","equipe":"TRÊS ESTADOS",  "tipo":"ACS","ativo":True,"familias_cadastradas":64,"familias_meta":73,"pct_visitas":76,"pct_cadastro":88,"status":"regular","visitas":{"programadas":64,"realizadas":49,"nao_encontradas":10,"recusas":5},"indicadores":{"gestantes_ativas":2,"criancas_lt2":3,"has":8,"dm":4,"idosos":7}},
-    {"id":63, "nome":"Marcos Alves",            "microarea":"63","equipe":"TRÊS ESTADOS",  "tipo":"ACS","ativo":True,"familias_cadastradas":70,"familias_meta":73,"pct_visitas":94,"pct_cadastro":96,"status":"destaque","visitas":{"programadas":70,"realizadas":66,"nao_encontradas":3,"recusas":1},"indicadores":{"gestantes_ativas":4,"criancas_lt2":6,"has":12,"dm":7,"idosos":11}},
-    # AREAL
-    {"id":64, "nome":"Neide Leal",              "microarea":"64","equipe":"AREAL",  "tipo":"ACS","ativo":True,"familias_cadastradas":65,"familias_meta":73,"pct_visitas":87,"pct_cadastro":89,"status":"regular","visitas":{"programadas":65,"realizadas":57,"nao_encontradas":5,"recusas":3},"indicadores":{"gestantes_ativas":3,"criancas_lt2":4,"has":10,"dm":5,"idosos":9}},
-    {"id":65, "nome":"Ozéias Monteiro",         "microarea":"65","equipe":"AREAL",  "tipo":"ACS","ativo":False,"familias_cadastradas":0,"familias_meta":73,"pct_visitas":0,"pct_cadastro":0,"status":"afastado","visitas":{"programadas":0,"realizadas":0,"nao_encontradas":0,"recusas":0},"indicadores":{"gestantes_ativas":0,"criancas_lt2":0,"has":0,"dm":0,"idosos":0}},
-]
-
-def _acs_ativos():
-    return [a for a in _ACS_BASE if a["ativo"]]
-
-def _kpis():
-    ativos = _acs_ativos()
-    vis_prog  = sum(a["visitas"]["programadas"] for a in ativos)
-    vis_real  = sum(a["visitas"]["realizadas"]  for a in ativos)
-    fam_cad   = sum(a["familias_cadastradas"]   for a in ativos)
-    fam_meta  = sum(a["familias_meta"]          for a in _ACS_BASE)
+def _fonte(lote) -> dict:
     return {
-        "total_acs": 65, "acs_ativos": len(ativos),
-        "total_microareas": 65,
-        "familias_cadastradas": fam_cad, "familias_meta": fam_meta,
-        "pct_cobertura": round(fam_cad / fam_meta * 100, 1) if fam_meta else 0,
-        "visitas_programadas": vis_prog, "visitas_realizadas": vis_real,
-        "pct_visitas": round(vis_real / vis_prog * 100, 1) if vis_prog else 0,
-        "gestantes_ativas": sum(a["indicadores"]["gestantes_ativas"] for a in ativos),
-        "criancas_lt2":     sum(a["indicadores"]["criancas_lt2"]     for a in ativos),
-        "has_acompanhados": sum(a["indicadores"]["has"]              for a in ativos),
-        "dm_acompanhados":  sum(a["indicadores"]["dm"]               for a in ativos),
+        "fonte": "esus_pec",
+        "situacao_dado": "oficial_pec_agregado",
+        "competencia": lote.competencia,
+        "periodo": {"inicio": lote.periodo_inicio, "fim": lote.periodo_fim},
+        "lido_no_pec_em": lote.gerado_em.isoformat() + "Z" if lote.gerado_em else None,
+        "recebido_em": lote.recebido_em.isoformat() + "Z" if lote.recebido_em else None,
+        "criterios": (lote.payload or {}).get("criterios") or {},
     }
 
 
-# ── Endpoints principais ──────────────────────────────────────────────────────
+def _vazio(**extra) -> dict:
+    return {"fonte": AGUARDANDO, "situacao_dado": AGUARDANDO, "nota": NOTA_AGUARDANDO,
+            "verificado_em": _TS(), **extra}
+
+
+def _janela(periodo: str, competencia: str, data: str, ano: str) -> tuple[str | None, str | None, str]:
+    """Período pedido pela tela → (início, fim, rótulo). Mensal = competência AAAA-MM."""
+    if periodo == "diario" and data:
+        return data, data, data
+    if periodo == "anual" and ano:
+        return f"{ano}-01-01", f"{ano}-12-31", ano
+    if competencia and len(competencia) == 7:
+        a, m = int(competencia[:4]), int(competencia[5:])
+        return f"{competencia}-01", f"{competencia}-{calendar.monthrange(a, m)[1]:02d}", competencia
+    return None, None, "período do último lote"
+
+
+async def _lote(db, current, competencia: str = ""):
+    comp = competencia if competencia and len(competencia) == 7 else None
+    return await lote_mais_recente(db, current.municipio_id, comp) or (
+        await lote_mais_recente(db, current.municipio_id) if comp else None)
+
+
+# ── Painel ────────────────────────────────────────────────────────────────────
 
 @router.get("/dashboard")
-async def dashboard(
-    ano: int = Query(0),
-    esf: str = Query(""),
-):
-    ativos = _acs_ativos()
-    if esf:
-        ativos = [a for a in ativos if a["equipe"] == esf]
-    kpis = _kpis()
-    destaques = sorted([a for a in ativos if a["status"] == "destaque"], key=lambda x: -x["pct_visitas"])[:5]
-    criticos  = sorted([a for a in ativos if a["status"] == "critico"],  key=lambda x:  x["pct_visitas"])[:5]
+async def dashboard(current: SessaoMunicipal, db: DbDep, ano: int = Query(0), esf: str = Query(""),
+                    competencia: str = Query("")):
+    lote = await _lote(db, current, competencia)
+    if not lote:
+        return _vazio(kpis=None, acs_destaques=[], acs_criticos=[], distribuicao_status={},
+                      distribuicao_esf={}, producao_esus=None,
+                      mes_referencia={"label": "—"})
+    p = lote.payload
+    ine = next((e["ine"] for e in p.get("equipes") or [] if esf and (e.get("nome") == esf or e["ine"] == esf)), None)
+    lista = pec_acs.lista_acs(p, ine)
+    por_esf: dict[str, int] = {}
+    for a in lista:
+        if a["ativo"]:
+            por_esf[a["equipe"]] = por_esf.get(a["equipe"], 0) + 1
+    com_pct = [a for a in lista if a["ativo"] and a["pct_visitas"] is not None]
     return {
-        "situacao_dado": "referencia_municipal",
-        "fonte": "CNES Apuí/AM · IBGE 1300144",
-        "mes_referencia": {"label": datetime.now().strftime("%B/%Y")},
-        "kpis": kpis,
-        "acs_destaques": destaques,
-        "acs_criticos": criticos,
-        "distribuicao_status": {
-            "destaque": sum(1 for a in ativos if a["status"] == "destaque"),
-            "regular":  sum(1 for a in ativos if a["status"] == "regular"),
-            "critico":  sum(1 for a in ativos if a["status"] == "critico"),
-            "afastado": sum(1 for a in _ACS_BASE if a["status"] == "afastado"),
-        },
-        "distribuicao_esf": {e["esf"]: e["acs"] for e in _EQUIPES},
+        **_fonte(lote),
+        "mes_referencia": {"label": lote.competencia},
+        "kpis": pec_acs.kpis(p, ine),
+        "acs_destaques": sorted(com_pct, key=lambda x: -x["pct_visitas"])[:5],
+        "acs_criticos": sorted(com_pct, key=lambda x: x["pct_visitas"])[:5],
+        "distribuicao_status": {"ativo": sum(1 for a in lista if a["ativo"]),
+                                "inativo": sum(1 for a in lista if not a["ativo"])},
+        "distribuicao_esf": por_esf,
         "producao_esus": None,
         "verificado_em": _TS(),
     }
 
+
 @router.get("/indicadores")
-async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
+async def indicadores(current: SessaoMunicipal, db: DbDep, ano: int = Query(0)):
+    return await dashboard(current, db, ano=ano, esf="", competencia="")
+
 
 @router.get("/producao")
-async def producao(ano: int = Query(0)):
-    k = _kpis()
-    return {"situacao_dado": "referencia_municipal", "ano": ano or date.today().year, "indicadores": k, "verificado_em": _TS()}
+async def producao(current: SessaoMunicipal, db: DbDep, ano: int = Query(0)):
+    lote = await _lote(db, current)
+    if not lote:
+        return _vazio(ano=ano or date.today().year, indicadores=None)
+    return {**_fonte(lote), "ano": ano or date.today().year, "indicadores": pec_acs.kpis(lote.payload),
+            "verificado_em": _TS()}
+
 
 @router.get("/lista")
-async def lista_acs(esf: str = Query("")):
-    acs = _ACS_BASE if not esf else [a for a in _ACS_BASE if a["equipe"] == esf]
-    return {"acs": acs, "total": len(acs), "fonte": "referencia_municipal", "verificado_em": _TS()}
+async def lista_acs(current: SessaoMunicipal, db: DbDep, esf: str = Query("")):
+    lote = await _lote(db, current)
+    if not lote:
+        return _vazio(acs=[], total=0)
+    p = lote.payload
+    ine = next((e["ine"] for e in p.get("equipes") or [] if esf and (e.get("nome") == esf or e["ine"] == esf)), None)
+    acs = pec_acs.lista_acs(p, ine)
+    return {**_fonte(lote), "acs": acs, "total": len(acs), "verificado_em": _TS()}
+
 
 @router.get("/microareas")
-async def microareas():
-    result = []
-    for a in _ACS_BASE:
-        pct = a["pct_visitas"]
-        result.append({
-            "codigo": a["microarea"],
-            "nome": f"Microárea {a['microarea']}",
-            "zona": "Urbana" if int(a["microarea"]) <= 40 else "Rural",
-            "equipe": a["equipe"],
-            "tipo": "ESF",
-            "acs_count": 1, "acs_ativos": 1 if a["ativo"] else 0,
-            "familias_cadastradas": a["familias_cadastradas"],
-            "familias_meta": a["familias_meta"],
-            "pct_cobertura": round(a["familias_cadastradas"] / a["familias_meta"] * 100, 1) if a["familias_meta"] else 0,
-            "pct_visitas": pct,
-            "gestantes_ativas": a["indicadores"]["gestantes_ativas"],
-            "semaforo": "verde" if pct >= 90 else "amarelo" if pct >= 70 else "vermelho",
-        })
-    return {"microareas": result, "total": len(result), "fonte": "referencia_municipal", "verificado_em": _TS()}
+async def microareas(current: SessaoMunicipal, db: DbDep):
+    lote = await _lote(db, current)
+    if not lote:
+        return _vazio(microareas=[], total=0)
+    m = pec_acs.microareas(lote.payload)
+    return {**_fonte(lote), "microareas": m, "total": len(m), "verificado_em": _TS()}
 
 
-# ── Endpoints eSUS PEC (retornam dados de referência quando offline) ──────────
+# ── Abas e-SUS PEC (mesmo lote) ───────────────────────────────────────────────
 
 @router.get("/esus/status")
-async def esus_status():
-    return {
-        "conectado": False, "autenticado": False,
-        "url": "", "versao": None,
-        "instancia": None, "municipio": None,
-    }
+async def esus_status(current: SessaoMunicipal, db: DbDep):
+    s = await situacao_agente(db, current.municipio_id)
+    ok = s["estado"] in ("atualizado", "desatualizado", "conectado")
+    return {"conectado": ok, "autenticado": ok, "url": "", "versao": s.get("pec_versao"),
+            "instancia": "agente local (somente leitura)" if ok else None, "municipio": current.municipio,
+            "agente": s}
+
 
 @router.get("/esus/visitas")
-async def esus_visitas(
-    periodo: str = Query("mensal"),
-    competencia: str = Query(""),
-    data: str = Query(""),
-    ano: str = Query(""),
-):
-    ativos = _acs_ativos()
-    vis_prog = sum(a["visitas"]["programadas"] for a in ativos)
-    vis_real = sum(a["visitas"]["realizadas"]  for a in ativos)
-    nao_enc  = sum(a["visitas"]["nao_encontradas"] for a in ativos)
-    recusas  = sum(a["visitas"]["recusas"]     for a in ativos)
-    label = competencia or data or ano or datetime.now().strftime("%m/%Y")
-    por_equipe = []
-    for eq in _EQUIPES:
-        acs_eq = [a for a in ativos if a["equipe"] == eq["esf"]]
-        pr = sum(a["visitas"]["programadas"] for a in acs_eq)
-        re = sum(a["visitas"]["realizadas"]  for a in acs_eq)
-        por_equipe.append({"equipe": eq["esf"], "programadas": pr, "realizadas": re, "pct": round(re/pr*100,1) if pr else 0})
-    return {
-        "dados": {
-            "fonte": "referencia_municipal",
-            "periodo_label": label,
-            "competencia": label,
-            "visitas_domiciliares": vis_real,
-            "visitas_programadas": vis_prog,
-            "pct_realizadas": round(vis_real / vis_prog * 100, 1) if vis_prog else 0,
-            "nao_encontradas": nao_enc,
-            "recusas": recusas,
-            "atendimentos_individuais": 0,
-            "atendimentos_odontologicos": 0,
-            "procedimentos": 0,
-            "atividades_coletivas": 0,
-            "encaminhamentos": 0,
-            "por_equipe": por_equipe,
-        }
-    }
+async def esus_visitas(current: SessaoMunicipal, db: DbDep, periodo: str = Query("mensal"),
+                       competencia: str = Query(""), data: str = Query(""), ano: str = Query("")):
+    ini, fim, rotulo = _janela(periodo, competencia, data, ano)
+    lote = await _lote(db, current, competencia if periodo == "mensal" else "")
+    if not lote:
+        return {"dados": None, **_vazio()}
+    return {"dados": pec_acs.visitas_periodo(lote.payload, ini, fim, rotulo), **_fonte(lote)}
+
 
 @router.get("/esus/calendario-visitas")
-async def esus_calendario():
-    return {"dados": [], "fonte": "referencia_municipal", "verificado_em": _TS()}
+async def esus_calendario(current: SessaoMunicipal, db: DbDep, competencia: str = Query("")):
+    lote = await _lote(db, current, competencia)
+    if not lote:
+        return _vazio(dados=[])
+    v = pec_acs.visitas_periodo(lote.payload, None, None, lote.competencia)
+    # Só visitas REGISTRADAS no PEC; planejamento do ERSUS360 é outra camada (nunca gravada no PEC)
+    return {**_fonte(lote), "dados": [{"data": d["data"], "realizadas": d["realizadas"], "tipo": "registrada_pec"}
+                                      for d in v["por_dia"]], "verificado_em": _TS()}
+
 
 @router.get("/esus/cadastros-individuais")
-async def esus_cadastros_individuais(pagina: int = Query(1), tamanho: int = Query(50)):
-    return {
-        "dados": [], "total": 0, "pagina": pagina, "tamanho": tamanho,
-        "fonte": "referencia_municipal", "nota": "Conecte o e-SUS PEC para ver os cadastros individuais reais.",
-        "verificado_em": _TS(),
-    }
+async def esus_cadastros_individuais(current: SessaoMunicipal, db: DbDep,
+                                     pagina: int = Query(1), tamanho: int = Query(50)):
+    lote = await _lote(db, current)
+    nota = ("Por minimização de dados (LGPD), o ERSUS360 recebe do PEC só contagens por equipe e "
+            "microárea — a ficha individual de cada cidadão continua no PEC.")
+    if not lote:
+        return _vazio(dados=[], total=None, pagina=pagina, tamanho=tamanho)
+    k = pec_acs.kpis(lote.payload)
+    total = (lote.payload.get("totais") or {}).get("cadastros_individuais") or k["individuos_cadastrados"]
+    return {**_fonte(lote), "dados": [], "total": total, "pagina": pagina, "tamanho": tamanho,
+            "por_microarea": [{"microarea": m["codigo"], "equipe": m["equipe"], "individuos": m["individuos"]}
+                              for m in pec_acs.microareas(lote.payload)],
+            "nota": nota, "verificado_em": _TS()}
+
 
 @router.get("/esus/cadastros-domiciliares")
-async def esus_cadastros_domiciliares(pagina: int = Query(1), tamanho: int = Query(50)):
-    total_dom = sum(a["familias_cadastradas"] for a in _acs_ativos())
-    return {
-        "dados": [], "total": total_dom, "pagina": pagina, "tamanho": tamanho,
-        "fonte": "referencia_municipal", "nota": "Conecte o e-SUS PEC para ver os cadastros de domicílios reais.",
-        "verificado_em": _TS(),
-    }
+async def esus_cadastros_domiciliares(current: SessaoMunicipal, db: DbDep,
+                                      pagina: int = Query(1), tamanho: int = Query(50)):
+    lote = await _lote(db, current)
+    if not lote:
+        return _vazio(dados=[], total=None, pagina=pagina, tamanho=tamanho)
+    k = pec_acs.kpis(lote.payload)
+    tot = lote.payload.get("totais") or {}
+    return {**_fonte(lote), "dados": [], "total": tot.get("cadastros_domiciliares") or k["domicilios_cadastrados"],
+            "familias": tot.get("familias") or k["familias_cadastradas"],
+            "por_microarea": [{"microarea": m["codigo"], "equipe": m["equipe"], "domicilios": m["domicilios"],
+                               "familias": m["familias_cadastradas"], "pct_familias_visitadas": m["pct_visitas"]}
+                              for m in pec_acs.microareas(lote.payload)],
+            "pagina": pagina, "tamanho": tamanho, "verificado_em": _TS()}
+
 
 @router.get("/esus/acs")
-async def esus_acs():
-    return {"dados": _ACS_BASE, "total": len(_ACS_BASE), "fonte": "referencia_municipal", "verificado_em": _TS()}
+async def esus_acs(current: SessaoMunicipal, db: DbDep):
+    lote = await _lote(db, current)
+    if not lote:
+        return _vazio(dados=[], total=0)
+    acs = pec_acs.lista_acs(lote.payload)
+    return {**_fonte(lote), "dados": acs, "total": len(acs), "verificado_em": _TS()}
+
 
 @router.get("/esus/territorios")
-async def esus_territorios():
-    micros = (await microareas())["microareas"]
-    return {"dados": micros, "total": len(micros), "fonte": "referencia_municipal", "verificado_em": _TS()}
+async def esus_territorios(current: SessaoMunicipal, db: DbDep):
+    lote = await _lote(db, current)
+    if not lote:
+        return _vazio(dados=[], total=0)
+    m = pec_acs.microareas(lote.payload)
+    return {**_fonte(lote), "dados": m, "total": len(m), "verificado_em": _TS()}
+
 
 @router.get("/esus/tempo-real")
-async def esus_tempo_real():
-    k = _kpis()
-    return {
-        "dados": {
-            "online": False,
-            "visitas_hoje": 0,
-            "atendimentos_hoje": 0,
-            "kpis_mes": k,
-            "nota": "Conecte o e-SUS PEC para dados em tempo real.",
-        },
-        "verificado_em": _TS(),
-    }
+async def esus_tempo_real(current: SessaoMunicipal, db: DbDep):
+    # Não há atualização contínua: o agente consulta o PEC periodicamente. A tela mostra
+    # "Atualização automática" com a periodicidade — nunca "tempo real".
+    s = await situacao_agente(db, current.municipio_id)
+    lote = await _lote(db, current)
+    if not lote:
+        return {"dados": None, "agente": s, **_vazio()}
+    return {**_fonte(lote), "agente": s,
+            "dados": {"online": s["estado"] == "atualizado", "kpis_mes": pec_acs.kpis(lote.payload),
+                      "ts_verificacao": s["ultimo_contato"], "modo": s["modo"]},
+            "verificado_em": _TS()}
 
-
-# ── Snapshot (bookmarklet eSUS PEC) ──────────────────────────────────────────
 
 class SnapshotIn(BaseModel):
     dados: dict
 
-@router.post("/esus/snapshot", status_code=201)
+
+@router.post("/esus/snapshot", status_code=410)
 async def receber_snapshot(body: SnapshotIn):
-    logger.info("Snapshot eSUS recebido: %s chaves", len(body.dados))
-    return {"ok": True, "recebido_em": _TS()}
+    """Captura por bookmarklet desativada: o PEC é lido só pelo agente local autorizado."""
+    return {"ok": False, "detail": "Captura pela tela desativada. Use o agente local (aba Capturar PEC)."}
