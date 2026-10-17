@@ -387,6 +387,26 @@ async def _job_egestor_pagamento() -> None:
         logger.error("[Scheduler] Erro na sincronização do e-Gestor: %s", exc, exc_info=True)
 
 
+async def _job_siaps_publico_oficial() -> None:
+    """Job: Avaliação do Quadrimestre e IED de cada município ativo pela área pública do SIAPS (sem login)."""
+    logger.info("[Scheduler] Sincronizando resultados públicos oficiais do SIAPS...")
+    try:
+        from sqlalchemy import select
+        from database import AsyncSessionLocal
+        from models.municipio import Municipio
+        from services import siaps_publico as sp
+        async with AsyncSessionLocal() as db:
+            municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
+            for mun in municipios:
+                try:
+                    r = await sp.sincronizar(db, mun.id, mun.codigo_ibge)
+                    logger.info("[Scheduler] SIAPS público %s: %s", mun.codigo_ibge, r)
+                except sp.SiapsIndisponivel as exc:
+                    logger.warning("[Scheduler] SIAPS público %s: %s", mun.codigo_ibge, exc)
+    except Exception as exc:
+        logger.error("[Scheduler] Erro na sincronização SIAPS público: %s", exc, exc_info=True)
+
+
 async def _job_backup_diario() -> None:
     from database import AsyncSessionLocal, engine
     from tenancy.backup import rotina_diaria
@@ -589,6 +609,12 @@ def start_scheduler() -> None:
                       id="egestor_pagamento_diario", replace_existing=True, misfire_grace_time=3600)
     scheduler.add_job(_job_egestor_pagamento, "date", run_date=_dt.now(_tz.utc) + _td(minutes=6),
                       id="egestor_pagamento_inicial", replace_existing=True)
+
+    # SIAPS público: o MS publica o quadrimestre sem data fixa — confere todo dia às 05:30 e após o deploy
+    scheduler.add_job(_job_siaps_publico_oficial, CronTrigger(hour=5, minute=30, timezone="America/Manaus"),
+                      id="siaps_publico_diario", replace_existing=True, misfire_grace_time=3600)
+    scheduler.add_job(_job_siaps_publico_oficial, "date", run_date=_dt.now(_tz.utc) + _td(minutes=8),
+                      id="siaps_publico_inicial", replace_existing=True)
 
     # INVESTSUS 360 (federal): duas passagens por dia — início da manhã e início da tarde
     scheduler.add_job(_job_investsus_federal,

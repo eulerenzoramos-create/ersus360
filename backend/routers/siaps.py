@@ -288,44 +288,6 @@ _QUALIDADE_EQUIPES = [
 
 # ── Boas Práticas ─────────────────────────────────────────────────────────────
 
-_BOAS_PRATICAS = [
-    {
-        "titulo": "Equipe LIBERDADE — Vínculo Ótimo",
-        "descricao": "Pontuação máxima (10,0) no Componente Vínculo. Maior cobertura de acompanhamento do município — 1.784 pessoas acompanhadas de 2.500 do parâmetro.",
-        "ubs": "CENTRO DE SAÚDE CURUMIM", "equipe": "LIBERDADE",
-        "tipo": "vinculo", "destaque": True,
-    },
-    {
-        "titulo": "Pré-natal — Equipe CACHOEIRA acima da meta",
-        "descricao": "84,4% das gestantes com ≥6 consultas de pré-natal e início no 1º trimestre (meta: 60%). Maior taxa de adesão ao pré-natal do município.",
-        "ubs": "UBS IRMÃ ELIZABETE", "equipe": "CACHOEIRA",
-        "tipo": "qualidade", "destaque": True,
-    },
-    {
-        "titulo": "Consulta RN — Equipe LIBERDADE 100%",
-        "descricao": "100% dos recém-nascidos com consulta na 1ª semana de vida. Indicador 4 do Previne Brasil — atingido por apenas 1 equipe no município.",
-        "ubs": "CENTRO DE SAÚDE CURUMIM", "equipe": "LIBERDADE",
-        "tipo": "qualidade", "destaque": True,
-    },
-    {
-        "titulo": "Citopatológico — Maior cobertura: Equipe LIBERDADE (52,4%)",
-        "descricao": "Apesar de ainda abaixo da meta (60%), equipe LIBERDADE lidera a cobertura de citopatológico. Atenção especial necessária em KENNEDY (22,1%) e ESTRADA NOVA (19,8%).",
-        "ubs": "CENTRO DE SAÚDE CURUMIM", "equipe": "LIBERDADE",
-        "tipo": "alerta_critico", "destaque": False,
-    },
-    {
-        "titulo": "Vacinação — Meta não atingida por nenhuma equipe",
-        "descricao": "Nenhuma das 9 equipes atingiu 95% de cobertura vacinal (DTP/Penta). Melhor desempenho: CACHOEIRA (88,2%). Prioridade: KENNEDY (58,3%) e ESTRADA NOVA (55,0%).",
-        "ubs": "TODAS", "equipe": "TODAS",
-        "tipo": "alerta_critico", "destaque": False,
-    },
-    {
-        "titulo": "Equipes KENNEDY e ESTRADA NOVA — Plano de Melhoria",
-        "descricao": "Pontuação Vínculo 3,25 (Regular). Recomendação: intensificar cadastros individuais e domiciliares, priorizar acompanhamento de idosos, crianças e beneficiários BPC/PBF.",
-        "ubs": "UBS PADRE FALIERO BONCI / UBS CLÁUDIA PEREIRA", "equipe": "KENNEDY / ESTRADA NOVA",
-        "tipo": "plano_melhoria", "destaque": False,
-    },
-]
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
@@ -721,16 +683,13 @@ async def diagnostico_live(_: UserOut = Depends(get_current_user)):
 
 
 @router.get("/boas-praticas")
-async def boas_praticas(_: UserOut = Depends(get_current_user)):
-    return {
-        "municipio": "APUÍ",
-        "competencia": "Abr/2026",
-        "total": len(_BOAS_PRATICAS),
-        "destaques": sum(1 for b in _BOAS_PRATICAS if b["destaque"]),
-        "alertas": sum(1 for b in _BOAS_PRATICAS if b["tipo"] in ("alerta_critico", "plano_melhoria")),
-        "boas_praticas": _BOAS_PRATICAS,
-        "fonte": "siaps_referencia",
-    }
+async def boas_praticas(current: UserOut = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Destaques e alertas gerados dos resultados oficiais captados (relatório SIAPS importado e
+    Avaliação do Quadrimestre publicada). Sem lista fixa: sem dado oficial, a aba fica vazia."""
+    from services import siaps_boas_praticas
+    if current.municipio_id is None:
+        return {"situacao_dado": "nao_disponivel", "boas_praticas": [], "total": 0, "destaques": 0, "alertas": 0}
+    return await siaps_boas_praticas.montar(db, current.municipio_id, current.municipio_ibge, current.municipio)
 
 
 # ── Endpoints de Integração em Tempo Real ─────────────────────────────────────

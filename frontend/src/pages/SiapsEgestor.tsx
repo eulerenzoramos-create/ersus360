@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import ComponenteQualidade from "./ComponenteQualidade";
+import QualidadeOficialPorEquipe, { capturaNoEndereco } from "../components/QualidadeOficialPorEquipe";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, Legend,
-  ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, Cell,
+  ResponsiveContainer, Cell,
 } from "recharts";
 import {
   Users, Star, TrendingUp, AlertTriangle, CheckCircle,
@@ -1440,6 +1441,7 @@ function AbaQualidade({ data: _data }: { data: any }) {
         </div>
       )}
 
+      <QualidadeOficialPorEquipe />
       <QualidadeImportada />
       <ComponenteQualidade />
     </div>
@@ -1492,7 +1494,7 @@ function QualidadeImportada() {
 // ── Boas Práticas ─────────────────────────────────────────────────────────────
 
 function AbaBoasPraticas({ data }: { data: any }) {
-  if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum dado de boas práticas foi inventado." />;
+  if (!data || !data.boas_praticas?.length) return <NaoDisponivelBanner nota="Ainda não há resultado oficial captado: importe o relatório CVAT do SIAPS ou atualize a Avaliação Quadrimestre. Nenhum dado de boas práticas é inventado." />;
   const COR_TIPO: Record<string, string> = {
     vinculo: "#1d4ed8", qualidade: "#16a34a",
     alerta_critico: "#dc2626", plano_melhoria: "#d97706",
@@ -1510,7 +1512,7 @@ function AbaBoasPraticas({ data }: { data: any }) {
     <div>
       <div style={{ marginBottom: 18 }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>Boas Práticas e Alertas</h2>
-        <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Destaques e recomendações para Apuí/AM</p>
+        <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Gerados dos resultados oficiais: {data.fontes?.join(" · ")}</p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
@@ -1570,22 +1572,27 @@ function AbaBoasPraticas({ data }: { data: any }) {
                     </thead>
                     <tbody>
                       {ranking.map((r: any, j: number) => {
-                        const sCor = r.status === "verde" ? "#16a34a" : r.status === "amarelo" ? "#d97706" : "#dc2626";
-                        const sBg  = r.status === "verde" ? "#f0fdf4" : r.status === "amarelo" ? "#fffbeb" : "#fff7f7";
+                        const cls = r.classificacao as string | undefined;
+                        const CLS_COR: Record<string, [string, string, string]> = {
+                          otimo: ["#1d4ed8", "#eff6ff", "Ótimo"], bom: ["#16a34a", "#f0fdf4", "Bom"],
+                          suficiente: ["#d97706", "#fffbeb", "Suficiente"], regular: ["#dc2626", "#fff7f7", "Regular"],
+                        };
+                        const sCor = cls ? CLS_COR[cls]?.[0] ?? "#6b7280" : r.status === "verde" ? "#16a34a" : r.status === "amarelo" ? "#d97706" : "#dc2626";
+                        const sBg  = cls ? CLS_COR[cls]?.[1] ?? "#f9fafb" : r.status === "verde" ? "#f0fdf4" : r.status === "amarelo" ? "#fffbeb" : "#fff7f7";
                         return (
                           <tr key={j} style={{ borderBottom: "1px solid #f1f5f9", background: j % 2 === 0 ? "#fff" : "#fafafa" }}>
                             <td style={{ padding: "4px 8px", color: "#9ca3af", fontWeight: 700 }}>{j + 1}º</td>
                             <td style={{ padding: "4px 8px", fontWeight: 700, color: "#1e293b" }}>{r.equipe}</td>
                             <td style={{ padding: "4px 8px", color: "#64748b", fontSize: 10 }}>{r.ubs}</td>
                             <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 800, color: sCor }}>
-                              {r.resultado}%
+                              {typeof r.resultado === "number" ? r.resultado.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : r.resultado}{cls ? "" : "%"}
                               {meta && (
                                 <span style={{ color: "#9ca3af", fontWeight: 400, marginLeft: 4 }}>/ {meta}%</span>
                               )}
                             </td>
                             <td style={{ padding: "4px 8px", textAlign: "center" }}>
                               <span style={{ background: sBg, color: sCor, fontWeight: 700, fontSize: 10, padding: "2px 7px", borderRadius: 10 }}>
-                                {r.status === "verde" ? "✓ Meta" : r.status === "amarelo" ? "~ Alerta" : "✗ Crítico"}
+                                {cls ? CLS_COR[cls]?.[2] ?? cls : r.status === "verde" ? "✓ Meta" : r.status === "amarelo" ? "~ Alerta" : "✗ Crítico"}
                               </span>
                             </td>
                           </tr>
@@ -1596,11 +1603,11 @@ function AbaBoasPraticas({ data }: { data: any }) {
                 </div>
               )}
 
-              {bp.ubs !== "TODAS" && bp.ubs !== "VER DETALHES" && (
-                <div style={{ fontSize: 11, color: "#9ca3af" }}>
-                  UBS: {bp.ubs} · Equipe: {bp.equipe}
-                </div>
-              )}
+              {bp.descricao && <div style={{ fontSize: 12.5, color: "#374151", marginBottom: 6 }}>{bp.descricao}</div>}
+              <div style={{ fontSize: 11, color: "#9ca3af" }}>
+                {bp.ubs !== "TODAS" && bp.ubs !== "VER DETALHES" && <>UBS: {bp.ubs} · Equipe: {bp.equipe} · </>}
+                Fonte: {bp.fonte}
+              </div>
             </div>
           );
         })}
@@ -1671,500 +1678,331 @@ function CardEquipe({ e, periodo }: { e: any; periodo: "mensal" | "quadrimestral
   );
 }
 
-// ── Dados de referência Q2/2026 por competência — e-SUS PEC Apuí/AM ──────────
-const _EQUIPES_Q2 = [
-  "CACHOEIRA","SÃO SEBASTIÃO","ACARI","TRÊS ESTADOS","JUMA","LIBERDADE","KENNEDY","JK","ESTRADA NOVA",
+// ── Aba: Avaliação do Quadrimestre — resultado OFICIAL publicado no SIAPS (área pública) ─────────
+// Fonte: apisiaps.saude.gov.br/api/public, sincronizado todo dia pelo backend (/api/siaps-publico).
+// Nada é calculado aqui: só as contagens Ótimo/Bom/Suficiente/Regular publicadas pelo MS.
+
+type ContagemQ = { otimo: number; bom: number; suficiente: number; regular: number; total: number };
+type ComponenteQ = ContagemQ & { componente: string; origem: string; tipo_equipe: string };
+type IndicadorQ = ContagemQ & { tipo_equipe: string; co_indicador: number; indicador?: string; dimensao?: string };
+type QuadOficial = {
+  quadrimestre: string; rotulo: string; versao: number; revisado_pelo_ms: boolean; coletado_em: string;
+  componentes: ComponenteQ[]; indicadores_qualidade: IndicadorQ[]; dimensoes_cvat: IndicadorQ[];
+};
+type PainelSiapsPublico = {
+  situacao_dado: string; fonte: string; nota: string; quadrimestres: QuadOficial[];
+  equidade: { faixa_ied: string; porte_populacional: string; competencia_referencia: string } | null;
+  alertas: { severidade: string; texto: string }[];
+  ultima_sincronizacao: { quando: string; sucesso: boolean; erro: string | null } | null;
+};
+
+const _CLASSES: { k: keyof ContagemQ; label: string; cor: string; bg: string }[] = [
+  { k: "otimo",      label: "Ótimo",      cor: "#1d4ed8", bg: "#eff6ff" },
+  { k: "bom",        label: "Bom",        cor: "#16a34a", bg: "#f0fdf4" },
+  { k: "suficiente", label: "Suficiente", cor: "#d97706", bg: "#fffbeb" },
+  { k: "regular",    label: "Regular",    cor: "#dc2626", bg: "#fff7f7" },
 ];
-const _UBS_MAP: Record<string,string> = {
-  "CACHOEIRA":"UBS IRMÃ ELIZABETE","SÃO SEBASTIÃO":"UBS ANIZIO FERREIRA DA SILVA",
-  "ACARI":"UBS ANIZIO FERREIRA DA SILVA","TRÊS ESTADOS":"UBS OSVALDO LEMES CABRAL",
-  "JUMA":"CENTRO DE SAUDE CURUMIM","LIBERDADE":"CENTRO DE SAUDE CURUMIM",
-  "KENNEDY":"UBS PADRE FALIERO BONCI","JK":"UBS JK",
-  "ESTRADA NOVA":"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA",
-};
-const _INE_MAP: Record<string,string> = {
-  "CACHOEIRA":"0000563104","SÃO SEBASTIÃO":"0000563066","ACARI":"0000563082",
-  "TRÊS ESTADOS":"0000563120","JUMA":"0000563147","LIBERDADE":"0000563155",
-  "KENNEDY":"0000563163","JK":"0000563171","ESTRADA NOVA":"0000563198",
-};
+const _dataBR = (iso?: string | null) => iso ? new Date(iso.endsWith("Z") ? iso : iso + "Z").toLocaleString("pt-BR") : "—";
+const _chaveComp = (c: { origem: string; tipo_equipe: string }) => `${c.origem}|${c.tipo_equipe}`;
 
-// Resultados CVAT (variáveis A-K) por competência
+function MarkdownIA({ texto }: { texto: string }) {
+  // renderização simples do texto da IA: títulos, listas e negrito
+  const negrito = (s: string) => s.split(/(\*\*[^*]+\*\*)/g).map((p, i) =>
+    p.startsWith("**") && p.endsWith("**") ? <strong key={i}>{p.slice(2, -2)}</strong> : <span key={i}>{p}</span>);
+  return (
+    <div style={{ fontSize: 13, color: "#1f2937", lineHeight: 1.6 }}>
+      {texto.split("\n").map((l, i) => {
+        const t = l.trim();
+        if (!t) return <div key={i} style={{ height: 6 }} />;
+        const h = t.match(/^(#{1,4})\s+(.*)$/);
+        if (h) return <div key={i} style={{ fontWeight: 800, fontSize: h[1].length <= 2 ? 15 : 13.5, color: "#1e3a8a", marginTop: 8 }}>{negrito(h[2])}</div>;
+        const li = t.match(/^([-*•]|\d+[.)])\s+(.*)$/);
+        if (li) return <div key={i} style={{ paddingLeft: 18, textIndent: -12 }}>• {negrito(li[2])}</div>;
+        if (t.startsWith("|")) return <div key={i} style={{ fontFamily: "monospace", fontSize: 11.5, whiteSpace: "pre" }}>{t}</div>;
+        return <div key={i}>{negrito(t)}</div>;
+      })}
+    </div>
+  );
+}
 
-// _QUAL_COMP: sem dados demonstrativos.
-// Resultados oficiais C1-C7 serão inseridos aqui após importação do SIAPS.
-// Formato: { "AAAA-MM": { "EQUIPE": { C1: pct, C2: pct, ... C7: pct } } }
-const _QUAL_COMP: Record<string, Record<string, Record<string,number>>> = {
-  "2026-05":{},
-  "2026-06":{},
-  "2026-07":{},
-  "2026-08":{},
-};
+function PainelErsusIA() {
+  const [pergunta, setPergunta] = useState("");
+  const [carregando, setCarregando] = useState<string | null>(null);
+  const [resp, setResp] = useState<any>(null);
+  const [erro, setErro] = useState<string | null>(null);
 
-const _METAS_IND: Record<string,number> = {
-  C1:50, C2:75, C3:75, C4:75, C5:75, C6:75, C7:75,
-};
-const _LABEL_IND: Record<string,string> = {
-  C1:"Acesso e Qualidade — Hipertensão",
-  C2:"Desenvolvimento Infantil",
-  C3:"Gestação e Puerpério",
-  C4:"Controle do Diabetes",
-  C5:"Controle da Hipertensão",
-  C6:"Saúde da Pessoa Idosa",
-  C7:"Prevenção do Câncer de Colo do Útero",
-};
+  async function pedir(modo: string) {
+    if (modo === "pergunta" && !pergunta.trim()) return;
+    setCarregando(modo); setErro(null);
+    try {
+      setResp(await apiPost("/api/siaps-ia/analisar", { modo, pergunta: modo === "pergunta" ? pergunta : null }));
+    } catch (e: any) {
+      setErro(e?.response?.data?.detail ?? "Não foi possível consultar a IA agora.");
+    } finally {
+      setCarregando(null);
+    }
+  }
 
-const _COMP_OPTS = [
-  { val:"2026-05", label:"Mai/2026" },
-  { val:"2026-06", label:"Jun/2026" },
-  { val:"2026-07", label:"Jul/2026" },
-  { val:"2026-08", label:"Ago/2026" },
-];
+  function baixar() {
+    if (!resp) return;
+    const corpo = `${resp.resposta}\n\n---\nFontes: ${resp.fontes.join("; ")}\nGerado em ${_dataBR(resp.gerado_em)} · ${resp.aviso}\n`;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([corpo], { type: "text/markdown;charset=utf-8" }));
+    a.download = `ERSUS-IA-SIAPS-${resp.modo}-${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+  }
 
-function _pontClassif(pont: number): string {
-  if (pont >= 9) return "Ótimo";
-  if (pont >= 7) return "Bom";
-  if (pont >= 5) return "Suficiente";
-  return "Regular";
+  const botoes = [
+    { modo: "analise", label: "Analisar desempenho" },
+    { modo: "plano", label: "Plano de ação" },
+    { modo: "relatorio", label: "Relatório técnico" },
+  ];
+  return (
+    <div style={{ background: "#fff", border: "1px solid #c7d2fe", borderRadius: 10, padding: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <span style={{ fontSize: 18 }}>🤖</span>
+        <div style={{ fontSize: 14, fontWeight: 800, color: "#3730a3" }}>ERSUS IA — Analista SIAPS</div>
+      </div>
+      <div style={{ fontSize: 11.5, color: "#6b7280", marginBottom: 12 }}>
+        Analisa somente os resultados oficiais já captados (SIAPS público, relatório SIAPS importado e e-Gestor). Não inventa nem recalcula números.
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+        {botoes.map(b => (
+          <button key={b.modo} onClick={() => pedir(b.modo)} disabled={!!carregando}
+            style={{ padding: "7px 14px", borderRadius: 6, border: "1px solid #4f46e5", background: "#4f46e5", color: "#fff",
+                     fontSize: 12, fontWeight: 700, cursor: carregando ? "wait" : "pointer", opacity: carregando && carregando !== b.modo ? .5 : 1 }}>
+            {carregando === b.modo ? "Gerando…" : b.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input value={pergunta} onChange={e => setPergunta(e.target.value)} maxLength={2000}
+          onKeyDown={e => { if (e.key === "Enter") pedir("pergunta"); }}
+          placeholder="Pergunte, ex.: quais indicadores de Qualidade pioraram em relação ao quadrimestre anterior?"
+          style={{ flex: 1, padding: "8px 10px", borderRadius: 6, border: "1px solid #d1d5db", fontSize: 12.5 }} />
+        <button onClick={() => pedir("pergunta")} disabled={!!carregando || !pergunta.trim()}
+          style={{ padding: "8px 14px", borderRadius: 6, border: "1px solid #4f46e5", background: "#fff", color: "#4f46e5",
+                   fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+          {carregando === "pergunta" ? "Pensando…" : "Perguntar"}
+        </button>
+      </div>
+      {carregando && <div style={{ fontSize: 11.5, color: "#6b7280", marginTop: 10 }}>A análise pode levar até um minuto…</div>}
+      {erro && <div style={{ marginTop: 10, fontSize: 12, color: "#b91c1c", background: "#fef2f2", borderRadius: 6, padding: "8px 10px" }}>{erro}</div>}
+      {resp && !carregando && (
+        <div style={{ marginTop: 14, borderTop: "1px solid #e5e7eb", paddingTop: 12 }}>
+          <MarkdownIA texto={resp.resposta} />
+          <div style={{ marginTop: 12, fontSize: 11, color: "#6b7280", display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+            <span>Fontes: {resp.fontes.join(" · ")} · {_dataBR(resp.gerado_em)}<br />{resp.aviso}</span>
+            <button onClick={baixar} style={{ border: "1px solid #d1d5db", background: "#fff", borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>
+              <Download size={11} /> Baixar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
-  const [competencia, setCompetencia] = useState("2026-05");
-  const [equipeFiltro, setEquipeFiltro] = useState("TODAS");
-  const [indExp, setIndExp]             = useState<string|null>(null);
-
-  const compLabel = _COMP_OPTS.find(c=>c.val===competencia)?.label ?? competencia;
-
-  // ── CVAT via API real (/api/siaps/vinculo-acompanhamento) ────────────────
-  const { data: cvatApiData, isLoading: cvatLoading } = useQuery({
-    queryKey: ["siaps-vinculo-quad", competencia],
-    queryFn: () => apiGet(`/api/siaps/vinculo-acompanhamento?competencia=${competencia}`) as Promise<any>,
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["siaps-publico"],
+    queryFn: () => apiGetRaw("/api/siaps-publico") as Promise<PainelSiapsPublico>,
     staleTime: 5 * 60 * 1000,
   });
+  const [quadSel, setQuadSel] = useState<string | null>(null);
+  const [atualizando, setAtualizando] = useState(false);
+  const [msgAtualizar, setMsgAtualizar] = useState<string | null>(null);
 
-  // ── Qualidade via API PEC (/api/pec/indicadores/{competencia}) ─────────────
-  const { data: pecIndData } = useQuery({
-    queryKey: ["pec-indicadores-quad", competencia],
-    queryFn: () => apiGet(`/api/pec/indicadores/${competencia}`) as Promise<any>,
-    staleTime: 15 * 60 * 1000,
-  });
-  // pecIndData.equipes = { "CACHOEIRA": { C2: 88, C3: 88, ... }, ... }
-  const qualComp: Record<string,Record<string,number>> =
-    (pecIndData as any)?.equipes ?? _QUAL_COMP[competencia] ?? {};
+  const quads = data?.quadrimestres ?? [];
+  const atual = quads.find(q => q.quadrimestre === quadSel) ?? quads[0];
+  const anterior = atual ? quads[quads.indexOf(atual) + 1] : undefined;
 
-  const cvatEquipes = (cvatApiData?.equipes ?? []).map((e: any) => ({
-    equipe: e.equipe, ubs: e.ubs, ine: _INE_MAP[e.equipe] ?? "",
-    A: e.A??0, B: e.B??0, C: e.C??0, D: e.D??0, E: e.E??0,
-    F: e.F??0, G: e.G??0, H: e.H??0, I: e.I??0, J: e.J??0, K: e.K??0,
-    pont: e.pontuacao??0, classif: _pontClassif(e.pontuacao??0),
-  }));
+  async function atualizar() {
+    setAtualizando(true); setMsgAtualizar(null);
+    try {
+      const r: any = await apiPost("/api/siaps-publico/sincronizar");
+      setMsgAtualizar(r.novo.length || r.revisado.length
+        ? `Novidades do SIAPS: ${[...r.novo, ...r.revisado].join(", ")}`
+        : "SIAPS consultado agora — sem novidades publicadas.");
+      await refetch();
+    } catch (e: any) {
+      setMsgAtualizar(e?.response?.data?.detail ?? "Não foi possível consultar o SIAPS agora.");
+    } finally {
+      setAtualizando(false);
+    }
+  }
 
-  const pontMedCvat = cvatApiData?.pontuacao_media ?? 0;
-  const cvatOtimo   = cvatApiData?.por_status?.otimo ?? 0;
-  const cvatBom     = cvatApiData?.por_status?.bom ?? 0;
-  const cvatSuf     = cvatApiData?.por_status?.suficiente ?? 0;
-  const cvatReg     = cvatApiData?.por_status?.regular ?? 0;
-  const totalVinc   = cvatApiData?.total_pessoas_vinculadas ?? 0;
-  const totalAcomp  = cvatApiData?.total_pessoas_acompanhadas ?? 0;
+  // evolução: uma série por componente/tipo de equipe, do quadrimestre mais antigo ao mais recente
+  const evolucao = useMemo(() => {
+    const series: Record<string, { titulo: string; pontos: any[] }> = {};
+    [...quads].reverse().forEach(q => q.componentes.forEach(c => {
+      const k = _chaveComp(c);
+      series[k] ??= { titulo: `${c.componente} — ${c.tipo_equipe}`, pontos: [] };
+      series[k].pontos.push({ q: q.quadrimestre, Ótimo: c.otimo, Bom: c.bom, Suficiente: c.suficiente, Regular: c.regular });
+    }));
+    return Object.values(series);
+  }, [quads]);
 
-  // ── Cálculos Qualidade ────────────────────────────────────────────────────
-  const qualEquipes = _EQUIPES_Q2.map(eq => {
-    const d = qualComp[eq] ?? {};
-    const pontTotal = Object.entries(d).reduce((s,[k,v])=>{
-      const meta = _METAS_IND[k]??50;
-      const gap  = (v as number)-meta;
-      const pts  = gap>=10?10:gap>=0?7:gap>=-10?5:2;
-      return s+pts;
-    },0);
-    const nInds = Object.keys(d).length || 7;
-    const pontMedia = parseFloat((pontTotal/nInds).toFixed(1));
-    return { equipe:eq, ubs:_UBS_MAP[eq]??"", ine:_INE_MAP[eq]??"", pont:pontMedia, inds:d, classif:_pontClassif(pontMedia) };
-  });
-  const pontMedQual = parseFloat((qualEquipes.reduce((s,e)=>s+e.pont,0)/qualEquipes.length).toFixed(1));
+  const ant = (lista: IndicadorQ[] | undefined, i: IndicadorQ) =>
+    lista?.find(x => x.co_indicador === i.co_indicador && x.tipo_equipe === i.tipo_equipe);
 
-  const temDadosQual = Object.values(qualComp).some((d:any)=>Object.keys(d).length>0);
-  const fonteQual: string = (pecIndData as any)?.fonte ?? "SIAPS — Referência municipal";
+  const cab = { padding: "7px 8px", fontSize: 11, fontWeight: 700, color: "#475569", textAlign: "center" as const, background: "#f1f5f9" };
+  const cel = { padding: "6px 8px", fontSize: 12, textAlign: "center" as const, borderTop: "1px solid #f1f5f9" };
 
-  // ── Radar ─────────────────────────────────────────────────────────────────
-  const radarData = [
-    { indicador:"Vínculo",       valor: Math.min(100, pontMedCvat*10) },
-    { indicador:"Qualidade",     valor: Math.min(100, pontMedQual*10) },
-    { indicador:"Cobertura ESF", valor: 82 },
-    { indicador:"SISAB",         valor: 97 },
-  ];
-
-  const eqFiltradas = equipeFiltro==="TODAS" ? cvatEquipes : cvatEquipes.filter(e=>e.equipe===equipeFiltro);
-  const qualFiltradas = equipeFiltro==="TODAS" ? qualEquipes : qualEquipes.filter(e=>e.equipe===equipeFiltro);
+  const tabela = (titulo: string, linhas: IndicadorQ[], antes?: IndicadorQ[]) => (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, overflowX: "auto" }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a", marginBottom: 8 }}>{titulo}</div>
+      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
+        <thead><tr>
+          <th style={{ ...cab, textAlign: "left" }}>Indicador</th><th style={cab}>Equipe</th>
+          {_CLASSES.map(c => <th key={c.k} style={{ ...cab, color: c.cor }}>{c.label}</th>)}
+          <th style={cab}>Regular vs. anterior</th>
+        </tr></thead>
+        <tbody>
+          {linhas.map(i => {
+            const a = ant(antes, i);
+            const delta = a ? i.regular - a.regular : null;
+            return (
+              <tr key={`${i.tipo_equipe}-${i.co_indicador}`} style={{ background: i.regular ? "#fff7f7" : undefined }}>
+                <td style={{ ...cel, textAlign: "left" }}>{i.indicador ?? i.dimensao}</td>
+                <td style={cel}>{i.tipo_equipe}</td>
+                {_CLASSES.map(c => <td key={c.k} style={{ ...cel, color: i[c.k] ? c.cor : "#cbd5e1", fontWeight: i[c.k] ? 700 : 400 }}>{i[c.k]}</td>)}
+                <td style={{ ...cel, color: delta == null ? "#94a3b8" : delta > 0 ? "#dc2626" : delta < 0 ? "#16a34a" : "#64748b", fontWeight: 700 }}>
+                  {delta == null ? "—" : delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : "="}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
-
-      {/* ── Barra SIAPS — UF / Município / IED / Competência ── */}
-      <div style={{
-        background:"#1d4ed8", borderRadius:"10px 10px 0 0",
-        padding:"10px 18px", display:"flex", alignItems:"center",
-        justifyContent:"space-between", flexWrap:"wrap", gap:10,
-        marginBottom:0,
-      }}>
-        <div style={{ display:"flex", gap:20, alignItems:"center", flexWrap:"wrap" }}>
-          {[
-            { k:"UF",         v:"AM" },
-            { k:"Município",  v:"APUÍ" },
-            { k:"IED",        v:"II" },
-            { k:"Competência",v:compLabel },
-          ].map(item=>(
-            <div key={item.k} style={{ display:"flex", gap:6, alignItems:"center" }}>
-              <span style={{ fontSize:12, color:"#93c5fd", fontWeight:600 }}>{item.k}:</span>
-              <span style={{ fontSize:12, color:"#fff", fontWeight:700 }}>{item.v}</span>
-            </div>
-          ))}
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* ── Barra SIAPS — UF / Município / IED / Quadrimestre ── */}
+      <div>
+        <div style={{ background: "#1d4ed8", borderRadius: "10px 10px 0 0", padding: "10px 18px", display: "flex",
+                      alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+          <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
+            {[
+              { k: "UF", v: "AM" },
+              { k: "Município", v: "APUÍ" },
+              { k: "IED", v: data?.equidade?.faixa_ied ?? "—" },
+              { k: "Quadrimestre", v: atual?.rotulo ?? "—" },
+            ].map(item => (
+              <div key={item.k} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: "#93c5fd", fontWeight: 600 }}>{item.k}:</span>
+                <span style={{ fontSize: 12, color: "#fff", fontWeight: 700 }}>{item.v}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: "#ffffff33", borderRadius: 6, padding: "3px 10px", fontSize: 11, color: "#fff", fontWeight: 600 }}>
+            {atual ? `Resultado oficial · SIAPS${atual.revisado_pelo_ms ? " · revisado pelo MS" : ""}` : "Aguardando SIAPS"}
+          </div>
         </div>
-        <div style={{
-          background:"#ffffff33", borderRadius:6, padding:"3px 10px",
-          fontSize:11, color:"#fff", fontWeight:600,
-        }}>
-          Dado preliminar — e-SUS PEC
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderTop: "none", borderRadius: "0 0 10px 10px",
+                      padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#1d4ed8" }}>Avaliação do Quadrimestre</div>
+          {quads.length > 0 && (
+            <select value={atual?.quadrimestre} onChange={e => setQuadSel(e.target.value)}
+              style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #d1d5db", fontSize: 12 }}>
+              {quads.map(q => <option key={q.quadrimestre} value={q.quadrimestre}>{q.rotulo}</option>)}
+            </select>
+          )}
+          <div style={{ fontSize: 11, color: "#6b7280" }}>
+            Última consulta ao SIAPS: {_dataBR(data?.ultima_sincronizacao?.quando)}
+            {data?.ultima_sincronizacao && !data.ultima_sincronizacao.sucesso && <span style={{ color: "#b91c1c" }}> · falhou: {data.ultima_sincronizacao.erro}</span>}
+            {" "}· atualização automática diária
+          </div>
+          <button onClick={atualizar} disabled={atualizando}
+            style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6,
+                     border: "1px solid #1d4ed8", background: "#fff", color: "#1d4ed8", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+            <RefreshCw size={12} /> {atualizando ? "Consultando SIAPS…" : "Atualizar do SIAPS"}
+          </button>
+          {msgAtualizar && <div style={{ width: "100%", fontSize: 11.5, color: "#334155" }}>{msgAtualizar}</div>}
         </div>
       </div>
 
-      {/* ── Controles ── */}
-      <div style={{
-        background:"#fff", border:"1px solid #e5e7eb", borderTop:"none",
-        borderRadius:"0 0 10px 10px", padding:"12px 16px",
-        display:"flex", alignItems:"center", gap:12, flexWrap:"wrap",
-        marginBottom:20,
-      }}>
-        <div style={{ fontSize:13, fontWeight:700, color:"#1d4ed8" }}>
-          Avaliação do Quadrimestre
+      {isLoading && <div style={{ padding: 30, textAlign: "center", color: "#6b7280" }}>Carregando resultados do SIAPS…</div>}
+      {!isLoading && !atual && (
+        <div style={{ padding: 30, textAlign: "center", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, color: "#475569", fontSize: 13 }}>
+          Ainda não há resultado do quadrimestre captado do SIAPS para este município. Clique em <b>Atualizar do SIAPS</b>.
         </div>
-        <div style={{ fontSize:12, color:"#6b7280" }}>
-          Cálculo dos Componentes de Cofinanciamento Federal da APS — Competência {compLabel}
-        </div>
-        {cvatLoading && <div style={{ fontSize:11, color:"#6b7280" }}>⏳ Carregando dados do e-Gestor…</div>}
-        {cvatApiData?.fonte && (
-          <div style={{ fontSize:11, color: cvatApiData.fonte==="siaps_referencia"?"#d97706":"#16a34a",
-            background: cvatApiData.fonte==="siaps_referencia"?"#fffbeb":"#f0fdf4",
-            padding:"2px 8px", borderRadius:4 }}>
-            {cvatApiData.fonte==="siaps_referencia" ? "Referência SIAPS Abr/2026" : "e-Gestor ao vivo"}
+      )}
+
+      {atual && <>
+        {/* ── Alertas ── */}
+        {data!.alertas.length > 0 && quadSel == null && (
+          <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10, padding: "10px 14px" }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: "#9a3412", marginBottom: 6, display: "flex", gap: 6, alignItems: "center" }}>
+              <AlertTriangle size={14} /> Pontos de atenção — {quads[0].rotulo}
+            </div>
+            {data!.alertas.map((a, i) => (
+              <div key={i} style={{ fontSize: 12, color: a.severidade === "alta" ? "#b91c1c" : "#9a3412", padding: "2px 0" }}>• {a.texto}</div>
+            ))}
           </div>
         )}
-        <div style={{ marginLeft:"auto", display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
-          {/* Seletor de competência */}
-          <div style={{ display:"flex", background:"#f3f4f6", borderRadius:8, padding:3, gap:2 }}>
-            {_COMP_OPTS.map(o=>(
-              <button key={o.val} onClick={()=>setCompetencia(o.val)} style={{
-                padding:"5px 12px", border:"none", cursor:"pointer", borderRadius:6,
-                fontSize:12, fontWeight:competencia===o.val?700:400,
-                background:competencia===o.val?"#1d4ed8":"transparent",
-                color:competencia===o.val?"#fff":"#6b7280",
-                transition:"all .15s",
-              }}>{o.label}</button>
-            ))}
-          </div>
-          {/* Filtro equipe */}
-          <select value={equipeFiltro} onChange={e=>setEquipeFiltro(e.target.value)}
-            style={{ border:"1px solid #d1d5db", borderRadius:8, padding:"5px 10px", fontSize:12, color:"#374151", background:"#fff", cursor:"pointer" }}>
-            <option value="TODAS">Todas as equipes</option>
-            {_EQUIPES_Q2.map(n=><option key={n} value={n}>Equipe: {n}</option>)}
-          </select>
-        </div>
-      </div>
 
-      {/* ── Cards Vínculo + Qualidade ── */}
-      {equipeFiltro === "TODAS" && (
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:20 }}>
-          {/* Componente Vínculo */}
-          <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:18 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:14 }}>
-              <div>
-                <div style={{ fontSize:14, fontWeight:700, color:"#1d4ed8" }}>Componente Vínculo</div>
-                <div style={{ fontSize:12, color:"#6b7280" }}>e Acompanhamento Territorial</div>
-              </div>
-              <div style={{ textAlign:"right" }}>
-                <div style={{ fontSize:28, fontWeight:900, color:COR_PONT(pontMedCvat) }}>{pontMedCvat.toFixed(2)}</div>
-                <div style={{ fontSize:11, color:"#9ca3af" }}>média municipal</div>
-              </div>
-            </div>
-            {[
-              { label:"Ótimo",      n:cvatOtimo, cor:"#1d4ed8" },
-              { label:"Bom",        n:cvatBom,   cor:"#16a34a" },
-              { label:"Suficiente", n:cvatSuf,   cor:"#d97706" },
-              { label:"Regular",    n:cvatReg,   cor:"#dc2626" },
-            ].map(s=>(
-              <div key={s.label} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
-                <span style={{ fontSize:12, width:76, color:s.cor, fontWeight:600 }}>{s.label}</span>
-                <div style={{ flex:1, height:14, background:"#f3f4f6", borderRadius:4, overflow:"hidden" }}>
-                  <div style={{ width:`${s.n*10}%`, height:"100%", background:s.cor, borderRadius:4 }}/>
-                </div>
-                <span style={{ fontWeight:700, color:s.cor, minWidth:16 }}>{s.n}</span>
-              </div>
-            ))}
-            <div style={{ marginTop:10, fontSize:12, color:"#6b7280" }}>
-              Vinculadas: <strong>{totalVinc.toLocaleString("pt-BR")}</strong> · Acompanhadas: <strong>{totalAcomp.toLocaleString("pt-BR")}</strong>
-            </div>
-            <div style={{ marginTop:8, fontSize:11, color:"#9ca3af" }}>
-              Fonte: e-SUS PEC · {compLabel} · Dado preliminar (SIAPS publica ao final do quadrimestre)
-            </div>
-          </div>
-
-          {/* Componente Qualidade */}
-          <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:18 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:14 }}>
-              <div>
-                <div style={{ fontSize:14, fontWeight:700, color:"#1d4ed8" }}>Componente Qualidade</div>
-                <div style={{ fontSize:12, color:"#6b7280" }}>Novo Financiamento APS — indicadores C1–C7 · 9 equipes · Portaria 3.493/2024</div>
-                <div style={{ marginTop:4, fontSize:10, color: fonteQual.includes("e-SUS PEC")?"#16a34a":"#d97706",
-                  background: fonteQual.includes("e-SUS PEC")?"#f0fdf4":"#fffbeb",
-                  border:`1px solid ${fonteQual.includes("e-SUS PEC")?"#bbf7d0":"#fde68a"}`,
-                  borderRadius:4, padding:"2px 8px", display:"inline-block" }}>
-                  {fonteQual.includes("e-SUS PEC") ? "✓ e-SUS PEC" : "⚠ Referência SIAPS (instalar agente PEC para dados reais)"}
-                </div>
-              </div>
-              <div style={{ textAlign:"right" }}>
-                <div style={{ fontSize:28, fontWeight:900, color: temDadosQual?"#16a34a":"#9ca3af" }}>{temDadosQual?pontMedQual.toFixed(1):"—"}</div>
-                <div style={{ fontSize:11, color:"#9ca3af" }}>pts médios/equipe</div>
-              </div>
-            </div>
-            {/* mini-série de competências */}
-            <div style={{ marginTop:12, display:"flex", gap:8, flexWrap:"wrap" }}>
-              {_COMP_OPTS.map(o=>{
-                // usa dados da API para a competência selecionada, fallback vazio para as demais
-                const qc = o.val===competencia ? qualComp : (_QUAL_COMP[o.val] ?? {});
-                const temDados = Object.values(qc).some((d:any)=>Object.keys(d).length>0);
-                const pontArr = _EQUIPES_Q2.map(eq=>{
-                  const d = qc[eq]??{};
-                  const t = Object.entries(d).reduce((s,[k,v])=>{
-                    const meta=_METAS_IND[k]??50; const gap=(v as number)-meta;
-                    return s+(gap>=10?10:gap>=0?7:gap>=-10?5:2);
-                  },0);
-                  const nk = Object.keys(d).length || 7; return t/nk;
-                });
-                const med = parseFloat((pontArr.reduce((s,x)=>s+x,0)/pontArr.length).toFixed(1));
-                const ativ = o.val===competencia;
-                return (
-                  <div key={o.val} onClick={()=>setCompetencia(o.val)} style={{
-                    flex:1, textAlign:"center", background:ativ?"#1d4ed8":"#f9fafb",
-                    borderRadius:8, padding:"8px 4px", cursor:"pointer",
-                    border:`1px solid ${ativ?"#1d4ed8":"#e5e7eb"}`,
-                  }}>
-                    <div style={{ fontSize:15, fontWeight:800, color:ativ?"#fff":"#16a34a" }}>
-                      {temDados ? med.toFixed(1) : "—"}
+        {/* ── Classificação final por componente e tipo de equipe ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 12 }}>
+          {atual.componentes.map(c => {
+            const a = anterior?.componentes.find(x => _chaveComp(x) === _chaveComp(c));
+            return (
+              <div key={_chaveComp(c)} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a" }}>{c.componente}</div>
+                <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>{c.tipo_equipe} · {c.total} equipes avaliadas</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                  {_CLASSES.map(k => (
+                    <div key={k.k} style={{ background: k.bg, borderRadius: 8, padding: "8px 4px", textAlign: "center" }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: k.cor }}>{c[k.k]}</div>
+                      <div style={{ fontSize: 10.5, color: k.cor }}>{k.label}</div>
+                      {a && <div style={{ fontSize: 9.5, color: "#94a3b8" }}>antes {a[k.k]}</div>}
                     </div>
-                    <div style={{ fontSize:10, color:ativ?"#93c5fd":"#9ca3af" }}>{o.label}</div>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ marginTop:8, fontSize:11, color:"#9ca3af" }}>
-              Fonte: e-SUS PEC · Dado preliminar — resultado oficial via SIAPS após fechamento quadrimestral
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Radar ── */}
-      {equipeFiltro === "TODAS" && (
-        <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:18, marginBottom:20 }}>
-          <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>Radar de Desempenho Municipal — Apuí/AM</div>
-          <div style={{ fontSize:12, color:"#9ca3af", marginBottom:12 }}>Score normalizado 0–100 por dimensão · {compLabel} · e-SUS PEC</div>
-          <div style={{ height:200 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData} margin={{ top:10, right:30, bottom:10, left:30 }}>
-                <PolarGrid stroke="#e5e7eb"/>
-                <PolarAngleAxis dataKey="indicador" tick={{ fontSize:11 }}/>
-                <Radar name="Apuí/AM" dataKey="valor" stroke="#1d4ed8" fill="#1d4ed8" fillOpacity={0.2} strokeWidth={2}/>
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* ── Evolução mensal: gráfico de barras por competência ── */}
-      {equipeFiltro === "TODAS" && (
-        <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:18, marginBottom:20 }}>
-          <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>
-            Evolução mensal — Q2 2026 (Mai → Ago) · e-SUS PEC
-          </div>
-          <div style={{ fontSize:11, color:"#9ca3af", marginBottom:12 }}>
-            Pontuação média municipal de Qualidade e Vínculo por competência
-          </div>
-          <div style={{ display:"flex", alignItems:"flex-end", gap:12, height:120 }}>
-            {_COMP_OPTS.map(o=>{
-              const qc=_QUAL_COMP[o.val]??{};
-              const pontArr=_EQUIPES_Q2.map(eq=>{
-                const d=qc[eq]??{};
-                const t=Object.entries(d).reduce((s,[k,v])=>{const meta=_METAS_IND[k]??50;const gap=(v as number)-meta;return s+(gap>=10?10:gap>=0?7:gap>=-10?5:2);},0);
-                const nk = Object.keys(d).length || 7; return t/nk;
-              });
-              const medQ=pontArr.reduce((s,x)=>s+x,0)/pontArr.length;
-              const medV = pontMedCvat; // pontuação media real da API
-              const ativ=o.val===competencia;
-              return (
-                <div key={o.val} onClick={()=>setCompetencia(o.val)}
-                  style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4, cursor:"pointer" }}>
-                  <div style={{ fontSize:10, color:"#9ca3af" }}>
-                    Q:{medQ.toFixed(1)} V:{medV.toFixed(1)}
-                  </div>
-                  <div style={{ width:"100%", display:"flex", gap:4, alignItems:"flex-end", height:80 }}>
-                    <div style={{ flex:1, height:`${(medQ/10)*80}px`, background:ativ?"#1d4ed8":"#bfdbfe", borderRadius:"4px 4px 0 0", transition:"height .4s" }}/>
-                    <div style={{ flex:1, height:`${(medV/10)*80}px`, background:ativ?"#16a34a":"#bbf7d0", borderRadius:"4px 4px 0 0", transition:"height .4s" }}/>
-                  </div>
-                  <div style={{ fontSize:11, fontWeight:ativ?700:400, color:ativ?"#1d4ed8":"#6b7280" }}>{o.label}</div>
+                  ))}
                 </div>
-              );
-            })}
-          </div>
-          <div style={{ display:"flex", gap:12, marginTop:8, fontSize:11, color:"#6b7280" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-              <div style={{ width:10,height:10,background:"#1d4ed8",borderRadius:2 }}/> Qualidade (pts/10)
-            </div>
-            <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-              <div style={{ width:10,height:10,background:"#16a34a",borderRadius:2 }}/> Vínculo (pts/10)
-            </div>
-          </div>
+              </div>
+            );
+          })}
         </div>
-      )}
 
-      {/* ── Tabela por equipe — Qualidade ── */}
-      <div style={{ marginBottom:16 }}>
-        <div style={{ fontSize:13, fontWeight:700, color:"#374151", marginBottom:10 }}>
-          {equipeFiltro==="TODAS"
-            ? `Componente Qualidade — todas as equipes · ${compLabel} · e-SUS PEC`
-            : `Componente Qualidade — Equipe ${equipeFiltro} · ${compLabel}`}
-        </div>
-        <div style={{ overflowX:"auto" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
-            <thead>
-              <tr style={{ background:"#f3f4f6" }}>
-                <th style={{ padding:"8px 10px", textAlign:"left", fontWeight:700 }}>Equipe</th>
-                <th style={{ padding:"8px 10px", textAlign:"center", fontWeight:700 }}>Pontuação</th>
-                <th style={{ padding:"8px 10px", textAlign:"center", fontWeight:700 }}>Classificação</th>
-                {["ind1","ind2","ind3","ind4","ind8","ind9","ind14"].map(k=>(
-                  <th key={k} style={{ padding:"6px 8px", textAlign:"center", fontWeight:600, color:"#6b7280", fontSize:10, maxWidth:70 }}>
-                    <div style={{ fontSize:9, color:"#9ca3af" }}>{k.toUpperCase()}</div>
-                    <div>{_LABEL_IND[k]?.split(" ").slice(0,2).join(" ")}</div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {qualFiltradas.map((e,i)=>{
-                const isOpen=indExp===e.equipe;
-                return (
-                  <>
-                    <tr key={e.equipe} style={{ background:i%2===0?"#fff":"#f9fafb", borderBottom:"1px solid #f3f4f6" }}>
-                      <td style={{ padding:"8px 10px", fontWeight:700 }}>
-                        <div>{e.equipe}</div>
-                        <div style={{ fontSize:10, color:"#9ca3af" }}>{e.ubs.slice(0,26)}…</div>
-                      </td>
-                      <td style={{ padding:"8px 10px", textAlign:"center" }}>
-                        <div style={{ fontSize:16, fontWeight:800, color:COR_PONT(e.pont) }}>{e.pont.toFixed(1)}</div>
-                        <div style={{ fontSize:9, color:"#9ca3af" }}>pts/equipe</div>
-                      </td>
-                      <td style={{ padding:"8px 10px", textAlign:"center" }}>
-                        <span style={{
-                          padding:"2px 8px", borderRadius:99, fontSize:11, fontWeight:700,
-                          background:{"Ótimo":"#eff6ff","Bom":"#f0fdf4","Suficiente":"#fffbeb","Regular":"#fef2f2"}[e.classif]??"#f9fafb",
-                          color:{"Ótimo":"#1d4ed8","Bom":"#16a34a","Suficiente":"#d97706","Regular":"#dc2626"}[e.classif]??"#374151",
-                        }}>{e.classif}</span>
-                      </td>
-                      {["ind1","ind2","ind3","ind4","ind8","ind9","ind14"].map(k=>{
-                        const val=(e.inds as any)[k]??0;
-                        const meta=_METAS_IND[k]??50;
-                        const cor=val>=meta?"#16a34a":val>=meta-10?"#d97706":"#dc2626";
-                        return (
-                          <td key={k} style={{ padding:"6px 8px", textAlign:"center" }}>
-                            <div style={{ fontSize:13, fontWeight:700, color:cor }}>{val}%</div>
-                            <div style={{ fontSize:9, color:"#9ca3af" }}>meta {meta}%</div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                    {/* linha expandida: indicadores C1–C7 */}
-                    {isOpen && (
-                      <tr key={e.equipe+"_exp"} style={{ background:"#f0f9ff" }}>
-                        <td colSpan={10} style={{ padding:"10px 16px" }}>
-                          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))", gap:8 }}>
-                            {Object.entries(e.inds as Record<string,number>).map(([k,val])=>{
-                              const meta=_METAS_IND[k]??50;
-                              const cor=val>=meta?"#16a34a":val>=meta-10?"#d97706":"#dc2626";
-                              return (
-                                <div key={k} style={{ background:"#fff", border:`1px solid ${cor}22`, borderRadius:8, padding:"8px 10px", textAlign:"center" }}>
-                                  <div style={{ fontSize:16, fontWeight:800, color:cor }}>{val}%</div>
-                                  <div style={{ fontSize:9, color:"#9ca3af" }}>meta {meta}%</div>
-                                  <div style={{ fontSize:10, color:"#374151", marginTop:3 }}>{_LABEL_IND[k]}</div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                    <tr key={e.equipe+"_btn"}>
-                      <td colSpan={10} style={{ padding:"2px 10px 4px" }}>
-                        <button onClick={()=>setIndExp(indExp===e.equipe?null:e.equipe)}
-                          style={{ fontSize:10, color:"#6b7280", background:"none", border:"none", cursor:"pointer" }}>
-                          {isOpen?"▲ Ocultar todos os indicadores":"▼ Ver indicadores C1–C7"}
-                        </button>
-                      </td>
-                    </tr>
-                  </>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* ── Tabela Vínculo ── */}
-      <div style={{ marginBottom:16 }}>
-        <div style={{ fontSize:13, fontWeight:700, color:"#374151", marginBottom:10 }}>
-          Componente Vínculo — variáveis A–K · {compLabel} · e-SUS PEC
-        </div>
-        <div style={{ overflowX:"auto" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
-            <thead>
-              <tr style={{ background:"#f3f4f6" }}>
-                <th style={{ padding:"8px 10px", textAlign:"left", fontWeight:700 }}>Equipe</th>
-                <th style={{ padding:"8px 8px", textAlign:"center", fontWeight:700 }}>Pont.</th>
-                <th style={{ padding:"8px 8px", textAlign:"center", fontWeight:700 }}>Class.</th>
-                {"ABCDEFGHIJK".split("").map(l=>(
-                  <th key={l} style={{ padding:"8px 6px", textAlign:"center", fontWeight:600, color:"#6b7280" }}>{l}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {eqFiltradas.map((e,i)=>(
-                <tr key={e.equipe} style={{ background:i%2===0?"#fff":"#f9fafb", borderBottom:"1px solid #f3f4f6" }}>
-                  <td style={{ padding:"8px 10px", fontWeight:700 }}>{e.equipe}</td>
-                  <td style={{ padding:"8px 8px", textAlign:"center", fontWeight:800, color:COR_PONT(e.pont) }}>{e.pont.toFixed(1)}</td>
-                  <td style={{ padding:"8px 8px", textAlign:"center" }}>
-                    <span style={{
-                      padding:"2px 6px", borderRadius:99, fontSize:10, fontWeight:700,
-                      background:{"Ótimo":"#eff6ff","Bom":"#f0fdf4","Suficiente":"#fffbeb","Regular":"#fef2f2"}[e.classif]??"#f9fafb",
-                      color:{"Ótimo":"#1d4ed8","Bom":"#16a34a","Suficiente":"#d97706","Regular":"#dc2626"}[e.classif]??"#374151",
-                    }}>{e.classif}</span>
-                  </td>
-                  {"ABCDEFGHIJK".split("").map(l=>{
-                    const val=(e as any)[l]??0;
-                    const cor=val>=80?"#16a34a":val>=60?"#d97706":"#dc2626";
-                    return <td key={l} style={{ padding:"8px 6px", textAlign:"center", fontWeight:600, color:cor }}>{val}</td>;
-                  })}
-                </tr>
+        {/* ── Evolução entre quadrimestres ── */}
+        {quads.length > 1 && (
+          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a", marginBottom: 10 }}>Evolução por quadrimestre (nº de equipes por classificação)</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
+              {evolucao.map(s => (
+                <div key={s.titulo}>
+                  <div style={{ fontSize: 11.5, fontWeight: 600, color: "#475569", marginBottom: 4 }}>{s.titulo}</div>
+                  <ResponsiveContainer width="100%" height={170}>
+                    <BarChart data={s.pontos}>
+                      <XAxis dataKey="q" tick={{ fontSize: 10 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} width={24} />
+                      <Tooltip contentStyle={{ fontSize: 11 }} />
+                      {_CLASSES.map(k => <Bar key={k.k} dataKey={k.label} stackId="a" fill={k.cor} />)}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </div>
+          </div>
+        )}
 
-      {/* ── Nota de conformidade ── */}
-      <div style={{ background:"#f0f9ff", border:"1px solid #bae6fd", borderRadius:8, padding:"10px 14px", fontSize:11, color:"#0369a1", display:"flex", alignItems:"center", gap:8 }}>
-        <Info size={13}/>
-        <span>
-          Dados extraídos da produção e-SUS PEC Apuí/AM — {compLabel} · Dado preliminar.
-          O SIAPS divulga resultados oficiais ao final de cada quadrimestre (Abr, Ago, Dez).
-          Use estes dados para acompanhamento interno e correção de rumo antes do fechamento.
-        </span>
-      </div>
+        {tabela("Componente Qualidade — conceito por indicador", atual.indicadores_qualidade, anterior?.indicadores_qualidade)}
+        {tabela("Vínculo e Acompanhamento Territorial — dimensões", atual.dimensoes_cvat, anterior?.dimensoes_cvat)}
+
+        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "10px 14px", fontSize: 11, color: "#0369a1", display: "flex", gap: 8 }}>
+          <Info size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>
+            {data!.fonte} · {atual.rotulo} · captado em {_dataBR(atual.coletado_em)}
+            {atual.revisado_pelo_ms && ` (versão ${atual.versao}: o MS alterou o resultado depois da primeira publicação)`}
+            {data!.equidade && ` · Equidade: IED ${data!.equidade.faixa_ied}, porte ${data!.equidade.porte_populacional}`}.
+            {" "}{data!.nota}
+          </span>
+        </div>
+      </>}
+
+      <PainelErsusIA />
     </div>
   );
 }
@@ -2983,7 +2821,8 @@ function AbaDiagnosticoCobertura() {
 type Aba = "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento" | "diag_cobertura";
 
 export default function SiapsEgestor() {
-  const [aba, setAba] = useState<Aba>("vinculo");
+  // a captura assistida do SIAPS chega pelo endereço (#captura-siaps=…) e abre direto na aba Qualidade
+  const [aba, setAba] = useState<Aba>(() => (capturaNoEndereco() ? "qualidade" : "vinculo"));
 
   const { data: dashData }  = useQuery({ queryKey: ["siaps-dashboard"],  queryFn: () => apiGet("/api/siaps/dashboard") as Promise<any> });
   const { data: abrangData } = useQuery({ queryKey: ["siaps-abrang"],    queryFn: () => apiGet("/api/siaps/abrangencia") as Promise<any> });

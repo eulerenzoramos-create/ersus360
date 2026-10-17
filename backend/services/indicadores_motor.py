@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.indicadores_aps import IndicadorConfig, ResultadoCvatMensal, ResultadoMensalSiaps, SincronizacaoLog
 from services.siaps_relatorio import CVAT_CHAVES, INDICADORES_QUALIDADE, codigo_indicador, status_cvat
+from services.siaps_captura import FONTE_CAPTURA
 
 VERSAO = "2026.1"
 VIGENCIA_INICIO = "2026-01"
@@ -146,6 +147,8 @@ async def normalizar_relatorio(db: AsyncSession, rel, usuario: str | None = None
                 if num is not None and den is not None and num > den:
                     avisos.append(f"{l['equipe']} ({codigo}): numerador {num:g} maior que denominador {den:g}")
                 reg = atuais.get(l["ine"])
+                if reg is not None and reg.fonte == FONTE_CAPTURA:
+                    continue        # já tem a classificação oficial capturada da área logada do SIAPS
                 if reg is None:
                     reg = ResultadoMensalSiaps(municipio_ibge=ibge, competencia=rel.competencia,
                                                equipe_ine=l["ine"], indicador_codigo=codigo)
@@ -164,7 +167,7 @@ async def normalizar_relatorio(db: AsyncSession, rel, usuario: str | None = None
                 reg.payload_original = {"linha": l, "colunas": colunas, "indicador_fonte": rel.indicador,
                                         "tipo_equipe_filtro": rel.tipo_equipe, "gerado_em": rel.gerado_em}
             # equipe que saiu do relatório oficial não deve continuar com resultado antigo
-            sairam = [ine for ine in atuais if ine not in ines]
+            sairam = [ine for ine, r in atuais.items() if ine not in ines and r.fonte != FONTE_CAPTURA]
             if sairam:
                 await db.execute(delete(ResultadoMensalSiaps).where(
                     ResultadoMensalSiaps.municipio_ibge == ibge, ResultadoMensalSiaps.competencia == rel.competencia,
