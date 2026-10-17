@@ -138,15 +138,15 @@ async def test_estados_da_integracao(db_session, apui):
 # ── Painel ACS ────────────────────────────────────────────────────────────────
 
 async def test_painel_sem_lote_nao_mostra_numeros(db_session, apui):
-    d = await acs_router.dashboard(_sessao(apui), db_session)
+    d = await acs_router.dashboard(_sessao(apui), db_session, ano=0, esf="", competencia="")
     assert d["kpis"] is None and d["fonte"] == "aguardando_integracao_pec"
-    lst = await acs_router.lista_acs(_sessao(apui), db_session)
+    lst = await acs_router.lista_acs(_sessao(apui), db_session, esf="")
     assert lst["acs"] == [] and lst["total"] == 0
 
 
 async def test_painel_com_lote_usa_dados_do_pec(db_session, apui):
     await receber_lote_acs(_lote(), _req(), db_session, x_sync_key=CHAVE)
-    d = await acs_router.dashboard(_sessao(apui), db_session)
+    d = await acs_router.dashboard(_sessao(apui), db_session, ano=0, esf="", competencia="")
     k = d["kpis"]
     assert d["fonte"] == "esus_pec"
     assert k["total_acs"] == 2 and k["acs_ativos"] == 1
@@ -161,7 +161,7 @@ async def test_lote_de_um_municipio_nao_aparece_para_outro(db_session, apui):
     outro = Municipio(nome="Outro", uf="AM", codigo_ibge="1399991", situacao="ativo")
     db_session.add(outro)
     await db_session.flush()
-    d = await acs_router.dashboard(_sessao(outro), db_session)
+    d = await acs_router.dashboard(_sessao(outro), db_session, ano=0, esf="", competencia="")
     assert d["kpis"] is None
 
 
