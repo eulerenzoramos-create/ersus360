@@ -188,6 +188,7 @@ from routers.modulos import (
     regulacao_router,
 )
 from routers.pec_sync import router as pec_sync_router
+from routers.pec_agente import router as pec_agente_router
 from routers.integracao import router as integracao_router
 from routers.auditoria import router as auditoria_router
 from routers.auditoria_aps import router as auditoria_aps_router
@@ -473,6 +474,7 @@ app.include_router(email_diario_router)
 app.include_router(cnes_apui_router)
 app.include_router(monitor_scnes_router)
 app.include_router(pec_sync_router)
+app.include_router(pec_agente_router)
 app.include_router(integracao_router)
 app.include_router(auditoria_router)
 app.include_router(auditoria_aps_router)

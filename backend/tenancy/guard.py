@@ -42,6 +42,10 @@ ROTAS_PUBLICAS = {
     "/api/auth/login",
     "/api/auth/logout",
     "/api/pec/sync",        # agente PEC — autenticado pela X-Sync-Key do próprio endpoint
+    # PEC_SYNC_AGENT (multi-município): X-Sync-Key do próprio município, conferida no endpoint
+    "/api/pec-agente/acs",
+    "/api/pec-agente/esquema",
+    "/api/pec-agente/heartbeat",
 }
 
 # Rotas que exigem login mas não um município selecionado.
