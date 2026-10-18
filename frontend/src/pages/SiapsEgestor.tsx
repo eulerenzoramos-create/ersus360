@@ -1442,51 +1442,7 @@ function AbaQualidade({ data: _data }: { data: any }) {
       )}
 
       <QualidadeOficialPorEquipe />
-      <QualidadeImportada />
       <ComponenteQualidade />
-    </div>
-  );
-}
-
-// ── Indicadores de Qualidade importados do SIAPS ("Baixar dados") ─────────────
-function QualidadeImportada() {
-  const { data } = useQuery({
-    queryKey: ["siaps-relatorios", undefined],
-    queryFn: () => apiGet("/api/siaps-relatorios/painel") as Promise<any>,
-    staleTime: 60_000,
-  });
-  const qual: any[] = data?.qualidade ?? [];
-  if (!data || data.situacao_dado === "nao_disponivel" || qual.length === 0) {
-    return (
-      <div style={{ background: "#fffbeb", border: "1px solid #fde68a", color: "#92400e", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 12 }}>
-        Nenhum relatório de Qualidade do SIAPS importado. Baixe no SIAPS (Visão por Competência → "Baixar dados"),
-        inclusive a aba eSFR, e importe em <a href="/siaps-relatorios" style={{ color: "#1d4ed8" }}>Relatórios do SIAPS</a>.
-      </div>
-    );
-  }
-  const indicadores = Array.from(new Set(qual.map(q => q.indicador))) as string[];
-  const equipes: any[] = (data.equipes ?? []).filter((e: any) => Object.keys(e.qualidade ?? {}).length > 0);
-  const fmt = (v: number | null | undefined) => (v === null || v === undefined ? "—" : v.toLocaleString("pt-BR"));
-  return (
-    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 16, overflowX: "auto", color: "#1f2937" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-        <div style={{ fontWeight: 700, color: "#1d4ed8" }}>Qualidade — relatórios do SIAPS importados · {data.competencia}</div>
-        <a href="/siaps-relatorios" style={{ fontSize: 12, color: "#1d4ed8" }}>Importar / ver detalhes</a>
-      </div>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-        <thead><tr style={{ background: "#f5f5f3", textAlign: "left" }}>
-          <th style={{ padding: "6px 8px" }}>Equipe</th><th style={{ padding: "6px 8px" }}>Tipo</th>
-          {indicadores.map(i => <th key={i} style={{ padding: "6px 8px" }}>{i}</th>)}
-        </tr></thead>
-        <tbody>{equipes.map(e => (
-          <tr key={e.ine} style={{ borderTop: "1px solid #eee" }}>
-            <td style={{ padding: "6px 8px", fontWeight: 600 }}>{e.equipe}</td>
-            <td style={{ padding: "6px 8px" }}>{e.sigla}</td>
-            {indicadores.map(i => <td key={i} style={{ padding: "6px 8px" }}>{fmt(e.qualidade?.[i])}</td>)}
-          </tr>))}
-        </tbody>
-      </table>
-      {(data.avisos ?? []).map((a: string, k: number) => <div key={k} style={{ fontSize: 11, color: "#525252", marginTop: 6 }}>ⓘ {a}</div>)}
     </div>
   );
 }
