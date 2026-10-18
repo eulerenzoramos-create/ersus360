@@ -969,11 +969,24 @@ function ViewPorCompetencia({ codigos, filtros, equipes = EQUIPES_REF }: {
   const compExibida: string = data?.competencia ?? filtros.competencia;
   const compDiferente = !!data?.competencia && data.competencia !== filtros.competencia;
 
+  // Como no SIAPS: o indicador lista TODAS as equipes do tipo selecionado. Equipe sem resultado
+  // importado aparece com "—" (não some da tabela). Resultado de equipe fora da lista oficial
+  // também entra, para nenhum dado importado ser perdido.
+  const chaveIne = (ine:any) => String(ine ?? "").padStart(10, "0");
+  const porIne = new Map<string, any>(linhas.map(l => [chaveIne(l.ine), l]));
+  const inesDaLista = new Set(equipes.map(e => chaveIne(e.ine)));
+  const itens: any[] = [
+    ...equipes
+      .filter(e => tipos.size === 0 || tipos.has(e.tipo))
+      .map(e => porIne.get(chaveIne(e.ine)) ?? { ine:e.ine, equipe:e.equipe, tipo:e.tipo, indicador:codSel }),
+    ...linhas.filter(l => !inesDaLista.has(chaveIne(l.ine))),
+  ];
+
   const rotulo = (l:any) => {
-    const ubs = ubsPorIne[String(l.ine ?? "").padStart(10, "0")];
+    const ubs = ubsPorIne[chaveIne(l.ine)];
     return `${ubs ? `UBS: ${ubs} - ` : ""}Equipe: ${l.equipe}`;
   };
-  const filtradas = linhas.filter(l => !busca.trim() || rotulo(l).toLowerCase().includes(busca.trim().toLowerCase()));
+  const filtradas = itens.filter(l => !busca.trim() || rotulo(l).toLowerCase().includes(busca.trim().toLowerCase()));
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
   const pag = Math.min(pagina, totalPaginas);
   const visiveis = filtradas.slice((pag - 1) * porPagina, pag * porPagina);
@@ -1023,18 +1036,24 @@ function ViewPorCompetencia({ codigos, filtros, equipes = EQUIPES_REF }: {
 
         {isLoading ? (
           <div style={{ padding:"24px 0", fontSize:13, color:"#6b7280" }}>Carregando…</div>
-        ) : linhas.length === 0 ? (
+        ) : itens.length === 0 ? (
           <div style={{ display:"flex", alignItems:"center", gap:10, marginTop:16, padding:"20px", background:"#f8fafc", border:"1px dashed #d1d5db", borderRadius:8 }}>
             <AlertCircle size={16} color="#9ca3af"/>
             <div>
-              <div style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Nenhum resultado oficial deste indicador nesta competência</div>
+              <div style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Nenhuma equipe encontrada para o tipo selecionado</div>
               <div style={{ fontSize:12, color:"#6b7280", marginTop:2 }}>
-                O resultado aparece quando o relatório do SIAPS da competência é importado.
+                As equipes aparecem quando o relatório do SIAPS da competência é importado ou a lista oficial de equipes é sincronizada.
               </div>
             </div>
           </div>
         ) : (
           <div style={{ marginTop:20 }}>
+            {linhas.length === 0 && (
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12, background:"#f8fafc", border:"1px dashed #d1d5db", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#6b7280" }}>
+                <AlertCircle size={14} color="#9ca3af"/>
+                Nenhum resultado oficial deste indicador nesta competência ainda — as equipes aparecem sem pontuação até o relatório do SIAPS ser importado.
+              </div>
+            )}
             <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:12 }}>
               <input value={busca} onChange={e=>setBusca(e.target.value)} placeholder="Pesquisar"
                 style={{ border:"1px solid #1d4ed8", borderRadius:4, padding:"10px 14px", fontSize:14, width:260, fontStyle: busca ? "normal" : "italic" }}/>
