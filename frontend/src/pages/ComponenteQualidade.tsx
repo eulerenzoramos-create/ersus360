@@ -932,19 +932,57 @@ function ViewPorEquipe({ codigos, cor, vals, filtros, equipes = EQUIPES_REF }: {
   );
 }
 
-// ── Visão por Competência ─────────────────────────────────────────────────────
-function ViewPorCompetencia({ codigos, cor, filtros: _filtros, vals: _vals }: { codigos:string[]; cor:string; filtros:Filtros; vals:Record<string,Record<string,number>> }) {
+// ── Visão por Competência (modelo SIAPS: painel "Resultado" + tabela NM / DN / Pontuação) ──
+// A coluna "Lista nominal" do SIAPS fica de fora de propósito: o ERSUS360 não guarda listas
+// nominais (dado pessoal de saúde, LGPD).
+const POR_PAGINA = [10, 25, 50];
+const fmtInt = (v: number|null|undefined) => v == null ? "—" : v.toLocaleString("pt-BR");
+const fmtPont = (v: number|null|undefined) =>
+  v == null ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits:2, maximumFractionDigits:2 });
+
+function ViewPorCompetencia({ codigos, filtros, equipes = EQUIPES_REF }: {
+  codigos:string[]; cor:string; filtros:Filtros; vals:Record<string,Record<string,number>>;
+  equipes?: EquipeRef[];
+}) {
   const [codSel, setCodSel] = useState(codigos[0] ?? "");
+  const [busca, setBusca] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [porPagina, setPorPagina] = useState(10);
   useEffect(() => { if (!codigos.includes(codSel)) setCodSel(codigos[0] ?? ""); }, [codigos, codSel]);
+  useEffect(() => { setPagina(1); }, [codSel, busca, porPagina, filtros.competencia, filtros.tiposEquipe]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["qualidade-serie", codSel],
-    queryFn: () => apiGet(`/api/siaps-relatorios/resultados/serie?indicador=${codSel}`) as Promise<any>,
+    queryKey: ["qualidade-resultado-competencia", codSel, filtros.competencia],
+    queryFn: () => apiGet(`/api/siaps-relatorios/resultados?indicador=${encodeURIComponent(codSel)}&competencia=${encodeURIComponent(filtros.competencia)}`) as Promise<any>,
     enabled: !!codSel,
   });
-  const serie: { competencia:string; media:number|null; equipes:Record<string,number>; preliminar:boolean }[] = data?.serie ?? [];
-  const equipes = Array.from(new Set(serie.flatMap(p => Object.keys(p.equipes)))).sort();
-  const meta = METAS[codSel];
-  const max = Math.max(meta ?? 0, ...serie.map(p => p.media ?? 0), 1);
+
+  const ubsPorIne = useMemo(() => {
+    const m: Record<string,string> = {};
+    equipes.forEach(e => { m[e.ine.padStart(10, "0")] = e.ubs; });
+    return m;
+  }, [equipes]);
+
+  const tipos = new Set(filtros.tiposEquipe);
+  const linhas: any[] = (data?.linhas ?? []).filter((l:any) => l.componente === "qualidade" && (tipos.size === 0 || tipos.has(l.tipo)));
+  const preliminar = linhas.some(l => l.situacao === "preliminar");
+  const compExibida: string = data?.competencia ?? filtros.competencia;
+  const compDiferente = !!data?.competencia && data.competencia !== filtros.competencia;
+
+  const rotulo = (l:any) => {
+    const ubs = ubsPorIne[String(l.ine ?? "").padStart(10, "0")];
+    return `${ubs ? `UBS: ${ubs} - ` : ""}Equipe: ${l.equipe}`;
+  };
+  const filtradas = linhas.filter(l => !busca.trim() || rotulo(l).toLowerCase().includes(busca.trim().toLowerCase()));
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
+  const pag = Math.min(pagina, totalPaginas);
+  const visiveis = filtradas.slice((pag - 1) * porPagina, pag * porPagina);
+
+  const th: React.CSSProperties = { padding:"12px 14px", fontSize:11, fontWeight:700, color:"#1d4ed8", textTransform:"uppercase", textAlign:"center", background:"#e5e7eb" };
+  const btnPag = (ativo: boolean, desativado: boolean): React.CSSProperties => ({
+    minWidth:34, height:34, border:"none", borderRadius:6, cursor: desativado ? "default" : "pointer",
+    background: ativo ? "#dbeafe" : "transparent", color: desativado ? "#d1d5db" : "#1d4ed8", fontSize:14,
+  });
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
@@ -956,61 +994,97 @@ function ViewPorCompetencia({ codigos, cor, filtros: _filtros, vals: _vals }: { 
         </select>
       </div>
 
-      {codSel && (
-        <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:20, color:"#1f2937" }}>
-          <div style={{ fontSize:13, fontWeight:700, color:"#374151", marginBottom:16 }}>
-            {NOMES[codSel] ?? codSel} — Evolução por competência
-          </div>
-          {isLoading ? <div style={{ fontSize:13, color:"#6b7280" }}>Carregando…</div>
-          : serie.length === 0 ? (
-            <div style={{ display:"flex", alignItems:"center", gap:10, padding:"20px", background:"#f8fafc", border:"1px dashed #d1d5db", borderRadius:8 }}>
-              <AlertCircle size={16} color="#9ca3af"/>
-              <div>
-                <div style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Nenhum resultado oficial deste indicador ainda</div>
-                <div style={{ fontSize:12, color:"#6b7280", marginTop:2 }}>
-                  A evolução aparece conforme os relatórios do SIAPS de cada competência são coletados.
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* média municipal por competência */}
-              <div style={{ display:"flex", alignItems:"flex-end", gap:14, height:150, borderBottom:"1px solid #e5e7eb", padding:"0 4px", position:"relative" }}>
-                {meta != null && (
-                  <div title={`Meta de referência ${fmtPct(meta)}`} style={{ position:"absolute", left:0, right:0, bottom:`${(meta/max)*140}px`, borderTop:"2px dashed #9ca3af" }}/>
-                )}
-                {serie.map(p => (
-                  <div key={p.competencia} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, flex:"0 0 64px" }}>
-                    <div style={{ fontSize:12, fontWeight:700 }}>{p.media == null ? "—" : fmtPct(p.media)}</div>
-                    <div style={{ width:36, height:`${((p.media ?? 0)/max)*140}px`, background:cor, borderRadius:"4px 4px 0 0", opacity:p.preliminar ? .7 : 1 }}/>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display:"flex", gap:14, padding:"4px 4px 12px" }}>
-                {serie.map(p => <div key={p.competencia} style={{ flex:"0 0 64px", textAlign:"center", fontSize:11, color:"#6b7280" }}>{labelComp(p.competencia)}{p.preliminar ? "*" : ""}</div>)}
-              </div>
-              {/* equipe × competência */}
-              <div style={{ overflowX:"auto" }}>
-                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
-                  <thead><tr style={{ background:"#f5f5f3", textAlign:"left" }}>
-                    <th style={{ padding:"6px 8px" }}>Equipe</th>
-                    {serie.map(p => <th key={p.competencia} style={{ padding:"6px 8px" }}>{labelComp(p.competencia)}</th>)}
-                  </tr></thead>
-                  <tbody>{equipes.map(eq => (
-                    <tr key={eq} style={{ borderTop:"1px solid #eee" }}>
-                      <td style={{ padding:"6px 8px", fontWeight:600 }}>{eq}</td>
-                      {serie.map(p => <td key={p.competencia} style={{ padding:"6px 8px" }}>{p.equipes[eq] == null ? "—" : fmtPct(p.equipes[eq])}</td>)}
-                    </tr>))}
-                  </tbody>
-                </table>
-              </div>
-              <div style={{ fontSize:11, color:"#6b7280", marginTop:8 }}>
-                Resultado oficial do SIAPS. * dado preliminar.{meta != null ? ` Linha tracejada: meta de referência ${fmtPct(meta)}.` : ""}
-              </div>
-            </>
+      <div style={{ background:"#fff", border:"1px solid #2563eb", borderRadius:12, padding:"24px 28px", color:"#1f2937" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <div style={{ fontSize:22, fontWeight:400 }}>Resultado</div>
+          {preliminar && (
+            <span style={{ border:"1px solid #d4a017", background:"#fff7d6", color:"#8a6100", borderRadius:99, padding:"3px 12px", fontSize:12 }}>
+              Dado preliminar
+            </span>
           )}
         </div>
-      )}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", columnGap:20, borderTop:"1px solid #d1d5db" }}>
+          {[
+            ["Indicador:", NOMES[codSel] ?? codSel],
+            ["Competência selecionada:", labelComp(compExibida)],
+            ["Tipo de Equipe:", filtros.tiposEquipe.join(",") || "—"],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display:"flex", justifyContent:"space-between", padding:"12px 10px", borderBottom:"1px solid #d1d5db", fontSize:14 }}>
+              <span style={{ color:"#4b5563" }}>{k}</span><span style={{ fontWeight:600 }}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        {compDiferente && (
+          <div style={{ marginTop:12, background:"#fffbeb", border:"1px solid #fcd34d", color:"#92400e", borderRadius:8, padding:"8px 12px", fontSize:12 }}>
+            Ainda não há resultado oficial de {labelComp(filtros.competencia)} importado; exibindo {labelComp(compExibida)}.
+          </div>
+        )}
+
+        {isLoading ? (
+          <div style={{ padding:"24px 0", fontSize:13, color:"#6b7280" }}>Carregando…</div>
+        ) : linhas.length === 0 ? (
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginTop:16, padding:"20px", background:"#f8fafc", border:"1px dashed #d1d5db", borderRadius:8 }}>
+            <AlertCircle size={16} color="#9ca3af"/>
+            <div>
+              <div style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Nenhum resultado oficial deste indicador nesta competência</div>
+              <div style={{ fontSize:12, color:"#6b7280", marginTop:2 }}>
+                O resultado aparece quando o relatório do SIAPS da competência é importado.
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div style={{ marginTop:20 }}>
+            <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:12 }}>
+              <input value={busca} onChange={e=>setBusca(e.target.value)} placeholder="Pesquisar"
+                style={{ border:"1px solid #1d4ed8", borderRadius:4, padding:"10px 14px", fontSize:14, width:260, fontStyle: busca ? "normal" : "italic" }}/>
+            </div>
+            <div style={{ fontSize:15, margin:"0 0 10px 8px" }}>{labelComp(compExibida)}</div>
+            <div style={{ overflowX:"auto" }}>
+              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+                <thead><tr>
+                  <th style={{ ...th, textAlign:"left" }}>Equipe</th>
+                  <th style={th}>NM</th><th style={th}>DN</th><th style={th}>Pontuação</th>
+                </tr></thead>
+                <tbody>
+                  {visiveis.map(l => (
+                    <tr key={`${l.ine}-${l.indicador}`} style={{ borderBottom:"1px solid #e5e7eb" }}>
+                      <td style={{ padding:"18px 10px", fontSize:14 }}>{rotulo(l)}</td>
+                      <td style={{ textAlign:"center" }}><span style={{ background:"#f3f4f6", borderRadius:6, padding:"4px 10px", fontSize:12 }}>{fmtInt(l.numerador)}</span></td>
+                      <td style={{ textAlign:"center" }}><span style={{ background:"#f3f4f6", borderRadius:6, padding:"4px 10px", fontSize:12 }}>{fmtInt(l.denominador)}</span></td>
+                      <td style={{ textAlign:"center" }}>
+                        <span style={{ background:bgClassif(l.classificacao), color:corClassif(l.classificacao), borderRadius:6, padding:"4px 10px", fontSize:12 }}>
+                          {fmtPont(l.resultado)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {visiveis.length === 0 && (
+                    <tr><td colSpan={4} style={{ padding:20, textAlign:"center", color:"#6b7280", fontSize:13 }}>Nenhuma equipe encontrada para a busca.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ display:"flex", justifyContent:"center", alignItems:"center", gap:6, padding:"12px 0" }}>
+              <button disabled={pag === 1} onClick={()=>setPagina(1)} style={btnPag(false, pag === 1)} aria-label="Primeira página">«</button>
+              <button disabled={pag === 1} onClick={()=>setPagina(pag - 1)} style={btnPag(false, pag === 1)} aria-label="Página anterior">‹</button>
+              <span style={{ ...btnPag(true, false), display:"inline-flex", alignItems:"center", justifyContent:"center", padding:"0 8px" }}>{pag}</span>
+              <button disabled={pag === totalPaginas} onClick={()=>setPagina(pag + 1)} style={btnPag(false, pag === totalPaginas)} aria-label="Próxima página">›</button>
+              <button disabled={pag === totalPaginas} onClick={()=>setPagina(totalPaginas)} style={btnPag(false, pag === totalPaginas)} aria-label="Última página">»</button>
+              <select value={porPagina} onChange={e=>setPorPagina(Number(e.target.value))}
+                style={{ marginLeft:8, border:"2px solid #b7791f", borderRadius:6, padding:"6px 8px", fontSize:13, color:"#1d4ed8" }}>
+                {POR_PAGINA.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <div style={{ background:"#eff6ff", padding:"12px 16px", fontSize:12, color:"#1d4ed8" }}>
+              Quantidade de itens: {filtradas.length}
+            </div>
+            <div style={{ fontSize:11, color:"#6b7280", marginTop:8 }}>
+              Resultado oficial do SIAPS, não recalculado pelo ERSUS360. NM = numerador · DN = denominador.
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1214,7 +1288,7 @@ export default function ComponenteQualidade() {
       )}
       {!pecLoading && visao === "indicador"   && <ViewPorIndicador  codigos={codigosVisiveis} cor={corAtivo} vals={vals} equipes={equipesLista}/>}
       {!pecLoading && visao === "equipe"      && <ViewPorEquipe      codigos={codigosVisiveis} cor={corAtivo} vals={vals} filtros={filtrosAtivos} equipes={equipesLista}/>}
-      {!pecLoading && visao === "competencia" && <ViewPorCompetencia codigos={codigosVisiveis} cor={corAtivo} filtros={filtrosAtivos} vals={vals}/>}
+      {!pecLoading && visao === "competencia" && <ViewPorCompetencia codigos={codigosVisiveis} cor={corAtivo} filtros={filtrosAtivos} vals={vals} equipes={equipesLista}/>}
 
       {/* ── Alertas ──────────────────────────────────── */}
       {codigosVisiveis.length > 0 && (
