@@ -940,7 +940,9 @@ const fmtInt = (v: number|null|undefined) => v == null ? "—" : v.toLocaleStrin
 const fmtPont = (v: number|null|undefined) =>
   v == null ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits:2, maximumFractionDigits:2 });
 
-function ViewPorCompetencia({ codigos, filtros, equipes = EQUIPES_REF }: {
+const chaveIne = (ine:any) => String(ine ?? "").padStart(10, "0");
+
+function ViewPorCompetencia({ codigos, filtros, equipes: equipesBase = EQUIPES_REF }: {
   codigos:string[]; cor:string; filtros:Filtros; vals:Record<string,Record<string,number>>;
   equipes?: EquipeRef[];
 }) {
@@ -957,9 +959,25 @@ function ViewPorCompetencia({ codigos, filtros, equipes = EQUIPES_REF }: {
     enabled: !!codSel,
   });
 
+  // Equipes oficiais de TODOS os tipos (eSF, eAP, eSB, eMulti, eCR, eAPP, eSFR), sincronizadas do SIAPS
+  // público — existem mesmo sem relatório importado. Completam a lista que vem dos relatórios.
+  const { data: oficiais } = useQuery({
+    queryKey: ["siaps-equipes-oficiais"],
+    queryFn: () => apiGet("/api/siaps-relatorios/equipes") as Promise<any>,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const equipes: EquipeRef[] = useMemo(() => {
+    const conhecidas = new Set(equipesBase.map(e => chaveIne(e.ine)));
+    const extras: EquipeRef[] = ((oficiais?.equipes ?? []) as any[])
+      .filter(o => !conhecidas.has(chaveIne(o.ine)))
+      .map(o => ({ equipe:o.nome, ubs:"", ine:o.ine, cnes:"", tipo:o.tipo }));
+    return [...equipesBase, ...extras].sort((a, b) => a.tipo.localeCompare(b.tipo) || a.equipe.localeCompare(b.equipe));
+  }, [equipesBase, oficiais]);
+
   const ubsPorIne = useMemo(() => {
     const m: Record<string,string> = {};
-    equipes.forEach(e => { m[e.ine.padStart(10, "0")] = e.ubs; });
+    equipes.forEach(e => { m[chaveIne(e.ine)] = e.ubs; });
     return m;
   }, [equipes]);
 
@@ -972,7 +990,6 @@ function ViewPorCompetencia({ codigos, filtros, equipes = EQUIPES_REF }: {
   // Como no SIAPS: o indicador lista TODAS as equipes do tipo selecionado. Equipe sem resultado
   // importado aparece com "—" (não some da tabela). Resultado de equipe fora da lista oficial
   // também entra, para nenhum dado importado ser perdido.
-  const chaveIne = (ine:any) => String(ine ?? "").padStart(10, "0");
   const porIne = new Map<string, any>(linhas.map(l => [chaveIne(l.ine), l]));
   const inesDaLista = new Set(equipes.map(e => chaveIne(e.ine)));
   const itens: any[] = [
@@ -1050,8 +1067,11 @@ function ViewPorCompetencia({ codigos, filtros, equipes = EQUIPES_REF }: {
           <div style={{ marginTop:20 }}>
             {linhas.length === 0 && (
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12, background:"#f8fafc", border:"1px dashed #d1d5db", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#6b7280" }}>
-                <AlertCircle size={14} color="#9ca3af"/>
-                Nenhum resultado oficial deste indicador nesta competência ainda — as equipes aparecem sem pontuação até o relatório do SIAPS ser importado.
+                <AlertCircle size={14} color="#9ca3af" style={{ flexShrink:0 }}/>
+                <span>
+                  Nenhum resultado oficial deste indicador nesta competência ainda — as equipes aparecem sem pontuação até o relatório do SIAPS ser importado.{" "}
+                  <a href="/siaps-relatorios" style={{ color:AZUL, fontWeight:600, whiteSpace:"nowrap" }}>Importar em Relatórios do SIAPS</a>
+                </span>
               </div>
             )}
             <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:12 }}>
