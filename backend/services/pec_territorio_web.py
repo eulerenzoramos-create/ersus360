@@ -23,19 +23,26 @@ log = logging.getLogger(__name__)
 TIMEOUT = 40
 # O PEC identifica a tela web pelo cabeçalho Apollo; sem ele trata a chamada como "consumidor de API" e exige
 # Api-Consumer-Id ("Api-Consumer-Id não informado no header da requisição"). Valores observados em 19/10/2026 (PEC 5.5.28).
+# Em 19/10/2026 o PEC de Apuí aceitou usuário/senha e mesmo assim exigiu Api-Consumer-Id: chamada fora do navegador
+# precisa do identificador de consumidor de API liberado pelo administrador do PEC (ESUS_PEC_API_CONSUMER_ID).
+# Não fingimos ser navegador para contornar essa exigência.
 CLIENTE_NOME = "PEC Web"
 CLIENTE_VERSAO_PADRAO = "5.5.28"
 
 
 def cabecalhos(url: str) -> dict:
     origem = url.rstrip("/")
-    return {
+    h = {
         "Accept": "*/*", "Content-Type": "application/json",
         "apollographql-client-name": CLIENTE_NOME,
         "apollographql-client-version": os.getenv("ESUS_PEC_VERSAO", "").strip() or CLIENTE_VERSAO_PADRAO,
         "Origin": origem, "Referer": origem + "/",
         "User-Agent": "ERSUS360-integracao/1.0 (leitura de contadores do territorio)",   # cabecalhos HTTP: so ASCII
     }
+    consumidor = os.getenv("ESUS_PEC_API_CONSUMER_ID", "").strip()
+    if consumidor:
+        h["Api-Consumer-Id"] = consumidor
+    return h
 SIGLAS_ESF = {"ESF", "ESFR", "EAP"}          # equipes com território/microáreas
 ID_FORA_DE_AREA = "FA"                        # microárea que o PEC usa para imóveis sem microárea
 PAGINA = {"size": 50, "fetchPageInfo": False, "sort": ["nome"]}
@@ -98,7 +105,11 @@ async def _login(c: httpx.AsyncClient, acesso: Acesso) -> None:
     except PecConsultaRecusada as e:
         # qualquer recusa do PEC no login (senha errada, conta bloqueada, campos inválidos) conta como login recusado:
         # o agendamento pausa para não gastar as tentativas da conta
-        raise PecWebErro("Login recusado pelo PEC: " + str(e).removeprefix("Login: ")) from e
+        msg = str(e).removeprefix("Login: ")
+        if "api-consumer-id" in msg.lower():
+            msg += (" O PEC aceitou a conta, mas exige o identificador de consumidor de API: peça ao administrador do PEC "
+                    "e configure ESUS_PEC_API_CONSUMER_ID no servidor.")
+        raise PecWebErro("Login recusado pelo PEC: " + msg) from e
     if not (dados.get("login") or {}).get("success"):
         raise PecWebErro("Login recusado pelo PEC: confira usuário e senha da conta de serviço (ESUS_USUARIO/ESUS_SENHA).")
 
