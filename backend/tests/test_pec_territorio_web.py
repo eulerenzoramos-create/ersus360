@@ -226,3 +226,32 @@ async def test_falha_de_rede_nao_pausa_o_automatico(ambiente, monkeypatch):
         await ag.sincronizar_territorio_municipio(db, m, automatica=True)
         await ag.sincronizar_territorio_municipio(db, m, automatica=True)
     assert len(n) == 2
+
+
+@pytest.mark.asyncio
+async def test_senha_incorreta_do_pec_vira_login_recusado_e_pausa(ambiente, monkeypatch):
+    """Caso real: o PEC responde com erro GraphQL "Usuário ou senha incorretos. Após 5 tentativas ... bloqueado"."""
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"errors": [{"message": "Usuário ou senha incorretos. Após 5 tentativas o seu login será bloqueado."}]})
+    c = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://pec.exemplo")
+    with pytest.raises(web.PecWebErro) as e:
+        await web.coletar_territorio(ACESSO, client=c)
+    assert str(e.value).startswith("Login recusado pelo PEC: Usuário ou senha incorretos")
+
+    S = ambiente["Session"]
+    for k, v in {"ESUS_PEC_URL": "https://pec.exemplo", "ESUS_USUARIO": "u", "ESUS_SENHA": "errada"}.items():
+        monkeypatch.setenv(k, v)
+    chamadas = []
+
+    async def recusa(acesso, **kw):
+        chamadas.append(1)
+        raise web.PecWebErro("Login recusado pelo PEC: Usuário ou senha incorretos.")
+    monkeypatch.setattr(web, "coletar_territorio", recusa)
+    async with S() as db:
+        m = (await db.execute(select(Municipio).where(Municipio.codigo_ibge == "1300144"))).scalar_one()
+        # registro antigo, gravado antes da correção (mensagem no formato "Login: ...")
+        db.add(PecAgenteExecucao(municipio_id=m.id, tipo="sync_web", status="erro_origem",
+                                 mensagem="Login: Usuário ou senha incorretos. Após 5 tentativas o seu login será bloqueado."))
+        await db.commit()
+        assert (await ag.sincronizar_territorio_municipio(db, m, automatica=True))["motivo"] == "login_recusado_pausado"
+    assert chamadas == []                                                              # nem tentou entrar
