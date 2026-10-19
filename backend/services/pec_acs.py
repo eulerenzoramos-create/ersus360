@@ -23,12 +23,15 @@ from __future__ import annotations
 from collections import defaultdict
 
 
-ORIGEM_CAPTURA = "captura_assistida_pec_web"
+ORIGEM_CAPTURA = "captura_assistida_pec_web"      # arquivo importado a partir da tela do PEC
+ORIGEM_AUTOMATICA = "pec_web_automatico"          # sincronização automática pela API web do PEC
+ORIGENS_TERRITORIO = {ORIGEM_CAPTURA, ORIGEM_AUTOMATICA}
 
 
 def e_captura(p: dict | None) -> bool:
-    """Lote vindo da captura assistida da tela do PEC (não do agente local): só tem contadores por microárea."""
-    return (p or {}).get("origem") == ORIGEM_CAPTURA
+    """Lote de território do PEC (captura assistida ou sincronização automática; não é do agente local):
+    só tem contadores por microárea."""
+    return (p or {}).get("origem") in ORIGENS_TERRITORIO
 
 
 def _soma(itens, campo):

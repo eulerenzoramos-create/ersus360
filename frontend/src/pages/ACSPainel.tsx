@@ -1135,7 +1135,7 @@ export default function ACSPainel() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Aba Capturar PEC — central de administração da integração (PEC_SYNC_AGENT)
 // ─────────────────────────────────────────────────────────────────────────────
-const TIPO_EXEC: Record<string, string> = { acs: "Dados ACS", esquema: "Diagnóstico de esquema", heartbeat: "Verificação do agente", captura: "Captura assistida" };
+const TIPO_EXEC: Record<string, string> = { acs: "Dados ACS", esquema: "Diagnóstico de esquema", heartbeat: "Verificação do agente", captura: "Captura assistida", sync_web: "Sincronização do território (PEC)" };
 const STATUS_EXEC: Record<string, { rotulo: string; cor: string }> = {
   aceito: { rotulo: "Aceito", cor: "#15803d" },
   sem_alteracao: { rotulo: "Sem alteração", cor: "#475569" },
@@ -1147,10 +1147,57 @@ const STATUS_EXEC: Record<string, { rotulo: string; cor: string }> = {
 function BannerCaptura({ c }: { c: any }) {
   return (
     <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#1e3a8a", lineHeight: 1.6 }}>
-      <strong>Captura assistida do e-SUS PEC</strong> feita em {dataHora(c.capturado_em)}{c.capturado_por ? ` por ${c.capturado_por}` : ""}.
+      {c.automatica
+        ? <><strong>Atualização automática do e-SUS PEC</strong> (API web, a cada 4 h) — última leitura em {dataHora(c.capturado_em)}.</>
+        : <><strong>Captura assistida do e-SUS PEC</strong> feita em {dataHora(c.capturado_em)}{c.capturado_por ? ` por ${c.capturado_por}` : ""}.</>}
       {c.parcial_ate ? <> Mês em andamento: os percentuais são <strong>parciais até {c.parcial_ate.split("-").reverse().join("/")}</strong>.</> : null}
-      {" "}Não é atualização automática e contém só imóveis e domicílios visitados por microárea — ACS, visitas por profissional e grupos prioritários
+      {c.automatica ? " " : " Não é atualização automática. "}Contém só imóveis e domicílios visitados por microárea — ACS, visitas por profissional e grupos prioritários
       continuam aguardando o agente local.
+    </div>
+  );
+}
+
+// Atualização automática do território pela API web do PEC (conta de serviço do município, só contadores).
+function SincronizacaoTerritorioPEC({ s }: { s: any }) {
+  const qc = useQueryClient();
+  const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
+  const ult = s?.sincronizacao_web?.ultima_execucao;
+  const agora = useMutation({
+    mutationFn: () => apiPost("/api/pec-agente/sincronizar-territorio") as Promise<any>,
+    onSuccess: (r: any) => {
+      setMsg({ ok: true, texto: r.mensagem ?? "Atualização iniciada." });
+      [8000, 25000, 50000].forEach(ms => setTimeout(() => qc.invalidateQueries(), ms));   // resultado chega em segundo plano
+    },
+    onError: (e: any) => setMsg({ ok: false, texto: e?.response?.data?.detail ?? "Não foi possível iniciar a atualização." }),
+  });
+  const card = { background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "18px 22px", marginBottom: 16 } as const;
+  const cor = ult?.status === "aceito" ? "#15803d" : ult ? "#b91c1c" : "#374151";
+  return (
+    <div style={card}>
+      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Atualização automática do território (API web do e-SUS PEC)</div>
+      <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.7 }}>
+        O ERSUS360 lê sozinho, <strong>a cada {s?.sincronizacao_web?.frequencia_horas ?? 4} horas</strong> (06:20, 10:20, 14:20 e 18:20), os contadores de imóveis e
+        domicílios visitados por equipe e microárea — os mesmos da tela “Acompanhamento do território”. Usa uma <strong>conta de serviço</strong> do município
+        (variáveis <code>ESUS_PEC_URL</code>, <code>ESUS_USUARIO</code> e <code>ESUS_SENHA</code> no servidor; recomendado um usuário só de consulta, fornecido pela Secretaria).
+        Não lê dados de cidadãos e não altera nada no PEC.
+      </div>
+      <div style={{ fontSize: 13, marginTop: 10, color: cor, fontWeight: 600 }}>
+        {ult ? <>Última execução: {ult.status === "aceito" ? "concluída" : "com erro"} em {dataHora(ult.recebido_em)} — {ult.mensagem}</>
+             : "Nenhuma execução ainda (a integração só roda depois de configurada)."}
+      </div>
+      {ult?.mensagem?.startsWith("Login recusado") && (
+        <div style={{ fontSize: 12, marginTop: 6, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "8px 12px" }}>
+          As execuções automáticas estão <strong>pausadas</strong> para não bloquear a conta do PEC por tentativas erradas. Corrija a senha no servidor
+          e clique em “Atualizar agora”; se funcionar, o agendamento volta sozinho.
+        </div>
+      )}
+      <div style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" as const }}>
+        <button onClick={() => { setMsg(null); agora.mutate(); }} disabled={agora.isPending}
+          style={{ background: "#1351b4", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+          {agora.isPending ? "Iniciando…" : "Atualizar agora"}
+        </button>
+        {msg && <span style={{ fontSize: 12, fontWeight: 600, color: msg.ok ? "#15803d" : "#b91c1c" }}>{msg.texto}</span>}
+      </div>
     </div>
   );
 }
@@ -1199,6 +1246,8 @@ function AbaCapturarPEC() {
   return (
     <div>
       <CartaoSituacaoAgente s={s} />
+
+      <SincronizacaoTerritorioPEC s={s} />
 
       <ImportarCapturaTerritorio />
 

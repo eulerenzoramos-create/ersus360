@@ -387,6 +387,28 @@ async def _job_egestor_pagamento() -> None:
         logger.error("[Scheduler] Erro na sincronização do e-Gestor: %s", exc, exc_info=True)
 
 
+async def _job_pec_territorio() -> None:
+    """Job: território do e-SUS PEC (imóveis e domicílios visitados por equipe/microárea) pela API web do PEC.
+    Só municípios com ESUS_PEC_URL/ESUS_USUARIO/ESUS_SENHA configurados; só contadores. A cada 4 h."""
+    logger.info("[Scheduler] Sincronizando território do e-SUS PEC...")
+    try:
+        from sqlalchemy import select
+        from database import AsyncSessionLocal
+        from models.municipio import Municipio
+        from routers.pec_agente import acesso_pec_web, sincronizar_territorio_municipio
+        from tenancy.contexto import MunicipioContexto
+        async with AsyncSessionLocal() as db:
+            municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
+            for mun in municipios:
+                ctx = MunicipioContexto(id=mun.id, uuid=mun.uuid, ibge=mun.codigo_ibge, nome=mun.nome, uf=mun.uf)
+                if not acesso_pec_web(ctx):
+                    continue
+                r = await sincronizar_territorio_municipio(db, mun, automatica=True)
+                logger.info("[Scheduler] Território PEC %s: %s", mun.codigo_ibge, {k: v for k, v in r.items() if k != "detalhe"})
+    except Exception as exc:
+        logger.error("[Scheduler] Erro na sincronização do território do PEC: %s", exc, exc_info=True)
+
+
 async def _job_siaps_publico_oficial() -> None:
     """Job: Avaliação do Quadrimestre e IED de cada município ativo pela área pública do SIAPS (sem login)."""
     logger.info("[Scheduler] Sincronizando resultados públicos oficiais do SIAPS...")
@@ -493,6 +515,16 @@ def start_scheduler() -> None:
         replace_existing=True,
         misfire_grace_time=6 * 3600,
     )
+
+    # Território do e-SUS PEC pela API web (06:20, 10:20, 14:20, 18:20 — Manaus)
+    for h in [6, 10, 14, 18]:
+        scheduler.add_job(
+            _job_pec_territorio,
+            CronTrigger(hour=h, minute=20, timezone="America/Manaus"),
+            id=f"pec_territorio_{h}h",
+            replace_existing=True,
+            misfire_grace_time=3600,
+        )
 
     # Job 1: Sync FNS diário (06:00)
     scheduler.add_job(
