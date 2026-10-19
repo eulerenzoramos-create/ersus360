@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from dataclasses import dataclass
 
 import httpx
@@ -20,6 +21,21 @@ import httpx
 log = logging.getLogger(__name__)
 
 TIMEOUT = 40
+# O PEC identifica a tela web pelo cabeçalho Apollo; sem ele trata a chamada como "consumidor de API" e exige
+# Api-Consumer-Id ("Api-Consumer-Id não informado no header da requisição"). Valores observados em 19/10/2026 (PEC 5.5.28).
+CLIENTE_NOME = "PEC Web"
+CLIENTE_VERSAO_PADRAO = "5.5.28"
+
+
+def cabecalhos(url: str) -> dict:
+    origem = url.rstrip("/")
+    return {
+        "Accept": "*/*", "Content-Type": "application/json",
+        "apollographql-client-name": CLIENTE_NOME,
+        "apollographql-client-version": os.getenv("ESUS_PEC_VERSAO", "").strip() or CLIENTE_VERSAO_PADRAO,
+        "Origin": origem, "Referer": origem + "/",
+        "User-Agent": "ERSUS360-integracao/1.0 (leitura de contadores do território)",
+    }
 SIGLAS_ESF = {"ESF", "ESFR", "EAP"}          # equipes com território/microáreas
 ID_FORA_DE_AREA = "FA"                        # microárea que o PEC usa para imóveis sem microárea
 PAGINA = {"size": 50, "fetchPageInfo": False, "sort": ["nome"]}
@@ -119,7 +135,7 @@ async def coletar_territorio(acesso: Acesso, client: httpx.AsyncClient | None = 
     """Equipes ESF/eAP ativas do município com os contadores de cada microárea."""
     fechar = client is None
     c = client or httpx.AsyncClient(base_url=acesso.url.rstrip("/"), timeout=TIMEOUT, follow_redirects=True,
-                                    headers={"Accept": "application/json", "Content-Type": "application/json"})
+                                    headers=cabecalhos(acesso.url))
     try:
         await _login(c, acesso)
         und = await _gql(c, acesso, "UnidadesSaudeSelectField", Q_UNIDADES,
