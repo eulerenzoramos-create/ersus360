@@ -801,8 +801,8 @@ function CelulaEquipe({ val, cod }: { val:number|undefined; cod:string }) {
 const TIPOS_ABA_PARA_EQUIPE: Record<string, string[]> = {
   eSF:    ["eSF","eAP"],
   eAP:    ["eAP","eSF"],
-  eSB:    ["eSF","eSFR"],  // eSB indica por equipe principal (eSF/eSFR que tem ESB vinculada)
-  eMulti: ["eSF","eSFR"],  // eMulti idem
+  eSB:    ["eSB"],     // equipes de saúde bucal próprias do SIAPS (ex.: "0001 KENNEDY")
+  eMulti: ["eMulti"],  // equipes eMulti próprias do SIAPS (ex.: "EMULTI ANIZIO")
   eCR:    ["eCR"],
   eAPP:   ["eAPP"],
   eSFR:   ["eSFR"],
@@ -1226,11 +1226,49 @@ export default function ComponenteQualidade() {
     staleTime: 1000 * 60 * 15, // revalida a cada 15 min
     retry: false,
   });
-  const vals: Record<string,Record<string,number>> = pecData?.equipes
-    ? buildVals(pecData.equipes)
-    : {};
-  const equipesLista: EquipeRef[] = (pecData as any)?.equipes_lista?.length ? (pecData as any).equipes_lista : EQUIPES_REF;
-  const fonteDados: string = (pecData as any)?.fonte ?? "SIAPS · Ref. municipal";
+  // Resultado OFICIAL por equipe (importação de relatórios + captura assistida da área logada do SIAPS)
+  // e equipes oficiais de TODOS os tipos (eSF, eAP, eSB, eMulti, eCR, eAPP, eSFR).
+  const { data: resOficial } = useQuery({
+    queryKey: ["qualidade-resultados-oficiais", compApi],
+    queryFn: () => apiGet(`/api/siaps-relatorios/resultados?competencia=${encodeURIComponent(compApi)}`) as Promise<any>,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const { data: eqOficiais } = useQuery({
+    queryKey: ["siaps-equipes-oficiais"],
+    queryFn: () => apiGet("/api/siaps-relatorios/equipes") as Promise<any>,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  // o endpoint devolve a competência mais recente quando a pedida não existe — só vale a que foi pedida
+  const linhasOficiais: any[] = useMemo(
+    () => resOficial?.competencia === compApi ? (resOficial?.linhas ?? []).filter((l:any) => l.componente === "qualidade") : [],
+    [resOficial, compApi],
+  );
+  const fontePec: string = (pecData as any)?.fonte ?? "SIAPS · Ref. municipal";
+  const vals: Record<string,Record<string,number>> = useMemo(() => {
+    const doPec: Record<string,Record<string,number>> = (pecData as any)?.equipes ? buildVals((pecData as any).equipes) : {};
+    // sem relatório importado o PEC devolve a REFERÊNCIA de Abr/2026: não misturar com outra competência
+    const base = linhasOficiais.length > 0 && fontePec.startsWith("REFERÊNCIA") ? {} : doPec;
+    const out: Record<string,Record<string,number>> = Object.fromEntries(Object.entries(base).map(([k, v]) => [k, { ...v }]));
+    linhasOficiais.forEach(l => { if (l.resultado != null) (out[l.indicador] ??= {})[l.equipe] = l.resultado; });
+    return out;
+  }, [pecData, linhasOficiais, fontePec]);
+  const equipesLista: EquipeRef[] = useMemo(() => {
+    const base: EquipeRef[] = (pecData as any)?.equipes_lista?.length ? (pecData as any).equipes_lista : EQUIPES_REF;
+    const porIne = new Map<string, EquipeRef>(base.map(e => [chaveIne(e.ine), e]));
+    ((eqOficiais?.equipes ?? []) as any[]).forEach(o => {
+      if (!porIne.has(chaveIne(o.ine))) porIne.set(chaveIne(o.ine), { equipe:o.nome, ubs:"", ine:o.ine, cnes:"", tipo:o.tipo });
+    });
+    linhasOficiais.forEach(l => {   // mesmo nome do resultado, para as telas casarem equipe e valor
+      const ex = porIne.get(chaveIne(l.ine));
+      porIne.set(chaveIne(l.ine), { equipe:l.equipe, ubs: ex?.ubs ?? "", ine:l.ine, cnes: l.cnes ?? ex?.cnes ?? "", tipo: ex?.tipo ?? l.tipo });
+    });
+    return [...porIne.values()].sort((a, b) => a.tipo.localeCompare(b.tipo) || a.equipe.localeCompare(b.equipe));
+  }, [pecData, eqOficiais, linhasOficiais]);
+  const fonteDados: string = linhasOficiais.length > 0 && fontePec.startsWith("REFERÊNCIA")
+    ? "SIAPS — resultado oficial por equipe (área logada) · dado preliminar"
+    : fontePec;
 
   const handleTipoEquipe = useCallback((t:TipoEquipe)=>{
     setTipoEquipe(t);
