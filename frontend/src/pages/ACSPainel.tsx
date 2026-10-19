@@ -297,6 +297,10 @@ function AbaCalendario() {
 
   const fonte   = data?.fonte ?? "offline";
   const eventos = data?.eventos ?? [];
+  if (!isLoading && fonte !== "esus_pec") return (
+    <NaoDisponivelBanner titulo="Calendário aguardando as visitas registradas no e-SUS PEC" rodape={null}
+      nota={data?.nota ?? "Aguardando os dados do e-SUS PEC pelo agente local — veja a aba Capturar PEC."} />
+  );
   const dias    = data?.dias ?? 31;
 
   // Agrupar por dia
@@ -482,11 +486,12 @@ function OfflineBanner({ emoji, titulo, nota }: { emoji: string; titulo: string;
   );
 }
 
-function ConectadoBanner({ texto }: { texto: string }) {
+function ConectadoBanner({ texto, captura = false }: { texto: string; captura?: boolean }) {
+  // lote de território (captura/leitura da tela web) não é o agente conectado: faixa azul, não verde
   return (
-    <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ fontSize: 16 }}>✅</span>
-      <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>e-SUS PEC conectado</span>
+    <div style={{ background: captura ? "#eff6ff" : "#f0fdf4", border: `1px solid ${captura ? "#bfdbfe" : "#bbf7d0"}`, borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ fontSize: 16 }}>{captura ? "📋" : "✅"}</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: captura ? "#1d4ed8" : "#15803d" }}>{captura ? "Território do e-SUS PEC" : "e-SUS PEC conectado"}</span>
       {texto && <span style={{ fontSize: 12, color: "#374151", marginLeft: 8 }}>{texto}</span>}
     </div>
   );
@@ -494,7 +499,9 @@ function ConectadoBanner({ texto }: { texto: string }) {
 
 // ── Aba Cadastros Individuais ─────────────────────────────────────────────────
 
-function TabelaCadastros({ titulo, rota, colunas }: { titulo: string; rota: string; colunas: [string, string][] }) {
+function TabelaCadastros({ titulo, rota, colunas: colunasAgente, territorio }: {
+  titulo: string; rota: string; colunas: [string, string][]; territorio?: { titulo: string; colunas: [string, string][] };
+}) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["acs-cad", rota],
     queryFn: () => apiGetRaw(rota) as Promise<any>,
@@ -505,9 +512,11 @@ function TabelaCadastros({ titulo, rota, colunas }: { titulo: string; rota: stri
     nota="Verifique a conexão com a API ou tente novamente em instantes." />;
   if (data?.fonte !== "esus_pec") return <NaoDisponivelBanner titulo="Aguardando dados do e-SUS PEC" rodape={null} nota={data?.nota ?? "Aguardando os dados do e-SUS PEC pelo agente local."} />;
   const linhas: any[] = data?.por_microarea ?? [];
+  const captura = !!data?.captura;
+  const colunas = captura && territorio ? territorio.colunas : colunasAgente;
   return (
     <div>
-      <ConectadoBanner texto={`${titulo}: ${fmtN(data?.total)} · competência ${data?.competencia ?? "—"}`} />
+      <ConectadoBanner captura={captura} texto={`${captura && territorio ? territorio.titulo : titulo}: ${fmtN(data?.total)} · competência ${data?.competencia ?? "—"}${data?.captura?.parcial_ate ? " · parcial" : ""}`} />
       <div style={{ fontSize: 12, color: "#374151", marginBottom: 12 }}>
         Por minimização de dados (LGPD), o ERSUS360 recebe só contagens por equipe e microárea. A ficha de cada
         cidadão continua no e-SUS PEC, acessível a quem tem perfil para isso.
@@ -549,7 +558,9 @@ function AbaCadastrosIndividuais() {
 
 function AbaCadastrosDomiciliares() {
   return <TabelaCadastros titulo="Domicílios cadastrados" rota="/api/acs/esus/cadastros-domiciliares"
-    colunas={[["domicilios", "Domicílios"], ["familias", "Famílias"], ["pct_familias_visitadas", "Famílias visitadas no período"]]} />;
+    colunas={[["domicilios", "Domicílios"], ["familias", "Famílias"], ["pct_familias_visitadas", "Famílias visitadas no período"]]}
+    territorio={{ titulo: "Imóveis cadastrados", colunas: [["domicilios", "Imóveis"], ["domicilios_visitados", "Domicílios visitados no mês"],
+      ["domicilios_a_visitar", "Domicílios a visitar"], ["pct_familias_visitadas", "% domicílios visitados"]] }} />;
 }
 
 // ── Aba Lista ACS com dados eSUS PEC ─────────────────────────────────────────
@@ -648,7 +659,9 @@ function AbaMicroareas({ maRef }: { maRef: any[] }) {
 
   return (
     <div>
-      {conectado && <ConectadoBanner texto={`${terr?.dados?.total ?? 0} territórios no e-SUS PEC`} />}
+      {conectado && <ConectadoBanner captura={!!terr?.captura}
+        texto={terr?.captura ? `${fmtN(terr?.total)} microáreas (inclui "fora de área") · competência ${terr?.competencia ?? "—"}${terr?.captura?.parcial_ate ? " · parcial" : ""}`
+                             : `${fmtN(terr?.total)} microáreas no e-SUS PEC`} />}
       {!conectado && (
         <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#92400e" }}>
           Aguardando os dados do e-SUS PEC pelo agente local — veja a aba Capturar PEC.
@@ -858,6 +871,20 @@ export default function ACSPainel() {
     staleTime: 60_000,
   });
 
+  // lote de território: % de domicílios visitados por equipe (soma das microáreas, sem "fora de área")
+  const visitasPorEquipe = (() => {
+    const acc: Record<string, { visitados: number; a_visitar: number }> = {};
+    for (const m of (maData?.microareas ?? []) as any[]) {
+      if (m.fora_de_area || m.domicilios_a_visitar == null) continue;
+      const e = (acc[m.equipe] ??= { visitados: 0, a_visitar: 0 });
+      e.visitados += m.domicilios_visitados ?? 0;
+      e.a_visitar += m.domicilios_a_visitar;
+    }
+    return Object.entries(acc)
+      .map(([equipe, v]) => ({ equipe, ...v, pct: v.a_visitar > 0 ? Math.round(v.visitados / v.a_visitar * 1000) / 10 : null }))
+      .sort((x, y) => (y.pct ?? -1) - (x.pct ?? -1));
+  })();
+
   const { data: esusStatus } = useQuery<EsusStatus>({
     queryKey: ["esus-status"],
     queryFn: () => apiGetRaw("/api/acs/esus/status") as Promise<EsusStatus>,
@@ -1015,7 +1042,19 @@ export default function ACSPainel() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 22 }}>
               {/* Distribuição ESF */}
               <div style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "18px 20px" }}>
-                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Distribuição por Equipe ESF</div>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>{Object.keys(dash!.distribuicao_esf).length === 0 && visitasPorEquipe.length > 0 ? "Domicílios visitados por Equipe ESF" : "Distribuição por Equipe ESF"}</div>
+                {Object.keys(dash!.distribuicao_esf).length === 0 && visitasPorEquipe.map(e => (
+                  <div key={e.equipe} style={{ marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{e.equipe}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#1351b4" }}>{e.pct == null ? "—" : `${e.pct}%`} · {fmtN(e.visitados)} de {fmtN(e.a_visitar)}</span>
+                    </div>
+                    <Bar pct={e.pct ?? 0} cor="#1351b4" height={8} />
+                  </div>
+                ))}
+                {Object.keys(dash!.distribuicao_esf).length === 0 && visitasPorEquipe.length === 0 && (
+                  <div style={{ fontSize: 12, color: "#4b5563" }}>ACS por equipe aguardando o agente local.</div>
+                )}
                 {Object.entries(dash!.distribuicao_esf).map(([esf, n]) => {
                   const cor = ESF_COR[esf] || "#6b7280";
                   return (
@@ -1044,7 +1083,7 @@ export default function ACSPainel() {
                       <div style={{ color: g.cor }}>{g.icon}</div>
                       <span style={{ fontSize: 13, color: "#374151" }}>{g.label}</span>
                     </div>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: g.cor }}>{g.val}</span>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: g.cor }}>{fmtN(g.val)}</span>
                   </div>
                 ))}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0" }}>

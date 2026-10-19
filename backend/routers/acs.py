@@ -58,6 +58,17 @@ def _fonte(lote) -> dict:
     }
 
 
+NOTA_SO_TERRITORIO = ("O lote atual do e-SUS PEC é de território (captura assistida ou leitura da tela web): traz só "
+                      "imóveis e domicílios visitados por microárea. Este dado — por ACS, por visita ou por cidadão — "
+                      "não vem nesse lote e continua aguardando o agente local (veja a aba Capturar PEC).")
+
+
+def _so_territorio(lote, **extra) -> dict:
+    """Lote de território não tem o dado pedido: responde 'aguardando' (sem zeros), dizendo o que existe."""
+    return {**_vazio(**extra), "nota": NOTA_SO_TERRITORIO, "territorio_disponivel": True,
+            "competencia": lote.competencia}
+
+
 def _vazio(**extra) -> dict:
     return {"fonte": AGUARDANDO, "situacao_dado": AGUARDANDO, "nota": NOTA_AGUARDANDO,
             "verificado_em": _TS(), **extra}
@@ -165,6 +176,8 @@ async def esus_visitas(current: SessaoMunicipal, db: DbDep, periodo: str = Query
     lote = await _lote(db, current, competencia if periodo == "mensal" else "")
     if not lote:
         return {"dados": None, **_vazio()}
+    if pec_acs.e_captura(lote.payload):
+        return {"dados": None, **_so_territorio(lote)}
     return {"dados": pec_acs.visitas_periodo(lote.payload, ini, fim, rotulo), **_fonte(lote)}
 
 
@@ -173,6 +186,8 @@ async def esus_calendario(current: SessaoMunicipal, db: DbDep, competencia: str 
     lote = await _lote(db, current, competencia)
     if not lote:
         return _vazio(dados=[])
+    if pec_acs.e_captura(lote.payload):
+        return _so_territorio(lote, dados=[])
     v = pec_acs.visitas_periodo(lote.payload, None, None, lote.competencia)
     # Só visitas REGISTRADAS no PEC; planejamento do ERSUS360 é outra camada (nunca gravada no PEC)
     return {**_fonte(lote), "dados": [{"data": d["data"], "realizadas": d["realizadas"], "tipo": "registrada_pec"}
@@ -187,6 +202,8 @@ async def esus_cadastros_individuais(current: SessaoMunicipal, db: DbDep,
             "microárea — a ficha individual de cada cidadão continua no PEC.")
     if not lote:
         return _vazio(dados=[], total=None, pagina=pagina, tamanho=tamanho)
+    if pec_acs.e_captura(lote.payload):
+        return _so_territorio(lote, dados=[], total=None, pagina=pagina, tamanho=tamanho)
     k = pec_acs.kpis(lote.payload)
     total = (lote.payload.get("totais") or {}).get("cadastros_individuais") or k["individuos_cadastrados"]
     return {**_fonte(lote), "dados": [], "total": total, "pagina": pagina, "tamanho": tamanho,
@@ -206,7 +223,10 @@ async def esus_cadastros_domiciliares(current: SessaoMunicipal, db: DbDep,
     return {**_fonte(lote), "dados": [], "total": tot.get("cadastros_domiciliares") or k["domicilios_cadastrados"],
             "familias": tot.get("familias") or k["familias_cadastradas"],
             "por_microarea": [{"microarea": m["codigo"], "equipe": m["equipe"], "domicilios": m["domicilios"],
-                               "familias": m["familias_cadastradas"], "pct_familias_visitadas": m["pct_visitas"]}
+                               "familias": m["familias_cadastradas"], "pct_familias_visitadas": m["pct_visitas"],
+                               # lote de território: "domicilios" são IMÓVEIS e o % é de domicílios visitados
+                               "domicilios_visitados": m["domicilios_visitados"],
+                               "domicilios_a_visitar": m["domicilios_a_visitar"]}
                               for m in pec_acs.microareas(lote.payload)],
             "pagina": pagina, "tamanho": tamanho, "verificado_em": _TS()}
 
@@ -216,6 +236,8 @@ async def esus_acs(current: SessaoMunicipal, db: DbDep):
     lote = await _lote(db, current)
     if not lote:
         return _vazio(dados=[], total=0)
+    if pec_acs.e_captura(lote.payload):
+        return _so_territorio(lote, dados=[], total=None)
     acs = pec_acs.lista_acs(lote.payload)
     return {**_fonte(lote), "dados": acs, "total": len(acs), "verificado_em": _TS()}
 
