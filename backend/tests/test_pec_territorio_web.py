@@ -265,3 +265,12 @@ def test_cliente_se_identifica_como_a_tela_web_do_pec(monkeypatch):
     assert "Authorization" not in h and "Cookie" not in h
     monkeypatch.setenv("ESUS_PEC_VERSAO", "5.6.1")
     assert web.cabecalhos("https://x")["apollographql-client-version"] == "5.6.1"
+
+
+def test_cabecalhos_aceitos_pelo_httpx_e_so_ascii():
+    """Falha real (19/10/2026): um acento no User-Agent derrubou a criação do cliente httpx em produção."""
+    h = web.cabecalhos("https://esus.apui.am.gov.br")
+    for k, v in h.items():
+        v.encode("ascii")                                                              # cabeçalho HTTP não aceita acento
+    cliente = httpx.AsyncClient(base_url="https://esus.apui.am.gov.br", headers=h)     # é assim que coletar_territorio o cria
+    assert cliente.headers["apollographql-client-name"] == "PEC Web"

@@ -403,8 +403,15 @@ async def _sync_em_segundo_plano(municipio_id: int, ip: str | None) -> None:
             m = (await db.execute(select(Municipio).where(Municipio.id == municipio_id))).scalar_one()
             r = await sincronizar_territorio_municipio(db, m, autor="atualização sob demanda", ip=ip)
             log.info("PEC território %s (sob demanda): %s", m.codigo_ibge, {k: v for k, v in r.items() if k != "detalhe"})
-    except Exception:
+    except Exception as e:
         log.exception("PEC território: erro inesperado na atualização sob demanda")
+        try:       # o usuário vê no histórico da aba Capturar PEC (só o tipo do erro, nunca credenciais)
+            from database import AsyncSessionLocal
+            from services.pec_captura import registrar_falha_sync
+            async with AsyncSessionLocal() as db:
+                await registrar_falha_sync(db, municipio_id, competencia_agora(), f"Erro interno na sincronização ({type(e).__name__}); veja o log do servidor.")
+        except Exception:
+            log.exception("PEC território: não foi possível registrar a falha no histórico")
     finally:
         _SYNC_EM_ANDAMENTO.discard(municipio_id)
 
