@@ -41,7 +41,7 @@ if _env.exists():
 import psycopg2  # noqa: E402
 import requests  # noqa: E402
 
-VERSAO_AGENTE = "1.3.0-diag"
+VERSAO_AGENTE = "1.3.1-diag"
 ERSUS_URL = os.getenv("ERSUS_URL", "https://ersus360-production.up.railway.app").rstrip("/")
 ERSUS_KEY = os.getenv("ERSUS_SYNC_KEY", "")
 IBGE = os.getenv("IBGE", "1300144")
@@ -52,8 +52,10 @@ PADROES = [
     "%profissional%", "%lotacao%", "%micro%", "%territorio%", "%unidade_saude%", "%desfecho%",
     "tb_dim_cbo%", "%dim_equipe%", "tb_equipe%", "tb_dim_tempo%", "%acompanhamento%",
     "%condicao%", "%gestante%", "%pre_natal%", "%cidadao%",
+    # Transmissão da produção (app e-SUS Território → PEC → SISAB/RNDS) e georreferência das visitas.
+    "%transmiss%", "%envio%", "%sincroniz%", "%lote%", "%rnds%", "%sisab%", "%dispositivo%", "%geo%",
 ]
-LIMITE_TABELAS = 250
+LIMITE_TABELAS = 300  # mesmo máximo aceito por /api/pec-agente/esquema
 
 
 def conectar():

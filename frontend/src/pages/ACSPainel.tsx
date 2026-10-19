@@ -8,7 +8,7 @@ import {
   User, FileText, Search, Filter, Calendar, Wifi, WifiOff,
   BarChart2, Navigation, ClipboardList, Building2, TrendingUp,
 } from "lucide-react";
-import { apiGet } from "../lib/api";
+import { apiGet, apiGetRaw } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import ACSGeoPage from "./ACSGeoPage";
 
@@ -89,11 +89,11 @@ function KpiCard({ icon, label, val, sub, cor, bg, border }: {
   return (
     <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 12, padding: "16px 18px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-        <span style={{ fontSize: 12, color: "#6b7280" }}>{label}</span>
+        <span style={{ fontSize: 12, color: "#374151" }}>{label}</span>
         <div style={{ background: `${cor}18`, borderRadius: 7, padding: 6, color: cor }}>{icon}</div>
       </div>
       <div style={{ fontSize: 26, fontWeight: 800, color: cor, lineHeight: 1 }}>{val}</div>
-      {sub && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 11, color: "#4b5563", marginTop: 4 }}>{sub}</div>}
     </div>
   );
 }
@@ -118,16 +118,16 @@ function AcsCard({ a }: { a: AcsItem }) {
             {a.nome}
             <Badge label={STATUS_LABEL[a.status]} cor={cor} bg={`${cor}15`} border={`${cor}40`} />
           </div>
-          <div style={{ fontSize: 11, color: "#9ca3af" }}>{a.microarea} · {a.equipe} · {fmtN(a.familias_cadastradas)} famílias</div>
+          <div style={{ fontSize: 11, color: "#4b5563" }}>{a.microarea} · {a.equipe} · {fmtN(a.familias_cadastradas)} famílias</div>
         </div>
         <div style={{ display: "flex", gap: 18, alignItems: "center", flexShrink: 0 }}>
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: corVis }}>{a.pct_visitas == null ? "—" : `${a.pct_visitas}%`}</div>
-            <div style={{ fontSize: 10, color: "#9ca3af" }}>famílias visitadas</div>
+            <div style={{ fontSize: 10, color: "#4b5563" }}>famílias visitadas</div>
           </div>
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: corCad }}>{fmtN(a.visitas?.realizadas)}</div>
-            <div style={{ fontSize: 10, color: "#9ca3af" }}>visitas realizadas</div>
+            <div style={{ fontSize: 10, color: "#4b5563" }}>visitas realizadas</div>
           </div>
           {open ? <ChevronDown size={14} color="#9ca3af" /> : <ChevronRight size={14} color="#9ca3af" />}
         </div>
@@ -137,16 +137,16 @@ function AcsCard({ a }: { a: AcsItem }) {
         <div style={{ padding: "12px 16px 16px", borderTop: `1px solid ${cor}20`, background: "#fafafa" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
             <div>
-              <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 5 }}>
+              <div style={{ fontSize: 11, color: "#374151", marginBottom: 5 }}>
                 Visitas realizadas — {fmtN(a.visitas.realizadas)} · famílias visitadas {a.pct_visitas == null ? "—" : `${a.pct_visitas}%`}
               </div>
               <Bar pct={a.pct_visitas} cor={corVis} height={8} />
-              <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 4 }}>
+              <div style={{ fontSize: 10, color: "#4b5563", marginTop: 4 }}>
                 {fmtN(a.visitas.nao_encontradas)} ausentes · {fmtN(a.visitas.recusas)} recusas
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 5 }}>
+              <div style={{ fontSize: 11, color: "#374151", marginBottom: 5 }}>
                 Famílias cadastradas — {fmtN(a.familias_cadastradas)} · visitadas no período {fmtN((a as any).familias_visitadas)}
               </div>
             </div>
@@ -161,7 +161,7 @@ function AcsCard({ a }: { a: AcsItem }) {
             ].map(k => (
               <div key={k.label} style={{ textAlign: "center", padding: "7px 12px", background: `${k.cor}10`, borderRadius: 8, minWidth: 56 }}>
                 <div style={{ fontSize: 18, fontWeight: 800, color: k.cor }}>{fmtN(k.val)}</div>
-                <div style={{ fontSize: 10, color: "#9ca3af" }}>{k.label}</div>
+                <div style={{ fontSize: 10, color: "#4b5563" }}>{k.label}</div>
               </div>
             ))}
           </div>
@@ -184,21 +184,21 @@ function AbaVisitas({ fonte, periodTipo, competencia: compProp, dataFiltro, anoF
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["acs-visitas", params],
-    queryFn: () => apiGet("/api/acs/esus/visitas", params) as Promise<any>,
+    queryFn: () => apiGetRaw("/api/acs/esus/visitas", params) as Promise<any>,
     staleTime: 120_000,
   });
 
-  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando visitas...</div>;
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#4b5563" }}>Carregando visitas...</div>;
 
   if (isError) return <OfflineBanner emoji="⚠️" titulo="Não foi possível conectar ao servidor"
     nota="Verifique a conexão com a API ou tente novamente em instantes." />;
 
   const prod = data?.dados;
   if (!prod) return (
-    <div style={{ padding: 32, textAlign: "center" as const, color: "#6b7280", background: "#f8fafc", borderRadius: 10, border: "1px solid #e4e7ec" }}>
+    <div style={{ padding: 32, textAlign: "center" as const, color: "#374151", background: "#f8fafc", borderRadius: 10, border: "1px solid #e4e7ec" }}>
       <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
-      <div style={{ fontWeight: 700, fontSize: 14, color: "#374151", marginBottom: 4 }}>Dados de visitas não disponíveis</div>
-      <div style={{ fontSize: 12 }}>Conecte o e-SUS PEC para visualizar os dados de produção em tempo real.</div>
+      <div style={{ fontWeight: 700, fontSize: 14, color: "#374151", marginBottom: 4 }}>Aguardando dados do e-SUS PEC</div>
+      <div style={{ fontSize: 12 }}>{data?.nota ?? "Aguardando os dados do e-SUS PEC pelo agente local — veja a aba Capturar PEC."}</div>
     </div>
   );
 
@@ -225,7 +225,7 @@ function AbaVisitas({ fonte, periodTipo, competencia: compProp, dataFiltro, anoF
       <div style={{ background: bannerBg, border: `1px solid ${bannerBd}`, borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ fontSize: 16 }}>{bannerEmoji}</span>
         <span style={{ fontSize: 13, fontWeight: 700, color: bannerTxt }}>{bannerMsg}</span>
-        <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 8 }}>Período: {compLabel}</span>
+        <span style={{ fontSize: 12, color: "#374151", marginLeft: 8 }}>Período: {compLabel}</span>
 
       </div>
 
@@ -236,7 +236,7 @@ function AbaVisitas({ fonte, periodTipo, competencia: compProp, dataFiltro, anoF
             <div style={{ fontSize: 36, fontWeight: 800, color: c.cor, fontVariantNumeric: "tabular-nums" }}>
               {typeof c.val === "number" ? c.val.toLocaleString("pt-BR") : (c.val ?? "—")}
             </div>
-            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{c.label}</div>
+            <div style={{ fontSize: 11, color: "#374151", marginTop: 4 }}>{c.label}</div>
           </div>
         ))}
       </div>
@@ -249,7 +249,7 @@ function AbaVisitas({ fonte, periodTipo, competencia: compProp, dataFiltro, anoF
             <thead>
               <tr style={{ background: "#f9fafb" }}>
                 {["Equipe","Realizadas","Fichas registradas"].map(h => (
-                  <th key={h} style={{ padding: "8px 14px", fontSize: 11, fontWeight: 600, color: "#6b7280", textAlign: h === "Equipe" ? "left" : "right" }}>{h}</th>
+                  <th key={h} style={{ padding: "8px 14px", fontSize: 11, fontWeight: 600, color: "#374151", textAlign: h === "Equipe" ? "left" : "right" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -258,7 +258,7 @@ function AbaVisitas({ fonte, periodTipo, competencia: compProp, dataFiltro, anoF
                 <tr key={eq.equipe} style={{ borderTop: "1px solid #f3f4f6" }}>
                   <td style={{ padding: "8px 14px", fontSize: 12, fontWeight: 600 }}>{eq.equipe}</td>
                   <td style={{ padding: "8px 14px", fontSize: 12, textAlign: "right", color: "#1351b4", fontWeight: 700 }}>{fmtN(eq.realizadas)}</td>
-                  <td style={{ padding: "8px 14px", fontSize: 12, textAlign: "right", color: "#6b7280" }}>{fmtN(eq.registradas)}</td>
+                  <td style={{ padding: "8px 14px", fontSize: 12, textAlign: "right", color: "#374151" }}>{fmtN(eq.registradas)}</td>
                 </tr>
               ))}
             </tbody>
@@ -266,7 +266,7 @@ function AbaVisitas({ fonte, periodTipo, competencia: compProp, dataFiltro, anoF
         </div>
       )}
 
-      <div style={{ marginTop: 12, fontSize: 11, color: "#9ca3af" }}>
+      <div style={{ marginTop: 12, fontSize: 11, color: "#4b5563" }}>
         Fonte: {isPec ? "e-SUS PEC (agente local, dados agregados)" : "aguardando integração"} · Período: {compLabel}
       </div>
     </div>
@@ -282,7 +282,7 @@ function AbaCalendario() {
   // Lista de todos os ACS
   const { data: listaData } = useQuery({
     queryKey: ["acs-lista-calendario"],
-    queryFn: () => apiGet("/api/acs/lista") as Promise<any>,
+    queryFn: () => apiGetRaw("/api/acs/lista") as Promise<any>,
     staleTime: 300_000,
   });
 
@@ -291,7 +291,7 @@ function AbaCalendario() {
   // Calendário do eSUS PEC (dados reais)
   const { data, isLoading } = useQuery({
     queryKey: ["acs-calendario-esus"],
-    queryFn: () => apiGet("/api/acs/esus/calendario-visitas") as Promise<any>,
+    queryFn: () => apiGetRaw("/api/acs/esus/calendario-visitas") as Promise<any>,
     staleTime: 120_000,
   });
 
@@ -345,7 +345,7 @@ function AbaCalendario() {
             borderColor: !acsSel ? "#1351b4" : "#e5e7eb",
             background: !acsSel ? "#eff6ff" : "transparent", cursor: "pointer" }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: !acsSel ? "#1351b4" : "#374151" }}>Todos os ACS</div>
-          <div style={{ fontSize: 10, color: "#9ca3af" }}>{todosAcs.length} agentes · todas as equipes</div>
+          <div style={{ fontSize: 10, color: "#4b5563" }}>{todosAcs.length} agentes · todas as equipes</div>
         </button>
 
         {/* Lista agrupada por equipe (ou filtrada pela busca) */}
@@ -383,7 +383,7 @@ function AbaCalendario() {
                           borderColor: sel ? cor : "transparent",
                           background: sel ? `${cor}18` : "transparent", cursor: "pointer" }}>
                         <div style={{ fontSize: 11, fontWeight: sel ? 700 : 500, color: sel ? cor : "#374151" }}>{a.nome}</div>
-                        <div style={{ fontSize: 9, color: "#9ca3af" }}>{a.microarea}</div>
+                        <div style={{ fontSize: 9, color: "#4b5563" }}>{a.microarea}</div>
                       </button>
                     );
                   })}
@@ -408,7 +408,7 @@ function AbaCalendario() {
           ].map(k => (
             <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: 10, padding: "16px 18px", textAlign: "center" }}>
               <div style={{ fontSize: 28, fontWeight: 800, color: k.cor }}>{k.val}</div>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>{k.label}</div>
+              <div style={{ fontSize: 12, color: "#374151" }}>{k.label}</div>
             </div>
           ))}
         </div>
@@ -426,12 +426,12 @@ function AbaCalendario() {
           </div>
 
           {isLoading ? (
-            <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>Carregando calendário...</div>
+            <div style={{ textAlign: "center", padding: 40, color: "#4b5563" }}>Carregando calendário...</div>
           ) : (
             <>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
                 {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map(d => (
-                  <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: "#9ca3af", paddingBottom: 6 }}>{d}</div>
+                  <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: "#4b5563", paddingBottom: 6 }}>{d}</div>
                 ))}
                 {/* offset: 01/Jul/2026 = Quarta = índice 3 */}
                 {Array.from({ length: 3 }).map((_, i) => <div key={`e${i}`} />)}
@@ -451,12 +451,12 @@ function AbaCalendario() {
                       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: "#374151" }}>{dia}</div>
                       <div style={{ fontSize: 9, fontWeight: 700, color: cor }}>{taxa}%</div>
-                      <div style={{ fontSize: 8, color: "#9ca3af" }}>{d.real}/{d.prog}</div>
+                      <div style={{ fontSize: 8, color: "#4b5563" }}>{d.real}/{d.prog}</div>
                     </div>
                   );
                 })}
               </div>
-              <div style={{ display: "flex", gap: 16, marginTop: 12, fontSize: 10, color: "#9ca3af" }}>
+              <div style={{ display: "flex", gap: 16, marginTop: 12, fontSize: 10, color: "#4b5563" }}>
                 {[{ cor:"#16a34a", label:"≥90%" },{ cor:"#d97706", label:"70-89%" },{ cor:"#dc2626", label:"<70%" }].map(l => (
                   <span key={l.label} style={{ display:"flex", alignItems:"center", gap:4 }}>
                     <span style={{ width:10, height:10, borderRadius:2, background:l.cor, display:"inline-block" }}/>{l.label} realizado
@@ -477,7 +477,7 @@ function OfflineBanner({ emoji, titulo, nota }: { emoji: string; titulo: string;
     <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "32px 24px", textAlign: "center" }}>
       <div style={{ fontSize: 36, marginBottom: 12 }}>{emoji}</div>
       <div style={{ fontSize: 16, fontWeight: 700, color: "#b91c1c", marginBottom: 8 }}>{titulo}</div>
-      <div style={{ fontSize: 13, color: "#6b7280" }}>{nota ?? "Configure ESUS_USUARIO e ESUS_SENHA no Railway para exibir dados em tempo real."}</div>
+      <div style={{ fontSize: 13, color: "#374151" }}>{nota ?? "Configure ESUS_USUARIO e ESUS_SENHA no Railway para exibir dados em tempo real."}</div>
     </div>
   );
 }
@@ -487,7 +487,7 @@ function ConectadoBanner({ texto }: { texto: string }) {
     <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
       <span style={{ fontSize: 16 }}>✅</span>
       <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>e-SUS PEC conectado</span>
-      {texto && <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 8 }}>{texto}</span>}
+      {texto && <span style={{ fontSize: 12, color: "#374151", marginLeft: 8 }}>{texto}</span>}
     </div>
   );
 }
@@ -497,10 +497,10 @@ function ConectadoBanner({ texto }: { texto: string }) {
 function TabelaCadastros({ titulo, rota, colunas }: { titulo: string; rota: string; colunas: [string, string][] }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["acs-cad", rota],
-    queryFn: () => apiGet(rota) as Promise<any>,
+    queryFn: () => apiGetRaw(rota) as Promise<any>,
     staleTime: 120_000,
   });
-  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#9ca3af" }}>Carregando...</div>;
+  if (isLoading) return <div style={{ padding: 48, textAlign: "center", color: "#4b5563" }}>Carregando...</div>;
   if (isError) return <OfflineBanner emoji="⚠️" titulo="Não foi possível conectar ao servidor"
     nota="Verifique a conexão com a API ou tente novamente em instantes." />;
   if (data?.fonte !== "esus_pec") return <NaoDisponivelBanner titulo="Aguardando dados do e-SUS PEC" rodape={null} nota={data?.nota ?? "Aguardando os dados do e-SUS PEC pelo agente local."} />;
@@ -508,7 +508,7 @@ function TabelaCadastros({ titulo, rota, colunas }: { titulo: string; rota: stri
   return (
     <div>
       <ConectadoBanner texto={`${titulo}: ${fmtN(data?.total)} · competência ${data?.competencia ?? "—"}`} />
-      <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>
+      <div style={{ fontSize: 12, color: "#374151", marginBottom: 12 }}>
         Por minimização de dados (LGPD), o ERSUS360 recebe só contagens por equipe e microárea. A ficha de cada
         cidadão continua no e-SUS PEC, acessível a quem tem perfil para isso.
       </div>
@@ -523,7 +523,7 @@ function TabelaCadastros({ titulo, rota, colunas }: { titulo: string; rota: stri
           </thead>
           <tbody>
             {linhas.length === 0 ? (
-              <tr><td colSpan={2 + colunas.length} style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>Sem detalhamento por microárea neste envio</td></tr>
+              <tr><td colSpan={2 + colunas.length} style={{ padding: 32, textAlign: "center", color: "#4b5563" }}>Sem detalhamento por microárea neste envio</td></tr>
             ) : linhas.map((l: any, i: number) => (
               <tr key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
                 <td style={{ padding: "9px 14px", color: "#1351b4", fontWeight: 600 }}>{l.equipe ?? "—"}</td>
@@ -560,7 +560,7 @@ function AbaListaAcs({ acsRef }: { acsRef: AcsItem[] }) {
 
   const { data: esusAcs } = useQuery({
     queryKey: ["esus-acs"],
-    queryFn: () => apiGet("/api/acs/esus/acs") as Promise<any>,
+    queryFn: () => apiGetRaw("/api/acs/esus/acs") as Promise<any>,
     staleTime: 300_000,
     retry: false,
   });
@@ -594,7 +594,7 @@ function AbaListaAcs({ acsRef }: { acsRef: AcsItem[] }) {
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12, background: "#fff" }}>
           {equipes.map(e => <option key={e} value={e}>{e}</option>)}
         </select>
-        <span style={{ fontSize: 12, color: "#9ca3af" }}>{filtrado.length} ACS</span>
+        <span style={{ fontSize: 12, color: "#4b5563" }}>{filtrado.length} ACS</span>
       </div>
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e4e7ec", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
@@ -607,26 +607,26 @@ function AbaListaAcs({ acsRef }: { acsRef: AcsItem[] }) {
           </thead>
           <tbody>
             {filtrado.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>Nenhum ACS encontrado</td></tr>
+              <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#4b5563" }}>Nenhum ACS encontrado</td></tr>
             ) : filtrado.map((a: any, i: number) => {
               const cor = ESF_COR[a.equipe ?? ""] || "#6b7280";
               return (
                 <tr key={a.id ?? a.cns ?? i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                   <td style={{ padding: "9px 14px", fontWeight: 600 }}>{a.nome}</td>
-                  <td style={{ padding: "9px 14px", fontFamily: "monospace", color: "#6b7280" }}>{a.cns ?? "—"}</td>
-                  <td style={{ padding: "9px 14px", color: "#6b7280", fontSize: 11 }}>{a.cbo ?? "ACS"}</td>
-                  <td style={{ padding: "9px 14px", color: "#6b7280" }}>{a.unidade ?? "—"}</td>
+                  <td style={{ padding: "9px 14px", fontFamily: "monospace", color: "#374151" }}>{a.cns ?? "—"}</td>
+                  <td style={{ padding: "9px 14px", color: "#374151", fontSize: 11 }}>{a.cbo ?? "ACS"}</td>
+                  <td style={{ padding: "9px 14px", color: "#374151" }}>{a.unidade ?? "—"}</td>
                   <td style={{ padding: "9px 14px" }}>
                     <span style={{ background: `${cor}15`, color: cor, padding: "2px 8px", borderRadius: 6, fontWeight: 700, fontSize: 11 }}>{a.equipe ?? "—"}</span>
                   </td>
-                  <td style={{ padding: "9px 14px", fontFamily: "monospace", color: "#9ca3af", fontSize: 10 }}>{a.ine ?? "—"}</td>
+                  <td style={{ padding: "9px 14px", fontFamily: "monospace", color: "#4b5563", fontSize: 10 }}>{a.ine ?? "—"}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
-      <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 10 }}>
+      <div style={{ fontSize: 11, color: "#4b5563", marginTop: 10 }}>
         Fonte: {conectado ? "e-SUS PEC (agente local, dados agregados)" : "aguardando integração"}
       </div>
     </div>
@@ -638,7 +638,7 @@ function AbaListaAcs({ acsRef }: { acsRef: AcsItem[] }) {
 function AbaMicroareas({ maRef }: { maRef: any[] }) {
   const { data: terr } = useQuery({
     queryKey: ["esus-territorios"],
-    queryFn: () => apiGet("/api/acs/esus/territorios") as Promise<any>,
+    queryFn: () => apiGetRaw("/api/acs/esus/territorios") as Promise<any>,
     staleTime: 300_000,
     retry: false,
   });
@@ -663,11 +663,11 @@ function AbaMicroareas({ maRef }: { maRef: any[] }) {
             {(terr.dados.territorios as any[]).map((t: any, i: number) => (
               <div key={t.ine ?? i} style={{ background: "#fff", border: "1px solid #bfdbfe", borderTop: "4px solid #1351b4", borderRadius: 10, padding: "14px 16px" }}>
                 <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{t.nome || `Equipe ${i+1}`}</div>
-                <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>INE: {t.ine ?? "—"} · {t.tipo}</div>
+                <div style={{ fontSize: 11, color: "#374151", marginBottom: 8 }}>INE: {t.ine ?? "—"} · {t.tipo}</div>
                 <div style={{ fontSize: 12, color: "#374151" }}>Unidade: {t.unidade ?? "—"}</div>
-                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{t.total_mas} microáreas</div>
+                <div style={{ fontSize: 11, color: "#4b5563", marginTop: 4 }}>{t.total_mas} microáreas</div>
                 {t.profissionais?.length > 0 && (
-                  <div style={{ fontSize: 10, color: "#6b7280", marginTop: 6, borderTop: "1px solid #f3f4f6", paddingTop: 6 }}>
+                  <div style={{ fontSize: 10, color: "#374151", marginTop: 6, borderTop: "1px solid #f3f4f6", paddingTop: 6 }}>
                     ACS: {t.profissionais.slice(0, 3).join(", ")}{t.profissionais.length > 3 ? ` +${t.profissionais.length - 3}` : ""}
                   </div>
                 )}
@@ -687,13 +687,13 @@ function AbaMicroareas({ maRef }: { maRef: any[] }) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{ma.codigo}</div>
-                  <div style={{ fontSize: 12, color: "#6b7280" }}>{ma.nome}</div>
-                  <div style={{ fontSize: 10, color: "#9ca3af" }}>{ma.equipe}{ma.acs ? ` · ${ma.acs}` : ""}</div>
+                  <div style={{ fontSize: 12, color: "#374151" }}>{ma.nome}</div>
+                  <div style={{ fontSize: 10, color: "#4b5563" }}>{ma.equipe}{ma.acs ? ` · ${ma.acs}` : ""}</div>
                 </div>
                 <div style={{ background: `${cor}18`, color: cor, fontSize: 14, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{ma.pct_visitas == null ? "—" : `${ma.pct_visitas}%`}</div>
               </div>
               <Bar pct={ma.pct_visitas} cor={cor} height={8} />
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9ca3af", marginTop: 6 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#4b5563", marginTop: 6 }}>
                 <span>{fmtN(ma.familias_cadastradas)} fam. · {fmtN(ma.domicilios)} dom.</span>
                 {ma.gestantes_ativas > 0 && <span style={{ color: "#7c3aed" }}>♀ {ma.gestantes_ativas}</span>}
               </div>
@@ -701,7 +701,7 @@ function AbaMicroareas({ maRef }: { maRef: any[] }) {
           );
         })}
       </div>
-      <div style={{ display: "flex", gap: 16, marginTop: 16, fontSize: 11, color: "#9ca3af" }}>
+      <div style={{ display: "flex", gap: 16, marginTop: 16, fontSize: 11, color: "#4b5563" }}>
         {[{cor:"#16a34a",l:"≥90%"},{cor:"#d97706",l:"70-89%"},{cor:"#dc2626",l:"<70%"}].map(x => (
           <span key={x.l} style={{ display:"flex",alignItems:"center",gap:4 }}><span style={{ width:10,height:10,borderRadius:2,background:x.cor,display:"inline-block" }}/>{x.l} das famílias visitadas no período</span>
         ))}
@@ -762,13 +762,13 @@ function AbaTempoReal() {
   });
   const { data: tr } = useQuery({
     queryKey: ["esus-tempo-real"],
-    queryFn: () => apiGet("/api/acs/esus/tempo-real") as Promise<any>,
+    queryFn: () => apiGetRaw("/api/acs/esus/tempo-real") as Promise<any>,
     refetchInterval: 120_000,
   });
   const k = tr?.dados?.kpis_mes;
   return (
     <div>
-      <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>
+      <div style={{ fontSize: 12, color: "#374151", marginBottom: 10 }}>
         Visão operacional da integração. Os dados vêm do agente instalado no servidor do PEC por consulta
         periódica — por isso a tela mostra <strong>atualização automática</strong> e a periodicidade, não “tempo real”.
         <button onClick={() => refetch()} style={{ marginLeft: 10, background: "none", border: "1px solid #cbd5e1", borderRadius: 6, padding: "2px 10px", cursor: "pointer", fontSize: 11 }}>
@@ -787,7 +787,7 @@ function AbaTempoReal() {
           ].map(c => (
             <div key={c.label} style={{ background: "#fff", border: "1px solid #e4e7ec", borderRadius: 10, padding: "14px 16px", textAlign: "center" }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: "#1351b4" }}>{c.val}</div>
-              <div style={{ fontSize: 11, color: "#6b7280" }}>{c.label}</div>
+              <div style={{ fontSize: 11, color: "#374151" }}>{c.label}</div>
             </div>
           ))}
         </div>
@@ -840,25 +840,25 @@ export default function ACSPainel() {
 
   const { data: dash, isLoading, refetch } = useQuery<DashboardAcs>({
     queryKey: ["acs-dashboard", dashParams],
-    queryFn: () => apiGet("/api/acs/dashboard", dashParams) as Promise<DashboardAcs>,
+    queryFn: () => apiGetRaw("/api/acs/dashboard", dashParams) as Promise<DashboardAcs>,
     staleTime: 60_000,
   });
 
   const { data: listaData } = useQuery({
     queryKey: ["acs-lista", esfFiltro],
-    queryFn: () => apiGet("/api/acs/lista", esfFiltro !== "Todas" ? { esf: esfFiltro } : undefined) as Promise<any>,
+    queryFn: () => apiGetRaw("/api/acs/lista", esfFiltro !== "Todas" ? { esf: esfFiltro } : undefined) as Promise<any>,
     staleTime: 60_000,
   });
 
   const { data: maData } = useQuery({
     queryKey: ["acs-microareas"],
-    queryFn: () => apiGet("/api/acs/microareas") as Promise<any>,
+    queryFn: () => apiGetRaw("/api/acs/microareas") as Promise<any>,
     staleTime: 60_000,
   });
 
   const { data: esusStatus } = useQuery<EsusStatus>({
     queryKey: ["esus-status"],
-    queryFn: () => apiGet("/api/acs/esus/status") as Promise<EsusStatus>,
+    queryFn: () => apiGetRaw("/api/acs/esus/status") as Promise<EsusStatus>,
     staleTime: 300_000,
     retry: false,
   });
@@ -936,7 +936,7 @@ export default function ACSPainel() {
                   {["atualizado", "conectado", "desatualizado"].includes(ag?.estado) ? <Wifi size={14} color={e.cor} /> : <WifiOff size={14} color={e.cor} />}
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: e.cor }}>e-SUS PEC · {e.rotulo}</div>
-                    <div style={{ fontSize: 9, color: "#6b7280" }}>
+                    <div style={{ fontSize: 9, color: "#374151" }}>
                       {ag?.ultima_sincronizacao_acs ? `última sincronização ${dataHora(ag.ultima_sincronizacao_acs)}` : "agente local ainda não enviou os dados dos ACS"}
                     </div>
                   </div>
@@ -964,9 +964,9 @@ export default function ACSPainel() {
         </div>
       </div>
 
-      <div style={{ padding: "24px 28px 60px" }}>
+      <div style={{ padding: "24px 28px 60px", color: "#111827" }}>
 
-        {isLoading && <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>Carregando painel ACS...</div>}
+        {isLoading && <div style={{ textAlign: "center", padding: 60, color: "#4b5563" }}>Carregando painel ACS...</div>}
 
         {/* ── Dashboard ── */}
         {aba === "dashboard" && !k && !isLoading && (
@@ -987,7 +987,7 @@ export default function ACSPainel() {
                 ].map(c => (
                   <div key={c.label} style={{ textAlign: "center", background: "#fff", border: "1px solid #bbf7d0", borderRadius: 8, padding: "6px 14px", minWidth: 80 }}>
                     <div style={{ fontSize: 20, fontWeight: 800, color: "#15803d" }}>{(c.val ?? 0).toLocaleString("pt-BR")}</div>
-                    <div style={{ fontSize: 10, color: "#6b7280" }}>{c.label}</div>
+                    <div style={{ fontSize: 10, color: "#374151" }}>{c.label}</div>
                   </div>
                 ))}
               </div>
@@ -1056,11 +1056,11 @@ export default function ACSPainel() {
                       <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#fff", borderRadius: 10, border: "1px solid #bbf7d0", borderLeft: "4px solid #16a34a" }}>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600 }}>{a.nome}</div>
-                          <div style={{ fontSize: 11, color: "#6b7280" }}>{a.microarea} · {a.equipe}</div>
+                          <div style={{ fontSize: 11, color: "#374151" }}>{a.microarea} · {a.equipe}</div>
                         </div>
                         <div style={{ textAlign: "right" }}>
                           <div style={{ fontSize: 14, fontWeight: 800, color: "#16a34a" }}>{a.pct_visitas}% fam. visitadas</div>
-                          <div style={{ fontSize: 11, color: "#9ca3af" }}>{a.familias_cadastradas} fam.</div>
+                          <div style={{ fontSize: 11, color: "#4b5563" }}>{a.familias_cadastradas} fam.</div>
                         </div>
                       </div>
                     ))}
@@ -1077,11 +1077,11 @@ export default function ACSPainel() {
                       <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#fff", borderRadius: 10, border: "1px solid #fecaca", borderLeft: "4px solid #dc2626" }}>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600 }}>{a.nome}</div>
-                          <div style={{ fontSize: 11, color: "#6b7280" }}>{a.microarea} · {a.equipe}</div>
+                          <div style={{ fontSize: 11, color: "#374151" }}>{a.microarea} · {a.equipe}</div>
                         </div>
                         <div style={{ textAlign: "right" }}>
                           <div style={{ fontSize: 14, fontWeight: 800, color: "#dc2626" }}>{a.pct_visitas}% fam. visitadas</div>
-                          <div style={{ fontSize: 11, color: "#9ca3af" }}>{fmtN(a.familias_cadastradas)} fam.</div>
+                          <div style={{ fontSize: 11, color: "#4b5563" }}>{fmtN(a.familias_cadastradas)} fam.</div>
                         </div>
                       </div>
                     ))}
@@ -1177,7 +1177,7 @@ function AbaCapturarPEC() {
       <div style={card}>
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Histórico de execuções</div>
         {(ex?.execucoes ?? []).length === 0 ? (
-          <div style={{ fontSize: 13, color: "#6b7280" }}>Nenhum envio do agente ainda.</div>
+          <div style={{ fontSize: 13, color: "#374151" }}>Nenhum envio do agente ainda.</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
