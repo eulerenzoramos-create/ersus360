@@ -53,9 +53,9 @@ function Card({ titulo, valor, nivel, nota }: { titulo: string; valor: string | 
   const c = nivel ? COR[nivel] : null;
   return (
     <div style={{ background: c?.bg ?? "#fff", border: `1px solid ${c?.borda ?? "#e5e7eb"}`, borderRadius: 10, padding: "12px 14px", minWidth: 150, flex: "1 1 150px" }}>
-      <div style={{ fontSize: 11, color: c?.fg ?? "#6b7280", fontWeight: 600 }}>{titulo}</div>
+      <div style={{ fontSize: 11, color: c?.fg ?? "#374151", fontWeight: 600 }}>{titulo}</div>
       <div style={{ fontSize: 26, fontWeight: 800, color: c?.fg ?? "#111827", marginTop: 2 }}>{valor}</div>
-      {nota && <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{nota}</div>}
+      {nota && <div style={{ fontSize: 11, color: "#374151", marginTop: 2 }}>{nota}</div>}
     </div>
   );
 }
@@ -63,8 +63,8 @@ function Aviso({ children, tom = "info" }: { children: React.ReactNode; tom?: "i
   const [bg, fg, bd] = tom === "alerta" ? ["#fffbeb", "#92400e", "#fde68a"] : ["#eff6ff", "#1e40af", "#bfdbfe"];
   return <div style={{ background: bg, color: fg, border: `1px solid ${bd}`, borderRadius: 8, padding: "8px 12px", fontSize: 12, marginBottom: 10 }}>{children}</div>;
 }
-const th: React.CSSProperties = { textAlign: "left", padding: "7px 8px", fontSize: 11, color: "#374151", background: "#f3f4f6", borderBottom: "1px solid #d1d5db", whiteSpace: "nowrap" };
-const td: React.CSSProperties = { padding: "7px 8px", fontSize: 12, borderBottom: "1px solid #eef0f3", verticalAlign: "top" };
+const th: React.CSSProperties = { textAlign: "left", padding: "7px 8px", fontSize: 12, color: "#1f2937", background: "#f3f4f6", borderBottom: "1px solid #d1d5db", whiteSpace: "nowrap" };
+const td: React.CSSProperties = { padding: "7px 8px", fontSize: 13, color: "#111827", borderBottom: "1px solid #eef0f3", verticalAlign: "top" };
 const btn: React.CSSProperties = { padding: "6px 12px", border: "1px solid #d1d5db", borderRadius: 6, background: "#fff", cursor: "pointer", fontSize: 12 };
 const btnP: React.CSSProperties = { ...btn, background: "#1d4ed8", color: "#fff", border: "1px solid #1d4ed8", fontWeight: 600 };
 
@@ -129,7 +129,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
         <option value="todos">Todos os tipos de equipe</option>
         {tipos.map(t => <option key={t} value={t}>{t}</option>)}
       </select>
-      <span style={{ color: "#6b7280" }} title="A fonte pública informa apenas o código de tipologia; não classifica equipes ribeirinhas ou fluviais.">
+      <span style={{ color: "#374151" }} title="A fonte pública informa apenas o código de tipologia; não classifica equipes ribeirinhas ou fluviais.">
         Ribeirinha/fluvial: {NAO_DISP.toLowerCase()}
       </span>
     </div>
@@ -205,7 +205,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
               <tr key={s.competencia}>
                 <td style={td}><strong>{compBr(s.competencia)}</strong></td><td style={td}>{s.equipes_com_ausencia}</td>
                 <td style={td}>{s.estabelecimentos}</td><td style={td}>{s.profissionais}</td>
-                {[0, 1, 2, 3].map(i => <td key={i} style={{ ...td, color: "#9ca3af", fontSize: 10 }}>{NAO_DISP}</td>)}
+                {[0, 1, 2, 3].map(i => <td key={i} style={{ ...td, color: "#4b5563", fontSize: 11 }}>{NAO_DISP}</td>)}
                 <td style={td}>{s.gerado_em_fonte ?? "—"}</td>
               </tr>))}
             </tbody>
@@ -247,7 +247,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
             <tbody>{ausencias.data.equipes.filter(passa).map((e: any) => (
               <tr key={e.ine}>
                 <td style={td}>{compBr(ausencias.data.competencia)}</td><td style={td}>{municipio?.uf ?? "—"}</td><td style={td}>{municipio?.nome ?? "—"}</td><td style={td}>{ausencias.data.municipio_ibge}</td>
-                <td style={td}>{e.ine}<div style={{ color: "#6b7280", fontSize: 10 }}>{e.equipe}</div></td><td style={td}>{e.tipologia ?? "—"}{e.tipo_equipe ? ` (${e.tipo_equipe})` : ""}</td>
+                <td style={td}>{e.ine}<div style={{ color: "#374151", fontSize: 11 }}>{e.equipe}</div></td><td style={td}>{e.tipologia ?? "—"}{e.tipo_equipe ? ` (${e.tipo_equipe})` : ""}</td>
                 <td style={td}>{e.descricao}</td><td style={td}>{e.qt_texto}</td><td style={td}><Selo nivel={e.nivel} /></td>
                 <td style={td}><button style={btn} onClick={() => abrirEquipe(e.ine)}>Detalhar</button></td>
               </tr>))}
@@ -259,7 +259,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
             <thead><tr>{["CNES", "Componente", "Status", "Competências consecutivas", "Nível"].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
             <tbody>{ausencias.data.estabelecimentos.map((e: any, i: number) => (
               <tr key={i}><td style={td}>{e.cnes}</td><td style={td}>{e.componente ?? "—"}</td><td style={td}>{e.descricao}</td><td style={td}>{e.qt_texto}</td><td style={td}><Selo nivel={e.nivel} /></td></tr>))}
-              {!ausencias.data.estabelecimentos.length && <tr><td colSpan={5} style={{ ...td, color: "#6b7280" }}>Nenhum estabelecimento na lista.</td></tr>}
+              {!ausencias.data.estabelecimentos.length && <tr><td colSpan={5} style={{ ...td, color: "#374151" }}>Nenhum estabelecimento na lista.</td></tr>}
             </tbody>
           </table>
           <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>Profissionais ({ausencias.data.profissionais.length}) — CNS parcialmente oculto</div>
@@ -267,10 +267,10 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
             <thead><tr>{["CNS", "CBO", "CNES", "INE", "Status", "Competências consecutivas", "Nível"].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
             <tbody>{ausencias.data.profissionais.map((e: any, i: number) => (
               <tr key={i}><td style={td}>{e.cns_mascarado}</td><td style={td}>{e.cbo ?? "—"}</td><td style={td}>{e.cnes ?? "—"}</td><td style={td}>{e.ine ?? "—"}</td><td style={td}>{e.descricao}</td><td style={td}>{e.qt_texto}</td><td style={td}><Selo nivel={e.nivel} /></td></tr>))}
-              {!ausencias.data.profissionais.length && <tr><td colSpan={7} style={{ ...td, color: "#6b7280" }}>Nenhum profissional na lista.</td></tr>}
+              {!ausencias.data.profissionais.length && <tr><td colSpan={7} style={{ ...td, color: "#374151" }}>Nenhum profissional na lista.</td></tr>}
             </tbody>
           </table>
-          {ausencias.data.avisos.map((a: string) => <div key={a} style={{ fontSize: 11, color: "#6b7280", marginTop: 8 }}>{a}</div>)}
+          {ausencias.data.avisos.map((a: string) => <div key={a} style={{ fontSize: 11, color: "#374151", marginTop: 8 }}>{a}</div>)}
         </>
       ))}
 
@@ -308,7 +308,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
               <thead><tr><th style={th}>Equipe</th>{historico.data.competencias.map((c: string) => <th key={c} style={th}>{compBr(c)}</th>)}</tr></thead>
               <tbody>{historico.data.matriz.map((m: any) => (
                 <tr key={m.ine}>
-                  <td style={td}><a style={{ cursor: "pointer", color: "#1d4ed8" }} onClick={() => abrirEquipe(m.ine)}>{m.equipe}</a><div style={{ color: "#6b7280", fontSize: 10 }}>INE {m.ine}</div></td>
+                  <td style={td}><a style={{ cursor: "pointer", color: "#1d4ed8" }} onClick={() => abrirEquipe(m.ine)}>{m.equipe}</a><div style={{ color: "#374151", fontSize: 11 }}>INE {m.ine}</div></td>
                   {historico.data.competencias.map((c: string) => {
                     const v = m.valores[c]; const n: Nivel = !v ? "verde" : v === 1 ? "amarelo" : v === 2 ? "laranja" : "vermelho";
                     return <td key={c} style={{ ...td, textAlign: "center", background: COR[n].bg, color: COR[n].fg, fontWeight: 700 }}>{v > 3 ? ">3" : v}</td>;
@@ -319,7 +319,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
             </table>
           </div>
           <div style={{ fontWeight: 700, fontSize: 13, margin: "14px 0 6px" }}>Eventos entre competências vizinhas</div>
-          {historico.data.eventos.length === 0 && <div style={{ fontSize: 12, color: "#6b7280" }}>Nenhuma mudança entre competências consecutivas coletadas.</div>}
+          {historico.data.eventos.length === 0 && <div style={{ fontSize: 12, color: "#374151" }}>Nenhuma mudança entre competências consecutivas coletadas.</div>}
           {historico.data.eventos.map((e: any, i: number) => (
             <div key={i} style={{ fontSize: 12, padding: "4px 0" }}>
               <Selo nivel={e.tipo === "regularizada" ? "verde" : "laranja"} texto={e.tipo === "regularizada" ? "Regularizada" : "Entrou em ausência"} /> {compBr(e.competencia)} — {e.equipe} (INE {e.ine})
@@ -343,7 +343,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
               (historico.data?.serie ?? []).map((s: any) => [compBr(s.competencia), s.equipes_com_ausencia, s.amarelo, s.laranja, s.vermelho, s.estabelecimentos, s.profissionais]))}>Histórico (CSV)</button>
             <button style={btn} onClick={() => window.print()}>Imprimir / salvar PDF</button>
           </div>
-          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 12 }}>
+          <div style={{ fontSize: 12, color: "#374151", marginTop: 12 }}>
             Relatórios de produção transmitida, validada e rejeitada: {NAO_DISP}.
           </div>
         </>
@@ -355,7 +355,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
             <button style={btnP} disabled={sync.isPending} onClick={() => sync.mutate(false)}>{sync.isPending ? "Atualizando…" : "Atualizar dados (3 últimas competências)"}</button>
             <button style={btn} disabled={sync.isPending} onClick={() => sync.mutate(true)}>Carregar todo o histórico publicado</button>
-            <span style={{ fontSize: 11, color: "#6b7280" }}>Cada competência baixa o relatório nacional; pode levar alguns minutos. Requer perfil de edição.</span>
+            <span style={{ fontSize: 11, color: "#374151" }}>Cada competência baixa o relatório nacional; pode levar alguns minutos. Requer perfil de edição.</span>
           </div>
           {sync.isError && <Aviso tom="alerta">Não foi possível atualizar: {(sync.error as any)?.response?.data?.detail ?? "fonte indisponível ou sem permissão"}.</Aviso>}
           {sync.isSuccess && <Aviso>{sync.data.coletadas.length} competência(s) coletada(s){sync.data.erros.length ? `, ${sync.data.erros.length} com erro` : ""}.</Aviso>}
@@ -366,7 +366,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
               <div style={{ marginTop: 6 }}><strong>Informa:</strong> {f.informa.join("; ")}.</div>
               <div style={{ marginTop: 4 }}><strong>Não informa:</strong> {f.nao_informa.join("; ")}.</div>
             </div>))}
-          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>
+          <div style={{ fontSize: 12, color: "#374151", marginBottom: 8 }}>
             Outras fontes (SCNES, SIAPS, PEC) alimentam as demais abas do e-Gestor APS; nenhuma delas é usada aqui para inferir produção.
             Última coleta: {dtHora(fonte.data?.ultima_coleta)}.
           </div>
@@ -374,7 +374,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
             <thead><tr>{["Competência", "Relatório gerado em", "Coletado em", "Por", "Equipes", "Estab.", "Profissionais"].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
             <tbody>{(fonte.data?.coletas ?? []).slice().reverse().map((c: any) => (
               <tr key={c.competencia}><td style={td}>{compBr(c.competencia)}</td><td style={td}>{c.gerado_em_fonte ?? "—"}</td><td style={td}>{dtHora(c.coletado_em)}</td><td style={td}>{c.coletado_por ?? "—"}</td><td style={td}>{c.equipes}</td><td style={td}>{c.estabelecimentos}</td><td style={td}>{c.profissionais}</td></tr>))}
-              {fonte.data && !fonte.data.coletas.length && <tr><td colSpan={7} style={{ ...td, color: "#6b7280" }}>Nenhuma coleta feita ainda.</td></tr>}
+              {fonte.data && !fonte.data.coletas.length && <tr><td colSpan={7} style={{ ...td, color: "#374151" }}>Nenhuma coleta feita ainda.</td></tr>}
             </tbody>
           </table>
         </>
@@ -413,13 +413,13 @@ function Processamento() {
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
         {etapas.map((e, i) => (
           <div key={e} style={{ background: COR.cinza.bg, border: `1px solid ${COR.cinza.borda}`, borderRadius: 8, padding: "8px 10px", fontSize: 11, flex: "1 1 130px" }}>
-            <div style={{ fontWeight: 700 }}>{i + 1}. {e}</div><div style={{ color: "#6b7280", marginTop: 2 }}>{NAO_DISP}</div>
+            <div style={{ fontWeight: 700 }}>{i + 1}. {e}</div><div style={{ color: "#374151", marginTop: 2 }}>{NAO_DISP}</div>
           </div>))}
       </div>
       <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Calendário de prazos de envio ao SIAPS</div>
       {cal ? (
         <>
-          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 6 }}>Fonte: {cal.fonte}. Confira sempre no calendário oficial vigente.</div>
+          <div style={{ fontSize: 11, color: "#374151", marginBottom: 6 }}>Fonte: {cal.fonte}. Confira sempre no calendário oficial vigente.</div>
           <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
             <thead><tr>{["Competência", "Início do envio", "Prazo final (10º dia útil)", "Relatório disponível em", "Situação"].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
             <tbody>{cal.calendario.map(c => (
@@ -428,7 +428,7 @@ function Processamento() {
             </tbody>
           </table>
         </>
-      ) : <div style={{ fontSize: 12, color: "#6b7280" }}>Calendário indisponível no momento.</div>}
+      ) : <div style={{ fontSize: 12, color: "#374151" }}>Calendário indisponível no momento.</div>}
     </>
   );
 }
@@ -566,7 +566,7 @@ function CasoEquipe({ ine, dados, carregando, voltar }: { ine: string; dados: an
                   return (
                     <div key={comp} title={t ? `${compBr(comp)} — ${t.qt_texto ?? "Sem ausência"}` : `${compBr(comp)} — não coletada`}
                       style={{ width: 52, padding: "5px 0", textAlign: "center", borderRadius: 6, fontSize: 11, fontWeight: 700,
-                        background: c?.bg ?? "#f9fafb", color: c?.fg ?? "#9ca3af", border: `1px ${t ? "solid" : "dashed"} ${c?.borda ?? "#d1d5db"}` }}>
+                        background: c?.bg ?? "#f9fafb", color: c?.fg ?? "#4b5563", border: `1px ${t ? "solid" : "dashed"} ${c?.borda ?? "#d1d5db"}` }}>
                       {m}
                       <div style={{ fontSize: 10, fontWeight: 600 }}>{t ? (t.nivel === "verde" ? "ok" : t.qt_consecutivas > 3 ? ">3" : t.qt_consecutivas) : "—"}</div>
                     </div>
