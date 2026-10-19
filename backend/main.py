@@ -444,6 +444,8 @@ from routers.cnes_xml import router as cnes_xml_router
 app.include_router(cnes_xml_router)
 from routers.siaps_relatorios import router as siaps_relatorios_router
 app.include_router(siaps_relatorios_router)
+from routers.egestor_ausencia import router as egestor_ausencia_router
+app.include_router(egestor_ausencia_router)
 from routers.egestor_pagamento import router as egestor_pagamento_router
 app.include_router(egestor_pagamento_router)
 from routers.siaps_publico import router as siaps_publico_router, router_ia as siaps_ia_router

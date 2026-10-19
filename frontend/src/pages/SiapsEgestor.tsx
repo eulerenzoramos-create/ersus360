@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import ComponenteQualidade from "./ComponenteQualidade";
+import MonitoramentoSiaps from "../components/MonitoramentoSiaps";
 import QualidadeOficialPorEquipe, { capturaNoEndereco } from "../components/QualidadeOficialPorEquipe";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -2774,7 +2775,7 @@ function AbaDiagnosticoCobertura() {
 
 // ── Página principal ───────────────────────────────────────────────────────────
 
-type Aba = "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento" | "diag_cobertura";
+type Aba = "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento" | "diag_cobertura" | "monitoramento";
 
 export default function SiapsEgestor() {
   // a captura assistida do SIAPS chega pelo endereço (#captura-siaps=…) e abre direto na aba Qualidade
@@ -2795,6 +2796,7 @@ export default function SiapsEgestor() {
     { id: "analise_indicador",  label: "📊 Análise do Indicador" },
     { id: "rel_pagamento",      label: "💳 Relatório de Pagamento (e-Gestor)" },
     { id: "diag_cobertura",    label: "🩺 Diagnóstico / Cobertura" },
+    { id: "monitoramento",     label: "🛰️ Monitoramento SIAPS" },
   ];
 
   return (
@@ -2843,6 +2845,7 @@ export default function SiapsEgestor() {
         {aba === "analise_indicador" && <AbaAnaliseIndicador />}
         {aba === "rel_pagamento"     && <AbaRelatorioPagamento />}
         {aba === "diag_cobertura"   && <AbaDiagnosticoCobertura />}
+        {aba === "monitoramento"    && <MonitoramentoSiaps municipio={{ uf: dashData?.uf, nome: dashData?.municipio }} />}
       </div>
 
       {/* Footer */}
