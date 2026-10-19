@@ -338,31 +338,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
 
       {/* 7 ── Histórico */}
       {sub === "historico" && (historico.data?.situacao_dado === "nao_disponivel" ? <SemDado /> : historico.data && (
-        <>
-          <GraficoSerie serie={historico.data.serie} />
-          <div style={{ fontWeight: 700, fontSize: 13, margin: "6px 0" }}>Competências consecutivas sem envio, por equipe (0 = sem ausência na competência coletada)</div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ borderCollapse: "collapse", background: "#fff", minWidth: 600 }}>
-              <thead><tr><th style={th}>Equipe</th>{historico.data.competencias.map((c: string) => <th key={c} style={th}>{compBr(c)}</th>)}</tr></thead>
-              <tbody>{historico.data.matriz.map((m: any) => (
-                <tr key={m.ine}>
-                  <td style={td}><a style={{ cursor: "pointer", color: "#1d4ed8" }} onClick={() => abrirEquipe(m.ine)}>{m.equipe}</a><div style={{ color: "#374151", fontSize: 11 }}>INE {m.ine}</div></td>
-                  {historico.data.competencias.map((c: string) => {
-                    const v = m.valores[c]; const n: Nivel = !v ? "verde" : v === 1 ? "amarelo" : v === 2 ? "laranja" : "vermelho";
-                    return <td key={c} style={{ ...td, textAlign: "center", background: COR[n].bg, color: COR[n].fg, fontWeight: 700 }}>{v > 3 ? ">3" : v}</td>;
-                  })}
-                </tr>))}
-                {!historico.data.matriz.length && <tr><td style={td} colSpan={99}>Nenhuma equipe do município apareceu na lista de ausência nas competências coletadas.</td></tr>}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ fontWeight: 700, fontSize: 13, margin: "14px 0 6px" }}>Eventos entre competências vizinhas</div>
-          {historico.data.eventos.length === 0 && <div style={{ fontSize: 12, color: "#374151" }}>Nenhuma mudança entre competências consecutivas coletadas.</div>}
-          {historico.data.eventos.map((e: any, i: number) => (
-            <div key={i} style={{ fontSize: 12, padding: "4px 0" }}>
-              <Selo nivel={e.tipo === "regularizada" ? "verde" : "laranja"} texto={e.tipo === "regularizada" ? "Regularizada" : "Entrou em ausência"} /> {compBr(e.competencia)} — {e.equipe} (INE {e.ine})
-            </div>))}
-        </>
+        <HistoricoView dados={historico.data} abrir={abrirEquipe} />
       ))}
 
       {/* 8 ── Relatórios gerenciais */}
@@ -417,6 +393,129 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
         </>
       )}
     </div>
+  );
+}
+
+// ── 7. histórico organizado ──────────────────────────────────────────────────
+function HistoricoView({ dados, abrir }: { dados: any; abrir: (ine: string) => void }) {
+  const [tipoEv, setTipoEv] = useState("todos");
+  const [janela, setJanela] = useState("todos");
+  const [busca, setBusca] = useState("");
+  const comps: string[] = dados.competencias;
+  const ultima = comps[comps.length - 1];
+  const nivelDe = (v: number): Nivel => (!v ? "verde" : v === 1 ? "amarelo" : v === 2 ? "laranja" : "vermelho");
+
+  const equipes = useMemo(() => dados.matriz.map((m: any) => {
+    let periodos = 0, comAus = 0, maior = 0, seq = 0, anterior = -99;
+    comps.forEach(c => {
+      const v = m.valores[c] || 0;
+      if (!v) { seq = 0; return; }
+      comAus++;
+      if (seq > 0 && mesNum(c) - anterior === 1) seq++; else { seq = 1; periodos++; }
+      maior = Math.max(maior, seq); anterior = mesNum(c);
+    });
+    return { ...m, periodos, comAus, maior, ult: m.valores[ultima] || 0 };
+  }).sort((a: any, b: any) => (b.ult > 0 ? 1 : 0) - (a.ult > 0 ? 1 : 0) || b.periodos - a.periodos || b.comAus - a.comAus), [dados]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  const entradas = dados.eventos.filter((e: any) => e.tipo === "entrou_em_ausencia").length;
+  const regulariz = dados.eventos.length - entradas;
+  const termo = busca.trim().toLowerCase();
+  const recorte = janela === "todos" ? comps : comps.slice(-Number(janela));
+  const eventos = dados.eventos.filter((e: any) => recorte.includes(e.competencia)
+    && (tipoEv === "todos" || e.tipo === tipoEv) && (!termo || `${e.ine} ${e.equipe}`.toLowerCase().includes(termo)));
+  const grupos = comps.slice().reverse().map(c => ({
+    c, entram: eventos.filter((e: any) => e.competencia === c && e.tipo === "entrou_em_ausencia"),
+    reg: eventos.filter((e: any) => e.competencia === c && e.tipo === "regularizada"),
+  })).filter(g => g.entram.length || g.reg.length);
+
+  const chip = (e: any, nivel: Nivel) => (
+    <span key={e.ine} onClick={() => abrir(e.ine)} title={`INE ${e.ine}`}
+      style={{ display: "inline-block", margin: "2px 4px 2px 0", padding: "2px 9px", borderRadius: 12, cursor: "pointer", fontSize: 12,
+        background: COR[nivel].bg, color: COR[nivel].fg, border: `1px solid ${COR[nivel].borda}` }}>{e.equipe}</span>
+  );
+
+  return (
+    <>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+        <Card titulo="Equipes que já constaram na lista" valor={equipes.length} nota={`${compBr(comps[0])} a ${compBr(ultima)}`} />
+        <Card titulo={`Em ausência em ${compBr(ultima)}`} valor={equipes.filter((e: any) => e.ult > 0).length} nivel={equipes.some((e: any) => e.ult > 0) ? "vermelho" : "verde"} />
+        <Card titulo="Reincidentes (2+ períodos)" valor={equipes.filter((e: any) => e.periodos >= 2).length} nivel="laranja" />
+        <Card titulo="Entradas em ausência" valor={entradas} nota="mudanças entre competências vizinhas" />
+        <Card titulo="Regularizações" valor={regulariz} nivel="verde" />
+      </div>
+
+      <GraficoSerie serie={dados.serie} />
+
+      <Painel titulo="Resumo por equipe" cor="#0f766e">
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr>{["Equipe", "INE", "Tipo", "Competências com ausência", "Períodos", "Maior período seguido", `Situação em ${compBr(ultima)}`, ""].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+            <tbody>{equipes.map((e: any) => (
+              <tr key={e.ine}>
+                <td style={td}><strong>{e.equipe}</strong></td><td style={td}>{e.ine}</td><td style={td}>{e.tipo_equipe ?? "—"}</td>
+                <td style={td}>{e.comAus} de {comps.length}</td>
+                <td style={td}>{e.periodos}{e.periodos >= 2 ? " (reincidente)" : ""}</td>
+                <td style={td}>{e.maior} comp.</td>
+                <td style={td}><Selo nivel={nivelDe(e.ult)} texto={e.ult ? (e.ult > 3 ? "Superior a 03" : `${e.ult} competência${e.ult > 1 ? "s" : ""}`) : "Sem ausência"} /></td>
+                <td style={td}><button style={btn} onClick={() => abrir(e.ine)}>Detalhar</button></td>
+              </tr>))}
+              {!equipes.length && <tr><td style={td} colSpan={8}>Nenhuma equipe do município apareceu na lista de ausência nas competências coletadas.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </Painel>
+
+      <Painel titulo="Mapa por competência (nº de competências consecutivas sem envio; ok = sem ausência)" cor="#ea580c">
+        <div style={{ overflow: "auto", maxHeight: 440, border: "1px solid #e5e7eb", borderRadius: 8 }}>
+          <table style={{ borderCollapse: "separate", borderSpacing: 0, minWidth: 600 }}>
+            <thead><tr>
+              <th style={{ ...th, position: "sticky", top: 0, left: 0, zIndex: 3, minWidth: 190 }}>Equipe</th>
+              {comps.map(c => <th key={c} style={{ ...th, position: "sticky", top: 0, zIndex: 2, textAlign: "center", minWidth: 58 }}>{compBr(c)}</th>)}
+            </tr></thead>
+            <tbody>{equipes.map((m: any) => (
+              <tr key={m.ine}>
+                <td style={{ ...td, position: "sticky", left: 0, background: "#fff", zIndex: 1 }}>
+                  <a style={{ cursor: "pointer", color: "#1d4ed8", fontWeight: 600 }} onClick={() => abrir(m.ine)}>{m.equipe}</a>
+                  <div style={{ color: "#374151", fontSize: 11 }}>INE {m.ine}</div>
+                </td>
+                {comps.map(c => {
+                  const v = m.valores[c] || 0; const n = nivelDe(v);
+                  return <td key={c} style={{ ...td, textAlign: "center", background: COR[n].bg, color: COR[n].fg, fontWeight: 700, borderLeft: "1px solid #fff" }}>{v ? (v > 3 ? ">3" : v) : "ok"}</td>;
+                })}
+              </tr>))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+          <Selo nivel="verde" texto="ok = sem ausência" /><Selo nivel="amarelo" texto="1 competência" /><Selo nivel="laranja" texto="2 competências" /><Selo nivel="vermelho" texto="3 ou mais (>3 = superior a 3)" />
+        </div>
+      </Painel>
+
+      <Painel titulo="Movimentações por competência" cor="#1d4ed8">
+        <div data-no-print style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+          <select value={tipoEv} onChange={e => setTipoEv(e.target.value)} style={btn}>
+            <option value="todos">Entradas e regularizações</option><option value="entrou_em_ausencia">Só entradas em ausência</option><option value="regularizada">Só regularizações</option>
+          </select>
+          <select value={janela} onChange={e => setJanela(e.target.value)} style={btn}>
+            <option value="todos">Todo o período</option><option value="3">Últimas 3 competências</option><option value="6">Últimas 6 competências</option>
+          </select>
+          <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar equipe ou INE" style={{ ...btn, minWidth: 180 }} />
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><th style={{ ...th, width: 110 }}>Competência</th><th style={th}>Entraram em ausência</th><th style={th}>Regularizadas</th></tr></thead>
+            <tbody>{grupos.map(g => (
+              <tr key={g.c}>
+                <td style={td}><strong>{compBr(g.c)}</strong></td>
+                <td style={td}>{g.entram.length ? g.entram.map((e: any) => chip(e, "laranja")) : <span style={{ color: "#4b5563" }}>—</span>}</td>
+                <td style={td}>{g.reg.length ? g.reg.map((e: any) => chip(e, "verde")) : <span style={{ color: "#4b5563" }}>—</span>}</td>
+              </tr>))}
+              {!grupos.length && <tr><td style={td} colSpan={3}>Nenhuma movimentação com esses filtros (a comparação só vale entre competências coletadas e vizinhas).</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </Painel>
+    </>
   );
 }
 
