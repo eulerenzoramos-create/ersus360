@@ -112,6 +112,7 @@ class UserOut(BaseModel):
     municipio_uf: str | None = None
     municipio_brasao: str | None = None
     municipio_populacao: int | None = None
+    municipio_cnpj_fundo: str | None = None   # cabeçalho dos relatórios/PDF
     usuario_id: int | None = None
     administrador_geral: bool = False
     # True quando o usuário pode trocar de município (admin-geral ou >1 autorizado)
@@ -262,6 +263,7 @@ async def resolver_sessao(username: str, mid: int | None, db: AsyncSession) -> U
         municipio_uf=mun.uf if mun else None,
         municipio_brasao=mun.brasao_url if mun else None,
         municipio_populacao=mun.populacao if mun else None,
+        municipio_cnpj_fundo=mun.cnpj_fundo if mun else None,
         usuario_id=user.get("usuario_id"),
         administrador_geral=global_,
         perfis_assessoria=global_ or len(autorizados) > 1,

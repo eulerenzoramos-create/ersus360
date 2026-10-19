@@ -17,6 +17,7 @@ export interface SessaoUsuario {
   municipio_ibge: string | null;
   municipio_uf: string | null;
   municipio_brasao: string | null;
+  municipio_cnpj_fundo?: string | null;
   administrador_geral: boolean;
   perfis_assessoria: boolean;   // true = pode trocar de município
   modulos: string[];
