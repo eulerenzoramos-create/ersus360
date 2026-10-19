@@ -378,7 +378,9 @@ async def sincronizar_territorio_municipio(db: AsyncSession, m: Municipio, *, au
         ultima = (await db.execute(select(PecAgenteExecucao).where(
             PecAgenteExecucao.municipio_id == m.id, PecAgenteExecucao.tipo == "sync_web")
             .order_by(PecAgenteExecucao.recebido_em.desc()).limit(1))).scalar_one_or_none()
-        if ultima and ultima.status == "erro_origem" and (ultima.mensagem or "").startswith("Login recusado"):
+        msg_ult = (ultima.mensagem or "") if ultima else ""
+        if ultima and ultima.status == "erro_origem" and (
+                msg_ult.startswith("Login recusado") or msg_ult.startswith("Login:") and "incorretos" in msg_ult.lower()):
             return {"ok": False, "motivo": "login_recusado_pausado"}
     try:
         equipes = await coletar_territorio(acesso)

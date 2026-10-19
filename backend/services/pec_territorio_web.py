@@ -40,6 +40,10 @@ class PecWebErro(RuntimeError):
     """Falha ao ler o PEC (rede, login recusado, consulta recusada). A mensagem nunca contém credenciais."""
 
 
+class PecConsultaRecusada(PecWebErro):
+    """O PEC respondeu, mas recusou a operação (lista "errors" do GraphQL)."""
+
+
 @dataclass(frozen=True)
 class Acesso:
     url: str
@@ -68,12 +72,17 @@ async def _gql(c: httpx.AsyncClient, acesso: Acesso, operacao: str, query: str, 
         raise PecWebErro(f"{operacao}: resposta do PEC não é JSON") from e
     if corpo.get("errors"):
         msg = _limpa((corpo["errors"][0] or {}).get("message", "erro desconhecido"), acesso)
-        raise PecWebErro(f"{operacao}: {msg}")
+        raise PecConsultaRecusada(f"{operacao}: {msg}")
     return corpo.get("data") or {}
 
 
 async def _login(c: httpx.AsyncClient, acesso: Acesso) -> None:
-    dados = await _gql(c, acesso, "Login", Q_LOGIN, {"username": acesso.usuario, "password": acesso.senha})
+    try:
+        dados = await _gql(c, acesso, "Login", Q_LOGIN, {"username": acesso.usuario, "password": acesso.senha})
+    except PecConsultaRecusada as e:
+        # qualquer recusa do PEC no login (senha errada, conta bloqueada, campos inválidos) conta como login recusado:
+        # o agendamento pausa para não gastar as tentativas da conta
+        raise PecWebErro("Login recusado pelo PEC: " + str(e).removeprefix("Login: ")) from e
     if not (dados.get("login") or {}).get("success"):
         raise PecWebErro("Login recusado pelo PEC: confira usuário e senha da conta de serviço (ESUS_USUARIO/ESUS_SENHA).")
 
