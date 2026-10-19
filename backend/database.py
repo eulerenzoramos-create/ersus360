@@ -59,6 +59,7 @@ async def init_db():
         from models import equipe_siaps  # noqa — equipes pela API pública do SIAPS
         from models import egestor_pagamento  # noqa — pagamento e validação por equipe (e-Gestor)
         from models import siaps_publico  # noqa — resultados públicos oficiais do SIAPS (quadrimestre, IED)
+        from models import egestor_ausencia  # noqa — monitoramento SIAPS: ausência de envio (e-Gestor)
         await conn.run_sync(Base.metadata.create_all)
         # Tabela de snapshot eSUS PEC (entrada manual ou bookmarklet)
         if _raw_url.startswith("sqlite"):
