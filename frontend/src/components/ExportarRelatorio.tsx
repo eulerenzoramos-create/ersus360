@@ -55,6 +55,7 @@ export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nome
     s.id = id;
     s.textContent = `
       @media print {
+        html, body { background: #fff !important; min-height: 0 !important; }
         body > * { display: none !important; }
         #ersus-print-area { display: block !important; }
         #ersus-print-area { position: static; background: #fff; padding: 0; margin: 0; }

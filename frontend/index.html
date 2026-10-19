@@ -16,6 +16,14 @@
           margin: 8mm 10mm 8mm 10mm;
         }
 
+        /* Fundo do sistema é escuro: na folha impressa ele aparecia como faixa preta
+           onde o conteúdo não chegava. Papel sempre branco. */
+        html, body, #root {
+          background: #fff !important;
+          color: #111827;
+          min-height: 0 !important;
+        }
+
         /* Preservar cores de fundo/gradiente */
         * {
           -webkit-print-color-adjust: exact !important;
