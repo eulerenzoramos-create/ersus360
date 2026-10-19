@@ -1007,6 +1007,18 @@ export default function MatrizFns() {
     staleTime: 300_000,
   });
 
+  // Gráficos mensais: sempre o exercício inteiro (Jan até o mês atual), mesmo com a tabela filtrada em um mês só.
+  // Mantém os demais filtros (grupo, ação, componente, tipo, busca). A chave começa com "fns-matriz": a sincronização a invalida.
+  const mesLimiteEvo = exercicio < new Date().getFullYear() ? 12 : mesAtualNum;
+  const paramsEvo = new URLSearchParams(params);
+  paramsEvo.set("mes_inicio", "1");
+  paramsEvo.set("mes_fim", String(mesLimiteEvo));
+  const { data: dataEvo } = useQuery<TabelaFns>({
+    queryKey: ["fns-matriz", paramsEvo.toString()],
+    queryFn: () => apiGet(`/api/repasses-fns/matriz-tabela?${paramsEvo}`),
+    staleTime: 300_000,
+  });
+
   const { data: opcoes } = useQuery({
     queryKey: ["fns-opcoes", exercicio],
     queryFn: () => apiGet(`/api/repasses-fns/matriz-opcoes?exercicio=${exercicio}`),
@@ -1047,24 +1059,33 @@ export default function MatrizFns() {
     })).sort((a, b) => b.total - a.total);
   }, [data]);
 
+  const baseEvo = dataEvo ?? data;
+  const mesesEvo = useMemo(() => Array.from({ length: mesLimiteEvo }, (_, i) => i + 1), [mesLimiteEvo]);
+
   const dadosGraficoMensal = useMemo(() => {
-    if (!data) return [];
-    return mesesVisiveis.map(m => {
+    if (!baseEvo) return [];
+    return mesesEvo.map(m => {
       const obj: Record<string, number | string> = { mes: MESES_ABREV[m - 1] };
-      for (const [g, st] of Object.entries(data.subtotais_grupo)) {
+      for (const [g, st] of Object.entries(baseEvo.subtotais_grupo)) {
         obj[g] = Math.round(st.meses[String(m)] || 0);
       }
       return obj;
     });
-  }, [data, mesesVisiveis]);
+  }, [baseEvo, mesesEvo]);
 
+  // Mês sem repasse registrado fica como "sem dados" (lacuna no gráfico), não como R$ 0 informado.
   const dadosGraficoLinha = useMemo(() => {
-    if (!data) return [];
-    return mesesVisiveis.map(m => ({
-      mes: MESES_ABREV[m - 1],
-      total: Math.round(data.totais_mensais[String(m)] || 0),
-    }));
-  }, [data, mesesVisiveis]);
+    if (!baseEvo) return [];
+    return mesesEvo.map(m => {
+      const v = baseEvo.totais_mensais[String(m)] || 0;
+      return { mes: MESES_ABREV[m - 1], total: v > 0 ? Math.round(v) : null };
+    });
+  }, [baseEvo, mesesEvo]);
+
+  const mesesSemDados = useMemo(
+    () => (baseEvo ? mesesEvo.filter(m => !((baseEvo.totais_mensais[String(m)] || 0) > 0)) : []),
+    [baseEvo, mesesEvo],
+  );
 
   // ── Sincronização (mês a mês para evitar timeout de 60s do Railway) ──────
   const sincronizar = async () => {
@@ -1358,7 +1379,9 @@ export default function MatrizFns() {
       {data && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 16 }}>
           {[
-            { label: "Total anual recebido", val: data.total_geral, cor: C.blue, bg: C.blueL },
+            { label: mesInicio === 1 && mesFim >= mesAtualNum ? `Total anual recebido (Jan–${MESES_ABREV[mesAtualNum - 1]})`
+                : `Total do período (${MESES_ABREV[mesInicio - 1]}–${MESES_ABREV[mesFim - 1]})`,
+              val: data.total_geral, cor: C.blue, bg: C.blueL },
             ...mesesVisiveis.slice(0, 3).map(m => ({
               label: MESES_FULL[m - 1],
               val: data.totais_mensais[String(m)] ?? 0,
@@ -1426,11 +1449,20 @@ export default function MatrizFns() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} />
-                <Line type="monotone" dataKey="total" stroke={C.blue} strokeWidth={2.5} dot={{ r: 4 }} />
+                <Tooltip formatter={(v: number | null) => (v == null ? "sem dados" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }))} />
+                <Line type="monotone" dataKey="total" name="Total recebido" stroke={C.blue} strokeWidth={2.5} dot={{ r: 4 }} connectNulls={false} />
               </LineChart>
             )}
           </ResponsiveContainer>
+          {graficoAtivo !== "barras" && (
+            <div style={{ fontSize: 11, color: C.textSec, marginTop: 8 }}>
+              Gráfico do exercício {exercicio} (Jan–{MESES_ABREV[mesLimiteEvo - 1]}), independente do período escolhido na tabela.
+              {mesesSemDados.length > 0 && (
+                <> <strong>Sem repasses registrados em:</strong> {mesesSemDados.map(m => MESES_ABREV[m - 1]).join(", ")}.
+                  {" "}Se esses meses já foram pagos, clique em “Sincronizar com FNS” para importá-los.</>
+              )}
+            </div>
+          )}
         </div>
       )}
 
