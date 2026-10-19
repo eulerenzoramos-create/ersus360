@@ -1187,8 +1187,8 @@ function SincronizacaoTerritorioPEC({ s }: { s: any }) {
       </div>
       {ult?.mensagem?.startsWith("Login recusado") && (
         <div style={{ fontSize: 12, marginTop: 6, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "8px 12px" }}>
-          As execuções automáticas estão <strong>pausadas</strong> para não bloquear a conta do PEC por tentativas erradas. Corrija a senha no servidor
-          e clique em “Atualizar agora”; se funcionar, o agendamento volta sozinho.
+          As execuções automáticas estão <strong>pausadas</strong> porque o PEC recusou o login (para não bloquear a conta por tentativas erradas).
+          Corrija a credencial ou a configuração indicada acima e clique em “Atualizar agora”; se funcionar, o agendamento volta sozinho.
         </div>
       )}
       <div style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" as const }}>

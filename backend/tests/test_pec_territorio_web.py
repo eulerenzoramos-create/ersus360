@@ -255,3 +255,13 @@ async def test_senha_incorreta_do_pec_vira_login_recusado_e_pausa(ambiente, monk
         await db.commit()
         assert (await ag.sincronizar_territorio_municipio(db, m, automatica=True))["motivo"] == "login_recusado_pausado"
     assert chamadas == []                                                              # nem tentou entrar
+
+
+def test_cliente_se_identifica_como_a_tela_web_do_pec(monkeypatch):
+    h = web.cabecalhos("https://esus.apui.am.gov.br/")
+    assert h["apollographql-client-name"] == "PEC Web" and h["apollographql-client-version"] == "5.5.28"
+    assert h["Origin"] == "https://esus.apui.am.gov.br" and h["Referer"] == "https://esus.apui.am.gov.br/"
+    assert h["User-Agent"].startswith("ERSUS360")                                      # identifica-se de verdade
+    assert "Authorization" not in h and "Cookie" not in h
+    monkeypatch.setenv("ESUS_PEC_VERSAO", "5.6.1")
+    assert web.cabecalhos("https://x")["apollographql-client-version"] == "5.6.1"
