@@ -478,6 +478,8 @@ app.include_router(cnes_apui_router)
 app.include_router(monitor_scnes_router)
 app.include_router(pec_sync_router)
 app.include_router(pec_agente_router)
+# integracao_status ANTES de integracao: as duas usam /api/integracao/status e o painel espera a versão nova
+app.include_router(integracao_status_router)
 app.include_router(integracao_router)
 app.include_router(auditoria_router)
 app.include_router(auditoria_aps_router)
@@ -704,7 +706,6 @@ app.include_router(integracao_egestor_apui_router)
 app.include_router(integracao_esuspec_apui_router)
 app.include_router(integracao_siaps_apui_router)
 app.include_router(integracao_pec_router)
-app.include_router(integracao_status_router)
 from routers.auditoria_dados import router as auditoria_dados_router
 from routers.cvat_municipio import router as cvat_municipio_router
 app.include_router(auditoria_dados_router)
