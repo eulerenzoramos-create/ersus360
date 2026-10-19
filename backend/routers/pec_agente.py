@@ -20,7 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import calendar
+import asyncio
 import re
 import secrets
 from datetime import date, datetime, timedelta, timezone
@@ -36,7 +36,8 @@ from models.municipio import Municipio
 from models.pec_agente import PecAcsLote, PecAgenteExecucao, PecEsquemaRelatorio
 from routers.auth import ip_de
 from routers.fns_previsao import _pode_editar
-from services.pec_acs import ORIGEM_CAPTURA
+from services.pec_acs import ORIGEM_AUTOMATICA, ORIGEM_CAPTURA
+from services.pec_captura import ConflitoComLoteDoAgente, gravar_lote_territorio
 from tenancy.auditoria import registrar_auditoria
 from tenancy.contexto import MunicipioContexto
 from tenancy.credenciais import credencial
@@ -333,51 +334,94 @@ async def importar_captura_territorio(body: CapturaTerritorioIn, request: Reques
     _pode_editar(current)
     if str(body.ibge) != str(current.municipio_ibge):
         raise HTTPException(403, "Esta captura pertence a outro município.")
-    comp = body.mes_referencia
-    lote = (await db.execute(select(PecAcsLote).where(
-        PecAcsLote.municipio_id == current.municipio_id, PecAcsLote.competencia == comp))).scalar_one_or_none()
-    if lote and (lote.payload or {}).get("origem") != ORIGEM_CAPTURA:
+    cap_utc = body.capturado_em.astimezone(timezone.utc).replace(tzinfo=None) if body.capturado_em.tzinfo else body.capturado_em
+    try:
+        return await gravar_lote_territorio(
+            db, current.municipio_id, competencia=body.mes_referencia, capturado_em=cap_utc,
+            equipes=[e.model_dump() for e in body.equipes], fonte=body.fonte, autor=current.username,
+            origem=ORIGEM_CAPTURA, ip=ip_de(request), usuario=current)
+    except ConflitoComLoteDoAgente:
         raise HTTPException(409, "Já existe um lote do agente local para esta competência; a captura assistida não o substitui.")
 
-    cap_utc = body.capturado_em.astimezone(timezone.utc).replace(tzinfo=None) if body.capturado_em.tzinfo else body.capturado_em
-    ano, mes = int(comp[:4]), int(comp[5:])
-    ult_dia = calendar.monthrange(ano, mes)[1]
-    parcial = cap_utc.date() < date(ano, mes, ult_dia)       # captura feita antes do fim do mês = contagem parcial
-    micro, equipes = [], []
-    for e in body.equipes:
-        equipes.append({"ine": e.ine, "nome": e.nome, "tipo": e.tipo, "cnes": e.cnes, "unidade": e.unidade})
-        for m in e.microareas:
-            micro.append({"codigo": m.codigo, "ine": e.ine, "domicilios": m.imoveis,
-                          "cadastro_completo": m.cadastro_completo, "cadastro_atualizado": m.cadastro_atualizado,
-                          "domicilios_visitados": m.domicilios_visitados, "domicilios_a_visitar": m.domicilios_a_visitar})
-    payload = {
-        "origem": ORIGEM_CAPTURA, "fonte": body.fonte, "capturado_em": cap_utc.isoformat() + "Z",
-        "capturado_por": current.username, "parcial_ate": cap_utc.date().isoformat() if parcial else None,
-        "equipes": equipes, "acs": [], "microareas": micro, "visitas": [], "grupos": [], "totais": {},
-        "criterios": {
-            "imoveis": "Imóveis cadastrados na microárea, conforme o contador do PEC.",
-            "domicilios_visitados": "Domicílios visitados no mês na microárea (contador do PEC), sobre os domicílios a visitar.",
-            "nao_capturado": "ACS, visitas por dia/profissional, famílias e grupos prioritários não fazem parte desta captura.",
-        },
-    }
-    h = _hash(payload)
-    agora = datetime.utcnow()
-    if not lote:
-        lote = PecAcsLote(municipio_id=current.municipio_id, competencia=comp)
-        db.add(lote)
-    lote.recebido_em, lote.gerado_em = agora, cap_utc
-    lote.periodo_inicio, lote.periodo_fim = f"{comp}-01", cap_utc.date().isoformat() if parcial else f"{comp}-{ult_dia:02d}"
-    lote.agente_versao, lote.pec_versao, lote.hash_conteudo, lote.payload = "captura-assistida", None, h, payload
-    registros = len(micro)
-    db.add(PecAgenteExecucao(municipio_id=current.municipio_id, tipo="captura", status="aceito", competencia=comp,
-                             registros=registros, agente_versao="captura-assistida", ip_origem=ip_de(request),
-                             mensagem=f"Captura assistida por {current.username}: {len(equipes)} equipes · {registros} microáreas"
-                                      + (f" · parcial até {cap_utc.date().isoformat()}" if parcial else "")))
-    await registrar_auditoria(db, "PEC_CAPTURA_TERRITORIO_IMPORTADA", usuario=current, ip=ip_de(request),
-                              tabela="pec_acs_lotes", detalhe=f"{comp}: {len(equipes)} equipes, {registros} microáreas")
-    await db.commit()
-    return {"ok": True, "competencia": comp, "equipes": len(equipes), "microareas": registros,
-            "parcial_ate": payload["parcial_ate"]}
+
+# ── Sincronização automática do território (API web do PEC) ───────────────────
+
+_SYNC_EM_ANDAMENTO: set[int] = set()
+
+
+def acesso_pec_web(ctx: MunicipioContexto):
+    """Credenciais do município (variáveis de ambiente) ou None se a integração não está configurada."""
+    from services.pec_territorio_web import Acesso
+    url = credencial("ESUS", "PEC_URL", ctx) or credencial("ESUS", "URL", ctx)
+    usuario, senha = credencial("ESUS", "USUARIO", ctx), credencial("ESUS", "SENHA", ctx)
+    return Acesso(url=url, usuario=usuario, senha=senha) if (url and usuario and senha) else None
+
+
+def competencia_agora() -> str:
+    from zoneinfo import ZoneInfo
+    return datetime.now(ZoneInfo("America/Manaus")).strftime("%Y-%m")
+
+
+async def sincronizar_territorio_municipio(db: AsyncSession, m: Municipio, *, autor: str = "sincronização automática",
+                                           ip: str | None = None, automatica: bool = False) -> dict:
+    """Lê o território no PEC e grava o lote da competência atual. Falhas viram um item no histórico (sem credenciais).
+    Trava de segurança: depois de um LOGIN RECUSADO as execuções automáticas pausam (o PEC bloqueia a conta após
+    várias tentativas erradas); só uma atualização sob demanda, feita depois de corrigir a credencial, volta a tentar."""
+    from services.pec_captura import registrar_falha_sync
+    from services.pec_territorio_web import PecWebErro, coletar_territorio
+    ctx = MunicipioContexto(id=m.id, uuid=m.uuid, ibge=m.codigo_ibge, nome=m.nome, uf=m.uf)
+    acesso = acesso_pec_web(ctx)
+    if not acesso:
+        return {"ok": False, "motivo": "nao_configurado"}
+    comp = competencia_agora()
+    if automatica:
+        ultima = (await db.execute(select(PecAgenteExecucao).where(
+            PecAgenteExecucao.municipio_id == m.id, PecAgenteExecucao.tipo == "sync_web")
+            .order_by(PecAgenteExecucao.recebido_em.desc()).limit(1))).scalar_one_or_none()
+        if ultima and ultima.status == "erro_origem" and (ultima.mensagem or "").startswith("Login recusado"):
+            return {"ok": False, "motivo": "login_recusado_pausado"}
+    try:
+        equipes = await coletar_territorio(acesso)
+        if not equipes:
+            raise PecWebErro("O PEC não devolveu equipes com microáreas para esta conta (perfil sem acesso ao território?).")
+        return await gravar_lote_territorio(db, m.id, competencia=comp, capturado_em=datetime.utcnow(), equipes=equipes,
+                                            fonte="e-SUS PEC — API web (Acompanhamento do território)", autor=autor,
+                                            origem=ORIGEM_AUTOMATICA, ip=ip)
+    except ConflitoComLoteDoAgente as e:
+        return {"ok": False, "motivo": "lote_do_agente", "detalhe": str(e)}
+    except PecWebErro as e:
+        await registrar_falha_sync(db, m.id, comp, str(e))
+        return {"ok": False, "motivo": "falha", "detalhe": str(e)}
+
+
+async def _sync_em_segundo_plano(municipio_id: int, ip: str | None) -> None:
+    from database import AsyncSessionLocal
+    try:
+        async with AsyncSessionLocal() as db:
+            m = (await db.execute(select(Municipio).where(Municipio.id == municipio_id))).scalar_one()
+            r = await sincronizar_territorio_municipio(db, m, autor="atualização sob demanda", ip=ip)
+            log.info("PEC território %s (sob demanda): %s", m.codigo_ibge, {k: v for k, v in r.items() if k != "detalhe"})
+    except Exception:
+        log.exception("PEC território: erro inesperado na atualização sob demanda")
+    finally:
+        _SYNC_EM_ANDAMENTO.discard(municipio_id)
+
+
+@router.post("/sincronizar-territorio", status_code=202)
+async def sincronizar_territorio(request: Request, current: SessaoMunicipal, db: DbDep):
+    """"Atualizar agora": dispara a leitura do território pela API web do PEC. Roda em segundo plano
+    (leva dezenas de segundos); o resultado aparece no histórico e na situação."""
+    _pode_editar(current)
+    m = (await db.execute(select(Municipio).where(Municipio.id == current.municipio_id))).scalar_one()
+    ctx = MunicipioContexto(id=m.id, uuid=m.uuid, ibge=m.codigo_ibge, nome=m.nome, uf=m.uf)
+    if not acesso_pec_web(ctx):
+        raise HTTPException(409, f"Integração não configurada: defina ESUS_PEC_URL, ESUS_USUARIO e ESUS_SENHA no servidor "
+                                 f"(para outro município que não Apuí, com o sufixo _{m.codigo_ibge}).")
+    if m.id in _SYNC_EM_ANDAMENTO:
+        return {"ok": True, "iniciado": False, "mensagem": "Já há uma atualização em andamento."}
+    _SYNC_EM_ANDAMENTO.add(m.id)
+    asyncio.get_running_loop().create_task(_sync_em_segundo_plano(m.id, ip_de(request)))
+    return {"ok": True, "iniciado": True, "mensagem": "Atualização iniciada; acompanhe no histórico de execuções."}
 
 
 # ── Consulta (sessão do município) ────────────────────────────────────────────
@@ -398,8 +442,9 @@ async def situacao_agente(db: AsyncSession, municipio_id: int, agora: datetime |
     ultimas = (await db.execute(select(PecAgenteExecucao).where(
         PecAgenteExecucao.municipio_id == municipio_id).order_by(PecAgenteExecucao.recebido_em.desc()).limit(50))).scalars().all()
     ultima_ok = next((e for e in ultimas if e.tipo == "acs" and e.status in ("aceito", "sem_alteracao")), None)
-    ultimo_contato = next((e for e in ultimas if e.status != "rejeitado" and e.tipo != "captura"), None)
+    ultimo_contato = next((e for e in ultimas if e.status != "rejeitado" and e.tipo not in ("captura", "sync_web")), None)
     captura = next((e for e in ultimas if e.tipo == "captura" and e.status == "aceito"), None)
+    sync_web = next((e for e in ultimas if e.tipo == "sync_web"), None)
     erro = next((e for e in ultimas if e.status == "erro_origem"), None)
     lote = await lote_mais_recente(db, municipio_id)
 
@@ -431,6 +476,11 @@ async def situacao_agente(db: AsyncSession, municipio_id: int, agora: datetime |
         },
         "captura": None if not captura else {
             "recebido_em": _iso(captura.recebido_em), "competencia": captura.competencia, "mensagem": captura.mensagem,
+        },
+        "sincronizacao_web": {
+            "frequencia_horas": FREQUENCIA_HORAS,
+            "ultima_execucao": None if not sync_web else {
+                "status": sync_web.status, "recebido_em": _iso(sync_web.recebido_em), "mensagem": sync_web.mensagem},
         },
         "rejeicoes_24h": sum(1 for e in ultimas if e.status == "rejeitado"
                              and agora - e.recebido_em < timedelta(hours=24)),
