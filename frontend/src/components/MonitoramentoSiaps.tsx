@@ -139,7 +139,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
   if (ineSel) return <CasoEquipe ine={ineSel} dados={caso.data} carregando={caso.isLoading} voltar={() => setIneSel(null)} />;
 
   return (
-    <div>
+    <div style={{ color: "#111827" }}>
       {/* submenus */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
         {SUBS.map(s => (
@@ -433,7 +433,40 @@ function Processamento() {
   );
 }
 
-// ── detalhe da equipe ────────────────────────────────────────────────────────
+// ── detalhe da equipe (painel do caso) ───────────────────────────────────────
+const mesNum = (c: string) => Number(c.slice(0, 4)) * 12 + Number(c.slice(5, 7)) - 1;
+const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+interface Periodo { de: string; ate: string; duracao: number; pior: Nivel; texto: string | null; qt: number; emCurso: boolean }
+
+// Períodos seguidos em que a equipe constou na lista de ausência (só competências coletadas e vizinhas)
+function periodosDeAusencia(linha: any[]): Periodo[] {
+  const out: Periodo[] = [];
+  let atual: Periodo | null = null;
+  linha.forEach((t, i) => {
+    const ausente = t.nivel !== "verde" && t.nivel !== "cinza";
+    const vizinha = atual && mesNum(t.competencia) - mesNum(atual.ate) === 1;
+    if (ausente && atual && vizinha) {
+      atual.ate = t.competencia; atual.duracao += 1;
+      if ((t.qt_consecutivas ?? 0) > atual.qt) { atual.pior = t.nivel; atual.texto = t.qt_texto; atual.qt = t.qt_consecutivas ?? 0; }
+    } else if (ausente) {
+      atual = { de: t.competencia, ate: t.competencia, duracao: 1, pior: t.nivel, texto: t.qt_texto, qt: t.qt_consecutivas ?? 0, emCurso: false };
+      out.push(atual);
+    } else atual = null;
+    if (atual && i === linha.length - 1) atual.emCurso = true;
+  });
+  return out;
+}
+
+function Painel({ titulo, children, cor }: { titulo: string; children: React.ReactNode; cor?: string }) {
+  return (
+    <section style={{ background: "#fff", border: "1px solid #e5e7eb", borderTop: `3px solid ${cor ?? "#1d4ed8"}`, borderRadius: 10, padding: "12px 14px", marginBottom: 12, color: "#111827" }}>
+      <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#111827" }}>{titulo}</h3>
+      {children}
+    </section>
+  );
+}
+
 function CasoEquipe({ ine, dados, carregando, voltar }: { ine: string; dados: any; carregando: boolean; voltar: () => void }) {
   const qc = useQueryClient();
   const [form, setForm] = useState<{ situacao: string; responsavel: string; observacao: string } | null>(null);
@@ -443,49 +476,149 @@ function CasoEquipe({ ine, dados, carregando, voltar }: { ine: string; dados: an
   });
   const a = dados?.acompanhamento;
   const f = form ?? { situacao: a?.situacao ?? "pendente", responsavel: a?.responsavel ?? "", observacao: a?.observacao ?? "" };
-  const campo = (rotulo: string, valor: React.ReactNode) => (
-    <div style={{ padding: "6px 0", borderBottom: "1px solid #f1f2f4", fontSize: 12 }}><span style={{ color: "#6b7280" }}>{rotulo}: </span>{valor}</div>
-  );
+
+  const resumo = useMemo(() => {
+    if (!dados?.linha_do_tempo) return null;
+    const linha: any[] = dados.linha_do_tempo;
+    const total = linha.length;
+    const comAus = linha.filter(t => t.nivel !== "verde" && t.nivel !== "cinza").length;
+    const periodos = periodosDeAusencia(linha);
+    const maior = periodos.reduce<Periodo | null>((m, p) => (!m || p.duracao > m.duracao ? p : m), null);
+    const atual = linha[linha.length - 1];
+    // reincidência = saiu da lista (competência coletada sem ausência) e voltou a constar depois
+    const reincidiu = periodos.some((p, i) => i > 0 && linha.some(t => t.nivel === "verde" && t.competencia > periodos[i - 1].ate && t.competencia < p.de));
+    return { linha, total, comAus, semAus: total - comAus, periodos, maior, atual, reincidiu, primeira: linha[0].competencia };
+  }, [dados]);
+
+  const kpi = (rotulo: string, valor: React.ReactNode, nota?: string, nivel?: Nivel) => {
+    const c = nivel ? COR[nivel] : null;
+    return (
+      <div style={{ background: c?.bg ?? "#fff", border: `1px solid ${c?.borda ?? "#e5e7eb"}`, borderRadius: 10, padding: "10px 12px", flex: "1 1 170px", minWidth: 150 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: c?.fg ?? "#4b5563" }}>{rotulo}</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: c?.fg ?? "#111827", lineHeight: 1.2 }}>{valor}</div>
+        {nota && <div style={{ fontSize: 11, color: c?.fg ?? "#4b5563", marginTop: 2 }}>{nota}</div>}
+      </div>
+    );
+  };
+
+  const anos = resumo ? [...new Set(resumo.linha.map((t: any) => t.competencia.slice(0, 4)))] : [];
+  const porComp: Record<string, any> = resumo ? Object.fromEntries(resumo.linha.map((t: any) => [t.competencia, t])) : {};
+
   return (
-    <div>
+    <div style={{ color: "#111827" }}>
       <button style={{ ...btn, marginBottom: 10 }} onClick={voltar}>← Voltar ao Monitoramento SIAPS</button>
       {carregando && <Aviso>Carregando…</Aviso>}
       {dados?.situacao_dado === "nao_disponivel" && <SemDado msg={dados.mensagem} />}
-      {dados?.ine && (
+      {dados?.ine && resumo && (
         <>
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, marginBottom: 12 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>{dados.equipe} <Selo nivel={dados.situacao_atual.nivel} /></div>
-            {campo("1. Identificação", <>INE {dados.ine} · tipologia {dados.tipologia ?? "—"}{dados.tipo_equipe ? ` · ${dados.tipo_equipe}` : ""}</>)}
-            {campo("2. Competências com ausência", dados.competencias_com_ausencia.length ? dados.competencias_com_ausencia.map(compBr).join(", ") : "nenhuma nas competências coletadas")}
-            {campo("Situação na competência mais recente coletada", <>{compBr(dados.situacao_atual.competencia)} — {dados.situacao_atual.qt_texto ?? "sem ausência"}</>)}
-            {campo("3. Última competência sem ausência", compBr(dados.ultima_competencia_sem_ausencia))}
-            {campo("4. Histórico de transmissões", NAO_DISP)}
-            {campo("5. Processamento e rejeição", NAO_DISP)}
-            {campo("10. Última verificação", dtHora(dados.ultima_verificacao))}
+          {/* cabeçalho */}
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+            <h2 style={{ margin: 0, fontSize: 20, color: "#111827" }}>{dados.equipe}</h2>
+            <span style={{ fontSize: 12, color: "#374151" }}>INE {dados.ine} · tipologia {dados.tipologia ?? "—"}{dados.tipo_equipe ? ` · ${dados.tipo_equipe}` : ""}</span>
           </div>
 
-          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Linha do tempo</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-            {dados.linha_do_tempo.map((t: any) => (
-              <div key={t.competencia} style={{ background: COR[t.nivel as Nivel].bg, border: `1px solid ${COR[t.nivel as Nivel].borda}`, color: COR[t.nivel as Nivel].fg, borderRadius: 8, padding: "6px 10px", fontSize: 11, minWidth: 110 }}>
-                <strong>{compBr(t.competencia)}</strong><div>{t.qt_texto ?? "Sem ausência"}</div>
-              </div>))}
+          {/* indicadores */}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+            {kpi(`Situação em ${compBr(resumo.atual.competencia)}`, resumo.atual.nivel === "verde" ? "Sem ausência" : COR[resumo.atual.nivel as Nivel].nome,
+              resumo.atual.qt_texto ?? "competência mais recente coletada", resumo.atual.nivel)}
+            {kpi("Competências coletadas", resumo.total, `${compBr(resumo.primeira)} a ${compBr(resumo.atual.competencia)}`)}
+            {kpi("Com ausência de envio", resumo.comAus, `${resumo.total ? Math.round(100 * resumo.comAus / resumo.total) : 0}% do período`, resumo.comAus ? "laranja" : "verde")}
+            {kpi("Sem ausência", resumo.semAus, undefined, "verde")}
+            {kpi("Maior período seguido", resumo.maior ? `${resumo.maior.duracao} comp.` : "—", resumo.maior ? `${compBr(resumo.maior.de)} a ${compBr(resumo.maior.ate)}` : "nenhum")}
+            {kpi("Períodos de ausência", resumo.periodos.length, resumo.reincidiu ? "houve reincidência" : undefined, resumo.reincidiu ? "vermelho" : undefined)}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 12, marginBottom: 12 }}>
-            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 12, fontSize: 12 }}>
-              <div style={{ fontWeight: 700, marginBottom: 4 }}>6. Possíveis causas</div>
-              <ul style={{ margin: 0, paddingLeft: 18 }}>{dados.possiveis_causas.map((c: string) => <li key={c}>{c}</li>)}</ul>
+          {/* leitura do caso */}
+          <Painel titulo="Resumo do caso" cor="#0f766e">
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.6 }}>
+              <li>
+                A equipe constou na lista de ausência de envio em <strong>{resumo.comAus} de {resumo.total}</strong> competências coletadas
+                ({compBr(resumo.primeira)} a {compBr(resumo.atual.competencia)}).
+              </li>
+              {resumo.maior && (
+                <li>
+                  Maior período seguido: <strong>{resumo.maior.duracao} competências</strong> ({compBr(resumo.maior.de)} a {compBr(resumo.maior.ate)}),
+                  chegando a “{resumo.maior.texto ?? "—"}”.
+                </li>
+              )}
+              {resumo.reincidiu && (
+                <li><strong>Reincidência:</strong> a equipe saiu da lista e voltou a constar depois — a regularização anterior não se manteve.</li>
+              )}
+              <li>
+                {resumo.atual.nivel === "verde"
+                  ? <>Na competência mais recente coletada ({compBr(resumo.atual.competencia)}) <strong>não consta</strong> na lista. Isso indica regularização do envio, mas <strong>não informa</strong> se houve suspensão de recurso no período.</>
+                  : <>Na competência mais recente coletada ({compBr(resumo.atual.competencia)}) <strong>continua na lista</strong>: {resumo.atual.qt_texto}.</>}
+              </li>
+              <li>Suspensão de recurso: <strong>não verificada</strong> — confirmar no Relatório de Pagamento (aba “Relatório de Pagamento (e-Gestor)”).</li>
+            </ul>
+          </Painel>
+
+          {/* mapa de calor */}
+          <Painel titulo="Linha do tempo por competência">
+            {anos.map(ano => (
+              <div key={ano} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
+                <strong style={{ width: 44, fontSize: 12 }}>{ano}</strong>
+                {MESES.map((m, i) => ({ m, i, comp: `${ano}-${String(i + 1).padStart(2, "0")}` }))
+                  .filter(({ comp }) => comp >= resumo.primeira && comp <= resumo.atual.competencia)
+                  .map(({ m, comp }) => {
+                  const t = porComp[comp];
+                  const c = t ? COR[t.nivel as Nivel] : null;
+                  return (
+                    <div key={comp} title={t ? `${compBr(comp)} — ${t.qt_texto ?? "Sem ausência"}` : `${compBr(comp)} — não coletada`}
+                      style={{ width: 52, padding: "5px 0", textAlign: "center", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                        background: c?.bg ?? "#f9fafb", color: c?.fg ?? "#9ca3af", border: `1px ${t ? "solid" : "dashed"} ${c?.borda ?? "#d1d5db"}` }}>
+                      {m}
+                      <div style={{ fontSize: 10, fontWeight: 600 }}>{t ? (t.nivel === "verde" ? "ok" : t.qt_consecutivas > 3 ? ">3" : t.qt_consecutivas) : "—"}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, fontSize: 11, color: "#374151", alignItems: "center" }}>
+              <Selo nivel="verde" texto="ok = sem ausência" /><Selo nivel="amarelo" texto="1 competência" /><Selo nivel="laranja" texto="2 competências" />
+              <Selo nivel="vermelho" texto="3 ou mais (>3 = superior a 3)" /><span style={{ border: "1px dashed #d1d5db", borderRadius: 12, padding: "2px 10px" }}>— competência não coletada</span>
             </div>
-            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 12, fontSize: 12 }}>
-              <div style={{ fontWeight: 700, marginBottom: 4 }}>7. Providências recomendadas</div>
-              <ul style={{ margin: 0, paddingLeft: 18 }}>{dados.providencias_recomendadas.map((c: string) => <li key={c}>{c}</li>)}</ul>
-            </div>
-          </div>
-          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 12 }}>{dados.orientacao_nota}</div>
+          </Painel>
 
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 12, fontSize: 12 }}>
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>8–9. Situação da resolução e responsável</div>
+          {/* períodos */}
+          <Painel titulo="Períodos de ausência" cor="#ea580c">
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>{["Início", "Fim", "Duração", "Pior situação", "Estado"].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+                <tbody>{resumo.periodos.map(p => (
+                  <tr key={p.de}>
+                    <td style={td}>{compBr(p.de)}</td><td style={td}>{compBr(p.ate)}</td><td style={td}>{p.duracao} competência{p.duracao > 1 ? "s" : ""}</td>
+                    <td style={td}><Selo nivel={p.pior} texto={p.texto ?? undefined} /></td>
+                    <td style={td}>{p.emCurso ? <strong style={{ color: COR.vermelho.fg }}>em curso</strong> : "encerrado (saiu da lista)"}</td>
+                  </tr>))}
+                  {!resumo.periodos.length && <tr><td style={{ ...td, color: "#166534" }} colSpan={5}>Nenhum período de ausência nas competências coletadas.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </Painel>
+
+          {/* o que a fonte não informa */}
+          <Painel titulo="O que a fonte não informa" cor="#6b7280">
+            <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+              <div>Histórico de transmissões: <strong>{NAO_DISP}</strong></div>
+              <div>Processamento e rejeição: <strong>{NAO_DISP}</strong></div>
+              <div style={{ color: "#4b5563", fontSize: 12, marginTop: 4 }}>Última verificação no ERSUS: {dtHora(dados.ultima_verificacao)}</div>
+            </div>
+          </Painel>
+
+          {/* causas e providências */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 12 }}>
+            <Painel titulo="Possíveis causas" cor="#b45309">
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.55 }}>{dados.possiveis_causas.map((c: string) => <li key={c}>{c}</li>)}</ul>
+            </Painel>
+            <Painel titulo="Providências recomendadas" cor="#15803d">
+              <ol style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.55 }}>{dados.providencias_recomendadas.map((c: string) => <li key={c}>{c}</li>)}</ol>
+            </Painel>
+          </div>
+          <div style={{ fontSize: 11, color: "#4b5563", margin: "0 0 12px" }}>{dados.orientacao_nota}</div>
+
+          {/* acompanhamento */}
+          <Painel titulo="Acompanhamento" cor="#1d4ed8">
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
               <select value={f.situacao} onChange={e => setForm({ ...f, situacao: e.target.value })} style={btn}>
                 <option value="pendente">Pendente</option><option value="em_acompanhamento">Em acompanhamento</option>
@@ -495,9 +628,9 @@ function CasoEquipe({ ine, dados, carregando, voltar }: { ine: string; dados: an
               <textarea value={f.observacao} onChange={e => setForm({ ...f, observacao: e.target.value })} placeholder="Observação" rows={2} style={{ ...btn, minWidth: 260, flex: 1 }} />
               <button style={btnP} disabled={salvar.isPending} onClick={() => salvar.mutate(f)}>{salvar.isPending ? "Salvando…" : "Salvar"}</button>
             </div>
-            {salvar.isError && <div style={{ color: "#b91c1c", marginTop: 6 }}>Não foi possível salvar (sem permissão de edição?).</div>}
-            {a?.atualizado_em && <div style={{ color: "#6b7280", marginTop: 6 }}>Última atualização: {dtHora(a.atualizado_em)} por {a.atualizado_por}</div>}
-          </div>
+            {salvar.isError && <div style={{ color: "#b91c1c", marginTop: 6, fontSize: 12 }}>Não foi possível salvar (sem permissão de edição?).</div>}
+            {a?.atualizado_em && <div style={{ color: "#4b5563", marginTop: 6, fontSize: 12 }}>Última atualização: {dtHora(a.atualizado_em)} por {a.atualizado_por}</div>}
+          </Painel>
         </>
       )}
     </div>
