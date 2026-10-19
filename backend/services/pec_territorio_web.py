@@ -34,7 +34,7 @@ def cabecalhos(url: str) -> dict:
         "apollographql-client-name": CLIENTE_NOME,
         "apollographql-client-version": os.getenv("ESUS_PEC_VERSAO", "").strip() or CLIENTE_VERSAO_PADRAO,
         "Origin": origem, "Referer": origem + "/",
-        "User-Agent": "ERSUS360-integracao/1.0 (leitura de contadores do território)",
+        "User-Agent": "ERSUS360-integracao/1.0 (leitura de contadores do territorio)",   # cabecalhos HTTP: so ASCII
     }
 SIGLAS_ESF = {"ESF", "ESFR", "EAP"}          # equipes com território/microáreas
 ID_FORA_DE_AREA = "FA"                        # microárea que o PEC usa para imóveis sem microárea
