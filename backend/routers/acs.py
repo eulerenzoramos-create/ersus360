@@ -35,7 +35,15 @@ NOTA_AGUARDANDO = ("Aguardando os dados do e-SUS PEC pelo agente local (PEC_SYNC
 
 
 def _fonte(lote) -> dict:
+    cap = pec_acs.e_captura(lote.payload)
     return {
+        "origem_dado": "captura_assistida" if cap else "agente_local",
+        "captura": None if not cap else {
+            "capturado_em": lote.payload.get("capturado_em"), "capturado_por": lote.payload.get("capturado_por"),
+            "parcial_ate": lote.payload.get("parcial_ate"), "fonte": lote.payload.get("fonte"),
+            "nota": ("Captura assistida da tela do e-SUS PEC — não é atualização automática. "
+                     "Contém só imóveis e domicílios visitados por microárea."),
+        },
         "fonte": "esus_pec",
         "situacao_dado": "oficial_pec_agregado",
         "competencia": lote.competencia,

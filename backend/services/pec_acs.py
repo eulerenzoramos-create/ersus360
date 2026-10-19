@@ -23,6 +23,14 @@ from __future__ import annotations
 from collections import defaultdict
 
 
+ORIGEM_CAPTURA = "captura_assistida_pec_web"
+
+
+def e_captura(p: dict | None) -> bool:
+    """Lote vindo da captura assistida da tela do PEC (não do agente local): só tem contadores por microárea."""
+    return (p or {}).get("origem") == ORIGEM_CAPTURA
+
+
 def _soma(itens, campo):
     vals = [i.get(campo) for i in itens if i.get(campo) is not None]
     return sum(vals) if vals else None
@@ -60,6 +68,8 @@ def visitas_realizadas(v: dict) -> int:
 def kpis(p: dict, ine: str | None = None, data_ini: str | None = None, data_fim: str | None = None) -> dict:
     acs = [a for a in p.get("acs") or [] if not ine or a.get("ine") == ine]
     micro = _filtrar(p.get("microareas") or [], ine)
+    if e_captura(p):
+        return _kpis_captura(micro)
     vis = _filtrar(p.get("visitas") or [], ine, data_ini, data_fim)
     grupos = _filtrar(p.get("grupos") or [], ine)
     familias = _soma(micro, "familias")
@@ -85,6 +95,26 @@ def kpis(p: dict, ine: str | None = None, data_ini: str | None = None, data_fim:
         "idosos": _soma(grupos, "idosos"),
         "acamados": _soma(grupos, "acamados"),
         "domiciliados": _soma(grupos, "domiciliados"),
+    }
+
+
+def _kpis_captura(micro: list[dict]) -> dict:
+    """Captura assistida: só existem imóveis e domicílios visitados por microárea. O resto (ACS, visitas por dia,
+    grupos) NÃO foi capturado e fica None — nunca zero. Imóveis 'fora de área' não entram no % de visitas."""
+    reais = [m for m in micro if m.get("codigo") != "FORA"]
+    fora = [m for m in micro if m.get("codigo") == "FORA"]
+    vis, a_vis = _soma(reais, "domicilios_visitados"), _soma(reais, "domicilios_a_visitar")
+    return {
+        "total_acs": None, "acs_ativos": None,
+        "total_microareas": len({(m.get("ine"), m.get("codigo")) for m in reais}),
+        "familias_cadastradas": None, "domicilios_cadastrados": _soma(reais, "domicilios"),
+        "imoveis_fora_de_area": _soma(fora, "domicilios"),
+        "individuos_cadastrados": None, "familias_visitadas": None, "pct_familias_visitadas": None,
+        "pct_cobertura": None,
+        "domicilios_visitados": vis, "domicilios_a_visitar": a_vis, "pct_domicilios_visitados": _pct(vis, a_vis),
+        "visitas_realizadas": None, "visitas_registradas": None, "visitas_recusadas": None, "visitas_ausentes": None,
+        "gestantes_ativas": None, "criancas_lt2": None, "has_acompanhados": None, "dm_acompanhados": None,
+        "idosos": None, "acamados": None, "domiciliados": None,
     }
 
 
@@ -144,12 +174,20 @@ def microareas(p: dict) -> list[dict]:
     nomes_acs = {a["chave"]: a.get("nome") for a in p.get("acs") or []}
     grupos = p.get("grupos") or []
     saida = []
+    captura = e_captura(p)
     for m in p.get("microareas") or []:
         g = [x for x in grupos if x.get("microarea") == m.get("codigo") and x.get("ine") == m.get("ine")]
-        pct = _pct(m.get("familias_visitadas"), m.get("familias"))
+        fora = m.get("codigo") == "FORA"
+        pct = (None if fora else _pct(m.get("domicilios_visitados"), m.get("domicilios_a_visitar"))) if captura \
+            else _pct(m.get("familias_visitadas"), m.get("familias"))
         saida.append({
             "codigo": m.get("codigo"),
-            "nome": f"Microárea {m.get('codigo')}",
+            "nome": "Imóveis fora de área (sem microárea)" if fora else f"Microárea {m.get('codigo')}",
+            "fora_de_area": fora,
+            "domicilios_visitados": m.get("domicilios_visitados"),
+            "domicilios_a_visitar": m.get("domicilios_a_visitar"),
+            "cadastro_completo": m.get("cadastro_completo"),
+            "cadastro_atualizado": m.get("cadastro_atualizado"),
             "equipe": equipes.get(m.get("ine"), m.get("ine") or "—"),
             "ine": m.get("ine"),
             "acs": nomes_acs.get(m.get("acs_chave")),
@@ -162,7 +200,9 @@ def microareas(p: dict) -> list[dict]:
             "pct_cobertura": None,
             "pct_visitas": pct,
             "gestantes_ativas": _soma(g, "gestantes"),
-            "semaforo": None if pct is None else ("verde" if pct >= 90 else "amarelo" if pct >= 70 else "vermelho"),
+            # captura parcial (mês em andamento) não recebe semáforo: o % ainda vai subir até o fim do mês
+            "semaforo": None if (pct is None or fora or p.get("parcial_ate")) else
+                        ("verde" if pct >= 90 else "amarelo" if pct >= 70 else "vermelho"),
         })
     return saida
 

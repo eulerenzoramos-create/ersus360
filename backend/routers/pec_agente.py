@@ -20,13 +20,14 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import calendar
 import re
 import secrets
-from datetime import date, datetime, timedelta
-from typing import Annotated, Optional
+from datetime import date, datetime, timedelta, timezone
+from typing import Annotated, Literal, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,6 +35,9 @@ from database import get_db
 from models.municipio import Municipio
 from models.pec_agente import PecAcsLote, PecAgenteExecucao, PecEsquemaRelatorio
 from routers.auth import ip_de
+from routers.fns_previsao import _pode_editar
+from services.pec_acs import ORIGEM_CAPTURA
+from tenancy.auditoria import registrar_auditoria
 from tenancy.contexto import MunicipioContexto
 from tenancy.credenciais import credencial
 from tenancy.escopo import SessaoMunicipal
@@ -183,6 +187,53 @@ class HeartbeatIn(_Base):
     erro: Optional[str] = Field(None, max_length=500)
 
 
+class MicroareaCaptura(_Base):
+    codigo: str = Field(min_length=1, max_length=12, description='número da microárea; "FORA" = imóveis fora de área')
+    imoveis: int = Field(ge=0, le=200_000)
+    cadastro_completo: Optional[int] = Field(None, ge=0)
+    cadastro_atualizado: Optional[int] = Field(None, ge=0)
+    domicilios_visitados: Optional[int] = Field(None, ge=0)
+    domicilios_a_visitar: Optional[int] = Field(None, ge=0)
+
+    @model_validator(mode="after")
+    def _coerente(self):
+        for campo in ("cadastro_completo", "cadastro_atualizado"):
+            v = getattr(self, campo)
+            if v is not None and v > self.imoveis:
+                raise ValueError(f"{campo} maior que o total de imóveis da microárea {self.codigo}")
+        if (self.domicilios_visitados is not None and self.domicilios_a_visitar is not None
+                and self.domicilios_visitados > self.domicilios_a_visitar):
+            raise ValueError(f"domicílios visitados maior que os a visitar na microárea {self.codigo}")
+        return self
+
+
+class EquipeCaptura(_Base):
+    ine: str = Field(min_length=1, max_length=15)
+    nome: str = Field(min_length=1, max_length=200)
+    tipo: Optional[str] = Field(None, max_length=30)
+    cnes: Optional[str] = Field(None, max_length=10)
+    unidade: Optional[str] = Field(None, max_length=200)
+    microareas: list[MicroareaCaptura] = Field(default_factory=list, max_length=100)
+
+
+class CapturaTerritorioIn(_Base):
+    """Captura assistida da tela "Acompanhamento do território" do PEC (só contadores; nenhum dado de cidadão)."""
+    formato: Literal["ersus360-pec-territorio-v1"]
+    ibge: str
+    origem: Literal["captura_assistida_pec_web"]
+    fonte: Optional[str] = Field(None, max_length=300)
+    capturado_em: datetime
+    mes_referencia: str
+    equipes: list[EquipeCaptura] = Field(min_length=1, max_length=200)
+
+    @field_validator("mes_referencia")
+    @classmethod
+    def _comp(cls, v: str) -> str:
+        if not _RE_COMP.match(v):
+            raise ValueError("mes_referencia no formato AAAA-MM")
+        return v
+
+
 # ── Autenticação do agente ────────────────────────────────────────────────────
 
 async def _municipio_do_agente(db: AsyncSession, ibge: str, chave: str, request: Request,
@@ -273,6 +324,62 @@ async def receber_heartbeat(body: HeartbeatIn, request: Request, db: DbDep,
     return {"ok": True}
 
 
+# ── Captura assistida (sessão do município, perfil de edição) ─────────────────
+
+@router.post("/captura-territorio")
+async def importar_captura_territorio(body: CapturaTerritorioIn, request: Request, current: SessaoMunicipal, db: DbDep):
+    """Importa a captura assistida do território do PEC. Vira o lote da competência, marcado com a origem;
+    nunca substitui um lote do agente local (que é a fonte oficial de atualização automática)."""
+    _pode_editar(current)
+    if str(body.ibge) != str(current.municipio_ibge):
+        raise HTTPException(403, "Esta captura pertence a outro município.")
+    comp = body.mes_referencia
+    lote = (await db.execute(select(PecAcsLote).where(
+        PecAcsLote.municipio_id == current.municipio_id, PecAcsLote.competencia == comp))).scalar_one_or_none()
+    if lote and (lote.payload or {}).get("origem") != ORIGEM_CAPTURA:
+        raise HTTPException(409, "Já existe um lote do agente local para esta competência; a captura assistida não o substitui.")
+
+    cap_utc = body.capturado_em.astimezone(timezone.utc).replace(tzinfo=None) if body.capturado_em.tzinfo else body.capturado_em
+    ano, mes = int(comp[:4]), int(comp[5:])
+    ult_dia = calendar.monthrange(ano, mes)[1]
+    parcial = cap_utc.date() < date(ano, mes, ult_dia)       # captura feita antes do fim do mês = contagem parcial
+    micro, equipes = [], []
+    for e in body.equipes:
+        equipes.append({"ine": e.ine, "nome": e.nome, "tipo": e.tipo, "cnes": e.cnes, "unidade": e.unidade})
+        for m in e.microareas:
+            micro.append({"codigo": m.codigo, "ine": e.ine, "domicilios": m.imoveis,
+                          "cadastro_completo": m.cadastro_completo, "cadastro_atualizado": m.cadastro_atualizado,
+                          "domicilios_visitados": m.domicilios_visitados, "domicilios_a_visitar": m.domicilios_a_visitar})
+    payload = {
+        "origem": ORIGEM_CAPTURA, "fonte": body.fonte, "capturado_em": cap_utc.isoformat() + "Z",
+        "capturado_por": current.username, "parcial_ate": cap_utc.date().isoformat() if parcial else None,
+        "equipes": equipes, "acs": [], "microareas": micro, "visitas": [], "grupos": [], "totais": {},
+        "criterios": {
+            "imoveis": "Imóveis cadastrados na microárea, conforme o contador do PEC.",
+            "domicilios_visitados": "Domicílios visitados no mês na microárea (contador do PEC), sobre os domicílios a visitar.",
+            "nao_capturado": "ACS, visitas por dia/profissional, famílias e grupos prioritários não fazem parte desta captura.",
+        },
+    }
+    h = _hash(payload)
+    agora = datetime.utcnow()
+    if not lote:
+        lote = PecAcsLote(municipio_id=current.municipio_id, competencia=comp)
+        db.add(lote)
+    lote.recebido_em, lote.gerado_em = agora, cap_utc
+    lote.periodo_inicio, lote.periodo_fim = f"{comp}-01", cap_utc.date().isoformat() if parcial else f"{comp}-{ult_dia:02d}"
+    lote.agente_versao, lote.pec_versao, lote.hash_conteudo, lote.payload = "captura-assistida", None, h, payload
+    registros = len(micro)
+    db.add(PecAgenteExecucao(municipio_id=current.municipio_id, tipo="captura", status="aceito", competencia=comp,
+                             registros=registros, agente_versao="captura-assistida", ip_origem=ip_de(request),
+                             mensagem=f"Captura assistida por {current.username}: {len(equipes)} equipes · {registros} microáreas"
+                                      + (f" · parcial até {cap_utc.date().isoformat()}" if parcial else "")))
+    await registrar_auditoria(db, "PEC_CAPTURA_TERRITORIO_IMPORTADA", usuario=current, ip=ip_de(request),
+                              tabela="pec_acs_lotes", detalhe=f"{comp}: {len(equipes)} equipes, {registros} microáreas")
+    await db.commit()
+    return {"ok": True, "competencia": comp, "equipes": len(equipes), "microareas": registros,
+            "parcial_ate": payload["parcial_ate"]}
+
+
 # ── Consulta (sessão do município) ────────────────────────────────────────────
 
 def _iso(dt: datetime | None) -> str | None:
@@ -291,7 +398,8 @@ async def situacao_agente(db: AsyncSession, municipio_id: int, agora: datetime |
     ultimas = (await db.execute(select(PecAgenteExecucao).where(
         PecAgenteExecucao.municipio_id == municipio_id).order_by(PecAgenteExecucao.recebido_em.desc()).limit(50))).scalars().all()
     ultima_ok = next((e for e in ultimas if e.tipo == "acs" and e.status in ("aceito", "sem_alteracao")), None)
-    ultimo_contato = next((e for e in ultimas if e.status != "rejeitado"), None)
+    ultimo_contato = next((e for e in ultimas if e.status != "rejeitado" and e.tipo != "captura"), None)
+    captura = next((e for e in ultimas if e.tipo == "captura" and e.status == "aceito"), None)
     erro = next((e for e in ultimas if e.status == "erro_origem"), None)
     lote = await lote_mais_recente(db, municipio_id)
 
@@ -320,6 +428,9 @@ async def situacao_agente(db: AsyncSession, municipio_id: int, agora: datetime |
             "competencia": lote.competencia, "recebido_em": _iso(lote.recebido_em),
             "lido_no_pec_em": _iso(lote.gerado_em), "periodo_inicio": lote.periodo_inicio,
             "periodo_fim": lote.periodo_fim,
+        },
+        "captura": None if not captura else {
+            "recebido_em": _iso(captura.recebido_em), "competencia": captura.competencia, "mensagem": captura.mensagem,
         },
         "rejeicoes_24h": sum(1 for e in ultimas if e.status == "rejeitado"
                              and agora - e.recebido_em < timedelta(hours=24)),

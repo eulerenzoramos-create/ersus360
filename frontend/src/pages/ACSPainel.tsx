@@ -1,14 +1,14 @@
 // src/pages/ACSPainel.tsx — Painel ACS · eSUS PEC integrado
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Users, MapPin, Home, CheckCircle, Activity, Baby, Heart,
   Star, AlertTriangle, RefreshCw, ChevronDown, ChevronRight,
   User, FileText, Search, Filter, Calendar, Wifi, WifiOff,
   BarChart2, Navigation, ClipboardList, Building2, TrendingUp,
 } from "lucide-react";
-import { apiGet, apiGetRaw } from "../lib/api";
+import { apiGet, apiGetRaw, apiPost } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import ACSGeoPage from "./ACSGeoPage";
 
@@ -678,7 +678,7 @@ function AbaMicroareas({ maRef }: { maRef: any[] }) {
       )}
 
       {/* Microáreas do último lote do agente */}
-      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Microáreas — e-SUS PEC (agente local)</div>
+      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Microáreas — e-SUS PEC ({microareas.some((m: any) => m.domicilios_a_visitar != null) ? "captura assistida" : "agente local"})</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 12 }}>
         {microareas.map((ma: any) => {
           const cor = SEM_COR[ma.semaforo ?? "sem_dado"] ?? SEM_COR.sem_dado;
@@ -694,7 +694,9 @@ function AbaMicroareas({ maRef }: { maRef: any[] }) {
               </div>
               <Bar pct={ma.pct_visitas} cor={cor} height={8} />
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#4b5563", marginTop: 6 }}>
-                <span>{fmtN(ma.familias_cadastradas)} fam. · {fmtN(ma.domicilios)} dom.</span>
+                {ma.domicilios_a_visitar != null
+                  ? <span>{fmtN(ma.domicilios)} imóveis · {fmtN(ma.domicilios_visitados)} de {fmtN(ma.domicilios_a_visitar)} domicílios visitados no mês</span>
+                  : <span>{fmtN(ma.familias_cadastradas)} fam. · {fmtN(ma.domicilios)} dom.</span>}
                 {ma.gestantes_ativas > 0 && <span style={{ color: "#7c3aed" }}>♀ {ma.gestantes_ativas}</span>}
               </div>
             </div>
@@ -703,7 +705,7 @@ function AbaMicroareas({ maRef }: { maRef: any[] }) {
       </div>
       <div style={{ display: "flex", gap: 16, marginTop: 16, fontSize: 11, color: "#4b5563" }}>
         {[{cor:"#16a34a",l:"≥90%"},{cor:"#d97706",l:"70-89%"},{cor:"#dc2626",l:"<70%"}].map(x => (
-          <span key={x.l} style={{ display:"flex",alignItems:"center",gap:4 }}><span style={{ width:10,height:10,borderRadius:2,background:x.cor,display:"inline-block" }}/>{x.l} das famílias visitadas no período</span>
+          <span key={x.l} style={{ display:"flex",alignItems:"center",gap:4 }}><span style={{ width:10,height:10,borderRadius:2,background:x.cor,display:"inline-block" }}/>{x.l} das famílias/domicílios visitados no período</span>
         ))}
       </div>
     </div>
@@ -922,7 +924,11 @@ export default function ACSPainel() {
               )}
             </div>
             <div style={{ fontSize: 12, color: "#bfdbfe" }}>
-              Agentes Comunitários de Saúde · {dash?.kpis ? `${dash.kpis.total_acs} ACS · ${dash.kpis.total_microareas} microáreas · competência ${dash.competencia ?? "—"}` : "aguardando dados do e-SUS PEC"}
+              Agentes Comunitários de Saúde · {dash?.kpis
+                ? (dash.kpis.total_acs == null
+                    ? `${dash.kpis.total_microareas} microáreas · ${fmtN(dash.kpis.domicilios_cadastrados)} imóveis · captura assistida · competência ${dash.competencia ?? "—"}`
+                    : `${dash.kpis.total_acs} ACS · ${dash.kpis.total_microareas} microáreas · competência ${dash.competencia ?? "—"}`)
+                : "aguardando dados do e-SUS PEC"}
             </div>
           </div>
 
@@ -968,6 +974,8 @@ export default function ACSPainel() {
 
         {isLoading && <div style={{ textAlign: "center", padding: 60, color: "#4b5563" }}>Carregando painel ACS...</div>}
 
+        {(dash as any)?.captura && <BannerCaptura c={(dash as any).captura} />}
+
         {/* ── Dashboard ── */}
         {aba === "dashboard" && !k && !isLoading && (
           <NaoDisponivelBanner titulo="Aguardando dados do e-SUS PEC" rodape={null} nota={(dash as any)?.nota ?? "Aguardando os dados do e-SUS PEC pelo agente local — veja a aba Capturar PEC."} />
@@ -994,9 +1002,13 @@ export default function ACSPainel() {
             )}
             {/* KPIs */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
-              <KpiCard icon={<Users size={18}/>}       label="ACS Ativos"           val={`${k.acs_ativos}/${k.total_acs}`} sub={`${k.total_microareas} microáreas`}          cor="#1351b4" bg="#eff6ff" border="#bfdbfe" />
-              <KpiCard icon={<Home size={18}/>}         label="Famílias cadastradas" val={fmtN(k.familias_cadastradas)}   sub={`${fmtN(k.domicilios_cadastrados)} domicílios`} cor="#16a34a" bg="#f0fdf4" border="#bbf7d0" />
-              <KpiCard icon={<CheckCircle size={18}/>} label="Famílias visitadas"   val={k.pct_familias_visitadas == null ? "—" : `${k.pct_familias_visitadas}%`} sub={`${fmtN(k.visitas_realizadas)} visitas realizadas no período`} cor="#1351b4" bg="#eff6ff" border="#bfdbfe" />
+              <KpiCard icon={<Users size={18}/>}       label="ACS Ativos"           val={k.total_acs == null ? "—" : `${k.acs_ativos}/${k.total_acs}`} sub={`${k.total_microareas} microáreas${k.total_acs == null ? " · ACS não capturados" : ""}`} cor="#1351b4" bg="#eff6ff" border="#bfdbfe" />
+              {k.familias_cadastradas == null && k.domicilios_cadastrados != null
+                ? <KpiCard icon={<Home size={18}/>}     label="Imóveis cadastrados"  val={fmtN(k.domicilios_cadastrados)} sub={`${fmtN(k.imoveis_fora_de_area)} fora de área (sem microárea)`} cor="#16a34a" bg="#f0fdf4" border="#bbf7d0" />
+                : <KpiCard icon={<Home size={18}/>}     label="Famílias cadastradas" val={fmtN(k.familias_cadastradas)}   sub={`${fmtN(k.domicilios_cadastrados)} domicílios`} cor="#16a34a" bg="#f0fdf4" border="#bbf7d0" />}
+              {k.pct_domicilios_visitados != null
+                ? <KpiCard icon={<CheckCircle size={18}/>} label="Domicílios visitados no mês" val={`${k.pct_domicilios_visitados}%`} sub={`${fmtN(k.domicilios_visitados)} de ${fmtN(k.domicilios_a_visitar)} domicílios${(dash as any)?.captura?.parcial_ate ? " · parcial" : ""}`} cor="#1351b4" bg="#eff6ff" border="#bfdbfe" />
+                : <KpiCard icon={<CheckCircle size={18}/>} label="Famílias visitadas"   val={k.pct_familias_visitadas == null ? "—" : `${k.pct_familias_visitadas}%`} sub={`${fmtN(k.visitas_realizadas)} visitas realizadas no período`} cor="#1351b4" bg="#eff6ff" border="#bfdbfe" />}
               <KpiCard icon={<Activity size={18}/>}    label="Grupos Prioritários"  val={k.gestantes_ativas == null && k.criancas_lt2 == null ? "—" : (k.gestantes_ativas ?? 0) + (k.criancas_lt2 ?? 0)} sub={`${fmtN(k.gestantes_ativas)} gest. · ${fmtN(k.criancas_lt2)} <2a`} cor="#7c3aed" bg="#faf5ff" border="#e9d5ff" />
             </div>
 
@@ -1123,13 +1135,59 @@ export default function ACSPainel() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Aba Capturar PEC — central de administração da integração (PEC_SYNC_AGENT)
 // ─────────────────────────────────────────────────────────────────────────────
-const TIPO_EXEC: Record<string, string> = { acs: "Dados ACS", esquema: "Diagnóstico de esquema", heartbeat: "Verificação do agente" };
+const TIPO_EXEC: Record<string, string> = { acs: "Dados ACS", esquema: "Diagnóstico de esquema", heartbeat: "Verificação do agente", captura: "Captura assistida" };
 const STATUS_EXEC: Record<string, { rotulo: string; cor: string }> = {
   aceito: { rotulo: "Aceito", cor: "#15803d" },
   sem_alteracao: { rotulo: "Sem alteração", cor: "#475569" },
   rejeitado: { rotulo: "Rejeitado", cor: "#b91c1c" },
   erro_origem: { rotulo: "Erro no PEC", cor: "#b91c1c" },
 };
+
+// Aviso fixo quando os números vêm da captura assistida (não do agente local): nunca parecer atualização automática.
+function BannerCaptura({ c }: { c: any }) {
+  return (
+    <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#1e3a8a", lineHeight: 1.6 }}>
+      <strong>Captura assistida do e-SUS PEC</strong> feita em {dataHora(c.capturado_em)}{c.capturado_por ? ` por ${c.capturado_por}` : ""}.
+      {c.parcial_ate ? <> Mês em andamento: os percentuais são <strong>parciais até {c.parcial_ate.split("-").reverse().join("/")}</strong>.</> : null}
+      {" "}Não é atualização automática e contém só imóveis e domicílios visitados por microárea — ACS, visitas por profissional e grupos prioritários
+      continuam aguardando o agente local.
+    </div>
+  );
+}
+
+// Importa o arquivo gerado na captura assistida do PEC (só contadores por equipe e microárea).
+function ImportarCapturaTerritorio() {
+  const qc = useQueryClient();
+  const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
+  const importar = useMutation({
+    mutationFn: async (arquivo: File) => {
+      let corpo: any;
+      try { corpo = JSON.parse(await arquivo.text()); } catch { throw new Error("O arquivo não é um JSON válido."); }
+      if (corpo?.formato !== "ersus360-pec-territorio-v1") throw new Error("Arquivo fora do formato esperado (ersus360-pec-territorio-v1).");
+      return apiPost("/api/pec-agente/captura-territorio", corpo) as Promise<any>;
+    },
+    onSuccess: (r: any) => {
+      setMsg({ ok: true, texto: `Importado: ${r.equipes} equipes · ${r.microareas} microáreas · competência ${r.competencia}${r.parcial_ate ? ` (parcial até ${r.parcial_ate.split("-").reverse().join("/")})` : ""}.` });
+      qc.invalidateQueries();
+    },
+    onError: (e: any) => setMsg({ ok: false, texto: e?.response?.data?.detail ? (typeof e.response.data.detail === "string" ? e.response.data.detail : "Arquivo recusado: dados fora do contrato.") : (e?.message ?? "Falha ao importar.") }),
+  });
+  const card = { background: "#fff", border: "1px solid #e4e7ec", borderRadius: 12, padding: "18px 22px", marginBottom: 16 } as const;
+  return (
+    <div style={card}>
+      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Importar captura do território (e-SUS PEC)</div>
+      <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, marginBottom: 10 }}>
+        Enquanto o agente local não está instalado, é possível importar uma <strong>captura assistida</strong> da tela
+        “Acompanhamento do território” do PEC: só <strong>contagens</strong> de imóveis e domicílios visitados por equipe e microárea
+        (nenhum dado de cidadão). Os números ficam identificados como captura, com data, e nunca substituem um lote do agente.
+      </div>
+      <input type="file" accept="application/json,.json" disabled={importar.isPending}
+        onChange={e => { const f = e.target.files?.[0]; if (f) { setMsg(null); importar.mutate(f); } e.target.value = ""; }} />
+      {importar.isPending && <div style={{ fontSize: 12, marginTop: 8, color: "#374151" }}>Importando…</div>}
+      {msg && <div style={{ fontSize: 12, marginTop: 8, fontWeight: 600, color: msg.ok ? "#15803d" : "#b91c1c" }}>{msg.texto}</div>}
+    </div>
+  );
+}
 
 function AbaCapturarPEC() {
   const { data: s } = useQuery({ queryKey: ["pec-agente-situacao"], queryFn: () => apiGet("/api/pec-agente/situacao") as Promise<any> });
@@ -1141,6 +1199,8 @@ function AbaCapturarPEC() {
   return (
     <div>
       <CartaoSituacaoAgente s={s} />
+
+      <ImportarCapturaTerritorio />
 
       <div style={card}>
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Como a integração funciona</div>
