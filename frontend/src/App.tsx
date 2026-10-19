@@ -784,7 +784,8 @@ function Layout({ children, sessao, onLogout }: {
 
           <SinoAlertas />
 
-          <ExportarRelatorio nomeUsuario={nomeUsuario} perfilUsuario={perfilUsuario} />
+          <ExportarRelatorio nomeUsuario={nomeUsuario} perfilUsuario={perfilUsuario}
+            municipio={{ nome: sessao.municipio, uf: sessao.municipio_uf, ibge: sessao.municipio_ibge, cnpj: sessao.municipio_cnpj_fundo }} />
 
           {/* User */}
           <div style={{ position:"relative" }}>

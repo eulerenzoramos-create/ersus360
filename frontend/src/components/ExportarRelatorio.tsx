@@ -34,8 +34,14 @@ function getNomeModulo(pathname: string): string {
   return seg.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
 
-export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nomeUsuario: string; perfilUsuario: string }) {
+interface MunicipioSessao { nome?: string | null; uf?: string | null; ibge?: string | null; cnpj?: string | null }
+
+export default function ExportarRelatorio({ nomeUsuario, perfilUsuario, municipio }: { nomeUsuario: string; perfilUsuario: string; municipio?: MunicipioSessao }) {
   const loc = useLocation();
+  // Identificação do município da sessão (nunca dados de outro município)
+  const munNome = municipio?.nome || "Município";
+  const munNomeUf = `${munNome}${municipio?.uf ? ` / ${municipio.uf}` : ""}`;
+  const munIdent = [municipio?.cnpj ? `CNPJ: ${municipio.cnpj}` : null, municipio?.ibge ? `IBGE: ${municipio.ibge}` : null].filter(Boolean).join(" · ");
   const hoje = new Date();
   const [open, setOpen]       = useState(false);
   const [mesRef, setMesRef]   = useState(hoje.getMonth());      // 0-based
@@ -114,12 +120,12 @@ export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nome
             </div>
             <div>
               <div style="font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-0.02em">ERSUS 360</div>
-              <div style="font-size:10px;color:#64748b;letter-spacing:0.06em;text-transform:uppercase">Sistema de Gestão em Saúde · Apuí / AM</div>
+              <div style="font-size:10px;color:#64748b;letter-spacing:0.06em;text-transform:uppercase">Sistema de Gestão em Saúde · ${munNomeUf}</div>
             </div>
           </div>
           <div style="text-align:right">
-            <div style="font-size:11px;color:#64748b">Fundo Municipal de Saúde de Apuí</div>
-            <div style="font-size:11px;color:#64748b">CNPJ: 12.834.320/0001-26 · IBGE: 1300144</div>
+            <div style="font-size:11px;color:#64748b">Fundo Municipal de Saúde de ${munNome}</div>
+            <div style="font-size:11px;color:#64748b">${munIdent}</div>
             <div style="font-size:10px;color:#9ca3af;margin-top:2px">Gerado em: ${dataGeracao}</div>
           </div>
         </div>
@@ -147,15 +153,18 @@ export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nome
 
         <!-- Rodapé -->
         <div style="margin-top:28px;border-top:1px solid #e5e7eb;padding-top:10px;display:flex;justify-content:space-between;align-items:center">
-          <div style="font-size:9px;color:#9ca3af">ERSUS 360 · Sistema de Gestão em Saúde · Prefeitura Municipal de Apuí/AM</div>
-          <div style="font-size:9px;color:#9ca3af">Secretaria Municipal de Saúde · ${nomeUsuario || "Gestor"} · ${dataGeracao}</div>
+          <div style="font-size:9px;color:#9ca3af">ERSUS 360 · Sistema de Gestão em Saúde · Prefeitura Municipal de ${munNomeUf}</div>
+          <div style="font-size:9px;color:#9ca3af">Secretaria Municipal de Saúde de ${munNome} · ${nomeUsuario || "Gestor"} · ${dataGeracao}</div>
         </div>
       </div>
     `;
 
     setTimeout(() => {
-      // Aplica zoom direto no elemento — mais confiável que @media print zoom no Chrome
+      // Aplica zoom direto no elemento — mais confiável que @media print zoom no Chrome.
+      // O zoom ajusta a largura da tela à folha A4 paisagem (≈1077px úteis); antes era fixo em 0.43 e o texto saía minúsculo.
       const printArea = document.getElementById("ersus-print-area");
+      const larguraTela = (main as HTMLElement | null)?.clientWidth ?? 1400;
+      const zoom = Math.max(0.55, Math.min(1, 1077 / Math.max(larguraTela, 1077)));
       if (printArea) {
         // Remove overflow de todos os filhos para não cortar conteúdo
         printArea.querySelectorAll("*").forEach((el) => {
@@ -165,7 +174,7 @@ export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nome
             e.style.overflowX = "visible";
           }
         });
-        printArea.style.zoom = "0.43";
+        printArea.style.zoom = String(zoom);
       }
       window.print();
       setTimeout(() => {
@@ -265,7 +274,7 @@ export default function ExportarRelatorio({ nomeUsuario, perfilUsuario }: { nome
                   : `Competência: ${MESES[mesRef]}/${anoRef}`}
               </div>
               <div style={{ color: "#374151" }}>👤 {nomeUsuario || "Gestor"} · {perfilUsuario}</div>
-              <div style={{ color: "#374151" }}>🏥 Fundo Municipal de Saúde de Apuí/AM</div>
+              <div style={{ color: "#374151" }}>🏥 Fundo Municipal de Saúde de {munNomeUf}</div>
             </div>
 
             {/* Botões */}
