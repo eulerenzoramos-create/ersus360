@@ -11,6 +11,7 @@ no Railway — nunca hardcoded.
 from __future__ import annotations
 
 import html as html_lib
+import json
 import os
 import logging
 import re
@@ -41,47 +42,44 @@ RESTRIÇÕES ABSOLUTAS — NUNCA VIOLAR:
 """
 
 _TEMPLATE_INSTRUCOES = """\
-Com base nos dados da portaria abaixo, redija um Informe Técnico formal \
-em texto corrido (prosa contínua), SEM títulos de seção, SEM bullets, \
-SEM marcadores. O informe é dirigido à Secretária Municipal de Saúde \
-de Apuí/AM e deve conter apenas informações extraídas diretamente do texto \
-principal — nenhuma informação inventada ou deduzida.
+Com base nos dados da portaria abaixo, elabore um Informe Técnico formal, resumido e objetivo, \
+dirigido à Secretária Municipal de Saúde de Apuí/AM. Use SOMENTE informações do texto principal \
+fornecido; nada inventado ou deduzido.
 
-O informe será impresso em UMA única página A4. O cabeçalho (título, número, destinatário, \
-elaborador, data e assinatura) já é inserido pelo documento: NÃO escreva título, número do \
-informe, "Para:", "Assunto:" nem endereçamento. Comece diretamente no Parágrafo 1.
+O informe será impresso em UMA página A4. O documento já traz título, destinatário, elaborador, \
+data, assinatura e link oficial: NÃO os escreva.
 
-Estrutura obrigatória em prosa — cada item vira um parágrafo curto (no máximo 3 frases):
+Responda APENAS com um objeto JSON válido (sem comentários e sem cercas de código), com exatamente \
+estas chaves:
+{{
+  "assunto": "ementa em uma frase curta, até 25 palavras",
+  "identificacao": "texto",
+  "objeto": "texto",
+  "determinacoes": ["item curto", "item curto"],
+  "prazos": "texto",
+  "orientacao": "texto"
+}}
 
-Parágrafo 1 — Identificação: mencione o número da portaria, o órgão emissor, \
-a data de publicação e o assunto principal extraído do texto.
+Como preencher cada chave:
+- assunto: o tema da portaria em uma única frase.
+- identificacao: número da portaria, órgão emissor, data de publicação no DOU e assunto principal \
+(1 a 2 frases).
+- objeto: o que o ato estabelece, o programa ou política tratado e a finalidade (2 a 3 frases).
+- determinacoes: lista de 1 a 4 itens curtos (até 35 palavras cada) com as principais disposições \
+do texto principal. Se o texto estiver truncado, o último item deve dizer que as demais disposições \
+precisam ser verificadas no texto integral, no link oficial.
+- prazos: prazos e vigência previstos no texto principal. Se não houver, escreva somente: \
+"A portaria não estabelece prazo específico em seu texto principal." Não repita essa ideia em outra frase.
+- orientacao: uma recomendação objetiva, fundamentada no conteúdo oficial do ato (1 a 2 frases).
 
-Parágrafo 2 — Objeto e objetivo: explique o que a portaria estabelece, \
-qual programa ou política está sendo tratado e qual é sua finalidade.
-
-Parágrafo 3 — Principais determinações: descreva em texto corrido as \
-principais disposições do ato, extraídas exclusivamente do texto principal. \
-Se o texto estiver truncado, informe que o texto completo deve ser \
-verificado no link oficial.
-
-Parágrafo 4 — Prazos e vigência: mencione os prazos expressamente previstos \
-no texto principal. Se não houver, escreva que a portaria não estabelece \
-prazo específico em seu texto principal.
-
-Parágrafo 5 — Orientação ao gestor: uma recomendação objetiva e diretamente \
-fundamentada no conteúdo oficial do ato normativo.
-
-Ao final, uma linha com:
-Fonte: Diário Oficial da União, publicado em {data_pub}. Disponível em: {link}
-
-REGRAS ABSOLUTAS:
-- Texto corrido, sem títulos de seção, sem bullets, sem numeração.
-- Usar apenas informações do texto principal fornecido. NUNCA inventar.
-- Não analisar impacto territorial, estadual ou municipal.
-- Não mencionar municípios específicos.
-- Não consultar ou mencionar anexos.
-- Entre 200 e 300 palavras no total (cabe em uma página A4).
-- Retornar APENAS o texto do informe, sem comentários adicionais.
+Regras de redação:
+- Português formal e claro, com pontuação correta; frases curtas; cada texto termina com ponto final.
+- Sem markdown, sem listas dentro dos textos, sem repetir a mesma informação em seções diferentes.
+- Quando uma informação não estiver no texto principal, escreva: \
+"Informação não identificada no texto principal da portaria."
+- NUNCA inventar valores, prazos ou obrigações. Não analisar impacto territorial, estadual ou \
+municipal; não mencionar municípios; não consultar anexos.
+- Total entre 180 e 280 palavras.
 
 DADOS DA PORTARIA:
 Número: {numero}
@@ -202,6 +200,15 @@ async def gerar_informe_ia(
         raise RuntimeError(f"Falha ao gerar informe via IA: {exc}") from exc
 
 
+_SECOES = (
+    ("identificacao", "Identificação"),
+    ("objeto", "Objeto e finalidade"),
+    ("determinacoes", "Principais determinações"),
+    ("prazos", "Prazos e vigência"),
+    ("orientacao", "Orientação ao gestor"),
+)
+
+
 def _limpar_texto_ia(texto: str) -> list[str]:
     """Parágrafos do texto da IA, sem o que o documento já traz (título, número, endereçamento) e sem markdown."""
     linhas = [re.sub(r"[*_#`]+", "", l).strip() for l in texto.splitlines()]
@@ -212,6 +219,45 @@ def _limpar_texto_ia(texto: str) -> list[str]:
     ):
         paragrafos.pop(0)
     return paragrafos
+
+
+def _pontuar(txt: str) -> str:
+    """Normaliza espaços e pontuação de uma frase/parágrafo: sem espaço antes de , . ; : ) e com ponto final."""
+    t = re.sub(r"[*_#`]+", "", str(txt or ""))
+    t = re.sub(r"\s+", " ", t).strip()
+    t = re.sub(r"\s+([,.;:!?)])", r"\1", t)
+    t = re.sub(r"([,;:])(?=[^\s\d)\"'/])", r"\1 ", t)       # espaço depois de vírgula/ponto e vírgula/dois pontos
+    t = re.sub(r"\.{2,}(?!\.)", ".", t)
+    if t and t[-1] not in ".!?:":
+        t += "."
+    return t
+
+
+def _extrair_json(texto: str) -> dict | None:
+    """Objeto JSON da resposta da IA (aceita cerca de código); None se não for o formato esperado."""
+    bruto = texto.strip()
+    bruto = re.sub(r"^```(?:json)?\s*|\s*```$", "", bruto, flags=re.I)
+    ini, fim = bruto.find("{"), bruto.rfind("}")
+    if ini < 0 or fim <= ini:
+        return None
+    try:
+        dados = json.loads(bruto[ini:fim + 1])
+    except ValueError:
+        return None
+    return dados if isinstance(dados, dict) and any(k in dados for k, _ in _SECOES) else None
+
+
+_ACRONIMO = re.compile(r"\b([a-z]{2,5}/[a-z]{2,5})\b")
+
+
+def _titulo_legivel(txt: str) -> str:
+    """'PORTARIA SE/MS Nº 998, DE 15 DE OUTUBRO DE 2026' → 'Portaria SE/MS nº 998, de 15 de outubro de 2026'."""
+    t = (txt or "").strip()
+    if t and t == t.upper():
+        t = t.lower()
+        t = _ACRONIMO.sub(lambda m: m.group(1).upper(), t)
+        t = t[:1].upper() + t[1:]
+    return t
 
 
 def formatar_informe_html(
@@ -225,9 +271,10 @@ def formatar_informe_html(
     elaborador_cargo: str = "Assessor Técnico em Saúde Pública",
 ) -> str:
     """
-    Converte o texto gerado pela IA em HTML imprimível, padronizado em UMA folha A4:
-    o conteúdo tem largura fixa de 178 mm (A4 menos margens) tanto na tela quanto na impressão e,
-    se passar da altura útil, a escala é reduzida automaticamente até caber em uma página.
+    Converte a resposta da IA em HTML imprimível, padronizado em UMA folha A4, com seções numeradas
+    (identificação, objeto, determinações, prazos, orientação). O conteúdo tem largura fixa de 178 mm
+    na tela e na impressão e, se passar da altura útil, a escala é reduzida automaticamente.
+    Se a IA não devolver o JSON esperado, o texto corrido é mostrado em uma única seção.
     """
     if data_hoje is None:
         data_hoje = date.today()
@@ -237,23 +284,48 @@ def formatar_informe_html(
     titulo = portaria.get("_titulo") or portaria.get("titulo") or ""
     numero = portaria.get("_numero") or portaria.get("numero") or ""
     link = portaria.get("_link") or portaria.get("url_oficial") or "https://www.in.gov.br/leiturajornal"
-    ident = (numero or titulo).strip()                      # nunca deixa o título do informe em branco
-    titulo_doc = f"Informe Técnico — {ident}" if ident else "Informe Técnico"
+    referencia = _titulo_legivel(titulo or numero)
 
-    blocos_html = []
-    for p in _limpar_texto_ia(texto):
-        if p.lower().startswith("fonte:"):
-            blocos_html.append(f'<p class="fonte-texto">{e(p)}</p>')
-        else:
-            blocos_html.append(f"<p>{e(p)}</p>")
-    corpo_html = "\n".join(blocos_html)
+    dados = _extrair_json(texto)
+    ementa = ""
+    if dados:
+        ementa = _pontuar(dados.get("assunto", ""))
+        secoes_html = []
+        n = 0
+        for chave, rotulo in _SECOES:
+            valor = dados.get(chave)
+            if isinstance(valor, list):
+                itens = [_pontuar(i) for i in valor if str(i).strip()]
+                if not itens:
+                    continue
+                corpo = "<ol>" + "".join(f"<li>{e(i)}</li>" for i in itens) + "</ol>"
+            else:
+                par = _pontuar(valor)
+                if not par:
+                    continue
+                corpo = f"<p>{e(par)}</p>"
+            n += 1
+            secoes_html.append(f'<section class="sec"><h2><span>{n}</span>{e(rotulo)}</h2>{corpo}</section>')
+        corpo_html = "\n".join(secoes_html)
+    else:
+        paragrafos = [p for p in _limpar_texto_ia(texto) if not p.lower().startswith("fonte:")]
+        corpo_html = '<section class="sec">' + "".join(f"<p>{e(_pontuar(p))}</p>" for p in paragrafos) + "</section>"
+
+    bloco_ref = ""
+    if referencia or ementa:
+        bloco_ref = (
+            '<div class="assunto">'
+            + (f'<div class="rotulo">Referência</div><div class="ref">{e(referencia)}</div>' if referencia else "")
+            + (f'<div class="ementa"><strong>Assunto:</strong> {e(ementa)}</div>' if ementa else "")
+            + "</div>"
+        )
 
     return f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{e(titulo_doc)} — {data_br}</title>
+  <title>Informe Técnico{(" — " + e(referencia)) if referencia else ""} — {data_br}</title>
   <style>
     @page {{ size: A4 portrait; margin: 14mm 16mm; }}
     * {{ box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
@@ -267,24 +339,30 @@ def formatar_informe_html(
     .folha {{ width: 210mm; min-height: 297mm; margin: 24px auto; padding: 14mm 16mm; background: #fff;
              box-shadow: 0 4px 24px rgba(0,0,0,.12); }}
     .pagina {{ width: 178mm; }}
-    .cabecalho {{ background: #1d4ed8; padding: 8px 16px; border-radius: 6px 6px 0 0; }}
+    .cabecalho {{ background: #1d4ed8; padding: 9px 16px; border-radius: 6px; }}
     .cabecalho-label {{ font-size: 7.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,.8); }}
-    .cabecalho-titulo {{ font-size: 12pt; font-weight: 800; color: #fff; margin-top: 2px; }}
+    .cabecalho-titulo {{ font-size: 15pt; font-weight: 800; color: #fff; margin-top: 2px; letter-spacing: .3px; }}
     .ident {{ width: 100%; border-collapse: collapse; margin: 10px 0 8px; font-size: 9.5pt; color: #334155; }}
     .ident td {{ width: 50%; vertical-align: top; padding: 0 10px 0 0; }}
     .ident td + td {{ padding: 0 0 0 12px; border-left: 1px solid #e2e8f0; }}
     .rotulo {{ font-size: 7.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #94a3b8; margin-bottom: 2px; }}
     .nome {{ font-weight: 700; color: #1e293b; font-size: 10pt; }}
-    .linha {{ border-top: 2px solid #1d4ed8; margin-bottom: 10px; }}
-    .texto-informe p {{ margin: 0 0 7px; line-height: 1.45; text-align: justify; }}
-    .texto-informe p.fonte-texto {{ font-size: 8.5pt; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 6px;
-                                   text-align: left; word-break: break-all; }}
-    .fonte {{ background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 5px; padding: 6px 12px; margin-top: 8px;
+    .assunto {{ border-left: 4px solid #1d4ed8; background: #f8fafc; padding: 7px 12px; margin: 0 0 12px; }}
+    .assunto .ref {{ font-size: 11pt; font-weight: 700; color: #0f172a; }}
+    .assunto .ementa {{ margin-top: 3px; font-size: 10pt; color: #334155; line-height: 1.4; }}
+    .sec {{ margin: 0 0 10px; break-inside: avoid; }}
+    .sec h2 {{ display: flex; align-items: center; gap: 6px; margin: 0 0 4px; padding-bottom: 2px; border-bottom: 1px solid #dbeafe;
+              font-size: 8.5pt; text-transform: uppercase; letter-spacing: .6px; color: #1d4ed8; }}
+    .sec h2 span {{ display: inline-block; width: 15px; height: 15px; border-radius: 50%; background: #1d4ed8; color: #fff;
+                   font-size: 8pt; line-height: 15px; text-align: center; letter-spacing: 0; }}
+    .sec p, .sec li {{ margin: 0 0 4px; line-height: 1.5; text-align: justify; }}
+    .sec ol {{ margin: 0; padding-left: 20px; }}
+    .fonte {{ background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 5px; padding: 6px 12px; margin-top: 10px;
              font-size: 8.5pt; color: #0369a1; word-break: break-all; }}
     .fonte a {{ color: #0369a1; }}
-    .assinatura {{ margin-top: 16px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 9.5pt; color: #374151; }}
-    .assinatura .linha-assina {{ display: inline-block; text-align: center; min-width: 240px; border-top: 1px solid #334155;
-                                padding-top: 4px; margin-top: 18px; }}
+    .assinatura {{ margin-top: 14px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 9.5pt; color: #374151; }}
+    .assinatura .linha-assina {{ display: block; text-align: center; width: 240px; border-top: 1px solid #334155;
+                                padding-top: 4px; margin-top: 22px; }}
     .rodape {{ margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 5px; font-size: 7.5pt; color: #94a3b8;
               display: flex; justify-content: space-between; }}
     @media print {{
@@ -306,7 +384,7 @@ def formatar_informe_html(
 <div class="pagina" id="pagina">
   <div class="cabecalho">
     <div class="cabecalho-label">ERSUS 360 — Sistema de Monitoramento em Saúde Pública</div>
-    <div class="cabecalho-titulo">{e(titulo_doc)}</div>
+    <div class="cabecalho-titulo">Informe Técnico</div>
   </div>
 
   <table class="ident">
@@ -324,14 +402,15 @@ def formatar_informe_html(
       </td>
     </tr>
   </table>
-  <div class="linha"></div>
+
+  {bloco_ref}
 
   <div class="texto-informe">
     {corpo_html}
   </div>
 
   <div class="fonte">
-    🔗 <strong>Fonte oficial:</strong>&nbsp;<a href="{e(link, quote=True)}" target="_blank" rel="noopener noreferrer">{e(link)}</a>
+    🔗 <strong>Fonte oficial (Diário Oficial da União):</strong>&nbsp;<a href="{e(link, quote=True)}" target="_blank" rel="noopener noreferrer">{e(link)}</a>
   </div>
 
   <div class="assinatura">
