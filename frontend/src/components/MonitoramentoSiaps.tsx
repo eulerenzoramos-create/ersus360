@@ -2,7 +2,7 @@
 // Fonte: relatório público do e-Gestor "Equipes e serviços com ausência de envio de informação".
 // A fonte só informa AUSÊNCIA e há quantas competências ela dura: o que ela não informa aparece como
 // "Informação não disponibilizada pela fonte" e nunca é estimado. Cores = alerta gerencial interno.
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { apiGetRaw, apiPost, apiPut } from "../lib/api";
@@ -72,8 +72,42 @@ function SemDado({ msg }: { msg?: string }) {
   return <Aviso tom="alerta">{msg ?? "Nenhuma competência coletada ainda."} Abra <strong>9. Integrações e Atualizações</strong> e use <strong>Atualizar dados</strong>.</Aviso>;
 }
 
+// ── impressão / PDF ──────────────────────────────────────────────────────────
+// Abre um documento limpo só com o relatório (sem menu, botões e filtros do sistema), com cabeçalho,
+// cores preservadas e quebra de página. O estilo da tela é todo inline, então vai junto no clone.
+const escHtml = (t: string) => t.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+
+function imprimirPainel(raiz: HTMLElement | null, titulo: string, subtitulo: string, paisagem: boolean) {
+  if (!raiz) return;
+  const clone = raiz.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll("button, select, input, textarea, [data-no-print]").forEach(n => n.remove());
+  const w = window.open("", "_blank");
+  if (!w) { window.alert("O navegador bloqueou a janela de impressão. Permita pop-ups para este site e tente de novo."); return; }
+  const agora = new Date().toLocaleString("pt-BR");
+  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escHtml(titulo)}</title><style>
+    @page { size: A4 ${paisagem ? "landscape" : "portrait"}; margin: 12mm; }
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { margin: 0; font-family: system-ui, Arial, sans-serif; color: #111827; font-size: 12px; background: #fff; }
+    .cab { border-bottom: 2px solid #1d4ed8; padding-bottom: 6px; margin-bottom: 12px; }
+    .cab h1 { margin: 0; font-size: 17px; } .cab div { color: #374151; font-size: 11px; margin-top: 2px; }
+    table { width: 100%; border-collapse: collapse; } thead { display: table-header-group; }
+    tr, section { break-inside: avoid; } h2, h3 { break-after: avoid; }
+    div { overflow: visible !important; }
+    [data-print-only] { display: block !important; }
+    .rod { margin-top: 14px; border-top: 1px solid #d1d5db; padding-top: 6px; color: #4b5563; font-size: 10px; }
+  </style></head><body>
+    <div class="cab"><h1>ERSUS 360 — ${escHtml(titulo)}</h1><div>${escHtml(subtitulo)}</div><div>Gerado em ${agora}</div></div>
+    ${clone.outerHTML}
+    <div class="rod">Fonte: e-Gestor APS — relatório público de ausência de envio. As cores são alerta gerencial interno do ERSUS 360 e não substituem a situação oficial do Ministério da Saúde. O que a fonte não publica é indicado como “Informação não disponibilizada pela fonte”.</div>
+  </body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 500);
+}
+
 // ── componente principal ─────────────────────────────────────────────────────
 export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: string; nome?: string } }) {
+  const raizRef = useRef<HTMLDivElement>(null);
   const [sub, setSub] = useState<Sub>("visao");
   const [comp, setComp] = useState<string>("");
   const [ineSel, setIneSel] = useState<string | null>(null);
@@ -136,12 +170,12 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
   );
 
   // ── detalhe de uma equipe ──────────────────────────────────────────────────
-  if (ineSel) return <CasoEquipe ine={ineSel} dados={caso.data} carregando={caso.isLoading} voltar={() => setIneSel(null)} />;
+  if (ineSel) return <CasoEquipe ine={ineSel} dados={caso.data} carregando={caso.isLoading} voltar={() => setIneSel(null)} municipio={municipio} />;
 
   return (
-    <div style={{ color: "#111827" }}>
+    <div ref={raizRef} style={{ color: "#111827" }}>
       {/* submenus */}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+      <div data-no-print style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
         {SUBS.map(s => (
           <button key={s.id} onClick={() => setSub(s.id)} style={{ ...btn, background: sub === s.id ? "#1d4ed8" : "#fff", color: sub === s.id ? "#fff" : "#374151", fontWeight: sub === s.id ? 700 : 400 }}>{s.label}</button>
         ))}
@@ -149,7 +183,8 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
 
       {/* identificação da fonte e da competência — nunca apresentar dado antigo como tempo real */}
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", marginBottom: 12, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: "#374151" }}>
-        <label>Competência CNES:{" "}
+        <span data-print-only style={{ display: "none" }}><strong>Competência CNES:</strong> {compBr(compAtual)}</span>
+        <label data-no-print>Competência CNES:{" "}
           <select value={compAtual} onChange={e => setComp(e.target.value)} style={btn} disabled={!comps.length}>
             {comps.slice().reverse().map(c => <option key={c} value={c}>{compBr(c)}</option>)}
           </select>
@@ -158,6 +193,9 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
         <span><strong>Relatório gerado pela fonte em:</strong> {p?.gerado_em_fonte ?? "—"}</span>
         <span><strong>Última atualização no ERSUS:</strong> {dtHora(p?.coletado_em)}</span>
         <span><strong>Origem:</strong> e-Gestor APS (relatório público)</span>
+        <button style={{ ...btnP, marginLeft: "auto" }} disabled={semDado}
+          onClick={() => imprimirPainel(raizRef.current, `Monitoramento SIAPS — ${SUBS.find(x => x.id === sub)?.label.replace(/^\d+\.\s*/, "")}`,
+            `${municipio?.nome ?? ""}${municipio?.uf ? "/" + municipio.uf : ""} · Competência CNES ${compBr(compAtual)}`, true)}>🖨️ Imprimir / PDF</button>
       </div>
       {p?.coleta_atrasada && <Aviso tom="alerta">Existe competência mais nova na fonte ({compBr(p.ultima_competencia_fonte)}) que ainda não foi coletada. Os números abaixo são de {compBr(p.ultima_competencia_coletada)} — atualize em Integrações e Atualizações.</Aviso>}
       {painel.isLoading && <Aviso>Carregando…</Aviso>}
@@ -330,7 +368,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
       {/* 8 ── Relatórios gerenciais */}
       {sub === "relatorios" && (
         <>
-          <Aviso>Relatórios gerados a partir dos dados coletados. Para PDF, use <strong>Imprimir / salvar PDF</strong> do navegador.</Aviso>
+          <Aviso>Relatórios gerados a partir dos dados coletados. Para PDF, abra o submenu desejado e use <strong>🖨️ Imprimir / PDF</strong> (no topo): a impressão sai só com o relatório, sem o menu do sistema.</Aviso>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button style={btnP} disabled={semDado || !ausencias.data?.equipes} onClick={() => baixarCsv(`ausencia-envio-${compAtual}.csv`,
               ["Competência CNES", "IBGE", "INE", "Equipe", "Tipologia", "Status", "Qtde. competências consecutivas", "Nível"],
@@ -341,7 +379,6 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
             <button style={btnP} disabled={!historico.data?.serie} onClick={() => baixarCsv("historico-ausencia.csv",
               ["Competência", "Equipes com ausência", "Atenção", "Alto risco", "Crítico", "Estabelecimentos", "Profissionais"],
               (historico.data?.serie ?? []).map((s: any) => [compBr(s.competencia), s.equipes_com_ausencia, s.amarelo, s.laranja, s.vermelho, s.estabelecimentos, s.profissionais]))}>Histórico (CSV)</button>
-            <button style={btn} onClick={() => window.print()}>Imprimir / salvar PDF</button>
           </div>
           <div style={{ fontSize: 12, color: "#374151", marginTop: 12 }}>
             Relatórios de produção transmitida, validada e rejeitada: {NAO_DISP}.
@@ -467,8 +504,9 @@ function Painel({ titulo, children, cor }: { titulo: string; children: React.Rea
   );
 }
 
-function CasoEquipe({ ine, dados, carregando, voltar }: { ine: string; dados: any; carregando: boolean; voltar: () => void }) {
+function CasoEquipe({ ine, dados, carregando, voltar, municipio }: { ine: string; dados: any; carregando: boolean; voltar: () => void; municipio?: { uf?: string; nome?: string } }) {
   const qc = useQueryClient();
+  const raizRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState<{ situacao: string; responsavel: string; observacao: string } | null>(null);
   const salvar = useMutation({
     mutationFn: (f: any) => apiPut(`${BASE}/equipe/${ine}/acompanhamento`, f),
@@ -505,8 +543,12 @@ function CasoEquipe({ ine, dados, carregando, voltar }: { ine: string; dados: an
   const porComp: Record<string, any> = resumo ? Object.fromEntries(resumo.linha.map((t: any) => [t.competencia, t])) : {};
 
   return (
-    <div style={{ color: "#111827" }}>
-      <button style={{ ...btn, marginBottom: 10 }} onClick={voltar}>← Voltar ao Monitoramento SIAPS</button>
+    <div ref={raizRef} style={{ color: "#111827" }}>
+      <div data-no-print style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+        <button style={btn} onClick={voltar}>← Voltar ao Monitoramento SIAPS</button>
+        {dados?.ine && <button style={btnP} onClick={() => imprimirPainel(raizRef.current, `Caso da equipe — ${dados.equipe}`,
+          `INE ${dados.ine} · ${municipio?.nome ?? ""}${municipio?.uf ? "/" + municipio.uf : ""}`, false)}>🖨️ Imprimir / PDF</button>}
+      </div>
       {carregando && <Aviso>Carregando…</Aviso>}
       {dados?.situacao_dado === "nao_disponivel" && <SemDado msg={dados.mensagem} />}
       {dados?.ine && resumo && (
@@ -619,7 +661,12 @@ function CasoEquipe({ ine, dados, carregando, voltar }: { ine: string; dados: an
 
           {/* acompanhamento */}
           <Painel titulo="Acompanhamento" cor="#1d4ed8">
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+            <div data-print-only style={{ display: "none", fontSize: 13, lineHeight: 1.6 }}>
+              <div>Situação: <strong>{({ pendente: "Pendente", em_acompanhamento: "Em acompanhamento", regularizado: "Regularizado", sem_providencia: "Sem providência" } as Record<string, string>)[a?.situacao ?? "pendente"]}</strong></div>
+              <div>Responsável: <strong>{a?.responsavel || "—"}</strong></div>
+              <div>Observação: {a?.observacao || "—"}</div>
+            </div>
+            <div data-no-print style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
               <select value={f.situacao} onChange={e => setForm({ ...f, situacao: e.target.value })} style={btn}>
                 <option value="pendente">Pendente</option><option value="em_acompanhamento">Em acompanhamento</option>
                 <option value="regularizado">Regularizado</option><option value="sem_providencia">Sem providência</option>
