@@ -112,3 +112,20 @@ async def test_reimportar_atualiza_a_mesma_competencia(ambiente):
     assert len(lotes) == 1 and lotes[0].payload["parcial_ate"] == "2026-10-26"
     ma = {m["codigo"]: m for m in (await c.get("/api/acs/microareas", headers=_h(tok))).json()["microareas"]}
     assert ma["01"]["domicilios_visitados"] == 80
+
+
+@pytest.mark.asyncio
+async def test_abas_sem_dado_na_captura_ficam_aguardando_sem_zero(ambiente):
+    """Falha real (19/10/2026): com só a captura, Visitas/Lista de ACS mostravam 0 e "e-SUS PEC conectado"."""
+    c = ambiente["client"]
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    assert (await c.post(URL, json=_captura(), headers=_h(tok))).status_code == 200
+    for rota in ("/api/acs/esus/visitas?periodo=mensal&competencia=2026-10", "/api/acs/esus/calendario-visitas",
+                 "/api/acs/esus/cadastros-individuais", "/api/acs/esus/acs"):
+        d = (await c.get(rota, headers=_h(tok))).json()
+        assert d["fonte"] == "aguardando_integracao_pec" and d["territorio_disponivel"] is True, rota
+        assert not d.get("dados") and d.get("total") is None, rota
+    dom = (await c.get("/api/acs/esus/cadastros-domiciliares", headers=_h(tok))).json()
+    assert dom["fonte"] == "esus_pec" and dom["origem_dado"] == "captura_assistida"
+    m01 = next(m for m in dom["por_microarea"] if m["microarea"] == "01")
+    assert (m01["domicilios"], m01["domicilios_visitados"], m01["domicilios_a_visitar"], m01["familias"]) == (178, 69, 100, None)
