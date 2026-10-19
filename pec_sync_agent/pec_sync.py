@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ERSUS360 Sync Agent — e-SUS PEC → ERSUS360
-Versão: 1.2.0 | Apuí/AM | IBGE 1300144
+Versão: 1.4.0 | Apuí/AM | IBGE 1300144
 
 Instalar no servidor onde o e-SUS PEC está rodando.
 Conecta ao banco PostgreSQL local do PEC (sem exposição à internet),
@@ -61,6 +61,10 @@ IBGE = "1300144"
 
 # Intervalo de sincronização (horas)
 SYNC_INTERVAL_HOURS = 4
+
+# Versão do agente e do PEC informadas no sinal de vida (PEC_VERSAO é opcional no .env)
+VERSAO_AGENTE = "1.4.0"
+PEC_VERSAO = os.getenv("PEC_VERSAO") or None
 
 # ═══════════════════════════════════════════════════════════════════
 
@@ -502,6 +506,42 @@ def explorar_schema(conn):
     log.info("Schema explorado — veja schema_pec.txt para confirmar nomes das tabelas.")
 
 
+def _sem_segredos(texto) -> str:
+    """Mensagem de erro em uma linha, sem a senha do banco nem a chave de sincronização."""
+    t = str(texto)
+    for segredo in (PEC_DB_PASS, ERSUS_KEY):
+        if segredo:
+            t = t.replace(segredo, "***")
+    return " ".join(t.split())[:480]
+
+
+def enviar_heartbeat(banco_ok: bool, erro: str | None = None) -> bool:
+    """Sinal de vida ao ERSUS360 (/api/pec-agente/heartbeat): o agente está rodando e consegue (ou não)
+    ler o banco do PEC. Não envia dado algum do PEC. É isso que tira o Painel ACS de "Aguardando agente".
+    Nunca derruba a rodada: falha de rede só vira aviso no log."""
+    if not ERSUS_KEY:
+        log.warning("⚠ ERSUS_SYNC_KEY não definida — sinal de vida não enviado")
+        return False
+    corpo = {
+        "ibge": IBGE,
+        "agente_versao": VERSAO_AGENTE,
+        "pec_versao": PEC_VERSAO,
+        "banco_pec_ok": banco_ok,
+        "erro": None if banco_ok else _sem_segredos(erro or "Falha ao conectar ao banco do PEC"),
+    }
+    try:
+        resp = requests.post(f"{ERSUS_URL}/api/pec-agente/heartbeat", json=corpo,
+                             headers={"X-Sync-Key": ERSUS_KEY}, timeout=15)
+    except Exception as exc:
+        log.warning("⚠ Sinal de vida não enviado (sem acesso ao ERSUS360): %s", _sem_segredos(exc))
+        return False
+    if resp.status_code == 200:
+        log.info("✓ Sinal de vida enviado ao ERSUS360 (banco do PEC %s)", "ok" if banco_ok else "COM ERRO")
+        return True
+    log.warning("⚠ Sinal de vida recusado pelo ERSUS360 (%d): %s", resp.status_code, resp.text[:200])
+    return False
+
+
 def sincronizar():
     """Executa uma rodada completa de sincronização."""
     comp = competencia_atual()
@@ -512,7 +552,9 @@ def sincronizar():
         log.info("✓ Conectado ao PostgreSQL do PEC")
     except Exception as exc:
         log.error("✗ Falha ao conectar ao PEC: %s", exc)
+        enviar_heartbeat(False, _sem_segredos(exc))
         return
+    enviar_heartbeat(True)          # antes dos cálculos: o painel passa a "Conectado" mesmo se um indicador falhar
 
     equipes = buscar_equipes(conn)
 
@@ -630,7 +672,7 @@ def main():
     args = sys.argv[1:]
 
     log.info("═" * 60)
-    log.info("ERSUS360 Sync Agent v1.2.0")
+    log.info("ERSUS360 Sync Agent v%s", VERSAO_AGENTE)
     log.info("PEC: %s:%d/%s", PEC_DB_HOST, PEC_DB_PORT, PEC_DB_NAME)
     log.info("ERSUS360: %s", ERSUS_URL)
     log.info("═" * 60)
