@@ -36,7 +36,7 @@ interface PecLocal {
   versao: string | null; credenciais_configuradas: boolean; nota: string;
 }
 interface Rnds {
-  alcancavel: boolean; credenciais_configuradas: boolean; nota: string;
+  alcancavel: boolean | null; credenciais_configuradas: boolean; nota: string;
 }
 interface EsusStatus {
   sistema: string; pec_local: PecLocal; rnds: Rnds;
@@ -49,8 +49,8 @@ interface EstabItem {
 }
 interface CnesStatus {
   sistema: string; ibge: string; cnes_sms: string;
-  total_estabelecimentos: number; com_rejeicao_equipe_esf: number;
-  sem_rejeicao_equipe_esf: number; estabelecimentos: EstabItem[];
+  total_estabelecimentos: number; com_rejeicao_equipe_esf: number | null;
+  sem_rejeicao_equipe_esf: number | null; api_alcancavel?: boolean; api_status_http?: number | null; estabelecimentos: EstabItem[];
   fonte: string; nota: string; tempo_ms: number; verificado_em: string;
 }
 
@@ -71,14 +71,14 @@ interface StatusResponse {
 type Nivel = "ok" | "parcial" | "erro" | "pendente";
 
 function nivelSiaps(s: SiapsStatus): Nivel {
-  if (s.dados_vinculo_obtidos && s.autenticado) return "ok";
-  if (s.api_publica_alcancavel) return "parcial";
+  if (s.dados_vinculo_obtidos && s.api_publica_alcancavel) return "ok";   // fonte pública, sem login
+  if (s.api_publica_alcancavel || s.dados_vinculo_obtidos) return "parcial";
   if (s.credenciais_configuradas) return "parcial";
   return "erro";
 }
 function nivelEgestor(s: EgestorStatus): Nivel {
-  if (s.ines_obtidos?.length > 0) return "ok";
-  if (s.api_alcancavel) return "parcial";
+  if (s.ines_obtidos?.length > 0 && s.api_alcancavel) return "ok";
+  if (s.api_alcancavel || s.ines_obtidos?.length > 0) return "parcial";
   if (s.credenciais_configuradas) return "parcial";
   return "erro";
 }
@@ -89,7 +89,8 @@ function nivelPec(s: EsusStatus): Nivel {
   return "erro";
 }
 function nivelCnes(s: CnesStatus): Nivel {
-  if (s.total_estabelecimentos > 0) return "ok";
+  if (s.total_estabelecimentos > 0 && s.api_alcancavel !== false) return "ok";
+  if (s.total_estabelecimentos > 0) return "parcial";
   return "erro";
 }
 
@@ -164,8 +165,8 @@ function GuiaRailway({ vars }: { vars: Array<{ nome: string; exemplo: string; de
 
 // ── Cards das integrações ─────────────────────────────────────────────────────
 
-function CardIntegracao({ titulo, icon, nivel, tempo, children, guia }: {
-  titulo: string; icon: React.ReactNode; nivel: Nivel; tempo: number;
+function CardIntegracao({ titulo, icon, nivel, tempo, verificadoEm, children, guia }: {
+  titulo: string; icon: React.ReactNode; nivel: Nivel; tempo: number; verificadoEm?: string;
   children: React.ReactNode; guia?: React.ReactNode;
 }) {
   const [expandido, setExpandido] = useState(nivel !== "ok");
@@ -184,7 +185,7 @@ function CardIntegracao({ titulo, icon, nivel, tempo, children, guia }: {
         <div style={{ flex:1, textAlign:"left" }}>
           <div style={{ fontSize:14, fontWeight:700, color:"#1e293b" }}>{titulo}</div>
           <div style={{ fontSize:11, color:"#64748b", marginTop:2 }}>
-            Verificado às {new Date(Date.now()).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" })}
+            Testado às {verificadoEm ? new Date(verificadoEm).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" }) : "—"}
             {" · "}<Tempo ms={tempo}/>
           </div>
         </div>
@@ -218,7 +219,7 @@ function CardSiaps({ d }: { d: SiapsStatus }) {
   const nivel = nivelSiaps(d);
   return (
     <CardIntegracao titulo="SIAPS / e-Gestor APS — Componente Vínculo" nivel={nivel}
-      icon={<Database size={18} color={NIVEL_CFG[nivel].cor}/>} tempo={d.tempo_ms}
+      icon={<Database size={18} color={NIVEL_CFG[nivel].cor}/>} tempo={d.tempo_ms} verificadoEm={d.verificado_em}
       guia={nivel !== "ok" && (
         <GuiaRailway vars={[
           { nome:"SIAPS_CPF",   exemplo:"34130047272", descricao:"CPF da gestora sem pontuação (Railway env var — nunca hardcode)" },
@@ -245,7 +246,7 @@ function CardEgestor({ d }: { d: EgestorStatus }) {
   const [expandirInes, setExpandirInes] = useState(false);
   return (
     <CardIntegracao titulo="e-Gestor APS — INEs das Equipes ESF" nivel={nivel}
-      icon={<Users size={18} color={NIVEL_CFG[nivel].cor}/>} tempo={d.tempo_ms}
+      icon={<Users size={18} color={NIVEL_CFG[nivel].cor}/>} tempo={d.tempo_ms} verificadoEm={d.verificado_em}
       guia={nivel !== "ok" && (
         <GuiaRailway vars={[
           { nome:"EGESTOR_TOKEN", exemplo:"eyJhbGci…",
@@ -306,7 +307,7 @@ function CardEsus({ d }: { d: EsusStatus }) {
   const nivel = nivelPec(d);
   return (
     <CardIntegracao titulo="e-SUS PEC / RNDS" nivel={nivel}
-      icon={<Network size={18} color={NIVEL_CFG[nivel].cor}/>} tempo={d.tempo_ms}
+      icon={<Network size={18} color={NIVEL_CFG[nivel].cor}/>} tempo={d.tempo_ms} verificadoEm={d.verificado_em}
       guia={nivel !== "ok" && (
         <GuiaRailway vars={[
           { nome:"ESUS_URL",    exemplo:"http://pec.apui.am.gov.br:8080",
@@ -345,7 +346,7 @@ function CardCnes({ d }: { d: CnesStatus }) {
   const [expandirEstabs, setExpandirEstabs] = useState(false);
   return (
     <CardIntegracao titulo="CNES / DATASUS — Estabelecimentos de Saúde" nivel={nivel}
-      icon={<Building2 size={18} color={NIVEL_CFG[nivel].cor}/>} tempo={d.tempo_ms}>
+      icon={<Building2 size={18} color={NIVEL_CFG[nivel].cor}/>} tempo={d.tempo_ms} verificadoEm={d.verificado_em}>
       <Row label="IBGE">{d.ibge}</Row>
       <Row label="CNES SMS">{d.cnes_sms}</Row>
       <Row label="Total de estabelecimentos">
@@ -353,17 +354,15 @@ function CardCnes({ d }: { d: CnesStatus }) {
           {d.total_estabelecimentos}
         </span>
       </Row>
-      <Row label="Com rejeição de equipe ESF">
-        <span style={{ fontWeight:700, color: d.com_rejeicao_equipe_esf > 0 ? "#dc2626" : "#166534" }}>
-          {d.com_rejeicao_equipe_esf}
-        </span>
-      </Row>
-      <Row label="Sem rejeição (equipes ativas)">
-        <span style={{ fontWeight:700, color:"#166534" }}>{d.sem_rejeicao_equipe_esf}</span>
+      <Row label="Portal do CNES alcançável"><Bool v={d.api_alcancavel}/>{" "}<span style={{ fontSize:11, color:"#94a3b8" }}>HTTP {d.api_status_http ?? "—"}</span></Row>
+      <Row label="Rejeição de equipe ESF">
+        {d.com_rejeicao_equipe_esf == null
+          ? <span style={{ color:"#94a3b8" }}>não verificado por esta tela</span>
+          : <span style={{ fontWeight:700, color: d.com_rejeicao_equipe_esf > 0 ? "#dc2626" : "#166534" }}>{d.com_rejeicao_equipe_esf} com rejeição · {d.sem_rejeicao_equipe_esf} sem</span>}
       </Row>
       <Row label="Fonte"><span style={{ fontFamily:"monospace", fontSize:11 }}>{d.fonte}</span></Row>
-      <div style={{ marginTop:10, padding:"8px 12px", background:"#f0fdf4",
-        borderRadius:8, fontSize:12, color:"#166534" }}>
+      <div style={{ marginTop:10, padding:"8px 12px", background: nivel === "ok" ? "#f0fdf4" : "#fffbeb",
+        borderRadius:8, fontSize:12, color: nivel === "ok" ? "#166534" : "#9a3412" }}>
         {d.nota}
       </div>
       {d.estabelecimentos?.length > 0 && (
@@ -469,7 +468,7 @@ export default function PainelIntegracoes() {
             </h1>
           </div>
           <div style={{ fontSize:12, color:"#64748b" }}>
-            Status em tempo real de todas as fontes de dados do ERSUS 360
+            Cada fonte pública é testada a cada verificação; o que não é testado aqui mostra a data da última conferência
           </div>
         </div>
         <button onClick={handleAtualizar} disabled={isLoading || rodando}
