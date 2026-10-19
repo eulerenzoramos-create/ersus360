@@ -274,3 +274,21 @@ def test_cabecalhos_aceitos_pelo_httpx_e_so_ascii():
         v.encode("ascii")                                                              # cabeçalho HTTP não aceita acento
     cliente = httpx.AsyncClient(base_url="https://esus.apui.am.gov.br", headers=h)     # é assim que coletar_territorio o cria
     assert cliente.headers["apollographql-client-name"] == "PEC Web"
+
+
+def test_api_consumer_id_so_quando_configurado(monkeypatch):
+    monkeypatch.delenv("ESUS_PEC_API_CONSUMER_ID", raising=False)
+    assert "Api-Consumer-Id" not in web.cabecalhos("https://x")
+    monkeypatch.setenv("ESUS_PEC_API_CONSUMER_ID", "  ersus360-apui  ")
+    assert web.cabecalhos("https://x")["Api-Consumer-Id"] == "ersus360-apui"
+
+
+@pytest.mark.asyncio
+async def test_falta_api_consumer_id_explica_o_que_configurar():
+    """Falha real (19/10/2026, PEC 5.5.28): credencial aceita, mas o PEC exigiu Api-Consumer-Id."""
+    def handler(req):
+        return httpx.Response(200, json={"errors": [{"message": "Api-Consumer-Id não informado no header da requisição."}]})
+    c = httpx.AsyncClient(base_url="https://pec.exemplo", transport=httpx.MockTransport(handler))
+    with pytest.raises(web.PecWebErro) as e:
+        await web._login(c, ACESSO)
+    assert str(e.value).startswith("Login recusado pelo PEC: Api-Consumer-Id") and "ESUS_PEC_API_CONSUMER_ID" in str(e.value)
