@@ -310,6 +310,8 @@ def diagnosticar(ctx: dict) -> dict:
             if r["data_invalida"]:
                 partes.append(f"{r['data_invalida']} com data inválida")
             partes.append(f"{r['aprovados_no_prazo']} aprovada(s) no prazo")
+            if r.get("preliminar"):
+                partes.append("resultado PRELIMINAR no SISAB (pode mudar)")
             etapas["processamento"] = {"status": "processado", "texto": "; ".join(partes) + ".", "fonte": sv.FONTE,
                                        "consultado_em": sis["consultado_em"]}
             for motivo, qt in r["reprovados_por_motivo"].items():
@@ -467,6 +469,41 @@ def diagnosticar(ctx: dict) -> dict:
         "orientacoes": orient, "fontes_nao_verificadas": nao_verificado,
         "ultima_verificacao": max(datas) if datas else None,
     }
+
+
+# ── 2b. Prévia (competência ainda sem lista oficial de ausência) ──────────────
+PREVIA_SITUACOES = ("sem_envio", "sem_aprovadas", "so_reprovada", "so_fora_do_prazo", "com_producao")
+PREVIA_TEXTO = {
+    "sem_envio": "Nenhuma ficha com o INE recebida pelo SISAB",
+    "sem_aprovadas": "Fichas recebidas, mas nenhuma aprovada (só duplicadas, data inválida ou não aplicáveis)",
+    "so_reprovada": "Fichas recebidas, mas todas reprovadas na validação",
+    "so_fora_do_prazo": "Fichas aprovadas, mas nenhuma dentro do prazo",
+    "com_producao": "Há produção aprovada no prazo",
+}
+
+
+def previa_equipe(r: dict, tipo: str | None) -> dict:
+    """Situação de uma equipe numa competência ainda não publicada na lista oficial (só SISAB)."""
+    if r["recebidos"] == 0:
+        sit = "sem_envio"
+    elif r["aprovados"] == 0 and r["reprovados"]:
+        sit = "so_reprovada"
+    elif r["aprovados_no_prazo"] == 0 and r["aprovados"] > 0:
+        sit = "so_fora_do_prazo"
+    elif r["aprovados_no_prazo"] > 0:
+        sit = "com_producao"
+    else:
+        sit = "sem_aprovadas"      # só duplicadas / data inválida / não aplicado
+    notas = []
+    if r.get("preliminar"):
+        notas.append("Resultado PRELIMINAR no SISAB (processamento da competência ainda não fechado).")
+    if tipo == "eMulti":
+        notas.append("Atendimento remoto (eMulti) não é avaliado pelo SISAB.")
+    nota = " ".join(notas) or None
+    return {"situacao": sit, "texto": PREVIA_TEXTO[sit], "risco": sit != "com_producao", "nota": nota,
+            "preliminar": bool(r.get("preliminar")),
+            "recebidos": r["recebidos"], "aprovados": r["aprovados"], "aprovados_no_prazo": r["aprovados_no_prazo"],
+            "reprovados_por_motivo": r["reprovados_por_motivo"], "cnes": r["cnes"]}
 
 
 # ── 3. Plano de regularização (orientação técnica por achado) ────────────────

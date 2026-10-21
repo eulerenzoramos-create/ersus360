@@ -15,6 +15,7 @@ Conferido em 21/10/2026 (Apuí/AM, 12/2025): 46 linhas; INE 0001774026 sem nenhu
 """
 from __future__ import annotations
 
+from html import unescape as _unescape
 import re
 from urllib.parse import urlencode
 
@@ -70,20 +71,27 @@ def ler_tabela(html: str) -> list[dict]:
     for tabela in re.findall(r"<table[^>]*>.*?</table>", html, re.S):
         cab = None
         for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tabela, re.S):
-            cel = [re.sub(r"<[^>]+>", "", x).strip() for x in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, re.S)]
+            cel = [_unescape(re.sub(r"<[^>]+>", "", x)).strip() for x in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, re.S)]
             if cel[:2] == ["CNES", "INE"]:
                 cab = cel
                 continue
             if cab and len(cel) == len(cab) == 5:
                 cnes, ine, tp, val, total = cel
-                m = re.match(r"\s*([^(]+?)\s*(?:\(([^)]*)\))?\s*$", val)
-                linhas.append({
-                    "cnes": cnes.zfill(7) if cnes else None, "ine": ine.zfill(10) if ine else None,
-                    "tp_equipe": tp or None, "validacao": (m.group(1) if m else val).strip(),
-                    "motivo": (m.group(2) or None) if m else None,
-                    "total": int(re.sub(r"\D", "", total) or 0),
-                })
+                linhas.append({"cnes": cnes.zfill(7) if cnes else None, "ine": ine.zfill(10) if ine else None,
+                               "tp_equipe": tp or None, **_validacao(val), "total": int(re.sub(r"\D", "", total) or 0)})
     return linhas
+
+
+def _validacao(texto: str) -> dict:
+    """'Reprovado(PROF)' → Reprovado/PROF · 'Preliminar>Aprovado' → Aprovado, preliminar (competência ainda
+    em processamento no SISAB: o resultado pode mudar)."""
+    t = _unescape(texto or "").strip()
+    preliminar = t.lower().startswith("preliminar")
+    if preliminar:
+        t = t.split(">", 1)[-1].strip()
+    m = re.match(r"\s*([^(]+?)\s*(?:\(([^)]*)\))?\s*$", t)
+    return {"validacao": (m.group(1) if m else t).strip(), "motivo": (m.group(2) or None) if m else None,
+            "preliminar": preliminar}
 
 
 async def _sessao(client: httpx.AsyncClient, uf: str) -> tuple[str, str, str]:
@@ -156,7 +164,9 @@ def resumo_ine(validacao: dict, ine: str) -> dict:
     """Totais oficiais de uma equipe: recebido, aprovado, reprovado por motivo, duplicado, no prazo."""
     def soma(linhas, filtro):
         return sum(l["total"] for l in linhas if l["ine"] == ine and filtro(l))
-    tot, pr = validacao.get("total") or [], validacao.get("no_prazo") or []
+    norm = lambda ls: [{**l, **_validacao(l["validacao"] + (f"({l['motivo']})" if l.get("motivo") else ""))}  # noqa: E731
+                       if "&gt;" in l["validacao"] or ">" in l["validacao"] else l for l in ls]   # evidências antigas
+    tot, pr = norm(validacao.get("total") or []), norm(validacao.get("no_prazo") or [])
     reprov: dict[str, int] = {}
     for l in tot:
         if l["ine"] == ine and l["validacao"].lower().startswith("reprovado"):
@@ -172,4 +182,5 @@ def resumo_ine(validacao: dict, ine: str) -> dict:
         "recebidos_no_prazo": soma(pr, lambda l: True),
         "aprovados_no_prazo": soma(pr, lambda l: l["validacao"] == "Aprovado"),
         "cnes": cnes,
+        "preliminar": any(l.get("preliminar") for l in tot if l["ine"] == ine),
     }

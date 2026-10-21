@@ -892,6 +892,8 @@ function DiagnosticoMunicipal({ abrir }: { abrir: (ine: string, comp?: string) =
       <div style={{ marginBottom: 12 }}><BotaoVerificar /></div>
       {d.avisos.map((a: string) => <Aviso key={a}>{a}</Aviso>)}
 
+      <PreviaSisab abrir={abrir} />
+
       {d.pendencias_intervencao_sms.length > 0 && (
         <Painel titulo={`Pendências que exigem intervenção da Secretaria — ${compBr(d.competencia_mais_recente)}`} cor="#ea580c">
           {d.pendencias_intervencao_sms.map((p: any) => (
@@ -1092,5 +1094,64 @@ function DiagnosticoEquipe({ ine, compInicial, municipio }: { ine: string; compI
         {d.reincidencia && <div style={{ fontSize: 13, marginTop: 4 }}><strong>Reincidência:</strong> a equipe saiu da lista oficial e voltou a constar — a regularização anterior não se manteve.</div>}
       </Painel>
     </>
+  );
+}
+
+// ── Prévia pelo SISAB (competências ainda sem lista oficial de ausência) ────
+const COR_PREVIA: Record<string, Nivel> = { sem_envio: "vermelho", sem_aprovadas: "laranja", so_reprovada: "laranja", so_fora_do_prazo: "amarelo", com_producao: "verde" };
+const dataBrIso = (s?: string | null) => (s ? s.slice(0, 10).split("-").reverse().join("/") : "—");
+
+function PreviaSisab({ abrir }: { abrir: (ine: string, comp?: string) => void }) {
+  const { data: d } = useQuery<any>({ queryKey: ["mon-siaps", "diag-previa"], queryFn: () => apiGetRaw(`${BASE}/diagnostico/previa`) });
+  const [verTodas, setVerTodas] = useState(false);
+  if (!d || d.situacao_dado === "nao_disponivel" || !d.competencias?.length) return null;
+  return (
+    <Painel titulo={`Prévia pelo SISAB — competências ainda sem lista oficial (após ${compBr(d.ultima_competencia_oficial)})`} cor="#0369a1">
+      {d.avisos.map((a: string) => <Aviso key={a} tom={a.startsWith("PRÉVIA") ? "alerta" : "info"}>{a}</Aviso>)}
+      {d.competencias.map((c: any) => {
+        const risco = c.equipes.filter((e: any) => e.risco);
+        const lista = verTodas ? c.equipes : risco;
+        return (
+          <div key={c.competencia} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 12px", marginBottom: 10 }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
+              <strong style={{ fontSize: 14 }}>Competência {compBr(c.competencia)}</strong>
+              <Selo nivel={c.parcial ? "amarelo" : "cinza"} texto={c.parcial ? `Prazo em curso até ${dataBrIso(c.prazo)} — parcial` : `Prazo encerrado em ${dataBrIso(c.prazo)}`} />
+              {c.equipes.some((e: any) => e.preliminar) && <Selo nivel="amarelo" texto="Resultado preliminar no SISAB" />}
+              <span style={{ fontSize: 12, color: "#374151" }}>
+                {c.sisab === "ok" ? `SISAB consultado em ${dtHora(c.consultado_em)}` : c.sisab === "nao_consultado" ? "SISAB ainda não consultado — use “Verificar fontes oficiais”" : c.mensagem}
+              </span>
+            </div>
+            {c.sisab === "ok" && (
+              <>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, marginBottom: 6 }}>
+                  <Selo nivel="vermelho" texto={`${c.resumo.sem_envio} sem nenhuma ficha`} />
+                  <Selo nivel="laranja" texto={`${c.resumo.sem_aprovadas} sem aprovadas`} />
+                  <Selo nivel="laranja" texto={`${c.resumo.so_reprovada} só reprovadas`} />
+                  <Selo nivel="amarelo" texto={`${c.resumo.so_fora_do_prazo} só fora do prazo`} />
+                  <Selo nivel="verde" texto={`${c.resumo.com_producao} com produção no prazo`} />
+                </div>
+                {lista.length > 0 ? (
+                  <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
+                    <thead><tr>{["Equipe", "INE", "Tipo", "Prévia SISAB", "Recebidas", "Aprovadas", "No prazo", ""].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+                    <tbody>{lista.map((e: any) => (
+                      <tr key={e.ine}>
+                        <td style={td}>{e.equipe}</td><td style={td}>{e.ine}</td><td style={td}>{e.tipo_equipe ?? "—"}</td>
+                        <td style={td}><Selo nivel={COR_PREVIA[e.situacao]} texto={e.texto} />{e.nota && <div style={{ fontSize: 11, color: "#4b5563", marginTop: 2 }}>{e.nota}</div>}
+                          {Object.keys(e.reprovados_por_motivo).length > 0 && <div style={{ fontSize: 11, marginTop: 2 }}>Reprovadas: {Object.entries(e.reprovados_por_motivo).map(([m, q]) => `${m}: ${q}`).join(", ")}</div>}</td>
+                        <td style={td}>{e.recebidos}</td><td style={td}>{e.aprovados}</td><td style={td}>{e.aprovados_no_prazo}</td>
+                        <td style={td}><button data-no-print style={btn} onClick={() => abrir(e.ine)}>Histórico</button></td>
+                      </tr>))}
+                    </tbody>
+                  </table>
+                ) : <div style={{ fontSize: 13, color: "#166534" }}>Nenhuma equipe em risco nesta competência pelo SISAB.</div>}
+              </>
+            )}
+          </div>
+        );
+      })}
+      <label data-no-print style={{ fontSize: 12, color: "#374151" }}>
+        <input type="checkbox" checked={verTodas} onChange={e => setVerTodas(e.target.checked)} /> Mostrar também as equipes com produção no prazo
+      </label>
+    </Painel>
   );
 }
