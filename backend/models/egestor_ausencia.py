@@ -63,6 +63,30 @@ class EgestorAusencia(Base):
     coletado_em     = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+class EgestorAusenciaEvidencia(Base):
+    """Evidência oficial consultada para o diagnóstico da ausência (uma por fonte × competência).
+
+    fonte: "sisab_validacao" (relatório público de validação do SISAB: recebido/aprovado/reprovado/no prazo,
+    por CNES e INE — só totais) ou "egestor_pagamento" (validação de cada equipe na parcela da competência CNES).
+    O payload é a resposta oficial já reduzida ao município; nada é estimado. `hash_anterior`/`alterado_em`
+    registram mudança entre consultas (alerta "alteração na situação de processamento")."""
+    __tablename__ = "egestor_ausencia_evidencias"
+    __table_args__ = (UniqueConstraint("municipio_id", "fonte", "competencia", name="uq_egestor_ausencia_evidencia"),)
+
+    id             = Column(Integer, primary_key=True, autoincrement=True)
+    municipio_id   = Column(Integer, ForeignKey("municipios.id"), nullable=False, index=True)
+    fonte          = Column(String(30), nullable=False)
+    competencia    = Column(String(7), nullable=False)               # AAAA-MM
+    situacao       = Column(String(20), nullable=False)              # ok | nao_publicado | erro
+    mensagem       = Column(Text, nullable=True)
+    payload        = Column(Text, nullable=False, default="{}")      # JSON
+    hash           = Column(String(64), nullable=True)
+    hash_anterior  = Column(String(64), nullable=True)
+    alterado_em    = Column(DateTime, nullable=True)
+    consultado_por = Column(String(200), nullable=True)
+    consultado_em  = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 class EgestorAusenciaAcompanhamento(Base):
     __tablename__ = "egestor_ausencia_acompanhamentos"
     __table_args__ = (UniqueConstraint("municipio_id", "ine", name="uq_egestor_ausencia_acomp"),)
