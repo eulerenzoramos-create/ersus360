@@ -44,6 +44,17 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function AbaDashboard({ dash }: { dash: any }) {
   if (!dash) return <div style={{ padding: 40, textAlign: "center", color: "#9ca3af" }}>Carregando…</div>;
+  // Fila ambulatorial, TFD e execução do bloco MAC não têm fonte integrada: antes a tela mostrava "MAC crítico"
+  // com campos inexistentes e quebrava. Mostra só o que existe (internações do SIH) e diz o que falta.
+  if (!Array.isArray(dash.especialidades_criticas)) return (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "16px 18px", fontSize: 13, color: "#374151" }}>
+      <div style={{ fontWeight: 700, marginBottom: 8 }}>Dados disponíveis — {dash.ano ?? "—"}</div>
+      <div>Internações (SIH): <strong>{dash.internacoes != null ? Number(dash.internacoes).toLocaleString("pt-BR") : "não disponível"}</strong></div>
+      <div>Valor das internações (SIH): <strong>{dash.valor_mac != null ? BRL(dash.valor_mac) : "não disponível"}</strong></div>
+      <div style={{ marginTop: 10, color: "#92400e" }}>Fila ambulatorial, TFD e execução orçamentária do bloco MAC: não integrados (sem fonte oficial conectada). Nenhum valor é estimado.</div>
+      {dash.fonte && <div style={{ marginTop: 6, fontSize: 11, color: "#4b5563" }}>Fonte: {dash.fonte}</div>}
+    </div>
+  );
 
   return (
     <div>

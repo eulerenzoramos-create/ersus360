@@ -11,6 +11,6 @@ async def dashboard(ano: int = Query(0)):
     if not ano: ano = _ANO()
     fns = await resumo_indicadores_aps(ano); siops = await buscar_apuracao(ano)
     any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [fns, siops])
-    return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "indicadores_previne": fns.get("indicadores"), "despesa_saude": siops.get("despesa_total_saude"), "fonte": "e-Gestor APS + SIOPS — dados abertos", "verificado_em": _TS()}
+    return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "indicadores_aps": fns.get("indicadores"), "despesa_saude": siops.get("despesa_total_saude"), "fonte": "e-Gestor APS + SIOPS — dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
 async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)

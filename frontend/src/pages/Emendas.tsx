@@ -81,9 +81,12 @@ export default function Emendas() {
   if (!dashboard) return (
     <div style={{ padding: 24 }}>
       <NaoDisponivelBanner
-        titulo="Emendas indisponivel"
-        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+        titulo="Emendas parlamentares estão no InvestSUS"
+        nota="As emendas do município (propostas, empenho e pagamento) vêm do InvestSUS. Abra o menu Financeiro › FNS / Convênios › InvestSUS — Propostas/Execução."
       />
+      <a href="/investsus" style={{ display: "inline-block", marginTop: 12, background: "#1d4ed8", color: "#fff", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+        Abrir InvestSUS
+      </a>
     </div>
   );
 

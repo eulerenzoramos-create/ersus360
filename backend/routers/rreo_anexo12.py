@@ -2,7 +2,7 @@
 from __future__ import annotations
 from datetime import date, datetime
 from fastapi import APIRouter, Query
-from services.siops_service import buscar_apuracao
+from services.siops_service import buscar_apuracao, alerta_minimo
 router = APIRouter(prefix="/api/rreo-anexo12", tags=["RREO Anexo 12"])
 _TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
 _NOTA = "RREO Anexo 12 detalhado requer SICONFI (pendente). SIOPS como proxy EC-29."
@@ -12,8 +12,8 @@ async def dashboard(ano: int = Query(0)):
     siops = await buscar_apuracao(ano)
     alertas = []
     pct = siops.get("percentual_saude_receita")
-    if pct is not None and pct < 15:
-        alertas.append({"nivel": "critico", "mensagem": f"EC-29: {pct:.1f}% — abaixo do mínimo 15%"})
+    if (alerta := alerta_minimo(siops)):
+        alertas.append(alerta)
     return {"situacao_dado": siops.get("situacao_dado"), "ano": ano, "financeiro": siops, "alertas": alertas, "nota": _NOTA, "fonte": "SIOPS — DATASUS dados abertos", "verificado_em": _TS()}
 @router.get("/indicadores")
 async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)

@@ -9,6 +9,7 @@ import {
   Plus, Trash2, TrendingUp,
 } from "lucide-react";
 import { apiFns, apiConvenios, apiRepasses, type FnsSyncResult } from "../lib/api";
+import { comoLista } from "../lib/api";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
@@ -35,9 +36,9 @@ export default function FnsConvenios() {
 
   // Queries
   const { data: status } = useQuery({ queryKey: ["fns-status"], queryFn: apiFns.status });
-  const { data: convenios = [] } = useQuery({ queryKey: ["convenios"], queryFn: () => apiConvenios.list() });
-  const { data: repasses = [] } = useQuery({ queryKey: ["repasses"], queryFn: () => apiRepasses.list() });
-  const { data: mensais = [] } = useQuery({ queryKey: ["repasses-mensais"], queryFn: () => apiRepasses.mensais(ano) });
+  const { data: convenios = [] } = useQuery({ queryKey: ["convenios"], queryFn: () => apiConvenios.list().then(d => comoLista<(typeof d)[number]>(d)) });
+  const { data: repasses = [] } = useQuery({ queryKey: ["repasses"], queryFn: () => apiRepasses.list().then(d => comoLista<(typeof d)[number]>(d)) });
+  const { data: mensais = [] } = useQuery({ queryKey: ["repasses-mensais"], queryFn: () => apiRepasses.mensais(ano).then(d => comoLista<(typeof d)[number]>(d)) });
 
   // Mutations
   const mutPreview = useMutation({

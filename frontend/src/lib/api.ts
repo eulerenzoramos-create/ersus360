@@ -352,6 +352,10 @@ export const apiSiaps = {
 // apiGet retorna undefined — os defaults `= []` no useQuery entram em ação
 // e as páginas não crasham em .map(). Para preservar a mensagem de indisponível,
 // use apiGetRaw() que devolve a resposta completa.
+// Rotas sem dado devolvem {situacao_dado:"nao_disponivel"} (objeto). Telas que esperam lista usam comoLista
+// para não quebrar (antes: "x.map is not a function" em várias telas do Financeiro).
+export const comoLista = <T = unknown>(d: unknown): T[] => (Array.isArray(d) ? (d as T[]) : []);
+
 export const apiGet = <T = unknown>(path: string, params?: Record<string, unknown>) =>
   api.get<T>(path, { params }).then((r) => {
     const d = r.data as any;

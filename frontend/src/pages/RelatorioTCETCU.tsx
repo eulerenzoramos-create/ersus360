@@ -7,6 +7,7 @@ import {
   BarChart2, DollarSign, Users, Activity,
 } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import { comoLista } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -149,7 +150,7 @@ export default function RelatorioTCETCU() {
 
   const { data: relatorios = [], isLoading, refetch } = useQuery<Relatorio[]>({
     queryKey: ["tce-tcu-relatorios", filtroTipo],
-    queryFn: () => apiGet("/api/tce-tcu/relatorios", { tipo: filtroTipo !== "todos" ? filtroTipo : undefined }) as Promise<Relatorio[]>,
+    queryFn: () => apiGet("/api/tce-tcu/relatorios", { tipo: filtroTipo !== "todos" ? filtroTipo : undefined }).then(d => comoLista<Relatorio>(d)),
     staleTime: 120_000,
   });
 

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiExecucao, apiConvenios, type Empenho, type SaldoConvenio } from "../lib/api";
+import { comoLista } from "../lib/api";
 import { DollarSign, Plus, TrendingUp, AlertCircle } from "lucide-react";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
@@ -146,14 +147,14 @@ export default function Execucao() {
   const [modal, setModal] = useState(false);
   const [convenioSel, setConvenioSel] = useState<number | undefined>();
 
-  const { data: convenios = [] } = useQuery({ queryKey: ["convenios"], queryFn: () => apiConvenios.list() });
+  const { data: convenios = [] } = useQuery({ queryKey: ["convenios"], queryFn: () => apiConvenios.list().then(d => comoLista<(typeof d)[number]>(d)) });
   const { data: empenhos = [], isLoading: loadEmp } = useQuery({
     queryKey: ["empenhos", convenioSel],
-    queryFn: () => apiExecucao.empenhos(convenioSel),
+    queryFn: () => apiExecucao.empenhos(convenioSel).then(d => comoLista<Empenho>(d)),
   });
   const { data: restos = [] } = useQuery({
     queryKey: ["restos"],
-    queryFn: () => apiExecucao.restosAPagar(),
+    queryFn: () => apiExecucao.restosAPagar().then(d => comoLista<(typeof d)[number]>(d)),
     enabled: aba === "restos",
   });
 

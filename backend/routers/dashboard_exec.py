@@ -79,17 +79,17 @@ async def blocos(ibge: str | None = None, ano: int = Query(0)):
         "situacao_dado": siops.get("situacao_dado", "nao_disponivel"),
         "indicadores": [
             {
-                "nome": "Despesa total em saúde",
-                "valor": _brl(siops.get("vl_despesa_total")) if siops.get("vl_despesa_total") else "—",
-                "status": "ok" if siops.get("pct_aplicado_saude", 0) >= 15 else "alerta",
+                "nome": "Despesa total em saúde" + (f" ({siops['ano']}, {siops['periodo']})" if siops.get("periodo") else ""),
+                "valor": _brl(siops.get("despesa_total_saude")) if siops.get("despesa_total_saude") else "—",
+                "status": "ok" if (siops.get("percentual_saude_receita") or 0) >= 15 else "alerta",
                 "situacao_dado": siops.get("situacao_dado", "nao_disponivel"),
                 "tendencia": None,
-                "rota": "/repasses-aps",
+                "rota": "/siops",
             },
             {
-                "nome": "% aplicado em saúde (Lei 141/2012)",
-                "valor": f"{siops.get('pct_aplicado_saude', 0):.1f}%" if siops.get("pct_aplicado_saude") else "—",
-                "status": "ok" if siops.get("pct_aplicado_saude", 0) >= 15 else "critico",
+                "nome": "% aplicado em saúde (LC 141/2012)" + ("" if siops.get("ano_fechado", True) else " — parcial"),
+                "valor": f"{siops['percentual_saude_receita']:.2f}%" if siops.get("percentual_saude_receita") is not None else "—",
+                "status": "ok" if (siops.get("percentual_saude_receita") or 0) >= 15 else ("critico" if siops.get("ano_fechado") else "alerta"),
                 "situacao_dado": siops.get("situacao_dado", "nao_disponivel"),
                 "tendencia": None,
                 "rota": "/repasses-aps",
@@ -207,10 +207,10 @@ async def alertas(ibge: str | None = None, ano: int = Query(0)):
     total = 0
 
     # SIOPS: % saúde abaixo de 15%
-    pct = siops.get("pct_aplicado_saude")
+    pct = siops.get("percentual_saude_receita")
     if pct is not None:
         total += 1
-        if pct < 15:
+        if pct < 15 and siops.get("ano_fechado"):   # ano em andamento não é falha confirmada
             criticos += 1
 
     # Malária: alto número de casos

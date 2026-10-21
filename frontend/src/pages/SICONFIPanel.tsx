@@ -118,7 +118,12 @@ function AlertaSiconfi({ status }: { status: Status }) {
 
 // ── aba RREO ─────────────────────────────────────────────────────────
 function AbaRREO({ rreo }: { rreo: RREOResp }) {
-  const d = rreo.dados as any;
+  const d = rreo?.dados as any;
+  if (!d) return (
+    <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+      RREO não disponível: o SICONFI (STN) ainda não está integrado. Para o mínimo constitucional em saúde, veja a tela SIOPS.
+    </p>
+  );
   return (
     <div className="space-y-6">
       {rreo.aviso && (

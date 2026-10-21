@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { Download, Printer, CheckCircle2, AlertCircle, Info } from "lucide-react";
 import { BRL } from "../lib/fmt";
+import { useQuery } from "@tanstack/react-query";
+import { apiGetRaw } from "../lib/api";
 
 // ── Dados reais SIOPS homologado 29/04/2026 ──────────────────────────────────
 
@@ -219,6 +221,8 @@ export default function RREOAnexo12() {
           </button>
         </div>
       </div>
+
+      <SiopsAtualizado />
 
       {/* ── Container do relatório ── */}
       <div className="bg-white border border-gray-400 shadow-sm mx-auto max-w-[1400px] p-4 print:shadow-none print:border-0">
@@ -623,6 +627,34 @@ export default function RREOAnexo12() {
           .print\\:hidden { display: none !important; }
         }
       `}</style>
+    </div>
+  );
+}
+
+
+// ── Situação mais recente no SIOPS (consulta pública, ao vivo) ─────────────────
+// O demonstrativo abaixo é a transcrição do 1º bimestre/2026 homologado (conferido com o SIOPS em 21/10/2026:
+// receita base R$ 10.238.107,09 idêntica). Este quadro mostra o último bimestre homologado, sem alterar o documento.
+function SiopsAtualizado() {
+  const { data: a } = useQuery<any>({ queryKey: ["siops-apuracao", META.exercicio],
+    queryFn: () => apiGetRaw("/api/siops/apuracao", { ano: META.exercicio }) });
+  if (!a || a.situacao_dado !== "oficial_validado") return null;
+  const mesmo = a.bimestre === 1;
+  return (
+    <div className="mx-auto max-w-[1400px] mb-3 rounded border border-blue-200 bg-blue-50 px-4 py-3 text-[12px] text-blue-900 print:hidden">
+      <div className="font-semibold mb-1">
+        {mesmo ? "O demonstrativo abaixo é o último bimestre homologado no SIOPS." :
+          `Atenção: o demonstrativo abaixo é do ${META.bimestre} bimestre/${META.exercicio}. O SIOPS já tem dados homologados ${a.periodo} de ${a.ano}:`}
+      </div>
+      {!mesmo && (
+        <div className="flex flex-wrap gap-x-6 gap-y-1">
+          <span>Base do mínimo (impostos + transferências): <strong>{BRL(a.receita_impostos_transferencias)}</strong></span>
+          <span>Aplicado em ASPS (recursos próprios): <strong>{BRL(a.despesa_asps_recursos_proprios)}</strong></span>
+          <span>% aplicado até agora: <strong>{a.percentual_saude_receita?.toFixed(2)}%</strong>{a.percentual_saude_receita < 15 ? " (abaixo de 15% — parcial)" : ""}</span>
+          <span>Despesa total com saúde: <strong>{BRL(a.despesa_total_saude)}</strong></span>
+        </div>
+      )}
+      <div className="mt-1 text-[11px] text-blue-800">Fonte: {a.fonte}. Para o demonstrativo completo do bimestre atual, consulte o RREO Anexo 12 no SIOPS.</div>
     </div>
   );
 }

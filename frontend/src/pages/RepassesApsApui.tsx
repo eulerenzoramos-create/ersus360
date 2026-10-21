@@ -325,79 +325,73 @@ function DiagnosticoInconsistencias({ data }: { data: DetalhadoData }) {
 
   const issues: Issue[] = [];
 
-  // 1. eMulti: AR ausente
+  // Valores de referência: só o que o próprio e-Gestor pagou nesta parcela (média por equipe paga).
+  // Antes: R$ 5.000 (AR), R$ 14.250 (eMulti) e R$ 30.000 (eAP/eSF) fixos no código, sem fonte.
+  const mediaPaga = (total?: number, qt?: number) => (total && qt ? total / qt : null);
+  const REGRA = "Valores e requisitos de credenciamento seguem a portaria vigente do cofinanciamento da APS — confirmar no e-Gestor antes de planejar.";
+
+  // 1. eMulti: componente de atendimento remoto não pago
   if (emulti.qt_pagas > 0 && emulti.vl_atend_remoto === 0) {
     issues.push({
       codigo: "EMULTI_AR_AUSENTE",
-      titulo: "eMulti: Atendimento Remoto (AR) não recebido",
+      titulo: "eMulti: componente de Atendimento Remoto não pago nesta parcela",
       descricao:
-        "A equipe eMulti recebe Custeio (C) e Qualidade (Q), mas o componente AR — Atendimento Remoto / Telessaúde — não está sendo pago pelo e-Gestor. " +
-        "Isso indica ausência de produção de teleconsultas registrada na RNDS ou modalidade não habilitada no e-Gestor.",
-      impacto: "Perda de R$ 5.000,00/mês por modalidade habilitada.",
+        "O e-Gestor pagou Custeio e Qualidade à eMulti, mas o componente de Atendimento Remoto ficou zerado. " +
+        "Na aba eGestor › Monitoramento SIAPS, a lista oficial de ausência mostra se falta produção válida de atendimento remoto.",
+      impacto: "Valor do componente não recebido nesta parcela (o valor de referência depende da modalidade da eMulti).",
       requisitos: [
-        "A equipe eMulti deve estar cadastrada com modalidade habilitada para teleassistência no e-Gestor",
-        'Registrar atividades de teleconsulta ou telediagnóstico no e-SUS PEC (ficha de atendimento com tipo "Telessaúde")',
-        "Produção mínima de 20 teleconsultas/mês deve constar na RNDS",
-        "Verificar habilitação da modalidade junto ao DAB/MS — pode ser necessário enviar ofício ao COSEMS",
+        "Conferir no Monitoramento SIAPS (Diagnóstico das Ausências) se a eMulti consta como sem produção de atendimento remoto",
+        "Conferir no e-SUS APS/PEC o registro dos atendimentos remotos da eMulti na competência",
+        REGRA,
       ],
     });
   }
 
-  // 2. eMulti: capacidade ociosa
+  // 2. eMulti: vagas de teto não ocupadas
   const mTeto = tetos.emulti_estrategica ?? 0;
   const mPagas = emulti.qt_pagas ?? 0;
   if (mTeto > 0 && mPagas > 0 && mTeto - mPagas >= 2) {
     const ociosas = mTeto - mPagas;
+    const media = mediaPaga(emulti.vl_total, mPagas);
     issues.push({
       codigo: "EMULTI_CAPACIDADE_OCIOSA",
-      titulo: `eMulti: ${mPagas} equipe(s) paga(s) de ${mTeto} no teto — ${ociosas} vaga(s) ociosa(s)`,
-      descricao: `O município tem teto para ${mTeto} equipes eMulti mas somente ${mPagas} está(ão) credenciada(s) e recebendo custeio.`,
-      impacto: `Capacidade ociosa de ${ociosas} equipe(s) — potencial adicional de ${BRL(ociosas * 14250)}/mês.`,
-      requisitos: [
-        "Avaliar ampliação das equipes eMulti junto à Secretaria Municipal de Saúde",
-        "Verificar disponibilidade orçamentária para contratação de novos profissionais",
-        "Solicitar credenciamento das equipes adicionais ao DAB/MS via COSEMS/AM",
-        "Profissionais elegíveis: psicólogo, fisioterapeuta, fonoaudiólogo, assistente social, entre outros",
-      ],
+      titulo: `eMulti: ${mPagas} equipe(s) paga(s) de ${mTeto} no teto — ${ociosas} vaga(s) disponível(is)`,
+      descricao: `O teto publicado no e-Gestor permite ${mTeto} eMulti (estratégica); ${mPagas} está(ão) sendo paga(s).`,
+      impacto: media ? `Referência desta parcela: ${BRL(media)}/mês pagos por eMulti — o valor de uma nova equipe depende da modalidade.` : "Sem valor de referência nesta parcela.",
+      requisitos: ["Avaliar com a Secretaria a ampliação de equipes eMulti", REGRA],
     });
   }
 
-  // 3. eAP: nenhuma equipe paga com teto disponível
+  // 3. eAP: teto sem equipe paga
   const eapTeto = tetos.eap ?? 0;
   const eapPagas = eap.qt_pagas ?? 0;
   if (eapTeto >= 5 && eapPagas === 0) {
     issues.push({
       codigo: "EAP_AUSENTE",
-      titulo: `eAP: 0 equipes pagas — teto de ${eapTeto} vagas completamente ocioso`,
+      titulo: `eAP: nenhuma equipe paga — teto publicado de ${eapTeto}`,
       descricao:
-        `O município possui teto de ${eapTeto} equipes de Atenção Primária Especializada (eAP), ` +
-        "mas nenhuma está credenciada ou recebendo custeio federal. " +
-        "eAP é composta por médicos especialistas (ex.: ginecologista, pediatra, clínico) vinculados às UBS.",
-      impacto: `Teto de ${eapTeto} equipes sem aproveitamento — potencial de ${BRL(eapTeto * 30000)}/mês não recebido.`,
-      requisitos: [
-        "Verificar com a Secretaria Municipal de Saúde a viabilidade de implantar equipes eAP nas UBS",
-        "Avaliar quais especialidades são mais demandadas (ginecologia, pediatria, saúde mental) para priorização",
-        "Cadastrar as equipes no SCNES com os profissionais vinculados antes de solicitar credenciamento",
-        "Solicitar credenciamento das equipes eAP ao DAB/MS via COSEMS/AM com documentação da implantação",
-        "O credenciamento exige comprovação de vínculo com eSF e produção regular no e-SUS PEC",
-      ],
+        `O e-Gestor publica teto de ${eapTeto} equipes de Atenção Primária (eAP) e nenhuma está sendo paga. ` +
+        "A eAP é a equipe de Atenção Primária com médico e enfermeiro em carga horária reduzida (modalidades 20 h e 30 h).",
+      impacto: "Sem valor de referência: o município não recebe eAP nesta parcela.",
+      requisitos: ["Avaliar com a Secretaria se a implantação de eAP faz sentido para o território", REGRA],
     });
   }
 
-  // 4. eSF: capacidade ociosa
+  // 4. eSF: vagas de teto não ocupadas
   const sfTeto = tetos.esf ?? 0;
   const sfPagas = esf.qt_pagas ?? 0;
   if (sfTeto > 0 && sfPagas > 0 && sfTeto - sfPagas >= 2) {
     const ociosas = sfTeto - sfPagas;
+    const media = mediaPaga(esf.vl_total_bruto, sfPagas);
     issues.push({
       codigo: "ESF_CAPACIDADE_OCIOSA",
-      titulo: `eSF: ${sfPagas} de ${sfTeto} equipes pagas — ${ociosas} vaga(s) ociosa(s)`,
-      descricao: `O município tem teto para ${sfTeto} equipes eSF mas somente ${sfPagas} estão sendo financiadas.`,
-      impacto: `Perda de ${BRL(ociosas * 30000)}/mês por equipe não credenciada.`,
+      titulo: `eSF: ${sfPagas} de ${sfTeto} equipes pagas — ${ociosas} vaga(s) disponível(is) no teto`,
+      descricao: `O teto publicado no e-Gestor permite ${sfTeto} eSF; ${sfPagas} estão sendo financiadas.`,
+      impacto: media ? `Referência desta parcela: ${BRL(media)}/mês em média por eSF paga (valor bruto).` : "Sem valor de referência nesta parcela.",
       requisitos: [
-        "Verificar cadastro das equipes eSF no SCNES com composição mínima obrigatória",
-        "Confirmar implantação das equipes nas UBS correspondentes",
-        "Avaliar contratação de médico/enfermeiro para equipes incompletas",
+        "Verificar cadastro das equipes eSF no SCNES com a composição mínima obrigatória",
+        "Confirmar a implantação das equipes nas UBS correspondentes",
+        REGRA,
       ],
     });
   }
@@ -446,7 +440,7 @@ function DiagnosticoInconsistencias({ data }: { data: DetalhadoData }) {
           </div>
           <p style={{ fontSize: 12, margin: "0 0 6px", color: "#78350f", lineHeight: 1.6 }}>{issue.descricao}</p>
           <p style={{ fontSize: 11.5, color: "#92400e", margin: "0 0 8px", fontWeight: 600 }}>
-            Impacto financeiro: <span style={{ color: "#dc2626" }}>{issue.impacto}</span>
+            Referência financeira: <span style={{ color: "#b45309" }}>{issue.impacto}</span>
           </p>
           <ol style={{ fontSize: 12, margin: "0 0 10px", paddingLeft: 18, lineHeight: 1.9, color: "#78350f" }}>
             {issue.requisitos.map((r, i) => <li key={i}>{r}</li>)}

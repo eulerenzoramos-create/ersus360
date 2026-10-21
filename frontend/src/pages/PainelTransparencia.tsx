@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, Download, Globe, FileText, DollarSign, Users, BarChart3, Shield } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { comoLista } from "../lib/api";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
@@ -83,7 +84,7 @@ export default function PainelTransparencia() {
 
   const { data: indicadores = [] } = useQuery<IndicadorPublico[]>({
     queryKey: ["transp-indicadores"],
-    queryFn: () => apiGet("/api/transparencia/indicadores") as Promise<IndicadorPublico[]>,
+    queryFn: () => apiGet("/api/transparencia/indicadores").then(d => comoLista<IndicadorPublico>(d)),
     staleTime: 300_000,
   });
 
