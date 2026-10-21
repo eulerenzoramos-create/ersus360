@@ -894,24 +894,19 @@ async def diagnostico_live(_: UserOut = Depends(get_current_user)):
 
 @router.get("/diagnostico-cobertura")
 async def diagnostico_cobertura(
-    parcela: str | None = Query(None),
+    parcela: str | None = Query(None, pattern=r"^\d{6}$"),
+    atualizar: bool = Query(False),
     _: UserOut = Depends(get_current_user),
 ):
-    """Diagnóstico/Cobertura via API REST e-Gestor APS (sem Playwright). Detecta parcela atual automaticamente."""
+    """Diagnóstico/Cobertura: só dados publicados pelo e-Gestor APS (API pública), sem valores fixos."""
     try:
-        from services.egestor_diagnostico_scraper import buscar_diagnostico_cobertura, _parcela_atual
-        parcela = parcela or _parcela_atual()
-        dados = await buscar_diagnostico_cobertura(parcela)
-        return dados
+        from services.egestor_diagnostico_scraper import buscar_diagnostico_cobertura
+        return await buscar_diagnostico_cobertura(parcela, forcar_atualizacao=atualizar)
     except Exception as exc:
         import logging
-        logging.getLogger(__name__).error("diagnostico_cobertura: %s", exc)
-        return {
-            "situacao_dado": "nao_disponivel",
-            "parcela": parcela,
-            "nota": "Scraping temporariamente indisponível.",
-            "fonte": "erro_temporario",
-        }
+        logging.getLogger(__name__).error("diagnostico_cobertura: %s", exc, exc_info=True)
+        return {"situacao_dado": "nao_disponivel", "parcela_code": parcela,
+                "nota": "e-Gestor APS indisponível no momento. Nenhum dado foi estimado.", "fonte": "erro_temporario"}
 
 
 @router.get("/probe-egestor")
