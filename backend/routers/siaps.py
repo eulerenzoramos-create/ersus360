@@ -306,6 +306,10 @@ async def _cvat_importado(db: AsyncSession, current: UserOut):
     return rels[0] if rels else None
 
 
+AVISO_REFERENCIA_ANTIGA = ("REFERÊNCIA ANTIGA (competência Abr/2026, conferida no e-Gestor em set/2026) — não é a situação "
+                           "atual. Importe o relatório mais recente em Relatórios do SIAPS para ver a competência vigente.")
+
+
 @router.get("/abrangencia")
 async def abrangencia(current: UserOut = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Total de equipes por tipo: do XML do CNES importado pelo município (AREAL e demais eSF
@@ -344,7 +348,8 @@ async def abrangencia(current: UserOut = Depends(get_current_user), db: AsyncSes
     if current.municipio_ibge != "1300144":
         return {"situacao_dado": "nao_disponivel"}
     # total de equipes ainda da referência Abr/2026 (sem importação); homologadas/válidas já oficiais se captadas
-    return {**base, "competencia": "Abr/2026", "fonte": "siaps_referencia",
+    return {**base, "competencia": "Abr/2026", "fonte": "siaps_referencia", "referencia_desatualizada": True,
+            "nota": AVISO_REFERENCIA_ANTIGA,
             "fonte_detalhe": "Total de equipes: referência SIAPS Abr/2026 (sem importação). Homologadas e válidas: "
                              + base.get("homologadas_fonte", "referência Abr/2026") + "."}
 
@@ -422,10 +427,8 @@ async def vinculo_acompanhamento(
         pub_quad = await buscar_classificacao_quadrimestre("130014", quad)
         if pub_quad and pub_quad.get("total_equipes", 0) > 0:
             por_status_pub = pub_quad["por_status"]
-            equipes_ref = _VINCULO_EQUIPES  # tabela detalhada (referência)
-            total_vinculadas = sum(e["K"] for e in equipes_ref)
-            total_acompanhadas = sum(e["H"] for e in equipes_ref)
-            pontuacao_media = round(sum(e["pontuacao"] for e in equipes_ref) / len(equipes_ref), 2)
+            # a API pública só publica a classificação agregada: o detalhe por equipe NÃO é preenchido com a
+            # tabela de referência de Abr/2026 (antes era, e aparecia como se fosse do quadrimestre)
             return {
                 "competencia": f"{ano}-{mes:02d}",
                 "quadrimestre": quad,
@@ -433,14 +436,16 @@ async def vinculo_acompanhamento(
                 "dado_preliminar": False,
                 "municipio": "APUÍ", "uf": "AM", "ied": 2,
                 "total_equipes": pub_quad["total_equipes"],
-                "total_pessoas_vinculadas": total_vinculadas,
-                "total_pessoas_acompanhadas": total_acompanhadas,
-                "pontuacao_media": pontuacao_media,
+                "total_pessoas_vinculadas": None,
+                "total_pessoas_acompanhadas": None,
+                "pontuacao_media": None,
                 "por_status": por_status_pub,
                 "pct_status": pub_quad.get("pct_status", {}),
-                "equipes": equipes_ref,
+                "equipes": [],
                 "fonte": "siaps_publico",
-                "fonte_detalhe": "apisiaps.saude.gov.br/api/public (sem autenticação)",
+                "fonte_detalhe": f"SIAPS público — classificação do quadrimestre {quad} (apisiaps.saude.gov.br/api/public)",
+                "nota": "A API pública publica só a classificação agregada das equipes. Para o detalhe por equipe "
+                        "(variáveis A–K e pontuação), importe o relatório CVAT em Relatórios do SIAPS.",
             }
     except Exception:
         pass
@@ -471,7 +476,9 @@ async def vinculo_acompanhamento(
         "por_status": por_status,
         "equipes": equipes,
         "fonte": "siaps_referencia",
-        "nota": "Dados verificados no e-Gestor APS em Set/2026 — competência Abr/2026.",
+        "referencia_desatualizada": True,
+        "fonte_detalhe": "Referência Abr/2026 (tabela fixa no sistema)",
+        "nota": AVISO_REFERENCIA_ANTIGA,
     }
 
 
@@ -566,23 +573,20 @@ async def componente_qualidade(
     try:
         live = await buscar_qualidade_quadrimestre("130014", quad)
         if live and live.get("indicadores_resumo"):
-            equipes_ref = _QUALIDADE_EQUIPES
-            pontuacao_media = round(
-                sum(e["pontuacao_qualidade"] for e in equipes_ref) / len(equipes_ref), 2
-            )
             return {
                 "competencia": f"{ano}-{mes:02d}",
                 "quadrimestre": quad,
                 "municipio": "APUÍ",
                 "uf": "AM",
                 "ibge": "1300144",
-                "total_equipes": live["total_equipes"] or len(equipes_ref),
-                "pontuacao_media": pontuacao_media,
+                "total_equipes": live["total_equipes"],
+                "pontuacao_media": None,
                 "por_status_qualidade": live["por_status_qualidade"],
                 "indicadores_resumo": live["indicadores_resumo"],
-                "equipes": equipes_ref,
+                "equipes": [],
                 "fonte": "siaps_publico",
-                "fonte_detalhe": "apisiaps.saude.gov.br/api/public (1º Quad/2026)",
+                "fonte_detalhe": f"SIAPS público — quadrimestre {quad} (apisiaps.saude.gov.br/api/public)",
+                "nota": "Resultado por equipe: aba Componente Qualidade (resultado oficial capturado do SIAPS).",
                 "dado_preliminar": False,
             }
     except Exception:
@@ -620,6 +624,8 @@ async def componente_qualidade(
         "indicadores_resumo": indicadores_resumo,
         "equipes": equipes,
         "fonte": "siaps_referencia",
+        "referencia_desatualizada": True,
+        "nota": AVISO_REFERENCIA_ANTIGA,
         "dado_preliminar": False,
     }
 
@@ -679,6 +685,8 @@ async def _dashboard_referencia() -> dict:
             "cito_meta_pct_media": round(sum(e["indicadores"]["ind2_cito"]["resultado"] for e in equipes_qualidade) / len(equipes_qualidade), 1),
         },
         "fonte": "siaps_referencia",
+        "referencia_desatualizada": True,
+        "nota": AVISO_REFERENCIA_ANTIGA,
     }
 
 

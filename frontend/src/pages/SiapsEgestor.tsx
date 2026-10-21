@@ -78,6 +78,33 @@ function LogoMS() {
   );
 }
 
+// ── Aviso padrão de fonte do dado (todas as abas) ───────────────────────────
+// fonte: siaps_relatorio_importado | siaps_live | siaps_publico | siaps_publico_equipes | cnes_xml_importado | siaps_referencia
+const ROTULO_FONTE: Record<string, { txt: string; bg: string; fg: string }> = {
+  siaps_relatorio_importado: { txt: "Relatório SIAPS importado",      bg: "#dcfce7", fg: "#166534" },
+  siaps_live:                { txt: "SIAPS (consulta autenticada)",   bg: "#dcfce7", fg: "#166534" },
+  siaps_publico:             { txt: "SIAPS público (oficial)",        bg: "#dcfce7", fg: "#166534" },
+  siaps_publico_equipes:     { txt: "SIAPS público (oficial)",        bg: "#dcfce7", fg: "#166534" },
+  cnes_xml_importado:        { txt: "XML do CNES importado",          bg: "#e0f2fe", fg: "#0369a1" },
+  siaps_referencia:          { txt: "Referência antiga — Abr/2026",   bg: "#fef3c7", fg: "#92400e" },
+};
+function SeloFonte({ fonte }: { fonte?: string }) {
+  const r = ROTULO_FONTE[fonte ?? ""];
+  if (!r) return null;
+  return <span style={{ background: r.bg, color: r.fg, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>{r.txt}</span>;
+}
+function AvisoFonte({ data }: { data: any }) {
+  if (!data) return null;
+  const antigo = data.referencia_desatualizada || data.fonte === "siaps_referencia";
+  if (!antigo && !data.nota) return null;
+  return (
+    <div style={{ background: antigo ? "#fffbeb" : "#eff6ff", border: `1px solid ${antigo ? "#fcd34d" : "#bfdbfe"}`, color: antigo ? "#92400e" : "#1e40af",
+      borderRadius: 8, padding: "10px 14px", fontSize: 12, marginBottom: 14 }}>
+      {antigo && <strong>⚠ Dado de referência antigo. </strong>}{data.nota}
+    </div>
+  );
+}
+
 // ── Abrangência Municipal ─────────────────────────────────────────────────────
 
 function AbaAbrangencia({ data }: { data: any }) {
@@ -92,8 +119,9 @@ function AbaAbrangencia({ data }: { data: any }) {
     <div>
       <div style={{ textAlign: "center", marginBottom: 28 }}>
         <h2 style={{ fontSize: 22, fontWeight: 700, color: "#1d4ed8", margin: "0 0 6px" }}>Abrangência Municipal</h2>
-        <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Dados em nível municipal, referentes à competência vigente.</p>
+        <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Dados em nível municipal. A fonte e a competência de cada número aparecem abaixo.</p>
       </div>
+      <AvisoFonte data={data} />
 
       <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
         <span style={{ background: "#e0f2fe", color: "#0369a1", fontWeight: 700, padding: "4px 12px", borderRadius: 20, fontSize: 12 }}>UF: {data.uf}</span>
@@ -146,6 +174,18 @@ const VARIAVEIS = [
   { key: "K", desc: "Nº de pessoas vinculadas à Equipe", pts: "—" },
 ];
 
+function baixarCsvVinculo(data: any) {
+  const cab = ["UBS", "Equipe", "Tipo", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "Pontuação", "Status"];
+  const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const linhas = (data.equipes ?? []).map((e: any) => [e.ubs, e.equipe, e.tipo, e.A, e.B, e.C, e.D, e.E, e.F, e.G, e.H, e.I, e.J, e.K, e.pontuacao, e.status]);
+  const rod = [[`Fonte: ${ROTULO_FONTE[data.fonte]?.txt ?? data.fonte ?? "—"}`], [`Competência: ${data.competencia ?? "—"}`]];
+  const txt = [cab, ...linhas, [], ...rod].map(l => l.map(esc).join(";")).join("\r\n");
+  const url = URL.createObjectURL(new Blob(["\ufeff" + txt], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = `vinculo-acompanhamento-${data.competencia ?? "sem-competencia"}.csv`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function AbaVinculo({ data }: { data: any }) {
   const [showVars, setShowVars] = useState(false);
   const [filtro, setFiltro] = useState("");
@@ -164,29 +204,30 @@ function AbaVinculo({ data }: { data: any }) {
             Componente Vínculo e Acompanhamento Territorial
           </h2>
           <div style={{ display: "flex", gap: 8 }}>
-            {data?.dado_preliminar !== false && (
+            <SeloFonte fonte={data?.fonte} />
+            {data?.dado_preliminar === true && (
               <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>Dado preliminar</span>
             )}
-            {data?.dado_preliminar === false && (
-              <span style={{ background: "#dcfce7", color: "#166534", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>Verificado e-Gestor</span>
-            )}
-            <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: 11, padding: "2px 8px", borderRadius: 4 }}>Competência: {data?.competencia ?? "—"}</span>
+            <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: 11, padding: "2px 8px", borderRadius: 4 }}>
+              {data?.fonte === "siaps_publico" && data?.quadrimestre ? `Quadrimestre ${data.quadrimestre.replace("Q", "/Q")}` : `Competência: ${data?.competencia ?? "—"}`}</span>
             <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: 11, padding: "2px 8px", borderRadius: 4 }}>Tipo: eAP, eSF</span>
             {data.aviso && <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, padding: "2px 8px", borderRadius: 4 }}>{data.aviso}</span>}
           </div>
         </div>
-        <button onClick={() => {}} style={{ display: "flex", alignItems: "center", gap: 5, background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontSize: 12 }}>
+        <button disabled={!data.equipes?.length} onClick={() => baixarCsvVinculo(data)} title={data.equipes?.length ? "Baixar a tabela por equipe (CSV)" : "Sem detalhe por equipe nesta fonte"}
+          style={{ display: "flex", alignItems: "center", gap: 5, background: data.equipes?.length ? "#1d4ed8" : "#9ca3af", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", cursor: data.equipes?.length ? "pointer" : "not-allowed", fontSize: 12 }}>
           <Download size={13} /> Baixar dados
         </button>
       </div>
+      <AvisoFonte data={data} />
 
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 20 }}>
         {[
           { label: "Equipes", val: data.total_equipes, cor: "#1d4ed8" },
-          { label: "Pessoas vinculadas", val: data.total_pessoas_vinculadas?.toLocaleString("pt-BR"), cor: "#7c3aed" },
-          { label: "Pessoas acompanhadas", val: data.total_pessoas_acompanhadas?.toLocaleString("pt-BR"), cor: "#16a34a" },
-          { label: "Pontuação média", val: data.pontuacao_media?.toFixed(2), cor: COR_PONT(data.pontuacao_media) },
+          { label: "Pessoas vinculadas", val: data.total_pessoas_vinculadas?.toLocaleString("pt-BR") ?? "—", cor: "#7c3aed" },
+          { label: "Pessoas acompanhadas", val: data.total_pessoas_acompanhadas?.toLocaleString("pt-BR") ?? "—", cor: "#16a34a" },
+          { label: "Pontuação média", val: data.pontuacao_media != null ? data.pontuacao_media.toFixed(2) : "—", cor: data.pontuacao_media != null ? COR_PONT(data.pontuacao_media) : "#6b7280" },
           { label: "IED municipal", val: data.ied, cor: "#d97706" },
         ].map(k => (
           <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
@@ -212,7 +253,7 @@ function AbaVinculo({ data }: { data: any }) {
       </div>
 
       {/* Gráfico pontuações */}
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "16px 16px 8px", marginBottom: 20 }}>
+      {data.equipes.length > 0 && <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "16px 16px 8px", marginBottom: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Pontuação por equipe</div>
         <div style={{ height: 160 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -228,7 +269,7 @@ function AbaVinculo({ data }: { data: any }) {
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </div>}
 
       {/* Filtro */}
       <div style={{ display: "flex", gap: 10, marginBottom: 12, alignItems: "center" }}>
