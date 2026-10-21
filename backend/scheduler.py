@@ -413,7 +413,8 @@ async def _job_egestor_ausencia_diagnostico() -> None:
                     comps = await competencias_para_verificar(db, mun.id)
                     ev = await dg.evidencias(db, mun.id)
                     recentes = set(na_fonte[-3:])
-                    alvo = [c for c in comps if c in recentes
+                    ultima = na_fonte[-1] if na_fonte else None
+                    alvo = [c for c in comps if c in recentes or (ultima and c > ultima)
                             or any((ev.get((f, c)) is None or ev[(f, c)].situacao != "ok")
                                    for f in (dg.FONTE_SISAB, dg.FONTE_PAGAMENTO))]
                     if alvo:

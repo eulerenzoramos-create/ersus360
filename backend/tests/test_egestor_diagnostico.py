@@ -128,7 +128,8 @@ HTML = """<form id="j_idt44"><select id="unidGeo" name="unidGeo"></select>
 <table><tr><th>CNES</th><th>INE</th><th>Tipo Equipe</th><th>Validação</th><th>Total</th></tr>
 <tr><td>9934448</td><td>0001690442</td><td>70</td><td>Aprovado</td><td>3.109</td></tr>
 <tr><td>9934448</td><td></td><td></td><td>Reprovado(CBO)</td><td>32</td></tr>
-<tr><td>2013290</td><td>0001773941</td><td>71</td><td>Duplicado</td><td>18</td></tr></table></form>"""
+<tr><td>2013290</td><td>0001773941</td><td>71</td><td>Duplicado</td><td>18</td></tr>
+<tr><td>9934448</td><td>0001774026</td><td>71</td><td>Preliminar&gt;Aprovado</td><td>58</td></tr></table></form>"""
 
 
 def test_parser_do_sisab():
@@ -136,10 +137,13 @@ def test_parser_do_sisab():
     assert sv._select_com_opcao(HTML, "1%") == "j_idt77" and sv._form_id(HTML) == "j_idt44"
     linhas = sv.ler_tabela(HTML)
     assert linhas[0] == {"cnes": "9934448", "ine": "0001690442", "tp_equipe": "70", "validacao": "Aprovado",
-                         "motivo": None, "total": 3109}
+                         "motivo": None, "preliminar": False, "total": 3109}
     assert linhas[1]["ine"] is None and linhas[1]["validacao"] == "Reprovado" and linhas[1]["motivo"] == "CBO"
     r = sv.resumo_ine({"total": linhas, "no_prazo": linhas[:1]}, "0001773941")
     assert r["recebidos"] == 18 and r["duplicados"] == 18 and r["aprovados_no_prazo"] == 0
+    p = sv.resumo_ine({"total": linhas, "no_prazo": linhas}, "0001774026")   # competência ainda em processamento
+    assert p["aprovados"] == 58 and p["preliminar"] is True
+    assert dg.previa_equipe({**p, "reprovados": 0}, "eSB")["situacao"] == "com_producao"
 
 
 # ── API ───────────────────────────────────────────────────────────────────────
@@ -172,7 +176,8 @@ async def test_fluxo_api_diagnostico_resumo_alertas(ambiente, monkeypatch):
     assert antes["diagnosticos"][0]["etapas"]["transmissao"]["status"] == "nao_verificado"
 
     r = await c.post("/api/egestor-ausencia/diagnostico/verificar", json={"segundo_plano": False}, headers=_h(tok))
-    assert r.status_code == 200 and r.json()["competencias"] == ["2026-06", "2026-07"]
+    assert r.status_code == 200 and r.json()["competencias"][:2] == ["2026-06", "2026-07"]
+    assert all(c > "2026-08" for c in r.json()["competencias"][2:])        # prévia: depois da última lista oficial
 
     d = (await c.get(f"/api/egestor-ausencia/diagnostico/equipe/{EMULTI}", headers=_h(tok))).json()
     assert d["competencias_com_ausencia"] == ["2026-06", "2026-07"] and d["ausencia_em_curso"] is False
@@ -209,3 +214,34 @@ async def test_diagnostico_permissao_e_isolamento(ambiente, monkeypatch):
         r = (await c.get(f"/api/egestor-ausencia/diagnostico/{rota}", headers=_h(tok_b))).json()
         assert r["situacao_dado"] == "nao_disponivel"
     assert (await c.get("/api/egestor-ausencia/diagnostico/equipe/0009999999", headers=_h(tok))).status_code == 404
+
+
+def test_previa_por_equipe():
+    base = {"recebidos": 0, "aprovados": 0, "aprovados_no_prazo": 0, "reprovados": 0, "reprovados_por_motivo": {}, "cnes": []}
+    assert dg.previa_equipe(base, "eSB")["situacao"] == "sem_envio"
+    assert dg.previa_equipe({**base, "recebidos": 3, "reprovados": 3, "reprovados_por_motivo": {"PROF": 3}}, "eSB")["situacao"] == "so_reprovada"
+    assert dg.previa_equipe({**base, "recebidos": 5, "aprovados": 5}, "eSF")["situacao"] == "so_fora_do_prazo"
+    ok = dg.previa_equipe({**base, "recebidos": 9, "aprovados": 9, "aprovados_no_prazo": 9}, "eMulti")
+    assert ok["situacao"] == "com_producao" and not ok["risco"] and "remoto" in ok["nota"]
+
+
+def test_competencias_previa_respeita_calendario():
+    from datetime import date
+    from routers.egestor_diagnostico import competencias_previa
+    cs = competencias_previa("2026-08", date(2026, 10, 21))
+    assert [c["competencia"] for c in cs] == ["2026-09", "2026-10"]
+    assert cs[0]["situacao"] == "envio_encerrado" and cs[1]["situacao"] == "em_producao"
+
+
+async def test_api_previa(ambiente, monkeypatch):
+    c = ambiente["client"]
+    _fonte_falsa(monkeypatch)
+    _fontes_oficiais_falsas(monkeypatch)
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    await _sincronizar(c, tok, historico=True)
+    await c.post("/api/egestor-ausencia/diagnostico/verificar", json={"segundo_plano": False}, headers=_h(tok))
+    p = (await c.get("/api/egestor-ausencia/diagnostico/previa", headers=_h(tok))).json()
+    assert p["situacao_dado"] == "previa_nao_oficial" and p["ultima_competencia_oficial"] == "2026-08"
+    assert all(x["competencia"] > "2026-08" for x in p["competencias"])     # depende do calendário vigente
+    tok_b = await _token(c, "gestor.b@teste.gov.br")
+    assert (await c.get("/api/egestor-ausencia/diagnostico/previa", headers=_h(tok_b))).json()["situacao_dado"] == "nao_disponivel"

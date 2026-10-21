@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request
@@ -29,6 +29,8 @@ from routers.fns_previsao import _pode_editar
 from services import cnes_xml as cxml
 from services import egestor_ausencia as svc
 from services import egestor_diagnostico as dg
+from services import siaps_calendario as cal
+from services import sisab_validacao as sv
 from tenancy.auditoria import registrar_auditoria
 from tenancy.escopo import SessaoMunicipal
 
@@ -301,9 +303,53 @@ class VerificarIn(BaseModel):
     segundo_plano: bool = True
 
 
+def competencias_previa(ultima_oficial: str | None, hoje: date | None = None) -> list[dict]:
+    """Competências posteriores à última lista oficial de ausência que já começaram (calendário SIAPS)."""
+    hoje = hoje or date.today()
+    return [c for c in cal.calendario(hoje)
+            if (ultima_oficial is None or c["competencia"] > ultima_oficial) and c["situacao"] != "futura"]
+
+
 async def competencias_para_verificar(db: AsyncSession, mid: int) -> list[str]:
-    """Competências com alguma ausência de equipe no município (onde o diagnóstico é necessário)."""
-    return sorted({r.competencia for r in await _linhas(db, mid) if r.tipo_registro == "equipe"})
+    """Competências com alguma ausência de equipe (diagnóstico) + as ainda sem lista oficial (prévia SISAB)."""
+    com_ausencia = {r.competencia for r in await _linhas(db, mid) if r.tipo_registro == "equipe"}
+    coletas = await _coletas(db, mid)
+    previa = {c["competencia"] for c in competencias_previa(coletas[-1].competencia if coletas else None)} if coletas else set()
+    return sorted(com_ausencia | previa)
+
+
+@router.get("/previa")
+async def diagnostico_previa(current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    """Prévia pelo SISAB para competências que o Ministério ainda não publicou na lista de ausência.
+    NÃO é a situação oficial: só mostra o que o relatório de validação do SISAB já registra."""
+    mid = current.municipio_id
+    cx = await contexto_municipio(db, mid)
+    if not cx["coletas"]:
+        return _SEM_COLETA
+    ultima = cx["coletas"][-1].competencia
+    equipes = {i: e for i, e in cx["oficiais"].items() if e.ativa}
+    saida = []
+    for c in competencias_previa(ultima):
+        comp = c["competencia"]
+        sis = dg.ev_info(cx["evid"].get((dg.FONTE_SISAB, comp)))
+        itens = []
+        if sis["situacao"] == "ok":
+            for ine, e in sorted(equipes.items(), key=lambda kv: kv[1].nome):
+                itens.append({"ine": ine, "equipe": e.nome, "tipo_equipe": e.tipo,
+                              **dg.previa_equipe(sv.resumo_ine(sis["payload"], ine), e.tipo)})
+        saida.append({
+            "competencia": comp, "prazo": c["data_limite"], "situacao_prazo": c["situacao"],
+            "parcial": c["situacao"] != "envio_encerrado",
+            "sisab": sis["situacao"], "mensagem": sis["mensagem"], "consultado_em": sis["consultado_em"],
+            "equipes": itens,
+            "resumo": {k: sum(1 for x in itens if x["situacao"] == k) for k in dg.PREVIA_SITUACOES},
+        })
+    return {"situacao_dado": "previa_nao_oficial", "ultima_competencia_oficial": ultima, "competencias": saida,
+            "fonte": sv.FONTE, "calendario": cal.FONTE,
+            "avisos": ["PRÉVIA — não é a lista oficial. O Ministério publica a ausência de envio depois do processamento; "
+                       "a prévia só mostra o que o relatório público de validação do SISAB já registra para cada equipe.",
+                       "Competência com prazo em curso: os números ainda mudam até a data limite.",
+                       "eMulti: a produção de atendimento remoto não aparece separada no SISAB — a prévia não a avalia."]}
 
 
 async def rodar_verificacao(mid: int, ibge: str, comps: list[str], usuario: str | None,
