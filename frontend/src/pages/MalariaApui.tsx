@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "../lib/api";
+import { apiGet, comoDado } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import {
   BarChart, Bar, LineChart, Line, Cell,
@@ -43,7 +43,7 @@ const RISCO_COLORS: Record<string, string> = {
 export default function MalariaApui() {
   const [aba, setAba] = useState("dashboard");
 
-  const { data: dash }          = useQuery({ queryKey: ["mal-dashboard"],    queryFn: () => apiGet("/api/malaria-apui/dashboard"),      enabled: aba === "dashboard" });
+  const { data: dash }          = useQuery({ queryKey: ["mal-dashboard"],    queryFn: () => apiGet("/api/malaria-apui/dashboard").then(comoDado),      enabled: aba === "dashboard" });
   const { data: estratificacao }= useQuery({ queryKey: ["mal-estrat"],       queryFn: () => apiGet("/api/malaria-apui/estratificacao"), enabled: aba === "estratificacao" });
   const { data: sazonalidade }  = useQuery({ queryKey: ["mal-sazonal"],      queryFn: () => apiGet("/api/malaria-apui/sazonalidade"),   enabled: aba === "sazonalidade" });
   const { data: indicadores }   = useQuery({ queryKey: ["mal-ind"],          queryFn: () => apiGet("/api/malaria-apui/indicadores"),    enabled: aba === "indicadores" });
@@ -87,14 +87,14 @@ export default function MalariaApui() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="IPA (casos/1k hab.)" value={dashRaw.ipa.toString()}           color={CRIT} sub={`meta eliminação: ${dashRaw.meta_ipa_eliminacao}`} />
+              <KPI label="IPA (casos/1k hab.)" value={String(dashRaw.ipa ?? "—")}           color={CRIT} sub={`meta eliminação: ${dashRaw.meta_ipa_eliminacao}`} />
               <KPI label="Casos/Ano"           value={dashRaw.casos_ano?.toLocaleString()} color={CRIT} sub="município grupo 3 PNCM" />
               <KPI label="P. vivax"            value={`${dashRaw.ivp_pct}%`}             color={WARN} sub={`P. falciparum: ${dashRaw.iaf_pct}%`} />
-              <KPI label="Óbitos/Ano"          value={dashRaw.obitos_malaria_ano.toString()} color={CRIT} sub={`${dashRaw.casos_graves_ano} casos graves`} />
+              <KPI label="Óbitos/Ano"          value={String(dashRaw.obitos_malaria_ano ?? "—")} color={CRIT} sub={`${dashRaw.casos_graves_ano} casos graves`} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Casos em Gestantes" value={dashRaw.casos_gestantes_ano.toString()} color={CRIT} sub="risco de aborto e prematuridade" />
-              <KPI label="Crianças < 5a"      value={dashRaw.casos_criancas_5a_ano.toString()} color={CRIT} sub="maior morbimortalidade" />
+              <KPI label="Casos em Gestantes" value={String(dashRaw.casos_gestantes_ano ?? "—")} color={CRIT} sub="risco de aborto e prematuridade" />
+              <KPI label="Crianças < 5a"      value={String(dashRaw.casos_criancas_5a_ano ?? "—")} color={CRIT} sub="maior morbimortalidade" />
               <KPI label="Tratamento 24h"     value={`${dashRaw.tratamento_oportuno_pct}%`} color={WARN} sub={`meta: ${dashRaw.meta_tratamento_pct}%`} />
               <KPI label="Borrifação Intradom." value={`${dashRaw.borrifacao_intradomiciliar_cobertura_pct}%`} color={CRIT} sub="meta: 80%" />
             </div>

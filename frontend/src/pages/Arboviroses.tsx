@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "../lib/api";
+import { apiGet, comoDado } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -35,7 +35,7 @@ export default function Arboviroses() {
 
   const { data: dash } = useQuery({
     queryKey: ["arb-dashboard"],
-    queryFn: () => apiGet("/api/arboviroses/dashboard"),
+    queryFn: () => apiGet("/api/arboviroses/dashboard").then(comoDado),
     enabled: aba === "dashboard",
   });
   const { data: semanas } = useQuery({
@@ -99,15 +99,15 @@ export default function Arboviroses() {
         {aba === "dashboard" && dashRaw && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Dengue Confirm./Ano"  value={dashRaw.dengue_confirmados_ano.toString()} color={CRIT} />
+              <KPI label="Dengue Confirm./Ano"  value={String(dashRaw.dengue_confirmados_ano ?? "—")} color={CRIT} />
               <KPI label="IIP Municipal"        value={`${dashRaw.iip_municipal}%`} sub="meta: ≤1%" color={CRIT} />
-              <KPI label="Dengue Grave/Ano"     value={dashRaw.dengue_graves_ano.toString()} color={WARN} />
-              <KPI label="Bairros Críticos"     value={dashRaw.bairros_criticos.toString()} sub="IIP ≥3.9%" color={CRIT} />
+              <KPI label="Dengue Grave/Ano"     value={String(dashRaw.dengue_graves_ano ?? "—")} color={WARN} />
+              <KPI label="Bairros Críticos"     value={String(dashRaw.bairros_criticos ?? "—")} sub="IIP ≥3.9%" color={CRIT} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPI label="Chikungunya/Ano"      value={dashRaw.chikungunya_notificacoes_ano.toString()} color={WARN} />
-              <KPI label="Zika/Ano"             value={dashRaw.zika_notificacoes_ano.toString()} />
-              <KPI label="Depósitos Elim./Mês"  value={dashRaw.depositos_eliminados_mes.toString()} color={OK} />
+              <KPI label="Chikungunya/Ano"      value={String(dashRaw.chikungunya_notificacoes_ano ?? "—")} color={WARN} />
+              <KPI label="Zika/Ano"             value={String(dashRaw.zika_notificacoes_ano ?? "—")} />
+              <KPI label="Depósitos Elim./Mês"  value={String(dashRaw.depositos_eliminados_mes ?? "—")} color={OK} />
               <KPI label="Sorotipos DENV"       value={(dashRaw.sorotipos_circulantes || []).join(" + ")} color={CRIT} />
             </div>
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
