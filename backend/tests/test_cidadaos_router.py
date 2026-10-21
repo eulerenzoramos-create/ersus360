@@ -20,7 +20,7 @@ def app_com_overrides(db_session, municipio):
         yield db_session
 
     async def _get_current_user_override():
-        return ACS_USER
+        return ACS_USER.model_copy(update={"municipio_id": municipio.id})   # sessão multi-município
 
     main.app.dependency_overrides[get_db] = _get_db_override
     main.app.dependency_overrides[get_current_user] = _get_current_user_override
@@ -101,3 +101,19 @@ async def test_visitas_de_cidadao_inexistente_retorna_404(app_com_overrides):
         r = await client.get("/api/cidadaos/999999/visitas")
 
     assert r.status_code == 404
+
+
+async def test_usuario_de_outro_municipio_nao_ve_cidadaos(app_com_overrides, cidadao_com_visita, db_session):
+    """As rotas usavam sempre o município de settings (Apuí): agora é o da sessão."""
+    from models import Municipio
+    outro = Municipio(nome="Município B", uf="AM", codigo_ibge="1399991")
+    db_session.add(outro)
+    await db_session.flush()
+
+    async def _usuario_b():
+        return ACS_USER.model_copy(update={"municipio_id": outro.id})
+    app_com_overrides.dependency_overrides[get_current_user] = _usuario_b
+    async with AsyncClient(transport=ASGITransport(app=app_com_overrides), base_url="http://test") as client:
+        assert (await client.get("/api/cidadaos")).json() == []
+        cid = cidadao_com_visita["cidadao"].id
+        assert (await client.get(f"/api/cidadaos/{cid}/visitas")).status_code == 404

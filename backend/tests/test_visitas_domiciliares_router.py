@@ -17,13 +17,17 @@ def app_com_overrides(db_session, municipio):
         yield db_session
 
     main.app.dependency_overrides[get_db] = _get_db_override
+    _MUNICIPIO_DA_SESSAO[0] = municipio.id
     yield main.app
     main.app.dependency_overrides.clear()
 
 
+_MUNICIPIO_DA_SESSAO: list = [None]
+
+
 def _como(app, usuario):
     async def _override():
-        return usuario
+        return usuario.model_copy(update={"municipio_id": _MUNICIPIO_DA_SESSAO[0]})   # sessão multi-município
     app.dependency_overrides[get_current_user] = _override
     app.dependency_overrides[tenant_guard] = lambda: None  # guard testado em test_isolamento_tenant
 

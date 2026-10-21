@@ -228,8 +228,8 @@ export default function LinhaTempoCidadao() {
   if (!loadCid && !cidadao) return (
     <div style={{ padding: 24 }}>
       <NaoDisponivelBanner
-        titulo="LinhaTempoCidadao indisponivel"
-        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+        titulo="Linha do Tempo do Cidadão — integração não ativa"
+        nota="O histórico do cidadão depende da integração com a RNDS e o e-SUS PEC, que ainda não está ativa. Nenhum dado de paciente é exibido nem estimado."
       />
     </div>
   );

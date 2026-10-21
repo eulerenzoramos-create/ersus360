@@ -1,17 +1,107 @@
-"""Router: /api/cidadaos — ERSUS 360 — CNES+SIA dados abertos"""
+"""
+Router: /api/cidadaos — cache local de cidadãos (cadastro individual do PEC).
+
+Somente leitura — o PEC continua sendo a fonte oficial (ver docs/ERSUS-DOC-PEC-INTEGRACAO.md).
+CNS/CPF nunca são retornados em texto puro, apenas a versão mascarada já armazenada
+no cadastro (ver services/pec/pseudonimizacao.py).
+"""
 from __future__ import annotations
-from datetime import date, datetime
-from fastapi import APIRouter, Query
-from services.cnes_service import resumo_estabelecimentos
-from services.sia_service import buscar_producao
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from config import settings
+from database import get_db
+from models import Municipio
+from models.pec_cadastro import Cidadao, Domicilio
+from models.visita_domiciliar import VisitaDomiciliar
+from routers.auth import get_current_user, UserOut
+
 router = APIRouter(prefix="/api/cidadaos", tags=["Cidadãos"])
-_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
-_NOTA = "Cadastro individual de cidadãos requer e-SUS PEC/CADSUS (pendente). CNES/SIA como proxy de cobertura."
-@router.get("/dashboard")
-async def dashboard(ano: int = Query(0)):
-    if not ano: ano = _ANO()
-    cnes = await resumo_estabelecimentos(); sia = await buscar_producao(ano)
-    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [cnes, sia])
-    return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "estabelecimentos": cnes.get("total"), "producao": sia.get("total_procedimentos"), "nota": _NOTA, "fonte": "CNES + SIA — DATASUS dados abertos", "verificado_em": _TS()}
-@router.get("/indicadores")
-async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
+
+
+async def _municipio_atual(db: AsyncSession, current_user: UserOut) -> Municipio:
+    """Município da SESSÃO (multi-município). Antes era sempre o de settings.FNS_MUNICIPIO_IBGE (Apuí),
+    o que mostraria os cadastros de Apuí a usuários de outro município."""
+    if current_user.municipio_id is None:
+        raise HTTPException(status_code=403, detail="Selecione um município para acessar estes dados")
+    mun = await db.get(Municipio, current_user.municipio_id)
+    if mun is None:
+        raise HTTPException(status_code=404, detail="Município da sessão não encontrado")
+    return mun
+
+
+@router.get("")
+async def listar_cidadaos(
+    db: AsyncSession = Depends(get_db),
+    current_user: UserOut = Depends(get_current_user),
+):
+    mun = await _municipio_atual(db, current_user)
+    rows = (await db.execute(
+        select(Cidadao)
+        .options(selectinload(Cidadao.domicilio).selectinload(Domicilio.microarea))
+        .where(Cidadao.municipio_id == mun.id)
+        .order_by(Cidadao.nome)
+    )).scalars().all()
+
+    return [
+        {
+            "id": c.id,
+            "nome": c.nome,
+            "cns_mascarado": c.cns_mascarado,
+            "data_nascimento": c.data_nascimento.date().isoformat() if c.data_nascimento else None,
+            "sexo": c.sexo,
+            "domicilio_id": c.domicilio_id,
+            "microarea": c.domicilio.microarea.codigo if c.domicilio and c.domicilio.microarea else None,
+            "origem_dado": c.origem_dado.value,
+            "data_ultima_atualizacao_pec": (
+                c.data_ultima_atualizacao_pec.isoformat() if c.data_ultima_atualizacao_pec else None
+            ),
+        }
+        for c in rows
+    ]
+
+
+@router.get("/{cidadao_id}/visitas")
+async def visitas_do_cidadao(
+    cidadao_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserOut = Depends(get_current_user),
+):
+    mun = await _municipio_atual(db, current_user)
+    cidadao = await db.get(Cidadao, cidadao_id)
+    if not cidadao or cidadao.municipio_id != mun.id:
+        raise HTTPException(status_code=404, detail="Cidadão não encontrado")
+
+    rows = (await db.execute(
+        select(VisitaDomiciliar)
+        .options(
+            selectinload(VisitaDomiciliar.profissional),
+            selectinload(VisitaDomiciliar.equipe),
+            selectinload(VisitaDomiciliar.microarea),
+        )
+        .where(VisitaDomiciliar.cidadao_id == cidadao_id)
+        .order_by(VisitaDomiciliar.data_hora_dispositivo.desc())
+    )).scalars().all()
+
+    return {
+        "cidadao": {"id": cidadao.id, "nome": cidadao.nome, "cns_mascarado": cidadao.cns_mascarado},
+        "visitas": [
+            {
+                "id": v.id,
+                "numero_controle": v.uuid_local,
+                "data": v.data_hora_dispositivo.isoformat(),
+                "acs": v.profissional.nome if v.profissional else None,
+                "equipe": v.equipe.nome if v.equipe else None,
+                "microarea": v.microarea.codigo if v.microarea else None,
+                "motivo_visita": v.motivo_visita,
+                "tipo_visita": v.tipo_visita,
+                "desfecho": v.desfecho,
+                "duracao_segundos": v.duracao_segundos,
+                "status_fila": v.status_fila.value,
+            }
+            for v in rows
+        ],
+    }
