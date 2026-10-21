@@ -2,7 +2,7 @@
 // Fonte: relatório público do e-Gestor "Equipes e serviços com ausência de envio de informação".
 // A fonte só informa AUSÊNCIA e há quantas competências ela dura: o que ela não informa aparece como
 // "Informação não disponibilizada pela fonte" e nunca é estimado. Cores = alerta gerencial interno.
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { apiGetRaw, apiPost, apiPut } from "../lib/api";
@@ -24,11 +24,12 @@ const SUBS = [
   { id: "producao", label: "2. Produção por Competência" },
   { id: "equipes", label: "3. Situação das Equipes" },
   { id: "ausencia", label: "4. Ausência de Envio" },
-  { id: "processamento", label: "5. Processamento e Validação" },
-  { id: "alertas", label: "6. Alertas e Risco de Suspensão" },
-  { id: "historico", label: "7. Histórico de Competências" },
-  { id: "relatorios", label: "8. Relatórios Gerenciais" },
-  { id: "integracoes", label: "9. Integrações e Atualizações" },
+  { id: "diagnostico", label: "5. Diagnóstico das Ausências" },
+  { id: "processamento", label: "6. Processamento e Validação" },
+  { id: "alertas", label: "7. Alertas e Risco de Suspensão" },
+  { id: "historico", label: "8. Histórico de Competências" },
+  { id: "relatorios", label: "9. Relatórios Gerenciais" },
+  { id: "integracoes", label: "10. Integrações e Atualizações" },
 ] as const;
 type Sub = (typeof SUBS)[number]["id"];
 
@@ -69,7 +70,7 @@ const btn: React.CSSProperties = { padding: "6px 12px", border: "1px solid #d1d5
 const btnP: React.CSSProperties = { ...btn, background: "#1d4ed8", color: "#fff", border: "1px solid #1d4ed8", fontWeight: 600 };
 
 function SemDado({ msg }: { msg?: string }) {
-  return <Aviso tom="alerta">{msg ?? "Nenhuma competência coletada ainda."} Abra <strong>9. Integrações e Atualizações</strong> e use <strong>Atualizar dados</strong>.</Aviso>;
+  return <Aviso tom="alerta">{msg ?? "Nenhuma competência coletada ainda."} Abra <strong>10. Integrações e Atualizações</strong> e use <strong>Atualizar dados</strong>.</Aviso>;
 }
 
 // ── impressão / PDF ──────────────────────────────────────────────────────────
@@ -98,7 +99,7 @@ function imprimirPainel(raiz: HTMLElement | null, titulo: string, subtitulo: str
   </style></head><body>
     <div class="cab"><h1>ERSUS 360 — ${escHtml(titulo)}</h1><div>${escHtml(subtitulo)}</div><div>Gerado em ${agora}</div></div>
     ${clone.outerHTML}
-    <div class="rod">Fonte: e-Gestor APS — relatório público de ausência de envio. As cores são alerta gerencial interno do ERSUS 360 e não substituem a situação oficial do Ministério da Saúde. O que a fonte não publica é indicado como “Informação não disponibilizada pela fonte”.</div>
+    <div class="rod">Fontes: e-Gestor APS (relatórios públicos de ausência de envio e de pagamento) e SISAB (relatório público de validação da produção), nas datas de consulta indicadas. Registros e lotes do e-SUS APS/PEC municipal não são acessados pelo ERSUS 360. As cores são alerta gerencial interno do ERSUS 360 e não substituem a situação oficial do Ministério da Saúde. O que a fonte não publica é indicado como “Informação não disponibilizada pela fonte”.</div>
   </body></html>`);
   w.document.close();
   w.focus();
@@ -111,6 +112,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
   const [sub, setSub] = useState<Sub>("visao");
   const [comp, setComp] = useState<string>("");
   const [ineSel, setIneSel] = useState<string | null>(null);
+  const [compCaso, setCompCaso] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [fNivel, setFNivel] = useState<string>("todos");
   const [fTipo, setFTipo] = useState<string>("todos");
@@ -137,7 +139,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
   const comps: string[] = p?.competencias_coletadas ?? [];
   const compAtual: string = comp || p?.competencia || "";
 
-  const abrirEquipe = (ine: string) => { setIneSel(ine); };
+  const abrirEquipe = (ine: string, competencia?: string) => { setIneSel(ine); setCompCaso(competencia ?? null); };
 
   // filtros comuns (equipes)
   const tipos = useMemo(() => {
@@ -170,7 +172,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
   );
 
   // ── detalhe de uma equipe ──────────────────────────────────────────────────
-  if (ineSel) return <CasoEquipe ine={ineSel} dados={caso.data} carregando={caso.isLoading} voltar={() => setIneSel(null)} municipio={municipio} />;
+  if (ineSel) return <CasoEquipe ine={ineSel} compInicial={compCaso} dados={caso.data} carregando={caso.isLoading} voltar={() => setIneSel(null)} municipio={municipio} />;
 
   return (
     <div ref={raizRef} style={{ color: "#111827" }}>
@@ -216,7 +218,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
             <Card titulo="Estabelecimentos c/ ausência" valor={p.cards.estabelecimentos_com_ausencia} />
             <Card titulo="Profissionais c/ ausência" valor={p.cards.profissionais_com_ausencia} />
           </div>
-          <Aviso tom="alerta">Envio pendente, produção rejeitada e inconsistências: {NAO_DISP}. A fonte pública não publica esses números.</Aviso>
+          <Aviso>Transmissão, processamento, rejeições e inconsistências de cada equipe por competência: veja <strong>5. Diagnóstico das Ausências</strong> (SISAB — relatório de validação, e-Gestor e CNES).</Aviso>
           {p.destaques.length > 0 && (
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Equipes com 3 ou mais competências sem envio</div>
@@ -312,7 +314,10 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
         </>
       ))}
 
-      {/* 5 ── Processamento e validação */}
+      {/* 5 ── Diagnóstico das ausências */}
+      {sub === "diagnostico" && <DiagnosticoMunicipal abrir={abrirEquipe} />}
+
+      {/* 6 ── Processamento e validação */}
       {sub === "processamento" && <Processamento />}
 
       {/* 6 ── Alertas */}
@@ -333,6 +338,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
           {alertas.data.regularizadas.map((r: any) => (
             <div key={r.ine} style={{ background: COR.verde.bg, border: `1px solid ${COR.verde.borda}`, color: COR.verde.fg, borderRadius: 8, padding: "8px 12px", marginBottom: 6, fontSize: 12 }}>{r.mensagem}</div>))}
           {alertas.data.avisos.map((a: string) => <Aviso key={a}>{a}</Aviso>)}
+          <AlertasDiagnostico abrir={abrirEquipe} />
         </>
       ))}
 
@@ -357,7 +363,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
               (historico.data?.serie ?? []).map((s: any) => [compBr(s.competencia), s.equipes_com_ausencia, s.amarelo, s.laranja, s.vermelho, s.estabelecimentos, s.profissionais]))}>Histórico (CSV)</button>
           </div>
           <div style={{ fontSize: 12, color: "#374151", marginTop: 12 }}>
-            Relatórios de produção transmitida, validada e rejeitada: {NAO_DISP}.
+            Diagnóstico por equipe e competência (transmissão, validação e rejeição pelo SISAB): aba <strong>5. Diagnóstico das Ausências</strong> (CSV) ou o relatório técnico em PDF no caso de cada equipe.
           </div>
         </>
       )}
@@ -380,7 +386,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
               <div style={{ marginTop: 4 }}><strong>Não informa:</strong> {f.nao_informa.join("; ")}.</div>
             </div>))}
           <div style={{ fontSize: 12, color: "#374151", marginBottom: 8 }}>
-            Outras fontes (SCNES, SIAPS, PEC) alimentam as demais abas do e-Gestor APS; nenhuma delas é usada aqui para inferir produção.
+            O diagnóstico das ausências usa também o relatório público de validação do SISAB e o relatório público de pagamento do e-Gestor (botão “Verificar fontes oficiais” na aba 5, e automaticamente todo dia às 06:40). O PEC municipal não é acessado.
             Última coleta: {dtHora(fonte.data?.ultima_coleta)}.
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
@@ -539,17 +545,25 @@ function GraficoSerie({ serie }: { serie: any[] }) {
   );
 }
 
-// ── 5. Processamento e validação ─────────────────────────────────────────────
+// ── 6. Processamento e validação ─────────────────────────────────────────────
+const FONTE_ETAPA = [
+  "Não acessado pelo ERSUS360 — conferir no PEC",
+  "SISAB: fichas recebidas por equipe (Diagnóstico)",
+  "SISAB: recebidas no prazo × fora do prazo (Diagnóstico)",
+  "SISAB: aprovadas, duplicadas, data inválida (Diagnóstico)",
+  "SISAB: reprovadas por CNES, INE, PROF, CBO (Diagnóstico)",
+  "e-Gestor: lista oficial de ausência de envio",
+];
 function Processamento() {
   const { data: cal } = useCalendarioSiaps();
   const etapas = ["Registro no e-SUS APS/PEC", "Transmissão ao SISAB", "Recebimento", "Processamento", "Validação", "Disponível no SIAPS"];
   return (
     <>
-      <Aviso tom="alerta">O ERSUS360 não tem acesso autorizado às etapas de processamento e validação. A linha do tempo abaixo mostra o fluxo geral; a situação de cada etapa é: <strong>{NAO_DISP}</strong>. Nenhum status é presumido.</Aviso>
+      <Aviso>Recebimento, processamento e validação de cada equipe são verificados por competência em <strong>5. Diagnóstico das Ausências</strong>, pelo relatório público de validação do SISAB. O registro no PEC municipal não é acessado pelo ERSUS360. Nenhum status é presumido.</Aviso>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
         {etapas.map((e, i) => (
           <div key={e} style={{ background: COR.cinza.bg, border: `1px solid ${COR.cinza.borda}`, borderRadius: 8, padding: "8px 10px", fontSize: 11, flex: "1 1 130px" }}>
-            <div style={{ fontWeight: 700 }}>{i + 1}. {e}</div><div style={{ color: "#374151", marginTop: 2 }}>{NAO_DISP}</div>
+            <div style={{ fontWeight: 700 }}>{i + 1}. {e}</div><div style={{ color: "#374151", marginTop: 2 }}>{FONTE_ETAPA[i]}</div>
           </div>))}
       </div>
       <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Calendário de prazos de envio ao SIAPS</div>
@@ -603,7 +617,7 @@ function Painel({ titulo, children, cor }: { titulo: string; children: React.Rea
   );
 }
 
-function CasoEquipe({ ine, dados, carregando, voltar, municipio }: { ine: string; dados: any; carregando: boolean; voltar: () => void; municipio?: { uf?: string; nome?: string } }) {
+function CasoEquipe({ ine, compInicial, dados, carregando, voltar, municipio }: { ine: string; compInicial?: string | null; dados: any; carregando: boolean; voltar: () => void; municipio?: { uf?: string; nome?: string } }) {
   const qc = useQueryClient();
   const raizRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState<{ situacao: string; responsavel: string; observacao: string } | null>(null);
@@ -645,7 +659,7 @@ function CasoEquipe({ ine, dados, carregando, voltar, municipio }: { ine: string
     <div ref={raizRef} style={{ color: "#111827" }}>
       <div data-no-print style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
         <button style={btn} onClick={voltar}>← Voltar ao Monitoramento SIAPS</button>
-        {dados?.ine && <button style={btnP} onClick={() => imprimirPainel(raizRef.current, `Caso da equipe — ${dados.equipe}`,
+        {dados?.ine && <button style={btnP} onClick={() => imprimirPainel(raizRef.current, `Relatório técnico — ausência de envio — ${dados.equipe}`,
           `INE ${dados.ine} · ${municipio?.nome ?? ""}${municipio?.uf ? "/" + municipio.uf : ""}`, false)}>🖨️ Imprimir / PDF</button>}
       </div>
       {carregando && <Aviso>Carregando…</Aviso>}
@@ -690,7 +704,7 @@ function CasoEquipe({ ine, dados, carregando, voltar, municipio }: { ine: string
                   ? <>Na competência mais recente coletada ({compBr(resumo.atual.competencia)}) <strong>não consta</strong> na lista. Isso indica regularização do envio, mas <strong>não informa</strong> se houve suspensão de recurso no período.</>
                   : <>Na competência mais recente coletada ({compBr(resumo.atual.competencia)}) <strong>continua na lista</strong>: {resumo.atual.qt_texto}.</>}
               </li>
-              <li>Suspensão de recurso: <strong>não verificada</strong> — confirmar no Relatório de Pagamento (aba “Relatório de Pagamento (e-Gestor)”).</li>
+              <li>Suspensão de recurso: ver “Possíveis consequências” no diagnóstico de cada competência (validação da equipe no pagamento do e-Gestor); se não verificada, confirmar no Relatório de Pagamento (e-Gestor).</li>
             </ul>
           </Painel>
 
@@ -738,21 +752,15 @@ function CasoEquipe({ ine, dados, carregando, voltar, municipio }: { ine: string
             </div>
           </Painel>
 
-          {/* o que a fonte não informa */}
-          <Painel titulo="O que a fonte não informa" cor="#6b7280">
-            <div style={{ fontSize: 13, lineHeight: 1.6 }}>
-              <div>Histórico de transmissões: <strong>{NAO_DISP}</strong></div>
-              <div>Processamento e rejeição: <strong>{NAO_DISP}</strong></div>
-              <div style={{ color: "#4b5563", fontSize: 12, marginTop: 4 }}>Última verificação no ERSUS: {dtHora(dados.ultima_verificacao)}</div>
-            </div>
-          </Painel>
+          {/* diagnóstico técnico por competência (SISAB, e-Gestor, CNES) */}
+          <DiagnosticoEquipe ine={ine} compInicial={compInicial} municipio={municipio} />
 
           {/* causas e providências */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 12 }}>
-            <Painel titulo="Possíveis causas" cor="#b45309">
+            <Painel titulo="Possíveis causas gerais (roteiro de investigação)" cor="#b45309">
               <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.55 }}>{dados.possiveis_causas.map((c: string) => <li key={c}>{c}</li>)}</ul>
             </Painel>
-            <Painel titulo="Providências recomendadas" cor="#15803d">
+            <Painel titulo="Providências gerais" cor="#15803d">
               <ol style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.55 }}>{dados.providencias_recomendadas.map((c: string) => <li key={c}>{c}</li>)}</ol>
             </Painel>
           </div>
@@ -780,5 +788,309 @@ function CasoEquipe({ ine, dados, carregando, voltar, municipio }: { ine: string
         </>
       )}
     </div>
+  );
+}
+
+// ── Diagnóstico técnico da ausência de envio ─────────────────────────────────
+// Cruza a lista oficial de ausência com o retorno oficial do processamento (SISAB — relatório público de
+// validação), a validação da equipe no pagamento do e-Gestor e o XML-CNES do mesmo mês. O backend nunca
+// promove indício a causa; esta tela só mostra o que veio de lá.
+type Classe = "causa_confirmada" | "possivel_causa" | "sem_inconsistencia" | "indisponivel";
+const COR_CLASSE: Record<Classe, { fg: string; bg: string; borda: string; nome: string }> = {
+  causa_confirmada:   { fg: "#991b1b", bg: "#fee2e2", borda: "#fca5a5", nome: "Causa confirmada" },
+  possivel_causa:     { fg: "#854d0e", bg: "#fef9c3", borda: "#fde047", nome: "Possível causa" },
+  sem_inconsistencia: { fg: "#1e40af", bg: "#eff6ff", borda: "#bfdbfe", nome: "Sem inconsistência identificada" },
+  indisponivel:       { fg: "#4b5563", bg: "#f3f4f6", borda: "#d1d5db", nome: "Diagnóstico indisponível" },
+};
+const COR_ACHADO: Record<string, string> = { confirmada: "#991b1b", possivel: "#854d0e", informativo: "#1e40af" };
+const ROT_ACHADO: Record<string, string> = { confirmada: "Confirmado", possivel: "Indício", informativo: "Informativo" };
+const ROT_CAT: Record<string, string> = { A: "Registro", B: "Transmissão/processamento", C: "Cadastro", D: "SIAPS" };
+const ETAPA_OK = new Set(["recebido", "processado", "regular"]);
+const ETAPA_RUIM = new Set(["nao_recebido", "sem_registros", "pendencia", "ausencia"]);
+
+function SeloClasse({ c }: { c: Classe }) {
+  const k = COR_CLASSE[c] ?? COR_CLASSE.indisponivel;
+  return <span style={{ background: k.bg, color: k.fg, border: `1px solid ${k.borda}`, borderRadius: 12, padding: "2px 10px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>{k.nome.toUpperCase()}</span>;
+}
+function Etapa({ e }: { e?: any }) {
+  if (!e) return <span>—</span>;
+  const cor = ETAPA_OK.has(e.status) ? "#166534" : ETAPA_RUIM.has(e.status) ? "#991b1b" : "#4b5563";
+  return (
+    <div>
+      <div style={{ color: cor, fontWeight: 600 }}>{e.texto}</div>
+      <div style={{ fontSize: 11, color: "#4b5563" }}>{e.fonte}{e.consultado_em ? ` · consultado em ${dtHora(e.consultado_em)}` : ""}</div>
+    </div>
+  );
+}
+
+// estado da verificação das fontes oficiais (roda em segundo plano no servidor)
+function useVerificacao() {
+  const qc = useQueryClient();
+  const estado = useQuery<any>({
+    queryKey: ["mon-siaps-verif"], queryFn: () => apiGetRaw(`${BASE}/diagnostico/verificacao`),
+    refetchInterval: q => (q.state.data?.em_andamento ? 5000 : false),
+  });
+  const andando = !!estado.data?.em_andamento;
+  const antes = useRef(andando);
+  useEffect(() => {
+    if (antes.current && !andando) qc.invalidateQueries({ queryKey: ["mon-siaps"] });
+    antes.current = andando;
+  }, [andando, qc]);
+  const iniciar = useMutation({
+    mutationFn: (competencias?: string[]) => apiPost<any>(`${BASE}/diagnostico/verificar`, competencias ? { competencias } : {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mon-siaps-verif"] }),
+  });
+  return { estado: estado.data, andando, iniciar };
+}
+
+function BotaoVerificar({ competencias, rotulo }: { competencias?: string[]; rotulo?: string }) {
+  const { estado, andando, iniciar } = useVerificacao();
+  const r = estado?.resultado;
+  return (
+    <div data-no-print style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12, color: "#374151" }}>
+      <button style={btnP} disabled={andando || iniciar.isPending} onClick={() => iniciar.mutate(competencias)}>
+        {andando ? "Verificando fontes oficiais…" : rotulo ?? "🔎 Verificar fontes oficiais"}
+      </button>
+      {andando && <span>Consultando SISAB e e-Gestor ({estado?.competencias?.length ?? 0} competência(s), cerca de 30 s cada). Pode continuar usando o sistema.</span>}
+      {!andando && r && !r.erro && <span>Última verificação: {dtHora(estado?.concluido_em)} — {r.consultas?.length ?? 0} consulta(s){r.erros?.length ? `, ${r.erros.length} com erro` : ""}{r.alteradas?.length ? `, ${r.alteradas.length} com dados alterados` : ""}.</span>}
+      {!andando && r?.erro && <span style={{ color: "#b91c1c" }}>{r.erro}</span>}
+      {iniciar.isError && <span style={{ color: "#b91c1c" }}>{(iniciar.error as any)?.response?.data?.detail ?? "Não foi possível iniciar (sem permissão de edição?)."}</span>}
+    </div>
+  );
+}
+
+// ── 5. Diagnóstico das ausências (resumo gerencial do município) ─────────────
+function DiagnosticoMunicipal({ abrir }: { abrir: (ine: string, comp?: string) => void }) {
+  const { data: d, isLoading, isError } = useQuery<any>({ queryKey: ["mon-siaps", "diag-resumo"], queryFn: () => apiGetRaw(`${BASE}/diagnostico/resumo`) });
+  const [fComp, setFComp] = useState("todas");
+  const [fEst, setFEst] = useState("todos");
+  const [fTipo, setFTipo] = useState("todos");
+  const [fClasse, setFClasse] = useState("todas");
+  const [busca, setBusca] = useState("");
+  if (isLoading) return <Aviso>Carregando…</Aviso>;
+  if (isError) return <Aviso tom="alerta">Não foi possível carregar o diagnóstico agora.</Aviso>;
+  if (!d || d.situacao_dado === "nao_disponivel") return <SemDado msg={d?.mensagem} />;
+  const casos: any[] = d.casos;
+  const uniq = (k: string) => [...new Set(casos.map(c => c[k]).filter(Boolean))].sort() as string[];
+  const t = busca.trim().toLowerCase();
+  const vis = casos.filter(c => (fComp === "todas" || c.competencia === fComp) && (fEst === "todos" || c.estabelecimento === fEst)
+    && (fTipo === "todos" || c.tipo_equipe === fTipo) && (fClasse === "todas" || c.classificacao === fClasse)
+    && (!t || `${c.ine} ${c.equipe}`.toLowerCase().includes(t)));
+  const k = d.cards;
+  return (
+    <>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+        <Card titulo="Equipes monitoradas" valor={k.equipes_monitoradas} />
+        <Card titulo="Equipes com ausência" valor={k.equipes_com_ausencia} nivel={k.equipes_com_ausencia ? "laranja" : "verde"} nota="nas competências coletadas" />
+        <Card titulo="Competências afetadas" valor={k.competencias_afetadas} nota={`${k.casos} caso(s) equipe × competência`} />
+        <Card titulo="Inconsistências confirmadas" valor={k.inconsistencias_confirmadas} nivel={k.inconsistencias_confirmadas ? "vermelho" : undefined} />
+        <Card titulo="Possíveis inconsistências" valor={k.possiveis_inconsistencias} nivel={k.possiveis_inconsistencias ? "amarelo" : undefined} />
+        <Card titulo="Sem diagnóstico conclusivo" valor={k.sem_diagnostico_conclusivo} nivel="cinza" nota={k.indisponiveis ? `${k.indisponiveis} sem dados suficientes` : undefined} />
+        <Card titulo="Equipes com reincidência" valor={k.equipes_com_reincidencia} nivel={k.equipes_com_reincidencia ? "vermelho" : undefined} />
+        <Card titulo="Pendências p/ intervenção da SMS" valor={k.pendencias_intervencao_sms} nivel={k.pendencias_intervencao_sms ? "laranja" : "verde"} nota={`ausência em curso em ${compBr(d.competencia_mais_recente)}`} />
+      </div>
+      <div style={{ marginBottom: 12 }}><BotaoVerificar /></div>
+      {d.avisos.map((a: string) => <Aviso key={a}>{a}</Aviso>)}
+
+      {d.pendencias_intervencao_sms.length > 0 && (
+        <Painel titulo={`Pendências que exigem intervenção da Secretaria — ${compBr(d.competencia_mais_recente)}`} cor="#ea580c">
+          {d.pendencias_intervencao_sms.map((p: any) => (
+            <div key={p.ine} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 13, padding: "4px 0", borderBottom: "1px solid #eef0f3" }}>
+              <strong>{p.equipe}</strong> · INE {p.ine} · acompanhamento: {p.acompanhamento}{p.responsavel ? ` (${p.responsavel})` : ""}
+              <button data-no-print style={{ ...btn, marginLeft: "auto" }} onClick={() => abrir(p.ine, d.competencia_mais_recente)}>Ver diagnóstico</button>
+            </div>))}
+        </Painel>
+      )}
+
+      <div data-no-print style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center", fontSize: 12 }}>
+        <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar equipe ou INE" style={{ ...btn, minWidth: 180 }} />
+        <select value={fComp} onChange={e => setFComp(e.target.value)} style={btn}>
+          <option value="todas">Todas as competências</option>{uniq("competencia").reverse().map(c => <option key={c} value={c}>{compBr(c)}</option>)}
+        </select>
+        <select value={fEst} onChange={e => setFEst(e.target.value)} style={btn}>
+          <option value="todos">Todos os estabelecimentos</option>{uniq("estabelecimento").map(c => <option key={c} value={c}>CNES {c}</option>)}
+        </select>
+        <select value={fTipo} onChange={e => setFTipo(e.target.value)} style={btn}>
+          <option value="todos">Todos os tipos de equipe</option>{uniq("tipo_equipe").map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={fClasse} onChange={e => setFClasse(e.target.value)} style={btn}>
+          <option value="todas">Todas as situações</option>{(Object.keys(COR_CLASSE) as Classe[]).map(c => <option key={c} value={c}>{COR_CLASSE[c].nome}</option>)}
+        </select>
+        <button style={btn} onClick={() => baixarCsv("diagnostico-ausencias.csv",
+          ["Competência", "INE", "Equipe", "Tipo", "CNES", "Diagnóstico", "Causa", "Situação SIAPS", "Última verificação"],
+          vis.map(c => [compBr(c.competencia), c.ine, c.equipe, c.tipo_equipe, c.estabelecimento, c.classificacao_rotulo, c.causa, c.situacao_siaps, dtHora(c.ultima_verificacao)]))}>CSV</button>
+      </div>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
+          <thead><tr>{["Competência", "Equipe", "INE", "Tipo", "CNES", "Diagnóstico", "Causa / indício principal", "Última verificação", ""].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+          <tbody>
+            {vis.map(c => (
+              <tr key={c.ine + c.competencia}>
+                <td style={td}>{compBr(c.competencia)}</td><td style={td}>{c.equipe}</td><td style={td}>{c.ine}</td><td style={td}>{c.tipo_equipe ?? "—"}</td>
+                <td style={td}>{c.estabelecimento ?? "—"}</td><td style={td}><SeloClasse c={c.classificacao} /></td><td style={td}>{c.causa}</td>
+                <td style={td}>{dtHora(c.ultima_verificacao)}</td>
+                <td style={td}><button data-no-print style={btn} onClick={() => abrir(c.ine, c.competencia)}>Ver diagnóstico</button></td>
+              </tr>))}
+            {!vis.length && <tr><td colSpan={9} style={{ ...td, color: "#374151" }}>Nenhum caso com os filtros escolhidos.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <details style={{ marginTop: 12, fontSize: 12 }}>
+        <summary style={{ cursor: "pointer", fontWeight: 700 }}>Evidências oficiais consultadas ({d.evidencias.length})</summary>
+        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", marginTop: 6 }}>
+          <thead><tr>{["Fonte", "Competência", "Situação", "Consultado em", "Observação"].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+          <tbody>{d.evidencias.map((e: any) => (
+            <tr key={e.fonte + e.competencia}><td style={td}>{e.fonte}</td><td style={td}>{compBr(e.competencia)}</td>
+              <td style={td}>{({ ok: "consultado", nao_publicado: "ainda não publicado", erro: "erro na consulta" } as Record<string, string>)[e.situacao] ?? e.situacao}</td>
+              <td style={td}>{dtHora(e.consultado_em)}</td><td style={td}>{e.mensagem ?? ""}</td></tr>))}
+            {!d.evidencias.length && <tr><td colSpan={5} style={{ ...td, color: "#374151" }}>Nenhuma consulta feita ainda — use “Verificar fontes oficiais”.</td></tr>}
+          </tbody>
+        </table>
+      </details>
+    </>
+  );
+}
+
+// ── alertas do diagnóstico (aba de alertas) ──────────────────────────────────
+const ROT_ALERTA: Record<string, string> = {
+  nova_ocorrencia: "Nova ocorrência", consecutivas: "Competências consecutivas", reincidencia: "Reincidência após regularização",
+  rejeicao: "Rejeição no processamento", divergencia_cadastral: "Divergência cadastral",
+  alteracao_processamento: "Alteração nos dados oficiais", sem_solucao: "Pendência sem solução",
+};
+const COR_GRAV: Record<string, Nivel> = { critico: "vermelho", alto: "laranja", atencao: "amarelo", info: "cinza" };
+
+function AlertasDiagnostico({ abrir }: { abrir: (ine: string, comp?: string) => void }) {
+  const { data: d } = useQuery<any>({ queryKey: ["mon-siaps", "diag-alertas"], queryFn: () => apiGetRaw(`${BASE}/diagnostico/alertas`) });
+  if (!d || d.situacao_dado === "nao_disponivel") return null;
+  return (
+    <Painel titulo="Alertas do diagnóstico" cor="#b91c1c">
+      {!d.alertas.length && <div style={{ fontSize: 13, color: "#166534" }}>Nenhum alerta de diagnóstico ativo.</div>}
+      {d.alertas.map((a: any, i: number) => {
+        const c = COR[COR_GRAV[a.gravidade] ?? "cinza"];
+        return (
+          <div key={i} style={{ background: c.bg, border: `1px solid ${c.borda}`, color: c.fg, borderRadius: 8, padding: "8px 12px", marginBottom: 6, fontSize: 12 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <strong>{ROT_ALERTA[a.tipo] ?? a.tipo}</strong>
+              {a.equipe && <span>· {a.equipe} (INE {a.ine})</span>}<span>· {compBr(a.competencia)}</span>
+              {a.ine && <button data-no-print style={{ ...btn, marginLeft: "auto" }} onClick={() => abrir(a.ine, a.competencia)}>Ver diagnóstico</button>}
+            </div>
+            <div style={{ marginTop: 3, color: "#1f2937" }}>{a.mensagem}</div>
+            <div style={{ marginTop: 2, fontSize: 11, color: "#4b5563" }}>Fonte: {a.fonte} · consultado em {dtHora(a.consultado_em)}</div>
+          </div>);
+      })}
+    </Painel>
+  );
+}
+
+// ── diagnóstico de uma competência (caso da equipe) ──────────────────────────
+const quando = (s?: string | null) => (!s ? "" : s.length > 10 ? dtHora(s) : s.split("-").reverse().join("/"));
+
+function DiagnosticoCompetencia({ d, municipio }: { d: any; municipio?: string }) {
+  const k = COR_CLASSE[d.classificacao as Classe];
+  const linha = (rotulo: string, valor: React.ReactNode) => (
+    <tr><td style={{ ...td, width: 210, fontWeight: 600, color: "#374151", background: "#f9fafb" }}>{rotulo}</td><td style={td}>{valor}</td></tr>
+  );
+  const erros = d.achados.filter((a: any) => a.erro_oficial);
+  return (
+    <section style={{ border: `1px solid ${k.borda}`, borderLeft: `5px solid ${k.fg}`, borderRadius: 8, background: "#fff", marginBottom: 12 }}>
+      <div style={{ background: k.bg, color: k.fg, padding: "8px 12px", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <strong style={{ fontSize: 14 }}>Competência {compBr(d.competencia)}</strong><SeloClasse c={d.classificacao} />
+        <span style={{ fontWeight: 600 }}>{d.causa}</span>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <tbody>
+          {linha("Município e estabelecimento", `${municipio || "—"} · CNES ${d.estabelecimento?.length ? d.estabelecimento.join(", ") : "não identificado"}`)}
+          {linha("Equipe / INE / tipo", `${d.equipe} · INE ${d.ine} · ${d.tipo_equipe ?? "—"}${d.tipologia ? ` (tipologia ${d.tipologia})` : ""}`)}
+          {linha("Situação SIAPS", <Etapa e={d.situacao_siaps} />)}
+          {linha("Produção na origem (PEC)", <Etapa e={d.etapas.origem} />)}
+          {linha("Transmissão", <Etapa e={d.etapas.transmissao} />)}
+          {linha("Processamento e validação", <Etapa e={d.etapas.processamento} />)}
+          {linha("Cadastro (e-Gestor)", <Etapa e={d.etapas.cadastro} />)}
+          {linha("Inconsistências identificadas", d.achados.length ? (
+            <ul style={{ margin: 0, paddingLeft: 18 }}>{d.achados.map((a: any) => (
+              <li key={a.codigo + a.titulo} style={{ marginBottom: 4 }}>
+                <strong style={{ color: COR_ACHADO[a.classe] }}>[{ROT_ACHADO[a.classe]} · {ROT_CAT[a.categoria]}]</strong> {a.titulo}
+                <div style={{ fontSize: 12, color: "#374151" }}>{a.descricao}</div>
+                <div style={{ fontSize: 11, color: "#4b5563" }}>Fonte: {a.fonte}{a.consultado_em ? ` · ${quando(a.consultado_em)}` : ""}</div>
+              </li>))}</ul>) : "Nenhuma inconsistência identificada nas fontes consultadas.")}
+          {linha("Código / descrição do erro oficial", erros.length ? erros.map((a: any) => <div key={a.codigo + a.titulo}><code>{a.erro_oficial.codigo}</code> — {a.erro_oficial.descricao}</div>) : "Nenhum código de erro oficial disponível para esta competência.")}
+          {linha("Causa", <><SeloClasse c={d.classificacao} /> <span style={{ marginLeft: 6 }}>{d.causa}</span>
+            {d.hipoteses_a_verificar.length > 0 && <div style={{ fontSize: 12, marginTop: 4 }}>Hipóteses a verificar: {d.hipoteses_a_verificar.join("; ")}.</div>}</>)}
+          {linha("Possíveis consequências", d.consequencias.length ? d.consequencias.map((c: any, i: number) => <div key={i}>{c.texto} <span style={{ fontSize: 11, color: "#4b5563" }}>({c.fonte})</span></div>)
+            : "Situação de pagamento da competência não verificada.")}
+          {linha("Não verificado", d.fontes_nao_verificadas.length ? d.fontes_nao_verificadas.join("; ") + "." : "—")}
+          {linha("Data da última verificação", dtHora(d.ultima_verificacao))}
+        </tbody>
+      </table>
+      {d.orientacoes.length > 0 && (
+        <div style={{ padding: "10px 12px" }}>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Orientação técnica para regularização</div>
+          {d.orientacoes.map((o: any) => (
+            <div key={o.codigo} style={{ border: "1px solid #e5e7eb", borderRadius: 6, padding: "8px 10px", marginBottom: 6, fontSize: 12, lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 700 }}>{o.problema}</div>
+              <div><strong>Impacto na contabilização:</strong> {o.impacto}</div>
+              <div><strong>Onde verificar/corrigir:</strong> {o.sistema}</div>
+              <div><strong>Procedimento recomendado:</strong> {o.procedimento}</div>
+              <div><strong>Responsável sugerido:</strong> {o.responsavel}</div>
+              <div><strong>Providência:</strong> {o.providencia}</div>
+              <div style={{ color: "#92400e" }}><strong>Atenção:</strong> {o.regra}</div>
+            </div>))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function DiagnosticoEquipe({ ine, compInicial, municipio }: { ine: string; compInicial?: string | null; municipio?: { uf?: string; nome?: string } }) {
+  const { data: d, isLoading } = useQuery<any>({ queryKey: ["mon-siaps", "diag-equipe", ine], queryFn: () => apiGetRaw(`${BASE}/diagnostico/equipe/${ine}`) });
+  const [sel, setSel] = useState<string | null>(compInicial ?? null);
+  if (isLoading) return <Aviso>Carregando diagnóstico…</Aviso>;
+  if (!d || d.situacao_dado === "nao_disponivel") return null;
+  const diags: any[] = d.diagnosticos;
+  const atual = diags.find(x => x.competencia === sel) ?? diags[0];
+  const mun = `${municipio?.nome || d.municipio || ""}${municipio?.uf ? "/" + municipio.uf : ""}`;
+  const conta = (c: Classe) => diags.filter(x => x.classificacao === c).length;
+  return (
+    <>
+      <Painel titulo="Diagnóstico técnico da ausência de envio" cor="#7c3aed">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 6, fontSize: 13, marginBottom: 10 }}>
+          <div><strong>Município:</strong> {mun || "—"} (IBGE {d.municipio_ibge ?? "—"})</div>
+          <div><strong>Estabelecimento:</strong> CNES {d.estabelecimento ?? "não identificado"}</div>
+          <div><strong>Equipe:</strong> {d.equipe} · INE {d.ine} · {d.tipo_equipe ?? "—"}</div>
+          <div><strong>Período analisado:</strong> {compBr(d.periodo.de)} a {compBr(d.periodo.ate)} ({d.periodo.competencias_coletadas} competências)</div>
+        </div>
+        {!diags.length ? <div style={{ fontSize: 13, color: "#166534" }}>Nenhuma competência com ausência de envio no período.</div> : (
+          <>
+            <div style={{ fontSize: 13, marginBottom: 8 }}>
+              {diags.length} competência(s) com ausência: <strong>{conta("causa_confirmada")}</strong> com causa confirmada · <strong>{conta("possivel_causa")}</strong> com possível causa · <strong>{conta("sem_inconsistencia") + conta("indisponivel")}</strong> sem diagnóstico conclusivo.
+            </div>
+            <div data-no-print style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+              <span style={{ fontSize: 12, color: "#374151" }}>Competência analisada:</span>
+              {diags.map(x => {
+                const k = COR_CLASSE[x.classificacao as Classe];
+                const ativo = x.competencia === atual?.competencia;
+                return <button key={x.competencia} onClick={() => setSel(x.competencia)} title={k.nome}
+                  style={{ ...btn, background: ativo ? k.fg : k.bg, color: ativo ? "#fff" : k.fg, border: `1px solid ${k.borda}`, fontWeight: 700 }}>{compBr(x.competencia)}</button>;
+              })}
+              <span style={{ marginLeft: "auto" }}><BotaoVerificar competencias={d.competencias_com_ausencia} rotulo="🔎 Verificar fontes desta equipe" /></span>
+            </div>
+            <div data-no-print>{atual && <DiagnosticoCompetencia d={atual} municipio={mun} />}</div>
+            <div data-print-only style={{ display: "none" }}>{diags.map(x => <DiagnosticoCompetencia key={x.competencia} d={x} municipio={mun} />)}</div>
+          </>
+        )}
+      </Painel>
+      <Painel titulo="Evidências e fontes" cor="#6b7280">
+        <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+          <div><strong>Fontes consultadas:</strong> {d.fontes_consultadas.length ? d.fontes_consultadas.join("; ") : "nenhuma consulta feita ainda — use “Verificar fontes”"}.</div>
+          <div><strong>Não acessadas pelo ERSUS360:</strong> registros de produção e lotes de transmissão do e-SUS APS/PEC municipal; retornos detalhados da área logada do SIAPS.</div>
+          {d.avisos.map((a: string) => <div key={a} style={{ fontSize: 12, color: "#4b5563", marginTop: 4 }}>{a}</div>)}
+        </div>
+      </Painel>
+      <Painel titulo="Resumo conclusivo para a gestão municipal" cor="#0f766e">
+        <div style={{ fontSize: 13, lineHeight: 1.6 }}>{d.conclusao}</div>
+        {d.reincidencia && <div style={{ fontSize: 13, marginTop: 4 }}><strong>Reincidência:</strong> a equipe saiu da lista oficial e voltou a constar — a regularização anterior não se manteve.</div>}
+      </Painel>
+    </>
   );
 }

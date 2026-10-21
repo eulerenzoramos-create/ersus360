@@ -387,6 +387,45 @@ async def _job_egestor_pagamento() -> None:
         logger.error("[Scheduler] Erro na sincronização do e-Gestor: %s", exc, exc_info=True)
 
 
+async def _job_egestor_ausencia_diagnostico() -> None:
+    """Job: Monitoramento SIAPS — lista pública de ausência (3 últimas competências) e evidências oficiais do
+    diagnóstico (SISAB validação + e-Gestor pagamento) das competências com ausência ainda sem evidência válida
+    ou recentes. Fontes públicas, sem login; só o recorte do município é guardado."""
+    logger.info("[Scheduler] Monitoramento SIAPS: ausência de envio e diagnóstico...")
+    try:
+        from sqlalchemy import select
+        from database import AsyncSessionLocal
+        from models.municipio import Municipio
+        from routers.egestor_diagnostico import competencias_para_verificar
+        from services import egestor_ausencia as ea
+        from services import egestor_diagnostico as dg
+        async with AsyncSessionLocal() as db:
+            municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
+            try:
+                na_fonte = await ea.listar_competencias()
+            except ea.FonteIndisponivel as exc:
+                logger.warning("[Scheduler] Ausência de envio: %s", exc)
+                return
+            for mun in municipios:
+                try:
+                    await ea.coletar(db, mun.id, mun.codigo_ibge, na_fonte[-3:], "agendador",
+                                     ultima_na_fonte=na_fonte[-1] if na_fonte else None)
+                    comps = await competencias_para_verificar(db, mun.id)
+                    ev = await dg.evidencias(db, mun.id)
+                    recentes = set(na_fonte[-3:])
+                    alvo = [c for c in comps if c in recentes
+                            or any((ev.get((f, c)) is None or ev[(f, c)].situacao != "ok")
+                                   for f in (dg.FONTE_SISAB, dg.FONTE_PAGAMENTO))]
+                    if alvo:
+                        r = await dg.coletar_evidencias(db, mun.id, mun.codigo_ibge, alvo, "agendador")
+                        logger.info("[Scheduler] Diagnóstico %s: %d consultas, %d erros, %d alteradas",
+                                    mun.codigo_ibge, len(r["consultas"]), len(r["erros"]), len(r["alteradas"]))
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("[Scheduler] Monitoramento SIAPS %s: %s", mun.codigo_ibge, exc)
+    except Exception as exc:
+        logger.error("[Scheduler] Erro no Monitoramento SIAPS: %s", exc, exc_info=True)
+
+
 async def _job_pec_territorio() -> None:
     """Job: território do e-SUS PEC (imóveis e domicílios visitados por equipe/microárea) pela API web do PEC.
     Só municípios com ESUS_PEC_URL/ESUS_USUARIO/ESUS_SENHA configurados; só contadores. A cada 4 h."""
@@ -641,6 +680,9 @@ def start_scheduler() -> None:
                       id="egestor_pagamento_diario", replace_existing=True, misfire_grace_time=3600)
     scheduler.add_job(_job_egestor_pagamento, "date", run_date=_dt.now(_tz.utc) + _td(minutes=6),
                       id="egestor_pagamento_inicial", replace_existing=True)
+    # Monitoramento SIAPS: lista de ausência e evidências do diagnóstico (SISAB/e-Gestor) — todo dia às 06:40
+    scheduler.add_job(_job_egestor_ausencia_diagnostico, CronTrigger(hour=6, minute=40, timezone="America/Manaus"),
+                      id="egestor_ausencia_diagnostico_diario", replace_existing=True, misfire_grace_time=3600)
 
     # SIAPS público: o MS publica o quadrimestre sem data fixa — confere todo dia às 05:30 e após o deploy
     scheduler.add_job(_job_siaps_publico_oficial, CronTrigger(hour=5, minute=30, timezone="America/Manaus"),
