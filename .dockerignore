@@ -9,5 +9,8 @@
 venv/
 frontend/dist/
 .git/
-.env
+**/.env
 *.log
+# builds antigos do frontend: a imagem gera o seu (Dockerfile, estágio frontend-build)
+backend/frontend_dist/
+backend/static/

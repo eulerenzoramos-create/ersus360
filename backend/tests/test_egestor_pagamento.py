@@ -32,7 +32,7 @@ DETALHE = {
     5: {"vlTotal": 74210, "validacoesEquipes": [{"coEquipeEsb": "0001773860", "coEquipeEsfEap": "0000007080", "coCnes": "3697983",
                                                   "stEsbUom": "CH compartilhada", "stEsbAtiva": "ATIVA", "stPagamento": "PAGO",
                                                   "modalidade": "1"}]},
-    12: {"vlTotal": 213972, "validacoesProfissionais": [{"coCns": "701803293653176"}]},
+    12: {"vlTotal": 213972, "validacoesProfissionais": [{"coCns": "700000000000005"}]},
 }
 
 

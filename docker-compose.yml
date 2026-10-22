@@ -29,7 +29,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://postgres:ersus360@local@db:5432/ersus360
+      DATABASE_URL: postgresql://postgres:ersus360@local@db:5432/ersus360  # dado-ficticio (só o Postgres local do compose)
       SECRET_KEY: ${SECRET_KEY:-ersus360-dev-secret-key-change-in-prod}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       FNS_MUNICIPIO_IBGE: "1300144"
