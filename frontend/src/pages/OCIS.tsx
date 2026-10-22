@@ -40,10 +40,10 @@ export default function OCIS() {
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
         {[
-          { label: "Alertas Críticos", value: dash?.alertas_criticos ?? 3, cor: "#c62828" },
-          { label: "Alertas de Aviso", value: dash?.alertas_avisos ?? 7, cor: "#e65100" },
-          { label: "TFD em Andamento", value: dash?.tfd_em_andamento ?? 5, cor: "#1565c0" },
-          { label: "Fila de Regulação", value: dash?.regulacao_fila_total ?? 42, cor: "#6a1b9a" },
+          { label: "Alertas Críticos", value: dash?.alertas_criticos ?? "—", cor: "#c62828" },
+          { label: "Alertas de Aviso", value: dash?.alertas_avisos ?? "—", cor: "#e65100" },
+          { label: "TFD em Andamento", value: dash?.tfd_em_andamento ?? "—", cor: "#1565c0" },
+          { label: "Fila de Regulação", value: dash?.regulacao_fila_total ?? "—", cor: "#6a1b9a" },
         ].map(k => (
           <div key={k.label} style={{ background: "#fff", borderRadius: 8, padding: "16px 20px", border: `2px solid ${k.cor}20` }}>
             <div style={{ fontSize: 28, fontWeight: 800, color: k.cor }}>{k.value}</div>
@@ -94,7 +94,7 @@ export default function OCIS() {
         <div style={{ background: "#fff", borderRadius: 8, border: "1px solid #e0e0e0", overflow: "hidden" }}>
           <div style={{ padding: "14px 18px", borderBottom: "1px solid #f0f0f0", display: "flex", justifyContent: "space-between" }}>
             <div style={{ fontWeight: 700, color: "#333" }}>Fila de Espera por Especialidade</div>
-            <div style={{ fontSize: 13, color: "#666" }}>Média espera: <strong>{fila.regulacao_media_espera_dias ?? 18} dias</strong> · Meta: &lt; 30 dias</div>
+            <div style={{ fontSize: 13, color: "#666" }}>Média espera: <strong>{fila.regulacao_media_espera_dias ?? "—"} dias</strong> · Meta: &lt; 30 dias</div>
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -128,7 +128,7 @@ export default function OCIS() {
         <div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 16 }}>
             <div style={{ background: "#fff", borderRadius: 8, padding: "14px 18px", border: "1px solid #e0e0e0" }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: "#1565c0" }}>{tfd.resumo?.total_mes ?? 5}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#1565c0" }}>{tfd.resumo?.total_mes ?? "—"}</div>
               <div style={{ fontSize: 13, color: "#555" }}>TFDs no mês</div>
             </div>
             <div style={{ background: "#fff", borderRadius: 8, padding: "14px 18px", border: "1px solid #e0e0e0" }}>

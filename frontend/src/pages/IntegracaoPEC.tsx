@@ -6,7 +6,7 @@ import {
   AlertTriangle, Database, Activity, Settings, ChevronRight,
   Server, Shield, BarChart2,
 } from "lucide-react";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGetEnvelope as apiGet, apiPost } from "../lib/api";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 

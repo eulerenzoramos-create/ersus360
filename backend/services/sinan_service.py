@@ -51,6 +51,8 @@ async def buscar_malaria(ano: int) -> dict:
             casos = data
         elif isinstance(data, dict):
             casos = data.get("items") or data.get("data") or []
+        if len(casos) >= 500:  # página cheia = total incompleto (21/10/2026)
+            return {**_sem_dado(ano, "malaria"), "nota": "A consulta ao DATASUS voltou com o limite de 500 registros: o total real é maior e não foi contado. Nenhum número parcial é exibido."}
         if casos:
             vf  = sum(1 for c in casos if str(c.get("id_lamina") or c.get("especie", "")).startswith("F"))
             vv  = sum(1 for c in casos if str(c.get("id_lamina") or c.get("especie", "")).startswith("V"))
@@ -84,6 +86,9 @@ async def buscar_dengue(ano: int) -> dict:
     elif isinstance(data, dict):
         casos = data.get("items") or data.get("data") or []
 
+    if len(casos) >= 500:  # página cheia = total incompleto (21/10/2026)
+        return {**_sem_dado(ano, "dengue"), "nota": "A consulta ao DATASUS voltou com o limite de 500 registros: o total real é maior e não foi contado. Nenhum número parcial é exibido."}
+
     if casos:
         total      = len(casos)
         graves     = sum(1 for c in casos if c.get("cs_evoluca") in ("2", "3", 2, 3))
@@ -114,6 +119,8 @@ async def buscar_tuberculose(ano: int) -> dict:
             casos = data
         elif isinstance(data, dict):
             casos = data.get("items") or data.get("data") or []
+        if len(casos) >= 500:  # página cheia = total incompleto (21/10/2026)
+            return {**_sem_dado(ano, "tuberculose"), "nota": "A consulta ao DATASUS voltou com o limite de 500 registros: o total real é maior e não foi contado. Nenhum número parcial é exibido."}
         if casos:
             total     = len(casos)
             curados   = sum(1 for c in casos if str(c.get("cs_evolucao") or c.get("resultado") or "").lower() in ("1", "cura", "curado"))
@@ -148,6 +155,8 @@ async def buscar_hanseniase(ano: int) -> dict:
             casos = data
         elif isinstance(data, dict):
             casos = data.get("items") or data.get("data") or []
+        if len(casos) >= 500:  # página cheia = total incompleto (21/10/2026)
+            return {**_sem_dado(ano, "hanseniase"), "nota": "A consulta ao DATASUS voltou com o limite de 500 registros: o total real é maior e não foi contado. Nenhum número parcial é exibido."}
         if casos:
             total    = len(casos)
             mb       = sum(1 for c in casos if str(c.get("classif_ope") or c.get("forma") or "").upper() in ("MB", "MULTIBACILAR"))

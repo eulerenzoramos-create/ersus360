@@ -313,15 +313,12 @@ export const apiDocumentos = {
   remove: (id: number) => api.delete(`/api/documentos/${id}`),
 };
 
+// apiGet (não r.data): resposta nao_disponivel vira undefined e a tela mostra o aviso, em vez de R$ 0,00.
 export const apiRelatorios = {
-  financeiro: (ano?: number) =>
-    api.get("/api/relatorios/financeiro", { params: { ano } }).then((r) => r.data),
-  porBloco: (ano?: number) =>
-    api.get("/api/relatorios/por-bloco", { params: { ano } }).then((r) => r.data),
-  porPrograma: (ano?: number) =>
-    api.get("/api/relatorios/por-programa", { params: { ano } }).then((r) => r.data),
-  prestacaoContas: (ano: number) =>
-    api.get("/api/relatorios/prestacao-contas", { params: { ano } }).then((r) => r.data),
+  financeiro: (ano?: number) => apiGet<any>("/api/relatorios/financeiro", { ano }),
+  porBloco: (ano?: number) => apiGet<any>("/api/relatorios/por-bloco", { ano }),
+  porPrograma: (ano?: number) => apiGet<any>("/api/relatorios/por-programa", { ano }),
+  prestacaoContas: (ano: number) => apiGet<any>("/api/relatorios/prestacao-contas", { ano }),
 };
 
 export const apiIA = {
@@ -360,6 +357,9 @@ export const apiGet = <T = unknown>(path: string, params?: Record<string, unknow
     // (endpoints ACS/outros que embalam direto sem campo "dados").
     if (d && typeof d === "object" && !Array.isArray(d) && "situacao_dado" in d) {
       if ("dados" in d) return (d.dados ?? undefined) as unknown as T;
+      // nao_disponivel sem "dados" também é "sem dado": antes o objeto chegava à tela, que o tratava como
+      // dado e exibia "undefined" e textos fixos (21/10/2026). Telas que leem a nota usam apiGetEnvelope.
+      if (d.situacao_dado === "nao_disponivel") return undefined as unknown as T;
       return d as T;
     }
     return d as T;
@@ -369,6 +369,17 @@ export const apiGet = <T = unknown>(path: string, params?: Record<string, unknow
 // que precisam exibir mensagem de indisponibilidade ao usuário).
 export const apiGetRaw = <T = unknown>(path: string, params?: Record<string, unknown>) =>
   api.get<T>(path, { params }).then((r) => r.data);
+
+// apiGetEnvelope: desempacota "dados" como apiGet, mas devolve o envelope nao_disponivel sem "dados"
+// (com nota/mensagem) — para telas que exibem essa explicação.
+export const apiGetEnvelope = <T = unknown>(path: string, params?: Record<string, unknown>) =>
+  api.get<T>(path, { params }).then((r) => {
+    const d = r.data as any;
+    if (d && typeof d === "object" && !Array.isArray(d) && "situacao_dado" in d && "dados" in d) {
+      return (d.dados ?? undefined) as unknown as T;
+    }
+    return d as T;
+  });
 
 export const apiPost = <T = unknown>(path: string, body?: unknown) =>
   api.post<T>(path, body).then((r) => r.data);

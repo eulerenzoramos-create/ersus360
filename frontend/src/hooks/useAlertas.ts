@@ -21,7 +21,7 @@ interface Estado {
 }
 
 const WS_URL = (() => {
-  const api = import.meta.env.VITE_API_URL ?? "https://ersus360-production.up.railway.app";
+  const api = import.meta.env.VITE_API_URL ?? "http://localhost:8000"; // mesmo padrão de lib/api.ts (antes: produção)
   return api.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws/alertas";
 })();
 

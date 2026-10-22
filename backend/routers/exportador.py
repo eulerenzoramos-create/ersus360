@@ -12,7 +12,9 @@ from routers.auth import get_current_user, UserOut
 
 router = APIRouter(prefix="/api/exportador", tags=["exportador"])
 
-_TS = "2026-08-13T00:00:00Z"
+
+NOTA = ("A geração de arquivos depende da integração de cada fonte (SISAB, SI-PNI, FNS, estoque). "
+        "Enquanto ela não existir, nenhum arquivo é gerado.")
 
 _TIPOS_RELATORIO = [
     {"id": "REL-001", "nome": "Relatório de Gestão Quadrimestral (RDQA)",    "descricao": "Relatório de Gestão conforme RDQA — DigiSUS Gestor",                "modulo": "Gestao",       "formatos": ["pdf", "excel"], "ultima_geracao": "2025-09-15", "tempo_estimado_s": 8,  "status": "disponivel"},
@@ -37,15 +39,16 @@ _TIPOS_RELATORIO = [
 
 @router.get("/resumo")
 async def resumo(_: UserOut = Depends(get_current_user)):
+    # Contadores fixos ("8 gerações/mês", "última exportação 2025-09-15") removidos em 21/10/2026: não há registro.
     return {
-        "situacao_dado": "referencia_municipal",
-        "municipio": "Apuí/AM",
+        "situacao_dado": "nao_disponivel",
         "relatorios_disponiveis": len(_TIPOS_RELATORIO),
-        "geracoes_mes": 8,
-        "ultima_exportacao": "2025-09-15",
+        "geracoes_mes": None,
+        "ultima_exportacao": None,
         "formatos_suportados": ["pdf", "excel", "csv"],
         "modulos": sorted(list({r["modulo"] for r in _TIPOS_RELATORIO})),
-        "verificado_em": _TS,
+        "nota": NOTA,
+        "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 
 
@@ -62,19 +65,16 @@ async def lista(
 
 @router.post("/gerar")
 async def gerar(body: dict, _: UserOut = Depends(get_current_user)):
-    rel_id = body.get("relatorio_id", "REL-001")
-    formato = body.get("formato", "pdf")
-    rel = next((r for r in _TIPOS_RELATORIO if r["id"] == rel_id), _TIPOS_RELATORIO[0])
-    job_id = str(uuid.uuid4())[:8].upper()
+    # Antes respondia "concluido" com um link de download que não existia.
+    rel_id = body.get("relatorio_id")
+    rel = next((r for r in _TIPOS_RELATORIO if r["id"] == rel_id), None)
     return {
-        "job_id": job_id,
         "relatorio_id": rel_id,
-        "nome": rel["nome"],
-        "formato": formato,
-        "status": "concluido",
-        "criado_em": _TS[:16].replace("T", " "),
-        "url_download": f"/api/exportador/download/{job_id}?formato={formato}",
-        "erro": None,
-        "situacao_dado": "referencia_municipal",
-        "nota": "Arquivo referência — conecte sistema de origem para exportação real.",
+        "nome": rel["nome"] if rel else None,
+        "formato": body.get("formato", "pdf"),
+        "status": "indisponivel",
+        "url_download": None,
+        "erro": NOTA,
+        "situacao_dado": "nao_disponivel",
+        "nota": NOTA,
     }

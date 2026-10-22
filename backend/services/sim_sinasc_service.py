@@ -66,6 +66,9 @@ async def buscar_obitos(ano: int) -> dict:
     elif isinstance(data, dict):
         obitos = data.get("items") or data.get("data") or []
 
+    if len(obitos) >= 200:  # página cheia = total incompleto (21/10/2026)
+        return {**_sem_dado_obitos(ano), "nota": "A consulta ao DATASUS voltou com o limite de 200 registros: o total real é maior e não foi contado. Nenhum número parcial é exibido."}
+
     if obitos:
         total      = len(obitos)
         ext_count  = sum(1 for o in obitos if _is_causa_externa(o))
@@ -99,6 +102,9 @@ async def buscar_nascidos_vivos(ano: int) -> dict:
         nascimentos = data
     elif isinstance(data, dict):
         nascimentos = data.get("items") or data.get("data") or []
+
+    if len(nascimentos) >= 500:  # página cheia = total incompleto (21/10/2026)
+        return {**_sem_dado_nasc(ano), "nota": "A consulta ao DATASUS voltou com o limite de 500 registros: o total real é maior e não foi contado. Nenhum número parcial é exibido."}
 
     if nascimentos:
         total      = len(nascimentos)

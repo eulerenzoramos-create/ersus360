@@ -1,35 +1,26 @@
-"""
-Router: /api/banco-leite-apui — ERSUS 360
-Banco de Leite Humano via CNES + SINASC — DATASUS dados abertos.
-Dados operacionais BLH requerem sistema REDEBLH (pendente).
+"""Router: /api/banco-leite-apui — Banco de Leite Humano — ERSUS 360
+
+Sem fonte específica integrada: responde nao_disponivel com a explicação. Até 21/10/2026 devolvia dados de
+outro assunto (proxy) que a tela poderia exibir com este rótulo — ver nota.
 """
 from __future__ import annotations
+
 from datetime import date, datetime
+
 from fastapi import APIRouter, Query
-from services.cnes_service import resumo_estabelecimentos
-from services.sim_sinasc_service import buscar_nascidos_vivos
 
 router = APIRouter(prefix="/api/banco-leite-apui", tags=["banco_leite_apui"])
-_TS  = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-_ANO = lambda: date.today().year - 1
-_NOTA = "Volume coletado e distribuído requerem REDEBLH (pendente integração)."
+NOTA = ("Coleta, doadoras e distribuição de leite humano vêm da rede rBLH (REDEBLH), ainda não integrada. O total de estabelecimentos do CNES e os nascidos vivos do SINASC não medem a operação do banco de leite e não são mais exibidos.")
+
+
+def _ts() -> str:
+    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 @router.get("/dashboard")
 async def dashboard(ano: int = Query(0)):
-    if not ano:
-        ano = _ANO()
-    cnes = await resumo_estabelecimentos()
-    nasc = await buscar_nascidos_vivos(ano)
-    return {
-        "situacao_dado": cnes.get("situacao_dado"),
-        "ano": ano,
-        "estabelecimentos": cnes.get("total"),
-        "nascidos_vivos": nasc.get("total_nascidos"),
-        "nota": _NOTA,
-        "fonte": "CNES + SINASC — DATASUS dados abertos",
-        "verificado_em": _TS(),
-    }
+    return {"situacao_dado": "nao_disponivel", "dados": None, "ano": ano or date.today().year - 1, "nota": NOTA,
+            "verificado_em": _ts()}
 
 
 @router.get("/indicadores")

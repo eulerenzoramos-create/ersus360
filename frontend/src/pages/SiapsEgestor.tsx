@@ -11,7 +11,7 @@ import {
   Users, Star, TrendingUp, AlertTriangle, CheckCircle,
   ChevronDown, ChevronRight, RefreshCw, Download, Info,
 } from "lucide-react";
-import { apiGet, apiGetRaw, apiPost } from "../lib/api";
+import { apiGetEnvelope as apiGet, apiGetRaw, apiPost } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 

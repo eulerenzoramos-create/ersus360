@@ -10,7 +10,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Link2, Plus, RefreshCw, Trash2, Unlink, X } from "lucide-react";
-import { api, apiGet } from "../lib/api";
+import { api, apiGetEnvelope as apiGet } from "../lib/api";
 import { useAuth } from "../App";
 
 const C = {

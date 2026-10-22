@@ -9,7 +9,7 @@ import {
   CheckCircle, Clock, RefreshCw, Download, FileText,
   ChevronDown, ChevronRight, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
-import { apiGet, apiGetRaw } from "../lib/api";
+import { apiGetEnvelope as apiGet, apiGetRaw } from "../lib/api";
 import { BRL, BRL_AXIS } from "../lib/fmt";
 
 // ── Types ─────────────────────────────────────────────────────────────────────

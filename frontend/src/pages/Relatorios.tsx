@@ -106,7 +106,7 @@ export default function Relatorios() {
   };
 
   const downloadArquivo = async (endpoint: string, fallbackNome: string) => {
-    const API = import.meta.env.VITE_API_URL ?? "https://ersus360-production.up.railway.app";
+    const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000"; // mesmo padrão de lib/api.ts (antes: produção)
     const token = localStorage.getItem("ersus_token") ?? "";
     const res = await fetch(`${API}${endpoint}`, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) return;

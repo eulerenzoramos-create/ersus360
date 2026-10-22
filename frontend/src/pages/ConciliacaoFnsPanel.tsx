@@ -11,7 +11,7 @@ import {
   CheckCircle, AlertTriangle, XCircle, ExternalLink, RefreshCw,
   ChevronDown, ChevronRight, Info,
 } from "lucide-react";
-import { apiGet } from "../lib/api";
+import { apiGetEnvelope as apiGet } from "../lib/api";
 
 const C = {
   blue: "#1565c0", blueLight: "#e3f0ff",

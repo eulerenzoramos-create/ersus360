@@ -5,7 +5,7 @@ import {
   LineChart, Line, CartesianGrid, Cell,
 } from "recharts";
 import { Activity, CheckCircle, AlertTriangle, Upload } from "lucide-react";
-import { apiGet } from "../lib/api";
+import { apiGetEnvelope as apiGet } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };

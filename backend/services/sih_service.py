@@ -73,6 +73,9 @@ async def buscar_internacoes(ano: int) -> dict:
     elif isinstance(data, dict):
         aih = data.get("items") or data.get("data") or []
 
+    if len(aih) >= 500:  # página cheia = total incompleto (21/10/2026)
+        return {**_sem_dado(ano), "nota": "A consulta ao DATASUS voltou com o limite de 500 registros: o total real é maior e não foi contado. Nenhum número parcial é exibido."}
+
     if aih:
         total     = len(aih)
         icsap     = sum(1 for a in aih if _is_icsap(str(a.get("diag_princ") or a.get("cid_principal") or "")))
