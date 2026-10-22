@@ -20,15 +20,13 @@ async def dashboard(ano: int = Query(0)):
         ano = _ANO()
     obitos = await buscar_obitos(ano)
     nasc   = await buscar_nascidos_vivos(ano)
-    total_nv = nasc.get("total_nascidos") or 0
-    total_ob = obitos.get("total_obitos") or 0
-    tmi = round(total_ob / total_nv * 1000, 1) if total_nv else None
+    # A antiga "taxa_mortalidade_infantil_estimada" dividia óbitos de TODAS as idades pelos nascidos vivos —
+    # não é mortalidade infantil; removida em 21/10/2026.
     return {
         "situacao_dado": obitos.get("situacao_dado"),
         "ano": ano,
-        "obitos": total_ob,
-        "nascidos_vivos": total_nv,
-        "taxa_mortalidade_infantil_estimada": tmi,
+        "obitos": obitos.get("total_obitos"),
+        "nascidos_vivos": nasc.get("total_nascidos"),
         "nota": _NOTA,
         "fonte": "SIM + SINASC — DATASUS dados abertos",
         "verificado_em": _TS(),

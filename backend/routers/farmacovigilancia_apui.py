@@ -1,17 +1,28 @@
-"""Router: /api/farmacovigilancia-apui — ERSUS 360 — SINAN+SIA dados abertos"""
+"""Router: /api/farmacovigilancia-apui — Farmacovigilância — ERSUS 360
+
+Sem fonte específica integrada: responde nao_disponivel com a explicação. Até 21/10/2026 devolvia dados de
+outro assunto (proxy) que a tela poderia exibir com este rótulo — ver nota.
+"""
 from __future__ import annotations
+
 from datetime import date, datetime
+
 from fastapi import APIRouter, Query
-from services.sinan_service import buscar_agravos_resumo
-from services.sia_service import buscar_producao
+
 router = APIRouter(prefix="/api/farmacovigilancia-apui", tags=["Farmacovigilância Apuí"])
-_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
-_NOTA = "Notificações NOTIVISA/ANVISA requerem integração (pendente). SINAN/SIA como proxy de eventos adversos."
+NOTA = ("Eventos adversos a medicamentos vêm do VigiMed/NOTIVISA (ANVISA), ainda não integrado. Agravos do SINAN e o total do SIA não são eventos adversos e não são mais exibidos.")
+
+
+def _ts() -> str:
+    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 @router.get("/dashboard")
 async def dashboard(ano: int = Query(0)):
-    if not ano: ano = _ANO()
-    sinan = await buscar_agravos_resumo(ano); sia = await buscar_producao(ano)
-    any_real = any(d.get("situacao_dado") == "oficial_validado" for d in [*sinan, sia])
-    return {"situacao_dado": "oficial_validado" if any_real else "nao_disponivel", "ano": ano, "agravos": sinan, "producao": sia.get("total_procedimentos"), "nota": _NOTA, "fonte": "SINAN + SIA — DATASUS dados abertos", "verificado_em": _TS()}
+    return {"situacao_dado": "nao_disponivel", "dados": None, "ano": ano or date.today().year - 1, "nota": NOTA,
+            "verificado_em": _ts()}
+
+
 @router.get("/indicadores")
-async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
+async def indicadores(ano: int = Query(0)):
+    return await dashboard(ano=ano)

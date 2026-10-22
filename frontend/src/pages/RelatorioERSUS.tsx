@@ -377,7 +377,7 @@ export default function RelatorioERSUS() {
     retry: 1,
   });
 
-  const btnTipo: React.CSSProperties = (ativo: boolean) => ({
+  const btnTipo = (ativo: boolean): React.CSSProperties => ({
     padding:"9px 20px", borderRadius:9, border:"none", cursor:"pointer",
     fontSize:13, fontWeight:600,
     background: ativo ? "#1d4ed8" : "#f1f5f9",
