@@ -222,7 +222,7 @@ function CardSiaps({ d }: { d: SiapsStatus }) {
       icon={<Database size={18} color={NIVEL_CFG[nivel].cor}/>} tempo={d.tempo_ms} verificadoEm={d.verificado_em}
       guia={nivel !== "ok" && (
         <GuiaRailway vars={[
-          { nome:"SIAPS_CPF",   exemplo:"34130047272", descricao:"CPF da gestora sem pontuação (Railway env var — nunca hardcode)" },
+          { nome:"SIAPS_CPF",   exemplo:"00000000000", descricao:"CPF da gestora sem pontuação (Railway env var — nunca hardcode)" },
           { nome:"SIAPS_SENHA", exemplo:"••••••••",    descricao:"Senha gov.br da gestora (Railway env var — nunca hardcode)" },
         ]}/>
       )}>

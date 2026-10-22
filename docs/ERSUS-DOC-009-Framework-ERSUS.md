@@ -126,7 +126,7 @@ raise HTTPException(
 ### 4.4 Variáveis de ambiente — regra absoluta
 ```
 ✅ settings.FNS_API_CPF          → lê de variável de ambiente Railway
-❌ cpf = "34130047272"           → PROIBIDO — credencial no código
+❌ cpf = "00000000000"           → PROIBIDO — credencial no código
 ❌ # TODO: mudar a senha         → PROIBIDO — indica credencial hardcoded
 ```
 
