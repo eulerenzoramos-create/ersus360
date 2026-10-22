@@ -1094,6 +1094,8 @@ export default function MatrizFns() {
     const mesLimite = Math.min(mesAtual, 12);
     let totalIns = 0;
     let erros = 0;
+    // Antes: "✓ Setembro OK" aparecia mesmo quando o FNS não devolvia nada (só se somavam inseridos).
+    const falhas: string[] = [];
 
     for (let m = 1; m <= mesLimite; m++) {
       setSincMsg(`⏳ Sincronizando ${MESES_FULL[m - 1]}… (${m}/${mesLimite})`);
@@ -1101,11 +1103,20 @@ export default function MatrizFns() {
         const r = await apiPost(
           `/api/repasses-fns/sincronizar-periodo?exercicio=${exercicio}&mes_inicio=${m}&mes_fim=${m}`,
           {}
-        ) as { total_inseridos?: number };
+        ) as { total_inseridos?: number; resultados?: { sucesso?: boolean; mensagem_erro?: string | null }[] };
         totalIns += r.total_inseridos ?? 0;
-        setSincMsg(`✓ ${MESES_FULL[m - 1]} OK · ${totalIns} registros acumulados (${m}/${mesLimite})`);
+        const res = r.resultados?.[0];
+        if (res && res.sucesso === false) {
+          erros++;
+          falhas.push(`${MESES_ABREV[m - 1]}: ${res.mensagem_erro || "o FNS não devolveu dados"}`);
+          setSincMsg(`⚠ ${MESES_FULL[m - 1]} sem dados do FNS — ${res.mensagem_erro || "sem resposta"} · continuando…`);
+          await new Promise(ok => setTimeout(ok, 800));
+        } else {
+          setSincMsg(`✓ ${MESES_FULL[m - 1]} OK · ${totalIns} registros acumulados (${m}/${mesLimite})`);
+        }
       } catch (e) {
         erros++;
+        falhas.push(`${MESES_ABREV[m - 1]}: ${e instanceof Error ? e.message : "falha na requisição"}`);
         setSincMsg(`⚠ Erro em ${MESES_FULL[m - 1]}: ${e instanceof Error ? e.message : "Falha"} · continuando…`);
         await new Promise(res => setTimeout(res, 800));
       }
@@ -1121,8 +1132,8 @@ export default function MatrizFns() {
     setSincronizando(false);
     setSincMsg(erros === 0
       ? `✓ Sincronização concluída — ${totalIns} registros importados.`
-      : `✓ Concluído com ${erros} erro(s) — ${totalIns} registros importados.`);
-    setTimeout(() => setSincMsg(""), 15000);
+      : `⚠ Concluído com ${erros} mês(es) sem dados — ${falhas.join(" · ")}. Os meses que já tinham dados foram mantidos.`);
+    if (erros === 0) setTimeout(() => setSincMsg(""), 15000);   // aviso de falha fica na tela
   };
 
   // ── Exportar Excel ────────────────────────────────────────────────────────

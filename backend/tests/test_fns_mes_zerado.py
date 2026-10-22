@@ -101,3 +101,13 @@ async def test_matriz_marca_pendente_mes_coletado_sem_registros(db_session):
                                  componente=None, tipo_incentivo=None, busca=None, db=db_session)
     assert r["meses_status"]["8"] == "ok"
     assert r["meses_status"]["9"] == "pendente"     # antes: "ok" (✓) com R$ 0,00
+
+
+async def test_falha_informa_o_motivo_real(db_session, monkeypatch, fontes):
+    async def consulta_com_503(exercicio, mes):
+        fns._MOTIVO_CONSULTAFNS[f"{exercicio}/{mes}"] = "consultafns respondeu HTTP 503"
+        return [], None, None
+
+    monkeypatch.setattr(fns, "_fetch_consultafns", consulta_com_503)
+    r = await fns.coletar_transferencias(2026, 9, db_session)
+    assert r["sucesso"] is False and "HTTP 503" in r["mensagem_erro"]

@@ -216,6 +216,9 @@ def _normalizar(raw: dict, exercicio: int, mes: int | None, fonte: str, pagina: 
 
 # ── Clientes de API ────────────────────────────────────────────────────────────
 
+_MOTIVO_CONSULTAFNS: dict[str, str] = {}   # motivo da última consulta sem dados, por "exercicio/mes"
+
+
 async def _fetch_consultafns(exercicio: int, mes: int) -> tuple[list[dict], Decimal | None, int | None]:
     """
     Consulta consultafns.saude.gov.br/recursos/consulta-detalhada/detalhe-acao
@@ -273,6 +276,7 @@ async def _fetch_consultafns(exercicio: int, mes: int) -> tuple[list[dict], Deci
                                      headers=headers, params=acao_params)
                 if r.status_code != 200:
                     logger.info(f"FNS detalhe-acao página {page}: HTTP {r.status_code}")
+                    _MOTIVO_CONSULTAFNS[f"{exercicio}/{mes}"] = f"consultafns respondeu HTTP {r.status_code}"
                     break
 
                 try:
@@ -281,6 +285,8 @@ async def _fetch_consultafns(exercicio: int, mes: int) -> tuple[list[dict], Deci
                     payload = {}
                 dados = payload.get("dados", [])
                 if not dados:
+                    if page == 1:
+                        _MOTIVO_CONSULTAFNS[f"{exercicio}/{mes}"] = "consultafns respondeu sem pagamentos"
                     logger.info(
                         f"FNS consultafns p{page} sem dados: status={r.status_code} "
                         f"exercicio={exercicio} mes={mes} "
@@ -304,6 +310,9 @@ async def _fetch_consultafns(exercicio: int, mes: int) -> tuple[list[dict], Deci
 
             except Exception as e:
                 logger.warning(f"FNS detalhe-acao página {page}: {e}")
+                _MOTIVO_CONSULTAFNS[f"{exercicio}/{mes}"] = (
+                    "consultafns não respondeu a tempo" if isinstance(e, httpx.TimeoutException)
+                    else f"falha ao consultar consultafns ({type(e).__name__})")
                 break
 
     if registros:
@@ -689,6 +698,7 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
 
     try:
         # 1ª tentativa: detalhe-acao (dados completos por ação orçamentária)
+        _MOTIVO_CONSULTAFNS.pop(f"{exercicio}/{mes}", None)
         registros, total_oficial, total_fonte = await _fetch_consultafns(exercicio, mes)
 
         if not registros:
@@ -706,7 +716,9 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
 
         if not registros:
             coleta.sucesso = False
-            coleta.mensagem_erro = "Nenhuma fonte disponível retornou dados para o período solicitado."
+            motivo = _MOTIVO_CONSULTAFNS.pop(f"{exercicio}/{mes}", None)
+            coleta.mensagem_erro = (f"FNS sem dados para o período ({motivo})." if motivo
+                                    else "Nenhuma fonte disponível retornou dados para o período solicitado.")
             coleta.concluido_em = datetime.utcnow()
             await db.commit()
             return {
