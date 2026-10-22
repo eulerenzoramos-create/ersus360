@@ -483,7 +483,7 @@ async def listar_backups(
 ):
     from models.backup import BackupExecucao
     from tenancy.arquivos import armazenamento_persistente
-    from tenancy.backup import dias_retencao
+    from tenancy.backup import _chaves_anteriores, dias_retencao
 
     stmt = select(BackupExecucao).order_by(BackupExecucao.iniciado_em.desc(), BackupExecucao.id.desc()).limit(limite)
     if municipio_uuid:
@@ -494,6 +494,7 @@ async def listar_backups(
         "retencao_dias": dias_retencao(),
         "armazenamento_persistente": armazenamento_persistente(),
         "chave_dedicada": bool(os.getenv("BACKUP_CHAVE")),
+        "chaves_anteriores_para_leitura": len(_chaves_anteriores()),
         "backups": [_backup_dict(r, muns) for r in regs],
     }
 

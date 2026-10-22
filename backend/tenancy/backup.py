@@ -36,7 +36,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Callable
 
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 from sqlalchemy import Enum as SAEnum, MetaData, Table, delete, insert, inspect, select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.pool import StaticPool
@@ -147,20 +147,54 @@ def _sha(dados: bytes) -> str:
 
 # ── Criptografia ─────────────────────────────────────────────────────────────
 
+def _derivada(secret_key: str) -> Fernet:
+    derivada = hashlib.sha256(b"ersus360-backup-v1|" + secret_key.encode()).digest()
+    return Fernet(base64.urlsafe_b64encode(derivada))
+
+
 def _fernet() -> Fernet:
+    """Chave de GRAVAÇÃO: sempre a atual."""
     chave = os.getenv("BACKUP_CHAVE", "").strip()
     if chave:
         return Fernet(chave.encode())
     # Sem chave dedicada: deriva do SECRET_KEY (separação de domínio). Trocar o
     # SECRET_KEY torna ilegíveis os backups antigos — defina BACKUP_CHAVE.
     logger.warning("BACKUP_CHAVE não definida: chave derivada do SECRET_KEY")
-    derivada = hashlib.sha256(b"ersus360-backup-v1|" + settings.SECRET_KEY.encode()).digest()
-    return Fernet(base64.urlsafe_b64encode(derivada))
+    return _derivada(settings.SECRET_KEY)
+
+
+def _chaves_anteriores() -> list[Fernet]:
+    """Chaves usadas antes da troca (aviso de segurança do Railway, 21/10/2026). Só leitura.
+      BACKUP_CHAVES_ANTERIORES  chaves Fernet antigas, separadas por vírgula
+      SECRET_KEY_ANTERIOR       SECRET_KEY antiga, para backups feitos sem BACKUP_CHAVE
+    Com a retenção de 30 dias, podem ser removidas quando o último backup antigo sair.
+    """
+    chaves = []
+    for i, k in enumerate(c.strip() for c in os.getenv("BACKUP_CHAVES_ANTERIORES", "").split(",")):
+        if not k:
+            continue
+        try:
+            chaves.append(Fernet(k.encode()))
+        except (ValueError, TypeError):
+            logger.error("BACKUP_CHAVES_ANTERIORES: chave na posição %d inválida, ignorada", i + 1)
+    anterior = os.getenv("SECRET_KEY_ANTERIOR", "").strip()
+    if anterior:
+        chaves.append(_derivada(anterior))
+    return chaves
+
+
+def _fernets_leitura() -> MultiFernet:
+    """Atual primeiro; depois as anteriores e, com BACKUP_CHAVE definida, a derivada do SECRET_KEY
+    atual (backups gerados antes de a chave dedicada existir)."""
+    chaves = [_fernet(), *_chaves_anteriores()]
+    if os.getenv("BACKUP_CHAVE", "").strip():
+        chaves.append(_derivada(settings.SECRET_KEY))
+    return MultiFernet(chaves)
 
 
 def _abrir(caminho: Path) -> zipfile.ZipFile:
     try:
-        bruto = _fernet().decrypt(caminho.read_bytes())
+        bruto = _fernets_leitura().decrypt(caminho.read_bytes())
     except InvalidToken:
         raise ErroBackup("Não foi possível descriptografar o backup (chave diferente ou arquivo alterado)")
     return zipfile.ZipFile(io.BytesIO(bruto))
