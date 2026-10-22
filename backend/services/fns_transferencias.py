@@ -645,7 +645,7 @@ async def _salvar_registros(db: AsyncSession, registros: list[dict]) -> tuple[in
 
 # ── Função pública principal ───────────────────────────────────────────────────
 
-async def _limpar_periodo(exercicio: int, mes: int, db: AsyncSession) -> int:
+async def _limpar_periodo(exercicio: int, mes: int, db: AsyncSession, commit: bool = True) -> int:
     """Remove todos os registros do período para permitir ressincronização limpa."""
     from sqlalchemy import delete as sa_delete
     stmt = sa_delete(TransferenciaFns).where(
@@ -654,7 +654,8 @@ async def _limpar_periodo(exercicio: int, mes: int, db: AsyncSession) -> int:
         TransferenciaFns.mes == mes,
     )
     result = await db.execute(stmt)
-    await db.commit()
+    if commit:
+        await db.commit()
     return result.rowcount
 
 
@@ -672,11 +673,6 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
     - mensagem_erro: str | None
     """
     iniciado = datetime.utcnow()
-
-    # Limpa registros antigos do período (permite ressincronização com dados corrigidos)
-    removidos = await _limpar_periodo(exercicio, mes, db)
-    if removidos:
-        logger.info(f"FNS: removidos {removidos} registros antigos de {exercicio}/{mes:02d}")
 
     # Cria registro de coleta
     coleta = ColetaFns(
@@ -721,6 +717,13 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
                 "mes": mes,
             }
 
+        # Só agora troca os registros do mês (permite ressincronizar com dados corrigidos). Antes a limpeza
+        # vinha ANTES da consulta: se o FNS falhasse ou demorasse, o mês ficava zerado (setembro/2026).
+        # Sem commit aqui: a remoção só vale junto com a gravação dos novos (commit em _salvar_registros).
+        removidos = await _limpar_periodo(exercicio, mes, db, commit=False)
+        if removidos:
+            logger.info(f"FNS: substituídos {removidos} registros antigos de {exercicio}/{mes:02d}")
+
         inseridos, atualizados, sem_mudanca = await _salvar_registros(db, registros)
 
         total_coletado = sum(
@@ -764,6 +767,7 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
 
     except Exception as e:
         logger.exception(f"Erro coletando FNS {exercicio}/{mes}: {e}")
+        await db.rollback()   # desfaz a troca parcial: o mês continua com os registros anteriores
         coleta.sucesso = False
         coleta.mensagem_erro = str(e)
         coleta.concluido_em = datetime.utcnow()
