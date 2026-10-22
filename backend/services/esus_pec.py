@@ -13,8 +13,9 @@ import httpx
 ESUS_URL      = os.getenv("ESUS_URL",      "http://localhost:8080")
 ESUS_USUARIO  = os.getenv("ESUS_USUARIO",  "")
 ESUS_SENHA    = os.getenv("ESUS_SENHA",    "")
-ESUS_CLIENT   = "microservice-client"
-ESUS_SECRET   = "microsservice-secret"
+ESUS_CLIENT   = os.getenv("ESUS_CLIENT_ID", "microservice-client")
+# Padrão do cliente OAuth do e-SUS PEC; troque por ESUS_CLIENT_SECRET se a instalação usar outro.
+ESUS_SECRET   = os.getenv("ESUS_CLIENT_SECRET", "microsservice-secret")  # seguranca: ignorar (padrão do PEC)
 
 _token_cache: dict[str, Any] = {}   # {"token": str, "expira": datetime}
 

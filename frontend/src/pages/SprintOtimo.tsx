@@ -129,9 +129,9 @@ const DIAGNOSTICO = [
     tipo: "eSF",
     esb: true,
     cnesStatus: "regular",
-    medico:    { nome: "THELCIA KELLY COELHO OLIVEIRA",  cbo: "225142", cnes: "700105961007816", vinculo: "40h — entrada 01/08/2025" },
-    enfermeiro:{ nome: "FRANCISCO DE ASSIS FERREIRA",    cbo: "223565", cnes: "701206059359818", vinculo: "40h — entrada 01/10/2025" },
-    tecEnf:    { nome: "MARCIELAINE ESPERANCA",          cbo: "322245", cnes: "705408414437798", vinculo: "40h — entrada 03/06/2024" },
+    medico:    { nome: "THELCIA KELLY COELHO OLIVEIRA",  cbo: "225142", cnes: "registrado", vinculo: "40h — entrada 01/08/2025" },
+    enfermeiro:{ nome: "FRANCISCO DE ASSIS FERREIRA",    cbo: "223565", cnes: "registrado", vinculo: "40h — entrada 01/10/2025" },
+    tecEnf:    { nome: "MARCIELAINE ESPERANCA",          cbo: "322245", cnes: "registrado", vinculo: "40h — entrada 03/06/2024" },
     // ACS (7): ELIANE ROSA ANGELO, ELIZANGELA DE ALMEIDA MACHADO, ERIVELTON SILVA RIGOR,
     //          GERIVALDO ANICACIO DE AZEVEDO, JOSINEA DIAS, REINALDO DIAS DA SILVA, TIAGO BERNARDINO DE OLIVEIRA
     // Outros: MARIZETE DE OLIVEIRA DOS SANTOS (microscopista 5152A1) · ODAIR JOSE DIAS DA SILVA (ACE 515140)
@@ -154,9 +154,9 @@ const DIAGNOSTICO = [
     tipo: "eSF",
     esb: true,
     cnesStatus: "regular",
-    medico:    { nome: "LUCIANE MATTES",                 cbo: "225142", cnes: "700508587440756", vinculo: "40h — entrada 01/04/2026" },
-    enfermeiro:{ nome: "CRISTIANA FEITOSA DE SOUZA",     cbo: "223565", cnes: "700208908597924", vinculo: "40h — entrada 01/09/2025" },
-    tecEnf:    { nome: "JAMILLY LOUREIRO DE SOUSA",      cbo: "322245", cnes: "708207195886741", vinculo: "40h — entrada 19/11/2025" },
+    medico:    { nome: "LUCIANE MATTES",                 cbo: "225142", cnes: "registrado", vinculo: "40h — entrada 01/04/2026" },
+    enfermeiro:{ nome: "CRISTIANA FEITOSA DE SOUZA",     cbo: "223565", cnes: "registrado", vinculo: "40h — entrada 01/09/2025" },
+    tecEnf:    { nome: "JAMILLY LOUREIRO DE SOUSA",      cbo: "322245", cnes: "registrado", vinculo: "40h — entrada 19/11/2025" },
     // ACS (6): CAMILA PEREIRA CASSIMIRO DE LIMA, FRANCIELE DA COSTA RODRIGUES, LAUDICEIA LEMOS VIEIRA,
     //          RAIANE OLIVEIRA DA SILVA, SUELI DE SOUZA CAETANO, VALQUIRIA DA SILVA
     // Outros: REJANE DE SOUZA SANTOS (2º téc.enf. 322245) · JESSICA DE PAIVA OLIVEIRA (recep.) · DEBORA SILVA LOPES SINGER (ACE)
@@ -180,9 +180,9 @@ const DIAGNOSTICO = [
     tipo: "eSF",
     esb: true,
     cnesStatus: "regular",
-    medico:    { nome: "ABRAAO LUCAS DE SOUZA",          cbo: "225142", cnes: "700801464816589", vinculo: "40h — entrada 01/04/2026" },
-    enfermeiro:{ nome: "JESSIE ESTEVAM",                 cbo: "223565", cnes: "704600195034726", vinculo: "40h — entrada 03/06/2024" },
-    tecEnf:    { nome: "EDVAN DA SILVA SOUZA",           cbo: "322245", cnes: "705005632475951", vinculo: "40h — entrada 23/04/2025" },
+    medico:    { nome: "ABRAAO LUCAS DE SOUZA",          cbo: "225142", cnes: "registrado", vinculo: "40h — entrada 01/04/2026" },
+    enfermeiro:{ nome: "JESSIE ESTEVAM",                 cbo: "223565", cnes: "registrado", vinculo: "40h — entrada 03/06/2024" },
+    tecEnf:    { nome: "EDVAN DA SILVA SOUZA",           cbo: "322245", cnes: "registrado", vinculo: "40h — entrada 23/04/2025" },
     // ACS (8): ALCI DA CONCEICAO ALVES, CLEUZINETE DIAS DE SOUZA, JANEDE ROCHA NEVES, LUCICLEIDE LEITE DA SILVA,
     //          MAILDA DAS CHAGAS WIZNIAKI, SANDRA CRISTINA DEBONA, SONIA PRIM TICIANI, VALDEMIRES GOMES DA SILVA
     // Outros: PATRICIA DA CONCEICAO ALVES (microscopista 5152A1) · BETAMES PEREIRA DE SOUZA (ACE)
@@ -203,9 +203,9 @@ const DIAGNOSTICO = [
     tipo: "eSF",
     esb: true,
     cnesStatus: "regular",
-    medico:    { nome: "LUCELIA GUSMAO DOS SANTOS DA COSTA", cbo: "225142", cnes: "700006758560206", vinculo: "40h — entrada 29/08/2025" },
-    enfermeiro:{ nome: "ELOAINE GARCIA FERREIRA",            cbo: "223565", cnes: "703007869323372", vinculo: "40h — entrada 01/08/2025" },
-    tecEnf:    { nome: "CRIS LOHANA THEOBALD DA SILVA",      cbo: "322245", cnes: "704605667721521", vinculo: "40h — entrada 03/06/2024" },
+    medico:    { nome: "LUCELIA GUSMAO DOS SANTOS DA COSTA", cbo: "225142", cnes: "registrado", vinculo: "40h — entrada 29/08/2025" },
+    enfermeiro:{ nome: "ELOAINE GARCIA FERREIRA",            cbo: "223565", cnes: "registrado", vinculo: "40h — entrada 01/08/2025" },
+    tecEnf:    { nome: "CRIS LOHANA THEOBALD DA SILVA",      cbo: "322245", cnes: "registrado", vinculo: "40h — entrada 03/06/2024" },
     // ACS (7): ANDREIA CRISTINA VIEIRA ARRUDA, DANELIA DE QUADROS, MARCILENE DA SILVA SALOMAO,
     //          MARITANIA ROSSI VIANA, MARLI DE QUADROS, RAIMUNDA HELENA SANTAREM DA ROCHA, ROSEMEIRE BERNARDINO DE OLIVEIRA
     // Outros: EDICARLOS PEREIRA COSTA (ACE 515140)
@@ -225,9 +225,9 @@ const DIAGNOSTICO = [
     tipo: "eSF",
     esb: true,
     cnesStatus: "regular",
-    medico:    { nome: "CLAUDENICE NUNES",               cbo: "225142", cnes: "708602548606184", vinculo: "40h — entrada 01/12/2025" },
-    enfermeiro:{ nome: "INGRYD LIMA KISCHENER",          cbo: "223565", cnes: "707402056110170", vinculo: "40h — entrada 07/07/2025" },
-    tecEnf:    { nome: "RUDINEI SIMONETTI",              cbo: "322250", cnes: "706204085033060", vinculo: "40h — entrada 10/01/2023" },
+    medico:    { nome: "CLAUDENICE NUNES",               cbo: "225142", cnes: "registrado", vinculo: "40h — entrada 01/12/2025" },
+    enfermeiro:{ nome: "INGRYD LIMA KISCHENER",          cbo: "223565", cnes: "registrado", vinculo: "40h — entrada 07/07/2025" },
+    tecEnf:    { nome: "RUDINEI SIMONETTI",              cbo: "322250", cnes: "registrado", vinculo: "40h — entrada 10/01/2023" },
     // ACS (6): CLAUDIO DA SILVA MEDEIROS, EDILENE SOUZA DE ALMEIDA ARAUJO, JUELITA LOPES DOS SANTOS,
     //          MARCINEY BARBOSA MARTINS, SIMONI PEREIRA DE SOUZA, VADEILTO DE SOUZA LIMA
     // Outros: ANTONIO CARLOS DA COSTA (ACE) · SUELY CANIVAROLLI (ACE) · NEIDE DE OLIVEIRA (limpeza)
@@ -251,9 +251,9 @@ const DIAGNOSTICO = [
     tipo: "eSF",
     esb: true,
     cnesStatus: "regular",
-    medico:    { nome: "BEATRIZ DOS SANTOS MANFRE",      cbo: "225142", cnes: "701404662555735", vinculo: "40h — entrada 01/08/2025" },
-    enfermeiro:{ nome: "MARIANDIA MARTINS DO CARMO",     cbo: "223565", cnes: "700207441505529", vinculo: "40h — entrada 03/06/2024" },
-    tecEnf:    { nome: "IVANA DE CASTRO SILIPRANDI",     cbo: "322245", cnes: "700906949177794", vinculo: "40h — entrada 02/01/2025" },
+    medico:    { nome: "BEATRIZ DOS SANTOS MANFRE",      cbo: "225142", cnes: "registrado", vinculo: "40h — entrada 01/08/2025" },
+    enfermeiro:{ nome: "MARIANDIA MARTINS DO CARMO",     cbo: "223565", cnes: "registrado", vinculo: "40h — entrada 03/06/2024" },
+    tecEnf:    { nome: "IVANA DE CASTRO SILIPRANDI",     cbo: "322245", cnes: "registrado", vinculo: "40h — entrada 02/01/2025" },
     // ACS (7): CELINA CORREIA DOS SANTOS, CRISTIANE ROSSI NASCIMENTO CORREA, DIANA COCO INACIO,
     //          JEFFERSON GOMES DE CAMARGO, MARIA DA GLORIA DE JESUS COSTA GUIMARAES, NILZA ROCHA VICENTE, SELMA CRISTINA GONCALVES
     // Outros: CRISTIANE SARAH DOS SANTOS GUIDO (microscopista 5152A1) · ROSILENE MARTINUSSO (ACE)
@@ -273,9 +273,9 @@ const DIAGNOSTICO = [
     tipo: "eSF",
     esb: true,
     cnesStatus: "regular",
-    medico:    { nome: "ESTEPHANIE BASILIO DE SOUZA",    cbo: "225142", cnes: "702301163700213", vinculo: "40h — entrada 28/08/2025" },
-    enfermeiro:{ nome: "WILLIANE WESSLING",              cbo: "223565", cnes: "701702271921070", vinculo: "40h — entrada 01/08/2025" },
-    tecEnf:    { nome: "JOAB PINTO RAMOS",               cbo: "322245", cnes: "706505392759296", vinculo: "40h — entrada 01/04/2025" },
+    medico:    { nome: "ESTEPHANIE BASILIO DE SOUZA",    cbo: "225142", cnes: "registrado", vinculo: "40h — entrada 28/08/2025" },
+    enfermeiro:{ nome: "WILLIANE WESSLING",              cbo: "223565", cnes: "registrado", vinculo: "40h — entrada 01/08/2025" },
+    tecEnf:    { nome: "JOAB PINTO RAMOS",               cbo: "322245", cnes: "registrado", vinculo: "40h — entrada 01/04/2025" },
     // ACS (8): BRUNO VINICIUS SILVA JAGUSZESKI, CLARI TEREZINHA FREITAG DE FRANCA, EVANDRO MACHADO SIMONETTI,
     //          GERCI BATISTA PEREIRA, JOSIELLEM SILVA MONTELES, LILIAN OLIVEIRA ANZILEIRO,
     //          TATIANE CORREA DOS SANTOS, VANELSA RODRIGUES DE ALMEIDA PADOVANI
@@ -296,9 +296,9 @@ const DIAGNOSTICO = [
     tipo: "eSF",                            // SIAPS ABR/26 confirma eSF com parâmetro 2500 — eRibeirinha pendente de confirmação
     esb: true,
     cnesStatus: "regular",
-    medico:    { nome: "ROBSON GARCIA DA ROSA",          cbo: "225142", cnes: "702900505239771", vinculo: "40h — entrada 07/06/2023" },
-    enfermeiro:{ nome: "BRUNA ROZELLA PEREIRA",          cbo: "223565", cnes: "700108900220717", vinculo: "40h — entrada 03/06/2024" },
-    tecEnf:    { nome: "KAROLAINE MOREIRA DE SOUZA",     cbo: "322245", cnes: "705608431768215", vinculo: "40h — entrada 01/04/2025" },
+    medico:    { nome: "ROBSON GARCIA DA ROSA",          cbo: "225142", cnes: "registrado", vinculo: "40h — entrada 07/06/2023" },
+    enfermeiro:{ nome: "BRUNA ROZELLA PEREIRA",          cbo: "223565", cnes: "registrado", vinculo: "40h — entrada 03/06/2024" },
+    tecEnf:    { nome: "KAROLAINE MOREIRA DE SOUZA",     cbo: "322245", cnes: "registrado", vinculo: "40h — entrada 01/04/2025" },
     // ACS (6): DHEINIFA FREITAS SILVA, IDNA APARECIDA GONCALVES DE OLIVEIRA, KAROLLI RAFAELA DOS SANTOS MENDES,
     //          MARIZETE DE FATIMA SILVA DO AMARAL, RENATO JOSE MARIOTTI, ROSELI MARTINELLI
     // Outros: ZELIA MINERVINA DE PAULA SILVA (2º téc.enf. 322245) · ELILDA DIAS HISTER (aux.enf. 322230)
@@ -323,9 +323,9 @@ const DIAGNOSTICO = [
     tipo: "eSF",
     esb: true,
     cnesStatus: "regular",
-    medico:    { nome: "CARINA SATELES PINHEIRO",        cbo: "225142", cnes: "700500555725456", vinculo: "40h — entrada 05/01/2023" },
-    enfermeiro:{ nome: "TAYANE BARROS CARVALHO",         cbo: "223565", cnes: "704605689602029", vinculo: "40h — entrada 17/06/2025" },
-    tecEnf:    { nome: "ANGELA MARIA MELO GUERRA DOS SANTOS", cbo: "322245", cnes: "705603468441215", vinculo: "40h — entrada 01/08/2025" },
+    medico:    { nome: "CARINA SATELES PINHEIRO",        cbo: "225142", cnes: "registrado", vinculo: "40h — entrada 05/01/2023" },
+    enfermeiro:{ nome: "TAYANE BARROS CARVALHO",         cbo: "223565", cnes: "registrado", vinculo: "40h — entrada 17/06/2025" },
+    tecEnf:    { nome: "ANGELA MARIA MELO GUERRA DOS SANTOS", cbo: "322245", cnes: "registrado", vinculo: "40h — entrada 01/08/2025" },
     // ACS (6): ALAERTE LEANDRO FERNANDES, ANA CARLAS PITORRA MARTINS, ELDIENE ASSIS DE LACERDA,
     //          PATRICIA FREITAS GUSMAO, RAYANNE LIMA ROCHA, SHEILA REGINA DO AMARAL SILVA
     // Outros: SANDRA CLARA PEREIRA (microscopista 5152A1) · IVANE RESENDE DA SILVA (ACE) · MARINETE RIBEIRO (atend.enf.)
@@ -352,16 +352,16 @@ const DIAGNOSTICO = [
     tipo: "eRibeirinha",                   // SCNES: Tipo 70 ESF com característica Ribeirinha
     esb: true,                             // ESB "KENNEDY" (Tipo 71) registrada no CNES 2013290
     cnesStatus: "ativo",
-    medico:    { nome: "EDVAN SOARES GONCALVES",      cbo: "225142", cnes: "705008041383950", vinculo: "40h ambulatorial — entrada 03/02/2025" },
-    enfermeiro:{ nome: "ALINE COSTA DA SILVA",         cbo: "223565", cnes: "708604555293783", vinculo: "40h ambulatorial — entrada 03/06/2024" },
-    tecEnf:    { nome: "RITHERLY DOS SANTOS PINTO",    cbo: "322245", cnes: "703002848573774", vinculo: "40h ambulatorial — entrada 16/04/2025" },
+    medico:    { nome: "EDVAN SOARES GONCALVES",      cbo: "225142", cnes: "registrado", vinculo: "40h ambulatorial — entrada 03/02/2025" },
+    enfermeiro:{ nome: "ALINE COSTA DA SILVA",         cbo: "223565", cnes: "registrado", vinculo: "40h ambulatorial — entrada 03/06/2024" },
+    tecEnf:    { nome: "RITHERLY DOS SANTOS PINTO",    cbo: "322245", cnes: "registrado", vinculo: "40h ambulatorial — entrada 16/04/2025" },
     acs: 5, acsMin: 2,
     // ACS confirmados no SCNES 07/2026:
-    //   CLEUCIANE PALESTIS (515105 · 700500143901354 · desde 01/04/2020)
-    //   ERVINO GUDER (515105 · 703407617781100 · desde 15/06/2026)
-    //   MARIA RAIMUNDA LEMOS DA SILVA (515105 · 700404405741140 · desde 01/06/2008)
-    //   ROSELAINE MARTINS DA SILVA (515105 · 706804706469925 · desde 03/01/2020)
-    //   VERONICA DE FATIMA FERNANDES (515105 · 706200052886060 · desde 01/04/2012)
+    //   CLEUCIANE PALESTIS (515105 · desde 01/04/2020)
+    //   ERVINO GUDER (515105 · desde 15/06/2026)
+    //   MARIA RAIMUNDA LEMOS DA SILVA (515105 · desde 01/06/2008)
+    //   ROSELAINE MARTINS DA SILVA (515105 · desde 03/01/2020)
+    //   VERONICA DE FATIMA FERNANDES (515105 · desde 01/04/2012)
     // Outros profissionais no SCNES: ALAN ALEXANDER HISTER (2º enfermeiro, 223565, desde 13/11/2024)
     //   JOAO BARBOSA DE OLIVEIRA FILHO (microscopista 5152A1, desde 01/05/2025)
     //   MARIA LUIZA TRINDADE FIGUEIREDO (2º téc. enf. 322245, desde 10/12/2025)
@@ -1811,7 +1811,7 @@ export default function SprintOtimo() {
               gravidade: "critico", label: "CRÍTICO", cor: "#ef4444", bg: "rgba(239,68,68,0.08)", borda: "rgba(239,68,68,0.3)",
               equipe: "ESTRADA NOVA", tipo: "CBO incorreto — Composição Mínima ESF",
               descricao: "RUDINEI SIMONETTI cadastrado com CBO 322250 (Auxiliar de Enfermagem ESF). A composição mínima exige CBO 322245 (Técnico de Enfermagem ESF). Auxiliar é nível inferior e pode invalidar o reconhecimento da equipe.",
-              acao: "Solicitar ao RH atualizar CBO de 322250 para 322245 no SCNES 9942122 (UBS Claudia Pereira dos Santos Damacena). CNS: 706204085033060.",
+              acao: "Solicitar ao RH atualizar CBO de 322250 para 322245 no SCNES 9942122 (UBS Claudia Pereira dos Santos Damacena)..",
               fonte: "SCNES 07/2026",
             },
             {
@@ -1825,28 +1825,28 @@ export default function SprintOtimo() {
               gravidade: "medio", label: "MÉDIO", cor: "#f59e0b", bg: "rgba(245,158,11,0.08)", borda: "rgba(245,158,11,0.3)",
               equipe: "JK", tipo: "CBO genérico — Técnico de Enfermagem",
               descricao: "MARIA ANTONIA MIRANDA BARROS cadastrada com CBO 322205 (Técnico de Enfermagem genérico). Na equipe ESF o CBO correto é 322245 (Técnico de Enfermagem da ESF). A equipe JK já conta com JAMILLY e REJANE (ambas 322245).",
-              acao: "Atualizar CBO de MARIA ANTONIA para 322245 no SCNES 4184688, ou verificar se o vínculo deve ser removido da equipe. CNS: 705408412586591.",
+              acao: "Atualizar CBO de MARIA ANTONIA para 322245 no SCNES 4184688, ou verificar se o vínculo deve ser removido da equipe..",
               fonte: "SCNES 07/2026",
             },
             {
               gravidade: "medio", label: "MÉDIO", cor: "#f59e0b", bg: "rgba(245,158,11,0.08)", borda: "rgba(245,158,11,0.3)",
               equipe: "CACHOEIRA", tipo: "CBO legado — Auxiliar de Enfermagem",
               descricao: "ELILDA DIAS HISTER cadastrada com CBO 322230 (Auxiliar de Enfermagem) desde 01/09/2009. Vínculo anterior à padronização ESF. CBO 322230 não corresponde ao perfil exigido para equipes ESF (322245).",
-              acao: "Verificar no e-Gestor se ELILDA compõe oficialmente a equipe ou se é vínculo legado. Se for composição, atualizar CBO para 322245. Se não for da equipe, desvincular no SCNES 3320138. CNS: 704104879343850.",
+              acao: "Verificar no e-Gestor se ELILDA compõe oficialmente a equipe ou se é vínculo legado. Se for composição, atualizar CBO para 322245. Se não for da equipe, desvincular no SCNES 3320138..",
               fonte: "SCNES 07/2026",
             },
             {
               gravidade: "medio", label: "MÉDIO", cor: "#f59e0b", bg: "rgba(245,158,11,0.08)", borda: "rgba(245,158,11,0.3)",
               equipe: "TRÊS ESTADOS", tipo: "CBO não-ESF — Atendente de Enfermagem",
               descricao: "MARINETE RIBEIRO DE ARAÚJO SOARES cadastrada com CBO 515110 (Atendente de Enfermagem) na equipe. CBO 515110 não é perfil ESF padrão — não é ACS (515105), não é técnico (322245). Vínculo irregular.",
-              acao: "Verificar no SCNES 9934448 se MARINETE está vinculada à equipe ESF ou ao estabelecimento. Se for vínculo incorreto, corrigir ou remover. CNS: 706409674985182.",
+              acao: "Verificar no SCNES 9934448 se MARINETE está vinculada à equipe ESF ou ao estabelecimento. Se for vínculo incorreto, corrigir ou remover..",
               fonte: "SCNES 07/2026",
             },
             {
               gravidade: "medio", label: "MÉDIO", cor: "#f59e0b", bg: "rgba(245,158,11,0.08)", borda: "rgba(245,158,11,0.3)",
               equipe: "AREAL", tipo: "Duplicidade — 2 Enfermeiros na mesma equipe",
               descricao: "ALINE COSTA DA SILVA (entrada 03/06/2024) e ALAN ALEXANDER HISTER (entrada 13/11/2024), ambos CBO 223565 (Enfermeiro da ESF), cadastrados na mesma equipe AREAL. ESF admite 1 enfermeiro na composição mínima.",
-              acao: "Definir no e-Gestor/SCNES 2013290 qual enfermeiro é o oficial da equipe AREAL. O outro deve ser desvinculado da equipe ou alocado em outro cargo. CNS ALINE: 708604555293783 · CNS ALAN: 703002880074478.",
+              acao: "Definir no e-Gestor/SCNES 2013290 qual enfermeiro é o oficial da equipe AREAL. O outro deve ser desvinculado da equipe ou alocado em outro cargo..",
               fonte: "SCNES 07/2026",
             },
             {

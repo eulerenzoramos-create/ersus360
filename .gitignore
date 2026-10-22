@@ -65,3 +65,8 @@ pec_sync_agent/explorar_indicadores.txt
 pec_sync_agent/explorar_c2.txt
 pec_sync_agent/explorar_vacinas.txt
 pec_sync_agent/sync_backup_*.json
+
+# Builds do frontend: o Dockerfile gera do zero (cópias versionadas antigas ficavam servidas em /assets
+# junto com o build novo — inclusive com dados pessoais já removidos do código-fonte; 21/10/2026)
+/backend/frontend_dist/
+/backend/static/

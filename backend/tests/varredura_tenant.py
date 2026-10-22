@@ -20,7 +20,7 @@ from sqlalchemy.pool import StaticPool
 
 MARCADORES = re.compile(r"1300144|130014(?!\d)|apu[ií]|APU[IÍ]|MARCADOR-APUI", re.I)
 IBGE_B = "1399991"
-SENHA = "senha-varredura-123"
+SENHA = "senha-varredura-123"  # dado-ficticio
 
 
 @dataclass

@@ -27,8 +27,8 @@ from models.usuario import AuditLog, Perfil, Usuario, UsuarioMunicipio
 from routers import auth as auth_mod
 from tenancy.migracoes import migrar_multitenant
 
-SENHA = "senha-forte-123"
-SENHA_ADMIN = "admin-geral-teste"
+SENHA = "senha-forte-123"  # dado-ficticio
+SENHA_ADMIN = "admin-geral-teste"  # dado-ficticio
 
 
 @pytest_asyncio.fixture

@@ -16,7 +16,7 @@ from routers.pec_agente import (
 )
 from services import pec_acs
 
-CHAVE = "chave-teste-apui"
+CHAVE = "chave-teste-apui"  # dado-ficticio
 H1, H2 = "a" * 64, "b" * 64
 
 
