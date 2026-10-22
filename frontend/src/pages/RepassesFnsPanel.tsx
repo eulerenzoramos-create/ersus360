@@ -16,7 +16,7 @@ import {
   DollarSign, TrendingUp, Search, Filter, X, Download,
   ChevronDown, ChevronRight, Layers,
 } from "lucide-react";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGetEnvelope as apiGet, apiPost } from "../lib/api";
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 const C = {

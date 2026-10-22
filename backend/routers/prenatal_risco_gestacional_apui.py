@@ -7,7 +7,6 @@ from __future__ import annotations
 from datetime import date, datetime
 from fastapi import APIRouter, Query
 from services.sim_sinasc_service import buscar_nascidos_vivos, buscar_obitos
-from services.sih_service import buscar_internacoes
 from services.cache_service import cache_get
 
 router = APIRouter(prefix="/api/prenatal-risco-gestacional-apui", tags=["prenatal_risco_gestacional_apui"])
@@ -21,14 +20,13 @@ async def dashboard(ano: int = Query(0)):
     if not ano:
         ano = _ANO()
     nasc = await buscar_nascidos_vivos(ano)
-    sih  = await buscar_internacoes(ano)
+    # total de internações do SIH (rotulado "obstétricas estimadas") removido em 21/10/2026
     return {
         "situacao_dado": nasc.get("situacao_dado"),
         "ano": ano,
         "nascidos_vivos": nasc.get("total_nascidos"),
-        "internacoes_obstetricas_estimadas": sih.get("total_internacoes"),
         "nota_pec": _PEC,
-        "fonte": "SINASC + SIH — DATASUS dados abertos",
+        "fonte": "SINASC — DATASUS dados abertos",
         "verificado_em": _TS(),
     }
 

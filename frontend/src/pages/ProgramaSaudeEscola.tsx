@@ -62,7 +62,7 @@ export default function ProgramaSaudeEscola() {
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: BRAND }}>Programa Saúde na Escola (PSE)</h1>
-            <p className="text-sm text-slate-500">22 Escolas · 3.512 Alunos · 3 Componentes · 8 Equipes · FMS Apuí/AM</p>
+            <p className="text-sm text-slate-500">Escolas · Educandos · Componentes do PSE · Equipes</p>
           </div>
         </div>
 

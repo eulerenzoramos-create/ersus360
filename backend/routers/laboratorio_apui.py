@@ -1,41 +1,33 @@
-"""
-Router: /api/laboratorio-apui — ERSUS 360
-Laboratório via SIA (produção BPA) + CNES — DATASUS dados abertos.
+"""Router: /api/laboratorio-apui — ERSUS 360
+
+Sem fonte específica integrada: responde nao_disponivel com a explicação. Até 21/10/2026 devolvia dados de
+outro assunto (proxy) que a tela poderia exibir com este rótulo — ver NOTA.
 """
 from __future__ import annotations
-from datetime import date, datetime
-from fastapi import APIRouter, Query
-from services.sia_service import buscar_producao
-from services.cnes_service import resumo_estabelecimentos
+
+from datetime import datetime
+
+from fastapi import APIRouter
 
 router = APIRouter(prefix="/api/laboratorio-apui", tags=["laboratorio_apui"])
-_TS  = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-_ANO = lambda: date.today().year - 1
-_NOTA = "Exames individuais e resultado de laudos requerem sistema de gestão laboratorial local (pendente integração REDE)."
+NOTA = ('Exames individuais e resultado de laudos requerem sistema de gestão laboratorial local (pendente integração REDE). Antes esta tela recebia o total de procedimentos do SIA e o total de estabelecimentos do CNES, que não medem este assunto; não são mais exibidos.')
+
+
+def _nao_disponivel() -> dict:
+    return {"situacao_dado": "nao_disponivel", "dados": None, "nota": NOTA,
+            "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
 
 
 @router.get("/dashboard")
-async def dashboard(ano: int = Query(0)):
-    if not ano:
-        ano = _ANO()
-    sia  = await buscar_producao(ano)
-    cnes = await resumo_estabelecimentos()
-    return {
-        "situacao_dado": sia.get("situacao_dado"),
-        "ano": ano,
-        "producao_ambulatorial_total": sia.get("total_procedimentos"),
-        "estabelecimentos_cnes": cnes.get("total"),
-        "nota": _NOTA,
-        "fonte": "SIA + CNES — DATASUS dados abertos",
-        "verificado_em": _TS(),
-    }
+async def dashboard():
+    return _nao_disponivel()
 
 
 @router.get("/exames")
 async def exames():
-    return {"situacao_dado": "nao_disponivel", "nota": _NOTA, "verificado_em": _TS()}
+    return _nao_disponivel()
 
 
 @router.get("/indicadores")
-async def indicadores(ano: int = Query(0)):
-    return await dashboard(ano=ano)
+async def indicadores():
+    return _nao_disponivel()

@@ -71,7 +71,7 @@ export default function PainelFonteAberta({ titulo, subtitulo, Icon, endpoint, c
 
       {!q.isLoading && !oficial && (
         <NaoDisponivelBanner
-          nota={d?.nota || (q.isError ? "Não foi possível consultar o servidor agora." : "A fonte oficial não devolveu dado para este município.")}
+          nota={d?.nota || d?.mensagem || (q.isError ? "Não foi possível consultar o servidor agora." : "A fonte oficial não devolveu dado para este município.")}
           rodape="Nenhum valor foi inventado ou estimado."
         />
       )}

@@ -805,8 +805,11 @@ async def api_catchall(path: str, request: Request):
     # Extrai o prefixo /api/modulo para usar como nome do módulo
     segmentos = path.split("/")
     modulo = segmentos[0].replace("-", " ").title() if segmentos else path
+    # "dados": None faz o apiGet do frontend devolver undefined (e os `= []` das telas valem); sem ele,
+    # telas que esperam lista recebiam este objeto e quebravam em .map/.filter.
     return _JSON({
         "situacao_dado": "nao_disponivel",
+        "dados": None,
         "modulo": modulo,
         "endpoint": f"/api/{path}",
         "mensagem": (

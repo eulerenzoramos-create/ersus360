@@ -23,7 +23,10 @@ function SemaforoBadge({ status }: { status: string }) {
 export default function Epidemiologia() { 
   const [tab, setTab] = useState<"dashboard" | "agravos" | "malaria" | "dengue" | "notificacoes">("dashboard");
 
-  const { data: dash, isLoading } = useQuery({ queryKey: ["epi-dash"],   queryFn: apiEpidemiologia.dashboard });
+  const { data: dashResp, isLoading } = useQuery({ queryKey: ["epi-dash"],   queryFn: apiEpidemiologia.dashboard });
+  // O backend devolve {situacao_dado, total_agravos, casos_malaria, casos_dengue}; sem dado oficial = sem painel.
+  const dash = (dashResp as any)?.situacao_dado === "oficial_validado" ? (dashResp as any) : null;
+  const num = (v: unknown) => (typeof v === "number" ? v.toLocaleString("pt-BR") : "—");
   const { data: agravos = []} = useQuery({ queryKey: ["epi-agravos"], queryFn: apiEpidemiologia.agravos, enabled: tab === "agravos" });
   const { data: malaria } = useQuery({ queryKey: ["epi-malaria"], queryFn: apiEpidemiologia.malaria, enabled: tab === "malaria" });
   const { data: dengue }  = useQuery({ queryKey: ["epi-dengue"],  queryFn: apiEpidemiologia.dengue,  enabled: tab === "dengue" });
@@ -47,13 +50,13 @@ export default function Epidemiologia() {
 
       {/* KPIs */}
       {dash && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
           {[
-            { label: "IPA Malária",         value: `${dash.malaria_ipa_atual}`, sub: `meta < ${dash.malaria_ipa_meta}`, cor: COR[dash.malaria_ipa_status] },
-            { label: "Dengue (acum.)",       value: `${dash.dengue_casos_acum}`,     sub: "casos 2026",   cor: "#1565c0" },
-            { label: "Mort. Infantil",       value: `${dash.mortalidade_infantil}/1k NV`, sub: `meta < ${dash.mortalidade_infantil_meta}`, cor: dash.mortalidade_infantil < dash.mortalidade_infantil_meta ? "#2e7d32" : "#c62828" },
-            { label: "Notificações/ano",     value: `${dash.total_notificacoes_ano}`,     sub: `${dash.total_investigadas_pct}% invest.`, cor: "#6a1b9a" },
-            { label: "Cob. Vacinal média",   value: `${dash.cobertura_vacinal_media_pct}%`,sub: "DTP + Penta + Pólио",cor: dash.cobertura_vacinal_media_pct >= 90 ? "#2e7d32" : "#f57f17" },
+            // IPA, mortalidade infantil, notificações e cobertura vacinal com metas: campos que o backend não devolve
+            // (apareciam como "undefined"); removidos em 21/10/2026.
+            { label: "Casos de malária",     value: num(dash.casos_malaria),  sub: `SIVEP-Malária · ${dash.ano}`, cor: "#1565c0" },
+            { label: "Casos de dengue",      value: num(dash.casos_dengue),   sub: `SINAN · ${dash.ano}`,         cor: "#1565c0" },
+            { label: "Malária + dengue + TB + hanseníase", value: num(dash.total_agravos), sub: "soma dos agravos consultados", cor: "#6a1b9a" },
           ].map(k => (
             <div key={k.label} style={{ background: "#fff", borderRadius: 8, padding: "14px 18px", border: `2px solid ${k.cor}20` }}>
               <div style={{ fontSize: 22, fontWeight: 800, color: k.cor }}>{k.value}</div>

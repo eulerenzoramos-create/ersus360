@@ -30,4 +30,4 @@ async def indicadores(ano: int = Query(0)):
 
 @router.get("/lista-espera")
 async def lista_espera():
-    return {"situacao_dado": "nao_disponivel", "nota": NOTA, "verificado_em": _ts()}
+    return {"situacao_dado": "nao_disponivel", "dados": None, "nota": NOTA, "verificado_em": _ts()}

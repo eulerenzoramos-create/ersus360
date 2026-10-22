@@ -57,6 +57,9 @@ async def buscar_producao(ano: int, mes: int = 0) -> dict:
         elif isinstance(data, dict):
             procs = data.get("items") or data.get("data") or []
 
+        if len(procs) >= 500:  # página cheia = total incompleto (21/10/2026)
+            return {**_sem_dado(ano), "nota": "A consulta ao DATASUS voltou com o limite de 500 registros: o total real é maior e não foi contado. Nenhum número parcial é exibido."}
+
         if procs:
             total = sum(int(p.get("qt_apresentada") or p.get("quantidade") or 1) for p in procs)
             per_capita = round(total / populacao(), 2)
@@ -89,6 +92,9 @@ async def buscar_producao_aps(ano: int) -> dict:
         procs = data
     elif isinstance(data, dict):
         procs = data.get("items") or data.get("data") or []
+
+    if len(procs) >= 500:  # página cheia = total incompleto (21/10/2026)
+        return {**{"ano": ano, "total_aps": None, "per_capita": None, "situacao_dado": "nao_disponivel", "fonte": "nao_disponivel"}, "nota": "A consulta ao DATASUS voltou com o limite de 500 registros: o total real é maior e não foi contado. Nenhum número parcial é exibido."}
 
     if procs:
         total = sum(int(p.get("qt_apresentada") or 1) for p in procs)

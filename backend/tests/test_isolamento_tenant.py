@@ -506,7 +506,8 @@ async def test_servicos_consultam_o_ibge_da_sessao(ambiente, monkeypatch):
 
     monkeypatch.setattr(httpx.AsyncClient, "send", falso)
     tok_b = await _token(c, "gestor.b@teste.gov.br")
-    r = await c.get("/api/saude-idoso-apui/dashboard?ano=2025", headers=_h(tok_b))
+    # saude-idoso-apui deixou de consultar fontes (era proxy, 21/10/2026); controle vetorial ainda consulta o SINAN
+    r = await c.get("/api/controle-vetorial-apui/dashboard?ano=2025", headers=_h(tok_b))
     assert r.status_code == 200
     assert enviados and all("130014" not in u for u in enviados)
     assert any("139999" in u for u in enviados)

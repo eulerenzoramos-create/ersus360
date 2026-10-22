@@ -8,7 +8,7 @@ import {
   User, FileText, Search, Filter, Calendar, Wifi, WifiOff,
   BarChart2, Navigation, ClipboardList, Building2, TrendingUp,
 } from "lucide-react";
-import { apiGet, apiGetRaw, apiPost } from "../lib/api";
+import { apiGetEnvelope as apiGet, apiGetRaw, apiPost } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import ACSGeoPage from "./ACSGeoPage";
 

@@ -16,7 +16,7 @@ import {
   RefreshCw, Download, Info, Calendar, Database, Activity,
   BarChart2, Clock, Shield, ChevronDown, ChevronRight,
 } from "lucide-react";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGetEnvelope as apiGet, apiPost } from "../lib/api";
 
 // ── Constantes de Identidade Visual (Seção 16) ────────────────────────────────
 const COR = {

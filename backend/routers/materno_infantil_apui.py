@@ -1,13 +1,12 @@
 """
 Router: /api/materno-infantil-apui — ERSUS 360
-Saúde materno-infantil via SIM + SINASC + SIH — DATASUS dados abertos.
+Saúde materno-infantil via SIM + SINASC — DATASUS dados abertos.
 Pré-natal detalhado requer e-SUS PEC (pendente). Sem dados fictícios.
 """
 from __future__ import annotations
 from datetime import date, datetime
 from fastapi import APIRouter, Query
 from services.sim_sinasc_service import buscar_obitos, buscar_nascidos_vivos, buscar_historico_mortalidade
-from services.sih_service import buscar_internacoes
 from services.cache_service import cache_get, cache_set
 
 router = APIRouter(prefix="/api/materno-infantil-apui", tags=["materno_infantil_apui"])
@@ -22,19 +21,17 @@ async def dashboard(ano: int = Query(0)):
         ano = _ANO()
     obitos = await buscar_obitos(ano)
     nasc   = await buscar_nascidos_vivos(ano)
-    sih    = await buscar_internacoes(ano)
-    total_nv = nasc.get("total_nascidos") or 0
-    total_ob = obitos.get("total_obitos") or 0
-    tmi = round(total_ob / total_nv * 1000, 1) if total_nv else None
+    total_nv = nasc.get("total_nascidos")
+    total_ob = obitos.get("total_obitos")
+    # "TMI estimada" (óbitos de todas as idades ÷ NV) e total de internações do SIH removidos em 21/10/2026.
     return {
         "situacao_dado": obitos.get("situacao_dado"),
         "ano": ano,
         "nascidos_vivos": total_nv,
         "obitos_totais": total_ob,
-        "taxa_mortalidade_infantil_estimada": tmi,
-        "internacoes": sih.get("total_internacoes"),
+        "nota_tmi": 'Taxa de mortalidade infantil exige óbitos de menores de 1 ano (SIM por idade), ainda não integrados. A conta anterior dividia óbitos de todas as idades pelos nascidos vivos e foi removida em 21/10/2026.',
         "nota_pec": _PEC,
-        "fonte": "SIM + SINASC + SIH — DATASUS dados abertos",
+        "fonte": "SIM + SINASC — DATASUS dados abertos",
         "verificado_em": _TS(),
     }
 

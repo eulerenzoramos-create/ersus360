@@ -14,7 +14,7 @@ import {
   RefreshCw, ChevronDown, ChevronRight, Info, Shield,
   Database, ExternalLink,
 } from "lucide-react";
-import { apiGet } from "../lib/api";
+import { apiGetEnvelope as apiGet } from "../lib/api";
 import { useMunicipioSeletor } from "../lib/municipio";
 import MunicipioSeletor from "../components/MunicipioSeletor";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
