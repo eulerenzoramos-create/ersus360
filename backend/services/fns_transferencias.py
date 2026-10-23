@@ -472,8 +472,11 @@ async def _fetch_detalhe_pagamento(exercicio: int, mes: int) -> tuple[list[dict]
 def _normalizar_pagamento(raw: dict, exercicio: int, mes: int, pagina: int) -> dict:
     """
     Normaliza registro de /consulta-detalhada/detalhe-pagamento.
-    Estrutura real (observada via fns_parcelas.py):
-      id.programaFundo.descricao / nomeComponente → acao_detalhada
+    Estrutura real (conferida na API em 23/10/2026):
+      nomeBloco → bloco · nomeComponente (ex.: "ATENÇÃO PRIMÁRIA") → grupo
+      id.programaFundo.descricao → acao_detalhada
+      A ação ("PISO DE ATENÇÃO PRIMÁRIA À SAÚDE") não vem nesta fonte: fica vazia aqui e é preenchida em
+      _completar_acao com a ação que o detalhe-acao já publicou para o mesmo programa.
       valorLiquido → valor_liquido
       numeroDocumentoSiafi → numero_ob
       nuPortaria → numero_portaria
@@ -481,12 +484,12 @@ def _normalizar_pagamento(raw: dict, exercicio: int, mes: int, pagina: int) -> d
       dataCriacaoSiafi → data_ob
     """
     pf = ((raw.get("id") or {}).get("programaFundo") or {})
-    componente = pf.get("descricao") or raw.get("nomeComponente") or ""
-
-    bloco    = componente
-    grupo    = componente
-    acao     = componente
-    acao_det = componente
+    # Antes os quatro níveis recebiam a descrição do programa: os pagamentos viravam linhas soltas na
+    # Matriz FNS, fora do grupo (setembro/2026 sincronizado por esta fonte aparecia zerado na Atenção Primária).
+    bloco    = (raw.get("nomeBloco") or "").strip()
+    grupo    = (raw.get("nomeComponente") or "").strip()
+    acao_det = (pf.get("descricao") or "").strip() or grupo
+    acao     = ""
 
     vl_liq   = _dec(raw.get("valorLiquido") or raw.get("vlLiquido"))
     vl_total = _dec(raw.get("valorTotal") or raw.get("vlTotal")) or vl_liq
@@ -654,6 +657,38 @@ async def _salvar_registros(db: AsyncSession, registros: list[dict]) -> tuple[in
 
 # ── Função pública principal ───────────────────────────────────────────────────
 
+async def _completar_acao(db: AsyncSession, registros: list[dict]) -> None:
+    """Preenche a ação dos registros do detalhe-pagamento com a que o detalhe-acao publicou para o mesmo
+    grupo e programa em outra coleta. Sem correspondência, a ação fica vazia (nunca presumida)."""
+    progs = {r["acao_detalhada"] for r in registros if r.get("acao_detalhada") and not r.get("acao")}
+    if not progs:
+        return
+    rows = (await db.execute(
+        select(TransferenciaFns.grupo, TransferenciaFns.acao_detalhada, TransferenciaFns.acao)
+        .where(
+            TransferenciaFns.municipio_ibge == IBGE_APUI_7,
+            TransferenciaFns.acao_detalhada.in_(progs),
+            TransferenciaFns.fonte == "consultafns",
+            TransferenciaFns.acao.isnot(None),
+            TransferenciaFns.acao != "",
+        )
+        .order_by(TransferenciaFns.exercicio.desc(), TransferenciaFns.mes.desc())
+    )).all()
+    acoes: dict[tuple[str, str], str] = {}
+    for g, det, ac in rows:
+        acoes.setdefault(((g or "").strip(), det.strip()), ac.strip())
+    for r in registros:
+        if r.get("acao"):
+            continue
+        ac = acoes.get(((r.get("grupo") or "").strip(), (r.get("acao_detalhada") or "").strip()))
+        if not ac:
+            continue
+        r["acao"] = ac
+        r["tipo_incentivo"] = classificar_tipo(r["bloco"], r["grupo"], ac, r["acao_detalhada"])
+        r["chave_unica"] = _chave(IBGE_APUI_7, r["exercicio"], r["mes"], r["bloco"], r["grupo"], ac,
+                                  r["acao_detalhada"], str(r["valor_liquido"]) if r["valor_liquido"] is not None else "0")
+
+
 async def _limpar_periodo(exercicio: int, mes: int, db: AsyncSession, commit: bool = True) -> int:
     """Remove todos os registros do período para permitir ressincronização limpa."""
     from sqlalchemy import delete as sa_delete
@@ -732,6 +767,9 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
         # Só agora troca os registros do mês (permite ressincronizar com dados corrigidos). Antes a limpeza
         # vinha ANTES da consulta: se o FNS falhasse ou demorasse, o mês ficava zerado (setembro/2026).
         # Sem commit aqui: a remoção só vale junto com a gravação dos novos (commit em _salvar_registros).
+        if coleta.fonte == "consultafns_pagamento":
+            await _completar_acao(db, registros)
+
         removidos = await _limpar_periodo(exercicio, mes, db, commit=False)
         if removidos:
             logger.info(f"FNS: substituídos {removidos} registros antigos de {exercicio}/{mes:02d}")
