@@ -216,6 +216,9 @@ def _normalizar(raw: dict, exercicio: int, mes: int | None, fonte: str, pagina: 
 
 # ── Clientes de API ────────────────────────────────────────────────────────────
 
+_MOTIVO_CONSULTAFNS: dict[str, str] = {}   # motivo da última consulta sem dados, por "exercicio/mes"
+
+
 async def _fetch_consultafns(exercicio: int, mes: int) -> tuple[list[dict], Decimal | None, int | None]:
     """
     Consulta consultafns.saude.gov.br/recursos/consulta-detalhada/detalhe-acao
@@ -273,6 +276,7 @@ async def _fetch_consultafns(exercicio: int, mes: int) -> tuple[list[dict], Deci
                                      headers=headers, params=acao_params)
                 if r.status_code != 200:
                     logger.info(f"FNS detalhe-acao página {page}: HTTP {r.status_code}")
+                    _MOTIVO_CONSULTAFNS[f"{exercicio}/{mes}"] = f"consultafns respondeu HTTP {r.status_code}"
                     break
 
                 try:
@@ -281,6 +285,8 @@ async def _fetch_consultafns(exercicio: int, mes: int) -> tuple[list[dict], Deci
                     payload = {}
                 dados = payload.get("dados", [])
                 if not dados:
+                    if page == 1:
+                        _MOTIVO_CONSULTAFNS[f"{exercicio}/{mes}"] = "consultafns respondeu sem pagamentos"
                     logger.info(
                         f"FNS consultafns p{page} sem dados: status={r.status_code} "
                         f"exercicio={exercicio} mes={mes} "
@@ -304,6 +310,9 @@ async def _fetch_consultafns(exercicio: int, mes: int) -> tuple[list[dict], Deci
 
             except Exception as e:
                 logger.warning(f"FNS detalhe-acao página {page}: {e}")
+                _MOTIVO_CONSULTAFNS[f"{exercicio}/{mes}"] = (
+                    "consultafns não respondeu a tempo" if isinstance(e, httpx.TimeoutException)
+                    else f"falha ao consultar consultafns ({type(e).__name__})")
                 break
 
     if registros:
@@ -645,7 +654,7 @@ async def _salvar_registros(db: AsyncSession, registros: list[dict]) -> tuple[in
 
 # ── Função pública principal ───────────────────────────────────────────────────
 
-async def _limpar_periodo(exercicio: int, mes: int, db: AsyncSession) -> int:
+async def _limpar_periodo(exercicio: int, mes: int, db: AsyncSession, commit: bool = True) -> int:
     """Remove todos os registros do período para permitir ressincronização limpa."""
     from sqlalchemy import delete as sa_delete
     stmt = sa_delete(TransferenciaFns).where(
@@ -654,7 +663,8 @@ async def _limpar_periodo(exercicio: int, mes: int, db: AsyncSession) -> int:
         TransferenciaFns.mes == mes,
     )
     result = await db.execute(stmt)
-    await db.commit()
+    if commit:
+        await db.commit()
     return result.rowcount
 
 
@@ -673,11 +683,6 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
     """
     iniciado = datetime.utcnow()
 
-    # Limpa registros antigos do período (permite ressincronização com dados corrigidos)
-    removidos = await _limpar_periodo(exercicio, mes, db)
-    if removidos:
-        logger.info(f"FNS: removidos {removidos} registros antigos de {exercicio}/{mes:02d}")
-
     # Cria registro de coleta
     coleta = ColetaFns(
         municipio_ibge=IBGE_APUI_7,
@@ -693,6 +698,7 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
 
     try:
         # 1ª tentativa: detalhe-acao (dados completos por ação orçamentária)
+        _MOTIVO_CONSULTAFNS.pop(f"{exercicio}/{mes}", None)
         registros, total_oficial, total_fonte = await _fetch_consultafns(exercicio, mes)
 
         if not registros:
@@ -710,7 +716,9 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
 
         if not registros:
             coleta.sucesso = False
-            coleta.mensagem_erro = "Nenhuma fonte disponível retornou dados para o período solicitado."
+            motivo = _MOTIVO_CONSULTAFNS.pop(f"{exercicio}/{mes}", None)
+            coleta.mensagem_erro = (f"FNS sem dados para o período ({motivo})." if motivo
+                                    else "Nenhuma fonte disponível retornou dados para o período solicitado.")
             coleta.concluido_em = datetime.utcnow()
             await db.commit()
             return {
@@ -720,6 +728,13 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
                 "exercicio": exercicio,
                 "mes": mes,
             }
+
+        # Só agora troca os registros do mês (permite ressincronizar com dados corrigidos). Antes a limpeza
+        # vinha ANTES da consulta: se o FNS falhasse ou demorasse, o mês ficava zerado (setembro/2026).
+        # Sem commit aqui: a remoção só vale junto com a gravação dos novos (commit em _salvar_registros).
+        removidos = await _limpar_periodo(exercicio, mes, db, commit=False)
+        if removidos:
+            logger.info(f"FNS: substituídos {removidos} registros antigos de {exercicio}/{mes:02d}")
 
         inseridos, atualizados, sem_mudanca = await _salvar_registros(db, registros)
 
@@ -764,6 +779,7 @@ async def coletar_transferencias(exercicio: int, mes: int, db: AsyncSession) -> 
 
     except Exception as e:
         logger.exception(f"Erro coletando FNS {exercicio}/{mes}: {e}")
+        await db.rollback()   # desfaz a troca parcial: o mês continua com os registros anteriores
         coleta.sucesso = False
         coleta.mensagem_erro = str(e)
         coleta.concluido_em = datetime.utcnow()

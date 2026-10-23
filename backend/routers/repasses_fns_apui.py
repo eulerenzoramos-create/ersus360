@@ -828,6 +828,20 @@ async def matriz_tabela(
                 else "incompleto" if row.todas_paginas_ok is False
                 else "ok"
             )
+    # A última coleta pode dizer "ok" e o mês estar sem nenhum pagamento gravado (setembro/2026 apareceu
+    # com ✓ e zerado). Mês coletado sem registro algum — independentemente dos filtros da tela — é pendente.
+    com_registros = {
+        m for (m,) in (await db.execute(
+            select(TransferenciaFns.mes).where(
+                TransferenciaFns.municipio_ibge == IBGE_APUI,
+                TransferenciaFns.exercicio == exercicio,
+                TransferenciaFns.ativo == True,
+            ).distinct()
+        )).all()
+    }
+    for m, st in list(meses_status.items()):
+        if st in ("ok", "incompleto") and m not in com_registros:
+            meses_status[m] = "pendente"
 
     def _sdec(d: Decimal) -> float | None:
         v = float(d)
