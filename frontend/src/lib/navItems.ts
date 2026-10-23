@@ -81,6 +81,11 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Controle de vetores e animais peçonhentos",
     keywords:["vetor","controle","mosquito","borrifação","lw","larval","roedor","animal peçonhento"] },
 
+  { id:"vigilancia-painel",   category:"Vigilância em Saúde", order:399, iconName:"Activity", isNew:true, highlight:true,
+    title:"Painel de Vigilância (FVS-AM)", shortTitle:"Painel de Vigilância", route:"/vigilancia-saude",
+    description:"Painel executivo com os dados públicos da FVS-RCP/AM: alertas, mapa do Amazonas, comparativo, PQA-VS, relatórios e Agente IA",
+    keywords:["fvs","vigilância","painel","mapa","amazonas","alerta","pqa-vs","relatório","ia","epidemiológico","municípios"] },
+
   { id:"epidemiologia",       category:"Vigilância em Saúde", order:401, iconName:"Activity",
     title:"Epidemiologia / SINAN", route:"/epidemiologia",
     description:"Vigilância epidemiológica — SINAN — Sistema de Informação de Agravos de Notificação",

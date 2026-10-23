@@ -469,6 +469,19 @@ async def _job_siaps_publico_oficial() -> None:
         logger.error("[Scheduler] Erro na sincronização SIAPS público: %s", exc, exc_info=True)
 
 
+async def _job_vigilancia_fvs() -> None:
+    """Job: verifica se a FVS-RCP/AM republicou os painéis públicos e, se sim, atualiza a série (dado estadual)."""
+    logger.info("[Scheduler] Vigilância FVS-AM: verificando publicações...")
+    try:
+        from database import AsyncSessionLocal
+        from services import fvs_coleta
+        async with AsyncSessionLocal() as db:
+            for r in await fvs_coleta.sincronizar_todas(db, "agendada"):
+                logger.info("[Scheduler] FVS %s: %s", r.get("fonte"), r.get("situacao"))
+    except Exception as exc:
+        logger.error("[Scheduler] Erro na sincronização FVS: %s", exc, exc_info=True)
+
+
 async def _job_backup_diario() -> None:
     from database import AsyncSessionLocal, engine
     from tenancy.backup import rotina_diaria
@@ -690,6 +703,12 @@ def start_scheduler() -> None:
                       id="siaps_publico_diario", replace_existing=True, misfire_grace_time=3600)
     scheduler.add_job(_job_siaps_publico_oficial, "date", run_date=_dt.now(_tz.utc) + _td(minutes=8),
                       id="siaps_publico_inicial", replace_existing=True)
+
+    # Vigilância em Saúde — FVS-RCP/AM: a FVS republica os painéis em dias úteis pela manhã
+    scheduler.add_job(_job_vigilancia_fvs, CronTrigger(hour="7,14", minute=10, timezone="America/Manaus"),
+                      id="vigilancia_fvs", replace_existing=True, misfire_grace_time=3600)
+    scheduler.add_job(_job_vigilancia_fvs, "date", run_date=_dt.now(_tz.utc) + _td(minutes=10),
+                      id="vigilancia_fvs_inicial", replace_existing=True)
 
     # INVESTSUS 360 (federal): duas passagens por dia — início da manhã e início da tarde
     scheduler.add_job(_job_investsus_federal,

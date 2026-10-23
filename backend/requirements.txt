@@ -21,3 +21,6 @@ beautifulsoup4>=4.12.0
 lxml>=5.3.0
 tenacity>=8.2.0
 cryptography>=42.0.0
+# Vigilância FVS-AM: leitura das extrações públicas do Tableau Public
+tableauhyperapi>=0.0.21000
+python-docx>=1.1.0
