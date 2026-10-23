@@ -111,3 +111,26 @@ async def test_falha_informa_o_motivo_real(db_session, monkeypatch, fontes):
     monkeypatch.setattr(fns, "_fetch_consultafns", consulta_com_503)
     r = await fns.coletar_transferencias(2026, 9, db_session)
     assert r["sucesso"] is False and "HTTP 503" in r["mensagem_erro"]
+
+
+async def test_total_oficial_vem_do_valor_liquido_geral(monkeypatch):
+    """Sem o total oficial todo mês do detalhe-acao virava "coleta incompleta" (⚠) com os valores certos."""
+    import httpx
+
+    itens = [{"blocoPacto": {"nome": "Manutenção"}, "grupoAcao": {"nome": "ATENÇÃO PRIMÁRIA"},
+              "valorTotal": "227826", "valorDescontoTotal": "0", "valorLiquido": "227826",
+              "valorTotalGeral": "241201", "valorDescontoTotalGeral": "0", "valorLiquidoGeral": "241201"},
+             {"blocoPacto": {"nome": "Manutenção"}, "grupoAcao": {"nome": "ATENÇÃO PRIMÁRIA"},
+              "valorTotal": "13375", "valorDescontoTotal": "0", "valorLiquido": "13375"}]
+
+    def responder(req):
+        if "detalhe-acao" in req.url.path:
+            return httpx.Response(200, json={"resultado": {"dados": itens, "pagina": 1, "total": 2}})
+        return httpx.Response(200, json={"resultado": {"dados": []}})
+
+    real = httpx.AsyncClient
+    monkeypatch.setattr(fns.httpx, "AsyncClient",
+                        lambda *a, **k: real(transport=httpx.MockTransport(responder), **{x: y for x, y in k.items() if x != "transport"}))
+    regs, total, n = await fns._fetch_consultafns(2026, 9)
+    assert total == Decimal("241201") and n == 2
+    assert sum(r["valor_liquido"] for r in regs if r["valor_liquido"] is not None) == total
