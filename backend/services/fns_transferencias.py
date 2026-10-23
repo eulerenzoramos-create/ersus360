@@ -294,9 +294,13 @@ async def _fetch_consultafns(exercicio: int, mes: int) -> tuple[list[dict], Deci
                     )
                     break
 
-                # Soma total oficial da fonte (campo totalValor/totalDesconto)
+                # Total oficial do mês: o consultafns o devolve em valorLiquidoGeral do 1º item (conferido em
+                # 23/10/2026). Antes lia totalValor/totalLiquido, que não existem: o total ficava vazio e todo
+                # mês coletado por aqui aparecia como "coleta incompleta" (⚠) mesmo com os valores certos.
                 if page == 1 and total_oficial is None:
-                    tv = payload.get("totalValor") or payload.get("totalLiquido")
+                    tv = (dados[0].get("valorLiquidoGeral") if isinstance(dados[0], dict) else None)
+                    if tv is None:
+                        tv = payload.get("totalValor") or payload.get("totalLiquido")
                     if tv is not None:
                         total_oficial = _dec(tv)
                     total_fonte = payload.get("totalRegistros") or payload.get("total")
