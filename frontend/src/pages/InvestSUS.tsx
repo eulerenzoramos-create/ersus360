@@ -150,7 +150,7 @@ function KPICard({ label, valor, cor, sub }: { label: string; valor: string; cor
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
-function DashboardInvestSUS({ municipio_id }: { municipio_id: number }) {
+function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; onSelect?: (p: any) => void }) {
   const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ["investsus-dashboard", municipio_id],
@@ -185,196 +185,253 @@ function DashboardInvestSUS({ municipio_id }: { municipio_id: number }) {
     );
   }
 
-  const CORES_PIE = ["#1e3a5f", "#0284c7", "#059669", "#d97706", "#7c3aed", "#dc2626"];
+  const pct = (parte: number, todo: number) => (todo > 0 ? (100 * parte) / todo : 0);
+  const percAprovado = pct(data.total_aprovado, data.total_indicado);
+  const grade = (min: number) => ({ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 12, marginBottom: 14 }) as React.CSSProperties;
+  const situacoes = [...(data.por_situacao ?? [])].sort((a: any, b: any) => b.qtd - a.qtd);
+  const maxSituacao = Math.max(1, ...situacoes.map((s: any) => s.qtd));
+  const modalidades = (data.por_modalidade ?? []).filter((m: any) => m.qtd > 0);
 
   return (
     <div>
       <EscopoFederalAviso />
-      {/* KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
-        <KPICard label="Total Indicado"  valor={fmt(data.total_indicado)}  cor={CORES.indicado} />
-        <KPICard label="Total Aprovado"  valor={fmt(data.total_aprovado)}  cor={CORES.aprovado} sub={fmtPct(data.perc_empenhado) + " empenhado"} />
-        <KPICard label="Total Pago"      valor={fmt(data.total_pago)}      cor={CORES.pago}     sub={fmtPct(data.perc_pago) + " do indicado"} />
-        <KPICard label="Total Executado" valor={fmt(data.total_executado)} cor={CORES.executado} sub={fmtPct(data.perc_executado) + " do pago"} />
-      </div>
 
-      {/* Alertas */}
-      {data.alertas_abertos > 0 && (
-        <div style={{ ...S.card, borderLeft: "4px solid #dc2626", background: "#fef2f2", marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Bell size={16} color="#dc2626" />
-            <span style={{ fontWeight: 700, color: "#991b1b" }}>
-              {data.alertas_abertos} alerta{data.alertas_abertos !== 1 ? "s" : ""} aberto{data.alertas_abertos !== 1 ? "s" : ""}
-              {data.alertas_criticos > 0 && ` — ${data.alertas_criticos} crítico${data.alertas_criticos !== 1 ? "s" : ""}`}
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Indicadores principais */}
+      <div style={grade(170)}>
+        <KPICard label="Propostas federais" valor={`${data.total_propostas}`} cor="#1e3a5f" />
+        <KPICard label="Total Indicado"  valor={fmt(data.total_indicado)}  cor={CORES.indicado} />
+        <KPICard label="Total Aprovado"  valor={fmt(data.total_aprovado)}  cor={CORES.aprovado} sub={`${fmtPct(percAprovado)} do indicado`} />
+        <KPICard label="Total Pago"      valor={fmt(data.total_pago)}      cor={CORES.pago}     sub={`${fmtPct(data.perc_pago)} do indicado`} />
+        <KPICard label="Saldo a Executar" valor={fmt(data.saldo_executar)} cor={CORES.alerta}   sub={`${fmtPct(data.perc_executado)} do pago já executado`} />
+        <KPICard label="Alertas abertos" valor={`${data.alertas_abertos}`} cor={data.alertas_criticos > 0 ? CORES.critico : "#6b7280"}
+          sub={data.alertas_criticos > 0 ? `${data.alertas_criticos} crítico${data.alertas_criticos !== 1 ? "s" : ""}` : "nenhum crítico"} />
+      </div>
 
       {/* Funil */}
       <div style={S.card}>
-        <div style={S.title}>Funil de Execução</div>
-        <div style={{ display: "flex", alignItems: "stretch", gap: 4 }}>
+        <div style={S.title}>Do indicado ao executado</div>
+        <div style={{ ...grade(140), marginBottom: 0 }}>
           {[
-            { label: "Indicado",  valor: data.total_indicado,  perc: 100,             cor: CORES.indicado },
-            { label: "Aprovado",  valor: data.total_aprovado,  perc: data.perc_empenhado, cor: CORES.aprovado },
-            { label: "Pago",      valor: data.total_pago,      perc: data.perc_pago,  cor: CORES.pago },
-            { label: "Executado", valor: data.total_executado, perc: data.perc_executado, cor: CORES.executado },
-          ].map((item) => (
-            <div key={item.label} style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ background: item.cor + "15", border: `2px solid ${item.cor}`, borderRadius: 8, padding: "10px 6px" }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: item.cor }}>{fmtPct(item.perc)}</div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: item.cor }}>{item.label}</div>
-                <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{fmt(item.valor)}</div>
+            { label: "Indicado",  valor: data.total_indicado,  perc: 100,                 base: "" },
+            { label: "Aprovado",  valor: data.total_aprovado,  perc: percAprovado,        base: "do indicado" },
+            { label: "Pago",      valor: data.total_pago,      perc: data.perc_pago,      base: "do indicado" },
+            { label: "Executado", valor: data.total_executado, perc: data.perc_executado, base: "do pago" },
+          ].map((item, i) => {
+            const cor = [CORES.indicado, CORES.aprovado, CORES.pago, CORES.executado][i];
+            return (
+              <div key={item.label} style={{ background: cor + "12", border: `2px solid ${cor}`, borderRadius: 8, padding: "10px 8px", textAlign: "center" as const }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: cor }}>{item.label}</div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: "#111827", marginTop: 2 }}>{fmt(item.valor)}</div>
+                <div style={{ fontSize: 11, color: "#4b5563" }}>{i === 0 ? "100%" : `${fmtPct(item.perc)} ${item.base}`}</div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* Fases de acompanhamento (todas, inclusive as vazias) */}
+      {/* Fases de acompanhamento */}
       {(data.por_fase ?? []).length > 0 && (
         <div style={S.card}>
-          <div style={S.title}>Propostas por Fase</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 6 }}>
-            {(data.por_fase ?? []).map((f: any) => (
-              <div key={f.fase} style={{ borderRadius: 6, padding: "8px 10px", textAlign: "center" as const,
-                background: f.qtd > 0 ? "#eff6ff" : "#f9fafb", border: `1px solid ${f.qtd > 0 ? "#bfdbfe" : "#f3f4f6"}` }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: f.qtd > 0 ? "#1e3a5f" : "#d1d5db" }}>{f.qtd}</div>
-                <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600 }}>{f.rotulo}</div>
+          <div style={S.title}>Propostas por fase</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 8 }}>
+            {(data.por_fase ?? []).filter((f: any) => f.qtd > 0).map((f: any) => (
+              <div key={f.fase} style={{ borderRadius: 8, padding: "10px 12px", textAlign: "center" as const, background: "#eff6ff", border: "1px solid #bfdbfe" }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#1e3a5f" }}>{f.qtd}</div>
+                <div style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>{f.rotulo}</div>
               </div>
             ))}
           </div>
+          {(data.por_fase ?? []).some((f: any) => f.qtd === 0) && (
+            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 8 }}>
+              Sem propostas: {(data.por_fase ?? []).filter((f: any) => f.qtd === 0).map((f: any) => f.rotulo).join(" · ")}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Gráficos */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-        <div style={S.card}>
-          <div style={S.title}>Por Programa</div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={data.por_programa.slice(0, 8)} layout="vertical" margin={{ left: 8, right: 20 }}>
-              <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={(v) => fmt(v)} />
-              <YAxis type="category" dataKey="programa" tick={{ fontSize: 9 }} width={130} />
-              <Tooltip formatter={(v: number) => fmt(v)} />
-              <Bar dataKey="valor" fill={CORES.aprovado} radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+      <div style={grade(320)}>
+        {/* Situação oficial — barras com o número (sem rótulos sobrepostos) */}
+        <div style={{ ...S.card, marginBottom: 0 }}>
+          <div style={S.title}>Situação no InvestSUS</div>
+          {!situacoes.length && <div style={{ fontSize: 12, color: "#9ca3af" }}>Sem propostas.</div>}
+          {situacoes.map((s: any) => {
+            const cfg = SITUACAO_MAP[s.situacao] ?? { label: s.situacao || "Não identificada", cor: "#6b7280", bg: "#f3f4f6" };
+            return (
+              <div key={s.situacao ?? "nd"} style={{ marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                  <span style={{ color: "#374151", fontWeight: 600 }}>{cfg.label}</span>
+                  <span style={{ color: "#111827", fontWeight: 800 }}>{s.qtd}</span>
+                </div>
+                <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ width: `${(100 * s.qtd) / maxSituacao}%`, height: "100%", background: cfg.cor, borderRadius: 4 }} />
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        <div style={S.card}>
-          <div style={S.title}>Por Situação</div>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie data={data.por_situacao} dataKey="qtd" nameKey="situacao" outerRadius={80}
-                label={({ situacao, qtd }) => `${SITUACAO_MAP[situacao]?.label ?? situacao}: ${qtd}`}
-                labelLine={false}>
-                {data.por_situacao.map((_: any, i: number) => <Cell key={i} fill={CORES_PIE[i % CORES_PIE.length]} />)}
-              </Pie>
-              <Tooltip formatter={(v: number) => [`${v} proposta${v !== 1 ? "s" : ""}`, "Qtd"]} />
-            </PieChart>
-          </ResponsiveContainer>
+        {/* Modalidade federal */}
+        <div style={{ ...S.card, marginBottom: 0 }}>
+          <div style={S.title}>Por modalidade federal</div>
+          {!modalidades.length && <div style={{ fontSize: 12, color: "#9ca3af" }}>Sem propostas classificadas.</div>}
+          {modalidades.map((m: any) => {
+            const cfg = GRUPO_CONFIG[m.modalidade] ?? { label: m.rotulo, cor: "#9ca3af", bg: "#f9fafb", icone: "" };
+            const pPago = pct(m.valor_pago, m.valor_indicado);
+            return (
+              <div key={m.modalidade} style={{ borderLeft: `4px solid ${cfg.cor}`, padding: "6px 10px", marginBottom: 8, background: "#f9fafb", borderRadius: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, flexWrap: "wrap" as const, gap: 4 }}>
+                  <span style={{ fontWeight: 700, color: cfg.cor }}>{cfg.label}</span>
+                  <span style={{ color: "#4b5563" }}>{m.qtd} proposta{m.qtd !== 1 ? "s" : ""}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginTop: 3, color: "#111827", flexWrap: "wrap" as const, gap: 4 }}>
+                  <span>Indicado <b>{fmt(m.valor_indicado)}</b></span>
+                  <span>Pago <b style={{ color: CORES.pago }}>{fmt(m.valor_pago)}</b></span>
+                </div>
+                <div style={{ height: 6, background: "#e5e7eb", borderRadius: 3, overflow: "hidden", marginTop: 4 }}>
+                  <div style={{ width: `${Math.min(100, pPago)}%`, height: "100%", background: CORES.pago }} />
+                </div>
+                <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{fmtPct(pPago)} pago</div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Componente + Tipo Emenda */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-        {/* Por componente — barras horizontais */}
-        {(data.por_componente ?? []).length > 0 && (
-          <div style={S.card}>
-            <div style={S.title}>Por Componente (PAP/MAC)</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[...(data.por_componente ?? [])]
-                .sort((a: any, b: any) => b.valor - a.valor)
-                .map((c: any, i: number) => {
-                  const total = (data.por_componente ?? []).reduce((s: number, x: any) => s + x.valor, 0);
-                  const pct = total > 0 ? (c.valor / total) * 100 : 0;
-                  const cores = ["#1e3a5f","#0284c7","#059669","#7c3aed","#d97706","#dc2626"];
-                  const cor = cores[i % cores.length];
-                  return (
-                    <div key={c.componente}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
-                        <span style={{ fontWeight: 600, color: "#374151" }}>{c.componente || "Não informado"}</span>
-                        <span style={{ color: cor, fontWeight: 700 }}>{fmt(c.valor)}</span>
+      {(() => {
+        const grupos = [
+          { titulo: "Por programa (valor)", itens: (data.por_programa ?? []).map((x: any) => ({ nome: x.programa, valor: x.valor })) },
+          { titulo: "Por componente (PAP/MAC)", itens: (data.por_componente ?? []).map((x: any) => ({ nome: x.componente, valor: x.valor })) },
+        ].filter(g => g.itens.some((i: any) => i.nome && i.nome !== "Não informado"));
+        if (!grupos.length) return null;
+        return (
+          <div style={grade(320)}>
+            {grupos.map(g => {
+              const total = g.itens.reduce((acc: number, x: any) => acc + (x.valor || 0), 0);
+              return (
+                <div key={g.titulo} style={{ ...S.card, marginBottom: 0 }}>
+                  <div style={S.title}>{g.titulo}</div>
+                  {[...g.itens].sort((a: any, b: any) => b.valor - a.valor).slice(0, 8).map((c: any, i: number) => {
+                    const p = pct(c.valor, total);
+                    const cor = ["#1e3a5f", "#0284c7", "#059669", "#7c3aed", "#d97706", "#dc2626"][i % 6];
+                    return (
+                      <div key={(c.nome ?? "") + i} style={{ marginBottom: 10 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3, gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#374151" }}>{c.nome || "Não informado"}</span>
+                          <span style={{ color: cor, fontWeight: 700, whiteSpace: "nowrap" as const }}>{fmt(c.valor)}</span>
+                        </div>
+                        <div style={{ height: 6, background: "#f3f4f6", borderRadius: 3, overflow: "hidden" }}>
+                          <div style={{ width: `${p}%`, height: "100%", background: cor }} />
+                        </div>
+                        <div style={{ fontSize: 10, color: "#6b7280", marginTop: 1 }}>{p.toFixed(1)}% do total</div>
                       </div>
-                      <div style={{ height: 6, background: "#f3f4f6", borderRadius: 3, overflow: "hidden" }}>
-                        <div style={{ width: `${pct}%`, height: "100%", background: cor, borderRadius: 3 }} />
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      <TodasPropostasPainel onSelect={onSelect} />
+    </div>
+  );
+}
+
+// Todas as propostas do município numa tabela única (clique abre o detalhe)
+function TodasPropostasPainel({ onSelect }: { onSelect?: (p: any) => void }) {
+  const [filtro, setFiltro] = useState<string>("todas");
+  const [busca, setBusca] = useState("");
+  const [ordem, setOrdem] = useState<"valor" | "pago" | "numero">("valor");
+  const { data, isLoading } = useQuery({
+    queryKey: ["investsus-propostas", "painel"],
+    queryFn: () => api.get(`/api/investsus/propostas?tamanho=200`).then(r => r.data),
+  });
+  const todas: any[] = data?.propostas ?? [];
+  const modalidadeDaLinha = (p: any) => p.modalidade ?? "a_classificar";
+  const lista = useMemo(() => {
+    const t = busca.trim().toLowerCase();
+    return todas
+      .filter(p => filtro === "todas" || modalidadeDaLinha(p) === filtro)
+      .filter(p => !t || [p.numero_proposta, p.objeto, p.numero_emenda].some(v => String(v ?? "").toLowerCase().includes(t)))
+      .sort((a, b) => ordem === "numero" ? String(b.numero_proposta).localeCompare(String(a.numero_proposta))
+        : ordem === "pago" ? (b.valor_pago ?? 0) - (a.valor_pago ?? 0)
+        : (b.valor_indicado ?? 0) - (a.valor_indicado ?? 0));
+  }, [todas, filtro, busca, ordem]);
+  const contagem = (m: string) => todas.filter(p => modalidadeDaLinha(p) === m).length;
+  const th: React.CSSProperties = { padding: "7px 8px", textAlign: "left", color: "#4b5563", fontWeight: 700, fontSize: 11, borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" };
+  const td: React.CSSProperties = { padding: "7px 8px", verticalAlign: "top" };
+
+  return (
+    <div style={{ ...S.card, marginTop: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" as const, gap: 8, marginBottom: 10 }}>
+        <div style={{ ...S.title, marginBottom: 0 }}>
+          Todas as propostas ({lista.length}{lista.length !== todas.length ? ` de ${todas.length}` : ""})
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
+          <input style={{ ...S.input, width: 220 }} placeholder="Buscar nº, objeto ou emenda…" value={busca} onChange={e => setBusca(e.target.value)} />
+          <select style={{ ...S.input, width: 170 }} value={ordem} onChange={e => setOrdem(e.target.value as typeof ordem)}>
+            <option value="valor">Maior valor indicado</option>
+            <option value="pago">Maior valor pago</option>
+            <option value="numero">Mais recentes</option>
+          </select>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, marginBottom: 10 }}>
+        {["todas", ...MODALIDADES_FEDERAIS, "a_classificar"].filter(m => m === "todas" || contagem(m) > 0).map(m => (
+          <button key={m} style={S.tab(filtro === m)} onClick={() => setFiltro(m)}>
+            {m === "todas" ? `Todas (${todas.length})` : `${GRUPO_CONFIG[m]?.label ?? m} (${contagem(m)})`}
+          </button>
+        ))}
+      </div>
+      {isLoading ? <div style={{ color: "#9ca3af", fontSize: 13 }}>Carregando...</div> : !lista.length ? (
+        <div style={{ color: "#9ca3af", fontSize: 13 }}>Nenhuma proposta encontrada.</div>
+      ) : (
+        <div style={{ overflowX: "auto" as const }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 760 }}>
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                {["Proposta", "Objeto", "Modalidade", "Situação (InvestSUS)", "Indicado", "Pago", "% pago", "Alertas"].map(h => <th key={h} style={th}>{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {lista.map(p => {
+                const cfg = GRUPO_CONFIG[modalidadeDaLinha(p)] ?? GRUPO_CONFIG.a_classificar;
+                const pPago = (p.valor_indicado ?? 0) > 0 ? (100 * (p.valor_pago ?? 0)) / p.valor_indicado : 0;
+                return (
+                  <tr key={p.id} onClick={() => onSelect?.(p)}
+                    style={{ borderBottom: "1px solid #f3f4f6", cursor: onSelect ? "pointer" : "default", color: "#111827" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#f8fafc")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "")}>
+                    <td style={{ ...td, fontFamily: "monospace", fontWeight: 700, color: "#1e3a5f", whiteSpace: "nowrap" as const }}>
+                      {p.numero_proposta}
+                      {p.exercicio && <div style={{ fontFamily: "system-ui", fontSize: 10, color: "#6b7280", fontWeight: 400 }}>Exercício {p.exercicio}</div>}
+                    </td>
+                    <td style={{ ...td, minWidth: 200, maxWidth: 320 }}>{p.objeto ?? "—"}</td>
+                    <td style={td}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: cfg.cor, background: cfg.bg, borderRadius: 4, padding: "2px 6px", whiteSpace: "nowrap" as const }}>{cfg.label}</span>
+                    </td>
+                    <td style={{ ...td, fontSize: 11 }}>{p.situacao_original ?? "—"}</td>
+                    <td style={{ ...td, textAlign: "right" as const, whiteSpace: "nowrap" as const }}>{fmt(p.valor_indicado ?? 0)}</td>
+                    <td style={{ ...td, textAlign: "right" as const, whiteSpace: "nowrap" as const, color: CORES.pago, fontWeight: 700 }}>{fmt(p.valor_pago ?? 0)}</td>
+                    <td style={{ ...td, minWidth: 90 }}>
+                      <div style={{ height: 6, background: "#e5e7eb", borderRadius: 3, overflow: "hidden", marginTop: 4 }}>
+                        <div style={{ width: `${Math.min(100, pPago)}%`, height: "100%", background: CORES.pago }} />
                       </div>
-                      <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 1 }}>{pct.toFixed(1)}% do total</div>
-                    </div>
-                  );
+                      <div style={{ fontSize: 10, color: "#4b5563", marginTop: 2 }}>{fmtPct(pPago)}</div>
+                    </td>
+                    <td style={{ ...td, textAlign: "center" as const }}>
+                      {p.total_alertas_abertos > 0
+                        ? <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: CORES.urgente, borderRadius: 10, padding: "1px 7px" }}>{p.total_alertas_abertos}</span>
+                        : <span style={{ color: "#d1d5db" }}>—</span>}
+                    </td>
+                  </tr>
+                );
               })}
-            </div>
-          </div>
-        )}
-
-        {/* Por tipo de emenda — donut simples */}
-        {(data.por_modalidade ?? []).some((m: any) => m.qtd > 0) && (
-          <div style={S.card}>
-            <div style={S.title}>Por Modalidade Federal (valor indicado)</div>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={(data.por_modalidade ?? []).filter((m: any) => m.qtd > 0)}
-                  dataKey="valor_indicado"
-                  nameKey="rotulo"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={3}>
-                  {(data.por_modalidade ?? []).filter((m: any) => m.qtd > 0).map((m: any) => (
-                    <Cell key={m.modalidade} fill={GRUPO_CONFIG[m.modalidade]?.cor ?? "#9ca3af"} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v: number) => fmt(v)} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
-
-      {/* Barra de execução consolidada */}
-      <div style={{ ...S.card, marginBottom: 14 }}>
-        <div style={S.title}>Execução Financeira Consolidada</div>
-        {[
-          { label: "Indicado → Aprovado", de: data.total_indicado, ate: data.total_aprovado, cor: "#0284c7" },
-          { label: "Indicado → Pago",     de: data.total_indicado, ate: data.total_pago,     cor: "#059669" },
-          { label: "Pago → Executado",    de: data.total_pago,     ate: data.total_executado, cor: "#16a34a" },
-          { label: "Saldo a Executar",    de: data.total_pago,     ate: data.saldo_executar,  cor: "#d97706" },
-        ].map(({ label, de, ate, cor }) => {
-          const pct = de > 0 ? Math.min((ate / de) * 100, 100) : 0;
-          return (
-            <div key={label} style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
-                <span style={{ fontWeight: 600, color: "#374151" }}>{label}</span>
-                <span style={{ fontWeight: 700, color: cor }}>{fmt(ate)} <span style={{ color: "#9ca3af" }}>({pct.toFixed(1)}%)</span></span>
-              </div>
-              <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4, overflow: "hidden" }}>
-                <div style={{ width: `${pct}%`, height: "100%", background: cor, borderRadius: 4, transition: "width .6s" }} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Totais */}
-      <div style={{ ...S.card, background: "#f9fafb" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
-          {[
-            { label: "Propostas",   valor: `${data.total_propostas}` },
-            { label: "Saldo Executar", valor: fmt(data.saldo_executar) },
-            { label: "Alertas Abertos", valor: `${data.alertas_abertos}` },
-            { label: "Alertas Críticos", valor: `${data.alertas_criticos}` },
-          ].map(({ label, valor }) => (
-            <div key={label} style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#1e3a5f" }}>{valor}</div>
-              <div style={{ fontSize: 11, color: "#6b7280" }}>{label}</div>
-            </div>
-          ))}
+            </tbody>
+          </table>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -3658,7 +3715,7 @@ export default function InvestSUS() {
         />
       ) : aba === "painel" ? (
         <div>
-          <DashboardInvestSUS municipio_id={municipio_id} />
+          <DashboardInvestSUS municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
           <div style={{ marginTop: 14 }}>
             <button
               style={{ ...S.btn(), display: "flex", alignItems: "center", gap: 6, marginBottom: mostrarPortalMS ? 12 : 0 }}
