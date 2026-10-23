@@ -557,6 +557,7 @@ async def detalhe_proposta(proposta_id: int, db: DbDep, user: UserDep):
             selectinload(PropostaInvestSUS.historico),
             selectinload(PropostaInvestSUS.unidades),
             selectinload(PropostaInvestSUS.planos_trabalho).selectinload(PlanoTrabalho.acoes),
+            selectinload(PropostaInvestSUS.planos_trabalho).selectinload(PlanoTrabalho.unidade),
             selectinload(PropostaInvestSUS.naturezas_despesa),
             selectinload(PropostaInvestSUS.pareceres),
             selectinload(PropostaInvestSUS.pagamentos_investsus),
@@ -596,7 +597,11 @@ async def detalhe_proposta(proposta_id: int, db: DbDep, user: UserDep):
     d["planos_trabalho"] = [
         {
             "id": pt.id, "versao": pt.versao, "valor_indicado": pt.valor_indicado,
-            "objeto": pt.objeto, "situacao": pt.situacao,
+            "objeto": pt.objeto, "situacao": pt.situacao, "justificativa": pt.justificativa,
+            "id_externo": pt.id_externo,
+            "unidade": ({"cnes": pt.unidade.cnes, "nome": pt.unidade.nome_estabelecimento}
+                        if pt.unidade else None),
+            "payload_original": pt.payload_original,
             "data_elaboracao": str(pt.data_elaboracao) if pt.data_elaboracao else None,
             "data_envio": str(pt.data_envio) if pt.data_envio else None,
             "data_aprovacao": str(pt.data_aprovacao) if pt.data_aprovacao else None,
@@ -608,6 +613,7 @@ async def detalhe_proposta(proposta_id: int, db: DbDep, user: UserDep):
                     "unidade_medida": a.unidade_medida, "valor": a.valor,
                     "situacao_execucao": a.situacao_execucao,
                     "resultado_alcancado": a.resultado_alcancado,
+                    "caminho": a.meta_qualitativa if a.id_externo else None,
                 }
                 for a in pt.acoes
             ],
@@ -648,6 +654,7 @@ async def detalhe_proposta(proposta_id: int, db: DbDep, user: UserDep):
             "data_pagamento": str(pg.data_pagamento) if pg.data_pagamento else None,
             "valor": pg.valor, "parcela": pg.parcela,
             "conta_bancaria": pg.conta_bancaria, "situacao": pg.situacao,
+            "numero_processo": pg.numero_processo, "fonte_oficial": pg.fonte_oficial,
         }
         for pg in prop.pagamentos_investsus
     ]
@@ -2027,6 +2034,7 @@ async def aplicar_detalhes(db, mid: int, cnpj_fundo: str, detalhes: list[dict], 
             plano.objeto = prop.objeto
             plano.justificativa = pl["justificativa"]
             plano.situacao = prop.situacao_original
+            plano.payload_original = pl["raw"]
             await db.flush()
             cont["planos"] += 1
             for m in pl["metas"]:
@@ -2100,6 +2108,7 @@ async def aplicar_detalhes(db, mid: int, cnpj_fundo: str, detalhes: list[dict], 
                 reg.valor = r["valor"]
                 reg.fonte_oficial = _FONTE_REPASSE
                 reg.situacao = r["situacao"]
+                reg.numero_processo = r["numero_processo"]
                 if r["numero_processo"]:
                     prop.numero_processo = r["numero_processo"]
             await db.flush()

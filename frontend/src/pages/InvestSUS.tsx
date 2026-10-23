@@ -1372,8 +1372,15 @@ function SecaoPlanos({ p, proposta_id }: { p: any; proposta_id: number }) {
         <div key={pt.id} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 14, marginBottom: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
             <div>
-              <span style={{ fontWeight: 700, fontSize: 13 }}>Versão {pt.versao}</span>
-              <span style={{ fontSize: 11, background: "#f0fdf4", color: "#059669", borderRadius: 4, padding: "1px 6px", marginLeft: 8, fontWeight: 700 }}>{SIT_LABEL[pt.situacao] ?? pt.situacao}</span>
+              {pt.id_externo
+                ? <span style={{ fontWeight: 700, fontSize: 13, color: "#111827" }}>Plano de Trabalho nº {pt.id_externo} (InvestSUS)</span>
+                : <span style={{ fontWeight: 700, fontSize: 13, color: "#111827" }}>Versão {pt.versao}</span>}
+              {pt.situacao && <span style={{ fontSize: 11, background: "#f0fdf4", color: "#059669", borderRadius: 4, padding: "1px 6px", marginLeft: 8, fontWeight: 700 }}>{SIT_LABEL[pt.situacao] ?? pt.situacao}</span>}
+              {pt.unidade && (
+                <div style={{ fontSize: 11, color: "#4b5563", marginTop: 3 }}>
+                  Unidade: {pt.unidade.nome ?? "—"} · CNES {pt.unidade.cnes ?? "—"}
+                </div>
+              )}
             </div>
             <div style={{ fontSize: 12, color: "#6b7280", textAlign: "right" as const }}>
               <div>{fmt(pt.valor_indicado)}</div>
@@ -1382,6 +1389,9 @@ function SecaoPlanos({ p, proposta_id }: { p: any; proposta_id: number }) {
           </div>
           {pt.objeto && <div style={{ fontSize: 12, color: "#374151", marginBottom: 10 }}>{pt.objeto}</div>}
           {/* Ações */}
+          {(pt.acoes ?? []).length > 0 && pt.id_externo && (
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 4 }}>Ações e Serviços — Metas Quantitativas</div>
+          )}
           {(pt.acoes ?? []).length > 0 && (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
               <thead>
@@ -1393,10 +1403,13 @@ function SecaoPlanos({ p, proposta_id }: { p: any; proposta_id: number }) {
               </thead>
               <tbody>
                 {(pt.acoes ?? []).map((ac: any) => (
-                  <tr key={ac.id}>
+                  <tr key={ac.id} style={{ color: "#111827" }} title={ac.caminho ?? undefined}>
                     <td style={{ padding: "4px 6px" }}>{ac.categoria}</td>
-                    <td style={{ padding: "4px 6px" }}>{ac.descricao}</td>
-                    <td style={{ padding: "4px 6px" }}>{ac.meta_quantitativa} {ac.unidade_medida}</td>
+                    <td style={{ padding: "4px 6px" }}>
+                      {ac.descricao}
+                      {ac.caminho && <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{ac.caminho}</div>}
+                    </td>
+                    <td style={{ padding: "4px 6px" }}>{ac.meta_quantitativa ?? ""} {ac.unidade_medida ?? ""}</td>
                     <td style={{ padding: "4px 6px", textAlign: "right" as const }}>{fmt(ac.valor)}</td>
                     <td style={{ padding: "4px 6px" }}>
                       <span style={{ fontSize: 10, background: "#f3f4f6", borderRadius: 3, padding: "1px 5px" }}>{EXEC_LABEL[ac.situacao_execucao] ?? ac.situacao_execucao}</span>
@@ -1405,6 +1418,20 @@ function SecaoPlanos({ p, proposta_id }: { p: any; proposta_id: number }) {
                 ))}
               </tbody>
             </table>
+          )}
+          {pt.justificativa && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f", marginBottom: 4 }}>Justificativa</div>
+              <div style={{ fontSize: 12, color: "#374151", whiteSpace: "pre-wrap" as const, lineHeight: 1.5 }}>{pt.justificativa}</div>
+            </div>
+          )}
+          {pt.payload_original && (
+            <details style={{ marginTop: 8 }}>
+              <summary style={{ fontSize: 11, color: "#6b7280", cursor: "pointer" }}>Dados brutos do plano (InvestSUS)</summary>
+              <pre style={{ fontSize: 11, background: "#111827", color: "#d1fae5", padding: 10, borderRadius: 6, overflowX: "auto" as const, maxHeight: 300 }}>
+                {JSON.stringify(pt.payload_original, null, 2)}
+              </pre>
+            </details>
           )}
           <button style={{ ...S.btn(), marginTop: 8, fontSize: 11 }} onClick={() => setAddAcao(pt.id)}>
             <Plus size={11} /> Adicionar Ação/Meta
@@ -1588,7 +1615,7 @@ function SecaoNaturezas({ p }: { p: any }) {
         </thead>
         <tbody>
           {(p.naturezas_despesa ?? []).map((nd: any) => (
-            <tr key={nd.id}>
+            <tr key={nd.id} style={{ color: "#111827" }}>
               <td style={{ padding: "6px 8px", fontFamily: "monospace", fontWeight: 700, color: "#374151" }}>{nd.codigo}</td>
               <td style={{ padding: "6px 8px", color: "#374151" }}>{nd.descricao}</td>
               <td style={{ padding: "6px 8px", textAlign: "right" as const }}>{fmt(nd.valor_previsto)}</td>
@@ -1769,7 +1796,10 @@ function SecaoPagamentos({ p }: { p: any }) {
           <div>
             <span style={{ fontWeight: 700 }}>{pg.ordem_bancaria ?? "OB não informada"}</span>
             {pg.parcela && <span style={{ color: "#6b7280", marginLeft: 6 }}>Parcela {pg.parcela}</span>}
-            <div style={{ color: "#9ca3af" }}>{pg.data_pagamento}</div>
+            <div style={{ color: "#6b7280" }}>
+              {pg.data_pagamento}
+              {pg.numero_processo && <> · Processo {pg.numero_processo}</>}
+            </div>
           </div>
           <div style={{ fontWeight: 800, color: "#059669", fontSize: 14 }}>{fmt(pg.valor)}</div>
         </div>
