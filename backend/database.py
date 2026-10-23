@@ -161,7 +161,8 @@ async def _migrar_investsus_federal() -> None:
             ("respondido_por", "VARCHAR(100)"),
         ],
         # detalhe da proposta importado do InvestSUS (chave para não duplicar)
-        "is_planos_trabalho": [("id_externo", "VARCHAR(50)")],
+        "is_planos_trabalho": [("id_externo", "VARCHAR(50)"), ("payload_original", "JSON")],
+        "is_pagamentos": [("numero_processo", "VARCHAR(50)")],
         "is_acoes_servicos": [("id_externo", "VARCHAR(50)")],
         "is_documentos": [("id_externo", "VARCHAR(50)")],
     }

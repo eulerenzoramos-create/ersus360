@@ -20,18 +20,19 @@ from datetime import date, datetime
 
 from services import investsus_federal as fed
 
-# Natureza de despesa (elemento) — descrições usuais nas propostas do Fundo a Fundo
+# Natureza de despesa (elemento) — nome oficial do elemento (SIAFI), como o InvestSUS
+# exibe na tela "Plano de Trabalho". A API do plano só devolve o código.
 NATUREZAS = {
-    "339030": "Material de Consumo",
-    "339032": "Material, Bem ou Serviço para Distribuição Gratuita",
-    "339033": "Passagens e Despesas com Locomoção",
-    "339014": "Diárias — Civil",
-    "339036": "Outros Serviços de Terceiros — Pessoa Física",
-    "339039": "Outros Serviços de Terceiros — Pessoa Jurídica",
-    "339040": "Serviços de Tecnologia da Informação e Comunicação — PJ",
-    "339047": "Obrigações Tributárias e Contributivas",
-    "449051": "Obras e Instalações",
-    "449052": "Equipamentos e Material Permanente",
+    "339014": "DIARIAS - CIVIL",
+    "339030": "MATERIAL DE CONSUMO",
+    "339032": "MATERIAL, BEM OU SERVICO PARA DISTRIBUICAO GRATUITA",
+    "339033": "PASSAGENS E DESPESAS COM LOCOMOCAO",
+    "339036": "OUTROS SERVICOS DE TERCEIROS - PESSOA FISICA",
+    "339039": "OUTROS SERVICOS DE TERCEIROS-PESSOA JURIDICA",
+    "339040": "SERVICOS DE TECNOLOGIA DA INFORMACAO E COMUNICACAO - PESSOA JURIDICA",
+    "339047": "OBRIGACOES TRIBUTARIAS E CONTRIBUTIVAS",
+    "449051": "OBRAS E INSTALACOES",
+    "449052": "EQUIPAMENTOS E MATERIAL PERMANENTE",
 }
 
 
@@ -202,9 +203,11 @@ def normalizar_detalhe(det: dict, cnpj_fundo: str) -> dict:
             "justificativa": _texto(pl.get("justificativa")),
             "metas": metas,
             "naturezas": [{"codigo": str(n.get("idNaturezaDespesa") or "").strip(),
-                           "descricao": NATUREZAS.get(str(n.get("idNaturezaDespesa") or "").strip()),
+                           "descricao": _texto(n.get("descricaoNaturezaDespesa") or n.get("descricao"))
+                                        or NATUREZAS.get(str(n.get("idNaturezaDespesa") or "").strip()),
                            "valor": _num(n.get("valor"))}
                           for n in pl.get("naturezas") or [] if n.get("idNaturezaDespesa")],
+            "raw": pl,
         })
 
     pareceres = []

@@ -87,7 +87,9 @@ def test_normaliza_detalhe_real():
     meta = d["planos"][0]["metas"][0]
     assert meta["descricao"] == "OCI em Ginecologia"
     assert meta["categoria"] == "PROGRAMA AGORA TEM ESPECIALISTA - COMPONENTE AMBULATORIAL"
-    assert d["planos"][0]["naturezas"][0]["descricao"].startswith("Outros Serviços de Terceiros")
+    assert d["planos"][0]["naturezas"][0]["descricao"] == "OUTROS SERVICOS DE TERCEIROS-PESSOA JURIDICA"
+    assert d["planos"][0]["raw"] is PLANO
+    assert d["repasses"][0]["numero_processo"] == "25000097146202638"
 
 
 def test_tipos_de_emenda_do_investsus():
@@ -140,6 +142,10 @@ async def test_grava_detalhe_completo_sem_duplicar(db_session, municipio):
     assert p.modalidade == "rp7" and p.tipo_emenda.value == "bancada"
     assert p.numero_emenda == "71040008" and p.valor_pago == 718435
     assert p.numero_processo == "25000097146202638"
+    pg = (await db_session.execute(select(PagamentoInvestSUS))).scalars().first()
+    assert pg.numero_processo == "25000097146202638"
+    plano = (await db_session.execute(select(PlanoTrabalho))).scalar_one()
+    assert plano.justificativa == "O município de Apuí/AM..." and plano.payload_original["id"] == 110075
 
     # segunda importação: nada duplica
     c2 = await aplicar_detalhes(db_session, municipio.id, CNPJ, [_detalhe()], "teste")

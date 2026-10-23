@@ -312,6 +312,7 @@ class PlanoTrabalho(Base):
     objeto: Mapped[str | None] = mapped_column(Text, nullable=True)
     justificativa: Mapped[str | None] = mapped_column(Text, nullable=True)
     situacao: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    payload_original: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # resposta bruta do plano no InvestSUS
     data_elaboracao: Mapped[date | None] = mapped_column(Date, nullable=True)
     data_envio: Mapped[date | None] = mapped_column(Date, nullable=True)
     data_aprovacao: Mapped[date | None] = mapped_column(Date, nullable=True)
@@ -422,6 +423,7 @@ class PagamentoInvestSUS(Base):
     conta_bancaria: Mapped[str | None] = mapped_column(String(200), nullable=True)
     fonte_oficial: Mapped[str | None] = mapped_column(String(100), nullable=True)
     situacao: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    numero_processo: Mapped[str | None] = mapped_column(String(50), nullable=True)  # processo de pagamento (InvestSUS)
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     proposta: Mapped["PropostaInvestSUS"] = relationship(back_populates="pagamentos_investsus")
