@@ -179,8 +179,8 @@ export default function VigiAgua() {
 
   const ABAS: { id: Aba; label: string }[] = [
     { id: "dashboard",   label: "Dashboard" },
-    { id: "sistemas",    label: `Sistemas (${dashRaw?.sistemas_monitorados ?? 0})` },
-    { id: "parametros",  label: `Parâmetros (${dashRaw?.parametros_criticos ?? 0} críticos)` },
+    { id: "sistemas",    label: dashRaw?.sistemas_monitorados != null ? `Sistemas (${dashRaw?.sistemas_monitorados})` : "Sistemas" },
+    { id: "parametros",  label: dashRaw?.parametros_criticos != null ? `Parâmetros (${dashRaw?.parametros_criticos} críticos)` : "Parâmetros" },
     { id: "indicadores", label: "Indicadores" },
   ];
 

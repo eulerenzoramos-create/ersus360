@@ -1,14 +1,24 @@
-"""Router: /api/sisvan — ERSUS 360 — fns_api_service dados abertos"""
+"""Router: /api/sisvan — SISVAN / Nutrição — ERSUS 360
+
+Sem fonte específica integrada: responde nao_disponivel com a explicação. Até 21/10/2026 devolvia dados de
+outro assunto (proxy) que a tela poderia exibir com este rótulo — ver nota.
+"""
 from __future__ import annotations
+
 from datetime import date, datetime
+
 from fastapi import APIRouter, Query
-from services.fns_api_service import resumo_indicadores_aps
-router = APIRouter(prefix="/api/sisvan", tags=["SISVAN"])
-_TS = lambda: datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"); _ANO = lambda: date.today().year - 1
+
+router = APIRouter(prefix="/api/sisvan", tags=["sisvan"])
+NOTA = ("O estado nutricional vem dos relatórios públicos do SISVAN, ainda não integrados. Os indicadores gerais da APS não são mais exibidos como se fossem de nutrição.")
+
+
 @router.get("/dashboard")
 async def dashboard(ano: int = Query(0)):
-    if not ano: ano = _ANO()
-    fns = await resumo_indicadores_aps(ano)
-    return {"situacao_dado": fns.get("situacao_dado"), "ano": ano, "indicadores_nutricao": fns.get("indicadores"), "fonte": "e-Gestor APS — dados abertos", "verificado_em": _TS()}
+    return {"situacao_dado": "nao_disponivel", "dados": None, "ano": ano or date.today().year - 1, "nota": NOTA,
+            "verificado_em": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
+
+
 @router.get("/indicadores")
-async def indicadores(ano: int = Query(0)): return await dashboard(ano=ano)
+async def indicadores(ano: int = Query(0)):
+    return await dashboard(ano=ano)

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Cell } from "recharts";
 import { Activity, AlertTriangle, CheckCircle, Eye } from "lucide-react";
-import { apiGet } from "../lib/api";
+import { apiGet, comoDado, comoLista } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
@@ -25,7 +25,7 @@ function KpiCard({ label, value, sub, cor, icon }: { label: string; value: strin
 
 function AbaDashboard({ dash }: { dash: any }) {
   if (!dash) return <NaoDisponivelBanner nota="Dados indisponíveis. Integração não configurada no Railway. Nenhum valor foi inventado." />;
-  const histBar = dash.historico.filter((h: any) => h.ano !== "2026*");
+  const histBar = (Array.isArray(dash.historico) ? dash.historico : []).filter((h: any) => h.ano !== "2026*");
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 22 }}>
@@ -151,17 +151,17 @@ type Aba = "dashboard"|"tb"|"hanseniase";
 
 export default function TbHanseniase() {
   const [aba, setAba] = useState<Aba>("dashboard");
-  const { data: dash }    = useQuery({ queryKey: ["tbh-dash"],  queryFn: () => apiGet("/api/tb-hanseniase/dashboard")  as Promise<any> });
-  const { data: hist }    = useQuery({ queryKey: ["tbh-hist"],  queryFn: () => apiGet("/api/tb-hanseniase/historico")  as Promise<any[]>, enabled: aba==="dashboard" });
-  const { data: tb }      = useQuery({ queryKey: ["tbh-tb"],    queryFn: () => apiGet("/api/tb-hanseniase/tuberculose") as Promise<any[]>, enabled: aba==="tb" });
-  const { data: hans }    = useQuery({ queryKey: ["tbh-hans"],  queryFn: () => apiGet("/api/tb-hanseniase/hanseniase") as Promise<any[]>, enabled: aba==="hanseniase" });
+  const { data: dash }    = useQuery({ queryKey: ["tbh-dash"],  queryFn: () => apiGet("/api/tb-hanseniase/dashboard").then(comoDado)  as Promise<any> });
+  const { data: hist }    = useQuery({ queryKey: ["tbh-hist"],  queryFn: () => apiGet("/api/tb-hanseniase/historico").then(d => comoLista<any>(d)), enabled: aba==="dashboard" });
+  const { data: tb }      = useQuery({ queryKey: ["tbh-tb"],    queryFn: () => apiGet("/api/tb-hanseniase/tuberculose").then(d => comoLista<any>(d)), enabled: aba==="tb" });
+  const { data: hans }    = useQuery({ queryKey: ["tbh-hans"],  queryFn: () => apiGet("/api/tb-hanseniase/hanseniase").then(d => comoLista<any>(d)), enabled: aba==="hanseniase" });
 
-  const dashFull = dash && hist ? { ...dash, historico: hist } : null;
+  const dashFull = dash && hist?.length ? { ...dash, historico: hist } : null;
 
   const ABAS: { id: Aba; label: string }[] = [
     { id: "dashboard",  label: "Dashboard" },
-    { id: "tb",         label: `Tuberculose (${(dash as any)?.tb_em_tratamento ?? 0} ativos)` },
-    { id: "hanseniase", label: `Hanseníase (${(dash as any)?.hans_em_tratamento ?? 0} ativos)` },
+    { id: "tb",         label: (dash as any)?.tb_em_tratamento != null ? `Tuberculose (${(dash as any)?.tb_em_tratamento} ativos)` : "Tuberculose" },
+    { id: "hanseniase", label: (dash as any)?.hans_em_tratamento != null ? `Hanseníase (${(dash as any)?.hans_em_tratamento} ativos)` : "Hanseníase" },
   ];
 
   return (

@@ -197,8 +197,8 @@ export default function IstHiv() {
 
   const ABAS: { id: Aba; label: string }[] = [
     { id: "dashboard",   label: "Dashboard" },
-    { id: "indicadores", label: `Indicadores IST (${(dash as any)?.indicadores_criticos ?? 0} críticos)` },
-    { id: "hiv",         label: `HIV/TARV (${(dash as any)?.hiv_em_tarv ?? 0})` },
+    { id: "indicadores", label: (dash as any)?.indicadores_criticos != null ? `Indicadores IST (${(dash as any)?.indicadores_criticos} críticos)` : "Indicadores IST" },
+    { id: "hiv",         label: (dash as any)?.hiv_em_tarv != null ? `HIV/TARV (${(dash as any)?.hiv_em_tarv})` : "HIV/TARV" },
     { id: "prep",        label: "PrEP / PEP" },
   ];
 
