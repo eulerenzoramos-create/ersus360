@@ -453,6 +453,8 @@ app.include_router(egestor_pagamento_router)
 from routers.siaps_publico import router as siaps_publico_router, router_ia as siaps_ia_router
 app.include_router(siaps_publico_router)
 app.include_router(siaps_ia_router)
+from routers.vigilancia_fvs import router as vigilancia_fvs_router
+app.include_router(vigilancia_fvs_router)   # Vigilância em Saúde — dados públicos da FVS-RCP/AM
 app.include_router(tenant_router)
 app.include_router(admin_geral_router)
 app.include_router(municipios_router)

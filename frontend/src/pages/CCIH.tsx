@@ -159,9 +159,9 @@ export default function CCIH() {
 
   const ABAS: { id: Aba; label: string }[] = [
     { id: "dashboard",     label: "Dashboard" },
-    { id: "microrganismos",label: `Microrganismos (${dashRaw?.microrganismos_mdr ?? 0} MDR)` },
+    { id: "microrganismos",label: dashRaw?.microrganismos_mdr != null ? `Microrganismos (${dashRaw.microrganismos_mdr} MDR)` : "Microrganismos" },
     { id: "antibioticos",  label: "Antibióticos" },
-    { id: "bundles",       label: `Bundles (${dashRaw?.bundles_adesao_pct ?? 0}% adesão)` },
+    { id: "bundles",       label: dashRaw?.bundles_adesao_pct != null ? `Bundles (${dashRaw.bundles_adesao_pct}% adesão)` : "Bundles" },
   ];
 
   return (

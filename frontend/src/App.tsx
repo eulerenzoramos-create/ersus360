@@ -1,6 +1,7 @@
 // src/App.tsx — ERSUS 360
 import { useState, createContext, useContext, Component, useEffect, lazy, Suspense } from "react";
 import { Sidebar } from "./components/Sidebar";
+import { ComFvs } from "./components/vigilancia/DadosOficiaisFvs";
 import PageNavBar from "./components/PageNavBar";
 import { ListaMunicipios } from "./components/SeletorMunicipio";
 import AdminGeral from "./pages/AdminGeral";
@@ -400,6 +401,7 @@ const SaneamentoBasicoApui = lazy(() => import("./pages/SaneamentoBasicoApui"));
 const PlanejamentoFamiliarApui = lazy(() => import("./pages/PlanejamentoFamiliarApui"));
 const SaudePrisionalApui = lazy(() => import("./pages/SaudePrisionalApui"));
 const ZoonosesApui = lazy(() => import("./pages/ZoonosesApui"));
+const VigilanciaSaudePainel = lazy(() => import("./pages/VigilanciaSaudePainel"));
 const AtividadeFisicaApui = lazy(() => import("./pages/AtividadeFisicaApui"));
 const InfraestruturaUbsApui = lazy(() => import("./pages/InfraestruturaUbsApui"));
 const MedicamentosAltoCustoApui = lazy(() => import("./pages/MedicamentosAltoCustoApui"));
@@ -1033,6 +1035,7 @@ function Layout({ children, sessao, onLogout }: {
 
             {/* ── M05: Vigilância em Saúde ── */}
             <SbSection label="Vigilância em Saúde"/>
+            <L1 to="/vigilancia-saude"       label="Painel de Vigilância (FVS-AM)"  Icon={Activity}/>
             <L1 to="/sala-vacinas"           label="Sala de Vacinas / SIPNI"        Icon={Syringe}/>
             <L1 to="/epidemiologia"          label="Epidemiologia / SINAN"          Icon={Activity}/>
             <L1 to="/monitor-epidemiologico" label="Monitor Epidemiológico"         Icon={Activity}/>
@@ -1290,7 +1293,7 @@ export default function App() {
             <Route path="/farmacia/*"                element={<Farmacia/>}/>
             <Route path="/vigilancia"                element={<Vigilancia/>}/>
             <Route path="/vigilancia/*"              element={<Vigilancia/>}/>
-            <Route path="/epidemiologia"             element={<Epidemiologia/>}/>
+            <Route path="/epidemiologia"             element={<ComFvs id="epidemiologia"><Epidemiologia/></ComFvs>}/>
             <Route path="/epidemiologia/*"           element={<Epidemiologia/>}/>
             <Route path="/siops"                     element={<SIOPS/>}/>
             <Route path="/siops-completo"            element={<Navigate to="/siops" replace/>}/>
@@ -1306,7 +1309,7 @@ export default function App() {
             <Route path="/regulacao-mac"             element={<RegulacaoMAC/>}/>
             <Route path="/ppa-loa"                   element={<PainelPPALOA/>}/>
             <Route path="/absenteismo" element={<Navigate to="/absenteismo-apui" replace/>}/>
-            <Route path="/sala-vacinas"              element={<SalaVacinas/>}/>
+            <Route path="/sala-vacinas"              element={<ComFvs id="vacinas"><SalaVacinas/></ComFvs>}/>
             <Route path="/raps"                      element={<RAPS/>}/>
             <Route path="/manutencao"                element={<Manutencao/>}/>
             <Route path="/vigilancia-epid"           element={<NotificacoesSINAN/>}/>
@@ -1314,15 +1317,15 @@ export default function App() {
             <Route path="/producao-sisab"            element={<ProducaoSISAB/>}/>
             <Route path="/saude-mulher"              element={<SaudeMulher/>}/>
             <Route path="/saude-crianca"             element={<SaudeCrianca/>}/>
-            <Route path="/visa"                      element={<VigilanciaVISA/>}/>
-            <Route path="/vetores"                   element={<ControleVetores/>}/>
-            <Route path="/sisvan"                    element={<SISVAN/>}/>
+            <Route path="/visa"                      element={<ComFvs id="visa"><VigilanciaVISA/></ComFvs>}/>
+            <Route path="/vetores"                   element={<ComFvs id="vetores"><ControleVetores/></ComFvs>}/>
+            <Route path="/sisvan"                    element={<ComFvs id="sisvan"><SISVAN/></ComFvs>}/>
             <Route path="/atencao-domiciliar"        element={<AtencaoDomiciliar/>}/>
-            <Route path="/tb-hanseniase"             element={<TbHanseniase/>}/>
-            <Route path="/ist-hiv"                   element={<IstHiv/>}/>
+            <Route path="/tb-hanseniase"             element={<ComFvs id="tb_hanseniase"><TbHanseniase/></ComFvs>}/>
+            <Route path="/ist-hiv"                   element={<ComFvs id="ist_hiv"><IstHiv/></ComFvs>}/>
             <Route path="/saude-idoso"               element={<SaudeIdoso/>}/>
             <Route path="/saude-homem"               element={<SaudeHomem/>}/>
-            <Route path="/sim-sinasc"                element={<SimSinasc/>}/>
+            <Route path="/sim-sinasc"                element={<ComFvs id="sim_sinasc"><SimSinasc/></ComFvs>}/>
             <Route path="/saude-trabalhador" element={<Navigate to="/saude-trabalhador-apui" replace/>}/>
             <Route path="/saude-adolescente" element={<Navigate to="/saude-adolescente-apui" replace/>}/>
             <Route path="/hiperdia" element={<Navigate to="/hiperdia-apui" replace/>}/>
@@ -1331,7 +1334,7 @@ export default function App() {
             <Route path="/controle-tabaco"           element={<ControleTabaco/>}/>
             <Route path="/icsap" element={<Navigate to="/icsap-apui" replace/>}/>
             <Route path="/hemoterapia"               element={<Hemoterapia/>}/>
-            <Route path="/ccih"                      element={<CCIH/>}/>
+            <Route path="/ccih"                      element={<ComFvs id="ccih"><CCIH/></ComFvs>}/>
             <Route path="/sadt"                      element={<SADT/>}/>
             <Route path="/saude-prisional" element={<Navigate to="/saude-prisional-apui" replace/>}/>
             <Route path="/nutricao-clinica" element={<Navigate to="/nutricao-clinica-apui" replace/>}/>
@@ -1346,7 +1349,7 @@ export default function App() {
             <Route path="/blh"                       element={<BLH/>}/>
             <Route path="/pics" element={<Navigate to="/pics-apui" replace/>}/>
             <Route path="/frota"                     element={<Frota/>}/>
-            <Route path="/vigiagua"                  element={<VigiAgua/>}/>
+            <Route path="/vigiagua"                  element={<ComFvs id="vigiagua"><VigiAgua/></ComFvs>}/>
             <Route path="/nasf"                      element={<NASF/>}/>
             <Route path="/zoonoses" element={<Navigate to="/zoonoses-apui" replace/>}/>
             <Route path="/saude-servidor" element={<Navigate to="/absenteismo-apui" replace/>}/>
@@ -1377,7 +1380,7 @@ export default function App() {
             <Route path="/violencia-domestica"       element={<ViolenciaDomestica/>}/>
             <Route path="/malaria" element={<Navigate to="/malaria-apui" replace/>}/>
             <Route path="/leishmaniose"              element={<Leishmaniose/>}/>
-            <Route path="/arboviroses"               element={<Arboviroses/>}/>
+            <Route path="/arboviroses"               element={<ComFvs id="arboviroses"><Arboviroses/></ComFvs>}/>
             <Route path="/saude-indigena"            element={<SaudeIndigena/>}/>
             <Route path="/hanseniase" element={<Navigate to="/hanseniase-apui" replace/>}/>
             <Route path="/tuberculose" element={<Navigate to="/tuberculose-apui" replace/>}/>
@@ -1402,7 +1405,7 @@ export default function App() {
             <Route path="/malaria-endemias"        element={<MalariaEndemias/>}/>
             <Route path="/vigilancia-nutricional" element={<VigilanciaNutricional/>}/>
             <Route path="/dcnt-cronicas"           element={<DcntCronicas/>}/>
-            <Route path="/cancer-rastreio"        element={<CancerRastreio/>}/>
+            <Route path="/cancer-rastreio"        element={<ComFvs id="cancer"><CancerRastreio/></ComFvs>}/>
             <Route path="/saude-bucal-municipal"  element={<SaudeBucalMunicipal/>}/>
             <Route path="/saude-mental-caps" element={<Navigate to="/saude-mental-caps-apui" replace/>}/>
             <Route path="/rede-cegonha"           element={<RedeCegonha/>}/>
@@ -1448,7 +1451,7 @@ export default function App() {
             <Route path="/saude-idoso-apui"              element={<SaudeIdosoApui/>}/>
             <Route path="/oncologia-apui"                element={<OncologiaApui/>}/>
             <Route path="/tuberculose-apui"              element={<TuberculoseApui/>}/>
-            <Route path="/malaria-apui"                  element={<MalariaApui/>}/>
+            <Route path="/malaria-apui"                  element={<ComFvs id="malaria"><MalariaApui/></ComFvs>}/>
             <Route path="/saude-bucal-apui"              element={<SaudeBucalApui/>}/>
             <Route path="/ist-hiv-hepatites-apui"        element={<IstHivHepatitesApui/>}/>
             <Route path="/hanseniase-apui"               element={<HanseniaseApui/>}/>
@@ -1506,7 +1509,8 @@ export default function App() {
             <Route path="/saneamento-basico-apui"      element={<SaneamentoBasicoApui/>}/>
             <Route path="/planejamento-familiar-apui" element={<PlanejamentoFamiliarApui/>}/>
             <Route path="/saude-prisional-apui"       element={<SaudePrisionalApui/>}/>
-            <Route path="/zoonoses-apui"              element={<ZoonosesApui/>}/>
+            <Route path="/vigilancia-saude"           element={<VigilanciaSaudePainel/>}/>
+            <Route path="/zoonoses-apui"              element={<ComFvs id="zoonoses"><ZoonosesApui/></ComFvs>}/>
             <Route path="/atividade-fisica-apui"      element={<AtividadeFisicaApui/>}/>
             <Route path="/infraestrutura-ubs-apui"    element={<InfraestruturaUbsApui/>}/>
             <Route path="/medicamentos-alto-custo-apui" element={<MedicamentosAltoCustoApui/>}/>
@@ -1574,7 +1578,7 @@ export default function App() {
             <Route path="/score-risco-esf"           element={<ScoreRiscoESF/>}/>
             <Route path="/okr"                       element={<PainelOKR/>}/>
             <Route path="/central-regulacao"         element={<CentralRegulacao/>}/>
-            <Route path="/monitor-epidemiologico"    element={<MonitorEpidemiologico/>}/>
+            <Route path="/monitor-epidemiologico"    element={<ComFvs id="monitor"><MonitorEpidemiologico/></ComFvs>}/>
             <Route path="/cronograma-repasses"       element={<CronogramaRepasses/>}/>
             <Route path="/repasses-aps-apui"          element={<RepassesApsApui/>}/>
             <Route path="/busca-ativa-ia"            element={<BuscaAtivaIA/>}/>

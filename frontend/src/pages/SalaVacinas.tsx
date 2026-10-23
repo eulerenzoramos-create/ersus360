@@ -6,7 +6,7 @@ import {
   LineChart, Line, CartesianGrid, ReferenceLine, Cell,
 } from "recharts";
 import { Syringe, Thermometer, AlertTriangle, CheckCircle, Package } from "lucide-react";
-import { apiGet } from "../lib/api";
+import { apiGet, comoDado, comoLista } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
@@ -63,7 +63,7 @@ function AbaDashboard({ dash }: { dash: any }) {
         </div>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18 }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Alertas de estoque</div>
-          {dash.estoque_critico.length > 0 ? (
+          {(dash.estoque_critico ?? []).length > 0 ? (
             <div>
               {dash.estoque_critico.map((v: string) => (
                 <div key={v} style={{ display: "flex", gap: 8, padding: "6px 0", borderBottom: "1px solid #fef2f2", alignItems: "center" }}>
@@ -223,10 +223,10 @@ type Aba = "dashboard"|"estoque"|"temperatura"|"cobertura"|"painel";
 
 export default function SalaVacinas() {
   const [aba, setAba] = useState<Aba>("dashboard");
-  const { data: dash }   = useQuery({ queryKey:["vac-dash"],   queryFn:()=>apiGet("/api/vacinas/dashboard") as Promise<any> });
-  const { data: estoque = []}= useQuery({ queryKey:["vac-est"],    queryFn:()=>apiGet("/api/vacinas/estoque") as Promise<any[]>, enabled:aba==="estoque" });
-  const { data: temp }   = useQuery({ queryKey:["vac-temp"],   queryFn:()=>apiGet("/api/vacinas/temperatura") as Promise<any>, enabled:aba==="temperatura" });
-  const { data: cob }    = useQuery({ queryKey:["vac-cob"],    queryFn:()=>apiGet("/api/vacinas/cobertura") as Promise<any>, enabled:aba==="cobertura" });
+  const { data: dash }   = useQuery({ queryKey:["vac-dash"],   queryFn:()=>apiGet("/api/vacinas/dashboard").then(comoDado) as Promise<any> });
+  const { data: estoque = []}= useQuery({ queryKey:["vac-est"],    queryFn:()=>apiGet("/api/vacinas/estoque").then(d => comoLista<any>(d)), enabled:aba==="estoque" });
+  const { data: temp }   = useQuery({ queryKey:["vac-temp"],   queryFn:()=>apiGet("/api/vacinas/temperatura").then(comoDado) as Promise<any>, enabled:aba==="temperatura" });
+  const { data: cob }    = useQuery({ queryKey:["vac-cob"],    queryFn:()=>apiGet("/api/vacinas/cobertura").then(comoDado) as Promise<any>, enabled:aba==="cobertura" });
 
   const ABAS: {id:Aba;label:string}[] = [
     {id:"dashboard",   label:"Dashboard"},

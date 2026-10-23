@@ -5,7 +5,7 @@ import {
   Activity, AlertTriangle, TrendingUp, TrendingDown, RefreshCw,
   ChevronDown, ChevronRight, Thermometer, Eye,
 } from "lucide-react";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGet, apiPost, comoDado, comoLista } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -166,19 +166,19 @@ export default function MonitorEpidemiologico() {
 
   const { data: resumo } = useQuery<ResumoEpid>({
     queryKey: ["epid-resumo"],
-    queryFn: () => apiGet("/api/monitor-epidem/resumo") as Promise<ResumoEpid>,
+    queryFn: () => apiGet("/api/monitor-epidem/resumo").then(comoDado) as Promise<ResumoEpid>,
     staleTime: 120_000,
   });
 
   const { data: alertas = [], isLoading: loadAl } = useQuery<AlertaEpid[]>({
     queryKey: ["epid-alertas"],
-    queryFn: () => apiGet("/api/monitor-epidem/alertas") as Promise<AlertaEpid[]>,
+    queryFn: () => apiGet("/api/monitor-epidem/alertas").then(d => comoLista<AlertaEpid>(d)),
     staleTime: 120_000,
   });
 
   const { data: agravos = [], isLoading: loadAg } = useQuery<AgravoDashboard[]>({
     queryKey: ["epid-agravos"],
-    queryFn: () => apiGet("/api/monitor-epidem/agravos") as Promise<AgravoDashboard[]>,
+    queryFn: () => apiGet("/api/monitor-epidem/agravos").then(d => comoLista<AgravoDashboard>(d)),
     staleTime: 120_000,
   });
 
