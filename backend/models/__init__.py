@@ -76,3 +76,6 @@ from models.investsus import (
     AtualizacaoManual, SnapshotInvestSUS,
 )
 from models.backup import BackupExecucao  # noqa: E402
+from models.diagnostico_situacional import (  # noqa: E402
+    DiagDiagnostico, DiagItem, DiagHistorico, DiagAnexo, DiagAcao,
+)

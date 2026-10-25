@@ -169,3 +169,11 @@ DOC-001 a DOC-027 — ver índice em `docs/README.md` (se existir) ou listar com
   identificado por hash. Cálculos em `services/pec_acs.py`; cobertura familiar = None até fórmula validada.
 - Não usar login GraphQL do PEC pelo servidor nem bookmarklet para ler o PEC; nada é gravado no PEC.
   ACS = CBO 515105 (515140 é ACE). Ver docs/DOC-PEC-ACS-INTEGRACAO.md.
+
+## Diagnóstico Situacional da Saúde Municipal (`/diagnostico-situacional`)
+- Catálogo de 40 itens em 9 áreas (A–I) em `services/diagnostico_catalogo.py`; coletores em `services/diagnostico_fontes.py`
+  (regras puras `regra_*` + coletores `coletar_*`), regras de negócio em `services/diagnostico.py`, PDF em `services/diagnostico_relatorio.py`.
+- Ausência de dado ou falha da fonte = "nao_verificado", nunca irregularidade. "critico" só por regra explícita (SIOPS < mínimo,
+  suspensão no e-Gestor, composição mínima no CNES). Divergência que pode ser coleta incompleta = `natureza` "hipotese".
+- Coleta automática nunca reescreve item declarado, validado ou contestado. Editar dado automático → item vira declarado e volta a "pendente".
+- 5W2H só para problema validado. Ver docs/DIAGNOSTICO-SITUACIONAL.md.
