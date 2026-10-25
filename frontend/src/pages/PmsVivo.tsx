@@ -239,7 +239,8 @@ function DetalheAcao({ id, ref_, onFechar }: { id: number; ref_: Ref; onFechar: 
         <div><b>Resultado:</b> {a.resultado_alcancado ?? "—"}</div>
       </div>
       <div style={{ fontSize: 11, color: "#64748b", marginTop: 6, display: "flex", gap: 6 }}><Info size={13} />Esta é a execução física da ação. O cumprimento da meta e o desempenho do indicador são acompanhados no monitoramento das metas.</div>
-      {a.pode_atualizar && !pendente && a.situacao !== "cancelada" && <InformarExecucao acao={a} ref_={ref_} />}
+      {a.pode_atualizar && !pendente && !["cancelada", "nao_executada", "parcial", "concluida"].includes(a.situacao) && <InformarExecucao acao={a} ref_={ref_} />}
+      {a.pode_atualizar && ["nao_executada", "parcial"].includes(a.situacao) && <Reprogramar acao={a} />}
       <h4 style={{ margin: "12px 0 4px", fontSize: 13, color: "#1f2937" }}>Atualizações</h4>
       {a.atualizacoes.length === 0 && <div style={{ fontSize: 12, color: "#64748b" }}>Nenhuma.</div>}
       {a.atualizacoes.map(u => <div key={u.id} style={{ fontSize: 12, padding: "4px 0", borderTop: "1px solid #f1f1f1" }}>
@@ -623,6 +624,238 @@ function Fca({ planoId, ano, ref_ }: { planoId: number; ano: number; ref_: Ref }
     </>);
 }
 
+// ══ Entrega 3 — reprogramação, RDQA/RAG, reuniões, Diagnóstico, relatórios ══
+interface Reprog { id: number; acao_id: number; ano_origem: number; ano_destino: number; situacao_origem: string; motivo: string;
+  continua_necessaria: boolean; novo_prazo: string | null; nova_quantidade: number | null; ajuste_meta: string | null; recursos: string | null;
+  responsavel_nome: string | null; justificativa_tecnica: string; situacao: string; situacao_rotulo: string; proposto_por: string;
+  decidido_por: string | null; parecer: string | null; acao_destino_id: number | null; acao: { id: number; codigo: string; descricao: string; situacao_rotulo: string } }
+
+function Reprogramar({ acao }: { acao: Acao }) {
+  const qc = useQueryClient();
+  const resp = useQuery({ queryKey: ["pms", "resp"], queryFn: () => api.get("/api/pms-vivo/responsaveis").then(r => r.data as { id: number; nome: string }[]) });
+  const [f, setF] = useState({ motivo: "", continua_necessaria: true, novo_prazo: "", nova_quantidade: "", ajuste_meta: "", recursos: "", responsavel_usuario_id: "", justificativa_tecnica: "" });
+  const enviar = useMutation({ mutationFn: () => api.post(`/api/pms-vivo/acoes/${acao.id}/reprogramar`, {
+    ...f, novo_prazo: f.novo_prazo || null, nova_quantidade: f.nova_quantidade === "" ? null : Number(f.nova_quantidade),
+    responsavel_usuario_id: f.responsavel_usuario_id ? Number(f.responsavel_usuario_id) : null, ajuste_meta: f.ajuste_meta || null, recursos: f.recursos || null }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
+  const t = (k: "motivo" | "ajuste_meta" | "recursos" | "justificativa_tecnica", r: string) => <label style={lbl}>{r}<textarea style={{ ...inp, minHeight: 44 }} value={f[k]} onChange={e => setF({ ...f, [k]: e.target.value })} /></label>;
+  return (
+    <div style={{ ...card, background: "#fffbeb", marginTop: 8 }}>
+      <b style={{ fontSize: 13 }}>Reprogramar para o exercício seguinte</b>
+      <div style={{ fontSize: 11, color: "#92400e", marginBottom: 6 }}>A situação deste ano fica preservada. A proposta precisa ser aprovada e só então entra na PAS seguinte (em rascunho). Nenhum recurso é transferido automaticamente.</div>
+      {enviar.isSuccess ? <div style={{ fontSize: 12, color: "#059669" }}>Proposta enviada para decisão.</div> : <>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
+          {t("motivo", "Motivo *")}
+          <label style={lbl}>A ação continua necessária?<select style={inp} value={f.continua_necessaria ? "1" : "0"} onChange={e => setF({ ...f, continua_necessaria: e.target.value === "1" })}><option value="1">Sim</option><option value="0">Não</option></select></label>
+          <label style={lbl}>Novo prazo<input type="date" style={inp} value={f.novo_prazo} onChange={e => setF({ ...f, novo_prazo: e.target.value })} /></label>
+          <label style={lbl}>Nova quantidade<input type="number" style={inp} value={f.nova_quantidade} onChange={e => setF({ ...f, nova_quantidade: e.target.value })} /></label>
+          {t("ajuste_meta", "Ajuste de meta proposto")}{t("recursos", "Recursos necessários")}
+          <label style={lbl}>Responsável<select style={inp} value={f.responsavel_usuario_id} onChange={e => setF({ ...f, responsavel_usuario_id: e.target.value })}><option value="">Mantém o atual</option>{(resp.data ?? []).map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}</select></label>
+          {t("justificativa_tecnica", "Justificativa técnica *")}
+        </div>
+        <button style={btn("#d97706")} disabled={f.motivo.length < 5 || f.justificativa_tecnica.length < 5} onClick={() => enviar.mutate()}>Encaminhar para aprovação</button>
+        <Erro e={enviar.error} />
+      </>}
+    </div>);
+}
+
+function Reprogramacoes({ planoId, ref_ }: { planoId: number; ref_: Ref }) {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["pms", "reprog", planoId], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/reprogramacoes`).then(r => r.data as Reprog[]) });
+  const pass = useQuery({ queryKey: ["pms", "pas", planoId], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/pas`).then(r => r.data as Pas[]) });
+  const [parecer, setParecer] = useState<Record<number, string>>({});
+  const [codigo, setCodigo] = useState<Record<number, string>>({});
+  const decidir = useMutation({ mutationFn: ({ id, decisao }: { id: number; decisao: string }) => api.post(`/api/pms-vivo/reprogramacoes/${id}/decidir`, { decisao, parecer: parecer[id] || null }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
+  const incluir = useMutation({ mutationFn: ({ id, pas_id }: { id: number; pas_id: number }) => api.post(`/api/pms-vivo/reprogramacoes/${id}/incluir`, { pas_id, codigo: codigo[id] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
+  return (
+    <div style={card}><h3 style={h3}>Reprogramar para o Exercício Seguinte</h3>
+      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Proposta feita pelo responsável na ação não executada ou parcial; decisão do Secretário ou do Planejamento (outra pessoa); depois de aprovada, inclusão na PAS do ano seguinte ainda em rascunho.</div>
+      <Erro e={decidir.error} /><Erro e={incluir.error} />
+      {(q.data ?? []).length === 0 && <div style={{ fontSize: 13, color: "#64748b" }}>Nenhuma reprogramação.</div>}
+      {(q.data ?? []).map(r => {
+        const destino = (pass.data ?? []).find(p => p.exercicio === r.ano_destino && p.situacao === "rascunho");
+        return (
+          <div key={r.id} style={{ fontSize: 13, padding: "8px 0", borderTop: "1px solid #f1f1f1" }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "baseline" }}><Selo t={r.situacao_rotulo} cor={r.situacao === "rejeitada" ? "#dc2626" : r.situacao === "proposta" ? "#d97706" : "#059669"} />
+              <b>{r.acao.codigo}</b> {r.acao.descricao} · {r.ano_origem} ({r.acao.situacao_rotulo}) → {r.ano_destino}</div>
+            <div style={{ fontSize: 12, color: "#475569" }}>Motivo: {r.motivo} · Continua necessária: {r.continua_necessaria ? "sim" : "não"} · Novo prazo: {dataBr(r.novo_prazo)} · Nova qtd.: {num(r.nova_quantidade)}
+              {r.ajuste_meta && <> · Ajuste de meta: {r.ajuste_meta}</>}{r.recursos && <> · Recursos: {r.recursos}</>} · Justificativa: {r.justificativa_tecnica} · proposta por {r.proposto_por}
+              {r.decidido_por && <> · decidida por {r.decidido_por}{r.parecer && ` (${r.parecer})`}</>}</div>
+            {r.situacao === "proposta" && ref_.pode_planejar && <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+              <input style={{ ...inp, maxWidth: 300 }} placeholder="Parecer (obrigatório para rejeitar)" value={parecer[r.id] ?? ""} onChange={e => setParecer({ ...parecer, [r.id]: e.target.value })} />
+              <button style={btn("#059669")} onClick={() => decidir.mutate({ id: r.id, decisao: "aprovar" })}>Aprovar</button>
+              <button style={btn("#b91c1c")} onClick={() => decidir.mutate({ id: r.id, decisao: "rejeitar" })}>Rejeitar</button></div>}
+            {r.situacao === "aprovada" && ref_.pode_planejar && (destino ? <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+              <input style={{ ...inp, maxWidth: 160 }} placeholder="Código na PAS nova" value={codigo[r.id] ?? ""} onChange={e => setCodigo({ ...codigo, [r.id]: e.target.value })} />
+              <button style={btn()} disabled={!codigo[r.id]} onClick={() => incluir.mutate({ id: r.id, pas_id: destino.id })}>Incluir na PAS {r.ano_destino}</button></div>
+              : <div style={{ fontSize: 12, color: "#92400e" }}>Crie a PAS {r.ano_destino} (rascunho) na aba "PAS e ações" para incluir.</div>)}
+          </div>);
+      })}
+    </div>);
+}
+
+function RdqaRag({ planoId, ano }: { planoId: number; ano: number }) {
+  const [modo, setModo] = useState<"q1" | "q2" | "q3" | "anual">("q1");
+  const q = useQuery({ queryKey: ["pms", "rdqa", planoId, ano, modo], queryFn: () => (modo === "anual"
+    ? api.get(`/api/pms-vivo/planos/${planoId}/avaliacao-anual`, { params: { ano } })
+    : api.get(`/api/pms-vivo/planos/${planoId}/quadrimestre`, { params: { ano, q: Number(modo[1]) } })).then(r => r.data) });
+  const d = q.data;
+  const tipo = modo === "anual" ? "anual" : "quadrimestral";
+  const params = modo === "anual" ? `ano=${ano}` : `ano=${ano}&quadrimestre=${modo[1]}`;
+  return (
+    <>
+      <div style={{ ...card, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {(["q1", "q2", "q3", "anual"] as const).map(m => <button key={m} onClick={() => setModo(m)} style={{ ...btn(modo === m ? "#1d4ed8" : "#e2e8f0"), color: modo === m ? "#fff" : "#1f2937" }}>
+          {m === "anual" ? `Avaliação anual ${ano} (RAG)` : `${m[1]}º quadrimestre (RDQA)`}</button>)}
+        <button style={btn("#475569")} onClick={() => baixar(`/api/pms-vivo/planos/${planoId}/relatorios/${tipo}?formato=pdf&${params}`, `pms_${tipo}_${ano}.pdf`)}><Download size={14} />PDF</button>
+        <button style={btn("#475569")} onClick={() => baixar(`/api/pms-vivo/planos/${planoId}/relatorios/${tipo}?formato=xlsx&${params}`, `pms_${tipo}_${ano}.xlsx`)}><Download size={14} />Excel</button>
+      </div>
+      {d && <div style={card}>
+        <div style={{ fontSize: 12, color: "#92400e", marginBottom: 8 }}>{d.aviso}</div>
+        {modo === "anual" ? <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginBottom: 10 }}>
+            <Kpi t="Ações previstas" v={d.acoes.previstas} cor="#1d4ed8" /><Kpi t="Executadas" v={d.acoes.executadas} cor="#059669" />
+            <Kpi t="Parcialmente" v={d.acoes.parcialmente_executadas} cor="#d97706" /><Kpi t="Não executadas" v={d.acoes.nao_executadas} cor="#dc2626" />
+            <Kpi t="Metas alcançadas" v={d.metas.alcancadas} cor="#059669" /><Kpi t="Metas não alcançadas" v={d.metas.nao_alcancadas} cor="#dc2626" />
+          </div>
+          <h4 style={{ margin: "8px 0 4px", fontSize: 13, color: "#1f2937" }}>Principais resultados</h4>
+          {d.principais_resultados.length ? d.principais_resultados.map((x: { acao: string; resultado: string }) => <div key={x.acao} style={{ fontSize: 12 }}><b>{x.acao}</b>: {x.resultado}</div>) : <div style={{ fontSize: 12, color: "#64748b" }}>Nenhum.</div>}
+          <h4 style={{ margin: "8px 0 4px", fontSize: 13, color: "#1f2937" }}>Justificativas</h4>
+          {d.justificativas.length ? d.justificativas.map((x: { acao: string; situacao: string; justificativa: string }) => <div key={x.acao} style={{ fontSize: 12 }}><b>{x.acao}</b> ({x.situacao}): {x.justificativa ?? "—"}</div>) : <div style={{ fontSize: 12, color: "#64748b" }}>Nenhuma.</div>}
+        </> : <>
+          <div style={{ fontSize: 13, marginBottom: 6 }}>Período: {dataBr(d.periodo.inicio)} a {dataBr(d.periodo.fim)} · ações realizadas: <b>{d.acoes_realizadas.length}</b> · pendentes: <b>{d.acoes_pendentes.length}</b> · metas alcançadas: <b>{d.metas_alcancadas.length}</b></div>
+          {d.acoes_realizadas.map((a: Acao) => <div key={a.id} style={{ fontSize: 12 }}>✔ <b>{a.codigo}</b> {a.descricao} — {a.resultado_alcancado ?? "—"}</div>)}
+          {d.acoes_pendentes.map((a: Acao) => <div key={a.id} style={{ fontSize: 12, color: "#b91c1c" }}>• <b>{a.codigo}</b> {a.descricao} — prazo {dataBr(a.prazo)}</div>)}
+        </>}
+        <h4 style={{ margin: "8px 0 4px", fontSize: 13, color: "#1f2937" }}>Dificuldades (FCA)</h4>
+        {d.dificuldades.length ? d.dificuldades.map((x: { fato: string; causa: string; causa_validacao: string }, i: number) => <div key={i} style={{ fontSize: 12 }}>{x.fato} — causa ({x.causa_validacao === "confirmada" ? "validada" : "hipótese"}): {x.causa}</div>) : <div style={{ fontSize: 12, color: "#64748b" }}>Nenhuma registrada.</div>}
+        <h4 style={{ margin: "8px 0 4px", fontSize: 13, color: "#1f2937" }}>Recomendações</h4>
+        {d.recomendacoes.length ? d.recomendacoes.map((x: string, i: number) => <div key={i} style={{ fontSize: 12 }}>• {x}</div>) : <div style={{ fontSize: 12, color: "#64748b" }}>Nenhuma.</div>}
+      </div>}
+    </>);
+}
+
+interface Reuniao { id: number; data: string; titulo: string; participantes: string | null; ata: string | null; situacao: string;
+  pauta: { metas_em_risco: { codigo: string; descricao: string }[]; acoes_atrasadas: { codigo: string; descricao: string; prazo: string | null; responsavel: string | null }[];
+    pendencias_por_responsavel: { responsavel: string; itens: string[] }[]; problemas_para_decisao: string[];
+    reprogramacoes_propostas: { acao: string; motivo: string; ano_destino: number }[]; providencias_anteriores: { reuniao: string; decisao: string; responsavel: string | null; prazo: string | null }[] };
+  decisoes: { id: number; descricao: string; responsavel: string | null; prazo: string | null; situacao: string; observacao: string | null; atrasada: boolean }[] }
+
+function Reunioes({ planoId, ano, ref_ }: { planoId: number; ano: number; ref_: Ref }) {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["pms", "reunioes", planoId], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/reunioes`).then(r => r.data as Reuniao[]) });
+  const [nova, setNova] = useState({ data: new Date().toISOString().slice(0, 10), titulo: "" });
+  const criar = useMutation({ mutationFn: () => api.post(`/api/pms-vivo/planos/${planoId}/reunioes`, { ...nova, ano }), onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
+  const [aberta, setAberta] = useState<number | null>(null);
+  const [ata, setAta] = useState({ participantes: "", ata: "" });
+  const [dec, setDec] = useState({ descricao: "", responsavel: "", prazo: "" });
+  const [obs, setObs] = useState<Record<number, string>>({});
+  const salvar = useMutation({ mutationFn: (situacao?: string) => api.put(`/api/pms-vivo/reunioes/${aberta}`, { ...ata, ...(situacao ? { situacao } : {}) }), onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
+  const decidir = useMutation({ mutationFn: () => api.post(`/api/pms-vivo/reunioes/${aberta}/decisoes`, { descricao: dec.descricao, responsavel: dec.responsavel || null, prazo: dec.prazo || null }),
+    onSuccess: () => { setDec({ descricao: "", responsavel: "", prazo: "" }); qc.invalidateQueries({ queryKey: ["pms"] }); } });
+  const cumprir = useMutation({ mutationFn: ({ id, situacao }: { id: number; situacao: string }) => api.put(`/api/pms-vivo/decisoes/${id}`, { situacao, observacao: obs[id] || null }), onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
+  const r = q.data?.find(x => x.id === aberta);
+  useEffect(() => { if (r) setAta({ participantes: r.participantes ?? "", ata: r.ata ?? "" }); }, [aberta]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lista = (t: string, itens: React.ReactNode[]) => <><h4 style={{ margin: "8px 0 4px", fontSize: 13, color: "#1f2937" }}>{t}</h4>{itens.length ? itens : <div style={{ fontSize: 12, color: "#64748b" }}>Nenhum.</div>}</>;
+  return (
+    <>
+      {ref_.pode_validar && <div style={{ ...card, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "end" }}>
+        <label style={{ ...lbl, marginBottom: 0 }}>Data<input type="date" style={inp} value={nova.data} onChange={e => setNova({ ...nova, data: e.target.value })} /></label>
+        <label style={{ ...lbl, marginBottom: 0, flex: 1 }}>Título<input style={inp} value={nova.titulo} placeholder="Reunião mensal de monitoramento do PMS" onChange={e => setNova({ ...nova, titulo: e.target.value })} /></label>
+        <button style={btn()} disabled={nova.titulo.length < 3} onClick={() => criar.mutate()}>Gerar pauta e criar reunião</button><Erro e={criar.error} />
+      </div>}
+      <div style={card}><h3 style={h3}>Reuniões de monitoramento</h3>
+        {(q.data ?? []).length === 0 && <div style={{ fontSize: 13, color: "#64748b" }}>Nenhuma reunião.</div>}
+        {(q.data ?? []).map(x => <div key={x.id} onClick={() => setAberta(x.id)} style={{ fontSize: 13, padding: "6px 0", borderTop: "1px solid #f1f1f1", cursor: "pointer", fontWeight: aberta === x.id ? 700 : 400 }}>
+          {dataBr(x.data)} — {x.titulo} · {x.situacao} · {x.decisoes.length} decisão(ões){x.decisoes.some(d => d.atrasada) && <span style={{ color: "#dc2626" }}> · decisão atrasada</span>}</div>)}
+      </div>
+      {r && <div style={card}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}><b style={{ fontSize: 15 }}>{dataBr(r.data)} — {r.titulo}</b>
+          <button style={btn("#475569")} onClick={() => baixar(`/api/pms-vivo/reunioes/${r.id}/relatorio.pdf`, `reuniao_${r.data}.pdf`)}><Download size={14} />Pauta e registro (PDF)</button></div>
+        {lista("Metas em risco", r.pauta.metas_em_risco.map(m => <div key={m.codigo} style={{ fontSize: 12 }}>{m.codigo} — {m.descricao}</div>))}
+        {lista("Ações atrasadas", r.pauta.acoes_atrasadas.map(a => <div key={a.codigo} style={{ fontSize: 12 }}>{a.codigo} — {a.descricao} · {dataBr(a.prazo)} · {a.responsavel ?? "—"}</div>))}
+        {lista("Pendências por responsável", r.pauta.pendencias_por_responsavel.map(p => <div key={p.responsavel} style={{ fontSize: 12 }}><b>{p.responsavel}</b>: {p.itens.join("; ")}</div>))}
+        {lista("Problemas que exigem decisão", r.pauta.problemas_para_decisao.map((t, i) => <div key={i} style={{ fontSize: 12 }}>{t}</div>))}
+        {lista("Reprogramações propostas", r.pauta.reprogramacoes_propostas.map(p => <div key={p.acao} style={{ fontSize: 12 }}>{p.acao} → {p.ano_destino}: {p.motivo}</div>))}
+        {lista("Providências da reunião anterior", r.pauta.providencias_anteriores.map((p, i) => <div key={i} style={{ fontSize: 12 }}>{p.reuniao}: {p.decisao} ({p.responsavel ?? "—"}, {dataBr(p.prazo)})</div>))}
+        {ref_.pode_validar && <>
+          <h4 style={{ margin: "12px 0 4px", fontSize: 13, color: "#1f2937" }}>Registro</h4>
+          <label style={lbl}>Participantes<input style={inp} value={ata.participantes} onChange={e => setAta({ ...ata, participantes: e.target.value })} /></label>
+          <label style={lbl}>Ata<textarea style={{ ...inp, minHeight: 70 }} value={ata.ata} onChange={e => setAta({ ...ata, ata: e.target.value })} /></label>
+          <div style={{ display: "flex", gap: 6 }}><button style={btn()} onClick={() => salvar.mutate(undefined)}>Salvar</button><button style={btn("#059669")} onClick={() => salvar.mutate("realizada")}>Salvar como realizada</button></div>
+        </>}
+        <h4 style={{ margin: "12px 0 4px", fontSize: 13, color: "#1f2937" }}>Decisões</h4><Erro e={cumprir.error} />
+        {r.decisoes.map(d => <div key={d.id} style={{ fontSize: 12, padding: "4px 0", borderTop: "1px solid #f1f1f1" }}>
+          {d.descricao} · {d.responsavel ?? "—"} · prazo {dataBr(d.prazo)} · <b style={{ color: d.atrasada ? "#dc2626" : undefined }}>{d.situacao}{d.atrasada && " (atrasada)"}</b>{d.observacao && ` · ${d.observacao}`}
+          {ref_.pode_validar && d.situacao === "pendente" && <div style={{ display: "flex", gap: 6, marginTop: 3 }}>
+            <input style={{ ...inp, maxWidth: 300 }} placeholder="Como foi cumprida / por que cancelar" value={obs[d.id] ?? ""} onChange={e => setObs({ ...obs, [d.id]: e.target.value })} />
+            <button style={{ ...btn("#059669"), padding: "2px 8px", fontSize: 11 }} onClick={() => cumprir.mutate({ id: d.id, situacao: "cumprida" })}>Cumprida</button>
+            <button style={{ ...btn("#94a3b8"), padding: "2px 8px", fontSize: 11 }} onClick={() => cumprir.mutate({ id: d.id, situacao: "cancelada" })}>Cancelar</button></div>}
+        </div>)}
+        {ref_.pode_validar && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+          <input style={{ ...inp, flex: 1, minWidth: 220 }} placeholder="Nova decisão" value={dec.descricao} onChange={e => setDec({ ...dec, descricao: e.target.value })} />
+          <input style={{ ...inp, width: 180 }} placeholder="Responsável" value={dec.responsavel} onChange={e => setDec({ ...dec, responsavel: e.target.value })} />
+          <input type="date" style={{ ...inp, width: 150 }} value={dec.prazo} onChange={e => setDec({ ...dec, prazo: e.target.value })} />
+          <button style={btn()} disabled={dec.descricao.length < 3} onClick={() => decidir.mutate()}>Registrar decisão</button></div>}
+      </div>}
+    </>);
+}
+
+function CruzamentoDiagnostico({ planoId, ano, ref_ }: { planoId: number; ano: number; ref_: Ref }) {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["pms", "diag", planoId, ano], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/diagnostico`, { params: { ano } }).then(r => r.data) });
+  const mon = useQuery({ queryKey: ["pms", "mon", planoId, ano], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/monitoramento`, { params: { ano } }).then(r => r.data as { metas: MetaMon[] }) });
+  const [sel, setSel] = useState<Record<number, string>>({});
+  const vincular = useMutation({ mutationFn: (item: number) => api.post(`/api/pms-vivo/planos/${planoId}/diagnostico/vinculos`, { diag_item_id: item, meta_id: Number(sel[item]) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
+  const remover = useMutation({ mutationFn: (id: number) => api.delete(`/api/pms-vivo/diagnostico/vinculos/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
+  const d = q.data;
+  if (!d) return null;
+  return (
+    <>
+      <div style={card}><h3 style={h3}>Diagnóstico Situacional × PMS/PAS</h3>
+        {!d.diagnostico ? <div style={{ fontSize: 13 }}>{d.recomendacoes[0]}</div> : <>
+          <div style={{ fontSize: 13, marginBottom: 8 }}>Diagnóstico: <b>{d.diagnostico.rotulo}</b> · problemas contemplados no planejamento: <b>{d.contemplados}</b> · sem ação correspondente: <b style={{ color: d.sem_acao ? "#dc2626" : undefined }}>{d.sem_acao}</b></div>
+          <Erro e={vincular.error} />
+          {d.problemas.map((p: { item_id: number; codigo: string; titulo: string; classificacao: string; validacao: string; contemplado: boolean; vinculos: { id: number; meta: string | null; acao: string | null }[] }) => (
+            <div key={p.item_id} style={{ fontSize: 13, padding: "6px 0", borderTop: "1px solid #f1f1f1" }}>
+              <Selo t={p.classificacao === "critico" ? "Crítico" : "Com pendência"} cor={p.classificacao === "critico" ? "#dc2626" : "#d97706"} /> <b>{p.codigo}</b> {p.titulo}
+              {p.validacao !== "confirmado" && <span style={{ color: "#92400e", fontSize: 11 }}> · ainda não validado</span>}
+              <div style={{ fontSize: 12, color: p.contemplado ? "#059669" : "#b91c1c" }}>{p.contemplado ? "Contemplado: " : "Sem meta ou ação correspondente"}
+                {p.vinculos.map(v => <span key={v.id}>{v.meta ? `meta ${v.meta}` : `ação ${v.acao ?? "?"}`}{ref_.pode_planejar && <a href="#" onClick={e => { e.preventDefault(); remover.mutate(v.id); }}> (remover)</a>} </span>)}</div>
+              {ref_.pode_planejar && <div style={{ display: "flex", gap: 6, marginTop: 3 }}>
+                <select style={{ ...inp, maxWidth: 360 }} value={sel[p.item_id] ?? ""} onChange={e => setSel({ ...sel, [p.item_id]: e.target.value })}><option value="">Vincular a uma meta…</option>
+                  {(mon.data?.metas ?? []).map(m => <option key={m.id} value={m.id}>{m.codigo} — {m.descricao.slice(0, 60)}</option>)}</select>
+                <button style={{ ...btn(), padding: "2px 10px", fontSize: 12 }} disabled={!sel[p.item_id]} onClick={() => vincular.mutate(p.item_id)}>Vincular</button></div>}
+            </div>))}
+        </>}
+      </div>
+      {d.diagnostico && <div style={card}><h3 style={h3}>Recomendações para avaliação da gestão</h3>
+        {d.recomendacoes.length ? d.recomendacoes.map((x: string, i: number) => <div key={i} style={{ fontSize: 12 }}>• {x}</div>) : <div style={{ fontSize: 12, color: "#64748b" }}>Nenhuma.</div>}
+      </div>}
+    </>);
+}
+
+const RELATORIOS: [string, string][] = [["execucao_pas", "Execução da PAS"], ["metas_pms", "Metas do PMS"], ["pendencias", "Pendências"],
+  ["por_responsavel", "Por responsável"], ["quadrimestral", "Quadrimestral (RDQA)"], ["anual", "Anual (RAG)"], ["reprogramacoes", "Reprogramações"],
+  ["plano_acao", "Plano de ação 5W2H"]];
+function Relatorios({ planoId, ano }: { planoId: number; ano: number }) {
+  const [quad, setQuad] = useState("1");
+  return (
+    <div style={card}><h3 style={h3}>Relatórios e exportações ({ano})</h3>
+      <label style={{ fontSize: 12, color: "#475569" }}>Quadrimestre (para o relatório quadrimestral) <select style={{ ...inp, width: 80, display: "inline-block" }} value={quad} onChange={e => setQuad(e.target.value)}><option>1</option><option>2</option><option>3</option></select></label>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 8, marginTop: 10 }}>
+        {RELATORIOS.map(([k, t]) => <div key={k} style={{ ...card, marginBottom: 0, padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 13 }}>{t}</span><span style={{ display: "flex", gap: 4 }}>
+            {(["pdf", "xlsx"] as const).map(f => <button key={f} style={{ ...btn("#475569"), padding: "3px 8px", fontSize: 11 }}
+              onClick={() => baixar(`/api/pms-vivo/planos/${planoId}/relatorios/${k}?formato=${f}&ano=${ano}&quadrimestre=${quad}`, `pms_${k}_${ano}.${f}`)}>{f === "pdf" ? "PDF" : "Excel"}</button>)}</span></div>)}
+      </div>
+      <div style={{ fontSize: 12, color: "#64748b", marginTop: 8 }}>A pauta e o registro de cada reunião são baixados na aba "Reuniões". Relatórios do RDQA e do RAG são de apoio e não substituem os instrumentos oficiais do DGMP/DigiSUS.</div>
+    </div>);
+}
+
 // ── Página ───────────────────────────────────────────────────────────────────
 export default function PmsVivo() {
   const auth = useAuth() as unknown as { municipio: string; municipio_uf?: string };
@@ -630,14 +863,15 @@ export default function PmsVivo() {
   const planos = useQuery({ queryKey: ["pms", "planos"], queryFn: () => api.get("/api/pms-vivo/planos").then(r => r.data as Plano[]) });
   const [planoId, setPlanoId] = useState<number | null>(null);
   useEffect(() => { if (!planoId && planos.data?.length) setPlanoId((planos.data.find(p => p.situacao === "aprovado") ?? planos.data[0]).id); }, [planos.data]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [aba, setAba] = useState<"painel" | "metas" | "kanban" | "cronograma" | "alertas" | "fca" | "pms" | "pas" | "minhas" | "validacoes">("minhas");
+  const [aba, setAba] = useState<"painel" | "metas" | "kanban" | "cronograma" | "alertas" | "fca" | "reprogramacao" | "rdqa" | "reunioes" | "diagnostico" | "relatorios" | "pms" | "pas" | "minhas" | "validacoes">("minhas");
   const [ano, setAno] = useState(ANO_ATUAL);
   const plano = planos.data?.find(p => p.id === planoId);
   useEffect(() => { if (plano && (ano < plano.vigencia_inicio || ano > plano.vigencia_fim)) setAno(plano.vigencia_inicio); }, [plano]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!ref_.data) return <div style={{ padding: 20 }}>Carregando…</div>;
   const abas = [["minhas", "Minhas Ações"], ["painel", "Painel do gestor"], ["metas", "Metas"], ["kanban", "Kanban"], ["cronograma", "Cronograma"],
-    ["alertas", "Alertas"], ["fca", "FCA"], ["pms", "Plano (PMS)"], ["pas", "PAS e ações"], ["validacoes", "Validações"]] as const;
-  const precisaPlano = ["painel", "metas", "kanban", "cronograma", "alertas", "fca"].includes(aba);
+    ["alertas", "Alertas"], ["fca", "FCA"], ["reprogramacao", "Reprogramação"], ["rdqa", "RDQA / RAG"], ["reunioes", "Reuniões"],
+    ["diagnostico", "Diagnóstico"], ["relatorios", "Relatórios"], ["pms", "Plano (PMS)"], ["pas", "PAS e ações"], ["validacoes", "Validações"]] as const;
+  const precisaPlano = ["painel", "metas", "kanban", "cronograma", "alertas", "fca", "reprogramacao", "rdqa", "reunioes", "diagnostico", "relatorios"].includes(aba);
   return (
     <div style={{ padding: 20, maxWidth: 1300, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
@@ -661,6 +895,11 @@ export default function PmsVivo() {
         {aba === "cronograma" && <Cronograma planoId={planoId} ano={ano} />}
         {aba === "alertas" && <Alertas planoId={planoId} ano={ano} />}
         {aba === "fca" && <Fca planoId={planoId} ano={ano} ref_={ref_.data} />}
+        {aba === "reprogramacao" && <Reprogramacoes planoId={planoId} ref_={ref_.data} />}
+        {aba === "rdqa" && <RdqaRag planoId={planoId} ano={ano} />}
+        {aba === "reunioes" && <Reunioes planoId={planoId} ano={ano} ref_={ref_.data} />}
+        {aba === "diagnostico" && <CruzamentoDiagnostico planoId={planoId} ano={ano} ref_={ref_.data} />}
+        {aba === "relatorios" && <Relatorios planoId={planoId} ano={ano} />}
       </>}
       {aba === "pms" && <AbaPms ref_={ref_.data} planoId={planoId} setPlanoId={setPlanoId} />}
       {aba === "pas" && <AbaPas ref_={ref_.data} planoId={planoId} />}

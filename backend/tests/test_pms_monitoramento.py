@@ -117,7 +117,7 @@ async def test_monitoramento_painel_kanban_alertas_e_fca(ambiente, monkeypatch):
 
     # painel, Kanban, cronograma, alertas
     p = (await c.get(f"{URL}/planos/{pid}/painel?ano=2026", headers=_h(tok))).json()
-    assert p["metas"]["total"] == 2 and p["acoes"]["atrasadas"] == 1 and p["acoes"]["reprogramacao_proposta"] is None
+    assert p["metas"]["total"] == 2 and p["acoes"]["atrasadas"] == 1 and p["acoes"]["reprogramacao_proposta"] == 0
     assert p["responsaveis_pendentes"][0]["responsavel"] == "executor"
     assert (await c.get(f"{URL}/planos/{pid}/painel?ano=2026&setor=Outro", headers=_h(tok))).json()["acoes"]["total"] == 0
     kb = {col["id"]: col for col in (await c.get(f"{URL}/planos/{pid}/kanban?ano=2026", headers=_h(tok))).json()["colunas"]}

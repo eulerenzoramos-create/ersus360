@@ -39,6 +39,15 @@ Atualizar a execução: o responsável indicado na ação ou quem valida. Ver se
   GET    /planos/{id}/cronograma?ano=&filtros ações por mês do prazo
   GET    /planos/{id}/alertas?ano=            alertas e cobranças
   GET    /planos/{id}/fca · POST · PUT /fca/{id} · POST /fca/{id}/validar-causa   análise Fato–Causa–Ação
+  — entrega 3 —
+  GET    /planos/{id}/reprogramacoes · POST /acoes/{id}/reprogramar
+  POST   /reprogramacoes/{id}/decidir · /reprogramacoes/{id}/incluir   aprovação e inclusão na PAS seguinte
+  GET    /planos/{id}/quadrimestre?ano=&q=    consolidação de apoio ao RDQA
+  GET    /planos/{id}/avaliacao-anual?ano=    avaliação de apoio ao RAG
+  GET    /planos/{id}/reunioes · POST · GET/PUT /reunioes/{id} · POST /reunioes/{id}/decisoes · PUT /decisoes/{id}
+  GET    /reunioes/{id}/relatorio.pdf         pauta e registro
+  GET    /planos/{id}/diagnostico · POST /planos/{id}/diagnostico/vinculos · DELETE /diagnostico/vinculos/{id}
+  GET    /planos/{id}/relatorios/{tipo}?formato=pdf|xlsx   relatórios (ver services/pms_relatorios.TIPOS)
 """
 from __future__ import annotations
 
@@ -54,11 +63,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
-from models.pms_vivo import (PmsAcao, PmsAcaoMeta, PmsAnexo, PmsAtualizacao, PmsDiretriz, PmsFca, PmsHistorico,
-                             PmsMeta, PmsMetaAnual, PmsObjetivo, PmsPas, PmsPlano)
+from models.pms_vivo import (PmsAcao, PmsAcaoMeta, PmsAnexo, PmsAtualizacao, PmsDecisao, PmsDiagVinculo, PmsDiretriz,
+                             PmsFca, PmsHistorico, PmsMeta, PmsMetaAnual, PmsObjetivo, PmsPas, PmsPlano,
+                             PmsReprogramacao, PmsReuniao)
 from models.usuario import Usuario
 from routers.auth import UserOut, ip_de
+from services import pms_ciclo as ciclo
 from services import pms_monitoramento as mon
+from services import pms_relatorios as rel
 from services import pms_vivo as svc
 from tenancy.arquivos import caminho_seguro, pasta_municipio
 from tenancy.auditoria import registrar_auditoria
@@ -996,7 +1008,13 @@ async def _dados_painel(db, current, plano_id, ano, f: dict):
     pend = (await db.execute(select(PmsAtualizacao).where(
         PmsAtualizacao.municipio_id == current.municipio_id, PmsAtualizacao.status == "pendente",
         PmsAtualizacao.acao_id.in_([a["id"] for a in acoes] or [0])))).scalars().all()
-    return p, ano, metas, acoes, mon.alertas(acoes, metas, pend)
+    als = mon.alertas(acoes, metas, pend)
+    for r in await ciclo.reprogramacoes(db, p, ano):
+        if r["situacao"] == "proposta":
+            als.append({"severidade": "atencao", "tipo": "reprogramacao_pendente", "acao_id": r["acao_id"], "meta_id": None,
+                        "responsavel": None, "texto": f"Reprogramação da ação {r['acao']['codigo']} para {r['ano_destino']} "
+                                                      "aguardando decisão."})
+    return p, ano, metas, acoes, als
 
 
 @router.get("/planos/{plano_id}/painel")
@@ -1005,10 +1023,12 @@ async def painel(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = N
                  diretriz_id: Optional[int] = None, objetivo_id: Optional[int] = None, db: AsyncSession = Depends(get_db)):
     p, ano, metas, acoes, als = await _dados_painel(
         db, current, plano_id, ano, _filtros(setor, responsavel_usuario_id, situacao, diretriz_id, objetivo_id))
-    return {"plano": svc.dict_plano(p), "ano": ano, **mon.painel(metas, acoes, als),
+    resumo = mon.painel(metas, acoes, als)
+    resumo["acoes"]["reprogramacao_proposta"] = sum(1 for a in als if a["tipo"] == "reprogramacao_pendente")
+    return {"plano": svc.dict_plano(p), "ano": ano, **resumo,
             "metas_em_risco": [m for m in metas if m["situacao"] in {"em_risco", "nao_alcancada"}],
             "setores": sorted({a["setor_responsavel"] for a in acoes if a["setor_responsavel"]}),
-            "nota": "Reprogramação: disponível na entrega 3. A situação das metas depende de resultados registrados com fonte."}
+            "nota": "A situação das metas depende de resultados registrados com fonte."}
 
 
 @router.get("/planos/{plano_id}/kanban")
@@ -1140,3 +1160,318 @@ async def validar_causa(fca_id: int, request: Request, current: SessaoMunicipal,
     await db.commit()
     await _audit(db, current, request, "PMS_FCA_CAUSA_VALIDADA", "pms_fca", f.id)
     return _dict_fca(f)
+
+
+# ══ Entrega 3 — reprogramação, RDQA/RAG, reuniões, Diagnóstico, relatórios ══════════════════════
+
+class ReprogIn(BaseModel):
+    motivo: str = Field(min_length=5, max_length=4000)
+    continua_necessaria: bool = True
+    novo_prazo: Optional[date] = None
+    nova_quantidade: Optional[float] = Field(None, ge=0)
+    ajuste_meta: Optional[str] = Field(None, max_length=4000)
+    recursos: Optional[str] = Field(None, max_length=4000)
+    responsavel_usuario_id: Optional[int] = None
+    justificativa_tecnica: str = Field(min_length=5, max_length=8000)
+
+
+@router.get("/planos/{plano_id}/reprogramacoes")
+async def listar_reprogramacoes(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None,
+                                db: AsyncSession = Depends(get_db)):
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    return await ciclo.reprogramacoes(db, p, ano)
+
+
+@router.post("/acoes/{acao_id}/reprogramar", status_code=201)
+async def propor_reprogramacao(acao_id: int, body: ReprogIn, request: Request, current: SessaoMunicipal,
+                               db: AsyncSession = Depends(get_db)):
+    a = await _get(db, current, PmsAcao, acao_id, "pms_acao")
+    _pode_atualizar(current, a)
+    if a.situacao not in ciclo.SITUACOES_REPROGRAMAVEIS:
+        raise HTTPException(422, "Só ações com situação oficial 'não executada' ou 'parcialmente executada' são reprogramadas.")
+    pas = await db.get(PmsPas, a.pas_id)
+    plano = await db.get(PmsPlano, pas.plano_id)
+    destino = pas.exercicio + 1
+    if destino > plano.vigencia_fim:
+        raise HTTPException(422, "Último exercício do PMS: a continuidade deve ser tratada no próximo PMS.")
+    if (await db.execute(select(PmsReprogramacao.id).where(
+            PmsReprogramacao.acao_id == a.id, PmsReprogramacao.situacao.in_(["proposta", "aprovada", "incluida"])))).first():
+        raise HTTPException(409, "Já existe reprogramação em andamento ou concluída para esta ação.")
+    nome = await _responsavel(db, current, body.responsavel_usuario_id)
+    r = PmsReprogramacao(municipio_id=current.municipio_id, plano_id=plano.id, acao_id=a.id, ano_origem=pas.exercicio,
+                         ano_destino=destino, situacao_origem=a.situacao, proposto_por=current.username,
+                         responsavel_nome=nome, **{**body.model_dump(), "continua_necessaria": int(body.continua_necessaria)})
+    db.add(r)
+    await db.flush()
+    svc.historico(db, a.municipio_id, "acao", a.id, "reprogramacao_proposta",
+                  f"Reprogramação para {destino} proposta: {body.motivo[:200]}", current.username)
+    await db.commit()
+    await _audit(db, current, request, "PMS_REPROG_PROPOSTA", "pms_reprogramacao", r.id, a.codigo)
+    return ciclo.dict_reprog(r, a)
+
+
+class DecisaoReprogIn(BaseModel):
+    decisao: Literal["aprovar", "rejeitar"]
+    parecer: Optional[str] = Field(None, max_length=4000)
+
+
+@router.post("/reprogramacoes/{rid}/decidir")
+async def decidir_reprogramacao(rid: int, body: DecisaoReprogIn, request: Request, current: SessaoMunicipal,
+                                db: AsyncSession = Depends(get_db)):
+    _planejador(current)
+    r = await _get(db, current, PmsReprogramacao, rid, "pms_reprogramacao")
+    if r.situacao != "proposta":
+        raise HTTPException(409, "Reprogramação já decidida.")
+    if r.proposto_por == current.username:
+        raise HTTPException(409, "A decisão deve ser de outra pessoa, não de quem propôs.")
+    parecer = (body.parecer or "").strip()
+    if body.decisao == "rejeitar" and not parecer:
+        raise HTTPException(422, "Explique o motivo da rejeição.")
+    if body.decisao == "aprovar" and not r.continua_necessaria:
+        raise HTTPException(422, "A proposta diz que a ação não continua necessária: rejeite-a e registre o motivo.")
+    r.situacao = "aprovada" if body.decisao == "aprovar" else "rejeitada"
+    r.decidido_por, r.decidido_em, r.parecer = current.username, datetime.utcnow(), parecer or None
+    svc.historico(db, r.municipio_id, "acao", r.acao_id, "reprogramacao_" + r.situacao,
+                  f"Reprogramação {r.situacao}" + (f": {parecer}" if parecer else ""), current.username)
+    await db.commit()
+    await _audit(db, current, request, "PMS_REPROG_" + r.situacao.upper(), "pms_reprogramacao", r.id)
+    return ciclo.dict_reprog(r, await db.get(PmsAcao, r.acao_id))
+
+
+class IncluirIn(BaseModel):
+    pas_id: int
+    codigo: str = Field(min_length=1, max_length=30)
+
+
+@router.post("/reprogramacoes/{rid}/incluir")
+async def incluir_reprogramacao(rid: int, body: IncluirIn, request: Request, current: SessaoMunicipal,
+                                db: AsyncSession = Depends(get_db)):
+    _planejador(current)
+    r = await _get(db, current, PmsReprogramacao, rid, "pms_reprogramacao")
+    if r.situacao != "aprovada":
+        raise HTTPException(409, "Só reprogramação aprovada é incluída na PAS seguinte.")
+    pas = await _get(db, current, PmsPas, body.pas_id, "pms_pas")
+    plano_dest = await db.get(PmsPlano, pas.plano_id)
+    plano_orig = await db.get(PmsPlano, r.plano_id)
+    if pas.exercicio != r.ano_destino or plano_dest.vigencia_inicio != plano_orig.vigencia_inicio:
+        raise HTTPException(422, f"Escolha a PAS de {r.ano_destino} do mesmo PMS.")
+    if pas.situacao != "rascunho":
+        raise HTTPException(409, "A PAS de destino já está aprovada: a inclusão segue os procedimentos de alteração da PAS.")
+    if (await db.execute(select(PmsAcao.id).where(PmsAcao.pas_id == pas.id, PmsAcao.codigo == body.codigo))).first():
+        raise HTTPException(409, f"Já existe ação {body.codigo} nessa PAS.")
+    try:
+        nova = await ciclo.incluir_na_pas(db, r, pas, body.codigo, current.username)
+    except ValueError as e:
+        await db.rollback()
+        raise HTTPException(422, str(e))
+    r.situacao, r.acao_destino_id = "incluida", nova.id
+    await db.commit()
+    await _audit(db, current, request, "PMS_REPROG_INCLUIDA", "pms_reprogramacao", r.id, f"→ ação {nova.id}")
+    return ciclo.dict_reprog(r, await db.get(PmsAcao, r.acao_id))
+
+
+# ── RDQA e RAG (apoio) ───────────────────────────────────────────────────────
+
+@router.get("/planos/{plano_id}/quadrimestre")
+async def quadrimestre(plano_id: int, current: SessaoMunicipal, ano: int, q: int = Query(..., ge=1, le=3),
+                       db: AsyncSession = Depends(get_db)):
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    return await ciclo.consolidacao_quadrimestral(db, p, ano, q)
+
+
+@router.get("/planos/{plano_id}/avaliacao-anual")
+async def avaliacao_anual(plano_id: int, current: SessaoMunicipal, ano: int, db: AsyncSession = Depends(get_db)):
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    return await ciclo.avaliacao_anual(db, p, ano)
+
+
+# ── Reuniões mensais ─────────────────────────────────────────────────────────
+
+class ReuniaoIn(BaseModel):
+    data: date
+    titulo: str = Field(min_length=3, max_length=300)
+    ano: Optional[int] = None
+
+
+class ReuniaoUpd(BaseModel):
+    participantes: Optional[str] = Field(None, max_length=4000)
+    ata: Optional[str] = Field(None, max_length=20000)
+    situacao: Optional[Literal["agendada", "realizada", "cancelada"]] = None
+
+
+class DecisaoIn(BaseModel):
+    descricao: str = Field(min_length=3, max_length=4000)
+    responsavel: Optional[str] = Field(None, max_length=150)
+    prazo: Optional[date] = None
+
+
+class DecisaoUpd(BaseModel):
+    situacao: Optional[Literal["pendente", "cumprida", "cancelada"]] = None
+    observacao: Optional[str] = Field(None, max_length=4000)
+    responsavel: Optional[str] = Field(None, max_length=150)
+    prazo: Optional[date] = None
+
+
+async def _reuniao_completa(db, r: PmsReuniao) -> dict:
+    decs = (await db.execute(select(PmsDecisao).where(PmsDecisao.reuniao_id == r.id).order_by(PmsDecisao.id))).scalars().all()
+    return ciclo.dict_reuniao(r, list(decs))
+
+
+@router.get("/planos/{plano_id}/reunioes")
+async def listar_reunioes(plano_id: int, current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    rs = (await db.execute(select(PmsReuniao).where(PmsReuniao.plano_id == p.id, PmsReuniao.municipio_id == current.municipio_id)
+                           .order_by(PmsReuniao.data.desc()))).scalars().all()
+    return [await _reuniao_completa(db, r) for r in rs]
+
+
+@router.post("/planos/{plano_id}/reunioes", status_code=201)
+async def criar_reuniao(plano_id: int, body: ReuniaoIn, request: Request, current: SessaoMunicipal,
+                        db: AsyncSession = Depends(get_db)):
+    _validador(current)
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    import json as _json
+    pauta = await ciclo.gerar_pauta(db, p, body.ano or body.data.year)
+    r = PmsReuniao(municipio_id=current.municipio_id, plano_id=p.id, data=body.data, titulo=body.titulo,
+                   pauta=_json.dumps(pauta, ensure_ascii=False), criado_por=current.username, atualizado_por=current.username)
+    db.add(r)
+    await db.commit()
+    await _audit(db, current, request, "PMS_REUNIAO_CRIADA", "pms_reuniao", r.id, f"{body.data} — {body.titulo}")
+    return await _reuniao_completa(db, r)
+
+
+@router.get("/reunioes/{rid}")
+async def detalhe_reuniao(rid: int, current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    return await _reuniao_completa(db, await _get(db, current, PmsReuniao, rid, "pms_reuniao"))
+
+
+@router.put("/reunioes/{rid}")
+async def editar_reuniao(rid: int, body: ReuniaoUpd, request: Request, current: SessaoMunicipal,
+                         db: AsyncSession = Depends(get_db)):
+    _validador(current)
+    r = await _get(db, current, PmsReuniao, rid, "pms_reuniao")
+    for k, v in body.model_dump(exclude_unset=True).items():
+        setattr(r, k, v)
+    r.atualizado_por = current.username
+    await db.commit()
+    await _audit(db, current, request, "PMS_REUNIAO_EDITADA", "pms_reuniao", r.id)
+    return await _reuniao_completa(db, r)
+
+
+@router.post("/reunioes/{rid}/decisoes", status_code=201)
+async def criar_decisao(rid: int, body: DecisaoIn, request: Request, current: SessaoMunicipal,
+                        db: AsyncSession = Depends(get_db)):
+    _validador(current)
+    r = await _get(db, current, PmsReuniao, rid, "pms_reuniao")
+    d = PmsDecisao(municipio_id=current.municipio_id, reuniao_id=r.id, atualizado_por=current.username, **body.model_dump())
+    db.add(d)
+    await db.commit()
+    await _audit(db, current, request, "PMS_DECISAO_CRIADA", "pms_decisao", d.id)
+    return await _reuniao_completa(db, r)
+
+
+@router.put("/decisoes/{did}")
+async def editar_decisao(did: int, body: DecisaoUpd, request: Request, current: SessaoMunicipal,
+                         db: AsyncSession = Depends(get_db)):
+    _validador(current)
+    d = await _get(db, current, PmsDecisao, did, "pms_decisao")
+    mud = body.model_dump(exclude_unset=True)
+    if mud.get("situacao") in {"cumprida", "cancelada"} and not (mud.get("observacao") or d.observacao):
+        raise HTTPException(422, "Registre a observação (como foi cumprida ou por que foi cancelada).")
+    for k, v in mud.items():
+        setattr(d, k, v)
+    d.cumprida_em = datetime.utcnow() if d.situacao == "cumprida" else None
+    d.atualizado_por = current.username
+    await db.commit()
+    await _audit(db, current, request, "PMS_DECISAO_EDITADA", "pms_decisao", d.id, d.situacao)
+    return await _reuniao_completa(db, await db.get(PmsReuniao, d.reuniao_id))
+
+
+@router.get("/reunioes/{rid}/relatorio.pdf")
+async def relatorio_reuniao(rid: int, current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    r = await _get(db, current, PmsReuniao, rid, "pms_reuniao")
+    p = await db.get(PmsPlano, r.plano_id)
+    doc = rel.documento_reuniao(current.municipio, svc.dict_plano(p), await _reuniao_completa(db, r))
+    return Response(rel.pdf(doc, current.nome or current.username), media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="reuniao_pms_{r.data}.pdf"'})
+
+
+# ── Integração com o Diagnóstico Situacional ─────────────────────────────────
+
+class VinculoIn(BaseModel):
+    diag_item_id: int
+    meta_id: Optional[int] = None
+    acao_id: Optional[int] = None
+    observacao: Optional[str] = Field(None, max_length=2000)
+
+
+@router.get("/planos/{plano_id}/diagnostico")
+async def cruzamento_diagnostico(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None,
+                                 diagnostico_id: Optional[int] = None, db: AsyncSession = Depends(get_db)):
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    try:
+        return await ciclo.integracao_diagnostico(db, p, diagnostico_id, ano or date.today().year)
+    except LookupError:
+        raise HTTPException(404, "Registro não encontrado")
+
+
+@router.post("/planos/{plano_id}/diagnostico/vinculos", status_code=201)
+async def vincular_diagnostico(plano_id: int, body: VinculoIn, request: Request, current: SessaoMunicipal,
+                               db: AsyncSession = Depends(get_db)):
+    from models.diagnostico_situacional import DiagItem
+    _planejador(current)
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    if (body.meta_id is None) == (body.acao_id is None):
+        raise HTTPException(422, "Informe a meta OU a ação.")
+    item = await _get(db, current, DiagItem, body.diag_item_id, "diag_item")
+    if item.classificacao not in {"pendencia", "critico"}:
+        raise HTTPException(422, "Só problemas do Diagnóstico (Com pendência ou Crítico) são vinculados.")
+    if body.meta_id:
+        m = await _get(db, current, PmsMeta, body.meta_id, "pms_meta")
+        if m.plano_id != p.id:
+            raise HTTPException(422, "Meta de outro PMS.")
+    else:
+        a = await _get(db, current, PmsAcao, body.acao_id, "pms_acao")
+        if (await db.get(PmsPas, a.pas_id)).plano_id != p.id:
+            raise HTTPException(422, "Ação de outro PMS.")
+    if (await db.execute(select(PmsDiagVinculo.id).where(
+            PmsDiagVinculo.diag_item_id == item.id, PmsDiagVinculo.meta_id == body.meta_id,
+            PmsDiagVinculo.acao_id == body.acao_id))).first():
+        raise HTTPException(409, "Vínculo já existe.")
+    v = PmsDiagVinculo(municipio_id=current.municipio_id, criado_por=current.username, **body.model_dump())
+    db.add(v)
+    await db.commit()
+    await _audit(db, current, request, "PMS_DIAG_VINCULO", "pms_diag_vinculo", v.id, item.codigo)
+    return {"id": v.id}
+
+
+@router.delete("/diagnostico/vinculos/{vid}")
+async def desvincular_diagnostico(vid: int, request: Request, current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    _planejador(current)
+    v = await _get(db, current, PmsDiagVinculo, vid, "pms_diag_vinculo")
+    await db.delete(v)
+    await db.commit()
+    await _audit(db, current, request, "PMS_DIAG_DESVINCULO", "pms_diag_vinculo", vid)
+    return {"ok": True}
+
+
+# ── Relatórios e exportações ─────────────────────────────────────────────────
+
+@router.get("/planos/{plano_id}/relatorios/{tipo}")
+async def relatorio(plano_id: int, tipo: str, request: Request, current: SessaoMunicipal,
+                    formato: Literal["pdf", "xlsx"] = "pdf", ano: Optional[int] = None,
+                    quadrimestre: Optional[int] = Query(None, ge=1, le=3), responsavel: Optional[str] = None,
+                    db: AsyncSession = Depends(get_db)):
+    if tipo not in rel.TIPOS:
+        raise HTTPException(404, "Relatório desconhecido.")
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    ano = ano or date.today().year
+    doc = await rel.montar(db, tipo, p, current.municipio, ano, quadrimestre, responsavel)
+    quem = current.nome or current.username
+    await _audit(db, current, request, "PMS_RELATORIO", "pms_plano", p.id, f"{tipo}.{formato} {ano}")
+    nome = f"pms_{tipo}_{ano}{('_q' + str(quadrimestre)) if quadrimestre else ''}.{formato}"
+    if formato == "xlsx":
+        return Response(rel.xlsx(doc, quem), headers={"Content-Disposition": f'attachment; filename="{nome}"'},
+                        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    return Response(rel.pdf(doc, quem), media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{nome}"'})

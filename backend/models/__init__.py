@@ -81,5 +81,6 @@ from models.diagnostico_situacional import (  # noqa: E402
 )
 from models.pms_vivo import (  # noqa: E402
     PmsPlano, PmsDiretriz, PmsObjetivo, PmsMeta, PmsMetaAnual, PmsPas, PmsAcao, PmsAcaoMeta,
-    PmsAtualizacao, PmsAnexo, PmsHistorico, PmsFca,
+    PmsAtualizacao, PmsAnexo, PmsHistorico, PmsFca, PmsReprogramacao, PmsReuniao, PmsDecisao,
+    PmsDiagVinculo,
 )

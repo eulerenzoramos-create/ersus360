@@ -13,6 +13,10 @@ PMS Vivo — Plano Municipal de Saúde como ferramenta de gestão (PMS → PAS �
   pms_anexo          evidências (ação/atualização) e documento oficial do PMS (PDF)
   pms_historico      trilha de alterações (só acrescenta)
   pms_fca            análise Fato → Causa → Ação corretiva de meta não alcançada/em risco ou ação não executada
+  pms_reprogramacao  proposta de reprogramar ação não executada/parcial para o exercício seguinte (com aprovação);
+                     a ação original nunca é alterada
+  pms_reuniao / pms_decisao   reunião mensal de monitoramento (pauta gerada, ata) e decisões com responsável e prazo
+  pms_diag_vinculo   problema do Diagnóstico Situacional ↔ meta/ação do PMS/PAS
 
 Tudo com municipio_id (isolamento multi-município). Nenhum valor é preenchido sem fonte: campos vazios
 quando o documento/planilha não traz.
@@ -244,3 +248,78 @@ class PmsFca(Base):
     criado_em       = Column(DateTime, default=datetime.utcnow, nullable=False)
     atualizado_por  = Column(String(200), nullable=True)
     atualizado_em   = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PmsReprogramacao(Base):
+    __tablename__ = "pms_reprogramacao"
+
+    id                     = Column(Integer, primary_key=True, autoincrement=True)
+    municipio_id           = Column(Integer, ForeignKey("municipios.id"), nullable=False, index=True)
+    plano_id               = Column(Integer, ForeignKey("pms_plano.id"), nullable=False, index=True)
+    acao_id                = Column(Integer, ForeignKey("pms_acao.id"), nullable=False, index=True)  # ação original
+    ano_origem             = Column(Integer, nullable=False)
+    ano_destino            = Column(Integer, nullable=False)
+    situacao_origem        = Column(String(20), nullable=False)    # situação oficial da ação quando proposta
+    motivo                 = Column(Text, nullable=False)
+    continua_necessaria    = Column(Integer, nullable=False, default=1)   # 1 sim · 0 não
+    novo_prazo             = Column(Date, nullable=True)
+    nova_quantidade        = Column(Float, nullable=True)
+    ajuste_meta            = Column(Text, nullable=True)
+    recursos               = Column(Text, nullable=True)
+    responsavel_usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    responsavel_nome       = Column(String(150), nullable=True)
+    justificativa_tecnica  = Column(Text, nullable=False)
+    situacao               = Column(String(15), nullable=False, default="proposta")   # proposta | aprovada | rejeitada | incluida
+    proposto_por           = Column(String(200), nullable=False)
+    proposto_em            = Column(DateTime, default=datetime.utcnow, nullable=False)
+    decidido_por           = Column(String(200), nullable=True)
+    decidido_em            = Column(DateTime, nullable=True)
+    parecer                = Column(Text, nullable=True)
+    acao_destino_id        = Column(Integer, ForeignKey("pms_acao.id"), nullable=True)
+
+
+class PmsReuniao(Base):
+    __tablename__ = "pms_reuniao"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    municipio_id  = Column(Integer, ForeignKey("municipios.id"), nullable=False, index=True)
+    plano_id      = Column(Integer, ForeignKey("pms_plano.id"), nullable=False, index=True)
+    data          = Column(Date, nullable=False)
+    titulo        = Column(String(300), nullable=False)
+    pauta         = Column(Text, nullable=False)        # JSON: retrato gerado na criação (não muda depois)
+    participantes = Column(Text, nullable=True)
+    ata           = Column(Text, nullable=True)
+    situacao      = Column(String(15), nullable=False, default="agendada")   # agendada | realizada | cancelada
+    criado_por    = Column(String(200), nullable=True)
+    criado_em     = Column(DateTime, default=datetime.utcnow, nullable=False)
+    atualizado_por = Column(String(200), nullable=True)
+
+
+class PmsDecisao(Base):
+    __tablename__ = "pms_decisao"
+
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    municipio_id = Column(Integer, ForeignKey("municipios.id"), nullable=False, index=True)
+    reuniao_id   = Column(Integer, ForeignKey("pms_reuniao.id"), nullable=False, index=True)
+    descricao    = Column(Text, nullable=False)
+    responsavel  = Column(String(150), nullable=True)
+    prazo        = Column(Date, nullable=True)
+    situacao     = Column(String(15), nullable=False, default="pendente")   # pendente | cumprida | cancelada
+    observacao   = Column(Text, nullable=True)
+    cumprida_em  = Column(DateTime, nullable=True)
+    atualizado_por = Column(String(200), nullable=True)
+    criado_em    = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PmsDiagVinculo(Base):
+    __tablename__ = "pms_diag_vinculo"
+    __table_args__ = (UniqueConstraint("diag_item_id", "meta_id", "acao_id", name="uq_pms_diag_vinculo"),)
+
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    municipio_id = Column(Integer, ForeignKey("municipios.id"), nullable=False, index=True)
+    diag_item_id = Column(Integer, ForeignKey("diag_item.id"), nullable=False, index=True)
+    meta_id      = Column(Integer, ForeignKey("pms_meta.id"), nullable=True)
+    acao_id      = Column(Integer, ForeignKey("pms_acao.id"), nullable=True)
+    observacao   = Column(Text, nullable=True)
+    criado_por   = Column(String(200), nullable=True)
+    criado_em    = Column(DateTime, default=datetime.utcnow, nullable=False)

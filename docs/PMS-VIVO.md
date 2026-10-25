@@ -122,13 +122,82 @@ Serviço `services/pms_monitoramento.py`.
 ### Banco
 A migração idempotente `_migrar_pms_vivo` em `database.py` adiciona `pms_meta.fonte_automatica`. A tabela `pms_fca` é criada pelo `create_all`.
 
-## Próximas entregas
-- **Entrega 3 (fases 6 e 7):**
-  - "Reprogramar para o Exercício Seguinte", com aprovação;
-  - relatórios de apoio ao RDQA e ao RAG, em PDF e Excel;
-  - reuniões mensais com pauta e decisões;
-  - ligação com os problemas do Diagnóstico Situacional.
-- **Fase 8:** carregar o PMS real de Apuí, que o usuário vai enviar, e validar os fluxos.
+## Entrega 3 — fases 6 e 7
+Serviços `services/pms_ciclo.py` e `services/pms_relatorios.py`.
+
+### Reprogramar para o Exercício Seguinte
+Vale para ação com situação oficial "não executada" ou "parcialmente executada".
+
+1. **Proposta** (o responsável ou a coordenação):
+   - motivo e se a ação continua necessária;
+   - novo prazo, nova quantidade e ajuste de meta;
+   - recursos, responsável e justificativa técnica.
+2. **Decisão** (Secretário, Planejamento ou administrador, sempre outra pessoa): rejeitar exige parecer. Se a proposta diz que a ação não continua necessária, ela só pode ser rejeitada.
+3. **Inclusão** na PAS do ano seguinte, que precisa estar em rascunho. As metas equivalentes são encontradas pelo `uid`, o que funciona também entre versões do PMS.
+
+Regras:
+- A ação original e a situação do ano anterior nunca são alteradas.
+- Nenhum recurso é transferido.
+- Uma PAS de destino já aprovada não recebe a ação: nesse caso vale o procedimento oficial de alteração da PAS.
+- No último ano da vigência não há reprogramação: a continuidade vai para o próximo PMS.
+
+### Apoio ao RDQA e ao RAG
+- **Consolidação quadrimestral:**
+  - ações realizadas (validadas no período) e ações pendentes (prazo até o fim do período);
+  - metas e resultados;
+  - dificuldades e providências (FCA);
+  - recomendações.
+- **Avaliação anual:**
+  - ações previstas, executadas, parciais, não executadas e canceladas;
+  - metas alcançadas e não alcançadas;
+  - principais resultados e justificativas;
+  - dificuldades, ações corretivas e reprogramações;
+  - recomendações para a PAS seguinte.
+- Os dois são relatórios de **apoio**: não substituem o RDQA nem o RAG oficiais do DGMP/DigiSUS.
+- As recomendações são regras de procedimento aplicadas aos registros (por exemplo, "meta em risco sem FCA" ou "ação não executada sem reprogramação"). Nunca afirmam causas.
+
+### Reuniões mensais
+- A pauta é gerada no momento da criação e fica guardada como estava naquele dia. Ela traz:
+  - metas em risco;
+  - ações atrasadas;
+  - pendências por responsável;
+  - problemas que exigem decisão (validações pendentes e FCA vencidas);
+  - reprogramações propostas;
+  - providências da reunião anterior (decisões ainda pendentes).
+- Na reunião registram-se participantes, ata e situação.
+- Cada decisão tem responsável, prazo e situação. Para marcar como cumprida ou cancelada, é preciso uma observação.
+- A pauta e o registro saem em PDF.
+
+### Integração com o Diagnóstico Situacional
+- Problemas do Diagnóstico (Com pendência ou Crítico) são vinculados a metas ou ações (`pms_diag_vinculo`).
+- O cruzamento mostra:
+  - problemas contemplados e problemas sem ação correspondente;
+  - metas sem acompanhamento (sem ação na PAS do ano ou sem resultado);
+  - ações sem resultado;
+  - recomendações para a gestão avaliar.
+
+### Relatórios (PDF e Excel)
+- Execução da PAS
+- Metas do PMS
+- Pendências
+- Por responsável
+- Quadrimestral
+- Anual
+- Reprogramações
+- Plano de ação 5W2H (a partir das ações corretivas da FCA; onde, como e quanto ficam "—" quando não informados)
+- Pauta e registro de reunião
+
+### Também nesta entrega
+- O painel do gestor passa a contar as reprogramações propostas.
+- Os alertas passam a incluir "reprogramação aguardando decisão".
+
+## Próximas etapas
+- **Fase 8:** carregar o PMS real de Apuí, que o usuário vai enviar, e validar os fluxos com os responsáveis.
+- **Fora do escopo autorizado até agora:**
+  - IA sugerindo hipóteses de causa na FCA;
+  - envio de alertas por outros canais, como e-mail ou WhatsApp.
+
+  Os dois dependem de integração autorizada.
 
 ## Testes
 `backend/tests/test_pms_vivo.py` cobre:
@@ -145,4 +214,13 @@ A migração idempotente `_migrar_pms_vivo` em `database.py` adiciona `pms_meta.
 - o painel com filtros, o Kanban, o cronograma e os alertas;
 - a central de alertas sem duplicar;
 - a FCA, com a causa como hipótese até validação por outra pessoa;
+- o isolamento entre municípios.
+
+`backend/tests/test_pms_ciclo.py` cobre:
+- o período de cada quadrimestre;
+- a reprogramação: proposta, decisão por outra pessoa, ação original preservada e inclusão na PAS de 2027 com as metas mapeadas;
+- o RDQA e o RAG;
+- as reuniões: pauta, decisões e providências da reunião anterior, e o PDF;
+- o cruzamento com o Diagnóstico;
+- os 8 relatórios em PDF e em Excel;
 - o isolamento entre municípios.
