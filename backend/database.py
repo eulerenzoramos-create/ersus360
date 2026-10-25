@@ -62,6 +62,7 @@ async def init_db():
         from models import egestor_ausencia  # noqa — monitoramento SIAPS: ausência de envio (e-Gestor)
         from models import vigilancia_fvs  # noqa — Vigilância em Saúde: série pública da FVS-RCP/AM
         from models import diagnostico_situacional  # noqa — Diagnóstico Situacional da Saúde Municipal
+        from models import pms_vivo  # noqa — PMS Vivo: PMS, PAS, ações e execução
         await conn.run_sync(Base.metadata.create_all)
         # Tabela de snapshot eSUS PEC (entrada manual ou bookmarklet)
         if _raw_url.startswith("sqlite"):

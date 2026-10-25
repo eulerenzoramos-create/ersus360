@@ -79,3 +79,7 @@ from models.backup import BackupExecucao  # noqa: E402
 from models.diagnostico_situacional import (  # noqa: E402
     DiagDiagnostico, DiagItem, DiagHistorico, DiagAnexo, DiagAcao,
 )
+from models.pms_vivo import (  # noqa: E402
+    PmsPlano, PmsDiretriz, PmsObjetivo, PmsMeta, PmsMetaAnual, PmsPas, PmsAcao, PmsAcaoMeta,
+    PmsAtualizacao, PmsAnexo, PmsHistorico,
+)

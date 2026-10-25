@@ -177,3 +177,9 @@ DOC-001 a DOC-027 — ver índice em `docs/README.md` (se existir) ou listar com
   suspensão no e-Gestor, composição mínima no CNES). Divergência que pode ser coleta incompleta = `natureza` "hipotese".
 - Coleta automática nunca reescreve item declarado, validado ou contestado. Editar dado automático → item vira declarado e volta a "pendente".
 - 5W2H só para problema validado. Ver docs/DIAGNOSTICO-SITUACIONAL.md.
+
+## PMS Vivo (`/pms-vivo`)
+- Modelos em `models/pms_vivo.py`, regras em `services/pms_vivo.py`, router `routers/pms_vivo.py`; ver docs/PMS-VIVO.md.
+- Versão aprovada do PMS/PAS é oficial e não se edita: alteração = nova versão (mesmo `uid` de meta); a anterior vira "substituido".
+- Situação oficial da ação só muda por atualização VALIDADA por outra pessoa (perfis de validação); conclusão exige a evidência
+  esperada; cancelamento exige justificativa e autorização do gestor/planejamento. Planilha: célula ilegível fica vazia, nunca estimada.
