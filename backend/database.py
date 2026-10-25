@@ -142,10 +142,23 @@ async def init_db():
                         pass  # tipo ainda não existe (primeira execução) — create_all já cria com todos os valores
 
     await _migrar_investsus_federal()
+    await _migrar_pms_vivo()
 
     # Multi-tenant: colunas de credenciamento, auditoria por município, perfil ADMINISTRADOR_GERAL
     from tenancy.migracoes import migrar_multitenant
     await migrar_multitenant(engine)
+
+
+async def _migrar_pms_vivo() -> None:
+    """PMS Vivo — colunas acrescentadas depois da entrega 1. Idempotente; transação própria."""
+    from tenancy.migracoes import _adicionar_colunas, _tabelas_existentes
+    try:
+        async with engine.begin() as conn:
+            if "pms_meta" in await _tabelas_existentes(conn):
+                await _adicionar_colunas(conn, "pms_meta", [("fonte_automatica", "VARCHAR(40)")])
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("Migração PMS Vivo falhou: %s", exc)
 
 
 async def _migrar_investsus_federal() -> None:

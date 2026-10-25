@@ -407,6 +407,222 @@ function Validacoes({ ref_ }: { ref_: Ref }) {
     </>);
 }
 
+// ══ Entrega 2 — monitoramento ══════════════════════════════════════════════
+interface AnoMon { ano: number; meta_prevista: number | null; resultado: number | null; fonte: string | null; competencia: string | null;
+  registrado_por: string | null; cumprimento: number | null; situacao: string }
+interface MetaMon extends Meta { diretriz: string | null; diretriz_id: number | null; anos: AnoMon[]; situacao: string | null; cumprimento: number | null;
+  acumulado: { valor: number | null; regra: string }; cumprimento_quadrienal: number | null; tendencia: string | null;
+  acoes_no_ano: number; acoes_com_problema: number; fonte_automatica: string | null }
+interface Alerta { severidade: string; tipo: string; texto: string; acao_id: number | null; meta_id: number | null; responsavel: string | null }
+const COR_META: Record<string, string> = { alcancada: "#059669", nao_alcancada: "#dc2626", em_risco: "#d97706", em_acompanhamento: "#2563eb",
+  sem_resultado: "#94a3b8", prevista: "#64748b" };
+const ROT_META: Record<string, string> = { alcancada: "Alcançada", nao_alcancada: "Não alcançada", em_risco: "Em risco",
+  em_acompanhamento: "Em acompanhamento", sem_resultado: "Sem resultado", prevista: "Prevista" };
+const COR_SEV: Record<string, string> = { critico: "#dc2626", atencao: "#d97706", info: "#2563eb" };
+const TEND: Record<string, string> = { melhora: "↗ melhora", piora: "↘ piora", estavel: "→ estável" };
+const ANO_ATUAL = new Date().getFullYear();
+
+function Kpi({ t, v, cor }: { t: string; v: number | string | null; cor: string }) {
+  return <div style={{ ...card, marginBottom: 0, borderTop: `3px solid ${cor}`, padding: 12 }}>
+    <div style={{ fontSize: 11, color: "#64748b" }}>{t}</div><div style={{ fontSize: 22, fontWeight: 700, color: cor }}>{v ?? "—"}</div></div>;
+}
+
+function PainelGestor({ planoId, ano }: { planoId: number; ano: number }) {
+  const resp = useQuery({ queryKey: ["pms", "resp"], queryFn: () => api.get("/api/pms-vivo/responsaveis").then(r => r.data as { id: number; nome: string }[]) });
+  const plano = useQuery({ queryKey: ["pms", "plano", planoId], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}`).then(r => r.data as PlanoDet) });
+  const [f, setF] = useState({ diretriz_id: "", setor: "", responsavel_usuario_id: "", situacao: "" });
+  const q = useQuery({ queryKey: ["pms", "painel", planoId, ano, f], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/painel`, {
+    params: { ano, ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)) } }).then(r => r.data) });
+  const p = q.data;
+  return (
+    <>
+      <div style={{ ...card, display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <select style={{ ...inp, width: 260 }} value={f.diretriz_id} onChange={e => setF({ ...f, diretriz_id: e.target.value })}>
+          <option value="">Todas as diretrizes</option>{(plano.data?.diretrizes ?? []).map(d => <option key={d.id} value={d.id}>{d.codigo} — {d.descricao.slice(0, 50)}</option>)}</select>
+        <select style={{ ...inp, width: 200 }} value={f.setor} onChange={e => setF({ ...f, setor: e.target.value })}>
+          <option value="">Todos os setores</option>{(p?.setores ?? []).map((s: string) => <option key={s}>{s}</option>)}</select>
+        <select style={{ ...inp, width: 200 }} value={f.responsavel_usuario_id} onChange={e => setF({ ...f, responsavel_usuario_id: e.target.value })}>
+          <option value="">Todos os responsáveis</option>{(resp.data ?? []).map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}</select>
+        <select style={{ ...inp, width: 200 }} value={f.situacao} onChange={e => setF({ ...f, situacao: e.target.value })}>
+          <option value="">Todas as situações</option><option value="atrasada">Atrasadas</option><option value="aguardando_validacao">Aguardando validação</option>
+          <option value="concluida">Concluídas</option><option value="nao_executada">Não executadas</option><option value="em_andamento">Em andamento</option></select>
+      </div>
+      {p && <>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8, marginBottom: 12 }}>
+          <Kpi t="Metas do PMS" v={p.metas.total} cor="#1d4ed8" /><Kpi t="Metas alcançadas" v={p.metas.alcancada} cor="#059669" />
+          <Kpi t="Metas em risco" v={p.metas.em_risco} cor="#d97706" /><Kpi t="Não alcançadas" v={p.metas.nao_alcancada} cor="#dc2626" />
+          <Kpi t="Sem resultado" v={p.metas.sem_resultado + p.metas.em_acompanhamento} cor="#94a3b8" />
+          <Kpi t="Ações concluídas" v={`${p.acoes.concluidas}/${p.acoes.total}`} cor="#059669" /><Kpi t="Ações atrasadas" v={p.acoes.atrasadas} cor="#dc2626" />
+          <Kpi t="Não executadas" v={p.acoes.nao_executadas} cor="#b91c1c" /><Kpi t="Aguardando validação" v={p.acoes.aguardando_validacao} cor="#7c3aed" />
+          <Kpi t="Reprogramação proposta" v={p.acoes.reprogramacao_proposta ?? "entrega 3"} cor="#64748b" />
+        </div>
+        <div style={card}><h3 style={h3}>Resultados por área (diretriz)</h3>
+          <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}><thead><tr style={{ textAlign: "left", color: "#64748b" }}><th>Diretriz</th><th>Metas</th><th>Ações</th></tr></thead>
+            <tbody>{p.por_area.map((a: { diretriz: string; metas: Record<string, number>; acoes: Record<string, number> }, i: number) => (
+              <tr key={i} style={{ borderTop: "1px solid #eee", verticalAlign: "top" }}><td style={{ padding: "5px 4px" }}>{a.diretriz}</td>
+                <td>{Object.entries(a.metas).map(([k, v]) => <div key={k} style={{ color: COR_META[k] }}>{ROT_META[k]}: {v}</div>)}</td>
+                <td>{Object.entries(a.acoes).map(([k, v]) => <div key={k}>{k.replace("_", " ")}: {v}</div>)}{!Object.keys(a.acoes).length && "—"}</td></tr>))}</tbody></table></div>
+        <div style={card}><h3 style={h3}>Responsáveis com atualizações pendentes</h3>
+          {p.responsaveis_pendentes.length === 0 ? <div style={{ fontSize: 13, color: "#64748b" }}>Nenhum.</div> :
+            p.responsaveis_pendentes.map((r: { responsavel: string; pendencias: number; tipos: string[] }) => <div key={r.responsavel} style={{ fontSize: 13, padding: "3px 0" }}>
+              <b>{r.responsavel}</b>: {r.pendencias} pendência(s) — {r.tipos.join(", ").replace(/_/g, " ")}</div>)}</div>
+        <div style={card}><h3 style={h3}>Metas em risco ou não alcançadas</h3>
+          {p.metas_em_risco.length === 0 ? <div style={{ fontSize: 13, color: "#64748b" }}>Nenhuma com resultado registrado.</div> :
+            p.metas_em_risco.map((m: MetaMon) => <div key={m.id} style={{ fontSize: 13, padding: "3px 0" }}><Selo t={ROT_META[m.situacao!]} cor={COR_META[m.situacao!]} /> <b>{m.codigo}</b> {m.descricao}
+              {m.cumprimento != null && ` — ${num(m.cumprimento)}% da meta anual`}</div>)}</div>
+        <div style={{ fontSize: 12, color: "#64748b" }}>{p.nota}</div>
+      </>}
+    </>);
+}
+
+function Metas({ planoId, ano, ref_ }: { planoId: number; ano: number; ref_: Ref }) {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["pms", "mon", planoId, ano], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/monitoramento`, { params: { ano } }).then(r => r.data as {
+    anos: number[]; metas: MetaMon[]; fontes_automaticas: Record<string, { rotulo: string; tipo: string }>; plano: Plano }) });
+  const [ed, setEd] = useState<{ meta: number; ano: number; resultado: string; fonte: string; competencia: string } | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const salvar = useMutation({ mutationFn: () => api.put(`/api/pms-vivo/metas/${ed!.meta}/resultados/${ed!.ano}`, {
+    resultado: ed!.resultado === "" ? null : Number(ed!.resultado.replace(",", ".")), fonte: ed!.fonte || null, competencia: ed!.competencia || null,
+    observacao: ed!.resultado === "" ? "Resultado removido pelo técnico" : null }), onSuccess: () => { setEd(null); qc.invalidateQueries({ queryKey: ["pms"] }); } });
+  const coletar = useMutation({ mutationFn: ({ meta, a }: { meta: number; a: number }) => api.post(`/api/pms-vivo/metas/${meta}/resultados/${a}/coletar`).then(r => r.data),
+    onSuccess: r => { setMsg(r.ok ? `Resultado coletado: ${num(r.resultado)} (${r.fonte}, ${r.competencia}).` : `Sem dado na fonte: ${r.motivo}`); qc.invalidateQueries({ queryKey: ["pms"] }); } });
+  const fonte = useMutation({ mutationFn: ({ meta, codigo }: { meta: number; codigo: string }) => api.put(`/api/pms-vivo/metas/${meta}/fonte-automatica`, { fonte_automatica: codigo || null }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
+  const d = q.data;
+  if (!d) return null;
+  const aprovado = d.plano.situacao === "aprovado";
+  return (
+    <div style={card}>
+      <h3 style={h3}>Metas — previsto × resultado ({d.anos[0]}–{d.anos[d.anos.length - 1]})</h3>
+      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Situação no ano {ano}. Resultado só com fonte; percentuais, taxas e índices não são somados entre anos. Clique numa célula de ano para registrar o resultado.</div>
+      {msg && <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 6 }}>{msg}</div>}<Erro e={salvar.error} /><Erro e={coletar.error} /><Erro e={fonte.error} />
+      <div style={{ overflowX: "auto" }}><table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", minWidth: 1000 }}>
+        <thead><tr style={{ textAlign: "left", color: "#64748b" }}><th>Meta</th><th>Tipo</th>{d.anos.map(a => <th key={a}>{a}<div style={{ fontWeight: 400 }}>meta → resultado</div></th>)}
+          <th>Acumulado / último</th><th>Meta 4 anos</th><th>Tendência</th><th>Situação {ano}</th><th>Fonte automática</th></tr></thead>
+        <tbody>{d.metas.map(m => (
+          <tr key={m.id} style={{ borderTop: "1px solid #eee", verticalAlign: "top" }}>
+            <td style={{ padding: "5px 4px", maxWidth: 240 }}><b>{m.codigo}</b> {m.descricao}<div style={{ color: "#64748b" }}>{m.indicador}</div></td>
+            <td>{m.tipo_indicador ?? <span style={{ color: "#d97706" }}>não informado</span>}</td>
+            {m.anos.map(a => <td key={a.ano} title={a.fonte ? `${a.fonte}${a.competencia ? " · " + a.competencia : ""} · ${a.registrado_por}` : "Sem resultado"}
+              onClick={() => aprovado && ref_.pode_validar && setEd({ meta: m.id, ano: a.ano, resultado: a.resultado == null ? "" : String(a.resultado), fonte: a.fonte ?? "", competencia: a.competencia ?? "" })}
+              style={{ cursor: aprovado && ref_.pode_validar ? "pointer" : undefined }}>
+              {num(a.meta_prevista)} → <b style={{ color: COR_META[a.situacao] }}>{num(a.resultado)}</b>{a.cumprimento != null && <div style={{ color: "#64748b" }}>{num(a.cumprimento)}%</div>}
+              {m.fonte_automatica && ref_.pode_validar && aprovado && a.ano <= ANO_ATUAL && <button style={{ ...btn("#0f766e"), padding: "1px 6px", fontSize: 10, marginTop: 2 }}
+                onClick={e => { e.stopPropagation(); coletar.mutate({ meta: m.id, a: a.ano }); }}>coletar</button>}</td>)}
+            <td title={m.acumulado.regra}>{num(m.acumulado.valor)}<div style={{ color: "#64748b", fontSize: 10 }}>{m.acumulado.regra}</div></td>
+            <td>{num(m.meta_quadrienal)}{m.cumprimento_quadrienal != null && <div style={{ color: "#64748b" }}>{num(m.cumprimento_quadrienal)}%</div>}</td>
+            <td>{m.tendencia ? TEND[m.tendencia] : "—"}</td>
+            <td>{m.situacao ? <Selo t={ROT_META[m.situacao]} cor={COR_META[m.situacao]} /> : "—"}{m.acoes_com_problema > 0 && <div style={{ color: "#b91c1c" }}>{m.acoes_com_problema} ação(ões) com problema</div>}</td>
+            <td>{ref_.pode_planejar ? <select style={{ ...inp, width: 150, fontSize: 11 }} value={m.fonte_automatica ?? ""} onChange={e => fonte.mutate({ meta: m.id, codigo: e.target.value })}>
+              <option value="">Manual</option>{Object.entries(d.fontes_automaticas).map(([k, v]) => <option key={k} value={k} title={v.rotulo}>{v.rotulo.slice(0, 40)}</option>)}</select>
+              : (m.fonte_automatica ? d.fontes_automaticas[m.fonte_automatica]?.rotulo : "Manual")}</td>
+          </tr>))}</tbody></table></div>
+      {ed && <div style={{ ...card, background: "#f8fafc", marginTop: 10 }}>
+        <b style={{ fontSize: 13 }}>Resultado {ed.ano} — meta {d.metas.find(m => m.id === ed.meta)?.codigo}</b>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+          <input style={{ ...inp, width: 120 }} placeholder="Resultado" value={ed.resultado} onChange={e => setEd({ ...ed, resultado: e.target.value })} />
+          <input style={{ ...inp, width: 260 }} placeholder="Fonte (obrigatória)" value={ed.fonte} onChange={e => setEd({ ...ed, fonte: e.target.value })} />
+          <input style={{ ...inp, width: 160 }} placeholder="Competência" value={ed.competencia} onChange={e => setEd({ ...ed, competencia: e.target.value })} />
+          <button style={btn()} onClick={() => salvar.mutate()}>Salvar</button><button style={btn("#64748b")} onClick={() => setEd(null)}>Cancelar</button>
+        </div></div>}
+    </div>);
+}
+
+function Kanban({ planoId, ano, ref_ }: { planoId: number; ano: number; ref_: Ref }) {
+  const q = useQuery({ queryKey: ["pms", "kanban", planoId, ano], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/kanban`, { params: { ano } }).then(r => r.data as {
+    colunas: { id: string; titulo: string; acoes: Acao[] }[]; nota: string }) });
+  const [aberta, setAberta] = useState<number | null>(null);
+  const cor: Record<string, string> = { nao_iniciada: "#64748b", em_andamento: "#2563eb", atrasada: "#dc2626", aguardando_validacao: "#7c3aed", concluida: "#059669", encerrada: "#475569" };
+  return (
+    <>
+      {aberta && <DetalheAcao id={aberta} ref_={ref_} onFechar={() => setAberta(null)} />}
+      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>{q.data?.nota}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 8 }}>
+        {(q.data?.colunas ?? []).map(col => (
+          <div key={col.id} style={{ background: "#f1f5f9", borderRadius: 8, padding: 8, borderTop: `3px solid ${cor[col.id]}` }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: cor[col.id], marginBottom: 6 }}>{col.titulo} ({col.acoes.length})</div>
+            {col.acoes.map(a => <div key={a.id} onClick={() => setAberta(a.id)} style={{ ...card, padding: 8, marginBottom: 6, cursor: "pointer", fontSize: 12 }}>
+              <b>{a.codigo}</b> {a.descricao}<div style={{ color: "#64748b", marginTop: 2 }}>{a.responsavel_nome ?? "sem responsável"} · {dataBr(a.prazo)}</div></div>)}
+          </div>))}
+      </div>
+    </>);
+}
+
+function Cronograma({ planoId, ano }: { planoId: number; ano: number }) {
+  const q = useQuery({ queryKey: ["pms", "crono", planoId, ano], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/cronograma`, { params: { ano } }).then(r => r.data as {
+    mes: string; acoes: (Acao & { coluna: string })[] }[]) });
+  const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  return (
+    <div style={card}><h3 style={h3}>Cronograma de execução — prazos e responsáveis ({ano})</h3>
+      {(q.data ?? []).length === 0 && <div style={{ fontSize: 13, color: "#64748b" }}>Nenhuma ação na PAS do ano.</div>}
+      {(q.data ?? []).map(g => <div key={g.mes} style={{ marginBottom: 10 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: "#1e3a8a" }}>{g.mes === "sem_prazo" ? "Sem prazo definido" : `${MESES[Number(g.mes.slice(5)) - 1]}/${g.mes.slice(0, 4)}`}</div>
+        {g.acoes.map(a => <div key={a.id} style={{ fontSize: 12, display: "flex", gap: 8, padding: "3px 0 3px 10px", borderLeft: `3px solid ${COR_SIT[a.situacao]}`, marginTop: 3, flexWrap: "wrap" }}>
+          <b>{dataBr(a.prazo)}</b><span>{a.codigo} {a.descricao}</span><span style={{ color: "#475569" }}>{a.responsavel_nome ?? "sem responsável"}{a.setor_responsavel ? ` · ${a.setor_responsavel}` : ""}</span>
+          <Selo t={a.atrasada ? "Atrasada" : a.situacao_rotulo} cor={a.atrasada ? "#dc2626" : COR_SIT[a.situacao]} /></div>)}
+      </div>)}
+    </div>);
+}
+
+function Alertas({ planoId, ano }: { planoId: number; ano: number }) {
+  const q = useQuery({ queryKey: ["pms", "alertas", planoId, ano], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/alertas`, { params: { ano } }).then(r => r.data as Alerta[]) });
+  return (
+    <div style={card}><h3 style={h3}>Alertas e cobranças ({ano})</h3>
+      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Ações atrasadas e metas em risco também vão diariamente para a central de alertas do ERSUS360. Outros canais só com integração autorizada.</div>
+      {(q.data ?? []).length === 0 && <div style={{ fontSize: 13, color: "#64748b" }}>Nenhum alerta.</div>}
+      {(q.data ?? []).map((a, i) => <div key={i} style={{ display: "flex", gap: 6, fontSize: 13, padding: "3px 0", color: COR_SEV[a.severidade] }}>
+        <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 2 }} />{a.texto}{a.responsavel && <span style={{ color: "#475569" }}> — {a.responsavel}</span>}</div>)}
+    </div>);
+}
+
+function Fca({ planoId, ano, ref_ }: { planoId: number; ano: number; ref_: Ref }) {
+  const qc = useQueryClient();
+  const lista = useQuery({ queryKey: ["pms", "fca", planoId, ano], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/fca`, { params: { ano } }).then(r => r.data as {
+    id: number; meta_id: number | null; acao_id: number | null; fato: string; causa: string; causa_validacao: string; causa_validada_por: string | null;
+    acao_corretiva: string; responsavel: string | null; prazo: string | null; situacao: string; atrasada: boolean; criado_por: string }[]) });
+  const mon = useQuery({ queryKey: ["pms", "mon", planoId, ano], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/monitoramento`, { params: { ano } }).then(r => r.data as { metas: MetaMon[] }) });
+  const kb = useQuery({ queryKey: ["pms", "kanban", planoId, ano], queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/kanban`, { params: { ano } }).then(r => r.data as { colunas: { id: string; acoes: Acao[] }[] }) });
+  const metasProb = (mon.data?.metas ?? []).filter(m => m.situacao === "em_risco" || m.situacao === "nao_alcancada");
+  const acoesProb = (kb.data?.colunas ?? []).flatMap(c => c.acoes).filter(a => a.atrasada || a.situacao === "nao_executada" || a.situacao === "parcial");
+  const [f, setF] = useState({ alvo: "", fato: "", causa: "", acao_corretiva: "", responsavel: "", prazo: "" });
+  const criar = useMutation({ mutationFn: () => { const [tipo, id] = f.alvo.split(":");
+    return api.post(`/api/pms-vivo/planos/${planoId}/fca`, { ano, [tipo === "m" ? "meta_id" : "acao_id"]: Number(id), fato: f.fato, causa: f.causa,
+      acao_corretiva: f.acao_corretiva, responsavel: f.responsavel || null, prazo: f.prazo || null }); },
+    onSuccess: () => { setF({ alvo: "", fato: "", causa: "", acao_corretiva: "", responsavel: "", prazo: "" }); qc.invalidateQueries({ queryKey: ["pms"] }); } });
+  const validar = useMutation({ mutationFn: (id: number) => api.post(`/api/pms-vivo/fca/${id}/validar-causa`), onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
+  const situacao = useMutation({ mutationFn: ({ id, s }: { id: number; s: string }) => api.put(`/api/pms-vivo/fca/${id}`, { situacao: s }), onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
+  return (
+    <>
+      <div style={card}><h3 style={h3}>Nova análise FCA — Fato, Causa, Ação corretiva</h3>
+        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Para meta não alcançada ou em risco, ou ação não executada, parcial ou atrasada. A causa fica como <b>hipótese</b> até ser validada por outra pessoa com evidência.</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 8 }}>
+          <label style={lbl}>Meta ou ação analisada<select style={inp} value={f.alvo} onChange={e => setF({ ...f, alvo: e.target.value })}><option value="">Selecione…</option>
+            {metasProb.map(m => <option key={"m" + m.id} value={`m:${m.id}`}>Meta {m.codigo} — {ROT_META[m.situacao!]}</option>)}
+            {acoesProb.map(a => <option key={"a" + a.id} value={`a:${a.id}`}>Ação {a.codigo} — {a.atrasada ? "atrasada" : a.situacao_rotulo}</option>)}</select></label>
+          <label style={lbl}>Fato — o que aconteceu<textarea style={{ ...inp, minHeight: 50 }} value={f.fato} onChange={e => setF({ ...f, fato: e.target.value })} /></label>
+          <label style={lbl}>Causa — por que ficou abaixo do previsto<textarea style={{ ...inp, minHeight: 50 }} value={f.causa} onChange={e => setF({ ...f, causa: e.target.value })} /></label>
+          <label style={lbl}>Ação corretiva<textarea style={{ ...inp, minHeight: 50 }} value={f.acao_corretiva} onChange={e => setF({ ...f, acao_corretiva: e.target.value })} /></label>
+          <label style={lbl}>Responsável<input style={inp} value={f.responsavel} onChange={e => setF({ ...f, responsavel: e.target.value })} /></label>
+          <label style={lbl}>Prazo<input type="date" style={inp} value={f.prazo} onChange={e => setF({ ...f, prazo: e.target.value })} /></label>
+        </div>
+        <button style={btn()} disabled={!f.alvo || f.fato.length < 5 || f.causa.length < 5 || f.acao_corretiva.length < 5} onClick={() => criar.mutate()}>Registrar FCA</button>
+        <Erro e={criar.error} />
+      </div>
+      <div style={card}><h3 style={h3}>Análises registradas ({ano})</h3><Erro e={validar.error} />
+        {(lista.data ?? []).length === 0 && <div style={{ fontSize: 13, color: "#64748b" }}>Nenhuma.</div>}
+        {(lista.data ?? []).map(x => <div key={x.id} style={{ fontSize: 13, padding: "6px 0", borderTop: "1px solid #f1f1f1" }}>
+          <div><b>Fato:</b> {x.fato}</div>
+          <div><b>Causa:</b> {x.causa} <Selo t={x.causa_validacao === "confirmada" ? `Causa validada por ${x.causa_validada_por}` : "Hipótese"} cor={x.causa_validacao === "confirmada" ? "#059669" : "#d97706"} /></div>
+          <div><b>Ação corretiva:</b> {x.acao_corretiva} · {x.responsavel ?? "sem responsável"} · prazo {dataBr(x.prazo)} · {x.situacao.replace("_", " ")}{x.atrasada && <b style={{ color: "#dc2626" }}> · atrasada</b>}</div>
+          <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+            {ref_.pode_validar && x.causa_validacao !== "confirmada" && <button style={{ ...btn("#059669"), padding: "2px 8px", fontSize: 11 }} onClick={() => validar.mutate(x.id)}>Validar causa</button>}
+            {x.situacao !== "concluida" && <select style={{ ...inp, width: 160, fontSize: 11 }} value={x.situacao} onChange={e => situacao.mutate({ id: x.id, s: e.target.value })}>
+              <option value="aberta">Aberta</option><option value="em_andamento">Em andamento</option><option value="concluida">Concluída</option><option value="cancelada">Cancelada</option></select>}
+          </div></div>)}
+      </div>
+    </>);
+}
+
 // ── Página ───────────────────────────────────────────────────────────────────
 export default function PmsVivo() {
   const auth = useAuth() as unknown as { municipio: string; municipio_uf?: string };
@@ -414,9 +630,14 @@ export default function PmsVivo() {
   const planos = useQuery({ queryKey: ["pms", "planos"], queryFn: () => api.get("/api/pms-vivo/planos").then(r => r.data as Plano[]) });
   const [planoId, setPlanoId] = useState<number | null>(null);
   useEffect(() => { if (!planoId && planos.data?.length) setPlanoId((planos.data.find(p => p.situacao === "aprovado") ?? planos.data[0]).id); }, [planos.data]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [aba, setAba] = useState<"pms" | "pas" | "minhas" | "validacoes">("minhas");
+  const [aba, setAba] = useState<"painel" | "metas" | "kanban" | "cronograma" | "alertas" | "fca" | "pms" | "pas" | "minhas" | "validacoes">("minhas");
+  const [ano, setAno] = useState(ANO_ATUAL);
+  const plano = planos.data?.find(p => p.id === planoId);
+  useEffect(() => { if (plano && (ano < plano.vigencia_inicio || ano > plano.vigencia_fim)) setAno(plano.vigencia_inicio); }, [plano]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!ref_.data) return <div style={{ padding: 20 }}>Carregando…</div>;
-  const abas = [["minhas", "Minhas Ações"], ["pms", "Plano (PMS)"], ["pas", "PAS e ações"], ["validacoes", "Validações"]] as const;
+  const abas = [["minhas", "Minhas Ações"], ["painel", "Painel do gestor"], ["metas", "Metas"], ["kanban", "Kanban"], ["cronograma", "Cronograma"],
+    ["alertas", "Alertas"], ["fca", "FCA"], ["pms", "Plano (PMS)"], ["pas", "PAS e ações"], ["validacoes", "Validações"]] as const;
+  const precisaPlano = ["painel", "metas", "kanban", "cronograma", "alertas", "fca"].includes(aba);
   return (
     <div style={{ padding: 20, maxWidth: 1300, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
@@ -427,6 +648,20 @@ export default function PmsVivo() {
         {abas.map(([k, r]) => <button key={k} onClick={() => setAba(k)} style={{ background: "none", border: "none", padding: "8px 12px", cursor: "pointer", fontSize: 13,
           fontWeight: aba === k ? 700 : 500, color: aba === k ? "#1d4ed8" : "#475569", borderBottom: aba === k ? "2px solid #1d4ed8" : "2px solid transparent" }}>{r}</button>)}
       </div>
+      {precisaPlano && (planoId && plano ? <div style={{ ...card, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", padding: 10 }}>
+        <span style={{ fontSize: 13 }}><b>{plano.titulo}</b> · v{plano.versao} · {ROT_PLANO[plano.situacao]}</span>
+        <label style={{ fontSize: 12, color: "#475569" }}>Ano <select style={{ ...inp, width: 100, display: "inline-block" }} value={ano} onChange={e => setAno(Number(e.target.value))}>
+          {Array.from({ length: plano.vigencia_fim - plano.vigencia_inicio + 1 }, (_, i) => plano.vigencia_inicio + i).map(a => <option key={a} value={a}>{a}</option>)}</select></label>
+        <span style={{ fontSize: 12, color: "#64748b" }}>Troque a versão do PMS na aba "Plano (PMS)".</span>
+      </div> : <div style={card}>Cadastre ou selecione um PMS na aba "Plano (PMS)".</div>)}
+      {precisaPlano && planoId && plano && <>
+        {aba === "painel" && <PainelGestor planoId={planoId} ano={ano} />}
+        {aba === "metas" && <Metas planoId={planoId} ano={ano} ref_={ref_.data} />}
+        {aba === "kanban" && <Kanban planoId={planoId} ano={ano} ref_={ref_.data} />}
+        {aba === "cronograma" && <Cronograma planoId={planoId} ano={ano} />}
+        {aba === "alertas" && <Alertas planoId={planoId} ano={ano} />}
+        {aba === "fca" && <Fca planoId={planoId} ano={ano} ref_={ref_.data} />}
+      </>}
       {aba === "pms" && <AbaPms ref_={ref_.data} planoId={planoId} setPlanoId={setPlanoId} />}
       {aba === "pas" && <AbaPas ref_={ref_.data} planoId={planoId} />}
       {aba === "minhas" && <MinhasAcoes ref_={ref_.data} />}

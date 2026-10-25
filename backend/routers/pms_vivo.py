@@ -29,6 +29,16 @@ Atualizar a execução: o responsável indicado na ação ou quem valida. Ver se
   POST   /acoes/{id}/anexos · GET/DELETE /anexos/{id}
   GET    /minhas-acoes                        ações do usuário da sessão
   GET    /responsaveis                        usuários do município para indicar como responsáveis
+  — entrega 2 —
+  PUT    /metas/{id}/fonte-automatica         liga a meta a um indicador do ERSUS360 (correspondência exata)
+  PUT    /metas/{id}/resultados/{ano}         resultado anual com fonte e competência (versão aprovada)
+  POST   /metas/{id}/resultados/{ano}/coletar busca o resultado na fonte automática
+  GET    /planos/{id}/monitoramento?ano=      metas: previsto × resultado, cumprimento, acumulado, tendência
+  GET    /planos/{id}/painel?ano=&filtros     painel do gestor
+  GET    /planos/{id}/kanban?ano=&filtros     ações por coluna
+  GET    /planos/{id}/cronograma?ano=&filtros ações por mês do prazo
+  GET    /planos/{id}/alertas?ano=            alertas e cobranças
+  GET    /planos/{id}/fca · POST · PUT /fca/{id} · POST /fca/{id}/validar-causa   análise Fato–Causa–Ação
 """
 from __future__ import annotations
 
@@ -44,10 +54,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
-from models.pms_vivo import (PmsAcao, PmsAcaoMeta, PmsAnexo, PmsAtualizacao, PmsDiretriz, PmsHistorico, PmsMeta,
-                             PmsMetaAnual, PmsObjetivo, PmsPas, PmsPlano)
+from models.pms_vivo import (PmsAcao, PmsAcaoMeta, PmsAnexo, PmsAtualizacao, PmsDiretriz, PmsFca, PmsHistorico,
+                             PmsMeta, PmsMetaAnual, PmsObjetivo, PmsPas, PmsPlano)
 from models.usuario import Usuario
 from routers.auth import UserOut, ip_de
+from services import pms_monitoramento as mon
 from services import pms_vivo as svc
 from tenancy.arquivos import caminho_seguro, pasta_municipio
 from tenancy.auditoria import registrar_auditoria
@@ -863,3 +874,269 @@ async def responsaveis(current: SessaoMunicipal, db: AsyncSession = Depends(get_
     us = (await db.execute(select(Usuario).where(Usuario.municipio_id == current.municipio_id, Usuario.ativo.is_(True))
                            .order_by(Usuario.nome))).scalars().all()
     return [{"id": u.id, "nome": u.nome, "perfil": getattr(u.perfil, "value", u.perfil)} for u in us]
+
+
+# ══ Entrega 2 — monitoramento das metas, painel, Kanban, cronograma, alertas, FCA ══════════════
+
+def _validador(u: UserOut) -> None:
+    if not svc.pode_validar(u):
+        raise HTTPException(403, "Perfil sem permissão para registrar resultados (Secretário, Planejamento ou Coordenação).")
+
+
+class FonteAutoIn(BaseModel):
+    fonte_automatica: Optional[str] = None
+
+
+@router.put("/metas/{meta_id}/fonte-automatica")
+async def definir_fonte_automatica(meta_id: int, body: FonteAutoIn, request: Request, current: SessaoMunicipal,
+                                   db: AsyncSession = Depends(get_db)):
+    _planejador(current)
+    m = await _get(db, current, PmsMeta, meta_id, "pms_meta")
+    if body.fonte_automatica is not None and body.fonte_automatica not in mon.FONTES_AUTOMATICAS:
+        raise HTTPException(422, "Fonte automática desconhecida.")
+    if body.fonte_automatica and m.tipo_indicador and m.tipo_indicador != mon.FONTES_AUTOMATICAS[body.fonte_automatica]["tipo"]:
+        raise HTTPException(422, "O tipo do indicador da meta não corresponde ao da fonte automática.")
+    m.fonte_automatica = body.fonte_automatica
+    svc.historico(db, m.municipio_id, "meta", m.id, "fonte_automatica",
+                  f"Fonte automática: {body.fonte_automatica or 'nenhuma'}", current.username)
+    await db.commit()
+    await _audit(db, current, request, "PMS_META_FONTE_AUTO", "pms_meta", m.id, body.fonte_automatica)
+    return svc.dict_meta(m)
+
+
+class ResultadoIn(BaseModel):
+    resultado: Optional[float] = None
+    fonte: Optional[str] = Field(None, max_length=300)
+    competencia: Optional[str] = Field(None, max_length=40)
+    observacao: Optional[str] = Field(None, max_length=2000)
+
+
+async def _meta_anual(db, u, meta_id: int, ano: int) -> tuple[PmsMeta, PmsMetaAnual]:
+    m = await _get(db, u, PmsMeta, meta_id, "pms_meta")
+    p = await db.get(PmsPlano, m.plano_id)
+    if p.situacao != "aprovado":
+        raise HTTPException(409, "Resultados são registrados na versão aprovada (oficial) do PMS.")
+    if ano not in svc.anos_do(p):
+        raise HTTPException(422, "Ano fora da vigência do PMS.")
+    reg = (await db.execute(select(PmsMetaAnual).where(
+        PmsMetaAnual.meta_id == m.id, PmsMetaAnual.ano == ano))).scalar_one_or_none()
+    if reg is None:
+        reg = PmsMetaAnual(meta_id=m.id, municipio_id=m.municipio_id, ano=ano)
+        db.add(reg)
+    return m, reg
+
+
+@router.put("/metas/{meta_id}/resultados/{ano}")
+async def registrar_resultado(meta_id: int, ano: int, body: ResultadoIn, request: Request, current: SessaoMunicipal,
+                              db: AsyncSession = Depends(get_db)):
+    _validador(current)
+    m, reg = await _meta_anual(db, current, meta_id, ano)
+    if body.resultado is not None and not (body.fonte or "").strip():
+        raise HTTPException(422, "Informe a fonte do resultado.")
+    if body.resultado is None and not (body.observacao or "").strip():
+        raise HTTPException(422, "Explique por que o resultado está sendo removido.")
+    antes = reg.resultado
+    reg.resultado, reg.resultado_fonte, reg.resultado_competencia = body.resultado, body.fonte, body.competencia
+    reg.resultado_por, reg.resultado_em = current.username, datetime.utcnow()
+    svc.historico(db, m.municipio_id, "meta", m.id, "resultado",
+                  f"{ano}: {antes if antes is not None else '—'} → {body.resultado if body.resultado is not None else '—'}"
+                  f" (fonte: {body.fonte or '—'}{', ' + body.competencia if body.competencia else ''})"
+                  + (f" — {body.observacao}" if body.observacao else ""), current.username)
+    await db.commit()
+    await _audit(db, current, request, "PMS_RESULTADO", "pms_meta_anual", reg.id, f"{m.codigo} {ano}: {body.resultado}")
+    return {"ano": ano, "resultado": reg.resultado, "fonte": reg.resultado_fonte, "competencia": reg.resultado_competencia}
+
+
+@router.post("/metas/{meta_id}/resultados/{ano}/coletar")
+async def coletar_resultado(meta_id: int, ano: int, request: Request, current: SessaoMunicipal,
+                            db: AsyncSession = Depends(get_db)):
+    _validador(current)
+    m, reg = await _meta_anual(db, current, meta_id, ano)
+    if not m.fonte_automatica:
+        raise HTTPException(422, "A meta não está ligada a uma fonte automática.")
+    r = await mon.coletar_fonte_automatica(m.fonte_automatica, ano)
+    if not r["ok"]:
+        await db.rollback()
+        return {"ok": False, "motivo": r["motivo"]}
+    antes = reg.resultado
+    reg.resultado, reg.resultado_fonte, reg.resultado_competencia = r["resultado"], r["fonte"], r["competencia"]
+    reg.resultado_por, reg.resultado_em = f"{current.username} (coleta automática)", datetime.utcnow()
+    svc.historico(db, m.municipio_id, "meta", m.id, "resultado_auto",
+                  f"{ano}: {antes if antes is not None else '—'} → {r['resultado']} ({r['fonte']})", current.username)
+    await db.commit()
+    await _audit(db, current, request, "PMS_RESULTADO_AUTO", "pms_meta_anual", reg.id, f"{m.codigo} {ano}: {r['resultado']}")
+    return {"ok": True, "ano": ano, "resultado": r["resultado"], "fonte": r["fonte"], "competencia": r["competencia"]}
+
+
+def _filtros(setor=None, responsavel_usuario_id=None, situacao=None, diretriz_id=None, objetivo_id=None) -> dict:
+    return {"setor": setor, "responsavel_usuario_id": responsavel_usuario_id, "situacao": situacao,
+            "diretriz_id": diretriz_id, "objetivo_id": objetivo_id}
+
+
+@router.get("/planos/{plano_id}/monitoramento")
+async def monitoramento(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None,
+                        db: AsyncSession = Depends(get_db)):
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    return {"plano": svc.dict_plano(p), "ano": ano or date.today().year, "anos": svc.anos_do(p),
+            "situacoes": mon.SITUACOES_META, "fontes_automaticas": mon.FONTES_AUTOMATICAS,
+            "metas": await mon.monitoramento(db, p, ano)}
+
+
+async def _dados_painel(db, current, plano_id, ano, f: dict):
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    ano = ano or date.today().year
+    metas = await mon.monitoramento(db, p, ano)
+    if f.get("diretriz_id"):
+        metas = [m for m in metas if m["diretriz_id"] == f["diretriz_id"]]
+    if f.get("objetivo_id"):
+        metas = [m for m in metas if m["objetivo_id"] == f["objetivo_id"]]
+    if f.get("setor"):
+        metas = [m for m in metas if m["setor_responsavel"] == f["setor"]]
+    acoes = await mon.acoes_do_ano(db, p, ano, f)
+    pend = (await db.execute(select(PmsAtualizacao).where(
+        PmsAtualizacao.municipio_id == current.municipio_id, PmsAtualizacao.status == "pendente",
+        PmsAtualizacao.acao_id.in_([a["id"] for a in acoes] or [0])))).scalars().all()
+    return p, ano, metas, acoes, mon.alertas(acoes, metas, pend)
+
+
+@router.get("/planos/{plano_id}/painel")
+async def painel(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None, setor: Optional[str] = None,
+                 responsavel_usuario_id: Optional[int] = None, situacao: Optional[str] = None,
+                 diretriz_id: Optional[int] = None, objetivo_id: Optional[int] = None, db: AsyncSession = Depends(get_db)):
+    p, ano, metas, acoes, als = await _dados_painel(
+        db, current, plano_id, ano, _filtros(setor, responsavel_usuario_id, situacao, diretriz_id, objetivo_id))
+    return {"plano": svc.dict_plano(p), "ano": ano, **mon.painel(metas, acoes, als),
+            "metas_em_risco": [m for m in metas if m["situacao"] in {"em_risco", "nao_alcancada"}],
+            "setores": sorted({a["setor_responsavel"] for a in acoes if a["setor_responsavel"]}),
+            "nota": "Reprogramação: disponível na entrega 3. A situação das metas depende de resultados registrados com fonte."}
+
+
+@router.get("/planos/{plano_id}/kanban")
+async def kanban(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None, setor: Optional[str] = None,
+                 responsavel_usuario_id: Optional[int] = None, diretriz_id: Optional[int] = None,
+                 db: AsyncSession = Depends(get_db)):
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    acoes = await mon.acoes_do_ano(db, p, ano or date.today().year,
+                                   _filtros(setor, responsavel_usuario_id, diretriz_id=diretriz_id))
+    return {"colunas": [{"id": k, "titulo": t, "acoes": [a for a in acoes if a["coluna"] == k]}
+                        for k, t in mon.COLUNAS_KANBAN.items()],
+            "nota": "A situação oficial só muda depois que a execução informada é validada."}
+
+
+@router.get("/planos/{plano_id}/cronograma")
+async def cronograma(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None, setor: Optional[str] = None,
+                     responsavel_usuario_id: Optional[int] = None, db: AsyncSession = Depends(get_db)):
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    return mon.cronograma(await mon.acoes_do_ano(db, p, ano or date.today().year, _filtros(setor, responsavel_usuario_id)))
+
+
+@router.get("/planos/{plano_id}/alertas")
+async def alertas_plano(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None,
+                        db: AsyncSession = Depends(get_db)):
+    return (await _dados_painel(db, current, plano_id, ano, _filtros()))[4]
+
+
+# ── FCA ───────────────────────────────────────────────────────────────────────
+
+def _dict_fca(f: PmsFca) -> dict:
+    d = {k: getattr(f, k) for k in ("id", "plano_id", "meta_id", "acao_id", "ano", "fato", "causa", "causa_validacao",
+                                     "causa_validada_por", "acao_corretiva", "responsavel", "evidencia", "situacao",
+                                     "criado_por", "atualizado_por")}
+    d["prazo"] = f.prazo.isoformat() if f.prazo else None
+    d["causa_validada_em"] = f.causa_validada_em.isoformat() if f.causa_validada_em else None
+    d["atrasada"] = bool(f.prazo and f.prazo < date.today() and f.situacao in {"aberta", "em_andamento"})
+    return d
+
+
+class FcaIn(BaseModel):
+    ano: int
+    meta_id: Optional[int] = None
+    acao_id: Optional[int] = None
+    fato: str = Field(min_length=5, max_length=4000)
+    causa: str = Field(min_length=5, max_length=4000)
+    acao_corretiva: str = Field(min_length=5, max_length=4000)
+    responsavel: Optional[str] = Field(None, max_length=150)
+    prazo: Optional[date] = None
+    evidencia: Optional[str] = Field(None, max_length=4000)
+
+
+class FcaUpd(BaseModel):
+    fato: Optional[str] = Field(None, min_length=5, max_length=4000)
+    causa: Optional[str] = Field(None, min_length=5, max_length=4000)
+    acao_corretiva: Optional[str] = Field(None, min_length=5, max_length=4000)
+    responsavel: Optional[str] = Field(None, max_length=150)
+    prazo: Optional[date] = None
+    evidencia: Optional[str] = Field(None, max_length=4000)
+    situacao: Optional[Literal["aberta", "em_andamento", "concluida", "cancelada"]] = None
+
+
+@router.get("/planos/{plano_id}/fca")
+async def listar_fca(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None,
+                     db: AsyncSession = Depends(get_db)):
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    q = select(PmsFca).where(PmsFca.plano_id == p.id, PmsFca.municipio_id == current.municipio_id)
+    if ano:
+        q = q.where(PmsFca.ano == ano)
+    return [_dict_fca(f) for f in (await db.execute(q.order_by(PmsFca.id.desc()))).scalars()]
+
+
+@router.post("/planos/{plano_id}/fca", status_code=201)
+async def criar_fca(plano_id: int, body: FcaIn, request: Request, current: SessaoMunicipal,
+                    db: AsyncSession = Depends(get_db)):
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    if (body.meta_id is None) == (body.acao_id is None):
+        raise HTTPException(422, "Informe a meta OU a ação analisada.")
+    if body.meta_id:
+        _validador(current)
+        m = await _get(db, current, PmsMeta, body.meta_id, "pms_meta")
+        if m.plano_id != p.id:
+            raise HTTPException(422, "Meta de outro PMS.")
+        sit = next((x for x in await mon.monitoramento(db, p, body.ano) if x["id"] == m.id), {}).get("situacao")
+        if sit not in {"nao_alcancada", "em_risco"}:
+            raise HTTPException(422, "FCA de meta só quando ela não foi alcançada ou está em risco no ano.")
+    else:
+        a = await _get(db, current, PmsAcao, body.acao_id, "pms_acao")
+        _pode_atualizar(current, a)
+        pas = await db.get(PmsPas, a.pas_id)
+        if pas.plano_id != p.id:
+            raise HTTPException(422, "Ação de outro PMS.")
+        if not (a.situacao in {"nao_executada", "parcial"} or svc.acao_atrasada(a)):
+            raise HTTPException(422, "FCA de ação só quando ela não foi executada, foi parcial ou está atrasada.")
+    f = PmsFca(municipio_id=current.municipio_id, plano_id=p.id, criado_por=current.username,
+               atualizado_por=current.username, **body.model_dump())
+    db.add(f)
+    await db.flush()
+    svc.historico(db, f.municipio_id, "meta" if body.meta_id else "acao", body.meta_id or body.acao_id, "fca",
+                  f"FCA registrada (causa como hipótese): {body.causa[:200]}", current.username)
+    await db.commit()
+    await _audit(db, current, request, "PMS_FCA_CRIADA", "pms_fca", f.id)
+    return _dict_fca(f)
+
+
+@router.put("/fca/{fca_id}")
+async def editar_fca(fca_id: int, body: FcaUpd, request: Request, current: SessaoMunicipal,
+                     db: AsyncSession = Depends(get_db)):
+    f = await _get(db, current, PmsFca, fca_id, "pms_fca")
+    if not (svc.pode_validar(current) or f.criado_por == current.username):
+        raise HTTPException(403, "Só quem registrou a FCA ou a coordenação podem alterá-la.")
+    mud = body.model_dump(exclude_unset=True)
+    if "causa" in mud and mud["causa"] != f.causa:
+        f.causa_validacao, f.causa_validada_por, f.causa_validada_em = "hipotese", None, None
+    for k, v in mud.items():
+        setattr(f, k, v)
+    f.atualizado_por, f.atualizado_em = current.username, datetime.utcnow()
+    await db.commit()
+    await _audit(db, current, request, "PMS_FCA_EDITADA", "pms_fca", f.id, ", ".join(sorted(mud)))
+    return _dict_fca(f)
+
+
+@router.post("/fca/{fca_id}/validar-causa")
+async def validar_causa(fca_id: int, request: Request, current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    _validador(current)
+    f = await _get(db, current, PmsFca, fca_id, "pms_fca")
+    if f.criado_por == current.username:
+        raise HTTPException(409, "A causa deve ser validada por outra pessoa, não por quem registrou.")
+    f.causa_validacao, f.causa_validada_por, f.causa_validada_em = "confirmada", current.username, datetime.utcnow()
+    await db.commit()
+    await _audit(db, current, request, "PMS_FCA_CAUSA_VALIDADA", "pms_fca", f.id)
+    return _dict_fca(f)

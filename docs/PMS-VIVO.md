@@ -68,13 +68,61 @@ Usa os perfis que já existem, sem criar perfil novo no banco:
 | Controle social / consulta | `conselho` / `consulta` (só leitura) |
 | Executor | o usuário indicado na ação |
 
+## Entrega 2 — fases 4 e 5
+Serviço `services/pms_monitoramento.py`.
+
+### Resultado das metas
+- O resultado de cada ano é registrado na versão aprovada, sempre com fonte e competência, por Secretário, Planejamento ou Coordenação. Cada registro fica no histórico e na auditoria.
+- **Cálculo por tipo de indicador:**
+
+  | Tipo | Como é calculado |
+  |---|---|
+  | Acumulável | Soma dos anos, comparada à meta quadrienal |
+  | Percentual, taxa, índice, absoluto não acumulável | Último resultado, sem soma entre anos |
+  | Sim/não | Cumprido só se o resultado for igual à meta |
+  | Tipo não informado | Sem acumulado nem tendência (aparece aviso) |
+
+- Polaridade "quanto menor, melhor": cumprimento = meta ÷ resultado.
+- **Situação da meta no ano:**
+  - **Ano encerrado:** alcançada ou não alcançada. Sem resultado registrado = "Sem resultado", nunca "não alcançada".
+  - **Ano corrente:** em risco quando o resultado está abaixo da meta ou há ação atrasada, não executada ou parcial; senão, em acompanhamento.
+  - **Ano futuro:** prevista.
+- **Tendência:** melhora, piora ou estável, comparando os dois últimos resultados e respeitando a polaridade.
+- **Fonte automática:** só com correspondência exata. Hoje existe uma, `siops_pct_asps` (SIOPS, % aplicado em ações e serviços de saúde), que exige meta do tipo percentual. Se a fonte não traz dado, nada é gravado e aparece o motivo.
+
+### Painel, Kanban, cronograma e alertas
+- **Painel do gestor:**
+  - metas: total, alcançadas, em risco, não alcançadas e sem resultado;
+  - ações: concluídas, atrasadas, não executadas, parciais e aguardando validação;
+  - resultados por diretriz;
+  - responsáveis com pendências;
+  - metas em risco.
+
+  Filtros: ano, diretriz, objetivo, setor, responsável e situação. O ano é escolhido na barra da aba; diretriz, setor, responsável e situação, no próprio painel. Reprogramação aparece como "entrega 3".
+- **Kanban:** colunas Não iniciadas, Em andamento, Atrasadas, Aguardando validação, Concluídas e Encerradas. Os cartões são só visualização: a situação oficial continua mudando apenas por validação.
+- **Cronograma:** ações por mês do prazo, com responsável e setor.
+- **Alertas:**
+  - prazo em até 15 dias;
+  - ação atrasada;
+  - meta em risco;
+  - sem atualização há mais de 30 dias;
+  - evidência esperada ausente;
+  - atualização devolvida;
+  - validação pendente há mais de 5 dias;
+  - meta sem tipo de indicador.
+
+  A rotina `pms_vivo_alertas` (07:30, horário de Manaus) leva ações atrasadas e metas em risco para a central de alertas, sem duplicar.
+
+### FCA (Fato, Causa, Ação corretiva)
+- Só para meta não alcançada ou em risco, ou para ação não executada, parcial ou atrasada.
+- A causa fica como **hipótese** até ser validada por outra pessoa. Se a causa for alterada, volta a ser hipótese.
+- Registra responsável, prazo, evidência e situação da ação corretiva.
+- A sugestão de hipóteses por IA não foi incluída: fica para quando houver uma integração de IA autorizada para este módulo.
+
+### Banco
+A migração idempotente `_migrar_pms_vivo` em `database.py` adiciona `pms_meta.fonte_automatica`. A tabela `pms_fca` é criada pelo `create_all`.
+
 ## Próximas entregas
-- **Entrega 2 (fases 4 e 5):**
-  - painel do gestor com filtros, Kanban e cronograma;
-  - alertas e cobranças;
-  - resultado anual das metas, com fórmula por tipo de indicador (sem somar percentuais e taxas);
-  - indicadores do ERSUS360 como fonte quando a correspondência for exata;
-  - análise FCA.
 - **Entrega 3 (fases 6 e 7):**
   - "Reprogramar para o Exercício Seguinte", com aprovação;
   - relatórios de apoio ao RDQA e ao RAG, em PDF e Excel;
@@ -89,3 +137,12 @@ Usa os perfis que já existem, sem criar perfil novo no banco:
 - a PAS e as ações N:N;
 - a execução, a validação, a devolução, o cancelamento e a proibição de autovalidação;
 - Minhas Ações, o isolamento entre municípios e os perfis.
+
+`backend/tests/test_pms_monitoramento.py` cobre:
+- o cálculo por tipo de indicador e polaridade, o acumulado sem soma de percentual, a tendência e a situação (sem resultado não é fracasso);
+- o resultado com fonte obrigatória;
+- a fonte automática do SIOPS, com e sem dado;
+- o painel com filtros, o Kanban, o cronograma e os alertas;
+- a central de alertas sem duplicar;
+- a FCA, com a causa como hipótese até validação por outra pessoa;
+- o isolamento entre municípios.

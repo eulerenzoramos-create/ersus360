@@ -258,7 +258,7 @@ async def gravar_estrutura(db: AsyncSession, plano: PmsPlano, diretrizes: list[d
                              uid=m.get("uid") or str(uuid.uuid4()), codigo=m["codigo"], descricao=m["descricao"],
                              ordem=k, **{c: m.get(c) for c in (
                                  "indicador", "tipo_indicador", "unidade", "polaridade", "formula", "linha_base",
-                                 "ano_linha_base", "meta_quadrienal", "fonte", "setor_responsavel")})
+                                 "ano_linha_base", "meta_quadrienal", "fonte", "setor_responsavel", "fonte_automatica")})
                 db.add(me)
                 await db.flush()
                 tot["metas"] += 1
@@ -298,7 +298,8 @@ async def arvore(db: AsyncSession, plano: PmsPlano) -> list[dict]:
 def dict_meta(m: PmsMeta) -> dict:
     return {k: getattr(m, k) for k in (
         "id", "uid", "codigo", "descricao", "indicador", "tipo_indicador", "unidade", "polaridade", "formula",
-        "linha_base", "ano_linha_base", "meta_quadrienal", "fonte", "setor_responsavel", "objetivo_id")}
+        "linha_base", "ano_linha_base", "meta_quadrienal", "fonte", "setor_responsavel", "objetivo_id",
+        "fonte_automatica")}
 
 
 def dict_plano(p: PmsPlano) -> dict:

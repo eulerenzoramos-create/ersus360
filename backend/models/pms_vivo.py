@@ -12,6 +12,7 @@ PMS Vivo — Plano Municipal de Saúde como ferramenta de gestão (PMS → PAS �
   pms_atualizacao    execução informada pelo responsável, aguardando validação (validada | devolvida)
   pms_anexo          evidências (ação/atualização) e documento oficial do PMS (PDF)
   pms_historico      trilha de alterações (só acrescenta)
+  pms_fca            análise Fato → Causa → Ação corretiva de meta não alcançada/em risco ou ação não executada
 
 Tudo com municipio_id (isolamento multi-município). Nenhum valor é preenchido sem fonte: campos vazios
 quando o documento/planilha não traz.
@@ -90,6 +91,7 @@ class PmsMeta(Base):
     meta_quadrienal = Column(Float, nullable=True)
     fonte           = Column(String(300), nullable=True)
     setor_responsavel = Column(String(150), nullable=True)
+    fonte_automatica = Column(String(40), nullable=True)  # código em services/pms_vivo.FONTES_AUTOMATICAS (correspondência exata)
     ordem           = Column(Integer, nullable=False, default=0)
 
 
@@ -217,3 +219,28 @@ class PmsHistorico(Base):
     descricao    = Column(Text, nullable=False)
     usuario      = Column(String(200), nullable=True)
     criado_em    = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PmsFca(Base):
+    __tablename__ = "pms_fca"
+
+    id              = Column(Integer, primary_key=True, autoincrement=True)
+    municipio_id    = Column(Integer, ForeignKey("municipios.id"), nullable=False, index=True)
+    plano_id        = Column(Integer, ForeignKey("pms_plano.id"), nullable=False, index=True)
+    meta_id         = Column(Integer, ForeignKey("pms_meta.id"), nullable=True, index=True)
+    acao_id         = Column(Integer, ForeignKey("pms_acao.id"), nullable=True, index=True)
+    ano             = Column(Integer, nullable=False)
+    fato            = Column(Text, nullable=False)
+    causa           = Column(Text, nullable=False)
+    causa_validacao = Column(String(12), nullable=False, default="hipotese")   # hipotese | confirmada
+    causa_validada_por = Column(String(200), nullable=True)
+    causa_validada_em  = Column(DateTime, nullable=True)
+    acao_corretiva  = Column(Text, nullable=False)
+    responsavel     = Column(String(150), nullable=True)
+    prazo           = Column(Date, nullable=True)
+    evidencia       = Column(Text, nullable=True)
+    situacao        = Column(String(15), nullable=False, default="aberta")    # aberta | em_andamento | concluida | cancelada
+    criado_por      = Column(String(200), nullable=True)
+    criado_em       = Column(DateTime, default=datetime.utcnow, nullable=False)
+    atualizado_por  = Column(String(200), nullable=True)
+    atualizado_em   = Column(DateTime, default=datetime.utcnow, nullable=False)
