@@ -61,6 +61,7 @@ async def init_db():
         from models import siaps_publico  # noqa — resultados públicos oficiais do SIAPS (quadrimestre, IED)
         from models import egestor_ausencia  # noqa — monitoramento SIAPS: ausência de envio (e-Gestor)
         from models import vigilancia_fvs  # noqa — Vigilância em Saúde: série pública da FVS-RCP/AM
+        from models import diagnostico_situacional  # noqa — Diagnóstico Situacional da Saúde Municipal
         await conn.run_sync(Base.metadata.create_all)
         # Tabela de snapshot eSUS PEC (entrada manual ou bookmarklet)
         if _raw_url.startswith("sqlite"):

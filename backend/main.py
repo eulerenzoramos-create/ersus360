@@ -455,6 +455,8 @@ app.include_router(siaps_publico_router)
 app.include_router(siaps_ia_router)
 from routers.vigilancia_fvs import router as vigilancia_fvs_router
 app.include_router(vigilancia_fvs_router)   # Vigilância em Saúde — dados públicos da FVS-RCP/AM
+from routers.diagnostico_situacional import router as diagnostico_situacional_router
+app.include_router(diagnostico_situacional_router)   # Diagnóstico Situacional da Saúde Municipal
 app.include_router(tenant_router)
 app.include_router(admin_geral_router)
 app.include_router(municipios_router)
