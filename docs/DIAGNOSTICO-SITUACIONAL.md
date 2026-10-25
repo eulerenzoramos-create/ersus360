@@ -23,6 +23,7 @@ Multi-município: tudo é filtrado pelo município da sessão; registro de outro
   - ação atrasada.
 
   Os novos críticos também vão para a central `alertas`, no módulo "Diagnóstico", sem duplicar.
+- Rotina diária às 08:00 (Manaus), job `diagnostico_situacional`: atualiza a coleta automática dos diagnósticos **não concluídos** de cada município ativo. Roda depois das coletas da manhã (SIAPS, e-Gestor, FVS e InvestSUS), segue as mesmas regras da coleta manual, registra alertas centrais e é auditada como `sistema`.
 - Diagnóstico concluído bloqueia edição até ser reaberto. Toda escrita vai para a auditoria (`DIAGNOSTICO_*`) e para o histórico do item.
 - Anexos ficam em `documentos/diagnostico/{id}` do município: limite de 10 MB, tipos restritos, exclusão lógica. Entram no backup municipal.
 
@@ -62,4 +63,4 @@ Nenhum resultado foi preenchido à mão. Ao gerar o diagnóstico em produção, 
 12. Responsáveis
 
 ## Testes
-`backend/tests/test_diagnostico_situacional.py` (13 testes): regras sem rede, fluxo completo pela API, validação, 5W2H, anexos, PDF, comparação, alerta central e isolamento entre municípios.
+`backend/tests/test_diagnostico_situacional.py` (15 testes): regras sem rede, fluxo completo pela API, validação, 5W2H, anexos, PDF, comparação, alerta central, falha de uma fonte sem desfazer as outras, rotina diária e isolamento entre municípios.

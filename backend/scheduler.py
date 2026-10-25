@@ -543,6 +543,42 @@ async def _job_investsus_federal() -> None:
         logger.error("[Scheduler] Erro no job INVESTSUS 360: %s", exc, exc_info=True)
 
 
+async def _job_diagnostico_situacional() -> None:
+    """Diagnóstico Situacional: atualiza a coleta automática dos diagnósticos não concluídos de cada
+    município ativo, depois das coletas da manhã (SIAPS, e-Gestor, FVS, InvestSUS). Fonte fora do ar
+    vira "Não verificado" no item; item declarado, validado ou contestado não é reescrito."""
+    logger.info("[Scheduler] Diagnóstico Situacional: recoleta dos diagnósticos em aberto...")
+    try:
+        from sqlalchemy import select
+        from database import AsyncSessionLocal
+        from models.municipio import Municipio
+        from services.diagnostico import recoletar_abertos
+        from tenancy.auditoria import registrar_auditoria
+        from tenancy.contexto import MunicipioContexto, contexto_municipio
+        async with AsyncSessionLocal() as db:
+            municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
+        for mun in municipios:
+            ctx = MunicipioContexto(id=mun.id, uuid=mun.uuid, ibge=mun.codigo_ibge, nome=mun.nome, uf=mun.uf)
+            try:
+                with contexto_municipio(ctx):
+                    async with AsyncSessionLocal() as db:
+                        feitos = await recoletar_abertos(db, mun.id, mun.codigo_ibge)
+                        if feitos:
+                            await registrar_auditoria(
+                                db, "DIAGNOSTICO_COLETA", login="sistema", municipio_id=mun.id,
+                                tabela="diag_diagnostico",
+                                detalhe="rotina diária: " + "; ".join(
+                                    f"{f['rotulo']} atualizados={len(f['atualizados'])} "
+                                    f"alertas_novos={f['alertas_novos']}" for f in feitos))
+                if feitos:
+                    logger.info("[Scheduler] Diagnóstico %s: %s diagnóstico(s) atualizados",
+                                mun.codigo_ibge, len(feitos))
+            except Exception as exc:  # um município com erro não para os demais
+                logger.error("[Scheduler] Diagnóstico %s: %s", mun.codigo_ibge, exc, exc_info=True)
+    except Exception as exc:
+        logger.error("[Scheduler] Erro no job Diagnóstico Situacional: %s", exc, exc_info=True)
+
+
 def start_scheduler() -> None:
     """Registra e inicia o scheduler."""
     hora_str = settings.FNS_SYNC_HORA  # "06:00"
@@ -714,6 +750,10 @@ def start_scheduler() -> None:
     scheduler.add_job(_job_investsus_federal,
                       CronTrigger(hour="6,13", minute=40, timezone="America/Manaus"),
                       id="investsus_federal", replace_existing=True, misfire_grace_time=3600)
+
+    # Diagnóstico Situacional: recoleta diária depois das coletas da manhã
+    scheduler.add_job(_job_diagnostico_situacional, CronTrigger(hour=8, minute=0, timezone="America/Manaus"),
+                      id="diagnostico_situacional", replace_existing=True, misfire_grace_time=3600)
 
     scheduler.start()
     logger.info(

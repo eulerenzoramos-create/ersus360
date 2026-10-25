@@ -331,3 +331,42 @@ async def test_falha_de_uma_fonte_nao_desfaz_as_outras(ambiente, siops_simulado,
     it = _por_codigo((await c.get(f"{URL}/diagnosticos/{did}", headers=_h(tok))).json())
     assert it["B01"]["classificacao"] == "pendencia"
     assert it["G01"]["classificacao"] == "nao_verificado" and "ConnectionResetError" in it["G01"]["justificativa"]
+
+
+async def test_rotina_diaria_recoleta_so_abertos_e_isola_municipios(ambiente, siops_simulado, monkeypatch):
+    import database
+    import scheduler
+    from models.diagnostico_situacional import DiagDiagnostico, DiagItem
+    from models.usuario import AuditLog
+    c, S, ids = ambiente["client"], ambiente["Session"], ambiente["ids"]
+    tok_a = await _token(c, "gestor.apui@teste.gov.br")
+    tok_b = await _token(c, "gestor.b@teste.gov.br")
+    corpo = {"exercicio": 2026, "periodo_tipo": "quadrimestre", "periodo": 1}
+    d_a = (await c.post(f"{URL}/diagnosticos", headers=_h(tok_a), json=corpo)).json()["id"]
+    d_b = (await c.post(f"{URL}/diagnosticos", headers=_h(tok_b), json=corpo)).json()["id"]
+    d_fechado = (await c.post(f"{URL}/diagnosticos", headers=_h(tok_a),
+                              json={**corpo, "periodo": 2})).json()["id"]
+    await c.put(f"{URL}/diagnosticos/{d_fechado}", headers=_h(tok_a), json={"situacao": "concluido"})
+
+    # Depois de gerados, chega a publicação do SIAPS só de Apuí; o 2º quadrimestre ganha dado também
+    await _siaps_apui(S, ids["apui"])
+    dados = json.loads((Path(__file__).parent / "dados" / "siaps_publico_apui_20261017.json").read_text("utf-8"))
+    async with S() as db:
+        db.add(SiapsPublicoColeta(municipio_id=ids["apui"], recurso="quadrimestre", chave="2026Q2", versao=1,
+                                  hash="y", payload=dados["2026Q1"]))
+        await db.commit()
+
+    monkeypatch.setattr(database, "AsyncSessionLocal", S)
+    await scheduler._job_diagnostico_situacional()
+
+    async with S() as db:
+        def b01(did):
+            return select(DiagItem.classificacao).where(DiagItem.diagnostico_id == did, DiagItem.codigo == "B01")
+        assert (await db.execute(b01(d_a))).scalar_one() == "pendencia"        # aberto: atualizado
+        assert (await db.execute(b01(d_b))).scalar_one() == "nao_verificado"   # outro município: sem dado de Apuí
+        assert (await db.execute(b01(d_fechado))).scalar_one() == "nao_verificado"  # concluído: intocado
+        fechado = await db.get(DiagDiagnostico, d_fechado)
+        assert fechado.situacao == "concluido"
+        aud = (await db.execute(select(AuditLog).where(AuditLog.acao == "DIAGNOSTICO_COLETA",
+                                                       AuditLog.usuario_login == "sistema"))).scalars().all()
+    assert {a.municipio_id for a in aud} == {ids["apui"], ids["b"]}

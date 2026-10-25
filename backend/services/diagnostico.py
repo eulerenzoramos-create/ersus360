@@ -11,6 +11,7 @@ from datetime import date, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.alerta import Alerta, SeveridadeAlerta
 from models.diagnostico_situacional import DiagAcao, DiagDiagnostico, DiagHistorico, DiagItem
 from services import diagnostico_catalogo as cat
 from services import diagnostico_fontes as fontes
@@ -236,3 +237,35 @@ async def painel(db: AsyncSession, d: DiagDiagnostico) -> dict:
         "nota": "Ausência de dado = Não verificado (nunca irregularidade). Dados automáticos vêm das fontes oficiais "
                 "integradas; dados declarados e validações são registrados pelos técnicos do município.",
     }
+
+
+async def registrar_alertas_centrais(db: AsyncSession, d: DiagDiagnostico, dados_painel: dict) -> int:
+    """Novos críticos vão também para a central de alertas (módulo "Diagnóstico"), sem duplicar."""
+    novos = 0
+    for a in dados_painel["alertas"]:
+        if a["tipo"] != "novo_critico":
+            continue
+        existe = (await db.execute(select(Alerta.id).where(
+            Alerta.municipio_id == d.municipio_id, Alerta.modulo == "Diagnóstico", Alerta.descricao == a["texto"],
+            Alerta.resolvido.is_(False)))).first()
+        if not existe:
+            db.add(Alerta(municipio_id=d.municipio_id, severidade=SeveridadeAlerta.CRITICO, modulo="Diagnóstico",
+                          titulo=f"Diagnóstico {dados_painel['diagnostico']['rotulo']}: novo item crítico"[:200],
+                          descricao=a["texto"]))
+            novos += 1
+    await db.commit()
+    return novos
+
+
+async def recoletar_abertos(db: AsyncSession, municipio_id: int, ibge7: str, usuario: str = "sistema") -> list[dict]:
+    """Rotina diária: atualiza a coleta automática dos diagnósticos do município que não estão concluídos.
+    Mesmas regras da coleta manual (item declarado, validado ou contestado não é reescrito)."""
+    abertos = (await db.execute(select(DiagDiagnostico).where(
+        DiagDiagnostico.municipio_id == municipio_id, DiagDiagnostico.situacao != "concluido"))).scalars().all()
+    saida = []
+    for d in abertos:
+        resumo = await coletar(db, d, ibge7, usuario)
+        novos = await registrar_alertas_centrais(db, d, await painel(db, d))
+        saida.append({"diagnostico_id": d.id, "rotulo": cat.rotulo_periodo(d.exercicio, d.periodo_tipo, d.periodo),
+                      "alertas_novos": novos, **resumo})
+    return saida

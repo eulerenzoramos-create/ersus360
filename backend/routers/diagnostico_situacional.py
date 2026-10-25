@@ -41,7 +41,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
-from models.alerta import Alerta, SeveridadeAlerta
 from models.diagnostico_situacional import DiagAcao, DiagAnexo, DiagDiagnostico, DiagHistorico, DiagItem
 from routers.auth import UserOut, ip_de
 from services import diagnostico as svc
@@ -135,21 +134,6 @@ async def listar(current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
     return {"municipio": current.municipio, "ibge": current.municipio_ibge, "diagnosticos": saida}
 
 
-async def _registrar_alertas_centrais(db: AsyncSession, d: DiagDiagnostico, painel: dict) -> None:
-    """Novos críticos vão também para a central de alertas (módulo "Diagnóstico"), sem duplicar."""
-    for a in painel["alertas"]:
-        if a["tipo"] != "novo_critico":
-            continue
-        titulo = f"Diagnóstico {painel['diagnostico']['rotulo']}: novo item crítico"[:200]
-        existe = (await db.execute(select(Alerta.id).where(
-            Alerta.municipio_id == d.municipio_id, Alerta.modulo == "Diagnóstico", Alerta.descricao == a["texto"],
-            Alerta.resolvido.is_(False)))).first()
-        if not existe:
-            db.add(Alerta(municipio_id=d.municipio_id, titulo=titulo, descricao=a["texto"], modulo="Diagnóstico",
-                          severidade=SeveridadeAlerta.CRITICO))
-    await db.commit()
-
-
 @router.post("/diagnosticos", status_code=201)
 async def criar(body: DiagnosticoIn, request: Request, current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
     _pode_editar(current)
@@ -174,7 +158,7 @@ async def criar(body: DiagnosticoIn, request: Request, current: SessaoMunicipal,
                               tabela="diag_diagnostico", registro_id=d.id,
                               detalhe=f"{cat.rotulo_periodo(d.exercicio, d.periodo_tipo, d.periodo)}; coleta: "
                                       f"{len(resumo['atualizados'])} atualizados, {len(resumo['nao_verificados'])} não verificados")
-    await _registrar_alertas_centrais(db, d, await svc.painel(db, d))
+    await svc.registrar_alertas_centrais(db, d, await svc.painel(db, d))
     return {**svc.dict_diagnostico(d), "coleta": resumo}
 
 
@@ -223,7 +207,7 @@ async def recoletar(diag_id: int, request: Request, current: SessaoMunicipal, db
     await registrar_auditoria(db, "DIAGNOSTICO_COLETA", usuario=current, ip=ip_de(request),
                               tabela="diag_diagnostico", registro_id=d.id,
                               detalhe=f"atualizados={resumo['atualizados']} preservados={resumo['preservados']}")
-    await _registrar_alertas_centrais(db, d, await svc.painel(db, d))
+    await svc.registrar_alertas_centrais(db, d, await svc.painel(db, d))
     return resumo
 
 
