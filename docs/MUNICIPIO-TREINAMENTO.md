@@ -21,8 +21,9 @@ de treinamento do Ministério da Saúde (DF)"**.
   de Apuí aparece nele.
 - O agente local, em modo treinamento, envia o **sinal de vida**, que fica registrado no
   município de treinamento (`/api/pec-agente/situacao`).
-- O **Painel ACS** (`/acs/painel`, `/api/acs/*`) ainda é liberado só para Apuí. No município de
-  treinamento ele mostra "Módulo em implantação". Liberá-lo para outros municípios é a próxima etapa.
+- O **Painel ACS** (`/acs/painel`, `/api/acs/*`) é liberado para todos os municípios: cada um vê
+  só o próprio lote do agente. No município de treinamento, ele mostra "Conectado" depois do
+  primeiro sinal de vida, e números só quando chegar um lote ACS.
 - O lote do Painel ACS (`/api/pec-agente/acs`) é aceito para o município de treinamento
   quando o agente passar a extraí-lo. A extração do lote ainda não existe no agente (é a Fase 3
   de `DOC-PEC-ACS-INTEGRACAO.md`), e o PEC de treinamento é o lugar certo para desenvolvê-la.
@@ -84,4 +85,4 @@ python pec_sync.py --once
 ```
 O log mostra `município=5399999 (TREINAMENTO — dados fictícios)` e "✓ Sinal de vida enviado".
 No ERSUS360, entre no município de treinamento (Trocar município): a faixa amarela de
-TREINAMENTO aparece em todas as telas.
+TREINAMENTO aparece em todas as telas, e o Painel ACS mostra o agente "Conectado".

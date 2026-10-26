@@ -12,6 +12,7 @@ from routers import acs as acs_router
 from routers import pec_sync as ps
 from routers.pec_agente import HeartbeatIn, receber_heartbeat, receber_lote_acs, situacao_agente
 from tenancy.contexto import IBGE_LEGADO, IBGE_TREINAMENTO
+from tests.test_isolamento_tenant import ambiente  # noqa: F401 (fixture)
 from tests.test_pec_agente import CHAVE, _lote, _req, _sessao, apui  # noqa: F401 (fixture)
 
 CHAVE_TREINO = "chave-treinamento"  # dado-ficticio
@@ -90,3 +91,19 @@ def test_agente_de_treinamento_envia_so_para_o_municipio_de_treino(tmp_path, mon
     agente.sincronizar()
     assert [u.rsplit("/api/", 1)[1] for u, _ in enviados] == ["pec-agente/heartbeat"]   # nada em /api/pec/sync
     assert enviados[0][1]["ibge"] == IBGE_TREINAMENTO
+
+
+async def test_painel_acs_liberado_para_outro_municipio_sem_dados_de_apui(ambiente, monkeypatch):
+    """/api/acs/ saiu de ROTAS_SO_APUI: outro município abre o Painel ACS e vê só o próprio lote."""
+    from tests.test_isolamento_tenant import _h, _token
+    c = ambiente["client"]
+    monkeypatch.setenv("ERSUS_SYNC_KEY_1300144", CHAVE)
+    r = await c.post("/api/pec-agente/acs", json=_lote().model_dump(mode="json"), headers={"X-Sync-Key": CHAVE})
+    assert r.status_code == 200, r.text
+    tok_b = await _token(c, "gestor.b@teste.gov.br")
+    for rota in ("/api/acs/dashboard", "/api/acs/lista", "/api/acs/esus/status", "/api/acs/esus/tempo-real"):
+        assert (await c.get(rota, headers=_h(tok_b))).status_code == 200, rota
+    assert (await c.get("/api/acs/dashboard", headers=_h(tok_b))).json()["kpis"] is None
+    assert (await c.get("/api/acs/lista", headers=_h(tok_b))).json()["acs"] == []
+    tok_a = await _token(c, "gestor.apui@teste.gov.br")
+    assert (await c.get("/api/acs/dashboard", headers=_h(tok_a))).json()["kpis"]["total_acs"] == 2
