@@ -866,11 +866,38 @@ function BuscaRetroativa() {
             </details>
           )}
 
-          {resultado.total === 0 && (
-            <div style={{ textAlign: "center", padding: "24px 0", color: "#94a3b8", fontSize: 13 }}>
-              Nenhuma portaria do Ministério da Saúde encontrada para esta data no DOU.
-            </div>
-          )}
+          {resultado.total === 0 && (() => {
+            const falhas: string[] = resultado.log?.falhas || [];
+            const edicao: Record<string, any> = resultado.log?.edicao || {};
+            const secoes = Object.entries(edicao);
+            const lidas = secoes.filter(([, e]) => (e?.atos || 0) > 0);
+            if (falhas.length > 0 && lidas.length === 0) {
+              return (
+                <div style={{ textAlign: "center", padding: "24px 0", color: "#dc2626", fontSize: 13 }}>
+                  Não foi possível consultar o DOU para esta data — o resultado não é confiável.<br />
+                  <span style={{ fontSize: 11 }}>{falhas.join("; ")}</span>
+                </div>
+              );
+            }
+            return (
+              <div style={{ textAlign: "center", padding: "24px 0", color: "#94a3b8", fontSize: 13 }}>
+                Nenhuma portaria do Ministério da Saúde encontrada para esta data no DOU.
+                {secoes.length > 0 && (
+                  <div style={{ fontSize: 11, marginTop: 6 }}>
+                    {lidas.length === 0
+                      ? "O DOU não publicou atos nesta data (fim de semana, feriado ou edição ainda não disponível)."
+                      : secoes.map(([secao, e]) => {
+                          const tipos = Object.entries(e?.tipos_ms || {}).map(([t, n]) => `${n} ${t}`).join(", ");
+                          return `${secao.toUpperCase()}: ${e?.atos || 0} atos, ${e?.atos_ms || 0} do MS${tipos ? ` (${tipos})` : ""}`;
+                        }).join(" · ")}
+                  </div>
+                )}
+                {falhas.length > 0 && (
+                  <div style={{ fontSize: 11, marginTop: 4, color: "#dc2626" }}>Falhas parciais: {falhas.join("; ")}</div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
@@ -962,7 +989,17 @@ function PainelEnviosDiarios() {
         {/* Tentativas */}
         {st?.tentativas_ultimo > 0 && (
           <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
-            Tentativas realizadas: <strong>{st.tentativas_ultimo}</strong> / 3
+            Tentativas realizadas: <strong>{st.tentativas_ultimo}</strong> / {st?.max_tentativas ?? 3}
+          </div>
+        )}
+
+        {/* Provedor de e-mail (sem segredos) */}
+        {st?.email_config?.provedor && (
+          <div style={{ fontSize: 12, color: st.email_config.configurado ? "#15803d" : "#b45309", marginBottom: 12 }}>
+            Provedor: <strong>{String(st.email_config.provedor).toUpperCase()}</strong>
+            {" · "}{st.email_config.configurado ? "configurado" : `falta configurar no Railway: ${(st.email_config.pendencias || []).join(", ")}`}
+            {" · "}remetente: <code>{st.email_config.remetente}</code>
+            {st.email_config.remetente_teste && " (remetente de teste do Resend: só entrega ao e-mail dono da conta Resend)"}
           </div>
         )}
 
@@ -1005,8 +1042,10 @@ function PainelEnviosDiarios() {
         {st?.status_atual === "falha" && (
           <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#991b1b" }}>
             <strong>⚠ Último envio falhou.</strong>{" "}
-            {st?.erro_ultimo?.includes("101") || st?.erro_ultimo?.includes("SMTP") || st?.erro_ultimo?.includes("smtp")
+            {(st?.erro_ultimo?.includes("101") || st?.erro_ultimo?.includes("SMTP") || st?.erro_ultimo?.includes("smtp")) && st?.email_config?.provedor !== "resend"
               ? <>Railway bloqueia SMTP (porta 587). Solução: configure <code>EMAIL_PROVIDER=resend</code> e <code>RESEND_API_KEY=re_...</code> no Railway (resend.com — gratuito). Erro: {st?.erro_ultimo}</>
+              : st?.erro_ultimo?.includes("SMTP") || st?.erro_ultimo?.includes("101")
+              ? <>Este erro SMTP é de um envio antigo; o provedor atual é Resend. Clique em <strong>Enviar agora</strong> para registrar uma nova tentativa. Erro antigo: {st?.erro_ultimo}</>
               : st?.erro_ultimo?.includes("RESEND_API_KEY")
               ? <>Configure <code>RESEND_API_KEY</code> no Railway. Acesse resend.com → API Keys → criar chave → colar no Railway como variável de ambiente.</>
               : <>Erro: {st?.erro_ultimo}</>

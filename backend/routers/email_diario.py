@@ -47,6 +47,9 @@ class StatusPainelOut(BaseModel):
     qtd_informes_ultimo: int
     erro_ultimo: Optional[str]
     tentativas_ultimo: int
+    max_tentativas: int = 3
+    # Provedor de e-mail sem segredos: provedor, configurado, pendencias, remetente
+    email_config: dict = {}
     historico: list[LogOut]
 
 
@@ -83,9 +86,14 @@ async def status_painel(
     )
     pausado = res_p.scalar_one_or_none() is not None
 
+    # "Último envio" = último e-mail efetivamente entregue ao provedor
+    ultimo_ok = next((h for h in historico if h.enviado_em), None)
+
+    from services.portarias_dou_service import diagnostico_email, MAX_TENTATIVAS_EMAIL
+
     return StatusPainelOut(
         proximo_envio=proximo_str,
-        ultimo_envio=ultimo.enviado_em.strftime("%d/%m/%Y %H:%M") if ultimo and ultimo.enviado_em else None,
+        ultimo_envio=ultimo_ok.enviado_em.strftime("%d/%m/%Y %H:%M") if ultimo_ok else None,
         destinatario=os.getenv("EMAIL_RECIPIENT", "eulerenzoramos@gmail.com"),
         status_atual=ultimo.status if ultimo else "nenhum",
         pausado=pausado,
@@ -93,6 +101,8 @@ async def status_painel(
         qtd_informes_ultimo=ultimo.qtd_informes if ultimo else 0,
         erro_ultimo=ultimo.erro if ultimo else None,
         tentativas_ultimo=ultimo.tentativas if ultimo else 0,
+        max_tentativas=MAX_TENTATIVAS_EMAIL,
+        email_config=diagnostico_email(),
         historico=list(historico),
     )
 
