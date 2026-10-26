@@ -53,6 +53,24 @@ class PecAcsLote(Base):
     payload: Mapped[dict] = mapped_column(JSON)
 
 
+class PecInconsistenciaLote(Base):
+    """Relatório de inconsistências do recebimento de fichas no PEC, AGREGADO por competência
+    (tipo de ficha × CNES × situação × tipo de erro) — sem responsável pelo envio, UUID,
+    nome de arquivo ou conteúdo de ficha. 1 por município e competência (idempotente)."""
+    __tablename__ = "pec_inconsistencia_lotes"
+    __table_args__ = (UniqueConstraint("municipio_id", "competencia", name="uq_pec_inconsist_comp"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
+    competencia: Mapped[str] = mapped_column(String(7))     # AAAA-MM
+    recebido_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    gerado_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    agente_versao: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    pec_versao: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    hash_conteudo: Mapped[str] = mapped_column(String(64))
+    payload: Mapped[dict] = mapped_column(JSON)
+
+
 class PecEsquemaRelatorio(Base):
     """Diagnóstico de esquema enviado pelo agente: SÓ nomes de tabelas/colunas e se o
     usuário somente-leitura tem SELECT — nunca linhas de dados."""

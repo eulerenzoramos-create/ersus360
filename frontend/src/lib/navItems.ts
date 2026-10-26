@@ -296,6 +296,11 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Plano Municipal de Saúde como ferramenta de gestão: PMS com versões, PAS, Minhas Ações, execução validada e evidências",
     keywords:["pms","plano municipal de saúde","pas","programação anual","metas","ações","minhas ações","execução","validação","responsável","planejamento","dgmp"] },
 
+  { id:"pec-inconsistencias", category:"Relatórios e Indicadores", subcategory:"Inconsistências e Qualidade", order:803, iconName:"AlertTriangle", isNew:true,
+    title:"Inconsistências de envio do PEC", shortTitle:"Inconsistências PEC", route:"/pec-inconsistencias",
+    description:"Relatório de inconsistências do recebimento de fichas no e-SUS PEC (CDS, aplicativos e sistemas de terceiros), por tipo de ficha, unidade e erro",
+    keywords:["pec","esus","e-sus","inconsistência","inconsistencias","envio","recebimento","lote","ficha","cds","ledi","validação","rejeitada","inválido","incompleto","integração"] },
+
   { id:"cnes-xml",            category:"Relatórios e Indicadores", subcategory:"Inconsistências e Qualidade", order:802, iconName:"ClipboardCheck", isNew:true,
     title:"Equipes do CNES (XML SISAB)", shortTitle:"Equipes CNES", route:"/cnes-xml",
     description:"Importa o XML-CNES do SISAB e confere a composição mínima das equipes (eSF, eSB, eMulti)",

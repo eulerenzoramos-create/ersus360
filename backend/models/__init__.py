@@ -28,7 +28,7 @@ from models.inconsistencia import (
 )
 from models.credencial_municipio import CredencialMunicipio
 from models.email_diario import EmailDiarioLog, StatusEnvio
-from models.pec_agente import PecAgenteExecucao, PecAcsLote, PecEsquemaRelatorio
+from models.pec_agente import PecAgenteExecucao, PecAcsLote, PecEsquemaRelatorio, PecInconsistenciaLote
 
 __all__ = [
     # Municipio

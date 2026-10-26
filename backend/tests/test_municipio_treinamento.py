@@ -85,12 +85,14 @@ def test_agente_de_treinamento_envia_so_para_o_municipio_de_treino(tmp_path, mon
                               ERSUS_SYNC_KEY=CHAVE_TREINO)
     agente.conferir_destino()
     enviados = []
-    monkeypatch.setattr(agente, "conectar_pec", lambda: type("C", (), {"close": lambda self: None})())
+    from tests.test_pec_inconsistencias import _Conn
+    monkeypatch.setattr(agente, "conectar_pec", lambda: type("C", (_Conn,), {"close": lambda self: None})())
     monkeypatch.setattr(agente.requests, "post", lambda url, json=None, headers=None, timeout=None:
                         enviados.append((url, json)) or type("R", (), {"status_code": 200, "text": "ok"})())
     agente.sincronizar()
-    assert [u.rsplit("/api/", 1)[1] for u, _ in enviados] == ["pec-agente/heartbeat"]   # nada em /api/pec/sync
-    assert enviados[0][1]["ibge"] == IBGE_TREINAMENTO
+    # sinal de vida + inconsistências (por município); nada em /api/pec/sync (prévia só de Apuí)
+    assert [u.rsplit("/api/", 1)[1] for u, _ in enviados] == ["pec-agente/heartbeat", "pec-agente/inconsistencias"]
+    assert all(corpo["ibge"] == IBGE_TREINAMENTO for _, corpo in enviados)
 
 
 async def test_painel_acs_liberado_para_outro_municipio_sem_dados_de_apui(ambiente, monkeypatch):

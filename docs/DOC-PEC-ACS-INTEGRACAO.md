@@ -98,6 +98,18 @@ nunca "tempo real".
    (Relatórios › Produção › Visita domiciliar e territorial; Relatórios › Cadastro) antes de
    divulgar o painel.
 
+## 6b. Inconsistências de envio do PEC (`/pec-inconsistencias`)
+
+- Fonte no PEC (confirmada no PEC de treinamento em 26/10/2026): `tb_recebimento_lote`,
+  `tb_recebimento_item`, `tb_recebimento_validacao_erros`, `tb_tipo_dado_transp`, `tb_situacao_dado_recebido`.
+- O agente (`coletar_inconsistencias`) envia por competência só contagens por tipo de ficha × CNES ×
+  situação × tipo de erro para `POST /api/pec-agente/inconsistencias` (contrato `extra="forbid"`).
+  **Nunca lê** `no_responsavel_envio`, `nu_identificador_responsavel`, `co_unico_dado_serializado`,
+  `no_arquivo` nem a ficha. Mensagens do PEC: números com 5+ dígitos viram `###`, no agente e de novo no backend.
+- Permissões: bloco "Relatorio de inconsistencias" em `criar_usuario_somente_leitura.sql` (por coluna).
+- Painel: `GET /api/pec-agente/inconsistencias/painel` (município da sessão). Sem lote = "aguardando agente".
+- Testes: `backend/tests/test_pec_inconsistencias.py`. Descoberta das tabelas: `pec_sync_agent/explorar_inconsistencias.py`.
+
 ## 7. Próximas fases
 
 - Fase 3: com o esquema confirmado, implementar no agente a extração do lote ACS (consultas

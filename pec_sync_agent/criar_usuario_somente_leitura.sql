@@ -57,5 +57,15 @@ GRANT SELECT (co_seq_exame_requisitado, co_prontuario, co_requisicao_exame,
 GRANT SELECT (co_exame_requisitado) ON tb_exame_hemoglobina_glicada TO ersus_sync;
 GRANT SELECT (co_requisicao_exame) ON tb_sol_exame_citopatologico TO ersus_sync;
 
+-- Relatorio de inconsistencias do recebimento de fichas (painel "Inconsistencias de envio do PEC").
+-- tb_recebimento_lote: SEM no_responsavel_envio / nu_identificador_responsavel (quem enviou).
+-- tb_recebimento_item: SEM co_unico_dado_serializado (UUID) e no_arquivo.
+GRANT SELECT (co_seq_receb_lote, dt_recebimento) ON tb_recebimento_lote TO ersus_sync;
+GRANT SELECT (co_seq_receb_item, co_receb_lote, st_dado_recebido, tp_dado_transp, nu_cnes_dado_serializado)
+    ON tb_recebimento_item TO ersus_sync;
+GRANT SELECT (co_receb_item, ds_erro, ds_erro_campo_nao_preenchido, ds_erro_campo_invalido)
+    ON tb_recebimento_validacao_erros TO ersus_sync;
+GRANT SELECT ON tb_tipo_dado_transp, tb_situacao_dado_recebido TO ersus_sync;
+
 -- Para REVOGAR/REMOVER no futuro (plano de interrupcao do documento de autorizacao):
 --   REASSIGN OWNED BY ersus_sync TO postgres;  DROP OWNED BY ersus_sync;  DROP ROLE ersus_sync;

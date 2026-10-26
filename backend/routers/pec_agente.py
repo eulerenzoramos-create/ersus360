@@ -33,7 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from models.municipio import Municipio
-from models.pec_agente import PecAcsLote, PecAgenteExecucao, PecEsquemaRelatorio
+from models.pec_agente import PecAcsLote, PecAgenteExecucao, PecEsquemaRelatorio, PecInconsistenciaLote
 from routers.auth import ip_de
 from routers.fns_previsao import _pode_editar
 from services.pec_acs import ORIGEM_AUTOMATICA, ORIGEM_CAPTURA
@@ -524,3 +524,120 @@ async def get_esquema(current: SessaoMunicipal, db: DbDep):
         return {"recebido_em": None, "tabelas": {}}
     return {"recebido_em": _iso(r.recebido_em), "pec_versao": r.pec_versao,
             "agente_versao": r.agente_versao, "tabelas": (r.payload or {}).get("tabelas", {})}
+
+
+# ── Inconsistências do recebimento de fichas no PEC ───────────────────────────
+# Fonte no PEC: tb_recebimento_lote/_item/_validacao_erros (o "Relatório de inconsistências").
+# Só contagens por tipo de ficha × CNES × situação × tipo de erro; a mensagem do PEC chega
+# com números longos mascarados (nenhum CPF/CNS) e é mascarada de novo aqui.
+
+_RE_NUMERO_LONGO = re.compile(r"\d{5,}")
+TIPOS_ERRO = Literal["campo_nao_preenchido", "campo_invalido", "regra", "sem_detalhe"]
+
+
+def mascarar_mensagem(v: str | None) -> str | None:
+    if v is None:
+        return None
+    v = _RE_NUMERO_LONGO.sub("###", " ".join(v.split()))
+    return v[:200] or None
+
+
+class SituacaoQtd(_Base):
+    situacao: str = Field(max_length=80)
+    quantidade: int = Field(ge=0)
+
+
+class RegistrosFicha(_Base):
+    tipo_ficha: str = Field(max_length=120)
+    cnes: Optional[str] = Field(None, max_length=10)
+    situacao: str = Field(max_length=80)
+    quantidade: int = Field(ge=0)
+
+
+class ErroFicha(_Base):
+    tipo_ficha: str = Field(max_length=120)
+    cnes: Optional[str] = Field(None, max_length=10)
+    tipo_erro: TIPOS_ERRO
+    mensagem: Optional[str] = Field(None, max_length=400)
+    quantidade: int = Field(ge=0)
+
+    @field_validator("mensagem")
+    @classmethod
+    def _mascara(cls, v):
+        return mascarar_mensagem(v)
+
+
+class TotaisInconsistencia(_Base):
+    lotes: int = Field(0, ge=0)
+    registros: int = Field(0, ge=0)
+
+
+class LoteInconsistenciasIn(_Base):
+    ibge: str
+    competencia: str
+    gerado_em: datetime
+    agente_versao: str = Field(max_length=30)
+    pec_versao: Optional[str] = Field(None, max_length=30)
+    periodo: Periodo
+    totais: TotaisInconsistencia = Field(default_factory=TotaisInconsistencia)
+    por_situacao: list[SituacaoQtd] = Field(default_factory=list, max_length=50)
+    por_tipo_ficha: list[RegistrosFicha] = Field(default_factory=list, max_length=5000)
+    erros: list[ErroFicha] = Field(default_factory=list, max_length=2000)
+
+    @field_validator("competencia")
+    @classmethod
+    def _comp(cls, v: str) -> str:
+        if not _RE_COMP.match(v):
+            raise ValueError("competencia no formato AAAA-MM")
+        return v
+
+
+@router.post("/inconsistencias")
+async def receber_inconsistencias(body: LoteInconsistenciasIn, request: Request, db: DbDep,
+                                  x_sync_key: str = Header(..., alias="X-Sync-Key")):
+    m = await _municipio_do_agente(db, body.ibge, x_sync_key, request, "inconsistencias", body.agente_versao)
+    payload = body.model_dump(mode="json")
+    h = _hash(payload)
+    lote = (await db.execute(select(PecInconsistenciaLote).where(
+        PecInconsistenciaLote.municipio_id == m.id,
+        PecInconsistenciaLote.competencia == body.competencia))).scalar_one_or_none()
+    status = "sem_alteracao" if lote and lote.hash_conteudo == h else "aceito"
+    if not lote:
+        lote = PecInconsistenciaLote(municipio_id=m.id, competencia=body.competencia)
+        db.add(lote)
+    lote.recebido_em = datetime.utcnow()
+    lote.gerado_em = body.gerado_em.replace(tzinfo=None)
+    if status == "aceito":
+        lote.agente_versao, lote.pec_versao = body.agente_versao, body.pec_versao
+        lote.hash_conteudo = h
+        lote.payload = payload
+    db.add(PecAgenteExecucao(municipio_id=m.id, tipo="inconsistencias", status=status,
+                             competencia=body.competencia, registros=body.totais.registros,
+                             agente_versao=body.agente_versao, pec_versao=body.pec_versao, ip_origem=ip_de(request),
+                             mensagem=f"{body.totais.lotes} lotes · {body.totais.registros} registros recebidos · "
+                                      f"{len(body.erros)} linhas de erro"))
+    await db.commit()
+    return {"ok": True, "status": status, "competencia": body.competencia}
+
+
+@router.get("/inconsistencias/painel")
+async def painel_inconsistencias(current: SessaoMunicipal, db: DbDep, competencia: str = Query("")):
+    stmt = select(PecInconsistenciaLote).where(PecInconsistenciaLote.municipio_id == current.municipio_id)
+    competencias = [c for (c,) in (await db.execute(
+        select(PecInconsistenciaLote.competencia).where(PecInconsistenciaLote.municipio_id == current.municipio_id)
+        .order_by(PecInconsistenciaLote.competencia.desc()))).all()]
+    if competencia:
+        stmt = stmt.where(PecInconsistenciaLote.competencia == competencia)
+    lote = (await db.execute(stmt.order_by(PecInconsistenciaLote.competencia.desc()).limit(1))).scalar_one_or_none()
+    situacao = await situacao_agente(db, current.municipio_id)
+    if not lote:
+        return {"status": "aguardando_agente", "competencias": competencias, "agente": situacao["estado"],
+                "lote": None}
+    p = lote.payload or {}
+    return {"status": "ok", "competencias": competencias, "agente": situacao["estado"],
+            "lote": {"competencia": lote.competencia, "recebido_em": _iso(lote.recebido_em),
+                     "gerado_em": _iso(lote.gerado_em), "pec_versao": lote.pec_versao,
+                     "periodo": p.get("periodo"), "totais": p.get("totais"),
+                     "por_situacao": p.get("por_situacao", []), "por_tipo_ficha": p.get("por_tipo_ficha", []),
+                     "erros": p.get("erros", [])},
+            "fonte": "e-SUS PEC — Relatório de inconsistências do recebimento (agente local, agregado)"}

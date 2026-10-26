@@ -46,6 +46,7 @@ ROTAS_PUBLICAS = {
     "/api/pec-agente/acs",
     "/api/pec-agente/esquema",
     "/api/pec-agente/heartbeat",
+    "/api/pec-agente/inconsistencias",
 }
 
 # Rotas que exigem login mas não um município selecionado.

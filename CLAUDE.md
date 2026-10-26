@@ -172,6 +172,9 @@ DOC-001 a DOC-027 — ver índice em `docs/README.md` (se existir) ou listar com
 - Município de treinamento `5399999` (`IBGE_TREINAMENTO`, "MUNICÍPIO TREINAMENTO (PEC MS)", DF): recebe só dados
   fictícios do PEC de treinamento do Ministério; faixa "TREINAMENTO" em todas as telas. O agente trava destino:
   `PEC_TREINAMENTO=1` ⇔ `ERSUS_IBGE=5399999`. Ver docs/MUNICIPIO-TREINAMENTO.md.
+- Inconsistências de envio do PEC (`/pec-inconsistencias`): agente envia só contagens do relatório de
+  recebimento (tb_recebimento_*), mensagens com números mascarados; nunca quem enviou/UUID/arquivo. Ver
+  docs/DOC-PEC-ACS-INTEGRACAO.md §6b.
 
 ## Diagnóstico Situacional da Saúde Municipal (`/diagnostico-situacional`)
 - Catálogo de 40 itens em 9 áreas (A–I) em `services/diagnostico_catalogo.py`; coletores em `services/diagnostico_fontes.py`
