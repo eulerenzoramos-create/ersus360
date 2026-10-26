@@ -12,7 +12,7 @@ export const IBGE_PILOTO = "1300144";
 export const IBGE_TREINAMENTO = "5399999";
 
 /** Telas verificadas como multi-município (sem dados de Apuí embutidos). */
-export const PAGINAS_MULTIMUNICIPIO = ["/", "/usuarios", "/documentos", "/alertas", "/cnes-xml", "/siaps-relatorios", "/indicadores-equipe", "/vigilancia-saude", "/diagnostico-situacional", "/pms-vivo", "/esus-pec-teste", "/acs/painel"];
+export const PAGINAS_MULTIMUNICIPIO = ["/", "/usuarios", "/documentos", "/alertas", "/cnes-xml", "/siaps-relatorios", "/indicadores-equipe", "/vigilancia-saude", "/diagnostico-situacional", "/pms-vivo", "/esus-pec-teste", "/acs/painel", "/pec-inconsistencias"];
 
 export function paginaDisponivel(pathname: string, ibge: string): boolean {
   if (ibge === IBGE_PILOTO) return true;

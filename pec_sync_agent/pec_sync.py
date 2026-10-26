@@ -15,6 +15,7 @@ Uso:
 """
 
 import os
+import re
 import sys
 import json
 import logging
@@ -532,6 +533,108 @@ def conferir_destino() -> None:
         sys.exit(2)
 
 
+# ── Relatório de inconsistências do recebimento de fichas ─────────────────────
+# Tabelas do PEC (confirmadas no PEC de treinamento em 26/10/2026): tb_recebimento_lote,
+# tb_recebimento_item, tb_recebimento_validacao_erros + tipos/situações. NUNCA lê
+# no_responsavel_envio, nu_identificador_responsavel, UUID, nome de arquivo nem a ficha.
+_RE_NUMERO_LONGO = re.compile(r"\d{5,}")
+_TIPOS_ERRO = (("ds_erro_campo_nao_preenchido", "campo_nao_preenchido"),
+               ("ds_erro_campo_invalido", "campo_invalido"),
+               ("ds_erro", "regra"))
+_SQL_INCONSISTENCIAS = """
+    SELECT i.co_seq_receb_item, COALESCE(td.no_tipo_dado_transp, 'Tipo ' || i.tp_dado_transp) AS tipo_ficha,
+           i.nu_cnes_dado_serializado AS cnes,
+           COALESCE(sd.no_situacao_dado_recebido, 'Situação ' || i.st_dado_recebido) AS situacao,
+           e.ds_erro_campo_nao_preenchido, e.ds_erro_campo_invalido, e.ds_erro
+    FROM tb_recebimento_lote l
+    JOIN tb_recebimento_item i ON i.co_receb_lote = l.co_seq_receb_lote
+    LEFT JOIN tb_tipo_dado_transp td ON td.co_tipo_dado_transp = i.tp_dado_transp
+    LEFT JOIN tb_situacao_dado_recebido sd ON sd.co_situacao_dado_recebido = i.st_dado_recebido
+    LEFT JOIN tb_recebimento_validacao_erros e ON e.co_receb_item = i.co_seq_receb_item
+    WHERE l.dt_recebimento >= %s AND l.dt_recebimento < %s
+"""
+
+
+def mascarar_mensagem(texto):
+    """Números longos (CPF, CNS, CNES de terceiros...) viram ###; no máximo 200 caracteres."""
+    if not texto:
+        return None
+    return _RE_NUMERO_LONGO.sub("###", " ".join(str(texto).split()))[:200] or None
+
+
+def coletar_inconsistencias(conn, comp: str) -> dict:
+    """Agrega o relatório de inconsistências da competência: contagens por tipo de ficha,
+    CNES, situação e tipo de erro. Só contagens e mensagens mascaradas saem daqui."""
+    ano, mes = map(int, comp.split("-"))
+    inicio = date(ano, mes, 1)
+    fim = date(ano + (mes == 12), mes % 12 + 1, 1)
+    cur = conn.cursor()
+    cur.execute("SELECT count(*) FROM tb_recebimento_lote WHERE dt_recebimento >= %s AND dt_recebimento < %s",
+                (inicio, fim))
+    lotes = cur.fetchone()[0]
+    cur.execute(_SQL_INCONSISTENCIAS, (inicio, fim))
+    itens_vistos, por_ficha, erros, situacoes = set(), {}, {}, {}
+    while True:
+        linhas = cur.fetchmany(5000)
+        if not linhas:
+            break
+        for item, tipo, cnes, situacao, nao_preenchido, invalido, regra in linhas:
+            cnes = (cnes or "").strip()[:10] or None
+            if item not in itens_vistos:
+                itens_vistos.add(item)
+                por_ficha[(tipo, cnes, situacao)] = por_ficha.get((tipo, cnes, situacao), 0) + 1
+                situacoes[situacao] = situacoes.get(situacao, 0) + 1
+            achou = False
+            for valor, tipo_erro in zip((nao_preenchido, invalido, regra), (t for _, t in _TIPOS_ERRO)):
+                msg = mascarar_mensagem(valor)
+                if msg:
+                    achou = True
+                    erros[(tipo, cnes, tipo_erro, msg)] = erros.get((tipo, cnes, tipo_erro, msg), 0) + 1
+            if not achou and situacao not in ("Completo", "Repetido"):
+                erros[(tipo, cnes, "sem_detalhe", None)] = erros.get((tipo, cnes, "sem_detalhe", None), 0) + 1
+    cur.close()
+    lista_erros = sorted(({"tipo_ficha": t, "cnes": c, "tipo_erro": te, "mensagem": m, "quantidade": q}
+                          for (t, c, te, m), q in erros.items()), key=lambda x: -x["quantidade"])[:2000]
+    return {
+        "ibge": IBGE, "competencia": comp, "gerado_em": datetime.now(timezone.utc).isoformat(),
+        "agente_versao": VERSAO_AGENTE, "pec_versao": PEC_VERSAO,
+        "periodo": {"inicio": inicio.isoformat(), "fim": (fim - timedelta(days=1)).isoformat()},
+        "totais": {"lotes": lotes, "registros": len(itens_vistos)},
+        "por_situacao": [{"situacao": s_, "quantidade": q} for s_, q in sorted(situacoes.items(), key=lambda x: -x[1])],
+        "por_tipo_ficha": [{"tipo_ficha": t, "cnes": c, "situacao": s_, "quantidade": q}
+                           for (t, c, s_), q in sorted(por_ficha.items(), key=lambda x: -x[1])][:5000],
+        "erros": lista_erros,
+    }
+
+
+def enviar_inconsistencias(conn, comp: str) -> bool:
+    """Envia o relatório agregado a /api/pec-agente/inconsistencias. Falha só vira aviso no log."""
+    if not ERSUS_KEY:
+        return False
+    try:
+        corpo = coletar_inconsistencias(conn, comp)
+    except Exception as exc:
+        log.warning("⚠ Relatório de inconsistências não lido (permissão nas tabelas tb_recebimento_*?): %s",
+                    _sem_segredos(exc))
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return False
+    try:
+        resp = requests.post(f"{ERSUS_URL}/api/pec-agente/inconsistencias", json=corpo,
+                             headers={"X-Sync-Key": ERSUS_KEY}, timeout=30)
+    except Exception as exc:
+        log.warning("⚠ Inconsistências não enviadas (sem acesso ao ERSUS360): %s", _sem_segredos(exc))
+        return False
+    if resp.status_code == 200:
+        log.info("✓ Inconsistências enviadas: %d lote(s), %d registro(s), %d linha(s) de erro",
+                 corpo["totais"]["lotes"], corpo["totais"]["registros"], len(corpo["erros"]))
+        return True
+    log.warning("⚠ Inconsistências recusadas pelo ERSUS360 (%d): %s", resp.status_code, resp.text[:200])
+    return False
+
+
 def enviar_heartbeat(banco_ok: bool, erro: str | None = None) -> bool:
     """Sinal de vida ao ERSUS360 (/api/pec-agente/heartbeat): o agente está rodando e consegue (ou não)
     ler o banco do PEC. Não envia dado algum do PEC. É isso que tira o Painel ACS de "Aguardando agente".
@@ -573,10 +676,13 @@ def sincronizar():
         return
     enviar_heartbeat(True)          # antes dos cálculos: o painel passa a "Conectado" mesmo se um indicador falhar
 
+    enviar_inconsistencias(conn, comp)
+
     if PEC_TREINAMENTO:
-        # A prévia de indicadores (/api/pec/sync) ainda é só de Apuí: no treinamento vai apenas o sinal de vida.
+        # A prévia de indicadores (/api/pec/sync) ainda é só de Apuí: no treinamento vão o sinal de vida
+        # e o relatório de inconsistências (endpoints por município).
         conn.close()
-        log.info("Modo TREINAMENTO: sinal de vida enviado; prévia de indicadores não é enviada.")
+        log.info("Modo TREINAMENTO: prévia de indicadores não é enviada.")
         return
 
     equipes = buscar_equipes(conn)
