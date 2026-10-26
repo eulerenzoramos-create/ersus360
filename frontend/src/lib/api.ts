@@ -126,15 +126,17 @@ export interface FnsSyncResult {
 }
 
 // ── Funções de API ─────────────────────────────────────────────────────────────
+// O município vem SEMPRE da sessão (backend: MunicipioDaSessao). Não enviar municipio_id: valor
+// divergente da sessão é bloqueado pelo guard (403) — antes ia "1" (Apuí) fixo e quebrava os demais.
 
 export const apiDashboard = {
-  stats: (municipioId = 1) =>
-    api.get<DashboardStats>(`/api/dashboard/stats?municipio_id=${municipioId}`).then((r) => r.data),
+  stats: () =>
+    api.get<DashboardStats>("/api/dashboard/stats").then((r) => r.data),
 };
 
 export const apiConvenios = {
-  list: (municipioId = 1) =>
-    api.get<Convenio[]>(`/api/convenios?municipio_id=${municipioId}`).then((r) => r.data),
+  list: () =>
+    api.get<Convenio[]>("/api/convenios").then((r) => r.data),
   create: (body: Partial<Convenio>) => api.post<Convenio>("/api/convenios", body).then((r) => r.data),
   update: (id: number, body: Partial<Convenio>) =>
     api.put<Convenio>(`/api/convenios/${id}`, body).then((r) => r.data),
@@ -144,15 +146,15 @@ export const apiConvenios = {
 export const apiRepasses = {
   list: (params?: { municipio_id?: number; convenio_id?: number }) =>
     api.get<Repasse[]>("/api/repasses", { params }).then((r) => r.data),
-  mensais: (ano = 2026, municipioId = 1) =>
-    api.get<RepasseMensal[]>(`/api/repasses/mensais?ano=${ano}&municipio_id=${municipioId}`).then((r) => r.data),
+  mensais: (ano = 2026) =>
+    api.get<RepasseMensal[]>(`/api/repasses/mensais?ano=${ano}`).then((r) => r.data),
   create: (body: Partial<Repasse>) => api.post<Repasse>("/api/repasses", body).then((r) => r.data),
   remove: (id: number) => api.delete(`/api/repasses/${id}`),
 };
 
 export const apiIndicadores = {
-  list: (municipioId = 1) =>
-    api.get<Indicador[]>(`/api/indicadores?municipio_id=${municipioId}`).then((r) => r.data),
+  list: () =>
+    api.get<Indicador[]>("/api/indicadores").then((r) => r.data),
   create: (body: Partial<Indicador>) =>
     api.post<Indicador>("/api/indicadores", body).then((r) => r.data),
   update: (id: number, body: Partial<Indicador>) =>
@@ -161,8 +163,8 @@ export const apiIndicadores = {
 };
 
 export const apiAlertas = {
-  list: (municipioId = 1) =>
-    api.get<Alerta[]>(`/api/alertas?municipio_id=${municipioId}`).then((r) => r.data),
+  list: () =>
+    api.get<Alerta[]>("/api/alertas").then((r) => r.data),
   resolver: (id: number) => api.post<Alerta>(`/api/alertas/${id}/resolver`).then((r) => r.data),
   remove: (id: number) => api.delete(`/api/alertas/${id}`),
 };

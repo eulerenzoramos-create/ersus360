@@ -65,8 +65,9 @@ export default function PainelGestor() {
   if (!isLoading && !stats) return (
     <div style={{ padding: 24 }}>
       <NaoDisponivelBanner
-        titulo="PainelGestor indisponivel"
-        nota="Dados nao disponiveis — integracao pendente de configuracao no Railway."
+        titulo="Painel do gestor indisponível"
+        nota="Não foi possível carregar o painel deste município. Nenhum valor foi inventado; tente atualizar a página."
+        rodape={null}
       />
     </div>
   );
