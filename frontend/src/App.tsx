@@ -403,6 +403,7 @@ const SaudePrisionalApui = lazy(() => import("./pages/SaudePrisionalApui"));
 const ZoonosesApui = lazy(() => import("./pages/ZoonosesApui"));
 const VigilanciaSaudePainel = lazy(() => import("./pages/VigilanciaSaudePainel"));
 const DiagnosticoSituacional = lazy(() => import("./pages/DiagnosticoSituacional"));
+const PmsVivo = lazy(() => import("./pages/PmsVivo"));
 const AtividadeFisicaApui = lazy(() => import("./pages/AtividadeFisicaApui"));
 const InfraestruturaUbsApui = lazy(() => import("./pages/InfraestruturaUbsApui"));
 const MedicamentosAltoCustoApui = lazy(() => import("./pages/MedicamentosAltoCustoApui"));
@@ -1025,6 +1026,7 @@ function Layout({ children, sessao, onLogout }: {
             {/* ── M04: Planejamento e Prestação de Contas ── */}
             <SbSection label="Planejamento e Prestação de Contas"/>
             <L1 to="/diagnostico-situacional" label="Diagnóstico Situacional"        Icon={ClipboardCheck}/>
+            <L1 to="/pms-vivo"               label="PMS Vivo — Gestão e Execução"   Icon={Target}/>
             <L1 to="/plano-municipal-saude"  label="Plano Municipal de Saúde"       Icon={ClipboardList}/>
             <L1 to="/planejamento"           label="Planejamento em Saúde"          Icon={ClipboardList}/>
             <L1 to="/rdqa"                   label="RDQA — Relatório Quadrimestral" Icon={Calendar}/>
@@ -1513,6 +1515,7 @@ export default function App() {
             <Route path="/saude-prisional-apui"       element={<SaudePrisionalApui/>}/>
             <Route path="/vigilancia-saude"           element={<VigilanciaSaudePainel/>}/>
             <Route path="/diagnostico-situacional"    element={<DiagnosticoSituacional/>}/>
+            <Route path="/pms-vivo"                   element={<PmsVivo/>}/>
             <Route path="/zoonoses-apui"              element={<ComFvs id="zoonoses"><ZoonosesApui/></ComFvs>}/>
             <Route path="/atividade-fisica-apui"      element={<AtividadeFisicaApui/>}/>
             <Route path="/infraestrutura-ubs-apui"    element={<InfraestruturaUbsApui/>}/>

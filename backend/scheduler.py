@@ -506,6 +506,31 @@ async def _job_reverificar_backups() -> None:
         logger.error("[Scheduler] Reverificação de backups falhou: %s", exc, exc_info=True)
 
 
+async def _job_pms_vivo_alertas() -> None:
+    """PMS Vivo: ações atrasadas e metas em risco dos PMS aprovados → central de alertas (sem duplicar)."""
+    logger.info("[Scheduler] PMS Vivo: alertas de ações atrasadas e metas em risco...")
+    try:
+        from sqlalchemy import select
+        from database import AsyncSessionLocal
+        from models.municipio import Municipio
+        from services.pms_monitoramento import registrar_alertas_centrais
+        from tenancy.contexto import MunicipioContexto, contexto_municipio
+        async with AsyncSessionLocal() as db:
+            municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
+        for mun in municipios:
+            ctx = MunicipioContexto(id=mun.id, uuid=mun.uuid, ibge=mun.codigo_ibge, nome=mun.nome, uf=mun.uf)
+            try:
+                with contexto_municipio(ctx):
+                    async with AsyncSessionLocal() as db:
+                        n = await registrar_alertas_centrais(db, mun.id)
+                if n:
+                    logger.info("[Scheduler] PMS Vivo %s: %s alerta(s) novo(s)", mun.codigo_ibge, n)
+            except Exception as exc:  # um município com erro não para os demais
+                logger.error("[Scheduler] PMS Vivo %s: %s", mun.codigo_ibge, exc, exc_info=True)
+    except Exception as exc:
+        logger.error("[Scheduler] Erro no job PMS Vivo: %s", exc, exc_info=True)
+
+
 async def _job_investsus_federal() -> None:
     """Job INVESTSUS 360 (escopo federal): para cada município ativo, sincroniza as propostas
     federais do InvestSUS quando o município tem acesso configurado (INVESTSUS_*_{IBGE7}) e
@@ -703,6 +728,10 @@ def start_scheduler() -> None:
                       id="siaps_publico_diario", replace_existing=True, misfire_grace_time=3600)
     scheduler.add_job(_job_siaps_publico_oficial, "date", run_date=_dt.now(_tz.utc) + _td(minutes=8),
                       id="siaps_publico_inicial", replace_existing=True)
+
+    # PMS Vivo: alertas de ações atrasadas e metas em risco — todo dia às 07:30
+    scheduler.add_job(_job_pms_vivo_alertas, CronTrigger(hour=7, minute=30, timezone="America/Manaus"),
+                      id="pms_vivo_alertas", replace_existing=True, misfire_grace_time=3600)
 
     # Vigilância em Saúde — FVS-RCP/AM: a FVS republica os painéis em dias úteis pela manhã
     scheduler.add_job(_job_vigilancia_fvs, CronTrigger(hour="7,14", minute=10, timezone="America/Manaus"),

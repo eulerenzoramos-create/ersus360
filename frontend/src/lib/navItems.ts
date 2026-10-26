@@ -286,6 +286,11 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Checklist das 9 áreas da gestão municipal com fonte, evidência e validação técnica; painel executivo, relatório PDF, plano de ação 5W2H e comparação entre períodos",
     keywords:["diagnóstico","situacional","checklist","gestão","pms","pas","rdqa","rag","conselho","5w2h","plano de ação","validação","relatório executivo","prioridades"] },
 
+  { id:"pms-vivo", category:"Relatórios e Indicadores", subcategory:"Planejamento e Gestão", order:791, iconName:"Target", isNew:true, highlight:true,
+    title:"PMS Vivo — Gestão, Execução e Resultados", shortTitle:"PMS Vivo", route:"/pms-vivo",
+    description:"Plano Municipal de Saúde como ferramenta de gestão: PMS com versões, PAS, Minhas Ações, execução validada e evidências",
+    keywords:["pms","plano municipal de saúde","pas","programação anual","metas","ações","minhas ações","execução","validação","responsável","planejamento","dgmp"] },
+
   { id:"cnes-xml",            category:"Relatórios e Indicadores", subcategory:"Inconsistências e Qualidade", order:802, iconName:"ClipboardCheck", isNew:true,
     title:"Equipes do CNES (XML SISAB)", shortTitle:"Equipes CNES", route:"/cnes-xml",
     description:"Importa o XML-CNES do SISAB e confere a composição mínima das equipes (eSF, eSB, eMulti)",
