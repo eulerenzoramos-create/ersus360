@@ -69,7 +69,7 @@ PREFIXOS_ADMIN_GERAL = (
 # sessão (tenancy.contexto) — verificado por tests/test_varredura_tenant.py.
 ROTAS_SO_APUI: tuple[str, ...] = (
     # referência municipal / planilhas oficiais de Apuí embutidas no código
-    "/api/absenteismo/", "/api/acs/", "/api/auditoria-dados/", "/api/cms/", "/api/contratos/",
+    "/api/absenteismo/", "/api/auditoria-dados/", "/api/cms/", "/api/contratos/",
     "/api/exportador/", "/api/folha/", "/api/frota/", "/api/gestao/", "/api/linha-tempo/",
     "/api/okr/", "/api/ouvidoria/", "/api/patrimonio/", "/api/relatorios/", "/api/sync/",
     "/api/siaps/", "/api/telessaude-apui/", "/api/indicadores-aps/",

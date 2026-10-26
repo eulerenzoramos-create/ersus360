@@ -6,7 +6,7 @@ import PageNavBar from "./components/PageNavBar";
 import { ListaMunicipios } from "./components/SeletorMunicipio";
 import AdminGeral from "./pages/AdminGeral";
 import { lerSessao, limparSessao, sairDoSuporte, SessaoUsuario } from "./lib/sessao";
-import { paginaDisponivel } from "./lib/municipio";
+import { IBGE_TREINAMENTO, paginaDisponivel } from "./lib/municipio";
 
 // ── Error Boundary global — evita tela branca em crashes de componentes ───────
 class AppErrorBoundary extends Component<
@@ -885,6 +885,13 @@ function Layout({ children, sessao, onLogout }: {
               }}>Sair</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {sessao.municipio_ibge === IBGE_TREINAMENTO && (
+        <div role="status" style={{background:"#f59e0b",color:"#1f2937",fontSize:13,fontWeight:700,
+          padding:"6px 16px",textAlign:"center" as const,letterSpacing:"0.02em"}}>
+          TREINAMENTO — dados fictícios do PEC de treinamento do Ministério da Saúde (DF). Nada aqui é dado real de município.
         </div>
       )}
 

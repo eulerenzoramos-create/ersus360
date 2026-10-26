@@ -7,6 +7,7 @@ import React, {
   createContext, useContext,
 } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../App";
 import {
   Home, Monitor, Star, Map as MapIcon, BarChart2, Award, Bot, Target, TrendingUp,
   Stethoscope, PieChart, Users, Activity, Ship, Search, BarChart3,
@@ -88,6 +89,7 @@ const AREA_ALL     = "Todos";
 // ── Main component ────────────────────────────────────────────────────────────
 export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
   const location = useLocation();
+  const auth = useAuth();
 
   // Search
   const [query, setQuery]       = useState("");
@@ -288,7 +290,9 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: -0.5 }}>ERSUS <span style={{ color: T.accent }}>360°</span></div>
-            <div style={{ fontSize: 10, color: T.muted, marginTop: 1 }}>Apuí · AM · IBGE 1300144</div>
+            <div style={{ fontSize: 10, color: T.muted, marginTop: 1 }}>
+              {auth.municipio ? `${auth.municipio} · ${auth.municipio_uf} · IBGE ${auth.municipio_ibge}` : "Selecione um município"}
+            </div>
           </div>
           <button
             onClick={() => setPaletteOpen(true)}

@@ -52,11 +52,15 @@ PEC_DB_USER = os.getenv("PEC_DB_USER", "esus")      # usuário PostgreSQL
 PEC_DB_PASS = os.getenv("PEC_DB_PASS", "")          # senha PostgreSQL
 
 # ERSUS360 — receptor na nuvem
-ERSUS_URL   = "https://ersus360-production.up.railway.app"
+ERSUS_URL   = os.getenv("ERSUS_URL", "https://ersus360-production.up.railway.app").rstrip("/")
 ERSUS_KEY   = os.getenv("ERSUS_SYNC_KEY", "")       # chave gerada pelo ERSUS360
 
-# Município
-IBGE = "1300144"
+# Município de destino no ERSUS360 (padrão: Apuí). Com o PEC de TREINAMENTO do Ministério
+# (dados fictícios, credenciado no DF), use PEC_TREINAMENTO=1 e ERSUS_IBGE=5399999 no .env:
+# o envio vai só para o MUNICÍPIO TREINAMENTO (PEC MS), nunca para um município real.
+IBGE_TREINAMENTO = "5399999"
+IBGE = os.getenv("ERSUS_IBGE", "1300144").strip()
+PEC_TREINAMENTO = os.getenv("PEC_TREINAMENTO", "").strip() == "1"
 # INE_EQUIPES não é mais necessário — equipes são buscadas automaticamente do PEC
 
 # Intervalo de sincronização (horas)
@@ -515,6 +519,19 @@ def _sem_segredos(texto) -> str:
     return " ".join(t.split())[:480]
 
 
+def conferir_destino() -> None:
+    """Trava de segurança: PEC de treinamento (dados fictícios) só envia para o município de
+    treinamento, e o município de treinamento só recebe do PEC de treinamento."""
+    if PEC_TREINAMENTO and IBGE != IBGE_TREINAMENTO:
+        log.error("✗ PEC_TREINAMENTO=1 exige ERSUS_IBGE=%s (município de treinamento). "
+                  "Dados fictícios nunca vão para o município %s.", IBGE_TREINAMENTO, IBGE)
+        sys.exit(2)
+    if IBGE == IBGE_TREINAMENTO and not PEC_TREINAMENTO:
+        log.error("✗ ERSUS_IBGE=%s é o município de treinamento: defina PEC_TREINAMENTO=1 "
+                  "(e use só com o PEC de treinamento).", IBGE_TREINAMENTO)
+        sys.exit(2)
+
+
 def enviar_heartbeat(banco_ok: bool, erro: str | None = None) -> bool:
     """Sinal de vida ao ERSUS360 (/api/pec-agente/heartbeat): o agente está rodando e consegue (ou não)
     ler o banco do PEC. Não envia dado algum do PEC. É isso que tira o Painel ACS de "Aguardando agente".
@@ -555,6 +572,12 @@ def sincronizar():
         enviar_heartbeat(False, _sem_segredos(exc))
         return
     enviar_heartbeat(True)          # antes dos cálculos: o painel passa a "Conectado" mesmo se um indicador falhar
+
+    if PEC_TREINAMENTO:
+        # A prévia de indicadores (/api/pec/sync) ainda é só de Apuí: no treinamento vai apenas o sinal de vida.
+        conn.close()
+        log.info("Modo TREINAMENTO: sinal de vida enviado; prévia de indicadores não é enviada.")
+        return
 
     equipes = buscar_equipes(conn)
 
@@ -674,8 +697,9 @@ def main():
     log.info("═" * 60)
     log.info("ERSUS360 Sync Agent v%s", VERSAO_AGENTE)
     log.info("PEC: %s:%d/%s", PEC_DB_HOST, PEC_DB_PORT, PEC_DB_NAME)
-    log.info("ERSUS360: %s", ERSUS_URL)
+    log.info("ERSUS360: %s  município=%s%s", ERSUS_URL, IBGE, "  (TREINAMENTO — dados fictícios)" if PEC_TREINAMENTO else "")
     log.info("═" * 60)
+    conferir_destino()
 
     if "--test" in args:
         modo_teste()

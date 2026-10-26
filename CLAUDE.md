@@ -169,6 +169,9 @@ DOC-001 a DOC-027 — ver índice em `docs/README.md` (se existir) ou listar com
   identificado por hash. Cálculos em `services/pec_acs.py`; cobertura familiar = None até fórmula validada.
 - Não usar login GraphQL do PEC pelo servidor nem bookmarklet para ler o PEC; nada é gravado no PEC.
   ACS = CBO 515105 (515140 é ACE). Ver docs/DOC-PEC-ACS-INTEGRACAO.md.
+- Município de treinamento `5399999` (`IBGE_TREINAMENTO`, "MUNICÍPIO TREINAMENTO (PEC MS)", DF): recebe só dados
+  fictícios do PEC de treinamento do Ministério; faixa "TREINAMENTO" em todas as telas. O agente trava destino:
+  `PEC_TREINAMENTO=1` ⇔ `ERSUS_IBGE=5399999`. Ver docs/MUNICIPIO-TREINAMENTO.md.
 
 ## Diagnóstico Situacional da Saúde Municipal (`/diagnostico-situacional`)
 - Catálogo de 40 itens em 9 áreas (A–I) em `services/diagnostico_catalogo.py`; coletores em `services/diagnostico_fontes.py`
