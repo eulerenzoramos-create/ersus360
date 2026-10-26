@@ -18,6 +18,9 @@ from dataclasses import dataclass
 from config import settings
 
 IBGE_LEGADO = "1300144"
+# MUNICÍPIO TREINAMENTO (PEC MS): recebe só dados fictícios do PEC de treinamento do Ministério
+# (credenciado no DF). Código inexistente no IBGE — o único município do DF é 5300108.
+IBGE_TREINAMENTO = "5399999"
 
 
 @dataclass(frozen=True)

@@ -8,6 +8,8 @@
 import { useAuth } from "../App";
 
 export const IBGE_PILOTO = "1300144";
+/** MUNICÍPIO TREINAMENTO (PEC MS) — dados fictícios do PEC de treinamento; igual a tenancy/contexto.py */
+export const IBGE_TREINAMENTO = "5399999";
 
 /** Telas verificadas como multi-município (sem dados de Apuí embutidos). */
 export const PAGINAS_MULTIMUNICIPIO = ["/", "/usuarios", "/documentos", "/alertas", "/cnes-xml", "/siaps-relatorios", "/indicadores-equipe", "/vigilancia-saude", "/diagnostico-situacional", "/pms-vivo", "/esus-pec-teste"];
