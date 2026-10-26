@@ -442,6 +442,8 @@ from routers.fns_origem import router as fns_origem_router
 app.include_router(fns_origem_router)
 from routers.cnes_xml import router as cnes_xml_router
 app.include_router(cnes_xml_router)
+from routers.esus_pec_teste import router as esus_pec_teste_router
+app.include_router(esus_pec_teste_router)
 from routers.siaps_relatorios import router as siaps_relatorios_router
 app.include_router(siaps_relatorios_router)
 from routers.egestor_ausencia import router as egestor_ausencia_router

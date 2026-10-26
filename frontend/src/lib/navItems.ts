@@ -266,6 +266,11 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Configuração da integração com o Prontuário Eletrônico do Cidadão — e-SUS PEC",
     keywords:["pec","esus","integração","prontuário","configuração","ledi","mivdt","graphql"] },
 
+  { id:"esus-pec-teste",      category:"Sistemas e Integrações", order:1010, iconName:"FlaskConical", isNew:true,
+    title:"e-SUS PEC — Servidor de Teste", shortTitle:"e-SUS PEC Teste", route:"/esus-pec-teste", roles:ROLES_AUD,
+    description:"Ambiente de teste/treinamento do e-SUS APS PEC do município — verifica se responde e abre no navegador",
+    keywords:["pec","esus","e-sus","esus pec","esuspec","pec teste","esus pec teste","teste","homologação","treinamento","ambiente de teste","prontuário"] },
+
   { id:"integracoes",         category:"Sistemas e Integrações", order:1006, iconName:"Plug", highlight:true,
     title:"Painel de Integrações", shortTitle:"Integrações", route:"/integracoes",
     description:"Painel de status e configuração de integrações com sistemas externos",

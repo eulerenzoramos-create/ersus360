@@ -469,6 +469,7 @@ const AnaliseBrasil360 = lazy(() => import("./pages/AnaliseBrasil360"));
 const CvatDashboard = lazy(() => import("./pages/CvatDashboard"));
 const Inconsistencias = lazy(() => import("./pages/Inconsistencias"));
 const ImportacaoCnesXml = lazy(() => import("./pages/ImportacaoCnesXml"));
+const EsusPecTeste = lazy(() => import("./pages/EsusPecTeste"));
 const RelatoriosSiaps = lazy(() => import("./pages/RelatoriosSiaps"));
 const IndicadoresPorEquipe = lazy(() => import("./pages/IndicadoresPorEquipe"));
 const RelatorioERSUS = lazy(() => import("./pages/RelatorioERSUS"));
@@ -1577,6 +1578,7 @@ export default function App() {
             <Route path="/plano-acao"                element={<PlanoAcao/>}/>
             <Route path="/gateway-rnds"              element={<GatewayRNDS/>}/>
             <Route path="/integracao-pec"            element={<IntegracaoPEC/>}/>
+            <Route path="/esus-pec-teste"            element={<EsusPecTeste/>}/>
             <Route path="/linha-tempo-cidadao"       element={<LinhaTempoCidadao/>}/>
             <Route path="/relatorio-tce-tcu"         element={<RelatorioTCETCU/>}/>
             <Route path="/previsao-previne" element={<Navigate to="/aps" replace/>}/>{/* arquivado: ML sem API */}
