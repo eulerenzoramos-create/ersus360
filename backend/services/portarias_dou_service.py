@@ -18,6 +18,7 @@ Variáveis de ambiente obrigatórias:
   SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS  (apenas se EMAIL_PROVIDER=smtp)
 """
 from __future__ import annotations
+import asyncio
 import hashlib
 import json
 import logging
@@ -289,6 +290,9 @@ SIGLAS_MS_NO_TITULO: frozenset[str] = frozenset({
     # Apenas "gm/ms" — "gm/m" era broad demais e capturava gm/mpo, gm/mpi, gm/mme
     "gm/ms", "saps/ms", "saes/ms", "svsa/ms", "svs/ms",
     "sectics/ms", "sctie/ms", "sesai/ms", "seidigi/ms", "se/ms",
+    # SGTES/MS — Secretaria de Gestão do Trabalho e da Educação na Saúde
+    # (ex.: "Portaria SGTES/MS Nº 398" no DO1 de 20/10/2026)
+    "sgtes/ms",
     "fns/ms", "fns", "anvisa", "ans/ms",
     "ministerio da saude", "ministério da saúde",
 })
@@ -424,6 +428,13 @@ def confirmar_orgao_ms(orgao_raw: str, titulo: str = "") -> bool:
         return False
 
     n = _normalizar_orgao(orgao_raw)
+
+    # 1b. Hierarquia oficial do DOU (hierarchyStr) começando em
+    #     "Ministério da Saúde/..." é evidência estrutural do órgão. Vem antes
+    #     dos fragmentos porque "educação" casaria a SGTES (Gestão do Trabalho
+    #     e da Educação na Saúde).
+    if n == "ministerio da saude" or n.startswith("ministerio da saude/"):
+        return True
 
     # 2. Fragmentos de exclusão — prioridade máxima
     for frag in FRAGMENTOS_NAO_MS:
@@ -563,6 +574,35 @@ def _extrair_orgao_de_bloco_html(bloco: str) -> str:
     return ""
 
 
+def _itens_leiturajornal(html: str) -> list[dict]:
+    """Lista oficial de atos da edição embutida no leiturajornal (vazia se o formato mudar)."""
+    m = re.search(
+        r'<script[^>]+id="params"[^>]*>(.*?)</script>', html, re.S | re.I
+    )
+    if not m:
+        return []
+    try:
+        dados = json.loads(m.group(1))
+    except ValueError:
+        return []
+    itens = dados.get("jsonArray") if isinstance(dados, dict) else None
+    return [i for i in itens if isinstance(i, dict)] if isinstance(itens, list) else []
+
+
+def _resumo_edicao(html: str) -> dict:
+    """Contagem real da edição, para distinguir 'edição sem portaria MS' de 'fonte falhou'."""
+    itens = _itens_leiturajornal(html)
+    do_ms = [
+        i for i in itens
+        if _normalizar_orgao(i.get("hierarchyStr") or "").startswith("ministerio da saude")
+    ]
+    tipos: dict[str, int] = {}
+    for i in do_ms:
+        tipo = (i.get("artType") or "Outro").strip() or "Outro"
+        tipos[tipo] = tipos.get(tipo, 0) + 1
+    return {"atos": len(itens), "atos_ms": len(do_ms), "tipos_ms": tipos}
+
+
 def _extrair_portarias_html(
     html: str,
     orgao_hint: str = "",
@@ -624,6 +664,32 @@ def _extrair_portarias_html(
                 })
         except Exception:
             pass
+
+    # ── Estratégia A2: <script id="params"> do leiturajornal ─────────────────
+    # Formato real do portal (verificado em 26/10/2026): {"jsonArray": [...]}
+    # com title, artType, hierarchyStr ("Ministério da Saúde/Gabinete do
+    # Ministro"), urlTitle, content, pubDate. O órgão vem de hierarchyStr —
+    # evidência estrutural do próprio DOU, nunca de hint.
+    if not resultado:
+        for item in _itens_leiturajornal(html):
+            titulo = item.get("title") or item.get("titulo") or ""
+            if not titulo or not re.search(r'portaria', titulo, re.I):
+                continue
+            t = _limpo(titulo)
+            if not t or len(t) < 5 or t in vistos:
+                continue
+            vistos.add(t)
+            url_title = (item.get("urlTitle") or "").strip()
+            resultado.append({
+                "title":      t,
+                "urlAddress": f"https://www.in.gov.br/web/dou/-/{url_title}" if url_title else "",
+                "content":    item.get("content") or "",
+                "pubDate":    item.get("pubDate") or "",
+                "orgaoName":  (item.get("hierarchyStr") or "").strip(),
+                "identifica": "",
+                "artType":    item.get("artType") or "",
+                "pubName":    item.get("pubName") or "",
+            })
 
     # ── Estratégia B: JSON em <script> genéricos ──────────────────────────────
     if not resultado:
@@ -712,6 +778,24 @@ def _extrair_valores(texto: str) -> list[str]:
 
 # ── Consulta DOU ──────────────────────────────────────────────────────────────
 
+# Prazos totais por requisição ao DOU. Somados (leitura + API em paralelo)
+# ficam abaixo dos 60 s do cliente HTTP do frontend.
+PRAZO_LEITURA_S = 25
+PRAZO_API_S     = 15
+
+
+async def _get_com_prazo(url: str, params: dict, headers: dict, prazo: float) -> httpx.Response:
+    """GET com prazo total (conexão + download), não só por leitura."""
+    async def _get() -> httpx.Response:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(prazo, connect=10),
+                                     follow_redirects=True) as c:
+            return await c.get(url, params=params, headers=headers)
+    try:
+        return await asyncio.wait_for(_get(), timeout=prazo)
+    except (asyncio.TimeoutError, httpx.TimeoutException):
+        raise TimeoutError(f"in.gov.br não respondeu em {prazo:.0f} s") from None
+
+
 async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], dict]:
     """
     Busca SOMENTE portarias do Ministério da Saúde no DOU.
@@ -722,9 +806,8 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
     resultados de outros órgãos.
 
     Estratégias (ordem de confiabilidade):
-    1. leiturajornal org="Ministério da Saúde" + ato="Portaria" — DO1 e DO2
-    2. leiturajornal org="Ministério da Saúde" + ato="Portaria Normativa"
-    3. API buscar-conteudo só se 1+2 retornaram 0 resultados
+    1. leiturajornal — edição completa de DO1 e DO2, validada item a item
+    3. API buscar-conteudo só se a estratégia 1 retornou 0 resultados
     """
     data_str = data_ref.strftime("%d-%m-%Y")
     log: dict[str, Any] = {
@@ -749,87 +832,82 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
 
     brutos: list[dict] = []
 
-    # ── Estratégia 1 e 2: leiturajornal com filtro duplo org + ato ───────────
-    # Regra de hint seletivo:
-    # - Items com sigla explícita no título (GM/MS, SAPS/MS etc.) → validar pelo título
-    # - Items sem sigla no título (PORTARIA Nº X) → aplicar hint "Ministério da Saúde"
-    #   pois o DOU filtrou por org=MS e o formato genérico não tem sigla
-    # - Items com sigla de outro órgão no título → rejeitar sempre
-    TIPOS_PORTARIA = ["Portaria", "Portaria Normativa"]
-    for tipo_ato in TIPOS_PORTARIA:
-        for secao in ("do1", "do2"):
-            fonte = f"leiturajornal/{tipo_ato.replace(' ','_')}/{secao}"
-            try:
-                async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
-                    r = await c.get(
-                        DOU_LEITURA,
-                        params={
-                            "data":  data_str,
-                            "secao": secao,
-                            "org":   "Ministério da Saúde",
-                            "ato":   tipo_ato,
-                        },
-                        headers=hdrs,
-                    )
-                log["fontes_tentadas"].append(fonte)
-                if r.status_code == 200:
-                    extraidos = _extrair_portarias_html(
-                        r.text, usar_hint_como_fallback=False
-                    )
-                    validos = []
-                    for p in extraidos:
-                        titulo_p = p.get("title", "")
-                        # Exige que seja portaria
-                        if not re.search(r'^\s*portaria\b', titulo_p, re.I):
-                            continue
-                        resultado_titulo = _titulo_confirma_ms(titulo_p)
-
-                        if resultado_titulo is True:
-                            # Sigla MS explícita no título → aceitar
-                            validos.append(p)
-                        elif resultado_titulo is False:
-                            # Sigla de outro órgão explícita → rejeitar
-                            continue
-                        else:
-                            # resultado_titulo is None: título sem sigla identificável
-                            # Só aceita se o orgaoName da API (sem hint) for definitivamente MS
-                            orgao_api = (p.get("orgaoName") or "").strip()
-                            if orgao_api and confirmar_orgao_ms(orgao_api.lower(), titulo_p):
-                                validos.append(p)
-                            # Sem sigla MS no título E orgaoName vazio/não-MS → REJEITAR
-                            # (evita falsos positivos de outros órgãos com título genérico)
-                    if validos:
-                        brutos.extend(validos)
-                        log["estrategia_usada"] = fonte
-                        logger.info(
-                            "[DOU] %s %s — %d brutos, %d válidos",
-                            fonte, data_str, len(extraidos), len(validos)
-                        )
-                    else:
-                        logger.info("[DOU] %s %s — 0 portarias MS", fonte, data_str)
-                else:
-                    log["falhas"].append(f"{fonte}: HTTP {r.status_code}")
-            except Exception as exc:
-                log["falhas"].append(f"{fonte}: {exc}")
-                logger.warning("[DOU] %s erro: %s", fonte, exc)
+    # ── Estratégia 1: leiturajornal — edição completa de DO1 e DO2 ───────────
+    # Verificado em 26/10/2026: o portal IGNORA os parâmetros org= e ato= e
+    # devolve todos os atos da seção (ex.: 388 atos no DO1 de 26/10/2026, de
+    # todos os órgãos). Por isso a validação de órgão é feita aqui, item a item:
+    # - sigla MS explícita no título (GM/MS, SAES/MS…) → aceitar
+    # - sigla de outro órgão no título → rejeitar sempre
+    # - título sem sigla → aceitar só no DO1 e só se hierarchyStr do DOU for
+    #   do MS (o DO2 é de atos de pessoal: nomeações/exonerações)
+    log["edicao"] = {}
+    # DO1 e DO2 em paralelo e com prazo total: em série (30+30+20+20 s) a
+    # busca passava dos 60 s do navegador quando o servidor demorava a
+    # alcançar o in.gov.br, e a tela mostrava só "timeout" em vez da falha real.
+    respostas = await asyncio.gather(*(
+        _get_com_prazo(DOU_LEITURA, {"data": data_str, "secao": s}, hdrs, PRAZO_LEITURA_S)
+        for s in ("do1", "do2")
+    ), return_exceptions=True)
+    for secao, r in zip(("do1", "do2"), respostas):
+        fonte = f"leiturajornal/{secao}"
+        try:
+            if isinstance(r, BaseException):
+                raise r
+            log["fontes_tentadas"].append(fonte)
+            if r.status_code != 200:
+                log["falhas"].append(f"{fonte}: HTTP {r.status_code}")
+                continue
+            resumo = _resumo_edicao(r.text)
+            log["edicao"][secao] = resumo
+            if not resumo["atos"]:
+                # Página sem a lista de atos: edição inexistente ou formato mudou.
+                logger.info("[DOU] %s %s — página sem lista de atos", fonte, data_str)
+            extraidos = _extrair_portarias_html(r.text, usar_hint_como_fallback=False)
+            validos = []
+            for p in extraidos:
+                titulo_p = p.get("title", "")
+                if not re.search(r'^\s*portaria\b', titulo_p, re.I):
+                    continue
+                resultado_titulo = _titulo_confirma_ms(titulo_p)
+                if resultado_titulo is True:
+                    validos.append(p)
+                elif resultado_titulo is None and secao == "do1":
+                    orgao_api = (p.get("orgaoName") or "").strip()
+                    if orgao_api and confirmar_orgao_ms(orgao_api, titulo_p):
+                        validos.append(p)
+            if validos:
+                brutos.extend(validos)
+                log["estrategia_usada"] = log["estrategia_usada"] or fonte
+            logger.info(
+                "[DOU] %s %s — %d atos na edição (%d do MS), %d portarias MS válidas",
+                fonte, data_str, resumo["atos"], resumo["atos_ms"], len(validos),
+            )
+        except Exception as exc:
+            log["falhas"].append(f"{fonte}: {type(exc).__name__}: {exc}")
+            logger.warning("[DOU] %s erro: %s", fonte, exc)
 
     # ── Estratégia 3: API /buscar-conteudo — só se nenhum resultado ──────────
     if not brutos:
-        for secao in ("DO1", "DO2"):
+        respostas = await asyncio.gather(*(
+            _get_com_prazo(
+                DOU_BUSCA,
+                {
+                    "orgaoPesquisa": "Ministério da Saúde",
+                    "data":          data_str,
+                    "tipoDeAto":     "Portaria",
+                    "secao":         s,
+                    "numberPerPage": "100",
+                },
+                {**hdrs, "Accept": "application/json, */*"},
+                PRAZO_API_S,
+            )
+            for s in ("DO1", "DO2")
+        ), return_exceptions=True)
+        for secao, r in zip(("DO1", "DO2"), respostas):
             fonte = f"API/{secao}/Portaria"
             try:
-                async with httpx.AsyncClient(timeout=20, follow_redirects=True) as c:
-                    r = await c.get(
-                        DOU_BUSCA,
-                        params={
-                            "orgaoPesquisa": "Ministério da Saúde",
-                            "data":          data_str,
-                            "tipoDeAto":     "Portaria",
-                            "secao":         secao,
-                            "numberPerPage": "100",
-                        },
-                        headers={**hdrs, "Accept": "application/json, */*"},
-                    )
+                if isinstance(r, BaseException):
+                    raise r
                 log["fontes_tentadas"].append(fonte)
                 if r.status_code == 200:
                     try:
@@ -944,14 +1022,10 @@ def _resolver_link(p: dict, data_ref: date) -> str:
     if not data_fmt:
         data_fmt = data_ref.strftime("%d-%m-%Y")
 
-    # Filtros reais confirmados pelo portal DOU: org= e ato=
+    # Sem link do ato: abre a edição do dia. O portal ignora org= e ato=
+    # (verificado em 26/10/2026), então não os enviamos.
     from urllib.parse import urlencode
-    qs = urlencode({
-        "data":   data_fmt,
-        "secao":  "do1",
-        "org":    "Ministério da Saúde",
-        "ato":    "Portaria",
-    })
+    qs = urlencode({"data": data_fmt, "secao": "do1"})
     return f"https://www.in.gov.br/leiturajornal?{qs}"
 
 
@@ -1512,15 +1586,49 @@ def _gerar_html(
 
 # ── Envio de e-mail ───────────────────────────────────────────────────────────
 
+MAX_TENTATIVAS_EMAIL = 3
+
+
+def diagnostico_email() -> dict:
+    """Configuração do provedor de e-mail SEM expor segredos (só se estão preenchidos)."""
+    if EMAIL_PROVIDER == "resend":
+        configurado = bool(RESEND_API_KEY)
+        pendencias = [] if configurado else ["RESEND_API_KEY"]
+    else:
+        configurado = bool(SMTP_USER and SMTP_PASS)
+        pendencias = [v for v, ok in (("SMTP_USER", SMTP_USER), ("SMTP_PASS", SMTP_PASS)) if not ok]
+    return {
+        "provedor":            EMAIL_PROVIDER,
+        "configurado":         configurado,
+        "pendencias":          pendencias,
+        "remetente":           EMAIL_FROM,
+        "remetente_teste":     EMAIL_FROM.endswith("@resend.dev"),
+    }
+
+
 async def _enviar_email(assunto: str, html: str) -> dict:
     if EMAIL_PROVIDER == "resend":
         return await _enviar_resend(assunto, html)
     return await _enviar_smtp(assunto, html)
 
 
+async def _enviar_email_com_tentativas(assunto: str, html: str) -> dict:
+    """Até MAX_TENTATIVAS_EMAIL envios; erro de configuração não é repetido (não muda sozinho)."""
+    resultado: dict = {"ok": False, "erro": "nenhuma tentativa"}
+    tentativas = 0
+    for tentativas in range(1, MAX_TENTATIVAS_EMAIL + 1):
+        resultado = await _enviar_email(assunto, html)
+        if resultado.get("ok") or resultado.get("config"):
+            break
+        if tentativas < MAX_TENTATIVAS_EMAIL:
+            await asyncio.sleep(5 * tentativas)
+    resultado["tentativas"] = tentativas
+    return resultado
+
+
 async def _enviar_smtp(assunto: str, html: str) -> dict:
     if not SMTP_USER or not SMTP_PASS:
-        return {"ok": False, "erro": "SMTP_USER ou SMTP_PASS não configurados. Railway bloqueia SMTP — configure EMAIL_PROVIDER=resend e RESEND_API_KEY no Railway."}
+        return {"ok": False, "config": True, "erro": "SMTP_USER ou SMTP_PASS não configurados. Railway bloqueia SMTP — configure EMAIL_PROVIDER=resend e RESEND_API_KEY no Railway."}
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = assunto
@@ -1543,7 +1651,7 @@ async def _enviar_smtp(assunto: str, html: str) -> dict:
 
 async def _enviar_resend(assunto: str, html: str) -> dict:
     if not RESEND_API_KEY:
-        return {"ok": False, "erro": "RESEND_API_KEY não configurado"}
+        return {"ok": False, "config": True, "erro": "RESEND_API_KEY não configurado no Railway (EMAIL_PROVIDER=resend)."}
     try:
         async with httpx.AsyncClient(timeout=20) as c:
             r = await c.post(
@@ -1555,7 +1663,17 @@ async def _enviar_resend(assunto: str, html: str) -> dict:
             )
         if r.status_code in (200, 201):
             return {"ok": True}
-        return {"ok": False, "erro": f"Resend HTTP {r.status_code}: {r.text[:200]}"}
+        erro = f"Resend HTTP {r.status_code}: {r.text[:200]}"
+        # 401/403/422 = chave inválida, remetente não verificado ou destinatário
+        # não permitido — repetir não resolve.
+        config = r.status_code in (401, 403, 422)
+        if r.status_code == 403 and EMAIL_FROM.endswith("@resend.dev"):
+            erro += (
+                f" — Com o remetente de teste {EMAIL_FROM}, o Resend só entrega para o"
+                " e-mail dono da conta Resend. Use EMAIL_RECIPIENT igual a esse e-mail"
+                " ou verifique um domínio no Resend e defina EMAIL_FROM."
+            )
+        return {"ok": False, "config": config, "erro": erro}
     except Exception as e:
         return {"ok": False, "erro": str(e)}
 
@@ -1663,6 +1781,35 @@ async def _salvar_portarias_db(
         logger.error("[DB] Falha ao salvar portarias no banco: %s", exc, exc_info=True)
 
 
+async def _registrar_envio_email(
+    data_ref: date, assunto: str, html: str, resultado: dict, portarias: list[dict],
+) -> None:
+    """Grava a tentativa de envio em email_diario_log (fonte do painel de status)."""
+    from database import AsyncSessionLocal
+    from models.email_diario import EmailDiarioLog, StatusEnvio
+
+    relevantes = [p for p in portarias if p.get("_relevancia") in ("apui", "amazonas", "federal")]
+    ok = bool(resultado.get("ok"))
+    async with AsyncSessionLocal() as db:
+        db.add(EmailDiarioLog(
+            data_referencia=data_ref.isoformat(),
+            destinatario=EMAIL_RECIPIENT,
+            assunto=assunto[:500],
+            corpo_html=html,
+            status=StatusEnvio.ENVIADO if ok else StatusEnvio.FALHA,
+            tentativas=int(resultado.get("tentativas") or 1),
+            erro=None if ok else (resultado.get("erro") or "")[:2000],
+            qtd_portarias=len(portarias),
+            qtd_informes=len(relevantes),
+            portarias_ids=json.dumps(
+                [p.get("_chave_dedup") or _gerar_chave_dedup(p) for p in portarias],
+                ensure_ascii=False,
+            ),
+            enviado_em=datetime.utcnow() if ok else None,
+        ))
+        await db.commit()
+
+
 # ── Execução diária ───────────────────────────────────────────────────────────
 
 async def executar_envio_diario(
@@ -1695,7 +1842,7 @@ async def executar_envio_diario(
         assunto = f"ERSUS360 — DOU {data_fmt} — Sem portarias MS com impacto identificado"
 
     html = _gerar_html(data_ref, apui, am, federal, log_exec)
-    resultado = await _enviar_email(assunto, html)
+    resultado = await _enviar_email_com_tentativas(assunto, html)
     resultado.update({
         "data":              data_fmt,
         "qtd_portarias":     len(portarias),
@@ -1711,6 +1858,12 @@ async def executar_envio_diario(
     except Exception as exc:
         logger.error("[Portarias] Falha ao persistir no banco: %s", exc)
         resultado["aviso_db"] = f"Dados não persistidos no banco: {exc}"
+
+    # Histórico exibido no painel "Envios Diários" (email_diario_log)
+    try:
+        await _registrar_envio_email(data_ref, assunto, html, resultado, portarias)
+    except Exception as exc:
+        logger.error("[Portarias] Falha ao registrar histórico de e-mail: %s", exc)
 
     logger.info(
         "[Portarias] %s — %d portarias MS (%d Apuí, %d AM, %d Federal) — email: %s",
