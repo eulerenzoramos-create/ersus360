@@ -169,10 +169,11 @@ function DetalheIndicador({ b, competencia, atualizacao }: { b: BlocoInd; compet
 }
 
 // modo "qualidade" (aba Componente Qualidade, com a captura) | "analise" (aba Análise do Indicador)
-export default function QualidadeOficialPorEquipe({ modo = "qualidade" }: { modo?: "qualidade" | "analise" }) {
-  const [comp, setComp] = useState<string | undefined>();
+export default function QualidadeOficialPorEquipe({ modo = "qualidade", competencia }: { modo?: "qualidade" | "analise"; competencia?: string }) {
+  const [comp, setComp] = useState<string | undefined>(competencia);
   const [sgSel, setSgSel] = useState<string | undefined>();
   const [indSel, setIndSel] = useState<string | null>(null);
+  useEffect(() => { if (competencia) { setComp(competencia); setIndSel(null); } }, [competencia]);
   const { data } = useQuery<RespInd>({
     queryKey: ["siaps-captura-tabela", comp],
     queryFn: () => api.get("/api/siaps-publico/captura/indicadores", { params: comp ? { competencia: comp } : {} }).then(r => r.data),
@@ -198,7 +199,7 @@ export default function QualidadeOficialPorEquipe({ modo = "qualidade" }: { modo
       </div>
       {data?.competencia && (
         <div style={{ fontSize: 11.5, color: "#64748b", marginBottom: 8 }}>
-          Competência mais recente publicada no SIAPS: <b>{mesAno(data.competencias[0])}</b>. Resultados mensais são de monitoramento
+          Competência mais recente capturada do SIAPS: <b>{mesAno(data.competencias[0])}</b>. Resultados mensais são de monitoramento
           (NT nº 8/2026, item 2.3); a classificação para cofinanciamento é a quadrimestral (aba Avaliação Quadrimestre).
         </div>)}
 

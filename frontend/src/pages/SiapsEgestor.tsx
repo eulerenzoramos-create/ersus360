@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import ComponenteQualidade from "./ComponenteQualidade";
 import MonitoramentoSiaps from "../components/MonitoramentoSiaps";
 import QualidadeOficialPorEquipe, { capturaNoEndereco } from "../components/QualidadeOficialPorEquipe";
@@ -105,6 +105,87 @@ function AvisoFonte({ data }: { data: any }) {
   );
 }
 
+// ── Competências por fonte oficial (/api/siaps/competencias) ────────────────
+// situacao_siaps: importada | publicada_aguardando_importacao | nao_publicada | fonte_indisponivel
+interface CompetenciaFonte {
+  competencia: string; rotulo: string; situacao_siaps: string;
+  siaps_publicada: boolean | null; quadrimestre: string; quadrimestre_publicado: boolean | null;
+  cvat_importado: boolean; qualidade_capturada: boolean;
+  egestor_parcela: string; egestor_parcela_publicada: boolean | null; egestor_comp_cnes: string | null;
+}
+interface CatalogoCompetencias {
+  consultado_em: string; aviso?: string | null; nota: string;
+  ultima_siaps_publicada: string | null; ultima_com_dados: string | null;
+  fontes: { fonte: string; url: string; disponivel: boolean; erro?: string | null;
+            ultima_mensal?: string | null; ultimo_quadrimestre?: string | null; ultima_parcela?: string | null }[];
+  competencias: CompetenciaFonte[];
+}
+const SIT_COMP: Record<string, { txt: string; bg: string; fg: string }> = {
+  importada:                       { txt: "dados no ERSUS360",                   bg: "#dcfce7", fg: "#166534" },
+  publicada_aguardando_importacao: { txt: "publicada no SIAPS · falta importar", bg: "#fef3c7", fg: "#92400e" },
+  nao_publicada:                   { txt: "ainda não publicada",                 bg: "#f3f4f6", fg: "#4b5563" },
+  fonte_indisponivel:              { txt: "SIAPS fora do ar",                    bg: "#fee2e2", fg: "#991b1b" },
+};
+
+function FontesCompetencia({ cat }: { cat?: CatalogoCompetencias }) {
+  const [aberto, setAberto] = useState(false);
+  if (!cat) return null;
+  return (
+    <div style={{ background: "#eff6ff", borderBottom: "1px solid #bfdbfe", padding: "6px 24px", fontSize: 12, color: "#1e3a8a" }}>
+      <button onClick={() => setAberto(a => !a)} style={{ background: "none", border: "none", color: "#1d4ed8", cursor: "pointer", fontSize: 12, fontWeight: 700, padding: 0 }}>
+        {aberto ? "▾" : "▸"} Competências publicadas por fonte oficial
+      </button>
+      <span style={{ marginLeft: 10, color: "#475569" }}>
+        {cat.fontes.map(f => `${f.fonte}: ${f.disponivel ? (f.ultima_mensal ?? f.ultima_parcela ?? "—") : "fora do ar"}`).join(" · ")}
+        {" "}· consultado em {new Date(cat.consultado_em).toLocaleString("pt-BR")}
+      </span>
+      {cat.aviso && <div style={{ color: "#92400e", marginTop: 4 }}>{cat.aviso}</div>}
+      {aberto && (
+        <div style={{ marginTop: 8, overflowX: "auto" }}>
+          <table style={{ borderCollapse: "collapse", fontSize: 12, background: "#fff", minWidth: 640 }}>
+            <thead><tr>{["Competência", "SIAPS (mensal)", "Quadrimestre", "CVAT importado", "Qualidade capturada", "e-Gestor (parcela do mês)"].map(h =>
+              <th key={h} style={{ textAlign: "left", padding: "5px 10px", borderBottom: "1px solid #e5e7eb", color: "#374151" }}>{h}</th>)}</tr></thead>
+            <tbody>{cat.competencias.map(c => {
+              const s = SIT_COMP[c.situacao_siaps];
+              const sim = (v: boolean | null) => v == null ? "fonte fora do ar" : v ? "publicada" : "não publicada";
+              return (
+                <tr key={c.competencia}>
+                  <td style={{ padding: "4px 10px", fontWeight: 700 }}>{c.rotulo}</td>
+                  <td style={{ padding: "4px 10px" }}><span style={{ background: s?.bg, color: s?.fg, borderRadius: 4, padding: "1px 6px" }}>{s?.txt ?? c.situacao_siaps}</span></td>
+                  <td style={{ padding: "4px 10px" }}>{c.quadrimestre.replace("Q", "/Q")} · {sim(c.quadrimestre_publicado)}</td>
+                  <td style={{ padding: "4px 10px" }}>{c.cvat_importado ? "sim" : "não"}</td>
+                  <td style={{ padding: "4px 10px" }}>{c.qualidade_capturada ? "sim" : "não"}</td>
+                  <td style={{ padding: "4px 10px" }}>{c.egestor_parcela_publicada == null ? "fonte fora do ar"
+                    : c.egestor_parcela_publicada ? `publicada (CNES ${c.egestor_comp_cnes})` : "ainda não publicada"}</td>
+                </tr>);
+            })}</tbody>
+          </table>
+          <div style={{ marginTop: 6, color: "#475569" }}>{cat.nota}</div>
+          <div style={{ marginTop: 4, color: "#64748b", wordBreak: "break-all" }}>
+            Fontes: {cat.fontes.map(f => <span key={f.url}><a href={f.url} target="_blank" rel="noreferrer" style={{ color: "#1d4ed8" }}>{f.fonte}</a>{f.erro ? ` (erro: ${f.erro})` : ""} · </span>)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Aviso da aba quando a competência escolhida não tem dado nessa fonte (nunca estima nem troca de mês calado)
+function AvisoCompetencia({ item, temDado, oQue }: { item?: CompetenciaFonte; temDado: boolean; oQue: string }) {
+  if (!item || temDado) return null;
+  const sit = item.situacao_siaps === "importada" ? "publicada_aguardando_importacao" : item.situacao_siaps;
+  const txt = sit === "nao_publicada"
+    ? `${item.rotulo} ainda não publicada pelo Ministério da Saúde no SIAPS — ${oQue} não existe para essa competência.`
+    : sit === "fonte_indisponivel"
+    ? `SIAPS público fora do ar: não foi possível confirmar se ${item.rotulo} já foi publicada.`
+    : `${item.rotulo} já publicada no SIAPS, mas ${oQue} ainda não entrou no ERSUS360 (importe/capture na área logada do SIAPS).`;
+  return (
+    <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", color: "#92400e", borderRadius: 8, padding: "10px 14px", fontSize: 12, marginBottom: 14 }}>
+      <strong>Competência {item.rotulo}: </strong>{txt} Abaixo, a competência mais recente disponível — conferir o mês exibido.
+    </div>
+  );
+}
+
 // ── Abrangência Municipal ─────────────────────────────────────────────────────
 
 function AbaAbrangencia({ data }: { data: any }) {
@@ -190,6 +271,16 @@ function AbaVinculo({ data }: { data: any }) {
   const [showVars, setShowVars] = useState(false);
   const [filtro, setFiltro] = useState("");
   if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum valor de vinculação foi inventado." />;
+  if (SIT_COMP[data.situacao_dado]) {
+    const s = SIT_COMP[data.situacao_dado];
+    return (
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "28px 24px", textAlign: "center" }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#1d4ed8", marginBottom: 8 }}>Vínculo e Acompanhamento — {data.rotulo}</div>
+        <span style={{ background: s.bg, color: s.fg, fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>{s.txt}</span>
+        <div style={{ fontSize: 13, color: "#374151", marginTop: 12 }}>{data.nota}</div>
+      </div>
+    );
+  }
 
   const equipes: EquipeVinculo[] = data.equipes.filter((e: EquipeVinculo) =>
     filtro === "" || e.ubs.toLowerCase().includes(filtro.toLowerCase()) || e.equipe.toLowerCase().includes(filtro.toLowerCase())
@@ -455,7 +546,7 @@ const IND_NOMES: Record<string, string> = {
   ind15_sif_cong:   "I15 — Sífilis Congênita",
 };
 
-function AbaQualidade({ data: _data }: { data: any }) {
+function AbaQualidade({ data: _data, competencia }: { data: any; competencia?: string }) {
   const [extraindo, setExtraindo] = useState(false);
   const [msgExtracao, setMsgExtracao] = useState<string | null>(null);
 
@@ -551,8 +642,8 @@ function AbaQualidade({ data: _data }: { data: any }) {
         </div>
       )}
 
-      <QualidadeOficialPorEquipe />
-      <ComponenteQualidade />
+      <QualidadeOficialPorEquipe competencia={competencia} />
+      <ComponenteQualidade competencia={competencia} />
     </div>
   );
 }
@@ -1015,8 +1106,8 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
 }
 
 // ── Aba: Análise do Indicador — resultado oficial por indicador, equipe e competência (SIAPS) ───────
-function AbaAnaliseIndicador() {
-  return <QualidadeOficialPorEquipe modo="analise" />;
+function AbaAnaliseIndicador({ competencia }: { competencia?: string }) {
+  return <QualidadeOficialPorEquipe modo="analise" competencia={competencia} />;
 }
 
 
@@ -1037,7 +1128,7 @@ interface PgtoPainel {
   situacao_dado: string; fonte: string; parcelas: { nu_parcela: string; rotulo: string }[]; parcela?: string;
   parcela_rotulo?: string; competencia_cnes_rotulo?: string; coletado_em?: string; classificacao_qualidade?: string | null;
   classificacao_vinculo?: string | null; total?: number; descontos?: number; componentes?: PgtoComponente[];
-  equipes?: PgtoEquipe[]; equipes_com_pendencia?: number;
+  equipes?: PgtoEquipe[]; equipes_com_pendencia?: number; nota?: string;
 }
 
 const PLANOS: { id: number; label: string }[] = [
@@ -1058,8 +1149,9 @@ const pgTd: React.CSSProperties = { padding: "7px 10px", fontSize: 12, borderTop
 const valorResumo = (k: string, v: unknown) =>
   typeof v === "number" ? (k.startsWith("vl") ? BRL(v) : v.toLocaleString("pt-BR")) : String(v ?? "—");
 
-function AbaRelatorioPagamento() {
-  const [parcela, setParcela] = useState<string | undefined>();
+function AbaRelatorioPagamento({ parcelaGlobal }: { parcelaGlobal?: string }) {
+  const [parcela, setParcela] = useState<string | undefined>(parcelaGlobal);
+  useEffect(() => { setParcela(parcelaGlobal); }, [parcelaGlobal]);
   const [plano, setPlano] = useState(8);
   const [atualizando, setAtualizando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -1099,7 +1191,17 @@ function AbaRelatorioPagamento() {
         </div>
         {erro && <div style={{ padding: "8px 18px", background: "#fef2f2", color: "#b91c1c", fontSize: 12 }}>{erro}</div>}
         {isLoading ? <div style={{ padding: 18, fontSize: 13, color: "#6b7280" }}>Carregando…</div>
-          : data?.situacao_dado !== "oficial_validado" ? (
+          : data?.situacao_dado === "nao_publicada" ? (
+            <div style={{ padding: 18, fontSize: 13, color: "#374151" }}>
+              <div style={{ background: "#f3f4f6", borderRadius: 8, padding: "10px 14px", marginBottom: 10 }}><strong>{data.parcela_rotulo}: ainda não publicada.</strong> {data.nota}</div>
+              <label>Ver parcela publicada{" "}
+                <select value="" onChange={e => setParcela(e.target.value)} style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "5px 8px", fontSize: 13, background: "#fff", color: "#1f2937" }}>
+                  <option value="" disabled>escolha…</option>
+                  {data.parcelas.map(p => <option key={p.nu_parcela} value={p.nu_parcela}>{p.rotulo}</option>)}
+                </select>
+              </label>
+            </div>
+          ) : data?.situacao_dado !== "oficial_validado" ? (
             <div style={{ padding: 18, fontSize: 13, color: "#374151" }}>
               Ainda não há leitura do e-Gestor para este município. Clique em <strong>Atualizar agora</strong> — a leitura é automática e não precisa baixar arquivo.
             </div>
@@ -1232,8 +1334,9 @@ const caixaDC: React.CSSProperties = { background: "#fff", border: "1px solid #e
 const thDC: React.CSSProperties = { padding: "7px 10px", textAlign: "left", color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb", whiteSpace: "nowrap" };
 const tdDC: React.CSSProperties = { padding: "7px 10px", borderBottom: "1px solid #f3f4f6", color: "#1e293b" };
 
-function AbaDiagnosticoCobertura() {
-  const [parcela, setParcela] = useState<string>("");
+function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) {
+  const [parcela, setParcela] = useState<string>(parcelaGlobal ?? "");
+  useEffect(() => { setParcela(parcelaGlobal ?? ""); }, [parcelaGlobal]);
   const [forcar, setForcar] = useState(0);
   const { data, isLoading, isFetching, isError, refetch } = useQuery<any>({
     queryKey: ["siaps-diag-cobertura", parcela, forcar],
@@ -1535,7 +1638,11 @@ export default function SiapsEgestor() {
 
   const { data: dashData }  = useQuery({ queryKey: ["siaps-dashboard"],  queryFn: () => apiGet("/api/siaps/dashboard") as Promise<any> });
   const { data: abrangData } = useQuery({ queryKey: ["siaps-abrang"],    queryFn: () => apiGet("/api/siaps/abrangencia") as Promise<any> });
-  const { data: vinculo }    = useQuery({ queryKey: ["siaps-vinculo"],   queryFn: () => apiGet("/api/siaps/vinculo-acompanhamento") as Promise<any>, enabled: aba === "vinculo" });
+  // competência escolhida no cabeçalho (undefined = a mais recente com dado no ERSUS360)
+  const [comp, setComp] = useState<string | undefined>();
+  const { data: cat } = useQuery({ queryKey: ["siaps-competencias"], queryFn: () => apiGetRaw<CatalogoCompetencias>("/api/siaps/competencias"), staleTime: 10 * 60_000 });
+  const item = cat?.competencias.find(c => c.competencia === comp);
+  const { data: vinculo }    = useQuery({ queryKey: ["siaps-vinculo", comp], queryFn: () => apiGet("/api/siaps/vinculo-acompanhamento", comp ? { competencia: comp } : undefined) as Promise<any>, enabled: aba === "vinculo" });
   const { data: qualidade }  = useQuery({ queryKey: ["siaps-qualidade"], queryFn: () => apiGet("/api/siaps/qualidade") as Promise<any>, enabled: aba === "qualidade" });
   const { data: boas }       = useQuery({ queryKey: ["siaps-boas"],      queryFn: () => apiGet("/api/siaps/boas-praticas") as Promise<any>, enabled: aba === "boas_praticas" });
 
@@ -1567,7 +1674,15 @@ export default function SiapsEgestor() {
           <span><strong>UF:</strong> {dashData.uf}</span>
           <span><strong>Município:</strong> {dashData.municipio}</span>
           <span><strong>IED:</strong> {dashData.ied}</span>
-          <span><strong>Competência:</strong> {dashData.competencia}</span>
+          <label><strong>Competência:</strong>{" "}
+            <select value={comp ?? ""} onChange={e => setComp(e.target.value || undefined)} aria-label="Competência"
+              style={{ background: "#fff", color: "#1e3a8a", border: "none", borderRadius: 6, padding: "3px 6px", fontSize: 13, fontWeight: 700 }}>
+              <option value="">{dashData.competencia} ({dashData.fonte === "siaps_relatorio_importado" ? "mais recente importada" : "referência antiga"})</option>
+              {(cat?.competencias ?? []).map(c => (
+                <option key={c.competencia} value={c.competencia}>{c.rotulo} — {SIT_COMP[c.situacao_siaps]?.txt ?? c.situacao_siaps}</option>
+              ))}
+            </select>
+          </label>
           <span style={{ marginLeft: "auto", background: "rgba(255,255,255,.15)", borderRadius: 20, padding: "3px 12px", fontSize: 11 }}>
             {dashData.fonte === "siaps_relatorio_importado"
               ? `Relatório SIAPS importado${dashData.dado_preliminar ? " · dado preliminar" : ""}`
@@ -1575,6 +1690,8 @@ export default function SiapsEgestor() {
           </span>
         </div>
       )}
+
+      <FontesCompetencia cat={cat} />
 
       <div style={{ padding: "24px 24px 32px", maxWidth: 1100, margin: "0 auto" }}>
 
@@ -1593,12 +1710,17 @@ export default function SiapsEgestor() {
         {aba === "painel"            && <PainelGeralAps irPara={(a) => setAba(a as Aba)} />}
         {aba === "abrangencia"       && <AbaAbrangencia data={abrangData} />}
         {aba === "vinculo"           && <AbaVinculo data={vinculo} />}
-        {aba === "qualidade"         && <AbaQualidade data={qualidade} />}
+        {comp && ["abrangencia", "boas_praticas", "quadrimestre", "monitoramento", "painel"].includes(aba) && (
+          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1e40af", borderRadius: 8, padding: "8px 14px", fontSize: 12, marginBottom: 14 }}>
+            Esta aba não é mensal: mostra a situação atual / os quadrimestres publicados, independente da competência {item?.rotulo ?? comp} escolhida no cabeçalho.
+          </div>)}
+        {(aba === "qualidade" || aba === "analise_indicador") && <AvisoCompetencia item={item} temDado={!!item?.qualidade_capturada} oQue="o resultado mensal por equipe (Qualidade)" />}
+        {aba === "qualidade"         && <AbaQualidade data={qualidade} competencia={item?.qualidade_capturada ? comp : undefined} />}
         {aba === "boas_praticas"     && <AbaBoasPraticas data={boas} />}
         {aba === "quadrimestre"      && <AbaQuadrimestre dashData={dashData} />}
-        {aba === "analise_indicador" && <AbaAnaliseIndicador />}
-        {aba === "rel_pagamento"     && <AbaRelatorioPagamento />}
-        {aba === "diag_cobertura"   && <AbaDiagnosticoCobertura />}
+        {aba === "analise_indicador" && <AbaAnaliseIndicador competencia={item?.qualidade_capturada ? comp : undefined} />}
+        {aba === "rel_pagamento"     && <AbaRelatorioPagamento parcelaGlobal={item?.egestor_parcela} />}
+        {aba === "diag_cobertura"   && <AbaDiagnosticoCobertura parcelaGlobal={item?.egestor_parcela} />}
         {aba === "monitoramento"    && <MonitoramentoSiaps municipio={{ uf: dashData?.uf, nome: dashData?.municipio }} />}
       </div>
 

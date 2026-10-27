@@ -354,19 +354,81 @@ async def abrangencia(current: UserOut = Depends(get_current_user), db: AsyncSes
                              + base.get("homologadas_fonte", "referência Abr/2026") + "."}
 
 
+@router.get("/competencias")
+async def competencias(
+    atualizar: bool = Query(False),
+    current: UserOut = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Competências por fonte oficial (SIAPS público, e-Gestor) e o que já entrou no ERSUS360 — seletor da tela."""
+    from services import egestor_competencias
+    return await egestor_competencias.catalogo(db, current.municipio_id, current.municipio_ibge or "1300144", atualizar)
+
+
+_NOTA_SEM_DADOS = {
+    "nao_publicada": "A competência {r} ainda não foi publicada pelo Ministério da Saúde no SIAPS. Nenhum valor foi estimado.",
+    "publicada_aguardando_importacao": ("A competência {r} já foi publicada no SIAPS, mas o resultado por equipe fica na área "
+                                        "logada (gov.br) e ainda não foi importado no ERSUS360 (Relatórios do SIAPS)."),
+    "fonte_indisponivel": "SIAPS público fora do ar agora — não foi possível confirmar se {r} já foi publicada.",
+    "importada": "Não há relatório CVAT de {r} importado (só resultados de Qualidade).",
+}
+
+
+async def _competencia_sem_dados(db: AsyncSession, current: UserOut, competencia: str) -> dict:
+    """Competência pedida sem dado no ERSUS360: diz se ainda não foi publicada ou se falta importar. Nunca estima."""
+    from services import egestor_competencias as ec
+    cat = await ec.catalogo(db, current.municipio_id, current.municipio_ibge or "1300144")
+    item = next((c for c in cat["competencias"] if c["competencia"] == competencia), None)
+    sit = item["situacao_siaps"] if item else "nao_publicada"
+    return {"situacao_dado": sit, "competencia": competencia, "rotulo": ec.rotulo(competencia),
+            "equipes": [], "por_status": None, "fonte": None, "consultado_em": cat["consultado_em"],
+            "nota": _NOTA_SEM_DADOS[sit].format(r=ec.rotulo(competencia))}
+
+
+async def _cvat_quadrimestre_publico(ibge6: str, ano: int, mes: int, tipo_equipe: str) -> dict | None:
+    """Classificação CVAT agregada do quadrimestre na API pública do SIAPS (sem detalhe por equipe)."""
+    quad = f"{ano}Q{1 if mes <= 4 else (2 if mes <= 8 else 3)}"
+    pub_quad = await buscar_classificacao_quadrimestre(ibge6, quad)
+    if not (pub_quad and pub_quad.get("total_equipes", 0) > 0):
+        return None
+    # a API pública só publica a classificação agregada: o detalhe por equipe NÃO é preenchido com a
+    # tabela de referência de Abr/2026 (antes era, e aparecia como se fosse do quadrimestre)
+    return {
+        "competencia": f"{ano}-{mes:02d}",
+        "quadrimestre": quad,
+        "tipo_equipe": tipo_equipe,
+        "dado_preliminar": False,
+        "municipio": "APUÍ", "uf": "AM", "ied": 2,
+        "total_equipes": pub_quad["total_equipes"],
+        "total_pessoas_vinculadas": None,
+        "total_pessoas_acompanhadas": None,
+        "pontuacao_media": None,
+        "por_status": pub_quad["por_status"],
+        "pct_status": pub_quad.get("pct_status", {}),
+        "equipes": [],
+        "fonte": "siaps_publico",
+        "fonte_detalhe": f"SIAPS público — classificação do quadrimestre {quad} (apisiaps.saude.gov.br/api/public)",
+        "nota": "A API pública publica só a classificação agregada das equipes. Para o detalhe por equipe "
+                "(variáveis A–K e pontuação), importe o relatório CVAT em Relatórios do SIAPS.",
+    }
+
+
 @router.get("/vinculo-acompanhamento")
 async def vinculo_acompanhamento(
-    competencia: str = Query("2026-04"),
+    competencia: str | None = Query(None, pattern=r"^\d{4}-\d{2}$"),
     tipo_equipe: str = Query("eAP,eSF"),
     current: UserOut = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Retorna CVAT por equipe. 1º o relatório do SIAPS importado pelo município
-    (/api/siaps-relatorios); depois SIAPS ao vivo; fallback para referência Abr/2026."""
+    (/api/siaps-relatorios); depois SIAPS ao vivo; fallback para referência Abr/2026.
+    Com `competencia` escolhida, nunca troca por outro mês: sem relatório daquele mês, mostra a
+    classificação pública do quadrimestre (se publicada) ou diz que a competência não foi publicada/importada."""
     if current.municipio_id is not None:
         importados = await relatorios_do_municipio(db, current.municipio_id, "cvat")
-        if importados:
-            rel = next((r for r in importados if r.competencia == competencia), importados[0])
+        rel = (next((r for r in importados if r.competencia == competencia), None) if competencia
+               else (importados[0] if importados else None))
+        if rel:
             linhas = json.loads(rel.linhas)
             resumo = resumo_cvat(linhas)
             return {
@@ -384,6 +446,20 @@ async def vinculo_acompanhamento(
                 "fonte_detalhe": f"Relatório SIAPS importado ({rel.gerado_em or rel.competencia})",
                 "aviso": AVISO_ESFR,
             }
+    if competencia:
+        ano, mes = (int(x) for x in competencia.split("-"))
+        try:
+            pub = await _cvat_quadrimestre_publico((current.municipio_ibge or "1300144")[:6], ano, mes, tipo_equipe)
+        except Exception:
+            pub = None
+        if pub:
+            from services.egestor_competencias import rotulo
+            pub["nota"] = (f"Relatório mensal de {rotulo(competencia)} não importado: exibindo a classificação pública do "
+                           f"quadrimestre {pub['quadrimestre']}, que inclui esse mês. " + pub["nota"])
+            return pub
+        return await _competencia_sem_dados(db, current, competencia)
+
+    competencia = "2026-04"
     # Tenta dados ao vivo do SIAPS (requer credenciais configuradas no Railway)
     ibge = "1300144"
     try:
@@ -414,39 +490,10 @@ async def vinculo_acompanhamento(
         pass
 
     # Tenta API PÚBLICA do SIAPS (apisiaps.saude.gov.br/api/public — sem credenciais)
-    # Retorna classificação CVAT por quadrimestre (1º Quad/2026 = Jan-Abr)
     try:
-        # Converte competência para quadrimestre: YYYY-MM → YYYYQn
-        comp_parts = competencia.split("-")
-        ano = int(comp_parts[0]) if comp_parts else 2026
-        mes = int(comp_parts[1]) if len(comp_parts) > 1 else 4
-        # Q1=Jan-Abr(4), Q2=Mai-Ago(8), Q3=Set-Dez(12)
-        quad_num = 1 if mes <= 4 else (2 if mes <= 8 else 3)
-        quad = f"{ano}Q{quad_num}"
-
-        pub_quad = await buscar_classificacao_quadrimestre("130014", quad)
-        if pub_quad and pub_quad.get("total_equipes", 0) > 0:
-            por_status_pub = pub_quad["por_status"]
-            # a API pública só publica a classificação agregada: o detalhe por equipe NÃO é preenchido com a
-            # tabela de referência de Abr/2026 (antes era, e aparecia como se fosse do quadrimestre)
-            return {
-                "competencia": f"{ano}-{mes:02d}",
-                "quadrimestre": quad,
-                "tipo_equipe": tipo_equipe,
-                "dado_preliminar": False,
-                "municipio": "APUÍ", "uf": "AM", "ied": 2,
-                "total_equipes": pub_quad["total_equipes"],
-                "total_pessoas_vinculadas": None,
-                "total_pessoas_acompanhadas": None,
-                "pontuacao_media": None,
-                "por_status": por_status_pub,
-                "pct_status": pub_quad.get("pct_status", {}),
-                "equipes": [],
-                "fonte": "siaps_publico",
-                "fonte_detalhe": f"SIAPS público — classificação do quadrimestre {quad} (apisiaps.saude.gov.br/api/public)",
-                "nota": "A API pública publica só a classificação agregada das equipes. Para o detalhe por equipe "
-                        "(variáveis A–K e pontuação), importe o relatório CVAT em Relatórios do SIAPS.",
-            }
+        pub = await _cvat_quadrimestre_publico("130014", 2026, 4, tipo_equipe)
+        if pub:
+            return pub
     except Exception:
         pass
 
