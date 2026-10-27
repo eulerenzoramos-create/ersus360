@@ -189,7 +189,7 @@ export default function QualidadeOficialPorEquipe({ modo = "qualidade", competen
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: "#1e3a8a" }}>{modo === "analise" ? "Análise do Indicador — SIAPS" : "Resultado oficial por indicador e equipe — SIAPS"}</div>
         <span style={{ background: "#fef9c3", color: "#854d0e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>Monitoramento mensal · preliminar</span>
-        {data?.competencias?.length ? (
+        {data?.competencias?.length && !competencia ? (
           <select value={data.competencia} onChange={e => { setComp(e.target.value); setIndSel(null); }} aria-label="Competência"
                   style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: 12 }}>
             {data.competencias.map(c => <option key={c} value={c}>{mesAno(c)}</option>)}

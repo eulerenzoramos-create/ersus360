@@ -678,13 +678,14 @@ async def componente_qualidade(
 
 
 @router.get("/boas-praticas")
-async def boas_praticas(current: UserOut = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def boas_praticas(competencia: str | None = Query(None, pattern=r"^\d{4}-\d{2}$"),
+                        current: UserOut = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Destaques e alertas gerados dos resultados oficiais captados (relatório SIAPS importado e
     Avaliação do Quadrimestre publicada). Sem lista fixa: sem dado oficial, a aba fica vazia."""
     from services import siaps_boas_praticas
     if current.municipio_id is None:
         return {"situacao_dado": "nao_disponivel", "boas_praticas": [], "total": 0, "destaques": 0, "alertas": 0}
-    return await siaps_boas_praticas.montar(db, current.municipio_id, current.municipio_ibge, current.municipio)
+    return await siaps_boas_praticas.montar(db, current.municipio_id, current.municipio_ibge, current.municipio, competencia)
 
 
 @router.get("/dashboard")

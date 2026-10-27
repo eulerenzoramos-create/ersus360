@@ -263,6 +263,16 @@ async def test_boas_praticas_vem_dos_resultados_oficiais(ambiente, monkeypatch):
     assert all(b["fonte"] for b in bp["boas_praticas"])
     assert bp["boas_praticas"][0]["destaque"] is True                       # destaques primeiro
 
+    # competência escolhida na tela: só o CVAT daquele mês e o quadrimestre que o contém
+    jul = (await c.get("/api/siaps/boas-praticas", params={"competencia": "2026-07"}, headers=_h(tok))).json()
+    assert jul["quadrimestre"] == "2026Q2" and "Equipe EQUIPE OTIMA — Vínculo Ótimo (9,40)" in [b["titulo"] for b in jul["boas_praticas"]]
+    assert not any("Avaliação do Quadrimestre" in f for f in jul["fontes"])          # 2026Q2 não está nos dados de teste
+    abr = (await c.get("/api/siaps/boas-praticas", params={"competencia": "2026-04"}, headers=_h(tok))).json()
+    assert abr["quadrimestre"] == "2026Q1" and not any("EQUIPE OTIMA" in b["titulo"] for b in abr["boas_praticas"])
+    assert any("Avaliação do Quadrimestre" in f for f in abr["fontes"])
+    out = (await c.get("/api/siaps/boas-praticas", params={"competencia": "2026-10"}, headers=_h(tok))).json()
+    assert out["situacao_dado"] == "nao_disponivel" and out["total"] == 0 and out["quadrimestre"] == "2026Q3"
+
 
 # ── Captura assistida da área logada (linhas reais de Apuí, Jul/26, capturadas em 17/10/2026) ──
 
