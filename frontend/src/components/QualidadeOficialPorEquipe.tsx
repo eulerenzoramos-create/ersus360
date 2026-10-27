@@ -49,7 +49,7 @@ function CapturaAssistida() {
     onSuccess: () => {
       setTexto(""); setRecebido(null);
       ["siaps-captura-tabela", "siaps-boas", "siaps-quadrimestral", "siaps-conferencia", "siaps-painel-geral",
-       "siaps-vinculo", "siaps-dashboard", "siaps-competencias", "siaps-relatorios"].forEach(k => qc.invalidateQueries({ queryKey: [k] }));
+       "siaps-vinculo", "siaps-dashboard", "siaps-competencias", "siaps-relatorios", "siaps-captura-situacao"].forEach(k => qc.invalidateQueries({ queryKey: [k] }));
     },
   });
   const cap = m.data?.cap;

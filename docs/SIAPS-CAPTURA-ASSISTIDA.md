@@ -22,7 +22,7 @@ Qualidade abre sozinha com o resultado; a importação depende do clique em "Imp
 
 1. Abrir `https://siaps.saude.gov.br/componentes/qualidade/APS/110`. Se cair em `/publico`, o gestor não está
    logado: **parar** e pedir que ele entre com o gov.br (nunca digitar senha).
-2. Rodar o **Script 1** (lê o mensal das 4 últimas competências ativas; faz os cliques sozinho, ~20 s).
+2. Rodar o **Script 1** (lê o mensal de janeiro até a última competência ativa do ano; faz os cliques sozinho, ~20 s).
 3. Abrir `https://siaps.saude.gov.br/componentes/resultado-final`.
 4. Rodar o **Script 2** com o endereço do ERSUS360 (lê o quadrimestral de todos os quadrimestres publicados
    + o seguinte, todas as modalidades — ~3 min — e abre a tela eGestor com o resultado).
@@ -34,7 +34,7 @@ Qualidade abre sozinha com o resultado; a importação depende do clique em "Imp
 (async () => {
   const B = "https://apisiaps.saude.gov.br/api/public/";
   const ativas = (await fetch(B + "filtros/competencias/ativas").then(r => r.json()))
-    .filter(c => !c.quadrimestre).map(c => c.nuCompetencia).sort().slice(-4);
+    .filter(c => !c.quadrimestre && c.nuCompetencia >= `${new Date().getFullYear()}01`).map(c => c.nuCompetencia).sort();
   const fila = [
     { sg: ["eAP", "eSF"], ind: [104, 105, 106, 107, 108, 109, 110] }, { sg: ["eSB"], ind: [111, 112, 113, 114, 115, 116] },
     { sg: ["eMulti"], ind: [117, 118] }, { sg: ["eSFR"], ind: [131, 132, 133, 134, 135, 136] },

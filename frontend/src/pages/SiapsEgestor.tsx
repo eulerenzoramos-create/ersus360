@@ -680,100 +680,45 @@ const IND_NOMES: Record<string, string> = {
 };
 
 function AbaQualidade({ data: _data, competencia }: { data: any; competencia?: string }) {
-  const [extraindo, setExtraindo] = useState(false);
-  const [msgExtracao, setMsgExtracao] = useState<string | null>(null);
-
-  const { data: syncStatus } = useQuery({
-    queryKey: ["sync-status"],
-    queryFn: () => apiGet("/api/sync/status") as Promise<any>,
-    staleTime: 30_000,
-    refetchInterval: extraindo ? 5000 : false,
+  // Meses de jan/ano até o último publicado no SIAPS: verde = resultado por equipe já captado da área logada
+  // (captura assistida ou arquivo oficial); cinza = publicado, ainda não captado. Nada é estimado.
+  const { data: cap } = useQuery({
+    queryKey: ["siaps-captura-situacao"],
+    queryFn: () => apiGetRaw("/api/siaps-publico/captura") as Promise<any>,
+    staleTime: 60_000,
   });
-
-  const handleExtrair = async () => {
-    setExtraindo(true);
-    setMsgExtracao("Iniciando extração SIAPS Jan–Ago/2026…");
-    try {
-      const d = await apiPost("/api/sync/extrair-historico") as any;
-      setMsgExtracao((d as any)?.mensagem || "Extração iniciada em background.");
-    } catch (err: any) {
-      console.error("[extrair-historico] erro:", err);
-      const status = err?.response?.status;
-      const raw    = err?.response?.data;
-      const detalhe: string =
-        typeof raw?.detail === "string" ? raw.detail :
-        typeof raw?.mensagem === "string" ? raw.mensagem :
-        raw ? JSON.stringify(raw) :
-        typeof err?.message === "string" ? err.message : "erro desconhecido";
-      if (status === 401 || status === 403) {
-        setMsgExtracao("Sessão expirada — faça login novamente.");
-      } else if (detalhe.toLowerCase().includes("credencial") || detalhe.toLowerCase().includes("cpf") || detalhe.toLowerCase().includes("senha")) {
-        setMsgExtracao("Credenciais SIAPS inválidas — verifique SIAPS_CPF/SIAPS_SENHA no Railway.");
-      } else {
-        setMsgExtracao(`Erro na extração (HTTP ${status ?? "?"}): ${detalhe}`);
-      }
-      setExtraindo(false);
-    }
-  };
-
-  const cache: any[] = syncStatus?.cache_disponivel ?? [];
-  const emAndamento: boolean = syncStatus?.extracao?.em_andamento ?? false;
+  const { data: cat } = useQuery({ queryKey: ["siaps-competencias"], queryFn: () => apiGetRaw<CatalogoCompetencias>("/api/siaps/competencias"), staleTime: 10 * 60_000 });
+  const linhasPorComp: Record<string, number> = Object.fromEntries((cap?.competencias ?? []).map((c: any) => [c.competencia, c.linhas]));
+  const ultima = cat?.ultima_siaps_publicada ?? Object.keys(linhasPorComp).sort().pop();
+  const meses: string[] = [];
+  if (ultima) for (let m = 1; m <= +ultima.slice(5); m++) meses.push(`${ultima.slice(0, 4)}-${String(m).padStart(2, "0")}`);
+  const rot = (c: string) => `${["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][+c.slice(5) - 1]}/${c.slice(0, 4)}`;
+  const faltam = meses.filter(m => !linhasPorComp[m] && !cat?.competencias.find(c => c.competencia === m)?.qualidade_capturada);
 
   return (
     <div>
-      {/* Painel de extração */}
-      <div style={{
-        background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10,
-        padding: "12px 18px", marginBottom: 16, display: "flex",
-        alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10,
-      }}>
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 2 }}>
-            Extração SIAPS · e-Gestor
-          </div>
-          <div style={{ fontSize: 11, color: "#475569" }}>
-            {cache.length > 0
-              ? `${cache.length} competências no cache · última via ${cache[cache.length-1]?.fonte ?? "?"}`
-              : "Nenhuma extração realizada. Clique em Extrair para buscar Jan–Ago/2026."}
-          </div>
-          {msgExtracao && (
-            <div style={{ fontSize: 11, color: emAndamento ? "#d97706" : "#16a34a", marginTop: 4 }}>
-              {emAndamento ? "⏳ " : "✓ "}{msgExtracao}
-            </div>
-          )}
+      <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "12px 18px", marginBottom: 12 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 2 }}>
+          Resultado por equipe captado do SIAPS — {ultima ? `Jan a ${rot(ultima)}` : "aguardando SIAPS"}
         </div>
-        <button
-          onClick={handleExtrair}
-          disabled={emAndamento || extraindo}
-          style={{
-            background: emAndamento ? "#9ca3af" : "#0ea5e9",
-            color: "#fff", border: "none", borderRadius: 8,
-            padding: "7px 16px", fontSize: 12, fontWeight: 700,
-            cursor: emAndamento ? "not-allowed" : "pointer",
-            display: "flex", alignItems: "center", gap: 6,
-          }}
-        >
-          {emAndamento ? "⏳ Extraindo…" : "⬇ Extrair Histórico"}
-        </button>
+        <div style={{ fontSize: 11, color: "#475569" }}>
+          Última captura: {cap?.ultima_captura ? new Date(cap.ultima_captura.endsWith("Z") ? cap.ultima_captura : cap.ultima_captura + "Z").toLocaleString("pt-BR") : "nenhuma"}
+          {ultima && ` · último mês publicado no SIAPS: ${rot(ultima)}`}
+          {faltam.length > 0 && ` · falta captar: ${faltam.map(rot).join(", ")} (rodar a captura no SIAPS logado)`}
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+          {meses.map(m => {
+            const ok = !faltam.includes(m);
+            return (
+              <span key={m} title={ok ? "Resultado oficial por equipe captado" : "Publicado no SIAPS, ainda não captado"} style={{
+                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, border: "1px solid",
+                background: ok ? "#dcfce7" : "#f3f4f6", color: ok ? "#166534" : "#4b5563", borderColor: ok ? "#86efac" : "#d1d5db",
+              }}>
+                {rot(m)}{ok ? (linhasPorComp[m] ? ` · ${linhasPorComp[m]} resultados` : " · ok") : " · falta captar"}
+              </span>);
+          })}
+        </div>
       </div>
-
-      {/* Status compacto por competência */}
-      {cache.length > 0 && (
-        <div style={{
-          display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12,
-        }}>
-          {cache.map((c: any) => (
-            <span key={c.competencia} style={{
-              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-              background: c.equipes >= 5 ? "#dcfce7" : "#fef9c3",
-              color: c.equipes >= 5 ? "#166534" : "#713f12", border: "1px solid",
-              borderColor: c.equipes >= 5 ? "#86efac" : "#fde68a",
-            }}>
-              {c.label} · {c.equipes}eq
-            </span>
-          ))}
-        </div>
-      )}
 
       <QualidadeOficialPorEquipe competencia={competencia} />
       <ComponenteQualidade competencia={competencia} />
