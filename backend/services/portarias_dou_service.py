@@ -778,6 +778,24 @@ def _extrair_valores(texto: str) -> list[str]:
 
 # ── Consulta DOU ──────────────────────────────────────────────────────────────
 
+# Prazos totais por requisição ao DOU. Somados (leitura + API em paralelo)
+# ficam abaixo dos 60 s do cliente HTTP do frontend.
+PRAZO_LEITURA_S = 25
+PRAZO_API_S     = 15
+
+
+async def _get_com_prazo(url: str, params: dict, headers: dict, prazo: float) -> httpx.Response:
+    """GET com prazo total (conexão + download), não só por leitura."""
+    async def _get() -> httpx.Response:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(prazo, connect=10),
+                                     follow_redirects=True) as c:
+            return await c.get(url, params=params, headers=headers)
+    try:
+        return await asyncio.wait_for(_get(), timeout=prazo)
+    except (asyncio.TimeoutError, httpx.TimeoutException):
+        raise TimeoutError(f"in.gov.br não respondeu em {prazo:.0f} s") from None
+
+
 async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], dict]:
     """
     Busca SOMENTE portarias do Ministério da Saúde no DOU.
@@ -823,15 +841,18 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
     # - título sem sigla → aceitar só no DO1 e só se hierarchyStr do DOU for
     #   do MS (o DO2 é de atos de pessoal: nomeações/exonerações)
     log["edicao"] = {}
-    for secao in ("do1", "do2"):
+    # DO1 e DO2 em paralelo e com prazo total: em série (30+30+20+20 s) a
+    # busca passava dos 60 s do navegador quando o servidor demorava a
+    # alcançar o in.gov.br, e a tela mostrava só "timeout" em vez da falha real.
+    respostas = await asyncio.gather(*(
+        _get_com_prazo(DOU_LEITURA, {"data": data_str, "secao": s}, hdrs, PRAZO_LEITURA_S)
+        for s in ("do1", "do2")
+    ), return_exceptions=True)
+    for secao, r in zip(("do1", "do2"), respostas):
         fonte = f"leiturajornal/{secao}"
         try:
-            async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
-                r = await c.get(
-                    DOU_LEITURA,
-                    params={"data": data_str, "secao": secao},
-                    headers=hdrs,
-                )
+            if isinstance(r, BaseException):
+                raise r
             log["fontes_tentadas"].append(fonte)
             if r.status_code != 200:
                 log["falhas"].append(f"{fonte}: HTTP {r.status_code}")
@@ -867,21 +888,26 @@ async def _buscar_portarias_ms(data_ref: date) -> tuple[list[dict[str, Any]], di
 
     # ── Estratégia 3: API /buscar-conteudo — só se nenhum resultado ──────────
     if not brutos:
-        for secao in ("DO1", "DO2"):
+        respostas = await asyncio.gather(*(
+            _get_com_prazo(
+                DOU_BUSCA,
+                {
+                    "orgaoPesquisa": "Ministério da Saúde",
+                    "data":          data_str,
+                    "tipoDeAto":     "Portaria",
+                    "secao":         s,
+                    "numberPerPage": "100",
+                },
+                {**hdrs, "Accept": "application/json, */*"},
+                PRAZO_API_S,
+            )
+            for s in ("DO1", "DO2")
+        ), return_exceptions=True)
+        for secao, r in zip(("DO1", "DO2"), respostas):
             fonte = f"API/{secao}/Portaria"
             try:
-                async with httpx.AsyncClient(timeout=20, follow_redirects=True) as c:
-                    r = await c.get(
-                        DOU_BUSCA,
-                        params={
-                            "orgaoPesquisa": "Ministério da Saúde",
-                            "data":          data_str,
-                            "tipoDeAto":     "Portaria",
-                            "secao":         secao,
-                            "numberPerPage": "100",
-                        },
-                        headers={**hdrs, "Accept": "application/json, */*"},
-                    )
+                if isinstance(r, BaseException):
+                    raise r
                 log["fontes_tentadas"].append(fonte)
                 if r.status_code == 200:
                     try:

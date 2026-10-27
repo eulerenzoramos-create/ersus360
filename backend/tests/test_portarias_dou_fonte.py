@@ -125,6 +125,26 @@ def test_rejeita_nao_ms(titulo, orgao):
 
 # ── Busca completa ───────────────────────────────────────────────────────────
 
+async def test_dou_sem_resposta_termina_no_prazo_e_registra_falha(monkeypatch):
+    # Em produção a busca passava dos 60 s do navegador ("timeout of 60000ms
+    # exceeded") quando o in.gov.br não respondia ao servidor.
+    import asyncio, time
+
+    class _Travado(_ClienteFalso):
+        async def get(self, url, params=None, headers=None):
+            await asyncio.sleep(3600)
+
+    monkeypatch.setattr(svc.httpx, "AsyncClient", _Travado)
+    monkeypatch.setattr(svc, "PRAZO_LEITURA_S", 0.2)
+    monkeypatch.setattr(svc, "PRAZO_API_S", 0.1)
+    inicio = time.monotonic()
+    aceitos, log = await svc._buscar_portarias_ms(date(2026, 10, 27))
+    assert time.monotonic() - inicio < 1.5   # leitura e API em paralelo, não em série
+    assert aceitos == []
+    assert len(log["falhas"]) == 4
+    assert all("não respondeu" in f for f in log["falhas"])
+
+
 async def test_busca_le_edicao_completa_e_filtra_ms(dou_falso):
     aceitos, log = await svc._buscar_portarias_ms(date(2026, 10, 20))
     titulos = sorted(p["title"] for p in aceitos)
