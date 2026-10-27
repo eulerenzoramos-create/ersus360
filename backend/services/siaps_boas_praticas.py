@@ -115,22 +115,29 @@ def itens_qualidade_por_equipe(competencia: str, linhas: list) -> list[dict]:
     return itens
 
 
-async def montar(db: AsyncSession, municipio_id: int, ibge: str, municipio: str | None) -> dict:
+async def montar(db: AsyncSession, municipio_id: int, ibge: str, municipio: str | None,
+                competencia: str | None = None) -> dict:
+    """Sem `competencia`: o mais recente de cada fonte. Com `competencia` (AAAA-MM): só o CVAT e a Qualidade
+    daquele mês e o quadrimestre que o contém — nada de outro período entra no lugar."""
     from routers.siaps_relatorios import relatorios_do_municipio
 
     itens, fontes = [], []
-    cvat = await relatorios_do_municipio(db, municipio_id, "cvat")
+    quad_pedido = f"{competencia[:4]}Q{(int(competencia[5:7]) - 1) // 4 + 1}" if competencia else None
+    cvat = await relatorios_do_municipio(db, municipio_id, "cvat", competencia)
     if cvat:
         rel = cvat[0]                                   # mais recente (ordenado por competência desc)
         v = itens_vinculo(rel)
         itens += v
         fontes.append(f"Relatório SIAPS importado — CVAT {_comp_rotulo(rel.competencia)}")
-    comp_cap, cap = await siaps_captura.resultados_da_competencia(db, ibge)
+    comp_cap, cap = await siaps_captura.resultados_da_competencia(db, ibge, competencia)
     if cap:
         itens += itens_qualidade_por_equipe(comp_cap, cap)
         fontes.append(f"SIAPS área logada — Qualidade por equipe {_comp_rotulo(comp_cap)}")
     painel = await sp.painel(db, municipio_id, ibge)
     quads = painel["quadrimestres"]
+    if quad_pedido:
+        i = next((n for n, q in enumerate(quads) if q["quadrimestre"] == quad_pedido), None)
+        quads = quads[i:] if i is not None else []
     if quads:
         q = itens_quadrimestre(quads[0], quads[1] if len(quads) > 1 else None)
         if cap:   # a captura por equipe já cobre a Qualidade; do quadrimestre ficam as dimensões do Vínculo
@@ -145,6 +152,7 @@ async def montar(db: AsyncSession, municipio_id: int, ibge: str, municipio: str 
         "municipio": municipio,
         "competencia": " · ".join(fontes) or None,
         "fontes": fontes,
+        "competencia_pedida": competencia, "quadrimestre": quad_pedido or (quads[0]["quadrimestre"] if quads else None),
         "total": len(itens),
         "destaques": sum(1 for b in itens if b["destaque"]),
         "alertas": sum(1 for b in itens if b["tipo"] in ("alerta_critico", "plano_melhoria")),

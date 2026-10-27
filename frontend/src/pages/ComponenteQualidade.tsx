@@ -266,7 +266,7 @@ function PainelFiltros({
         <label style={{ fontSize:11, color:"#6b7280", fontWeight:600 }}>Competência</label>
         <select value={filtros.competencia} onChange={e=>onChange({competencia:e.target.value})}
           style={{ border:"1px solid #d1d5db", borderRadius:8, padding:"8px 12px", fontSize:13, minWidth:110 }}>
-          {COMPS.map(c=><option key={c} value={c}>{labelComp(c)}</option>)}
+          {Array.from(new Set([filtros.competencia, ...COMPS])).sort().reverse().map(c=><option key={c} value={c}>{labelComp(c)}</option>)}
         </select>
       </div>
 
@@ -1183,7 +1183,7 @@ function PainelAlertas({ codigos, vals }: { codigos:string[]; vals:Record<string
 }
 
 // ── Componente Principal ──────────────────────────────────────────────────────
-export default function ComponenteQualidade() {
+export default function ComponenteQualidade({ competencia }: { competencia?: string } = {}) {
   const [tipoEquipe, setTipoEquipe] = useState<TipoEquipe>("eSF");
   const [grupoSel, setGrupoSel]     = useState("");
   const [visao, setVisao]           = useState<Visao>("indicador");
@@ -1208,6 +1208,13 @@ export default function ComponenteQualidade() {
       setCompAjustada(true);
     }
   }, [compsOficiais, compAjustada]);
+  // competência escolhida no cabeçalho da tela eGestor
+  useEffect(() => {
+    if (!competencia) return;
+    setFiltros(f => ({ ...f, competencia }));
+    setFiltrosAtivos(f => ({ ...f, competencia }));
+    setCompAjustada(true);
+  }, [competencia]);
 
   const corAtivo = TIPOS_EQUIPE.find(t=>t.id===tipoEquipe)?.cor ?? AZUL;
 

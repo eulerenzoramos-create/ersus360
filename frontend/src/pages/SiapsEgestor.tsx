@@ -1,7 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import ComponenteQualidade from "./ComponenteQualidade";
 import MonitoramentoSiaps from "../components/MonitoramentoSiaps";
 import QualidadeOficialPorEquipe, { capturaNoEndereco } from "../components/QualidadeOficialPorEquipe";
+import QuadrimestralEquipes, { ConferenciaFontes } from "../components/QuadrimestralEquipes";
+import PainelGeralAps from "../components/PainelGeralAps";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, Legend,
@@ -76,6 +78,268 @@ function LogoMS() {
   );
 }
 
+// ── Aviso padrão de fonte do dado (todas as abas) ───────────────────────────
+// fonte: siaps_relatorio_importado | siaps_live | siaps_publico | siaps_publico_equipes | cnes_xml_importado | siaps_referencia
+const ROTULO_FONTE: Record<string, { txt: string; bg: string; fg: string }> = {
+  siaps_relatorio_importado: { txt: "Relatório SIAPS importado",      bg: "#dcfce7", fg: "#166534" },
+  siaps_live:                { txt: "SIAPS (consulta autenticada)",   bg: "#dcfce7", fg: "#166534" },
+  siaps_publico:             { txt: "SIAPS público (oficial)",        bg: "#dcfce7", fg: "#166534" },
+  siaps_publico_equipes:     { txt: "SIAPS público (oficial)",        bg: "#dcfce7", fg: "#166534" },
+  cnes_xml_importado:        { txt: "XML do CNES importado",          bg: "#e0f2fe", fg: "#0369a1" },
+  siaps_referencia:          { txt: "Referência antiga — Abr/2026",   bg: "#fef3c7", fg: "#92400e" },
+};
+function SeloFonte({ fonte }: { fonte?: string }) {
+  const r = ROTULO_FONTE[fonte ?? ""];
+  if (!r) return null;
+  return <span style={{ background: r.bg, color: r.fg, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>{r.txt}</span>;
+}
+function AvisoFonte({ data }: { data: any }) {
+  if (!data) return null;
+  const antigo = data.referencia_desatualizada || data.fonte === "siaps_referencia";
+  if (!antigo && !data.nota) return null;
+  return (
+    <div style={{ background: antigo ? "#fffbeb" : "#eff6ff", border: `1px solid ${antigo ? "#fcd34d" : "#bfdbfe"}`, color: antigo ? "#92400e" : "#1e40af",
+      borderRadius: 8, padding: "10px 14px", fontSize: 12, marginBottom: 14 }}>
+      {antigo && <strong>⚠ Dado de referência antigo. </strong>}{data.nota}
+    </div>
+  );
+}
+
+// ── Competências por fonte oficial (/api/siaps/competencias) ────────────────
+// situacao_siaps: importada | publicada_aguardando_importacao | nao_publicada | fonte_indisponivel
+interface CompetenciaFonte {
+  competencia: string; rotulo: string; situacao_siaps: string;
+  siaps_publicada: boolean | null; quadrimestre: string; quadrimestre_publicado: boolean | null;
+  cvat_importado: boolean; qualidade_capturada: boolean;
+  egestor_parcela: string; egestor_parcela_publicada: boolean | null; egestor_comp_cnes: string | null;
+}
+interface CatalogoCompetencias {
+  consultado_em: string; aviso?: string | null; nota: string;
+  ultima_siaps_publicada: string | null; ultima_com_dados: string | null;
+  fontes: { fonte: string; url: string; disponivel: boolean; erro?: string | null;
+            ultima_mensal?: string | null; ultimo_quadrimestre?: string | null; ultima_parcela?: string | null }[];
+  competencias: CompetenciaFonte[];
+}
+const SIT_COMP: Record<string, { txt: string; bg: string; fg: string }> = {
+  importada:                       { txt: "dados no ERSUS360",                   bg: "#dcfce7", fg: "#166534" },
+  publicada_aguardando_importacao: { txt: "publicada no SIAPS · falta importar", bg: "#fef3c7", fg: "#92400e" },
+  nao_publicada:                   { txt: "ainda não publicada",                 bg: "#f3f4f6", fg: "#4b5563" },
+  fonte_indisponivel:              { txt: "SIAPS fora do ar",                    bg: "#fee2e2", fg: "#991b1b" },
+};
+
+function FontesCompetencia({ cat }: { cat?: CatalogoCompetencias }) {
+  const [aberto, setAberto] = useState(false);
+  if (!cat) return null;
+  return (
+    <div style={{ background: "#eff6ff", borderBottom: "1px solid #bfdbfe", padding: "6px 24px", fontSize: 12, color: "#1e3a8a" }}>
+      <button onClick={() => setAberto(a => !a)} style={{ background: "none", border: "none", color: "#1d4ed8", cursor: "pointer", fontSize: 12, fontWeight: 700, padding: 0 }}>
+        {aberto ? "▾" : "▸"} Competências publicadas por fonte oficial
+      </button>
+      <span style={{ marginLeft: 10, color: "#475569" }}>
+        {cat.fontes.map(f => `${f.fonte}: ${f.disponivel ? (f.ultima_mensal ?? f.ultima_parcela ?? "—") : "fora do ar"}`).join(" · ")}
+        {" "}· consultado em {new Date(cat.consultado_em).toLocaleString("pt-BR")}
+      </span>
+      {cat.aviso && <div style={{ color: "#92400e", marginTop: 4 }}>{cat.aviso}</div>}
+      {aberto && (
+        <div style={{ marginTop: 8, overflowX: "auto" }}>
+          <table style={{ borderCollapse: "collapse", fontSize: 12, background: "#fff", minWidth: 640 }}>
+            <thead><tr>{["Competência", "SIAPS (mensal)", "Quadrimestre", "CVAT importado", "Qualidade capturada", "e-Gestor (parcela do mês)"].map(h =>
+              <th key={h} style={{ textAlign: "left", padding: "5px 10px", borderBottom: "1px solid #e5e7eb", color: "#374151" }}>{h}</th>)}</tr></thead>
+            <tbody>{cat.competencias.map(c => {
+              const s = SIT_COMP[c.situacao_siaps];
+              const sim = (v: boolean | null) => v == null ? "fonte fora do ar" : v ? "publicada" : "não publicada";
+              return (
+                <tr key={c.competencia}>
+                  <td style={{ padding: "4px 10px", fontWeight: 700 }}>{c.rotulo}</td>
+                  <td style={{ padding: "4px 10px" }}><span style={{ background: s?.bg, color: s?.fg, borderRadius: 4, padding: "1px 6px" }}>{s?.txt ?? c.situacao_siaps}</span></td>
+                  <td style={{ padding: "4px 10px" }}>{c.quadrimestre.replace("Q", "/Q")} · {sim(c.quadrimestre_publicado)}</td>
+                  <td style={{ padding: "4px 10px" }}>{c.cvat_importado ? "sim" : "não"}</td>
+                  <td style={{ padding: "4px 10px" }}>{c.qualidade_capturada ? "sim" : "não"}</td>
+                  <td style={{ padding: "4px 10px" }}>{c.egestor_parcela_publicada == null ? "fonte fora do ar"
+                    : c.egestor_parcela_publicada ? `publicada (CNES ${c.egestor_comp_cnes})` : "ainda não publicada"}</td>
+                </tr>);
+            })}</tbody>
+          </table>
+          <div style={{ marginTop: 6, color: "#475569" }}>{cat.nota}</div>
+          <div style={{ marginTop: 4, color: "#64748b", wordBreak: "break-all" }}>
+            Fontes: {cat.fontes.map(f => <span key={f.url}><a href={f.url} target="_blank" rel="noreferrer" style={{ color: "#1d4ed8" }}>{f.fonte}</a>{f.erro ? ` (erro: ${f.erro})` : ""} · </span>)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Padrão das abas por competência: mesmo cabeçalho (período, fonte, situação, consulta, baixar)
+// e o mesmo quadro quando a fonte não tem o período escolhido (nunca troca de mês calado, nunca estima).
+type SituacaoAba = "oficial" | "preliminar" | "nao_publicada" | "falta_importar" | "fonte_indisponivel" | "referencia";
+const SIT_ABA: Record<SituacaoAba, { txt: string; bg: string; fg: string }> = {
+  oficial:            { txt: "Oficial publicado",           bg: "#dcfce7", fg: "#166534" },
+  preliminar:         { txt: "Preliminar (monitoramento)",  bg: "#fef9c3", fg: "#854d0e" },
+  nao_publicada:      { txt: "Ainda não publicada",         bg: "#f3f4f6", fg: "#4b5563" },
+  falta_importar:     { txt: "Publicada · falta importar",  bg: "#fef3c7", fg: "#92400e" },
+  fonte_indisponivel: { txt: "Fonte fora do ar",            bg: "#fee2e2", fg: "#991b1b" },
+  referencia:         { txt: "Referência antiga",           bg: "#fef3c7", fg: "#92400e" },
+};
+interface InfoAba {
+  titulo: string; periodo: string; fonte: string; situacao: SituacaoAba; temDado: boolean;
+  motivo?: string; ultimaComDado?: CompetenciaFonte; baixar?: () => Promise<void> | void;
+}
+
+function baixarCsv(nome: string, linhas: Record<string, unknown>[], rodape: string[]) {
+  if (!linhas.length) return;
+  const cols = Array.from(new Set(linhas.flatMap(l => Object.keys(l))));
+  const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const val = (v: unknown) => esc(v != null && typeof v === "object" ? JSON.stringify(v) : v);
+  const csv = [cols.map(esc).join(";"), ...linhas.map(l => cols.map(c => val(l[c])).join(";")), "", ...rodape.map(esc)].join("\n");
+  const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a"); a.href = url; a.download = nome; a.click(); URL.revokeObjectURL(url);
+}
+
+function CabecalhoPadrao({ info, consultadoEm }: { info: InfoAba; consultadoEm?: string }) {
+  const s = SIT_ABA[info.situacao];
+  const [baixando, setBaixando] = useState(false);
+  const pode = info.temDado && !!info.baixar;
+  const chip = (txt: string, bg = "#e0f2fe", fg = "#0369a1") =>
+    <span style={{ background: bg, color: fg, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>{txt}</span>;
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+      <div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 6px" }}>{info.titulo}</h2>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {chip(info.periodo)}
+          {chip(`Fonte: ${info.fonte}`, "#f1f5f9", "#334155")}
+          {chip(s.txt, s.bg, s.fg)}
+          {consultadoEm && chip(`Consultado em ${new Date(consultadoEm).toLocaleString("pt-BR")}`, "#f3f4f6", "#374151")}
+        </div>
+      </div>
+      <button disabled={!pode || baixando} title={pode ? "Baixar os dados desta aba (CSV)" : "Sem dado deste período para baixar"}
+        onClick={async () => { setBaixando(true); try { await info.baixar?.(); } finally { setBaixando(false); } }}
+        style={{ display: "flex", alignItems: "center", gap: 5, background: pode ? "#1d4ed8" : "#9ca3af", color: "#fff", border: "none",
+                 borderRadius: 6, padding: "7px 14px", cursor: pode ? "pointer" : "not-allowed", fontSize: 12 }}>
+        <Download size={13} /> {baixando ? "Gerando…" : "Baixar dados"}
+      </button>
+    </div>
+  );
+}
+
+function SemDadoPadrao({ info, irPara }: { info: InfoAba; irPara: (c: string) => void }) {
+  const s = SIT_ABA[info.situacao];
+  return (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "28px 24px", textAlign: "center" }}>
+      <span style={{ background: s.bg, color: s.fg, fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>{s.txt}</span>
+      <div style={{ fontSize: 13, color: "#374151", margin: "12px auto 0", maxWidth: 640 }}>{info.motivo}</div>
+      {info.ultimaComDado && (
+        <button onClick={() => irPara(info.ultimaComDado!.competencia)} style={{ marginTop: 14, background: "#1d4ed8", color: "#fff", border: "none",
+          borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+          Ver {info.ultimaComDado.rotulo} (mais recente com dado nesta aba)
+        </button>)}
+    </div>
+  );
+}
+
+const _quadRotulo = (q: string) => `${q.slice(5)}º quadrimestre/${q.slice(0, 4)}`;
+const _parcelaRotulo = (c: CompetenciaFonte) => `Parcela ${c.rotulo}${c.egestor_comp_cnes ? ` (CNES ${c.egestor_comp_cnes})` : ""}`;
+
+// Cabeçalho padrão de cada aba, a partir do catálogo de competências e do dado já carregado.
+function infoDaAba(aba: string, item: CompetenciaFonte | undefined, cat: CatalogoCompetencias | undefined,
+                   vinculo: any, boas: any): InfoAba | null {
+  if (!item || !cat) return null;
+  const ultima = (f: (c: CompetenciaFonte) => boolean) => cat.competencias.find(f);
+  const motivoSiaps = (oQue: string): { situacao: SituacaoAba; motivo: string } =>
+    item.situacao_siaps === "fonte_indisponivel"
+      ? { situacao: "fonte_indisponivel", motivo: `SIAPS público fora do ar: não foi possível confirmar se ${item.rotulo} já foi publicada.` }
+      : item.siaps_publicada
+      ? { situacao: "falta_importar", motivo: `${item.rotulo} já foi publicada no SIAPS, mas ${oQue} fica na área logada (gov.br) e ainda não entrou no ERSUS360.` }
+      : { situacao: "nao_publicada", motivo: `${item.rotulo} ainda não foi publicada pelo Ministério da Saúde no SIAPS. Nenhum valor é estimado.` };
+  const quadSit: SituacaoAba = item.quadrimestre_publicado == null ? "fonte_indisponivel" : item.quadrimestre_publicado ? "oficial" : "nao_publicada";
+  const quadMotivo = item.quadrimestre_publicado == null
+    ? "SIAPS público fora do ar: não foi possível confirmar a publicação do quadrimestre."
+    : `O ${_quadRotulo(item.quadrimestre)}, que contém ${item.rotulo}, ainda não foi publicado pelo Ministério da Saúde.`;
+  const ultQuad = ultima(c => !!c.quadrimestre_publicado);
+  const nomeArq = (t: string) => `egestor-${t}-${item.competencia}.csv`;
+  const rod = (fonte: string) => [`Fonte: ${fonte}`, `Período: ${item.rotulo}`, `Consultado em: ${cat.consultado_em}`];
+
+  switch (aba) {
+    case "vinculo": {
+      const sem = vinculo && SIT_COMP[vinculo.situacao_dado];
+      const sit: SituacaoAba = sem ? (vinculo.situacao_dado === "nao_publicada" ? "nao_publicada"
+          : vinculo.situacao_dado === "fonte_indisponivel" ? "fonte_indisponivel" : "falta_importar")
+        : vinculo?.fonte === "siaps_referencia" ? "referencia" : vinculo?.dado_preliminar ? "preliminar" : "oficial";
+      return { titulo: "Componente Vínculo e Acompanhamento Territorial",
+               periodo: vinculo?.fonte === "siaps_publico" && vinculo.quadrimestre ? `${_quadRotulo(vinculo.quadrimestre)} (contém ${item.rotulo})` : `Competência ${item.rotulo}`,
+               fonte: ROTULO_FONTE[vinculo?.fonte]?.txt ?? "SIAPS", situacao: sit, temDado: !sem, motivo: vinculo?.nota,
+               ultimaComDado: ultima(c => c.cvat_importado || !!c.quadrimestre_publicado),
+               baixar: vinculo?.equipes?.length ? () => baixarCsvVinculo(vinculo) : undefined };
+    }
+    case "qualidade":
+    case "analise_indicador": {
+      const tem = item.qualidade_capturada;
+      const m = motivoSiaps("o resultado mensal por equipe da Qualidade");
+      return { titulo: aba === "qualidade" ? "Componente Qualidade" : "Análise do Indicador",
+               periodo: `Competência ${item.rotulo} (mensal)`, fonte: "SIAPS área logada — captura assistida",
+               situacao: tem ? "preliminar" : m.situacao, temDado: tem, motivo: m.motivo,
+               ultimaComDado: ultima(c => c.qualidade_capturada),
+               baixar: async () => {
+                 const d: any = await apiGetRaw("/api/siaps-publico/captura/indicadores", { competencia: item.competencia });
+                 baixarCsv(nomeArq("qualidade"), (d?.indicadores ?? []).flatMap((b: any) => b.equipes.map((e: any) => ({
+                   competencia: item.competencia, indicador: b.codigo, nome: b.catalogo?.nome ?? b.nome_publicado, modalidade: b.sg_equipe,
+                   ine: e.ine, equipe: e.equipe, ubs: e.ubs, resultado: e.resultado, numerador: e.numerador, denominador: e.denominador,
+                   classificacao: e.classificacao }))), rod("SIAPS área logada (captura assistida) — preliminar"));
+               } };
+    }
+    case "boas_praticas": {
+      const tem = (boas?.total ?? 0) > 0;
+      const m = motivoSiaps("o resultado por equipe");
+      return { titulo: "Boas Práticas e Alertas", periodo: `Competência ${item.rotulo} · ${_quadRotulo(item.quadrimestre)}`,
+               fonte: boas?.fontes?.length ? boas.fontes.join(" · ") : "SIAPS (CVAT, Qualidade e Quadrimestre)",
+               situacao: tem ? (item.cvat_importado || item.qualidade_capturada ? "preliminar" : "oficial") : quadSit === "oficial" ? m.situacao : quadSit,
+               temDado: tem, motivo: `Sem resultado de ${item.rotulo} nem do ${_quadRotulo(item.quadrimestre)} no ERSUS360 para gerar boas práticas. ${m.motivo}`,
+               ultimaComDado: ultima(c => c.cvat_importado || c.qualidade_capturada) ?? ultQuad,
+               baixar: () => baixarCsv(nomeArq("boas-praticas"), (boas?.boas_praticas ?? []).map((b: any) => ({
+                 tipo: b.tipo, titulo: b.titulo, descricao: b.descricao, equipe: b.equipe, periodo: b.periodo, fonte: b.fonte })),
+                 rod((boas?.fontes ?? []).join(" · "))) };
+    }
+    case "quadrimestre":
+      return { titulo: "Avaliação do Quadrimestre", periodo: `${_quadRotulo(item.quadrimestre)} (contém ${item.rotulo})`,
+               fonte: "SIAPS — área pública (apisiaps.saude.gov.br)", situacao: quadSit, temDado: quadSit !== "nao_publicada",
+               motivo: quadMotivo, ultimaComDado: ultQuad,
+               baixar: async () => {
+                 const d: any = await apiGetRaw("/api/siaps-publico");
+                 const q = (d?.quadrimestres ?? []).find((x: any) => x.quadrimestre === item.quadrimestre);
+                 baixarCsv(nomeArq("quadrimestre"), q ? [...q.componentes, ...q.indicadores_qualidade, ...q.dimensoes_cvat]
+                   .map((c: any) => ({ quadrimestre: q.quadrimestre, ...c })) : [], rod("SIAPS — área pública"));
+               } };
+    case "rel_pagamento":
+    case "diag_cobertura": {
+      const pub = item.egestor_parcela_publicada;
+      return { titulo: aba === "rel_pagamento" ? "Relatório de Pagamento (e-Gestor)" : "Diagnóstico / Cobertura da Atenção Básica",
+               periodo: _parcelaRotulo(item), fonte: "e-Gestor APS — relatório público de pagamento",
+               situacao: pub == null ? "fonte_indisponivel" : pub ? "oficial" : "nao_publicada", temDado: pub !== false,
+               motivo: `A parcela de ${item.rotulo} ainda não foi publicada pelo Ministério da Saúde no e-Gestor. Nenhum valor é estimado.`,
+               ultimaComDado: ultima(c => !!c.egestor_parcela_publicada),
+               baixar: async () => {
+                 if (aba === "rel_pagamento") {
+                   const d: any = await apiGetRaw("/api/egestor-pagamento", { parcela: item.egestor_parcela });
+                   baixarCsv(nomeArq("pagamento"), [
+                     ...(d?.componentes ?? []).map((c: any) => ({ registro: "componente", plano: c.plano, componente: c.componente, valor_total: c.vl_total,
+                       desconto: c.vl_desconto, ajuste: c.vl_ajuste, qualidade: c.classificacao_qualidade, vinculo: c.classificacao_vinculo })),
+                     ...(d?.equipes ?? []).map((e: any) => ({ registro: "equipe", ine: e.ine, equipe: e.equipe, tipo: e.tipo, componente: e.componente,
+                       pagamento: e.st_pagamento, pendencias: (e.pendencias ?? []).map((x: any) => `${x.rotulo}: ${x.situacao}`).join(" | ") }))],
+                     rod("e-Gestor APS — relatório público de pagamento"));
+                 } else {
+                   const d: any = await apiGetRaw("/api/siaps/diagnostico-cobertura", { parcela: item.egestor_parcela });
+                   baixarCsv(nomeArq("diagnostico"), [
+                     ...Object.entries(d?.planos ?? {}).map(([plano, valor]) => ({ registro: "plano", plano, valor })),
+                     ...(d?.diagnosticos ?? []).map((x: any) => ({ registro: "diagnostico", ...x })),
+                     ...(d?.validacao_equipes ?? []).map((x: any) => ({ registro: "equipe", ...x }))], rod("e-Gestor APS — relatório público"));
+                 }
+               } };
+    }
+  }
+  return null;
+}
+
 // ── Abrangência Municipal ─────────────────────────────────────────────────────
 
 function AbaAbrangencia({ data }: { data: any }) {
@@ -90,8 +354,9 @@ function AbaAbrangencia({ data }: { data: any }) {
     <div>
       <div style={{ textAlign: "center", marginBottom: 28 }}>
         <h2 style={{ fontSize: 22, fontWeight: 700, color: "#1d4ed8", margin: "0 0 6px" }}>Abrangência Municipal</h2>
-        <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Dados em nível municipal, referentes à competência vigente.</p>
+        <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Dados em nível municipal. A fonte e a competência de cada número aparecem abaixo.</p>
       </div>
+      <AvisoFonte data={data} />
 
       <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
         <span style={{ background: "#e0f2fe", color: "#0369a1", fontWeight: 700, padding: "4px 12px", borderRadius: 20, fontSize: 12 }}>UF: {data.uf}</span>
@@ -144,10 +409,32 @@ const VARIAVEIS = [
   { key: "K", desc: "Nº de pessoas vinculadas à Equipe", pts: "—" },
 ];
 
+function baixarCsvVinculo(data: any) {
+  const cab = ["UBS", "Equipe", "Tipo", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "Pontuação", "Status"];
+  const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const linhas = (data.equipes ?? []).map((e: any) => [e.ubs, e.equipe, e.tipo, e.A, e.B, e.C, e.D, e.E, e.F, e.G, e.H, e.I, e.J, e.K, e.pontuacao, e.status]);
+  const rod = [[`Fonte: ${ROTULO_FONTE[data.fonte]?.txt ?? data.fonte ?? "—"}`], [`Competência: ${data.competencia ?? "—"}`]];
+  const txt = [cab, ...linhas, [], ...rod].map(l => l.map(esc).join(";")).join("\r\n");
+  const url = URL.createObjectURL(new Blob(["\ufeff" + txt], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = `vinculo-acompanhamento-${data.competencia ?? "sem-competencia"}.csv`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function AbaVinculo({ data }: { data: any }) {
   const [showVars, setShowVars] = useState(false);
   const [filtro, setFiltro] = useState("");
   if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum valor de vinculação foi inventado." />;
+  if (SIT_COMP[data.situacao_dado]) {
+    const s = SIT_COMP[data.situacao_dado];
+    return (
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "28px 24px", textAlign: "center" }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#1d4ed8", marginBottom: 8 }}>Vínculo e Acompanhamento — {data.rotulo}</div>
+        <span style={{ background: s.bg, color: s.fg, fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>{s.txt}</span>
+        <div style={{ fontSize: 13, color: "#374151", marginTop: 12 }}>{data.nota}</div>
+      </div>
+    );
+  }
 
   const equipes: EquipeVinculo[] = data.equipes.filter((e: EquipeVinculo) =>
     filtro === "" || e.ubs.toLowerCase().includes(filtro.toLowerCase()) || e.equipe.toLowerCase().includes(filtro.toLowerCase())
@@ -155,36 +442,16 @@ function AbaVinculo({ data }: { data: any }) {
 
   return (
     <div>
-      {/* Cabeçalho */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
-        <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>
-            Componente Vínculo e Acompanhamento Territorial
-          </h2>
-          <div style={{ display: "flex", gap: 8 }}>
-            {data?.dado_preliminar !== false && (
-              <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>Dado preliminar</span>
-            )}
-            {data?.dado_preliminar === false && (
-              <span style={{ background: "#dcfce7", color: "#166534", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4 }}>Verificado e-Gestor</span>
-            )}
-            <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: 11, padding: "2px 8px", borderRadius: 4 }}>Competência: {data?.competencia ?? "—"}</span>
-            <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: 11, padding: "2px 8px", borderRadius: 4 }}>Tipo: eAP, eSF</span>
-            {data.aviso && <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, padding: "2px 8px", borderRadius: 4 }}>{data.aviso}</span>}
-          </div>
-        </div>
-        <button onClick={() => {}} style={{ display: "flex", alignItems: "center", gap: 5, background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontSize: 12 }}>
-          <Download size={13} /> Baixar dados
-        </button>
-      </div>
+      {data.aviso && <div style={{ background: "#fef3c7", color: "#92400e", fontSize: 12, padding: "6px 10px", borderRadius: 6, marginBottom: 10 }}>{data.aviso}</div>}
+      <AvisoFonte data={data} />
 
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 20 }}>
         {[
           { label: "Equipes", val: data.total_equipes, cor: "#1d4ed8" },
-          { label: "Pessoas vinculadas", val: data.total_pessoas_vinculadas?.toLocaleString("pt-BR"), cor: "#7c3aed" },
-          { label: "Pessoas acompanhadas", val: data.total_pessoas_acompanhadas?.toLocaleString("pt-BR"), cor: "#16a34a" },
-          { label: "Pontuação média", val: data.pontuacao_media?.toFixed(2), cor: COR_PONT(data.pontuacao_media) },
+          { label: "Pessoas vinculadas", val: data.total_pessoas_vinculadas?.toLocaleString("pt-BR") ?? "—", cor: "#7c3aed" },
+          { label: "Pessoas acompanhadas", val: data.total_pessoas_acompanhadas?.toLocaleString("pt-BR") ?? "—", cor: "#16a34a" },
+          { label: "Pontuação média", val: data.pontuacao_media != null ? data.pontuacao_media.toFixed(2) : "—", cor: data.pontuacao_media != null ? COR_PONT(data.pontuacao_media) : "#6b7280" },
           { label: "IED municipal", val: data.ied, cor: "#d97706" },
         ].map(k => (
           <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
@@ -210,7 +477,7 @@ function AbaVinculo({ data }: { data: any }) {
       </div>
 
       {/* Gráfico pontuações */}
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "16px 16px 8px", marginBottom: 20 }}>
+      {data.equipes.length > 0 && <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "16px 16px 8px", marginBottom: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Pontuação por equipe</div>
         <div style={{ height: 160 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -226,7 +493,7 @@ function AbaVinculo({ data }: { data: any }) {
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </div>}
 
       {/* Filtro */}
       <div style={{ display: "flex", gap: 10, marginBottom: 12, alignItems: "center" }}>
@@ -348,176 +615,6 @@ const COR_TEND = (t: string) =>
 
 // ── View Diária (com seletor De/Até) ─────────────────────────────────────────
 
-function ViewDiaria({ data }: { data: any }) {
-  const hoje = new Date().toISOString().slice(0, 10);
-  const primeiroDiaMes = new Date().toISOString().slice(0, 8) + "01";
-  const [dataInicio, setDataInicio] = useState(primeiroDiaMes);
-  const [dataFim, setDataFim]       = useState(hoje);
-
-  if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum valor de vinculação ou cobertura foi inventado." />;
-
-  const IND_COLS = [
-    { key: "prenatal",        label: "Pré-natal" },
-    { key: "cito",            label: "Cito" },
-    { key: "vacina_dtppenta", label: "DTP/Penta" },
-    { key: "rn_semana1",      label: "RN 1ª sem." },
-    { key: "has",             label: "HAS" },
-    { key: "dm",              label: "DM" },
-    { key: "des_infantil",    label: "Des. Infantil" },
-  ];
-
-  // Calcula número de dias do intervalo
-  const numDias = Math.max(1,
-    Math.round((new Date(dataFim).getTime() - new Date(dataInicio).getTime()) / 86400000) + 1
-  );
-
-  const fmtBr = (iso: string) =>
-    new Date(iso + "T00:00:00").toLocaleDateString("pt-BR", { day:"2-digit", month:"2-digit", year:"numeric" });
-
-  // Escala os valores da API pelo número de dias (dado base = 1 dia)
-  const equipesEscaladas = data.equipes.map((e: any) => {
-    const scaled: any = { ...e };
-    IND_COLS.forEach(c => {
-      scaled[c.key] = Math.round((e[c.key] ?? 0) * numDias);
-    });
-    scaled.total_prod = IND_COLS.reduce((s, c) => s + scaled[c.key], 0);
-    return scaled;
-  });
-
-  const totalProd  = equipesEscaladas.reduce((s: number, e: any) => s + e.total_prod, 0);
-  const metaPeriodo = Math.round((data.meta_diaria_estimada ?? 80) * numDias);
-  const pctPeriodo  = Math.min(Math.round((totalProd / metaPeriodo) * 100), 999);
-  const corPct = pctPeriodo >= 100 ? "#16a34a" : pctPeriodo >= 70 ? "#d97706" : "#dc2626";
-  const alertas = equipesEscaladas.filter((e: any) => e.total_prod < 5 * numDias).length;
-
-  return (
-    <div>
-      {/* ── Seletor De/Até ── */}
-      <div style={{ display:"flex", gap:10, marginBottom:18, alignItems:"center", flexWrap:"wrap" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:8, background:"#f9fafb", border:"1px solid #e5e7eb", borderRadius:8, padding:"6px 14px" }}>
-          <span style={{ fontSize:11, color:"#6b7280", fontWeight:700 }}>📅 Período</span>
-          <span style={{ fontSize:11, color:"#6b7280" }}>De</span>
-          <input type="date" value={dataInicio} max={dataFim}
-            onChange={e => setDataInicio(e.target.value)}
-            style={{ border:"none", background:"transparent", fontSize:13, outline:"none", cursor:"pointer", fontWeight:600 }} />
-          <span style={{ fontSize:11, color:"#6b7280" }}>até</span>
-          <input type="date" value={dataFim} min={dataInicio} max={hoje}
-            onChange={e => setDataFim(e.target.value)}
-            style={{ border:"none", background:"transparent", fontSize:13, outline:"none", cursor:"pointer", fontWeight:600 }} />
-          <span style={{ fontSize:11, color:"#1d4ed8", fontWeight:700, background:"#dbeafe", padding:"2px 8px", borderRadius:10 }}>
-            {numDias} {numDias === 1 ? "dia" : "dias"}
-          </span>
-        </div>
-        <button onClick={() => { setDataInicio(primeiroDiaMes); setDataFim(hoje); }}
-          style={{ fontSize:11, border:"1px solid #d1d5db", borderRadius:6, padding:"5px 12px", background:"#fff", cursor:"pointer", color:"#6b7280" }}>
-          Mês atual
-        </button>
-        <button onClick={() => {
-          const d = new Date(); d.setDate(d.getDate() - 6);
-          setDataInicio(d.toISOString().slice(0,10)); setDataFim(hoje);
-        }} style={{ fontSize:11, border:"1px solid #d1d5db", borderRadius:6, padding:"5px 12px", background:"#fff", cursor:"pointer", color:"#6b7280" }}>
-          Últimos 7 dias
-        </button>
-        <button onClick={() => window.print()}
-          style={{ marginLeft:"auto", fontSize:11, border:"1px solid #d1d5db", borderRadius:6, padding:"5px 12px", background:"#fff", cursor:"pointer", color:"#374151", display:"flex", alignItems:"center", gap:5 }}>
-          🖨 Imprimir / PDF
-        </button>
-      </div>
-
-      {/* ── KPIs do período ── */}
-      <div style={{ display:"flex", gap:12, marginBottom:18, flexWrap:"wrap" }}>
-        {[
-          { label:"Período",              val:`${fmtBr(dataInicio)} → ${fmtBr(dataFim)}`, cor:"#1d4ed8" },
-          { label:"Produção no período",  val:totalProd,    cor: corPct },
-          { label:"Meta estimada",        val:metaPeriodo,  cor:"#6b7280" },
-          { label:"% da meta",            val:`${pctPeriodo}%`, cor: corPct },
-          { label:"Equipes com alerta",   val:alertas,      cor: alertas > 0 ? "#dc2626" : "#16a34a" },
-        ].map(k => (
-          <div key={k.label} style={{ background:"#fff", border:`1px solid ${k.cor}22`, borderTop:`3px solid ${k.cor}`, borderRadius:8, padding:"12px 16px", flex:1, minWidth:130 }}>
-            <div style={{ fontSize: typeof k.val === "string" && k.val.includes("→") ? 13 : 22, fontWeight:800, color:k.cor, lineHeight:1.2 }}>{k.val}</div>
-            <div style={{ fontSize:11, color:"#6b7280", marginTop:3 }}>{k.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Barra progresso meta */}
-      <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:8, padding:"10px 14px", marginBottom:14 }}>
-        <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, marginBottom:5 }}>
-          <span style={{ color:"#6b7280" }}>Progresso da produção no período ({fmtBr(dataInicio)} – {fmtBr(dataFim)})</span>
-          <span style={{ fontWeight:700, color: corPct }}>{pctPeriodo}% da meta</span>
-        </div>
-        <div style={{ height:10, background:"#111827", borderRadius:5, overflow:"hidden" }}>
-          <div style={{ width:`${Math.min(pctPeriodo, 100)}%`, height:"100%", background: corPct, borderRadius:5, transition:"width .5s" }} />
-        </div>
-        <div style={{ fontSize:10, color:"#6b7280", marginTop:4 }}>
-          {totalProd?.toLocaleString("pt-BR")} procedimentos registrados · Meta: {metaPeriodo?.toLocaleString("pt-BR")} para o período selecionado
-        </div>
-      </div>
-
-      {data.indicadores_criticos_hoje?.length > 0 && (
-        <div style={{ background:"#fff7f7", border:"1px solid #fca5a5", borderRadius:8, padding:"10px 14px", marginBottom:14, fontSize:12, color:"#dc2626" }}>
-          <strong>⚠ Indicadores críticos no período:</strong> {data.indicadores_criticos_hoje.join(" · ")}
-        </div>
-      )}
-
-      {/* ── Tabela ── */}
-      <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, overflow:"auto" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, minWidth:700 }}>
-          <thead>
-            <tr style={{ background:"#1d4ed8", color:"#fff" }}>
-              <th style={{ padding:"10px 14px", textAlign:"left" }}>EQUIPE</th>
-              {IND_COLS.map(c => <th key={c.key} style={{ padding:"10px 8px", textAlign:"right" }}>{c.label}</th>)}
-              <th style={{ padding:"10px 14px", textAlign:"right" }}>TOTAL</th>
-              <th style={{ padding:"10px 14px", textAlign:"left" }}>STATUS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {equipesEscaladas.map((e: any, i: number) => {
-              const limBaixo = 5 * numDias;
-              const limCrit  = 3 * numDias;
-              const statusCor  = e.total_prod < limCrit ? "#dc2626" : e.total_prod < limBaixo ? "#d97706" : "#16a34a";
-              const statusTxt  = e.total_prod < limCrit ? "CRÍTICO" : e.total_prod < limBaixo ? "BAIXO" : "NORMAL";
-              return (
-                <tr key={i} style={{ borderTop:"1px solid #f3f4f6", background: e.alerta && e.total_prod < limCrit ? "#fff7f7" : i%2===0?"#fff":"#f9fafb" }}>
-                  <td style={{ padding:"10px 14px", fontWeight:700 }}>
-                    {e.equipe}
-                    {e.alerta && <div style={{ fontSize:10, color:"#dc2626", marginTop:2, fontWeight:400 }}>⚠ {e.alerta}</div>}
-                  </td>
-                  {IND_COLS.map(c => (
-                    <td key={c.key} style={{ padding:"10px 8px", textAlign:"right",
-                      color: (e as any)[c.key] === 0 ? "#dc2626" : "#374151",
-                      fontWeight: (e as any)[c.key] === 0 ? 700 : 400 }}>
-                      {(e as any)[c.key]}
-                    </td>
-                  ))}
-                  <td style={{ padding:"10px 14px", textAlign:"right", fontWeight:800, color: statusCor }}>{e.total_prod}</td>
-                  <td style={{ padding:"10px 14px" }}>
-                    <span style={{ fontSize:11, fontWeight:700, color: statusCor }}>{statusTxt}</span>
-                  </td>
-                </tr>
-              );
-            })}
-            {/* Linha totais */}
-            <tr style={{ borderTop:"2px solid #e5e7eb", background:"#eff6ff", fontWeight:700 }}>
-              <td style={{ padding:"8px 14px", color:"#1d4ed8" }}>TOTAL MUNICIPAL</td>
-              {IND_COLS.map(c => {
-                const soma = equipesEscaladas.reduce((s: number, e: any) => s + ((e as any)[c.key] ?? 0), 0);
-                return <td key={c.key} style={{ padding:"8px 8px", textAlign:"right", color:"#1d4ed8", fontWeight:800 }}>{soma}</td>;
-              })}
-              <td style={{ padding:"8px 14px", textAlign:"right", color:"#1d4ed8", fontWeight:900 }}>{totalProd}</td>
-              <td />
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div style={{ marginTop:10, fontSize:11, color:"#9ca3af" }}>
-        Números em <span style={{ color:"#dc2626", fontWeight:700 }}>vermelho</span> = sem produção no indicador no período.
-        Produção acumulada de {fmtBr(dataInicio)} a {fmtBr(dataFim)} · {numDias} {numDias===1?"dia":"dias"} · Fonte: SISAB/e-SUS.
-      </div>
-    </div>
-  );
-}
-
 // ── View Mensal ───────────────────────────────────────────────────────────────
 
 const IND_CORES: Record<string, string> = {
@@ -528,259 +625,10 @@ const IND_CORES: Record<string, string> = {
   ind14: "#b91c1c", ind15: "#991b1b",
 };
 
-function ViewMensal({ data }: { data: any }) {
-  if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum valor de vinculação ou cobertura foi inventado." />;
-  const variacoes = data.variacao_mes_anterior;
-  const TEND_ICON = (t: string) => t === "crescente" ? "↑" : t === "critica" ? "↓" : t === "estavel" ? "→" : "↑";
-
-  const agora = new Date();
-  const mesRef = agora.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-  const dataGeracao = agora.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
-  const horaGeracao = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-
-  return (
-    <div>
-      {/* ── Cabeçalho de referência ── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", border: "1px solid #e2e8f0", borderLeft: "4px solid #1d4ed8", borderRadius: "0 8px 8px 0", padding: "10px 16px", marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#2563eb", textTransform: "uppercase" as const, letterSpacing: 1 }}>Relatório Mensal</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#f4f6f8" }}>Competência: <span style={{ color: "#1d4ed8", textTransform: "capitalize" as const }}>{mesRef}</span></div>
-          </div>
-          <div style={{ width: 1, height: 32, background: "#374151" }} />
-          <div>
-            <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600 }}>Gerado em</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>{dataGeracao} às {horaGeracao}</div>
-          </div>
-        </div>
-        <div style={{ fontSize: 10, color: "#6b7280", textAlign: "right" as const }}>
-          <div>Apuí / AM · IBGE 1300144</div>
-          <div>Novo Financiamento APS · Portaria GM/MS 3.493/2024</div>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        {Object.entries(variacoes).map(([k, v]: [string, any]) => {
-          const nomes: Record<string, string> = {
-            ind1_prenatal: "C1 Mais Acesso", ind2_cito: "C2 Desenv. Inf.", ind3_vacina: "C3 Gestação/Puerp.",
-            ind4_rn: "C4 Diabetes", ind5_odonto1: "C5 Hipertensão", ind6_odonto_comp: "C6 Pessoa Idosa",
-            ind7_urg_odonto: "C7 Prev. Câncer", ind8_has: "B1 1ª Odonto", ind9_dm: "B2 Trat. Odonto",
-            ind10_obesidade: "B3 Exodontias", ind11_cv: "B4 Escovação", ind12_psicose: "B5 Proc. Prev.",
-            ind13_tab: "B6 ART", ind14_sif_gest: "M1 eMulti Aten.", ind15_sif_cong: "M2 eMulti Ações",
-          };
-          return (
-            <div key={k} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", textAlign: "center", minWidth: 90 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: v > 0 ? "#16a34a" : "#dc2626" }}>
-                {v > 0 ? "+" : ""}{Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}p.p.
-              </div>
-              <div style={{ fontSize: 10, color: "#6b7280" }}>{nomes[k]}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      {data.alerta_mensal && (
-        <div style={{ background: "#fff7f7", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#dc2626" }}>
-          ⚠ {data.alerta_mensal}
-        </div>
-      )}
-      {data.destaque_mensal && (
-        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#16a34a" }}>
-          ✓ {data.destaque_mensal}
-        </div>
-      )}
-
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Evolução dos Indicadores — últimos 6 meses (quando disponível)</div>
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={data.evolucao} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-            <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-            <YAxis domain={[25, 90]} tick={{ fontSize: 10 }} unit="%" />
-            <Tooltip formatter={(v: number) => [`${v}%`]} contentStyle={TT} />
-            <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
-            {["ind1","ind2","ind3","ind4","ind5","ind6","ind7"].map((k, i) => {
-              const nomes = ["C1 — Mais Acesso","C2 — Desenv. Infantil","C3 — Gestação/Puerpério","C4 — Diabetes","C5 — Hipertensão","C6 — Pessoa Idosa","C7 — Prev. Câncer"];
-              return <Line key={k} dataKey={k} name={nomes[i]} stroke={IND_CORES[k]} strokeWidth={2} dot={false} />;
-            })}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 650 }}>
-          <thead>
-            <tr style={{ background: "#1d4ed8", color: "#fff" }}>
-              <th style={{ padding: "10px 14px", textAlign: "left" }}>EQUIPE</th>
-              {["Nov","Dez","Jan","Fev","Mar","Abr"].map(m => <th key={m} style={{ padding: "10px 8px", textAlign: "right" }}>{m}</th>)}
-              <th style={{ padding: "10px 14px", textAlign: "center" }}>TENDÊNCIA</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.equipes_evolucao.map((e: any, i: number) => (
-              <tr key={i} style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#f9fafb" }}>
-                <td style={{ padding: "10px 14px", fontWeight: 700 }}>{e.equipe}</td>
-                {["nov","dez","jan","fev","mar","abr"].map(m => (
-                  <td key={m} style={{ padding: "10px 8px", textAlign: "right", fontWeight: m === "abr" ? 800 : 400, color: m === "abr" ? COR_PONT(e[m] / 5) : "#374151", fontVariantNumeric: "tabular-nums" }}>
-                    {Number(e[m]).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-                  </td>
-                ))}
-                <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: COR_TEND(e.tendencia) }}>
-                    {TEND_ICON(e.tendencia)} {e.tendencia === "critica" ? "CRÍTICA" : e.tendencia === "crescente" ? "SUBINDO" : "ESTÁVEL"}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 // ── View Quadrimestral ────────────────────────────────────────────────────────
-
-function ViewQuadrimestral({ data }: { data: any }) {
-  if (!data) return <NaoDisponivelBanner nota="Integração com SIAPS/e-Gestor ainda não configurada no Railway. Nenhum valor de vinculação ou cobertura foi inventado." />;
-  return (
-    <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
-        {[
-          { label: "Quadrimestre atual",    val: "65.9%", sub: data.quadrimestre_atual,      cor: "#1d4ed8" },
-          { label: "Quadrimestre anterior", val: "63.7%", sub: data.referencia_anterior,     cor: "#6b7280" },
-          { label: "Variação",              val: `+${data.variacao_geral}p.p.`, sub: "evolução consistente", cor: "#16a34a" },
-          { label: "Projeção 2º Quad.",     val: `${data.projecao_2q_2026}%`, sub: "jan–abr 2026",           cor: "#7c3aed" },
-        ].map(k => (
-          <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "14px 16px" }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: k.cor }}>{k.val}</div>
-            <div style={{ fontSize: 11, color: "#374151", fontWeight: 600, marginTop: 2 }}>{k.label}</div>
-            <div style={{ fontSize: 10, color: "#9ca3af" }}>{k.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Comparativo por Indicador — 4 quadrimestres</div>
-        <div style={{ overflow: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 700 }}>
-            <thead>
-              <tr style={{ background: "#f3f4f6" }}>
-                <th style={{ padding: "8px 12px", textAlign: "left", color: "#1d4ed8" }}>Indicador</th>
-                <th style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af" }}>1Q/2025</th>
-                <th style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af" }}>2Q/2025</th>
-                <th style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af" }}>3Q/2025</th>
-                <th style={{ padding: "8px 10px", textAlign: "right", color: "#1d4ed8", fontWeight: 700 }}>1Q/2026</th>
-                <th style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280" }}>Meta</th>
-                <th style={{ padding: "8px 10px", textAlign: "center", color: "#6b7280" }}>Tendência</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.indicadores.map((r: any, i: number) => {
-                const atingiu = r["1q_2026"] >= r.meta;
-                return (
-                  <tr key={i} style={{ borderTop: "1px solid #f3f4f6", background: atingiu ? "#f0fdf4" : "#fff" }}>
-                    <td style={{ padding: "8px 12px", fontWeight: 600 }}>{r.indicador}</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>{Number(r["1q_2025"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}%</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>{Number(r["2q_2025"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}%</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280", fontVariantNumeric: "tabular-nums" }}>{Number(r["3q_2025"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}%</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 800, color: atingiu ? "#16a34a" : "#dc2626", fontVariantNumeric: "tabular-nums" }}>{Number(r["1q_2026"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}%</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280", fontVariantNumeric: "tabular-nums" }}>{Number(r.meta).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}%</td>
-                    <td style={{ padding: "8px 10px", textAlign: "center", fontSize: 11, fontWeight: 700, color: COR_TEND(r.tendencia) }}>
-                      {r.tendencia === "crescente_insuf" ? "↑ INSUF." : r.tendencia === "crescente" ? "↑" : "→"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "auto", marginBottom: 16 }}>
-        <div style={{ padding: "14px 18px 0", fontSize: 13, fontWeight: 700 }}>Evolução por Equipe — pontuação de qualidade</div>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 600 }}>
-          <thead>
-            <tr style={{ background: "#f3f4f6" }}>
-              <th style={{ padding: "8px 14px", textAlign: "left", color: "#1d4ed8" }}>Equipe</th>
-              {["1Q/25","2Q/25","3Q/25","1Q/26"].map(q => <th key={q} style={{ padding: "8px 10px", textAlign: "right", color: "#6b7280" }}>{q}</th>)}
-              <th style={{ padding: "8px 10px", textAlign: "right", color: "#16a34a" }}>Δ</th>
-              <th style={{ padding: "8px 14px", textAlign: "center", color: "#6b7280" }}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.equipes.map((e: any, i: number) => (
-              <tr key={i} style={{ borderTop: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#f9fafb" }}>
-                <td style={{ padding: "10px 14px", fontWeight: 700 }}>{e.equipe}</td>
-                <td style={{ padding: "10px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>{Number(e["1q_2025"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}</td>
-                <td style={{ padding: "10px 10px", textAlign: "right", color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}>{Number(e["2q_2025"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}</td>
-                <td style={{ padding: "10px 10px", textAlign: "right", color: "#6b7280", fontVariantNumeric: "tabular-nums" }}>{Number(e["3q_2025"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}</td>
-                <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 800, color: COR_STATUS(e.status), fontVariantNumeric: "tabular-nums" }}>{Number(e["1q_2026"]).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}</td>
-                <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: 700, color: "#16a34a", fontVariantNumeric: "tabular-nums" }}>+{Number(e.variacao).toLocaleString("pt-BR", {minimumFractionDigits:1,maximumFractionDigits:1})}</td>
-                <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, background: COR_STATUS(e.status) + "18", color: COR_STATUS(e.status), padding: "2px 8px", borderRadius: 10 }}>
-                    {LABEL_STATUS(e.status)}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "14px 18px", fontSize: 12, color: "#1e40af" }}>
-        <strong>Parecer do Gestor:</strong> {data.parecer_gestor}
-      </div>
-    </div>
-  );
-}
 
 // ── Painel Gestor RT ─────────────────────────────────────────────────────────
 
-// Contexto Q2/2026: 1 Mai – 31 Ago/2026 (123 dias). Hoje: 20/Jul → 81 dias decorridos
-// Scores reais extraídos do e-Gestor AB — competência Abr/2026
-const _Q2 = {
-  label: "2º Quadrimestre 2026",
-  periodo: "Mai/2026 – Ago/2026",
-  dias_totais: 123,
-  dias_decorridos: 81,
-  dias_restantes: 42,
-  indicadores: [
-    // Eixo Criança e Mulher
-    { key: "ind1",  label: "Pré-natal ≥7 consultas (1º trim.)",     short: "Pré-natal",   atual: 72.5, meta: 55,  q1: 68.2, eixo: "Criança/Mulher" },
-    { key: "ind2",  label: "Citopatológico (colo uterino)",          short: "Cito",        atual: 37.1, meta: 50,  q1: 33.4, eixo: "Criança/Mulher" },
-    { key: "ind3",  label: "DTP/Pentavalente",                       short: "DTP/Penta",   atual: 76.5, meta: 90,  q1: 73.1, eixo: "Criança/Mulher" },
-    { key: "ind4",  label: "Puerpério / RN 1ª semana",               short: "Puerpério",   atual: 81.9, meta: 55,  q1: 78.4, eixo: "Criança/Mulher" },
-    // Eixo Saúde Bucal
-    { key: "ind5",  label: "1ª Consulta Odontológica Programática",  short: "1ª Odonto",   atual: 32.6, meta: 45,  q1: 29.1, eixo: "Saúde Bucal" },
-    { key: "ind6",  label: "Tratamento Odontológico Completado",     short: "Odonto Comp.",atual: 25.8, meta: 45,  q1: 22.5, eixo: "Saúde Bucal" },
-    { key: "ind7",  label: "Urgência Odontológica Resolvida",        short: "Urg. Odonto", atual: 51.8, meta: 45,  q1: 48.0, eixo: "Saúde Bucal" },
-    // Eixo Doenças Crônicas
-    { key: "ind8",  label: "Acompanhamento HAS",                     short: "HAS",         atual: 70.5, meta: 60,  q1: 66.8, eixo: "Doenças Crônicas" },
-    { key: "ind9",  label: "Acompanhamento DM (HbA1c)",              short: "DM HbA1c",    atual: 55.4, meta: 55,  q1: 52.1, eixo: "Doenças Crônicas" },
-    { key: "ind10", label: "Obesidade Infantil (IMC 5-9 anos)",      short: "Obesidade",   atual: 67.1, meta: 55,  q1: 64.3, eixo: "Doenças Crônicas" },
-    { key: "ind11", label: "Alto Risco Cardiovascular",              short: "Risco CV",    atual: 37.8, meta: 50,  q1: 34.8, eixo: "Doenças Crônicas" },
-    // Eixo Saúde Mental
-    { key: "ind12", label: "Esquizofrenia / Psicose",                short: "Psicose",     atual: 43.5, meta: 50,  q1: 40.5, eixo: "Saúde Mental" },
-    { key: "ind13", label: "Transtorno Afetivo Bipolar",             short: "TAB",         atual: 38.4, meta: 50,  q1: 35.0, eixo: "Saúde Mental" },
-    // Eixo IST
-    { key: "ind14", label: "Sífilis em Gestante — Tratamento",       short: "Síf. Gest.",  atual: 76.8, meta: 55,  q1: 74.5, eixo: "IST" },
-    { key: "ind15", label: "Sífilis Congênita — Tratamento",         short: "Síf. Cong.",  atual: 81.4, meta: 55,  q1: 78.8, eixo: "IST" },
-  ],
-  // Scores reais SIAPS — Mai/2026 (pts_q1 = pontuação componente qualidade)
-  equipes: [
-    { ubs:"UBS IRMÃ ELIZABETE",                        equipe:"CACHOEIRA",    pts_q1:55.27, status:"bom",       ind:{ind1:85,ind2:43,ind3:88,ind4:91, ind5:39,ind6:30,ind7:55, ind8:79,ind9:63,ind10:78, ind11:43,ind12:48,ind13:42, ind14:80,ind15:83} },
-    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"SÃO SEBASTIÃO",pts_q1:53.52, status:"suficiente",ind:{ind1:80,ind2:41,ind3:82,ind4:89, ind5:37,ind6:29,ind7:54, ind8:75,ind9:58,ind10:73, ind11:41,ind12:47,ind13:41, ind14:77,ind15:80} },
-    { ubs:"UBS ANIZIO FERREIRA DA SILVA",              equipe:"ACARI",        pts_q1:63.99, status:"bom",       ind:{ind1:79,ind2:40,ind3:80,ind4:90, ind5:37,ind6:29,ind7:52, ind8:77,ind9:60,ind10:72, ind11:40,ind12:47,ind13:40, ind14:75,ind15:79} },
-    { ubs:"UBS OSVALDO LEMES CABRAL",                  equipe:"TRÊS ESTADOS", pts_q1:33.41, status:"regular",   ind:{ind1:56,ind2:28,ind3:63,ind4:67, ind5:25,ind6:18,ind7:39, ind8:58,ind9:46,ind10:55, ind11:29,ind12:32,ind13:26, ind14:50,ind15:50} },
-    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"JUMA",         pts_q1:55.17, status:"bom",       ind:{ind1:86,ind2:45,ind3:85,ind4:93, ind5:39,ind6:31,ind7:56, ind8:81,ind9:64,ind10:79, ind11:44,ind12:49,ind13:44, ind14:82,ind15:86} },
-    { ubs:"CENTRO DE SAUDE CURUMIM",                   equipe:"LIBERDADE",    pts_q1:63.62, status:"bom",       ind:{ind1:91,ind2:52,ind3:91,ind4:100,ind5:46,ind6:39,ind7:63, ind8:85,ind9:71,ind10:83, ind11:53,ind12:58,ind13:53, ind14:92,ind15:100} },
-    { ubs:"UBS PADRE FALIERO BONCI",                   equipe:"KENNEDY",      pts_q1:70.89, status:"otimo",     ind:{ind1:72,ind2:40,ind3:76,ind4:80, ind5:50,ind6:46,ind7:58, ind8:82,ind9:68,ind10:75, ind11:58,ind12:55,ind13:52, ind14:72,ind15:75} },
-    { ubs:"UBS JK",                                    equipe:"JK",           pts_q1:68.14, status:"bom",       ind:{ind1:83,ind2:43,ind3:86,ind4:90, ind5:38,ind6:30,ind7:53, ind8:78,ind9:62,ind10:77, ind11:41,ind12:48,ind13:41, ind14:78,ind15:82} },
-    { ubs:"UBS CLAUDIA PEREIRA DOS SANTOS DAMACENA",   equipe:"ESTRADA NOVA", pts_q1:54.48, status:"suficiente",ind:{ind1:44,ind2:20,ind3:55,ind4:57, ind5:21,ind6:15,ind7:34, ind8:49,ind9:36,ind10:41, ind11:22,ind12:26,ind13:20, ind14:39,ind15:43} },
-  ],
-};
-
-// Grupos de indicadores por tipo de equipe (índices 0-based)
 const GRUPOS_IND = {
   esf: {
     label: "eSF — Saúde da Família",
@@ -811,521 +659,6 @@ const GRUPOS_IND = {
 type TipoEquipe = keyof typeof GRUPOS_IND;
 
 // ── Painel dos 15 Indicadores por Equipe ─────────────────────────────────────
-function PainelIndPorEquipe({ equipes, indicadores, metas, pctTempo, corGap, bgGap, proj }: {
-  equipes: any[]; indicadores: any[]; metas: number[];
-  pctTempo: number;
-  corGap: (a:number, m:number) => string;
-  bgGap:  (a:number, m:number) => string;
-  proj:   (a:number) => number;
-}) {
-  const [equipeSel, setEquipeSel] = useState<string>(equipes[0]?.equipe ?? "");
-  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
-  const [tipoAtivo, setTipoAtivo] = useState<TipoEquipe>("esf");
-
-  const equipe = equipes.find(e => e.equipe === equipeSel);
-  const indKeys = ["ind1","ind2","ind3","ind4","ind5","ind6","ind7","ind8","ind9","ind10","ind11","ind12","ind13","ind14","ind15"];
-
-  const grupo = GRUPOS_IND[tipoAtivo];
-  const indicesFiltrados = grupo.indices;
-
-  const toggle = (eq: string) => setExpandidos(prev => {
-    const s = new Set(prev);
-    s.has(eq) ? s.delete(eq) : s.add(eq);
-    return s;
-  });
-
-  const COR_ST: Record<string,string> = { otimo:"#1d4ed8", bom:"#16a34a", suficiente:"#d97706", regular:"#dc2626" };
-  const LABEL_ST: Record<string,string> = { otimo:"Ótimo", bom:"Bom", suficiente:"Suficiente", regular:"Regular" };
-
-  // Linhas de indicadores filtradas pelo grupo ativo
-  const renderLinhasInd = (eqInd: any, compact = false) =>
-    indicesFiltrados.map(i => {
-      const ind  = indicadores[i];
-      const key  = indKeys[i];
-      const val  = (eqInd as any)[key] ?? 0;
-      const meta = metas[i];
-      const cor  = corGap(val, meta);
-      const gap  = meta - val;
-      const pj   = proj(val);
-      const pjCor = pj >= meta ? "#16a34a" : pj >= meta-10 ? "#d97706" : "#dc2626";
-      return (
-        <div key={key} style={{ display:"grid",
-          gridTemplateColumns: compact ? "10px 200px 1fr 52px 55px 55px" : "12px 220px 1fr 58px 60px 60px 70px",
-          gap:8, alignItems:"center" }}>
-          <div style={{ width:compact?8:9, height:compact?8:9, borderRadius:"50%", background:cor, flexShrink:0 }} />
-          <span style={{ fontSize:11, color:"#374151" }}>Ind.{i+1} — {ind.label}</span>
-          <div style={{ position:"relative", height:7, background:"#e5e7eb", borderRadius:3 }}>
-            <div style={{ position:"absolute", left:`${Math.min(meta,100)}%`, top:-2, width:2, height:11,
-              background:"#9ca3af", borderRadius:1 }} title={`Meta: ${meta}%`} />
-            <div style={{ width:`${Math.min(val,100)}%`, height:"100%", background:cor, borderRadius:3 }} />
-          </div>
-          <span style={{ fontSize:12, fontWeight:800, color:cor, textAlign:"right" }}>{val}%</span>
-          <span style={{ fontSize:10, color:"#9ca3af", textAlign:"center" }}>meta {meta}%</span>
-          <span style={{ fontSize:11, fontWeight:700, textAlign:"right", color:gap>0?"#dc2626":"#16a34a" }}>
-            {gap>0?`−${gap.toFixed(1)}`:`+${Math.abs(gap).toFixed(1)}`}p.p.
-          </span>
-          {!compact && (
-            <span style={{ fontSize:10, fontWeight:700, background:pjCor+"18", color:pjCor,
-              padding:"2px 6px", borderRadius:10, textAlign:"center" }}>proj {pj}%</span>
-          )}
-        </div>
-      );
-    });
-
-  return (
-    <div style={{ background:"#fff", border:`1px solid ${grupo.border}`, borderRadius:12, padding:"18px 20px", marginBottom:18 }}>
-
-      {/* ── Tabs de tipo de equipe ── */}
-      <div style={{ display:"flex", gap:0, marginBottom:16, borderBottom:`2px solid ${grupo.border}` }}>
-        {(Object.entries(GRUPOS_IND) as [TipoEquipe, typeof GRUPOS_IND[TipoEquipe]][]).map(([tipo, g]) => (
-          <button key={tipo} onClick={() => { setTipoAtivo(tipo); setExpandidos(new Set()); }}
-            style={{ padding:"9px 18px", border:"none", borderBottom: tipoAtivo===tipo ? `3px solid ${g.cor}` : "3px solid transparent",
-              background:"transparent", color: tipoAtivo===tipo ? g.cor : "#6b7280",
-              fontWeight: tipoAtivo===tipo ? 700 : 400, cursor:"pointer", fontSize:13, marginBottom:-2,
-              display:"flex", alignItems:"center", gap:6 }}>
-            <span style={{ width:8, height:8, borderRadius:"50%", background:g.cor, display:"inline-block" }} />
-            {g.label}
-            <span style={{ fontSize:10, background:tipoAtivo===tipo?g.cor+"18":"#f3f4f6",
-              color:tipoAtivo===tipo?g.cor:"#9ca3af", borderRadius:10, padding:"1px 7px", fontWeight:600 }}>
-              Ind.{g.indices.map(i=>i+1).join(", ")}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Cabeçalho */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14, flexWrap:"wrap", gap:10 }}>
-        <div>
-          <div style={{ fontSize:14, fontWeight:700, color:grupo.cor }}>{grupo.label} — Indicadores por Equipe · Q2/2026</div>
-          <div style={{ fontSize:11, color:"#6b7280", marginTop:2 }}>
-            Eixos: {grupo.eixos.join(" · ")} · {indicesFiltrados.length} indicadores · Clique numa equipe para expandir
-          </div>
-        </div>
-        {/* Seletor de equipe */}
-        <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
-          {equipes.map(e => {
-            const cor = COR_ST[e.status] ?? "#6b7280";
-            const sel = equipeSel === e.equipe;
-            return (
-              <button key={e.equipe} onClick={() => setEquipeSel(e.equipe)}
-                style={{ padding:"4px 10px", border:`1px solid ${sel?cor:"#e5e7eb"}`, borderRadius:6,
-                  background:sel?cor+"18":"#fff", color:sel?cor:"#6b7280",
-                  fontWeight:sel?700:400, fontSize:11, cursor:"pointer" }}>
-                {e.equipe}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* View detalhada — equipe selecionada */}
-      {equipe && (
-        <div style={{ background:grupo.bg, border:`1px solid ${grupo.border}`, borderRadius:10, padding:"14px 16px", marginBottom:16 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-            <div>
-              <div style={{ fontSize:13, fontWeight:800, color:"#1e3a5f" }}>{equipe.equipe}</div>
-              <div style={{ fontSize:11, color:"#6b7280" }}>{equipe.ubs}</div>
-            </div>
-            <span style={{ background:COR_ST[equipe.status]+"18", color:COR_ST[equipe.status], fontWeight:700,
-              fontSize:11, padding:"3px 10px", borderRadius:20 }}>
-              {LABEL_ST[equipe.status] ?? equipe.status} · {equipe.pts_q1} pts
-            </span>
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
-            {renderLinhasInd(equipe.ind)}
-          </div>
-          <div style={{ display:"flex", gap:16, marginTop:10, fontSize:10, color:"#9ca3af", borderTop:"1px solid #e5e7eb", paddingTop:8, flexWrap:"wrap" }}>
-            <span>| = meta MS</span>
-            <span style={{color:"#16a34a"}}>● acima da meta</span>
-            <span style={{color:"#d97706"}}>● até 10p.p. abaixo</span>
-            <span style={{color:"#dc2626"}}>● crítico</span>
-            <span>proj. = projeção linear ao encerramento do Q2</span>
-          </div>
-        </div>
-      )}
-
-      {/* Accordion — todas as equipes */}
-      <div style={{ borderTop:"1px solid #f1f5f9", paddingTop:12 }}>
-        <div style={{ fontSize:12, fontWeight:600, color:"#6b7280", marginBottom:8 }}>
-          Todas as equipes · {grupo.label} — clique para expandir
-        </div>
-        {equipes.map(e => {
-          const aberta = expandidos.has(e.equipe);
-          const cor = COR_ST[e.status] ?? "#6b7280";
-          const criticos = indicesFiltrados.filter(i => ((e.ind as any)[indKeys[i]] ?? 0) < metas[i]).length;
-          const total    = indicesFiltrados.length;
-          return (
-            <div key={e.equipe} style={{ border:`1px solid ${aberta?grupo.cor+"44":"#f1f5f9"}`,
-              borderLeft:`3px solid ${aberta?grupo.cor:cor}`, borderRadius:8, marginBottom:6, overflow:"hidden" }}>
-              <div onClick={() => toggle(e.equipe)}
-                style={{ display:"flex", alignItems:"center", gap:12, padding:"9px 14px",
-                  cursor:"pointer", background: aberta?grupo.bg:"#fff" }}>
-                <span style={{ fontSize:11, color:"#9ca3af" }}>{aberta?"▼":"▶"}</span>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:12, fontWeight:700 }}>{e.equipe}</div>
-                  <div style={{ fontSize:10, color:"#9ca3af" }}>{e.ubs}</div>
-                </div>
-                {/* Dots apenas dos indicadores do grupo ativo */}
-                <div style={{ display:"flex", gap:3 }}>
-                  {indicesFiltrados.map(i => {
-                    const val = (e.ind as any)[indKeys[i]] ?? 0;
-                    return <div key={i} style={{ width:7, height:7, borderRadius:"50%", background:corGap(val,metas[i]) }} title={`Ind.${i+1}: ${val}%`} />;
-                  })}
-                </div>
-                <span style={{ fontSize:10, color:criticos>0?"#dc2626":"#16a34a", fontWeight:700, minWidth:70, textAlign:"right" }}>
-                  {criticos>0 ? `${criticos}/${total} abaixo` : `✓ ${total}/${total} ok`}
-                </span>
-                <span style={{ background:cor+"18", color:cor, fontWeight:700, fontSize:10, padding:"2px 8px", borderRadius:20 }}>
-                  {LABEL_ST[e.status]}
-                </span>
-              </div>
-              {aberta && (
-                <div style={{ padding:"10px 14px 14px", background:grupo.bg, borderTop:"1px solid #f1f5f9" }}>
-                  <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                    {renderLinhasInd(e.ind, true)}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function PainelGestorRT() {
-  const { dias_totais, dias_decorridos, dias_restantes } = _Q2;
-  const pctTempo = Math.round((dias_decorridos / dias_totais) * 100);
-  const metas = [55, 50, 90, 55, 45, 45, 45, 60, 55, 55, 50, 50, 50, 55, 55];
-  const indKeys = ["ind1","ind2","ind3","ind4","ind5","ind6","ind7","ind8","ind9","ind10","ind11","ind12","ind13","ind14","ind15"] as const;
-
-  const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<"todos"|"bom"|"suficiente"|"regular">("todos");
-  const [filtroInd, setFiltroInd] = useState<string>("todos");
-
-  const equipesFiltradas = useMemo(() => {
-    return _Q2.equipes.filter(e => {
-      const texto = busca.toLowerCase();
-      const bateTexto = !busca || e.equipe.toLowerCase().includes(texto) || e.ubs.toLowerCase().includes(texto);
-      const bateStatus = filtroStatus === "todos" || e.status === filtroStatus;
-      const bateInd = filtroInd === "todos" || (() => {
-        const idx = parseInt(filtroInd) - 1;
-        const key = indKeys[idx];
-        return key ? (e.ind as any)[key] < metas[idx] : true;
-      })();
-      return bateTexto && bateStatus && bateInd;
-    });
-  }, [busca, filtroStatus, filtroInd]);
-
-  const corGap = (atual: number, meta: number) => {
-    const g = meta - atual;
-    if (g <= 0)  return "#16a34a";
-    if (g <= 10) return "#d97706";
-    return "#dc2626";
-  };
-  const bgGap = (atual: number, meta: number) => {
-    const g = meta - atual;
-    if (g <= 0)  return "#dcfce7";
-    if (g <= 10) return "#fef3c7";
-    return "#fee2e2";
-  };
-  const proj = (atual: number) => Math.min(Math.round((atual / pctTempo) * 100), 100);
-
-  const acoes = _Q2.equipes.flatMap(e =>
-    indKeys.map((k, i) => {
-      const gap = metas[i] - (e.ind as any)[k];
-      return { equipe: e.equipe, ind: _Q2.indicadores[i].label, gap, atual: (e.ind as any)[k], meta: metas[i] };
-    })
-  ).filter(a => a.gap > 14).sort((a, b) => b.gap - a.gap).slice(0, 8);
-
-  const hoje = new Date().toLocaleDateString("pt-BR");
-  const hora  = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
-
-  return (
-    <div>
-      {/* ── Banner Quadrimestre ── */}
-      <div style={{ background:"linear-gradient(135deg,#1565c0 0%,#1351b4 100%)", borderRadius:12, padding:"18px 22px", marginBottom:18, color:"#fff" }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
-          <div>
-            <div style={{ fontSize:10, opacity:.75, fontWeight:700, textTransform:"uppercase", letterSpacing:".05em" }}>Acompanhamento em Tempo Real · Apuí/AM</div>
-            <div style={{ fontSize:18, fontWeight:800, marginTop:3 }}>{_Q2.label} — {_Q2.periodo}</div>
-            <div style={{ fontSize:12, opacity:.8, marginTop:3 }}>Novo Financiamento APS · Portaria GM/MS 3.493/2024 · 7 indicadores (C1–C7) · {_Q2.equipes.length} equipes ESF/eSF</div>
-          </div>
-          <div style={{ display:"flex", gap:10 }}>
-            {[
-              { val:dias_decorridos, sub:"dias decorridos", cor:"#fff" },
-              { val:dias_restantes,  sub:"dias restantes",  cor: dias_restantes<=30?"#fbbf24":"#fff" },
-              { val:`${pctTempo}%`,  sub:"do período",       cor:"#fff" },
-            ].map((k,i) => (
-              <div key={i} style={{ background:"rgba(255,255,255,.12)", borderRadius:8, padding:"8px 16px", textAlign:"center" }}>
-                <div style={{ fontSize:22, fontWeight:900, color:k.cor }}>{k.val}</div>
-                <div style={{ fontSize:10, opacity:.75 }}>{k.sub}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        {/* Barra tempo */}
-        <div style={{ marginTop:14 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, opacity:.7, marginBottom:5 }}>
-            <span>Maio/2026</span><span>{pctTempo}% decorrido — {dias_restantes} dias para o encerramento</span><span>Agosto/2026</span>
-          </div>
-          <div style={{ height:10, background:"rgba(255,255,255,.2)", borderRadius:5, overflow:"hidden", position:"relative" }}>
-            <div style={{ width:`${pctTempo}%`, height:"100%", background:"#1565c0", borderRadius:5 }} />
-            <div style={{ position:"absolute", left:`${pctTempo}%`, top:0, transform:"translateX(-50%)", width:14, height:14, background:"#fff", borderRadius:"50%", border:"2px solid #1d4ed8", marginTop:-2 }} />
-          </div>
-          <div style={{ marginTop:5, fontSize:10, opacity:.65 }}>⏱ Atualizado em {hoje} às {hora}</div>
-        </div>
-      </div>
-
-      {/* ── Painel dos 7 Indicadores ── */}
-      <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18 }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-          <div style={{ fontSize:14, fontWeight:700 }}>Painel dos 15 Indicadores — Município · {hoje}</div>
-          <span style={{ fontSize:11, background:"#fef3c7", color:"#92400e", padding:"3px 10px", borderRadius:20, fontWeight:700 }}>Dado parcial Q2/2026</span>
-        </div>
-        <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
-          {_Q2.indicadores.map((ind, i) => {
-            const cor = corGap(ind.atual, ind.meta);
-            const gap = ind.meta - ind.atual;
-            const pj  = proj(ind.atual);
-            const pjCor = pj >= ind.meta ? "#16a34a" : pj >= ind.meta - 10 ? "#d97706" : "#dc2626";
-            const deltaQ1 = ind.atual - ind.q1;
-            return (
-              <div key={ind.key} style={{ display:"grid", gridTemplateColumns:"12px 230px 1fr 65px 72px 72px 82px", gap:10, alignItems:"center" }}>
-                <div style={{ width:10, height:10, borderRadius:"50%", background:cor }} />
-                <span style={{ fontSize:12 }}>Ind.{i+1} — {ind.label}</span>
-                <div style={{ position:"relative", height:8, background:"#111827", borderRadius:4 }}>
-                  <div style={{ position:"absolute", left:`${ind.meta}%`, top:-2, width:2, height:12, background:"#6b7280", zIndex:2, borderRadius:1 }} title={`Meta: ${ind.meta}%`} />
-                  <div style={{ width:`${Math.min(ind.atual,100)}%`, height:"100%", background:cor, borderRadius:4 }} />
-                </div>
-                <span style={{ fontSize:13, fontWeight:800, color:cor, textAlign:"right" }}>{ind.atual}%</span>
-                <span style={{ fontSize:10, color:"#6b7280", textAlign:"center" }}>meta {ind.meta}%</span>
-                <span style={{ fontSize:11, fontWeight:700, textAlign:"center", color: gap > 0 ? "#dc2626" : "#16a34a" }}>
-                  {gap > 0 ? `−${gap?.toFixed(1)}` : `+${Math.abs(gap).toFixed(1)}`}p.p.
-                </span>
-                <div style={{ textAlign:"center", display:"flex", flexDirection:"column", gap:2 }}>
-                  <span style={{ fontSize:10, fontWeight:700, background:pjCor+"18", color:pjCor, padding:"2px 7px", borderRadius:10 }}>proj {pj}%</span>
-                  <span style={{ fontSize:9, color: deltaQ1 >= 0 ? "#16a34a" : "#dc2626" }}>
-                    vs Q1: {deltaQ1 >= 0 ? "+" : ""}{deltaQ1?.toFixed(1)}p.p.
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div style={{ display:"flex", gap:20, marginTop:12, fontSize:10, color:"#6b7280", borderTop:"1px solid #f1f5f9", paddingTop:10, flexWrap:"wrap" }}>
-          <span>| = meta MS</span>
-          <span style={{ color:"#16a34a" }}>● acima da meta</span>
-          <span style={{ color:"#d97706" }}>● até 10p.p. abaixo</span>
-          <span style={{ color:"#dc2626" }}>● crítico (&gt;10p.p. abaixo)</span>
-          <span>proj. = projeção linear ao fim do quadrimestre</span>
-          <span>vs Q1 = comparação com resultado anterior</span>
-        </div>
-      </div>
-
-      {/* ── Painel 15 Indicadores por Equipe ── */}
-      <PainelIndPorEquipe
-        equipes={_Q2.equipes}
-        indicadores={_Q2.indicadores}
-        metas={metas}
-        pctTempo={pctTempo}
-        corGap={corGap}
-        bgGap={bgGap}
-        proj={proj}
-      />
-
-      {/* ── Matriz Equipe × Indicador ── */}
-      <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18, overflow:"auto" }}>
-        <div style={{ fontSize:14, fontWeight:700, marginBottom:10 }}>Matriz por Equipe × Indicador — Q2/2026 (parcial)</div>
-
-        {/* Filtros de busca */}
-        <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:14, padding:"10px 12px", background:"#f8fafc", borderRadius:8, border:"1px solid #e5e7eb" }}>
-          {/* Campo texto */}
-          <div style={{ display:"flex", alignItems:"center", gap:6, background:"#fff", border:"1px solid #d1d5db", borderRadius:7, padding:"5px 10px", flex:1, minWidth:180 }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input
-              type="text"
-              placeholder="Buscar equipe ou UBS..."
-              value={busca}
-              onChange={e => setBusca(e.target.value)}
-              style={{ border:"none", outline:"none", fontSize:12, flex:1, color:"#374151", background:"transparent" }}
-            />
-            {busca && (
-              <button onClick={() => setBusca("")} style={{ border:"none", background:"none", cursor:"pointer", color:"#9ca3af", fontSize:14, padding:0, lineHeight:1 }}>×</button>
-            )}
-          </div>
-
-          {/* Filtro por status */}
-          <div style={{ display:"flex", gap:3, alignItems:"center" }}>
-            <span style={{ fontSize:11, color:"#6b7280", marginRight:2 }}>Status:</span>
-            {([
-              { id:"todos",      label:"Todos" },
-              { id:"bom",        label:"Bom",       cor:"#16a34a" },
-              { id:"suficiente", label:"Suficiente", cor:"#d97706" },
-              { id:"regular",    label:"Regular",    cor:"#dc2626" },
-            ] as const).map(s => (
-              <button key={s.id} onClick={() => setFiltroStatus(s.id)}
-                style={{ padding:"4px 10px", border:`1px solid ${filtroStatus===s.id?(s as any).cor??"#1d4ed8":"#e5e7eb"}`, borderRadius:6, cursor:"pointer", fontSize:11, fontWeight:filtroStatus===s.id?700:400,
-                  background:filtroStatus===s.id?((s as any).cor??"#1d4ed8")+"18":"#fff",
-                  color:filtroStatus===s.id?((s as any).cor??"#1d4ed8"):"#6b7280" }}>
-                {s.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Filtro por indicador abaixo da meta */}
-          <div style={{ display:"flex", gap:3, alignItems:"center" }}>
-            <span style={{ fontSize:11, color:"#6b7280", marginRight:2 }}>Abaixo da meta:</span>
-            <select value={filtroInd} onChange={e => setFiltroInd(e.target.value)}
-              style={{ border:"1px solid #d1d5db", borderRadius:6, padding:"4px 8px", fontSize:11, color:"#374151", background:"#fff", cursor:"pointer" }}>
-              <option value="todos">Todos</option>
-              {_Q2.indicadores.map((ind, i) => (
-                <option key={ind.key} value={String(i+1)}>Ind.{i+1} — {(ind as any).short}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Contador */}
-          <div style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:"#6b7280", marginLeft:"auto" }}>
-            <span style={{ background:"#eff6ff", color:"#1d4ed8", fontWeight:700, padding:"2px 8px", borderRadius:20 }}>
-              {equipesFiltradas.length}/{_Q2.equipes.length} equipes
-            </span>
-            {(busca || filtroStatus!=="todos" || filtroInd!=="todos") && (
-              <button onClick={() => { setBusca(""); setFiltroStatus("todos"); setFiltroInd("todos"); }}
-                style={{ border:"1px solid #d1d5db", borderRadius:6, padding:"3px 8px", cursor:"pointer", fontSize:10, color:"#6b7280", background:"#fff" }}>
-                Limpar filtros
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div style={{ fontSize:11, color:"#6b7280", marginBottom:14 }}>
-          Resultado acumulado até {hoje}.
-          <span style={{ background:"#dcfce7", color:"#16a34a", fontWeight:700, padding:"1px 7px", borderRadius:4, marginLeft:8 }}>Verde ≥ meta</span>
-          <span style={{ background:"#fef3c7", color:"#d97706", fontWeight:700, padding:"1px 7px", borderRadius:4, marginLeft:4 }}>Amarelo até 10p.p.</span>
-          <span style={{ background:"#fee2e2", color:"#dc2626", fontWeight:700, padding:"1px 7px", borderRadius:4, marginLeft:4 }}>Vermelho crítico</span>
-        </div>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11, minWidth:820 }}>
-          <thead>
-            <tr style={{ background:"#f8fafc" }}>
-              <th style={{ padding:"8px 12px", textAlign:"left", borderBottom:"2px solid #e5e7eb", fontWeight:700, color:"#374151", minWidth:130 }}>Equipe / UBS</th>
-              {_Q2.indicadores.map((ind, i) => (
-                <th key={ind.key} title={ind.label} style={{ padding:"8px 6px", textAlign:"center", borderBottom:"2px solid #e5e7eb", fontWeight:600, color:"#6b7280", minWidth:80, cursor:"help" }}>
-                  <div style={{ fontSize:10, color:"#1d4ed8", fontWeight:700 }}>Ind.{i+1}</div>
-                  <div style={{ fontSize:9, color:"#374151", fontWeight:600, lineHeight:1.3, marginTop:2 }}>{(ind as any).short}</div>
-                  <div style={{ fontSize:9, color:"#6b7280", fontWeight:400, marginTop:2 }}>M: {metas[i]}%</div>
-                </th>
-              ))}
-              <th style={{ padding:"8px 10px", textAlign:"center", borderBottom:"2px solid #e5e7eb", color:"#1d4ed8", fontWeight:700, fontSize:11 }}>Pts Q1</th>
-              <th style={{ padding:"8px 10px", textAlign:"center", borderBottom:"2px solid #e5e7eb", color:"#374151", fontWeight:700 }}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {equipesFiltradas.length === 0 && (
-              <tr><td colSpan={18} style={{ padding:"24px", textAlign:"center", color:"#9ca3af", fontSize:13 }}>
-                Nenhuma equipe encontrada com os filtros aplicados.
-              </td></tr>
-            )}
-            {equipesFiltradas.map((e, i) => (
-              <tr key={i} style={{ borderBottom:"1px solid #f1f5f9", background: i%2===0?"#fff":"#fafafa" }}>
-                <td style={{ padding:"7px 12px", fontWeight:600 }}>
-                  <div style={{ fontSize:12 }}>{e.equipe}</div>
-                  <div style={{ fontSize:9, color:"#6b7280", marginTop:1 }}>{e.ubs}</div>
-                </td>
-                {indKeys.map((k, j) => {
-                  const val = (e.ind as any)[k];
-                  return (
-                    <td key={k} style={{ padding:"5px 6px", textAlign:"center", background: bgGap(val, metas[j]) }}>
-                      <span style={{ fontSize:12, fontWeight:700, color: corGap(val, metas[j]) }}>{val}%</span>
-                    </td>
-                  );
-                })}
-                <td style={{ padding:"5px 10px", textAlign:"center", fontWeight:800, color: COR_STATUS(e.status) }}>{e.pts_q1}</td>
-                <td style={{ padding:"5px 10px", textAlign:"center" }}>
-                  <span style={{ fontSize:10, fontWeight:800, background: COR_STATUS(e.status)+"18", color: COR_STATUS(e.status), padding:"2px 8px", borderRadius:10 }}>
-                    {LABEL_STATUS(e.status)}
-                  </span>
-                </td>
-              </tr>
-            ))}
-            {/* Linha municipal */}
-            <tr style={{ borderTop:"2px solid #e5e7eb", background:"#eff6ff" }}>
-              <td style={{ padding:"8px 12px", fontWeight:800, color:"#1d4ed8" }}>📊 MÉDIA MUNICIPAL</td>
-              {_Q2.indicadores.map((ind, i) => (
-                <td key={ind.key} style={{ padding:"5px 6px", textAlign:"center" }}>
-                  <span style={{ fontSize:12, fontWeight:800, color: corGap(ind.atual, ind.meta) }}>{ind.atual}%</span>
-                </td>
-              ))}
-              <td colSpan={2} />
-            </tr>
-          </tbody>
-        </table>
-
-        {/* Legenda dos indicadores */}
-        <div style={{ marginTop:12, display:"flex", flexWrap:"wrap", gap:"6px 18px" }}>
-          {_Q2.indicadores.map((ind, i) => (
-            <span key={ind.key} style={{ fontSize:10, color:"#6b7280" }}>
-              <strong style={{ color:"#1d4ed8" }}>Ind.{i+1}</strong> — {ind.label}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Ritmo Diário Necessário ── */}
-      <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:12, padding:"18px 20px", marginBottom:18 }}>
-        <div style={{ fontSize:14, fontWeight:700, marginBottom:4 }}>📅 Ritmo Diário Necessário para Atingir a Meta</div>
-        <div style={{ fontSize:11, color:"#6b7280", marginBottom:14 }}>Com {dias_restantes} dias restantes no quadrimestre, cada equipe precisa registrar os seguintes volumes POR DIA para atingir as metas nacionais.</div>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:10 }}>
-          {_Q2.indicadores.map((ind, i) => {
-            const gap = Math.max(0, ind.meta - ind.atual);
-            const ritmo = gap > 0 ? (gap / dias_restantes).toFixed(1) : "0";
-            const atingiu = gap <= 0;
-            return (
-              <div key={ind.key} style={{ textAlign:"center", background: atingiu ? "#f0fdf4" : "#fff7f7", border:`1px solid ${atingiu?"#bbf7d0":"#fca5a5"}`, borderRadius:10, padding:"12px 8px" }}>
-                <div style={{ fontSize:10, color:"#6b7280", fontWeight:600, marginBottom:4 }}>Ind.{i+1}</div>
-                {atingiu
-                  ? <div style={{ fontSize:22, fontWeight:900, color:"#16a34a" }}>✓</div>
-                  : <div style={{ fontSize:20, fontWeight:900, color:"#dc2626" }}>+{ritmo}<span style={{ fontSize:10 }}>p.p/dia</span></div>
-                }
-                <div style={{ fontSize:9, color: atingiu?"#16a34a":"#dc2626", marginTop:4, fontWeight:700 }}>
-                  {atingiu ? "Meta atingida" : `Gap: ${gap?.toFixed(1)}p.p.`}
-                </div>
-                <div style={{ fontSize:9, color:"#6b7280", marginTop:2 }}>{(ind as any).short}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Ações Prioritárias ── */}
-      <div style={{ background:"#fff", border:"1px solid #fca5a5", borderRadius:12, padding:"18px 20px" }}>
-        <div style={{ fontSize:14, fontWeight:700, color:"#dc2626", marginBottom:4 }}>⚠ Plano de Ação — Gaps Críticos por Equipe</div>
-        <div style={{ fontSize:11, color:"#6b7280", marginBottom:14 }}>Equipes e indicadores com maior distância da meta. Direcione esforços de busca ativa e registro no e-SUS nestes pontos prioritários.</div>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:10 }}>
-          {acoes.map((a, i) => (
-            <div key={i} style={{ border:"1px solid #fee2e2", borderLeft:"4px solid #dc2626", borderRadius:8, padding:"10px 14px", background:"#fff7f7" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
-                <span style={{ fontSize:12, fontWeight:800, color:"#dc2626" }}>Equipe: {a.equipe}</span>
-                <span style={{ fontSize:11, background:"#fecaca", color:"#991b1b", padding:"1px 8px", borderRadius:10, fontWeight:700 }}>−{a.gap?.toFixed(1)}p.p.</span>
-              </div>
-              <div style={{ fontSize:12, color:"#374151", fontWeight:600 }}>{a.ind}</div>
-              <div style={{ fontSize:11, color:"#6b7280", marginTop:2 }}>Atual: <strong>{a.atual}%</strong> → Meta: <strong>{a.meta}%</strong></div>
-              <div style={{ fontSize:11, color:"#374151", marginTop:6, padding:"5px 8px", background:"#fef3c7", borderRadius:5, lineHeight:1.4 }}>
-                💡 {a.gap > 30
-                  ? "Busca ativa intensiva — mobilizar ACS para identificar e registrar todos os casos pendentes no e-SUS imediatamente."
-                  : a.gap > 20
-                  ? "Aumentar frequência de atendimentos e garantir registro adequado de todos os procedimentos realizados."
-                  : "Revisar registros em aberto e agendar atendimentos faltosos nos próximos dias úteis."}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Componente Qualidade ──────────────────────────────────────────────────────
 
 const IND_NOMES: Record<string, string> = {
@@ -1346,104 +679,49 @@ const IND_NOMES: Record<string, string> = {
   ind15_sif_cong:   "I15 — Sífilis Congênita",
 };
 
-function AbaQualidade({ data: _data }: { data: any }) {
-  const [extraindo, setExtraindo] = useState(false);
-  const [msgExtracao, setMsgExtracao] = useState<string | null>(null);
-
-  const { data: syncStatus } = useQuery({
-    queryKey: ["sync-status"],
-    queryFn: () => apiGet("/api/sync/status") as Promise<any>,
-    staleTime: 30_000,
-    refetchInterval: extraindo ? 5000 : false,
+function AbaQualidade({ data: _data, competencia }: { data: any; competencia?: string }) {
+  // Meses de jan/ano até o último publicado no SIAPS: verde = resultado por equipe já captado da área logada
+  // (captura assistida ou arquivo oficial); cinza = publicado, ainda não captado. Nada é estimado.
+  const { data: cap } = useQuery({
+    queryKey: ["siaps-captura-situacao"],
+    queryFn: () => apiGetRaw("/api/siaps-publico/captura") as Promise<any>,
+    staleTime: 60_000,
   });
-
-  const handleExtrair = async () => {
-    setExtraindo(true);
-    setMsgExtracao("Iniciando extração SIAPS Jan–Ago/2026…");
-    try {
-      const d = await apiPost("/api/sync/extrair-historico") as any;
-      setMsgExtracao((d as any)?.mensagem || "Extração iniciada em background.");
-    } catch (err: any) {
-      console.error("[extrair-historico] erro:", err);
-      const status = err?.response?.status;
-      const raw    = err?.response?.data;
-      const detalhe: string =
-        typeof raw?.detail === "string" ? raw.detail :
-        typeof raw?.mensagem === "string" ? raw.mensagem :
-        raw ? JSON.stringify(raw) :
-        typeof err?.message === "string" ? err.message : "erro desconhecido";
-      if (status === 401 || status === 403) {
-        setMsgExtracao("Sessão expirada — faça login novamente.");
-      } else if (detalhe.toLowerCase().includes("credencial") || detalhe.toLowerCase().includes("cpf") || detalhe.toLowerCase().includes("senha")) {
-        setMsgExtracao("Credenciais SIAPS inválidas — verifique SIAPS_CPF/SIAPS_SENHA no Railway.");
-      } else {
-        setMsgExtracao(`Erro na extração (HTTP ${status ?? "?"}): ${detalhe}`);
-      }
-      setExtraindo(false);
-    }
-  };
-
-  const cache: any[] = syncStatus?.cache_disponivel ?? [];
-  const emAndamento: boolean = syncStatus?.extracao?.em_andamento ?? false;
+  const { data: cat } = useQuery({ queryKey: ["siaps-competencias"], queryFn: () => apiGetRaw<CatalogoCompetencias>("/api/siaps/competencias"), staleTime: 10 * 60_000 });
+  const linhasPorComp: Record<string, number> = Object.fromEntries((cap?.competencias ?? []).map((c: any) => [c.competencia, c.linhas]));
+  const ultima = cat?.ultima_siaps_publicada ?? Object.keys(linhasPorComp).sort().pop();
+  const meses: string[] = [];
+  if (ultima) for (let m = 1; m <= +ultima.slice(5); m++) meses.push(`${ultima.slice(0, 4)}-${String(m).padStart(2, "0")}`);
+  const rot = (c: string) => `${["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][+c.slice(5) - 1]}/${c.slice(0, 4)}`;
+  const faltam = meses.filter(m => !linhasPorComp[m] && !cat?.competencias.find(c => c.competencia === m)?.qualidade_capturada);
 
   return (
     <div>
-      {/* Painel de extração */}
-      <div style={{
-        background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10,
-        padding: "12px 18px", marginBottom: 16, display: "flex",
-        alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10,
-      }}>
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 2 }}>
-            Extração SIAPS · e-Gestor
-          </div>
-          <div style={{ fontSize: 11, color: "#475569" }}>
-            {cache.length > 0
-              ? `${cache.length} competências no cache · última via ${cache[cache.length-1]?.fonte ?? "?"}`
-              : "Nenhuma extração realizada. Clique em Extrair para buscar Jan–Ago/2026."}
-          </div>
-          {msgExtracao && (
-            <div style={{ fontSize: 11, color: emAndamento ? "#d97706" : "#16a34a", marginTop: 4 }}>
-              {emAndamento ? "⏳ " : "✓ "}{msgExtracao}
-            </div>
-          )}
+      <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "12px 18px", marginBottom: 12 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 2 }}>
+          Resultado por equipe captado do SIAPS — {ultima ? `Jan a ${rot(ultima)}` : "aguardando SIAPS"}
         </div>
-        <button
-          onClick={handleExtrair}
-          disabled={emAndamento || extraindo}
-          style={{
-            background: emAndamento ? "#9ca3af" : "#0ea5e9",
-            color: "#fff", border: "none", borderRadius: 8,
-            padding: "7px 16px", fontSize: 12, fontWeight: 700,
-            cursor: emAndamento ? "not-allowed" : "pointer",
-            display: "flex", alignItems: "center", gap: 6,
-          }}
-        >
-          {emAndamento ? "⏳ Extraindo…" : "⬇ Extrair Histórico"}
-        </button>
+        <div style={{ fontSize: 11, color: "#475569" }}>
+          Última captura: {cap?.ultima_captura ? new Date(cap.ultima_captura.endsWith("Z") ? cap.ultima_captura : cap.ultima_captura + "Z").toLocaleString("pt-BR") : "nenhuma"}
+          {ultima && ` · último mês publicado no SIAPS: ${rot(ultima)}`}
+          {faltam.length > 0 && ` · falta captar: ${faltam.map(rot).join(", ")} (rodar a captura no SIAPS logado)`}
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+          {meses.map(m => {
+            const ok = !faltam.includes(m);
+            return (
+              <span key={m} title={ok ? "Resultado oficial por equipe captado" : "Publicado no SIAPS, ainda não captado"} style={{
+                fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, border: "1px solid",
+                background: ok ? "#dcfce7" : "#f3f4f6", color: ok ? "#166534" : "#4b5563", borderColor: ok ? "#86efac" : "#d1d5db",
+              }}>
+                {rot(m)}{ok ? (linhasPorComp[m] ? ` · ${linhasPorComp[m]} resultados` : " · ok") : " · falta captar"}
+              </span>);
+          })}
+        </div>
       </div>
 
-      {/* Status compacto por competência */}
-      {cache.length > 0 && (
-        <div style={{
-          display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12,
-        }}>
-          {cache.map((c: any) => (
-            <span key={c.competencia} style={{
-              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-              background: c.equipes >= 5 ? "#dcfce7" : "#fef9c3",
-              color: c.equipes >= 5 ? "#166534" : "#713f12", border: "1px solid",
-              borderColor: c.equipes >= 5 ? "#86efac" : "#fde68a",
-            }}>
-              {c.label} · {c.equipes}eq
-            </span>
-          ))}
-        </div>
-      )}
-
-      <QualidadeOficialPorEquipe />
-      <ComponenteQualidade />
+      <QualidadeOficialPorEquipe competencia={competencia} />
+      <ComponenteQualidade competencia={competencia} />
     </div>
   );
 }
@@ -1468,7 +746,6 @@ function AbaBoasPraticas({ data }: { data: any }) {
   return (
     <div>
       <div style={{ marginBottom: 18 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>Boas Práticas e Alertas</h2>
         <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Gerados dos resultados oficiais: {data.fontes?.join(" · ")}</p>
       </div>
 
@@ -1569,68 +846,6 @@ function AbaBoasPraticas({ data }: { data: any }) {
           );
         })}
       </div>
-    </div>
-  );
-}
-
-// ── Aba: Avaliação Quadrimestral ──────────────────────────────────────────────
-
-const IND_LABELS = ["C1 — Mais Acesso","C2 — Desenv. Infantil","C3 — Gestação/Puerpério","C4 — Diabetes","C5 — Hipertensão","C6 — Pessoa Idosa","C7 — Prev. Câncer Colo"];
-const IND_KEYS   = ["C1","C2","C3","C4","C5","C6","C7"];
-const IND_METAS  = [50, 75, 75, 75, 75, 75, 75];
-
-function CardEquipe({ e, periodo }: { e: any; periodo: "mensal" | "quadrimestral" }) {
-  const [open, setOpen] = useState(false);
-  const cols = periodo === "quadrimestral"
-    ? [["1Q/25","1q_2025"],["2Q/25","2q_2025"],["3Q/25","3q_2025"],["1Q/26","1q_2026"]]
-    : [["Nov","nov"],["Dez","dez"],["Jan","jan"],["Fev","fev"],["Mar","mar"],["Abr","abr"]];
-  const ultimo = cols[cols.length - 1][1];
-  return (
-    <div style={{ border: `1px solid ${COR_STATUS(e.status)}33`, borderLeft: `4px solid ${COR_STATUS(e.status)}`, borderRadius: 10, background: "#fff", overflow: "hidden" }}>
-      <div onClick={() => setOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer" }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 10, color: "#9ca3af" }}>{e.ubs} · {e.tipo}</div>
-          <div style={{ fontWeight: 700, fontSize: 14 }}>Equipe: {e.equipe}</div>
-          {e.obs && <div style={{ fontSize: 11, color: "#d97706", marginTop: 2 }}>⚠ {e.obs}</div>}
-        </div>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          {cols.map(([label, key]) => (
-            <div key={key} style={{ textAlign: "center", minWidth: 44 }}>
-              <div style={{ fontSize: 13, fontWeight: key === ultimo ? 800 : 400, color: key === ultimo ? COR_STATUS(e.status) : "#9ca3af" }}>
-                {e[key] ?? "—"}
-              </div>
-              <div style={{ fontSize: 9, color: "#c4c4c4" }}>{label}</div>
-            </div>
-          ))}
-          <div style={{ marginLeft: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, background: COR_STATUS(e.status) + "18", color: COR_STATUS(e.status), padding: "3px 10px", borderRadius: 10 }}>
-              {LABEL_STATUS(e.status)}
-            </span>
-            <div style={{ fontSize: 11, color: "#16a34a", textAlign: "center", marginTop: 2 }}>+{e.variacao}</div>
-          </div>
-          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </div>
-      </div>
-      {open && (
-        <div style={{ padding: "14px 16px", borderTop: "1px solid #f3f4f6", background: "#fafafa" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8", marginBottom: 10 }}>Indicadores Componente Qualidade — {e.equipe}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
-            {IND_KEYS.map((k, i) => {
-              const val = e[k] ?? 0;
-              const meta = IND_METAS[i];
-              const atingiu = val >= meta;
-              return (
-                <div key={k} style={{ textAlign: "center", background: "#fff", border: `1px solid ${atingiu ? "#bbf7d0" : "#fca5a5"}`, borderRadius: 8, padding: "10px 6px" }}>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: atingiu ? "#16a34a" : "#dc2626" }}>{val}%</div>
-                  <div style={{ fontSize: 9, color: "#9ca3af", marginTop: 2 }}>meta {meta}%</div>
-                  <div style={{ fontSize: 9, marginTop: 3, color: "#6b7280" }}>{IND_LABELS[i]}</div>
-                  <div style={{ fontSize: 10, marginTop: 3 }}>{atingiu ? "✓" : "✗"}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1760,18 +975,19 @@ function PainelErsusIA() {
   );
 }
 
-function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
+function AbaQuadrimestre({ quadrimestre }: { quadrimestre?: string }) {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["siaps-publico"],
     queryFn: () => apiGetRaw("/api/siaps-publico") as Promise<PainelSiapsPublico>,
     staleTime: 5 * 60 * 1000,
   });
-  const [quadSel, setQuadSel] = useState<string | null>(null);
+  const [quadSel, setQuadSel] = useState<string | null>(quadrimestre ?? null);
+  useEffect(() => { setQuadSel(quadrimestre ?? null); }, [quadrimestre]);
   const [atualizando, setAtualizando] = useState(false);
   const [msgAtualizar, setMsgAtualizar] = useState<string | null>(null);
 
   const quads = data?.quadrimestres ?? [];
-  const atual = quads.find(q => q.quadrimestre === quadSel) ?? quads[0];
+  const atual = quads.find(q => q.quadrimestre === quadSel) ?? (quadrimestre ? undefined : quads[0]);
   const anterior = atual ? quads[quads.indexOf(atual) + 1] : undefined;
 
   async function atualizar() {
@@ -1861,7 +1077,7 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderTop: "none", borderRadius: "0 0 10px 10px",
                       padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#1d4ed8" }}>Avaliação do Quadrimestre</div>
-          {quads.length > 0 && (
+          {quads.length > 0 && !quadrimestre && (
             <select value={atual?.quadrimestre} onChange={e => setQuadSel(e.target.value)}
               style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #d1d5db", fontSize: 12 }}>
               {quads.map(q => <option key={q.quadrimestre} value={q.quadrimestre}>{q.rotulo}</option>)}
@@ -1884,7 +1100,7 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
       {isLoading && <div style={{ padding: 30, textAlign: "center", color: "#6b7280" }}>Carregando resultados do SIAPS…</div>}
       {!isLoading && !atual && (
         <div style={{ padding: 30, textAlign: "center", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, color: "#475569", fontSize: 13 }}>
-          Ainda não há resultado do quadrimestre captado do SIAPS para este município. Clique em <b>Atualizar do SIAPS</b>.
+          {quadrimestre ? `O quadrimestre ${quadrimestre.replace("Q", "/Q")} ainda não foi captado do SIAPS no ERSUS360.` : "Ainda não há resultado do quadrimestre captado do SIAPS para este município."} Clique em <b>Atualizar do SIAPS</b>.
         </div>
       )}
 
@@ -1959,180 +1175,19 @@ function AbaQuadrimestre({ dashData: _unused }: { dashData: any }) {
         </div>
       </>}
 
+      <QuadrimestralEquipes />
+      <ConferenciaFontes />
+
       <PainelErsusIA />
     </div>
   );
 }
 
-// ── Aba: Análise do Indicador (CVAT externo) ─────────────────────────────────
-
-const COMPETENCIAS_2026 = ["Jan/26","Fev/26","Mar/26","Abr/26"];
-const COMPETENCIAS_2025 = ["Jan/25","Fev/25","Mar/25","Abr/25","Mai/25","Jun/25","Jul/25","Ago/25","Set/25","Out/25","Nov/25","Dez/25"];
-
-// Mapeamento: pill → indices 0-based em _Q2.indicadores e chaves ind1..ind15
-const _PILL_INDS: Record<string, {indices: number[]; keys: string[]}> = {
-  "Mais Acesso":             { indices:[7,8],      keys:["ind8","ind9"] },
-  "Desenvolvimento Infantil":{ indices:[2,3],      keys:["ind3","ind4"] },
-  "Gestação e Puerpério":    { indices:[0,3],      keys:["ind1","ind4"] },
-  "Diabetes":                { indices:[8],        keys:["ind9"] },
-  "Hipertensão":             { indices:[7],        keys:["ind8"] },
-  "Pessoa Idosa":            { indices:[7,8,9,10], keys:["ind8","ind9","ind10","ind11"] },
-  "Prevenção do Câncer":     { indices:[1],        keys:["ind2"] },
-};
-
-function AbaAnaliseIndicador() {
-  const [ano, setAno] = useState<"2025"|"2026">("2026");
-  const [competencia, setCompetencia] = useState("Mai/26");
-  const [condicao, setCondicao] = useState("homologadas");
-  const [tipos, setTipos] = useState<string[]>(["eAP","eSF"]);
-  const [visao, setVisao] = useState<"competencia"|"equipe"|"variavel">("competencia");
-  const [showCal, setShowCal] = useState(false);
-  const [indicadorSel, setIndicadorSel] = useState<string | null>(null);
-  const [equipeSel, setEquipeSel] = useState<string>(_Q2.equipes[0]?.equipe ?? "");
-
-  const toggleTipo = (t: string) =>
-    setTipos(ts => ts.includes(t) ? ts.filter(x => x !== t) : [...ts, t]);
-
-  const TIPOS_EQUIPE = ["eAP","eAPP","eCR","eMulti","eSB","eSF","eSFR"];
-
-  const abrirSIAPS = () => {
-    window.open("https://siaps.saude.gov.br/componentes/cvat", "_blank");
-  };
-
-  return (
-    <div>
-      {/* Header SIAPS style */}
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
-        <div style={{ background: "#1a56db", color: "#fff", padding: "10px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>Análise do Indicador — CVAT</div>
-          <button onClick={abrirSIAPS} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.18)", color: "#fff", border: "1px solid rgba(255,255,255,.4)", borderRadius: 6, padding: "5px 12px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-            <span>↗</span> Abrir no SIAPS
-          </button>
-        </div>
-
-        {/* Tabs visão */}
-        <div style={{ display: "flex", borderBottom: "1px solid #e5e7eb" }}>
-          {([
-            { id: "competencia", label: "📊 Visão por Competência" },
-            { id: "equipe",      label: "📊 Visão por Equipe" },
-            { id: "variavel",    label: "📊 Visão por Variável" },
-          ] as const).map(v => (
-            <button key={v.id} onClick={() => setVisao(v.id)} style={{
-              flex: 1, padding: "14px 8px", border: "none", cursor: "pointer",
-              background: visao === v.id ? "#1a56db" : "#f8fafc",
-              color: visao === v.id ? "#fff" : "#6b7280",
-              fontWeight: visao === v.id ? 700 : 400, fontSize: 13,
-              borderRight: "1px solid #e5e7eb",
-            }}>{v.label}</button>
-          ))}
-        </div>
-
-        {/* Filtros */}
-        <div style={{ padding: "16px 18px", display: "flex", gap: 20, alignItems: "flex-end", flexWrap: "wrap", background: "#f8fafc" }}>
-          {/* Competência */}
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
-              <span>📅</span> Competência
-            </div>
-            <div style={{ position: "relative" }}>
-              <input
-                readOnly
-                value={competencia}
-                onClick={() => setShowCal(c => !c)}
-                style={{ border: "2px solid #d1d5db", borderRadius: 6, padding: "8px 12px", fontSize: 13, width: 110, cursor: "pointer", background: "#fff", outline: "none" }}
-              />
-              {showCal && (
-                <div style={{ position: "absolute", top: "110%", left: 0, background: "#fff", border: "1px solid #d1d5db", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,.12)", padding: 16, zIndex: 99, width: 260 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 10 }}>Selecione o Competência</div>
-                  <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-                    {(["2025","2026"] as const).map(a => (
-                      <button key={a} onClick={() => setAno(a)} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 13, background: ano === a ? "#1a56db" : "#e5e7eb", color: ano === a ? "#fff" : "#374151" }}>{a}</button>
-                    ))}
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4 }}>
-                    {(ano === "2026" ? COMPETENCIAS_2026 : COMPETENCIAS_2025).map(c => (
-                      <label key={c} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer" }}>
-                        <input type="checkbox" checked={competencia === c} onChange={() => { setCompetencia(c); }} />
-                        {c}
-                      </label>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                    <button onClick={() => setShowCal(false)} style={{ flex: 1, padding: "7px 0", border: "1px solid #d1d5db", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#fff" }}>Cancelar</button>
-                    <button onClick={() => setShowCal(false)} style={{ flex: 1, padding: "7px 0", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, background: "#1a56db", color: "#fff", fontWeight: 700 }}>OK</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Condições de Equipe */}
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Condições de Equipe</div>
-            <select value={condicao} onChange={e => setCondicao(e.target.value)} style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "8px 12px", fontSize: 13, background: "#fff", cursor: "pointer", minWidth: 240 }}>
-              <option value="homologadas">Considera apenas equipes homologadas</option>
-              <option value="todas">Considera todas as equipes</option>
-            </select>
-          </div>
-
-          {/* Tipo de Equipe */}
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>Tipo de Equipe</div>
-            <div style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "6px 10px", background: "#fff", display: "flex", gap: 6, flexWrap: "wrap", minWidth: 200 }}>
-              {TIPOS_EQUIPE.map(t => (
-                <label key={t} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 12, cursor: "pointer" }}>
-                  <input type="checkbox" checked={tipos.includes(t)} onChange={() => toggleTipo(t)} />
-                  {t}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <button onClick={abrirSIAPS} style={{ background: "#1a56db", color: "#fff", border: "none", borderRadius: 8, padding: "9px 20px", cursor: "pointer", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
-            Aplicar filtro ↗
-          </button>
-        </div>
-      </div>
-
-      {/* Info box */}
-      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "16px 20px", display: "flex", gap: 16, alignItems: "flex-start" }}>
-        <div style={{ fontSize: 24 }}>ℹ️</div>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#1e40af", marginBottom: 6 }}>Componente Vínculo e Acompanhamento Territorial (CVAT)</div>
-          <div style={{ fontSize: 13, color: "#1e40af", lineHeight: 1.6 }}>
-            Os dados de análise por competência, equipe e variável estão disponíveis diretamente no portal SIAPS.
-            Clique em <strong>"Abrir no SIAPS"</strong> para acessar o relatório completo com os filtros pré-selecionados para <strong>Apuí/AM</strong>.
-          </div>
-          <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ background: "#1a56db", color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>UF: AM</span>
-            <span style={{ background: "#1a56db", color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>Município: APUÍ</span>
-            <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>IED: 2</span>
-            <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>Competência: {competencia}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Resultado placeholder */}
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "20px 20px 16px", marginTop: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 700 }}>Resultado</div>
-          <span style={{ background: "#fef3c7", color: "#92400e", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, border: "1px solid #fde68a" }}>Dado preliminar</span>
-        </div>
-        <div style={{ display: "flex", gap: 16, marginBottom: 14, fontSize: 13, color: "#6b7280", borderBottom: "1px solid #f3f4f6", paddingBottom: 12 }}>
-          <span>Competência selecionada: <strong style={{ color: "#ffffff" }}>{competencia}</strong></span>
-          <span>Tipo de Equipe: <strong style={{ color: "#ffffff" }}>{tipos.join(" e ")}</strong></span>
-        </div>
-        <div style={{ textAlign: "center", padding: "30px 0", color: "#9ca3af" }}>
-          <div style={{ fontSize: 32, marginBottom: 10 }}>📊</div>
-          <div style={{ fontSize: 13 }}>Os dados detalhados estão disponíveis diretamente no SIAPS.</div>
-          <button onClick={abrirSIAPS} style={{ marginTop: 14, background: "#1a56db", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
-            Abrir relatório no SIAPS ↗
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+// ── Aba: Análise do Indicador — resultado oficial por indicador, equipe e competência (SIAPS) ───────
+function AbaAnaliseIndicador({ competencia }: { competencia?: string }) {
+  return <QualidadeOficialPorEquipe modo="analise" competencia={competencia} />;
 }
+
 
 // ── Aba: Relatório de Pagamento (e-Gestor APS) ────────────────────────────────
 
@@ -2151,7 +1206,7 @@ interface PgtoPainel {
   situacao_dado: string; fonte: string; parcelas: { nu_parcela: string; rotulo: string }[]; parcela?: string;
   parcela_rotulo?: string; competencia_cnes_rotulo?: string; coletado_em?: string; classificacao_qualidade?: string | null;
   classificacao_vinculo?: string | null; total?: number; descontos?: number; componentes?: PgtoComponente[];
-  equipes?: PgtoEquipe[]; equipes_com_pendencia?: number;
+  equipes?: PgtoEquipe[]; equipes_com_pendencia?: number; nota?: string;
 }
 
 const PLANOS: { id: number; label: string }[] = [
@@ -2172,8 +1227,9 @@ const pgTd: React.CSSProperties = { padding: "7px 10px", fontSize: 12, borderTop
 const valorResumo = (k: string, v: unknown) =>
   typeof v === "number" ? (k.startsWith("vl") ? BRL(v) : v.toLocaleString("pt-BR")) : String(v ?? "—");
 
-function AbaRelatorioPagamento() {
-  const [parcela, setParcela] = useState<string | undefined>();
+function AbaRelatorioPagamento({ parcelaGlobal }: { parcelaGlobal?: string }) {
+  const [parcela, setParcela] = useState<string | undefined>(parcelaGlobal);
+  useEffect(() => { setParcela(parcelaGlobal); }, [parcelaGlobal]);
   const [plano, setPlano] = useState(8);
   const [atualizando, setAtualizando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -2213,13 +1269,23 @@ function AbaRelatorioPagamento() {
         </div>
         {erro && <div style={{ padding: "8px 18px", background: "#fef2f2", color: "#b91c1c", fontSize: 12 }}>{erro}</div>}
         {isLoading ? <div style={{ padding: 18, fontSize: 13, color: "#6b7280" }}>Carregando…</div>
-          : data?.situacao_dado !== "oficial_validado" ? (
+          : data?.situacao_dado === "nao_publicada" ? (
+            <div style={{ padding: 18, fontSize: 13, color: "#374151" }}>
+              <div style={{ background: "#f3f4f6", borderRadius: 8, padding: "10px 14px", marginBottom: 10 }}><strong>{data.parcela_rotulo}: ainda não publicada.</strong> {data.nota}</div>
+              <label>Ver parcela publicada{" "}
+                <select value="" onChange={e => setParcela(e.target.value)} style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "5px 8px", fontSize: 13, background: "#fff", color: "#1f2937" }}>
+                  <option value="" disabled>escolha…</option>
+                  {data.parcelas.map(p => <option key={p.nu_parcela} value={p.nu_parcela}>{p.rotulo}</option>)}
+                </select>
+              </label>
+            </div>
+          ) : data?.situacao_dado !== "oficial_validado" ? (
             <div style={{ padding: 18, fontSize: 13, color: "#374151" }}>
               Ainda não há leitura do e-Gestor para este município. Clique em <strong>Atualizar agora</strong> — a leitura é automática e não precisa baixar arquivo.
             </div>
           ) : (
             <div style={{ padding: "14px 18px", display: "flex", gap: 24, flexWrap: "wrap", alignItems: "center", fontSize: 13 }}>
-              <label style={{ color: "#374151" }}>Parcela{" "}
+              <label style={{ color: "#374151", display: parcelaGlobal ? "none" : undefined }}>Parcela{" "}
                 <select value={data.parcela} onChange={e => setParcela(e.target.value)} style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "5px 8px", fontSize: 13, background: "#fff", color: "#1f2937" }}>
                   {data.parcelas.map(p => <option key={p.nu_parcela} value={p.nu_parcela}>{p.rotulo}</option>)}
                 </select>
@@ -2301,472 +1367,338 @@ function AbaRelatorioPagamento() {
 }
 
 // ── Aba: Diagnóstico / Cobertura da Atenção Básica ───────────────────────────
+// Só dados publicados pelo e-Gestor APS (API pública): parcelas, totais oficiais, quantidades por programa
+// e validação de cada equipe. Nada é preenchido com valor fixo: o que não veio aparece como "—".
+// A varredura manual do SCNES (06/09/2026) fica à parte, com a data e o CNS mascarado.
 
-function AbaDiagnosticoCobertura() {
-  const PARCELAS = [
-    { val: "202611", label: "SET/2026 (11ª parcela)" },
-    { val: "202610", label: "AGO/2026 (10ª parcela)" },
-    { val: "202609", label: "JUL/2026 (9ª parcela)"  },
-    { val: "202608", label: "JUN/2026 (8ª parcela)"  },
-    { val: "202607", label: "MAI/2026 (7ª parcela)"  },
-    { val: "202606", label: "ABR/2026 (6ª parcela)"  },
-    { val: "202605", label: "MAR/2026 (5ª parcela)"  },
-    { val: "202604", label: "FEV/2026 (4ª parcela)"  },
-    { val: "202603", label: "JAN/2026 (3ª parcela)"  },
-  ];
-  const [parcela, setParcela] = useState("202611");
+const brlDC = (v?: number | null) =>
+  v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
+const numDC = (v?: number | null) => (v == null ? "—" : v.toLocaleString("pt-BR"));
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ["siaps-diag-cobertura", parcela],
-    queryFn: () => apiGet(`/api/siaps/diagnostico-cobertura?parcela=${parcela}`) as Promise<any>,
+function CardProgramaDC({ titulo, cor, itens, publicado }: {
+  titulo: string; cor: string; publicado: boolean;
+  itens: { label: string; val: React.ReactNode; destaque?: boolean }[];
+}) {
+  return (
+    <div style={{ border: `1px solid ${cor}33`, borderTop: `3px solid ${cor}`, borderRadius: 10, padding: "14px 18px", background: "#fff" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: cor }}>{titulo}</div>
+        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 8,
+          background: publicado ? "#f0fdf4" : "#f3f4f6", color: publicado ? "#15803d" : "#4b5563" }}>
+          {publicado ? "✓ Publicado no e-Gestor" : "Sem dados nesta parcela"}
+        </span>
+      </div>
+      {itens.map((it, i) => (
+        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: i < itens.length - 1 ? "1px solid #f3f4f6" : "none" }}>
+          <span style={{ fontSize: 12, color: "#4b5563" }}>{it.label}</span>
+          <span style={{ fontSize: it.destaque ? 16 : 13, fontWeight: it.destaque ? 800 : 600, color: it.destaque ? cor : "#1e293b", fontVariantNumeric: "tabular-nums" }}>{it.val}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const SEV_DC: Record<string, { bg: string; cor: string; label: string }> = {
+  ok:      { bg: "#f0fdf4", cor: "#15803d", label: "✓ OK" },
+  info:    { bg: "#eff6ff", cor: "#1d4ed8", label: "ℹ Info" },
+  alerta:  { bg: "#fffbeb", cor: "#b45309", label: "⚠ Alerta" },
+  critico: { bg: "#fef2f2", cor: "#b91c1c", label: "✗ Crítico" },
+};
+function BadgeDC({ sev }: { sev: string }) {
+  const s = SEV_DC[sev] ?? SEV_DC.info;
+  return <span style={{ background: s.bg, color: s.cor, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10, flexShrink: 0, whiteSpace: "nowrap" }}>{s.label}</span>;
+}
+const caixaDC: React.CSSProperties = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "16px 18px", marginBottom: 20 };
+const thDC: React.CSSProperties = { padding: "7px 10px", textAlign: "left", color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb", whiteSpace: "nowrap" };
+const tdDC: React.CSSProperties = { padding: "7px 10px", borderBottom: "1px solid #f3f4f6", color: "#1e293b" };
+
+function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) {
+  const [parcela, setParcela] = useState<string>(parcelaGlobal ?? "");
+  useEffect(() => { setParcela(parcelaGlobal ?? ""); }, [parcelaGlobal]);
+  const [forcar, setForcar] = useState(0);
+  const { data, isLoading, isFetching, isError, refetch } = useQuery<any>({
+    queryKey: ["siaps-diag-cobertura", parcela, forcar],
+    queryFn: () => apiGetRaw("/api/siaps/diagnostico-cobertura", { ...(parcela ? { parcela } : {}), ...(forcar ? { atualizar: true } : {}) }) as Promise<any>,
     staleTime: 300_000,
   });
 
-  const BRL_local = (v: number) =>
-    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
-
-  function CardPrograma({ titulo, cor, items, scraped, fonteLabel }: {
-    titulo: string; cor: string;
-    items: { label: string; val: string | number; destaque?: boolean }[];
-    scraped?: boolean;
-    fonteLabel?: string;
-  }) {
-    return (
-      <div style={{ border: `1px solid ${cor}33`, borderTop: `3px solid ${cor}`, borderRadius: 10, padding: "14px 18px", background: "#fff" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: cor }}>{titulo}</div>
-          {scraped !== undefined && (
-            <span style={{
-              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 8,
-              background: scraped ? "#f0fdf4" : "#fffbeb",
-              color: scraped ? "#16a34a" : "#d97706",
-            }}>
-              {scraped ? (fonteLabel || "✓ e-Gestor") : "⏳ Aguard. e-Gestor"}
-            </span>
-          )}
-        </div>
-        {items.map((it, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: i < items.length - 1 ? "1px solid #f3f4f6" : "none" }}>
-            <span style={{ fontSize: 12, color: "#6b7280" }}>{it.label}</span>
-            <span style={{ fontSize: it.destaque ? 16 : 13, fontWeight: it.destaque ? 800 : 600, color: it.destaque ? cor : "#1e293b", fontVariantNumeric: "tabular-nums" }}>{it.val}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  function BadgeDiag({ sev }: { sev: string }) {
-    const map: Record<string, { bg: string; cor: string; label: string }> = {
-      ok:      { bg: "#f0fdf4", cor: "#16a34a", label: "✓ OK" },
-      info:    { bg: "#eff6ff", cor: "#1d4ed8", label: "ℹ Info" },
-      alerta:  { bg: "#fffbeb", cor: "#d97706", label: "⚠ Alerta" },
-      critico: { bg: "#fff7f7", cor: "#dc2626", label: "✗ Crítico" },
-    };
-    const s = map[sev] ?? map.info;
-    return (
-      <span style={{ background: s.bg, color: s.cor, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10, flexShrink: 0 }}>{s.label}</span>
-    );
-  }
-
-  const plLabel = PARCELAS.find(p => p.val === parcela)?.label ?? parcela;
-
-  if (isLoading || isFetching) {
+  if (isLoading || (isFetching && !data)) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 16 }}>
         <RefreshCw size={28} color="#1d4ed8" style={{ animation: "spin 1s linear infinite" }} />
-        <div style={{ fontSize: 14, color: "#6b7280" }}>Consultando API e-Gestor APS…</div>
+        <div style={{ fontSize: 14, color: "#4b5563" }}>Consultando o e-Gestor APS…</div>
         <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
       </div>
     );
   }
-
-  if (data?.situacao_dado === "nao_disponivel") {
+  if (isError || !data) {
     return (
-      <div>
-        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "28px 32px", textAlign: "center" }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
-            Diagnóstico / Cobertura
-          </div>
-          <div style={{ fontSize: 13, color: "#374151", maxWidth: 480, margin: "0 auto 20px" }}>
-            {data.nota ?? "Integração com e-Gestor APS ainda não configurada."}
-          </div>
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-            <button onClick={() => refetch()} style={{ background: "#0369a1", color: "#fff", border: "none", borderRadius: 6, padding: "8px 18px", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-              <RefreshCw size={13} /> Atualizar
-            </button>
-          </div>
-        </div>
-        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "12px 16px", fontSize: 12, color: "#1e40af", marginTop: 12 }}>
-          <strong>Nota:</strong> Esta aba consulta a API pública do e-Gestor APS (relatorioaps-prd.saude.gov.br). Configure <code>EGESTOR_TOKEN</code> no Railway para ativar a integração em tempo real.
-        </div>
+      <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "28px 32px", textAlign: "center" }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>Diagnóstico / Cobertura</div>
+        <div style={{ fontSize: 13, color: "#374151", marginBottom: 16 }}>Não foi possível consultar agora. Nenhum valor é estimado.</div>
+        <button onClick={() => refetch()} style={{ background: "#0369a1", color: "#fff", border: "none", borderRadius: 6, padding: "8px 18px", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Tentar novamente</button>
       </div>
     );
   }
 
-  if (isError) {
-    return (
-      <div>
-        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "28px 32px", textAlign: "center" }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>Diagnóstico / Cobertura</div>
-          <div style={{ fontSize: 13, color: "#374151", maxWidth: 480, margin: "0 auto 20px" }}>
-            Dados não disponíveis no momento. A API do Ministério da Saúde pode estar temporariamente indisponível.
-          </div>
-          <button onClick={() => refetch()} style={{ background: "#0369a1", color: "#fff", border: "none", borderRadius: 6, padding: "8px 18px", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, margin: "0 auto" }}>
-            <RefreshCw size={13} /> Tentar novamente
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!data) return null;
-
-  const _MAPA_PARCELA: Record<string, string> = {
-    "202601":"NOV/2025","202602":"DEZ/2025","202603":"JAN/2026","202604":"FEV/2026",
-    "202605":"MAR/2026","202606":"ABR/2026","202607":"MAI/2026","202608":"JUN/2026",
-    "202609":"JUL/2026","202610":"AGO/2026","202611":"SET/2026","202612":"OUT/2026",
-  };
-
-  const esf    = data.esf    ?? {};
-  const eap    = data.eap    ?? {};
-  const emulti = data.emulti ?? {};
-  const esb    = data.esb    ?? {};
-  const acs    = data.acs    ?? {};
-  const esfrb  = data.esfrb  ?? {};
-  const esfr   = data.esfr   ?? {};
-  const micro  = data.microscopista ?? {};
-  const perCap = data.per_capita ?? {};
-  const tetos  = data.tetos  ?? {};
+  const ok = data.situacao_dado === "oficial_validado";
+  const parcelas: { val: string; label: string }[] = data.parcelas ?? [];
+  const sel = parcela || data.parcela_code || "";
+  const hist: any[] = data.historico_incentivos ?? [];
+  const idx = hist.findIndex(h => h.parcela_code === data.parcela_code);
+  const anterior = idx > 0 ? hist[idx - 1] : null;
   const diags: any[] = data.diagnosticos ?? [];
-
-  const sevOrder: Record<string, number> = { critico: 0, alerta: 1, info: 2, ok: 3 };
-  const diagsOrdenados = [...diags].sort((a, b) => (sevOrder[a.severidade] ?? 9) - (sevOrder[b.severidade] ?? 9));
-
-  const criticos = diags.filter(d => d.severidade === "critico").length;
-  const alertas  = diags.filter(d => d.severidade === "alerta").length;
+  const ordem: Record<string, number> = { critico: 0, alerta: 1, info: 2, ok: 3 };
+  const diagsOrd = [...diags].sort((a, b) => (ordem[a.severidade] ?? 9) - (ordem[b.severidade] ?? 9));
+  const nSev = (s: string) => diags.filter(d => d.severidade === s).length;
+  const valid: any[] = data.validacao_equipes ?? [];
+  const varr = data.scnes_varredura;
+  const esf = data.esf ?? {}, eap = data.eap ?? {}, emulti = data.emulti ?? {}, esb = data.esb ?? {};
+  const acs = data.acs ?? {}, esfr = data.esfr ?? {}, micro = data.microscopista ?? {}, pc = data.per_capita ?? {}, tetos = data.tetos ?? {};
+  const tem = (o: any) => o && Object.keys(o).length > 0;
 
   return (
     <div>
-      {/* Cabeçalho */}
+      {/* Cabeçalho: município, parcela, fonte e data da consulta */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8", margin: "0 0 4px" }}>
-            Diagnóstico / Cobertura da Atenção Básica
-          </h2>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <span style={{ background: "#e0f2fe", color: "#0369a1", fontWeight: 700, padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>
-              {data.municipio}/{data.uf} · IBGE {data.ibge}
+            <span style={{ background: "#e0f2fe", color: "#0369a1", fontWeight: 700, padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>{data.municipio}/{data.uf} · IBGE {data.ibge}</span>
+            {ok && <span style={{ background: "#fef3c7", color: "#92400e", fontWeight: 700, padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>Competência CNES {data.competencia} · {data.parcela}ª parcela/{data.ano_parcela}</span>}
+            <span style={{ background: ok ? "#f0fdf4" : "#f3f4f6", color: ok ? "#15803d" : "#4b5563", padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>
+              {ok ? "Fonte: e-Gestor APS (dado oficial publicado)" : "Sem dados oficiais para esta parcela"}
             </span>
-            <span style={{ background: "#fef3c7", color: "#92400e", fontWeight: 700, padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>
-              {data.competencia} · {data.parcela}ª parcela
-            </span>
-            {data.nu_comp_cnes && (
-              <span style={{ background: "#f3f4f6", color: "#6b7280", padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>
-                Comp. CNES: {data.nu_comp_cnes}
-              </span>
-            )}
-            <span style={{ background: "#f0fdf4", color: "#15803d", padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>
-              {data.fonte === "scnes_verificado" ? "Fonte: SCNES/DATASUS (verificado)" : "Fonte: e-Gestor APS (dados oficiais)"}
-            </span>
+            {data.coletado_em && <span style={{ background: "#f3f4f6", color: "#374151", padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>Consultado em {new Date(data.coletado_em).toLocaleString("pt-BR")}</span>}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <select value={parcela} onChange={e => setParcela(e.target.value)}
+          {!parcelaGlobal && <select value={sel} onChange={e => { setParcela(e.target.value); setForcar(0); }}
             style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "7px 10px", fontSize: 12, background: "#fff", cursor: "pointer" }}>
-            {PARCELAS.map(p => <option key={p.val} value={p.val}>{p.label}</option>)}
-          </select>
-          <button onClick={() => refetch()} style={{ display: "flex", alignItems: "center", gap: 5, background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontSize: 12 }}>
-            <RefreshCw size={13} /> Atualizar
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                await apiGet("/api/sync/atualizar-tudo", { method: "POST" } as any);
-                setTimeout(() => refetch(), 3000);
-              } catch { /* ignore */ }
-            }}
-            title="Atualiza SIAPS, e-Gestor, CVAT e Diagnóstico automaticamente"
-            style={{ display: "flex", alignItems: "center", gap: 5, background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontSize: 12 }}>
-            ⚡ Atualizar Tudo
+            {parcelas.map(p => <option key={p.val} value={p.val}>{p.label}</option>)}
+          </select>}
+          <button onClick={() => setForcar(Date.now())} disabled={isFetching} title="Consulta o e-Gestor de novo, ignorando o cache de 4 horas"
+            style={{ display: "flex", alignItems: "center", gap: 5, background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontSize: 12 }}>
+            <RefreshCw size={13} /> {isFetching ? "Atualizando…" : "Atualizar"}
           </button>
         </div>
       </div>
 
-      {/* KPIs gerais */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
-        {[
-          { label: "eSF credenciadas",  val: esf.qt_credenciadas ?? tetos.esf ?? 0,                                         cor: "#1d4ed8" },
-          { label: "Score médio SCNES", val: data.score_medio_scnes != null ? `${data.score_medio_scnes} pts` : "—",          cor: "#16a34a" },
-          { label: "Vinculadas CVAT",   val: data.total_vinculadas_cvat != null ? (data.total_vinculadas_cvat as number).toLocaleString("pt-BR") : "—", cor: "#7c3aed" },
-          { label: "Pendências SCNES",  val: data.pendencias_total != null ? `${data.pendencias_criticas} críticas / ${data.pendencias_total}` : "—",   cor: "#dc2626" },
-        ].map(k => (
-          <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: typeof k.val === "string" && k.val.includes("/") ? 15 : 22, fontWeight: 800, color: k.cor }}>{k.val}</div>
-            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{k.label}</div>
-          </div>
-        ))}
-      </div>
-      {/* Aviso quando pagamento não foi scrapeado */}
-      {!(esf as any)?._scraped && (
-        <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "10px 16px", fontSize: 12, color: "#92400e", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
-          <span style={{ fontSize: 18 }}>⚠</span>
-          <span>
-            <strong>Valores de pagamento indisponíveis:</strong> a página pública do e-Gestor APS não retornou dados nesta consulta.
-            Os tetos de credenciamento exibidos nos cards são confirmados via SCNES (Set/2026).
-            <a href="https://relatorioaps.saude.gov.br/gerenciaaps/pagamento" target="_blank" rel="noreferrer"
-               style={{ marginLeft: 8, color: "#1d4ed8", fontWeight: 600 }}>Acessar e-Gestor APS ↗</a>
-          </span>
+      {data.aviso_atualizacao && <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#92400e", marginBottom: 14 }}>{data.aviso_atualizacao}</div>}
+      {!ok && (
+        <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "12px 16px", fontSize: 13, color: "#92400e", marginBottom: 18 }}>
+          <strong>{data.situacao_dado === "nao_publicada" ? "Parcela ainda não publicada." : "e-Gestor indisponível."}</strong> {data.nota}
+          {data.ultima_publicada && <button onClick={() => setParcela(data.ultima_publicada)} style={{ marginLeft: 10, background: "#fff", border: "1px solid #d97706", color: "#92400e", borderRadius: 6, padding: "3px 10px", cursor: "pointer", fontSize: 12 }}>Ver a última publicada</button>}
         </div>
       )}
 
-      {/* Diagnósticos */}
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "16px 18px", marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>Diagnóstico Automático — {plLabel}</div>
-          <div style={{ display: "flex", gap: 6 }}>
-            {criticos > 0 && <span style={{ background: "#fff7f7", color: "#dc2626", fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 10 }}>{criticos} crítico{criticos > 1 ? "s" : ""}</span>}
-            {alertas  > 0 && <span style={{ background: "#fffbeb", color: "#d97706", fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 10 }}>{alertas} alerta{alertas > 1 ? "s" : ""}</span>}
-            {criticos === 0 && alertas === 0 && <span style={{ background: "#f0fdf4", color: "#16a34a", fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 10 }}>✓ Sem pendências</span>}
+      {ok && (
+        <>
+          {/* KPIs */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
+            {[
+              { label: "Total da parcela (oficial)", val: brlDC(data.total_parcela), cor: "#1d4ed8",
+                nota: anterior ? `${data.total_parcela - anterior.total >= 0 ? "▲" : "▼"} ${brlDC(Math.abs(data.total_parcela - anterior.total))} vs ${anterior.competencia}` : undefined },
+              { label: "eSF pagas / credenciadas", val: `${numDC(esf.qt_pagas)} / ${numDC(esf.qt_credenciadas)}`, cor: "#0369a1", nota: tetos.esf ? `teto ${tetos.esf}` : undefined },
+              { label: "Qualidade · Vínculo eSF", val: `${data.classificacao_qualidade_esf ?? "—"} · ${data.classificacao_vinculo_esf ?? "—"}`, cor: "#15803d", nota: data.faixa_equidade_esf ? `IED ${data.faixa_equidade_esf}` : undefined },
+              { label: "Equipes com pendência na validação", val: `${valid.filter(v => v.pendencias.length).length} de ${valid.length}`, cor: valid.some(v => v.pendencias.length) ? "#b91c1c" : "#15803d" },
+            ].map(k => (
+              <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: k.cor, fontVariantNumeric: "tabular-nums" }}>{k.val}</div>
+                <div style={{ fontSize: 11, color: "#4b5563", marginTop: 2 }}>{k.label}</div>
+                {k.nota && <div style={{ fontSize: 11, color: "#374151", marginTop: 2 }}>{k.nota}</div>}
+              </div>
+            ))}
           </div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {diagsOrdenados.map((d, i) => (
-            <div key={i} style={{
-              display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 14px",
-              borderRadius: 8, border: "1px solid #f3f4f6",
-              background: d.severidade === "critico" ? "#fff7f7" : d.severidade === "alerta" ? "#fffbeb" : d.severidade === "ok" ? "#f0fdf4" : "#f8fafc",
-            }}>
-              <BadgeDiag sev={d.severidade} />
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 2 }}>{d.titulo}</div>
-                <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.5 }}>{d.texto}</div>
+
+          {/* Diagnóstico automático — só fatos publicados */}
+          <div style={caixaDC}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 6 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Diagnóstico automático — {data.competencia} ({data.parcela}ª parcela/{data.ano_parcela})</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {(["critico", "alerta", "info", "ok"] as const).map(s => nSev(s) > 0 && <span key={s} style={{ background: SEV_DC[s].bg, color: SEV_DC[s].cor, fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 10 }}>{nSev(s)} {SEV_DC[s].label.replace(/^\S+\s/, "").toLowerCase()}</span>)}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Score por Equipe — tabela por equipe SCNES */}
-      {data.equipes_scnes?.length > 0 && (
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "16px 18px", marginBottom: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>
-              Score por Equipe — {data._meta?.scnes_varredura ?? "Set/2026"}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {diagsOrd.map((d, i) => (
+                <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 14px", borderRadius: 8, border: "1px solid #f3f4f6", background: SEV_DC[d.severidade]?.bg ?? "#f8fafc" }}>
+                  <BadgeDC sev={d.severidade} />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 2 }}>{d.titulo}</div>
+                    <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.5 }}>{d.texto}</div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <span style={{ fontSize: 11, color: "#6b7280" }}>Fonte: SCNES/DATASUS · Portaria GM/MS 3.493/2024</span>
+            <div style={{ fontSize: 11, color: "#4b5563", marginTop: 8 }}>Itens gerados apenas a partir do que o e-Gestor publicou nesta parcela — sem estimativas.</div>
           </div>
+
+          {/* Validação por equipe */}
+          {valid.length > 0 && (
+            <div style={caixaDC}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 6 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Validação por equipe — {data.competencia}</div>
+                <span style={{ fontSize: 11, color: "#4b5563" }}>Fonte: e-Gestor APS · validação da parcela (eSF, eSB, eMulti)</span>
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead><tr style={{ background: "#f8fafc" }}>{["Equipe", "INE", "Tipo", "CNES", "Situação do pagamento", "Pendências publicadas"].map(h => <th key={h} style={thDC}>{h}</th>)}</tr></thead>
+                  <tbody>{valid.map((v, i) => (
+                    <tr key={v.ine + v.componente} style={{ background: i % 2 ? "#f9fafb" : "#fff" }}>
+                      <td style={{ ...tdDC, fontWeight: 600 }}>{v.equipe ?? "—"}{v.equipe_vinculada && <div style={{ fontSize: 11, color: "#4b5563", fontWeight: 400 }}>vinculada a {v.equipe_vinculada}</div>}</td>
+                      <td style={tdDC}>{v.ine}</td><td style={tdDC}>{v.tipo ?? "—"}</td><td style={tdDC}>{v.cnes ?? "—"}</td>
+                      <td style={tdDC}><BadgeDC sev={/PAGO|V[ÁA]LIDO/i.test(v.st_pagamento ?? "") ? "ok" : "alerta"} /> <span style={{ marginLeft: 4 }}>{v.st_pagamento ?? "—"}</span></td>
+                      <td style={tdDC}>{v.pendencias.length ? v.pendencias.map((p: any) => <div key={p.campo} style={{ color: "#b45309" }}>⚠ {p.rotulo}: {p.situacao}</div>) : <span style={{ color: "#15803d" }}>✓ Nenhuma</span>}</td>
+                    </tr>))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Cards por programa (valores publicados; "—" quando não veio) */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14, marginBottom: 20 }}>
+            <CardProgramaDC titulo="eSF — Saúde da Família" cor="#1d4ed8" publicado={tem(esf)} itens={[
+              { label: "Teto", val: numDC(tetos.esf) },
+              { label: "Credenciadas", val: numDC(esf.qt_credenciadas) },
+              { label: "Homologadas", val: numDC(esf.qt_homologadas) },
+              { label: "Pagas", val: numDC(esf.qt_pagas) },
+              { label: "Componente fixo (equidade)", val: brlDC(esf.vl_fixo) },
+              { label: "Vínculo e Acompanhamento", val: brlDC(esf.vl_vinculo) },
+              { label: "Qualidade", val: brlDC(esf.vl_qualidade) },
+              { label: "Implantação", val: brlDC(esf.vl_implantacao) },
+              { label: "Total bruto eSF (COMPLETO)", val: brlDC(esf.vl_total_bruto) },
+              { label: "Pago no plano eSF/eAP (AGRUPADO)", val: brlDC(data.esf_eap_pago_plano), destaque: true },
+              { label: "Diferença pago − bruto (descontos/ajustes)", val: brlDC(data.esf_eap_diferenca_bruto_pago) },
+            ]} />
+            <CardProgramaDC titulo="eSB — Saúde Bucal · UOM · LRPD · CEO" cor="#7c3aed" publicado={tem(esb)} itens={[
+              { label: "Teto 40h", val: numDC(tetos.sb_40h) },
+              { label: "Credenciadas 40h", val: numDC(esb.qt_40h_credenciadas) },
+              { label: "Homologadas 40h", val: numDC(esb.qt_40h_homologadas) },
+              { label: "Pagas (Modal. I / II)", val: `${numDC(esb.qt_40h_pagas_modal_i)} / ${numDC(esb.qt_40h_pagas_modal_ii)}` },
+              { label: "Custeio 40h", val: brlDC(esb.vl_esb_40h) },
+              { label: "Qualidade 40h", val: brlDC(esb.vl_qualidade_40h) },
+              { label: `UOM (${numDC(esb.qt_uom)} unid.)`, val: brlDC(esb.vl_uom) },
+              { label: "LRPD municipal", val: brlDC(esb.vl_lrpd_municipal) },
+              { label: "CEO municipal", val: brlDC(esb.vl_ceo_municipal) },
+              { label: "Total Saúde Bucal", val: brlDC(esb.vl_total_sb_calculado), destaque: true },
+            ]} />
+            <CardProgramaDC titulo="eMulti — Multiprofissionais" cor="#0891b2" publicado={tem(emulti)} itens={[
+              { label: "Teto (estratégica / complementar / ampliada)", val: `${numDC(tetos.emulti_estrategica)} / ${numDC(tetos.emulti_complementar)} / ${numDC(tetos.emulti_ampliada)}` },
+              { label: "Credenciadas", val: numDC(emulti.qt_credenciadas) },
+              { label: "Homologadas", val: numDC(emulti.qt_homologadas) },
+              { label: "Pagas", val: numDC(emulti.qt_pagas) },
+              { label: "Estratégica / Complementar / Ampliada", val: `${numDC(emulti.qt_estrategica)} / ${numDC(emulti.qt_complementar)} / ${numDC(emulti.qt_ampliada)}` },
+              { label: "Custeio", val: brlDC(emulti.vl_custeio) },
+              { label: "Qualidade", val: brlDC(emulti.vl_qualidade) },
+              { label: "Atendimento remoto", val: brlDC(emulti.vl_atend_remoto) },
+              { label: "Total eMulti", val: brlDC(emulti.vl_total), destaque: true },
+            ]} />
+            <CardProgramaDC titulo="ACS — Agentes Comunitários de Saúde" cor="#16a34a" publicado={tem(acs)} itens={[
+              { label: "Teto", val: numDC(acs.qt_teto) },
+              { label: "Credenciados", val: numDC(acs.qt_direto_credenciado) },
+              { label: "Pagos (direto)", val: numDC(acs.qt_direto_pago) },
+              { label: "Valor direto", val: brlDC(acs.vl_direto) },
+              { label: "Parcela extra", val: brlDC(acs.vl_parcela_extra_direto) },
+              { label: "Pagos (indireto) / valor", val: `${numDC(acs.qt_indireto_pago)} / ${brlDC(acs.vl_indireto)}` },
+              { label: "Total ACS", val: brlDC(acs.vl_total), destaque: true },
+            ]} />
+            <CardProgramaDC titulo="eSFR — Saúde da Família Ribeirinha" cor="#d97706" publicado={tem(esfr)} itens={[
+              { label: "Credenciadas", val: numDC(esfr.qt_credenciadas) },
+              { label: "Homologadas", val: numDC(esfr.qt_homologadas) },
+              { label: "Pagas", val: numDC(esfr.qt_pagas) },
+              { label: "Embarcações", val: numDC(esfr.qt_embarcacoes) },
+              { label: "Custeio", val: brlDC(esfr.vl_custeio) },
+              { label: "Vínculo", val: brlDC(esfr.vl_vinculo) },
+              { label: "Qualidade", val: brlDC(esfr.vl_qualidade) },
+              { label: "Valor extra", val: brlDC(esfr.vl_extra) },
+              { label: "Total eSFR", val: brlDC(esfr.vl_total), destaque: true },
+            ]} />
+            <CardProgramaDC titulo="Microscopistas · Per capita · eAP · PSE" cor="#64748b" publicado={tem(micro) || tem(pc)} itens={[
+              { label: "Microscopistas credenciados / pagos", val: `${numDC(micro.qt_credenciados)} / ${numDC(micro.qt_pagos)}` },
+              { label: "Total microscopistas", val: brlDC(micro.vl_total) },
+              { label: `Per capita (população ${numDC(data.populacao)}${data.ano_ref_populacao ? `, ref. ${data.ano_ref_populacao}` : ""})`, val: brlDC(pc.vl_pagamento) },
+              { label: "eAP credenciadas / pagas", val: `${numDC(eap.qt_credenciadas)} / ${numDC(eap.qt_pagas)}` },
+              { label: "Total eAP", val: brlDC(eap.vl_total_bruto) },
+              { label: "PSE", val: brlDC((data.pse ?? {}).vl_total) },
+            ]} />
+          </div>
+
+          {/* Valor pago por plano orçamentário */}
+          {data.planos && Object.keys(data.planos).length > 0 && (
+            <div style={caixaDC}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>Valor pago por plano orçamentário — {data.parcela}ª parcela/{data.ano_parcela}</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <tbody>{Object.entries(data.planos as Record<string, number>).map(([k, v]) => (
+                  <tr key={k}><td style={tdDC}>{k}</td><td style={{ ...tdDC, textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{brlDC(v)}</td></tr>))}
+                  <tr style={{ background: "#f0f9ff" }}><td style={{ ...tdDC, fontWeight: 700, color: "#0369a1" }}>Total oficial da parcela</td><td style={{ ...tdDC, textAlign: "right", fontWeight: 800, color: "#0369a1" }}>{brlDC(data.total_parcela)}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Histórico de incentivos — todas as parcelas publicadas */}
+      {hist.length > 0 && (
+        <div style={caixaDC}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 12 }}>
+            Histórico de incentivos totais — {data.municipio}/{data.uf}
+            <span style={{ fontSize: 11, fontWeight: 400, color: "#4b5563", marginLeft: 8 }}>Fonte: e-Gestor APS · todas as {hist.length} parcelas publicadas</span>
+          </div>
+          <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead><tr style={{ background: "#f8fafc" }}>{["Parcela", "Competência CNES", "Total oficial", "Var. parcela anterior", ""].map(h => <th key={h} style={thDC}>{h}</th>)}</tr></thead>
+              <tbody>{[...hist].reverse().map((h, i, arr) => {
+                const prev = arr[i + 1];
+                const diff = prev ? h.total - prev.total : null;
+                const atual = h.parcela_code === data.parcela_code;
+                return (
+                  <tr key={h.parcela_code} style={{ background: atual ? "#eff6ff" : i % 2 ? "#f9fafb" : "#fff", borderLeft: atual ? "3px solid #1d4ed8" : "3px solid transparent" }}>
+                    <td style={{ ...tdDC, fontWeight: atual ? 700 : 500 }}>{h.parcela} · {h.ano_parcela}</td>
+                    <td style={{ ...tdDC, color: atual ? "#1d4ed8" : "#1e293b", fontWeight: atual ? 700 : 500 }}>{h.competencia}</td>
+                    <td style={{ ...tdDC, textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{brlDC(h.total)}</td>
+                    <td style={{ ...tdDC, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: diff == null ? "#6b7280" : diff >= 0 ? "#15803d" : "#b91c1c" }}>
+                      {diff == null ? "—" : `${diff >= 0 ? "▲" : "▼"} ${brlDC(Math.abs(diff))}`}
+                    </td>
+                    <td style={tdDC}>{!atual && <button onClick={() => setParcela(h.parcela_code)} style={{ background: "#fff", border: "1px solid #d1d5db", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontSize: 11 }}>Ver</button>}</td>
+                  </tr>);
+              })}</tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Varredura manual do SCNES — dado datado, não revalidado automaticamente */}
+      {varr?.equipes?.length > 0 && (
+        <details style={{ ...caixaDC, padding: "12px 18px" }}>
+          <summary style={{ cursor: "pointer", fontSize: 14, fontWeight: 700, color: "#1e293b" }}>
+            Varredura manual do SCNES — {varr.data_varredura} · {varr.pendencias_criticas} crítica(s) / {varr.pendencias_total} pendência(s) · score médio {varr.score_medio} pts
+          </summary>
+          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#92400e", margin: "10px 0" }}>{varr.aviso}</div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-              <thead>
-                <tr style={{ background: "#f8fafc" }}>
-                  <th style={{ padding: "7px 10px", textAlign: "left",   color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Equipe</th>
-                  <th style={{ padding: "7px 10px", textAlign: "center", color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Score / Nível</th>
-                  <th style={{ padding: "7px 10px", textAlign: "right",  color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Vinculadas CVAT</th>
-                  <th style={{ padding: "7px 10px", textAlign: "left",   color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Pendências SCNES</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.equipes_scnes as any[]).map((eq: any, i: number) => {
-                  const criticos = eq.pendencias?.filter((p: any) => p.sev === "critico") ?? [];
-                  const alertas  = eq.pendencias?.filter((p: any) => p.sev === "alerta")  ?? [];
-                  const scoreOk  = eq.score >= 90;
-                  const scoreWarn = eq.score >= 70 && eq.score < 90;
-                  const scoreCrit = eq.score < 70;
-                  const scoreBg  = scoreOk ? "#f0fdf4" : scoreWarn ? "#fffbeb" : "#fff7f7";
-                  const scoreCor = scoreOk ? "#15803d" : scoreWarn ? "#b45309" : "#dc2626";
-                  return (
-                    <tr key={eq.nome} style={{ background: i % 2 === 0 ? "#fff" : "#f9fafb" }}>
-                      <td style={{ padding: "8px 10px", fontWeight: 600, color: "#1e293b", borderBottom: "1px solid #f3f4f6" }}>{eq.nome}</td>
-                      <td style={{ padding: "8px 10px", textAlign: "center", borderBottom: "1px solid #f3f4f6" }}>
-                        <span style={{ background: scoreBg, color: scoreCor, fontWeight: 700, padding: "2px 10px", borderRadius: 12, fontSize: 11, display: "inline-block", minWidth: 90, fontVariantNumeric: "tabular-nums" }}>
-                          {eq.score} pts — {eq.nivel}
-                        </span>
-                      </td>
-                      <td style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: eq.vinculadas > 0 ? "#1e293b" : "#dc2626", borderBottom: "1px solid #f3f4f6" }}>
-                        {eq.vinculadas > 0 ? eq.vinculadas.toLocaleString("pt-BR") : "0 — sem vínculo"}
-                      </td>
-                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #f3f4f6" }}>
-                        {eq.pendencias?.length === 0
-                          ? <span style={{ color: "#16a34a", fontSize: 11 }}>✓ OK</span>
-                          : <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                              {criticos.map((p: any, j: number) => (
-                                <span key={j} style={{ background: "#fff7f7", color: "#dc2626", fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 6, display: "inline-block" }}>✗ {p.desc}</span>
-                              ))}
-                              {alertas.map((p: any, j: number) => (
-                                <span key={j} style={{ background: "#fffbeb", color: "#d97706", fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 6, display: "inline-block" }}>⚠ {p.desc}</span>
-                              ))}
-                            </div>
-                        }
-                      </td>
-                    </tr>
-                  );
-                })}
+              <thead><tr style={{ background: "#f8fafc" }}>{["Equipe", "Score / nível", "Vinculadas", "Pendências registradas na varredura"].map(h => <th key={h} style={thDC}>{h}</th>)}</tr></thead>
+              <tbody>{varr.equipes.map((e: any, i: number) => (
+                <tr key={e.nome} style={{ background: i % 2 ? "#f9fafb" : "#fff" }}>
+                  <td style={{ ...tdDC, fontWeight: 600 }}>{e.nome}</td>
+                  <td style={tdDC}>{e.score} pts — {e.nivel}</td>
+                  <td style={{ ...tdDC, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{numDC(e.vinculadas)}</td>
+                  <td style={tdDC}>{e.pendencias.length ? e.pendencias.map((p: any, j: number) => (
+                    <div key={j} style={{ color: SEV_DC[p.sev]?.cor ?? "#374151" }}>{p.sev === "critico" ? "✗" : p.sev === "alerta" ? "⚠" : "ℹ"} {p.desc}</div>)) : <span style={{ color: "#15803d" }}>✓ Nenhuma</span>}</td>
+                </tr>))}
               </tbody>
-              <tfoot>
-                <tr style={{ background: "#f0f9ff", borderTop: "2px solid #bae6fd" }}>
-                  <td style={{ padding: "8px 10px", fontWeight: 700, color: "#0369a1" }}>{(data.equipes_scnes as any[]).length} equipes</td>
-                  <td style={{ padding: "8px 10px", textAlign: "center", fontWeight: 700, color: "#0369a1" }}>Média: {data.score_medio_scnes} pts</td>
-                  <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 700, color: "#0369a1", fontVariantNumeric: "tabular-nums" }}>
-                    {data.total_vinculadas_cvat?.toLocaleString("pt-BR")} total
-                  </td>
-                  <td style={{ padding: "8px 10px", fontSize: 11, color: "#6b7280" }}>
-                    {(data.equipes_scnes as any[]).reduce((s: number, e: any) => s + (e.pendencias?.length ?? 0), 0)} pendência(s) ativas
-                  </td>
-                </tr>
-              </tfoot>
             </table>
           </div>
-        </div>
+        </details>
       )}
 
-      {/* Histórico de Incentivos */}
-      {data.historico_incentivos?.length > 0 && (
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "16px 18px", marginBottom: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 12 }}>
-            Histórico de Incentivos Totais — Apuí/AM
-            <span style={{ fontSize: 11, fontWeight: 400, color: "#6b7280", marginLeft: 8 }}>Fonte: e-Gestor APS · Todas as parcelas disponíveis</span>
-          </div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: "#f8fafc" }}>
-                  <th style={{ padding: "8px 12px", textAlign: "left", color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Competência</th>
-                  <th style={{ padding: "8px 12px", textAlign: "center", color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Parcela</th>
-                  <th style={{ padding: "8px 12px", textAlign: "right", color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Incentivo Total</th>
-                  <th style={{ padding: "8px 12px", textAlign: "right", color: "#374151", fontWeight: 600, borderBottom: "2px solid #e5e7eb" }}>Var. Mês Anterior</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...data.historico_incentivos].reverse().map((h: any, i: number, arr: any[]) => {
-                  const prev = arr[i + 1];
-                  const diff = prev ? h.total - prev.total : null;
-                  const isSelected = _MAPA_PARCELA[parcela] === h.competencia;
-                  return (
-                    <tr key={h.parcela_code} style={{ background: isSelected ? "#eff6ff" : i % 2 === 0 ? "#fff" : "#f9fafb", borderLeft: isSelected ? "3px solid #1d4ed8" : "3px solid transparent" }}>
-                      <td style={{ padding: "8px 12px", fontWeight: isSelected ? 700 : 500, color: isSelected ? "#1d4ed8" : "#1e293b" }}>{h.competencia}</td>
-                      <td style={{ padding: "8px 12px", textAlign: "center", color: "#6b7280" }}>{h.parcela}</td>
-                      <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: "#1e293b" }}>
-                        {h.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 })}
-                      </td>
-                      <td style={{ padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: diff === null ? "#9ca3af" : diff >= 0 ? "#16a34a" : "#dc2626", fontWeight: 600 }}>
-                        {diff === null ? "—" : `${diff >= 0 ? "▲" : "▼"} ${Math.abs(diff).toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 })}`}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr style={{ background: "#f0f9ff", borderTop: "2px solid #bae6fd" }}>
-                  <td colSpan={2} style={{ padding: "8px 12px", fontWeight: 700, color: "#0369a1" }}>Acumulado {data.historico_incentivos.length} parcelas</td>
-                  <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 800, color: "#0369a1", fontVariantNumeric: "tabular-nums" }}>
-                    {data.historico_incentivos.reduce((s: number, h: any) => s + h.total, 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 })}
-                  </td>
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Cards por programa */}
-      {/* fonteLabel dinâmico: usa competencia retornada pela API (ex: "JUL/2026") */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 20 }}>
-        <CardPrograma titulo="eSF — Equipes de Saúde da Família" cor="#1d4ed8" scraped={(esf as any)._scraped} fonteLabel={data.competencia ? `✓ Verificado ${data.competencia}` : "✓ e-Gestor APS"} items={[
-          { label: "Teto",                        val: (esf as any).qt_teto ?? tetos.esf ?? 0 },
-          { label: "Credenciadas",                val: esf.qt_credenciadas ?? 0 },
-          { label: "Homologadas",                 val: esf.qt_homologadas ?? 0 },
-          { label: "Pagas",                       val: esf.qt_pagas ?? 0 },
-          { label: "IED",                         val: (esf as any).ied || data.faixa_equidade_esf || "—" },
-          { label: "Class. Qualidade",            val: (esf as any).classificacao_qualidade || data.classificacao_qualidade_esf || "—" },
-          { label: "Class. Vínculo",              val: (esf as any).classificacao_vinculo || data.classificacao_vinculo_esf || "—" },
-          { label: "Componente Equidade",         val: BRL_local((esf as any).vl_equidade ?? esf.vl_fixo ?? 0) },
-          { label: "Qualidade",                   val: BRL_local(esf.vl_qualidade ?? 0) },
-          { label: "Vínculo e Acompanhamento",    val: BRL_local(esf.vl_vinculo ?? 0) },
-          { label: "Ajuste",                      val: BRL_local((esf as any).vl_ajuste ?? 0) },
-          { label: "Desconto",                    val: BRL_local((esf as any).vl_desconto ?? 0) },
-          { label: "Total eSF",                   val: BRL_local(esf.vl_total_bruto ?? 0), destaque: true },
-        ]} />
-
-        <CardPrograma titulo="eMulti — Equipes Multiprofissionais" cor="#0891b2" scraped={(emulti as any)._scraped} fonteLabel={data.competencia ? `✓ Verificado ${data.competencia}` : "✓ e-Gestor APS"} items={[
-          { label: "Teto",                  val: tetos.emulti ?? 1 },
-          { label: "Credenciadas",          val: emulti.qt_credenciadas ?? 1 },
-          { label: "eMulti Estratégica",    val: (emulti as any).qt_estrategica ?? 1 },
-          { label: "eMulti Ampliada",       val: (emulti as any).qt_ampliada ?? 0 },
-          { label: "eMulti Complementar",   val: (emulti as any).qt_complementar ?? 0 },
-          { label: "Pagas",                 val: emulti.qt_pagas ?? 1 },
-          { label: "Vl. Custeio",          val: BRL_local(emulti.vl_custeio ?? 12_000) },
-          { label: "Vl. Qualidade",        val: BRL_local(emulti.vl_qualidade ?? 2_250) },
-          { label: "Vl. Atend. Remoto",    val: BRL_local(emulti.vl_atend_remoto ?? 0) },
-          { label: "Total eMulti",         val: BRL_local(emulti.vl_total ?? 14_250), destaque: true },
-        ]} />
-
-        <CardPrograma titulo="eSB — Saúde Bucal 40h · UOM · LRPD" cor="#7c3aed" scraped={(esb as any)._scraped} fonteLabel={data.competencia ? `✓ Verificado ${data.competencia}` : "✓ e-Gestor APS"} items={[
-          { label: "Teto",                 val: tetos.esb ?? 9 },
-          { label: "Credenciadas 40h",     val: esb.qt_40h_credenciadas ?? 9 },
-          { label: "Homologadas 40h",      val: esb.qt_40h_homologadas ?? 9 },
-          { label: "Pagas (Modal. I)",     val: esb.qt_40h_pagas_modal_i ?? 9 },
-          { label: "Pagas (Modal. II)",    val: esb.qt_40h_pagas_modal_ii ?? 0 },
-          { label: "Vl. eSB 40h (custeio)",val: BRL_local(esb.vl_esb_40h ?? 54_189) },
-          { label: "Vl. Qualidade 40h",   val: BRL_local(esb.vl_qualidade_40h ?? 30_000) },
-          { label: "UOM (1 unidade)",      val: BRL_local((esb as any).vl_uom ?? 9_360) },
-          { label: "LRPD Municipal",       val: BRL_local(esb.vl_lrpd_municipal ?? 11_250) },
-          { label: "Total eSB",           val: BRL_local(esb.vl_total_sb_calculado ?? 104_799), destaque: true },
-        ]} />
-
-        <CardPrograma titulo="ACS — Agentes Comunitários de Saúde" cor="#16a34a" scraped={(acs as any)._scraped} fonteLabel={data.competencia ? `✓ Verificado ${data.competencia}` : "✓ e-Gestor APS"} items={[
-          { label: "Teto ACS",             val: acs.qt_teto ?? tetos.acs ?? 65 },
-          { label: "Credenciados",         val: acs.qt_direto_credenciado ?? 67 },
-          { label: "Pagos",                val: acs.qt_direto_pago ?? 66 },
-          { label: "Vl. Referência",      val: BRL_local((acs as any).vl_ref_custeio ?? 3_242) },
-          { label: "Total ACS",           val: BRL_local(acs.vl_total ?? acs.vl_direto ?? 213_972), destaque: true },
-        ]} />
-
-        <CardPrograma titulo="eSFR — Saúde da Família Ribeirinha" cor="#d97706" scraped={(esfr as any)._scraped} fonteLabel={data.competencia ? `✓ Verificado ${data.competencia}` : "✓ e-Gestor APS"} items={[
-          { label: "Credenciadas",         val: (esfr as any).qt_credenciadas ?? 1 },
-          { label: "Homologadas",          val: (esfr as any).qt_homologadas ?? 1 },
-          { label: "Pagas",                val: (esfr as any).qt_pagas ?? 1 },
-          { label: "Vl. Custeio",         val: BRL_local((esfr as any).vl_custeio ?? 24_000) },
-          { label: "Vl. CVAT",            val: BRL_local((esfr as any).vl_vinculo ?? 6_000) },
-          { label: "Total eSFR",          val: BRL_local((esfr as any).vl_total ?? 30_000), destaque: true },
-        ]} />
-
-        <CardPrograma titulo="Microscopista" cor="#64748b" scraped={(micro as any)._scraped} fonteLabel={data.competencia ? `✓ Verificado ${data.competencia}` : "✓ e-Gestor APS"} items={[
-          { label: "Credenciados",         val: (micro as any).qt_credenciados ?? 5 },
-          { label: "Pagos",                val: (micro as any).qt_pagos ?? 5 },
-          { label: "Vl. Referência",      val: BRL_local((micro as any).vl_ref_custeio ?? 3_242) },
-          { label: "Total Microscopista", val: BRL_local((micro as any).vl_total ?? 16_210), destaque: true },
-        ]} />
-
-        <CardPrograma titulo="eAP · Per Capita · PSE" cor="#6b7280" items={[
-          { label: "eAP credenciadas",     val: eap.qt_credenciadas ?? 0 },
-          { label: "eAP pagas",            val: eap.qt_pagas ?? 0 },
-          { label: "Total eAP",           val: BRL_local(eap.vl_total_bruto ?? 0) },
-          { label: "Teto eAP",            val: tetos.eap ?? 0 },
-          { label: "Per capita (pop.)",   val: (data.populacao ?? 0).toLocaleString("pt-BR") },
-          { label: "Vl. Per capita",      val: BRL_local(perCap.vl_pagamento ?? 0) },
-          { label: "Faixa equidade eSF",  val: data.faixa_equidade_esf ?? "—" },
-          { label: "Classif. vínculo eSF",val: data.classificacao_vinculo_esf ?? "—" },
-          { label: "Classif. qualidade",  val: data.classificacao_qualidade_esf ?? "—" },
-          { label: "Total calculado",     val: BRL_local(data.total_calculado), destaque: true },
-        ]} />
-      </div>
-
-      {/* Cruzamento SIAPS × Pagamento */}
-      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "14px 18px", fontSize: 12, color: "#1e40af", marginBottom: 16 }}>
-        <strong>Cruzamento SIAPS × e-Gestor:</strong> Os dados de equipes credenciadas e homologadas nesta aba provêm do relatório de pagamento do e-Gestor APS. Compare os totais com a aba "Abrangência Municipal" (SIAPS autenticado) para identificar divergências entre a base de cálculo do pagamento e o registro no CNES.
-      </div>
-
-      {/* Rodapé fonte */}
-      <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 14px", fontSize: 11, color: "#6b7280", display: "flex", gap: 8, alignItems: "center" }}>
+      {/* Rodapé de fonte */}
+      <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 14px", fontSize: 11, color: "#4b5563", display: "flex", gap: 8, alignItems: "center" }}>
         <Info size={13} />
         <span>
-          {data.fonte === "scnes_verificado"
-            ? <>Fonte: <strong>SCNES/DATASUS</strong> — varredura {data._meta?.scnes_varredura ?? "Set/2026"} · {data._meta?.nota ?? ""}</>
-            : <>Fonte: <strong>e-Gestor APS</strong> — relatorioaps-prd.saude.gov.br · tipoRelatorio=COMPLETO</>
-          } · Coletado em {data.coletado_em ? new Date(data.coletado_em).toLocaleString("pt-BR") : "—"} · Competência {data.competencia} · IBGE {data.ibge}
+          Fonte: <strong>{data.fonte}</strong> — AGRUPADO (totais e histórico), COMPLETO (programas) e validação por equipe.
+          {ok && <> Competência CNES {data.competencia} · {data.parcela}ª parcela/{data.ano_parcela}</>}
+          {data.coletado_em && <> · consultado em {new Date(data.coletado_em).toLocaleString("pt-BR")}</>} · cache de 4 horas · IBGE {data.ibge}.
         </span>
       </div>
     </div>
@@ -2775,19 +1707,29 @@ function AbaDiagnosticoCobertura() {
 
 // ── Página principal ───────────────────────────────────────────────────────────
 
-type Aba = "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento" | "diag_cobertura" | "monitoramento";
+type Aba = "painel" | "abrangencia" | "vinculo" | "qualidade" | "boas_praticas" | "quadrimestre" | "analise_indicador" | "rel_pagamento" | "diag_cobertura" | "monitoramento";
 
 export default function SiapsEgestor() {
   // a captura assistida do SIAPS chega pelo endereço (#captura-siaps=…) e abre direto na aba Qualidade
-  const [aba, setAba] = useState<Aba>(() => (capturaNoEndereco() ? "qualidade" : "vinculo"));
+  const [aba, setAba] = useState<Aba>(() => (capturaNoEndereco() ? "qualidade" : "painel"));
 
   const { data: dashData }  = useQuery({ queryKey: ["siaps-dashboard"],  queryFn: () => apiGet("/api/siaps/dashboard") as Promise<any> });
   const { data: abrangData } = useQuery({ queryKey: ["siaps-abrang"],    queryFn: () => apiGet("/api/siaps/abrangencia") as Promise<any> });
-  const { data: vinculo }    = useQuery({ queryKey: ["siaps-vinculo"],   queryFn: () => apiGet("/api/siaps/vinculo-acompanhamento") as Promise<any>, enabled: aba === "vinculo" });
+  // competência escolhida no cabeçalho (undefined = a mais recente com dado no ERSUS360)
+  const [comp, setComp] = useState<string | undefined>();
+  const { data: cat } = useQuery({ queryKey: ["siaps-competencias"], queryFn: () => apiGetRaw<CatalogoCompetencias>("/api/siaps/competencias"), staleTime: 10 * 60_000 });
+  useEffect(() => {
+    if (!comp && cat) setComp(cat.ultima_com_dados ?? cat.ultima_siaps_publicada ?? undefined);
+  }, [cat, comp]);
+  const item = cat?.competencias.find(c => c.competencia === comp);
+  const { data: vinculo }    = useQuery({ queryKey: ["siaps-vinculo", comp], queryFn: () => apiGet("/api/siaps/vinculo-acompanhamento", comp ? { competencia: comp } : undefined) as Promise<any>, enabled: aba === "vinculo" });
   const { data: qualidade }  = useQuery({ queryKey: ["siaps-qualidade"], queryFn: () => apiGet("/api/siaps/qualidade") as Promise<any>, enabled: aba === "qualidade" });
-  const { data: boas }       = useQuery({ queryKey: ["siaps-boas"],      queryFn: () => apiGet("/api/siaps/boas-praticas") as Promise<any>, enabled: aba === "boas_praticas" });
+  const { data: boas }       = useQuery({ queryKey: ["siaps-boas", comp], queryFn: () => apiGet("/api/siaps/boas-praticas", comp ? { competencia: comp } : undefined) as Promise<any>, enabled: aba === "boas_praticas" });
+  const info = infoDaAba(aba, item, cat, vinculo, boas);
+  const mostrar = !info || info.temDado;
 
   const ABAS: { id: Aba; label: string }[] = [
+    { id: "painel",             label: "Painel Geral" },
     { id: "abrangencia",        label: "Abrangência Municipal" },
     { id: "vinculo",            label: "Vínculo e Acompanhamento" },
     { id: "qualidade",          label: "Componente Qualidade" },
@@ -2814,7 +1756,15 @@ export default function SiapsEgestor() {
           <span><strong>UF:</strong> {dashData.uf}</span>
           <span><strong>Município:</strong> {dashData.municipio}</span>
           <span><strong>IED:</strong> {dashData.ied}</span>
-          <span><strong>Competência:</strong> {dashData.competencia}</span>
+          <label><strong>Competência:</strong>{" "}
+            <select value={comp ?? ""} onChange={e => setComp(e.target.value || undefined)} aria-label="Competência"
+              style={{ background: "#fff", color: "#1e3a8a", border: "none", borderRadius: 6, padding: "3px 6px", fontSize: 13, fontWeight: 700 }}>
+              {!cat && <option value="">{dashData.competencia}</option>}
+              {(cat?.competencias ?? []).map(c => (
+                <option key={c.competencia} value={c.competencia}>{c.rotulo} — {SIT_COMP[c.situacao_siaps]?.txt ?? c.situacao_siaps}</option>
+              ))}
+            </select>
+          </label>
           <span style={{ marginLeft: "auto", background: "rgba(255,255,255,.15)", borderRadius: 20, padding: "3px 12px", fontSize: 11 }}>
             {dashData.fonte === "siaps_relatorio_importado"
               ? `Relatório SIAPS importado${dashData.dado_preliminar ? " · dado preliminar" : ""}`
@@ -2822,6 +1772,8 @@ export default function SiapsEgestor() {
           </span>
         </div>
       )}
+
+      <FontesCompetencia cat={cat} />
 
       <div style={{ padding: "24px 24px 32px", maxWidth: 1100, margin: "0 auto" }}>
 
@@ -2837,14 +1789,17 @@ export default function SiapsEgestor() {
           ))}
         </div>
 
+        {aba === "painel"            && <PainelGeralAps irPara={(a) => setAba(a as Aba)} />}
         {aba === "abrangencia"       && <AbaAbrangencia data={abrangData} />}
-        {aba === "vinculo"           && <AbaVinculo data={vinculo} />}
-        {aba === "qualidade"         && <AbaQualidade data={qualidade} />}
-        {aba === "boas_praticas"     && <AbaBoasPraticas data={boas} />}
-        {aba === "quadrimestre"      && <AbaQuadrimestre dashData={dashData} />}
-        {aba === "analise_indicador" && <AbaAnaliseIndicador />}
-        {aba === "rel_pagamento"     && <AbaRelatorioPagamento />}
-        {aba === "diag_cobertura"   && <AbaDiagnosticoCobertura />}
+        {info && <CabecalhoPadrao info={info} consultadoEm={cat?.consultado_em} />}
+        {info && !info.temDado && <SemDadoPadrao info={info} irPara={setComp} />}
+        {aba === "vinculo"           && mostrar && <AbaVinculo data={vinculo} />}
+        {aba === "qualidade"         && mostrar && <AbaQualidade data={qualidade} competencia={item ? comp : undefined} />}
+        {aba === "boas_praticas"     && mostrar && <AbaBoasPraticas data={boas} />}
+        {aba === "quadrimestre"      && mostrar && <AbaQuadrimestre quadrimestre={item?.quadrimestre} />}
+        {aba === "analise_indicador" && mostrar && <AbaAnaliseIndicador competencia={item ? comp : undefined} />}
+        {aba === "rel_pagamento"     && mostrar && <AbaRelatorioPagamento parcelaGlobal={item?.egestor_parcela} />}
+        {aba === "diag_cobertura"    && mostrar && <AbaDiagnosticoCobertura parcelaGlobal={item?.egestor_parcela} />}
         {aba === "monitoramento"    && <MonitoramentoSiaps municipio={{ uf: dashData?.uf, nome: dashData?.municipio }} />}
       </div>
 

@@ -1,0 +1,440 @@
+{
+ "_fonte": "Respostas reais consultadas em 27/10/2026 15:07 UTC: apisiaps.saude.gov.br/api/public/filtros/competencias e relatorioaps-prd.saude.gov.br/financiamento/pagamento?tipoRelatorio=AGRUPADO&coMunicipio=130014 (nuParcela 202606-202612)",
+ "siaps_competencias": [
+  {
+   "nuCompetencia": "202608",
+   "competencia": "agosto/2026",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202607",
+   "competencia": "julho/2026",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202606",
+   "competencia": "junho/2026",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202605",
+   "competencia": "maio/2026",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202604",
+   "competencia": "abril/2026",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202603",
+   "competencia": "março/2026",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202602",
+   "competencia": "fevereiro/2026",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202601",
+   "competencia": "janeiro/2026",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202512",
+   "competencia": "dezembro/2025",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202511",
+   "competencia": "novembro/2025",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202510",
+   "competencia": "outubro/2025",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202509",
+   "competencia": "setembro/2025",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202508",
+   "competencia": "agosto/2025",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202507",
+   "competencia": "julho/2025",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202506",
+   "competencia": "junho/2025",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202505",
+   "competencia": "maio/2025",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202504",
+   "competencia": "abril/2025",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202503",
+   "competencia": "março/2025",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202502",
+   "competencia": "fevereiro/2025",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "202501",
+   "competencia": "janeiro/2025",
+   "quadrimestre": false
+  },
+  {
+   "nuCompetencia": "2026Q2",
+   "competencia": "2º Quadrimestre/2026",
+   "quadrimestre": true
+  },
+  {
+   "nuCompetencia": "2026Q1",
+   "competencia": "1º Quadrimestre/2026",
+   "quadrimestre": true
+  },
+  {
+   "nuCompetencia": "2025Q3",
+   "competencia": "3º Quadrimestre/2025",
+   "quadrimestre": true
+  },
+  {
+   "nuCompetencia": "2025Q2",
+   "competencia": "2º Quadrimestre/2025",
+   "quadrimestre": true
+  },
+  {
+   "nuCompetencia": "2025Q1",
+   "competencia": "1º Quadrimestre/2025",
+   "quadrimestre": true
+  }
+ ],
+ "egestor_agrupado": {
+  "data": "27/10/2026",
+  "agrupamentos": [
+   {
+    "coUfIbge": "13",
+    "sgUf": "AM",
+    "coMunicipioIbge": "130014",
+    "noMunicipio": "APUI",
+    "nuCompCnes": "202604",
+    "nuParcela": "202606",
+    "coProcesso": 4867,
+    "listaPagamentoPlanoOrcamentario": [
+     {
+      "coSeqPlanoOrcamentario": 8,
+      "dsPlanoOrcamentario": "Equipes de Saúde da Família - eSF e equipes de Atenção Primária - eAP",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 209826,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 10,
+      "dsPlanoOrcamentario": "Atenção à Saúde Bucal",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 92439,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 9,
+      "dsPlanoOrcamentario": "Equipes Multiprofissionais - eMulti",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 16750,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 2,
+      "dsPlanoOrcamentario": "Agentes Comunitários de Saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 213972,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 11,
+      "dsPlanoOrcamentario": "Demais programas, serviços e equipes da Atenção Primária à Saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 52210,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 12,
+      "dsPlanoOrcamentario": "Componente per capita de base populacional",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 10799.75,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 16,
+      "dsPlanoOrcamentario": "Incentivo financeiro da APS - Promoção à saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 0,
+      "vlTotalImplantacao": 0
+     }
+    ],
+    "total": 595996.75
+   },
+   {
+    "coUfIbge": "13",
+    "sgUf": "AM",
+    "coMunicipioIbge": "130014",
+    "noMunicipio": "APUI",
+    "nuCompCnes": "202605",
+    "nuParcela": "202607",
+    "coProcesso": 4907,
+    "listaPagamentoPlanoOrcamentario": [
+     {
+      "coSeqPlanoOrcamentario": 8,
+      "dsPlanoOrcamentario": "Equipes de Saúde da Família - eSF e equipes de Atenção Primária - eAP",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 227826,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 10,
+      "dsPlanoOrcamentario": "Atenção à Saúde Bucal",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 95439,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 9,
+      "dsPlanoOrcamentario": "Equipes Multiprofissionais - eMulti",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 16750,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 2,
+      "dsPlanoOrcamentario": "Agentes Comunitários de Saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 213972,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 11,
+      "dsPlanoOrcamentario": "Demais programas, serviços e equipes da Atenção Primária à Saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 65585,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 12,
+      "dsPlanoOrcamentario": "Componente per capita de base populacional",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 10799.75,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 16,
+      "dsPlanoOrcamentario": "Incentivo financeiro da APS - Promoção à saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 0,
+      "vlTotalImplantacao": 0
+     }
+    ],
+    "total": 630371.75
+   },
+   {
+    "coUfIbge": "13",
+    "sgUf": "AM",
+    "coMunicipioIbge": "130014",
+    "noMunicipio": "APUI",
+    "nuCompCnes": "202606",
+    "nuParcela": "202608",
+    "coProcesso": 4947,
+    "listaPagamentoPlanoOrcamentario": [
+     {
+      "coSeqPlanoOrcamentario": 8,
+      "dsPlanoOrcamentario": "Equipes de Saúde da Família - eSF e equipes de Atenção Primária - eAP",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 227826,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 10,
+      "dsPlanoOrcamentario": "Atenção à Saúde Bucal",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 104799,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 9,
+      "dsPlanoOrcamentario": "Equipes Multiprofissionais - eMulti",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 14250,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 2,
+      "dsPlanoOrcamentario": "Agentes Comunitários de Saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 213972,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 11,
+      "dsPlanoOrcamentario": "Demais programas, serviços e equipes da Atenção Primária à Saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 65585,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 12,
+      "dsPlanoOrcamentario": "Componente per capita de base populacional",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 10799.75,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 16,
+      "dsPlanoOrcamentario": "Incentivo financeiro da APS - Promoção à saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 0,
+      "vlTotalImplantacao": 0
+     }
+    ],
+    "total": 637231.75
+   },
+   {
+    "coUfIbge": "13",
+    "sgUf": "AM",
+    "coMunicipioIbge": "130014",
+    "noMunicipio": "APUI",
+    "nuCompCnes": "202607",
+    "nuParcela": "202609",
+    "coProcesso": 5027,
+    "listaPagamentoPlanoOrcamentario": [
+     {
+      "coSeqPlanoOrcamentario": 8,
+      "dsPlanoOrcamentario": "Equipes de Saúde da Família - eSF e equipes de Atenção Primária - eAP",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 227826,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 10,
+      "dsPlanoOrcamentario": "Atenção à Saúde Bucal",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 113820,
+      "vlTotalImplantacao": 14000
+     },
+     {
+      "coSeqPlanoOrcamentario": 9,
+      "dsPlanoOrcamentario": "Equipes Multiprofissionais - eMulti",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 14250,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 2,
+      "dsPlanoOrcamentario": "Agentes Comunitários de Saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 213972,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 11,
+      "dsPlanoOrcamentario": "Demais programas, serviços e equipes da Atenção Primária à Saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 65585,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 12,
+      "dsPlanoOrcamentario": "Componente per capita de base populacional",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 10799.75,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 16,
+      "dsPlanoOrcamentario": "Incentivo financeiro da APS - Promoção à saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 0,
+      "vlTotalImplantacao": 0
+     }
+    ],
+    "total": 660252.75
+   },
+   {
+    "coUfIbge": "13",
+    "sgUf": "AM",
+    "coMunicipioIbge": "130014",
+    "noMunicipio": "APUI",
+    "nuCompCnes": "202608",
+    "nuParcela": "202610",
+    "coProcesso": 5127,
+    "listaPagamentoPlanoOrcamentario": [
+     {
+      "coSeqPlanoOrcamentario": 8,
+      "dsPlanoOrcamentario": "Equipes de Saúde da Família - eSF e equipes de Atenção Primária - eAP",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 227826,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 10,
+      "dsPlanoOrcamentario": "Atenção à Saúde Bucal",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 113820,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 9,
+      "dsPlanoOrcamentario": "Equipes Multiprofissionais - eMulti",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 16750,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 2,
+      "dsPlanoOrcamentario": "Agentes Comunitários de Saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 213972,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 11,
+      "dsPlanoOrcamentario": "Demais programas, serviços e equipes da Atenção Primária à Saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 65585,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 12,
+      "dsPlanoOrcamentario": "Componente per capita de base populacional",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 10799.75,
+      "vlTotalImplantacao": 0
+     },
+     {
+      "coSeqPlanoOrcamentario": 16,
+      "dsPlanoOrcamentario": "Incentivo financeiro da APS - Promoção à saúde",
+      "dsGestao": "MUNICIPAL",
+      "vlTotalCusteio": 0,
+      "vlTotalImplantacao": 0
+     }
+    ],
+    "total": 648752.75
+   }
+  ]
+ }
+}

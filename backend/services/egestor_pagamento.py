@@ -178,7 +178,15 @@ async def painel(db: AsyncSession, municipio_id: int, parcela: str | None = None
     if not parcelas:
         return {"situacao_dado": "nao_disponivel", "parcelas": [],
                 "fonte": "e-Gestor APS — relatório público de pagamento (relatorioaps-prd.saude.gov.br)"}
-    parcela = parcela if parcela in parcelas else parcelas[0]
+    if parcela and parcela not in parcelas:
+        # parcela pedida (pela competência escolhida na tela) não é trocada por outra em silêncio
+        return {"situacao_dado": "nao_publicada", "parcela": parcela, "parcela_rotulo": _parcela_rotulo(parcela),
+                "parcelas": [{"nu_parcela": p, "rotulo": _parcela_rotulo(p)} for p in parcelas],
+                "fonte": "e-Gestor APS — relatório público de pagamento (relatorioaps-prd.saude.gov.br)",
+                "nota": (f"A {_parcela_rotulo(parcela)} não está entre as parcelas coletadas do e-Gestor "
+                         f"(última: {_parcela_rotulo(parcelas[0])}). Se for mais recente, ainda não foi publicada "
+                         f"pelo Ministério da Saúde; o ERSUS360 guarda as {PARCELAS_GUARDADAS} últimas.")}
+    parcela = parcela or parcelas[0]
     comps = list((await db.execute(select(EgestorPagamentoComponente).where(
         EgestorPagamentoComponente.municipio_id == municipio_id, EgestorPagamentoComponente.nu_parcela == parcela)
         .order_by(EgestorPagamentoComponente.co_plano, EgestorPagamentoComponente.co_componente))).scalars())

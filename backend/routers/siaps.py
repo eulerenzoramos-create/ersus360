@@ -306,6 +306,10 @@ async def _cvat_importado(db: AsyncSession, current: UserOut):
     return rels[0] if rels else None
 
 
+AVISO_REFERENCIA_ANTIGA = ("REFERÊNCIA ANTIGA (competência Abr/2026, conferida no e-Gestor em set/2026) — não é a situação "
+                           "atual. Importe o relatório mais recente em Relatórios do SIAPS para ver a competência vigente.")
+
+
 @router.get("/abrangencia")
 async def abrangencia(current: UserOut = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Total de equipes por tipo: do XML do CNES importado pelo município (AREAL e demais eSF
@@ -315,36 +319,116 @@ async def abrangencia(current: UserOut = Depends(get_current_user), db: AsyncSes
         "uf": "", "municipio": current.municipio, "ibge": current.municipio_ibge, "ied": None,
         "equipes_homologadas": None, "equipes_validas_componentes": None}
     from services.siaps_equipes import equipes_do_municipio, por_tipo
+    if current.municipio_id is not None:
+        # homologadas/válidas e IED: dados oficiais captados do SIAPS substituem a referência fixa de Abr/2026
+        from services import siaps_publico as sp_pub, siaps_quadrimestral as sq
+        hv = await sq.homologadas_e_validas(db, current.municipio_id)
+        if hv:
+            zeros = {k: 0 for k in (base.get("equipes_homologadas") or {})}
+            base = {**base, "equipes_homologadas": {**zeros, **hv["homologadas"]},
+                    "equipes_validas_componentes": {**zeros, **hv["validas"]},
+                    "homologadas_fonte": f"SIAPS área logada — Avaliação do Quadrimestre {hv['quadrimestre']}"}
+        pub = await sp_pub.painel(db, current.municipio_id, current.municipio_ibge)
+        if pub.get("equidade"):
+            base = {**base, "ied": pub["equidade"]["faixa_ied"]}
     oficiais = await equipes_do_municipio(db, current.municipio_id) if current.municipio_id is not None else []
     if oficiais:
         return {**base, "total_equipes": por_tipo(oficiais),
                 "competencia": max(e.atualizado_em for e in oficiais).strftime("%d/%m/%Y"),
                 "fonte": "siaps_publico_equipes",
-                "fonte_detalhe": "Total de equipes: SIAPS (API pública, atualização automática semanal). Homologadas e válidas: SIAPS."}
+                "fonte_detalhe": "Total de equipes: SIAPS (API pública, atualização automática semanal). Homologadas e válidas: "
+                                 + base.get("homologadas_fonte", "SIAPS — referência Abr/2026 (sem captura recente)") + "."}
     cnes = await ultima_importacao(db, current.municipio_id) if current.municipio_id is not None else None
     if cnes:
         return {**base, "total_equipes": equipes_por_tipo(cnes, _marcacoes()),
                 "competencia": cnes.get("data_arquivo") and "/".join(reversed(cnes["data_arquivo"].split("-"))),
                 "fonte": "cnes_xml_importado",
-                "fonte_detalhe": "Total de equipes: XML do CNES importado (SISAB). Homologadas e válidas: SIAPS."}
+                "fonte_detalhe": "Total de equipes: XML do CNES importado (SISAB). Homologadas e válidas: "
+                                 + base.get("homologadas_fonte", "SIAPS — referência Abr/2026") + "."}
     if current.municipio_ibge != "1300144":
         return {"situacao_dado": "nao_disponivel"}
-    return {**_ABRANGENCIA, "competencia": "Abr/2026", "fonte": "siaps_referencia"}
+    # total de equipes ainda da referência Abr/2026 (sem importação); homologadas/válidas já oficiais se captadas
+    return {**base, "competencia": "Abr/2026", "fonte": "siaps_referencia", "referencia_desatualizada": True,
+            "nota": AVISO_REFERENCIA_ANTIGA,
+            "fonte_detalhe": "Total de equipes: referência SIAPS Abr/2026 (sem importação). Homologadas e válidas: "
+                             + base.get("homologadas_fonte", "referência Abr/2026") + "."}
+
+
+@router.get("/competencias")
+async def competencias(
+    atualizar: bool = Query(False),
+    current: UserOut = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Competências por fonte oficial (SIAPS público, e-Gestor) e o que já entrou no ERSUS360 — seletor da tela."""
+    from services import egestor_competencias
+    return await egestor_competencias.catalogo(db, current.municipio_id, current.municipio_ibge or "1300144", atualizar)
+
+
+_NOTA_SEM_DADOS = {
+    "nao_publicada": "A competência {r} ainda não foi publicada pelo Ministério da Saúde no SIAPS. Nenhum valor foi estimado.",
+    "publicada_aguardando_importacao": ("A competência {r} já foi publicada no SIAPS, mas o resultado por equipe fica na área "
+                                        "logada (gov.br) e ainda não foi importado no ERSUS360 (Relatórios do SIAPS)."),
+    "fonte_indisponivel": "SIAPS público fora do ar agora — não foi possível confirmar se {r} já foi publicada.",
+    "importada": "Não há relatório CVAT de {r} importado (só resultados de Qualidade).",
+}
+
+
+async def _competencia_sem_dados(db: AsyncSession, current: UserOut, competencia: str) -> dict:
+    """Competência pedida sem dado no ERSUS360: diz se ainda não foi publicada ou se falta importar. Nunca estima."""
+    from services import egestor_competencias as ec
+    cat = await ec.catalogo(db, current.municipio_id, current.municipio_ibge or "1300144")
+    item = next((c for c in cat["competencias"] if c["competencia"] == competencia), None)
+    sit = item["situacao_siaps"] if item else "nao_publicada"
+    return {"situacao_dado": sit, "competencia": competencia, "rotulo": ec.rotulo(competencia),
+            "equipes": [], "por_status": None, "fonte": None, "consultado_em": cat["consultado_em"],
+            "nota": _NOTA_SEM_DADOS[sit].format(r=ec.rotulo(competencia))}
+
+
+async def _cvat_quadrimestre_publico(ibge6: str, ano: int, mes: int, tipo_equipe: str) -> dict | None:
+    """Classificação CVAT agregada do quadrimestre na API pública do SIAPS (sem detalhe por equipe)."""
+    quad = f"{ano}Q{1 if mes <= 4 else (2 if mes <= 8 else 3)}"
+    pub_quad = await buscar_classificacao_quadrimestre(ibge6, quad)
+    if not (pub_quad and pub_quad.get("total_equipes", 0) > 0):
+        return None
+    # a API pública só publica a classificação agregada: o detalhe por equipe NÃO é preenchido com a
+    # tabela de referência de Abr/2026 (antes era, e aparecia como se fosse do quadrimestre)
+    return {
+        "competencia": f"{ano}-{mes:02d}",
+        "quadrimestre": quad,
+        "tipo_equipe": tipo_equipe,
+        "dado_preliminar": False,
+        "municipio": "APUÍ", "uf": "AM", "ied": 2,
+        "total_equipes": pub_quad["total_equipes"],
+        "total_pessoas_vinculadas": None,
+        "total_pessoas_acompanhadas": None,
+        "pontuacao_media": None,
+        "por_status": pub_quad["por_status"],
+        "pct_status": pub_quad.get("pct_status", {}),
+        "equipes": [],
+        "fonte": "siaps_publico",
+        "fonte_detalhe": f"SIAPS público — classificação do quadrimestre {quad} (apisiaps.saude.gov.br/api/public)",
+        "nota": "A API pública publica só a classificação agregada das equipes. Para o detalhe por equipe "
+                "(variáveis A–K e pontuação), importe o relatório CVAT em Relatórios do SIAPS.",
+    }
 
 
 @router.get("/vinculo-acompanhamento")
 async def vinculo_acompanhamento(
-    competencia: str = Query("2026-04"),
+    competencia: str | None = Query(None, pattern=r"^\d{4}-\d{2}$"),
     tipo_equipe: str = Query("eAP,eSF"),
     current: UserOut = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Retorna CVAT por equipe. 1º o relatório do SIAPS importado pelo município
-    (/api/siaps-relatorios); depois SIAPS ao vivo; fallback para referência Abr/2026."""
+    (/api/siaps-relatorios); depois SIAPS ao vivo; fallback para referência Abr/2026.
+    Com `competencia` escolhida, nunca troca por outro mês: sem relatório daquele mês, mostra a
+    classificação pública do quadrimestre (se publicada) ou diz que a competência não foi publicada/importada."""
     if current.municipio_id is not None:
         importados = await relatorios_do_municipio(db, current.municipio_id, "cvat")
-        if importados:
-            rel = next((r for r in importados if r.competencia == competencia), importados[0])
+        rel = (next((r for r in importados if r.competencia == competencia), None) if competencia
+               else (importados[0] if importados else None))
+        if rel:
             linhas = json.loads(rel.linhas)
             resumo = resumo_cvat(linhas)
             return {
@@ -362,6 +446,20 @@ async def vinculo_acompanhamento(
                 "fonte_detalhe": f"Relatório SIAPS importado ({rel.gerado_em or rel.competencia})",
                 "aviso": AVISO_ESFR,
             }
+    if competencia:
+        ano, mes = (int(x) for x in competencia.split("-"))
+        try:
+            pub = await _cvat_quadrimestre_publico((current.municipio_ibge or "1300144")[:6], ano, mes, tipo_equipe)
+        except Exception:
+            pub = None
+        if pub:
+            from services.egestor_competencias import rotulo
+            pub["nota"] = (f"Relatório mensal de {rotulo(competencia)} não importado: exibindo a classificação pública do "
+                           f"quadrimestre {pub['quadrimestre']}, que inclui esse mês. " + pub["nota"])
+            return pub
+        return await _competencia_sem_dados(db, current, competencia)
+
+    competencia = "2026-04"
     # Tenta dados ao vivo do SIAPS (requer credenciais configuradas no Railway)
     ibge = "1300144"
     try:
@@ -392,39 +490,10 @@ async def vinculo_acompanhamento(
         pass
 
     # Tenta API PÚBLICA do SIAPS (apisiaps.saude.gov.br/api/public — sem credenciais)
-    # Retorna classificação CVAT por quadrimestre (1º Quad/2026 = Jan-Abr)
     try:
-        # Converte competência para quadrimestre: YYYY-MM → YYYYQn
-        comp_parts = competencia.split("-")
-        ano = int(comp_parts[0]) if comp_parts else 2026
-        mes = int(comp_parts[1]) if len(comp_parts) > 1 else 4
-        # Q1=Jan-Abr(4), Q2=Mai-Ago(8), Q3=Set-Dez(12)
-        quad_num = 1 if mes <= 4 else (2 if mes <= 8 else 3)
-        quad = f"{ano}Q{quad_num}"
-
-        pub_quad = await buscar_classificacao_quadrimestre("130014", quad)
-        if pub_quad and pub_quad.get("total_equipes", 0) > 0:
-            por_status_pub = pub_quad["por_status"]
-            equipes_ref = _VINCULO_EQUIPES  # tabela detalhada (referência)
-            total_vinculadas = sum(e["K"] for e in equipes_ref)
-            total_acompanhadas = sum(e["H"] for e in equipes_ref)
-            pontuacao_media = round(sum(e["pontuacao"] for e in equipes_ref) / len(equipes_ref), 2)
-            return {
-                "competencia": f"{ano}-{mes:02d}",
-                "quadrimestre": quad,
-                "tipo_equipe": tipo_equipe,
-                "dado_preliminar": False,
-                "municipio": "APUÍ", "uf": "AM", "ied": 2,
-                "total_equipes": pub_quad["total_equipes"],
-                "total_pessoas_vinculadas": total_vinculadas,
-                "total_pessoas_acompanhadas": total_acompanhadas,
-                "pontuacao_media": pontuacao_media,
-                "por_status": por_status_pub,
-                "pct_status": pub_quad.get("pct_status", {}),
-                "equipes": equipes_ref,
-                "fonte": "siaps_publico",
-                "fonte_detalhe": "apisiaps.saude.gov.br/api/public (sem autenticação)",
-            }
+        pub = await _cvat_quadrimestre_publico("130014", 2026, 4, tipo_equipe)
+        if pub:
+            return pub
     except Exception:
         pass
 
@@ -454,7 +523,9 @@ async def vinculo_acompanhamento(
         "por_status": por_status,
         "equipes": equipes,
         "fonte": "siaps_referencia",
-        "nota": "Dados verificados no e-Gestor APS em Set/2026 — competência Abr/2026.",
+        "referencia_desatualizada": True,
+        "fonte_detalhe": "Referência Abr/2026 (tabela fixa no sistema)",
+        "nota": AVISO_REFERENCIA_ANTIGA,
     }
 
 
@@ -549,23 +620,20 @@ async def componente_qualidade(
     try:
         live = await buscar_qualidade_quadrimestre("130014", quad)
         if live and live.get("indicadores_resumo"):
-            equipes_ref = _QUALIDADE_EQUIPES
-            pontuacao_media = round(
-                sum(e["pontuacao_qualidade"] for e in equipes_ref) / len(equipes_ref), 2
-            )
             return {
                 "competencia": f"{ano}-{mes:02d}",
                 "quadrimestre": quad,
                 "municipio": "APUÍ",
                 "uf": "AM",
                 "ibge": "1300144",
-                "total_equipes": live["total_equipes"] or len(equipes_ref),
-                "pontuacao_media": pontuacao_media,
+                "total_equipes": live["total_equipes"],
+                "pontuacao_media": None,
                 "por_status_qualidade": live["por_status_qualidade"],
                 "indicadores_resumo": live["indicadores_resumo"],
-                "equipes": equipes_ref,
+                "equipes": [],
                 "fonte": "siaps_publico",
-                "fonte_detalhe": "apisiaps.saude.gov.br/api/public (1º Quad/2026)",
+                "fonte_detalhe": f"SIAPS público — quadrimestre {quad} (apisiaps.saude.gov.br/api/public)",
+                "nota": "Resultado por equipe: aba Componente Qualidade (resultado oficial capturado do SIAPS).",
                 "dado_preliminar": False,
             }
     except Exception:
@@ -603,168 +671,21 @@ async def componente_qualidade(
         "indicadores_resumo": indicadores_resumo,
         "equipes": equipes,
         "fonte": "siaps_referencia",
+        "referencia_desatualizada": True,
+        "nota": AVISO_REFERENCIA_ANTIGA,
         "dado_preliminar": False,
     }
 
 
-# ── Endpoints de Integração em Tempo Real ─────────────────────────────────────
-
-@router.get("/live/status")
-async def status_integracao(_: UserOut = Depends(get_current_user)):
-    """Verifica conectividade com SIAPS/eGestor em tempo real."""
-    return await siaps_service.buscar_status_integracao()
-
-
-@router.get("/live/qualidade")
-async def qualidade_live(
-    quadrimestre: str = Query("Q1/26"),
-    _: UserOut = Depends(get_current_user),
-):
-    """Busca Componente Qualidade em tempo real do SIAPS."""
-    resultado = await siaps_service.buscar_componente_qualidade(quadrimestre)
-    if resultado["fonte"] == "siaps_live":
-        return resultado
-    equipes = _QUALIDADE_EQUIPES
-    return {
-        "fonte": "cache_local",
-        "quadrimestre": quadrimestre,
-        "aviso": "SIAPS indisponível — exibindo último dado conhecido (Abr/2026)",
-        "equipes": equipes,
-    }
-
-
-@router.get("/live/vinculo")
-async def vinculo_live(
-    quadrimestre: str = Query("Q1/26"),
-    _: UserOut = Depends(get_current_user),
-):
-    """Busca Componente Vínculo em tempo real do SIAPS."""
-    resultado = await siaps_service.buscar_componente_vinculo(quadrimestre)
-    if resultado["fonte"] == "siaps_live":
-        return resultado
-    equipes = _VINCULO_EQUIPES
-    return {
-        "fonte": "cache_local",
-        "quadrimestre": quadrimestre,
-        "aviso": "SIAPS indisponível — exibindo último dado conhecido (Abr/2026)",
-        "equipes": equipes,
-    }
-
-
-@router.get("/live/equipes")
-async def equipes_live(_: UserOut = Depends(get_current_user)):
-    """Busca equipes do município em tempo real via eGestor/SIAPS."""
-    return await siaps_service.buscar_equipes_municipio()
-
-
-@router.get("/live/diagnostico")
-async def diagnostico_live(_: UserOut = Depends(get_current_user)):
-    """Diagnóstico completo em tempo real: SIAPS + dados locais consolidados."""
-    status = await siaps_service.buscar_status_integracao()
-    qualidade = await siaps_service.buscar_componente_qualidade()
-    vinculo = await siaps_service.buscar_componente_vinculo()
-    equipes = await siaps_service.buscar_equipes_municipio()
-    return {
-        "timestamp": status["timestamp"],
-        "municipio": "APUÍ/AM",
-        "ibge": "1300144",
-        "integracao": status,
-        "componente_qualidade": qualidade,
-        "componente_vinculo": vinculo,
-        "equipes_municipio": equipes,
-        "dados_referencia": {
-            "competencia": "Abr/2026",
-            "vinculo_equipes": len(_VINCULO_EQUIPES),
-            "qualidade_equipes": len(_QUALIDADE_EQUIPES),
-            "pontuacao_media_vinculo": round(sum(e["pontuacao"] for e in _VINCULO_EQUIPES) / len(_VINCULO_EQUIPES), 2),
-            "pontuacao_media_qualidade": round(sum(e["pontuacao_qualidade"] for e in _QUALIDADE_EQUIPES) / len(_QUALIDADE_EQUIPES), 2),
-        },
-    }
-
-
 @router.get("/boas-praticas")
-async def boas_praticas(current: UserOut = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def boas_praticas(competencia: str | None = Query(None, pattern=r"^\d{4}-\d{2}$"),
+                        current: UserOut = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Destaques e alertas gerados dos resultados oficiais captados (relatório SIAPS importado e
     Avaliação do Quadrimestre publicada). Sem lista fixa: sem dado oficial, a aba fica vazia."""
     from services import siaps_boas_praticas
     if current.municipio_id is None:
         return {"situacao_dado": "nao_disponivel", "boas_praticas": [], "total": 0, "destaques": 0, "alertas": 0}
-    return await siaps_boas_praticas.montar(db, current.municipio_id, current.municipio_ibge, current.municipio)
-
-
-# ── Endpoints de Integração em Tempo Real ─────────────────────────────────────
-
-@router.get("/live/status")
-async def status_integracao(_: UserOut = Depends(get_current_user)):
-    """Verifica conectividade com SIAPS/eGestor em tempo real."""
-    return await siaps_service.buscar_status_integracao()
-
-
-@router.get("/live/qualidade")
-async def qualidade_live(
-    quadrimestre: str = Query("Q1/26"),
-    _: UserOut = Depends(get_current_user),
-):
-    """Busca Componente Qualidade em tempo real do SIAPS."""
-    resultado = await siaps_service.buscar_componente_qualidade(quadrimestre)
-    if resultado["fonte"] == "siaps_live":
-        return resultado
-    equipes = _QUALIDADE_EQUIPES
-    return {
-        "fonte": "cache_local",
-        "quadrimestre": quadrimestre,
-        "aviso": "SIAPS indisponível — exibindo último dado conhecido (Abr/2026)",
-        "equipes": equipes,
-    }
-
-
-@router.get("/live/vinculo")
-async def vinculo_live(
-    quadrimestre: str = Query("Q1/26"),
-    _: UserOut = Depends(get_current_user),
-):
-    """Busca Componente Vínculo em tempo real do SIAPS."""
-    resultado = await siaps_service.buscar_componente_vinculo(quadrimestre)
-    if resultado["fonte"] == "siaps_live":
-        return resultado
-    equipes = _VINCULO_EQUIPES
-    return {
-        "fonte": "cache_local",
-        "quadrimestre": quadrimestre,
-        "aviso": "SIAPS indisponível — exibindo último dado conhecido (Abr/2026)",
-        "equipes": equipes,
-    }
-
-
-@router.get("/live/equipes")
-async def equipes_live(_: UserOut = Depends(get_current_user)):
-    """Busca equipes do município em tempo real via eGestor/SIAPS."""
-    return await siaps_service.buscar_equipes_municipio()
-
-
-@router.get("/live/diagnostico")
-async def diagnostico_live(_: UserOut = Depends(get_current_user)):
-    """Diagnóstico completo em tempo real: SIAPS + dados locais consolidados."""
-    status = await siaps_service.buscar_status_integracao()
-    qualidade = await siaps_service.buscar_componente_qualidade()
-    vinculo = await siaps_service.buscar_componente_vinculo()
-    equipes = await siaps_service.buscar_equipes_municipio()
-    return {
-        "timestamp": status["timestamp"],
-        "municipio": "APUÍ/AM",
-        "ibge": "1300144",
-        "integracao": status,
-        "componente_qualidade": qualidade,
-        "componente_vinculo": vinculo,
-        "equipes_municipio": equipes,
-        "dados_referencia": {
-            "competencia": "Abr/2026",
-            "vinculo_equipes": len(_VINCULO_EQUIPES),
-            "qualidade_equipes": len(_QUALIDADE_EQUIPES),
-            "pontuacao_media_vinculo": round(sum(e["pontuacao"] for e in _VINCULO_EQUIPES) / len(_VINCULO_EQUIPES), 2),
-            "pontuacao_media_qualidade": round(sum(e["pontuacao_qualidade"] for e in _QUALIDADE_EQUIPES) / len(_QUALIDADE_EQUIPES), 2),
-        },
-    }
+    return await siaps_boas_praticas.montar(db, current.municipio_id, current.municipio_ibge, current.municipio, competencia)
 
 
 @router.get("/dashboard")
@@ -812,106 +733,26 @@ async def _dashboard_referencia() -> dict:
             "cito_meta_pct_media": round(sum(e["indicadores"]["ind2_cito"]["resultado"] for e in equipes_qualidade) / len(equipes_qualidade), 1),
         },
         "fonte": "siaps_referencia",
+        "referencia_desatualizada": True,
+        "nota": AVISO_REFERENCIA_ANTIGA,
     }
 
-
-# ── Endpoints de Integração em Tempo Real ─────────────────────────────────────
-
-@router.get("/live/status")
-async def status_integracao(_: UserOut = Depends(get_current_user)):
-    """Verifica conectividade com SIAPS/eGestor em tempo real."""
-    return await siaps_service.buscar_status_integracao()
-
-
-@router.get("/live/qualidade")
-async def qualidade_live(
-    quadrimestre: str = Query("Q1/26"),
-    _: UserOut = Depends(get_current_user),
-):
-    """Busca Componente Qualidade em tempo real do SIAPS."""
-    resultado = await siaps_service.buscar_componente_qualidade(quadrimestre)
-    if resultado["fonte"] == "siaps_live":
-        return resultado
-    equipes = _QUALIDADE_EQUIPES
-    return {
-        "fonte": "cache_local",
-        "quadrimestre": quadrimestre,
-        "aviso": "SIAPS indisponível — exibindo último dado conhecido (Abr/2026)",
-        "equipes": equipes,
-    }
-
-
-@router.get("/live/vinculo")
-async def vinculo_live(
-    quadrimestre: str = Query("Q1/26"),
-    _: UserOut = Depends(get_current_user),
-):
-    """Busca Componente Vínculo em tempo real do SIAPS."""
-    resultado = await siaps_service.buscar_componente_vinculo(quadrimestre)
-    if resultado["fonte"] == "siaps_live":
-        return resultado
-    equipes = _VINCULO_EQUIPES
-    return {
-        "fonte": "cache_local",
-        "quadrimestre": quadrimestre,
-        "aviso": "SIAPS indisponível — exibindo último dado conhecido (Abr/2026)",
-        "equipes": equipes,
-    }
-
-
-@router.get("/live/equipes")
-async def equipes_live(_: UserOut = Depends(get_current_user)):
-    """Busca equipes do município em tempo real via eGestor/SIAPS."""
-    return await siaps_service.buscar_equipes_municipio()
-
-
-@router.get("/live/diagnostico")
-async def diagnostico_live(_: UserOut = Depends(get_current_user)):
-    """Diagnóstico completo em tempo real: SIAPS + dados locais consolidados."""
-    status = await siaps_service.buscar_status_integracao()
-    qualidade = await siaps_service.buscar_componente_qualidade()
-    vinculo = await siaps_service.buscar_componente_vinculo()
-    equipes = await siaps_service.buscar_equipes_municipio()
-    return {
-        "timestamp": status["timestamp"],
-        "municipio": "APUÍ/AM",
-        "ibge": "1300144",
-        "integracao": status,
-        "componente_qualidade": qualidade,
-        "componente_vinculo": vinculo,
-        "equipes_municipio": equipes,
-        "dados_referencia": {
-            "competencia": "Abr/2026",
-            "vinculo_equipes": len(_VINCULO_EQUIPES),
-            "qualidade_equipes": len(_QUALIDADE_EQUIPES),
-            "pontuacao_media_vinculo": round(sum(e["pontuacao"] for e in _VINCULO_EQUIPES) / len(_VINCULO_EQUIPES), 2),
-            "pontuacao_media_qualidade": round(sum(e["pontuacao_qualidade"] for e in _QUALIDADE_EQUIPES) / len(_QUALIDADE_EQUIPES), 2),
-        },
-    }
-
-
-# ── Diagnóstico / Cobertura da Atenção Básica ─────────────────────────────────
 
 @router.get("/diagnostico-cobertura")
 async def diagnostico_cobertura(
-    parcela: str | None = Query(None),
+    parcela: str | None = Query(None, pattern=r"^\d{6}$"),
+    atualizar: bool = Query(False),
     _: UserOut = Depends(get_current_user),
 ):
-    """Diagnóstico/Cobertura via API REST e-Gestor APS (sem Playwright). Detecta parcela atual automaticamente."""
+    """Diagnóstico/Cobertura: só dados publicados pelo e-Gestor APS (API pública), sem valores fixos."""
     try:
-        from services.egestor_diagnostico_scraper import buscar_diagnostico_cobertura, _parcela_atual
-        parcela = parcela or _parcela_atual()
-        dados = await buscar_diagnostico_cobertura(parcela)
-        return dados
+        from services.egestor_diagnostico_scraper import buscar_diagnostico_cobertura
+        return await buscar_diagnostico_cobertura(parcela, forcar_atualizacao=atualizar)
     except Exception as exc:
         import logging
-        logging.getLogger(__name__).error("diagnostico_cobertura: %s", exc)
-        return {
-            "situacao_dado": "nao_disponivel",
-            "parcela": parcela,
-            "nota": "Scraping temporariamente indisponível.",
-            "fonte": "erro_temporario",
-        }
+        logging.getLogger(__name__).error("diagnostico_cobertura: %s", exc, exc_info=True)
+        return {"situacao_dado": "nao_disponivel", "parcela_code": parcela,
+                "nota": "e-Gestor APS indisponível no momento. Nenhum dado foi estimado.", "fonte": "erro_temporario"}
 
 
 @router.get("/probe-egestor")
