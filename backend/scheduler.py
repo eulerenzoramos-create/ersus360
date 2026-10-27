@@ -132,14 +132,13 @@ async def _job_monitor_scnes() -> None:
 
 
 async def _job_diagnostico_cobertura() -> None:
-    """Job: atualiza cache diário Diagnóstico/Cobertura eGestor às 05:00 (Manaus)."""
+    """Job: atualiza o cache do Diagnóstico/Cobertura (e-Gestor, API pública) às 05:00 (Manaus)."""
     logger.info("[Scheduler] Atualizando cache Diagnóstico/Cobertura eGestor...")
     try:
-        from services.egestor_diagnostico_scraper import buscar_diagnostico_cobertura, _parcela_atual
-        parcela = _parcela_atual()
-        resultado = await buscar_diagnostico_cobertura(parcela, forcar_atualizacao=True)
-        fonte = resultado.get("fonte", "?")
-        logger.info("[Scheduler] Diagnóstico/Cobertura atualizado — fonte: %s", fonte)
+        from services.egestor_diagnostico_scraper import buscar_diagnostico_cobertura
+        resultado = await buscar_diagnostico_cobertura(None, forcar_atualizacao=True)
+        logger.info("[Scheduler] Diagnóstico/Cobertura: %s parcela %s",
+                    resultado.get("situacao_dado"), resultado.get("parcela_code"))
     except Exception as exc:
         logger.error("[Scheduler] Erro no job Diagnóstico/Cobertura: %s", exc, exc_info=True)
 
@@ -160,66 +159,15 @@ async def _job_siaps_publico() -> None:
 
 
 async def _job_egestor_incentivos() -> None:
-    """
-    Job: atualiza histórico de incentivos e-Gestor via API pública — toda domingo às 04:00.
-    Consulta relatorioaps-prd.saude.gov.br e atualiza HISTORICO_INCENTIVOS em memória.
-    """
+    """Job: série histórica de incentivos (total oficial de cada parcela, e-Gestor AGRUPADO) — domingo 04:00."""
     logger.info("[Scheduler] Atualizando histórico e-Gestor incentivos...")
     try:
         import httpx
-        from services.egestor_diagnostico_scraper import HISTORICO_INCENTIVOS, IBGE_6, _MAPA_COMP
-
-        url = "https://relatorioaps-prd.saude.gov.br/financiamento/pagamento"
-        hdrs = {"Accept": "application/json", "Content-Type": "application/json",
-                "User-Agent": "ERSUS360/2.0 FMS-Apui-AM"}
-        async with httpx.AsyncClient(timeout=25, verify=False) as c:
-            r = await c.get(url, params={"ibge": IBGE_6, "tipoRelatorio": "COMPLETO"}, headers=hdrs)
-        if r.status_code != 200:
-            logger.warning("[Scheduler] e-Gestor incentivos HTTP %d", r.status_code)
-            return
-        data = r.json()
-        itens = data if isinstance(data, list) else data.get("content") or data.get("data") or []
-        if not itens:
-            logger.warning("[Scheduler] e-Gestor incentivos: resposta vazia")
-            return
-
-        # Mapeia parcelas recebidas → atualiza ou insere no HISTORICO_INCENTIVOS
-        codigos_existentes = {h["parcela_code"] for h in HISTORICO_INCENTIVOS}
-        atualizados = inseridos = 0
-        for item in itens:
-            # Formato API: {"nuCompetencia": "202609", "vlTotalCalculado": 641500.00, ...}
-            comp = str(item.get("nuCompetencia") or item.get("competencia") or "")
-            total_raw = item.get("vlTotalCalculado") or item.get("vlTotal") or item.get("total")
-            if not comp or total_raw is None:
-                continue
-            try:
-                total = float(total_raw)
-            except (TypeError, ValueError):
-                continue
-            parcela_num = int(comp[4:]) if len(comp) >= 6 else 0
-            parcela_str = f"{parcela_num}/12" if parcela_num else "?"
-            competencia_label = _MAPA_COMP.get(comp, comp)
-            if comp in codigos_existentes:
-                for h in HISTORICO_INCENTIVOS:
-                    if h["parcela_code"] == comp:
-                        h["total"] = total
-                        h["competencia"] = competencia_label
-                        atualizados += 1
-                        break
-            else:
-                HISTORICO_INCENTIVOS.append({
-                    "parcela_code": comp,
-                    "competencia": competencia_label,
-                    "parcela": parcela_str,
-                    "total": total,
-                })
-                inseridos += 1
-        # Ordena por parcela_code
-        HISTORICO_INCENTIVOS.sort(key=lambda h: h["parcela_code"])
-        logger.info(
-            "[Scheduler] e-Gestor incentivos: %d atualizados, %d inseridos — total %d parcelas",
-            atualizados, inseridos, len(HISTORICO_INCENTIVOS),
-        )
+        from services.egestor_diagnostico_scraper import serie_historica
+        async with httpx.AsyncClient(timeout=30) as c:
+            serie = await serie_historica(c, forcar=True)
+        logger.info("[Scheduler] e-Gestor incentivos: %d parcelas publicadas (última %s)",
+                    len(serie), serie[-1]["parcela_code"] if serie else "—")
     except Exception as exc:
         logger.error("[Scheduler] Erro no job e-Gestor incentivos: %s", exc, exc_info=True)
 
