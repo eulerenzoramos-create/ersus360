@@ -139,6 +139,9 @@ async def catalogo(db: AsyncSession, municipio_id: int | None, ibge: str, forcar
             SiapsRelatorio.municipio_id == municipio_id, SiapsRelatorio.componente == "cvat"))).scalars())
         qual = set((await db.execute(select(distinct(ResultadoMensalSiaps.competencia)).where(
             ResultadoMensalSiaps.municipio_ibge == ibge, ResultadoMensalSiaps.fonte == FONTE_CAPTURA))).scalars())
+        # Qualidade também entra pelo arquivo "Baixar dados" do SIAPS importado em Relatórios do SIAPS
+        qual |= set((await db.execute(select(distinct(SiapsRelatorio.competencia)).where(
+            SiapsRelatorio.municipio_id == municipio_id, SiapsRelatorio.componente == "qualidade"))).scalars())
     comps = montar(meses_ate(datetime.utcnow()), fontes, cvat, qual)
     siaps, egestor = fontes.get("siaps"), fontes.get("egestor")
     ult_siaps = max(siaps["mensais"]) if siaps and siaps["mensais"] else None

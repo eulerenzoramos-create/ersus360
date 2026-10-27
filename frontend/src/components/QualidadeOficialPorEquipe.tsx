@@ -197,6 +197,11 @@ export default function QualidadeOficialPorEquipe({ modo = "qualidade", competen
         ) : null}
         <span style={{ fontSize: 11, color: "#64748b", marginLeft: "auto" }}>Última captura: {dataBR(data?.ultima_captura)}</span>
       </div>
+      {competencia && data && data.competencia !== competencia && (
+        <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", color: "#92400e", borderRadius: 6, padding: "6px 10px", fontSize: 12, marginBottom: 8 }}>
+          Sem captura da área logada para {mesAno(competencia)}{data.competencia ? `: este quadro mostra ${mesAno(data.competencia)}` : ""}.
+          O resultado de {mesAno(competencia)} importado por arquivo aparece no quadro do Componente Qualidade abaixo.
+        </div>)}
       {data?.competencia && (
         <div style={{ fontSize: 11.5, color: "#64748b", marginBottom: 8 }}>
           Competência mais recente capturada do SIAPS: <b>{mesAno(data.competencias[0])}</b>. Resultados mensais são de monitoramento
