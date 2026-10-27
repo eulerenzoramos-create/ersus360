@@ -28,14 +28,31 @@ function CapturaAssistida() {
   const [texto, setTexto] = useState("");
   const [recebido, setRecebido] = useState<string | null>(null);
   const [aberto, setAberto] = useState(false);
-  const m = useMutation<{ competencias: string[]; inseridos: number; atualizados: number; equipes: number; sem_codigo: string[];
-                          corrigidos_pelo_ms?: string[]; quadrimestral?: { novos: number; revisados: string[]; sem_mudanca: number } }, any, string>({
-    mutationFn: (t) => api.post("/api/siaps-publico/captura", JSON.parse(t)).then(r => r.data),
+  type ResCaptura = { competencias: string[]; inseridos: number; atualizados: number; equipes: number; sem_codigo: string[];
+                      corrigidos_pelo_ms?: string[]; quadrimestral?: { novos: number; revisados: string[]; sem_mudanca: number } };
+  type ResRelatorio = { arquivo: string; ok: boolean; erro?: string; componente?: string; competencia?: string; equipes?: number };
+  const m = useMutation<{ cap: ResCaptura | null; relatorios: ResRelatorio[] }, any, string>({
+    // "arquivos": relatório oficial que o próprio SIAPS gera na tela ("Baixar dados filtrados em tela", ex.: CVAT
+    // Visão por Competência), capturado pelo comando sem baixar arquivo; entra pelo mesmo leitor da importação manual.
+    mutationFn: async (t) => {
+      const { arquivos, ...p } = JSON.parse(t);
+      let relatorios: ResRelatorio[] = [];
+      if (Array.isArray(arquivos) && arquivos.length) {
+        const fd = new FormData();
+        arquivos.forEach((a: { nome?: string; conteudo: string }) =>
+          fd.append("arquivos", new File([a.conteudo], a.nome || "siaps.csv", { type: "text/csv" })));
+        relatorios = (await api.post("/api/siaps-relatorios/importar", fd, { headers: { "Content-Type": "multipart/form-data" } })).data.resultados;
+      }
+      const cap = p.linhas?.length || p.quadrimestral?.length ? (await api.post("/api/siaps-publico/captura", p)).data : null;
+      return { cap, relatorios };
+    },
     onSuccess: () => {
       setTexto(""); setRecebido(null);
-      ["siaps-captura-tabela", "siaps-boas", "siaps-quadrimestral", "siaps-conferencia", "siaps-painel-geral"].forEach(k => qc.invalidateQueries({ queryKey: [k] }));
+      ["siaps-captura-tabela", "siaps-boas", "siaps-quadrimestral", "siaps-conferencia", "siaps-painel-geral",
+       "siaps-vinculo", "siaps-dashboard", "siaps-competencias", "siaps-relatorios"].forEach(k => qc.invalidateQueries({ queryKey: [k] }));
     },
   });
+  const cap = m.data?.cap;
   useEffect(() => {
     // A tarefa "Captura SIAPS mensal", na página do SIAPS, abre o eGestor levando o resultado depois do
     // "#" (fragmento: fica no navegador, não vai a servidor). A importação depende do clique abaixo.
@@ -46,6 +63,7 @@ function CapturaAssistida() {
       if (pacote?.formato === "ersus360-siaps-captura-v1") {
         setTexto(JSON.stringify(pacote));
         setRecebido(`Recebido do SIAPS: ${pacote.linhas?.length ?? 0} linhas mensais` +
+                    (pacote.arquivos?.length ? ` + ${pacote.arquivos.length} relatório(s) oficial(is)` : "") +
                     (pacote.quadrimestral?.length ? ` + ${pacote.quadrimestral.length} avaliações quadrimestrais` : "") +
                     " — confira e clique em Importar captura.");
       }
@@ -78,11 +96,16 @@ function CapturaAssistida() {
             </button>
             {recebido && !m.isSuccess && <span style={{ fontSize: 12, color: "#1d4ed8" }}>{recebido}</span>}
             {!jsonOk && <span style={{ fontSize: 12, color: "#dc2626" }}>Conteúdo não é um JSON válido.</span>}
-            {m.isSuccess && <span id="captura-siaps-resultado" style={{ fontSize: 12, color: "#059669" }}>
-              Importado: {m.data.competencias.map(mesAno).join(", ")} · {m.data.equipes} equipes · {m.data.inseridos} novos, {m.data.atualizados} atualizados
-              {m.data.quadrimestral && ` · quadrimestral: ${m.data.quadrimestral.novos} novas, ${m.data.quadrimestral.revisados.length} revisadas pelo MS, ${m.data.quadrimestral.sem_mudanca} sem mudança`}
-              {m.data.corrigidos_pelo_ms?.length ? ` · ${m.data.corrigidos_pelo_ms.length} valor(es) mensal(is) corrigido(s) pelo MS` : ""}
-              {m.data.sem_codigo.length ? ` · sem código: ${m.data.sem_codigo.join("; ")}` : ""}</span>}
+            {m.isSuccess && cap && <span id="captura-siaps-resultado" style={{ fontSize: 12, color: "#059669" }}>
+              Importado: {cap.competencias.map(mesAno).join(", ")} · {cap.equipes} equipes · {cap.inseridos} novos, {cap.atualizados} atualizados
+              {cap.quadrimestral && ` · quadrimestral: ${cap.quadrimestral.novos} novas, ${cap.quadrimestral.revisados.length} revisadas pelo MS, ${cap.quadrimestral.sem_mudanca} sem mudança`}
+              {cap.corrigidos_pelo_ms?.length ? ` · ${cap.corrigidos_pelo_ms.length} valor(es) mensal(is) corrigido(s) pelo MS` : ""}
+              {cap.sem_codigo.length ? ` · sem código: ${cap.sem_codigo.join("; ")}` : ""}</span>}
+            {m.isSuccess && m.data.relatorios.map(r => (
+              <span key={r.arquivo} style={{ fontSize: 12, color: r.ok ? "#059669" : "#dc2626" }}>
+                {r.ok ? `Importado: ${r.componente === "cvat" ? "Vínculo (CVAT)" : `Qualidade ${r.componente ?? ""}`} ${mesAno(r.competencia)} · ${r.equipes ?? "?"} equipes`
+                      : `Recusado (${r.arquivo}): ${r.erro}`}
+              </span>))}
             {m.isError && <span id="captura-siaps-resultado" style={{ fontSize: 12, color: "#dc2626" }}>{m.error?.response?.data?.detail ?? "Falha ao importar."}</span>}
           </div>
         </div>
