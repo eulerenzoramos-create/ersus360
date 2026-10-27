@@ -13,7 +13,7 @@ import {
   Users, Star, TrendingUp, AlertTriangle, CheckCircle,
   ChevronDown, ChevronRight, RefreshCw, Download, Info,
 } from "lucide-react";
-import { apiGetEnvelope as apiGet, apiGetRaw, apiPost } from "../lib/api";
+import { api, apiGetEnvelope as apiGet, apiGetRaw, apiPost } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
@@ -907,9 +907,13 @@ function PainelErsusIA() {
     if (modo === "pergunta" && !pergunta.trim()) return;
     setCarregando(modo); setErro(null);
     try {
-      setResp(await apiPost("/api/siaps-ia/analisar", { modo, pergunta: modo === "pergunta" ? pergunta : null }));
+      // análise/plano/relatório com esforço alto passam de 60 s (limite padrão do cliente): até 5 min aqui
+      setResp((await api.post("/api/siaps-ia/analisar", { modo, pergunta: modo === "pergunta" ? pergunta : null },
+                              { timeout: 300_000 })).data);
     } catch (e: any) {
-      setErro(e?.response?.data?.detail ?? "Não foi possível consultar a IA agora.");
+      setErro(e?.response?.data?.detail
+        ?? (e?.code === "ECONNABORTED" ? "A IA demorou mais de 5 minutos para responder. Tente de novo em instantes."
+            : "Não foi possível consultar a IA agora."));
     } finally {
       setCarregando(null);
     }
@@ -958,7 +962,7 @@ function PainelErsusIA() {
           {carregando === "pergunta" ? "Pensando…" : "Perguntar"}
         </button>
       </div>
-      {carregando && <div style={{ fontSize: 11.5, color: "#6b7280", marginTop: 10 }}>A análise pode levar até um minuto…</div>}
+      {carregando && <div style={{ fontSize: 11.5, color: "#6b7280", marginTop: 10 }}>A análise pode levar de 1 a 3 minutos — não feche a página…</div>}
       {erro && <div style={{ marginTop: 10, fontSize: 12, color: "#b91c1c", background: "#fef2f2", borderRadius: 6, padding: "8px 10px" }}>{erro}</div>}
       {resp && !carregando && (
         <div style={{ marginTop: 14, borderTop: "1px solid #e5e7eb", paddingTop: 12 }}>
