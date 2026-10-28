@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import TetosMunicipais from "./InvestSUSTetos";
 import {
   Landmark, Plus, RefreshCw, AlertTriangle, CheckCircle2, Clock,
   ChevronDown, ChevronRight, FileText, Upload, Search, X, Check,
@@ -931,6 +932,9 @@ function RecursosDisponiveis({ municipio_id }: { municipio_id: number }) {
   });
 
   return (
+    <>
+    <TetosMunicipais />
+    <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", margin: "4px 0 8px" }}>Cadastros auxiliares</div>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
       {/* Parlamentares */}
       <div style={S.card}>
@@ -1009,6 +1013,7 @@ function RecursosDisponiveis({ municipio_id }: { municipio_id: number }) {
         )}
       </div>
     </div>
+    </>
   );
 }
 

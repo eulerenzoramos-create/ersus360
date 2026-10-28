@@ -2197,3 +2197,68 @@ async def get_snapshot(db: DbDep, user: UserDep):
         "origem": snap.origem,
         "dados": snap.dados,
     }
+
+
+# ── Tetos municipais de emendas (PAP/MAC) — planilhas oficiais do FNS ─────────
+# Regras e leitura: services/investsus_tetos.py. Valores só vêm da planilha oficial;
+# sem leitura bem-sucedida o teto fica "não disponível" (nunca estimado).
+
+def _teto_registro(t) -> dict:
+    return {c: getattr(t, c) for c in ("categoria", "valor", "situacao", "documento", "url_planilha",
+                                       "url_pagina", "data_publicacao", "arquivo_modificado_em",
+                                       "detalhes", "erro", "consultado_em", "consultado_por")}
+
+
+@router.get("/tetos")
+async def tetos_municipais(db: DbDep, user: UserDep, exercicio: int = Query(None)):
+    """Teto oficial, comprometido e saldo remanescente por categoria (individual/coletiva × PAP/MAC)
+    e recursos de programação do exercício."""
+    from models.investsus import TetoMunicipalInvestSUS
+    from services import investsus_tetos as tetos_svc
+    mid = _municipio_id(user)
+    ano = exercicio or tetos_svc.EXERCICIO_PADRAO
+    regs = (await db.execute(select(TetoMunicipalInvestSUS).where(
+        TetoMunicipalInvestSUS.municipio_id == mid, TetoMunicipalInvestSUS.exercicio == ano))).scalars().all()
+    props = (await db.execute(
+        select(PropostaInvestSUS).options(selectinload(PropostaInvestSUS.programa))
+        .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo()))).scalars().all()
+    painel = tetos_svc.montar_painel({t.categoria: _teto_registro(t) for t in regs}, props, _modalidade_de, ano)
+    consultas = [t.consultado_em for t in regs if t.consultado_em]
+    painel["ultima_consulta"] = max(consultas).isoformat() if consultas else None
+    painel["exercicios_disponiveis"] = sorted(tetos_svc.FONTES)
+    return painel
+
+
+@router.post("/tetos/atualizar")
+async def atualizar_tetos_municipais(db: DbDep, user: UserDep, exercicio: int = Query(None)):
+    """Baixa as planilhas oficiais do FNS e grava o teto do município da sessão."""
+    from models.investsus import TetoMunicipalInvestSUS
+    from services import investsus_tetos as tetos_svc
+    _pode_sincronizar(user)
+    mid = _municipio_id(user)
+    ano = exercicio or tetos_svc.EXERCICIO_PADRAO
+    if not tetos_svc.fontes_do_exercicio(ano):
+        raise HTTPException(404, f"Sem planilhas oficiais cadastradas para o exercício {ano}")
+    fundo = await _dados_fundo(db, mid)
+    resultados = await tetos_svc.consultar_tetos(fundo["ibge"], ano)
+    agora = datetime.utcnow()
+    for r in resultados:
+        t = (await db.execute(select(TetoMunicipalInvestSUS).where(
+            TetoMunicipalInvestSUS.municipio_id == mid, TetoMunicipalInvestSUS.exercicio == ano,
+            TetoMunicipalInvestSUS.categoria == r["categoria"]))).scalar_one_or_none()
+        if t is None:
+            t = TetoMunicipalInvestSUS(municipio_id=mid, exercicio=ano, categoria=r["categoria"])
+            db.add(t)
+        elif r["valor"] is None and t.valor is not None:
+            # Falha de leitura não apaga o último valor oficial lido: registra o erro e mantém o dado.
+            t.erro = r["erro"]
+            continue
+        for campo in ("valor", "situacao", "documento", "url_planilha", "url_pagina", "data_publicacao",
+                      "arquivo_modificado_em", "hash_sha256", "detalhes", "erro"):
+            setattr(t, campo, r.get(campo))
+        t.consultado_em = agora
+        t.consultado_por = user.nome
+    await db.commit()
+    return {"ok": True, "exercicio": ano, "consultado_em": agora.isoformat(),
+            "resultados": [{"categoria": r["categoria"], "situacao": r["situacao"], "valor": r["valor"],
+                            "erro": r["erro"]} for r in resultados]}
