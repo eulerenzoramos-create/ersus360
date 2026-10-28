@@ -509,3 +509,32 @@ class SnapshotInvestSUS(Base):
     origem: Mapped[str] = mapped_column(String(50), default="bookmarklet")
     dados: Mapped[dict] = mapped_column(JSON, nullable=False)
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+# ── Tetos municipais de emendas (planilhas oficiais do FNS) ───────────────────
+
+class TetoMunicipalInvestSUS(Base):
+    """Teto PAP/MAC do município lido das planilhas publicadas pelo FNS
+    (services/investsus_tetos.py). Uma linha por município × exercício × categoria;
+    `valor` fica nulo quando a planilha não pôde ser lida — nunca estimado."""
+    __tablename__ = "is_tetos_municipais"
+    __table_args__ = (
+        Index("ix_is_tetos_mun_ex_cat", "municipio_id", "exercicio", "categoria", unique=True),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
+    exercicio: Mapped[int] = mapped_column(Integer)
+    categoria: Mapped[str] = mapped_column(String(30))  # individual_pap | individual_mac | coletiva_pap | coletiva_mac
+    valor: Mapped[float | None] = mapped_column(Float, nullable=True)
+    situacao: Mapped[str] = mapped_column(String(30), default="nao_disponivel")  # confirmado | pendente_validacao | nao_disponivel
+    documento: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    url_planilha: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    url_pagina: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    data_publicacao: Mapped[date | None] = mapped_column(Date, nullable=True)
+    arquivo_modificado_em: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    hash_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    detalhes: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    erro: Mapped[str | None] = mapped_column(Text, nullable=True)
+    consultado_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    consultado_por: Mapped[str | None] = mapped_column(String(100), nullable=True)
