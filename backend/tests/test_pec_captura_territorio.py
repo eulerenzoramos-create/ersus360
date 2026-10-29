@@ -88,7 +88,8 @@ async def test_nao_substitui_lote_do_agente_e_municipio_b_nao_ve(ambiente):
     await c.post(URL, json=_captura(), headers=_h(tok))
     tok_b = await _token(c, "gestor.b@teste.gov.br")
     rb = await c.get("/api/acs/microareas", headers=_h(tok_b))
-    assert rb.status_code == 403                                                               # módulo só de Apuí: nada vaza
+    assert rb.status_code == 200                                     # Painel ACS é multimunicípio desde ddd51bb1...
+    assert rb.json()["microareas"] == [] and rb.json()["total"] == 0  # ...mas o lote de Apuí não vaza para B
     assert (await c.post(URL, json=_captura(), headers=_h(tok_b))).status_code in (403, 404)
 
     async with S() as db:

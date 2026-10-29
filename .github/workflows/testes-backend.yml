@@ -21,8 +21,12 @@ jobs:
         with:
           python-version: "3.11"   # mesma versão do runtime.txt / Dockerfile
           cache: pip
-          cache-dependency-path: backend/requirements.txt
-      - run: pip install -r requirements.txt pytest pytest-asyncio pytest-github-actions-annotate-failures pytest-timeout
+          cache-dependency-path: |
+            backend/requirements.txt
+            pec_sync_agent/requirements.txt
+      # pec_sync_agent/requirements.txt: os testes do agente PEC (heartbeat, treinamento,
+      # inconsistências) importam pec_sync.py, que precisa de psycopg2 e schedule.
+      - run: pip install -r requirements.txt -r ../pec_sync_agent/requirements.txt pytest pytest-asyncio pytest-github-actions-annotate-failures pytest-timeout
       - name: pytest
         run: |
           set -o pipefail
