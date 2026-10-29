@@ -87,6 +87,7 @@ const NIVEL_ALERTA: Record<string, { label: string; cor: string; icone: React.Re
 
 const fmt = (v: number) => v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtPct = (v: number) => `${(v ?? 0).toFixed(1)}%`;
+const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 // Identificador de Resultado Primário (RP) — classificação padrão do orçamento
 // federal (MTO/LOA). Fonte: referência — confirme contra o MTO vigente se precisar
@@ -153,11 +154,23 @@ function KPICard({ label, valor, cor, sub }: { label: string; valor: string; cor
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; onSelect?: (p: any) => void }) {
   const qc = useQueryClient();
+  const [ano, setAno] = useState("");
+  const [mes, setMes] = useState("");
   const { data, isLoading, error } = useQuery({
-    queryKey: ["investsus-dashboard", municipio_id],
-    queryFn: () => api.get(`/api/investsus/dashboard?municipio_id=${municipio_id}`).then(r => r.data),
+    queryKey: ["investsus-dashboard", municipio_id, ano, mes],
+    queryFn: () => {
+      const q = new URLSearchParams({ municipio_id: String(municipio_id) });
+      if (ano) q.set("exercicio", ano);
+      if (ano && mes) q.set("mes", mes);
+      return api.get(`/api/investsus/dashboard?${q}`).then(r => r.data);
+    },
+    placeholderData: (anterior: any) => anterior,
     retry: 1,
   });
+  const [anosConhecidos, setAnosConhecidos] = useState<number[]>([]);
+  useEffect(() => {
+    if (data?.anos_disponiveis?.length) setAnosConhecidos(data.anos_disponiveis);
+  }, [data?.anos_disponiveis]);
 
   const seedMutation = useMutation({
     mutationFn: () => api.post("/api/investsus/seed-exemplo-apui").then(r => r.data),
@@ -192,17 +205,65 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
   const situacoes = [...(data.por_situacao ?? [])].sort((a: any, b: any) => b.qtd - a.qtd);
   const maxSituacao = Math.max(1, ...situacoes.map((s: any) => s.qtd));
   const modalidades = (data.por_modalidade ?? []).filter((m: any) => m.qtd > 0);
+  const porMes = !!(ano && mes);
+  const rotuloPago = porMes ? `Pago em ${MESES[Number(mes) - 1]}/${ano}` : "Total Pago";
 
   return (
     <div>
       <EscopoFederalAviso />
+
+      {/* Filtro por ano (exercício) e mês do repasse */}
+      <div style={{ ...S.card, display: "flex", flexWrap: "wrap" as const, alignItems: "center", gap: 10, padding: "12px 16px" }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f" }}>Filtrar emendas</span>
+        <label style={{ fontSize: 12, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>
+          Ano
+          <select style={{ ...S.input, width: 110 }} value={ano}
+            onChange={e => { setAno(e.target.value); if (!e.target.value) setMes(""); }}>
+            <option value="">Todos</option>
+            {anosConhecidos.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </label>
+        <label style={{ fontSize: 12, color: ano ? "#374151" : "#9ca3af", display: "flex", alignItems: "center", gap: 6 }}
+          title={ano ? "" : "Escolha o ano primeiro"}>
+          Mês do pagamento
+          <select style={{ ...S.input, width: 140 }} value={mes} disabled={!ano} onChange={e => setMes(e.target.value)}>
+            <option value="">Todos</option>
+            {MESES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+          </select>
+        </label>
+        {(ano || mes) && (
+          <button style={{ ...S.btn(), padding: "5px 10px", fontSize: 11 }} onClick={() => { setAno(""); setMes(""); }}>
+            <X size={12} /> Limpar
+          </button>
+        )}
+        <div style={{ flexBasis: "100%", fontSize: 11.5, color: "#6b7280", lineHeight: 1.6 }}>
+          {porMes
+            ? <>Mostrando as propostas com repasse do FNS em <strong>{MESES[Number(mes) - 1]}/{ano}</strong> (de qualquer exercício).
+                "Pago" é só o valor repassado no mês; indicado, aprovado e executado são os totais dessas propostas.</>
+            : ano
+              ? <>Mostrando as propostas do exercício <strong>{ano}</strong>. Escolha um mês para ver os repasses daquele mês.</>
+              : <>Ano = exercício da emenda. Mês = mês em que o FNS repassou o dinheiro (data do repasse no InvestSUS).</>}
+          {porMes && data.filtro?.sem_data_pagamento > 0 && (
+            <div style={{ color: "#b45309" }}>
+              {data.filtro.sem_data_pagamento} proposta(s) paga(s) sem data de repasse gravada não entram no filtro por mês —
+              use Sincronizar → Atualizar do InvestSUS para trazer os repasses.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {porMes && data.total_propostas === 0 && (
+        <div style={{ ...S.card, textAlign: "center" as const, color: "#6b7280", fontSize: 13 }}>
+          Nenhum repasse do FNS registrado em {MESES[Number(mes) - 1]}/{ano}.
+        </div>
+      )}
 
       {/* Indicadores principais */}
       <div style={grade(170)}>
         <KPICard label="Propostas federais" valor={`${data.total_propostas}`} cor="#1e3a5f" />
         <KPICard label="Total Indicado"  valor={fmt(data.total_indicado)}  cor={CORES.indicado} />
         <KPICard label="Total Aprovado"  valor={fmt(data.total_aprovado)}  cor={CORES.aprovado} sub={`${fmtPct(percAprovado)} do indicado`} />
-        <KPICard label="Total Pago"      valor={fmt(data.total_pago)}      cor={CORES.pago}     sub={`${fmtPct(data.perc_pago)} do indicado`} />
+        <KPICard label={rotuloPago}      valor={fmt(data.total_pago)}      cor={CORES.pago}     sub={`${fmtPct(data.perc_pago)} do indicado`} />
         <KPICard label="Saldo a Executar" valor={fmt(data.saldo_executar)} cor={CORES.alerta}   sub={`${fmtPct(data.perc_executado)} do pago já executado`} />
         <KPICard label="Alertas abertos" valor={`${data.alertas_abertos}`} cor={data.alertas_criticos > 0 ? CORES.critico : "#6b7280"}
           sub={data.alertas_criticos > 0 ? `${data.alertas_criticos} crítico${data.alertas_criticos !== 1 ? "s" : ""}` : "nenhum crítico"} />
@@ -215,7 +276,7 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
           {[
             { label: "Indicado",  valor: data.total_indicado,  perc: 100,                 base: "" },
             { label: "Aprovado",  valor: data.total_aprovado,  perc: percAprovado,        base: "do indicado" },
-            { label: "Pago",      valor: data.total_pago,      perc: data.perc_pago,      base: "do indicado" },
+            { label: porMes ? rotuloPago : "Pago", valor: data.total_pago, perc: data.perc_pago, base: "do indicado" },
             { label: "Executado", valor: data.total_executado, perc: data.perc_executado, base: "do pago" },
           ].map((item, i) => {
             const cor = [CORES.indicado, CORES.aprovado, CORES.pago, CORES.executado][i];
