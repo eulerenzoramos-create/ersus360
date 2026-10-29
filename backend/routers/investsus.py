@@ -329,25 +329,56 @@ def _resumo_modalidades(acumulado: dict[str, dict]) -> list[dict]:
 async def dashboard(
     db: DbDep,
     user: UserDep,
-    exercicio: int = Query(None),
+    exercicio: int = Query(None, description="Ano do exercício; com `mes`, ano do repasse"),
     modalidade: str = Query(None),
+    mes: int = Query(None, ge=1, le=12, description="Mês do repasse do FNS (exige `exercicio`)"),
 ):
+    """Com `mes`, o filtro é o mês do pagamento: entram as propostas com repasse do FNS
+    naquele mês/ano (qualquer exercício) e "pago" é só o valor repassado no mês.
+    Indicado, aprovado e executado continuam sendo os totais dessas propostas."""
     mid = _municipio_id(user)
+    if mes and not exercicio:
+        raise HTTPException(422, "Escolha o ano para filtrar por mês.")
     stmt = (select(PropostaInvestSUS).options(selectinload(PropostaInvestSUS.programa))
             .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo()))
-    if exercicio:
+    pago_no_mes: dict[int, float] | None = None
+    sem_data_pagamento = 0
+    if mes:
+        inicio = date(exercicio, mes, 1)
+        fim = date(exercicio + (mes == 12), mes % 12 + 1, 1)
+        linhas = (await db.execute(
+            select(PagamentoInvestSUS.proposta_id, func.sum(PagamentoInvestSUS.valor))
+            .join(PropostaInvestSUS, PropostaInvestSUS.id == PagamentoInvestSUS.proposta_id)
+            .where(PropostaInvestSUS.municipio_id == mid, PagamentoInvestSUS.data_pagamento >= inicio,
+                   PagamentoInvestSUS.data_pagamento < fim)
+            .group_by(PagamentoInvestSUS.proposta_id))).all()
+        pago_no_mes = {pid: float(v or 0) for pid, v in linhas}
+        stmt = stmt.where(PropostaInvestSUS.id.in_(list(pago_no_mes) or [-1]))
+        # Pago no InvestSUS sem repasse com data gravado: não dá para saber o mês.
+        com_data = select(PagamentoInvestSUS.proposta_id).where(PagamentoInvestSUS.data_pagamento.is_not(None))
+        sem_data_pagamento = (await db.execute(
+            select(func.count(PropostaInvestSUS.id)).where(
+                PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), PropostaInvestSUS.valor_pago > 0,
+                PropostaInvestSUS.id.not_in(com_data)))).scalar() or 0
+    elif exercicio:
         stmt = stmt.where(PropostaInvestSUS.exercicio == exercicio)
     stmt = _filtrar_modalidade_fase(stmt, modalidade, None)
 
     result = await db.execute(stmt)
     props = result.scalars().all()
 
+    def _pago(p) -> float:
+        return pago_no_mes.get(p.id, 0.0) if pago_no_mes is not None else p.valor_pago
+
     total_indicado = sum(p.valor_indicado for p in props)
     total_proposta = sum(p.valor_proposta for p in props)
     total_aprovado = sum(p.valor_aprovado for p in props)
     total_empenhado = sum(p.valor_empenhado for p in props)
-    total_pago = sum(p.valor_pago for p in props)
+    total_pago = sum(_pago(p) for p in props)
     total_executado = sum(p.valor_executado for p in props)
+    # Saldo a executar usa o pago acumulado das propostas, nunca só o do mês.
+    pago_acumulado = sum(p.valor_pago for p in props)
+    saldo_executar = max(0.0, pago_acumulado - total_executado)
 
     por_situacao: dict[str, int] = {}
     por_programa: dict[str, float] = {}
@@ -390,7 +421,7 @@ async def dashboard(
         acc = por_modalidade.setdefault(md, {"qtd": 0, "valor_indicado": 0.0, "valor_pago": 0.0})
         acc["qtd"] += 1
         acc["valor_indicado"] += p.valor_indicado
-        acc["valor_pago"] += p.valor_pago
+        acc["valor_pago"] += _pago(p)
 
         fs = fed.fase_de(sn) or "nao_identificada"
         por_fase[fs] = por_fase.get(fs, 0) + 1
@@ -404,10 +435,13 @@ async def dashboard(
         "total_empenhado": total_empenhado,
         "total_pago": total_pago,
         "total_executado": total_executado,
-        "saldo_executar": max(0.0, total_pago - total_executado),
+        "saldo_executar": saldo_executar,
         "perc_empenhado": round(100 * total_empenhado / total_indicado, 1) if total_indicado else 0,
         "perc_pago": round(100 * total_pago / total_indicado, 1) if total_indicado else 0,
-        "perc_executado": round(100 * total_executado / total_pago, 1) if total_pago else 0,
+        "perc_executado": round(100 * total_executado / pago_acumulado, 1) if pago_acumulado else 0,
+        "filtro": {"ano": exercicio, "mes": mes, "criterio": "pagamento" if mes else ("exercicio" if exercicio else None),
+                   "sem_data_pagamento": sem_data_pagamento},
+        "anos_disponiveis": await _anos_disponiveis(db, mid),
         "por_situacao": [{"situacao": k, "qtd": v} for k, v in por_situacao.items()],
         "por_programa": [{"programa": k, "valor": v} for k, v in sorted(por_programa.items(), key=lambda x: -x[1])[:10]],
         "por_componente": [{"componente": k, "valor": v} for k, v in por_componente.items()],
@@ -422,6 +456,17 @@ async def dashboard(
         "alertas_criticos": alertas_criticos,
         "atualizado_em": datetime.utcnow().isoformat(),
     }
+
+
+async def _anos_disponiveis(db, mid: int) -> list[int]:
+    """Exercícios das propostas e anos com repasse — opções do filtro de ano."""
+    exercicios = (await db.execute(select(PropostaInvestSUS.exercicio).distinct().where(
+        PropostaInvestSUS.municipio_id == mid, PropostaInvestSUS.exercicio.is_not(None)))).scalars().all()
+    datas = (await db.execute(select(PagamentoInvestSUS.data_pagamento).distinct()
+             .join(PropostaInvestSUS, PropostaInvestSUS.id == PagamentoInvestSUS.proposta_id)
+             .where(PropostaInvestSUS.municipio_id == mid, PagamentoInvestSUS.data_pagamento.is_not(None))
+             )).scalars().all()
+    return sorted({int(a) for a in exercicios} | {d.year for d in datas}, reverse=True)
 
 
 # ── Propostas CRUD ────────────────────────────────────────────────────────────
