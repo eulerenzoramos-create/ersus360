@@ -7,11 +7,26 @@ import tokenize
 BACKEND = pathlib.Path(__file__).resolve().parents[1]
 
 
-def _fstrings_incompativeis():
-    ruins = []
+def _arquivos():
     for arq in BACKEND.rglob("*.py"):
-        if {"venv", "node_modules", "__pycache__"} & set(arq.parts):
-            continue
+        if not {"venv", "node_modules", "__pycache__"} & set(arq.parts):
+            yield arq
+
+
+def _fstrings_incompativeis():
+    # Python 3.11 (o do CI e da produção) não tem os tokens FSTRING_* (PEP 701): lá a
+    # própria compilação é a prova — qualquer f-string só válida no 3.12+ dá SyntaxError.
+    if not hasattr(tokenize, "FSTRING_START"):
+        ruins = []
+        for arq in _arquivos():
+            try:
+                compile(arq.read_bytes(), str(arq), "exec", dont_inherit=True)
+            except SyntaxError as e:
+                ruins.append(f"{arq.relative_to(BACKEND)}:{e.lineno}")
+        return ruins
+
+    ruins = []
+    for arq in _arquivos():
         with open(arq, encoding="utf-8") as f:
             pilha = []
             for t in tokenize.generate_tokens(f.readline):

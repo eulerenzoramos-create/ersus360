@@ -19,11 +19,24 @@ from datetime import datetime, timezone
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from routers.auth import get_current_user, UserOut
 from services.egestor_aps import buscar_completo, listar_parcelas, EGestorAPIError
 
 router = APIRouter(prefix="/api/integracao-pec", tags=["Integração PEC e-SUS APS"])
+
+# Ações que conectam ao PEC ou disparam sincronização: só administradores da integração (RBAC).
+_ADMINS_INTEGRACAO = {"superadmin", "admin", "gestor"}
+
+
+def _exigir_admin_integracao(current_user: UserOut = Depends(get_current_user)) -> UserOut:
+    if not (current_user.administrador_geral or current_user.role in _ADMINS_INTEGRACAO):
+        raise HTTPException(status_code=403, detail="Acesso negado — somente administradores da integração")
+    return current_user
+
+
+_SO_ADMIN = [Depends(_exigir_admin_integracao)]
 
 # ── Configuração via Railway env vars ────────────────────────────────────────
 ESUS_URL      = os.getenv("ESUS_PEC_URL", "").rstrip("/")
@@ -305,7 +318,7 @@ async def indicadores_qualidade():
     }
 
 
-@router.post("/testar-conexao")
+@router.post("/testar-conexao", dependencies=_SO_ADMIN)
 async def testar_conexao():
     """Testa a conexão com a instância local do e-SUS PEC."""
     global _pec_token, _pec_token_exp
@@ -394,7 +407,7 @@ async def consultar_situacao():
     }
 
 
-@router.post("/sincronizar-cadastros")
+@router.post("/sincronizar-cadastros", dependencies=_SO_ADMIN)
 async def sincronizar_cadastros():
     """Sincroniza cadastros do PEC local para o ERSUS360."""
     if not _pec_pronto():
@@ -441,7 +454,7 @@ async def sincronizar_cadastros():
     }
 
 
-@router.post("/reprocessar-pendencias")
+@router.post("/reprocessar-pendencias", dependencies=_SO_ADMIN)
 async def reprocessar_pendencias():
     return {
         "situacao_dado": "nao_disponivel",
@@ -451,7 +464,7 @@ async def reprocessar_pendencias():
     }
 
 
-@router.post("/sync-esus")
+@router.post("/sync-esus", dependencies=_SO_ADMIN)
 async def sync_esus():
     """Alias para sincronizar-cadastros."""
     return await sincronizar_cadastros()
