@@ -538,3 +538,35 @@ class TetoMunicipalInvestSUS(Base):
     erro: Mapped[str | None] = mapped_column(Text, nullable=True)
     consultado_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     consultado_por: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+
+class LimiteOficialInvestSUS(Base):
+    """Histórico dos limites oficiais por município × exercício × categoria
+    (services/investsus_tetos.py). Uma linha por registro — nunca sobrescrita:
+    - origem "investsus_tela": valor transcrito da tela Limites do InvestSUS pelo usuário;
+    - origem "arquivo": planilha/CSV importado (nome, hash e linha do arquivo gravados);
+    - origem "planilha_fns": cada leitura das planilhas do FNS que mudou o valor.
+    A versão mais recente de "investsus_tela"/"arquivo" é a que valida o teto."""
+    __tablename__ = "is_tetos_registros"
+    __table_args__ = (
+        Index("ix_is_tetos_reg_mun_ex_cat", "municipio_id", "exercicio", "categoria"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
+    exercicio: Mapped[int] = mapped_column(Integer)
+    categoria: Mapped[str] = mapped_column(String(60))
+    rotulo_oficial: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    valor_limite: Mapped[float | None] = mapped_column(Float, nullable=True)
+    valor_utilizado: Mapped[float | None] = mapped_column(Float, nullable=True)
+    saldo: Mapped[float | None] = mapped_column(Float, nullable=True)
+    origem: Mapped[str] = mapped_column(String(30))
+    documento: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    arquivo_nome: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    arquivo_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    arquivo_linha: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    versao: Mapped[int] = mapped_column(Integer, default=1)
+    consultado_em: Mapped[date | None] = mapped_column(Date, nullable=True)  # data em que a tela/planilha foi lida
+    registrado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    registrado_por: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    observacao: Mapped[str | None] = mapped_column(Text, nullable=True)

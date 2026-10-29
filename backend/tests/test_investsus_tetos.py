@@ -159,10 +159,10 @@ def test_acima_do_teto_e_sinalizado():
 
 def test_programacao_sem_limite_oficial_fica_nao_disponivel():
     painel, _ = _painel([_p("programa", acao="Programa X", apr=100, ind=120)])
-    prog = painel["programacao"]
-    assert prog["programas"][0]["valor_solicitado"] == 100
-    assert prog["programas"][0]["valor_maximo"] is None
-    assert prog["programas"][0]["situacao_limite"] == "nao_disponivel"
+    prog = {g["programa"]: g for g in painel["programacao"]["programas"]}["Programa X"]
+    assert prog["valor_solicitado"] == 100
+    assert prog["valor_maximo"] is None
+    assert prog["situacao_limite"] == "nao_disponivel"
 
 
 def test_classificacao_por_texto_de_incremento():

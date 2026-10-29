@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 from datetime import date, datetime
 from typing import Annotated, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, UploadFile, File
 from pydantic import BaseModel, field_validator
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -2323,29 +2323,59 @@ def _teto_registro(t) -> dict:
                                        "detalhes", "erro", "consultado_em", "consultado_por")}
 
 
-@router.get("/tetos")
-async def tetos_municipais(db: DbDep, user: UserDep, exercicio: int = Query(None)):
-    """Teto oficial, comprometido e saldo remanescente por categoria (individual/coletiva × PAP/MAC)
-    e recursos de programação do exercício."""
-    from models.investsus import TetoMunicipalInvestSUS
+def _registro_limite(r) -> dict:
+    return {c: getattr(r, c) for c in ("id", "categoria", "rotulo_oficial", "valor_limite", "valor_utilizado", "saldo",
+                                       "origem", "documento", "arquivo_nome", "arquivo_hash", "arquivo_linha", "versao",
+                                       "consultado_em", "registrado_em", "registrado_por", "observacao")}
+
+
+async def _painel_tetos(db, mid: int, ano: int) -> tuple[dict, list[dict]]:
+    """Painel de tetos do município da sessão + histórico de limites do exercício."""
+    from models.investsus import TetoMunicipalInvestSUS, LimiteOficialInvestSUS
     from services import investsus_tetos as tetos_svc
-    mid = _municipio_id(user)
-    ano = exercicio or tetos_svc.EXERCICIO_PADRAO
     regs = (await db.execute(select(TetoMunicipalInvestSUS).where(
         TetoMunicipalInvestSUS.municipio_id == mid, TetoMunicipalInvestSUS.exercicio == ano))).scalars().all()
+    hist = [_registro_limite(r) for r in (await db.execute(
+        select(LimiteOficialInvestSUS).where(LimiteOficialInvestSUS.municipio_id == mid,
+                                             LimiteOficialInvestSUS.exercicio == ano)
+        .order_by(LimiteOficialInvestSUS.registrado_em.desc(), LimiteOficialInvestSUS.id.desc()))).scalars().all()]
     props = (await db.execute(
         select(PropostaInvestSUS).options(selectinload(PropostaInvestSUS.programa))
         .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo()))).scalars().all()
-    painel = tetos_svc.montar_painel({t.categoria: _teto_registro(t) for t in regs}, props, _modalidade_de, ano)
+    painel = tetos_svc.montar_painel({t.categoria: _teto_registro(t) for t in regs}, props, _modalidade_de, ano, hist)
     consultas = [t.consultado_em for t in regs if t.consultado_em]
+    sincronizacoes = [p.ultima_consulta_investsus for p in props if p.ultima_consulta_investsus]
+    ultima_sync = max(sincronizacoes) if sincronizacoes else None
+    if isinstance(ultima_sync, date) and not isinstance(ultima_sync, datetime):
+        ultima_sync = datetime.combine(ultima_sync, datetime.min.time())
     painel["ultima_consulta"] = max(consultas).isoformat() if consultas else None
-    painel["exercicios_disponiveis"] = sorted(tetos_svc.FONTES)
+    painel["ultima_sincronizacao_propostas"] = ultima_sync.isoformat() if ultima_sync else None
+    painel["alertas"] = tetos_svc.alertas_tetos(painel, hist, ultima_sync, max(consultas) if consultas else None)
+    anos_registros = (await db.execute(select(LimiteOficialInvestSUS.exercicio).distinct().where(
+        LimiteOficialInvestSUS.municipio_id == mid))).scalars().all()
+    painel["exercicios_disponiveis"] = sorted(
+        set(tetos_svc.FONTES) | {p.exercicio for p in props if p.exercicio} | set(anos_registros))
+    return painel, hist
+
+
+@router.get("/tetos")
+async def tetos_municipais(db: DbDep, user: UserDep, exercicio: int = Query(None)):
+    """Teto oficial, comprometido e saldo por categoria (RP 6 / RP 7+RP 8 × PAP/MAC), limites de
+    programas do MS, validação, semáforo, memória de cálculo e alertas do exercício."""
+    from services import investsus_tetos as tetos_svc
+    mid = _municipio_id(user)
+    ano = exercicio or tetos_svc.EXERCICIO_PADRAO
+    painel, hist = await _painel_tetos(db, mid, ano)
+    fundo = await _dados_fundo(db, mid)
+    painel["municipio"] = {"nome": fundo["nome"], "uf": fundo["uf"], "ibge": fundo["ibge"]}
+    painel["historico"] = hist
     return painel
 
 
 @router.post("/tetos/atualizar")
 async def atualizar_tetos_municipais(db: DbDep, user: UserDep, exercicio: int = Query(None)):
-    """Baixa as planilhas oficiais do FNS e grava o teto do município da sessão."""
+    """Baixa as planilhas oficiais do FNS e grava o teto do município da sessão. Cada valor
+    novo ou alterado também entra no histórico (is_tetos_registros, origem planilha_fns)."""
     from models.investsus import TetoMunicipalInvestSUS
     from services import investsus_tetos as tetos_svc
     _pode_sincronizar(user)
@@ -2367,12 +2397,140 @@ async def atualizar_tetos_municipais(db: DbDep, user: UserDep, exercicio: int = 
             # Falha de leitura não apaga o último valor oficial lido: registra o erro e mantém o dado.
             t.erro = r["erro"]
             continue
+        mudou = r.get("valor") is not None and (
+            t.valor is None or abs(t.valor - r["valor"]) > tetos_svc.TOLERANCIA
+            or bool(t.hash_sha256 and r.get("hash_sha256") and r["hash_sha256"] != t.hash_sha256))
         for campo in ("valor", "situacao", "documento", "url_planilha", "url_pagina", "data_publicacao",
                       "arquivo_modificado_em", "hash_sha256", "detalhes", "erro"):
             setattr(t, campo, r.get(campo))
         t.consultado_em = agora
         t.consultado_por = user.nome
+        if mudou:
+            await _gravar_limite(db, mid, ano, r["categoria"], user, origem=tetos_svc.ORIGEM_FNS,
+                                 valor_limite=r["valor"], documento=r.get("documento"),
+                                 arquivo_nome=(r.get("url_planilha") or "").rsplit("/", 1)[-1] or None,
+                                 arquivo_hash=r.get("hash_sha256"), consultado_em=agora.date(),
+                                 observacao=f"Planilha FNS publicada em {r.get('data_publicacao')}; "
+                                            f"Last-Modified {r.get('arquivo_modificado_em') or '—'}")
     await db.commit()
     return {"ok": True, "exercicio": ano, "consultado_em": agora.isoformat(),
             "resultados": [{"categoria": r["categoria"], "situacao": r["situacao"], "valor": r["valor"],
                             "erro": r["erro"]} for r in resultados]}
+
+
+async def _gravar_limite(db, mid: int, ano: int, categoria: str, user: UserOut, *, origem: str,
+                         valor_limite: float, valor_utilizado: float | None = None, saldo: float | None = None,
+                         **extra):
+    """Acrescenta uma versão ao histórico de limites (nunca sobrescreve as anteriores)."""
+    from models.investsus import LimiteOficialInvestSUS
+    from services import investsus_tetos as tetos_svc
+    origens = [origem] if origem == tetos_svc.ORIGEM_FNS else list(tetos_svc.ORIGENS_INVESTSUS)
+    ultima = (await db.execute(select(func.max(LimiteOficialInvestSUS.versao)).where(
+        LimiteOficialInvestSUS.municipio_id == mid, LimiteOficialInvestSUS.exercicio == ano,
+        LimiteOficialInvestSUS.categoria == categoria, LimiteOficialInvestSUS.origem.in_(origens)))).scalar() or 0
+    if valor_utilizado is None and saldo is not None:
+        valor_utilizado = round(valor_limite - saldo, 2)
+    if saldo is None and valor_utilizado is not None:
+        saldo = round(valor_limite - valor_utilizado, 2)
+    reg = LimiteOficialInvestSUS(
+        municipio_id=mid, exercicio=ano, categoria=categoria, origem=origem,
+        rotulo_oficial=tetos_svc.LIMITES_INVESTSUS.get(categoria), valor_limite=valor_limite,
+        valor_utilizado=valor_utilizado, saldo=saldo, versao=ultima + 1,
+        registrado_em=datetime.utcnow(), registrado_por=user.nome, **extra)
+    db.add(reg)
+    await db.flush()
+    return reg
+
+
+class LimiteRegistro(BaseModel):
+    exercicio: int
+    categoria: str                       # código (individual_pap...) ou rótulo da tela Limites do InvestSUS
+    valor_limite: float
+    valor_utilizado: float | None = None
+    saldo: float | None = None
+    consultado_em: date | None = None    # dia em que a tela Limites foi consultada
+    observacao: str | None = None
+
+
+@router.post("/tetos/limites", status_code=201)
+async def registrar_limite_investsus(body: LimiteRegistro, db: DbDep, user: UserDep):
+    """Registra o limite copiado pelo usuário da tela Limites do InvestSUS (sem acesso automatizado)."""
+    from services import investsus_tetos as tetos_svc
+    _pode_sincronizar(user)
+    mid = _municipio_id(user)
+    cat = tetos_svc.categoria_do_limite(body.categoria)
+    if not cat:
+        raise HTTPException(422, f"Limite não reconhecido: {body.categoria}")
+    if body.valor_limite < 0:
+        raise HTTPException(422, "Valor do limite não pode ser negativo")
+    erros = tetos_svc.conferir_valores(body.valor_limite, body.valor_utilizado, body.saldo)
+    if erros:
+        raise HTTPException(422, "; ".join(erros))
+    reg = await _gravar_limite(db, mid, body.exercicio, cat, user, origem=tetos_svc.ORIGEM_TELA,
+                               valor_limite=body.valor_limite, valor_utilizado=body.valor_utilizado,
+                               saldo=body.saldo, consultado_em=body.consultado_em or date.today(),
+                               documento="InvestSUS — tela Limites (investsus.saude.gov.br/limite)",
+                               observacao=body.observacao)
+    await db.commit()
+    return _registro_limite(reg)
+
+
+@router.post("/tetos/limites/importar")
+async def importar_limites_investsus(
+    db: DbDep, user: UserDep,
+    arquivo: UploadFile = File(...),
+    exercicio: int = Query(...),
+    confirmar: bool = Query(False, description="false = só valida e mostra a prévia"),
+):
+    """Importa planilha (.xlsx) ou CSV com os limites oficiais: valida estrutura, exercício,
+    município (IBGE da sessão) e modalidade. Só grava com `confirmar=true` e sem nenhum erro."""
+    from services import investsus_tetos as tetos_svc
+    _pode_sincronizar(user)
+    mid = _municipio_id(user)
+    conteudo = await arquivo.read()
+    if len(conteudo) > 5_000_000:
+        raise HTTPException(413, "Arquivo acima de 5 MB")
+    fundo = await _dados_fundo(db, mid)
+    try:
+        lido = tetos_svc.ler_arquivo_limites(conteudo, arquivo.filename or "", fundo["ibge"] or "", exercicio)
+    except tetos_svc.ArquivoLimitesInvalido as exc:
+        raise HTTPException(422, str(exc))
+    gravados = 0
+    if confirmar:
+        if lido["erros"]:
+            raise HTTPException(422, "O arquivo tem linhas com erro — corrija e envie de novo.")
+        for ln in lido["linhas"]:
+            await _gravar_limite(db, mid, exercicio, ln["categoria"], user, origem=tetos_svc.ORIGEM_ARQUIVO,
+                                 valor_limite=ln["valor_limite"], valor_utilizado=ln["valor_utilizado"],
+                                 saldo=ln["saldo"], arquivo_nome=(arquivo.filename or "")[:200],
+                                 arquivo_hash=lido["hash_sha256"], arquivo_linha=ln["linha"],
+                                 consultado_em=date.today(),
+                                 documento="Arquivo de limites importado (InvestSUS — Limites)")
+            gravados += 1
+        await db.commit()
+    return {"arquivo": arquivo.filename, "hash_sha256": lido["hash_sha256"], "exercicio": exercicio,
+            "linhas": lido["linhas"], "erros": lido["erros"], "gravados": gravados, "confirmado": confirmar}
+
+
+@router.get("/tetos/memoria/{categoria}")
+async def exportar_memoria_teto(categoria: str, db: DbDep, user: UserDep, exercicio: int = Query(None),
+                                formato: str = Query("pdf", pattern="^(pdf|xlsx)$")):
+    """Memória de Cálculo do Teto (PDF ou Excel) de uma categoria do município da sessão."""
+    from fastapi.responses import Response
+    from services import investsus_tetos as tetos_svc
+    mid = _municipio_id(user)
+    ano = exercicio or tetos_svc.EXERCICIO_PADRAO
+    painel, _ = await _painel_tetos(db, mid, ano)
+    controle = tetos_svc.controle_da_categoria(painel, categoria)
+    if not controle:
+        raise HTTPException(404, f"Categoria sem controle de teto: {categoria}")
+    fundo = await _dados_fundo(db, mid)
+    municipio = f"{fundo['nome']}/{fundo['uf']} (IBGE {fundo['ibge']})"
+    if formato == "xlsx":
+        corpo = tetos_svc.exportar_memoria_xlsx(controle, municipio, ano, user.nome)
+        tipo = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    else:
+        corpo = tetos_svc.exportar_memoria_pdf(controle, municipio, ano, user.nome)
+        tipo = "application/pdf"
+    nome = f"memoria_teto_{categoria}_{ano}.{formato}"
+    return Response(corpo, media_type=tipo, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
