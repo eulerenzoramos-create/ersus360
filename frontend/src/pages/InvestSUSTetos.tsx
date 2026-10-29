@@ -235,7 +235,7 @@ export function QuadroControleTetos({ tetos, onAbrirMemoria }: { tetos: any; onA
                       </div>
                     </td>
                     <td style={tdNum}>
-                      {fmt(c.teto_oficial)}
+                      <span style={{ fontWeight: 800, fontSize: 13, color: c.teto_oficial == null ? "#9ca3af" : "#1e3a5f" }}>{fmt(c.teto_oficial)}</span>
                       <div style={{ fontSize: 10, color: "#6b7280" }}>{c.origem_teto === "investsus_limites" ? "tela Limites InvestSUS" : c.origem_teto === "planilha_fns" ? "planilha FNS" : "—"}</div>
                     </td>
                     {detalhada && <><td style={tdNum}>{fmt(m.valor_indicado)}</td><td style={tdNum}>{fmt(m.valor_proposta)}</td></>}
@@ -629,9 +629,15 @@ function CardTeto({ c, onMemoria }: { c: any; onMemoria: () => void }) {
         <Selo situacao={c.validacao?.saldo ?? c.situacao} />
       </div>
 
-      <div>
-        <div style={rotulo}>Saldo para novas propostas</div>
-        <button onClick={onMemoria} title="Abrir a memória de cálculo" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: 24, fontWeight: 800, color: corSaldo, lineHeight: 1.2, textDecoration: "underline dotted" }}>{fmt(c.saldo)}</button>
+      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <div style={rotulo}>Teto oficial</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: c.teto_oficial == null ? "#9ca3af" : "#1e3a5f", lineHeight: 1.2 }}>{fmt(c.teto_oficial)}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={rotulo}>Saldo para novas propostas</div>
+          <button onClick={onMemoria} title="Abrir a memória de cálculo" style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: 24, fontWeight: 800, color: corSaldo, lineHeight: 1.2, textDecoration: "underline dotted" }}>{fmt(c.saldo)}</button>
+        </div>
       </div>
 
       {c.teto_oficial != null && (
