@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import TetosMunicipais from "./InvestSUSTetos";
+import TetosMunicipais, { QuadroControleTetos, AlertasTetos, useTetos } from "./InvestSUSTetos";
 import {
   Landmark, Plus, RefreshCw, AlertTriangle, CheckCircle2, Clock,
   ChevronDown, ChevronRight, FileText, Upload, Search, X, Check,
@@ -152,7 +152,7 @@ function KPICard({ label, valor, cor, sub }: { label: string; valor: string; cor
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
-function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; onSelect?: (p: any) => void }) {
+function DashboardInvestSUS({ municipio_id, onSelect, onAbrirMemoria }: { municipio_id: number; onSelect?: (p: any) => void; onAbrirMemoria?: (categoria: string) => void }) {
   const qc = useQueryClient();
   const [ano, setAno] = useState("");
   const [mes, setMes] = useState("");
@@ -216,8 +216,6 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
   const fora = data.desconsideradas ?? { qtd: 0, valor_indicado: 0, por_fase: [] };
   const fases = (data.por_fase ?? []).filter((f: any) => f.qtd > 0);
   const maxFase = Math.max(1, ...fases.map((f: any) => f.qtd));
-  const cardsTeto: any[] = tetos?.cards ?? [];
-  const tetoDe = (grupo: string, comp: string) => cardsTeto.find(c => c.grupo === grupo && c.componente === comp);
 
   return (
     <div>
@@ -291,60 +289,8 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
           sub={data.alertas_criticos > 0 ? `${data.alertas_criticos} crítico${data.alertas_criticos !== 1 ? "s" : ""}` : "nenhum crítico"} />
       </div>
 
-      {/* Saldo dos tetos PAP/MAC por tipo de emenda */}
-      <div style={S.card}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap" as const, gap: 6, marginBottom: 12 }}>
-          <div style={{ ...S.title, marginBottom: 0 }}>Saldo disponível nos tetos PAP e MAC{tetos?.exercicio ? ` — ${tetos.exercicio}` : ""}</div>
-          <span style={{ fontSize: 11, color: "#6b7280" }}>Teto oficial FNS − comprometido (custeio Incremento Temporário)</span>
-        </div>
-        <div style={{ ...grade(300), marginBottom: 0 }}>
-          {[
-            { grupo: "individual", titulo: "Emendas Individuais", sub: "RP 6", cor: GRUPO_CONFIG.rp6.cor },
-            { grupo: "coletiva",   titulo: "Emendas Coletivas",   sub: "RP 7 Bancada + RP 8 Comissão (teto compartilhado)", cor: GRUPO_CONFIG.rp7.cor },
-          ].map(g => (
-            <div key={g.grupo} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, borderLeft: `4px solid ${g.cor}` }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: g.cor }}>{g.titulo}</div>
-              <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>{g.sub}</div>
-              {(["pap", "mac"] as const).map(comp => {
-                const c = tetoDe(g.grupo, comp);
-                const teto = c?.teto?.valor ?? null;
-                const usado = Math.min(100, Math.max(0, c?.perc_utilizado ?? 0));
-                const corBarra = c?.acima_do_teto ? CORES.critico : comp === "pap" ? "#0284c7" : "#7c3aed";
-                return (
-                  <div key={comp} style={{ padding: "8px 0", borderTop: comp === "mac" ? "1px dashed #e5e7eb" : undefined }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" as const }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>
-                        {comp === "pap" ? "PAP — Atenção Primária" : "MAC — Média e Alta Complexidade"}
-                      </span>
-                      <span style={{ fontSize: 18, fontWeight: 800, color: c?.saldo == null ? "#9ca3af" : c.acima_do_teto ? CORES.critico : "#047857" }}>
-                        {c?.saldo == null ? "Não disponível" : fmt(c.saldo)}
-                      </span>
-                    </div>
-                    {teto != null ? (
-                      <>
-                        <div style={{ height: 8, background: "#e5e7eb", borderRadius: 99, overflow: "hidden", margin: "6px 0 4px" }}>
-                          <div style={{ width: `${usado}%`, height: "100%", background: corBarra }} />
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#6b7280", gap: 8, flexWrap: "wrap" as const }}>
-                          <span>Teto {fmt(teto)}</span>
-                          <span>Comprometido {fmt(c.comprometido)} ({fmtPct(c.perc_utilizado)})</span>
-                        </div>
-                        {c.situacao === "pendente_validacao" && (
-                          <div style={{ fontSize: 10.5, color: "#b45309", marginTop: 2 }}>Pendente de validação — ver memória de cálculo em Recursos Disponíveis</div>
-                        )}
-                      </>
-                    ) : (
-                      <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
-                        Teto ainda não lido — use "Atualizar Tetos Municipais" na aba Recursos Disponíveis.
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Quadro de controle dos tetos: RP 6, RP 7/RP 8 (teto compartilhado) e programas do MS */}
+      <QuadroControleTetos tetos={tetos} onAbrirMemoria={onAbrirMemoria} />
 
       {/* Saldo de cada tipo de emenda */}
       <div style={S.card}>
@@ -1045,7 +991,7 @@ function ExecucaoPropostas({ municipio_id, onSelect }: { municipio_id: number; o
 }
 
 // ── Recursos Disponíveis — parlamentares e programas para novas propostas ─────
-function RecursosDisponiveis({ municipio_id }: { municipio_id: number }) {
+function RecursosDisponiveis({ municipio_id, categoriaMemoria, onMemoriaFechada }: { municipio_id: number; categoriaMemoria?: string | null; onMemoriaFechada?: () => void }) {
   const qc = useQueryClient();
   const [novoParlamentar, setNovoParlamentar] = useState({ nome: "", partido: "", uf: "", cargo: "" });
   const [novoPrograma, setNovoPrograma] = useState({ nome: "", codigo: "", bloco: "" });
@@ -1088,7 +1034,7 @@ function RecursosDisponiveis({ municipio_id }: { municipio_id: number }) {
 
   return (
     <>
-    <TetosMunicipais />
+    <TetosMunicipais categoriaMemoria={categoriaMemoria} onMemoriaFechada={onMemoriaFechada} />
     <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", margin: "4px 0 8px" }}>Cadastros auxiliares</div>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
       {/* Parlamentares */}
@@ -2145,6 +2091,18 @@ function SecaoAtualizacoes({ p }: { p: any }) {
 }
 
 // ── Alertas globais ───────────────────────────────────────────────────────────
+function AlertasDosTetos() {
+  const { data } = useTetos();
+  const alertas: any[] = data?.alertas ?? [];
+  if (!alertas.length) return null;
+  return (
+    <div style={S.card}>
+      <div style={{ ...S.title, marginBottom: 8 }}>Tetos e limites {data.exercicio} ({alertas.length})</div>
+      <AlertasTetos alertas={alertas} />
+    </div>
+  );
+}
+
 function AlertasGlobais({ municipio_id }: { municipio_id: number }) {
   const { data = [], isLoading } = useQuery({
     queryKey: ["investsus-alertas", municipio_id],
@@ -3820,6 +3778,7 @@ function ColarPropostasInvestSUS({ municipio_id }: { municipio_id: number }) {
 export default function InvestSUS() {
   const [aba, setAba] = useState<"painel" | "recursos" | "propostas" | "execucao" | "alertas" | "relatorio">("painel");
   const [propostaSelecionada, setPropostaSelecionada] = useState<any>(null);
+  const [memoriaTeto, setMemoriaTeto] = useState<string | null>(null);
   const [snapMsg, setSnapMsg] = useState<string | null>(null);
   const [mostrarPortalMS, setMostrarPortalMS] = useState(false);
   const [sincAberto, setSincAberto] = useState(false);
@@ -3906,7 +3865,8 @@ export default function InvestSUS() {
         />
       ) : aba === "painel" ? (
         <div>
-          <DashboardInvestSUS municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
+          <DashboardInvestSUS municipio_id={municipio_id} onSelect={setPropostaSelecionada}
+            onAbrirMemoria={cat => { setMemoriaTeto(cat); setAba("recursos"); }} />
           <div style={{ marginTop: 14 }}>
             <button
               style={{ ...S.btn(), display: "flex", alignItems: "center", gap: 6, marginBottom: mostrarPortalMS ? 12 : 0 }}
@@ -3918,13 +3878,16 @@ export default function InvestSUS() {
           </div>
         </div>
       ) : aba === "recursos" ? (
-        <RecursosDisponiveis municipio_id={municipio_id} />
+        <RecursosDisponiveis municipio_id={municipio_id} categoriaMemoria={memoriaTeto} onMemoriaFechada={() => setMemoriaTeto(null)} />
       ) : aba === "propostas" ? (
         <PropostasDetalhadas municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
       ) : aba === "execucao" ? (
         <ExecucaoPropostas municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
       ) : aba === "alertas" ? (
-        <AlertasGlobais municipio_id={municipio_id} />
+        <>
+          <AlertasDosTetos />
+          <AlertasGlobais municipio_id={municipio_id} />
+        </>
       ) : (
         <RelatorioAcompanhamento municipio_id={municipio_id} />
       )}
