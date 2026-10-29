@@ -313,11 +313,21 @@ def _prop_dict(p: PropostaInvestSUS) -> dict:
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
+FASES_DESCONSIDERADAS = {"cancelada", "rejeitada"}
+
+
+def _saldo_a_receber(p: PropostaInvestSUS) -> float:
+    """Quanto da emenda ainda falta o FNS repassar: aprovado (ou indicado, se ainda não aprovado) − pago."""
+    base = p.valor_aprovado or p.valor_indicado or 0
+    return max(0.0, base - (p.valor_pago or 0))
+
+
 def _resumo_modalidades(acumulado: dict[str, dict]) -> list[dict]:
     """As quatro modalidades sempre aparecem (mesmo zeradas); "a classificar" só se houver."""
     saida = []
     for chave, info in fed.MODALIDADES.items():
-        v = acumulado.get(chave) or {"qtd": 0, "valor_indicado": 0.0, "valor_pago": 0.0}
+        v = acumulado.get(chave) or {"qtd": 0, "valor_indicado": 0.0, "valor_aprovado": 0.0,
+                                     "valor_pago": 0.0, "saldo_a_receber": 0.0}
         saida.append({"modalidade": chave, "rotulo": info["rotulo"], **v})
     pend = acumulado.get(fed.MODALIDADE_A_CLASSIFICAR)
     if pend:
@@ -365,7 +375,18 @@ async def dashboard(
     stmt = _filtrar_modalidade_fase(stmt, modalidade, None)
 
     result = await db.execute(stmt)
-    props = result.scalars().all()
+    todas = result.scalars().all()
+    # Canceladas e rejeitadas não entram em nenhum total do painel; só são contadas à parte.
+    props, fora = [], []
+    for p in todas:
+        sit = p.situacao_normalizada.value if p.situacao_normalizada else None
+        (fora if fed.fase_de(sit) in FASES_DESCONSIDERADAS else props).append(p)
+    desconsideradas: dict[str, dict] = {}
+    for p in fora:
+        fs = fed.fase_de(p.situacao_normalizada.value)
+        d = desconsideradas.setdefault(fs, {"fase": fs, "rotulo": fed.FASES[fs], "qtd": 0, "valor_indicado": 0.0})
+        d["qtd"] += 1
+        d["valor_indicado"] += p.valor_indicado or 0
 
     def _pago(p) -> float:
         return pago_no_mes.get(p.id, 0.0) if pago_no_mes is not None else p.valor_pago
@@ -379,6 +400,7 @@ async def dashboard(
     # Saldo a executar usa o pago acumulado das propostas, nunca só o do mês.
     pago_acumulado = sum(p.valor_pago for p in props)
     saldo_executar = max(0.0, pago_acumulado - total_executado)
+    saldo_a_receber = sum(_saldo_a_receber(p) for p in props)
 
     por_situacao: dict[str, int] = {}
     por_programa: dict[str, float] = {}
@@ -418,10 +440,13 @@ async def dashboard(
         por_tipo[te] = por_tipo.get(te, 0) + p.valor_indicado
 
         md = _modalidade_de(p)
-        acc = por_modalidade.setdefault(md, {"qtd": 0, "valor_indicado": 0.0, "valor_pago": 0.0})
+        acc = por_modalidade.setdefault(md, {"qtd": 0, "valor_indicado": 0.0, "valor_aprovado": 0.0,
+                                             "valor_pago": 0.0, "saldo_a_receber": 0.0})
         acc["qtd"] += 1
         acc["valor_indicado"] += p.valor_indicado
+        acc["valor_aprovado"] += p.valor_aprovado
         acc["valor_pago"] += _pago(p)
+        acc["saldo_a_receber"] += _saldo_a_receber(p)
 
         fs = fed.fase_de(sn) or "nao_identificada"
         por_fase[fs] = por_fase.get(fs, 0) + 1
@@ -436,6 +461,12 @@ async def dashboard(
         "total_pago": total_pago,
         "total_executado": total_executado,
         "saldo_executar": saldo_executar,
+        "saldo_a_receber": saldo_a_receber,
+        "desconsideradas": {
+            "qtd": len(fora),
+            "valor_indicado": sum(d["valor_indicado"] for d in desconsideradas.values()),
+            "por_fase": list(desconsideradas.values()),
+        },
         "perc_empenhado": round(100 * total_empenhado / total_indicado, 1) if total_indicado else 0,
         "perc_pago": round(100 * total_pago / total_indicado, 1) if total_indicado else 0,
         "perc_executado": round(100 * total_executado / pago_acumulado, 1) if pago_acumulado else 0,
@@ -450,6 +481,7 @@ async def dashboard(
         "por_modalidade": _resumo_modalidades(por_modalidade),
         "por_fase": [
             {"fase": k, "rotulo": r, "qtd": por_fase.get(k, 0)} for k, r in fed.FASES.items()
+            if k not in FASES_DESCONSIDERADAS
         ] + ([{"fase": "nao_identificada", "rotulo": "Não identificada", "qtd": por_fase["nao_identificada"]}]
              if por_fase.get("nao_identificada") else []),
         "alertas_abertos": alertas_abertos,

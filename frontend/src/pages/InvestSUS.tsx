@@ -167,6 +167,12 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
     placeholderData: (anterior: any) => anterior,
     retry: 1,
   });
+  const anoTeto = ano && !mes ? ano : "";
+  const { data: tetos } = useQuery({
+    queryKey: ["investsus-tetos", municipio_id, anoTeto],
+    queryFn: () => api.get(`/api/investsus/tetos${anoTeto ? `?exercicio=${anoTeto}` : ""}`).then(r => r.data),
+    retry: 1,
+  });
   const [anosConhecidos, setAnosConhecidos] = useState<number[]>([]);
   useEffect(() => {
     if (data?.anos_disponiveis?.length) setAnosConhecidos(data.anos_disponiveis);
@@ -201,12 +207,17 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
 
   const pct = (parte: number, todo: number) => (todo > 0 ? (100 * parte) / todo : 0);
   const percAprovado = pct(data.total_aprovado, data.total_indicado);
-  const grade = (min: number) => ({ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 12, marginBottom: 14 }) as React.CSSProperties;
+  const grade = (min: number) => ({ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(min(${min}px, 100%), 1fr))`, gap: 12, marginBottom: 14 }) as React.CSSProperties;
   const situacoes = [...(data.por_situacao ?? [])].sort((a: any, b: any) => b.qtd - a.qtd);
   const maxSituacao = Math.max(1, ...situacoes.map((s: any) => s.qtd));
   const modalidades = (data.por_modalidade ?? []).filter((m: any) => m.qtd > 0);
   const porMes = !!(ano && mes);
   const rotuloPago = porMes ? `Pago em ${MESES[Number(mes) - 1]}/${ano}` : "Total Pago";
+  const fora = data.desconsideradas ?? { qtd: 0, valor_indicado: 0, por_fase: [] };
+  const fases = (data.por_fase ?? []).filter((f: any) => f.qtd > 0);
+  const maxFase = Math.max(1, ...fases.map((f: any) => f.qtd));
+  const cardsTeto: any[] = tetos?.cards ?? [];
+  const tetoDe = (grupo: string, comp: string) => cardsTeto.find(c => c.grupo === grupo && c.componente === comp);
 
   return (
     <div>
@@ -258,60 +269,152 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
         </div>
       )}
 
+      {fora.qtd > 0 && (
+        <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "#f9fafb", flexWrap: "wrap" as const }}>
+          <Filter size={15} color="#6b7280" />
+          <span style={{ fontSize: 12.5, color: "#374151" }}>
+            <strong>{fora.qtd} proposta{fora.qtd !== 1 ? "s" : ""} fora do painel</strong>
+            {" — "}{fora.por_fase.map((f: any) => `${f.qtd} ${f.rotulo.toLowerCase()}${f.qtd !== 1 ? "s" : ""}`).join(" · ")}
+            {" "}({fmt(fora.valor_indicado)} indicados). Não entram em nenhum total, saldo ou gráfico abaixo.
+          </span>
+        </div>
+      )}
+
       {/* Indicadores principais */}
       <div style={grade(170)}>
-        <KPICard label="Propostas federais" valor={`${data.total_propostas}`} cor="#1e3a5f" />
-        <KPICard label="Total Indicado"  valor={fmt(data.total_indicado)}  cor={CORES.indicado} />
-        <KPICard label="Total Aprovado"  valor={fmt(data.total_aprovado)}  cor={CORES.aprovado} sub={`${fmtPct(percAprovado)} do indicado`} />
-        <KPICard label={rotuloPago}      valor={fmt(data.total_pago)}      cor={CORES.pago}     sub={`${fmtPct(data.perc_pago)} do indicado`} />
-        <KPICard label="Saldo a Executar" valor={fmt(data.saldo_executar)} cor={CORES.alerta}   sub={`${fmtPct(data.perc_executado)} do pago já executado`} />
-        <KPICard label="Alertas abertos" valor={`${data.alertas_abertos}`} cor={data.alertas_criticos > 0 ? CORES.critico : "#6b7280"}
+        <KPICard label="Propostas ativas" valor={`${data.total_propostas}`} cor="#1e3a5f" sub="sem canceladas e rejeitadas" />
+        <KPICard label="Total Indicado"   valor={fmt(data.total_indicado)}   cor={CORES.indicado} sub={`${fmt(data.total_aprovado)} aprovado (${fmtPct(percAprovado)})`} />
+        <KPICard label={rotuloPago}       valor={fmt(data.total_pago)}       cor={CORES.pago}     sub={`${fmtPct(data.perc_pago)} do indicado`} />
+        <KPICard label="A receber do FNS" valor={fmt(data.saldo_a_receber ?? 0)} cor={CORES.aprovado} sub="aprovado (ou indicado) − pago" />
+        <KPICard label="Saldo a executar" valor={fmt(data.saldo_executar)}   cor={CORES.alerta}   sub={`${fmtPct(data.perc_executado)} do pago já executado`} />
+        <KPICard label="Alertas abertos"  valor={`${data.alertas_abertos}`}  cor={data.alertas_criticos > 0 ? CORES.critico : "#6b7280"}
           sub={data.alertas_criticos > 0 ? `${data.alertas_criticos} crítico${data.alertas_criticos !== 1 ? "s" : ""}` : "nenhum crítico"} />
       </div>
 
-      {/* Funil */}
+      {/* Saldo dos tetos PAP/MAC por tipo de emenda */}
       <div style={S.card}>
-        <div style={S.title}>Do indicado ao executado</div>
-        <div style={{ ...grade(140), marginBottom: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap" as const, gap: 6, marginBottom: 12 }}>
+          <div style={{ ...S.title, marginBottom: 0 }}>Saldo disponível nos tetos PAP e MAC{tetos?.exercicio ? ` — ${tetos.exercicio}` : ""}</div>
+          <span style={{ fontSize: 11, color: "#6b7280" }}>Teto oficial FNS − comprometido (custeio Incremento Temporário)</span>
+        </div>
+        <div style={{ ...grade(300), marginBottom: 0 }}>
           {[
-            { label: "Indicado",  valor: data.total_indicado,  perc: 100,                 base: "" },
-            { label: "Aprovado",  valor: data.total_aprovado,  perc: percAprovado,        base: "do indicado" },
-            { label: porMes ? rotuloPago : "Pago", valor: data.total_pago, perc: data.perc_pago, base: "do indicado" },
-            { label: "Executado", valor: data.total_executado, perc: data.perc_executado, base: "do pago" },
-          ].map((item, i) => {
-            const cor = [CORES.indicado, CORES.aprovado, CORES.pago, CORES.executado][i];
+            { grupo: "individual", titulo: "Emendas Individuais", sub: "RP 6", cor: GRUPO_CONFIG.rp6.cor },
+            { grupo: "coletiva",   titulo: "Emendas Coletivas",   sub: "RP 7 Bancada + RP 8 Comissão (teto compartilhado)", cor: GRUPO_CONFIG.rp7.cor },
+          ].map(g => (
+            <div key={g.grupo} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, borderLeft: `4px solid ${g.cor}` }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: g.cor }}>{g.titulo}</div>
+              <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>{g.sub}</div>
+              {(["pap", "mac"] as const).map(comp => {
+                const c = tetoDe(g.grupo, comp);
+                const teto = c?.teto?.valor ?? null;
+                const usado = Math.min(100, Math.max(0, c?.perc_utilizado ?? 0));
+                const corBarra = c?.acima_do_teto ? CORES.critico : comp === "pap" ? "#0284c7" : "#7c3aed";
+                return (
+                  <div key={comp} style={{ padding: "8px 0", borderTop: comp === "mac" ? "1px dashed #e5e7eb" : undefined }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" as const }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>
+                        {comp === "pap" ? "PAP — Atenção Primária" : "MAC — Média e Alta Complexidade"}
+                      </span>
+                      <span style={{ fontSize: 18, fontWeight: 800, color: c?.saldo == null ? "#9ca3af" : c.acima_do_teto ? CORES.critico : "#047857" }}>
+                        {c?.saldo == null ? "Não disponível" : fmt(c.saldo)}
+                      </span>
+                    </div>
+                    {teto != null ? (
+                      <>
+                        <div style={{ height: 8, background: "#e5e7eb", borderRadius: 99, overflow: "hidden", margin: "6px 0 4px" }}>
+                          <div style={{ width: `${usado}%`, height: "100%", background: corBarra }} />
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#6b7280", gap: 8, flexWrap: "wrap" as const }}>
+                          <span>Teto {fmt(teto)}</span>
+                          <span>Comprometido {fmt(c.comprometido)} ({fmtPct(c.perc_utilizado)})</span>
+                        </div>
+                        {c.situacao === "pendente_validacao" && (
+                          <div style={{ fontSize: 10.5, color: "#b45309", marginTop: 2 }}>Pendente de validação — ver memória de cálculo em Recursos Disponíveis</div>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
+                        Teto ainda não lido — use "Atualizar Tetos Municipais" na aba Recursos Disponíveis.
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Saldo de cada tipo de emenda */}
+      <div style={S.card}>
+        <div style={S.title}>Saldo por emenda</div>
+        {!modalidades.length && <div style={{ fontSize: 12, color: "#9ca3af" }}>Sem propostas ativas.</div>}
+        <div style={{ ...grade(230), marginBottom: 0 }}>
+          {modalidades.map((m: any) => {
+            const cfg = GRUPO_CONFIG[m.modalidade] ?? { label: m.rotulo, cor: "#9ca3af", bg: "#f9fafb", icone: "" };
+            const pPago = pct(m.valor_pago, m.valor_pago + (m.saldo_a_receber ?? 0));
             return (
-              <div key={item.label} style={{ background: cor + "12", border: `2px solid ${cor}`, borderRadius: 8, padding: "10px 8px", textAlign: "center" as const }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: cor }}>{item.label}</div>
-                <div style={{ fontSize: 17, fontWeight: 800, color: "#111827", marginTop: 2 }}>{fmt(item.valor)}</div>
-                <div style={{ fontSize: 11, color: "#4b5563" }}>{i === 0 ? "100%" : `${fmtPct(item.perc)} ${item.base}`}</div>
+              <div key={m.modalidade} style={{ background: cfg.bg, border: `1px solid ${cfg.cor}33`, borderRadius: 10, padding: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 6, alignItems: "baseline" }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color: cfg.cor }}>{cfg.label}</span>
+                  <span style={{ fontSize: 11, color: "#6b7280", whiteSpace: "nowrap" as const }}>{m.qtd} proposta{m.qtd !== 1 ? "s" : ""}</span>
+                </div>
+                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 8 }}>Saldo a receber</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: m.saldo_a_receber > 0 ? "#111827" : "#047857" }}>{fmt(m.saldo_a_receber ?? 0)}</div>
+                <div style={{ height: 8, background: "#fff", borderRadius: 99, overflow: "hidden", margin: "8px 0 6px", border: "1px solid #e5e7eb" }}>
+                  <div style={{ width: `${Math.min(100, pPago)}%`, height: "100%", background: CORES.pago }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "2px 8px", fontSize: 11, color: "#4b5563" }}>
+                  <span>Indicado</span><b style={{ textAlign: "right" as const, color: "#111827" }}>{fmt(m.valor_indicado)}</b>
+                  <span>Aprovado</span><b style={{ textAlign: "right" as const, color: "#111827" }}>{fmt(m.valor_aprovado ?? 0)}</b>
+                  <span>Pago ({fmtPct(pPago)})</span><b style={{ textAlign: "right" as const, color: CORES.pago }}>{fmt(m.valor_pago)}</b>
+                </div>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Fases de acompanhamento */}
-      {(data.por_fase ?? []).length > 0 && (
-        <div style={S.card}>
-          <div style={S.title}>Propostas por fase</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 8 }}>
-            {(data.por_fase ?? []).filter((f: any) => f.qtd > 0).map((f: any) => (
-              <div key={f.fase} style={{ borderRadius: 8, padding: "10px 12px", textAlign: "center" as const, background: "#eff6ff", border: "1px solid #bfdbfe" }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "#1e3a5f" }}>{f.qtd}</div>
-                <div style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>{f.rotulo}</div>
-              </div>
-            ))}
-          </div>
-          {(data.por_fase ?? []).some((f: any) => f.qtd === 0) && (
-            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 8 }}>
-              Sem propostas: {(data.por_fase ?? []).filter((f: any) => f.qtd === 0).map((f: any) => f.rotulo).join(" · ")}
+      {/* Funil */}
+      <div style={S.card}>
+        <div style={S.title}>Do indicado ao executado</div>
+        {[
+          { label: "Indicado",  valor: data.total_indicado,  perc: 100,                 base: "",            cor: CORES.indicado },
+          { label: "Aprovado",  valor: data.total_aprovado,  perc: percAprovado,        base: "do indicado", cor: CORES.aprovado },
+          { label: porMes ? rotuloPago : "Pago", valor: data.total_pago, perc: data.perc_pago, base: "do indicado", cor: CORES.pago },
+          { label: "Executado", valor: data.total_executado, perc: data.perc_executado, base: "do pago",     cor: CORES.executado },
+        ].map((item, i) => (
+          <div key={item.label} style={{ display: "grid", gridTemplateColumns: "90px 1fr", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: item.cor }}>{item.label}</span>
+            <div style={{ height: 24, background: "#f3f4f6", borderRadius: 6, overflow: "hidden", position: "relative" as const }}>
+              <div style={{ width: `${Math.min(100, pct(item.valor, data.total_indicado))}%`, height: "100%", background: item.cor + "40", borderRight: `3px solid ${item.cor}` }} />
+              <span style={{ position: "absolute" as const, left: 8, top: 4, fontSize: 12, fontWeight: 800, color: "#111827", whiteSpace: "nowrap" as const }}>
+                {fmt(item.valor)} <span style={{ fontWeight: 500, color: "#374151" }}>· {i === 0 ? "100%" : `${fmtPct(item.perc)} ${item.base}`}</span>
+              </span>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
 
       <div style={grade(320)}>
+        {/* Fases de acompanhamento (sem canceladas e rejeitadas) */}
+        <div style={{ ...S.card, marginBottom: 0 }}>
+          <div style={S.title}>Propostas por fase</div>
+          {!fases.length && <div style={{ fontSize: 12, color: "#9ca3af" }}>Sem propostas ativas.</div>}
+          {fases.map((f: any) => (
+            <div key={f.fase} style={{ marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                <span style={{ color: "#374151", fontWeight: 600 }}>{f.rotulo}</span>
+                <span style={{ color: "#111827", fontWeight: 800 }}>{f.qtd}</span>
+              </div>
+              <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ width: `${(100 * f.qtd) / maxFase}%`, height: "100%", background: "#1e3a5f", borderRadius: 4 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Situação oficial — barras com o número (sem rótulos sobrepostos) */}
         <div style={{ ...S.card, marginBottom: 0 }}>
           <div style={S.title}>Situação no InvestSUS</div>
@@ -327,32 +430,6 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
                 <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4, overflow: "hidden" }}>
                   <div style={{ width: `${(100 * s.qtd) / maxSituacao}%`, height: "100%", background: cfg.cor, borderRadius: 4 }} />
                 </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Modalidade federal */}
-        <div style={{ ...S.card, marginBottom: 0 }}>
-          <div style={S.title}>Por modalidade federal</div>
-          {!modalidades.length && <div style={{ fontSize: 12, color: "#9ca3af" }}>Sem propostas classificadas.</div>}
-          {modalidades.map((m: any) => {
-            const cfg = GRUPO_CONFIG[m.modalidade] ?? { label: m.rotulo, cor: "#9ca3af", bg: "#f9fafb", icone: "" };
-            const pPago = pct(m.valor_pago, m.valor_indicado);
-            return (
-              <div key={m.modalidade} style={{ borderLeft: `4px solid ${cfg.cor}`, padding: "6px 10px", marginBottom: 8, background: "#f9fafb", borderRadius: 6 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, flexWrap: "wrap" as const, gap: 4 }}>
-                  <span style={{ fontWeight: 700, color: cfg.cor }}>{cfg.label}</span>
-                  <span style={{ color: "#4b5563" }}>{m.qtd} proposta{m.qtd !== 1 ? "s" : ""}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginTop: 3, color: "#111827", flexWrap: "wrap" as const, gap: 4 }}>
-                  <span>Indicado <b>{fmt(m.valor_indicado)}</b></span>
-                  <span>Pago <b style={{ color: CORES.pago }}>{fmt(m.valor_pago)}</b></span>
-                </div>
-                <div style={{ height: 6, background: "#e5e7eb", borderRadius: 3, overflow: "hidden", marginTop: 4 }}>
-                  <div style={{ width: `${Math.min(100, pPago)}%`, height: "100%", background: CORES.pago }} />
-                </div>
-                <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{fmtPct(pPago)} pago</div>
               </div>
             );
           })}
@@ -405,11 +482,14 @@ function TodasPropostasPainel({ onSelect }: { onSelect?: (p: any) => void }) {
   const [filtro, setFiltro] = useState<string>("todas");
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<"valor" | "pago" | "numero">("valor");
+  const [verForaDoPainel, setVerForaDoPainel] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["investsus-propostas", "painel"],
     queryFn: () => api.get(`/api/investsus/propostas?tamanho=200`).then(r => r.data),
   });
-  const todas: any[] = data?.propostas ?? [];
+  const foraDoPainel = (p: any) => p.fase === "cancelada" || p.fase === "rejeitada";
+  const qtdFora = (data?.propostas ?? []).filter(foraDoPainel).length;
+  const todas: any[] = (data?.propostas ?? []).filter((p: any) => verForaDoPainel || !foraDoPainel(p));
   const modalidadeDaLinha = (p: any) => p.modalidade ?? "a_classificar";
   const lista = useMemo(() => {
     const t = busca.trim().toLowerCase();
@@ -437,6 +517,12 @@ function TodasPropostasPainel({ onSelect }: { onSelect?: (p: any) => void }) {
             <option value="pago">Maior valor pago</option>
             <option value="numero">Mais recentes</option>
           </select>
+          {qtdFora > 0 && (
+            <label style={{ fontSize: 12, color: "#4b5563", display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+              <input type="checkbox" checked={verForaDoPainel} onChange={e => setVerForaDoPainel(e.target.checked)} />
+              Mostrar canceladas/rejeitadas ({qtdFora})
+            </label>
+          )}
         </div>
       </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, marginBottom: 10 }}>
