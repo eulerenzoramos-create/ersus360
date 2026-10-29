@@ -1045,8 +1045,45 @@ async def resolver_alerta(alerta_id: int, body: AlertaResolverBody, db: DbDep, u
 
 @router.get("/parlamentares")
 async def listar_parlamentares(db: DbDep, user: UserDep):
+    """Parlamentares com as propostas deste município (valor em um único estágio por proposta;
+    canceladas e rejeitadas não somam)."""
+    from services.investsus_tetos import valor_comprometido
+    mid = _municipio_id(user)
     r = await db.execute(select(Parlamentar).where(Parlamentar.ativo == True).order_by(Parlamentar.nome))
-    return [{"id": p.id, "nome": p.nome, "partido": p.partido, "uf": p.uf, "cargo": p.cargo} for p in r.scalars().all()]
+    props = (await db.execute(select(PropostaInvestSUS).where(
+        PropostaInvestSUS.municipio_id == mid, PropostaInvestSUS.parlamentar_id.is_not(None),
+        _filtro_escopo()))).scalars().all()
+    por_parl: dict[int, dict] = {}
+    for p in props:
+        sit = getattr(p.situacao_normalizada, "value", p.situacao_normalizada) or ""
+        g = por_parl.setdefault(p.parlamentar_id, {"qtd_propostas": 0, "valor": 0.0, "exercicios": set()})
+        g["qtd_propostas"] += 1
+        if p.exercicio:
+            g["exercicios"].add(p.exercicio)
+        if fed.fase_de(sit) not in ("cancelada", "rejeitada"):
+            g["valor"] += valor_comprometido(p)[0]
+    saida = []
+    for p in r.scalars().all():
+        g = por_parl.get(p.id) or {"qtd_propostas": 0, "valor": 0.0, "exercicios": set()}
+        saida.append({"id": p.id, "nome": p.nome, "partido": p.partido, "uf": p.uf, "cargo": p.cargo,
+                      "qtd_propostas": g["qtd_propostas"], "valor": round(g["valor"], 2),
+                      "exercicios": sorted(g["exercicios"])})
+    return saida
+
+
+@router.post("/parlamentares/atualizar")
+async def atualizar_parlamentares(db: DbDep, user: UserDep):
+    """Completa partido/UF/cargo pelas APIs de dados abertos da Câmara e do Senado."""
+    from services import investsus_parlamentares as parl_svc
+    _pode_sincronizar(user)
+    lista, erros = await parl_svc.carregar_parlamentares()
+    if not lista:
+        raise HTTPException(502, "Câmara e Senado não responderam: " + "; ".join(erros))
+    parls = (await db.execute(select(Parlamentar).where(Parlamentar.ativo == True))).scalars().all()
+    resumo = parl_svc.aplicar(parls, lista)
+    await db.commit()
+    return {"ok": True, **resumo, "avisos": erros,
+            "fontes": [parl_svc.FONTE_CAMARA, parl_svc.FONTE_SENADO]}
 
 
 @router.post("/parlamentares", status_code=201)

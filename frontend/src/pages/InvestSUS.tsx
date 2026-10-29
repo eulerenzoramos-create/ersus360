@@ -922,6 +922,14 @@ function RecursosDisponiveis({ municipio_id }: { municipio_id: number }) {
       setAddParl(false);
     },
   });
+  const [resumoParl, setResumoParl] = useState<any>(null);
+  const atualizarParl = useMutation({
+    mutationFn: () => api.post("/api/investsus/parlamentares/atualizar").then(r => r.data),
+    onSuccess: (r: any) => {
+      setResumoParl(r);
+      qc.invalidateQueries({ queryKey: ["investsus-parlamentares"] });
+    },
+  });
   const mutProg = useMutation({
     mutationFn: () => api.post("/api/investsus/programas", novoPrograma).then(r => r.data),
     onSuccess: () => {
@@ -942,10 +950,33 @@ function RecursosDisponiveis({ municipio_id }: { municipio_id: number }) {
           <div style={{ ...S.title, display: "flex", alignItems: "center", gap: 6 }}>
             <Users size={14} /> Parlamentares ({parlamentares.length})
           </div>
-          <button style={{ ...S.btn(), padding: "4px 10px", fontSize: 11 }} onClick={() => setAddParl(v => !v)}>
-            <Plus size={12} /> Novo
-          </button>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button style={{ ...S.btn(), padding: "4px 10px", fontSize: 11 }} disabled={atualizarParl.isPending}
+              title="Partido, UF e cargo pelos dados abertos da Câmara dos Deputados e do Senado Federal"
+              onClick={() => atualizarParl.mutate()}>
+              <RefreshCw size={12} style={{ animation: atualizarParl.isPending ? "spin 1s linear infinite" : "none" }} />
+              {atualizarParl.isPending ? "Consultando..." : "Completar dados"}
+            </button>
+            <button style={{ ...S.btn(), padding: "4px 10px", fontSize: 11 }} onClick={() => setAddParl(v => !v)}>
+              <Plus size={12} /> Novo
+            </button>
+          </div>
         </div>
+        {atualizarParl.isError && (
+          <div style={{ fontSize: 11.5, color: "#b91c1c", background: "#fef2f2", borderRadius: 6, padding: "6px 10px", marginBottom: 8 }}>
+            {(atualizarParl.error as any)?.response?.data?.detail || "Não foi possível consultar a Câmara e o Senado."}
+          </div>
+        )}
+        {resumoParl && (
+          <div style={{ fontSize: 11.5, color: "#374151", background: "#f0fdf4", borderRadius: 6, padding: "6px 10px", marginBottom: 8, lineHeight: 1.6 }}>
+            {resumoParl.atualizados} atualizado(s), {resumoParl.sem_mudanca} já em dia
+            {resumoParl.coletivos ? `, ${resumoParl.coletivos} bancada(s)/comissão(ões) sem consulta` : ""}.
+            {resumoParl.nao_encontrados?.length > 0 && <div>Não encontrados na Câmara/Senado: {resumoParl.nao_encontrados.join(", ")}.</div>}
+            {resumoParl.ambiguos?.length > 0 && <div>Nome com mais de um parlamentar (não preenchido): {resumoParl.ambiguos.join(", ")}.</div>}
+            {resumoParl.avisos?.length > 0 && <div style={{ color: "#b45309" }}>Aviso: {resumoParl.avisos.join("; ")}</div>}
+            <div style={{ color: "#6b7280" }}>Fonte: {resumoParl.fontes?.join(" · ")}</div>
+          </div>
+        )}
         {addParl && (
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 6, marginBottom: 10, padding: 10, background: "#f8fafc", borderRadius: 6 }}>
             <input style={S.input} placeholder="Nome" value={novoParlamentar.nome} onChange={e => setNovoParlamentar(v => ({ ...v, nome: e.target.value }))} />
@@ -967,8 +998,16 @@ function RecursosDisponiveis({ municipio_id }: { municipio_id: number }) {
               <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "#f9fafb", borderRadius: 6 }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 12.5, color: "#111827" }}>{p.nome}</div>
-                  <div style={{ fontSize: 11, color: "#6b7280" }}>{p.cargo || "—"} {p.partido ? `· ${p.partido}` : ""}{p.uf ? `/${p.uf}` : ""}</div>
+                  <div style={{ fontSize: 11, color: "#6b7280" }}>
+                    {p.cargo || "Cargo não informado"}{p.partido ? ` · ${p.partido}` : ""}{p.uf ? `/${p.uf}` : ""}
+                  </div>
                 </div>
+                {p.qtd_propostas > 0 && (
+                  <div style={{ textAlign: "right" as const, fontSize: 11, color: "#6b7280", whiteSpace: "nowrap" as const }}>
+                    <div style={{ fontWeight: 700, fontSize: 12, color: "#111827" }}>{fmt(p.valor)}</div>
+                    <div>{p.qtd_propostas} proposta(s){p.exercicios?.length ? ` · ${p.exercicios.join(", ")}` : ""}</div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
