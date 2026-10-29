@@ -167,8 +167,15 @@ class TestClassificar:
         r = _classificar(p, self.DATA_REF)
         assert r["_relevancia"] == "federal"
 
-    def test_sem_impacto_quando_nao_ha_termos(self):
+    def test_portaria_ms_sem_termos_fica_federal(self):
+        # Desde d47bcd62: o DOU devolve texto truncado, então portaria MS sem termo
+        # específico fica visível como "federal" (toda portaria MS afeta o município).
         p = self._portaria(titulo="Portaria que altera estrutura interna do MS")
+        r = _classificar(p, self.DATA_REF)
+        assert r["_relevancia"] == "federal"
+
+    def test_sem_impacto_quando_despacho_sem_conteudo(self):
+        p = self._portaria(titulo="Despacho do Secretário-Executivo")
         r = _classificar(p, self.DATA_REF)
         assert r["_relevancia"] == "sem_impacto"
 
