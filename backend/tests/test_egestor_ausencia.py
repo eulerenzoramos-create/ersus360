@@ -179,3 +179,100 @@ async def test_fonte_fora_do_ar_e_competencia_invalida(ambiente, monkeypatch):
     assert (await _sincronizar(c, tok)).status_code == 503
     _fonte_falsa(monkeypatch)
     assert (await _sincronizar(c, tok, competencias=["2099-01"])).status_code == 422
+
+
+# ── tipo de ausência e cruzamento com o relatório público de pagamento ───────
+
+def test_tipo_de_ausencia_lido_do_texto_oficial():
+    from routers.egestor_ausencia import tipo_ausencia
+    assert tipo_ausencia(D_EMULTI) == "atendimento_remoto"
+    assert tipo_ausencia(D_EQUIPE) == "producao_equipe"
+    assert tipo_ausencia("Sem envio de produção válida da equipe e do atendimento remoto (eMulti) "
+                         "dentro do prazo estabelecido") == "equipe_e_remoto"
+
+
+async def _gravar_pagamento(S, comp_cnes: str, parcela: str, st_remoto: str, pago_remoto: str):
+    """Parcela do e-Gestor no formato gravado pela aba Relatório de Pagamento (conferido em 05/11/2026)."""
+    import json
+    from models.egestor_pagamento import EgestorPagamentoComponente, EgestorValidacaoEquipe
+    from models.municipio import Municipio
+    async with S() as db:
+        mid = (await db.execute(select(Municipio.id).where(Municipio.codigo_ibge == "1300144"))).scalar_one()
+        for co, ds, vl in ((42, "Custeio - eMulti", 12000), (55, "Atendimento Remoto - eMulti", 2500 if pago_remoto == "PAGO" else 0)):
+            db.add(EgestorPagamentoComponente(municipio_id=mid, nu_parcela=parcela, nu_comp_cnes=comp_cnes, co_plano=9,
+                                              ds_plano="Equipes Multiprofissionais - eMulti", co_componente=co,
+                                              ds_componente=ds, vl_total=vl))
+        st = {"stPagamento": "PAGO", "stSuspensaoProducao": "NÃO SUSPENSO", "stSuspensaoProdAtendRemoto": st_remoto,
+              "stPagamentoAtendRemoto": pago_remoto, "coEquipe": EMULTI}
+        db.add(EgestorValidacaoEquipe(municipio_id=mid, nu_parcela=parcela, co_componente=42, ine=EMULTI,
+                                      st_pagamento="PAGO", payload=json.dumps(st, ensure_ascii=False)))
+        await db.commit()
+
+
+async def test_painel_e_alertas_separam_atendimento_remoto_e_confirmam_no_egestor(ambiente, monkeypatch):
+    c, S = ambiente["client"], ambiente["Session"]
+    _fonte_falsa(monkeypatch)
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    await _sincronizar(c, tok, competencias=["2026-06", "2026-07"])
+
+    # sem a parcela coletada: nada é afirmado sobre suspensão
+    a = (await c.get("/api/egestor-ausencia/alertas", headers=_h(tok))).json()
+    em = next(x for x in a["alertas"] if x["ine"] == EMULTI)
+    assert em["tipo_ausencia"] == "atendimento_remoto" and "atendimento remoto (eMulti)" in em["mensagem"]
+    assert em["suspensao_verificada"] is False and em["suspensao_confirmada"] is False
+    assert any("03.01.01.025-0" in p for p in em["providencias"])
+    eq = next(x for x in a["alertas"] if x["ine"] == "0001773917")
+    assert eq["tipo_ausencia"] == "producao_equipe" and eq["providencias"] is None
+    p = (await c.get("/api/egestor-ausencia/painel?competencia=2026-07", headers=_h(tok))).json()
+    assert {x["tipo"]: x["equipes"] for x in p["ausencia_por_tipo"]} == {
+        "producao_equipe": 1, "atendimento_remoto": 1, "equipe_e_remoto": 0}
+    assert p["pagamento"]["verificado"] is False and p["emulti_atendimento_remoto"]["verificado"] is False
+
+    # parcela 09/2026 (avalia CNES 07/2026) publica a suspensão do atendimento remoto
+    await _gravar_pagamento(S, "202607", "202609", "SUSPENSO", "NÃO PAGO")
+    a = (await c.get("/api/egestor-ausencia/alertas", headers=_h(tok))).json()
+    em = next(x for x in a["alertas"] if x["ine"] == EMULTI)
+    assert em["suspensao_verificada"] is True and em["suspensao_confirmada"] is True
+    assert "09/2026" in em["suspensao_confirmada_nota"] and "atendimento remoto" in em["suspensao_confirmada_nota"]
+    assert a["parcela_verificada"] == "09/2026"
+    p = (await c.get("/api/egestor-ausencia/painel?competencia=2026-07", headers=_h(tok))).json()
+    assert p["pagamento"]["parcela_rotulo"] == "09/2026" and [s["ine"] for s in p["pagamento"]["suspensoes_confirmadas"]] == [EMULTI]
+    bloco = p["emulti_atendimento_remoto"]
+    assert bloco["verificado"] and bloco["valor_atendimento_remoto"] == 0
+    assert bloco["equipes"][0]["st_pagamento_atend_remoto"] == "NÃO PAGO"
+    assert bloco["equipes"][0]["ausencia_na_competencia"] == "Atendimento remoto (eMulti)"
+    caso = (await c.get(f"/api/egestor-ausencia/equipe/{EMULTI}", headers=_h(tok))).json()
+    assert caso["pagamento_na_competencia"]["suspensao_confirmada"] is True
+    assert caso["tipo_ausencia_atual"] == "Atendimento remoto (eMulti)"
+
+    # outra competência sem parcela coletada continua "não verificada"
+    p6 = (await c.get("/api/egestor-ausencia/painel?competencia=2026-06", headers=_h(tok))).json()
+    assert p6["pagamento"]["verificado"] is False
+
+
+async def test_pagamento_de_apui_nao_aparece_para_outro_municipio(ambiente, monkeypatch):
+    c, S = ambiente["client"], ambiente["Session"]
+    _fonte_falsa(monkeypatch)
+    tok = await _token(c, "gestor.apui@teste.gov.br")
+    await _sincronizar(c, tok, competencias=["2026-07"])
+    await _gravar_pagamento(S, "202607", "202609", "NÃO SUSPENSO", "PAGO")
+    ok = (await c.get("/api/egestor-ausencia/alertas", headers=_h(tok))).json()
+    em = next(x for x in ok["alertas"] if x["ine"] == EMULTI)
+    assert em["suspensao_confirmada"] is False and "sem suspensão" in em["suspensao_confirmada_nota"]
+    tok_b = await _token(c, "gestor.b@teste.gov.br")
+    assert (await c.get("/api/egestor-ausencia/painel", headers=_h(tok_b))).json()["situacao_dado"] == "nao_disponivel"
+
+
+def test_validacao_da_emulti_vem_dentro_de_validacoes():
+    """Formato real do relatório detalhado da eMulti (componente 42), conferido em 05/11/2026."""
+    from services.egestor_pagamento import pendencias, validacoes_equipes
+    emulti = {"vlTotal": 12000, "validacoes": {"validacoesEquipes": [
+        {"coEquipe": EMULTI, "stPagamento": "PAGO", "stSuspensaoProdAtendRemoto": "SUSPENSO",
+         "stPagamentoAtendRemoto": "NÃO PAGO", "stSuspensaoEquipeInativa": "ATIVA"}], "validacoesVinculoEquipe": []}}
+    esf = {"vlTotal": 1, "validacoesEquipes": [{"coEquipe": "0001773917", "stPagamento": "PAGO"}]}
+    assert [e["coEquipe"] for e in validacoes_equipes(emulti)] == [EMULTI]
+    assert [e["coEquipe"] for e in validacoes_equipes(esf)] == ["0001773917"]
+    assert validacoes_equipes([]) == [] and validacoes_equipes({}) == []
+    rotulos = {p["rotulo"] for p in pendencias(validacoes_equipes(emulti)[0])}
+    assert rotulos == {"Suspensão por falta de produção de atendimento remoto (eMulti)",
+                       "Pagamento do atendimento remoto (eMulti)"}

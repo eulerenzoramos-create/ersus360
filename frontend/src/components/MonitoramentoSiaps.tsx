@@ -218,6 +218,17 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
             <Card titulo="Estabelecimentos c/ ausência" valor={p.cards.estabelecimentos_com_ausencia} />
             <Card titulo="Profissionais c/ ausência" valor={p.cards.profissionais_com_ausencia} />
           </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+            {(p.ausencia_por_tipo ?? []).map((t: any) => (
+              <Card key={t.tipo} titulo={`Sem envio — ${t.rotulo}`} valor={t.equipes} nivel={t.equipes ? "laranja" : "verde"}
+                nota="texto oficial do relatório de ausência" />))}
+            <Card titulo="Suspensão publicada no e-Gestor" nivel={!p.pagamento?.verificado ? "cinza" : p.pagamento.suspensoes_confirmadas.length ? "vermelho" : "verde"}
+              valor={p.pagamento?.verificado ? p.pagamento.suspensoes_confirmadas.length : "—"}
+              nota={p.pagamento?.verificado ? `parcela ${p.pagamento.parcela_rotulo} (relatório de pagamento)` : "parcela desta competência não coletada"} />
+          </div>
+          {p.pagamento?.suspensoes_confirmadas?.length > 0 && p.pagamento.suspensoes_confirmadas.map((s: any) => (
+            <Aviso key={s.ine} tom="alerta"><strong>{s.equipe}</strong> (INE {s.ine}): SUSPENSO na parcela {p.pagamento.parcela_rotulo} por falta de {s.suspensao_por_falta_de_producao.join(" e ")} — fonte: e-Gestor, relatório público de pagamento.</Aviso>))}
+          <EmultiRemoto bloco={p.emulti_atendimento_remoto} comp={compBr(compAtual)} abrir={abrirEquipe} />
           <Aviso>Transmissão, processamento, rejeições e inconsistências de cada equipe por competência: veja <strong>5. Diagnóstico das Ausências</strong> (SISAB — relatório de validação, e-Gestor e CNES).</Aviso>
           {p.destaques.length > 0 && (
             <div style={{ marginBottom: 12 }}>
@@ -258,11 +269,12 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
         <>
           {Filtros}
           <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
-            <thead><tr>{["INE", "Equipe", "Tipo", "Tipologia", "Situação", "Competências sem envio", "Acompanhamento", "Responsável", ""].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+            <thead><tr>{["INE", "Equipe", "Tipo", "Tipologia", "Situação", "O que falta enviar", "Competências sem envio", "Acompanhamento", "Responsável", ""].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
             <tbody>{(equipes.data?.equipes ?? []).filter(passa).map((e: any) => (
               <tr key={e.ine}>
                 <td style={td}>{e.ine}</td><td style={td}>{e.equipe}</td><td style={td}>{e.tipo_equipe ?? "—"}</td><td style={td}>{e.tipologia ?? "—"}</td>
-                <td style={td}><Selo nivel={e.nivel} /></td><td style={td}>{e.qt_texto ?? (e.nivel === "verde" ? "Nenhuma" : "—")}</td>
+                <td style={td}><Selo nivel={e.nivel} /></td><td style={td}>{e.tipo_ausencia_rotulo ?? (e.nivel === "verde" ? "—" : "")}</td>
+                <td style={td}>{e.qt_texto ?? (e.nivel === "verde" ? "Nenhuma" : "—")}</td>
                 <td style={td}>{e.acompanhamento ?? "—"}</td><td style={td}>{e.responsavel ?? "—"}</td>
                 <td style={td}><button style={btn} onClick={() => abrirEquipe(e.ine)}>Detalhar</button></td>
               </tr>))}
@@ -288,7 +300,7 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
               <tr key={e.ine}>
                 <td style={td}>{compBr(ausencias.data.competencia)}</td><td style={td}>{municipio?.uf ?? "—"}</td><td style={td}>{municipio?.nome ?? "—"}</td><td style={td}>{ausencias.data.municipio_ibge}</td>
                 <td style={td}>{e.ine}<div style={{ color: "#374151", fontSize: 11 }}>{e.equipe}</div></td><td style={td}>{e.tipologia ?? "—"}{e.tipo_equipe ? ` (${e.tipo_equipe})` : ""}</td>
-                <td style={td}>{e.descricao}</td><td style={td}>{e.qt_texto}</td><td style={td}><Selo nivel={e.nivel} /></td>
+                <td style={td}>{e.descricao}{e.tipo_ausencia_rotulo && <div style={{ fontSize: 11, fontWeight: 700, color: "#9a3412" }}>Falta: {e.tipo_ausencia_rotulo}</div>}</td><td style={td}>{e.qt_texto}</td><td style={td}><Selo nivel={e.nivel} /></td>
                 <td style={td}><button style={btn} onClick={() => abrirEquipe(e.ine)}>Detalhar</button></td>
               </tr>))}
               {!ausencias.data.equipes.filter(passa).length && <tr><td colSpan={10} style={{ ...td, color: "#166534" }}>Nenhuma equipe do município consta na lista de ausência nesta competência.</td></tr>}
@@ -323,14 +335,22 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
       {/* 6 ── Alertas */}
       {sub === "alertas" && (alertas.data?.situacao_dado === "nao_disponivel" ? <SemDado msg={alertas.data?.mensagem} /> : alertas.data && (
         <>
-          <Aviso>Alertas calculados sobre a competência {compBr(alertas.data.competencia)} (a mais recente coletada).</Aviso>
+          <Aviso>Alertas calculados sobre a competência CNES {compBr(alertas.data.competencia)} (a mais recente coletada).{" "}
+            {alertas.data.parcela_verificada ? <>Suspensão conferida na parcela {alertas.data.parcela_verificada} do e-Gestor (relatório público de pagamento).</>
+              : <>A parcela de pagamento desta competência ainda não foi coletada: suspensão não verificada.</>}</Aviso>
           {alertas.data.alertas.length === 0 && <Aviso>Nenhum alerta ativo: nenhuma equipe do município consta na lista de ausência nesta competência.</Aviso>}
           {alertas.data.alertas.map((a: any) => (
             <div key={a.ine} style={{ background: COR[a.nivel as Nivel].bg, border: `1px solid ${COR[a.nivel as Nivel].borda}`, borderRadius: 8, padding: "10px 12px", marginBottom: 8, fontSize: 12, color: COR[a.nivel as Nivel].fg }}>
               <div style={{ fontWeight: 700 }}>{a.mensagem}</div>
+              {a.providencias && (
+                <ol style={{ margin: "6px 0 0", paddingLeft: 18, color: "#1f2937", lineHeight: 1.5 }}>
+                  {a.providencias.map((x: string) => <li key={x}>{x}</li>)}
+                </ol>)}
               <div style={{ marginTop: 4, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                <Selo nivel={a.nivel} texto={a.situacao === "risco_de_suspensao" ? "Risco de suspensão" : "Pendente de verificação"} />
-                <span>Suspensão confirmada por fonte oficial: <strong>não verificada</strong></span>
+                <Selo nivel={a.nivel} texto={a.suspensao_confirmada ? "Suspenso no e-Gestor" : a.situacao === "risco_de_suspensao" ? "Risco de suspensão" : "Pendente de verificação"} />
+                {a.tipo_ausencia_rotulo && <Selo nivel="cinza" texto={`Falta: ${a.tipo_ausencia_rotulo}`} />}
+                <span>Suspensão por fonte oficial: <strong>{a.suspensao_verificada ? a.suspensao_confirmada_nota : "não verificada"}</strong>
+                  {!a.suspensao_verificada && <span style={{ fontWeight: 400 }}> — {a.suspensao_confirmada_nota}</span>}</span>
                 <button style={{ ...btn, marginLeft: "auto" }} onClick={() => abrirEquipe(a.ine)}>Ver caso</button>
               </div>
             </div>))}
@@ -398,6 +418,48 @@ export default function MonitoramentoSiaps({ municipio }: { municipio?: { uf?: s
           </table>
         </>
       )}
+    </div>
+  );
+}
+
+// ── eMulti: atendimento remoto (e-Gestor, relatório público de pagamento) ────
+const brl = (v?: number | null) => (v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+const okSt = (s?: string | null) => /^(PAGO|N[ÃA]O SUSPENSO)$/i.test((s ?? "").trim());
+
+function EmultiRemoto({ bloco, comp, abrir }: { bloco: any; comp: string; abrir: (ine: string) => void }) {
+  if (!bloco) return null;
+  return (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "12px 14px", marginBottom: 12, fontSize: 12 }}>
+      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>eMulti — atendimento remoto (competência CNES {comp})</div>
+      {!bloco.verificado ? <div style={{ color: "#4b5563" }}>{bloco.nota}</div> : (
+        <>
+          <div style={{ color: "#374151", marginBottom: 8 }}>
+            Parcela {bloco.parcela.slice(4)}/{bloco.parcela.slice(0, 4)} do e-Gestor ·
+            Custeio eMulti: <strong>{brl(bloco.valor_custeio_emulti)}</strong> ·
+            Custeio de manutenção do atendimento remoto: <strong>{bloco.componente_atendimento_remoto_publicado ? brl(bloco.valor_atendimento_remoto) : "componente não publicado na parcela"}</strong>
+          </div>
+          {!bloco.equipes.length ? <div style={{ color: "#4b5563" }}>Nenhuma eMulti na validação por equipe desta parcela.</div> : (
+            <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
+              <thead><tr>{["INE", "Equipe", "Pagamento da eMulti", "Pagamento do atendimento remoto", "Suspensão por falta de atendimento remoto", "Ausência na competência", ""].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+              <tbody>{bloco.equipes.map((e: any) => (
+                <tr key={e.ine}>
+                  <td style={td}>{e.ine}</td><td style={td}>{e.equipe}</td>
+                  <td style={td}><Selo nivel={okSt(e.st_pagamento) ? "verde" : "vermelho"} texto={e.st_pagamento ?? "—"} /></td>
+                  <td style={td}>{e.st_pagamento_atend_remoto ? <Selo nivel={okSt(e.st_pagamento_atend_remoto) ? "verde" : "vermelho"} texto={e.st_pagamento_atend_remoto} /> : "—"}</td>
+                  <td style={td}>{e.st_suspensao_prod_atend_remoto ? <Selo nivel={okSt(e.st_suspensao_prod_atend_remoto) ? "verde" : "vermelho"} texto={e.st_suspensao_prod_atend_remoto} /> : "—"}</td>
+                  <td style={td}>{e.ausencia_na_competencia ? `${e.ausencia_na_competencia} (${e.qt_texto})` : "Nenhuma"}</td>
+                  <td style={td}><button style={btn} onClick={() => abrir(e.ine)}>Detalhar</button></td>
+                </tr>))}
+              </tbody>
+            </table>
+            </div>)}
+          <div style={{ color: "#4b5563", marginTop: 8 }}>
+            Registro do atendimento remoto no PEC: em “Finalização do atendimento” → “Procedimentos administrativos (SIGTAP)”, incluir <strong>03.01.01.025-0 — Teleconsulta na atenção primária</strong>
+            {" "}(<a href="https://sisaps.saude.gov.br/sistemas/esusaps/docs/manual/PEC/PEC_06_atendimentos#6410-finalizar-atendimento" target="_blank" rel="noreferrer" style={{ color: "#1d4ed8" }}>manual oficial do PEC</a>).
+            Fonte dos valores e situações: {bloco.fonte}.
+          </div>
+        </>)}
     </div>
   );
 }
@@ -704,7 +766,16 @@ function CasoEquipe({ ine, compInicial, dados, carregando, voltar, municipio }: 
                   ? <>Na competência mais recente coletada ({compBr(resumo.atual.competencia)}) <strong>não consta</strong> na lista. Isso indica regularização do envio, mas <strong>não informa</strong> se houve suspensão de recurso no período.</>
                   : <>Na competência mais recente coletada ({compBr(resumo.atual.competencia)}) <strong>continua na lista</strong>: {resumo.atual.qt_texto}.</>}
               </li>
-              <li>Suspensão de recurso: ver “Possíveis consequências” no diagnóstico de cada competência (validação da equipe no pagamento do e-Gestor); se não verificada, confirmar no Relatório de Pagamento (e-Gestor).</li>
+              {dados.tipo_ausencia_atual && <li>O que falta enviar, segundo o texto oficial: <strong>{dados.tipo_ausencia_atual}</strong>.</li>}
+              <li>
+                {dados.pagamento_na_competencia?.verificada
+                  ? <>Pagamento (e-Gestor, parcela {dados.pagamento_na_competencia.parcela.slice(4)}/{dados.pagamento_na_competencia.parcela.slice(0, 4)}, que avalia a competência {compBr(resumo.atual.competencia)}):{" "}
+                      {dados.pagamento_na_competencia.suspensao_confirmada
+                        ? <strong style={{ color: "#991b1b" }}>SUSPENSO por falta de {dados.pagamento_na_competencia.suspensao_por_falta_de_producao.join(" e ")}</strong>
+                        : <strong>sem suspensão por falta de produção</strong>}
+                      {" "}(pagamento: {dados.pagamento_na_competencia.st_pagamento ?? "—"}{dados.pagamento_na_competencia.st_pagamento_atend_remoto ? `; atendimento remoto: ${dados.pagamento_na_competencia.st_pagamento_atend_remoto}` : ""}).</>
+                  : <>Suspensão de recurso: {dados.pagamento_na_competencia?.nota ?? "não verificada"} Ver também “Possíveis consequências” no diagnóstico de cada competência.</>}
+              </li>
             </ul>
           </Painel>
 

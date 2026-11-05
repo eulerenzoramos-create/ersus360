@@ -39,6 +39,8 @@ ROTULOS = {
     "stSuspensaoDuplicidadeEsf": "Suspensão por duplicidade", "stSuspensaoProducao": "Suspensão por falta de produção",
     "stSuspensaoComposicaoProprc": "Suspensão por composição", "stSuspensaoOrgControle": "Suspensão por órgão de controle",
     "stPossuiProfAcimacargahora": "Profissional acima da carga horária", "stVinculoValido": "Vínculo eSB × eSF/eAP",
+    "stSuspensaoProdAtendRemoto": "Suspensão por falta de produção de atendimento remoto (eMulti)",
+    "stPagamentoAtendRemoto": "Pagamento do atendimento remoto (eMulti)",
 }
 # Informativos (não são suspensão): ex. eSB com carga horária compartilhada com a UOM.
 INFORMATIVOS = {"stEsbUom"}
@@ -59,6 +61,17 @@ def pendencias(validacao: dict) -> list[dict]:
     return [{"campo": k, "rotulo": ROTULOS.get(k, k), "situacao": v}
             for k, v in validacao.items()
             if k.startswith("st") and k not in INFORMATIVOS and _norm(v) not in OK]
+
+
+def validacoes_equipes(detalhe) -> list[dict]:
+    """Validação por equipe do relatório detalhado. eSF/eAP/eSB publicam `validacoesEquipes` no nível de cima;
+    a eMulti publica dentro de `validacoes` (conferido em 05/11/2026, Apuí, parcela 202610)."""
+    if not isinstance(detalhe, dict):
+        return []
+    lista = detalhe.get("validacoesEquipes")
+    if not lista and isinstance(detalhe.get("validacoes"), dict):
+        lista = detalhe["validacoes"].get("validacoesEquipes")
+    return lista or []
 
 
 async def _get(client: httpx.AsyncClient, url: str, params: dict):
@@ -100,7 +113,7 @@ async def buscar(ibge: str, parcelas: int = PARCELAS_GUARDADAS, client: httpx.As
                                         "co_componente": c["coComponentePagamento"],
                                         "ds_componente": c["dsComponentePagamento"].strip(),
                                         "resumo": {k: v for k, v in d.items() if not isinstance(v, (list, dict))},
-                                        "equipes": d.get("validacoesEquipes") or []})
+                                        "equipes": validacoes_equipes(d)})
             m = munic.get(g["nuParcela"], {})
             saida.append({"nu_parcela": g["nuParcela"], "nu_comp_cnes": g["nuCompCnes"],
                           "classificacao_qualidade": m.get("dsClassificacaoQualidadeEsfEap"),
