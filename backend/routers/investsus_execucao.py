@@ -282,6 +282,13 @@ def _linha(p: PropostaInvestSUS, c: dict) -> dict:
         "numero_proposta": p.numero_proposta, "numero_emenda": p.numero_emenda, "exercicio": p.exercicio,
         "objeto": p.objeto or p.finalidade, "programa": p.programa.nome if p.programa else None,
         "parlamentar": p.parlamentar.nome if p.parlamentar else None,
+        "parlamentar_partido": p.parlamentar.partido if p.parlamentar else None,
+        "parlamentar_uf": p.parlamentar.uf if p.parlamentar else None,
+        "acao_orcamentaria": p.acao_orcamentaria, "componente": p.componente,
+        "modalidade_oficial": p.modalidade or fed.modalidade_de_tipo_emenda(
+            p.tipo_emenda.value if p.tipo_emenda else None),
+        "tipo_oficial": _tipo_oficial(p.payload_original),
+        "valor_indicado": p.valor_indicado, "valor_proposta": p.valor_proposta,
         "situacao_proposta": sit, "situacao_proposta_texto": p.situacao_original,
         "fase": fase, "fase_rotulo": fed.FASES.get(fase or "", "Não identificada"),
         "situacao_plano": _situacao_plano(f, c["resumo"]),
@@ -292,6 +299,11 @@ def _linha(p: PropostaInvestSUS, c: dict) -> dict:
         "alertas": len(c["alertas"]),
         "alertas_niveis": sorted({a["nivel"] for a in c["alertas"]}),
     }
+
+
+def _tipo_oficial(payload):
+    from services.relatorio_modelo_investsus import tipo_oficial_de
+    return tipo_oficial_de(payload)
 
 
 def _filtrar(linhas: list[dict], origem, destinacao, fase, situacao_plano, busca) -> list[dict]:
@@ -354,7 +366,7 @@ async def painel(db: DbDep, u: SessaoMunicipal,
             alertas_niveis[a["nivel"]] = alertas_niveis.get(a["nivel"], 0) + 1
     anos = sorted({p.exercicio for p in dados["props"] if p.exercicio}, reverse=True)
     return {
-        "municipio": u.municipio, "municipio_ibge": u.municipio_ibge,
+        "municipio": u.municipio, "municipio_ibge": u.municipio_ibge, "municipio_uf": u.municipio_uf,
         "permissoes": _permissoes(u),
         "filtros": {"exercicio": exercicio, "origem": origem, "destinacao": destinacao, "fase": fase,
                     "situacao_plano": situacao_plano, "busca": busca},
@@ -474,6 +486,8 @@ async def ficha(proposta_id: int, db: DbDep, u: SessaoMunicipal):
                                      "programa", "parlamentar", "situacao_proposta", "situacao_proposta_texto",
                                      "fase_rotulo")},
             "acao_orcamentaria": p.acao_orcamentaria, "componente": p.componente,
+        "modalidade_oficial": p.modalidade or fed.modalidade_de_tipo_emenda(
+            p.tipo_emenda.value if p.tipo_emenda else None),
             "tipo_financiamento": p.tipo_financiamento, "valor_indicado": p.valor_indicado,
             "valor_aprovado": p.valor_aprovado, "portaria_numero": p.portaria_numero,
             "conta_bancaria_proposta": p.conta_bancaria, "fonte_dado": p.fonte_dado,
@@ -1136,6 +1150,14 @@ async def importar_planilha(proposta_id: int, db: DbDep, u: SessaoMunicipal, arq
 
 # ── Relatórios ────────────────────────────────────────────────────────────────
 
+def identificacao_relatorio(u: UserOut):
+    """Cabeçalho dos relatórios: sempre o município da sessão e o usuário que emite."""
+    from services.relatorio_modelo_investsus import Identificacao
+    return Identificacao(municipio=u.municipio or "", uf=u.municipio_uf, ibge=u.municipio_ibge,
+                         cnpj_fundo=u.municipio_cnpj_fundo, responsavel=u.nome or u.username,
+                         perfil="administrador_geral" if u.administrador_geral else (u.role or _perfil(u)))
+
+
 @router.get("/relatorios/{tipo}")
 async def relatorio(tipo: str, db: DbDep, u: SessaoMunicipal, formato: str = Query("pdf"),
                     exercicio: int | None = Query(None), origem: str | None = Query(None),
@@ -1152,7 +1174,8 @@ async def relatorio(tipo: str, db: DbDep, u: SessaoMunicipal, formato: str = Que
     alertas_ = await alertas_execucao(db, u, exercicio)
     ficha_ = await ficha(proposta_id, db, u) if tipo == "individual" else None
     doc = rel.montar(tipo, painel_, alertas_, ficha_)
-    conteudo = rel.pdf(doc, u.nome or u.username) if formato == "pdf" else rel.xlsx(doc, u.nome or u.username)
+    ident = identificacao_relatorio(u)
+    conteudo = rel.pdf(doc, ident) if formato == "pdf" else rel.xlsx(doc, ident)
     mime = "application/pdf" if formato == "pdf" else \
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     nome = f"investsus_execucao_{tipo}_{date.today():%Y%m%d}.{formato}"

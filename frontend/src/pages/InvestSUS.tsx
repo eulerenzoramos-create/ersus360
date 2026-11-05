@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import TetosMunicipais from "./InvestSUSTetos";
-import { ExecucaoFinanceira, AlertasExecucao, RelatoriosExecucao, RepassesPlanos } from "./InvestSUSExecucao";
+import { ExecucaoFinanceira, AlertasExecucao, RelatoriosExecucao, RepassesPlanos, baixar } from "./InvestSUSExecucao";
 import {
   Landmark, Plus, RefreshCw, AlertTriangle, CheckCircle2, Clock,
   ChevronDown, ChevronRight, FileText, Upload, Search, X, Check,
@@ -2246,37 +2246,57 @@ function ImportacaoAssistida({ municipio_id }: { municipio_id: number }) {
 }
 
 // ── Relatório de Acompanhamento ───────────────────────────────────────────────
+// Mesmo modelo do "RELATÓRIO — INVESTSUS": cards por modalidade e, por modalidade, a tabela
+// Nº Proposta | Parlamentar / Autoria | Partido/UF | Objeto / Programa | Situação | Valor Global | Repassado | Ano.
+// O que não tem fonte vem do backend como "Dados não disponíveis" (nunca zero inventado).
+const SEM_DADO = "Dados não disponíveis";
+
 function RelatorioAcompanhamento({ municipio_id }: { municipio_id: number }) {
   const [exercicio, setExercicio] = useState<string>("");
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("");
+  const [baixando, setBaixando] = useState<string>("");
+  const [erroExport, setErroExport] = useState<string>("");
 
-  const { data, isLoading, refetch } = useQuery({
+  const filtrosQS = () => {
+    const params = new URLSearchParams();
+    if (exercicio) params.set("exercicio", exercicio);
+    if (situacaoFiltro) params.set("situacao", situacaoFiltro);
+    return params;
+  };
+
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["investsus-relatorio", municipio_id, exercicio, situacaoFiltro],
-    queryFn: () => {
-      const params = new URLSearchParams({ municipio_id: String(municipio_id) });
-      if (exercicio) params.set("exercicio", exercicio);
-      if (situacaoFiltro) params.set("situacao", situacaoFiltro);
-      return api.get(`/api/investsus/relatorio?${params}`).then(r => r.data);
-    },
+    queryFn: () => api.get(`/api/investsus/relatorio?${filtrosQS()}`).then(r => r.data),
     enabled: false, // só busca ao clicar
   });
+
+  const exportar = async (formato: "pdf" | "xlsx") => {
+    setBaixando(formato); setErroExport("");
+    try {
+      const qs = filtrosQS(); qs.set("formato", formato);
+      await baixar(`/api/investsus/relatorio/exportar?${qs}`,
+        `investsus_acompanhamento_${exercicio || "todos"}_${new Date().toISOString().slice(0, 10)}.${formato}`);
+    } catch (e: any) {
+      setErroExport(e?.response?.data?.detail ?? "Não foi possível gerar o arquivo.");
+    } finally { setBaixando(""); }
+  };
 
   const exportarCSV = () => {
     if (!data?.linhas?.length) return;
     const cols = [
-      "numero_proposta", "numero_emenda", "exercicio", "esfera", "modalidade", "fase", "parlamentar", "partido_uf",
-      "programa", "componente", "tipo_financiamento", "entidade", "cnpj", "objeto",
-      "situacao_original", "situacao_normalizada",
-      "valor_indicado", "valor_aprovado", "valor_empenhado", "valor_pago", "valor_executado",
-      "saldo_bancario", "perc_fisico", "perc_financeiro",
-      "portaria_numero", "empenho_numero", "prazo_vigencia", "ultima_consulta",
-      "total_pareceres", "alertas_abertos", "responsavel_interno", "prioridade", "observacoes_internas",
+      "numero_proposta", "autoria", "partido_uf", "objeto_programa", "tipo", "tipo_oficial", "situacao_rotulo", "situacao_original",
+      "valor_global", "valor_repassado", "perc_repassado", "exercicio",
+      "modalidade", "fase", "numero_emenda", "esfera", "programa", "componente", "tipo_financiamento",
+      "entidade", "cnpj", "valor_indicado", "valor_aprovado", "valor_empenhado", "valor_pago", "valor_executado",
+      "saldo_bancario", "perc_fisico", "perc_financeiro", "portaria_numero", "empenho_numero", "prazo_vigencia",
+      "ultima_consulta", "total_pareceres", "alertas_abertos", "responsavel_interno", "prioridade",
     ];
     const header = cols.join(";");
     const rows = data.linhas.map((r: any) =>
       cols.map(c => {
-        const v = r[c] ?? "";
-        return typeof v === "string" && v.includes(";") ? `"${v}"` : v;
+        const v = r[c];
+        const t = v === null || v === undefined || v === "" ? SEM_DADO : String(v);
+        return t.includes(";") || t.includes('"') ? `"${t.replace(/"/g, '""')}"` : t;
       }).join(";")
     );
     const csv = [header, ...rows].join("\n");
@@ -2289,15 +2309,19 @@ function RelatorioAcompanhamento({ municipio_id }: { municipio_id: number }) {
     URL.revokeObjectURL(url);
   };
 
+  const fmtValor = (v: number | null | undefined) => (v === null || v === undefined ? SEM_DADO : fmt(v));
+  const semFonte = (t: string) => t === SEM_DADO || t === "Não se aplica";
+  const linhasDe = (mod: string) => (data?.linhas ?? []).filter((l: any) => l.modalidade_chave === mod);
+
   return (
     <div>
       {/* Filtros */}
       <div style={{ ...S.card }}>
         <div style={S.title}>Relatório de Acompanhamento InvestSUS</div>
-        <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" as const }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 4, flexWrap: "wrap" as const }}>
           <div>
             <label style={S.label}>Exercício</label>
-            <input type="number" style={{ ...S.input, width: 100 }} value={exercicio} placeholder="2026"
+            <input type="number" style={{ ...S.input, width: 100 }} value={exercicio} placeholder="Todos"
               onChange={e => setExercicio(e.target.value)} />
           </div>
           <div>
@@ -2307,79 +2331,149 @@ function RelatorioAcompanhamento({ municipio_id }: { municipio_id: number }) {
               {Object.entries(SITUACAO_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
           </div>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 8, flexWrap: "wrap" as const }}>
             <button style={S.btn("#1e3a5f")} onClick={() => refetch()}>
               <Search size={12} /> Gerar Relatório
             </button>
+            {data && (
+              <>
+                <button style={S.btn("#1e3a5f")} disabled={!!baixando} onClick={() => exportar("pdf")}>
+                  <FileText size={12} /> {baixando === "pdf" ? "Gerando…" : "PDF"}
+                </button>
+                <button style={S.btn("#059669")} disabled={!!baixando} onClick={() => exportar("xlsx")}>
+                  <Download size={12} /> {baixando === "xlsx" ? "Gerando…" : "Excel"}
+                </button>
+              </>
+            )}
             {data?.linhas?.length > 0 && (
-              <button style={S.btn("#059669")} onClick={exportarCSV}>
+              <button style={S.btn("#475569")} onClick={exportarCSV}>
                 <Download size={12} /> Exportar CSV
               </button>
             )}
           </div>
         </div>
+        {erroExport && <div style={{ color: "#b91c1c", fontSize: 12, marginTop: 6 }}>{erroExport}</div>}
       </div>
 
-      {isLoading && <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>Gerando relatório...</div>}
+      {isLoading && <div style={{ textAlign: "center", padding: 40, color: "#6b7280" }}>Gerando relatório...</div>}
+      {isError && <div style={{ ...S.card, color: "#b91c1c" }}>{SEM_DADO}: não foi possível consultar as propostas.</div>}
 
       {data && (
         <>
-          {/* Totais */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 14 }}>
-            <KPICard label="Propostas"    valor={`${data.totais.total_propostas}`}   cor="#1e3a5f" />
-            <KPICard label="Total Indicado" valor={fmt(data.totais.total_indicado)}  cor={CORES.indicado} />
-            <KPICard label="Total Pago"   valor={fmt(data.totais.total_pago)}        cor={CORES.pago} />
-            <KPICard label="Total Executado" valor={fmt(data.totais.total_executado)} cor={CORES.executado} />
+          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px",
+            fontSize: 12, color: "#1e3a8a", marginBottom: 12 }}>
+            <strong>Escopo federal.</strong> São acompanhadas emendas parlamentares federais RP 6, RP 7 e RP 8 e
+            Recursos de Programa do Ministério da Saúde (InvestSUS). Emendas estaduais não são captadas nesta etapa.
           </div>
 
-          {/* Tabela */}
-          <div style={{ ...S.card, overflowX: "auto" as const }}>
-            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>
-              {data.linhas.length} proposta{data.linhas.length !== 1 ? "s" : ""}
-            </div>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-              <thead>
-                <tr style={{ background: "#f9fafb", position: "sticky" as const, top: 0 }}>
-                  {["Nº Proposta", "Exercício", "Parlamentar", "Programa", "Entidade", "Situação", "Indicado", "Aprovado", "Pago", "Executado", "% Fís.", "Alertas", "Resp."].map(h => (
-                    <th key={h} style={{ padding: "6px 8px", textAlign: "left" as const, color: "#6b7280", fontWeight: 700, borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" as const }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.linhas.map((r: any, i: number) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #f3f4f6", background: i % 2 === 0 ? "#fff" : "#f9fafb" }}>
-                    <td style={{ padding: "5px 8px", fontFamily: "monospace", fontWeight: 700, color: "#1e3a5f" }}>{r.numero_proposta}</td>
-                    <td style={{ padding: "5px 8px" }}>{r.exercicio}</td>
-                    <td style={{ padding: "5px 8px", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{r.parlamentar}</td>
-                    <td style={{ padding: "5px 8px", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{r.programa}</td>
-                    <td style={{ padding: "5px 8px", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{r.entidade}</td>
-                    <td style={{ padding: "5px 8px" }}><SituacaoBadge situacao={r.situacao_normalizada} /></td>
-                    <td style={{ padding: "5px 8px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums" }}>{fmt(r.valor_indicado)}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums" }}>{fmt(r.valor_aprovado)}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "#059669" }}>{fmt(r.valor_pago)}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "#16a34a" }}>{fmt(r.valor_executado)}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "right" as const }}>{fmtPct(r.perc_fisico)}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "center" as const }}>
-                      {r.alertas_abertos > 0 && (
-                        <span style={{ background: "#fef2f2", color: "#dc2626", borderRadius: 4, padding: "1px 5px", fontWeight: 700 }}>{r.alertas_abertos}</span>
-                      )}
-                    </td>
-                    <td style={{ padding: "5px 8px", color: "#6b7280", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{r.responsavel_interno}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr style={{ background: "#1e3a5f", color: "#fff" }}>
-                  <td colSpan={6} style={{ padding: "8px 8px", fontWeight: 700, fontSize: 12 }}>TOTAL</td>
-                  <td style={{ padding: "8px 8px", textAlign: "right" as const, fontWeight: 800 }}>{fmt(data.totais.total_indicado)}</td>
-                  <td style={{ padding: "8px 8px", textAlign: "right" as const, fontWeight: 800 }}>{fmt(data.totais.total_aprovado)}</td>
-                  <td style={{ padding: "8px 8px", textAlign: "right" as const, fontWeight: 800 }}>{fmt(data.totais.total_pago)}</td>
-                  <td style={{ padding: "8px 8px", textAlign: "right" as const, fontWeight: 800 }}>{fmt(data.totais.total_executado)}</td>
-                  <td colSpan={3} />
-                </tr>
-              </tfoot>
-            </table>
+          {/* Cards por modalidade — como no modelo */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10, marginBottom: 14 }}>
+            {(data.grupos ?? []).map((g: any) => {
+              const cfg = GRUPO_CONFIG[g.modalidade] ?? GRUPO_CONFIG.a_classificar;
+              return (
+                <div key={g.modalidade} style={{ background: cfg.bg, borderRadius: 8, padding: "12px 14px", borderLeft: `3px solid ${cfg.cor}` }}>
+                  <div style={{ fontSize: 10, color: cfg.cor, fontWeight: 700, marginBottom: 4 }}>{cfg.icone} {cfg.label.toUpperCase()}</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "#111827" }}>{g.qtd}</div>
+                  <div style={{ fontSize: 11, color: "#6b7280" }}>proposta{g.qtd === 1 ? "" : "s"}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: cfg.cor, marginTop: 4 }}>{fmt(g.valor_global)}</div>
+                </div>
+              );
+            })}
           </div>
+
+          {/* Uma tabela por modalidade */}
+          {(data.grupos ?? []).map((g: any) => {
+            const cfg = GRUPO_CONFIG[g.modalidade] ?? GRUPO_CONFIG.a_classificar;
+            const linhas = linhasDe(g.modalidade);
+            if (!linhas.length) {
+              return (
+                <div key={g.modalidade} style={{ border: `1px solid ${cfg.cor}33`, borderRadius: 8, padding: "18px 16px",
+                  color: "#6b7280", fontSize: 12, textAlign: "center" as const, marginBottom: 10, background: "#fff" }}>
+                  <span style={{ color: cfg.cor, fontWeight: 700 }}>{cfg.label}:</span> Nenhuma proposta encontrada nesta modalidade.
+                </div>
+              );
+            }
+            return (
+              <div key={g.modalidade} style={{ border: `1px solid ${cfg.cor}55`, borderRadius: 8, overflow: "hidden", marginBottom: 12, background: "#fff" }}>
+                <div style={{ background: cfg.bg, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: 700, color: cfg.cor, fontSize: 13 }}>{cfg.icone} {cfg.label}
+                    <span style={{ background: cfg.cor, color: "#fff", borderRadius: 10, padding: "1px 8px", fontSize: 11, marginLeft: 8 }}>
+                      {g.qtd} proposta{g.qtd === 1 ? "" : "s"}
+                    </span>
+                  </span>
+                  <span style={{ fontWeight: 700, color: cfg.cor, fontSize: 13 }}>{fmt(g.valor_global)}</span>
+                </div>
+                <div style={{ overflowX: "auto" as const }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, color: "#111827" }}>
+                    <thead>
+                      <tr style={{ background: "#f1f5f9" }}>
+                        {["Nº Proposta", "Parlamentar / Autoria", "Partido/UF", "Objeto / Programa", "Tipo", "Situação"].map(h =>
+                          <th key={h} style={TH}>{h}</th>)}
+                        <th style={{ ...TH, textAlign: "right" as const }}>Valor Global</th>
+                        <th style={{ ...TH, textAlign: "right" as const }}>Repassado</th>
+                        <th style={{ ...TH, textAlign: "center" as const }}>Ano</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {linhas.map((r: any, i: number) => (
+                        <tr key={r.id ?? i} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                          <td style={TD}>
+                            <span style={{ fontFamily: "monospace", fontSize: 11, background: "#f3f4f6", borderRadius: 3,
+                              padding: "1px 6px", fontWeight: 700, whiteSpace: "nowrap" as const, color: "#111827" }}>
+                              {r.numero_proposta || SEM_DADO}
+                            </span>
+                          </td>
+                          <td style={{ ...TD, color: semFonte(r.autoria) ? "#6b7280" : "#111827", fontWeight: semFonte(r.autoria) ? 400 : 600 }}>{r.autoria}</td>
+                          <td style={{ ...TD, color: "#4b5563", whiteSpace: "nowrap" as const }}>{r.partido_uf}</td>
+                          <td style={{ ...TD, color: semFonte(r.objeto_programa) ? "#6b7280" : "#374151", maxWidth: 300 }}>{r.objeto_programa}</td>
+                          <td style={{ ...TD, whiteSpace: "nowrap" as const }} title={r.tipo_oficial ? `Tipo oficial no InvestSUS: ${r.tipo_oficial}` : undefined}>
+                            {r.tipo === SEM_DADO
+                              ? <span style={{ color: "#6b7280" }}>{r.tipo}</span>
+                              : <span style={{ background: "#eef2ff", color: "#3730a3", borderRadius: 4, padding: "2px 7px", fontWeight: 700, fontSize: 11 }}>{r.tipo}</span>}
+                          </td>
+                          <td style={TD}>
+                            <SituacaoBadge situacao={r.situacao_normalizada ?? ""} />
+                            {r.situacao_original && (
+                              <div style={{ fontSize: 10, color: "#4b5563", marginTop: 2 }} title="Status oficial na fonte">
+                                Oficial: {r.situacao_original}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ ...TD, textAlign: "right" as const, fontWeight: 700, whiteSpace: "nowrap" as const, color: "#111827" }}>
+                            {fmtValor(r.valor_global)}
+                          </td>
+                          <td style={{ ...TD, textAlign: "right" as const, whiteSpace: "nowrap" as const, color: "#374151" }}>
+                            {fmtValor(r.valor_repassado)}
+                            <div style={{ fontSize: 10, color: "#6b7280" }}>
+                              {r.perc_repassado === null || r.perc_repassado === undefined ? "" : `${Math.round(r.perc_repassado)}%`}
+                            </div>
+                          </td>
+                          <td style={{ ...TD, textAlign: "center" as const, color: "#374151" }}>{r.exercicio ?? SEM_DADO}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background: "#f1f5f9", fontWeight: 700, color: "#111827" }}>
+                        <td style={TD} colSpan={6}>Total {g.curto} — {cfg.label}</td>
+                        <td style={{ ...TD, textAlign: "right" as const }}>{fmt(g.valor_global)}</td>
+                        <td style={{ ...TD, textAlign: "right" as const }}>{fmtValor(g.valor_repassado)}</td>
+                        <td style={TD} />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            );
+          })}
+
+          {data.linhas.length > 0 && (
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 24, background: "#1e3a5f", color: "#fff",
+              borderRadius: 8, padding: "10px 14px", fontSize: 13, fontWeight: 700 }}>
+              <span>{data.totais.total_propostas} proposta{data.totais.total_propostas === 1 ? "" : "s"}</span>
+              <span>Valor global: {fmt(data.totais.total_global)}</span>
+              <span>Repassado: {fmt(data.totais.total_repassado)}</span>
+            </div>
+          )}
         </>
       )}
     </div>

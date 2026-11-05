@@ -1430,8 +1430,73 @@ async def relatorio_acompanhamento(
     modalidade: str = Query(None),
     fase: str = Query(None),
 ):
-    """Retorna dados estruturados para exportação (relatório consolidado, escopo federal)."""
+    """Dados do relatório de acompanhamento (escopo federal), já nas colunas do modelo
+    "RELATÓRIO — INVESTSUS": Nº Proposta, Parlamentar/Autoria, Partido/UF, Objeto/Programa,
+    Situação (+ oficial), Valor Global, Repassado e Ano, agrupados por modalidade."""
+    return await _dados_relatorio(db, _municipio_id(user), exercicio, situacao, modalidade, fase)
+
+
+@router.get("/relatorio/exportar")
+async def exportar_relatorio_acompanhamento(
+    db: DbDep,
+    user: UserDep,
+    formato: str = Query("pdf"),
+    exercicio: int = Query(None),
+    situacao: str = Query(None),
+    modalidade: str = Query(None),
+    fase: str = Query(None),
+):
+    """PDF/Excel do relatório de acompanhamento no modelo institucional do ERSUS 360.
+    Sempre do município da sessão (nunca vindo do cliente)."""
+    from fastapi.responses import Response
+    from services import relatorio_modelo_investsus as modelo
+
+    if formato not in ("pdf", "xlsx"):
+        raise HTTPException(422, "Formato deve ser pdf ou xlsx.")
     mid = _municipio_id(user)
+    dados = await _dados_relatorio(db, mid, exercicio, situacao, modalidade, fase)
+    filtros = []
+    if exercicio:
+        filtros.append(f"Exercício {exercicio}")
+    if situacao:
+        filtros.append(f"Situação: {modelo.rotulo_situacao(situacao)}")
+    if modalidade:
+        filtros.append(fed.MODALIDADES.get(modalidade, {}).get("rotulo", modalidade))
+    if fase:
+        filtros.append(f"Fase: {fed.FASES.get(fase, fase)}")
+    mun = user.municipio or ""
+    uf = getattr(user, "municipio_uf", None)
+    doc = modelo.Documento(
+        titulo="InvestSUS",
+        subtitulo=f"Emendas, Propostas e Execução · FMS {mun}{('/' + uf) if uf else ''}",
+        periodo=modelo.periodo_padrao(None),
+        filtros=" · ".join(filtros),
+        grupos=modelo.montar_grupos([(ln["modalidade_chave"], _linha_modelo(ln)) for ln in dados["linhas"]]),
+    )
+    ident = modelo.Identificacao(
+        municipio=mun, uf=uf, ibge=user.municipio_ibge, cnpj_fundo=getattr(user, "municipio_cnpj_fundo", None),
+        responsavel=user.nome or user.username,
+        perfil="administrador_geral" if getattr(user, "administrador_geral", False) else (user.role or ""))
+    conteudo = modelo.pdf(doc, ident) if formato == "pdf" else modelo.xlsx(doc, ident)
+    mime = ("application/pdf" if formato == "pdf"
+            else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    nome = f"investsus_acompanhamento_{exercicio or 'todos'}_{date.today():%Y%m%d}.{formato}"
+    return Response(conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
+
+
+def _linha_modelo(ln: dict):
+    from services.relatorio_modelo_investsus import LinhaProposta
+    return LinhaProposta(numero=ln["numero_proposta"], autoria=ln["autoria"], partido_uf=ln["partido_uf"],
+                         objeto=ln["objeto_programa"], situacao=ln["situacao_rotulo"],
+                         situacao_oficial=ln["situacao_original"] or None, valor_global=ln["valor_global"],
+                         repassado=ln["valor_repassado"], ano=ln["exercicio"], tipo=ln["tipo"],
+                         tipo_oficial=ln["tipo_oficial"])
+
+
+async def _dados_relatorio(db, mid: int, exercicio, situacao, modalidade, fase) -> dict:
+    from services import investsus_execucao as ex
+    from services import relatorio_modelo_investsus as modelo
+
     stmt = (
         select(PropostaInvestSUS)
         .options(
@@ -1453,33 +1518,53 @@ async def relatorio_acompanhamento(
     result = await db.execute(stmt)
     props = result.scalars().all()
 
+    sd = modelo.SEM_DADO
     linhas = []
     for p in props:
+        mod = _modalidade_de(p)
+        sit = p.situacao_normalizada.value if p.situacao_normalizada else None
+        parl = p.parlamentar
+        # Repassado: parcelas FNS registradas; sem parcelas, o valor pago informado pelo InvestSUS
+        repassado = ex.recebido_fns(p, p.pagamentos_investsus or [])["valor"]
+        vglobal = modelo.valor_global(p.valor_aprovado, p.valor_proposta, p.valor_indicado)
+        programa = (p.programa.nome if p.programa else None) or p.acao_orcamentaria or p.componente
+        tipo_of = modelo.tipo_oficial_de(p.payload_original)
         linhas.append({
+            "tipo": modelo.tipo_proposta(mod, p.componente, tipo_of),
+            "tipo_oficial": tipo_of,
+            "id": p.id,
             "numero_proposta": p.numero_proposta,
             "numero_emenda": p.numero_emenda,
             "exercicio": p.exercicio,
             "esfera": p.esfera or fed.ESFERA_FEDERAL,
-            "modalidade": fed.MODALIDADES.get(_modalidade_de(p), {}).get("rotulo", "A classificar"),
-            "fase": fed.FASES.get(fed.fase_de(p.situacao_normalizada.value if p.situacao_normalizada else None) or "", ""),
-            "parlamentar": p.parlamentar.nome if p.parlamentar else "",
-            "partido_uf": f"{p.parlamentar.partido}/{p.parlamentar.uf}" if p.parlamentar else "",
-            "programa": p.programa.nome if p.programa else "",
+            "modalidade_chave": mod,
+            "modalidade": fed.MODALIDADES.get(mod, {}).get("rotulo", "A classificar"),
+            "fase": fed.FASES.get(fed.fase_de(sit) or "", ""),
+            "parlamentar": parl.nome if parl else "",
+            "partido_uf": modelo.partido_uf(mod, parl.partido if parl else None, parl.uf if parl else None,
+                                            bool(parl)),
+            "autoria": modelo.autoria(mod, parl.nome if parl else None),
+            "programa": programa or sd,
+            "objeto_programa": p.objeto or p.finalidade or programa or sd,
             "componente": p.componente or "",
             "tipo_financiamento": p.tipo_financiamento or "",
-            "entidade": p.entidade_nome or "",
+            "entidade": p.entidade_nome or p.fundo_saude or sd,
             "cnpj": p.entidade_cnpj or "",
             "objeto": (p.objeto or "")[:200],
             "situacao_original": p.situacao_original or "",
-            "situacao_normalizada": p.situacao_normalizada.value if p.situacao_normalizada else "",
+            "situacao_normalizada": sit or "",
+            "situacao_rotulo": modelo.rotulo_situacao(sit),
+            "valor_global": vglobal,
+            "valor_repassado": repassado,
+            "perc_repassado": round(repassado / vglobal * 100, 1) if vglobal else None,
             "valor_indicado": p.valor_indicado,
             "valor_aprovado": p.valor_aprovado,
             "valor_empenhado": p.valor_empenhado,
             "valor_pago": p.valor_pago,
             "valor_executado": p.valor_executado,
             "saldo_bancario": p.saldo_bancario,
-            "perc_fisico": p.perc_fisico or 0,
-            "perc_financeiro": p.perc_financeiro or 0,
+            "perc_fisico": p.perc_fisico,
+            "perc_financeiro": p.perc_financeiro,
             "portaria_numero": p.portaria_numero or "",
             "empenho_numero": p.empenho_numero or "",
             "prazo_vigencia": str(p.prazo_vigencia) if p.prazo_vigencia else "",
@@ -1490,17 +1575,25 @@ async def relatorio_acompanhamento(
             "prioridade": p.prioridade or "",
             "observacoes_internas": p.observacoes_internas or "",
         })
+    linhas.sort(key=lambda ln: (-(ln["valor_global"] or 0), ln["numero_proposta"] or ""))
+
+    grupos = []
+    for g in modelo.montar_grupos([(ln["modalidade_chave"], _linha_modelo(ln)) for ln in linhas]):
+        grupos.append({"modalidade": g.chave, "rotulo": g.cfg["rotulo"], "curto": g.cfg["curto"],
+                       "qtd": len(g.linhas), "valor_global": g.total_global, "valor_repassado": g.total_repassado})
 
     totais = {
         "total_propostas": len(props),
-        "total_indicado": sum(p.valor_indicado for p in props),
-        "total_aprovado": sum(p.valor_aprovado for p in props),
-        "total_empenhado": sum(p.valor_empenhado for p in props),
-        "total_pago": sum(p.valor_pago for p in props),
-        "total_executado": sum(p.valor_executado for p in props),
+        "total_global": round(sum(ln["valor_global"] or 0 for ln in linhas), 2),
+        "total_repassado": round(sum(ln["valor_repassado"] for ln in linhas), 2),
+        "total_indicado": sum(p.valor_indicado or 0 for p in props),
+        "total_aprovado": sum(p.valor_aprovado or 0 for p in props),
+        "total_empenhado": sum(p.valor_empenhado or 0 for p in props),
+        "total_pago": sum(p.valor_pago or 0 for p in props),
+        "total_executado": sum(p.valor_executado or 0 for p in props),
     }
 
-    return {"linhas": linhas, "totais": totais, "municipio_id": mid, "exercicio": exercicio}
+    return {"linhas": linhas, "grupos": grupos, "totais": totais, "municipio_id": mid, "exercicio": exercicio}
 
 
 def _parse_float(v: Any) -> float:
