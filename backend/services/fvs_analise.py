@@ -36,6 +36,8 @@ ROTULO_FONTE = {
     "malaria": "FVS-AM — Painel Malária/SIVEP-Malária (Tableau Public)",
     "aesop": "FVS-AM/CIEVS — Painel AESOP (Tableau Public)",
     "vacinometro": "FVS-AM — Vacinômetro COVID-19 (Tableau Public)",
+    "inpe_focos": "INPE — Programa Queimadas, focos de calor (satélite de referência)",
+    "sisagua": "Ministério da Saúde — SISAGUA/Vigiagua (API de Dados Abertos)",
 }
 
 
@@ -53,7 +55,7 @@ async def _estado(db: AsyncSession, fonte: str) -> dict:
     e = await db.get(FvsFonteEstado, fonte)
     painel = cat.painel_do_coletor(fonte) or {}
     base = {"fonte": fonte, "rotulo": ROTULO_FONTE.get(fonte, fonte), "painel_url": painel.get("embed"),
-            "pagina_oficial": cat.FONTE_PAGINA}
+            "pagina_oficial": cat.COLETORES.get(fonte, {}).get("endereco") or cat.FONTE_PAGINA}
     if not e:
         return {**base, "situacao": "nunca_sincronizada", "ultima_sincronizacao": None,
                 "publicado_na_fonte": None, "data_referencia": None}

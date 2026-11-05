@@ -61,6 +61,7 @@ async def init_db():
         from models import siaps_publico  # noqa — resultados públicos oficiais do SIAPS (quadrimestre, IED)
         from models import egestor_ausencia  # noqa — monitoramento SIAPS: ausência de envio (e-Gestor)
         from models import vigilancia_fvs  # noqa — Vigilância em Saúde: série pública da FVS-RCP/AM
+        from models import vigilancia_alerta  # noqa — Vigilância em Saúde: acompanhamento dos alertas (por município)
         from models import diagnostico_situacional  # noqa — Diagnóstico Situacional da Saúde Municipal
         from models import pms_vivo  # noqa — PMS Vivo: PMS, PAS, ações e execução
         from models import investsus_execucao  # noqa — InvestSUS: execução financeira dos planos de trabalho

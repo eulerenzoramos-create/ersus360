@@ -1,63 +1,93 @@
 /**
- * Painel de Vigilância em Saúde — entrada da aba VIGILÂNCIA EM SAÚDE.
- * Painel executivo consolidado com os dados públicos da FVS-RCP/AM (62 municípios do AM):
- * visão geral + alertas, mapa, comparativo, PQA-VS, relatórios, Agente IA, integrações e painéis oficiais.
+ * Painel de Vigilância em Saúde — entrada da aba VIGILÂNCIA EM SAÚDE (painel gerencial).
+ * Oito áreas: visão geral; respiratórias e qualidade do ar; diarreicas e água; arboviroses e endemias;
+ * notificação compulsória; ambiental e clima; PQA-VS; relatórios, mapas e inteligência — mais a central de
+ * alertas por prioridade. Fontes oficiais públicas (FVS-RCP/AM, INPE, SISAGUA) dos 62 municípios do AM.
  * Começa no município da sessão; qualquer município do AM pode ser consultado (dado público).
  */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Activity, AlertTriangle, ArrowLeft, Bot, FileText, Map as MapIcon, Network, Scale, ShieldCheck, Target } from "lucide-react";
+import { Activity, ArrowLeft, Bot, Brain, Bug, ClipboardList, Droplets, FileText, Flame, Map as MapIcon, Network, Scale, ShieldCheck, Siren,
+  Target, Wind } from "lucide-react";
 import { apiGet } from "../lib/api";
 import { useAuth } from "../App";
-import { COR, FVS_API, IBGE_AM, ROTULO_RECORTE, SUBABA_ROTA, fmt, fmtPct, ibge6, useCatalogoFvs, useMunicipiosFvs,
+import { COR, FVS_API, IBGE_AM, ROTULO_RECORTE, ibge6, fmt, fmtPct, useCatalogoFvs, useMunicipiosFvs,
   type EstadoFonte, type LinhaSerie } from "../lib/vigilanciaFvs";
-import { Cartao, PainelOficial, Secao, SeletorAno, SeletorMunicipioFvs, SeloFonteFvs, TabelaSimples, TagOrigem, Vazio,
+import { PainelOficial, Secao, SeletorAno, SeletorMunicipioFvs, SeloFonteFvs, TabelaSimples, Vazio,
   botaoSec, rotuloStyle, selectStyle } from "../components/vigilancia/FvsBase";
 import { BarrasAnuais, BarrasRecorte, CurvaSemanal } from "../components/vigilancia/Graficos";
 import MapaAmazonas, { type ValorMapa } from "../components/vigilancia/MapaAmazonas";
+import CentralAlertas, { ResumoAlertas, useCentral, type Prioridade } from "../components/vigilancia/CentralAlertas";
+import { AZUL, AreaAmbiental, AreaArboviroses, AreaDiarreicas, AreaInteligencia, AreaNotificacoes, AreaPqa, AreaRespiratoria,
+  AreaVisao } from "../components/vigilancia/AreasPainel";
 import { AbaAgenteIA, AbaIntegracoes, AbaRelatorios } from "../components/vigilancia/AbasFerramentas";
 
-type Aba = "geral" | "mapa" | "comparativo" | "pqa" | "relatorios" | "ia" | "integracoes" | "paineis";
+type Aba = "visao" | "alertas" | "respiratoria" | "diarreicas" | "arboviroses" | "notificacoes" | "ambiental" | "pqa" | "ferramentas";
 const ABAS: { id: Aba; rotulo: string; Icon: typeof Activity }[] = [
-  { id: "geral", rotulo: "Visão geral", Icon: Activity }, { id: "mapa", rotulo: "Mapa do AM", Icon: MapIcon },
-  { id: "comparativo", rotulo: "Comparativo", Icon: Scale }, { id: "pqa", rotulo: "PQA-VS", Icon: Target },
-  { id: "relatorios", rotulo: "Relatórios", Icon: FileText }, { id: "ia", rotulo: "Agente IA", Icon: Bot },
-  { id: "integracoes", rotulo: "Integrações", Icon: Network }, { id: "paineis", rotulo: "Painéis oficiais", Icon: ShieldCheck },
+  { id: "visao", rotulo: "Visão geral", Icon: Activity },
+  { id: "alertas", rotulo: "Central de alertas", Icon: Siren },
+  { id: "respiratoria", rotulo: "Respiratórias e ar", Icon: Wind },
+  { id: "diarreicas", rotulo: "Diarreicas e água", Icon: Droplets },
+  { id: "arboviroses", rotulo: "Arboviroses e endemias", Icon: Bug },
+  { id: "notificacoes", rotulo: "Notificação compulsória", Icon: ClipboardList },
+  { id: "ambiental", rotulo: "Ambiental e clima", Icon: Flame },
+  { id: "pqa", rotulo: "PQA-VS", Icon: Target },
+  { id: "ferramentas", rotulo: "Relatórios, mapas e inteligência", Icon: Brain },
 ];
+type Ferramenta = "inteligencia" | "relatorios" | "mapa" | "comparativo" | "ia" | "integracoes" | "paineis";
+const FERRAMENTAS: { id: Ferramenta; rotulo: string; Icon: typeof Activity }[] = [
+  { id: "inteligencia", rotulo: "Inteligência epidemiológica", Icon: Brain }, { id: "relatorios", rotulo: "Relatórios", Icon: FileText },
+  { id: "mapa", rotulo: "Mapa do AM", Icon: MapIcon }, { id: "comparativo", rotulo: "Comparativo", Icon: Scale },
+  { id: "ia", rotulo: "Agente IA", Icon: Bot }, { id: "integracoes", rotulo: "Integrações", Icon: Network },
+  { id: "paineis", rotulo: "Painéis oficiais", Icon: ShieldCheck },
+];
+const RELATORIO_DA_AREA: Partial<Record<Aba, string>> = { visao: "municipal", alertas: "alertas", respiratoria: "respiratorio",
+  diarreicas: "diarreicas", arboviroses: "arboviroses", pqa: "pqa_vs", notificacoes: "consolidado", ambiental: "respiratorio" };
 
-interface Comparacao { ate_se: number; acumulado: number; mesmo_periodo_ano_anterior: number; variacao_pct: number | null }
 interface Painel {
   municipio: { ibge6: string; nome: string }; ano: number;
   populacao_referencia: { ano: number; valor: number; fonte: string } | null;
   fontes: Record<string, EstadoFonte>;
-  cartoes: Record<string, { valor: number | null; total?: number; periodo?: string; origem: string; fonte: string; nota?: string }>;
-  agravos: { agravo: string; indicador: string; casos_ano: number | null; casos_ano_anterior: number | null; incidencia_100mil: number | null; comparacao: Comparacao | null }[];
-  malaria: { positivos_ano: number | null; positivos_ano_anterior: number | null; ipa_ano_anterior: LinhaSerie | null; comparacao: Comparacao | null } | null;
-  aesop: Record<string, any> | null;
-  pqa_vs: { periodo_rotulo: string; atingidos: number; avaliados: number; itens: any[]; abaixo_da_meta: any[] } | null;
-  indisponivel: { item: string; motivo: string }[];
+  agravos: { agravo: string; indicador: string; casos_ano: number | null; casos_ano_anterior: number | null; incidencia_100mil: number | null }[];
 }
-interface Alerta { tipo: "oficial" | "calculado" | "integracao"; nivel: string; fonte: string; titulo: string; detalhe: string; formula?: string; subaba: string }
+
+function lerHash(): { aba: Aba; ferramenta: Ferramenta } {
+  const [a, f] = (typeof window !== "undefined" ? window.location.hash.slice(1) : "").split(":");
+  return { aba: (ABAS.some(x => x.id === a) ? a : "visao") as Aba, ferramenta: (FERRAMENTAS.some(x => x.id === f) ? f : "inteligencia") as Ferramenta };
+}
 
 export default function VigilanciaSaudePainel() {
   const auth = useAuth();
-  const [aba, setAba] = useState<Aba>("geral");
+  const [{ aba, ferramenta }, setNav] = useState(lerHash);
+  const [prioridade, setPrioridade] = useState<Prioridade | undefined>();
+  const [tipoRelatorio, setTipoRelatorio] = useState("municipal");
   const [mun, setMun] = useState(() => ibge6(auth.municipio_ibge) || "130014");
   const [ano, setAno] = useState(new Date().getFullYear());
   const painel = useQuery({ queryKey: ["fvs-painel", mun, ano], queryFn: () => apiGet<Painel>(`${FVS_API}/painel`, { mun, ano }) });
+  const central = useCentral(mun, ano);
   const agravos = useMemo(() => (painel.data?.agravos ?? []).map(a => a.agravo), [painel.data]);
+  const munSessao = mun === IBGE_AM ? ibge6(auth.municipio_ibge) : mun;
+  const ir = (a: Aba, f?: Ferramenta) => {
+    const fer = f ?? ferramenta;
+    setNav({ aba: a, ferramenta: fer });
+    try { window.history.replaceState(null, "", "#" + a + (a === "ferramentas" ? ":" + fer : "")); } catch { /* sem histórico */ }
+  };
+  const abrirAlertas = (p?: Prioridade) => { setPrioridade(p); ir("alertas"); };
+  const irArea = (x: string) => { const [a, f] = x.split(":"); ir(a as Aba, f as Ferramenta | undefined); };
+  const relatorio = RELATORIO_DA_AREA[aba];
+  const temAlertaGrave = (central.data?.resumo.critico ?? 0) + (central.data?.resumo.alto ?? 0);
 
   return (
     <div style={{ minHeight: "100vh", background: COR.fundo, padding: "16px clamp(12px, 3vw, 24px)" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ maxWidth: 1320, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "flex-start" }}>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <Link to="/" style={{ display: "inline-flex", gap: 4, alignItems: "center", fontSize: 12, color: COR.sub, textDecoration: "none" }}>
               <ArrowLeft size={13} /> Início</Link>
             <h1 style={{ margin: "4px 0 2px", fontSize: 22, fontWeight: 800, color: COR.texto }}>Painel de Vigilância em Saúde</h1>
-            <div style={{ fontSize: 12.5, color: COR.sub }}>Dados públicos da FVS-RCP/AM para os 62 municípios do Amazonas ·{" "}
-              <a href="https://www.fvs.am.gov.br/dadossaude" target="_blank" rel="noreferrer" style={{ color: COR.primaria }}>fvs.am.gov.br/dadossaude</a></div>
+            <div style={{ fontSize: 12.5, color: COR.sub }}>{painel.data?.municipio.nome ?? "—"} · {ano}{ano === new Date().getFullYear() ? " (parcial)" : ""} ·
+              {" "}dados públicos oficiais (FVS-RCP/AM, INPE, SISAGUA) dos 62 municípios do Amazonas</div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
             <SeletorMunicipioFvs valor={mun} onChange={setMun} incluirEstado />
@@ -65,99 +95,61 @@ export default function VigilanciaSaudePainel() {
           </div>
         </div>
 
-        <nav style={{ display: "flex", gap: 4, overflowX: "auto", borderBottom: `1px solid ${COR.borda}` }} aria-label="Seções do painel">
+        <ResumoAlertas central={central.data} onAbrir={abrirAlertas} />
+
+        <nav style={{ display: "flex", gap: 2, overflowX: "auto", borderBottom: `1px solid ${COR.borda}` }} aria-label="Áreas do painel">
           {ABAS.map(a => (
-            <button key={a.id} onClick={() => setAba(a.id)} aria-current={aba === a.id}
-              style={{ display: "inline-flex", gap: 5, alignItems: "center", padding: "9px 12px", border: 0, background: "none", cursor: "pointer",
-                whiteSpace: "nowrap", fontSize: 13, fontWeight: 700, color: aba === a.id ? COR.primaria : COR.sub,
-                borderBottom: `2px solid ${aba === a.id ? COR.primaria : "transparent"}` }}>
-              <a.Icon size={14} /> {a.rotulo}</button>
+            <button key={a.id} onClick={() => { if (a.id === "alertas") setPrioridade(undefined); ir(a.id); }} aria-current={aba === a.id ? "page" : undefined}
+              style={{ display: "inline-flex", gap: 5, alignItems: "center", padding: "9px 11px", border: 0, background: "none", cursor: "pointer",
+                whiteSpace: "nowrap", fontSize: 13, fontWeight: 700, color: aba === a.id ? AZUL : COR.sub,
+                borderBottom: `2px solid ${aba === a.id ? AZUL : "transparent"}` }}>
+              <a.Icon size={14} /> {a.rotulo}
+              {a.id === "alertas" && temAlertaGrave > 0 &&
+                <span style={{ background: "#b91c1c", color: "#fff", borderRadius: 999, fontSize: 10, padding: "0 6px" }}>{temAlertaGrave}</span>}
+            </button>
           ))}
         </nav>
+        {relatorio && <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -8 }}>
+          <button style={{ ...botaoSec, fontSize: 11.5 }} onClick={() => { setTipoRelatorio(relatorio); ir("ferramentas", "relatorios"); }}>
+            <FileText size={13} /> Relatório desta área (PDF/Excel/Word)</button></div>}
 
-        {aba === "geral" && <AbaGeral painel={painel.data} carregando={painel.isLoading} erro={painel.isError} mun={mun} ano={ano} />}
-        {aba === "mapa" && <AbaMapa ano={ano} agravos={agravos} onMunicipio={m => { setMun(m); setAba("geral"); }} mun={mun} />}
-        {aba === "comparativo" && <AbaComparativo mun={mun} ano={ano} />}
-        {aba === "pqa" && <AbaPqa mun={mun} />}
-        {aba === "relatorios" && <AbaRelatorios mun={mun === IBGE_AM ? ibge6(auth.municipio_ibge) : mun} agravos={agravos} />}
-        {aba === "ia" && <AbaAgenteIA mun={mun === IBGE_AM ? ibge6(auth.municipio_ibge) : mun} />}
-        {aba === "integracoes" && <AbaIntegracoes />}
-        {aba === "paineis" && <AbaPaineis />}
+        {aba === "visao" && <AreaVisao mun={mun} ano={ano} central={central.data} onAlertas={abrirAlertas} onArea={irArea} />}
+        {aba === "alertas" && <CentralAlertas key={prioridade ?? "todas"} mun={mun} ano={ano} prioridadeInicial={prioridade} />}
+        {aba === "respiratoria" && <AreaRespiratoria mun={mun} ano={ano} />}
+        {aba === "diarreicas" && <AreaDiarreicas mun={mun} ano={ano} />}
+        {aba === "arboviroses" && <AreaArboviroses mun={mun} ano={ano} />}
+        {aba === "notificacoes" && <><AreaNotificacoes mun={mun} ano={ano} />
+          <DetalhePorAgravo agravos={agravos} mun={mun} ano={ano} nome={painel.data?.municipio.nome ?? ""} /></>}
+        {aba === "ambiental" && <AreaAmbiental mun={mun} ano={ano} onMunicipio={setMun} />}
+        {aba === "pqa" && <AreaPqa mun={mun} />}
+        {aba === "ferramentas" && <>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }} role="tablist" aria-label="Ferramentas">
+            {FERRAMENTAS.map(f => <button key={f.id} role="tab" aria-selected={ferramenta === f.id} onClick={() => ir("ferramentas", f.id)}
+              style={{ ...botaoSec, borderRadius: 999, background: ferramenta === f.id ? AZUL : "#fff", color: ferramenta === f.id ? "#fff" : COR.texto,
+                borderColor: ferramenta === f.id ? AZUL : COR.borda }}><f.Icon size={13} /> {f.rotulo}</button>)}
+          </div>
+          {ferramenta === "inteligencia" && <AreaInteligencia mun={mun} ano={ano} />}
+          {ferramenta === "relatorios" && <AbaRelatorios key={tipoRelatorio} mun={munSessao} agravos={agravos} tipoInicial={tipoRelatorio} />}
+          {ferramenta === "mapa" && <AbaMapa ano={ano} agravos={agravos} onMunicipio={m => { setMun(m); ir("visao"); }} mun={mun} />}
+          {ferramenta === "comparativo" && <AbaComparativo mun={mun} ano={ano} />}
+          {ferramenta === "ia" && <AbaAgenteIA mun={munSessao} />}
+          {ferramenta === "integracoes" && <AbaIntegracoes />}
+          {ferramenta === "paineis" && <AbaPaineis />}
+        </>}
       </div>
     </div>
   );
 }
 
-// ── Visão geral ───────────────────────────────────────────────────────────────
-
-function AbaGeral({ painel: p, carregando, erro, mun, ano }: { painel?: Painel; carregando: boolean; erro: boolean; mun: string; ano: number }) {
-  const [agravo, setAgravo] = useState<string | null>(null);
-  const alertas = useQuery({ queryKey: ["fvs-alertas", mun, ano], enabled: mun !== IBGE_AM,
-    queryFn: () => apiGet<{ alertas: Alerta[]; legenda: Record<string, string> }>(`${FVS_API}/alertas`, { mun, ano }) });
-  if (carregando) return <Vazio>Carregando o painel…</Vazio>;
-  if (erro || !p) return <Vazio>Não foi possível carregar o painel agora.</Vazio>;
-  const c = p.cartoes;
-  const semDado = Object.values(p.fontes).every(f => f.situacao === "nunca_sincronizada");
-  return <>
-    {semDado && <Vazio>Os dados da FVS ainda não foram sincronizados neste servidor. A primeira coleta roda automaticamente alguns minutos depois
-      da publicação do sistema; perfis autorizados podem iniciar agora em "Integrações".</Vazio>}
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 10 }}>
-      <Cartao titulo={`Notificações SINAN ${ano}`} valor={fmt(c.notificacoes_sinan?.valor)} origem="oficial" sub="todas as doenças/agravos da base FVS"
-        onClick={() => document.getElementById("fvs-agravos")?.scrollIntoView({ behavior: "smooth" })} />
-      <Cartao titulo={`Malária — positivos ${ano}`} valor={fmt(c.malaria_positivos?.valor)} origem="oficial" cor="#2a78d6"
-        sub={p.malaria?.ipa_ano_anterior ? `IPA ${ano - 1}: ${fmt(p.malaria.ipa_ano_anterior.valor, 2)} — ${p.malaria.ipa_ano_anterior.texto}` : "SIVEP-Malária"} />
-      <Cartao titulo={`SRAG ${ano}`} valor={fmt(c.srag_casos?.valor)} origem="oficial" cor="#eb6834"
-        sub={p.aesop ? `Aviso AESOP SE ${p.aesop.se}: ${p.aesop.aviso_aesop ?? "—"}` : "SIVEP-Gripe (painel AESOP)"} />
-      <Cartao titulo="PQA-VS — metas atingidas" valor={c.pqa_vs?.valor === null || c.pqa_vs?.valor === undefined ? "—" : `${c.pqa_vs.valor}/${c.pqa_vs.total}`}
-        origem="oficial" cor="#1baf7a" sub={c.pqa_vs?.periodo ?? "sem resultado publicado"} />
-      <Cartao titulo="Vacinas COVID-19 (total)" valor={fmt(c.vacinas_covid_doses?.valor)} origem="oficial" cor="#6250d6" sub="Vacinômetro FVS · série 2021–2025" />
-    </div>
-
-    {mun !== IBGE_AM && (
-      <Secao titulo={<span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><AlertTriangle size={16} /> Alertas epidemiológicos</span>}>
-        {alertas.data?.alertas.length ? (
-          <div style={{ display: "grid", gap: 6 }}>
-            {alertas.data.alertas.map((a, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#fff", border: `1px solid ${COR.borda}`,
-                borderLeft: `4px solid ${a.nivel === "alto" ? COR.alto : a.nivel === "medio" ? COR.medio : COR.baixo}`, borderRadius: 8, padding: "8px 10px" }}>
-                <AlertTriangle size={15} color={a.nivel === "alto" ? COR.alto : a.nivel === "medio" ? COR.medio : COR.baixo} style={{ marginTop: 2, flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                    <b style={{ fontSize: 13, color: COR.texto }}>{a.titulo}</b>
-                    <TagOrigem origem={a.tipo} />
-                    <span style={{ fontSize: 10, fontWeight: 700, color: COR.sub }}>NÍVEL {a.nivel.toUpperCase()}</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: COR.sub }}>{a.detalhe}</div>
-                  {a.formula && <div style={{ fontSize: 11, color: COR.sub }}>Cálculo: {a.formula}</div>}
-                </div>
-                {SUBABA_ROTA[a.subaba] && <Link to={SUBABA_ROTA[a.subaba]} style={{ ...botaoSec, flexShrink: 0 }}>Detalhar</Link>}
-              </div>
-            ))}
-            <div style={{ fontSize: 11, color: COR.sub }}>{alertas.data.legenda.oficial} {alertas.data.legenda.calculado}</div>
-          </div>
-        ) : <Vazio>{alertas.isLoading ? "Calculando alertas…" : "Nenhum alerta para o município no período."}</Vazio>}
-      </Secao>
-    )}
-
-    <div id="fvs-agravos" />
-    <Secao titulo={`Doenças e agravos de notificação — ${p.municipio.nome}`} direita={<SeloFonteFvs estado={p.fontes.sinan} compacto />}>
-      {p.agravos.length ? (
-        <TabelaSimples colunas={["Doença/agravo", `${ano}`, `${ano - 1}`, "Mesmo período", "Variação", "Incid./100 mil", ""]}
-          linhas={p.agravos.map(a => [a.agravo, fmt(a.casos_ano), fmt(a.casos_ano_anterior),
-            a.comparacao ? `${fmt(a.comparacao.acumulado)} × ${fmt(a.comparacao.mesmo_periodo_ano_anterior)} (SE 1–${a.comparacao.ate_se})` : "—",
-            fmtPct(a.comparacao?.variacao_pct), fmt(a.incidencia_100mil, 1),
-            <button style={botaoSec} onClick={() => setAgravo(a.agravo)}>Detalhar</button>])} />
-      ) : <Vazio>Sem notificações na base da FVS para {p.municipio.nome} em {ano} e {ano - 1}.</Vazio>}
-      <div style={{ fontSize: 11, color: COR.sub }}>
-        {p.populacao_referencia ? `Incidência calculada pelo ERSUS360: casos ÷ população ${p.populacao_referencia.ano} (${fmt(p.populacao_referencia.valor)} hab., ${p.populacao_referencia.fonte}) × 100.000. ` : ""}
-        Variação = mesmas semanas epidemiológicas dos dois anos (calculada pelo ERSUS360).</div>
-    </Secao>
-    {agravo && <DetalheAgravo agravo={agravo} mun={mun} ano={ano} nome={p.municipio.nome} onFechar={() => setAgravo(null)} />}
-
-    <Secao titulo="Informações indisponíveis nas fontes públicas">
-      <div style={{ display: "grid", gap: 6 }}>{p.indisponivel.map(i => <Vazio key={i.item}><b>{i.item}:</b> {i.motivo}</Vazio>)}</div>
-    </Secao>
-  </>;
+function DetalhePorAgravo({ agravos, mun, ano, nome }: { agravos: string[]; mun: string; ano: number; nome: string }) {
+  const [agravo, setAgravo] = useState("");
+  if (!agravos.length) return null;
+  return <Secao titulo="Detalhe por agravo (série histórica e perfil)">
+    <label style={rotuloStyle}>Doença/agravo
+      <select value={agravo} onChange={e => setAgravo(e.target.value)} style={{ ...selectStyle, maxWidth: 360 }}>
+        <option value="">Escolha…</option>{agravos.map(a => <option key={a}>{a}</option>)}</select></label>
+    {agravo && <DetalheAgravo agravo={agravo} mun={mun} ano={ano} nome={nome} onFechar={() => setAgravo("")} />}
+  </Secao>;
 }
 
 function DetalheAgravo({ agravo, mun, ano, nome, onFechar }: { agravo: string; mun: string; ano: number; nome: string; onFechar: () => void }) {
@@ -282,34 +274,6 @@ function AbaComparativo({ mun, ano }: { mun: string; ano: number }) {
       {tend.data?.municipios.length ? <TabelaSimples colunas={["Município", "Acumulado", "Mesmo período ano anterior", "Variação"]}
         linhas={tend.data.municipios.map(t => [t.nome, fmt(t.acumulado), fmt(t.mesmo_periodo_ano_anterior), fmtPct(t.variacao_pct)])} />
         : <Vazio>Sem série semanal para comparar.</Vazio>}
-    </Secao>
-  </>;
-}
-
-// ── PQA-VS ────────────────────────────────────────────────────────────────────
-
-function AbaPqa({ mun }: { mun: string }) {
-  const q = useQuery({ queryKey: ["fvs-pqa", mun], enabled: mun !== IBGE_AM,
-    queryFn: () => apiGet<{ ultimo: Painel["pqa_vs"]; historico: any[]; nota_definicoes: string; estado: EstadoFonte }>(`${FVS_API}/pqa-vs`, { mun }) });
-  const [ind, setInd] = useState("IND_01");
-  if (mun === IBGE_AM) return <Vazio>Escolha um município: o PQA-VS é avaliado por município.</Vazio>;
-  const u = q.data?.ultimo;
-  const hist = (q.data?.historico ?? []).filter(h => h.indicador === ind && h.resultado !== null);
-  return <>
-    <Secao titulo={`PQA-VS — ${u?.periodo_rotulo ?? "sem resultado"}`} direita={<SeloFonteFvs estado={q.data?.estado} compacto />}>
-      {u ? <TabelaSimples colunas={["Nº", "Numerador", "Denominador", "Resultado", "Meta", "Atingiu", "Observação"]}
-        alinhar={["left", "right", "right", "right", "left", "left", "left"]}
-        linhas={u.itens.map((i: any) => [<button style={{ background: "none", border: 0, padding: 0, color: COR.primaria, cursor: "pointer" }}
-          onClick={() => setInd(i.indicador)}>{i.indicador.replace("IND_", "Indicador ")}</button>,
-          fmt(i.numerador, i.numerador % 1 ? 2 : 0), fmt(i.denominador, i.denominador % 1 ? 2 : 0), fmt(i.resultado, 1), i.meta ?? "—",
-          i.observacao === "Ausência de casos" ? "não avaliado" : <b style={{ color: i.alcance === "SIM" ? "#15803d" : COR.alto }}>{i.alcance ?? "—"}</b>,
-          i.observacao ?? ""])} /> : <Vazio>Sem resultado do PQA-VS publicado para este município.</Vazio>}
-      {u && <div style={{ fontSize: 12, color: COR.sub }}>Metas atingidas: <b>{u.atingidos} de {u.avaliados}</b> avaliados (alcance publicado pela FVS). {q.data?.nota_definicoes}</div>}
-    </Secao>
-    <Secao titulo={`Histórico — ${ind.replace("IND_", "indicador ")}`}>
-      {hist.length ? <BarrasAnuais dados={hist.map(h => ({ ano: h.periodo, valor: h.resultado }))} series={[{ chave: "valor", nome: "Resultado" }]} />
-        : <Vazio>Sem histórico numérico para este indicador.</Vazio>}
-      <div style={{ fontSize: 11, color: COR.sub }}>Até 2023 por ano; a partir de 2025 por quadrimestre. A definição de alguns indicadores mudou em 2024 — compare com cuidado.</div>
     </Secao>
   </>;
 }

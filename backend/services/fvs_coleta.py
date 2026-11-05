@@ -484,6 +484,12 @@ def _hash(linhas: list[dict]) -> str:
     return hashlib.sha256(json.dumps(base, ensure_ascii=False, default=str).encode()).hexdigest()
 
 
+def _executar_externo(coletor: str, nomes: dict[str, str]) -> dict:
+    """Fontes oficiais fora da FVS (INPE, SISAGUA). Parte bloqueante; roda fora do loop de eventos."""
+    from services import vig_externos
+    return vig_externos.EXTERNOS[coletor](nomes)
+
+
 def _executar_coletor(coletor: str) -> dict:
     """Parte bloqueante (download + Hyper). Roda fora do loop de eventos."""
     pasta = COLETORES[coletor]["workbook"]
@@ -522,7 +528,8 @@ async def sincronizar(db: AsyncSession, coletor: str, origem: str = "agendada", 
         est.ultima_tentativa = datetime.utcnow()
         await db.commit()
         try:
-            if not forcar and est.situacao == "ok" and est.publicado_na_fonte:
+            externo = bool(COLETORES[coletor].get("externo"))
+            if not externo and not forcar and est.situacao == "ok" and est.publicado_na_fonte:
                 meta = await asyncio.to_thread(tb.metadados, COLETORES[coletor]["workbook"])
                 if meta["publicado_em"] and meta["publicado_em"] <= est.publicado_na_fonte:
                     log.situacao, log.concluido_em = "sem_mudanca", datetime.utcnow()
@@ -531,7 +538,12 @@ async def sincronizar(db: AsyncSession, coletor: str, origem: str = "agendada", 
                     est.mensagem = "Sem nova publicação da FVS desde a última sincronização."
                     await db.commit()
                     return {"fonte": coletor, "situacao": "sem_mudanca", "publicado_na_fonte": meta["publicado_em"]}
-            out = await asyncio.to_thread(_executar_coletor, coletor)
+            if externo:
+                from services.vig_externos import normalizar_nome
+                nomes = {normalizar_nome(m.nome): m.ibge6 for m in (await db.execute(select(FvsMunicipio))).scalars()}
+                out = await asyncio.to_thread(_executar_externo, coletor, nomes)
+            else:
+                out = await asyncio.to_thread(_executar_coletor, coletor)
             if out.get("municipios"):
                 await _gravar_municipios(db, out["municipios"])
             am = await municipios_am(db)

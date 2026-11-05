@@ -86,7 +86,7 @@ def test_paineis_com_dado_pessoal_nunca_tem_coletor():
         if p["integracao"] == "bloqueado_lgpd":
             assert "coletor" not in p and ":toolbar=no" in p["embed"]
     bloqueados = {p["workbook"] for p in cat.PAINEIS if p["integracao"] == "bloqueado_lgpd"}
-    assert not bloqueados & {c["workbook"] for c in cat.COLETORES.values()}
+    assert not bloqueados & {c.get("workbook") for c in cat.COLETORES.values()}
 
 
 def test_catalogo_cobre_as_15_subabas_e_os_19_paineis_da_pagina():

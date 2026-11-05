@@ -9,11 +9,11 @@ export const RAMPA = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#1
 const eixo = { fontSize: 11, fill: "#52514e" };
 const grade = <CartesianGrid stroke="#e7e5e4" vertical={false} />;
 
-function Dica({ active, payload, label, unidade }: any) {
+function Dica({ active, payload, label, unidade, fmtLabel }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, padding: "6px 9px", fontSize: 12, boxShadow: "0 2px 6px #0001", color: "#0b0b0b" }}>
-      <div style={{ fontWeight: 700, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontWeight: 700, marginBottom: 3 }}>{fmtLabel ? fmtLabel(label) : label}</div>
       {payload.map((p: any) => (
         <div key={p.dataKey} style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <span style={{ width: 8, height: 8, borderRadius: 2, background: p.color, display: "inline-block" }} />
@@ -77,9 +77,48 @@ export function BarrasRecorte({ itens, altura }: { itens: { rotulo: string; valo
     <ResponsiveContainer width="100%" height={altura ?? Math.max(120, itens.length * 26 + 30)}>
       <BarChart data={itens} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 0 }}>
         <XAxis type="number" tick={eixo} allowDecimals={false} tickLine={false} axisLine={false} />
-        <YAxis type="category" dataKey="rotulo" tick={eixo} width={130} tickLine={false} axisLine={false} />
+        <YAxis type="category" dataKey="rotulo" tick={eixo} width={160} tickLine={false} axisLine={false} interval={0}
+          tickFormatter={(v: string) => (v.length > 26 ? v.slice(0, 25) + "…" : v)} />
         <Tooltip content={<Dica />} cursor={{ fill: "#0000000a" }} />
         <Bar dataKey="valor" name="Casos" fill={SERIE[0]} radius={[0, 4, 4, 0]} maxBarSize={18} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+/** Linhas por semana epidemiológica — uma série por chave (ex.: anos). Valores null interrompem a linha. */
+export function LinhasSE({ dados, series, altura = 240, syncId, unidade, chaveX = "se", fmtX = (v: number) => `SE ${v}`, intervalo = 7 }: {
+  dados: Record<string, number | null>[]; series: { chave: string; nome: string; cor?: string; tracejado?: boolean }[];
+  altura?: number; syncId?: string; unidade?: string; chaveX?: string; fmtX?: (v: number) => string; intervalo?: number;
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={altura}>
+      <LineChart data={dados} syncId={syncId} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+        {grade}
+        <XAxis dataKey={chaveX} tick={eixo} interval={intervalo} tickLine={false} axisLine={{ stroke: "#d6d3d1" }} tickFormatter={fmtX} />
+        <YAxis tick={eixo} allowDecimals={false} tickLine={false} axisLine={false} />
+        <Tooltip content={<Dica unidade={unidade} fmtLabel={fmtX} />} />
+        {series.length > 1 && <Legend wrapperStyle={{ fontSize: 12 }} />}
+        {series.map((s, i) => <Line key={s.chave} type="monotone" dataKey={s.chave} name={s.nome} stroke={s.cor ?? SERIE[i]}
+          strokeWidth={i === series.length - 1 ? 2.4 : 1.6} strokeDasharray={s.tracejado ? "4 3" : undefined} dot={false} connectNulls={false} />)}
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+/** Barras verticais com rótulo categórico (meses, anos…). */
+export function BarrasCategoria({ dados, chaveX, series, altura = 220 }: {
+  dados: Record<string, number | string | null>[]; chaveX: string; series: { chave: string; nome: string; cor?: string }[]; altura?: number;
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={altura}>
+      <BarChart data={dados} margin={{ top: 8, right: 12, left: -12, bottom: 0 }} barGap={2}>
+        {grade}
+        <XAxis dataKey={chaveX} tick={eixo} tickLine={false} axisLine={{ stroke: "#d6d3d1" }} />
+        <YAxis tick={eixo} allowDecimals={false} tickLine={false} axisLine={false} />
+        <Tooltip content={<Dica />} cursor={{ fill: "#0000000a" }} />
+        {series.length > 1 && <Legend wrapperStyle={{ fontSize: 12 }} />}
+        {series.map((s, i) => <Bar key={s.chave} dataKey={s.chave} name={s.nome} fill={s.cor ?? SERIE[i]} radius={[4, 4, 0, 0]} maxBarSize={26} />)}
       </BarChart>
     </ResponsiveContainer>
   );

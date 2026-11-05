@@ -12,12 +12,15 @@ const TIPOS = [
   ["municipal", "Relatório Epidemiológico Municipal"], ["consolidado", "Relatório Consolidado de Vigilância em Saúde"],
   ["agravo", "Relatório por Doença ou Agravo"], ["comparativo", "Relatório Comparativo entre Municípios"],
   ["pqa_vs", "Relatório de Indicadores do PQA-VS"], ["evolucao", "Relatório de Evolução Epidemiológica"],
-  ["alertas", "Relatório de Alertas e Tendências"], ["estadual", "Relatório Estadual Consolidado do Amazonas"],
+  ["alertas", "Relatório de Alertas Epidemiológicos"], ["estadual", "Relatório Estadual Consolidado do Amazonas"],
+  ["respiratorio", "Relatório de Doenças Respiratórias e Qualidade do Ar"],
+  ["diarreicas", "Relatório de Doenças Diarreicas e Qualidade da Água"],
+  ["arboviroses", "Relatório de Arboviroses e Endemias"],
 ] as const;
 
-export function AbaRelatorios({ mun, agravos }: { mun: string; agravos: string[] }) {
+export function AbaRelatorios({ mun, agravos, tipoInicial = "municipal" }: { mun: string; agravos: string[]; tipoInicial?: string }) {
   const { data: m } = useMunicipiosFvs();
-  const [tipo, setTipo] = useState<string>("municipal");
+  const [tipo, setTipo] = useState<string>(tipoInicial);
   const [formato, setFormato] = useState<"pdf" | "xlsx" | "docx">("pdf");
   const [ano, setAno] = useState(new Date().getFullYear());
   const [agravo, setAgravo] = useState(agravos[0] ?? "");
@@ -162,7 +165,7 @@ function Markdown({ texto }: { texto: string }) {
 // ── Integrações (área técnica) ────────────────────────────────────────────────
 
 interface Integracoes {
-  fontes: (EstadoFonte & { titulo: string; periodicidade: string; endereco: string; metadados: string; metodo: string;
+  fontes: (EstadoFonte & { titulo: string; periodicidade: string; endereco: string; metadados: string | null; metodo: string;
     municipios: string; subabas: string[]; indicadores: string[] })[];
   paineis_sem_extracao: { titulo: string; integracao: string; plataforma: string; nota?: string }[];
   historico: { id: number; fonte: string; origem: string; usuario: string | null; iniciado_em: string; concluido_em: string | null;
@@ -196,7 +199,7 @@ export function AbaIntegracoes() {
             </div>
             <SeloFonteFvs estado={f} />
             <div style={{ fontSize: 12, color: COR.sub }}>
-              <div><b>Endereço:</b> <a href={f.metadados} target="_blank" rel="noreferrer">{f.endereco}</a></div>
+              <div><b>Endereço:</b> <a href={f.metadados ?? f.endereco} target="_blank" rel="noreferrer">{f.endereco}</a></div>
               <div><b>Método:</b> {f.metodo}</div>
               <div><b>Abrangência:</b> {f.municipios} · <b>Frequência:</b> {f.periodicidade} · <b>Registros agregados:</b> {fmt(f.registros)}</div>
               <div><b>Indicadores:</b> {f.indicadores.slice(0, 12).map(i => i.replace("casos:", "")).join(", ")}{f.indicadores.length > 12 ? ` e mais ${f.indicadores.length - 12}` : ""}</div>

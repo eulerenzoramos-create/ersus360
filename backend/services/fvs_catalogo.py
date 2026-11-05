@@ -187,6 +187,50 @@ COLETORES = {
     "malaria": {"workbook": "Painel_Malria", "titulo": "Malária (SIVEP-Malária)", "periodicidade": "diária (verifica publicação)"},
     "aesop": {"workbook": "Painel_AESOP", "titulo": "AESOP — síndromes respiratórias", "periodicidade": "diária (verifica publicação)"},
     "vacinometro": {"workbook": "Vacinometro_AM_2", "titulo": "Vacinômetro COVID-19", "periodicidade": "diária (verifica publicação)"},
+    # Fontes oficiais fora da FVS (services/vig_externos.py) — mesmo histórico/validação dos coletores acima
+    "inpe_focos": {"externo": True, "titulo": "Focos de calor — INPE Programa Queimadas (satélite de referência)",
+                   "periodicidade": "diária (focos do dia anterior)",
+                   "endereco": "https://dataserver-coids.inpe.br/queimadas/queimadas/focos/csv/",
+                   "metodo": "Arquivos CSV públicos do INPE; contagem dos focos do satélite de referência AQUA_M-T "
+                             "por município e data (arquivos anuais do AM; ano corrente pelos arquivos mensais)."},
+    "sisagua": {"externo": True, "titulo": "Qualidade da água — SISAGUA/Vigiagua (vigilância, parâmetros básicos)",
+                "periodicidade": "diária (a fonte é atualizada pelos municípios, com defasagem)",
+                "endereco": "https://apidadosabertos.saude.gov.br/sisagua/vigilancia-parametros-basicos",
+                "metodo": "API de Dados Abertos do Ministério da Saúde (uf=AM); só contagens por município e mês."},
+}
+
+# Lista Nacional de Notificação Compulsória (Anexo 1 do Anexo V da PRC nº 4/2017, com as atualizações
+# vigentes): agravos de notificação IMEDIATA (até 24 h) que aparecem com esse nome na base da FVS.
+# Qualquer notificação de um deles no período gera alerta CRÍTICO de verificação da investigação — não é
+# declaração de caso confirmado nem de surto. Revisar quando o MS publicar nova lista.
+NOTIFICACAO_IMEDIATA_NORMA = "Lista Nacional de Notificação Compulsória — Anexo 1 do Anexo V da PRC nº 4/2017 (MS)"
+NOTIFICACAO_IMEDIATA = {
+    "Sarampo", "Rubéola", "Raiva humana", "Febre Amarela", "Doença meningocócica", "Coqueluche",
+    "Febre Tifóide", "Doença de Chagas", "Poliomielite", "Botulismo", "Cólera", "Difteria",
+    "Hantavirose", "Peste", "Febre do Nilo Ocidental", "Febre Maculosa",
+}
+
+# CID-10 de referência dos agravos da base da FVS (ficha SINAN do agravo). Agravo sem código único fica sem CID.
+CID10 = {
+    "Dengue": "A90", "Chikungunya": "A92.0", "Zika": "A92.8", "Febre Amarela": "A95", "Malária": "B54",
+    "Leishmaniose Tegumentar": "B55.1", "Leishmaniose Visceral": "B55.0", "Leptospirose": "A27",
+    "Raiva humana": "A82", "Atend. Antirrábico Humano": "W64", "Acid. por animais peçonhentos": "X29",
+    "Doença de Chagas": "B57", "Tuberculose": "A16.9", "Hanseníase": "A30", "Aids": "B24",
+    "Sífilis Congênita em <1 ano": "A50", "Sífilis em Gestante": "O98.1", "Sífilis Adquirida": "A53.9",
+    "Hepatite A": "B15", "Hepatite B": "B16", "Hepatite C": "B17.1", "Sarampo": "B05", "Rubéola": "B06",
+    "Coqueluche": "A37", "Doença meningocócica": "A39", "Outras meningites (exceto D. Meningocócica)": "G03",
+    "Febre Tifóide": "A01.0", "Tétano Acidental": "A35", "Tétano Neonatal": "A33", "Varicela": "B01",
+    "Violência Interpessoal/Autoprovocada": "Y09", "Toxoplasmose": "B58", "Esquistossomose": "B65",
+    "Intoxicação Exógena": "T65.9", "Acidente de Trabalho": "Y96", "Caxumba": "B26",
+}
+
+# Áreas do painel → agravos da base da FVS (nomes exatamente como publicados)
+AREAS_AGRAVOS = {
+    "arboviroses": ["Dengue", "Chikungunya", "Zika", "Febre Amarela", "Malária", "Leishmaniose Tegumentar",
+                    "Leishmaniose Visceral", "Leptospirose", "Doença de Chagas"],
+    "respiratorias": ["Coqueluche", "Sarampo", "Tuberculose", "Doença meningocócica",
+                      "Outras meningites (exceto D. Meningocócica)"],
+    "diarreicas": ["Febre Tifóide", "Hepatite A", "Cólera", "Toxoplasmose"],
 }
 
 # Agravos da base de monitoramento SINAN da FVS → subabas do ERSUS360 (nomes exatamente como na base)
