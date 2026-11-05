@@ -84,3 +84,6 @@ from models.pms_vivo import (  # noqa: E402
     PmsAtualizacao, PmsAnexo, PmsHistorico, PmsFca, PmsReprogramacao, PmsReuniao, PmsDecisao,
     PmsDiagVinculo,
 )
+from models.investsus_execucao import (  # noqa: E402
+    FichaExecucao, AcaoExecucao, LancamentoExecucao, MovimentoFinanceiro, DocumentoExecucao, AuditoriaExecucao,
+)
