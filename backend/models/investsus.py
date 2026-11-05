@@ -238,6 +238,11 @@ class PropostaInvestSUS(Base):
     atualizado_por: Mapped[str | None] = mapped_column(String(100), nullable=True)
     atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     ultima_consulta_investsus: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Conferência com a lista oficial do InvestSUS (última captura completa de todos os
+    # exercícios): conferida | nao_encontrada. "nao_encontrada" sai de todos os totais —
+    # é proposta antiga, de outra fonte (ex.: Portal da Transparência) ou excluída no MS.
+    conferencia_investsus: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
+    conferida_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Relacionamentos
     parlamentar: Mapped["Parlamentar | None"] = relationship(back_populates="propostas")

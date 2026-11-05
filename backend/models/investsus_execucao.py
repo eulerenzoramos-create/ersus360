@@ -69,6 +69,9 @@ class AcaoExecucao(Base):
     municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
     ordem: Mapped[int] = mapped_column(Integer, default=0)
     descricao: Mapped[str] = mapped_column(String(300))
+    # Finalidade/meta do plano que agrupa as ações (ex.: "Ambientes saudáveis e estilos de
+    # vida ativos na APS") — vem do caminho da meta no plano do InvestSUS.
+    grupo: Mapped[str | None] = mapped_column(String(300), nullable=True)
     detalhamento: Mapped[str | None] = mapped_column(Text, nullable=True)
     natureza_despesa: Mapped[str | None] = mapped_column(String(20), nullable=True)  # ex.: 339030
     quantidade: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -107,7 +110,10 @@ class LancamentoExecucao(Base):
     acao_id: Mapped[int] = mapped_column(ForeignKey("is_exec_acoes.id"), index=True)
     municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
     # empenho | anulacao_empenho | liquidacao | estorno_liquidacao | pagamento | estorno_pagamento
+    # | nota_fiscal | estorno_nota_fiscal (controle simplificado: NF paga baixa os três estágios)
     tipo: Mapped[str] = mapped_column(String(30))
+    # Elemento de despesa baixado (ex.: 339030); vazio = natureza da ação
+    natureza_despesa: Mapped[str | None] = mapped_column(String(20), nullable=True)
     data: Mapped[date] = mapped_column(Date)
     valor: Mapped[float] = mapped_column(Float)
     fornecedor: Mapped[str | None] = mapped_column(String(300), nullable=True)

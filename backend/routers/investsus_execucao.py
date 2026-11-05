@@ -41,6 +41,7 @@ from models.investsus_execucao import (
 from routers.auth import UserOut
 from services import investsus_execucao as ex
 from services import investsus_federal as fed
+from services.investsus_detalhe import NATUREZAS as NATUREZAS_SIAFI
 from tenancy.arquivos import caminho_seguro, pasta_municipio
 from tenancy.escopo import SessaoMunicipal, garantir_do_municipio
 
@@ -142,6 +143,7 @@ class LancamentoCreate(BaseModel):
     tipo: str
     data: str
     valor: float
+    natureza_despesa: str | None = None
     fornecedor: str | None = None
     fornecedor_documento: str | None = None
     numero_empenho: str | None = None
@@ -215,8 +217,9 @@ async def _carregar(db, mid: int, proposta_ids: list[int] | None = None) -> dict
         stmt = stmt.where(PropostaInvestSUS.id.in_(proposta_ids or [-1]))
     props = (await db.execute(stmt)).scalars().all()
     if proposta_ids is None:
+        # fora: canceladas/rejeitadas e as que não estão na lista oficial do InvestSUS
         props = [p for p in props if fed.fase_de(p.situacao_normalizada.value if p.situacao_normalizada else None)
-                 not in FASES_FORA]
+                 not in FASES_FORA and p.conferencia_investsus != "nao_encontrada"]
     ids = [p.id for p in props] or [-1]
     fichas = {f.proposta_id: f for f in (await db.execute(
         select(FichaExecucao).where(FichaExecucao.municipio_id == mid, FichaExecucao.proposta_id.in_(ids)))).scalars()}
@@ -407,7 +410,7 @@ async def alertas_execucao(db: DbDep, u: SessaoMunicipal, exercicio: int | None 
 
 def _acao_dict(a: AcaoExecucao, r: dict | None, lancs: list[LancamentoExecucao]) -> dict:
     return {
-        "id": a.id, "ordem": a.ordem, "descricao": a.descricao, "detalhamento": a.detalhamento,
+        "id": a.id, "ordem": a.ordem, "descricao": a.descricao, "grupo": a.grupo, "detalhamento": a.detalhamento,
         "natureza_despesa": a.natureza_despesa, "quantidade": a.quantidade, "unidade": a.unidade,
         "valor_unitario": a.valor_unitario, "origem_dado": a.origem_dado, "ativa": a.ativa,
         "motivo_inativacao": a.motivo_inativacao,
@@ -419,7 +422,7 @@ def _acao_dict(a: AcaoExecucao, r: dict | None, lancs: list[LancamentoExecucao])
 
 def _lanc_dict(l: LancamentoExecucao) -> dict:
     return {c: _str(getattr(l, c)) if isinstance(getattr(l, c), (date, datetime)) else getattr(l, c) for c in (
-        "id", "acao_id", "tipo", "data", "valor", "fornecedor", "fornecedor_documento", "numero_empenho",
+        "id", "acao_id", "tipo", "natureza_despesa", "data", "valor", "fornecedor", "fornecedor_documento", "numero_empenho",
         "numero_liquidacao", "ordem_bancaria", "documento_comprobatorio", "historico", "origem_dado",
         "status_validacao", "validado_por", "validado_em", "cancelado", "cancelado_motivo", "cancelado_por",
         "criado_por", "criado_em")}
@@ -458,6 +461,8 @@ async def ficha(proposta_id: int, db: DbDep, u: SessaoMunicipal):
                     {a.natureza_id for a in c["acoes"] if a.natureza_id}
     importaveis = sum(1 for pl in planos for a in pl.acoes) + len(naturezas)
     linha = _linha(p, c)
+    naturezas_plano = {n.codigo: {"descricao": n.descricao or NATUREZAS_SIAFI.get(n.codigo), "valor": n.valor_previsto or 0}
+                       for n in naturezas}
     return {
         "permissoes": _permissoes(u),
         "identificacao": {
@@ -496,6 +501,15 @@ async def ficha(proposta_id: int, db: DbDep, u: SessaoMunicipal):
                        "pendentes": sum(1 for pl in planos for a in pl.acoes if a.id not in ja_importadas)
                        + sum(1 for n in naturezas if n.id not in ja_importadas)},
         "evolucao_mensal": ex.evolucao_mensal(c["lancs"], c["pags"]),
+        "naturezas": ex.resumo_naturezas(naturezas_plano, c["acoes"], c["lancs"]),
+        "dados_gerais": {
+            "ano": p.exercicio, "beneficiario": p.entidade_nome or p.fundo_saude, "dirigente": p.responsavel_legal,
+            "municipio": u.municipio, "tipo_beneficiario": p.entidade_natureza_juridica or p.entidade_esfera,
+            "cnpj": p.entidade_cnpj or u.municipio_cnpj_fundo, "numero_proposta": p.numero_proposta,
+            "finalidade": p.finalidade or p.justificativa or p.resultados_esperados,
+            "objeto": p.objeto, "valor": p.valor_aprovado or p.valor_proposta or p.valor_indicado,
+            "parlamentar": p.parlamentar.nome if p.parlamentar else None,
+        },
     }
 
 
@@ -547,12 +561,18 @@ async def importar_plano(proposta_id: int, db: DbDep, u: SessaoMunicipal):
     planos = (await db.execute(select(PlanoTrabalho).options(selectinload(PlanoTrabalho.acoes))
                                .where(PlanoTrabalho.proposta_id == p.id))).scalars().all()
     acoes_plano: list[AcaoServico] = [a for pl in planos for a in pl.acoes]
+    nat_codigos = sorted({n.codigo for n in (await db.execute(
+        select(NaturezaDespesa).where(NaturezaDespesa.proposta_id == p.id))).scalars()})
+    # Com uma única natureza no plano, toda ação usa essa natureza; com várias, a natureza
+    # é escolhida em cada nota fiscal.
+    nat_unica = nat_codigos[0] if len(nat_codigos) == 1 else None
     for a in acoes_plano:
         if a.id in ja_acoes:
             continue
         ordem += 1
         novas.append(AcaoExecucao(ficha_id=f.id, municipio_id=f.municipio_id, ordem=ordem,
                                   descricao=(a.descricao or a.categoria or "Ação do plano")[:300],
+                                  grupo=(a.categoria or None) and a.categoria[:300], natureza_despesa=nat_unica,
                                   detalhamento=a.justificativa or a.meta_qualitativa,
                                   quantidade=a.meta_quantitativa, unidade=a.unidade_medida,
                                   valor_previsto_original=a.valor or 0, valor_previsto_atual=a.valor or 0,
@@ -710,8 +730,12 @@ async def _novo_lancamento(db, f: FichaExecucao, a: AcaoExecucao, body: Lancamen
     if valor <= 0:
         raise HTTPException(422, "O valor deve ser maior que zero (use anulação/estorno para reduzir).")
     d = _data(body.data, "data")
+    if body.tipo == "nota_fiscal" and not (body.documento_comprobatorio or "").strip():
+        raise HTTPException(422, "Informe o número da nota fiscal.")
+    natureza = re.sub(r"\D", "", body.natureza_despesa or "") or a.natureza_despesa
     chave = ex.chave_dedup(body.tipo, a.id, d, valor, body.numero_empenho, body.numero_liquidacao,
-                           body.ordem_bancaria, body.fornecedor_documento)
+                           body.ordem_bancaria, body.fornecedor_documento, body.documento_comprobatorio,
+                           body.fornecedor)
     # Documento numerado (OB, liquidação, empenho) não pode repetir em nenhuma proposta do
     # município; lançamento sem número só é comparado dentro da mesma ação.
     stmt = (select(LancamentoExecucao, PropostaInvestSUS.numero_proposta)
@@ -726,6 +750,7 @@ async def _novo_lancamento(db, f: FichaExecucao, a: AcaoExecucao, body: Lancamen
                                  f"(lançamento #{dup[0].id}, proposta {dup[1]}). Não é possível contá-lo duas vezes.")
     lanc = LancamentoExecucao(
         ficha_id=f.id, acao_id=a.id, municipio_id=f.municipio_id, tipo=body.tipo, data=d, valor=valor,
+        natureza_despesa=natureza,
         fornecedor=(body.fornecedor or "").strip() or None,
         fornecedor_documento=re.sub(r"\D", "", body.fornecedor_documento or "") or None,
         numero_empenho=(body.numero_empenho or "").strip() or None,
@@ -1129,3 +1154,223 @@ async def relatorio(tipo: str, db: DbDep, u: SessaoMunicipal, formato: str = Que
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     nome = f"investsus_execucao_{tipo}_{date.today():%Y%m%d}.{formato}"
     return Response(conteudo, media_type=mime, headers={"Content-Disposition": f'attachment; filename="{nome}"'})
+
+
+# ── Controle da emenda no modelo das planilhas do Fundo ───────────────────────
+# "DADOS GERAIS DA EMENDA" + uma aba por finalidade do plano (entrada = valor da
+# finalidade; cada nota fiscal é uma saída com elemento de despesa, fornecedor, nº da NF,
+# valor e saldo atual) + uma aba com o saldo por natureza de despesa.
+
+def _nome_aba(texto: str, usados: set[str]) -> str:
+    base = re.sub(r"[\[\]:*?/\\]", " ", texto).strip()[:31] or "Aba"
+    nome, i = base, 2
+    while nome.lower() in usados:
+        sufixo = f" ({i})"
+        nome, i = base[:31 - len(sufixo)] + sufixo, i + 1
+    usados.add(nome.lower())
+    return nome
+
+
+def _brl(v: float) -> str:
+    return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def _natureza_fmt(cod: str | None) -> str:
+    c = re.sub(r"\D", "", cod or "")
+    return f"{c[0]}.{c[1]}.{c[2:4]}.{c[4:6]}" if len(c) == 6 else (cod or "—")
+
+
+@router.get("/propostas/{proposta_id}/controle.xlsx")
+async def exportar_controle(proposta_id: int, db: DbDep, u: SessaoMunicipal):
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+
+    dados = await ficha(proposta_id, db, u)
+    dg, r = dados["dados_gerais"], dados["resumo"]
+    nomes_nat = {n["codigo"]: n["descricao"] for n in dados["naturezas"]}
+    fino = Side(style="thin", color="94A3B8")
+    borda = Border(left=fino, right=fino, top=fino, bottom=fino)
+    cab = PatternFill("solid", fgColor="DBEAFE")
+    moeda = '"R$" #,##0.00'
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "DADOS GERAIS DA EMENDA"
+    ws.append(["Campo", "Valor"])
+    for c in ws[1]:
+        c.font, c.fill, c.border = Font(bold=True), cab, borda
+    linhas = [("Ano", dg["ano"]), ("Beneficiário", dg["beneficiario"]), ("Dirigente", dg["dirigente"]),
+              ("Município", dg["municipio"]), ("Tipo de Beneficiário", dg["tipo_beneficiario"]), ("CNPJ", dg["cnpj"]),
+              ("Nº da Proposta", dg["numero_proposta"]), ("Origem do recurso", dados["classificacao"]["origem_rotulo"]),
+              ("Parlamentar", dg["parlamentar"]), ("Finalidade", dg["finalidade"]), ("Objeto", dg["objeto"]),
+              ("Valor da Proposta (R$)", dg["valor"]), ("Recebido do FNS (R$) — oficial", r["recebido"]),
+              ("Notas fiscais baixadas (R$) — lançado pelo município", r["pago"]),
+              ("Saldo do plano (R$)", r["saldo_plano"]), ("Saldo financeiro em conta (R$)", r["saldo_financeiro"])]
+    for campo, valor in linhas:
+        ws.append([campo, valor if valor not in (None, "") else "—"])
+        ws.cell(ws.max_row, 1).font = Font(bold=True)
+        for c in ws[ws.max_row]:
+            c.border, c.alignment = borda, Alignment(wrap_text=True, vertical="top")
+        if isinstance(valor, (int, float)) and "R$" in campo:
+            ws.cell(ws.max_row, 2).number_format = moeda
+    ws.column_dimensions["A"].width, ws.column_dimensions["B"].width = 42, 110
+
+    acoes = [a for a in dados["acoes"] if a["ativa"]]
+    grupos: dict[str, list] = {}
+    for a in acoes:
+        grupos.setdefault(a["grupo"] or a["descricao"], []).append(a)
+    usados = {ws.title.lower()}
+    colunas = ["DATA", "FINALIDADE / AÇÃO", "VALOR PREVISTO", "ELEMENTO DE DESPESA", "FORNECEDOR",
+               "Nº NOTA FISCAL", "VALOR", "SALDO ATUAL"]
+    for grupo, itens in grupos.items():
+        total = round(sum(a["previsto"] for a in itens), 2)
+        wg = wb.create_sheet(_nome_aba(f"{_brl(total)} {grupo}", usados))
+        wg.append([f"CONTROLE EXECUÇÃO — {dados['classificacao']['origem_rotulo'].upper()} — PROPOSTA "
+                   f"{dg['numero_proposta']} — FINALIDADE: {grupo.upper()} — R$ {_brl(total)}"])
+        wg.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(colunas))
+        wg["A1"].font, wg["A1"].alignment = Font(bold=True, size=12), Alignment(wrap_text=True)
+        wg.row_dimensions[1].height = 34
+        wg.append(colunas)
+        for c in wg[2]:
+            c.font, c.fill, c.border = Font(bold=True), cab, borda
+            c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        wg.append(["ENTRADA", grupo, total, None, None, None, None, total])
+        for c in wg[3]:
+            c.font, c.border = Font(bold=True), borda
+        saldo_ref = "H3"
+        for a in itens:
+            wg.append([None, a["descricao"], a["previsto"], _natureza_fmt(a["natureza_despesa"]) if a["natureza_despesa"] else "vários",
+                       None, None, None, None])
+            for c in wg[wg.max_row]:
+                c.border, c.fill = borda, PatternFill("solid", fgColor="F1F5F9")
+            for l in a["lancamentos"]:
+                if l["cancelado"] or l["tipo"] not in ex.TIPOS_PAGO:
+                    continue
+                sinal = ex.TIPOS_LANCAMENTO[l["tipo"]][1]
+                nat = l["natureza_despesa"] or a["natureza_despesa"]
+                wg.append([date.fromisoformat(l["data"]), l["historico"] or a["descricao"], None,
+                           f"{_natureza_fmt(nat)} {nomes_nat.get(nat) or ''}".strip(), l["fornecedor"],
+                           l["documento_comprobatorio"] or l["ordem_bancaria"], sinal * l["valor"], None])
+                linha = wg.max_row
+                wg.cell(linha, 8).value = f"={saldo_ref}-G{linha}"
+                saldo_ref = f"H{linha}"
+                wg.cell(linha, 1).number_format = "DD/MM/YYYY"
+                for c in wg[linha]:
+                    c.border = borda
+        for row in wg.iter_rows(min_row=3, min_col=3, max_col=3):
+            for c in row:
+                c.number_format = moeda
+        for row in wg.iter_rows(min_row=3, min_col=7, max_col=8):
+            for c in row:
+                c.number_format = moeda
+        for col, w in zip("ABCDEFGH", (12, 60, 16, 30, 32, 16, 16, 16)):
+            wg.column_dimensions[col].width = w
+
+    wn = wb.create_sheet(_nome_aba("SALDO POR NATUREZA", usados))
+    wn.append(["Elemento", "Descrição", "Previsto no plano (InvestSUS)", "Notas baixadas", "Saldo"])
+    for c in wn[1]:
+        c.font, c.fill, c.border = Font(bold=True), cab, borda
+    for n in dados["naturezas"]:
+        wn.append([_natureza_fmt(n["codigo"]), n["descricao"] or ("Sem natureza informada" if n["codigo"] == "sem_natureza" else ""),
+                   n["previsto"], n["pago"], n["saldo"]])
+        for c in wn[wn.max_row]:
+            c.border = borda
+    for row in wn.iter_rows(min_row=2, min_col=3, max_col=5):
+        for c in row:
+            c.number_format = moeda
+    for col, w in zip("ABCDE", (14, 60, 26, 18, 18)):
+        wn.column_dimensions[col].width = w
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    nome = f"controle_emenda_{re.sub(r'[^0-9A-Za-z]', '', dg['numero_proposta'] or str(proposta_id))}.xlsx"
+    return Response(buf.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{nome}"'})
+
+
+@router.post("/propostas/{proposta_id}/controle/importar")
+async def importar_controle(proposta_id: int, db: DbDep, u: SessaoMunicipal, arquivo: UploadFile = File(...),
+                            confirmar: bool = Form(False), data_padrao: str | None = Form(None),
+                            mapa: str | None = Form(None)):
+    """Importa as notas fiscais das planilhas de controle já preenchidas (modelos MAC e PAP
+    do Fundo). Prévia primeiro (confirmar=false); `mapa` = JSON {aba: acao_id} para as abas
+    que a prévia não conseguiu vincular; `data_padrao` para notas sem data na planilha.
+    Nota repetida (mesmo nº + fornecedor) é ignorada."""
+    import json
+
+    from openpyxl import load_workbook
+
+    from services import investsus_controle_importacao as imp
+
+    _pode_lancar(u)
+    conteudo = await arquivo.read(TAMANHO_MAXIMO_ANEXO + 1)
+    if len(conteudo) > TAMANHO_MAXIMO_ANEXO:
+        raise HTTPException(413, "Arquivo acima de 10 MB.")
+    try:
+        wb = load_workbook(io.BytesIO(conteudo), data_only=True)
+    except Exception:
+        raise HTTPException(422, "Arquivo não reconhecido: envie a planilha .xlsx de controle da emenda.")
+    p = await _proposta(db, u, proposta_id)
+    f = await _ficha_de(db, p)
+    acoes = [] if not f else (await db.execute(select(AcaoExecucao).where(
+        AcaoExecucao.ficha_id == f.id, AcaoExecucao.ativa.is_(True)).order_by(AcaoExecucao.ordem))).scalars().all()
+    if not acoes:
+        raise HTTPException(422, "Converta o plano do InvestSUS em planilha antes de importar as notas.")
+    lido = imp.ler_planilha(wb)
+    try:
+        escolhas = {k: int(v) for k, v in (json.loads(mapa) if mapa else {}).items() if v}
+    except (ValueError, TypeError):
+        raise HTTPException(422, "Vínculo de abas inválido.")
+    d_padrao = _data(data_padrao, "data_padrao") if data_padrao else None
+    info = [{"id": a.id, "descricao": a.descricao, "grupo": a.grupo, "natureza_despesa": a.natureza_despesa} for a in acoes]
+    por_id = {a.id: a for a in acoes}
+    numero_planilha = re.sub(r"\D", "", lido["numero_proposta"] or "")
+    numero_proposta = re.sub(r"\D", "", p.numero_proposta or "")
+    # nº grande lido como número no Excel perde os últimos dígitos: compara só o começo
+    confere = (not numero_planilha) or numero_planilha[:14] == numero_proposta[:14]
+
+    abas, notas_validas = [], []
+    for aba in lido["abas"]:
+        acao_id, motivo = (escolhas[aba["aba"]], "escolhida na prévia") if aba["aba"] in escolhas else imp.vincular(aba, info)
+        if acao_id and acao_id not in por_id:
+            acao_id, motivo = None, "ação escolhida não pertence a esta proposta"
+        grupo = por_id[acao_id].grupo if acao_id else None
+        candidatas = [a for a in info if grupo and a["grupo"] == grupo] or ([next(a for a in info if a["id"] == acao_id)] if acao_id else [])
+        sem_data = 0
+        for n in aba["notas"]:
+            alvo = acao_id
+            if len(candidatas) > 1 and n["historico"]:
+                melhor = max(candidatas, key=lambda a: imp._parecido(n["historico"], a["descricao"]))
+                if imp._parecido(n["historico"], melhor["descricao"]) >= 0.35:
+                    alvo = melhor["id"]
+            data_nota = n["data"] or (d_padrao.isoformat() if d_padrao else None)
+            if not data_nota:
+                sem_data += 1
+            if alvo and data_nota:
+                notas_validas.append({**n, "acao_id": alvo, "data": data_nota, "aba": aba["aba"]})
+        abas.append({"aba": aba["aba"], "modelo": aba["modelo"], "natureza": aba["natureza"], "finalidade": aba["finalidade"],
+                     "acao_id": acao_id, "acao": por_id[acao_id].descricao if acao_id else None, "motivo": motivo,
+                     "notas": len(aba["notas"]), "valor": round(sum(n["valor"] for n in aba["notas"]), 2),
+                     "sem_data": sem_data, "sem_numero": sum(1 for n in aba["notas"] if not n["nota_fiscal"]),
+                     "avisos": aba["avisos"]})
+    resumo = {"numero_planilha": lido["numero_proposta"], "confere_proposta": confere, "abas": abas,
+              "acoes": [{"id": a["id"], "descricao": a["descricao"], "grupo": a["grupo"]} for a in info],
+              "notas_a_importar": len(notas_validas), "valor_a_importar": round(sum(n["valor"] for n in notas_validas), 2)}
+    if not confirmar:
+        return {"previa": True, **resumo}
+    if not confere:
+        raise HTTPException(422, f"A planilha é da proposta {lido['numero_proposta']}, não da {p.numero_proposta}.")
+    criadas, duplicadas, erros = 0, [], []
+    for n in notas_validas:
+        corpo = LancamentoCreate(
+            tipo="nota_fiscal", data=n["data"], valor=n["valor"], natureza_despesa=n["natureza"],
+            fornecedor=n["fornecedor"], documento_comprobatorio=n["nota_fiscal"] or f"S/N {n['aba'][:20]} L{n['linha']}",
+            historico=n["historico"])
+        try:
+            await _novo_lancamento(db, f, por_id[n["acao_id"]], corpo, u, origem="importado")
+            criadas += 1
+        except HTTPException as e:
+            (duplicadas if e.status_code == 409 else erros).append(f"{n['aba']}, linha {n['linha']}: {e.detail}")
+    _aud(db, f, "ficha", f.id, "importacao", "notas_planilha_controle", None, criadas, u, f"Planilha {arquivo.filename}")
+    await db.commit()
+    return {"previa": False, **resumo, "criadas": criadas, "duplicadas": duplicadas[:50], "erros": erros[:50]}

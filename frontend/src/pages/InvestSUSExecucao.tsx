@@ -48,6 +48,7 @@ const DEST_CURTO: Record<string, string> = { aps_pap: "APS/PAP", mac: "MAC", out
 const TIPO_LANC: Record<string, string> = {
   empenho: "Empenho", anulacao_empenho: "Anulação de empenho", liquidacao: "Liquidação",
   estorno_liquidacao: "Estorno de liquidação", pagamento: "Pagamento", estorno_pagamento: "Estorno de pagamento",
+  nota_fiscal: "Nota fiscal paga", estorno_nota_fiscal: "Estorno de nota fiscal",
 };
 const TIPO_MOV: Record<string, string> = { saldo_inicial: "Saldo inicial", rendimento: "Rendimento", devolucao: "Devolução", outra_saida: "Outra saída (tarifa etc.)" };
 const TIPO_DOC: Record<string, string> = { plano_aprovado: "Plano de trabalho aprovado", espelho_proposta: "Espelho da proposta", nota_fiscal: "Nota fiscal", contrato: "Contrato", comprovante: "Comprovante", extrato: "Extrato bancário", outro: "Outro" };
@@ -995,4 +996,436 @@ export function RelatoriosExecucao() {
       </div>
     </div>
   );
+}
+
+// ── Repasses e Planos — controle das emendas no modelo das planilhas do Fundo ─
+// Só propostas com dinheiro recebido do FNS, por tipo (RP 6/7/8/Programa). Cada uma abre o
+// plano de trabalho convertido em controle por finalidade: entrada = valor da finalidade,
+// cada nota fiscal é uma saída (elemento de despesa, fornecedor, nº da NF) com saldo atual.
+const TIPOS_REPASSE: [string, string][] = [["rp6", "Emendas RP 6"], ["rp7", "Emendas RP 7"], ["rp8", "Emendas RP 8"], ["programa", "Programas MS"]];
+const natFmt = (c?: string | null) => (c && /^\d{6}$/.test(c) ? `${c[0]}.${c[1]}.${c.slice(2, 4)}.${c.slice(4, 6)}` : c || "—");
+
+export function RepassesPlanos({ propostaId, setPropostaId, onPlanilhaCompleta }: {
+  propostaId: number | null; setPropostaId: (id: number | null) => void; onPlanilhaCompleta: (id: number) => void;
+}) {
+  const [exercicio, setExercicio] = useState("");
+  const [tipo, setTipo] = useState("");
+  const [busca, setBusca] = useState("");
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["investsus-exec-painel", { exercicio, origem: tipo }],
+    queryFn: () => api.get(`/api/investsus/execucao/painel?${qs({ exercicio, origem: tipo } as any)}`).then(r => r.data),
+    enabled: !propostaId,
+  });
+  if (propostaId) return <ControleEmenda propostaId={propostaId} onVoltar={() => setPropostaId(null)} onPlanilhaCompleta={onPlanilhaCompleta} />;
+  if (isLoading) return <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>Carregando repasses…</div>;
+  if (isError) return <div style={{ ...S.card, color: "#dc2626" }}>Não foi possível carregar: {erroMsg(error)}</div>;
+
+  const b = busca.trim().toLowerCase();
+  const recebidas: any[] = data.propostas.filter((p: any) => p.recebido > 0)
+    .filter((p: any) => !b || [p.numero_proposta, p.numero_emenda, p.objeto, p.parlamentar, p.programa].join(" ").toLowerCase().includes(b));
+  const soma = (ls: any[], k: string) => ls.reduce((s, p) => s + (p[k] ?? 0), 0);
+  const porTipo = TIPOS_REPASSE.map(([k, rot]) => {
+    const ls = recebidas.filter(p => p.origem === k);
+    return { k, rot, qtd: ls.length, recebido: soma(ls, "recebido"), pago: soma(ls, "pago"), saldo: soma(ls, "saldo_financeiro") };
+  });
+  const outros = recebidas.filter(p => !TIPOS_REPASSE.some(([k]) => k === p.origem));
+
+  return (
+    <div>
+      <Conferencia />
+      <div style={{ ...S.card, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(170px, 100%), 1fr))", gap: 10, alignItems: "end" }}>
+        <div><label style={S.label}>Exercício</label>
+          <select style={S.input} value={exercicio} onChange={e => setExercicio(e.target.value)}>
+            <option value="">Todos</option>{data.opcoes.anos.map((a: number) => <option key={a} value={a}>{a}</option>)}
+          </select></div>
+        <div><label style={S.label}>Tipo de recurso</label>
+          <select style={S.input} value={tipo} onChange={e => setTipo(e.target.value)}>
+            <option value="">Todos</option>{TIPOS_REPASSE.map(([k, r]) => <option key={k} value={k}>{r}</option>)}
+          </select></div>
+        <div style={{ position: "relative", gridColumn: "span 2" }}><label style={S.label}>Proposta, emenda, parlamentar ou finalidade</label>
+          <Search size={13} style={{ position: "absolute", left: 8, bottom: 9, color: "#9ca3af" }} />
+          <input style={{ ...S.input, paddingLeft: 26 }} value={busca} onChange={e => setBusca(e.target.value)} /></div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(200px, 100%), 1fr))", gap: 10, marginBottom: 14 }}>
+        {porTipo.map(t => (
+          <div key={t.k} style={{ background: "#fff", color: "#111827", border: "1px solid #e5e7eb", borderTop: `3px solid ${COR.recebido}`, borderRadius: 10, padding: "12px 14px" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>{t.rot} <span style={{ color: "#9ca3af", fontWeight: 500 }}>({t.qtd})</span></div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: COR.recebido, marginTop: 4 }}>{fmt(t.recebido)}</div>
+            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>recebido do FNS · oficial</div>
+            <div style={{ fontSize: 11.5, marginTop: 6, display: "flex", justifyContent: "space-between" }}><span>Gasto (NFs)</span><b style={{ color: COR.pago }}>{fmt(t.pago)}</b></div>
+            <div style={{ fontSize: 11.5, display: "flex", justifyContent: "space-between" }}><span>Saldo em conta</span><b style={{ color: AZUL }}>{fmt(t.saldo)}</b></div>
+          </div>))}
+        <div style={{ background: AZUL, color: "#fff", borderRadius: 10, padding: "12px 14px" }}>
+          <div style={{ fontSize: 12, fontWeight: 700 }}>TOTAL RECEBIDO ({recebidas.length})</div>
+          <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4 }}>{fmt(soma(recebidas, "recebido"))}</div>
+          <div style={{ fontSize: 11, opacity: .8, marginTop: 2 }}>emendas + programas</div>
+          <div style={{ fontSize: 11.5, marginTop: 6, display: "flex", justifyContent: "space-between" }}><span>Gasto (NFs)</span><b>{fmt(soma(recebidas, "pago"))}</b></div>
+          <div style={{ fontSize: 11.5, display: "flex", justifyContent: "space-between" }}><span>Saldo em conta</span><b>{fmt(soma(recebidas, "saldo_financeiro"))}</b></div>
+        </div>
+      </div>
+      {outros.length > 0 && <div style={{ fontSize: 11.5, color: "#92400e", marginBottom: 10 }}>{outros.length} proposta(s) recebida(s) ainda sem tipo (RP 6/7/8/Programa) definido — entram só no total. Classifique na ficha da proposta.</div>}
+
+      <div style={S.card}>
+        <div style={{ ...S.title, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+          <span>Repasses recebidos ({recebidas.length})</span>
+          <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 400 }}>Clique para abrir o plano de trabalho e lançar as notas fiscais</span>
+        </div>
+        {recebidas.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 30, color: "#9ca3af" }}>Nenhum repasse recebido para os filtros. Se faltar algo, use <b>Sincronizar</b> para trazer os repasses do InvestSUS.</div>
+        ) : (
+          <div style={{ overflowX: "auto", border: "1px solid #cbd5e1" }}>
+            <table style={XL.table}>
+              <thead><tr>{["Proposta", "Tipo", "Finalidade", "Recebido", "Gasto (NFs)", "Saldo do plano", "Saldo em conta", "% gasto", "Plano"].map(h =>
+                <th key={h} style={{ ...XL.th, textAlign: ["Proposta", "Tipo", "Finalidade", "Plano"].includes(h) ? "left" : "right" }}>{h}</th>)}</tr></thead>
+              <tbody>{recebidas.map(p => (
+                <tr key={p.proposta_id} style={{ cursor: "pointer" }} onClick={() => setPropostaId(p.proposta_id)}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#f0f9ff")} onMouseLeave={e => (e.currentTarget.style.background = "")}>
+                  <td style={XL.td}><div style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 11 }}>{p.numero_proposta}</div>
+                    <div style={{ fontSize: 10.5, color: "#6b7280" }}>{p.exercicio}{p.parlamentar ? ` · ${p.parlamentar}` : ""}</div></td>
+                  <td style={XL.td}>{ORIGEM_CURTO[p.origem] ?? p.origem}<div style={{ fontSize: 10.5, color: "#6b7280" }}>{DEST_CURTO[p.destinacao] ?? ""}</div></td>
+                  <td style={{ ...XL.td, maxWidth: 320 }}><div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={p.objeto ?? ""}>{p.objeto || p.programa || "—"}</div></td>
+                  <td style={{ ...XL.num, fontWeight: 700, color: COR.recebido }}>{fmt(p.recebido)}</td>
+                  <td style={XL.num}>{p.pago ? fmt(p.pago) : <span style={{ color: "#9ca3af" }}>sem lançamento</span>}</td>
+                  <td style={XL.num}>{p.saldo_plano == null ? <span style={{ color: "#9ca3af" }}>plano não convertido</span> : fmt(p.saldo_plano)}</td>
+                  <td style={{ ...XL.num, fontWeight: 700, color: AZUL }}>{fmt(p.saldo_financeiro)}</td>
+                  <td style={XL.num}><BarraExec pct={p.recebido > 0 ? (100 * p.pago) / p.recebido : null} /></td>
+                  <td style={XL.td}>{data.opcoes.situacoes_plano[p.situacao_plano] ?? p.situacao_plano}</td>
+                </tr>))}</tbody>
+              <tfoot><tr style={{ background: "#f1f5f9", fontWeight: 800 }}>
+                <td style={XL.td} colSpan={3}>TOTAL</td>
+                <td style={XL.num}>{fmt(soma(recebidas, "recebido"))}</td><td style={XL.num}>{fmt(soma(recebidas, "pago"))}</td>
+                <td style={XL.num}>{fmt(soma(recebidas, "saldo_plano"))}</td><td style={XL.num}>{fmt(soma(recebidas, "saldo_financeiro"))}</td>
+                <td style={XL.td} colSpan={2} />
+              </tr></tfoot>
+            </table>
+          </div>)}
+      </div>
+    </div>
+  );
+}
+
+function Conferencia() {
+  const { data } = useQuery({ queryKey: ["investsus-conferencia"], queryFn: () => api.get(`/api/investsus/conferencia`).then(r => r.data) });
+  const [aberto, setAberto] = useState(false);
+  if (!data) return null;
+  const u = data.ultima;
+  const nao: any[] = data.nao_encontradas;
+  if (!u) return (
+    <div style={{ ...S.card, background: "#fffbeb", color: "#78350f", fontSize: 12.5 }}>
+      <b>Ainda não conferido com o InvestSUS.</b> Clique em <b>Sincronizar → Atualizar do InvestSUS</b> (logado no gov.br): o ERSUS360 busca todos os exercícios desde 2020 e marca o que não está na lista oficial.
+    </div>);
+  const ersus = Object.fromEntries((data.ersus_por_exercicio ?? []).map((r: any) => [r.exercicio, r]));
+  return (
+    <div style={{ ...S.card, background: nao.length ? "#fffbeb" : "#f0fdf4", color: nao.length ? "#78350f" : "#14532d", fontSize: 12.5 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+        <span><b>Conferido com o InvestSUS</b> em {new Date(u.conferido_em + "Z").toLocaleString("pt-BR")}: {u.investsus_total} propostas na lista oficial · {u.conferidas} no ERSUS360
+          {nao.length > 0 ? <> · <b>{nao.length} não encontrada(s) no InvestSUS</b> ({fmt(nao.reduce((s, p) => s + (p.valor_indicado || 0), 0))}), fora dos totais</> : " · tudo confere"}</span>
+        <button style={{ ...S.btn(), padding: "3px 9px" }} onClick={() => setAberto(v => !v)}>{aberto ? "Ocultar" : "Ver por exercício"}</button>
+      </div>
+      {aberto && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(320px, 100%), 1fr))", gap: 12, marginTop: 10 }}>
+          <table style={{ ...XL.table, background: "#fff" }}>
+            <thead><tr>{["Exercício", "InvestSUS (qtd)", "InvestSUS (valor)", "ERSUS360 (qtd)", "ERSUS360 (valor)"].map(h => <th key={h} style={{ ...XL.th, position: "static" }}>{h}</th>)}</tr></thead>
+            <tbody>{(u.investsus_por_exercicio ?? []).map((r: any) => {
+              const e = ersus[r.exercicio] ?? { qtd: 0, valor: 0 };
+              const difere = e.qtd !== r.qtd || Math.abs(e.valor - r.valor) > 0.01;
+              return <tr key={r.exercicio} style={{ color: difere ? "#b91c1c" : undefined }}><td style={XL.td}>{r.exercicio}</td><td style={XL.num}>{r.qtd}</td><td style={XL.num}>{fmt(r.valor)}</td><td style={XL.num}>{e.qtd}</td><td style={XL.num}>{fmt(e.valor)}</td></tr>;
+            })}</tbody>
+          </table>
+          {nao.length > 0 && (
+            <table style={{ ...XL.table, background: "#fff" }}>
+              <thead><tr>{["Não encontradas no InvestSUS", "Exerc.", "Valor", "Origem do cadastro"].map(h => <th key={h} style={{ ...XL.th, position: "static" }}>{h}</th>)}</tr></thead>
+              <tbody>{nao.map(p => <tr key={p.id}><td style={XL.td}><span style={{ fontFamily: "monospace" }}>{p.numero_proposta}</span><div style={{ fontSize: 10.5, color: "#6b7280" }}>{p.objeto}</div></td>
+                <td style={XL.num}>{p.exercicio ?? "—"}</td><td style={XL.num}>{fmt(p.valor_indicado)}</td><td style={XL.td}>{p.fonte_dado ?? "—"}</td></tr>)}</tbody>
+            </table>)}
+        </div>)}
+    </div>
+  );
+}
+
+const NF_VAZIA = { acao_id: "", natureza_despesa: "", data: "", fornecedor: "", fornecedor_documento: "", documento_comprobatorio: "", valor: "", historico: "" };
+
+function ControleEmenda({ propostaId, onVoltar, onPlanilhaCompleta }: { propostaId: number; onVoltar: () => void; onPlanilhaCompleta: (id: number) => void }) {
+  const qc = useQueryClient();
+  const chave = ["investsus-exec-ficha", propostaId];
+  const { data, isLoading, isError, error } = useQuery({ queryKey: chave, queryFn: () => api.get(`/api/investsus/execucao/propostas/${propostaId}`).then(r => r.data) });
+  const [dialogo, setDialogo] = useState<Dialogo>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
+  const acao = async (fn: () => Promise<any>, sucesso?: string) => {
+    try {
+      const r = await fn();
+      setMsg({ ok: true, texto: r?.data?.mensagem ?? sucesso ?? "Feito." });
+      qc.invalidateQueries({ queryKey: chave });
+      qc.invalidateQueries({ queryKey: ["investsus-exec-painel"] });
+      return true;
+    } catch (e) { setMsg({ ok: false, texto: erroMsg(e) }); return false; }
+  };
+  if (isLoading) return <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>Carregando plano de trabalho…</div>;
+  if (isError) return <div style={{ ...S.card, color: "#dc2626" }}>Não foi possível carregar: {erroMsg(error)} <button style={S.btn()} onClick={onVoltar}>Voltar</button></div>;
+
+  const dg = data.dados_gerais, r = data.resumo, perm = data.permissoes;
+  const acoes: any[] = data.acoes.filter((a: any) => a.ativa);
+  const grupos: [string, any[]][] = [];
+  for (const a of acoes) {
+    const g = a.grupo || a.descricao;
+    const existente = grupos.find(x => x[0] === g);
+    if (existente) existente[1].push(a); else grupos.push([g, [a]]);
+  }
+  const naturezas: any[] = data.naturezas;
+  const base = `/api/investsus/execucao`;
+  const converter = () => acao(() => api.post(`${base}/propostas/${propostaId}/importar-plano`));
+
+  return (
+    <div>
+      <DialogoJustificativa d={dialogo} fechar={() => setDialogo(null)} />
+      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        <button style={S.btn()} onClick={onVoltar}><ArrowLeft size={13} /> Voltar aos repasses</button>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <button style={S.btn("#059669")} onClick={() => baixar(`${base}/propostas/${propostaId}/controle.xlsx`, `controle_emenda_${dg.numero_proposta}.xlsx`).catch(e => setMsg({ ok: false, texto: erroMsg(e) }))}><FileSpreadsheet size={13} /> Baixar Excel (modelo do Fundo)</button>
+          {perm.lancar && acoes.length > 0 && <ImportarControle propostaId={propostaId} onFim={(texto, ok) => {
+            setMsg({ ok, texto }); qc.invalidateQueries({ queryKey: chave }); qc.invalidateQueries({ queryKey: ["investsus-exec-painel"] });
+          }} />}
+          <button style={S.btn()} onClick={() => onPlanilhaCompleta(propostaId)}><FileText size={13} /> Planilha completa (empenho/liquidação)</button>
+        </div>
+      </div>
+      {msg && (
+        <div style={{ background: msg.ok ? "#f0fdf4" : "#fef2f2", border: `1px solid ${msg.ok ? "#bbf7d0" : "#fecaca"}`, color: msg.ok ? "#166534" : "#991b1b", borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontSize: 12, display: "flex", justifyContent: "space-between", position: "sticky", top: 8, zIndex: 50, boxShadow: "0 4px 12px rgba(0,0,0,.08)" }}>
+          <span>{msg.texto}</span><button onClick={() => setMsg(null)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={14} /></button>
+        </div>)}
+
+      <div style={S.card}>
+        <div style={{ ...S.title, marginBottom: 8 }}>Dados gerais da emenda</div>
+        <table style={XL.table}><tbody>
+          {([["Ano", dg.ano], ["Beneficiário", dg.beneficiario], ["Dirigente", dg.dirigente], ["Município", dg.municipio], ["CNPJ", dg.cnpj],
+            ["Nº da proposta", dg.numero_proposta], ["Tipo", `${data.classificacao.origem_rotulo} · ${data.classificacao.destinacao_rotulo}`],
+            ["Parlamentar", dg.parlamentar], ["Objeto", dg.objeto], ["Finalidade", dg.finalidade]] as [string, any][]).filter(([, v]) => v).map(([k, v]) => (
+            <tr key={k}><td style={{ ...XL.td, background: "#f8fafc", fontWeight: 700, width: 170 }}>{k}</td><td style={{ ...XL.td, whiteSpace: "pre-line" }}>{v}</td></tr>))}
+          <tr><td style={{ ...XL.td, background: "#f8fafc", fontWeight: 700 }}>Valor da proposta</td><td style={{ ...XL.td, fontWeight: 700 }}>{fmt(dg.valor)}</td></tr>
+        </tbody></table>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(170px, 100%), 1fr))", gap: 10, marginTop: 12 }}>
+          <Kpi label="Recebido do FNS" valor={fmt(r.recebido)} sub={`${r.recebido_info.qtd_parcelas} parcela(s)`} cor={COR.recebido} fonte="oficial" />
+          <Kpi label="Valor do plano" valor={r.tem_plano ? fmt(r.valor_plano) : "não convertido"} cor={AZUL} fonte="municipio" />
+          <Kpi label="Gasto (notas fiscais)" valor={fmt(r.pago)} cor={COR.pago} fonte="municipio" />
+          <Kpi label="Saldo do plano" valor={r.saldo_plano == null ? "—" : fmt(r.saldo_plano)} sub="previsto − gasto" cor="#b45309" />
+          <Kpi label="Saldo em conta" valor={fmt(r.saldo_financeiro)} sub="recebido + rendimentos − gasto" cor={r.saldo_financeiro < 0 ? COR.critico : AZUL} />
+        </div>
+      </div>
+
+      {acoes.length === 0 ? (
+        <div style={{ ...S.card, textAlign: "center", padding: 30 }}>
+          <div style={{ fontWeight: 700, color: AZUL, marginBottom: 6 }}>O plano de trabalho ainda não foi convertido em planilha</div>
+          {data.importacao.disponiveis > 0 ? (<>
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>O plano sincronizado do InvestSUS tem {data.importacao.disponiveis} item(ns) (metas/naturezas). A conversão cria uma linha por ação, agrupada pela finalidade, com o valor previsto.</div>
+            {perm.lancar && <button style={S.btn(AZUL)} onClick={converter}><Download size={13} /> Converter plano do InvestSUS em planilha</button>}
+          </>) : (
+            <div style={{ fontSize: 12, color: "#6b7280" }}>O plano desta proposta não veio do InvestSUS. Use <b>Sincronizar → Atualizar do InvestSUS</b> (traz o plano de cada proposta) ou cadastre as ações na planilha completa.</div>
+          )}
+        </div>
+      ) : grupos.map(([g, itens]) => <LivroFinalidade key={g} grupo={g} itens={itens} naturezas={naturezas} perm={perm} acao={acao} setDialogo={setDialogo} origem={data.classificacao.origem_rotulo} />)}
+
+      {acoes.length > 0 && data.importacao.pendentes > 0 && perm.lancar && (
+        <div style={{ fontSize: 12, color: "#92400e", marginBottom: 12 }}>O plano sincronizado tem {data.importacao.pendentes} item(ns) ainda não convertidos. <button style={{ ...S.btn(), padding: "2px 8px" }} onClick={converter}>Converter os que faltam</button></div>)}
+
+      <div style={S.card}>
+        <div style={S.title}>Saldo por natureza (elemento) de despesa</div>
+        {naturezas.length === 0 ? <div style={{ fontSize: 12, color: "#9ca3af" }}>O plano sincronizado não trouxe naturezas de despesa.</div> : (
+          <div style={{ overflowX: "auto" }}><table style={XL.table}>
+            <thead><tr>{["Elemento", "Descrição", "Previsto no plano (InvestSUS)", "Notas baixadas", "Saldo"].map(h => <th key={h} style={{ ...XL.th, position: "static", textAlign: h === "Elemento" || h === "Descrição" ? "left" : "right" }}>{h}</th>)}</tr></thead>
+            <tbody>{naturezas.map(n => (
+              <tr key={n.codigo}><td style={{ ...XL.td, fontFamily: "monospace" }}>{n.codigo === "sem_natureza" ? "—" : natFmt(n.codigo)}</td>
+                <td style={XL.td}>{n.descricao || (n.codigo === "sem_natureza" ? "Notas sem elemento informado" : "")}{n.fora_do_plano && n.codigo !== "sem_natureza" && <span style={{ color: COR.urgente, fontSize: 10.5, fontWeight: 700 }}> · fora do plano</span>}</td>
+                <td style={XL.num}>{fmt(n.previsto)}</td><td style={XL.num}>{fmt(n.pago)}</td>
+                <td style={{ ...XL.num, fontWeight: 700, color: n.saldo < 0 ? COR.critico : AZUL }}>{fmt(n.saldo)}</td></tr>))}</tbody>
+            <tfoot><tr style={{ background: "#f1f5f9", fontWeight: 800 }}><td style={XL.td} colSpan={2}>TOTAL</td>
+              <td style={XL.num}>{fmt(naturezas.reduce((s, n) => s + n.previsto, 0))}</td><td style={XL.num}>{fmt(naturezas.reduce((s, n) => s + n.pago, 0))}</td>
+              <td style={XL.num}>{fmt(naturezas.reduce((s, n) => s + n.saldo, 0))}</td></tr></tfoot>
+          </table></div>)}
+      </div>
+    </div>
+  );
+}
+
+function LivroFinalidade({ grupo, itens, naturezas, perm, acao, setDialogo, origem }: {
+  grupo: string; itens: any[]; naturezas: any[]; perm: any; acao: (fn: () => Promise<any>, s?: string) => Promise<boolean>;
+  setDialogo: (d: Dialogo) => void; origem: string;
+}) {
+  const base = `/api/investsus/execucao`;
+  const total = itens.reduce((s, a) => s + a.previsto, 0);
+  const gasto = itens.reduce((s, a) => s + a.pago, 0);
+  const [f, setF] = useState<any>({ ...NF_VAZIA, acao_id: itens.length === 1 ? String(itens[0].id) : "" });
+  const set = (k: string) => (e: any) => setF((v: any) => ({ ...v, [k]: e.target.value }));
+  const nomesNat: Record<string, string> = Object.fromEntries(naturezas.map(n => [n.codigo, n.descricao]));
+  // Livro: notas/pagamentos de todas as ações da finalidade em ordem de data, com saldo atual
+  const notas = itens.flatMap(a => a.lancamentos
+    .filter((l: any) => !l.cancelado && ["nota_fiscal", "estorno_nota_fiscal", "pagamento", "estorno_pagamento"].includes(l.tipo))
+    .map((l: any) => ({ ...l, acao: a.descricao, nat: l.natureza_despesa || a.natureza_despesa })))
+    .sort((x: any, y: any) => (x.data === y.data ? x.id - y.id : x.data.localeCompare(y.data)));
+  let saldo = total;
+  const acaoSel = itens.find(a => String(a.id) === f.acao_id);
+  const salvar = async () => {
+    const corpo = {
+      tipo: "nota_fiscal", data: f.data, valor: Number(f.valor), natureza_despesa: f.natureza_despesa || acaoSel?.natureza_despesa || null,
+      fornecedor: f.fornecedor || null, fornecedor_documento: f.fornecedor_documento || null,
+      documento_comprobatorio: f.documento_comprobatorio, historico: f.historico || null,
+    };
+    if (await acao(() => api.post(`${base}/acoes/${f.acao_id}/lancamentos`, corpo), `Nota fiscal ${f.documento_comprobatorio} lançada — saldo baixado.`))
+      setF({ ...NF_VAZIA, acao_id: f.acao_id, natureza_despesa: f.natureza_despesa });
+  };
+  return (
+    <div style={{ ...S.card, padding: 0, overflow: "hidden" }}>
+      <div style={{ background: AZUL, color: "#fff", padding: "10px 14px" }}>
+        <div style={{ fontSize: 11, opacity: .85 }}>CONTROLE DE EXECUÇÃO — {origem.toUpperCase()}</div>
+        <div style={{ fontSize: 14, fontWeight: 800 }}>FINALIDADE: {grupo.toUpperCase()} — {fmt(total)}</div>
+        <div style={{ fontSize: 11.5, marginTop: 2 }}>Gasto {fmt(gasto)} · Saldo <b>{fmt(total - gasto)}</b></div>
+      </div>
+      <div style={{ padding: 14 }}>
+        <div style={{ overflowX: "auto", border: "1px solid #cbd5e1", marginBottom: 12 }}>
+          <table style={XL.table}>
+            <thead><tr>{["Ação do plano", "Elemento", "Valor previsto", "Gasto", "Saldo", "% gasto"].map(h => <th key={h} style={{ ...XL.th, position: "static", textAlign: h === "Ação do plano" || h === "Elemento" ? "left" : "right" }}>{h}</th>)}</tr></thead>
+            <tbody>{itens.map(a => (
+              <tr key={a.id}><td style={XL.td}>{a.descricao}</td><td style={{ ...XL.td, fontFamily: "monospace", fontSize: 11 }}>{a.natureza_despesa ? natFmt(a.natureza_despesa) : "várias"}</td>
+                <td style={XL.num}>{fmt(a.previsto)}</td><td style={{ ...XL.num, color: COR.pago }}>{fmt(a.pago)}</td>
+                <td style={{ ...XL.num, fontWeight: 700, color: a.saldo_plano < 0 ? COR.critico : AZUL }}>{fmt(a.saldo_plano)}</td><td style={XL.num}><BarraExec pct={a.perc_execucao} /></td></tr>))}</tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>Entradas e saídas</div>
+        <div style={{ overflowX: "auto", border: "1px solid #cbd5e1" }}>
+          <table style={XL.table}>
+            <thead><tr>{["Data", "Entrada", "Saída", "Ação / finalidade", "Elemento de despesa", "Fornecedor", "Nº nota fiscal", "Saldo atual", ""].map(h => <th key={h} style={{ ...XL.th, position: "static", textAlign: ["Entrada", "Saída", "Saldo atual"].includes(h) ? "right" : "left" }}>{h}</th>)}</tr></thead>
+            <tbody>
+              <tr style={{ background: "#f0fdf4", fontWeight: 700 }}><td style={XL.td}>—</td><td style={XL.num}>{fmt(total)}</td><td style={XL.num} /><td style={XL.td}>Valor da finalidade no plano de trabalho</td><td style={XL.td} colSpan={3} /><td style={XL.num}>{fmt(total)}</td><td style={XL.td} /></tr>
+              {notas.length === 0 && <tr><td colSpan={9} style={{ ...XL.td, textAlign: "center", color: "#9ca3af", padding: 14 }}>Nenhuma nota fiscal lançada nesta finalidade.</td></tr>}
+              {notas.map((l: any) => {
+                const v = (l.tipo.startsWith("estorno") ? -1 : 1) * l.valor;
+                saldo -= v;
+                return (
+                  <tr key={l.id}><td style={XL.td}>{fmtData(l.data)}</td><td style={XL.num} />
+                    <td style={{ ...XL.num, color: v < 0 ? COR.recebido : COR.critico }}>{v < 0 ? `estorno ${fmt(-v)}` : fmt(v)}</td>
+                    <td style={XL.td}>{l.historico || l.acao}{l.historico && <div style={{ fontSize: 10.5, color: "#6b7280" }}>{l.acao}</div>}</td>
+                    <td style={{ ...XL.td, fontSize: 11 }}>{l.nat ? `${natFmt(l.nat)} ${nomesNat[l.nat] ?? ""}` : "—"}</td>
+                    <td style={XL.td}>{l.fornecedor ?? "—"}</td><td style={XL.td}>{l.documento_comprobatorio ?? l.ordem_bancaria ?? "—"}</td>
+                    <td style={{ ...XL.num, fontWeight: 700, color: saldo < 0 ? COR.critico : AZUL }}>{fmt(saldo)}</td>
+                    <td style={{ ...XL.td, whiteSpace: "nowrap" }}><OrigemDado origem={l.origem_dado} />
+                      {perm.lancar && <button title="Cancelar nota (com justificativa)" style={{ background: "none", border: "none", cursor: "pointer", color: COR.critico }}
+                        onClick={() => setDialogo({ titulo: `Cancelar a nota ${l.documento_comprobatorio ?? ""} de ${fmt(l.valor)}`, onOk: (j: string) => acao(() => api.post(`${base}/lancamentos/${l.id}/cancelar`, { motivo: j }), "Nota cancelada (fica no histórico) e saldo devolvido.") })}><Ban size={12} /></button>}</td>
+                  </tr>);
+              })}
+            </tbody>
+          </table>
+        </div>
+        {perm.lancar && (
+          <div style={{ marginTop: 10, background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: 8, padding: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: AZUL, marginBottom: 6 }}><Plus size={12} style={{ verticalAlign: -2 }} /> Lançar nota fiscal (baixa o saldo da ação e da natureza)</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(150px, 100%), 1fr))", gap: 6, alignItems: "end" }}>
+              <div style={{ gridColumn: "span 2" }}><label style={S.label}>Ação do plano *</label>
+                <select style={S.input} value={f.acao_id} onChange={e => { const a = itens.find(x => String(x.id) === e.target.value); setF((v: any) => ({ ...v, acao_id: e.target.value, natureza_despesa: a?.natureza_despesa ?? v.natureza_despesa })); }}>
+                  <option value="">Escolha…</option>{itens.map(a => <option key={a.id} value={a.id}>{a.descricao} — saldo {fmt(a.saldo_plano)}</option>)}
+                </select></div>
+              <div style={{ gridColumn: "span 2" }}><label style={S.label}>Elemento de despesa</label>
+                <select style={S.input} value={f.natureza_despesa} onChange={set("natureza_despesa")}>
+                  <option value="">{acaoSel?.natureza_despesa ? `Da ação (${natFmt(acaoSel.natureza_despesa)})` : "Escolha…"}</option>
+                  {naturezas.filter(n => n.codigo !== "sem_natureza").map(n => <option key={n.codigo} value={n.codigo}>{natFmt(n.codigo)} {n.descricao ?? ""} — saldo {fmt(n.saldo)}</option>)}
+                </select></div>
+              <div><label style={S.label}>Data *</label><input type="date" style={S.input} value={f.data} onChange={set("data")} /></div>
+              <div><label style={S.label}>Valor (R$) *</label><input type="number" step="0.01" min="0" style={S.input} value={f.valor} onChange={set("valor")} /></div>
+              <div><label style={S.label}>Nº nota fiscal *</label><input style={S.input} value={f.documento_comprobatorio} onChange={set("documento_comprobatorio")} /></div>
+              <div style={{ gridColumn: "span 2" }}><label style={S.label}>Fornecedor</label><input style={S.input} value={f.fornecedor} onChange={set("fornecedor")} /></div>
+              <div><label style={S.label}>CNPJ do fornecedor</label><input style={S.input} value={f.fornecedor_documento} onChange={set("fornecedor_documento")} /></div>
+              <div style={{ gridColumn: "span 2" }}><label style={S.label}>Finalidade / descrição do gasto</label><input style={S.input} value={f.historico} onChange={set("historico")} placeholder="Ex.: consultas especializadas de julho" /></div>
+              <button style={S.btn(AZUL)} disabled={!f.acao_id || !f.data || !(Number(f.valor) > 0) || !f.documento_comprobatorio.trim()} onClick={salvar}><Check size={13} /> Lançar nota</button>
+            </div>
+            <div style={{ fontSize: 10.5, color: "#9ca3af", marginTop: 6 }}>A mesma nota do mesmo fornecedor não entra duas vezes. Para corrigir, cancele a nota com justificativa. Anexe o PDF da nota na planilha completa.</div>
+          </div>)}
+      </div>
+    </div>
+  );
+}
+
+// Importação das planilhas de controle já preenchidas (modelos MAC por natureza e PAP por
+// finalidade): prévia por aba, escolha da ação quando não houver vínculo automático e data
+// padrão para notas sem data. Nota repetida não entra duas vezes.
+function ImportarControle({ propostaId, onFim }: { propostaId: number; onFim: (texto: string, ok: boolean) => void }) {
+  const inp = useRef<HTMLInputElement>(null);
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [previa, setPrevia] = useState<any>(null);
+  const [mapa, setMapa] = useState<Record<string, string>>({});
+  const [dataPadrao, setDataPadrao] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const enviar = async (file: File, confirmar: boolean, m = mapa, d = dataPadrao) => {
+    const fd = new FormData();
+    fd.append("arquivo", file);
+    fd.append("confirmar", String(confirmar));
+    if (d) fd.append("data_padrao", d);
+    fd.append("mapa", JSON.stringify(m));
+    return (await api.post(`/api/investsus/execucao/propostas/${propostaId}/controle/importar`, fd, { headers: { "Content-Type": "multipart/form-data" } })).data;
+  };
+  const fechar = () => { setPrevia(null); setArquivo(null); setMapa({}); setDataPadrao(""); if (inp.current) inp.current.value = ""; };
+  const ver = async (file: File, m = mapa, d = dataPadrao) => {
+    setOcupado(true);
+    try { setPrevia(await enviar(file, false, m, d)); } catch (e) { onFim(erroMsg(e), false); fechar(); } finally { setOcupado(false); }
+  };
+  const confirmar = async () => {
+    if (!arquivo) return;
+    setOcupado(true);
+    try {
+      const r = await enviar(arquivo, true);
+      onFim(`Planilha importada: ${r.criadas} nota(s) lançada(s).` +
+        (r.duplicadas.length ? ` ${r.duplicadas.length} já existia(m) e foi(ram) ignorada(s).` : "") +
+        (r.erros.length ? ` Problemas: ${r.erros.slice(0, 5).join("; ")}` : ""), true);
+      fechar();
+    } catch (e) { onFim(erroMsg(e), false); } finally { setOcupado(false); }
+  };
+  const semData = previa?.abas.reduce((s: number, a: any) => s + a.sem_data, 0) ?? 0;
+  const semVinculo = previa?.abas.filter((a: any) => a.notas > 0 && !a.acao_id).length ?? 0;
+  return (<>
+    <input ref={inp} type="file" accept=".xlsx" style={{ display: "none" }}
+      onChange={e => { const file = e.target.files?.[0]; if (file) { setArquivo(file); ver(file, {}, ""); } }} />
+    <button style={S.btn()} disabled={ocupado} onClick={() => inp.current?.click()} title="Planilha de controle já preenchida (modelo MAC ou PAP)">
+      <Upload size={13} /> {ocupado && !previa ? "Lendo planilha…" : "Importar planilha preenchida"}
+    </button>
+    {previa && (
+      <div role="dialog" aria-modal="true" onClick={fechar} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.5)", zIndex: 1100, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
+        <div onClick={e => e.stopPropagation()} style={{ background: "#fff", color: "#111827", borderRadius: 10, padding: 18, width: "100%", maxWidth: 900 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <div style={{ fontWeight: 800, color: AZUL }}>Prévia da importação — {arquivo?.name}</div>
+            <button onClick={fechar} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={16} /></button>
+          </div>
+          {!previa.confere_proposta && <div style={{ background: "#fef2f2", color: "#991b1b", borderRadius: 6, padding: 8, fontSize: 12, marginBottom: 8 }}>
+            A planilha é da proposta <b>{previa.numero_planilha}</b>, diferente desta. Escolha a planilha certa.</div>}
+          <div style={{ overflowX: "auto" }}>
+            <table style={XL.table}>
+              <thead><tr>{["Aba da planilha", "Modelo", "Notas", "Valor", "Lançar na ação", "Como foi vinculada"].map(h => <th key={h} style={{ ...XL.th, position: "static" }}>{h}</th>)}</tr></thead>
+              <tbody>{previa.abas.map((a: any) => (
+                <tr key={a.aba}>
+                  <td style={XL.td}>{a.aba}{a.finalidade && <div style={{ fontSize: 10.5, color: "#6b7280" }}>{a.finalidade}</div>}{a.avisos.map((t: string) => <div key={t} style={{ fontSize: 10.5, color: "#92400e" }}>{t}</div>)}</td>
+                  <td style={XL.td}>{a.modelo === "pap" ? "PAP (finalidade)" : a.modelo === "mac" ? `MAC (natureza ${natFmt(a.natureza)})` : "—"}</td>
+                  <td style={XL.num}>{a.notas}{a.sem_data ? <div style={{ fontSize: 10, color: "#92400e" }}>{a.sem_data} sem data</div> : null}{a.sem_numero ? <div style={{ fontSize: 10, color: "#6b7280" }}>{a.sem_numero} sem nº</div> : null}</td>
+                  <td style={XL.num}>{fmt(a.valor)}</td>
+                  <td style={{ ...XL.td, minWidth: 220 }}>{a.notas === 0 ? <span style={{ color: "#9ca3af" }}>nenhuma nota lançada</span> : (
+                    <select style={S.input} value={mapa[a.aba] ?? (a.acao_id ? String(a.acao_id) : "")}
+                      onChange={e => { const m = { ...mapa, [a.aba]: e.target.value }; setMapa(m); if (arquivo) ver(arquivo, m); }}>
+                      <option value="">Escolha a ação…</option>
+                      {previa.acoes.map((x: any) => <option key={x.id} value={x.id}>{x.grupo ? `${x.grupo} › ` : ""}{x.descricao}</option>)}
+                    </select>)}</td>
+                  <td style={{ ...XL.td, fontSize: 11, color: a.acao_id ? "#065f46" : "#92400e" }}>{a.notas ? a.motivo : ""}</td>
+                </tr>))}</tbody>
+            </table>
+          </div>
+          {semData > 0 && (
+            <div style={{ display: "flex", gap: 8, alignItems: "end", marginTop: 10, background: "#fffbeb", padding: 8, borderRadius: 6, color: "#78350f", fontSize: 12, flexWrap: "wrap" }}>
+              <div>{semData} nota(s) sem data na planilha. Informe a data a usar para elas (ou preencha as datas na planilha e importe de novo):</div>
+              <input type="date" style={{ ...S.input, width: 160 }} value={dataPadrao} onChange={e => { setDataPadrao(e.target.value); if (arquivo) ver(arquivo, mapa, e.target.value); }} />
+            </div>)}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, gap: 8, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 12 }}>Serão lançadas <b>{previa.notas_a_importar}</b> nota(s), <b>{fmt(previa.valor_a_importar)}</b>, marcadas como <OrigemDado origem="importado" />. Notas já lançadas (mesmo nº e fornecedor) são ignoradas.
+              {semVinculo > 0 && <span style={{ color: "#92400e" }}> {semVinculo} aba(s) sem ação escolhida ficam de fora.</span>}</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button style={S.btn()} onClick={fechar}>Cancelar</button>
+              <button style={S.btn(AZUL)} disabled={ocupado || !previa.confere_proposta || previa.notas_a_importar === 0} onClick={confirmar}><Check size={13} /> {ocupado ? "Importando…" : "Importar notas"}</button>
+            </div>
+          </div>
+        </div>
+      </div>)}
+  </>);
 }

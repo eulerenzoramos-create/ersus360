@@ -24,7 +24,7 @@ from models.investsus import (
     PropostaInvestSUS, HistoricoSituacao, Parlamentar, ProgramaInvestSUS,
     UnidadeBeneficiada, PlanoTrabalho, AcaoServico, NaturezaDespesa,
     Parecer, PagamentoInvestSUS, AlertaInvestSUS, DocumentoInvestSUS,
-    AtualizacaoManual, SituacaoNormalizada, TipoEmenda,
+    AtualizacaoManual, SituacaoNormalizada, TipoEmenda, SnapshotInvestSUS,
     NivelAlertaInvest, TipoParecer, ResultadoParecer, OrigemAtualizacao,
 )
 from services import investsus_federal as fed
@@ -308,6 +308,7 @@ def _prop_dict(p: PropostaInvestSUS) -> dict:
         "atualizado_em": p.atualizado_em.isoformat() if p.atualizado_em else None,
         "total_alertas_abertos": sum(1 for a in p.alertas_investsus if not a.resolvido) if p.alertas_investsus else 0,
         "payload_original": p.payload_original,
+        "conferencia_investsus": p.conferencia_investsus,
     }
 
 
@@ -377,9 +378,12 @@ async def dashboard(
     result = await db.execute(stmt)
     todas = result.scalars().all()
     # Canceladas e rejeitadas não entram em nenhum total do painel; só são contadas à parte.
-    props, fora = [], []
+    props, fora, nao_encontradas = [], [], []
     for p in todas:
         sit = p.situacao_normalizada.value if p.situacao_normalizada else None
+        if p.conferencia_investsus == "nao_encontrada":
+            nao_encontradas.append(p)   # não está na lista oficial do InvestSUS: fora dos totais
+            continue
         (fora if fed.fase_de(sit) in FASES_DESCONSIDERADAS else props).append(p)
     desconsideradas: dict[str, dict] = {}
     for p in fora:
@@ -462,6 +466,10 @@ async def dashboard(
         "total_executado": total_executado,
         "saldo_executar": saldo_executar,
         "saldo_a_receber": saldo_a_receber,
+        "nao_encontradas_investsus": {
+            "qtd": len(nao_encontradas),
+            "valor_indicado": round(sum(p.valor_indicado or 0 for p in nao_encontradas), 2),
+        },
         "desconsideradas": {
             "qtd": len(fora),
             "valor_indicado": sum(d["valor_indicado"] for d in desconsideradas.values()),
@@ -1720,6 +1728,7 @@ async def aplicar_propostas_federais(dados: dict, mid: int, db, origem: str) -> 
     hoje = date.today()
     vistos: set[str] = set()
 
+    agora = datetime.utcnow()
     for item in dados.get("propostas", []):
         numero = str(item.get("numero_proposta") or "").strip()
         if not numero or numero == "-" or numero in vistos:
@@ -1776,6 +1785,8 @@ async def aplicar_propostas_federais(dados: dict, mid: int, db, origem: str) -> 
                 prop.situacao_original = sit_txt
             if sit_norm:
                 prop.situacao_normalizada = sit_norm
+            if item.get("exercicio") and item.get("fonte") == "investsus":
+                prop.exercicio = int(item["exercicio"])
             prop.ultima_consulta_investsus = hoje
             prop.atualizado_por = f"sincronizacao:{origem}"
 
@@ -1841,9 +1852,36 @@ async def aplicar_propostas_federais(dados: dict, mid: int, db, origem: str) -> 
                 situacao_anterior=None, situacao_nova=sit_txt or situacao.value, numero=numero,
             ))
             cont["criadas"] += 1
+        if item.get("fonte") == "investsus":
+            prop.conferencia_investsus, prop.conferida_em = "conferida", agora
 
     await db.commit()
     return cont
+
+
+async def conferir_com_investsus(db, mid: int, numeros_investsus: set[str], anos: list[int]) -> dict:
+    """Depois de uma captura COMPLETA da lista do InvestSUS (todos os exercícios, sem erro):
+    proposta federal do município que não veio na lista vira "nao_encontrada" e sai dos
+    totais — ex.: emendas importadas do Portal da Transparência (o número é o da emenda,
+    não o da proposta), cadastro manual/CSV ou proposta excluída no MS. Nada é apagado."""
+    props = (await db.execute(select(PropostaInvestSUS).where(
+        PropostaInvestSUS.municipio_id == mid, _filtro_escopo()))).scalars().all()
+    agora = datetime.utcnow()
+    ausentes = []
+    for p in props:
+        if p.numero_proposta in numeros_investsus:
+            p.conferencia_investsus, p.conferida_em = "conferida", agora
+        else:
+            p.conferencia_investsus, p.conferida_em = "nao_encontrada", agora
+            ausentes.append(p)
+    await db.commit()
+    return {
+        "anos": anos,
+        "conferidas": len(props) - len(ausentes),
+        "nao_encontradas": len(ausentes),
+        "nao_encontradas_valor": round(sum(p.valor_indicado or 0 for p in ausentes), 2),
+        "conferido_em": agora.isoformat(),
+    }
 
 
 async def executar_sincronizacao(mid: int, fonte: str, cred: dict[str, str]) -> dict:
@@ -1866,6 +1904,10 @@ async def executar_sincronizacao(mid: int, fonte: str, cred: dict[str, str]) -> 
 
     async with AsyncSessionLocal() as db:
         cont = await aplicar_propostas_federais(dados, mid, db, origem=f"sincronizacao_{fonte}")
+        if fonte == "investsus" and not dados.get("erros"):
+            from services.investsus_scraper import exercicios_investsus
+            cont["conferencia"] = await registrar_conferencia(db, mid, dados, exercicios_investsus(),
+                                                              "sincronizacao")
     return {
         "ok": True,
         "fonte": fonte,
@@ -2037,12 +2079,72 @@ async def sincronizar_relay(payload: dict, db: DbDep, user: UserDep):
         raise HTTPException(422, "CNPJ do Fundo Municipal de Saúde não cadastrado para o município.")
     dados = await sincronizar_investsus_relay(items, fundo["cnpj"])
     cont = await aplicar_propostas_federais(dados, mid, db, origem="sincronizacao_relay")
+    conferencia = None
+    # Captura completa (todos os exercícios, sem página com erro): confere o ERSUS360 com a lista.
+    if payload.get("completo") and not dados.get("erros"):
+        anos = sorted({int(a) for a in payload.get("anos") or []}, reverse=True)
+        conferencia = await registrar_conferencia(db, mid, dados, anos, user.username)
     return {
         "ok": True,
         "sincronizado_em": dados["sincronizado_em"],
         "propostas_encontradas": len(dados["propostas"]),
         **cont,
+        "conferencia": conferencia,
         "erros": dados.get("erros", []),
+    }
+
+
+def resumo_lista_investsus(propostas: list[dict]) -> list[dict]:
+    """Totais por exercício da LISTA oficial capturada (como o InvestSUS mostra)."""
+    por_ano: dict[int, dict] = {}
+    for it in propostas:
+        ano = int(it.get("exercicio") or 0)
+        fase = fed.fase_de(fed.classificar_situacao(it.get("situacao_raw") or ""))
+        r = por_ano.setdefault(ano, {"exercicio": ano, "qtd": 0, "valor": 0.0, "qtd_ativas": 0, "valor_ativas": 0.0})
+        r["qtd"] += 1
+        r["valor"] = round(r["valor"] + float(it.get("valor_global") or 0), 2)
+        if fase not in FASES_DESCONSIDERADAS:
+            r["qtd_ativas"] += 1
+            r["valor_ativas"] = round(r["valor_ativas"] + float(it.get("valor_global") or 0), 2)
+    return [por_ano[a] for a in sorted(por_ano, reverse=True)]
+
+
+async def registrar_conferencia(db, mid: int, dados: dict, anos: list[int], usuario: str) -> dict:
+    numeros = {str(it.get("numero_proposta") or "").strip() for it in dados.get("propostas", [])}
+    numeros.discard("")
+    res = await conferir_com_investsus(db, mid, numeros, anos)
+    res["investsus_por_exercicio"] = resumo_lista_investsus(dados.get("propostas", []))
+    res["investsus_total"] = len(numeros)
+    res["usuario"] = usuario
+    db.add(SnapshotInvestSUS(municipio_id=mid, origem="conferencia", dados=res))
+    await db.commit()
+    return res
+
+
+@router.get("/conferencia")
+async def conferencia_investsus(db: DbDep, user: UserDep):
+    """Última conferência ERSUS360 × lista oficial do InvestSUS e propostas não encontradas."""
+    mid = _municipio_id(user)
+    snap = (await db.execute(select(SnapshotInvestSUS).where(
+        SnapshotInvestSUS.municipio_id == mid, SnapshotInvestSUS.origem == "conferencia")
+        .order_by(SnapshotInvestSUS.id.desc()).limit(1))).scalar_one_or_none()
+    ausentes = (await db.execute(select(PropostaInvestSUS).where(
+        PropostaInvestSUS.municipio_id == mid, _filtro_escopo(),
+        PropostaInvestSUS.conferencia_investsus == "nao_encontrada")
+        .order_by(PropostaInvestSUS.exercicio.desc()))).scalars().all()
+    ersus = (await db.execute(select(PropostaInvestSUS.exercicio, func.count(PropostaInvestSUS.id),
+                                     func.coalesce(func.sum(PropostaInvestSUS.valor_indicado), 0.0))
+                              .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(),
+                                     or_(PropostaInvestSUS.conferencia_investsus.is_(None),
+                                         PropostaInvestSUS.conferencia_investsus != "nao_encontrada"))
+                              .group_by(PropostaInvestSUS.exercicio))).all()
+    return {
+        "ultima": snap.dados if snap else None,
+        "ersus_por_exercicio": [{"exercicio": a, "qtd": q, "valor": round(float(v), 2)}
+                                for a, q, v in sorted(ersus, key=lambda x: -(x[0] or 0))],
+        "nao_encontradas": [{"id": p.id, "numero_proposta": p.numero_proposta, "exercicio": p.exercicio,
+                             "objeto": p.objeto, "valor_indicado": p.valor_indicado, "fonte_dado": p.fonte_dado,
+                             "situacao": p.situacao_original} for p in ausentes],
     }
 
 
@@ -2163,15 +2265,23 @@ async def aplicar_detalhes(db, mid: int, cnpj_fundo: str, detalhes: list[dict], 
                 acao.meta_qualitativa = m["caminho"]
                 acao.valor = m["valor"]
                 cont["metas"] += 1
+        # Naturezas: um plano por estabelecimento, e a mesma natureza pode aparecer em vários.
+        # O previsto da proposta é a SOMA dos planos (antes o último plano sobrescrevia os demais).
+        soma_nat: dict[str, dict] = {}
+        for pl in d["planos"]:
             for n in pl["naturezas"]:
-                nat = (await db.execute(select(NaturezaDespesa).where(
-                    NaturezaDespesa.proposta_id == prop.id, NaturezaDespesa.codigo == n["codigo"]))).scalars().first()
-                if not nat:
-                    nat = NaturezaDespesa(proposta_id=prop.id, codigo=n["codigo"][:20])
-                    db.add(nat)
-                nat.descricao = n["descricao"] or nat.descricao
-                nat.valor_previsto = n["valor"]
-                cont["naturezas"] += 1
+                acc = soma_nat.setdefault(n["codigo"][:20], {"descricao": n["descricao"], "valor": 0.0})
+                acc["valor"] += n["valor"] or 0
+                acc["descricao"] = acc["descricao"] or n["descricao"]
+        for codigo, n in soma_nat.items():
+            nat = (await db.execute(select(NaturezaDespesa).where(
+                NaturezaDespesa.proposta_id == prop.id, NaturezaDespesa.codigo == codigo))).scalars().first()
+            if not nat:
+                nat = NaturezaDespesa(proposta_id=prop.id, codigo=codigo)
+                db.add(nat)
+            nat.descricao = n["descricao"] or nat.descricao
+            nat.valor_previsto = round(n["valor"], 2)
+            cont["naturezas"] += 1
 
         # Pareceres e diligências (chave: idParecer do InvestSUS)
         novos_dilig = []

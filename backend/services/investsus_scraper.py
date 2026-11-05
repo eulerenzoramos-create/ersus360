@@ -176,6 +176,17 @@ async def _buscar_propostas_paginado(client: httpx.AsyncClient, cnpj: str, ano: 
     return all_items, None
 
 
+# Exercícios consultados no InvestSUS: todos desde o primeiro com propostas no sistema.
+# Antes eram só o ano atual e o anterior — propostas de 2024 ou antes, ainda em
+# execução, não apareciam e o ERSUS360 não batia com a tela do InvestSUS.
+PRIMEIRO_EXERCICIO = 2020
+
+
+def exercicios_investsus(ano_atual: int | None = None) -> list[int]:
+    ano_atual = ano_atual or datetime.now().year
+    return list(range(ano_atual, PRIMEIRO_EXERCICIO - 1, -1))
+
+
 def _separar_escopo(propostas: list[dict], resultado: dict) -> list[dict]:
     """Mantém somente itens de esfera habilitada (federal); conta os descartados."""
     dentro = [p for p in propostas if fed.esfera_habilitada(p.get("esfera"))]
@@ -189,7 +200,7 @@ def _resultado_vazio() -> dict[str, Any]:
 
 
 async def sincronizar_investsus(cnpj: str, ibge7: str, cred: dict[str, str]) -> dict:
-    """Busca as propostas do Fundo (exercício atual e anterior) no InvestSUS.
+    """Busca as propostas do Fundo (todos os exercícios desde PRIMEIRO_EXERCICIO) no InvestSUS.
     cred: {"COOKIE","TOKEN","CPF","SENHA"} do município (tenancy.credenciais)."""
     cnpj = somente_digitos(cnpj)
     resultado = _resultado_vazio()
@@ -230,7 +241,7 @@ async def sincronizar_investsus(cnpj: str, ibge7: str, cred: dict[str, str]) -> 
             if erro_login:
                 resultado["erros"].append({"endpoint": "auth", "erro": f"{erro_login} — usado o acesso alternativo (token/cookie)."})
 
-        for exercicio in (ano, ano - 1):
+        for exercicio in exercicios_investsus(ano):
             raws, erro = await _buscar_propostas_paginado(client, cnpj, exercicio)
             resultado["propostas"].extend(_normalizar_proposta(r, cnpj) for r in raws)
             if erro:
