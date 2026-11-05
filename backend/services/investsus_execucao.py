@@ -38,15 +38,20 @@ DESTINACOES: dict[str, str] = {
 }
 A_CLASSIFICAR = "a_classificar"
 
-TIPOS_LANCAMENTO: dict[str, tuple[str, int]] = {
-    # tipo: (estágio, sinal)
-    "empenho": ("empenhado", 1),
-    "anulacao_empenho": ("empenhado", -1),
-    "liquidacao": ("liquidado", 1),
-    "estorno_liquidacao": ("liquidado", -1),
-    "pagamento": ("pago", 1),
-    "estorno_pagamento": ("pago", -1),
+TIPOS_LANCAMENTO: dict[str, tuple[tuple[str, ...], int]] = {
+    # tipo: (estágios que o lançamento movimenta, sinal)
+    "empenho": (("empenhado",), 1),
+    "anulacao_empenho": (("empenhado",), -1),
+    "liquidacao": (("liquidado",), 1),
+    "estorno_liquidacao": (("liquidado",), -1),
+    "pagamento": (("pago",), 1),
+    "estorno_pagamento": (("pago",), -1),
+    # Controle simplificado (modelo das planilhas do Fundo): a nota fiscal paga baixa o
+    # saldo da ação de uma vez — conta como empenhada, liquidada e paga.
+    "nota_fiscal": (("empenhado", "liquidado", "pago"), 1),
+    "estorno_nota_fiscal": (("empenhado", "liquidado", "pago"), -1),
 }
+TIPOS_PAGO = {t for t, (est, _) in TIPOS_LANCAMENTO.items() if "pago" in est}
 TIPOS_MOVIMENTO = {"saldo_inicial": 1, "rendimento": 1, "devolucao": -1, "outra_saida": -1}
 SITUACOES_PLANO = {
     "nao_cadastrado": "Não cadastrado",
@@ -122,8 +127,8 @@ def _ativos(lancs: Iterable[Any]) -> list[Any]:
 def totais_lancamentos(lancs: Iterable[Any]) -> dict:
     t = {"empenhado": 0.0, "liquidado": 0.0, "pago": 0.0}
     for l in _ativos(lancs):
-        estagio, sinal = TIPOS_LANCAMENTO.get(l.tipo, (None, 0))
-        if estagio:
+        estagios, sinal = TIPOS_LANCAMENTO.get(l.tipo, ((), 0))
+        for estagio in estagios:
             t[estagio] += sinal * float(l.valor or 0)
     return {k: _r(v) for k, v in t.items()}
 
@@ -215,6 +220,29 @@ def resumo_ficha(p: Any, ficha: Any | None, acoes: list[Any], lancs: list[Any], 
     }
 
 
+def resumo_naturezas(naturezas_plano: dict[str, dict], acoes: list[Any], lancs: list[Any]) -> list[dict]:
+    """Saldo por natureza (elemento) de despesa: previsto no plano oficial do InvestSUS
+    (soma de todos os estabelecimentos) − notas/pagamentos baixados naquela natureza.
+    Lançamento sem natureza usa a natureza da ação."""
+    nat_acao = {a.id: (a.natureza_despesa or "") for a in acoes}
+    linhas: dict[str, dict] = {}
+    for cod, info in naturezas_plano.items():
+        linhas[cod] = {"codigo": cod, "descricao": info.get("descricao"), "previsto": _r(info.get("valor") or 0),
+                       "pago": 0.0, "qtd_notas": 0}
+    for l in _ativos(lancs):
+        estagios, sinal = TIPOS_LANCAMENTO.get(l.tipo, ((), 0))
+        if "pago" not in estagios:
+            continue
+        cod = (getattr(l, "natureza_despesa", None) or nat_acao.get(l.acao_id) or "").strip() or "sem_natureza"
+        ln = linhas.setdefault(cod, {"codigo": cod, "descricao": None, "previsto": 0.0, "pago": 0.0, "qtd_notas": 0})
+        ln["pago"] = _r(ln["pago"] + sinal * float(l.valor or 0))
+        ln["qtd_notas"] += 1 if sinal > 0 else 0
+    for ln in linhas.values():
+        ln["saldo"] = _r(ln["previsto"] - ln["pago"])
+        ln["fora_do_plano"] = ln["previsto"] == 0 and ln["pago"] != 0
+    return sorted(linhas.values(), key=lambda x: x["codigo"])
+
+
 # ── Consolidação ──────────────────────────────────────────────────────────────
 
 CAMPOS_SOMA = ("aprovado", "recebido", "saldo_a_receber", "valor_plano", "empenhado", "liquidado", "pago",
@@ -273,8 +301,8 @@ def consolidar(itens: list[dict]) -> dict:
 def evolucao_mensal(lancs: Iterable[Any], pagamentos: Iterable[Any]) -> list[dict]:
     meses: dict[str, dict] = defaultdict(lambda: {"recebido": 0.0, "pago": 0.0})
     for l in _ativos(lancs):
-        if l.tipo in ("pagamento", "estorno_pagamento") and l.data:
-            meses[l.data.strftime("%Y-%m")]["pago"] += (1 if l.tipo == "pagamento" else -1) * float(l.valor or 0)
+        if l.tipo in TIPOS_PAGO and l.data:
+            meses[l.data.strftime("%Y-%m")]["pago"] += TIPOS_LANCAMENTO[l.tipo][1] * float(l.valor or 0)
     for pg in pagamentos:
         if pg.data_pagamento:
             meses[pg.data_pagamento.strftime("%Y-%m")]["recebido"] += float(pg.valor or 0)
@@ -288,10 +316,14 @@ def _limpo(v: str | None) -> str:
 
 
 def chave_dedup(tipo: str, acao_id: int, data: date, valor: float, numero_empenho: str | None,
-                numero_liquidacao: str | None, ordem_bancaria: str | None, fornecedor_documento: str | None) -> str:
+                numero_liquidacao: str | None, ordem_bancaria: str | None, fornecedor_documento: str | None,
+                documento: str | None = None, fornecedor: str | None = None) -> str:
     """Mesmo documento = mesma despesa. Pagamento: OB; liquidação: nº da liquidação;
-    empenho: nº do empenho. Anulações/estornos e lançamentos sem número usam
+    empenho: nº do empenho; nota fiscal: nº da NF + fornecedor (o número se repete entre
+    fornecedores). Anulações/estornos e lançamentos sem número usam
     data + valor + fornecedor + ação (o mesmo lançamento digitado duas vezes)."""
+    if tipo == "nota_fiscal" and _limpo(documento):
+        return f"{tipo}|{_limpo(documento)}|{_limpo(fornecedor_documento) or _limpo(fornecedor)}"
     numero = {"pagamento": ordem_bancaria, "liquidacao": numero_liquidacao, "empenho": numero_empenho}.get(tipo)
     if _limpo(numero):
         return f"{tipo}|{_limpo(numero)}"

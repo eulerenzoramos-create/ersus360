@@ -172,6 +172,8 @@ async def _migrar_investsus_federal() -> None:
             ("modalidade", "VARCHAR(20)"),
             ("observacoes_internas", "TEXT"),
             ("prioridade", "VARCHAR(20)"),
+            ("conferencia_investsus", "VARCHAR(30)"),
+            ("conferida_em", "TIMESTAMP"),
         ],
         "is_pareceres": [
             ("resposta_texto", "TEXT"),
@@ -182,6 +184,9 @@ async def _migrar_investsus_federal() -> None:
         "is_pagamentos": [("numero_processo", "VARCHAR(50)")],
         "is_acoes_servicos": [("id_externo", "VARCHAR(50)")],
         "is_documentos": [("id_externo", "VARCHAR(50)")],
+        # execução financeira: elemento de despesa por lançamento e finalidade da ação
+        "is_exec_lancamentos": [("natureza_despesa", "VARCHAR(20)")],
+        "is_exec_acoes": [("grupo", "VARCHAR(300)")],
     }
     sqlite = _raw_url.startswith("sqlite")
     async with engine.begin() as conn:

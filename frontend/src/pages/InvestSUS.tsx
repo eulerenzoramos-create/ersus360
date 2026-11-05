@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import TetosMunicipais from "./InvestSUSTetos";
-import { ExecucaoFinanceira, AlertasExecucao, RelatoriosExecucao } from "./InvestSUSExecucao";
+import { ExecucaoFinanceira, AlertasExecucao, RelatoriosExecucao, RepassesPlanos } from "./InvestSUSExecucao";
 import {
   Landmark, Plus, RefreshCw, AlertTriangle, CheckCircle2, Clock,
   ChevronDown, ChevronRight, FileText, Upload, Search, X, Check,
@@ -266,6 +266,16 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
             <strong>{fora.qtd} proposta{fora.qtd !== 1 ? "s" : ""} fora do painel</strong>
             {" — "}{fora.por_fase.map((f: any) => `${f.qtd} ${f.rotulo.toLowerCase()}${f.qtd !== 1 ? "s" : ""}`).join(" · ")}
             {" "}({fmt(fora.valor_indicado)} indicados). Não entram em nenhum total, saldo ou gráfico abaixo.
+          </span>
+        </div>
+      )}
+
+      {(data.nao_encontradas_investsus?.qtd ?? 0) > 0 && (
+        <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "#fffbeb", color: "#78350f", flexWrap: "wrap" as const }}>
+          <AlertTriangle size={15} />
+          <span style={{ fontSize: 12.5 }}>
+            <strong>{data.nao_encontradas_investsus.qtd} proposta(s) não estão na lista oficial do InvestSUS</strong>
+            {" "}({fmt(data.nao_encontradas_investsus.valor_indicado)}) e ficaram fora dos totais — veja a conferência na aba <strong>Repasses e Planos</strong>.
           </span>
         </div>
       )}
@@ -2634,11 +2644,19 @@ async function _capturarDetalhes(itens: any[], contexto: string, onProgresso: (m
   return detalhes;
 }
 
+// Todos os exercícios desde 2020 (antes eram só o atual e o anterior, e propostas mais
+// antigas ainda em execução não apareciam — o ERSUS360 não batia com o InvestSUS).
+const _PRIMEIRO_EXERCICIO_INVESTSUS = 2020;
+function _exerciciosInvestSUS(): number[] {
+  const anos: number[] = [];
+  for (let a = new Date().getFullYear(); a >= _PRIMEIRO_EXERCICIO_INVESTSUS; a--) anos.push(a);
+  return anos;
+}
+
 async function _capturarInvestSUS(cnpj: string, contexto: string, onProgresso: (m: string) => void): Promise<any[]> {
   const headers = _cabecalhosInvestSUS(contexto);
-  const anoAtual = new Date().getFullYear();
   const todos: any[] = [];
-  for (const ano of [anoAtual, anoAtual - 1]) {
+  for (const ano of _exerciciosInvestSUS()) {
     for (let pagina = 1; pagina <= 20; pagina++) {
       onProgresso(`Buscando propostas de ${ano} no InvestSUS…`);
       let resp: Response;
@@ -2684,7 +2702,8 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
       const itens = await _capturarInvestSUS(fundo.cnpj, fundo.contexto_investsus, setProgresso);
       if (!itens.length) throw new Error("Nenhuma proposta encontrada no InvestSUS para este Fundo.");
       setProgresso(`Gravando ${itens.length} propostas no ERSUS360…`);
-      const resp = await api.post("/api/investsus/sincronizar-relay", { items: itens });
+      // completo: a lista de todos os exercícios veio sem erro → o ERSUS360 é conferido com ela
+      const resp = await api.post("/api/investsus/sincronizar-relay", { items: itens, completo: true, anos: _exerciciosInvestSUS() });
       const lista = resp.data;
 
       // Detalhe de cada proposta → seções da proposta no ERSUS360
@@ -2723,7 +2742,7 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
           (estabelecimentos/CNES, plano de trabalho, metas, naturezas de despesa, pareceres e diligências, repasses e anexos).</div>
         {fundo?.cnpj_formatado && (
           <div style={{ fontSize: 12, color: "#6b7280" }}>
-            Busca as propostas de {new Date().getFullYear() - 1} e {new Date().getFullYear()} do Fundo {fundo.nome}/{fundo.uf} (CNPJ {fundo.cnpj_formatado}).
+            Busca as propostas de {_PRIMEIRO_EXERCICIO_INVESTSUS} a {new Date().getFullYear()} do Fundo {fundo.nome}/{fundo.uf} (CNPJ {fundo.cnpj_formatado}) e confere o ERSUS360 com a lista oficial.
           </div>
         )}
       </div>
@@ -2765,6 +2784,14 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
             {resultado.criadas} novas · {resultado.atualizadas} atualizadas · {resultado.movimentacoes} mudança(s) de situação · {resultado.alertas} alerta(s)
             {resultado.fora_escopo > 0 && <> · {resultado.fora_escopo} fora do escopo federal (ignoradas)</>}
           </div>
+          {resultado.conferencia && (
+            <div style={{ color: "#374151", marginTop: 6 }}>
+              <strong>Conferência:</strong> {resultado.conferencia.investsus_total} propostas na lista oficial do InvestSUS ·{" "}
+              {resultado.conferencia.conferidas} conferidas no ERSUS360
+              {resultado.conferencia.nao_encontradas > 0 && <> · <span style={{ color: "#92400e", fontWeight: 600 }}>
+                {resultado.conferencia.nao_encontradas} não encontrada(s) no InvestSUS, fora dos totais</span></>}
+            </div>
+          )}
           {resultado.detalhe && (
             <div style={{ color: "#374151", marginTop: 6 }}>
               <strong>Detalhes:</strong> {resultado.detalhe.propostas ?? 0} propostas detalhadas ·{" "}
@@ -3730,7 +3757,8 @@ function ColarPropostasInvestSUS({ municipio_id }: { municipio_id: number }) {
 }
 
 export default function InvestSUS() {
-  const [aba, setAba] = useState<"painel" | "recursos" | "propostas" | "execucao" | "alertas" | "relatorio">("painel");
+  const [aba, setAba] = useState<"painel" | "repasses" | "recursos" | "propostas" | "execucao" | "alertas" | "relatorio">("painel");
+  const [repassePropostaId, setRepassePropostaId] = useState<number | null>(null);
   const [propostaSelecionada, setPropostaSelecionada] = useState<any>(null);
   const [execPropostaId, setExecPropostaId] = useState<number | null>(null);
   const [snapMsg, setSnapMsg] = useState<string | null>(null);
@@ -3761,6 +3789,7 @@ export default function InvestSUS() {
 
   const abas = [
     { key: "painel",    label: "Painel de Propostas",      icone: <BarChart3 size={13} /> },
+    { key: "repasses",  label: "Repasses e Planos",        icone: <DollarSign size={13} /> },
     { key: "recursos",  label: "Recursos Disponíveis",     icone: <Users size={13} /> },
     { key: "propostas", label: "Propostas",                icone: <FileText size={13} /> },
     { key: "execucao",  label: "Execução das Propostas",   icone: <Wrench size={13} /> },
@@ -3803,7 +3832,7 @@ export default function InvestSUS() {
         <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" as const }}>
           {abas.map(({ key, label, icone }) => (
             <button key={key} style={{ ...S.tab(aba === key), display: "flex", alignItems: "center", gap: 5 }}
-              onClick={() => { setAba(key as typeof aba); setExecPropostaId(null); }}>
+              onClick={() => { setAba(key as typeof aba); setExecPropostaId(null); setRepassePropostaId(null); }}>
               {icone} {label}
             </button>
           ))}
@@ -3830,6 +3859,9 @@ export default function InvestSUS() {
             {mostrarPortalMS && <PainelPortalInvestSUS municipio_id={municipio_id} />}
           </div>
         </div>
+      ) : aba === "repasses" ? (
+        <RepassesPlanos propostaId={repassePropostaId} setPropostaId={setRepassePropostaId}
+          onPlanilhaCompleta={(id) => { setExecPropostaId(id); setAba("execucao"); }} />
       ) : aba === "recursos" ? (
         <RecursosDisponiveis municipio_id={municipio_id} />
       ) : aba === "propostas" ? (
