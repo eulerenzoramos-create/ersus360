@@ -26,8 +26,10 @@ async def test_canceladas_e_rejeitadas_nao_entram_nos_totais(db_session, municip
     assert d["total_propostas"] == 2
     assert d["total_indicado"] == 1500.0
     assert d["saldo_a_receber"] == 600.0 + 500.0           # aprovado − pago; sem aprovação, indicado − pago
-    assert d["desconsideradas"]["qtd"] == 2
-    assert d["desconsideradas"]["valor_indicado"] == 12000.0
+    # cancelada some de tudo (o InvestSUS não a lista); rejeitada conta na quantidade, sem valor
+    assert d["desconsideradas"]["qtd"] == 1
+    assert d["desconsideradas"]["valor_indicado"] == 3000.0
+    assert (d["total_investsus"], d["rejeitadas"]) == (3, 1)
     assert {f["fase"] for f in d["por_fase"]}.isdisjoint({"cancelada", "rejeitada"})
     assert {s["situacao"] for s in d["por_situacao"]} == {"parcialmente_paga", "em_analise"}
 

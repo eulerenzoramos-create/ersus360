@@ -44,7 +44,7 @@ async def test_conferencia_tira_dos_totais_o_que_nao_esta_no_investsus(db_sessio
     u = _u(municipio.id, "gestor")
     painel = await dashboard(db_session, u, None, None, None)
     assert painel["total_propostas"] == 2 and painel["total_indicado"] == 3000
-    assert painel["nao_encontradas_investsus"] == {"qtd": 1, "valor_indicado": 5000.0}
+    assert painel["nao_encontradas_investsus"]["qtd"] == 0      # oculta: só aparece na conferência
     c = await conferencia_investsus(db_session, u)
     assert [p["numero_proposta"] for p in c["nao_encontradas"]] == ["202571040008"]
     assert c["ultima"]["investsus_total"] == 2
@@ -63,9 +63,66 @@ async def test_exercicio_passa_a_seguir_o_investsus(db_session, municipio):
     assert p.exercicio == 2024 and p.conferencia_investsus == "conferida"
 
 
-def test_acompanha_so_ano_atual_e_anterior():
-    from services.investsus_scraper import exercicios_investsus
-    assert exercicios_investsus(2026) == [2026, 2025]
+def test_acompanha_so_ano_atual_e_anterior(monkeypatch):
+    import importlib
+    from services import investsus_federal as fed
+    monkeypatch.undo()                                       # regra real, sem o período amplo dos testes
+    importlib.reload(fed)
+    assert fed.exercicios_acompanhados(2026) == [2026, 2025]
+
+
+async def test_exclui_do_banco_so_o_escolhido_e_guarda_copia(db_session, municipio):
+    from routers import investsus as rt
+    from routers import investsus_execucao as rex
+    from models.investsus import SnapshotInvestSUS
+    dados = {"propostas": [_item("A", 2026, 1000), _item("C1", 2026, 0, "Proposta Cancelada"),
+                           _item("C2", 2026, 0, "Proposta Cancelada")]}
+    await aplicar_propostas_federais(dados, municipio.id, db_session, origem="teste")   # não cria canceladas novas
+    assert {p.numero_proposta for p in (await db_session.execute(select(PropostaInvestSUS))).scalars()} == {"A"}
+    for n in ("C1", "C2"):     # canceladas antigas, gravadas antes desta regra
+        db_session.add(PropostaInvestSUS(municipio_id=municipio.id, numero_proposta=n, exercicio=2026, modalidade="rp6",
+                                         situacao_normalizada=SituacaoNormalizada.CANCELADA))
+    await db_session.commit()
+    c2 = (await db_session.execute(select(PropostaInvestSUS).where(PropostaInvestSUS.numero_proposta == "C2"))).scalar_one()
+    u = _u(municipio.id, "admin")
+    a = (await rex.criar_acao(c2.id, rex.AcaoCreate(descricao="x", valor_previsto=10), db_session, u))["id"]
+    await rex.criar_lancamento(a, rex.LancamentoCreate(tipo="nota_fiscal", data="2026-01-02", valor=5,
+                                                       documento_comprobatorio="1"), db_session, u)
+    previa = await rt.previa_exclusao(db_session, u)
+    canc = next(c for c in previa["categorias"] if c["chave"] == "canceladas")
+    assert (canc["qtd"], canc["bloqueadas"]) == (2, 1)
+    with pytest.raises(HTTPException) as e:
+        await rt.excluir_ocultas(rt.ExclusaoBody(categorias=["canceladas"], confirmacao="sim"), db_session, u)
+    assert e.value.status_code == 422
+    with pytest.raises(HTTPException) as e:
+        await rt.excluir_ocultas(rt.ExclusaoBody(categorias=["canceladas"], confirmacao="EXCLUIR"), db_session,
+                                 _u(municipio.id, "financeiro"))
+    assert e.value.status_code == 403
+    r = await rt.excluir_ocultas(rt.ExclusaoBody(categorias=["canceladas"], confirmacao="EXCLUIR"), db_session, u)
+    assert r["excluidas"] == 1 and r["mantidas_com_execucao"] == ["C2"] and r["numeros"] == ["C1"]
+    restantes = {p.numero_proposta for p in (await db_session.execute(select(PropostaInvestSUS))).scalars()}
+    assert restantes == {"A", "C2"}
+    snap = (await db_session.execute(select(SnapshotInvestSUS).where(SnapshotInvestSUS.origem == "exclusao"))).scalar_one()
+    assert [p["numero_proposta"] for p in snap.dados["propostas"]] == ["C1"]
+
+
+async def test_mostra_so_o_que_o_investsus_mostra(db_session, municipio):
+    from routers import investsus as rt
+    db_session.add(PropostaInvestSUS(municipio_id=municipio.id, numero_proposta="FORA", exercicio=2026,
+                                     modalidade="rp6", valor_indicado=5000, fonte_dado="portal_transparencia",
+                                     situacao_normalizada=SituacaoNormalizada.TOTALMENTE_PAGA))
+    await db_session.commit()
+    dados = {"propostas": [_item("A", 2026, 1000), _item("B", 2026, 2000), _item("C", 2026, 0, "Proposta Cancelada"),
+                           _item("D", 2026, 0, "Proposta Rejeitada")]}
+    await aplicar_propostas_federais(dados, municipio.id, db_session, origem="teste")
+    conf = await registrar_conferencia(db_session, municipio.id, dados, [2026, 2025], "tecnico")
+    assert (conf["investsus_total"], conf["investsus_canceladas"], conf["investsus_visiveis"]) == (4, 1, 3)
+    u = _u(municipio.id, "gestor")
+    painel = await dashboard(db_session, u, None, None, None)
+    assert (painel["total_investsus"], painel["total_propostas"], painel["rejeitadas"]) == (3, 2, 1)
+    assert painel["total_indicado"] == 3000
+    lista = await rt.listar_propostas(db_session, u, None, None, None, None, None, 1, 50)
+    assert {p["numero_proposta"] for p in lista["propostas"]} == {"A", "B", "D"}   # sem cancelada e sem FORA
 
 
 async def test_exercicio_nao_acompanhado_sai_de_todo_o_investsus(db_session, municipio, monkeypatch):

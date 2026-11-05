@@ -219,8 +219,20 @@ def _filtro_periodo():
                PropostaInvestSUS.exercicio.in_(fed.exercicios_acompanhados()))
 
 
+def _filtro_visivel():
+    """O que o InvestSUS mostra: exercícios acompanhados, sem canceladas e sem as propostas
+    que a conferência não achou na lista oficial. As demais ficam gravadas, mas ocultas."""
+    return and_(
+        _filtro_periodo(),
+        PropostaInvestSUS.situacao_normalizada.not_in(
+            [SituacaoNormalizada(s) for s in fed.situacoes_da_fase("cancelada")]),
+        or_(PropostaInvestSUS.conferencia_investsus.is_(None),
+            PropostaInvestSUS.conferencia_investsus != "nao_encontrada"),
+    )
+
+
 def _ids_no_periodo(mid: int):
-    return select(PropostaInvestSUS.id).where(PropostaInvestSUS.municipio_id == mid, _filtro_periodo())
+    return select(PropostaInvestSUS.id).where(PropostaInvestSUS.municipio_id == mid, _filtro_visivel())
 
 
 def _filtrar_modalidade_fase(stmt, modalidade: str | None, fase: str | None):
@@ -361,7 +373,7 @@ async def dashboard(
     if mes and not exercicio:
         raise HTTPException(422, "Escolha o ano para filtrar por mês.")
     stmt = (select(PropostaInvestSUS).options(selectinload(PropostaInvestSUS.programa))
-            .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_periodo()))
+            .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_visivel()))
     pago_no_mes: dict[int, float] | None = None
     sem_data_pagamento = 0
     if mes:
@@ -379,7 +391,7 @@ async def dashboard(
         com_data = select(PagamentoInvestSUS.proposta_id).where(PagamentoInvestSUS.data_pagamento.is_not(None))
         sem_data_pagamento = (await db.execute(
             select(func.count(PropostaInvestSUS.id)).where(
-                PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_periodo(), PropostaInvestSUS.valor_pago > 0,
+                PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_visivel(), PropostaInvestSUS.valor_pago > 0,
                 PropostaInvestSUS.id.not_in(com_data)))).scalar() or 0
     elif exercicio:
         stmt = stmt.where(PropostaInvestSUS.exercicio == exercicio)
@@ -470,6 +482,9 @@ async def dashboard(
     return {
         "municipio_id": mid,
         "total_propostas": len(props),
+        # como a lista do InvestSUS: ativas + rejeitadas (rejeitada não soma valores)
+        "total_investsus": len(props) + desconsideradas.get("rejeitada", {}).get("qtd", 0),
+        "rejeitadas": desconsideradas.get("rejeitada", {}).get("qtd", 0),
         "total_indicado": total_indicado,
         "total_proposta": total_proposta,
         "total_aprovado": total_aprovado,
@@ -559,7 +574,7 @@ async def listar_propostas(
             selectinload(PropostaInvestSUS.programa),
             selectinload(PropostaInvestSUS.alertas_investsus),
         )
-        .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_periodo())
+        .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_visivel())
     )
     stmt = _filtrar_modalidade_fase(stmt, modalidade, fase)
     if situacao:
@@ -1164,7 +1179,7 @@ async def listar_parlamentares(db: DbDep, user: UserDep):
     r = await db.execute(select(Parlamentar).where(Parlamentar.ativo == True).order_by(Parlamentar.nome))
     props = (await db.execute(select(PropostaInvestSUS).where(
         PropostaInvestSUS.municipio_id == mid, PropostaInvestSUS.parlamentar_id.is_not(None),
-        _filtro_escopo(), _filtro_periodo()))).scalars().all()
+        _filtro_escopo(), _filtro_visivel()))).scalars().all()
     por_parl: dict[int, dict] = {}
     for p in props:
         sit = getattr(p.situacao_normalizada, "value", p.situacao_normalizada) or ""
@@ -1427,7 +1442,7 @@ async def relatorio_acompanhamento(
             selectinload(PropostaInvestSUS.pagamentos_investsus),
             selectinload(PropostaInvestSUS.alertas_investsus),
         )
-        .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_periodo())
+        .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_visivel())
     )
     if exercicio:
         stmt = stmt.where(PropostaInvestSUS.exercicio == exercicio)
@@ -1836,6 +1851,10 @@ async def aplicar_propostas_federais(dados: dict, mid: int, db, origem: str) -> 
                     situacao_anterior=txt_ant, situacao_nova=sit_txt or norm_nova, numero=numero,
                 ))
             cont["atualizadas"] += 1
+        elif fed.fase_de(sit_val) == "cancelada":
+            # proposta cancelada que não existe no ERSUS360 não é criada (o InvestSUS não a lista)
+            cont["canceladas_ignoradas"] = cont.get("canceladas_ignoradas", 0) + 1
+            continue
         else:
             situacao = sit_norm or SituacaoNormalizada.EM_ANALISE
             prop = PropostaInvestSUS(
@@ -2019,7 +2038,7 @@ async def verificar_prazos_diligencia(db, mid: int, hoje: date | None = None) ->
         select(Parecer, PropostaInvestSUS)
         .join(PropostaInvestSUS, Parecer.proposta_id == PropostaInvestSUS.id)
         .where(
-            PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_periodo(),
+            PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_visivel(),
             Parecer.eh_diligencia == True,  # noqa: E712
             Parecer.prazo_resposta.is_not(None), Parecer.data_resposta.is_(None),
         )
@@ -2148,10 +2167,135 @@ async def registrar_conferencia(db, mid: int, dados: dict, anos: list[int], usua
     res = await conferir_com_investsus(db, mid, numeros, anos)
     res["investsus_por_exercicio"] = resumo_lista_investsus(dados.get("propostas", []))
     res["investsus_total"] = len(numeros)
+    canceladas = {str(it.get("numero_proposta") or "").strip() for it in dados.get("propostas", [])
+                  if fed.fase_de(fed.classificar_situacao(it.get("situacao_raw") or "")) == "cancelada"}
+    canceladas.discard("")
+    res["investsus_canceladas"] = len(canceladas)
+    res["investsus_visiveis"] = len(numeros) - len(canceladas)
     res["usuario"] = usuario
     db.add(SnapshotInvestSUS(municipio_id=mid, origem="conferencia", dados=res))
     await db.commit()
     return res
+
+
+# ── Exclusão das propostas ocultas ────────────────────────────────────────────
+# Ação do administrador do município: apaga do banco as propostas que o InvestSUS não mostra.
+# Antes guarda uma cópia (is_snapshots, origem "exclusao") e registra auditoria. Proposta com
+# execução financeira lançada (notas, lançamentos, movimentos, documentos) nunca é apagada.
+
+CATEGORIAS_EXCLUSAO = {
+    "canceladas": "Canceladas no InvestSUS",
+    "nao_encontradas": "Não existem na lista oficial do InvestSUS",
+    "fora_periodo": "De exercícios não acompanhados",
+}
+
+
+def _pode_excluir(user: UserOut) -> bool:
+    return bool(user.administrador_geral or user.role in ("admin", "superadmin", "administrador_geral"))
+
+
+async def _candidatas_exclusao(db, mid: int) -> dict[str, list]:
+    from models.investsus_execucao import (
+        DocumentoExecucao, FichaExecucao, LancamentoExecucao, MovimentoFinanceiro,
+    )
+    props = (await db.execute(select(PropostaInvestSUS).where(
+        PropostaInvestSUS.municipio_id == mid, _filtro_escopo()))).scalars().all()
+    acompanhados = set(fed.exercicios_acompanhados())
+    cats: dict[str, list] = {k: [] for k in CATEGORIAS_EXCLUSAO}
+    for p in props:
+        sit = p.situacao_normalizada.value if p.situacao_normalizada else None
+        if fed.fase_de(sit) == "cancelada":
+            cats["canceladas"].append(p)
+        elif p.conferencia_investsus == "nao_encontrada":
+            cats["nao_encontradas"].append(p)
+        elif p.exercicio is not None and p.exercicio not in acompanhados:
+            cats["fora_periodo"].append(p)
+    ids = [p.id for ps in cats.values() for p in ps] or [-1]
+    fichas = {f.proposta_id: f.id for f in (await db.execute(
+        select(FichaExecucao).where(FichaExecucao.proposta_id.in_(ids)))).scalars()}
+    fids = list(fichas.values()) or [-1]
+    com_exec = set()
+    for modelo in (LancamentoExecucao, MovimentoFinanceiro, DocumentoExecucao):
+        com_exec |= set((await db.execute(select(modelo.ficha_id).where(modelo.ficha_id.in_(fids)))).scalars())
+    bloqueadas = {pid for pid, fid in fichas.items() if fid in com_exec}
+    return {k: [(p, p.id in bloqueadas) for p in ps] for k, ps in cats.items()}
+
+
+@router.get("/exclusao")
+async def previa_exclusao(db: DbDep, user: UserDep):
+    """Prévia: o que seria apagado em cada categoria."""
+    mid = _municipio_id(user)
+    cats = await _candidatas_exclusao(db, mid)
+    return {
+        "pode_excluir": _pode_excluir(user),
+        "categorias": [{
+            "chave": k, "rotulo": CATEGORIAS_EXCLUSAO[k], "qtd": len(itens),
+            "valor_indicado": round(sum(p.valor_indicado or 0 for p, _ in itens), 2),
+            "bloqueadas": sum(1 for _, b in itens if b),
+            "propostas": [{"id": p.id, "numero_proposta": p.numero_proposta, "exercicio": p.exercicio,
+                           "objeto": p.objeto, "situacao": p.situacao_original, "valor_indicado": p.valor_indicado,
+                           "bloqueada": b} for p, b in itens],
+        } for k, itens in cats.items()],
+    }
+
+
+class ExclusaoBody(BaseModel):
+    categorias: list[str]
+    confirmacao: str
+
+
+@router.post("/exclusao")
+async def excluir_ocultas(body: ExclusaoBody, db: DbDep, user: UserDep):
+    from models.investsus_execucao import AcaoExecucao, AuditoriaExecucao, FichaExecucao
+    from tenancy.auditoria import registrar_auditoria
+
+    if not _pode_excluir(user):
+        raise HTTPException(403, "Somente o administrador do município exclui propostas do banco.")
+    if body.confirmacao.strip().upper() != "EXCLUIR":
+        raise HTTPException(422, "Digite EXCLUIR para confirmar.")
+    invalidas = set(body.categorias) - set(CATEGORIAS_EXCLUSAO)
+    if invalidas or not body.categorias:
+        raise HTTPException(422, "Escolha ao menos uma categoria válida.")
+    mid = _municipio_id(user)
+    cats = await _candidatas_exclusao(db, mid)
+    alvo = [p for k in body.categorias for p, bloq in cats[k] if not bloq]
+    mantidas = [p.numero_proposta for k in body.categorias for p, bloq in cats[k] if bloq]
+    if not alvo:
+        return {"excluidas": 0, "mantidas_com_execucao": mantidas, "numeros": []}
+    ids = [p.id for p in alvo]
+    completas = (await db.execute(select(PropostaInvestSUS).options(
+        selectinload(PropostaInvestSUS.programa), selectinload(PropostaInvestSUS.parlamentar),
+        selectinload(PropostaInvestSUS.alertas_investsus)).where(PropostaInvestSUS.id.in_(ids)))).scalars().all()
+    copia = []
+    for p in completas:
+        d = _prop_dict(p)
+        d.pop("payload_original", None)
+        copia.append(d)
+    db.add(SnapshotInvestSUS(municipio_id=mid, origem="exclusao", dados={
+        "usuario": user.username, "categorias": body.categorias, "excluido_em": datetime.utcnow().isoformat(),
+        "propostas": copia}))
+    # ficha de execução só com o plano convertido (sem lançamentos): sai junto
+    fichas = (await db.execute(select(FichaExecucao).where(FichaExecucao.proposta_id.in_(ids)))).scalars().all()
+    for f in fichas:
+        for modelo in (AcaoExecucao, AuditoriaExecucao):
+            for r in (await db.execute(select(modelo).where(modelo.ficha_id == f.id))).scalars():
+                await db.delete(r)
+        await db.delete(f)
+    await db.flush()
+    props = (await db.execute(select(PropostaInvestSUS).where(PropostaInvestSUS.id.in_(ids)).options(
+        selectinload(PropostaInvestSUS.historico), selectinload(PropostaInvestSUS.unidades),
+        selectinload(PropostaInvestSUS.planos_trabalho).selectinload(PlanoTrabalho.acoes),
+        selectinload(PropostaInvestSUS.naturezas_despesa), selectinload(PropostaInvestSUS.pareceres),
+        selectinload(PropostaInvestSUS.pagamentos_investsus), selectinload(PropostaInvestSUS.alertas_investsus),
+        selectinload(PropostaInvestSUS.documentos_investsus), selectinload(PropostaInvestSUS.atualizacoes)))).scalars().all()
+    for p in props:
+        await db.delete(p)
+    await db.commit()
+    await registrar_auditoria(db, "INVESTSUS_EXCLUSAO_PROPOSTAS", usuario=user, tabela="is_propostas",
+                              detalhe=f"{len(ids)} proposta(s) excluída(s) ({', '.join(body.categorias)}): "
+                                      + ", ".join(p["numero_proposta"] for p in copia)[:1500])
+    return {"excluidas": len(ids), "mantidas_com_execucao": mantidas,
+            "numeros": [p["numero_proposta"] for p in copia]}
 
 
 @router.get("/conferencia")

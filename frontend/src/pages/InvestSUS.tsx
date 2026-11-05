@@ -259,35 +259,15 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
         </div>
       )}
 
-      {fora.qtd > 0 && (
-        <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "#f9fafb", flexWrap: "wrap" as const }}>
-          <Filter size={15} color="#6b7280" />
-          <span style={{ fontSize: 12.5, color: "#374151" }}>
-            <strong>{fora.qtd} proposta{fora.qtd !== 1 ? "s" : ""} fora do painel</strong>
-            {" — "}{fora.por_fase.map((f: any) => `${f.qtd} ${f.rotulo.toLowerCase()}${f.qtd !== 1 ? "s" : ""}`).join(" · ")}
-            {" "}({fmt(fora.valor_indicado)} indicados). Não entram em nenhum total, saldo ou gráfico abaixo.
-          </span>
-        </div>
-      )}
-
       <div style={{ fontSize: 12, color: "#1e3a5f", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "8px 14px", marginBottom: 14 }}>
-        <strong>Período acompanhado: exercícios {(data.exercicios_acompanhados ?? []).slice().sort().join(" e ")}.</strong>
-        {(data.fora_periodo?.qtd ?? 0) > 0 && <> {data.fora_periodo.qtd} proposta(s) de outros exercícios ({data.fora_periodo.exercicios.join(", ")};{" "}
-          {fmt(data.fora_periodo.valor_indicado)}) ficam fora de painéis, listas, alertas e relatórios — continuam gravadas.</>}
+        <strong>Exercícios {(data.exercicios_acompanhados ?? []).slice().sort().join(" e ")} — as mesmas propostas da lista do InvestSUS.</strong>{" "}
+        Canceladas e propostas que não estão no InvestSUS ficam ocultas (continuam gravadas).
       </div>
-      {(data.nao_encontradas_investsus?.qtd ?? 0) > 0 && (
-        <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "#fffbeb", color: "#78350f", flexWrap: "wrap" as const }}>
-          <AlertTriangle size={15} />
-          <span style={{ fontSize: 12.5 }}>
-            <strong>{data.nao_encontradas_investsus.qtd} proposta(s) não estão na lista oficial do InvestSUS</strong>
-            {" "}({fmt(data.nao_encontradas_investsus.valor_indicado)}) e ficaram fora dos totais — veja a conferência na aba <strong>Repasses e Planos</strong>.
-          </span>
-        </div>
-      )}
 
       {/* Indicadores principais */}
       <div style={grade(170)}>
-        <KPICard label="Propostas ativas" valor={`${data.total_propostas}`} cor="#1e3a5f" sub="sem canceladas e rejeitadas" />
+        <KPICard label="Propostas" valor={`${data.total_investsus ?? data.total_propostas}`} cor="#1e3a5f"
+          sub={fora.qtd > 0 ? `${data.total_propostas} ativas · ${fora.qtd} rejeitada(s), sem valor nos totais` : "como na lista do InvestSUS"} />
         <KPICard label="Total Indicado"   valor={fmt(data.total_indicado)}   cor={CORES.indicado} sub={`${fmt(data.total_aprovado)} aprovado (${fmtPct(percAprovado)})`} />
         <KPICard label={rotuloPago}       valor={fmt(data.total_pago)}       cor={CORES.pago}     sub={`${fmtPct(data.perc_pago)} do indicado`} />
         <KPICard label="A receber do FNS" valor={fmt(data.saldo_a_receber ?? 0)} cor={CORES.aprovado} sub="aprovado (ou indicado) − pago" />
@@ -2789,10 +2769,10 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
           </div>
           {resultado.conferencia && (
             <div style={{ color: "#374151", marginTop: 6 }}>
-              <strong>Conferência:</strong> {resultado.conferencia.investsus_total} propostas na lista oficial do InvestSUS ·{" "}
-              {resultado.conferencia.conferidas} conferidas no ERSUS360
+              <strong>Conferência:</strong> {resultado.conferencia.investsus_visiveis ?? resultado.conferencia.investsus_total} propostas no InvestSUS
+              {(resultado.conferencia.investsus_canceladas ?? 0) > 0 && <> (+ {resultado.conferencia.investsus_canceladas} canceladas, ocultas)</>}
               {resultado.conferencia.nao_encontradas > 0 && <> · <span style={{ color: "#92400e", fontWeight: 600 }}>
-                {resultado.conferencia.nao_encontradas} não encontrada(s) no InvestSUS, fora dos totais</span></>}
+                {resultado.conferencia.nao_encontradas} do ERSUS360 não existem no InvestSUS e foram ocultadas</span></>}
               {resultado.conferencia.fora_periodo > 0 && <> · {resultado.conferencia.fora_periodo} de outros exercícios, fora dos totais</>}
             </div>
           )}
