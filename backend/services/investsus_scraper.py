@@ -176,15 +176,9 @@ async def _buscar_propostas_paginado(client: httpx.AsyncClient, cnpj: str, ano: 
     return all_items, None
 
 
-# Exercícios consultados no InvestSUS: todos desde o primeiro com propostas no sistema.
-# Antes eram só o ano atual e o anterior — propostas de 2024 ou antes, ainda em
-# execução, não apareciam e o ERSUS360 não batia com a tela do InvestSUS.
-PRIMEIRO_EXERCICIO = 2020
-
-
 def exercicios_investsus(ano_atual: int | None = None) -> list[int]:
-    ano_atual = ano_atual or datetime.now().year
-    return list(range(ano_atual, PRIMEIRO_EXERCICIO - 1, -1))
+    """Exercícios consultados no InvestSUS = exercícios acompanhados (ano atual e anterior)."""
+    return fed.exercicios_acompanhados(ano_atual)
 
 
 def _separar_escopo(propostas: list[dict], resultado: dict) -> list[dict]:
@@ -200,7 +194,7 @@ def _resultado_vazio() -> dict[str, Any]:
 
 
 async def sincronizar_investsus(cnpj: str, ibge7: str, cred: dict[str, str]) -> dict:
-    """Busca as propostas do Fundo (todos os exercícios desde PRIMEIRO_EXERCICIO) no InvestSUS.
+    """Busca as propostas do Fundo dos exercícios acompanhados (ano atual e anterior) no InvestSUS.
     cred: {"COOKIE","TOKEN","CPF","SENHA"} do município (tenancy.credenciais)."""
     cnpj = somente_digitos(cnpj)
     resultado = _resultado_vazio()

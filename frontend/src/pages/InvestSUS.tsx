@@ -270,6 +270,11 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
         </div>
       )}
 
+      <div style={{ fontSize: 12, color: "#1e3a5f", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "8px 14px", marginBottom: 14 }}>
+        <strong>Período acompanhado: exercícios {(data.exercicios_acompanhados ?? []).slice().sort().join(" e ")}.</strong>
+        {(data.fora_periodo?.qtd ?? 0) > 0 && <> {data.fora_periodo.qtd} proposta(s) de outros exercícios ({data.fora_periodo.exercicios.join(", ")};{" "}
+          {fmt(data.fora_periodo.valor_indicado)}) ficam fora de painéis, listas, alertas e relatórios — continuam gravadas.</>}
+      </div>
       {(data.nao_encontradas_investsus?.qtd ?? 0) > 0 && (
         <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "#fffbeb", color: "#78350f", flexWrap: "wrap" as const }}>
           <AlertTriangle size={15} />
@@ -2644,13 +2649,11 @@ async function _capturarDetalhes(itens: any[], contexto: string, onProgresso: (m
   return detalhes;
 }
 
-// Todos os exercícios desde 2020 (antes eram só o atual e o anterior, e propostas mais
-// antigas ainda em execução não apareciam — o ERSUS360 não batia com o InvestSUS).
-const _PRIMEIRO_EXERCICIO_INVESTSUS = 2020;
+// Exercícios acompanhados: só o ano atual e o anterior (decisão do município). Propostas
+// de outros exercícios ficam fora de todo o InvestSUS, sem serem apagadas.
 function _exerciciosInvestSUS(): number[] {
-  const anos: number[] = [];
-  for (let a = new Date().getFullYear(); a >= _PRIMEIRO_EXERCICIO_INVESTSUS; a--) anos.push(a);
-  return anos;
+  const ano = new Date().getFullYear();
+  return [ano, ano - 1];
 }
 
 async function _capturarInvestSUS(cnpj: string, contexto: string, onProgresso: (m: string) => void): Promise<any[]> {
@@ -2742,7 +2745,7 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
           (estabelecimentos/CNES, plano de trabalho, metas, naturezas de despesa, pareceres e diligências, repasses e anexos).</div>
         {fundo?.cnpj_formatado && (
           <div style={{ fontSize: 12, color: "#6b7280" }}>
-            Busca as propostas de {_PRIMEIRO_EXERCICIO_INVESTSUS} a {new Date().getFullYear()} do Fundo {fundo.nome}/{fundo.uf} (CNPJ {fundo.cnpj_formatado}) e confere o ERSUS360 com a lista oficial.
+            Busca as propostas de {new Date().getFullYear() - 1} e {new Date().getFullYear()} do Fundo {fundo.nome}/{fundo.uf} (CNPJ {fundo.cnpj_formatado}) e confere o ERSUS360 com a lista oficial.
           </div>
         )}
       </div>
@@ -2790,6 +2793,7 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
               {resultado.conferencia.conferidas} conferidas no ERSUS360
               {resultado.conferencia.nao_encontradas > 0 && <> · <span style={{ color: "#92400e", fontWeight: 600 }}>
                 {resultado.conferencia.nao_encontradas} não encontrada(s) no InvestSUS, fora dos totais</span></>}
+              {resultado.conferencia.fora_periodo > 0 && <> · {resultado.conferencia.fora_periodo} de outros exercícios, fora dos totais</>}
             </div>
           )}
           {resultado.detalhe && (

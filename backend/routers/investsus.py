@@ -213,6 +213,16 @@ def _filtro_escopo():
     return or_(PropostaInvestSUS.esfera.is_(None), PropostaInvestSUS.esfera.in_(sorted(fed.ESFERAS_HABILITADAS)))
 
 
+def _filtro_periodo():
+    """Só os exercícios acompanhados (ano atual e anterior). Proposta sem exercício fica."""
+    return or_(PropostaInvestSUS.exercicio.is_(None),
+               PropostaInvestSUS.exercicio.in_(fed.exercicios_acompanhados()))
+
+
+def _ids_no_periodo(mid: int):
+    return select(PropostaInvestSUS.id).where(PropostaInvestSUS.municipio_id == mid, _filtro_periodo())
+
+
 def _filtrar_modalidade_fase(stmt, modalidade: str | None, fase: str | None):
     if modalidade:
         _modalidade_valida(modalidade)
@@ -351,7 +361,7 @@ async def dashboard(
     if mes and not exercicio:
         raise HTTPException(422, "Escolha o ano para filtrar por mês.")
     stmt = (select(PropostaInvestSUS).options(selectinload(PropostaInvestSUS.programa))
-            .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo()))
+            .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_periodo()))
     pago_no_mes: dict[int, float] | None = None
     sem_data_pagamento = 0
     if mes:
@@ -369,7 +379,7 @@ async def dashboard(
         com_data = select(PagamentoInvestSUS.proposta_id).where(PagamentoInvestSUS.data_pagamento.is_not(None))
         sem_data_pagamento = (await db.execute(
             select(func.count(PropostaInvestSUS.id)).where(
-                PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), PropostaInvestSUS.valor_pago > 0,
+                PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_periodo(), PropostaInvestSUS.valor_pago > 0,
                 PropostaInvestSUS.id.not_in(com_data)))).scalar() or 0
     elif exercicio:
         stmt = stmt.where(PropostaInvestSUS.exercicio == exercicio)
@@ -415,7 +425,8 @@ async def dashboard(
 
     # Alertas
     stmt_alertas = select(func.count(AlertaInvestSUS.id)).where(
-        and_(AlertaInvestSUS.municipio_id == mid, AlertaInvestSUS.resolvido == False)
+        and_(AlertaInvestSUS.municipio_id == mid, AlertaInvestSUS.resolvido == False,
+             AlertaInvestSUS.proposta_id.in_(_ids_no_periodo(mid)))
     )
     r_al = await db.execute(stmt_alertas)
     alertas_abertos = r_al.scalar() or 0
@@ -425,6 +436,7 @@ async def dashboard(
             AlertaInvestSUS.municipio_id == mid,
             AlertaInvestSUS.resolvido == False,
             AlertaInvestSUS.nivel == NivelAlertaInvest.CRITICO,
+            AlertaInvestSUS.proposta_id.in_(_ids_no_periodo(mid)),
         )
     )
     r_crit = await db.execute(stmt_crit)
@@ -470,6 +482,8 @@ async def dashboard(
             "qtd": len(nao_encontradas),
             "valor_indicado": round(sum(p.valor_indicado or 0 for p in nao_encontradas), 2),
         },
+        "exercicios_acompanhados": fed.exercicios_acompanhados(),
+        "fora_periodo": await _fora_do_periodo(db, mid),
         "desconsideradas": {
             "qtd": len(fora),
             "valor_indicado": sum(d["valor_indicado"] for d in desconsideradas.values()),
@@ -498,15 +512,28 @@ async def dashboard(
     }
 
 
+async def _fora_do_periodo(db, mid: int) -> dict:
+    """Propostas de exercícios não acompanhados (ficam fora de todos os totais)."""
+    linhas = (await db.execute(select(PropostaInvestSUS.exercicio, func.count(PropostaInvestSUS.id),
+                                      func.coalesce(func.sum(PropostaInvestSUS.valor_indicado), 0.0))
+                               .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(),
+                                      PropostaInvestSUS.exercicio.is_not(None),
+                                      PropostaInvestSUS.exercicio.not_in(fed.exercicios_acompanhados()))
+                               .group_by(PropostaInvestSUS.exercicio))).all()
+    return {"qtd": sum(q for _, q, _ in linhas), "valor_indicado": round(sum(float(v) for *_, v in linhas), 2),
+            "exercicios": sorted(a for a, _, _ in linhas)}
+
+
 async def _anos_disponiveis(db, mid: int) -> list[int]:
-    """Exercícios das propostas e anos com repasse — opções do filtro de ano."""
+    """Exercícios acompanhados com propostas ou repasses — opções do filtro de ano."""
     exercicios = (await db.execute(select(PropostaInvestSUS.exercicio).distinct().where(
         PropostaInvestSUS.municipio_id == mid, PropostaInvestSUS.exercicio.is_not(None)))).scalars().all()
     datas = (await db.execute(select(PagamentoInvestSUS.data_pagamento).distinct()
              .join(PropostaInvestSUS, PropostaInvestSUS.id == PagamentoInvestSUS.proposta_id)
              .where(PropostaInvestSUS.municipio_id == mid, PagamentoInvestSUS.data_pagamento.is_not(None))
              )).scalars().all()
-    return sorted({int(a) for a in exercicios} | {d.year for d in datas}, reverse=True)
+    acompanhados = set(fed.exercicios_acompanhados())
+    return sorted(({int(a) for a in exercicios} | {d.year for d in datas}) & acompanhados, reverse=True)
 
 
 # ── Propostas CRUD ────────────────────────────────────────────────────────────
@@ -532,7 +559,7 @@ async def listar_propostas(
             selectinload(PropostaInvestSUS.programa),
             selectinload(PropostaInvestSUS.alertas_investsus),
         )
-        .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo())
+        .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_periodo())
     )
     stmt = _filtrar_modalidade_fase(stmt, modalidade, fase)
     if situacao:
@@ -1088,7 +1115,7 @@ async def listar_alertas(
     mid = _municipio_id(user)
     stmt = (
         select(AlertaInvestSUS)
-        .where(AlertaInvestSUS.municipio_id == mid)
+        .where(AlertaInvestSUS.municipio_id == mid, AlertaInvestSUS.proposta_id.in_(_ids_no_periodo(mid)))
         .order_by(AlertaInvestSUS.criado_em.desc())
     )
     if apenas_abertos:
@@ -1137,7 +1164,7 @@ async def listar_parlamentares(db: DbDep, user: UserDep):
     r = await db.execute(select(Parlamentar).where(Parlamentar.ativo == True).order_by(Parlamentar.nome))
     props = (await db.execute(select(PropostaInvestSUS).where(
         PropostaInvestSUS.municipio_id == mid, PropostaInvestSUS.parlamentar_id.is_not(None),
-        _filtro_escopo()))).scalars().all()
+        _filtro_escopo(), _filtro_periodo()))).scalars().all()
     por_parl: dict[int, dict] = {}
     for p in props:
         sit = getattr(p.situacao_normalizada, "value", p.situacao_normalizada) or ""
@@ -1400,7 +1427,7 @@ async def relatorio_acompanhamento(
             selectinload(PropostaInvestSUS.pagamentos_investsus),
             selectinload(PropostaInvestSUS.alertas_investsus),
         )
-        .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo())
+        .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_periodo())
     )
     if exercicio:
         stmt = stmt.where(PropostaInvestSUS.exercicio == exercicio)
@@ -1861,25 +1888,31 @@ async def aplicar_propostas_federais(dados: dict, mid: int, db, origem: str) -> 
 
 async def conferir_com_investsus(db, mid: int, numeros_investsus: set[str], anos: list[int]) -> dict:
     """Depois de uma captura COMPLETA da lista do InvestSUS (todos os exercícios, sem erro):
-    proposta federal do município que não veio na lista vira "nao_encontrada" e sai dos
-    totais — ex.: emendas importadas do Portal da Transparência (o número é o da emenda,
-    não o da proposta), cadastro manual/CSV ou proposta excluída no MS. Nada é apagado."""
+    proposta federal do município que não veio na lista sai dos totais — "fora_periodo" se o
+    exercício não é acompanhado; "nao_encontrada" se é (ex.: emenda importada do Portal da
+    Transparência, cujo número é o da emenda e não o da proposta, cadastro manual/CSV ou
+    proposta excluída no MS). Nada é apagado."""
     props = (await db.execute(select(PropostaInvestSUS).where(
         PropostaInvestSUS.municipio_id == mid, _filtro_escopo()))).scalars().all()
     agora = datetime.utcnow()
-    ausentes = []
+    ausentes, fora = [], []
     for p in props:
         if p.numero_proposta in numeros_investsus:
             p.conferencia_investsus, p.conferida_em = "conferida", agora
+        elif anos and p.exercicio is not None and p.exercicio not in anos:
+            p.conferencia_investsus, p.conferida_em = "fora_periodo", agora
+            fora.append(p)
         else:
             p.conferencia_investsus, p.conferida_em = "nao_encontrada", agora
             ausentes.append(p)
     await db.commit()
     return {
         "anos": anos,
-        "conferidas": len(props) - len(ausentes),
+        "conferidas": len(props) - len(ausentes) - len(fora),
         "nao_encontradas": len(ausentes),
         "nao_encontradas_valor": round(sum(p.valor_indicado or 0 for p in ausentes), 2),
+        "fora_periodo": len(fora),
+        "fora_periodo_valor": round(sum(p.valor_indicado or 0 for p in fora), 2),
         "conferido_em": agora.isoformat(),
     }
 
@@ -1986,7 +2019,7 @@ async def verificar_prazos_diligencia(db, mid: int, hoje: date | None = None) ->
         select(Parecer, PropostaInvestSUS)
         .join(PropostaInvestSUS, Parecer.proposta_id == PropostaInvestSUS.id)
         .where(
-            PropostaInvestSUS.municipio_id == mid, _filtro_escopo(),
+            PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_periodo(),
             Parecer.eh_diligencia == True,  # noqa: E712
             Parecer.prazo_resposta.is_not(None), Parecer.data_resposta.is_(None),
         )
@@ -2130,11 +2163,11 @@ async def conferencia_investsus(db: DbDep, user: UserDep):
         .order_by(SnapshotInvestSUS.id.desc()).limit(1))).scalar_one_or_none()
     ausentes = (await db.execute(select(PropostaInvestSUS).where(
         PropostaInvestSUS.municipio_id == mid, _filtro_escopo(),
-        PropostaInvestSUS.conferencia_investsus == "nao_encontrada")
+        PropostaInvestSUS.conferencia_investsus == "nao_encontrada", _filtro_periodo())
         .order_by(PropostaInvestSUS.exercicio.desc()))).scalars().all()
     ersus = (await db.execute(select(PropostaInvestSUS.exercicio, func.count(PropostaInvestSUS.id),
                                      func.coalesce(func.sum(PropostaInvestSUS.valor_indicado), 0.0))
-                              .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(),
+                              .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo(), _filtro_periodo(),
                                      or_(PropostaInvestSUS.conferencia_investsus.is_(None),
                                          PropostaInvestSUS.conferencia_investsus != "nao_encontrada"))
                               .group_by(PropostaInvestSUS.exercicio))).all()
@@ -2145,6 +2178,8 @@ async def conferencia_investsus(db: DbDep, user: UserDep):
         "nao_encontradas": [{"id": p.id, "numero_proposta": p.numero_proposta, "exercicio": p.exercicio,
                              "objeto": p.objeto, "valor_indicado": p.valor_indicado, "fonte_dado": p.fonte_dado,
                              "situacao": p.situacao_original} for p in ausentes],
+        "exercicios_acompanhados": fed.exercicios_acompanhados(),
+        "fora_periodo": await _fora_do_periodo(db, mid),
     }
 
 

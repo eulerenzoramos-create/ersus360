@@ -217,9 +217,12 @@ async def _carregar(db, mid: int, proposta_ids: list[int] | None = None) -> dict
         stmt = stmt.where(PropostaInvestSUS.id.in_(proposta_ids or [-1]))
     props = (await db.execute(stmt)).scalars().all()
     if proposta_ids is None:
-        # fora: canceladas/rejeitadas e as que não estão na lista oficial do InvestSUS
+        # fora: canceladas/rejeitadas, as que não estão na lista oficial do InvestSUS e as de
+        # exercício não acompanhado (só o ano atual e o anterior)
+        acompanhados = set(fed.exercicios_acompanhados())
         props = [p for p in props if fed.fase_de(p.situacao_normalizada.value if p.situacao_normalizada else None)
-                 not in FASES_FORA and p.conferencia_investsus != "nao_encontrada"]
+                 not in FASES_FORA and p.conferencia_investsus != "nao_encontrada"
+                 and (p.exercicio is None or p.exercicio in acompanhados)]
     ids = [p.id for p in props] or [-1]
     fichas = {f.proposta_id: f for f in (await db.execute(
         select(FichaExecucao).where(FichaExecucao.municipio_id == mid, FichaExecucao.proposta_id.in_(ids)))).scalars()}

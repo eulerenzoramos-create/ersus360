@@ -1113,7 +1113,7 @@ function Conferencia() {
   const nao: any[] = data.nao_encontradas;
   if (!u) return (
     <div style={{ ...S.card, background: "#fffbeb", color: "#78350f", fontSize: 12.5 }}>
-      <b>Ainda não conferido com o InvestSUS.</b> Clique em <b>Sincronizar → Atualizar do InvestSUS</b> (logado no gov.br): o ERSUS360 busca todos os exercícios desde 2020 e marca o que não está na lista oficial.
+      <b>Ainda não conferido com o InvestSUS.</b> Clique em <b>Sincronizar → Atualizar do InvestSUS</b> (logado no gov.br): o ERSUS360 busca os exercícios {new Date().getFullYear() - 1} e {new Date().getFullYear()} e marca o que não está na lista oficial.
     </div>);
   const ersus = Object.fromEntries((data.ersus_por_exercicio ?? []).map((r: any) => [r.exercicio, r]));
   return (
