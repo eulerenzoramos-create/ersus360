@@ -1183,6 +1183,9 @@ function ControleEmenda({ propostaId, onVoltar, onPlanilhaCompleta }: { proposta
         <button style={S.btn()} onClick={onVoltar}><ArrowLeft size={13} /> Voltar aos repasses</button>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <button style={S.btn("#059669")} onClick={() => baixar(`${base}/propostas/${propostaId}/controle.xlsx`, `controle_emenda_${dg.numero_proposta}.xlsx`).catch(e => setMsg({ ok: false, texto: erroMsg(e) }))}><FileSpreadsheet size={13} /> Baixar Excel (modelo do Fundo)</button>
+          {perm.lancar && acoes.length > 0 && <ImportarControle propostaId={propostaId} onFim={(texto, ok) => {
+            setMsg({ ok, texto }); qc.invalidateQueries({ queryKey: chave }); qc.invalidateQueries({ queryKey: ["investsus-exec-painel"] });
+          }} />}
           <button style={S.btn()} onClick={() => onPlanilhaCompleta(propostaId)}><FileText size={13} /> Planilha completa (empenho/liquidação)</button>
         </div>
       </div>
@@ -1337,4 +1340,92 @@ function LivroFinalidade({ grupo, itens, naturezas, perm, acao, setDialogo, orig
       </div>
     </div>
   );
+}
+
+// Importação das planilhas de controle já preenchidas (modelos MAC por natureza e PAP por
+// finalidade): prévia por aba, escolha da ação quando não houver vínculo automático e data
+// padrão para notas sem data. Nota repetida não entra duas vezes.
+function ImportarControle({ propostaId, onFim }: { propostaId: number; onFim: (texto: string, ok: boolean) => void }) {
+  const inp = useRef<HTMLInputElement>(null);
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [previa, setPrevia] = useState<any>(null);
+  const [mapa, setMapa] = useState<Record<string, string>>({});
+  const [dataPadrao, setDataPadrao] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const enviar = async (file: File, confirmar: boolean, m = mapa, d = dataPadrao) => {
+    const fd = new FormData();
+    fd.append("arquivo", file);
+    fd.append("confirmar", String(confirmar));
+    if (d) fd.append("data_padrao", d);
+    fd.append("mapa", JSON.stringify(m));
+    return (await api.post(`/api/investsus/execucao/propostas/${propostaId}/controle/importar`, fd, { headers: { "Content-Type": "multipart/form-data" } })).data;
+  };
+  const fechar = () => { setPrevia(null); setArquivo(null); setMapa({}); setDataPadrao(""); if (inp.current) inp.current.value = ""; };
+  const ver = async (file: File, m = mapa, d = dataPadrao) => {
+    setOcupado(true);
+    try { setPrevia(await enviar(file, false, m, d)); } catch (e) { onFim(erroMsg(e), false); fechar(); } finally { setOcupado(false); }
+  };
+  const confirmar = async () => {
+    if (!arquivo) return;
+    setOcupado(true);
+    try {
+      const r = await enviar(arquivo, true);
+      onFim(`Planilha importada: ${r.criadas} nota(s) lançada(s).` +
+        (r.duplicadas.length ? ` ${r.duplicadas.length} já existia(m) e foi(ram) ignorada(s).` : "") +
+        (r.erros.length ? ` Problemas: ${r.erros.slice(0, 5).join("; ")}` : ""), true);
+      fechar();
+    } catch (e) { onFim(erroMsg(e), false); } finally { setOcupado(false); }
+  };
+  const semData = previa?.abas.reduce((s: number, a: any) => s + a.sem_data, 0) ?? 0;
+  const semVinculo = previa?.abas.filter((a: any) => a.notas > 0 && !a.acao_id).length ?? 0;
+  return (<>
+    <input ref={inp} type="file" accept=".xlsx" style={{ display: "none" }}
+      onChange={e => { const file = e.target.files?.[0]; if (file) { setArquivo(file); ver(file, {}, ""); } }} />
+    <button style={S.btn()} disabled={ocupado} onClick={() => inp.current?.click()} title="Planilha de controle já preenchida (modelo MAC ou PAP)">
+      <Upload size={13} /> {ocupado && !previa ? "Lendo planilha…" : "Importar planilha preenchida"}
+    </button>
+    {previa && (
+      <div role="dialog" aria-modal="true" onClick={fechar} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.5)", zIndex: 1100, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
+        <div onClick={e => e.stopPropagation()} style={{ background: "#fff", color: "#111827", borderRadius: 10, padding: 18, width: "100%", maxWidth: 900 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <div style={{ fontWeight: 800, color: AZUL }}>Prévia da importação — {arquivo?.name}</div>
+            <button onClick={fechar} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={16} /></button>
+          </div>
+          {!previa.confere_proposta && <div style={{ background: "#fef2f2", color: "#991b1b", borderRadius: 6, padding: 8, fontSize: 12, marginBottom: 8 }}>
+            A planilha é da proposta <b>{previa.numero_planilha}</b>, diferente desta. Escolha a planilha certa.</div>}
+          <div style={{ overflowX: "auto" }}>
+            <table style={XL.table}>
+              <thead><tr>{["Aba da planilha", "Modelo", "Notas", "Valor", "Lançar na ação", "Como foi vinculada"].map(h => <th key={h} style={{ ...XL.th, position: "static" }}>{h}</th>)}</tr></thead>
+              <tbody>{previa.abas.map((a: any) => (
+                <tr key={a.aba}>
+                  <td style={XL.td}>{a.aba}{a.finalidade && <div style={{ fontSize: 10.5, color: "#6b7280" }}>{a.finalidade}</div>}{a.avisos.map((t: string) => <div key={t} style={{ fontSize: 10.5, color: "#92400e" }}>{t}</div>)}</td>
+                  <td style={XL.td}>{a.modelo === "pap" ? "PAP (finalidade)" : a.modelo === "mac" ? `MAC (natureza ${natFmt(a.natureza)})` : "—"}</td>
+                  <td style={XL.num}>{a.notas}{a.sem_data ? <div style={{ fontSize: 10, color: "#92400e" }}>{a.sem_data} sem data</div> : null}{a.sem_numero ? <div style={{ fontSize: 10, color: "#6b7280" }}>{a.sem_numero} sem nº</div> : null}</td>
+                  <td style={XL.num}>{fmt(a.valor)}</td>
+                  <td style={{ ...XL.td, minWidth: 220 }}>{a.notas === 0 ? <span style={{ color: "#9ca3af" }}>nenhuma nota lançada</span> : (
+                    <select style={S.input} value={mapa[a.aba] ?? (a.acao_id ? String(a.acao_id) : "")}
+                      onChange={e => { const m = { ...mapa, [a.aba]: e.target.value }; setMapa(m); if (arquivo) ver(arquivo, m); }}>
+                      <option value="">Escolha a ação…</option>
+                      {previa.acoes.map((x: any) => <option key={x.id} value={x.id}>{x.grupo ? `${x.grupo} › ` : ""}{x.descricao}</option>)}
+                    </select>)}</td>
+                  <td style={{ ...XL.td, fontSize: 11, color: a.acao_id ? "#065f46" : "#92400e" }}>{a.notas ? a.motivo : ""}</td>
+                </tr>))}</tbody>
+            </table>
+          </div>
+          {semData > 0 && (
+            <div style={{ display: "flex", gap: 8, alignItems: "end", marginTop: 10, background: "#fffbeb", padding: 8, borderRadius: 6, color: "#78350f", fontSize: 12, flexWrap: "wrap" }}>
+              <div>{semData} nota(s) sem data na planilha. Informe a data a usar para elas (ou preencha as datas na planilha e importe de novo):</div>
+              <input type="date" style={{ ...S.input, width: 160 }} value={dataPadrao} onChange={e => { setDataPadrao(e.target.value); if (arquivo) ver(arquivo, mapa, e.target.value); }} />
+            </div>)}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, gap: 8, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 12 }}>Serão lançadas <b>{previa.notas_a_importar}</b> nota(s), <b>{fmt(previa.valor_a_importar)}</b>, marcadas como <OrigemDado origem="importado" />. Notas já lançadas (mesmo nº e fornecedor) são ignoradas.
+              {semVinculo > 0 && <span style={{ color: "#92400e" }}> {semVinculo} aba(s) sem ação escolhida ficam de fora.</span>}</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button style={S.btn()} onClick={fechar}>Cancelar</button>
+              <button style={S.btn(AZUL)} disabled={ocupado || !previa.confere_proposta || previa.notas_a_importar === 0} onClick={confirmar}><Check size={13} /> {ocupado ? "Importando…" : "Importar notas"}</button>
+            </div>
+          </div>
+        </div>
+      </div>)}
+  </>);
 }

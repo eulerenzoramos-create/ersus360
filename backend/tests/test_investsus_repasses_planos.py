@@ -137,3 +137,87 @@ async def test_excel_no_modelo_das_planilhas(db_session, municipio):
     nf = next(l for l in linhas if l[5] == "NF 9")
     assert nf[6] == 18435 and str(nf[7]).startswith("=H") and nf[3].startswith("3.3.90.30")
     assert isinstance(nf[0], (date,)) or hasattr(nf[0], "year")
+
+
+def _planilha_modelo(numero):
+    """Planilha sintética nos dois modelos do Fundo (MAC por natureza e PAP por finalidade)."""
+    from openpyxl import Workbook
+    wb = Workbook()
+    dg = wb.active
+    dg.title = "DADOS GERAIS DA EMENDAS"
+    dg.append(["Campo", "Valor"])
+    dg.append(["Nº da Proposta", float(numero)])        # o Excel guarda como número (perde dígitos)
+    mac = wb.create_sheet("378.435,00 CONSUMO")
+    mac.append(["CONTROLE EXECUÇÃO EMENDA PARLAMENTAR - MATERIAL DE CONSUMO MAC- 33.90.30 -R$ 378.435,00"])
+    mac.append(["Data", None, "FORNECEDOR", "FINALIDADE", "N. NOTA FISCAL", "VALOR", "SALDO ATUAL"])
+    mac.append(["ENTRADA", "SAÍDA"])
+    mac.append([378435, None, None, None, None, None, 378435])
+    mac.append([None, date(2026, 8, 3), "Farma A", "Medicamentos", "101", 1000, "=G4-F5"])
+    mac.append([None, None, "Farma B", "Insumos", None, 500, "=G5-F6"])             # sem data e sem nº
+    pap = wb.create_sheet("618.435,00-SAUDE MENTAL")
+    pap.append(["INCREMENTO - FINALIDADE: SAÚDE MENTAL - 618.435,00"])
+    pap.append(["DATA ENTRADA/SAIDA", "FINALIDADE", "VALOR", "ELEMENTO DE DESPESA", None, None, "FORNECEDOR",
+                "N. NOTA FISCAL", "VALOR", "SALDO ATUAL"])
+    pap.append([])
+    pap.append([None, None, None, "COSUMO", "PESSOA JURIDICA", "DESPESA COM LOCOMOÇAO"])
+    pap.append([None, "SAÚDE MENTAL", None, None, None, None, None, None, None, 618435])
+    pap.append([None, "Oficinas terapêuticas do CAPS", 200000])                       # sub-ação (previsto), não é nota
+    pap.append([date(2026, 9, 1), "Oficinas terapêuticas do CAPS", None, None, "x", None, "Instituto C", "55", 7000, "=J5-I7"])
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def test_le_os_dois_modelos():
+    from openpyxl import load_workbook
+    from services.investsus_controle_importacao import ler_planilha
+    r = ler_planilha(load_workbook(io.BytesIO(_planilha_modelo(NUMERO))))
+    assert r["numero_proposta"][:14] == NUMERO[:14]
+    mac, pap = r["abas"]
+    assert (mac["modelo"], mac["natureza"]) == ("mac", "339030")
+    assert [(n["valor"], n["nota_fiscal"], n["data"]) for n in mac["notas"]] == [(1000, "101", "2026-08-03"), (500, None, None)]
+    assert (pap["modelo"], pap["finalidade"]) == ("pap", "SAÚDE MENTAL")
+    assert [(n["valor"], n["natureza"], n["nota_fiscal"]) for n in pap["notas"]] == [(7000, "339039", "55")]
+
+
+async def test_importa_planilha_preenchida_sem_duplicar(db_session, municipio):
+    from starlette.datastructures import UploadFile
+    rt, u, p = await _proposta_com_plano(db_session, municipio)
+    dados = _planilha_modelo(NUMERO)
+    arq = lambda: UploadFile(io.BytesIO(dados), filename="controle.xlsx")
+
+    previa = await rt.importar_controle(p.id, db_session, u, arq(), False, None, None)
+    abas = {a["aba"]: a for a in previa["abas"]}
+    assert previa["confere_proposta"] is True
+    assert abas["618.435,00-SAUDE MENTAL"]["acao"].strip() == "CAPS - Centro de Atenção Psicossocial"
+    assert abas["378.435,00 CONSUMO"]["acao_id"] is None          # 2 ações e nenhuma com natureza única
+    oci = next(a["id"] for a in previa["acoes"] if a["descricao"] == "OCI em Ginecologia")
+    import json
+    mapa = json.dumps({"378.435,00 CONSUMO": oci})
+    previa = await rt.importar_controle(p.id, db_session, u, arq(), False, None, mapa)
+    assert previa["notas_a_importar"] == 2 and next(a for a in previa["abas"] if a["aba"] == "378.435,00 CONSUMO")["sem_data"] == 1
+
+    r = await rt.importar_controle(p.id, db_session, u, arq(), True, "2026-08-31", mapa)
+    assert r["criadas"] == 3 and r["valor_a_importar"] == 8500
+    f = await rt.ficha(p.id, db_session, u)
+    assert f["resumo"]["pago"] == 8500
+    nat = {n["codigo"]: n["pago"] for n in f["naturezas"]}
+    assert nat == {"339030": 1500, "339039": 7000}
+    notas = [l for a in f["acoes"] for l in a["lancamentos"]]
+    assert all(l["origem_dado"] == "importado" and l["tipo"] == "nota_fiscal" for l in notas)
+    assert any(l["documento_comprobatorio"].startswith("S/N") and l["data"] == "2026-08-31" for l in notas)
+
+    again = await rt.importar_controle(p.id, db_session, u, arq(), True, "2026-08-31", mapa)
+    assert again["criadas"] == 0 and len(again["duplicadas"]) == 3
+    assert (await rt.ficha(p.id, db_session, u))["resumo"]["pago"] == 8500
+
+
+async def test_planilha_de_outra_proposta_e_recusada(db_session, municipio):
+    from starlette.datastructures import UploadFile
+    rt, u, p = await _proposta_com_plano(db_session, municipio)
+    dados = _planilha_modelo("36000679442202500")
+    previa = await rt.importar_controle(p.id, db_session, u, UploadFile(io.BytesIO(dados), filename="x.xlsx"), False, None, None)
+    assert previa["confere_proposta"] is False
+    with pytest.raises(HTTPException) as e:
+        await rt.importar_controle(p.id, db_session, u, UploadFile(io.BytesIO(dados), filename="x.xlsx"), True, "2026-08-31", None)
+    assert e.value.status_code == 422

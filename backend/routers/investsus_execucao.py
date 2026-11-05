@@ -1286,3 +1286,91 @@ async def exportar_controle(proposta_id: int, db: DbDep, u: SessaoMunicipal):
     nome = f"controle_emenda_{re.sub(r'[^0-9A-Za-z]', '', dg['numero_proposta'] or str(proposta_id))}.xlsx"
     return Response(buf.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     headers={"Content-Disposition": f'attachment; filename="{nome}"'})
+
+
+@router.post("/propostas/{proposta_id}/controle/importar")
+async def importar_controle(proposta_id: int, db: DbDep, u: SessaoMunicipal, arquivo: UploadFile = File(...),
+                            confirmar: bool = Form(False), data_padrao: str | None = Form(None),
+                            mapa: str | None = Form(None)):
+    """Importa as notas fiscais das planilhas de controle já preenchidas (modelos MAC e PAP
+    do Fundo). Prévia primeiro (confirmar=false); `mapa` = JSON {aba: acao_id} para as abas
+    que a prévia não conseguiu vincular; `data_padrao` para notas sem data na planilha.
+    Nota repetida (mesmo nº + fornecedor) é ignorada."""
+    import json
+
+    from openpyxl import load_workbook
+
+    from services import investsus_controle_importacao as imp
+
+    _pode_lancar(u)
+    conteudo = await arquivo.read(TAMANHO_MAXIMO_ANEXO + 1)
+    if len(conteudo) > TAMANHO_MAXIMO_ANEXO:
+        raise HTTPException(413, "Arquivo acima de 10 MB.")
+    try:
+        wb = load_workbook(io.BytesIO(conteudo), data_only=True)
+    except Exception:
+        raise HTTPException(422, "Arquivo não reconhecido: envie a planilha .xlsx de controle da emenda.")
+    p = await _proposta(db, u, proposta_id)
+    f = await _ficha_de(db, p)
+    acoes = [] if not f else (await db.execute(select(AcaoExecucao).where(
+        AcaoExecucao.ficha_id == f.id, AcaoExecucao.ativa.is_(True)).order_by(AcaoExecucao.ordem))).scalars().all()
+    if not acoes:
+        raise HTTPException(422, "Converta o plano do InvestSUS em planilha antes de importar as notas.")
+    lido = imp.ler_planilha(wb)
+    try:
+        escolhas = {k: int(v) for k, v in (json.loads(mapa) if mapa else {}).items() if v}
+    except (ValueError, TypeError):
+        raise HTTPException(422, "Vínculo de abas inválido.")
+    d_padrao = _data(data_padrao, "data_padrao") if data_padrao else None
+    info = [{"id": a.id, "descricao": a.descricao, "grupo": a.grupo, "natureza_despesa": a.natureza_despesa} for a in acoes]
+    por_id = {a.id: a for a in acoes}
+    numero_planilha = re.sub(r"\D", "", lido["numero_proposta"] or "")
+    numero_proposta = re.sub(r"\D", "", p.numero_proposta or "")
+    # nº grande lido como número no Excel perde os últimos dígitos: compara só o começo
+    confere = (not numero_planilha) or numero_planilha[:14] == numero_proposta[:14]
+
+    abas, notas_validas = [], []
+    for aba in lido["abas"]:
+        acao_id, motivo = (escolhas[aba["aba"]], "escolhida na prévia") if aba["aba"] in escolhas else imp.vincular(aba, info)
+        if acao_id and acao_id not in por_id:
+            acao_id, motivo = None, "ação escolhida não pertence a esta proposta"
+        grupo = por_id[acao_id].grupo if acao_id else None
+        candidatas = [a for a in info if grupo and a["grupo"] == grupo] or ([next(a for a in info if a["id"] == acao_id)] if acao_id else [])
+        sem_data = 0
+        for n in aba["notas"]:
+            alvo = acao_id
+            if len(candidatas) > 1 and n["historico"]:
+                melhor = max(candidatas, key=lambda a: imp._parecido(n["historico"], a["descricao"]))
+                if imp._parecido(n["historico"], melhor["descricao"]) >= 0.35:
+                    alvo = melhor["id"]
+            data_nota = n["data"] or (d_padrao.isoformat() if d_padrao else None)
+            if not data_nota:
+                sem_data += 1
+            if alvo and data_nota:
+                notas_validas.append({**n, "acao_id": alvo, "data": data_nota, "aba": aba["aba"]})
+        abas.append({"aba": aba["aba"], "modelo": aba["modelo"], "natureza": aba["natureza"], "finalidade": aba["finalidade"],
+                     "acao_id": acao_id, "acao": por_id[acao_id].descricao if acao_id else None, "motivo": motivo,
+                     "notas": len(aba["notas"]), "valor": round(sum(n["valor"] for n in aba["notas"]), 2),
+                     "sem_data": sem_data, "sem_numero": sum(1 for n in aba["notas"] if not n["nota_fiscal"]),
+                     "avisos": aba["avisos"]})
+    resumo = {"numero_planilha": lido["numero_proposta"], "confere_proposta": confere, "abas": abas,
+              "acoes": [{"id": a["id"], "descricao": a["descricao"], "grupo": a["grupo"]} for a in info],
+              "notas_a_importar": len(notas_validas), "valor_a_importar": round(sum(n["valor"] for n in notas_validas), 2)}
+    if not confirmar:
+        return {"previa": True, **resumo}
+    if not confere:
+        raise HTTPException(422, f"A planilha é da proposta {lido['numero_proposta']}, não da {p.numero_proposta}.")
+    criadas, duplicadas, erros = 0, [], []
+    for n in notas_validas:
+        corpo = LancamentoCreate(
+            tipo="nota_fiscal", data=n["data"], valor=n["valor"], natureza_despesa=n["natureza"],
+            fornecedor=n["fornecedor"], documento_comprobatorio=n["nota_fiscal"] or f"S/N {n['aba'][:20]} L{n['linha']}",
+            historico=n["historico"])
+        try:
+            await _novo_lancamento(db, f, por_id[n["acao_id"]], corpo, u, origem="importado")
+            criadas += 1
+        except HTTPException as e:
+            (duplicadas if e.status_code == 409 else erros).append(f"{n['aba']}, linha {n['linha']}: {e.detail}")
+    _aud(db, f, "ficha", f.id, "importacao", "notas_planilha_controle", None, criadas, u, f"Planilha {arquivo.filename}")
+    await db.commit()
+    return {"previa": False, **resumo, "criadas": criadas, "duplicadas": duplicadas[:50], "erros": erros[:50]}
