@@ -65,7 +65,7 @@ export function SeloFonteFvs({ estado, compacto = false }: { estado?: EstadoFont
       </span>
       <span><Database size={11} style={{ verticalAlign: -1 }} /> {estado.rotulo}</span>
       {estado.data_referencia && <span>· {estado.data_referencia}</span>}
-      {!compacto && <span>· publicado pela FVS em {dataHora(estado.publicado_na_fonte)}</span>}
+      {!compacto && estado.publicado_na_fonte && <span>· publicado na fonte em {dataHora(estado.publicado_na_fonte)}</span>}
       <span>· sincronizado em {dataHora(estado.ultima_sincronizacao)}</span>
       {estado.erro && <span style={{ color: COR.alto, width: "100%" }}>{estado.erro}</span>}
     </div>
@@ -156,7 +156,7 @@ export function Secao({ titulo, children, direita }: { titulo: ReactNode; childr
   );
 }
 
-export function TabelaSimples({ colunas, linhas, alinhar }: { colunas: string[]; linhas: ReactNode[][]; alinhar?: ("left" | "right")[] }) {
+export function TabelaSimples({ colunas, linhas, alinhar }: { colunas: ReactNode[]; linhas: ReactNode[][]; alinhar?: ("left" | "right")[] }) {
   return (
     <div style={{ overflowX: "auto", border: `1px solid ${COR.borda}`, borderRadius: 10, background: "#fff" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>

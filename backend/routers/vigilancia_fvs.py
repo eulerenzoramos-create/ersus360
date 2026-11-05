@@ -34,13 +34,16 @@ import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import AsyncSessionLocal, get_db
+from models.vigilancia_alerta import SITUACOES, VigAlertaAcompanhamento
 from routers.auth import ip_de
 from services import fvs_analise as an
 from services import fvs_catalogo as cat
 from services import fvs_coleta as col
+from services import vig_painel as vp
 from tenancy.auditoria import registrar_auditoria
 from tenancy.escopo import SessaoMunicipal
 
@@ -217,6 +220,94 @@ async def pqa_vs(current: SessaoMunicipal, mun: Optional[str] = None, db: AsyncS
             "estado": await an._estado(db, "pqa_vs")}
 
 
+# ── Painel gerencial: áreas temáticas, central de alertas, inteligência ──────
+
+AREAS = {"visao": vp.visao_geral, "respiratoria": vp.respiratoria, "diarreicas": vp.diarreicas,
+         "arboviroses": vp.arboviroses, "notificacoes": vp.notificacoes, "ambiental": vp.ambiental,
+         "inteligencia": vp.inteligencia}
+PERFIS_ACOMPANHAR = {"admin", "gestor", "coordenador", "vigilancia", "enfermeiro", "medico"}
+
+
+@router.get("/area/{area}")
+async def area(area: str, current: SessaoMunicipal, mun: Optional[str] = None, ano: Optional[int] = None,
+               db: AsyncSession = Depends(get_db)):
+    if area not in AREAS:
+        raise HTTPException(404, "Área desconhecida")
+    return await AREAS[area](db, _mun(mun, current), _ano(ano))
+
+
+@router.get("/pqa-semaforo")
+async def pqa_semaforo(current: SessaoMunicipal, mun: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+    return await vp.pqa(db, _mun(mun, current))
+
+
+def _pode_acompanhar(current) -> bool:
+    return bool(current.administrador_geral or current.role in PERFIS_ACOMPANHAR)
+
+
+@router.get("/alertas/central")
+async def alertas_central(current: SessaoMunicipal, mun: Optional[str] = None, ano: Optional[int] = None,
+                          db: AsyncSession = Depends(get_db)):
+    """Alertas classificados por prioridade/categoria. O acompanhamento (avaliação técnica e providências)
+    é dado do município da sessão: só aparece quando o município consultado é o da sessão."""
+    m, a = _mun(mun, current), _ano(ano)
+    r = await vp.central_alertas(db, m, a)
+    proprio = m == (current.municipio_ibge or "")[:6]
+    situacao: dict[str, dict] = {}
+    if proprio:
+        rows = (await db.execute(select(VigAlertaAcompanhamento).where(
+            VigAlertaAcompanhamento.municipio_id == current.municipio_id, VigAlertaAcompanhamento.ano == a)
+            .order_by(VigAlertaAcompanhamento.criado_em))).scalars().all()
+        for x in rows:   # o último evento define a situação atual
+            situacao[x.alerta_chave] = {"situacao": x.situacao, "atualizado_em": x.criado_em, "por": x.usuario,
+                                        "eventos": situacao.get(x.alerta_chave, {}).get("eventos", 0) + 1}
+    for al in r["alertas"]:
+        al["acompanhamento"] = situacao.get(al["chave"], {"situacao": "novo", "eventos": 0}) if proprio else None
+    return {**r, "acompanhamento_habilitado": proprio, "pode_registrar": proprio and _pode_acompanhar(current),
+            "situacoes": SITUACOES}
+
+
+@router.get("/alertas/acompanhamento/{chave}")
+async def alerta_historico(chave: str, current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
+    rows = (await db.execute(select(VigAlertaAcompanhamento).where(
+        VigAlertaAcompanhamento.municipio_id == current.municipio_id, VigAlertaAcompanhamento.alerta_chave == chave)
+        .order_by(VigAlertaAcompanhamento.criado_em.desc()))).scalars().all()
+    return {"chave": chave, "historico": [{"situacao": x.situacao, "avaliacao": x.avaliacao, "providencias": x.providencias,
+                                           "usuario": x.usuario, "perfil": x.perfil, "criado_em": x.criado_em} for x in rows]}
+
+
+class AcompanhamentoIn(BaseModel):
+    chave: str = Field(pattern=r"^[0-9a-f]{20}$")
+    titulo: str = Field(min_length=3, max_length=200)
+    ano: int
+    situacao: Literal[SITUACOES]  # type: ignore[valid-type]
+    avaliacao: Optional[str] = Field(None, max_length=4000)
+    providencias: Optional[str] = Field(None, max_length=4000)
+
+
+@router.post("/alertas/acompanhamento", status_code=201)
+async def alerta_registrar(request: Request, current: SessaoMunicipal, corpo: AcompanhamentoIn,
+                           db: AsyncSession = Depends(get_db)):
+    if not _pode_acompanhar(current):
+        raise HTTPException(403, "Perfil sem permissão para registrar acompanhamento de alertas")
+    # a chave precisa ser de um alerta atual do PRÓPRIO município (não se registra em alerta de outro município)
+    m = _mun(None, current)
+    central = await vp.central_alertas(db, m, _ano(corpo.ano))
+    if corpo.chave not in {a["chave"] for a in central["alertas"]}:
+        raise HTTPException(404, "Alerta não encontrado para o município da sessão")
+    reg = VigAlertaAcompanhamento(municipio_id=current.municipio_id, alerta_chave=corpo.chave,
+                                  alerta_titulo=corpo.titulo, ano=corpo.ano, situacao=corpo.situacao,
+                                  avaliacao=corpo.avaliacao, providencias=corpo.providencias,
+                                  usuario=current.nome or current.username, perfil=current.role)
+    db.add(reg)
+    await db.commit()
+    rid, sit = reg.id, reg.situacao
+    await registrar_auditoria(db, "VIG_ALERTA_ACOMPANHAMENTO", usuario=current, ip=ip_de(request),
+                              tabela="vig_alerta_acompanhamento", registro_id=rid,
+                              detalhe=f"{corpo.chave} → {sit}")
+    return {"id": rid, "situacao": sit}
+
+
 # ── Área técnica das integrações ──────────────────────────────────────────────
 
 @router.get("/integracoes")
@@ -224,6 +315,12 @@ async def integracoes(current: SessaoMunicipal, db: AsyncSession = Depends(get_d
     fontes = []
     for f, info in cat.COLETORES.items():
         painel = cat.painel_do_coletor(f) or {}
+        if info.get("externo"):
+            fontes.append({**await an._estado(db, f), "titulo": info["titulo"], "periodicidade": info["periodicidade"],
+                           "endereco": info["endereco"], "metadados": None, "metodo": info["metodo"],
+                           "municipios": "62 municípios do AM", "subabas": ["painel"],
+                           "indicadores": await an.indicadores_disponiveis(db, f)})
+            continue
         fontes.append({**await an._estado(db, f), "titulo": info["titulo"], "periodicidade": info["periodicidade"],
                        "endereco": f"https://public.tableau.com/workbooks/{info['workbook']}.twb",
                        "metadados": f"https://public.tableau.com/profile/api/workbook/{info['workbook']}",
@@ -271,7 +368,8 @@ async def sincronizar(request: Request, current: SessaoMunicipal, corpo: Sincron
 # ── Relatórios e IA ───────────────────────────────────────────────────────────
 
 class RelatorioIn(BaseModel):
-    tipo: Literal["municipal", "consolidado", "agravo", "comparativo", "pqa_vs", "evolucao", "alertas", "estadual"]
+    tipo: Literal["municipal", "consolidado", "agravo", "comparativo", "pqa_vs", "evolucao", "alertas", "estadual",
+                  "respiratorio", "diarreicas", "arboviroses"]
     formato: Literal["pdf", "xlsx", "docx"] = "pdf"
     municipios: list[str] = Field(default_factory=list, max_length=10)
     ano: Optional[int] = None

@@ -26,6 +26,9 @@ TITULOS = {
     "evolucao": "Relatório de Evolução Epidemiológica",
     "alertas": "Relatório de Alertas e Tendências",
     "estadual": "Relatório Estadual Consolidado do Amazonas",
+    "respiratorio": "Relatório de Doenças Respiratórias e Qualidade do Ar",
+    "diarreicas": "Relatório de Doenças Diarreicas e Qualidade da Água",
+    "arboviroses": "Relatório de Arboviroses e Endemias",
 }
 
 
@@ -81,9 +84,11 @@ async def _fontes(db: AsyncSession, quais=None) -> list[str]:
     for f in quais or cat.COLETORES:
         e = await an._estado(db, f)
         quando = f"{e['ultima_sincronizacao']:%d/%m/%Y %H:%M} UTC" if e.get("ultima_sincronizacao") else "nunca sincronizada"
-        out.append(f"{e['rotulo']} — {e.get('data_referencia') or 'sem dado'}; publicado pela FVS em "
-                   f"{e['publicado_na_fonte']:%d/%m/%Y}" if e.get("publicado_na_fonte") else f"{e['rotulo']} — sem publicação lida")
-        out[-1] += f"; sincronizado em {quando}. Painel: {cat.FONTE_PAGINA}"
+        out.append(f"{e['rotulo']} — {e.get('data_referencia') or 'sem dado'}; publicado na fonte em "
+                   f"{e['publicado_na_fonte']:%d/%m/%Y}" if e.get("publicado_na_fonte")
+                   else f"{e['rotulo']} — {e.get('data_referencia') or 'sem publicação lida'}")
+        externo = cat.COLETORES.get(f, {}).get("endereco")
+        out[-1] += f"; sincronizado em {quando}. Origem: {externo or cat.FONTE_PAGINA}"
     return out
 
 
@@ -133,12 +138,39 @@ def _sec_pqa(pqa: dict | None) -> Secao:
                                       "não é exibida porque a pasta pública não a liga ao número do indicador.")])
 
 
+_PRIO = {"critico": "CRÍTICO", "alto": "ALTO", "moderado": "MODERADO", "informativo": "INFORMATIVO"}
+_CAT = {"epidemiologico": "Epidemiológico", "ambiental": "Ambiental", "desempenho": "Desempenho", "integracao": "Integração"}
+_ORIGEM = {"oficial": "Oficial", "calculado": "Calculado ERSUS360", "integracao": "Integração"}
+
+
 def _sec_alertas(al: dict) -> Secao:
-    linhas = [[{"oficial": "Oficial", "calculado": "Calculado", "integracao": "Integração"}[a["tipo"]], a["nivel"].upper(),
-               a["titulo"], a["detalhe"]] for a in al["alertas"]]
-    return Secao("Situações que exigem atenção",
-                 [al["legenda"]["oficial"], al["legenda"]["calculado"]] if linhas else ["Nenhum alerta no período."],
-                 [Tabela("Alertas", ["Tipo", "Nível", "Alerta", "Detalhe"], linhas)] if linhas else [])
+    """Aceita a central (com prioridade/categoria) ou a lista simples de an.alertas."""
+    if any("prioridade" in a for a in al["alertas"]):
+        linhas = [[_PRIO[a["prioridade"]], _CAT[a["categoria"]], a["titulo"], a["detalhe"], _ORIGEM[a["tipo"]]]
+                  for a in al["alertas"]]
+        cols = ["Prioridade", "Categoria", "Alerta", "Detalhe", "Origem"]
+        pars = [al["legenda"]["oficial"], al["legenda"]["calculado"]] + [
+            f"{_PRIO[k]}: {v}" for k, v in al.get("criterios", {}).items()]
+    else:
+        linhas = [[_ORIGEM[a["tipo"]], a["nivel"].upper(), a["titulo"], a["detalhe"]] for a in al["alertas"]]
+        cols = ["Tipo", "Nível", "Alerta", "Detalhe"]
+        pars = [al["legenda"]["oficial"], al["legenda"]["calculado"]]
+    if not linhas:
+        return Secao("Situações que exigem atenção", ["Nenhum alerta no período."])
+    return Secao("Situações que exigem atenção", pars, [Tabela("Alertas", cols, linhas)])
+
+
+def _sec_indisponivel(itens: list[dict]) -> Secao:
+    return Secao("Dados não disponíveis", [f"{i['item']}: {i['motivo']}" for i in itens])
+
+
+def _tab_agravos_area(ags: list[dict], ano: int, titulo: str) -> Tabela:
+    return Tabela(titulo, ["Agravo", "CID-10", f"{ano}", f"{ano - 1}", f"{ano - 2}", "Variação (mesmo período)",
+                           "Incid./100 mil", "Tendência"],
+                  [[a["agravo"], a["cid10"] or "—", _n(a["casos_ano"]), _n(a["casos_ano_anterior"]),
+                    _n(a["casos_2_anos_antes"]), _pct((a["comparacao"] or {}).get("variacao_pct")),
+                    _n(a["incidencia_100mil"], 1), a["tendencia"]] for a in ags],
+                  nota="Notificações (base SINAN da FVS), sem classificação final. Variação: mesmas SE do ano anterior.")
 
 
 async def _evolucao(db: AsyncSession, m: str, ano: int, nomes: dict) -> Secao:
@@ -155,6 +187,63 @@ async def _evolucao(db: AsyncSession, m: str, ano: int, nomes: dict) -> Secao:
                  [Tabela("Notificações por ano", ["Agravo"] + [str(a) for a in anos], linhas)],
                  grafico={"titulo": "Total de notificações (todas as doenças/agravos)", "rotulos": [str(a) for a in anos],
                           "valores": total})
+
+
+async def _secoes_tematicas(db: AsyncSession, tipo: str, m: str, ano: int) -> list[Secao]:
+    from services import vig_painel as vp
+    out: list[Secao] = []
+    if tipo == "respiratorio":
+        r = await vp.respiratoria(db, m, ano)
+        rot = {"srag_casos": "Casos de SRAG (SIVEP-Gripe)", "sg_casos_agregados": "Síndrome gripal — agregados",
+               "sindrome_gripal_aps": "Síndrome gripal na APS (AESOP)", "atendimentos_aps": "Atendimentos na APS (AESOP)",
+               "focos_calor": "Focos de calor (INPE, satélite de referência)"}
+        out.append(Secao("Indicadores respiratórios e ambientais", [r["nota_causalidade"]], [Tabela(
+            "Totais do ano", ["Indicador", f"{ano}", f"{ano - 1}"],
+            [[rot[k], _n(v["ano"]), _n(v["ano_anterior"])] for k, v in r["totais"].items()])]))
+        sem = [c for c in r["serie_conjunta"] if any(c[k] is not None for k in ("focos_calor", "srag", "sg_aps"))]
+        if sem:
+            out.append(Secao(f"Semanas epidemiológicas de {ano}", [], [Tabela(
+                "Série conjunta", ["SE", "Focos de calor", "SRAG", "SG na APS", "Atendimentos APS"],
+                [[c["se"], _n(c["focos_calor"]), _n(c["srag"]), _n(c["sg_aps"]), _n(c["atend_aps"])] for c in sem])],
+                grafico={"titulo": f"Focos de calor por SE — {ano}", "rotulos": [str(c["se"]) for c in sem],
+                         "valores": [c["focos_calor"] or 0 for c in sem]}))
+        if (e := r.get("exposicao")):
+            out.append(Secao("Períodos de maior × menor exposição à fumaça (descritivo)", [
+                f"Semanas com ≥ {_n(e['limite_alta'])} focos ({e['semanas_alta']}): média de {_n(e['media_sg_alta'], 1)} "
+                f"atendimentos de síndrome gripal na APS por semana. Semanas com ≤ {_n(e['limite_baixa'])} focos "
+                f"({e['semanas_baixa']}): {_n(e['media_sg_baixa'], 1)}.", e["formula"]]))
+        if r["agravos"]:
+            out.append(Secao("Agravos respiratórios de notificação", [], [_tab_agravos_area(r["agravos"], ano, "Agravos")]))
+    elif tipo == "diarreicas":
+        r = await vp.diarreicas(db, m, ano)
+        if r["agua_anual"]:
+            out.append(Secao("Vigilância da qualidade da água (SISAGUA)", [r["referencias_agua"]], [Tabela(
+                "Amostras da vigilância por ano",
+                ["Ano", "Amostras E. coli", "E. coli presente", "Amostras coliformes", "Coliformes presentes",
+                 "Amostras turbidez", "Turbidez > 5 uT", "Amostras cloro", "Cloro < 0,2 mg/L"],
+                [[x["ano"], _n(x.get("amostras:ecoli")), _n(x.get("presenca:ecoli")), _n(x.get("amostras:coliformes")),
+                  _n(x.get("presenca:coliformes")), _n(x.get("amostras:turbidez")), _n(x.get("fora_padrao:turbidez")),
+                  _n(x.get("amostras:cloro")), _n(x.get("fora_padrao:cloro"))] for x in r["agua_anual"]])]))
+        else:
+            out.append(Secao("Vigilância da qualidade da água (SISAGUA)", [
+                "Nenhuma amostra da vigilância municipal registrada no SISAGUA no período." if r["agua_sem_registro"]
+                else "Fonte SISAGUA ainda não sincronizada no ERSUS360."]))
+        if r["agravos"]:
+            out.append(Secao("Agravos de transmissão hídrica/alimentar notificados", [r["nota_causalidade"]],
+                             [_tab_agravos_area(r["agravos"], ano, "Agravos")]))
+    else:
+        r = await vp.arboviroses(db, m, ano)
+        if r["agravos"]:
+            out.append(Secao("Arboviroses e doenças endêmicas", [], [_tab_agravos_area(r["agravos"], ano, "Notificações")]))
+        if (s := _sec_malaria(await an.painel_executivo(db, m, ano), ano)):
+            out.append(s)
+        par = r["malaria"].get("parasita") or []
+        if par:
+            out.append(Secao("Malária por espécie parasitária", [], [Tabela(
+                "Positivos por espécie", ["Ano", "Espécie", "Positivos"],
+                [[x["ano"], x["recorte_valor"], _n(x["valor"])] for x in par])]))
+    out.append(_sec_indisponivel(r["indisponivel"]))
+    return out
 
 
 async def montar(db: AsyncSession, tipo: str, ibges: list[str], ano: int, agravo: str | None,
@@ -196,7 +285,8 @@ async def montar(db: AsyncSession, tipo: str, ibges: list[str], ano: int, agravo
                     f"atendimentos de síndrome gripal na APS: {_n(a.get('sindrome_gripal_aps'))} de "
                     f"{_n(a.get('atendimentos_aps'))} atendimentos (publicado pelo CIEVS/FVS)."]))
             doc.secoes.append(_sec_pqa(p["pqa_vs"]))
-        doc.secoes.append(_sec_alertas(await an.alertas(db, m, ano)))
+        from services import vig_painel as vp
+        doc.secoes.append(_sec_alertas(await vp.central_alertas(db, m, ano)))
         if tipo == "consolidado":
             doc.secoes.append(await _evolucao(db, m, ano, nomes))
     elif tipo == "evolucao":
@@ -263,6 +353,8 @@ async def montar(db: AsyncSession, tipo: str, ibges: list[str], ano: int, agravo
                                 [Tabela("Histórico PQA-VS", ["Período", "Nº", "Resultado", "Meta", "Atingiu", "Obs."],
                                         [[h["periodo"], h["indicador"][4:], _n(h["resultado"], 1), h["meta"] or "—",
                                           h["alcance"] or "—", h["observacao"] or ""] for h in hist])]))
+    elif tipo in {"respiratorio", "diarreicas", "arboviroses"}:
+        doc.secoes += await _secoes_tematicas(db, tipo, m, ano)
     elif tipo == "estadual":
         p = await an.painel_executivo(db, IBGE_AM, ano)
         doc.secoes.append(_sec_agravos(p, ano))
