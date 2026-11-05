@@ -9,6 +9,7 @@ vermelho) são alertas gerenciais internos e não substituem a situação oficia
 """
 from __future__ import annotations
 
+import json
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request
@@ -34,10 +35,119 @@ AVISO_NIVEL = ("Classificação por cor = alerta gerencial interno do ERSUS360, 
                "ausência de envio. Não substitui a situação oficial publicada pelo Ministério da Saúde.")
 AVISO_SUSPENSAO = ("A presença no relatório de ausência de envio NÃO significa que o recurso foi suspenso. "
                    "Suspensão confirmada só por fonte oficial (ex.: Relatório de Pagamento do e-Gestor) — não verificada aqui.")
+AVISO_SUSPENSAO_VERIFICADA = ("A presença no relatório de ausência de envio NÃO significa que o recurso foi suspenso. "
+                              "Suspensão só é mostrada quando o e-Gestor (relatório público de pagamento) a publica "
+                              "na parcela que avalia esta competência CNES.")
 
 
 def _mes(comp: str) -> int:
     return int(comp[:4]) * 12 + int(comp[5:7])
+
+
+# Tipo da ausência, lido do texto oficial (dsSubTipoSuspensao). A fonte usa três frases:
+#   "Sem envio de produção válida da equipe dentro do prazo estabelecido"
+#   "Sem envio de produção válida do atendimento remoto (eMulti) dentro do prazo estabelecido"
+#   "Sem envio de produção válida da equipe e do atendimento remoto (eMulti) dentro do prazo estabelecido"
+TIPOS_AUSENCIA = {
+    "producao_equipe": "Produção da equipe",
+    "atendimento_remoto": "Atendimento remoto (eMulti)",
+    "equipe_e_remoto": "Produção da equipe e atendimento remoto (eMulti)",
+}
+SIGTAP_TELECONSULTA = "03.01.01.025-0 — Teleconsulta na atenção primária"
+MANUAL_FINALIZAR = "https://sisaps.saude.gov.br/sistemas/esusaps/docs/manual/PEC/PEC_06_atendimentos#6410-finalizar-atendimento"
+PROVIDENCIAS_REMOTO = [
+    "Conferir se a eMulti realizou atendimentos remotos na competência e se eles foram registrados no PEC e-SUS APS.",
+    f"No registro do atendimento remoto, em “Finalização do atendimento” → “Procedimentos administrativos (SIGTAP)”, "
+    f"incluir o SIGTAP {SIGTAP_TELECONSULTA} (manual oficial do PEC: {MANUAL_FINALIZAR}).",
+    "Transmitir a produção ao SIAPS dentro do prazo da competência e conferir na competência seguinte se a equipe saiu da lista.",
+]
+
+
+def tipo_ausencia(descricao: str | None) -> str:
+    d = svc._sem_acento(descricao or "")
+    if "remoto" in d:
+        return "equipe_e_remoto" if "da equipe e do" in d else "atendimento_remoto"
+    return "producao_equipe"
+
+
+# ── Relatório público de pagamento (já gravado pela aba "Relatório de Pagamento (e-Gestor)") ──
+ST_SUSPENSAO_PRODUCAO = {"stSuspensaoProducao": "produção da equipe",
+                         "stSuspensaoProdAtendRemoto": "produção de atendimento remoto (eMulti)"}
+CO_ATEND_REMOTO = 55          # componente "Atendimento Remoto - eMulti"
+CO_CUSTEIO_EMULTI = 42
+
+
+def _norm_st(v) -> str:
+    return svc._sem_acento(str(v or "")).strip().upper()
+
+
+async def _pagamento_da_competencia(db: AsyncSession, mid: int, comp: str) -> dict | None:
+    """Parcela do e-Gestor que avalia a competência CNES `comp` (AAAA-MM), se já coletada no ERSUS360."""
+    from models.egestor_pagamento import EgestorPagamentoComponente, EgestorValidacaoEquipe
+    comps = list((await db.execute(select(EgestorPagamentoComponente).where(
+        EgestorPagamentoComponente.municipio_id == mid,
+        EgestorPagamentoComponente.nu_comp_cnes == svc.comp_fonte(comp)))).scalars())
+    if not comps:
+        return None
+    parcela = comps[0].nu_parcela
+    vals = list((await db.execute(select(EgestorValidacaoEquipe).where(
+        EgestorValidacaoEquipe.municipio_id == mid, EgestorValidacaoEquipe.nu_parcela == parcela))).scalars())
+    por_ine: dict[str, dict] = {}
+    for v in vals:
+        try:
+            st = json.loads(v.payload or "{}")
+        except ValueError:
+            st = {}
+        por_ine.setdefault(v.ine, {}).update({k: x for k, x in st.items() if k.startswith("st")})
+        por_ine[v.ine].setdefault("_componentes", []).append(v.co_componente)
+    return {"parcela": parcela, "coletado_em": max(c.coletado_em for c in comps),
+            "componentes": {c.co_componente: c for c in comps}, "equipes": por_ine}
+
+
+def _situacao_pagamento(ine: str, pag: dict | None) -> dict:
+    """O que o e-Gestor publicou para a equipe na parcela da competência — nada é deduzido."""
+    if pag is None:
+        return {"verificada": False, "nota": "Parcela de pagamento desta competência ainda não coletada no ERSUS360 "
+                                             "(aba Relatório de Pagamento (e-Gestor) → Atualizar)."}
+    st = pag["equipes"].get(ine)
+    if st is None:
+        return {"verificada": False, "parcela": pag["parcela"],
+                "nota": f"Equipe não consta na validação por equipe da parcela {_parcela_br(pag['parcela'])} do e-Gestor."}
+    suspensoes = [rot for k, rot in ST_SUSPENSAO_PRODUCAO.items() if _norm_st(st.get(k)).startswith("SUSPENS")]
+    return {"verificada": True, "parcela": pag["parcela"], "st_pagamento": st.get("stPagamento"),
+            "st_pagamento_atend_remoto": st.get("stPagamentoAtendRemoto"),
+            "suspensao_por_falta_de_producao": suspensoes,
+            "suspensao_confirmada": bool(suspensoes)}
+
+
+def _parcela_br(nu: str) -> str:
+    return f"{nu[4:]}/{nu[:4]}"
+
+
+def _bloco_emulti(pag: dict | None, oficiais: dict[str, EquipeSiaps], eq_ausentes: dict[str, EgestorAusencia]) -> dict:
+    """Atendimento remoto da eMulti na parcela da competência (e-Gestor, relatório público de pagamento)."""
+    if pag is None:
+        return {"verificado": False, "nota": "Parcela de pagamento desta competência ainda não coletada no ERSUS360. "
+                                             "Atualize em Relatório de Pagamento (e-Gestor)."}
+    remoto = pag["componentes"].get(CO_ATEND_REMOTO)
+    custeio = pag["componentes"].get(CO_CUSTEIO_EMULTI)
+    equipes = []
+    for ine, st in sorted(pag["equipes"].items()):
+        if CO_CUSTEIO_EMULTI not in st.get("_componentes", []):
+            continue
+        aus = eq_ausentes.get(ine)
+        equipes.append({"ine": ine, "equipe": _nome(ine, oficiais)[0],
+                        "st_pagamento": st.get("stPagamento"),
+                        "st_pagamento_atend_remoto": st.get("stPagamentoAtendRemoto"),
+                        "st_suspensao_prod_atend_remoto": st.get("stSuspensaoProdAtendRemoto"),
+                        "ausencia_na_competencia": TIPOS_AUSENCIA[tipo_ausencia(aus.descricao)] if aus else None,
+                        "qt_texto": aus.qt_texto if aus else None})
+    return {"verificado": True, "parcela": pag["parcela"], "coletado_em": pag["coletado_em"].isoformat() + "Z",
+            "valor_atendimento_remoto": remoto.vl_total if remoto else None,
+            "valor_custeio_emulti": custeio.vl_total if custeio else None,
+            "componente_atendimento_remoto_publicado": remoto is not None,
+            "equipes": equipes,
+            "fonte": "e-Gestor APS — relatório público de pagamento (relatorioaps.saude.gov.br/financiamento/pagamento)"}
 
 
 async def _coletas(db: AsyncSession, mid: int) -> list[EgestorAusenciaColeta]:
@@ -65,7 +175,9 @@ def _nome(ine: str, oficiais: dict[str, EquipeSiaps]) -> tuple[str, str | None]:
 def _item_equipe(r: EgestorAusencia, oficiais: dict[str, EquipeSiaps]) -> dict:
     nome, tipo = _nome(r.ine or "", oficiais)
     n = svc.nivel(r.qt_consecutivas)
+    t = tipo_ausencia(r.descricao)
     return {"ine": r.ine, "equipe": nome, "tipo_equipe": tipo, "tipologia": r.tipologia, "descricao": r.descricao,
+            "tipo_ausencia": t, "tipo_ausencia_rotulo": TIPOS_AUSENCIA[t],
             "qt_texto": r.qt_texto, "qt_consecutivas": r.qt_consecutivas, "nivel": n, "rotulo": svc.NIVEIS[n]}
 
 
@@ -102,6 +214,12 @@ async def painel(current: SessaoMunicipal, competencia: Optional[str] = Query(No
     ultima_fonte = coletas[-1].ultima_competencia_fonte
     destaques = sorted((_item_equipe(r, oficiais) for r in eq.values() if (r.qt_consecutivas or 0) >= 3),
                        key=lambda x: x["ine"])
+    por_tipo = {t: 0 for t in TIPOS_AUSENCIA}
+    for r in eq.values():
+        por_tipo[tipo_ausencia(r.descricao)] += 1
+    pag = await _pagamento_da_competencia(db, mid, col.competencia)
+    suspensas = [{"ine": ine, "equipe": _nome(ine, oficiais)[0], **s} for ine in sorted(universo)
+                 if (s := _situacao_pagamento(ine, pag)).get("suspensao_confirmada")]
     return {
         "situacao_dado": "oficial_validado", "fonte": svc.FONTE, "competencia": col.competencia,
         "competencias_coletadas": [c.competencia for c in coletas],
@@ -117,8 +235,14 @@ async def painel(current: SessaoMunicipal, competencia: Optional[str] = Query(No
             "risco_de_suspensao": por_nivel["laranja"] + por_nivel["vermelho"],
             "estabelecimentos_com_ausencia": col.qt_estabelecimentos, "profissionais_com_ausencia": col.qt_profissionais,
         },
+        "ausencia_por_tipo": [{"tipo": t, "rotulo": TIPOS_AUSENCIA[t], "equipes": n} for t, n in por_tipo.items()],
+        "pagamento": {"verificado": pag is not None, "parcela": pag["parcela"] if pag else None,
+                      "parcela_rotulo": _parcela_br(pag["parcela"]) if pag else None,
+                      "coletado_em": pag["coletado_em"].isoformat() + "Z" if pag else None,
+                      "suspensoes_confirmadas": suspensas},
+        "emulti_atendimento_remoto": _bloco_emulti(pag, oficiais, eq),
         "nao_disponibilizado_pela_fonte": SEM_DADO_DA_FONTE, "destaques": destaques,
-        "avisos": [AVISO_NIVEL, AVISO_SUSPENSAO],
+        "avisos": [AVISO_NIVEL, AVISO_SUSPENSAO if pag is None else AVISO_SUSPENSAO_VERIFICADA],
     }
 
 
@@ -170,6 +294,7 @@ async def situacao_equipes(current: SessaoMunicipal, competencia: Optional[str] 
         itens.append({"ine": ine, "equipe": nome, "tipo_equipe": tipo, "ativa": oficiais[ine].ativa if ine in oficiais else None,
                       "tipologia": r.tipologia if r else None, "nivel": n, "rotulo": svc.NIVEIS[n],
                       "descricao": r.descricao if r else None, "qt_texto": r.qt_texto if r else None,
+                      "tipo_ausencia_rotulo": TIPOS_AUSENCIA[tipo_ausencia(r.descricao)] if r else None,
                       "acompanhamento": a.situacao if a else None, "responsavel": a.responsavel if a else None})
     return {"situacao_dado": "oficial_validado" if col else "nao_disponivel", "fonte": svc.FONTE,
             "competencia": col.competencia if col else None, "equipes": itens, "avisos": [AVISO_NIVEL]}
@@ -230,22 +355,40 @@ async def alertas(current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
     cur = {r.ine: r for r in await _linhas(db, mid, atual.competencia) if r.tipo_registro == "equipe"}
     ant = {r.ine: r for r in await _linhas(db, mid, anterior.competencia) if r.tipo_registro == "equipe"} if anterior else {}
     vizinha = anterior is not None and _mes(atual.competencia) - _mes(anterior.competencia) == 1
+    pag = await _pagamento_da_competencia(db, mid, atual.competencia)
     itens = []
     for ine, r in sorted(cur.items()):
         nome, tipo = _nome(ine, oficiais)
         n = svc.nivel(r.qt_consecutivas)
+        t = tipo_ausencia(r.descricao)
+        falta = {"producao_equipe": "produção válida da equipe",
+                 "atendimento_remoto": "produção válida de atendimento remoto (eMulti)",
+                 "equipe_e_remoto": "produção válida da equipe e do atendimento remoto (eMulti)"}[t]
         if n == "vermelho":
-            texto = (f"CRÍTICO: A equipe INE {ine} ({nome}) apresenta três ou mais competências consecutivas sem produção válida. "
+            texto = (f"CRÍTICO: A equipe INE {ine} ({nome}) está há {r.qt_texto or 'três ou mais competências'} sem {falta}. "
                      "Verificar imediatamente a situação do financiamento e as regras aplicáveis.")
         elif n == "laranja":
-            texto = (f"ATENÇÃO: A equipe INE {ine} ({nome}) apresenta duas competências consecutivas sem produção válida. "
-                     "Verificar transmissão e processamento para evitar possível suspensão do financiamento.")
+            texto = (f"ATENÇÃO: A equipe INE {ine} ({nome}) está há duas competências consecutivas sem {falta}. "
+                     "Verificar registro e transmissão para evitar possível suspensão do financiamento.")
         else:
-            texto = f"INFORMATIVO: A equipe INE {ine} ({nome}) está na primeira competência sem produção válida. Verificar a transmissão."
+            texto = f"INFORMATIVO: A equipe INE {ine} ({nome}) está na primeira competência sem {falta}. Verificar registro e transmissão."
+        sp = _situacao_pagamento(ine, pag)
+        if sp["verificada"]:
+            nota = (f"e-Gestor, parcela {_parcela_br(sp['parcela'])}: SUSPENSO por falta de "
+                    f"{' e '.join(sp['suspensao_por_falta_de_producao'])}." if sp["suspensao_confirmada"] else
+                    f"e-Gestor, parcela {_parcela_br(sp['parcela'])}: sem suspensão por falta de produção "
+                    f"(pagamento: {sp.get('st_pagamento') or '—'}"
+                    + (f"; atendimento remoto: {sp['st_pagamento_atend_remoto']}" if sp.get("st_pagamento_atend_remoto") else "")
+                    + ").")
+        else:
+            nota = sp["nota"]
         itens.append({"ine": ine, "equipe": nome, "tipo_equipe": tipo, "nivel": n, "rotulo": svc.NIVEIS[n],
                       "competencia": atual.competencia, "qt_texto": r.qt_texto, "descricao": r.descricao, "mensagem": texto,
+                      "tipo_ausencia": t, "tipo_ausencia_rotulo": TIPOS_AUSENCIA[t],
+                      "providencias": PROVIDENCIAS_REMOTO if t != "producao_equipe" else None,
                       "situacao": "risco_de_suspensao" if n in ("laranja", "vermelho") else "pendente_de_verificacao",
-                      "suspensao_confirmada": False, "suspensao_confirmada_nota": "Não verificada — consulte o Relatório de Pagamento (e-Gestor)."})
+                      "suspensao_verificada": sp["verificada"], "suspensao_confirmada": bool(sp.get("suspensao_confirmada")),
+                      "suspensao_confirmada_nota": nota})
     regularizadas = []
     if vizinha:
         for ine, r in sorted(ant.items()):
@@ -258,7 +401,8 @@ async def alertas(current: SessaoMunicipal, db: AsyncSession = Depends(get_db)):
     itens.sort(key=lambda x: (ordem[x["nivel"]], x["ine"]))
     return {"situacao_dado": "oficial_validado", "fonte": svc.FONTE, "competencia": atual.competencia,
             "gerado_em_fonte": atual.data_geracao_fonte, "alertas": itens, "regularizadas": regularizadas,
-            "avisos": [AVISO_NIVEL, AVISO_SUSPENSAO]}
+            "parcela_verificada": _parcela_br(pag["parcela"]) if pag else None,
+            "avisos": [AVISO_NIVEL, AVISO_SUSPENSAO if pag is None else AVISO_SUSPENSAO_VERIFICADA]}
 
 
 # ── Caso individual (equipe) ─────────────────────────────────────────────────
@@ -311,7 +455,10 @@ async def caso_equipe(current: SessaoMunicipal, ine: str = Path(..., pattern=r"^
         "ultima_competencia_sem_ausencia": regulares[-1] if regulares else None,
         "linha_do_tempo": linha_do_tempo, "historico_transmissoes": NAO_DISPONIBILIZADO,
         "processamento_e_rejeicoes": NAO_DISPONIBILIZADO,
-        "possiveis_causas": CAUSAS_GERAIS + ([CAUSA_EMULTI] if emulti else []), "providencias_recomendadas": PROVIDENCIAS,
+        "tipo_ausencia_atual": TIPOS_AUSENCIA[tipo_ausencia(eq[atual["competencia"]].descricao)] if atual["competencia"] in eq else None,
+        "pagamento_na_competencia": _situacao_pagamento(ine, await _pagamento_da_competencia(db, mid, atual["competencia"])),
+        "possiveis_causas": CAUSAS_GERAIS + ([CAUSA_EMULTI] if emulti else []),
+        "providencias_recomendadas": (PROVIDENCIAS_REMOTO if emulti else []) + PROVIDENCIAS,
         "orientacao_nota": "Orientações gerais para investigação — confirme no PEC, SCNES e SIAPS. O ERSUS360 não acessa as etapas de processamento.",
         "acompanhamento": {"situacao": a.situacao if a else "pendente", "responsavel": a.responsavel if a else None,
                            "observacao": a.observacao if a else None,

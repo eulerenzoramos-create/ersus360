@@ -110,7 +110,7 @@ async def _pagamento_competencias(ibge: str, competencias: list[str], client: ht
                     "coComponentePagamento": c["coComponentePagamento"], "coProcesso": c["coProcesso"],
                     "coProcessoPagamento": c["coProcessoPagamento"], "coProcessoValidacao": c["coProcessoValidacao"],
                     "coPlanoOrcamentario": c["coPlanoOrcamentario"]})
-                for e in (d.get("validacoesEquipes") if isinstance(d, dict) else None) or []:
+                for e in ep.validacoes_equipes(d):
                     ine = str(e.get("coEquipe") or e.get("coEquipeEsb") or "").zfill(10)
                     if not ine.strip("0"):
                         continue
