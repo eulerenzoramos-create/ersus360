@@ -59,7 +59,7 @@ const NIVEL: Record<string, { label: string; cor: string }> = {
 
 const erroMsg = (e: any) => e?.response?.data?.detail ?? e?.message ?? "Erro inesperado";
 
-async function baixar(url: string, nome: string) {
+export async function baixar(url: string, nome: string) {
   const r = await api.get(url, { responseType: "blob" });
   const href = URL.createObjectURL(r.data);
   const a = document.createElement("a");
