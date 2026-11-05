@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import TetosMunicipais from "./InvestSUSTetos";
+import { ExecucaoFinanceira, AlertasExecucao, RelatoriosExecucao } from "./InvestSUSExecucao";
 import {
   Landmark, Plus, RefreshCw, AlertTriangle, CheckCircle2, Clock,
   ChevronDown, ChevronRight, FileText, Upload, Search, X, Check,
@@ -66,17 +67,6 @@ const SITUACAO_MAP: Record<string, { label: string; cor: string; bg: string }> =
   devolucao_saldo_pendente:         { label: "Devolução de Saldo Pendente",    cor: "#dc2626", bg: "#fef2f2" },
   instrumento_concluido:            { label: "Instrumento Concluído",          cor: "#059669", bg: "#f0fdf4" },
 };
-
-// Situações a partir da formalização — usadas na aba "Execução das Propostas"
-const EXECUCAO_SITUACOES = [
-  "empenhada_aguardando_formalizacao", "formalizada", "portaria_publicada",
-  "aguardando_pagamento", "parcialmente_paga", "totalmente_paga",
-  "execucao_nao_iniciada", "em_execucao", "execucao_atrasada", "execucao_paralisada",
-  "execucao_fisica_concluida", "execucao_financeira_concluida",
-  "monitoramento_pendente", "monitoramento_preenchido",
-  "prestacao_contas_pendente", "prestacao_contas_enviada",
-  "devolucao_saldo_pendente", "instrumento_concluido",
-];
 
 const NIVEL_ALERTA: Record<string, { label: string; cor: string; icone: React.ReactNode }> = {
   informativo: { label: "Informativo", cor: "#6366f1", icone: <Info size={14} /> },
@@ -965,84 +955,6 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
 
 const TH: React.CSSProperties = { padding: "8px 12px", textAlign: "left", fontWeight: 600, color: "#374151", fontSize: 11, whiteSpace: "nowrap" };
 const TD: React.CSSProperties = { padding: "8px 12px", borderBottom: "1px solid #f3f4f6", verticalAlign: "middle" };
-
-// ── Execução das Propostas — acompanhamento físico-financeiro pós-formalização ─
-function ExecucaoPropostas({ municipio_id, onSelect }: { municipio_id: number; onSelect: (p: any) => void }) {
-  const [busca, setBusca] = useState("");
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["investsus-propostas", municipio_id, "execucao"],
-    queryFn: () => api.get(`/api/investsus/propostas?municipio_id=${municipio_id}&tamanho=200`).then(r => r.data),
-    placeholderData: { total: 0, propostas: [] },
-  });
-
-  const emExecucao: any[] = (data?.propostas ?? [])
-    .filter((p: any) => EXECUCAO_SITUACOES.includes(p.situacao_normalizada))
-    .filter((p: any) => !busca ||
-      [p.numero_proposta, p.objeto, p.entidade_nome].join(" ").toLowerCase().includes(busca.toLowerCase()));
-
-  if (isLoading) return <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>Carregando…</div>;
-
-  return (
-    <div>
-      <div style={{ position: "relative" as const, marginBottom: 16 }}>
-        <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }} />
-        <input style={{ ...S.input, paddingLeft: 32, fontSize: 13 }}
-          placeholder="Buscar por número, objeto, entidade…"
-          value={busca} onChange={e => setBusca(e.target.value)} />
-      </div>
-
-      {emExecucao.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>
-          <Wrench size={36} style={{ marginBottom: 12 }} />
-          <div style={{ fontWeight: 600 }}>Nenhuma proposta em execução no momento</div>
-          <div style={{ fontSize: 12, marginTop: 4 }}>Propostas aparecem aqui após a formalização do instrumento.</div>
-        </div>
-      ) : (
-        <div style={{ overflowX: "auto" as const, border: "1px solid #e5e7eb", borderRadius: 8 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead>
-              <tr style={{ background: "#f1f5f9" }}>
-                <th style={TH}>Nº Proposta</th>
-                <th style={TH}>Objeto</th>
-                <th style={TH}>Situação</th>
-                <th style={{ ...TH, textAlign: "right" as const }}>% Físico</th>
-                <th style={{ ...TH, textAlign: "right" as const }}>% Financeiro</th>
-                <th style={{ ...TH, textAlign: "right" as const }}>Saldo a Executar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {emExecucao.map((p: any, i: number) => (
-                <tr key={p.id ?? i}
-                  onClick={() => onSelect(p)}
-                  onMouseEnter={e => (e.currentTarget.style.background = "#f0f9ff")}
-                  onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa")}
-                  style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", cursor: "pointer" }}>
-                  <td style={TD}>
-                    <span style={{ fontFamily: "monospace", fontSize: 11, background: "#f3f4f6", borderRadius: 3, padding: "1px 6px", fontWeight: 700, whiteSpace: "nowrap" as const }}>
-                      {p.numero_proposta || "—"}
-                    </span>
-                  </td>
-                  <td style={{ ...TD, maxWidth: 300 }}>
-                    <div style={{ color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
-                      {p.objeto || p.programa?.nome || "—"}
-                    </div>
-                  </td>
-                  <td style={TD}><SituacaoBadge situacao={p.situacao_normalizada ?? ""} /></td>
-                  <td style={{ ...TD, textAlign: "right" as const, fontWeight: 600 }}>{fmtPct(p.perc_fisico ?? 0)}</td>
-                  <td style={{ ...TD, textAlign: "right" as const, fontWeight: 600 }}>{fmtPct(p.perc_financeiro ?? 0)}</td>
-                  <td style={{ ...TD, textAlign: "right" as const, fontWeight: 700, color: (p.saldo_executar ?? 0) > 0 ? "#d97706" : "#059669" }}>
-                    {fmt(p.saldo_executar ?? 0)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Recursos Disponíveis — parlamentares e programas para novas propostas ─────
 function RecursosDisponiveis({ municipio_id }: { municipio_id: number }) {
@@ -3820,6 +3732,7 @@ function ColarPropostasInvestSUS({ municipio_id }: { municipio_id: number }) {
 export default function InvestSUS() {
   const [aba, setAba] = useState<"painel" | "recursos" | "propostas" | "execucao" | "alertas" | "relatorio">("painel");
   const [propostaSelecionada, setPropostaSelecionada] = useState<any>(null);
+  const [execPropostaId, setExecPropostaId] = useState<number | null>(null);
   const [snapMsg, setSnapMsg] = useState<string | null>(null);
   const [mostrarPortalMS, setMostrarPortalMS] = useState(false);
   const [sincAberto, setSincAberto] = useState(false);
@@ -3890,7 +3803,7 @@ export default function InvestSUS() {
         <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" as const }}>
           {abas.map(({ key, label, icone }) => (
             <button key={key} style={{ ...S.tab(aba === key), display: "flex", alignItems: "center", gap: 5 }}
-              onClick={() => setAba(key as typeof aba)}>
+              onClick={() => { setAba(key as typeof aba); setExecPropostaId(null); }}>
               {icone} {label}
             </button>
           ))}
@@ -3922,11 +3835,19 @@ export default function InvestSUS() {
       ) : aba === "propostas" ? (
         <PropostasDetalhadas municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
       ) : aba === "execucao" ? (
-        <ExecucaoPropostas municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
+        <ExecucaoFinanceira propostaId={execPropostaId} setPropostaId={setExecPropostaId} onAbrirProposta={setPropostaSelecionada} />
       ) : aba === "alertas" ? (
-        <AlertasGlobais municipio_id={municipio_id} />
+        <div>
+          <AlertasGlobais municipio_id={municipio_id} />
+          <div style={{ marginTop: 14 }}>
+            <AlertasExecucao onAbrir={(id) => { setExecPropostaId(id); setAba("execucao"); }} />
+          </div>
+        </div>
       ) : (
-        <RelatorioAcompanhamento municipio_id={municipio_id} />
+        <div>
+          <RelatoriosExecucao />
+          <RelatorioAcompanhamento municipio_id={municipio_id} />
+        </div>
       )}
 
       {/* Painel de Sincronização — modal acionado pelo botão do cabeçalho */}
