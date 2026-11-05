@@ -83,6 +83,19 @@ def _tem(t: str, padrao: str) -> bool:
     return re.search(padrao, t) is not None
 
 
+# ── Exercícios acompanhados ───────────────────────────────────────────────────
+# Decisão do município (05/11/2026): o InvestSUS do ERSUS360 acompanha só o ano atual e o
+# anterior — em 2026, os exercícios 2025 e 2026. Propostas de outros exercícios continuam
+# gravadas, mas saem de painéis, listas, alertas, relatórios e da sincronização.
+QTD_EXERCICIOS_ACOMPANHADOS = 2
+
+
+def exercicios_acompanhados(ano_atual: int | None = None) -> list[int]:
+    from datetime import date
+    ano_atual = ano_atual or date.today().year
+    return [ano_atual - i for i in range(QTD_EXERCICIOS_ACOMPANHADOS)]
+
+
 # ── Modalidades ───────────────────────────────────────────────────────────────
 
 MODALIDADES: dict[str, dict] = {

@@ -26,7 +26,9 @@ def _item(numero, exercicio=2026, valor=1000.0, situacao="Proposta Paga"):
             "fonte": "investsus"}
 
 
-async def test_conferencia_tira_dos_totais_o_que_nao_esta_no_investsus(db_session, municipio):
+async def test_conferencia_tira_dos_totais_o_que_nao_esta_no_investsus(db_session, municipio, monkeypatch):
+    from services import investsus_federal as fed
+    monkeypatch.setattr(fed, "exercicios_acompanhados", lambda ano_atual=None: [2026, 2025, 2024, 2023])
     # proposta antiga do Portal da Transparência (número da emenda, não da proposta)
     db_session.add(PropostaInvestSUS(municipio_id=municipio.id, numero_proposta="202571040008", exercicio=2025,
                                      modalidade="rp6", valor_indicado=5000, valor_aprovado=5000,
@@ -61,9 +63,35 @@ async def test_exercicio_passa_a_seguir_o_investsus(db_session, municipio):
     assert p.exercicio == 2024 and p.conferencia_investsus == "conferida"
 
 
-def test_captura_todos_os_exercicios():
+def test_acompanha_so_ano_atual_e_anterior():
     from services.investsus_scraper import exercicios_investsus
-    assert exercicios_investsus(2026) == [2026, 2025, 2024, 2023, 2022, 2021, 2020]
+    assert exercicios_investsus(2026) == [2026, 2025]
+
+
+async def test_exercicio_nao_acompanhado_sai_de_todo_o_investsus(db_session, municipio, monkeypatch):
+    from routers import investsus as rt
+    from routers import investsus_execucao as rex
+    from services import investsus_federal as fed
+    monkeypatch.setattr(fed, "exercicios_acompanhados", lambda ano_atual=None: [2026, 2025])
+    db_session.add(PropostaInvestSUS(municipio_id=municipio.id, numero_proposta="ANTIGA", exercicio=2023,
+                                     modalidade="rp6", valor_indicado=7000, valor_aprovado=7000, valor_pago=7000,
+                                     situacao_normalizada=SituacaoNormalizada.TOTALMENTE_PAGA))
+    await db_session.commit()
+    dados = {"propostas": [_item("A", 2026, 1000), _item("B", 2025, 2000)]}
+    await aplicar_propostas_federais(dados, municipio.id, db_session, origem="teste")
+    u = _u(municipio.id, "gestor")
+    # vale já, sem precisar de nova sincronização
+    painel = await dashboard(db_session, u, None, None, None)
+    assert painel["total_propostas"] == 2 and painel["total_indicado"] == 3000
+    assert painel["fora_periodo"] == {"qtd": 1, "valor_indicado": 7000.0, "exercicios": [2023]}
+    assert painel["anos_disponiveis"] == [2026, 2025]
+    lista = await rt.listar_propostas(db_session, u, None, None, None, None, None, 1, 50)
+    assert {p["numero_proposta"] for p in lista["propostas"]} == {"A", "B"}
+    ex = await rex.painel(db_session, u, exercicio=None, origem=None, destinacao=None, fase=None,
+                          situacao_plano=None, busca=None, proposta_id=None)
+    assert {p["numero_proposta"] for p in ex["propostas"]} == {"A", "B"} and ex["opcoes"]["anos"] == [2026, 2025]
+    conf = await registrar_conferencia(db_session, municipio.id, dados, [2026, 2025], "tecnico")
+    assert (conf["conferidas"], conf["nao_encontradas"], conf["fora_periodo"]) == (2, 0, 1)
 
 
 async def test_natureza_soma_todos_os_planos_da_proposta(db_session, municipio):
