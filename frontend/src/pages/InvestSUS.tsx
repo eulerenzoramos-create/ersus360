@@ -2711,7 +2711,7 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
 
   const verde = "#047857";
   return (
-    <div style={{ background: "#fff", border: `2px solid ${verde}`, borderRadius: 10, padding: 24, marginBottom: 16 }}>
+    <div style={{ background: "#fff", color: "#111827", border: `2px solid ${verde}`, borderRadius: 10, padding: 24, marginBottom: 16 }}>
       <div style={{ fontSize: 15, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 }}>
         Atualizar do InvestSUS (recomendado)
       </div>
@@ -2729,7 +2729,7 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
       </div>
 
       {!pronto && escopo && (
-        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 12, fontSize: 13, marginBottom: 12 }}>
+        <div style={{ background: "#fffbeb", color: "#78350f", border: "1px solid #fde68a", borderRadius: 8, padding: 12, fontSize: 13, marginBottom: 12 }}>
           O CNPJ do Fundo Municipal de Saúde não está cadastrado. O administrador-geral cadastra em
           Municípios → <strong>Dados / CNPJ</strong>.
         </div>
@@ -2745,19 +2745,19 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
       </button>
 
       {estado === "sem_sessao" && (
-        <div role="alert" style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 14, marginTop: 14, fontSize: 13, lineHeight: 1.6 }}>
+        <div role="alert" style={{ background: "#fffbeb", color: "#78350f", border: "1px solid #fde68a", borderRadius: 8, padding: 14, marginTop: 14, fontSize: 13, lineHeight: 1.6 }}>
           <strong>Você não está logado no InvestSUS neste navegador.</strong><br />
           Clique em <a href="https://investsus.saude.gov.br" target="_blank" rel="noreferrer" style={{ color: "#1d4ed8", fontWeight: 600 }}>Abrir o InvestSUS ↗</a>,
           entre com o gov.br, volte para esta aba e clique de novo em <strong>Atualizar do InvestSUS</strong>.
         </div>
       )}
       {erro && (
-        <div role="alert" style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 14, marginTop: 14, fontSize: 13 }}>
+        <div role="alert" style={{ background: "#fef2f2", color: "#991b1b", border: "1px solid #fecaca", borderRadius: 8, padding: 14, marginTop: 14, fontSize: 13 }}>
           <strong>Erro:</strong> {erro}
         </div>
       )}
       {resultado && (
-        <div role="status" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 14, marginTop: 14, fontSize: 13 }}>
+        <div role="status" style={{ background: "#f0fdf4", color: "#14532d", border: "1px solid #bbf7d0", borderRadius: 8, padding: 14, marginTop: 14, fontSize: 13 }}>
           <div style={{ fontWeight: 700, color: "#166534", marginBottom: 6 }}>
             ✓ Atualizado: {resultado.propostas_encontradas} propostas lidas do InvestSUS
           </div>
@@ -3856,7 +3856,7 @@ export default function InvestSUS() {
           position: "fixed", inset: 0, background: "rgba(15,23,42,.55)", zIndex: 1000,
           display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" as const,
         }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "#f8fafc", borderRadius: 12, width: "100%", maxWidth: 720, padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#f8fafc", color: "#111827", borderRadius: 12, width: "100%", maxWidth: 720, padding: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: "#1e3a5f" }}>Sincronização e Importação</div>
               <button onClick={() => setSincAberto(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280" }}>
