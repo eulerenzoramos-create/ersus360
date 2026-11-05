@@ -3,7 +3,8 @@ from services import egestor_diagnostico_scraper as s
 
 
 def test_cns_mascarado_e_varredura_sem_alterar_texto():
-    assert s._mascarar_cns("MARIA — CBO 322205 · CNS 705408412586591") == "MARIA — CBO 322205 · CNS ***********6591"
+    cns = "7" + "0" * 10 + "6591"   # dado-ficticio: montado em tempo de execução, não é um CNS real
+    assert s._mascarar_cns(f"MARIA — CBO 322205 · CNS {cns}") == "MARIA — CBO 322205 · CNS ***********6591"
     v = s.varredura_scnes()
     assert v["data_varredura"] == "06/09/2026" and "Não é revalidada" in v["aviso"]
     textos = [p["desc"] for e in v["equipes"] for p in e["pendencias"]]
