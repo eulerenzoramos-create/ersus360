@@ -120,5 +120,5 @@ async def test_rotas_completam_dados_e_totalizam_so_o_municipio_da_sessao(db_ses
     lista = {p["nome"]: p for p in await rt.listar_parlamentares(db_session, _usuario(municipio.id))}
     b = lista["EDUARDO BRAGA"]
     assert (b["cargo"], b["partido"], b["uf"]) == ("Senador", "MDB", "AM")
-    assert b["qtd_propostas"] == 2 and b["valor"] == 300.0  # cancelada conta, mas não soma; outro município fora
+    assert b["qtd_propostas"] == 1 and b["valor"] == 300.0  # cancelada fica oculta; outro município fora
     assert lista["BANCADA DO AMAZONAS"]["partido"] is None

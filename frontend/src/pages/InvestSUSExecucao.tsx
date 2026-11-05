@@ -1105,6 +1105,63 @@ export function RepassesPlanos({ propostaId, setPropostaId, onPlanilhaCompleta }
   );
 }
 
+function ExcluirOcultas() {
+  const qc = useQueryClient();
+  const [aberto, setAberto] = useState(false);
+  const [marcadas, setMarcadas] = useState<string[]>(["canceladas"]);
+  const [texto, setTexto] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const { data, refetch } = useQuery({ queryKey: ["investsus-exclusao"], queryFn: () => api.get(`/api/investsus/exclusao`).then(r => r.data) });
+  if (!data?.pode_excluir) return null;
+  const total = data.categorias.reduce((s: number, c: any) => s + c.qtd, 0);
+  if (!total && !msg) return null;
+  const selecionadas = data.categorias.filter((c: any) => marcadas.includes(c.chave));
+  const qtd = selecionadas.reduce((s: number, c: any) => s + c.qtd - c.bloqueadas, 0);
+  const excluir = async () => {
+    setOcupado(true);
+    try {
+      const r = (await api.post(`/api/investsus/exclusao`, { categorias: marcadas, confirmacao: texto })).data;
+      setMsg(`${r.excluidas} proposta(s) excluída(s) do banco. Uma cópia foi guardada para recuperação.` +
+        (r.mantidas_com_execucao.length ? ` ${r.mantidas_com_execucao.length} mantida(s) porque têm execução lançada.` : ""));
+      setAberto(false); setTexto("");
+      ["investsus-conferencia", "investsus-exec-painel", "investsus-dashboard", "investsus-propostas"].forEach(k => qc.invalidateQueries({ queryKey: [k] }));
+      refetch();
+    } catch (e) { setMsg(erroMsg(e)); } finally { setOcupado(false); }
+  };
+  return (<>
+    {msg && <div style={{ fontSize: 12, marginTop: 8 }}>{msg}</div>}
+    {total > 0 && <button style={{ ...S.btn("#b91c1c"), padding: "4px 10px", marginTop: 8 }} onClick={() => setAberto(true)}>
+      <Ban size={12} /> Excluir do banco propostas que o InvestSUS não mostra ({total})</button>}
+    {aberto && (
+      <div role="dialog" aria-modal="true" onClick={() => setAberto(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.5)", zIndex: 1100, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
+        <div onClick={e => e.stopPropagation()} style={{ background: "#fff", color: "#111827", borderRadius: 10, padding: 18, width: "100%", maxWidth: 820 }}>
+          <div style={{ fontWeight: 800, color: "#b91c1c", marginBottom: 6 }}>Excluir propostas do banco</div>
+          <div style={{ fontSize: 12, color: "#374151", marginBottom: 10 }}>Escolha o que apagar. Antes de apagar, o sistema guarda uma cópia para recuperação e registra na auditoria. Proposta com notas ou lançamentos de execução não é apagada.</div>
+          {data.categorias.map((c: any) => (
+            <div key={c.chave} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 10, marginBottom: 8 }}>
+              <label style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 700, fontSize: 13 }}>
+                <input type="checkbox" disabled={!c.qtd} checked={marcadas.includes(c.chave)}
+                  onChange={e => setMarcadas(m => e.target.checked ? [...m, c.chave] : m.filter(x => x !== c.chave))} />
+                {c.rotulo}: {c.qtd} proposta(s) · {fmt(c.valor_indicado)}{c.bloqueadas ? ` · ${c.bloqueadas} com execução (ficam)` : ""}
+              </label>
+              {c.qtd > 0 && <div style={{ maxHeight: 140, overflowY: "auto", marginTop: 6, fontSize: 11.5 }}>
+                {c.propostas.map((p: any) => <div key={p.id} style={{ color: p.bloqueada ? "#9ca3af" : "#374151" }}>
+                  <span style={{ fontFamily: "monospace" }}>{p.numero_proposta}</span> · {p.exercicio ?? "—"} · {p.situacao || "—"} · {fmt(p.valor_indicado)}{p.bloqueada ? " (tem execução — não será apagada)" : ""}</div>)}
+              </div>}
+            </div>))}
+          <div style={{ display: "flex", gap: 8, alignItems: "end", flexWrap: "wrap", marginTop: 6 }}>
+            <div><label style={S.label}>Digite EXCLUIR para confirmar a exclusão de {qtd} proposta(s)</label>
+              <input style={{ ...S.input, width: 200 }} value={texto} onChange={e => setTexto(e.target.value)} /></div>
+            <button style={S.btn()} onClick={() => setAberto(false)}>Cancelar</button>
+            <button style={S.btn("#b91c1c")} disabled={ocupado || !qtd || texto.trim().toUpperCase() !== "EXCLUIR"} onClick={excluir}>
+              <Ban size={13} /> {ocupado ? "Excluindo…" : `Excluir ${qtd} proposta(s)`}</button>
+          </div>
+        </div>
+      </div>)}
+  </>);
+}
+
 function Conferencia() {
   const { data } = useQuery({ queryKey: ["investsus-conferencia"], queryFn: () => api.get(`/api/investsus/conferencia`).then(r => r.data) });
   const [aberto, setAberto] = useState(false);
@@ -1123,6 +1180,7 @@ function Conferencia() {
           {nao.length > 0 ? <> · <b>{nao.length} não encontrada(s) no InvestSUS</b> ({fmt(nao.reduce((s, p) => s + (p.valor_indicado || 0), 0))}), fora dos totais</> : " · tudo confere"}</span>
         <button style={{ ...S.btn(), padding: "3px 9px" }} onClick={() => setAberto(v => !v)}>{aberto ? "Ocultar" : "Ver por exercício"}</button>
       </div>
+      <ExcluirOcultas />
       {aberto && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(320px, 100%), 1fr))", gap: 12, marginTop: 10 }}>
           <table style={{ ...XL.table, background: "#fff" }}>

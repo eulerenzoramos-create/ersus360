@@ -7,12 +7,21 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///./ersus360_teste.db")
 os.environ.setdefault("DEBUG", "true")
 os.environ.setdefault("SECRET_KEY", "teste-" + secrets.token_hex(16))
 
+import pytest  # noqa: E402
 import pytest_asyncio  # noqa: E402
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker  # noqa: E402
 
 import models  # noqa: F401 — garante que todas as tabelas sejam registradas em Base.metadata
 from database import Base
 from models.municipio import Municipio
+
+
+@pytest.fixture(autouse=True)
+def _exercicios_acompanhados_amplos(monkeypatch):
+    """Os testes usam propostas de vários exercícios; o período real (ano atual e anterior)
+    é testado à parte, ajustando esta função."""
+    from services import investsus_federal as fed
+    monkeypatch.setattr(fed, "exercicios_acompanhados", lambda ano_atual=None: list(range(2030, 2019, -1)))
 
 
 @pytest_asyncio.fixture
