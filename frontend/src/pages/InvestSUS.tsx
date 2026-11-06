@@ -845,70 +845,89 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
                       {/* Tabela de propostas do bloco */}
                       {bAberto && (
                         <div style={{ overflowX: "auto" as const }}>
-                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, color: "#111827" }}>
                             <thead>
                               <tr style={{ background: "#f1f5f9" }}>
                                 <th style={TH}>Nº Proposta</th>
                                 <th style={TH}>Parlamentar / Autoria</th>
-                                <th style={TH}>Partido/UF</th>
                                 <th style={TH}>Objeto / Programa</th>
                                 <th style={TH}>Situação</th>
                                 <th style={{ ...TH, textAlign: "right" as const }}>Valor Global</th>
-                                <th style={{ ...TH, textAlign: "right" as const }}>Repassado</th>
+                                <th style={{ ...TH, textAlign: "right" as const, minWidth: 150 }}>Repassado</th>
                                 <th style={{ ...TH, textAlign: "center" as const }}>Ano</th>
                               </tr>
                             </thead>
                             <tbody>
                               {props.map((p: any, i: number) => {
-                                const perc = p.valor_global > 0 ? (p.valor_repassado / p.valor_global) * 100 : 0;
-                                const pcor = perc >= 75 ? "#059669" : perc >= 30 ? "#d97706" : "#6b7280";
+                                const perc = p.valor_global > 0 ? Math.min(100, (p.valor_repassado / p.valor_global) * 100) : 0;
+                                const pcor = perc >= 99.5 ? "#047857" : perc >= 30 ? "#b45309" : "#6b7280";
+                                const zebra = i % 2 === 0 ? "#fff" : "#f9fafb";
+                                const partido = [p.parlamentar?.partido, p.parlamentar?.uf].filter(Boolean).join("/");
+                                const objeto = p.objeto || p.programa_nome || "—";
+                                const objUp = String(objeto).toUpperCase();
+                                const tipo = objUp.includes("MÉDIA E ALTA") || objUp.includes("MEDIA E ALTA") ? { t: "MAC", c: "#7c3aed", bg: "#f3e8ff" }
+                                  : objUp.includes("ATENÇÃO PRIM") || objUp.includes("ATENCAO PRIM") ? { t: "PAP", c: "#0369a1", bg: "#e0f2fe" } : null;
                                 return (
                                   <tr key={p.id ?? i}
                                     onClick={() => onSelect(p)}
-                                    onMouseEnter={e => (e.currentTarget.style.background = "#f0f9ff")}
-                                    onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#fafafa")}
-                                    style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", cursor: "pointer" }}>
+                                    onKeyDown={e => { if (e.key === "Enter") onSelect(p); }}
+                                    tabIndex={0}
+                                    title="Abrir detalhes da proposta"
+                                    onMouseEnter={e => (e.currentTarget.style.background = "#eff6ff")}
+                                    onMouseLeave={e => (e.currentTarget.style.background = zebra)}
+                                    style={{ background: zebra, cursor: "pointer" }}>
                                     <td style={TD}>
-                                      <span style={{ fontFamily: "monospace", fontSize: 11, background: "#f3f4f6",
-                                        borderRadius: 3, padding: "1px 6px", fontWeight: 700, whiteSpace: "nowrap" as const }}>
+                                      <span style={{ fontFamily: "ui-monospace, Consolas, monospace", fontSize: 12, color: "#1f2937",
+                                        background: "#eef2f7", border: "1px solid #dbe3ee", borderRadius: 4,
+                                        padding: "2px 7px", fontWeight: 600, whiteSpace: "nowrap" as const, letterSpacing: 0.2 }}>
                                         {p.numero_proposta || "—"}
                                       </span>
-                                    </td>
-                                    <td style={TD}>
-                                      <div style={{ fontWeight: 600, color: "#111827" }}>
-                                        {p.parlamentar?.nome || p.parlamentar || "—"}
-                                      </div>
                                       {p.numero_instrumento && (
-                                        <div style={{ fontSize: 10, color: "#9ca3af" }}>Instr.: {p.numero_instrumento}</div>
+                                        <div style={{ fontSize: 11, color: "#4b5563", marginTop: 4 }}>Instrumento {p.numero_instrumento}</div>
                                       )}
                                     </td>
-                                    <td style={{ ...TD, whiteSpace: "nowrap" as const }}>
-                                      <span style={{ fontSize: 11, color: "#6b7280" }}>
-                                        {p.parlamentar?.partido ?? ""}
-                                        {p.parlamentar?.uf ? `/${p.parlamentar.uf}` : ""}
-                                      </span>
-                                    </td>
-                                    <td style={{ ...TD, maxWidth: 260 }}>
-                                      <div style={{ color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>
-                                        {p.objeto || p.programa_nome || "—"}
+                                    <td style={TD}>
+                                      <div style={{ fontWeight: 700, color: "#111827", whiteSpace: "nowrap" as const }}>
+                                        {p.parlamentar?.nome || p.parlamentar || "—"}
                                       </div>
+                                      {partido && (
+                                        <span style={{ display: "inline-block", marginTop: 3, fontSize: 11, fontWeight: 600, color: "#374151",
+                                          background: "#f3f4f6", borderRadius: 4, padding: "1px 6px" }}>{partido}</span>
+                                      )}
+                                    </td>
+                                    <td style={{ ...TD, maxWidth: 320 }} title={objeto}>
+                                      {tipo && (
+                                        <span style={{ fontSize: 10, fontWeight: 800, color: tipo.c, background: tipo.bg,
+                                          borderRadius: 4, padding: "1px 6px" }}>{tipo.t}</span>
+                                      )}
+                                      <span style={{ color: "#1f2937", fontSize: 12, lineHeight: 1.35, display: "-webkit-box",
+                                        WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const, overflow: "hidden", marginTop: tipo ? 3 : 0 }}>
+                                        {objeto}
+                                      </span>
                                     </td>
                                     <td style={TD}>
                                       <SituacaoBadge situacao={p.situacao_normalizada ?? ""} />
                                       {p.situacao_original && (
-                                        <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }} title="Status oficial na fonte">
+                                        <div style={{ fontSize: 11, color: "#4b5563", marginTop: 3 }} title="Status oficial na fonte">
                                           Oficial: {p.situacao_original}
                                         </div>
                                       )}
                                     </td>
-                                    <td style={{ ...TD, textAlign: "right" as const, fontWeight: 700, whiteSpace: "nowrap" as const }}>
+                                    <td style={{ ...TD, textAlign: "right" as const, fontWeight: 700, color: "#111827",
+                                      whiteSpace: "nowrap" as const, fontVariantNumeric: "tabular-nums" }}>
                                       {fmt(p.valor_global)}
                                     </td>
-                                    <td style={{ ...TD, textAlign: "right" as const, whiteSpace: "nowrap" as const }}>
-                                      <span style={{ color: pcor, fontWeight: 600 }}>{fmt(p.valor_repassado)}</span>
-                                      <div style={{ fontSize: 9, color: "#9ca3af" }}>{perc.toFixed(0)}%</div>
+                                    <td style={{ ...TD, textAlign: "right" as const, whiteSpace: "nowrap" as const, fontVariantNumeric: "tabular-nums" }}>
+                                      <div style={{ color: pcor, fontWeight: 700 }}>{fmt(p.valor_repassado)}</div>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, justifyContent: "flex-end" }}>
+                                        <div style={{ width: 70, height: 5, background: "#e5e7eb", borderRadius: 3, overflow: "hidden" }}
+                                          role="progressbar" aria-valuenow={Math.round(perc)} aria-valuemin={0} aria-valuemax={100}>
+                                          <div style={{ width: `${perc}%`, height: "100%", background: pcor }} />
+                                        </div>
+                                        <span style={{ fontSize: 11, color: "#4b5563", minWidth: 30 }}>{perc.toFixed(0)}%</span>
+                                      </div>
                                     </td>
-                                    <td style={{ ...TD, textAlign: "center" as const, color: "#9ca3af" }}>
+                                    <td style={{ ...TD, textAlign: "center" as const, color: "#374151", fontWeight: 600 }}>
                                       {p.exercicio}
                                     </td>
                                   </tr>
@@ -917,7 +936,7 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
                             </tbody>
                             <tfoot>
                               <tr style={{ background: "#f1f5f9", fontWeight: 700 }}>
-                                <td style={TD} colSpan={5}>Total {bcfg.label} — {grupo && GRUPO_CONFIG[grupo]?.label}</td>
+                                <td style={TD} colSpan={4}>Total {bcfg.label} — {grupo && GRUPO_CONFIG[grupo]?.label}</td>
                                 <td style={{ ...TD, textAlign: "right" as const }}>{fmt(somaBloco)}</td>
                                 <td style={{ ...TD, textAlign: "right" as const }}>
                                   {fmt(props.reduce((a, p) => a + (Number(p.valor_repassado) || 0), 0))}
@@ -948,8 +967,9 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
   );
 }
 
-const TH: React.CSSProperties = { padding: "8px 12px", textAlign: "left", fontWeight: 600, color: "#374151", fontSize: 11, whiteSpace: "nowrap" };
-const TD: React.CSSProperties = { padding: "8px 12px", borderBottom: "1px solid #f3f4f6", verticalAlign: "middle" };
+const TH: React.CSSProperties = { padding: "9px 12px", textAlign: "left", fontWeight: 700, color: "#374151", fontSize: 11,
+  whiteSpace: "nowrap", textTransform: "uppercase", letterSpacing: 0.4, borderBottom: "1px solid #e2e8f0" };
+const TD: React.CSSProperties = { padding: "10px 12px", borderBottom: "1px solid #eef0f3", verticalAlign: "middle", color: "#111827" };
 
 // ── Recursos Disponíveis — parlamentares e programas para novas propostas ─────
 function RecursosDisponiveis({ municipio_id }: { municipio_id: number }) {
