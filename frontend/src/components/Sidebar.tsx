@@ -1,6 +1,7 @@
 /**
  * Sidebar ERSUS 360 — menu lateral refatorado
- * Busca + filtros de área + favoritos + recentes + teclado
+ * Busca (Ctrl+K) + favoritos + grupos temáticos recolhíveis (abre só o grupo da tela atual)
+ * Itens filtrados por perfil e pelas telas liberadas ao município da sessão.
  */
 import React, {
   useState, useMemo, useCallback, useRef, useEffect,
@@ -25,6 +26,7 @@ import {
   NAV_ITEMS, CATEGORIES, normalizeText, itemAllowed, scoreItem,
   type NavItem, type Category,
 } from "../lib/navItems";
+import { paginaDisponivel } from "../lib/municipio";
 
 // ── Ícones ────────────────────────────────────────────────────────────────────
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -82,9 +84,7 @@ interface SidebarProps {
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const MAX_RECENTS  = 8;
 const MAX_FAV_SHOW = 6;
-const AREA_ALL     = "Todos";
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
@@ -95,22 +95,12 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
   const [query, setQuery]       = useState("");
   const searchRef               = useRef<HTMLInputElement>(null);
 
-  // Area filter
-  const [area, setArea]         = useState<string>(AREA_ALL);
-
-  // Collapsed categories
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(
-    () => LS.get("sb_collapsed", {})
-  );
+  // Grupos abertos — começam recolhidos; o grupo da tela atual abre sozinho
+  const [openCats, setOpenCats] = useState<Record<string, boolean>>({});
 
   // Favorites
   const [favs, setFavs]         = useState<string[]>(
     () => LS.get("sb_favs", [])
-  );
-
-  // Recents
-  const [recents, setRecents]   = useState<string[]>(
-    () => LS.get("sb_recents", [])
   );
 
   // Mobile drawer
@@ -119,31 +109,34 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
   // Command palette
   const [paletteOpen, setPaletteOpen] = useState(false);
 
-  // ── Allowed items for this user's perfil ───────────────────────────────────
+  // ── Itens permitidos: perfil + telas liberadas para o município da sessão ──
+  // (mesma regra do GuardaPaginaMunicipio — módulos só-Apuí não aparecem para outros municípios)
+  const ibgeSessao = auth.municipio_ibge ?? "";
   const allowed = useMemo(
-    () => NAV_ITEMS.filter(item => itemAllowed(item, perfil)),
-    [perfil]
+    () => NAV_ITEMS
+      .filter(item => itemAllowed(item, perfil) && paginaDisponivel(item.route, ibgeSessao))
+      .sort((a, b) => a.order - b.order),
+    [perfil, ibgeSessao]
   );
 
-  // ── Search + area filter ───────────────────────────────────────────────────
+  // ── Search ─────────────────────────────────────────────────────────────────
   const normQ  = useMemo(() => normalizeText(query), [query]);
   const filtered = useMemo(() => {
-    let items = allowed;
-    if (area !== AREA_ALL) items = items.filter(i => i.category === area);
-    if (!normQ) return items;
-    return items
+    if (!normQ) return allowed;
+    return allowed
       .map(i => ({ item: i, score: scoreItem(i, normQ) }))
       .filter(x => x.score > 0)
       .sort((a, b) => b.score - a.score)
       .map(x => x.item);
-  }, [allowed, area, normQ]);
+  }, [allowed, normQ]);
 
   // ── Group by category (only when not searching) ───────────────────────────
   const grouped = useMemo(() => {
     if (normQ) return null;
     const map = new Map<Category, NavItem[]>();
     for (const cat of CATEGORIES) {
-      const items = filtered.filter(i => i.category === cat);
+      // Telas-filhas ficam como subabas do painel principal, não na lista do menu
+      const items = filtered.filter(i => i.category === cat && !i.parent);
       if (items.length) map.set(cat as Category, items);
     }
     return map;
@@ -155,30 +148,23 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
     [favs, allowed]
   );
 
-  // ── Recent items ───────────────────────────────────────────────────────────
-  const recentItems = useMemo(
-    () => recents.map(id => allowed.find(i => i.id === id)).filter(Boolean) as NavItem[],
-    [recents, allowed]
-  );
-
   // ── Active item detection ──────────────────────────────────────────────────
-  const activeId = useMemo(() => {
+  const activeItem = useMemo(() => {
     const path = location.pathname;
     // Exact match first, then prefix match (longer wins)
-    return allowed
+    const hit = [...allowed]
       .filter(i => path === i.route || path.startsWith(i.route + "/"))
-      .sort((a, b) => b.route.length - a.route.length)[0]?.id;
+      .sort((a, b) => b.route.length - a.route.length)[0];
+    // Numa subaba, destaca o painel principal no menu
+    return (hit?.parent && allowed.find(i => i.id === hit.parent)) || hit;
   }, [location.pathname, allowed]);
+  const activeId = activeItem?.id;
 
-  // ── Record navigation ──────────────────────────────────────────────────────
+  // ── Abre o grupo da tela atual ao navegar ──────────────────────────────────
   useEffect(() => {
-    if (!activeId) return;
-    setRecents(prev => {
-      const next = [activeId, ...prev.filter(x => x !== activeId)].slice(0, MAX_RECENTS);
-      LS.set("sb_recents", next);
-      return next;
-    });
-  }, [activeId]);
+    const cat = activeItem?.category;
+    if (cat) setOpenCats(prev => (prev[cat] ? prev : { ...prev, [cat]: true }));
+  }, [activeItem?.category]);
 
   // ── Toggle fav ────────────────────────────────────────────────────────────
   const toggleFav = useCallback((id: string, e: React.MouseEvent) => {
@@ -192,11 +178,7 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
 
   // ── Toggle category ───────────────────────────────────────────────────────
   const toggleCat = useCallback((cat: string) => {
-    setCollapsed(prev => {
-      const next = { ...prev, [cat]: !prev[cat] };
-      LS.set("sb_collapsed", next);
-      return next;
-    });
+    setOpenCats(prev => ({ ...prev, [cat]: !prev[cat] }));
   }, []);
 
   // ── Keyboard: Ctrl+K opens palette ────────────────────────────────────────
@@ -213,12 +195,6 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
 
   // ── Close search on route change ──────────────────────────────────────────
   useEffect(() => { setQuery(""); setMobileOpen(false); }, [location.pathname]);
-
-  // ── Area chips ────────────────────────────────────────────────────────────
-  const areas = useMemo(() => [
-    AREA_ALL,
-    ...CATEGORIES.filter(c => allowed.some(i => i.category === c)),
-  ], [allowed]);
 
   // ── Render a single nav item ──────────────────────────────────────────────
   const renderItem = useCallback((item: NavItem, highlight = false) => {
@@ -332,31 +308,6 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
         </div>
       </div>
 
-      {/* Area filter chips */}
-      {!normQ && (
-        <div style={{
-          display: "flex", gap: 4, padding: "4px 10px 8px", flexWrap: "nowrap",
-          overflowX: "auto", flexShrink: 0,
-        }}>
-          {areas.map(a => (
-            <button
-              key={a}
-              onClick={() => setArea(a === area ? AREA_ALL : a)}
-              style={{
-                flexShrink: 0,
-                fontSize: 10, fontWeight: 600, border: "none", cursor: "pointer",
-                borderRadius: 20, padding: "3px 8px", whiteSpace: "nowrap",
-                background: area === a ? T.pillAct : T.pill,
-                color: area === a ? "#fff" : T.muted,
-                transition: "background 0.15s",
-              }}
-            >
-              {a === "Todos" ? "Todos" : a.split(" ")[0]}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Scrollable area */}
       <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "0 6px 80px" }}>
 
@@ -383,16 +334,9 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
           </Section>
         )}
 
-        {/* Recent */}
-        {!normQ && !normQ && recentItems.length > 0 && area === AREA_ALL && (
-          <Section label="🕐 Recentes" muted>
-            {recentItems.slice(0, 5).map(item => renderItem(item))}
-          </Section>
-        )}
-
         {/* Categories */}
         {!normQ && grouped && Array.from(grouped.entries()).map(([cat, items]) => {
-          const isCollapsed = collapsed[cat] ?? false;
+          const isCollapsed = !openCats[cat];
           // Group by subcategory
           const subcats = new Map<string, NavItem[]>();
           const noSub: NavItem[] = [];
@@ -431,7 +375,7 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
 
                   {/* Subcategory groups */}
                   {Array.from(subcats.entries()).map(([sub, subItems]) => (
-                    <Subcategory key={sub} label={sub}>
+                    <Subcategory key={sub} label={sub} forceOpen={subItems.some(i => i.id === activeId)}>
                       {subItems.map(item => renderItem(item, !!item.highlight))}
                     </Subcategory>
                   ))}
@@ -531,7 +475,6 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
       <style>{`
         .sb-fav-btn { opacity: 0 !important; }
         a:hover .sb-fav-btn, a:focus-within .sb-fav-btn { opacity: 1 !important; }
-        .sb-fav-btn[style*="color: rgb(245"] { opacity: 1 !important; }
         @media (max-width: 768px) {
           aside[aria-label="Menu de navegação"] { display: none !important; }
           .sb-mobile-toggle { display: flex !important; }
@@ -556,8 +499,10 @@ function Section({ label, muted, children }: { label: string; muted?: boolean; c
   );
 }
 
-function Subcategory({ label, children }: { label: string; children: React.ReactNode }) {
-  const [open, setOpen] = useState(true);
+function Subcategory({ label, forceOpen, children }: { label: string; forceOpen?: boolean; children: React.ReactNode }) {
+  // Subgrupos começam recolhidos, exceto o que contém a tela atual
+  const [open, setOpen] = useState(!!forceOpen);
+  useEffect(() => { if (forceOpen) setOpen(true); }, [forceOpen]);
   return (
     <div style={{ marginTop: 2 }}>
       <button
@@ -596,14 +541,19 @@ function CommandPalette({ allowed, onClose, activeId, favs, toggleFav }: Palette
 
   const normQ = useMemo(() => normalizeText(q), [q]);
   const results = useMemo(() => {
-    if (!normQ) return allowed.slice(0, 12);
+    // Sem texto: favoritos primeiro, depois os painéis principais (sem as subabas)
+    if (!normQ) {
+      const fav = favs.map(id => allowed.find(i => i.id === id)).filter(Boolean) as NavItem[];
+      const resto = allowed.filter(i => !i.parent && !favs.includes(i.id));
+      return [...fav, ...resto].slice(0, 12);
+    }
     return allowed
       .map(i => ({ item: i, score: scoreItem(i, normQ) }))
       .filter(x => x.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 20)
       .map(x => x.item);
-  }, [allowed, normQ]);
+  }, [allowed, normQ, favs]);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
   useEffect(() => { setCursor(0); }, [results]);
@@ -690,7 +640,9 @@ function CommandPalette({ allowed, onClose, activeId, favs, toggleFav }: Palette
                       {item.isNew && <span style={{ marginLeft: 6, fontSize: 9, color: T.new_, background: "#064e3b", borderRadius: 4, padding: "1px 4px", fontWeight: 700 }}>NOVO</span>}
                     </div>
                     <div style={{ fontSize: 11, color: T.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {item.category}{item.subcategory ? ` › ${item.subcategory}` : ""}
+                      {item.parent
+                        ? `Subaba do ${(() => { const p = allowed.find(i => i.id === item.parent); return p ? (p.shortTitle ?? p.title) : item.category; })()}`
+                        : `${item.category}${item.subcategory ? ` › ${item.subcategory}` : ""}`}
                     </div>
                   </div>
                   <button

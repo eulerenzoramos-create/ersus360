@@ -26,6 +26,8 @@ export interface NavItem {
   isNew?: boolean;
   highlight?: boolean;
   altRoute?: string;         // rota alternativa legada
+  parent?: string;           // id do painel principal: a tela vira subaba dele e sai da lista do menu
+  tabOrder?: number;         // ordem da subaba dentro do painel principal
 }
 
 // ── Ícone temporário — preenchido em runtime pelo Sidebar
@@ -36,297 +38,295 @@ export type NavItemWithIcon = NavItem & { Icon: LucideIcon };
 // ============================================================
 export const NAV_ITEMS: NavItem[] = [
 
-  // ══════════ Agentes Comunitários de Saúde ══════════
-
-  { id:"acs-cadastros",       category:"Agentes Comunitários de Saúde", order:161, iconName:"Users",
-    title:"Cadastros do Cidadão", route:"/acs/cadastros-cid",
-    description:"Fichas de cadastro individual dos cidadãos cadastrados pelos ACS",
-    keywords:["acs","cadastro","cidadão","individual","ficha","esus","cns","cpf"] },
-
-  { id:"acs-mapa",            category:"Agentes Comunitários de Saúde", order:163, iconName:"Map",
-    title:"Mapa de Visitas ACS", route:"/acs/mapa-visitas",
-    description:"Mapa georreferenciado de visitas domiciliares dos ACS",
-    keywords:["acs","mapa","visita","georreferenciado","microárea","território"] },
-
-  { id:"acs-painel",          category:"Agentes Comunitários de Saúde", order:160, iconName:"BarChart3",
-    title:"Painel do ACS", route:"/acs/painel",
-    description:"Painel de monitoramento dos Agentes Comunitários de Saúde em tempo real",
-    keywords:["acs","agente comunitário","saúde","painel","monitoramento","visita","esus pec","microárea"] },
-
-  { id:"acs-registrar",       category:"Agentes Comunitários de Saúde", order:164, iconName:"ClipboardCheck",
-    title:"Registrar Visita ACS", route:"/acs/registrar-visita",
-    description:"Formulário de registro de visita domiciliar pelo ACS",
-    keywords:["acs","registrar","visita","formulário","domiciliar","novo registro"] },
-
-  { id:"acs-visitas",         category:"Agentes Comunitários de Saúde", order:162, iconName:"MapPin",
-    title:"Visitas Domiciliares", route:"/acs/visitas-cidadao",
-    description:"Registro e acompanhamento de visitas domiciliares dos ACS",
-    keywords:["acs","visita","domiciliar","domicílio","registro","esus","agente"] },
-
-
-  // ══════════ Vigilância em Saúde ══════════
-
-  { id:"arboviroses",         category:"Vigilância em Saúde", order:406, iconName:"Bug",
-    title:"Arboviroses / Dengue", route:"/arboviroses",
-    description:"Vigilância de arboviroses — Dengue, Chikungunya e Zika",
-    keywords:["dengue","chikungunya","zika","arbovirose","aedes","mosquito","vetor","febre"] },
-
-  { id:"ccih",                category:"Vigilância em Saúde", order:411, iconName:"Shield",
-    title:"CCIH / Infecções", shortTitle:"CCIH", route:"/ccih",
-    description:"Comissão de Controle de Infecção Hospitalar — IRAS",
-    keywords:["ccih","iras","infecção","hospitalar","controle","resistência","bacteremia","sepse"] },
-
-  { id:"vetores",             category:"Vigilância em Saúde", order:408, iconName:"Bug",
-    title:"Controle de Vetores", route:"/vetores",
-    description:"Controle de vetores e animais peçonhentos",
-    keywords:["vetor","controle","mosquito","borrifação","lw","larval","roedor","animal peçonhento"] },
-
-  { id:"vigilancia-painel",   category:"Vigilância em Saúde", order:399, iconName:"Activity", isNew:true, highlight:true,
-    title:"Painel de Vigilância (FVS-AM)", shortTitle:"Painel de Vigilância", route:"/vigilancia-saude",
-    description:"Painel executivo com os dados públicos da FVS-RCP/AM: alertas, mapa do Amazonas, comparativo, PQA-VS, relatórios e Agente IA",
-    keywords:["fvs","vigilância","painel","mapa","amazonas","alerta","pqa-vs","relatório","ia","epidemiológico","municípios"] },
-
-  { id:"epidemiologia",       category:"Vigilância em Saúde", order:401, iconName:"Activity",
-    title:"Epidemiologia / SINAN", route:"/epidemiologia",
-    description:"Vigilância epidemiológica — SINAN — Sistema de Informação de Agravos de Notificação",
-    keywords:["epidemiologia","sinan","agravo","notificação","surto","investigação","doenças","compulsória"] },
-
-  { id:"ist-hiv",             category:"Vigilância em Saúde", order:403, iconName:"ShieldCheck",
-    title:"IST / HIV / Hepatites", route:"/ist-hiv",
-    description:"Vigilância de Infecções Sexualmente Transmissíveis, HIV/AIDS e Hepatites Virais",
-    keywords:["ist","hiv","aids","hepatites","sexualmente transmissíveis","sifilis","gonorréia","prevenção"] },
-
-  { id:"malaria",             category:"Vigilância em Saúde", order:407, iconName:"Bug",
-    title:"Malária / Endemias", route:"/malaria-apui",
-    description:"Vigilância e controle da Malária e doenças endêmicas em Apuí",
-    keywords:["malária","endemia","plasmodium","ivp","api","notificação","amazônia","apuí"] },
-
-  { id:"monitor-epid",        category:"Vigilância em Saúde", order:402, iconName:"Activity",
-    title:"Monitor Epidemiológico", route:"/monitor-epidemiologico",
-    description:"Painel em tempo real de monitoramento epidemiológico municipal",
-    keywords:["monitor","epidemiológico","tempo real","vigilância","painel","surto","tendência"] },
-
-  { id:"cancer-rastreio",     category:"Vigilância em Saúde", order:414, iconName:"Activity",
-    title:"Rastreio de Câncer", route:"/cancer-rastreio",
-    description:"Rastreamento de câncer de mama e colo de útero na atenção primária",
-    keywords:["câncer","rastreio","mama","colo útero","citopatológico","mamografia","prevenção","inca"] },
-
-  { id:"vacinas",             category:"Vigilância em Saúde", order:400, iconName:"Syringe",
-    title:"Sala de Vacinas / SIPNI", shortTitle:"Vacinas / SIPNI", route:"/sala-vacinas",
-    description:"Sala de Vacinas — cobertura vacinal e SIPNI — Sistema de Informações do Programa Nacional de Imunizações",
-    keywords:["vacinas","sipni","vacinação","imunização","sala","cobertura","imuno","esquema","campanha","influenza","covid","polio"] },
-
-  { id:"sim-sinasc",          category:"Vigilância em Saúde", order:404, iconName:"FileText",
-    title:"SIM / SINASC", route:"/sim-sinasc",
-    description:"Sistema de Informações sobre Mortalidade e Sistema de Informações de Nascidos Vivos",
-    keywords:["sim","sinasc","mortalidade","óbito","nascidos vivos","declaração","do","dn","dnv"] },
-
-  { id:"sisvan",              category:"Vigilância em Saúde", order:413, iconName:"ShoppingBag",
-    title:"SISVAN / Nutrição", shortTitle:"SISVAN", route:"/sisvan",
-    description:"Sistema de Vigilância Alimentar e Nutricional — SISVAN",
-    keywords:["sisvan","nutrição","alimentar","vigilância","imc","peso","altura","anemia","desnutrição","obesidade"] },
-
-  { id:"tb-hanseniase",       category:"Vigilância em Saúde", order:405, iconName:"ShieldCheck",
-    title:"TB / Hanseníase", route:"/tb-hanseniase",
-    description:"Vigilância e controle da Tuberculose e Hanseníase",
-    keywords:["tb","tuberculose","hanseníase","lepra","controle","tratamento","dots","pauci","multi"] },
-
-  { id:"vigiagua",            category:"Vigilância em Saúde", order:412, iconName:"Droplets",
-    title:"VigiÁgua", route:"/vigiagua",
-    description:"Vigilância da qualidade da água para consumo humano — VigiÁgua",
-    keywords:["vigiágua","água","qualidade","consumo","potabilidade","cloro","turbidez","fluoreto"] },
-
-  { id:"visa",                category:"Vigilância em Saúde", order:410, iconName:"Shield",
-    title:"VISA / Vigilância Sanitária", shortTitle:"Vigilância Sanitária", route:"/visa",
-    description:"Vigilância Sanitária — inspeção, licenciamento e controle de riscos sanitários",
-    keywords:["visa","vigilância sanitária","inspeção","licenciamento","sanitária","alimento","medicamento","estabelecimento","auto de infração","vig sanit"] },
-
-  { id:"zoonoses",            category:"Vigilância em Saúde", order:409, iconName:"Bug",
-    title:"Zoonoses", route:"/zoonoses-apui",
-    description:"Vigilância de zoonoses e doenças transmitidas por animais",
-    keywords:["zoonose","animal","raiva","leptospirose","brucelose","leishmaniose","transmissível"] },
-
-
-  // ══════════ Atenção Especializada e Regulação ══════════
-
-  { id:"sad",                 category:"Atenção Especializada e Regulação", order:603, iconName:"Home",
-    title:"Atenção Domiciliar (SAD)", shortTitle:"SAD", route:"/atencao-domiciliar",
-    description:"Serviço de Atenção Domiciliar — SAD — cuidados em domicílio",
-    keywords:["sad","domiciliar","atenção domiciliar","home care","internação domiciliar","cuidado","equipe"] },
-
-  { id:"especializada",       category:"Atenção Especializada e Regulação", order:600, iconName:"Stethoscope",
-    title:"Atenção Especializada", route:"/atencao-especializada",
-    description:"Atenção ambulatorial especializada — consultas e procedimentos especializados",
-    keywords:["especializada","ambulatorial","consulta","especialidade","referência","encaminhamento","mac"] },
-
-  { id:"leitos",              category:"Atenção Especializada e Regulação", order:605, iconName:"Building2",
-    title:"Gestão de Leitos", route:"/gestao-leitos-apui",
-    description:"Monitoramento e gestão de leitos hospitalares SUS",
-    keywords:["leitos","hospitalar","internação","ocupação","disponibilidade","UTI","enfermaria","regulação"] },
-
-  { id:"hemoterapia",         category:"Atenção Especializada e Regulação", order:609, iconName:"Droplets",
-    title:"Hemoterapia / BLH", route:"/hemoterapia",
-    description:"Serviços de hemoterapia e Banco de Leite Humano",
-    keywords:["hemoterapia","sangue","transfusão","banco","leite","humano","blh","hemocentro","doação"] },
-
-  { id:"reabilitacao",        category:"Atenção Especializada e Regulação", order:608, iconName:"Activity",
-    title:"Reabilitação", route:"/reabilitacao-apui",
-    description:"Serviço de reabilitação física, auditiva, intelectual e visual",
-    keywords:["reabilitação","fisioterapia","fonoaudiologia","terapia ocupacional","deficiência","cir","caps"] },
-
-  { id:"regulacao-acesso",    category:"Atenção Especializada e Regulação", order:604, iconName:"Network",
-    title:"Regulação e Acesso", route:"/regulacao-acesso-apui",
-    description:"Regulação do acesso a serviços especializados — central de regulação",
-    keywords:["regulação","acesso","central","fila","espera","especialidade","consulta","encaminhamento"] },
-
-  { id:"samu",                category:"Atenção Especializada e Regulação", order:602, iconName:"Radio",
-    title:"SAMU 192", route:"/samu",
-    description:"Serviço de Atendimento Móvel de Urgência — SAMU 192",
-    keywords:["samu","192","móvel","urgência","ambulância","remoção","atendimento","pré-hospitalar"] },
-
-  { id:"seguranca-paciente",  category:"Atenção Especializada e Regulação", order:607, iconName:"Shield",
-    title:"Segurança do Paciente", route:"/seguranca-paciente-apui",
-    description:"Programa de Segurança do Paciente — notificações e incidentes hospitalares",
-    keywords:["segurança","paciente","incidente","notificação","evento adverso","hospital","psp","vigipós"] },
-
-  { id:"telessaude",          category:"Atenção Especializada e Regulação", order:606, iconName:"Monitor",
-    title:"TeleSaúde", route:"/telessaude-apui",
-    description:"Teleconsultas e telediagnóstico — TeleSaúde Brasil Redes",
-    keywords:["telessaúde","teleconsulta","telediagnóstico","telecardio","telepatologia","digital","remoto"] },
-
-  { id:"tfd",                 category:"Atenção Especializada e Regulação", order:611, iconName:"ArrowLeftRight",
-    title:"TFD — Tratamento Fora do Dom.", shortTitle:"TFD", route:"/tfd-especialidades-apui",
-    description:"Tratamento Fora do Domicílio — TFD — para procedimentos de alta complexidade",
-    keywords:["tfd","tratamento fora","domicílio","deslocamento","diária","regulação","alta complexidade"] },
-
-  { id:"transporte-sanitario",category:"Atenção Especializada e Regulação", order:610, iconName:"Truck",
-    title:"Transporte Sanitário", route:"/transporte-sanitario",
-    description:"Transporte sanitário de pacientes para serviços de saúde",
-    keywords:["transporte","sanitário","paciente","ambulância","veículo","deslocamento","tfd","remoção"] },
-
-  { id:"urgencia",            category:"Atenção Especializada e Regulação", order:601, iconName:"Activity",
-    title:"Urgência / Emergência", route:"/urgencia-emergencia-apui",
-    description:"Serviço de Urgência e Emergência — UPA e pronto-atendimento",
-    keywords:["urgência","emergência","upa","pronto atendimento","pa","hospital","plantão","samu"] },
-
-
-  // ══════════ Financiamento e Recursos ══════════
-
-  { id:"repasses-aps",        category:"Financiamento e Recursos", order:201, iconName:"TrendingUp", highlight:true,
-    title:"Controle Financeiro FNS", shortTitle:"Controle Financeiro FNS", route:"/repasses-aps-apui", roles:ROLES_FIN,
-    description:"Transferências mensais do FNS para APS — Apuí/AM — OBs, portarias e contas bancárias",
-    keywords:["repasse","fns","fundo nacional saúde","transferência","ordem bancária","ob","portaria","conta","agência","banco","fundo a fundo","apuí","recurso","parcela","mensal","aps","financeiro","cofinanciamento"] },
-
-  { id:"folha-pagamento",     category:"Financiamento e Recursos", order:229, iconName:"DollarSign",
-    title:"Folha de Pagamento", route:"/folha-pagamento", roles:ROLES_FIN,
-    description:"Gestão da folha de pagamento do setor saúde",
-    keywords:["folha","pagamento","salário","remuneração","proventos","desconto","contracheque"] },
-
-  // FNS / Convênios
-
-  { id:"fns",                 category:"Financiamento e Recursos", subcategory:"FNS / Convênios", order:210, iconName:"Clipboard",
-    title:"Consolidado de Convênios FNS", shortTitle:"Convênios FNS", route:"/fns", roles:ROLES_FIN,
-    description:"Consolidado de convênios e transferências do Fundo Nacional de Saúde",
-    keywords:["fns","convênio","consolidado","transferência","federal","saúde","fundo nacional","recurso","consultafns"] },
-
-  { id:"emendas",             category:"Financiamento e Recursos", subcategory:"FNS / Convênios", order:213, iconName:"Landmark",
-    title:"Emendas Parlamentares", route:"/emendas", roles:ROLES_FIN,
-    description:"Acompanhamento de emendas parlamentares destinadas à saúde",
-    keywords:["emenda","parlamentar","deputado","senador","congresso","câmara","convênio","recurso"] },
-
-  { id:"execucao-bloco",      category:"Financiamento e Recursos", subcategory:"FNS / Convênios", order:212, iconName:"DollarSign",
-    title:"Execução por Bloco", route:"/execucao", roles:ROLES_FIN,
-    description:"Execução financeira por bloco de financiamento do SUS",
-    keywords:["execução","bloco","financiamento","sus","atenção básica","média","alta","vigilância","assistência"] },
-
-  { id:"investsus",           category:"Financiamento e Recursos", subcategory:"FNS / Convênios", order:214, iconName:"TrendingUp",
-    title:"InvestSUS — Propostas/Execução", shortTitle:"InvestSUS", route:"/investsus", roles:ROLES_FIN,
-    description:"Propostas, emendas e execução financeira via InvestSUS (Ministério da Saúde)",
-    keywords:["investsus","proposta","emenda","execução","ministério saúde","ms","convênio","instrumento","parlamentar","recurso","indicado","aprovado","pago"] },
-
-  { id:"portarias-fns",       category:"Financiamento e Recursos", subcategory:"FNS / Convênios", order:211, iconName:"FileText",
-    title:"Portarias FNS", route:"/portarias", roles:ROLES_FIN,
-    description:"Portarias ministeriais que regulamentam transferências do FNS",
-    keywords:["portaria","fns","ministerial","regulamentação","norma","legislação","número portaria"] },
-
-  // ══════════ Sistemas e Integrações ══════════
-
-  { id:"siaps",               category:"Sistemas e Integrações", order:1005, iconName:"Globe",
+  // ══════════ Financiamento ══════════
+  { id:"siaps",               category:"Financiamento", order:101, iconName:"Globe",
     title:"eGestor / SIAPS", shortTitle:"eGestor", route:"/siaps",
     description:"eGestor APS — SIAPS — financiamento federal da Atenção Primária por competência",
     keywords:["egestor","siaps","aps","financiamento","competência","parcela","equipe","esf","eap","saúde bucal","nasf","emulti","acs","cofinanciamento","federal"] },
 
-  { id:"gateway-rnds",        category:"Sistemas e Integrações", order:1008, iconName:"Network",
-    title:"Gateway RNDS · FHIR R4", route:"/gateway-rnds", roles:ROLES_AUD,
-    description:"Gateway de integração com a Rede Nacional de Dados em Saúde — FHIR R4",
-    keywords:["rnds","rede nacional","dados","saúde","fhir","r4","gateway","prontuário","interoperabilidade"] },
+  { id:"repasses-aps",        category:"Financiamento", order:102, iconName:"TrendingUp", highlight:true,
+    title:"Controle Financeiro FNS", shortTitle:"Controle Financeiro FNS", route:"/repasses-aps-apui", roles:ROLES_FIN,
+    description:"Transferências mensais do FNS para APS — Apuí/AM — OBs, portarias e contas bancárias",
+    keywords:["repasse","fns","fundo nacional saúde","transferência","ordem bancária","ob","portaria","conta","agência","banco","fundo a fundo","apuí","recurso","parcela","mensal","aps","financeiro","cofinanciamento"] },
 
-  { id:"integracao-pec",      category:"Sistemas e Integrações", order:1009, iconName:"Plug",
-    title:"Integração PEC e-SUS", route:"/integracao-pec", roles:ROLES_AUD,
-    description:"Configuração da integração com o Prontuário Eletrônico do Cidadão — e-SUS PEC",
-    keywords:["pec","esus","integração","prontuário","configuração","ledi","mivdt","graphql"] },
+  { id:"portarias-fns",       category:"Financiamento", order:103, iconName:"FileText",
+    title:"Portarias FNS", route:"/portarias", roles:ROLES_FIN,
+    description:"Portarias ministeriais que regulamentam transferências do FNS",
+    keywords:["portaria","fns","ministerial","regulamentação","norma","legislação","número portaria"] },
 
-  { id:"esus-pec-teste",      category:"Sistemas e Integrações", order:1010, iconName:"FlaskConical", isNew:true,
-    title:"e-SUS PEC — Servidor de Teste", shortTitle:"e-SUS PEC Teste", route:"/esus-pec-teste", roles:ROLES_AUD,
-    description:"Versão de treinamento do e-SUS APS PEC, padrão do Ministério da Saúde (credenciada no DF, dados fictícios) — verifica se responde e abre no navegador",
-    keywords:["pec","esus","e-sus","esus pec","esuspec","pec teste","esus pec teste","teste","homologação","treinamento","ambiente de teste","prontuário","ministério","df","distrito federal"] },
+  { id:"investsus",           category:"Financiamento", order:104, iconName:"TrendingUp",
+    title:"InvestSUS — Propostas/Execução", shortTitle:"InvestSUS", route:"/investsus", roles:ROLES_FIN,
+    description:"Propostas, emendas e execução financeira via InvestSUS (Ministério da Saúde)",
+    keywords:["investsus","proposta","emenda","execução","ministério saúde","ms","convênio","instrumento","parlamentar","recurso","indicado","aprovado","pago"] },
 
-  { id:"integracoes",         category:"Sistemas e Integrações", order:1006, iconName:"Plug", highlight:true,
-    title:"Painel de Integrações", shortTitle:"Integrações", route:"/integracoes",
-    description:"Painel de status e configuração de integrações com sistemas externos",
-    keywords:["integração","api","webhook","sistema","externo","rnds","esus","sisab","sinan","conectividade"] },
+  { id:"emendas",             category:"Financiamento", order:105, iconName:"Landmark",
+    title:"Emendas Parlamentares", route:"/emendas", roles:ROLES_FIN,
+    description:"Acompanhamento de emendas parlamentares destinadas à saúde",
+    keywords:["emenda","parlamentar","deputado","senador","congresso","câmara","convênio","recurso"] },
+
+  { id:"fns",                 category:"Financiamento", order:106, iconName:"Clipboard",
+    title:"Consolidado de Convênios FNS", shortTitle:"Convênios FNS", route:"/fns", roles:ROLES_FIN,
+    description:"Consolidado de convênios e transferências do Fundo Nacional de Saúde",
+    keywords:["fns","convênio","consolidado","transferência","federal","saúde","fundo nacional","recurso","consultafns"] },
+
+  { id:"execucao-bloco",      category:"Financiamento", order:107, iconName:"DollarSign",
+    title:"Execução por Bloco", route:"/execucao", roles:ROLES_FIN,
+    description:"Execução financeira por bloco de financiamento do SUS",
+    keywords:["execução","bloco","financiamento","sus","atenção básica","média","alta","vigilância","assistência"] },
+
+  { id:"folha-pagamento",     category:"Financiamento", order:108, iconName:"DollarSign",
+    title:"Folha de Pagamento", route:"/folha-pagamento", roles:ROLES_FIN,
+    description:"Gestão da folha de pagamento do setor saúde",
+    keywords:["folha","pagamento","salário","remuneração","proventos","desconto","contracheque"] },
 
 
-  // ══════════ Relatórios e Indicadores ══════════
-
-  // Inconsistências e Qualidade
-
-  { id:"inconsistencias",     category:"Relatórios e Indicadores", subcategory:"Inconsistências e Qualidade", order:800, iconName:"AlertTriangle", highlight:true,
+  // ══════════ Gestão e Qualidade ══════════
+  { id:"inconsistencias",     category:"Gestão e Qualidade", order:201, iconName:"AlertTriangle", highlight:true,
     title:"Central de Inconsistências", route:"/inconsistencias",
     description:"Alertas de divergências, erros, riscos e pendências que podem causar perda de recursos",
     keywords:["inconsistência","erro","divergência","alerta","pendência","risco","perda recurso","rejeição","auditoria","divergência","validação","conformidade","irregularidade"] },
 
-  { id:"diagnostico-situacional", category:"Relatórios e Indicadores", subcategory:"Planejamento e Gestão", order:790, iconName:"ClipboardCheck", isNew:true, highlight:true,
-    title:"Diagnóstico Situacional da Saúde Municipal", shortTitle:"Diagnóstico Situacional", route:"/diagnostico-situacional",
-    description:"Checklist das 9 áreas da gestão municipal com fonte, evidência e validação técnica; painel executivo, relatório PDF, plano de ação 5W2H e comparação entre períodos",
-    keywords:["diagnóstico","situacional","checklist","gestão","pms","pas","rdqa","rag","conselho","5w2h","plano de ação","validação","relatório executivo","prioridades"] },
-
-  { id:"pms-vivo", category:"Relatórios e Indicadores", subcategory:"Planejamento e Gestão", order:791, iconName:"Target", isNew:true, highlight:true,
-    title:"PMS Vivo — Gestão, Execução e Resultados", shortTitle:"PMS Vivo", route:"/pms-vivo",
-    description:"Plano Municipal de Saúde como ferramenta de gestão: PMS com versões, PAS, Minhas Ações, execução validada e evidências",
-    keywords:["pms","plano municipal de saúde","pas","programação anual","metas","ações","minhas ações","execução","validação","responsável","planejamento","dgmp"] },
-
-  { id:"pec-inconsistencias", category:"Relatórios e Indicadores", subcategory:"Inconsistências e Qualidade", order:803, iconName:"AlertTriangle", isNew:true,
+  { id:"pec-inconsistencias", category:"Gestão e Qualidade", order:202, iconName:"AlertTriangle", isNew:true,
     title:"Inconsistências de envio do PEC", shortTitle:"Inconsistências PEC", route:"/pec-inconsistencias",
     description:"Relatório de inconsistências do recebimento de fichas no e-SUS PEC (CDS, aplicativos e sistemas de terceiros), por tipo de ficha, unidade e erro",
     keywords:["pec","esus","e-sus","inconsistência","inconsistencias","envio","recebimento","lote","ficha","cds","ledi","validação","rejeitada","inválido","incompleto","integração"] },
 
-  { id:"cnes-xml",            category:"Relatórios e Indicadores", subcategory:"Inconsistências e Qualidade", order:802, iconName:"ClipboardCheck", isNew:true,
-    title:"Equipes do CNES (XML SISAB)", shortTitle:"Equipes CNES", route:"/cnes-xml",
-    description:"Importa o XML-CNES do SISAB e confere a composição mínima das equipes (eSF, eSB, eMulti)",
-    keywords:["cnes","xml","sisab","equipe","ine","lotação","composição","acs","esf","esb","emulti","ribeirinha","scnes","importar"] },
+  { id:"diagnostico-situacional", category:"Gestão e Qualidade", order:203, iconName:"ClipboardCheck", isNew:true, highlight:true,
+    title:"Diagnóstico Situacional da Saúde Municipal", shortTitle:"Diagnóstico Situacional", route:"/diagnostico-situacional",
+    description:"Checklist das 9 áreas da gestão municipal com fonte, evidência e validação técnica; painel executivo, relatório PDF, plano de ação 5W2H e comparação entre períodos",
+    keywords:["diagnóstico","situacional","checklist","gestão","pms","pas","rdqa","rag","conselho","5w2h","plano de ação","validação","relatório executivo","prioridades"] },
 
-  { id:"indicadores-equipe",  category:"Relatórios e Indicadores", subcategory:"Inconsistências e Qualidade", order:801, iconName:"Users", isNew:true, highlight:true,
+  { id:"pms-vivo", category:"Gestão e Qualidade", order:204, iconName:"Target", isNew:true, highlight:true,
+    title:"PMS Vivo — Gestão, Execução e Resultados", shortTitle:"PMS Vivo", route:"/pms-vivo",
+    description:"Plano Municipal de Saúde como ferramenta de gestão: PMS com versões, PAS, Minhas Ações, execução validada e evidências",
+    keywords:["pms","plano municipal de saúde","pas","programação anual","metas","ações","minhas ações","execução","validação","responsável","planejamento","dgmp"] },
+
+  { id:"relatorios",          category:"Gestão e Qualidade", order:205, iconName:"FileText",
+    title:"Relatórios", route:"/relatorios",
+    description:"Central de relatórios consolidados do sistema de saúde municipal",
+    keywords:["relatório","central","consolidado","saúde","dados","exportar","impressão","pdf"] },
+
+
+  // ══════════ Atenção Primária e ACS ══════════
+  // ACS
+  { id:"acs-painel",          category:"Atenção Primária e ACS", subcategory:"ACS", order:301, iconName:"BarChart3",
+    title:"Painel do ACS", route:"/acs/painel",
+    description:"Painel de monitoramento dos Agentes Comunitários de Saúde em tempo real",
+    keywords:["acs","agente comunitário","saúde","painel","monitoramento","visita","esus pec","microárea"] },
+
+  { id:"acs-cadastros",       category:"Atenção Primária e ACS", subcategory:"ACS", order:302, iconName:"Users",
+    title:"Cadastros do Cidadão", route:"/acs/cadastros-cid",
+    description:"Fichas de cadastro individual dos cidadãos cadastrados pelos ACS",
+    keywords:["acs","cadastro","cidadão","individual","ficha","esus","cns","cpf"] },
+
+  { id:"acs-visitas",         parent:"acs-painel", tabOrder:3, category:"Atenção Primária e ACS", subcategory:"ACS", order:303, iconName:"MapPin",
+    title:"Visitas Domiciliares", route:"/acs/visitas-cidadao",
+    description:"Registro e acompanhamento de visitas domiciliares dos ACS",
+    keywords:["acs","visita","domiciliar","domicílio","registro","esus","agente"] },
+
+  { id:"acs-mapa",            parent:"acs-painel", tabOrder:1, category:"Atenção Primária e ACS", subcategory:"ACS", order:304, iconName:"Map",
+    title:"Mapa de Visitas ACS", route:"/acs/mapa-visitas",
+    description:"Mapa georreferenciado de visitas domiciliares dos ACS",
+    keywords:["acs","mapa","visita","georreferenciado","microárea","território"] },
+
+  { id:"acs-registrar",       parent:"acs-painel", tabOrder:2, category:"Atenção Primária e ACS", subcategory:"ACS", order:305, iconName:"ClipboardCheck",
+    title:"Registrar Visita ACS", route:"/acs/registrar-visita",
+    description:"Formulário de registro de visita domiciliar pelo ACS",
+    keywords:["acs","registrar","visita","formulário","domiciliar","novo registro"] },
+
+  // Equipes e Indicadores
+  { id:"indicadores-equipe",  category:"Atenção Primária e ACS", subcategory:"Equipes e Indicadores", order:306, iconName:"Users", isNew:true, highlight:true,
     title:"Indicadores por Equipe", shortTitle:"Indicadores por Equipe", route:"/indicadores-equipe",
     description:"Resultado oficial de cada equipe (INE) por indicador, meta, GAP, evolução e atenção necessária",
     keywords:["indicador","equipe","ine","meta","gap","esf","esfr","esb","emulti","qualidade","vínculo","resultado","atenção"] },
 
-  { id:"siaps-relatorios",    category:"Relatórios e Indicadores", subcategory:"Inconsistências e Qualidade", order:803, iconName:"BarChart3", isNew:true,
+  { id:"cnes-xml",            category:"Atenção Primária e ACS", subcategory:"Equipes e Indicadores", order:307, iconName:"ClipboardCheck", isNew:true,
+    title:"Equipes do CNES (XML SISAB)", shortTitle:"Equipes CNES", route:"/cnes-xml",
+    description:"Importa o XML-CNES do SISAB e confere a composição mínima das equipes (eSF, eSB, eMulti)",
+    keywords:["cnes","xml","sisab","equipe","ine","lotação","composição","acs","esf","esb","emulti","ribeirinha","scnes","importar"] },
+
+  { id:"siaps-relatorios",    category:"Atenção Primária e ACS", subcategory:"Equipes e Indicadores", order:308, iconName:"BarChart3", isNew:true,
     title:"Relatórios do SIAPS (importação)", shortTitle:"Relatórios SIAPS", route:"/siaps-relatorios",
     description:"Importa os relatórios de Vínculo (CVAT) e Qualidade baixados no SIAPS, incluindo eSFR",
     keywords:["siaps","cvat","vínculo","qualidade","mais acesso","esfr","ribeirinha","relatório","importar","csv","pontuação"] },
 
-  { id:"score-risco-esf",     category:"Relatórios e Indicadores", subcategory:"Inconsistências e Qualidade", order:801, iconName:"ShieldAlert",
+  { id:"score-risco-esf",     category:"Atenção Primária e ACS", subcategory:"Equipes e Indicadores", order:309, iconName:"ShieldAlert",
     title:"Score de Risco ESF", route:"/score-risco-esf",
     description:"Score de risco por Equipe de Saúde da Família — priorização de correções",
     keywords:["score","risco","esf","equipe","priorização","inconsistência","alerta","vulnerabilidade"] },
 
-  // Relatórios Gerais
 
-  { id:"relatorios",          category:"Relatórios e Indicadores", subcategory:"Relatórios Gerais", order:900, iconName:"FileText",
-    title:"Relatórios", route:"/relatorios",
-    description:"Central de relatórios consolidados do sistema de saúde municipal",
-    keywords:["relatório","central","consolidado","saúde","dados","exportar","impressão","pdf"] },
+  // ══════════ Vigilância em Saúde ══════════
+  { id:"vigilancia-painel",   category:"Vigilância em Saúde", order:401, iconName:"Activity", isNew:true, highlight:true,
+    title:"Painel de Vigilância (FVS-AM)", shortTitle:"Painel de Vigilância", route:"/vigilancia-saude",
+    description:"Painel executivo com os dados públicos da FVS-RCP/AM: alertas, mapa do Amazonas, comparativo, PQA-VS, relatórios e Agente IA",
+    keywords:["fvs","vigilância","painel","mapa","amazonas","alerta","pqa-vs","relatório","ia","epidemiológico","municípios"] },
+
+  // Doenças e Agravos
+  { id:"epidemiologia",       parent:"vigilancia-painel", tabOrder:4, category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:402, iconName:"Activity",
+    title:"Epidemiologia / SINAN", route:"/epidemiologia",
+    description:"Vigilância epidemiológica — SINAN — Sistema de Informação de Agravos de Notificação",
+    keywords:["epidemiologia","sinan","agravo","notificação","surto","investigação","doenças","compulsória"] },
+
+  { id:"monitor-epid",        category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:403, iconName:"Activity",
+    title:"Monitor Epidemiológico", route:"/monitor-epidemiologico",
+    description:"Painel em tempo real de monitoramento epidemiológico municipal",
+    keywords:["monitor","epidemiológico","tempo real","vigilância","painel","surto","tendência"] },
+
+  { id:"ist-hiv",             parent:"vigilancia-painel", tabOrder:5, category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:404, iconName:"ShieldCheck",
+    title:"IST / HIV / Hepatites", route:"/ist-hiv",
+    description:"Vigilância de Infecções Sexualmente Transmissíveis, HIV/AIDS e Hepatites Virais",
+    keywords:["ist","hiv","aids","hepatites","sexualmente transmissíveis","sifilis","gonorréia","prevenção"] },
+
+  { id:"tb-hanseniase",       category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:405, iconName:"ShieldCheck",
+    title:"TB / Hanseníase", route:"/tb-hanseniase",
+    description:"Vigilância e controle da Tuberculose e Hanseníase",
+    keywords:["tb","tuberculose","hanseníase","lepra","controle","tratamento","dots","pauci","multi"] },
+
+  { id:"arboviroses",         parent:"vigilancia-painel", tabOrder:1, category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:406, iconName:"Bug",
+    title:"Arboviroses / Dengue", route:"/arboviroses",
+    description:"Vigilância de arboviroses — Dengue, Chikungunya e Zika",
+    keywords:["dengue","chikungunya","zika","arbovirose","aedes","mosquito","vetor","febre"] },
+
+  { id:"malaria",             parent:"vigilancia-painel", tabOrder:6, category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:407, iconName:"Bug",
+    title:"Malária / Endemias", route:"/malaria-apui",
+    description:"Vigilância e controle da Malária e doenças endêmicas em Apuí",
+    keywords:["malária","endemia","plasmodium","ivp","api","notificação","amazônia","apuí"] },
+
+  { id:"vetores",             parent:"vigilancia-painel", tabOrder:3, category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:408, iconName:"Bug",
+    title:"Controle de Vetores", route:"/vetores",
+    description:"Controle de vetores e animais peçonhentos",
+    keywords:["vetor","controle","mosquito","borrifação","lw","larval","roedor","animal peçonhento"] },
+
+  { id:"zoonoses",            category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:409, iconName:"Bug",
+    title:"Zoonoses", route:"/zoonoses-apui",
+    description:"Vigilância de zoonoses e doenças transmitidas por animais",
+    keywords:["zoonose","animal","raiva","leptospirose","brucelose","leishmaniose","transmissível"] },
+
+  { id:"cancer-rastreio",     category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:410, iconName:"Activity",
+    title:"Rastreio de Câncer", route:"/cancer-rastreio",
+    description:"Rastreamento de câncer de mama e colo de útero na atenção primária",
+    keywords:["câncer","rastreio","mama","colo útero","citopatológico","mamografia","prevenção","inca"] },
+
+  // Imunização e Sistemas
+  { id:"vacinas",             category:"Vigilância em Saúde", subcategory:"Imunização e Sistemas", order:411, iconName:"Syringe",
+    title:"Sala de Vacinas / SIPNI", shortTitle:"Vacinas / SIPNI", route:"/sala-vacinas",
+    description:"Sala de Vacinas — cobertura vacinal e SIPNI — Sistema de Informações do Programa Nacional de Imunizações",
+    keywords:["vacinas","sipni","vacinação","imunização","sala","cobertura","imuno","esquema","campanha","influenza","covid","polio"] },
+
+  { id:"sim-sinasc",          category:"Vigilância em Saúde", subcategory:"Imunização e Sistemas", order:412, iconName:"FileText",
+    title:"SIM / SINASC", route:"/sim-sinasc",
+    description:"Sistema de Informações sobre Mortalidade e Sistema de Informações de Nascidos Vivos",
+    keywords:["sim","sinasc","mortalidade","óbito","nascidos vivos","declaração","do","dn","dnv"] },
+
+  { id:"sisvan",              category:"Vigilância em Saúde", subcategory:"Imunização e Sistemas", order:413, iconName:"ShoppingBag",
+    title:"SISVAN / Nutrição", shortTitle:"SISVAN", route:"/sisvan",
+    description:"Sistema de Vigilância Alimentar e Nutricional — SISVAN",
+    keywords:["sisvan","nutrição","alimentar","vigilância","imc","peso","altura","anemia","desnutrição","obesidade"] },
+
+  // Sanitária e Ambiental
+  { id:"visa",                category:"Vigilância em Saúde", subcategory:"Sanitária e Ambiental", order:414, iconName:"Shield",
+    title:"VISA / Vigilância Sanitária", shortTitle:"Vigilância Sanitária", route:"/visa",
+    description:"Vigilância Sanitária — inspeção, licenciamento e controle de riscos sanitários",
+    keywords:["visa","vigilância sanitária","inspeção","licenciamento","sanitária","alimento","medicamento","estabelecimento","auto de infração","vig sanit"] },
+
+  { id:"ccih",                parent:"vigilancia-painel", tabOrder:2, category:"Vigilância em Saúde", subcategory:"Sanitária e Ambiental", order:415, iconName:"Shield",
+    title:"CCIH / Infecções", shortTitle:"CCIH", route:"/ccih",
+    description:"Comissão de Controle de Infecção Hospitalar — IRAS",
+    keywords:["ccih","iras","infecção","hospitalar","controle","resistência","bacteremia","sepse"] },
+
+  { id:"vigiagua",            category:"Vigilância em Saúde", subcategory:"Sanitária e Ambiental", order:416, iconName:"Droplets",
+    title:"VigiÁgua", route:"/vigiagua",
+    description:"Vigilância da qualidade da água para consumo humano — VigiÁgua",
+    keywords:["vigiágua","água","qualidade","consumo","potabilidade","cloro","turbidez","fluoreto"] },
+
+
+  // ══════════ Atenção Especializada e Regulação ══════════
+  // Urgência e Hospitalar
+  { id:"urgencia",            category:"Atenção Especializada e Regulação", subcategory:"Urgência e Hospitalar", order:501, iconName:"Activity",
+    title:"Urgência / Emergência", route:"/urgencia-emergencia-apui",
+    description:"Serviço de Urgência e Emergência — UPA e pronto-atendimento",
+    keywords:["urgência","emergência","upa","pronto atendimento","pa","hospital","plantão","samu"] },
+
+  { id:"samu",                category:"Atenção Especializada e Regulação", subcategory:"Urgência e Hospitalar", order:502, iconName:"Radio",
+    title:"SAMU 192", route:"/samu",
+    description:"Serviço de Atendimento Móvel de Urgência — SAMU 192",
+    keywords:["samu","192","móvel","urgência","ambulância","remoção","atendimento","pré-hospitalar"] },
+
+  { id:"leitos",              category:"Atenção Especializada e Regulação", subcategory:"Urgência e Hospitalar", order:503, iconName:"Building2",
+    title:"Gestão de Leitos", route:"/gestao-leitos-apui",
+    description:"Monitoramento e gestão de leitos hospitalares SUS",
+    keywords:["leitos","hospitalar","internação","ocupação","disponibilidade","UTI","enfermaria","regulação"] },
+
+  { id:"hemoterapia",         category:"Atenção Especializada e Regulação", subcategory:"Urgência e Hospitalar", order:504, iconName:"Droplets",
+    title:"Hemoterapia / BLH", route:"/hemoterapia",
+    description:"Serviços de hemoterapia e Banco de Leite Humano",
+    keywords:["hemoterapia","sangue","transfusão","banco","leite","humano","blh","hemocentro","doação"] },
+
+  { id:"seguranca-paciente",  category:"Atenção Especializada e Regulação", subcategory:"Urgência e Hospitalar", order:505, iconName:"Shield",
+    title:"Segurança do Paciente", route:"/seguranca-paciente-apui",
+    description:"Programa de Segurança do Paciente — notificações e incidentes hospitalares",
+    keywords:["segurança","paciente","incidente","notificação","evento adverso","hospital","psp","vigipós"] },
+
+  // Regulação e Acesso
+  { id:"especializada",       category:"Atenção Especializada e Regulação", subcategory:"Regulação e Acesso", order:506, iconName:"Stethoscope",
+    title:"Atenção Especializada", route:"/atencao-especializada",
+    description:"Atenção ambulatorial especializada — consultas e procedimentos especializados",
+    keywords:["especializada","ambulatorial","consulta","especialidade","referência","encaminhamento","mac"] },
+
+  { id:"regulacao-acesso",    category:"Atenção Especializada e Regulação", subcategory:"Regulação e Acesso", order:507, iconName:"Network",
+    title:"Regulação e Acesso", route:"/regulacao-acesso-apui",
+    description:"Regulação do acesso a serviços especializados — central de regulação",
+    keywords:["regulação","acesso","central","fila","espera","especialidade","consulta","encaminhamento"] },
+
+  { id:"tfd",                 category:"Atenção Especializada e Regulação", subcategory:"Regulação e Acesso", order:508, iconName:"ArrowLeftRight",
+    title:"TFD — Tratamento Fora do Dom.", shortTitle:"TFD", route:"/tfd-especialidades-apui",
+    description:"Tratamento Fora do Domicílio — TFD — para procedimentos de alta complexidade",
+    keywords:["tfd","tratamento fora","domicílio","deslocamento","diária","regulação","alta complexidade"] },
+
+  { id:"transporte-sanitario",category:"Atenção Especializada e Regulação", subcategory:"Regulação e Acesso", order:509, iconName:"Truck",
+    title:"Transporte Sanitário", route:"/transporte-sanitario",
+    description:"Transporte sanitário de pacientes para serviços de saúde",
+    keywords:["transporte","sanitário","paciente","ambulância","veículo","deslocamento","tfd","remoção"] },
+
+  { id:"telessaude",          category:"Atenção Especializada e Regulação", subcategory:"Regulação e Acesso", order:510, iconName:"Monitor",
+    title:"TeleSaúde", route:"/telessaude-apui",
+    description:"Teleconsultas e telediagnóstico — TeleSaúde Brasil Redes",
+    keywords:["telessaúde","teleconsulta","telediagnóstico","telecardio","telepatologia","digital","remoto"] },
+
+  // Cuidado Continuado
+  { id:"sad",                 category:"Atenção Especializada e Regulação", subcategory:"Cuidado Continuado", order:511, iconName:"Home",
+    title:"Atenção Domiciliar (SAD)", shortTitle:"SAD", route:"/atencao-domiciliar",
+    description:"Serviço de Atenção Domiciliar — SAD — cuidados em domicílio",
+    keywords:["sad","domiciliar","atenção domiciliar","home care","internação domiciliar","cuidado","equipe"] },
+
+  { id:"reabilitacao",        category:"Atenção Especializada e Regulação", subcategory:"Cuidado Continuado", order:512, iconName:"Activity",
+    title:"Reabilitação", route:"/reabilitacao-apui",
+    description:"Serviço de reabilitação física, auditiva, intelectual e visual",
+    keywords:["reabilitação","fisioterapia","fonoaudiologia","terapia ocupacional","deficiência","cir","caps"] },
+
+
+  // ══════════ Sistemas e Integrações ══════════
+  { id:"integracoes",         category:"Sistemas e Integrações", order:601, iconName:"Plug", highlight:true,
+    title:"Painel de Integrações", shortTitle:"Integrações", route:"/integracoes",
+    description:"Painel de status e configuração de integrações com sistemas externos",
+    keywords:["integração","api","webhook","sistema","externo","rnds","esus","sisab","sinan","conectividade"] },
+
+  { id:"gateway-rnds",        category:"Sistemas e Integrações", order:602, iconName:"Network",
+    title:"Gateway RNDS · FHIR R4", route:"/gateway-rnds", roles:ROLES_AUD,
+    description:"Gateway de integração com a Rede Nacional de Dados em Saúde — FHIR R4",
+    keywords:["rnds","rede nacional","dados","saúde","fhir","r4","gateway","prontuário","interoperabilidade"] },
+
+  { id:"integracao-pec",      category:"Sistemas e Integrações", order:603, iconName:"Plug",
+    title:"Integração PEC e-SUS", route:"/integracao-pec", roles:ROLES_AUD,
+    description:"Configuração da integração com o Prontuário Eletrônico do Cidadão — e-SUS PEC",
+    keywords:["pec","esus","integração","prontuário","configuração","ledi","mivdt","graphql"] },
+
+  { id:"esus-pec-teste",      category:"Sistemas e Integrações", order:604, iconName:"FlaskConical", isNew:true,
+    title:"e-SUS PEC — Servidor de Teste", shortTitle:"e-SUS PEC Teste", route:"/esus-pec-teste", roles:ROLES_AUD,
+    description:"Versão de treinamento do e-SUS APS PEC, padrão do Ministério da Saúde (credenciada no DF, dados fictícios) — verifica se responde e abre no navegador",
+    keywords:["pec","esus","e-sus","esus pec","esuspec","pec teste","esus pec teste","teste","homologação","treinamento","ambiente de teste","prontuário","ministério","df","distrito federal"] },
+
 ];
 
 // ── Utilitários de busca ──────────────────────────────────────────────────────
@@ -338,6 +338,13 @@ export function normalizeText(t: string): string {
     .replace(/[^\w\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Subabas (telas-filhas) de um painel principal, na ordem das abas */
+export function subabasDe(parentId: string): NavItem[] {
+  return NAV_ITEMS
+    .filter(i => i.parent === parentId)
+    .sort((a, b) => (a.tabOrder ?? 0) - (b.tabOrder ?? 0));
 }
 
 /** Retorna true se o item passa no filtro de perfil */
@@ -369,12 +376,12 @@ export function scoreItem(item: NavItem, normQuery: string): number {
 
 /** Lista de categorias únicas na ordem de exibição */
 export const CATEGORIES = [
-  "Agentes Comunitários de Saúde",
+  "Financiamento",
+  "Gestão e Qualidade",
+  "Atenção Primária e ACS",
   "Vigilância em Saúde",
   "Atenção Especializada e Regulação",
-  "Financiamento e Recursos",
   "Sistemas e Integrações",
-  "Relatórios e Indicadores",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
