@@ -250,6 +250,40 @@ async def seed_siaps_cache_se_vazio() -> None:
         logger.error("[Startup] Erro no seed SIAPS cache: %s", exc, exc_info=True)
 
 
+async def _encerrar_alertas_siaps_vencidos(db, titulos_hoje: list[str]) -> int:
+    """Avisos de prazo/relatório do SIAPS de dias anteriores ("termina HOJE", "amanhã", "em 3 dias"...)
+    deixam de valer no dia seguinte: marca-os como resolvidos para não acumularem no painel.
+    Mantém só os avisos gerados para hoje (titulos_hoje). Não apaga nada do histórico."""
+    from datetime import datetime
+    from sqlalchemy import or_, update
+    from models.alerta import Alerta
+
+    stmt = (update(Alerta)
+            .where(Alerta.modulo == "SIAPS", Alerta.resolvido.is_(False),
+                   or_(Alerta.titulo.like("SIAPS: prazo de envio da competência %"),
+                       Alerta.titulo.like("SIAPS: extrair hoje os relatórios da competência %")))
+            .values(resolvido=True, resolvido_em=datetime.utcnow())
+            .execution_options(synchronize_session=False))
+    if titulos_hoje:
+        stmt = stmt.where(Alerta.titulo.notin_(titulos_hoje))
+    n = (await db.execute(stmt)).rowcount or 0
+    if n:
+        logger.info("[Scheduler] %s alerta(s) do SIAPS vencidos encerrados.", n)
+    return n
+
+
+async def _job_encerrar_alertas_siaps_vencidos() -> None:
+    """Roda ao subir o servidor: limpa avisos vencidos sem esperar o job das 07:00."""
+    try:
+        from database import AsyncSessionLocal
+        from services.siaps_calendario import alertas_do_dia
+        async with AsyncSessionLocal() as db:
+            await _encerrar_alertas_siaps_vencidos(db, [a["titulo"] for a in alertas_do_dia(date.today())])
+            await db.commit()
+    except Exception as exc:
+        logger.error("[Scheduler] Erro ao encerrar alertas vencidos do SIAPS: %s", exc, exc_info=True)
+
+
 async def _job_alertas_automaticos() -> None:
     """Job: alertas do calendário oficial do SIAPS (prazo de envio 7/3/1/0 dias antes e dia de
     extrair os relatórios = dia seguinte ao prazo). Grava na tabela de alertas de cada município
@@ -264,10 +298,12 @@ async def _job_alertas_automaticos() -> None:
         from services.siaps_calendario import alertas_do_dia
 
         alertas = alertas_do_dia(date.today())
-        if not alertas:
-            logger.info("[Scheduler] Nenhum prazo do SIAPS hoje.")
-            return
         async with AsyncSessionLocal() as db:
+            await _encerrar_alertas_siaps_vencidos(db, [a["titulo"] for a in alertas])
+            if not alertas:
+                await db.commit()
+                logger.info("[Scheduler] Nenhum prazo do SIAPS hoje.")
+                return
             municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
             criados = 0
             for mun in municipios:
@@ -578,6 +614,8 @@ def start_scheduler() -> None:
         replace_existing=True,
         misfire_grace_time=3600,
     )
+    scheduler.add_job(_job_encerrar_alertas_siaps_vencidos, id="alertas_siaps_vencidos_startup",
+                      replace_existing=True)          # sem gatilho = roda uma vez ao iniciar
 
     # Job 4: Sync consultafns.saude.gov.br — 3x ao dia (08:00, 13:00, 18:00)
     for h in [8, 13, 18]:
