@@ -1025,12 +1025,6 @@ export default function MatrizFns() {
     staleTime: 600_000,
   });
 
-  const { data: validacoes } = useQuery({
-    queryKey: ["fns-validacoes", exercicio],
-    queryFn: () => apiGet(`/api/repasses-fns/matriz-validacoes?exercicio=${exercicio}`),
-    staleTime: 300_000,
-  });
-
   // ── Meses visíveis ────────────────────────────────────────────────────────
   const mesesVisiveis = useMemo(
     () => Array.from({ length: mesFim - mesInicio + 1 }, (_, i) => mesInicio + i),
@@ -1123,7 +1117,6 @@ export default function MatrizFns() {
     }
 
     await qc.invalidateQueries({ queryKey: ["fns-matriz"] });
-    await qc.invalidateQueries({ queryKey: ["fns-validacoes"] });
     await qc.invalidateQueries({ queryKey: ["fns-contas-repasse"] });
     await qc.invalidateQueries({ queryKey: ["fns-portarias-repasse"] });
     // a sincronização concilia com as previsões no servidor; atualiza a visão
@@ -1252,21 +1245,6 @@ export default function MatrizFns() {
 
       {/* ── Visão: Tabela (original intacta) ── */}
       {(viewMode === "tabela" || viewMode === "previsto") && (<>
-
-      {/* ── Alertas de validação ── */}
-      {viewMode === "tabela" && validacoes?.alertas?.length > 0 && (
-        <div style={{ background: "#fff8e1", border: "1px solid #ffe082", borderRadius: 8,
-          padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>
-          <div style={{ fontWeight: 700, color: C.amber, display: "flex", gap: 8, alignItems: "center" }}>
-            <AlertTriangle size={14} /> {validacoes.alertas.length} alerta(s) de validação
-          </div>
-          {validacoes.alertas.map((a: { tipo: string; mensagem: string; providencia: string }, i: number) => (
-            <div key={i} style={{ marginTop: 4, color: "#5d4037" }}>
-              · {a.mensagem} — <em>{a.providencia}</em>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* ── Filtros ── */}
       <div style={{ background: C.white, border: `1px solid ${C.grayBdr}`, borderRadius: 10,
