@@ -73,3 +73,50 @@ async def test_job_diario_grava_alertas_sem_duplicar(ambiente, monkeypatch):
     assert {a.municipio_id for a in alertas} == {ids["apui"], ids["b"]}      # município suspenso fica de fora
     assert len(alertas) == 2 and all(a.modulo == "SIAPS" and "HOJE" in a.titulo for a in alertas)
     assert enviados and enviados[0]["nivel"] == "CRITICO"
+
+
+async def test_job_encerra_alertas_vencidos(ambiente, monkeypatch):
+    """Avisos de dias anteriores ("termina HOJE", "amanhã"...) são encerrados; o de hoje fica."""
+    import database
+    import scheduler
+    from routers import ws_alertas
+    from models.alerta import SeveridadeAlerta
+
+    class _Hoje(date):
+        @classmethod
+        def today(cls):
+            return date(2026, 11, 6)
+
+    async def _broadcast(msg):
+        pass
+
+    monkeypatch.setattr(scheduler, "date", _Hoje)
+    monkeypatch.setattr(database, "AsyncSessionLocal", ambiente["Session"])
+    monkeypatch.setattr(ws_alertas.manager, "broadcast", _broadcast)
+    apui = ambiente["ids"]["apui"]
+    antigos = [cal.alertas_do_dia(date(2026, 10, d))[0] for d in (8, 12, 14, 15, 16)]
+    async with ambiente["Session"]() as db:
+        for a in antigos:
+            db.add(Alerta(municipio_id=apui, titulo=a["titulo"], descricao=a["descricao"], modulo="SIAPS",
+                          severidade=SeveridadeAlerta(a["severidade"])))
+        db.add(Alerta(municipio_id=apui, titulo="Outro alerta manual", descricao="x", modulo="SIAPS"))
+        await db.commit()
+
+    await scheduler._job_encerrar_alertas_siaps_vencidos()
+
+    async with ambiente["Session"]() as db:
+        abertos = (await db.execute(select(Alerta).where(Alerta.resolvido.is_(False)))).scalars().all()
+    assert [a.titulo for a in abertos] == ["Outro alerta manual"]
+
+    # 09/11: aviso "em 7 dias" da competência Outubro é criado e continua aberto
+    class _Hoje2(date):
+        @classmethod
+        def today(cls):
+            return date(2026, 11, 9)
+    monkeypatch.setattr(scheduler, "date", _Hoje2)
+    await scheduler._job_alertas_automaticos()
+    async with ambiente["Session"]() as db:
+        abertos = (await db.execute(select(Alerta).where(Alerta.resolvido.is_(False),
+                                                         Alerta.municipio_id == apui))).scalars().all()
+    assert sorted(a.titulo for a in abertos) == sorted(
+        ["Outro alerta manual", cal.alertas_do_dia(date(2026, 11, 9))[0]["titulo"]])
