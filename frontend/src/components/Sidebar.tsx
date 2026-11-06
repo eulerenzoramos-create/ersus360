@@ -19,8 +19,7 @@ import {
   ShieldCheck, Baby, HeartPulse, UserCheck, Smile, Wrench, Package,
   Calculator, Brain, School, Sparkles, AlertTriangle, Download,
   UserCog, Layers, Plug, Bell, Thermometer, Trash2, FlaskConical,
-  Heart, ShieldAlert, ChevronDown, ChevronRight, X, Settings,
-  LogOut, User, Menu, Keyboard,
+  Heart, ShieldAlert, ChevronDown, ChevronRight, X, Menu,
 } from "lucide-react";
 import {
   NAV_ITEMS, CATEGORIES, normalizeText, itemAllowed, scoreItem,
@@ -86,8 +85,18 @@ interface SidebarProps {
 // ── Constants ─────────────────────────────────────────────────────────────────
 const MAX_FAV_SHOW = 6;
 
+// Ícone e rótulo curto de cada grupo (o nome completo segue no breadcrumb e no title)
+const CAT_META: Record<string, { label: string; icon: React.ElementType }> = {
+  "Financiamento":                     { label: "Financiamento",             icon: DollarSign },
+  "Gestão e Qualidade":                { label: "Gestão e Qualidade",        icon: ClipboardCheck },
+  "Atenção Primária e ACS":            { label: "Atenção Primária e ACS",    icon: Users },
+  "Vigilância em Saúde":               { label: "Vigilância em Saúde",       icon: Activity },
+  "Atenção Especializada e Regulação": { label: "Atenção Especializada",     icon: Stethoscope },
+  "Sistemas e Integrações":            { label: "Sistemas e Integrações",    icon: Plug },
+};
+
 // ── Main component ────────────────────────────────────────────────────────────
-export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
+export function Sidebar({ perfil }: SidebarProps) {
   const location = useLocation();
   const auth = useAuth();
 
@@ -95,8 +104,8 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
   const [query, setQuery]       = useState("");
   const searchRef               = useRef<HTMLInputElement>(null);
 
-  // Grupos abertos — começam recolhidos; o grupo da tela atual abre sozinho
-  const [openCats, setOpenCats] = useState<Record<string, boolean>>({});
+  // Grupo aberto (acordeão) — começa pelo grupo da tela atual
+  const [openCat, setOpenCat] = useState<string | null>(null);
 
   // Favorites
   const [favs, setFavs]         = useState<string[]>(
@@ -143,10 +152,17 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
   }, [filtered, normQ]);
 
   // ── Favourite items ────────────────────────────────────────────────────────
-  const favItems = useMemo(
-    () => favs.map(id => allowed.find(i => i.id === id)).filter(Boolean) as NavItem[],
-    [favs, allowed]
-  );
+  // Favorito de uma subaba aponta para o painel principal (sem repetir o painel)
+  const favItems = useMemo(() => {
+    const out: NavItem[] = [];
+    for (const id of favs) {
+      const it = allowed.find(i => i.id === id);
+      if (!it) continue;
+      const alvo = (it.parent && allowed.find(i => i.id === it.parent)) || it;
+      if (!out.some(o => o.id === alvo.id)) out.push(alvo);
+    }
+    return out;
+  }, [favs, allowed]);
 
   // ── Active item detection ──────────────────────────────────────────────────
   const activeItem = useMemo(() => {
@@ -160,25 +176,30 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
   }, [location.pathname, allowed]);
   const activeId = activeItem?.id;
 
-  // ── Abre o grupo da tela atual ao navegar ──────────────────────────────────
+  // ── Acordeão: ao navegar, abre só o grupo da tela atual ────────────────────
   useEffect(() => {
     const cat = activeItem?.category;
-    if (cat) setOpenCats(prev => (prev[cat] ? prev : { ...prev, [cat]: true }));
+    if (cat) setOpenCat(cat);
   }, [activeItem?.category]);
 
   // ── Toggle fav ────────────────────────────────────────────────────────────
+  // Remover um painel dos favoritos também remove suas subabas favoritadas
   const toggleFav = useCallback((id: string, e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
     setFavs(prev => {
-      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      const filhas = NAV_ITEMS.filter(i => i.parent === id).map(i => i.id);
+      const marcado = prev.includes(id) || filhas.some(f => prev.includes(f));
+      const next = marcado
+        ? prev.filter(x => x !== id && !filhas.includes(x))
+        : [...prev, id];
       LS.set("sb_favs", next);
       return next;
     });
   }, []);
 
-  // ── Toggle category ───────────────────────────────────────────────────────
+  // ── Toggle category (um grupo aberto por vez) ─────────────────────────────
   const toggleCat = useCallback((cat: string) => {
-    setOpenCats(prev => ({ ...prev, [cat]: !prev[cat] }));
+    setOpenCat(prev => (prev === cat ? null : cat));
   }, []);
 
   // ── Keyboard: Ctrl+K opens palette ────────────────────────────────────────
@@ -197,9 +218,9 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
   useEffect(() => { setQuery(""); setMobileOpen(false); }, [location.pathname]);
 
   // ── Render a single nav item ──────────────────────────────────────────────
-  const renderItem = useCallback((item: NavItem, highlight = false) => {
-    const isAct = item.id === activeId;
-    const isFav = favs.includes(item.id);
+  const renderItem = useCallback((item: NavItem, _legado = false, forceActive?: boolean, showFav = true) => {
+    const isAct = forceActive ?? item.id === activeId;
+    const isFav = favs.includes(item.id) || favs.some(f => NAV_ITEMS.find(i => i.id === f)?.parent === item.id);
     const Icon  = getIcon(item.iconName);
 
     return (
@@ -220,7 +241,7 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
           fontWeight:     isAct ? 600 : 400,
           transition:     "background 0.15s",
           position:       "relative",
-          borderLeft:     highlight && !isAct ? `3px solid ${T.hi}` : isAct ? "3px solid #60a5fa" : "3px solid transparent",
+          borderLeft:     isAct ? "3px solid #60a5fa" : "3px solid transparent",
         }}
         onMouseEnter={e => {
           if (!isAct) (e.currentTarget as HTMLAnchorElement).style.background = T.hover;
@@ -239,7 +260,7 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
             NOVO
           </span>
         )}
-        <button
+        {showFav && <button
           onClick={e => toggleFav(item.id, e)}
           title={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
           style={{
@@ -252,7 +273,7 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
           aria-label={isFav ? "Remover favorito" : "Adicionar favorito"}
         >
           <Star size={11} fill={isFav ? T.fav : "none"} />
-        </button>
+        </button>}
       </Link>
     );
   }, [activeId, favs, toggleFav]);
@@ -261,42 +282,26 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
   const sidebarContent = (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
 
-      {/* Logo */}
-      <div style={{ padding: "16px 14px 8px", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: -0.5 }}>ERSUS <span style={{ color: T.accent }}>360°</span></div>
-            <div style={{ fontSize: 10, color: T.muted, marginTop: 1 }}>
-              {auth.municipio ? `${auth.municipio} · ${auth.municipio_uf} · IBGE ${auth.municipio_ibge}` : "Selecione um município"}
-            </div>
-          </div>
-          <button
-            onClick={() => setPaletteOpen(true)}
-            title="Busca global (Ctrl+K)"
-            style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, padding: 4, borderRadius: 6, display: "flex", alignItems: "center" }}
-            aria-label="Abrir busca global"
-          >
-            <Keyboard size={14} />
-          </button>
-        </div>
-
-        {/* Pesquisa inline */}
-        <div style={{ marginTop: 10, position: "relative" }}>
+      {/* Busca (logo e município já estão no cabeçalho — não repetir aqui) */}
+      <div style={{ padding: "12px 10px 8px", flexShrink: 0 }}>
+        <div style={{ position: "relative" }}>
           <Search size={13} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: T.muted, pointerEvents: "none" }} />
           <input
             ref={searchRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Buscar módulo… (Ctrl+K)"
+            onKeyDown={e => { if (e.key === "Escape") setQuery(""); }}
+            placeholder="Buscar módulo…"
             aria-label="Buscar módulo"
+            className="sb-search"
             style={{
               width: "100%", boxSizing: "border-box",
               background: "#172035", border: `1px solid ${T.border}`,
-              borderRadius: 8, padding: "6px 30px 6px 28px",
-              color: T.text, fontSize: 12, outline: "none",
+              borderRadius: 8, padding: "7px 52px 7px 28px",
+              color: T.text, fontSize: 12.5, outline: "none",
             }}
           />
-          {query && (
+          {query ? (
             <button
               onClick={() => setQuery("")}
               style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.muted, display: "flex", alignItems: "center" }}
@@ -304,12 +309,35 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
             >
               <X size={12} />
             </button>
+          ) : (
+            <button
+              onClick={() => setPaletteOpen(true)}
+              title="Busca global (Ctrl+K)"
+              aria-label="Abrir busca global (Ctrl+K)"
+              style={{
+                position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)",
+                background: "#0f1b2d", border: `1px solid ${T.border}`, borderRadius: 4,
+                color: T.muted, fontSize: 10, padding: "1px 5px", cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              Ctrl K
+            </button>
           )}
         </div>
       </div>
 
       {/* Scrollable area */}
-      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "0 6px 80px" }}>
+      <nav aria-label="Módulos" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "0 8px 16px" }}>
+
+        {/* Início — sempre visível */}
+        {!normQ && (
+          <div style={{ marginBottom: 6 }}>
+            {renderItem({
+              id: "__inicio", title: "Início", description: "Painel inicial do município",
+              route: "/", category: "", iconName: "Home", keywords: [], order: 0,
+            }, false, location.pathname === "/", false)}
+          </div>
+        )}
 
         {/* Search results */}
         {normQ && (
@@ -329,14 +357,19 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
 
         {/* Normal nav — favorites */}
         {!normQ && favItems.length > 0 && (
-          <Section label="⭐ Favoritos" muted>
+          <Section label="Favoritos" icon={Star}>
             {favItems.slice(0, MAX_FAV_SHOW).map(item => renderItem(item))}
           </Section>
         )}
 
+        {!normQ && <div style={{ fontSize: 10.5, color: T.muted, padding: "8px 8px 4px", fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase" }}>Módulos</div>}
+
         {/* Categories */}
         {!normQ && grouped && Array.from(grouped.entries()).map(([cat, items]) => {
-          const isCollapsed = !openCats[cat];
+          const isCollapsed = openCat !== cat;
+          const meta = CAT_META[cat] ?? { label: cat, icon: Layers };
+          const CatIcon = meta.icon;
+          const temAtivo = activeItem?.category === cat;
           // Group by subcategory
           const subcats = new Map<string, NavItem[]>();
           const noSub: NavItem[] = [];
@@ -351,32 +384,37 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
           }
 
           return (
-            <div key={cat} style={{ marginBottom: 4 }}>
+            <div key={cat} style={{ marginBottom: 2 }}>
               <button
                 onClick={() => toggleCat(cat)}
+                title={cat}
+                className="sb-cat"
                 style={{
-                  width: "100%", background: "none", border: "none", cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 4,
-                  padding: "5px 8px", borderRadius: 6, color: T.muted,
-                  fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase",
-                  textAlign: "left",
+                  width: "100%", border: "none", cursor: "pointer",
+                  background: !isCollapsed ? "#14243b" : "none",
+                  display: "flex", alignItems: "center", gap: 9,
+                  padding: "8px 8px 8px 10px", borderRadius: 7,
+                  color: temAtivo || !isCollapsed ? "#f1f5f9" : T.text,
+                  fontSize: 13, fontWeight: 600, textAlign: "left",
+                  fontFamily: "inherit",
                 }}
                 aria-expanded={!isCollapsed}
               >
-                {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-                <span style={{ flex: 1 }}>{cat}</span>
-                <span style={{ fontSize: 9, opacity: 0.6 }}>{items.length}</span>
+                <CatIcon size={15} style={{ flexShrink: 0, color: temAtivo ? T.accent : T.muted }} />
+                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{meta.label}</span>
+                <span style={{ fontSize: 10, color: T.muted, minWidth: 14, textAlign: "right" }}>{items.length}</span>
+                {isCollapsed ? <ChevronRight size={13} color={T.muted} /> : <ChevronDown size={13} color={T.muted} />}
               </button>
 
               {!isCollapsed && (
-                <div style={{ paddingLeft: 4 }}>
+                <div style={{ margin: "2px 0 6px 17px", paddingLeft: 6, borderLeft: `1px solid ${T.border}` }}>
                   {/* Items without subcategory */}
-                  {noSub.map(item => renderItem(item, !!item.highlight))}
+                  {noSub.map(item => renderItem(item))}
 
                   {/* Subcategory groups */}
                   {Array.from(subcats.entries()).map(([sub, subItems]) => (
-                    <Subcategory key={sub} label={sub} forceOpen={subItems.some(i => i.id === activeId)}>
-                      {subItems.map(item => renderItem(item, !!item.highlight))}
+                    <Subcategory key={sub} label={sub} count={subItems.length} forceOpen={subItems.some(i => i.id === activeId)}>
+                      {subItems.map(item => renderItem(item))}
                     </Subcategory>
                   ))}
                 </div>
@@ -384,38 +422,10 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
             </div>
           );
         })}
-      </div>
+      </nav>
 
-      {/* Footer — user + logout */}
-      <div style={{
-        flexShrink: 0,
-        borderTop: `1px solid ${T.border}`,
-        padding: "10px 12px",
-        background: T.bg,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: T.act, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <User size={14} color="#fff" />
-          </div>
-          <div style={{ flex: 1, overflow: "hidden" }}>
-            <div style={{ fontSize: 12, color: T.text, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {nomeUsuario ?? "Usuário"}
-            </div>
-            <div style={{ fontSize: 10, color: T.muted }}>{perfil}</div>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <Link to="/configuracoes" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "5px 0", borderRadius: 6, background: T.hover, color: T.muted, textDecoration: "none", fontSize: 11 }}>
-            <Settings size={12} /> Config
-          </Link>
-          <button
-            onClick={onLogout}
-            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "5px 0", borderRadius: 6, background: T.hover, color: T.muted, border: "none", cursor: "pointer", fontSize: 11 }}
-          >
-            <LogOut size={12} /> Sair
-          </button>
-        </div>
-      </div>
+      {/* Rodapé removido: usuário, troca de município e "Sair" (com confirmação)
+          ficam no menu do cabeçalho; o antigo botão "Config" apontava para rota inexistente. */}
     </div>
   );
 
@@ -424,7 +434,8 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
       {/* ── Desktop ── */}
       <aside
         style={{
-          width: 240, flexShrink: 0, height: "100vh", position: "sticky", top: 0,
+          // ocupa só a altura abaixo do cabeçalho (antes 100vh cortava o fim do menu)
+          width: 248, flexShrink: 0, alignSelf: "stretch", minHeight: 0,
           background: T.bg, display: "flex", flexDirection: "column",
           borderRight: `1px solid ${T.border}`, overflowY: "hidden",
         }}
@@ -475,6 +486,9 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
       <style>{`
         .sb-fav-btn { opacity: 0 !important; }
         a:hover .sb-fav-btn, a:focus-within .sb-fav-btn { opacity: 1 !important; }
+        .sb-cat:hover { background: #1a2d47 !important; }
+        .sb-cat:focus-visible, aside a:focus-visible, aside button:focus-visible { outline: 2px solid #38bdf8; outline-offset: -2px; }
+        .sb-search:focus { border-color: #38bdf8 !important; }
         @media (max-width: 768px) {
           aside[aria-label="Menu de navegação"] { display: none !important; }
           .sb-mobile-toggle { display: flex !important; }
@@ -488,10 +502,11 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
 }
 
 // ── Helper components ─────────────────────────────────────────────────────────
-function Section({ label, muted, children }: { label: string; muted?: boolean; children: React.ReactNode }) {
+function Section({ label, icon: Icon, children }: { label: string; icon?: React.ElementType; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 8 }}>
-      <div style={{ fontSize: 10, color: T.muted, padding: "4px 8px 2px", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+    <div style={{ marginBottom: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: T.muted, padding: "6px 8px 4px", fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase" }}>
+        {Icon && <Icon size={11} color={T.fav} fill={T.fav} />}
         {label}
       </div>
       {children}
@@ -499,7 +514,7 @@ function Section({ label, muted, children }: { label: string; muted?: boolean; c
   );
 }
 
-function Subcategory({ label, forceOpen, children }: { label: string; forceOpen?: boolean; children: React.ReactNode }) {
+function Subcategory({ label, count, forceOpen, children }: { label: string; count?: number; forceOpen?: boolean; children: React.ReactNode }) {
   // Subgrupos começam recolhidos, exceto o que contém a tela atual
   const [open, setOpen] = useState(!!forceOpen);
   useEffect(() => { if (forceOpen) setOpen(true); }, [forceOpen]);
@@ -509,14 +524,17 @@ function Subcategory({ label, forceOpen, children }: { label: string; forceOpen?
         onClick={() => setOpen(p => !p)}
         style={{
           width: "100%", background: "none", border: "none", cursor: "pointer",
-          display: "flex", alignItems: "center", gap: 4,
-          padding: "3px 6px", borderRadius: 4,
-          color: "#475569", fontSize: 10, fontWeight: 600, letterSpacing: 0.3,
-          textAlign: "left",
+          display: "flex", alignItems: "center", gap: 5,
+          padding: "5px 8px", borderRadius: 5,
+          color: "#94a3b8", fontSize: 11.5, fontWeight: 600,
+          textAlign: "left", fontFamily: "inherit",
         }}
+        aria-expanded={open}
+        className="sb-cat"
       >
-        {open ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+        {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
         <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        {count != null && <span style={{ fontSize: 10, color: T.muted }}>{count}</span>}
       </button>
       {open && <div style={{ paddingLeft: 8 }}>{children}</div>}
     </div>
