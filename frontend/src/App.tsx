@@ -3,6 +3,7 @@ import { useState, createContext, useContext, Component, useEffect, lazy, Suspen
 import { Sidebar } from "./components/Sidebar";
 import { ComFvs } from "./components/vigilancia/DadosOficiaisFvs";
 import PageNavBar from "./components/PageNavBar";
+import ModuloSubabas from "./components/ModuloSubabas";
 import { ListaMunicipios } from "./components/SeletorMunicipio";
 import AdminGeral from "./pages/AdminGeral";
 import { lerSessao, limparSessao, sairDoSuporte, SessaoUsuario } from "./lib/sessao";
@@ -1181,6 +1182,7 @@ function Layout({ children, sessao, onLogout }: {
         {/* Main */}
         <main id="ersus-main" style={{flex:1,overflow:"auto",background:"#f1f5f9"}}>
           <PageNavBar/>
+          <ModuloSubabas/>
           <PageErrorBoundary><GuardaPaginaMunicipio ibge={sessao.municipio_ibge ?? ""}>{children}</GuardaPaginaMunicipio></PageErrorBoundary>
         </main>
       </div>

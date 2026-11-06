@@ -26,6 +26,8 @@ export interface NavItem {
   isNew?: boolean;
   highlight?: boolean;
   altRoute?: string;         // rota alternativa legada
+  parent?: string;           // id do painel principal: a tela vira subaba dele e sai da lista do menu
+  tabOrder?: number;         // ordem da subaba dentro do painel principal
 }
 
 // ── Ícone temporário — preenchido em runtime pelo Sidebar
@@ -117,17 +119,17 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Fichas de cadastro individual dos cidadãos cadastrados pelos ACS",
     keywords:["acs","cadastro","cidadão","individual","ficha","esus","cns","cpf"] },
 
-  { id:"acs-visitas",         category:"Atenção Primária e ACS", subcategory:"ACS", order:303, iconName:"MapPin",
+  { id:"acs-visitas",         parent:"acs-painel", tabOrder:3, category:"Atenção Primária e ACS", subcategory:"ACS", order:303, iconName:"MapPin",
     title:"Visitas Domiciliares", route:"/acs/visitas-cidadao",
     description:"Registro e acompanhamento de visitas domiciliares dos ACS",
     keywords:["acs","visita","domiciliar","domicílio","registro","esus","agente"] },
 
-  { id:"acs-mapa",            category:"Atenção Primária e ACS", subcategory:"ACS", order:304, iconName:"Map",
+  { id:"acs-mapa",            parent:"acs-painel", tabOrder:1, category:"Atenção Primária e ACS", subcategory:"ACS", order:304, iconName:"Map",
     title:"Mapa de Visitas ACS", route:"/acs/mapa-visitas",
     description:"Mapa georreferenciado de visitas domiciliares dos ACS",
     keywords:["acs","mapa","visita","georreferenciado","microárea","território"] },
 
-  { id:"acs-registrar",       category:"Atenção Primária e ACS", subcategory:"ACS", order:305, iconName:"ClipboardCheck",
+  { id:"acs-registrar",       parent:"acs-painel", tabOrder:2, category:"Atenção Primária e ACS", subcategory:"ACS", order:305, iconName:"ClipboardCheck",
     title:"Registrar Visita ACS", route:"/acs/registrar-visita",
     description:"Formulário de registro de visita domiciliar pelo ACS",
     keywords:["acs","registrar","visita","formulário","domiciliar","novo registro"] },
@@ -161,7 +163,7 @@ export const NAV_ITEMS: NavItem[] = [
     keywords:["fvs","vigilância","painel","mapa","amazonas","alerta","pqa-vs","relatório","ia","epidemiológico","municípios"] },
 
   // Doenças e Agravos
-  { id:"epidemiologia",       category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:402, iconName:"Activity",
+  { id:"epidemiologia",       parent:"vigilancia-painel", tabOrder:4, category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:402, iconName:"Activity",
     title:"Epidemiologia / SINAN", route:"/epidemiologia",
     description:"Vigilância epidemiológica — SINAN — Sistema de Informação de Agravos de Notificação",
     keywords:["epidemiologia","sinan","agravo","notificação","surto","investigação","doenças","compulsória"] },
@@ -171,7 +173,7 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Painel em tempo real de monitoramento epidemiológico municipal",
     keywords:["monitor","epidemiológico","tempo real","vigilância","painel","surto","tendência"] },
 
-  { id:"ist-hiv",             category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:404, iconName:"ShieldCheck",
+  { id:"ist-hiv",             parent:"vigilancia-painel", tabOrder:5, category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:404, iconName:"ShieldCheck",
     title:"IST / HIV / Hepatites", route:"/ist-hiv",
     description:"Vigilância de Infecções Sexualmente Transmissíveis, HIV/AIDS e Hepatites Virais",
     keywords:["ist","hiv","aids","hepatites","sexualmente transmissíveis","sifilis","gonorréia","prevenção"] },
@@ -181,17 +183,17 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Vigilância e controle da Tuberculose e Hanseníase",
     keywords:["tb","tuberculose","hanseníase","lepra","controle","tratamento","dots","pauci","multi"] },
 
-  { id:"arboviroses",         category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:406, iconName:"Bug",
+  { id:"arboviroses",         parent:"vigilancia-painel", tabOrder:1, category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:406, iconName:"Bug",
     title:"Arboviroses / Dengue", route:"/arboviroses",
     description:"Vigilância de arboviroses — Dengue, Chikungunya e Zika",
     keywords:["dengue","chikungunya","zika","arbovirose","aedes","mosquito","vetor","febre"] },
 
-  { id:"malaria",             category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:407, iconName:"Bug",
+  { id:"malaria",             parent:"vigilancia-painel", tabOrder:6, category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:407, iconName:"Bug",
     title:"Malária / Endemias", route:"/malaria-apui",
     description:"Vigilância e controle da Malária e doenças endêmicas em Apuí",
     keywords:["malária","endemia","plasmodium","ivp","api","notificação","amazônia","apuí"] },
 
-  { id:"vetores",             category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:408, iconName:"Bug",
+  { id:"vetores",             parent:"vigilancia-painel", tabOrder:3, category:"Vigilância em Saúde", subcategory:"Doenças e Agravos", order:408, iconName:"Bug",
     title:"Controle de Vetores", route:"/vetores",
     description:"Controle de vetores e animais peçonhentos",
     keywords:["vetor","controle","mosquito","borrifação","lw","larval","roedor","animal peçonhento"] },
@@ -228,7 +230,7 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Vigilância Sanitária — inspeção, licenciamento e controle de riscos sanitários",
     keywords:["visa","vigilância sanitária","inspeção","licenciamento","sanitária","alimento","medicamento","estabelecimento","auto de infração","vig sanit"] },
 
-  { id:"ccih",                category:"Vigilância em Saúde", subcategory:"Sanitária e Ambiental", order:415, iconName:"Shield",
+  { id:"ccih",                parent:"vigilancia-painel", tabOrder:2, category:"Vigilância em Saúde", subcategory:"Sanitária e Ambiental", order:415, iconName:"Shield",
     title:"CCIH / Infecções", shortTitle:"CCIH", route:"/ccih",
     description:"Comissão de Controle de Infecção Hospitalar — IRAS",
     keywords:["ccih","iras","infecção","hospitalar","controle","resistência","bacteremia","sepse"] },
@@ -336,6 +338,13 @@ export function normalizeText(t: string): string {
     .replace(/[^\w\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Subabas (telas-filhas) de um painel principal, na ordem das abas */
+export function subabasDe(parentId: string): NavItem[] {
+  return NAV_ITEMS
+    .filter(i => i.parent === parentId)
+    .sort((a, b) => (a.tabOrder ?? 0) - (b.tabOrder ?? 0));
 }
 
 /** Retorna true se o item passa no filtro de perfil */

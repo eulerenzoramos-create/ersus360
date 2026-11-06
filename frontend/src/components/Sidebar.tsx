@@ -135,7 +135,8 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
     if (normQ) return null;
     const map = new Map<Category, NavItem[]>();
     for (const cat of CATEGORIES) {
-      const items = filtered.filter(i => i.category === cat);
+      // Telas-filhas ficam como subabas do painel principal, não na lista do menu
+      const items = filtered.filter(i => i.category === cat && !i.parent);
       if (items.length) map.set(cat as Category, items);
     }
     return map;
@@ -151,9 +152,11 @@ export function Sidebar({ perfil, nomeUsuario, onLogout }: SidebarProps) {
   const activeItem = useMemo(() => {
     const path = location.pathname;
     // Exact match first, then prefix match (longer wins)
-    return [...allowed]
+    const hit = [...allowed]
       .filter(i => path === i.route || path.startsWith(i.route + "/"))
       .sort((a, b) => b.route.length - a.route.length)[0];
+    // Numa subaba, destaca o painel principal no menu
+    return (hit?.parent && allowed.find(i => i.id === hit.parent)) || hit;
   }, [location.pathname, allowed]);
   const activeId = activeItem?.id;
 
@@ -538,14 +541,19 @@ function CommandPalette({ allowed, onClose, activeId, favs, toggleFav }: Palette
 
   const normQ = useMemo(() => normalizeText(q), [q]);
   const results = useMemo(() => {
-    if (!normQ) return allowed.slice(0, 12);
+    // Sem texto: favoritos primeiro, depois os painéis principais (sem as subabas)
+    if (!normQ) {
+      const fav = favs.map(id => allowed.find(i => i.id === id)).filter(Boolean) as NavItem[];
+      const resto = allowed.filter(i => !i.parent && !favs.includes(i.id));
+      return [...fav, ...resto].slice(0, 12);
+    }
     return allowed
       .map(i => ({ item: i, score: scoreItem(i, normQ) }))
       .filter(x => x.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 20)
       .map(x => x.item);
-  }, [allowed, normQ]);
+  }, [allowed, normQ, favs]);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
   useEffect(() => { setCursor(0); }, [results]);
@@ -632,7 +640,9 @@ function CommandPalette({ allowed, onClose, activeId, favs, toggleFav }: Palette
                       {item.isNew && <span style={{ marginLeft: 6, fontSize: 9, color: T.new_, background: "#064e3b", borderRadius: 4, padding: "1px 4px", fontWeight: 700 }}>NOVO</span>}
                     </div>
                     <div style={{ fontSize: 11, color: T.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {item.category}{item.subcategory ? ` › ${item.subcategory}` : ""}
+                      {item.parent
+                        ? `Subaba do ${(() => { const p = allowed.find(i => i.id === item.parent); return p ? (p.shortTitle ?? p.title) : item.category; })()}`
+                        : `${item.category}${item.subcategory ? ` › ${item.subcategory}` : ""}`}
                     </div>
                   </div>
                   <button
