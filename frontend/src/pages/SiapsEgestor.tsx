@@ -1720,11 +1720,19 @@ export default function SiapsEgestor() {
   const { data: dashData }  = useQuery({ queryKey: ["siaps-dashboard"],  queryFn: () => apiGet("/api/siaps/dashboard") as Promise<any> });
   const { data: abrangData } = useQuery({ queryKey: ["siaps-abrang"],    queryFn: () => apiGet("/api/siaps/abrangencia") as Promise<any> });
   // competência escolhida no cabeçalho (undefined = a mais recente com dado no ERSUS360)
-  const [comp, setComp] = useState<string | undefined>();
+  const [compPadrao, setComp] = useState<string | undefined>();
+  // true quando o usuário escolheu a competência no seletor (senão cada fonte abre no seu mês mais recente)
+  const [compEscolhida, setCompEscolhida] = useState(false);
+  const escolherComp = (c: string | undefined) => { setComp(c); setCompEscolhida(true); };
   const { data: cat } = useQuery({ queryKey: ["siaps-competencias"], queryFn: () => apiGetRaw<CatalogoCompetencias>("/api/siaps/competencias"), staleTime: 10 * 60_000 });
   useEffect(() => {
-    if (!comp && cat) setComp(cat.ultima_com_dados ?? cat.ultima_siaps_publicada ?? undefined);
-  }, [cat, comp]);
+    if (!compPadrao && cat) setComp(cat.ultima_com_dados ?? cat.ultima_siaps_publicada ?? undefined);
+  }, [cat, compPadrao]);
+  // O e-Gestor publica as parcelas antes do SIAPS publicar os resultados: as abas do e-Gestor abrem
+  // na parcela mais recente já publicada (não no último mês do SIAPS), salvo escolha do usuário.
+  const abaEgestor = aba === "rel_pagamento" || aba === "diag_cobertura";
+  const ultimaParcela = cat?.competencias.find(c => c.egestor_parcela_publicada)?.competencia;
+  const comp = abaEgestor && !compEscolhida && ultimaParcela ? ultimaParcela : compPadrao;
   const item = cat?.competencias.find(c => c.competencia === comp);
   const { data: vinculo }    = useQuery({ queryKey: ["siaps-vinculo", comp], queryFn: () => apiGet("/api/siaps/vinculo-acompanhamento", comp ? { competencia: comp } : undefined) as Promise<any>, enabled: aba === "vinculo" });
   const { data: qualidade }  = useQuery({ queryKey: ["siaps-qualidade"], queryFn: () => apiGet("/api/siaps/qualidade") as Promise<any>, enabled: aba === "qualidade" });
@@ -1761,7 +1769,7 @@ export default function SiapsEgestor() {
           <span><strong>Município:</strong> {dashData.municipio}</span>
           <span><strong>IED:</strong> {dashData.ied}</span>
           <label><strong>Competência:</strong>{" "}
-            <select value={comp ?? ""} onChange={e => setComp(e.target.value || undefined)} aria-label="Competência"
+            <select value={comp ?? ""} onChange={e => escolherComp(e.target.value || undefined)} aria-label="Competência"
               style={{ background: "#fff", color: "#1e3a8a", border: "none", borderRadius: 6, padding: "3px 6px", fontSize: 13, fontWeight: 700 }}>
               {!cat && <option value="">{dashData.competencia}</option>}
               {(cat?.competencias ?? []).map(c => (
@@ -1796,7 +1804,7 @@ export default function SiapsEgestor() {
         {aba === "painel"            && <PainelGeralAps irPara={(a) => setAba(a as Aba)} />}
         {aba === "abrangencia"       && <AbaAbrangencia data={abrangData} />}
         {info && <CabecalhoPadrao info={info} consultadoEm={cat?.consultado_em} />}
-        {info && !info.temDado && <SemDadoPadrao info={info} irPara={setComp} />}
+        {info && !info.temDado && <SemDadoPadrao info={info} irPara={escolherComp} />}
         {aba === "vinculo"           && mostrar && <AbaVinculo data={vinculo} />}
         {aba === "qualidade"         && mostrar && <AbaQualidade data={qualidade} competencia={item ? comp : undefined} />}
         {aba === "boas_praticas"     && mostrar && <AbaBoasPraticas data={boas} />}
