@@ -149,14 +149,24 @@ function BadgeClass({ val }: { val: string }) {
 }
 
 // ─── Tooltip personalizado do gráfico ────────────────────────────────────────
-function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: {value: number}[]; label?: string }) {
+// A parcela AAAAMM do e-Gestor é paga pelo FNS no mês MM/AAAA (ex.: 202610 → paga em OUT/2026);
+// o rótulo "competência" (ex.: AGO/2026) é o mês de referência do CNES dessa parcela.
+const MESES_PG = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+function mesPagamento(nuParcela?: string): string {
+  if (!nuParcela || !/^\d{6}$/.test(nuParcela)) return "—";
+  return `${MESES_PG[Number(nuParcela.slice(4)) - 1]}/${nuParcela.slice(0, 4)}`;
+}
+
+function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: {value: number; payload?: any}[]; label?: string }) {
   if (!active || !payload?.length) return null;
+  const ref = payload[0].payload?.referencia;
   return (
     <div style={{
       background: C.white, border: `1px solid ${C.grayBdr}`,
       borderRadius: 8, padding: "10px 14px", boxShadow: "0 4px 12px rgba(0,0,0,.1)",
     }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: C.textPri, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: C.textPri, marginBottom: 2 }}>Paga em {label}</div>
+      {ref && <div style={{ fontSize: 11, color: C.textSec, marginBottom: 4 }}>Competência CNES {ref}</div>}
       <div style={{ fontSize: 14, fontWeight: 800, color: C.money }}>
         {BRLc(payload[0].value)}
       </div>
@@ -674,6 +684,7 @@ function LinhaCompetencia({
         </td>
         <td style={{ padding: "12px 16px", textAlign: "center", color: C.textSec, fontSize: 12 }}>
           {c.parcela}
+          <div style={{ fontSize: 11, color: C.textSec }}>paga em {mesPagamento(c.nu_parcela)}</div>
         </td>
         <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: C.money, fontVariantNumeric: "tabular-nums" }}>
           {BRL(c.total_oficial)}
@@ -763,7 +774,8 @@ function ApsPanel() {
   // Dados do gráfico
   const dadosGrafico = useMemo(() =>
     competencias.map(c => ({
-      competencia: c.competencia.replace("/20", "/"),
+      competencia: mesPagamento(c.nu_parcela).replace("/20", "/"),
+      referencia: c.competencia,
       valor: c.total_oficial,
       nu_parcela: c.nu_parcela,
     })), [competencias]);
@@ -946,9 +958,9 @@ function ApsPanel() {
               corBg="#f3e8ff"
             />
             <SummaryCard
-              titulo={`Última: ${ultima?.competencia ?? "—"}`}
+              titulo={`Última: paga em ${mesPagamento(ultima?.nu_parcela)}`}
               valor={ultima ? BRL(ultima.total_oficial) : "—"}
-              subtitulo="vs. mês anterior"
+              subtitulo={`CNES ${ultima?.competencia ?? "—"} · vs. parcela anterior`}
               variacao={variacaoUltima}
               Icon={TrendingUp}
               cor={C.money}
@@ -969,7 +981,8 @@ function ApsPanel() {
                   Evolução mensal dos repasses
                 </h2>
                 <p style={{ margin: "2px 0 0", fontSize: 11, color: C.textSec }}>
-                  Ciclo 2026 · NOV/2025 a JUN/2026 · valores em R$
+                  Ciclo 2026 · parcelas pagas de {mesPagamento(competencias[0]?.nu_parcela)} a {mesPagamento(ultima?.nu_parcela)}
+                  {" "}(competência CNES {competencias[0]?.competencia ?? "—"} a {ultima?.competencia ?? "—"}) · valores em R$
                 </p>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1095,7 +1108,7 @@ function ApsPanel() {
                 <thead>
                   <tr style={{ background: "#f1f5f9", borderBottom: `2px solid ${C.grayBdr}` }}>
                     {[
-                      { label: "Competência", align: "left" },
+                      { label: "Competência CNES", align: "left" },
                       { label: "Parcela",     align: "center" },
                       { label: "Total Oficial", align: "right" },
                       { label: "Variação", align: "center" },
