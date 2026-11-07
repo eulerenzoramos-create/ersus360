@@ -8,7 +8,7 @@ import { apiGet } from "../lib/api"
 import { Wifi, WifiOff, AlertCircle, CheckCircle, RefreshCw, Database, Activity } from "lucide-react"
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
-const BRAND = "#dbeafe"
+const BRAND = "#1e3a5f"
 const ACCENT = "#1d4ed8"
 const OK = "#16a34a"
 const WARN = "#d97706"

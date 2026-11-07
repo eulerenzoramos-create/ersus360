@@ -2060,7 +2060,7 @@ function SecaoAtualizacoes({ p }: { p: any }) {
               {at.situacao_anterior && <div style={{ fontSize: 11, color: "#9ca3af" }}>Anterior: {at.situacao_anterior}</div>}
               {at.observacoes && <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{at.observacoes}</div>}
             </div>
-            <div style={{ fontSize: 11, color: "#9ca3af", textAlign: "right" as const }}>
+            <div style={{ fontSize: 11, color: "#64748b", textAlign: "right" as const }}>
               <div>{at.responsavel}</div>
               <div>{at.origem}</div>
             </div>
@@ -3907,7 +3907,7 @@ export default function InvestSUS() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ fontSize: 11, color: "#9ca3af", textAlign: "right" as const }}>
+          <div style={{ fontSize: 11, color: "#64748b", textAlign: "right" as const }}>
             <div>Fonte: InvestSUS / MS</div>
             <div>Atualização: manual auditável</div>
           </div>

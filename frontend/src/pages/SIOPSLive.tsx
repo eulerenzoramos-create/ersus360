@@ -12,12 +12,12 @@ import {
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
 const CRIT   = "#dc2626";
-const COLORS = ["#dbeafe","#1d4ed8","#0891b2","#7c3aed","#16a34a","#d97706","#dc2626","#059669","#c026d3","#ea580c"];
+const COLORS = ["#1e3a5f","#1d4ed8","#0891b2","#7c3aed","#16a34a","#d97706","#dc2626","#059669","#c026d3","#ea580c"];
 
 const KPI = ({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) => (
   <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 16, boxShadow: "0 1px 3px rgba(0,0,0,.07)" }}>

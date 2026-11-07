@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import { ShieldCheck, AlertTriangle, Search, TrendingUp } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -149,7 +149,7 @@ export default function VisaMunicipal() {
                 <BarChart data={(estab as any[])} margin={{ left: 0, right: 20 }}>
                   <XAxis dataKey="tipo" tick={{ fontSize: 8 }} interval={0} angle={-20} textAnchor="end" height={60} />
                   <YAxis tick={{ fontSize: 10 }} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="regulares"    name="Regulares"    fill={OK}   stackId="a" radius={[0,0,0,0]} />
@@ -189,7 +189,7 @@ export default function VisaMunicipal() {
             <h3 className="font-semibold text-slate-700 mb-4">Inspeções Realizadas vs. Meta (Jan–Jun/2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={inspecoes} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="a"   orientation="right" tick={{ fontSize: 10 }} />

@@ -74,7 +74,7 @@ function MiniBar({ pct, cor, height = 8 }: { pct: number; cor: string; height?: 
   );
 }
 
-const TOOLTIPSTYLE = { fontSize: 12, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TOOLTIPSTYLE = { fontSize: 12, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 // ── Card KPI ──────────────────────────────────────────────────────────────────
 
@@ -503,7 +503,7 @@ function AbaConsultaFNS() {
       {tipoAba === "detalhada" && (
         <>
           <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>Detalhada</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>Detalhada</h2>
             <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 8 }}>
               Os campos com <span style={{ color: "#dc2626" }}>*</span> são obrigatórios.
             </div>
@@ -626,7 +626,7 @@ function AbaConsultaFNS() {
                 ] as [string, any][]).map(([label, val]) => (
                   <div key={label} style={{ padding: "6px 0", borderBottom: "1px solid #f3f4f6" }}>
                     <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 1 }}>{label}</div>
-                    <div style={{ fontWeight: 600, color: "#ffffff" }}>{val}</div>
+                    <div style={{ fontWeight: 600, color: "#1e293b" }}>{val}</div>
                   </div>
                 ))}
               </div>
@@ -712,7 +712,7 @@ function AbaConsultaFNS() {
       {/* ══════════════════════════════════════════════════════════════════════════ */}
       {(tipoAba === "repasse-dia" || tipoAba === "contas-bancarias") && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>
             {tipoAtual.label}
           </h2>
           <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
@@ -805,7 +805,7 @@ function AbaConsultaFNS() {
       {/* ══════════════════════════════════════════════════════════════════════════ */}
       {tipoAba === "consolidada" && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>Consolidada Fundo a Fundo</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>Consolidada Fundo a Fundo</h2>
           <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
             Exibe o consolidado das transferências Fundo a Fundo para um município/estado em determinado exercício.
           </div>
@@ -862,7 +862,7 @@ function AbaConsultaFNS() {
       {/* ══════════════════════════════════════════════════════════════════════════ */}
       {tipoAba === "desconto-mac" && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "18px 20px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>Desconto Mac</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>Desconto Mac</h2>
           <div style={{ background: "#dbeafe", borderRadius: 4, padding: "8px 12px", fontSize: 12, color: "#1e40af", marginBottom: 16, lineHeight: 1.5 }}>
             Tipos de dedução (desconto) aplicados sobre o teto de Média e Alta Complexidade (MAC).
           </div>
@@ -908,14 +908,14 @@ function AbaConsultaFNS() {
       {/* ══════════════════════════════════════════════════════════════════════════ */}
       {!tipoAtual.publico && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "24px 20px" }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: "0 0 12px", borderBottom: "2px solid #e4e7ec", paddingBottom: 8 }}>
             {tipoAtual.label}
           </h2>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "32px 20px", background: "#f8fafc", borderRadius: 10, border: "1px dashed #cbd5e1", textAlign: "center" }}>
             <div style={{ fontSize: 48 }}>🔒</div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", marginBottom: 6 }}>Autenticação necessária</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", marginBottom: 6 }}>Autenticação necessária</div>
               <div style={{ fontSize: 13, color: "#6b7280", maxWidth: 420, lineHeight: 1.6 }}>
                 A consulta <strong>{tipoAtual.label}</strong> requer login com CPF e senha no portal do FNS. Acesse diretamente o portal para realizar esta consulta.
               </div>

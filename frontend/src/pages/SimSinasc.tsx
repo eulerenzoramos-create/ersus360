@@ -5,7 +5,7 @@ import { Activity, AlertTriangle, Heart, Users } from "lucide-react";
 import { apiGet } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
-const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
 const LOCAL_COR: Record<string, string> = { hospital: "#1d4ed8", domicilio: "#d97706", via_publica: "#dc2626" };
 const TIPO_OI: Record<string, string> = { neonatal_precoce: "#dc2626", neonatal_tardio: "#d97706", pos_neonatal: "#7c3aed" };
 const TIPO_OI_LABEL: Record<string, string> = { neonatal_precoce: "Neonatal precoce (0-6d)", neonatal_tardio: "Neonatal tardio (7-27d)", pos_neonatal: "Pós-neonatal (28d-1a)" };

@@ -47,7 +47,7 @@ const BG_PONT = (p: number) =>
 const COR_IND = (s: string) =>
   s === "verde" ? "#16a34a" : s === "amarelo" ? "#d97706" : "#dc2626";
 
-const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 // ── Logo MS ───────────────────────────────────────────────────────────────────
 

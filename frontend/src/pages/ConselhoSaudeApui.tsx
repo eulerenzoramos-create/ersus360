@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import { Users, AlertTriangle, CheckCircle, TrendingUp } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -136,7 +136,7 @@ export default function ConselhoSaudeApui() {
                 <BarChart data={(composicao as any[])} margin={{ left: 0, right: 20 }}>
                   <XAxis dataKey="segmento" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="titulares" name="Titulares" radius={[3,3,0,0]}>
@@ -193,7 +193,7 @@ export default function ConselhoSaudeApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — CMS (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />
