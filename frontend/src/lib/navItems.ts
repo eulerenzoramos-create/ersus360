@@ -59,26 +59,10 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Propostas, emendas e execução financeira via InvestSUS (Ministério da Saúde)",
     keywords:["investsus","proposta","emenda","execução","ministério saúde","ms","convênio","instrumento","parlamentar","recurso","indicado","aprovado","pago"] },
 
-  { id:"emendas",             category:"Financiamento", order:105, iconName:"Landmark",
-    title:"Emendas Parlamentares", route:"/emendas", roles:ROLES_FIN,
-    description:"Acompanhamento de emendas parlamentares destinadas à saúde",
-    keywords:["emenda","parlamentar","deputado","senador","congresso","câmara","convênio","recurso"] },
-
-  { id:"fns",                 category:"Financiamento", order:106, iconName:"Clipboard",
-    title:"Consolidado de Convênios FNS", shortTitle:"Convênios FNS", route:"/fns", roles:ROLES_FIN,
-    description:"Consolidado de convênios e transferências do Fundo Nacional de Saúde",
-    keywords:["fns","convênio","consolidado","transferência","federal","saúde","fundo nacional","recurso","consultafns"] },
-
-  { id:"execucao-bloco",      category:"Financiamento", order:107, iconName:"DollarSign",
-    title:"Execução por Bloco", route:"/execucao", roles:ROLES_FIN,
-    description:"Execução financeira por bloco de financiamento do SUS",
-    keywords:["execução","bloco","financiamento","sus","atenção básica","média","alta","vigilância","assistência"] },
-
   { id:"folha-pagamento",     category:"Financiamento", order:108, iconName:"DollarSign",
     title:"Folha de Pagamento", route:"/folha-pagamento", roles:ROLES_FIN,
     description:"Gestão da folha de pagamento do setor saúde",
     keywords:["folha","pagamento","salário","remuneração","proventos","desconto","contracheque"] },
-
 
   // ══════════ Gestão e Qualidade ══════════
   { id:"inconsistencias",     category:"Gestão e Qualidade", order:201, iconName:"AlertTriangle", highlight:true,
@@ -105,7 +89,6 @@ export const NAV_ITEMS: NavItem[] = [
     title:"Relatórios", route:"/relatorios",
     description:"Central de relatórios consolidados do sistema de saúde municipal",
     keywords:["relatório","central","consolidado","saúde","dados","exportar","impressão","pdf"] },
-
 
   // ══════════ Atenção Primária e ACS ══════════
   // ACS
@@ -154,7 +137,6 @@ export const NAV_ITEMS: NavItem[] = [
     title:"Score de Risco ESF", route:"/score-risco-esf",
     description:"Score de risco por Equipe de Saúde da Família — priorização de correções",
     keywords:["score","risco","esf","equipe","priorização","inconsistência","alerta","vulnerabilidade"] },
-
 
   // ══════════ Vigilância em Saúde ══════════
   { id:"vigilancia-painel",   category:"Vigilância em Saúde", order:401, iconName:"Activity", isNew:true, highlight:true,
@@ -240,7 +222,6 @@ export const NAV_ITEMS: NavItem[] = [
     description:"Vigilância da qualidade da água para consumo humano — VigiÁgua",
     keywords:["vigiágua","água","qualidade","consumo","potabilidade","cloro","turbidez","fluoreto"] },
 
-
   // ══════════ Atenção Especializada e Regulação ══════════
   // Urgência e Hospitalar
   { id:"urgencia",            category:"Atenção Especializada e Regulação", subcategory:"Urgência e Hospitalar", order:501, iconName:"Activity",
@@ -304,7 +285,6 @@ export const NAV_ITEMS: NavItem[] = [
     title:"Reabilitação", route:"/reabilitacao-apui",
     description:"Serviço de reabilitação física, auditiva, intelectual e visual",
     keywords:["reabilitação","fisioterapia","fonoaudiologia","terapia ocupacional","deficiência","cir","caps"] },
-
 
   // ══════════ Sistemas e Integrações ══════════
   { id:"integracoes",         category:"Sistemas e Integrações", order:601, iconName:"Plug", highlight:true,
