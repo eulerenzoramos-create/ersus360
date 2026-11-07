@@ -517,7 +517,7 @@ function DetalhePanel({ nuParcela, competencia }: { nuParcela: string; competenc
       {/* Cabeçalho do detalhe */}
       <div style={{ display: "flex", flexWrap: "wrap" as const, alignItems: "center", gap: 10, marginBottom: 14 }}>
         <span style={{ fontWeight: 700, fontSize: 14, color: C.textPri }}>
-          {data.competencia} — {BRL(total)}
+          Paga em {mesPagamento(nuParcela)} (competência CNES {data.competencia}) — {BRL(total)}
         </span>
         <BadgeConciliacao ok={data.conciliado} />
         {data.nu_comp_cnes && (
@@ -679,12 +679,12 @@ function LinhaCompetencia({
             <span style={{ color: C.blue, flexShrink: 0 }}>
               {isOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
             </span>
-            {c.competencia}
+            {mesPagamento(c.nu_parcela)}
           </span>
         </td>
         <td style={{ padding: "12px 16px", textAlign: "center", color: C.textSec, fontSize: 12 }}>
           {c.parcela}
-          <div style={{ fontSize: 11, color: C.textSec }}>paga em {mesPagamento(c.nu_parcela)}</div>
+          <div style={{ fontSize: 11, color: C.textSec }}>competência CNES {c.competencia}</div>
         </td>
         <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: C.money, fontVariantNumeric: "tabular-nums" }}>
           {BRL(c.total_oficial)}
@@ -785,6 +785,7 @@ function ApsPanel() {
     competencias.filter(c => {
       const matchBusca = filtroBusca === "" ||
         c.competencia.toLowerCase().includes(filtroBusca.toLowerCase()) ||
+        mesPagamento(c.nu_parcela).toLowerCase().includes(filtroBusca.toLowerCase()) ||
         c.parcela.toLowerCase().includes(filtroBusca.toLowerCase());
       const matchConc = filtroConciliacao === "todos" ||
         (filtroConciliacao === "conciliado" && c.conciliado) ||
@@ -1108,7 +1109,7 @@ function ApsPanel() {
                 <thead>
                   <tr style={{ background: "#f1f5f9", borderBottom: `2px solid ${C.grayBdr}` }}>
                     {[
-                      { label: "Competência CNES", align: "left" },
+                      { label: "Mês do pagamento", align: "left" },
                       { label: "Parcela",     align: "center" },
                       { label: "Total Oficial", align: "right" },
                       { label: "Variação", align: "center" },
