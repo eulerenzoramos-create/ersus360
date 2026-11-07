@@ -1,0 +1,20 @@
+/* Utilitários Tailwind usados pelas telas dos módulos (Gestão de Leitos, Malária…).
+   Sem o preflight global: só um reset mínimo, restrito à área das páginas
+   (#ersus-main) e com especificidade zero (:where), para as classes Tailwind sempre vencerem. */
+@tailwind base;
+
+@layer base {
+  /* Bordas Tailwind ("border", "border-b"…) precisam de estilo sólido; largura 0
+     por padrão, como no preflight, para que só "border-*" de largura apareçam. */
+  :where(#ersus-main [class*="border"]) { border-width: 0; border-style: solid; border-color: #e5e7eb; }
+  /* Títulos e parágrafos com className não herdam margens do navegador. */
+  :where(#ersus-main :is(h1, h2, h3, h4, h5, h6, p, blockquote, figure, dl, dd)[class]) { margin: 0; }
+  :where(#ersus-main :is(h1, h2, h3, h4, h5, h6)[class]) { font-size: inherit; font-weight: inherit; }
+  :where(#ersus-main :is(ul, ol)[class]) { margin: 0; padding: 0; list-style: none; }
+  :where(#ersus-main :is(button, input, select, textarea)[class]) { font: inherit; color: inherit; }
+  :where(#ersus-main button[class]) { background-color: transparent; cursor: pointer; }
+  :where(#ersus-main table[class]) { border-collapse: collapse; }
+}
+
+@tailwind components;
+@tailwind utilities;
