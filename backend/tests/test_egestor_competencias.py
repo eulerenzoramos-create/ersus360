@@ -17,14 +17,20 @@ _ASYNC_CLIENT_REAL = httpx.AsyncClient
 REAL = json.loads((Path(__file__).parent / "dados" / "egestor_competencias_apui_20261027.json").read_text(encoding="utf-8"))
 
 
-def _fontes_falsas(monkeypatch, siaps_fora=False, egestor_fora=False):
+def _fontes_falsas(monkeypatch, siaps_fora=False, egestor_fora=False, liberadas=None, agrupado=None):
     ec._cache.clear()
+    agrupado = agrupado or REAL["egestor_agrupado"]
+    if liberadas is None:  # em 27/10/2026 a lista do e-Gestor tinha as mesmas parcelas do AGRUPADO
+        liberadas = [g["nuParcela"] for g in agrupado["agrupamentos"]]
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.host == "apisiaps.saude.gov.br":
             return httpx.Response(502) if siaps_fora else httpx.Response(200, json=REAL["siaps_competencias"])
+        if request.url.path == "/data/parcelas":
+            ano = request.url.params["ano"]
+            return httpx.Response(200, json=[p for p in liberadas if p.startswith(ano)])
         assert request.url.params["coMunicipio"] == "130014" and request.url.params["tipoRelatorio"] == "AGRUPADO"
-        return httpx.Response(500) if egestor_fora else httpx.Response(200, json=REAL["egestor_agrupado"])
+        return httpx.Response(500) if egestor_fora else httpx.Response(200, json=agrupado)
     monkeypatch.setattr(ec.httpx, "AsyncClient",
                         lambda *a, **k: _ASYNC_CLIENT_REAL(transport=httpx.MockTransport(handler), timeout=5))
 
@@ -117,3 +123,17 @@ async def test_pagamento_nao_troca_parcela_pedida(ambiente, monkeypatch):
     assert [x["nu_parcela"] for x in p["parcelas"]] == ["202609"] and "componentes" not in p
     p = (await c.get("/api/egestor-pagamento", params={"parcela": "202609"}, headers=_h(tok))).json()
     assert p["situacao_dado"] == "oficial_validado"
+
+
+async def test_parcela_fora_da_lista_do_egestor_nao_conta_como_publicada(monkeypatch):
+    """07/11/2026: o AGRUPADO já trazia a parcela 202611 (CNES 09/2026), mas a lista de parcelas do
+    e-Gestor ia só até 202610 e o FNS ainda não tinha pago APS em 11/2026."""
+    import copy
+    ag = copy.deepcopy(REAL["egestor_agrupado"])
+    base = max(ag["agrupamentos"], key=lambda g: g["nuParcela"])
+    nova = {**copy.deepcopy(base), "nuParcela": "202611", "nuCompCnes": "202609"}
+    ag["agrupamentos"].append(nova)
+    _fontes_falsas(monkeypatch, agrupado=ag, liberadas=[g["nuParcela"] for g in REAL["egestor_agrupado"]["agrupamentos"]])
+    dados = await ec.consultar_fontes("1300144", forcar=True)
+    assert "2026-10" in dados["egestor"] and "2026-11" not in dados["egestor"]
+

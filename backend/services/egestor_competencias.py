@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 URL_SIAPS = "https://apisiaps.saude.gov.br/api/public/filtros/competencias"
 URL_EGESTOR = "https://relatorioaps-prd.saude.gov.br/financiamento/pagamento"
+URL_PARCELAS = "https://relatorioaps-prd.saude.gov.br/data/parcelas"
 TIMEOUT = 30
 _TTL = timedelta(minutes=30)
 _cache: dict[str, dict] = {}
@@ -66,14 +67,31 @@ async def _siaps_publicado(client: httpx.AsyncClient) -> dict:
     return {"mensais": mensais, "quadrimestres": quads}
 
 
+async def _parcelas_liberadas(client: httpx.AsyncClient, hoje: datetime) -> set[str] | None:
+    """Parcelas que o próprio e-Gestor lista como liberadas (o seletor do site). A consulta AGRUPADO já
+    traz a parcela seguinte antes do pagamento pelo FNS (conferido em 07/11/2026: 202611 no AGRUPADO,
+    fora desta lista e sem repasse APS no FNS em 11/2026). None = lista indisponível."""
+    liberadas: set[str] = set()
+    for ano in (hoje.year - 1, hoje.year):
+        try:
+            r = await client.get(URL_PARCELAS, params={"ano": ano})
+            r.raise_for_status()
+            liberadas |= {str(p) for p in (r.json() or [])}
+        except (httpx.HTTPError, ValueError):
+            return None
+    return liberadas
+
+
 async def _egestor_publicado(client: httpx.AsyncClient, ibge: str, hoje: datetime) -> dict:
     r = await client.get(URL_EGESTOR, params={
         "tipoRelatorio": "AGRUPADO", "unidadeGeografica": "MUNICIPIO", "coUf": ibge[:2], "coMunicipio": ibge[:6],
         "nuParcelaInicio": f"{hoje.year - 1}01", "nuParcelaFim": f"{hoje.year}12"})
     r.raise_for_status()
+    liberadas = await _parcelas_liberadas(client, hoje)
     return {f"{g['nuParcela'][:4]}-{g['nuParcela'][4:]}": {
                 "nu_parcela": g["nuParcela"], "comp_cnes": g.get("nuCompCnes"), "total": g.get("total")}
-            for g in (r.json().get("agrupamentos") or []) if g.get("nuParcela")}
+            for g in (r.json().get("agrupamentos") or [])
+            if g.get("nuParcela") and (liberadas is None or g["nuParcela"] in liberadas)}
 
 
 async def consultar_fontes(ibge: str, forcar: bool = False) -> dict:
