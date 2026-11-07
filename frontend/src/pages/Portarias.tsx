@@ -288,7 +288,7 @@ function InformeCard({ inf, idx, selecionado, onToggle, onEditar, onDeletar }: {
             style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 5, padding: "3px 10px", fontSize: 11, cursor: "pointer", color: "#dc2626", fontWeight: 700, flexShrink: 0 }}>
             🗑 Remover
           </button>
-          <span onClick={() => setAberto(a => !a)} style={{ fontSize: 11, color: "#94a3b8", cursor: "pointer", flexShrink: 0 }}>
+          <span onClick={() => setAberto(a => !a)} style={{ fontSize: 11, color: "#64748b", cursor: "pointer", flexShrink: 0 }}>
             {aberto ? "▲" : "▼"}
           </span>
         </div>
@@ -304,18 +304,18 @@ function InformeCard({ inf, idx, selecionado, onToggle, onEditar, onDeletar }: {
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap" as const }}>
               {inf.numero && (
                 <div style={{ fontSize: 11 }}>
-                  <span style={{ color: "#94a3b8" }}>Número </span>
+                  <span style={{ color: "#64748b" }}>Número </span>
                   <span style={{ color: "#1e293b", fontWeight: 600 }}>{inf.numero}</span>
                 </div>
               )}
               {inf.data_pub && (
                 <div style={{ fontSize: 11 }}>
-                  <span style={{ color: "#94a3b8" }}>Publicação </span>
+                  <span style={{ color: "#64748b" }}>Publicação </span>
                   <span style={{ color: "#1e293b", fontWeight: 600 }}>{inf.data_pub}</span>
                 </div>
               )}
               <div style={{ fontSize: 11 }}>
-                <span style={{ color: "#94a3b8" }}>Órgão </span>
+                <span style={{ color: "#64748b" }}>Órgão </span>
                 <span style={{ color: "#1e293b", fontWeight: 600 }}>{inf.orgao || "Ministério da Saúde"}</span>
               </div>
             </div>
@@ -348,7 +348,7 @@ function InformeCard({ inf, idx, selecionado, onToggle, onEditar, onDeletar }: {
                     <ExternalLink size={12} /> {isDireto ? "Abrir Portaria no DOU" : "Buscar Portaria no DOU"}
                   </a>
                   {!isDireto && (
-                    <span style={{ fontSize: 11, color: "#94a3b8" }}>
+                    <span style={{ fontSize: 11, color: "#64748b" }}>
                       (abre o DOU na data da portaria — localize pelo número)
                     </span>
                   )}
@@ -880,7 +880,7 @@ function BuscaRetroativa() {
               );
             }
             return (
-              <div style={{ textAlign: "center", padding: "24px 0", color: "#94a3b8", fontSize: 13 }}>
+              <div style={{ textAlign: "center", padding: "24px 0", color: "#64748b", fontSize: 13 }}>
                 Nenhuma portaria do Ministério da Saúde encontrada para esta data no DOU.
                 {secoes.length > 0 && (
                   <div style={{ fontSize: 11, marginTop: 6 }}>
@@ -943,7 +943,7 @@ function PainelEnviosDiarios() {
   }[s] || "#94a3b8");
 
   if (loadingStatus) return (
-    <div style={{ textAlign: "center", padding: 24, color: "#94a3b8", fontSize: 13 }}>
+    <div style={{ textAlign: "center", padding: 24, color: "#64748b", fontSize: 13 }}>
       Carregando painel de envios…
     </div>
   );
@@ -972,12 +972,12 @@ function PainelEnviosDiarios() {
             { label: "Informes (último)",   val: String(st?.qtd_informes_ultimo ?? 0),  cor: "#7c3aed", bg: "#f5f3ff", bd: "#c4b5fd" },
           ].map(k => (
             <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.bd}`, borderRadius: 8, padding: "10px 14px" }}>
-              <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>{k.label}</div>
+              <div style={{ fontSize: 10, color: "#64748b", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>{k.label}</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: k.cor, marginTop: 4, wordBreak: "break-all" as const }}>{k.val}</div>
             </div>
           ))}
           <div style={{ background: st?.status_atual === "falha" ? "#fef2f2" : "#f8fafc", border: `1px solid ${st?.status_atual === "falha" ? "#fca5a5" : "#e5e7eb"}`, borderRadius: 8, padding: "10px 14px" }}>
-            <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>Status</div>
+            <div style={{ fontSize: 10, color: "#64748b", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>Status</div>
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
               {statusIcon(st?.status_atual || "")}
               <span style={{ fontSize: 13, fontWeight: 700, color: statusCor(st?.status_atual || "") }}>{st?.status_atual || "nenhum"}</span>
@@ -1246,7 +1246,7 @@ function PainelPortariasDOU() {
                 <span style={{ color: "#dc2626" }}>descartados: <strong>{e.total_descartados}</strong></span>
                 <span style={{ color: "#d97706" }}>duplicatas: <strong>{e.total_duplicatas}</strong></span>
                 <span style={{ color: e.email_enviado ? "#059669" : "#94a3b8" }}>{e.email_enviado ? "✓ e-mail" : "sem e-mail"}</span>
-                <span style={{ marginLeft: "auto", fontSize: 10, color: "#94a3b8" }}>{e.modo}</span>
+                <span style={{ marginLeft: "auto", fontSize: 10, color: "#64748b" }}>{e.modo}</span>
               </div>
             ))}
           </div>
@@ -1376,10 +1376,10 @@ function PainelPortariasDOU() {
         )}
       </div>
 
-      {isLoading && <div style={{ textAlign: "center", padding: 32, color: "#94a3b8", fontSize: 13 }}>Carregando portarias…</div>}
+      {isLoading && <div style={{ textAlign: "center", padding: 32, color: "#64748b", fontSize: 13 }}>Carregando portarias…</div>}
 
       {!isLoading && portarias.length === 0 && (
-        <div style={{ textAlign: "center", padding: 40, color: "#94a3b8", fontSize: 13 }}>
+        <div style={{ textAlign: "center", padding: 40, color: "#64748b", fontSize: 13 }}>
           <FileText size={28} style={{ marginBottom: 8, opacity: 0.4 }} />
           <div>Nenhuma portaria encontrada com estes filtros.</div>
           <div style={{ fontSize: 12, marginTop: 4 }}>Clique em <strong>Buscar no DOU</strong> para capturar portarias do MS da data selecionada.</div>
@@ -1414,8 +1414,8 @@ function PainelPortariasDOU() {
                   🗑 DESCARTADO
                 </span>
               )}
-              <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" as const }}>{p.data_publicacao}</span>
-              <span style={{ fontSize: 11, color: "#94a3b8" }}>{isOpen ? "▲" : "▼"}</span>
+              <span style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap" as const }}>{p.data_publicacao}</span>
+              <span style={{ fontSize: 11, color: "#64748b" }}>{isOpen ? "▲" : "▼"}</span>
             </div>
             {isOpen && (
               <div style={{ padding: "12px 14px", borderTop: "1px solid #f1f5f9" }}>
@@ -1440,7 +1440,7 @@ function PainelPortariasDOU() {
                       <ExternalLink size={11} /> Abrir no DOU
                     </a>
                   )}
-                  <span style={{ fontSize: 10, color: "#94a3b8" }}>|</span>
+                  <span style={{ fontSize: 10, color: "#64748b" }}>|</span>
                   {p.status !== "processado" && (
                     <button disabled={atualizando === p.id}
                       onClick={() => mudarStatus(p.id, "processado")}

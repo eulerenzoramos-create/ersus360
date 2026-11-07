@@ -9,7 +9,7 @@ import {
 import { Brain, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -133,7 +133,7 @@ export default function PsicologiaApsApui() {
                 }))} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 9 }} />
                   <YAxis type="category" dataKey="motivo" tick={{ fontSize: 7 }} width={230} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="casos"     name="Demanda" fill="#374151" radius={[0,3,3,0]} />
@@ -188,7 +188,7 @@ export default function PsicologiaApsApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Mensal — Psicologia APS (Jan–Jun/2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="m"   orientation="right" tick={{ fontSize: 10 }} />

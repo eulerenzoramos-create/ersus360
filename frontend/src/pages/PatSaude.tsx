@@ -141,7 +141,7 @@ export default function PatSaude() {
               <h3 className="font-semibold text-slate-700 mb-4">Valor Patrimonial por Categoria</h3>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={categorias} layout="vertical" margin={{ top: 5, right: 30, left: 160, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis type="number" tickFormatter={(v) => BRL(v)} tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="categoria" tick={{ fontSize: 10 }} width={155} />
                   <Tooltip formatter={(v: number) => BRL(v)} />
@@ -218,7 +218,7 @@ export default function PatSaude() {
               <h3 className="font-semibold text-slate-700 mb-4">Evolução Patrimonial 2021–2026</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="bens" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="inv" orientation="right" tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />

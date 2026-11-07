@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import { Wrench, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#1d4ed8";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -138,7 +138,7 @@ export default function SaudeTrabalhadorApui() {
                 <BarChart data={acidentes as any[]} layout="vertical" margin={{ left: 10, right: 60 }}>
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="setor" tick={{ fontSize: 9 }} width={220} />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <Tooltip />
                   <Bar dataKey="acidentes" name="Acidentes/ano" radius={[0,3,3,0]}>
                     {(acidentes as any[]).map((a: any) => <Cell key={a.setor} fill={SETOR_COLORS[a.setor] || BRAND} />)}
@@ -188,7 +188,7 @@ export default function SaudeTrabalhadorApui() {
             <h3 className="font-semibold text-slate-700 mb-4">Evolução Anual — Saúde do Trabalhador (2022–2025)</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={historico} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="n" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} unit="%" />

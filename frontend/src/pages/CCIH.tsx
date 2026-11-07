@@ -5,7 +5,7 @@ import { ShieldCheck, AlertTriangle, Activity, Pill } from "lucide-react";
 import { apiGet } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
-const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
 const STATUS_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };
 const TEND_COR: Record<string, string>   = { alta: "#dc2626", estavel: "#6b7280", queda: "#16a34a" };
 

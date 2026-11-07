@@ -1180,7 +1180,7 @@ function Layout({ children, sessao, onLogout }: {
         </aside>}
 
         {/* Main */}
-        <main id="ersus-main" style={{flex:1,overflow:"auto",background:"#f1f5f9"}}>
+        <main id="ersus-main" style={{flex:1,overflow:"auto",background:"#f1f5f9",color:"#1f2937"}}>
           <PageNavBar/>
           <ModuloSubabas/>
           <PageErrorBoundary><GuardaPaginaMunicipio ibge={sessao.municipio_ibge ?? ""}>{children}</GuardaPaginaMunicipio></PageErrorBoundary>

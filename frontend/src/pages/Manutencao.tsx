@@ -5,7 +5,7 @@ import { Wrench, AlertTriangle, CheckCircle, Clock, DollarSign } from "lucide-re
 import { apiGet } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
-const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 function KpiCard({ label, value, sub, cor, icon }: { label: string; value: string | number; sub?: string; cor: string; icon: React.ReactNode }) {
   return (

@@ -9,7 +9,7 @@ import {
 import { UserCog, AlertTriangle, Users, Activity } from "lucide-react";
 import { BRL, BRL_AXIS, PCT } from "../lib/fmt";
 
-const BRAND  = "#dbeafe";
+const BRAND  = "#1e3a5f";
 const ACCENT = "#2563eb";
 const OK     = "#16a34a";
 const WARN   = "#d97706";
@@ -176,7 +176,7 @@ export default function GestaoPessoas() {
               <h3 className="font-semibold text-slate-700 mb-4">Absenteísmo e Horas Extras Mensais (2026)</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={absenteismo} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111827" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="n"   tick={{ fontSize: 11 }} />
                   <YAxis yAxisId="pct" orientation="right" domain={[2, 6]} tick={{ fontSize: 11 }} unit="%" />

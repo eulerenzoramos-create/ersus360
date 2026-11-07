@@ -5,7 +5,7 @@ import { Users, AlertTriangle, Activity, Heart } from "lucide-react";
 import { apiGet } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
-const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
 const FRAG_COR: Record<string, string> = { fragil: "#dc2626", pre_fragil: "#d97706", robusto: "#16a34a" };
 const FRAG_LABEL: Record<string, string> = { fragil: "Frágil", pre_fragil: "Pré-frágil", robusto: "Robusto" };
 const STATUS_COR: Record<string, string> = { ok: "#16a34a", atencao: "#d97706", critico: "#dc2626" };

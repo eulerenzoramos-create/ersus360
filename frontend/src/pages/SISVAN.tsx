@@ -8,7 +8,7 @@ import { Activity, AlertTriangle, Users, TrendingUp } from "lucide-react";
 import { apiGet } from "../lib/api";
 import NaoDisponivelBanner from "../components/NaoDisponivelBanner";
 
-const TT = { fontSize: 11, background: "#ffffff", border: "none", borderRadius: 6, color: "#f8fafc" };
+const TT = { fontSize: 11, background: "#1e293b", border: "none", borderRadius: 6, color: "#f8fafc" };
 
 const NUTRI_CORES: Record<string, string> = {
   eutrofico: "#16a34a", sobrepeso: "#d97706", obesidade: "#dc2626",
