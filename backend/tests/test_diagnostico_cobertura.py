@@ -38,3 +38,20 @@ async def test_parcela_nao_publicada_nao_inventa(monkeypatch):
     r = await s.buscar_diagnostico_cobertura("202611")
     assert r["situacao_dado"] == "nao_publicada" and "ainda não foi publicada" in r["nota"]
     assert "esf" not in r and r["ultima_publicada"] == "202610"
+
+
+def test_resumo_planos_oficial_copia_ajuste_desconto_e_efetivo():
+    from services.egestor_aps import resumo_planos_oficial
+    r = resumo_planos_oficial([
+        {"dsPlanoOrcamentario": "Equipes de Saúde da Família - eSF e equipes de Atenção Primária - eAP",
+         "vlIntegral": 270000, "vlAjuste": 0, "vlDesconto": -42174, "vlEfetivoRepasse": 227826},
+        {"dsPlanoOrcamentario": "Atenção à Saúde Bucal", "vlIntegral": 113820, "vlAjuste": 0, "vlDesconto": 0, "vlEfetivoRepasse": 113820},
+        {"dsPlanoOrcamentario": "Equipes Multiprofissionais - eMulti", "vlIntegral": 16750},
+        {"dsPlanoOrcamentario": "Agentes Comunitários de Saúde", "vlIntegral": 213972, "vlEfetivoRepasse": 213972},
+        {"dsPlanoOrcamentario": "Componente per capita de base populacional", "vlIntegral": 10799.75},
+        {"dsPlanoOrcamentario": "", "vlIntegral": 1},
+    ])
+    assert [x["programa"] for x in r] == ["esf_eap", "esb", "emulti", "acs", "per_capita"]
+    assert r[0]["vl_desconto"] == -42174 and r[0]["vl_efetivo"] == 227826 and r[0]["vl_integral"] == 270000
+    # campo não publicado fica None (tela mostra "—"), nunca zero inventado
+    assert r[2]["vl_desconto"] is None and r[2]["vl_efetivo"] is None

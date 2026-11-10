@@ -365,11 +365,64 @@ async def buscar_completo(
         },
     }
 
+    # Resumo oficial por plano orçamentário (valor integral, ajuste, desconto e efetivo repasse),
+    # exatamente como o e-Gestor publica — sem cálculo próprio.
+    resultado["resumo_planos"] = resumo_planos_oficial(raw.get("resumosPlanosOrcamentarios") or [])
+
     return {
         "data_consulta": raw.get("data", ""),
         "coletado_em": coletado_em,
         "detalhado": resultado,
     }
+
+
+def _f(v: Any) -> float | None:
+    return None if v is None else float(v)
+
+
+def resumo_planos_oficial(resumos: list[dict]) -> list[dict]:
+    """Lista os planos orçamentários do COMPLETO com os valores oficiais publicados.
+
+    Campos ausentes ficam None (a tela mostra "—"); nada é estimado.
+    """
+    out = []
+    for r in resumos:
+        plano = (r.get("dsPlanoOrcamentario") or "").strip()
+        if not plano:
+            continue
+        out.append({
+            "plano": plano,
+            "programa": programa_do_plano(plano),
+            "vl_integral": _f(r.get("vlIntegral")),
+            "vl_ajuste": _f(r.get("vlAjuste")),
+            "vl_desconto": _f(r.get("vlDesconto")),
+            "vl_efetivo": _f(r.get("vlEfetivoRepasse")),
+            "vl_implantacao": _f(r.get("vlImplantacao")),
+            "vl_ajuste_implantacao": _f(r.get("vlAjusteImplantacao")),
+            "vl_desconto_implantacao": _f(r.get("vlDescontoImplantacao")),
+            "vl_total_implantacao": _f(r.get("vlTotalImplantacao")),
+        })
+    return out
+
+
+def programa_do_plano(plano: str) -> str | None:
+    """Associa o plano orçamentário oficial ao card do programa (eSF/eAP, eSB, eMulti, ACS...)."""
+    t = plano.lower()
+    if t.startswith("equipes de sa") or "esf" in t.split():
+        return "esf_eap"
+    if "bucal" in t:
+        return "esb"
+    if "multiprof" in t or "emulti" in t:
+        return "emulti"
+    if "agentes comunit" in t:
+        return "acs"
+    if "per capita" in t:
+        return "per_capita"
+    if "promo" in t:
+        return "pse"
+    if t.startswith("demais programas"):
+        return "demais"
+    return None
 
 
 _SIAPS_PUBLIC = "https://apisiaps.saude.gov.br"

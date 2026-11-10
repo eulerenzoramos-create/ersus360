@@ -1379,21 +1379,46 @@ const brlDC = (v?: number | null) =>
   v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 const numDC = (v?: number | null) => (v == null ? "—" : v.toLocaleString("pt-BR"));
 
-function CardProgramaDC({ titulo, cor, itens, publicado }: {
-  titulo: string; cor: string; publicado: boolean;
-  itens: { label: string; val: React.ReactNode; destaque?: boolean }[];
+type ItemDC = { label: string; val: React.ReactNode; destaque?: boolean; separador?: boolean };
+
+// Valor com sinal: desconto negativo em vermelho, ajuste positivo em verde (como no e-Gestor)
+const brlSinalDC = (v?: number | null) => v == null ? "—" : (
+  <span style={{ color: v < 0 ? "#b91c1c" : v > 0 ? "#15803d" : "#1e293b" }}>
+    {v < 0 ? "−" : ""}{brlDC(Math.abs(v))}
+  </span>
+);
+
+// Linhas oficiais do plano orçamentário: valor integral, ajuste, desconto e total efetivamente repassado
+function linhasResumoDC(r: any, rotuloIntegral = "Valor integral do plano"): ItemDC[] {
+  if (!r) return [];
+  return [
+    { label: rotuloIntegral, val: brlDC(r.vl_integral), separador: true },
+    { label: "Ajuste", val: brlSinalDC(r.vl_ajuste) },
+    { label: "Desconto", val: brlSinalDC(r.vl_desconto) },
+    { label: "Total repassado (oficial)", val: brlDC(r.vl_efetivo), destaque: true },
+  ];
+}
+
+function CardProgramaDC({ titulo, cor, itens, publicado, subtitulo }: {
+  titulo: string; cor: string; publicado: boolean; subtitulo?: string;
+  itens: ItemDC[];
 }) {
   return (
     <div style={{ border: `1px solid ${cor}33`, borderTop: `3px solid ${cor}`, borderRadius: 10, padding: "14px 18px", background: "#fff" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: cor }}>{titulo}</div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: cor }}>{titulo}</div>
+          {subtitulo && <div style={{ fontSize: 11, color: "#4b5563", marginTop: 2 }}>{subtitulo}</div>}
+        </div>
         <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 8,
           background: publicado ? "#f0fdf4" : "#f3f4f6", color: publicado ? "#15803d" : "#4b5563" }}>
           {publicado ? "✓ Publicado no e-Gestor" : "Sem dados nesta parcela"}
         </span>
       </div>
       {itens.map((it, i) => (
-        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: i < itens.length - 1 ? "1px solid #f3f4f6" : "none" }}>
+        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", gap: 10,
+          borderTop: it.separador ? "2px solid #e5e7eb" : undefined, marginTop: it.separador ? 4 : 0,
+          borderBottom: i < itens.length - 1 ? "1px solid #f3f4f6" : "none" }}>
           <span style={{ fontSize: 12, color: "#4b5563" }}>{it.label}</span>
           <span style={{ fontSize: it.destaque ? 16 : 13, fontWeight: it.destaque ? 800 : 600, color: it.destaque ? cor : "#1e293b", fontVariantNumeric: "tabular-nums" }}>{it.val}</span>
         </div>
@@ -1460,6 +1485,9 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
   const esf = data.esf ?? {}, eap = data.eap ?? {}, emulti = data.emulti ?? {}, esb = data.esb ?? {};
   const acs = data.acs ?? {}, esfr = data.esfr ?? {}, micro = data.microscopista ?? {}, pc = data.per_capita ?? {}, tetos = data.tetos ?? {};
   const tem = (o: any) => o && Object.keys(o).length > 0;
+  const rp: Record<string, any> = data.resumo_por_programa ?? {};
+  const subtituloParcela = ok ? `Parcela ${data.parcela}/12 de ${data.ano_parcela} · Competência CNES ${data.competencia}` : undefined;
+  const eMaisRecente = ok && data.parcela_code === data.ultima_publicada;
 
   return (
     <div>
@@ -1486,6 +1514,22 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
           </button>
         </div>
       </div>
+
+      {ok && (
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", background: "#eff6ff", border: "2px solid #1d4ed8", borderRadius: 10, padding: "12px 18px", marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: 0.4 }}>Valores desta tela</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#1e3a8a" }}>
+              Parcela {data.parcela}/12 de {data.ano_parcela} <span style={{ fontWeight: 600, color: "#1d4ed8" }}>· Competência CNES {data.competencia}</span>
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: "#1e3a8a", flex: "1 1 320px" }}>
+            {eMaisRecente && <div><strong>É a parcela mais recente publicada pelo Ministério da Saúde.</strong></div>}
+            Para comparar com o e-Gestor, escolha lá a mesma <strong>PARCELA {String(data.parcela).padStart(2, "0")}/12</strong> (competência CNES {data.competencia}).
+            {parcelaGlobal ? " Para ver outra parcela aqui, troque a competência no seletor do topo da página." : " Para ver outra parcela aqui, use o seletor ao lado."}
+          </div>
+        </div>
+      )}
 
       {data.aviso_atualizacao && <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#92400e", marginBottom: 14 }}>{data.aviso_atualizacao}</div>}
       {!ok && (
@@ -1570,10 +1614,12 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
               { label: "Vínculo e Acompanhamento", val: brlDC(esf.vl_vinculo) },
               { label: "Qualidade", val: brlDC(esf.vl_qualidade) },
               { label: "Implantação", val: brlDC(esf.vl_implantacao) },
-              { label: "Total bruto eSF (COMPLETO)", val: brlDC(esf.vl_total_bruto) },
-              { label: "Pago no plano eSF/eAP (AGRUPADO)", val: brlDC(data.esf_eap_pago_plano), destaque: true },
-              { label: "Diferença pago − bruto (descontos/ajustes)", val: brlDC(data.esf_eap_diferenca_bruto_pago) },
-            ]} />
+              { label: "Total bruto eSF", val: brlDC(esf.vl_total_bruto) },
+              ...(rp.esf_eap ? linhasResumoDC(rp.esf_eap, "Valor integral (plano eSF/eAP)") : [
+                { label: "Pago no plano eSF/eAP", val: brlDC(data.esf_eap_pago_plano), destaque: true },
+                { label: "Diferença pago − bruto (descontos/ajustes)", val: brlDC(data.esf_eap_diferenca_bruto_pago) },
+              ]),
+            ]} subtitulo={subtituloParcela} />
             <CardProgramaDC titulo="eSB — Saúde Bucal · UOM · LRPD · CEO" cor="#7c3aed" publicado={tem(esb)} itens={[
               { label: "Teto 40h", val: numDC(tetos.sb_40h) },
               { label: "Credenciadas 40h", val: numDC(esb.qt_40h_credenciadas) },
@@ -1584,8 +1630,9 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
               { label: `UOM (${numDC(esb.qt_uom)} unid.)`, val: brlDC(esb.vl_uom) },
               { label: "LRPD municipal", val: brlDC(esb.vl_lrpd_municipal) },
               { label: "CEO municipal", val: brlDC(esb.vl_ceo_municipal) },
-              { label: "Total Saúde Bucal", val: brlDC(esb.vl_total_sb_calculado), destaque: true },
-            ]} />
+              { label: "Total Saúde Bucal", val: brlDC(esb.vl_total_sb_calculado), destaque: !rp.esb },
+              ...linhasResumoDC(rp.esb),
+            ]} subtitulo={subtituloParcela} />
             <CardProgramaDC titulo="eMulti — Multiprofissionais" cor="#0891b2" publicado={tem(emulti)} itens={[
               { label: "Teto (estratégica / complementar / ampliada)", val: `${numDC(tetos.emulti_estrategica)} / ${numDC(tetos.emulti_complementar)} / ${numDC(tetos.emulti_ampliada)}` },
               { label: "Credenciadas", val: numDC(emulti.qt_credenciadas) },
@@ -1595,8 +1642,9 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
               { label: "Custeio", val: brlDC(emulti.vl_custeio) },
               { label: "Qualidade", val: brlDC(emulti.vl_qualidade) },
               { label: "Atendimento remoto", val: brlDC(emulti.vl_atend_remoto) },
-              { label: "Total eMulti", val: brlDC(emulti.vl_total), destaque: true },
-            ]} />
+              { label: "Total eMulti", val: brlDC(emulti.vl_total), destaque: !rp.emulti },
+              ...linhasResumoDC(rp.emulti),
+            ]} subtitulo={subtituloParcela} />
             <CardProgramaDC titulo="ACS — Agentes Comunitários de Saúde" cor="#16a34a" publicado={tem(acs)} itens={[
               { label: "Teto", val: numDC(acs.qt_teto) },
               { label: "Credenciados", val: numDC(acs.qt_direto_credenciado) },
@@ -1604,8 +1652,9 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
               { label: "Valor direto", val: brlDC(acs.vl_direto) },
               { label: "Parcela extra", val: brlDC(acs.vl_parcela_extra_direto) },
               { label: "Pagos (indireto) / valor", val: `${numDC(acs.qt_indireto_pago)} / ${brlDC(acs.vl_indireto)}` },
-              { label: "Total ACS", val: brlDC(acs.vl_total), destaque: true },
-            ]} />
+              { label: "Total ACS", val: brlDC(acs.vl_total), destaque: !rp.acs },
+              ...linhasResumoDC(rp.acs),
+            ]} subtitulo={subtituloParcela} />
             <CardProgramaDC titulo="eSFR — Saúde da Família Ribeirinha" cor="#d97706" publicado={tem(esfr)} itens={[
               { label: "Credenciadas", val: numDC(esfr.qt_credenciadas) },
               { label: "Homologadas", val: numDC(esfr.qt_homologadas) },
@@ -1616,7 +1665,7 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
               { label: "Qualidade", val: brlDC(esfr.vl_qualidade) },
               { label: "Valor extra", val: brlDC(esfr.vl_extra) },
               { label: "Total eSFR", val: brlDC(esfr.vl_total), destaque: true },
-            ]} />
+            ]} subtitulo={subtituloParcela} />
             <CardProgramaDC titulo="Microscopistas · Per capita · eAP · PSE" cor="#64748b" publicado={tem(micro) || tem(pc)} itens={[
               { label: "Microscopistas credenciados / pagos", val: `${numDC(micro.qt_credenciados)} / ${numDC(micro.qt_pagos)}` },
               { label: "Total microscopistas", val: brlDC(micro.vl_total) },
@@ -1624,11 +1673,44 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
               { label: "eAP credenciadas / pagas", val: `${numDC(eap.qt_credenciadas)} / ${numDC(eap.qt_pagas)}` },
               { label: "Total eAP", val: brlDC(eap.vl_total_bruto) },
               { label: "PSE", val: brlDC((data.pse ?? {}).vl_total) },
-            ]} />
+            ]} subtitulo={subtituloParcela} />
           </div>
 
           {/* Valor pago por plano orçamentário */}
-          {data.planos && Object.keys(data.planos).length > 0 && (
+          {(data.resumo_planos ?? []).length > 0 && (() => {
+            const linhas: any[] = data.resumo_planos;
+            const soma = (k: string) => linhas.every(l => l[k] != null) ? linhas.reduce((a, l) => a + l[k], 0) : null;
+            return (
+              <div style={caixaDC}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>Resumo por plano orçamentário — parcela {data.parcela}/12 de {data.ano_parcela} (competência CNES {data.competencia})</div>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 640 }}>
+                    <thead><tr>{["Plano orçamentário", "Valor integral", "Ajuste", "Desconto", "Total repassado"].map((h, i) =>
+                      <th key={h} style={{ ...thDC, textAlign: i ? "right" : "left" }}>{h}</th>)}</tr></thead>
+                    <tbody>
+                      {linhas.map(l => (
+                        <tr key={l.plano}>
+                          <td style={tdDC}>{l.plano}</td>
+                          <td style={{ ...tdDC, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{brlDC(l.vl_integral)}</td>
+                          <td style={{ ...tdDC, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{brlSinalDC(l.vl_ajuste)}</td>
+                          <td style={{ ...tdDC, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{brlSinalDC(l.vl_desconto)}</td>
+                          <td style={{ ...tdDC, textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{brlDC(l.vl_efetivo)}</td>
+                        </tr>
+                      ))}
+                      <tr style={{ background: "#f0f9ff" }}>
+                        <td style={{ ...tdDC, fontWeight: 700, color: "#0369a1" }}>Total oficial da parcela</td>
+                        <td style={{ ...tdDC, textAlign: "right", fontWeight: 700 }}>{brlDC(soma("vl_integral"))}</td>
+                        <td style={{ ...tdDC, textAlign: "right", fontWeight: 700 }}>{brlSinalDC(soma("vl_ajuste"))}</td>
+                        <td style={{ ...tdDC, textAlign: "right", fontWeight: 700 }}>{brlSinalDC(soma("vl_desconto"))}</td>
+                        <td style={{ ...tdDC, textAlign: "right", fontWeight: 800, color: "#0369a1" }}>{brlDC(data.total_parcela)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+          {!(data.resumo_planos ?? []).length && data.planos && Object.keys(data.planos).length > 0 && (
             <div style={caixaDC}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>Valor pago por plano orçamentário — {data.parcela}ª parcela/{data.ano_parcela}</div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
