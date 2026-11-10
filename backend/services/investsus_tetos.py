@@ -338,7 +338,7 @@ def _pct(parte: float | None, total: float | None) -> float | None:
 
 
 def montar_painel(tetos: dict[str, dict], propostas: Iterable[Any], modalidade_de,
-                  exercicio: int = EXERCICIO_PADRAO) -> dict:
+                  exercicio: int = EXERCICIO_PADRAO, limites_programas: dict[str, dict] | None = None) -> dict:
     """tetos: categoria → registro gravado (valor, situacao, documento...).
     propostas: PropostaInvestSUS do município (já filtradas por esfera federal).
     modalidade_de: função proposta → rp6 | rp7 | rp8 | programa | a_classificar."""
@@ -361,10 +361,13 @@ def montar_painel(tetos: dict[str, dict], propostas: Iterable[Any], modalidade_d
             prog = getattr(p, "programa", None)
             chave = (getattr(prog, "nome", None) or p.bloco_financiamento or p.acao_orcamentaria
                      or p.objeto or "Programa não identificado")[:120]
-            g = programas.setdefault(chave, {"programa": chave, "propostas": [], "valor_solicitado": 0.0,
-                                             "valor_aprovado": 0.0, "valor_pago": 0.0})
-            g["propostas"].append(linha)
-            if linha["fase"] not in _SITUACOES_SEM_CONSUMO:
+            g = programas.setdefault(chave, {"programa": chave, "propostas": [], "excluidas": [],
+                                             "valor_solicitado": 0.0, "valor_aprovado": 0.0, "valor_pago": 0.0})
+            linha["classificacao"] = _classificacao_programa(p)
+            if linha["fase"] in _SITUACOES_SEM_CONSUMO:
+                g["excluidas"].append(linha)
+            else:
+                g["propostas"].append(linha)
                 g["valor_solicitado"] += linha["valor"]
                 g["valor_aprovado"] += float(p.valor_aprovado or 0)
                 g["valor_pago"] += float(p.valor_pago or 0)
@@ -442,24 +445,15 @@ def montar_painel(tetos: dict[str, dict], propostas: Iterable[Any], modalidade_d
             "memoria_calculo": memoria,
         })
 
+    programacao = montar_programacao(programas, limites_programas or {}, exercicio)
     return {
         "exercicio": exercicio,
         "cards": cards,
-        "resumo": resumo_gerencial(cards),
+        "resumo": resumo_gerencial(cards, programacao["programas"]),
         "a_classificar": a_classificar,
         "sem_modalidade": sem_modalidade,
         "propostas_outros_exercicios": outros_exercicios,
-        "programacao": {
-            "situacao": SITUACAO_NAO_DISPONIVEL,
-            "nota": ("Recursos de programação do Ministério da Saúde não têm teto municipal único publicado "
-                     "pelo FNS: o valor máximo é definido em cada portaria/edital de programa (LOA 2026). "
-                     "Valor máximo e saldo ficam como \"não disponível\" até que a portaria do programa "
-                     "fixe um limite para o município."),
-            "programas": [{**g, "valor_solicitado": round(g["valor_solicitado"], 2),
-                           "valor_aprovado": round(g["valor_aprovado"], 2), "valor_pago": round(g["valor_pago"], 2),
-                           "valor_maximo": None, "saldo": None, "situacao_limite": SITUACAO_NAO_DISPONIVEL}
-                          for g in sorted(programas.values(), key=lambda g: -g["valor_solicitado"])],
-        },
+        "programacao": programacao,
         "fontes": [{"categoria": f.categoria, "rotulo": f.rotulo, "documento": f.documento,
                     "url_planilha": f.url_planilha, "url_pagina": f.url_pagina,
                     "data_publicacao": f.data_publicacao.isoformat()}
@@ -474,7 +468,90 @@ _RESUMO_ROTULO = {"individual": "Individuais — RP 6",
                   "coletiva": "Coletivas — RP 7 + RP 8 (teto único)"}
 
 
-def resumo_gerencial(cards: list[dict]) -> dict:
+def chave_programa(nome: str) -> str:
+    return fed._norm(nome or "")[:200]
+
+
+def _classificacao_programa(p: Any) -> str:
+    partes = ["Recurso de programa"]
+    fin = getattr(p, "tipo_financiamento", None)
+    if fin:
+        partes.append(str(getattr(fin, "value", fin)).capitalize())
+    acao = getattr(p, "acao_orcamentaria", None)
+    if acao:
+        partes.append(str(acao)[:60])
+    return " · ".join(partes)
+
+
+def montar_programacao(programas: dict[str, dict], limites: dict[str, dict], exercicio: int) -> dict:
+    """Recursos de programa: teto = valor máximo autorizado registrado com referência oficial
+    (portaria/edital ou tela do InvestSUS); utilizado = um estágio por proposta, sem canceladas
+    e rejeitadas; saldo = teto − utilizado. Sem limite registrado, teto e saldo ficam
+    "não disponível" — nunca estimados. Limites registrados sem proposta também aparecem."""
+    por_chave = {chave_programa(k): v for k, v in limites.items()}
+    usados: set[str] = set()
+    saida = []
+    for g in programas.values():
+        ch = chave_programa(g["programa"])
+        lim = por_chave.get(ch)
+        if lim:
+            usados.add(ch)
+        saida.append(_card_programa(g, lim, exercicio))
+    for ch, lim in por_chave.items():
+        if ch not in usados:
+            vazio = {"programa": lim.get("programa") or ch, "propostas": [], "excluidas": [],
+                     "valor_solicitado": 0.0, "valor_aprovado": 0.0, "valor_pago": 0.0}
+            saida.append(_card_programa(vazio, lim, exercicio))
+    saida.sort(key=lambda g: (-(g["valor_solicitado"] or 0), g["programa"]))
+    com_limite = sum(1 for g in saida if g["valor_maximo"] is not None)
+    if saida and com_limite == len(saida):
+        situacao = SITUACAO_CONFIRMADO
+    elif com_limite:
+        situacao = SITUACAO_PENDENTE
+    else:
+        situacao = SITUACAO_NAO_DISPONIVEL
+    return {
+        "situacao": situacao,
+        "nota": ("Recursos de programação do Ministério da Saúde não têm teto municipal único publicado pelo "
+                 f"FNS: o valor máximo autorizado é definido na portaria/edital de cada programa ({exercicio}) e "
+                 "aparece no InvestSUS ao cadastrar a proposta. Registre o valor com a referência oficial para "
+                 "calcular o saldo; sem registro, teto e saldo ficam como \"não disponível\"."),
+        "programas": saida,
+    }
+
+
+def _card_programa(g: dict, lim: dict | None, exercicio: int) -> dict:
+    utilizado = round(sum(x["valor"] for x in g["propostas"]), 2)
+    teto = lim.get("valor") if lim else None
+    saldo = round(teto - utilizado, 2) if teto is not None else None
+    memoria = [
+        (f"Teto (valor máximo autorizado): {_brl(teto)} — {lim.get('documento')}."
+         if lim else "Teto: valor máximo autorizado ainda não registrado (portaria/edital do programa não informado)."),
+        (f"Utilizado: {_brl(utilizado)} = soma de {len(g['propostas'])} proposta(s) {exercicio} deste programa, "
+         "um único estágio por proposta (aprovado; se não aprovado, valor da proposta; se não cadastrada, "
+         "indicado). Empenhado e pago não são somados de novo."),
+        (f"Saldo disponível = {_brl(teto)} − {_brl(utilizado)} = {_brl(saldo)}."
+         if saldo is not None else "Saldo não calculado: valor máximo autorizado não registrado."),
+    ]
+    if g.get("excluidas"):
+        memoria.append(f"{len(g['excluidas'])} proposta(s) cancelada(s)/rejeitada(s) não subtraída(s).")
+    return {
+        "programa": g["programa"],
+        "propostas": g["propostas"], "excluidas": g.get("excluidas", []),
+        "valor_solicitado": utilizado,
+        "valor_aprovado": round(g["valor_aprovado"], 2), "valor_pago": round(g["valor_pago"], 2),
+        "valor_maximo": teto, "saldo": saldo,
+        "acima_do_teto": saldo is not None and saldo < 0,
+        "perc_utilizado": _pct(utilizado, teto),
+        "perc_disponivel": _pct(saldo, teto) if saldo is not None else None,
+        "situacao_limite": SITUACAO_CONFIRMADO if lim else SITUACAO_NAO_DISPONIVEL,
+        "limite": ({k: lim.get(k) for k in ("valor", "documento", "url", "observacao", "registrado_em",
+                                            "registrado_por")} if lim else None),
+        "memoria_calculo": memoria,
+    }
+
+
+def resumo_gerencial(cards: list[dict], programas: list[dict] | None = None) -> dict:
     """Quadro consolidado do município: uma linha por teto oficial (individual/coletiva × PAP/MAC).
     RP 7 e RP 8 dividem o mesmo teto, então aparecem numa linha só — nada é contado duas vezes.
     Totais só quando todos os tetos do quadro foram lidos (sem teto não há total oficial)."""
@@ -499,7 +576,17 @@ def resumo_gerencial(cards: list[dict]) -> dict:
         "completo": completos,
         "qtd_propostas": sum(x["qtd_propostas"] for x in linhas),
     }
-    return {"linhas": linhas, "total": total}
+    progs = [{"programa": g["programa"], "teto": g["valor_maximo"], "utilizado": g["valor_solicitado"],
+              "saldo": g["saldo"], "perc_utilizado": g["perc_utilizado"], "situacao": g["situacao_limite"],
+              "qtd_propostas": len(g["propostas"])} for g in (programas or [])]
+    prog_completo = bool(progs) and all(x["teto"] is not None for x in progs)
+    p_util = round(sum(x["utilizado"] for x in progs), 2)
+    p_teto = round(sum(x["teto"] for x in progs), 2) if prog_completo else None
+    total_programas = {"teto": p_teto, "utilizado": p_util,
+                       "saldo": round(p_teto - p_util, 2) if p_teto is not None else None,
+                       "perc_utilizado": _pct(p_util, p_teto), "completo": prog_completo,
+                       "qtd_propostas": sum(x["qtd_propostas"] for x in progs)}
+    return {"linhas": linhas, "total": total, "programas": progs, "total_programas": total_programas}
 
 
 def _teto_publico(teto: dict, fonte: FonteTeto | None) -> dict:
