@@ -381,6 +381,8 @@ def montar_painel(tetos: dict[str, dict], propostas: Iterable[Any], modalidade_d
                 a_classificar[grupo].append(linha)
             continue
         cat = f"{grupo}_{comp}"
+        linha["componente"] = comp
+        linha["classificacao"] = _CLASSIFICACAO[comp]
         (excluidas if linha["fase"] in _SITUACOES_SEM_CONSUMO else consumo)[cat].append(linha)
 
     cards = []
@@ -443,6 +445,7 @@ def montar_painel(tetos: dict[str, dict], propostas: Iterable[Any], modalidade_d
     return {
         "exercicio": exercicio,
         "cards": cards,
+        "resumo": resumo_gerencial(cards),
         "a_classificar": a_classificar,
         "sem_modalidade": sem_modalidade,
         "propostas_outros_exercicios": outros_exercicios,
@@ -462,6 +465,41 @@ def montar_painel(tetos: dict[str, dict], propostas: Iterable[Any], modalidade_d
                     "data_publicacao": f.data_publicacao.isoformat()}
                    for f in fontes_do_exercicio(exercicio).values()],
     }
+
+
+_CLASSIFICACAO = {"pap": "Custeio · Incremento Temporário PAP (ação 2E89)",
+                  "mac": "Custeio · Incremento Temporário MAC (ação 2E90)"}
+
+_RESUMO_ROTULO = {"individual": "Individuais — RP 6",
+                  "coletiva": "Coletivas — RP 7 + RP 8 (teto único)"}
+
+
+def resumo_gerencial(cards: list[dict]) -> dict:
+    """Quadro consolidado do município: uma linha por teto oficial (individual/coletiva × PAP/MAC).
+    RP 7 e RP 8 dividem o mesmo teto, então aparecem numa linha só — nada é contado duas vezes.
+    Totais só quando todos os tetos do quadro foram lidos (sem teto não há total oficial)."""
+    linhas = []
+    for c in cards:
+        linhas.append({
+            "categoria": c["categoria"], "grupo": c["grupo"], "componente": c["componente"],
+            "modalidade": _RESUMO_ROTULO.get(c["grupo"], c["grupo"]),
+            "modalidades": ["rp6"] if c["grupo"] == "individual" else ["rp7", "rp8"],
+            "teto": c["teto"].get("valor"), "utilizado": c["comprometido"], "saldo": c["saldo"],
+            "perc_utilizado": c["perc_utilizado"], "situacao": c["situacao"],
+            "qtd_propostas": len(c["propostas"]),
+            "por_modalidade": c["por_modalidade"],
+        })
+    completos = all(x["teto"] is not None for x in linhas) and bool(linhas)
+    utilizado = round(sum(x["utilizado"] for x in linhas), 2)
+    teto = round(sum(x["teto"] for x in linhas), 2) if completos else None
+    total = {
+        "teto": teto, "utilizado": utilizado,
+        "saldo": round(teto - utilizado, 2) if teto is not None else None,
+        "perc_utilizado": _pct(utilizado, teto),
+        "completo": completos,
+        "qtd_propostas": sum(x["qtd_propostas"] for x in linhas),
+    }
+    return {"linhas": linhas, "total": total}
 
 
 def _teto_publico(teto: dict, fonte: FonteTeto | None) -> dict:

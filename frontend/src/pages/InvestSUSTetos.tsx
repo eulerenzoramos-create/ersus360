@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { TetoTresValores, valoresDoCard, TabelaPropostasTeto, ResumoGerencialTetos, SeletorExercicio, MOD_ROTULO, ESTAGIO_ROTULO } from "../components/investsus/TetoFinanceiro";
 import {
   RefreshCw, ExternalLink, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2,
   Clock, Info, Landmark, Users, ClipboardList,
@@ -12,7 +13,6 @@ import {
 
 const fmt = (v: number | null | undefined) =>
   v == null ? "Não disponível" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const fmtPct = (v: number | null | undefined) => (v == null ? "—" : `${v.toFixed(1)}%`);
 const fmtData = (v?: string | null) => {
   if (!v) return "—";
   const d = new Date(v.length === 10 ? `${v}T12:00:00` : v.endsWith("Z") || v.includes("+") ? v : `${v}Z`);
@@ -25,8 +25,6 @@ const SITUACAO: Record<string, { label: string; cor: string; bg: string; icone: 
   nao_disponivel:     { label: "Não disponível",         cor: "#6b7280", bg: "#f3f4f6", icone: <Info size={12} /> },
 };
 
-const MOD_ROTULO: Record<string, string> = { rp6: "RP 6", rp7: "RP 7 — Bancada", rp8: "RP 8 — Comissão", programa: "Programa" };
-const ESTAGIO_ROTULO: Record<string, string> = { aprovado: "Aprovado", proposta: "Valor da proposta", indicado: "Indicado (sem proposta aprovada)", sem_valor: "Sem valor" };
 
 const card: React.CSSProperties = { background: "#fff", borderRadius: 10, border: "1px solid #e5e7eb", padding: 16 };
 const rotulo: React.CSSProperties = { fontSize: 11, color: "#6b7280", fontWeight: 600 };
@@ -52,8 +50,6 @@ function Linha({ k, v, forte, cor }: { k: string; v: React.ReactNode; forte?: bo
 function CardTeto({ c }: { c: any }) {
   const [aberto, setAberto] = useState(false);
   const t = c.teto ?? {};
-  const corSaldo = c.saldo == null ? "#6b7280" : c.acima_do_teto ? "#dc2626" : "#047857";
-  const usado = Math.min(100, Math.max(0, c.perc_utilizado ?? 0));
   const cnes: any[] = t.detalhes?.cnes ?? [];
   return (
     <div style={{ ...card, borderTop: `4px solid ${c.componente === "pap" ? "#0284c7" : "#7c3aed"}`, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -67,33 +63,15 @@ function CardTeto({ c }: { c: any }) {
         <Selo situacao={c.situacao} />
       </div>
 
-      <div>
-        <div style={rotulo}>Saldo remanescente</div>
-        <div style={{ fontSize: 24, fontWeight: 800, color: corSaldo, lineHeight: 1.2 }}>{fmt(c.saldo)}</div>
-        {c.acima_do_teto && <div style={{ fontSize: 11, color: "#dc2626", fontWeight: 700 }}>Comprometido acima do teto oficial</div>}
-      </div>
+      <TetoTresValores v={valoresDoCard(c)} />
 
-      {c.saldo != null && (
-        <div>
-          <div style={{ height: 8, background: "#e5e7eb", borderRadius: 99, overflow: "hidden" }}>
-            <div style={{ width: `${usado}%`, height: "100%", background: c.acima_do_teto ? "#dc2626" : "#1e3a5f" }} />
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#6b7280", marginTop: 3 }}>
-            <span>Utilizado {fmtPct(c.perc_utilizado)}</span>
-            <span>Disponível {fmtPct(c.perc_disponivel)}</span>
-          </div>
+      {c.grupo === "coletiva" && (
+        <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 6 }}>
+          {["rp7", "rp8"].map(m => (
+            <Linha key={m} k={`Utilizado · ${MOD_ROTULO[m]} (teto único)`} v={`${fmt(c.por_modalidade?.[m]?.valor ?? 0)} (${c.por_modalidade?.[m]?.qtd ?? 0})`} />
+          ))}
         </div>
       )}
-
-      <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 6 }}>
-        <Linha k="Teto oficial do município" v={fmt(t.valor)} forte />
-        <Linha k="Valor já comprometido no teto" v={fmt(c.comprometido)} />
-        {c.grupo === "coletiva"
-          ? ["rp7", "rp8"].map(m => (
-              <Linha key={m} k={`  · ${MOD_ROTULO[m]}`} v={`${fmt(c.por_modalidade?.[m]?.valor ?? 0)} (${c.por_modalidade?.[m]?.qtd ?? 0})`} />
-            ))
-          : null}
-      </div>
 
       <div style={{ fontSize: 11, color: "#4b5563", background: "#f9fafb", borderRadius: 6, padding: 8, display: "flex", flexDirection: "column", gap: 3 }}>
         <div><b>Referência:</b> {t.documento ?? "—"}</div>
@@ -127,43 +105,16 @@ function CardTeto({ c }: { c: any }) {
               {Object.entries(c.por_estagio).map(([k, v]: any) => <Linha key={k} k={ESTAGIO_ROTULO[k] ?? k} v={fmt(v)} />)}
             </div>
           )}
-          <TabelaPropostas linhas={c.propostas} vazio="Nenhuma proposta deste exercício consome este teto." />
+          <div style={{ ...rotulo, marginBottom: 3 }}>Propostas que comprometem o teto</div>
+          <TabelaPropostasTeto linhas={c.propostas} referencia={t.documento} vazio="Nenhuma proposta deste exercício consome este teto." />
           {c.excluidas.length > 0 && (
             <div>
               <div style={{ ...rotulo, marginBottom: 3 }}>Canceladas / rejeitadas — não subtraídas (conferir tratamento oficial)</div>
-              <TabelaPropostas linhas={c.excluidas} vazio="" />
+              <TabelaPropostasTeto linhas={c.excluidas} referencia={t.documento} vazio="" />
             </div>
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function TabelaPropostas({ linhas, vazio }: { linhas: any[]; vazio: string }) {
-  if (!linhas.length) return vazio ? <div style={{ fontSize: 11.5, color: "#9ca3af" }}>{vazio}</div> : null;
-  return (
-    <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5 }}>
-        <thead>
-          <tr style={{ color: "#6b7280", textAlign: "left" }}>
-            <th style={{ padding: "4px 6px" }}>Proposta</th>
-            <th style={{ padding: "4px 6px" }}>Mod.</th>
-            <th style={{ padding: "4px 6px" }}>Estágio</th>
-            <th style={{ padding: "4px 6px", textAlign: "right" }}>Valor</th>
-          </tr>
-        </thead>
-        <tbody>
-          {linhas.map(l => (
-            <tr key={l.id} style={{ borderTop: "1px solid #f3f4f6" }}>
-              <td style={{ padding: "4px 6px", color: "#111827", fontFamily: "monospace" }} title={l.objeto ?? ""}>{l.numero_proposta}</td>
-              <td style={{ padding: "4px 6px", color: "#111827" }}>{MOD_ROTULO[l.modalidade] ?? l.modalidade}</td>
-              <td style={{ padding: "4px 6px", color: "#111827" }}>{ESTAGIO_ROTULO[l.estagio] ?? l.estagio}</td>
-              <td style={{ padding: "4px 6px", color: "#111827", textAlign: "right", fontWeight: 700 }}>{fmt(l.valor)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
@@ -187,12 +138,14 @@ function Grupo({ titulo, sub, icone, cards }: { titulo: string; sub: string; ico
 
 export default function TetosMunicipais() {
   const qc = useQueryClient();
+  const [exercicio, setExercicio] = useState<number | null>(null);
   const { data, isLoading, error } = useQuery({
-    queryKey: ["investsus-tetos"],
-    queryFn: () => api.get("/api/investsus/tetos").then(r => r.data),
+    queryKey: ["investsus-tetos", "recursos", exercicio],
+    queryFn: () => api.get(`/api/investsus/tetos${exercicio ? `?exercicio=${exercicio}` : ""}`).then(r => r.data),
+    placeholderData: (anterior: any) => anterior,
   });
   const atualizar = useMutation({
-    mutationFn: () => api.post("/api/investsus/tetos/atualizar").then(r => r.data),
+    mutationFn: () => api.post(`/api/investsus/tetos/atualizar?exercicio=${data?.exercicio ?? ""}`).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["investsus-tetos"] }),
   });
 
@@ -221,12 +174,23 @@ export default function TetosMunicipais() {
           </div>
           <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>Última consulta ao FNS: {fmtData(data.ultima_consulta)}</div>
         </div>
-        <button onClick={() => atualizar.mutate()} disabled={atualizar.isPending}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <SeletorExercicio valor={data.exercicio} anos={data.exercicios_disponiveis ?? [data.exercicio]}
+          comTeto={data.exercicios_com_teto_oficial} onChange={setExercicio} />
+        <button onClick={() => atualizar.mutate()} disabled={atualizar.isPending || !(data.exercicios_com_teto_oficial ?? [data.exercicio]).includes(data.exercicio)}
+          title={(data.exercicios_com_teto_oficial ?? [data.exercicio]).includes(data.exercicio) ? "" : "Sem planilha oficial do FNS cadastrada para este exercício"}
           style={{ padding: "8px 14px", borderRadius: 6, border: "none", cursor: atualizar.isPending ? "wait" : "pointer", fontSize: 12.5, fontWeight: 700, background: "#1e3a5f", color: "#fff", display: "flex", alignItems: "center", gap: 6 }}>
           <RefreshCw size={13} className={atualizar.isPending ? "animate-spin" : ""} />
           {atualizar.isPending ? "Consultando FNS..." : "Atualizar Tetos Municipais"}
         </button>
+        </div>
       </div>
+      {!(data.exercicios_com_teto_oficial ?? [data.exercicio]).includes(data.exercicio) && (
+        <div style={{ ...card, background: "#f8fafc", fontSize: 12, color: "#374151" }}>
+          <Info size={12} style={{ verticalAlign: -1 }} /> Ainda não há planilha oficial do FNS cadastrada no ERSUS360 para o exercício {data.exercicio}.
+          O valor utilizado pelas propostas de {data.exercicio} aparece normalmente; teto e saldo ficam "Não disponível" até a planilha oficial do exercício ser cadastrada — nenhum valor é estimado.
+        </div>
+      )}
       {erroAtualizar && <div style={{ ...card, color: "#b91c1c", fontSize: 12, background: "#fef2f2" }}>{String(erroAtualizar)}</div>}
       {falhas.length > 0 && (
         <div style={{ ...card, color: "#b45309", fontSize: 12, background: "#fffbeb" }}>
@@ -243,6 +207,8 @@ export default function TetosMunicipais() {
           <div style={{ marginTop: 4 }}>Sincronize os detalhes (ação orçamentária) ou classifique a proposta para que entre no teto correto.</div>
         </div>
       )}
+
+      <ResumoGerencialTetos resumo={data.resumo} exercicio={data.exercicio} />
 
       <Grupo titulo="Emendas individuais (RP 6)" sub="Portaria GM/MS nº 10.297/2026 · teto próprio, independente das coletivas"
         icone={<Users size={18} color="#1e3a5f" />} cards={ind} />
