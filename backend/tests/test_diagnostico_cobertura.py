@@ -55,3 +55,23 @@ def test_resumo_planos_oficial_copia_ajuste_desconto_e_efetivo():
     assert r[0]["vl_desconto"] == -42174 and r[0]["vl_efetivo"] == 227826 and r[0]["vl_integral"] == 270000
     # campo não publicado fica None (tela mostra "—"), nunca zero inventado
     assert r[2]["vl_desconto"] is None and r[2]["vl_efetivo"] is None
+
+
+def test_vinculo_qualidade_nota_e_valor_publicados():
+    from services.egestor_aps import vinculo_qualidade_oficial
+    pg = {"qtEsfTotalPgto": 9, "dsClassificacaoVinculoEsfEap": "BOM", "dsClassificacaoQualidadeEsfEap": "BOM",
+          "vlVinculoEsf": 54000, "vlQualidadeEsf": 72000, "qtEapTotalPgto": 0,
+          "qtSbPagamentoModalidadeI": 10, "dsClassificacaoQualidadeEsb40h": "ÓTIMO; BOM",
+          "vlPagamentoEsb40hQualidade": 33000, "vlQualidadeEsb40hOtimo": 15000, "vlQualidadeEsb40hBom": 18000,
+          "dsClassificacaoQualidadeEsbChDif20h": "-", "vlQualidadeEsbChDif20h": 0,
+          "dsClassificacaoQualidadeEmulti": "BOM", "vlPagamentoEmultiQualidade": 2250, "qtEmultiPagas": 1,
+          "qtRibeirinhaPagas": 1, "vlPagamentoEsfrbVinculoAcomp": 6000, "vlPagamentoEsfrbQualidade": 6000}
+    ls = {(l["programa"], l["componente"]): l for l in vinculo_qualidade_oficial(pg)}
+    assert ls[("eSF", "vinculo")]["classificacao"] == "BOM" and ls[("eSF", "vinculo")]["valor"] == 54000
+    assert ls[("eSF", "qualidade")]["valor"] == 72000 and ls[("eSF", "qualidade")]["equipes_pagas"] == 9
+    esb = ls[("eSB 40h", "qualidade")]
+    assert esb["valor"] == 33000 and {p["classificacao"]: p["valor"] for p in esb["partes"]} == {"ÓTIMO": 15000, "BOM": 18000}
+    # eSFR: valor publicado, nota não publicada → None (nunca inventada)
+    assert ls[("eSFR", "vinculo")]["classificacao"] is None and ls[("eSFR", "vinculo")]["valor"] == 6000
+    # sem valor e nota "-" → linha omitida; eAP sem equipes → omitida
+    assert ("eSB 20h", "qualidade") not in ls and ("eAP", "vinculo") not in ls
