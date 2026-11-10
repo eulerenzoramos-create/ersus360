@@ -275,12 +275,52 @@ _SITUACOES_SEM_CONSUMO = {"cancelada", "rejeitada"}
 _MOD_GRUPO = {"rp6": "individual", "rp7": "coletiva", "rp8": "coletiva", "programa": "programa"}
 
 
+def _desc(campo: Any) -> str:
+    if isinstance(campo, dict):
+        return str(campo.get("descricao") or campo.get("nome") or "")
+    return str(campo or "")
+
+
+def tipo_oficial(p: Any) -> dict:
+    """Classificação oficial gravada na última sincronização com a lista do InvestSUS
+    (payload bruto de /api/propostas/paginado): tipoRecurso (EMENDA/PROGRAMA) e
+    tipoProposta (INCREMENTO PAP, CUSTEIO MAC...). Vazio quando a proposta não veio da lista."""
+    raw = getattr(p, "payload_original", None)
+    if not isinstance(raw, dict):
+        return {"tipo_recurso": None, "tipo_proposta": None}
+    return {"tipo_recurso": _desc(raw.get("tipoRecurso")) or None,
+            "tipo_proposta": _desc(raw.get("tipoProposta")) or None}
+
+
 def _texto_proposta(p: Any) -> str:
     prog = getattr(p, "programa", None)
     partes = [getattr(p, c, None) for c in ("acao_orcamentaria", "componente", "bloco_financiamento",
                                             "finalidade", "tipo_objeto", "objeto")]
     partes.append(getattr(prog, "nome", None) if prog else None)
+    partes.append(tipo_oficial(p)["tipo_proposta"])  # tipo oficial do InvestSUS (ex.: INCREMENTO PAP)
     return fed._norm(" | ".join(str(x) for x in partes if x))
+
+
+def area_financiamento(*textos: Any) -> str:
+    """'pap' | 'mac' | 'outros' — lida do texto oficial (tipo da proposta, ação, programa,
+    objeto). Regra dinâmica: um programa novo entra na área certa sem mudar o código;
+    o que não for PAP nem MAC fica em 'outros' (nunca presumido)."""
+    t = fed._norm(" | ".join(str(x) for x in textos if x))
+    if re.search(r"2e90|\bmac\b|media e alta|alta complexidade|especializada", t):
+        return "mac"
+    if re.search(r"2e89|\bpap\b|\baps\b|atencao primaria|atencao basica", t):
+        return "pap"
+    return "outros"
+
+
+def categoria_investsus(tipo_proposta: Any) -> str:
+    """Categorias do gráfico da tela Propostas do InvestSUS: incremento_mac | incremento_pap | outros."""
+    t = fed._norm(tipo_proposta)
+    if "incremento" in t and re.search(r"\bmac\b|media e alta", t):
+        return "incremento_mac"
+    if "incremento" in t and re.search(r"\bpap\b|primaria", t):
+        return "incremento_pap"
+    return "outros"
 
 
 def componente_do_teto(p: Any) -> str:
@@ -322,13 +362,30 @@ def _sit(p: Any) -> str:
     return getattr(s, "value", s) or ""
 
 
+def _iso(v: Any) -> str | None:
+    return v.isoformat() if isinstance(v, (date, datetime)) else (str(v) if v else None)
+
+
 def _linha(p: Any, modalidade: str) -> dict:
     v, estagio = valor_comprometido(p)
     sit = _sit(p)
+    of = tipo_oficial(p)
     return {"id": p.id, "numero_proposta": p.numero_proposta, "modalidade": modalidade,
             "situacao": sit, "fase": fed.fase_de(sit), "objeto": (p.objeto or "")[:160] or None,
             "valor": round(v, 2), "estagio": estagio,
-            "valor_pago": round(float(getattr(p, "valor_pago", 0) or 0), 2)}
+            "valor_solicitado": round(float(getattr(p, "valor_proposta", 0) or getattr(p, "valor_indicado", 0) or 0), 2),
+            "valor_aprovado": round(float(getattr(p, "valor_aprovado", 0) or 0), 2),
+            "valor_empenhado": round(float(getattr(p, "valor_empenhado", 0) or 0), 2),
+            "valor_pago": round(float(getattr(p, "valor_pago", 0) or 0), 2),
+            "situacao_oficial": getattr(p, "situacao_original", None),
+            "exercicio": getattr(p, "exercicio", None),
+            "tipo_recurso": of["tipo_recurso"], "tipo_proposta": of["tipo_proposta"],
+            "acao_orcamentaria": getattr(p, "acao_orcamentaria", None),
+            "portaria_numero": getattr(p, "portaria_numero", None),
+            "portaria_data": _iso(getattr(p, "portaria_data", None)),
+            "numero_instrumento": getattr(p, "numero_instrumento", None) or None,
+            "ultima_consulta_investsus": _iso(getattr(p, "ultima_consulta_investsus", None)),
+            "fonte": getattr(p, "fonte_dado", None)}
 
 
 def _pct(parte: float | None, total: float | None) -> float | None:
@@ -364,6 +421,8 @@ def montar_painel(tetos: dict[str, dict], propostas: Iterable[Any], modalidade_d
             g = programas.setdefault(chave, {"programa": chave, "propostas": [], "excluidas": [],
                                              "valor_solicitado": 0.0, "valor_aprovado": 0.0, "valor_pago": 0.0})
             linha["classificacao"] = _classificacao_programa(p)
+            linha["area"] = area_financiamento(linha["tipo_proposta"], p.acao_orcamentaria, p.componente,
+                                               p.bloco_financiamento, chave, p.objeto)
             if linha["fase"] in _SITUACOES_SEM_CONSUMO:
                 g["excluidas"].append(linha)
             else:
@@ -520,6 +579,15 @@ def montar_programacao(programas: dict[str, dict], limites: dict[str, dict], exe
     }
 
 
+def _area_do_grupo(g: dict) -> str:
+    areas = {x.get("area") for x in g["propostas"] + g.get("excluidas", []) if x.get("area")}
+    if len(areas) == 1:
+        return areas.pop()
+    if not areas:
+        return area_financiamento(g["programa"])
+    return "misto"
+
+
 def _card_programa(g: dict, lim: dict | None, exercicio: int) -> dict:
     utilizado = round(sum(x["valor"] for x in g["propostas"]), 2)
     teto = lim.get("valor") if lim else None
@@ -537,8 +605,12 @@ def _card_programa(g: dict, lim: dict | None, exercicio: int) -> dict:
         memoria.append(f"{len(g['excluidas'])} proposta(s) cancelada(s)/rejeitada(s) não subtraída(s).")
     return {
         "programa": g["programa"],
+        "area": _area_do_grupo(g),
         "propostas": g["propostas"], "excluidas": g.get("excluidas", []),
         "valor_solicitado": utilizado,
+        "solicitado": round(sum(x.get("valor_solicitado", 0) for x in g["propostas"]), 2),
+        "aprovado": round(sum(x.get("valor_aprovado", 0) for x in g["propostas"]), 2),
+        "pago": round(sum(x.get("valor_pago", 0) for x in g["propostas"]), 2),
         "valor_aprovado": round(g["valor_aprovado"], 2), "valor_pago": round(g["valor_pago"], 2),
         "valor_maximo": teto, "saldo": saldo,
         "acima_do_teto": saldo is not None and saldo < 0,
