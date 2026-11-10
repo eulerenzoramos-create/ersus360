@@ -256,6 +256,8 @@ async def buscar_diagnostico_cobertura(parcela: str | None = None, forcar_atuali
         validacao = []
     esf, eap = det.get("esf") or {}, det.get("eap") or {}
     pago_esf_eap = next((v for k, v in s["planos"].items() if k.startswith("Equipes de Sa")), None)
+    resumo_planos = det.get("resumo_planos") or []
+    resumo_por_programa = {r["programa"]: r for r in resumo_planos if r.get("programa")}
     dados = {
         "situacao_dado": "oficial_validado", "parcela_code": parcela, "parcela": int(parcela[4:]),
         "ano_parcela": parcela[:4], "competencia": s["competencia"], "nu_comp_cnes": s["comp_cnes"],
@@ -268,6 +270,11 @@ async def buscar_diagnostico_cobertura(parcela: str | None = None, forcar_atuali
         "tetos": det.get("tetos") or {},
         "esf": esf, "eap": eap,
         "esf_eap_pago_plano": pago_esf_eap,
+        # Ajuste / desconto / efetivo repasse oficiais por plano (resumosPlanosOrcamentarios do COMPLETO)
+        "resumo_planos": resumo_planos,
+        "resumo_por_programa": resumo_por_programa,
+        "rotulo_parcela": f"Parcela {int(parcela[4:])}/12 de {parcela[:4]}",
+        "rotulo_competencia": f"Competência CNES {s['competencia']}",
         "esf_eap_diferenca_bruto_pago": (round(pago_esf_eap - (esf.get("vl_total_bruto") or 0) - (eap.get("vl_total_bruto") or 0), 2)
                                          if pago_esf_eap is not None else None),
         "emulti": det.get("emulti") or {}, "esb": det.get("esb") or {}, "acs": det.get("acs") or {},
