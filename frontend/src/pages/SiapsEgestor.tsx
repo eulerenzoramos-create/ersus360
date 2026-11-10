@@ -330,7 +330,10 @@ function infoDaAba(aba: string, item: CompetenciaFonte | undefined, cat: Catalog
                  } else {
                    const d: any = await apiGetRaw("/api/siaps/diagnostico-cobertura", { parcela: item.egestor_parcela });
                    baixarCsv(nomeArq("diagnostico"), [
-                     ...Object.entries(d?.planos ?? {}).map(([plano, valor]) => ({ registro: "plano", plano, valor })),
+                     ...((d?.resumo_planos ?? []).length
+                       ? (d.resumo_planos as any[]).map(r => ({ registro: "plano", plano: r.plano, valor_integral: r.vl_integral,
+                           ajuste: r.vl_ajuste, desconto: r.vl_desconto, total_repassado: r.vl_efetivo }))
+                       : Object.entries(d?.planos ?? {}).map(([plano, valor]) => ({ registro: "plano", plano, valor }))),
                      ...(d?.diagnosticos ?? []).map((x: any) => ({ registro: "diagnostico", ...x })),
                      ...(d?.validacao_equipes ?? []).map((x: any) => ({ registro: "equipe", ...x }))], rod("e-Gestor APS — relatório público"));
                  }
@@ -1379,53 +1382,12 @@ const brlDC = (v?: number | null) =>
   v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 const numDC = (v?: number | null) => (v == null ? "—" : v.toLocaleString("pt-BR"));
 
-type ItemDC = { label: string; val: React.ReactNode; destaque?: boolean; separador?: boolean };
-
 // Valor com sinal: desconto negativo em vermelho, ajuste positivo em verde (como no e-Gestor)
 const brlSinalDC = (v?: number | null) => v == null ? "—" : (
   <span style={{ color: v < 0 ? "#b91c1c" : v > 0 ? "#15803d" : "#1e293b" }}>
     {v < 0 ? "−" : ""}{brlDC(Math.abs(v))}
   </span>
 );
-
-// Linhas oficiais do plano orçamentário: valor integral, ajuste, desconto e total efetivamente repassado
-function linhasResumoDC(r: any, rotuloIntegral = "Valor integral do plano"): ItemDC[] {
-  if (!r) return [];
-  return [
-    { label: rotuloIntegral, val: brlDC(r.vl_integral), separador: true },
-    { label: "Ajuste", val: brlSinalDC(r.vl_ajuste) },
-    { label: "Desconto", val: brlSinalDC(r.vl_desconto) },
-    { label: "Total repassado (oficial)", val: brlDC(r.vl_efetivo), destaque: true },
-  ];
-}
-
-function CardProgramaDC({ titulo, cor, itens, publicado, subtitulo }: {
-  titulo: string; cor: string; publicado: boolean; subtitulo?: string;
-  itens: ItemDC[];
-}) {
-  return (
-    <div style={{ border: `1px solid ${cor}33`, borderTop: `3px solid ${cor}`, borderRadius: 10, padding: "14px 18px", background: "#fff" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8 }}>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: cor }}>{titulo}</div>
-          {subtitulo && <div style={{ fontSize: 11, color: "#4b5563", marginTop: 2 }}>{subtitulo}</div>}
-        </div>
-        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 8,
-          background: publicado ? "#f0fdf4" : "#f3f4f6", color: publicado ? "#15803d" : "#4b5563" }}>
-          {publicado ? "✓ Publicado no e-Gestor" : "Sem dados nesta parcela"}
-        </span>
-      </div>
-      {itens.map((it, i) => (
-        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", gap: 10,
-          borderTop: it.separador ? "2px solid #e5e7eb" : undefined, marginTop: it.separador ? 4 : 0,
-          borderBottom: i < itens.length - 1 ? "1px solid #f3f4f6" : "none" }}>
-          <span style={{ fontSize: 12, color: "#4b5563" }}>{it.label}</span>
-          <span style={{ fontSize: it.destaque ? 16 : 13, fontWeight: it.destaque ? 800 : 600, color: it.destaque ? cor : "#1e293b", fontVariantNumeric: "tabular-nums" }}>{it.val}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 const SEV_DC: Record<string, { bg: string; cor: string; label: string }> = {
   ok:      { bg: "#f0fdf4", cor: "#15803d", label: "✓ OK" },
@@ -1486,50 +1448,82 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
   const acs = data.acs ?? {}, esfr = data.esfr ?? {}, micro = data.microscopista ?? {}, pc = data.per_capita ?? {}, tetos = data.tetos ?? {};
   const tem = (o: any) => o && Object.keys(o).length > 0;
   const rp: Record<string, any> = data.resumo_por_programa ?? {};
-  const subtituloParcela = ok ? `Parcela ${data.parcela}/12 de ${data.ano_parcela} · Competência CNES ${data.competencia}` : undefined;
   const eMaisRecente = ok && data.parcela_code === data.ultima_publicada;
+  const varTotal = anterior && ok ? data.total_parcela - anterior.total : null;
+  const resumo: any[] = data.resumo_planos ?? [];
+  const somaR = (k: string) => (resumo.length && resumo.every(l => l[k] != null) ? resumo.reduce((a, l) => a + l[k], 0) : null);
+  const descontoTotal = somaR("vl_desconto");
+  const ajusteTotal = somaR("vl_ajuste");
+  const integralTotal = somaR("vl_integral");
+  const planosComDesconto = resumo.filter(l => (l.vl_desconto ?? 0) !== 0 || (l.vl_ajuste ?? 0) !== 0);
+  const problemas = diagsOrd.filter(d => d.severidade !== "ok");
+  const nAlertas = problemas.filter(d => d.severidade === "alerta" || d.severidade === "critico").length;
+  const nInfo = problemas.length - nAlertas;
+  const verificacoesOk = diagsOrd.filter(d => d.severidade === "ok");
+  const pagoOuValido = (v: any) => /PAGO|V[ÁA]LIDO/i.test(v.st_pagamento ?? "");
+  const pendentes = valid.filter(v => v.pendencias.length || !pagoOuValido(v));
+  const porTipo = valid.reduce((a: Record<string, number>, v) => ({ ...a, [v.tipo ?? "—"]: (a[v.tipo ?? "—"] ?? 0) + 1 }), {});
+  const soma0 = (...v: (number | null | undefined)[]) => v.reduce<number>((a, x) => a + (x ?? 0), 0);
+
+  // Uma linha por plano orçamentário oficial; a composição fica recolhida (sem repetir totais)
+  const programas: { k: string; nome: string; cor: string; resumoEquipes?: string; composicao: [string, number | null | undefined][]; publicado: boolean }[] = [
+    { k: "esf_eap", nome: "Saúde da Família (eSF/eAP)", cor: "#1d4ed8", publicado: tem(esf),
+      resumoEquipes: `${numDC(esf.qt_pagas)} de ${numDC(esf.qt_credenciadas)} eSF pagas · teto ${numDC(tetos.esf)}${(eap.qt_credenciadas ?? 0) > 0 ? ` · eAP ${numDC(eap.qt_pagas)}/${numDC(eap.qt_credenciadas)}` : ""}`,
+      composicao: [["Componente fixo (equidade)", esf.vl_fixo], ["Vínculo e Acompanhamento", esf.vl_vinculo], ["Qualidade", esf.vl_qualidade], ["Implantação", esf.vl_implantacao],
+        ...((eap.vl_total_bruto ?? 0) > 0 ? [["eAP (total)", eap.vl_total_bruto] as [string, number]] : [])] },
+    { k: "esb", nome: "Saúde Bucal", cor: "#7c3aed", publicado: tem(esb),
+      resumoEquipes: `${numDC(soma0(esb.qt_40h_pagas_modal_i, esb.qt_40h_pagas_modal_ii))} de ${numDC(esb.qt_40h_credenciadas)} eSB 40h pagas · teto ${numDC(tetos.sb_40h)}`,
+      composicao: [["Custeio eSB 40h", esb.vl_esb_40h], ["Qualidade eSB 40h", esb.vl_qualidade_40h], [`UOM (${numDC(esb.qt_uom)} unid.)`, esb.vl_uom], ["LRPD municipal", esb.vl_lrpd_municipal], ["CEO municipal", esb.vl_ceo_municipal]] },
+    { k: "emulti", nome: "eMulti", cor: "#0891b2", publicado: tem(emulti),
+      resumoEquipes: `${numDC(emulti.qt_pagas)} de ${numDC(emulti.qt_credenciadas)} paga · teto ${numDC(tetos.emulti_estrategica)}/${numDC(tetos.emulti_complementar)}/${numDC(tetos.emulti_ampliada)} (E/C/A)`,
+      composicao: [["Custeio", emulti.vl_custeio], ["Qualidade", emulti.vl_qualidade], ["Atendimento remoto", emulti.vl_atend_remoto]] },
+    { k: "acs", nome: "Agentes Comunitários de Saúde", cor: "#16a34a", publicado: tem(acs),
+      resumoEquipes: `${numDC(acs.qt_direto_pago)} de ${numDC(acs.qt_direto_credenciado)} ACS pagos · teto ${numDC(acs.qt_teto)}`,
+      composicao: [["Valor direto", acs.vl_direto], ["Parcela extra", acs.vl_parcela_extra_direto], [`Indireto (${numDC(acs.qt_indireto_pago)} pagos)`, acs.vl_indireto]] },
+    { k: "demais", nome: "Demais programas (eSFR, microscopistas…)", cor: "#d97706", publicado: tem(esfr) || tem(micro),
+      resumoEquipes: `eSFR ${numDC(esfr.qt_pagas)}/${numDC(esfr.qt_credenciadas)} · ${numDC(esfr.qt_embarcacoes)} embarcação · microscopistas ${numDC(micro.qt_pagos)}/${numDC(micro.qt_credenciados)}`,
+      composicao: [["eSFR — custeio", esfr.vl_custeio], ["eSFR — vínculo", esfr.vl_vinculo], ["eSFR — qualidade", esfr.vl_qualidade], ["eSFR — valor extra", esfr.vl_extra], ["Microscopistas", micro.vl_total]] },
+    { k: "per_capita", nome: "Per capita de base populacional", cor: "#64748b", publicado: tem(pc),
+      resumoEquipes: data.populacao ? `população ${numDC(data.populacao)}${data.ano_ref_populacao ? ` (ref. ${data.ano_ref_populacao})` : ""}` : undefined, composicao: [] },
+    { k: "pse", nome: "Promoção à saúde (PSE)", cor: "#94a3b8", publicado: tem(data.pse), composicao: [] },
+  ];
+  const maxRepasse = Math.max(1, ...programas.map(p => rp[p.k]?.vl_efetivo ?? 0));
+  const histGrafico = hist.map(h => ({ ...h, rotulo: `${String(h.parcela_code).slice(4)}/${String(h.ano_parcela).slice(2)}` }));
+
+  const kpi = (cor: string, valor: React.ReactNode, rotulo: string, nota?: React.ReactNode) => (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderLeft: `4px solid ${cor}`, borderRadius: 10, padding: "12px 16px" }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#4b5563", textTransform: "uppercase", letterSpacing: 0.3 }}>{rotulo}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: cor, fontVariantNumeric: "tabular-nums", lineHeight: 1.25, marginTop: 2 }}>{valor}</div>
+      {nota && <div style={{ fontSize: 11.5, color: "#374151", marginTop: 2 }}>{nota}</div>}
+    </div>
+  );
+  const resumoRecolhido: React.CSSProperties = { cursor: "pointer", fontSize: 14, fontWeight: 700, color: "#1e293b", listStyle: "revert" };
 
   return (
     <div>
-      {/* Cabeçalho: município, parcela, fonte e data da consulta */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <span style={{ background: "#e0f2fe", color: "#0369a1", fontWeight: 700, padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>{data.municipio}/{data.uf} · IBGE {data.ibge}</span>
-            {ok && <span style={{ background: "#fef3c7", color: "#92400e", fontWeight: 700, padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>Competência CNES {data.competencia} · {data.parcela}ª parcela/{data.ano_parcela}</span>}
-            <span style={{ background: ok ? "#f0fdf4" : "#f3f4f6", color: ok ? "#15803d" : "#4b5563", padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>
-              {ok ? "Fonte: e-Gestor APS (dado oficial publicado)" : "Sem dados oficiais para esta parcela"}
-            </span>
-            {data.coletado_em && <span style={{ background: "#f3f4f6", color: "#374151", padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>Consultado em {new Date(data.coletado_em).toLocaleString("pt-BR")}</span>}
-          </div>
+      {/* Barra de contexto única: qual parcela está na tela + ações */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "10px 16px", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          {ok ? (
+            <>
+              <span style={{ fontSize: 17, fontWeight: 800, color: "#1e3a8a" }}>Parcela {data.parcela}/12 de {data.ano_parcela}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#1d4ed8" }}>competência CNES {data.competencia}</span>
+              {eMaisRecente && <span style={{ fontSize: 11, fontWeight: 700, background: "#1d4ed8", color: "#fff", borderRadius: 10, padding: "2px 8px" }}>mais recente</span>}
+              <span style={{ fontSize: 12, color: "#1e3a8a" }}>· no e-Gestor, compare com a <strong>PARCELA {String(data.parcela).padStart(2, "0")}/12</strong></span>
+            </>
+          ) : <span style={{ fontSize: 14, fontWeight: 700, color: "#92400e" }}>Sem dados oficiais para esta parcela</span>}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {!parcelaGlobal && <select value={sel} onChange={e => { setParcela(e.target.value); setForcar(0); }}
-            style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "7px 10px", fontSize: 12, background: "#fff", cursor: "pointer" }}>
+            style={{ border: "1px solid #d1d5db", borderRadius: 6, padding: "6px 10px", fontSize: 12, background: "#fff", cursor: "pointer" }}>
             {parcelas.map(p => <option key={p.val} value={p.val}>{p.label}</option>)}
           </select>}
           <button onClick={() => setForcar(Date.now())} disabled={isFetching} title="Consulta o e-Gestor de novo, ignorando o cache de 4 horas"
-            style={{ display: "flex", alignItems: "center", gap: 5, background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer", fontSize: 12 }}>
+            style={{ display: "flex", alignItems: "center", gap: 5, background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 12 }}>
             <RefreshCw size={13} /> {isFetching ? "Atualizando…" : "Atualizar"}
           </button>
         </div>
       </div>
-
-      {ok && (
-        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", background: "#eff6ff", border: "2px solid #1d4ed8", borderRadius: 10, padding: "12px 18px", marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: 0.4 }}>Valores desta tela</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#1e3a8a" }}>
-              Parcela {data.parcela}/12 de {data.ano_parcela} <span style={{ fontWeight: 600, color: "#1d4ed8" }}>· Competência CNES {data.competencia}</span>
-            </div>
-          </div>
-          <div style={{ fontSize: 12, color: "#1e3a8a", flex: "1 1 320px" }}>
-            {eMaisRecente && <div><strong>É a parcela mais recente publicada pelo Ministério da Saúde.</strong></div>}
-            Para comparar com o e-Gestor, escolha lá a mesma <strong>PARCELA {String(data.parcela).padStart(2, "0")}/12</strong> (competência CNES {data.competencia}).
-            {parcelaGlobal ? " Para ver outra parcela aqui, troque a competência no seletor do topo da página." : " Para ver outra parcela aqui, use o seletor ao lado."}
-          </div>
-        </div>
-      )}
 
       {data.aviso_atualizacao && <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#92400e", marginBottom: 14 }}>{data.aviso_atualizacao}</div>}
       {!ok && (
@@ -1541,224 +1535,176 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
 
       {ok && (
         <>
-          {/* KPIs */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
-            {[
-              { label: "Total da parcela (oficial)", val: brlDC(data.total_parcela), cor: "#1d4ed8",
-                nota: anterior ? `${data.total_parcela - anterior.total >= 0 ? "▲" : "▼"} ${brlDC(Math.abs(data.total_parcela - anterior.total))} vs ${anterior.competencia}` : undefined },
-              { label: "eSF pagas / credenciadas", val: `${numDC(esf.qt_pagas)} / ${numDC(esf.qt_credenciadas)}`, cor: "#0369a1", nota: tetos.esf ? `teto ${tetos.esf}` : undefined },
-              { label: "Qualidade · Vínculo eSF", val: `${data.classificacao_qualidade_esf ?? "—"} · ${data.classificacao_vinculo_esf ?? "—"}`, cor: "#15803d", nota: data.faixa_equidade_esf ? `IED ${data.faixa_equidade_esf}` : undefined },
-              { label: "Equipes com pendência na validação", val: `${valid.filter(v => v.pendencias.length).length} de ${valid.length}`, cor: valid.some(v => v.pendencias.length) ? "#b91c1c" : "#15803d" },
-            ].map(k => (
-              <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.cor}22`, borderTop: `3px solid ${k.cor}`, borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: k.cor, fontVariantNumeric: "tabular-nums" }}>{k.val}</div>
-                <div style={{ fontSize: 11, color: "#4b5563", marginTop: 2 }}>{k.label}</div>
-                {k.nota && <div style={{ fontSize: 11, color: "#374151", marginTop: 2 }}>{k.nota}</div>}
-              </div>
-            ))}
+          {/* 4 números que respondem: quanto entrou, quanto foi descontado, como está a eSF, o que precisa de atenção */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(210px, 100%), 1fr))", gap: 12, marginBottom: 16 }}>
+            {kpi("#1d4ed8", brlDC(data.total_parcela), "Total repassado na parcela",
+              varTotal == null ? undefined : <span style={{ color: varTotal >= 0 ? "#15803d" : "#b91c1c", fontWeight: 600 }}>{varTotal >= 0 ? "▲" : "▼"} {brlDC(Math.abs(varTotal))} vs {anterior.competencia}</span>)}
+            {kpi(descontoTotal ? "#b91c1c" : "#15803d",
+              descontoTotal == null ? "—" : descontoTotal || ajusteTotal ? brlSinalDC(soma0(descontoTotal, ajusteTotal)) : "Sem descontos",
+              "Descontos e ajustes",
+              planosComDesconto.length ? `em ${planosComDesconto.map(l => (l.programa === "esf_eap" ? "eSF/eAP" : l.plano)).join(", ")} · integral ${brlDC(integralTotal)}` : integralTotal != null ? "valor integral repassado" : undefined)}
+            {kpi("#0369a1", `${numDC(esf.qt_pagas)} / ${numDC(esf.qt_credenciadas)}`, "eSF pagas / credenciadas",
+              `teto ${numDC(tetos.esf)} · Qualidade ${data.classificacao_qualidade_esf ?? "—"} · Vínculo ${data.classificacao_vinculo_esf ?? "—"}${data.faixa_equidade_esf ? ` · IED ${data.faixa_equidade_esf}` : ""}`)}
+            {kpi(problemas.some(d => d.severidade === "critico") ? "#b91c1c" : nAlertas ? "#b45309" : "#15803d",
+              nAlertas ? `${nAlertas} alerta${nAlertas > 1 ? "s" : ""}` : "Sem alertas", "Pontos de atenção",
+              [nInfo ? `${nInfo} informativo${nInfo > 1 ? "s" : ""}` : "", valid.length ? `${valid.length - pendentes.length} de ${valid.length} equipes sem pendência` : ""].filter(Boolean).join(" · ") || undefined)}
           </div>
 
-          {/* Diagnóstico automático — só fatos publicados */}
+          {/* Pontos de atenção: só o que pede ação; as verificações OK ficam numa linha */}
           <div style={caixaDC}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 6 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Diagnóstico automático — {data.competencia} ({data.parcela}ª parcela/{data.ano_parcela})</div>
-              <div style={{ display: "flex", gap: 6 }}>
-                {(["critico", "alerta", "info", "ok"] as const).map(s => nSev(s) > 0 && <span key={s} style={{ background: SEV_DC[s].bg, color: SEV_DC[s].cor, fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 10 }}>{nSev(s)} {SEV_DC[s].label.replace(/^\S+\s/, "").toLowerCase()}</span>)}
-              </div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {diagsOrd.map((d, i) => (
-                <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 14px", borderRadius: 8, border: "1px solid #f3f4f6", background: SEV_DC[d.severidade]?.bg ?? "#f8fafc" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>Pontos de atenção</div>
+            {problemas.length === 0 && <div style={{ fontSize: 13, color: "#15803d" }}>✓ Nenhum alerta publicado nesta parcela.</div>}
+            <div style={{ display: "grid", gap: 6 }}>
+              {problemas.map((d, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "8px 12px", borderRadius: 8, background: SEV_DC[d.severidade]?.bg ?? "#f8fafc" }}>
                   <BadgeDC sev={d.severidade} />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 2 }}>{d.titulo}</div>
-                    <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.5 }}>{d.texto}</div>
-                  </div>
+                  <div style={{ fontSize: 12.5, color: "#374151", lineHeight: 1.45 }}><strong style={{ color: "#1e293b" }}>{d.titulo}.</strong> {d.texto}</div>
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 11, color: "#4b5563", marginTop: 8 }}>Itens gerados apenas a partir do que o e-Gestor publicou nesta parcela — sem estimativas.</div>
+            {verificacoesOk.length > 0 && (
+              <details style={{ marginTop: 10 }}>
+                <summary style={{ cursor: "pointer", fontSize: 12.5, color: "#15803d", fontWeight: 600 }}>✓ {verificacoesOk.length} verificações sem problema</summary>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                  {verificacoesOk.map((d, i) => <span key={i} title={d.texto} style={{ fontSize: 11.5, background: "#f0fdf4", color: "#166534", borderRadius: 12, padding: "3px 10px" }}>{d.titulo}</span>)}
+                </div>
+              </details>
+            )}
           </div>
 
-          {/* Validação por equipe */}
+          {/* Repasse por programa: uma linha por plano oficial, composição sob demanda */}
+          <div style={caixaDC}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Repasse por programa</div>
+              <span style={{ fontSize: 11.5, color: "#4b5563" }}>Clique no programa para ver a composição do valor</span>
+            </div>
+            {programas.map(p => {
+              const r = rp[p.k];
+              const repasse = r?.vl_efetivo ?? null;
+              const desc = soma0(r?.vl_desconto, r?.vl_ajuste);
+              const vazio = !repasse;
+              return (
+                <details key={p.k} style={{ borderTop: "1px solid #f3f4f6", opacity: vazio ? 0.6 : 1 }}>
+                  <summary style={{ cursor: "pointer", listStyle: "none", padding: "10px 0" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 3, background: p.cor, flexShrink: 0 }} />
+                      <div style={{ flex: "1 1 240px", minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 700, color: "#1e293b" }}>{p.nome} <ChevronDown size={13} style={{ verticalAlign: "middle", color: "#9ca3af" }} /></div>
+                        {p.resumoEquipes && <div style={{ fontSize: 11.5, color: "#4b5563" }}>{p.resumoEquipes}</div>}
+                      </div>
+                      <div style={{ flex: "1 1 160px", maxWidth: 260 }}>
+                        <div style={{ height: 8, background: "#f1f5f9", borderRadius: 4, overflow: "hidden" }}>
+                          <div style={{ width: `${(100 * (repasse ?? 0)) / maxRepasse}%`, height: "100%", background: p.cor }} />
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right", flex: "0 0 250px" }}>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{brlDC(repasse)}</div>
+                        {desc !== 0 && <div style={{ fontSize: 11.5, fontVariantNumeric: "tabular-nums" }}>integral {brlDC(r?.vl_integral)} · {brlSinalDC(desc)}</div>}
+                      </div>
+                    </div>
+                  </summary>
+                  <div style={{ margin: "0 0 12px 22px", padding: "8px 12px", background: "#f8fafc", borderRadius: 8, fontSize: 12 }}>
+                    {p.composicao.length === 0 && <div style={{ color: "#4b5563" }}>O e-Gestor publica só o total deste plano.</div>}
+                    {p.composicao.map(([rot, v]) => (
+                      <div key={rot} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", color: "#374151" }}>
+                        <span>{rot}</span><span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{brlDC(v)}</span>
+                      </div>
+                    ))}
+                    {r && desc !== 0 && (
+                      <div style={{ borderTop: "1px solid #e5e7eb", marginTop: 4, paddingTop: 4 }}>
+                        {[["Valor integral", brlDC(r.vl_integral)], ["Ajuste", brlSinalDC(r.vl_ajuste)], ["Desconto", brlSinalDC(r.vl_desconto)]].map(([rot, v]) => (
+                          <div key={rot as string} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}><span>{rot}</span><span style={{ fontWeight: 600 }}>{v}</span></div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </details>
+              );
+            })}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, borderTop: "2px solid #e5e7eb", paddingTop: 10, marginTop: 2 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#0369a1" }}>Total oficial da parcela</span>
+              <span style={{ fontSize: 12.5, color: "#374151", fontVariantNumeric: "tabular-nums" }}>
+                {integralTotal != null && <>integral {brlDC(integralTotal)} · ajuste {brlSinalDC(ajusteTotal)} · desconto {brlSinalDC(descontoTotal)} · </>}
+                <strong style={{ fontSize: 16, color: "#0369a1" }}>{brlDC(data.total_parcela)}</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Validação por equipe: resumo numa linha; tabela só se pedir (abre sozinha quando há pendência) */}
           {valid.length > 0 && (
-            <div style={caixaDC}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 6 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Validação por equipe — {data.competencia}</div>
-                <span style={{ fontSize: 11, color: "#4b5563" }}>Fonte: e-Gestor APS · validação da parcela (eSF, eSB, eMulti)</span>
-              </div>
-              <div style={{ overflowX: "auto" }}>
+            <details open={pendentes.length > 0} style={caixaDC}>
+              <summary style={resumoRecolhido}>
+                Validação por equipe — {valid.length} equipes ({Object.entries(porTipo).map(([t, n]) => `${n} ${t}`).join(" · ")}){" "}
+                <span style={{ color: pendentes.length ? "#b45309" : "#15803d" }}>{pendentes.length ? `· ${pendentes.length} com pendência` : "· todas sem pendência"}</span>
+              </summary>
+              <div style={{ overflowX: "auto", marginTop: 10 }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                  <thead><tr style={{ background: "#f8fafc" }}>{["Equipe", "INE", "Tipo", "CNES", "Situação do pagamento", "Pendências publicadas"].map(h => <th key={h} style={thDC}>{h}</th>)}</tr></thead>
-                  <tbody>{valid.map((v, i) => (
+                  <thead><tr style={{ background: "#f8fafc" }}>{["Equipe", "Tipo", "INE", "CNES", "Situação", "Pendências publicadas"].map(h => <th key={h} style={thDC}>{h}</th>)}</tr></thead>
+                  <tbody>{[...pendentes, ...valid.filter(v => !pendentes.includes(v))].map((v, i) => (
                     <tr key={v.ine + v.componente} style={{ background: i % 2 ? "#f9fafb" : "#fff" }}>
-                      <td style={{ ...tdDC, fontWeight: 600 }}>{v.equipe ?? "—"}{v.equipe_vinculada && <div style={{ fontSize: 11, color: "#4b5563", fontWeight: 400 }}>vinculada a {v.equipe_vinculada}</div>}</td>
-                      <td style={tdDC}>{v.ine}</td><td style={tdDC}>{v.tipo ?? "—"}</td><td style={tdDC}>{v.cnes ?? "—"}</td>
-                      <td style={tdDC}><BadgeDC sev={/PAGO|V[ÁA]LIDO/i.test(v.st_pagamento ?? "") ? "ok" : "alerta"} /> <span style={{ marginLeft: 4 }}>{v.st_pagamento ?? "—"}</span></td>
-                      <td style={tdDC}>{v.pendencias.length ? v.pendencias.map((p: any) => <div key={p.campo} style={{ color: "#b45309" }}>⚠ {p.rotulo}: {p.situacao}</div>) : <span style={{ color: "#15803d" }}>✓ Nenhuma</span>}</td>
+                      <td style={{ ...tdDC, fontWeight: 600 }}>{v.equipe ?? "—"}{v.equipe_vinculada && <span style={{ fontSize: 11, color: "#4b5563", fontWeight: 400 }}> · vinculada a {v.equipe_vinculada}</span>}</td>
+                      <td style={tdDC}>{v.tipo ?? "—"}</td><td style={tdDC}>{v.ine}</td><td style={tdDC}>{v.cnes ?? "—"}</td>
+                      <td style={{ ...tdDC, color: pagoOuValido(v) ? "#15803d" : "#b45309", fontWeight: 600 }}>{pagoOuValido(v) ? "✓" : "⚠"} {v.st_pagamento ?? "—"}</td>
+                      <td style={tdDC}>{v.pendencias.length ? v.pendencias.map((p: any) => <div key={p.campo} style={{ color: "#b45309" }}>⚠ {p.rotulo}: {p.situacao}</div>) : <span style={{ color: "#6b7280" }}>—</span>}</td>
                     </tr>))}
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-
-          {/* Cards por programa (valores publicados; "—" quando não veio) */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14, marginBottom: 20 }}>
-            <CardProgramaDC titulo="eSF — Saúde da Família" cor="#1d4ed8" publicado={tem(esf)} itens={[
-              { label: "Teto", val: numDC(tetos.esf) },
-              { label: "Credenciadas", val: numDC(esf.qt_credenciadas) },
-              { label: "Homologadas", val: numDC(esf.qt_homologadas) },
-              { label: "Pagas", val: numDC(esf.qt_pagas) },
-              { label: "Componente fixo (equidade)", val: brlDC(esf.vl_fixo) },
-              { label: "Vínculo e Acompanhamento", val: brlDC(esf.vl_vinculo) },
-              { label: "Qualidade", val: brlDC(esf.vl_qualidade) },
-              { label: "Implantação", val: brlDC(esf.vl_implantacao) },
-              { label: "Total bruto eSF", val: brlDC(esf.vl_total_bruto) },
-              ...(rp.esf_eap ? linhasResumoDC(rp.esf_eap, "Valor integral (plano eSF/eAP)") : [
-                { label: "Pago no plano eSF/eAP", val: brlDC(data.esf_eap_pago_plano), destaque: true },
-                { label: "Diferença pago − bruto (descontos/ajustes)", val: brlDC(data.esf_eap_diferenca_bruto_pago) },
-              ]),
-            ]} subtitulo={subtituloParcela} />
-            <CardProgramaDC titulo="eSB — Saúde Bucal · UOM · LRPD · CEO" cor="#7c3aed" publicado={tem(esb)} itens={[
-              { label: "Teto 40h", val: numDC(tetos.sb_40h) },
-              { label: "Credenciadas 40h", val: numDC(esb.qt_40h_credenciadas) },
-              { label: "Homologadas 40h", val: numDC(esb.qt_40h_homologadas) },
-              { label: "Pagas (Modal. I / II)", val: `${numDC(esb.qt_40h_pagas_modal_i)} / ${numDC(esb.qt_40h_pagas_modal_ii)}` },
-              { label: "Custeio 40h", val: brlDC(esb.vl_esb_40h) },
-              { label: "Qualidade 40h", val: brlDC(esb.vl_qualidade_40h) },
-              { label: `UOM (${numDC(esb.qt_uom)} unid.)`, val: brlDC(esb.vl_uom) },
-              { label: "LRPD municipal", val: brlDC(esb.vl_lrpd_municipal) },
-              { label: "CEO municipal", val: brlDC(esb.vl_ceo_municipal) },
-              { label: "Total Saúde Bucal", val: brlDC(esb.vl_total_sb_calculado), destaque: !rp.esb },
-              ...linhasResumoDC(rp.esb),
-            ]} subtitulo={subtituloParcela} />
-            <CardProgramaDC titulo="eMulti — Multiprofissionais" cor="#0891b2" publicado={tem(emulti)} itens={[
-              { label: "Teto (estratégica / complementar / ampliada)", val: `${numDC(tetos.emulti_estrategica)} / ${numDC(tetos.emulti_complementar)} / ${numDC(tetos.emulti_ampliada)}` },
-              { label: "Credenciadas", val: numDC(emulti.qt_credenciadas) },
-              { label: "Homologadas", val: numDC(emulti.qt_homologadas) },
-              { label: "Pagas", val: numDC(emulti.qt_pagas) },
-              { label: "Estratégica / Complementar / Ampliada", val: `${numDC(emulti.qt_estrategica)} / ${numDC(emulti.qt_complementar)} / ${numDC(emulti.qt_ampliada)}` },
-              { label: "Custeio", val: brlDC(emulti.vl_custeio) },
-              { label: "Qualidade", val: brlDC(emulti.vl_qualidade) },
-              { label: "Atendimento remoto", val: brlDC(emulti.vl_atend_remoto) },
-              { label: "Total eMulti", val: brlDC(emulti.vl_total), destaque: !rp.emulti },
-              ...linhasResumoDC(rp.emulti),
-            ]} subtitulo={subtituloParcela} />
-            <CardProgramaDC titulo="ACS — Agentes Comunitários de Saúde" cor="#16a34a" publicado={tem(acs)} itens={[
-              { label: "Teto", val: numDC(acs.qt_teto) },
-              { label: "Credenciados", val: numDC(acs.qt_direto_credenciado) },
-              { label: "Pagos (direto)", val: numDC(acs.qt_direto_pago) },
-              { label: "Valor direto", val: brlDC(acs.vl_direto) },
-              { label: "Parcela extra", val: brlDC(acs.vl_parcela_extra_direto) },
-              { label: "Pagos (indireto) / valor", val: `${numDC(acs.qt_indireto_pago)} / ${brlDC(acs.vl_indireto)}` },
-              { label: "Total ACS", val: brlDC(acs.vl_total), destaque: !rp.acs },
-              ...linhasResumoDC(rp.acs),
-            ]} subtitulo={subtituloParcela} />
-            <CardProgramaDC titulo="eSFR — Saúde da Família Ribeirinha" cor="#d97706" publicado={tem(esfr)} itens={[
-              { label: "Credenciadas", val: numDC(esfr.qt_credenciadas) },
-              { label: "Homologadas", val: numDC(esfr.qt_homologadas) },
-              { label: "Pagas", val: numDC(esfr.qt_pagas) },
-              { label: "Embarcações", val: numDC(esfr.qt_embarcacoes) },
-              { label: "Custeio", val: brlDC(esfr.vl_custeio) },
-              { label: "Vínculo", val: brlDC(esfr.vl_vinculo) },
-              { label: "Qualidade", val: brlDC(esfr.vl_qualidade) },
-              { label: "Valor extra", val: brlDC(esfr.vl_extra) },
-              { label: "Total eSFR", val: brlDC(esfr.vl_total), destaque: true },
-            ]} subtitulo={subtituloParcela} />
-            <CardProgramaDC titulo="Microscopistas · Per capita · eAP · PSE" cor="#64748b" publicado={tem(micro) || tem(pc)} itens={[
-              { label: "Microscopistas credenciados / pagos", val: `${numDC(micro.qt_credenciados)} / ${numDC(micro.qt_pagos)}` },
-              { label: "Total microscopistas", val: brlDC(micro.vl_total) },
-              { label: `Per capita (população ${numDC(data.populacao)}${data.ano_ref_populacao ? `, ref. ${data.ano_ref_populacao}` : ""})`, val: brlDC(pc.vl_pagamento) },
-              { label: "eAP credenciadas / pagas", val: `${numDC(eap.qt_credenciadas)} / ${numDC(eap.qt_pagas)}` },
-              { label: "Total eAP", val: brlDC(eap.vl_total_bruto) },
-              { label: "PSE", val: brlDC((data.pse ?? {}).vl_total) },
-            ]} subtitulo={subtituloParcela} />
-          </div>
-
-          {/* Valor pago por plano orçamentário */}
-          {(data.resumo_planos ?? []).length > 0 && (() => {
-            const linhas: any[] = data.resumo_planos;
-            const soma = (k: string) => linhas.every(l => l[k] != null) ? linhas.reduce((a, l) => a + l[k], 0) : null;
-            return (
-              <div style={caixaDC}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>Resumo por plano orçamentário — parcela {data.parcela}/12 de {data.ano_parcela} (competência CNES {data.competencia})</div>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 640 }}>
-                    <thead><tr>{["Plano orçamentário", "Valor integral", "Ajuste", "Desconto", "Total repassado"].map((h, i) =>
-                      <th key={h} style={{ ...thDC, textAlign: i ? "right" : "left" }}>{h}</th>)}</tr></thead>
-                    <tbody>
-                      {linhas.map(l => (
-                        <tr key={l.plano}>
-                          <td style={tdDC}>{l.plano}</td>
-                          <td style={{ ...tdDC, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{brlDC(l.vl_integral)}</td>
-                          <td style={{ ...tdDC, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{brlSinalDC(l.vl_ajuste)}</td>
-                          <td style={{ ...tdDC, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{brlSinalDC(l.vl_desconto)}</td>
-                          <td style={{ ...tdDC, textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{brlDC(l.vl_efetivo)}</td>
-                        </tr>
-                      ))}
-                      <tr style={{ background: "#f0f9ff" }}>
-                        <td style={{ ...tdDC, fontWeight: 700, color: "#0369a1" }}>Total oficial da parcela</td>
-                        <td style={{ ...tdDC, textAlign: "right", fontWeight: 700 }}>{brlDC(soma("vl_integral"))}</td>
-                        <td style={{ ...tdDC, textAlign: "right", fontWeight: 700 }}>{brlSinalDC(soma("vl_ajuste"))}</td>
-                        <td style={{ ...tdDC, textAlign: "right", fontWeight: 700 }}>{brlSinalDC(soma("vl_desconto"))}</td>
-                        <td style={{ ...tdDC, textAlign: "right", fontWeight: 800, color: "#0369a1" }}>{brlDC(data.total_parcela)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            );
-          })()}
-          {!(data.resumo_planos ?? []).length && data.planos && Object.keys(data.planos).length > 0 && (
-            <div style={caixaDC}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 10 }}>Valor pago por plano orçamentário — {data.parcela}ª parcela/{data.ano_parcela}</div>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                <tbody>{Object.entries(data.planos as Record<string, number>).map(([k, v]) => (
-                  <tr key={k}><td style={tdDC}>{k}</td><td style={{ ...tdDC, textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{brlDC(v)}</td></tr>))}
-                  <tr style={{ background: "#f0f9ff" }}><td style={{ ...tdDC, fontWeight: 700, color: "#0369a1" }}>Total oficial da parcela</td><td style={{ ...tdDC, textAlign: "right", fontWeight: 800, color: "#0369a1" }}>{brlDC(data.total_parcela)}</td></tr>
-                </tbody>
-              </table>
-            </div>
+            </details>
           )}
         </>
       )}
 
-      {/* Histórico de incentivos — todas as parcelas publicadas */}
+      {/* Histórico: gráfico das parcelas publicadas; clique numa barra para abrir a parcela */}
       {hist.length > 0 && (
         <div style={caixaDC}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 12 }}>
-            Histórico de incentivos totais — {data.municipio}/{data.uf}
-            <span style={{ fontSize: 11, fontWeight: 400, color: "#4b5563", marginLeft: 8 }}>Fonte: e-Gestor APS · todas as {hist.length} parcelas publicadas</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Histórico do total repassado — {hist.length} parcelas</div>
+            <span style={{ fontSize: 11.5, color: "#4b5563" }}>Clique numa barra para ver a parcela · em azul escuro, a parcela desta tela</span>
           </div>
-          <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead><tr style={{ background: "#f8fafc" }}>{["Parcela", "Competência CNES", "Total oficial", "Var. parcela anterior", ""].map(h => <th key={h} style={thDC}>{h}</th>)}</tr></thead>
-              <tbody>{[...hist].reverse().map((h, i, arr) => {
-                const prev = arr[i + 1];
-                const diff = prev ? h.total - prev.total : null;
-                const atual = h.parcela_code === data.parcela_code;
-                return (
-                  <tr key={h.parcela_code} style={{ background: atual ? "#eff6ff" : i % 2 ? "#f9fafb" : "#fff", borderLeft: atual ? "3px solid #1d4ed8" : "3px solid transparent" }}>
-                    <td style={{ ...tdDC, fontWeight: atual ? 700 : 500 }}>{h.parcela} · {h.ano_parcela}</td>
-                    <td style={{ ...tdDC, color: atual ? "#1d4ed8" : "#1e293b", fontWeight: atual ? 700 : 500 }}>{h.competencia}</td>
-                    <td style={{ ...tdDC, textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{brlDC(h.total)}</td>
-                    <td style={{ ...tdDC, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: diff == null ? "#6b7280" : diff >= 0 ? "#15803d" : "#b91c1c" }}>
-                      {diff == null ? "—" : `${diff >= 0 ? "▲" : "▼"} ${brlDC(Math.abs(diff))}`}
-                    </td>
-                    <td style={tdDC}>{!atual && <button onClick={() => setParcela(h.parcela_code)} style={{ background: "#fff", border: "1px solid #d1d5db", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontSize: 11 }}>Ver</button>}</td>
-                  </tr>);
-              })}</tbody>
-            </table>
+          <div style={{ height: 210 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={histGrafico} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                <XAxis dataKey="rotulo" tick={{ fontSize: 10 }} interval={0} angle={-45} textAnchor="end" height={42} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: number) => `${Math.round(v / 1000)} mil`} width={52} domain={["auto", "auto"]} />
+                <Tooltip formatter={(v: any) => brlDC(Number(v))} labelFormatter={(_: any, p: any) => (p?.[0] ? `Parcela ${p[0].payload.parcela} · ${p[0].payload.ano_parcela} — CNES ${p[0].payload.competencia}` : "")} />
+                <Bar dataKey="total" name="Total oficial" radius={[3, 3, 0, 0]} cursor="pointer" isAnimationActive={false} onClick={(d: any) => d?.parcela_code && setParcela(d.parcela_code)}>
+                  {histGrafico.map(h => <Cell key={h.parcela_code} fill={h.parcela_code === data.parcela_code ? "#1e3a8a" : "#93c5fd"} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
+          <details style={{ marginTop: 6 }}>
+            <summary style={{ cursor: "pointer", fontSize: 12.5, color: "#1d4ed8", fontWeight: 600 }}>Ver tabela com as variações</summary>
+            <div style={{ overflowX: "auto", maxHeight: 360, overflowY: "auto", marginTop: 8 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead><tr style={{ background: "#f8fafc" }}>{["Parcela", "Competência CNES", "Total oficial", "Var. parcela anterior"].map(h => <th key={h} style={thDC}>{h}</th>)}</tr></thead>
+                <tbody>{[...hist].reverse().map((h, i, arr) => {
+                  const prev = arr[i + 1];
+                  const diff = prev ? h.total - prev.total : null;
+                  const atual = h.parcela_code === data.parcela_code;
+                  return (
+                    <tr key={h.parcela_code} onClick={() => !atual && setParcela(h.parcela_code)}
+                      style={{ background: atual ? "#eff6ff" : i % 2 ? "#f9fafb" : "#fff", cursor: atual ? "default" : "pointer", fontWeight: atual ? 700 : 400 }}>
+                      <td style={tdDC}>{h.parcela} · {h.ano_parcela}</td>
+                      <td style={tdDC}>{h.competencia}</td>
+                      <td style={{ ...tdDC, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{brlDC(h.total)}</td>
+                      <td style={{ ...tdDC, textAlign: "right", fontVariantNumeric: "tabular-nums", color: diff == null ? "#6b7280" : diff >= 0 ? "#15803d" : "#b91c1c" }}>
+                        {diff == null ? "—" : `${diff >= 0 ? "▲" : "▼"} ${brlDC(Math.abs(diff))}`}
+                      </td>
+                    </tr>);
+                })}</tbody>
+              </table>
+            </div>
+          </details>
         </div>
       )}
 
       {/* Varredura manual do SCNES — dado datado, não revalidado automaticamente */}
       {varr?.equipes?.length > 0 && (
-        <details style={{ ...caixaDC, padding: "12px 18px" }}>
-          <summary style={{ cursor: "pointer", fontSize: 14, fontWeight: 700, color: "#1e293b" }}>
-            Varredura manual do SCNES — {varr.data_varredura} · {varr.pendencias_criticas} crítica(s) / {varr.pendencias_total} pendência(s) · score médio {varr.score_medio} pts
+        <details style={caixaDC}>
+          <summary style={resumoRecolhido}>
+            Varredura manual do SCNES ({varr.data_varredura}) — <span style={{ color: varr.pendencias_criticas ? "#b91c1c" : "#15803d" }}>{varr.pendencias_criticas} crítica(s)</span> · {varr.pendencias_total} pendência(s) · score médio {varr.score_medio} pts
           </summary>
           <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#92400e", margin: "10px 0" }}>{varr.aviso}</div>
           <div style={{ overflowX: "auto" }}>
@@ -1778,18 +1724,18 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
         </details>
       )}
 
-      {/* Rodapé de fonte */}
-      <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 14px", fontSize: 11, color: "#4b5563", display: "flex", gap: 8, alignItems: "center" }}>
-        <Info size={13} />
+      {/* Rodapé de fonte (única menção) */}
+      <div style={{ fontSize: 11, color: "#4b5563", display: "flex", gap: 6, alignItems: "center", padding: "4px 2px" }}>
+        <Info size={12} />
         <span>
-          Fonte: <strong>{data.fonte}</strong> — AGRUPADO (totais e histórico), COMPLETO (programas) e validação por equipe.
-          {ok && <> Competência CNES {data.competencia} · {data.parcela}ª parcela/{data.ano_parcela}</>}
-          {data.coletado_em && <> · consultado em {new Date(data.coletado_em).toLocaleString("pt-BR")}</>} · cache de 4 horas · IBGE {data.ibge}.
+          Fonte: {data.fonte} · {data.municipio}/{data.uf} (IBGE {data.ibge})
+          {data.coletado_em && <> · consultado em {new Date(data.coletado_em).toLocaleString("pt-BR")}</>} · cache de 4 horas. Só valores publicados; nada é estimado.
         </span>
       </div>
     </div>
   );
 }
+
 
 // ── Página principal ───────────────────────────────────────────────────────────
 
