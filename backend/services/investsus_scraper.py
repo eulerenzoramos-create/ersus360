@@ -18,6 +18,7 @@ O CNPJ consultado é SEMPRE o do Fundo do município da sessão (Municipio.cnpj_
 
 from __future__ import annotations
 
+import re
 import logging
 import os
 from datetime import datetime
@@ -93,6 +94,17 @@ def _descricao(campo) -> str:
     return str(campo or "")
 
 
+def componente_do_tipo(tipo_proposta: str) -> tuple[str | None, str | None]:
+    """tipoProposta oficial do InvestSUS → (componente PAP/MAC, financiamento).
+    Só preenche o que o texto oficial diz; o resto fica None (nada presumido)."""
+    t = fed._norm(tipo_proposta)
+    comp = ("MAC" if re.search(r"\bmac\b|media e alta|especializada", t)
+            else "PAP" if re.search(r"\bpap\b|\baps\b|atencao primaria", t) else None)
+    fin = ("investimento" if "investimento" in t
+           else "custeio" if ("custeio" in t or "incremento" in t) else None)
+    return comp, fin
+
+
 def _normalizar_proposta(raw: dict, cnpj: str) -> dict:
     """Item bruto de /api/propostas/paginado → formato interno.
     Campos confirmados (08/10/2026): numero, valor, anoExercicio, situacao{descricao},
@@ -116,7 +128,11 @@ def _normalizar_proposta(raw: dict, cnpj: str) -> dict:
         modalidade = fed.MODALIDADE_A_CLASSIFICAR
     valor = float(raw.get("valor") or 0)
 
+    componente, financiamento = componente_do_tipo(tipo_proposta)
+
     return {
+        "componente":         componente,
+        "tipo_financiamento": financiamento,
         "numero_proposta":    numero,
         "numero_emenda":      str(raw.get("numeroEmenda") or raw.get("codigoEmenda") or "") or None,
         "numero_instrumento": str(raw.get("descricaoInstrumento") or raw.get("numeroInstrumento") or ""),

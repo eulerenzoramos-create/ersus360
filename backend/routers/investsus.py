@@ -1905,8 +1905,13 @@ async def aplicar_propostas_federais(dados: dict, mid: int, db, origem: str) -> 
                 prop.valor_pago = valor_pago
             if item.get("valor_executado"):
                 prop.valor_executado = float(item["valor_executado"])
-            for campo in ("objeto", "numero_instrumento", "numero_emenda", "componente", "tipo_financiamento"):
+            for campo in ("objeto", "numero_instrumento", "numero_emenda"):
                 if item.get(campo):
+                    setattr(prop, campo, item[campo])
+            # Classificação oficial (tipo da proposta no InvestSUS) só preenche o que está vazio:
+            # a classificação feita pelo técnico não é sobrescrita.
+            for campo in ("componente", "tipo_financiamento"):
+                if item.get(campo) and not getattr(prop, campo):
                     setattr(prop, campo, item[campo])
             if item.get("raw") is not None:
                 prop.payload_original = item["raw"]
@@ -2254,11 +2259,31 @@ def resumo_lista_investsus(propostas: list[dict]) -> list[dict]:
     return [por_ano[a] for a in sorted(por_ano, reverse=True)]
 
 
+def resumo_por_tipo_investsus(propostas: list[dict]) -> dict:
+    """Lista oficial capturada → {exercício: {categoria: {qtd, qtd_ativas, valor_ativas, tipos}}},
+    na mesma divisão do gráfico do InvestSUS (Incremento MAC / Incremento PAP / Outros tipos)."""
+    from services import investsus_tetos as tetos_svc
+    saida: dict[str, dict] = {}
+    for it in propostas:
+        ano = str(int(it.get("exercicio") or 0))
+        tipo = it.get("tipo_raw") or ""
+        cat = tetos_svc.categoria_investsus(tipo)
+        fase = fed.fase_de(fed.classificar_situacao(it.get("situacao_raw") or ""))
+        r = saida.setdefault(ano, {}).setdefault(cat, {"qtd": 0, "qtd_ativas": 0, "valor_ativas": 0.0, "tipos": {}})
+        r["qtd"] += 1
+        r["tipos"][tipo or "-"] = r["tipos"].get(tipo or "-", 0) + 1
+        if fase not in FASES_DESCONSIDERADAS:
+            r["qtd_ativas"] += 1
+            r["valor_ativas"] = round(r["valor_ativas"] + float(it.get("valor_global") or 0), 2)
+    return saida
+
+
 async def registrar_conferencia(db, mid: int, dados: dict, anos: list[int], usuario: str) -> dict:
     numeros = {str(it.get("numero_proposta") or "").strip() for it in dados.get("propostas", [])}
     numeros.discard("")
     res = await conferir_com_investsus(db, mid, numeros, anos)
     res["investsus_por_exercicio"] = resumo_lista_investsus(dados.get("propostas", []))
+    res["investsus_por_tipo"] = resumo_por_tipo_investsus(dados.get("propostas", []))
     res["investsus_total"] = len(numeros)
     canceladas = {str(it.get("numero_proposta") or "").strip() for it in dados.get("propostas", [])
                   if fed.fase_de(fed.classificar_situacao(it.get("situacao_raw") or "")) == "cancelada"}
@@ -2716,7 +2741,8 @@ async def tetos_municipais(db: DbDep, user: UserDep, exercicio: int = Query(None
     regs = (await db.execute(select(TetoMunicipalInvestSUS).where(
         TetoMunicipalInvestSUS.municipio_id == mid, TetoMunicipalInvestSUS.exercicio == ano))).scalars().all()
     props = (await db.execute(
-        select(PropostaInvestSUS).options(selectinload(PropostaInvestSUS.programa))
+        select(PropostaInvestSUS).options(selectinload(PropostaInvestSUS.programa),
+                                          selectinload(PropostaInvestSUS.historico))
         .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo()))).scalars().all()
     from models.investsus import LimiteProgramaInvestSUS
     lims = (await db.execute(select(LimiteProgramaInvestSUS).where(
@@ -2729,7 +2755,59 @@ async def tetos_municipais(db: DbDep, user: UserDep, exercicio: int = Query(None
     # (ex.: 2025 sem planilha → teto "não disponível", mas o utilizado aparece).
     painel["exercicios_disponiveis"] = sorted(set(tetos_svc.FONTES) | {p.exercicio for p in props if p.exercicio})
     painel["exercicios_com_teto_oficial"] = sorted(tetos_svc.FONTES)
+    _anexar_historico_programas(painel, props)
+    painel["sincronizacao"] = await _estado_sincronizacao(db, mid, props, ano)
     return painel
+
+
+def _anexar_historico_programas(painel: dict, props) -> None:
+    """Histórico de situação de cada proposta de programa (para a tabela gerencial)."""
+    por_id = {p.id: p for p in props}
+    for g in painel.get("programacao", {}).get("programas", []):
+        for linha in g["propostas"] + g.get("excluidas", []):
+            p = por_id.get(linha["id"])
+            linha["historico"] = [{
+                "data": h.data_evento.isoformat() if h.data_evento else None,
+                "anterior": h.situacao_anterior, "nova": h.situacao_nova,
+                "origem": h.origem, "observacao": h.observacao,
+            } for h in sorted(getattr(p, "historico", None) or [], key=lambda h: h.data_evento or datetime.min,
+                              reverse=True)]
+
+
+async def _estado_sincronizacao(db, mid: int, props, ano: int) -> dict:
+    """Última sincronização com a lista oficial e conferência por categoria do InvestSUS
+    (Incremento MAC / Incremento PAP / Outros tipos) no exercício."""
+    from services import investsus_tetos as tetos_svc
+    consultas = [p.ultima_consulta_investsus for p in props if p.ultima_consulta_investsus]
+    snap = (await db.execute(select(SnapshotInvestSUS).where(
+        SnapshotInvestSUS.municipio_id == mid, SnapshotInvestSUS.origem == "conferencia")
+        .order_by(SnapshotInvestSUS.id.desc()).limit(1))).scalar_one_or_none()
+    ersus: dict[str, dict] = {}
+    sem_tipo = 0
+    for p in props:
+        if p.exercicio != ano:
+            continue
+        tipo = tetos_svc.tipo_oficial(p)["tipo_proposta"]
+        if tipo is None:
+            sem_tipo += 1
+        cat = tetos_svc.categoria_investsus(tipo)
+        sit = p.situacao_normalizada.value if p.situacao_normalizada else None
+        r = ersus.setdefault(cat, {"qtd": 0, "qtd_ativas": 0, "valor_ativas": 0.0})
+        r["qtd"] += 1
+        if fed.fase_de(sit) not in FASES_DESCONSIDERADAS:
+            r["qtd_ativas"] += 1
+            r["valor_ativas"] = round(r["valor_ativas"] + float(p.valor_proposta or p.valor_indicado or 0), 2)
+    investsus = None
+    if snap and isinstance(snap.dados, dict):
+        investsus = (snap.dados.get("investsus_por_tipo") or {}).get(str(ano))
+    return {
+        "ultima_consulta_investsus": max(consultas).isoformat() if consultas else None,
+        "ultima_conferencia": ({"capturado_em": snap.capturado_em.isoformat(),
+                                "usuario": (snap.dados or {}).get("usuario"),
+                                "investsus_total": (snap.dados or {}).get("investsus_total")} if snap else None),
+        "conferencia_tipos": {"exercicio": ano, "ersus": ersus, "investsus": investsus,
+                              "ersus_sem_tipo_oficial": sem_tipo},
+    }
 
 
 def _limite_programa_registro(lm) -> dict:

@@ -972,7 +972,7 @@ const TH: React.CSSProperties = { padding: "9px 12px", textAlign: "left", fontWe
 const TD: React.CSSProperties = { padding: "10px 12px", borderBottom: "1px solid #eef0f3", verticalAlign: "middle", color: "#111827" };
 
 // ── Recursos Disponíveis — parlamentares e programas para novas propostas ─────
-function RecursosDisponiveis({ municipio_id }: { municipio_id: number }) {
+function RecursosDisponiveis({ municipio_id, onSincronizar }: { municipio_id: number; onSincronizar?: () => void }) {
   const qc = useQueryClient();
   const [novoParlamentar, setNovoParlamentar] = useState({ nome: "", partido: "", uf: "", cargo: "" });
   const [novoPrograma, setNovoPrograma] = useState({ nome: "", codigo: "", bloco: "" });
@@ -1015,7 +1015,7 @@ function RecursosDisponiveis({ municipio_id }: { municipio_id: number }) {
 
   return (
     <>
-    <TetosMunicipais />
+    <TetosMunicipais onSincronizar={onSincronizar} />
     <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", margin: "4px 0 8px" }}>Cadastros auxiliares</div>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
       {/* Parlamentares */}
@@ -3961,7 +3961,7 @@ export default function InvestSUS() {
         <RepassesPlanos propostaId={repassePropostaId} setPropostaId={setRepassePropostaId}
           onPlanilhaCompleta={(id) => { setExecPropostaId(id); setAba("execucao"); }} />
       ) : aba === "recursos" ? (
-        <RecursosDisponiveis municipio_id={municipio_id} />
+        <RecursosDisponiveis municipio_id={municipio_id} onSincronizar={() => setSincAberto(true)} />
       ) : aba === "propostas" ? (
         <PropostasDetalhadas municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
       ) : aba === "execucao" ? (

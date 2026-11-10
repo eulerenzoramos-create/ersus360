@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { IndicadoresPrograma, SincronizacaoProgramas, TabelaPropostasProgramas, AreaSelo, AREA_ROTULO } from "../components/investsus/ProgramasMS";
 import { TetoTresValores, valoresDoCard, TabelaPropostasTeto, ResumoGerencialTetos, SeletorExercicio, MOD_ROTULO, ESTAGIO_ROTULO } from "../components/investsus/TetoFinanceiro";
 import {
   RefreshCw, ExternalLink, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2,
@@ -136,12 +137,13 @@ function CardPrograma({ g, exercicio }: { g: any; exercicio: number }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 800, color: "#111827" }}>{g.programa}</div>
-          <div style={{ fontSize: 11, color: "#6b7280" }}>{tipoPrograma(g.programa)} · {g.propostas.length} proposta(s) {exercicio}</div>
+          <div style={{ fontSize: 11, color: "#6b7280", display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            <AreaSelo area={g.area} /> {tipoPrograma(g.programa)} · {g.propostas.length} proposta(s) {exercicio}
+          </div>
         </div>
         <Selo situacao={g.situacao_limite} />
       </div>
-      <TetoTresValores v={{ teto: g.valor_maximo, utilizado: g.valor_solicitado, saldo: g.saldo,
-        percUtilizado: g.perc_utilizado, percDisponivel: g.perc_disponivel, acimaDoTeto: g.acima_do_teto }} />
+      <IndicadoresPrograma g={g} />
       <div style={{ fontSize: 11, color: "#4b5563", background: "#f9fafb", borderRadius: 6, padding: 8, display: "flex", flexDirection: "column", gap: 3 }}>
         {lim ? (
           <>
@@ -257,7 +259,7 @@ function Grupo({ titulo, sub, icone, cards }: { titulo: string; sub: string; ico
   );
 }
 
-export default function TetosMunicipais() {
+export default function TetosMunicipais({ onSincronizar }: { onSincronizar?: () => void } = {}) {
   const qc = useQueryClient();
   const [exercicio, setExercicio] = useState<number | null>(null);
   const { data, isLoading, error } = useQuery({
@@ -345,14 +347,31 @@ export default function TetosMunicipais() {
           <Selo situacao={prog.situacao} />
         </div>
         <div style={{ fontSize: 12, color: "#4b5563", marginBottom: 10 }}>{prog.nota}</div>
+        <div style={{ marginBottom: 12 }}>
+          <SincronizacaoProgramas sinc={data.sincronizacao} onSincronizar={onSincronizar} />
+        </div>
         {prog.programas.length === 0 ? (
           <div style={{ fontSize: 12, color: "#9ca3af" }}>Nenhuma proposta de programa cadastrada para {data.exercicio}.</div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(420px, 100%), 1fr))", gap: 12 }}>
-            {prog.programas.map((g: any) => <CardPrograma key={g.programa} g={g} exercicio={data.exercicio} />)}
-          </div>
+          (["pap", "mac", "outros", "misto"] as const).map(area => {
+            const gs = prog.programas.filter((g: any) => (g.area ?? "outros") === area);
+            if (!gs.length) return null;
+            return (
+              <div key={area} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: AREA_ROTULO[area].cor, margin: "4px 0 8px" }}>
+                  {AREA_ROTULO[area].label} ({gs.length} programa{gs.length !== 1 ? "s" : ""})
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(460px, 100%), 1fr))", gap: 12 }}>
+                  {gs.map((g: any) => <CardPrograma key={g.programa} g={g} exercicio={data.exercicio} />)}
+                </div>
+              </div>
+            );
+          })
         )}
         <NovoLimitePrograma exercicio={data.exercicio} />
+        <div style={{ marginTop: 14, borderTop: "1px solid #f3f4f6", paddingTop: 12 }}>
+          <TabelaPropostasProgramas programas={prog.programas} />
+        </div>
       </div>
 
       <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>

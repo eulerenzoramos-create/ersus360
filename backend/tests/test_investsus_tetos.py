@@ -309,3 +309,77 @@ async def test_rota_registra_limite_de_programa_com_historico(db_session, munici
     from sqlalchemy import select
     lm = (await db_session.execute(select(LimiteProgramaInvestSUS))).scalars().all()
     assert len(lm) == 1 and lm[0].historico[0]["valor"] == 1000  # valor anterior preservado
+
+
+# ── Integração: tipo oficial do InvestSUS ─────────────────────────────────────
+
+def _com_tipo(p, tipo, recurso="EMENDA"):
+    p.payload_original = {"tipoProposta": {"descricao": tipo}, "tipoRecurso": {"descricao": recurso}}
+    return p
+
+
+def test_tipo_oficial_incremento_classifica_emenda_sem_acao():
+    # objeto sem pista, ação vazia: antes ficava "a classificar"; o tipo oficial resolve
+    p = _com_tipo(_p("rp6", acao=None, fin=None, apr=100, objeto="Apoio financeiro"), "INCREMENTO PAP")
+    assert tt.componente_do_teto(p) == "pap"
+    q = _com_tipo(_p("rp6", acao=None, fin=None, apr=100, objeto="Apoio"), "INCREMENTO MAC")
+    assert tt.componente_do_teto(q) == "mac"
+
+
+def test_categorias_do_grafico_investsus_e_area_dinamica():
+    assert tt.categoria_investsus("INCREMENTO MAC") == "incremento_mac"
+    assert tt.categoria_investsus("Incremento PAP") == "incremento_pap"
+    assert tt.categoria_investsus("CUSTEIO PAP") == "outros"  # programa: "Outros tipos"
+    assert tt.categoria_investsus(None) == "outros"
+    assert tt.area_financiamento("CUSTEIO MAC") == "mac"
+    assert tt.area_financiamento("ATENÇÃO ESPECIALIZADA À SAÚDE") == "mac"
+    assert tt.area_financiamento("CUSTEIO DA ATENÇÃO PRIMÁRIA À SAÚDE") == "pap"
+    assert tt.area_financiamento("Programa Agora Tem Especialistas"[:13], "Vigilância") == "outros"
+
+
+def test_componente_do_tipo_oficial_no_scraper():
+    from services.investsus_scraper import componente_do_tipo
+    assert componente_do_tipo("CUSTEIO PAP") == ("PAP", "custeio")
+    assert componente_do_tipo("INCREMENTO MAC") == ("MAC", "custeio")
+    assert componente_do_tipo("INVESTIMENTO") == (None, "investimento")
+    assert componente_do_tipo("") == (None, None)
+
+
+def test_programa_mostra_solicitado_aprovado_pago_e_area():
+    props = [_com_tipo(_p("programa", acao=None, objeto="CUSTEIO DA MÉDIA E ALTA COMPLEXIDADE", prop=1000, apr=1000, pago=1000),
+                       "CUSTEIO MAC", "PROGRAMA"),
+             _com_tipo(_p("programa", acao=None, objeto="CUSTEIO DA MÉDIA E ALTA COMPLEXIDADE", prop=500), "CUSTEIO MAC", "PROGRAMA")]
+    g = tt.montar_painel({}, props, lambda p: p.modalidade, 2026)["programacao"]["programas"][0]
+    assert g["area"] == "mac"
+    assert (g["solicitado"], g["aprovado"], g["pago"]) == (1500, 1000, 1000)
+    assert g["valor_maximo"] is None and g["saldo"] is None  # sem limite oficial: não calcula
+    linha = g["propostas"][0]
+    assert linha["tipo_proposta"] == "CUSTEIO MAC" and linha["tipo_recurso"] == "PROGRAMA"
+
+
+def test_resumo_por_tipo_da_lista_oficial():
+    from routers.investsus import resumo_por_tipo_investsus
+    lista = [{"exercicio": 2026, "tipo_raw": "INCREMENTO MAC", "situacao_raw": "Proposta Paga", "valor_global": 10},
+             {"exercicio": 2026, "tipo_raw": "CUSTEIO PAP", "situacao_raw": "Proposta enviada para Análise Técnica de Mérito", "valor_global": 5},
+             {"exercicio": 2026, "tipo_raw": "", "situacao_raw": "Proposta Cancelada", "valor_global": 0}]
+    r = resumo_por_tipo_investsus(lista)["2026"]
+    assert r["incremento_mac"]["qtd"] == 1 and r["outros"]["qtd"] == 2
+    assert r["outros"]["qtd_ativas"] == 1 and r["outros"]["valor_ativas"] == 5
+
+
+async def test_sincronizacao_preenche_componente_sem_sobrescrever_tecnico(db_session, municipio):
+    from models.investsus import PropostaInvestSUS, SituacaoNormalizada
+    from routers.investsus import aplicar_propostas_federais
+    db_session.add(PropostaInvestSUS(municipio_id=municipio.id, numero_proposta="A1", exercicio=2026, modalidade="programa",
+                                     componente="MAC", situacao_normalizada=SituacaoNormalizada.EM_ANALISE))
+    db_session.add(PropostaInvestSUS(municipio_id=municipio.id, numero_proposta="A2", exercicio=2026, modalidade="programa",
+                                     situacao_normalizada=SituacaoNormalizada.EM_ANALISE))
+    await db_session.commit()
+    itens = [{"numero_proposta": n, "componente": "PAP", "tipo_financiamento": "custeio", "modalidade": "programa",
+              "esfera": "federal", "situacao_raw": "Proposta enviada para Análise Técnica de Mérito", "valor_global": 10,
+              "exercicio": 2026, "fonte": "investsus", "raw": {"tipoProposta": {"descricao": "CUSTEIO PAP"}}} for n in ("A1", "A2")]
+    await aplicar_propostas_federais({"propostas": itens}, municipio.id, db_session, origem="teste")
+    from sqlalchemy import select
+    ps = {p.numero_proposta: p for p in (await db_session.execute(select(PropostaInvestSUS))).scalars()}
+    assert ps["A1"].componente == "MAC"  # classificação existente preservada
+    assert ps["A2"].componente == "PAP" and ps["A2"].tipo_financiamento == "custeio"
