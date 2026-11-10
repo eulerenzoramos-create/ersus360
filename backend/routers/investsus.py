@@ -2718,7 +2718,11 @@ async def tetos_municipais(db: DbDep, user: UserDep, exercicio: int = Query(None
     props = (await db.execute(
         select(PropostaInvestSUS).options(selectinload(PropostaInvestSUS.programa))
         .where(PropostaInvestSUS.municipio_id == mid, _filtro_escopo()))).scalars().all()
-    painel = tetos_svc.montar_painel({t.categoria: _teto_registro(t) for t in regs}, props, _modalidade_de, ano)
+    from models.investsus import LimiteProgramaInvestSUS
+    lims = (await db.execute(select(LimiteProgramaInvestSUS).where(
+        LimiteProgramaInvestSUS.municipio_id == mid, LimiteProgramaInvestSUS.exercicio == ano))).scalars().all()
+    painel = tetos_svc.montar_painel({t.categoria: _teto_registro(t) for t in regs}, props, _modalidade_de, ano,
+                                     {lm.programa: _limite_programa_registro(lm) for lm in lims})
     consultas = [t.consultado_em for t in regs if t.consultado_em]
     painel["ultima_consulta"] = max(consultas).isoformat() if consultas else None
     # Exercícios com planilha oficial cadastrada + exercícios das propostas do município
@@ -2726,6 +2730,51 @@ async def tetos_municipais(db: DbDep, user: UserDep, exercicio: int = Query(None
     painel["exercicios_disponiveis"] = sorted(set(tetos_svc.FONTES) | {p.exercicio for p in props if p.exercicio})
     painel["exercicios_com_teto_oficial"] = sorted(tetos_svc.FONTES)
     return painel
+
+
+def _limite_programa_registro(lm) -> dict:
+    return {"programa": lm.programa, "valor": lm.valor, "documento": lm.documento, "url": lm.url,
+            "observacao": lm.observacao, "registrado_por": lm.registrado_por,
+            "registrado_em": lm.registrado_em.isoformat() if lm.registrado_em else None}
+
+
+@router.post("/tetos/programas/limite")
+async def registrar_limite_programa(db: DbDep, user: UserDep, body: dict = Body(...)):
+    """Registra o valor máximo autorizado de um recurso de programa (exercício × programa),
+    sempre com a referência oficial (portaria/edital ou tela do InvestSUS). O valor anterior
+    não é apagado: vai para o histórico do registro."""
+    from models.investsus import LimiteProgramaInvestSUS
+    from services import investsus_tetos as tetos_svc
+    _pode_sincronizar(user)
+    mid = _municipio_id(user)
+    programa = str(body.get("programa") or "").strip()[:200]
+    documento = str(body.get("documento") or "").strip()[:300]
+    try:
+        exercicio = int(body.get("exercicio"))
+        valor = round(float(body.get("valor")), 2)
+    except (TypeError, ValueError):
+        raise HTTPException(422, "Informe exercício e valor numérico")
+    if not programa or not documento:
+        raise HTTPException(422, "Informe o programa e a referência oficial (portaria/edital ou tela do InvestSUS)")
+    if valor <= 0:
+        raise HTTPException(422, "O valor máximo autorizado deve ser maior que zero")
+    chave = tetos_svc.chave_programa(programa)
+    existentes = (await db.execute(select(LimiteProgramaInvestSUS).where(
+        LimiteProgramaInvestSUS.municipio_id == mid, LimiteProgramaInvestSUS.exercicio == exercicio))).scalars().all()
+    lm = next((x for x in existentes if tetos_svc.chave_programa(x.programa) == chave), None)
+    if lm is None:
+        lm = LimiteProgramaInvestSUS(municipio_id=mid, exercicio=exercicio, programa=programa, historico=[])
+        db.add(lm)
+    else:
+        lm.historico = [*(lm.historico or []), _limite_programa_registro(lm)]
+    lm.valor = valor
+    lm.documento = documento
+    lm.url = (str(body.get("url") or "").strip()[:500]) or None
+    lm.observacao = (str(body.get("observacao") or "").strip()) or None
+    lm.registrado_em = datetime.utcnow()
+    lm.registrado_por = user.nome
+    await db.commit()
+    return {"ok": True, **_limite_programa_registro(lm), "exercicio": exercicio}
 
 
 @router.post("/tetos/atualizar")

@@ -119,6 +119,119 @@ function CardTeto({ c }: { c: any }) {
   );
 }
 
+function CardPrograma({ g, exercicio }: { g: any; exercicio: number }) {
+  const [aberto, setAberto] = useState(false);
+  const [editar, setEditar] = useState(false);
+  const lim = g.limite;
+  return (
+    <div style={{ ...card, borderTop: "4px solid #0f766e", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#111827" }}>{g.programa}</div>
+          <div style={{ fontSize: 11, color: "#6b7280" }}>Recurso de programa · {g.propostas.length} proposta(s) {exercicio}</div>
+        </div>
+        <Selo situacao={g.situacao_limite} />
+      </div>
+      <TetoTresValores v={{ teto: g.valor_maximo, utilizado: g.valor_solicitado, saldo: g.saldo,
+        percUtilizado: g.perc_utilizado, percDisponivel: g.perc_disponivel, acimaDoTeto: g.acima_do_teto }} />
+      <div style={{ fontSize: 11, color: "#4b5563", background: "#f9fafb", borderRadius: 6, padding: 8, display: "flex", flexDirection: "column", gap: 3 }}>
+        {lim ? (
+          <>
+            <div><b>Referência:</b> {lim.documento}</div>
+            <div><b>Registrado:</b> {fmtData(lim.registrado_em)}{lim.registrado_por ? ` · ${lim.registrado_por}` : ""}</div>
+            {lim.url && <a href={lim.url} target="_blank" rel="noreferrer" style={{ color: "#1d4ed8", display: "inline-flex", alignItems: "center", gap: 3 }}>Documento oficial <ExternalLink size={11} /></a>}
+            {lim.observacao && <div>{lim.observacao}</div>}
+          </>
+        ) : (
+          <div style={{ color: "#92400e" }}>
+            <AlertTriangle size={11} style={{ verticalAlign: -1 }} /> Valor máximo autorizado não registrado. Consulte a portaria/edital do
+            programa ou o valor exibido no InvestSUS ao cadastrar a proposta e registre-o com a referência oficial.
+          </div>
+        )}
+        <button onClick={() => setEditar(v => !v)} style={{ alignSelf: "flex-start", border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: 11.5, fontWeight: 700, color: "#0f766e" }}>
+          {editar ? "Cancelar" : lim ? "Atualizar valor máximo autorizado" : "Registrar valor máximo autorizado"}
+        </button>
+        {editar && <FormLimitePrograma programa={g.programa} exercicio={exercicio} inicial={lim} onFim={() => setEditar(false)} />}
+      </div>
+      <button onClick={() => setAberto(v => !v)} style={{ border: "none", background: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 700, color: "#1e3a5f" }}>
+        {aberto ? <ChevronDown size={14} /> : <ChevronRight size={14} />} Memória de cálculo e propostas ({g.propostas.length})
+      </button>
+      {aberto && (
+        <div style={{ fontSize: 12, color: "#374151", display: "flex", flexDirection: "column", gap: 8 }}>
+          <ol style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
+            {(g.memoria_calculo ?? []).map((m: string, i: number) => <li key={i}>{m}</li>)}
+          </ol>
+          <TabelaPropostasTeto linhas={g.propostas} referencia={lim?.documento ?? "Valor máximo não registrado"} vazio="Nenhuma proposta deste exercício neste programa." />
+          {g.excluidas?.length > 0 && (
+            <div>
+              <div style={{ ...rotulo, marginBottom: 3 }}>Canceladas / rejeitadas — não subtraídas</div>
+              <TabelaPropostasTeto linhas={g.excluidas} referencia={lim?.documento} vazio="" />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// "1.234.567,89" ou "1234567.89" → número; texto inválido → NaN.
+const parseBRL = (t: string) => {
+  const v = t.replace(/[R$\s]/g, "");
+  if (v.includes(",")) return Number(v.replace(/\./g, "").replace(",", "."));
+  return /^\d+(\.\d{1,2})?$/.test(v) ? Number(v) : Number(v.replace(/\./g, ""));
+};
+
+const inp: React.CSSProperties = { padding: "5px 8px", borderRadius: 6, border: "1px solid #d1d5db", fontSize: 12, background: "#fff", color: "#111827", minWidth: 0 };
+
+function FormLimitePrograma({ programa, exercicio, inicial, onFim, editarNome }: { programa: string; exercicio: number; inicial?: any; onFim: () => void; editarNome?: boolean }) {
+  const qc = useQueryClient();
+  const [nome, setNome] = useState(programa);
+  const [valor, setValor] = useState(inicial?.valor != null ? String(inicial.valor).replace(".", ",") : "");
+  const [documento, setDocumento] = useState(inicial?.documento ?? "");
+  const [url, setUrl] = useState(inicial?.url ?? "");
+  const [observacao, setObservacao] = useState(inicial?.observacao ?? "");
+  const salvar = useMutation({
+    mutationFn: () => api.post("/api/investsus/tetos/programas/limite", {
+      programa: nome, exercicio, documento, url, observacao,
+      valor: parseBRL(valor),
+    }).then(r => r.data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["investsus-tetos"] }); onFim(); },
+  });
+  const valido = nome.trim() && documento.trim() && parseBRL(valor) > 0;
+  const erro = (salvar.error as any)?.response?.data?.detail;
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(200px, 100%), 1fr))", gap: 6, marginTop: 4 }}>
+      {editarNome && <input style={inp} placeholder="Programa (como aparece no InvestSUS)" value={nome} onChange={e => setNome(e.target.value)} />}
+      <input style={inp} placeholder={`Valor máximo autorizado ${exercicio} (R$)`} inputMode="decimal" value={valor} onChange={e => setValor(e.target.value)} />
+      <input style={inp} placeholder="Referência oficial (portaria/edital ou tela InvestSUS)" value={documento} onChange={e => setDocumento(e.target.value)} />
+      <input style={inp} placeholder="Link do documento (opcional)" value={url} onChange={e => setUrl(e.target.value)} />
+      <input style={inp} placeholder="Observação (opcional)" value={observacao} onChange={e => setObservacao(e.target.value)} />
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <button disabled={!valido || salvar.isPending} onClick={() => salvar.mutate()}
+          style={{ padding: "6px 12px", borderRadius: 6, border: "none", fontSize: 12, fontWeight: 700, background: valido ? "#0f766e" : "#9ca3af", color: "#fff", cursor: valido ? "pointer" : "not-allowed" }}>
+          {salvar.isPending ? "Salvando..." : "Salvar"}
+        </button>
+        {erro && <span style={{ color: "#b91c1c", fontSize: 11 }}>{String(erro)}</span>}
+      </div>
+      <div style={{ gridColumn: "1 / -1", fontSize: 10.5, color: "#6b7280" }}>
+        O valor anterior não é apagado: fica no histórico do registro. Use somente o valor publicado na portaria/edital ou exibido no InvestSUS.
+      </div>
+    </div>
+  );
+}
+
+function NovoLimitePrograma({ exercicio }: { exercicio: number }) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <div style={{ marginTop: 10, fontSize: 12 }}>
+      <button onClick={() => setAberto(v => !v)} style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#0f766e" }}>
+        {aberto ? "Cancelar" : "+ Registrar limite de outro programa"}
+      </button>
+      {aberto && <FormLimitePrograma programa="" exercicio={exercicio} onFim={() => setAberto(false)} editarNome />}
+    </div>
+  );
+}
+
 function Grupo({ titulo, sub, icone, cards }: { titulo: string; sub: string; icone: React.ReactNode; cards: any[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -227,31 +340,11 @@ export default function TetosMunicipais() {
         {prog.programas.length === 0 ? (
           <div style={{ fontSize: 12, color: "#9ca3af" }}>Nenhuma proposta de programa cadastrada para {data.exercicio}.</div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-              <thead>
-                <tr style={{ color: "#6b7280", textAlign: "left", background: "#f9fafb" }}>
-                  <th style={{ padding: "6px 8px" }}>Programa</th>
-                  <th style={{ padding: "6px 8px", textAlign: "right" }}>Propostas</th>
-                  <th style={{ padding: "6px 8px", textAlign: "right" }}>Valor máximo autorizado</th>
-                  <th style={{ padding: "6px 8px", textAlign: "right" }}>Valor já solicitado</th>
-                  <th style={{ padding: "6px 8px", textAlign: "right" }}>Saldo passível de solicitação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {prog.programas.map((g: any) => (
-                  <tr key={g.programa} style={{ borderTop: "1px solid #f3f4f6" }}>
-                    <td style={{ padding: "6px 8px", color: "#111827" }}>{g.programa}</td>
-                    <td style={{ padding: "6px 8px", textAlign: "right", color: "#111827" }}>{g.propostas.length}</td>
-                    <td style={{ padding: "6px 8px", textAlign: "right", color: "#6b7280" }}>{fmt(g.valor_maximo)}</td>
-                    <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700, color: "#111827" }}>{fmt(g.valor_solicitado)}</td>
-                    <td style={{ padding: "6px 8px", textAlign: "right", color: "#6b7280" }}>{fmt(g.saldo)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(420px, 100%), 1fr))", gap: 12 }}>
+            {prog.programas.map((g: any) => <CardPrograma key={g.programa} g={g} exercicio={data.exercicio} />)}
           </div>
         )}
+        <NovoLimitePrograma exercicio={data.exercicio} />
       </div>
 
       <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.5 }}>

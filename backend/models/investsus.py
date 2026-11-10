@@ -543,3 +543,26 @@ class TetoMunicipalInvestSUS(Base):
     erro: Mapped[str | None] = mapped_column(Text, nullable=True)
     consultado_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     consultado_por: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+
+class LimiteProgramaInvestSUS(Base):
+    """Valor máximo autorizado ao município num recurso de programa do Ministério da Saúde
+    (exercício × programa). Não há planilha única do FNS para programas: o valor vem da
+    portaria/edital do programa ou da tela do InvestSUS e é registrado com a referência
+    oficial. Cada registro novo substitui o anterior, que fica guardado em `historico`."""
+    __tablename__ = "is_limites_programas"
+    __table_args__ = (
+        Index("ix_is_lim_prog_mun_ex_prog", "municipio_id", "exercicio", "programa", unique=True),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    municipio_id: Mapped[int] = mapped_column(ForeignKey("municipios.id"), index=True)
+    exercicio: Mapped[int] = mapped_column(Integer)
+    programa: Mapped[str] = mapped_column(String(200))
+    valor: Mapped[float] = mapped_column(Float)
+    documento: Mapped[str] = mapped_column(String(300))
+    url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    observacao: Mapped[str | None] = mapped_column(Text, nullable=True)
+    historico: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    registrado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    registrado_por: Mapped[str | None] = mapped_column(String(100), nullable=True)

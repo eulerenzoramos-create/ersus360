@@ -253,3 +253,59 @@ def test_exercicio_sem_planilha_mostra_utilizado_sem_teto():
     painel = tt.montar_painel({}, [_p("rp6", apr=70, ex=2025)], lambda p: p.modalidade, 2025)
     card = next(c for c in painel["cards"] if c["categoria"] == "individual_pap")
     assert card["comprometido"] == 70 and card["saldo"] is None and card["situacao"] == "nao_disponivel"
+
+
+# ── Recursos de programa ──────────────────────────────────────────────────────
+
+def test_programa_com_limite_registrado_calcula_teto_utilizado_saldo():
+    props = [_p("programa", acao="Atenção Primária à Saúde", apr=300), _p("programa", acao="Atenção Primária à Saúde", prop=200),
+             _p("programa", acao="Atenção Primária à Saúde", sit="rejeitada", apr=999)]
+    lim = {"ATENÇÃO PRIMÁRIA À SAÚDE": {"programa": "ATENÇÃO PRIMÁRIA À SAÚDE", "valor": 1000.0, "documento": "Portaria X"}}
+    painel = tt.montar_painel({}, props, lambda p: p.modalidade, 2026, lim)
+    g = painel["programacao"]["programas"][0]
+    assert g["valor_maximo"] == 1000 and g["valor_solicitado"] == 500 and g["saldo"] == 500
+    assert g["perc_utilizado"] == 50.0 and g["situacao_limite"] == "confirmado"
+    assert len(g["propostas"]) == 2 and len(g["excluidas"]) == 1  # rejeitada à parte, não subtraída
+    assert g["propostas"][0]["classificacao"].startswith("Recurso de programa")
+    assert painel["programacao"]["situacao"] == "confirmado"
+    tp = painel["resumo"]["total_programas"]
+    assert tp == {"teto": 1000.0, "utilizado": 500.0, "saldo": 500.0, "perc_utilizado": 50.0,
+                  "completo": True, "qtd_propostas": 2}
+
+
+def test_limite_sem_proposta_aparece_e_programa_sem_limite_fica_nao_disponivel():
+    lim = {"Programa Y": {"programa": "Programa Y", "valor": 400.0, "documento": "Edital Y"}}
+    painel = tt.montar_painel({}, [_p("programa", acao="Programa X", apr=100)], lambda p: p.modalidade, 2026, lim)
+    progs = {g["programa"]: g for g in painel["programacao"]["programas"]}
+    assert progs["Programa Y"]["saldo"] == 400 and progs["Programa Y"]["valor_solicitado"] == 0
+    assert progs["Programa X"]["valor_maximo"] is None and progs["Programa X"]["saldo"] is None
+    assert painel["programacao"]["situacao"] == "pendente_validacao"
+    assert painel["resumo"]["total_programas"]["teto"] is None  # sem inventar total
+
+
+async def test_rota_registra_limite_de_programa_com_historico(db_session, municipio):
+    from fastapi import HTTPException
+    from models.investsus import PropostaInvestSUS, SituacaoNormalizada
+    from routers import investsus as rt
+    db_session.add(PropostaInvestSUS(municipio_id=municipio.id, numero_proposta="PG1", exercicio=2026, modalidade="programa",
+                                     acao_orcamentaria="Atenção Especializada à Saúde", valor_proposta=250.0,
+                                     situacao_normalizada=SituacaoNormalizada.APROVADA))
+    await db_session.commit()
+    u = _usuario(municipio.id)
+    with pytest.raises(HTTPException):  # referência oficial é obrigatória
+        await rt.registrar_limite_programa(db_session, u, {"programa": "Atenção Especializada à Saúde", "exercicio": 2026, "valor": 1000})
+    with pytest.raises(HTTPException):  # perfil sem permissão
+        await rt.registrar_limite_programa(db_session, _usuario(municipio.id, role="acs"),
+                                           {"programa": "x", "exercicio": 2026, "valor": 1, "documento": "d"})
+    await rt.registrar_limite_programa(db_session, u, {"programa": "Atenção Especializada à Saúde", "exercicio": 2026,
+                                                       "valor": 1000, "documento": "Portaria A"})
+    r = await rt.registrar_limite_programa(db_session, u, {"programa": "ATENÇÃO ESPECIALIZADA À SAÚDE", "exercicio": 2026,
+                                                           "valor": 1200, "documento": "Portaria B"})
+    assert r["valor"] == 1200
+    painel = await rt.tetos_municipais(db_session, u, 2026)
+    g = painel["programacao"]["programas"][0]
+    assert g["valor_maximo"] == 1200 and g["valor_solicitado"] == 250 and g["saldo"] == 950
+    from models.investsus import LimiteProgramaInvestSUS
+    from sqlalchemy import select
+    lm = (await db_session.execute(select(LimiteProgramaInvestSUS))).scalars().all()
+    assert len(lm) == 1 and lm[0].historico[0]["valor"] == 1000  # valor anterior preservado

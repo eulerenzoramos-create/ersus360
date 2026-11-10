@@ -190,7 +190,7 @@ export function ResumoGerencialTetos({ resumo, exercicio }: { resumo: any; exerc
               ];
             })}
             <tr style={{ borderTop: "2px solid #e5e7eb", background: "#f9fafb" }}>
-              <td style={{ ...td, textAlign: "left", color: "#111827" }} colSpan={2}>Total do município</td>
+              <td style={{ ...td, textAlign: "left", color: "#111827" }} colSpan={2}>Total das emendas (PAP/MAC)</td>
               <td style={{ ...td, color: t.teto == null ? "#9ca3af" : COR_TETO.teto }}>{fmtBRL(t.teto)}</td>
               <td style={{ ...td, color: COR_TETO.utilizado }}>{fmtBRL(t.utilizado)}</td>
               <td style={{ ...td, color: t.saldo == null ? "#9ca3af" : t.saldo < 0 ? COR_TETO.excedido : COR_TETO.saldo }}>{fmtBRL(t.saldo)}</td>
@@ -198,10 +198,42 @@ export function ResumoGerencialTetos({ resumo, exercicio }: { resumo: any; exerc
               <td style={{ ...td, color: "#374151" }}>{t.qtd_propostas}</td>
               <td></td>
             </tr>
+            {(resumo.programas ?? []).length > 0 && (
+              <>
+                <tr><td colSpan={8} style={{ padding: "10px 8px 4px", fontSize: 11, fontWeight: 800, color: "#0f766e", textTransform: "uppercase", letterSpacing: 0.4 }}>Recursos de programa (outros)</td></tr>
+                {resumo.programas.map((l: any) => {
+                  const sit = SITUACAO_TETO[l.situacao] ?? SITUACAO_TETO.nao_disponivel;
+                  return (
+                    <tr key={`prog-${l.programa}`} style={{ borderTop: "1px solid #f3f4f6" }}>
+                      <td style={{ ...td, textAlign: "left", fontWeight: 600, color: "#111827", whiteSpace: "normal" }}>Programa</td>
+                      <td style={{ ...td, textAlign: "left", fontWeight: 600, color: "#374151", whiteSpace: "normal" }}>{l.programa}</td>
+                      <td style={{ ...td, color: l.teto == null ? "#9ca3af" : COR_TETO.teto }}>{fmtBRL(l.teto)}</td>
+                      <td style={{ ...td, color: COR_TETO.utilizado }}>{fmtBRL(l.utilizado)}</td>
+                      <td style={{ ...td, color: l.saldo == null ? "#9ca3af" : l.saldo < 0 ? COR_TETO.excedido : COR_TETO.saldo }}>{fmtBRL(l.saldo)}</td>
+                      <td style={{ ...td, fontWeight: 600, color: "#374151" }}>{fmtPct(l.perc_utilizado)}</td>
+                      <td style={{ ...td, fontWeight: 600, color: "#374151" }}>{l.qtd_propostas}</td>
+                      <td style={{ ...td, textAlign: "left", color: sit.cor }}>{sit.label}</td>
+                    </tr>
+                  );
+                })}
+                {resumo.total_programas && (
+                  <tr style={{ borderTop: "2px solid #e5e7eb", background: "#f9fafb" }}>
+                    <td style={{ ...td, textAlign: "left", color: "#111827" }} colSpan={2}>Total dos programas</td>
+                    <td style={{ ...td, color: resumo.total_programas.teto == null ? "#9ca3af" : COR_TETO.teto }}>{fmtBRL(resumo.total_programas.teto)}</td>
+                    <td style={{ ...td, color: COR_TETO.utilizado }}>{fmtBRL(resumo.total_programas.utilizado)}</td>
+                    <td style={{ ...td, color: resumo.total_programas.saldo == null ? "#9ca3af" : COR_TETO.saldo }}>{fmtBRL(resumo.total_programas.saldo)}</td>
+                    <td style={{ ...td, color: "#374151" }}>{fmtPct(resumo.total_programas.perc_utilizado)}</td>
+                    <td style={{ ...td, color: "#374151" }}>{resumo.total_programas.qtd_propostas}</td>
+                    <td></td>
+                  </tr>
+                )}
+              </>
+            )}
           </tbody>
         </table>
       </div>
       <div style={{ fontSize: 10.5, color: "#6b7280", marginTop: 6, lineHeight: 1.5 }}>
+        Recursos de programa têm limites próprios (portaria/edital de cada programa) e são totalizados à parte das emendas.{" "}
         Uma linha por teto oficial: RP 7 (bancada) e RP 8 (comissão) dividem um único teto e não são somados em duplicidade.
         Individuais e coletivas são tetos independentes. {!t.completo && "Total do teto e do saldo só aparece quando todos os tetos oficiais do exercício foram lidos."}
       </div>
