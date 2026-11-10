@@ -368,6 +368,8 @@ async def buscar_completo(
     # Resumo oficial por plano orçamentário (valor integral, ajuste, desconto e efetivo repasse),
     # exatamente como o e-Gestor publica — sem cálculo próprio.
     resultado["resumo_planos"] = resumo_planos_oficial(raw.get("resumosPlanosOrcamentarios") or [])
+    # Nota (classificação) e valor pago dos componentes Vínculo e Acompanhamento Territorial e Qualidade
+    resultado["vinculo_qualidade"] = vinculo_qualidade_oficial(pg)
 
     return {
         "data_consulta": raw.get("data", ""),
@@ -403,6 +405,63 @@ def resumo_planos_oficial(resumos: list[dict]) -> list[dict]:
             "vl_total_implantacao": _f(r.get("vlTotalImplantacao")),
         })
     return out
+
+
+def _classif(v: Any) -> str | None:
+    t = (v or "").strip()
+    return None if t in ("", "-") else t.upper()
+
+
+# Sufixo do campo vlQualidadeEsb40h<Nivel> → rótulo da nota publicado pelo e-Gestor
+_NIVEIS = {"otimo": "ÓTIMO", "bom": "BOM", "suficiente": "SUFICIENTE", "regular": "REGULAR"}
+
+
+def vinculo_qualidade_oficial(pg: dict) -> list[dict]:
+    """Linhas Vínculo/Qualidade por programa, só com campos publicados no COMPLETO.
+
+    classificacao: nota oficial (ÓTIMO/BOM/SUFICIENTE/REGULAR) ou None quando o e-Gestor não publica;
+    partes: divisão do valor por nota, quando o e-Gestor publica (eSB 40h);
+    equipes_pagas: equipes pagas do programa, para a média por equipe (só quando há uma única nota).
+    Linhas sem valor e sem nota ficam de fora.
+    """
+    def v(k: str) -> float:
+        return float(pg.get(k) or 0)
+
+    def i(k: str) -> int:
+        return int(pg.get(k) or 0)
+
+    linhas: list[dict] = []
+
+    def add(programa, componente, classificacao, valor, equipes=None, partes=None):
+        if not valor and not classificacao:
+            return
+        linhas.append({"programa": programa, "componente": componente, "classificacao": classificacao,
+                       "valor": valor, "equipes_pagas": equipes or None, "partes": partes or []})
+
+    esf_pagas, eap_pagas = i("qtEsfTotalPgto"), i("qtEapTotalPgto")
+    add("eSF", "vinculo", _classif(pg.get("dsClassificacaoVinculoEsfEap")), v("vlVinculoEsf"), esf_pagas)
+    add("eSF", "qualidade", _classif(pg.get("dsClassificacaoQualidadeEsfEap")),
+        v("vlQualidadeEsf") + v("vlPagamentoQualidadeExtraEsf"), esf_pagas)
+    if eap_pagas or v("vlVinculoEap") or v("vlQualidadeEap"):
+        add("eAP", "vinculo", _classif(pg.get("dsClassificacaoVinculoEsfEap")), v("vlVinculoEap"), eap_pagas)
+        add("eAP", "qualidade", _classif(pg.get("dsClassificacaoQualidadeEsfEap")),
+            v("vlQualidadeEap") + v("vlPagamentoQualidadeExtraEap"), eap_pagas)
+
+    partes = []
+    for k, val in pg.items():
+        if k.startswith("vlQualidadeEsb40h") and float(val or 0):
+            suf = k[len("vlQualidadeEsb40h"):].lower()
+            partes.append({"classificacao": _NIVEIS.get(suf, suf.upper()), "valor": float(val)})
+    esb_pagas = i("qtSbPagamentoModalidadeI") + i("qtSbPagamentoModalidadeII")
+    add("eSB 40h", "qualidade", _classif(pg.get("dsClassificacaoQualidadeEsb40h")),
+        v("vlPagamentoEsb40hQualidade") + v("vlPagamentoQualidadeExtraEsb40H"), esb_pagas, partes)
+    add("eSB 20h", "qualidade", _classif(pg.get("dsClassificacaoQualidadeEsbChDif20h")), v("vlQualidadeEsbChDif20h"))
+    add("eSB 30h", "qualidade", _classif(pg.get("dsClassificacaoQualidadeEsbChDif30h")), v("vlQualidadeEsbChDif30h"))
+    add("eMulti", "qualidade", _classif(pg.get("dsClassificacaoQualidadeEmulti")),
+        v("vlPagamentoEmultiQualidade"), i("qtEmultiPagas"))
+    add("eSFR", "vinculo", None, v("vlPagamentoEsfrbVinculoAcomp"), i("qtRibeirinhaPagas"))
+    add("eSFR", "qualidade", None, v("vlPagamentoEsfrbQualidade") + v("vlPagamentoEsfrbExtraQualidade"), i("qtRibeirinhaPagas"))
+    return linhas
 
 
 def programa_do_plano(plano: str) -> str | None:

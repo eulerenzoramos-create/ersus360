@@ -254,6 +254,18 @@ async def buscar_diagnostico_cobertura(parcela: str | None = None, forcar_atuali
     except Exception as e:  # noqa: BLE001
         logger.warning("validação por equipe indisponível (parcela %s): %s", parcela, e)
         validacao = []
+    # Vínculo/Qualidade da parcela anterior, para mostrar a variação de cada nota/valor
+    vq_anterior: list[dict] = []
+    idx = publicadas.index(parcela)
+    if idx > 0:
+        try:
+            vq_anterior = (await _completo(publicadas[idx - 1])).get("vinculo_qualidade") or []
+        except Exception as e:  # noqa: BLE001 — comparação é opcional
+            logger.warning("parcela anterior indisponível para vínculo/qualidade: %s", e)
+    vq = [dict(l) for l in det.get("vinculo_qualidade") or []]
+    for l in vq:
+        ant = next((x for x in vq_anterior if x["programa"] == l["programa"] and x["componente"] == l["componente"]), None)
+        l["anterior"] = {"valor": ant["valor"], "classificacao": ant["classificacao"]} if ant else None
     esf, eap = det.get("esf") or {}, det.get("eap") or {}
     pago_esf_eap = next((v for k, v in s["planos"].items() if k.startswith("Equipes de Sa")), None)
     resumo_planos = det.get("resumo_planos") or []
@@ -272,6 +284,8 @@ async def buscar_diagnostico_cobertura(parcela: str | None = None, forcar_atuali
         "esf_eap_pago_plano": pago_esf_eap,
         # Ajuste / desconto / efetivo repasse oficiais por plano (resumosPlanosOrcamentarios do COMPLETO)
         "resumo_planos": resumo_planos,
+        "vinculo_qualidade": vq,
+        "vinculo_qualidade_anterior_competencia": serie[idx - 1]["competencia"] if idx > 0 else None,
         "resumo_por_programa": resumo_por_programa,
         "rotulo_parcela": f"Parcela {int(parcela[4:])}/12 de {parcela[:4]}",
         "rotulo_competencia": f"Competência CNES {s['competencia']}",

@@ -334,6 +334,10 @@ function infoDaAba(aba: string, item: CompetenciaFonte | undefined, cat: Catalog
                        ? (d.resumo_planos as any[]).map(r => ({ registro: "plano", plano: r.plano, valor_integral: r.vl_integral,
                            ajuste: r.vl_ajuste, desconto: r.vl_desconto, total_repassado: r.vl_efetivo }))
                        : Object.entries(d?.planos ?? {}).map(([plano, valor]) => ({ registro: "plano", plano, valor }))),
+                     ...(d?.vinculo_qualidade ?? []).map((x: any) => ({ registro: x.componente === "vinculo" ? "vinculo_acompanhamento" : "qualidade",
+                       programa: x.programa, nota: x.classificacao ?? "não publicada", valor: x.valor, equipes_pagas: x.equipes_pagas,
+                       por_nota: (x.partes ?? []).map((pt: any) => `${pt.classificacao}: ${pt.valor}`).join(" | "),
+                       valor_parcela_anterior: x.anterior?.valor, nota_parcela_anterior: x.anterior?.classificacao })),
                      ...(d?.diagnosticos ?? []).map((x: any) => ({ registro: "diagnostico", ...x })),
                      ...(d?.validacao_equipes ?? []).map((x: any) => ({ registro: "equipe", ...x }))], rod("e-Gestor APS — relatório público"));
                  }
@@ -1389,6 +1393,106 @@ const brlSinalDC = (v?: number | null) => v == null ? "—" : (
   </span>
 );
 
+// ── Vínculo e Acompanhamento Territorial × Qualidade: nota oficial e valor repassado ──
+const NOTA_COR: Record<string, { cor: string; bg: string; barra: string }> = {
+  "ÓTIMO":      { cor: "#14532d", bg: "#bbf7d0", barra: "#15803d" },
+  "BOM":        { cor: "#1d4ed8", bg: "#dbeafe", barra: "#60a5fa" },
+  "SUFICIENTE": { cor: "#92400e", bg: "#fef3c7", barra: "#f59e0b" },
+  "REGULAR":    { cor: "#991b1b", bg: "#fee2e2", barra: "#ef4444" },
+};
+const notaCor = (n?: string | null) => NOTA_COR[(n ?? "").trim().toUpperCase()] ?? { cor: "#4b5563", bg: "#f3f4f6", barra: "#9ca3af" };
+
+function NotaSelo({ nota }: { nota?: string | null }) {
+  if (!nota) return <span style={{ fontSize: 11, fontWeight: 600, color: "#4b5563", background: "#f3f4f6", borderRadius: 10, padding: "2px 8px", whiteSpace: "nowrap" }}>nota não publicada</span>;
+  return (
+    <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
+      {nota.split(";").map(n => n.trim()).filter(Boolean).map(n => (
+        <span key={n} style={{ fontSize: 11, fontWeight: 800, color: notaCor(n).cor, background: notaCor(n).bg, borderRadius: 10, padding: "2px 9px", whiteSpace: "nowrap" }}>{n}</span>
+      ))}
+    </span>
+  );
+}
+
+function VinculoQualidadeDC({ linhas, compAnterior }: { linhas: any[]; compAnterior?: string | null }) {
+  const colunas = [
+    { k: "vinculo", titulo: "Vínculo e Acompanhamento Territorial", cor: "#0369a1" },
+    { k: "qualidade", titulo: "Qualidade", cor: "#7c3aed" },
+  ];
+  return (
+    <div style={caixaDC}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Vínculo e Qualidade — nota e valor repassado pelo Ministério</div>
+        <span style={{ fontSize: 11.5, color: "#4b5563" }}>
+          Notas: <NotaSelo nota="ÓTIMO" /> <NotaSelo nota="BOM" /> <NotaSelo nota="SUFICIENTE" /> <NotaSelo nota="REGULAR" />
+        </span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(380px, 100%), 1fr))", gap: 14 }}>
+        {colunas.map(c => {
+          const ls = linhas.filter(l => l.componente === c.k);
+          const total = ls.reduce((a, l) => a + (l.valor ?? 0), 0);
+          const totalAnt = ls.every(l => l.anterior) ? ls.reduce((a, l) => a + (l.anterior?.valor ?? 0), 0) : null;
+          return (
+            <div key={c.k} style={{ border: "1px solid #e5e7eb", borderTop: `3px solid ${c.cor}`, borderRadius: 10, padding: "12px 14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: c.cor }}>{c.titulo}</span>
+                <span style={{ textAlign: "right" }}>
+                  <span style={{ fontSize: 17, fontWeight: 800, color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{brlDC(total)}</span>
+                  {totalAnt != null && total !== totalAnt && (
+                    <div style={{ fontSize: 11, color: total > totalAnt ? "#15803d" : "#b91c1c" }}>{total > totalAnt ? "▲" : "▼"} {brlDC(Math.abs(total - totalAnt))} vs {compAnterior}</div>
+                  )}
+                </span>
+              </div>
+              {ls.length === 0 && <div style={{ fontSize: 12, color: "#4b5563" }}>Nada publicado para este componente na parcela.</div>}
+              {ls.map(l => {
+                const unica = !l.partes?.length;
+                const media = unica && l.equipes_pagas ? l.valor / l.equipes_pagas : null;
+                const ant = l.anterior;
+                const mudouNota = ant && ant.classificacao && l.classificacao && ant.classificacao !== l.classificacao;
+                return (
+                  <div key={l.programa} style={{ borderTop: "1px solid #f3f4f6", padding: "8px 0" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", minWidth: 62 }}>{l.programa}</span>
+                        <NotaSelo nota={l.classificacao} />
+                      </span>
+                      <span style={{ fontSize: 14.5, fontWeight: 800, color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>{brlDC(l.valor)}</span>
+                    </div>
+                    {!unica && (
+                      <>
+                        <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", margin: "6px 0 4px", background: "#f1f5f9" }}>
+                          {l.partes.map((pt: any) => <div key={pt.classificacao} title={`${pt.classificacao}: ${brlDC(pt.valor)}`} style={{ width: `${(100 * pt.valor) / (l.valor || 1)}%`, background: notaCor(pt.classificacao).barra }} />)}
+                        </div>
+                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 11.5, color: "#374151" }}>
+                          {l.partes.map((pt: any) => <span key={pt.classificacao}><strong style={{ color: notaCor(pt.classificacao).cor }}>{pt.classificacao}</strong> {brlDC(pt.valor)}</span>)}
+                        </div>
+                      </>
+                    )}
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", fontSize: 11.5, color: "#4b5563", marginTop: 2 }}>
+                      <span>
+                        {l.equipes_pagas ? `${l.equipes_pagas} equipe${l.equipes_pagas > 1 ? "s" : ""} paga${l.equipes_pagas > 1 ? "s" : ""}` : ""}
+                        {media != null && ` · média ${brlDC(media)} por equipe`}
+                      </span>
+                      {ant && (ant.valor !== l.valor || mudouNota) && (
+                        <span style={{ color: l.valor >= ant.valor ? "#15803d" : "#b91c1c" }}>
+                          {ant.valor !== l.valor && `${l.valor > ant.valor ? "▲" : "▼"} ${brlDC(Math.abs(l.valor - ant.valor))}`}
+                          {mudouNota && ` · nota era ${ant.classificacao}`} vs {compAnterior}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 11, color: "#4b5563", marginTop: 8 }}>
+        Nota e valor publicados pelo e-Gestor para o município nesta parcela. A média por equipe é o valor dividido pelas equipes pagas (o e-Gestor não publica o valor de cada equipe). A eSFR não tem nota publicada.
+      </div>
+    </div>
+  );
+}
+
 const SEV_DC: Record<string, { bg: string; cor: string; label: string }> = {
   ok:      { bg: "#f0fdf4", cor: "#15803d", label: "✓ OK" },
   info:    { bg: "#eff6ff", cor: "#1d4ed8", label: "ℹ Info" },
@@ -1571,6 +1675,10 @@ function AbaDiagnosticoCobertura({ parcelaGlobal }: { parcelaGlobal?: string }) 
               </details>
             )}
           </div>
+
+          {(data.vinculo_qualidade ?? []).length > 0 && (
+            <VinculoQualidadeDC linhas={data.vinculo_qualidade} compAnterior={data.vinculo_qualidade_anterior_competencia} />
+          )}
 
           {/* Repasse por programa: uma linha por plano oficial, composição sob demanda */}
           <div style={caixaDC}>
