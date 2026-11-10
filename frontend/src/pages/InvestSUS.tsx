@@ -668,13 +668,24 @@ const BLOCO_CONFIG: Record<string, { label: string; cor: string }> = {
 
 function normalizarBloco(comp: string): string {
   if (!comp) return "Outro";
-  const c = comp.toUpperCase();
-  if (c.includes("PAP") || c.includes("APS") || c.includes("ATEN") || c.includes("PRIMA")) return "PAP";
-  if (c.includes("MAC") || c.includes("MEDIA") || c.includes("MÉDIA") || c.includes("ALTA")) return "MAC";
+  const c = comp.toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  // MAC antes de PAP: "Atenção Especializada" também contém "ATEN".
+  if (/MAC|MEDIA E ALTA|ALTA COMPLEXIDADE|ESPECIALIZADA|2E90/.test(c)) return "MAC";
+  if (/PAP|APS|ATENCAO PRIMARIA|ATENCAO BASICA|PRIMARIA|2E89/.test(c)) return "PAP";
   if (c.includes("VIGIL")) return "Vigilância em Saúde";
   if (c.includes("FARM")) return "Assistência Farmacêutica";
   if (c.includes("GEST")) return "Gestão";
   return comp in BLOCO_CONFIG ? comp : "Outro";
+}
+
+// Componente da proposta: primeiro o campo próprio; se vazio (comum em Recurso de Programa),
+// o bloco, o programa, a ação orçamentária e por fim o objeto ("CUSTEIO DA ATENÇÃO PRIMÁRIA...").
+function blocoDaProposta(p: any): string {
+  for (const campo of [p.componente, p.bloco_financiamento, p.programa_nome, p.acao_orcamentaria, p.objeto]) {
+    const b = normalizarBloco(campo ?? "");
+    if (b !== "Outro") return b;
+  }
+  return "Outro";
 }
 
 // ── Propostas detalhadas (visão InvestSUS real) ────────────────────────────────
@@ -714,7 +725,7 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
     };
     for (const p of filtradas) {
       const g = modalidadeDe(p);
-      const b = normalizarBloco(p.componente ?? p.programa_nome ?? "");
+      const b = blocoDaProposta(p);
       if (!grupos[g][b]) grupos[g][b] = [];
       grupos[g][b].push(p);
     }
