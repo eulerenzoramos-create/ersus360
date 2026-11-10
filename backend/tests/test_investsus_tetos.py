@@ -225,3 +225,31 @@ async def test_rotas_gravam_teto_e_calculam_saldo_isolado_por_municipio(db_sessi
     painel_outro = await rt.tetos_municipais(db_session, _usuario(outro.id), None)
     c2 = {c["categoria"]: c for c in painel_outro["cards"]}["individual_pap"]
     assert c2["teto"]["valor"] is None and c2["comprometido"] == 999.0
+
+
+def test_resumo_gerencial_nao_duplica_rp7_rp8_e_totaliza_so_com_todos_os_tetos():
+    tetos = {"individual_pap": {"valor": 1000.0}, "individual_mac": {"valor": 900.0},
+             "coletiva_pap": {"valor": 500.0}, "coletiva_mac": {"valor": 800.0}}
+    painel, _ = _painel([_p("rp6", apr=100), _p("rp7", apr=200), _p("rp8", apr=50)], tetos=tetos)
+    r = painel["resumo"]
+    assert len(r["linhas"]) == 4
+    col = next(x for x in r["linhas"] if x["categoria"] == "coletiva_pap")
+    assert col["teto"] == 500 and col["utilizado"] == 250 and col["saldo"] == 250
+    assert col["modalidades"] == ["rp7", "rp8"]
+    assert r["total"] == {"teto": 3200.0, "utilizado": 350.0, "saldo": 2850.0, "perc_utilizado": 10.9,
+                          "completo": True, "qtd_propostas": 3}
+    linha = next(x for x in painel["cards"] if x["categoria"] == "coletiva_pap")["propostas"][0]
+    assert linha["componente"] == "pap" and "2E89" in linha["classificacao"]
+
+
+def test_resumo_sem_algum_teto_nao_inventa_total():
+    painel, _ = _painel([_p("rp6", apr=100)])  # individual_mac sem teto
+    t = painel["resumo"]["total"]
+    assert t["teto"] is None and t["saldo"] is None and not t["completo"]
+    assert t["utilizado"] == 100
+
+
+def test_exercicio_sem_planilha_mostra_utilizado_sem_teto():
+    painel = tt.montar_painel({}, [_p("rp6", apr=70, ex=2025)], lambda p: p.modalidade, 2025)
+    card = next(c for c in painel["cards"] if c["categoria"] == "individual_pap")
+    assert card["comprometido"] == 70 and card["saldo"] is None and card["situacao"] == "nao_disponivel"

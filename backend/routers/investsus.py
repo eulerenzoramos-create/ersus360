@@ -2721,7 +2721,10 @@ async def tetos_municipais(db: DbDep, user: UserDep, exercicio: int = Query(None
     painel = tetos_svc.montar_painel({t.categoria: _teto_registro(t) for t in regs}, props, _modalidade_de, ano)
     consultas = [t.consultado_em for t in regs if t.consultado_em]
     painel["ultima_consulta"] = max(consultas).isoformat() if consultas else None
-    painel["exercicios_disponiveis"] = sorted(tetos_svc.FONTES)
+    # Exercícios com planilha oficial cadastrada + exercícios das propostas do município
+    # (ex.: 2025 sem planilha → teto "não disponível", mas o utilizado aparece).
+    painel["exercicios_disponiveis"] = sorted(set(tetos_svc.FONTES) | {p.exercicio for p in props if p.exercicio})
+    painel["exercicios_com_teto_oficial"] = sorted(tetos_svc.FONTES)
     return painel
 
 

@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import TetosMunicipais from "./InvestSUSTetos";
+import { TetoTresValores, valoresDoCard, ResumoGerencialTetos, SeletorExercicio } from "../components/investsus/TetoFinanceiro";
 import { ExecucaoFinanceira, AlertasExecucao, RelatoriosExecucao, RepassesPlanos, baixar } from "./InvestSUSExecucao";
 import {
   Landmark, Plus, RefreshCw, AlertTriangle, CheckCircle2, Clock,
@@ -157,7 +158,9 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
     placeholderData: (anterior: any) => anterior,
     retry: 1,
   });
-  const anoTeto = ano && !mes ? ano : "";
+  // Exercício do teto: escolhido no próprio quadro; senão acompanha o filtro de ano.
+  const [anoTetoSel, setAnoTetoSel] = useState<number | null>(null);
+  const anoTeto = anoTetoSel ? String(anoTetoSel) : ano;
   const { data: tetos } = useQuery({
     queryKey: ["investsus-tetos", municipio_id, anoTeto],
     queryFn: () => api.get(`/api/investsus/tetos${anoTeto ? `?exercicio=${anoTeto}` : ""}`).then(r => r.data),
@@ -276,13 +279,19 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
           sub={data.alertas_criticos > 0 ? `${data.alertas_criticos} crítico${data.alertas_criticos !== 1 ? "s" : ""}` : "nenhum crítico"} />
       </div>
 
-      {/* Saldo dos tetos PAP/MAC por tipo de emenda */}
+      {/* Tetos PAP/MAC por tipo de emenda — teto total · utilizado · saldo disponível */}
       <div style={S.card}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap" as const, gap: 6, marginBottom: 12 }}>
-          <div style={{ ...S.title, marginBottom: 0 }}>Saldo disponível nos tetos PAP e MAC{tetos?.exercicio ? ` — ${tetos.exercicio}` : ""}</div>
-          <span style={{ fontSize: 11, color: "#6b7280" }}>Teto oficial FNS − comprometido (custeio Incremento Temporário)</span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" as const, gap: 8, marginBottom: 12 }}>
+          <div>
+            <div style={{ ...S.title, marginBottom: 0 }}>Tetos PAP e MAC{tetos?.exercicio ? ` — exercício ${tetos.exercicio}` : ""}</div>
+            <span style={{ fontSize: 11, color: "#6b7280" }}>Teto oficial FNS − valor utilizado (custeio Incremento Temporário) = saldo disponível</span>
+          </div>
+          {tetos && (
+            <SeletorExercicio valor={tetos.exercicio} anos={tetos.exercicios_disponiveis ?? [tetos.exercicio]}
+              comTeto={tetos.exercicios_com_teto_oficial} onChange={setAnoTetoSel} />
+          )}
         </div>
-        <div style={{ ...grade(300), marginBottom: 0 }}>
+        <div style={{ ...grade(320), marginBottom: 0 }}>
           {[
             { grupo: "individual", titulo: "Emendas Individuais", sub: "RP 6", cor: GRUPO_CONFIG.rp6.cor },
             { grupo: "coletiva",   titulo: "Emendas Coletivas",   sub: "RP 7 Bancada + RP 8 Comissão (teto compartilhado)", cor: GRUPO_CONFIG.rp7.cor },
@@ -292,36 +301,14 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
               <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>{g.sub}</div>
               {(["pap", "mac"] as const).map(comp => {
                 const c = tetoDe(g.grupo, comp);
-                const teto = c?.teto?.valor ?? null;
-                const usado = Math.min(100, Math.max(0, c?.perc_utilizado ?? 0));
-                const corBarra = c?.acima_do_teto ? CORES.critico : comp === "pap" ? "#0284c7" : "#7c3aed";
                 return (
-                  <div key={comp} style={{ padding: "8px 0", borderTop: comp === "mac" ? "1px dashed #e5e7eb" : undefined }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" as const }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>
-                        {comp === "pap" ? "PAP — Atenção Primária" : "MAC — Média e Alta Complexidade"}
-                      </span>
-                      <span style={{ fontSize: 18, fontWeight: 800, color: c?.saldo == null ? "#9ca3af" : c.acima_do_teto ? CORES.critico : "#047857" }}>
-                        {c?.saldo == null ? "Não disponível" : fmt(c.saldo)}
-                      </span>
-                    </div>
-                    {teto != null ? (
-                      <>
-                        <div style={{ height: 8, background: "#e5e7eb", borderRadius: 99, overflow: "hidden", margin: "6px 0 4px" }}>
-                          <div style={{ width: `${usado}%`, height: "100%", background: corBarra }} />
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#6b7280", gap: 8, flexWrap: "wrap" as const }}>
-                          <span>Teto {fmt(teto)}</span>
-                          <span>Comprometido {fmt(c.comprometido)} ({fmtPct(c.perc_utilizado)})</span>
-                        </div>
-                        {c.situacao === "pendente_validacao" && (
-                          <div style={{ fontSize: 10.5, color: "#b45309", marginTop: 2 }}>Pendente de validação — ver memória de cálculo em Recursos Disponíveis</div>
-                        )}
-                      </>
-                    ) : (
-                      <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
-                        Teto ainda não lido — use "Atualizar Tetos Municipais" na aba Recursos Disponíveis.
-                      </div>
+                  <div key={comp} style={{ padding: "8px 0", borderTop: comp === "mac" ? "1px dashed #e5e7eb" : undefined, display: "flex", flexDirection: "column" as const, gap: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>
+                      {comp === "pap" ? "PAP — Atenção Primária" : "MAC — Média e Alta Complexidade"}
+                    </span>
+                    <TetoTresValores v={valoresDoCard(c)} compacto />
+                    {c?.situacao === "pendente_validacao" && (
+                      <div style={{ fontSize: 10.5, color: "#b45309" }}>Pendente de validação — ver memória de cálculo em Recursos Disponíveis</div>
                     )}
                   </div>
                 );
@@ -330,6 +317,8 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
           ))}
         </div>
       </div>
+
+      {tetos?.resumo && <div style={{ marginBottom: 14 }}><ResumoGerencialTetos resumo={tetos.resumo} exercicio={tetos.exercicio} /></div>}
 
       {/* Saldo de cada tipo de emenda */}
       <div style={S.card}>
