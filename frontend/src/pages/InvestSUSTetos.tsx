@@ -119,6 +119,14 @@ function CardTeto({ c }: { c: any }) {
   );
 }
 
+// Tipo como aparece na coluna "Tipo" do InvestSUS (CUSTEIO PAP / CUSTEIO MAC).
+const tipoPrograma = (nome: string) => {
+  const c = (nome ?? "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  if (/MAC|MEDIA E ALTA|ESPECIALIZADA/.test(c)) return "Recurso de programa · Custeio MAC";
+  if (/PAP|APS|PRIMARIA|BASICA/.test(c)) return "Recurso de programa · Custeio PAP";
+  return "Recurso de programa";
+};
+
 function CardPrograma({ g, exercicio }: { g: any; exercicio: number }) {
   const [aberto, setAberto] = useState(false);
   const [editar, setEditar] = useState(false);
@@ -128,7 +136,7 @@ function CardPrograma({ g, exercicio }: { g: any; exercicio: number }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 800, color: "#111827" }}>{g.programa}</div>
-          <div style={{ fontSize: 11, color: "#6b7280" }}>Recurso de programa · {g.propostas.length} proposta(s) {exercicio}</div>
+          <div style={{ fontSize: 11, color: "#6b7280" }}>{tipoPrograma(g.programa)} · {g.propostas.length} proposta(s) {exercicio}</div>
         </div>
         <Selo situacao={g.situacao_limite} />
       </div>
