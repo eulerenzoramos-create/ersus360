@@ -1,7 +1,7 @@
 // INVESTSUS 360 — propostas FEDERAIS do Fundo Municipal de Saúde
 // Escopo: Emendas RP 6 (individual), RP 7 (bancada), RP 8 (comissão) e Recursos de
 // Programa (Outros) do Ministério da Saúde. Emendas estaduais estão fora do escopo.
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import TetosMunicipais from "./InvestSUSTetos";
@@ -457,6 +457,8 @@ function TodasPropostasPainel({ onSelect }: { onSelect?: (p: any) => void }) {
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<"valor" | "pago" | "numero">("valor");
   const [verForaDoPainel, setVerForaDoPainel] = useState(false);
+  const [ano, setAno] = useState<string>("todos");
+  const [agruparPorAno, setAgruparPorAno] = useState(true);
   const { data, isLoading } = useQuery({
     queryKey: ["investsus-propostas", "painel"],
     queryFn: () => api.get(`/api/investsus/propostas?tamanho=200`).then(r => r.data),
@@ -465,16 +467,35 @@ function TodasPropostasPainel({ onSelect }: { onSelect?: (p: any) => void }) {
   const qtdFora = (data?.propostas ?? []).filter(foraDoPainel).length;
   const todas: any[] = (data?.propostas ?? []).filter((p: any) => verForaDoPainel || !foraDoPainel(p));
   const modalidadeDaLinha = (p: any) => p.modalidade ?? "a_classificar";
+  // Exercício oficial da proposta (campo do InvestSUS); sem exercício fica em grupo próprio
+  const anoDaLinha = (p: any) => (p.exercicio ? String(p.exercicio) : "sem");
+  const anos = useMemo(() => Array.from(new Set(todas.map(anoDaLinha)))
+    .sort((a, b) => (a === "sem" ? 1 : b === "sem" ? -1 : Number(b) - Number(a))), [todas]);
+  const daModalidade = todas.filter(p => filtro === "todas" || modalidadeDaLinha(p) === filtro);
+  const resumoAno = (a: string) => {
+    const ps = daModalidade.filter(p => anoDaLinha(p) === a);
+    return {
+      qtd: ps.length,
+      indicado: ps.reduce((s, p) => s + (p.valor_indicado ?? 0), 0),
+      pago: ps.reduce((s, p) => s + (p.valor_pago ?? 0), 0),
+    };
+  };
+  const rotuloAno = (a: string) => (a === "sem" ? "Sem exercício" : `Exercício ${a}`);
   const lista = useMemo(() => {
     const t = busca.trim().toLowerCase();
     return todas
       .filter(p => filtro === "todas" || modalidadeDaLinha(p) === filtro)
+      .filter(p => ano === "todos" || anoDaLinha(p) === ano)
       .filter(p => !t || [p.numero_proposta, p.objeto, p.numero_emenda].some(v => String(v ?? "").toLowerCase().includes(t)))
       .sort((a, b) => ordem === "numero" ? String(b.numero_proposta).localeCompare(String(a.numero_proposta))
         : ordem === "pago" ? (b.valor_pago ?? 0) - (a.valor_pago ?? 0)
         : (b.valor_indicado ?? 0) - (a.valor_indicado ?? 0));
-  }, [todas, filtro, busca, ordem]);
-  const contagem = (m: string) => todas.filter(p => modalidadeDaLinha(p) === m).length;
+  }, [todas, filtro, busca, ordem, ano]);
+  const contagem = (m: string) => todas.filter(p => modalidadeDaLinha(p) === m && (ano === "todos" || anoDaLinha(p) === ano)).length;
+  const totalNoAno = todas.filter(p => ano === "todos" || anoDaLinha(p) === ano).length;
+  const gruposAno = agruparPorAno && ano === "todos"
+    ? anos.map(a => ({ ano: a, itens: lista.filter(p => anoDaLinha(p) === a) })).filter(g => g.itens.length)
+    : [{ ano: "", itens: lista }];
   const th: React.CSSProperties = { padding: "7px 8px", textAlign: "left", color: "#4b5563", fontWeight: 700, fontSize: 11, borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" };
   const td: React.CSSProperties = { padding: "7px 8px", verticalAlign: "top" };
 
@@ -500,12 +521,44 @@ function TodasPropostasPainel({ onSelect }: { onSelect?: (p: any) => void }) {
         </div>
       </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, marginBottom: 10 }}>
-        {["todas", ...MODALIDADES_FEDERAIS, "a_classificar"].filter(m => m === "todas" || contagem(m) > 0).map(m => (
+        {["todas", ...MODALIDADES_FEDERAIS, "a_classificar"].filter(m => m === "todas" || m === filtro || contagem(m) > 0).map(m => (
           <button key={m} style={S.tab(filtro === m)} onClick={() => setFiltro(m)}>
-            {m === "todas" ? `Todas (${todas.length})` : `${GRUPO_CONFIG[m]?.label ?? m} (${contagem(m)})`}
+            {m === "todas" ? `Todas (${totalNoAno})` : `${GRUPO_CONFIG[m]?.label ?? m} (${contagem(m)})`}
           </button>
         ))}
       </div>
+      {anos.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, alignItems: "center", marginBottom: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#4b5563" }}>Ano (exercício):</span>
+            {["todos", ...anos].map(a => (
+              <button key={a} style={S.tab(ano === a)} onClick={() => setAno(a)}>
+                {a === "todos" ? `Todos os anos (${daModalidade.length})` : `${a === "sem" ? "Sem exercício" : a} (${resumoAno(a).qtd})`}
+              </button>
+            ))}
+            {ano === "todos" && (
+              <label style={{ fontSize: 12, color: "#4b5563", display: "flex", alignItems: "center", gap: 5, cursor: "pointer", marginLeft: 4 }}>
+                <input type="checkbox" checked={agruparPorAno} onChange={e => setAgruparPorAno(e.target.checked)} />
+                Separar a tabela por ano
+              </label>
+            )}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(230px, 100%), 1fr))", gap: 8 }}>
+            {anos.filter(a => ano === "todos" || a === ano).map(a => {
+              const r = resumoAno(a);
+              const pct = r.indicado > 0 ? (100 * r.pago) / r.indicado : 0;
+              return (
+                <button key={a} onClick={() => setAno(ano === a ? "todos" : a)} title="Clique para filtrar este ano"
+                  style={{ textAlign: "left" as const, border: `1px solid ${ano === a ? "#1e3a5f" : "#e5e7eb"}`, background: ano === a ? "#eff6ff" : "#fff", borderRadius: 8, padding: "8px 10px", cursor: "pointer" }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 800, color: "#1e3a5f" }}>{rotuloAno(a)} · {r.qtd} proposta{r.qtd !== 1 ? "s" : ""}</div>
+                  <div style={{ fontSize: 11.5, color: "#374151", marginTop: 3, whiteSpace: "nowrap" as const }}>Indicado: <b>{fmt(r.indicado)}</b></div>
+                  <div style={{ fontSize: 11.5, color: CORES.pago, whiteSpace: "nowrap" as const }}>Pago: <b>{fmt(r.pago)}</b> ({fmtPct(pct)})</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {isLoading ? <div style={{ color: "#9ca3af", fontSize: 13 }}>Carregando...</div> : !lista.length ? (
         <div style={{ color: "#9ca3af", fontSize: 13 }}>Nenhuma proposta encontrada.</div>
       ) : (
@@ -517,7 +570,20 @@ function TodasPropostasPainel({ onSelect }: { onSelect?: (p: any) => void }) {
               </tr>
             </thead>
             <tbody>
-              {lista.map(p => {
+              {gruposAno.map(g => (
+                <Fragment key={g.ano || "lista"}>
+                  {g.ano && (() => {
+                    const r = { qtd: g.itens.length, indicado: g.itens.reduce((s, p) => s + (p.valor_indicado ?? 0), 0), pago: g.itens.reduce((s, p) => s + (p.valor_pago ?? 0), 0) };
+                    return (
+                      <tr style={{ background: "#eef2f7" }}>
+                        <td colSpan={4} style={{ ...td, fontWeight: 800, color: "#1e3a5f" }}>{rotuloAno(g.ano)} — {r.qtd} proposta{r.qtd !== 1 ? "s" : ""}</td>
+                        <td style={{ ...td, textAlign: "right" as const, fontWeight: 800, whiteSpace: "nowrap" as const }}>{fmt(r.indicado)}</td>
+                        <td style={{ ...td, textAlign: "right" as const, fontWeight: 800, color: CORES.pago, whiteSpace: "nowrap" as const }}>{fmt(r.pago)}</td>
+                        <td colSpan={2} style={{ ...td, fontSize: 11, color: "#4b5563" }}>{fmtPct(r.indicado > 0 ? (100 * r.pago) / r.indicado : 0)} pago</td>
+                      </tr>
+                    );
+                  })()}
+              {g.itens.map(p => {
                 const cfg = GRUPO_CONFIG[modalidadeDaLinha(p)] ?? GRUPO_CONFIG.a_classificar;
                 const pPago = (p.valor_indicado ?? 0) > 0 ? (100 * (p.valor_pago ?? 0)) / p.valor_indicado : 0;
                 return (
@@ -550,6 +616,8 @@ function TodasPropostasPainel({ onSelect }: { onSelect?: (p: any) => void }) {
                   </tr>
                 );
               })}
+                </Fragment>
+              ))}
             </tbody>
           </table>
         </div>
