@@ -6,6 +6,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import TetosMunicipais from "./InvestSUSTetos";
 import { TetoTresValores, valoresDoCard, ResumoGerencialTetos, SeletorExercicio } from "../components/investsus/TetoFinanceiro";
+import { INVESTSUS_API, cabecalhosInvestSUS, capturarLimites } from "../components/investsus/relay";
+import { LimitesInvestSUS } from "../components/investsus/LimitesInvestSUS";
 import { ExecucaoFinanceira, AlertasExecucao, RelatoriosExecucao, RepassesPlanos, baixar } from "./InvestSUSExecucao";
 import RegularizacaoContas from "../components/investsus/RegularizacaoContas";
 import MonitoramentoExecucao from "../components/investsus/MonitoramentoExecucao";
@@ -351,8 +353,16 @@ function DashboardInvestSUS({ municipio_id, onSelect, tipoRecurso, setTipoRecurs
                       {comp === "pap" ? "PAP — Atenção Primária" : "MAC — Média e Alta Complexidade"}
                     </span>
                     <TetoTresValores v={valoresDoCard(c)} compacto />
-                    {c?.situacao === "pendente_validacao" && (
-                      <div style={{ fontSize: 10.5, color: "#b45309" }}>Pendente de validação — ver memória de cálculo em Recursos Disponíveis</div>
+                    {c?.investsus_limites?.validado ? (
+                      <div style={{ fontSize: 10.5, color: "#047857", fontWeight: 600 }}>✓ Conferido com a tela Limites do InvestSUS</div>
+                    ) : c?.investsus_limites?.disponivel ? (
+                      <div style={{ fontSize: 10.5, color: "#b45309" }}>
+                        Diverge da tela Limites do InvestSUS
+                        {!c.investsus_limites.indicado_confere && ` — Valor Indicado lá: ${fmt(c.investsus_limites.valor_indicado)}`}
+                        {!c.investsus_limites.limite_confere && ` — Limite lá: ${fmt(c.investsus_limites.limite)}`}
+                      </div>
+                    ) : c?.situacao === "pendente_validacao" && (
+                      <div style={{ fontSize: 10.5, color: "#b45309" }}>Pendente de validação — clique em Atualizar Limites abaixo para conferir com o InvestSUS</div>
                     )}
                   </div>
                 );
@@ -361,6 +371,12 @@ function DashboardInvestSUS({ municipio_id, onSelect, tipoRecurso, setTipoRecurs
           ))}
         </div>
       </div>
+
+      {tetos && (
+        <div style={S.card}>
+          <LimitesInvestSUS exercicio={tetos.exercicio} limites={tetos.limites_investsus ?? []} cards={tetos.cards} />
+        </div>
+      )}
 
       {tetos?.resumo && <div style={{ marginBottom: 14 }}><ResumoGerencialTetos resumo={tetos.resumo} exercicio={tetos.exercicio} /></div>}
 
@@ -2830,17 +2846,8 @@ function PainelPortalInvestSUS({ municipio_id }: { municipio_id: number }) {
 // O gov.br não permite login automático pelo servidor. Aqui o navegador do usuário,
 // já logado no InvestSUS em outra aba, consulta a API oficial e envia os itens ao
 // ERSUS360 (/sincronizar-relay), que aplica as regras federais do município da sessão.
-const _INVESTSUS_API = "https://investsus-backend-prd.saude.gov.br/api";
-
-function _cabecalhosInvestSUS(contexto: string): Record<string, string> {
-  return {
-    "content-type": "application/json",
-    "accept": "application/json, text/plain, */*",
-    "cz-aphrodite-de-peixes": "DIREME",
-    "cz-milo-de-escopiao": "ENTPUBLICAFNS",
-    "cz-mu-de-aries": contexto,
-  };
-}
+const _INVESTSUS_API = INVESTSUS_API;
+const _cabecalhosInvestSUS = cabecalhosInvestSUS;
 
 // Detalhe de cada proposta (tela "Visualizar"): cadastro, pareceres, repasses, anexos e
 // planos de trabalho. Proposta cancelada/rejeitada não tem cadastro (a API responde erro).
@@ -2944,10 +2951,26 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
         const r = await api.post("/api/investsus/sincronizar-detalhes", { detalhes: detalhes.slice(i, i + 25) });
         for (const [k, v] of Object.entries(r.data || {})) if (typeof v === "number") soma[k] = (soma[k] || 0) + v;
       }
-      setResultado({ ...lista, detalhe: soma, alertas: (lista.alertas || 0) + (soma.alertas || 0) });
+      // Tela Limites (8 tipos de limite) dos exercícios acompanhados — falha aqui não desfaz as propostas
+      let limites: any = null;
+      try {
+        let tipos = 0;
+        for (const ano of _exerciciosInvestSUS()) {
+          const capt = await capturarLimites(fundo.cnpj, fundo.contexto_investsus, ano, setProgresso);
+          if (capt.length) {
+            await api.post("/api/investsus/limites/sincronizar", { exercicio: ano, tipos: capt });
+            tipos = Math.max(tipos, capt.length);
+          }
+        }
+        limites = { tipos };
+      } catch (e: any) {
+        limites = { erro: e?.message === "SEM_SESSAO" ? "sessão do InvestSUS expirou" : (e?.message || "falha") };
+      }
+      setResultado({ ...lista, detalhe: soma, limites, alertas: (lista.alertas || 0) + (soma.alertas || 0) });
       setEstado("");
       qc.invalidateQueries({ queryKey: ["investsus-dashboard", municipio_id] });
       qc.invalidateQueries({ queryKey: ["investsus-propostas"] });
+      qc.invalidateQueries({ queryKey: ["investsus-tetos"] });
     } catch (e: any) {
       if (e?.message === "SEM_SESSAO") { setEstado("sem_sessao"); return; }
       const d = e?.response?.data;
@@ -3014,6 +3037,13 @@ function AtualizarPeloNavegador({ municipio_id }: { municipio_id: number }) {
             {resultado.criadas} novas · {resultado.atualizadas} atualizadas · {resultado.movimentacoes} mudança(s) de situação · {resultado.alertas} alerta(s)
             {resultado.fora_escopo > 0 && <> · {resultado.fora_escopo} fora do escopo federal (ignoradas)</>}
           </div>
+          {resultado.limites && (
+            <div style={{ color: resultado.limites.erro ? "#92400e" : "#374151", marginTop: 6 }}>
+              <strong>Limites:</strong>{" "}
+              {resultado.limites.erro ? `não lidos (${resultado.limites.erro}) — use "Atualizar Limites" no Painel.`
+                : `${resultado.limites.tipos} tipos de limite lidos da tela Limites do InvestSUS.`}
+            </div>
+          )}
           {resultado.conferencia && (
             <div style={{ color: "#374151", marginTop: 6 }}>
               <strong>Conferência:</strong> {resultado.conferencia.investsus_visiveis ?? resultado.conferencia.investsus_total} propostas no InvestSUS

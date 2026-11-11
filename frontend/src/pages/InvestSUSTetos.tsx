@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { IndicadoresPrograma, SincronizacaoProgramas, TabelaPropostasProgramas, AreaSelo, AREA_ROTULO } from "../components/investsus/ProgramasMS";
+import { LimitesInvestSUS } from "../components/investsus/LimitesInvestSUS";
 import { TetoTresValores, valoresDoCard, TabelaPropostasTeto, ResumoGerencialTetos, SeletorExercicio, MOD_ROTULO, ESTAGIO_ROTULO } from "../components/investsus/TetoFinanceiro";
 import {
   RefreshCw, ExternalLink, ChevronDown, ChevronRight, AlertTriangle, CheckCircle2,
@@ -330,6 +331,10 @@ export default function TetosMunicipais({ onSincronizar }: { onSincronizar?: () 
           <div style={{ marginTop: 4 }}>Sincronize os detalhes (ação orçamentária) ou classifique a proposta para que entre no teto correto.</div>
         </div>
       )}
+
+      <div style={card}>
+        <LimitesInvestSUS exercicio={data.exercicio} limites={data.limites_investsus ?? []} cards={cards} />
+      </div>
 
       <ResumoGerencialTetos resumo={data.resumo} exercicio={data.exercicio} />
 
