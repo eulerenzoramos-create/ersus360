@@ -109,6 +109,7 @@ class LinhaProposta:
     ano: int | None
     tipo: str = SEM_DADO               # Programa MS, MAC, PAP ou Outro — só de campo oficial
     tipo_oficial: str | None = None    # texto da coluna "Tipo" do InvestSUS, quando houver
+    tipo_origem: str | None = None     # de onde veio a classificação (componente, tipo, programa oficial)
 
     @property
     def perc(self) -> float | None:
@@ -233,25 +234,101 @@ def tipo_oficial_de(payload) -> str | None:
     return None
 
 
-def tipo_proposta(modalidade: str | None, componente: str | None, tipo_oficial: str | None) -> str:
-    """Programa MS, MAC, PAP ou Outro — lido do componente/tipo oficial da proposta, nunca do objeto.
-    MAC/PAP: componente gravado pela sincronização ou nome oficial do tipo (Custeio da Média e Alta
-    Complexidade / da Atenção Primária). Sem componente, um Recurso de Programa é "Programa MS"."""
+# Filtro "tipo de recurso" do InvestSUS (painel, lista e relatórios). Só usa a modalidade RP
+# gravada pela sincronização e o componente/tipo oficial (MAC/PAP) — nunca o texto do objeto.
+TIPOS_RECURSO: dict[str, str] = {
+    "pap": "PAP",
+    "mac": "MAC",
+    "programa": "Programa",
+    "coletivas": "Emendas coletivas (RP 7 + RP 8)",
+    "rp6": "Emendas individuais (RP 6)",
+    "rp7": "Emenda de bancada (RP 7)",
+    "rp8": "Emenda de comissão (RP 8)",
+    "programa_outros": "Recursos de programa / outros",
+}
+_EMENDAS_RP = {"rp6", "rp7", "rp8"}
+
+
+def tipo_recurso_valido(chave) -> str | None:
+    """None quando não há filtro; ValueError quando a chave não existe."""
+    if not isinstance(chave, str) or not chave:
+        return None
+    if chave not in TIPOS_RECURSO:
+        raise ValueError(f"Tipo de recurso inválido: {chave}")
+    return chave
+
+
+def casa_tipo_recurso(chave: str | None, modalidade: str | None, componente: str | None, payload=None,
+                      programas=()) -> bool:
+    """A proposta entra no filtro? PAP/MAC pelo componente ou tipo oficial; Programa = modalidade
+    "Recurso de Programa"; coletivas = RP 7 + RP 8; "programa / outros" = tudo que não é emenda RP."""
+    if not chave:
+        return True
+    if chave in ("pap", "mac"):
+        return tipo_proposta(modalidade, componente, tipo_oficial_de(payload), programas) == chave.upper()
+    if chave == "programa":
+        return modalidade == "programa"
+    if chave == "coletivas":
+        return modalidade in ("rp7", "rp8")
+    if chave in _EMENDAS_RP:
+        return modalidade == chave
+    if chave == "programa_outros":
+        return modalidade not in _EMENDAS_RP
+    return False
+
+
+# Nome oficial do programa publicado pelo InvestSUS (tipoProposta) → componente. Só correspondência
+# EXATA ao nome inteiro (sem acento/caixa/espaços extras); qualquer outro texto não classifica.
+PROGRAMAS_OFICIAIS = {
+    "CUSTEIO DA ATENCAO PRIMARIA A SAUDE": "PAP",
+    "CUSTEIO DA MEDIA E ALTA COMPLEXIDADE": "MAC",
+    "CUSTEIO DA MEDIA E ALTA COMPLEXIDADE A SAUDE": "MAC",
+}
+ORIGEM_COMPONENTE = "pelo componente oficial"
+ORIGEM_TIPO = "pelo tipo oficial do InvestSUS"
+ORIGEM_PROGRAMA = "pelo programa oficial"
+ORIGEM_MODALIDADE = "pela modalidade oficial"
+
+
+def _nome_programa(t) -> str:
+    return " ".join(_sem_acento(t).replace(".", " ").split())
+
+
+def classificar_tipo(modalidade: str | None, componente: str | None, tipo_oficial: str | None,
+                     programas=()) -> tuple[str, str | None]:
+    """(tipo, origem). Tipo = Programa MS, MAC, PAP, Outro ou "Dados não disponíveis".
+    MAC/PAP: componente gravado → tipo oficial do InvestSUS → nome oficial do programa (exato).
+    Sem isso, Recurso de Programa = "Programa MS" e emenda RP = "Outro". Nunca deduz do objeto."""
     comp = _sem_acento(componente).strip()
     if comp in ("MAC", "PAP"):
-        return comp
+        return comp, ORIGEM_COMPONENTE
     if comp == "APS":
-        return "PAP"
+        return "PAP", ORIGEM_COMPONENTE
     t = _sem_acento(tipo_oficial)
     if "MEDIA E ALTA COMPLEXIDADE" in t or " MAC" in f" {t}":
-        return "MAC"
+        return "MAC", ORIGEM_TIPO
     if "ATENCAO PRIMARIA" in t or " PAP" in f" {t}":
-        return "PAP"
+        return "PAP", ORIGEM_TIPO
+    for nome in programas or ():
+        achado = PROGRAMAS_OFICIAIS.get(_nome_programa(nome))
+        if achado:
+            return achado, ORIGEM_PROGRAMA
     if modalidade == "programa":
-        return "Programa MS"
+        return "Programa MS", ORIGEM_MODALIDADE
     if modalidade in ("rp6", "rp7", "rp8", "outros_federais"):
-        return "Outro"
-    return SEM_DADO
+        return "Outro", ORIGEM_MODALIDADE
+    return SEM_DADO, None
+
+
+def tipo_proposta(modalidade: str | None, componente: str | None, tipo_oficial: str | None, programas=()) -> str:
+    return classificar_tipo(modalidade, componente, tipo_oficial, programas)[0]
+
+
+def programas_oficiais_de(p) -> list[str]:
+    """Campos em que a sincronização grava o nome oficial do programa (tipoProposta do InvestSUS)."""
+    prog = getattr(p, "programa", None)
+    return [x for x in (getattr(prog, "nome", None) if prog else None, getattr(p, "acao_orcamentaria", None),
+                        getattr(p, "objeto", None)) if x]
 
 
 def rotulo_situacao(sit: str | None) -> str:
@@ -453,7 +530,9 @@ def pdf(doc: Documento, ident: Identificacao) -> bytes:
                     Paragraph(f'<font name="Courier-Bold" size="7">{e(ln.numero or SEM_DADO)}</font>', cel),
                     Paragraph(e(ln.autoria), cel), Paragraph(e(ln.partido_uf), cel),
                     Paragraph(e(ln.objeto), cel),
-                    Paragraph(f"<b>{e(ln.tipo)}</b>" if ln.tipo != SEM_DADO else e(ln.tipo), cel),
+                    Paragraph((f"<b>{e(ln.tipo)}</b>" if ln.tipo != SEM_DADO else e(ln.tipo))
+                              + (f'<br/><font size="6" color="#6b7280">{e(ln.tipo_origem)}</font>'
+                                 if ln.tipo_origem else ""), cel),
                     Paragraph(sit, cel),
                     Paragraph(f"<b>{e(brl(ln.valor_global))}</b>", cel_num),
                     Paragraph(rep, cel_num),
@@ -576,7 +655,7 @@ def xlsx(doc: Documento, ident: Identificacao) -> bytes:
                 c.border = borda
             for ln in g.linhas:
                 sit = ln.situacao + (f" — Oficial: {ln.situacao_oficial}" if ln.situacao_oficial else "")
-                tipo = ln.tipo + (f" ({ln.tipo_oficial})" if ln.tipo_oficial else "")
+                tipo = ln.tipo + (f" — {ln.tipo_origem}" if ln.tipo_origem else "")
                 r = linha([ln.numero or SEM_DADO, ln.autoria, ln.partido_uf, ln.objeto, tipo, sit,
                            ln.valor_global if ln.valor_global is not None else SEM_DADO,
                            ln.repassado if ln.repassado is not None else SEM_DADO,

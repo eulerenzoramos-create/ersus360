@@ -957,7 +957,7 @@ const RELATORIOS: [string, string, string][] = [
   ["pendencias", "6 — Pendências", "Sem lançamento, inconsistências, documentos e prazos críticos."],
 ];
 
-export function RelatoriosExecucao() {
+export function RelatoriosExecucao({ tipoRecurso = "" }: { tipoRecurso?: string } = {}) {
   const { data } = useQuery({
     queryKey: ["investsus-exec-painel", FILTROS_VAZIOS],
     queryFn: () => api.get(`/api/investsus/execucao/painel`).then(r => r.data),
@@ -969,7 +969,7 @@ export function RelatoriosExecucao() {
     setErro(null);
     if (tipo === "individual" && !f.proposta_id) { setErro("Escolha a proposta para o relatório individual."); return; }
     setBaixando(`${tipo}-${formato}`);
-    try { await baixar(`/api/investsus/execucao/relatorios/${tipo}?${qs({ ...f, formato } as any)}`, `investsus_execucao_${tipo}.${formato}`); }
+    try { await baixar(`/api/investsus/execucao/relatorios/${tipo}?${qs({ ...f, formato, tipo_recurso: tipoRecurso } as any)}`, `investsus_execucao_${tipo}.${formato}`); }
     catch (e) { setErro(erroMsg(e)); }
     finally { setBaixando(null); }
   };

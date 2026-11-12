@@ -143,16 +143,57 @@ function KPICard({ label, valor, cor, sub }: { label: string; valor: string; cor
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
-function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; onSelect?: (p: any) => void }) {
+// Filtro "tipo de recurso": mesma regra do backend (modalidade RP e componente/tipo oficial
+// gravados pela sincronização; nunca o texto do objeto). Vale para cards, lista e relatórios.
+export const TIPOS_RECURSO: [string, string][] = [
+  ["pap", "PAP"], ["mac", "MAC"], ["programa", "Programa"],
+  ["coletivas", "Emendas coletivas (RP 7 + RP 8)"], ["rp6", "Emendas individuais (RP 6)"],
+  ["rp7", "Emenda de bancada (RP 7)"], ["rp8", "Emenda de comissão (RP 8)"],
+  ["programa_outros", "Recursos de programa / outros"],
+];
+const DICA_TIPO_RECURSO = "PAP/MAC: componente ou tipo oficial gravado do InvestSUS/FNS, ou nome oficial exato do programa "
+  + "(Custeio da Atenção Primária à Saúde / Custeio da Média e Alta Complexidade). Programa: Recurso de Programa do MS. "
+  + "Recursos de programa / outros: tudo que não é emenda RP 6/7/8.";
+
+function SeletorTipoRecurso({ valor, onChange, largura = 250 }: { valor: string; onChange: (v: string) => void; largura?: number }) {
+  return (
+    <label style={{ fontSize: 12, color: "#374151", display: "flex", alignItems: "center", gap: 6 }} title={DICA_TIPO_RECURSO}>
+      Tipo de recurso
+      <select style={{ ...S.input, width: largura }} value={valor} onChange={e => onChange(e.target.value)} aria-label="Filtrar por tipo de recurso">
+        <option value="">Todos</option>
+        {TIPOS_RECURSO.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function BarraTipoRecurso({ valor, onChange }: { valor: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ ...S.card, display: "flex", flexWrap: "wrap" as const, alignItems: "center", gap: 10, padding: "10px 16px" }}>
+      <SeletorTipoRecurso valor={valor} onChange={onChange} />
+      {valor && (
+        <button style={{ ...S.btn(), padding: "5px 10px", fontSize: 11 }} onClick={() => onChange("")}>
+          <X size={12} /> Limpar
+        </button>
+      )}
+      <span style={{ fontSize: 11.5, color: "#6b7280" }}>O mesmo filtro vale para o painel, a lista de propostas e os relatórios.</span>
+    </div>
+  );
+}
+
+function DashboardInvestSUS({ municipio_id, onSelect, tipoRecurso, setTipoRecurso }: {
+  municipio_id: number; onSelect?: (p: any) => void; tipoRecurso: string; setTipoRecurso: (v: string) => void;
+}) {
   const qc = useQueryClient();
   const [ano, setAno] = useState("");
   const [mes, setMes] = useState("");
   const { data, isLoading, error } = useQuery({
-    queryKey: ["investsus-dashboard", municipio_id, ano, mes],
+    queryKey: ["investsus-dashboard", municipio_id, ano, mes, tipoRecurso],
     queryFn: () => {
       const q = new URLSearchParams({ municipio_id: String(municipio_id) });
       if (ano) q.set("exercicio", ano);
       if (ano && mes) q.set("mes", mes);
+      if (tipoRecurso) q.set("tipo_recurso", tipoRecurso);
       return api.get(`/api/investsus/dashboard?${q}`).then(r => r.data);
     },
     placeholderData: (anterior: any) => anterior,
@@ -235,8 +276,9 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
             {MESES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
           </select>
         </label>
-        {(ano || mes) && (
-          <button style={{ ...S.btn(), padding: "5px 10px", fontSize: 11 }} onClick={() => { setAno(""); setMes(""); }}>
+        <SeletorTipoRecurso valor={tipoRecurso} onChange={setTipoRecurso} largura={240} />
+        {(ano || mes || tipoRecurso) && (
+          <button style={{ ...S.btn(), padding: "5px 10px", fontSize: 11 }} onClick={() => { setAno(""); setMes(""); setTipoRecurso(""); }}>
             <X size={12} /> Limpar
           </button>
         )}
@@ -446,13 +488,13 @@ function DashboardInvestSUS({ municipio_id, onSelect }: { municipio_id: number; 
         );
       })()}
 
-      <TodasPropostasPainel onSelect={onSelect} />
+      <TodasPropostasPainel onSelect={onSelect} tipoRecurso={tipoRecurso} />
     </div>
   );
 }
 
 // Todas as propostas do município numa tabela única (clique abre o detalhe)
-function TodasPropostasPainel({ onSelect }: { onSelect?: (p: any) => void }) {
+function TodasPropostasPainel({ onSelect, tipoRecurso }: { onSelect?: (p: any) => void; tipoRecurso: string }) {
   const [filtro, setFiltro] = useState<string>("todas");
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<"valor" | "pago" | "numero">("valor");
@@ -460,8 +502,9 @@ function TodasPropostasPainel({ onSelect }: { onSelect?: (p: any) => void }) {
   const [ano, setAno] = useState<string>("todos");
   const [agruparPorAno, setAgruparPorAno] = useState(true);
   const { data, isLoading } = useQuery({
-    queryKey: ["investsus-propostas", "painel"],
-    queryFn: () => api.get(`/api/investsus/propostas?tamanho=200`).then(r => r.data),
+    queryKey: ["investsus-propostas", "painel", tipoRecurso],
+    queryFn: () => api.get(`/api/investsus/propostas?tamanho=200${tipoRecurso ? `&tipo_recurso=${tipoRecurso}` : ""}`).then(r => r.data),
+    placeholderData: (anterior: any) => anterior,
   });
   const foraDoPainel = (p: any) => p.fase === "cancelada" || p.fase === "rejeitada";
   const qtdFora = (data?.propostas ?? []).filter(foraDoPainel).length;
@@ -757,7 +800,9 @@ function blocoDaProposta(p: any): string {
 }
 
 // ── Propostas detalhadas (visão InvestSUS real) ────────────────────────────────
-function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number; onSelect: (p: any) => void }) {
+function PropostasDetalhadas({ municipio_id, onSelect, tipoRecurso, setTipoRecurso }: {
+  municipio_id: number; onSelect: (p: any) => void; tipoRecurso: string; setTipoRecurso: (v: string) => void;
+}) {
   const [busca, setBusca] = useState("");
   const [faseFiltro, setFaseFiltro] = useState("");
   const [grupoAberto, setGrupoAberto] = useState<Record<string, boolean>>({
@@ -766,8 +811,8 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
   const [blocoAberto, setBlocoAberto] = useState<Record<string, boolean>>({});
 
   const { data, isLoading } = useQuery({
-    queryKey: ["investsus-propostas", municipio_id, "todas"],
-    queryFn: () => api.get(`/api/investsus/propostas?municipio_id=${municipio_id}&tamanho=200`).then(r => r.data),
+    queryKey: ["investsus-propostas", municipio_id, "todas", tipoRecurso],
+    queryFn: () => api.get(`/api/investsus/propostas?municipio_id=${municipio_id}&tamanho=200${tipoRecurso ? `&tipo_recurso=${tipoRecurso}` : ""}`).then(r => r.data),
     placeholderData: { total: 0, propostas: [] },
   });
 
@@ -832,12 +877,23 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
           <option value="">Todas as fases</option>
           {Object.entries(FASES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
+        <select style={{ ...S.input, width: 270 }} value={tipoRecurso} onChange={e => setTipoRecurso(e.target.value)}
+          aria-label="Filtrar por tipo de recurso" title={DICA_TIPO_RECURSO}>
+          <option value="">Todos os tipos (emendas e programas)</option>
+          {TIPOS_RECURSO.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+        {(busca || faseFiltro || tipoRecurso) && (
+          <button style={{ ...S.btn(), padding: "5px 10px", fontSize: 11 }}
+            onClick={() => { setBusca(""); setFaseFiltro(""); setTipoRecurso(""); }}>
+            <X size={12} /> Limpar
+          </button>
+        )}
       </div>
 
       {/* Totalizador geral */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10, marginBottom: 18 }}>
         {Object.entries(GRUPO_CONFIG)
-          .filter(([g]) => MODALIDADES_FEDERAIS.includes(g) || totalGrupo(g) > 0)
+          .filter(([g]) => tipoRecurso ? totalGrupo(g) > 0 : (MODALIDADES_FEDERAIS.includes(g) || totalGrupo(g) > 0))
           .map(([g, cfg]) => (
           <div key={g} style={{ background: cfg.bg, borderRadius: 8, padding: "12px 14px", borderLeft: `3px solid ${cfg.cor}` }}>
             <div style={{ fontSize: 10, color: cfg.cor, fontWeight: 700, marginBottom: 4 }}>{cfg.icone} {cfg.label.toUpperCase()}</div>
@@ -852,7 +908,7 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
       {Object.entries(GRUPO_CONFIG).map(([grupo, gcfg]) => {
         const blocos = agrupado[grupo];
         const total = totalGrupo(grupo);
-        if (total === 0 && (!(busca || faseFiltro) || !MODALIDADES_FEDERAIS.includes(grupo))) return null;
+        if (total === 0 && (tipoRecurso || !(busca || faseFiltro) || !MODALIDADES_FEDERAIS.includes(grupo))) return null;
         const aberto = grupoAberto[grupo] !== false;
 
         return (
@@ -1024,7 +1080,12 @@ function PropostasDetalhadas({ municipio_id, onSelect }: { municipio_id: number;
         );
       })}
 
-      {todas.length === 0 && (
+      {todas.length === 0 && tipoRecurso && (
+        <div style={{ ...S.card, textAlign: "center", color: "#4b5563", fontSize: 13 }}>
+          Nenhuma proposta do tipo <strong>{TIPOS_RECURSO.find(([k]) => k === tipoRecurso)?.[1]}</strong> nos exercícios acompanhados.
+        </div>
+      )}
+      {todas.length === 0 && !tipoRecurso && (
         <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>
           <Landmark size={36} style={{ marginBottom: 12 }} />
           <div style={{ fontWeight: 600, marginBottom: 4 }}>Nenhuma proposta no banco</div>
@@ -2339,7 +2400,7 @@ function ImportacaoAssistida({ municipio_id }: { municipio_id: number }) {
 // O que não tem fonte vem do backend como "Dados não disponíveis" (nunca zero inventado).
 const SEM_DADO = "Dados não disponíveis";
 
-function RelatorioAcompanhamento({ municipio_id }: { municipio_id: number }) {
+function RelatorioAcompanhamento({ municipio_id, tipoRecurso }: { municipio_id: number; tipoRecurso: string }) {
   const [exercicio, setExercicio] = useState<string>("");
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("");
   const [baixando, setBaixando] = useState<string>("");
@@ -2349,11 +2410,12 @@ function RelatorioAcompanhamento({ municipio_id }: { municipio_id: number }) {
     const params = new URLSearchParams();
     if (exercicio) params.set("exercicio", exercicio);
     if (situacaoFiltro) params.set("situacao", situacaoFiltro);
+    if (tipoRecurso) params.set("tipo_recurso", tipoRecurso);
     return params;
   };
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["investsus-relatorio", municipio_id, exercicio, situacaoFiltro],
+    queryKey: ["investsus-relatorio", municipio_id, exercicio, situacaoFiltro, tipoRecurso],
     queryFn: () => api.get(`/api/investsus/relatorio?${filtrosQS()}`).then(r => r.data),
     enabled: false, // só busca ao clicar
   });
@@ -2372,7 +2434,7 @@ function RelatorioAcompanhamento({ municipio_id }: { municipio_id: number }) {
   const exportarCSV = () => {
     if (!data?.linhas?.length) return;
     const cols = [
-      "numero_proposta", "autoria", "partido_uf", "objeto_programa", "tipo", "tipo_oficial", "situacao_rotulo", "situacao_original",
+      "numero_proposta", "autoria", "partido_uf", "objeto_programa", "tipo", "tipo_origem", "tipo_oficial", "situacao_rotulo", "situacao_original",
       "valor_global", "valor_repassado", "perc_repassado", "exercicio",
       "modalidade", "fase", "numero_emenda", "esfera", "programa", "componente", "tipo_financiamento",
       "entidade", "cnpj", "valor_indicado", "valor_aprovado", "valor_empenhado", "valor_pago", "valor_executado",
@@ -2518,6 +2580,7 @@ function RelatorioAcompanhamento({ municipio_id }: { municipio_id: number }) {
                             {r.tipo === SEM_DADO
                               ? <span style={{ color: "#6b7280" }}>{r.tipo}</span>
                               : <span style={{ background: "#eef2ff", color: "#3730a3", borderRadius: 4, padding: "2px 7px", fontWeight: 700, fontSize: 11 }}>{r.tipo}</span>}
+                            {r.tipo_origem && <div style={{ fontSize: 10, color: "#4b5563", marginTop: 2 }}>{r.tipo_origem}</div>}
                           </td>
                           <td style={TD}>
                             <SituacaoBadge situacao={r.situacao_normalizada ?? ""} />
@@ -3930,6 +3993,7 @@ export default function InvestSUS() {
   const [snapMsg, setSnapMsg] = useState<string | null>(null);
   const [mostrarPortalMS, setMostrarPortalMS] = useState(false);
   const [sincAberto, setSincAberto] = useState(false);
+  const [tipoRecurso, setTipoRecurso] = useState("");
   const municipio_id = 1; // TODO: pegar do contexto de autenticação
   const qc = useQueryClient();
 
@@ -4014,7 +4078,8 @@ export default function InvestSUS() {
         />
       ) : aba === "painel" ? (
         <div>
-          <DashboardInvestSUS municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
+          <DashboardInvestSUS municipio_id={municipio_id} onSelect={setPropostaSelecionada}
+            tipoRecurso={tipoRecurso} setTipoRecurso={setTipoRecurso} />
           <div style={{ marginTop: 14 }}>
             <button
               style={{ ...S.btn(), display: "flex", alignItems: "center", gap: 6, marginBottom: mostrarPortalMS ? 12 : 0 }}
@@ -4031,7 +4096,8 @@ export default function InvestSUS() {
       ) : aba === "recursos" ? (
         <RecursosDisponiveis municipio_id={municipio_id} onSincronizar={() => setSincAberto(true)} />
       ) : aba === "propostas" ? (
-        <PropostasDetalhadas municipio_id={municipio_id} onSelect={setPropostaSelecionada} />
+        <PropostasDetalhadas municipio_id={municipio_id} onSelect={setPropostaSelecionada}
+          tipoRecurso={tipoRecurso} setTipoRecurso={setTipoRecurso} />
       ) : aba === "execucao" ? (
         <ExecucaoFinanceira propostaId={execPropostaId} setPropostaId={setExecPropostaId} onAbrirProposta={setPropostaSelecionada} />
       ) : aba === "alertas" ? (
@@ -4043,8 +4109,9 @@ export default function InvestSUS() {
         </div>
       ) : (
         <div>
-          <RelatoriosExecucao />
-          <RelatorioAcompanhamento municipio_id={municipio_id} />
+          <BarraTipoRecurso valor={tipoRecurso} onChange={setTipoRecurso} />
+          <RelatoriosExecucao tipoRecurso={tipoRecurso} />
+          <RelatorioAcompanhamento municipio_id={municipio_id} tipoRecurso={tipoRecurso} />
         </div>
       )}
 

@@ -208,6 +208,24 @@ def _modalidade_de(p: PropostaInvestSUS) -> str:
     return fed.modalidade_de_tipo_emenda(tipo) or fed.MODALIDADE_A_CLASSIFICAR
 
 
+def _tipo_recurso(chave) -> str | None:
+    from services.relatorio_modelo_investsus import tipo_recurso_valido
+    try:
+        return tipo_recurso_valido(chave)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+
+def _do_tipo(props, chave: str | None):
+    """Filtro por tipo de recurso (modalidade RP e componente/tipo oficial gravados)."""
+    if not chave:
+        return list(props)
+    from services.relatorio_modelo_investsus import casa_tipo_recurso
+    from services.relatorio_modelo_investsus import programas_oficiais_de
+    return [p for p in props if casa_tipo_recurso(chave, _modalidade_de(p), p.componente, p.payload_original,
+                                                  programas_oficiais_de(p))]
+
+
 def _filtro_escopo():
     """Somente propostas de esfera habilitada (federal). Linhas antigas sem esfera = federal."""
     return or_(PropostaInvestSUS.esfera.is_(None), PropostaInvestSUS.esfera.in_(sorted(fed.ESFERAS_HABILITADAS)))
@@ -365,11 +383,13 @@ async def dashboard(
     exercicio: int = Query(None, description="Ano do exercício; com `mes`, ano do repasse"),
     modalidade: str = Query(None),
     mes: int = Query(None, ge=1, le=12, description="Mês do repasse do FNS (exige `exercicio`)"),
+    tipo_recurso: str = Query(None, description="pap | mac | programa | coletivas | rp6 | rp7 | rp8 | programa_outros"),
 ):
     """Com `mes`, o filtro é o mês do pagamento: entram as propostas com repasse do FNS
     naquele mês/ano (qualquer exercício) e "pago" é só o valor repassado no mês.
     Indicado, aprovado e executado continuam sendo os totais dessas propostas."""
     mid = _municipio_id(user)
+    tipo_recurso = _tipo_recurso(tipo_recurso)
     if mes and not exercicio:
         raise HTTPException(422, "Escolha o ano para filtrar por mês.")
     stmt = (select(PropostaInvestSUS).options(selectinload(PropostaInvestSUS.programa))
@@ -398,7 +418,7 @@ async def dashboard(
     stmt = _filtrar_modalidade_fase(stmt, modalidade, None)
 
     result = await db.execute(stmt)
-    todas = result.scalars().all()
+    todas = _do_tipo(result.scalars().all(), tipo_recurso)
     # Canceladas e rejeitadas não entram em nenhum total do painel; só são contadas à parte.
     props, fora, nao_encontradas = [], [], []
     for p in todas:
@@ -565,8 +585,10 @@ async def listar_propostas(
                                         "aprovada, rejeitada, empenhada, paga, em_execucao, concluida…"),
     pagina: int = Query(1, ge=1),
     tamanho: int = Query(50, ge=1, le=200),
+    tipo_recurso: str = Query(None, description="pap | mac | programa | coletivas | rp6 | rp7 | rp8 | programa_outros"),
 ):
     mid = _municipio_id(user)
+    tipo_recurso = _tipo_recurso(tipo_recurso)
     stmt = (
         select(PropostaInvestSUS)
         .options(
@@ -592,14 +614,17 @@ async def listar_propostas(
             )
         )
 
-    # total
-    count_stmt = select(func.count()).select_from(stmt.subquery())
-    total = (await db.execute(count_stmt)).scalar() or 0
-
     stmt = stmt.order_by(PropostaInvestSUS.exercicio.desc(), PropostaInvestSUS.id.desc())
-    stmt = stmt.offset((pagina - 1) * tamanho).limit(tamanho)
-    result = await db.execute(stmt)
-    props = result.scalars().all()
+    if tipo_recurso:
+        # MAC/PAP depende do tipo oficial gravado no payload: filtra em Python e pagina depois
+        todas = _do_tipo((await db.execute(stmt)).scalars().all(), tipo_recurso)
+        total = len(todas)
+        props = todas[(pagina - 1) * tamanho: pagina * tamanho]
+    else:
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total = (await db.execute(count_stmt)).scalar() or 0
+        stmt = stmt.offset((pagina - 1) * tamanho).limit(tamanho)
+        props = (await db.execute(stmt)).scalars().all()
 
     return {
         "total": total,
@@ -1429,11 +1454,13 @@ async def relatorio_acompanhamento(
     situacao: str = Query(None),
     modalidade: str = Query(None),
     fase: str = Query(None),
+    tipo_recurso: str = Query(None),
 ):
     """Dados do relatório de acompanhamento (escopo federal), já nas colunas do modelo
     "RELATÓRIO — INVESTSUS": Nº Proposta, Parlamentar/Autoria, Partido/UF, Objeto/Programa,
     Situação (+ oficial), Valor Global, Repassado e Ano, agrupados por modalidade."""
-    return await _dados_relatorio(db, _municipio_id(user), exercicio, situacao, modalidade, fase)
+    return await _dados_relatorio(db, _municipio_id(user), exercicio, situacao, modalidade, fase,
+                                  _tipo_recurso(tipo_recurso))
 
 
 @router.get("/relatorio/exportar")
@@ -1445,6 +1472,7 @@ async def exportar_relatorio_acompanhamento(
     situacao: str = Query(None),
     modalidade: str = Query(None),
     fase: str = Query(None),
+    tipo_recurso: str = Query(None),
 ):
     """PDF/Excel do relatório de acompanhamento no modelo institucional do ERSUS 360.
     Sempre do município da sessão (nunca vindo do cliente)."""
@@ -1454,8 +1482,11 @@ async def exportar_relatorio_acompanhamento(
     if formato not in ("pdf", "xlsx"):
         raise HTTPException(422, "Formato deve ser pdf ou xlsx.")
     mid = _municipio_id(user)
-    dados = await _dados_relatorio(db, mid, exercicio, situacao, modalidade, fase)
+    tipo_recurso = _tipo_recurso(tipo_recurso)
+    dados = await _dados_relatorio(db, mid, exercicio, situacao, modalidade, fase, tipo_recurso)
     filtros = []
+    if tipo_recurso:
+        filtros.append(f"Tipo de recurso: {modelo.TIPOS_RECURSO[tipo_recurso]}")
     if exercicio:
         filtros.append(f"Exercício {exercicio}")
     if situacao:
@@ -1490,10 +1521,10 @@ def _linha_modelo(ln: dict):
                          objeto=ln["objeto_programa"], situacao=ln["situacao_rotulo"],
                          situacao_oficial=ln["situacao_original"] or None, valor_global=ln["valor_global"],
                          repassado=ln["valor_repassado"], ano=ln["exercicio"], tipo=ln["tipo"],
-                         tipo_oficial=ln["tipo_oficial"])
+                         tipo_oficial=ln["tipo_oficial"], tipo_origem=ln["tipo_origem"])
 
 
-async def _dados_relatorio(db, mid: int, exercicio, situacao, modalidade, fase) -> dict:
+async def _dados_relatorio(db, mid: int, exercicio, situacao, modalidade, fase, tipo_recurso=None) -> dict:
     from services import investsus_execucao as ex
     from services import relatorio_modelo_investsus as modelo
 
@@ -1516,7 +1547,7 @@ async def _dados_relatorio(db, mid: int, exercicio, situacao, modalidade, fase) 
     stmt = _filtrar_modalidade_fase(stmt, modalidade, fase)
 
     result = await db.execute(stmt)
-    props = result.scalars().all()
+    props = _do_tipo(result.scalars().all(), tipo_recurso)
 
     sd = modelo.SEM_DADO
     linhas = []
@@ -1529,8 +1560,10 @@ async def _dados_relatorio(db, mid: int, exercicio, situacao, modalidade, fase) 
         vglobal = modelo.valor_global(p.valor_aprovado, p.valor_proposta, p.valor_indicado)
         programa = (p.programa.nome if p.programa else None) or p.acao_orcamentaria or p.componente
         tipo_of = modelo.tipo_oficial_de(p.payload_original)
+        tipo, tipo_origem = modelo.classificar_tipo(mod, p.componente, tipo_of, modelo.programas_oficiais_de(p))
         linhas.append({
-            "tipo": modelo.tipo_proposta(mod, p.componente, tipo_of),
+            "tipo": tipo,
+            "tipo_origem": tipo_origem,
             "tipo_oficial": tipo_of,
             "id": p.id,
             "numero_proposta": p.numero_proposta,
