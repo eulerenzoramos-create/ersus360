@@ -67,6 +67,8 @@ def _filtros(painel: dict) -> str:
         partes.append(painel["opcoes"]["origens"].get(f["origem"], f["origem"]))
     if f.get("destinacao"):
         partes.append(painel["opcoes"]["destinacoes"].get(f["destinacao"], f["destinacao"]))
+    if f.get("tipo_recurso"):
+        partes.append("Tipo de recurso: " + modelo.TIPOS_RECURSO.get(f["tipo_recurso"], f["tipo_recurso"]))
     return " · ".join(partes)
 
 
@@ -80,6 +82,8 @@ def linha_modelo(p: dict) -> LinhaProposta:
     """Linha do painel → linha da tabela do modelo (Nº, autoria, partido/UF, objeto, situação...)."""
     mod = p.get("origem") or "a_classificar"
     tem_parl = bool(p.get("parlamentar"))
+    tipo, origem = modelo.classificar_tipo(p.get("modalidade_oficial") or mod, p.get("componente"),
+                                           p.get("tipo_oficial"), p.get("programas_oficiais") or ())
     return LinhaProposta(
         numero=p.get("numero_proposta"),
         autoria=modelo.autoria(mod, p.get("parlamentar")),
@@ -90,8 +94,9 @@ def linha_modelo(p: dict) -> LinhaProposta:
         valor_global=modelo.valor_global(p.get("aprovado"), p.get("valor_proposta"), p.get("valor_indicado")),
         repassado=p.get("recebido"),
         ano=p.get("exercicio"),
-        tipo=modelo.tipo_proposta(p.get("modalidade_oficial") or mod, p.get("componente"), p.get("tipo_oficial")),
+        tipo=tipo,
         tipo_oficial=p.get("tipo_oficial"),
+        tipo_origem=origem,
     )
 
 

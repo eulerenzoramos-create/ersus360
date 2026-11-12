@@ -288,6 +288,7 @@ def _linha(p: PropostaInvestSUS, c: dict) -> dict:
         "modalidade_oficial": p.modalidade or fed.modalidade_de_tipo_emenda(
             p.tipo_emenda.value if p.tipo_emenda else None),
         "tipo_oficial": _tipo_oficial(p.payload_original),
+        "programas_oficiais": _programas(p),
         "valor_indicado": p.valor_indicado, "valor_proposta": p.valor_proposta,
         "situacao_proposta": sit, "situacao_proposta_texto": p.situacao_original,
         "fase": fase, "fase_rotulo": fed.FASES.get(fase or "", "Não identificada"),
@@ -299,6 +300,11 @@ def _linha(p: PropostaInvestSUS, c: dict) -> dict:
         "alertas": len(c["alertas"]),
         "alertas_niveis": sorted({a["nivel"] for a in c["alertas"]}),
     }
+
+
+def _programas(p):
+    from services.relatorio_modelo_investsus import programas_oficiais_de
+    return programas_oficiais_de(p)
 
 
 def _tipo_oficial(payload):
@@ -325,12 +331,29 @@ def _filtrar(linhas: list[dict], origem, destinacao, fase, situacao_plano, busca
     return out
 
 
-async def _painel_dados(db, u: UserOut, exercicio, origem, destinacao, fase, situacao_plano, busca, proposta_id=None):
+def _tipo_recurso(chave) -> str | None:
+    from services.relatorio_modelo_investsus import tipo_recurso_valido
+    try:
+        return tipo_recurso_valido(chave)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+
+def _casa_tipo(p: PropostaInvestSUS, chave: str | None) -> bool:
+    from services.relatorio_modelo_investsus import casa_tipo_recurso
+    mod = p.modalidade or fed.modalidade_de_tipo_emenda(p.tipo_emenda.value if p.tipo_emenda else None)
+    from services.relatorio_modelo_investsus import programas_oficiais_de
+    return casa_tipo_recurso(chave, mod, p.componente, p.payload_original, programas_oficiais_de(p))
+
+
+async def _painel_dados(db, u: UserOut, exercicio, origem, destinacao, fase, situacao_plano, busca, proposta_id=None,
+                        tipo_recurso=None):
     mid = u.municipio_id
     dados = await _carregar(db, mid)
     hoje = date.today()
+    tipo_recurso = _tipo_recurso(tipo_recurso)
     props = [p for p in dados["props"] if (not exercicio or p.exercicio == exercicio)
-             and (not proposta_id or p.id == proposta_id)]
+             and (not proposta_id or p.id == proposta_id) and _casa_tipo(p, tipo_recurso)]
     calc = {p.id: _calcular(dados, p, hoje) for p in props}
     linhas = _filtrar([_linha(p, calc[p.id]) for p in props], origem, destinacao, fase, situacao_plano, busca)
     ids = {ln["proposta_id"] for ln in linhas}
@@ -345,9 +368,10 @@ async def painel(db: DbDep, u: SessaoMunicipal,
                  exercicio: int | None = Query(None), origem: str | None = Query(None),
                  destinacao: str | None = Query(None), fase: str | None = Query(None),
                  situacao_plano: str | None = Query(None), busca: str | None = Query(None),
-                 proposta_id: int | None = Query(None)):
+                 proposta_id: int | None = Query(None), tipo_recurso: str | None = Query(None)):
+    tipo_recurso = _tipo_recurso(tipo_recurso)
     dados, calc, linhas, sel = await _painel_dados(db, u, exercicio, origem, destinacao, fase, situacao_plano,
-                                                    busca, proposta_id)
+                                                    busca, proposta_id, tipo_recurso)
     cons = ex.consolidar([{"classificacao": c["classificacao"], "resumo": c["resumo"]} for c in sel])
     todos_lancs = [l for c in sel for l in c["lancs"]]
     todos_pags = [pg for c in sel for pg in c["pags"]]
@@ -369,6 +393,7 @@ async def painel(db: DbDep, u: SessaoMunicipal,
         "municipio": u.municipio, "municipio_ibge": u.municipio_ibge, "municipio_uf": u.municipio_uf,
         "permissoes": _permissoes(u),
         "filtros": {"exercicio": exercicio, "origem": origem, "destinacao": destinacao, "fase": fase,
+                    "tipo_recurso": tipo_recurso,
                     "situacao_plano": situacao_plano, "busca": busca},
         "opcoes": {"anos": anos, "origens": ex.ORIGENS, "destinacoes": ex.DESTINACOES,
                    "fases": {k: v for k, v in fed.FASES.items() if k not in FASES_FORA},
@@ -408,8 +433,10 @@ async def painel(db: DbDep, u: SessaoMunicipal,
 
 
 @router.get("/alertas")
-async def alertas_execucao(db: DbDep, u: SessaoMunicipal, exercicio: int | None = Query(None)):
-    _, calc, linhas, _ = await _painel_dados(db, u, exercicio, None, None, None, None, None)
+async def alertas_execucao(db: DbDep, u: SessaoMunicipal, exercicio: int | None = Query(None),
+                           tipo_recurso: str | None = Query(None)):
+    _, calc, linhas, _ = await _painel_dados(db, u, exercicio, None, None, None, None, None, None,
+                                             _tipo_recurso(tipo_recurso))
     out = []
     for ln in linhas:
         for a in calc[ln["proposta_id"]]["alertas"]:
@@ -1161,7 +1188,8 @@ def identificacao_relatorio(u: UserOut):
 @router.get("/relatorios/{tipo}")
 async def relatorio(tipo: str, db: DbDep, u: SessaoMunicipal, formato: str = Query("pdf"),
                     exercicio: int | None = Query(None), origem: str | None = Query(None),
-                    destinacao: str | None = Query(None), proposta_id: int | None = Query(None)):
+                    destinacao: str | None = Query(None), proposta_id: int | None = Query(None),
+                    tipo_recurso: str | None = Query(None)):
     from services import investsus_execucao_relatorios as rel
 
     if tipo not in rel.TIPOS:
@@ -1170,8 +1198,9 @@ async def relatorio(tipo: str, db: DbDep, u: SessaoMunicipal, formato: str = Que
         raise HTTPException(422, "Formato deve ser pdf ou xlsx.")
     if tipo == "individual" and not proposta_id:
         raise HTTPException(422, "Escolha a proposta para o relatório individual.")
-    painel_ = await painel(db, u, exercicio, origem, destinacao, None, None, None, None)
-    alertas_ = await alertas_execucao(db, u, exercicio)
+    tipo_recurso = _tipo_recurso(tipo_recurso)
+    painel_ = await painel(db, u, exercicio, origem, destinacao, None, None, None, None, tipo_recurso)
+    alertas_ = await alertas_execucao(db, u, exercicio, tipo_recurso)
     ficha_ = await ficha(proposta_id, db, u) if tipo == "individual" else None
     doc = rel.montar(tipo, painel_, alertas_, ficha_)
     ident = identificacao_relatorio(u)
