@@ -270,8 +270,16 @@ function AbaPas({ ref_, planoId }: { ref_: Ref; planoId: number | null }) {
   const acoes = useQuery({ queryKey: ["pms", "acoes", pasId, filtro], enabled: !!pasId,
     queryFn: () => api.get(`/api/pms-vivo/pas/${pasId}/acoes`, { params: { setor: filtro.setor || undefined, situacao: filtro.situacao || undefined } }).then(r => r.data as Acao[]) });
   const [exercicio, setExercicio] = useState("");
+  // Sugere o exercício atual (ou o primeiro da vigência) que ainda não tem PAS.
+  useEffect(() => {
+    if (exercicio || !plano.data?.anos?.length || !pass.data) return;
+    const livres = plano.data.anos.filter(a => !pass.data!.some(p => p.exercicio === a));
+    const atual = new Date().getFullYear();
+    const sug = livres.includes(atual) ? atual : livres[0];
+    if (sug) setExercicio(String(sug));
+  }, [plano.data, pass.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const criarPas = useMutation({ mutationFn: () => api.post(`/api/pms-vivo/planos/${planoId}/pas`, { exercicio: Number(exercicio) }).then(r => r.data as Pas),
-    onSuccess: x => { qc.invalidateQueries({ queryKey: ["pms"] }); setPasId(x.id); } });
+    onSuccess: x => { setExercicio(""); qc.invalidateQueries({ queryKey: ["pms"] }); setPasId(x.id); } });
   const [resPas, setResPas] = useState("");
   const aprovarPas = useMutation({ mutationFn: () => api.post(`/api/pms-vivo/pas/${pasId}/aprovar`, { resolucao_cms: resPas }), onSuccess: () => qc.invalidateQueries({ queryKey: ["pms"] }) });
   const [f, setF] = useState({ ...ACAO_VAZIA });
@@ -295,7 +303,7 @@ function AbaPas({ ref_, planoId }: { ref_: Ref; planoId: number | null }) {
           <option value="">—</option>{(pass.data ?? []).map(x => <option key={x.id} value={x.id}>PAS {x.exercicio} · {x.situacao === "aprovada" ? "aprovada" : "rascunho"}</option>)}</select></label>
         {ref_.pode_planejar && plano.data?.situacao === "aprovado" && <>
           <label style={{ ...lbl, marginBottom: 0, width: 120 }}>Novo exercício<select style={inp} value={exercicio} onChange={e => setExercicio(e.target.value)}>
-            <option value="">—</option>{plano.data.anos.map(a => <option key={a} value={a}>{a}</option>)}</select></label>
+            <option value="">—</option>{plano.data.anos.filter(a => !(pass.data ?? []).some(p => p.exercicio === a)).map(a => <option key={a} value={a}>{a}</option>)}</select></label>
           <button style={btn()} disabled={!exercicio} onClick={() => criarPas.mutate()}>Criar PAS</button></>}
         {plano.data && plano.data.situacao !== "aprovado" && <div style={{ fontSize: 12, color: "#92400e" }}>A PAS é vinculada a uma versão aprovada do PMS.</div>}
         {pas && ref_.pode_planejar && pas.situacao === "rascunho" && <>
@@ -304,6 +312,13 @@ function AbaPas({ ref_, planoId }: { ref_: Ref; planoId: number | null }) {
         {pas?.resolucao_cms && <span style={{ fontSize: 12, color: "#475569" }}>{pas.resolucao_cms}</span>}
         <Erro e={criarPas.error} /><Erro e={aprovarPas.error} />
       </div>
+      {pass.isSuccess && pass.data.length === 0 && plano.data?.situacao === "aprovado" && (
+        <div style={{ ...card, background: "#eff6ff", borderColor: "#bfdbfe", fontSize: 13, color: "#1e3a8a" }}>
+          <b>Nenhuma Programação Anual de Saúde cadastrada para o PMS {plano.data.vigencia_inicio}–{plano.data.vigencia_fim}.</b>
+          {ref_.pode_planejar
+            ? <> Confira o exercício em “Novo exercício” e clique em <b>Criar PAS</b>. Depois cadastre as ações do ano ligadas às metas do PMS e aprove a PAS com a resolução do Conselho Municipal de Saúde.</>
+            : <> O cadastro é feito pela Coordenação de Planejamento.</>}
+        </div>)}
       {pas && ref_.pode_planejar && (
         <div style={card}><h3 style={h3}>Nova ação da PAS {pas.exercicio}</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
