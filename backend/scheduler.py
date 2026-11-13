@@ -498,6 +498,7 @@ async def _job_pms_vivo_alertas() -> None:
         from database import AsyncSessionLocal
         from models.municipio import Municipio
         from services.pms_monitoramento import registrar_alertas_centrais
+        from services.pms_checklist import registrar_monitoramento_execucao
         from tenancy.contexto import MunicipioContexto, contexto_municipio
         async with AsyncSessionLocal() as db:
             municipios = (await db.execute(select(Municipio).where(Municipio.situacao == "ativo"))).scalars().all()
@@ -507,6 +508,8 @@ async def _job_pms_vivo_alertas() -> None:
                 with contexto_municipio(ctx):
                     async with AsyncSessionLocal() as db:
                         n = await registrar_alertas_centrais(db, mun.id)
+                    async with AsyncSessionLocal() as db:   # agente: resumo semanal e fechamento de quadrimestre
+                        n += await registrar_monitoramento_execucao(db, mun.id)
                 if n:
                     logger.info("[Scheduler] PMS Vivo %s: %s alerta(s) novo(s)", mun.codigo_ibge, n)
             except Exception as exc:  # um município com erro não para os demais

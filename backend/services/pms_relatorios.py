@@ -22,6 +22,7 @@ TIPOS = {
     "anual": "Avaliação Anual (apoio ao RAG)",
     "reprogramacoes": "Relatório de Reprogramações",
     "plano_acao": "Plano de Ação 5W2H (ações corretivas)",
+    "checklist": "Checklist de Execução da PAS (feito / não feito)",
 }
 
 
@@ -59,6 +60,25 @@ def _sub(municipio: str, plano: dict, extra: str) -> str:
 async def montar(db, tipo: str, plano, municipio: str, ano: int, quadrimestre: int | None = None,
                  responsavel: str | None = None) -> Documento:
     p = base.dict_plano(plano)
+    if tipo == "checklist":
+        from services import pms_checklist as chk
+        c = await chk.checklist(db, plano, ano)
+        r = c["resumo"]
+        pas = c["pas"]
+        doc = Documento(TIPOS[tipo], _sub(municipio, p, f"PAS {ano}" + (f" ({pas['situacao']})" if pas else " — não cadastrada")),
+                        aviso="Marcações só valem depois de validadas por outra pessoa. \"Sem informação\" = ninguém "
+                              "informou a execução ainda; nada é presumido.")
+        doc.secoes += [
+            Secao("Resumo", [chk.texto_resumo(r) + (f" Informadas: {_v(r['percentual_informado'])}%."
+                                                   if r["percentual_informado"] is not None else "")]),
+            Secao("Ações", [] if c["itens"] else ["Nenhuma ação cadastrada na PAS deste exercício."],
+                  [(["Ação", "Meta(s)", "Descrição", "Foi feito?", "Resultado / justificativa", "Validado por"],
+                    [[i["codigo"], ", ".join(i["metas"]), i["descricao"], i["status_rotulo"],
+                      _v(i["justificativa"] if i["status"] in ("parcial", "nao_feito", "cancelada")
+                         else i["resultado_alcancado"]), _v(i["validado_por"])] for i in c["itens"]])]
+                  if c["itens"] else []),
+        ]
+        return doc
     if tipo == "quadrimestral":
         c = await ciclo.consolidacao_quadrimestral(db, plano, ano, quadrimestre or 1)
         doc = Documento(TIPOS[tipo], _sub(municipio, p, f"{c['quadrimestre']}º quadrimestre de {ano} "
