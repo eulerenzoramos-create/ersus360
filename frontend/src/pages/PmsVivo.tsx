@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, Info, Paperclip, Target, Upload, XCircle } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api } from "../lib/api";
 import { useAuth } from "../App";
 
@@ -977,6 +978,187 @@ function Relatorios({ planoId, ano }: { planoId: number; ano: number }) {
     </div>);
 }
 
+// ── Dashboard (visão consolidada) ────────────────────────────────────────────
+interface ResumoExec { total: number; feito: number; parcial: number; nao_feito: number; aguardando_validacao: number;
+  devolvida: number; sem_informacao: number; cancelada: number; percentual_informado: number | null }
+interface Dash { plano: Plano; ano: number; anos: number[]; quadrimestre: { numero: number; fim: string; dias_restantes: number | null; encerrado: boolean };
+  metas: Record<string, number>; rotulos_metas: Record<string, string>; execucao: ResumoExec; rotulos_execucao: Record<string, string>;
+  pas: Pas | null; pas_anos: { exercicio: number; existe: boolean; situacao: string | null; resolucao_cms: string | null; acoes: number }[];
+  por_diretriz: { id: number; codigo: string; descricao: string; metas: Record<string, number>; acoes: ResumoExec }[];
+  cadastro: { acoes: number; sem_responsavel: number; sem_prazo: number; atrasadas: number };
+  alertas: { critico: number; atencao: number; info: number; principais: Alerta[] };
+  metas_em_risco: { id: number; codigo: string; descricao: string; situacao: string; cumprimento: number | null }[];
+  documento_anexado: boolean }
+const ORDEM_EXEC = ["feito", "parcial", "nao_feito", "aguardando_validacao", "devolvida", "sem_informacao", "cancelada"] as const;
+const ORDEM_META = ["alcancada", "em_acompanhamento", "em_risco", "nao_alcancada", "sem_resultado", "prevista"] as const;
+
+function Barra({ v, total, cor }: { v: number; total: number; cor: string }) {
+  const pct = total ? Math.round((100 * v) / total) : 0;
+  return <div style={{ background: "#f1f5f9", borderRadius: 999, height: 8, overflow: "hidden" }} title={`${v} de ${total} (${pct}%)`}>
+    <div style={{ width: `${pct}%`, background: cor, height: "100%", borderRadius: 999 }} /></div>;
+}
+
+function Dashboard({ planoId, ano, irPara }: { planoId: number; ano: number; irPara: (aba: string) => void }) {
+  const q = useQuery({ queryKey: ["pms", "dashboard", planoId, ano],
+    queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/dashboard`, { params: { ano } }).then(r => r.data as Dash) });
+  const d = q.data;
+  if (q.isLoading) return <div style={card}>Carregando…</div>;
+  if (q.error || !d) return <div style={card}><Erro e={q.error} /></div>;
+  const ex = d.execucao;
+  const fatias = ORDEM_EXEC.map(k => ({ k, nome: d.rotulos_execucao[k], v: (ex[k] as number) ?? 0 })).filter(x => x.v > 0);
+  const barrasMetas = ORDEM_META.map(k => ({ k, nome: d.rotulos_metas[k], v: d.metas[k] ?? 0 })).filter(x => x.v > 0);
+  const porDir = d.por_diretriz.map(z => ({ nome: `D${z.codigo}`, titulo: z.descricao, ...Object.fromEntries(ORDEM_EXEC.map(k => [k, z.acoes[k] ?? 0])),
+    total: z.acoes.total, metas: z.metas.total }));
+  const qd = d.quadrimestre;
+  const pctInf = ex.percentual_informado;
+  return (
+    <>
+      {/* Cabeçalho do plano */}
+      <div style={{ ...card, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", borderLeft: `4px solid ${COR_PLANO[d.plano.situacao]}` }}>
+        <div style={{ flex: "1 1 320px" }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>{d.plano.titulo}</div>
+          <div style={{ fontSize: 12, color: "#475569" }}>v{d.plano.versao} · {ROT_PLANO[d.plano.situacao]}{d.plano.resolucao_cms && <> · {d.plano.resolucao_cms}</>}</div>
+          <div style={{ fontSize: 12, color: d.documento_anexado ? "#065f46" : "#b45309", marginTop: 2 }}>
+            {d.documento_anexado ? "✔ PDF oficial do PMS anexado" : "⚠ PDF oficial do PMS não anexado"}</div>
+        </div>
+        <div style={{ fontSize: 13, color: "#1f2937", textAlign: "right" }}>
+          <div><b>{qd.numero}º quadrimestre de {ano}</b> · fecha em {dataBr(qd.fim)}</div>
+          <div style={{ fontSize: 12, color: qd.encerrado ? "#64748b" : (qd.dias_restantes ?? 99) <= 15 ? "#b91c1c" : "#475569" }}>
+            {qd.encerrado ? "Período encerrado" : `Faltam ${qd.dias_restantes} dia(s) para o fechamento (RDQA)`}</div>
+        </div>
+      </div>
+
+      {/* Indicadores principais */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))", gap: 8, marginBottom: 12 }}>
+        <div style={{ ...card, marginBottom: 0, borderTop: "3px solid #1d4ed8", padding: 12, gridColumn: "span 2" }}>
+          <div style={{ fontSize: 11, color: "#64748b" }}>Execução informada da PAS {ano}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: "#0f172a" }}>{pctInf == null ? "—" : `${String(pctInf).replace(".", ",")}%`}</div>
+          <div style={{ fontSize: 11, color: "#64748b" }}>{ex.total - ex.sem_informacao - ex.devolvida} de {ex.total} ações informadas
+            {ex.aguardando_validacao > 0 && ` · ${ex.aguardando_validacao} aguardando validação`}</div>
+        </div>
+        <Kpi t="Ações feitas" v={ex.feito} cor={COR_CHK.feito} />
+        <Kpi t="Parciais" v={ex.parcial} cor={COR_CHK.parcial} />
+        <Kpi t="Não feitas" v={ex.nao_feito} cor={COR_CHK.nao_feito} />
+        <Kpi t="Aguardando validação" v={ex.aguardando_validacao} cor={COR_CHK.aguardando_validacao} />
+        <Kpi t="Sem informação" v={ex.sem_informacao} cor={COR_CHK.sem_informacao} />
+        <Kpi t="Metas do PMS" v={d.metas.total} cor="#1d4ed8" />
+        <Kpi t={`Metas com resultado em ${ano}`} v={`${d.metas.com_resultado_no_ano}/${d.metas.total}`} cor="#0f766e" />
+        <Kpi t="Alertas críticos" v={d.alertas.critico} cor="#dc2626" />
+      </div>
+
+      {/* Gráficos */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 12, marginBottom: 12 }}>
+        <div style={{ ...card, marginBottom: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h3 style={h3}>Execução das ações — PAS {ano}</h3>
+            <button style={{ ...btn("#fff"), color: "#1d4ed8", border: "1px solid #bfdbfe", padding: "3px 8px", fontSize: 12 }} onClick={() => irPara("checklist")}>Abrir checklist</button>
+          </div>
+          {!d.pas ? <div style={{ fontSize: 13, color: "#64748b" }}>Não há PAS cadastrada para {ano}.</div> : ex.total === 0 ? <div style={{ fontSize: 13, color: "#64748b" }}>A PAS {ano} ainda não tem ações.</div> :
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ width: 200, height: 200 }}>
+                <ResponsiveContainer><PieChart>
+                  <Pie data={fatias} dataKey="v" nameKey="nome" innerRadius={58} outerRadius={90} paddingAngle={1} stroke="#fff" strokeWidth={2} isAnimationActive={false}>
+                    {fatias.map(f => <Cell key={f.k} fill={COR_CHK[f.k]} />)}</Pie>
+                  <Tooltip formatter={(v: number, n: string) => [`${v} ação(ões) · ${Math.round((100 * v) / ex.total)}%`, n]} />
+                </PieChart></ResponsiveContainer>
+              </div>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                {ORDEM_EXEC.map(k => <div key={k} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, padding: "3px 0", color: "#1f2937" }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: COR_CHK[k], flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>{d.rotulos_execucao[k]}</span><b>{(ex[k] as number) ?? 0}</b></div>)}
+              </div>
+            </div>}
+        </div>
+        <div style={{ ...card, marginBottom: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h3 style={h3}>Metas do PMS — situação em {ano}</h3>
+            <button style={{ ...btn("#fff"), color: "#1d4ed8", border: "1px solid #bfdbfe", padding: "3px 8px", fontSize: 12 }} onClick={() => irPara("metas")}>Abrir metas</button>
+          </div>
+          <div style={{ width: "100%", height: 210 }}>
+            <ResponsiveContainer><BarChart data={barrasMetas} layout="vertical" margin={{ left: 10, right: 24, top: 4, bottom: 4 }}>
+              <CartesianGrid horizontal={false} stroke="#eef2f7" />
+              <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="nome" width={130} tick={{ fontSize: 11, fill: "#334155" }} axisLine={false} tickLine={false} />
+              <Tooltip formatter={(v: number) => [`${v} meta(s)`, "Metas"]} cursor={{ fill: "#f1f5f9" }} />
+              <Bar dataKey="v" barSize={14} radius={[0, 4, 4, 0]} isAnimationActive={false} label={{ position: "right", fontSize: 11, fill: "#334155" }}>
+                {barrasMetas.map(b => <Cell key={b.k} fill={COR_META[b.k]} />)}</Bar>
+            </BarChart></ResponsiveContainer>
+          </div>
+          <div style={{ fontSize: 11, color: "#64748b" }}>"Sem resultado" = nenhum resultado com fonte registrado ainda. {d.metas.sem_tipo_indicador > 0 && `${d.metas.sem_tipo_indicador} meta(s) sem tipo de indicador (acumulado não calculado).`}</div>
+        </div>
+      </div>
+
+      {/* Por diretriz */}
+      <div style={card}>
+        <h3 style={h3}>Execução das ações por diretriz — PAS {ano}</h3>
+        {porDir.every(x => x.total === 0) ? <div style={{ fontSize: 13, color: "#64748b" }}>Sem ações na PAS {ano}.</div> : <>
+          <div style={{ width: "100%", height: Math.max(160, porDir.length * 46) }}>
+            <ResponsiveContainer><BarChart data={porDir} layout="vertical" margin={{ left: 4, right: 16, top: 4, bottom: 4 }}>
+              <CartesianGrid horizontal={false} stroke="#eef2f7" />
+              <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="nome" width={40} tick={{ fontSize: 12, fill: "#334155", fontWeight: 700 }} axisLine={false} tickLine={false} />
+              <Tooltip cursor={{ fill: "#f1f5f9" }} labelFormatter={(_, p) => (p?.[0]?.payload as { titulo?: string })?.titulo?.slice(0, 110) ?? ""}
+                formatter={(v: number, n: string) => [v, d.rotulos_execucao[n] ?? n]} />
+              <Legend formatter={(v: string) => <span style={{ color: "#334155", fontSize: 11 }}>{d.rotulos_execucao[v] ?? v}</span>} />
+              {ORDEM_EXEC.filter(k => porDir.some(x => (x as Record<string, unknown>)[k] as number > 0)).map(k =>
+                <Bar key={k} dataKey={k} stackId="a" fill={COR_CHK[k]} barSize={18} stroke="#fff" strokeWidth={1} isAnimationActive={false} />)}
+            </BarChart></ResponsiveContainer>
+          </div>
+          <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", marginTop: 8 }}>
+            <thead><tr style={{ textAlign: "left", color: "#64748b" }}><th style={{ padding: 4 }}>Diretriz</th><th>Metas</th><th>Ações</th><th style={{ width: 160 }}>Informadas</th><th>Feitas</th><th>Não feitas</th><th>Sem informação</th></tr></thead>
+            <tbody>{d.por_diretriz.map(z => <tr key={z.id} style={{ borderTop: "1px solid #eee" }}>
+              <td style={{ padding: 4 }}><b>D{z.codigo}</b> {z.descricao.slice(0, 90)}{z.descricao.length > 90 ? "…" : ""}</td>
+              <td>{z.metas.total}</td><td>{z.acoes.total}</td>
+              <td><div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ flex: 1 }}><Barra v={z.acoes.total - z.acoes.sem_informacao - z.acoes.devolvida} total={z.acoes.total} cor="#1d4ed8" /></div>
+                <span>{z.acoes.percentual_informado == null ? "—" : `${Math.round(z.acoes.percentual_informado)}%`}</span></div></td>
+              <td>{z.acoes.feito}</td><td>{z.acoes.nao_feito}</td><td>{z.acoes.sem_informacao}</td></tr>)}</tbody>
+          </table></>}
+      </div>
+
+      {/* PAS por ano + cadastro */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 12, marginBottom: 12 }}>
+        <div style={{ ...card, marginBottom: 0 }}>
+          <h3 style={h3}>Programações Anuais (PAS) da vigência</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+            {d.pas_anos.map(p => { const cor = !p.existe ? "#94a3b8" : p.situacao === "aprovada" ? "#059669" : "#d97706";
+              return <div key={p.exercicio} style={{ border: `1px solid ${cor}55`, background: cor + "10", borderRadius: 8, padding: 8, textAlign: "center" }}>
+                <div style={{ fontWeight: 800, color: "#0f172a" }}>{p.exercicio}</div>
+                <div style={{ fontSize: 11, color: cor, fontWeight: 700 }}>{!p.existe ? "Não cadastrada" : p.situacao === "aprovada" ? "Aprovada" : "Rascunho"}</div>
+                <div style={{ fontSize: 11, color: "#64748b" }}>{p.existe ? `${p.acoes} ações` : "—"}</div></div>; })}
+          </div>
+          {d.pas && d.pas.situacao !== "aprovada" && <div style={{ fontSize: 12, color: "#b45309", marginTop: 8 }}>PAS {ano} em rascunho: falta registrar a resolução do Conselho Municipal de Saúde que a aprovou.</div>}
+        </div>
+        <div style={{ ...card, marginBottom: 0 }}>
+          <h3 style={h3}>Cadastro das ações — o que falta completar</h3>
+          {[["Ações sem responsável", d.cadastro.sem_responsavel], ["Ações sem prazo", d.cadastro.sem_prazo], ["Ações atrasadas", d.cadastro.atrasadas]].map(([t, v]) =>
+            <div key={t as string} style={{ fontSize: 13, padding: "4px 0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span>{t}</span><b>{v as number} de {d.cadastro.acoes}</b></div>
+              <Barra v={v as number} total={d.cadastro.acoes} cor={t === "Ações atrasadas" ? "#dc2626" : "#d97706"} /></div>)}
+          <div style={{ fontSize: 11, color: "#64748b", marginTop: 6 }}>Com responsável e prazo, cada pessoa vê as suas ações em "Minhas Ações" e os alertas de atraso passam a funcionar.</div>
+        </div>
+      </div>
+
+      {/* Alertas e metas em risco */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 12, marginBottom: 12 }}>
+        <div style={{ ...card, marginBottom: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h3 style={h3}>Alertas ({d.alertas.critico} críticos · {d.alertas.atencao} de atenção)</h3>
+            <button style={{ ...btn("#fff"), color: "#1d4ed8", border: "1px solid #bfdbfe", padding: "3px 8px", fontSize: 12 }} onClick={() => irPara("alertas")}>Ver todos</button>
+          </div>
+          {d.alertas.principais.length === 0 ? <div style={{ fontSize: 13, color: "#64748b" }}>Nenhum alerta crítico ou de atenção.</div> :
+            d.alertas.principais.map((a, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", borderTop: i ? "1px solid #f1f5f9" : undefined, display: "flex", gap: 6 }}>
+              <Selo t={a.severidade === "critico" ? "crítico" : "atenção"} cor={COR_SEV[a.severidade]} /><span>{a.texto}</span></div>)}
+        </div>
+        <div style={{ ...card, marginBottom: 0 }}>
+          <h3 style={h3}>Metas em risco ou não alcançadas</h3>
+          {d.metas_em_risco.length === 0 ? <div style={{ fontSize: 13, color: "#64748b" }}>Nenhuma — a situação depende de resultados registrados com fonte.</div> :
+            d.metas_em_risco.map(m => <div key={m.id} style={{ fontSize: 12, padding: "4px 0" }}><Selo t={ROT_META[m.situacao]} cor={COR_META[m.situacao]} /> <b>{m.codigo}</b> {m.descricao}
+              {m.cumprimento != null && ` — ${num(m.cumprimento)}%`}</div>)}
+        </div>
+      </div>
+    </>);
+}
+
 // ── Página ───────────────────────────────────────────────────────────────────
 export default function PmsVivo() {
   const auth = useAuth() as unknown as { municipio: string; municipio_uf?: string };
@@ -984,15 +1166,17 @@ export default function PmsVivo() {
   const planos = useQuery({ queryKey: ["pms", "planos"], queryFn: () => api.get("/api/pms-vivo/planos").then(r => r.data as Plano[]) });
   const [planoId, setPlanoId] = useState<number | null>(null);
   useEffect(() => { if (!planoId && planos.data?.length) setPlanoId((planos.data.find(p => p.situacao === "aprovado") ?? planos.data[0]).id); }, [planos.data]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [aba, setAba] = useState<"checklist" | "painel" |"metas" | "kanban" | "cronograma" | "alertas" | "fca" | "reprogramacao" | "rdqa" | "reunioes" | "diagnostico" | "relatorios" | "pms" | "pas" | "minhas" | "validacoes">("minhas");
+  const [aba, setAba] = useState<"dashboard" | "checklist" | "painel" |"metas" | "kanban" | "cronograma" | "alertas" | "fca" | "reprogramacao" | "rdqa" | "reunioes" | "diagnostico" | "relatorios" | "pms" | "pas" | "minhas" | "validacoes">("dashboard");
+  // Quem só executa ações (sem perfil de planejamento/validação) abre direto em "Minhas Ações".
+  useEffect(() => { if (ref_.data && !ref_.data.pode_planejar && !ref_.data.pode_validar) setAba("minhas"); }, [ref_.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const [ano, setAno] = useState(ANO_ATUAL);
   const plano = planos.data?.find(p => p.id === planoId);
   useEffect(() => { if (plano && (ano < plano.vigencia_inicio || ano > plano.vigencia_fim)) setAno(plano.vigencia_inicio); }, [plano]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!ref_.data) return <div style={{ padding: 20 }}>Carregando…</div>;
-  const abas = [["minhas", "Minhas Ações"], ["checklist", "Checklist da PAS"], ["painel", "Painel do gestor"], ["metas", "Metas"], ["kanban", "Kanban"], ["cronograma", "Cronograma"],
+  const abas = [["dashboard", "Dashboard"], ["minhas", "Minhas Ações"], ["checklist", "Checklist da PAS"], ["painel", "Painel do gestor"], ["metas", "Metas"], ["kanban", "Kanban"], ["cronograma", "Cronograma"],
     ["alertas", "Alertas"], ["fca", "FCA"], ["reprogramacao", "Reprogramação"], ["rdqa", "RDQA / RAG"], ["reunioes", "Reuniões"],
     ["diagnostico", "Diagnóstico"], ["relatorios", "Relatórios"], ["pms", "Plano (PMS)"], ["pas", "PAS e ações"], ["validacoes", "Validações"]] as const;
-  const precisaPlano = ["checklist", "painel", "metas", "kanban", "cronograma", "alertas", "fca", "reprogramacao", "rdqa", "reunioes", "diagnostico", "relatorios"].includes(aba);
+  const precisaPlano = ["dashboard", "checklist", "painel", "metas", "kanban", "cronograma", "alertas", "fca", "reprogramacao", "rdqa", "reunioes", "diagnostico", "relatorios"].includes(aba);
   return (
     <div style={{ padding: 20, maxWidth: 1300, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
@@ -1010,6 +1194,7 @@ export default function PmsVivo() {
         <span style={{ fontSize: 12, color: "#64748b" }}>Troque a versão do PMS na aba "Plano (PMS)".</span>
       </div> : <div style={card}>Cadastre ou selecione um PMS na aba "Plano (PMS)".</div>)}
       {precisaPlano && planoId && plano && <>
+        {aba === "dashboard" && <Dashboard planoId={planoId} ano={ano} irPara={k => setAba(k as typeof aba)} />}
         {aba === "checklist" && <ChecklistPas planoId={planoId} ano={ano} ref_={ref_.data} />}
         {aba === "painel" && <PainelGestor planoId={planoId} ano={ano} />}
         {aba === "metas" && <Metas planoId={planoId} ano={ano} ref_={ref_.data} />}

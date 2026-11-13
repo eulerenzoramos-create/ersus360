@@ -1031,6 +1031,21 @@ async def painel(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = N
             "nota": "A situação das metas depende de resultados registrados com fonte."}
 
 
+@router.get("/planos/{plano_id}/dashboard")
+async def dashboard_plano(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None,
+                          db: AsyncSession = Depends(get_db)):
+    from services import pms_dashboard as dash
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    ano = ano or date.today().year
+    if ano not in svc.anos_do(p):
+        raise HTTPException(422, f"Exercício fora da vigência do PMS ({p.vigencia_inicio}–{p.vigencia_fim}).")
+    d = await dash.dashboard(db, p, ano)
+    d["documento_anexado"] = bool((await db.execute(select(PmsAnexo.id).where(
+        PmsAnexo.municipio_id == current.municipio_id, PmsAnexo.entidade == "plano", PmsAnexo.entidade_id == p.id,
+        PmsAnexo.excluido_em.is_(None)).limit(1))).first())
+    return d
+
+
 @router.get("/planos/{plano_id}/kanban")
 async def kanban(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None, setor: Optional[str] = None,
                  responsavel_usuario_id: Optional[int] = None, diretriz_id: Optional[int] = None,
