@@ -855,7 +855,113 @@ function CruzamentoDiagnostico({ planoId, ano, ref_ }: { planoId: number; ano: n
 
 const RELATORIOS: [string, string][] = [["execucao_pas", "Execução da PAS"], ["metas_pms", "Metas do PMS"], ["pendencias", "Pendências"],
   ["por_responsavel", "Por responsável"], ["quadrimestral", "Quadrimestral (RDQA)"], ["anual", "Anual (RAG)"], ["reprogramacoes", "Reprogramações"],
-  ["plano_acao", "Plano de ação 5W2H"]];
+  ["plano_acao", "Plano de ação 5W2H"], ["checklist", "Checklist feito / não feito"]];
+
+// ── Checklist da PAS ("foi feito?") ──────────────────────────────────────────
+interface ItemChecklist { id: number; codigo: string; descricao: string; metas: string[]; diretriz_ids: number[];
+  responsavel_nome: string | null; setor_responsavel: string | null; prazo: string | null; status: string; status_rotulo: string;
+  resultado_alcancado: string | null; justificativa: string | null; validado_por: string | null;
+  ultima: { situacao_rotulo: string; status: string; informado_por: string; informado_em: string; resultado_alcancado: string | null;
+    justificativa: string | null; parecer: string | null } | null }
+interface Checklist { exercicio: number; pas: Pas | null; resumo: Record<string, number | null>; itens: ItemChecklist[];
+  status: Record<string, string>; marcacoes: Record<string, string>; pode_validar: boolean }
+const COR_CHK: Record<string, string> = { feito: "#059669", parcial: "#d97706", nao_feito: "#dc2626", aguardando_validacao: "#7c3aed",
+  devolvida: "#b45309", sem_informacao: "#64748b", cancelada: "#475569" };
+const MARCAR: [string, string, string][] = [["feito", "✅ Feito", "#059669"], ["parcial", "⚠️ Parcial", "#d97706"], ["nao_feito", "❌ Não feito", "#dc2626"]];
+
+function LinhaChecklist({ i, marcacoes, podeMarcar }: { i: ItemChecklist; marcacoes: Record<string, string>; podeMarcar: boolean }) {
+  const qc = useQueryClient();
+  const [marca, setMarca] = useState<string | null>(null);
+  const [texto, setTexto] = useState("");
+  const enviar = useMutation({
+    mutationFn: () => api.post(`/api/pms-vivo/acoes/${i.id}/atualizacoes`, {
+      situacao: marcacoes[marca!],
+      resultado_alcancado: marca === "feito" ? texto : null,
+      justificativa: marca === "feito" ? null : texto,
+      percentual_execucao: marca === "feito" ? 100 : null }),
+    onSuccess: () => { setMarca(null); setTexto(""); qc.invalidateQueries({ queryKey: ["pms"] }); } });
+  const travada = i.status === "aguardando_validacao" || i.status === "cancelada";
+  const cor = COR_CHK[i.status] ?? "#64748b";
+  return (
+    <div style={{ borderTop: "1px solid #f1f5f9", padding: "10px 0" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 420px", minWidth: 260 }}>
+          <div style={{ fontSize: 13 }}><b>{i.codigo}</b> <span style={{ color: "#64748b", fontSize: 12 }}>· meta {i.metas.join(", ") || "—"}</span></div>
+          <div style={{ fontSize: 13, color: "#1f2937" }}>{i.descricao}</div>
+          {(i.responsavel_nome || i.setor_responsavel || i.prazo) && <div style={{ fontSize: 12, color: "#64748b" }}>
+            {i.responsavel_nome && <>Responsável: {i.responsavel_nome} · </>}{i.setor_responsavel && <>Setor: {i.setor_responsavel} · </>}Prazo: {dataBr(i.prazo)}</div>}
+          {i.status === "feito" && i.resultado_alcancado && <div style={{ fontSize: 12, color: "#065f46" }}>O que foi feito: {i.resultado_alcancado}</div>}
+          {["parcial", "nao_feito", "cancelada"].includes(i.status) && <div style={{ fontSize: 12, color: "#991b1b" }}>Justificativa: {i.justificativa ?? "—"}</div>}
+          {i.validado_por && ["feito", "parcial", "nao_feito", "cancelada"].includes(i.status) && <div style={{ fontSize: 11, color: "#64748b" }}>Validado por {i.validado_por}</div>}
+          {i.status === "aguardando_validacao" && i.ultima && <div style={{ fontSize: 12, color: "#5b21b6" }}>
+            Informado "{i.ultima.situacao_rotulo}" por {i.ultima.informado_por} em {dataBr(i.ultima.informado_em)} — falta a validação de outra pessoa (aba "Validações").
+            {i.ultima.justificativa && <> Justificativa: {i.ultima.justificativa}</>}{i.ultima.resultado_alcancado && <> O que foi feito: {i.ultima.resultado_alcancado}</>}</div>}
+          {i.status === "devolvida" && i.ultima && <div style={{ fontSize: 12, color: "#b45309" }}>Devolvida por quem validou{i.ultima.parecer ? `: ${i.ultima.parecer}` : ""}. Marque de novo.</div>}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+          <Selo t={i.status_rotulo} cor={cor} />
+          {podeMarcar && !travada && <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {MARCAR.map(([k, r, c]) => <button key={k} onClick={() => { setMarca(marca === k ? null : k); setTexto(""); }}
+              style={{ ...btn(marca === k ? c : "#fff"), color: marca === k ? "#fff" : c, border: `1px solid ${c}`, padding: "4px 10px", fontSize: 12 }}>{r}</button>)}
+          </div>}
+        </div>
+      </div>
+      {marca && <div style={{ marginTop: 8, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 10 }}>
+        <label style={lbl}>{marca === "feito" ? "O que foi feito? *" : "Justificativa — por que não foi feito (ou só em parte)? *"}
+          <textarea style={{ ...inp, minHeight: 56 }} value={texto} onChange={e => setTexto(e.target.value)}
+            placeholder={marca === "feito" ? "Ex.: reforma concluída na UBS JK em 10/09/2026" : "Ex.: recurso da emenda não foi liberado em 2026"} /></label>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <button style={btn()} disabled={texto.trim().length < 5 || enviar.isPending} onClick={() => enviar.mutate()}>
+            {enviar.isPending ? "Enviando…" : "Enviar para validação"}</button>
+          <button style={btn("#64748b")} onClick={() => { setMarca(null); setTexto(""); }}>Cancelar</button>
+          <span style={{ fontSize: 12, color: "#64748b" }}>A marcação passa a valer depois que outra pessoa validar.</span>
+        </div>
+        <Erro e={enviar.error} />
+      </div>}
+    </div>);
+}
+
+function ChecklistPas({ planoId, ano, ref_ }: { planoId: number; ano: number; ref_: Ref }) {
+  const q = useQuery({ queryKey: ["pms", "checklist", planoId, ano],
+    queryFn: () => api.get(`/api/pms-vivo/planos/${planoId}/checklist`, { params: { ano } }).then(r => r.data as Checklist) });
+  const [filtro, setFiltro] = useState("");
+  const [busca, setBusca] = useState("");
+  const d = q.data;
+  if (q.isLoading) return <div style={card}>Carregando…</div>;
+  if (q.error || !d) return <div style={card}><Erro e={q.error} /></div>;
+  const itens = d.itens.filter(i => (!filtro || i.status === filtro) &&
+    (!busca || `${i.codigo} ${i.descricao} ${i.metas.join(" ")}`.toLowerCase().includes(busca.toLowerCase())));
+  const r = d.resumo;
+  const podeMarcar = ref_.pode_validar;   // coordenação marca qualquer ação; o responsável marca as suas em "Minhas Ações"
+  return (
+    <>
+      <div style={card}>
+        <h3 style={h3}>Checklist da PAS {ano} — foi feito ou não?</h3>
+        {!d.pas ? <div style={{ fontSize: 13 }}>Não há PAS cadastrada para {ano}. Crie a PAS na aba "PAS e ações".</div> : <>
+          <div style={{ fontSize: 12, color: "#475569", marginBottom: 10 }}>PAS {ano} · {d.pas.situacao === "aprovada" ? "aprovada" : "rascunho"}
+            {d.pas.resolucao_cms && <> · {d.pas.resolucao_cms}</>} · {r.total} ações · informadas: {r.percentual_informado == null ? "—" : `${String(r.percentual_informado).replace(".", ",")}%`}</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {Object.entries(d.status).map(([k, rot]) => <button key={k} onClick={() => setFiltro(filtro === k ? "" : k)}
+              style={{ border: `1px solid ${COR_CHK[k]}55`, background: filtro === k ? COR_CHK[k] : COR_CHK[k] + "12", color: filtro === k ? "#fff" : COR_CHK[k],
+                borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>{rot}: {r[k] ?? 0}</button>)}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <input style={{ ...inp, maxWidth: 320 }} placeholder="Buscar ação, meta ou texto" value={busca} onChange={e => setBusca(e.target.value)} />
+            {filtro && <button style={btn("#64748b")} onClick={() => setFiltro("")}>Limpar filtro</button>}
+            <button style={btn("#475569")} onClick={() => baixar(`/api/pms-vivo/planos/${planoId}/relatorios/checklist?formato=xlsx&ano=${ano}`, `pms_checklist_${ano}.xlsx`)}><FileSpreadsheet size={14} />Excel</button>
+            <button style={btn("#475569")} onClick={() => baixar(`/api/pms-vivo/planos/${planoId}/relatorios/checklist?formato=pdf&ano=${ano}`, `pms_checklist_${ano}.pdf`)}><Download size={14} />PDF</button>
+          </div>
+          {!podeMarcar && <div style={{ fontSize: 12, color: "#64748b", marginTop: 8 }}>Para marcar as ações sob sua responsabilidade, use a aba "Minhas Ações". Aqui a marcação é da coordenação.</div>}
+          <div style={{ fontSize: 12, color: "#64748b", marginTop: 8, display: "flex", gap: 6 }}><Info size={14} />
+            "Sem informação" = ninguém informou ainda. Toda segunda-feira e no fim de cada quadrimestre (30/04, 31/08, 31/12) o agente de monitoramento envia o resumo para a central de alertas.</div>
+        </>}
+      </div>
+      {d.pas && <div style={card}>
+        {itens.length === 0 ? <div style={{ fontSize: 13, color: "#64748b" }}>Nenhuma ação com este filtro.</div>
+          : itens.map(i => <LinhaChecklist key={i.id} i={i} marcacoes={d.marcacoes} podeMarcar={podeMarcar} />)}
+      </div>}
+    </>);
+}
 function Relatorios({ planoId, ano }: { planoId: number; ano: number }) {
   const [quad, setQuad] = useState("1");
   return (
@@ -878,15 +984,15 @@ export default function PmsVivo() {
   const planos = useQuery({ queryKey: ["pms", "planos"], queryFn: () => api.get("/api/pms-vivo/planos").then(r => r.data as Plano[]) });
   const [planoId, setPlanoId] = useState<number | null>(null);
   useEffect(() => { if (!planoId && planos.data?.length) setPlanoId((planos.data.find(p => p.situacao === "aprovado") ?? planos.data[0]).id); }, [planos.data]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [aba, setAba] = useState<"painel" | "metas" | "kanban" | "cronograma" | "alertas" | "fca" | "reprogramacao" | "rdqa" | "reunioes" | "diagnostico" | "relatorios" | "pms" | "pas" | "minhas" | "validacoes">("minhas");
+  const [aba, setAba] = useState<"checklist" | "painel" |"metas" | "kanban" | "cronograma" | "alertas" | "fca" | "reprogramacao" | "rdqa" | "reunioes" | "diagnostico" | "relatorios" | "pms" | "pas" | "minhas" | "validacoes">("minhas");
   const [ano, setAno] = useState(ANO_ATUAL);
   const plano = planos.data?.find(p => p.id === planoId);
   useEffect(() => { if (plano && (ano < plano.vigencia_inicio || ano > plano.vigencia_fim)) setAno(plano.vigencia_inicio); }, [plano]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!ref_.data) return <div style={{ padding: 20 }}>Carregando…</div>;
-  const abas = [["minhas", "Minhas Ações"], ["painel", "Painel do gestor"], ["metas", "Metas"], ["kanban", "Kanban"], ["cronograma", "Cronograma"],
+  const abas = [["minhas", "Minhas Ações"], ["checklist", "Checklist da PAS"], ["painel", "Painel do gestor"], ["metas", "Metas"], ["kanban", "Kanban"], ["cronograma", "Cronograma"],
     ["alertas", "Alertas"], ["fca", "FCA"], ["reprogramacao", "Reprogramação"], ["rdqa", "RDQA / RAG"], ["reunioes", "Reuniões"],
     ["diagnostico", "Diagnóstico"], ["relatorios", "Relatórios"], ["pms", "Plano (PMS)"], ["pas", "PAS e ações"], ["validacoes", "Validações"]] as const;
-  const precisaPlano = ["painel", "metas", "kanban", "cronograma", "alertas", "fca", "reprogramacao", "rdqa", "reunioes", "diagnostico", "relatorios"].includes(aba);
+  const precisaPlano = ["checklist", "painel", "metas", "kanban", "cronograma", "alertas", "fca", "reprogramacao", "rdqa", "reunioes", "diagnostico", "relatorios"].includes(aba);
   return (
     <div style={{ padding: 20, maxWidth: 1300, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
@@ -904,6 +1010,7 @@ export default function PmsVivo() {
         <span style={{ fontSize: 12, color: "#64748b" }}>Troque a versão do PMS na aba "Plano (PMS)".</span>
       </div> : <div style={card}>Cadastre ou selecione um PMS na aba "Plano (PMS)".</div>)}
       {precisaPlano && planoId && plano && <>
+        {aba === "checklist" && <ChecklistPas planoId={planoId} ano={ano} ref_={ref_.data} />}
         {aba === "painel" && <PainelGestor planoId={planoId} ano={ano} />}
         {aba === "metas" && <Metas planoId={planoId} ano={ano} ref_={ref_.data} />}
         {aba === "kanban" && <Kanban planoId={planoId} ano={ano} ref_={ref_.data} />}

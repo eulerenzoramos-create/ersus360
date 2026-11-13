@@ -1455,6 +1455,23 @@ async def desvincular_diagnostico(vid: int, request: Request, current: SessaoMun
     return {"ok": True}
 
 
+# ── Checklist de execução da PAS ("foi feito?") ──────────────────────────────
+
+@router.get("/planos/{plano_id}/checklist")
+async def checklist_execucao(plano_id: int, current: SessaoMunicipal, ano: Optional[int] = None,
+                             db: AsyncSession = Depends(get_db)):
+    from services import pms_checklist as chk
+    p = await _get(db, current, PmsPlano, plano_id, "pms_plano")
+    ano = ano or date.today().year
+    if ano not in svc.anos_do(p):
+        raise HTTPException(422, f"Exercício fora da vigência do PMS ({p.vigencia_inicio}–{p.vigencia_fim}).")
+    dados = await chk.checklist(db, p, ano)
+    dados["status"] = chk.STATUS_CHECKLIST
+    dados["marcacoes"] = chk.MARCACOES
+    dados["pode_validar"] = svc.pode_validar(current)
+    return dados
+
+
 # ── Relatórios e exportações ─────────────────────────────────────────────────
 
 @router.get("/planos/{plano_id}/relatorios/{tipo}")
