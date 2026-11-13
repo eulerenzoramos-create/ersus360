@@ -116,7 +116,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Home, BarChart2, Map, ChevronDown, ChevronRight,
-  ArrowLeftRight, Target, Building2, Bot, LogOut, GitBranch,
+  ArrowLeftRight, Target, Building2, Bot, LogOut, GitBranch, KeyRound,
   FileText, DollarSign, FolderOpen, BarChart3, ClipboardList,
   Activity, Pill, ShieldCheck, Truck, Network, MapPin, Users,
   Landmark, Baby, Heart, Stethoscope, Syringe, FlaskConical,
@@ -479,6 +479,7 @@ const PainelIntegracoes = lazy(() => import("./pages/PainelIntegracoes"));
 const GatewayIntegracao = lazy(() => import("./pages/GatewayIntegracao"));
 import { SinoAlertas } from "./components/SinoAlertas";
 import ExportarRelatorio from "./components/ExportarRelatorio";
+import AlterarMinhaSenha from "./components/AlterarMinhaSenha";
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
 
@@ -682,6 +683,7 @@ function Layout({ children, sessao, onLogout }: {
   const [trocando, setTrocando] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [trocandoSenha, setTrocandoSenha] = useState(false);
   const navigate = useNavigate();
   const emSuporte = sessao.administrador_geral && !!sessao.municipio_id;
   const ini = (nomeUsuario||"G").split(" ").map((w:string)=>w[0]).join("").slice(0,2).toUpperCase();
@@ -854,6 +856,12 @@ function Layout({ children, sessao, onLogout }: {
                 }}>
                   <Home size={14} color="#64748b"/> Voltar ao início
                 </button>
+                <button role="menuitem" onClick={()=>{ setUserMenuOpen(false); setTrocandoSenha(true); }} style={{
+                  width:"100%", textAlign:"left", background:"none", border:"none", cursor:"pointer",
+                  padding:"9px 14px", fontSize:12.5, color:"#1e293b", display:"flex", alignItems:"center", gap:8,
+                }}>
+                  <KeyRound size={14} color="#64748b"/> Alterar minha senha
+                </button>
                 <div style={{borderTop:"1px solid #f1f5f9", margin:"4px 0"}}/>
                 <button role="menuitem" onClick={()=>{ setUserMenuOpen(false); setConfirmLogout(true); }} style={{
                   width:"100%", textAlign:"left", background:"none", border:"none", cursor:"pointer",
@@ -866,6 +874,8 @@ function Layout({ children, sessao, onLogout }: {
           </div>
         </div>
       </header>
+
+      {trocandoSenha && <AlterarMinhaSenha onClose={()=>setTrocandoSenha(false)}/>}
 
       {confirmLogout && (
         <div role="dialog" aria-modal="true" aria-label="Confirmar saída" onClick={()=>setConfirmLogout(false)} style={{

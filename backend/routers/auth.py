@@ -25,7 +25,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import HTTPConnection
@@ -371,6 +371,37 @@ async def me(current_user: CurrentUser):
 @router.post("/logout")
 async def logout():
     return {"message": "Logout realizado com sucesso"}
+
+
+class MinhaSenhaIn(BaseModel):
+    senha_atual: str = Field(min_length=1, max_length=200)
+    senha_nova: str = Field(min_length=8, max_length=200)
+
+
+@router.post("/minha-senha")
+async def alterar_minha_senha(body: MinhaSenhaIn, request: Request, current_user: CurrentUser,
+                              db: AsyncSession = Depends(get_db)):
+    """A própria pessoa troca a senha, confirmando a senha atual. Contas de sistema (administrador-geral
+    configurado por variável de ambiente) não têm senha no banco: a troca é feita no servidor."""
+    from models.usuario import Usuario
+    from tenancy.auditoria import registrar_auditoria
+    if not current_user.usuario_id:
+        raise HTTPException(409, "Esta é uma conta de sistema: a senha é definida no servidor (variável de ambiente), "
+                                 "não por esta tela.")
+    u = await db.get(Usuario, current_user.usuario_id)
+    if u is None or not u.ativo:
+        raise HTTPException(404, "Usuário não encontrado.")
+    if not _verify(body.senha_atual, u.senha_hash):
+        await registrar_auditoria(db, "USUARIO_SENHA_PROPRIA_FALHA", usuario=current_user, ip=ip_de(request),
+                                  tabela="usuarios", registro_id=u.id)
+        raise HTTPException(400, "Senha atual incorreta.")
+    if body.senha_nova == body.senha_atual:
+        raise HTTPException(422, "A nova senha precisa ser diferente da atual.")
+    u.senha_hash = pwd_ctx.hash(body.senha_nova)
+    await db.commit()
+    await registrar_auditoria(db, "USUARIO_SENHA_PROPRIA", usuario=current_user, ip=ip_de(request),
+                              tabela="usuarios", registro_id=u.id)
+    return {"ok": True}
 
 
 @router.get("/permissoes/{perfil}")
