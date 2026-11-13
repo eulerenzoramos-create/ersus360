@@ -163,6 +163,8 @@ async def alterar_senha(
 ):
     _somente_admin(current)
     u = await _usuario_do_municipio(db, current, usuario_id)
+    if u.perfil in _PERFIS_GLOBAIS and not current.administrador_geral:
+        raise HTTPException(403, "Só o administrador-geral redefine a senha de um perfil global")
     u.senha_hash = pwd_ctx.hash(dados.senha_nova)
     await db.commit()
     await registrar_auditoria(db, "USUARIO_SENHA", usuario=current, tabela="usuarios", registro_id=u.id)

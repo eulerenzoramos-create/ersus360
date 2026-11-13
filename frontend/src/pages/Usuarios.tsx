@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, apiUsuarios } from "../lib/api";
-import { Users, Plus, Trash2, Check, X, ShieldCheck, Lock } from "lucide-react";
+import { Users, Plus, Trash2, Check, X, ShieldCheck, Lock, KeyRound } from "lucide-react";
 
 const S = {
   page:  { padding: 20 } as React.CSSProperties,
@@ -66,6 +66,11 @@ export default function Usuarios() {
   const [criando, setCriando] = useState(false);
   const [form, setForm] = useState(FORM_VAZIO);
   const [perfilSelecionado, setPerfilSelecionado] = useState("");
+  // Redefinir senha: um usuário por vez; a senha nunca é exibida nem guardada fora deste formulário.
+  const [senhaDe, setSenhaDe] = useState<number | null>(null);
+  const [senhaNova, setSenhaNova] = useState("");
+  const [senhaConf, setSenhaConf] = useState("");
+  const [senhaMsg, setSenhaMsg] = useState<{ ok: boolean; texto: string } | null>(null);
 
   const perfilAtual = localStorage.getItem("ersus_perfil") ?? "";
   const podeGerenciar = ["administrador_geral", "superadmin", "admin"].includes(perfilAtual);
@@ -98,6 +103,28 @@ export default function Usuarios() {
     mutationFn: (id: number) => api.delete(`/api/usuarios/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["usuarios"] }),
   });
+
+  const fecharSenha = () => { setSenhaDe(null); setSenhaNova(""); setSenhaConf(""); };
+
+  const redefinirSenha = useMutation({
+    mutationFn: ({ id, senha }: { id: number; senha: string }) =>
+      api.put(`/api/usuarios/${id}/senha`, { senha_nova: senha }).then((r) => r.data),
+    onSuccess: (_d, { id }) => {
+      const nome = (usuarios as Usuario[]).find((u) => u.id === id)?.nome ?? "usuário";
+      fecharSenha();
+      setSenhaMsg({ ok: true, texto: `Senha de "${nome}" redefinida. Informe a nova senha pessoalmente à pessoa.` });
+    },
+    onError: (e: any) => {
+      const d = e?.response?.data?.detail;
+      setSenhaMsg({ ok: false, texto: typeof d === "string" ? d : "Não foi possível redefinir a senha. Tente novamente." });
+    },
+  });
+
+  const confirmarSenha = (id: number) => {
+    if (senhaNova.length < 8) { setSenhaMsg({ ok: false, texto: "A senha precisa ter pelo menos 8 caracteres." }); return; }
+    if (senhaNova !== senhaConf) { setSenhaMsg({ ok: false, texto: "As duas senhas digitadas não são iguais." }); return; }
+    redefinirSenha.mutate({ id, senha: senhaNova });
+  };
 
   const perfilInfo = (p: string) => PERFIS.find((x) => x.value === p) ?? { label: p, cor: "#737373" };
 
@@ -183,10 +210,18 @@ export default function Usuarios() {
           </div>
         )}
 
+        {senhaMsg && (
+          <div role="status" style={{ background: senhaMsg.ok ? "#f0fdf4" : "#fef2f2", border: `1px solid ${senhaMsg.ok ? "#86efac" : "#fca5a5"}`, color: senhaMsg.ok ? "#166534" : "#991b1b", borderRadius: 6, padding: "8px 12px", fontSize: 12, marginBottom: 10, display: "flex", justifyContent: "space-between", gap: 8 }}>
+            <span>{senhaMsg.texto}</span>
+            <button onClick={() => setSenhaMsg(null)} aria-label="Fechar aviso" style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0 }}><X size={13} /></button>
+          </div>
+        )}
+
         {usrFiltrados.map((u: Usuario) => {
           const p = perfilInfo(u.perfil);
           return (
-            <div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #f0f0ee" }}>
+            <div key={u.id} style={{ borderBottom: "1px solid #f0f0ee" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0" }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
                   <div style={{ width: 28, height: 28, borderRadius: "50%", background: p.cor + "20", color: p.cor, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>
@@ -206,14 +241,45 @@ export default function Usuarios() {
                 </div>
               </div>
               {u.ativo && (
-                <button
-                  onClick={() => { if (window.confirm(`Desativar usuário "${u.nome}"?`)) desativar.mutate(u.id); }}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: 4 }}
-                  title="Desativar usuário"
-                >
-                  <Trash2 size={14} />
-                </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <button
+                    onClick={() => { setSenhaMsg(null); setSenhaNova(""); setSenhaConf(""); setSenhaDe(senhaDe === u.id ? null : u.id); }}
+                    style={{ background: "none", border: "1px solid #bfdbfe", borderRadius: 6, cursor: "pointer", color: "#1e40af", padding: "4px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
+                    title="Redefinir senha"
+                  >
+                    <KeyRound size={13} /> Redefinir senha
+                  </button>
+                  <button
+                    onClick={() => { if (window.confirm(`Desativar usuário "${u.nome}"?`)) desativar.mutate(u.id); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: 4 }}
+                    title="Desativar usuário"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               )}
+            </div>
+            {senhaDe === u.id && (
+              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 12, marginBottom: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#1e293b", marginBottom: 8 }}>Nova senha para {u.nome}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 11, color: "#475569", display: "block", marginBottom: 3 }}>Nova senha (mínimo 8 caracteres)</label>
+                    <input type="password" autoComplete="new-password" style={S.input} value={senhaNova} onChange={(e) => setSenhaNova(e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, color: "#475569", display: "block", marginBottom: 3 }}>Repita a nova senha</label>
+                    <input type="password" autoComplete="new-password" style={S.input} value={senhaConf} onChange={(e) => setSenhaConf(e.target.value)} />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button style={S.btn("#1e40af")} disabled={redefinirSenha.isPending} onClick={() => confirmarSenha(u.id)}>
+                    <Check size={13} /> {redefinirSenha.isPending ? "Salvando…" : "Salvar nova senha"}
+                  </button>
+                  <button style={S.btn()} onClick={fecharSenha}><X size={13} /> Cancelar</button>
+                </div>
+              </div>
+            )}
             </div>
           );
         })}
